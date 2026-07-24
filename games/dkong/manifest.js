@@ -345,5 +345,8 @@ export default {
     "0x144f": { module: "./optimized/loc_144f.js", export: "loc_144f" },
     "0x1c33": { module: "./optimized/loc_1c33.js", export: "loc_1c33" },
     "0x2c86": { module: "./optimized/loc_2c86.js", export: "loc_2c86" },
+    "0x1a4b": { module: "./optimized/arm_1a4b.js", export: "arm_1a4b" },
+    "0x1a15": { module: "./optimized/loc_1a15.js", export: "loc_1a15" },
+    "0x1e10": { module: "./optimized/loc_1e10.js", export: "loc_1e10" },
   },
 };
