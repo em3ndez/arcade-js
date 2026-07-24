@@ -348,5 +348,9 @@ export default {
     "0x1a4b": { module: "./optimized/arm_1a4b.js", export: "arm_1a4b" },
     "0x1a15": { module: "./optimized/loc_1a15.js", export: "loc_1a15" },
     "0x1e10": { module: "./optimized/loc_1e10.js", export: "loc_1e10" },
+    "0x2284": { module: "./optimized/descend_2284.js", export: "descend_2284" },
+    "0x2e9c": { module: "./optimized/loc_2e9c.js", export: "loc_2e9c" },
+    "0x1b45": { module: "./optimized/loc_1b45.js", export: "loc_1b45" },
+    "0x1f8d": { module: "./optimized/loc_1f8d.js", export: "loc_1f8d" },
   },
 };
