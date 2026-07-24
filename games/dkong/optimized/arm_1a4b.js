@@ -3,11 +3,13 @@
  * arm_1a4b — hand-optimized rewrite of the translated routine at ROM 0x1A4B,
  * proven equal to its oracle by the equivalence harness.
  *
- * It touches exactly one work-RAM address, 0x6291, which has no evidenced name in
- * ram.js yet (FOOTPRINT placeholder SCRATCH_6291), so it stays hex here with a
- * comment; a naming candidate (EDGE_PICKUP_ARMED) is reported to the confirmer.
- * This routine therefore imports nothing from ram.js — its one address is unnamed.
+ * It touches exactly one work-RAM address, 0x6291, now named EDGE_RIVET_ARMED in
+ * ram.js — a reviewer re-derived the name against the oracle: it is the rivet-removal
+ * subsystem's edge-triggered one-shot armed latch (SET at ROM 0x1A4D, gated by the
+ * `dec a` read at ROM 0x1A43, DISARMED at ROM 0x1A51). Imported below.
  */
+
+import { EDGE_RIVET_ARMED } from "./ram.js";
 
 /**
  * arm_1a4b -- ARM the edge-item pickup.  [ROM 0x1A4B-0x1A50; a TAIL target of sub_1a33]
@@ -24,8 +26,8 @@
  * returns. On a LATER frame, when the player is no longer exactly on the edge,
  * sub_1a33 takes its other path (ROM 0x1A43): `ld a,(0x6291) / dec a / jp z,0x1a51`
  * -- it processes the pickup only if the flag is 1, and the pickup handler's first
- * act (ROM 0x1A51 `ld (0x6291),a`, with A==0) DISARMS it. So 0x6291 is an
- * "edge-pickup armed" one-shot: arm_1a4b raises it on the edge-hit frame; sub_1a33
+ * act (ROM 0x1A51 `ld (0x6291),a`, with A==0) DISARMS it. So 0x6291 = EDGE_RIVET_ARMED
+ * is a rivet-scoped one-shot: arm_1a4b raises it on the edge-hit frame; sub_1a33
  * consumes and clears it on the following collect frame.
  *
  * INPUTS  : none read. (The edge test that decides whether this routine runs at all
@@ -70,9 +72,9 @@ export function arm_1a4b(m) {
   regs.a = 0x01;
   m.step(0x1a4d, 7);
 
-  // ld (0x6291),a -- raise the EDGE-PICKUP ARMED latch. 0x6291 is unnamed in ram.js
-  // (proposed name EDGE_PICKUP_ARMED); work RAM, so no hardware bus cycle to pin.
-  mem.write8(0x6291, regs.a);
+  // ld (0x6291),a -- raise the EDGE_RIVET_ARMED latch (0x6291, ram.js); work RAM, so no
+  // hardware bus cycle to pin.
+  mem.write8(EDGE_RIVET_ARMED, regs.a);
   m.step(0x1a50, 13);
 
   // ret -- back to sub_1a33's caller. arm_1a4b is a TAIL target (sub_1a33 jp'd here

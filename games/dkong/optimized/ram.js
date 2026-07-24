@@ -337,8 +337,16 @@ export const HOW_HIGH_LAST_SEQ = 0x622F;
  *  (ROM 0x1A86); at 0 the board-complete test at ROM 0x1E80 forces GAME_SUBSTATE = 0x16. */
 export const RIVETS_LEFT = 0x6290;
 
+/** Edge-triggered one-shot armed latch in the rivet-removal subsystem. arm_1a4b SETs it to 1
+ *  (ROM 0x1A4D) when the player reaches a rivet-board screen-edge column (MARIO_X 0x4B/0xB3);
+ *  sub_1a33's READ+`dec a` gate (ROM 0x1A43) proceeds only if it was 1, and ROM 0x1A51 DISARMs
+ *  it back to 0. Rivet-scoped one-shot: sits just below RIVET_PRESENT but is NOT part of the
+ *  rivet array. */
+export const EDGE_RIVET_ARMED = 0x6291;
+
 /** 8 per-rivet present flags (1 = still there) at 0x6292-0x6299; ROM 0x1A7B indexes 0x6292+b,
- *  tests+clears it, then decrements RIVETS_LEFT. (0x6291 sits just below and is NOT part of the array.) */
+ *  tests+clears it, then decrements RIVETS_LEFT. (0x6291 = EDGE_RIVET_ARMED sits just below and
+ *  is NOT part of the array.) */
 export const RIVET_PRESENT = 0x6292; // [8]
 
 // ── Score & bonus ────────────────────────────────────────────────────────────
@@ -381,6 +389,11 @@ export const BONUS_TICK = 0x62B4;
 /** Small state machine (0-3) run by `ld a,(0x6386) / rst 0x28` at ROM 0x1A07; set to 1 by both
  *  bonus-decrement sites the moment BONUS hits 0. */
 export const BONUS_EXPIRED_STEP = 0x6386;
+
+/** Countdown-delay timer of the bonus-expired sequence. CLEARED to 0 by loc_1a15's INIT step
+ *  (ROM 0x1A16); state 2 (loc_1a1f) counts it down `dec (hl) / ret nz` (ROM 0x1A22) and advances
+ *  BONUS_EXPIRED_STEP to 3 on underflow. */
+export const BONUS_EXPIRED_DELAY = 0x6387;
 
 // ── Coins & DIPs ─────────────────────────────────────────────────────────────
 // Source: ram-verify-world.md.
@@ -538,12 +551,16 @@ export const SND_PRIORITY_FRAMES = 0x608B;
 //   Board/animation scratch:    0x6030 0x6031 0x6032 0x6034 0x6035 0x6036 0x6038 0x603A
 //                               0x6060 0x6100 0x611C 0x61A5 0x61B1 0x61C6 0x61C7
 //   0x63xx engine scratch:      0x6300 0x6310 0x6340 0x6341 0x6342 0x6343 0x6345 0x6346
-//                               0x6348 0x6350 0x6382 0x6387 0x6388 0x638C 0x638F 0x6390
+//                               0x6348 0x6350 0x6382 0x6388 0x638C 0x638F 0x6390
 //                               0x6392 0x6393 0x63A0
 //                               (0x6391 was PROMOTED to COLOUR_CYCLE_ACTIVE above — control-poke
-//                               confirmed it unshared; 0x6390 & 0x6393 rejection UPHELD as shared bytes)
+//                               confirmed it unshared; 0x6390 & 0x6393 rejection UPHELD as shared bytes.
+//                               0x6387 was PROMOTED to BONUS_EXPIRED_DELAY above — the
+//                               bonus-expired sequence's delay timer, ROM-cited unshared.)
 //   Board-object bookkeeping:   0x62AA 0x62AC 0x62AF 0x62B5 0x62B6 0x62B7 0x62B8 0x62B9
-//                               0x62BA 0x6291 (0x6291 sits below the rivet array, NOT part of it)
+//                               0x62BA
+//                               (0x6291 was PROMOTED to EDGE_RIVET_ARMED above — the
+//                               rivet-removal edge one-shot; sits below the rivet array, NOT part of it)
 //
 // Deferred-not-rejected, and NOW named above from the OTHER half:
 //   0x6010 0x6011  world left them "for whoever owns input" — named here as
@@ -1222,7 +1239,7 @@ export const FOOTPRINT = {
   0x628e: "SCRATCH_628e", // -w
   0x628f: "SCRATCH_628f", // -w
   0x6290: "RIVETS_LEFT", // -w
-  0x6291: "SCRATCH_6291", // -w
+  0x6291: "EDGE_RIVET_ARMED", // -w
   0x6292: "RIVET_PRESENT", // -w
   0x6293: "SCRATCH_6293", // -w
   0x6294: "SCRATCH_6294", // -w
@@ -1468,7 +1485,7 @@ export const FOOTPRINT = {
   0x6384: "DIFFICULTY_PRESCALER", // rw
   0x6385: "INTRO_STEP", // rw
   0x6386: "BONUS_EXPIRED_STEP", // rw
-  0x6387: "SCRATCH_6387", // -w
+  0x6387: "BONUS_EXPIRED_DELAY", // -w
   0x6388: "SCRATCH_6388", // -w
   0x6389: "SCRATCH_6389", // rw
   0x638a: "SCRATCH_638a", // -w

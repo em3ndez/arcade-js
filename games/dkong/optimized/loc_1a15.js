@@ -6,12 +6,12 @@
  * One routine per file. loc_1a15 CALLS NOTHING: after its two stores it falls
  * straight into the shared 0x1A1E `ret` (the state machine's idx0 "no-op ret"),
  * which the oracle models as a plain `m.ret(10)` here — there is no `m.call`, so
- * nothing resolves through the routine registry. Only the RAM name
- * BONUS_EXPIRED_STEP (0x6386) is imported from ram.js; its sibling delay byte
- * 0x6387 stays hex (see NAMES).
+ * nothing resolves through the routine registry. Both RAM names it writes —
+ * BONUS_EXPIRED_STEP (0x6386) and its sibling delay byte BONUS_EXPIRED_DELAY
+ * (0x6387) — are imported from ram.js (see NAMES).
  */
 
-import { BONUS_EXPIRED_STEP } from "./ram.js";
+import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY } from "./ram.js";
 
 /**
  * loc_1a15 -- the bonus-expired state machine's INIT step (idx1).  [ROM 0x1A15-0x1A1D,
@@ -48,13 +48,12 @@ import { BONUS_EXPIRED_STEP } from "./ram.js";
  *           dispatcher. No boolean is returned (the oracle's `m.ret` returns
  *           undefined); loc_197a's caller (entry_1a07) turns that into `true`.
  *
- * NAMES.  0x6386 is BONUS_EXPIRED_STEP (ram.js), imported. 0x6387 is left HEX
- *   (ram.js SCRATCH_6387): it is the DELAY COUNTER of this same sequence -- loc_1a15
- *   clears it here and loc_1a1f (state 2) does `dec (0x6387) / ret nz`, advancing to
- *   state 3 only when it underflows to 0 (ROM 0x1A22-0x1A29). That ROM pairing is
- *   strong evidence it is the bonus-expired delay timer, but it has no control-poke
- *   of its own yet, so naming it here would outrun the evidence bar -- reported as a
- *   candidate (BONUS_EXPIRED_DELAY), not asserted.
+ * NAMES.  0x6386 is BONUS_EXPIRED_STEP (ram.js), imported. 0x6387 is
+ *   BONUS_EXPIRED_DELAY (ram.js), also imported: it is the DELAY COUNTER of this same
+ *   sequence -- loc_1a15 clears it here and loc_1a1f (state 2) does `dec (0x6387) /
+ *   ret nz`, advancing to state 3 only when it underflows to 0 (ROM 0x1A22-0x1A29).
+ *   A reviewer re-derived that name against the oracle (this INIT clear at ROM 0x1A16
+ *   plus the state-2 countdown), so it is now asserted, not a candidate.
  *
  * FLAGS -- `xor a` is KEPT (not replaced by a plain `regs.a = 0`) because it is the
  *   routine's LAST flag writer: the three instructions after it (`ld (nn),a`,
@@ -86,7 +85,7 @@ export function loc_1a15(m) {
   // delay counter AND the routine's exit flags -- it is the LAST flag writer, and
   // the stores + `ld a,2` below touch no flag (see FLAGS).
   regs.xor(regs.a);
-  mem.write8(0x6387, regs.a); // delay counter (0x6387) := 0 -- state 2 counts it down (see NAMES)
+  mem.write8(BONUS_EXPIRED_DELAY, regs.a); // delay counter := 0 -- state 2 counts it down (see NAMES)
 
   // Advance the bonus-expired state machine from 1 (INIT) to 2 (DELAY).
   regs.a = 0x02;

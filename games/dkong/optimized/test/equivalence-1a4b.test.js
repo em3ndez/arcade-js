@@ -49,7 +49,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built -- run 'make -C games/dkong rom'" }, fn);
 
-const ARMED_FLAG = 0x6291; // unnamed in ram.js (SCRATCH_6291); proposed EDGE_PICKUP_ARMED
+const ARMED_FLAG = 0x6291; // EDGE_RIVET_ARMED in ram.js (rivet-scoped one-shot latch)
 const FRAMES = 600;        // loc_0fd7 dispatches in attract well within this (see sub_13ca)
 const ORACLE_CYCLES = 30;  // 7 (ld a,n) + 13 (ld (nn),a) + 10 (ret)
 
