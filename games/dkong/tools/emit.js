@@ -22,6 +22,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Machine, resolveOverrides } from "../machine.js";
+import { installEntropyPin } from "../../../core/entropy-pin.js";
 import manifest from "../manifest.js";
 import { STATE_DUMP_SIZE } from "../../../boards/dkong/memory.js";
 
@@ -98,6 +99,7 @@ function parseArgs(argv) {
         break;
       }
       case "--post-boot": args.postBoot = true; break;
+      case "--pin-entropy": args.pinEntropy = true; break;
       default:
         throw new Error(`unknown argument: ${argv[i]}`);
     }
@@ -128,6 +130,10 @@ async function main() {
       }
     : {};
   const machine = new Machine(rom, { ...video, overrides });
+  // TEST-ONLY: pin the RNG working set deterministically so a JS<->MAME diff isn't polluted by
+  // the spin-counter race (see core/entropy-pin.js). The MAME side applies the mirror patches via
+  // tools/lua/pin_entropy.lua. Never used by the shipped game.
+  if (args.pinEntropy) installEntropyPin(machine, manifest.entropyPin);
   machine.pokes = args.pokes;
   machine.inputTape = args.inputs;
   if (args.writesOut) machine.mem.writeTrace = [];

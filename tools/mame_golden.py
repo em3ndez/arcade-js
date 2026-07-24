@@ -118,6 +118,11 @@ def build_mame_argv(args, hw, workdir, avi_name="out"):
         )
         shim = os.path.join(workdir, "tape_shim.lua")
         with open(shim, "w") as fh:
+            # TEST-ONLY entropy pin FIRST: it patches ROM at load, before the CPU runs and
+            # before the tape's input notifier, so the RNG is pinned for the whole run.
+            if args.pin_entropy:
+                pin_lua = os.path.join(args.lua_dir, "pin_entropy.lua")
+                fh.write("dofile(%r)\n" % os.path.abspath(pin_lua))
             fh.write("dofile(%r)\n" % os.path.abspath(args.tape))
             fh.write("dofile(%r)\n" % inner)
         argv += ["-autoboot_script", shim]
@@ -242,6 +247,13 @@ def main():
     )
     p.add_argument("--playback", help="input tape to play back (.inp)")
     p.add_argument("--record", help="record an input tape to this path (.inp)")
+    p.add_argument(
+        "--pin-entropy",
+        dest="pin_entropy",
+        help="TEST-ONLY: entropy-pin spec 'AAAA:VV,...' (from the game's "
+        "entropyPinRomSpec). Applies tools/lua/pin_entropy.lua before the tape so the "
+        "game's RNG matches the pinned JS engine. See docs/08-entropy-pinning.md.",
+    )
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"))
     p.add_argument("--mame", default="mame")
     p.add_argument("--no-frames", action="store_true", help="skip AVI/frame capture")
@@ -293,6 +305,8 @@ def main():
         env["WRITES_OUT"] = os.path.join(workdir, "writes.txt")
         # Config-only mode: still certify DSW0 when no state dump is wanted.
         env["STATE_ENABLED"] = "0" if args.no_state else "1"
+        if args.pin_entropy:
+            env["ENTROPY_PIN"] = args.pin_entropy  # read by tools/lua/pin_entropy.lua
         if args.at_pc:
             env["PC_TARGET"] = args.at_pc
             env["PC_META"] = os.path.join(args.out, "state_at_pc.txt")

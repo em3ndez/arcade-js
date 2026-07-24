@@ -60,3 +60,12 @@ Arcade ROM data is copyrighted and is **never committed**. Each game ships a man
 part filenames and their checksums; `make -C games/<id> rom` assembles the images from a dump the user
 supplies and verifies them against the pinned sha256, so a wrong romset fails loudly. This repo
 distributes tools, translation, and analysis metadata — never the original bytes.
+
+## A validation gotcha you *will* hit: RNG that races the beam
+
+Most arcade games seed randomness from a spin counter the main loop increments while waiting for the
+vblank interrupt. It is timing-derived, so a cycle-accurate-but-not-exact translation forks it within
+a few frames and every RNG-driven sprite drifts — a long pixel diff then looks broken though the logic
+is identical. Don't chase cycle-exactness for it; **pin the entropy** for equivalence testing instead
+(declare `manifest.entropyPin`, run with `--pin-entropy`). The full method — discovery, the pin, and
+the convergent diff for the residual DMA artifact — is **docs/08-entropy-pinning.md**.

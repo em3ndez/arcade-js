@@ -113,6 +113,33 @@ export default {
     },
   },
 
+  // Entropy pinning for JS<->MAME equivalence testing (TEST-ONLY; never shipped). DK's RNG is a
+  // main-loop spin counter at 0x6019, raced against the vblank NMI and mixed into the seed 0x6018
+  // once per frame by sub_0057 (0x6018 = 0x6018 + 0x601a + 0x6019). The spin count is the only
+  // divergent input (0x601a, the NMI counter, is the synced twin) — it forks within ~9 frames
+  // because the translation isn't cycle-exact on the CPU-vs-beam race, and every RNG-driven sprite
+  // then drifts. Discovered by the attract-mode RAM diff (docs/08-entropy-pinning.md).
+  //
+  // The pin makes the whole RNG working set read a deterministic 0 on both engines: pin the seed
+  // 0x6018 to its boot value (drop its single writer, sub_0057's store) and point 0x6019's direct
+  // readers at the pinned seed. This is independent of 0x601a (which carries ±1 cutscene jitter
+  // from the DMA-timing artifact) and of any 0x6019 writer. See core/entropy-pin.js (JS seam) and
+  // tools/lua/pin_entropy.lua (MAME ROM patches); both realize the SAME intent, expressed twice so
+  // they can be checked against each other. Result: the RNG-driven pixel divergence vanishes; the
+  // residual is the accepted DMA cutscene artifact (validate under a convergent/align-tolerant diff).
+  entropyPin: {
+    seedBytes: [0x6018], // JS: drop writes -> 0x6018 stays boot 0
+    redirectReads: [{ from: 0x6019, to: 0x6018 }], // JS: reads of 0x6019 return the pinned seed
+    romPatches: [
+      // MAME: same effect via cycle-neutral operand rewrites (`from` documents the original byte).
+      { at: 0x0063, from: 0x18, to: 0x00 }, // sub_0057 `ld (0x6018),a` -> `ld (0x0000),a` (write to ROM ignored)
+      { at: 0x0064, from: 0x60, to: 0x00 },
+      { at: 0x03f4, from: 0x19, to: 0x18 }, // sub_03f2 `ld a,(0x6019)` -> `ld a,(0x6018)`
+      { at: 0x2c3d, from: 0x19, to: 0x18 }, // state0   `ld a,(0x6019)` -> `ld a,(0x6018)`
+      { at: 0x34cd, from: 0x19, to: 0x18 }, // state0   `ld a,(0x6019)` -> `ld a,(0x6018)`
+    ],
+  },
+
   // Per-routine overrides: swap a translated/ routine for an optimized/ rewrite,
   // but only once it passes the equivalence gates (games/dkong/optimized/harness.js).
   //
