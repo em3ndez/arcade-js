@@ -342,5 +342,8 @@ export default {
     "0x2079": { module: "./optimized/sub_2079.js", export: "sub_2079" },
     "0x2153": { module: "./optimized/loc_2153.js", export: "loc_2153" },
     "0x2a22": { module: "./optimized/sub_2a22.js", export: "sub_2a22" },
+    "0x144f": { module: "./optimized/loc_144f.js", export: "loc_144f" },
+    "0x1c33": { module: "./optimized/loc_1c33.js", export: "loc_1c33" },
+    "0x2c86": { module: "./optimized/loc_2c86.js", export: "loc_2c86" },
   },
 };
