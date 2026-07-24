@@ -339,5 +339,8 @@ export default {
     "0x11fa": { module: "./optimized/sub_11fa.js", export: "sub_11fa" },
     "0x122a": { module: "./optimized/sub_122a.js", export: "sub_122a" },
     "0x2441": { module: "./optimized/sub_2441.js", export: "sub_2441" },
+    "0x2079": { module: "./optimized/sub_2079.js", export: "sub_2079" },
+    "0x2153": { module: "./optimized/loc_2153.js", export: "loc_2153" },
+    "0x2a22": { module: "./optimized/sub_2a22.js", export: "sub_2a22" },
   },
 };
