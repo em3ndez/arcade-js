@@ -368,5 +368,10 @@ export default {
     "0x2e04": { module: "./optimized/entry_2e04.js", export: "entry_2e04" },
     "0x1d8f": { module: "./optimized/sub_1d8f.js", export: "sub_1d8f" },
     "0x1d8a": { module: "./optimized/entry_1d8a.js", export: "entry_1d8a" },
+    "0x1bf2": { module: "./optimized/entry_1bf2.js", export: "entry_1bf2" },
+    "0x20b5": { module: "./optimized/sub_20b5.js", export: "sub_20b5" },
+    "0x215f": { module: "./optimized/loc_215f.js", export: "loc_215f" },
+    "0x21ba": { module: "./optimized/loc_21ba.js", export: "loc_21ba" },
+    "0x1f93": { module: "./optimized/loc_1f93.js", export: "loc_1f93" },
   },
 };
