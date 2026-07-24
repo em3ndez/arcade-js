@@ -54,19 +54,20 @@ import { P1_INPUT } from "./ram.js";
  * win is names, structure, and the docstring, not de-scaffolding.
  *
  * CYCLES -- KEPT PER-INSTRUCTION (NOT collapsed). loc_1b45 sits inside the
- * entry_1ac3 player-movement cascade, which is reached only from loc_197a — the
- * in-game update cascade the vblank NMI is documented to land inside mid-run
- * (docs/06 "Atomicity is the precondition"). A 0x1xxx cascade routine like this one
- * is therefore INTERRUPTIBLE, and docs/06 is explicit that a short run showing no NMI
- * landing in the 0x1xxx band is "not a licence to collapse them." Collapsing would
- * need the CONVERGENT gate to license it (as sub_0350 does), but loc_1b45 cannot be
- * reached by a whole-machine run in this harness: it dispatches only in real
- * gameplay with Mario on a ladder, and neither attract nor a driven coin+start input
- * tape advances the JS machine into that state (verified: game state 0x6005 stays 0,
- * no credit accrues; and no sibling 0x1a-0x1d cascade routine has been collapsed).
- * Rather than collapse an interruptible routine we cannot convergent-gate, the
- * charges stay one-per-instruction, so the per-frame cycle distribution is BYTE-
- * IDENTICAL to the oracle by construction — nothing to license. Equivalence is
+ * entry_1ac3 player-movement cascade, which is reached only from loc_197a, the
+ * in-game update cascade. That cascade runs ATOMIC inside the vblank NMI: the NMI
+ * handler clears the mask on entry so it cannot re-enter, and measured, io.nmiMask
+ * is 0 at every loc_197a/entry_1ac3 dispatch and no NMI pushed-PC ever lands in the
+ * 0x1900-0x2FFF cascade range. So loc_1b45 is NOT interruptible, and
+ * total-preservation alone would license a collapse. It is kept per-instruction for
+ * a SEPARATE reason: it cannot be reached by a whole-machine run in this harness —
+ * it dispatches only with Mario on a ladder (loc_1b38 reaches it only when
+ * MARIO_ON_LADDER 0x6215 != 0 and Down is not held), a state neither attract nor the
+ * harness's driven gameplay tapes enter (verified: 0 whole-machine dispatches, even
+ * in a 25m walk where the parent cascade runs 300+ times). With no whole-machine run
+ * to convergent-gate a collapse against, the charges stay one-per-instruction, so the
+ * per-frame cycle distribution is BYTE-IDENTICAL to the oracle by construction —
+ * nothing to license. Equivalence is
  * proven by the unit gate from a crafted entry with full-branch + cycle-total teeth
  * (the sub_13ca precedent); the branch totals are the oracle's exactly (Up-not-held
  * 41 t = 13+8+10+10; the climb arm charges 31 t of prologue = 13+8+10 before
@@ -75,7 +76,7 @@ import { P1_INPUT } from "./ram.js";
  * The climb path's `jp nz,0x1d03` is a TAIL jump with NO push16: entry_1d03's own
  * `ret` returns to loc_1b45's caller, not to here. entry_1d03 is reached via
  * `m.call(0x1d03)` so it resolves to the oracle or to its own optimized rewrite; it
- * is left to whatever the registry holds and is interruptible in its own right.
+ * is left to whatever the registry holds (it runs in-NMI within the same cascade).
  */
 export function loc_1b45(m) {
   const { regs, mem } = m;

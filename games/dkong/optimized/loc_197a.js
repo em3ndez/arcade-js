@@ -56,20 +56,25 @@ import { MARIO_ACTIVE } from "./ram.js";
  *   tail_19d2's return on the fall-through -- mirrored exactly (the caller-skip
  *   convention makes the boolean load-bearing).
  *
- * ATOMIC? NO -- decisively, and PROVEN so. This cascade dispatches the LONGEST
- * per-frame work in the game (the movement/enemy/collision engine, entry_1ac3 and
- * friends), all of it NMI-interruptible; a vblank frame boundary routinely lands
- * mid-cascade. So the per-instruction m.step charges are NOT collapsed -- each call
- * keeps its own 17t (and the gate/tail their exact charges), byte-identical to the
- * oracle. Same decision as loc_06fe (the state-3 sub-state dispatcher) -- but where
- * loc_06fe's collapse merely HAPPENED to stay EQUAL in the tested window, loc_197a's
- * has TEETH: collapsing the branch to a single front-loaded total (the handler_05c6-
- * style collapse) DIVERGES at frame 1035, stack 0x6BF6 (base 131 vs collapsed 192) --
- * the NMI lands at a different instruction inside the cascade and pushes a different
- * PC into diffed stack RAM (the entry_0611 mechanism, made concrete here). So this is
- * the routine that turns "keep per-instruction for a non-atomic cascade" from a
- * conservative choice into a measured requirement. Harness-verified the other way
- * too: with per-instruction charges the whole-machine gate stays EQUAL over 1300
+ * ATOMIC? YES -- it runs mask-cleared INSIDE the vblank NMI. This cascade dispatches
+ * the LONGEST per-frame work in the game (the movement/enemy/collision engine,
+ * entry_1ac3 and friends), but the NMI handler clears the NMI mask on entry, so the
+ * NMI cannot re-enter and cannot land mid-cascade. MEASURED: io.nmiMask is 0 at 100%
+ * of loc_197a/entry_1ac3/sub_2207 dispatches, and over ~1400 accepted NMIs ZERO
+ * pushed-PC landings fall in the 0x1900-0x2FFF cascade range (they cluster in the
+ * 0x02BD-0x0372 main-loop spin band). The per-instruction m.step charges are still
+ * NOT collapsed -- each call keeps its own 17t (and the gate/tail their exact
+ * charges), which makes the routine's total byte-identical to the oracle by
+ * construction (total-preservation, trivially satisfied). CORRECTION -- this routine
+ * was once written up as the "non-atomic counter-example the NMI lands inside." That
+ * was a MISDIAGNOSIS. Collapsing the branch to a single front-loaded total (the
+ * handler_05c6-style collapse) DOES diverge at frame 1035, stack 0x6BF6 (base 131 vs
+ * collapsed 192) -- but that collapse changed the cycle TOTAL, which reseeds
+ * SPIN_COUNT / the PRNG (docs/06 cycles channel 1), and the forked entropy propagates
+ * into the dead stack. It is a WRONG-TOTAL PRNG fork, NOT a mid-cascade NMI landing
+ * (there are none). The lesson is the ordinary one -- preserve the total -- not
+ * interruptibility. Harness-verified the other way too: with per-instruction charges
+ * the whole-machine gate stays EQUAL over 1300
  * frames. loc_197a writes NO hardware latch of its own (only work RAM: 0x6082, and
  * 0x600A/0x6009 via the tail), so there is no 0x7Dxx bus-cycle position to preserve
  * and no write-trace gate is needed.
@@ -83,7 +88,7 @@ export function loc_197a(m) {
   const { regs, mem } = m;
 
   // A plain `call NNNN`: push the return address, charge the 17t call, dispatch
-  // through the registry. Kept per-instruction (non-atomic cascade, see header).
+  // through the registry. Kept per-instruction (total-preservation by construction; see header).
   const call = (ret, target) => {
     m.push16(ret);
     m.step(target, 17);

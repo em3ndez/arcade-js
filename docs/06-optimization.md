@@ -109,15 +109,20 @@ Three caveats, each of which the sweep has hit:
   if the NMI cannot fire *inside* the routine — otherwise a mid-routine interrupt pushes the live
   PC, and a routine that redistributed its cycles pushes the *wrong* PC. A routine is atomic when it
   runs inside the NMI (whose handler clears the NMI mask on entry, so it cannot re-enter) **and**
-  calls nothing that itself spans a frame. The in-game update cascade `loc_197a` is the
-  counter-example: it dispatches the longest interruptible per-frame work, the NMI routinely lands
-  mid-cascade, and collapsing its total is *demonstrably wrong* — the harness diverges it in the
-  stack region. It is kept per-instruction. When in doubt, keep per-instruction and let the harness
+  calls nothing that itself spans a frame. The in-game update cascade `loc_197a` was once cited here
+  as the counter-example, but that was a **misdiagnosis**: measured, the whole cascade runs
+  mask-cleared *inside* the NMI (`io.nmiMask` is 0 at 100% of `loc_197a`/`entry_1ac3`/`sub_2207`
+  dispatches) and no NMI pushed-PC ever lands in its 0x1900–0x2FFF range (the histogram below), so it
+  is **atomic** — a collapse there is licensed by **total-preservation**, like any atomic routine. The
+  "stack-region divergence" once blamed on a mid-cascade interrupt was really a *wrong cycle total*
+  forking the PRNG, whose entropy propagation landed in the dead stack — a non-total-preserving
+  collapse, not an interrupt. It is still kept per-instruction (which makes its total byte-identical to
+  the oracle by construction). When in doubt, keep per-instruction and let the harness
   tell you the collapse is safe; never the other way round. And crucially, **atomicity is a property
   of every call path, not the routine alone**: a leaf reached by `m.call` from several places is
   atomic only if the NMI cannot fire inside it on *any* of them. The `rst`-vector helpers run inside
-  the NMI (atomic there) but are also called from the mask-enabled main loop and from `loc_197a`'s
-  interruptible cascade — so they are *not* atomic, and are kept per-instruction, even though a short
+  the NMI (atomic there) but are also called from the mask-enabled main loop — so they are *not*
+  atomic, and are kept per-instruction, even though a short
   attract run collapses cleanly (the NMI just never lands in that tiny window on that trajectory —
   absence of evidence again). Check the callers, not only the routine.
 - **Hardware writes carry a bus cycle the RAM gate cannot see.** A write to a tagged hardware latch
@@ -251,11 +256,13 @@ credited game (2500 frames, 2488 accepted NMIs), the pushed PC was recorded at e
 landed in 63 distinct addresses. **99.6% of the landings (2478 of 2488) fall in the main-loop band
 ROM 0x02BD–0x0372** (`sub_0315` / `sub_0347` / `sub_0350` and their neighbours) — the CPU finishes
 each frame's work quickly and spends the rest of the frame spinning for vblank, so the interrupt
-almost always catches it in the loop. No landing fell inside a 0x1xxx/0x2xxx gameplay routine on this
-run — but that is *not* a licence to collapse them. `loc_197a` is the demonstrated counter-example in
-the Cycles section above (the harness diverges its collapse), and a single 2500-frame run that
-happens not to catch it mid-cascade is exactly the absence-of-evidence this section goes on to warn
-against. What the histogram *does* license is narrower and firmer: the foreground interruptible
+almost always catches it in the loop. No landing fell inside a 0x1xxx/0x2xxx gameplay routine — and for
+the `loc_197a` cascade that is **structural, not luck**: it runs mask-cleared inside the NMI (measured:
+`io.nmiMask` is 0 at every dispatch), so the NMI cannot re-enter it and no pushed PC can land there
+(the Cycles section above corrects the earlier reading of it as interruptible). The caution the
+histogram does *not* waive is the other kind of routine — one the NMI genuinely *can* reach because it
+also runs on the mask-enabled main-loop path; for those a single run showing no landing is exactly the
+absence-of-evidence this section goes on to warn against. What the histogram *does* license is narrower and firmer: the foreground interruptible
 surface — where the main loop actually spends its cycles — is this 0x02BD–0x0372 band plus the thin
 tail below.
 

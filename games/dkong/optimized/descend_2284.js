@@ -24,7 +24,7 @@ import { MARIO_Y } from "./ram.js";
  *   2289  c9           ret
  *
  * WHAT IT DOES. loc_2259 (a state arm of the board-2 object animation dispatched
- * from the interruptible 0x197a per-frame cascade) calls this to advance a
+ * from the 0x197a per-frame cascade) calls this to advance a
  * descending object by one pixel. It:
  *   1. increments the LOGICAL Y (MARIO_Y, 0x6205) — the object drops one pixel;
  *   2. calls sub_3fc0, which stamps the object's sprite CODE byte (0x694d) to 0x03
@@ -57,18 +57,19 @@ import { MARIO_Y } from "./ram.js";
  *
  * CYCLES -- KEPT PER-INSTRUCTION (the oracle's exact charge distribution: 10, 11,
  * 17[call], 11, 10[ret]; own total 59 t, + sub_3fc0's 38 t = 97 t whole). NOT
- * collapsed. WHY: this routine is reached ONLY through the INTERRUPTIBLE 0x197a
- * cascade (sub_2207_body -> loc_2259 -> here), so the vblank NMI can land inside it
- * on that call path — docs/06's atomicity rule says keep per-instruction when the
- * NMI could land inside on ANY path. And the whole-machine convergent gate cannot
- * LICENSE a collapse here: the routine is dispatched only via an identical-both-sides
- * poke (a board-2 confluence), firing ~1x, and a single wrong total does not fork the
- * PRNG persistently under that poking — so a collapse would be one "it can't
- * whole-machine verify" (docs/06's per-instruction frontier case; measured — the
- * convergent gate does NOT catch a cycle-broken twin here). The de-scaffolding win is
- * therefore entirely NAMES, STRUCTURE and this docstring (which corrects the
- * HL-clobber semantics); the two pre-call charges stay separate so the distribution
- * is byte-identical to the oracle under any NMI landing. The `call 0x3fc0` stays a
+ * collapsed. WHY: this routine is reached ONLY through the 0x197a cascade
+ * (sub_2207_body -> loc_2259 -> here), which runs ATOMIC inside the vblank NMI
+ * (measured: io.nmiMask is 0 at every 0x197a/entry_1ac3/sub_2207 dispatch, and no NMI
+ * pushed-PC lands in the 0x1900-0x2FFF cascade range) — so the NMI cannot land inside
+ * it, and total-preservation would license a collapse as for any atomic routine. It is
+ * nonetheless kept per-instruction for a SEPARATE reason: it has 0 natural whole-machine
+ * dispatches — it fires only via an identical-both-sides poke (a board-2 confluence),
+ * ~1x, and a single wrong total does not fork the PRNG persistently under that poking —
+ * so a collapse cannot be whole-machine verified (docs/06's per-instruction frontier
+ * case; measured — the convergent gate does NOT catch a cycle-broken twin here). The
+ * de-scaffolding win is therefore entirely NAMES, STRUCTURE and this docstring (which
+ * corrects the HL-clobber semantics); the two pre-call charges stay separate so the
+ * distribution is byte-identical to the oracle. The `call 0x3fc0` stays a
  * boundary (m.push16 + m.step + m.call); no hardware-latch write occurs anywhere
  * (0x6205 and 0x694x are work RAM), so there is no write-trace pin.
  */

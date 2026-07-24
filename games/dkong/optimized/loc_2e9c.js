@@ -60,16 +60,16 @@ const SND_REQUEST = 0x03;
  * entirely names + docstring, not deletion.
  *
  * CYCLES -- KEPT PER-INSTRUCTION (NOT collapsed). This routine is reached only
- * through loc_197a, the interruptible per-frame update cascade (docs/06 names
- * loc_197a as THE counter-example the NMI lands inside), so it is NOT atomic:
- * the vblank NMI can fall between two of these four instructions, and the pushed
- * PC (which lands in diffed work RAM) must be the true instruction boundary. A
- * collapse would push the coarse block-exit PC instead. That is exactly the
- * divergence the CONVERGENT gate exists to license — but this routine has 0
- * whole-machine dispatches in attract or driven 25m gameplay (its object loop is
- * board-gated by entry_2e04's rst-30/rst-10 skip gates), so there is NO
- * whole-machine run to convergent-verify a collapse against. Per docs/06 ("when
- * in doubt, keep per-instruction"), the charges stay one-per-instruction, exact.
+ * through loc_197a, the per-frame update cascade, which runs ATOMIC inside the
+ * vblank NMI: the NMI handler clears the mask on entry so it cannot re-enter, and
+ * measured, no NMI pushed-PC ever lands in the 0x1900-0x2FFF cascade range
+ * (io.nmiMask is 0 at every loc_197a dispatch). So it is atomic, and
+ * total-preservation alone would license a collapse. It is kept per-instruction
+ * for a SEPARATE reason: it has 0 whole-machine dispatches in attract or driven
+ * 25m gameplay (its object loop is board-gated by entry_2e04's rst-30/rst-10 skip
+ * gates), so there is NO whole-machine run to convergent-verify a collapse
+ * against. Per docs/06 ("when in doubt, keep per-instruction"), the charges stay
+ * one-per-instruction, exact.
  * Total-preservation is therefore trivial (identical charges to the oracle), and
  * the crafted-entry test pins the total explicitly for insurance. The tail
  * `jp 0x2e4b` is a jump with NO push16, so loc_2e4b's own return goes to OUR
