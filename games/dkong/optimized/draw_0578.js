@@ -49,20 +49,33 @@
  * duplicates the body for its own caller sub_1486; it is not reached through
  * 0x0578 and this override does not touch it.)
  *
- * ATOMIC? NO -- kept PER-INSTRUCTION. draw_0578 is a LEAF reached only from the
- * MAIN LOOP: dispatchTask -> handler_05c6 -> {draw_056b | tail_05da} -> here (and
- * tail_05da is also reached from entry_051c). On every one of those call paths the
- * vblank-NMI mask is ENABLED, so the NMI CAN land inside this routine or inside its
- * interruptible callee loop_0583 (which itself `m.call`s sub_0593 twice per digit
- * pair). Per the per-call-path atomicity rule (README §2 / the sub_0020 & loc_197a
- * precedent), a main-loop-reachable leaf keeps its per-instruction `m.step` charges:
- * collapsing to one total would either move where the NMI lands inside the
- * downstream loop (changing the pushed PC, cf. entry_0611's stack-drift lesson) or,
- * if the NMI landed inside this prologue, change the pushed PC directly. Preserving
- * the oracle's exact per-instruction distribution is always correct, so it is kept
- * verbatim here. (No hardware 0x7Dxx latch is written in this routine; the only
- * stores are the VRAM digit writes inside sub_0593, a callee reached by m.call and
- * not rewritten, so there is no write-trace hazard to guard here.)
+ * CYCLES -- COLLAPSED to one m.step per basic block. Before it falls into
+ * loop_0583, draw_0578 has two basic blocks:
+ *   - Block A = `ld ix,0x7641` (0x0578, FALSE path only). 0x057C is an ALTERNATE
+ *     ROM entry -- draw_056b jumps in there via `m.call(0x0578, true)` -- so 0x057C
+ *     is a basic-block LEADER and `ld ix` stands alone. A single instruction, so
+ *     there is nothing to fold: its charge stays m.step(0x057c, 14).
+ *   - Block B = `ex de,hl / ld de,0xffe0 / ld bc,0x0304` (0x057c-0x0582), the
+ *     straight-line prologue common to BOTH entries. Its three per-instruction
+ *     charges (4 + 10 + 10) fold into ONE m.step(0x0583, 24) at the block-exit PC.
+ * Each entry PATH's TOTAL is the oracle's, EXACTLY: FALSE (0x0578) = 14 + 24 = 38 t;
+ * TRUE (0x057C) = 24 t -- total-preservation keeps the main loop's spin count
+ * (0x6019, the PRNG entropy) deterministic.
+ *
+ * draw_0578 is NOT atomic. It is a LEAF reached only from the MAIN LOOP
+ * (dispatchTask -> handler_05c6 -> {draw_056b | tail_05da} -> here; tail_05da is
+ * also reached from entry_051c), where the vblank-NMI mask is ENABLED, so the NMI
+ * CAN land inside this prologue or inside its interruptible callee loop_0583 (which
+ * itself `m.call`s sub_0593 twice per digit pair). The collapse coarsens WHERE an
+ * in-flight NMI's pushed PC lands -- the block-exit PC, not the exact instruction --
+ * which is exactly what the CONVERGENT gate LICENSES (docs/06;
+ * equivalence-0578.test.js gates the whole-machine job with convergentGate, not the
+ * strict byte-exact comparison). Its only observable effect is what a strict gate
+ * false-fails on: a mistimed NMI pushes the coarse block-exit PC into the DEAD stack
+ * (excluded) and can leave a single-frame <=6px raster tear that heals next frame;
+ * non-stack RAM stays byte-identical. No hardware 0x7Dxx latch is written here (the
+ * only stores are the VRAM digit writes inside sub_0593, a callee reached by m.call
+ * and not rewritten), so there is no write-trace hazard to guard here.
  *
  * FLAGS: draw_0578's own instructions (ld / ex de,hl) leave F untouched, and
  * loop_0583 -- reached via m.call -- overwrites F before any caller reads it. F is
@@ -73,21 +86,22 @@
 export function draw_0578(m, enteredAt057C = false) {
   const { regs } = m;
 
+  // Block A: ld ix,0x7641 -- default destination column. 0x057C is an ALTERNATE ROM
+  // entry (draw_056b jumps in via m.call(0x0578, true)), so it is a basic-block
+  // leader and this instruction stands alone -- a single instruction, nothing to
+  // fold. 14 t, exit 0x057c. (draw_056b's 0x057C entry skips it.)
   if (!enteredAt057C) {
-    // ld ix,0x7641 -- default destination column (draw_056b's 0x057C entry skips it).
     regs.ix = 0x7641;
     m.step(0x057c, 14);
   }
 
-  // ex de,hl -- source pointer into HL (its live-in survives only here).
-  regs.exDeHl();
-  m.step(0x057d, 4);
-  // ld de,0xffe0 -- per-digit destination step = -0x20 (one tilemap row up).
-  regs.de = 0xffe0;
-  m.step(0x0580, 10);
-  // ld bc,0x0304 -- B = 3 source bytes to expand; C = 4 (a marker, unread here).
-  regs.bc = 0x0304;
-  m.step(0x0583, 10);
+  // Block B: ex de,hl / ld de,0xffe0 / ld bc,0x0304 -- the straight-line prologue
+  // common to both entries; its three per-instruction charges (4 + 10 + 10) fold to
+  // ONE m.step at the block-exit PC 0x0583. 24 t.
+  regs.exDeHl();    // source pointer into HL (its live-in survives only here)
+  regs.de = 0xffe0; // per-digit destination step = -0x20 (one tilemap row up)
+  regs.bc = 0x0304; // B = 3 source bytes to expand; C = 4 (a marker, unread here)
+  m.step(0x0583, 24);
 
   // Fall THROUGH into loop_0583 (no push16): its `ret` returns to OUR caller.
   m.call(0x0583);

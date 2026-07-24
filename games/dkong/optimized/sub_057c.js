@@ -62,53 +62,70 @@ const BYTE_COUNT = 0x0304; //    ld bc,0x0304 -> B=3 source bytes, C=4 (a dead m
  * flags), and A is the last low nibble masked by 0x0593 — both match the oracle
  * by reproducing its exact operations.
  *
- * LADDER STATUS -- rung: named + documented + dead-code-dropped, PER-INSTRUCTION.
- * ATOMICITY: sub_057c's ONLY caller is sub_1486, which is dispatched from INSIDE
- * the vblank NMI (entry_0066 -> the 0x00CA game-state table -> loc_06fe -> the
- * 0x0702 sub-state table). The NMI clears its own mask on entry (0x7D84), so no
- * second NMI can land inside sub_1486 or its callees — sub_057c is therefore
- * ATOMIC on its one call path, and its internal cycle DISTRIBUTION would be free
- * to collapse to one total. It is kept PER-INSTRUCTION anyway, for the same
- * reason sub_1486 (its parent, same call path) documents: the body is dominated
- * by two `m.call(0x0593)` sites per iteration whose push16/step/call scaffolding
- * must stay at each call site regardless, so collapsing the few charges around
- * them buys essentially no readability while adding per-segment-total bookkeeping.
- * Per-instruction is byte-identical to the oracle, so it preserves each path's
- * TOTAL (which IS observable — it is part of the NMI's total, which sets the
- * main-loop spin count / PRNG entropy, README §2) for free. "When unsure, keep
- * per-instruction — it is always correct."
+ * LADDER STATUS -- rung 5 (idiomatic), cycles COLLAPSED to one m.step per basic
+ * block (the per-instruction charges of each straight-line run folded into a single
+ * charge at the block's exit PC), mirroring loop_0583 -- the SAME inlined loop
+ * factored out and already collapsed. sub_057c's inline copy folds identically:
+ *   - PROLOGUE  ex de,hl(4) + ld de,-0x20(10) + ld bc,0x0304(10) = 24 t, exit 0x0583.
+ *   - BLOCK A   ld a,(hl)(7) + rrca x4(16) = 23 t, exit 0x0588 (the HIGH-digit call).
+ *   - the two `m.call(0x0593)` sites keep their own push16 / step(17) / m.call
+ *     scaffolding UNTOUCHED -- a call is a block boundary.
+ *   - LOW digit ld a,(hl)(7) is a single instruction sandwiched between the two
+ *     calls, so nothing folds there (7 t, exit 0x058c).
+ *   - BLOCK B   dec hl(6) + djnz(13 taken / 8 not) = 19 t (loop continues, exit
+ *     0x0583) or 14 t (loop exits, exit 0x0592).
+ * Every fold's TOTAL is the oracle's, EXACTLY. sub_057c has a SINGLE data path
+ * (B=3 always): each `m.call(0x0593)` charges 17 t (the call) + 51 t inside the
+ * digit renderer = 68 t; a taken loop iteration is 23+68+7+68+19 = 185 t and the
+ * final (djnz-not-taken) iteration is 180 t, so the whole-routine total is
+ * 24 + 185 + 185 + 180 + 10(ret) = 584 t -- exactly the per-instruction oracle's.
+ * Total-preservation keeps the NMI's cycle contribution -- and thus the main loop's
+ * spin count / PRNG entropy (README §2) -- deterministic.
+ *
+ * ATOMICITY & GATE. sub_057c's ONLY caller is sub_1486, dispatched from INSIDE the
+ * vblank NMI (entry_0066 -> the 0x00CA game-state table -> loc_06fe -> the 0x0702
+ * sub-state table). The NMI clears its own mask on entry (0x7D84), so no second NMI
+ * can land inside sub_1486 or its callees -- sub_057c is ATOMIC on its one call
+ * path, so this collapse is byte-safe (no in-flight NMI ever pushes the coarsened
+ * block-exit PC into diffed stack RAM). The fleet gates ALL collapsed routines with
+ * the CONVERGENT gate uniformly (docs/06; equivalence-057c.test.js uses
+ * convergentGate on a phase-21 scenario, not the strict whole-machine comparator);
+ * for an atomic routine like this one it passes with ZERO raster tear, but the
+ * per-branch cycle TOTAL -- where the collapse's correctness lives -- is pinned by
+ * the unit BRANCH-COVERAGE assertion below.
  */
 export function sub_057c(m) {
   const { regs, mem } = m;
 
+  // Prologue: ex de,hl(4) + ld de,-0x20(10) + ld bc,0x0304(10) = 24 t, exit 0x0583.
   regs.exDeHl(); // HL := source (was DE, live-in); old HL parked in DE...
-  m.step(0x057d, 4);
   regs.de = VRAM_ROW_STEP; // ...and immediately overwritten with the -0x20 step.
-  m.step(0x0580, 10);
   regs.bc = BYTE_COUNT; // B = 3 source bytes, C = 4 (dead).
-  m.step(0x0583, 10);
+  m.step(0x0583, 24);
 
   do {
+    // Block A: read the source byte and rotate its high nibble down (nibble swap
+    // -- the high nibble ends up low). 7 + 4*4 = 23 t, exit 0x0588.
     regs.a = mem.read8(regs.hl); // source byte
-    m.step(0x0584, 7);
-    for (const nxt of [0x0585, 0x0586, 0x0587, 0x0588]) {
-      regs.rrca(); // x4 -> A's high nibble rotated into the low four bits
-      m.step(nxt, 4);
-    }
+    for (let i = 0; i < 4; i++) regs.rrca(); // x4 -> A's high nibble rotated into the low four bits
+    m.step(0x0588, 23);
     m.push16(0x058b);
-    m.step(0x0593, 17);
-    m.call(0x0593); // write HIGH nibble, IX -= 0x20
+    m.step(0x0593, 17); // call 0x0593 -- write HIGH nibble, IX -= 0x20 (scaffolding untouched)
+    m.call(0x0593);
 
+    // Low digit: re-read the same byte, unrotated. Single instruction sandwiched
+    // between the two calls -- nothing to fold (7 t, exit 0x058c).
     regs.a = mem.read8(regs.hl); // same byte again
     m.step(0x058c, 7);
     m.push16(0x058f);
-    m.step(0x0593, 17);
-    m.call(0x0593); // write LOW nibble, IX -= 0x20
+    m.step(0x0593, 17); // call 0x0593 -- write LOW nibble, IX -= 0x20 (scaffolding untouched)
+    m.call(0x0593);
 
+    // Block B: advance to the next source byte (descending) and test djnz.
+    //   dec hl(6) + djnz(13 taken / 8 not) = 19 / 14 t.
     regs.hl = (regs.hl - 1) & 0xffff; // next source byte (descending)
-    m.step(0x0590, 6);
     regs.djnz(); // B-- (sets no flags)
-    m.step(regs.b ? 0x0583 : 0x0592, regs.b ? 13 : 8);
+    m.step(regs.b ? 0x0583 : 0x0592, regs.b ? 19 : 14);
   } while (regs.b);
 
   m.ret(10); // ret @0x0592

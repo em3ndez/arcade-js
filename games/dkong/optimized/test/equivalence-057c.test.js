@@ -8,9 +8,10 @@
  * animate step (0x158A): whenever the animation timer 0x6032 expires, sub_1486
  * loads IX from the item's sprite pointer and calls sub_057c to repaint the 6
  * value digits. sub_1486 dispatches from INSIDE the vblank NMI, so this whole path
- * runs mask-cleared — sub_057c is ATOMIC. It is kept PER-INSTRUCTION regardless
- * (see optimized/sub_057c.js's header for why), so it is byte-identical to the
- * oracle and preserves every path total for free.
+ * runs mask-cleared — sub_057c is ATOMIC. sub_057c is COLLAPSED (one m.step per
+ * basic block, mirroring loop_0583, the same inlined loop factored out); because it
+ * is atomic the collapse is byte-safe (no in-flight NMI pushes the coarse block-exit
+ * PC into diffed stack RAM), and each path's cycle TOTAL is the oracle's exactly.
  *
  * It is NOT reached from boot in a plain run (harness.js drives no input and pokes
  * nothing, so it never reaches a credited game's phase 21). This test therefore
@@ -21,8 +22,10 @@
  * a routine entered only via m.call.
  *
  * Five jobs:
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_057c reads EQUAL against
- *      its translated oracle every frame; the override fires each animate step.
+ *   1. CONVERGENT (whole-machine) -- the collapsed optimized sub_057c CONVERGES with
+ *      its translated oracle (pixels ground truth, non-stack state byte-identical, dead
+ *      stack excluded); the override fires each animate step. Driven with a custom
+ *      phase-21 scenario because the default convergent SCENARIOS never reach phase 21.
  *   2. EQUAL (unit)          -- EQUAL in RAM + every register (F, A, SP, IX, IY) + pc.
  *   3/4. TEETH (whole + unit) -- a deliberately-broken twin lands a wrong value at
  *      the FIRST digit cell (the correct byte XOR 0xFF) and is CAUGHT, naming that
@@ -49,6 +52,7 @@ import {
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -128,23 +132,40 @@ function broken_057c(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_057c matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_057c]]));
+// sub_057c runs ONLY in GAME_SUBSTATE phase 21 (the bonus-item display), which the
+// convergent gate's default SCENARIOS never reach. So the convergent gate is driven
+// with a CUSTOM scenario: the same coin+start tape + phase-21 poke this file's
+// makeMachine uses, passed through convergentGate's { inputs, pokes, frames } scenario
+// shape so BOTH the all-oracle baseline and the override run see the identical
+// sequence (and the gate loads the gfx ROMs, so pixels -- its ground truth -- render).
+const PHASE21_SCENARIO = {
+  frames: FRAMES,
+  inputs: COIN_START_TAPE,
+  pokes: PHASE21_POKE,
+};
+
+test("CONVERGENT (whole-machine): collapsed sub_057c CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  // sub_057c is COLLAPSED (one m.step per basic block). It is ATOMIC -- its one call
+  // path runs mask-cleared inside the vblank NMI -- so no in-flight NMI ever pushes the
+  // coarse block-exit PC into the dead stack, and there is no raster tear. The fleet
+  // gates ALL collapsed routines with the convergent gate uniformly (strict is retired
+  // for collapsed routines); for an atomic routine like this one it simply passes clean:
+  // pixels are byte-identical, non-stack state is byte-identical, dead stack excluded.
+  const r = convergentGate(new Map([[TARGET, optimized_057c]]), { scenario: PHASE21_SCENARIO, name: "sub_057c" });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (phase-21 animate step, 6-digit repaint)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (phase-21 animate step, 6-digit repaint); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px), non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
