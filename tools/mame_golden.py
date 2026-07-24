@@ -252,7 +252,7 @@ def main():
         dest="pin_entropy",
         help="TEST-ONLY: entropy-pin spec 'AAAA:VV,...' (from the game's "
         "entropyPinRomSpec). Applies tools/lua/pin_entropy.lua before the tape so the "
-        "game's RNG matches the pinned JS engine. See docs/08-entropy-pinning.md.",
+        "game's RNG matches the pinned JS engine. See docs/06-optimization.md (Entropy pinning).",
     )
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"))
     p.add_argument("--mame", default="mame")

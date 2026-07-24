@@ -334,5 +334,43 @@ replaced part of the oracle and forfeited falsifiability against real hardware. 
 diagnostic**: pin the RNG on both sides and see whether a stubborn divergence *vanishes*, which
 cleanly separates a timing/RNG bug from a logic bug — then unpin and fix the timing. At most, use it
 as a **last-resort shipping compromise**, documented loudly. For faithful shipping, keep the real
-RNG. On Donkey Kong it is **not needed and not used**: total-preservation keeps the PRNG identical,
-and the only residual is the dead-stack channel above.
+RNG — **the shipped game never pins.**
+
+### Entropy pinning, as built for Donkey Kong
+
+The paragraph above once ended "on Donkey Kong it is not needed" — total-preservation keeps a
+*collapse* from adding any RNG drift, so the short validation windows (the 728-frame attract, the
+move/prize suites) stay clean. That was true as far as it was tested. A **long, multi-board tape**
+(`test_full_progression`, ~9500 frames, nine completions) took it further and found the residual the
+short windows never exercised: the base translation is cycle-*accurate* but not cycle-*exact* with
+MAME on the CPU-vs-beam race, so `SPIN_COUNT` (0x6019) forks against MAME within ~9 frames — even
+for the frozen oracle, collapse or none — and every RNG-driven sprite then drifts. So the fallback
+above is not merely theoretical here; it is **built, as a reusable test-only mode**, and used to
+validate long runs. It is game-agnostic infrastructure, because the spin-counter idiom is genre-wide.
+
+- **Discovery is automatic.** Diff attract-mode work RAM between the two engines per frame: exactly
+  the entropy set forks, and the tell is that it forks *while the interrupt counter stays
+  byte-identical* (the interrupt counter is the synced twin). For DK: `0x601a` identical through
+  1214 frames; `0x6019` first at frame 9; the seed `0x6018` one frame later.
+- **The pin makes the working set read a deterministic 0 on both engines.** Drop writes to the seed
+  so it keeps its boot value (kills its single writer, the once-per-frame mix `sub_0057`), and point
+  the spin counter's direct readers at the pinned seed. This is independent of the interrupt counter
+  (which carries ±1 cutscene jitter from the DMA artifact) and of any spin-counter writer, and it is
+  **cycle-neutral** — operand-only rewrites, never a NOP that changes an instruction's length (an
+  early NOP-the-`inc` version shifted the frame timing and made the diff *worse*).
+- **Realized on each side, from one config.** `manifest.entropyPin` (`seedBytes`, `redirectReads`,
+  `romPatches`) declares it; `core/entropy-pin.js` `installEntropyPin` wraps the JS `mem` seam
+  (`emit.js --pin-entropy`); `games/dkong/tools/lua/pin_entropy.lua` applies the mirror ROM patches
+  on MAME (`mame_golden.py --pin-entropy "<spec>"`, spec from `entropyPinRomSpec`). Both sides
+  express the *same* intent, twice, so they can be checked against each other.
+- **What's left is the DMA cutscene artifact, so validate pinned runs with a convergent /
+  align-tolerant diff.** With the pin on, the RNG-driven divergence is gone (attract seed
+  byte-identical; on the long tape the convergent diff drops from mean 90 px / 25 frames >1% to mean
+  43 px / 1 frame >1%). The residual ~1% is the Kong-climb DMA phase — the same accepted artifact —
+  which no RNG work removes.
+
+**Adding a new game:** attract-diff to find the spin counter (forks next to a synced counter) and
+the seed its mix routine writes; fill `manifest.entropyPin` (`seedBytes` = the seed; `redirectReads`
+= `{from: spin, to: seed}`; `romPatches` = the cycle-neutral operand rewrites — the seed store's
+target to a ROM address so the write is ignored, each spin read's address to the seed); verify the
+seed goes byte-identical in attract with the pin, then a gameplay tape converges to the DMA floor.

@@ -11,7 +11,7 @@
  * but not cycle-*exact* to the last T-state (ours, especially after the m.step collapse) fits a
  * different number of spins per frame, so the seed forks within a few frames and every
  * RNG-driven sprite drifts apart forever. The interrupt counter is the synced twin; only the
- * spin count forks. See docs/08-entropy-pinning.md for the discovery method (an attract-mode RAM
+ * spin count forks. See docs/06-optimization.md (Entropy pinning) for the discovery method (an attract-mode RAM
  * diff auto-identifies the culprit: the byte that forks while the interrupt counter stays synced).
  *
  * WHAT IT DOES. Given a per-game config (see `manifest.entropyPin`), it pins the RNG working set

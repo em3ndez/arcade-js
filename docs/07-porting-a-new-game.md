@@ -68,4 +68,5 @@ vblank interrupt. It is timing-derived, so a cycle-accurate-but-not-exact transl
 a few frames and every RNG-driven sprite drifts — a long pixel diff then looks broken though the logic
 is identical. Don't chase cycle-exactness for it; **pin the entropy** for equivalence testing instead
 (declare `manifest.entropyPin`, run with `--pin-entropy`). The full method — discovery, the pin, and
-the convergent diff for the residual DMA artifact — is **docs/08-entropy-pinning.md**.
+the convergent diff for the residual DMA artifact — is the **Entropy pinning** section of
+[docs/06-optimization.md](06-optimization.md).
