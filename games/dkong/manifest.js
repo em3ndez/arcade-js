@@ -355,5 +355,7 @@ export default {
     "0x1e7a": { module: "./optimized/loc_1e7a.js", export: "loc_1e7a" },
     "0x286f": { module: "./optimized/sub_286f.js", export: "sub_286f" },
     "0x1ceb": { module: "./optimized/loc_1ceb.js", export: "loc_1ceb" },
+    "0x1fe5": { module: "./optimized/branch_1fe5.js", export: "branch_1fe5" },
+    "0x1fef": { module: "./optimized/branch_1fef.js", export: "branch_1fef" },
   },
 };
