@@ -21,19 +21,23 @@ const FLIPSCREEN = 0x7d82;
  * tasks, and advances GAME_STATE so the *next* NMI dispatches a different
  * handler and this one never runs again.
  *
- * LADDER STATUS — rung 2/3 (named + documented), NOT yet de-scaffolded.
- * The `m.step(addr, tstates)` charges and the `m.push16(retaddr)` before each
- * call are RETAINED deliberately, and this remains behaviourally byte-identical
- * to ../translated/state0.js:
- *   - This routine runs inside the NMI, and the NMI's total cycle cost sets how
- *     long the main loop then spins, which is the PRNG's entropy (see ram.js
- *     SPIN_COUNT / RNG). So the `m.step` charges may be observable here; whether
- *     they can be dropped is a harness question, taken up in the next rung.
- *   - Each callee (0x0874, 0x06b8, 0x0207, 0x0a53, 0x309f) ends in its own `ret`,
- *     so the matching `m.push16` is the calling convention: drop it and the
- *     callee's `ret` unbalances SP. The push stays; only the direct invocation
- *     became `m.call`.
- * So this rung buys readability (names + structure), not fewer operations.
+ * LADDER STATUS — rung 3/3: COLLAPSED. It is dead-straight-line code (no branches
+ * at all -- just calls), so folding is simple: each straight run BETWEEN calls
+ * folds into one m.step at that run's last instruction's own address (the address
+ * where PC lands next), same convention as sub_0350/loc_0e4f/entry_0f1b. Each call
+ * site's own step (the CALL instruction's fixed 17 t) is left exactly as-is, right
+ * before its `m.push16`/`m.call` pair -- per loc_0d5f's still-per-instruction
+ * sibling, a register/arithmetic step immediately preceding a call is NEVER folded
+ * into the call's own charge, so those seven call sites (0x0874, 0x06b8, 0x0207,
+ * 0x0a53, and 0x309f x3) are untouched. Every branch TOTAL sums to the oracle's,
+ * EXACTLY (verified against translated/state0.js). `m.ldir` keeps its own internal
+ * charge (untouched -- it is not decomposed here).
+ *
+ * NOT provably mask-cleared on every path across its callees (0x0874/sub_004e-style
+ * callers of the board-setup chain are not proven atomic elsewhere in this fleet),
+ * so this collapse is gated the same way sub_0350's is: the routine runs once, at
+ * power-on, so whichever gate its test uses (strict or convergent) is a lead-side
+ * per-routine call.
  */
 export function handler_01c3(m) {
   const { regs, mem } = m;
@@ -41,28 +45,32 @@ export function handler_01c3(m) {
   // Clear the playfield and do the initial object setup.
   m.push16(0x01c6); m.step(0x0874, 17); m.call(0x0874);
 
-  // Seed 9 bytes of initial data from ROM 0x01BA into the 0x60B2 region.
-  regs.hl = 0x01ba; m.step(0x01c9, 10);
-  regs.de = 0x60b2; m.step(0x01cc, 10);
-  regs.bc = 0x0009; m.step(0x01cf, 10);
+  // ld hl,0x01ba[10]+ld de,0x60b2[10]+ld bc,9[10] -- seed 9 bytes from ROM 0x01BA.  30 t
+  regs.hl = 0x01ba;
+  regs.de = 0x60b2;
+  regs.bc = 0x0009;
+  m.step(0x01cf, 30);
   m.ldir(0x01d1);
 
-  // Baseline: attract on, level 1, one life. (A=1 is also carried into 0x06b8.)
-  regs.a = 0x01;               m.step(0x01d3, 7);
-  mem.write8(ATTRACT, regs.a); m.step(0x01d6, 13);
-  mem.write8(LEVEL, regs.a);   m.step(0x01d9, 13);
-  mem.write8(LIVES, regs.a);   m.step(0x01dc, 13);
+  // ld a,1[7]+ld(ATTRACT),a[13]+ld(LEVEL),a[13]+ld(LIVES),a[13] -- baseline.  46 t
+  regs.a = 0x01;
+  mem.write8(ATTRACT, regs.a);
+  mem.write8(LEVEL, regs.a);
+  mem.write8(LIVES, regs.a);
+  m.step(0x01dc, 46);
 
   m.push16(0x01df); m.step(0x06b8, 17); m.call(0x06b8); // draw the lives display, etc.
   m.push16(0x01e2); m.step(0x0207, 17); m.call(0x0207); // unpack DSW0 into the settings block
 
-  // Screen up; advance the top-level state (so this handler runs once); board = 25m.
-  regs.a = 0x01;                       m.step(0x01e4, 7);
-  mem.write8(FLIPSCREEN, regs.a, 10);  m.step(0x01e7, 13);
-  mem.write8(GAME_STATE, regs.a);      m.step(0x01ea, 13); // next NMI dispatches attract
-  mem.write8(BOARD, regs.a);           m.step(0x01ed, 13);
-  regs.xor(regs.a);                    m.step(0x01ee, 4);  // A = 0
-  mem.write8(GAME_SUBSTATE, regs.a);   m.step(0x01f1, 13);
+  // ld a,1[7]+ld(FLIPSCREEN),a[13]+ld(GAME_STATE),a[13]+ld(BOARD),a[13]+xor a[4]
+  //   +ld(GAME_SUBSTATE),a[13] -- screen up; advance top-level state; board=25m.  63 t
+  regs.a = 0x01;
+  mem.write8(FLIPSCREEN, regs.a, 10);
+  mem.write8(GAME_STATE, regs.a); // next NMI dispatches attract
+  mem.write8(BOARD, regs.a);
+  regs.xor(regs.a); // A = 0
+  mem.write8(GAME_SUBSTATE, regs.a);
+  m.step(0x01f1, 63);
 
   m.push16(0x01f4); m.step(0x0a53, 17); m.call(0x0a53);
 

@@ -42,16 +42,21 @@
  * as `return m.call(0x04f9)` with NO extra push16 and NO extra m.step — exactly the
  * oracle's model, because 0x04f9 is not a jump target, it is the next instruction.
  *
- * ATOMIC? NO — stays PER-INSTRUCTION (no cycle collapse). ATOMICITY IS PER-CALL-PATH:
+ * CYCLES -- COLLAPSED to one m.step per basic block. ATOMICITY IS PER-CALL-PATH:
  * loc_04f1's ONLY caller is loc_04be (state0.js `jp nc,0x04f1`), reached via
  * loc_0486 <- entry_03fb <- loc_197a — the INTERRUPTIBLE per-frame in-game colour
  * cascade with the vblank NMI mask ENABLED. The NMI can land inside this routine
  * (and inside the interruptible sub-tree it falls into via sub_0514 / loc_04f9 /
- * loc_04ac), so its internal cycle distribution is observable and a collapse is NOT
- * permitted. Every oracle m.step charge is retained verbatim — same decision as the
- * sibling loc_04be / loc_04e1 / loc_04ac and their common ancestor loc_197a.
- * (Harness-checked: the whole-machine gate stays EQUAL over 1300 frames — override
- * firing 261× from frame 1041 — with the per-instruction charges kept.)
+ * loc_04ac), so its internal cycle distribution is observable — exactly the
+ * mistimed-NMI raster tear the CONVERGENT gate exists for (docs/06; see sub_0350),
+ * not the strict byte-exact gate. The routine is entirely straight-line (`ld a` /
+ * `ld hl`, no branches of its own), so the whole body before the `call 0x0514`
+ * folds to ONE block: ld-a,0xef [7] + ld-hl,0x7583 [10] = 17 t, the exact SUM of
+ * the oracle's per-instruction charges. `call 0x0514` keeps its own push16/step/
+ * m.call scaffolding, and the fall-through into loc_04f9 stays a bare `m.call`
+ * with no extra push/step (0x04f9 is the pushed return address, not a jump
+ * target — see the IDIOM note above). Total-preservation keeps the main loop's
+ * PRNG spin count (0x6019) deterministic.
  *
  * FLAGS. Kept verbatim. loc_04f1's own two instructions (`ld a`, `ld hl`) set NO
  * flags, so F entering sub_0514 is untouched; F on exit is produced by the identical
@@ -65,12 +70,11 @@
 export function loc_04f1(m) {
   const { regs } = m;
 
-  // Seed + target for the descending 3-cell colour fill (stride DE=0x0020 is live-in
-  // from loc_0486). Neither load affects flags.
+  // Block: ld a,0xef [7] + ld hl,0x7583 [10] = 17 t -- seed + target for the descending
+  // 3-cell colour fill (stride DE=0x0020 is live-in from loc_0486). Neither load affects flags.
   regs.a = 0xef;                                        // ld a,0xef
-  m.step(0x04f3, 7);
   regs.hl = 0x7583;                                     // ld hl,0x7583 (colour RAM)
-  m.step(0x04f6, 10);
+  m.step(0x04f6, 17);
 
   // call sub_0514 -> fills 0x7583/0x75a3/0x75c3 with 0xef/0xee/0xed, then RETS to
   // 0x04f9 (the pushed return address), which IS the next routine loc_04f9.

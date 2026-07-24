@@ -5,25 +5,26 @@
  *
  * draw_056b is a LEAF reached only via `m.call(0x056b)` from two MAIN-LOOP tasks
  * (entry_051c @0x053B, handler_05c6 @0x05D7). Being main-loop-reached it is
- * NON-ATOMIC, so its cycle charges are kept PER-INSTRUCTION (optimized/draw_056b.js
- * header explains why: a mid-routine NMI would push a different PC/F if the
- * charges were collapsed). These tests prove the idiomatic rewrite is byte-equal
- * to its oracle anyway.
+ * NON-ATOMIC, so its cycle charges are COLLAPSED and licensed by the CONVERGENT
+ * gate (optimized/draw_056b.js header explains why: a mid-routine NMI can at most
+ * push a coarse PC/F into the dead stack or leave a healing pixel tear, never a
+ * persistent divergence).
  *
  * Jobs:
- *   1. EQUAL (whole-machine) — the idiomatic draw_056b reads EQUAL against its
- *      oracle every frame; the override must actually fire (it dispatches once,
- *      at frame 5, drawing the P1 score in attract).
+ *   1. CONVERGENT (whole-machine) — the idiomatic COLLAPSED draw_056b converges
+ *      against its oracle over a long driven run (pixels + persistent non-stack
+ *      state); the override must actually fire.
  *   2. EQUAL (unit) — RAM + all registers (incl. F) + pc identical on the
  *      NATURAL entry (A == 0, the P1 / Z-branch).
  *   3. BRANCH COVERAGE — the natural run only exercises A == 0. The A != 0
  *      (P2 / not-Z, IX = 0x7521) branch is SYNTHESISED by cloning the captured
  *      entry and forcing A, then diffing oracle vs optimized RAM+regs+pc. Both
- *      branches are asserted EQUAL. (No branch is collapsed, so no per-branch
- *      cycle-total assertion is owed — but the test measures cycles anyway and
- *      asserts each branch's total matches the oracle, as belt-and-braces.)
- *   4. TEETH (whole + unit) — a deliberately-broken twin whose first VRAM store
- *      (the P1 score's first digit at 0x7781) lands a wrong value must be CAUGHT.
+ *      branches are asserted EQUAL, and each branch's cycle TOTAL is asserted
+ *      equal to the oracle's, giving the collapsed per-branch charges (30 T /
+ *      51 T) teeth.
+ *   4. TEETH (convergent + unit) — a cycle-drop twin (convergent, catches a
+ *      forked PRNG) and a deliberately-broken VALUE twin (unit scale, first VRAM
+ *      store at 0x7781 lands a wrong value) must both be CAUGHT.
  *
  * Run: node --test
  */
@@ -35,8 +36,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { draw_056b as translated_056b } from "../../translated/mainloop.js";
 import { draw_056b as optimized_056b } from "../draw_056b.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -107,24 +109,25 @@ function runBranch(base, aVal, fn) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized draw_056b matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_056b]]));
+test("CONVERGENT (whole-machine): collapsed draw_056b CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  // draw_056b is COLLAPSED and INTERRUPTIBLE (main-loop task, NMI mask enabled), so
+  // the strict byte-exact gate is the wrong tool here -- see optimized/draw_056b.js.
+  const r = convergentGate(new Map([[TARGET, optimized_056b]]), { scenario: SCENARIOS.attract });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -191,16 +194,34 @@ test("BRANCH COVERAGE: both A==0 (P1/0x7781) and A!=0 (P2/0x7521) columns prove 
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong score-digit store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_056b]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  // The convergent gate tolerates transient tears but MUST catch a real (non-healing)
+  // error. A short charge shifts the main-loop spin count (0x6019, PRNG entropy),
+  // forking the RANDOM stream permanently -- never a value-corruption twin over a long
+  // convergent run (it can hang instead of diverging cleanly; the unit TEETH below
+  // covers that case at routine-boundary scale).
+  function cyclebroken_056b(m) {
+    const { regs } = m;
+    const VRAM_SCORE_COL_P1 = 0x7781;
+    const VRAM_SCORE_COL_P2 = 0x7521;
+    regs.ix = VRAM_SCORE_COL_P1;
+    regs.and(regs.a);
+    m.step(0x0570, 13); // DROPPED: correct total is 18 t (14 + 4), short by 5
+    if (regs.fZ) { m.step(0x057c, 12); } else { regs.ix = VRAM_SCORE_COL_P2; m.step(0x057c, 33); }
+    return m.call(0x0578, true);
+  }
+  const r = convergentGate(new Map([[TARGET, cyclebroken_056b]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

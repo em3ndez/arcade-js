@@ -77,79 +77,69 @@ import { SND_TRIGGER } from "./ram.js";
  * and F match the oracle bit-for-bit at every point -- the unit gate compares the
  * whole register file, F included.
  *
- * CYCLES -- PER-INSTRUCTION, deliberately NOT collapsed. loc_0426 is a LEAF
- * reached only via `m.call`, and by the atomicity-is-per-call-path rule it is
- * NOT atomic: its sole caller is loc_0413 (both the `jp nz,0x0426` arm and the
- * FRAME==0 fall-through), which is itself interruptible with the NMI mask
- * ENABLED -- loc_0413 is reached from entry_03fb <- loc_197a (the main-loop
- * per-frame update cascade) and from entry_0400 (a dispatchTask task), and is
- * kept per-instruction for exactly this reason. The vblank NMI can therefore land
- * INSIDE loc_0426, pushing a live PC into the diffed stack RAM, so collapsing its
- * per-instruction m.step charges to one total per branch could move where that
- * NMI lands. Each `m.step(nextPC, t)` is kept at its oracle cycle so the
- * cumulative clock is identical instruction by instruction. This buys names +
- * structure + documentation, not fewer operations. (The harness confirms EQUAL
- * with the charges kept; collapse is not attempted because the call path forbids
- * it, per loc_0413 / loc_197a / sub_0020.)
+ * CYCLES -- COLLAPSED to one m.step per basic block. loc_0426 is a LEAF reached
+ * only via `m.call`; its sole caller loc_0413 is itself interruptible with the
+ * NMI mask ENABLED (main-loop cascade loc_197a<-entry_03fb, + the dispatchTask
+ * entry_0400), so the vblank NMI CAN land inside loc_0426 and push a live
+ * (now-coarser) PC into the diffed stack RAM -- exactly the mistimed-NMI raster
+ * tear the CONVERGENT gate exists for (docs/06; see sub_0350). Each block total
+ * below is the exact SUM of the oracle's per-instruction charges for that block:
+ * ld-hl+inc(hl)+ld-a,(hl)+cp+jpz 45 t; ld-a,(0x6393)+and-a+jpnz 27 t;
+ * ld-a,(hl)+ld-b,a+and-0x1f+jpnz 28 t; ld-hl,0x39cf+bit5+jrnz 30 t (taken) / 25 t
+ * (not taken); ld-hl,0x39f7 10 t (lone instr -- 0x0448 is a merge point, reached
+ * both from the taken jr and from here); the `call 0x004e` keeps its own
+ * push16/step/m.call scaffolding, never folded; ld-a,3+ld-(0x6082),a 20 t before
+ * the loc_0450 tail-call. Total-preservation keeps the main loop's PRNG spin
+ * count (0x6019) deterministic; the collapse is licensed by the convergent gate,
+ * not the strict whole-machine one.
  */
 export function loc_0426(m) {
   const { regs, mem } = m;
 
-  // ld hl,0x6390 / inc (hl) -- advance the colour-cycle frame counter.
+  // Block: ld hl,0x6390 [10] + inc (hl) [11] + ld a,(hl) [7] + cp 0x80 [7] + jp z,0x0464 [10] = 45 t
   regs.hl = 0x6390;
-  m.step(0x0429, 10); // ld hl,0x6390
   mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl)));
-  m.step(0x042a, 11); // inc (hl) -- (0x6390)++
-
-  // ld a,(hl) / cp 0x80 -- did the counter wrap to 0x80 (one full cycle)?
   regs.a = mem.read8(regs.hl);
-  m.step(0x042b, 7); // ld a,(hl)
   regs.cp(0x80);
-  m.step(0x042d, 7); // cp 0x80
   if (regs.fZ) {
     // jp z,0x0464 taken: reset the counter + the active latch.
-    m.step(0x0464, 10); // jp z,0x0464
+    m.step(0x0464, 45);
     return m.call(0x0464);
   }
-  m.step(0x0430, 10); // jp z NOT taken
+  m.step(0x0430, 45); // jp z NOT taken
 
-  // ld a,(0x6393) / and a -- table-copy suppressed this cycle?
+  // Block: ld a,(0x6393) [13] + and a [4] + jp nz,0x0486 [10] = 27 t
   regs.a = mem.read8(0x6393);
-  m.step(0x0433, 13); // ld a,(0x6393)
   regs.and(regs.a);
-  m.step(0x0434, 4); // and a
   if (regs.fNZ) {
     // jp nz,0x0486 taken: flag set -- idle redraw of the colour tail.
-    m.step(0x0486, 10); // jp nz,0x0486
+    m.step(0x0486, 27);
     return m.call(0x0486);
   }
-  m.step(0x0437, 10); // jp nz NOT taken
+  m.step(0x0437, 27); // jp nz NOT taken
 
-  // ld a,(hl) / ld b,a / and 0x1f -- is the counter on a 32-frame boundary?
+  // Block: ld a,(hl) [7] + ld b,a [4] + and 0x1f [7] + jp nz,0x0486 [10] = 28 t
   regs.a = mem.read8(regs.hl); // hl still 0x6390
-  m.step(0x0438, 7); // ld a,(hl)
   regs.b = regs.a;
-  m.step(0x0439, 4); // ld b,a
   regs.and(0x1f);
-  m.step(0x043b, 7); // and 0x1f
   if (regs.fNZ) {
     // jp nz,0x0486 taken: not a boundary -- idle redraw of the colour tail.
-    m.step(0x0486, 10); // jp nz,0x0486
+    m.step(0x0486, 28);
     return m.call(0x0486);
   }
-  m.step(0x043e, 10); // jp nz NOT taken -- 32-frame boundary
+  m.step(0x043e, 28); // jp nz NOT taken -- 32-frame boundary
 
-  // ld hl,0x39cf / bit 5,b / jr nz,0x0448 -- pick the animation table by bit 5.
+  // Block: ld hl,0x39cf [10] + bit 5,b [8] + jr nz,0x0448 [12 taken / 7 not] = 30 / 25 t
   regs.hl = 0x39cf; // table A (default)
-  m.step(0x0441, 10); // ld hl,0x39cf
   const bit5 = regs.bit(5, regs.b);
-  m.step(0x0443, 8); // bit 5,b
   if (bit5) {
-    m.step(0x0448, 12); // jr nz,0x0448 taken -- keep table 0x39cf
+    m.step(0x0448, 30); // jr nz taken -- keep table 0x39cf
   } else {
-    m.step(0x0445, 7); // jr nz NOT taken
+    m.step(0x0445, 25); // jr nz NOT taken
+    // Block: ld hl,0x39f7 [10] -- lone instr: 0x0448 is a merge point (also
+    // reached directly from the taken jr above).
     regs.hl = 0x39f7; // table B
-    m.step(0x0448, 10); // ld hl,0x39f7
+    m.step(0x0448, 10);
   }
 
   // call 0x004e -- block-copy the chosen ROM table into the sprite object block.
@@ -157,10 +147,9 @@ export function loc_0426(m) {
   m.step(0x004e, 17); // call 0x004e
   m.call(0x004e);
 
-  // ld a,0x03 / ld (0x6082),a -- fire a 3-frame sound trigger, then fall into loc_0450.
+  // Block: ld a,0x03 [7] + ld (0x6082),a [13] = 20 t, then fall into loc_0450.
   regs.a = 0x03;
-  m.step(0x044d, 7); // ld a,0x03
   mem.write8(SND_TRIGGER + 2, regs.a); // 0x6082 -- falls into loc_0450
-  m.step(0x0450, 13); // ld (0x6082),a
+  m.step(0x0450, 20);
   return m.call(0x0450);
 }

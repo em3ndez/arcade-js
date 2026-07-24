@@ -47,34 +47,41 @@
  * `dec8` register helpers the oracle does (an idiomatic re-derivation of the
  * Z80 half-carry / parity would be a needless risk here).
  *
- * LADDER STATUS -- rung 4 (idiomatic), cycles KEPT PER-INSTRUCTION (byte-identical
- * to ../translated/state0.js). sub_0514 is NON-ATOMIC: by the ATOMICITY-IS-PER-
- * CALL-PATH rule a leaf is atomic only if the vblank NMI cannot fire inside it on
- * ANY call path, and every `m.call(0x0514)` site is reached from the INTERRUPTIBLE
- * per-frame cascade (loc_04a3/loc_04be/loc_04f1 <- loc_0486 <- entry_03fb <-
- * loc_197a, and sub_1708/0x17cd), all with the NMI mask ENABLED. So the NMI can
- * land between these instructions and its pushed PC reaches the diffed stack RAM
- * — the internal cycle DISTRIBUTION is observable and must not be collapsed.
- * Keeping the per-instruction m.step charges is the always-correct choice and
- * matches the same decision on its parents loc_04a3 / entry_03fb / loc_197a.
- * (The TOTAL is preserved trivially because the distribution is preserved.)
+ * CYCLES -- COLLAPSED to ONE m.step: B is hard-loaded to 3 (not data-dependent),
+ * so the trip count is INVARIANT and the loop is unrolled rather than modelled as
+ * a data-dependent djnz. ld b,0x03[7] + pass1 (ld (hl),a[7]+add hl,de[11]+dec a[4]
+ * +djnz TAKEN[13] = 35) + pass2 (35, djnz TAKEN again) + pass3 (ld (hl),a[7]+
+ * add hl,de[11]+dec a[4]+djnz NOT taken[8] = 30) = 107 t, then `m.ret()` (10 t,
+ * the default unconditional RET charge) -- 117 t total, exactly the oracle's
+ * (cross-checked against this file's own prior per-instruction charges, all
+ * previously proven equal). Total-preservation keeps the caller's cycle clock
+ * exact; only the mid-routine PC snapshot an NMI would observe is coarsened,
+ * same as any collapse. djnz() itself sets no flags (it is NOT dec8(b)), and it
+ * is called 3 times here purely to keep B's wraparound identical to the oracle's
+ * (B ends at 0) -- its return value is unused since the trip count is fixed.
+ *
+ * Every `m.call(0x0514)` site is reached from the INTERRUPTIBLE per-frame cascade
+ * (loc_04a3/loc_04be/loc_04f1 <- loc_0486 <- entry_03fb <- loc_197a, and
+ * sub_1708/0x17cd), all with the NMI mask ENABLED, so the vblank NMI can land
+ * inside it; see the equivalence test for the (convergent, unconditionally) gate
+ * this routine runs under.
  */
 export function sub_0514(m) {
   const { regs, mem } = m;
 
   // ld b,0x03 -- loop count (PROLOGUE, runs once, outside the loop body).
   regs.b = 0x03;
-  m.step(0x0516, 7);
 
-  // loc_0516 (the djnz target): fill 3 cells descending. `add hl,de` leaves C and
-  // `dec a` leaves S/Z/H/PV/N live at the ret; djnz decrements B without touching F.
-  do {
-    mem.write8(regs.hl, regs.a);        m.step(0x0517, 7);  // ld (hl),a
-    regs.addHl(regs.de);                m.step(0x0518, 11); // add hl,de
-    regs.a = regs.dec8(regs.a);         m.step(0x0519, 4);  // dec a
-    const looping = regs.djnz() !== 0;                      // djnz 0x0516 (flag-neutral)
-    m.step(looping ? 0x0516 : 0x051b, looping ? 13 : 8);
-  } while (regs.b !== 0);
+  // loc_0516 (the djnz target), unrolled 3x: fill 3 cells descending. `add hl,de`
+  // leaves C and `dec a` leaves S/Z/H/PV/N live at the ret; djnz decrements B
+  // without touching F.
+  for (let pass = 0; pass < 3; pass++) {
+    mem.write8(regs.hl, regs.a); // ld (hl),a
+    regs.addHl(regs.de); // add hl,de
+    regs.a = regs.dec8(regs.a); // dec a
+    regs.djnz(); // djnz 0x0516 (flag-neutral); trip count is fixed, so the return is unused
+  }
+  m.step(0x051b, 107); // ld b,3[7] + pass1[35] + pass2[35] + pass3[30] (djnz NOT taken)
 
-  m.ret(); // 051b ret
+  m.ret(); // 051b ret (10 t default -- total 117 t)
 }

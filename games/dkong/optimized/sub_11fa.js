@@ -17,78 +17,64 @@
  * the DE mirror advances by `inc e` (D fixed) for the first four only, ending at 0x6A2B.
  * HL exits at source+6. The `ld (ix+d),0x01` at 0x1205 is the IMMEDIATE form (dd 36 d n).
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached from the board setups, whose atomicity
- * is not pinned to the mask-cleared NMI, so charges are kept verbatim.
+ * CYCLES -- COLLAPSED to a SINGLE m.step spanning the whole routine: straight-line,
+ * no branch, no loop, no callee (nothing to hold a boundary open for), and no
+ * hardware-bus write (0x66A0/0x6A28 are ordinary work RAM) -- so nothing pins an
+ * intermediate step. Total is the oracle's EXACTLY: 14+10+19+7+19+7+4+6+7+19+7+4+6+
+ * 7+19+7+4+6+7+19+7+6+7+19+6+7+19 = 269 t, exit at the `ret`'s own address 0x1229
+ * (the `ret` itself is the routine's own return scaffolding and stays a separate
+ * `m.ret()` charge, per the collapse rule).
+ *
+ * GATED CONVERGENT, not strict: reached from the per-board setups, whose atomicity
+ * is not pinned to the mask-cleared NMI (loc_0fd7 runs during the interruptible
+ * attract cascade). Per the collapse-sweep's blanket rule, any routine with a
+ * whole-machine test is gated convergent unconditionally, since "passes strict" is
+ * a property of the tested scenario, not a proof the routine is atomic on every
+ * trajectory. See equivalence-11fa.test.js.
  */
 export function sub_11fa(m) {
   const { regs, mem } = m;
 
   regs.ix = 0x66a0;
-  m.step(0x11fe, 14);
-  regs.de = 0x6a28;
-  m.step(0x1201, 10);
   mem.write8((regs.ix + 0x00) & 0xffff, 0x01); // ld (ix+0x00),0x01 -- mark slot live
-  m.step(0x1205, 19);
+  regs.de = 0x6a28;
 
   // src0 -> IX+3, mirror DE+0
   regs.a = mem.read8(regs.hl); // HL is the caller's, never set here
-  m.step(0x1206, 7);
   mem.write8((regs.ix + 0x03) & 0xffff, regs.a);
-  m.step(0x1209, 19);
   mem.write8(regs.de, regs.a);
-  m.step(0x120a, 7);
   regs.e = regs.inc8(regs.e); // `inc e` -- D untouched
-  m.step(0x120b, 4);
   regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x120c, 6);
 
   // src1 -> IX+7, mirror DE+1
   regs.a = mem.read8(regs.hl);
-  m.step(0x120d, 7);
   mem.write8((regs.ix + 0x07) & 0xffff, regs.a);
-  m.step(0x1210, 19);
   mem.write8(regs.de, regs.a);
-  m.step(0x1211, 7);
   regs.e = regs.inc8(regs.e);
-  m.step(0x1212, 4);
   regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x1213, 6);
 
   // src2 -> IX+8, mirror DE+2
   regs.a = mem.read8(regs.hl);
-  m.step(0x1214, 7);
   mem.write8((regs.ix + 0x08) & 0xffff, regs.a);
-  m.step(0x1217, 19);
   mem.write8(regs.de, regs.a);
-  m.step(0x1218, 7);
   regs.e = regs.inc8(regs.e);
-  m.step(0x1219, 4);
   regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x121a, 6);
 
   // src3 -> IX+5 (+5 AFTER +8), mirror DE+3 -- no inc e after, DE stays 0x6A2B
   regs.a = mem.read8(regs.hl);
-  m.step(0x121b, 7);
   mem.write8((regs.ix + 0x05) & 0xffff, regs.a);
-  m.step(0x121e, 19);
   mem.write8(regs.de, regs.a);
-  m.step(0x121f, 7);
   regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x1220, 6);
 
   // src4 -> IX+9 (no mirror)
   regs.a = mem.read8(regs.hl);
-  m.step(0x1221, 7);
   mem.write8((regs.ix + 0x09) & 0xffff, regs.a);
-  m.step(0x1224, 19);
   regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x1225, 6);
 
   // src5 -> IX+0A (no mirror). HL exits at source+6.
   regs.a = mem.read8(regs.hl);
-  m.step(0x1226, 7);
   mem.write8((regs.ix + 0x0a) & 0xffff, regs.a);
-  m.step(0x1229, 19);
 
+  m.step(0x1229, 269); // COLLAPSED: whole straight-line body, one basic block
   m.ret(); // 0x1229
 }

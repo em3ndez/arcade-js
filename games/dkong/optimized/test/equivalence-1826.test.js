@@ -5,7 +5,13 @@
  * specific screens, not the 25m attract, so it never dispatches in a plain run; being
  * self-contained apart from HL, it is verified from a crafted entry: a booted machine
  * captured at loc_0fd7's dispatch, cloned, HL set to a tilemap address, invoked on both
- * sides. PER-INSTRUCTION.
+ * sides. COLLAPSED (one m.step per basic block; see sub_1826.js's CYCLES note).
+ *
+ * CRAFTED-ENTRY ONLY -- no whole-machine/convergent run touches this routine (it never
+ * dispatches under a plain boot), so the state/reg/pc EQUAL gate above does not cover a
+ * wrong CYCLE TOTAL (a state-preserving but timing-wrong collapse would read back EQUAL
+ * here regardless). The CYCLE TOTAL test below is therefore MANDATORY, not optional --
+ * it is the only thing pinning the collapse's block-total sums to the oracle's.
  */
 
 import nodeTest from "node:test";
@@ -52,12 +58,14 @@ function broken_1826(m) {
 function runBoth(optFn = optimized_1826) {
   const a = ENTRY.clone(); a.regs.hl = HL0;
   const b = ENTRY.clone(); b.regs.hl = HL0;
+  const c0a = a.cycles, c0b = b.cycles;
   translated_1826(a);
   optFn(b);
   return {
     ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
     regs: firstRegDiff(a.regs, b.regs),
     pc: [a.pc, b.pc],
+    cycles: [a.cycles - c0a, b.cycles - c0b],
   };
 }
 
@@ -67,6 +75,15 @@ test("EQUAL (crafted entry): sub_1826 matches translated in state + registers", 
   assert.equal(regs, null, regs ? `reg diff at ${regs.reg}` : "");
   assert.equal(pc[0], pc[1], "pc must match");
   console.log("  EQUAL: 5x14 tile fill EQUAL (state + regs + pc)");
+});
+
+test("CYCLE TOTAL (crafted entry): collapsed sub_1826 charges the oracle's exact total", () => {
+  // MANDATORY per the collapse recipe: this routine has no whole-machine/convergent run,
+  // so nothing else would catch a wrong block-total sum (state+regs can still read back
+  // EQUAL with the wrong cycle count, since the fill's own writes don't depend on timing).
+  const { cycles } = runBoth();
+  assert.equal(cycles[1], cycles[0], `cycle total drifted: optimized ${cycles[1]} vs oracle ${cycles[0]}`);
+  console.log(`  CYCLE TOTAL: oracle ${cycles[0]}t == optimized ${cycles[1]}t`);
 });
 
 test("TEETH (crafted entry): a wrong fill is CAUGHT and NOT-EQUAL", () => {

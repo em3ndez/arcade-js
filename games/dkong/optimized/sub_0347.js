@@ -42,19 +42,28 @@ const VRAM_P2_MARK = 0x74e0; // "2UP" marker column base (also written by sub_09
  * NMI pushes AF, so F must be identical or a pushed-AF byte would reach diffed
  * stack RAM — so the flag is reproduced rather than dropped.
  *
- * ATOMIC? NO — kept PER-INSTRUCTION (cycles NOT collapsed). Although this is a
- * flagless-looking 5-instruction leaf, it is reached ONLY via `m.call(0x0347)`
- * from sub_0315, which runs in the INTERRUPTIBLE main-loop band (mainLoop calls
- * sub_0315 every pass, so during the vblank spin it is re-invoked ~140x/frame).
- * MEASURED: the vblank NMI lands INSIDE this routine on real runs, so a collapse
- * of its per-instruction m.step charges to one total-per-branch was TESTED and
- * DIVERGED in dead stack RAM (the NMI pushed a live-PC that differs once the
- * internal cycle distribution moves). Per the atomicity-is-per-call-path rule
- * (README §2 / the sub_0008/0010/0018 revert), a main-loop caller means KEEP
- * PER-INSTRUCTION — each instruction is charged at its own PC exactly as the
- * oracle. The optimization win here is therefore NAMES (0x7740/0x74E0 as the
- * P1/P2 marker VRAM columns) + structured control flow + this documented decision,
- * NOT fewer operations.
+ * CYCLES -- COLLAPSED to one m.step per basic block (the per-instruction charges of
+ * each straight-line run folded into a single charge at the block's exit PC). The
+ * prologue (default HL to the P1 column, zero-test A) folds to 14 t (exit 0x034b,
+ * the `ret z` decision); the taken (Z) arm is a single already-atomic instruction
+ * (11 t); the not-taken arm plus selecting the P2 column folds to 15 t (exit
+ * 0x034f, the final `ret`, which keeps its own m.ret scaffolding untouched). Every
+ * fold's TOTAL is the oracle's, EXACTLY -- total-preservation keeps the main loop's
+ * spin count (0x6019, the PRNG entropy) deterministic.
+ *
+ * Although this is a flagless-looking 5-instruction leaf, it is reached ONLY via
+ * `m.call(0x0347)` from sub_0315, which runs in the INTERRUPTIBLE main-loop band
+ * (mainLoop calls sub_0315 every pass, so during the vblank spin it is re-invoked
+ * ~140x/frame), and the vblank NMI is MEASURED to land INSIDE this routine on real
+ * runs. So the collapse coarsens where an in-flight NMI's PC would land (a
+ * block-exit address, not the exact instruction) -- exactly the CONVERGENT gate's
+ * license (docs/06): an earlier attempt at this same collapse, gated with the
+ * STRICT whole-machine comparison, diverged in dead stack RAM (excluded by the
+ * convergent gate, not by the strict one) -- see equivalence-0347.test.js, which
+ * gates the whole-machine job with convergentGate. The optimization win here is
+ * therefore NAMES (0x7740/0x74E0 as the P1/P2 marker VRAM columns) + structured
+ * control flow + fewer m.step charges, all proven under the gate that actually
+ * fits an interruptible leaf.
  *
  * BRANCHES (both proven EQUAL by the test; the natural/driven run only ever takes
  * the Z arm because a 1-player game holds CURRENT_PLAYER == 0, so the NZ arm is
@@ -65,23 +74,21 @@ const VRAM_P2_MARK = 0x74e0; // "2UP" marker column base (also written by sub_09
 export function sub_0347(m) {
   const { regs } = m;
 
-  // ld hl,0x7740 -- default HL to the player-1 marker column.
+  // Block A: default HL to the player-1 marker column, then zero-test A (A is
+  // CURRENT_PLAYER, unchanged by `and a`).  10+4 = 14 t.
   regs.hl = VRAM_P1_MARK;
-  m.step(0x034a, 10);
-
-  // and a -- zero-test A (A unchanged), clear carry. A is CURRENT_PLAYER.
   regs.and(regs.a);
-  m.step(0x034b, 4);
+  m.step(0x034b, 14);
 
   if (regs.fZ) {
     // ret z taken: A == 0 (player 1) -- keep HL = P1 marker. (11 t.)
     m.ret(11);
     return;
   }
-  m.step(0x034c, 5); // ret z not taken (5 t)
 
-  // ld hl,0x74e0 -- player 2: select the P2 marker column instead.
+  // Block B (ret z not taken -- player 2): select the P2 marker column.
+  //   5+10 = 15 t.
   regs.hl = VRAM_P2_MARK;
-  m.step(0x034f, 10);
-  m.ret(); // ret (10 t)
+  m.step(0x034f, 15);
+  m.ret(); // ret (10 t) -- own scaffolding, untouched
 }

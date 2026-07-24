@@ -4,25 +4,29 @@
  * bit-select skip gate (rotate A right (BOARD) times, then either return normally
  * or `pop hl` to skip the caller's next op). It is a LEAF reached only via
  * `m.call(0x0030)` from 20 sites, most of them mask-enabled main-loop /
- * interruptible gameplay routines -- so, like sub_0008/0010/0018 before it, its
- * cycle charges are KEPT PER-INSTRUCTION and never collapsed.
+ * interruptible gameplay routines -- NOT atomic. Its m.step charges are COLLAPSED
+ * to one per basic block, with the rrca+djnz loop folded per ITERATION rather than
+ * across iterations (see optimized/sub_0030.js) -- licensed by the CONVERGENT gate
+ * rather than the strict whole-machine gate, since a passing strict result would
+ * only prove the tested scenario happened not to interrupt it.
  *
  * Five jobs:
  *
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_0030 reads EQUAL
- *      against its translated oracle every frame. It fires purely in ATTRACT (no
- *      input needed): first at frame 5, then almost every frame, so a 30-frame
- *      window exercises it ~26×. The override routes through the routine registry
- *      (installed at construction so a leaf reached only via m.call is caught).
+ *   1. CONVERGENT (whole-machine) -- pixels + non-stack state converge under
+ *      SCENARIOS.attract. It fires purely in ATTRACT (no input needed): first at
+ *      frame 5, then almost every frame. The override routes through the routine
+ *      registry (installed at construction so a leaf reached only via m.call is
+ *      caught).
  *
  *   2. EQUAL (unit) -- identical RAM + full register file (incl. F) + pc at the
  *      first natural entry.
  *
- *   3+4. TEETH (whole + unit) -- sub_0030 writes NO RAM; its outputs are registers
- *      and the rst-skip boolean. So the broken twin inverts the gate: it flips the
- *      carry flag AND the returned boolean. The unit gate catches the F divergence;
- *      the whole-machine gate catches it downstream (the flipped F reaches the NMI
- *      stack and the flipped boolean flips every caller's skip decision).
+ *   3. TEETH (convergent) -- a CYCLE-DROP twin (the prologue block's charge 5 t
+ *      short) forks the PRNG spin count: a PERSISTENT divergence, CAUGHT.
+ *
+ *   4. TEETH (unit) -- sub_0030 writes NO RAM; its outputs are registers and the
+ *      rst-skip boolean. So the broken twin inverts the gate: it flips the carry
+ *      flag AND the returned boolean. The unit gate catches the F divergence.
  *
  *   5. BRANCH COVERAGE (synthesized) -- within 30 frames only the carry-SET
  *      (return-true) branch runs naturally; the carry-CLEAR skip branch and the
@@ -40,7 +44,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0030 as translated_0030 } from "../../translated/mainloop.js";
 import { sub_0030 as optimized_0030 } from "../sub_0030.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 import { BOARD } from "../ram.js";
@@ -59,12 +64,11 @@ const FRAMES = 30; // sub_0030 fires from frame 5, ~26× within this window
 const F_C = 0x01; // Z80 carry-flag bit (core/cpu/z80.js)
 
 /**
- * Deliberately-broken twin: the optimized routine EXCEPT the gate result is
+ * Deliberately-broken twin (unit): the optimized routine EXCEPT the gate result is
  * inverted -- the carry flag is flipped and the returned skip-boolean is flipped.
  * These are the routine's only observable outputs (it makes no RAM store), so
  * this is the representative "wrong result to one of the routine's own outputs"
- * bug the gate must catch: the flipped F shows up in the unit register diff and,
- * downstream, on the NMI stack; the flipped boolean flips every caller's skip.
+ * bug the gate must catch: the flipped F shows up in the unit register diff.
  */
 function broken_0030(m) {
   const ret = optimized_0030(m);
@@ -72,24 +76,58 @@ function broken_0030(m) {
   return !ret;
 }
 
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical to the collapsed routine
+ * except the prologue block's charge (hit on EVERY invocation, from frame 5) is
+ * 5 t short. A wrong total shifts the main loop's spin count -- the PRNG entropy at
+ * 0x6019 -- so the RANDOM stream FORKS: a PERSISTENT divergence, never a heal. A
+ * value-corruption twin would break a game invariant and hang a long whole-machine
+ * run, so the value teeth stays at the fast unit level above.
+ */
+function cyclebroken_0030(m) {
+  const { regs, mem } = m;
+
+  regs.hl = BOARD;
+  regs.b = mem.read8(regs.hl);
+  m.step(0x0048, 29 - 5); // DROPPED: the correct charge here is 29 t
+
+  do {
+    regs.rrca();
+    regs.djnz();
+    const looping = regs.b !== 0;
+    m.step(looping ? 0x0048 : 0x004b, looping ? 17 : 12);
+  } while (regs.b !== 0);
+
+  if (regs.fC) {
+    m.ret(11);
+    return true;
+  }
+
+  regs.hl = m.pop16();
+  m.step(0x004d, 15);
+  m.ret();
+  return false;
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0030 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0030]]));
+test("CONVERGENT (whole-machine): collapsed sub_0030 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0030]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -105,16 +143,19 @@ test("EQUAL (unit): idiomatic optimized sub_0030 matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): an inverted gate result is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0030]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG — a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0030]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong gate result — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total — it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught — persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

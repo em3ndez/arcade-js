@@ -8,18 +8,22 @@
  *
  * Five jobs:
  *
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_0593 reads EQUAL
- *      against its translated oracle every frame. It first fires reaching frame 5
- *      (the initial score/high-score BCD draw) and fires 14x within the window,
- *      so the override is far from vacuous.
+ *   1. CONVERGENT (whole-machine) -- the collapsed optimized sub_0593 CONVERGES
+ *      against its translated oracle under a whole-machine run (pixels + persistent
+ *      non-stack state). sub_0593 is collapsed and INTERRUPTIBLE (see optimized/sub_0593.js),
+ *      so the strict byte-exact gate is not the right tool -- the convergent gate is,
+ *      per the lead's unconditional rule: any routine with a whole-machine test gets the
+ *      convergent gate regardless of whether strict happens to still pass.
  *
  *   2. EQUAL (unit) -- RAM + full register file (incl. F) + pc identical on the
  *      captured first-entry state, via the standard unitEquivalence harness
  *      (which installs the snapshot override at CONSTRUCTION so it reaches this
  *      m.call-only leaf).
  *
- *   3. TEETH (whole + unit) -- a deliberately-wrong digit store is CAUGHT and
- *      NOT-EQUAL, naming the diverging VRAM address.
+ *   3. TEETH (convergent + unit) -- convergent: a CYCLE-DROP twin (one charge short)
+ *      forks the main-loop spin count (0x6019 PRNG entropy), a PERSISTENT divergence,
+ *      CAUGHT. unit: a deliberately-wrong digit store is CAUGHT and NOT-EQUAL, naming
+ *      the diverging VRAM address.
  *
  *   4. FULL BRANCH COVERAGE -- sub_0593 has no control-flow branches, but its
  *      observable output has two data-dependent axes: the `and 0x0f` mask (high
@@ -36,10 +40,12 @@
  *
  * ATOMICITY FINDING: sub_0593 is NOT atomic. All its callers are main-loop /
  * interruptible (NMI mask enabled), so the vblank NMI can land between its three
- * instructions and its internal cycle distribution is observable. A flat cycle-
- * collapse HAPPENS to pass a 240-frame attract run (the NMI never lands in the
- * ~51-cycle window on that trajectory) -- but that is not proof of atomicity, so
- * the optimized routine keeps per-instruction charges, the always-correct choice.
+ * instructions and its internal cycle distribution is observable. It is COLLAPSED
+ * (see optimized/sub_0593.js) to a single m.ret(51) charge; the convergent gate is
+ * what licenses that collapse under real gameplay -- a flat collapse HAPPENS to pass
+ * a 240-frame attract whole-machine run (the NMI never lands in the ~51-cycle window
+ * on that trajectory), but that was never proof of atomicity, so the whole-machine
+ * job now runs under the convergent gate rather than relying on a short strict window.
  *
  * Run: node --test
  */
@@ -50,7 +56,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0593 as translated_0593 } from "../../translated/mainloop.js";
 import { sub_0593 as optimized_0593 } from "../sub_0593.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 
@@ -64,7 +71,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0593;
-const FRAMES = 12; // sub_0593 first fires reaching frame 5, 14x within this window
 
 // sub_0593's first natural entry writes the low nibble of A to the VRAM cell IX
 // addresses. We capture that entry (below) so the whole-machine broken twin knows
@@ -108,6 +114,20 @@ function brokenStore_0593(m) {
 }
 
 /**
+ * Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the collapsed
+ * routine, but the total is 5 t short (49 instead of 51), so a wrong total forks the main
+ * loop's spin count (0x6019 PRNG entropy) -- a PERSISTENT divergence, never a heal. This is
+ * the teeth for the collapse's load-bearing invariant (total-cycle preservation).
+ */
+function cyclebroken_0593(m) {
+  const { regs, mem } = m;
+  regs.and(0x0f);
+  mem.write8(regs.ix, regs.a);
+  regs.addIx(regs.de);
+  m.ret(46); // DROPPED: correct total is 51 t
+}
+
+/**
  * Flag-broken twin: arithmetically correct (IX advances by DE, correct digit
  * stored) but does the pointer add with plain JS instead of `add ix,de`, so H/N/C
  * and F3/F5 are left at whatever the `and` set -- the exact bug the oracle's note
@@ -137,22 +157,23 @@ function runOn(entry, fn, { a, ix, de }) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0593 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0593]]));
+test("CONVERGENT (whole-machine): collapsed sub_0593 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0593]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -168,16 +189,19 @@ test("EQUAL (unit): idiomatic optimized sub_0593 matches translated in RAM + reg
 
 // -- TEETH (value) ------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong digit store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, brokenStore_0593]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0593]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

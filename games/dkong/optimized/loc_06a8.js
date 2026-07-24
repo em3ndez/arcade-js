@@ -59,17 +59,22 @@
  * and then loc_066a). The idiomatic win is names/structure/documentation, not fewer
  * stores.
  *
- * CYCLES -- KEPT PER-INSTRUCTION, NOT collapsed. Atomicity is per-call-path: the
- * ONLY caller is entry_062a branch B, reached via `m.call(0x06a8)`, and entry_062a
- * is a MAIN-LOOP task (dispatched by dispatchTask from mainLoop 0x02BD with the NMI
- * mask ENABLED). So the vblank NMI CAN in principle land between these instructions.
- * Per the project rule, a leaf reached via m.call from an interruptible / main-loop
- * caller keeps its per-instruction charges: a collapse that merely passes a short
- * attract run is not proof the NMI never lands inside on some trajectory, and
- * per-instruction is byte-identical to the oracle's distribution -- unconditionally
- * correct. No hardware-latch (0x7Dxx) write occurs here (only work RAM 0x638C /
- * 0x63B8), so no write-trace test is needed; loc_066a's VRAM stores run in the
- * oracle via m.call.
+ * CYCLES -- COLLAPSED to one m.step per basic block. Atomicity is per-call-path:
+ * the ONLY caller is entry_062a branch B, reached via `m.call(0x06a8)`, and
+ * entry_062a is a MAIN-LOOP task (mask ENABLED), so the vblank NMI CAN in principle
+ * land between these instructions. GATED CONVERGENT, not strict, unconditionally:
+ * per the collapse-sweep's blanket rule, any routine with a whole-machine test is
+ * gated convergent regardless of whether the fold happens to pass strict in plain
+ * attract, since that would only be a property of the tested scenario (attract
+ * never landing an NMI in the narrowed window), not proof the routine is atomic on
+ * every trajectory. No hardware-latch (0x7Dxx) write occurs here (only work RAM
+ * 0x638C / 0x63B8), so no write-trace test is needed; loc_066a's VRAM stores run in
+ * the oracle via m.call.
+ *
+ * Branch totals, each the oracle's EXACTLY: NZ (jr taken, no latch) 7+12+27 = 46 t;
+ * Z (jr not taken, latch 0x63B8) 7+27+27 = 61 t -- the post-join block (daa + store
+ * + jp-tail setup) folds identically on both arms since nothing pins a boundary
+ * between them (no hardware write, no call).
  *
  * `jp 0x066a` is BACKWARD but NOT a loop -- 0x066A cannot reach 0x06B5, so it is a
  * JOIN into the shared digit-render tail, not a cycle (see the oracle).
@@ -77,31 +82,26 @@
 export function loc_06a8(m) {
   const { regs, mem } = m;
 
-  // 06a8 `sub 0x01` -- A = (0x638C) - 1; sets N=1 plus H/C, all read by the daa.
+  // 06a8 `sub 0x01` -- A = (0x638C) - 1; sets N=1 plus H/C, all read by the daa.  7 t
   regs.sub(0x01);
   m.step(0x06aa, 7);
 
   if (regs.fNZ) {
-    // 06aa `jr nz,0x06b1` taken -- still above zero, skip the latch.
+    // 06aa `jr nz,0x06b1` taken -- still above zero, skip the latch.  12 t
     m.step(0x06b1, 12);
   } else {
-    // fall through: the countdown just underflowed to zero.
-    m.step(0x06ac, 7); // jr nz not taken
+    // fall through: the countdown just underflowed to zero. jr-not-taken(7) +
+    // ld hl,0x63b8(10) + ld (hl),0x01(10) -- writes no flags between them.  27 t
     regs.hl = 0x63b8; // kept in HL to match the register diff (see header)
-    m.step(0x06af, 10); // ld hl,0x63b8 -- writes no flags
     mem.write8(regs.hl, 0x01); // (0x63B8) := 1  -- "counter reached zero" latch
-    m.step(0x06b1, 10); // ld (hl),0x01 -- writes no flags
+    m.step(0x06b1, 27);
   }
 
-  // 06b1 `daa` -- N=1 after-subtract decimal adjust of A-1 (H/N/C from the sub).
+  // loc_06b1 -- daa(4) + ld (0x638c),a(13) + jp 0x066a setup(10): folds across the
+  // branch join since neither arm leaves a hardware write or call in between.  27 t
   regs.daa();
-  m.step(0x06b2, 4);
-
-  // 06b2 `ld (0x638c),a` -- store the decremented BCD value back.
-  mem.write8(0x638c, regs.a);
-  m.step(0x06b5, 13);
-
+  mem.write8(0x638c, regs.a); // store the decremented BCD value back.
+  m.step(0x066a, 27);
   // 06b5 `jp 0x066a` -- tail JOIN into the shared two-digit painter (loc_066a).
-  m.step(0x066a, 10);
   return m.call(0x066a);
 }

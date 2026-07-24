@@ -59,19 +59,22 @@ import { SUBSTATE_TIMER_LO } from "./ram.js";
  * return is exactly `dec8`'s result; on the taken branch F is whatever sub_0018
  * leaves. `regs.dec8` is therefore kept, not elided.
  *
- * CYCLES -- PER-INSTRUCTION, DELIBERATELY (NOT collapsed). This routine is NOT
- * atomic: it is a leaf `rst` helper entered from many substate contexts (some in
- * the NMI game-state path, some in the main loop), short enough (48 t not-taken /
- * 33 t before the tail call) for a vblank NMI to land INSIDE it -- and the taken
- * branch further calls the interruptible sub_0018. This is precisely the code
- * whose `pop hl / ret` tail handler_05e9 inlines and documents as interruptible:
- * collapsing the per-instruction m.step charges to one per-branch lump would move
- * where an NMI lands and change the PC it pushes into diffed stack RAM (the exact
- * failure handler_05e9 demonstrates, README §2's "NMI lands mid-logic" caveat).
- * So the oracle's cycle DISTRIBUTION is preserved charge-for-charge; the totals
- * (not-taken 10+11+7+10+10 = 48; taken 10+11+12 = 33 before sub_0018) are the
- * oracle's by construction. Optimization here buys the SUBSTATE_TIMER_LO name,
- * the plain-English contract, and structured control flow -- not a collapse.
+ * CYCLES -- COLLAPSED to one m.step per basic block. This routine is NOT atomic:
+ * it is a leaf `rst` helper entered from many substate contexts (some in the NMI
+ * game-state path, some in the main loop), short enough for a vblank NMI to land
+ * INSIDE it -- and the taken branch further calls the interruptible sub_0018. A
+ * collapse's only observable effect on such an interrupted path is the coarse PC
+ * pushed into the dead stack or a healing single-frame pixel tear -- never a
+ * persistent divergence, since the fold does not cross the RAM write (its order
+ * and value are unchanged) or any hardware write (0x6008 is work RAM, not a
+ * 0x7Dxx latch). This is licensed by the CONVERGENT gate (same reasoning as
+ * sub_0350; equivalence-0020.test.js uses convergentGate, not the strict
+ * whole-machine gate). Block totals are the oracle's EXACTLY: prologue (ld
+ * hl,0x6008[10] + dec (hl)[11] = 21 t) common to both branches; taken = prologue
+ * + jr-z-taken[12] = 33 t before the sub_0018 tail call; not-taken = prologue +
+ * (jr-z-not-taken[7] + pop hl[10] = 17 t) + ret's own charge[10] = 48 t. The ret's
+ * own charge is kept as a separate `m.ret()` call (not folded into the preceding
+ * step), matching the sub_0350 convention.
  *
  * @returns {boolean} true when control returns after the `rst` (caller's body
  *   runs), false when it skipped (caller must return immediately).
@@ -79,14 +82,12 @@ import { SUBSTATE_TIMER_LO } from "./ram.js";
 export function sub_0020(m) {
   const { regs, mem } = m;
 
-  // ld hl,0x6008 -- point at the low prescaler.
+  // ld hl,0x6008 (10) + dec (hl) (11) -- tick the low prescaler; Z is set when it
+  // underflows to zero. (0x6008 is work RAM, not a hardware latch, so the
+  // busOffset 8 is inert -- kept for fidelity.) Folded: 21 t, common prologue.
   regs.hl = SUBSTATE_TIMER_LO;
-  m.step(0x0023, 10);
-
-  // dec (hl) -- tick it; Z is set when it underflows to zero. (0x6008 is work
-  // RAM, not a hardware latch, so the busOffset 8 is inert -- kept for fidelity.)
   mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8);
-  m.step(0x0024, 11);
+  m.step(0x0024, 21);
 
   if (regs.fZ) {
     // jr z 0x0018 taken -- TAIL jump into sub_0018 (the high prescaler on 0x6009).
@@ -95,11 +96,10 @@ export function sub_0020(m) {
     return m.call(0x0018);
   }
 
-  // jr z not taken: pop hl discards THIS routine's return address; ret then
-  // returns to the caller's CALLER -- the skip. Returns false.
-  m.step(0x0026, 7);
+  // jr z not taken (7) + pop hl (10) -- discard THIS routine's return address;
+  // ret then returns to the caller's CALLER -- the skip. Returns false.
   regs.hl = m.pop16();
-  m.step(0x0027, 10);
-  m.ret();
+  m.step(0x0027, 17);
+  m.ret(); // ret's own 10 t charge, kept separate (matches the sub_0350 convention)
   return false;
 }

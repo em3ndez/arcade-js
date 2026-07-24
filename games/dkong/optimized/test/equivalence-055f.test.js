@@ -14,14 +14,17 @@
  * "never entered". Both the whole-machine gate and the unit entry must therefore
  * be DRIVEN past the guard, exactly as equivalence-051c.test.js does.
  *
- * The four tests, split by what each gate can reach:
+ * The six tests, split by what each gate can reach:
  *
- *   1. EQUAL (whole-machine, ATTRACT poked clear) -- pokes ATTRACT bit0 clear on
- *      BOTH sides (identically, so the comparison stays fair) so entry_051c's
+ *   1. EQUAL (whole-machine, CONVERGENT, ATTRACT poked clear) -- pokes ATTRACT bit0
+ *      clear on BOTH sides (identically, so the comparison stays fair) so entry_051c's
  *      natural frame-~1137 task runs the REAL scoring path and m.call's sub_055f
- *      under live NMI timing. Asserts the override actually fired and the optimized
- *      sub_055f is byte-identical to the oracle over the whole trace. This is what
- *      verifies the per-instruction cycle distribution under a live NMI.
+ *      under live NMI timing. Gated CONVERGENT unconditionally (not strict), per the
+ *      collapse-sweep's blanket rule: sub_055f's sole caller runs with the NMI mask
+ *      ENABLED, so "passes strict in this scenario" would only be a property of the
+ *      tested trajectory, not proof of atomicity. Asserts the override actually
+ *      fired and the collapsed sub_055f CONVERGES with the oracle (pixels +
+ *      persistent non-stack state) over the whole trace.
  *
  *   2. EQUAL (unit, BOTH branches) -- attract never credits a game, so a real
  *      sub_055f entry is SYNTHESISED from a captured live machine: push the call's
@@ -30,22 +33,24 @@
  *      (fall-through -> P2_SCORE): full branch coverage, one assertion per branch,
  *      each first asserting the oracle really reaches that branch's DE.
  *
- *   3. TEETH (whole-machine, poked) -- a broken sub_055f that returns the WRONG DE
- *      (its only output is the register, not a store) is CAUGHT downstream: the
- *      corrupted score base sends entry_051c's BCD add to the wrong triple, so the
- *      state trace diverges. Confirms the gate bites a wrong-result leaf.
+ *   3. TEETH (unit, real entry) -- a broken sub_055f that returns the WRONG DE (its
+ *      only output is the register, not a store) is CAUGHT as a REGISTER diff at
+ *      `e` (the low byte of DE, 0xB2 vs 0xB5). sub_055f writes no RAM, so the unit
+ *      teeth land on the register file -- which is precisely the contract the unit
+ *      gate guards.
  *
- *   4. TEETH (unit, real entry) -- the same wrong-DE twin is CAUGHT as a REGISTER
- *      diff at `e` (the low byte of DE, 0xB2 vs 0xB5). sub_055f writes no RAM, so
- *      the unit teeth land on the register file -- which is precisely the contract
- *      the unit gate guards.
+ *   4. TEETH (convergent, poked) -- the collapse's load-bearing invariant is each
+ *      branch's folded total; a CYCLE-DROP twin (the shared pre-branch block
+ *      shortened by 5t, so it bites whichever branch fires) forks the main loop's
+ *      spin count (0x6019, the PRNG entropy) into a PERSISTENT divergence, which the
+ *      convergent gate must catch (never a value-corruption twin over the long run
+ *      -- it can hang the game).
  *
- * CYCLE DECISION. sub_055f is kept PER-INSTRUCTION (not collapsed): its sole
+ * CYCLE DECISION. sub_055f is COLLAPSED to one m.step per basic block: its sole
  * caller entry_051c is a main-loop routine (NMI mask enabled), so the vblank NMI
- * can land inside this leaf, and collapsing its charges would move that landing's
- * pushed PC (README §2, ATOMICITY-IS-PER-CALL-PATH). The charges here are copied
- * verbatim from the oracle, so Test 1's poke-driven whole-machine EQUAL under live
- * NMI timing holds by construction.
+ * can land inside this leaf -- theoretically interruptible, hence the convergent
+ * (not strict) gate for the whole-machine job. See optimized/sub_055f.js for the
+ * fold and the exact branch totals.
  *
  * Run: node --test
  */
@@ -58,6 +63,7 @@ import { sub_055f as translated_055f, entry_051c as translated_051c } from "../.
 import { sub_055f as optimized_055f } from "../sub_055f.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -140,39 +146,51 @@ function broken_055f(m) {
 }
 
 /**
- * Hand-rolled whole-machine run with ATTRACT poked clear (the provided
- * wholeMachineEquivalence can't poke, and sub_055f is unreachable without the
- * poke). Returns the per-frame state trace and how many times sub_055f fired
- * through `handler`.
+ * Cycle-broken twin for the CONVERGENT gate: identical to the collapsed routine
+ * EXCEPT the shared pre-branch block's folded charge is 5t short (22 instead of
+ * 27), so it bites whichever branch fires. A wrong total shifts the main loop's
+ * spin count (0x6019, the PRNG entropy), forking the RANDOM stream permanently --
+ * a PERSISTENT non-stack divergence, never a heal.
  */
-function pokedRun(handler) {
-  let fired = 0;
-  const m = new Machine(ROM, {
-    overrides: new Map([[TARGET, (mm) => { fired += 1; return handler(mm); }]]),
-  });
-  m.pokes = [{ addr: ATTRACT, val: 0x00, frame: 1100, dur: 100 }];
-  const frames = m.runFrames(1200);
-  return { frames, fired, m };
+function cyclebroken_055f(m) {
+  const { regs, mem } = m;
+  regs.de = P1_SCORE;
+  regs.a = mem.read8(CURRENT_PLAYER);
+  regs.and(regs.a);
+  m.step(0x0566, 22); // DROPPED: the correct total is 27 t
+  if (regs.fZ) {
+    m.ret(11);
+    return;
+  }
+  regs.de = P2_SCORE;
+  m.step(0x056a, 15);
+  m.ret();
 }
 
-// -- 1. EQUAL (whole-machine, ATTRACT poked clear) ----------------------------
+// A CUSTOM convergentGate scenario: the same ATTRACT-bit0-clear poke the hand-rolled
+// pokedRun used (sub_055f is unreachable in plain attract without it -- entry_051c's
+// enable guard aborts before `call 0x055f`).
+const CUSTOM_SCENARIO = { frames: 1200, pokes: [{ addr: ATTRACT, val: 0x00, frame: 1100, dur: 100 }] };
 
-test("EQUAL (whole-machine): optimized sub_055f matches the oracle on the real path under a poke", () => {
-  const base = pokedRun(translated_055f); // oracle, poked
-  const good = pokedRun(optimized_055f); // optimized, poked
+// -- 1. EQUAL (whole-machine, CONVERGENT, ATTRACT poked clear) ----------------
 
-  assert.ok(base.fired >= 1, "poke did not drive sub_055f (no real-path dispatch)");
-  assert.equal(base.fired, good.fired, "both sides must dispatch sub_055f the same number of times");
+test("CONVERGENT (whole-machine): collapsed sub_055f CONVERGES vs translated under an ATTRACT poke (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_055f]]), { scenario: CUSTOM_SCENARIO });
 
-  let diff = null;
-  const n = Math.min(base.frames.length, good.frames.length);
-  for (let f = 0; f < n && !diff; f++) {
-    const d = firstStateDiff(base.frames[f], good.frames[f], (o) => base.m.stateOffsetToAddr(o));
-    if (d) diff = { frame: f, ...d };
-  }
-  assert.equal(diff, null, diff ? `diverged at frame ${diff.frame}, 0x${(diff.addr ?? 0).toString(16)} (${diff.a} vs ${diff.b})` : "");
+  assert.ok(
+    r.invocations.get(TARGET) >= 1,
+    `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
+  );
+  assert.equal(
+    r.pass,
+    true,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
+  );
   console.log(
-    `  EQUAL/whole: ${n} frames identical, sub_055f fired ${good.fired}x (real path via ATTRACT poke)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (real path via ATTRACT poke); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -204,29 +222,20 @@ test("EQUAL (unit): optimized sub_055f matches the oracle on BOTH branches (RAM 
   console.log("  EQUAL/unit: both branches (P1 ret-z + P2 fall-through) — RAM + all registers (incl. F) + pc identical");
 });
 
-// -- 3. TEETH (whole-machine, poked) ------------------------------------------
+// -- 3. TEETH (convergent, poked) ----------------------------------------------
 
-test("TEETH (whole-machine): a wrong DE result is CAUGHT downstream", () => {
-  const base = pokedRun(translated_055f); // oracle, poked
-  const broken = pokedRun(broken_055f); // wrong-DE twin, poked
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_055f]]), { scenario: CUSTOM_SCENARIO });
 
-  assert.ok(base.fired >= 1, "poke did not drive a real-path dispatch");
-  assert.ok(broken.fired >= 1, "broken override must have dispatched");
-  // NOTE: fire counts may DIFFER here (unlike the good path in Test 1). The wrong
-  // DE swaps the score base, which flips entry_051c's high-score-compare branch,
-  // so the broken twin can take the 0x0550 copy arm (a SECOND sub_055f call) when
-  // the oracle did not. That divergence in behaviour is itself the caught bug.
-
-  let caught = null;
-  const n = Math.min(base.frames.length, broken.frames.length);
-  for (let f = 0; f < n && !caught; f++) {
-    const d = firstStateDiff(base.frames[f], broken.frames[f], (o) => base.m.stateOffsetToAddr(o));
-    if (d) caught = { frame: f, ...d };
-  }
-  assert.ok(caught, "harness FAILED to catch a wrong DE result — it is worthless");
-  assert.ok(caught.addr != null, "a caught divergence must name an address");
+  assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: wrong DE caught at frame ${caught.frame}, 0x${caught.addr.toString(16)} (${caught.a} vs ${caught.b})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

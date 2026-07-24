@@ -21,18 +21,29 @@
  *   - ldir 0x10 bytes ROM 0x1121 -> 0x6970,
  *   - ret.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached via the board-setup dispatch, whose
- * atomicity is not pinned to the mask-cleared NMI; callees route through m.call.
+ * CYCLES -- COLLAPSED to one m.step per basic block (each call's own prologue folded
+ * into a single charge at the call site; each fixed-count fill loop folded to one charge
+ * per iteration). ATOMIC: loc_1087 is reached ONLY via the board-setup dispatch chain
+ * (sub_0f56, itself called from loc_0d5f, dispatched by dispatchGameState INSIDE the
+ * vblank NMI with the mask cleared) -- the same family already established atomic for
+ * sub_0d30/sub_0d43/sub_0d4c and confirmed here by its own callees: sub_11d3, sub_1186,
+ * sub_122a and sub_11ec are ALL reached exclusively from this same board-setup family
+ * (never from the mask-ENABLED main loop), so the Z80's own NMI auto-mask (no RETN yet
+ * executed) means nothing can land mid-routine. Collapsing folds each straight-line run
+ * (register loads before a call, or a fill loop's write+advance+djnz) into one charge;
+ * every fold's total is the exact sum of the oracle's per-instruction charges it replaces
+ * (verified against the original per-instruction file before this edit). No 0x7Dxx
+ * hardware latch is written (all stores are RAM/VRAM 0x6xxx), so nothing here needs a
+ * partial-collapse boundary.
  */
 export function loc_1087(m) {
   const { regs, mem } = m;
 
+  // ld hl,0x3dec / ld de,0x6407 / ld bc,0x051c  (10+10+10 = 30t), then call sub_122a.
   regs.hl = 0x3dec;
-  m.step(0x108a, 10);
   regs.de = 0x6407;
-  m.step(0x108d, 10);
   regs.bc = 0x051c;
-  m.step(0x1090, 10);
+  m.step(0x1090, 30);
   m.push16(0x1093);
   m.step(0x122a, 17);
   m.call(0x122a);
@@ -42,120 +53,101 @@ export function loc_1087(m) {
   m.call(0x1186);
 
   // inline fill: 6 cells of 0x01 from 0x6600, stride 0x10.
+  // setup: ld hl,0x6600 / ld de,0x0010 / ld a,0x01 / ld b,0x06  (10+10+7+7 = 34t)
   regs.hl = 0x6600;
-  m.step(0x1099, 10);
   regs.de = 0x0010;
-  m.step(0x109c, 10);
   regs.a = 0x01;
-  m.step(0x109e, 7);
   regs.b = 0x06;
-  m.step(0x10a0, 7);
+  m.step(0x10a0, 34);
   do {
+    // one iteration: ld (hl),a / add hl,de / djnz  (7+11+13 = 31t continuing, 7+11+8 = 26t last)
     mem.write8(regs.hl, regs.a);
-    m.step(0x10a1, 7);
     regs.addHl(regs.de);
-    m.step(0x10a2, 11);
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x10a0 : 0x10a4, regs.b !== 0 ? 13 : 8);
+    m.step(regs.b !== 0 ? 0x10a0 : 0x10a4, regs.b !== 0 ? 31 : 26);
   } while (regs.b !== 0);
 
   // inline fill: 2 outer passes; HL reset to 0x660D each pass -> both write the same 3
   // cells with 0x08 (stride 0x10).
+  // outer setup: ld c,0x02 / ld a,0x08  (7+7 = 14t)
   regs.c = 0x02;
-  m.step(0x10a6, 7);
   regs.a = 0x08;
-  m.step(0x10a8, 7);
+  m.step(0x10a8, 14);
   do {
+    // inner setup: ld b,0x03 / ld hl,0x660d  (7+10 = 17t)
     regs.b = 0x03;
-    m.step(0x10aa, 7);
     regs.hl = 0x660d;
-    m.step(0x10ad, 10);
+    m.step(0x10ad, 17);
     do {
+      // one iteration: ld (hl),a / add hl,de / djnz  (7+11+13 = 31t continuing, 7+11+8 = 26t last)
       mem.write8(regs.hl, regs.a);
-      m.step(0x10ae, 7);
       regs.addHl(regs.de);
-      m.step(0x10af, 11);
       regs.djnz();
-      m.step(regs.b !== 0 ? 0x10ad : 0x10b1, regs.b !== 0 ? 13 : 8);
+      m.step(regs.b !== 0 ? 0x10ad : 0x10b1, regs.b !== 0 ? 31 : 26);
     } while (regs.b !== 0);
+    // outer tail: ld a,0x08 / dec c / jr nz  (7+4+10 = 21t)
     regs.a = 0x08;
-    m.step(0x10b3, 7);
     regs.c = regs.dec8(regs.c);
-    m.step(0x10b4, 4);
-    m.step(regs.fNZ ? 0x10a8 : 0x10b7, 10);
+    m.step(regs.fNZ ? 0x10a8 : 0x10b7, 21);
   } while (regs.fNZ);
 
+  // ld hl,0x3e64 / ld de,0x6603 / ld bc,0x060e  (10+10+10 = 30t), then call sub_11ec.
   regs.hl = 0x3e64;
-  m.step(0x10ba, 10);
   regs.de = 0x6603;
-  m.step(0x10bd, 10);
   regs.bc = 0x060e;
-  m.step(0x10c0, 10);
+  m.step(0x10c0, 30);
   m.push16(0x10c3);
   m.step(0x11ec, 17);
   m.call(0x11ec);
 
+  // ld hl,0x3e60 / ld de,0x6607 / ld bc,0x060c  (10+10+10 = 30t), then call sub_122a.
   regs.hl = 0x3e60;
-  m.step(0x10c6, 10);
   regs.de = 0x6607;
-  m.step(0x10c9, 10);
   regs.bc = 0x060c;
-  m.step(0x10cc, 10);
+  m.step(0x10cc, 30);
   m.push16(0x10cf);
   m.step(0x122a, 17);
   m.call(0x122a);
 
+  // ld ix,0x6600 / ld hl,0x6958 / ld b,0x06 / ld de,0x0010  (14+10+7+10 = 41t), call sub_11d3.
   regs.ix = 0x6600;
-  m.step(0x10d3, 14);
   regs.hl = 0x6958;
-  m.step(0x10d6, 10);
   regs.b = 0x06;
-  m.step(0x10d8, 7);
   regs.de = 0x0010;
-  m.step(0x10db, 10);
+  m.step(0x10db, 41);
   m.push16(0x10de);
   m.step(0x11d3, 17);
   m.call(0x11d3);
 
+  // ld hl,0x3e48 / ld de,0x6a0c / ld bc,0x000c  (10+10+10 = 30t), then ldir.
   regs.hl = 0x3e48;
-  m.step(0x10e1, 10);
   regs.de = 0x6a0c;
-  m.step(0x10e4, 10);
   regs.bc = 0x000c;
-  m.step(0x10e7, 10);
+  m.step(0x10e7, 30);
   m.ldir(0x10e9);
 
   // ten direct sprite writes to two records at IX=0x6400 (+0/+0x20).
+  // ld ix,0x6400 (14) + ten `ld (ix+d),n` (19 each) = 14 + 190 = 204t, straight-line, no
+  // hardware-bus address among them (all 0x64xx work RAM) -- fully foldable.
   regs.ix = 0x6400;
-  m.step(0x10ed, 14);
   const R = (d) => (regs.ix + d) & 0xffff;
   mem.write8(R(0x00), 0x01);
-  m.step(0x10f1, 19);
   mem.write8(R(0x03), 0x58);
-  m.step(0x10f5, 19);
   mem.write8(R(0x0e), 0x58);
-  m.step(0x10f9, 19);
   mem.write8(R(0x05), 0x80);
-  m.step(0x10fd, 19);
   mem.write8(R(0x0f), 0x80);
-  m.step(0x1101, 19);
   mem.write8(R(0x20), 0x01);
-  m.step(0x1105, 19);
   mem.write8(R(0x23), 0xeb);
-  m.step(0x1109, 19);
   mem.write8(R(0x2e), 0xeb);
-  m.step(0x110d, 19);
   mem.write8(R(0x25), 0x60);
-  m.step(0x1111, 19);
   mem.write8(R(0x2f), 0x60);
-  m.step(0x1115, 19);
+  m.step(0x1115, 204);
 
+  // ld de,0x6970 / ld hl,0x1121 / ld bc,0x0010  (10+10+10 = 30t), then ldir.
   regs.de = 0x6970;
-  m.step(0x1118, 10);
   regs.hl = 0x1121;
-  m.step(0x111b, 10);
   regs.bc = 0x0010;
-  m.step(0x111e, 10);
+  m.step(0x111e, 30);
   m.ldir(0x1120);
 
   m.ret(); // 0x1120

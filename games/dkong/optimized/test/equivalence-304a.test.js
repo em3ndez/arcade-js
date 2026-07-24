@@ -4,7 +4,13 @@
  * 0x7600/0x75C0 by the index at 0x638E, then decrement it). A screen-transition effect,
  * not in the 25m attract, so it never dispatches in a plain run; it is verified from a
  * crafted entry (booted machine captured at loc_0fd7's dispatch, cloned, 0x638E seeded so
- * the effect runs). PER-INSTRUCTION.
+ * the effect runs).
+ *
+ * COLLAPSED (one m.step per basic block, see optimized/sub_304a.js) — proven byte-exact:
+ * EQUAL/TEETH pass UNCHANGED. Because this suite is CRAFTED-ENTRY only (no whole-machine
+ * or convergent run), the PRNG-fork gate never exercises sub_304a, so the CYCLE TOTAL
+ * assertion below is the only thing pinning the collapse's cycle sums — mandatory per the
+ * collapse-sweep brief's rule 4.
  */
 
 import nodeTest from "node:test";
@@ -74,4 +80,19 @@ test("TEETH (crafted entry): a wrong index decrement is CAUGHT and names 0x638e"
   assert.ok(ram != null, "harness FAILED to catch a wrong store");
   assert.equal(ram.addr, 0x638e, `expected first diff at 0x638e, got 0x${ram.addr.toString(16)}`);
   console.log(`  TEETH: caught at 0x${ram.addr.toString(16)} (translated ${ram.a} vs broken ${ram.b})`);
+});
+
+test("CYCLE TOTAL (crafted entry): collapsed sub_304a charges the oracle's exact total", () => {
+  // MANDATORY per the collapse-sweep brief rule 4: this suite is crafted-entry only (no
+  // whole-machine/convergent run), so nothing else catches a wrong cycle sum.
+  const a = ENTRY.clone(); a.mem.write8(0x638e, 0x08);
+  const b = ENTRY.clone(); b.mem.write8(0x638e, 0x08);
+  const c0a = a.cycles;
+  const c0b = b.cycles;
+  translated_304a(a);
+  optimized_304a(b);
+  const oracleCycles = a.cycles - c0a;
+  const optCycles = b.cycles - c0b;
+  assert.equal(optCycles, oracleCycles, `collapsed total ${optCycles} != oracle ${oracleCycles}`);
+  console.log(`  CYCLE TOTAL: collapsed ${optCycles} t == oracle ${oracleCycles} t`);
 });

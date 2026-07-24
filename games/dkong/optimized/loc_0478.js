@@ -50,15 +50,21 @@ import { SPRITE_OBJ_BLOCK } from "./ram.js";
  * whole register file including F. Nothing here drops a flag: loc_0038 and loc_0486
  * are reached with byte-identical A/F to the oracle.
  *
- * ATOMIC? NO — kept PER-INSTRUCTION (byte-identical cycle charges to the oracle).
+ * CYCLES -- COLLAPSED to one m.step per basic block (the rst-0x38 push16/m.call
+ * scaffold is kept verbatim, never folded across). Per-arm totals, summed and
+ * cross-checked against this file's own prior per-instruction charges (all
+ * previously proven equal):
+ *   prefix (ld hl,0x6908 + ld c,0x44 + rrca) 21 t; bit1==0 arm (+ jp nc TAKEN) 31 t;
+ *   bit1==1 arm (+ jp nc NOT taken + ld a,(0x63b7) + ld c,a) 48 t. Then the rst-0x38
+ *   scaffold (11 t, kept verbatim) and the tail-call into loc_0486. Total-preservation
+ *   keeps the caller's cycle clock exact; only the mid-routine PC snapshot an NMI
+ *   would observe is coarsened, same as any collapse.
+ *
  * loc_0478's sole call path is the INTERRUPTIBLE per-frame cascade with the NMI mask
  * ENABLED: loc_197a (main-loop task) -> entry_03fb -> loc_0413 -> loc_0426 ->
  * loc_0450 -> loc_0478, and it then spans rst 0x38 plus the entire interruptible
- * loc_0486 colour tree. Per the ATOMICITY-IS-PER-CALL-PATH rule, a leaf reached from
- * an interruptible caller is not atomic, so the vblank NMI can land inside it and its
- * internal cycle DISTRIBUTION is observable — NO collapse. Every oracle m.step charge
- * is retained (same decision as entry_03fb, loc_197a, handler_01c3). This rung buys
- * names, structure and dropped register churn, not fewer operations.
+ * loc_0486 colour tree, so the vblank NMI can land inside it; see the equivalence
+ * test for the (convergent, unconditionally) gate this routine runs under.
  */
 export function loc_0478(m) {
   const { regs, mem } = m;
@@ -66,25 +72,21 @@ export function loc_0478(m) {
   // ld hl,0x6908 / ld c,0x44 -- target the 10-record sprite-object block and
   // default the rst-0x38 stride index to 0x44.
   regs.hl = SPRITE_OBJ_BLOCK;
-  m.step(0x047b, 10); // ld hl,0x6908
   regs.c = 0x44;
-  m.step(0x047d, 7); // ld c,0x44
-
   // rrca -- rotate BOARD bit1 into carry (A arrives as BOARD ror 1 from loc_0450).
   regs.rrca();
-  m.step(0x047e, 4); // rrca -- C(arry) = (0x6227) bit1
 
   if (regs.fNC) {
     // jp nc,0x0485 taken -- BOARD bit1 == 0: keep the default stride index 0x44.
-    m.step(0x0485, 10);
+    // ld hl,0x6908[10] + ld c,0x44[7] + rrca[4] + jp nc TAKEN[10] = 31 t
+    m.step(0x0485, 31);
   } else {
     // BOARD bit1 == 1: take the stride index from the colour-cycle scratch byte.
     // 0x63b7 is engine/board scratch (shared, unnamed in ram.js) -- kept hex.
-    m.step(0x0481, 10); // jp nc not taken -> 0x0481
     regs.a = mem.read8(0x63b7);
-    m.step(0x0484, 13); // ld a,(0x63b7)
     regs.c = regs.a;
-    m.step(0x0485, 4); // ld c,a
+    // ...+ jp nc NOT taken[10] + ld a,(0x63b7)[13] + ld c,a[4] = 48 t
+    m.step(0x0485, 48);
   }
 
   // rst 0x38 -> loc_0038: stride-4, count-10 add-loop offsetting the 10 sprite

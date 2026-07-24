@@ -56,52 +56,61 @@ import { FRAME } from "./ram.js";
  * nonetheless kept VERBATIM (`regs.and(regs.a)`), so A and F match the oracle
  * bit-for-bit at every point -- the unit gate compares the whole register file.
  *
- * CYCLES -- PER-INSTRUCTION, deliberately NOT collapsed. loc_0413 is a LEAF
- * reached via m.call, and by the atomicity-is-per-call-path rule it is NOT
- * atomic: every one of its callers is interruptible with the NMI mask ENABLED --
+ * CYCLES -- COLLAPSED to one m.step per basic block (the per-instruction charges of
+ * each straight-line run folded into a single charge at the block's exit PC). The
+ * latch-test prologue folds to 17 t (exit 0x0417, the `jp nz,0x0426` decision); the
+ * taken (latch set) arm is a single already-atomic instruction (10 t, tail to
+ * loc_0426); the not-taken charge plus the FRAME test folds to 27 t (exit 0x041e,
+ * the `jp nz,0x0486` decision); the taken (FRAME != 0) arm is a single instruction
+ * (10 t, tail to loc_0486); the not-taken charge plus arming the latch folds to 30 t
+ * (exit 0x0426, the fall-through tail into loc_0426). Every fold's TOTAL is the
+ * oracle's, EXACTLY -- total-preservation keeps the main loop's spin count (0x6019,
+ * the PRNG entropy) deterministic. Every tail still reaches its callee through
+ * m.call (the registry).
+ *
+ * loc_0413 is a LEAF reached via m.call, and by the atomicity-is-per-call-path rule
+ * it is NOT atomic: every one of its callers is interruptible with the NMI mask
+ * ENABLED --
  *   - entry_03fb <- loc_197a (the main-loop per-frame update cascade; loc_197a
  *     itself is kept per-instruction for exactly this reason), and
  *   - entry_0400 (a dispatchTask task, ROM 0x0400).
- * The vblank NMI can therefore land INSIDE this routine, pushing a live PC into
- * the diffed stack RAM, so collapsing its per-instruction m.step charges to one
- * total per branch could move where that NMI lands. Each `m.step(nextPC, t)` is
- * kept at its oracle cycle so the cumulative clock is identical instruction by
- * instruction. This buys names + structure + documentation (the handler_01c3
- * rung), not fewer operations.
+ * So the collapse coarsens where an in-flight NMI's PC would land (a block-exit
+ * address, not the exact instruction) -- the CONVERGENT gate's license (docs/06).
+ * "Atomic" is a property of the SCENARIO tested, not of the routine, so
+ * equivalence-0413.test.js gates the whole-machine job with convergentGate (a
+ * custom driven scenario) rather than a strict comparison, even though a strict
+ * driven run happens to still pass after this collapse.
  */
 export function loc_0413(m) {
   const { regs, mem } = m;
 
-  // ld a,(0x6391) / and a -- is the colour-cycle animation latch set?
+  // Block A: is the colour-cycle animation latch set?  13+4 = 17 t.
   regs.a = mem.read8(0x6391);
-  m.step(0x0416, 13); // ld a,(0x6391)
   regs.and(regs.a);
-  m.step(0x0417, 4); // and a
+  m.step(0x0417, 17);
 
   if (regs.fNZ) {
     // Latch set: advance the animation's frame counter (loc_0426).
-    m.step(0x0426, 10); // jp nz,0x0426
+    m.step(0x0426, 10); // jp nz,0x0426 taken -- already one instruction
     return m.call(0x0426);
   }
-  m.step(0x041a, 10); // jp nz NOT taken
 
-  // ld a,(FRAME) / and a -- has the vblank counter wrapped to 0 this frame?
+  // Block B (jp nz not taken): has the vblank counter wrapped to 0 this frame?
+  //   10+13+4 = 27 t.
   regs.a = mem.read8(FRAME);
-  m.step(0x041d, 13); // ld a,(0x601a)
   regs.and(regs.a);
-  m.step(0x041e, 4); // and a
+  m.step(0x041e, 27);
 
   if (regs.fNZ) {
     // Latch clear and FRAME != 0: idle phase -- just redraw the colour tail.
-    m.step(0x0486, 10); // jp nz,0x0486
+    m.step(0x0486, 10); // jp nz,0x0486 taken -- already one instruction
     return m.call(0x0486);
   }
-  m.step(0x0421, 10); // jp nz NOT taken -- FRAME == 0 sync point
 
-  // Arm the "animation active" latch, then advance the counter (falls into loc_0426).
+  // Block C (jp nz not taken -- FRAME == 0 sync point): arm the "animation active"
+  // latch, then fall into loc_0426.  10+7+13 = 30 t.
   regs.a = 0x01;
-  m.step(0x0423, 7); // ld a,0x01
   mem.write8(0x6391, regs.a);
-  m.step(0x0426, 13); // ld (0x6391),a -- falls into loc_0426
+  m.step(0x0426, 30);
   return m.call(0x0426);
 }

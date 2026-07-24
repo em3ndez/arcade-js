@@ -69,59 +69,48 @@
  * included) is byte-identical at each step and at exit. The final A/F are whatever
  * entry_051c leaves (its result is this routine's return value via the tail jump).
  *
- * NOT ATOMIC -- KEPT PER-INSTRUCTION (cycles NOT collapsed). loc_0691's ONLY caller
- * is entry_062a (task entry 10), dispatched from the MAIN LOOP with the vblank NMI
- * mask ENABLED; and loc_0691 itself calls entry_051c, a substantial INTERRUPTIBLE
- * routine (BCD add loop + score compare + a `rst 0x08` gate). By the per-call-path
- * atomicity rule (README §2, brief's ATOMICITY-IS-PER-CALL-PATH), a leaf reached via
- * m.call from a main-loop/interruptible path is NOT atomic: the NMI can land inside
- * this routine's own instruction run, and collapsing the per-instruction charges
- * would move where it lands and change the PC pushed into diffed stack RAM. So each
- * instruction keeps its own m.step charge -- always correct, and the whole-machine
- * gate confirms EQUAL. (Same decision as sub_0350 / sub_0020 / handler_05e9.) The
- * push16/step/call scaffolding is the calling convention and stays regardless.
+ * CYCLES -- COLLAPSED to one m.step per basic block: the prologue (load, split, push
+ * bc) folds to one 35t charge before the first call; the entire epilogue (pop bc
+ * through the tail jump) is ONE control path with no branch of its own, so it folds to
+ * one 54t charge into the tail call. Every fold's total is the exact sum of the
+ * oracle's per-instruction charges it replaces (verified against the original
+ * per-instruction file before this edit).
+ *
+ * NOT ATOMIC. loc_0691's ONLY caller is entry_062a (task entry 10), dispatched from the
+ * MAIN LOOP with the vblank NMI mask ENABLED; and loc_0691 itself calls entry_051c, a
+ * substantial INTERRUPTIBLE routine (BCD add loop + score compare + a `rst 0x08` gate).
+ * So loc_0691 is genuinely INTERRUPTIBLE, and per the lead's collapse-sweep rule the
+ * whole-machine gate is the CONVERGENT one (equivalence-0691.test.js), never the strict
+ * one: a mistimed NMI can push a coarser block-exit PC into the dead stack, or leave a
+ * benign raster tear, both tolerated there. The push16/step/call scaffolding is the
+ * calling convention and stays regardless.
  */
 export function loc_0691(m) {
   const { regs, mem } = m;
 
-  // ld a,(0x638C) / ld b,a -- load the packed BCD, keep the ORIGINAL in B.
+  // ld a,(0x638C) / ld b,a / and 0x0f / push bc -- 13+4+7+11 = 35t.
   // 0x638C stays hex: ram.js REJECTS it (0x63xx scratch, no evidenced meaning).
-  regs.a = mem.read8(0x638c);
-  m.step(0x0694, 13); // ld a,(0x638c)
+  regs.a = mem.read8(0x638c); // load the packed BCD, keep the ORIGINAL in B
   regs.b = regs.a;
-  m.step(0x0695, 4); // ld b,a
+  regs.and(0x0f); // isolate the low digit in A: the first score-table index
+  m.push16(regs.bc); // C is the caller's, live-in
+  m.step(0x0698, 35);
 
-  // and 0x0f -- isolate the low digit in A: the first score-table index.
-  regs.and(0x0f);
-  m.step(0x0697, 7); // and 0x0f
-
-  // push bc (C is the caller's, live-in) then call entry_051c -- award the low digit.
-  m.push16(regs.bc);
-  m.step(0x0698, 11); // push bc
+  // call entry_051c -- award the low digit.
   m.push16(0x069b);
   m.step(0x051c, 17); // call 0x051c
   m.call(0x051c);
 
-  // pop bc -- entry_051c's `ld c,a` clobbered C; restore B (the ORIGINAL).
-  regs.bc = m.pop16();
-  m.step(0x069c, 10); // pop bc
-
-  // ld a,b / rrca x4 / and 0x0f -- rotate the high nibble down and isolate it.
+  // pop bc / ld a,b / rrca x4 / and 0x0f / add a,0x0a / jp 0x051c -- ONE control path
+  // (no branch of loc_0691's own), straight through to the tail call: 10+4+16+7+7+10 = 54t.
+  regs.bc = m.pop16(); // entry_051c's `ld c,a` clobbered C; restore B (the ORIGINAL)
   regs.a = regs.b;
-  m.step(0x069d, 4); // ld a,b
-  for (const next of [0x069e, 0x069f, 0x06a0, 0x06a1]) {
-    regs.rrca();
-    m.step(next, 4); // rrca
-  }
-  regs.and(0x0f);
-  m.step(0x06a3, 7); // and 0x0f
-
-  // add a,0x0a -- the high digit's table index is offset by ten.
-  regs.add(0x0a);
-  m.step(0x06a5, 7); // add a,0x0a
+  regs.rrca(); regs.rrca(); regs.rrca(); regs.rrca(); // rotate the high nibble down
+  regs.and(0x0f); // isolate it
+  regs.add(0x0a); // the high digit's table index is offset by ten
+  m.step(0x051c, 54);
 
   // jp 0x051c -- TAIL JUMP (nothing pushed): award the high digit and return to
   // entry_062a's caller through entry_051c's own ret. loc_0691's return == its return.
-  m.step(0x051c, 10); // jp 0x051c
   return m.call(0x051c);
 }

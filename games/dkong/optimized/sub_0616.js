@@ -55,21 +55,22 @@ import { CREDITS } from "./ram.js";
  * matches the oracle by construction; the unit gate (which compares the whole
  * register file incl. F, and pc) confirms it. Nothing to keep or drop.
  *
- * CYCLES -- PER-INSTRUCTION, NOT collapsed. sub_0616 is NOT atomic. It calls
- * handler_05e9 (interruptible -- itself a main-loop task handler) and tail-jumps
- * into loop_0583 -> sub_0593 (also interruptible), and EVERY call path that
- * reaches sub_0616 runs with the vblank NMI mask ENABLED: entry_0611's task-table
- * fall-through from the main loop (ROM 0x0611), loc_141e (0x141E), sub_1486
- * (0x1489), and the state-0 attract site at 0x08F0. So the NMI CAN land inside
- * this routine, and WHERE it lands -- hence which PC it pushes into the compared
- * stack RAM -- depends on the exact per-instruction cumulative cycle position.
- * Collapsing the charges would move that landing and diverge. (This is the very
- * mechanism entry_0611 documents: entry_0611 keeps its own fall-through TOTAL
- * precisely because its interruptible callee is THIS routine.) So each
- * `m.step(target, tstates)` is kept verbatim at the oracle's cycle, and the
- * `m.push16(0x061b)` before the 0x05e9 call is kept as the calling convention
- * (handler_05e9's `ret` balances it). This rung buys names + documentation +
- * structure, not fewer operations.
+ * CYCLES -- COLLAPSED to one m.step per basic block. sub_0616 is NOT atomic: it calls
+ * handler_05e9 (interruptible -- itself a main-loop task handler) and tail-jumps into
+ * loop_0583 -> sub_0593 (also interruptible), and EVERY call path that reaches sub_0616 runs
+ * with the vblank NMI mask ENABLED: entry_0611's task-table fall-through from the main loop
+ * (ROM 0x0611), loc_141e (0x141E), sub_1486 (0x1489), and the state-0 attract site at 0x08F0.
+ * So the NMI CAN land inside this routine and push a live (now-coarser) PC into the diffed
+ * stack RAM -- exactly the mistimed-NMI raster tear the CONVERGENT gate exists for (docs/06;
+ * see sub_0350). sub_0616 is entirely straight-line (no branches at all) apart from its one
+ * `call` and its tail `jp`, both of which keep their own charge/scaffolding, never folded
+ * across: `m.push16(0x061b)` before `call 0x05e9` (handler_05e9's `ret` balances it), and the
+ * bare `m.step`+`m.call` for the tail `jp 0x0583` (no push -- loop_0583's `ret` returns to
+ * sub_0616's OWN caller). The one foldable block -- the four loads setting up the BCD
+ * expansion -- totals the exact SUM of the oracle's per-instruction charges: ld-hl,CREDITS
+ * [10] + ld-de,0xffe0 [10] + ld-ix,0x74bf [14] + ld-b,0x01 [7] = 41 t. Total-preservation keeps
+ * the main loop's PRNG spin count (0x6019) deterministic; the collapse is licensed by the
+ * convergent gate, not the strict whole-machine one.
  */
 export function sub_0616(m) {
   const { regs } = m;
@@ -83,15 +84,12 @@ export function sub_0616(m) {
   m.step(0x05e9, 17);
   m.call(0x05e9);
 
-  // Set up the one-byte BCD expansion of CREDITS into VRAM 0x74BF.
+  // Block: ld hl,CREDITS [10] + ld de,0xffe0 [10] + ld ix,0x74bf [14] + ld b,0x01 [7] = 41 t
   regs.hl = CREDITS; // 0x6001
-  m.step(0x061e, 10);
   regs.de = 0xffe0; // -32: step one tilemap row back per digit (vertical text)
-  m.step(0x0621, 10);
   regs.ix = 0x74bf; // VRAM destination (display RAM, not work RAM -> stays hex)
-  m.step(0x0625, 14); // DD-prefixed ld ix,nn
   regs.b = 0x01; // one source byte
-  m.step(0x0627, 7);
+  m.step(0x0627, 41);
 
   // jp 0x0583 -- TAIL jump into loop_0583; its ret returns to sub_0616's caller.
   m.step(0x0583, 10);

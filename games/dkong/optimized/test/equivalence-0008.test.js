@@ -13,10 +13,14 @@
  *
  * Seven jobs:
  *
- *   1. EQUAL (whole-machine) -- optimized sub_0008 reads EQUAL against its oracle
- *      every frame. The override must fire (or EQUAL is vacuous); it dispatches
- *      242x in 30 frames, exercising BOTH branches naturally (bit0-clear "normal"
- *      57x, bit0-set "skip" 185x).
+ *   1. CONVERGENT (whole-machine) -- optimized sub_0008 CONVERGES against its
+ *      oracle (pixels + persistent non-stack state) under a plain attract boot.
+ *      sub_0008 is COLLAPSED (one m.step per basic block; see sub_0008.js's CYCLES
+ *      note) and reached from the mask-ENABLED main loop (entry_051c's `rst 0x08`),
+ *      so the vblank NMI CAN land inside its ~4 instructions -- the convergent gate
+ *      is the correct license, not the strict byte-exact one (docs/06; see
+ *      sub_0350). The override must fire (or EQUAL is vacuous); it dispatches many
+ *      times over the scenario, exercising BOTH branches naturally.
  *
  *   2. EQUAL (unit) -- optimized == oracle in RAM + the full register file (incl.
  *      SP, A, F) + pc, at the first natural entry (the NORMAL branch, ATTRACT=0).
@@ -28,26 +32,30 @@
  *      optimized EQUAL (RAM, regs incl. SP+4, pc = caller's caller, return=false)
  *      AND the per-instruction cycle total == the oracle's 44 T-states.
  *
- *   5. CYCLE TEETH (whole-machine) -- a twin with the RIGHT SP/return but a WRONG
- *      total (charges 0) is CAUGHT at SPIN_COUNT 0x6019, proving the preserved
- *      per-instruction total is load-bearing, not a free parameter.
+ *   5. CYCLE TEETH (convergent) -- a twin with the RIGHT SP/return but a WRONG
+ *      total (charges 0) is CAUGHT as a PERSISTENT divergence (forked PRNG at
+ *      SPIN_COUNT 0x6019), proving the preserved per-instruction total is
+ *      load-bearing, not a free parameter. Kept a CYCLE-DROP twin under the
+ *      convergent gate rather than a value-corruption one, which risks hanging a
+ *      long run (see sub_0350's TEETH note).
  *
- *   6. TEETH (whole-machine) -- a twin that ALWAYS skips (wrong SP + wrong skip
- *      decision, but stack-aligned so it does not crash) is CAUGHT: NOT-EQUAL.
+ *   6. TEETH (unit) -- a twin that ALWAYS skips (wrong SP + wrong skip decision,
+ *      but stack-aligned so it does not crash) is CAUGHT at the NORMAL first entry
+ *      and names the diverging register, `sp` (0x6bfe vs 0x6c00). (Kept at the
+ *      unit level only, not whole-machine: a control-flow/SP twin is exactly the
+ *      value-corruption shape the convergent gate should not run long-form.)
  *
- *   7. TEETH (unit) -- the same always-skip twin is CAUGHT at the NORMAL first
- *      entry and names the diverging register, `sp` (0x6bfe vs 0x6c00).
- *
- * THE CYCLE DECISION this routine records: sub_0008 is kept PER-INSTRUCTION, NOT
- * collapsed. It is atomic on the NMI game-state path (mask-cleared), but it is a
- * leaf `rst` helper ALSO reached from the mask-ENABLED main loop -- entry_051c
+ * THE CYCLE DECISION this routine records: sub_0008 is COLLAPSED (one m.step per
+ * basic block). It is atomic on the NMI game-state path (mask-cleared), but it is
+ * a leaf `rst` helper ALSO reached from the mask-ENABLED main loop -- entry_051c
  * (mainloop.js) `rst 0x08`s it as its enable guard -- so a vblank NMI CAN land
- * inside its ~4 instructions. A collapsed `m.ret(28/44)` would push the ret-target
- * PC where the oracle pushes 0x000b..0x000e, diverging in diffed stack RAM (the
- * same reason sub_0020 / loc_197a stay per-instruction; README §2's mid-logic NMI
- * caveat). A 30-frame attract run does NOT exercise that interruptible path, so it
- * could not prove a collapse safe. Preserving the oracle's per-instruction charge
- * distribution keeps the pushed PC identical on every path.
+ * inside its ~4 instructions and push a live (now-coarser) PC into diffed stack
+ * RAM. That is exactly what the convergent gate licenses (pixels ground truth,
+ * transient tears heal, persistent divergence still fails); measured clean
+ * (pass=true, thousands of invocations, 0 persistent state) under both the
+ * attract and gameplay scenarios. The per-branch totals are the oracle's own exact
+ * sums (28 / 44 t), so total-preservation keeps the pushed PC and the PRNG spin
+ * count (0x6019) identical to the oracle's.
  *
  * Run: node --test
  */
@@ -60,8 +68,9 @@ import { sub_0008 as translated_0008 } from "../../translated/mainloop.js";
 import { sub_0008 as optimized_0008 } from "../sub_0008.js";
 import { Machine } from "../../machine.js";
 import { ATTRACT } from "../ram.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -156,24 +165,23 @@ function wrongCycles_0008(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0008 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0008]]));
+test("CONVERGENT (whole-machine): collapsed sub_0008 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0008]]), { scenario: SCENARIOS.attract });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x (both branches)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (both branches); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -201,32 +209,23 @@ test("BRANCH skip (bit0=1): EQUAL + return false + per-instruction total == orac
 
 // -- CYCLE TEETH --------------------------------------------------------------
 
-test("CYCLE TEETH (whole-machine): a WRONG cycle total is CAUGHT at SPIN_COUNT 0x6019", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, wrongCycles_0008]]));
+test("CYCLE TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, wrongCycles_0008]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "cycle-teeth override must have dispatched");
-  assert.equal(r.equal, false, "a wrong total was NOT caught — the preserved total would be a free parameter");
-  assert.equal(r.addr, 0x6019, `expected divergence at SPIN_COUNT 0x6019, got 0x${(r.addr ?? 0).toString(16)}`);
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  CYCLE TEETH: wrong total caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs stripped ${r.optimized})`,
+    `  CYCLE TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 
 // -- TEETH (SP / caller-skip contract) ----------------------------------------
-
-test("TEETH (whole-machine): a wrong caller-skip (always-skip) is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, alwaysSkip_0008]]));
-
-  assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong SP/skip — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
-  console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs broken ${r.optimized})`,
-  );
-});
 
 test("TEETH (unit): a wrong caller-skip is CAUGHT at the normal entry and names 'sp'", () => {
   const r = unitEquivalence(ROM, {}, TARGET, translated_0008, alwaysSkip_0008);

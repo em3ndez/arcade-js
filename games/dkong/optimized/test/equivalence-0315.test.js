@@ -6,10 +6,18 @@
  * override is wired at CONSTRUCTION (both the whole-machine gate and the core unit
  * gate install it that way) and fires ~140x/frame.
  *
+ * COLLAPSED (one m.step per basic block) and genuinely INTERRUPTIBLE (the vblank NMI
+ * lands inside it in real gameplay -- see the ATOMIC note in optimized/sub_0315.js), so
+ * per the lead's collapse-sweep rule the whole-machine gate is the CONVERGENT one
+ * UNCONDITIONALLY, using SCENARIOS.gameplay (this routine's VRAM-writing branches need
+ * an active credited game, not just attract). The convergent teeth is a CYCLE-DROP twin,
+ * never a value-corruption twin over a long run (it can hang the game) -- that coverage
+ * stays at the unit level.
+ *
  * Six jobs (the four core gates + two branch-coverage sweeps):
  *
- *   1. EQUAL -- the idiomatic optimized sub_0315 reads EQUAL against its translated
- *      oracle, whole-machine (two drivers, see below) and unit.
+ *   1. EQUAL -- the idiomatic optimized sub_0315 CONVERGES against its translated
+ *      oracle whole-machine (SCENARIOS.gameplay), and matches EQUAL at the unit level.
  *
  *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous. sub_0315 is
  *      m.call'd every main-loop pass from boot, so it fires thousands of times even
@@ -53,12 +61,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_0315 as translated_0315 } from "../../translated/mainloop.js";
 import { sub_0315 as optimized_0315 } from "../sub_0315.js";
 import { Machine } from "../../machine.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -71,27 +80,13 @@ const test = ROM_PRESENT
 
 const TARGET = 0x0315;
 
-// Plain-boot attract exercises arms A (ret nz) + B (rst-skip); the one credited
-// window at frames 4-5 also hits C once. 60 frames is ample.
-const PLAIN_FRAMES = 60;
-
-// A coin+start tape (identical to loc_197a's): coin on IN2 bit7 @ f10, start1 on
-// IN2 bit2 @ f30. ATTRACT (0x6007) goes 0 again at ~f13, so sub_0315's body runs
-// through the intro -- blink phase 0 (arm C: f4,f36,f68,f100) AND phase 1 (arm D:
-// f20,f52,f84,f116) both occur within ~130 frames, long before gameplay proper.
-const COIN_START_TAPE = [
-  { port: 0x7d00, bits: 0x80, frame: 10, dur: 6 }, // coin  (IN2 bit7)
-  { port: 0x7d00, bits: 0x04, frame: 30, dur: 6 }, // start (IN2 bit2)
-];
-const COIN_FRAMES = 130;
-
 // The P1 indicator's top cell, written by every body run (arm C: value player+1;
 // arm D/E: value 0x10). Inside the compared video-RAM dump (0x7400-0x77FF), and
 // sub_0315 is its only writer during a credited game, so a corruption persists.
 const BROKEN_ADDR = 0x7740;
 
-// makeMachine factory the core engine drives, with an optional coin+start tape
-// attached identically to whichever side (baseline / optimized) the engine builds.
+// makeMachine factory for the UNIT-level tests below (crafted entries; the
+// whole-machine gate now runs through convergentGate/SCENARIOS instead).
 function makeFactory(tape) {
   return (overrides) => {
     const m = new Machine(ROM, overrides ? { overrides } : {});
@@ -100,7 +95,6 @@ function makeFactory(tape) {
   };
 }
 const plainBoot = makeFactory(null);
-const coinStart = makeFactory(COIN_START_TAPE);
 
 /**
  * Deliberately-broken twin: behaviourally optimized_0315 EXCEPT the first store to
@@ -127,40 +121,27 @@ function broken_0315(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine, plain boot): optimized sub_0315 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(plainBoot, PLAIN_FRAMES, new Map([[TARGET, optimized_0315]]));
+// Per the lead's rule the whole-machine gate is the CONVERGENT one UNCONDITIONALLY.
+// sub_0315 is genuinely interruptible, so SCENARIOS.gameplay (coin+start+movement) is
+// used -- it also exercises the VRAM-writing blink-phase branches (C/D), same territory
+// the old plain+coin-start pair covered, now under a gate tolerant of benign tears.
+test("CONVERGENT (whole-machine): collapsed sub_0315 CONVERGES vs translated", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0315]]), { scenario: SCENARIOS.gameplay });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, PLAIN_FRAMES);
   console.log(
-    `  EQUAL/whole (plain): ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (arms A ret-nz + B rst-skip + one C)`,
-  );
-});
-
-test("EQUAL (whole-machine, coin+start): optimized sub_0315 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(coinStart, COIN_FRAMES, new Map([[TARGET, optimized_0315]]));
-
-  assert.ok(r.invocations.get(TARGET) >= 1, "override never dispatched");
-  assert.equal(
-    r.equal,
-    true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
-  );
-  assert.equal(r.framesCompared, COIN_FRAMES);
-  console.log(
-    `  EQUAL/whole (coin+start): ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (adds arm C blink-phase-0 + arm D blink-phase-1)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -176,16 +157,71 @@ test("EQUAL (unit): optimized sub_0315 matches translated in RAM + registers", (
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong indicator store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(coinStart, COIN_FRAMES, new Map([[TARGET, broken_0315]]));
+/**
+ * CYCLE-DROP twin for the CONVERGENT gate: identical memory/registers to the collapsed
+ * routine, but the frame-gate block charge is 5 t short. A wrong total forks the main
+ * loop's spin count (0x6019 PRNG entropy) -- a PERSISTENT divergence, never a heal.
+ */
+function cyclebroken_0315(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(FRAME);
+  regs.b = regs.a;
+  regs.and(0x0f);
+  m.step(0x031b, 19); // DROPPED: the correct charge here is 24 t
+  if (regs.fNZ) { m.ret(11); return; }
+  m.push16(0x031d);
+  m.step(0x0008, 16);
+  if (!m.call(0x0008)) return;
+  regs.a = mem.read8(CURRENT_PLAYER);
+  m.push16(0x0323);
+  m.step(0x0347, 30);
+  m.call(0x0347);
+  regs.de = 0xffe0;
+  const phaseSet = regs.bit(4, regs.b);
+  m.step(0x0328, 18);
+  if (phaseSet) {
+    regs.a = 0x10;
+    mem.write8(regs.hl, regs.a);
+    regs.addHl(regs.de);
+    mem.write8(regs.hl, regs.a);
+    regs.addHl(regs.de);
+    mem.write8(regs.hl, regs.a);
+    m.step(0x0331, 57);
+    regs.a = mem.read8(TWO_PLAYER_GAME);
+    regs.and(regs.a);
+    m.step(0x0335, 17);
+    if (regs.fZ) { m.ret(11); return; }
+    regs.a = mem.read8(CURRENT_PLAYER);
+    regs.xor(0x01);
+    m.push16(0x033e);
+    m.step(0x0347, 42);
+    m.call(0x0347);
+  } else {
+    m.step(0x033e, 12);
+  }
+  regs.a = regs.inc8(regs.a);
+  mem.write8(regs.hl, regs.a);
+  regs.addHl(regs.de);
+  mem.write8(regs.hl, 0x25);
+  regs.addHl(regs.de);
+  mem.write8(regs.hl, 0x20);
+  m.step(0x0346, 53);
+  m.ret();
+}
+
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0315]]), { scenario: SCENARIOS.gameplay });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

@@ -39,31 +39,30 @@
  * pass-through — nothing to preserve or drop. (The unit gate compares F anyway and
  * confirms it is untouched.)
  *
- * ATOMICITY -- PER-INSTRUCTION, NOT collapsed. tail_05da is reached ONLY via
- * m.call(0x05da), and BOTH callers are MAIN-LOOP tasks: handler_05c6 (dispatchTask
- * entry 2) and entry_051c (task entry 0, itself reached from entry_062a task 10).
- * On every path the vblank NMI mask is ENABLED, so the NMI CAN fire BETWEEN the
- * `ld de` and the `jp`. Collapsing the two 10 T charges into a single total would
- * move the cycle boundary at which the NMI lands and change the PC it pushes onto
- * the (diffed) stack — a divergence a short attract run can hide by the NMI simply
- * not landing there. So the tail is modelled EXACTLY as the oracle: two 10 T steps
- * then `return m.call(0x0578)` — no push16 (a `jp`, not a `call`, so draw_0578's
- * eventual `ret` returns to tail_05da's caller's caller, which is the point of the
- * tail jump). Per ATOMICITY-IS-PER-CALL-PATH: any interruptible call path ⇒ keep
- * per-instruction, which is always correct. (There is only ONE branch here — a
- * straight line — so "each branch's total preserved" is trivially the 20 T total.)
+ * ATOMICITY -- tail_05da is reached ONLY via m.call(0x05da), and BOTH callers are
+ * MAIN-LOOP tasks: handler_05c6 (dispatchTask entry 2) and entry_051c (task entry
+ * 0, itself reached from entry_062a task 10). On every path the vblank NMI mask is
+ * ENABLED, so the NMI CAN in principle fire BETWEEN the `ld de` and the `jp` --
+ * theoretically interruptible on every call path. GATED CONVERGENT, not strict,
+ * unconditionally: per the collapse-sweep's blanket rule, any routine with a
+ * whole-machine test is gated convergent regardless of whether the fold happens to
+ * pass strict in a given scenario, since that would only be a property of the
+ * tested scenario (no observed trajectory landing the NMI in the narrowed 10 T
+ * window), not proof the routine is atomic on every trajectory.
+ *
+ * CYCLES -- COLLAPSED to one m.step for the routine's single basic block (no
+ * hardware-bus write in this tail, so nothing pins a boundary between the two
+ * instructions). Total is the oracle's EXACTLY: `ld de,0x60ba` (10) + `jp 0x0578`
+ * (10) = 20 t. No push16 (a `jp`, not a `call`, so draw_0578's eventual `ret`
+ * returns to tail_05da's caller's caller, which is the point of the tail jump).
  */
 export function tail_05da(m) {
   const { regs } = m;
 
   // ld de,0x60ba -- point DE at HIGH_SCORE (0x60B8) MSB; draw_0578 walks 3 BCD
   // bytes downward from here. Kept hex: a pointer into the score, not a field.
+  // COLLAPSED: ld de,0x60ba (10) + jp 0x0578 (10) = 20 t, one block, tail-call.
   regs.de = 0x60ba;
-  m.step(0x05dd, 10);
-
-  // jp 0x0578 -- TAIL jump into the (already-optimized) renderer at its TOP entry
-  // (enteredAt057C defaults false, matching the oracle's arg-less m.call). Nothing
-  // is pushed; per-instruction charge kept because the NMI can land here.
-  m.step(0x0578, 10);
+  m.step(0x0578, 20);
   return m.call(0x0578);
 }

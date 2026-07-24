@@ -54,21 +54,21 @@
  * Z/C/H/S/PV, so the unit gate (which compares the whole register file, F
  * included) passes.
  *
- * LADDER STATUS -- rung 4 (idiomatic), cycles KEPT PER-INSTRUCTION (NOT
- * collapsed). draw_056b is a LEAF reached ONLY via `m.call(0x056b)`, and both
- * of its call sites are MAIN-LOOP tasks (dispatched by dispatchTask with the NMI
- * mask ENABLED):
+ * LADDER STATUS -- rung 4 (idiomatic), CYCLES COLLAPSED to one m.step per basic
+ * block. draw_056b is a LEAF reached ONLY via `m.call(0x056b)`, and both of its
+ * call sites are MAIN-LOOP tasks (dispatched by dispatchTask with the NMI mask
+ * ENABLED):
  *   - entry_051c  @ ROM 0x053B  (`call 0x056b`,   task 0: add-to-score render)
  *   - handler_05c6 @ ROM 0x05D7 (`jp nz,0x056b`,  task 2: draw a BCD counter)
- * By the per-call-path atomicity rule that is NOT atomic: the NMI can fire
- * between these instructions (machine.js tick() checks nextNmi at every step and
- * fireNmi() pushes this.pc). Collapsing the m.step charges to one per branch
- * would move where that NMI lands and which PC/F it stacks, so the charges stay
- * per-instruction — the always-correct choice for a main-loop-reached leaf.
- * (Harness-verified: per-instruction is EQUAL whole-machine + unit; the natural
- * attract run reaches this routine once at frame 5. There is no collapsed branch,
- * so no per-branch cycle-total assertion is owed.) The per-branch TOTALS are
- * preserved regardless: Z-taken 14+4+12 = 30 T, Z-not-taken 14+4+7+14+12 = 51 T.
+ * By the per-call-path atomicity rule this is NOT atomic: the NMI can fire
+ * between these instructions. A collapse's only observable effect on such an
+ * interrupted path is the coarse PC/F pushed into the dead stack or a healing
+ * single-frame pixel tear — never a persistent divergence, since the fold writes
+ * no memory and crosses no hardware write. Licensed by the CONVERGENT gate (same
+ * reasoning as sub_0350; equivalence-056b.test.js uses convergentGate, not the
+ * strict whole-machine gate). The per-branch TOTALS are the oracle's exactly:
+ * Z-taken (prologue 14+4=18, +12 tail) = 30 T; Z-not-taken (prologue 18, + the
+ * not-taken jr[7]+ld ix[14]+jr[12]=33 folded) = 51 T.
  */
 export function draw_056b(m) {
   const { regs } = m;
@@ -79,21 +79,20 @@ export function draw_056b(m) {
   const VRAM_SCORE_COL_P1 = 0x7781;
   const VRAM_SCORE_COL_P2 = 0x7521;
 
-  // ld ix,0x7781 (default P1 column) / and a (test the selector A).
+  // ld ix,0x7781 (default P1 column) / and a (test the selector A) -- folded:
+  // 14 + 4 = 18 t, the common prologue (and a's flags decide the branch below).
   regs.ix = VRAM_SCORE_COL_P1;
-  m.step(0x056f, 14);
   regs.and(regs.a); // Z <- (A == 0); clears C, sets H — kept verbatim (see header)
-  m.step(0x0570, 4);
+  m.step(0x0570, 18);
 
   if (regs.fZ) {
-    // jr z taken: A == 0, keep the P1 column. path total 14+4+12 = 30 T.
+    // jr z taken: A == 0, keep the P1 column. path total 18+12 = 30 T.
     m.step(0x057c, 12);
   } else {
-    // jr z not taken -> ld ix,0x7521 (P2 column) -> jr. total 14+4+7+14+12 = 51 T.
-    m.step(0x0572, 7);
+    // jr z not taken -> ld ix,0x7521 (P2 column) -> jr, folded: 7+14+12 = 33 t.
+    // path total 18+33 = 51 T.
     regs.ix = VRAM_SCORE_COL_P2;
-    m.step(0x0576, 14);
-    m.step(0x057c, 12);
+    m.step(0x057c, 33);
   }
 
   // Tail-join draw_0578 at 0x057C (enteredAt057C = true skips its own `ld ix`).

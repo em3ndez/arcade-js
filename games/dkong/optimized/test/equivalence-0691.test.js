@@ -17,9 +17,9 @@
  * and the ONLY variable is which loc_0691 runs.
  *
  * Jobs:
- *   1. EQUAL (whole-machine) -- base (force + oracle loc_0691) vs opt (force + the
- *      idiomatic optimized loc_0691) leave identical per-frame state. The override
- *      must fire >=1x or EQUAL is vacuous.
+ *   1. CONVERGENT (whole-machine, forced) -- base (force + oracle loc_0691) vs opt
+ *      (force + the idiomatic optimized loc_0691) CONVERGE frame-by-frame (pixels +
+ *      persistent non-stack state). The override must fire >=1x or EQUAL is vacuous.
  *   2. EQUAL (unit) -- from the captured real entry, translated vs optimized leave
  *      identical RAM + registers (incl. F) + pc + SP.
  *   3. DATA COVERAGE (unit) -- loc_0691 is straight-line (one control path), but its
@@ -29,16 +29,20 @@
  *      RAM+regs+pc+SP AND asserted to charge the oracle's exact CYCLE TOTAL.
  *   4. BRANCH-TEETH (cycles) -- a variant that drops one m.step charge yields a wrong
  *      total and is CAUGHT, proving the cycle-total assertion has teeth.
- *   5+6. TEETH (whole + unit) -- a deliberately-broken twin whose first store to the
- *      player's score (P1_SCORE middle byte 0x60B3) lands the wrong value must be
- *      CAUGHT: NOT-EQUAL, naming 0x60B3.
+ *   5. TEETH (convergent + unit) -- convergent: a CYCLE-DROP twin forks the PRNG, a
+ *      PERSISTENT divergence, CAUGHT. unit: a deliberately-broken twin whose first
+ *      store to the player's score (P1_SCORE middle byte 0x60B3) lands the wrong value
+ *      must be CAUGHT: NOT-EQUAL, naming 0x60B3.
  *
- * CYCLE DECISION: loc_0691 stays PER-INSTRUCTION (NOT collapsed). It is NOT atomic --
- * reached from the MAIN LOOP (entry_062a, mask ENABLED) and it calls the
- * interruptible entry_051c, so the vblank NMI can land inside its instruction run;
- * collapsing would move that landing and change the PC pushed into diffed stack RAM
- * (README §2). The path totals are the oracle's by construction and asserted below.
- * See optimized/loc_0691.js for the full decision.
+ * CYCLE DECISION: loc_0691 is COLLAPSED (one m.step per basic block). It is NOT atomic
+ * -- reached from the MAIN LOOP (entry_062a, mask ENABLED) and it calls the
+ * interruptible entry_051c, so the vblank NMI can land inside its instruction run. Per
+ * the lead's collapse-sweep rule the whole-machine gate is therefore the CONVERGENT
+ * one UNCONDITIONALLY (never the strict one, even where it happens to still pass); its
+ * teeth is a CYCLE-DROP twin, not a value-corruption twin (which can hang a long
+ * convergent run). The single-shot DATA/BRANCH-TEETH tests below are unaffected by
+ * interruptibility (no frame stepping, so no NMI can land mid-call) and stay as
+ * absolute cycle-total assertions. See optimized/loc_0691.js for the full decision.
  *
  * Run: node --test
  */
@@ -49,15 +53,18 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { entry_062a as translated_062a, loc_0691 as translated_0691 } from "../../translated/mainloop.js";
 import { loc_0691 as optimized_0691 } from "../loc_0691.js";
-import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { firstStateDiff, firstRegDiff, convergentEquivalence } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
-import { P1_SCORE } from "../ram.js";
+import { P1_SCORE, STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
 const ROM = ROM_PRESENT
   ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR)))
   : null;
+const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
+const ASSETS = ROM_PRESENT ? { gfx1: rd("gfx1.bin"), gfx2: rd("gfx2.bin"), proms: rd("proms.bin") } : {};
+const DEAD_STACK = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built -- run 'make -C games/dkong rom'" }, fn);
@@ -76,6 +83,11 @@ const TAPE = [
 ];
 const FORCE_AFTER = 900; // force A=0 on the first seeded entry_062a at/after this frame
 const FRAMES = 1100; // the forced dispatch lands ~frame 1034; compare well past it
+// loc_0691 fires only ONCE (the one seeded/forced dispatch), so a wrong cycle total's
+// effect on the PRNG (0x6019/0x6018) takes longer to become visible/persistent than the
+// EQUAL window above -- empirically it is still 0 diffs anywhere at 1100/1400 frames and
+// clearly persistent by 1500+. TEETH_FRAMES gives that a safety margin.
+const TEETH_FRAMES = 1600;
 
 /** A fresh per-machine `force` override: on the first entry_062a dispatch at/after
  *  FORCE_AFTER whose 0x638C is seeded (!=0), set payload A=0 (and C=0, matching the
@@ -96,37 +108,22 @@ function makeForce() {
 }
 
 /**
- * Custom whole-machine gate for a driven, force-dispatched leaf. Runs two machines
- * FRAMES frames -- both with the identical `force` override, coin+start tape -- and
- * diffs their per-frame state. The baseline resolves 0x0691 to the oracle; the
- * optimized side installs `optLoc0691` (wrapped in an invocation counter). Mirrors
- * core/equivalence.js:wholeMachineEquivalence, but the driver puts the SAME force on
- * BOTH sides (which its makeMachine()/overrides split cannot express).
+ * Video-enabled, force-driven factory for the CONVERGENT gate. `makeForce()` is called
+ * FRESH on every invocation (once for the baseline call with no overrides, once for the
+ * optimized call with its wrapped override map), so each side gets its OWN independent
+ * `forced` latch -- required since convergentEquivalence runs the two machines one after
+ * the other, and a shared closure would have baseline's run "use up" the force before
+ * optimized ever sees it. The force override itself is identical policy on both sides;
+ * only the TARGET routine differs (core's convergentEquivalence wraps that for us with
+ * its own invocation counter, so no manual counting is needed here).
  */
-function wholeMachineForced(optLoc0691) {
-  let invocations = 0;
-  const baseOv = new Map([[0x062a, makeForce()]]);
-  const optOv = new Map([
-    [0x062a, makeForce()],
-    [TARGET, (m, ...a) => { invocations++; return optLoc0691(m, ...a); }],
-  ]);
-  const base = new Machine(ROM, { overrides: baseOv });
-  const opt = new Machine(ROM, { overrides: optOv });
-  base.inputTape = TAPE.map((t) => ({ ...t }));
-  opt.inputTape = TAPE.map((t) => ({ ...t }));
-  const bf = base.runFrames(FRAMES);
-  const of = opt.runFrames(FRAMES);
-  assert.equal(base.stoppedBy, null, `baseline stopped early: ${base.stoppedBy}`);
-  assert.equal(opt.stoppedBy, null, `optimized stopped early: ${opt.stoppedBy}`);
-  assert.equal(bf.length, of.length, "frame counts differ");
-  const offsetToAddr = (off) => base.stateOffsetToAddr(off);
-  for (let f = 0; f < bf.length; f++) {
-    const d = firstStateDiff(bf[f], of[f], offsetToAddr);
-    if (d) {
-      return { equal: false, frame: f, addr: d.addr, baseline: d.a, optimized: d.b, framesCompared: bf.length, invocations };
-    }
-  }
-  return { equal: true, framesCompared: bf.length, invocations };
+function makeMachineForcedVideo(overrides) {
+  const merged = new Map([[0x062a, makeForce()]]);
+  if (overrides) for (const [k, v] of overrides) merged.set(k, v);
+  const m = new Machine(ROM, { ...ASSETS, overrides: merged });
+  m.inputTape = TAPE.map((t) => ({ ...t }));
+  m.captureVideo = true;
+  return m;
 }
 
 /** Broken twin: behaviourally the optimized loc_0691 EXCEPT the first store to the
@@ -203,18 +200,27 @@ function assertDataEqual(label, pokes) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_0691 matches translated every frame", () => {
-  const r = wholeMachineForced(optimized_0691);
+// Per the lead's rule, the whole-machine gate is the CONVERGENT one UNCONDITIONALLY.
+test("CONVERGENT (whole-machine, forced): collapsed loc_0691 CONVERGES vs translated", () => {
+  const r = convergentEquivalence(makeMachineForcedVideo, FRAMES, new Map([[TARGET, optimized_0691]]), {
+    excludeAddr: DEAD_STACK,
+  });
 
-  assert.ok(r.invocations >= 1, `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations})`);
-  assert.equal(
-    r.equal,
-    true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+  assert.ok(
+    r.invocations.get(TARGET) >= 1,
+    `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
-  assert.equal(r.framesCompared, FRAMES);
-  console.log(`  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations}x`);
+  assert.equal(
+    r.pass,
+    true,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
+  );
+  console.log(
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
+  );
 });
 
 test("EQUAL (unit): idiomatic optimized loc_0691 matches translated in RAM + registers", () => {
@@ -275,16 +281,48 @@ test("BRANCH-TEETH (cycles): a dropped m.step charge yields a wrong total and is
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong score store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineForced(broken_0691);
+/**
+ * CYCLE-DROP twin for the CONVERGENT gate: identical memory/registers to the collapsed
+ * routine, but the prologue block charge is 5 t short. A wrong total forks the main
+ * loop's spin count (0x6019 PRNG entropy) -- a PERSISTENT divergence, never a heal.
+ * (A value-corruption twin is NOT run under the convergent gate here -- a persisting
+ * corruption over a long convergent run can hang the game; that coverage stays at the
+ * unit level, below.)
+ */
+function cyclebroken_0691(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(0x638c);
+  regs.b = regs.a;
+  regs.and(0x0f);
+  m.push16(regs.bc);
+  m.step(0x0698, 30); // DROPPED: the correct charge here is 35 t
+  m.push16(0x069b);
+  m.step(0x051c, 17);
+  m.call(0x051c);
+  regs.bc = m.pop16();
+  regs.a = regs.b;
+  regs.rrca(); regs.rrca(); regs.rrca(); regs.rrca();
+  regs.and(0x0f);
+  regs.add(0x0a);
+  m.step(0x051c, 54);
+  return m.call(0x051c);
+}
 
-  assert.ok(r.invocations >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store -- it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentEquivalence(makeMachineForcedVideo, TEETH_FRAMES, new Map([[TARGET, cyclebroken_0691]]), {
+    excludeAddr: DEAD_STACK,
+  });
+
+  assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

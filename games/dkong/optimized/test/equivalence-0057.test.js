@@ -3,21 +3,26 @@
  * Equivalence-harness tests for sub_0057 -- the PRNG accumulator, run once per
  * vblank: RANDOM(0x6018) += FRAME(0x601A) + SPIN_COUNT(0x6019).
  *
- * Five jobs:
+ * Six jobs:
  *
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_0057 reads EQUAL
- *      against its translated oracle every frame. sub_0057 is called from the
- *      vblank NMI handler (entry_0066 @ ROM 0x00B9), so the override dispatches
- *      EVERY frame from boot -- no input driving needed.
+ *   1. EQUAL (whole-machine, CONVERGENT) -- the collapsed sub_0057 (its whole body
+ *      folded into one m.step) CONVERGES against its translated oracle: pixels +
+ *      persistent non-stack state. sub_0057 is called from the vblank NMI handler
+ *      (entry_0066 @ ROM 0x00B9) every frame from boot, so plain attract dispatches
+ *      it. Gated convergent unconditionally (not strict), per the collapse-sweep's
+ *      blanket rule: sub_0057 has interruptible call paths too (main-loop object
+ *      logic, mask ENABLED), so "passes strict in this scenario" would only be a
+ *      property of attract never exercising those paths, not proof of atomicity.
  *
  *   2. EQUAL (unit) -- optimized == translated in RAM + the whole register file
  *      (incl. F and HL) + pc, on the captured entry state.
  *
- *   3. TEETH (whole-machine) -- a wrong write to RANDOM (0x6018) is CAUGHT. The
- *      seed feeds forward (RANDOM += ...), so one wrong byte diverges and stays
- *      diverged; the gate must report NOT-EQUAL naming an address.
+ *   3. TEETH (unit) -- a wrong write to RANDOM (0x6018) is CAUGHT and names 0x6018
+ *      exactly (unit gate; a single-entry diff, not a long convergent run).
  *
- *   4. TEETH (unit) -- the same wrong write is caught and names 0x6018 exactly.
+ *   4. TEETH (convergent) -- the collapse's load-bearing invariant is the folded
+ *      60t body total; a CYCLE-DROP twin (short by 5t) forks the main loop's spin
+ *      count (0x6019, the PRNG entropy itself) into a PERSISTENT divergence.
  *
  *   5. ARITHMETIC + CYCLES (synthesised) -- sub_0057 has NO data-dependent
  *      branches (one straight-line path), so the natural run above already
@@ -30,13 +35,9 @@
  *      70t total -- so a wrong sum, a wrong residual flag, or a wrong total has
  *      teeth even though no whole-machine trajectory happens to stress the wrap.
  *
- * WHY PER-INSTRUCTION (not collapsed): atomicity is per-call-path, and sub_0057
- * is reached via m.call from MAIN-LOOP object logic (entry_2c41, sub_2523,
- * loc_2ea7, sub_306f) where the NMI mask is ENABLED, as well as from the NMI
- * handler. The vblank NMI can fire between its instructions on the main-loop
- * paths, so its cycle distribution is NOT free (a collapse would move a
- * mid-routine NMI's pushed PC + the live HL/A in diffed stack RAM). The charges
- * are kept one-per-instruction; see optimized/sub_0057.js for the full argument.
+ * CYCLE DECISION: sub_0057's body is COLLAPSED to one m.step (60t); see
+ * optimized/sub_0057.js for the full atomicity argument and why the whole-machine
+ * gate is convergent rather than strict.
  *
  * Run: node --test
  */
@@ -47,7 +48,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0057 as translated_0057 } from "../../translated/nmi.js";
 import { sub_0057 as optimized_0057 } from "../sub_0057.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 import { RANDOM, FRAME, SPIN_COUNT } from "../ram.js";
@@ -62,15 +64,15 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0057;
-const FRAMES = 30; // sub_0057 fires every vblank; a short window is plenty.
+const FRAMES = 30; // sub_0057 fires every vblank; used by the crafted-entry capture below.
 
 // sub_0057's sole output store is RANDOM (0x6018), in the diffed work-RAM span.
 const BROKEN_ADDR = RANDOM; // 0x6018
 
 /**
  * Deliberately-broken twin: the optimized handler EXCEPT its store to RANDOM
- * lands a wrong value (correct byte XOR 0xFF, always different). Every dispatch
- * breaks its own write, so RANDOM diverges from frame 1 and never recovers.
+ * lands a wrong value (correct byte XOR 0xFF, always different). Used for the
+ * UNIT teeth only (a single-entry diff, not a long convergent run).
  */
 function broken_0057(m) {
   const realWrite = m.mem.write8.bind(m.mem);
@@ -89,25 +91,43 @@ function broken_0057(m) {
   }
 }
 
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical memory ops to the collapsed
+ * routine, but the single folded charge is 5 t short (55 instead of 60). A wrong
+ * total shifts SPIN_COUNT's per-frame increment count -- the PRNG entropy itself --
+ * forking the RANDOM stream permanently: a PERSISTENT non-stack divergence.
+ */
+function cyclebroken_0057(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(RANDOM);
+  regs.hl = FRAME;
+  regs.add(mem.read8(regs.hl));
+  regs.hl = SPIN_COUNT;
+  regs.add(mem.read8(regs.hl));
+  mem.write8(RANDOM, regs.a);
+  m.step(0x0065, 55); // DROPPED: the correct total is 60 t
+  m.ret();
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0057 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0057]]));
+test("CONVERGENT (whole-machine): collapsed sub_0057 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0057]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -123,16 +143,18 @@ test("EQUAL (unit): idiomatic optimized sub_0057 matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong RANDOM store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0057]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0057]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

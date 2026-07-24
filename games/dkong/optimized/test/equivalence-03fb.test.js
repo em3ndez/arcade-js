@@ -39,21 +39,24 @@
  * WHY THE CORE ENGINE + A CUSTOM FACTORY (not harness.js's wrappers). Same reason
  * as loc_197a: harness.js bakes a makeMachine on `{}` assets that drives NO input,
  * so it never credits a game and never dispatches loc_197a -> never entry_03fb.
- * This test calls the SAME core unitEquivalence / wholeMachineEquivalence directly,
- * with a makeMachine factory that attaches an identical coin+start inputTape to
- * BOTH sides (the factory is shared, so any input/poke is applied identically to
+ * This test calls the SAME core unitEquivalence directly, plus the shared DK
+ * convergentGate binding (test/convergent.js) for the whole-machine job, with a
+ * makeMachine factory that attaches an identical coin+start inputTape to BOTH
+ * sides (the factory is shared, so any input/poke is applied identically to
  * baseline and optimized). A Machine built with no overrides runs the pure oracle
  * (machine.js: the manifest's optimized routines are NOT auto-applied), so the
  * baseline is the oracle entry_03fb inside an all-oracle machine.
  *
- * CYCLE FINDING this routine adds: entry_03fb is NON-ATOMIC and stays PER-
- * INSTRUCTION, byte-identical to the oracle. Its sole caller loc_197a is the
- * interruptible per-frame cascade (NMI mask ENABLED), and entry_03fb spans rst 0x38
- * plus the entire interruptible loc_0413 colour tree, so the vblank NMI can land
- * inside it — its internal cycle distribution is observable. Per the ATOMICITY-IS-
- * PER-CALL-PATH rule, a leaf reached from an interruptible caller is not atomic, so
- * NO collapse: every oracle m.step charge is retained (same decision as loc_197a
- * and handler_01c3). Each branch's cycle TOTAL is asserted equal on clones anyway.
+ * CYCLE FINDING this routine adds: entry_03fb is NON-ATOMIC (its sole caller
+ * loc_197a is the interruptible per-frame cascade, NMI mask ENABLED, and
+ * entry_03fb spans rst 0x38 plus the entire interruptible loc_0413 colour tree) but
+ * is COLLAPSED anyway (one m.step per basic block; see the routine's own
+ * docstring) -- per the fleet-wide rule, "atomic" is a property of the scenario
+ * exercised, not the routine, so the whole-machine gate uses the CONVERGENT
+ * license UNCONDITIONALLY rather than a strict gate that would only be one
+ * benign tear away from a false failure. Each branch's cycle TOTAL (355 t / 868 t)
+ * is still asserted equal on clones by the BRANCH unit tests below, unaffected by
+ * the collapse grain (kept byte-exact + cycle-exact, unchanged).
  *
  * Run: node --test
  */
@@ -67,10 +70,11 @@ import { entry_03fb as optimized_03fb } from "../entry_03fb.js";
 import { Machine } from "../../machine.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
+import { SPRITE_OBJ_BLOCK } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -142,24 +146,53 @@ function broken_03fb(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized entry_03fb matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_03fb]]));
+// A custom convergent scenario reusing the SAME coin+start tape as makeMachine above
+// (SCENARIOS.gameplay's fixed coin@400/start@460 timing would credit too late for
+// entry_03fb's first dispatch at ~f1033 to land inside a 1200-frame window).
+const CONVERGENT_SCENARIO = { frames: FRAMES, inputs: COIN_START_TAPE };
 
-  // The override must actually have run, or EQUAL would be vacuous.
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+// collapsed routine, but the first block's total is 5 t short. A wrong total shifts
+// the main loop's spin count (0x6019 PRNG entropy), forking the RANDOM stream: a
+// PERSISTENT non-stack divergence, never a heal.
+function cyclebroken_03fb(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(BOARD);
+  regs.cp(0x02);
+  m.step(0x0400, 15); // DROPPED: the correct charge here is 20 t
+  if (regs.fNZ) {
+    m.step(0x0413, 10);
+    return m.call(0x0413);
+  }
+  regs.hl = SPRITE_OBJ_BLOCK;
+  regs.a = mem.read8(0x63a3);
+  regs.c = regs.a;
+  m.step(0x040a, 37);
+  m.push16(0x040b); m.step(0x0038, 11); m.call(0x0038);
+  regs.a = mem.read8(0x6910);
+  regs.sub(0x3b);
+  mem.write8(0x63b7, regs.a);
+  m.step(0x0413, 33);
+  return m.call(0x0413);
+}
+
+test("CONVERGENT (whole-machine): collapsed entry_03fb CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_03fb]]), { scenario: CONVERGENT_SCENARIO });
+
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (per-frame via loc_197a, ~f1033..f1230)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (per-frame via loc_197a, ~f1033..f1230); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -233,16 +266,18 @@ test("BRANCH (unit): BOARD == 2 (fall-through, COLD) — rst 0x38 + 0x63b7 arm E
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong colour-RAM store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, MAX_FRAMES, new Map([[TARGET, broken_03fb]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_03fb]]), { scenario: CONVERGENT_SCENARIO });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

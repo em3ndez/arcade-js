@@ -61,35 +61,37 @@
  * flags), `and a` on (0x6393) (the flags the `jp nz` and the tail-call inherit).
  * So F matches automatically at every instruction boundary and at each m.call.
  *
- * ATOMIC? NO -- kept PER-INSTRUCTION (no cycle collapse). Per the ATOMICITY-IS-
- * PER-CALL-PATH rule: loc_0464's only caller loc_0426 is reached from loc_0413 <-
- * entry_03fb <- loc_197a, the interruptible per-frame main-loop cascade (NMI mask
- * ENABLED). The vblank NMI can land inside this routine (it spans the sub_004e
- * block copy and the entire loc_0486 / loc_0450 colour subtree on its tail), so its
- * internal cycle DISTRIBUTION is observable and every oracle m.step charge is
- * retained exactly. Same decision (and reason) as entry_03fb, loc_197a and
- * handler_01c3. Branch cycle TOTALs, asserted equal on clones by the unit test:
- * HOT 322 t, COLD 1745 t. This rung buys names + structure + docs, not fewer ops.
+ * ATOMIC? NO. Per the ATOMICITY-IS-PER-CALL-PATH rule: loc_0464's only caller
+ * loc_0426 is reached from loc_0413 <- entry_03fb <- loc_197a, the interruptible
+ * per-frame main-loop cascade (NMI mask ENABLED). The vblank NMI can land inside
+ * this routine (it spans the sub_004e block copy and the entire loc_0486 / loc_0450
+ * colour subtree on its tail). GATED CONVERGENT, not strict, unconditionally: per
+ * the collapse-sweep's blanket rule, any routine with a whole-machine test is gated
+ * convergent regardless of whether the fold happens to pass strict in a given
+ * scenario, since that would only be a property of the tested trajectory, not proof
+ * of atomicity on every trajectory.
+ *
+ * CYCLES -- COLLAPSED to one m.step per basic block. Branch totals (excluding the
+ * callees' own opaque cycles), each the oracle's EXACTLY: HOT (pre-branch 41 + the
+ * tail-jump setup 10) = 51 t; COLD (pre-branch 41 + jr/ld-hl fold 20 + the rst-call
+ * charge 17 + the jp-rejoin setup 10) = 88 t -- matching the unit test's asserted
+ * whole-branch totals (HOT 322 t, COLD 1745 t) once entry_0486 / sub_004e+loc_0450's
+ * own charges are added back in.
  */
 export function loc_0464(m) {
   const { regs, mem } = m;
 
-  // Clear the private frame counter (0x6390) and its companion latch (0x6391).
-  // HL == 0x6390 on entry (loc_0426 holds it there); write via HL, then inc to 0x6391.
+  // Block A: clear the private frame counter (0x6390) and its companion latch
+  // (0x6391), then read + test the mode byte (0x6393). HL == 0x6390 on entry
+  // (loc_0426 holds it there); write via HL, then inc to 0x6391.
+  // 4(xor a)+7(ld (hl),a)+6(inc hl)+7(ld (hl),a)+13(ld a,(0x6393))+4(and a) = 41 t
   regs.xor(regs.a);
-  m.step(0x0465, 4); // xor a -- A = 0
-  mem.write8(regs.hl, regs.a);
-  m.step(0x0466, 7); // ld (hl),a -- (0x6390) = 0
-  regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x0467, 6); // inc hl -> 0x6391
-  mem.write8(regs.hl, regs.a);
-  m.step(0x0468, 7); // ld (hl),a -- (0x6391) = 0
-
-  // Dispatch on the mode byte (0x6393).
+  mem.write8(regs.hl, regs.a); // ld (hl),a -- (0x6390) = 0
+  regs.hl = (regs.hl + 1) & 0xffff; // inc hl -> 0x6391
+  mem.write8(regs.hl, regs.a); // ld (hl),a -- (0x6391) = 0
   regs.a = mem.read8(0x6393);
-  m.step(0x046b, 13); // ld a,(0x6393)
   regs.and(regs.a);
-  m.step(0x046c, 4); // and a
+  m.step(0x046c, 41);
 
   if (regs.fNZ) {
     // 0x6393 != 0 (HOT): tail-jump into the colour-attribute tail. HL == 0x6391.
@@ -99,9 +101,9 @@ export function loc_0464(m) {
 
   // 0x6393 == 0 (COLD): reload the sprite-object block from ROM template 0x385c,
   // then rejoin the 0x6227 bit-dispatch at loc_0450 (a backward rejoin, not a loop).
-  m.step(0x046f, 10); // jp nz NOT taken
+  // jr NOT taken(10) + ld hl,0x385c(10) = 20 t -- no hardware write/call between them.
   regs.hl = 0x385c;
-  m.step(0x0472, 10); // ld hl,0x385c (ROM data address)
+  m.step(0x0472, 20);
   m.push16(0x0475); m.step(0x004e, 17); m.call(0x004e); // call 0x004e -- block copy
   m.step(0x0450, 10); // jp 0x0450
   return m.call(0x0450);

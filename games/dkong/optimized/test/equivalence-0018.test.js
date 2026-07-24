@@ -12,17 +12,23 @@
  *
  * Jobs:
  *
- *   1. EQUAL -- the idiomatic optimized sub_0018 reads EQUAL against its translated
- *      oracle, whole-machine and unit. The unit gate compares RAM + the WHOLE
- *      register file (incl. SP + F + PC), which is where sub_0018's contract lives:
- *      its SP manipulation and the boolean-carrying Z flag must match exactly.
+ *   1. CONVERGENT (whole-machine) -- the collapsed optimized sub_0018 CONVERGES
+ *      against its translated oracle (pixels + persistent non-stack state). sub_0018
+ *      is collapsed and INTERRUPTIBLE (see optimized/sub_0018.js), so the whole-machine
+ *      job runs under the convergent gate, per the lead's unconditional rule: any
+ *      routine with a whole-machine test gets the convergent gate, not the strict one.
+ *      The unit gate (below) still compares RAM + the WHOLE register file (incl.
+ *      SP + F + PC) from a single crafted entry, which is where sub_0018's contract
+ *      lives: its SP manipulation and the boolean-carrying Z flag must match exactly.
  *
- *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous. In pure
- *      attract sub_0018 first fires at frame ~262 (a SKIP) and again at ~518 (an
- *      EXPIRY); a 600-frame window fires it 66x and exercises BOTH branches
- *      naturally (64 skips + 2 expiries).
+ *   2. DISPATCH -- the override must actually fire, or CONVERGENT/EQUAL is vacuous.
+ *      In pure attract sub_0018 first fires at frame ~262 (a SKIP) and again at ~518
+ *      (an EXPIRY); the attract scenario fires it many times and exercises BOTH
+ *      branches naturally.
  *
- *   3. TEETH (RAM) -- a deliberately-broken twin (the routine's only store, `dec (hl)`
+ *   3. TEETH (convergent + RAM) -- convergent: a CYCLE-DROP twin (one charge short)
+ *      forks the main-loop spin count (0x6019 PRNG entropy), a PERSISTENT divergence,
+ *      CAUGHT. RAM: a deliberately-broken twin (the routine's only store, `dec (hl)`
  *      to 0x6009, lands the wrong value) must be CAUGHT: NOT-EQUAL, naming 0x6009
  *      (inside the compared dump's work RAM 0x6000-0x6BFF).
  *
@@ -40,19 +46,18 @@
  *
  *   7. TEETH (cycle) -- a mis-timed twin (same final state, +4 t) must be CAUGHT by
  *      the per-branch cycle-total comparison, proving the cycle assertions above are
- *      not vacuous now that the charges are per-instruction (not collapsed).
+ *      not vacuous now that the charges are collapsed to per-branch totals.
  *
  * CYCLE FINDING: sub_0018 is a leaf but is NOT atomic on every path -- it is reached
  * from INTERRUPTIBLE contexts (sibling sub_0020's expiry tail-jump and many in-game
  * substate callers), not only the mask-cleared NMI-dispatch path. On an interruptible
  * path the vblank NMI can be accepted at an instruction boundary INSIDE the routine,
  * and fireNmi pushes the CURRENT PC into diffed stack RAM; collapsing the charges
- * would erase the oracle's intermediate PCs and change that byte. So the cycles are
- * kept PER-INSTRUCTION (charge-for-charge with the oracle), like sub_0020 / loc_197a
- * -- sub_0020 is reviewed CLEAN and documents this routine as "the interruptible
- * sub_0018". The attract-only whole-machine run below does NOT by itself prove
- * atomicity on those interruptible paths, which is exactly why the distribution is
- * preserved rather than collapsed. See optimized/sub_0018.js for the decision.
+ * (see optimized/sub_0018.js) moves where that PC lands, which is exactly what the
+ * CONVERGENT gate is for -- pixels + persistent non-stack state are the ground truth,
+ * a healing dead-stack/pixel tear is tolerated, a real (non-healing) divergence still
+ * fails. The per-branch cycle TOTALS (expiry 32 t, skip 48 t) are preserved exactly
+ * and still asserted below.
  *
  * Run: node --test
  */
@@ -65,9 +70,9 @@ import { sub_0018 as translated_0018 } from "../../translated/nmi.js";
 import { sub_0018 as optimized_0018 } from "../sub_0018.js";
 import { Machine } from "../../machine.js";
 import { SUBSTATE_TIMER } from "../ram.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
@@ -82,7 +87,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0018;
-const FRAMES = 600;      // fires 66x over attract; hits BOTH branches (64 skip + 2 expiry)
 const MAX_FRAMES = 400;  // unit gate reaches the first entry (frame ~262) comfortably
 
 // The makeMachine factory the core engine drives (same shape as harness.js's
@@ -138,33 +142,52 @@ function wrongSp_0018(m) {
  * Deliberately MIS-TIMED twin: optimized_0018 with one spurious 4 t charge. Its final
  * state (RAM / regs / pc / return) is identical, but the cycle total is wrong -- so it
  * must be caught by the per-branch cycle-total comparison, proving those cycle
- * assertions are not vacuous now that the charges are per-instruction.
+ * assertions are not vacuous now that the charges are collapsed to per-branch totals.
  */
 function misTimed_0018(m) {
   m.step(TARGET, 4); // spurious charge; pc immediately overwritten by the real routine
   return optimized_0018(m);
 }
 
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+ * collapsed routine, but the SKIP path's total is 5 t short, so the main loop's spin
+ * count (0x6019 PRNG entropy) forks -- a PERSISTENT divergence, never a heal.
+ */
+function cyclebroken_0018(m) {
+  const { regs, mem } = m;
+  regs.hl = SUBSTATE_TIMER;
+  mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8);
+  if (regs.fZ) {
+    m.ret(32);
+    return true;
+  }
+  regs.sp = (regs.sp + 1) & 0xffff;
+  regs.sp = (regs.sp + 1) & 0xffff;
+  m.ret(43); // DROPPED: correct SKIP total is 48 t
+  return false;
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0018 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_0018]]));
+test("CONVERGENT (whole-machine): collapsed sub_0018 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0018]]), { scenario: SCENARIOS.attract });
 
-  // The override must actually have run, or EQUAL would be vacuous.
+  // The override must actually have run, or CONVERGENT would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (both branches: skip + expiry)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (both branches: skip + expiry); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -180,16 +203,22 @@ test("EQUAL (unit): idiomatic optimized sub_0018 matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong countdown store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, broken_0018]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  // The convergent gate tolerates transient tears but MUST catch a real (non-healing) error.
+  // A short SKIP-path charge shifts the spin count 0x6019 (PRNG entropy), forking the RANDOM
+  // stream permanently -- never a value-corruption twin here (it would hang a long run).
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0018]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

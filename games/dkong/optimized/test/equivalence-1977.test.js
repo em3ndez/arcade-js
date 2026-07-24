@@ -8,11 +8,15 @@
  * `call 0x21ee` at 0x1977; everything observable comes from its two callees, reached
  * by address so they stay the oracle (or a proven rewrite).
  *
- * Seven jobs (the standard four, plus the trampoline's return contract and both
- * halves of the cycle teeth):
+ * Jobs (the standard four, plus the trampoline's return contract and both halves of
+ * the cycle teeth). Per the lead's collapse-sweep rule, EVERY whole-machine gate here
+ * is the CONVERGENT one UNCONDITIONALLY -- even though handler_1977's own footprint was
+ * never collapsed (it was already a single 17-T charge, nothing to fold), a passing
+ * strict test is a property of the tested scenario, not proof of safety under every
+ * NMI timing, so strict is never kept on a whole-machine run:
  *
- *   1. EQUAL -- the idiomatic optimized handler_1977 reads EQUAL against its
- *      translated oracle, whole-machine and unit. The override routes through
+ *   1. CONVERGENT (whole-machine) + EQUAL (unit) -- the idiomatic optimized
+ *      handler_1977 matches its translated oracle. The override routes through
  *      dispatchGameState's override consult (nmi.js), inert when the map is empty.
  *
  *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous. handler_1977
@@ -20,20 +24,12 @@
  *      and GAME_SUBSTATE(0x600A)==3 -- state 1 index 3 in the 0x0748 sub-state table
  *      -- which a plain boot never reaches (the finale). It is driven here by an
  *      identical-both-sides poke that holds those three bytes from frame 20; the
- *      0x0748 dispatch then vectors to handler_1977 once per frame (40x over the
- *      60-frame window). Because the poke drives the finale cascade forward, once it
- *      hits a board-complete it sets 0x600A=0x16; the poke re-forces it to 3 every
- *      CAPTURED frame, but the single unpokable execution tail past `maxFrames` is
- *      exposed -- so the window is chosen inside the empirically CONTIGUOUS clean
- *      band (baseline+optimized clean for FRAMES 44..80; the teeth broken-side band
- *      is 42..60). FRAMES=60 / TEETH_FRAMES=50 sit well inside both.
+ *      0x0748 dispatch then vectors to handler_1977 once per frame.
  *
  *   3. TEETH -- a deliberately-broken twin (the first store on the path -- sub_21ee's
  *      scripted-input write to 0x6010, handler_1977's OWN distinctive act) lands the
- *      wrong value; it must be CAUGHT: NOT-EQUAL, naming 0x6010, whole-machine and
- *      unit. (sub_21ee's 0x63CD counter is written twice per fall-through and the
- *      second write masks a corruption of the first, so 0x6010 -- written once,
- *      unconditionally, before any branch -- is the robust representative store.)
+ *      wrong value; it must be CAUGHT: NOT-EQUAL, naming 0x6010. UNIT level only (a
+ *      persisting value corruption over a long convergent run can hang the game).
  *
  *   4. STRAIGHT-LINE + RETURN CONTRACT -- handler_1977 has NO data-dependent branch
  *      of its own (it is a straight-line trampoline; every branch lives inside the
@@ -50,19 +46,17 @@
  *      test isolates that own total (callees stubbed to a zero-cost ret) and asserts
  *      oracle == optimized == 17, so the charge cannot silently drift.
  *
- *   6. CYCLE-COLLAPSE TEETH (whole-machine) -- that 17 T is load-bearing: the NMI's
- *      total cost sets the main-loop vblank spin count / PRNG (README §2). A WRONG
- *      own-charge (16 instead of 17) is CAUGHT and NOT-EQUAL, diverging in the diffed
- *      STACK RAM (0x6BFE) -- a later frame's NMI-pushed PC landing at a different byte
- *      because this NMI cost one cycle less, the same downstream-landing mechanism as
- *      entry_0611 / loc_1839.
+ *   6. TEETH (convergent) -- that 17 T is load-bearing: the NMI's total cost sets the
+ *      main-loop vblank spin count / PRNG (README §2). A WRONG own-charge (16 instead
+ *      of 17) is this routine's CYCLE-DROP twin; the convergent gate must still fail
+ *      it as a PERSISTENT (non-healing) divergence.
  *
  * WHY THE CORE ENGINE + A CUSTOM FACTORY (not harness.js's wrappers). The engine
  * that proves equivalence lives in core/equivalence.js; games/dkong/optimized/
  * harness.js is a thin wrapper that bakes in a `makeMachine` factory built on `{}`
  * assets -- which drives NO input and applies NO poke, so it can never reach the
  * finale sub-state and never dispatches handler_1977. This test therefore calls the
- * SAME core unitEquivalence / wholeMachineEquivalence directly (they ARE the standard
+ * SAME core unitEquivalence / convergentEquivalence directly (they ARE the standard
  * engine harness.js wraps), passing a makeMachine factory that adds an identical
  * finale poke to BOTH the baseline and optimized machines (the factory is the
  * wrapper's only job). Nothing about the capture / clone / diff / invocation-counter
@@ -83,24 +77,27 @@ import { handler_1977 as optimized_1977 } from "../handler_1977.js";
 import { Machine } from "../../machine.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
+  convergentEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
 const ROM = ROM_PRESENT
   ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR)))
   : null;
+const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
+const ASSETS = ROM_PRESENT ? { gfx1: rd("gfx1.bin"), gfx2: rd("gfx2.bin"), proms: rd("proms.bin") } : {};
+const DEAD_STACK = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1977;
-const FRAMES = 60; // dispatches once/frame from 20; 40 hits. Inside the clean band 44..80.
-const TEETH_FRAMES = 50; // caught at frame 21; inside baseline(44..80) ∩ broken-6010(42..60).
 const MAX_FRAMES = 45; // handler_1977 first dispatches at frame 20; 45 reaches it cleanly.
+const CONVERGENT_FRAMES = 100; // > tailWindow (20 default), well past the first ~40 dispatches
 
 // Force the finale sub-state that reaches handler_1977: hold GAME_STATE at 1
 // (dispatchGameState -> handler_073c), CREDITS at 0 (handler_073c takes the 0x0748
@@ -120,6 +117,15 @@ const FINALE_POKE = [
 function makeMachine(overrides) {
   const m = new Machine(ROM, overrides ? { overrides } : {});
   m.pokes = FINALE_POKE.map((p) => ({ ...p }));
+  return m;
+}
+
+// Video-enabled variant for the CONVERGENT gate (pixels are its ground truth) -- same
+// finale poke, plus the gfx/proms assets and captureVideo.
+function makeMachineVideo(overrides) {
+  const m = new Machine(ROM, overrides ? { ...ASSETS, overrides } : { ...ASSETS });
+  m.pokes = FINALE_POKE.map((p) => ({ ...p }));
+  m.captureVideo = true;
   return m;
 }
 
@@ -167,23 +173,30 @@ function wrongTotal_1977(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized handler_1977 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_1977]]));
+// Per the lead's rule, the whole-machine gate is the CONVERGENT one UNCONDITIONALLY --
+// even though handler_1977's own footprint is unchanged (nothing was collapsed here; it
+// was already a single charge), a passing strict test is a property of the tested
+// scenario, not proof the routine is safe under every timing. The convergent gate
+// exercises the SAME finale-poke driver, just tolerant of benign dead-stack/pixel tears.
+test("CONVERGENT (whole-machine): idiomatic optimized handler_1977 CONVERGES vs translated", () => {
+  const r = convergentEquivalence(makeMachineVideo, CONVERGENT_FRAMES, new Map([[TARGET, optimized_1977]]), {
+    excludeAddr: DEAD_STACK,
+  });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (finale cascade)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (finale cascade); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -199,18 +212,10 @@ test("EQUAL (unit): idiomatic optimized handler_1977 matches translated in RAM +
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong script-input store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, TEETH_FRAMES, new Map([[TARGET, broken_1977]]));
-
-  assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
-  console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
-  );
-});
+// NOTE: the whole-machine value-corruption TEETH is intentionally NOT run under the
+// convergent gate (a persisting value corruption over a long convergent run can hang
+// the game -- the lead's rule). Its coverage stays at the unit level below; the
+// convergent gate's whole-machine teeth is the CYCLE-DROP twin further down.
 
 test("TEETH (unit): a wrong script-input store is CAUGHT and names 0x6010", () => {
   const r = unitEquivalence(makeMachine, TARGET, translated_1977, broken_1977, { maxFrames: MAX_FRAMES });
@@ -294,14 +299,23 @@ test("CYCLE (unit): the routine's own charge is exactly 17 T on oracle AND optim
   console.log("  CYCLE/unit: own total 17 T (call 0x21ee) on oracle AND optimized");
 });
 
-test("CYCLE (whole-machine): a WRONG own total (call charged 16) is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, wrongTotal_1977]]));
+test("TEETH (convergent): a WRONG own total (call charged 16) forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  // This IS the collapse's cycle-drop twin (the brief's mandatory teeth): a wrong own
+  // charge shifts the main loop's spin count (0x6019 PRNG entropy) permanently, so the
+  // convergent gate -- tolerant of benign dead-stack/pixel tears -- must still fail it.
+  const r = convergentEquivalence(makeMachineVideo, CONVERGENT_FRAMES, new Map([[TARGET, wrongTotal_1977]]), {
+    excludeAddr: DEAD_STACK,
+  });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "wrong-total override must have dispatched");
-  assert.equal(r.equal, false, "a wrong own total slipped through — the total has no teeth");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  CYCLE/whole: wrong call charge 16 caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: wrong call charge 16 caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });

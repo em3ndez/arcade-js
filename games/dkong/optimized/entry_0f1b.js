@@ -23,76 +23,71 @@
  * carry/nc test. The loop counter LIVES IN 0x63B1 (reloaded/decremented/stored each row),
  * so its intermediate values stay observable; HL is NOT reloaded inside the loop.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. A draw primitive of sub_0da7, whose call
- * graph is not provably mask-cleared on every path, so per-instruction charges are kept
- * verbatim (always correct). The `jp 0x0da7` exits are the walk back-edge -> return.
+ * CYCLES -- COLLAPSED to one m.step per basic block (same convention as sub_0350 /
+ * loc_0e4f: a "not taken" branch charge folds FORWARD into whatever unconditional code
+ * follows it up to the next decision or genuine merge point -- e.g. loc_0f2f, reached
+ * from THREE predecessors (kind 4/5/6), keeps its own fresh charge). Every branch TOTAL
+ * sums to the oracle's, EXACTLY (verified against translated/state0.js). The `jp 0x0da7`
+ * exits are the walk back-edge -> return; each is a single-predecessor tail, so its
+ * charge is folded together with the `inc de`/`jp 0x0da7` that precede the return.
  */
 export function entry_0f1b(m) {
   const { regs, mem } = m;
 
+  // ld a,(63b3)[13]+cp 7[7] -- record kind, sign test.  20 t
   regs.a = mem.read8(0x63b3);
-  m.step(0x0f1e, 13); // ld a,(0x63b3) -- record kind
   regs.cp(0x07);
-  m.step(0x0f20, 7);
+  m.step(0x0f20, 20);
   if (regs.fP) {
-    // jp p,0x0ecf -- kind >= 7 (SIGN test)
-    m.step(0x0ecf, 10);
+    // jp p taken[10]+inc de[6]+jp 0x0da7[10] -- kind>=7 bail, walk back-edge.  26 t
     regs.de = (regs.de + 1) & 0xffff;
-    m.step(0x0ed0, 6);
-    m.step(0x0da7, 10); // jp 0x0da7 -- walk back-edge
+    m.step(0x0da7, 26);
     return;
   }
-  m.step(0x0f23, 10);
-
+  // jp p not-taken[10]+cp 4[7] -- kind4 test.  17 t
   regs.cp(0x04);
-  m.step(0x0f25, 7);
+  m.step(0x0f25, 17);
   if (regs.fZ) {
-    m.step(0x0f4c, 10); // jp z,0x0f4c -- kind 4
+    // jp z taken[10]+ld a,0xe0[7]+jp 0x0f2f[10] -- kind 4 fill tile.  27 t
     regs.a = 0xe0;
-    m.step(0x0f4e, 7);
-    m.step(0x0f2f, 10); // jp 0x0f2f
+    m.step(0x0f2f, 27);
   } else {
-    m.step(0x0f28, 10);
+    // jp z not-taken[10]+cp 5[7] -- kind5 test.  17 t
     regs.cp(0x05);
-    m.step(0x0f2a, 7);
+    m.step(0x0f2a, 17);
     if (regs.fZ) {
-      m.step(0x0f51, 10); // jp z,0x0f51 -- kind 5
+      // jp z taken[10]+ld a,0xb0[7]+jp 0x0f2f[10] -- kind 5 fill tile.  27 t
       regs.a = 0xb0;
-      m.step(0x0f53, 7);
-      m.step(0x0f2f, 10); // jp 0x0f2f
+      m.step(0x0f2f, 27);
     } else {
-      m.step(0x0f2d, 10); // kind 6 (default)
+      // jp z not-taken[10]+ld a,0xfe[7] -- kind 6 (default) fill tile, fallthrough.  17 t
       regs.a = 0xfe;
-      m.step(0x0f2f, 7);
+      m.step(0x0f2f, 17);
     }
   }
 
   // loc_0f2f -- common fill body; A = fill tile-code. HL loaded ONCE, outside the loop.
+  // ld (63b5),a[13]+ld hl,(63ab)[16] -- entering the loop.  29 t
   mem.write8(0x63b5, regs.a);
-  m.step(0x0f32, 13);
   regs.hl = mem.read16(0x63ab);
-  m.step(0x0f35, 16);
+  m.step(0x0f35, 29);
 
-  do {
+  for (;;) {
+    // ld a,(63b5)[13]+ld(hl),a[7]+ld bc,0x20[10]+add hl,bc[11]+ld a,(63b1)[13]+sub 8[7]
+    //   +ld(63b1),a[13] -- lay tile, advance row, decrement extent.  74 t
     regs.a = mem.read8(0x63b5);
-    m.step(0x0f38, 13);
     mem.write8(regs.hl, regs.a);
-    m.step(0x0f39, 7);
     regs.bc = 0x0020;
-    m.step(0x0f3c, 10); // one tilemap row
     regs.addHl(regs.bc);
-    m.step(0x0f3d, 11);
     regs.a = mem.read8(0x63b1);
-    m.step(0x0f40, 13);
     regs.sub(0x08);
-    m.step(0x0f42, 7);
     mem.write8(0x63b1, regs.a);
-    m.step(0x0f45, 13);
-    m.step(regs.fNC ? 0x0f35 : 0x0f48, 10); // jp nc,0x0f35 -- loop while no borrow
-  } while (regs.fNC);
-
+    m.step(0x0f45, 74);
+    if (regs.fNC) { m.step(0x0f35, 10); continue; } // jp nc taken -- loop back, merge, alone
+    break;
+  }
+  // jp nc not-taken[10]+inc de[6]+jp 0x0da7[10] -- loop exhausted, walk back-edge.  26 t
   regs.de = (regs.de + 1) & 0xffff;
-  m.step(0x0f49, 6);
-  m.step(0x0da7, 10); // jp 0x0da7 -- walk back-edge
+  m.step(0x0da7, 26);
   return;
 }

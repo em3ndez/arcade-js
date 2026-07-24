@@ -58,38 +58,34 @@ import { SND_BGM } from "./ram.js";
  *   by the same regs helpers the oracle uses, so the whole register file (F included)
  *   matches; no idiomatic shortcut skips a flag the caller could observe.
  *
- * ATOMIC? NO — PER-INSTRUCTION cycles kept (NOT collapsed). Every m.call(0x066a)
- *   caller is a MAIN-LOOP path (mask enabled): entry_062a (task 10, via its branch-D
- *   tail and via loc_06a8's `jp 0x066a` on branch B). On a main-loop path the vblank
- *   NMI CAN fire mid-routine, and where it lands — and thus the PC it pushes into
- *   diffed stack RAM — depends on this routine's internal cycle distribution. So the
- *   per-instruction m.step charges are load-bearing and are all preserved; collapsing
- *   them would only be provable-safe by a whole-machine run that happened not to be
- *   interrupted here, which is NOT proof (brief's ATOMICITY-IS-PER-CALL-PATH rule).
- *   Per-instruction is unconditionally correct. (The caller entry_062a IS collapsed,
- *   but that is a separate, independently-proven decision about ITS own body; this
- *   leaf stays per-instruction. The optimization win here is names + structure +
- *   documentation, not a cycle collapse and not dropped register churn — every
- *   register move is observed by the unit gate.)
+ * CYCLES -- COLLAPSED to one m.step per basic block: the nibble-split (4 instructions
+ * before the branch test) folds to 42t; branch 1 stays its own single 10t charge into
+ * the tail call; branch 2 (the not-taken fallthrough plus its five stores) folds to one
+ * 78t charge into the tail call. Every fold's total is the exact sum of the oracle's
+ * per-instruction charges it replaces (verified against the original per-instruction
+ * file before this edit). Per the lead's collapse-sweep rule, EVERY m.call(0x066a)
+ * caller is a MAIN-LOOP path (mask enabled) -- entry_062a (task 10, via its branch-D
+ * tail and via loc_06a8's `jp 0x066a` on branch B) -- so this routine is genuinely
+ * INTERRUPTIBLE and the collapse is LICENSED by the CONVERGENT gate
+ * (equivalence-066a.test.js), never the strict whole-machine gate: a mistimed NMI can
+ * push a coarser block-exit PC into the dead stack, or leave a benign raster tear, both
+ * tolerated there. SND_BGM (0x6089) and the two VRAM cells (0x7486/0x74A6) are all work
+ * RAM/VRAM, not 0x7Dxx hardware latches, so nothing here needs a partial-collapse
+ * boundary. (The caller entry_062a IS separately collapsed; this leaf's collapse is
+ * independent.)
  */
 export function loc_066a(m) {
   const { regs, mem } = m;
 
   // ---- Split V into nibbles. C = V; B = low nibble; A -> high nibble. ----
-  regs.c = regs.a; // ld c,a -- keep the original V in C (compared by the unit gate)
-  m.step(0x066b, 4);
-  regs.and(0x0f); // and 0x0f -- low nibble, sets F
-  m.step(0x066d, 7);
-  regs.b = regs.a; // ld b,a -- low nibble (ones digit) in B
-  m.step(0x066e, 4);
-  regs.a = regs.c; // ld a,c -- restore V for the high-nibble extraction
-  m.step(0x066f, 4);
-  for (const next of [0x0670, 0x0671, 0x0672, 0x0673]) {
-    regs.rrca(); // rrca x4 -- rotate V's high nibble down into the low nibble
-    m.step(next, 4);
-  }
-  regs.and(0x0f); // and 0x0f -- high nibble (tens digit) in A; sets the branch-1 F
-  m.step(0x0675, 7);
+  // ld c,a(4) + and 0x0f(7) + ld b,a(4) + ld a,c(4) + rrca x4(4*4=16) + and 0x0f(7) = 42t
+  regs.c = regs.a; // keep the original V in C (compared by the unit gate)
+  regs.and(0x0f); // low nibble, sets F
+  regs.b = regs.a; // low nibble (ones digit) in B
+  regs.a = regs.c; // restore V for the high-nibble extraction
+  regs.rrca(); regs.rrca(); regs.rrca(); regs.rrca(); // rotate V's high nibble down
+  regs.and(0x0f); // high nibble (tens digit) in A; sets the branch-1 F
+  m.step(0x0675, 42);
 
   if (regs.fNZ) {
     // ---- Branch 1: tens digit is non-zero -- draw both digits. ----
@@ -100,29 +96,22 @@ export function loc_066a(m) {
   }
 
   // ---- Branch 2: tens digit is zero -- LEADING-ZERO SUPPRESSION. ----
-  m.step(0x0678, 10); // jp nz not taken (fall through)
-
+  // jp nz not taken(10) + ld a,0x03(7) + ld (SND_BGM),a(13) + ld a,0x70(7) +
+  // ld (0x7486),a(13) + ld (0x74a6),a(13) + add a,b(4) + ld b,a(4) + ld a,0x10(7) = 78t
   regs.a = 0x03;
-  m.step(0x067a, 7);
   // 0x6089 = SND_BGM per ram.js. A background-tune-index write from a digit
   // renderer is unexpected; the byte IS SND_BGM and the write is faithful to the
   // ROM. Flagged in the equivalence report for a semantic double-check.
-  mem.write8(SND_BGM, regs.a); // ld (0x6089),a
-  m.step(0x067d, 13);
+  mem.write8(SND_BGM, regs.a);
 
   regs.a = 0x70; // 0x70 = blank tile
-  m.step(0x067f, 7);
   mem.write8(0x7486, regs.a); // VRAM tile cell (blank the leading position)
-  m.step(0x0682, 13);
   mem.write8(0x74a6, regs.a); // VRAM tile cell -- out of address order, see doc
-  m.step(0x0685, 13);
 
-  regs.add(regs.b); // add a,b -- A = 0x70 + low nibble; produces this arm's final F
-  m.step(0x0686, 4);
-  regs.b = regs.a; // ld b,a -- the blanked ones glyph, handed to loc_0689 as B
-  m.step(0x0687, 4);
-  regs.a = 0x10; // ld a,0x10 -- the tens cell (0x74E6) gets 0x10 on this arm
-  m.step(0x0689, 7);
+  regs.add(regs.b); // A = 0x70 + low nibble; produces this arm's final F
+  regs.b = regs.a; // the blanked ones glyph, handed to loc_0689 as B
+  regs.a = 0x10; // the tens cell (0x74E6) gets 0x10 on this arm
+  m.step(0x0689, 78);
 
   return m.call(0x0689); // fallthrough into loc_0689 (NOT a jump)
 }

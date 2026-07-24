@@ -16,7 +16,7 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
-import { convergentEquivalence as coreConvergent } from "../../../../core/equivalence.js";
+import { convergentEquivalence as coreConvergent, runBaseline } from "../../../../core/equivalence.js";
 import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -60,15 +60,39 @@ function makeFactory(scenario) {
   };
 }
 
+// The all-oracle baseline depends ONLY on (scenario, frames) — not on which routine is
+// overridden — so every gate call sharing a scenario can share one baseline instead of
+// re-emulating it from boot. Two gate calls per routine (EQUAL + TEETH) would otherwise pay
+// for the same baseline twice, and with video capture that is the single most expensive
+// thing this file does. Keyed by scenario CONTENT, since callers may pass a spread copy
+// (e.g. `{...SCENARIOS.attract, frames: 600}`) rather than the shared constant.
+const baselineCache = new Map();
+
+function baselineFor(scenario) {
+  const key = JSON.stringify({
+    frames: scenario.frames,
+    inputs: scenario.inputs ?? null,
+    pokes: scenario.pokes ?? null,
+  });
+  let cached = baselineCache.get(key);
+  if (!cached) {
+    cached = runBaseline(makeFactory(scenario), scenario.frames);
+    baselineCache.set(key, cached);
+  }
+  return cached;
+}
+
 /**
  * Run the convergent gate for `overrides` under `scenario`. Returns the core result
  * ({ pass, invocations, statePersistent, pixelPersistent, pixDiffFrames, maxPixels, ... }).
- * DK's dead stack is excluded; the default tail window is 30 frames.
+ * DK's dead stack is excluded; the default tail window is 30 frames. The all-oracle baseline
+ * is emulated once per scenario and reused (see baselineFor).
  */
 export function convergentGate(overrides, { scenario = SCENARIOS.gameplay, tailWindow = 30, name } = {}) {
   return coreConvergent(makeFactory(scenario), scenario.frames, overrides, {
     excludeAddr: DEAD_STACK,
     tailWindow,
     name,
+    baseline: baselineFor(scenario),
   });
 }

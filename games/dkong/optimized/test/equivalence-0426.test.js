@@ -17,30 +17,44 @@
  * wrap), then for the 128 frames of that cycle.
  *
  * Jobs:
- *   1. EQUAL (whole + unit) -- idiomatic optimized loc_0426 reads EQUAL against
- *      its translated oracle in RAM and the full register file (+ pc). The whole-
- *      machine run spans the first full 128-frame cycle so the counter reaches
- *      0x80 (the loc_0464 reset) live.
- *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous (asserted).
- *   3. FULL BRANCH COVERAGE -- loc_0426 has five data-dependent exits (counter
+ *   1. CONVERGENT (whole-machine) -- idiomatic optimized loc_0426 CONVERGES against
+ *      its translated oracle (pixels + persistent non-stack state) under the SAME
+ *      coin+start tape, run long enough to span the first full 128-frame cycle so
+ *      the counter reaches 0x80 (the loc_0464 reset) live. loc_0426 is COLLAPSED
+ *      and its sole caller is interruptible with the NMI mask enabled, so the
+ *      strict byte-exact gate is not the right license (see CYCLES note below and
+ *      sub_0350) -- a strict pass would only be proving the gate never happened to
+ *      land an NMI mid-block in THIS particular tape, not that the collapse is
+ *      safe in general.
+ *   2. EQUAL (unit) -- idiomatic optimized loc_0426 reads EQUAL against its
+ *      translated oracle in RAM and the full register file (+ pc), from a single
+ *      captured entry (no NMI in scope -- a plain function-call comparison).
+ *   3. DISPATCH -- the override must actually fire, or EQUAL is vacuous (asserted).
+ *   4. FULL BRANCH COVERAGE -- loc_0426 has five data-dependent exits (counter
  *      ==0x80; 0x6393 suppress set; not-a-32-boundary; 32-boundary bit5 set /
  *      bit5 clear). The driven run reaches only the first three (0x6393 is set
  *      throughout gameplay, so the two table-copy arms are COLD), so each is
  *      SYNTHESISED from a captured entry (poke the counter + the suppress flag)
  *      and proven EQUAL in RAM+regs+pc AND cycle total.
- *   4. TEETH (whole + unit) -- a wrong output store (the 0x6390 counter, loc_0426's
- *      first and every-path store) is CAUGHT, naming the diverging address.
+ *   5. TEETH (convergent + unit) -- a CYCLE-DROP twin is CAUGHT by the convergent
+ *      gate as a PERSISTENT divergence (forked PRNG); a wrong OUTPUT STORE (the
+ *      0x6390 counter, loc_0426's first and every-path store) is CAUGHT by the
+ *      unit gate, naming the diverging address. (Not a value-corruption twin
+ *      under the convergent gate -- a long run risks hanging the game; see
+ *      sub_0350's TEETH note.)
  *
- * THE CYCLE DECISION this routine records: loc_0426 is kept PER-INSTRUCTION, NOT
- * collapsed. It is a LEAF reached only via m.call, and its sole caller loc_0413
- * is interruptible (main-loop cascade loc_197a->entry_03fb, + the dispatchTask
- * entry_0400) with the NMI mask ENABLED -- so by the atomicity-is-per-call-path
- * rule the vblank NMI can land inside it and push a live PC into diffed stack RAM.
- * Collapsing its charges is therefore forbidden; the per-branch cycle totals are
- * asserted equal (and shown to have teeth) but they are the oracle's own per-
- * instruction sums, not a collapse. loc_0426 makes NO 0x7Dxx hardware-latch write
- * on any path (0x6082 is the work-RAM sound-trigger counter, not the 0x7D02
- * latch), so there is no write-trace concern.
+ * THE CYCLE DECISION this routine records: loc_0426 is COLLAPSED (one m.step per
+ * basic block; see loc_0426.js's CYCLES note). It is a LEAF reached only via
+ * m.call, and its sole caller loc_0413 is interruptible (main-loop cascade
+ * loc_197a->entry_03fb, + the dispatchTask entry_0400) with the NMI mask ENABLED
+ * -- so the vblank NMI CAN land inside it and push a live (now-coarser) PC into
+ * diffed stack RAM, which is exactly what the convergent gate licenses (pixels
+ * ground truth, transient tears heal, persistent divergence still fails). The
+ * per-branch totals are the oracle's own exact sums (verified in the CYCLES
+ * note), so total-preservation keeps the PRNG spin count (0x6019) deterministic.
+ * loc_0426 makes NO 0x7Dxx hardware-latch write on any path (0x6082 is the
+ * work-RAM sound-trigger counter, not the 0x7D02 latch), so there is no
+ * write-trace concern.
  *
  * Run: node --test
  */
@@ -53,11 +67,12 @@ import { loc_0426 as translated_0426 } from "../../translated/state0.js";
 import { loc_0426 as optimized_0426 } from "../loc_0426.js";
 import { Machine } from "../../machine.js";
 import {
-  wholeMachineEquivalence as coreWholeMachineEquivalence,
   unitEquivalence as coreUnitEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
+import { SND_TRIGGER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -101,8 +116,14 @@ const makeGameMachine = (overrides) => {
 // loc_0426 proper first fires at ~frame 1802 (the first in-game FRAME wrap) and
 // runs for the 128 frames of that cycle. Span the whole cycle so the counter
 // reaches 0x80 (the loc_0464 reset arm) inside the compared window.
-const FRAMES = 1950;
 const UNIT_MAXFRAMES = 1900;
+
+// The convergent gate needs its own scenario shape ({ frames, inputs }, per
+// convergent.js's SCENARIOS) -- loc_0426 doesn't fire within either built-in
+// SCENARIOS window (both cap at 1200 frames; loc_0426 needs the same coin+start
+// tape run past frame ~1930 to see the full 128-frame cycle), so this test wires
+// the SAME TAPE through a custom scenario object rather than SCENARIOS.gameplay.
+const CONVERGENT_SCENARIO = { frames: 2000, inputs: TAPE.map((t) => ({ ...t })) };
 
 // loc_0426's own output store the teeth corrupt: the counter 0x6390, written
 // (inc (hl)) on EVERY path as the routine's first store and sitting in the
@@ -175,24 +196,70 @@ const BRANCHES = [
   { name: "32-boundary, bit5 clr -> table 0x39f7", spec: { counter: 0x3f, suppress: 0 } },
 ];
 
+// Cycle-broken twin for the CONVERGENT gate: identical logic to the collapsed
+// routine, but the first block's charge is 5 t short (45 -> 40). A wrong total
+// shifts the main loop's spin count (0x6019 PRNG entropy) -- a PERSISTENT
+// divergence, never a heal (see sub_0350's TEETH note for why this, not a
+// value-corruption twin, is the right teeth under a long convergent run).
+function cyclebroken_0426(m) {
+  const { regs, mem } = m;
+  regs.hl = 0x6390;
+  mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl)));
+  regs.a = mem.read8(regs.hl);
+  regs.cp(0x80);
+  if (regs.fZ) { m.step(0x0464, 40); return m.call(0x0464); } // DROPPED: correct total is 45 t
+  m.step(0x0430, 40);
+
+  regs.a = mem.read8(0x6393);
+  regs.and(regs.a);
+  if (regs.fNZ) { m.step(0x0486, 27); return m.call(0x0486); }
+  m.step(0x0437, 27);
+
+  regs.a = mem.read8(regs.hl);
+  regs.b = regs.a;
+  regs.and(0x1f);
+  if (regs.fNZ) { m.step(0x0486, 28); return m.call(0x0486); }
+  m.step(0x043e, 28);
+
+  regs.hl = 0x39cf;
+  const bit5 = regs.bit(5, regs.b);
+  if (bit5) {
+    m.step(0x0448, 30);
+  } else {
+    m.step(0x0445, 25);
+    regs.hl = 0x39f7;
+    m.step(0x0448, 10);
+  }
+
+  m.push16(0x044b);
+  m.step(0x004e, 17);
+  m.call(0x004e);
+
+  regs.a = 0x03;
+  mem.write8(SND_TRIGGER + 2, regs.a);
+  m.step(0x0450, 20);
+  return m.call(0x0450);
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_0426 matches translated every frame", () => {
-  const r = coreWholeMachineEquivalence(makeGameMachine, FRAMES, new Map([[TARGET, optimized_0426]]));
+test("CONVERGENT (whole-machine): collapsed loc_0426 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0426]]), { scenario: CONVERGENT_SCENARIO });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -220,8 +287,9 @@ test("BRANCH COVERAGE: every data-dependent exit is EQUAL in RAM+regs+pc and cyc
     assert.equal(regs, null, regs ? `[${b.name}] reg diff at ${regs.reg} (t ${regs.a} vs o ${regs.b})` : "");
     assert.equal(a.m.pc, o.m.pc, `[${b.name}] pc must match`);
 
-    // loc_0426 is kept per-instruction, so the totals match the oracle's own sums;
-    // both sides also run identical oracle callees via m.call.
+    // loc_0426 is collapsed to one m.step per basic block, but each block total is
+    // the oracle's own exact sum, so the totals still match; both sides also run
+    // identical oracle callees via m.call.
     assert.equal(o.cycles, a.cycles, `[${b.name}] cycle total drifted: optimized ${o.cycles} vs oracle ${a.cycles}`);
     console.log(`  BRANCH ${b.name}: EQUAL, total ${a.cycles}t, pc 0x${a.m.pc.toString(16)}`);
   }
@@ -241,16 +309,19 @@ test("CYCLE teeth: a wrong per-instruction charge is CAUGHT (cycle assertion is 
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong counter (0x6390) store is CAUGHT and NOT-EQUAL", () => {
-  const r = coreWholeMachineEquivalence(makeGameMachine, FRAMES, new Map([[TARGET, broken_0426]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0426]]), { scenario: CONVERGENT_SCENARIO });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

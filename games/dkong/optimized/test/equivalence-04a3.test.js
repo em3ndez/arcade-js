@@ -9,11 +9,16 @@
  *
  * Jobs:
  *
- *   1. EQUAL (whole-machine) -- idiomatic optimized loc_04a3 (optimized/loc_04a3.js)
- *      reads EQUAL against its translated oracle every frame. loc_04a3 is reached
- *      each frame of board 1 through the colour cascade (loc_0486 routes into it on
- *      almost every path), first around frame ~1033. The override must actually fire
- *      (asserted) or EQUAL would be vacuous.
+ *   1. CONVERGENT (whole-machine) -- idiomatic optimized loc_04a3 (optimized/
+ *      loc_04a3.js) converges against its translated oracle (pixels + non-stack
+ *      state) under a coin+start scenario. loc_04a3 is reached each frame of board 1
+ *      through the colour cascade (loc_0486 routes into it on almost every path),
+ *      first around frame ~1033. The override must actually fire (asserted) or
+ *      CONVERGENT would be vacuous. loc_04a3's m.step charges are COLLAPSED to one
+ *      per basic block (see optimized/loc_04a3.js) -- licensed by the CONVERGENT gate
+ *      rather than the strict whole-machine gate, per the collapse-sweep rule
+ *      (strict-vs-convergent is a property of the tested scenario, not a per-routine
+ *      judgment call).
  *
  *   2. EQUAL (unit) -- translated vs optimized leave identical RAM + registers
  *      (incl. F) + pc from the captured entry state (first m.call of 0x04a3).
@@ -27,9 +32,11 @@
  *      -> ret nz; bit6 set & C&7 ==0 -> blink-flip + ret), identical poke both sides,
  *      to give the tail-call wiring (C passed through, 0x04ac reached) real teeth.
  *
- *   4+5. TEETH (whole + unit) -- a deliberately-broken twin whose first colour-RAM
- *      store (0x75C4, written on the path via sub_0514) lands the wrong value must be
- *      CAUGHT: NOT-EQUAL, naming 0x75C4.
+ *   4+5. TEETH (convergent + unit) -- a deliberately-broken twin whose first
+ *      colour-RAM store (0x75C4, written on the path via sub_0514) lands the wrong
+ *      value must be CAUGHT: NOT-EQUAL, naming 0x75C4 (unit level); a CYCLE-DROP twin
+ *      (Block 1's charge 5 t short) forks the PRNG spin count, CAUGHT as a
+ *      PERSISTENT convergent divergence.
  *
  * WHY THE CORE ENGINE + A CUSTOM FACTORY (not harness.js's wrappers). Same reason as
  * entry_03fb / loc_197a: harness.js bakes a makeMachine on `{}` assets that drives NO
@@ -58,10 +65,10 @@ import { loc_04a3 as optimized_04a3 } from "../loc_04a3.js";
 import { Machine } from "../../machine.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -73,7 +80,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x04a3;
-const FRAMES = 1300; // loc_04a3 runs per-frame via the colour cascade, ~f1033..f1230
 const MAX_FRAMES = 1080; // loc_04a3 first reached at frame ~1033
 
 // The incoming frame counter C (set by loc_0486) selects loc_04ac's exit, downstream
@@ -103,6 +109,12 @@ function makeMachine(overrides) {
   return m;
 }
 
+// Scenario for the CONVERGENT gate (convergentGate loads gfx/proms + enables video
+// capture itself): same coin+start tape as the crafted-entry tests, run to 1400
+// frames -- comfortably past the cutscene's ~1033..1230 firing window, leaving a
+// long, quiet tail (170+ frames) for reconvergence.
+const CONVERGENT_SCENARIO_04A3 = { frames: 1400, inputs: COIN_START_TAPE };
+
 /**
  * Deliberately-broken twin: behaviourally optimized_04a3 EXCEPT the first store to
  * 0x75C4 lands a wrong value (the correct byte XOR 0xFF, guaranteed to differ).
@@ -127,26 +139,46 @@ function broken_04a3(m) {
   }
 }
 
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical to the collapsed routine
+ * except Block 1's charge (ld hl,0x75c4 + sub_0514's call charge, hit on EVERY
+ * invocation) is 5 t short. A wrong total shifts the main loop's spin count -- the
+ * PRNG entropy at 0x6019 -- so the RANDOM stream FORKS: a PERSISTENT divergence,
+ * never a heal.
+ */
+function cyclebroken_04a3(m) {
+  const { regs, mem } = m;
+
+  regs.hl = 0x75c4;
+  m.push16(0x04a9);
+  m.step(0x0514, 27 - 5); // DROPPED: the correct charge here is 27 t
+  m.call(0x0514);
+
+  regs.a = mem.read8(0x6905);
+  m.step(0x04ac, 13);
+
+  return m.call(0x04ac);
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_04a3 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_04a3]]));
+test("CONVERGENT (whole-machine): collapsed loc_04a3 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_04a3]]), { scenario: CONVERGENT_SCENARIO_04A3 });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (per-frame via the colour cascade)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (per-frame via the colour cascade); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -220,16 +252,19 @@ test("PATH (unit): each downstream loc_04ac exit (poked C) EQUAL through the tai
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong colour-RAM store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, MAX_FRAMES, new Map([[TARGET, broken_04a3]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG — a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_04a3]]), { scenario: CONVERGENT_SCENARIO_04A3 });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total — it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught — persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

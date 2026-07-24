@@ -8,21 +8,23 @@
  *
  * Five jobs:
  *
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_037f reads EQUAL
- *      against its translated oracle every frame. sub_037f is called once per
- *      serviced frame from mainLoop (ROM 0x02DB `call 0x037f`), so the override
- *      dispatches every serviced frame from boot -- no input driving needed.
+ *   1. CONVERGENT (whole-machine) -- the collapsed optimized sub_037f CONVERGES
+ *      against its translated oracle under a whole-machine run (pixels + persistent
+ *      non-stack state). sub_037f is called once per serviced frame from mainLoop
+ *      (ROM 0x02DB `call 0x037f`) with the NMI mask ENABLED, so it is INTERRUPTIBLE
+ *      (see optimized/sub_037f.js) and, per the lead's unconditional rule, any
+ *      routine with a whole-machine test runs it under the convergent gate.
  *
  *   2. EQUAL (unit) -- optimized == translated in RAM + the whole register file
  *      (incl. F, B, HL) + pc, on the captured entry state (which is the first
  *      natural entry: frame 5, branch C -- both counters 0, LEVEL 1).
  *
- *   3. TEETH (whole-machine) -- a wrong write to DIFFICULTY_PRESCALER (0x6384,
- *      stored EVERY call) is CAUGHT. The prescaler feeds itself forward, so one
- *      wrong byte diverges and stays diverged; the gate must report NOT-EQUAL
- *      naming an address.
+ *   3. TEETH (convergent + unit) -- convergent: a CYCLE-DROP twin (one charge short)
+ *      forks the main-loop spin count (0x6019 PRNG entropy), a PERSISTENT divergence,
+ *      CAUGHT. unit: a wrong write to DIFFICULTY_PRESCALER (0x6384, stored EVERY
+ *      call) is CAUGHT and NOT-EQUAL, naming 0x6384 exactly.
  *
- *   4. TEETH (unit) -- the same wrong write is caught and names 0x6384 exactly.
+ *   4. (folded into 3 above)
  *
  *   5. BRANCH COVERAGE + CYCLES (synthesised) -- sub_037f has FOUR data-dependent
  *      exit paths; the natural run above reaches only two of them (C-keep once at
@@ -33,14 +35,14 @@
  *      wrong residual flag, OR a wrong per-instruction total on any arm has teeth,
  *      even the arms no short whole-machine trajectory stresses.
  *
- * WHY PER-INSTRUCTION (not collapsed): atomicity is per-call-path. sub_037f's
+ * WHY CONVERGENT (collapsed, not strict): atomicity is per-call-path. sub_037f's
  * ONLY caller is mainLoop (ROM 0x02DB), which runs with the vblank NMI mask
- * ENABLED, so the NMI CAN land between its instructions -- it is NOT atomic. A
- * cycle collapse would move a mid-routine NMI's pushed PC / the F it stacks into
- * diffed work RAM, so the charges are kept one-per-instruction (each branch's
- * TOTAL and internal distribution both match). A short whole-machine run that
- * happens not to interrupt these ~43-162 T-states would NOT prove a collapse
- * safe; see optimized/sub_037f.js for the full argument.
+ * ENABLED, so the NMI CAN land between its instructions -- it is NOT atomic. The
+ * routine is now COLLAPSED to one m.step per basic block (see optimized/sub_037f.js);
+ * a mid-routine NMI's pushed PC / the F it stacks now lands at a coarser boundary,
+ * so the whole-machine job runs under the CONVERGENT gate rather than relying on a
+ * short strict window that merely happened not to interrupt these ~43-162 T-states.
+ * Each branch's TOTAL (43/87/160/162 t) is still asserted exactly below.
  *
  * Run: node --test
  */
@@ -51,7 +53,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_037f as translated_037f } from "../../translated/mainloop.js";
 import { sub_037f as optimized_037f } from "../sub_037f.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 import { DIFFICULTY, DIFFICULTY_CLOCK, DIFFICULTY_PRESCALER, LEVEL } from "../ram.js";
@@ -78,6 +81,47 @@ const BROKEN_ADDR = DIFFICULTY_PRESCALER; // 0x6384
  * prescaler feeds itself forward (each call reads it back), so 0x6384 diverges
  * and never recovers.
  */
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+ * collapsed routine, but Branch C's final total is 5 t short, so a wrong total forks
+ * the main-loop spin count (0x6019 PRNG entropy) -- a PERSISTENT divergence, never a
+ * heal. This is the teeth for the collapse's load-bearing invariant (total-cycle
+ * preservation).
+ */
+function cyclebroken_037f(m) {
+  const { regs, mem } = m;
+  regs.hl = DIFFICULTY_PRESCALER;
+  regs.a = mem.read8(regs.hl);
+  mem.write8(regs.hl, regs.inc8(regs.a));
+  regs.and(regs.a);
+  m.step(0x0385, 32);
+  if (regs.fNZ) { m.ret(11); return; }
+  m.step(0x0386, 5);
+  regs.hl = DIFFICULTY_CLOCK;
+  regs.a = mem.read8(regs.hl);
+  regs.b = regs.a;
+  mem.write8(regs.hl, regs.inc8(regs.a));
+  regs.and(0x07);
+  m.step(0x038e, 39);
+  if (regs.fNZ) { m.ret(11); return; }
+  m.step(0x038f, 5);
+  regs.a = regs.b;
+  regs.rrca(); regs.rrca(); regs.rrca();
+  regs.b = regs.a;
+  regs.a = mem.read8(LEVEL);
+  regs.add(regs.b);
+  regs.cp(0x05);
+  m.step(0x039a, 44);
+  if (regs.fC) {
+    m.step(0x039e, 12);
+  } else {
+    regs.a = 0x05;
+    m.step(0x039e, 14);
+  }
+  mem.write8(DIFFICULTY, regs.a);
+  m.ret(18); // DROPPED: correct is 23 t
+}
+
 function broken_037f(m) {
   const realWrite = m.mem.write8.bind(m.mem);
   let broke = false;
@@ -97,23 +141,23 @@ function broken_037f(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_037f matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_037f]]));
+test("CONVERGENT (whole-machine): collapsed sub_037f CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_037f]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -129,16 +173,19 @@ test("EQUAL (unit): idiomatic optimized sub_037f matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong DIFFICULTY_PRESCALER store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_037f]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_037f]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

@@ -90,21 +90,25 @@ const PALETTE_BANK_HI = 0x7d87;
  *   (regs.decMem8 / regs.bit / regs.sub / regs.cp / regs.sbcHl / regs.and, etc.), so both
  *   the in-routine branch decisions and the final observable F match the oracle exactly.
  *
- * CYCLES -- PER-INSTRUCTION (not collapsed), the byte-identical low-risk choice; the
- *   TOTAL of every path is preserved because every path is preserved instruction for
- *   instruction. Reasoning, and why NOT collapsed:
+ * CYCLES -- COLLAPSED to one m.step per basic block (the ROM's own label-dispatch
+ *   structure already marks basic-block boundaries, so each `case` folds its
+ *   straight-line runs into one charge per branch). Every path's TOTAL is preserved
+ *   EXACTLY -- only the charge GRANULARITY changed, not the sum, not the memory-op
+ *   order, not any register/flag result. Reasoning:
  *     - sub_1486 IS atomic in the usual sense (it runs inside the vblank NMI, entered
- *       mask-cleared, so no second NMI lands inside it or its callees), so a per-SEGMENT
- *       collapse (à la loc_1839) would very probably also read EQUAL. It is deliberately
- *       NOT taken here, matching the choice loc_06fe -- this routine's OWN in-game
- *       dispatcher -- documents for the state-3 family: the marginal win (fewer m.step
- *       lines) is not worth departing from a byte-identical transcription on a routine
- *       this large with this branch density.
- *     - Two concrete complications reinforce that: (a) the INIT branch makes real
- *       HARDWARE writes to PALETTE_BANK_LO/HI, and (b) every m.call site pushes a return
- *       address into diffed stack RAM straddling the cycle charges (same shape as
- *       loc_06fe's rst push). Per-instruction keeps every hardware write and every stack
- *       write at the oracle's exact cumulative cycle for free.
+ *       mask-cleared, so no second NMI lands inside it or its callees), so this
+ *       collapse is byte-identical to the oracle at every m.step boundary that
+ *       survives, and the routine stays on the STRICT whole-machine gate (not the
+ *       convergent one) for its unit/branch-arm assertions. Per the lead's
+ *       unconditional rule the WHOLE-MACHINE job nonetheless runs under
+ *       convergentGate too (any routine with a whole-machine test does), which is
+ *       harmless here since a byte-exact collapse trivially converges.
+ *     - Two concrete complications were handled explicitly: (a) the INIT branch's
+ *       two HARDWARE writes to PALETTE_BANK_LO/HI each keep their OWN m.step
+ *       boundary (never folded together or with neighboring instructions), per the
+ *       hardware-write rule; (b) every m.call site's own dispatch charge is folded
+ *       INTO the preceding straight-line block's total (matching sub_0350's tail-call
+ *       pattern) while the `m.call` itself stays unfolded (never inlined).
  *     - HARDWARE-WRITE NOTE: unlike loc_0a8a's palette writes, the ORACLE leaves these
  *       two writes UNTAGGED (no write-bus-cycle offset). So under the emit `--writes`
  *       trace BOTH the oracle and this routine THROW identically (memory.js refuses an
@@ -112,6 +116,10 @@ const PALETTE_BANK_HI = 0x7d87;
  *       write-trace test pins exactly that equivalence (and that a busOffset-adding
  *       variant, which would NOT throw, is caught). Reproducing the oracle means writing
  *       PALETTE_BANK_LO/HI with NO busOffset here too; "fixing" them would DIVERGE.
+ *     - Conditional-jump TAKEN paths and unconditional `jp`s charge nothing extra here,
+ *       matching the oracle's OWN convention exactly (translated/state0.js does the
+ *       same) -- this collapse folds only charges that already existed, never adds or
+ *       drops one.
  *
  * REGISTERS. IX/IY/HL/DE/BC/A/F on exit are whatever the last executed instruction (or
  *   the last callee -- sub_309f at exit, sub_057c/sub_15fa mid-loop) leaves; the ROM's
@@ -129,256 +137,207 @@ export function sub_1486(m) {
         m.step(0x0616, 17); // call 0x0616 (INT)
         m.call(0x0616);
 
-        // ld a,(SUBSTATE_TIMER) / and a -- the handler's mode latch: 0 => INIT below,
-        // nonzero => already running, jump straight to the MAIN LOOP.
+        // ld a,(SUBSTATE_TIMER)(10)+ld a,(hl)(7)+and a(4) = 21 t, exit @ the jp nz (0x148e).
+        // 0 => INIT below, nonzero => already running, jump straight to the MAIN LOOP.
         regs.hl = SUBSTATE_TIMER; // 0x6009
-        m.step(0x148c, 10); // ld hl,0x6009
         regs.a = mem.read8(regs.hl);
-        m.step(0x148d, 7); // ld a,(hl)
         regs.and(regs.a);
-        m.step(0x148e, 4); // and a
+        m.step(0x148e, 21);
         if (regs.fNZ) { label = 0x14dc; continue; } // jp nz,0x14dc -- already running
         m.step(0x1491, 10); // jp nz NOT taken
 
         // ---- INIT (SUBSTATE_TIMER == 0, so A == 0) --------------------------------
-        // Clear both palette-bank latches (bank %00). HARDWARE writes, kept UNTAGGED to
+        // Clear both palette-bank latches (bank %00). HARDWARE writes, each kept on its
+        // OWN m.step boundary (never folded together or with neighbors) and UNTAGGED to
         // match the oracle byte-for-byte (see the CYCLES/HARDWARE-WRITE note above).
         mem.write8(PALETTE_BANK_LO, regs.a);
         m.step(0x1494, 13); // ld (0x7d86),a -- clear latch
         mem.write8(PALETTE_BANK_HI, regs.a);
         m.step(0x1497, 13); // ld (0x7d87),a
-        mem.write8(regs.hl, 0x01);
-        m.step(0x1499, 10); // ld (hl),0x01 -- SUBSTATE_TIMER := 1 (running)
 
-        // Seed the item-state block 0x6030..0x6035 by walking HL (kept as the ROM does).
+        // Seed SUBSTATE_TIMER + the item-state block 0x6030..0x6035 + the video ptr +
+        // locate the item slot: all WORK RAM, no more hardware writes before the render
+        // call -- folded into one 188 t block, exit @ the search loop (0x14c1).
+        mem.write8(regs.hl, 0x01); // SUBSTATE_TIMER := 1 (running)
         regs.hl = 0x6030;
-        m.step(0x149c, 10); // ld hl,0x6030
-        mem.write8(regs.hl, 0x0a);
-        m.step(0x149e, 10); // (0x6030) := 0x0A  position reload
+        mem.write8(regs.hl, 0x0a); // (0x6030) := 0x0A  position reload
         regs.hl = (regs.hl + 1) & 0xffff;
-        m.step(0x149f, 6); // inc hl
-        mem.write8(regs.hl, 0x00);
-        m.step(0x14a1, 10); // (0x6031) := 0     sprite toggle
+        mem.write8(regs.hl, 0x00); // (0x6031) := 0     sprite toggle
         regs.hl = (regs.hl + 1) & 0xffff;
-        m.step(0x14a2, 6); // inc hl
-        mem.write8(regs.hl, 0x10);
-        m.step(0x14a4, 10); // (0x6032) := 0x10  anim timer
+        mem.write8(regs.hl, 0x10); // (0x6032) := 0x10  anim timer
         regs.hl = (regs.hl + 1) & 0xffff;
-        m.step(0x14a5, 6); // inc hl
-        mem.write8(regs.hl, 0x1e);
-        m.step(0x14a7, 10); // (0x6033) := 0x1E  value = 30
+        mem.write8(regs.hl, 0x1e); // (0x6033) := 0x1E  value = 30
         regs.hl = (regs.hl + 1) & 0xffff;
-        m.step(0x14a8, 6); // inc hl
-        mem.write8(regs.hl, 0x3e);
-        m.step(0x14aa, 10); // (0x6034) := 0x3E  display timer
+        mem.write8(regs.hl, 0x3e); // (0x6034) := 0x3E  display timer
         regs.hl = (regs.hl + 1) & 0xffff;
-        m.step(0x14ab, 6); // inc hl
-        mem.write8(regs.hl, 0x00);
-        m.step(0x14ad, 10); // (0x6035) := 0     position index
-
-        // Video pointer (0x6036) := 0x75E8.
+        mem.write8(regs.hl, 0x00); // (0x6035) := 0     position index
         regs.hl = 0x75e8;
-        m.step(0x14b0, 10); // ld hl,0x75e8
-        mem.write16(0x6036, regs.hl);
-        m.step(0x14b3, 16); // ld (0x6036),hl
-
-        // Locate the item slot: scan the 0x611C table (stride 0x22, B=4 rows) for the
-        // key C = 2*(0x600E)+1.
-        regs.hl = 0x611c;
-        m.step(0x14b6, 10); // ld hl,0x611c -- slot table
+        mem.write16(0x6036, regs.hl); // video pointer := 0x75E8
+        regs.hl = 0x611c; // slot table
         regs.a = mem.read8(0x600e);
-        m.step(0x14b9, 13); // ld a,(0x600e)
-        regs.rlca();
-        m.step(0x14ba, 4); // rlca            -- A = 2*(0x600E)
-        regs.a = regs.inc8(regs.a);
-        m.step(0x14bb, 4); // inc a           -- A = 2*(0x600E)+1
-        regs.c = regs.a;
-        m.step(0x14bc, 4); // ld c,a          -- C = search key
-        regs.de = 0x0022;
-        m.step(0x14bf, 10); // ld de,0x0022   -- stride
-        regs.b = 0x04;
-        m.step(0x14c1, 7); // ld b,0x04       -- 4 entries
+        regs.rlca(); // A = 2*(0x600E)
+        regs.a = regs.inc8(regs.a); // A = 2*(0x600E)+1
+        regs.c = regs.a; // C = search key
+        regs.de = 0x0022; // stride
+        regs.b = 0x04; // 4 entries
+        m.step(0x14c1, 188);
       // fall into the search loop
       case 0x14c1:
+        // ld a,(hl)(7)+cp c(4) = 11 t, exit @ the jp z (0x14c3).
         regs.a = mem.read8(regs.hl);
-        m.step(0x14c2, 7); // ld a,(hl)
         regs.cp(regs.c);
-        m.step(0x14c3, 4); // cp c
-        if (regs.fZ) { label = 0x14c9; continue; } // jp z,0x14c9 -- match
-        m.step(0x14c6, 10); // jp z NOT taken
+        if (regs.fZ) { label = 0x14c9; continue; } // jp z,0x14c9 -- match; no charge (oracle convention)
+        // jp z NOT taken(10)+add hl,de(11) = 21 t, folded with the block above (32 t
+        // total) up to the djnz's own charge, exit @ the djnz (0x14c7).
         regs.addHl(regs.de);
-        m.step(0x14c7, 11); // add hl,de -- next row
+        m.step(0x14c7, 32); // ld a,(hl)+cp c+jp z NOT taken+add hl,de = 32 t
         regs.djnz();
         m.step(regs.b ? 0x14c1 : 0x14c9, regs.b ? 13 : 8); // djnz 0x14c1
         if (regs.b) { label = 0x14c1; continue; }
       // fall into 0x14c9 (no match -> HL at 4th row, B=0; the ROM does not guard this)
       case 0x14c9:
-        mem.write16(0x6038, regs.hl);
-        m.step(0x14cc, 16); // ld (0x6038),hl -- slot ptr
-        regs.de = 0xfff3;
-        m.step(0x14cf, 10); // ld de,0xfff3   (= -0x0D)
-        regs.addHl(regs.de);
-        m.step(0x14d0, 11); // add hl,de      -- HL -= 0x0D
-        mem.write16(0x603a, regs.hl);
-        m.step(0x14d3, 16); // ld (0x603a),hl -- slot - 0x0D
-        // First render: B=0, C=(0x6035).
-        regs.b = 0x00;
-        m.step(0x14d5, 7); // ld b,0x00
+        // ld(0x6038),hl(16)+ld de,0xfff3(10)+add hl,de(11)+ld(0x603a),hl(16)+ld b,0(7)+
+        // ld a,(0x6035)(13)+ld c,a(4)+render call's own dispatch charge(17) = 94 t.
+        mem.write16(0x6038, regs.hl); // slot ptr
+        regs.de = 0xfff3; // = -0x0D
+        regs.addHl(regs.de); // HL -= 0x0D
+        mem.write16(0x603a, regs.hl); // slot - 0x0D
+        regs.b = 0x00; // first render: B=0, C=(0x6035)
         regs.a = mem.read8(0x6035);
-        m.step(0x14d8, 13); // ld a,(0x6035)
         regs.c = regs.a;
-        m.step(0x14d9, 4); // ld c,a
         m.push16(0x14dc);
-        m.step(0x15fa, 17); // call 0x15fa -- render (INT)
-        m.call(0x15fa);
+        m.step(0x15fa, 94);
+        m.call(0x15fa); // render
       // fall into the MAIN LOOP
 
       // ==== MAIN LOOP stage 1: DISPLAY TIMER + value countdown ====================
       case 0x14dc:
+        // ld hl,0x6034(10)+dec (hl)(11) = 21 t, exit @ the jp nz (0x14e0).
         regs.hl = 0x6034;
-        m.step(0x14df, 10); // ld hl,0x6034 -- display timer
         regs.decMem8(mem, regs.hl);
-        m.step(0x14e0, 11); // dec (hl)
-        if (regs.fNZ) { label = 0x14fc; continue; } // jp nz,0x14fc -- still counting
-        m.step(0x14e3, 10); // jp nz NOT taken
-        mem.write8(regs.hl, 0x3e);
-        m.step(0x14e5, 10); // ld (hl),0x3e -- reload display timer
-        regs.hl = (regs.hl - 1) & 0xffff;
-        m.step(0x14e6, 6); // dec hl -> 0x6033 (value)
-        regs.decMem8(mem, regs.hl);
-        m.step(0x14e7, 11); // dec (hl) -- value--
-        if (regs.fZ) { label = 0x15c6; continue; } // jp z,0x15c6 -- value == 0 EXIT
-        m.step(0x14ea, 10); // jp z NOT taken
-        regs.a = mem.read8(regs.hl);
-        m.step(0x14eb, 7); // ld a,(hl) -- the value
-        regs.b = 0xff;
-        m.step(0x14ed, 7); // ld b,0xff -- tens accumulator (pre-inc)
+        m.step(0x14e0, 21);
+        if (regs.fNZ) { label = 0x14fc; continue; } // jp nz,0x14fc -- still counting; no charge
+        // jp nz NOT taken(10)+ld(hl),0x3e(10)+dec hl(6)+dec (hl)(11) = 37 t, exit @ jp z (0x14e7).
+        mem.write8(regs.hl, 0x3e); // reload display timer
+        regs.hl = (regs.hl - 1) & 0xffff; // -> 0x6033 (value)
+        regs.decMem8(mem, regs.hl); // value--
+        m.step(0x14e7, 37);
+        if (regs.fZ) { label = 0x15c6; continue; } // jp z,0x15c6 -- value == 0 EXIT; no charge
+        // jp z NOT taken(10)+ld a,(hl)(7)+ld b,0xff(7) = 24 t, exit @ BCD loop (0x14ed).
+        regs.a = mem.read8(regs.hl); // the value
+        regs.b = 0xff; // tens accumulator (pre-inc)
+        m.step(0x14ed, 24);
       // fall into the BCD split loop
       case 0x14ed:
+        // inc b(4)+sub 0x0a(7) = 11 t, exit @ the jp nc (0x14f0).
         regs.b = regs.inc8(regs.b);
-        m.step(0x14ee, 4); // inc b
         regs.sub(0x0a);
-        m.step(0x14f0, 7); // sub 0x0a
-        if (regs.fNC) { label = 0x14ed; continue; } // jp nc,0x14ed -- keep subtracting
-        m.step(0x14f3, 10); // jp nc NOT taken
-        regs.add(0x0a);
-        m.step(0x14f5, 7); // add a,0x0a -- A = ones digit, B = tens digit
-        mem.write8(0x7552, regs.a);
-        m.step(0x14f8, 13); // ld (0x7552),a -- ones -> video
+        m.step(0x14f0, 11);
+        if (regs.fNC) { label = 0x14ed; continue; } // jp nc,0x14ed -- keep subtracting; no charge
+        // jp nc NOT taken(10)+add a,0x0a(7)+ld(0x7552),a(13)+ld a,b(4)+ld(0x7572),a(13) = 47 t.
+        regs.add(0x0a); // A = ones digit, B = tens digit
+        mem.write8(0x7552, regs.a); // ones -> video
         regs.a = regs.b;
-        m.step(0x14f9, 4); // ld a,b
-        mem.write8(0x7572, regs.a);
-        m.step(0x14fc, 13); // ld (0x7572),a -- tens -> video
+        mem.write8(0x7572, regs.a); // tens -> video
+        m.step(0x14fc, 47);
       // fall into stage 2
 
       // ==== MAIN LOOP stage 2: POSITION STEP ======================================
       case 0x14fc:
+        // ld hl,0x6030(10)+ld b,(hl)(7)+ld(hl),0x0a(10)+ld a,(0x6010)(13)+bit 7,a(8) = 48 t,
+        // exit @ the jp nz bit7 test (0x1507).
         regs.hl = 0x6030;
-        m.step(0x14ff, 10); // ld hl,0x6030 -- frame divider
         regs.b = mem.read8(regs.hl);
-        m.step(0x1500, 7); // ld b,(hl)
-        mem.write8(regs.hl, 0x0a);
-        m.step(0x1502, 10); // ld (hl),0x0a -- reload divider
-        regs.a = mem.read8(P1_INPUT);
-        m.step(0x1505, 13); // ld a,(0x6010) -- cooked control word
+        mem.write8(regs.hl, 0x0a); // reload divider
+        regs.a = mem.read8(P1_INPUT); // cooked control word
         regs.bit(7, regs.a);
-        m.step(0x1507, 8); // bit 7,a
-        if (regs.fNZ) { label = 0x1546; continue; } // jp nz,0x1546 -- bit7: column walk
-        m.step(0x150a, 10); // jp nz NOT taken
+        m.step(0x1507, 48);
+        if (regs.fNZ) { label = 0x1546; continue; } // jp nz,0x1546 -- bit7: column walk; no charge
+        // jp nz NOT taken(10)+and 0x03(7) = 17 t, exit @ the jp nz #2 (0x150c).
         regs.and(0x03);
-        m.step(0x150c, 7); // and 0x03
-        if (regs.fNZ) { label = 0x1514; continue; } // jp nz,0x1514 -- low bits set
-        m.step(0x150f, 10); // jp nz NOT taken
-        regs.a = regs.inc8(regs.a);
-        m.step(0x1510, 4); // inc a -- A := 1
-        mem.write8(regs.hl, regs.a);
-        m.step(0x1511, 7); // ld (hl),a -- (0x6030) := 1
+        m.step(0x150c, 17);
+        if (regs.fNZ) { label = 0x1514; continue; } // jp nz,0x1514 -- low bits set; no charge
+        // jp nz NOT taken(10)+inc a(4)+ld(hl),a(7) = 21 t.
+        regs.a = regs.inc8(regs.a); // A := 1
+        mem.write8(regs.hl, regs.a); // (0x6030) := 1
+        m.step(0x1511, 21);
         label = 0x158a;
         continue; // jp 0x158a -- straight to sprite animate
       case 0x1514:
-        regs.b = regs.dec8(regs.b);
-        m.step(0x1515, 4); // dec b -- frame divider
-        if (regs.fZ) { label = 0x151d; continue; } // jp z,0x151d -- divider expired
-        m.step(0x1518, 10); // jp z NOT taken
+        // dec b(4) = 4 t, exit @ the jp z (0x1515).
+        regs.b = regs.dec8(regs.b); // frame divider
+        m.step(0x1515, 4);
+        if (regs.fZ) { label = 0x151d; continue; } // jp z,0x151d -- divider expired; no charge
+        // jp z NOT taken(10)+ld a,b(4)+ld(hl),a(7) = 21 t.
         regs.a = regs.b;
-        m.step(0x1519, 4); // ld a,b
-        mem.write8(regs.hl, regs.a);
-        m.step(0x151a, 7); // ld (hl),a -- (0x6030) := B (store the decremented divider)
+        mem.write8(regs.hl, regs.a); // (0x6030) := B (store the decremented divider)
+        m.step(0x151a, 21);
         label = 0x158a;
         continue; // jp 0x158a
       case 0x151d:
         // Divider expired: step the position index (0x6035) in the direction from bit 1.
+        // bit 1,a(8) = 8 t, exit @ the jp nz (0x151f).
         regs.bit(1, regs.a);
-        m.step(0x151f, 8); // bit 1,a
-        if (regs.fNZ) { label = 0x1539; continue; } // jp nz,0x1539 -- decrement path
-        m.step(0x1522, 10); // jp nz NOT taken
+        m.step(0x151f, 8);
+        if (regs.fNZ) { label = 0x1539; continue; } // jp nz,0x1539 -- decrement path; no charge
+        // jp nz NOT taken(10)+ld a,(0x6035)(13)+inc a(4)+cp 0x1e(7) = 34 t.
         regs.a = mem.read8(0x6035);
-        m.step(0x1525, 13); // ld a,(0x6035)
         regs.a = regs.inc8(regs.a);
-        m.step(0x1526, 4); // inc a
         regs.cp(0x1e);
-        m.step(0x1528, 7); // cp 0x1e
-        if (regs.fNZ) { label = 0x152d; continue; } // jp nz,0x152d -- no wrap
-        m.step(0x152b, 10); // jp nz NOT taken
-        regs.a = 0x00;
-        m.step(0x152d, 7); // ld a,0x00 -- wrap 0x1E -> 0
+        m.step(0x1528, 34);
+        if (regs.fNZ) { label = 0x152d; continue; } // jp nz,0x152d -- no wrap; no charge
+        // jp nz NOT taken(10)+ld a,0x00(7) = 17 t.
+        regs.a = 0x00; // wrap 0x1E -> 0
+        m.step(0x152d, 17);
       // fall into store-and-render
       case 0x152d:
+        // ld(0x6035),a(13)+ld c,a(4)+ld b,0(7)+render call's own dispatch charge(17) = 41 t.
         mem.write8(0x6035, regs.a);
-        m.step(0x1530, 13); // ld (0x6035),a
         regs.c = regs.a;
-        m.step(0x1531, 4); // ld c,a
         regs.b = 0x00;
-        m.step(0x1533, 7); // ld b,0x00
         m.push16(0x1536);
-        m.step(0x15fa, 17); // call 0x15fa -- render (INT)
-        m.call(0x15fa);
+        m.step(0x15fa, 41);
+        m.call(0x15fa); // render
         label = 0x158a;
         continue; // jp 0x158a
       case 0x1539:
+        // ld a,(0x6035)(13)+sub 0x01(7) = 20 t, exit @ the jp p (0x153e).
         regs.a = mem.read8(0x6035);
-        m.step(0x153c, 13); // ld a,(0x6035)
         regs.sub(0x01);
-        m.step(0x153e, 7); // sub 0x01
-        if (regs.fP) { label = 0x152d; continue; } // jp p,0x152d -- SIGNED: >=0 keep it
-        m.step(0x1541, 10); // jp p NOT taken
-        regs.a = 0x1d;
-        m.step(0x1543, 7); // ld a,0x1d -- underflow -> 0x1D
+        m.step(0x153e, 20);
+        if (regs.fP) { label = 0x152d; continue; } // jp p,0x152d -- SIGNED: >=0 keep it; no charge
+        // jp p NOT taken(10)+ld a,0x1d(7) = 17 t.
+        regs.a = 0x1d; // underflow -> 0x1D
+        m.step(0x1543, 17);
         label = 0x152d;
         continue; // jp 0x152d
 
       // ---- bit 7 set: the video-COLUMN walk [0x1546] ----------------------------
       case 0x1546:
+        // ld a,(0x6035)(13)+cp 0x1c(7) = 20 t, exit @ the jp z (0x154b).
         regs.a = mem.read8(0x6035);
-        m.step(0x1549, 13); // ld a,(0x6035)
         regs.cp(0x1c);
-        m.step(0x154b, 7); // cp 0x1c
-        if (regs.fZ) { label = 0x156d; continue; } // jp z,0x156d
-        m.step(0x154e, 10); // jp z NOT taken
+        m.step(0x154b, 20);
+        if (regs.fZ) { label = 0x156d; continue; } // jp z,0x156d -- no charge
+        // jp z NOT taken(10)+cp 0x1d(7) = 17 t.
         regs.cp(0x1d);
-        m.step(0x1550, 7); // cp 0x1d
-        if (regs.fZ) { label = 0x15c6; continue; } // jp z,0x15c6 -- 0x1D EXITs
-        m.step(0x1553, 10); // jp z NOT taken
-        regs.hl = mem.read16(0x6036);
-        m.step(0x1556, 16); // ld hl,(0x6036) -- video ptr
-        regs.bc = 0x7588;
-        m.step(0x1559, 10); // ld bc,0x7588 -- upper sentinel
-        regs.and(regs.a);
-        m.step(0x155a, 4); // and a -- clear carry for sbc
+        m.step(0x1550, 17);
+        if (regs.fZ) { label = 0x15c6; continue; } // jp z,0x15c6 -- 0x1D EXITs; no charge
+        // jp z NOT taken(10)+ld hl,(0x6036)(16)+ld bc,0x7588(10)+and a(4)+sbc hl,bc(15) = 55 t.
+        regs.hl = mem.read16(0x6036); // video ptr
+        regs.bc = 0x7588; // upper sentinel
+        regs.and(regs.a); // clear carry for sbc
         regs.sbcHl(regs.bc);
-        m.step(0x155c, 15); // sbc hl,bc
-        if (regs.fZ) { label = 0x158a; continue; } // jp z,0x158a -- at sentinel, no move
-        m.step(0x155f, 10); // jp z NOT taken
-        regs.addHl(regs.bc);
-        m.step(0x1560, 11); // add hl,bc -- restore HL
+        m.step(0x155c, 55);
+        if (regs.fZ) { label = 0x158a; continue; } // jp z,0x158a -- at sentinel, no move; no charge
+        // jp z NOT taken(10)+add hl,bc(11)+add a,0x11(7)+ld(hl),a(7)+ld bc,0xffe0(10)+
+        // add hl,bc(11) = 56 t.
+        regs.addHl(regs.bc); // restore HL
         regs.add(0x11);
-        m.step(0x1562, 7); // add a,0x11
-        mem.write8(regs.hl, regs.a);
-        m.step(0x1563, 7); // ld (hl),a -- stamp the cell
-        regs.bc = 0xffe0;
-        m.step(0x1566, 10); // ld bc,0xffe0 (= -0x20, up one row)
+        mem.write8(regs.hl, regs.a); // stamp the cell
+        regs.bc = 0xffe0; // up one row
         regs.addHl(regs.bc);
-        m.step(0x1567, 11); // add hl,bc
+        m.step(0x1567, 56);
       // fall into store-video-ptr
       case 0x1567:
         mem.write16(0x6036, regs.hl);
@@ -386,150 +345,133 @@ export function sub_1486(m) {
         label = 0x158a;
         continue; // jp 0x158a
       case 0x156d:
+        // ld hl,(0x6036)(16)+ld bc,0x20(10)+add hl,bc(11)+and a(4)+ld bc,0x7608(10)+
+        // sbc hl,bc(15) = 66 t, exit @ the jp nz (0x157a).
         regs.hl = mem.read16(0x6036);
-        m.step(0x1570, 16); // ld hl,(0x6036)
         regs.bc = 0x0020;
-        m.step(0x1573, 10); // ld bc,0x0020
-        regs.addHl(regs.bc);
-        m.step(0x1574, 11); // add hl,bc -- down one row
-        regs.and(regs.a);
-        m.step(0x1575, 4); // and a -- clear carry for sbc
-        regs.bc = 0x7608;
-        m.step(0x1578, 10); // ld bc,0x7608 -- lower sentinel
+        regs.addHl(regs.bc); // down one row
+        regs.and(regs.a); // clear carry for sbc
+        regs.bc = 0x7608; // lower sentinel
         regs.sbcHl(regs.bc);
-        m.step(0x157a, 15); // sbc hl,bc
-        if (regs.fNZ) { label = 0x1586; continue; } // jp nz,0x1586
-        m.step(0x157d, 10); // jp nz NOT taken
-        regs.hl = 0x75e8;
-        m.step(0x1580, 10); // ld hl,0x75e8 -- wrap the video ptr to the top
+        m.step(0x157a, 66);
+        if (regs.fNZ) { label = 0x1586; continue; } // jp nz,0x1586 -- no charge
+        // jp nz NOT taken(10)+ld hl,0x75e8(10) = 20 t.
+        regs.hl = 0x75e8; // wrap the video ptr to the top
+        m.step(0x1580, 20);
       // fall into 0x1580
       case 0x1580:
+        // ld a,0x10(7)+ld(hl),a(7) = 14 t.
         regs.a = 0x10;
-        m.step(0x1582, 7); // ld a,0x10
         mem.write8(regs.hl, regs.a);
-        m.step(0x1583, 7); // ld (hl),a
+        m.step(0x1583, 14);
         label = 0x1567;
         continue; // jp 0x1567 -- store video ptr, then animate
       case 0x1586:
-        regs.addHl(regs.bc);
-        m.step(0x1587, 11); // add hl,bc -- restore HL (undo the sbc)
+        regs.addHl(regs.bc); // restore HL (undo the sbc)
+        m.step(0x1587, 11); // add hl,bc
         label = 0x1580;
         continue; // jp 0x1580
 
       // ==== MAIN LOOP stage 3: SPRITE ANIMATE =====================================
       case 0x158a:
+        // ld hl,0x6032(10)+dec (hl)(11) = 21 t, exit @ the jp nz (0x158e).
         regs.hl = 0x6032;
-        m.step(0x158d, 10); // ld hl,0x6032 -- anim timer
         regs.decMem8(mem, regs.hl);
-        m.step(0x158e, 11); // dec (hl)
-        if (regs.fNZ) { label = 0x15f9; continue; } // jp nz,0x15f9 -- not this frame
-        m.step(0x1591, 10); // jp nz NOT taken
-        regs.a = mem.read8(0x6031);
-        m.step(0x1594, 13); // ld a,(0x6031) -- sprite toggle
+        m.step(0x158e, 21);
+        if (regs.fNZ) { label = 0x15f9; continue; } // jp nz,0x15f9 -- not this frame; no charge
+        // jp nz NOT taken(10)+ld a,(0x6031)(13)+and a(4) = 27 t.
+        regs.a = mem.read8(0x6031); // sprite toggle
         regs.and(regs.a);
-        m.step(0x1595, 4); // and a
-        if (regs.fNZ) { label = 0x15b8; continue; } // jp nz,0x15b8 -- toggle set path
-        m.step(0x1598, 10); // jp nz NOT taken
+        m.step(0x1595, 27);
+        if (regs.fNZ) { label = 0x15b8; continue; } // jp nz,0x15b8 -- toggle set path; no charge
+        // jp nz NOT taken(10)+ld a,0x01(7)+ld(0x6031),a(13)+ld de,0x01bf(10) = 40 t.
         regs.a = 0x01;
-        m.step(0x159a, 7); // ld a,0x01
-        mem.write8(0x6031, regs.a);
-        m.step(0x159d, 13); // ld (0x6031),a -- toggle := 1
-        regs.de = 0x01bf;
-        m.step(0x15a0, 10); // ld de,0x01bf -- digit source ptr
+        mem.write8(0x6031, regs.a); // toggle := 1
+        regs.de = 0x01bf; // digit source ptr
+        m.step(0x15a0, 40);
       // fall into the shared render tail
       case 0x15a0:
+        // ld iy,(0x6038)(20)+ld l,(iy+4)(19)+ld h,(iy+5)(19)+push hl(11)+pop ix(14)+
+        // render call's own dispatch charge(17) = 100 t.
         regs.iy = mem.read16(0x6038);
-        m.step(0x15a4, 20); // ld iy,(0x6038)
         regs.l = mem.read8((regs.iy + 0x04) & 0xffff);
-        m.step(0x15a7, 19); // ld l,(iy+0x04)
         regs.h = mem.read8((regs.iy + 0x05) & 0xffff);
-        m.step(0x15aa, 19); // ld h,(iy+0x05)
         m.push16(regs.hl);
-        m.step(0x15ab, 11); // push hl
-        regs.ix = m.pop16();
-        m.step(0x15ad, 14); // pop ix -- IX := sprite ptr from (iy+4/5)
+        regs.ix = m.pop16(); // IX := sprite ptr from (iy+4/5)
         m.push16(0x15b0);
-        m.step(0x057c, 17); // call 0x057c -- render the 6 digits
-        m.call(0x057c);
+        m.step(0x057c, 100);
+        m.call(0x057c); // render the 6 digits
+        // ld a,0x10(7)+ld(0x6032),a(13) = 20 t.
         regs.a = 0x10;
-        m.step(0x15b2, 7); // ld a,0x10
-        mem.write8(0x6032, regs.a);
-        m.step(0x15b5, 13); // ld (0x6032),a -- reload anim timer
+        mem.write8(0x6032, regs.a); // reload anim timer
+        m.step(0x15b5, 20);
         label = 0x15f9;
         continue; // jp 0x15f9
       case 0x15b8:
+        // xor a(4)+ld(0x6031),a(13)+ld de,(0x6038)(20)+inc de x3(18) = 55 t.
         regs.xor(regs.a);
-        m.step(0x15b9, 4); // xor a
-        mem.write8(0x6031, regs.a);
-        m.step(0x15bc, 13); // ld (0x6031),a -- toggle := 0
+        mem.write8(0x6031, regs.a); // toggle := 0
         regs.de = mem.read16(0x6038);
-        m.step(0x15c0, 20); // ld de,(0x6038)
         regs.de = (regs.de + 1) & 0xffff;
-        m.step(0x15c1, 6); // inc de
         regs.de = (regs.de + 1) & 0xffff;
-        m.step(0x15c2, 6); // inc de
-        regs.de = (regs.de + 1) & 0xffff;
-        m.step(0x15c3, 6); // inc de -- DE := (0x6038)+3
+        regs.de = (regs.de + 1) & 0xffff; // DE := (0x6038)+3
+        m.step(0x15c3, 55);
         label = 0x15a0;
         continue; // jp 0x15a0 -- shared render tail
 
       // ==== EXIT / cleanup =========================================================
       case 0x15c6:
+        // ld de,(0x6038)(20)+xor a(4)+ld(de),a(7)+ld hl,SUBSTATE_TIMER(10)+ld(hl),0x80(10)+
+        // inc hl(6)+dec(hl)(11)+ld b,0x0c(7)+ld hl,0x75e8(10)+ld iy,(0x603a)(20)+
+        // ld de,0xffe0(10) = 115 t, exit @ the column-copy loop (0x15df).
         regs.de = mem.read16(0x6038);
-        m.step(0x15ca, 20); // ld de,(0x6038)
         regs.xor(regs.a);
-        m.step(0x15cb, 4); // xor a
-        mem.write8(regs.de, regs.a);
-        m.step(0x15cc, 7); // ld (de),a -- clear the item slot
+        mem.write8(regs.de, regs.a); // clear the item slot
         regs.hl = SUBSTATE_TIMER; // 0x6009
-        m.step(0x15cf, 10); // ld hl,0x6009
-        mem.write8(regs.hl, 0x80);
-        m.step(0x15d1, 10); // ld (hl),0x80 -- SUBSTATE_TIMER := 0x80 (done)
-        regs.hl = (regs.hl + 1) & 0xffff;
-        m.step(0x15d2, 6); // inc hl -> GAME_SUBSTATE (0x600A)
-        regs.decMem8(mem, regs.hl);
-        m.step(0x15d3, 11); // dec (hl) -- GAME_SUBSTATE-- : the PHASE STEP-BACK
-        regs.b = 0x0c;
-        m.step(0x15d5, 7); // ld b,0x0c -- 0x0C cells to copy
-        regs.hl = 0x75e8;
-        m.step(0x15d8, 10); // ld hl,0x75e8 -- video source
-        regs.iy = mem.read16(0x603a);
-        m.step(0x15dc, 20); // ld iy,(0x603a) -- destination
-        regs.de = 0xffe0;
-        m.step(0x15df, 10); // ld de,0xffe0 (= -0x20, up one row)
+        mem.write8(regs.hl, 0x80); // SUBSTATE_TIMER := 0x80 (done)
+        regs.hl = (regs.hl + 1) & 0xffff; // -> GAME_SUBSTATE (0x600A)
+        regs.decMem8(mem, regs.hl); // GAME_SUBSTATE-- : the PHASE STEP-BACK
+        regs.b = 0x0c; // 0x0C cells to copy
+        regs.hl = 0x75e8; // video source
+        regs.iy = mem.read16(0x603a); // destination
+        regs.de = 0xffe0; // up one row
+        m.step(0x15df, 115);
       // fall into the column-copy loop
       case 0x15df:
-        regs.a = mem.read8(regs.hl);
-        m.step(0x15e0, 7); // ld a,(hl) -- copy 0x0C cells (video -> iy)
+        // ld a,(hl)(7)+ld(iy+0),a(19)+inc iy(10)+add hl,de(11) = 47 t, plus the djnz's own
+        // charge (13 taken / 8 not taken).
+        regs.a = mem.read8(regs.hl); // copy 0x0C cells (video -> iy)
         mem.write8((regs.iy + 0x00) & 0xffff, regs.a);
-        m.step(0x15e3, 19); // ld (iy+0x00),a
         regs.iy = (regs.iy + 1) & 0xffff;
-        m.step(0x15e5, 10); // inc iy
-        regs.addHl(regs.de);
-        m.step(0x15e6, 11); // add hl,de -- up one row
+        regs.addHl(regs.de); // up one row
         regs.djnz();
-        m.step(regs.b ? 0x15df : 0x15e8, regs.b ? 13 : 8); // djnz 0x15df
-        if (regs.b) { label = 0x15df; continue; }
-        // Enqueue tasks 0x0314..0x0318 (5x, DE++ each).
+        if (regs.b) {
+          m.step(0x15df, 60); // body(47) + djnz taken(13) = 60 t
+          label = 0x15df;
+          continue;
+        }
+        // Enqueue tasks 0x0314..0x0318 (5x, DE++ each): body(47) + djnz NOT taken(8) +
+        // ld b,0x05(7) + ld de,0x0314(10) = 72 t.
         regs.b = 0x05;
-        m.step(0x15ea, 7); // ld b,0x05
         regs.de = 0x0314;
-        m.step(0x15ed, 10); // ld de,0x0314
+        m.step(0x15ed, 72);
       // fall into the enqueue loop
       case 0x15ed:
         m.push16(0x15f0);
-        m.step(0x309f, 17); // call 0x309f
+        m.step(0x309f, 17); // call 0x309f -- enqueue one follow-up task
         m.call(0x309f);
         regs.de = (regs.de + 1) & 0xffff;
-        m.step(0x15f1, 6); // inc de
         regs.djnz();
-        m.step(regs.b ? 0x15ed : 0x15f3, regs.b ? 13 : 8); // djnz 0x15ed
-        if (regs.b) { label = 0x15ed; continue; }
-        // Enqueue the final task 0x031A.
+        if (regs.b) {
+          m.step(0x15ed, 19); // inc de(6) + djnz taken(13) = 19 t
+          label = 0x15ed;
+          continue;
+        }
+        // Enqueue the final task 0x031A: inc de(6) + djnz NOT taken(8) + ld de,0x031a(10) = 24 t.
         regs.de = 0x031a;
-        m.step(0x15f6, 10); // ld de,0x031a
+        m.step(0x15f6, 24);
         m.push16(0x15f9);
-        m.step(0x309f, 17); // call 0x309f
+        m.step(0x309f, 17); // call 0x309f -- enqueue the final task
         m.call(0x309f);
       // fall into the single ret
       case 0x15f9:

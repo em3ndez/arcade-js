@@ -53,47 +53,44 @@ import { SPIN_COUNT } from "./ram.js";
  *   taken branch (C preserved 0 from the rrca). A is likewise kept exact (the
  *   rotated spin count) because it flows out unmodified on the taken arm.
  *
- * ATOMIC? NO — kept PER-INSTRUCTION, not collapsed. sub_03f2 is a leaf reached
- *   ONLY via `m.call(0x03f2)` from sub_03a2, and sub_03a2 is called from the MAIN
- *   LOOP (mainloop.js ROM 0x02E1) with the vblank NMI mask ENABLED. So the NMI can
- *   fall between any two of sub_03f2's instructions; on a frame where it comes due
- *   mid-routine it pushes a 0x03Fx PC into diffed stack RAM. Preserving the
- *   oracle's per-instruction charge distribution keeps that pushed PC identical on
- *   every trajectory. Collapsing to one lump-per-branch total HAPPENS to stay EQUAL
- *   on a 30-frame guard-poke run (the NMI just never landed inside it there) — but
- *   that is precisely the false positive README §2 / the sub_0008 test warn about,
- *   so it is rejected; per-instruction is always correct. The TOTAL is still load-
- *   bearing: stripping the charges diverges the whole-machine trace at SPIN_COUNT
- *   0x6019 (a cheaper frame reaches the vblank spin sooner and reseeds the PRNG),
- *   which the equivalence-03f2 cycle-teeth test pins. Branch totals: 35 t (taken),
- *   50 t (not-taken).
+ * CYCLES -- COLLAPSED to one m.step per basic block: the prologue (store + read
+ * SPIN_COUNT + rrca) folds to one 24t charge before the `ret c` decision; the
+ * not-taken continuation (its own 5t + inc b + the second store + the routine's own
+ * ret) folds to one 26t charge at the final `m.ret`. Both fold totals are the exact
+ * sum of the oracle's per-instruction charges they replace: 24+11=35t (taken),
+ * 24+26=50t (not-taken) -- unchanged from the oracle.
+ *
+ * ATOMIC? NO. sub_03f2 is a leaf reached ONLY via `m.call(0x03f2)` from sub_03a2, and
+ * sub_03a2 is called from the MAIN LOOP (mainloop.js ROM 0x02E1) with the vblank NMI
+ * mask ENABLED, so the NMI genuinely CAN fall between any two of sub_03f2's
+ * instructions. Per the lead's collapse-sweep rule the whole-machine gate is
+ * therefore the CONVERGENT one UNCONDITIONALLY (equivalence-03f2.test.js), never the
+ * strict one -- a strict pass on any single scenario is a property of that scenario
+ * (whether the NMI happened to land inside), not proof of safety, which is exactly
+ * why per-instruction was kept here before the convergent gate existed. The double
+ * store is UNCHANGED (still two separate mem.write8 calls in the same order), so the
+ * write-sequence test (dropped-first-store teeth) still has something to catch.
  */
 export function sub_03f2(m) {
   const { regs, mem } = m;
 
-  // ld (hl),b -- first store. On the not-taken branch it is overwritten below;
-  // it is kept because it is a real bus write (trace-visible, state-invisible).
+  // ld (hl),b / ld a,(SPIN_COUNT) / rrca -- 7+13+4 = 24t. The first store is kept
+  // (on the not-taken branch it is overwritten below, but it is a real bus write,
+  // trace-visible, state-invisible); rrca rotates the spin count's bit 0 into carry.
   mem.write8(regs.hl, regs.b);
-  m.step(0x03f3, 7);
-
-  // ld a,(SPIN_COUNT) / rrca -- rotate the spin count's bit 0 into carry.
   regs.a = mem.read8(SPIN_COUNT);
-  m.step(0x03f6, 13);
   regs.rrca();
-  m.step(0x03f7, 4);
+  m.step(0x03f7, 24);
 
   if (regs.fC) {
-    // ret c: bit 0 set -- leave (HL) = B. path total 7+13+4+11 = 35 t.
-    m.ret(11);
+    m.ret(11); // ret c taken -- bit0 set, leave (HL) = B. path total 24+11 = 35t.
     return;
   }
-  m.step(0x03f8, 5); // ret c not taken
 
-  // inc b / ld (hl),b -- B := B+1, store again at the SAME address ((HL) ends B+1).
+  // ret c not-taken(5) + inc b(4) + ld (hl),b(7) + the routine's own ret(10) = 26t,
+  // straight-line to the routine's own return (no further branch, no stack op between
+  // them). B := B+1, store again at the SAME address ((HL) ends B+1).
   regs.b = regs.inc8(regs.b);
-  m.step(0x03f9, 4);
   mem.write8(regs.hl, regs.b);
-  m.step(0x03fa, 7);
-
-  m.ret(); // ret (0x03FA) -- 10 t. not-taken path total 7+13+4+5+4+7+10 = 50 t.
+  m.ret(26); // not-taken path total 24+26 = 50t.
 }

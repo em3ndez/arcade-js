@@ -48,32 +48,28 @@ import { ATTRACT } from "./ram.js";
  * The boolean is the load-bearing output; A/F are preserved for the gate, not
  * because a caller reads them.
  *
- * CYCLES -- PER-INSTRUCTION, DELIBERATELY (NOT collapsed). sub_0008 is atomic on
- * the NMI game-state dispatch path (that handler runs mask-cleared), BUT it is a
- * leaf `rst` helper ALSO reached from the mask-ENABLED main loop: entry_051c
- * (mainloop.js) is a dispatchTask task that does `m.push16(0x051e) / rst 0x08 /
- * if (!m.call(0x0008)) return;`, and the main loop runs with the vblank NMI mask
- * ENABLED. So the NMI CAN land inside this ~4-instruction routine. If it lands
- * while a collapsed `m.ret(28/44)` is charging, fireNmi pushes the ret-target PC,
- * whereas the oracle -- charging 13/4/5/6/6 per instruction at its own PC -- would
- * push 0x000b/0x000c/0x000d/0x000e for those cycles. A different pushed PC lands in
- * diffed stack RAM and diverges from MAME (README §2's "NMI lands mid-logic"
- * caveat; the same reason sibling sub_0020 and loc_197a are kept per-instruction).
- * A 30-frame attract run does NOT exercise the interruptible entry_051c path, so it
- * cannot prove the collapse safe -- and it is not. Therefore the oracle's cycle
- * DISTRIBUTION is preserved charge-for-charge: each instruction is charged at its
- * own PC. The per-branch totals are the oracle's by construction (normal 13+4+11 =
- * 28; skip 13+4+5+6+6+10 = 44). Optimization here buys the ATTRACT name, the
- * plain-English contract, and structured control flow -- not a cycle collapse.
+ * CYCLES -- COLLAPSED to one m.step per basic block. sub_0008 is atomic on the NMI
+ * game-state dispatch path (that handler runs mask-cleared), BUT it is a leaf `rst` helper
+ * ALSO reached from the mask-ENABLED main loop: entry_051c (mainloop.js) is a dispatchTask
+ * task that does `m.push16(0x051e) / rst 0x08 / if (!m.call(0x0008)) return;`, and the main
+ * loop runs with the vblank NMI mask ENABLED. So the NMI CAN land inside this ~4-instruction
+ * routine and push a live (now-coarser) PC into the diffed stack RAM -- exactly the
+ * mistimed-NMI raster tear the CONVERGENT gate exists for (docs/06; see sub_0350), not the
+ * strict byte-exact gate a short attract run would pass by never exercising entry_051c. Block
+ * totals are the exact SUM of the oracle's per-instruction charges: ld-a,(ATTRACT)+rrca 17 t
+ * (the decision block, ending at the `ret nc`); on the SKIP arm, the `ret nc`-not-taken charge
+ * + both `inc sp`s fold to 17 t (5+6+6) before the final unconditional `m.ret()` (10 t,
+ * charged internally by machine.js, never folded into a preceding total). Branch totals:
+ * normal 17+11 = 28 t; skip 17+17+10 = 44 t -- both the oracle's exact sums, so
+ * total-preservation keeps the main loop's PRNG spin count (0x6019) deterministic.
  */
 export function sub_0008(m) {
   const { regs, mem } = m;
 
-  // ld a,(ATTRACT) / rrca -- rotate the enable bit (bit 0) into carry.
+  // Block: ld a,(ATTRACT) [13] + rrca [4] = 17 t -- rotate the enable bit (bit 0) into carry.
   regs.a = mem.read8(ATTRACT);
-  m.step(0x000b, 13);
   regs.rrca();
-  m.step(0x000c, 4);
+  m.step(0x000c, 17);
 
   if (regs.fNC) {
     // ret nc taken: bit 0 clear -- normal return to the caller (SP += 2).
@@ -81,13 +77,11 @@ export function sub_0008(m) {
     return true;
   }
 
-  // ret nc not taken: bit 0 set. inc sp / inc sp discards our own return address,
-  // then ret pops the CALLER'S CALLER return (net SP += 4) -- the skip.
-  m.step(0x000d, 5); // ret nc not taken
+  // Block: ret nc NOT taken [5] + inc sp [6] + inc sp [6] = 17 t -- bit 0 set: discard our own
+  // return address, then the final ret pops the CALLER'S CALLER return (net SP += 4) -- the skip.
   regs.sp = (regs.sp + 1) & 0xffff;
-  m.step(0x000e, 6); // inc sp
   regs.sp = (regs.sp + 1) & 0xffff;
-  m.step(0x000f, 6); // inc sp
+  m.step(0x000f, 17);
   m.ret(); // ret -- returns to the caller's caller
   return false;
 }

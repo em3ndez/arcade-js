@@ -41,36 +41,29 @@
  *   rewrite performs no flag op, so that incoming F passes through byte-identical
  *   to the oracle; the unit gate's F comparison confirms it.
  *
- * CYCLES — PER-INSTRUCTION (not collapsed), which is the always-correct choice for
- *   this leaf. loc_0689 is reached ONLY via loc_066a, and loc_066a is reached only
- *   from entry_062a — a MAIN-LOOP task (task-table entry 10, dispatched by
- *   dispatchTask with the NMI mask ENABLED). The brief's ATOMICITY-IS-PER-CALL-PATH
- *   rule says a leaf reached via m.call on a main-loop path keeps per-instruction
- *   granularity unless a collapse is HARNESS-PROVEN safe, and even then it is only
- *   worth doing for a real readability win. Here the win is nil (three m.step
- *   charges), and per-instruction is guaranteed correct, so the charges stay one
- *   per instruction — 13 + 4 + 13, then the 10t ret. The TOTAL is preserved either
- *   way (per-instruction preserves everything); whole-machine EQUAL over 700 frames
- *   (3 dispatches) and the unit gate both confirm it. The two stores are VIDEO RAM,
- *   not 0x7Dxx hardware latches, so they carry no write-trace bus-cycle constraint
- *   (per loc_0a8a: video + work RAM collapse with no trace consequence); keeping
- *   per-instruction lands each at its exact oracle cycle regardless.
+ * CYCLES — COLLAPSED to one m.step for the whole straight-line body (no branch, so the
+ *   whole routine is one basic block). loc_0689 is reached ONLY via loc_066a, and loc_066a
+ *   is reached only from entry_062a — a MAIN-LOOP task (task-table entry 10, dispatched by
+ *   dispatchTask with the NMI mask ENABLED), so a vblank NMI could in principle land inside
+ *   this 3-instruction body; the whole-machine gate (see the test) is therefore the
+ *   CONVERGENT one, not the strict byte-exact one, per the collapse-sweep brief's
+ *   unconditional rule for a collapsed routine's whole-machine test. The two stores are
+ *   VIDEO RAM, not 0x7Dxx hardware latches, so they carry no write-trace bus-cycle
+ *   constraint (per loc_0a8a: video + work RAM collapse with no trace consequence) — nothing
+ *   stops folding all three charges together. 13 (ld (0x74e6),a) + 4 (ld a,b) + 13
+ *   (ld (0x74c6),a) = 30 t, exit 0x0690; the 10t `ret` stays separate (RET scaffolding).
+ *   Memory-write ORDER is unchanged (0x74E6 still written before 0x74C6).
  */
 export function loc_0689(m) {
   const { regs, mem } = m;
 
-  // ld (0x74e6),a -- stamp the first tile (A) into its VRAM cell. 0x74E6 is a
-  // video-RAM tile cell (0x7400-0x77FF), written BEFORE 0x74C6 per the oracle.
+  // ld (0x74e6),a; ld a,b; ld (0x74c6),a.  13+4+13 = 30 t, exit 0x0690.
+  // 0x74E6 (first tile, A) is a video-RAM tile cell (0x7400-0x77FF), written BEFORE
+  // 0x74C6 (second tile, B) per the oracle; A ends = B (the `ld a,b`).
   mem.write8(0x74e6, regs.a);
-  m.step(0x068c, 13);
-
-  // ld a,b -- bring the second tile into A (does not touch flags).
   regs.a = regs.b;
-  m.step(0x068d, 4);
-
-  // ld (0x74c6),a -- stamp the second tile (now in A) into the adjacent VRAM cell.
   mem.write8(0x74c6, regs.a);
-  m.step(0x0690, 13);
+  m.step(0x0690, 30);
 
   m.ret(); // 0690 -- 10t; F is loc_066a's arm flags, passed through untouched.
 }

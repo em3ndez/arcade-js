@@ -263,6 +263,9 @@ export function unitEquivalence(makeMachine, target, translatedFn, optimizedFn, 
  *   (the dead stack scratch); default excludes nothing.
  * @param {number} [opts.tailWindow=20]  final frames that must be fully converged.
  * @param {(addr:number)=>string} [opts.name]  addr→name for reporting.
+ * @param {object} [opts.baseline]  a precomputed all-oracle baseline from runBaseline() —
+ *   pass it when gating MANY routines against the SAME scenario so the baseline is emulated
+ *   once rather than once per routine. Omit to have it computed here.
  * @returns {object} { pass, invocations, framesCompared, statePersistent,
  *   pixelPersistent, transientStateAddrs, pixDiffFrames, maxPixels, lastPixDiff }
  */
@@ -271,10 +274,21 @@ export function convergentEquivalence(makeMachine, nFrames, overrides, opts = {}
   const tailWindow = opts.tailWindow ?? 20;
   const nameOf = opts.name ?? ((a) => "0x" + a.toString(16));
 
-  const base = makeMachine();
-  const baseFrames = base.runFrames(nFrames);
-  assertRunHealthy(base, baseFrames, nFrames, "baseline");
-  const baseVideo = base.videoFrames ?? [];
+  // The all-oracle baseline depends only on (scenario, nFrames) — never on `overrides` —
+  // so a caller running many routines against the SAME scenario may compute it ONCE and
+  // hand it in via opts.baseline, instead of re-emulating it from boot per routine. The
+  // arrays are read-only here (we only diff against them), so sharing them is safe.
+  // See runBaseline() below for the producer.
+  let baseFrames, baseVideo, offToAddrFn;
+  if (opts.baseline) {
+    ({ frames: baseFrames, video: baseVideo, offToAddr: offToAddrFn } = opts.baseline);
+  } else {
+    const base = makeMachine();
+    baseFrames = base.runFrames(nFrames);
+    assertRunHealthy(base, baseFrames, nFrames, "baseline");
+    baseVideo = base.videoFrames ?? [];
+    offToAddrFn = (o) => base.stateOffsetToAddr(o);
+  }
 
   const invocations = new Map();
   const wrapped = new Map();
@@ -292,11 +306,11 @@ export function convergentEquivalence(makeMachine, nFrames, overrides, opts = {}
   const optVideo = opt.videoFrames ?? [];
 
   const F = Math.min(baseFrames.length, optFrames.length);
-  const offToAddr = (o) => base.stateOffsetToAddr(o);
+  const offToAddr = offToAddrFn;
 
   // PIXELS are the ground truth — they must be captured, or the gate is meaningless.
   // Refuse to run rather than silently pass a pixel-only divergence (review finding).
-  if (base.videoFrames.length === 0 || opt.videoFrames.length === 0) {
+  if (baseVideo.length === 0 || opt.videoFrames.length === 0) {
     throw new Error(
       "convergentEquivalence: no video frames captured — the caller MUST enable " +
         "captureVideo. Pixels are the ground truth and cannot be silently skipped.",
@@ -351,5 +365,29 @@ export function convergentEquivalence(makeMachine, nFrames, overrides, opts = {}
     pixelPersistent,                                  // FAIL if true (non-healing pixels)
     transientStateAddrs: lastStateDiff.size - statePersistent.length, // healed (tolerated)
     pixDiffFrames, maxPixels, lastPixDiff, videoCompared: vN,
+  };
+}
+
+/**
+ * Emulate the all-oracle BASELINE once, so a caller gating many routines against the SAME
+ * scenario can reuse it via convergentEquivalence's `opts.baseline` instead of re-emulating
+ * it from boot for every routine. The baseline depends only on (scenario, nFrames) — never
+ * on WHICH routine is overridden — and that is exactly what makes it shareable.
+ *
+ * The returned `frames` and `video` are treated as READ-ONLY by the gate (it only diffs
+ * against them), so handing the same object to many gate calls is safe.
+ *
+ * @param {(overrides?:Map|object)=>object} makeMachine  factory (video-enabled)
+ * @param {number} nFrames
+ * @returns {object} { frames, video, offToAddr }
+ */
+export function runBaseline(makeMachine, nFrames) {
+  const base = makeMachine();
+  const frames = base.runFrames(nFrames);
+  assertRunHealthy(base, frames, nFrames, "baseline");
+  return {
+    frames,
+    video: base.videoFrames ?? [],
+    offToAddr: (o) => base.stateOffsetToAddr(o),
   };
 }

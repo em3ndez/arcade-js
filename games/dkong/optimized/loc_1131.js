@@ -20,71 +20,75 @@
  *   - sub_11d3: permuting gather into 0x6950 (B=2, DE=0x20 stride),
  *   - ret.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached via the board-setup dispatch, whose
- * atomicity is not pinned to the mask-cleared NMI; callees route through m.call.
+ * CYCLES -- COLLAPSED to one m.step per basic block. loc_1131 is a straight-line
+ * coordinator (no data-dependent branch of its own): every block boundary here is a
+ * call into a shared fill helper, so each block folds its setup instructions'
+ * charges together with that call's own instruction charge, then invokes `m.call`
+ * unchanged (never inlined). `m.ldir` keeps its own internal per-iteration charging
+ * (untouched -- see machine.js's ldirAt), so the block before it stops at its last
+ * setup instruction with no extra call-charge to fold in. This routine has NO
+ * whole-machine dispatch (it is reached only via the board-setup dispatch tree, cold
+ * on a driven board-1 game) so there is no convergent/strict whole-machine choice to
+ * make here -- see the crafted-entry test's added cycle-total assertion instead.
+ * Every block total is the oracle's, EXACTLY:
+ *   Block 1 (3 setup ops [10+10+10] + sub_122a's call charge [17])        = 47 t
+ *   Block 2 (1 setup op [10] + sub_11a6's call charge [17])               = 27 t
+ *   Block 3 (3 setup ops [10+10+10], ldir's own charges follow)          = 30 t
+ *   Block 4 (3 setup ops [10+10+10] + sub_11ec's call charge [17])        = 47 t
+ *   Block 5 (3 setup ops [10+10+10] + sub_122a's call charge [17])        = 47 t
+ *   Block 6 (object marks [14+19+19] + gather setup [10+7+10] +
+ *            sub_11d3's call charge [17])                                 = 96 t
  */
 export function loc_1131(m) {
   const { regs, mem } = m;
 
+  // Block 1: 3 setup ops (10+10+10=30) + sub_122a's call charge (17) = 47 t.
   regs.hl = 0x3df0;
-  m.step(0x1134, 10);
   regs.de = 0x6407;
-  m.step(0x1137, 10);
   regs.bc = 0x051c;
-  m.step(0x113a, 10);
   m.push16(0x113d);
-  m.step(0x122a, 17);
+  m.step(0x122a, 47);
   m.call(0x122a);
 
+  // Block 2: 1 setup op (10) + sub_11a6's call charge (17) = 27 t.
   regs.hl = 0x3e14; // live-in to sub_11a6
-  m.step(0x1140, 10);
   m.push16(0x1143);
-  m.step(0x11a6, 17);
+  m.step(0x11a6, 27);
   m.call(0x11a6);
 
+  // Block 3: 3 setup ops (10+10+10=30) -- ldir's own internal charges follow.
   regs.hl = 0x3e54;
-  m.step(0x1146, 10);
   regs.de = 0x6a0c;
-  m.step(0x1149, 10);
   regs.bc = 0x000c;
-  m.step(0x114c, 10);
+  m.step(0x114c, 30);
   m.ldir(0x114e); // ldir 0x0C bytes -> 0x6A0C
 
+  // Block 4: 3 setup ops (10+10+10=30) + sub_11ec's call charge (17) = 47 t.
   regs.hl = 0x1182; // 2nd data unit, used first
-  m.step(0x1151, 10);
   regs.de = 0x64a3;
-  m.step(0x1154, 10);
   regs.bc = 0x021e;
-  m.step(0x1157, 10);
   m.push16(0x115a);
-  m.step(0x11ec, 17);
+  m.step(0x11ec, 47);
   m.call(0x11ec);
 
+  // Block 5: 3 setup ops (10+10+10=30) + sub_122a's call charge (17) = 47 t.
   regs.hl = 0x117e; // 1st data unit, used second
-  m.step(0x115d, 10);
   regs.de = 0x64a7;
-  m.step(0x1160, 10);
   regs.bc = 0x021c;
-  m.step(0x1163, 10);
   m.push16(0x1166);
-  m.step(0x122a, 17);
+  m.step(0x122a, 47);
   m.call(0x122a);
 
+  // Block 6: object-slot marks (14+19+19=52) + gather setup (10+7+10=27) +
+  // sub_11d3's call charge (17) = 96 t.
   regs.ix = 0x64a0;
-  m.step(0x116a, 14);
   mem.write8((regs.ix + 0x00) & 0xffff, 0x01);
-  m.step(0x116e, 19);
   mem.write8((regs.ix + 0x20) & 0xffff, 0x01); // stride 0x20
-  m.step(0x1172, 19);
-
   regs.hl = 0x6950;
-  m.step(0x1175, 10);
   regs.b = 0x02;
-  m.step(0x1177, 7);
   regs.de = 0x0020; // stride
-  m.step(0x117a, 10);
   m.push16(0x117d);
-  m.step(0x11d3, 17);
+  m.step(0x11d3, 96);
   m.call(0x11d3);
 
   m.ret(); // 0x117D

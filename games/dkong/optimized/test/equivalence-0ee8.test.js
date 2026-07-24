@@ -89,3 +89,33 @@ test("TEETH (kind==3): a wrong ladder cap is CAUGHT and NOT-EQUAL", () => {
   assert.ok(ram != null, "harness FAILED to catch a wrong store");
   console.log(`  TEETH kind==3: caught at 0x${ram.addr.toString(16)} (translated ${ram.a} vs broken ${ram.b})`);
 });
+
+// -- CYCLE-TOTAL (mandatory: this test is crafted-entry only, no whole-machine or
+// convergent run, so no other job here catches a wrong m.step total) ------------
+
+// loc_0ee8 is now COLLAPSED (one m.step per basic block / per loop iteration), so a
+// wrong fold sum would still leave RAM+regs+pc EQUAL above (they don't depend on the
+// cycle count) but would charge the wrong number of T-states -- invisible to every
+// other assertion in this file. Run both sides from an identical clone and diff
+// `machine.cycles` directly.
+function cyclesOf(kind, fn) {
+  const c = ENTRY.clone();
+  c.mem.write8(0x63b3, kind);
+  const c0 = c.cycles;
+  fn(c);
+  return c.cycles - c0;
+}
+
+test("CYCLE-TOTAL (kind==3): collapsed ladder-strip charges the oracle's T-states", () => {
+  const oracle = cyclesOf(3, translated_0ee8);
+  const collapsed = cyclesOf(3, optimized_0ee8);
+  assert.equal(collapsed, oracle, `collapsed charged ${collapsed} t, oracle ${oracle} t`);
+  console.log(`  CYCLE-TOTAL kind==3: ${collapsed} t, matches oracle`);
+});
+
+test("CYCLE-TOTAL (kind>=4): collapsed entry_0f1b-delegation arm charges the oracle's T-states", () => {
+  const oracle = cyclesOf(4, translated_0ee8);
+  const collapsed = cyclesOf(4, optimized_0ee8);
+  assert.equal(collapsed, oracle, `collapsed charged ${collapsed} t, oracle ${oracle} t`);
+  console.log(`  CYCLE-TOTAL kind>=4: ${collapsed} t, matches oracle`);
+});

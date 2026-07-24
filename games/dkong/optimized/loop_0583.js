@@ -60,53 +60,63 @@ const RENDER_DIGIT = 0x0593;
  * A entering the renderer and because the per-instruction cycle decision below
  * forbids folding them into one value.
  *
- * LADDER STATUS -- rung 5 (idiomatic), cycles KEPT PER-INSTRUCTION. loop_0583 is
- * NOT ATOMIC, so its m.step charges are NOT collapsed (README §2; the brief's
- * "when unsure, keep per-instruction — it is always correct"). Two independent
- * reasons, one per call path (atomicity is per-call-path):
+ * LADDER STATUS -- rung 5 (idiomatic), cycles COLLAPSED to one m.step per basic
+ * block within each loop iteration (the per-instruction charges of each
+ * straight-line run folded into a single charge at the block's exit PC). Per
+ * iteration: the read + four-rotate nibble-swap folds to 23 t (exit 0x0588, the
+ * `call 0x0593` for the HIGH digit); that call keeps its own push16/step/m.call
+ * scaffolding (17 t, untouched); the LOW-digit re-read is already a single
+ * instruction sandwiched between two calls, so nothing folds there (7 t, exit
+ * 0x058c); the second call likewise keeps its scaffolding untouched; `dec hl` plus
+ * the data-dependent `djnz` charge folds to ONE per-branch total -- 19 t (exit
+ * 0x0583, loop continues) or 14 t (exit 0x0592, loop exits). Every fold's TOTAL is
+ * the oracle's, EXACTLY -- total-preservation keeps the main loop's spin count
+ * (0x6019, the PRNG entropy) deterministic. Both RENDER_DIGIT calls still reach
+ * their callee through m.call (the registry).
+ *
+ * loop_0583 is NOT ATOMIC on either call path (atomicity is per-call-path):
  *   (a) sub_0616 tail-jumps here on the SAME frame-6 chain whose earlier link,
  *       handler_05e9, is documented to be INTERRUPTED by the vblank NMI mid-loop
  *       (handler_05e9.js: it pushes PC 0x060d onto diffed work RAM). loop_0583 is
  *       reached from that interruptible cascade — a "reached via a tail" NOT-atomic
- *       path in the brief's own words.
+ *       path.
  *   (b) draw_0578/draw_056b reach it as an in-game main-loop TASK (handler_05c6,
  *       mask ENABLED), and the loop is data-dependent: `djnz` entered with B = 0
  *       runs 256 trips (~14k cycles, most of a frame), long enough for the NMI to
- *       land INSIDE it. A collapse that happens to survive the short attract run
- *       is not proof the NMI never lands on some trajectory.
- * Harness evidence (see the test): per-instruction reads EQUAL whole-machine AND
- * unit across B = 1 (loop-once, credits) and B = 3 (loop-many, score) — the two
- * counts the natural run produces — plus synthesised B = 2 and the B = 0 → 256
- * djnz-wrap edge. Since the distribution is retained, each branch's TOTAL is
- * retained trivially (B=1 190t, B=2 375t, B=3 560t; +185t per extra trip).
+ *       land INSIDE it.
+ * So the collapse coarsens where an in-flight NMI's PC would land (a block-exit
+ * address, not the exact instruction) -- the CONVERGENT gate's license (docs/06);
+ * see equivalence-0583.test.js, which gates the whole-machine job with
+ * convergentGate rather than a strict comparison. The per-iteration branch/cycle
+ * totals are unchanged by the fold: B=1 190t, B=2 375t, B=3 560t; +185t per extra
+ * trip.
  */
 export function loop_0583(m) {
   const { regs, mem } = m;
 
   do {
-    // High digit: read the source byte and rotate its high nibble down.
+    // Block A: read the source byte and rotate its high nibble down (nibble
+    // swap -- the high nibble ends up low).  7 + 4*4 = 23 t.
     regs.a = mem.read8(regs.hl);
-    m.step(0x0584, 7); // ld a,(hl)
-    for (const nxt of [0x0585, 0x0586, 0x0587, 0x0588]) {
-      regs.rrca(); // four rotates = swap nibbles; high nibble ends up low
-      m.step(nxt, 4);
-    }
+    for (let i = 0; i < 4; i++) regs.rrca();
+    m.step(0x0588, 23);
     m.push16(0x058b);
     m.step(RENDER_DIGIT, 17); // call 0x0593 -- store the HIGH nibble at (IX)
     m.call(RENDER_DIGIT);
 
-    // Low digit: re-read the same source byte, unrotated.
+    // Low digit: re-read the same source byte, unrotated. Sandwiched between two
+    // calls -- already a single instruction, nothing to fold.
     regs.a = mem.read8(regs.hl);
     m.step(0x058c, 7); // ld a,(hl)
     m.push16(0x058f);
     m.step(RENDER_DIGIT, 17); // call 0x0593 -- store the LOW nibble at (IX)
     m.call(RENDER_DIGIT);
 
-    // Next source byte is one address LOWER; loop for all B bytes.
+    // Block B: advance to the next source byte (one address LOWER) and test djnz.
+    //   dec hl(6) + djnz(13 taken / 8 not) = 19 / 14 t.
     regs.hl = (regs.hl - 1) & 0xffff;
-    m.step(0x0590, 6); // dec hl (16-bit: no flags)
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x0583 : 0x0592, regs.b !== 0 ? 13 : 8); // djnz 0x0583
+    m.step(regs.b !== 0 ? 0x0583 : 0x0592, regs.b !== 0 ? 19 : 14);
   } while (regs.b !== 0);
 
   m.ret(); // 0592: ret -- to the ROUTINE's caller (sub_0616's caller on the tail path)

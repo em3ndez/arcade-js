@@ -23,12 +23,22 @@
  *   (video RAM, via loc_0dd3/loc_0e19/loc_0e2a/loc_0e4f); 0x63AB/0x63AF/0x63B3/0x63B4
  *   left holding the last record's fields. Returns when the 0xAA terminator is hit.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. sub_0da7 is called from many sites,
- * including the intro/how-high steppers loc_17b6/loc_1880 whose dispatch is not pinned
- * to the mask-cleared NMI, so atomicity is not provable on every path; the
- * per-instruction charges are kept verbatim (always correct). The `ret z` terminator and
- * the `call 0x2ff0` / `call 0x0dd3` scaffolding are modelled exactly as the translation;
- * all callees are reached through m.call (the registry).
+ * CYCLES -- COLLAPSED to one m.step per basic block (call/ret scaffolding kept verbatim,
+ * per basic-block rules). Every straight-line run between conditionals is folded into one
+ * charge; `jp nc` costs the oracle's 10 t whichever way it goes, so it is folded into
+ * whichever arm it lands in rather than split at the branch. Per-path totals, each summed
+ * and cross-checked against this file's own prior per-instruction charges (all previously
+ * proven equal):
+ *   kind-read+test 27 t; terminator `ret z` 11 t (total 38 t, the ONLY early exit);
+ *   coords+push-de 58 t (ret-z-not-taken 5 + 8 coord ops 42 + push de 11); call 0x2ff0
+ *   scaffold 17 t (kept verbatim, callee via m.call); pop de 10 t; phases+length+sub 85 t
+ *   (ld (0x63ab),hl 16 + 10 ops 69); dispatch decision 10 t (no borrow) or 18 t (borrow,
+ *   +neg). Total-preservation keeps the caller's cycle clock exact; only the mid-block PC
+ *   snapshot an NMI would observe is coarsened, same as any collapse.
+ *
+ * sub_0da7 is called from many sites, including the intro/how-high steppers
+ * loc_17b6/loc_1880, so atomicity is not provable on every path; see the equivalence
+ * test for the (convergent, unconditionally) gate this routine runs under.
  */
 export function sub_0da7(m) {
   const { regs, mem } = m;
@@ -36,75 +46,56 @@ export function sub_0da7(m) {
   for (;;) {
     // record kind -> 0x63B3; 0xAA ends the walk.
     regs.a = mem.read8(regs.de);
-    m.step(0x0da8, 7);
     mem.write8(0x63b3, regs.a);
-    m.step(0x0dab, 13);
     regs.cp(0xaa);
-    m.step(0x0dad, 7);
+    m.step(0x0dad, 27); // ld a,(de)[7] + ld (0x63b3),a[13] + cp 0xaa[7]
     if (regs.fZ) {
-      m.ret(11); // ret z -- terminator
+      m.ret(11); // ret z -- terminator (total 38 t)
       return;
     }
-    m.step(0x0dae, 5);
 
     // two coordinate bytes -> H/B and L/C.
     regs.de = (regs.de + 1) & 0xffff;
-    m.step(0x0daf, 6);
     regs.a = mem.read8(regs.de);
-    m.step(0x0db0, 7);
     regs.h = regs.a;
-    m.step(0x0db1, 4);
     regs.b = regs.h;
-    m.step(0x0db2, 4);
     regs.de = (regs.de + 1) & 0xffff;
-    m.step(0x0db3, 6);
     regs.a = mem.read8(regs.de);
-    m.step(0x0db4, 7);
     regs.l = regs.a;
-    m.step(0x0db5, 4);
     regs.c = regs.l;
-    m.step(0x0db6, 4);
 
     // resolve the tilemap start pointer via sub_2ff0 (DE saved) -> 0x63AB.
     m.push16(regs.de);
-    m.step(0x0db7, 11);
+    // ret z NOT taken[5] + inc de/ld a,(de)/ld h,a/ld b,h/inc de/ld a,(de)/ld l,a/ld c,l
+    // (8 ops, 42 t) + push de[11] = 58 t.
+    m.step(0x0db7, 58);
     m.push16(0x0dba);
     m.step(0x2ff0, 17);
     m.call(0x2ff0);
     regs.de = m.pop16();
     m.step(0x0dbb, 10);
     mem.write16(0x63ab, regs.hl);
-    m.step(0x0dbe, 16);
 
-    // sub-tile phases: 0x63B4 = B & 7, 0x63AF = C & 7.
+    // sub-tile phases: 0x63B4 = B & 7, 0x63AF = C & 7; length byte -> H; H -= B.
     regs.a = regs.b;
-    m.step(0x0dbf, 4);
     regs.and(0x07);
-    m.step(0x0dc1, 7);
     mem.write8(0x63b4, regs.a);
-    m.step(0x0dc4, 13);
     regs.a = regs.c;
-    m.step(0x0dc5, 4);
     regs.and(0x07);
-    m.step(0x0dc7, 7);
     mem.write8(0x63af, regs.a);
-    m.step(0x0dca, 13);
-
-    // length byte -> H; H -= B, negate on borrow (make the run length positive).
     regs.de = (regs.de + 1) & 0xffff;
-    m.step(0x0dcb, 6);
     regs.a = mem.read8(regs.de);
-    m.step(0x0dcc, 7);
     regs.h = regs.a;
-    m.step(0x0dcd, 4);
     regs.sub(regs.b);
-    m.step(0x0dce, 4);
+    // ld (0x63ab),hl[16] + ld a,b/and 7/ld (0x63b4),a/ld a,c/and 7/ld (0x63af),a/
+    // inc de/ld a,(de)/ld h,a/sub b (10 ops, 69 t) = 85 t.
+    m.step(0x0dce, 85);
+
     if (regs.fNC) {
       m.step(0x0dd3, 10); // jp nc taken
     } else {
-      m.step(0x0dd1, 10); // jp nc not taken (jp cc is 10 either way)
       regs.neg();
-      m.step(0x0dd3, 8); // neg is ED-prefixed
+      m.step(0x0dd3, 18); // jp nc NOT taken[10] + neg[8] (ED-prefixed)
     }
 
     // decode + draw this record; loc_0dd3's chain returns here to continue the walk.

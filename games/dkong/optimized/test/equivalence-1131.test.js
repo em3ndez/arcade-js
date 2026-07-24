@@ -72,3 +72,83 @@ test("TEETH (crafted entry): a wrong setup store is CAUGHT and NOT-EQUAL", () =>
   assert.ok(ram != null, "harness FAILED to catch a wrong store");
   console.log(`  TEETH: caught at 0x${ram.addr.toString(16)} (translated ${ram.a} vs broken ${ram.b})`);
 });
+
+// -- CYCLE TOTAL (mandatory: this test is crafted-entry only, no whole-machine or
+// convergent run exists to catch a wrong cycle sum, so it is pinned directly here) --
+
+test("CYCLE TOTAL (crafted entry): collapsed loc_1131 charges the SAME total as the oracle", () => {
+  const a = ENTRY.clone(); // translated oracle
+  const b = ENTRY.clone(); // optimized (collapsed)
+  const a0 = a.cycles;
+  const b0 = b.cycles;
+  translated_1131(a);
+  optimized_1131(b);
+  const aCyc = a.cycles - a0;
+  const bCyc = b.cycles - b0;
+  assert.equal(bCyc, aCyc, `cycle total drifted: oracle ${aCyc} t vs collapsed ${bCyc} t`);
+  console.log(`  CYCLE TOTAL: collapsed ${bCyc} t == oracle ${aCyc} t`);
+});
+
+test("CYCLE TEETH (crafted entry): a dropped m.step charge yields a wrong total and is CAUGHT", () => {
+  const a = ENTRY.clone();
+  const a0 = a.cycles;
+  translated_1131(a);
+  const oracleCyc = a.cycles - a0;
+
+  // A twin identical to optimized_1131 except the FIRST call-charge step (Block 1,
+  // ending at sub_122a) is 5 t short.
+  function shortCharge_1131(m) {
+    const { regs, mem } = m;
+    regs.hl = 0x3df0;
+    regs.de = 0x6407;
+    regs.bc = 0x051c;
+    m.push16(0x113d);
+    m.step(0x122a, 47 - 5); // DROPPED: the correct charge here is 47 t
+    m.call(0x122a);
+
+    regs.hl = 0x3e14;
+    m.push16(0x1143);
+    m.step(0x11a6, 27);
+    m.call(0x11a6);
+
+    regs.hl = 0x3e54;
+    regs.de = 0x6a0c;
+    regs.bc = 0x000c;
+    m.step(0x114c, 30);
+    m.ldir(0x114e);
+
+    regs.hl = 0x1182;
+    regs.de = 0x64a3;
+    regs.bc = 0x021e;
+    m.push16(0x115a);
+    m.step(0x11ec, 47);
+    m.call(0x11ec);
+
+    regs.hl = 0x117e;
+    regs.de = 0x64a7;
+    regs.bc = 0x021c;
+    m.push16(0x1166);
+    m.step(0x122a, 47);
+    m.call(0x122a);
+
+    regs.ix = 0x64a0;
+    mem.write8((regs.ix + 0x00) & 0xffff, 0x01);
+    mem.write8((regs.ix + 0x20) & 0xffff, 0x01);
+    regs.hl = 0x6950;
+    regs.b = 0x02;
+    regs.de = 0x0020;
+    m.push16(0x117d);
+    m.step(0x11d3, 96);
+    m.call(0x11d3);
+
+    m.ret();
+  }
+
+  const w = ENTRY.clone();
+  const w0 = w.cycles;
+  shortCharge_1131(w);
+  const wrongCyc = w.cycles - w0;
+
+  assert.notEqual(wrongCyc, oracleCyc, "cycle-total assertion has no teeth");
+  console.log(`  CYCLE TEETH: dropped-charge ${wrongCyc} t != oracle ${oracleCyc} t (caught)`);
+});

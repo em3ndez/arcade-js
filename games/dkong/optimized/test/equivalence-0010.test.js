@@ -22,32 +22,32 @@
  * not a store.
  *
  * Jobs:
- *   1. EQUAL (whole + unit) -- idiomatic optimized sub_0010 reads EQUAL against its
- *      translated oracle in RAM and the full register file (+ pc). Override fires
- *      (both branches naturally exercised: MARIO_ACTIVE alternates with Mario's alive
- *      state -- splice while inert during the attract lead-in, normal once the demo
- *      brings Mario alive).
+ *   1. EQUAL (unit) + CONVERGENT (whole-machine) -- idiomatic optimized sub_0010 reads
+ *      EQUAL against its translated oracle in RAM and the full register file (+ pc), and
+ *      CONVERGES under a whole-machine gameplay run.
  *   2. BRANCH COVERAGE + CYCLE TOTAL -- the one data-dependent split (bit 0 of
  *      MARIO_ACTIVE): NORMAL (bit0=1, ret c, boolean true, SP+2, 28 t) and SPLICE
  *      (bit0=0, inc sp/inc sp, boolean false, SP+4, 44 t). Both fire naturally AND are
- *      proven in isolation (RAM+regs+pc+return). Cycles are kept PER-INSTRUCTION (see
- *      the CYCLE DECISION below); each isolated arm pins its total to the oracle's.
- *   3. TEETH (whole + unit + cycle) -- the polarity twin is caught (SP / downstream),
- *      and a mis-timed twin (same state, +4 t) is caught by the cycle-total check, so
- *      the per-branch cycle assertions are not vacuous.
+ *      proven in isolation (RAM+regs+pc+return). Each isolated arm pins its total to the
+ *      oracle's, unchanged by the collapse below.
+ *   3. TEETH (convergent + unit + cycle) -- a wrong cycle total forks the PRNG (CAUGHT,
+ *      convergent), the polarity twin is caught (SP / downstream, unit), and a mis-timed
+ *      twin (same state, +4 t) is caught by the cycle-total check, so the per-branch
+ *      cycle assertions are not vacuous.
  *
- * CYCLE DECISION (see optimized/sub_0010.js): sub_0010 is kept PER-INSTRUCTION, NOT
- * collapsed. It is atomic on the NMI game-state path (mask cleared), but it is ALSO
- * reached from the INTERRUPTIBLE main-loop cascade loc_197a -- decisively non-atomic
- * -- via entry_2c03 (0x2C03) and entry_2ddb (0x2DDB), which `rst 0x10` into here while
- * the NMI mask is SET. A vblank NMI can therefore land inside this 4-6 instruction body
- * on the gameplay path; collapsing to one per-branch charge would move where it lands
- * and push a divergent stack PC. This test runs only ATTRACT frames, which do NOT run
- * loc_197a (no credited game), so it CANNOT prove atomicity on that path -- exactly why
- * per-instruction is the safe choice, like siblings sub_0020 / loc_197a. The oracle's
- * per-instruction DISTRIBUTION is reproduced charge-for-charge; each branch TOTAL is
- * the oracle's by construction (normal 28 / splice 44), which the branch-coverage
- * cycle assertions pin and the mis-timed cycle-teeth prove non-vacuous.
+ * CYCLE DECISION (see optimized/sub_0010.js): sub_0010 is COLLAPSED (one m.step per basic
+ * block). It is atomic on the NMI game-state path (mask cleared), but it is ALSO reached
+ * from the INTERRUPTIBLE main-loop cascade loc_197a -- decisively non-atomic -- via
+ * entry_2c03 (0x2C03) and entry_2ddb (0x2DDB), which `rst 0x10` into here while the NMI
+ * mask is SET. A vblank NMI can therefore land inside this 4-6 instruction body on the
+ * gameplay path, moving where a collapsed block's coarse exit PC lands in the diffed
+ * stack -- exactly the case the CONVERGENT gate (docs/06) licenses: pixels are ground
+ * truth, a mistimed-NMI tear/dead-stack PC heals, a PERSISTENT divergence (e.g. a wrong
+ * cycle total forking the PRNG) still fails. The whole-machine test below runs
+ * SCENARIOS.gameplay specifically because loc_197a (the interruptible caller) does NOT run
+ * during plain attract (no credited game) -- gameplay is what actually exercises the risky
+ * path. Each branch's TOTAL is unchanged by the collapse (normal 28 / splice 44), which the
+ * branch-coverage cycle assertions pin and the mis-timed cycle-teeth prove non-vacuous.
  *
  * Run: node --test
  */
@@ -59,7 +59,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_0010 as translated_0010 } from "../../translated/mainloop.js";
 import { sub_0010 as optimized_0010 } from "../sub_0010.js";
 import { Machine } from "../../machine.js";
-import { wholeMachineEquivalence, unitEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -110,6 +111,27 @@ function misTimed_0010(m) {
   return optimized_0010(m);
 }
 
+/**
+ * Cycle-drop twin for the CONVERGENT TEETH: identical to the collapsed routine except
+ * Block A's charge is 4 t short (17 -> 13). Same memory/register results, wrong total --
+ * a wrong cycle sum shifts the main loop's spin count (0x6019 PRNG entropy), forking the
+ * RANDOM stream: a PERSISTENT divergence, never a heal.
+ */
+function cyclebroken_0010(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(MARIO_ACTIVE);
+  regs.rrca();
+  m.step(0x0014, 13); // DROPPED: the correct charge here is 17 t
+  if (regs.fC) {
+    m.ret(11);
+    return true;
+  }
+  regs.sp = (regs.sp + 2) & 0xffff;
+  m.step(0x0017, 17);
+  m.ret();
+  return false;
+}
+
 // -- pristine-entry capture (for the isolated per-branch / teeth checks) -------
 
 /** Capture the machine the instant sub_0010 is FIRST entered (frame 5, MARIO_ACTIVE=0 -> SPLICE). */
@@ -143,24 +165,25 @@ function runClone(fn, aliveVal) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0010 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0010]]));
+test("CONVERGENT (whole-machine): collapsed sub_0010 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  // sub_0010 is COLLAPSED and reachable from the INTERRUPTIBLE loc_197a path, so the strict
+  // byte-exact gate is the wrong tool here -- use SCENARIOS.gameplay, which actually drives
+  // credited play (loc_197a never runs during plain attract).
+  const r = convergentGate(new Map([[TARGET, optimized_0010]]), { scenario: SCENARIOS.gameplay });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x (normal + splice both exercised)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ${r.pixDiffFrames} tear frame(s) ` +
+      `(max ${r.maxPixels}px, healed), non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -233,16 +256,18 @@ test("BRANCH splice: bit0 CLEAR -- inc sp/inc sp/ret, returns FALSE, SP+4, no st
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): the polarity twin (ret nc for ret c) is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, polarityBroken_0010]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0010]]), { scenario: SCENARIOS.gameplay });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong branch — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

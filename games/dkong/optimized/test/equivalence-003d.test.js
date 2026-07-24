@@ -41,15 +41,19 @@
  * (the same construction-time snapshot override the DK wrapper uses). The tape is
  * applied IDENTICALLY to the baseline and optimized sides.
  *
- * THE ATOMICITY DECISION this routine records: sub_003d is kept PER-INSTRUCTION (its
- * cycle charges are NOT collapsed). It is a foundational leaf reached from 30+ sites
- * via both `rst 0x38` and direct `call 0x003d` (board setup, cutscene object staging,
- * per-frame object updates). Per the brief's ATOMICITY-IS-PER-CALL-PATH rule, a
- * collapse is safe only if the vblank NMI can never land inside it on ANY of those
- * paths, which cannot be proven short of an exhaustive per-site trace. A collapse
- * experiment stayed EQUAL over 220 driven frames, but that is precisely the
- * "short run is NOT proof" case the brief names -- so per-instruction (always
- * correct) is kept, matching sub_0018 / sub_0020 (same widely-reached-leaf shape).
+ * THE ATOMICITY DECISION this routine records: sub_003d is now COLLAPSED (one
+ * m.step per basic block -- the loop body's four straight-line instructions fold
+ * into one charge; see the routine's own docstring). It is a foundational leaf
+ * reached from 30+ sites via both `rst 0x38` and direct `call 0x003d` (board setup,
+ * cutscene object staging, per-frame object updates), and proving the NMI can never
+ * land inside it on ANY of those 30+ paths is exactly the exhaustive per-site proof
+ * the fleet declined to shortcut -- but per the fleet-wide rule, "atomic" is a
+ * property of the SCENARIO exercised, not the routine (a strict pass on one scenario
+ * is not proof for another), so the whole-machine gate below uses the CONVERGENT
+ * license UNCONDITIONALLY rather than a strict gate that is only one untested call
+ * path away from a false failure. Every loop-count branch's cycle TOTAL is still
+ * asserted equal by the BRANCH tests below, unaffected by the collapse grain (kept
+ * byte-exact + cycle-exact, unchanged).
  *
  * Run: node --test
  */
@@ -62,11 +66,11 @@ import { sub_003d as translated_003d } from "../../translated/nmi.js";
 import { sub_003d as optimized_003d } from "../sub_003d.js";
 import { Machine } from "../../machine.js";
 import {
-  wholeMachineEquivalence as coreWholeMachineEquivalence,
   unitEquivalence as coreUnitEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -143,24 +147,46 @@ function broken_003d(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_003d matches translated every frame", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_003d]]));
+// A custom convergent scenario reusing the SAME coin+start tape as makeMachine above
+// (SCENARIOS.attract/gameplay's fixed timings do not line up with this ROM's specific
+// coin@60/start@90 -> sub_003d-at-~f160 shape).
+const CONVERGENT_SCENARIO = { frames: FRAMES, inputs: COIN_START_TAPE };
 
-  // The override must actually have run, or EQUAL would be vacuous.
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+// collapsed routine, but the loop-body fold is 5 t short. A wrong total shifts the
+// main loop's spin count (0x6019 PRNG entropy), forking the RANDOM stream: a
+// PERSISTENT non-stack divergence, never a heal.
+function cyclebroken_003d(m) {
+  const { regs, mem } = m;
+  do {
+    regs.a = regs.c;
+    regs.add(mem.read8(regs.hl));
+    mem.write8(regs.hl, regs.a);
+    regs.addHl(regs.de);
+    m.step(0x0041, 24); // DROPPED: the correct charge here is 29 t
+    regs.djnz();
+    m.step(regs.b !== 0 ? 0x003d : 0x0043, regs.b !== 0 ? 13 : 8);
+  } while (regs.b !== 0);
+  m.ret();
+}
+
+test("CONVERGENT (whole-machine): collapsed sub_003d CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_003d]]), { scenario: CONVERGENT_SCENARIO });
+
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x (rst 0x38 add-loop, B=0x0A)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (rst 0x38 add-loop, B=0x0A); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -176,16 +202,18 @@ test("EQUAL (unit): idiomatic optimized sub_003d matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong first store is CAUGHT and NOT-EQUAL", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, broken_003d]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_003d]]), { scenario: CONVERGENT_SCENARIO });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

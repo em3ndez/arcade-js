@@ -11,31 +11,40 @@
  * m.call'd; the whole-machine harness wires the override into the routine registry
  * so the same m.call fires it.
  *
- * Four jobs (mirroring equivalence-0611.test.js), plus a fifth data-path check:
+ * Five jobs (mirroring equivalence-0611.test.js), plus a sixth data-path check:
  *
- *   1. EQUAL -- the idiomatic optimized sub_0616 (optimized/sub_0616.js) reads
- *      EQUAL against its translated oracle, whole-machine and unit.
+ *   1. CONVERGENT (whole-machine) -- the idiomatic optimized sub_0616
+ *      (optimized/sub_0616.js) CONVERGES against its translated oracle (pixels +
+ *      persistent non-stack state) under a plain attract boot. sub_0616 is
+ *      COLLAPSED (one m.step per basic block; see sub_0616.js's CYCLES note) and
+ *      NOT atomic -- every call path runs with the NMI mask enabled -- so the
+ *      convergent gate is the correct license, not the strict byte-exact one
+ *      (docs/06; see sub_0350): a strict pass would only prove no NMI happened to
+ *      land mid-routine in THIS scenario, not that the collapse is safe in general.
  *
- *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous. sub_0616
+ *   2. EQUAL (unit) -- idiomatic optimized sub_0616 reads EQUAL against its
+ *      translated oracle in RAM + registers, from a single captured entry (no NMI
+ *      in scope).
+ *
+ *   3. DISPATCH -- the override must actually fire, or EQUAL is vacuous. sub_0616
  *      is first entered at frame 6 (entry_0611 falls through into it once 0x6007
- *      bit0 is set). A 30-frame window covers it.
+ *      bit0 is set). A 30-frame window covers it (unit); the convergent run uses
+ *      SCENARIOS.attract (1200 frames).
  *
- *   3. TEETH -- a deliberately-broken twin (the first string-draw store lands the
- *      wrong value) must be CAUGHT: NOT-EQUAL, naming the diverging VRAM address.
+ *   4. TEETH (convergent + unit) -- the whole-machine teeth is a CYCLE-DROP twin,
+ *      CAUGHT as a PERSISTENT divergence (forked PRNG) -- not a value-corruption
+ *      twin, which under a long convergent run risks hanging the game (see
+ *      sub_0350's TEETH note). The unit teeth keeps the original deliberately-
+ *      broken twin (the first string-draw store lands the wrong value): CAUGHT,
+ *      naming the diverging VRAM address.
  *
- *   4. DATA PATH -- sub_0616 is BRANCH-FREE (A is hard-set to 5, B to 1, so
+ *   5. DATA PATH -- sub_0616 is BRANCH-FREE (A is hard-set to 5, B to 1, so
  *      loop_0583 always runs exactly one iteration): there are no data-dependent
  *      branches to synthesise. To give the single path teeth beyond whatever
  *      CREDITS value happened to be live at frame 6, a synthesised entry pokes
  *      CREDITS (0x6001) to a distinct BCD value on BOTH clones and asserts oracle
  *      == optimized (RAM + all registers + pc) -- proving the rendered-digit data
  *      path is faithful independent of the credit count.
- *
- * CYCLE NOTE: sub_0616 is NOT atomic (it calls the interruptible handler_05e9 and
- * tail-jumps into loop_0583/sub_0593, on call paths that run with the NMI mask
- * enabled), so its optimized rewrite keeps the oracle's per-instruction m.step
- * charges verbatim -- no collapse. The whole-machine gate proves that: a moved NMI
- * landing would surface as downstream state drift, and this run stays EQUAL.
  *
  * Run: node --test
  */
@@ -46,9 +55,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0616 as translated_0616 } from "../../translated/mainloop.js";
 import { sub_0616 as optimized_0616 } from "../sub_0616.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
 import { Machine } from "../../machine.js";
 import { CREDITS } from "../ram.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -59,8 +69,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-const TARGET = 0x0616;
-const FRAMES = 30; // sub_0616 is first entered at frame 6 (via entry_0611)
+const TARGET = 0x0616; // first entered at frame 6 (via entry_0611)
 
 // The first store on the routine's path is the first character of string 5,
 // written by handler_05e9 (reached through sub_0616) to VRAM 0x759F -- inside the
@@ -92,26 +101,45 @@ function broken_0616(m) {
   }
 }
 
+// Cycle-broken twin for the CONVERGENT gate: identical logic to the collapsed routine, but
+// the BCD-setup block's charge is 5 t short (41 -> 36). A wrong total shifts the main loop's
+// spin count (0x6019 PRNG entropy) -- a PERSISTENT divergence, never a heal (see sub_0350's
+// TEETH note for why this, not a value-corruption twin, is the right teeth under a long run).
+function cyclebroken_0616(m) {
+  const { regs } = m;
+  regs.a = 0x05;
+  m.step(0x0618, 7);
+  m.push16(0x061b);
+  m.step(0x05e9, 17);
+  m.call(0x05e9);
+  regs.hl = CREDITS;
+  regs.de = 0xffe0;
+  regs.ix = 0x74bf;
+  regs.b = 0x01;
+  m.step(0x0627, 36); // DROPPED: the correct charge here is 41 t
+  m.step(0x0583, 10);
+  m.call(0x0583);
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0616 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0616]]));
+test("CONVERGENT (whole-machine): collapsed sub_0616 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0616]]), { scenario: SCENARIOS.attract });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -127,16 +155,19 @@ test("EQUAL (unit): idiomatic optimized sub_0616 matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong string-draw store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0616]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0616]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

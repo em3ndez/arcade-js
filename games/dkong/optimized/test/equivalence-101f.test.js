@@ -4,7 +4,12 @@
  * board setup sub_0f56 dispatches to). Cold in the 25m attract; being a self-contained
  * coordinator (it sets its own registers) it is verified from a crafted entry: a booted
  * machine captured at loc_0fd7's dispatch, cloned, and the routine invoked on both sides.
- * PER-INSTRUCTION.
+ *
+ * COLLAPSED (one m.step per basic block, see optimized/loc_101f.js) — proven byte-exact:
+ * EQUAL/TEETH pass UNCHANGED. Because this suite is CRAFTED-ENTRY only (no whole-machine
+ * or convergent run), the PRNG-fork gate never exercises loc_101f, so the CYCLE TOTAL
+ * assertion below is the only thing pinning the collapse's cycle sums — mandatory per the
+ * collapse-sweep brief's rule 4.
  */
 
 import nodeTest from "node:test";
@@ -71,4 +76,19 @@ test("TEETH (crafted entry): a wrong setup store is CAUGHT and NOT-EQUAL", () =>
   const { ram } = runBoth(broken_101f);
   assert.ok(ram != null, "harness FAILED to catch a wrong store");
   console.log(`  TEETH: caught at 0x${ram.addr.toString(16)} (translated ${ram.a} vs broken ${ram.b})`);
+});
+
+test("CYCLE TOTAL (crafted entry): collapsed loc_101f charges the oracle's exact total", () => {
+  // MANDATORY per the collapse-sweep brief rule 4: this suite is crafted-entry only (no
+  // whole-machine/convergent run), so nothing else catches a wrong cycle sum.
+  const a = ENTRY.clone();
+  const b = ENTRY.clone();
+  const c0a = a.cycles;
+  const c0b = b.cycles;
+  translated_101f(a);
+  optimized_101f(b);
+  const oracleCycles = a.cycles - c0a;
+  const optCycles = b.cycles - c0b;
+  assert.equal(optCycles, oracleCycles, `collapsed total ${optCycles} != oracle ${oracleCycles}`);
+  console.log(`  CYCLE TOTAL: collapsed ${optCycles} t == oracle ${oracleCycles} t`);
 });

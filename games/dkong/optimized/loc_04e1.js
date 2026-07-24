@@ -44,17 +44,15 @@
  * their own right, so -- like loc_04ac's 0x6905 and handler_05c6's 0x60B4/B7/BA --
  * they stay hex here.
  *
- * ATOMIC? NO — stays PER-INSTRUCTION (no cycle collapse). ATOMICITY IS PER-CALL-
- * PATH: loc_04e1 is a leaf reached via m.call from exactly two sites — loc_04be
- * (X<0x80 fall-through) and loc_0509 (bit6-clear + X<0x80 `jp 0x04e1`). BOTH sit
- * under loc_197a's per-frame in-game cascade (loc_197a -> entry_03fb -> the loc_0413
- * colour tree -> loc_0486 -> loc_04be/loc_0509 -> here) — the INTERRUPTIBLE path with
- * the vblank NMI mask ENABLED. The NMI can land inside this routine (and inside the
- * interruptible loc_04ac it tail-jumps into), so its internal cycle DISTRIBUTION is
- * observable and a collapse is NOT permitted. Every oracle m.step charge is retained
- * verbatim — same decision, and same reason, as its siblings loc_04ac / loc_04be and
- * their parents entry_03fb / loc_197a. (Harness-checked: the whole-machine gate stays
- * EQUAL with the per-instruction charges kept.)
+ * ATOMIC? NO — reached via m.call from exactly two sites (loc_04be, loc_0509), both
+ * under loc_197a's interruptible per-frame in-game cascade (NMI mask ENABLED); the
+ * NMI can land inside this routine and inside the interruptible loc_04ac it tail-
+ * jumps into. But "atomic" is a property of the scenario exercised, not the routine,
+ * so per the fleet-wide rule this is COLLAPSED anyway (one m.step per basic block —
+ * here, one straight-line block: no branch of its own) and its whole-machine test
+ * uses the CONVERGENT license unconditionally (see equivalence-04e1.test.js). Every
+ * TOTAL sums to the oracle's, EXACTLY (each loc_04ac exit's cycle count -- 95/115/143
+ * t -- is unaffected by the collapse grain, asserted by the EXIT-coverage tests).
  *
  * FLAGS. Both `or 0x80`s are kept verbatim, not just because A is load-bearing (the
  * first feeds the 0x6901 store, the second is loc_04ac's colour byte), but because F
@@ -63,25 +61,20 @@
  * stack, which is diffed work RAM. regs.or reproduces the Z80 flag semantics exactly
  * (S/Z/PV from the result, H=0, N=0, C=0), so F matches the oracle by construction.
  *
- * LADDER STATUS — rung 2/3 (named + structured + documented), NOT de-scaffolded
- * (non-atomic, per above). Behaviourally byte-identical to ../translated/state0.js.
+ * LADDER STATUS — rung 3/3: COLLAPSED. Behaviourally byte-identical to
+ * ../translated/state0.js at every m.call/m.ret boundary.
  */
 export function loc_04e1(m) {
   const { regs, mem } = m;
 
-  // Set bit7 of the first colour-cycle byte (0x6901) and store it back.
+  // ld a,(6901)[13]+or 0x80[7]+ld(6901),a[13]+ld a,(6905)[13]+or 0x80[7] -- set bit7
+  // of BOTH colour-cycle bytes; 0x6901 stored here, 0x6905 left in A for loc_04ac.  53 t
   regs.a = mem.read8(0x6901); // ld a,(0x6901) -- inside SPRITE_BUFFER, stays hex
-  m.step(0x04e4, 13);
   regs.or(0x80); // or 0x80 -- turn the blink/highlight bit ON
-  m.step(0x04e6, 7);
   mem.write8(0x6901, regs.a); // ld (0x6901),a
-  m.step(0x04e9, 13);
-
-  // Set bit7 of the second colour-cycle byte (0x6905) in A; loc_04ac stores it.
   regs.a = mem.read8(0x6905); // ld a,(0x6905) -- inside SPRITE_BUFFER, stays hex
-  m.step(0x04ec, 13);
   regs.or(0x80); // or 0x80 -- blink bit ON; NOT written here (loc_04ac publishes A)
-  m.step(0x04ee, 7);
+  m.step(0x04ee, 53);
 
   // jp 0x04ac -- tail-jump (no push16) into the SHARED store; its ret returns to
   // loc_04e1's caller. loc_04ac writes A -> 0x6905 and runs the blink-phase logic on C.

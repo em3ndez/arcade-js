@@ -28,12 +28,14 @@
  *      A = 0x10 register state and arbitrary F -- each EQUAL in RAM+regs+pc, and each
  *      side charging the same 40t per-instruction total.
  *
- * CYCLE DECISION: PER-INSTRUCTION, not collapsed. loc_0689 is a leaf on a MAIN-LOOP
- * call path (entry_062a task 10 -> loc_066a -> loc_0689), so per the brief's
- * ATOMICITY-IS-PER-CALL-PATH rule the per-instruction charges stay — the collapse
- * win on a 3-charge routine is nil and per-instruction is always correct. Whole-
- * machine EQUAL over 700 frames confirms the totals; the two stores are VIDEO RAM
- * (not 0x7Dxx latches) so they carry no write-trace bus-cycle constraint.
+ * CYCLE DECISION: COLLAPSED (one m.step for the whole straight-line body, see
+ * optimized/loc_0689.js). loc_0689 is a leaf on a MAIN-LOOP call path (entry_062a task
+ * 10 -> loc_066a -> loc_0689, NMI mask ENABLED), so the whole-machine gate below is the
+ * CONVERGENT one, not the strict byte-exact one, per the collapse-sweep brief's
+ * unconditional rule for a collapsed routine's whole-machine test. Unit + TEETH/unit stay
+ * strict (a single captured entry, nothing for an NMI to land inside between capture and
+ * return). The two stores are VIDEO RAM (not 0x7Dxx latches) so they carry no write-trace
+ * bus-cycle constraint.
  *
  * Run: node --test
  */
@@ -44,9 +46,10 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0689 as translated_0689 } from "../../translated/mainloop.js";
 import { loc_0689 as optimized_0689 } from "../loc_0689.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -109,25 +112,20 @@ function captureEntry() {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_0689 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0689]]));
+test("CONVERGENT (whole-machine): collapsed loc_0689 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0689]]), { scenario: SCENARIOS.attract });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
-  console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
-  );
+  console.log(`  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x`);
 });
 
 test("EQUAL (unit): idiomatic optimized loc_0689 matches translated in RAM + registers", () => {
@@ -140,18 +138,33 @@ test("EQUAL (unit): idiomatic optimized loc_0689 matches translated in RAM + reg
   console.log("  EQUAL/unit: RAM + all registers (incl. F) + pc identical");
 });
 
+// Cycle-drop twin for the CONVERGENT TEETH: identical to the collapsed routine except its
+// charge is 5 t short (30 -> 25). Same memory/register results, wrong total -- a wrong
+// cycle sum shifts the main loop's spin count (0x6019 PRNG entropy), forking the RANDOM
+// stream: a PERSISTENT divergence, never a heal.
+function cyclebroken_0689(m) {
+  const { regs, mem } = m;
+  mem.write8(0x74e6, regs.a);
+  regs.a = regs.b;
+  mem.write8(0x74c6, regs.a);
+  m.step(0x0690, 25); // DROPPED: the correct charge here is 30 t
+  m.ret();
+}
+
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong 0x74E6 stamp is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0689]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0689]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

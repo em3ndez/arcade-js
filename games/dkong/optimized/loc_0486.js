@@ -70,69 +70,70 @@ import { BOARD } from "./ram.js";
  * the unit gate compares the whole register file, F included. C and DE are the
  * real live outputs the tail's sub_0514 consumes, so they must be exact.
  *
- * CYCLES -- PER-INSTRUCTION, deliberately NOT collapsed. loc_0486 is a LEAF
- * reached only via m.call, and by the atomicity-is-per-call-path rule it is NOT
- * atomic: EVERY one of its callers is interruptible with the NMI mask ENABLED --
- * all seven sit inside the loc_197a main-loop per-frame colour cascade (and the
- * scheduled task entry_0400), for which loc_197a / loc_0413 are themselves kept
- * per-instruction. The vblank NMI can therefore land INSIDE this routine, pushing
- * a live PC into the diffed stack RAM, so collapsing its per-instruction m.step
- * charges to one total per branch could move where that NMI lands. Each
- * `m.step(nextPC, t)` is kept at its oracle cycle so the cumulative clock is
- * identical instruction by instruction. This rung buys names + structure +
- * documentation (the handler_01c3 rung), not fewer operations. (Same decision,
- * and same reason, as its parent loc_0413.)
+ * CYCLES -- COLLAPSED to one m.step per basic block (the per-instruction charges of
+ * each straight-line run folded into a single charge at the block's exit PC). The
+ * prologue (read the phase into C, set DE=0x20, read BOARD, compare to 4) folds to
+ * 47 t (exit 0x0492, the `jp z,0x04be` decision); the BOARD==4 taken arm is a single
+ * already-atomic instruction (10 t, tail to loc_04be); the not-taken charge plus
+ * `ld a,c` / `and a` folds to 18 t (exit 0x0497, the `jp z,0x04a1` decision); the
+ * phase==0 taken arm is a single instruction (10 t, tail to loc_04a1); the not-taken
+ * charge plus `ld a,0xef` / `bit 6,c` folds to 25 t (exit 0x049e, the `jp nz,0x04a3`
+ * decision); both final arms (bit6 set -> loc_04a3, bit6 clear -> fall into loc_04a1)
+ * are already single instructions. Every fold's TOTAL is the oracle's, EXACTLY --
+ * total-preservation keeps the main loop's spin count (0x6019, the PRNG entropy)
+ * deterministic. Every tail still reaches its callee through m.call (the registry).
+ *
+ * loc_0486 is a LEAF reached only via m.call -- SEVEN ways, all inside the loc_197a
+ * main-loop per-frame colour cascade (and the scheduled task entry_0400), where every
+ * caller is interruptible with the NMI mask ENABLED. So the collapse coarsens where
+ * an in-flight NMI's PC would land (a block-exit address, not the exact instruction)
+ * -- the CONVERGENT gate's license (docs/06). "Atomic" is a property of the SCENARIO
+ * tested, not of the routine, so even though the OLD strict driven whole-machine test
+ * (1830 frames of coin+start-1 gameplay) happened to pass unchanged after this
+ * collapse, that is a brittle guarantee that could false-fail on a benign tear under
+ * a different scenario -- equivalence-0486.test.js therefore gates this routine with
+ * convergentGate (a custom driven scenario) rather than the strict comparison.
  */
 export function loc_0486(m) {
   const { regs, mem } = m;
 
-  // ld a,(0x6390) / ld c,a -- C = colour-cycle phase counter (index for sub_0514).
-  // 0x6390 is UNNAMED in ram.js (animation block left hex); kept a hex literal.
-  regs.a = mem.read8(0x6390);
-  m.step(0x0489, 13); // ld a,(0x6390)
+  // Block A: read the colour-cycle phase into C, set the row stride DE=0x20, read
+  // BOARD, and compare it to 4.  13+4+10+13+7 = 47 t.
+  regs.a = mem.read8(0x6390); // 0x6390 UNNAMED in ram.js (animation block left hex)
   regs.c = regs.a;
-  m.step(0x048a, 4); // ld c,a
-
-  // ld de,0x0020 -- the row stride sub_0514 walks while writing the colour column.
   regs.de = 0x0020;
-  m.step(0x048d, 10); // ld de,0x0020
-
-  // ld a,(BOARD) / cp 0x04 -- board 4 (100m rivets) has its own colour block.
   regs.a = mem.read8(BOARD);
-  m.step(0x0490, 13); // ld a,(0x6227)
   regs.cp(0x04);
-  m.step(0x0492, 7); // cp 0x04
+  m.step(0x0492, 47);
   if (regs.fZ) {
     // board == 4: hand off to the 100m two-column blink block.
-    m.step(0x04be, 10); // jp z,0x04be (taken)
+    m.step(0x04be, 10); // jp z,0x04be taken -- already one instruction
     return m.call(0x04be);
   }
-  m.step(0x0495, 10); // jp z NOT taken -- board != 4
 
-  // ld a,c / and a -- is the phase counter 0?
+  // Block B (jp z not taken -- board != 4): is the phase counter 0?
+  //   10+4+4 = 18 t.
   regs.a = regs.c;
-  m.step(0x0496, 4); // ld a,c
   regs.and(regs.a);
-  m.step(0x0497, 4); // and a
+  m.step(0x0497, 18);
   if (regs.fZ) {
     // phase == 0: colour byte 0x10 (loc_04a1 loads it, then falls into loc_04a3).
-    m.step(0x04a1, 10); // jp z,0x04a1 (taken)
+    m.step(0x04a1, 10); // jp z,0x04a1 taken -- already one instruction
     return m.call(0x04a1);
   }
-  m.step(0x049a, 10); // jp z NOT taken -- phase != 0
 
-  // ld a,0xef / bit 6,c -- default colour 0xEF; is the phase in the cycle's high half?
+  // Block C (jp z not taken -- phase != 0): default colour 0xEF; is the phase in the
+  // cycle's high half?  10+7+8 = 25 t.
   regs.a = 0xef;
-  m.step(0x049c, 7); // ld a,0xef
   const b6 = regs.bit(6, regs.c);
-  m.step(0x049e, 8); // bit 6,c
+  m.step(0x049e, 25);
   if (b6) {
     // bit6 set (phase 0x40..0x7F): keep colour 0xEF and write it (loc_04a3).
-    m.step(0x04a3, 10); // jp nz,0x04a3 (taken)
+    m.step(0x04a3, 10); // jp nz,0x04a3 taken -- already one instruction
     return m.call(0x04a3);
   }
 
   // bit6 clear (phase 0x01..0x3F): fall into loc_04a1, which overrides A = 0x10.
-  m.step(0x04a1, 10); // jp nz NOT taken -- fall into loc_04a1
+  m.step(0x04a1, 10); // jp nz NOT taken -- already one instruction
   return m.call(0x04a1);
 }

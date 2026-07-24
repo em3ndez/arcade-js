@@ -67,6 +67,21 @@ test("EQUAL (crafted entry): loc_1087 matches translated in state + registers", 
   console.log("  EQUAL: board-3 (75m/elevators) setup EQUAL (state + regs + pc)");
 });
 
+// MANDATORY cycle-total check (brief item 4): this test is crafted-entry only (no
+// whole-machine/convergent run), so nothing else pins the collapsed cycle total --
+// a wrong sum here would silently fork the PRNG in real play. Run oracle vs collapsed
+// from the SAME cloned entry and assert their cycle deltas match exactly.
+test("CYCLE TOTAL (crafted entry): collapsed loc_1087 charges the oracle's exact total", () => {
+  const a = ENTRY.clone();
+  const b = ENTRY.clone();
+  const c0a = a.cycles, c0b = b.cycles;
+  translated_1087(a);
+  optimized_1087(b);
+  const dA = a.cycles - c0a, dB = b.cycles - c0b;
+  assert.equal(dB, dA, `collapsed total ${dB} t != oracle total ${dA} t`);
+  console.log(`  CYCLE TOTAL: oracle ${dA} t == collapsed ${dB} t`);
+});
+
 test("TEETH (crafted entry): a wrong setup store is CAUGHT and NOT-EQUAL", () => {
   const { ram } = runBoth(broken_1087);
   assert.ok(ram != null, "harness FAILED to catch a wrong store");

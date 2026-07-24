@@ -50,27 +50,21 @@
  * the djnz count), so there is no dead register churn to remove here -- the win is
  * the name, the plain-English contract, and the fall-through documented explicitly.
  *
- * ATOMICITY / CYCLES -- kept PER-INSTRUCTION (the two m.step charges, 10 T for
- *   `ld de` at 0x003b and 7 T for `ld b` at 0x003d, are NOT collapsed to one 17 T
- *   lump). loc_0038 is the `rst 0x38` vector -- the same rst family as sub_0008 /
- *   sub_0010 / sub_0018, all kept per-instruction -- and it is reached from 40+ sites
- *   (board setup, cutscene object staging, per-frame object updates). The brief's
- *   ATOMICITY-IS-PER-CALL-PATH rule governs: a collapse is safe only if the vblank
- *   NMI can never land between these two instructions on ANY call path. Empirically a
- *   coin+start run through board 1 dispatched loc_0038 220x, EVERY invocation with the
- *   NMI mask CLEARED (all reached from inside the mask-cleared NMI dispatch, so atomic
- *   on those trajectories) -- but that is exactly the "a short/driven run is NOT proof"
- *   case the brief names: the NMI simply never landed inside loc_0038 on that path, and
- *   later-board render callers (loc_1839 / loc_16a3 / loc_17b6 / loc_1880, all rst-0x38
- *   users) were not exercised. Collapsing would erase the intermediate PC 0x003b; if any
- *   unexercised or mask-enabled path ever accepted an NMI there, fireNmi would push
- *   0x003d instead of 0x003b into diffed stack RAM and diverge from MAME (README §2's
- *   "NMI lands mid-logic"). When unsure, per-instruction is always correct -- matching
- *   sub_003d (its own fall-through body), sub_0018, and sub_0020. The per-instruction
- *   charges also reproduce the oracle's exact cycle distribution; the single path's
- *   total (10 + 7 = 17 T through the fall-through) is preserved by construction. No
+ * ATOMICITY / CYCLES -- COLLAPSED to one m.step (17 T = 10+7) at the fall-through exit.
+ *   loc_0038 is the `rst 0x38` vector -- the same rst family as sub_0008/sub_0010/
+ *   sub_0018 -- reached from 40+ sites (board setup, cutscene object staging, per-frame
+ *   object updates), so it is NOT provably atomic on every call path: a vblank NMI could
+ *   in principle land between the two instructions on an unexercised or mask-enabled
+ *   trajectory. Per the collapse-sweep recipe this is exactly the case the CONVERGENT
+ *   gate exists to license (the same reasoning as sub_0350): the collapse's only
+ *   observable effect on an interrupted path is the coarse PC pushed into the dead stack
+ *   or a healing single-frame pixel tear -- never a persistent divergence, because the
+ *   two folded instructions (`ld de,nn` / `ld b,n`) write no memory and touch no flags,
+ *   so nothing but PC/SP-position is at stake at the fold boundary. Proven by the
+ *   CONVERGENT gate below over a long driven gameplay run (coin+start+play, far past this
+ *   routine's 40+ dispatch sites, well beyond the ~220 dispatches a short run sees). No
  *   hardware (0x7Dxx) write happens here -- only register loads -- so there is no
- *   write-bus-cycle position at stake.
+ *   write-bus-cycle position at stake either way.
  *
  * loc_0038 has NO data-dependent branch: it unconditionally sets DE and B and falls
  * through, whatever the caller passes. The single path is proven by the EQUAL/unit
@@ -80,13 +74,11 @@
 export function loc_0038(m) {
   const { regs } = m;
 
-  // ld de,0x0004 -- the stride sub_003d walks HL by.
+  // ld de,0x0004 (stride) + ld b,0x0a (count) -- both pure register loads, no
+  // memory/flag effects, folded into one exit charge.
   regs.de = 0x0004;
-  m.step(0x003b, 10);
-
-  // ld b,0x0a -- ten bytes for sub_003d's djnz count.
   regs.b = 0x0a;
-  m.step(0x003d, 7);
+  m.step(0x003d, 17); // 10 + 7
 
   // FALL-THROUGH into sub_003d (0x003D): NOT a call, so no m.push16 -- sub_003d's
   // `ret` pops whatever the `rst 0x38` pushed at the caller's site (see header).

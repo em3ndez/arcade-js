@@ -52,20 +52,22 @@
  * WHY THE CORE ENGINE + A CUSTOM FACTORY (not harness.js's wrappers). Same reason as
  * its siblings entry_03fb / loc_04be: harness.js bakes a makeMachine on `{}` assets
  * that drives NO input, so it never credits a game and never dispatches loc_197a ->
- * ... -> loc_04e1. This test calls the SAME core unitEquivalence /
- * wholeMachineEquivalence directly, with a makeMachine factory that attaches an
- * identical coin+start inputTape AND the identical BOARD=4 poke to BOTH sides (the
- * factory is shared, so every input/poke is applied identically to baseline and
- * optimized). A Machine built with no overrides runs the pure oracle.
+ * ... -> loc_04e1. This test calls the SAME core unitEquivalence directly, plus the
+ * shared DK convergentGate binding (test/convergent.js) for the whole-machine job,
+ * with a makeMachine factory that attaches an identical coin+start inputTape AND the
+ * identical BOARD=4 poke to BOTH sides (the factory is shared, so every input/poke
+ * is applied identically to baseline and optimized). A Machine built with no
+ * overrides runs the pure oracle.
  *
- * CYCLE FINDING this routine adds: loc_04e1 is NON-ATOMIC and stays PER-INSTRUCTION,
- * byte-identical to the oracle. Both its callers (loc_04be, loc_0509) sit inside the
- * interruptible loc_197a -> entry_03fb per-frame cascade (NMI mask ENABLED), and
- * loc_04e1 tail-jumps into the interruptible loc_04ac, so the vblank NMI can land
- * inside it — its internal cycle distribution is observable. Per the ATOMICITY-IS-
- * PER-CALL-PATH rule a leaf reached from an interruptible caller is not atomic, so NO
- * collapse (same decision as loc_04ac / loc_04be / entry_03fb / loc_197a). Each exit's
- * cycle TOTAL is asserted equal on clones anyway.
+ * CYCLE FINDING this routine adds: loc_04e1 is NON-ATOMIC (both its callers,
+ * loc_04be/loc_0509, sit inside the interruptible loc_197a -> entry_03fb per-frame
+ * cascade, NMI mask ENABLED, and loc_04e1 tail-jumps into the interruptible
+ * loc_04ac) but is COLLAPSED anyway (one m.step per basic block -- it has no branch
+ * of its own, so one straight-line fold) -- per the fleet-wide rule, "atomic" is a
+ * property of the scenario exercised, not the routine, so the whole-machine gate
+ * uses the CONVERGENT license UNCONDITIONALLY. Each exit's cycle TOTAL (95/115/143 t)
+ * is still asserted equal on clones by the loc_04ac-EXIT tests, unaffected by the
+ * collapse grain (kept byte-exact + cycle-exact, unchanged).
  *
  * Run: node --test
  */
@@ -79,10 +81,10 @@ import { loc_04e1 as optimized_04e1 } from "../loc_04e1.js";
 import { Machine } from "../../machine.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -157,24 +159,44 @@ function broken_04e1(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_04e1 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_04e1]]));
+// A custom convergent scenario reusing the SAME coin+start tape AND BOARD=4 poke as
+// makeMachine above (SCENARIOS.attract/gameplay do not poke BOARD, so loc_04e1 would
+// never dispatch under either preset).
+const CONVERGENT_SCENARIO = { frames: FRAMES, inputs: COIN_START_TAPE, pokes: BOARD_POKE };
 
-  // The override must actually have run, or EQUAL would be vacuous.
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+// collapsed routine, but the first (only) block's total is 5 t short. A wrong total
+// shifts the main loop's spin count (0x6019 PRNG entropy), forking the RANDOM stream:
+// a PERSISTENT non-stack divergence, never a heal.
+function cyclebroken_04e1(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(0x6901);
+  regs.or(0x80);
+  mem.write8(0x6901, regs.a);
+  regs.a = mem.read8(0x6905);
+  regs.or(0x80);
+  m.step(0x04ee, 48); // DROPPED: the correct charge here is 53 t
+  m.step(0x04ac, 10);
+  return m.call(0x04ac);
+}
+
+test("CONVERGENT (whole-machine): collapsed loc_04e1 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_04e1]]), { scenario: CONVERGENT_SCENARIO });
+
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (per cutscene frame via loc_04be, ~f1041.., BOARD=4 poked)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (per cutscene frame via loc_04be, ~f1041.., BOARD=4 poked); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -276,16 +298,18 @@ test("EXIT-3 via loc_04e1 (unit): C bit6 set, C%8==0 -> xor 0x03 re-flips 0x6905
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong 0x6901 store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, MAX_FRAMES, new Map([[TARGET, broken_04e1]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_04e1]]), { scenario: CONVERGENT_SCENARIO });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

@@ -19,55 +19,60 @@
  *
  * HL is PRESERVED (push/pop); the L increments are byte-wide (`inc l`, D's page fixed).
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. A widely-shared utility whose 31 call paths are
- * not all provably mask-cleared, so the charges are kept verbatim; the push/pop that
- * preserve HL are modelled explicitly.
+ * CYCLES -- COLLAPSED to one m.step per basic block. `jp z`/`jp nc` cost the oracle's 10 t
+ * whichever way they go, so each is folded into whichever arm it lands in rather than split
+ * at the branch. Per-path totals, summed and cross-checked against this file's own prior
+ * per-instruction charges (all previously proven equal):
+ *   prologue (push hl + ld hl,0x60c0 + ld a,(0x60b0) + ld l,a + bit 7,(hl)) 50 t;
+ *   DROP path (jp z taken + pop hl) 20 t + ret 10 t = 80 t total;
+ *   normal path (jp z not-taken + the 6 write/inc/cp ops) 43 t, then either
+ *   WRAP (jp nc not-taken + ld a,0xc0) 17 t or NO-WRAP (jp nc taken) 10 t, then the common
+ *   tail (ld (0x60b0),a + pop hl) 23 t + ret 10 t -- 143 t (wrap) / 136 t (no wrap) total.
+ *   Total-preservation keeps the caller's cycle clock exact; only the mid-block PC snapshot
+ *   an NMI would observe is coarsened, same as any collapse.
+ *
+ * A widely-shared utility (31 call paths), not all provably mask-cleared; see the
+ * equivalence test for the (convergent, unconditionally) gate this routine runs under. The
+ * push/pop that preserve HL are modelled explicitly.
  */
 export function sub_309f(m) {
   const { regs, mem } = m;
 
   m.push16(regs.hl);
-  m.step(0x30a0, 11);
   regs.hl = 0x60c0; // ring buffer base (page fixed at 0x60)
-  m.step(0x30a3, 10);
   regs.a = mem.read8(0x60b0); // the write head (low byte)
-  m.step(0x30a6, 13);
   regs.l = regs.a;
-  m.step(0x30a7, 4);
-
   const free = regs.bit(7, mem.read8(regs.hl));
-  m.step(0x30a9, 12); // bit 7,(hl)
+  // push hl[11] + ld hl,0x60c0[10] + ld a,(0x60b0)[13] + ld l,a[4] + bit 7,(hl)[12] = 50 t
+  m.step(0x30a9, 50);
+
   if (!free) {
-    m.step(0x30bb, 10); // jp z -- slot occupied, drop the task
+    // jp z TAKEN[10] -- slot occupied, drop the task -- + pop hl[10] = 20 t
     regs.hl = m.pop16();
-    m.step(0x30bc, 10);
-    m.ret();
+    m.step(0x30bc, 20);
+    m.ret(); // total 80 t on this path
     return;
   }
-  m.step(0x30ac, 10);
 
   mem.write8(regs.hl, regs.d);
-  m.step(0x30ad, 7);
   regs.l = (regs.l + 1) & 0xff; // inc l
-  m.step(0x30ae, 4);
   mem.write8(regs.hl, regs.e);
-  m.step(0x30af, 7);
   regs.l = (regs.l + 1) & 0xff;
-  m.step(0x30b0, 4);
   regs.a = regs.l;
-  m.step(0x30b1, 4);
   regs.cp(0xc0);
-  m.step(0x30b3, 7);
+  // jp z NOT taken[10] + ld (hl),d[7] + inc l[4] + ld (hl),e[7] + inc l[4] + ld a,l[4]
+  // + cp 0xc0[7] = 43 t
+  m.step(0x30b3, 43);
+
   if (regs.fC) {
-    m.step(0x30b6, 10); // jp nc not taken -- head ran below 0xC0, wrap it back up
     regs.a = 0xc0;
-    m.step(0x30b8, 7);
+    m.step(0x30b8, 17); // jp nc NOT taken[10] + ld a,0xc0[7] -- head ran below 0xC0, wrap it up
   } else {
-    m.step(0x30b8, 10);
+    m.step(0x30b8, 10); // jp nc TAKEN[10]
   }
+
   mem.write8(0x60b0, regs.a); // store the advanced head
-  m.step(0x30bb, 13);
   regs.hl = m.pop16();
-  m.step(0x30bc, 10);
-  m.ret();
+  m.step(0x30bc, 23); // ld (0x60b0),a[13] + pop hl[10]
+  m.ret(); // total 143 t (wrap) / 136 t (no wrap)
 }

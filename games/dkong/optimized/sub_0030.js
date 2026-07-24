@@ -49,42 +49,47 @@ import { BOARD } from "./ram.js";
  * SP, PC) plus RAM, so none of them may drift; the boolean is what every caller
  * branches on, so a wrong one diverges the whole machine downstream.
  *
- * LADDER STATUS -- named + documented, cycles KEPT PER-INSTRUCTION (NOT collapsed).
- * sub_0030 is an rst-vector leaf in the sub_0008/0010/0018 family, and those were
- * REVERTED to per-instruction for a reason that applies here identically:
- * ATOMICITY IS PER-CALL-PATH, and this routine is reached via `m.call(0x0030)`
- * from 20 sites -- MOST of them mask-ENABLED main-loop / interruptible gameplay
- * routines (sub_03a2 on the main loop; entry_2954, entry_2ed4, sub_2fcb, sub_29af,
- * sub_2207, sub_24ea, entry_2c03, entry_2c8f, sub_25f2, sub_26fa, loc_1e28/1e36,
- * sub_1670, tail_1662, sub_1a33, sub_33a1, entry_2ddb, entry_2e04 ...), plus one
- * NMI-side caller (sub_3fa6). On a main-loop call path the vblank NMI CAN land
- * between this routine's instructions, and the rrca/djnz loop can run up to 256
- * iterations, so it plainly spans NMI-eligible instruction boundaries. Collapsing
- * the per-instruction m.step charges to a single per-branch total would move where
- * the NMI lands INSIDE the routine and push a different PC into the diffed stack
- * RAM -- exactly the divergence that reverted sub_0008/0010/0018. A short attract
- * run happening not to interrupt it is NOT proof (README §"ATOMICITY IS PER-CALL-
- * PATH"; when unsure, per-instruction is always correct). So every m.step charge
- * is kept at the oracle's exact cycle, byte-for-byte; the win here is the BOARD
- * name, structured control flow, and this behavior documentation -- not de-scaffolding.
- * Returns true for a normal return.
+ * LADDER STATUS -- named + documented. sub_0030 is an rst-vector leaf reached via
+ * `m.call(0x0030)` from 20 sites -- MOST of them mask-ENABLED main-loop /
+ * interruptible gameplay routines (sub_03a2 on the main loop; entry_2954,
+ * entry_2ed4, sub_2fcb, sub_29af, sub_2207, sub_24ea, entry_2c03, entry_2c8f,
+ * sub_25f2, sub_26fa, loc_1e28/1e36, sub_1670, tail_1662, sub_1a33, sub_33a1,
+ * entry_2ddb, entry_2e04 ...), plus one NMI-side caller (sub_3fa6). On a main-loop
+ * call path the vblank NMI CAN land between this routine's instructions, and the
+ * rrca/djnz loop can run up to 256 iterations, so it plainly spans NMI-eligible
+ * instruction boundaries -- NOT atomic, by ATOMICITY IS PER-CALL-PATH. So the
+ * collapse below is LICENSED by the CONVERGENT gate (docs/06), not the strict
+ * whole-machine gate, exactly as sub_0350's: a mistimed NMI can push a coarser PC
+ * into the diffed stack RAM, which the convergent gate tolerates as long as it
+ * heals and non-stack state/pixels stay identical.
+ *
+ * CYCLES -- COLLAPSED to one m.step per basic block, but the LOOP keeps its
+ * per-ITERATION granularity: each `rrca`+`djnz` pair folds into ONE step (17 t while
+ * looping, 12 t on the exit iteration), rather than being lumped across iterations,
+ * so an NMI can still land between iterations exactly as it could on real hardware
+ * (only the finer "between rrca and djnz" landing point is lost -- the licensed
+ * cost). Prologue block (jr 0x0044 [12] + ld hl,BOARD [10] + ld b,(hl) [7]) = 29 t,
+ * ending at the loop's first iteration. Tail block (ret c not-taken [5] + pop hl
+ * [10]) = 15 t. Every total is the oracle's, EXACTLY. Returns true for a normal
+ * return.
  */
 export function sub_0030(m) {
   const { regs, mem } = m;
 
-  m.step(0x0044, 12); // jr 0x0044 -- the rst-0x30 body starts here
+  // Prologue: jr 0x0044 (12) + ld hl,BOARD (10) + ld b,(hl) (7) = 29 t, target the
+  // loop's first rrca.
+  regs.hl = BOARD;
+  regs.b = mem.read8(regs.hl);
+  m.step(0x0048, 29);
 
-  regs.hl = BOARD;             // ld hl,0x6227
-  m.step(0x0047, 10);
-  regs.b = mem.read8(regs.hl); // ld b,(hl) -- B = rotate count = (BOARD)
-  m.step(0x0048, 7);
-
-  // rrca / djnz 0x0048 -- rotate A right B times (B==0 rotates 256× via djnz underflow).
+  // rrca + djnz folded PER ITERATION (not across iterations): 4+13=17 t while
+  // looping, 4+8=12 t on the exit iteration (B==0 rotates 256x via djnz underflow,
+  // same as the oracle).
   do {
     regs.rrca();
-    m.step(0x0049, 4);
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x0048 : 0x004b, regs.b !== 0 ? 13 : 8);
+    const looping = regs.b !== 0;
+    m.step(looping ? 0x0048 : 0x004b, looping ? 17 : 12);
   } while (regs.b !== 0);
 
   // ret c -- selected bit set: return normally to the caller.
@@ -93,10 +98,10 @@ export function sub_0030(m) {
     return true;
   }
 
-  // pop hl / ret -- selected bit clear: drop our return address so the caller is skipped.
-  m.step(0x004c, 5);
+  // Tail: ret c not-taken (5) + pop hl (10) = 15 t -- selected bit clear: drop our
+  // return address so the caller is skipped.
   regs.hl = m.pop16();
-  m.step(0x004d, 10);
+  m.step(0x004d, 15);
   m.ret();
   return false;
 }

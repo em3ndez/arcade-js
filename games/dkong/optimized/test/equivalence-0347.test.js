@@ -10,25 +10,34 @@
  * dispatches from a plain boot/attract run (no coin needed). The harness installs
  * the snapshot/override at CONSTRUCTION, so it reaches this leaf through m.call.
  *
+ * COLLAPSED (one m.step per basic block); the whole-machine gate is the CONVERGENT
+ * one, not strict. sub_0347 is reached from sub_0315 in the INTERRUPTIBLE main-loop
+ * band, and the vblank NMI is MEASURED to land inside it on real runs -- an earlier
+ * attempt at this collapse, gated with the STRICT whole-machine comparison,
+ * diverged in dead stack RAM (excluded by the convergent gate, not the strict one).
+ * "Atomic" is a property of the SCENARIO you happened to test, not of the routine,
+ * so the strict gate would be a brittle false guarantee here; the convergent gate
+ * still catches everything that actually matters (a wrong cycle total, a wrong
+ * memory op, a forked PRNG) as a PERSISTENT divergence.
+ *
  * Jobs:
- *   1. EQUAL (whole + unit) -- idiomatic optimized sub_0347 reads EQUAL against its
- *      translated oracle, whole-machine (RAM every frame) and unit (RAM + full
- *      register file incl. F + pc). The override must actually fire (asserted).
+ *   1. CONVERGENT (whole-machine) -- optimized sub_0347 CONVERGES against its oracle
+ *      over the attract run (pixels + persistent non-stack state). The override
+ *      must actually fire (asserted).
+ *   1b. EQUAL (unit) -- RAM + full register file (incl. F) + pc identical.
  *   2. BRANCH COVERAGE -- both data-dependent arms proven EQUAL from the captured
  *      entry: the Z arm (A == 0 -> HL = 0x7740) is the ONLY arm the natural run
  *      takes (a 1-player game holds CURRENT_PLAYER == 0), so the NZ arm (A != 0 ->
  *      HL = 0x74E0) is SYNTHESISED by presetting A. Each arm also pins its cycle
  *      TOTAL to the oracle's (25 t Z / 39 t NZ) with a non-vacuous wrong-total check.
- *   3. TEETH (whole + unit) -- a deliberately-wrong return (HL forced to the OTHER
- *      player's column) is CAUGHT: whole-machine as a downstream VRAM divergence,
- *      unit as a REGISTER divergence (this leaf writes no RAM, so its only output is
- *      HL/F -- the unit teeth necessarily name a register, not a RAM address).
- *
- * WHY PER-INSTRUCTION (not collapsed): sub_0347 is reached from sub_0315 in the
- * INTERRUPTIBLE main-loop band, and the vblank NMI lands inside it on real runs; a
- * cycle collapse was measured to diverge in dead stack RAM (the pushed live-PC
- * moves with the internal cycle distribution). So the oracle's per-instruction
- * m.step charges are kept verbatim -- atomicity is per-call-path (README §2).
+ *   3. TEETH (unit) -- a deliberately-wrong return (HL forced to the OTHER player's
+ *      column) is CAUGHT as a REGISTER divergence (this leaf writes no RAM, so its
+ *      only output is HL/F -- the unit teeth necessarily name a register, not a RAM
+ *      address).
+ *   4. TEETH (convergent) -- a cycle-broken twin (Block A's charge 5 t short) forks
+ *      the main loop's spin count (0x6019, the PRNG entropy): a PERSISTENT
+ *      divergence, CAUGHT. (The value-corruption twin above stays at the fast unit
+ *      level -- a long convergent run with it could hang on a broken game invariant.)
  *
  * Run: node --test
  */
@@ -40,8 +49,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_0347 as translated_0347 } from "../../translated/mainloop.js";
 import { sub_0347 as optimized_0347 } from "../sub_0347.js";
 import { Machine } from "../../machine.js";
-import { wholeMachineEquivalence, unitEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -67,6 +77,25 @@ const VRAM_P2_MARK = 0x74e0; // NZ arm (player 2)
 function broken_0347(m) {
   optimized_0347(m);
   m.regs.hl = VRAM_P2_MARK;
+}
+
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+// collapsed routine, but Block A's charge is 5 t short (14 -> 9). Block A runs on
+// EVERY invocation (unconditional prologue), so the drop always fires. A wrong total
+// forks the main loop's spin count (0x6019, the PRNG entropy) -- a PERSISTENT
+// divergence, never a heal. This is the teeth for the collapse's load-bearing
+// invariant (total-cycle preservation); a value-corruption twin would break a game
+// invariant and could hang a long convergent run, so the value teeth stays at the
+// fast unit level (job 3 above).
+function cyclebroken_0347(m) {
+  const { regs } = m;
+  regs.hl = VRAM_P1_MARK;
+  regs.and(regs.a);
+  m.step(0x034b, 9); // DROPPED: the correct charge here is 14 t
+  if (regs.fZ) { m.ret(11); return; }
+  regs.hl = VRAM_P2_MARK;
+  m.step(0x034f, 15);
+  m.ret();
 }
 
 // -- pristine-entry capture (for the branch-coverage checks) ------------------
@@ -98,23 +127,23 @@ function runArm(fn, a) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0347 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0347]]));
+test("CONVERGENT (whole-machine): collapsed sub_0347 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0347]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -166,16 +195,19 @@ test("BRANCH COVERAGE: Z arm (A==0 -> 0x7740) and NZ arm (A!=0 -> 0x74E0) both E
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong marker-column return is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0347]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0347]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong return — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

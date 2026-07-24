@@ -18,47 +18,51 @@
  *     sub_122a's restored 0x0C -- the preservation sub_122a guarantees),
  *   - ret.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached from the board setups, whose atomicity
- * is not pinned to the mask-cleared NMI; every call keeps its push16/step scaffolding and
- * callees route through m.call (the registry).
+ * CYCLES -- COLLAPSED to one m.step per basic block. sub_11a6 is straight-line apart from
+ * its three `call`s, so each block is "the register loads before a call, PLUS that call's own
+ * 17 t charge", folded into one charge at the call target. Block totals are the exact sum of
+ * the oracle's per-instruction charges: 37 t (10+10+17), 47 t (10+10+10+17), 96 t
+ * (14+19+19+10+7+10+17) -- 180 t of own charges, the oracle's total exactly. Callees are
+ * still reached through m.call (the registry), never inlined, and each push16 keeps its
+ * original sequence position.
+ *
+ * NOTE, because this cost a revert once: the `call`'s OWN 17 t must be folded IN. Folding
+ * only the loads (20/30/79) silently drops 51 t, and a short total shifts the main loop's
+ * spin count (0x6019, the PRNG entropy) -- which reads as a "persistent divergence" that
+ * looks like the routine is NMI-timing-sensitive when it is really just arithmetic.
+ *
+ * Reached from the board setups, whose atomicity is not pinned to the mask-cleared NMI, so
+ * the whole-machine gate is the CONVERGENT one (see equivalence-11a6.test.js).
  */
 export function sub_11a6(m) {
   const { regs, mem } = m;
 
+  // Block 1: ld de,0x6683[10] + ld bc,0x020e[10] + the `call 0x11ec` charge[17] = 37 t.
   // HL is this routine's live-in, passed through to sub_11ec.
   regs.de = 0x6683;
-  m.step(0x11a9, 10);
   regs.bc = 0x020e;
-  m.step(0x11ac, 10);
   m.push16(0x11af);
-  m.step(0x11ec, 17);
+  m.step(0x11ec, 37);
   m.call(0x11ec);
 
+  // Block 2: ld hl,0x3e08[10] + ld de,0x6687[10] + ld bc,0x020c[10] + `call 0x122a`[17] = 47 t.
   regs.hl = 0x3e08; // ROM table pointer, 4 below the caller's 0x3E0C
-  m.step(0x11b2, 10);
   regs.de = 0x6687;
-  m.step(0x11b5, 10);
   regs.bc = 0x020c;
-  m.step(0x11b8, 10);
   m.push16(0x11bb);
-  m.step(0x122a, 17);
+  m.step(0x122a, 47);
   m.call(0x122a);
 
+  // Block 3: ld ix,0x6680[14] + 2x ld (ix+d),0x01[19+19] + ld hl,0x6a18[10] + ld b,2[7]
+  //          + ld de,0x0010[10] + the `call 0x11d3` charge[17] = 96 t.
   regs.ix = 0x6680;
-  m.step(0x11bf, 14);
   mem.write8((regs.ix + 0x00) & 0xffff, 0x01); // -> 0x6680
-  m.step(0x11c3, 19);
   mem.write8((regs.ix + 0x10) & 0xffff, 0x01); // -> 0x6690, stride 0x10
-  m.step(0x11c7, 19);
-
   regs.hl = 0x6a18; // a DESTINATION here
-  m.step(0x11ca, 10);
   regs.b = 0x02; // B only -- C still holds sub_122a's restored 0x0C
-  m.step(0x11cc, 7);
   regs.de = 0x0010; // a STRIDE here
-  m.step(0x11cf, 10);
   m.push16(0x11d2);
-  m.step(0x11d3, 17);
+  m.step(0x11d3, 96);
   m.call(0x11d3);
 
   m.ret(); // 0x11D2

@@ -3,7 +3,11 @@
  * Equivalence tests for tail_1662 (bump the animation counter 0x6388, rst 0x30 caller-skip
  * guard, then rst 0x38 stepping the 0x690B sprite block). It does not dispatch in the 25m
  * attract; being self-contained it is verified from a crafted entry: a booted machine
- * captured at loc_0fd7's dispatch, cloned, invoked on both sides. PER-INSTRUCTION.
+ * captured at loc_0fd7's dispatch, cloned, invoked on both sides. COLLAPSED to one m.step
+ * per basic block (see optimized/tail_1662.js). Since this test is crafted-entry only (no
+ * whole-machine/convergent run reaches it), the PRNG gate does not cover a wrong cycle total
+ * here, so a MANDATORY cycle-total assertion is added below (oracle vs collapsed machine
+ * cycle delta from the one captured entry).
  */
 
 import nodeTest from "node:test";
@@ -51,21 +55,27 @@ function brokenAt(addr) {
 function runBoth(optFn = optimized_1662) {
   const a = ENTRY.clone();
   const b = ENTRY.clone();
+  const ca0 = a.cycles, cb0 = b.cycles;
   translated_1662(a);
   optFn(b);
   return {
     ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
     regs: firstRegDiff(a.regs, b.regs),
     pc: [a.pc, b.pc],
+    cycles: [a.cycles - ca0, b.cycles - cb0],
   };
 }
 
-test("EQUAL (crafted entry): tail_1662 matches translated in state + registers", () => {
-  const { ram, regs, pc } = runBoth();
+test("EQUAL (crafted entry): tail_1662 matches translated in state + registers + cycle total", () => {
+  const { ram, regs, pc, cycles } = runBoth();
   assert.equal(ram, null, ram ? `RAM diff at 0x${ram.addr.toString(16)}` : "");
   assert.equal(regs, null, regs ? `reg diff at ${regs.reg}` : "");
   assert.equal(pc[0], pc[1], "pc must match");
-  console.log("  EQUAL: counter bump + sprite step EQUAL (state + regs + pc)");
+  // MANDATORY cycle-total check (this test is crafted-entry only -- no whole-machine/
+  // convergent run covers a wrong cycle total here): the collapsed routine must charge
+  // the exact same T-state total as the oracle from this one captured entry.
+  assert.equal(cycles[1], cycles[0], `cycle total mismatch: oracle ${cycles[0]} vs optimized ${cycles[1]}`);
+  console.log(`  EQUAL: counter bump + sprite step EQUAL (state + regs + pc), cycles ${cycles[1]} t == oracle ${cycles[0]} t`);
 });
 
 test("TEETH (crafted entry): a wrong counter is CAUGHT and names 0x6388", () => {

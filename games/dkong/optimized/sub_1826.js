@@ -13,36 +13,41 @@
  * up and back at the left edge (5 written, then -0x25 = net -0x20 per row). Repeats for
  * C = 0x0E rows. The fill value 0x10 is loaded ONCE, before the outer loop.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Five call paths, not all provably mask-cleared,
- * so the charges are kept verbatim.
+ * CYCLES -- COLLAPSED to one m.step per basic block. No hardware-bus write on any path (the
+ * fill lands in the caller's VRAM tilemap region, not the 0x7800-0x780f/0x7c00/0x7c80/
+ * 0x7d00-07/0x7d80-87 latches), so nothing forces a partial-collapse boundary. Each block
+ * total is the exact SUM of the oracle's per-instruction charges: ld-de+ld-c+ld-a 24 t (entry,
+ * before the outer-loop head 0x182d); ld-b,0x05 7 t (its own block -- 0x182f, the inner-loop
+ * head, is a separate merge point reached also by djnz); ld-(hl),a+inc-hl+djnz 26 t (taken,
+ * loop) / 21 t (not taken, falls through); add-hl,de+dec-c+jp-nz/z 25 t (taken loops back to
+ * 0x182d, not taken falls to the ret). Five call paths, not all provably mask-cleared, so
+ * total-preservation keeps the cumulative clock identical to the oracle's on every path.
  */
 export function sub_1826(m) {
   const { regs, mem } = m;
 
+  // Block: ld de,0xffdb [10] + ld c,0x0e [7] + ld a,0x10 [7] = 24 t
   regs.de = 0xffdb; // -0x25
-  m.step(0x1829, 10);
   regs.c = 0x0e; // 14 rows
-  m.step(0x182b, 7);
   regs.a = 0x10; // fill tile, loaded once
-  m.step(0x182d, 7);
+  m.step(0x182d, 24);
 
   do {
-    // outer row loop
+    // outer row loop head -- merge point: entered here AND via the loop-back jp nz below.
+    // Block: ld b,0x05 [7] -- lone instr: 0x182f (the inner-loop head) is a separate merge point.
     regs.b = 0x05; // 5 columns
     m.step(0x182f, 7);
     do {
+      // Block: ld (hl),a [7] + inc hl [6] + djnz 0x182f [13 taken / 8 not] = 26 / 21 t
       mem.write8(regs.hl, regs.a);
-      m.step(0x1830, 7);
       regs.hl = (regs.hl + 1) & 0xffff;
-      m.step(0x1831, 6);
       regs.djnz();
-      m.step(regs.b !== 0 ? 0x182f : 0x1833, regs.b !== 0 ? 13 : 8);
+      m.step(regs.b !== 0 ? 0x182f : 0x1833, regs.b !== 0 ? 26 : 21);
     } while (regs.b !== 0);
+    // Block: add hl,de [11] + dec c [4] + jp nz,0x182d / jp z,0x1838 [10] = 25 t
     regs.addHl(regs.de); // HL -= 0x25 -> next row up, left edge
-    m.step(0x1834, 11);
     regs.c = regs.dec8(regs.c);
-    m.step(0x1835, 4);
-    m.step(regs.fNZ ? 0x182d : 0x1838, 10);
+    m.step(regs.fNZ ? 0x182d : 0x1838, 25);
   } while (regs.fNZ);
 
   m.ret(); // 0x1838

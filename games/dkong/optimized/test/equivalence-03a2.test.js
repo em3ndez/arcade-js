@@ -2,9 +2,12 @@
 /**
  * Equivalence-harness tests for sub_03a2 -- the main loop's once-per-serviced-
  * frame periodic-event service (ROM 0x03A2). It is called UNCONDITIONALLY from
- * mainLoop (ROM 0x02DE) on the per-frame-work path, so it is reached mask-ENABLED
- * and its cycle charges are KEPT PER-INSTRUCTION and never collapsed (README
- * §"ATOMICITY IS PER-CALL-PATH"; the same reason sub_0030/loc_197a stay per-instr).
+ * mainLoop (ROM 0x02DE) on the per-frame-work path, so it is reached mask-ENABLED:
+ * NOT atomic (README §"ATOMICITY IS PER-CALL-PATH"). Its m.step charges are
+ * COLLAPSED to one per basic block (see optimized/sub_03a2.js), licensed by the
+ * CONVERGENT gate rather than the strict whole-machine gate -- a passing strict
+ * result would only prove the scenario tested happened not to interrupt it, not
+ * that the routine is atomic (the same reasoning that governs sub_0350).
  *
  * WHAT THE ATTRACT RUN REACHES (measured, so the coverage claims are honest):
  * sub_03a2 fires every frame, but for the first ~580 frames it SKIPS at the very
@@ -14,17 +17,16 @@
  *   frame 585  first prescaler store (0x62B8 dec/reload)  -- gates 1-3 passed
  *   frame 808  first BODY store (0x66A9/0x66AA arm split, 0x62BA countdown)
  *   frame 868  first arm-B UNDERFLOW (0x62B9:=1, 0x63A0:=1)
- * So a 900-frame whole-machine window exercises the rst-skip path AND the prescaler
- * AND both arms AND the arm-B underflow NATURALLY -- not just synthetically.
+ * So SCENARIOS.attract (1200f) exercises the rst-skip path AND the prescaler AND
+ * both arms AND the arm-B underflow NATURALLY -- not just synthetically.
  *
  * Six jobs:
- *   1. EQUAL (whole-machine, 900f) -- optimized == translated every frame; the
- *      override fires ~890×.
+ *   1. CONVERGENT (whole-machine) -- pixels + non-stack state converge every frame
+ *      under SCENARIOS.attract; the override fires ~1190x.
  *   2. EQUAL (unit) -- identical RAM + full register file (incl F) + pc at the
  *      first natural entry (the rst-0x30 skip path, frame ~5).
- *   3. TEETH (whole-machine) -- a deliberately-wrong prescaler store (0x62B8) is
- *      CAUGHT and NOT-EQUAL, naming the address. This is a genuine routine output
- *      reached at frame 585.
+ *   3. TEETH (convergent) -- a CYCLE-DROP twin (Block 1's charge 5 t short) forks the
+ *      PRNG spin count (0x6019): a PERSISTENT divergence, CAUGHT.
  *   4. TEETH (unit) -- the first natural entry is the board-gated SKIP path, which
  *      stores NO work RAM; its only observable output is the register file (as with
  *      sub_0030). So the broken twin flips the carry flag and the unit gate CATCHES
@@ -35,8 +37,8 @@
  *      + pc + per-branch CYCLE TOTAL. Every branch thus has committed teeth.
  *   6. TEETH (branch store) -- a wrong BODY store (the (ix+0x0A) object write at
  *      0x66AA, which the arms differ on) is CAUGHT on a synthesized arm-B entry,
- *      naming the address -- store teeth on the arm the whole-machine 0x62B8 break
- *      does not cover.
+ *      naming the address -- store teeth on the arm the convergent gate does not
+ *      specifically target.
  *
  * Run: node --test
  */
@@ -47,7 +49,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_03a2 as translated_03a2 } from "../../translated/mainloop.js";
 import { sub_03a2 as optimized_03a2 } from "../sub_03a2.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 
@@ -61,7 +64,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x03a2;
-const FRAMES = 900; // rst-skip + prescaler(585) + body(808) + arm-B underflow(868)
 const F_C = 0x01;   // Z80 carry-flag bit (core/cpu/z80.js)
 
 // Gate/RAM addresses sub_03a2 reads or writes (all on ram.js's deliberately-
@@ -75,26 +77,80 @@ const COUNT_62BA = 0x62ba;    // arm-B countdown
 const OBJ_IX0A = 0x66aa;      // (ix+0x0A) with ix=0x66A0 -- the arm-distinguishing body store
 
 /**
- * Deliberately-broken twin (whole-machine): behaves like the optimized routine
- * EXCEPT the FIRST work-RAM store to the prescaler 0x62B8 lands a wrong value
- * (correct XOR 0xFF, guaranteed to differ). One clean corruption across the whole
- * run; the per-frame state diff catches it at the frame the store is first made.
+ * Cycle-broken twin for the CONVERGENT gate: identical to the collapsed routine
+ * except Block 1's charge (the rst-0x30 skip path, hit EVERY frame from frame 0) is
+ * 5 t short. A wrong total shifts the main loop's spin count -- the PRNG entropy at
+ * 0x6019 -- so the RANDOM stream FORKS: a PERSISTENT non-stack divergence, never a
+ * heal. This is the teeth for the collapse's load-bearing invariant (total-cycle
+ * preservation); a value-corruption twin would break a game invariant and hang a
+ * long whole-machine run, so the value teeth stays at the fast unit level below.
  */
-let brokeWhole = false;
-function brokenWhole_03a2(m) {
-  const realWrite = m.mem.write8.bind(m.mem);
-  m.mem.write8 = (addr, value, busOffset) => {
-    if (!brokeWhole && addr === PRESCALE_62B8) {
-      brokeWhole = true;
-      return realWrite(addr, value ^ 0xff, busOffset);
-    }
-    return realWrite(addr, value, busOffset);
-  };
-  try {
-    return optimized_03a2(m);
-  } finally {
-    m.mem.write8 = realWrite;
+function cyclebroken_03a2(m) {
+  const { regs, mem } = m;
+
+  regs.a = 0x03;
+  m.push16(0x03a5);
+  m.step(0x0030, 18 - 5); // DROPPED: the correct charge here is 18 t
+  if (!m.call(0x0030)) return;
+
+  m.push16(0x03a6);
+  m.step(0x0010, 11);
+  if (!m.call(0x0010)) return;
+
+  regs.a = mem.read8(0x6350);
+  regs.rrca();
+  m.step(0x03aa, 17);
+  if (regs.fC) { m.ret(11); return; }
+
+  regs.hl = 0x62b8;
+  mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8);
+  m.step(0x03af, 26);
+  if (regs.fNZ) { m.ret(11); return; }
+
+  mem.write8(regs.hl, 0x04);
+  regs.a = mem.read8(0x62b9);
+  regs.rrca();
+  m.step(0x03b6, 32);
+  if (regs.fNC) { m.ret(11); return; }
+
+  regs.hl = 0x6a29;
+  regs.b = 0x40;
+  regs.ix = 0x66a0;
+  regs.rrca();
+  m.step(0x03c1, 40);
+
+  if (regs.fNC) {
+    mem.write8((regs.ix + 0x09) & 0xffff, 0x02);
+    mem.write8((regs.ix + 0x0a) & 0xffff, 0x00);
+    m.push16(0x03ef);
+    m.step(0x03f2, 65);
+    m.call(0x03f2);
+    regs.a = 0x10;
+    mem.write8(0x62ba, regs.a);
+    m.step(0x03e3, 30);
+  } else {
+    mem.write8((regs.ix + 0x09) & 0xffff, 0x02);
+    mem.write8((regs.ix + 0x0a) & 0xffff, 0x02);
+    regs.b = regs.inc8(regs.b);
+    regs.b = regs.inc8(regs.b);
+    m.push16(0x03d1);
+    m.step(0x03f2, 73);
+    m.call(0x03f2);
+
+    regs.hl = 0x62ba;
+    mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8);
+    m.step(0x03d5, 21);
+    if (regs.fNZ) { m.ret(11); return; }
+
+    regs.a = 0x01;
+    mem.write8(0x62b9, regs.a);
+    mem.write8(0x63a0, regs.a);
+    regs.a = 0x10;
+    mem.write8(0x62ba, regs.a);
+    m.step(0x03e3, 58);
   }
+
+  m.ret();
 }
 
 /**
@@ -111,22 +167,23 @@ function brokenFlag_03a2(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_03a2 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_03a2]]));
+test("CONVERGENT (whole-machine): collapsed sub_03a2 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_03a2]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -142,18 +199,19 @@ test("EQUAL (unit): idiomatic optimized sub_03a2 matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong prescaler store is CAUGHT and NOT-EQUAL", () => {
-  brokeWhole = false;
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, brokenWhole_03a2]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG — a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_03a2]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.ok(brokeWhole, "the broken store was never reached — TEETH would be vacuous");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total — it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught — persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

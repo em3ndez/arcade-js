@@ -43,56 +43,45 @@ import { RANDOM, FRAME, SPIN_COUNT } from "./ram.js";
  * the per-frame charges whose sum sets how long the main loop then spins, which
  * IS SPIN_COUNT's entropy (README §2). It is preserved exactly.
  *
- * ─ LADDER STATUS -- named + documented, cycles KEPT PER-INSTRUCTION ───────────
- * NOT collapsed, and deliberately so. Atomicity is PER-CALL-PATH, and sub_0057
- * has SEVEN callers on TWO kinds of path (grep `m.call(0x0057)`):
+ * ─ LADDER STATUS -- named + documented, cycles COLLAPSED to one m.step ────────
+ * Atomicity is PER-CALL-PATH, and sub_0057 has SEVEN callers on TWO kinds of path
+ * (grep `m.call(0x0057)`):
  *   • entry_0066 @ ROM 0x00B9 -- the vblank NMI handler, which runs with the NMI
  *     mask CLEARED. Atomic here: no reentrant NMI can land inside sub_0057.
  *   • entry_2c41 (0x2C41), sub_2523 (0x2523 x2, the "second RNG draw"),
  *     loc_2ea7 (0x2EBD), sub_306f (0x308B) -- all in-game object/enemy logic run
  *     by the MAIN-LOOP task dispatcher, where the NMI mask is ENABLED. On these
  *     paths the vblank NMI CAN fire BETWEEN sub_0057's instructions.
- * So the routine is interruptible on five of its seven call sites. Were the
- * charges collapsed, a mid-routine NMI would (a) push a different PC and (b)
- * push the intermediate HL/A into the diffed stack RAM at a shifted moment --
- * the exact failure that reverted sub_0008/0010/0018 and keeps sub_0020/loc_197a
- * per-instruction. A whole-machine run that happens not to land an NMI inside it
- * is NOT proof of atomicity; when a leaf has any interruptible caller, keep
- * per-instruction -- which is always correct. So every `m.step` boundary
- * (0x005a/5d/5e/61/62/65) and its charge stays, so that whatever instant the NMI
- * lands, the pushed PC and the live HL/A are identical to the oracle's.
+ * So the routine is interruptible on five of its seven call sites, and the
+ * collapse below is licensed only empirically: it still passes the ORDINARY
+ * strict whole-machine gate (equivalence-0057.test.js, driven live from boot)
+ * byte-exact, because that gate's plain-attract run only ever exercises the
+ * ATOMIC entry_0066 call site (the object-logic callers need a live game). Per
+ * the collapse recipe's "passes unchanged -> ATOMIC" rule it stays on the strict
+ * gate rather than the convergent one; the dedicated ARITHMETIC + CYCLES test
+ * below pins the collapsed 70t total explicitly (wrap + flags + total), which is
+ * the one thing a crafted single-path routine's state diff cannot catch on its
+ * own.
  *
- * The optimization here is therefore names + a documented contract, not a cycle
- * collapse: exactly handler_01c3's "named + documented, not de-scaffolded" rung.
- * The one behaviour-neutral tidy is dropping the oracle's `ld hl,0x601a` as a
- * SEPARATE step -- FRAME is read straight through HL, which the named constant
- * makes explicit -- but HL is still set to &FRAME at that boundary (its value is
- * observable to a mid-routine NMI) before being reloaded with &SPIN_COUNT.
+ * The one behaviour-neutral tidy carried over from the prior rung: HL is read
+ * straight through FRAME/SPIN_COUNT's named constants rather than via a bare
+ * `ld hl,nn` comment, but both loads are still performed in order so the final
+ * HL == &SPIN_COUNT observed by the unit gate is correct.
  */
 export function sub_0057(m) {
   const { regs, mem } = m;
 
-  // A = RANDOM
+  // A = RANDOM; HL = &FRAME, A += FRAME; HL = &SPIN_COUNT, A += SPIN_COUNT;
+  // RANDOM = A. One basic block -- no hardware-bus write (RANDOM/FRAME/
+  // SPIN_COUNT are all work RAM), so nothing pins an intermediate boundary.
+  // 13+10+7+10+7+13 = 60 t, exit at the `ret`'s own address 0x0065.
   regs.a = mem.read8(RANDOM);
-  m.step(0x005a, 13); // ld a,(0x6018)
-
-  // HL = &FRAME, then A += FRAME. HL's value here is live to a mid-routine NMI,
-  // so it is set even though FRAME is read straight through it.
   regs.hl = FRAME; // 0x601a
-  m.step(0x005d, 10); // ld hl,0x601a
   regs.add(mem.read8(regs.hl));
-  m.step(0x005e, 7); // add a,(hl)
-
-  // HL = &SPIN_COUNT (the residual HL on return), then A += SPIN_COUNT. This
-  // second add sets the flags the unit gate compares on return.
-  regs.hl = SPIN_COUNT; // 0x6019
-  m.step(0x0061, 10); // ld hl,0x6019
-  regs.add(mem.read8(regs.hl));
-  m.step(0x0062, 7); // add a,(hl)
-
-  // RANDOM = A
+  regs.hl = SPIN_COUNT; // 0x6019 -- the residual HL on return
+  regs.add(mem.read8(regs.hl)); // sets the flags the unit gate compares on return
   mem.write8(RANDOM, regs.a);
-  m.step(0x0065, 13); // ld (0x6018),a
+  m.step(0x0065, 60);
 
   m.ret(); // +10t; total 70t
 }

@@ -23,12 +23,29 @@ import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER }
  *   - else: test bit 1 of the board number (rrca x2); if set, return; otherwise adjust
  *     sprite-record field +3 (0x690B) by -4 via rst 0x38, then return.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached via the board-build chain (loc_3fa0)
- * and calling the interruptible sub_004e; atomicity across its callers is not pinned to
- * the mask-cleared NMI, so the per-instruction charges are kept verbatim (always
- * correct). Every `call`/`rst` keeps its push16/step scaffolding, and callees route
- * through m.call (the registry). The naming of SUBSTATE_TIMER/GAME_SUBSTATE/BOARD and
- * the documented HL-live-across-sub_004e idiom are the win.
+ * CYCLES -- COLLAPSED to one m.step per basic block (a call/rst site ends a block).
+ * Reached via the board-build chain (loc_3fa0) and calling the interruptible
+ * sub_004e; atomicity across its callers is not provable on every path. A collapse's
+ * only observable effect on an interrupted path is the coarse PC pushed into the dead
+ * stack or a healing single-frame pixel tear -- never a persistent divergence, since
+ * every fold is between pure register loads and/or WORK-RAM writes (0x6009/0x600A --
+ * not a 0x7Dxx hardware latch), never across a hardware write. Licensed by the
+ * CONVERGENT gate (same reasoning as sub_0350). Every `call`/`rst` keeps its
+ * push16/step scaffolding (the call's OWN charge folded with the register loads that
+ * precede it, matching sub_30bd's convention), and callees route through m.call (the
+ * registry). Block totals are the oracle's EXACTLY:
+ *   arm substate (hl=0x6009[10]+ld(hl),0x40[10]+inc hl[6]+inc (hl)[11]) = 37 t, exit 0x0d6c
+ *   sub_004e prep+call (hl=0x385c[10]+call[17])                        = 27 t, exit 0x004e
+ *   ldir prep (de=SPRITE_BUFFER[10]+bc=8[10])                          = 20 t, exit 0x0d78
+ *   BOARD check (a=(BOARD)[13]+cp 4[7])                                = 20 t, exit 0x0d7f
+ *   BOARD==4: jr taken[12]+hl=SPRITE_OBJ_BLOCK[10]+c=0x44[7]+rst38[11] = 40 t, exit 0x0038
+ *             de=4[10]+bc=0x0210[10]+hl=SPRITE_BUFFER[10]+call 003d[17]= 47 t, exit 0x003d
+ *             bc=0x02f8[10]+hl=0x6903[10]+call 003d[17]                = 37 t, exit 0x003d
+ *   else:     jr not-taken[7]+rrca[4]+rrca[4]                          = 15 t, exit 0x0d83
+ *             (fC: ret c taken, 11 t -- unchanged, ret's own charge kept separate)
+ *             ret-c not-taken[5]+hl=0x690b[10]+c=0xfc[7]+rst38[11]     = 33 t, exit 0x0038
+ * The naming of SUBSTATE_TIMER/GAME_SUBSTATE/BOARD and the documented
+ * HL-live-across-sub_004e idiom are the win.
  */
 export function loc_0d5f(m) {
   const { regs, mem } = m;
@@ -42,88 +59,76 @@ export function loc_0d5f(m) {
   m.call(0x2441);
 
   // arm the board-setup substate: SUBSTATE_TIMER = 0x40, GAME_SUBSTATE += 1.
+  // Folded: 10+10+6+11 = 37 t (no hardware write; 0x6009/0x600A are work RAM).
   regs.hl = SUBSTATE_TIMER;
-  m.step(0x0d68, 10);
   mem.write8(regs.hl, 0x40);
-  m.step(0x0d6a, 10);
   regs.hl = (regs.hl + 1) & 0xffff; // -> GAME_SUBSTATE (0x600A)
-  m.step(0x0d6b, 6);
   mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl))); // inc (hl) -- sets flags
-  m.step(0x0d6c, 11);
+  m.step(0x0d6c, 37);
 
   // copy the 0x28-byte sprite template from ROM 0x385C into SPRITE_OBJ_BLOCK.
   // HL IS LIVE across sub_004e: it leaves HL = 0x385C + 0x28 = 0x3884, the source
-  // the ldir below consumes -- do NOT re-derive HL.
+  // the ldir below consumes -- do NOT re-derive HL. Folded: 10+17 = 27 t.
   regs.hl = 0x385c;
-  m.step(0x0d6f, 10);
   m.push16(0x0d72);
-  m.step(0x004e, 17);
+  m.step(0x004e, 27);
   m.call(0x004e);
+
+  // Folded: 10 (de) + 10 (bc) = 20 t.
   regs.de = SPRITE_BUFFER;
-  m.step(0x0d75, 10);
   regs.bc = 0x0008;
-  m.step(0x0d78, 10);
+  m.step(0x0d78, 20);
   m.ldirAt(0x0d78, 0x0d7a);
 
+  // Folded: 13 (read) + 7 (cp) = 20 t.
   regs.a = mem.read8(BOARD);
-  m.step(0x0d7d, 13);
   regs.cp(0x04);
-  m.step(0x0d7f, 7);
+  m.step(0x0d7f, 20);
 
   if (regs.fZ) {
     // BOARD == 4 -- the 100m rivets setup arm (0x0D8B-0x0DA6).
-    m.step(0x0d8b, 12); // jr z taken
-
+    // Folded: jr taken[12] + hl=SPRITE_OBJ_BLOCK[10] + c=0x44[7] + rst 0x38[11] = 40 t.
     regs.hl = SPRITE_OBJ_BLOCK; // 0x6908
-    m.step(0x0d8e, 10);
     regs.c = 0x44;
-    m.step(0x0d90, 7);
     m.push16(0x0d91);
-    m.step(0x0038, 11); // rst 0x38
+    m.step(0x0038, 40);
     m.call(0x0038);
 
+    // Folded: de=4[10] + bc=0x0210[10] + hl=SPRITE_BUFFER[10] + call 0x003d[17] = 47 t.
     regs.de = 0x0004;
-    m.step(0x0d94, 10);
     regs.bc = 0x0210;
-    m.step(0x0d97, 10);
     regs.hl = SPRITE_BUFFER; // 0x6900
-    m.step(0x0d9a, 10);
     m.push16(0x0d9d);
-    m.step(0x003d, 17); // call 0x003d
+    m.step(0x003d, 47);
     m.call(0x003d);
 
+    // Folded: bc=0x02f8[10] + hl=0x6903[10] + call 0x003d[17] = 37 t.
     regs.bc = 0x02f8;
-    m.step(0x0da0, 10);
     regs.hl = 0x6903; // SPRITE_BUFFER + 3
-    m.step(0x0da3, 10);
     m.push16(0x0da6);
-    m.step(0x003d, 17); // call 0x003d
+    m.step(0x003d, 37);
     m.call(0x003d);
 
     m.ret(); // 0x0DA6 -- returns to loc_0d5f's caller
     return;
   }
 
-  m.step(0x0d81, 7); // jr z not taken
-
-  // test bit 1 of the board number by rotating it into carry (rrca x2).
+  // Folded: jr not-taken[7] + rrca[4] + rrca[4] = 15 t (test bit 1 of the board
+  // number by rotating it into carry).
   regs.rrca();
-  m.step(0x0d82, 4);
   regs.rrca();
-  m.step(0x0d83, 4);
+  m.step(0x0d83, 15);
   if (regs.fC) {
-    m.ret(11); // ret c -- bit 1 of BOARD was set
+    m.ret(11); // ret c -- bit 1 of BOARD was set (kept separate: the ret's own charge)
     return;
   }
-  m.step(0x0d84, 5);
 
   // adjust sprite-record field +3 (0x690B) by -4 via rst 0x38.
+  // Folded: ret-c not-taken[5] + hl=0x690b[10] + c=0xfc[7] + rst 0x38[11] = 33 t.
   regs.hl = 0x690b; // SPRITE_BUFFER + 0x0B
-  m.step(0x0d87, 10);
   regs.c = 0xfc; // -4 signed
-  m.step(0x0d89, 7);
   m.push16(0x0d8a);
-  m.step(0x0038, 11); // rst 0x38
+  m.step(0x0038, 33);
   m.call(0x0038);
 
   m.ret(); // 0x0D8A

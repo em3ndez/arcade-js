@@ -52,25 +52,60 @@ function broken_1186(m) {
 function runBoth(optFn = optimized_1186) {
   const a = ENTRY.clone();
   const b = ENTRY.clone();
+  const c0 = a.cycles; // both clones start from the identical captured entry
   translated_1186(a);
   optFn(b);
   return {
     ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
     regs: firstRegDiff(a.regs, b.regs),
     pc: [a.pc, b.pc],
+    cycles: [a.cycles - c0, b.cycles - c0],
   };
 }
 
-test("EQUAL (crafted entry): sub_1186 matches translated in state + registers", () => {
-  const { ram, regs, pc } = runBoth();
+// MANDATORY cycle-total check (recipe step 4): this routine's test is CRAFTED-ENTRY
+// only -- no whole-machine/convergent run polices its cycle totals -- so the
+// collapse's load-bearing invariant (exact per-block cycle sum) has NO other gate
+// here.
+test("EQUAL (crafted entry): sub_1186 matches translated in state + registers + cycles", () => {
+  const { ram, regs, pc, cycles } = runBoth();
   assert.equal(ram, null, ram ? `RAM diff at 0x${ram.addr.toString(16)}` : "");
   assert.equal(regs, null, regs ? `reg diff at ${regs.reg}` : "");
   assert.equal(pc[0], pc[1], "pc must match");
-  console.log("  EQUAL: fill+gather EQUAL (state + regs + pc)");
+  assert.equal(cycles[1], cycles[0], `cycle total must match the oracle (oracle ${cycles[0]} t, collapsed ${cycles[1]} t)`);
+  console.log(`  EQUAL: fill+gather EQUAL (state + regs + pc), ${cycles[0]} t`);
 });
 
 test("TEETH (crafted entry): a wrong fill/gather is CAUGHT and NOT-EQUAL", () => {
   const { ram } = runBoth(broken_1186);
   assert.ok(ram != null, "harness FAILED to catch a wrong store");
   console.log(`  TEETH: caught at 0x${ram.addr.toString(16)} (translated ${ram.a} vs broken ${ram.b})`);
+});
+
+test("CYCLE-TEETH (crafted entry): a dropped m.step charge yields a wrong total and is CAUGHT", () => {
+  const good = runBoth();
+  assert.equal(good.cycles[1], good.cycles[0], "the collapsed total should match the oracle");
+  // A variant that drops the second fold's charge by 5 t.
+  function dropped_1186(m) {
+    const { regs } = m;
+    regs.hl = 0x11a2;
+    regs.de = 0x6507;
+    regs.bc = 0x0a0c;
+    m.step(0x118f, 30);
+    m.push16(0x1192);
+    m.step(0x122a, 17);
+    m.call(0x122a);
+    regs.ix = 0x6500;
+    regs.hl = 0x6980;
+    regs.b = 0x0a;
+    regs.de = 0x0010;
+    m.step(0x119e, 36); // DROPPED: the correct charge here is 41 t
+    m.push16(0x11a1);
+    m.step(0x11d3, 17);
+    m.call(0x11d3);
+    m.ret();
+  }
+  const dropped = runBoth(dropped_1186);
+  assert.notEqual(dropped.cycles[1], good.cycles[0], "cycle-total assertion has no teeth");
+  console.log(`  CYCLE-TEETH: correct ${good.cycles[0]} t vs dropped-charge ${dropped.cycles[1]} t -- caught`);
 });

@@ -29,214 +29,185 @@ import { BOARD } from "./ram.js";
  * and is what the dispatched target's own `ret` eventually pops. The dispatcher is
  * inlined (not m.call(0x0028)) precisely because its table is inline ROM after the rst.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached via the board-build chain (loc_0d5f),
- * whose atomicity is not pinned to the mask-cleared NMI, so charges are kept verbatim.
+ * CYCLES -- COLLAPSED to one m.step per basic-block PASS (a loop's body gets one
+ * step per ITERATION -- matching the djnz's own natural periodicity -- not one
+ * step for the whole loop; see below). Reached via the board-build chain
+ * (loc_0d5f), whose atomicity is not pinned to the mask-cleared NMI, so a
+ * mistimed NMI's only observable effect is the coarse PC pushed into the dead
+ * stack or a healing pixel tear -- never a persistent divergence, since every
+ * fold here is between pure register ops and/or WORK-RAM writes (0x6200-0x6AFF,
+ * never a 0x7Dxx hardware latch). Licensed by the CONVERGENT gate (same
+ * reasoning as sub_0350). Every block total is the oracle's EXACTLY:
+ *   clear-A prologue (b=0x27[7]+hl=0x6200[10]+xor a[4])         = 21 t, exit 0x0f5c
+ *   clear-A body/iter (write[7]+inc l[4]+djnz[13/8])            = 24/19 t, exit 0x0f5c/0x0f60
+ *   clear-B prologue (c=0x11[7]+d=0x80[7]+hl=0x6280[10])        = 24 t, exit 0x0f67
+ *   clear-B inner/iter (write[7]+inc hl[6]+djnz[13/8])          = 26/21 t, exit 0x0f68/0x0f6c
+ *   clear-B outer tail (dec c[4]+outer djnz[12/7])              = 16/11 t, exit 0x0f67/0x0f6f
+ *   ldir prep (hl=0x3d9c[10]+de=0x6280[10]+bc=0x40[10])         = 30 t, exit 0x0f78
+ *   bonus-timer compute (read[13]+b=a[4]+3x(and+rla)[24]+add b
+ *     [4]+add b[4]+add 0x28[7]+cp 0x51[7])                     = 63 t, exit 0x0f8a
+ *   (fC: 12 t; else: cp-not-taken[7]+clamp a=0x50[--]+[7])      = 12 / 14 t, exit 0x0f8e
+ *   store-loop prologue (hl=0x62b0[10]+b=3[7])                  = 17 t, exit 0x0f93
+ *   store-loop body/iter (write[7]+inc l[4]+djnz[13/8])         = 24/19 t, exit 0x0f93/0x0f97
+ *   max-compute (add a,a[4]+b=a[4]+a=0xdc[7]+sub b[4]+cp 0x28[7])= 26 t, exit 0x0f9e
+ *   (fNC: 12 t; else: [7]+clamp a=0x28[--]+[7])                 = 12 / 14 t, exit 0x0fa2
+ *   store 62B3/B4 (write[7]+inc l[4]+write[7])                  = 18 t, exit 0x0fa5
+ *   0x6209/0x620A (hl load[10]+write[10]+inc l[4]+write[10])    = 34 t, exit 0x0fad
+ *   BOARD read+bit2 (read[13]+c=a[4]+bit test[8])                = 25 t, exit 0x0fb3
+ *   (bit2 set: 12 t straight to dispatcher; else prologue: jr-not
+ *     -taken[7]+hl=0x6a00[10]+a=0x4f[7]+b=3[7])                 = 12 / 31 t
+ *   seed-loop body/iter (4x(write+inc l)[52]+add 0x10[7]+djnz[13/8]) = 73/68 t
+ *   inline rst-0x28 dispatcher, FULLY folded (no branch, no hardware write,
+ *     ld a,c through jp (hl), 13 instructions)                  = 89 t, exit target
  */
 export function sub_0f56(m) {
   const { regs, mem } = m;
 
   // ---- clear 0x6200-0x6226, 0x27 bytes ----
   regs.b = 0x27;
-  m.step(0x0f58, 7);
   regs.hl = 0x6200;
-  m.step(0x0f5b, 10);
   regs.xor(regs.a); // A = 0 -- the fill value for BOTH clear loops
-  m.step(0x0f5c, 4);
+  m.step(0x0f5c, 21); // folded prologue: 7+10+4
   do {
     mem.write8(regs.hl, regs.a);
-    m.step(0x0f5d, 7);
     regs.l = regs.inc8(regs.l); // `inc l`, NOT `inc hl` -- no carry into H
-    m.step(0x0f5e, 4);
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x0f5c : 0x0f60, regs.b !== 0 ? 13 : 8);
+    m.step(regs.b !== 0 ? 0x0f5c : 0x0f60, regs.b !== 0 ? 24 : 19); // folded write+inc+djnz
   } while (regs.b !== 0);
 
   // ---- clear 17 blocks of 0x80 from 0x6280 -> 0x6280-0x6AFF ----
   regs.c = 0x11;
-  m.step(0x0f62, 7);
   regs.d = 0x80;
-  m.step(0x0f64, 7);
   regs.hl = 0x6280;
-  m.step(0x0f67, 10);
+  m.step(0x0f67, 24); // folded prologue: 7+7+10
   do {
     regs.b = regs.d;
-    m.step(0x0f68, 4);
+    m.step(0x0f68, 4); // single instruction -- nothing to fold with
     do {
       mem.write8(regs.hl, regs.a);
-      m.step(0x0f69, 7);
       regs.hl = (regs.hl + 1) & 0xffff; // `inc hl` here, full 16-bit
-      m.step(0x0f6a, 6);
       regs.djnz();
-      m.step(regs.b !== 0 ? 0x0f68 : 0x0f6c, regs.b !== 0 ? 13 : 8);
+      m.step(regs.b !== 0 ? 0x0f68 : 0x0f6c, regs.b !== 0 ? 26 : 21); // folded write+inc+djnz
     } while (regs.b !== 0);
     regs.c = regs.dec8(regs.c);
-    m.step(0x0f6d, 4);
-    m.step(regs.fNZ ? 0x0f67 : 0x0f6f, regs.fNZ ? 12 : 7);
+    m.step(regs.fNZ ? 0x0f67 : 0x0f6f, regs.fNZ ? 16 : 11); // folded dec c + outer djnz
   } while (regs.fNZ);
 
   // ---- copy 0x40 bytes of board-layout ROM 0x3D9C-0x3DDB to 0x6280 ----
   regs.hl = 0x3d9c;
-  m.step(0x0f72, 10);
   regs.de = 0x6280;
-  m.step(0x0f75, 10);
   regs.bc = 0x0040;
-  m.step(0x0f78, 10);
+  m.step(0x0f78, 30); // folded prologue: 10+10+10
   m.ldirAt(0x0f78, 0x0f7a); // NOT the 0x01CF-hardcoded ldir()
 
   // ---- A = min( (0x6229)*10 + 0x28 , 0x50 ) -- ALL MOD 256 ----
-  regs.a = mem.read8(0x6229);
-  m.step(0x0f7d, 13);
-  regs.b = regs.a;
-  m.step(0x0f7e, 4);
   // `and a` clears carry so the following `rla` shifts a 0 into bit 0 and the bit
   // shifted OUT of bit 7 is discarded. Three pairs = A = (A*8) & 0xFF.
-  for (const [andNext, rlaNext] of [[0x0f7f, 0x0f80], [0x0f81, 0x0f82], [0x0f83, 0x0f84]]) {
-    regs.and(regs.a);
-    m.step(andNext, 4);
-    regs.rla();
-    m.step(rlaNext, 4);
-  }
+  regs.a = mem.read8(0x6229);
+  regs.b = regs.a;
+  regs.and(regs.a); regs.rla();
+  regs.and(regs.a); regs.rla();
+  regs.and(regs.a); regs.rla();
   regs.add(regs.b); // A = A*8 + A0
-  m.step(0x0f85, 4);
   regs.add(regs.b); // A = A*8 + 2*A0  == A0*10 mod 256
-  m.step(0x0f86, 4);
   regs.add(0x28);
-  m.step(0x0f88, 7);
   regs.cp(0x51);
-  m.step(0x0f8a, 7);
+  m.step(0x0f8a, 63); // folded: 13+4+(4+4)*3+4+4+7+7
   if (regs.fC) {
     m.step(0x0f8e, 12);
   } else {
-    m.step(0x0f8c, 7);
     regs.a = 0x50; // clamp -- bounds the RESULT, does NOT detect wrap
-    m.step(0x0f8e, 7);
+    m.step(0x0f8e, 14); // folded: 7+7
   }
 
   // ---- store that bonus-timer value at 0x62B0,B1,B2 ----
   regs.hl = 0x62b0;
-  m.step(0x0f91, 10);
   regs.b = 0x03;
-  m.step(0x0f93, 7);
+  m.step(0x0f93, 17); // folded prologue: 10+7
   do {
     mem.write8(regs.hl, regs.a);
-    m.step(0x0f94, 7);
     regs.l = regs.inc8(regs.l);
-    m.step(0x0f95, 4);
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x0f93 : 0x0f97, regs.b !== 0 ? 13 : 8);
+    m.step(regs.b !== 0 ? 0x0f93 : 0x0f97, regs.b !== 0 ? 24 : 19); // folded write+inc+djnz
   } while (regs.b !== 0);
   // HL is NOT reloaded below -- it carries out of this loop as 0x62B3
 
   // ---- A = max( 0xDC - 2*A , 0x28 ) ----
   regs.add(regs.a); // add a,a -- A = 2A
-  m.step(0x0f98, 4);
   regs.b = regs.a;
-  m.step(0x0f99, 4);
   regs.a = 0xdc;
-  m.step(0x0f9b, 7);
   regs.sub(regs.b);
-  m.step(0x0f9c, 4);
   regs.cp(0x28);
-  m.step(0x0f9e, 7);
+  m.step(0x0f9e, 26); // folded: 4+4+7+4+7
   if (regs.fNC) {
     m.step(0x0fa2, 12);
   } else {
-    m.step(0x0fa0, 7);
     regs.a = 0x28; // clamp
-    m.step(0x0fa2, 7);
+    m.step(0x0fa2, 14); // folded: 7+7
   }
 
   // ---- store at 0x62B3, 0x62B4 (HL carried from the 0x0F93 loop) ----
   mem.write8(regs.hl, regs.a);
-  m.step(0x0fa3, 7);
   regs.l = regs.inc8(regs.l);
-  m.step(0x0fa4, 4);
   mem.write8(regs.hl, regs.a);
-  m.step(0x0fa5, 7);
+  m.step(0x0fa5, 18); // folded: 7+4+7
 
   // ---- 0x6209 = 4, 0x620A = 8 ----
   regs.hl = 0x6209;
-  m.step(0x0fa8, 10);
   mem.write8(regs.hl, 0x04);
-  m.step(0x0faa, 10);
   regs.l = regs.inc8(regs.l);
-  m.step(0x0fab, 4);
   mem.write8(regs.hl, 0x08);
-  m.step(0x0fad, 10);
+  m.step(0x0fad, 34); // folded: 10+10+4+10
 
   // ---- C = BOARD. C IS THE DISPATCHER INDEX -- live to 0x0FCB ----
   regs.a = mem.read8(BOARD);
-  m.step(0x0fb0, 13);
   regs.c = regs.a;
-  m.step(0x0fb1, 4);
   const bit2 = regs.bit(2, regs.a); // does not modify A; preserves carry
-  m.step(0x0fb3, 8);
+  m.step(0x0fb3, 25); // folded: 13+4+8
   if (bit2) {
     m.step(0x0fcb, 12); // straight to the dispatcher
   } else {
-    m.step(0x0fb5, 7);
-
     // ---- seed 3 x 4 bytes at 0x6A00-0x6A0B ----
     regs.hl = 0x6a00;
-    m.step(0x0fb8, 10);
     regs.a = 0x4f;
-    m.step(0x0fba, 7);
     regs.b = 0x03;
-    m.step(0x0fbc, 7);
+    m.step(0x0fbc, 31); // folded prologue: 7(jr not taken)+10+7+7
     do {
       mem.write8(regs.hl, regs.a);
-      m.step(0x0fbd, 7);
       regs.l = regs.inc8(regs.l);
-      m.step(0x0fbe, 4);
       mem.write8(regs.hl, 0x3a);
-      m.step(0x0fc0, 10);
       regs.l = regs.inc8(regs.l);
-      m.step(0x0fc1, 4);
       mem.write8(regs.hl, 0x0f);
-      m.step(0x0fc3, 10);
       regs.l = regs.inc8(regs.l);
-      m.step(0x0fc4, 4);
       mem.write8(regs.hl, 0x18);
-      m.step(0x0fc6, 10);
       regs.l = regs.inc8(regs.l);
-      m.step(0x0fc7, 4);
       regs.add(0x10);
-      m.step(0x0fc9, 7);
       regs.djnz();
-      m.step(regs.b !== 0 ? 0x0fbc : 0x0fcb, regs.b !== 0 ? 13 : 8);
+      m.step(regs.b !== 0 ? 0x0fbc : 0x0fcb, regs.b !== 0 ? 73 : 68); // folded whole iteration
     } while (regs.b !== 0);
   }
 
-  // ---- 0x0FCB: ld a,c / rst 0x28 -- the inline jump-table dispatcher ----
+  // ---- 0x0FCB: ld a,c / rst 0x28 -- the inline jump-table dispatcher, FULLY
+  // folded (no branch, no hardware write anywhere in this straight-line run).
+  // Table at 0x0FCD, C=BOARD: 0 -> 0x0000 (unused)  1 -> 0x0FD7  2 -> 0x101F
+  // 3 -> 0x1087  4 -> 0x1131.
   regs.a = regs.c;
-  m.step(0x0fcc, 4);
   m.push16(0x0fcd); // rst 0x28 pushes the address AFTER it -- the TABLE BASE
-  m.step(0x0028, 11);
-
-  // THE rst 0x28 BODY, inlined (ROM 0x0028-0x0037). Table at 0x0FCD, C=BOARD:
-  //   0 -> 0x0000 (unused)  1 -> 0x0FD7  2 -> 0x101F  3 -> 0x1087  4 -> 0x1131
-  regs.add(regs.a);
-  m.step(0x0029, 4); // add a,a -- A = 2*index
+  regs.add(regs.a); // add a,a -- A = 2*index
   regs.hl = m.pop16(); // pop hl -- the table base, balancing the push
-  m.step(0x002a, 10);
   regs.e = regs.a;
-  m.step(0x002b, 4); // ld e,a
   regs.d = 0x00;
-  m.step(0x002d, 7); // ld d,0x00
-  m.step(0x0032, 10); // jp 0x0032
   regs.addHl(regs.de); // sets H, N, C -- dead into loc_0fd7, not in general
-  m.step(0x0033, 11); // add hl,de
   regs.e = mem.read8(regs.hl);
-  m.step(0x0034, 7); // ld e,(hl)
   regs.hl = (regs.hl + 1) & 0xffff;
-  m.step(0x0035, 6); // inc hl
   regs.d = mem.read8(regs.hl);
-  m.step(0x0036, 7); // ld d,(hl)
   const target = regs.de; // ex de,hl: HL becomes the target, DE the pointer
   regs.de = regs.hl;
   regs.hl = target;
-  m.step(0x0037, 4); // ex de,hl
-  m.step(target, 4); // jp (hl)
+  // folded: ld a,c[4]+rst28[11]+add a,a[4]+pop hl[10]+ld e,a[4]+ld d,0[7]+
+  //         jp 0x0032[10]+add hl,de[11]+ld e,(hl)[7]+inc hl[6]+ld d,(hl)[7]+
+  //         ex de,hl[4]+jp (hl)[4] = 89 t
+  m.step(target, 89);
 
   if (target === 0x0fd7) return m.call(0x0fd7);
   if (target === 0x101f) return m.call(0x101f); // board 2

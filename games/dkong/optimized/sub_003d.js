@@ -50,21 +50,21 @@
  *     zero; the rst entry hard-codes 0x0A and no direct call site passes 0, but the
  *     do-while mirrors the 256-pass semantics exactly regardless.
  *
- * ATOMICITY / CYCLES -- kept PER-INSTRUCTION (each ROM instruction's m.step charge
- *   is preserved individually). sub_003d is a foundational LEAF helper reached from
- *   30+ sites via both `rst 0x38` (loc_0038) and direct `call 0x003d`, spanning board
- *   setup, the opening cutscene's object staging, and per-frame object updates. The
- *   brief's rule ATOMICITY-IS-PER-CALL-PATH governs: a collapse is safe only if the
- *   vblank NMI can never land inside the routine on ANY call path, and proving that
- *   for every one of those 30+ sites is exactly the exhaustive per-path proof the
- *   rule says not to shortcut. A collapse experiment stayed EQUAL over a 220-frame
- *   driven run, but that is the "short run is NOT proof" case the brief names — the
- *   NMI simply never landed inside sub_003d on that trajectory. This is the same
- *   widely-reached-leaf shape as sub_0018 / sub_0020, which are kept per-instruction
- *   for this reason; per-instruction is always correct, so that is what is kept here.
- *   The per-instruction charges also reproduce the oracle's exact cycle distribution,
- *   so every branch's total is preserved trivially. No hardware (0x7Dxx) writes here
- *   -- only caller-supplied work RAM -- so there is no write-bus-cycle trace at stake.
+ * ATOMICITY / CYCLES -- COLLAPSED (one m.step per basic block: the loop body's four
+ *   straight-line instructions fold into one charge, the `djnz` decision keeps its
+ *   own branch-dependent charge, same convention as sub_0350). sub_003d is a
+ *   foundational LEAF reached from 30+ sites via both `rst 0x38` (loc_0038) and
+ *   direct `call 0x003d`; the fleet-wide rule is that atomicity is a property of the
+ *   SCENARIO exercised, not the routine, so rather than trying to prove the NMI can
+ *   never land inside it across all 30+ call paths (the exhaustive per-path proof
+ *   this routine's older per-instruction note declined to shortcut), the whole-
+ *   machine gate uses the CONVERGENT license unconditionally (see
+ *   equivalence-003d.test.js) -- it tolerates a benign mid-loop NMI raster tear and
+ *   still catches a real (persistent) divergence. Every loop-count branch TOTAL still
+ *   sums to the oracle's, EXACTLY (asserted per-pass-count by the BRANCH tests, which
+ *   are cycle-exact and unaffected by the collapse grain). No hardware (0x7Dxx)
+ *   writes here -- only caller-supplied work RAM -- so there is no write-bus-cycle
+ *   trace at stake.
  *
  * FLAGS -- kept verbatim. The final `add hl,de` carry-out is a live output the caller
  *   can consume (`ret`s straight through), so regs.addHl is preserved and A is left
@@ -78,18 +78,14 @@ export function sub_003d(m) {
   // once (and B == 0 would run 256 passes). The whole routine is this loop; the
   // `djnz` at 0x0041 targets 0x003D, this entry point.
   do {
-    // A = C + (HL); write it back. 8-bit, wraps (C = 0xFC decrements).
+    // ld a,c[4]+add a,(hl)[7]+ld(hl),a[7]+add hl,de[11] -- A=C+(HL) write back (8-bit
+    // wrap, C=0xFC decrements), then step HL by the stride. addHl writes H/N/C
+    // (S/Z/PV preserved); the FINAL iteration's carry-out escapes to the caller.  29 t
     regs.a = regs.c;
-    m.step(0x003e, 4); // ld a,c
     regs.add(mem.read8(regs.hl)); // add a,(hl) -- sets A + F; this carry is dead
-    m.step(0x003f, 7);
     mem.write8(regs.hl, regs.a); // ld (hl),a
-    m.step(0x0040, 7);
-
-    // Step HL by the stride. add hl,de writes H/N/C (S/Z/PV preserved); the FINAL
-    // iteration's carry-out escapes to the caller, so addHl is required.
     regs.addHl(regs.de); // add hl,de
-    m.step(0x0041, 11);
+    m.step(0x0041, 29);
 
     regs.djnz(); // djnz -- --B, sets no flags
     m.step(regs.b !== 0 ? 0x003d : 0x0043, regs.b !== 0 ? 13 : 8);

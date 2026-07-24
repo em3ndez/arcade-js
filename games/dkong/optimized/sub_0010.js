@@ -53,35 +53,28 @@ import { MARIO_ACTIVE } from "./ram.js";
  * SP is load-bearing: the two `inc sp` ARE the caller-skip mechanism, so SP is
  * reproduced exactly (+2 normal, +4 splice).
  *
- * CYCLES -- PER-INSTRUCTION, DELIBERATELY (NOT collapsed). sub_0010 is atomic on the
- * NMI game-state path (the handler runs with the NMI mask cleared, so no nested NMI
- * lands inside it there), BUT it is ALSO reached from the INTERRUPTIBLE main-loop
- * path: loc_197a -- the per-frame in-game update cascade, documented decisively
- * NON-atomic (the vblank NMI lands mid-cascade, diverging at stack 0x6BF6) -- calls
- * entry_2c03 (ROM 0x2C03) and entry_2ddb (ROM 0x2DDB), and BOTH `rst 0x10` into here
- * while the NMI mask is SET. So the vblank NMI CAN fire inside this 4-6 instruction
- * body on the gameplay path. Collapsing the per-instruction m.step charges to one
- * per-branch lump would move where such an NMI lands: fireNmi would push the
- * ret-target PC instead of the oracle's exact 0x0013/0x0014/0x0015/0x0016 -- a
- * divergent byte in the diffed stack RAM (vs MAME). So the oracle's cycle
- * DISTRIBUTION is preserved charge-for-charge; each branch's TOTAL is the oracle's by
- * construction (normal 13+4+11 = 28; splice 13+4+5+6+6+10 = 44). Kept per-instruction
- * for the same reason as its siblings sub_0020 and loc_197a. (A whole-machine test on
- * ATTRACT frames alone would not exercise this interruptible caller -- no credited
- * game runs loc_197a -- so atomicity there is NOT provable by that gate.) Optimization
- * here buys the MARIO_ACTIVE name, the plain-English contract, and structured control
- * flow -- not a collapse.
+ * CYCLES -- COLLAPSED to one m.step per basic block. sub_0010 IS reached from the
+ * INTERRUPTIBLE main-loop path loc_197a (the per-frame in-game update cascade,
+ * documented decisively NON-atomic) via entry_2c03/entry_2ddb, both `rst 0x10`-ing into
+ * here while the NMI mask is SET -- so the vblank NMI CAN fire inside this 4-6
+ * instruction body on the gameplay path, and a collapse's coarse block-exit PC can land
+ * in the diffed stack instead of the oracle's exact per-instruction PC. That is exactly
+ * the case the CONVERGENT gate (docs/06; equivalence-0010.test.js) is for: pixels are
+ * ground truth, a mistimed-NMI raster tear or dead-stack PC is tolerated if it heals,
+ * and a PERSISTENT divergence (e.g. a wrong cycle total forking the PRNG) still fails.
+ * Two blocks:
+ *   A (ld a,(MARIO_ACTIVE); rrca)                                    13+4      = 17 t
+ *   B, splice only (ret-c-not-taken; inc sp; inc sp)                 5+6+6     = 17 t
+ * Each charge is the oracle's own per-instruction value; only the granularity changed.
+ * Per-branch TOTAL is unchanged (normal 17+11=28; splice 17+17+10=44 t).
  */
 export function sub_0010(m) {
   const { regs, mem } = m;
 
-  // ld a,(MARIO_ACTIVE) -- load the player-alive byte.
+  // Block A: ld a,(MARIO_ACTIVE); rrca -- rotate the alive bit (bit 0) into carry.  13+4=17 t.
   regs.a = mem.read8(MARIO_ACTIVE);
-  m.step(0x0013, 13);
-
-  // rrca -- rotate the alive bit (bit 0) into carry.
   regs.rrca();
-  m.step(0x0014, 4);
+  m.step(0x0014, 17);
 
   if (regs.fC) {
     // ret c taken -- bit 0 SET: Mario alive, return NORMALLY (caller resumes).
@@ -89,14 +82,10 @@ export function sub_0010(m) {
     return true;
   }
 
-  // ret c NOT taken -- bit 0 CLEAR: the two `inc sp` discard our own return address
-  // so the final ret unwinds to the caller's CALLER (the splice). Per-instruction, so
-  // an NMI landing between these boundaries pushes the oracle's exact PC.
-  m.step(0x0015, 5); // ret c not taken
-  regs.sp = (regs.sp + 1) & 0xffff;
-  m.step(0x0016, 6); // inc sp
-  regs.sp = (regs.sp + 1) & 0xffff;
-  m.step(0x0017, 6); // inc sp
+  // Block B: ret c NOT taken; inc sp; inc sp -- discard our own return address so the
+  // final ret unwinds to the caller's CALLER (the splice).  5+6+6 = 17 t.
+  regs.sp = (regs.sp + 2) & 0xffff;
+  m.step(0x0017, 17);
   m.ret(); // ret -- returns to the caller's CALLER
   return false;
 }

@@ -26,29 +26,30 @@
  * HL/C -- the site that proves the preservation). 0x101B being read as source data is why
  * the coverage map shows 0x101B-0x101E unreached: it is data, not code.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached via the board-setup dispatch, whose
- * atomicity is not pinned to the mask-cleared NMI; every call keeps its push16/step
- * scaffolding and callees route through m.call (the registry).
+ * CYCLES -- COLLAPSED to one m.step per basic block (straight-line register-load groups
+ * folded into a single charge at the block's exit PC, right before the next call/ldir
+ * scaffold). loc_0fd7 is reached only via the per-board setup dispatch -- a one-shot,
+ * dispatch-time build, not a per-frame routine -- the same reasoning that lets sub_122a
+ * collapse. Every fold sums the oracle's own per-instruction values (10t per `ld rr,nn`,
+ * 7t per 8-bit immediate load); `m.call`/`m.push16`/`m.ldirAt` scaffolding is untouched, and
+ * single-load blocks (nothing to fold beside them) are left as they were.
  */
 export function loc_0fd7(m) {
   const { regs } = m;
 
+  // ld hl,0x3ddc; ld de,0x69a8; ld bc,0x0010.  10+10+10 = 30 t, exit 0x0fe0.
   regs.hl = 0x3ddc;
-  m.step(0x0fda, 10);
   regs.de = 0x69a8; // inside the sprite buffer
-  m.step(0x0fdd, 10);
   regs.bc = 0x0010;
-  m.step(0x0fe0, 10);
+  m.step(0x0fe0, 30);
   m.ldirAt(0x0fe0, 0x0fe2);
 
+  // ld hl,0x3dec; ld de,0x6407; ld c,0x1c; ld b,5.  10+10+7+7 = 34 t, exit 0x0fec.
   regs.hl = 0x3dec;
-  m.step(0x0fe5, 10);
   regs.de = 0x6407;
-  m.step(0x0fe8, 10);
   regs.c = 0x1c;
-  m.step(0x0fea, 7);
   regs.b = 0x05;
-  m.step(0x0fec, 7);
+  m.step(0x0fec, 34);
   m.push16(0x0fef);
   m.step(0x122a, 17);
   m.call(0x122a);
@@ -60,12 +61,11 @@ export function loc_0fd7(m) {
   m.step(0x11fa, 17);
   m.call(0x11fa);
 
+  // ld hl,0x3e00; ld de,0x69fc; ld bc,0x0004.  10+10+10 = 30 t, exit 0x0ffe.
   regs.hl = 0x3e00;
-  m.step(0x0ff8, 10);
   regs.de = 0x69fc; // inside the sprite buffer, like 0x69A8
-  m.step(0x0ffb, 10);
   regs.bc = 0x0004;
-  m.step(0x0ffe, 10);
+  m.step(0x0ffe, 30);
   m.ldirAt(0x0ffe, 0x1000);
 
   // HL is a LIVE-IN parameter of sub_11a6, passed straight through to sub_11ec.
@@ -75,21 +75,19 @@ export function loc_0fd7(m) {
   m.step(0x11a6, 17);
   m.call(0x11a6);
 
+  // ld hl,0x101b; ld de,0x6707; ld bc,0x081c.  10+10+10 = 30 t, exit 0x100f.
   regs.hl = 0x101b; // the 4 DATA bytes (00 00 02 02) after this routine's ret
-  m.step(0x1009, 10);
   regs.de = 0x6707;
-  m.step(0x100c, 10);
   regs.bc = 0x081c; // B = 8 passes, C = 0x1C stride
-  m.step(0x100f, 10);
+  m.step(0x100f, 30);
   m.push16(0x1012);
   m.step(0x122a, 17);
   m.call(0x122a);
 
-  // reloads DE and B ONLY (not HL/C) -- proves sub_122a preserves both.
+  // reloads DE and B ONLY (not HL/C) -- proves sub_122a preserves both.  10+7 = 17 t, exit 0x1017.
   regs.de = 0x6807;
-  m.step(0x1015, 10);
   regs.b = 0x02;
-  m.step(0x1017, 7);
+  m.step(0x1017, 17);
   m.push16(0x101a);
   m.step(0x122a, 17);
   m.call(0x122a);

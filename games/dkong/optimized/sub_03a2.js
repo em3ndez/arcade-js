@@ -89,18 +89,17 @@
  * further along and 0x03C0 rotates bit1 up. There is NO second RAM read — it is
  * the same byte, walked bit by bit.
  *
- * CYCLES — KEPT PER-INSTRUCTION (NOT collapsed). sub_03a2 is reached mask-ENABLED:
- * its ONLY caller is the main loop (ROM 0x02DE), on the per-frame-work path where
- * the vblank NMI is armed. On that call path the NMI CAN land between this
- * routine's instructions; collapsing the per-instruction m.step charges to one
- * per-branch total would move where the NMI lands inside the routine and push a
- * different PC into the diffed stack RAM — the exact divergence that reverted
- * sub_0008/0010/0018 and keeps sub_0030/loc_197a per-instruction. A short attract
- * run happening not to interrupt it is NOT proof (README §"ATOMICITY IS PER-CALL-
- * PATH"; when unsure, per-instruction is always correct). So every m.step charge
- * is kept byte-for-byte at the oracle's cycle. No HARDWARE latch (0x7Dxx) is
- * written — every store is work RAM — so there is no bus-cycle write to protect;
- * the win here is structure + this documentation, not de-scaffolding.
+ * CYCLES — COLLAPSED to one m.step per basic block. sub_03a2 is reached
+ * mask-ENABLED: its ONLY caller is the main loop (ROM 0x02DE), on the per-frame-work
+ * path where the vblank NMI is armed, so it is NOT atomic — the collapse is LICENSED
+ * by the CONVERGENT gate (docs/06), not the strict whole-machine gate, exactly as
+ * sub_0350's: a mistimed NMI can push a coarser PC into the diffed stack RAM, which
+ * the convergent gate tolerates as long as it heals and non-stack state/pixels stay
+ * identical. Every block's TOTAL is the oracle's, EXACTLY (see the per-block
+ * comments below); a call's own instruction charge is folded into the block that
+ * ends at that call, and `m.call` itself is always kept (never inlined). No
+ * HARDWARE latch (0x7Dxx) is written — every store is work RAM — so nothing blocks
+ * folding across them.
  *
  * FLAGS. The caller (mainLoop) consumes NOTHING sub_03a2 returns — it `m.call`s
  * and falls through to the vblank spin with no branch on A or F. Within the
@@ -112,119 +111,102 @@
 export function sub_03a2(m) {
   const { regs, mem } = m;
 
-  // ld a,0x03 -- the mask the rst-0x30 bit select works on.
+  // Block 1: ld a,0x03 (7) + rst 0x30's own charge (11) = 18 t.
   regs.a = 0x03;
-  m.step(0x03a4, 7);
-
-  // rst 0x30 -- bit-select A by (BOARD): true only on boards 1-2, else skip us.
   m.push16(0x03a5);
-  m.step(0x0030, 11);
-  if (!m.call(0x0030)) return;
+  m.step(0x0030, 18);
+  if (!m.call(0x0030)) return; // bit-select A by (BOARD): true only on boards 1-2
 
-  // rst 0x10 -- proceed only while MARIO_ACTIVE (0x6200) bit0 is set.
+  // Block 2: rst 0x10's own charge alone = 11 t.
   m.push16(0x03a6);
   m.step(0x0010, 11);
-  if (!m.call(0x0010)) return;
+  if (!m.call(0x0010)) return; // proceed only while MARIO_ACTIVE (0x6200) bit0 is set
 
-  // ld a,(0x6350) / rrca / ret c -- bail if bit0 of the scratch flag is set.
+  // Block 3: ld a,(0x6350) (13) + rrca (4) = 17 t.
   regs.a = mem.read8(0x6350);
-  m.step(0x03a9, 13);
   regs.rrca();
-  m.step(0x03aa, 4);
+  m.step(0x03aa, 17);
   if (regs.fC) {
-    m.ret(11);
+    m.ret(11); // ret c -- bail if bit0 of the scratch flag is set.
     return;
   }
-  m.step(0x03ab, 5); // ret c not taken
 
-  // ld hl,0x62b8 / dec (hl) / ret nz -- /4 prescaler: run one pass in four.
+  // Block 4: ret c not-taken (5) + ld hl,0x62b8 (10) + dec (hl) (11) = 26 t.
   regs.hl = 0x62b8;
-  m.step(0x03ae, 10);
   mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8); // dec (hl)
-  m.step(0x03af, 11);
+  m.step(0x03af, 26);
   if (regs.fNZ) {
-    m.ret(11);
+    m.ret(11); // ret nz -- /4 prescaler: run one pass in four.
     return;
   }
-  m.step(0x03b0, 5); // ret nz not taken
 
-  // ld (hl),0x04 -- reload the prescaler.
-  mem.write8(regs.hl, 0x04);
-  m.step(0x03b2, 10);
-
-  // ld a,(0x62b9) / rrca / ret nc -- feature enable = bit0 of the 0x62B9 control.
+  // Block 5: ret nz not-taken (5) + ld (hl),0x04 (10) + ld a,(0x62b9) (13) + rrca (4) = 32 t.
+  mem.write8(regs.hl, 0x04); // reload the prescaler
   regs.a = mem.read8(0x62b9);
-  m.step(0x03b5, 13);
   regs.rrca();
-  m.step(0x03b6, 4);
+  m.step(0x03b6, 32);
   if (regs.fNC) {
-    m.ret(11);
+    m.ret(11); // ret nc -- feature enable = bit0 of the 0x62B9 control.
     return;
   }
-  m.step(0x03b7, 5); // ret nc not taken
 
-  // Set up the object write: HL=0x6A29 (sub_03f2's target), B=0x40, IX=0x66A0.
+  // Block 6: ret nc not-taken (5) + ld hl,0x6a29 (10) + ld b,0x40 (7) + ld ix,0x66a0
+  // (14) + rrca (4) = 40 t -- set up the object write, then split on the NEXT bit
+  // (bit1) of (0x62B9), still in A.
   regs.hl = 0x6a29;
-  m.step(0x03ba, 10);
   regs.b = 0x40;
-  m.step(0x03bc, 7);
   regs.ix = 0x66a0;
-  m.step(0x03c0, 14);
-
-  // rrca -- the NEXT bit (bit1) of (0x62B9), still in A, into carry: the arm split.
   regs.rrca();
-  m.step(0x03c1, 4);
+  m.step(0x03c1, 40);
 
   if (regs.fNC) {
-    // jp nc,0x03e4 taken -- ARM A (bit1 clear): (ix+0x0A) := 0x00, B stays 0x40.
-    m.step(0x03e4, 10);
+    // ARM A (bit1 clear): (ix+0x0A) := 0x00, B stays 0x40.
+    // Block A1: ld (ix+9),2 (19) + ld (ix+A),0 (19) + call 0x03f2's own charge (17)
+    // = the two writes' 38 t plus the call's 17 t = 65 t (own arm-select rrca
+    // already charged in Block 6).
     mem.write8((regs.ix + 0x09) & 0xffff, 0x02);
-    m.step(0x03e8, 19);
     mem.write8((regs.ix + 0x0a) & 0xffff, 0x00);
-    m.step(0x03ec, 19);
     m.push16(0x03ef);
-    m.step(0x03f2, 17);
-    m.call(0x03f2);
-    m.step(0x03de, 10); // jp 0x03de -> converge
-  } else {
-    // jp nc not taken -- ARM B (bit1 set): (ix+0x0A) := 0x02, B := 0x42.
-    m.step(0x03c4, 10);
-    mem.write8((regs.ix + 0x09) & 0xffff, 0x02);
-    m.step(0x03c8, 19);
-    mem.write8((regs.ix + 0x0a) & 0xffff, 0x02);
-    m.step(0x03cc, 19);
-    regs.b = regs.inc8(regs.b);
-    m.step(0x03cd, 4);
-    regs.b = regs.inc8(regs.b);
-    m.step(0x03ce, 4);
-    m.push16(0x03d1);
-    m.step(0x03f2, 17);
+    m.step(0x03f2, 65);
     m.call(0x03f2);
 
-    // ld hl,0x62ba / dec (hl) / ret nz -- arm-B countdown; bail until it underflows.
+    // Block A2: jp 0x03de (10) + shared-tail ld a,0x10 (7) + ld (0x62ba),a (13) = 30 t.
+    regs.a = 0x10;
+    mem.write8(0x62ba, regs.a);
+    m.step(0x03e3, 30);
+  } else {
+    // ARM B (bit1 set): (ix+0x0A) := 0x02, B := 0x42.
+    // Block B1: ld (ix+9),2 (19) + ld (ix+A),2 (19) + inc b x2 (4+4) + call 0x03f2's
+    // own charge (17) = 73 t.
+    mem.write8((regs.ix + 0x09) & 0xffff, 0x02);
+    mem.write8((regs.ix + 0x0a) & 0xffff, 0x02);
+    regs.b = regs.inc8(regs.b);
+    regs.b = regs.inc8(regs.b);
+    m.push16(0x03d1);
+    m.step(0x03f2, 73);
+    m.call(0x03f2);
+
+    // Block B2: ld hl,0x62ba (10) + dec (hl) (11) = 21 t -- arm-B countdown.
     regs.hl = 0x62ba;
-    m.step(0x03d4, 10);
     mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8); // dec (hl)
-    m.step(0x03d5, 11);
+    m.step(0x03d5, 21);
     if (regs.fNZ) {
-      m.ret(11);
+      m.ret(11); // bail until it underflows.
       return;
     }
-    m.step(0x03d6, 5); // ret nz not taken
 
-    // On underflow: (0x62B9) := 1 and (0x63A0) := 1, then converge.
+    // Block B3: ret nz not-taken (5) + ld a,1 (7) + ld (0x62b9),a (13) + ld (0x63a0),a
+    // (13) + shared-tail ld a,0x10 (7) + ld (0x62ba),a (13) = 58 t -- underflow: latch
+    // (0x62B9)=1 and (0x63A0)=1, then converge.
     regs.a = 0x01;
-    m.step(0x03d8, 7);
     mem.write8(0x62b9, regs.a);
-    m.step(0x03db, 13);
     mem.write8(0x63a0, regs.a);
-    m.step(0x03de, 13);
+    regs.a = 0x10;
+    mem.write8(0x62ba, regs.a);
+    m.step(0x03e3, 58);
   }
 
-  // loc_03de -- both arms converge: reload 0x62BA to 0x10 and return.
-  regs.a = 0x10;
-  m.step(0x03e0, 7);
-  mem.write8(0x62ba, regs.a);
-  m.step(0x03e3, 13);
+  // loc_03de -- both arms converge here (folded above into each arm's own final
+  // block): reload 0x62BA to 0x10 and return.
   m.ret();
 }

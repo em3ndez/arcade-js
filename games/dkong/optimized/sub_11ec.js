@@ -15,43 +15,37 @@
  * sub_122a which brackets it with push/pop). `inc e` keeps D's page fixed; the carry out of
  * the final `add a,c` escapes through the `ret`.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached from the board setups, whose atomicity
- * is not pinned to the mask-cleared NMI, so charges are kept verbatim.
+ * CYCLES -- COLLAPSED to one m.step per loop iteration (one basic block: the loop body has
+ * no internal branch and no hardware write, so it folds to a single charge including the
+ * djnz decision). Reached from the board setups, whose atomicity is not pinned to the
+ * mask-cleared NMI, so this collapse is INTERRUPTIBLE and is licensed by the CONVERGENT
+ * gate (see the accompanying equivalence test), not the strict whole-machine gate.
  */
 export function sub_11ec(m) {
   const { regs, mem } = m;
 
   do {
-    // loop body -- the djnz at 0x11F7 lands here.
+    // loop body -- the djnz at 0x11F7 lands here. ld a,(hl)(7)+ld(de),a(7)+inc hl(6)+
+    // inc e(4)+inc e(4)+ld a,(hl)(7)+ld(de),a(7)+inc hl(6)+ld a,e(4)+add a,c(4)+ld e,a(4)
+    // = 60 t, plus the djnz's own charge (13 taken / 8 not taken).
     regs.a = mem.read8(regs.hl); // HL live-in, NOT restored
-    m.step(0x11ed, 7);
     mem.write8(regs.de, regs.a); // write at E
-    m.step(0x11ee, 7);
     regs.hl = (regs.hl + 1) & 0xffff; // `inc hl` -- full 16-bit
-    m.step(0x11ef, 6);
 
     // TWO increments: the next store lands at E+2, E+1 is skipped.
     regs.e = regs.inc8(regs.e);
-    m.step(0x11f0, 4);
     regs.e = regs.inc8(regs.e);
-    m.step(0x11f1, 4);
 
     regs.a = mem.read8(regs.hl);
-    m.step(0x11f2, 7);
     mem.write8(regs.de, regs.a); // write at E+2
-    m.step(0x11f3, 7);
     regs.hl = (regs.hl + 1) & 0xffff;
-    m.step(0x11f4, 6);
 
     regs.a = regs.e;
-    m.step(0x11f5, 4);
     regs.add(regs.c); // A = E + stride; carry escapes via the ret
-    m.step(0x11f6, 4);
     regs.e = regs.a; // 8-bit -- D untouched, destination wraps in its page
-    m.step(0x11f7, 4);
 
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x11ec : 0x11f9, regs.b !== 0 ? 13 : 8);
+    m.step(regs.b !== 0 ? 0x11ec : 0x11f9, 60 + (regs.b !== 0 ? 13 : 8));
   } while (regs.b !== 0);
 
   m.ret(); // 0x11F9

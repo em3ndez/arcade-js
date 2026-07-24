@@ -23,49 +23,51 @@
  *     A  CLOBBERED (exits == E, never read before written); IX/IY passed through untouched
  *     (no DD/FD prefix). The carry out of the final `add a,c` escapes through the `ret`.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached from the board setups, whose atomicity
- * is not pinned to the mask-cleared NMI, so charges are kept verbatim. The push/pop that
- * preserve HL and C are modelled explicitly (m.push16/m.pop16) -- they are the contract.
+ * CYCLES -- COLLAPSED to one m.step per basic block (the per-instruction charges of each
+ * straight-line run folded into a single charge at the block's exit PC). sub_122a is called
+ * only from the per-board setup coordinators (loc_0fd7/loc_101f/etc.), each a one-shot
+ * dispatch-time build, not a per-frame main-loop routine -- the same reasoning that licenses
+ * the board-setup family's collapse. Three blocks per outer pass:
+ *   A (prologue: push hl; push bc; ld b,4)                              11+11+7  = 29 t
+ *   B (inner iteration: ld a,(hl); ld (de),a; inc hl; inc e; djnz)       7+7+6+4  = 24 t body,
+ *     + the djnz's own charge: +13 t looping (exit 0x122e) / +8 t falling through (exit 0x1234)
+ *   C (outer tail: pop bc; pop hl; ld a,e; add a,c; ld e,a; djnz)   10+10+4+4+4  = 32 t body,
+ *     + the djnz's own charge: +13 t looping (exit 0x122a) / +8 t done (exit 0x123b)
+ * Every charge in the sum is the oracle's own per-instruction value (see the prior
+ * per-instruction cycle comments, preserved in git history) -- only the granularity changed.
+ * The push/pop that preserve HL and C stay explicit (m.push16/m.pop16) -- they are the
+ * contract -- and every memory read/write keeps its original order within each block.
  */
 export function sub_122a(m) {
   const { regs, mem } = m;
 
   do {
-    // outer loop body -- the djnz at 0x1239 lands here.
+    // Block A -- outer-loop prologue: push hl; push bc; ld b,4.  11+11+7 = 29 t, exit 0x122e.
     m.push16(regs.hl);
-    m.step(0x122b, 11);
     m.push16(regs.bc);
-    m.step(0x122c, 11);
     regs.b = 0x04; // inner count, always 4, never 0
-    m.step(0x122e, 7);
+    m.step(0x122e, 29);
 
     do {
+      // Block B -- inner iteration: ld a,(hl); ld (de),a; inc hl; inc e; djnz.
+      // Body 7+7+6+4 = 24 t, + the djnz's own charge (13 taken / 8 not).
       regs.a = mem.read8(regs.hl);
-      m.step(0x122f, 7);
       mem.write8(regs.de, regs.a);
-      m.step(0x1230, 7);
       regs.hl = (regs.hl + 1) & 0xffff;
-      m.step(0x1231, 6);
       regs.e = regs.inc8(regs.e); // `inc e`, NOT `inc de` -- D untouched
-      m.step(0x1232, 4);
       regs.djnz();
-      m.step(regs.b !== 0 ? 0x122e : 0x1234, regs.b !== 0 ? 13 : 8);
+      m.step(regs.b !== 0 ? 0x122e : 0x1234, regs.b !== 0 ? 37 : 32);
     } while (regs.b !== 0);
 
+    // Block C -- outer tail: pop bc; pop hl; ld a,e; add a,c; ld e,a; djnz.
+    // Body 10+10+4+4+4 = 32 t, + the djnz's own charge (13 taken / 8 not).
     regs.bc = m.pop16(); // restores the OUTER counter B *and* the stride C
-    m.step(0x1235, 10);
     regs.hl = m.pop16(); // discards the inner loop's four `inc hl`
-    m.step(0x1236, 10);
-
     regs.a = regs.e;
-    m.step(0x1237, 4);
     regs.add(regs.c); // A = E + stride; carry escapes via the ret
-    m.step(0x1238, 4);
     regs.e = regs.a;
-    m.step(0x1239, 4);
-
     regs.djnz();
-    m.step(regs.b !== 0 ? 0x122a : 0x123b, regs.b !== 0 ? 13 : 8);
+    m.step(regs.b !== 0 ? 0x122a : 0x123b, regs.b !== 0 ? 45 : 40);
   } while (regs.b !== 0);
 
   m.ret(); // 0x123B

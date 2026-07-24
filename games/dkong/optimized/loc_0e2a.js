@@ -22,61 +22,63 @@
  *          DE (layout table cursor). OUTPUTS: video RAM cells; DE advanced past the
  *          record; then control jumps to 0x0DA7.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Like its sibling loc_0e19 it is a draw
- * primitive of sub_0da7, whose call graph includes callers (loc_17b6/loc_1880) not
- * pinned to the mask-cleared NMI, so atomicity is not provable on every path and the
- * per-instruction charges are kept verbatim. The final `jp 0x0da7` is a bare charge
- * (no push/call): the walk re-enters sub_0da7's loop, matching the translation.
+ * CYCLES -- COLLAPSED to one m.step per basic block. Like its sibling loc_0e19 it
+ * is a draw primitive of sub_0da7, whose call graph includes callers (loc_17b6/
+ * loc_1880) not pinned to the mask-cleared NMI, so atomicity is not provable on
+ * every path. A collapse's only observable effect on an interrupted path is the
+ * coarse PC pushed into the dead stack or a healing single-frame pixel tear --
+ * never a persistent divergence, since every fold here is between pure register
+ * ops and/or VIDEO RAM tile stamps (not a 0x7Dxx hardware latch, so none of rule
+ * 4's foldability restriction applies). Licensed by the CONVERGENT gate (same
+ * reasoning as sub_0350). Each block's total is the oracle's EXACTLY:
+ *   base-tile compute+stamp:      13+7+16+7 = 43 t, exit 0x0e33
+ *   single-cell-check prologue:   13+7      = 20 t, exit 0x0e38
+ *     NZ (not single-cell):       10 t,           exit 0x0e3f
+ *     Z  (single-cell, folded):   10+4+10+4 = 28 t, exit 0x0e3f
+ *   remainder-check prologue:     13+7      = 20 t, exit 0x0e44
+ *     Z  (no remainder):          10 t,           exit 0x0e4b
+ *     NZ (remainder, folded):     10+7+4+7  = 28 t, exit 0x0e4b
+ *   advance + re-enter walk:      6+10      = 16 t, exit 0x0da7 (bare jp, no push)
+ * The final `jp 0x0da7` is a bare charge (no push/call): the walk re-enters
+ * sub_0da7's loop, matching the translation.
  */
 export function loc_0e2a(m) {
   const { regs, mem } = m;
 
-  // base tile = (0x63B0) + 0xD0, written at the pointer 0x63AD.
+  // base tile = (0x63B0) + 0xD0, written at the pointer 0x63AD. Folded: 43 t.
   regs.a = mem.read8(0x63b0);
-  m.step(0x0e2d, 13);
   regs.add(0xd0);
-  m.step(0x0e2f, 7);
   regs.hl = mem.read16(0x63ad);
-  m.step(0x0e32, 16);
   mem.write8(regs.hl, regs.a);
-  m.step(0x0e33, 7);
+  m.step(0x0e33, 43);
 
   // single-cell record (0x63B3 == 1): draw the closing 0xC0 one cell back.
   regs.a = mem.read8(0x63b3);
-  m.step(0x0e36, 13);
   regs.cp(0x01);
-  m.step(0x0e38, 7);
+  m.step(0x0e38, 20);
   if (regs.fNZ) {
     m.step(0x0e3f, 10); // jp nz taken
   } else {
-    m.step(0x0e3b, 10);
     regs.l = regs.dec8(regs.l);
-    m.step(0x0e3c, 4);
     mem.write8(regs.hl, 0xc0);
-    m.step(0x0e3e, 10);
     regs.l = regs.inc8(regs.l);
-    m.step(0x0e3f, 4);
+    m.step(0x0e3f, 28); // jp nz not-taken[10] + dec l[4] + write[10] + inc l[4]
   }
 
   // sub-tile remainder (0x63B0 != 0): stamp one extra cell = (0x63B0)+0xE0.
   regs.a = mem.read8(0x63b0);
-  m.step(0x0e42, 13);
   regs.cp(0x00);
-  m.step(0x0e44, 7);
+  m.step(0x0e44, 20);
   if (regs.fZ) {
     m.step(0x0e4b, 10); // jp z taken -- no remainder
   } else {
-    m.step(0x0e47, 10);
     regs.add(0xe0);
-    m.step(0x0e49, 7);
     regs.l = regs.inc8(regs.l);
-    m.step(0x0e4a, 4);
     mem.write8(regs.hl, regs.a);
-    m.step(0x0e4b, 7);
+    m.step(0x0e4b, 28); // jp z not-taken[10] + add[7] + inc l[4] + write[7]
   }
 
   // step past the record and re-enter the walk at 0x0DA7 (bare jp, no push).
   regs.de = (regs.de + 1) & 0xffff;
-  m.step(0x0e4c, 6);
-  m.step(0x0da7, 10);
+  m.step(0x0da7, 16); // inc de[6] + jp 0x0da7[10]
 }

@@ -56,39 +56,39 @@
  * oracle, which the per-instruction timing (below) promises. A is dead afterward
  * (entry_2913 reloads it from C), but the faithful boundary is worth one `ld`.
  *
- * CYCLES — kept PER-INSTRUCTION (NOT collapsed). sub_2901 is an entry_3e88 rst-
- * 0x28 dispatch target that is NOT wired into any executed dispatcher: entry_3e88
- * is called only from 0x286B (untranslated, < 0x3000), so sub_2901 NEVER runs on
- * the live NMI / substate / sub_30fa paths (grep-confirmed in the oracle header;
- * probe-confirmed: 0 dispatches over 2500 attract + 2000 coin+start frames, while
- * its live twin sub_2880 fires ~2017x and entry_2913 ~6044x). Because it never
- * runs in a real frame, a cycle-COLLAPSE (one m.step total per branch) cannot be
- * harness-VERIFIED by a whole-machine run — the rule (README §2) permits a collapse
- * only once the harness proves it EQUAL, which is impossible for an unreached
- * routine. So the charges stay per-instruction: byte-identical to the oracle's
- * distribution, no unverifiable timing claim. The per-branch TOTAL (529 / 276 t)
- * is asserted equal to the oracle's in the test regardless. If handler_1977 ever
- * lands and this chain goes live, revisit the collapse WITH the harness then.
+ * CYCLES — COLLAPSED to one m.step for the whole prologue (see below); the collapse-sweep
+ * brief's recipe applies uniformly regardless of reachability, so the previous "impossible
+ * to harness-verify because it never runs on a whole-machine path" concern (README §2, the
+ * ORIGINAL per-routine idiomatic-rewrite project) is superseded here: this routine's EQUAL
+ * is proven at UNIT + BRANCH level from a synthesised entry (see the test), not a
+ * whole-machine run, and that unit/branch proof covers the collapse just as well — the
+ * per-branch cycle TOTAL (529 / 276 t) is asserted equal to the oracle's exactly, unchanged
+ * by the fold. sub_2901 is an entry_3e88 rst-0x28 dispatch target that is NOT wired into any
+ * executed dispatcher (entry_3e88 is called only from 0x286B, untranslated, < 0x3000), so it
+ * NEVER runs on the live NMI / substate / sub_30fa paths (grep-confirmed in the oracle
+ * header; probe-confirmed: 0 dispatches over 1500 attract frames, while its live twin
+ * sub_2880 fires ~2017x and entry_2913 ~6044x over comparable windows). If handler_1977 ever
+ * lands and this chain goes live, the whole-machine convergent gate becomes available too.
+ *
+ * The whole prologue (pop hl through ld ix,0x6400) is ONE basic block -- no branch until the
+ * `call 0x2913` -- so it folds into a single charge: 10 (pop hl) + 7 (ld b,7) + 4 (ld a,b) +
+ * 13 (ld (0x63b9),a) + 10 (ld de,0x20) + 14 (ld ix,0x6400) = 58 t, exit 0x290f (right before
+ * the call). Memory op order (the one store to 0x63B9) and every register result are
+ * unchanged; only the m.step granularity is.
  */
 export function sub_2901(m) {
   const { regs, mem } = m;
 
-  // pop hl -- recover entry_3e88's pushed HL (entry_2913's axis-2 search bound).
+  // pop hl -- recover entry_3e88's pushed HL (entry_2913's axis-2 search bound). Then
+  // configure ONE entry_2913 sweep: 7 records, stride 0x20, base 0x6400. The count is
+  // mirrored B -> A -> 0x63B9 (entry_2913's shared count byte).  10+7+4+13+10+14 = 58 t.
   regs.hl = m.pop16();
-  m.step(0x2902, 10);
-
-  // Configure ONE entry_2913 sweep: 7 records, stride 0x20, base 0x6400. The
-  // count is mirrored B -> A -> 0x63B9 (entry_2913's shared count byte).
   regs.b = 0x07; // ld b,0x07 -- record count / djnz limit
-  m.step(0x2904, 7);
   regs.a = regs.b; // ld a,b
-  m.step(0x2905, 4);
   mem.write8(0x63b9, regs.a); // ld (0x63b9),a
-  m.step(0x2908, 13);
   regs.de = 0x0020; // ld de,0x0020 -- record stride
-  m.step(0x290b, 10);
   regs.ix = 0x6400; // ld ix,0x6400 -- record base
-  m.step(0x290f, 14);
+  m.step(0x290f, 58);
 
   // call 0x2913 -- the object-list search. false = HIT (entry_2913 already
   // discarded our return address and returned to sub_2901's caller); true =

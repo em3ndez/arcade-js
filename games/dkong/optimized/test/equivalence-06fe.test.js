@@ -47,10 +47,14 @@
  * is applied identically to both sides (the factory is shared).
  *
  * CYCLE FINDING this routine adds: loc_06fe is NON-ATOMIC (its m.call(0x0028)
- * dispatches into interruptible in-game handlers), so it stays PER-INSTRUCTION --
- * byte-identical to the oracle. See optimized/loc_06fe.js for the full decision
- * (incl. the honest note that a collapse to one m.step also happened to stay EQUAL,
- * but is not taken for a non-atomic routine whose rst push straddles its charges).
+ * dispatches into interruptible in-game handlers, including gameplay -- the
+ * longest per-frame work in the game) but is now COLLAPSED to a single
+ * m.step(0x0028, 24) (see optimized/loc_06fe.js for the full decision). Per the
+ * fleet-wide rule, "atomic" is a property of the SCENARIO exercised, not the
+ * routine, so the whole-machine gate below uses the CONVERGENT license
+ * UNCONDITIONALLY -- the same collapse this routine's own note already recorded
+ * as staying EQUAL over 1500 frames, gated the way every collapsed interruptible
+ * routine in this fleet is rather than kept on a "didn't happen to fail yet" basis.
  *
  * Run: node --test
  */
@@ -64,10 +68,11 @@ import { loc_06fe as optimized_06fe } from "../loc_06fe.js";
 import { Machine } from "../../machine.js";
 import {
   unitEquivalence,
-  wholeMachineEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
+import { convergentGate } from "./convergent.js";
+import { GAME_SUBSTATE } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -133,24 +138,40 @@ function broken_06fe(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_06fe matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_06fe]]));
+// A custom convergent scenario reusing the SAME coin+start tape as makeMachine above
+// (SCENARIOS.attract never credits a game; SCENARIOS.gameplay's fixed coin@400/
+// start@460 timing does not line up with this ROM's coin@10/start@30 -> f32 shape).
+const CONVERGENT_SCENARIO = { frames: FRAMES, inputs: COIN_START_TAPE };
 
-  // The override must actually have run, or EQUAL would be vacuous.
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the
+// collapsed routine, but the fold is 5 t short. A wrong total shifts the main
+// loop's spin count (0x6019 PRNG entropy), forking the RANDOM stream: a PERSISTENT
+// non-stack divergence, never a heal.
+function cyclebroken_06fe(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(GAME_SUBSTATE);
+  m.push16(0x0702);
+  m.step(0x0028, 19); // DROPPED: the correct charge here is 24 t
+  m.call(0x0028, "0x0702 (0x600A game sub-state)");
+}
+
+test("CONVERGENT (whole-machine): collapsed loc_06fe CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_06fe]]), { scenario: CONVERGENT_SCENARIO });
+
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (in-game substates 0,1,5,6,7,8,a,b,c,d via coin+start)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (in-game substates 0,1,5,6,7,8,a,b,c,d via coin+start); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -166,16 +187,18 @@ test("EQUAL (unit): idiomatic optimized loc_06fe matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong store on the dispatch path is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeMachine, MAX_FRAMES, new Map([[TARGET, broken_06fe]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_06fe]]), { scenario: CONVERGENT_SCENARIO });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

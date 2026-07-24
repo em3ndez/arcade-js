@@ -3,35 +3,35 @@
  * Equivalence-harness tests for loc_066a (unpack a packed two-BCD-digit byte and
  * paint it into two VRAM tile cells, suppressing a leading zero). It is a LEAF
  * reached via m.call from the MAIN-LOOP task 10 (entry_062a: its branch-D tail and,
- * via loc_06a8's `jp 0x066a`, its branch-B pass) — so, per the brief's
- * ATOMICITY-IS-PER-CALL-PATH rule, loc_066a keeps PER-INSTRUCTION cycles (the vblank
- * NMI can fire inside it on a main-loop path). The optimization win is names +
- * structure + docs, proven byte-identical here.
+ * via loc_06a8's `jp 0x066a`, its branch-B pass) — genuinely INTERRUPTIBLE (the
+ * vblank NMI can fire inside it on a main-loop path). COLLAPSED to one m.step per
+ * basic block (see optimized/loc_066a.js); per the lead's collapse-sweep rule the
+ * whole-machine gate is the CONVERGENT one UNCONDITIONALLY, and its teeth is a
+ * CYCLE-DROP twin (never a value-corruption twin over a long run, which can hang the
+ * game -- that coverage stays at the unit level).
  *
  * Six jobs:
  *
- *   1. EQUAL (whole-machine) -- optimized loc_066a reads EQUAL against its oracle,
- *      every frame. The override routes through m.call in the routine registry,
- *      inert when the map is empty. loc_066a first fires on entry_062a's seed pass
- *      (~frame 521, branch 1: 0x638C=0x50 -> tens nibble 5) and again on each
- *      BCD-decrement pass; a 600-frame window covers several dispatches.
+ *   1. CONVERGENT (whole-machine) -- optimized loc_066a CONVERGES against its oracle.
+ *      The override routes through m.call in the routine registry, inert when the map
+ *      is empty. loc_066a first fires on entry_062a's seed pass (~frame 521, branch 1:
+ *      0x638C=0x50 -> tens nibble 5) and again on each BCD-decrement pass.
  *
  *   2. EQUAL (unit) -- RAM + all registers (incl. F) + pc identical at the first
  *      natural entry (branch 1).
  *
- *   3+4. TEETH (whole + unit) -- a deliberately-broken twin whose one output store
- *      to VRAM 0x74E6 (the tens-digit cell, written by the tail loc_0689 on branch 1)
- *      lands a wrong value MUST be caught, naming 0x74E6.
+ *   3. TEETH (convergent + unit) -- convergent: a CYCLE-DROP twin (wrong total) forks
+ *      the PRNG, a PERSISTENT divergence, CAUGHT. unit: a deliberately-broken twin
+ *      whose one output store to VRAM 0x74E6 (the tens-digit cell, written by the tail
+ *      loc_0689 on branch 1) lands a wrong value MUST be caught, naming 0x74E6.
  *
- *   5. BRANCH COVERAGE -- branch 2 (tens nibble == 0, the leading-zero-suppression
+ *   4. BRANCH COVERAGE -- branch 2 (tens nibble == 0, the leading-zero-suppression
  *      arm) is not reached by the 600-frame attract run, so it is SYNTHESISED: clone
  *      the captured entry, set A to a zero-high-nibble value, and diff oracle vs
  *      optimized (RAM + regs + pc). Branch 1 is re-diffed from a clean synthetic A
- *      too, so both data-dependent arms have committed EQUAL teeth. (Cycles are kept
- *      per-instruction, so there is no collapsed total to assert on the synthetic
- *      arm.)
+ *      too, so both data-dependent arms have committed EQUAL teeth.
  *
- *   6. BRANCH-2 TEETH -- a wrong value to one of branch 2's OWN direct stores
+ *   5. BRANCH-2 TEETH -- a wrong value to one of branch 2's OWN direct stores
  *      (VRAM 0x7486) is caught, so the suppression arm is not left without teeth.
  *
  * Run: node --test
@@ -43,9 +43,11 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_066a as translated_066a } from "../../translated/mainloop.js";
 import { loc_066a as optimized_066a } from "../loc_066a.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
+import { SND_BGM } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -57,7 +59,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x066a;
-const FRAMES = 600; // loc_066a first fires ~frame 521, then on each BCD-decrement pass
 const MAX_FRAMES = 600; // the unit harness must run far enough to reach the first entry
 
 // On branch 1 (the natural path) loc_066a makes no stores of its own -- its output
@@ -133,23 +134,23 @@ function diffBranch(entry, aValue, optFn = optimized_066a) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_066a matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_066a]]));
+test("CONVERGENT (whole-machine): collapsed loc_066a CONVERGES vs translated", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_066a]]), { scenario: SCENARIOS.attract });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -165,16 +166,49 @@ test("EQUAL (unit): idiomatic optimized loc_066a matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong tens-digit store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_066a]]));
+/**
+ * CYCLE-DROP twin for the CONVERGENT gate: identical memory/registers to the collapsed
+ * routine, but the nibble-split block charge is 5 t short. A wrong total forks the main
+ * loop's spin count (0x6019 PRNG entropy) -- a PERSISTENT divergence, never a heal.
+ */
+function cyclebroken_066a(m) {
+  const { regs, mem } = m;
+  regs.c = regs.a;
+  regs.and(0x0f);
+  regs.b = regs.a;
+  regs.a = regs.c;
+  regs.rrca(); regs.rrca(); regs.rrca(); regs.rrca();
+  regs.and(0x0f);
+  m.step(0x0675, 37); // DROPPED: the correct charge here is 42 t
+  if (regs.fNZ) {
+    m.step(0x0689, 10);
+    return m.call(0x0689);
+  }
+  regs.a = 0x03;
+  mem.write8(SND_BGM, regs.a);
+  regs.a = 0x70;
+  mem.write8(0x7486, regs.a);
+  mem.write8(0x74a6, regs.a);
+  regs.add(regs.b);
+  regs.b = regs.a;
+  regs.a = 0x10;
+  m.step(0x0689, 78);
+  return m.call(0x0689);
+}
+
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_066a]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

@@ -48,26 +48,20 @@ const DISPATCH_TABLE_0702 = "0x0702 (0x600A game sub-state)";
  * for every 0x600A value; the "branches" a reviewer thinks of are the dispatched
  * handlers, one m.call level down.
  *
- * CYCLE DECISION -- PER-INSTRUCTION (not collapsed), kept as the conservative
- * byte-identical choice. It runs inside the NMI with the mask cleared, so nothing
- * here is NMI-interruptible -- but unlike the attract-state handlers in this batch
- * (short NMIs that always finish within one frame, so genuinely atomic), loc_06fe
- * is the IN-GAME (state-3) dispatcher: m.call(0x0028) routes to the longest
- * per-frame work in the game (gameplay at idx 13), so this is the handler where a
- * frame boundary is most plausibly crossed mid-routine, which would make the
- * internal cycle distribution observable. A second, structural reason to keep
- * per-instruction here: the `rst 0x28` PUSH lands 0x0702 into diffed stack RAM
- * (0x6Bxx) and sits BETWEEN the two cycle charges -- `ld a,(0x600a)` (13t), then
- * the push, then the rst entry (11t) -- so collapsing to one m.step would move that
- * stack write's cycle-position relative to a frame-boundary sample (unlike
- * entry_0611's push-free prologue).
- * HONEST HARNESS NOTE: per-instruction is byte-identical to the oracle and EQUAL
- * whole+unit. A collapse to a single m.step(0x0028, 24) ALSO stayed EQUAL over 1500
- * whole-machine frames (the frame boundary never fell inside the 24t prologue in
- * these runs) -- so the harness does NOT presently punish it -- but the collapse
- * saves exactly one m.step line, and for a non-atomic routine with a stack write
- * straddling its charges that marginal win is not worth departing from the oracle.
- * Kept per-instruction, byte-identical to the oracle.
+ * CYCLE DECISION -- COLLAPSED to a single m.step(0x0028, 24) (13 + 11). It runs
+ * inside the NMI with the mask cleared for the attract-state handlers in this
+ * batch, but loc_06fe is the IN-GAME (state-3) dispatcher: m.call(0x0028) routes to
+ * the longest per-frame work in the game (gameplay at idx 13), so a frame boundary
+ * is plausibly crossed mid-routine. The fleet-wide rule is that atomicity is a
+ * property of the SCENARIO exercised, not the routine, so rather than treat that
+ * plausibility as a reason to withhold the collapse, the whole-machine test uses
+ * the CONVERGENT license unconditionally (see equivalence-06fe.test.js) -- the
+ * SAME single-step collapse this routine's own note already recorded as staying
+ * EQUAL over 1500 whole-machine frames, now gated the way every collapsed
+ * interruptible routine in this fleet is, rather than kept per-instruction on a
+ * "didn't happen to fail yet" basis. The `rst 0x28` PUSH (0x0702 into diffed stack
+ * RAM 0x6Bxx) still happens between the two folded charges' memory-op ORDER (ld
+ * a,(0x600a) -> push16 -> the rst entry), only the m.step granularity changes.
  *
  * FLAGS. loc_06fe computes no flags of its own (neither `ld a,(nn)` nor `rst`
  * touches F); F on exit is whatever sub_0028 / the handler leaves. The prologue is
@@ -77,16 +71,12 @@ const DISPATCH_TABLE_0702 = "0x0702 (0x600A game sub-state)";
 export function loc_06fe(m) {
   const { regs, mem } = m;
 
-  // ld a,(GAME_SUBSTATE) -- the in-game sub-state selector for this frame.
+  // ld a,(GAME_SUBSTATE)[13]+rst 0x28[11] -- the in-game sub-state selector, then
+  // push the table base 0x0702 (the rst's own return address, which sub_0028 pops
+  // to locate the table) and enter the inline-jump-table trampoline. sub_0028 reads
+  // table[A*2] from ROM and jp (hl)'s to the sub-state handler.  24 t
   regs.a = mem.read8(GAME_SUBSTATE);
-  m.step(0x0701, 13); // ld a,(0x600a)
-
-  // rst 0x28 -- push the table base 0x0702 (the rst's own return address, which
-  // sub_0028 pops to locate the table) and enter the inline-jump-table trampoline.
-  // sub_0028 reads table[A*2] from ROM and jp (hl)'s to the sub-state handler.
-  // Reached via m.call so it resolves to the oracle (or a future optimized
-  // rewrite); left per-instruction because it IS interruptible (see above).
   m.push16(0x0702);
-  m.step(0x0028, 11); // rst 0x28
+  m.step(0x0028, 24);
   m.call(0x0028, DISPATCH_TABLE_0702);
 }

@@ -74,18 +74,19 @@ import { SPRITE_OBJ_BLOCK } from "./ram.js";
  *   consume no return flag from this routine, but the UNIT gate compares the whole
  *   register file incl. F, so both arms match the oracle bit-for-bit by construction.
  *
- * ATOMIC? NO -- kept PER-INSTRUCTION (no cycle collapse), byte-identical to the oracle.
- *   Per the ATOMICITY-IS-PER-CALL-PATH rule this routine is non-atomic every way it
- *   could be entered: its documented role is a main-loop task entry (NMI mask ENABLED),
- *   and its body/tail are shared with entry_03fb whose caller loc_197a is the
- *   interruptible per-frame cascade — the vblank NMI can land inside the rst 0x38 or
- *   anywhere in the interruptible loc_0413 colour tree it flows into. So its internal
- *   cycle DISTRIBUTION is observable and every oracle m.step charge is retained. (There
- *   is in any case no live trajectory to measure a collapse against, since it never
- *   dispatches — per-instruction is the only defensible choice, and it is always
- *   correct.) Same decision and reason as entry_03fb / loc_197a. No hardware (0x7Dxx)
- *   write occurs here — the only store is 0x63b7 (work RAM) — so there is no
- *   write-trace caveat. This rung buys names + structure, not fewer operations.
+ * ATOMIC? NO -- COLLAPSED to one m.step per basic block, not byte-identical to the
+ *   oracle's per-instruction charges (only the block TOTAL matches). Per the
+ *   ATOMICITY-IS-PER-CALL-PATH rule this routine is non-atomic every way it could be
+ *   entered: its documented role is a main-loop task entry (NMI mask ENABLED), and its
+ *   body/tail are shared with entry_03fb whose caller loc_197a is the interruptible
+ *   per-frame cascade — the vblank NMI can land inside the rst 0x38 or anywhere in the
+ *   interruptible loc_0413 colour tree it flows into. But entry_0400 NEVER DISPATCHES in
+ *   the current build (see above), so there is no live whole-machine trajectory for a
+ *   mid-routine NMI to land on in the first place — the collapse is only ever exercised
+ *   via the synthesised branch tests, which pin the exact per-branch cycle TOTAL (the
+ *   mandatory cycle-total check for a crafted-entry-only routine). No hardware (0x7Dxx)
+ *   write occurs here — the only store is 0x63b7 (work RAM) — so there is no write-trace
+ *   caveat.
  */
 export function entry_0400(m) {
   const { regs, mem } = m;
@@ -95,23 +96,21 @@ export function entry_0400(m) {
     m.step(0x0413, 10);
     return m.call(0x0413);
   }
-  m.step(0x0403, 10); // jp nz NOT taken -> Z-set arm (the entry_03fb BOARD==2 body)
 
-  // Z-set arm: rst-0x38 offsets one sprite record, then stash a derived index.
+  // Z-set arm: jp nz NOT taken(10)+ld hl,0x6908(10)+ld a,(0x63a3)(13)+ld c,a(4)+rst 0x38's
+  // own dispatch charge(11) = 48 t.
   regs.hl = SPRITE_OBJ_BLOCK;
-  m.step(0x0406, 10); // ld hl,0x6908
   regs.a = mem.read8(0x63a3); // engine/board scratch -- shared, stays hex
-  m.step(0x0409, 13); // ld a,(0x63a3)
   regs.c = regs.a; // rst 0x38 (loc_0038) reads C as the sprite-offset delta
-  m.step(0x040a, 4); // ld c,a
-  m.push16(0x040b); m.step(0x0038, 11); m.call(0x0038); // rst 0x38 = CALL loc_0038
+  m.push16(0x040b);
+  m.step(0x0038, 48);
+  m.call(0x0038); // rst 0x38 = CALL loc_0038
 
+  // ld a,(0x6910)(13)+sub 0x3b(7)+ld (0x63b7),a(13) = 33 t, falls into 0x0413.
   regs.a = mem.read8(0x6910); // inside SPRITE_BUFFER, shared w/ board-load -- stays hex
-  m.step(0x040e, 13); // ld a,(0x6910)
   regs.sub(0x3b);
-  m.step(0x0410, 7); // sub 0x3b
   mem.write8(0x63b7, regs.a); // derived index, read by loc_0478 -- stays hex
-  m.step(0x0413, 13); // ld (0x63b7),a -- falls into 0x0413
+  m.step(0x0413, 33);
 
   return m.call(0x0413);
 }

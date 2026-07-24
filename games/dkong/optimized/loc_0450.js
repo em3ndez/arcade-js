@@ -62,52 +62,57 @@ import { BOARD } from "./ram.js";
  * anything reads it. The ops are kept verbatim so F (and A) match the oracle
  * exactly at the hand-off.
  *
- * CYCLES -- PER-INSTRUCTION, deliberately NOT collapsed. By the ATOMICITY-IS-PER-
- * CALL-PATH rule loc_0450 is NOT atomic: both its callers are interruptible with
- * the NMI mask ENABLED -- loc_0426 and loc_0464, themselves reached from the
- * per-frame colour cascade loc_0413 <- entry_03fb <- loc_197a (all kept per-
- * instruction for exactly this reason). The vblank NMI can land inside loc_0450 --
- * it spans rst 0x38 and the entire interruptible loc_0478/loc_0486 colour tree --
- * pushing a live PC into the diffed stack RAM, so its internal cycle distribution
- * is observable and every oracle m.step charge is retained exactly. Same decision
- * (and reason) as its siblings loc_0413 and entry_03fb. This rung buys names +
- * structure + documentation, not fewer operations.
+ * CYCLES -- COLLAPSED to one m.step per basic block (the rst-0x38 push16/m.call
+ * scaffold is kept verbatim, never folded across). `jp nc`/`jp c` cost the oracle's
+ * 10 t whichever way they go, so each straight-line prefix is folded into whichever
+ * arm it lands in rather than split at the branch. Per-arm totals, summed and
+ * cross-checked against this file's own prior per-instruction charges (all
+ * previously proven equal):
+ *   branch A (BOARD bit0==0, -> loc_0478) 27 t; branch B (bit0=1,bit1=1, -> loc_0486
+ *   direct) 41 t; branch C (bit0=1,bit1=0, the HOT board-1 arm: ld hl,0x690b + ld
+ *   c,0xfc) 58 t before the rst-0x38 scaffold (11 t, kept verbatim) and the final
+ *   `jp 0x0486` tail (10 t) -- 79 t total on this arm, matching the oracle exactly.
+ *   Total-preservation keeps the caller's cycle clock exact; only the mid-routine PC
+ *   snapshot an NMI would observe is coarsened, same as any collapse.
+ *
+ * Both callers (loc_0426, loc_0464) are in the interruptible per-frame colour
+ * cascade (NMI mask ENABLED), and loc_0450 spans rst 0x38 plus the entire
+ * interruptible loc_0478/loc_0486 colour tree, so the vblank NMI can land inside
+ * it; see the equivalence test for the (convergent, unconditionally) gate this
+ * routine runs under.
  */
 export function loc_0450(m) {
   const { regs, mem } = m;
 
   // ld a,(BOARD) / rrca -- rotate BOARD's bit0 into carry.
   regs.a = mem.read8(BOARD);
-  m.step(0x0453, 13); // ld a,(0x6227)
   regs.rrca();
-  m.step(0x0454, 4); // rrca -- C = BOARD bit0
 
   if (regs.fNC) {
     // bit0 == 0 (BOARD 2/4): loc_0478 -- it rrca's the A left here to test bit1.
-    m.step(0x0478, 10); // jp nc,0x0478
+    // ld a,(0x6227)[13] + rrca[4] + jp nc,0x0478 TAKEN[10] = 27 t
+    m.step(0x0478, 27);
     return m.call(0x0478);
   }
-  m.step(0x0457, 10); // jp nc NOT taken -- bit0 == 1
 
   // rrca again -- carry = BOARD bit1.
   regs.rrca();
-  m.step(0x0458, 4); // rrca -- C = BOARD bit1
 
   if (regs.fC) {
     // bit1 == 1 (BOARD 3): straight to the colour tail, no sprite shift.
-    m.step(0x0486, 10); // jp c,0x0486
+    // ...+ jp nc NOT taken[10] + rrca[4] + jp c,0x0486 TAKEN[10] = 41 t
+    m.step(0x0486, 41);
     return m.call(0x0486);
   }
-  m.step(0x045b, 10); // jp c NOT taken -- bit1 == 0 (BOARD 1, the HOT arm)
 
-  // ld hl,0x690b / ld c,-4 / rst 0x38 -- offset 10 sprite records by -4.
+  // ld hl,0x690b / ld c,-4 -- offset 10 sprite records by -4 (via rst 0x38 below).
   regs.hl = 0x690b; // sprite-record field inside SPRITE_BUFFER -- stays hex
-  m.step(0x045e, 10); // ld hl,0x690b
   regs.c = 0xfc; // -4, the per-record delta loc_0038's add-loop applies
-  m.step(0x0460, 7); // ld c,0xfc
+  // ...+ jp c NOT taken[10] + ld hl,0x690b[10] + ld c,0xfc[7] = 58 t (BOARD 1, HOT arm)
+  m.step(0x0460, 58);
   m.push16(0x0461); m.step(0x0038, 11); m.call(0x0038); // rst 0x38 = CALL loc_0038
 
   // jp 0x0486 -- the shared colour tail.
-  m.step(0x0486, 10); // jp 0x0486
+  m.step(0x0486, 10); // jp 0x0486 (total 79 t on this arm)
   return m.call(0x0486);
 }

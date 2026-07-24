@@ -16,30 +16,33 @@
  *     C still holds sub_122a's restored 0x0C).
  * Then ret. 0x11A2 is a 4-byte DATA block, not code.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached from the board setups, whose atomicity
- * is not pinned to the mask-cleared NMI; callees route through m.call (the registry).
+ * CYCLES -- COLLAPSED to one m.step per basic block. Dead-straight-line code (no
+ * branches, just two calls), so each straight run BETWEEN calls folds into one
+ * m.step at that run's last instruction's own address, same convention as
+ * handler_01c3: the register-load steps preceding each call fold together, but a
+ * call site's own step (the CALL/RST instruction's fixed cost) is left exactly
+ * as-is next to its `m.push16`/`m.call` pair. Both branch TOTALS sum to the
+ * oracle's, EXACTLY (30 t then 41 t of our own charges, verified against
+ * translated/state0.js; the m.call internals are untouched either way).
  */
 export function sub_1186(m) {
   const { regs } = m;
 
+  // ld hl,0x11a2[10]+ld de,0x6507[10]+ld bc,0x0a0c[10] -- fill args.  30 t
   regs.hl = 0x11a2; // -> 4-byte data block, not code
-  m.step(0x1189, 10);
   regs.de = 0x6507;
-  m.step(0x118c, 10);
   regs.bc = 0x0a0c; // B = 0x0A passes, C = 0x0C stride
-  m.step(0x118f, 10);
+  m.step(0x118f, 30);
   m.push16(0x1192);
   m.step(0x122a, 17);
   m.call(0x122a);
 
+  // ld ix,0x6500[14]+ld hl,0x6980[10]+ld b,0x0a[7]+ld de,0x0010[10] -- gather args.  41 t
   regs.ix = 0x6500;
-  m.step(0x1196, 14);
   regs.hl = 0x6980;
-  m.step(0x1199, 10);
   regs.b = 0x0a; // C left by sub_122a
-  m.step(0x119b, 7);
   regs.de = 0x0010; // stride
-  m.step(0x119e, 10);
+  m.step(0x119e, 41);
   m.push16(0x11a1);
   m.step(0x11d3, 17);
   m.call(0x11d3);

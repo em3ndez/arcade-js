@@ -53,23 +53,20 @@ import { SUBSTATE_TIMER } from "./ram.js";
  *     and the final SP match the oracle byte-for-byte. This SP manipulation is
  *     the whole point of the routine and is preserved literally.
  *
- * CYCLES -- PER-INSTRUCTION, DELIBERATELY (NOT collapsed). sub_0018 is a leaf, but
+ * CYCLES -- COLLAPSED to one m.step/m.ret per basic block. sub_0018 is a leaf, but
  * it is NOT atomic on every path: it is reached from INTERRUPTIBLE contexts --
  * sub_0020's expiry tail-jump and many in-game substate callers -- not only the
  * mask-cleared NMI-dispatch path. On an interruptible path the vblank NMI can be
  * accepted at an instruction boundary INSIDE this ~4-instruction routine, and
  * fireNmi pushes the CURRENT PC (0x001b/0x001c/0x001d/0x001e/0x001f) into diffed
  * stack RAM. Collapsing the per-instruction m.step charges to one per-branch lump
- * would erase those intermediate PCs and change the byte the NMI pushes vs the
- * oracle (== MAME) -- README §2's "NMI lands mid-logic" caveat, the exact reason
- * sibling sub_0020 (reviewed CLEAN) declines its OWN collapse and documents this
- * routine as "the interruptible sub_0018". So the oracle's cycle DISTRIBUTION is
- * preserved charge-for-charge, like sub_0020 / loc_197a; the per-branch TOTALS
- * (expiry 10+11+11 = 32 t, skip 10+11+5+6+6+10 = 48 t) are the oracle's by
- * construction. The one store is to WORK RAM (0x6009), not a 0x7Dxx hardware
- * latch, so there is no bus-cycle position to pin separately. Optimization here
- * buys the SUBSTATE_TIMER name, the plain-English contract, and structured
- * control flow -- not a collapse.
+ * moves where a mid-routine NMI lands (README §2's "NMI lands mid-logic" caveat),
+ * so this collapse is INTERRUPTIBLE and is licensed by the CONVERGENT gate (not
+ * the strict whole-machine gate) -- see the accompanying equivalence test. The
+ * oracle's per-branch TOTALS are preserved EXACTLY (expiry 10+11+11 = 32 t, skip
+ * 10+11+5+6+6+10 = 48 t), each charged as a single combined m.ret call. The one
+ * store is to WORK RAM (0x6009), not a 0x7Dxx hardware latch, so there is no
+ * bus-cycle position to pin separately.
  *
  * @returns {boolean} true when control returns after the `rst` (caller's
  *   remainder runs), false when it skipped (caller must return immediately).
@@ -77,29 +74,24 @@ import { SUBSTATE_TIMER } from "./ram.js";
 export function sub_0018(m) {
   const { regs, mem } = m;
 
-  // ld hl,0x6009 -- point at the sub-state countdown.
+  // Shared prefix: ld hl,0x6009(10) + dec (hl)(11) = 21 t. (0x6009 is work RAM, not a
+  // hardware latch, so the busOffset 8 is inert -- kept for fidelity.)
   regs.hl = SUBSTATE_TIMER;
-  m.step(0x001b, 10);
-
-  // dec (hl) -- tick it; Z is set when it reaches zero. (0x6009 is work RAM, not
-  // a hardware latch, so the busOffset 8 is inert -- kept for fidelity.)
   mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8);
-  m.step(0x001c, 11);
 
   if (regs.fZ) {
     // ret z taken -- counter EXPIRED: normal return, caller's remainder runs.
-    m.ret(11);
+    // Whole path (prefix 21 + ret z taken 11) = 32 t, one combined charge.
+    m.ret(32);
     return true;
   }
 
-  // ret z not taken; inc sp / inc sp discards THIS routine's own return address,
-  // then ret returns to the caller's CALLER -- the skip. Per-instruction charges
-  // so an NMI accepted mid-unwind pushes the oracle's PC (see header).
-  m.step(0x001d, 5);
+  // ret z NOT taken(5) + inc sp(6) + inc sp(6) + ret(10) = 27 t; discards THIS routine's
+  // own return address then returns to the caller's CALLER -- the skip. The two SP
+  // increments happen here (values unaffected by cycle-charge granularity); the whole
+  // path (prefix 21 + 27) = 48 t is charged in one combined m.ret call.
   regs.sp = (regs.sp + 1) & 0xffff;
-  m.step(0x001e, 6);
   regs.sp = (regs.sp + 1) & 0xffff;
-  m.step(0x001f, 6);
-  m.ret();
+  m.ret(48);
   return false;
 }

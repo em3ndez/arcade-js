@@ -42,46 +42,42 @@ import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "./ram.js";
  * FLAGS.  regs.and(regs.a) is kept for its Z (it decides the branch AND is the
  * observed F at both exits). No other op here touches flags.
  *
- * ATOMICITY / CYCLES -- PER-INSTRUCTION (deliberately NOT collapsed).  sub_055f
- * itself makes no call and cannot span a frame, but ATOMICITY IS PER-CALL-PATH:
- * its ONLY caller, entry_051c, is a MAIN-LOOP routine (dispatched by dispatchTask
- * with the NMI mask ENABLED), so the vblank NMI CAN fire while this leaf executes.
- * Collapsing its per-instruction m.step charges to one per-branch total would move
- * where an NMI that lands inside it records the pushed PC, so the distribution is
- * NOT free here (README §2 + the ATOMICITY-IS-PER-CALL-PATH rule -- the same
- * reason sub_0008/0010/0018 were reverted). The charges are therefore left exactly
- * as the oracle emits them: ld de(10) / ld a,(nn)(13) / and a(4) / ret z(11 taken
- * | 5 not-taken) / ld de(10) / ret(10) -- branch totals 38 t (P1) and 52 t (P2),
- * preserved and identical to the oracle by construction.
+ * ATOMICITY -- sub_055f itself makes no call and cannot span a frame, but ATOMICITY
+ * IS PER-CALL-PATH: its ONLY caller, entry_051c, is a MAIN-LOOP routine (dispatched
+ * by dispatchTask with the NMI mask ENABLED), so the vblank NMI CAN fire while this
+ * leaf executes -- theoretically interruptible. GATED CONVERGENT, not strict,
+ * unconditionally: per the collapse-sweep's blanket rule, any routine with a
+ * whole-machine test is gated convergent regardless of whether the fold happens to
+ * pass strict in a given scenario, since that would only be a property of the
+ * tested trajectory, not proof of atomicity on every trajectory.
  *
- * The optimization delivered on this tiny leaf is therefore NOT a cycle collapse
- * but the names (P1_SCORE / P2_SCORE / CURRENT_PLAYER), structured control flow,
- * and this documented contract; behaviour and cycle distribution are byte-for-byte
- * the oracle's.
+ * CYCLES -- COLLAPSED to one m.step per basic block. Branch totals, each the
+ * oracle's EXACTLY: P1 (ret z) -- pre-branch(27) + ret(11) = 38 t; P2 (fall
+ * through) -- pre-branch(27) + jr-not-taken+ld-de fold(15) + ret(10) = 52 t.
+ *
+ * The optimization delivered on this tiny leaf is therefore the names (P1_SCORE /
+ * P2_SCORE / CURRENT_PLAYER), structured control flow, and this documented
+ * contract, plus the collapse -- behaviour is byte-for-byte the oracle's and the
+ * cycle TOTAL on each branch matches exactly.
  */
 export function sub_055f(m) {
   const { regs, mem } = m;
 
-  // ld de,0x60b2 -- DE = P1_SCORE (the default; may be overwritten below).
+  // Block A: ld de,0x60b2 (default P1_SCORE) + ld a,(0x600d) + and a.  10+13+4 = 27 t
   regs.de = P1_SCORE;
-  m.step(0x0562, 10);
-
-  // ld a,(0x600d) / and a -- load CURRENT_PLAYER and set Z from it.
   regs.a = mem.read8(CURRENT_PLAYER);
-  m.step(0x0565, 13);
   regs.and(regs.a); // Z from A; clears C, sets H -- also the observed F at both exits
-  m.step(0x0566, 4);
+  m.step(0x0566, 27);
 
   if (regs.fZ) {
-    // ret z: player 0 -- keep DE = P1_SCORE. (branch total 10+13+4+11 = 38 t)
+    // ret z: player 0 -- keep DE = P1_SCORE. (branch total 27+11 = 38 t)
     m.ret(11);
     return;
   }
-  m.step(0x0567, 5); // ret z not taken
 
-  // ld de,0x60b5 -- DE = P2_SCORE, overwriting the P1 load.
+  // jr-not-taken(5) + ld de,0x60b5(10) -- DE = P2_SCORE, overwriting the P1 load.  15 t
   regs.de = P2_SCORE;
-  m.step(0x056a, 10);
+  m.step(0x056a, 15);
 
-  m.ret(); // unconditional ret at 0x056a (default 10 t; total 10+13+4+5+10+10 = 52 t)
+  m.ret(); // unconditional ret at 0x056a (default 10 t; branch total 27+15+10 = 52 t)
 }

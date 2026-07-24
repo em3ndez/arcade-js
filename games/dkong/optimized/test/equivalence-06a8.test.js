@@ -6,16 +6,19 @@
  * target it is entered through a direct call, which the unit gate reaches because
  * it installs its snapshot override at CONSTRUCTION.
  *
- * Five jobs:
+ * Six jobs:
  *
- *   1. EQUAL -- the idiomatic optimized loc_06a8 (optimized/loc_06a8.js) reads EQUAL
- *      against its translated oracle, whole-machine and unit. The override resolves
- *      through the routine registry for the m.call from entry_062a (inert when the
- *      map is empty).
+ *   1. EQUAL (whole-machine, CONVERGENT) -- the collapsed loc_06a8 CONVERGES against
+ *      its translated oracle: pixels + persistent non-stack state. Gated convergent
+ *      unconditionally (not strict), per the collapse-sweep's blanket rule: its sole
+ *      caller entry_062a runs with the NMI mask ENABLED, so "passes strict in plain
+ *      attract" would only be a property of that scenario, not proof of atomicity.
+ *      EQUAL (unit) still reads EQUAL against its translated oracle on the captured
+ *      entry state.
  *
  *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous. loc_06a8 is
  *      first m.call'd from entry_062a's branch-B decrement path at frame 587 (probed);
- *      a 600-frame window covers it once (A=0x50 -> the NZ, high-nibble arm).
+ *      plain attract (SCENARIOS.attract) covers it (A=0x50 -> the NZ, high-nibble arm).
  *
  *   3. BRANCH COVERAGE -- the natural run only ever takes the NZ arm (A never reaches
  *      1 in-window), so the reached-zero arm is SYNTHESISED: clone the captured entry,
@@ -23,17 +26,18 @@
  *      each of {Z arm A=1 (writes the 0x63B8 latch), NZ high-nibble A=0x50, NZ
  *      low-nibble A=0x10 (loc_066a's leading-zero-suppress arm)}.
  *
- *   4. TEETH -- a deliberately-broken twin (the store to 0x638C lands the wrong value)
- *      must be CAUGHT: NOT-EQUAL, naming 0x638C.
+ *   4. TEETH (unit) -- a deliberately-broken twin (the store to 0x638C lands the wrong
+ *      value) must be CAUGHT: NOT-EQUAL, naming 0x638C.
  *
- * THE CYCLE DECISION this routine records: loc_06a8 keeps its charges PER-INSTRUCTION,
- * NOT collapsed. Atomicity is per-call-path -- its sole caller entry_062a is a
- * MAIN-LOOP task (mask ENABLED), so the vblank NMI can in principle land between
- * loc_06a8's instructions; per the project rule a leaf reached via m.call from an
- * interruptible caller keeps per-instruction (a short attract run passing a collapse
- * is not proof the NMI never lands inside). Per-instruction is byte-identical to the
- * oracle's distribution, so the cycle-total assertion in the branch-coverage test
- * passes trivially -- it is there as teeth, not because a total was recomputed.
+ *   5. TEETH (convergent) -- the collapse's load-bearing invariant is each branch's
+ *      folded total (NZ 46t / Z 61t); a CYCLE-DROP twin (the naturally-reached NZ arm
+ *      shortened by 5t) forks the main loop's spin count (0x6019, the PRNG entropy)
+ *      into a PERSISTENT divergence.
+ *
+ * CYCLE DECISION: loc_06a8's charges are COLLAPSED to one m.step per basic block; see
+ * optimized/loc_06a8.js for the fold and why the whole-machine gate is convergent
+ * rather than strict. Each branch's cycle-total assertion in the branch-coverage test
+ * (below) is the oracle's exactly, confirmed on synthesised clones.
  *
  * Run: node --test
  */
@@ -44,7 +48,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_06a8 as translated_06a8 } from "../../translated/mainloop.js";
 import { loc_06a8 as optimized_06a8 } from "../loc_06a8.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 
@@ -58,8 +63,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x06a8;
-const FRAMES = 600; // loc_06a8 is first m.call'd at frame 587
-const MAX_FRAMES = 600; // the unit harness must run far enough to reach that entry
+const MAX_FRAMES = 600; // the unit harness must run far enough to reach entry_062a's first entry (~f587)
 
 // loc_06a8's primary work-RAM output: the packed two-digit BCD it stores at 0x638C.
 // It sits in the compared work-RAM dump (0x6000-0x6BFF); on the reached NZ arm
@@ -74,6 +78,7 @@ const BROKEN_ADDR = 0x638c;
  * differ). Intercepting exactly that one write lets the rest of the routine and
  * every subroutine it calls (loc_066a via m.call) run verbatim -- the representative
  * "wrong value to one of the routine's own output addresses" bug the gate must catch.
+ * Used for the UNIT teeth only (a single-entry diff, not a long convergent run).
  */
 function broken_06a8(m) {
   const realWrite = m.mem.write8.bind(m.mem);
@@ -112,26 +117,48 @@ function captureEntry() {
   return entry;
 }
 
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical to the collapsed routine
+ * EXCEPT the naturally-reached NZ arm's folded charge is 5 t short (7 instead of 12).
+ * A wrong total shifts the main loop's spin count (0x6019, the PRNG entropy),
+ * forking the RANDOM stream permanently -- a PERSISTENT non-stack divergence.
+ */
+function cyclebroken_06a8(m) {
+  const { regs, mem } = m;
+  regs.sub(0x01);
+  m.step(0x06aa, 7);
+  if (regs.fNZ) {
+    m.step(0x06b1, 7); // DROPPED: the correct total is 12 t
+  } else {
+    regs.hl = 0x63b8;
+    mem.write8(regs.hl, 0x01);
+    m.step(0x06b1, 27);
+  }
+  regs.daa();
+  mem.write8(0x638c, regs.a);
+  m.step(0x066a, 27);
+  return m.call(0x066a);
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized loc_06a8 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_06a8]]));
+test("CONVERGENT (whole-machine): collapsed loc_06a8 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_06a8]]), { scenario: SCENARIOS.attract });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -185,16 +212,18 @@ test("EQUAL (unit, synthesised branches): both arms + both loc_066a tails match,
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong 0x638C store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_06a8]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_06a8]]), { scenario: SCENARIOS.attract });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

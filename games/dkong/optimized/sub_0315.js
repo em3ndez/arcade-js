@@ -74,10 +74,17 @@ import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./ram.js";
  * are among the most-hit NMI-landing addresses (2488 NMIs, doc 06 "interruptible
  * surface"), which stands to reason — it is called ~140x/frame from the main
  * loop (mask ENABLED) and spends most of those passes on the `ret nz` early-out.
- * So the per-instruction m.step charges are NOT collapsed: each instruction keeps
- * its own charge at its own PC, byte-identical to the oracle. Collapsing would
- * move where a mid-routine NMI lands and change the PC it pushes into diffed
- * stack RAM (the loc_197a / entry_0611 mechanism). Same decision, same reason.
+ *
+ * CYCLES -- COLLAPSED to one m.step per basic block (straight-line runs folded into
+ * a single charge at the block's exit PC; each call's own preceding register loads
+ * folded into that call's charge). Being genuinely INTERRUPTIBLE, the collapse is
+ * LICENSED by the CONVERGENT gate (equivalence-0315.test.js), not the strict
+ * whole-machine gate: a mistimed NMI can push a coarser block-exit PC into the dead
+ * stack, or leave a single-frame raster tear that heals next frame, both tolerated by
+ * that gate. Every fold's total is the exact sum of the oracle's per-instruction
+ * charges it replaces (verified against the original per-instruction file before this
+ * edit). No 0x7Dxx hardware latch is written (all stores are tilemap/work VRAM), so
+ * nothing here needs a partial-collapse boundary.
  *
  * HARDWARE WRITES. None — the three (or six) stores target the tilemap/work VRAM
  * (0x7740 / 0x74E0 columns), whose VALUE is diffed but which carry no 0x7Dxx
@@ -94,93 +101,78 @@ import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./ram.js";
 export function sub_0315(m) {
   const { regs, mem } = m;
 
-  // ld a,(FRAME) / ld b,a / and 0x0f -- gate on every-16th-frame.
+  // ld a,(FRAME) / ld b,a / and 0x0f -- gate on every-16th-frame. 13+4+7 = 24t.
   regs.a = mem.read8(FRAME);
-  m.step(0x0318, 13);
   regs.b = regs.a; // keep the whole frame byte: bit4 is the blink phase below
-  m.step(0x0319, 4);
   regs.and(0x0f);
-  m.step(0x031b, 7);
+  m.step(0x031b, 24);
   if (regs.fNZ) {
     m.ret(11); // ret nz -- not a 16th frame (the overwhelmingly common arm)
     return;
   }
-  m.step(0x031c, 5);
 
   // rst 0x08 (sub_0008): unless bit0 of ATTRACT is clear (a game is credited)
   // it discards our return address and unwinds to mainLoop -- modelled as the
-  // callee returning false, i.e. "skip the rest of this routine".
+  // callee returning false, i.e. "skip the rest of this routine". The `ret nz`
+  // not-taken charge (5t) folds into the rst's own charge (11t) = 16t: nothing
+  // separates them, both straight-line before the call.
   m.push16(0x031d);
-  m.step(0x0008, 11);
+  m.step(0x0008, 16);
   if (!m.call(0x0008)) return;
 
-  // ld a,(CURRENT_PLAYER) / call sub_0347 -> HL = this player's column base.
+  // ld a,(CURRENT_PLAYER) (13t) folded into the call sub_0347 charge (17t) = 30t.
+  // -> HL = this player's column base.
   regs.a = mem.read8(CURRENT_PLAYER);
-  m.step(0x0320, 13);
   m.push16(0x0323);
-  m.step(0x0347, 17);
+  m.step(0x0347, 30);
   m.call(0x0347);
 
-  regs.de = 0xffe0; // -32: one tilemap row up per `add hl,de`
-  m.step(0x0326, 10);
-
-  // bit 4,b -- the blink phase. Clear -> the lit glyphs (loc_033e tail below);
-  // set -> the blank glyph 0x10 x3 (and, in 2P, the other player's column too).
+  // ld de,0xffe0 (-32: one tilemap row up per `add hl,de`) / bit 4,b -- the blink
+  // phase (bit4 of the frame byte). 10+8 = 18t.
+  regs.de = 0xffe0;
   const phaseSet = regs.bit(4, regs.b);
-  m.step(0x0328, 8);
+  m.step(0x0328, 18);
   if (phaseSet) {
-    // ld a,0x10, then three `ld (hl),a` stepping DE between them.
-    m.step(0x032a, 7);
+    // ld a,0x10, then three `ld (hl),a` stepping DE between them. Straight-line,
+    // no hardware-bus write among them -- one fold: 7+7+7+11+7+11+7 = 57t.
     regs.a = 0x10;
-    m.step(0x032c, 7);
     mem.write8(regs.hl, regs.a);
-    m.step(0x032d, 7);
     regs.addHl(regs.de);
-    m.step(0x032e, 11);
     mem.write8(regs.hl, regs.a);
-    m.step(0x032f, 7);
     regs.addHl(regs.de);
-    m.step(0x0330, 11);
     mem.write8(regs.hl, regs.a);
-    m.step(0x0331, 7);
+    m.step(0x0331, 57);
 
-    // ld a,(TWO_PLAYER_GAME) / and a / ret z -- 1P stops after its own column.
+    // ld a,(TWO_PLAYER_GAME) / and a / ret z -- 1P stops after its own column. 13+4 = 17t.
     regs.a = mem.read8(TWO_PLAYER_GAME);
-    m.step(0x0334, 13);
     regs.and(regs.a);
-    m.step(0x0335, 4);
+    m.step(0x0335, 17);
     if (regs.fZ) {
       m.ret(11); // ret z -- one-player game: done
       return;
     }
-    m.step(0x0336, 5);
 
-    // 2P: repaint the OTHER player's column too. ld a,(CURRENT_PLAYER) / xor 1 /
-    // call sub_0347, then fall into the loc_033e tail with A = other player.
+    // 2P: repaint the OTHER player's column too. The `ret z` not-taken charge (5t) +
+    // ld a,(CURRENT_PLAYER) (13t) + xor 1 (7t) fold into the call sub_0347 charge
+    // (17t) = 42t, then fall into the loc_033e tail with A = other player.
     regs.a = mem.read8(CURRENT_PLAYER);
-    m.step(0x0339, 13);
     regs.xor(0x01);
-    m.step(0x033b, 7);
     m.push16(0x033e);
-    m.step(0x0347, 17);
+    m.step(0x0347, 42);
     m.call(0x0347);
   } else {
     m.step(0x033e, 12); // jr z taken -> straight into the loc_033e tail
   }
 
-  // loc_033e -- shared tail: lit glyphs into the current HL column.
-  // A holds the player index (0 for P1, or player^1 on the 2P arm); inc -> digit.
+  // loc_033e -- shared tail: lit glyphs into the current HL column. A holds the
+  // player index (0 for P1, or player^1 on the 2P arm); inc -> digit. Straight-line,
+  // no hardware-bus write among them -- one fold: 4+7+11+10+11+10 = 53t.
   regs.a = regs.inc8(regs.a);
-  m.step(0x033f, 4);
   mem.write8(regs.hl, regs.a);
-  m.step(0x0340, 7);
   regs.addHl(regs.de);
-  m.step(0x0341, 11);
   mem.write8(regs.hl, 0x25);
-  m.step(0x0343, 10);
   regs.addHl(regs.de);
-  m.step(0x0344, 11);
   mem.write8(regs.hl, 0x20);
-  m.step(0x0346, 10);
+  m.step(0x0346, 53);
   m.ret();
 }

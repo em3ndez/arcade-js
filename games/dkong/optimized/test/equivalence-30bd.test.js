@@ -4,7 +4,9 @@
  * 0x6950/0x6980/0x69B8/0x6A0C). It does not dispatch in the 25m attract; being a
  * self-contained coordinator (it sets its own HL/B) it is verified from a crafted entry: a
  * booted machine captured at loc_0fd7's dispatch, cloned, invoked on both sides.
- * PER-INSTRUCTION.
+ * COLLAPSED (one m.step per basic block); since this test has no whole-machine/convergent
+ * run to license the total via the PRNG spin, the EQUAL test below also asserts the exact
+ * cycle-total delta (123 t: 34+31+31+27) against the oracle.
  */
 
 import nodeTest from "node:test";
@@ -58,21 +60,29 @@ function broken_30bd(m) {
 function runBoth(optFn = optimized_30bd) {
   const a = seed(ENTRY.clone());
   const b = seed(ENTRY.clone());
+  const c0a = a.cycles;
+  const c0b = b.cycles;
   translated_30bd(a);
   optFn(b);
   return {
     ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
     regs: firstRegDiff(a.regs, b.regs),
     pc: [a.pc, b.pc],
+    cycles: [a.cycles - c0a, b.cycles - c0b],
   };
 }
 
 test("EQUAL (crafted entry): sub_30bd matches translated in state + registers", () => {
-  const { ram, regs, pc } = runBoth();
+  const { ram, regs, pc, cycles } = runBoth();
   assert.equal(ram, null, ram ? `RAM diff at 0x${ram.addr.toString(16)}` : "");
   assert.equal(regs, null, regs ? `reg diff at ${regs.reg}` : "");
   assert.equal(pc[0], pc[1], "pc must match");
-  console.log("  EQUAL: four-region pass EQUAL (state + regs + pc)");
+  // MANDATORY cycle-total check (no whole-machine/convergent run covers this crafted-entry
+  // test's PRNG-spin gate): the collapsed prep code's total (123 t across the four blocks)
+  // plus the shared sub_30e4 calls (identical routine both sides) must match the oracle
+  // exactly, or the main-loop spin count would fork.
+  assert.equal(cycles[1], cycles[0], `cycle total must match oracle (oracle ${cycles[0]} t, optimized ${cycles[1]} t)`);
+  console.log(`  EQUAL: four-region pass EQUAL (state + regs + pc + cycles=${cycles[1]}t)`);
 });
 
 test("TEETH (crafted entry): a wrong sprite-buffer write is CAUGHT and NOT-EQUAL", () => {

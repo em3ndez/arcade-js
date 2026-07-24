@@ -8,17 +8,24 @@
  * 0x15F9, 372 bytes, an irreducible label-dispatch CFG with a single ret at 0x15F9).
  *
  * Jobs:
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_1486 reads EQUAL against
- *      its translated oracle every frame. Driven by a coin+start inputTape (credits +
- *      starts a game) PLUS an identical-both-sides poke that forces phase 21 from
- *      frame 70; it then dispatches ~131x over the window, walking the item across the
- *      board through many position-index / display-timer / sprite-animate branches.
+ *   1. CONVERGENT (whole-machine) -- the collapsed optimized sub_1486 CONVERGES
+ *      against its translated oracle under a whole-machine run (pixels + persistent
+ *      non-stack state). Driven by a coin+start inputTape (credits + starts a game)
+ *      PLUS an identical-both-sides poke that forces phase 21 from frame 70; it then
+ *      dispatches ~131x over the window, walking the item across the board through
+ *      many position-index / display-timer / sprite-animate branches. sub_1486 IS
+ *      atomic (see optimized/sub_1486.js) so the collapse is byte-exact and trivially
+ *      converges -- but per the lead's unconditional rule, any routine with a
+ *      whole-machine test runs it under the convergent gate regardless.
  *   2. EQUAL (unit) -- EQUAL in RAM + every register (F, A, SP, IX, IY included) + pc.
- *   3/4. TEETH (whole + unit) -- a deliberately-broken twin lands a wrong value at the
- *      value-digit cell 0x7572 (a pure display cell in the compared VRAM dump, written
- *      on a display-timer wrap; no control-flow effect) and is CAUGHT, naming 0x7572.
- *      The teeth poke additionally holds the display timer at 1 so EVERY dispatch wraps
- *      and writes 0x7572 -- including the first captured unit entry.
+ *   3/4. TEETH (convergent + unit) -- convergent: a CYCLE-DROP twin (one charge short
+ *      on the routine's own prologue block, hit on EVERY dispatch) forks the main-loop
+ *      spin count (0x6019 PRNG entropy), a PERSISTENT divergence, CAUGHT. unit: a
+ *      deliberately-broken twin lands a wrong value at the value-digit cell 0x7572 (a
+ *      pure display cell in the compared VRAM dump, written on a display-timer wrap; no
+ *      control-flow effect) and is CAUGHT, naming 0x7572. The teeth poke additionally
+ *      holds the display timer at 1 so EVERY dispatch wraps and writes 0x7572 --
+ *      including the first captured unit entry.
  *   5. BRANCH COVERAGE -- sub_1486's data-dependent arms are each synthesised from a
  *      real captured entry (main-loop arms from a post-INIT seed, so the item-slot
  *      pointers 0x6038/0x603A are valid) and proven EQUAL (RAM + all registers + pc)
@@ -35,16 +42,14 @@
  *      the optimized did not silently "fix" the oracle's untagged writes (which would be
  *      a divergence under a trace).
  *
- * CYCLE DECISION -- PER-INSTRUCTION (not collapsed). sub_1486 IS atomic in the usual
- * sense (it runs inside the vblank NMI, entered mask-cleared, so no second NMI lands
- * inside it or its callees), so a per-segment collapse would very probably also read
- * EQUAL. It is deliberately kept byte-identical to the oracle, matching the choice
- * loc_06fe -- this routine's OWN in-game dispatcher -- documents for the state-3 family:
- * on a routine this large, with untagged HARDWARE writes and a stack push straddling the
- * cycle charges at every m.call, the marginal win (fewer m.step lines) is not worth
- * departing from a byte-identical transcription. Per-instruction preserves every path's
- * TOTAL, every stack write and every hardware write at the oracle's exact cumulative
- * cycle for free; the branch-arm cycle assertions below still pin each path's total.
+ * CYCLE DECISION -- COLLAPSED to one m.step per basic block (see optimized/sub_1486.js).
+ * sub_1486 IS atomic in the usual sense (it runs inside the vblank NMI, entered
+ * mask-cleared, so no second NMI lands inside it or its callees), so the collapse is
+ * byte-identical to the oracle at every surviving m.step boundary -- confirmed by the
+ * unit/branch-arm tests below, which are UNCHANGED and still pass byte-exact. Per the
+ * lead's unconditional rule, the WHOLE-MACHINE job nonetheless runs under the CONVERGENT
+ * gate (not the strict one) regardless of atomicity -- harmless here since a byte-exact
+ * collapse trivially converges (0 tear frames, 0 persistent state expected).
  *
  * WHY THE CORE ENGINE + A CUSTOM FACTORY (not harness.js's wrappers). harness.js bakes a
  * `makeMachine` on `{}` assets that drives no input and applies no poke, so it never
@@ -64,8 +69,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_1486 as translated_1486 } from "../../translated/state0.js";
 import { sub_1486 as optimized_1486 } from "../sub_1486.js";
 import { Machine } from "../../machine.js";
+import { convergentGate } from "./convergent.js";
+import { SUBSTATE_TIMER, P1_INPUT } from "../ram.js";
 import {
-  wholeMachineEquivalence,
   unitEquivalence,
   firstStateDiff,
   firstRegDiff,
@@ -113,6 +119,16 @@ function makeFactory(poke) {
     return m;
   };
 }
+
+// A custom convergentGate scenario (not one of convergent.js's generic SCENARIOS):
+// the SAME coin+start tape + phase-21 poke as above, so the whole-machine convergent
+// run actually reaches sub_1486's dispatch (convergentGate's own factory adds the gfx
+// assets + captureVideo pixels-are-ground-truth requirement on top).
+const PHASE21_SCENARIO = {
+  frames: FRAMES,
+  inputs: COIN_START_TAPE,
+  pokes: PHASE21_POKE,
+};
 const makeMachine = makeFactory(PHASE21_POKE);
 const makeTeethMachine = makeFactory(TEETH_POKE);
 
@@ -120,6 +136,293 @@ const makeTeethMachine = makeFactory(TEETH_POKE);
 // once per display-timer wrap with no same-frame overwrite -- a pure display cell, so a
 // wrong value gives a clean diff and never steers dispatch into a stub.
 const BROKEN_ADDR = 0x7572;
+
+// The two-bit palette-bank latch (same private constants as sub_1486.js -- not
+// exported, so this from-scratch cycle-broken twin needs its own copies).
+const PALETTE_BANK_LO = 0x7d86;
+const PALETTE_BANK_HI = 0x7d87;
+
+/**
+ * Cycle-broken twin for the CONVERGENT gate: a full copy of the collapsed sub_1486
+ * EXCEPT its very first block (the mode-latch prologue, hit on EVERY dispatch) is 5 t
+ * short (16 instead of 21). A wrong total forks the main-loop spin count (0x6019 PRNG
+ * entropy) -- a PERSISTENT divergence, never a heal. This is the teeth for the
+ * collapse's load-bearing invariant (total-cycle preservation).
+ */
+function cyclebroken_1486(m) {
+  const { regs, mem } = m;
+  let label = 0x1486;
+  for (;;) {
+    switch (label) {
+      case 0x1486:
+        m.push16(0x1489);
+        m.step(0x0616, 17);
+        m.call(0x0616);
+        regs.hl = SUBSTATE_TIMER;
+        regs.a = mem.read8(regs.hl);
+        regs.and(regs.a);
+        m.step(0x148e, 16); // DROPPED: correct total is 21 t
+        if (regs.fNZ) { label = 0x14dc; continue; }
+        m.step(0x1491, 10);
+        mem.write8(PALETTE_BANK_LO, regs.a);
+        m.step(0x1494, 13);
+        mem.write8(PALETTE_BANK_HI, regs.a);
+        m.step(0x1497, 13);
+        mem.write8(regs.hl, 0x01);
+        regs.hl = 0x6030;
+        mem.write8(regs.hl, 0x0a);
+        regs.hl = (regs.hl + 1) & 0xffff;
+        mem.write8(regs.hl, 0x00);
+        regs.hl = (regs.hl + 1) & 0xffff;
+        mem.write8(regs.hl, 0x10);
+        regs.hl = (regs.hl + 1) & 0xffff;
+        mem.write8(regs.hl, 0x1e);
+        regs.hl = (regs.hl + 1) & 0xffff;
+        mem.write8(regs.hl, 0x3e);
+        regs.hl = (regs.hl + 1) & 0xffff;
+        mem.write8(regs.hl, 0x00);
+        regs.hl = 0x75e8;
+        mem.write16(0x6036, regs.hl);
+        regs.hl = 0x611c;
+        regs.a = mem.read8(0x600e);
+        regs.rlca();
+        regs.a = regs.inc8(regs.a);
+        regs.c = regs.a;
+        regs.de = 0x0022;
+        regs.b = 0x04;
+        m.step(0x14c1, 188);
+      case 0x14c1:
+        regs.a = mem.read8(regs.hl);
+        regs.cp(regs.c);
+        if (regs.fZ) { label = 0x14c9; continue; }
+        regs.addHl(regs.de);
+        m.step(0x14c7, 32);
+        regs.djnz();
+        m.step(regs.b ? 0x14c1 : 0x14c9, regs.b ? 13 : 8);
+        if (regs.b) { label = 0x14c1; continue; }
+      case 0x14c9:
+        mem.write16(0x6038, regs.hl);
+        regs.de = 0xfff3;
+        regs.addHl(regs.de);
+        mem.write16(0x603a, regs.hl);
+        regs.b = 0x00;
+        regs.a = mem.read8(0x6035);
+        regs.c = regs.a;
+        m.push16(0x14dc);
+        m.step(0x15fa, 94);
+        m.call(0x15fa);
+      case 0x14dc:
+        regs.hl = 0x6034;
+        regs.decMem8(mem, regs.hl);
+        m.step(0x14e0, 21);
+        if (regs.fNZ) { label = 0x14fc; continue; }
+        mem.write8(regs.hl, 0x3e);
+        regs.hl = (regs.hl - 1) & 0xffff;
+        regs.decMem8(mem, regs.hl);
+        m.step(0x14e7, 37);
+        if (regs.fZ) { label = 0x15c6; continue; }
+        regs.a = mem.read8(regs.hl);
+        regs.b = 0xff;
+        m.step(0x14ed, 24);
+      case 0x14ed:
+        regs.b = regs.inc8(regs.b);
+        regs.sub(0x0a);
+        m.step(0x14f0, 11);
+        if (regs.fNC) { label = 0x14ed; continue; }
+        regs.add(0x0a);
+        mem.write8(0x7552, regs.a);
+        regs.a = regs.b;
+        mem.write8(0x7572, regs.a);
+        m.step(0x14fc, 47);
+      case 0x14fc:
+        regs.hl = 0x6030;
+        regs.b = mem.read8(regs.hl);
+        mem.write8(regs.hl, 0x0a);
+        regs.a = mem.read8(P1_INPUT);
+        regs.bit(7, regs.a);
+        m.step(0x1507, 48);
+        if (regs.fNZ) { label = 0x1546; continue; }
+        regs.and(0x03);
+        m.step(0x150c, 17);
+        if (regs.fNZ) { label = 0x1514; continue; }
+        regs.a = regs.inc8(regs.a);
+        mem.write8(regs.hl, regs.a);
+        m.step(0x1511, 21);
+        label = 0x158a;
+        continue;
+      case 0x1514:
+        regs.b = regs.dec8(regs.b);
+        m.step(0x1515, 4);
+        if (regs.fZ) { label = 0x151d; continue; }
+        regs.a = regs.b;
+        mem.write8(regs.hl, regs.a);
+        m.step(0x151a, 21);
+        label = 0x158a;
+        continue;
+      case 0x151d:
+        regs.bit(1, regs.a);
+        m.step(0x151f, 8);
+        if (regs.fNZ) { label = 0x1539; continue; }
+        regs.a = mem.read8(0x6035);
+        regs.a = regs.inc8(regs.a);
+        regs.cp(0x1e);
+        m.step(0x1528, 34);
+        if (regs.fNZ) { label = 0x152d; continue; }
+        regs.a = 0x00;
+        m.step(0x152d, 17);
+      case 0x152d:
+        mem.write8(0x6035, regs.a);
+        regs.c = regs.a;
+        regs.b = 0x00;
+        m.push16(0x1536);
+        m.step(0x15fa, 41);
+        m.call(0x15fa);
+        label = 0x158a;
+        continue;
+      case 0x1539:
+        regs.a = mem.read8(0x6035);
+        regs.sub(0x01);
+        m.step(0x153e, 20);
+        if (regs.fP) { label = 0x152d; continue; }
+        regs.a = 0x1d;
+        m.step(0x1543, 17);
+        label = 0x152d;
+        continue;
+      case 0x1546:
+        regs.a = mem.read8(0x6035);
+        regs.cp(0x1c);
+        m.step(0x154b, 20);
+        if (regs.fZ) { label = 0x156d; continue; }
+        regs.cp(0x1d);
+        m.step(0x1550, 17);
+        if (regs.fZ) { label = 0x15c6; continue; }
+        regs.hl = mem.read16(0x6036);
+        regs.bc = 0x7588;
+        regs.and(regs.a);
+        regs.sbcHl(regs.bc);
+        m.step(0x155c, 55);
+        if (regs.fZ) { label = 0x158a; continue; }
+        regs.addHl(regs.bc);
+        regs.add(0x11);
+        mem.write8(regs.hl, regs.a);
+        regs.bc = 0xffe0;
+        regs.addHl(regs.bc);
+        m.step(0x1567, 56);
+      case 0x1567:
+        mem.write16(0x6036, regs.hl);
+        m.step(0x156a, 16);
+        label = 0x158a;
+        continue;
+      case 0x156d:
+        regs.hl = mem.read16(0x6036);
+        regs.bc = 0x0020;
+        regs.addHl(regs.bc);
+        regs.and(regs.a);
+        regs.bc = 0x7608;
+        regs.sbcHl(regs.bc);
+        m.step(0x157a, 66);
+        if (regs.fNZ) { label = 0x1586; continue; }
+        regs.hl = 0x75e8;
+        m.step(0x1580, 20);
+      case 0x1580:
+        regs.a = 0x10;
+        mem.write8(regs.hl, regs.a);
+        m.step(0x1583, 14);
+        label = 0x1567;
+        continue;
+      case 0x1586:
+        regs.addHl(regs.bc);
+        m.step(0x1587, 11);
+        label = 0x1580;
+        continue;
+      case 0x158a:
+        regs.hl = 0x6032;
+        regs.decMem8(mem, regs.hl);
+        m.step(0x158e, 21);
+        if (regs.fNZ) { label = 0x15f9; continue; }
+        regs.a = mem.read8(0x6031);
+        regs.and(regs.a);
+        m.step(0x1595, 27);
+        if (regs.fNZ) { label = 0x15b8; continue; }
+        regs.a = 0x01;
+        mem.write8(0x6031, regs.a);
+        regs.de = 0x01bf;
+        m.step(0x15a0, 40);
+      case 0x15a0:
+        regs.iy = mem.read16(0x6038);
+        regs.l = mem.read8((regs.iy + 0x04) & 0xffff);
+        regs.h = mem.read8((regs.iy + 0x05) & 0xffff);
+        m.push16(regs.hl);
+        regs.ix = m.pop16();
+        m.push16(0x15b0);
+        m.step(0x057c, 100);
+        m.call(0x057c);
+        regs.a = 0x10;
+        mem.write8(0x6032, regs.a);
+        m.step(0x15b5, 20);
+        label = 0x15f9;
+        continue;
+      case 0x15b8:
+        regs.xor(regs.a);
+        mem.write8(0x6031, regs.a);
+        regs.de = mem.read16(0x6038);
+        regs.de = (regs.de + 1) & 0xffff;
+        regs.de = (regs.de + 1) & 0xffff;
+        regs.de = (regs.de + 1) & 0xffff;
+        m.step(0x15c3, 55);
+        label = 0x15a0;
+        continue;
+      case 0x15c6:
+        regs.de = mem.read16(0x6038);
+        regs.xor(regs.a);
+        mem.write8(regs.de, regs.a);
+        regs.hl = SUBSTATE_TIMER;
+        mem.write8(regs.hl, 0x80);
+        regs.hl = (regs.hl + 1) & 0xffff;
+        regs.decMem8(mem, regs.hl);
+        regs.b = 0x0c;
+        regs.hl = 0x75e8;
+        regs.iy = mem.read16(0x603a);
+        regs.de = 0xffe0;
+        m.step(0x15df, 115);
+      case 0x15df:
+        regs.a = mem.read8(regs.hl);
+        mem.write8((regs.iy + 0x00) & 0xffff, regs.a);
+        regs.iy = (regs.iy + 1) & 0xffff;
+        regs.addHl(regs.de);
+        regs.djnz();
+        if (regs.b) {
+          m.step(0x15df, 60);
+          label = 0x15df;
+          continue;
+        }
+        regs.b = 0x05;
+        regs.de = 0x0314;
+        m.step(0x15ed, 72);
+      case 0x15ed:
+        m.push16(0x15f0);
+        m.step(0x309f, 17);
+        m.call(0x309f);
+        regs.de = (regs.de + 1) & 0xffff;
+        regs.djnz();
+        if (regs.b) {
+          m.step(0x15ed, 19);
+          label = 0x15ed;
+          continue;
+        }
+        regs.de = 0x031a;
+        m.step(0x15f6, 24);
+        m.push16(0x15f9);
+        m.step(0x309f, 17);
+        m.call(0x309f);
+      case 0x15f9:
+        m.ret(10);
+        return;
+      default:
+        throw new Error(`cyclebroken_1486: unreachable label 0x${label.toString(16)}`);
+    }
+  }
+}
 
 /**
  * Deliberately-broken twin: behaviourally optimized_1486 EXCEPT the FIRST store to
@@ -146,23 +449,23 @@ function broken_1486(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_1486 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_1486]]));
+test("CONVERGENT (whole-machine): collapsed sub_1486 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_1486]]), { scenario: PHASE21_SCENARIO });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, override fired ` +
-      `${r.invocations.get(TARGET)}x (phase 21, item walk across the board)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (phase 21, item walk across the board); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -178,16 +481,19 @@ test("EQUAL (unit): idiomatic optimized sub_1486 matches translated in RAM + reg
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong value-digit store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(makeTeethMachine, MAX_FRAMES, new Map([[TARGET, broken_1486]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_1486]]), { scenario: PHASE21_SCENARIO });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

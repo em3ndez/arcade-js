@@ -13,22 +13,22 @@
  * from HL = 0x7600 and once from HL = 0x75C0 -- with BC and DE preserved across the pair.
  * Finally it decrements the index at 0x638E. A two-row screen effect stepped by the index.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Two call paths, not all provably mask-cleared;
- * the call scaffolding is kept and sub_3064 routes through m.call (the registry).
+ * CYCLES -- COLLAPSED to one m.step per basic block (straight-line register-load groups
+ * folded into a single charge at the block's exit PC). Two call paths, not all provably
+ * mask-cleared, so the call scaffolding is kept verbatim and sub_3064 routes through m.call
+ * (the registry); only the granularity of sub_304a's OWN straight-line charges changed. Every
+ * fold sums the oracle's own per-instruction values, unchanged.
  */
 export function sub_304a(m) {
   const { regs, mem } = m;
 
+  // ld de,0xffe0; ld a,(0x638e); ld c,a; ld b,0; ld hl,0x7600.  10+13+4+7+10 = 44 t, exit 0x3056.
   regs.de = 0xffe0; // -0x20; sub_3064's `add hl,de` subtracts one tilemap row
-  m.step(0x304d, 10);
   regs.a = mem.read8(0x638e);
-  m.step(0x3050, 13);
   regs.c = regs.a;
-  m.step(0x3051, 4);
   regs.b = 0x00; // BC = the index, B forced to 0
-  m.step(0x3053, 7);
   regs.hl = 0x7600;
-  m.step(0x3056, 10);
+  m.step(0x3056, 44);
 
   m.push16(0x3059);
   m.step(0x3064, 17);
@@ -41,10 +41,10 @@ export function sub_304a(m) {
   m.step(0x3064, 17);
   m.call(0x3064); // reuses BC and DE preserved across the first
 
+  // ld hl,0x638e; dec (hl).  10+11 = 21 t, exit 0x3063.
   regs.hl = 0x638e;
-  m.step(0x3062, 10);
   mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8); // dec (hl) -- RMW, work RAM
-  m.step(0x3063, 11);
+  m.step(0x3063, 21);
 
   m.ret(); // 0x3063
 }

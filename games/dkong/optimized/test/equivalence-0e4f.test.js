@@ -2,8 +2,10 @@
 /**
  * Equivalence tests for loc_0e4f (draw a SLANTED board element — the record-kind==2 arm of
  * the board-layout renderer; kind 3+ tails to loc_0ee8). 25m's girders slant, so this
- * dispatches during the 25m attract board draw (~frame 518). PER-INSTRUCTION (a draw
- * primitive of sub_0da7, whose callers are not provably mask-cleared).
+ * dispatches during the 25m attract board draw (~frame 518). COLLAPSED (one m.step per
+ * basic block); the whole-machine gate uses the CONVERGENT license unconditionally --
+ * "atomic" is a property of the scenario exercised, not of the routine (see sub_0350), so
+ * the strict gate is never trusted here even though it happened to pass on this scenario.
  */
 
 import nodeTest from "node:test";
@@ -13,10 +15,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0e4f as translated_0e4f } from "../../translated/nmi.js";
 import { loc_0e4f as optimized_0e4f } from "../loc_0e4f.js";
 import { Machine } from "../../machine.js";
-import {
-  wholeMachineEquivalence as coreWholeMachineEquivalence,
-  unitEquivalence as coreUnitEquivalence,
-} from "../../../../core/equivalence.js";
+import { unitEquivalence as coreUnitEquivalence } from "../../../../core/equivalence.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -42,12 +42,136 @@ function broken_0e4f(m) {
   try { return optimized_0e4f(m); } finally { m.mem.write8 = realWrite; }
 }
 
-test("EQUAL (whole-machine): per-instruction loc_0e4f matches translated every frame", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_0e4f]]));
-  assert.ok(r.invocations.get(TARGET) >= 1, `override never dispatched (invocations=${r.invocations.get(TARGET)})`);
-  assert.equal(r.equal, true, r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} (baseline ${r.baseline} vs optimized ${r.optimized})`);
-  assert.equal(r.framesCompared, FRAMES);
-  console.log(`  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations.get(TARGET)}x (25m slanted girders)`);
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the collapsed
+// routine, but the very FIRST block charge (always executed, every invocation) is 5 t short.
+// A wrong total shifts the main loop's spin count (0x6019 PRNG entropy), forking the RANDOM
+// stream FORKS: a PERSISTENT non-stack divergence, never a heal.
+function cyclebroken_0e4f(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(0x63b3);
+  regs.cp(0x02);
+  m.step(0x0e54, 15); // DROPPED: the correct charge here is 20 t
+  if (regs.fNZ) {
+    m.step(0x0ee8, 10);
+    return m.call(0x0ee8);
+  }
+  m.step(0x0e57, 10);
+  regs.a = mem.read8(0x63af);
+  regs.add(0xf0);
+  mem.write8(0x63b5, regs.a);
+  regs.hl = mem.read16(0x63ab);
+  m.step(0x0e62, 49);
+
+  let at = 0x0e62;
+  for (;;) {
+    if (at === 0x0e62) {
+      regs.a = mem.read8(0x63b5);
+      mem.write8(regs.hl, regs.a);
+      regs.hl = (regs.hl + 1) & 0xffff;
+      regs.a = regs.l;
+      regs.and(0x1f);
+      m.step(0x0e6a, 37);
+      if (regs.fZ) { m.step(0x0e78, 10); at = 0x0e78; continue; }
+      regs.a = mem.read8(0x63b5);
+      regs.cp(0xf0);
+      m.step(0x0e72, 30);
+      if (regs.fZ) { m.step(0x0e78, 10); at = 0x0e78; continue; }
+      regs.sub(0x10);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x0e78, 24);
+      at = 0x0e78;
+      continue;
+    }
+    if (at === 0x0e78) {
+      regs.bc = 0x001f;
+      regs.addHl(regs.bc);
+      regs.a = mem.read8(0x63b1);
+      regs.sub(0x08);
+      m.step(0x0e81, 41);
+      if (regs.fC) { m.step(0x0ecf, 10); at = 0x0ecf; continue; }
+      mem.write8(0x63b1, regs.a);
+      regs.a = mem.read8(0x63b2);
+      regs.cp(0x00);
+      m.step(0x0e8c, 43);
+      if (regs.fZ) { m.step(0x0e62, 10); at = 0x0e62; continue; }
+      regs.a = mem.read8(0x63b5);
+      mem.write8(regs.hl, regs.a);
+      regs.hl = (regs.hl + 1) & 0xffff;
+      regs.a = regs.l;
+      regs.and(0x1f);
+      m.step(0x0e97, 47);
+      if (regs.fZ) { m.step(0x0ea0, 10); at = 0x0ea0; continue; }
+      regs.a = mem.read8(0x63b5);
+      regs.sub(0x10);
+      mem.write8(regs.hl, regs.a);
+      m.step(0x0ea0, 37);
+      at = 0x0ea0;
+      continue;
+    }
+    if (at === 0x0ea0) {
+      regs.bc = 0x001f;
+      regs.addHl(regs.bc);
+      regs.a = mem.read8(0x63b1);
+      regs.sub(0x08);
+      m.step(0x0ea9, 41);
+      if (regs.fC) { m.step(0x0ecf, 10); at = 0x0ecf; continue; }
+      mem.write8(0x63b1, regs.a);
+      regs.a = mem.read8(0x63b2);
+      const neg = regs.bit(7, regs.a);
+      m.step(0x0eb4, 44);
+      if (neg) { m.step(0x0ed3, 10); at = 0x0ed3; continue; }
+      regs.a = mem.read8(0x63b5);
+      regs.a = regs.inc8(regs.a);
+      mem.write8(0x63b5, regs.a);
+      regs.cp(0xf8);
+      m.step(0x0ec0, 47);
+      if (regs.fNZ) { m.step(0x0ec9, 10); at = 0x0ec9; continue; }
+      regs.hl = (regs.hl + 1) & 0xffff;
+      regs.a = 0xf0;
+      mem.write8(0x63b5, regs.a);
+      m.step(0x0ec9, 36);
+      at = 0x0ec9;
+      continue;
+    }
+    if (at === 0x0ec9) {
+      regs.a = regs.l;
+      regs.and(0x1f);
+      m.step(0x0ecc, 11);
+      if (regs.fNZ) { m.step(0x0e62, 10); at = 0x0e62; continue; }
+      m.step(0x0ecf, 10);
+      at = 0x0ecf;
+      continue;
+    }
+    if (at === 0x0ed3) {
+      regs.a = mem.read8(0x63b5);
+      regs.a = regs.dec8(regs.a);
+      mem.write8(0x63b5, regs.a);
+      regs.cp(0xf0);
+      m.step(0x0edc, 37);
+      if (regs.fP) { m.step(0x0ee5, 10); at = 0x0ee5; continue; }
+      regs.hl = (regs.hl - 1) & 0xffff;
+      regs.a = 0xf7;
+      mem.write8(0x63b5, regs.a);
+      m.step(0x0ee5, 36);
+      at = 0x0ee5;
+      continue;
+    }
+    if (at === 0x0ee5) {
+      m.step(0x0e62, 10);
+      at = 0x0e62;
+      continue;
+    }
+    regs.de = (regs.de + 1) & 0xffff;
+    m.step(0x0da7, 16);
+    return;
+  }
+}
+
+test("CONVERGENT (whole-machine): collapsed loc_0e4f CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_0e4f]]), { scenario: SCENARIOS.attract });
+  assert.ok(r.invocations.get(TARGET) >= 1, `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`);
+  assert.equal(r.pass, true, r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, pixelPersistent=${r.pixelPersistent}`);
+  console.log(`  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), non-stack state persistent = ${r.statePersistent.length}`);
 });
 
 test("EQUAL (unit): per-instruction loc_0e4f matches translated in RAM + registers", () => {
@@ -59,12 +183,12 @@ test("EQUAL (unit): per-instruction loc_0e4f matches translated in RAM + registe
   console.log("  EQUAL/unit: RAM + all registers (incl. F) + pc identical");
 });
 
-test("TEETH (whole-machine): a wrong slant tile is CAUGHT and NOT-EQUAL", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, broken_0e4f]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0e4f]]), { scenario: SCENARIOS.attract });
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
-  console.log(`  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)}`);
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(r.statePersistent.length > 0 || r.pixelPersistent, "a caught divergence must be persistent (non-stack state or pixels)");
+  console.log(`  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, pixelPersistent ${r.pixelPersistent}`);
 });
 
 test("TEETH (unit): a wrong slant tile is CAUGHT", () => {

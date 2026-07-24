@@ -55,51 +55,50 @@
  * here; every register this routine touches is compared. The regs.bit/and/xor
  * helpers reproduce the Z80 flag semantics exactly, so F matches by construction.
  *
- * LADDER STATUS -- idiomatic (named/documented), cycles kept PER-INSTRUCTION,
- * byte-identical in effect to ../translated/state0.js. ATOMICITY IS PER-CALL-PATH:
- * loc_04ac is a leaf, but every one of its callers sits under loc_197a's per-frame
- * in-game cascade (loc_197a -> entry_03fb -> ... -> loc_04a3/04e1/04f9 -> here),
- * which runs with the NMI mask ENABLED. The vblank NMI can therefore land inside
- * this routine, so its internal cycle DISTRIBUTION is observable and NOT free to
- * collapse -- every oracle m.step charge is retained (same decision, and same
- * reason, as its parent entry_03fb and loc_197a itself). Each branch's cycle TOTAL
- * (EXIT-1 32t, EXIT-2 52t, EXIT-3 80t) is asserted on clones by the branch tests.
+ * LADDER STATUS -- idiomatic (named/documented), byte-identical in effect to
+ * ../translated/state0.js. ATOMICITY IS PER-CALL-PATH: loc_04ac is a leaf, but every
+ * one of its callers sits under loc_197a's per-frame in-game cascade (loc_197a ->
+ * entry_03fb -> ... -> loc_04a3/04e1/04f9 -> here), which runs with the NMI mask
+ * ENABLED. The vblank NMI can therefore land inside this routine -- so the collapse
+ * below is LICENSED by the CONVERGENT gate (docs/06), not the strict whole-machine
+ * gate, exactly as sub_0350's. Each branch's cycle TOTAL is still the oracle's,
+ * EXACTLY (EXIT-1 32t, EXIT-2 52t, EXIT-3 80t), asserted on clones by the branch
+ * tests -- total-preservation is what keeps this collapse's PRNG/spin-count effect
+ * nil.
+ *
+ * CYCLES -- COLLAPSED to one m.step per basic block: Block 1 (ld (0x6905),a [13] +
+ * bit 6,c [8]) = 21 t, ending at the EXIT-1 gate; Block 2 (ret z not-taken [5] + ld
+ * b,a [4] + ld a,c [4] + and 0x07 [7]) = 20 t, ending at the EXIT-2 gate; Block 3
+ * (ret nz not-taken [5] + ld a,b [4] + xor 0x03 [7] + ld (0x6905),a [13]) = 29 t,
+ * ending at EXIT-3's `ret`. No hardware writes (0x6905 is SPRITE_BUFFER work RAM) so
+ * nothing blocks folding across the stores.
  */
 export function loc_04ac(m) {
   const { regs, mem } = m;
 
-  // ld (0x6905),a -- publish the caller's colour byte (0x6905 is inside SPRITE_BUFFER).
+  // Block 1: ld (0x6905),a (13) + bit 6,c (8) = 21 t.
   mem.write8(0x6905, regs.a);
-  m.step(0x04af, 13);
-
-  // bit 6,c -- gate the blink on bit 6 of the attract frame counter (C, from 0x6390).
   regs.bit(6, regs.c);
-  m.step(0x04b1, 8);
+  m.step(0x04b1, 21);
   if (regs.fZ) {
     m.ret(11); // ret z -- bit6 clear: no blink, leave the byte as stored (EXIT-1)
     return;
   }
-  m.step(0x04b2, 5); // ret z NOT taken
 
-  // Save the stored byte, then test the counter's low 3 bits (the 8-frame phase).
+  // Block 2: ret z not-taken (5) + ld b,a (4) + ld a,c (4) + and 0x07 (7) = 20 t.
   regs.b = regs.a;
-  m.step(0x04b3, 4); // ld b,a
   regs.a = regs.c;
-  m.step(0x04b4, 4); // ld a,c
   regs.and(0x07);
-  m.step(0x04b6, 7); // and 0x07
+  m.step(0x04b6, 20);
   if (regs.fNZ) {
     m.ret(11); // ret nz -- not an 8-frame boundary: no blink this frame (EXIT-2)
     return;
   }
-  m.step(0x04b7, 5); // ret nz NOT taken
 
-  // bit6 set AND C % 8 == 0: flip colour bits 0,1 of the stored byte and re-store it.
+  // Block 3: ret nz not-taken (5) + ld a,b (4) + xor 0x03 (7) + ld (0x6905),a (13) = 29 t.
   regs.a = regs.b;
-  m.step(0x04b8, 4); // ld a,b
   regs.xor(0x03);
-  m.step(0x04ba, 7); // xor 0x03 -- flip bits 0,1
   mem.write8(0x6905, regs.a);
-  m.step(0x04bd, 13); // ld (0x6905),a
+  m.step(0x04bd, 29);
   m.ret(10); // ret (EXIT-3)
 }

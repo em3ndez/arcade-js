@@ -49,33 +49,29 @@
  * leaves are immediately dead -- overwritten by loc_04ac's `bit 6,c`. Nothing here
  * needs a flag preserved beyond what m.call(0x04ac) already reproduces exactly.
  *
- * CYCLES -- PER-INSTRUCTION, deliberately NOT collapsed. loc_04a3 is a LEAF
- * reached via m.call, and by the atomicity-is-per-call-path rule it is NOT atomic:
- * its live caller path is loc_0486 <- loc_0413 <- entry_03fb <- loc_197a, the
- * interruptible per-frame update cascade (NMI mask ENABLED -- loc_197a itself is
- * kept per-instruction for exactly this reason). It also spans a `call` into
- * sub_0514. The vblank NMI can therefore land INSIDE this routine and push a live
- * PC into the diffed stack RAM, so collapsing its per-instruction m.step charges to
- * one total could move where that NMI lands. Each m.step is kept at its oracle cycle
- * so the cumulative clock is identical instruction by instruction. This buys names +
- * structure + documentation, not fewer operations. (Same decision as its family:
- * entry_03fb / loc_0413 / loc_197a.)
+ * CYCLES -- COLLAPSED to one m.step per basic block. loc_04a3 is a LEAF reached via
+ * m.call, and by the atomicity-is-per-call-path rule it is NOT atomic: its live
+ * caller path is loc_0486 <- loc_0413 <- entry_03fb <- loc_197a, the interruptible
+ * per-frame update cascade (NMI mask ENABLED). It also spans a `call` into sub_0514.
+ * The vblank NMI can therefore land INSIDE this routine and push a live PC into the
+ * diffed stack RAM -- so the collapse is LICENSED by the CONVERGENT gate (docs/06),
+ * not the strict whole-machine gate. Each block's TOTAL is the oracle's, EXACTLY:
+ * Block 1 (ld hl,0x75c4 [10] + call 0x0514's own charge [17]) = 27 t, ending right at
+ * the call; Block 2 (ld a,(0x6905) [13], falling into loc_04ac) = 13 t. No writes of
+ * its own to fold across (0x75C4 is written by the sub_0514 callee, not here).
  */
 export function loc_04a3(m) {
   const { regs, mem } = m;
 
-  // ld hl,0x75c4 -- colour-RAM column base for sub_0514 (A / DE are live-in).
+  // Block 1: ld hl,0x75c4 (10) + call 0x0514's own charge (17) = 27 t, target 0x0514.
   regs.hl = 0x75c4;
-  m.step(0x04a6, 10); // ld hl,0x75c4
-
-  // call 0x0514 -- descending 3-cell colour-column fill (uses live-in A, DE).
   m.push16(0x04a9);
-  m.step(0x0514, 17); // call 0x0514
+  m.step(0x0514, 27);
   m.call(0x0514);
 
-  // ld a,(0x6905) -- blink-state byte; fall into loc_04ac (store + blink flip).
+  // Block 2: ld a,(0x6905) = 13 t -- falls into loc_04ac (store + blink flip).
   regs.a = mem.read8(0x6905);
-  m.step(0x04ac, 13); // ld a,(0x6905) -- falls into loc_04ac
+  m.step(0x04ac, 13);
 
   return m.call(0x04ac);
 }

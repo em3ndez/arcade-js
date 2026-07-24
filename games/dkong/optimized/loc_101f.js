@@ -20,18 +20,23 @@
  *   - ldir 0x0C bytes 0x3E3C -> 0x6A0C,
  *   - 0x62B9 = 1 (a board-2 flag), ret.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Reached via the board-setup dispatch, whose
- * atomicity is not pinned to the mask-cleared NMI; callees route through m.call.
+ * CYCLES -- COLLAPSED to one m.step per basic block (straight-line register-load groups
+ * folded into a single charge at the block's exit PC, right before the next call/ldir
+ * scaffold). loc_101f is reached only via the per-board setup dispatch -- a one-shot,
+ * dispatch-time coordinator, not a per-frame routine -- so the same reasoning that lets
+ * sub_122a collapse applies here. Every fold sums the oracle's own per-instruction values
+ * (10t per `ld rr,nn`, 7t per 8-bit immediate load); `m.call`/`m.push16`/`m.ldir` scaffolding
+ * is untouched, and the single-load blocks (one `ld hl,nn` with nothing to fold beside it)
+ * are left as they were.
  */
 export function loc_101f(m) {
   const { regs, mem } = m;
 
+  // ld hl,0x3dec; ld de,0x6407; ld bc,0x051c.  10+10+10 = 30 t, exit 0x1028.
   regs.hl = 0x3dec;
-  m.step(0x1022, 10);
   regs.de = 0x6407;
-  m.step(0x1025, 10);
   regs.bc = 0x051c;
-  m.step(0x1028, 10);
+  m.step(0x1028, 30);
   m.push16(0x102b);
   m.step(0x122a, 17);
   m.call(0x122a);
@@ -40,24 +45,21 @@ export function loc_101f(m) {
   m.step(0x1186, 17);
   m.call(0x1186);
 
+  // ld hl,0x3e18; ld de,0x65a7; ld bc,0x060c.  10+10+10 = 30 t, exit 0x1037.
   regs.hl = 0x3e18;
-  m.step(0x1031, 10);
   regs.de = 0x65a7;
-  m.step(0x1034, 10);
   regs.bc = 0x060c;
-  m.step(0x1037, 10);
+  m.step(0x1037, 30);
   m.push16(0x103a);
   m.step(0x122a, 17);
   m.call(0x122a);
 
+  // ld ix,0x65a0; ld hl,0x69b8; ld de,0x0010; ld b,6.  14+10+10+7 = 41 t, exit 0x1046.
   regs.ix = 0x65a0;
-  m.step(0x103e, 14);
   regs.hl = 0x69b8;
-  m.step(0x1041, 10);
   regs.de = 0x0010; // stride
-  m.step(0x1044, 10);
   regs.b = 0x06;
-  m.step(0x1046, 7);
+  m.step(0x1046, 41);
   m.push16(0x1049);
   m.step(0x11d3, 17);
   m.call(0x11d3);
@@ -68,28 +70,25 @@ export function loc_101f(m) {
   m.step(0x11fa, 17);
   m.call(0x11fa);
 
+  // ld hl,0x3e04; ld de,0x69fc; ld bc,0x0004.  10+10+10 = 30 t, exit 0x1058.
   regs.hl = 0x3e04;
-  m.step(0x1052, 10);
   regs.de = 0x69fc;
-  m.step(0x1055, 10);
   regs.bc = 0x0004;
-  m.step(0x1058, 10);
+  m.step(0x1058, 30);
   m.ldir(0x105a);
 
+  // ld hl,0x3e1c; ld de,0x6944; ld bc,0x0008.  10+10+10 = 30 t, exit 0x1063.
   regs.hl = 0x3e1c;
-  m.step(0x105d, 10);
   regs.de = 0x6944;
-  m.step(0x1060, 10);
   regs.bc = 0x0008;
-  m.step(0x1063, 10);
+  m.step(0x1063, 30);
   m.ldir(0x1065);
 
+  // ld hl,0x3e24; ld de,0x69e4; ld bc,0x0018.  10+10+10 = 30 t, exit 0x106e.
   regs.hl = 0x3e24;
-  m.step(0x1068, 10);
   regs.de = 0x69e4;
-  m.step(0x106b, 10);
   regs.bc = 0x0018;
-  m.step(0x106e, 10);
+  m.step(0x106e, 30);
   m.ldir(0x1070);
 
   regs.hl = 0x3e10; // live-in to sub_11a6
@@ -98,18 +97,17 @@ export function loc_101f(m) {
   m.step(0x11a6, 17);
   m.call(0x11a6);
 
+  // ld hl,0x3e3c; ld de,0x6a0c; ld bc,0x000c.  10+10+10 = 30 t, exit 0x107f.
   regs.hl = 0x3e3c;
-  m.step(0x1079, 10);
   regs.de = 0x6a0c;
-  m.step(0x107c, 10);
   regs.bc = 0x000c;
-  m.step(0x107f, 10);
+  m.step(0x107f, 30);
   m.ldir(0x1081);
 
+  // ld a,1; ld (0x62b9),a.  7+13 = 20 t, exit 0x1086.
   regs.a = 0x01;
-  m.step(0x1083, 7);
   mem.write8(0x62b9, regs.a); // 0x62B9 = 1 (board-2 flag)
-  m.step(0x1086, 13);
+  m.step(0x1086, 20);
 
   m.ret(); // 0x1086
 }

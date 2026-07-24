@@ -43,22 +43,25 @@
  * so A, IX and the whole flag word match bit-for-bit and the unit gate (which
  * diffs the entire register file, F included) passes.
  *
- * ATOMICITY / CYCLES — PER-INSTRUCTION, NOT collapsed. This is a LEAF reached
- * only via m.call, so per the per-call-path rule its atomicity is decided by its
- * CALLERS, and ALL of them are MAIN-LOOP / interruptible (NMI mask ENABLED):
+ * ATOMICITY / CYCLES — COLLAPSED to a single m.step (one basic block, no internal
+ * branch, no hardware write). This is a LEAF reached only via m.call, so per the
+ * per-call-path rule its atomicity is decided by its CALLERS, and ALL of them are
+ * MAIN-LOOP / interruptible (NMI mask ENABLED):
  *   - loop_0583 (mainloop.js) — the BCD render loop, reached from draw_0578 (the
  *     score/string renderer, main-loop dispatch) AND from sub_0616 <- entry_0611,
  *     a dispatchTask task whose own findings note sub_0616 is interruptible.
  *   - sub_057c (state0.js) — reached from sub_1486, the in-game 0x600A phase-21
  *     handler (also main-loop dispatch).
- * So the vblank NMI CAN land between these three instructions; the cumulative
- * cycle position of each is observable (a shifted charge would move where the NMI
- * lands and which PC it pushes into diffed stack RAM). The oracle's charges are
- * therefore kept one per instruction: and=7, ld (ix),a=19, add ix,de=15, ret=10.
- * (Harness-checked: a flat collapse of these into one charge PASSES a 240-frame
- * attract whole-machine run — but that is exactly the "the NMI didn't happen to
- * land in the window" trap, NOT proof of atomicity, so per-instruction stands as
- * the always-correct choice. See the accompanying equivalence test.)
+ * So the vblank NMI CAN land between these three instructions, and a mid-routine
+ * NMI now lands at the block's single boundary (the ret) rather than between
+ * `and`/`ld`/`add ix,de` -- an INTERRUPTIBLE collapse, licensed by the CONVERGENT
+ * gate (not the strict whole-machine gate, which would false-fail on the resulting
+ * dead-stack PC / raster tear). The TOTAL is the oracle's exactly: and=7,
+ * ld (ix),a=19, add ix,de=15, ret=10, sum 51 t -- charged in one m.ret(51) call
+ * covering the whole leaf. (Harness-checked previously: a flat collapse of these
+ * into one charge PASSES a 240-frame attract whole-machine run — that was the
+ * "NMI didn't happen to land in the window" trap; the convergent gate is what
+ * actually licenses this collapse under real gameplay.)
  *
  * HARDWARE-WRITE NOTE: the store lands in tilemap/VRAM 0x74xx-0x77xx — inside the
  * diffed state dump, but NOT a 0x7Dxx hardware latch — and per-instruction cycles
@@ -68,18 +71,11 @@
 export function sub_0593(m) {
   const { regs, mem } = m;
 
-  // and 0x0f -- keep one digit (sets S,Z,H=1,P/V; clears N,C).
-  regs.and(0x0f);
-  m.step(0x0595, 7);
-
-  // ld (ix+0x00),a -- store the digit to the video cell IX addresses.
-  mem.write8(regs.ix, regs.a);
-  m.step(0x0598, 19);
-
-  // add ix,de -- step to the next cell; sets H,N,C + F3/F5 from the 16-bit
-  // result (the carry is live past this ret -- see the block comment).
-  regs.addIx(regs.de);
-  m.step(0x059a, 15);
-
-  m.ret();
+  // Collapsed: the whole leaf is one basic block (no branch, no hardware write), so it
+  // folds to a single charge. and 0x0f(7)+ld (ix+0),a(19)+add ix,de(15)+ret(10) = 51 t,
+  // charged on the final m.ret call.
+  regs.and(0x0f); // keep one digit (sets S,Z,H=1,P/V; clears N,C)
+  mem.write8(regs.ix, regs.a); // store the digit to the video cell IX addresses
+  regs.addIx(regs.de); // step to the next cell; sets H,N,C + F3/F5 (carry live past this ret)
+  m.ret(51);
 }

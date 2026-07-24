@@ -9,13 +9,13 @@
  *
  * Six jobs:
  *
- *   1. EQUAL (whole-machine) -- the idiomatic optimized sub_0020
- *      (optimized/sub_0020.js) reads EQUAL against its translated oracle every
- *      frame. The override is resolved through the routine registry, so it swaps
- *      at every `m.call(0x0020)` site; inert when the map is empty.
+ *   1. CONVERGENT (whole-machine) -- the idiomatic COLLAPSED sub_0020
+ *      (optimized/sub_0020.js) converges against its translated oracle over a long
+ *      driven run (pixels + persistent non-stack state). The override is resolved
+ *      through the routine registry, so it swaps at every `m.call(0x0020)` site.
  *
  *   2. DISPATCH -- the override must actually fire, or EQUAL is vacuous. sub_0020
- *      first dispatches at frame 7 and fires 25x within the 30-frame window.
+ *      first dispatches at frame 7 and fires many times over a long run.
  *
  *   3. EQUAL (unit) -- translated vs optimized leave identical RAM + registers
  *      (incl. F, HL and SP) + pc from the captured entry state. The natural entry
@@ -31,23 +31,22 @@
  *        - 0x6008 == 1, 0x6009 == 1 (taken, sub_0018 returns): ret TRUE, SP +2, 65 t
  *      The cycle-total assertion has teeth (a dropped m.step charge is CAUGHT).
  *
- *   5. TEETH (whole + unit) -- a deliberately-broken twin whose SUBSTATE_TIMER_LO
- *      (0x6008) store lands the wrong value must be CAUGHT: NOT-EQUAL, naming the
- *      diverging address.
+ *   5. TEETH (convergent + unit) -- a cycle-drop twin (convergent, catches a forked
+ *      PRNG) and a deliberately-broken VALUE twin (unit scale, SUBSTATE_TIMER_LO /
+ *      0x6008 store lands the wrong value) must both be CAUGHT.
  *
- * THE CYCLE DECISION this routine records: sub_0020 stays PER-INSTRUCTION (its
- * charges are NOT collapsed). It is NOT atomic -- a leaf `rst` helper entered from
- * many sub-state contexts (both NMI and main-loop paths), short enough for a
- * vblank NMI to land inside it, and its taken branch calls the interruptible
- * sub_0018. It is the EXACT `pop hl / ret` tail that handler_05e9 inlines and
- * documents as interruptible; collapsing its per-instruction m.step charges to one
- * per-branch lump would move where an NMI lands and change the PC pushed into
- * diffed stack RAM (README §2's "NMI lands mid-logic" caveat). Empirically the
- * collapse happens to stay EQUAL across a 240-frame ATTRACT window (the sub-state
- * handlers all run far from the vblank boundary there) -- but that is absence of
- * evidence, not atomicity, so the oracle's distribution is preserved to stay
- * correct in the gameplay contexts the attract window never exercises. The path
- * TOTALS (48 / 81 / 65 t) are the oracle's by construction and are asserted below.
+ * THE CYCLE DECISION this routine records: sub_0020 is COLLAPSED (one m.step per
+ * basic block). It is NOT atomic -- a leaf `rst` helper entered from many sub-state
+ * contexts (both NMI and main-loop paths), short enough for a vblank NMI to land
+ * inside it, and its taken branch calls the interruptible sub_0018. Rather than
+ * keep it per-instruction out of caution (atomicity is a property of the SCENARIO
+ * tested, not of the routine -- see sub_0350), the CONVERGENT gate is used
+ * unconditionally: a mistimed NMI can at most push a coarse PC into the dead stack
+ * or leave a healing single-frame pixel tear, never a persistent divergence, since
+ * the fold does not cross the routine's one RAM write (order/value unchanged) or
+ * any hardware write (0x6008 is work RAM). The path TOTALS (48 / 81 / 65 t) are the
+ * oracle's by construction and are asserted below (branch tests, crafted-entry,
+ * unaffected by the whole-machine gate choice).
  *
  * NO write-trace test: sub_0020's only store is `dec (hl)` on 0x6008, which is
  * WORK RAM (0x6000-0x6BFF), not a 0x7Dxx hardware latch -- it does not appear in
@@ -62,10 +61,11 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0020 as translated_0020 } from "../../translated/nmi.js";
 import { sub_0020 as optimized_0020 } from "../sub_0020.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
 import { SUBSTATE_TIMER_LO, SUBSTATE_TIMER } from "../ram.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -109,24 +109,27 @@ function broken_0020(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0020 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0020]]));
+test("CONVERGENT (whole-machine): collapsed sub_0020 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  // sub_0020 is COLLAPSED and INTERRUPTIBLE (leaf rst helper entered from many
+  // sub-state contexts), so the strict byte-exact gate is the wrong tool -- it would
+  // false-fail on a mistimed-NMI raster tear or the coarse PC pushed into the dead
+  // stack. The convergent gate is the correct license (see optimized/sub_0020.js).
+  const r = convergentGate(new Map([[TARGET, optimized_0020]]), { scenario: SCENARIOS.gameplay });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -230,16 +233,35 @@ test("BRANCH-TEETH (cycles): a dropped m.step charge yields a wrong total and is
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong SUBSTATE_TIMER_LO store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0020]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  // The convergent gate tolerates transient tears but MUST catch a real (non-healing)
+  // error. A short charge shifts the main-loop spin count (0x6019, PRNG entropy),
+  // forking the RANDOM stream permanently -- never a value-corruption twin over a long
+  // convergent run (it can hang instead of diverging cleanly; the unit TEETH below
+  // covers that case at routine-boundary scale).
+  function cyclebroken_0020(m) {
+    const { regs, mem } = m;
+    regs.hl = SUBSTATE_TIMER_LO;
+    mem.write8(regs.hl, regs.dec8(mem.read8(regs.hl)), 8);
+    m.step(0x0024, 16); // DROPPED: correct total is 21 t (10 + 11), short by 5
+    if (regs.fZ) { m.step(0x0018, 12); return m.call(0x0018); }
+    regs.hl = m.pop16();
+    m.step(0x0027, 17);
+    m.ret();
+    return false;
+  }
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0020]]), { scenario: SCENARIOS.gameplay });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store -- it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 

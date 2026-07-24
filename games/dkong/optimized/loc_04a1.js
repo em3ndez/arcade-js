@@ -40,13 +40,17 @@
  * arithmetic (in the loc_04a3 tail) before anything reads it. We therefore leave
  * F alone exactly as the oracle does, and A + F match the oracle bit-for-bit.
  *
- * CYCLES -- PER-INSTRUCTION (a single 7t charge; nothing to collapse). loc_04a1
- * is a LEAF reached only via `m.call` from loc_0486, which sits on the
- * INTERRUPTIBLE main-loop cascade (loc_197a -> entry_03fb -> loc_0413 -> loc_0486,
- * NMI mask ENABLED). By the atomicity-is-per-call-path rule it is NOT atomic: the
- * vblank NMI can land inside, so its cycle position is load-bearing. Being one
- * instruction, per-instruction and "one total per branch" are the SAME single
- * `m.step(0x04a3, 7)` — kept at the oracle's exact cumulative cycle.
+ * CYCLES -- PER-INSTRUCTION (a single 7t charge; nothing to collapse -- one
+ * instruction IS one basic block). loc_04a1 is a LEAF reached only via `m.call`
+ * from loc_0486, which sits on the INTERRUPTIBLE main-loop cascade (loc_197a ->
+ * entry_03fb -> loc_0413 -> loc_0486, NMI mask ENABLED). By the
+ * atomicity-is-per-call-path rule it is NOT atomic: the vblank NMI can land inside,
+ * so its cycle position is load-bearing. Being one instruction, per-instruction and
+ * "one total per branch" are the SAME single `m.step(0x04a3, 7)` — kept at the
+ * oracle's exact cumulative cycle. Since "atomic" is a property of the SCENARIO
+ * tested, not of the routine, equivalence-04a1.test.js still gates the
+ * whole-machine job with convergentGate rather than a strict comparison, matching
+ * every other routine on this NOT-atomic main-loop cascade (loc_0413/loc_0486).
  *
  * CALLING CONVENTION. loc_04a1 is entered by a JUMP (loc_0486's `jp z,0x04a1`
  * or fall-through), not a CALL, so it pushes NO return address; it tail-jumps to

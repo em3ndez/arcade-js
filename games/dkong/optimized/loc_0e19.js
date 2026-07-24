@@ -23,37 +23,39 @@
  * OUTPUTS: 0x63B2 decremented past 0; video RAM cells = 0xC0; HL advanced. F = the
  *          final `sub 0x08` (the `inc l` sets none observable at the tail).
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. loc_0e19 is a draw primitive of sub_0da7,
- * which is reached from many callers (board-setup handlers, but also the intro/how-high
- * steppers loc_17b6/loc_1880 whose dispatch context is not pinned to the mask-cleared
- * NMI). Since atomicity is not provable on every call path, the per-instruction charges
- * are kept verbatim (always correct); the vblank NMI, if it can land inside, then pushes
- * the oracle's exact PC. The routine is already a tight loop; the win is the documented
- * behaviour, not a collapse.
+ * CYCLES -- COLLAPSED to one m.step per basic block: the span-decrement test (read/sub/
+ * store/carry-test) is one block, and the draw-one-cell continuation is another. loc_0e19
+ * is a draw primitive of sub_0da7, which is reached from many callers (board-setup
+ * handlers -- confirmed atomic, dispatched inside the mask-cleared NMI -- but also the
+ * intro/how-high steppers loc_17b6/loc_1880, themselves reached via dispatchGameState too,
+ * so likely the SAME non-interruptible family; not independently re-verified here). Per the
+ * lead's rule the whole-machine gate is the CONVERGENT one regardless of whether strict
+ * still passes after the collapse, since a pass is a property of the tested scenario, not a
+ * proof of atomicity. Each fold's total is the exact sum of the oracle's per-instruction
+ * charges it replaces: span-test block 13+7+13=33t continuing to a carry test that itself
+ * folds in the jp's charge (33+10=43t not-carry / 33+10=43t carry -- both jp arms cost the
+ * same 10t, so the merge is uniform); draw block 4+10+10=24t. No 0x7Dxx hardware latch is
+ * written (VRAM tilemap + work RAM only), so nothing here needs a partial-collapse boundary.
  */
 export function loc_0e19(m) {
   const { regs, mem } = m;
 
   for (;;) {
-    // a = (0x63B2) - 8; store back. Carry = span exhausted.
+    // span-decrement block: a = (0x63B2) - 8; store back; test carry. 13+7+13 = 33t,
+    // then the `jp c` itself is 10t on EITHER arm -- folded into the same charge.
     regs.a = mem.read8(0x63b2);
-    m.step(0x0e1c, 13);
     regs.sub(0x08);
-    m.step(0x0e1e, 7);
     mem.write8(0x63b2, regs.a);
-    m.step(0x0e21, 13);
     if (regs.fC) {
-      m.step(0x0e2a, 10); // jp c taken -- fall into loc_0e2a
+      m.step(0x0e2a, 43); // jp c taken -- fall into loc_0e2a
       break;
     }
-    m.step(0x0e24, 10); // jp c not taken
+    m.step(0x0e24, 43); // jp c not taken
 
-    // draw one 0xC0 cell down the column, then loop.
+    // draw one 0xC0 cell down the column, then loop. inc l(4) + ld (hl),0xc0(10) + jp(10) = 24t
     regs.l = regs.inc8(regs.l);
-    m.step(0x0e25, 4);
     mem.write8(regs.hl, 0xc0);
-    m.step(0x0e27, 10);
-    m.step(0x0e19, 10); // jp 0x0e19
+    m.step(0x0e19, 24); // jp 0x0e19
   }
 
   // tail jump: no push16 -- loc_0e2a's ret returns to loc_0e19's caller.

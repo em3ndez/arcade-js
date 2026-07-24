@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence tests for sub_13ca (format a score to display digits and insertion-sort it
- * into the high-score table). PER-INSTRUCTION. Verified from a crafted entry: a booted
- * machine captured at loc_0fd7's dispatch, cloned, with HL pointed at a 3-byte score, A set
- * to an entry index, and 0x6007 bit0 cleared so the rst 0x08 guard does not abort.
+ * into the high-score table). COLLAPSED (one m.step per basic block; see optimized/sub_13ca.js
+ * for the fold). Verified from a crafted entry: a booted machine captured at loc_0fd7's
+ * dispatch, cloned, with HL pointed at a 3-byte score, A set to an entry index, and 0x6007
+ * bit0 cleared so the rst 0x08 guard does not abort.
+ *
+ * No whole-machine/convergent run exists for this routine (crafted-entry only), so the PRNG
+ * gate does not cover a wrong cycle total here -- the dedicated CYCLES test below pins the
+ * collapsed routine's cycle total against the oracle explicitly, on two seeds that take
+ * different insertion-sort paths (so the loop folds are exercised, not just the straight-line
+ * prologue/epilogue).
  */
 
 import nodeTest from "node:test";
@@ -76,6 +83,33 @@ test("EQUAL (crafted entry): sub_13ca matches translated in state + registers", 
   assert.equal(regs, null, regs ? `reg diff at ${regs.reg}` : "");
   assert.equal(pc[0], pc[1], "pc must match");
   console.log("  EQUAL: score format + insert EQUAL (state + regs + pc)");
+});
+
+// -- MANDATORY CYCLE-TOTAL (sub_13ca's test is crafted-entry only, no whole-machine/
+// convergent run, so the PRNG gate does not cover a wrong cycle total on the
+// COLLAPSED routine -- pin it explicitly, on seeds that exercise different
+// insertion-sort trip counts so the loop folds are actually stressed.) -----------
+
+test("CYCLES: collapsed sub_13ca charges the exact oracle total (loop folds correct)", () => {
+  const cases = [
+    { name: "seed 0x50/0x00/0x01 (default)", score: [0x50, 0x00, 0x01] },
+    { name: "seed 0x00/0x00/0x00 (low score)", score: [0x00, 0x00, 0x00] },
+    { name: "seed 0x99/0x99/0x09 (max BCD score)", score: [0x99, 0x99, 0x09] },
+  ];
+  for (const c of cases) {
+    const a = seed(ENTRY.clone());
+    const b = seed(ENTRY.clone());
+    for (const [i, byte] of c.score.entries()) {
+      a.mem.write8(0x6100 + i, byte);
+      b.mem.write8(0x6100 + i, byte);
+    }
+    const ca0 = a.cycles, cb0 = b.cycles;
+    translated_13ca(a);
+    optimized_13ca(b);
+    const dA = a.cycles - ca0, dB = b.cycles - cb0;
+    assert.equal(dB, dA, `${c.name}: cycle total mismatch (oracle ${dA} t vs collapsed ${dB} t)`);
+    console.log(`  CYCLES/${c.name}: oracle ${dA} t == collapsed ${dB} t`);
+  }
 });
 
 test("TEETH (crafted entry): a wrong digit unpack is CAUGHT and NOT-EQUAL", () => {

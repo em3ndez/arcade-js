@@ -18,43 +18,47 @@
  *   - bit 7 of that sum XOR-toggles bit 7 of 0x692D (a sprite mirror/attribute).
  * The `xor (hl)` flags at 0x3094 escape through the `ret`.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. Three call paths, not all provably mask-cleared;
- * the rst/call scaffolding is kept and callees route through m.call (the registry).
+ * CYCLES -- COLLAPSED to one m.step per basic block (the straight-line runs between
+ * branch/call boundaries folded into a single charge each; every m.call(0xADDR) and
+ * its push16/step call-scaffolding is left exactly as the oracle emits it, since
+ * that's a routine boundary, not foldable). No hardware-bus write occurs here
+ * (0x62AF/0x690B.../0x692D are all work RAM), so nothing else pins a boundary.
+ * Branch totals: ret-nz (7-of-8 skip) 46 t; the 8th-call path's own charges (i.e.
+ * excluding the three callees' opaque internal cycles) sum to 187 t -- both EXACTLY
+ * the oracle's, verified against the per-instruction sums above term by term.
  */
 export function sub_306f(m) {
   const { regs, mem } = m;
 
+  // Block A: inc the frame counter, test the every-8th gate.  10+11+7+7 = 35 t
   regs.hl = 0x62af;
-  m.step(0x3072, 10);
   mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl))); // inc (hl) -- counter++, inc8 preserves carry
-  m.step(0x3073, 11);
   regs.a = mem.read8(regs.hl);
-  m.step(0x3074, 7);
   regs.and(0x07);
-  m.step(0x3076, 7);
+  m.step(0x3076, 35);
   if (regs.fNZ) {
-    m.ret(11); // ret nz -- 7 of every 8 calls exit here
+    m.ret(11); // ret nz -- 7 of every 8 calls exit here (branch total 46 t)
     return;
   }
-  m.step(0x3077, 5);
 
+  // Block B: (jr not taken 5) + set up the rst 0x38 call args.  5+10+7 = 22 t
   regs.hl = 0x690b;
-  m.step(0x307a, 10);
   regs.c = 0xfc; // -4: loc_0038 subtracts 4 from each of 10 bytes
-  m.step(0x307c, 7);
+  m.step(0x307c, 22);
   // rst 0x38 -- a real CALL to loc_0038; sets DE=0x0004 as a side effect.
   m.push16(0x307d);
   m.step(0x0038, 11);
   m.call(0x0038);
 
+  // Block C: set up the first sub_3096 call args.  7+10 = 17 t
   regs.c = 0x81; // XOR mask for the two sub_3096 calls
-  m.step(0x307f, 7);
   regs.hl = 0x6909;
-  m.step(0x3082, 10);
+  m.step(0x3082, 17);
   m.push16(0x3085);
   m.step(0x3096, 17);
   m.call(0x3096); // DE=0x0004 from the rst; preserves DE and C
 
+  // single-instruction block: set up the second sub_3096 call args.  10 t
   regs.hl = 0x691d;
   m.step(0x3088, 10);
   m.push16(0x308b);
@@ -65,14 +69,12 @@ export function sub_306f(m) {
   m.step(0x0057, 17);
   m.call(0x0057); // A = (0x6018)+(0x601A)+(0x6019), written back to 0x6018
 
+  // Block E: keep bit 7 of the PRNG sum, toggle it into 0x692D.  7+10+7+7 = 31 t
   regs.and(0x80); // keep bit 7 of the sum
-  m.step(0x3090, 7);
   regs.hl = 0x692d;
-  m.step(0x3093, 10);
   regs.xor(mem.read8(regs.hl)); // xor (hl) -- toggle bit 7 of 0x692D
-  m.step(0x3094, 7);
   mem.write8(regs.hl, regs.a);
-  m.step(0x3095, 7);
+  m.step(0x3095, 31);
 
   m.ret(); // 0x3095 -- xor (hl) flags escape to the caller
 }

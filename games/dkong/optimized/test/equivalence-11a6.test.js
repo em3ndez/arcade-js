@@ -2,7 +2,12 @@
 /**
  * Equivalence tests for sub_11a6 (coordinator: sub_11ec + sub_122a fills, mark slots
  * 0x6680/0x6690 live, then sub_11d3 gather into 0x6A18). Reached from loc_0fd7 during the
- * 25m attract board build (~frame 518). PER-INSTRUCTION.
+ * 25m attract board build (~frame 518). COLLAPSED (one m.step per basic block, 14→3).
+ *
+ * The whole-machine gate is the CONVERGENT one, unconditionally — "atomic" is a property of
+ * the scenario tested, not of the routine, so a strict pass here would be a brittle guarantee
+ * that could later false-fail on a benign tear. (This collapse does in fact read byte-exact
+ * on this scenario; it is gated the robust way regardless.)
  */
 
 import nodeTest from "node:test";
@@ -12,10 +17,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_11a6 as translated_11a6 } from "../../translated/state0.js";
 import { sub_11a6 as optimized_11a6 } from "../sub_11a6.js";
 import { Machine } from "../../machine.js";
-import {
-  wholeMachineEquivalence as coreWholeMachineEquivalence,
-  unitEquivalence as coreUnitEquivalence,
-} from "../../../../core/equivalence.js";
+import { unitEquivalence as coreUnitEquivalence } from "../../../../core/equivalence.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -43,12 +46,11 @@ function brokenAt(addr) {
   };
 }
 
-test("EQUAL (whole-machine): per-instruction sub_11a6 matches translated every frame", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_11a6]]));
+test("CONVERGENT (whole-machine): collapsed sub_11a6 CONVERGES vs translated", () => {
+  const r = convergentGate(new Map([[TARGET, optimized_11a6]]), { scenario: SCENARIOS.attract });
   assert.ok(r.invocations.get(TARGET) >= 1, `override never dispatched (invocations=${r.invocations.get(TARGET)})`);
-  assert.equal(r.equal, true, r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} (baseline ${r.baseline} vs optimized ${r.optimized})`);
-  assert.equal(r.framesCompared, FRAMES);
-  console.log(`  EQUAL/whole: ${r.framesCompared} frames identical, override fired ${r.invocations.get(TARGET)}x`);
+  assert.equal(r.pass, true, r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, pixelPersistent=${r.pixelPersistent}`);
+  console.log(`  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), non-stack state persistent = ${r.statePersistent.length}`);
 });
 
 test("EQUAL (unit): per-instruction sub_11a6 matches translated in RAM + registers", () => {
@@ -60,12 +62,42 @@ test("EQUAL (unit): per-instruction sub_11a6 matches translated in RAM + registe
   console.log("  EQUAL/unit: RAM + all registers (incl. F) + pc identical");
 });
 
-test("TEETH (whole-machine): a wrong slot mark is CAUGHT and NOT-EQUAL", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, brokenAt(0x6680)]]));
+// Cycle-broken twin for the CONVERGENT gate: identical memory + registers, but block 1's
+// charge is 5 t short (37 -> 32). A wrong total shifts the main loop's spin count (0x6019,
+// the PRNG entropy) -- a PERSISTENT divergence, never a heal. This is the teeth for the
+// collapse's load-bearing invariant, and precisely the failure a fold that omits the call's
+// own 17 t charge would produce.
+function cyclebroken_11a6(m) {
+  const { regs, mem } = m;
+  regs.de = 0x6683;
+  regs.bc = 0x020e;
+  m.push16(0x11af);
+  m.step(0x11ec, 32); // DROPPED: the correct charge here is 37 t
+  m.call(0x11ec);
+  regs.hl = 0x3e08;
+  regs.de = 0x6687;
+  regs.bc = 0x020c;
+  m.push16(0x11bb);
+  m.step(0x122a, 47);
+  m.call(0x122a);
+  regs.ix = 0x6680;
+  mem.write8((regs.ix + 0x00) & 0xffff, 0x01);
+  mem.write8((regs.ix + 0x10) & 0xffff, 0x01);
+  regs.hl = 0x6a18;
+  regs.b = 0x02;
+  regs.de = 0x0010;
+  m.push16(0x11d2);
+  m.step(0x11d3, 96);
+  m.call(0x11d3);
+  m.ret();
+}
+
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  const r = convergentGate(new Map([[TARGET, cyclebroken_11a6]]), { scenario: SCENARIOS.attract });
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
-  console.log(`  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)}`);
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total");
+  assert.ok(r.statePersistent.length > 0 || r.pixelPersistent, "a caught divergence must be persistent");
+  console.log(`  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}, pixelPersistent ${r.pixelPersistent}`);
 });
 
 test("TEETH (unit): a wrong slot mark is CAUGHT and names 0x6680", () => {

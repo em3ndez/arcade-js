@@ -43,32 +43,32 @@ import { MARIO_X } from "./ram.js";
  * is NO `m.push16` -- pushing a return address would unbalance SP against the leaf's
  * `ret`. Modelled exactly as the ROM: `m.call(0x04f9)` / `m.call(0x04e1)` with no push.
  *
- * ATOMIC? NO -- stays PER-INSTRUCTION (no cycle collapse). ATOMICITY IS PER-CALL-
- * PATH: loc_0509's ONLY caller is loc_04be (state0.js `jp z,0x0509`), reached via
- * loc_197a -> entry_03fb -> the loc_0413 colour tree -> loc_0486 -> loc_04be -- the
- * INTERRUPTIBLE per-frame in-game cascade with the vblank NMI mask ENABLED. The NMI
- * can land inside this router (and inside the interruptible blink leaves it tail-
- * jumps to), so its internal cycle distribution is observable; a collapse is NOT
- * permitted. Every oracle m.step charge is retained verbatim -- same decision as
- * loc_04be / loc_04e1 / loc_04ac / entry_03fb / loc_197a. (Harness-checked: the
- * whole-machine gate stays EQUAL with the per-instruction charges kept.)
+ * ATOMIC? NO -- ATOMICITY IS PER-CALL-PATH: loc_0509's ONLY caller is loc_04be
+ * (state0.js `jp z,0x0509`), reached via loc_197a -> entry_03fb -> the loc_0413
+ * colour tree -> loc_0486 -> loc_04be -- the INTERRUPTIBLE per-frame in-game cascade
+ * with the vblank NMI mask ENABLED. The NMI can land inside this router (and inside
+ * the interruptible blink leaves it tail-jumps to) -- so the collapse below is
+ * LICENSED by the CONVERGENT gate (docs/06), not the strict whole-machine gate,
+ * exactly as sub_0350's. Same decision as loc_04be / loc_04e1 / loc_04ac / entry_03fb
+ * / loc_197a.
  *
  * FLAGS. `cp 0x80`'s result is kept verbatim on both exits (see INPUTS): produced
  * identically by `regs.cp(0x80)`, and neither `jp` touches flags, so F matches the
  * oracle at the tail-call boundary.
  *
- * LADDER STATUS -- rung 2/3 (named + structured + documented), NOT de-scaffolded
- * (non-atomic, per above). Behaviourally byte-identical to ../translated/state0.js.
- * Branch totals (own instrs): X>=0x80 -> 13+7+10 = 30 t; X<0x80 -> 13+7+10+10 = 40 t.
+ * CYCLES -- COLLAPSED to one m.step per basic block. Behaviourally byte-identical to
+ * ../translated/state0.js. Branch totals (own instrs, unchanged by the collapse):
+ * Block 1 (ld a,(MARIO_X) [13] + cp 0x80 [7]) = 20 t; X>=0x80 exit adds the `jp nc`
+ * taken charge (10) = 30 t own total; X<0x80 exit folds `jp nc` not-taken (10) + `jp
+ * 0x04e1` (10) = 20 t (Block 2), for 40 t own total.
  */
 export function loc_0509(m) {
   const { regs, mem } = m;
 
-  // ld a,(MARIO_X) / cp 0x80 -- test which half of the screen Mario is on.
+  // Block 1: ld a,(MARIO_X) (13) + cp 0x80 (7) = 20 t.
   regs.a = mem.read8(MARIO_X);
-  m.step(0x050c, 13);
   regs.cp(0x80);
-  m.step(0x050e, 7);
+  m.step(0x050e, 20);
 
   if (regs.fNC) {
     // jp nc,0x04f9 taken -- X >= 0x80 (right half) -> blink OFF. own total 30 t.
@@ -76,8 +76,8 @@ export function loc_0509(m) {
     return m.call(0x04f9);
   }
 
-  // jp nc NOT taken, then jp 0x04e1 -- X < 0x80 (left half) -> blink ON. own total 40 t.
-  m.step(0x0511, 10);
-  m.step(0x04e1, 10);
+  // Block 2: jp nc NOT taken (10) + jp 0x04e1 (10) = 20 t -- X < 0x80 (left half) ->
+  // blink ON. own total 40 t.
+  m.step(0x04e1, 20);
   return m.call(0x04e1);
 }

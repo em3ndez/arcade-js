@@ -77,6 +77,23 @@ test("EQUAL (early-return path): the 7-of-8 skip matches translated", () => {
   console.log("  EQUAL early-return: skip EQUAL (state + regs + pc)");
 });
 
+// -- MANDATORY CYCLE-TOTAL (sub_306f's tests are crafted-entry only, no whole-
+// machine/convergent run, so the PRNG gate does not cover a wrong cycle total on
+// the COLLAPSED routine -- pin it explicitly on both branches.) ----------------
+
+test("CYCLES: collapsed sub_306f charges the exact oracle total on both branches", () => {
+  for (const [label, counter] of [["early-return (7-of-8)", 0x00], ["8th-call (full tick)", 0x07]]) {
+    const a = ENTRY.clone(); a.mem.write8(0x62af, counter); // oracle
+    const b = ENTRY.clone(); b.mem.write8(0x62af, counter); // collapsed
+    const ca0 = a.cycles, cb0 = b.cycles;
+    translated_306f(a);
+    optimized_306f(b);
+    const dA = a.cycles - ca0, dB = b.cycles - cb0;
+    assert.equal(dB, dA, `${label}: cycle total mismatch (oracle ${dA} t vs collapsed ${dB} t)`);
+    console.log(`  CYCLES/${label}: oracle ${dA} t == collapsed ${dB} t`);
+  }
+});
+
 test("TEETH (8th-call path): a wrong sprite toggle is CAUGHT and names 0x692d", () => {
   // Break the final on-path store (0x692D). Both sides take the full path, so this is the
   // only byte that differs -- a clean first-diff (breaking the counter instead flips the

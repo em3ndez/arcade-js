@@ -21,67 +21,76 @@
  * The loop counter LIVES IN 0x63B1 (reloaded, decremented, stored every row), not a JS
  * local: it is inside the diffed work RAM, so its intermediate values are observable.
  *
- * CYCLES -- PER-INSTRUCTION, not collapsed. A draw primitive of sub_0da7, whose call
- * graph is not provably mask-cleared on every path, so per-instruction charges are kept
- * verbatim (always correct). The `jp 0x0da7` exits are the walk back-edge -> return; kind
- * 4+ reaches entry_0f1b through m.call (the registry), matching the translation.
+ * CYCLES -- COLLAPSED to one m.step per basic block (the per-instruction charges of
+ * each straight-line run folded into a single charge at the block's exit PC). The
+ * kind/cp prologue folds to 20 t (exit 0x0eed, the `jp nz` decision); the taken (kind
+ * 4+) arm is a single already-atomic instruction (10 t, tail to entry_0f1b); the
+ * not-taken arm plus the whole loop-setup run (top cap + first row-step + first
+ * extent decrement) folds to 81 t (exit 0x0eff, the borrow-test `jp c` decision,
+ * ALSO the loop's back-edge target). Each loop iteration is itself one basic block
+ * (no calls or branches inside it) so it folds to ONE charge per iteration: the
+ * loop-continue body (store the decremented extent to 0x63B1, lay a body tile, step
+ * one tilemap row, decrement again) folds to 88 t (exit 0x0eff, the back-edge); the
+ * loop-exit body (bottom cap + step DE + the walk back-edge) folds to 40 t (exit
+ * 0x0da7). Every fold's TOTAL is the oracle's, EXACTLY -- total-preservation keeps
+ * the main loop's spin count (0x6019, the PRNG entropy) deterministic. The loop
+ * counter 0x63B1 is still written every iteration, in the same order, so its
+ * per-row intermediate values stay observable exactly as the oracle leaves them;
+ * only the m.step GRANULARITY (once per iteration instead of per instruction)
+ * changes. Kind 4+ still reaches entry_0f1b through m.call (the registry).
+ *
+ * A draw primitive of sub_0da7, whose call graph is not provably mask-cleared on
+ * every path, so the collapse coarsens where an in-flight NMI's PC would land (a
+ * block/iteration-exit address, not the exact instruction) -- see
+ * equivalence-0ee8.test.js for how that is covered (this routine's test is
+ * crafted-entry, not a whole-machine/convergent run, so a cycle-total assertion was
+ * added there rather than relying on a pixel/PRNG gate).
  */
 export function loc_0ee8(m) {
   const { regs, mem } = m;
 
+  // Block A: read the record kind and compare it to 3.  13+7 = 20 t.
   regs.a = mem.read8(0x63b3);
-  m.step(0x0eeb, 13); // ld a,(0x63b3) -- kind
   regs.cp(0x03);
-  m.step(0x0eed, 7);
+  m.step(0x0eed, 20);
   if (regs.fNZ) {
-    m.step(0x0f1b, 10); // jp nz,0x0f1b -- kind 4+
+    m.step(0x0f1b, 10); // jp nz taken -- kind 4+, already one instruction
     return m.call(0x0f1b);
   }
-  m.step(0x0ef0, 10); // kind exactly 3
 
+  // Block B (jp nz not taken -- kind exactly 3): lay the TOP cap, step one tilemap
+  // row, and load+decrement the vertical extent (the loop's FIRST step).
+  //   10+16+7+7+10+11+13+7 = 81 t.
   regs.hl = mem.read16(0x63ab);
-  m.step(0x0ef3, 16);
   regs.a = 0xb3;
-  m.step(0x0ef5, 7); // top cap
   mem.write8(regs.hl, regs.a);
-  m.step(0x0ef6, 7);
   regs.bc = 0x0020;
-  m.step(0x0ef9, 10); // one tilemap row
   regs.addHl(regs.bc);
-  m.step(0x0efa, 11);
   regs.a = mem.read8(0x63b1);
-  m.step(0x0efd, 13);
   regs.sub(0x10);
-  m.step(0x0eff, 7); // FIRST step
+  m.step(0x0eff, 81);
 
   for (;;) {
     // loc_0eff -- borrow test
     if (regs.fC) {
-      m.step(0x0f14, 10); // jp c taken -- run exhausted
+      // Block D (run exhausted): bottom cap, step DE past the record, walk
+      // back-edge (bare jp, no push16 -- returns to OUR caller).  10+7+7+6+10 = 40 t.
       regs.a = 0xb2;
-      m.step(0x0f16, 7); // bottom cap
       mem.write8(regs.hl, regs.a);
-      m.step(0x0f17, 7);
       regs.de = (regs.de + 1) & 0xffff;
-      m.step(0x0f18, 6);
-      m.step(0x0da7, 10); // jp 0x0da7 -- walk back-edge (bare jp)
+      m.step(0x0da7, 40);
       return;
     }
-    m.step(0x0f02, 10);
+    // Block C (loop continues): store the decremented extent, lay a BODY tile,
+    // step one tilemap row, load+decrement the extent again (the SUBSEQUENT
+    // step), then loop.  10+13+7+7+10+11+13+7+10 = 88 t.
     mem.write8(0x63b1, regs.a);
-    m.step(0x0f05, 13);
     regs.a = 0xb1;
-    m.step(0x0f07, 7); // body
     mem.write8(regs.hl, regs.a);
-    m.step(0x0f08, 7);
     regs.bc = 0x0020;
-    m.step(0x0f0b, 10);
     regs.addHl(regs.bc);
-    m.step(0x0f0c, 11);
     regs.a = mem.read8(0x63b1);
-    m.step(0x0f0f, 13);
     regs.sub(0x08);
-    m.step(0x0f11, 7); // SUBSEQUENT step
-    m.step(0x0eff, 10); // jp 0x0eff -- loop
+    m.step(0x0eff, 88);
   }
 }

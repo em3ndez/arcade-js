@@ -3,8 +3,18 @@
  * Equivalence-harness tests for sub_03f2 (the periodic-event tail of sub_03a2:
  * store B at (HL), then conditionally inc B and store again, gated on bit 0 of the
  * spin count). Like sub_0008 it is a LEAF reached only via `m.call(0x03f2)` -- from
- * both arms of sub_03a2 (mainloop.js 0x03CE / 0x03EC) -- and, like sub_0008, it is
- * kept PER-INSTRUCTION because sub_03a2 runs in the mask-ENABLED main loop.
+ * both arms of sub_03a2 (mainloop.js 0x03CE / 0x03EC) -- genuinely INTERRUPTIBLE
+ * (sub_03a2 runs in the mask-ENABLED main loop, so the NMI CAN fall between any two
+ * of sub_03f2's instructions).
+ *
+ * COLLAPSED (one m.step per basic block; see optimized/sub_03f2.js) and, per the
+ * lead's collapse-sweep rule, gated whole-machine by the CONVERGENT gate
+ * UNCONDITIONALLY -- this was in fact the FIRST routine where a strict pass was shown
+ * to be a false positive (a 30-frame guard-poke run happened not to catch the NMI
+ * landing mid-routine), which is exactly the scenario-brittleness the convergent gate
+ * exists to fix: pixels + persistent non-stack state are the ground truth, benign
+ * dead-stack/raster-tear artifacts are tolerated, and a genuinely wrong cycle total
+ * still fails as a PERSISTENT divergence at SPIN_COUNT (0x6019).
  *
  * WHY THIS TEST DRIVES DISPATCH WITH A GUARD POKE (and uses core/equivalence.js
  * directly, like equivalence-0a8a/0008). sub_03a2 only reaches sub_03f2 once four
@@ -14,25 +24,28 @@
  * is written 1 only by a board-setup screen, loc_101f). So both gates run through a
  * custom makeMachine that HOLDS the five guard bytes with an identical poke tape
  * (m.pokes) on baseline AND optimized alike -- the sanctioned identical-both-sides
- * poke. With it sub_03f2 dispatches every serviced frame from frame 7 (24x in 30
- * frames), and because the spin count's bit 0 jitters frame to frame BOTH branches
- * are exercised naturally: a clean 12 taken / 12 not-taken split. The core engine is
- * still the standard gate (snapshot override installed at CONSTRUCTION, so it reaches
- * this m.call-only leaf); nothing here open-codes a reach-the-routine workaround.
+ * poke. With it sub_03f2 dispatches every serviced frame from frame 7, and because the
+ * spin count's bit 0 jitters frame to frame BOTH branches are exercised naturally.
+ * The core engine is still the standard gate (snapshot override installed at
+ * CONSTRUCTION, so it reaches this m.call-only leaf); nothing here open-codes a
+ * reach-the-routine workaround.
  *
  * Eight jobs:
- *   1. EQUAL (whole-machine) -- optimized == oracle every frame; override fires 24x,
+ *   1. CONVERGENT (whole-machine) -- optimized CONVERGES vs oracle; override fires,
  *      both branches. 2. EQUAL (unit) -- == in RAM + full register file + pc at the
  *      first entry (frame 7, the NOT-taken/double-store branch). 3-4. FULL BRANCH
  *      COVERAGE -- taken (bit0=1) and not-taken (bit0=0) synthesised: EQUAL (RAM,
- *      regs, pc) AND per-instruction cycle total == the oracle's 35 t / 50 t. 5.
- *      CYCLE TEETH -- stripping the charges is CAUGHT at SPIN_COUNT 0x6019, proving
- *      the preserved total is load-bearing. 6. WRITE-SEQUENCE -- the routine's
- *      signature double store: the optimized write sequence to 0x6A29 is byte-
- *      identical to the oracle on both branches ([0x40,0x41] not-taken, [0x40]
+ *      regs, pc) AND per-instruction cycle total == the oracle's 35 t / 50 t (these
+ *      are single-shot crafted-entry calls -- no frame stepping, so no NMI can land
+ *      mid-call -- unaffected by interruptibility). 5. CYCLE TEETH (convergent) --
+ *      a wrong total is CAUGHT as a PERSISTENT divergence at SPIN_COUNT 0x6019,
+ *      proving the preserved total is load-bearing. 6. WRITE-SEQUENCE -- the
+ *      routine's signature double store: the optimized write sequence to 0x6A29 is
+ *      byte-identical to the oracle on both branches ([0x40,0x41] not-taken, [0x40]
  *      taken), and DROPPING the first store -- invisible to the state gate, which
  *      the same test shows stays EQUAL -- is caught by the sequence. 7-8. STATE
- *      TEETH -- a wrong FINAL store to 0x6A29 is CAUGHT (whole + unit, naming it).
+ *      TEETH (unit only -- a persisting value corruption over a long convergent run
+ *      can hang the game) -- a wrong FINAL store to 0x6A29 is CAUGHT, naming it.
  *
  * Run: node --test
  */
@@ -44,10 +57,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_03f2 as translated_03f2 } from "../../translated/mainloop.js";
 import { sub_03f2 as optimized_03f2 } from "../sub_03f2.js";
 import { Machine } from "../../machine.js";
-import { SPIN_COUNT } from "../ram.js";
+import { SPIN_COUNT, STACK_SCRATCH } from "../ram.js";
 import {
-  wholeMachineEquivalence as coreWholeMachineEquivalence,
   unitEquivalence as coreUnitEquivalence,
+  convergentEquivalence,
   firstStateDiff,
   firstRegDiff,
 } from "../../../../core/equivalence.js";
@@ -57,12 +70,17 @@ const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
 const ROM = ROM_PRESENT
   ? new Uint8Array(readFileSync(new URL("maincpu.bin", ROM_DIR)))
   : null;
+const rd = (n) => new Uint8Array(readFileSync(new URL(n, ROM_DIR)));
+const ASSETS = ROM_PRESENT ? { gfx1: rd("gfx1.bin"), gfx2: rd("gfx2.bin"), proms: rd("proms.bin") } : {};
+const DEAD_STACK = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x03f2;
 const FRAMES = 30;      // sub_03f2 first fires at frame 7, 24x total, both branches
+const CONVERGENT_FRAMES = 200; // > tailWindow (20 default); sub_03f2 fires every serviced
+                                // frame from f7, so plenty of repeats for reconvergence
 const HL = 0x6a29;      // the address sub_03a2 supplies in HL (sprite shadow buffer)
 
 // Identical-both-sides guard poke: hold the five bytes sub_03a2 gates on so it
@@ -89,6 +107,17 @@ const makeMachine = (overrides) => {
   if (overrides) for (const [k, v] of toEntries(overrides)) map.set(k, v);
   const m = new Machine(ROM, map.size ? { overrides: map } : {});
   m.pokes = GUARD_POKES.map((p) => ({ ...p }));
+  return m;
+};
+
+// Video-enabled variant for the CONVERGENT gate (pixels are its ground truth) -- same
+// guard pokes, plus the gfx/proms assets and captureVideo.
+const makeMachineVideo = (overrides) => {
+  const map = new Map();
+  if (overrides) for (const [k, v] of toEntries(overrides)) map.set(k, v);
+  const m = new Machine(ROM, map.size ? { ...ASSETS, overrides: map } : { ...ASSETS });
+  m.pokes = GUARD_POKES.map((p) => ({ ...p }));
+  m.captureVideo = true;
   return m;
 };
 
@@ -197,23 +226,26 @@ function wrongStore_03f2(m) {
 
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_03f2 matches translated every frame", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, optimized_03f2]]));
+// Per the lead's rule the whole-machine gate is the CONVERGENT one UNCONDITIONALLY.
+test("CONVERGENT (whole-machine): collapsed sub_03f2 CONVERGES vs translated", () => {
+  const r = convergentEquivalence(makeMachineVideo, CONVERGENT_FRAMES, new Map([[TARGET, optimized_03f2]]), {
+    excludeAddr: DEAD_STACK,
+  });
 
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x (both branches)`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x (both branches); ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -245,15 +277,21 @@ test("BRANCH not-taken (spin bit0=0): EQUAL + per-instruction total == oracle 50
 
 // -- CYCLE TEETH --------------------------------------------------------------
 
-test("CYCLE TEETH (whole-machine): a WRONG cycle total is CAUGHT at SPIN_COUNT 0x6019", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, wrongCycles_03f2]]));
+test("CYCLE TEETH (convergent): a WRONG cycle total forks the PRNG -- a PERSISTENT divergence at 0x6019, CAUGHT", () => {
+  const r = convergentEquivalence(makeMachineVideo, CONVERGENT_FRAMES, new Map([[TARGET, wrongCycles_03f2]]), {
+    excludeAddr: DEAD_STACK,
+  });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "cycle-teeth override must have dispatched");
-  assert.equal(r.equal, false, "a wrong total was NOT caught — the preserved total would be a free parameter");
-  assert.equal(r.addr, 0x6019, `expected divergence at SPIN_COUNT 0x6019, got 0x${(r.addr ?? 0).toString(16)}`);
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- the preserved total would be a free parameter");
+  assert.ok(
+    r.statePersistent.some((s) => s.addr === SPIN_COUNT) || r.pixelPersistent,
+    `expected a persistent divergence at SPIN_COUNT 0x${SPIN_COUNT.toString(16)}, got ${JSON.stringify(r.statePersistent)}`,
+  );
   console.log(
-    `  CYCLE TEETH: wrong total caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs stripped ${r.optimized})`,
+    `  CYCLE TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 
@@ -286,18 +324,10 @@ test("WRITE-SEQUENCE: optimized double-store to 0x6A29 == oracle; a dropped firs
 
 // -- STATE TEETH (wrong final value at the output address) --------------------
 
-test("TEETH (whole-machine): a wrong store to 0x6A29 is CAUGHT and NOT-EQUAL", () => {
-  const r = coreWholeMachineEquivalence(makeMachine, FRAMES, new Map([[TARGET, wrongStore_03f2]]));
-
-  assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store — it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
-  console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs broken ${r.optimized})`,
-  );
-});
+// NOTE: the whole-machine value-corruption TEETH is intentionally NOT run under the
+// convergent gate (a persisting value corruption over a long convergent run can hang
+// the game -- the lead's rule). Its coverage stays at the unit level below; the
+// convergent gate's whole-machine teeth is the CYCLE TEETH test above.
 
 test("TEETH (unit): a wrong store is CAUGHT at the first entry and names 0x6A29", () => {
   const r = coreUnitEquivalence(makeMachine, TARGET, translated_03f2, wrongStore_03f2, { maxFrames: FRAMES });

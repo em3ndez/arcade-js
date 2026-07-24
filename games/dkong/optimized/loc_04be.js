@@ -56,15 +56,13 @@ import { MARIO_X } from "./ram.js";
  * rewrite must not re-seed A between the two calls — sub_0514 mutates the shared
  * regs.a through m.call, exactly as the oracle relies on.
  *
- * ATOMIC? NO — stays PER-INSTRUCTION (no cycle collapse). ATOMICITY IS PER-CALL-
- * PATH: loc_04be's ONLY caller is loc_0486 (state0.js `jp z,0x04be`), reached via
- * loc_197a -> entry_03fb -> the loc_0413 colour tree -> loc_0486 — the INTERRUPTIBLE
- * per-frame in-game cascade with the vblank NMI mask ENABLED. The NMI can land
- * inside this routine (and inside the interruptible sub-tree it tail-calls), so
- * its internal cycle distribution is observable; a collapse is NOT permitted. Every
- * oracle m.step charge is retained verbatim — same decision as loc_197a / entry_03fb
- * / handler_01c3. (Harness-checked: the whole-machine gate stays EQUAL with the
- * per-instruction charges kept.)
+ * ATOMIC? NO — ATOMICITY IS PER-CALL-PATH: loc_04be's ONLY caller is loc_0486
+ * (state0.js `jp z,0x04be`), reached via loc_197a -> entry_03fb -> the loc_0413
+ * colour tree -> loc_0486 — the INTERRUPTIBLE per-frame in-game cascade with the
+ * vblank NMI mask ENABLED. The NMI can land inside this routine (and inside the
+ * interruptible sub-tree it tail-calls) — so the collapse below is LICENSED by the
+ * CONVERGENT gate (docs/06), not the strict whole-machine gate, exactly as
+ * sub_0350's. Same decision as loc_197a / entry_03fb / handler_01c3.
  *
  * FLAGS. Kept verbatim on every exit, because the unit gate compares the whole
  * register file (F included) at the tail-call boundary:
@@ -76,49 +74,57 @@ import { MARIO_X } from "./ram.js";
  * A is left decremented by sub_0514 and read by nothing before its next writer, but
  * kept exact for the register diff regardless.
  *
- * LADDER STATUS — rung 2/3 (named + structured + documented), NOT de-scaffolded
- * (non-atomic, per above). Behaviourally byte-identical to ../translated/state0.js.
+ * CYCLES — COLLAPSED to one m.step per basic block: Block 1 (ld a,0x10 [7] + ld
+ * hl,0x7623 [10] + sub_0514's call charge [17]) = 34 t, ending at the 1st call;
+ * Block 2 (ld hl,0x7583 [10] + sub_0514's call charge [17]) = 27 t, ending at the
+ * 2nd call; Block 3 (bit 6,c) = 8 t, ending at the bit6 gate; Block 4 (jp z
+ * not-taken [10] + ld a,(MARIO_X) [13] + cp 0x80 [7]) = 30 t, ending at the X>=0x80
+ * gate; Block 5 (jp nc not-taken [10] + ld a,0xdf [7] + ld hl,0x7623 [10] +
+ * sub_0514's call charge [17]) = 44 t, ending at the 3rd call. The two early exits
+ * (jp z taken -> loc_0509, jp nc taken -> loc_04f1) are each already a single
+ * instruction, unchanged. Behaviourally byte-identical to ../translated/state0.js.
  */
 export function loc_04be(m) {
   const { regs, mem } = m;
 
-  // Two colour-column fills via sub_0514 (descending 3-cell, stride 0x20 from
-  // loc_0486's DE). A is seeded ONCE and CARRIES across both calls — sub_0514
-  // leaves it decremented by 3 and the ROM never reloads it between the two.
-  regs.a = 0x10;                                        // ld a,0x10
-  m.step(0x04c0, 7);
-  regs.hl = 0x7623;                                     // ld hl,0x7623 (colour RAM)
-  m.step(0x04c3, 10);
-  m.push16(0x04c6); m.step(0x0514, 17); m.call(0x0514); // call sub_0514
-  regs.hl = 0x7583;                                     // ld hl,0x7583 (A carries, =0x0d)
-  m.step(0x04c9, 10);
-  m.push16(0x04cc); m.step(0x0514, 17); m.call(0x0514); // call sub_0514
+  // Block 1: ld a,0x10 (7) + ld hl,0x7623 (10) + sub_0514's call charge (17) = 34 t.
+  // A is seeded ONCE and CARRIES across both fills — sub_0514 leaves it decremented
+  // by 3 and the ROM never reloads it between the two.
+  regs.a = 0x10;
+  regs.hl = 0x7623; // colour RAM
+  m.push16(0x04c6);
+  m.step(0x0514, 34);
+  m.call(0x0514);
 
-  // bit 6,c -- C is loc_0486's frame counter (0x6390); Z means bit 6 is clear.
+  // Block 2: ld hl,0x7583 (10) + sub_0514's call charge (17) = 27 t (A carries, =0x0d).
+  regs.hl = 0x7583;
+  m.push16(0x04cc);
+  m.step(0x0514, 27);
+  m.call(0x0514);
+
+  // Block 3: bit 6,c -- C is loc_0486's frame counter (0x6390); Z means bit 6 clear.
   regs.bit(6, regs.c);
   m.step(0x04ce, 8);
   if (regs.fZ) {                                        // jp z,0x0509 (bit6-clear arm)
     m.step(0x0509, 10);
     return m.call(0x0509);
   }
-  m.step(0x04d1, 10); // jp z NOT taken
 
-  // Route the blink on which half of the screen Mario is on.
-  regs.a = mem.read8(MARIO_X);                          // ld a,(0x6203)
-  m.step(0x04d4, 13);
-  regs.cp(0x80);                                        // cp 0x80
-  m.step(0x04d6, 7);
+  // Block 4: jp z not-taken (10) + ld a,(MARIO_X) (13) + cp 0x80 (7) = 30 t.
+  regs.a = mem.read8(MARIO_X);
+  regs.cp(0x80);
+  m.step(0x04d6, 30);
   if (regs.fNC) {                                       // jp nc,0x04f1 -- X >= 0x80 -> blink OFF
     m.step(0x04f1, 10);
     return m.call(0x04f1);
   }
-  m.step(0x04d9, 10); // X < 0x80 -> blink ON
 
-  // Third colour fill (A=0xdf into 0x7623), then fall into loc_04e1 (set blink bit7).
-  regs.a = 0xdf;                                        // ld a,0xdf
-  m.step(0x04db, 7);
-  regs.hl = 0x7623;                                     // ld hl,0x7623
-  m.step(0x04de, 10);
-  m.push16(0x04e1); m.step(0x0514, 17); m.call(0x0514); // call sub_0514 -> falls into 0x04e1
+  // Block 5: jp nc not-taken (10) + ld a,0xdf (7) + ld hl,0x7623 (10) + sub_0514's
+  // call charge (17) = 44 t -- X < 0x80 -> third colour fill, then fall into loc_04e1.
+  regs.a = 0xdf;
+  regs.hl = 0x7623;
+  m.push16(0x04e1);
+  m.step(0x0514, 44);
+  m.call(0x0514);
   return m.call(0x04e1);
 }
