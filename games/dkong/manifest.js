@@ -359,5 +359,7 @@ export default {
     "0x1fef": { module: "./optimized/branch_1fef.js", export: "branch_1fef" },
     "0x1da6": { module: "./optimized/entry_1da6.js", export: "entry_1da6" },
     "0x1af5": { module: "./optimized/loc_1af5.js", export: "loc_1af5" },
+    "0x1e8c": { module: "./optimized/entry_1e8c.js", export: "entry_1e8c" },
+    "0x30ed": { module: "./optimized/entry_30ed.js", export: "entry_30ed" },
   },
 };
