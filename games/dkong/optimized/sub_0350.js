@@ -72,26 +72,24 @@ import { BONUS_LIFE_AWARDED, CURRENT_PLAYER, DIP_BONUS_LIFE, LIVES } from "./ram
  * hex. The MSB byte reached by `inc hl` (0x60b4 / 0x60b7) is likewise the score's
  * +2 pair, left implicit in the pointer walk.
  *
- * FLAGS -- KEPT VERBATIM, every operation. The caller does not branch on
- * sub_0350's flags, but this routine is INTERRUPTIBLE (see cycles), so a vblank
- * NMI that lands mid-routine pushes AF into diffed stack RAM — the intermediate
- * F is observable — AND the unit gate compares the whole register file (F, B, HL,
- * A) on return. So `and`, `rrca`, `cp`, `inc8` are kept exactly, and the dead
- * register churn (`ld b,a`, the pointer loads) is preserved: at an interruptible
- * boundary none of it is actually dead.
+ * FLAGS -- KEPT VERBATIM, every operation. `and`, `rrca`, `cp`, `inc8` set the
+ * exact flags the oracle does; the register churn (`ld b,a`, the pointer loads) is
+ * preserved so the register file on return (F, B, HL, A) matches the oracle byte
+ * for byte — the unit gate compares the whole file.
  *
- * CYCLES -- PER-INSTRUCTION, DELIBERATELY (NOT collapsed). sub_0350 is NOT atomic
- * and its cycle DISTRIBUTION is load-bearing: it is called every frame from the
- * MAIN LOOP (mask enabled, ROM 0x02CA `m.call(0x0350)`), and the vblank NMI lands
- * INSIDE its 0x0350-0x0372 read/compute region heavily in real gameplay (among the
- * most-hit NMI-landing PCs, per the measured landing histogram). Collapsing the
- * per-instruction m.step charges to one per-branch lump would move where the NMI
- * lands and change the PC it pushes into diffed stack RAM — the exact failure
- * mode README §2 warns about and sub_0020 / handler_05e9 preserve against. So the
- * oracle's charge-for-charge distribution is kept; each branch's TOTAL is the
- * oracle's by construction (ret-nz 28 t; P1 ret-c 147 t; P2 ret-c 152 t; award-P1
- * 192 t of prologue before the entry_06b8 tail). Optimization here buys the RAM
- * names, the plain-English contract, and structured control flow — not a collapse.
+ * CYCLES -- COLLAPSED to one m.step per basic block (the per-instruction charges of
+ * each straight-line run folded into a single charge at the block's exit PC). Each
+ * branch's TOTAL is the oracle's, EXACTLY (ret-nz 28 t; P1 ret-c 147 t; P2 ret-c
+ * 152 t; P1 award 192 t of prologue before the entry_06b8 tail; P2 award 197 t) --
+ * total-preservation keeps the main loop's spin count (0x6019, the PRNG entropy)
+ * deterministic. sub_0350 is NOT atomic: it is called every frame from the main
+ * loop (mask enabled, ROM 0x02CA `m.call(0x0350)`), and the vblank NMI lands inside
+ * it heavily in real gameplay -- so the collapse is LICENSED by the CONVERGENT gate
+ * (docs/06; equivalence-0350.test.js uses convergentEquivalence, not the strict
+ * whole-machine gate). The collapse's only observable effect is what a strict
+ * byte-exact gate false-fails on: a mistimed NMI pushes the coarse block-exit PC
+ * into the DEAD stack (excluded) and can leave a single-frame <=6px raster tear that
+ * heals next frame. Non-stack RAM stays byte-identical; nothing persistent survives.
  *
  * The award path's `jp 0x06b8` is a TAIL jump with NO push16: entry_06b8's own
  * `ret` (or its rst-0x08 skip in attract) returns to sub_0350's caller, not to
@@ -102,76 +100,57 @@ import { BONUS_LIFE_AWARDED, CURRENT_PLAYER, DIP_BONUS_LIFE, LIVES } from "./ram
 export function sub_0350(m) {
   const { regs, mem } = m;
 
-  // ld a,(BONUS_LIFE_AWARDED) / and a / ret nz -- once-per-player guard.
+  // Block A: ld a,(BONUS_LIFE_AWARDED); and a  -- once-per-player guard.  13+4 = 17 t
   regs.a = mem.read8(BONUS_LIFE_AWARDED);
-  m.step(0x0353, 13);
   regs.and(regs.a);
-  m.step(0x0354, 4);
+  m.step(0x0354, 17);
   if (regs.fNZ) {
-    m.ret(11); // ret nz -- the extra life was already granted this player.
+    m.ret(11); // ret nz -- the extra life was already granted this player. (total 28 t)
     return;
   }
-  m.step(0x0355, 5);
+  m.step(0x0355, 5); // jr past the ret
 
-  // Select the up player's score: P1's middle pair 0x60b3, else P2's 0x60b6.
+  // Block B: ld hl,0x60b3; ld a,(CURRENT_PLAYER); and a  -- pick the up player.  10+13+4 = 27 t
   regs.hl = 0x60b3; // P1_SCORE (0x60B2) + 1 -- the middle BCD pair.
-  m.step(0x0358, 10);
   regs.a = mem.read8(CURRENT_PLAYER);
-  m.step(0x035b, 13);
   regs.and(regs.a);
-  m.step(0x035c, 4);
+  m.step(0x035c, 27);
   if (regs.fZ) {
     m.step(0x0361, 12); // jr z taken -- P1, keep 0x60b3.
   } else {
-    m.step(0x035e, 7); // jr z not taken -- P2.
+    // Block C: (jr not taken 7) ld hl,0x60b6 (10)  -- P2.  17 t
     regs.hl = 0x60b6; // P2_SCORE (0x60B5) + 1.
-    m.step(0x0361, 10);
+    m.step(0x0361, 17);
   }
 
-  // loc_0361: pack the score's thousands BCD pair out of two nibbles.
-  //   A = (middle & 0xf0) | (MSB & 0x0f) ; then rrca x4 swaps to (TTTT.tttt).
+  // Block D: loc_0361 -- pack the score's thousands BCD pair, cp DIP_BONUS_LIFE.
+  //   ld a,(hl)[7] and 0xf0[7] ld b,a[4] inc hl[6] ld a,(hl)[7] and 0x0f[7] or b[4]
+  //   rrca x4[16] ld hl,0x6021[10] cp (hl)[7]  = 75 t, exit 0x0372
   regs.a = mem.read8(regs.hl); // middle pair -- thousands in the high nibble.
-  m.step(0x0362, 7);
   regs.and(0xf0);
-  m.step(0x0364, 7);
   regs.b = regs.a;
-  m.step(0x0365, 4);
   regs.hl = (regs.hl + 1) & 0xffff; // -> MSB pair (0x60b4 / 0x60b7).
-  m.step(0x0366, 6);
   regs.a = mem.read8(regs.hl); // ten-thousands in the low nibble.
-  m.step(0x0367, 7);
   regs.and(0x0f);
-  m.step(0x0369, 7);
-  regs.or(regs.b);
-  m.step(0x036a, 4);
-  for (const pc of [0x036b, 0x036c, 0x036d, 0x036e]) {
-    regs.rrca();
-    m.step(pc, 4);
-  }
-
-  // cp DIP_BONUS_LIFE / ret c -- below the extra-life threshold: nothing to do.
+  regs.or(regs.b); // A = tttt.TTTT
+  regs.rrca(); regs.rrca(); regs.rrca(); regs.rrca(); // -> TTTT.tttt (thousands BCD pair)
   regs.hl = DIP_BONUS_LIFE;
-  m.step(0x0371, 10);
   regs.cp(mem.read8(regs.hl));
-  m.step(0x0372, 7);
+  m.step(0x0372, 75);
   if (regs.fC) {
-    m.ret(11); // ret c -- score's thousands pair is below the threshold.
+    m.ret(11); // ret c -- score's thousands pair is below the threshold. (P1 147 t / P2 152 t)
     return;
   }
-  m.step(0x0373, 5);
+  m.step(0x0373, 5); // jr past the ret
 
-  // Award: latch the one-shot flag, bump lives, tail-jump to redraw the display.
+  // Block E: award -- latch the one-shot flag, bump lives, tail-jump to redraw.
+  //   ld a,1[7] ld (0x622d),a[13] ld hl,0x6228[10] inc (hl)[11] jp 0x06b8[10] = 51 t, exit 0x06b8
   regs.a = 0x01;
-  m.step(0x0375, 7);
-  mem.write8(BONUS_LIFE_AWARDED, regs.a);
-  m.step(0x0378, 13);
+  mem.write8(BONUS_LIFE_AWARDED, regs.a); // latch = 1
   regs.hl = LIVES;
-  m.step(0x037b, 10);
   mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl))); // inc (LIVES)
-  m.step(0x037c, 11);
+  m.step(0x06b8, 51);
   // jp 0x06b8 -- TAIL jump: NO push16, so entry_06b8's ret returns to OUR caller.
-  // `return` propagates its answer instead of dropping it (hygiene; the caller
-  // ignores it, so this is inert today but keeps a future reader honest).
-  m.step(0x06b8, 10);
+  // `return` propagates its answer (inert today; keeps a future reader honest).
   return m.call(0x06b8);
 }

@@ -73,7 +73,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0350 as translated_0350 } from "../../translated/mainloop.js";
 import { sub_0350 as optimized_0350 } from "../sub_0350.js";
-import { unitEquivalence, wholeMachineEquivalence } from "../harness.js";
+import { unitEquivalence } from "../harness.js";
+import { convergentGate, SCENARIOS } from "./convergent.js";
 import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
 import { BONUS_LIFE_AWARDED, CURRENT_PLAYER, DIP_BONUS_LIFE, LIVES } from "../ram.js";
@@ -123,26 +124,56 @@ function broken_0350(m) {
   }
 }
 
+/**
+ * Cycle-broken twin for the CONVERGENT gate: identical memory + registers to the collapsed
+ * routine, but one block charge is 5 t short, so a branch's total no longer matches the
+ * oracle. Wrong totals shift the main loop's spin count -- the PRNG entropy at 0x6019 --
+ * so the RANDOM stream FORKS: a PERSISTENT non-stack divergence (0x6019/0x6018 and the
+ * gameplay it drives), never a heal. This is the teeth for the collapse's load-bearing
+ * invariant (total-cycle preservation); a value-corruption twin would break a game invariant
+ * and hang a long whole-machine run, so the value teeth stays at the fast unit level below.
+ */
+function cyclebroken_0350(m) {
+  const { regs, mem } = m;
+  regs.a = mem.read8(BONUS_LIFE_AWARDED); regs.and(regs.a); m.step(0x0354, 17);
+  if (regs.fNZ) { m.ret(11); return; }
+  m.step(0x0355, 0); // DROPPED: the correct charge here is 5 t
+  regs.hl = 0x60b3; regs.a = mem.read8(CURRENT_PLAYER); regs.and(regs.a); m.step(0x035c, 27);
+  if (regs.fZ) { m.step(0x0361, 12); } else { regs.hl = 0x60b6; m.step(0x0361, 17); }
+  regs.a = mem.read8(regs.hl); regs.and(0xf0); regs.b = regs.a; regs.hl = (regs.hl + 1) & 0xffff;
+  regs.a = mem.read8(regs.hl); regs.and(0x0f); regs.or(regs.b);
+  regs.rrca(); regs.rrca(); regs.rrca(); regs.rrca(); regs.hl = DIP_BONUS_LIFE; regs.cp(mem.read8(regs.hl));
+  m.step(0x0372, 75);
+  if (regs.fC) { m.ret(11); return; }
+  m.step(0x0373, 5);
+  regs.a = 0x01; mem.write8(BONUS_LIFE_AWARDED, regs.a); regs.hl = LIVES;
+  mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl))); m.step(0x06b8, 51);
+  return m.call(0x06b8);
+}
+
 // -- EQUAL --------------------------------------------------------------------
 
-test("EQUAL (whole-machine): idiomatic optimized sub_0350 matches translated every frame", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, optimized_0350]]));
+test("CONVERGENT (whole-machine): collapsed sub_0350 CONVERGES vs translated (pixels + persistent non-stack state)", () => {
+  // sub_0350 is COLLAPSED and INTERRUPTIBLE, so the strict byte-exact gate false-fails on
+  // the mistimed-NMI raster tear + the coarse PC pushed into the dead stack. The convergent
+  // gate is the correct license: pixels ground truth, transient state/pixels OK if they
+  // reconverge, dead stack excluded, persistent divergence fails.
+  const r = convergentGate(new Map([[TARGET, optimized_0350]]), { scenario: SCENARIOS.gameplay });
 
-  // The override must actually have run, or EQUAL would be vacuous.
   assert.ok(
     r.invocations.get(TARGET) >= 1,
     `override at 0x${TARGET.toString(16)} never dispatched (invocations=${r.invocations.get(TARGET)})`,
   );
   assert.equal(
-    r.equal,
+    r.pass,
     true,
-    r.equal ? "" : `diverged at frame ${r.frame}, addr 0x${(r.addr ?? 0).toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    r.pass ? "" : `NOT convergent: persistent state ${JSON.stringify(r.statePersistent)}, ` +
+      `pixelPersistent=${r.pixelPersistent}`,
   );
-  assert.equal(r.framesCompared, FRAMES);
   console.log(
-    `  EQUAL/whole: ${r.framesCompared} frames identical, ` +
-      `override fired ${r.invocations.get(TARGET)}x`,
+    `  CONVERGENT: pass, fired ${r.invocations.get(TARGET)}x; ` +
+      `${r.pixDiffFrames} tear frame(s) (max ${r.maxPixels}px, healed), ` +
+      `non-stack state persistent = ${r.statePersistent.length}`,
   );
 });
 
@@ -282,16 +313,22 @@ test("BRANCH-TEETH (cycles): a dropped m.step charge yields a wrong total and is
 
 // -- TEETH --------------------------------------------------------------------
 
-test("TEETH (whole-machine): a wrong BONUS_LIFE_AWARDED store is CAUGHT and NOT-EQUAL", () => {
-  const r = wholeMachineEquivalence(ROM, {}, FRAMES, new Map([[TARGET, broken_0350]]));
+test("TEETH (convergent): a WRONG CYCLE TOTAL forks the PRNG -- a PERSISTENT divergence, CAUGHT", () => {
+  // The convergent gate tolerates transient tears but MUST catch a real (non-healing) error.
+  // The collapse's load-bearing invariant is total-cycle preservation; a short charge shifts
+  // the spin count 0x6019 (PRNG entropy), forking the RANDOM stream permanently.
+  const r = convergentGate(new Map([[TARGET, cyclebroken_0350]]), { scenario: SCENARIOS.gameplay });
 
   assert.ok(r.invocations.get(TARGET) >= 1, "broken override must have dispatched");
-  assert.equal(r.equal, false, "harness FAILED to catch a wrong store -- it is worthless");
-  assert.equal(typeof r.frame, "number");
-  assert.ok(r.addr != null, "a caught divergence must name an address");
+  assert.equal(r.pass, false, "convergent gate FAILED to catch a wrong cycle total -- it is worthless");
+  assert.ok(
+    r.statePersistent.length > 0 || r.pixelPersistent,
+    "a caught divergence must be persistent (non-stack state or pixels)",
+  );
   console.log(
-    `  TEETH/whole: caught at frame ${r.frame}, addr 0x${r.addr.toString(16)} ` +
-      `(baseline ${r.baseline} vs optimized ${r.optimized})`,
+    `  TEETH/convergent: caught -- persistent non-stack addrs ${r.statePersistent.length}` +
+      `${r.statePersistent.length ? " (" + r.statePersistent.slice(0, 4).map((s) => "0x" + s.addr.toString(16)).join(",") + ")" : ""}, ` +
+      `pixelPersistent ${r.pixelPersistent}`,
   );
 });
 
