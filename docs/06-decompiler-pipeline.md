@@ -1,14 +1,15 @@
-# 8. The decompiler pipeline — dropping fidelity down to what pixels need
+# 6. The decompiler pipeline — dropping fidelity down to what pixels need
 
-[Doc 6](06-optimization.md) rewrites the [translated](02-translation.md) lift into idiomatic
+The strict `optimized/` sweep — the retired predecessor of this pipeline (see *What this retires*,
+below) — rewrote the [translated](02-translation.md) lift into idiomatic
 JavaScript while holding it **observably equivalent to the last byte and the last T-state** —
 full register file, all flags, exact per-branch cycle totals. That strictness is what made the
 sweep trustworthy, and it shipped a working, MAME-validated Donkey Kong. It is also the thing that
-keeps the "idiomatic" output reading like a disassembly: every dead flag preserved, every register
+kept the `optimized/` output reading like a disassembly: every dead flag preserved, every register
 shuffle kept, `m.step` bookkeeping on every line, an atomicity analysis per routine.
 
-This document records a reframe (Karl's call, 2026-07-24, proven the same day) that removes almost
-all of that. The whole thing is one sentence:
+This is the pipeline that supersedes it (Karl's call, 2026-07-24, proven the same day), and it removes
+almost all of that. The whole thing is one sentence:
 
 > Register fidelity and cycle fidelity are **conservative proxies**. The only thing that has to be
 > right is the memory the display reads. Reproduce *that* — plus the registers/flags a caller
@@ -43,7 +44,8 @@ experiments this session pinned exactly where the live boundary is:
   not free lunch:
   1. **Keep the PRNG pinned for validation.** The timing-seeded spin counter (`0x6019`/seed
      `0x6018`) is the one channel cycles genuinely feed into memory; pinning redirects its readers
-     to a constant so it cannot fork. (See the entropy-pin material folded into [doc 6](06-optimization.md).)
+     to a constant so it cannot fork. (See *When the RNG itself is the obstacle*, below — the
+     entropy-pin mode built for exactly this.)
   2. **Fire the NMI at the vblank-poll yield.** The real machine only accepts the NMI when the main
      loop is idling at its poll, so the handler always runs against completed, quiescent work —
      never a mid-flight data race. A cycle-free frame model does this naturally; it must not fire
@@ -79,6 +81,78 @@ Per routine, the gate is **memory-equivalence, not byte-exactness**:
 
 The capstone over the whole game stays **pixel-exact vs pinned MAME**. Per-routine
 memory-equivalence is the fast local proxy; MAME pixels are the falsifiable ground truth.
+
+## Entropy pinning — keeping validation deterministic
+
+Every divergence above is confined to dead memory and invisible in play. The **one channel that does
+not behave this way is the RNG** — and because this method drops the cycle model, the timing-seeded
+RNG *does* fork under validation unless we pin it. So pinning is not a rare fallback here; it is the
+standard, **test-only** technique that keeps a cycle-free routine's validation deterministic. The
+shipped game still runs the real timing-driven RNG (real randomness, just not MAME-bit-identical);
+pinning lives only in the validation harness. How it works, and how it was built for Donkey Kong:
+
+Donkey Kong seeds its randomness from timing: each vblank `sub_0057` does `RNG(0x6018) += FRAME +
+SPIN_COUNT`, and `SPIN_COUNT(0x6019)` counts main-loop passes per frame — a pure function of how many
+cycles the frame's work consumed. A *correct* collapse preserves each routine's **total**, so it
+never changes the per-frame cycle budget, so `SPIN_COUNT` and the PRNG stay identical:
+**total-preservation is what keeps the RNG out of the collapse's way.** But a wrong total *does*
+reseed the PRNG (the one channel cycles feed into memory, above), and unlike a stack byte a wrong random draw does
+not wash out — it compounds. The RNG is the one place where a timing error is permanent.
+
+If a future game couples its RNG to timing more tightly than total-preservation can hold — sampled
+from a free-running counter on *every read*, or coupled to beam position or analog noise — then no
+converge/diverge gate can save it, and the fallback is to **replace the timing-seeded RNG with a
+deterministic, timing-independent generator installed identically on both sides**: a ROM patch (or
+memory hook) on the MAME oracle, and a matching `mem`-seam hook on the port, seeded
+identically at reset. With the stream pinned, cycle differences can no longer move it, and
+equivalence again isolates real logic bugs.
+
+The catch makes this a tool, not a shipping path. Pinning the RNG **changes the game's actual
+behaviour versus a real cabinet** — the enemy sequence is no longer the hardware's — so you have
+replaced part of the oracle and forfeited falsifiability against real hardware. Use it as **a
+diagnostic**: pin the RNG on both sides and see whether a stubborn divergence *vanishes*, which
+cleanly separates a timing/RNG bug from a logic bug — then unpin and fix the timing. At most, use it
+as a **last-resort shipping compromise**, documented loudly. For faithful shipping, keep the real
+RNG — **the shipped game never pins.**
+
+### Entropy pinning, as built for Donkey Kong
+
+The paragraph above once ended "on Donkey Kong it is not needed" — total-preservation keeps a
+*collapse* from adding any RNG drift, so the short validation windows (the 728-frame attract, the
+move/prize suites) stay clean. That was true as far as it was tested. A **long, multi-board tape**
+(`test_full_progression`, ~9500 frames, nine completions) took it further and found the residual the
+short windows never exercised: the base translation is cycle-*accurate* but not cycle-*exact* with
+MAME on the CPU-vs-beam race, so `SPIN_COUNT` (0x6019) forks against MAME within ~9 frames — even
+for the frozen oracle, collapse or none — and every RNG-driven sprite then drifts. So the fallback
+above is not merely theoretical here; it is **built, as a reusable test-only mode**, and used to
+validate long runs. It is game-agnostic infrastructure, because the spin-counter idiom is genre-wide.
+
+- **Discovery is automatic.** Diff attract-mode work RAM between the two engines per frame: exactly
+  the entropy set forks, and the tell is that it forks *while the interrupt counter stays
+  byte-identical* (the interrupt counter is the synced twin). For DK: `0x601a` identical through
+  1214 frames; `0x6019` first at frame 9; the seed `0x6018` one frame later.
+- **The pin makes the working set read a deterministic 0 on both engines.** Drop writes to the seed
+  so it keeps its boot value (kills its single writer, the once-per-frame mix `sub_0057`), and point
+  the spin counter's direct readers at the pinned seed. This is independent of the interrupt counter
+  (which carries ±1 cutscene jitter from the DMA artifact) and of any spin-counter writer, and it is
+  **cycle-neutral** — operand-only rewrites, never a NOP that changes an instruction's length (an
+  early NOP-the-`inc` version shifted the frame timing and made the diff *worse*).
+- **Realized on each side, from one config.** `manifest.entropyPin` (`seedBytes`, `redirectReads`,
+  `romPatches`) declares it; `core/entropy-pin.js` `installEntropyPin` wraps the JS `mem` seam
+  (`emit.js --pin-entropy`); `games/dkong/tools/lua/pin_entropy.lua` applies the mirror ROM patches
+  on MAME (`mame_golden.py --pin-entropy "<spec>"`, spec from `entropyPinRomSpec`). Both sides
+  express the *same* intent, twice, so they can be checked against each other.
+- **What's left is the DMA cutscene artifact, so validate pinned runs with a convergent /
+  align-tolerant diff.** With the pin on, the RNG-driven divergence is gone (attract seed
+  byte-identical; on the long tape the convergent diff drops from mean 90 px / 25 frames >1% to mean
+  43 px / 1 frame >1%). The residual ~1% is the Kong-climb DMA phase — the same accepted artifact —
+  which no RNG work removes.
+
+**Adding a new game:** attract-diff to find the spin counter (forks next to a synced counter) and
+the seed its mix routine writes; fill `manifest.entropyPin` (`seedBytes` = the seed; `redirectReads`
+= `{from: spin, to: seed}`; `romPatches` = the cycle-neutral operand rewrites — the seed store's
+target to a ROM address so the write is ignored, each spin read's address to the seed); verify the
+seed goes byte-identical in attract with the pin, then a gameplay tape converges to the DMA floor.
 
 ## Output conventions
 

@@ -2,7 +2,7 @@
 -- Entropy pinning, MAME side (game-agnostic). Reads a patch spec from the ENTROPY_PIN env var
 -- and applies it to the maincpu ROM region BEFORE the CPU runs, so the game's RNG working set
 -- becomes deterministic and identical to the pinned JS translation (see core/entropy-pin.js and
--- docs/06-optimization.md (Entropy pinning)). The patches are cycle-neutral operand rewrites (they redirect a
+-- docs/06-decompiler-pipeline.md (Entropy pinning)). The patches are cycle-neutral operand rewrites (they redirect a
 -- store or a read to a different address; they never change instruction lengths), so the frame
 -- timing the game itself depends on is untouched.
 --

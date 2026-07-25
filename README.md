@@ -116,7 +116,7 @@ The three layers — **CPU**, **board**, **game** — are independent axes. A ga
 `manifest.js` names its CPU (`z80`) and board (`dkong`); the machine assembles
 CPU + board + translated ROM. Frogger, for example, would reuse `core/cpu/z80.js` on a
 future `boards/galaxian/`. The manifest also declares an `inputs` block (ports, actions,
-key bindings) that `web/` reads to build its keyboard map — see doc 6 — so a manifest
+key bindings) that `web/` reads to build its keyboard map — see doc 7 — so a manifest
 without it can't be played in the browser.
 
 ## Quickstart

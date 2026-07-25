@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * core/entropy-pin.js tests — the TEST-ONLY RNG seam (see docs/06-optimization.md (Entropy pinning)).
+ * core/entropy-pin.js tests — the TEST-ONLY RNG seam (see docs/06-decompiler-pipeline.md (Entropy pinning)).
  *
  * No ROM, no MAME: a minimal fake `mem` seam exercises the two behaviours the pin promises —
  * dropped writes to the seed (so it stays at its boot value) and redirected reads of the spin

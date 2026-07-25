@@ -40,9 +40,10 @@ from observation, where an unobserved case is simply absent and nothing tells yo
 
 Assembly-JavaScript is deliberately *not* idiomatic JavaScript — it trades readability for a
 provable correspondence to the ROM. Rewriting individual routines as ordinary, higher-level JS is a
-separate, later project: an optimized routine may replace its translated counterpart only after it
-passes the same gates that prove equivalence (unit + mutation + pixel). See
-[doc 6, Optimization](06-optimization.md) for the method and `games/<id>/optimized/` for the code.
+separate, later project: a rewritten routine may replace its translated counterpart only after it
+passes the gates that prove equivalence. See
+[doc 6, the decompiler pipeline](06-decompiler-pipeline.md) for the current method and
+`games/<id>/idiomatic/` for the go-forward code.
 
 ### Convention: export every translated routine
 
@@ -62,6 +63,13 @@ Donkey Kong predates this convention and was exported in a one-time retrofit; th
 it from the first line.)
 
 ### Convention: make every call `m.call(0xADDR)`, not a direct function call
+
+*Sweep-era convention. This is the `m.call` swap layer the shipped `optimized/` routines still run
+through — a runtime linker that hot-swaps oracle ↔ rewrite and isolates a routine under test. The
+current go-forward layer drops it: [`idiomatic/`](06-decompiler-pipeline.md) uses **direct function
+calls** (the Z80 stack becomes the JS call stack; computed dispatch becomes a table of function
+references), so what follows is the record of how `translated/` and `optimized/` are wired, not how
+new routines are written. See [doc 6](06-decompiler-pipeline.md).*
 
 A translated `call 0xNNNN` is written **`m.call(0x00nn, …args)`**, never a direct
 `sub_00nn(m)`. `m.call` looks the address up in the routine registry
@@ -88,17 +96,24 @@ direct-called inside their parent. The one name that matches the shape yet must 
 address is `tail_23de` — a tail fragment of `sub_23de`, which owns 0x23de — so it is excluded
 explicitly (the `NON_CANONICAL` set in `routines.js`, its only member).
 
+The `sub_`/`entry_`/`handler_`/`arm_`/`tail_` prefix zoo here is a translation-era artifact. The
+go-forward `idiomatic/` layer uses a **uniform `loc_<addr>`** baseline, promoting to an earned
+English name only where the evidence supports it (always keeping the address as an anchor). See
+[doc 6](06-decompiler-pipeline.md).
+
 Do this *at translation time*, from the first line — like exporting, it is behaviour-neutral
 (with no overrides `m.call` resolves to the same oracle function a direct call would have reached)
 and it means `translated/` never needs a retrofit. **Donkey Kong predates this convention and its
 ~880 call sites were converted in a one-time mechanical pass, gate-verified byte-identical; the
 next game writes `m.call` from the start.**
 
-### Convention: one file per routine in `optimized/`
+### Convention: one file per routine
 
-Each optimized rewrite is its own file, `optimized/<name>.js`, exporting that one function
-(`optimized/handler_01c3.js` → `handler_01c3`). This keeps the manifest entry, the equivalence
-test, and the routine in an obvious one-to-one correspondence, and — because two rewrites never
-touch the same file — it lets many routines be optimized in parallel without collision. The
-manifest's `optimized` block maps each dispatch address to `{ module, export }`; the registry
-overlays those onto the oracle table.
+*Sweep-era convention, and still the shape of the go-forward layer — only the directory changes.*
+Each rewrite is its own file exporting that one function, which keeps the manifest entry, the
+equivalence test, and the routine in an obvious one-to-one correspondence, and — because two
+rewrites never touch the same file — lets many run in parallel without collision. The shipped strict
+sweep lives in `optimized/<name>.js` (`optimized/handler_01c3.js` → `handler_01c3`); the current
+go-forward layer writes the same one-file-per-routine shape into
+[`idiomatic/`](06-decompiler-pipeline.md) instead. The manifest maps each address to
+`{ module, export }` and resolves it to *either* directory, so the two coexist during the migration.

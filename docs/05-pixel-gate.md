@@ -50,3 +50,7 @@ Three rules keep the gate honest, each learned the hard way:
 - **Instrument for falsifiability.** A check that cannot fail proves nothing. Prefer diffs that
   would catch a planted error (that's what mutation testing verifies for the unit tests, and what
   the both-directions and no-auto-offset rules verify for the pixel gate).
+
+This same picture-against-MAME gate is the **capstone** of the decompiler pipeline: per-routine
+memory-equivalence is the fast local proxy, and pixel-exact-vs-pinned-MAME is the falsifiable
+ground truth over the whole game. See [doc 6](06-decompiler-pipeline.md).

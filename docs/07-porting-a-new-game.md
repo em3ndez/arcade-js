@@ -40,19 +40,15 @@ See `games/dkong/manifest.js` for the reference shape.
 
 ## The steps
 
-1. **Pick or write the CPU.** If it's Z80, reuse `core/cpu/z80.js`. Otherwise translate the CPU core
-   first (it's game-agnostic and reusable, so it's worth doing well once).
-2. **Pick or write the board.** If the romset shares an existing board, reference it in the manifest.
-   Otherwise model the hardware in a new `boards/<driver>/` — memory map, i/o, video — from the ROM's
-   accesses and MAME (doc 1).
-3. **Disassemble** the ROM (`make trace`, doc 1) into `games/<id>/translated/`.
-4. **Translate** it routine by routine into assembly-JavaScript (doc 2), each routine carrying a unit
-   test and a mutation that proves the test catches its failure (doc 3).
-5. **Gate every step against MAME** (docs 4–5): capture a golden, emit the same artifacts, diff
-   state → writes → pixels, and fix the engine until it passes. Never widen the tolerance to pass.
-6. **Register** the game: add its id to `games/registry.js`, and write `games/<id>/manifest.js`
-   (with the ROM part list + sha256 checksums, and the `inputs` block below) and a `Makefile` `rom`
-   target.
+The porting-specific glue is the three layers above, the `inputs` block below, keeping the ROM out
+below, and registering the game — add its id to `games/registry.js`, write `games/<id>/manifest.js`
+(ROM part list + sha256 checksums + the `inputs` block), and a `Makefile` `rom` target.
+
+The **method** sequence that turns the ROM into validated JavaScript — lift → call graph &
+reachability → RAM naming → bottom-up decompile, each routine memory-equivalence-gated →
+pixel-exact-vs-MAME capstone — lives in exactly one place: **The pipeline for the next game** in
+[doc 6](06-decompiler-pipeline.md). Follow it there; it builds on the disassembly, translation, and
+gate mechanics in docs 1–5.
 
 ## The ROM stays out
 
@@ -68,5 +64,5 @@ vblank interrupt. It is timing-derived, so a cycle-accurate-but-not-exact transl
 a few frames and every RNG-driven sprite drifts — a long pixel diff then looks broken though the logic
 is identical. Don't chase cycle-exactness for it; **pin the entropy** for equivalence testing instead
 (declare `manifest.entropyPin`, run with `--pin-entropy`). The full method — discovery, the pin, and
-the convergent diff for the residual DMA artifact — is the **Entropy pinning** section of
-[docs/06-optimization.md](06-optimization.md).
+the convergent diff for the residual DMA artifact — is the **When the RNG itself is the obstacle** /
+**Entropy pinning** section of [docs/06-decompiler-pipeline.md](06-decompiler-pipeline.md).

@@ -1,11 +1,11 @@
 # `idiomatic/` — the go-forward routine layer
 
 This directory holds the **idiomatic, cycle-free, memory-equivalent** rewrites of the translated
-routines. It supersedes `../optimized/` (see [docs/08](../../../docs/08-decompiler-pipeline.md) for
+routines. It supersedes `../optimized/` (see [docs/06](../../../docs/06-decompiler-pipeline.md) for
 the full method and the reasoning). New routine work is generated **here**; `../optimized/` is
 frozen and its files are deleted per-routine as their idiomatic replacements land.
 
-## The contract (short form — full detail in docs/08)
+## The contract (short form — full detail in docs/06)
 
 - **Memory-equivalence, not byte-exactness.** A routine is validated against its `translated/`
   `loc_<addr>` oracle on **RAM (minus `STACK_SCRATCH`) + pc + SP + declared live-out** — never the

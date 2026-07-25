@@ -98,6 +98,13 @@ optimization is gated by a tighter equivalence harness — same RAM, plus the fu
 and the frame's cycle cost — because an optimized routine can be wrong in ways that never reach a
 pixel (a flag it stopped computing, a cycle it moved) yet still corrupt state a frame later.
 
+(That strict register-and-cycle gate was later **reframed to memory-equivalence**: RAM minus the
+dead stack scratch plus each routine's *declared live-out*, with the cycle model dropped entirely
+and the PRNG entropy-pinned — the full register file and exact cycles turned out to be conservative
+proxies for the only thing that has to be right, the memory the display reads. That is the current
+method; see [doc 6](06-decompiler-pipeline.md). The retrospective below records the strict phase as
+the agents actually ran it, because its failure modes are the useful part.)
+
 The optimizers needed **support built specifically for them**, and building it was part of the
 work:
 

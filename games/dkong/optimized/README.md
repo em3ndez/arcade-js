@@ -1,5 +1,14 @@
 # games/dkong/optimized/ — idiomatic-JS rewrites
 
+> **Superseded — being retired per-routine.** This is the **strict** rewrite layer: register- and
+> cycle-exact, proven byte-and-T-state equivalent and wired through the `m.call` swap registry. It
+> is still **shipped and live** for every routine it holds, but no new routines land here. The
+> go-forward layer is [`../idiomatic/`](../idiomatic/README.md) — memory-equivalent, cycle-free,
+> direct-call — and each file here is deleted as its `idiomatic/` replacement lands. For the current
+> method and the reasoning behind the switch, see
+> [docs/06, the decompiler pipeline](../../../docs/06-decompiler-pipeline.md). The rest of this
+> README stays as the record of the shipped strict layer.
+
 The translation in `../translated/` is deliberately close to the original Z80 assembly: each
 routine mirrors the instruction sequence, T-state charges and all. That faithfulness is what
 makes it validate against MAME — but it is not idiomatic JavaScript.
