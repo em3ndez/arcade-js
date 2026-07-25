@@ -79,18 +79,35 @@ its caller holds a fixed reference. The registry is the patch table over the add
 is the one seam every transfer of control passes through, exactly like a real `CALL` fetching whatever
 code lives at the target.
 
-The address is parsed from the routine's name (`sub_0874` → `0x0874`), so exporting every routine
-(above) is what lets `routines.js` build the table by itself. Names of the exact shape `prefix_hhhh`
-are ROM addresses. Helper splits the translator introduces (`sub_25f2_body`, `loc_18c6_wrap`) do
-**not** match that shape, so they are left out automatically and stay direct-called inside their
-parent. The one name that matches the shape yet must **not** claim its address is `tail_23de` — a
-tail fragment of `sub_23de`, which owns 0x23de — so it is excluded explicitly (the `NON_CANONICAL`
-set in `routines.js`, its only member).
+The address is parsed from the routine's name (`loc_0874` → `0x0874`), so exporting every routine
+(above) is what lets `routines.js` build the table by itself. Names of the exact shape `loc_hhhh`
+are ROM addresses. Helper splits the translator introduces (`loc_25f2_body`, `loc_18c6_wrap`) do
+**not** match that bare shape, so they are left out automatically and stay direct-called inside their
+parent. A fragment that matches the shape yet must **not** claim its address is excluded explicitly
+(the `NON_CANONICAL` set in `routines.js`).
 
-The `sub_`/`entry_`/`handler_`/`arm_`/`tail_` prefix zoo here is a translation artifact. The
-idiomatic layer uses a **uniform `loc_<addr>`** baseline, promoting to an earned English name only
-where the evidence supports it (always keeping the address as an anchor). See
+### Convention: every routine is named `loc_<addr>`
+
+At the translation layer, **every** routine is named `loc_` + its 4-hex ROM start address —
+uniformly, with **no exceptions of any kind**. Not `sub_` (even though the disassembler labels
+subroutines that way); not `entry_` (the hardware vectors are `loc_0000` for reset and `loc_0066`
+for the NMI, never `entry_0000`/`entry_0066`); not `handler_`, `branch_`, `arm_`, `tail_`,
+`dispatch…`, `boot…`; and never an English or camel-case name. The routine's role belongs in its
+**comments**, never in its name. Earned English names are promoted only later, at the idiomatic
+layer, and even then always keep the address as an anchor — see
 [the decompiler pipeline](07-decompiler-pipeline.md).
+
+The rule is verifiable, and every batch is checked before commit — this must print nothing:
+
+```sh
+ls games/<game>/translated/*.js games/<game>/translated/test/*.js \
+  | xargs -n1 basename | grep -vE '^loc_[0-9a-f]{4}(_[a-z]+)?(\.test)?\.js$'
+```
+
+Donkey Kong, the first game translated, predates this rule and carries a legacy
+`sub_`/`entry_`/`handler_`/`arm_`/`tail_` prefix zoo (which is why the address parser keys off the
+`_hhhh` suffix regardless of prefix). That mix is history, not a pattern to copy: new games are
+uniform `loc_<addr>` from the first routine.
 
 ### Convention: one file per routine
 
