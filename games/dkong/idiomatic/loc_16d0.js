@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * loc_16d0 — arm object #1's countdown to expire next even frame (reverse), then slide the group.  ROM 0x16D0.
+ *
+ * One of two entry variants of the loc_16d5 group-slide tail, in the loc_16bb / loc_16d0 /
+ * loc_16e1 substate family that walks a horizontally-moving group of 10 sprites back and
+ * forth. The dispatcher loc_16bb runs first every frame: it CLEARS object #1's even-frame
+ * countdown (0x62A0 := 0), reads record #2's X (0x6910) and the object's published step sign
+ * (bit 7 of 0x63A3), and routes to a tail by whether the group has reached the edge it is
+ * currently moving toward (X vs the 0x5A / 0x5D rails). loc_16d0 is the "hit the boundary"
+ * arm:
+ *
+ *   1. Set object #1's countdown 0x62A0 := 1. Because loc_2602 decrements this on the next
+ *      EVEN frame, a value of 1 makes it underflow immediately — which is exactly the event
+ *      loc_2602 turns into "reload the period (0x80) and REVERSE the step-direction sign at
+ *      0x62A1". So writing 1 here schedules a direction reversal for the next tick: the group
+ *      bounces off the edge. (The plain loc_16d5 arm leaves 0x62A0 at the 0 the dispatcher
+ *      pre-set, so its countdown wraps to 0xFF and the group keeps travelling.)
+ *
+ *   2. Fall straight into loc_16d5 to run THIS frame's motion tick — advance object #1 and
+ *      shift the whole 10-record sprite-object block one step along X.
+ *
+ * The oracle loads A=1 and stores A to 0x62A0; that A is dead the instant it is stored
+ * (loc_16d5 → loc_2602 reads FRAME, not A), so the store is expressed directly as a memory
+ * write with no register plumbing. Not a leaf: it tail-calls loc_16d5 (0x16d5, already
+ * idiomatic), which drives loc_2602 + addStrided. The on-screen object/scene is UNCONFIRMED
+ * — loc_16d5 and loc_2602 both declined an English name over the sprite-record trap, and
+ * 0x62A0 is unnamed engine scratch (not in ram.js) — so this routine keeps the neutral
+ * loc_16d0 name and describes the mechanic in prose; a reviewer who promotes loc_2602 can
+ * promote this in the same pass.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-16d0.test.js.
+ * GATE:     crafted-entry; attract never dispatches 0x16d0 (0× / 2500 frames, asserted — the
+ *           sub_25f2 object cascade this family drives runs only in real gameplay), so real
+ *           states are reproduced by pokes on a booted machine: a 256-value FRAME sweep
+ *           (even → the write-1 countdown underflows → reload+reverse; odd → publish ±1 →
+ *           block shift), a block-X wrap sweep on both step signs through addStrided, and a
+ *           direction sweep exercising reverseStepDirection's both arms. Teeth: a
+ *           skip-the-write twin (behaves like loc_16d5) and a wrong-value twin (writes 0),
+ *           both caught by the RAM diff.
+ * LIVE-OUT: memory-only. loc_16d0 tail-returns through loc_16d5; the whole family is
+ *           dispatched from the in-game substate table (0x0702) and returns through the NMI
+ *           dispatcher, which reads no register or flag it leaves — A/B/C/DE/HL are dead ABI.
+ *           The RAM diff (+ SP/pc) backstops that.
+ * NAMES:    0x62A0 — object #1's even-frame countdown (named in prose only, matching loc_2602;
+ *           it is not in ram.js). SPRITE_OBJ_BLOCK and the rest live inside loc_16d5.
+ */
+
+import { loc_16d5 } from "./loc_16d5.js"; // ROM 0x16D5 — the shared group-slide motion tick
+
+export function loc_16d0(m) {
+  const { mem } = m;
+
+  // Arm object #1's countdown to underflow on the next even frame -> loc_2602 reloads the
+  // period and reverses the group's step direction. (The oracle's `ld a,1` / `ld (0x62A0),a`;
+  // A is dead past the store, so no register is set.)
+  mem.write8(0x62a0, 0x01);
+
+  // Fall through to the shared motion tick (advance object #1, slide the 10-record block).
+  loc_16d5(m);
+}
