@@ -587,13 +587,18 @@ def write_listing(tr: Tracer, path: str):
 
     Unreached spans are emitted as a `defb` block with an explicit marker so
     the gaps are visible rather than silently skipped."""
+    # Every reachable routine is labeled loc_<addr> -- uniform, address-based, no
+    # sub_/entry_/handler_ prefix zoo. How a routine is reached (call target, jump
+    # target, entry vector) does not change its name; entry semantics live in
+    # entrypoints.json, the role lives in the translation's comments. See the naming
+    # rule in docs/03-translation.md.
     labels = {}
     for a in sorted(tr.call_targets):
-        labels[a] = f"sub_{a:04x}"
+        labels[a] = f"loc_{a:04x}"
     for a in sorted(tr.jump_targets):
         labels.setdefault(a, f"loc_{a:04x}")
     for a, why in tr.entries:
-        labels[a] = f"entry_{a:04x}"
+        labels[a] = f"loc_{a:04x}"
 
     lines = [
         "; Donkey Kong maincpu - reachability-driven disassembly",
