@@ -1,0 +1,164 @@
+# 8. The decompiler pipeline — dropping fidelity down to what pixels need
+
+[Doc 6](06-optimization.md) rewrites the [translated](02-translation.md) lift into idiomatic
+JavaScript while holding it **observably equivalent to the last byte and the last T-state** —
+full register file, all flags, exact per-branch cycle totals. That strictness is what made the
+sweep trustworthy, and it shipped a working, MAME-validated Donkey Kong. It is also the thing that
+keeps the "idiomatic" output reading like a disassembly: every dead flag preserved, every register
+shuffle kept, `m.step` bookkeeping on every line, an atomicity analysis per routine.
+
+This document records a reframe (Karl's call, 2026-07-24, proven the same day) that removes almost
+all of that. The whole thing is one sentence:
+
+> Register fidelity and cycle fidelity are **conservative proxies**. The only thing that has to be
+> right is the memory the display reads. Reproduce *that* — plus the registers/flags a caller
+> actually consumes — and the code is free to be ordinary JavaScript.
+
+Everything below is the consequence of taking that seriously.
+
+## Why the proxies are safe to drop (measured, not asserted)
+
+The registers/flags/cycles a routine leaves behind only matter if something downstream *reads*
+them before they are overwritten. A dead value can be anything; it never reaches pixels. Three
+experiments this session pinned exactly where the live boundary is:
+
+- **Registers, flags, and the stack are droppable.** Decompiling `entry_1a07` (a rst-0x28 router)
+  with the *entire* register/pointer-walk dance deleted, the whole-machine RAM trace stayed
+  byte-exact over 166 dispatches. The bytes the oracle pushes to the stack never surface — the
+  stack region is dead scratch (`STACK_SCRATCH [0x6be0,0x6c00)`). Reviewers all session kept
+  reporting the same tell: corrupting a register on a naturally-run path is *not* caught by the
+  whole-machine gate precisely when the register is dead. When it is live, the corruption
+  propagates into memory and the gate catches it for free. So the whole-machine/pixel gate already
+  gives you exactly the register correctness that matters; the strict full-register unit check was
+  catching *dead* differences.
+
+- **Cycles are droppable, under two conditions.** A frame-stepped engine — one that fires the
+  vblank NMI at the main loop's natural vblank-poll yield (`0x02BD`) instead of at whatever
+  instruction the cycle count lands on — was run against the stock cycle-accurate engine with the
+  PRNG entropy-pinned on both sides. Per-frame RAM was **identical**: driven gameplay byte-for-byte
+  (reconverging), attract carrying only a single bounded, non-propagating difficulty-*prescaler*
+  phase counter (`0x6384`, ±1–2, never reaches gameplay). The result is teeth-verified: pin **off**
+  forks 974 addresses (the seed forks at frame 5); an injected canary byte is caught; a large
+  arbitrary NMI-shift forks `GAME_STATE` even pinned. So the two conditions are real requirements,
+  not free lunch:
+  1. **Keep the PRNG pinned for validation.** The timing-seeded spin counter (`0x6019`/seed
+     `0x6018`) is the one channel cycles genuinely feed into memory; pinning redirects its readers
+     to a constant so it cannot fork. (See the entropy-pin material folded into [doc 6](06-optimization.md).)
+  2. **Fire the NMI at the vblank-poll yield.** The real machine only accepts the NMI when the main
+     loop is idling at its poll, so the handler always runs against completed, quiescent work —
+     never a mid-flight data race. A cycle-free frame model does this naturally; it must not fire
+     the NMI at an arbitrary point.
+
+- **The production path works from the lift + the RAM names alone.** Hand-decompiling `loc_1cd2`
+  from *only* `translated/state0.js` + `ram.js` (no `optimized/` crib, no purpose-prose), the
+  worker recovered the routine's meaning — "commit one horizontal walk step; on 25m re-snap Y to
+  the sloped girder under the new X" — from opcodes and named memory. Its own verdict: **`ram.js`
+  did the heavy lifting.** Named memory is what makes routines legible on sight. That is the
+  argument for front-loading the RAM-naming pass and for keeping the names honest.
+
+The one thing cycles still feed that this does *not* remove is **DMA sub-frame raster position** —
+the already-accepted ~98px Pauline artifact. That is a pixel-only effect; it never touches RAM.
+
+## The fidelity contract, going forward
+
+Per routine, the gate is **memory-equivalence, not byte-exactness**:
+
+- Compare RAM (minus `STACK_SCRATCH`) + `pc` + `SP` + the routine's *declared live-out* against the
+  `loc_XXXX` lift. **Never** the full register file, **never** cycles.
+- Determine live-out honestly by reading the exit successors (which registers/flags they read
+  before overwriting). For most routines it is *memory only*; the flag/register plumbing the lift
+  threads through every instruction is dead.
+- The PRNG is entropy-pinned so runs are deterministic.
+- Every gate carries **teeth** — a deliberately-broken twin it must catch — or it proves nothing.
+- Validate via **unit-capture at real dispatches** (clone the machine at a captured entry, run
+  oracle vs clean in isolation) **+ a reachability sweep** over natural dispatches **+ crafted
+  identical-both-sides entries** for arms attract never reaches. The strict *whole-machine
+  byte-exact* gate can no longer be used: a cycle-free routine under-charges cycles, which shifts
+  NMI timing and false-fails the trace. That is not a regression — it is the memory-equivalence
+  gate doing its job.
+
+The capstone over the whole game stays **pixel-exact vs pinned MAME**. Per-routine
+memory-equivalence is the fast local proxy; MAME pixels are the falsifiable ground truth.
+
+## Output conventions
+
+- **Direct function calls.** No `m.call`/address registry, no `push16`/stack modelling. `m.call`
+  is a runtime *linker* that existed to hot-swap oracle↔optimized during the sweep and to isolate
+  a routine under test; the shipped artifact wants early binding — just call the function. The Z80
+  stack becomes the JS call stack. Computed dispatch → a table of *function references*
+  (`HANDLERS[state](m)`). The caller-skip idiom (`inc sp; inc sp; ret`) → a **boolean return** +
+  `if (!callee(m)) return;`. Keep an address registry only for exotic address-level control flow
+  (self-modifying code, wild computed jumps into mid-routine) — clean games don't have it.
+- **Bottom-up.** Decompile callees before callers. A caller decompiled while its callee is still a
+  raw ROM routine has to marshal the callee's register ABI by hand (`regs.h = x; push16; m.call;
+  … regs.l`) — the one assembly leak left in the `loc_1cd2` v1 demo. Decompile the callee first
+  into a real signature (`snapYToGirder(x, y, step) → newY`) and the marshalling dissolves into a
+  named call. (Confirmed 2026-07-24: v2 did exactly this — `0x2333` decompiled to a *pure*
+  `snapYToGirder_2333(x, y, step)`, validated exhaustively over all 131,072 inputs; `loc_1cd2`'s
+  five-line marshalling block collapsed to one named call; the pair is leak-free — no `m.call`,
+  `push16`, `m.step`, or register/flag marshalling in its own code. The only residue is the tail
+  `loc_1ceb`, still the frozen oracle, which is simply the next thing bottom-up order would take.)
+- **Naming.** Uniform `loc_<addr>` is the baseline. Drop the `sub_`/`entry_`/`handler_`/`arm_`/
+  `guard_`/`branch_`/`tail_` prefix zoo — it is *pseudo-semantics*, a taxonomy applied ad hoc
+  routine-by-routine that implies meaning it does not consistently carry. **Promote** to an English
+  name only where the meaning is genuinely earned, and **always keep the address as an anchor**
+  (suffix `snapYToGirder_2333`, or English-primary with a `// ROM 0x2333` tag). Routine names get
+  the same evidence bar as RAM names (corroborated, proposer≠confirmer) — a *wrong* English name
+  misleads worse than a neutral `loc_<addr>`; it is the routine-level sprite-record trap. The name
+  encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit_1cd2` =
+  "understood and confirmed."
+
+## The pipeline for the next game
+
+1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
+   (This is [doc 2](02-translation.md), with uniform address names from line one.)
+2. **Call graph + reachability** — who calls whom, what is reachable, what is dead. This is the
+   prerequisite that makes "bottom-up" meaningful.
+3. **RAM naming pass** — evidence-based (control-poke, cross-routine corroboration,
+   proposer≠confirmer, the sprite-record trap). Front-loaded, because named memory is the single
+   biggest legibility lever; iterative, because some names only resolve during the decompile.
+4. **Bottom-up decompile *and* routine naming, as one interleaved step** — leaves first, direct
+   calls, drop cycles and dead registers/flags, recover structure, promote names where earned.
+   Each routine gated **memory-equivalent** against its `loc_XXXX` lift (pinned PRNG, teeth). Seed
+   the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) up front, but
+   expect most names to fall out *of* the decompile, not before it.
+5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is
+   the one accepted sub-frame residual.
+
+## What this retires
+
+The **strict `optimized/` stage** (translated → cycle-collapsed, register/cycle-exact) is no longer
+a stage going forward. It was necessary discovery — it built the equivalence harness, the RAM-name
+evidence, and the proof that cycles/registers are droppable, and none of the idiomatic insight
+exists without having done the strict version first — but as a *permanent* pipeline layer it is an
+intermediate tuned for a fidelity the final product abandons. The lean pipeline is three persisted
+things: **ROM → `translated/` (frozen oracle) → idiomatic (memory-validated)**. The optimized
+middle layer collapses out. `translated/` stays, as the trust anchor and the fast in-process
+oracle.
+
+## The tool question (separate from finishing DK)
+
+The decompile in step 4 is **manual (LLM) today**, and for finishing DK that is the whole job — the
+`loc_1cd2` demos show it produces genuinely readable, memory-proven output from the lift + names.
+The **best** output is a hybrid: a mechanical decompiler pass (SSA → liveness/dead-code →
+control-flow structuring → emit, cycle-free) for provably-correct clean *structure*, then an LLM
+*semantic* pass for the names/comments/idiom, both memory-validated. Pure-mechanical is
+correct-but-soulless; pure-hand is great but doesn't generalize. Build the mechanical tool only for
+the **transfer thesis** (Frogger, then all of MAME), where the front/middle-end amortizes across
+games — not to finish DK, where a retargeted manual sweep already clears the bar. A manual pass
+cannot tell you whether a *mechanical* tool suffices (the LLM smuggles in understanding a tool
+lacks); that question needs its own stripped/from-IR experiment.
+
+## Traps
+
+- **The NMI must fire at the vblank-poll yield.** An arbitrary preemption point forks real state
+  (`GAME_STATE`) even with the PRNG pinned. This is a hard requirement of the cycle-free model, not
+  a nicety.
+- **The entropy pin is load-bearing for validation.** Without it, dropping cycles forks the seed at
+  frame 5 and cascades. The shipped game still spins and produces randomness — just not
+  MAME-bit-identical randomness, which is fine outside the harness.
+- **Free-running per-frame service counters** (the `0x6384` prescaler class) can hold a small phase
+  offset across a mode transition under frame-stepping. Bounded and non-propagating in every DK run
+  measured, but verify per game that such a counter never reaches gameplay-visible state.
+- **The register-ABI marshalling leak** persists until you decompile bottom-up. It is not
+  fundamental; it is the artifact of decompiling one routine while its callee is still raw ROM.
