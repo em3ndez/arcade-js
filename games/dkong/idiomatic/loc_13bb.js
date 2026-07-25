@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * loc_13bb — reset the live player/display context to player 1, single-player,
+ * sub-state 0, with the flip-screen latch forced ON.  ROM 0x13bb.
+ *
+ * Idx 19 of the in-game sub-state table (ROM 0x0702), dispatched by
+ * dispatchInGameSubstate (ROM 0x06fe) when GAME_STATE(0x6005)==3 and
+ * GAME_SUBSTATE(0x600A)==0x13. It writes four FIXED bytes and reads nothing — a
+ * constant function of no inputs:
+ *
+ *   - CURRENT_PLAYER (0x600D) = 0  -> player 1 is up
+ *   - JOIN_VALUE_LO  (0x600E) = 0  -> the 1-player-start marker (the byte
+ *                                     configureFlipScreenAndSelectSubstate reads as
+ *                                     "== 0 -> 1-player"); NOT TWO_PLAYER_GAME, which
+ *                                     is the high byte 0x600F and is left untouched
+ *   - GAME_SUBSTATE  (0x600A) = 0  -> restart the in-game sub-state sequence
+ *   - flip-screen    (0x7D82) = 1  -> upright orientation (player 1 never sees the
+ *                                     cocktail mirror)
+ *
+ * The (0x600D, 0x600E) pair is the CURRENT_PLAYER byte and the adjacent join-value
+ * low byte loc_08f8 wrote at game start; loc_13bb clears both. It is the player-1
+ * half of a mirror pair with loc_13aa (idx 18), which instead sets that pair to
+ * (1, 1) — selecting player 2 — and sets the flip latch from the cabinet DIP
+ * (DIP_UPRIGHT 0x6026), so a cocktail player 2 gets the mirrored view. ram.js
+ * corroborates the player-select half: CURRENT_PLAYER is "toggled on the player
+ * switch (loc_13aa sets 1, loc_13bb clears 0)".
+ *
+ * Kept as loc_13bb rather than promoted to an English name: the byte-level effect
+ * is certain, but the sub-state's exact trigger is unconfirmed and the immediate
+ * siblings (loc_138f/loc_13a1) are likewise unpromoted — a reviewer confirmer can
+ * promote it (a candidate name: selectPlayer1Context).
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-13bb.test.js.
+ * GATE:     crafted-entry; 0x13bb dispatches ZERO times in 6000 attract frames and
+ *           in 1P/2P coin+start runs (its sub-state is reached only in a credited
+ *           game's player-switch path), so — per docs/06 for arms attract never
+ *           reaches — the gate is crafted from real booted machines. The routine
+ *           reads nothing (a constant function), so the sweep pre-dirties all four
+ *           outputs + the flip latch to sentinels over several diverse bases and
+ *           confirms identical RAM (ex-stack) + io.flipScreen to the oracle on each,
+ *           plus the fixed outcome. 0x7D82 is NOT in the RAM dump, so io.flipScreen
+ *           is compared. Teeth = wrong CURRENT_PLAYER, a skipped flip-set, a skipped
+ *           JOIN_VALUE_LO write.
+ * LIVE-OUT: memory + the 0x7D82 flip-screen latch. Memory: CURRENT_PLAYER(0x600D),
+ *           JOIN_VALUE_LO(0x600E), GAME_SUBSTATE(0x600A) all cleared to 0. The flip
+ *           latch is an io board output (outside the RAM dump), pinned via
+ *           io.flipScreen. No live registers/flags — the rst-0x28 sub-state dispatch
+ *           returns up the NMI path and consumes none; the oracle's residual A=1 is
+ *           dead ABI. SP/PC are not compared (the direct-call layer replaces the
+ *           oracle's `ret` stack/PC bookkeeping with the JS call stack).
+ * NAMES:    CURRENT_PLAYER (0x600D), GAME_SUBSTATE (0x600A) from ram.js. 0x600E
+ *           (join-value low byte) and 0x7D82 (flip-screen board latch) are not in
+ *           ram.js and stay local hex constants (same convention as
+ *           configureFlipScreenAndSelectSubstate). NB TWO_PLAYER_GAME is 0x600F (the
+ *           high byte) and is NOT written here.
+ */
+
+import { CURRENT_PLAYER, GAME_SUBSTATE } from "../optimized/ram.js";
+
+// Low byte of the 16-bit join value loc_08f8 stored at game start (0 = 1-player,
+// non-zero = 2-player). Not evidenced in ram.js, so it stays a local hex constant
+// (same as configureFlipScreenAndSelectSubstate). It is the byte below
+// TWO_PLAYER_GAME (0x600F), which this routine does not touch.
+const JOIN_VALUE_LO = 0x600e;
+
+// Flip-screen control latch (ls259.6h bit 2) — a board hardware register, not work
+// RAM, so it lives outside ram.js as a local constant.
+const FLIPSCREEN = 0x7d82;
+
+export function loc_13bb(m) {
+  const { mem } = m;
+  mem.write8(CURRENT_PLAYER, 0); // 0x600D = 0 -> player 1 up
+  mem.write8(JOIN_VALUE_LO, 0); // 0x600E = 0 -> 1-player-start marker
+  mem.write8(GAME_SUBSTATE, 0); // 0x600A = 0 -> restart the in-game sub-state sequence
+  mem.write8(FLIPSCREEN, 1); // 0x7D82 = 1 -> flip-screen ON (upright orientation)
+}
