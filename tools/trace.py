@@ -698,8 +698,10 @@ def main():
 
     with open(args.rom, "rb") as f:
         mem = f.read()
-    if len(mem) != ROM_SIZE:
-        sys.exit(f"expected a {ROM_SIZE}-byte image, got {len(mem)}")
+    global ROM_SIZE
+    ROM_SIZE = len(mem)  # derive from the image, not a per-game constant
+    if not (0 < ROM_SIZE <= 0x10000):
+        sys.exit(f"implausible ROM image size {ROM_SIZE} (Z80 address space is 64 KiB)")
 
     tr = Tracer(mem)
     for addr, why in BUILTIN_ENTRIES:

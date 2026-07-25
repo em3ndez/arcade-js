@@ -1,0 +1,44 @@
+{
+  "_comment": [
+    "Tool-facing hardware/address declaration for The Pit (Zilec 'roundup' hardware).",
+    "FIRST DRAFT modeled from MAME src/mame/taito/roundup.cpp (roundup_state, thepit_main_map,",
+    "the roundup() machine_config). Same role as boards/dkong/hardware.json: the single",
+    "source of truth the shared Python tools read via --hardware, so tools/ stays game-agnostic.",
+    "Numbers are decimal (JSON has no 0x); '_hex' fields are annotations the loader ignores.",
+    "TODO (need a MAME golden run to measure): dsw0 expected value, boot/NMI landmark cycles,",
+    "and confirm the exact stateRegions the Lua instrument dumps vs the engine."
+  ],
+
+  "driver": "thepitu1",
+  "screen": { "width": 256, "height": 224, "_note": "native raster 256H x 224V; ROT90 for display, same as DK" },
+  "refreshHz": 60.606061,
+  "cpuHz": 3072000,
+  "cyclesPerFrame": 50688,
+  "_timing_note": "pixel clock 6.144MHz, htotal 384, vtotal 264 -> 60.606Hz; Z80 18.432/3/2 = 3.072MHz -> 50688 cyc/frame (identical to DK)",
+
+  "stateDumpSize": 4352,
+  "stateRegions": [
+    { "name": "work",   "base": 32768, "size": 2048, "_hex": "0x8000-0x87FF work RAM" },
+    { "name": "color",  "base": 34816, "size": 1024, "_hex": "0x8800-0x8BFF colour RAM (per-tile colour; mirror at 0x8C00)" },
+    { "name": "video",  "base": 36864, "size": 1024, "_hex": "0x9000-0x93FF video RAM / tilemap (mirror at 0x9400)" },
+    { "name": "attrspr","base": 38912, "size": 256,  "_hex": "0x9800-0x98FF attribute/column-scroll (0x9800-0x983F) + sprite RAM (0x9840-0x985F) + 0x9860-0x98FF" }
+  ],
+
+  "writeRanges": [
+    { "name": "control",     "start": 45056, "end": 45063, "_hex": "0xB000-0xB007 LS259 mainlatch: b0=NMI mask, b2=coin lockout, b3=sound enable, b6=flipX+mux, b7=flipY" },
+    { "name": "sound_latch", "start": 47104, "end": 47104, "_hex": "0xB800 soundlatch write to the audio Z80 (read = watchdog reset)" }
+  ],
+
+  "controlByte": 195,
+  "_controlByte_hex": "0xC3 -- ROM 0x0000 first byte (JP nn, the reset vector); config-probe that the program ROM loaded",
+
+  "z80Reset": {
+    "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
+    "_hex": "MAME Z80 reset: AF=0x0040 (Z flag set), IX=IY=0xFFFF, rest 0 -- same for every MAME Z80"
+  },
+
+  "writeTimestamp": "write-bus-cycle",
+
+  "landmarks": [],
+  "_landmarks_todo": "measure boot-init-done and first-vblank-NMI cycles from a MAME golden run, as boards/dkong/hardware.json has"
+}
