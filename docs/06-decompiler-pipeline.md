@@ -82,6 +82,52 @@ Per routine, the gate is **memory-equivalence, not byte-exactness**:
 The capstone over the whole game stays **pixel-exact vs pinned MAME**. Per-routine
 memory-equivalence is the fast local proxy; MAME pixels are the falsifiable ground truth.
 
+## Testing a routine without running the game — capture, clone, replay
+
+The per-routine gate needs realistic *inputs*: the exact machine state a routine is actually called
+with. A routine buried in a cascade has gnarly live-in state — `IX` pointing at a specific object
+record, particular RAM bytes, an exact register file — and constructing a *valid* one of those by
+hand is painful and error-prone; you build unrealistic states and miss the ones that matter. So we
+don't construct inputs. We **capture** them from the running game:
+
+1. **Run the real machine** — boot, then a couple thousand frames of attract (or driven input). The
+   game plays normally and, in the course of that, dispatches the target routine wherever it
+   naturally occurs.
+2. **Hook the routine's address in the dispatch registry.** `m.call(0xADDR)` resolves an address to
+   a function through a table; we slip a wrapper in front of the target. Each time the game is
+   *about* to run it, the wrapper first does `m.clone()` — a **deep copy of the entire machine** at
+   that instant (all of RAM, the full register file, `SP`, `PC`, the cycle counter) — then lets the
+   real routine run so the game continues undisturbed. Each snapshot is one **real captured
+   dispatch**: the precise state the routine was actually invoked with, mid-play.
+3. **Collect hundreds of them.** Over one run a routine may be dispatched many hundreds of times —
+   `loc_1cd2` fires 557× in a plain attract run, each with a different real position, girder, and
+   board state.
+4. **Replay each in isolation.** For a snapshot: clone it twice, run the **oracle** on one copy and
+   the **candidate** rewrite on the other, and diff the two resulting machines on the contract above
+   (RAM − `STACK_SCRATCH`, `pc`, `SP`, live-out). Identical across every captured dispatch → the
+   rewrite reproduces the oracle on every state the game really produces. The routine is never wired
+   into the live game; it runs on snapshots, off to the side.
+
+Why capture instead of construct — this is the part worth calling out:
+
+- **Realism.** You test the exact state *combinations* the routine meets in play, not synthetic ones
+  a human guessed at.
+- **No guessing.** The running game mints valid, in-distribution inputs for free — you never have to
+  work out what a legal deep-cascade live-in even looks like.
+- **Coverage.** Hundreds of real invocations span the routine's real input distribution.
+- **Isolation with a fair start.** The clone leaves the real run untouched (so it keeps producing
+  captures) and hands oracle and candidate a *byte-identical* starting state, so any divergence is
+  the rewrite's fault, never the input's.
+
+For arms the real run never reaches — `loc_1cd2`'s non-25m-board path, say, since attract only plays
+25m — take a real captured state and poke the *one* variable that forces the unhit path
+(`BOARD = 2`), identically on both sides. That is the **crafted entry**: a real state with a
+surgical nudge, not a wholesale fabrication. And every gate carries a **teeth** twin — a
+deliberately-broken candidate the diff must catch — so a green run means something.
+
+The helpers live in `core/equivalence.js` (`wholeMachineEquivalence`, `firstStateDiff`) and the
+per-routine `capture*` functions in each `equivalence-<addr>.test.js`.
+
 ## Entropy pinning — keeping validation deterministic
 
 Every divergence above is confined to dead memory and invisible in play. The **one channel that does
