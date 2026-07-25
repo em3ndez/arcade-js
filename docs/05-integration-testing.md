@@ -1,11 +1,11 @@
-# 4. Integration testing — the MAME ground-truth harness
+# 5. Integration testing — the MAME ground-truth harness
 
 Unit tests prove a routine matches the disassembly. Integration testing proves the *whole machine*
 matches reality, where reality is **MAME** running the same ROM. The comparison is only meaningful
 if both sides are deterministic and produce the same artifacts, so most of the harness is about
 pinning determinism. The one channel this cannot hold — the timing-seeded RNG — has a shared
-**entropy-pin** mode (`--pin-entropy` on both the golden and the port); see the *When the RNG itself
-is the obstacle* / *Entropy pinning* section of [doc 6](06-decompiler-pipeline.md).
+**entropy-pin** mode (`--pin-entropy` on both the golden and the port); see the *Entropy pinning*
+section of [the decompiler pipeline](07-decompiler-pipeline.md).
 
 ## Capturing a golden (the reference side)
 

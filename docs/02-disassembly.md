@@ -1,4 +1,4 @@
-# 1. Disassembly
+# 2. Disassembly
 
 Before you can translate a ROM you must know which bytes are code, which are data, and what
 each instruction is. Two tools recover that (`make trace`).

@@ -1,4 +1,4 @@
-# 7. Porting a new game
+# 8. Porting a new game
 
 Nothing in the method is Donkey Kong specific. A new game differs along two independent axes — its
 **CPU** and its **board** — and brings one thing of its own, its **ROM**.
@@ -47,8 +47,8 @@ below, and registering the game — add its id to `games/registry.js`, write `ga
 The **method** sequence that turns the ROM into validated JavaScript — lift → call graph &
 reachability → RAM naming → bottom-up decompile, each routine memory-equivalence-gated →
 pixel-exact-vs-MAME capstone — lives in exactly one place: **The pipeline for the next game** in
-[doc 6](06-decompiler-pipeline.md). Follow it there; it builds on the disassembly, translation, and
-gate mechanics in docs 1–5.
+[the decompiler pipeline](07-decompiler-pipeline.md). Follow it there; it builds on the disassembly,
+translation, and gate mechanics in docs 2–6.
 
 ## The ROM stays out
 
@@ -64,5 +64,5 @@ vblank interrupt. It is timing-derived, so a cycle-accurate-but-not-exact transl
 a few frames and every RNG-driven sprite drifts — a long pixel diff then looks broken though the logic
 is identical. Don't chase cycle-exactness for it; **pin the entropy** for equivalence testing instead
 (declare `manifest.entropyPin`, run with `--pin-entropy`). The full method — discovery, the pin, and
-the convergent diff for the residual DMA artifact — is the **When the RNG itself is the obstacle** /
-**Entropy pinning** section of [docs/06-decompiler-pipeline.md](06-decompiler-pipeline.md).
+the convergent diff for the residual DMA artifact — is the *Entropy pinning* section of
+[the decompiler pipeline](07-decompiler-pipeline.md).

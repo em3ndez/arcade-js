@@ -1,4 +1,4 @@
-# 3. Drafter testing & mutation
+# 4. Drafter testing & mutation
 
 Translating a routine and *asserting* it's right are two different jobs. The process separates
 them: a **drafter** translates a routine and ships it with the evidence that it works, and a
@@ -38,4 +38,5 @@ A mutation the test fails to catch (`NOT_CAUGHT`) means the test is asleep — i
 but not the thing the mutation broke — and the drafter is pinged to strengthen it. The anchor must
 be the literal text the mutation was verified against, never a prose paraphrase re-derived later —
 a paraphrase can match zero sites (silently skipping the check) or several (mutating more than
-intended). This turns "I wrote a test" into "I proved the test detects the failure it claims to."
+intended). This is the difference between writing a test and proving the test detects the failure
+it claims to.

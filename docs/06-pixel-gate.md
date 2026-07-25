@@ -1,4 +1,4 @@
-# 5. The pixel gate
+# 6. The pixel gate
 
 The final arbiter is the picture: does our frame look like MAME's frame? But "look like" needs a
 precise definition, and there are two, used in different places.
@@ -53,4 +53,4 @@ Three rules keep the gate honest, each learned the hard way:
 
 This same picture-against-MAME gate is the **capstone** of the decompiler pipeline: per-routine
 memory-equivalence is the fast local proxy, and pixel-exact-vs-pinned-MAME is the falsifiable
-ground truth over the whole game. See [doc 6](06-decompiler-pipeline.md).
+ground truth over the whole game. See [the decompiler pipeline](07-decompiler-pipeline.md).
