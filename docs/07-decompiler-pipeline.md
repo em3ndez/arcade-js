@@ -220,6 +220,24 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   misleads worse than a neutral `loc_<addr>`; it is the routine-level sprite-record trap. The name
   encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit` =
   "understood and confirmed."
+- **Honest signatures, by default — not a late capstone.** Genuine register live-ins become named
+  JS **parameters**; live-outs become **return** values; a routine that touches no RAM and only maps
+  inputs → outputs becomes a **pure function** (`snapYToGirder(x, y, step) → newY`). Keep
+  register-passing (`regs.h = …; m.call; … regs.l`) *only* at a genuine oracle boundary — calling a
+  still-raw `translated/` callee, or being called by a still-oracle caller. Everywhere else it is an
+  assembly leak, and bottom-up order is what lets you dissolve it.
+- **Comments describe behaviour, not the assembly it came from.** No register names (`A`, `HL`,
+  `regs.a`), no opcodes/mnemonics (`add a,(hl)`, `rrca`, `ret nc`), no "the Z80 does X" — that detail
+  is invisible at this layer. The test for any comment: is it about behaviour visible here, or about
+  the assembly underneath? Keep the former, cut the latter. Comments that explain *what/why* are the
+  goal and are worth writing; low-level narration is the noise. And **name methods directly** —
+  "the entropy pin", "capture/clone/replay", "the caller-skip idiom" — never a doc number or `.md`
+  path (citations rot; the shipped code should read on its own).
+- **Numbers are base-10.** Write decimal like normal JS. Reserve hex for an *irreducible* bit
+  operation the behaviour genuinely depends on (a real mask or bit-flag). Most `& 0xff` / `& 0x0f` /
+  `& 0x80` is a Z80 8-bit-width artifact, not behaviour: the register/memory model already truncates
+  on assignment (see [doc 3](03-translation.md)), so those masks are dropped outright, and a genuine
+  wrap lifts to plain arithmetic (`% 256`) or a named predicate — taking the hex with it.
 
 ## File format & directory layout
 
@@ -256,7 +274,16 @@ so that bulk (and most of the format drift) is absent. The idiomatic rewrite car
 1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
    (This is [doc 3](03-translation.md), with uniform address names from line one.)
 2. **Call graph + reachability** — who calls whom, what is reachable, what is dead. This is the
-   prerequisite that makes "bottom-up" meaningful.
+   prerequisite that makes "bottom-up" meaningful. **The routine worklist is every label the
+   disassembler emits — every `loc_<addr>` — not just static `call` targets.** A call-target-only
+   list silently omits code reached another way: a shared tail entered only by `jr` (Pit's
+   sound-enqueue body `loc_4ca5` is reached by a `jr` from ~20 stubs *and* by fall-through, never by
+   a `call`), and any computed-dispatch target. So close the worklist under the whole control-flow
+   graph, not just calls: re-derive the set of referenced targets from the lift each pass and fold
+   any new ones back in; treat a routine reached only through a jump table as first-class. Report
+   progress as "≥N, still closing," never a fixed "N/total," until a pass adds nothing new. Code that
+   is reachable only at runtime through a dispatch the tracer can't resolve statically needs a
+   separate entry-discovery pass (a PC-trace of the live program) folded into the entry points.
 3. **RAM naming pass** — evidence-based (control-poke, cross-routine corroboration,
    proposer≠confirmer, the sprite-record trap). Front-loaded, because named memory is the single
    biggest legibility lever; iterative, because some names only resolve during the decompile.
