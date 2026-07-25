@@ -29,6 +29,8 @@
     { "name": "sound_latch", "start": 47104, "end": 47104, "_hex": "0xB800 soundlatch write to the audio Z80 (read = watchdog reset)" }
   ],
 
+  "dsw0": { "addr": 45056, "expected": 0, "_hex_addr": "0xB000", "_hex_expected": "0x00 -- all default dip settings (1C_1C, fast, long, no flip, upright, 3 lives, tests off)" },
+
   "controlByte": 195,
   "_controlByte_hex": "0xC3 -- ROM 0x0000 first byte (JP nn, the reset vector); config-probe that the program ROM loaded",
 
