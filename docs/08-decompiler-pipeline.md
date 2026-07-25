@@ -108,6 +108,40 @@ memory-equivalence is the fast local proxy; MAME pixels are the falsifiable grou
   encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit_1cd2` =
   "understood and confirmed."
 
+## File format & directory layout
+
+The go-forward layer lives in its own directory, **`games/dkong/idiomatic/`**, and new work is
+generated there. The existing **`games/dkong/optimized/`** is frozen — it stays wired and shipped
+for the ~224 routines already done, but nothing new goes into it, and its contents are removed
+per-routine as their idiomatic replacements land. The manifest resolves each address to *either*
+its `optimized/` or its `idiomatic/` module, so the two coexist during the transition; optimized/
+is deleted once empty.
+
+Two canonical file templates, so the format stops drifting:
+
+**`translated/` — one line per routine (the faithful lift; permanent oracle):**
+```js
+/** <name>  (ROM 0x<start>–0x<end>) — <terse role>. */
+```
+Range always present; em-dash; behaviour body stays faithful (one statement per Z80 instruction,
+`// <mnemonic>` per line, per [doc 2](02-translation.md)).
+
+**`idiomatic/` — fixed header, fixed section order (memory-equivalent, cycle-free):**
+```js
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * <name> — <one-line role>.  ROM 0x<addr>.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-<addr>.test.js.
+ * GATE:     <strict | convergent | crafted-entry>; <reachability one-liner>.
+ * LIVE-OUT: <memory-only | + which regs/flags>.
+ * NAMES:    <imported ram.js names | hex-kept addrs + one-word why>.
+ */
+```
+No `CYCLES`/`COLLAPSE` sections and no inline disassembly dumps — the cycle model is gone, so that
+bulk (and most of the drift) goes with it. `optimized/`'s old rich headers are not retrofitted; the
+idiomatic rewrite carries the final form.
+
 ## The pipeline for the next game
 
 1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
