@@ -10,11 +10,10 @@ const WORK_RAM_LO = 0x6000;
 const WORK_RAM_HI = 0x6bff;
 
 const entries = Object.entries(RAM);
-// Structural (non-address-constant) exports: the complete read/write FOOTPRINT
-// catalog and the STACK_SCRATCH region, added for the convergence gate. The
-// address-range/uniqueness guards below apply only to the address-CONSTANT
-// exports (the curated names); these two are validated separately.
-const STRUCTURAL = new Set(['FOOTPRINT', 'STACK_SCRATCH']);
+// Structural (non-address-constant) exports: the STACK_SCRATCH region, added for
+// the convergence gate. The address-range/uniqueness guards below apply only to the
+// address-CONSTANT exports (the curated names); STACK_SCRATCH is validated separately.
+const STRUCTURAL = new Set(['STACK_SCRATCH']);
 const addrEntries = entries.filter(([n, v]) => typeof v === 'number' && !STRUCTURAL.has(n));
 
 test('module exports at least one constant', () => {
@@ -32,17 +31,9 @@ test('every address-constant export is a number within [0x6000, 0x6BFF]', () => 
   }
 });
 
-test('the FOOTPRINT catalog and STACK_SCRATCH region are well-formed', () => {
+test('the STACK_SCRATCH region is well-formed', () => {
   assert.equal(typeof RAM.STACK_SCRATCH, 'object', 'STACK_SCRATCH must be an object');
   assert.ok(RAM.STACK_SCRATCH.lo < RAM.STACK_SCRATCH.hi && RAM.STACK_SCRATCH.hi <= 0x6c00, 'STACK_SCRATCH bounds');
-  assert.equal(typeof RAM.FOOTPRINT, 'object', 'FOOTPRINT must be an object');
-  const keys = Object.keys(RAM.FOOTPRINT).map(Number);
-  assert.ok(keys.length > 0, 'FOOTPRINT is empty');
-  for (const a of keys) {
-    const ok = (a >= 0x6000 && a <= 0x6bff) || (a >= 0x7000 && a <= 0x77ff); // work | sprite | video
-    assert.ok(ok, `FOOTPRINT address 0x${a.toString(16)} is outside the RAM regions`);
-    assert.equal(typeof RAM.FOOTPRINT[a], 'string', `FOOTPRINT[0x${a.toString(16)}] must be a name string`);
-  }
 });
 
 test('every export name is UPPER_SNAKE_CASE', () => {

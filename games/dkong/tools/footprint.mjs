@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// Regenerate the read/write FOOTPRINT catalog + the STACK_SCRATCH region for
-// ram.js. The footprint is the set of RAM addresses the game READS or WRITES over
-// broad coverage — the authoritative state the convergent gate compares
-// (core/equivalence.js -> convergentEquivalence). Emits a ram.js-ready block on
-// stdout; paste it over the generated section at the bottom of optimized/ram.js.
+// On-demand REFERENCE DUMP of the read/write footprint + the STACK_SCRATCH region.
+// The footprint is the set of RAM addresses the game READS or WRITES over broad
+// coverage. NOTE: this output is NO LONGER pasted into optimized/ram.js — the giant
+// per-address FOOTPRINT table was removed from ram.js because no gate ever read it.
+// The convergent gate (core/equivalence.js -> convergentEquivalence) compares ALL
+// work RAM minus STACK_SCRATCH, not a footprint-scoped list; ram.js keeps only the
+// STACK_SCRATCH export. Run this tool when you want the address-level coverage table
+// as a standalone reference, or to re-measure the STACK_SCRATCH bounds.
 //
 //   node games/dkong/tools/footprint.mjs > /tmp/footprint-block.js
 //
