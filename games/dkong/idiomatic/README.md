@@ -18,7 +18,7 @@ frozen and its files are deleted per-routine as their idiomatic replacements lan
 - **Bottom-up.** Decompile callees before callers, so a callee is a real JS signature by the time
   its caller needs it (no register-ABI marshalling).
 - **Naming.** Baseline `loc_<addr>`. Promote to an English name only where earned, and always keep
-  the address as an anchor (`snapYToGirder_2333`, or English + `// ROM 0x2333`). Same evidence bar
+  the identifier clean — the address goes in a `// ROM 0x<addr>` header and the manifest key, never in the name (`snapYToGirder`, not `snapYToGirder_2333`). Same evidence bar
   as the RAM names.
 
 ## File header template

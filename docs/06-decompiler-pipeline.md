@@ -214,18 +214,18 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   … regs.l`) — the one assembly leak left in the `loc_1cd2` v1 demo. Decompile the callee first
   into a real signature (`snapYToGirder(x, y, step) → newY`) and the marshalling dissolves into a
   named call. (Confirmed 2026-07-24: v2 did exactly this — `0x2333` decompiled to a *pure*
-  `snapYToGirder_2333(x, y, step)`, validated exhaustively over all 131,072 inputs; `loc_1cd2`'s
+  `snapYToGirder(x, y, step)`, validated exhaustively over all 131,072 inputs; `loc_1cd2`'s
   five-line marshalling block collapsed to one named call; the pair is leak-free — no `m.call`,
   `push16`, `m.step`, or register/flag marshalling in its own code. The only residue is the tail
   `loc_1ceb`, still the frozen oracle, which is simply the next thing bottom-up order would take.)
 - **Naming.** Uniform `loc_<addr>` is the baseline. Drop the `sub_`/`entry_`/`handler_`/`arm_`/
   `guard_`/`branch_`/`tail_` prefix zoo — it is *pseudo-semantics*, a taxonomy applied ad hoc
   routine-by-routine that implies meaning it does not consistently carry. **Promote** to an English
-  name only where the meaning is genuinely earned, and **always keep the address as an anchor**
-  (suffix `snapYToGirder_2333`, or English-primary with a `// ROM 0x2333` tag). Routine names get
+  name only where the meaning is genuinely earned, and **keep the identifier clean**
+  — the address lives in a `// ROM 0x<addr>` header tag and the manifest key, **never in the identifier**. Routine names get
   the same evidence bar as RAM names (corroborated, proposer≠confirmer) — a *wrong* English name
   misleads worse than a neutral `loc_<addr>`; it is the routine-level sprite-record trap. The name
-  encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit_1cd2` =
+  encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit` =
   "understood and confirmed."
 
 ## File format & directory layout
