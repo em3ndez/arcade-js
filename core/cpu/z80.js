@@ -181,6 +181,24 @@ export class Regs {
     this.f = v & 0xff;
   }
 
+  // -- registers mask on assignment ------------------------------------
+  // An 8-bit register physically cannot hold more than a byte, and a 16-bit
+  // register more than a word; the model enforces that on every write, so the
+  // rest of the codebase can assign the plain result of an expression and let
+  // the register truncate exactly as the hardware does -- no hand-written
+  // `& 0xff` at each call site. Backed by _-prefixed fields.
+  get a() { return this._a; }   set a(v) { this._a = v & 0xff; }
+  get f() { return this._f; }   set f(v) { this._f = v & 0xff; }
+  get b() { return this._b; }   set b(v) { this._b = v & 0xff; }
+  get c() { return this._c; }   set c(v) { this._c = v & 0xff; }
+  get d() { return this._d; }   set d(v) { this._d = v & 0xff; }
+  get e() { return this._e; }   set e(v) { this._e = v & 0xff; }
+  get h() { return this._h; }   set h(v) { this._h = v & 0xff; }
+  get l() { return this._l; }   set l(v) { this._l = v & 0xff; }
+  get ix() { return this._ix; } set ix(v) { this._ix = v & 0xffff; }
+  get iy() { return this._iy; } set iy(v) { this._iy = v & 0xffff; }
+  get sp() { return this._sp; } set sp(v) { this._sp = v & 0xffff; }
+
   // -- flag tests, named as the ROM's condition codes -------------------
   get fZ() {
     return (this.f & F_Z) !== 0;

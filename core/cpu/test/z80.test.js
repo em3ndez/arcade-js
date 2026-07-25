@@ -39,6 +39,35 @@ test("dec8 wraps 0x00 -> 0xFF and sets NZ (the 256-iteration loop)", () => {
   assert.ok(r.fZ);
 });
 
+test("registers mask on assignment: 8-bit -> & 0xff, 16-bit -> & 0xffff", () => {
+  // The model truncates every register write to the register's width, exactly as
+  // the hardware holds it, so a routine can assign the plain result of an
+  // expression without a hand-written mask. If the masking were dropped, an
+  // out-of-range value would survive and silently corrupt downstream arithmetic.
+  const r = new Regs();
+  for (const k of ["a", "f", "b", "c", "d", "e", "h", "l"]) {
+    r[k] = 0x1a7;
+    assert.equal(r[k], 0xa7, `${k} must keep only the low byte`);
+  }
+  r.ix = 0x1_2345;
+  assert.equal(r.ix, 0x2345, "ix keeps only the low word");
+  r.iy = 0x1_0000;
+  assert.equal(r.iy, 0x0000, "iy 0x10000 -> 0");
+  r.sp = 0x2_abcd;
+  assert.equal(r.sp, 0xabcd, "sp keeps only the low word");
+  // A pair write splits into masked bytes and reads back the truncated word.
+  r.hl = 0x1_2345;
+  assert.equal(r.h, 0x23, "hl high byte");
+  assert.equal(r.l, 0x45, "hl low byte");
+  assert.equal(r.hl, 0x2345, "hl reads back the 16-bit value");
+  // copyFrom (used by Machine.clone) round-trips the masked values.
+  const c = new Regs();
+  c.copyFrom(r);
+  assert.equal(c.a, r.a);
+  assert.equal(c.ix, r.ix);
+  assert.equal(c.hl, r.hl);
+});
+
 test("inc/dec do not disturb carry", () => {
   const r = new Regs();
   r.f |= F_C;
