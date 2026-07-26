@@ -88,7 +88,9 @@ export function renderFrame(m, gfx, pal, io) {
     for (let sx = 0; sx < SCREEN_W; sx++) {
       const col = sx >> 3;
       const scrollY = attr[(col << 1)]; // per-column Y scroll
-      const ty = (sy + scrollY) & 0xff; // tilemap is 256 tall, wraps
+      // +16 = the visible-area vertical top: roundup.cpp does screen.set_raw(..., 264, 16, 240),
+      // so display row sy samples tilemap row sy+16. Verified pixel-exact vs MAME (0/57344).
+      const ty = (sy + 16 + scrollY) & 0xff; // tilemap is 256 tall, wraps
       const cell = (ty >> 3) * 32 + col;
       const cinfo = cram[cell];
 
@@ -116,6 +118,10 @@ export function renderFrame(m, gfx, pal, io) {
     for (let offs = spr.length - 4; offs >= 0; offs -= 4) {
       if (((spr[offs + 2] & 0x08) >> 3) !== wantPri) continue;
       if (spr[offs + 0] === 0 || spr[offs + 3] === 0) continue;
+      // roundup.cpp: y = 240 - spriteram[offs] (NATIVE 256-tall coord). Since the visible window
+      // starts at native row 16 (set_raw vbend=16), the on-screen row is likely 224 - spriteram
+      // (the same -16 the tilemap gets). UNVERIFIED — the attract capture has no on-screen sprites;
+      // confirm + adjust with a gameplay (input-tape) golden before trusting sprite placement.
       let y = (240 - spr[offs]) & 0xff;
       let x = (spr[offs + 3] + 1) & 0xff;
       let fx = (spr[offs + 1] & 0x40) !== 0;
