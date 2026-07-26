@@ -324,19 +324,26 @@ the map and can't be done well without it. It is required reading for anyone nam
    meaning — and clarify must run *after* and *across the whole set*, because a callee decompiled in a
    later batch is what makes an earlier caller's `m.call` dissolvable. A clarify pass is **two
    fan-outs, keyed differently**:
-   - **Per-routine** — (a) dissolve every `m.call` to an already-decompiled callee into a genuine
-     function call (the dissolve invariant + lint above); (b) **earn the routine's name from BOTH
-     views: the routine body (the mechanism) AND every caller (the purpose).** Internals alone give
-     `copyBytesToVram`; the callers reveal it is `drawScoreDigits`. Grep every `m.call(0xADDR)` and
-     import of the routine and read what each caller uses it *for* — the name is the intersection.
-   - **Per-address, cross-routine** — variable names are decided by the *consensus across every
-     routine that touches an address*, never by one routine (a single routine's view of `0x8055` is
-     "a loop count"; the ~18 routines that stage it reveal `PLOT_RUN_LENGTH` — and left to themselves
-     they pick divergent local names, which is the tell). Run proposer≠confirmer per address over all
-     its uses, promote convergent **and reviewed** names to `ram.js`, then retrofit.
-   Every output stays gated: equivalence tests, the `no-stale-mcall` lint, the third adversarial name
-   review. Loop decompile ⇄ clarify to 100%. Seed the obvious routine names (RST vectors, leaf sound
-   triggers, the NMI handler) early, but expect most names to fall out *of* this loop, not before it.
+   - **Dissolve (per-routine)** — replace every `m.call` to an already-decompiled callee with a
+     genuine function call (the dissolve invariant + lint above); gated by the equivalence test + a review.
+   - **Routine names (per-routine)** — **earn the name from BOTH views: the routine body (the
+     mechanism) AND every caller (the purpose).** Internals alone give `copyBytesToVram`; the callers
+     reveal it is `drawScoreDigits`. Grep every `m.call(0xADDR)` and import of the routine and read
+     what each caller uses it *for* — the name is the intersection.
+   - **Variable names (per-address, cross-routine)** — decided by the *consensus across every routine
+     that touches an address*, never by one routine (a single routine's view of `0x8055` is "a loop
+     count"; the ~18 routines that stage it reveal `PLOT_RUN_LENGTH` — left to themselves they pick
+     divergent local names, which is the tell).
+
+   **Both name kinds get the SAME three-look treatment** (be consistent): two agents derive the name
+   *blind* to each other (routine → from body+callers; variable → over all uses of the address),
+   promote only on convergence, then a **third adversarial review** before it lands — because two blind
+   derivations can still converge on the same wrong reading (that is how `0x8076` slipped through until
+   the third pass). Routine naming carries one extra floor variable naming lacks — the strong **"keep
+   `loc_` if unsure"** default — but still runs the full three looks. Every output stays gated
+   (equivalence tests, the `no-stale-mcall` lint, the third review). Loop decompile ⇄ clarify to 100%;
+   seed the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) early, but expect
+   most names to fall out *of* this loop, not before it.
 5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is
    the one accepted sub-frame residual.
 
