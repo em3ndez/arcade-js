@@ -7,6 +7,17 @@ pinning determinism. The one channel this cannot hold — the timing-seeded RNG 
 **entropy-pin** mode (`--pin-entropy` on both the golden and the port); see the *Entropy pinning*
 section of [the decompiler pipeline](08-decompiler-pipeline.md).
 
+## Run it alongside translation, not after
+
+Stand up the machine as soon as it can boot and run this gate **continuously, in parallel with
+[translation](03-translation.md)** — it is not a final step. The whole-machine diff validates the
+routines you *already* have, working together, and it fails at the first routine that diverges (or
+the first unregistered `m.call`) — which is exactly the routine to translate or fix next. So the
+gate doubles as the work-list: boot it, see where it stops or diverges, address that, boot again.
+Waiting until translation is "done" hides integration bugs until they have piled up and discards the
+diff's you-are-here signal. Donkey Kong was built this way — the state diff drove the *order* of the
+work, and the same loop runs from the first bootable frame of every new game.
+
 ## Capturing a golden (the reference side)
 
 `tools/mame_golden.py` drives MAME with a pinned, determinism-controlled command line: video/sound
