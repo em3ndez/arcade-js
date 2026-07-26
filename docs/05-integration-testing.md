@@ -5,7 +5,7 @@ matches reality, where reality is **MAME** running the same ROM. The comparison 
 if both sides are deterministic and produce the same artifacts, so most of the harness is about
 pinning determinism. The one channel this cannot hold — the timing-seeded RNG — has a shared
 **entropy-pin** mode (`--pin-entropy` on both the golden and the port); see the *Entropy pinning*
-section of [the decompiler pipeline](07-decompiler-pipeline.md).
+section of [the decompiler pipeline](08-decompiler-pipeline.md).
 
 ## Capturing a golden (the reference side)
 

@@ -1,4 +1,4 @@
-# 7. The decompiler pipeline — dropping fidelity down to what pixels need
+# 8. The decompiler pipeline — dropping fidelity down to what pixels need
 
 The pipeline rewrites the [translated](03-translation.md) lift into idiomatic JavaScript, held
 **memory-equivalent** to the oracle: it reproduces the memory the display reads — plus the
@@ -273,7 +273,7 @@ so that bulk (and most of the format drift) is absent. The idiomatic rewrite car
 
 **Understanding runs across all of this, it is not a step in it.** Start it on day one — you need
 only the ROM and MAME to watch attract mode — and keep the living `games/<game>/MECHANISMS.md`
-growing through every step below ([doc 9](09-understanding-the-mechanisms.md)). The observation
+growing through every step below ([doc 7](07-understanding-the-mechanisms.md)). The observation
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 

@@ -43,7 +43,7 @@ Assembly-JavaScript is deliberately *not* idiomatic JavaScript — it trades rea
 correspondence to the ROM, and it is the frozen reference the rest of the pipeline validates against.
 Rewriting each routine as ordinary, higher-level JavaScript is a separate stage: the rewrite lives in
 `games/<id>/idiomatic/` and stands only once it passes the gate that proves it equivalent to its
-translated counterpart. See [the decompiler pipeline](07-decompiler-pipeline.md).
+translated counterpart. See [the decompiler pipeline](08-decompiler-pipeline.md).
 
 The conventions below keep the two layers cleanly separable. Apply them at translation time, as each
 routine is written — they are behaviour-neutral, so they cost nothing up front and mean `translated/`
@@ -73,7 +73,7 @@ The single registry seam is what makes any routine **isolable**. Because every t
 passes through it, the test harness can override one address to capture its real entry states and
 replay a candidate rewrite against the oracle at exactly that point (see
 [integration testing](05-integration-testing.md) and
-[the decompiler pipeline](07-decompiler-pipeline.md)) — a leaf subroutine exactly like a dispatch
+[the decompiler pipeline](08-decompiler-pipeline.md)) — a leaf subroutine exactly like a dispatch
 target. Without the seam, a routine reached only by a direct call could never be intercepted, because
 its caller holds a fixed reference. The registry is the patch table over the address space; `m.call`
 is the one seam every transfer of control passes through, exactly like a real `CALL` fetching whatever
@@ -95,7 +95,7 @@ for the NMI, never `entry_0000`/`entry_0066`); not `handler_`, `branch_`, `arm_`
 `dispatch…`, `boot…`; and never an English or camel-case name. The routine's role belongs in its
 **comments**, never in its name. Earned English names are promoted only later, at the idiomatic
 layer, and even then always keep the address as an anchor — see
-[the decompiler pipeline](07-decompiler-pipeline.md).
+[the decompiler pipeline](08-decompiler-pipeline.md).
 
 The rule is verifiable, and every batch is checked before commit — this must print nothing:
 
@@ -114,4 +114,4 @@ uniform `loc_<addr>` from the first routine.
 Each routine is its own file exporting that one function, which keeps the routine and its equivalence
 test in an obvious one-to-one correspondence and — because two rewrites never touch the same file —
 lets many run in parallel without collision. The idiomatic rewrite of a routine mirrors the same
-one-file-per-routine shape in [`idiomatic/`](07-decompiler-pipeline.md).
+one-file-per-routine shape in [`idiomatic/`](08-decompiler-pipeline.md).

@@ -6,7 +6,7 @@
 > go-forward layer is [`../idiomatic/`](../idiomatic/README.md) — memory-equivalent, cycle-free,
 > direct-call — and each file here is deleted as its `idiomatic/` replacement lands. For the current
 > method and the reasoning behind the switch, see
-> [docs/06, the decompiler pipeline](../../../docs/06-decompiler-pipeline.md). The rest of this
+> [docs/08, the decompiler pipeline](../../../docs/08-decompiler-pipeline.md). The rest of this
 > README stays as the record of the shipped strict layer.
 
 The translation in `../translated/` is deliberately close to the original Z80 assembly: each

@@ -53,4 +53,4 @@ Three rules keep the gate honest, each learned the hard way:
 
 This same picture-against-MAME gate is the **capstone** of the decompiler pipeline: per-routine
 memory-equivalence is the fast local proxy, and pixel-exact-vs-pinned-MAME is the falsifiable
-ground truth over the whole game. See [the decompiler pipeline](07-decompiler-pipeline.md).
+ground truth over the whole game. See [the decompiler pipeline](08-decompiler-pipeline.md).

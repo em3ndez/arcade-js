@@ -1,8 +1,8 @@
-# 9. Understanding the mechanisms
+# 7. Understanding the mechanisms
 
 The [lift](03-translation.md) is byte-faithful but **meaning-blind**: it tells you a routine
 writes `0x801b`, not that `0x801b` is *which directions the player is allowed to dig*. The
-[decompiler pipeline](07-decompiler-pipeline.md) can't produce readable code or *earned* names
+[decompiler pipeline](08-decompiler-pipeline.md) can't produce readable code or *earned* names
 without that meaning — a name is a claim about what a routine does *in the game*. This step builds
 that claim, on evidence, before and during the idiomatic rewrite.
 
@@ -22,7 +22,7 @@ confidence tag**, and nothing recalled is ever written as fact.
 - **[guess]** — plausible, unverified. Explicitly not to be relied on.
 
 A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — it is the
-[sprite-record trap](07-decompiler-pipeline.md) at the level of the whole game. Tag honestly.
+[sprite-record trap](08-decompiler-pipeline.md) at the level of the whole game. Tag honestly.
 
 ## How to build it
 
@@ -41,7 +41,7 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
    Read the frames. Identify the actors, the playfield, the HUD, the loop. That is your **[seen]**
    layer, and those same frames become the first [pixel-gate](06-pixel-gate.md) goldens (the title
    screen — deterministic, though often with a blink to match by frame *phase* — is the cleanest
-   first target; the demo needs the [entropy pin](07-decompiler-pipeline.md) because enemy motion
+   first target; the demo needs the [entropy pin](08-decompiler-pipeline.md) because enemy motion
    pulls from the RNG).
 
 2. **Tie observed elements to routines and RAM.** For each thing you see (player, each enemy, the
@@ -71,7 +71,7 @@ change. Treat a stale mechanism map the way you treat a stale doc: a bug.
 It is **cross-cutting, not a step.** The observation half needs only the ROM and MAME, so it
 **starts on day one — before the lift** — and orients everything that follows; the `[code]` layer
 then grows with the lift, and the deepest understanding lands *during* the decompile. It spans the
-whole [decompiler pipeline](07-decompiler-pipeline.md), whose RAM-naming and bottom-up-decompile
+whole [decompiler pipeline](08-decompiler-pipeline.md), whose RAM-naming and bottom-up-decompile
 steps **consume** it: an earned English name *is* a mechanism-map role that reached confidence. So:
 
 > **The mechanism map (`games/<game>/MECHANISMS.md`) is required reading for the idiomatic /

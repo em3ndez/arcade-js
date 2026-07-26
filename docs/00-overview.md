@@ -20,17 +20,19 @@ Start with [How the agents worked](01-how-the-agents-worked.md) — the port is 
 agents, and that document covers the division of labour, the failure modes actually hit, and
 what the structure has to do about them. It is the experiment; the rest is the method.
 
-The remaining documents describe the strategies, in the order you would apply them to a new game:
+The remaining documents describe the strategies, in the order you would apply them to a new game.
+**The number in each filename *is* this reading order** — insert a document and you renumber the
+ones after it, so the sequence always reads straight through.
 
 1. [Disassembly](02-disassembly.md) — recovering code and hardware structure from the ROM.
 2. [Translation to "assembly-JavaScript"](03-translation.md) — turning Z80 routines into the faithful oracle.
 3. [Drafter testing & mutation](04-drafter-testing-and-mutation.md) — per-routine tests proven to have teeth.
 4. [Integration testing](05-integration-testing.md) — the MAME ground-truth harness.
 5. [The pixel gate](06-pixel-gate.md) — byte-exact where it must be, tolerant where reality is jittery.
-6. [The decompiler pipeline](07-decompiler-pipeline.md) — rewriting the faithful translation into idiomatic JavaScript, one memory-equivalence-gated routine at a time.
-7. [Understanding the mechanisms](09-understanding-the-mechanisms.md) — the living, code-grounded model of how the game plays; required reading before the idiomatic pass.
-8. [Porting a new game](08-porting-a-new-game.md) — the CPU / board / game layering in practice.
+6. [Understanding the mechanisms](07-understanding-the-mechanisms.md) — the living, code-grounded model of how the game plays; built from the code + attract mode, required reading before the idiomatic pass.
+7. [The decompiler pipeline](08-decompiler-pipeline.md) — rewriting the faithful translation into idiomatic JavaScript, one memory-equivalence-gated routine at a time.
+8. [Porting a new game](09-porting-a-new-game.md) — the CPU / board / game layering in practice.
 
 The running example throughout is **Donkey Kong** (Z80, Nintendo `dkong` board). Nothing about
-the method is DK-specific; see [the decompiler pipeline](07-decompiler-pipeline.md) for what
+the method is DK-specific; see [the decompiler pipeline](08-decompiler-pipeline.md) for what
 transfers to the next game.

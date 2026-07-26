@@ -90,7 +90,7 @@ happily build the wrong thing correctly.
 ## The idiomatic rewrite is a second wave, same discipline
 
 Rewriting the faithful translation into idiomatic JavaScript (see
-[the decompiler pipeline](07-decompiler-pipeline.md)) is a second wave of agent work, and it
+[the decompiler pipeline](08-decompiler-pipeline.md)) is a second wave of agent work, and it
 keeps the same load-bearing separation: an agent rewrites one routine and proves it observably
 equivalent, a separate reviewer (in fact two, adversarially) gates it against the frozen oracle
 without ever having written it, and the lead owns the batch orchestration and the judgement
