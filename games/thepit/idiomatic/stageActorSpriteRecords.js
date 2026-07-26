@@ -1,0 +1,61 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * stageActorSpriteRecords — stage the current actor's two hardware sprite records
+ * (its main body and its shadow "twin") into the sprite buffer.  ROM 0x3a4c.
+ *
+ * Every object mover funnels into this routine as its final act: after the
+ * move/collision pass has updated the live object record, this builds the two
+ * 4-byte sprite entries the display will show for it. The entries land in the last
+ * two slots of the 32-byte sprite buffer at 0x8220, which the per-frame service
+ * copies wholesale into sprite RAM — so what is written here is exactly what draws
+ * next frame.
+ *
+ * Each of the two records is assembled the same way: the first three bytes of the
+ * source object record are copied through unchanged, and the fourth byte (the
+ * record's Y position) is copied with a shared offset added to it. The offset is a
+ * dip-switch-configured constant (0 in normal play) that shifts every actor sprite
+ * vertically by the same amount. The two sources are the primary object record and
+ * its mirrored twin/shadow record.
+ *
+ * Touches only fixed work RAM (reads the two object records + the shared offset,
+ * writes the two sprite-buffer slots); it takes nothing and returns nothing.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-3a4c.test.js.
+ * GATE:     real captured dispatches (reached in attract from ~frame 675, the demo
+ *           movers) + a crafted entry that pokes the offset nonzero on both sides,
+ *           since attract only ever runs it with offset 0.
+ * LIVE-OUT: memory-only — the two staged sprite records. The oracle's residual
+ *           registers/flags are dead ABI; nothing downstream reads them.
+ * NAMES:    ACTOR_X/ACTOR_Y (primary record base + its Y), TWIN_X/TWIN_CLEAR (twin
+ *           record base + its Y) from ./ram.js. Kept hex: 0x8051 (the shared
+ *           vertical offset, a dip-switch param with no individual name yet); the
+ *           two sprite-buffer slots 0x8238/0x823c (unnamed staging-buffer offsets).
+ */
+
+import { ACTOR_X, TWIN_X } from "./ram.js";
+
+// The two destination slots: entries 6 and 7 of the 32-byte sprite buffer at 0x8220
+// that the per-frame service mirrors into sprite RAM.
+const ACTOR_SPRITE_SLOT = 0x8238;
+const TWIN_SPRITE_SLOT = 0x823c;
+
+// The shared vertical offset added to every staged sprite's Y (dip-switch param).
+const SPRITE_Y_OFFSET = 0x8051;
+
+/**
+ * Build one 4-byte sprite record from an object record: three bytes verbatim, then
+ * the fourth (the record's Y) with the shared offset added (kept to a byte).
+ */
+function stageRecord(m, srcBase, destSlot, yOffset) {
+  const { mem } = m;
+  mem.write8(destSlot, mem.read8(srcBase));
+  mem.write8(destSlot + 1, mem.read8(srcBase + 1));
+  mem.write8(destSlot + 2, mem.read8(srcBase + 2));
+  mem.write8(destSlot + 3, mem.read8(srcBase + 3) + yOffset);
+}
+
+export function stageActorSpriteRecords(m) {
+  const yOffset = m.mem.read8(SPRITE_Y_OFFSET);
+  stageRecord(m, ACTOR_X, ACTOR_SPRITE_SLOT, yOffset); // primary body
+  stageRecord(m, TWIN_X, TWIN_SPRITE_SLOT, yOffset); // shadow twin
+}
