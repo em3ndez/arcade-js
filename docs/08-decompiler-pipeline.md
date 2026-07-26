@@ -317,12 +317,26 @@ the map and can't be done well without it. It is required reading for anyone nam
      only a separate adversarial reviewer, re-deriving from scratch, caught that `0x8076` is the `0x26`
      latch. Promote on convergence, but still review the promoted names before they land — a
      confidently-wrong name is the sprite-record trap that all future work will trust.
-4. **Bottom-up decompile *and* routine naming, as one interleaved step** — leaves first, direct
-   calls, drop cycles and dead registers/flags, recover structure, promote names where earned (an
-   earned name is a mechanism-map role that reached confidence). Each routine gated
-   **memory-equivalent** against its `loc_XXXX` lift (pinned PRNG, teeth). Seed the obvious routine
-   names (RST vectors, leaf sound triggers, the NMI handler) up front, but expect most names to fall
-   out *of* the decompile, not before it.
+4. **Alternate DECOMPILE passes with CLARIFY passes.** Decompilation recovers correct,
+   memory-equivalent routines (leaves first, drop cycles + dead registers/flags, gated against the
+   `loc_XXXX` lift with pinned PRNG + teeth). A **clarify pass** then makes the accumulated routines
+   *read* like the game. Keep the two separate — decompile is about correctness, clarify is about
+   meaning — and clarify must run *after* and *across the whole set*, because a callee decompiled in a
+   later batch is what makes an earlier caller's `m.call` dissolvable. A clarify pass is **two
+   fan-outs, keyed differently**:
+   - **Per-routine** — (a) dissolve every `m.call` to an already-decompiled callee into a genuine
+     function call (the dissolve invariant + lint above); (b) **earn the routine's name from BOTH
+     views: the routine body (the mechanism) AND every caller (the purpose).** Internals alone give
+     `copyBytesToVram`; the callers reveal it is `drawScoreDigits`. Grep every `m.call(0xADDR)` and
+     import of the routine and read what each caller uses it *for* — the name is the intersection.
+   - **Per-address, cross-routine** — variable names are decided by the *consensus across every
+     routine that touches an address*, never by one routine (a single routine's view of `0x8055` is
+     "a loop count"; the ~18 routines that stage it reveal `PLOT_RUN_LENGTH` — and left to themselves
+     they pick divergent local names, which is the tell). Run proposer≠confirmer per address over all
+     its uses, promote convergent **and reviewed** names to `ram.js`, then retrofit.
+   Every output stays gated: equivalence tests, the `no-stale-mcall` lint, the third adversarial name
+   review. Loop decompile ⇄ clarify to 100%. Seed the obvious routine names (RST vectors, leaf sound
+   triggers, the NMI handler) early, but expect most names to fall out *of* this loop, not before it.
 5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is
    the one accepted sub-frame residual.
 
