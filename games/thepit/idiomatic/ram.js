@@ -70,9 +70,12 @@ export const VARIANT = 0x8048;
 
 // ── Player dig / movement ─────────────────────────────────────────────────────
 
-/** 4-way blocked-direction bitmask the player movement reads to decide which way it may dig/move —
- *  written by the per-frame maze-wall collision classifier loc_03e8. (strong — single clear author). */
-export const DIG_DIRS = 0x801b;
+/** The attract demo's generated steering command: one of four one-hot move directions
+ *  (0x01/0x02/0x04/0x08, never combined), seeded once at round start and then written per active
+ *  frame by steerDemoPlayer, and read by the movement dispatcher IN PLACE OF the joystick when the
+ *  game-mode byte is >= 3 — a synthetic move direction, NOT a mask of blocked directions.
+ *  (strong — proven one-hot by observation.) */
+export const DEMO_STEER_DIR = 0x801b;
 
 /** Climb / vertical-move gate the actor dispatch tests before the vertical branch (loc_1a02
  *  "climb/vertical gate"). (weak) */

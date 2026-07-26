@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for steerDemoPlayer (ROM 0x03e8, The Pit) — the
- * per-frame maze-wall collision classifier that writes the 4-way blocked-direction
- * bitmask (DIG_DIRS, 0x801b).
+ * Memory-equivalence gate for steerDemoPlayer (ROM 0x03e8, The Pit) — the attract
+ * demo's wall-follower that writes the one-of-four steering direction
+ * (DEMO_STEER_DIR, 0x801b) the movement dispatcher reads in place of the joystick.
  *
  * CONTRACT — OBSERVABLE RAM (relaxed after the callee dissolve). This gate USED to demand
  * whole-RAM + exit pc + SP byte-identity. That broke when the two painters this routine
@@ -31,11 +31,11 @@
  *     OWN final ret, so there is no tail return to model and the bracket-arm pc/SP cannot be
  *     lined up anyway. RAM-only, like equivalence-3968.test.js, plus the [SP-4,SP) exclusion.
  *
- * Net: the honest live-out is MEMORY-ONLY (the mask, band hint, timer, and the panel/colour
+ * Net: the honest live-out is MEMORY-ONLY (the steer direction, band hint, timer, and the panel/colour
  * cells the painters write) and the gate compares the observable RAM dump byte-for-byte
  * outside the dead stack window. Verified: ZERO observable (at/above entrySP) divergences
  * across all 40 real captured dispatches plus every crafted arm. The teeth twins all bite
- * observable cells (DIG_DIRS 0x801b / BAND_HINT 0x800c / FILL_LEN 0x8055 — far below the
+ * observable cells (DEMO_STEER_DIR 0x801b / BAND_HINT 0x800c / FILL_LEN 0x8055 — far below the
  * stack window) and are still caught.
  *
  * WHAT THIS ROUTINE NEEDS FROM THE GATE, and how it is met:
@@ -92,7 +92,7 @@ const TICK_BUSY = 0x807c;     // nonzero on a tick frame -> skip classification
 const SPAWN_PHASE = 0x807b;   // 0 on a tick frame -> recolour a column (loc_48c4)
 const OBJ_X = 0x8068;
 const OBJ_Y = 0x806b;
-const DIG_DIRS = 0x801b;      // the 4-way blocked-direction mask this routine produces
+const DEMO_STEER_DIR = 0x801b;      // the one-of-four steering direction this routine produces
 const FILL_LEN = 0x8055;      // loc_48c4's first write (column length 9); where a skipped-recolour twin shows up
 const CAPTURE_FRAMES = 720;   // the demo runs 0x03e8 within this window
 // The dead stack-scratch window excluded from the RAM diff. The dissolved painters'
@@ -243,7 +243,7 @@ test("EQUAL (captured): the first entry really exercises the painter + recolour 
 
 test("EQUAL (crafted): the busy-tick arm returns without classifying", () => {
   // Timer hits its 30-frame tick AND the busy flag is set -> reload timer, then return
-  // with no classification (DIG_DIRS untouched).
+  // with no classification (DEMO_STEER_DIR untouched).
   const e = ENTRIES[0].clone();
   e.mem.write8(FRAME_COUNTER, 1); // skip the painter to isolate this arm
   e.mem.write8(WALL_TIMER, 1);    // dec -> 0 -> tick
@@ -371,8 +371,8 @@ function makeBrokenRoutine(bug) {
     let mask = null;
     if (hint < 7) mask = bandTop();
     if (mask === null && hint < 10) { mem.write8(BAND_HINT, bug === "badHint" ? 8 : 7); mask = band7(); }
-    if (mask === null) { mem.write8(DIG_DIRS, 99); m.ret(); return; } // (unreached by our teeth inputs)
-    mem.write8(DIG_DIRS, mask);
+    if (mask === null) { mem.write8(DEMO_STEER_DIR, 99); m.ret(); return; } // (unreached by our teeth inputs)
+    mem.write8(DEMO_STEER_DIR, mask);
     m.ret();
   };
 }
@@ -380,12 +380,12 @@ function makeBrokenRoutine(bug) {
 // The broken twins call the SAME idiomatic callees the real routine does (imported at
 // the top), so their only divergence from the oracle is the injected bug.
 
-test("TEETH: a swapped wall facing is CAUGHT at the mask byte", () => {
+test("TEETH: a swapped wall facing is CAUGHT at the steer byte", () => {
   // b == 48 in the top band, c <= 55: oracle raises bit 4, the swapped twin raises 2.
   const e = classifyBase(48, 0, 0);
   const r = runPair(e, makeBrokenRoutine("swapTop"));
   assert.notEqual(r.ram, null, "the gate FAILED to catch a swapped wall facing — it is worthless");
-  assert.equal(r.ram.addr, DIG_DIRS, `teeth caught ${hx(r.ram.addr ?? 0)} (expected the mask ${hx(DIG_DIRS)})`);
+  assert.equal(r.ram.addr, DEMO_STEER_DIR, `teeth caught ${hx(r.ram.addr ?? 0)} (expected the steer byte ${hx(DEMO_STEER_DIR)})`);
   console.log(`  TEETH: swapped facing caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
 });
 
@@ -407,12 +407,12 @@ test("TEETH: a skipped column recolour (loc_48c4) is CAUGHT", () => {
   console.log(`  TEETH: skipped recolour caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
 });
 
-test("TEETH: a corrupted mask store is CAUGHT", () => {
-  const brokenOut = (m) => { idiomatic(m); m.mem.write8(DIG_DIRS, m.mem.read8(DIG_DIRS) ^ 0xff); };
+test("TEETH: a corrupted steer store is CAUGHT", () => {
+  const brokenOut = (m) => { idiomatic(m); m.mem.write8(DEMO_STEER_DIR, m.mem.read8(DEMO_STEER_DIR) ^ 0xff); };
   const r = runPair(classifyBase(48, 0, 0), brokenOut);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a corrupted mask — it is worthless");
-  assert.equal(r.ram.addr, DIG_DIRS, `teeth caught ${hx(r.ram.addr ?? 0)} (expected ${hx(DIG_DIRS)})`);
-  console.log(`  TEETH: corrupted mask caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
+  assert.notEqual(r.ram, null, "the gate FAILED to catch a corrupted steer value — it is worthless");
+  assert.equal(r.ram.addr, DEMO_STEER_DIR, `teeth caught ${hx(r.ram.addr ?? 0)} (expected ${hx(DEMO_STEER_DIR)})`);
+  console.log(`  TEETH: corrupted steer caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
 });
 
 // -- 5. IDENTITY: oracle vs oracle must be EQUAL (gate wiring sanity) ----------

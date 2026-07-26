@@ -4,9 +4,9 @@
  * player's position, emit the one-of-four move direction (written where the joystick
  * would go) that walks the auto-played digger along the maze walls.  ROM 0x03e8.
  *
- * The direction code (DIG_DIRS) is read by the movement dispatcher IN PLACE OF THE
+ * The direction code (DEMO_STEER_DIR) is read by the movement dispatcher IN PLACE OF THE
  * JOYSTICK in the mode this routine runs in — the attract demo (loc_1420 selects
- * mem[DIG_DIRS] over the debounced joystick when the game-mode byte is >= 3). So this
+ * mem[DEMO_STEER_DIR] over the debounced joystick when the game-mode byte is >= 3). So this
  * classifier is what steers the demo object along the maze walls: each call it picks
  * the single direction the wall it is against implies, and hands that to movement.
  *
@@ -35,7 +35,7 @@
  *
  * Its only caller is the main loop (loc_0348), which runs it while the game-mode byte
  * is 4, passes nothing and reads nothing back — the whole product is the direction
- * code left in work RAM (DIG_DIRS).
+ * code left in work RAM (DEMO_STEER_DIR).
  *
  * The periodic panel redraw (loc_4894) is reached through a return-address bracket:
  * loc_4894 is itself idiomatic, but it still calls the two frozen-oracle copy/fill
@@ -51,12 +51,12 @@
  *           crafted sweep of probe X/Y and band hint that forces the classifier down
  *           every band and wall line. Compares observable RAM (the exit pc + SP and the
  *           dead stack-scratch window are excluded); teeth caught.
- * LIVE-OUT: memory-only — the direction code (DIG_DIRS), the band hint, the countdown
+ * LIVE-OUT: memory-only — the direction code (DEMO_STEER_DIR), the band hint, the countdown
  *           timer, and the panel/colour cells the two painters write. The residual
  *           register file is dead here (the caller overwrites it at once), so it is
  *           deliberately not part of the contract.
  * NAMES:    OBJECT_ACTIVE, OBJ_X, OBJ_Y, FRAME_COUNTER, SPAWN_PHASE, STATE_TIMER,
- *           DIG_DIRS from ram.js. Local: HOUSEKEEPING_TIMER (0x800b) and BAND_HINT
+ *           DEMO_STEER_DIR from ram.js. Local: HOUSEKEEPING_TIMER (0x800b) and BAND_HINT
  *           (0x800c) — both private to this per-frame service (loc_03be only inits them),
  *           so they stay local rather than shared.
  */
@@ -66,7 +66,7 @@ import {
   OBJ_X,
   OBJ_Y,
   SPAWN_PHASE,
-  DIG_DIRS,
+  DEMO_STEER_DIR,
   OBJECT_ACTIVE,
   STATE_TIMER,
 } from "./ram.js";
@@ -227,6 +227,6 @@ export function steerDemoPlayer(m) {
   const probeX = u8(mem8[OBJ_X] + 3);
   const probeY = u8(mem8[OBJ_Y] + 5);
 
-  mem8[DIG_DIRS] = classifyBands(m, probeX, probeY);
+  mem8[DEMO_STEER_DIR] = classifyBands(m, probeX, probeY);
   m.ret();
 }
