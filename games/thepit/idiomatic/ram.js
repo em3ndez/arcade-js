@@ -195,3 +195,25 @@ export const GOAL_TILE_LATCH = 0x80e7;
  *  ★ Proposer≠confirmer BOTH converged on the wrong tile (0x27); the adversarial review
  *  corrected it to 0x26 — why the third review is load-bearing even after convergence. (fair) */
 export const FEATURE_TILE_LATCH = 0x8076;
+
+// ── Naming batch 2 (proposer≠confirmer, all 6 converged) ──────────────────────
+/** Reaction step/animation countdown for the REACTION_STATE machine: reloaded from the period
+ *  byte 0x80a3 when a reaction (1-4) is armed, decremented per frame by loc_24f3, and on zero
+ *  ends the reaction (clears REACTION_STATE); the value 0x18 also cues a sound. (strong) */
+export const REACTION_TIMER = 0x80a4;
+/** X coordinate of the dig-spawned target/loot cell (>>3 -> tile column); paired with TARGET_Y,
+ *  compared against OBJ_X for capture, folded into the VRAM cell address. (strong) */
+export const TARGET_X = 0x80a9;
+/** Y coordinate of the dig-spawned target/loot cell; paired with TARGET_X, compared vs OBJ_Y.
+ *  (fair — the X/Y label is rotation-dependent, but it consistently pairs with OBJ_Y.) (fair) */
+export const TARGET_Y = 0x80ac;
+/** State/phase byte of the dig/carve object: discrete codes (0x30=carving, 0x09=done/target,
+ *  0x10=spawn) branched on by loc_29ad, copied into the object's sprite record. (fair) */
+export const DIG_OBJ_STATE = 0x80aa;
+/** Second-stage goal-crossing latch, twin of GOAL_TILE_LATCH: set when the object reaches the
+ *  0x27 goal tile past crossing-column 0x53; drives the post-goal crossing sequence (route to
+ *  0x19d0, walk to the far edge, force the crossing sprite). (fair) */
+export const GOAL_CROSSING_LATCH = 0x8077;
+/** Fixed DSW/cabinet-derived pixel offset (0 in normal play) biased into sprite coordinates;
+ *  computed once by the DSW decode loc_4b55. (strong) */
+export const SPRITE_COORD_BIAS = 0x8051;
