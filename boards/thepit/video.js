@@ -53,15 +53,16 @@ function charPixel(gfx, code, tx, ty) {
 }
 
 /**
- * 2bpp pixel of a 16x16 sprite. spritelayout: 64 sprites, 32 bytes each; the four 8x8
- * quadrants are interleaved per the STEP layout (top-left, bottom-left, top-right,
- * bottom-right). planes at gfx 0x0000 / 0x1000.
+ * 2bpp pixel of a 16x16 sprite. spritelayout (roundup.cpp): 64 sprites, 32 bytes each,
+ * two planes at gfx 0x0000 (LSB) / 0x1000 (MSB). Decoding the STEP8 x/y offset arrays
+ * — x: STEP8(0,1),STEP8(64,1); y: STEP8(0,8),STEP8(128,8) — the byte holding pixel
+ * (x,y) is code*32 + qx*8 + qy*16 + row, i.e. the four 8x8 quadrants are laid out in
+ * ROM ROW-MAJOR: top-left, top-right, bottom-left, bottom-right (8 bytes each).
  */
 function spritePixel(gfx, code, tx, ty) {
-  // quadrant + in-quadrant offset, matching spritelayout's STEP8 x/y ordering
   const col = tx & 7, row = ty & 7;
   const qx = tx >> 3, qy = ty >> 3;
-  const base = code * 32 + qy * 8 + qx * 16 + row;
+  const base = code * 32 + qx * 8 + qy * 16 + row;
   const p0 = (gfx[base] >> (7 - col)) & 1;
   const p1 = (gfx[base + 0x1000] >> (7 - col)) & 1;
   return p0 | (p1 << 1);
@@ -118,10 +119,11 @@ export function renderFrame(m, gfx, pal, io) {
     for (let offs = spr.length - 4; offs >= 0; offs -= 4) {
       if (((spr[offs + 2] & 0x08) >> 3) !== wantPri) continue;
       if (spr[offs + 0] === 0 || spr[offs + 3] === 0) continue;
-      // roundup.cpp: y = 240 - spriteram[offs] (NATIVE 256-tall coord). Since the visible window
-      // starts at native row 16 (set_raw vbend=16), the on-screen row is likely 224 - spriteram
-      // (the same -16 the tilemap gets). UNVERIFIED — the attract capture has no on-screen sprites;
-      // confirm + adjust with a gameplay (input-tape) golden before trusting sprite placement.
+      // roundup.cpp: y = 240 - spriteram[offs] (NATIVE 256-tall bitmap coord). The visible
+      // window starts at native row 16 (set_raw vbend=16), so on-screen row = this - 16
+      // (applied at plot time below, after the flip math which must stay 240-based to match
+      // MAME). VERIFIED against a gameplay input-tape golden: enemy sprites at the bottom
+      // band matched MAME to the pixel once the -16 was applied.
       let y = (240 - spr[offs]) & 0xff;
       let x = (spr[offs + 3] + 1) & 0xff;
       let fx = (spr[offs + 1] & 0x40) !== 0;
@@ -132,8 +134,15 @@ export function renderFrame(m, gfx, pal, io) {
       const code = spr[offs + 1] & 0x3f;
       for (let py = 0; py < 16; py++) {
         for (let px = 0; px < 16; px++) {
-          const sxp = (x + px) & 0xff, syp = (y + py) & 0xff;
-          if (sxp >= SCREEN_W || syp >= SCREEN_H) continue;
+          const sxp = (x + px) & 0xff;
+          // -16 = the visible-area vtop (set_raw vbend=16): the sprite Y computed above
+          // is a native 256-raster BITMAP row; the on-screen row is 16 higher up — the
+          // same offset the tilemap layer gets. MAME draws into the full raster and the
+          // visible window (rows 16..239) crops it; we render straight to the 224-tall
+          // screen, so subtract 16 here and clip. Verified against a gameplay golden
+          // (enemy sprites at the bottom band landed 16px too low without this).
+          const syp = y + py - 16;
+          if (sxp >= SCREEN_W || syp < 0 || syp >= SCREEN_H) continue;
           const pix = spritePixel(gfx, code, fx ? 15 - px : px, fy ? 15 - py : py);
           if (pix === 0) continue; // transparent
           const p = syp * SCREEN_W + sxp;

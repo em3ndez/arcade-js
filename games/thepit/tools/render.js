@@ -56,7 +56,12 @@ function parseArgs(argv) {
     romset: DEFAULT_ROMSET,
     frames: 305,
     framesOut: join(GAME_DIR, "out", "emit"),
+    inputs: [],
+    pokes: [],
   };
+  // Same --input/--poke grammar as emit.js so a tape renders identically to how it
+  // state-emits: PORT=BITS@FRAME[:hold[N]|once] / ADDR=VAL@FRAME[:hold[N]|once].
+  const SPEC = /^(0x[0-9a-fA-F]+|\d+)=(0x[0-9a-fA-F]+|\d+)@(\d+)(?::(hold|once)(\d+)?)?$/;
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case "--rom": args.rom = argv[++i]; break;
@@ -70,6 +75,22 @@ function parseArgs(argv) {
         break;
       }
       case "--frames-out": args.framesOut = argv[++i]; break;
+      case "--poke": {
+        const mt = argv[++i].match(SPEC);
+        if (!mt) throw new Error(`--poke expects ADDR=VAL@FRAME[:hold[N]|once]`);
+        const mode = mt[4] || "hold";
+        args.pokes.push({ addr: Number(mt[1]) & 0xffff, val: Number(mt[2]) & 0xff,
+          frame: Number(mt[3]), dur: mode === "once" ? 1 : mt[5] ? Number(mt[5]) : null });
+        break;
+      }
+      case "--input": {
+        const mt = argv[++i].match(SPEC);
+        if (!mt) throw new Error(`--input expects PORT=BITS@FRAME[:hold[N]|once]`);
+        const mode = mt[4] || "once";
+        args.inputs.push({ port: Number(mt[1]) & 0xffff, bits: Number(mt[2]) & 0xff,
+          frame: Number(mt[3]), dur: mode === "once" ? 1 : mt[5] ? Number(mt[5]) : null });
+        break;
+      }
       default: throw new Error(`unknown argument: ${argv[i]}`);
     }
   }
@@ -125,6 +146,8 @@ async function main() {
   const proms = assembleImage("proms", manifest.rom.images.proms, args.romset);
 
   const machine = await Machine.create(rom, { gfx, proms });
+  machine.inputTape = args.inputs.length ? args.inputs : null;
+  machine.pokes = args.pokes.length ? args.pokes : null;
 
   // Capture a rendered frame at every state boundary by piggy-backing on the
   // dumpState the boundary loop already calls (state[0] power-on, then one per
