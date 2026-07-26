@@ -1,0 +1,84 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * loc_33da — probe two phase-keyed ROM tables for the tile one row back from the probe cell.  ROM 0x33da.
+ *
+ * One arm of the per-direction tile probe the movement dispatcher (loc_319d) runs to decide
+ * whether the object may travel a given way. It looks one tilemap row (the map is 32 cells
+ * wide) back from the object's probe cell and asks whether that neighbouring tile — and, on a
+ * hit, the tile just after it — appear in two 32-entry ROM tables whose row is chosen by the
+ * object's current sub-tile phase. The dispatcher branches on the answer, steering a match
+ * into one of the velocity presets.
+ *
+ *   - It always stashes the one-row-back cell at 0x8134 (a later step reloads it).
+ *   - First it searches table A's phase row for the neighbouring tile. A miss ends the probe
+ *     reporting "no match".
+ *   - A hit while the sub-tile phase is 0 reports "match" immediately — there is no table-B
+ *     row to consult at phase 0.
+ *   - Otherwise it searches table B's phase row for the following tile and reports whether
+ *     THAT tile matched.
+ *
+ * The sub-tile phase (0x808d) selects the table row and is deliberately kept to a single byte,
+ * so the selector wraps within 0..255 (phase 224 + 32 lands back at row 0 — a real case here,
+ * where the phase only ever takes multiples of 32).
+ *
+ * Reads the sub-tile phase (0x808d) and the probe-cell pointer (0x8089), plus the two
+ * neighbouring tiles and the two ROM tables; writes only 0x8134. Returns whether a match was
+ * found and leaves the same answer in the zero flag for the still-oracle caller to branch on.
+ *
+ * Kept as loc_33da: a sibling single-table probe (0x33bc) earns the descriptive name, but this
+ * two-table variant's table semantics (what a match MEANS, and the tilemap's on-screen axis)
+ * are not grounded enough to name without over-claiming — as its twins 0x3410/0x3425 also stay.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-33da.test.js.
+ * GATE:     crafted-entry + real dispatches — every attract dispatch (the first-table-miss,
+ *           phase-0 short-circuit, and second-table-search paths) on the full
+ *           RAM+pc+SP+zero-flag contract, plus a crafted phase-0 hit and exhaustive
+ *           key1/key2/phase sweeps. Teeth: a table-B-skipping twin and a wrong-stash twin.
+ *           Reached from the tile-probe dispatcher during the attract demo (first dispatch ~frame 1600).
+ * LIVE-OUT: the zero flag (match found) + the 0x8134 write. The leftover value registers (the
+ *           search pointers and keys) are dead — the caller reads only the zero flag.
+ * NAMES:    none in ram.js — 0x8089 (probe-cell tilemap pointer), 0x808d (object sub-tile phase)
+ *           and 0x8134 (saved one-row-back cell) kept hex; F_Z is the CPU's zero-flag bit.
+ */
+import { F_Z } from "../../../core/cpu/z80.js";
+
+const SUBTILE_PHASE = 0x808d; // the object's sub-tile phase; here it also selects the table row
+const PROBE_CELL = 0x8089;    // tilemap pointer at the object's probe cell (16-bit, into video RAM)
+const SAVED_CELL = 0x8134;    // the one-row-back cell, stashed here for a later reload
+const TABLE_A = 0x34fe;       // base of the first phase-keyed ROM probe table's rows
+const TABLE_B = 0x35fe;       // base of the second phase-keyed ROM probe table's rows
+
+export function loc_33da(m) {
+  const { regs, mem } = m;
+
+  // Look one tilemap row (the map is 32 cells wide) back from the probe cell, and stash that
+  // cell — a later step reloads the pointer from here.
+  const oneRowBack = (mem.read16(PROBE_CELL) - 32) & 0xffff;
+  mem.write16(SAVED_CELL, oneRowBack);
+
+  const phase = mem.read8(SUBTILE_PHASE);
+
+  // First lookup: is that neighbouring tile listed in table A's phase row? The row is picked
+  // by (phase + 32), held to a single byte so the selector wraps within 0..255.
+  const neighbourTile = mem.read8(oneRowBack);
+  let matched = romRowHas(mem, TABLE_A + ((phase + 32) & 0xff), neighbourTile);
+
+  // A hit at phase 0 is final — there is no table-B row to consult at phase 0.
+  if (matched && phase !== 0) {
+    // Second lookup: the following tile, against table B's phase row (phase - 32).
+    const followingTile = mem.read8((oneRowBack + 1) & 0xffff);
+    matched = romRowHas(mem, TABLE_B + ((phase - 32) & 0xff), followingTile);
+  }
+
+  // Report the result: the zero flag for the still-oracle caller to branch on, and a return.
+  regs.f = matched ? regs.f | F_Z : regs.f & ~F_Z;
+  return matched;
+}
+
+/** True if `tile` appears anywhere in the 32-entry ROM table row starting at `rowBase`. */
+function romRowHas(mem, rowBase, tile) {
+  for (let i = 0; i < 32; i++) {
+    if (mem.read8(rowBase + i) === tile) return true;
+  }
+  return false;
+}
