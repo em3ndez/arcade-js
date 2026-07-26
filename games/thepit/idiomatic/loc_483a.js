@@ -43,11 +43,11 @@
  * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
  *           proposes BOARD_MODE for it, but here the byte is unambiguously the panel's
  *           colour, so a local role name fits better than a misfit import. 0x8055
- *           (CELL_COUNT), the live decision/display byte 0x802b, and the ROM label
+ *           (PLOT_RUN_LENGTH), the live decision/display byte 0x802b, and the ROM label
  *           sources 0x49ba / 0x49c2 are not in ram.js and stay local.
  */
 
-import { TILE_COL, TILE_ROW } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -57,7 +57,6 @@ import { fillColourColumn } from "./fillColourColumn.js";
 const FILL_ATTR = 0x8057;
 
 // How many cells the next copy/fill helper writes (reloaded before each field).
-const CELL_COUNT = 0x8055;
 
 // The live work-RAM byte that selects the variant and, in the default variant, is
 // itself copied into the panel's last cell as the displayed value.
@@ -86,7 +85,7 @@ export function loc_483a(m) {
     mem.write8(FILL_ATTR, 150);
 
     // The eight-glyph label, stamped down the video column by the still-oracle copy helper.
-    mem.write8(CELL_COUNT, 8);
+    mem.write8(PLOT_RUN_LENGTH, 8);
     regs.ix = ALT_LABEL; // the source pointer the copy helper reads
     m.push16(0x4891); m.call(0x3dea);
 
@@ -104,16 +103,16 @@ export function loc_483a(m) {
   mem.write8(FILL_ATTR, 151);
 
   // The nine-glyph label field, stamped by the still-oracle copy helper.
-  mem.write8(CELL_COUNT, 9);
+  mem.write8(PLOT_RUN_LENGTH, 9);
   regs.ix = DEFAULT_LABEL; // the source pointer the copy helper reads
   m.push16(0x4861); m.call(0x3dea);
 
   // One more cell: the live value itself, continuing down the same video column.
-  mem.write8(CELL_COUNT, 1);
+  mem.write8(PLOT_RUN_LENGTH, 1);
   regs.ix = PANEL_VALUE; // display the live byte as the panel's last cell
   m.push16(0x486d); m.call(0x3dea);
 
   // Colour the full ten-cell run; this is loc_483a's exit.
-  mem.write8(CELL_COUNT, 10);
+  mem.write8(PLOT_RUN_LENGTH, 10);
   return fillColourColumn(m);
 }

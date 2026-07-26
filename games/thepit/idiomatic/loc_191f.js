@@ -45,7 +45,7 @@
  *           tables at 0x1e48 / 0x1fb0 stay hex — their roles are not yet grounded.
  */
 
-import { SPRITE_CODE, NEXT_TILE } from "./ram.js";
+import { SPRITE_CODE, NEXT_TILE, REACTION_STATE } from "./ram.js";
 import { loc_1b5b } from "./loc_1b5b.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
@@ -57,7 +57,6 @@ const NEIGHBOUR_TILE_TABLE = 0x1fb0;
 // Classifier scratch + per-actor reaction state (roles not yet grounded — kept as addresses).
 const REACTION_PARAM_SRC = 0x80a3; // parameter copied into REACTION_PARAM on a reaction
 const REACTION_PARAM = 0x80a4;
-const REACTION_STEP = 0x80a2; // set to 3 when a reaction is staged
 const EXPECTED_TILE = 0x80a7; // the current cell's expected tile, recorded for the reaction
 const NEIGHBOUR_TILE = 0x80a6; // the neighbouring cell's tile code, recorded for the reaction
 const ARM_STATE = 0x80c1; // per-actor reaction arm state (0 = not armed)
@@ -99,7 +98,7 @@ export function loc_191f(m, tileCode = m.regs.b, positionAccumulator = m.regs.e,
 
   // Mismatch: the actor has run into a tile it must react to. Stage the reaction.
   mem.write8(REACTION_PARAM, mem.read8(REACTION_PARAM_SRC));
-  mem.write8(REACTION_STEP, 3);
+  mem.write8(REACTION_STATE, 3);
   mem.write8(SPRITE_CODE, REACTION_SPRITE_FRAME);
 
   // Exactly on a cell boundary — no neighbour to consider; go straight to the latch.

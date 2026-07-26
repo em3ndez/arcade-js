@@ -38,15 +38,13 @@
  *           have no confirmed name yet and stay hex.
  */
 
-import {
-  ACTOR_X,
+import { ACTOR_X,
   ACTOR_TILE,
   ACTOR_Y,
   ACTOR_TIMER,
   TWIN_X,
   TWIN_TILE,
-  TWIN_CLEAR,
-} from "./ram.js";
+  TWIN_CLEAR, LEVEL } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // The eight-cell figure: a 4-row x 2-col tile block. The anchor is its bottom-left
@@ -95,7 +93,7 @@ export function loc_3984(m) {
   mem.write8(0x812b, 7); // twin per-record constant (one higher)
 
   // Start phase: a low-bit slice of the shared state byte staggers the first action.
-  const startPhase = 7 - (mem.read8(0x8028) & 0x06);
+  const startPhase = 7 - (mem.read8(LEVEL) & 0x06);
   mem.write8(0x8118, startPhase); // primary
   mem.write8(0x8129, startPhase); // twin
 

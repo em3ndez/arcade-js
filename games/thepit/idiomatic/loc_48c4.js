@@ -33,7 +33,7 @@
  *           unnamed).
  */
 
-import { BOARD_MODE, TILE_COL, TILE_ROW } from "./ram.js";
+import { BOARD_MODE, TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -42,7 +42,7 @@ export function loc_48c4(m) {
   const { mem } = m;
 
   // Nine cells tall — the length the column fill will paint.
-  mem.write8(0x8055, 9);
+  mem.write8(PLOT_RUN_LENGTH, 9);
 
   // Advance the colour one step, but never let bit 3 turn on: the value cycles
   // through the palette codes that keep that bit clear.

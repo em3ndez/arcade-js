@@ -49,11 +49,11 @@
  * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
  *           proposes BOARD_MODE for that address, but here it is unambiguously the
  *           panel's colour byte, so a local role name is used instead of a misfit
- *           import. 0x8055 (CELL_COUNT, per-field cell count) and the source pointers
+ *           import. 0x8055 (PLOT_RUN_LENGTH, per-field cell count) and the source pointers
  *           0x8000 / 0x496d are not named in ram.js.
  */
 
-import { TILE_COL, TILE_ROW } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -63,7 +63,6 @@ import { fillColourColumn } from "./fillColourColumn.js";
 const FILL_ATTR = 0x8057;
 
 // How many cells the next copy/fill helper writes (reloaded before each field).
-const CELL_COUNT = 0x8055;
 
 // Source of the top cell's live value (a work-RAM slot) and of the fixed ROM label.
 const VALUE_SOURCE = 0x8000;
@@ -86,7 +85,7 @@ export function loc_3d49(m) {
 
   // Top field: copy one cell from the live work-RAM value down the video column.
   // (0x3dea is not yet decompiled — still the oracle, reached through the registry.)
-  mem.write8(CELL_COUNT, 1);
+  mem.write8(PLOT_RUN_LENGTH, 1);
   m.regs.ix = VALUE_SOURCE; // the source pointer the copy helper reads
   m.push16(0x3d6a);
   m.call(0x3dea);
@@ -94,13 +93,13 @@ export function loc_3d49(m) {
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
   // down the same video column from where the value left off. (0x3ddb is not yet
   // decompiled — still the oracle, reached through the registry.)
-  mem.write8(CELL_COUNT, 8);
+  mem.write8(PLOT_RUN_LENGTH, 8);
   m.regs.ix = LABEL_SOURCE; // the source pointer the fill helper reads
   m.push16(0x3d76);
   m.call(0x3ddb);
 
   // Colour the full nine-cell run: hand off to the colour-column filler, which paints
   // the whole panel. This is loc_3d49's exit.
-  mem.write8(CELL_COUNT, 9);
+  mem.write8(PLOT_RUN_LENGTH, 9);
   return fillColourColumn(m);
 }

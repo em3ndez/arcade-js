@@ -39,7 +39,7 @@
  *           (candidate: collectScoringTile), matching its sibling loc_191f.
  */
 
-import { ACTOR_CELL_PTR } from "./ram.js";
+import { ACTOR_CELL_PTR, SPAWN_STATE, FEATURE_TILE_LATCH } from "./ram.js";
 import { loc_191f } from "./loc_191f.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 
@@ -48,9 +48,7 @@ import { awardTenPoints } from "./awardTenPoints.js";
 // addresses stay in hex.
 const FIRST_TILE_COUNT = 0x8081; // times a tile-58 pickup was collected
 const SECOND_TILE_COUNT = 0x8082; // times a tile-59..61 pickup was collected
-const SECOND_TILE_ENABLED = 0x8076; // feature flag gating the second pickup kind
 const SECOND_TILE_LATCH = 0x8078; // one-shot latch that opens the second pickup
-const SECOND_TILE_GUARD = 0x80bd; // must be clear the first time the latch arms
 
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup
 
@@ -69,14 +67,14 @@ export function loc_18cf(m, tileCode = m.regs.b, positionAccumulator = m.regs.e)
     mem.write8(FIRST_TILE_COUNT, mem.read8(FIRST_TILE_COUNT) + 1);
   } else if (tileCode >= 59 && tileCode <= 61) {
     // Second pickup kind, and only while its feature is enabled.
-    if (mem.read8(SECOND_TILE_ENABLED) === 0) {
+    if (mem.read8(FEATURE_TILE_LATCH) === 0) {
       return loc_191f(m, tileCode, positionAccumulator);
     }
     // A one-shot latch opens the award. Once open it always awards; the very first
     // time, it opens only when the guard is clear (and arms the latch itself),
     // otherwise it defers this frame to the dig-arm.
     if (mem.read8(SECOND_TILE_LATCH) === 0) {
-      if (mem.read8(SECOND_TILE_GUARD) !== 0) {
+      if (mem.read8(SPAWN_STATE) !== 0) {
         return loc_191f(m, tileCode, positionAccumulator);
       }
       mem.write8(SECOND_TILE_LATCH, 1);

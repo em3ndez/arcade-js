@@ -42,14 +42,13 @@
  *           table; and the two oracle helpers' return addresses (their call linkage).
  */
 
-import { TILE_COL, TILE_ROW, GAME_STATE2 } from "./ram.js";
+import { TILE_COL, TILE_ROW, GAME_STATE2, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 
 // The shared tile-plotter's scratch parameter block (0x8055-0x8060). These are the
 // plotter ABI the helpers below read, not game state, so they stay hex here.
-const PLOT_RUN_LENGTH = 0x8055; // how many cells down the column the next run paints
 const PLOT_FILL_BYTE = 0x8057; // the colour byte the colour-column paint writes
 
 // A fixed run of tile codes in ROM used for the panel's seven middle cells.

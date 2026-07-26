@@ -33,11 +33,13 @@
  *           mode-index role used elsewhere, which does not describe the colour byte
  *           staged here, so it is kept hex rather than misread.
  */
+
+import { PLOT_RUN_LENGTH } from "./ram.js";
 export function fillColourColumn(m) {
   const { mem } = m;
 
   const cursor = mem.read16(0x805e); // address of the column's top colour cell
-  const count = mem.read8(0x8055); // how many cells to paint down the column
+  const count = mem.read8(PLOT_RUN_LENGTH); // how many cells to paint down the column
   const colour = mem.read8(0x8057); // the colour byte to stamp into each cell
 
   // Zero means a full 256-cell run (the count is tested only after the first paint).

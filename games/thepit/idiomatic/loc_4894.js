@@ -57,11 +57,11 @@
  * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
  *           proposes BOARD_MODE for that address, but here it is unambiguously the
  *           panel's colour byte, so a local role name is used instead of a misfit
- *           import. 0x8055 (CELL_COUNT, per-field cell count) and the source pointers
+ *           import. 0x8055 (PLOT_RUN_LENGTH, per-field cell count) and the source pointers
  *           0x8000 / 0x496d are not named in ram.js.
  */
 
-import { TILE_COL, TILE_ROW } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -71,7 +71,6 @@ import { fillColourColumn } from "./fillColourColumn.js";
 const FILL_ATTR = 0x8057;
 
 // How many cells the next copy/fill helper writes (reloaded before each field).
-const CELL_COUNT = 0x8055;
 
 // Source of the top cell's live value (a work-RAM slot) and of the fixed ROM label.
 const VALUE_SOURCE = 0x8000;
@@ -96,7 +95,7 @@ export function loc_4894(m) {
   // Top field: copy one cell from the live work-RAM value down the video column. The
   // copy helper is still the oracle — it reads its source from IX and returns through
   // the stack, so its IX load and return-address push stay.
-  mem.write8(CELL_COUNT, 1);
+  mem.write8(PLOT_RUN_LENGTH, 1);
   m.regs.ix = VALUE_SOURCE; // the source pointer the copy helper reads
   m.push16(0x48b5);
   m.call(0x3dea);
@@ -104,7 +103,7 @@ export function loc_4894(m) {
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
   // down the same video column from where the value left off. The fill helper is still
   // the oracle — same IX-source + stack-return convention.
-  mem.write8(CELL_COUNT, 8);
+  mem.write8(PLOT_RUN_LENGTH, 8);
   m.regs.ix = LABEL_SOURCE; // the source pointer the fill helper reads
   m.push16(0x48c1);
   m.call(0x3ddb);

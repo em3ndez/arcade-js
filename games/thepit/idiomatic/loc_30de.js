@@ -38,6 +38,7 @@
 
 import { seedActorSpawnState } from "./seedActorSpawnState.js";
 
+import { LEVEL } from "./ram.js";
 export function loc_30de(m) {
   const { mem } = m;
 
@@ -53,7 +54,7 @@ export function loc_30de(m) {
   // Difficulty-scaled pair: read the round's level/difficulty counter, keep only its
   // two low-order selector bits (leaving 0, 2, 4, or 6), and subtract from seven so
   // the pair steps down 7, 5, 3, 1 as difficulty climbs. Both mirrored slots get it.
-  const difficultyStep = 7 - (mem.read8(0x8028) & 0x06);
+  const difficultyStep = 7 - (mem.read8(LEVEL) & 0x06);
   mem.write8(0x80f6, difficultyStep);
   mem.write8(0x8107, difficultyStep);
 

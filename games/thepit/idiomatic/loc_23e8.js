@@ -34,6 +34,7 @@
  */
 import { requestSound21 } from "./requestSound21.js";
 
+import { LEVEL } from "./ram.js";
 export function loc_23e8(m) {
   const { mem } = m;
 
@@ -41,7 +42,7 @@ export function loc_23e8(m) {
   mem.write16(0x8065, 0x9104);
 
   // 2. Countdown = gameplay parameter minus four per unit of the counter (wraps in a byte).
-  mem.write8(0x8067, mem.read8(0x804f) - 4 * mem.read8(0x8028));
+  mem.write8(0x8067, mem.read8(0x804f) - 4 * mem.read8(LEVEL));
 
   // 3. Cue a sound when the marker cell holds the trigger tile.
   if (mem.read8(0x9264) === 0x32) requestSound21(m);

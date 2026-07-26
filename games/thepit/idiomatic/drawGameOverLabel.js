@@ -43,10 +43,10 @@
  *           0x8057 kept local (FILL_ATTR): ram.js proposes BOARD_MODE for it, but here
  *           it is unambiguously the label's colour byte, so a local role name is used
  *           rather than a misfit import (matches the sibling loc_4894). 0x8055
- *           (CELL_COUNT, the row count) and the ROM glyph source (0x49a5) are not
+ *           (PLOT_RUN_LENGTH, the row count) and the ROM glyph source (0x49a5) are not
  *           named in ram.js.
  */
-import { TILE_COL, TILE_ROW } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -56,7 +56,6 @@ import { fillColourColumn } from "./fillColourColumn.js";
 const FILL_ATTR = 0x8057;
 
 // How many cells the copy and the colour fill each write (the nine characters).
-const CELL_COUNT = 0x8055;
 
 // ROM source of the nine "GAME OVER" glyphs (G,A,M,E,space,O,V,E,R at 0x499d..0x49a5).
 // The copy helper walks it downward from the top, so it is handed the last byte.
@@ -76,7 +75,7 @@ export function drawGameOverLabel(m) {
 
   // Colour attribute for the label, and the nine-row run shared by copy and fill.
   mem.write8(FILL_ATTR, 6);
-  mem.write8(CELL_COUNT, 9);
+  mem.write8(PLOT_RUN_LENGTH, 9);
 
   // Copy the nine "GAME OVER" glyphs down the video column. The copy helper (ROM 0x3dea)
   // is still the frozen oracle: it reads its source from the pointer register and returns

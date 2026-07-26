@@ -46,7 +46,7 @@
  *           the strip cell count (unnamed); 0x494f is a ROM tile-table address.
  */
 
-import { TILE_COL, TILE_ROW } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -56,7 +56,6 @@ const STRIP_SOURCE_TABLE = 0x494f;
 // Paint scratch shared with the fill helpers: the colour value painted down the
 // column, and the number of cells in the vertical run.
 const COLOUR_FILL = 0x8057;
-const STRIP_HEIGHT = 0x8055;
 
 export function loc_4816(m) {
   const { regs, mem } = m;
@@ -75,7 +74,7 @@ export function loc_4816(m) {
   // pushed word is the return address its ret pops, and the source pointer is its one
   // register live-in.
   mem.write8(COLOUR_FILL, 0);
-  mem.write8(STRIP_HEIGHT, 10);
+  mem.write8(PLOT_RUN_LENGTH, 10);
   regs.ix = STRIP_SOURCE_TABLE;
   m.push16(0x4837);
   m.call(0x3ddb); // fill the 10-cell tilemap strip

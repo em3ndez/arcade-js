@@ -41,11 +41,11 @@
  *           proposes BOARD_MODE for that address, but here it is unambiguously the strip's
  *           fill colour, not a mode, so a local role name is used rather than a misfit
  *           import (the sibling loc_3d49 and the tail filler fillColourColumn keep it hex
- *           for the same reason). 0x8055 (CELL_COUNT, the per-strip cell count) and the
+ *           for the same reason). 0x8055 (PLOT_RUN_LENGTH, the per-strip cell count) and the
  *           ROM glyph table (0x49a5) are not named in ram.js.
  */
 
-import { TILE_COL, TILE_ROW } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -55,7 +55,6 @@ import { fillColourColumn } from "./fillColourColumn.js";
 const FILL_COLOUR = 0x8057;
 
 // How many cells the copy/fill helpers write down the column.
-const CELL_COUNT = 0x8055;
 
 // Top of the descending ROM glyph table the strip's nine codes are copied from.
 const GLYPH_SOURCE = 0x49a5;
@@ -74,7 +73,7 @@ export function loc_3d8a(m) {
 
   // Stage the nine-cell run: paint it colour 6, nine cells tall.
   mem.write8(FILL_COLOUR, 6);
-  mem.write8(CELL_COUNT, 9);
+  mem.write8(PLOT_RUN_LENGTH, 9);
 
   // Copy the nine glyphs down the video column from the descending ROM table. This
   // helper is not decompiled yet, so it stays a registry hand-off and takes its source

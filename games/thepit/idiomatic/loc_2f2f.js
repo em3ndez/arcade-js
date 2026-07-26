@@ -39,6 +39,7 @@
 
 import { loc_30de } from "./loc_30de.js";
 
+import { LEVEL, GOAL_TILE_LATCH } from "./ram.js";
 export function loc_2f2f(m) {
   const { mem } = m;
 
@@ -52,13 +53,13 @@ export function loc_2f2f(m) {
   mem.write8(0x80e3, 1);
   mem.write8(0x80e5, 1);
   mem.write8(0x80e6, 150);
-  mem.write8(0x80e7, 0);
+  mem.write8(GOAL_TILE_LATCH, 0);
 
   // Animation reload byte, scaled by difficulty. Increment the round's
   // level/difficulty counter (wrapping in one byte), hold it at a ceiling of four,
   // and take seven minus that. As the level rises the reload steps down 6, 5, 4 and
   // then floors at 3 — a shorter animation cadence at harder levels.
-  const cappedLevel = Math.min((mem.read8(0x8028) + 1) & 0xff, 4);
+  const cappedLevel = Math.min((mem.read8(LEVEL) + 1) & 0xff, 4);
   mem.write8(0x80e4, 7 - cappedLevel);
 
   // Tail hand-off into loc_30de; its return goes to our caller, so this is

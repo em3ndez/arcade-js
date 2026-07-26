@@ -28,11 +28,13 @@
  * NAMES:    the PRNG state bytes 0x800d (low) / 0x800e (high) have no ram.js name
  *           yet, so they stay hex; no other RAM is touched.
  */
+
+import { PRNG_LOW, PRNG_HIGH } from "./ram.js";
 export function advanceRandom(m) {
   const { mem, regs } = m;
 
-  const high = mem.read8(0x800e);
-  let low = mem.read8(0x800d);
+  const high = mem.read8(PRNG_HIGH);
+  let low = mem.read8(PRNG_LOW);
 
   // An all-zero shift register is a dead state; reseed it to a fixed nonzero value.
   if ((high | low) === 0) low = 2;
@@ -46,8 +48,8 @@ export function advanceRandom(m) {
   const newHigh = (feedback << 7) | (high >> 1);
   const newLow = ((high & 1) << 7) | (low >> 1);
 
-  mem.write8(0x800e, newHigh);
-  mem.write8(0x800d, newLow);
+  mem.write8(PRNG_HIGH, newHigh);
+  mem.write8(PRNG_LOW, newLow);
 
   // The new low byte is the random draw the caller consumes from the accumulator.
   regs.a = newLow;

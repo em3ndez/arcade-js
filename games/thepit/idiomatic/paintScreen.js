@@ -48,13 +48,13 @@ import { loc_46f4 } from "./loc_46f4.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { loc_47a1 } from "./loc_47a1.js";
 
+import { LEVEL } from "./ram.js";
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
 const TILE_IMAGE_A = 0x0762; // ROM tile image chosen when the display-mode bit is set
 const TILE_IMAGE_B = 0x0b62; // ROM tile image chosen when the display-mode bit is clear
 const COLOR_IMAGE = 0x0f62; // ROM colour image (single, not selectable)
 const SCREEN_CELLS = 1024; // the whole 32x32 grid (0x9000..0x93ff, 0x8800..0x8bff)
-const DISPLAY_MODE = 0x8028; // its low bit selects which ROM tile image is painted
 const ANIMATION_COUNTER = 0x805c; // armed to 1 to start the per-frame cell recolour cycle
 
 export function paintScreen(m) {
@@ -67,7 +67,7 @@ export function paintScreen(m) {
   m.push16(0x0678);
   waitFrames(m);
 
-  const tileImage = (mem.read8(DISPLAY_MODE) & 1) === 1 ? TILE_IMAGE_A : TILE_IMAGE_B;
+  const tileImage = (mem.read8(LEVEL) & 1) === 1 ? TILE_IMAGE_A : TILE_IMAGE_B;
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
     mem.write8(VIDEO_RAM_BASE + cell, mem.read8(tileImage + cell));
   }
