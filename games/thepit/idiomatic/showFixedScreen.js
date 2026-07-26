@@ -59,9 +59,8 @@ export function showFixedScreen(m) {
   //    the return address it pops (0x3b84, where it lands back in this routine).
   m.push16(0x3b84);
   m.call(0x4b44);
-  m.regs.a = 1; // one frame to wait
   m.push16(0x3b89); // the frame-wait returns here, back into this routine
-  waitFrames(m);
+  waitFrames(m, 1); // one frame to wait
 
   // 2. Stamp the prebuilt full-screen tile image over the blanked tilemap.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
@@ -75,6 +74,5 @@ export function showFixedScreen(m) {
 
   // 4. Hold the finished screen for 160 frames. This is a tail call: the frame-wait's
   //    return unwinds straight to showFixedScreen's caller, so it is this routine's exit.
-  m.regs.a = 160;
-  return waitFrames(m);
+  return waitFrames(m, 160);
 }

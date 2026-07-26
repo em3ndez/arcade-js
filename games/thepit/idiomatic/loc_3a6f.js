@@ -179,9 +179,8 @@ export function loc_3a6f(m) {
     m.call(0x3e13);
 
     // Hold the screen for a spell.
-    regs.a = HOLD_FRAMES;
     m.push16(0x3b77);
-    waitFrames(m);
+    waitFrames(m, HOLD_FRAMES);
 
     remaining = (mem.read8(HOLD_COUNTER) - 1) & 0xff;
     mem.write8(HOLD_COUNTER, remaining);

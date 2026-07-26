@@ -85,6 +85,5 @@ export function loc_4eea(m) {
   mem.write8(FRAME_COUNTER, 0); // restart the frame counter
 
   requestSound16(m); // play the move sound
-  regs.a = HOLD_FRAMES;
-  return waitFrames(m); // hold the fixed number of frames, then return to the caller
+  return waitFrames(m, HOLD_FRAMES); // hold the fixed number of frames, then return to the caller
 }

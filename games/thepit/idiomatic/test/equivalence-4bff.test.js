@@ -104,15 +104,14 @@ function installFrameTick(m) {
 function runPair(candidate, count, { tick }) {
   const a = ENTRY.clone();
   const b = ENTRY.clone();
-  a.regs.a = count;
-  b.regs.a = count;
+  a.regs.a = count; // the oracle is the frozen Z80 routine — it reads the count off the register
   if (tick) {
     installFrameTick(a);
     installFrameTick(b);
   }
 
   oracle(a);
-  candidate(b);
+  candidate(b, count); // the idiomatic routine (and its twins) take the count as a parameter
 
   return {
     ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
@@ -153,9 +152,9 @@ test("EQUAL (hook): idiomatic == oracle over the frame-count sweep {0,1,2,60,255
 // -- 3. TEETH: broken twins the gate MUST catch ------------------------------
 
 /** Broken twin A: stops the wait one pass short, leaving the countdown non-zero. */
-function brokenStopsShort(m) {
-  const { regs, mem } = m;
-  mem.write8(COUNTDOWN, regs.a);
+function brokenStopsShort(m, count) {
+  const { mem } = m;
+  mem.write8(COUNTDOWN, count);
   mem.write8(0xb000, 1);
   let remaining;
   do {
@@ -166,9 +165,9 @@ function brokenStopsShort(m) {
 }
 
 /** Broken twin B: does the wait correctly but forgets to return to the caller. */
-function brokenNoReturn(m) {
-  const { regs, mem } = m;
-  mem.write8(COUNTDOWN, regs.a);
+function brokenNoReturn(m, count) {
+  const { mem } = m;
+  mem.write8(COUNTDOWN, count);
   mem.write8(0xb000, 1);
   let remaining;
   do {

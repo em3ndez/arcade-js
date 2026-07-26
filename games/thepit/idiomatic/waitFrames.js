@@ -12,9 +12,10 @@
  * zero falls straight through — no wait — but still makes one pass, so the watchdog
  * is kicked even then.
  *
- * The frame count arrives in the machine register the still-translated callers
- * leave it in — a genuine oracle boundary — so it is read off the machine rather
- * than taken as a parameter, and the exit pops back to the caller the same way.
+ * The number of frames to hold is passed in by the caller as `count`. The routine
+ * still returns the way its callers expect — popping back through the work stack —
+ * so a caller pushes the address it wants to resume at before calling and the wait
+ * unwinds straight there (a tail-caller lets its own return address serve).
  * Nothing here decrements the countdown: in the live game the per-frame interrupt
  * does, so this loop's termination is driven by memory it never writes itself. Run
  * in isolation there is no interrupt, so the test models that once-per-frame tick
@@ -27,18 +28,18 @@
  *           on the real boot dispatch state; count 0 is also proven with no hook
  *           (natural fall-through). Reached from boot (loc_01a4) onward.
  * LIVE-OUT: memory-only — the countdown cell (0x8009) left at 0, plus the return to
- *           the caller (pc/SP). The count and flags the loop leaves behind are dead:
- *           every caller reloads a fresh value before it reads one.
+ *           the caller (pc/SP). The working registers and flags the loop leaves
+ *           behind are dead — no caller reads them back.
  * NAMES:    none apply — 0x8009 (the per-frame countdown cell) is unnamed in ram.js;
  *           0xb000 (interrupt-enable latch) and 0xb800 (watchdog kick) are I/O
  *           addresses, not work RAM.
  */
-export function waitFrames(m) {
-  const { regs, mem } = m;
+export function waitFrames(m, count) {
+  const { mem } = m;
 
   // Arm the countdown with the caller's frame count, then enable the per-frame
   // interrupt whose service routine decrements that countdown once per frame.
-  mem.write8(0x8009, regs.a);
+  mem.write8(0x8009, count);
   mem.write8(0xb000, 1);
 
   // Spin until the countdown has been ticked all the way down to zero, kicking the

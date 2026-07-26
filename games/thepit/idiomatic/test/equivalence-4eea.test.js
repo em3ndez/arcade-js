@@ -205,8 +205,7 @@ function brokenCommit(m, { row = 32, decrement = true, soundCmd = 16 } = {}) {
   if (decrement) mem.write8(STEP_COUNTER, mem.read8(STEP_COUNTER) - 1);
   mem.write8(FRAME_COUNTER, 0);
   enqueueSoundCommand(m, soundCmd);
-  regs.a = 20;
-  return waitFrames(m);
+  return waitFrames(m, 20);
 }
 
 // -- 0. HARNESS (reachability + determinism) ---------------------------------
