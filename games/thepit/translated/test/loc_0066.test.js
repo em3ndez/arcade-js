@@ -87,15 +87,18 @@ function makeMachine(seed = {}) {
 //
 // Seed picks: 0x8000/0x801c/0x812c all equal and < 10 (credit checks pass);
 // 0x801e==0x801f (ring empty -> jr z,0x00a5); 0x8006/0x8007 decrement to
-// non-zero (timers keep running); IN1(0)==0x8016 and IN0(0xff)==0x8019 (both
-// debounce stable -> latch 0x8015/0x8018); 0x8015 bit0 clear (coin-1 not
+// non-zero (timers keep running); IN1(0)==0x8016 and IN0(0x00)==0x8019 (both
+// debounce stable -> latch 0x8015/0x8018). Idle IN0 reads 0x00, not 0xff: 0xA000
+// is input_port_0_r = ~mux, so released active-low switches complement to 0. The
+// seeded previous sample and the latched value are therefore 0x00 (golden-confirmed).
+// 0x8015 bit0 clear (coin-1 not
 // asserted -> jr z,0x0110); 0x8003 != 0x55 (no coin-1 edge -> jr nz,0x0142);
 // 0x8048==0 and 0x8001 in {1,2} (jr c,0x019c) -> straight to the ret epilogue.
 const MAIN_SEED = {
   0x8000: 0x05, 0x801c: 0x05, 0x812c: 0x05,
   0x801e: 0x03, 0x801f: 0x03,
   0x8009: 0x01, 0x8006: 0x02, 0x8007: 0x02,
-  0x8016: 0x00, 0x8019: 0xff, 0x8003: 0x00,
+  0x8016: 0x00, 0x8019: 0x00, 0x8003: 0x00,
   0x8048: 0x00, 0x8001: 0x01,
   0x8220: 0x7e, 0x823f: 0x81, // LDIR source endpoints
 };
@@ -160,8 +163,8 @@ test("path 1: full service path ticks timers, debounces inputs, returns via ret"
   assert.equal(m.mem.read8(0x8007), 0x01, "0x8007 timer decremented 2->1");
   assert.equal(m.mem.read8(0x8015), 0x00, "IN1 debounced value latched");
   assert.equal(m.mem.read8(0x8016), 0x00, "IN1 sample rolled");
-  assert.equal(m.mem.read8(0x8018), 0xff, "IN0 debounced value latched");
-  assert.equal(m.mem.read8(0x8019), 0xff, "IN0 sample rolled");
+  assert.equal(m.mem.read8(0x8018), 0x00, "IN0 debounced value latched");
+  assert.equal(m.mem.read8(0x8019), 0x00, "IN0 sample rolled");
   assert.equal(m.mem.read8(0x8003), 0xaa, "coin-1 accumulator written 0xaa");
   assert.equal(m.mem.read8(0x9840), 0x7e, "LDIR copied 0x8220 -> sprite RAM 0x9840");
   assert.equal(m.mem.read8(0x985f), 0x81, "LDIR copied 0x823f -> sprite RAM 0x985f");
