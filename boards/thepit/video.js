@@ -91,7 +91,7 @@ export function renderFrame(m, gfx, pal, io) {
       const scrollY = attr[(col << 1)]; // per-column Y scroll
       // +16 = the visible-area vertical top: roundup.cpp does screen.set_raw(..., 264, 16, 240),
       // so display row sy samples tilemap row sy+16. Verified pixel-exact vs MAME (0/57344).
-      const ty = (sy + 16 + scrollY) & 0xff; // tilemap is 256 tall, wraps
+      const ty = (sy + 16 - scrollY) & 0xff; // tilemap is 256 tall, wraps
       const cell = (ty >> 3) * 32 + col;
       const cinfo = cram[cell];
 
@@ -143,6 +143,12 @@ export function renderFrame(m, gfx, pal, io) {
           // (enemy sprites at the bottom band landed 16px too low without this).
           const syp = y + py - 16;
           if (sxp >= SCREEN_W || syp < 0 || syp >= SCREEN_H) continue;
+          // Sprite clip rectangle (roundup.cpp draw call): sprites are masked to columns
+          // x[17,255] upright / x[0,238] flip-x — the left ~2 tiles are a status band MAME
+          // never draws sprites into. Without this, a left-edge or &0xff-wrapped sprite tail
+          // shows here but is hidden in MAME (the "fish appears in JS only" bug). Y range
+          // [16,239] is already covered by the -16 + [0,224) clip above.
+          if (flipX ? sxp > 238 : sxp < 17) continue;
           const pix = spritePixel(gfx, code, fx ? 15 - px : px, fy ? 15 - py : py);
           if (pix === 0) continue; // transparent
           const p = syp * SCREEN_W + sxp;
