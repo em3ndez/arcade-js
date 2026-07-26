@@ -57,3 +57,6 @@ diff](05-integration-testing.md) still matched MAME byte-for-byte — a render-i
 moves no state. Only the [pixel gate](06-pixel-gate.md) surfaced it. So a green state diff is *not*
 evidence the render is right: run the pixel gate too, and pin the board's video addressing against
 the driver's own draw routine (for The Pit, `taito/roundup.cpp`), citing it in the board source.
+
+The MAME source is available locally at `mame-src/src/mame/<manufacturer>/<driver>.cpp` (a gitignored
+symlink to the checked-out MAME tree) — read the driver there rather than downloading it.

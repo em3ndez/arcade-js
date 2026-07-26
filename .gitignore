@@ -24,3 +24,6 @@ __pycache__/
 
 # MAME writes this into its cwd when a tape uses the log notifier
 tape.log
+
+# local convenience symlink to the MAME source tree (BYO, machine-specific; agents read boards from it)
+mame-src
