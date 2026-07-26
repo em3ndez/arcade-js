@@ -304,6 +304,19 @@ the map and can't be done well without it. It is required reading for anyone nam
    proposer≠confirmer, the sprite-record trap), and driven by the mechanism map above. Front-loaded,
    because named memory is the single biggest legibility lever; iterative, because some names only
    resolve during the decompile.
+   - **A name is not done until the code USES it.** A name promoted to `ram.js` but left unreferenced
+     is dead weight — the routines still read `mem.read8(0x8055)`, so nothing got more legible. Every
+     naming batch ends by **retrofitting the referencing routines**: swap the hex literal for the
+     imported constant. It is a pure rename, so each routine's memory-equivalence test stays green and
+     is the safety net. So the full loop is: derive → review → commit `ram.js` → **retrofit the
+     routines that use the address** → commit. Skipping the retrofit means the pass only *looks* done.
+   - **proposer≠confirmer convergence is necessary, not sufficient — keep the third adversarial
+     review.** Two independent derivations can converge on the *same wrong detail* when they read the
+     same misleading evidence: on The Pit both derived `0x8076` as latching tile `0x27` (the goal
+     tile) because the shared classify ladder records the `0x26` and `0x27` latches on adjacent lines;
+     only a separate adversarial reviewer, re-deriving from scratch, caught that `0x8076` is the `0x26`
+     latch. Promote on convergence, but still review the promoted names before they land — a
+     confidently-wrong name is the sprite-record trap that all future work will trust.
 4. **Bottom-up decompile *and* routine naming, as one interleaved step** — leaves first, direct
    calls, drop cycles and dead registers/flags, recover structure, promote names where earned (an
    earned name is a mechanism-map role that reached confidence). Each routine gated

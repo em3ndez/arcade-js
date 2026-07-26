@@ -121,6 +121,77 @@ export const SOUND_HEAD = 0x801e;
 /** Sound-command ring BUFFER base (8 slots) — the enqueue writes `(code|0x80)` at 0x8020+head. (strong). */
 export const SOUND_RING = 0x8020;
 
-// ── Tile-classifier scratch (0x80a2-0x80a9 — the tile-under-object block) ─────
+// ── Tile-classifier scratch (0x80a5/0x80a8 — the tile-under-object block; note that
+//    0x80a2/0x80a3/0x80a4 in this range are the reaction state-machine, see REACTION_STATE) ─
 export const CUR_TILE = 0x80a5; // saved current tile under the object (loc_1840 "saved current tile") (fair)
 export const NEXT_TILE = 0x80a8; // next-tile slot, pre-cleared before classify (loc_1706) (fair)
+
+// ═══ NAMING PASS 2026-07-26 ═══════════════════════════════════════════════════
+// Below: names added by the proposer≠confirmer pass (two agents independently derived
+// each address's role from code evidence, blind to each other; only convergent ones are
+// here) plus three pairs the input-tape / NMI-debounce work confirmed this session.
+
+// ── Input debounce (the NMI loc_0066 samples + debounces the two ports) ───────
+// Confirmed by the input-tape + NMI-debounce work: the NMI reads a port, compares to the
+// previous sample, and latches the stable value. Idle IN0 reads 0x00 (input_port_0_r
+// complements the active-low switches), idle IN1 0x00.
+
+/** Debounced IN0 (joystick + dig) — the stable value the NMI latches after two equal reads
+ *  of 0xA000; the movement/action code reads THIS, not the raw port. (strong) */
+export const IN0_DEBOUNCED = 0x8018;
+/** Previous IN0 sample, rolled each frame for the debounce compare. (strong) */
+export const IN0_PREV = 0x8019;
+/** Debounced IN1 (coin/start) — stable latched value the coin/credit logic reads. (strong) */
+export const IN1_DEBOUNCED = 0x8015;
+/** Previous IN1 sample, rolled for the debounce. (strong) */
+export const IN1_PREV = 0x8016;
+
+// ── PRNG (the advanceRandom LFSR, little-endian 16-bit) ───────────────────────
+/** PRNG state low byte — also the returned random draw. advanceRandom (0x4b1a) shifts the
+ *  16-bit {high,low} right with a feedback bit = low bit1 XOR bit2. (strong) */
+export const PRNG_LOW = 0x800d;
+/** PRNG state high byte. (strong) */
+export const PRNG_HIGH = 0x800e;
+
+// ── Round / difficulty ────────────────────────────────────────────────────────
+/** Current player's LEVEL / round counter — inits to 1, +1 per level cleared; every
+ *  difficulty subsystem scales off it (countdowns, reloads). Proposer≠confirmer converged,
+ *  both strong: init=1 (loc_022d), inc (loc_02fd), scaled in loc_23e8/loc_031a/loc_2f2f. (strong) */
+export const LEVEL = 0x8028;
+
+// ── Shared tile/colour column-plotter parameter block (0x8055-0x8060) ─────────
+/** Run length for the shared column plotter — how many cells the copy/fill helpers
+ *  (loc_3dea/loc_3ddb/fillColourColumn) paint straight down a map column (djnz count,
+ *  stride 0x20 = one screen row). Staged by ~18 painter routines before each draw call.
+ *  Proposer≠confirmer converged, both strong. Sits beside TILE_COL/TILE_ROW. (strong) */
+export const PLOT_RUN_LENGTH = 0x8055;
+
+// ── Dig-object spawn ──────────────────────────────────────────────────────────
+/** Active-spawn state of the dig-triggered tile object: 0 = idle (a new spawn is permitted),
+ *  non-zero = a spawn sequence is active (value indexes its progress; gates re-spawn/awards).
+ *  set=1 on spawn (loc_2c04), decremented per commit (loc_29ad), cleared on reset/boundary.
+ *  Proposer≠confirmer converged, both fair. (fair) */
+export const SPAWN_STATE = 0x80bd;
+
+// ── Per-object reaction state machine (first field of the 0x80a2-0x80a9 block) ─
+/** Per-object reaction/animation state selector: 0 = idle (normal per-frame movement runs),
+ *  1-4 = a specific collision/dig/push reaction is armed + playing; also a busy-lock that
+ *  defers the normal frame. Armed to 1-4 by loc_14cd/1515/1568/1704/191f, dispatched by
+ *  loc_24f3, deferred by loc_1420, render-Y-biased at ==4. Proposer≠confirmer converged,
+ *  both strong. (strong) */
+export const REACTION_STATE = 0x80a2;
+
+// ── Under-tile latches (the classify ladder records these when the tracked object aligns
+//    on a special tile: 0x27 -> GOAL_TILE_LATCH, 0x26 -> FEATURE_TILE_LATCH) ──────────────
+/** Latch set when the tracked object REACHES the special goal tile 0x27 (once past column
+ *  0x53); tested nonzero to reroute state dispatch to the goal handler and enable the terrain
+ *  scroll-reveal; cleared at init and on retreat (col < 0x53). Proposer≠confirmer converged on
+ *  role (names MARKER/GOAL, confidence strong/fair). (fair) */
+export const GOAL_TILE_LATCH = 0x80e7;
+/** Latch set when the object's under-tile == 0x26 — a DISTINCT field from GOAL_TILE_LATCH's
+ *  0x27 (the shared classify ladder loc_1568 records both adjacently, which is why the two
+ *  look twinned). Gates the 0x3b-0x3d feature path (loc_18cf) and is cleared by a boundary
+ *  one-shot (loc_167f/loc_1493, alongside SPAWN_STATE). NOT part of the 0x27 goal path.
+ *  ★ Proposer≠confirmer BOTH converged on the wrong tile (0x27); the adversarial review
+ *  corrected it to 0x26 — why the third review is load-bearing even after convergence. (fair) */
+export const FEATURE_TILE_LATCH = 0x8076;
