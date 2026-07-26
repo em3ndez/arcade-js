@@ -72,6 +72,7 @@ import {
 } from "./ram.js";
 import { loc_4894 } from "./loc_4894.js";
 import { loc_48c4 } from "./loc_48c4.js";
+import { u8 } from "../../../core/int.js";
 
 // The per-frame countdown that paces the 30-frame service tick (the background column
 // recolour). Reloads to 30 each time it fires. Private to this routine; not in ram.js.
@@ -83,113 +84,108 @@ const BAND_HINT = 0x800c;
 
 // -- the six maze bands ------------------------------------------------------
 // Each returns one of the four direction bits when the probe sits on one of the band's
-// wall lines, or null to let the scan fall through to the next band. `b` is the probe's
-// X line, `c` its Y line. On each wall line a threshold on the other coordinate splits
-// the wall into two facings (which side of the wall the probe is on -> which way to go).
+// wall lines, or null to let the scan fall through to the next band. `probeX` is the
+// probe's X line, `probeY` its Y line. On each wall line a threshold on the other
+// coordinate splits the wall into two facings (which side of the wall the probe is on
+// -> which way to go).
 
 // Band scanned when the hint is 6 or below. It does not re-stamp the hint (a hit here
 // leaves the cached band as it was).
-function scanBandTop(b, c) {
-  if (b === 48) return c <= 55 ? 4 : 2;
-  if (c === 56) return b <= 87 ? 2 : 4;
-  if (b === 88) return c <= 63 ? 4 : 2;
-  if (c === 64) return b <= 103 ? 2 : 4;
-  if (b === 104) return c <= 83 ? 4 : 2;
-  if (c === 84) return b <= 143 ? 2 : 4;
-  if (b === 144) return c <= 127 ? 4 : 2;
-  if (c === 128) return b <= 191 ? 2 : 4;
-  if (b === 192) return c <= 159 ? 4 : 2;
-  if (c === 160) return b <= 199 ? 2 : 4;
-  if (b === 200) return c <= 191 ? 4 : 2;
-  if (c === 192) return b <= 223 ? 2 : 4;
-  if (b === 224) return c <= 215 ? 4 : 1;
+function scanBandTop(probeX, probeY) {
+  if (probeX === 48) return probeY <= 55 ? 4 : 2;
+  if (probeY === 56) return probeX <= 87 ? 2 : 4;
+  if (probeX === 88) return probeY <= 63 ? 4 : 2;
+  if (probeY === 64) return probeX <= 103 ? 2 : 4;
+  if (probeX === 104) return probeY <= 83 ? 4 : 2;
+  if (probeY === 84) return probeX <= 143 ? 2 : 4;
+  if (probeX === 144) return probeY <= 127 ? 4 : 2;
+  if (probeY === 128) return probeX <= 191 ? 2 : 4;
+  if (probeX === 192) return probeY <= 159 ? 4 : 2;
+  if (probeY === 160) return probeX <= 199 ? 2 : 4;
+  if (probeX === 200) return probeY <= 191 ? 4 : 2;
+  if (probeY === 192) return probeX <= 223 ? 2 : 4;
+  if (probeX === 224) return probeY <= 215 ? 4 : 1;
   return null;
 }
 
-function scanBand7(b, c) {
-  if (c === 216) return b > 176 ? 1 : 4;
-  if (b === 176) return c <= 231 ? 4 : 1;
-  if (c === 232) return b > 168 ? 1 : 8;
+function scanBand7(probeX, probeY) {
+  if (probeY === 216) return probeX > 176 ? 1 : 4;
+  if (probeX === 176) return probeY <= 231 ? 4 : 1;
+  if (probeY === 232) return probeX > 168 ? 1 : 8;
   return null;
 }
 
-function scanBand10(b, c) {
-  if (b === 168) return c > 216 ? 8 : 1;
-  if (c === 216) return b > 72 ? 1 : 4;
-  if (b === 72) return c <= 223 ? 4 : 1;
-  if (c === 224) return b > 24 ? 1 : 8;
+function scanBand10(probeX, probeY) {
+  if (probeX === 168) return probeY > 216 ? 8 : 1;
+  if (probeY === 216) return probeX > 72 ? 1 : 4;
+  if (probeX === 72) return probeY <= 223 ? 4 : 1;
+  if (probeY === 224) return probeX > 24 ? 1 : 8;
   return null;
 }
 
-function scanBand14(b, c) {
-  if (b === 24) return c > 192 ? 8 : 2;
-  if (c === 192) return b <= 47 ? 2 : 8;
-  if (b === 48) return c > 168 ? 8 : 2;
-  if (c === 168) return b <= 71 ? 2 : 8;
-  if (b === 72) return c > 160 ? 8 : 2;
-  if (c === 160) return b <= 87 ? 2 : 8;
-  if (b === 88) return c > 128 ? 8 : 2;
-  if (c === 128) return b <= 95 ? 2 : 8;
-  if (b === 96) return c > 108 ? 8 : 1;
+function scanBand14(probeX, probeY) {
+  if (probeX === 24) return probeY > 192 ? 8 : 2;
+  if (probeY === 192) return probeX <= 47 ? 2 : 8;
+  if (probeX === 48) return probeY > 168 ? 8 : 2;
+  if (probeY === 168) return probeX <= 71 ? 2 : 8;
+  if (probeX === 72) return probeY > 160 ? 8 : 2;
+  if (probeY === 160) return probeX <= 87 ? 2 : 8;
+  if (probeX === 88) return probeY > 128 ? 8 : 2;
+  if (probeY === 128) return probeX <= 95 ? 2 : 8;
+  if (probeX === 96) return probeY > 108 ? 8 : 1;
   return null;
 }
 
-function scanBand23(b, c) {
-  if (c === 108) return b > 88 ? 1 : 8;
-  if (b === 88) return c > 92 ? 8 : 1;
-  if (c === 92) return b > 80 ? 1 : 8;
-  if (b === 80) return c > 88 ? 8 : 1;
-  if (c === 88) return b > 40 ? 1 : 8;
-  if (b === 40) return c > 72 ? 8 : 1;
-  if (c === 72) return b > 24 ? 1 : 8;
+function scanBand23(probeX, probeY) {
+  if (probeY === 108) return probeX > 88 ? 1 : 8;
+  if (probeX === 88) return probeY > 92 ? 8 : 1;
+  if (probeY === 92) return probeX > 80 ? 1 : 8;
+  if (probeX === 80) return probeY > 88 ? 8 : 1;
+  if (probeY === 88) return probeX > 40 ? 1 : 8;
+  if (probeX === 40) return probeY > 72 ? 8 : 1;
+  if (probeY === 72) return probeX > 24 ? 1 : 8;
   return null;
 }
 
 // The last band always resolves (its final line falls through to a fixed direction).
-function scanBand30(b, c) {
-  if (b === 24) return c > 56 ? 8 : 2;
-  if (c === 56) return b <= 47 ? 2 : 8;
+function scanBand30(probeX, probeY) {
+  if (probeX === 24) return probeY > 56 ? 8 : 2;
+  if (probeY === 56) return probeX <= 47 ? 2 : 8;
   return 8;
 }
 
+// The six maze bands top-to-bottom, keyed by the Y-band boundary they cover: `below` is
+// the exclusive upper hint value for the band (bands 0-6 / 7-9 / 10-13 / 14-22 / 23-29 /
+// 30-up), `scan` is its wall-line test, and `restamp` is the hint value stamped as the
+// scan enters this band (null for the top band, which leaves the cached hint unchanged).
+const BANDS = [
+  { below: 7,        scan: scanBandTop, restamp: null }, // a hit here leaves the hint as-is
+  { below: 10,       scan: scanBand7,   restamp: 7 },
+  { below: 14,       scan: scanBand10,  restamp: 10 },
+  { below: 23,       scan: scanBand14,  restamp: 14 },
+  { below: 30,       scan: scanBand23,  restamp: 23 },
+  { below: Infinity, scan: scanBand30,  restamp: 30 },   // the last band always resolves
+];
+
 /**
- * Scan the maze bands for the wall segment under the probe point (b, c) and return the
- * direction bit it implies. Starts at the band the cached hint names, then falls through
- * the remaining bands in order — re-stamping the hint as it enters each new band — until
- * a wall line matches.
+ * Scan the maze bands for the wall segment under the probe point (probeX, probeY) and
+ * return the direction bit it implies. Starts at the band the cached hint names, then
+ * falls through the remaining bands in order — re-stamping the hint as it enters each new
+ * band — until a wall line matches.
  */
-function classifyBands(m, b, c) {
+function classifyBands(m, probeX, probeY) {
   const { mem8 } = m;
   const hint = mem8[BAND_HINT];
 
-  // The `hint < N` ladder both picks the starting band and, because a lower start
-  // satisfies every later condition too, drives the fall-through cascade onward.
-  if (hint < 7) {
-    const r = scanBandTop(b, c);
-    if (r !== null) return r;
+  // Because `below` increases while `hint` is fixed, once `hint < below` holds it holds
+  // for every later band too: the loop runs from the hint's start band through the end,
+  // re-stamping BAND_HINT as it enters each band, exactly like the `hint < N` ladder did.
+  for (const band of BANDS) {
+    if (hint >= band.below) continue;                     // not into this band yet
+    if (band.restamp !== null) mem8[BAND_HINT] = band.restamp;
+    const dir = band.scan(probeX, probeY);
+    if (dir !== null) return dir;
   }
-  if (hint < 10) {
-    mem8[BAND_HINT] = 7;
-    const r = scanBand7(b, c);
-    if (r !== null) return r;
-  }
-  if (hint < 14) {
-    mem8[BAND_HINT] = 10;
-    const r = scanBand10(b, c);
-    if (r !== null) return r;
-  }
-  if (hint < 23) {
-    mem8[BAND_HINT] = 14;
-    const r = scanBand14(b, c);
-    if (r !== null) return r;
-  }
-  if (hint < 30) {
-    mem8[BAND_HINT] = 23;
-    const r = scanBand23(b, c);
-    if (r !== null) return r;
-  }
-  mem8[BAND_HINT] = 30;
-  return scanBand30(b, c);
 }
 
 export function classifyWallCollision(m) {
@@ -204,7 +200,7 @@ export function classifyWallCollision(m) {
   }
 
   // 2. 30-frame service tick.
-  const timer = (mem8[HOUSEKEEPING_TIMER] - 1) % 256;
+  const timer = mem8[HOUSEKEEPING_TIMER] - 1;
   mem8[HOUSEKEEPING_TIMER] = timer;
   if (timer === 0) {
     mem8[HOUSEKEEPING_TIMER] = 30; // reload the countdown
@@ -228,9 +224,9 @@ export function classifyWallCollision(m) {
   }
 
   // The probe point sits a few pixels inside the tracked object's bounding box.
-  const b = (mem8[OBJ_X] + 3) % 256;
-  const c = (mem8[OBJ_Y] + 5) % 256;
+  const probeX = u8(mem8[OBJ_X] + 3);
+  const probeY = u8(mem8[OBJ_Y] + 5);
 
-  mem8[DIG_DIRS] = classifyBands(m, b, c);
+  mem8[DIG_DIRS] = classifyBands(m, probeX, probeY);
   m.ret();
 }
