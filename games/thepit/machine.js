@@ -27,6 +27,7 @@ import { AddressSpace, STATE_DUMP_SIZE } from "../../boards/thepit/memory.js";
 import { Io, NotImplemented } from "../../boards/thepit/io.js";
 import { UnmappedAccess } from "../../boards/thepit/memory.js";
 import { Regs } from "../../core/cpu/z80.js";
+import { makeIndexedView } from "../../core/mem-views.js";
 import { buildRoutines } from "./routines.js";
 import { decodePalette, renderFrame as boardRenderFrame } from "../../boards/thepit/video.js";
 
@@ -147,6 +148,14 @@ export class Machine {
     this.mem = new AddressSpace(rom, this.io);
     this.regs = new Regs();
     this.mem.clock = () => this.cycles;
+
+    // Indexable views over memory for the idiomatic layer's readability: mem8[ADDR]
+    // and mem16[ADDR] forward to this.mem's read8/write8 and read16/write16. Pure
+    // sugar — the oracle and the live engine keep calling this.mem directly. Rebuilt
+    // per instance, so clone() (which reruns this constructor) gets views bound to its
+    // own memory. See core/mem-views.js.
+    this.mem8 = makeIndexedView(this.mem, 8);
+    this.mem16 = makeIndexedView(this.mem, 16);
 
     // Per-routine override map: dispatch/call target -> handler. Empty and
     // therefore INERT unless a caller supplies an already-resolved map/object via
