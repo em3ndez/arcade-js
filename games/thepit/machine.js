@@ -317,6 +317,7 @@ export class Machine {
    */
   runFrames(count) {
     this.io.inputAssert = null; // clear any assert from a prior run
+    this.applyInputs(0); // frame-0 inputs, symmetric with applyPokes(0) + MAME's f==0
     this.applyPokes(0); // frame-0 (pre-boot) pokes, before sampling state[0]
     this.frames = [this.dumpState()]; // state[0], power-on
     this.stoppedBy = null;
@@ -493,6 +494,9 @@ export class Machine {
     c.io.dsw = this.io.dsw;
     c.io.latch = this.io.latch;
     c.io.soundLatch = this.io.soundLatch;
+    // Carry any currently-asserted tape press so a mid-tape clone reads the same
+    // inputs as its source (else a gate run over a pressing tape would diverge).
+    c.io.inputAssert = this.io.inputAssert;
     c.io.watchdog.framesSinceKick = this.io.watchdog.framesSinceKick;
     c.io.watchdog.enabled = this.io.watchdog.enabled;
     c.io.watchdog.timeoutFrames = this.io.watchdog.timeoutFrames;

@@ -73,6 +73,7 @@ function parseArgs(argv) {
         const mt = spec.match(SPEC);
         if (!mt) throw new Error(`--poke expects ADDR=VAL@FRAME[:hold[N]|once], got ${spec}`);
         const mode = mt[4] || "hold";
+        if (mode === "once" && mt[5]) throw new Error(`--poke: "once" takes no count — use hold${mt[5]}, got ${spec}`);
         args.pokes.push({
           addr: Number(mt[1]) & 0xffff,
           val: Number(mt[2]) & 0xff,
@@ -89,6 +90,7 @@ function parseArgs(argv) {
         const mt = spec.match(SPEC);
         if (!mt) throw new Error(`--input expects PORT=BITS@FRAME[:hold[N]|once], got ${spec}`);
         const mode = mt[4] || "once";
+        if (mode === "once" && mt[5]) throw new Error(`--input: "once" takes no count — use hold${mt[5]}, got ${spec}`);
         args.inputs.push({
           port: Number(mt[1]) & 0xffff,
           bits: Number(mt[2]) & 0xff,
