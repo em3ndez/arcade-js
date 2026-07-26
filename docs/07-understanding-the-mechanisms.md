@@ -32,8 +32,9 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
    any gameplay:
 
    ```sh
-   SDL_VIDEODRIVER=dummy mame <driver> -rompath <romset-parent> -skip_gameinfo \
-     -video none -sound none -nothrottle -seconds_to_run 45 \
+   # tools/mame-play.py resolves the MAME driver from the board and isolates config; --headless
+   # gives the null-video capture path (drop --headless to just play it in a window).
+   python3 tools/mame-play.py <game> --rompath <romset-parent> --headless --seconds 45 \
      -snapshot_directory <out> -aviwrite attract.avi
    ffmpeg -i <out>/attract.avi -vf fps=1 <out>/f_%02d.png
    ```
