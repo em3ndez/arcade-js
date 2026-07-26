@@ -243,6 +243,29 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   misleads worse than a neutral `loc_<addr>`; it is the routine-level sprite-record trap. The name
   encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit` =
   "understood and confirmed."
+- **Name by EFFECT, not internal mechanism — the verb is what the output *causes*.** The "body =
+  mechanism, callers = purpose" split is not enough on its own: an agent can fully understand a routine
+  and still name it after its computation. Make it a hard rule — trace every value the routine writes to
+  the LAST thing that consumes it and ask *what does that consumer DO as a result*; the name is that
+  action. If a live-out is consumed as a command that drives an action (a move, a sound, a spawn, a
+  state change), the routine **produces/drives** it: the verb is `steer`/`play`/`spawn`/`advance`,
+  **never** `classify`/`compute`/`check`/`detect`/`find` (those name the internal method, almost never
+  the routine's job). Tell: if the output is read *"in place of"* another input (a routine feeding the
+  movement dispatcher where the joystick normally goes), the routine **generates** that input — name it
+  for what it generates. This is exactly how `classifyWallCollision` was mis-named: its own header even
+  described it as steering the demo along the maze walls, yet it was named after the internal
+  probe-vs-wall test instead of the steering it produces.
+- **Verify an action-driving name by OBSERVATION — it is automatable, so do it.** When a routine's
+  output feeds a dispatcher or controller, do not stop at reading code: write a short trace that runs a
+  real attract/boot session and logs this routine's output *and the downstream effect* (the object's
+  position before/after, the sound queued, the tile written), then confirm the name matches what you
+  SEE. A `classify`-named routine whose output visibly *moves* something is misnamed. The trace is ~30
+  lines the agent writes itself, so naming is checkable at scale — no hand-verifying each routine.
+- **Disprove the existing name; ignore rename cost.** In a clarify pass, re-derive the name as if the
+  routine were an unnamed `loc_` — the current name is a hypothesis to BREAK, not a default to defend
+  (the confirm agent that blessed `classifyWallCollision` anchored on it and kept it to avoid churn).
+  Rename cost — test imports, every caller — is NEVER a reason to keep a name; the rename is mechanical
+  and the lead applies it across importers.
 - **Honest signatures, by default — not a late capstone.** Genuine register live-ins become named
   JS **parameters**; live-outs become **return** values; a routine that touches no RAM and only maps
   inputs → outputs becomes a **pure function** (`snapYToGirder(x, y, step) → newY`). Keep
