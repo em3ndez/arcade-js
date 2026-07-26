@@ -115,3 +115,25 @@ Each routine is its own file exporting that one function, which keeps the routin
 test in an obvious one-to-one correspondence and — because two rewrites never touch the same file —
 lets many run in parallel without collision. The idiomatic rewrite of a routine mirrors the same
 one-file-per-routine shape in [`idiomatic/`](08-decompiler-pipeline.md).
+
+### Convention: an externally-entered address is a routine boundary — never inline across it
+
+A `loc_<addr>` reached by a `call`, `jp`, or `jr` **from a different routine** is a routine boundary,
+and the bytes from there onward are that routine's — they must live in exactly ONE file. A routine's
+body therefore runs from its entry to the first of: its `ret`/tail-jump, **or** the next label some
+other routine enters; at that boundary it stops and **delegates** (`return m.call(0xBOUNDARY)` for a
+fall-through or jump into it), it does not inline the target's code.
+
+The failure mode this prevents: routine A flows through address X and inlines it, while routine B
+does `jp X`. If X is not its own registered routine, `m.call(X)` (B's jump) has nowhere to resolve;
+if you "fix" that by translating X *as well*, X's bytes now exist twice — once standalone, once
+inside A — and the two copies drift the moment either is edited. Both are wrong. The right shape is:
+X is its own routine (the sole implementation), and A is trimmed to end at X-1 and delegate into it.
+This is the same move as a shared tail entered by many callers (they all delegate to the one
+registered routine) — a mid-routine jump target is just that with the "many callers" being one of
+them the fall-through.
+
+The tracer labels every jump/call target, so the boundary always already has a `loc_<addr>` — the
+split is "translate that label + trim the parent to delegate," never a hand-carve. The whole-machine
+gate ([doc 5](05-integration-testing.md)) finds the load-bearing ones for you: an unregistered
+`m.call` at boot is exactly an externally-entered address that got inlined instead of split.
