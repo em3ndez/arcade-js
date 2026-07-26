@@ -203,6 +203,19 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   (`HANDLERS[state](m)`). The caller-skip idiom (`inc sp; inc sp; ret`) → a **boolean return** +
   `if (!callee(m)) return;`. Keep an address registry only for exotic address-level control flow
   (self-modifying code, wild computed jumps into mid-routine) — clean games don't have it.
+- **Memory access is indexed: `mem8[ADDR]` / `mem16[ADDR]`.** Read and write memory through the
+  machine's indexable views (`const { mem8, mem16 } = m; mem8[DIG_DIRS] = mem8[DIG_DIRS] - 1`), never
+  `mem.read8`/`write8`. They are pure sugar over the same accessors (`core/mem-views.js`), so they
+  wrap and diff identically — and because the byte store already truncates, no mask is ever needed
+  *before* one. A helper that only touches memory takes `m` and destructures the views it needs, not a
+  bare `mem`. Emit this form at decompile time; a still-hex address is fine (`mem8[0x8079]`) — the
+  clarify pass swaps the literal for a `ram.js` name later and leaves the access form untouched.
+- **Name locals by meaning, never by register.** A local that survives from a Z80 register keeps the
+  register's *value*, not its name: `const b = OBJ_X + 3` is `probeX`, not `b`. A single-letter or
+  register-letter local (`a`, `b`, `c`, `hl`) in idiomatic code is the variable-level version of the
+  assembly-comment smell. The decompile pass must name it for what it does; and the clarify pass's
+  variable-naming covers **locals too**, not only `ram.js` addresses — leaving `b`/`c` unrenamed
+  (they were the Z80 `B`/`C`) was a real two-pass miss on The Pit's `classifyWallCollision`.
 - **Bottom-up.** Decompile callees before callers. A caller decompiled while its callee is still a
   raw ROM routine has to marshal the callee's register ABI by hand (`regs.h = x; push16; m.call;
   … regs.l`) — an assembly leak. Decompile the callee first into a real signature
@@ -246,8 +259,14 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
 - **Numbers are base-10.** Write decimal like normal JS. Reserve hex for an *irreducible* bit
   operation the behaviour genuinely depends on (a real mask or bit-flag). Most `& 0xff` / `& 0x0f` /
   `& 0x80` is a Z80 8-bit-width artifact, not behaviour: the register/memory model already truncates
-  on assignment (see [doc 3](03-translation.md)), so those masks are dropped outright, and a genuine
-  wrap lifts to plain arithmetic (`% 256`) or a named predicate — taking the hex with it.
+  on assignment (see [doc 3](03-translation.md)) and so does every memory store (`mem8[]`/`write8`), so
+  a mask that lands in a register or memory — including one right before a store — is dropped outright.
+  A wrap is load-bearing only on a **local** observed at its width (compared, indexed) in a way that
+  would actually differ wrapped vs unwrapped, and not passing through a store — the routine's own
+  equivalence gate is the arbiter, so drop the wrap and keep it dropped if the test stays green (a bare
+  `=== 0` where the value can't alias 0 needs none). Where a wrap *is* load-bearing, use `u8(x)` /
+  `u16(x)` (`core/int.js`), never `% 256` — which is not even a correct 8-bit wrap (`-1 % 256` is `-1`,
+  `u8(-1)` is `255`). A genuine bit-flag lifts to a named predicate — taking the hex with it.
 
 ## File format & directory layout
 
