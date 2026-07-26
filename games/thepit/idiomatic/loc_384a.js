@@ -67,39 +67,39 @@ const FAR_COLUMN = 36; // X the march stops at, where the descent begins
 const SHADOW_X_OFFSET = 16; // the shadow sprite trails the object by this many columns
 
 export function loc_384a(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // 1. Cadence tick — count the frame timer down (wrapping at 0), and on underflow
   //    reload it and flip to the other walk tile.
-  mem.write8(ACTOR_TIMER, mem.read8(ACTOR_TIMER) - 1);
-  let timer = mem.read8(ACTOR_TIMER);
+  mem8[ACTOR_TIMER] = mem8[ACTOR_TIMER] - 1;
+  let timer = mem8[ACTOR_TIMER];
   if (timer === 0) {
     timer = CADENCE;
-    mem.write8(ACTOR_TIMER, CADENCE);
-    const next = mem.read8(ACTOR_TILE) === WALK_TILE_A ? WALK_TILE_B : WALK_TILE_A;
-    mem.write8(ACTOR_TILE, next);
-    mem.write8(TWIN_TILE, next ^ 1); // shadow shows the paired tile (bit 0 flipped)
+    mem8[ACTOR_TIMER] = CADENCE;
+    const next = mem8[ACTOR_TILE] === WALK_TILE_A ? WALK_TILE_B : WALK_TILE_A;
+    mem8[ACTOR_TILE] = next;
+    mem8[TWIN_TILE] = next ^ 1; // shadow shows the paired tile (bit 0 flipped)
   }
 
   // 2. Move gate — only every 4th tick moves; otherwise just rebuild the sprite records.
   if (timer % 4 !== 0) return stageActorSpriteRecords(m);
 
   // 3a. March across the travel row.
-  const y = mem.read8(ACTOR_Y);
+  const y = mem8[ACTOR_Y];
   if (y >= TRAVEL_ROW) {
-    const x = mem.read8(ACTOR_X);
+    const x = mem8[ACTOR_X];
     if (x < FAR_COLUMN) {
       // Step right one column; the shadow trails 16 columns behind.
-      mem.write8(ACTOR_X, x + 1);
-      mem.write8(TWIN_X, mem.read8(ACTOR_X) + SHADOW_X_OFFSET);
+      mem8[ACTOR_X] = x + 1;
+      mem8[TWIN_X] = mem8[ACTOR_X] + SHADOW_X_OFFSET;
       return stageActorSpriteRecords(m);
     }
     if (y === TRAVEL_ROW) {
       // Reached the far column on the travel row: latch the arrival and build the probe
       // record before the descent begins.
-      mem.write8(ARRIVAL_FLAG, 0);
-      mem.write8(OBJ_X, 0);
-      mem.write8(ARRIVAL_LATCH, 1);
+      mem8[ARRIVAL_FLAG] = 0;
+      mem8[OBJ_X] = 0;
+      mem8[ARRIVAL_LATCH] = 1;
       // Build the object's deferral/probe record before the descent begins.
       loc_1b5b(m);
     }
@@ -107,21 +107,21 @@ export function loc_384a(m) {
   }
 
   // 3b. Descend toward the floor, or idle once there.
-  const row = mem.read8(ACTOR_Y);
+  const row = mem8[ACTOR_Y];
   if (row !== 0) {
     // Step down one row; mirror to the shadow.
     const nextRow = row - 1;
-    mem.write8(ACTOR_Y, nextRow);
-    mem.write8(TWIN_CLEAR, nextRow);
+    mem8[ACTOR_Y] = nextRow;
+    mem8[TWIN_CLEAR] = nextRow;
     return stageActorSpriteRecords(m);
   }
 
   // At the floor. While the hold timer is still running, just wait.
-  if (mem.read8(FLOOR_HOLD) !== 0) return;
+  if (mem8[FLOOR_HOLD] !== 0) return;
 
   // Hold elapsed: re-arm it and drop the object to its idle tile.
-  mem.write8(FLOOR_HOLD, FLOOR_HOLD_FRAMES);
-  mem.write8(ACTOR_TILE, IDLE_TILE);
-  mem.write8(TWIN_TILE, IDLE_TILE);
+  mem8[FLOOR_HOLD] = FLOOR_HOLD_FRAMES;
+  mem8[ACTOR_TILE] = IDLE_TILE;
+  mem8[TWIN_TILE] = IDLE_TILE;
   return stageActorSpriteRecords(m);
 }

@@ -27,7 +27,7 @@
  * NAMES:    none — writes only raw video/colour RAM, no named work-RAM address.
  */
 export function loc_46f4(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // One tilemap row is 32 bytes, so "up one cell in a column" steps back 32.
   const ROW = 32;
@@ -36,23 +36,23 @@ export function loc_46f4(m) {
   let source = 0x4aab;
   let cell = 0x93e0;
   for (let i = 0; i < 32; i++) {
-    mem.write8(cell, mem.read8(source));
+    mem8[cell] = mem8[source];
     source += 1;
     cell -= ROW;
   }
 
   // Tint that column: two 9-cell runs of colour 2, then a 10-cell run of colour 3,
   // each painted upward from its own top cell.
-  paintColourRun(mem, 0x8ba0, 9, 2);
-  paintColourRun(mem, 0x8940, 9, 2);
-  paintColourRun(mem, 0x8a80, 10, 3);
+  paintColourRun(mem8, 0x8ba0, 9, 2);
+  paintColourRun(mem8, 0x8940, 9, 2);
+  paintColourRun(mem8, 0x8a80, 10, 3);
 }
 
 /** Write `colour` into `count` colour cells starting at `top` and stepping upward one cell at a time. */
-function paintColourRun(mem, top, count, colour) {
+function paintColourRun(mem8, top, count, colour) {
   let cell = top;
   for (let i = 0; i < count; i++) {
-    mem.write8(cell, colour);
+    mem8[cell] = colour;
     cell -= 32; // step up one row (one column cell)
   }
 }

@@ -31,10 +31,10 @@
 
 import { PRNG_LOW, PRNG_HIGH } from "./ram.js";
 export function advanceRandom(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
-  const high = mem.read8(PRNG_HIGH);
-  let low = mem.read8(PRNG_LOW);
+  const high = mem8[PRNG_HIGH];
+  let low = mem8[PRNG_LOW];
 
   // An all-zero shift register is a dead state; reseed it to a fixed nonzero value.
   if ((high | low) === 0) low = 2;
@@ -48,8 +48,8 @@ export function advanceRandom(m) {
   const newHigh = (feedback << 7) | (high >> 1);
   const newLow = ((high & 1) << 7) | (low >> 1);
 
-  mem.write8(PRNG_HIGH, newHigh);
-  mem.write8(PRNG_LOW, newLow);
+  mem8[PRNG_HIGH] = newHigh;
+  mem8[PRNG_LOW] = newLow;
 
   // The new low byte is the random draw the caller consumes from the accumulator.
   regs.a = newLow;

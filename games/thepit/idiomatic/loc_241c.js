@@ -57,80 +57,80 @@ const WRITE_CURSOR = 0x8065; // 16-bit tilemap write pointer (unnamed in ram.js)
 const ROW = 32; // one tilemap row is 32 columns apart
 
 export function loc_241c(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
   // Gate 1: dormant until the round's frame counter has climbed past 10.
-  if (mem.read8(FRAME_COUNTER) < 10) return;
+  if (mem8[FRAME_COUNTER] < 10) return;
 
   // Gate 2: only the frame the step timer reaches its final count runs the step;
   // otherwise store the decremented timer and wait for the next frame.
-  const timer = mem.read8(STEP_TIMER);
+  const timer = mem8[STEP_TIMER];
   if (timer !== 1) {
-    mem.write8(STEP_TIMER, timer - 1);
+    mem8[STEP_TIMER] = timer - 1;
     return;
   }
 
   // A step runs this frame: cue the step sound and take the current write cursor.
   requestSound15(m);
-  const cursor = mem.read16(WRITE_CURSOR);
+  const cursor = mem16[WRITE_CURSOR];
 
   // 1. Patch the cell one row above the cursor (and, for the marker case, two rows above).
-  if (mem.read8(cursor - ROW) === 0xae) {
-    mem.write8(cursor - ROW, 0xfe);
-    mem.write8(cursor - 2 * ROW, 0xfd);
+  if (mem8[cursor - ROW] === 0xae) {
+    mem8[cursor - ROW] = 0xfe;
+    mem8[cursor - 2 * ROW] = 0xfd;
   } else {
-    mem.write8(cursor - ROW, 0x24);
+    mem8[cursor - ROW] = 0x24;
   }
 
   // 2. Classify the tile at the cursor and react.
-  const tile = mem.read8(cursor);
+  const tile = mem8[cursor];
   if (tile === 0x24 || tile === 0x33 || tile === 0x32) {
     return extendFillColumn();
   }
   if (tile === 0x30) {
     // Wall tile. Only act on the column below once the cell to the left is already empty.
-    if (mem.read8(cursor - 1) === 0x24) {
+    if (mem8[cursor - 1] === 0x24) {
       // If either cell below is still open, keep extending the fill down the column.
-      if (mem.read8(cursor + ROW) === 0x24) return extendFillColumn();
-      if (mem.read8(cursor + 2 * ROW) === 0x24) return extendFillColumn();
+      if (mem8[cursor + ROW] === 0x24) return extendFillColumn();
+      if (mem8[cursor + 2 * ROW] === 0x24) return extendFillColumn();
       // Column is closed below: cap the cell below and clear the cursor, then reseed.
-      mem.write8(cursor + ROW, 0x2d);
-      mem.write8(cursor, 0x24);
+      mem8[cursor + ROW] = 0x2d;
+      mem8[cursor] = 0x24;
       return loc_23e8(m);
     }
     // Left cell not yet empty: shift the three-cell window one place left, opening the
     // far slot, then reseed the next window.
-    mem.write8(cursor, mem.read8(cursor - 1));
-    mem.write8(cursor - 1, mem.read8(cursor - 2));
-    mem.write8(cursor - 2, 0x24);
+    mem8[cursor] = mem8[cursor - 1];
+    mem8[cursor - 1] = mem8[cursor - 2];
+    mem8[cursor - 2] = 0x24;
     return loc_23e8(m);
   }
   // Any other tile: advance it one animation frame, then reseed the next window.
-  mem.write8(cursor, tile + 1);
+  mem8[cursor] = tile + 1;
   return loc_23e8(m);
 
   // 3. Extend the fill column one cell — shared by the five classify outcomes above.
   function extendFillColumn() {
-    let ptr = mem.read16(WRITE_CURSOR);
+    let ptr = mem16[WRITE_CURSOR];
     // Stop once the cursor has stepped past the bottom tilemap row.
     if (ptr >= 0x9400) return;
     // Stamp the fill tile, then step the cursor down one row and store it.
-    mem.write8(ptr, 0x31);
+    mem8[ptr] = 0x31;
     ptr = (ptr + ROW) & 0xffff;
-    mem.write16(WRITE_CURSOR, ptr);
+    mem16[WRITE_CURSOR] = ptr;
     // Only the trigger cell finalises the spawn; every other cell waits for the next frame.
     if (ptr !== 0x92a4) return;
 
     // Trigger cell reached: finalise the spawn phase.
-    const phase = mem.read8(SPAWN_PHASE);
+    const phase = mem8[SPAWN_PHASE];
     if (phase !== 0) {
       if (phase >= 2) return; // already past the first phase — nothing to do
       // Phase 1: re-top the actor and its twin mirror, but only once it has sunk far enough.
-      if (mem.read8(ACTOR_Y) < 23) return;
-      mem.write8(ACTOR_Y, 22);
-      mem.write8(TWIN_CLEAR, 22);
+      if (mem8[ACTOR_Y] < 23) return;
+      mem8[ACTOR_Y] = 22;
+      mem8[TWIN_CLEAR] = 22;
     }
-    mem.write8(SPAWN_PHASE, 2); // mark the spawn phase reached
+    mem8[SPAWN_PHASE] = 2; // mark the spawn phase reached
     return requestSound7(m); // cue the finalise sound
   }
 }

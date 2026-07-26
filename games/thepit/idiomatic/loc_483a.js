@@ -67,14 +67,14 @@ const DEFAULT_LABEL = 0x49ba;
 const ALT_LABEL = 0x49c2;
 
 export function loc_483a(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
   // The panel column is always 5.
-  mem.write8(TILE_COL, 5);
+  mem8[TILE_COL] = 5;
 
-  if (mem.read8(PANEL_VALUE) === 1) {
+  if (mem8[PANEL_VALUE] === 1) {
     // Alternate variant: an eight-glyph label at row 12, no live-value cell.
-    mem.write8(TILE_ROW, 12);
+    mem8[TILE_ROW] = 12;
 
     // Turn (row, col) into the tilemap offset, then derive the colour-RAM and
     // video-RAM write cursors.
@@ -82,10 +82,10 @@ export function loc_483a(m) {
     deriveTileWriteCursors(m);
 
     // Paint the panel in colour attribute 150.
-    mem.write8(FILL_ATTR, 150);
+    mem8[FILL_ATTR] = 150;
 
     // The eight-glyph label, stamped down the video column by the still-oracle copy helper.
-    mem.write8(PLOT_RUN_LENGTH, 8);
+    mem8[PLOT_RUN_LENGTH] = 8;
     regs.ix = ALT_LABEL; // the source pointer the copy helper reads
     m.push16(0x4891); m.call(0x3dea);
 
@@ -94,25 +94,25 @@ export function loc_483a(m) {
   }
 
   // Default variant: a nine-glyph label at row 11, then the live value below it.
-  mem.write8(TILE_ROW, 11);
+  mem8[TILE_ROW] = 11;
 
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
 
   // Paint the panel in colour attribute 151.
-  mem.write8(FILL_ATTR, 151);
+  mem8[FILL_ATTR] = 151;
 
   // The nine-glyph label field, stamped by the still-oracle copy helper.
-  mem.write8(PLOT_RUN_LENGTH, 9);
+  mem8[PLOT_RUN_LENGTH] = 9;
   regs.ix = DEFAULT_LABEL; // the source pointer the copy helper reads
   m.push16(0x4861); m.call(0x3dea);
 
   // One more cell: the live value itself, continuing down the same video column.
-  mem.write8(PLOT_RUN_LENGTH, 1);
+  mem8[PLOT_RUN_LENGTH] = 1;
   regs.ix = PANEL_VALUE; // display the live byte as the panel's last cell
   m.push16(0x486d); m.call(0x3dea);
 
   // Colour the full ten-cell run; this is loc_483a's exit.
-  mem.write8(PLOT_RUN_LENGTH, 10);
+  mem8[PLOT_RUN_LENGTH] = 10;
   return fillColourColumn(m);
 }

@@ -66,7 +66,7 @@ const REACTION_SPRITE_FRAME = 54; // the sprite frame the actor shows while reac
 const REACTION_SOUND = 20; // sound requested when an armed reaction fires
 
 export function loc_191f(m, tileCode = m.regs.b, positionAccumulator = m.regs.e, actorCellPtr = m.regs.ix) {
-  const { mem } = m;
+  const { mem8 } = m;
   const subCell = positionAccumulator & 7;
 
   // Codes 54..57 belong to a sibling arm — defer the frame with the plain record.
@@ -90,26 +90,26 @@ export function loc_191f(m, tileCode = m.regs.b, positionAccumulator = m.regs.e,
   if (tileCode < 113 || tileCode >= 154) return movementContinuation(m);
 
   // Look up the tile this cell is expected to hold and record it.
-  const expected = mem.read8(EXPECTED_TILE_TABLE + (tileCode - 113) * 8 + subCell);
-  mem.write8(EXPECTED_TILE, expected);
+  const expected = mem8[EXPECTED_TILE_TABLE + (tileCode - 113) * 8 + subCell];
+  mem8[EXPECTED_TILE] = expected;
 
   // Expected tile still matches what's there — nothing changed, keep moving.
   if (expected === tileCode) return movementContinuation(m);
 
   // Mismatch: the actor has run into a tile it must react to. Stage the reaction.
-  mem.write8(REACTION_PARAM, mem.read8(REACTION_PARAM_SRC));
-  mem.write8(REACTION_STATE, 3);
-  mem.write8(SPRITE_CODE, REACTION_SPRITE_FRAME);
+  mem8[REACTION_PARAM] = mem8[REACTION_PARAM_SRC];
+  mem8[REACTION_STATE] = 3;
+  mem8[SPRITE_CODE] = REACTION_SPRITE_FRAME;
 
   // Exactly on a cell boundary — no neighbour to consider; go straight to the latch.
   if (subCell === 0) return armReactionLatch(m);
 
   // Off the boundary: record the neighbouring cell's tile, and when it too is diggable,
   // record its expected tile from the neighbour table.
-  const neighbourTile = mem.read8(actorCellPtr + 1);
-  mem.write8(NEIGHBOUR_TILE, neighbourTile);
+  const neighbourTile = mem8[actorCellPtr + 1];
+  mem8[NEIGHBOUR_TILE] = neighbourTile;
   if (neighbourTile >= 113 && neighbourTile < 154) {
-    mem.write8(NEXT_TILE, mem.read8(NEIGHBOUR_TILE_TABLE + (neighbourTile - 113) * 8 + subCell));
+    mem8[NEXT_TILE] = mem8[NEIGHBOUR_TILE_TABLE + (neighbourTile - 113) * 8 + subCell];
   }
   return armReactionLatch(m);
 }
@@ -123,10 +123,10 @@ function movementContinuation(m) {
 /** Fire the reaction for an armed actor, then build the deferral record. An unarmed actor
  *  (arm state 0) only builds the record. */
 function armReactionLatch(m) {
-  const { mem } = m;
-  if (mem.read8(ARM_STATE) !== 0) {
-    mem.write8(ARM_STATE, 2);
-    mem.write8(ARM_COMPANION, 64);
+  const { mem8 } = m;
+  if (mem8[ARM_STATE] !== 0) {
+    mem8[ARM_STATE] = 2;
+    mem8[ARM_COMPANION] = 64;
     enqueueSoundCommand(m, REACTION_SOUND);
   }
   loc_1b5b(m);

@@ -53,7 +53,7 @@ const SECOND_TILE_LATCH = 0x8078; // one-shot latch that opens the second pickup
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup
 
 export function loc_18cf(m, tileCode = m.regs.b, positionAccumulator = m.regs.e) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
   // Collect only on the final sub-step before the actor crosses into a new tile
   // column; on every other phase the tile goes to the dig-arm classifier.
@@ -64,31 +64,31 @@ export function loc_18cf(m, tileCode = m.regs.b, positionAccumulator = m.regs.e)
   if (tileCode === 58) {
     // First pickup kind: 10 points, count it.
     awardTenPoints(m);
-    mem.write8(FIRST_TILE_COUNT, mem.read8(FIRST_TILE_COUNT) + 1);
+    mem8[FIRST_TILE_COUNT] = mem8[FIRST_TILE_COUNT] + 1;
   } else if (tileCode >= 59 && tileCode <= 61) {
     // Second pickup kind, and only while its feature is enabled.
-    if (mem.read8(FEATURE_TILE_LATCH) === 0) {
+    if (mem8[FEATURE_TILE_LATCH] === 0) {
       return loc_191f(m, tileCode, positionAccumulator);
     }
     // A one-shot latch opens the award. Once open it always awards; the very first
     // time, it opens only when the guard is clear (and arms the latch itself),
     // otherwise it defers this frame to the dig-arm.
-    if (mem.read8(SECOND_TILE_LATCH) === 0) {
-      if (mem.read8(SPAWN_STATE) !== 0) {
+    if (mem8[SECOND_TILE_LATCH] === 0) {
+      if (mem8[SPAWN_STATE] !== 0) {
         return loc_191f(m, tileCode, positionAccumulator);
       }
-      mem.write8(SECOND_TILE_LATCH, 1);
+      mem8[SECOND_TILE_LATCH] = 1;
     }
     // Award 20 points (still the frozen oracle's scorer) and count it.
     m.call(0x4683);
-    mem.write8(SECOND_TILE_COUNT, mem.read8(SECOND_TILE_COUNT) + 1);
+    mem8[SECOND_TILE_COUNT] = mem8[SECOND_TILE_COUNT] + 1;
   } else {
     // Any other tile on the boundary is not a pickup — hand it to the dig-arm.
     return loc_191f(m, tileCode, positionAccumulator);
   }
 
   // Collected: blank the cell the actor stands on, then keep the actor moving.
-  const cell = mem.read16(ACTOR_CELL_PTR);
-  mem.write8(cell, BLANK_TILE);
+  const cell = mem16[ACTOR_CELL_PTR];
+  mem8[cell] = BLANK_TILE;
   return m.call(0x19d0);
 }

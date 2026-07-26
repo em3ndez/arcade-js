@@ -36,19 +36,19 @@ import { requestSound21 } from "./requestSound21.js";
 
 import { LEVEL } from "./ram.js";
 export function loc_23e8(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
   // 1. Seed the tilemap write pointer for later tilemap walks.
-  mem.write16(0x8065, 0x9104);
+  mem16[0x8065] = 0x9104;
 
   // 2. Countdown = gameplay parameter minus four per unit of the counter (wraps in a byte).
-  mem.write8(0x8067, mem.read8(0x804f) - 4 * mem.read8(LEVEL));
+  mem8[0x8067] = mem8[0x804f] - 4 * mem8[LEVEL];
 
   // 3. Cue a sound when the marker cell holds the trigger tile.
-  if (mem.read8(0x9264) === 0x32) requestSound21(m);
+  if (mem8[0x9264] === 0x32) requestSound21(m);
 
   // 4. Stamp the two-tile cap only while the head cell still holds its 0xfe marker.
-  if (mem.read8(0x90e4) !== 0xfe) return;
-  mem.write8(0x90e4, 0xae); // head cell
-  mem.write8(0x90c4, 0xac); // the cell one row (32 columns) above it
+  if (mem8[0x90e4] !== 0xfe) return;
+  mem8[0x90e4] = 0xae; // head cell
+  mem8[0x90c4] = 0xac; // the cell one row (32 columns) above it
 }

@@ -28,12 +28,12 @@
 import { SOUND_HEAD, SOUND_RING } from "./ram.js";
 
 export function enqueueSoundCommand(m, commandIndex = m.regs.a) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Take the current write slot, then advance the pointer to the next of the 8 slots.
-  const slot = mem.read8(SOUND_HEAD);
-  mem.write8(SOUND_HEAD, (slot + 1) % 8);
+  const slot = mem8[SOUND_HEAD];
+  mem8[SOUND_HEAD] = (slot + 1) % 8;
 
   // Fill that slot with the command, high bit set to mark the slot as pending.
-  mem.write8(SOUND_RING + slot, commandIndex | 0x80);
+  mem8[SOUND_RING + slot] = commandIndex | 0x80;
 }

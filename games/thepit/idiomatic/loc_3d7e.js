@@ -31,11 +31,11 @@ import { BOARD_MODE } from "./ram.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 
 export function loc_3d7e(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Advance one step but hold bit 3 (the 8s bit) clear, so a value kept in 0..7
   // wraps back to 0 after 7.
-  mem.write8(BOARD_MODE, (mem.read8(BOARD_MODE) + 1) & 0xf7);
+  mem8[BOARD_MODE] = (mem8[BOARD_MODE] + 1) & 0xf7;
 
   // Hand off to the column fill; its return becomes this routine's return.
   return fillColourColumn(m);

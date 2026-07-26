@@ -25,9 +25,9 @@ const COLOR_RAM_BASE = 0x8800;
 const COLOR_RAM_CELLS = 1024; // the whole per-tile colour RAM, 0x8800..0x8bff
 
 export function fillColorRam(m) {
-  const { mem } = m;
-  const fill = mem.read8(BOARD_MODE);
+  const { mem8 } = m;
+  const fill = mem8[BOARD_MODE];
   for (let cell = 0; cell < COLOR_RAM_CELLS; cell++) {
-    mem.write8(COLOR_RAM_BASE + cell, fill);
+    mem8[COLOR_RAM_BASE + cell] = fill;
   }
 }

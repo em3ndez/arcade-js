@@ -49,32 +49,32 @@ const SECOND_TABLE = 0x35fe; // base of the second valid-tile table (rows of 32)
 const ROW_LEN = 32; // entries per table row / the pointer's one-row stride
 
 /** Whether `key` appears anywhere in the 32-entry table row starting at `base`. */
-function rowContains(mem, base, key) {
+function rowContains(mem8, base, key) {
   for (let i = 0; i < ROW_LEN; i++) {
-    if (mem.read8(base + i) === key) return true;
+    if (mem8[base + i] === key) return true;
   }
   return false;
 }
 
 export function loc_3425(m) {
-  const { mem, regs } = m;
+  const { mem8, mem16, regs } = m;
 
-  const phase = mem.read8(0x808d);
+  const phase = mem8[0x808d];
   // Advance the object's tilemap pointer one row and stash it for the reload below.
-  const cell = (mem.read16(0x8089) + ROW_LEN) & 0xffff;
-  mem.write16(0x8134, cell);
+  const cell = (mem16[0x8089] + ROW_LEN) & 0xffff;
+  mem16[0x8134] = cell;
 
   // First row (selected by the phase, wrapping within a byte): must contain the
   // tile now under the advanced pointer, or the probe fails outright.
-  let matched = rowContains(mem, FIRST_TABLE + (phase + ROW_LEN) % 256, mem.read8(cell));
+  let matched = rowContains(mem8, FIRST_TABLE + (phase + ROW_LEN) % 256, mem8[cell]);
 
   // With a nonzero phase, also require the following tile to be in the second
   // row (phase shifted the other way). A zero phase reports the first match as-is.
   if (matched && phase !== 0) {
     matched = rowContains(
-      mem,
+      mem8,
       SECOND_TABLE + (phase - ROW_LEN + 256) % 256,
-      mem.read8((cell + 1) & 0xffff),
+      mem8[(cell + 1) & 0xffff],
     );
   }
 

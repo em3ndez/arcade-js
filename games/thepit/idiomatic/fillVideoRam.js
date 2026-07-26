@@ -27,12 +27,12 @@
  *           has a ram.js name).
  */
 export function fillVideoRam(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
-  const fill = mem.read8(0x4b0f); // the tile code to stamp into every cell
+  const fill = mem8[0x4b0f]; // the tile code to stamp into every cell
 
   // Paint all 1024 tilemap cells with the fill code.
   for (let cell = 0x9000; cell <= 0x93ff; cell++) {
-    mem.write8(cell, fill);
+    mem8[cell] = fill;
   }
 }

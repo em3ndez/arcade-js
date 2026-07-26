@@ -28,11 +28,11 @@
 import { SOUND_HEAD } from "./ram.js";
 
 export function loc_4bea(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Reset the score block.
-  for (let i = 0; i < 6; i++) mem.write8(0x8031 + i, 0);
+  for (let i = 0; i < 6; i++) mem8[0x8031 + i] = 0;
 
   // Clear the sound-command queue: the ring head index plus its eight command slots.
-  for (let i = 0; i < 10; i++) mem.write8(SOUND_HEAD + i, 0);
+  for (let i = 0; i < 10; i++) mem8[SOUND_HEAD + i] = 0;
 }

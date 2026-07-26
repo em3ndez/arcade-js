@@ -37,11 +37,11 @@
 import { loc_34f0 } from "./loc_34f0.js";
 
 export function loc_34da(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Bump the free-running tick counter every call.
-  const tick = (mem.read8(0x8090) + 1) % 256;
-  mem.write8(0x8090, tick);
+  const tick = (mem8[0x8090] + 1) % 256;
+  mem8[0x8090] = tick;
 
   // Once every 256 calls the counter wraps back to zero; on that beat, run the
   // periodic refresh and stop for this call.
@@ -54,6 +54,6 @@ export function loc_34da(m) {
   if (tick % 4 !== 0) return;
 
   // On the 4th tick, advance the slower second counter, holding its bit 3 clear.
-  const second = (mem.read8(0x8085) + 1) & 0xf7;
-  mem.write8(0x8085, second);
+  const second = (mem8[0x8085] + 1) & 0xf7;
+  mem8[0x8085] = second;
 }

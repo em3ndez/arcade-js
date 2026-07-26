@@ -47,15 +47,15 @@ const BLANK_TILE = 36;
 const READOUT_RECORD = [16, 10, 22, 0, 0];
 
 export function loc_4bc7(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Blank the 32-cell numeric-readout display strip so no stale digit shows through.
-  for (let i = 0; i < 32; i++) mem.write8(0x8280 + i, BLANK_TILE);
+  for (let i = 0; i < 32; i++) mem8[0x8280 + i] = BLANK_TILE;
 
   // Seed the three readout source records back to back, each label + zero value.
   for (let r = 0; r < 3; r++) {
     const base = 0x8039 + r * READOUT_RECORD.length;
-    for (let i = 0; i < READOUT_RECORD.length; i++) mem.write8(base + i, READOUT_RECORD[i]);
+    for (let i = 0; i < READOUT_RECORD.length; i++) mem8[base + i] = READOUT_RECORD[i];
   }
 
   // Render: hand off to the still-oracle score-readout formatter, whose return unwinds to

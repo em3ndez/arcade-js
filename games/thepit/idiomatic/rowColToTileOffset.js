@@ -28,11 +28,11 @@
 import { TILE_ROW, TILE_COL } from "./ram.js";
 
 export function rowColToTileOffset(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
-  const row = mem.read8(TILE_ROW);
-  const col = mem.read8(TILE_COL);
+  const row = mem8[TILE_ROW];
+  const col = mem8[TILE_COL];
 
   // 32 cells per tilemap row, so row*32 + col is the cell's linear offset.
-  mem.write16(0x805a, 32 * row + col);
+  mem16[0x805a] = 32 * row + col;
 }

@@ -44,24 +44,24 @@ import { loc_2f2f } from "./loc_2f2f.js";
 import { DIG_OBJ_STATE, TARGET_X, TARGET_Y, SPAWN_STATE } from "./ram.js";
 
 export function loc_287a(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Reset the dig-object control block to its start-of-round state.
-  mem.write8(DIG_OBJ_STATE, 48); // the carving-phase state code
-  mem.write8(0x80ab, 7); // companion control byte
-  mem.write8(TARGET_X, 0); // no captured target column yet
-  mem.write8(TARGET_Y, 0); // no captured target row yet
-  mem.write8(0x80b1, 0); // companion counter byte
-  mem.write8(SPAWN_STATE, 0); // idle — a fresh spawn is permitted
-  mem.write8(0x80c1, 0); // companion scratch byte
-  mem.write8(0x80c0, 0); // companion scratch byte
+  mem8[DIG_OBJ_STATE] = 48; // the carving-phase state code
+  mem8[0x80ab] = 7; // companion control byte
+  mem8[TARGET_X] = 0; // no captured target column yet
+  mem8[TARGET_Y] = 0; // no captured target row yet
+  mem8[0x80b1] = 0; // companion counter byte
+  mem8[SPAWN_STATE] = 0; // idle — a fresh spawn is permitted
+  mem8[0x80c1] = 0; // companion scratch byte
+  mem8[0x80c0] = 0; // companion scratch byte
 
   // Copy the fixed 24-byte column-position table (a 12-entry ramp, duplicated) from
   // ROM into the block.
   for (let i = 0; i < 24; i++) {
-    mem.write8(0x80c3 + i, mem.read8(0x2dab + i));
+    mem8[0x80c3 + i] = mem8[0x2dab + i];
   }
-  mem.write8(0x80c2, 32); // table-header / count byte
+  mem8[0x80c2] = 32; // table-header / count byte
 
   // Tail hand-off into loc_2f2f (round/level parameter seeding); its chain returns to
   // our caller, so this is loc_287a's exit.

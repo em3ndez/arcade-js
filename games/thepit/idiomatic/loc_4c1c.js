@@ -21,9 +21,9 @@
  *           address is kept literal rather than given an unearned name.
  */
 export function loc_4c1c(m) {
-  const { mem } = m;
+  const { mem8 } = m;
   // Zero every byte of the 64-byte block [0x8200, 0x8240).
   for (let addr = 0x8200; addr < 0x8240; addr++) {
-    mem.write8(addr, 0);
+    mem8[addr] = 0;
   }
 }

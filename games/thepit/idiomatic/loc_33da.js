@@ -49,25 +49,25 @@ const TABLE_A = 0x34fe;       // base of the first phase-keyed ROM probe table's
 const TABLE_B = 0x35fe;       // base of the second phase-keyed ROM probe table's rows
 
 export function loc_33da(m) {
-  const { regs, mem } = m;
+  const { regs, mem8, mem16 } = m;
 
   // Look one tilemap row (the map is 32 cells wide) back from the probe cell, and stash that
   // cell — a later step reloads the pointer from here.
-  const oneRowBack = (mem.read16(PROBE_CELL) - 32) & 0xffff;
-  mem.write16(SAVED_CELL, oneRowBack);
+  const oneRowBack = (mem16[PROBE_CELL] - 32) & 0xffff;
+  mem16[SAVED_CELL] = oneRowBack;
 
-  const phase = mem.read8(SUBTILE_PHASE);
+  const phase = mem8[SUBTILE_PHASE];
 
   // First lookup: is that neighbouring tile listed in table A's phase row? The row is picked
   // by (phase + 32), held to a single byte so the selector wraps within 0..255.
-  const neighbourTile = mem.read8(oneRowBack);
-  let matched = romRowHas(mem, TABLE_A + ((phase + 32) & 0xff), neighbourTile);
+  const neighbourTile = mem8[oneRowBack];
+  let matched = romRowHas(m, TABLE_A + ((phase + 32) & 0xff), neighbourTile);
 
   // A hit at phase 0 is final — there is no table-B row to consult at phase 0.
   if (matched && phase !== 0) {
     // Second lookup: the following tile, against table B's phase row (phase - 32).
-    const followingTile = mem.read8((oneRowBack + 1) & 0xffff);
-    matched = romRowHas(mem, TABLE_B + ((phase - 32) & 0xff), followingTile);
+    const followingTile = mem8[(oneRowBack + 1) & 0xffff];
+    matched = romRowHas(m, TABLE_B + ((phase - 32) & 0xff), followingTile);
   }
 
   // Report the result: the zero flag for the still-oracle caller to branch on, and a return.
@@ -76,9 +76,10 @@ export function loc_33da(m) {
 }
 
 /** True if `tile` appears anywhere in the 32-entry ROM table row starting at `rowBase`. */
-function romRowHas(mem, rowBase, tile) {
+function romRowHas(m, rowBase, tile) {
+  const { mem8 } = m;
   for (let i = 0; i < 32; i++) {
-    if (mem.read8(rowBase + i) === tile) return true;
+    if (mem8[rowBase + i] === tile) return true;
   }
   return false;
 }

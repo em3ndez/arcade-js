@@ -47,7 +47,7 @@
 import { loc_2fc0 } from "./loc_2fc0.js";
 
 export function loc_2fb7(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
   // Blit parameters staged in registers by the oracle animation-step code.
   let src = regs.ix; // read cursor into the tile-pattern table
@@ -58,7 +58,7 @@ export function loc_2fb7(m) {
   // Copy the run of tile codes up the column, one cell per screen row. The count is
   // tested only after each write, so a zero start writes the full 256 cells.
   do {
-    mem.write8(dst, mem.read8(src));
+    mem8[dst] = mem8[src];
     dst = (dst + rowStep) & 0xffff;
     src = (src + 1) & 0xffff;
     remaining = (remaining - 1 + 256) % 256;

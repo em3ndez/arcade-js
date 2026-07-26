@@ -35,20 +35,20 @@
  *           addresses, not work RAM.
  */
 export function waitFrames(m, count) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Arm the countdown with the caller's frame count, then enable the per-frame
   // interrupt whose service routine decrements that countdown once per frame.
-  mem.write8(0x8009, count);
-  mem.write8(0xb000, 1);
+  mem8[0x8009] = count;
+  mem8[0xb000] = 1;
 
   // Spin until the countdown has been ticked all the way down to zero, kicking the
   // watchdog on every pass. Always makes at least one pass, so a zero count still
   // kicks the watchdog once before falling through.
   let remaining;
   do {
-    mem.read8(0xb800); // kick the watchdog
-    remaining = mem.read8(0x8009); // reload the countdown the interrupt is ticking
+    mem8[0xb800]; // kick the watchdog
+    remaining = mem8[0x8009]; // reload the countdown the interrupt is ticking
   } while (remaining !== 0);
 
   return m.ret();

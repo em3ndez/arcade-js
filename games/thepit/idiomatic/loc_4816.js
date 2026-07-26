@@ -58,13 +58,13 @@ const STRIP_SOURCE_TABLE = 0x494f;
 const COLOUR_FILL = 0x8057;
 
 export function loc_4816(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
   // Position the tile-cell cursor at column 1, row 11, then resolve that cell's
   // tilemap offset (0x805a) and from it the colour-RAM and video-RAM write cursors
   // (0x805e / 0x8060).
-  mem.write8(TILE_COL, 1);
-  mem.write8(TILE_ROW, 11);
+  mem8[TILE_COL] = 1;
+  mem8[TILE_ROW] = 11;
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
 
@@ -73,8 +73,8 @@ export function loc_4816(m) {
   // tilemap fill is still the frozen oracle, so it is called across the boundary: the
   // pushed word is the return address its ret pops, and the source pointer is its one
   // register live-in.
-  mem.write8(COLOUR_FILL, 0);
-  mem.write8(PLOT_RUN_LENGTH, 10);
+  mem8[COLOUR_FILL] = 0;
+  mem8[PLOT_RUN_LENGTH] = 10;
   regs.ix = STRIP_SOURCE_TABLE;
   m.push16(0x4837);
   m.call(0x3ddb); // fill the 10-cell tilemap strip

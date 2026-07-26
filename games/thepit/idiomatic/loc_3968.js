@@ -37,17 +37,17 @@ import { ACTOR_TIMER, ACTOR_X, TWIN_X } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 export function loc_3968(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Only every fourth cadence tick does anything at all.
-  if (mem.read8(ACTOR_TIMER) % 4 === 0) {
-    const coord = mem.read8(ACTOR_X);
+  if (mem8[ACTOR_TIMER] % 4 === 0) {
+    const coord = mem8[ACTOR_X];
     // Step the coordinate down by one only while it is still at or above the limit;
     // it therefore eases downward and settles at 192.
     if (coord >= 193) {
       const stepped = coord - 1;
-      mem.write8(ACTOR_X, stepped);
-      mem.write8(TWIN_X, stepped + 16); // the twin trails a constant 16 above
+      mem8[ACTOR_X] = stepped;
+      mem8[TWIN_X] = stepped + 16; // the twin trails a constant 16 above
     }
   }
 

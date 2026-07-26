@@ -42,30 +42,31 @@ const CELLS = {
 // Countdown value 1, and any stray value outside 2..7.
 const CELL_DEFAULT = [0x8b3a, 0x933a, 0x3a, 7];
 
-function recolorCell(mem, colourCell, tileCell, animatingGlyph, restingColor) {
-  if (mem.read8(tileCell) === animatingGlyph) {
+function recolorCell(m, colourCell, tileCell, animatingGlyph, restingColor) {
+  const { mem8 } = m;
+  if (mem8[tileCell] === animatingGlyph) {
     // Glyph animating: advance the colour attribute one shade of eight.
-    mem.write8(colourCell, (mem.read8(colourCell) + 1) % 8);
+    mem8[colourCell] = (mem8[colourCell] + 1) % 8;
   } else {
     // Glyph idle: hold the cell at its resting colour.
-    mem.write8(colourCell, restingColor);
+    mem8[colourCell] = restingColor;
   }
 }
 
 export function loc_06ac(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Step the countdown one and store it back; the value it now holds selects the
   // cell recoloured below. (In play it runs 8..1; the byte store wraps for free.)
-  const countdown = mem.read8(0x805c) - 1;
+  const countdown = mem8[0x805c] - 1;
 
   if (countdown === 0) {
     // Wrapped: reload for the next cycle, then recolour the shared value-4 cell.
-    mem.write8(0x805c, 8);
-    recolorCell(mem, ...CELLS[4]);
+    mem8[0x805c] = 8;
+    recolorCell(m, ...CELLS[4]);
     return;
   }
 
-  mem.write8(0x805c, countdown);
-  recolorCell(mem, ...(CELLS[countdown] ?? CELL_DEFAULT));
+  mem8[0x805c] = countdown;
+  recolorCell(m, ...(CELLS[countdown] ?? CELL_DEFAULT));
 }

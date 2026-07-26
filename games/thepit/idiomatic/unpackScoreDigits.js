@@ -38,10 +38,10 @@
  *           named in ram.js. The destination buffer is the caller-supplied pointer.
  */
 export function unpackScoreDigits(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
-  const hi = mem.read8(0x8038); // staged value, high byte
-  const lo = mem.read8(0x8037); // staged value, low byte
+  const hi = mem8[0x8038]; // staged value, high byte
+  const lo = mem8[0x8037]; // staged value, low byte
 
   // The four value nibbles most-significant first, then two trailing zero cells.
   const cells = [hi >> 4, hi & 0x0f, lo >> 4, lo & 0x0f, 0, 0];
@@ -51,7 +51,7 @@ export function unpackScoreDigits(m) {
 
   let ptr = regs.hl;
   for (let i = start; i < cells.length; i++) {
-    mem.write8(ptr, cells[i]);
+    mem8[ptr] = cells[i];
     // Advance after every cell except the last — the pointer is left resting on it.
     if (i < cells.length - 1) ptr = (ptr + 1) & 0xffff;
   }

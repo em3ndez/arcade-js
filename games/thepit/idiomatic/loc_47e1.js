@@ -55,34 +55,34 @@ const PLOT_FILL_BYTE = 0x8057; // the colour byte the colour-column paint writes
 const PANEL_TILE_TABLE = 0x49b1;
 
 export function loc_47e1(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
   // Aim the panel at tile column 1, row 12, then turn that cell into the tilemap offset
   // (0x805a) and the colour-/video-RAM write cursors the paint helpers write through.
-  mem.write8(TILE_COL, 1);
-  mem.write8(TILE_ROW, 12);
+  mem8[TILE_COL] = 1;
+  mem8[TILE_ROW] = 12;
   rowColToTileOffset(m); // (row, col) -> tilemap offset
   deriveTileWriteCursors(m); // tilemap offset -> colour-RAM + video-RAM write cursors
 
   // Every run of the panel is painted with fill byte 7.
-  mem.write8(PLOT_FILL_BYTE, 7);
+  mem8[PLOT_FILL_BYTE] = 7;
 
   // Top cell: stamp the current secondary game-state byte as the panel's first tile
   // (the still-frozen helper copies one byte down the column from the source in ix).
-  mem.write8(PLOT_RUN_LENGTH, 1);
+  mem8[PLOT_RUN_LENGTH] = 1;
   regs.ix = GAME_STATE2; // source: the byte at GAME_STATE2
   m.push16(0x4802);
   m.call(0x3dea);
 
   // Next seven cells: a fixed tile run out of the ROM table (its first cell takes the
   // still-frozen helper's own cap byte, the remaining cells walk the table backwards).
-  mem.write8(PLOT_RUN_LENGTH, 7);
+  mem8[PLOT_RUN_LENGTH] = 7;
   regs.ix = PANEL_TILE_TABLE;
   m.push16(0x480e);
   m.call(0x3ddb);
 
   // Finally paint a nine-cell colour column with the fill byte, so the strip shares one
   // colour. This is a tail hand-off: the colour-paint helper returns to our own caller.
-  mem.write8(PLOT_RUN_LENGTH, 9);
+  mem8[PLOT_RUN_LENGTH] = 9;
   return fillColourColumn(m);
 }

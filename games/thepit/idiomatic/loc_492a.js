@@ -25,7 +25,7 @@
  */
 
 export function loc_492a(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
   // The column is 32 tiles tall. Its tile codes are a fixed strip in ROM, laid
   // into video RAM from the BOTTOM cell upward — one full text row (32 cells)
@@ -34,7 +34,7 @@ export function loc_492a(m) {
   const COLUMN_BOTTOM = 0x93f9; // video RAM: bottom cell of this column
   const ROW = 32; // one full text row = 32 cells
   for (let i = 0; i < 32; i++) {
-    mem.write8(COLUMN_BOTTOM - i * ROW, mem.read8(TILE_STRIP + i));
+    mem8[COLUMN_BOTTOM - i * ROW] = mem8[TILE_STRIP + i];
   }
 
   // Colour that same column: loc_3e1d is still the frozen oracle, so pass it the

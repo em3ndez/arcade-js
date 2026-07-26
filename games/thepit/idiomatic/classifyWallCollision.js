@@ -159,8 +159,8 @@ function scanBand30(b, c) {
  * a wall line matches.
  */
 function classifyBands(m, b, c) {
-  const { mem } = m;
-  const hint = mem.read8(BAND_HINT);
+  const { mem8 } = m;
+  const hint = mem8[BAND_HINT];
 
   // The `hint < N` ladder both picks the starting band and, because a lower start
   // satisfies every later condition too, drives the fall-through cascade onward.
@@ -169,34 +169,34 @@ function classifyBands(m, b, c) {
     if (r !== null) return r;
   }
   if (hint < 10) {
-    mem.write8(BAND_HINT, 7);
+    mem8[BAND_HINT] = 7;
     const r = scanBand7(b, c);
     if (r !== null) return r;
   }
   if (hint < 14) {
-    mem.write8(BAND_HINT, 10);
+    mem8[BAND_HINT] = 10;
     const r = scanBand10(b, c);
     if (r !== null) return r;
   }
   if (hint < 23) {
-    mem.write8(BAND_HINT, 14);
+    mem8[BAND_HINT] = 14;
     const r = scanBand14(b, c);
     if (r !== null) return r;
   }
   if (hint < 30) {
-    mem.write8(BAND_HINT, 23);
+    mem8[BAND_HINT] = 23;
     const r = scanBand23(b, c);
     if (r !== null) return r;
   }
-  mem.write8(BAND_HINT, 30);
+  mem8[BAND_HINT] = 30;
   return scanBand30(b, c);
 }
 
 export function classifyWallCollision(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // 1. Periodic HUD panel redraw when the frame counter has wrapped to zero.
-  if (mem.read8(FRAME_COUNTER) === 0) {
+  if (mem8[FRAME_COUNTER] === 0) {
     // loc_4894 is idiomatic but still calls two oracle copy/fill helpers; the bracket
     // holds the stack pointer where they expect it (see header). Dissolves when they do.
     m.push16(0x03ef);
@@ -204,16 +204,16 @@ export function classifyWallCollision(m) {
   }
 
   // 2. 30-frame service tick.
-  const timer = (mem.read8(HOUSEKEEPING_TIMER) - 1) % 256;
-  mem.write8(HOUSEKEEPING_TIMER, timer);
+  const timer = (mem8[HOUSEKEEPING_TIMER] - 1) % 256;
+  mem8[HOUSEKEEPING_TIMER] = timer;
   if (timer === 0) {
-    mem.write8(HOUSEKEEPING_TIMER, 30); // reload the countdown
-    if (mem.read8(STATE_TIMER) !== 0) {
+    mem8[HOUSEKEEPING_TIMER] = 30; // reload the countdown
+    if (mem8[STATE_TIMER] !== 0) {
       // The object is locked in a timed state — give up the whole frame, no classify.
       m.ret();
       return;
     }
-    if (mem.read8(SPAWN_PHASE) === 0) {
+    if (mem8[SPAWN_PHASE] === 0) {
       // Not mid-spawn: recolour one playfield column by one palette step. Its whole
       // chain is idiomatic, so this is a plain direct call.
       loc_48c4(m);
@@ -222,15 +222,15 @@ export function classifyWallCollision(m) {
 
   // 3. Classify the maze wall under the probe — only when the tracked object is live;
   //    otherwise the previous frame's direction code stands.
-  if (mem.read8(OBJECT_ACTIVE) === 0) {
+  if (mem8[OBJECT_ACTIVE] === 0) {
     m.ret();
     return;
   }
 
   // The probe point sits a few pixels inside the tracked object's bounding box.
-  const b = (mem.read8(OBJ_X) + 3) % 256;
-  const c = (mem.read8(OBJ_Y) + 5) % 256;
+  const b = (mem8[OBJ_X] + 3) % 256;
+  const c = (mem8[OBJ_Y] + 5) % 256;
 
-  mem.write8(DIG_DIRS, classifyBands(m, b, c));
+  mem8[DIG_DIRS] = classifyBands(m, b, c);
   m.ret();
 }

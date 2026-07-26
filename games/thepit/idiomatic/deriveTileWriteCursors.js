@@ -37,11 +37,11 @@ const COLOUR_RAM_BASE = 0x8800; // per-tile colour map base
 const VIDEO_RAM_BASE = 0x9000; // tilemap (character) map base
 
 export function deriveTileWriteCursors(m) {
-  const { mem } = m;
+  const { mem16 } = m;
 
-  const offset = mem.read16(0x805a);
+  const offset = mem16[0x805a];
 
   // Same cell in both maps at the same offset: colour cursor, then video cursor.
-  mem.write16(0x805e, COLOUR_RAM_BASE + offset);
-  mem.write16(0x8060, VIDEO_RAM_BASE + offset);
+  mem16[0x805e] = COLOUR_RAM_BASE + offset;
+  mem16[0x8060] = VIDEO_RAM_BASE + offset;
 }

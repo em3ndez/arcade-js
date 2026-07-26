@@ -62,32 +62,32 @@ const COLUMN_BOTTOM_CELL = 0x938c;
 const ONE_ROW_UP = 32;
 
 export function loc_2f88(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
   // Tick the reveal gate; act only on the frame it counts down to zero.
-  const gate = (mem.read8(0x80e5) - 1 + 256) % 256;
-  mem.write8(0x80e5, gate);
+  const gate = (mem8[0x80e5] - 1 + 256) % 256;
+  mem8[0x80e5] = gate;
   if (gate !== 0) {
     // Not a reveal frame — straight on to the phase clock.
     return loc_2fc0(m);
   }
 
   // Reload the gate from its period and step the cursor back one column.
-  mem.write8(0x80e5, mem.read8(0x80e4));
-  const cursor = mem.read8(0x80e6) - TILES_PER_COLUMN;
+  mem8[0x80e5] = mem8[0x80e4];
+  const cursor = mem8[0x80e6] - TILES_PER_COLUMN;
   if (cursor < 0) {
     // Ran off the start of the pattern table — the reveal is done, draw nothing.
     return loc_2fc0(m);
   }
-  mem.write8(0x80e6, cursor);
+  mem8[0x80e6] = cursor;
 
   // Remember where this column came from in the pattern table (a scratch pointer
   // the backdrop machinery leaves behind), then stamp its 6 tiles up the column.
   const source = PATTERN_TABLE + cursor;
-  mem.write16(0x80e1, source);
+  mem16[0x80e1] = source;
   let cell = COLUMN_BOTTOM_CELL;
   for (let i = 0; i < TILES_PER_COLUMN; i++) {
-    mem.write8(cell, mem.read8(source + i));
+    mem8[cell] = mem8[source + i];
     cell -= ONE_ROW_UP;
   }
 

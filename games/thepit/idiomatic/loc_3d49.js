@@ -69,11 +69,11 @@ const VALUE_SOURCE = 0x8000;
 const LABEL_SOURCE = 0x496d;
 
 export function loc_3d49(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Target cell of the panel: column 1, row 12.
-  mem.write8(TILE_COL, 1);
-  mem.write8(TILE_ROW, 12);
+  mem8[TILE_COL] = 1;
+  mem8[TILE_ROW] = 12;
 
   // Turn (row, col) into the tilemap offset for the cell, then derive the
   // colour-RAM and video-RAM write cursors from that offset.
@@ -81,11 +81,11 @@ export function loc_3d49(m) {
   deriveTileWriteCursors(m);
 
   // Paint the whole panel in colour attribute 6.
-  mem.write8(FILL_ATTR, 6);
+  mem8[FILL_ATTR] = 6;
 
   // Top field: copy one cell from the live work-RAM value down the video column.
   // (0x3dea is not yet decompiled — still the oracle, reached through the registry.)
-  mem.write8(PLOT_RUN_LENGTH, 1);
+  mem8[PLOT_RUN_LENGTH] = 1;
   m.regs.ix = VALUE_SOURCE; // the source pointer the copy helper reads
   m.push16(0x3d6a);
   m.call(0x3dea);
@@ -93,13 +93,13 @@ export function loc_3d49(m) {
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
   // down the same video column from where the value left off. (0x3ddb is not yet
   // decompiled — still the oracle, reached through the registry.)
-  mem.write8(PLOT_RUN_LENGTH, 8);
+  mem8[PLOT_RUN_LENGTH] = 8;
   m.regs.ix = LABEL_SOURCE; // the source pointer the fill helper reads
   m.push16(0x3d76);
   m.call(0x3ddb);
 
   // Colour the full nine-cell run: hand off to the colour-column filler, which paints
   // the whole panel. This is loc_3d49's exit.
-  mem.write8(PLOT_RUN_LENGTH, 9);
+  mem8[PLOT_RUN_LENGTH] = 9;
   return fillColourColumn(m);
 }

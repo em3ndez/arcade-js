@@ -58,44 +58,44 @@ const FIRST_TILE = 0xa8;
 const FIGURE_COLOR = 0x93;
 
 export function loc_3984(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Only spawn when this actor's slot is flagged pending; otherwise do nothing.
-  if (mem.read8(ACTOR_Y) === 0) return;
+  if (mem8[ACTOR_Y] === 0) return;
 
   // Consume the request so the spawn happens exactly once.
-  mem.write8(ACTOR_Y, 0);
-  mem.write8(TWIN_CLEAR, 0);
+  mem8[ACTOR_Y] = 0;
+  mem8[TWIN_CLEAR] = 0;
 
   // Draw the figure: eight consecutive tiles, one shared colour, top row first.
   let tile = FIRST_TILE;
   for (let row = FIGURE_ROWS - 1; row >= 0; row--) {
     for (let col = 0; col < FIGURE_COLS; col++) {
       const offset = col - row * ROW_STRIDE;
-      mem.write8(VIDEO_ANCHOR + offset, tile);
-      mem.write8(COLOR_ANCHOR + offset, FIGURE_COLOR);
+      mem8[VIDEO_ANCHOR + offset] = tile;
+      mem8[COLOR_ANCHOR + offset] = FIGURE_COLOR;
       tile += 1;
     }
   }
 
   // Seed the primary actor record and its mirrored twin to identical start values.
-  mem.write8(ACTOR_TILE, 9);
-  mem.write8(TWIN_TILE, 9);
-  mem.write8(ACTOR_X, 0);
-  mem.write8(TWIN_X, 0);
-  mem.write8(0x810c, 0); // primary state byte
-  mem.write8(0x811d, 0); // twin state byte
-  mem.write8(0x8117, 0); // primary sub-state
-  mem.write8(0x8128, 0); // twin sub-state
-  mem.write8(ACTOR_TIMER, 180); // primary countdown, ~3 seconds
-  mem.write8(0x8123, 180); // twin countdown
-  mem.write8(0x811a, 6); // primary per-record constant
-  mem.write8(0x812b, 7); // twin per-record constant (one higher)
+  mem8[ACTOR_TILE] = 9;
+  mem8[TWIN_TILE] = 9;
+  mem8[ACTOR_X] = 0;
+  mem8[TWIN_X] = 0;
+  mem8[0x810c] = 0; // primary state byte
+  mem8[0x811d] = 0; // twin state byte
+  mem8[0x8117] = 0; // primary sub-state
+  mem8[0x8128] = 0; // twin sub-state
+  mem8[ACTOR_TIMER] = 180; // primary countdown, ~3 seconds
+  mem8[0x8123] = 180; // twin countdown
+  mem8[0x811a] = 6; // primary per-record constant
+  mem8[0x812b] = 7; // twin per-record constant (one higher)
 
   // Start phase: a low-bit slice of the shared state byte staggers the first action.
-  const startPhase = 7 - (mem.read8(LEVEL) & 0x06);
-  mem.write8(0x8118, startPhase); // primary
-  mem.write8(0x8129, startPhase); // twin
+  const startPhase = 7 - (mem8[LEVEL] & 0x06);
+  mem8[0x8118] = startPhase; // primary
+  mem8[0x8129] = startPhase; // twin
 
   // Hand off to the record-to-sprite copier: it stages both freshly-seeded records
   // into the sprite buffer. Its effect is memory-only, and this is a tail hand-off,

@@ -38,13 +38,13 @@ import { ACTOR_TIMER } from "./ram.js";
 import { loc_3968 } from "./loc_3968.js";
 
 export function loc_3945(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Count the period-8 cadence timer down one tick, wrapping as the 8-bit counter
   // does, then reload it to a full period of 8 on the single tick it runs out.
-  const counter = mem.read8(ACTOR_TIMER);
+  const counter = mem8[ACTOR_TIMER];
   const ticked = counter === 0 ? 255 : counter - 1;
-  mem.write8(ACTOR_TIMER, ticked === 0 ? 8 : ticked);
+  mem8[ACTOR_TIMER] = ticked === 0 ? 8 : ticked;
 
   // Run the phase body on the freshly-updated timer; its return is ours.
   return loc_3968(m);

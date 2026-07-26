@@ -49,46 +49,48 @@ const initialsAddr = (rank) => TABLE_TOP + RANK_STRIDE * (rank - 1);
 const scoreAddr = (rank) => initialsAddr(rank) + 3;
 
 /** Slide one rank's whole record (score + all three initials) down to a lower rank. */
-function shiftRankDown(mem, fromRank, toRank) {
-  mem.write16(scoreAddr(toRank), mem.read16(scoreAddr(fromRank)));
+function shiftRankDown(m, fromRank, toRank) {
+  const { mem8, mem16 } = m;
+  mem16[scoreAddr(toRank)] = mem16[scoreAddr(fromRank)];
   const from = initialsAddr(fromRank);
   const to = initialsAddr(toRank);
-  mem.write8(to, mem.read8(from));
-  mem.write8(to + 1, mem.read8(from + 1));
-  mem.write8(to + 2, mem.read8(from + 2));
+  mem8[to] = mem8[from];
+  mem8[to + 1] = mem8[from + 1];
+  mem8[to + 2] = mem8[from + 2];
 }
 
 /** Settle the candidate at a rank: write its score, record the rank, blank the initials. */
-function landScoreAt(mem, rank, score) {
-  mem.write16(scoreAddr(rank), score);
-  mem.write8(LANDED_RANK, rank);
+function landScoreAt(m, rank, score) {
+  const { mem8, mem16 } = m;
+  mem16[scoreAddr(rank)] = score;
+  mem8[LANDED_RANK] = rank;
   const init = initialsAddr(rank);
-  mem.write8(init, INITIALS_PLACEHOLDER);
-  mem.write8(init + 1, INITIALS_PLACEHOLDER);
-  mem.write8(init + 2, INITIALS_PLACEHOLDER);
+  mem8[init] = INITIALS_PLACEHOLDER;
+  mem8[init + 1] = INITIALS_PLACEHOLDER;
+  mem8[init + 2] = INITIALS_PLACEHOLDER;
 }
 
 export function insertHighScore(m) {
-  const { mem } = m;
-  const candidate = (mem.read8(CANDIDATE_HI) << 8) | mem.read8(CANDIDATE_LO);
+  const { mem8, mem16 } = m;
+  const candidate = (mem8[CANDIDATE_HI] << 8) | mem8[CANDIDATE_LO];
 
   // Must strictly beat the lowest entry to make the table at all.
-  if (candidate <= mem.read16(scoreAddr(3))) return;
+  if (candidate <= mem16[scoreAddr(3)]) return;
 
   // Beats rank 3. If it does not also beat rank 2, it settles at the bottom rank.
-  if (candidate <= mem.read16(scoreAddr(2))) {
-    landScoreAt(mem, 3, candidate);
+  if (candidate <= mem16[scoreAddr(2)]) {
+    landScoreAt(m, 3, candidate);
     return;
   }
 
   // Beats rank 2: the old rank-2 entry drops to rank 3, then test the top.
-  shiftRankDown(mem, 2, 3);
-  if (candidate <= mem.read16(scoreAddr(1))) {
-    landScoreAt(mem, 2, candidate);
+  shiftRankDown(m, 2, 3);
+  if (candidate <= mem16[scoreAddr(1)]) {
+    landScoreAt(m, 2, candidate);
     return;
   }
 
   // Beats rank 1 (the top): the old top drops to rank 2 and the candidate takes the crown.
-  shiftRankDown(mem, 1, 2);
-  landScoreAt(mem, 1, candidate);
+  shiftRankDown(m, 1, 2);
+  landScoreAt(m, 1, candidate);
 }

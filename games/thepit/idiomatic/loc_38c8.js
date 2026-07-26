@@ -60,29 +60,29 @@ const FIGURE_COLOUR = 151;
 const CELL_OFFSETS = [-32, -31, 0, 1, -96, -95, -64, -63];
 
 export function loc_38c8(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // While the actor is still in the high half of the field, keep it moving.
-  if (mem.read8(ACTOR_X) >= 128) return loc_3945(m);
+  if (mem8[ACTOR_X] >= 128) return loc_3945(m);
 
   // The actor ran off the low edge: rebuild the primary body and its shadow twin.
-  mem.write8(ACTOR_X, 240); // coordinate parked back at the start edge
-  mem.write8(TWIN_X, (240 + 16) % 256); // twin trails 16 ahead, wrapping to 0
-  mem.write8(ACTOR_Y, 31); // primary starting row
-  mem.write8(TWIN_CLEAR, 31); // twin's matching row
-  mem.write8(TWIN_TILE, 42);
-  mem.write8(ACTOR_TILE, 43);
-  mem.write8(0x810e, 0); // two primary-only record fields (no confirmed name)
-  mem.write8(0x810f, 1);
-  mem.write8(ACTOR_TIMER, 1); // cadence timer, armed to fire next tick
-  mem.write8(PRIMARY_PAIRED, PAIRED_DISPLAY);
-  mem.write8(TWIN_PAIRED, PAIRED_DISPLAY);
+  mem8[ACTOR_X] = 240; // coordinate parked back at the start edge
+  mem8[TWIN_X] = (240 + 16) % 256; // twin trails 16 ahead, wrapping to 0
+  mem8[ACTOR_Y] = 31; // primary starting row
+  mem8[TWIN_CLEAR] = 31; // twin's matching row
+  mem8[TWIN_TILE] = 42;
+  mem8[ACTOR_TILE] = 43;
+  mem8[0x810e] = 0; // two primary-only record fields (no confirmed name)
+  mem8[0x810f] = 1;
+  mem8[ACTOR_TIMER] = 1; // cadence timer, armed to fire next tick
+  mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
+  mem8[TWIN_PAIRED] = PAIRED_DISPLAY;
 
   // Re-stamp the actor's eight-cell figure into the display.
   let tile = FIRST_TILE;
   for (const offset of CELL_OFFSETS) {
-    mem.write8(VIDEO_ANCHOR + offset, tile);
-    mem.write8(COLOUR_ANCHOR + offset, FIGURE_COLOUR);
+    mem8[VIDEO_ANCHOR + offset] = tile;
+    mem8[COLOUR_ANCHOR + offset] = FIGURE_COLOUR;
     tile += 1;
   }
 }

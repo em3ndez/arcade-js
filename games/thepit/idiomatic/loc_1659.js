@@ -42,12 +42,12 @@ const REFERENCE = 0x806c; // moving reference point the object's column is measu
 const MOTION_FLAG = 0x8075; // 0 at rest, else the high-bit marker the action dispatch reads as moving
 
 export function loc_1659(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
   // Re-express the column as an offset from the reference point (wraps within a
   // byte) and store it back in place.
-  const offset = (mem.read8(OBJ_X) - mem.read8(REFERENCE)) & 0xff;
-  mem.write8(OBJ_X, offset);
+  const offset = (mem8[OBJ_X] - mem8[REFERENCE]) & 0xff;
+  mem8[OBJ_X] = offset;
 
   // The walk cycle: an 8-step phase taken off the offset, biased by 3 so the frame
   // flips at the right travel point. Phase 0 is the rest point.
@@ -55,11 +55,11 @@ export function loc_1659(m) {
 
   // At rest only on phase 0; otherwise mark "in motion" with the high bit set, which
   // the object-action dispatcher tests as a negative marker.
-  mem.write8(MOTION_FLAG, phase === 0 ? 0 : 0xff);
+  mem8[MOTION_FLAG] = phase === 0 ? 0 : 0xff;
 
   // Two-frame walk: the sprite code steps to its odd neighbour on the half of the
   // cycle where phase bit 1 is set, back to the even code otherwise.
-  mem.write8(SPRITE_CODE, phase & 2 ? 0xb3 : 0xb2);
+  mem8[SPRITE_CODE] = phase & 2 ? 0xb3 : 0xb2;
 
   // Hand the phase forward and build the object's deferral record. loc_1b5b writes
   // the four record bytes straight to RAM and consumes nothing from E, so the phase

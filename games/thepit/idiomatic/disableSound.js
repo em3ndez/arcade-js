@@ -25,5 +25,5 @@
 export function disableSound(m) {
   // Drive the sound-enable control line low. Only the low bit of the datum reaches
   // the latch, so a plain 0 clears it.
-  m.mem.write8(0xb003, 0);
+  m.mem8[0xb003] = 0;
 }

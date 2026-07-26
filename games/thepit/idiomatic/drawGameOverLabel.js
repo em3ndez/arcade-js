@@ -62,11 +62,11 @@ const FILL_ATTR = 0x8057;
 const GAME_OVER_SOURCE = 0x49a5;
 
 export function drawGameOverLabel(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // The label's first character sits at screen column 1, row 12.
-  mem.write8(TILE_COL, 1);
-  mem.write8(TILE_ROW, 12);
+  mem8[TILE_COL] = 1;
+  mem8[TILE_ROW] = 12;
 
   // Turn that tile cell into its tilemap offset, then into the colour-RAM (0x805e)
   // and video-RAM (0x8060) write cursors.
@@ -74,8 +74,8 @@ export function drawGameOverLabel(m) {
   deriveTileWriteCursors(m);
 
   // Colour attribute for the label, and the nine-row run shared by copy and fill.
-  mem.write8(FILL_ATTR, 6);
-  mem.write8(PLOT_RUN_LENGTH, 9);
+  mem8[FILL_ATTR] = 6;
+  mem8[PLOT_RUN_LENGTH] = 9;
 
   // Copy the nine "GAME OVER" glyphs down the video column. The copy helper (ROM 0x3dea)
   // is still the frozen oracle: it reads its source from the pointer register and returns

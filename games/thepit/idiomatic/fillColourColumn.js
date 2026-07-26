@@ -36,18 +36,18 @@
 
 import { PLOT_RUN_LENGTH } from "./ram.js";
 export function fillColourColumn(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
-  const cursor = mem.read16(0x805e); // address of the column's top colour cell
-  const count = mem.read8(PLOT_RUN_LENGTH); // how many cells to paint down the column
-  const colour = mem.read8(0x8057); // the colour byte to stamp into each cell
+  const cursor = mem16[0x805e]; // address of the column's top colour cell
+  const count = mem8[PLOT_RUN_LENGTH]; // how many cells to paint down the column
+  const colour = mem8[0x8057]; // the colour byte to stamp into each cell
 
   // Zero means a full 256-cell run (the count is tested only after the first paint).
   const rows = count === 0 ? 256 : count;
 
   let cell = cursor;
   for (let i = 0; i < rows; i++) {
-    mem.write8(cell, colour);
+    mem8[cell] = colour;
     cell += 32; // one screen row down = 32 cells along the 32-cell-wide map
   }
 }

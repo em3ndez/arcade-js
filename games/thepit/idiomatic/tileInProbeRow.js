@@ -43,24 +43,24 @@
  *           named there; 0x34fe is the ROM probe table.
  */
 export function tileInProbeRow(m) {
-  const { mem } = m;
+  const { mem8, mem16 } = m;
 
   // Which 32-tile row of the probe table to search (chosen by the object's phase).
-  const rowSelector = mem.read8(0x808d);
+  const rowSelector = mem8[0x808d];
 
   // The tile to test lives at the object's probe-cell tilemap pointer.
-  let probeCell = mem.read16(0x8089);
+  let probeCell = mem16[0x8089];
 
   // At the phase where the object straddles a cell boundary, sample one cell back —
   // the cell being entered, not the one being left.
-  const subRow = mem.read8(0x8086);
+  const subRow = mem8[0x8086];
   if ((subRow + 5) % 8 === 0) probeCell = probeCell - 1;
-  const tile = mem.read8(probeCell);
+  const tile = mem8[probeCell];
 
   // Scan this phase's 32-tile row for that tile.
   const rowBase = 0x34fe + rowSelector; // ROM probe table, 32 bytes per phase row
   for (let i = 0; i < 32; i++) {
-    if (mem.read8(rowBase + i) === tile) return true; // tile is in the row
+    if (mem8[rowBase + i] === tile) return true; // tile is in the row
   }
   return false; // tile is not in the row
 }

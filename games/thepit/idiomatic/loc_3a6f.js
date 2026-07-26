@@ -74,23 +74,23 @@ const SINGULAR_LABEL = { source: 0x49ae, run: 9 };
 /** Stamp one count field: its digit tile, its (col,row) cell, and its label run.
  *  `copyReturn` is the address the still-oracle glyph-run copy pops on its way back. */
 function stampCountField(m, cell, count, col, copyReturn) {
-  const { mem } = m;
-  mem.write8(cell, count); // the digit tile is the count itself
-  mem.write8(TILE_COL, col);
-  mem.write8(TILE_ROW, 12);
+  const { mem8 } = m;
+  mem8[cell] = count; // the digit tile is the count itself
+  mem8[TILE_COL] = col;
+  mem8[TILE_ROW] = 12;
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
 
   // Nonzero -> plural label; zero -> singular label.
   const label = count === 0 ? SINGULAR_LABEL : PLURAL_LABEL;
-  mem.write8(PLOT_RUN_LENGTH, label.run);
+  mem8[PLOT_RUN_LENGTH] = label.run;
   m.regs.ix = label.source; // the glyph-run source the still-oracle copy reads
   m.push16(copyReturn);
   m.call(0x3dea);
 }
 
 export function loc_3a6f(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
   // ── 1. Fixed furniture ──────────────────────────────────────────────────────
   // Blank the screen + run the variant-0 board setup (still oracle, returns via stack).
@@ -122,12 +122,12 @@ export function loc_3a6f(m) {
 
   // ── 2. HUD records ──────────────────────────────────────────────────────────
   // A fixed marker cell, then its label run and colour.
-  mem.write8(0x928c, 1);
-  mem.write8(TILE_COL, 12);
-  mem.write8(TILE_ROW, 13);
+  mem8[0x928c] = 1;
+  mem8[TILE_COL] = 12;
+  mem8[TILE_ROW] = 13;
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
-  mem.write8(PLOT_RUN_LENGTH, 6);
+  mem8[PLOT_RUN_LENGTH] = 6;
   regs.ix = 0x49b0; // the marker's glyph-run source
   m.push16(0x3ab2);
   m.call(0x3dea);
@@ -137,22 +137,22 @@ export function loc_3a6f(m) {
   m.call(0x3e1d);
 
   // First count field (DSW value 0x804c), at column 14.
-  const countA = mem.read8(DSW_COUNT_A);
+  const countA = mem8[DSW_COUNT_A];
   stampCountField(m, 0x928e, countA, 14, 0x3aed);
   // When the count is exactly one, patch the cell above to the singular-form glyph.
-  if (countA === 1) mem.write8(0x918e, 0x24);
+  if (countA === 1) mem8[0x918e] = 0x24;
   regs.a = 14; // colour column for this field
   regs.c = 7;
   m.push16(0x3b02);
   m.call(0x3e1d);
 
   // A second fixed marker cell, then its label run and colour.
-  mem.write8(0x9292, 2);
-  mem.write8(TILE_COL, 18);
-  mem.write8(TILE_ROW, 12);
+  mem8[0x9292] = 2;
+  mem8[TILE_COL] = 18;
+  mem8[TILE_ROW] = 12;
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
-  mem.write8(PLOT_RUN_LENGTH, 7);
+  mem8[PLOT_RUN_LENGTH] = 7;
   regs.ix = 0x49b1; // the marker's glyph-run source
   m.push16(0x3b26);
   m.call(0x3dea);
@@ -162,7 +162,7 @@ export function loc_3a6f(m) {
   m.call(0x3e1d);
 
   // Second count field (DSW value 0x804d), at column 20. No singular patch here.
-  const countB = mem.read8(DSW_COUNT_B);
+  const countB = mem8[DSW_COUNT_B];
   stampCountField(m, 0x9294, countB, 20, 0x3b61);
   regs.a = 20; // colour column for this field
   regs.c = 3;
@@ -170,7 +170,7 @@ export function loc_3a6f(m) {
   m.call(0x3e1d);
 
   // ── 3. Hold the intro, cycling the accent colour ────────────────────────────
-  mem.write8(HOLD_COUNTER, HOLD_PASSES);
+  mem8[HOLD_COUNTER] = HOLD_PASSES;
   let remaining;
   do {
     // Advance the shared colour index one step and repaint the accent band (oracle).
@@ -182,8 +182,8 @@ export function loc_3a6f(m) {
     m.push16(0x3b77);
     waitFrames(m, HOLD_FRAMES);
 
-    remaining = (mem.read8(HOLD_COUNTER) - 1) & 0xff;
-    mem.write8(HOLD_COUNTER, remaining);
+    remaining = (mem8[HOLD_COUNTER] - 1) & 0xff;
+    mem8[HOLD_COUNTER] = remaining;
   } while (remaining !== 0);
 
   return m.ret();

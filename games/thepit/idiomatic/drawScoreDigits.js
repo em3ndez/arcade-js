@@ -49,28 +49,28 @@ const OTHER_SCORE_COLUMN = 0x90c1;
 const ROW = 32; // one tile-map row down the column
 
 export function drawScoreDigits(m) {
-  const { regs, mem } = m;
+  const { regs, mem8 } = m;
 
   // Active player picks which score column to repaint.
-  const base = mem.read8(GAME_STATE2) === 1 ? P1_SCORE_COLUMN : OTHER_SCORE_COLUMN;
+  const base = mem8[GAME_STATE2] === 1 ? P1_SCORE_COLUMN : OTHER_SCORE_COLUMN;
 
   // Low pair: the two lower-order digits, always drawn (no blanking).
-  const low = mem.read8(0x8031);
-  mem.write8(base, low & 0x0f); // least significant digit
-  mem.write8(base + ROW, low >> 4); // next digit up
+  const low = mem8[0x8031];
+  mem8[base] = low & 0x0f; // least significant digit
+  mem8[base + ROW] = low >> 4; // next digit up
 
   // High pair: the two leading digits, with leading-zero blanking.
-  const high = mem.read8(0x8034);
+  const high = mem8[0x8034];
   const leadDigit = high >> 4;
   const secondDigit = high & 0x0f;
 
   // Most significant digit: a zero here is a leading zero, so blank it.
-  mem.write8(base + 3 * ROW, leadDigit === 0 ? BLANK_TILE : leadDigit);
+  mem8[base + 3 * ROW] = leadDigit === 0 ? BLANK_TILE : leadDigit;
 
   // Second digit: blank it only when the whole high pair is zero; otherwise a zero
   // here follows a shown leading digit and is a genuine "0".
   const secondCell = secondDigit === 0 && leadDigit === 0 ? BLANK_TILE : secondDigit;
-  mem.write8(base + 2 * ROW, secondCell);
+  mem8[base + 2 * ROW] = secondCell;
 
   // Hand the column base back — the HUD-redraw caller reads it to blank the cells above.
   regs.ix = base;

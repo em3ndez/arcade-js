@@ -29,7 +29,7 @@
  *           are its register inputs at the oracle boundary, not named work RAM.
  */
 export function loc_4785(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
   // One tilemap row is 32 bytes, so "up one cell in a column" steps back 32.
   const ROW = 32;
@@ -38,7 +38,7 @@ export function loc_4785(m) {
   let source = 0x4acb;
   let cell = 0x93fe;
   for (let i = 0; i < 32; i++) {
-    mem.write8(cell, mem.read8(source));
+    mem8[cell] = mem8[source];
     source += 1;
     cell -= ROW;
   }

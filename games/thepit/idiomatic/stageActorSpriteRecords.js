@@ -47,15 +47,15 @@ const SPRITE_Y_OFFSET = 0x8051;
  * the fourth (the record's Y) with the shared offset added (kept to a byte).
  */
 function stageRecord(m, srcBase, destSlot, yOffset) {
-  const { mem } = m;
-  mem.write8(destSlot, mem.read8(srcBase));
-  mem.write8(destSlot + 1, mem.read8(srcBase + 1));
-  mem.write8(destSlot + 2, mem.read8(srcBase + 2));
-  mem.write8(destSlot + 3, mem.read8(srcBase + 3) + yOffset);
+  const { mem8 } = m;
+  mem8[destSlot] = mem8[srcBase];
+  mem8[destSlot + 1] = mem8[srcBase + 1];
+  mem8[destSlot + 2] = mem8[srcBase + 2];
+  mem8[destSlot + 3] = mem8[srcBase + 3] + yOffset;
 }
 
 export function stageActorSpriteRecords(m) {
-  const yOffset = m.mem.read8(SPRITE_Y_OFFSET);
+  const yOffset = m.mem8[SPRITE_Y_OFFSET];
   stageRecord(m, ACTOR_X, ACTOR_SPRITE_SLOT, yOffset); // primary body
   stageRecord(m, TWIN_X, TWIN_SPRITE_SLOT, yOffset); // shadow twin
 }

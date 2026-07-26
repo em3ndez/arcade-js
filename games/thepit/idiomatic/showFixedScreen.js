@@ -52,7 +52,7 @@ const SCREEN_CELLS = 1024; // the whole 32x32 tilemap / colour RAM (0x9000..0x93
 const SCREEN_ATTRIBUTE = 147; // the one flat colour attribute painted across the whole screen
 
 export function showFixedScreen(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // 1. Blank the screen to the neutral background, then let a frame pass.
   //    0x4b44 is still the frozen oracle and returns through the work stack, so seed
@@ -64,12 +64,12 @@ export function showFixedScreen(m) {
 
   // 2. Stamp the prebuilt full-screen tile image over the blanked tilemap.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem.write8(VIDEO_RAM_BASE + cell, mem.read8(SCREEN_IMAGE_SOURCE + cell));
+    mem8[VIDEO_RAM_BASE + cell] = mem8[SCREEN_IMAGE_SOURCE + cell];
   }
 
   // 3. Tint the entire display one flat colour.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem.write8(COLOR_RAM_BASE + cell, SCREEN_ATTRIBUTE);
+    mem8[COLOR_RAM_BASE + cell] = SCREEN_ATTRIBUTE;
   }
 
   // 4. Hold the finished screen for 160 frames. This is a tail call: the frame-wait's

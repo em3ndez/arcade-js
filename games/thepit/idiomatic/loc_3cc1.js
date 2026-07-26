@@ -67,7 +67,7 @@ import { loc_47a1 } from "./loc_47a1.js";
 const FILL_ATTR = 0x8057;
 
 export function loc_3cc1(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
   // 1. The panel skeleton: the fixed left edge column, then both players' score HUD.
   loc_46f4(m);
@@ -75,25 +75,25 @@ export function loc_3cc1(m) {
 
   // 2a. First labelled run: 15 glyphs at column 7, row 9, one colour attribute.
   seatCell(m, 7, 9);
-  mem.write8(FILL_ATTR, 0xa5);
-  mem.write8(PLOT_RUN_LENGTH, 15);
+  mem8[FILL_ATTR] = 0xa5;
+  mem8[PLOT_RUN_LENGTH] = 15;
   copyGlyphsDown(m, 0x497b, 0x3ce8); // ROM label strip
   fillColourColumn(m); // tint the 15 cells
 
   // 2b. Second run at column 9, row 13: one glyph from the live game-state byte, then
   //     seven cells beneath it, the eight of them tinted one colour.
   seatCell(m, 9, 13);
-  mem.write8(FILL_ATTR, 0xa5);
-  mem.write8(PLOT_RUN_LENGTH, 1);
+  mem8[FILL_ATTR] = 0xa5;
+  mem8[PLOT_RUN_LENGTH] = 1;
   copyGlyphsDown(m, GAME_STATE2, 0x3d0c); // one dynamic indicator glyph
-  mem.write8(PLOT_RUN_LENGTH, 7);
+  mem8[PLOT_RUN_LENGTH] = 7;
   fillStripDown(m, 0x49b1, 0x3d18); // a fixed cap byte, then a second ROM strip
-  mem.write8(PLOT_RUN_LENGTH, 8);
+  mem8[PLOT_RUN_LENGTH] = 8;
   fillColourColumn(m); // tint all eight cells
 
   // 2c. Third labelled run: 15 glyphs at column 13, row 9, then a colour-column accent.
   seatCell(m, 13, 9);
-  mem.write8(PLOT_RUN_LENGTH, 15);
+  mem8[PLOT_RUN_LENGTH] = 15;
   copyGlyphsDown(m, 0x49f7, 0x3d3c); // ROM label strip
   paintColourRamColumn(m, 13, 0xa3); // colour column 13, attribute 0xa3
 
@@ -107,8 +107,8 @@ export function loc_3cc1(m) {
 
 /** Seat the tile cursor at (column, row) and derive its colour-RAM / video-RAM write cursors. */
 function seatCell(m, column, row) {
-  m.mem.write8(TILE_COL, column);
-  m.mem.write8(TILE_ROW, row);
+  m.mem8[TILE_COL] = column;
+  m.mem8[TILE_ROW] = row;
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
 }

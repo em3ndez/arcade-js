@@ -54,11 +54,11 @@ const FLIP_TILE_A = 56;
 const FLIP_TILE_B = 57;
 
 export function loc_2fc0(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Tick the phase countdown (an 8-bit down-counter, so it wraps 0 -> 255).
-  const phase = (mem.read8(0x80e3) - 1 + 256) % 256;
-  mem.write8(0x80e3, phase);
+  const phase = (mem8[0x80e3] - 1 + 256) % 256;
+  mem8[0x80e3] = phase;
 
   if (phase !== 0) {
     // Countdown still running.
@@ -71,8 +71,8 @@ export function loc_2fc0(m) {
   }
 
   // Countdown expired: reload it and flip the shimmer tile to its other code.
-  mem.write8(0x80e3, 8);
-  const tile = mem.read8(0x80dc);
+  mem8[0x80e3] = 8;
+  const tile = mem8[0x80dc];
   m.regs.a = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
 
   // Hand the chosen tile to the commit tail; its return goes to our caller, so this

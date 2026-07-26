@@ -40,31 +40,31 @@ import { seedActorSpawnState } from "./seedActorSpawnState.js";
 
 import { LEVEL } from "./ram.js";
 export function loc_30de(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
-  mem.write8(0x80e9, 9);
-  mem.write8(0x80e8, 236);
-  mem.write8(0x80eb, 35);
-  mem.write8(0x80ea, 4);
-  mem.write8(0x80f5, 1);
-  mem.write8(0x80f0, 1);
-  mem.write8(0x80f8, 4);
+  mem8[0x80e9] = 9;
+  mem8[0x80e8] = 236;
+  mem8[0x80eb] = 35;
+  mem8[0x80ea] = 4;
+  mem8[0x80f5] = 1;
+  mem8[0x80f0] = 1;
+  mem8[0x80f8] = 4;
 
   // Difficulty-scaled pair: read the round's level/difficulty counter, keep only its
   // two low-order selector bits (leaving 0, 2, 4, or 6), and subtract from seven so
   // the pair steps down 7, 5, 3, 1 as difficulty climbs. Both mirrored slots get it.
-  const difficultyStep = 7 - (mem.read8(LEVEL) & 0x06);
-  mem.write8(0x80f6, difficultyStep);
-  mem.write8(0x8107, difficultyStep);
+  const difficultyStep = 7 - (mem8[LEVEL] & 0x06);
+  mem8[0x80f6] = difficultyStep;
+  mem8[0x8107] = difficultyStep;
 
   // More fixed start values.
-  mem.write8(0x80fa, 9);
-  mem.write8(0x80fb, 4);
-  mem.write8(0x80f9, 0);
-  mem.write8(0x8106, 0);
-  mem.write8(0x8101, 1);
-  mem.write8(0x8109, 5);
+  mem8[0x80fa] = 9;
+  mem8[0x80fb] = 4;
+  mem8[0x80f9] = 0;
+  mem8[0x8106] = 0;
+  mem8[0x8101] = 1;
+  mem8[0x8109] = 5;
 
   // Tail hand-off into seedActorSpawnState; its return goes to our caller, so this
   // is loc_30de's exit.

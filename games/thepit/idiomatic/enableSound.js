@@ -31,5 +31,5 @@
 export function enableSound(m) {
   // Pull the master sound-enable line high. Each control-latch address carries one
   // line and takes the low bit of the written value, so storing 1 turns sound on.
-  m.mem.write8(0xb003, 1);
+  m.mem8[0xb003] = 1;
 }

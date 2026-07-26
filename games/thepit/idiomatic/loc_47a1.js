@@ -36,7 +36,7 @@
  */
 
 export function loc_47a1(m) {
-  const { mem, regs } = m;
+  const { mem8, regs } = m;
 
   // One tilemap row is 32 cells, so "up one cell in a column" steps back 32.
   const ROW = 32;
@@ -45,7 +45,7 @@ export function loc_47a1(m) {
   let source = 0x8282;
   let cell = 0x93bf;
   for (let i = 0; i < 28; i++) {
-    mem.write8(cell, mem.read8(source));
+    mem8[cell] = mem8[source];
     source += 1;
     cell -= ROW;
   }
@@ -60,16 +60,16 @@ export function loc_47a1(m) {
 
   // Accent the base colour with three 3-cell bands, each painted upward from its own
   // bottom cell; the bands sit 7 rows apart.
-  paintColourBand(mem, 0x8b9f, 6); // rows 26..28
-  paintColourBand(mem, 0x8a7f, 4); // rows 17..19
-  paintColourBand(mem, 0x895f, 7); // rows 8..10
+  paintColourBand(mem8, 0x8b9f, 6); // rows 26..28
+  paintColourBand(mem8, 0x8a7f, 4); // rows 17..19
+  paintColourBand(mem8, 0x895f, 7); // rows 8..10
 }
 
 /** Write `colour` into three colour cells starting at `bottom` and stepping upward one row at a time. */
-function paintColourBand(mem, bottom, colour) {
+function paintColourBand(mem8, bottom, colour) {
   let cell = bottom;
   for (let i = 0; i < 3; i++) {
-    mem.write8(cell, colour);
+    mem8[cell] = colour;
     cell -= 32; // step up one row = one cell up the column
   }
 }

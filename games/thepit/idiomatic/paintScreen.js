@@ -58,7 +58,7 @@ const SCREEN_CELLS = 1024; // the whole 32x32 grid (0x9000..0x93ff, 0x8800..0x8b
 const ANIMATION_COUNTER = 0x805c; // armed to 1 to start the per-frame cell recolour cycle
 
 export function paintScreen(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Let a frame pass so the prior display setup takes, then copy the selected tile
   // image over the whole tilemap. The frame-wait returns through the work stack, so
@@ -66,9 +66,9 @@ export function paintScreen(m) {
   m.push16(0x0678);
   waitFrames(m, 1);
 
-  const tileImage = (mem.read8(LEVEL) & 1) === 1 ? TILE_IMAGE_A : TILE_IMAGE_B;
+  const tileImage = (mem8[LEVEL] & 1) === 1 ? TILE_IMAGE_A : TILE_IMAGE_B;
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem.write8(VIDEO_RAM_BASE + cell, mem.read8(tileImage + cell));
+    mem8[VIDEO_RAM_BASE + cell] = mem8[tileImage + cell];
   }
 
   // Let another frame pass, then tint the tile image with the fixed colour map.
@@ -76,7 +76,7 @@ export function paintScreen(m) {
   waitFrames(m, 1);
 
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
-    mem.write8(COLOR_RAM_BASE + cell, mem.read8(COLOR_IMAGE + cell));
+    mem8[COLOR_RAM_BASE + cell] = mem8[COLOR_IMAGE + cell];
   }
 
   // Stamp the two fixed edge columns and repaint the score HUD over the new screen.
@@ -85,7 +85,7 @@ export function paintScreen(m) {
   loc_47a1(m); // right edge column
 
   // Arm the cell-animation counter so the per-frame recolour cycle begins.
-  mem.write8(ANIMATION_COUNTER, 1);
+  mem8[ANIMATION_COUNTER] = 1;
 
   // Model the return to the still-oracle caller through the balanced work stack.
   return m.ret();

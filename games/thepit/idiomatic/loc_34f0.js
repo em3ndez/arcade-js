@@ -42,10 +42,10 @@ export function loc_34f0(m) {
   // A fresh generator draw, forced into the upper half of the byte range (high
   // bit set, so 128..255), becomes this cycle's random/animation seed.
   const seed = advanceRandom(m) | 0x80;
-  m.mem.write8(ANIM_RAND, seed);
+  m.mem8[ANIM_RAND] = seed;
 
   // Re-arm the actor state/timer byte to its fixed restart value.
-  m.mem.write8(ACTOR_STATE, 9);
+  m.mem8[ACTOR_STATE] = 9;
 
   // The oracle leaves the accumulator holding this value; match it in case a
   // caller reads it back.

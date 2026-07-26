@@ -68,37 +68,37 @@ const BLOCK_ROWS = 4;
 const BLOCK_COLS = 2;
 
 export function spawnAltPhaseActor(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
-  const phase = mem.read8(SPAWN_PHASE);
+  const phase = mem8[SPAWN_PHASE];
 
   // Already alive: skip the spawn, just animate this frame.
   if (phase === ACTIVE) return loc_384a(m);
 
   // First frame. The start row comes from the spawn sub-phase.
   const startRow = phase === 2 ? 22 : 23;
-  mem.write8(ACTOR_Y, startRow);
-  mem.write8(TWIN_CLEAR, startRow); // twin mirrors the primary's row
+  mem8[ACTOR_Y] = startRow;
+  mem8[TWIN_CLEAR] = startRow; // twin mirrors the primary's row
 
   // Mark the actor live so later frames animate, and play the spawn sound.
-  mem.write8(SPAWN_PHASE, ACTIVE);
+  mem8[SPAWN_PHASE] = ACTIVE;
   requestSound7(m);
 
   // Seed the primary + shadow-twin records.
-  mem.write8(ACTOR_X, START_COLUMN);
-  mem.write8(TWIN_X, START_COLUMN + SHADOW_COLUMN_OFFSET);
-  mem.write8(ACTOR_TILE, PRIMARY_TILE);
-  mem.write8(TWIN_TILE, SHADOW_TILE);
-  mem.write8(ACTOR_TIMER, 1); // cadence timer, armed
-  mem.write8(PRIMARY_PAIRED, PAIRED_DISPLAY);
-  mem.write8(TWIN_PAIRED, PAIRED_DISPLAY);
+  mem8[ACTOR_X] = START_COLUMN;
+  mem8[TWIN_X] = START_COLUMN + SHADOW_COLUMN_OFFSET;
+  mem8[ACTOR_TILE] = PRIMARY_TILE;
+  mem8[TWIN_TILE] = SHADOW_TILE;
+  mem8[ACTOR_TIMER] = 1; // cadence timer, armed
+  mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
+  mem8[TWIN_PAIRED] = PAIRED_DISPLAY;
 
   // Stamp the opening tile+colour block into the display, growing upward from the anchor.
   for (let row = 0; row < BLOCK_ROWS; row++) {
     const up = row * TILEMAP_ROW;
     for (let col = 0; col < BLOCK_COLS; col++) {
-      mem.write8(VIDEO_ANCHOR - up + col, BLOCK_TILE);
-      mem.write8(COLOUR_ANCHOR - up + col, BLOCK_COLOUR);
+      mem8[VIDEO_ANCHOR - up + col] = BLOCK_TILE;
+      mem8[COLOUR_ANCHOR - up + col] = BLOCK_COLOUR;
     }
   }
 

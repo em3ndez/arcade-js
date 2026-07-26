@@ -35,11 +35,11 @@
  *           (0x9800-0x983F), sprite RAM (0x9840-0x985F), spare (0x9860-0x98FF).
  */
 export function clearSpriteAndAttributeRam(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Zero the attribute/column-scroll RAM, the eight sprite slots, and the spare
   // bytes above them — the low half of the 0x9800 block (0x9800-0x987F).
-  for (let i = 0; i < 128; i++) mem.write8(0x9800 + i, 0);
+  for (let i = 0; i < 128; i++) mem8[0x9800 + i] = 0;
 
   return m.ret();
 }

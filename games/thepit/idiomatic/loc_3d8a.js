@@ -60,11 +60,11 @@ const FILL_COLOUR = 0x8057;
 const GLYPH_SOURCE = 0x49a5;
 
 export function loc_3d8a(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Target cell of the strip: column 6, row 12.
-  mem.write8(TILE_COL, 6);
-  mem.write8(TILE_ROW, 12);
+  mem8[TILE_COL] = 6;
+  mem8[TILE_ROW] = 12;
 
   // Turn (row, col) into the tilemap offset, then into the colour-RAM and video-RAM
   // write cursors for that cell.
@@ -72,8 +72,8 @@ export function loc_3d8a(m) {
   deriveTileWriteCursors(m);
 
   // Stage the nine-cell run: paint it colour 6, nine cells tall.
-  mem.write8(FILL_COLOUR, 6);
-  mem.write8(PLOT_RUN_LENGTH, 9);
+  mem8[FILL_COLOUR] = 6;
+  mem8[PLOT_RUN_LENGTH] = 9;
 
   // Copy the nine glyphs down the video column from the descending ROM table. This
   // helper is not decompiled yet, so it stays a registry hand-off and takes its source

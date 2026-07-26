@@ -57,8 +57,8 @@ const INDEX_HOME = 10; // the index/blank byte's home value, re-seated after a c
 const HOLD_FRAMES = 20; // frames to hold after a committed move before returning
 
 export function loc_4eea(m) {
-  const { regs, mem } = m;
-  const actionBits = mem.read8(IN0_DEBOUNCED);
+  const { regs, mem8 } = m;
+  const actionBits = mem8[IN0_DEBOUNCED];
 
   // First-match-wins over the low five action bits, tested in priority order.
   if (actionBits & 0x01) { regs.c = loc_4f26(m, regs.c); return m.ret(); } // step index down
@@ -71,18 +71,18 @@ export function loc_4eea(m) {
   const blankCode = regs.c; // the caller's blank code, stamped over the vacated cells
   const objectCode = regs.b; // the object's tile code, redrawn at its new position
 
-  mem.write8(regs.hl, blankCode); // blank the top cell
-  mem.write8(regs.ix, blankCode); // blank the cell one row below
+  mem8[regs.hl] = blankCode; // blank the top cell
+  mem8[regs.ix] = blankCode; // blank the cell one row below
 
   regs.hl = regs.hl - TILEMAP_ROW; // top cursor up one row
   regs.de = regs.de - TILEMAP_ROW; // parallel-plane cursor up one row
   regs.ix = regs.ix + 1;
   regs.c = INDEX_HOME; // re-seat the index/blank byte for the caller's next pass
 
-  mem.write8(regs.de, objectCode); // redraw the object one row up in the parallel plane
+  mem8[regs.de] = objectCode; // redraw the object one row up in the parallel plane
 
-  mem.write8(STEP_COUNTER, mem.read8(STEP_COUNTER) - 1); // count this move off
-  mem.write8(FRAME_COUNTER, 0); // restart the frame counter
+  mem8[STEP_COUNTER] = mem8[STEP_COUNTER] - 1; // count this move off
+  mem8[FRAME_COUNTER] = 0; // restart the frame counter
 
   requestSound16(m); // play the move sound
   return waitFrames(m, HOLD_FRAMES); // hold the fixed number of frames, then return to the caller

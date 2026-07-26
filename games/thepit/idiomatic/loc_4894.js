@@ -77,11 +77,11 @@ const VALUE_SOURCE = 0x8000;
 const LABEL_SOURCE = 0x496d;
 
 export function loc_4894(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Target cell of the panel: column 6, row 10.
-  mem.write8(TILE_COL, 6);
-  mem.write8(TILE_ROW, 10);
+  mem8[TILE_COL] = 6;
+  mem8[TILE_ROW] = 10;
 
   // Turn (row, col) into the tilemap offset for the cell.
   rowColToTileOffset(m);
@@ -90,12 +90,12 @@ export function loc_4894(m) {
   deriveTileWriteCursors(m);
 
   // The colour the follow-on colour fill will paint the label run in.
-  mem.write8(FILL_ATTR, 150);
+  mem8[FILL_ATTR] = 150;
 
   // Top field: copy one cell from the live work-RAM value down the video column. The
   // copy helper is still the oracle — it reads its source from IX and returns through
   // the stack, so its IX load and return-address push stay.
-  mem.write8(PLOT_RUN_LENGTH, 1);
+  mem8[PLOT_RUN_LENGTH] = 1;
   m.regs.ix = VALUE_SOURCE; // the source pointer the copy helper reads
   m.push16(0x48b5);
   m.call(0x3dea);
@@ -103,7 +103,7 @@ export function loc_4894(m) {
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
   // down the same video column from where the value left off. The fill helper is still
   // the oracle — same IX-source + stack-return convention.
-  mem.write8(PLOT_RUN_LENGTH, 8);
+  mem8[PLOT_RUN_LENGTH] = 8;
   m.regs.ix = LABEL_SOURCE; // the source pointer the fill helper reads
   m.push16(0x48c1);
   m.call(0x3ddb);

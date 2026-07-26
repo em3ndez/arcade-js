@@ -33,14 +33,14 @@ const BIAS = 0x8051; // the end-bias, held in the dip-switch parameter block
 const PROBE_MID = 0x806a; // middle byte of the object's probe block (unnamed field)
 
 export function loc_1b5b(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
-  const bias = mem.read8(BIAS);
+  const bias = mem8[BIAS];
 
   // Copy the object's probe block into the record, pushing the ends apart by the bias.
   // Each store truncates to a byte, so the two biased ends wrap.
-  mem.write8(RECORD, mem.read8(OBJ_X) - bias); // leading: column, bias removed
-  mem.write8(RECORD + 1, mem.read8(SPRITE_CODE)); // sprite/animation code, copied through
-  mem.write8(RECORD + 2, mem.read8(PROBE_MID)); // probe-block middle byte, copied through
-  mem.write8(RECORD + 3, mem.read8(OBJ_Y) + bias); // trailing: row, bias added
+  mem8[RECORD] = mem8[OBJ_X] - bias; // leading: column, bias removed
+  mem8[RECORD + 1] = mem8[SPRITE_CODE]; // sprite/animation code, copied through
+  mem8[RECORD + 2] = mem8[PROBE_MID]; // probe-block middle byte, copied through
+  mem8[RECORD + 3] = mem8[OBJ_Y] + bias; // trailing: row, bias added
 }

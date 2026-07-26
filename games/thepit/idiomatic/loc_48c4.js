@@ -39,19 +39,19 @@ import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 
 export function loc_48c4(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Nine cells tall — the length the column fill will paint.
-  mem.write8(PLOT_RUN_LENGTH, 9);
+  mem8[PLOT_RUN_LENGTH] = 9;
 
   // Advance the colour one step, but never let bit 3 turn on: the value cycles
   // through the palette codes that keep that bit clear.
-  const color = mem.read8(BOARD_MODE);
-  mem.write8(BOARD_MODE, (color + 1) & 0xf7);
+  const color = mem8[BOARD_MODE];
+  mem8[BOARD_MODE] = (color + 1) & 0xf7;
 
   // Aim at the fixed target cell: column 6, row 10.
-  mem.write8(TILE_COL, 6);
-  mem.write8(TILE_ROW, 10);
+  mem8[TILE_COL] = 6;
+  mem8[TILE_ROW] = 10;
 
   // (column,row) -> tilemap offset -> that cell's colour + video write cursors.
   rowColToTileOffset(m);

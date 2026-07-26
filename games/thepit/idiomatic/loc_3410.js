@@ -37,15 +37,15 @@
 import { F_Z } from "../../../core/cpu/z80.js";
 
 export function loc_3410(m) {
-  const { regs, mem } = m;
+  const { regs, mem8, mem16 } = m;
 
   // Which 32-byte row to scan, and where in ROM it starts.
-  const rowIndex = mem.read8(0x808d);
+  const rowIndex = mem8[0x808d];
   const rowBase = 0x35fe + rowIndex;
 
   // The key: the tile code one cell past the object's current display cell.
-  const cellPtr = mem.read16(0x8089);
-  const key = mem.read8(cellPtr + 1);
+  const cellPtr = mem16[0x8089];
+  const key = mem8[cellPtr + 1];
 
   // Walk up to 32 bytes, stopping at the first match. The cursor lands one byte
   // past the matched cell on a hit, or at the row's end when nothing matched —
@@ -53,7 +53,7 @@ export function loc_3410(m) {
   let cursor = rowBase;
   let matched = false;
   for (let i = 0; i < 32; i++) {
-    const hit = mem.read8(cursor) === key;
+    const hit = mem8[cursor] === key;
     cursor += 1;
     if (hit) {
       matched = true;

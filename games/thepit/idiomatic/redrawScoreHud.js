@@ -54,7 +54,7 @@ const SECOND_COLUMN_BOTTOM = 0x8961;
 const SECOND_COLUMN_CELLS = 10;
 
 export function redrawScoreHud(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Copy a selected player's saved state into the shared display slot at 0x8028.
   // 0x4644 is still the frozen oracle, so it returns through the stack — hand it its
@@ -65,26 +65,26 @@ export function redrawScoreHud(m) {
   };
 
   // Remember the active player; the per-player sweep reselects each slot in turn.
-  const activePlayer = mem.read8(GAME_STATE2);
+  const activePlayer = mem8[GAME_STATE2];
 
   // Player 1 then player 2: refresh the score column and clear the cells above it.
   for (const [player, stateCopyReturn] of [[1, 0x4738], [2, 0x474b]]) {
-    mem.write8(GAME_STATE2, player);
+    mem8[GAME_STATE2] = player;
     copySelectedPlayerState(stateCopyReturn);
     drawScoreDigits(m); // repaint the four digits; hands the score-column base back in ix
     const columnBase = m.regs.ix;
-    mem.write8(columnBase - ROW, 0); // blank the cell one row above the score
-    mem.write8(columnBase - 2 * ROW, 0); // and the cell two rows above
+    mem8[columnBase - ROW] = 0; // blank the cell one row above the score
+    mem8[columnBase - 2 * ROW] = 0; // and the cell two rows above
   }
 
   // Reselect the active player and re-copy its state for the downstream HUD work.
-  mem.write8(GAME_STATE2, activePlayer);
+  mem8[GAME_STATE2] = activePlayer;
   copySelectedPlayerState(0x475d);
 
   // Draw the status label from the player count. Both label routines are idiomatic but
   // tail-return through the stack (their leaf helpers are still the oracle), so each is
   // handed the return slot the oracle would push for it.
-  const players = mem.read8(GAME_MODE);
+  const players = mem8[GAME_MODE];
   if (players === 1 || players === 2) {
     m.push16(0x4768);
     loc_47e1(m); // in-game status panel
@@ -96,12 +96,12 @@ export function redrawScoreHud(m) {
   // Tint colour 2 up the two HUD colour columns, bottom cell upward, one row apart.
   let cell = FIRST_COLUMN_BOTTOM;
   for (let i = 0; i < FIRST_COLUMN_CELLS; i++) {
-    mem.write8(cell, HUD_COLOUR);
+    mem8[cell] = HUD_COLOUR;
     cell -= ROW;
   }
   cell = SECOND_COLUMN_BOTTOM;
   for (let i = 0; i < SECOND_COLUMN_CELLS; i++) {
-    mem.write8(cell, HUD_COLOUR);
+    mem8[cell] = HUD_COLOUR;
     cell -= ROW;
   }
 

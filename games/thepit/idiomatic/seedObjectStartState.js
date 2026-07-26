@@ -33,20 +33,20 @@
 import { OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, CLIMB_GATE, NEXT_TILE } from "./ram.js";
 
 export function seedObjectStartState(m) {
-  const { mem } = m;
+  const { mem8 } = m;
 
   // Park the tracked-object probe at its start position and set the default sprite.
-  mem.write8(OBJ_X, 0); // start column — left edge
-  mem.write8(OBJ_Y, 35); // start row
-  mem.write8(SPRITE_CODE, 50); // default sprite / animation code
+  mem8[OBJ_X] = 0; // start column — left edge
+  mem8[OBJ_Y] = 35; // start row
+  mem8[SPRITE_CODE] = 50; // default sprite / animation code
 
   // Fixed non-zero start values for the block's counters.
-  mem.write8(0x806a, 2);
-  mem.write8(0x806c, 1);
-  mem.write8(0x806d, 1);
-  mem.write8(0x8070, 1);
-  mem.write8(0x8071, 5);
-  mem.write8(0x8073, 25);
+  mem8[0x806a] = 2;
+  mem8[0x806c] = 1;
+  mem8[0x806d] = 1;
+  mem8[0x8070] = 1;
+  mem8[0x8071] = 5;
+  mem8[0x8073] = 25;
 
   // Everything else in the block starts empty: the spawn-phase flag, the
   // vertical-move gate, the unnamed status bytes, and the tile-classifier scratch.
@@ -55,6 +55,6 @@ export function seedObjectStartState(m) {
     SPAWN_PHASE, 0x807c, 0x807d, 0x807e, 0x807f, CLIMB_GATE, 0x8081, 0x8082,
     0x80a2, 0x80a4, 0x80a7, NEXT_TILE,
   ]) {
-    mem.write8(addr, 0);
+    mem8[addr] = 0;
   }
 }

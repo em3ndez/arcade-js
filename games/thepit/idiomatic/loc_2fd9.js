@@ -32,7 +32,7 @@
  */
 export function loc_2fd9(m) {
   // Store the caller's just-chosen flip tile into the background-animation cell.
-  m.mem.write8(0x80dc, m.regs.a);
+  m.mem8[0x80dc] = m.regs.a;
 
   // Tail hand-off into the shared animation-update tail; its return goes to our
   // caller, so this is loc_2fd9's exit.
