@@ -1,0 +1,191 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * loc_3a6f — paint the round-setup screen (playfield furniture + two HUD count
+ * records) and hold it briefly while a colour band cycles.  ROM 0x3a6f.
+ *
+ * Run once when a round is (re)started — from the reset epilogue and from the
+ * per-player teardown. It builds the static screen the player sees at the start of a
+ * round in three passes:
+ *
+ *   1. Lay down the fixed furniture: blank the screen and run the variant-0 board
+ *      setup, draw the left furniture column, redraw the score HUD, colour a column,
+ *      paint two fixed text panels, then paint one full playfield column and two
+ *      edge columns.
+ *   2. Stamp four HUD records into the tilemap, each a small on-screen field with its
+ *      own tile run and colour:
+ *        - a fixed marker cell, then
+ *        - a COUNT field showing DSW-derived value 0x804c: its digit tile is that
+ *          value, its glyph run is the plural label when the count is nonzero and a
+ *          shorter singular label when it is zero, and when the count is exactly one
+ *          a cell just above it is patched to a special glyph (the singular form),
+ *        - a second fixed marker cell, then
+ *        - a second COUNT field showing DSW value 0x804d with the same plural/singular
+ *          label rule (this field has no singular patch).
+ *   3. Hold the finished screen for thirty passes; each pass advances the shared
+ *      colour index one step (cycling the accent band that tints the setup screen)
+ *      and waits fifteen video frames, so the intro lingers about 450 frames.
+ *
+ * Several callees are still the frozen oracle (the blank/setup 0x4b44, the two colour
+ * fills 0x3e1d, the glyph-run copy 0x3dea, the colour-cycle step 0x3e13). Each returns
+ * through the work stack, so it is handed the return address it pops, at the point the
+ * original code left it. Callees that are already idiomatic are called directly; the
+ * ones that model their own return through the stack (the HUD redraw, the two column
+ * paints, the frame wait) are likewise handed the return address they consume, while
+ * the ones that return in plain JS are just called.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-3a6f.test.js.
+ * GATE:     crafted-entry — the real boot dispatch (0x804c=1, 0x804d=2) plus a sweep
+ *           poking 0x804c in {0,1,2} and 0x804d in {0,2} identically on both sides to
+ *           reach both count-label arms and the singular-glyph patch; RAM diff outside
+ *           the stack-scratch window (pc/SP/registers excluded per the contract). The
+ *           thirty frame-waits are driven by one identical per-frame tick hook on both
+ *           sides. Reached at round setup (loc_03ac, loc_0371), not per-frame attract.
+ * LIVE-OUT: memory-only — the painted playfield + HUD tiles (video RAM), their colour
+ *           columns (colour RAM), the two count records and the singular patch, and the
+ *           hold counter 0x800a drained to 0. Nothing reads a register back afterward.
+ * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH from ram.js. 0x804c / 0x804d (the two
+ *           DSW-derived HUD counts, still unnamed) and the video/record cells (0x928c,
+ *           0x928e, 0x9292, 0x9294, 0x918e) are kept hex.
+ */
+
+import { loc_46f4 } from "./loc_46f4.js";
+import { redrawScoreHud } from "./redrawScoreHud.js";
+import { loc_3d49 } from "./loc_3d49.js";
+import { loc_3d8a } from "./loc_3d8a.js";
+import { loc_492a } from "./loc_492a.js";
+import { loc_4785 } from "./loc_4785.js";
+import { loc_47a1 } from "./loc_47a1.js";
+import { rowColToTileOffset } from "./rowColToTileOffset.js";
+import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
+import { waitFrames } from "./waitFrames.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+
+const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
+const HOLD_FRAMES = 15; // video frames each hold pass waits
+const HOLD_COUNTER = 0x800a; // where the hold count is stored + drained to 0
+const DSW_COUNT_A = 0x804c; // first DSW-derived HUD count
+const DSW_COUNT_B = 0x804d; // second DSW-derived HUD count
+
+// Glyph-run source pointers and lengths for a count field's label. A nonzero count
+// gets the longer "plural" run; a zero count gets the shorter "singular" run.
+const PLURAL_LABEL = { source: 0x496c, run: 7 };
+const SINGULAR_LABEL = { source: 0x49ae, run: 9 };
+
+/** Stamp one count field: its digit tile, its (col,row) cell, and its label run.
+ *  `copyReturn` is the address the still-oracle glyph-run copy pops on its way back. */
+function stampCountField(m, cell, count, col, copyReturn) {
+  const { mem } = m;
+  mem.write8(cell, count); // the digit tile is the count itself
+  mem.write8(TILE_COL, col);
+  mem.write8(TILE_ROW, 12);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
+
+  // Nonzero -> plural label; zero -> singular label.
+  const label = count === 0 ? SINGULAR_LABEL : PLURAL_LABEL;
+  mem.write8(PLOT_RUN_LENGTH, label.run);
+  m.regs.ix = label.source; // the glyph-run source the still-oracle copy reads
+  m.push16(copyReturn);
+  m.call(0x3dea);
+}
+
+export function loc_3a6f(m) {
+  const { mem, regs } = m;
+
+  // ── 1. Fixed furniture ──────────────────────────────────────────────────────
+  // Blank the screen + run the variant-0 board setup (still oracle, returns via stack).
+  m.push16(0x3a72);
+  m.call(0x4b44);
+
+  loc_46f4(m); // draw the left furniture column
+
+  m.push16(0x3a78);
+  redrawScoreHud(m); // repaint the score HUD (returns through the stack)
+
+  // Colour a column: the fill helper is still oracle, so hand it its inputs and the
+  // return it pops.
+  regs.a = 1; // which colour column to fill
+  regs.c = 2; // the colour byte
+  m.push16(0x3a7f);
+  m.call(0x3e1d);
+
+  loc_3d49(m); // fixed text panel at column 1
+  loc_3d8a(m); // fixed vertical strip at column 6
+
+  m.push16(0x3a88);
+  loc_492a(m); // one full playfield column (tail-returns through the stack)
+
+  m.push16(0x3a8b);
+  loc_4785(m); // left edge column (tail-returns through the stack)
+
+  loc_47a1(m); // right edge column
+
+  // ── 2. HUD records ──────────────────────────────────────────────────────────
+  // A fixed marker cell, then its label run and colour.
+  mem.write8(0x928c, 1);
+  mem.write8(TILE_COL, 12);
+  mem.write8(TILE_ROW, 13);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
+  mem.write8(PLOT_RUN_LENGTH, 6);
+  regs.ix = 0x49b0; // the marker's glyph-run source
+  m.push16(0x3ab2);
+  m.call(0x3dea);
+  regs.a = 12; // colour column for the marker
+  regs.c = 7; // colour byte
+  m.push16(0x3ab9);
+  m.call(0x3e1d);
+
+  // First count field (DSW value 0x804c), at column 14.
+  const countA = mem.read8(DSW_COUNT_A);
+  stampCountField(m, 0x928e, countA, 14, 0x3aed);
+  // When the count is exactly one, patch the cell above to the singular-form glyph.
+  if (countA === 1) mem.write8(0x918e, 0x24);
+  regs.a = 14; // colour column for this field
+  regs.c = 7;
+  m.push16(0x3b02);
+  m.call(0x3e1d);
+
+  // A second fixed marker cell, then its label run and colour.
+  mem.write8(0x9292, 2);
+  mem.write8(TILE_COL, 18);
+  mem.write8(TILE_ROW, 12);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
+  mem.write8(PLOT_RUN_LENGTH, 7);
+  regs.ix = 0x49b1; // the marker's glyph-run source
+  m.push16(0x3b26);
+  m.call(0x3dea);
+  regs.a = 18; // colour column for the marker
+  regs.c = 3; // colour byte
+  m.push16(0x3b2d);
+  m.call(0x3e1d);
+
+  // Second count field (DSW value 0x804d), at column 20. No singular patch here.
+  const countB = mem.read8(DSW_COUNT_B);
+  stampCountField(m, 0x9294, countB, 20, 0x3b61);
+  regs.a = 20; // colour column for this field
+  regs.c = 3;
+  m.push16(0x3b68);
+  m.call(0x3e1d);
+
+  // ── 3. Hold the intro, cycling the accent colour ────────────────────────────
+  mem.write8(HOLD_COUNTER, HOLD_PASSES);
+  let remaining;
+  do {
+    // Advance the shared colour index one step and repaint the accent band (oracle).
+    regs.a = 6; // which colour column the cycle step repaints
+    m.push16(0x3b72);
+    m.call(0x3e13);
+
+    // Hold the screen for a spell.
+    regs.a = HOLD_FRAMES;
+    m.push16(0x3b77);
+    waitFrames(m);
+
+    remaining = (mem.read8(HOLD_COUNTER) - 1) & 0xff;
+    mem.write8(HOLD_COUNTER, remaining);
+  } while (remaining !== 0);
+
+  return m.ret();
+}
