@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_18cf — the tile-boundary "collect a scoring tile" arm of the actor-movement dispatch.  ROM 0x18cf.
+ * collectLootTile — collect the scoring loot tile the actor has aligned onto: award its
+ * points, play the pickup sound, bump that loot kind's count, and blank the tile so it is
+ * removed from the playfield (delegates to the dig-arm otherwise).  ROM 0x18cf.
  *
  * Reached from the walk-animation step (loc_186f) once it decides the tile under the
  * actor may be worth collecting. It acts only on the final sub-step before the actor
@@ -35,8 +37,8 @@
  * NAMES:    ACTOR_CELL_PTR from ram.js. The two per-kind pickup counters 0x8081/0x8082,
  *           the second kind's enable flag 0x8076, its one-shot latch 0x8078, and the
  *           latch's guard 0x80bd stay hex — their roles are clear here but not yet
- *           grounded across the game. Kept the neutral loc_18cf name for the same reason
- *           (candidate: collectScoringTile), matching its sibling loc_191f.
+ *           grounded across the game. Named collectLootTile after the loot tiles it
+ *           collects, matching its sibling loc_191f.
  */
 
 import { ACTOR_CELL_PTR, SPAWN_STATE, FEATURE_TILE_LATCH } from "./ram.js";
@@ -52,7 +54,7 @@ const SECOND_TILE_LATCH = 0x8078; // one-shot latch that opens the second pickup
 
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup
 
-export function loc_18cf(m, tileCode = m.regs.b, positionAccumulator = m.regs.e) {
+export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.regs.e) {
   const { mem8, mem16 } = m;
 
   // Collect only on the final sub-step before the actor crosses into a new tile

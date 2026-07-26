@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_18cf (ROM 0x18cf) — the tile-boundary "collect a scoring
+ * Memory-equivalence gate for collectLootTile (ROM 0x18cf) — the tile-boundary "collect a scoring
  * tile" arm of the actor-movement dispatch. On the final sub-step before the actor crosses
  * into a new tile column it collects two kinds of scoring tile (tile 58 -> +10, tiles 59..61
  * -> +20, the latter gated by an enable flag and a one-shot latch with a guard), awarding
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_18cf as oracle } from "../../translated/loc_18cf.js";
-import { loc_18cf as idiomatic } from "../loc_18cf.js";
+import { collectLootTile as idiomatic } from "../collectLootTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import { ACTOR_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
@@ -146,7 +146,7 @@ test("IDENTITY: the harness reaches 0x18cf in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_18cf leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: collectLootTile leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(400, 3000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 

@@ -3,7 +3,7 @@
  * loc_191f — classify the tile under a digging actor and stage its reaction.  ROM 0x191f.
  *
  * The dig-arm of the actor-movement classifier, reached from its tile-boundary sibling
- * (loc_18cf) once that arm declines the tile it found. It takes the tile code currently
+ * (collectLootTile) once that arm declines the tile it found. It takes the tile code currently
  * under the actor, the actor's position accumulator (whose low 3 bits are the sub-cell
  * offset within the tile column), and the pointer to the actor's current cell, and
  * sorts the tile code into one of four outcomes:

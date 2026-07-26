@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for loc_3984 (ROM 0x3984) — the pending-spawn init of a
+ * Equivalence gate for spawnTwinActor (ROM 0x3984) — the pending-spawn init of a
  * two-body actor (figure + twin).
  *
- * loc_3984 stamps an eight-cell tile block into video+colour RAM, seeds a primary
+ * spawnTwinActor stamps an eight-cell tile block into video+colour RAM, seeds a primary
  * actor record and its mirrored twin, then hands off to stageActorSpriteRecords
  * (ROM 0x3a4c) to stage both records into the sprite buffer. Its contract is
  * OBSERVABLE MEMORY: the tile+colour block, the two seeded records, and the two
@@ -28,7 +28,7 @@
  * ~173 times — most with no pending spawn (early-return) and two with a pending
  * request that run the full spawn body. Both classes are replayed.
  *
- *   1. EQUAL — for every captured dispatch, run oracle vs loc_3984 on independent
+ *   1. EQUAL — for every captured dispatch, run oracle vs spawnTwinActor on independent
  *      clones of the same entry state and diff RAM + pc + SP; all must be identical.
  *      Asserts at least one body-run capture is present, so the spawn body (and the
  *      dissolved hand-off) is actually exercised.
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3984 as oracle } from "../../translated/loc_3984.js";
-import { loc_3984 as idiomatic } from "../loc_3984.js";
+import { spawnTwinActor as idiomatic } from "../spawnTwinActor.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -129,7 +129,7 @@ function contractDiffs(entry, fn) {
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL: loc_3984 == oracle (RAM + pc + SP) on every captured attract dispatch", () => {
+test("EQUAL: spawnTwinActor == oracle (RAM + pc + SP) on every captured attract dispatch", () => {
   assert.ok(captures.length > 0, `0x3984 was never dispatched in ${FRAMES} attract frames`);
   assert.ok(
     bodyRuns() > 0,

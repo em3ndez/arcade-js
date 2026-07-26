@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_06ac — advance the cell-animation countdown and recolour the one fixed
- * screen cell it selects this frame.  ROM 0x06ac.
+ * glitterDiamonds — cycle the colour of the on-screen diamond cells so they glitter:
+ * each frame advance one diamond cell's colour attribute through the palette; a diamond
+ * that has been collected drops out of the set and holds a fixed colour.  ROM 0x06ac.
  *
  * A free-running countdown at 0x805c runs 8 → 7 → ... → 1 and reloads to 8 when it
  * reaches 0, so it repeats on a fixed eight-frame period. Each value it passes
@@ -53,7 +54,7 @@ function recolorCell(m, colourCell, tileCell, animatingGlyph, restingColor) {
   }
 }
 
-export function loc_06ac(m) {
+export function glitterDiamonds(m) {
   const { mem8 } = m;
 
   // Step the countdown one and store it back; the value it now holds selects the

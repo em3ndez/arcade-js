@@ -3,7 +3,7 @@
  * loc_38c8 — per-frame gate for the two-body actor: keep it moving while it is in the
  * high half of the field, otherwise rebuild it at the start edge and redraw.  ROM 0x38c8.
  *
- * A sibling of spawnAltPhaseActor (0x37cf) and loc_3984 — the same actor family, the
+ * A sibling of spawnAltPhaseActor (0x37cf) and spawnTwinActor — the same actor family, the
  * same 2-wide x 4-tall tile figure anchored at the same display cell. Each frame this
  * routine looks at the actor's coordinate and forks:
  *

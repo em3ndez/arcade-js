@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3984 — spawn/initialise a two-body actor (a drawn figure plus its twin),
- * gated on a pending-spawn request.  ROM 0x3984.
+ * spawnTwinActor — spawn the two-body (primary + twin) actor once when its spawn is
+ * due: paint its tile+colour figure, seed both object records, and stage its sprite
+ * records for the move/animate driver.  ROM 0x3984.
  *
  * A sibling of loc_37cf/loc_38c8: the same conditional one-shot spawn shape. It
  * only fires when this actor's slot is flagged as pending — a nonzero request byte
@@ -57,7 +58,7 @@ const FIGURE_COLS = 2;
 const FIRST_TILE = 0xa8;
 const FIGURE_COLOR = 0x93;
 
-export function loc_3984(m) {
+export function spawnTwinActor(m) {
   const { mem8 } = m;
 
   // Only spawn when this actor's slot is flagged pending; otherwise do nothing.

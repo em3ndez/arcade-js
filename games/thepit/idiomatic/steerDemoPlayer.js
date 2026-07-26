@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * classifyWallCollision — per-frame maze-wall classifier: works out which wall
- * segment the tracked object's probe point is touching and stores a one-of-four
- * direction code the movement dispatcher consumes.  ROM 0x03e8.
+ * steerDemoPlayer — generate the attract demo's per-frame steering: from the demo
+ * player's position, emit the one-of-four move direction (written where the joystick
+ * would go) that walks the auto-played digger along the maze walls.  ROM 0x03e8.
  *
  * The direction code (DIG_DIRS) is read by the movement dispatcher IN PLACE OF THE
  * JOYSTICK in the mode this routine runs in — the attract demo (loc_1420 selects
@@ -188,7 +188,7 @@ function classifyBands(m, probeX, probeY) {
   }
 }
 
-export function classifyWallCollision(m) {
+export function steerDemoPlayer(m) {
   const { mem8 } = m;
 
   // 1. Periodic HUD panel redraw when the frame counter has wrapped to zero.

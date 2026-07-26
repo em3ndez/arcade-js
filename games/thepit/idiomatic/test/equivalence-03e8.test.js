@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for classifyWallCollision (ROM 0x03e8, The Pit) — the
+ * Memory-equivalence gate for steerDemoPlayer (ROM 0x03e8, The Pit) — the
  * per-frame maze-wall collision classifier that writes the 4-way blocked-direction
  * bitmask (DIG_DIRS, 0x801b).
  *
@@ -8,7 +8,7 @@
  * whole-RAM + exit pc + SP byte-identity. That broke when the two painters this routine
  * reaches — loc_4894 (panel repaint) and loc_48c4 (column recolour) — were dissolved: their
  * inner layout/colour helpers (rowColToTileOffset, deriveTileWriteCursors, fillColourColumn)
- * are now DIRECT JS calls with no Z80 stack frame. classifyWallCollision itself is UNCHANGED
+ * are now DIRECT JS calls with no Z80 stack frame. steerDemoPlayer itself is UNCHANGED
  * — its two housekeeping arms still `push16` a Z80 return address and then call the painter —
  * but those push16 brackets are now unbalanced (no callee `ret` unwinds them), and the direct
  * JS helpers push no nested return addresses. Two by-construction divergences result, both
@@ -27,7 +27,7 @@
  *     EVERY pass and never reads the leftover pc/registers as data — the leftover SP/pc is
  *     discarded before anything consumes it. (0x03e8 is not even wired live yet — the manifest
  *     still dispatches it to the oracle.) So pc + SP are EXCLUDED, NOT re-aligned with a
- *     modelled ret: unlike the tail-call siblings (4894/4c5f), classifyWallCollision does its
+ *     modelled ret: unlike the tail-call siblings (4894/4c5f), steerDemoPlayer does its
  *     OWN final ret, so there is no tail return to model and the bracket-arm pc/SP cannot be
  *     lined up anyway. RAM-only, like equivalence-3968.test.js, plus the [SP-4,SP) exclusion.
  *
@@ -68,7 +68,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03e8 as oracle } from "../../translated/loc_03e8.js";
-import { classifyWallCollision as idiomatic } from "../classifyWallCollision.js";
+import { steerDemoPlayer as idiomatic } from "../steerDemoPlayer.js";
 import { loc_4894 as idiomaticPainter } from "../loc_4894.js";
 import { loc_48c4 as idiomaticRecolour } from "../loc_48c4.js";
 import { makeMachineFactory } from "../../machine.js";

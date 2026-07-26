@@ -190,7 +190,7 @@ export const REACTION_STATE = 0x80a2;
 export const GOAL_TILE_LATCH = 0x80e7;
 /** Latch set when the object's under-tile == 0x26 — a DISTINCT field from GOAL_TILE_LATCH's
  *  0x27 (the shared classify ladder loc_1568 records both adjacently, which is why the two
- *  look twinned). Gates the 0x3b-0x3d feature path (loc_18cf) and is cleared by a boundary
+ *  look twinned). Gates the 0x3b-0x3d feature path (collectLootTile) and is cleared by a boundary
  *  one-shot (loc_167f/loc_1493, alongside SPAWN_STATE). NOT part of the 0x27 goal path.
  *  ★ Proposer≠confirmer BOTH converged on the wrong tile (0x27); the adversarial review
  *  corrected it to 0x26 — why the third review is load-bearing even after convergence. (fair) */
