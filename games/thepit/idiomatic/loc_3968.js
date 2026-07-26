@@ -11,9 +11,10 @@
  *     new value plus 16 into the shadow twin; once the coordinate has dropped below
  *     193 it does nothing. So the coordinate eases downward and comes to rest at 192,
  *     with the twin trailing a constant 16 above it.
- *   - Every path finishes by handing off to the shared two-record builder at 0x3a4c
- *     (still the frozen oracle), which rebuilds the sprite records from these same
- *     two coordinates; its return carries through to this routine's own caller.
+ *   - Every path finishes by handing off to the shared two-record builder,
+ *     stageActorSpriteRecords, which rebuilds the sprite records from these same two
+ *     coordinates. That builder takes nothing and returns nothing, so this routine
+ *     returns nothing meaningful either.
  *
  * The name stays neutral: which actor this drives and whether the coordinate is a
  * screen X or Y are not pinned in the mechanism map, and the coordinate bytes it
@@ -24,15 +25,16 @@
  *           dispatches over 3000 frames, 96 on the step-down arm); swept over all
  *           65,536 (timer, coordinate) combinations so the below-limit and
  *           not-a-fourth-tick arms are covered too; plus teeth.
- * LIVE-OUT: memory-only — the coordinate (0x810a) and its twin (0x811b). The tail
- *           handoff to 0x3a4c overwrites every working register before reading one,
- *           so the registers this routine leaves are dead; the whole-machine gate
- *           backstops that.
+ * LIVE-OUT: memory-only — the coordinate (0x810a) and its twin (0x811b), plus the
+ *           two sprite records the tail builder stages from them. The value registers
+ *           this routine leaves are dead ABI (nothing downstream reads them before
+ *           overwriting them), and the whole-machine gate backstops that.
  * NAMES:    ACTOR_TIMER (0x8112, cadence timer), ACTOR_X (0x810a, the coordinate),
  *           TWIN_X (0x811b, the shadow twin) — all fair-confidence.
  */
 
 import { ACTOR_TIMER, ACTOR_X, TWIN_X } from "./ram.js";
+import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 export function loc_3968(m) {
   const { mem } = m;
@@ -49,6 +51,7 @@ export function loc_3968(m) {
     }
   }
 
-  // Hand off to the shared record builder (still the oracle); its return is ours.
-  return m.call(0x3a4c);
+  // Hand off to the shared record builder, which rebuilds the two sprite records
+  // from the coordinates just written. It takes nothing and returns nothing.
+  return stageActorSpriteRecords(m);
 }

@@ -14,27 +14,38 @@
  * strip is very likely the started-game status/HUD readout. That semantic role is not
  * yet confirmed to the naming bar, so the routine keeps its address name.
  *
- * The work is done by five shared plot helpers (0x3dae/0x3dc9/0x3dea/0x3ddb/0x3e01),
- * which are still the frozen oracle. This routine only seeds their scratch parameter
- * block (target cell, fill byte, run length, source pointer) and drives them in order;
- * the last one is a tail hand-off that returns straight to this routine's own caller.
+ * The work is done by five shared plot helpers. Three are now decompiled and called
+ * directly: rowColToTileOffset and deriveTileWriteCursors turn the target cell into a
+ * tilemap offset and the colour-/video-RAM write cursors, and fillColourColumn paints
+ * the closing colour column. Two are still the frozen oracle (0x3dea copies the top
+ * cell, 0x3ddb fills the seven-cell tile run); they read their source pointer from ix
+ * and are reached through the address registry with a return address staged for their
+ * own ret. This routine seeds their shared scratch parameter block (target cell, fill
+ * byte, run length, source pointer) and drives all five in order; the last one is a
+ * tail hand-off that returns straight to this routine's own caller.
  *
- * Memory-equivalent to the frozen oracle — equivalence-47e1.test.js.
+ * Memory-equivalent to the frozen oracle on the observable RAM — equivalence-47e1.test.js.
  * GATE:     crafted-entry — never reached in plain attract (the started-game HUD path),
  *           so a real captured attract state is given a clean call stack and run
- *           oracle-vs-idiomatic across a few secondary-state values. Teeth: a wrong
- *           fill byte and a corrupted output cell.
+ *           oracle-vs-idiomatic across a few secondary-state values. The three direct
+ *           calls drop the Z80 return-address pushes and the tail ret, so pc, SP and the
+ *           dead stack-scratch window below the entry SP legitimately differ and are
+ *           excluded; the painted work/colour/video RAM is compared byte-for-byte. Teeth:
+ *           a wrong fill byte and a corrupted output cell.
  * LIVE-OUT: memory-only — the painted tilemap / colour / video cells; no caller reads a
- *           returned register (the residual a=7, ix=0x49aa are dead ABI). The whole
- *           register file, sp and pc still match the oracle because every helper is the
- *           frozen oracle, driven through the same call linkage.
+ *           returned register (the residual registers are dead ABI). The two remaining
+ *           oracle helpers still marshal ix; the three decompiled helpers take no
+ *           register input, reading their scratch params straight from the block below.
  * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059), GAME_STATE2 (0x8002) from ram.js.
  *           Hex-kept: the plotter scratch params below (ram.js names 0x8057 BOARD_MODE
  *           for a different entry-select role, so it is not imported here); the ROM tile
- *           table; and the helper return addresses (call linkage to the frozen helpers).
+ *           table; and the two oracle helpers' return addresses (their call linkage).
  */
 
 import { TILE_COL, TILE_ROW, GAME_STATE2 } from "./ram.js";
+import { rowColToTileOffset } from "./rowColToTileOffset.js";
+import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
+import { fillColourColumn } from "./fillColourColumn.js";
 
 // The shared tile-plotter's scratch parameter block (0x8055-0x8060). These are the
 // plotter ABI the helpers below read, not game state, so they stay hex here.
@@ -47,30 +58,25 @@ const PANEL_TILE_TABLE = 0x49b1;
 export function loc_47e1(m) {
   const { regs, mem } = m;
 
-  // Aim the panel at tile column 1, row 12, then let the address helpers turn that
-  // cell into the tilemap offset (0x805a) and the colour-/video-RAM cursors that the
-  // paint helpers write through. Each helper is still the frozen oracle, so it is
-  // reached through the address registry with its return address staged for it —
-  // plain call linkage that dissolves once these helpers are decompiled too.
+  // Aim the panel at tile column 1, row 12, then turn that cell into the tilemap offset
+  // (0x805a) and the colour-/video-RAM write cursors the paint helpers write through.
   mem.write8(TILE_COL, 1);
   mem.write8(TILE_ROW, 12);
-  m.push16(0x47ee);
-  m.call(0x3dae); // (row, col) -> tilemap offset
-  m.push16(0x47f1);
-  m.call(0x3dc9); // tilemap offset -> colour-RAM + video-RAM write cursors
+  rowColToTileOffset(m); // (row, col) -> tilemap offset
+  deriveTileWriteCursors(m); // tilemap offset -> colour-RAM + video-RAM write cursors
 
   // Every run of the panel is painted with fill byte 7.
   mem.write8(PLOT_FILL_BYTE, 7);
 
   // Top cell: stamp the current secondary game-state byte as the panel's first tile
-  // (the helper copies one byte down the column from the source pointer).
+  // (the still-frozen helper copies one byte down the column from the source in ix).
   mem.write8(PLOT_RUN_LENGTH, 1);
   regs.ix = GAME_STATE2; // source: the byte at GAME_STATE2
   m.push16(0x4802);
   m.call(0x3dea);
 
   // Next seven cells: a fixed tile run out of the ROM table (its first cell takes the
-  // helper's own cap byte, the remaining cells walk the table backwards).
+  // still-frozen helper's own cap byte, the remaining cells walk the table backwards).
   mem.write8(PLOT_RUN_LENGTH, 7);
   regs.ix = PANEL_TILE_TABLE;
   m.push16(0x480e);
@@ -79,5 +85,5 @@ export function loc_47e1(m) {
   // Finally paint a nine-cell colour column with the fill byte, so the strip shares one
   // colour. This is a tail hand-off: the colour-paint helper returns to our own caller.
   mem.write8(PLOT_RUN_LENGTH, 9);
-  return m.call(0x3e01);
+  return fillColourColumn(m);
 }

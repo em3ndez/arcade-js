@@ -4,35 +4,42 @@
  * open-ground animation step: it re-expresses the object's column (0x8068) as an
  * offset from the reference point (0x806c), reads an 8-step walk phase off that
  * offset, sets the motion marker (0x8075) and the alternating sprite frame
- * (SPRITE_CODE), then tail-calls the record builder loc_1b5b.
+ * (SPRITE_CODE), then calls the record builder loc_1b5b directly.
  *
- * Two things make this gate wider than loc_1b5b's memory-only one:
- *   - It has a genuine REGISTER live-out. The oracle leaves the walk phase in E, and
- *     loc_1b5b (which this routine tail-calls) never touches E, so E survives to the
- *     classifier's caller. The gate therefore compares the full register file too
- *     (firstRegDiff), not just the state dump — an honest rewrite must reproduce E.
- *     loc_1b5b restores A/F/B/HL from memory identically on both arms, so those dead
- *     residuals do not false-fail here (verified: oracle-vs-oracle regs diff is null).
- *   - Attract never digs a moving object onto open ground, so 0x1659 is NOT dispatched
- *     naturally (measured: 0 dispatches in 1200 frames). This is the CRAFTED-ENTRY
- *     path — the routine reads only work RAM, so any real attract clone with its two
- *     inputs poked is a valid entry, and the object logic depends only on
- *     (column - reference) mod 256, which the sweep covers over all 256 offsets.
+ * OBSERVABLE-EQUIVALENCE CONTRACT. The idiomatic routine calls the already-decompiled
+ * loc_1b5b directly instead of routing through the Z80 registry. That drops the stack
+ * frame the oracle path carried: the oracle reaches loc_1b5b as a tail-jump whose ret
+ * pops the caller return address (SP += 2) and whose body clobbers A/F/B/HL, while the
+ * direct call touches none of them. Those residuals are all DEAD — nothing downstream
+ * reads them — so the gate compares OBSERVABLE state only: the full RAM dump plus the
+ * one genuine register live-out, the walk phase left in E. It excludes the dead value
+ * registers and SP (measured oracle-vs-idiomatic: a/f/h/l/sp differ, E and all RAM
+ * match). RAM is compared in full with no exclusion window: a tail-jump writes nothing
+ * to the stack (the ret only READS the return address), so no stack-scratch bytes ever
+ * differ — this is tighter than the sound-stub dissolve, which had a real CALL push to
+ * exclude.
+ *
+ * CRAFTED ENTRY. Attract never digs a moving object onto open ground, so 0x1659 is NOT
+ * dispatched naturally (measured: 0 dispatches in 1200 frames). The routine reads only
+ * work RAM, so any real attract clone with its two inputs poked is a valid entry, and
+ * the object logic depends only on (column - reference) mod 256, which the sweep covers
+ * over all 256 offsets.
  *
  * FIVE checks:
  *   1. EQUAL (real captured attract states) — clone the running attract machine at a
- *      spread of frames (genuine in-play RAM) and confirm state AND registers match
+ *      spread of frames (genuine in-play RAM) and confirm RAM AND the E live-out match
  *      the oracle. Proves it on real machine states, not just poked ones.
  *   2. EQUAL (offset sweep) — poke column/reference across all 256 offsets (every walk
  *      phase, the rest-point and moving branches, and the byte-wrap edge), identically
- *      on both arms; state and registers must match. This is the airtight evidence.
+ *      on both arms; RAM and E must match. This is the airtight evidence.
  *   3. NON-VACUOUS — pre-set the outputs (column, marker, sprite) and E to sentinels,
  *      then confirm every one is overwritten and both arms agree — a no-op twin cannot
  *      pass by the entry already holding the answer.
  *   4. TEETH (memory) — a twin that swaps the two sprite frames MUST be caught at
  *      SPRITE_CODE.
  *   5. TEETH (register) — a twin that drops the phase live-out (leaves E as it found it)
- *      MUST be caught by the register diff. Proves the register half of the gate bites.
+ *      MUST be caught by the E diff. Proves the register half of the gate still bites
+ *      after it narrowed from the whole file to the one live-out.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-1659.test.js
  */
@@ -43,8 +50,9 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1659 as oracle } from "../../translated/loc_1659.js";
 import { loc_1659 as idiomatic } from "../loc_1659.js";
+import { loc_1b5b } from "../loc_1b5b.js";
 import { makeMachineFactory } from "../../machine.js";
-import { firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
 import { OBJ_X, SPRITE_CODE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -81,9 +89,19 @@ function captureStates(count, stride, startFrame) {
 }
 
 /**
+ * The routine's ONLY register live-out is the walk phase in E. Compare exactly that,
+ * not the whole file: the dissolved direct call to loc_1b5b legitimately leaves the
+ * dead value registers (A/F/B/HL) and SP where the oracle's stack frame would have
+ * moved them. Returns null when E matches, else a {reg:"e", a, b} diff.
+ */
+function eDiff(a, b) {
+  return a.regs.e === b.regs.e ? null : { reg: "e", a: a.regs.e, b: b.regs.e };
+}
+
+/**
  * Run oracle and candidate on independent clones of `entry`; return the first differing
- * state byte and the first differing register (either null when identical). Both arms tail
- * through loc_1b5b, so the register comparison is apples-to-apples.
+ * state byte and the E live-out diff (either null when identical). RAM is diffed in full
+ * (no stack window to exclude — the oracle's tail-jump writes nothing to the stack).
  */
 function runDiff(entry, fn) {
   const a = entry.clone(); // oracle
@@ -91,7 +109,7 @@ function runDiff(entry, fn) {
   oracle(a);
   fn(b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  const regs = firstRegDiff(a.regs, b.regs);
+  const regs = eDiff(a, b);
   return { ram, regs };
 }
 
@@ -111,9 +129,9 @@ test("EQUAL: loc_1659 leaves the same state + registers as the oracle over real 
   for (const cap of caps) {
     const { ram, regs } = runDiff(cap, idiomatic);
     assert.equal(ram, null, ram && `RAM diff at ${hx(ram.addr ?? 0)}: oracle=${ram.a} idiomatic=${ram.b}`);
-    assert.equal(regs, null, regs && `register diff at ${regs.reg}: oracle=${regs.a} idiomatic=${regs.b}`);
+    assert.equal(regs, null, regs && `E diff: oracle=${regs.a} idiomatic=${regs.b}`);
   }
-  console.log(`  EQUAL: ${caps.length} real attract states — state + registers identical to the oracle`);
+  console.log(`  EQUAL: ${caps.length} real attract states — RAM + E live-out identical to the oracle`);
 });
 
 // -- 2. EQUAL over the full offset sweep (all 256 offsets) --------------------
@@ -129,11 +147,11 @@ test("EQUAL (sweep): every walk phase, both branches and the wrap edge match the
       // and the underflow wrap when x < ref.
       const { ram, regs } = runDiff(withInputs(base, x, ref), idiomatic);
       assert.equal(ram, null, ram && `x=${x} ref=${ref}: RAM diff at ${hx(ram.addr ?? 0)} oracle=${ram.a} idiomatic=${ram.b}`);
-      assert.equal(regs, null, regs && `x=${x} ref=${ref}: register diff at ${regs.reg} oracle=${regs.a} idiomatic=${regs.b}`);
+      assert.equal(regs, null, regs && `x=${x} ref=${ref}: E diff oracle=${regs.a} idiomatic=${regs.b}`);
       n++;
     }
   }
-  console.log(`  EQUAL/sweep: ${n} (column,reference) combinations — state + registers identical (all 256 offsets)`);
+  console.log(`  EQUAL/sweep: ${n} (column,reference) combinations — RAM + E live-out identical (all 256 offsets)`);
 });
 
 // -- 3. NON-VACUOUS: outputs + phase register are actually written ------------
@@ -158,9 +176,9 @@ test("NON-VACUOUS: with outputs + E pre-set to sentinels, every one is overwritt
   assert.notEqual(b.regs.e, E_SENTINEL, "idiomatic left the phase register (E) unwritten");
 
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  const regs = firstRegDiff(a.regs, b.regs);
+  const regs = eDiff(a, b);
   assert.equal(ram, null, ram && `RAM diff at ${hx(ram.addr ?? 0)}: oracle=${ram.a} idiomatic=${ram.b}`);
-  assert.equal(regs, null, regs && `register diff at ${regs.reg}: oracle=${regs.a} idiomatic=${regs.b}`);
+  assert.equal(regs, null, regs && `E diff: oracle=${regs.a} idiomatic=${regs.b}`);
   console.log("  NON-VACUOUS: marker, sprite code and phase register all overwritten from their sentinels; arms agree");
 });
 
@@ -175,7 +193,7 @@ function twinSpriteSwap(m) {
   mem.write8(MOTION_FLAG, phase === 0 ? 0 : 0xff);
   mem.write8(SPRITE_CODE, phase & 2 ? 0xb2 : 0xb3); // BUG: frames swapped
   regs.e = phase;
-  return m.call(0x1b5b);
+  return loc_1b5b(m);
 }
 
 test("TEETH (memory): a swapped-sprite twin is CAUGHT at SPRITE_CODE", () => {

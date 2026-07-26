@@ -19,9 +19,9 @@
  *     countdown timer of 180 frames, and a small per-record constant (6 primary,
  *     7 twin). The two records' start-phase bytes are set to 7 - (a low-bit slice
  *     of the shared state byte 0x8028), which staggers the actor's first action.
- *   - Hands off to loc_3a4c, which copies both freshly-seeded records into the
- *     live sprite/render list; its return goes straight back to this routine's
- *     caller (a tail hand-off, no return of our own).
+ *   - Hands off to stageActorSpriteRecords, which stages both freshly-seeded
+ *     records into the sprite buffer; that hand-off is this routine's last act
+ *     (a tail call, its result is our result).
  *
  * Memory-equivalent to the frozen oracle — equivalence-3984.test.js.
  * GATE:     captured-dispatch — every real 0x3984 entry in a 4000-frame attract run
@@ -47,6 +47,7 @@ import {
   TWIN_TILE,
   TWIN_CLEAR,
 } from "./ram.js";
+import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // The eight-cell figure: a 4-row x 2-col tile block. The anchor is its bottom-left
 // cell; rows sit one tilemap row (32 cells) above each other, tiles run 0xa8..0xaf.
@@ -98,6 +99,8 @@ export function loc_3984(m) {
   mem.write8(0x8118, startPhase); // primary
   mem.write8(0x8129, startPhase); // twin
 
-  // Hand off to the record-to-sprite copier; its return goes to our caller.
-  return m.call(0x3a4c);
+  // Hand off to the record-to-sprite copier: it stages both freshly-seeded records
+  // into the sprite buffer. Its effect is memory-only, and this is a tail hand-off,
+  // so the copier's return is our return.
+  return stageActorSpriteRecords(m);
 }

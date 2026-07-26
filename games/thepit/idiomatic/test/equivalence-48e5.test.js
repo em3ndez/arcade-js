@@ -2,37 +2,42 @@
 /**
  * Memory-equivalence gate for drawGameOverLabel (ROM 0x48e5, The Pit) — the HUD
  * label painter that stamps the nine-character "GAME OVER" run down its text
- * column. It names one tile cell (column 1, row 12), asks the shared address
- * helpers for that cell's tilemap offset and colour-RAM / video-RAM cursors, copies
- * the nine glyphs down the video column, and tail-jumps into the colour-column
- * filler.
+ * column. It names one tile cell (column 1, row 12), derives that cell's tilemap
+ * offset and colour-RAM / video-RAM cursors (rowColToTileOffset, deriveTileWriteCursors),
+ * copies the nine glyphs down the video column through the still-oracle copy helper
+ * (0x3dea), and paints the nine colour cells (fillColourColumn).
+ *
+ * WHY THE CONTRACT CHANGED FROM WHOLE-DUMP TO A MODELLED RETURN:
+ *
+ *   The oracle finishes with a tail-jump into the colour filler (0x3e01), whose own
+ *   `ret` unwinds to drawGameOverLabel's caller — so the oracle, as a whole, RETURNS
+ *   (it consumes its return address, landing pc at the caller and SP two higher). The
+ *   idiomatic routine now calls the already-decompiled colour filler DIRECTLY, which
+ *   is a plain JS return and performs no Z80 `ret`. Left alone the candidate therefore
+ *   stops with its exit pc and SP still at the routine's entry (the caller's return is
+ *   its to close), so pc/SP legitimately differ from the oracle. Per the sound-stub
+ *   dissolve (equivalence-4c5f.test.js) the gate models that one return with a single
+ *   m.ret() on the candidate, which lines pc + SP up with the oracle. The three address/
+ *   fill helpers are direct calls; only the copy helper (0x3dea) is still the oracle,
+ *   reached through the registry with its source pointer and return slot, so the one
+ *   transient return-address the oracle parks just below the entry SP is reproduced
+ *   exactly. The upshot: after the modelled return the WHOLE work RAM matches with no
+ *   exclusion, so the gate keeps the full contract — work/video/colour RAM + pc + SP.
  *
  * WHY THIS ROUTINE IS STRAIGHTFORWARD FOR THE GATE:
  *
  *   1. It is entered from the HUD redraw (loc_472c) whenever no player is active —
  *      player count 0, the game-over state — which attract reaches early (0x48e5
  *      first dispatches ~frame 61). So a REAL captured dispatch is available with no
- *      crafted forcing, and the capture confirms player count 0 (the "GAME OVER"
- *      arm).
+ *      crafted forcing, and the capture confirms player count 0 (the "GAME OVER" arm).
  *
- *   2. Its four helpers (0x3dae / 0x3dc9 / 0x3dea, and the 0x3e01 tail) are still the
- *      frozen oracle. Both the oracle and the idiomatic routine reach them the same
- *      way (through the registry), so the identical callee runs on both sides — the
- *      gate is only testing drawGameOverLabel's own layout writes and its routing.
- *
- *   3. It is straight-line: fixed column/row, a fixed colour, a fixed row count, and
+ *   2. It is straight-line: fixed column/row, a fixed colour, a fixed row count, and
  *      a fixed ROM glyph source — no input-dependent branch. So the one real dispatch
  *      exercises the whole path; there is no state-dependent input to sweep.
  *
- *   4. It tail-jumps into the colour filler, so its honest live-out is MEMORY-ONLY.
- *      Because the oracle's stack pushes are reproduced at the call boundary, the
- *      leftover register file and stack pointer also land identical, so the full
- *      unitEquivalence contract (memory + pc + registers) holds too.
- *
- * EQUAL is proven on the real captured entry (direct clones and through the shared
- * unitEquivalence harness); the teeth twins — a wrong colour, an off-by-one glyph
- * source that only surfaces in video RAM, and a post-hoc output corruption through
- * the harness — are all caught.
+ * EQUAL is proven on the real captured entry over RAM + pc + SP; the teeth twins — a
+ * wrong colour, an off-by-one glyph source that only surfaces in video RAM, a dropped
+ * colour-fill effect, and a post-hoc output corruption — are all caught.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-48e5.test.js
  */
@@ -44,7 +49,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_48e5 as oracle } from "../../translated/loc_48e5.js";
 import { drawGameOverLabel as idiomatic } from "../drawGameOverLabel.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
+// The teeth twins mirror the routine under test, so they call the same idiomatic helpers.
+import { rowColToTileOffset } from "../rowColToTileOffset.js";
+import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
+import { fillColourColumn } from "../fillColourColumn.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -59,7 +68,12 @@ const TILE_COL = 0x8058; // label cell column byte
 const TILE_ROW = 0x8059; // label cell row byte
 const FILL_ATTR = 0x8057; // colour attribute the label run is painted in
 const CELL_COUNT = 0x8055; // row count fed to the copy and the colour fill
+const TILE_OFFSET = 0x805a; // derived tilemap offset (row*32 + col)
+const COLOUR_CURSOR = 0x805e; // derived colour-RAM write cursor
 const GAME_OVER_SOURCE = 0x49a5; // ROM "GAME OVER" glyph source (walked backwards)
+// Column 1, row 12 -> offset 32*12 + 1 = 385; colour cell = 0x8800 + 385, video cell = 0x9000 + 385.
+const EXPECT_OFFSET = 385;
+const FIRST_COLOUR_CELL = 0x8800 + EXPECT_OFFSET; // 0x8981 — top painted colour cell
 const CAPTURE_FRAMES = 240; // 0x48e5 first dispatches ~frame 61 — within this
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -91,121 +105,160 @@ const CAP = ROM_PRESENT ? captureRealEntry() : { entry: null, playerCount: null 
 const ENTRY = CAP.entry;
 
 /**
- * Run the oracle and a candidate on two independent clones of one entry state and
- * diff MEMORY + exit pc — the honest live-out. (The residual register file is a dead
- * live-out here and is not part of the contract, though it also matches.)
+ * Compare a candidate against the oracle over the full memory-equivalence contract for
+ * one entry: work/video/colour RAM + pc + SP. The oracle rets internally (its tail
+ * helper's own return unwinds to the caller); the idiomatic routine calls its
+ * now-decompiled colour filler directly and does NOT ret, so the candidate is given
+ * one modelled return (m.ret()) to line pc + SP up with the oracle. Because the
+ * still-oracle copy helper reproduces the one transient return-address slot exactly,
+ * no stack-scratch window needs excluding — the whole RAM is compared. Returns
+ * { diffs, ram } (diffs empty == EQUAL).
  */
-function runPair(entry, candidate) {
-  const a = entry.clone();
-  const b = entry.clone();
-  oracle(a);
-  candidate(b);
-  return {
-    ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
-    pc: a.pc === b.pc ? null : { a: a.pc, b: b.pc },
-  };
+function contractDiffs(entry, fn) {
+  const o = entry.clone();
+  oracle(o);
+  const c = entry.clone();
+  fn(c);
+  c.ret(); // model the routine's return so pc + SP line up with the ret-ing oracle
+
+  const diffs = [];
+  const ram = firstStateDiff(o.dumpState(), c.dumpState(), (off) => o.stateOffsetToAddr(off));
+  if (ram) diffs.push(`RAM@${hx(ram.addr ?? 0)} oracle=${ram.a} cand=${ram.b}`);
+  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
+  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
+  return { diffs, ram };
 }
 
-// -- 1. EQUAL: the real captured attract dispatch -----------------------------
+// -- 0. HARNESS: the capture is real, and the oracle run is deterministic -------
 
-test("EQUAL (captured): idiomatic == oracle on the real GAME OVER dispatch", () => {
+test("HARNESS: a real GAME OVER (player count 0) dispatch is captured; the oracle run is deterministic", () => {
   assert.ok(ENTRY, "captured the real 0x48e5 attract dispatch");
   assert.equal(CAP.playerCount, 0, "the captured dispatch is the game-over (player count 0) arm");
-  const r = runPair(ENTRY, idiomatic);
-  assert.equal(r.ram, null, r.ram && `RAM diverged at ${hx(r.ram.addr ?? 0)} (oracle=${r.ram.a} idiomatic=${r.ram.b})`);
-  assert.equal(r.pc, null, r.pc && `exit pc diverged (oracle=${hx(r.pc?.a)} idiomatic=${hx(r.pc?.b)})`);
-  console.log("  EQUAL/captured: real 0x48e5 entry identical (memory + pc)");
+
+  const a = ENTRY.clone();
+  oracle(a);
+  const b = ENTRY.clone();
+  oracle(b);
+  const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr ?? 0)}`);
+  assert.equal(a.pc, b.pc, "oracle pc not deterministic");
+  assert.equal(a.regs.sp, b.regs.sp, "oracle SP not deterministic");
+  console.log(`  HARNESS: real 0x48e5 entry (SP=${hx(ENTRY.regs.sp)}, player count 0); oracle run deterministic`);
 });
 
-// -- 2. EQUAL: through the shared unitEquivalence harness ----------------------
-// The canonical gate: capture the real dispatch, clone, run both, diff. It compares
-// memory + pc + the full register file. Memory-only is the honest live-out, but because
-// the oracle's stack pushes are reproduced, the FULL contract holds — so this asserts
-// the strongest result the harness reports (equal).
+// -- 1. EQUAL: the real captured attract dispatch, full contract ---------------
 
-test("EQUAL (harness): the real 0x48e5 dispatch is memory-EQUAL through unitEquivalence", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, idiomatic, { maxFrames: CAPTURE_FRAMES });
-  assert.equal(res.ram, null, `harness RAM diverged: ${JSON.stringify(res.ram)}`);
-  assert.equal(res.pc, null, `harness exit pc diverged: ${JSON.stringify(res.pc)}`);
-  assert.equal(res.equal, true, `harness reported not-equal (regs=${JSON.stringify(res.regs)})`);
-  console.log("  EQUAL/harness: unitEquivalence captured a real 0x48e5 entry -> memory + pc + registers EQUAL");
+test("EQUAL (captured): idiomatic == oracle on the real GAME OVER dispatch (RAM + pc + SP)", () => {
+  const { diffs } = contractDiffs(ENTRY, idiomatic);
+  assert.equal(diffs.length, 0, diffs.join("; "));
+
+  // Positive checks: the pipeline really ran — layout scratch, colour cursor, and the
+  // top colour cell painted with the label's colour (6).
+  const c = ENTRY.clone();
+  idiomatic(c);
+  assert.equal(c.mem.read8(TILE_COL), 1, "column not seated");
+  assert.equal(c.mem.read8(TILE_ROW), 12, "row not seated");
+  assert.equal(c.mem.read16(TILE_OFFSET), EXPECT_OFFSET, "tilemap offset not derived");
+  assert.equal(c.mem.read16(COLOUR_CURSOR), FIRST_COLOUR_CELL, "colour cursor not derived");
+  assert.equal(c.mem.read8(FILL_ATTR), 6, "fill colour not staged");
+  assert.equal(c.mem.read8(CELL_COUNT), 9, "row count not staged");
+  assert.equal(c.mem.read8(FIRST_COLOUR_CELL), 6, "top colour cell not painted with the label colour");
+  console.log(`  EQUAL/captured: identical over RAM + pc + SP; colour cell ${hx(FIRST_COLOUR_CELL)} = 6, offset = ${EXPECT_OFFSET}`);
 });
 
-// -- 3. IDENTITY: oracle vs oracle must be EQUAL (proves the gate wiring) ------
+// -- 2. TEETH: broken twins the gate MUST catch --------------------------------
 
-test("IDENTITY: oracle vs oracle reports EQUAL (gate wiring sanity)", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, oracle, { maxFrames: CAPTURE_FRAMES });
-  assert.equal(res.equal, true, `gate reported a diff for identical arms: ${JSON.stringify(res)}`);
-  console.log("  IDENTITY: oracle vs oracle -> EQUAL");
-});
-
-// -- 4. TEETH: broken twins the gate MUST catch -------------------------------
-
-// The twins mirror the idiomatic routine's exact structure (including the oracle-stack
-// return pushes) and change ONE thing, so each twin's only divergence is its bug — not
-// a spurious stack difference that would mask which byte the gate actually caught.
+// The twins mirror the idiomatic routine's structure (direct helper calls plus the
+// still-oracle copy helper) and change ONE thing, so each twin's only divergence is
+// its bug.
 
 /** Broken twin A: paints the label run in the WRONG colour attribute. */
 function brokenAttr(m) {
   const { mem } = m;
   mem.write8(TILE_COL, 1);
   mem.write8(TILE_ROW, 12);
-  m.push16(0x48f2); m.call(0x3dae);
-  m.push16(0x48f5); m.call(0x3dc9);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
   mem.write8(FILL_ATTR, 7); // BUG: colour 7 instead of 6
   mem.write8(CELL_COUNT, 9);
   m.regs.ix = GAME_OVER_SOURCE;
-  m.push16(0x4906); m.call(0x3dea);
-  return m.call(0x3e01);
+  m.push16(0x4906);
+  m.call(0x3dea);
+  return fillColourColumn(m);
 }
 
 /**
  * Broken twin B: an off-by-one glyph source pointer. Every scratch byte is written
  * exactly as the oracle does — this divergence surfaces ONLY through the copy helper,
  * as wrong glyphs in video RAM. Proves the gate catches a purely callee-mediated
- * effect, not just a directly-written scratch byte.
+ * effect (a wrong arg to the still-oracle copy helper), not just a directly-written
+ * scratch byte.
  */
 function brokenSource(m) {
   const { mem } = m;
   mem.write8(TILE_COL, 1);
   mem.write8(TILE_ROW, 12);
-  m.push16(0x48f2); m.call(0x3dae);
-  m.push16(0x48f5); m.call(0x3dc9);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
   mem.write8(FILL_ATTR, 6);
   mem.write8(CELL_COUNT, 9);
   m.regs.ix = GAME_OVER_SOURCE - 1; // BUG: glyphs shifted by one
-  m.push16(0x4906); m.call(0x3dea);
-  return m.call(0x3e01);
+  m.push16(0x4906);
+  m.call(0x3dea);
+  return fillColourColumn(m);
 }
 
-test("TEETH: a wrong colour attribute is CAUGHT", () => {
-  const r = runPair(ENTRY, brokenAttr);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a wrong colour — it is worthless");
-  assert.equal(r.ram.addr, FILL_ATTR, `teeth caught ${hx(r.ram.addr ?? 0)} (expected the attribute byte ${hx(FILL_ATTR)})`);
-  console.log(`  TEETH: wrong colour caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
-});
+/**
+ * Broken twin C: drops the colour-fill effect entirely (skips fillColourColumn). Proves
+ * the gate catches a MISSING decompiled-callee effect, not only a wrong value — the nine
+ * colour cells go unpainted.
+ */
+function brokenDroppedFill(m) {
+  const { mem } = m;
+  mem.write8(TILE_COL, 1);
+  mem.write8(TILE_ROW, 12);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
+  mem.write8(FILL_ATTR, 6);
+  mem.write8(CELL_COUNT, 9);
+  m.regs.ix = GAME_OVER_SOURCE;
+  m.push16(0x4906);
+  m.call(0x3dea);
+  // BUG: fillColourColumn(m) omitted — the colour cells are never painted.
+}
 
-test("TEETH: an off-by-one glyph pointer is CAUGHT downstream in video RAM", () => {
-  const r = runPair(ENTRY, brokenSource);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a callee-mediated glyph error — it is worthless");
-  // Scratch bytes are identical to the oracle; the first diff is a painted cell.
-  assert.ok(r.ram.addr >= 0x8800, `teeth caught ${hx(r.ram.addr ?? 0)}, expected a painted colour/video cell (>= 0x8800)`);
-  console.log(`  TEETH: off-by-one glyph caught downstream at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
-});
-
-// -- 5. TEETH through the harness: a corrupted output is CAUGHT ----------------
-
-/** Broken twin for the harness: the correct routine, then one wrong store. */
-function brokenHarness(m) {
+/** Broken twin D: the correct routine, then one wrong store (post-hoc corruption). */
+function brokenCorruptOutput(m) {
   const r = idiomatic(m);
   m.mem.write8(TILE_COL, m.mem.read8(TILE_COL) ^ 0xff); // BUG: corrupts a layout byte
   return r;
 }
 
-test("TEETH (harness): a corrupted output is CAUGHT by unitEquivalence", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, brokenHarness, { maxFrames: CAPTURE_FRAMES });
-  assert.equal(res.equal, false, "unitEquivalence FAILED to catch the corrupted twin — it is worthless");
-  assert.notEqual(res.ram, null, "the diff must include a RAM difference");
-  assert.equal(res.ram.addr, TILE_COL, `harness caught ${hx(res.ram?.addr ?? 0)} (expected ${hx(TILE_COL)})`);
-  console.log(`  TEETH/harness: corrupted layout byte caught at ${hx(res.ram.addr)} (oracle=${res.ram.a} broken=${res.ram.b})`);
+test("TEETH: a wrong colour attribute is CAUGHT", () => {
+  const { diffs, ram } = contractDiffs(ENTRY, brokenAttr);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a wrong colour — it is worthless");
+  assert.equal(ram && ram.addr, FILL_ATTR, `teeth caught ${ram ? hx(ram.addr) : "(none)"} (expected the attribute byte ${hx(FILL_ATTR)})`);
+  console.log(`  TEETH: wrong colour caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
+});
+
+test("TEETH: an off-by-one glyph pointer is CAUGHT downstream in video RAM", () => {
+  const { diffs, ram } = contractDiffs(ENTRY, brokenSource);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a callee-mediated glyph error — it is worthless");
+  // Scratch bytes are identical to the oracle; the first diff is a painted cell.
+  assert.ok(ram.addr >= 0x8800, `teeth caught ${hx(ram.addr ?? 0)}, expected a painted colour/video cell (>= 0x8800)`);
+  console.log(`  TEETH: off-by-one glyph caught downstream at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
+});
+
+test("TEETH: a dropped colour-fill effect is CAUGHT at the colour cells", () => {
+  const { diffs, ram } = contractDiffs(ENTRY, brokenDroppedFill);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a dropped fill — it is worthless");
+  assert.ok(ram.addr >= 0x8800 && ram.addr < 0x9000, `teeth caught ${hx(ram.addr ?? 0)}, expected an unpainted colour cell (0x8800..0x8fff)`);
+  console.log(`  TEETH: dropped fill caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
+});
+
+test("TEETH: a corrupted output byte is CAUGHT", () => {
+  const { diffs, ram } = contractDiffs(ENTRY, brokenCorruptOutput);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a corrupted output — it is worthless");
+  assert.equal(ram && ram.addr, TILE_COL, `teeth caught ${ram ? hx(ram.addr) : "(none)"} (expected ${hx(TILE_COL)})`);
+  console.log(`  TEETH: corrupted layout byte caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });

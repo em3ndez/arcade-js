@@ -4,32 +4,41 @@
  * step for an active object (cadence tick + walk-tile flip, an every-4th-tick move that
  * marches the object across its travel row then descends it to the floor).
  *
- * The whole observable effect is the work RAM the object leaves behind: its coordinate
+ * The observable effect is the work/sprite RAM the object leaves behind: its coordinate
  * and tile, the shadow sprite's coordinate and tile, the arrival flag/latch, the floor
- * hold-timer, and the two sprite records the tail call (loc_3a4c) rebuilds. Everything
- * else the oracle also moves — the accumulator/flags it threads instruction to
- * instruction, and, on the one direct-return arm, the stack pop — is dead: every non-idle
- * exit routes through loc_3a4c, which reloads the whole register file, and the idle
- * direct-return's residual accumulator is read by no one up the tail-jump caller chain.
- * So the idiomatic rewrite replicates every memory write (including the return address it
- * must seed for the still-oracle callee loc_1b5b) and the comparison is full work RAM.
+ * hold-timer, and the records its two already-decompiled callees rebuild — the sprite
+ * records from stageActorSpriteRecords (0x3a4c) and, on the arrival arm, the deferral/probe
+ * record from loc_1b5b (0x1b5b). Both are now called directly (they read their inputs from,
+ * and write their outputs to, fixed work RAM; neither takes an argument or returns a value),
+ * so the routine's whole live-out is that RAM.
  *
- *   1. UNIT (strict, first real dispatch) — unitEquivalence captures the machine at the
- *      first natural dispatch and diffs full RAM + the whole register file + pc. The first
- *      dispatch is a march step, which exits through loc_3a4c, so even the strict register
- *      gate agrees — a real captured entry on which "same memory AND register state" holds
- *      literally.
- *   2. REALISM (all real dispatches, full RAM) — hook 0x384a through a whole attract run
- *      (it is dispatched in the gameplay demo, ~584 times after frame 4000), clone at each
- *      dispatch, and run oracle vs idiomatic on two fresh clones. Full work RAM identical
+ * WHY THE CONTRACT EXCLUDES THE STACK SCRATCH. The oracle reaches loc_1b5b through a Z80
+ * CALL, which pushes the return address 0x3897 to [SP-2, SP) — top of work RAM (0x8000-
+ * 0x87ff), inside the diffed state region. The dissolved direct JS call makes no such push,
+ * so those two bytes legitimately differ from the oracle on the arrival arm. They are dead
+ * stack scratch (popped by the callee's ret, read by no one after), so the RAM diff excludes
+ * exactly the [SP-2, SP) window and compares everything else byte-for-byte. pc and SP are CPU
+ * registers, absent from the RAM dump, so they are already out of scope — no register or pc
+ * comparison remains (the oracle threads an accumulator and pops a return address the
+ * stack-free JS does not, all declared-dead live-out).
+ *
+ *   1. UNIT (first real dispatch) — capture the machine at the first natural dispatch and
+ *      diff observable RAM (outside the stack scratch). The first dispatch is a march step,
+ *      which exits through stageActorSpriteRecords and pushes no stack scratch at all, so
+ *      it is identical byte-for-byte.
+ *   2. REALISM (all real dispatches) — hook 0x384a through a whole attract run (it is
+ *      dispatched in the gameplay demo, ~584 times after frame 4000), clone at each
+ *      dispatch, and run oracle vs idiomatic on two fresh clones. Observable RAM identical
  *      on every one — covering the tail-early, march, descend, latch+probe, and floor-idle
  *      arms the demo actually produces.
  *   3. CRAFTED — force the arms the demo underexercises (the floor re-arm when the hold
  *      timer has elapsed, both tile-toggle directions, the latch+probe build) on a real
- *      captured background, poked identically on both sides. Full work RAM identical.
- *   4. TEETH — a twin with the wrong shadow-X trailing offset (32 instead of 16) MUST be
- *      caught. The march step is the first dispatch and a common arm, so both the strict
- *      unit gate and the full-RAM sweep catch it.
+ *      captured background, poked identically on both sides. Observable RAM identical. The
+ *      latch+probe arm is exactly the one where the oracle writes the stack scratch the
+ *      dissolve drops, so its pass proves the exclusion window is correct.
+ *   4. TEETH — a twin of the DISSOLVED routine (same direct calls) with the wrong shadow-X
+ *      trailing offset (32 instead of 16) MUST be caught. The bad byte lands at the shadow-X
+ *      field 0x811b, far from the excluded stack window, so the observable diff catches it.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-384a.test.js
  */
@@ -40,12 +49,17 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_384a as oracle } from "../../translated/loc_384a.js";
 import { loc_384a as idiomatic } from "../loc_384a.js";
+import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
+import { loc_1b5b } from "../loc_1b5b.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
-import { ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y } from "../ram.js";
+import { ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y, TWIN_X } from "../ram.js";
 
 const FLOOR_HOLD = 0x807c; // idles the object at the floor (unnamed in ram.js)
 const BIAS = 0x8051; // record-build bias read by the still-oracle callees
+
+// The oracle reaches loc_1b5b through a Z80 CALL that pushes a 2-byte return address to
+// [SP-2, SP); the dissolved direct call makes no such push, so those two dead bytes differ.
+const STACK_SCRATCH = 2;
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -62,15 +76,29 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // so build the factory once (it closes over the built registry).
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
-/** Run oracle and candidate on two FRESH clones of `entry`; return the first full-RAM
- *  difference (or null). Full work RAM is the contract — the routine replicates every
- *  memory write, so nothing is excluded. */
+/**
+ * Run oracle and candidate on two FRESH clones of `entry`; return the first observable-RAM
+ * difference, EXCLUDING the dead stack-scratch window [SP-STACK_SCRATCH, SP) the oracle's
+ * callee return-address push parks below the entry stack pointer (which the stack-free direct
+ * calls do not reproduce). Null when otherwise identical. pc and SP are CPU registers, absent
+ * from the RAM dump, so they are already out of scope.
+ */
 function ramDiff(entry, candidate) {
+  const sp = entry.regs.sp;
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
   candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= sp - STACK_SCRATCH && addr < sp) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
 }
 
 /** Capture a clone at every 0x384a dispatch across an attract run (the wrapper runs the
@@ -89,22 +117,25 @@ function craft(base, pokes) {
   return e;
 }
 
-// -- 1. UNIT: strict RAM + registers + pc on the first real dispatch ----------
+// -- 1. UNIT: observable RAM on the first real dispatch -----------------------
 
-test("UNIT: idiomatic == oracle on full RAM + registers + pc at the first real dispatch", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, idiomatic, { maxFrames: 6000 });
+test("UNIT: idiomatic == oracle on observable RAM at the first real dispatch", () => {
+  const caps = captureDispatches();
+  assert.ok(caps.length >= 1, `expected at least one real 0x384a dispatch, got ${caps.length}`);
+
+  const ram = ramDiff(caps[0], idiomatic);
   assert.equal(
-    res.equal,
-    true,
-    `strict unit gate reported a diff: ram=${JSON.stringify(res.ram)} ` +
-      `regs=${JSON.stringify(res.regs)} pc=${JSON.stringify(res.pc)}`,
+    ram,
+    null,
+    ram && `observable RAM diverges at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b}) ` +
+      `at the first real dispatch`,
   );
-  console.log("  UNIT: first real dispatch (a march step, exits via loc_3a4c) — RAM+regs+pc identical");
+  console.log("  UNIT: first real dispatch (a march step, exits via stageActorSpriteRecords) — observable RAM identical");
 });
 
-// -- 2. REALISM: full RAM over every real dispatch ----------------------------
+// -- 2. REALISM: observable RAM over every real dispatch ----------------------
 
-test("REALISM: idiomatic == oracle on full work RAM over every real attract dispatch", () => {
+test("REALISM: idiomatic == oracle on observable RAM over every real attract dispatch", () => {
   const caps = captureDispatches();
   assert.ok(caps.length >= 100, `expected many real 0x384a dispatches, got ${caps.length}`);
 
@@ -119,7 +150,7 @@ test("REALISM: idiomatic == oracle on full work RAM over every real attract disp
     );
     checked++;
   }
-  console.log(`  REALISM: ${checked} real dispatches — full work RAM identical to the oracle`);
+  console.log(`  REALISM: ${checked} real dispatches — observable RAM identical to the oracle`);
 });
 
 // -- 3. CRAFTED: the arms the demo underexercises -----------------------------
@@ -147,14 +178,16 @@ test("CRAFTED: floor re-arm, tile toggles, and latch+probe match on real backgro
     const ram = ramDiff(craft(bg, pokes), idiomatic);
     assert.equal(ram, null, ram && `crafted "${tag}": RAM diverges at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
   }
-  console.log(`  CRAFTED: ${crafted.length} forced arms — full work RAM identical to the oracle`);
+  console.log(`  CRAFTED: ${crafted.length} forced arms — observable RAM identical to the oracle`);
 });
 
 // -- 4. TEETH: a deliberately-broken twin MUST be caught ----------------------
 
 /**
- * A twin of the idiomatic routine with ONE wrong constant: the shadow sprite trails the
- * object by 32 columns instead of 16. A real logic error on the march arm.
+ * A twin of the DISSOLVED idiomatic routine (same direct calls) with ONE wrong constant:
+ * the shadow sprite trails the object by 32 columns instead of 16. A real logic error on
+ * the march arm — the bad byte lands at the shadow-X field 0x811b, far from the excluded
+ * stack window, so the observable diff must catch it.
  */
 function brokenShadowOffset(m) {
   const { mem } = m;
@@ -167,21 +200,20 @@ function brokenShadowOffset(m) {
     mem.write8(ACTOR_TILE, next);
     mem.write8(0x811c, next ^ 1);
   }
-  if (timer % 4 !== 0) return m.call(0x3a4c);
+  if (timer % 4 !== 0) return stageActorSpriteRecords(m);
   const y = mem.read8(ACTOR_Y);
   if (y >= 23) {
     const x = mem.read8(ACTOR_X);
     if (x < 36) {
       mem.write8(ACTOR_X, x + 1);
       mem.write8(0x811b, mem.read8(ACTOR_X) + 32); // BUG: shadow-X offset should be 16
-      return m.call(0x3a4c);
+      return stageActorSpriteRecords(m);
     }
     if (y === 23) {
       mem.write8(0x8079, 0);
       mem.write8(0x8068, 0);
       mem.write8(0x807d, 1);
-      m.push16(0x3897);
-      m.call(0x1b5b);
+      loc_1b5b(m);
     }
   }
   const row = mem.read8(ACTOR_Y);
@@ -189,29 +221,26 @@ function brokenShadowOffset(m) {
     const nextRow = row - 1;
     mem.write8(ACTOR_Y, nextRow);
     mem.write8(0x811e, nextRow);
-    return m.call(0x3a4c);
+    return stageActorSpriteRecords(m);
   }
   if (mem.read8(FLOOR_HOLD) !== 0) return;
   mem.write8(FLOOR_HOLD, 120);
   mem.write8(ACTOR_TILE, 9);
   mem.write8(0x811c, 9);
-  return m.call(0x3a4c);
+  return stageActorSpriteRecords(m);
 }
 
-test("TEETH: the wrong-shadow-offset twin is CAUGHT (full RAM has teeth)", () => {
-  // On a march arm the twin writes the wrong shadow X — caught by the RAM diff.
+test("TEETH: the wrong-shadow-offset twin is CAUGHT (observable RAM has teeth)", () => {
   const caps = captureDispatches();
   const bg = caps[caps.length - 1];
   const marchEntry = craft(bg, [[ACTOR_TIMER, 5], [ACTOR_Y, 30], [ACTOR_X, 10]]);
-  const ram = ramDiff(marchEntry, brokenShadowOffset);
-  assert.ok(ram, "the wrong-shadow-offset twin must be caught by the full-RAM diff on a march arm");
 
-  // And the strict unit gate catches it at the first real dispatch (also a march step).
-  const res = unitEquivalence(makeMachine, TARGET, oracle, brokenShadowOffset, { maxFrames: 6000 });
-  assert.equal(res.equal, false, "the strict unit gate must also catch the broken twin");
-  assert.notEqual(res.ram, null, "the twin's defect must surface as a RAM difference");
-  console.log(
-    `  TEETH: caught at ${hx(ram.addr ?? 0)} (oracle=${ram.a} twin=${ram.b}); ` +
-      `unit gate caught it at ${hx(res.ram.addr ?? 0)}`,
+  const ram = ramDiff(marchEntry, brokenShadowOffset);
+  assert.ok(ram, "the wrong-shadow-offset twin must be caught by the observable-RAM diff on a march arm");
+  assert.equal(
+    ram.addr,
+    TWIN_X,
+    `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected the shadow-X field ${hx(TWIN_X)})`,
   );
+  console.log(`  TEETH: caught at ${hx(ram.addr)} (oracle=${ram.a} twin=${ram.b})`);
 });

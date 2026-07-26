@@ -3,30 +3,44 @@
  * Memory-equivalence gate for loc_48c4 (ROM 0x48c4, The Pit) — the nine-cell
  * colour-RAM column recolour that cycles its colour one step per call.
  *
- * The routine writes RAM and is NOT a leaf: it seats the fill length / colour /
- * target cell, then drives three still-oracle cell helpers (offset calc 0x3dae,
- * address derive 0x3dc9, column fill 0x3e01) through the real Z80 stack — the fill
- * is a tail hand-off whose own return unwinds to loc_48c4's caller. Because those
- * callees are exercised through the same stack the oracle uses (and The Pit's stack
- * lives inside diffed work RAM), the idiomatic rewrite reproduces the oracle's whole
- * observable state: RAM, the register file, pc AND the stack all come out identical.
- * So this gate is STRICT — it compares everything unitEquivalence compares (whole
- * state + full register file + pc), not just a memory-only live-out.
+ * The routine seats the fill length / colour / target cell, then drives three cell
+ * helpers — rowColToTileOffset (0x3dae), deriveTileWriteCursors (0x3dc9) and the
+ * column fill fillColourColumn (0x3e01) — all already decompiled in idiomatic/. The
+ * idiomatic rewrite calls them DIRECTLY (a plain JS call), where the oracle reached
+ * them through the real Z80 stack: it pushed a literal return address before each of
+ * the first two helper calls and tail-jumped into the fill, whose own `ret` unwound
+ * to loc_48c4's caller.
+ *
+ * Because the direct calls have no Z80 stack frame, the idiomatic routine no longer
+ * pushes those return addresses, no longer advances SP, and no longer rets — so pc,
+ * SP, the value registers, and the dead return-address scratch just below the entry
+ * stack pointer all legitimately differ from the oracle. The routine's DECLARED
+ * live-out is memory-only (the recoloured colour-RAM column), so this gate compares
+ * OBSERVABLE equivalence: the work / colour RAM the routine actually affects, plus pc
+ * and SP, EXCLUDING the dead stack-scratch window [SP-2, SP) and the value registers.
+ * To line pc + SP up with the oracle (which rets internally via the tail fill), the
+ * candidate is followed by one m.ret() modelling that same tail return.
+ *
+ * The oracle's only stack traffic is one 2-byte return-address slot at [SP-2, SP),
+ * reused by both helper pushes (the three callees push nothing and end in `ret`), so
+ * the excluded window is exactly two bytes.
  *
  * The routine is dispatched from the dig / wall-collision core (loc_03e8) during the
  * ordinary boot/attract run, so entries are CAPTURED from that run, never constructed.
  *
- *   1. IDENTITY  — the gate with both arms = the oracle MUST report EQUAL (wiring).
- *   2. EQUAL     — the idiomatic routine vs the oracle from the first real captured
- *                  dispatch: identical RAM, registers, and pc.
- *   3. NON-VACUOUS — on that real entry the oracle actually does the work (fill length
- *                  9, target column 6 / row 10, colour advanced with bit 3 held clear,
- *                  the colour painted down the column) and its stack traffic really
- *                  lands in diffed work RAM — so EQUAL is meaningful, not trivial.
- *   4. TEETH     — a twin that drops the colour advance MUST be caught, naming
- *                  BOARD_MODE (0x8057).
- *   5. REALISM   — replay every real dispatch over a longer run: whole state + regs +
- *                  pc identical to the oracle on each.
+ *   0. HARNESS  — capture a real dispatch and confirm the oracle run is deterministic
+ *                 (oracle vs oracle -> identical whole state + pc). Proves the plumbing.
+ *   1. EQUAL    — idiomatic vs oracle over the observable contract (RAM outside the
+ *                 stack scratch + pc + SP), from the first real captured dispatch, and
+ *                 the seated inputs + painted column hold the expected values.
+ *   2. NON-VACUOUS — the oracle really does the work (fill length 9, target column 6 /
+ *                 row 10, colour advanced with bit 3 held clear, the colour painted down
+ *                 the column) AND the excluded window genuinely holds the oracle's dead
+ *                 return-address scratch that the idiomatic routine does not reproduce —
+ *                 so the exclusion is load-bearing, not vacuous.
+ *   3. TEETH    — a twin that drops the colour advance MUST be caught, naming BOARD_MODE.
+ *   4. REALISM  — replay every real dispatch over a longer run; observable-equal to the
+ *                 oracle on each.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-48c4.test.js
  */
@@ -37,8 +51,11 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_48c4 as oracle } from "../../translated/loc_48c4.js";
 import { loc_48c4 as idiomatic } from "../loc_48c4.js";
+import { rowColToTileOffset } from "../rowColToTileOffset.js";
+import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
+import { fillColourColumn } from "../fillColourColumn.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence, firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
 import { BOARD_MODE, TILE_COL, TILE_ROW } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -58,11 +75,16 @@ const COLOR_RAM_BASE = 0x8800; // colour-RAM base the address-derive helper adds
 const CELL_OFFSET = 32 * 10 + 6; // row 10, column 6 -> tilemap offset (32-wide stride)
 const COLOR_CELL = COLOR_RAM_BASE + CELL_OFFSET; // top of the painted column, in colour RAM
 const COLUMN_STRIDE = 32; // one row down the colour-RAM column
+// The oracle reuses one 2-byte return-address slot at [SP-2, SP) for both helper
+// pushes; the direct-call idiomatic routine leaves it untouched, so it is excluded.
+const STACK_SCRATCH = 2;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
 // async, so build the factory once (it closes over the built registry).
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
+
+// -- helpers ------------------------------------------------------------------
 
 /** Hook 0x48c4 over a boot/attract run and clone the machine at up to K real dispatches. */
 function captureEntries(K, maxFrames) {
@@ -77,38 +99,90 @@ function captureEntries(K, maxFrames) {
   return caps;
 }
 
-/** First difference between two run-out machines across whole state, registers, then pc. */
-function fullDiff(a, b) {
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  if (ram) return { kind: "ram", ...ram };
-  const regs = firstRegDiff(a.regs, b.regs);
-  if (regs) return { kind: "regs", ...regs };
-  if (a.pc !== b.pc) return { kind: "pc", a: a.pc, b: b.pc };
+/**
+ * First differing RAM byte between two machines, EXCLUDING the dead stack-scratch
+ * window [entrySP-STACK_SCRATCH, entrySP) the oracle's helper pushes park just below
+ * the entry stack pointer (which the direct-call idiomatic routine does not reproduce).
+ * Null when otherwise identical.
+ */
+function ramDiffOutsideStack(a, b, entrySP) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
   return null;
 }
 
-// -- 1. IDENTITY --------------------------------------------------------------
+/**
+ * Compare a candidate against the oracle over the observable contract for one entry:
+ * RAM (outside the stack scratch) + pc + SP. Value registers are the declared-dead
+ * live-out and excluded. The oracle rets internally through the tail fill; the
+ * candidate — which makes plain JS calls and never rets — models that tail return with
+ * one m.ret() so pc + SP line up. Returns { diffs, ram } (diffs empty == EQUAL).
+ */
+function contractDiffs(entry, fn) {
+  const sp = entry.regs.sp;
+  const o = entry.clone();
+  oracle(o);
+  const c = entry.clone();
+  fn(c);
+  c.ret();
 
-test("IDENTITY: the gate reports EQUAL when both arms are the oracle", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, oracle, { maxFrames: REACH_FRAMES });
-  assert.equal(res.equal, true, `gate reported a diff for identical arms: ${JSON.stringify(res)}`);
-  console.log("  IDENTITY: captured 0x48c4, cloned, ran oracle vs oracle -> EQUAL");
+  const diffs = [];
+  const ram = ramDiffOutsideStack(o, c, sp);
+  if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
+  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
+  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
+  return { diffs, ram };
+}
+
+// -- 0. HARNESS (reachability + determinism) ---------------------------------
+
+test("HARNESS: a real 0x48c4 dispatch is captured and the oracle run is deterministic", () => {
+  const [entry] = captureEntries(1, REACH_FRAMES);
+  assert.ok(entry, "attract must dispatch 0x48c4 at least once");
+
+  const a = entry.clone();
+  oracle(a);
+  const b = entry.clone();
+  oracle(b);
+  const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr ?? 0)}`);
+  assert.equal(a.pc, b.pc, "oracle pc not deterministic");
+  console.log(`  HARNESS: captured a real 0x48c4 entry (SP=${hx(entry.regs.sp)}); oracle run deterministic`);
 });
 
-// -- 2. EQUAL -----------------------------------------------------------------
+// -- 1. EQUAL on the first real captured dispatch ----------------------------
 
-test("EQUAL: idiomatic loc_48c4 == oracle from the first real dispatch (state + regs + pc)", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, idiomatic, { maxFrames: REACH_FRAMES });
-  assert.equal(res.ram, null, res.ram && `RAM diff at ${hx(res.ram.addr ?? 0)} (oracle=${res.ram.a} idiomatic=${res.ram.b})`);
-  assert.equal(res.regs, null, res.regs && `register diff at ${res.regs?.reg} (oracle=${res.regs?.a} idiomatic=${res.regs?.b})`);
-  assert.equal(res.pc, null, res.pc && `pc diff (oracle=${hx(res.pc?.a ?? 0)} idiomatic=${hx(res.pc?.b ?? 0)})`);
-  assert.equal(res.equal, true, "idiomatic must be byte-identical to the oracle");
-  console.log("  EQUAL: whole state, register file and pc identical to the oracle");
+test("EQUAL: idiomatic loc_48c4 == oracle over RAM (outside stack scratch) + pc + SP", () => {
+  const [entry] = captureEntries(1, REACH_FRAMES);
+  assert.ok(entry, "attract must dispatch 0x48c4 at least once");
+  const colorBefore = entry.mem.read8(BOARD_MODE);
+
+  const { diffs } = contractDiffs(entry, idiomatic);
+  assert.equal(diffs.length, 0, diffs.join("; "));
+
+  // Positive checks: the idiomatic routine really seats the inputs and paints the column.
+  const c = entry.clone();
+  idiomatic(c);
+  const colorAfter = (colorBefore + 1) & 0xf7;
+  assert.equal(c.mem.read8(FILL_LENGTH), 9, "idiomatic must seat the nine-cell fill length");
+  assert.equal(c.mem.read8(TILE_COL), 6, "idiomatic must aim at column 6");
+  assert.equal(c.mem.read8(TILE_ROW), 10, "idiomatic must aim at row 10");
+  assert.equal(c.mem.read8(BOARD_MODE), colorAfter, "idiomatic must advance the colour with bit 3 held clear");
+  assert.equal(c.mem.read8(COLOR_CELL), colorAfter, "idiomatic must paint the colour at the top of the column");
+  assert.equal(c.mem.read8(COLOR_CELL + 8 * COLUMN_STRIDE), colorAfter, "idiomatic must paint all nine cells");
+  console.log(`  EQUAL: identical over RAM+pc+SP; colour ${colorBefore} -> ${colorAfter}, nine cells painted`);
 });
 
-// -- 3. NON-VACUOUS -----------------------------------------------------------
+// -- 2. NON-VACUOUS -----------------------------------------------------------
 
-test("NON-VACUOUS: the oracle really recolours the column, and its stack traffic is in diffed RAM", () => {
+test("NON-VACUOUS: the oracle really recolours the column, and the excluded window is its dead scratch", () => {
   const [entry] = captureEntries(1, REACH_FRAMES);
   assert.ok(entry, "attract must dispatch 0x48c4 at least once");
 
@@ -131,17 +205,26 @@ test("NON-VACUOUS: the oracle really recolours the column, and its stack traffic
   assert.equal(a.mem.read8(COLOR_CELL), colorAfter, "oracle must paint the colour at the top of the column");
   assert.equal(a.mem.read8(COLOR_CELL + 8 * COLUMN_STRIDE), colorAfter, "oracle must paint all nine cells down the column");
 
-  // The oracle's two helper calls leave their last return address on the stack, in
-  // diffed work RAM — proof the stack is genuinely part of what EQUAL compared.
-  assert.equal(a.mem.read16(sp - 2), 0x48e2, "the helper-call stack traffic must land in diffed work RAM");
-  console.log(`  NON-VACUOUS: colour ${colorBefore} -> ${colorAfter}, nine cells painted, stack traffic in RAM`);
+  // The excluded window genuinely holds the oracle's dead helper-return scratch (the
+  // last of the two reused pushes, 0x48e2), which the direct-call idiomatic routine does
+  // NOT reproduce — so excluding [SP-2, SP) is load-bearing, not vacuous.
+  assert.equal(a.mem.read16(sp - STACK_SCRATCH), 0x48e2, "the excluded window must hold the oracle's dead return-address scratch");
+  const b = entry.clone();
+  idiomatic(b);
+  b.ret();
+  assert.notEqual(
+    a.mem.read16(sp - STACK_SCRATCH),
+    b.mem.read16(sp - STACK_SCRATCH),
+    "the idiomatic routine must NOT reproduce that dead scratch — else the exclusion proves nothing",
+  );
+  console.log(`  NON-VACUOUS: colour ${colorBefore} -> ${colorAfter}, nine cells painted; [SP-2,SP) is dead oracle scratch (0x48e2)`);
 });
 
-// -- 4. TEETH -----------------------------------------------------------------
+// -- 3. TEETH -----------------------------------------------------------------
 
 /** Broken twin: everything faithful EXCEPT it never advances the colour, so it paints
- *  (and stores back) the un-bumped colour. The only divergence is the colour byte and
- *  the cells it paints — the gate must catch it, first at BOARD_MODE. */
+ *  (and stores back) the un-bumped colour. The only observable divergence is the colour
+ *  byte and the cells it paints — the gate must catch it, first at BOARD_MODE. */
 function brokenNoAdvance(m) {
   const { mem } = m;
   mem.write8(FILL_LENGTH, 9);
@@ -149,30 +232,33 @@ function brokenNoAdvance(m) {
   mem.write8(BOARD_MODE, color); // BUG: colour not advanced
   mem.write8(TILE_COL, 6);
   mem.write8(TILE_ROW, 10);
-  m.push16(0x48df); m.call(0x3dae);
-  m.push16(0x48e2); m.call(0x3dc9);
-  return m.call(0x3e01);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
+  return fillColourColumn(m);
 }
 
 test("TEETH: a twin that drops the colour advance is CAUGHT, naming BOARD_MODE", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, brokenNoAdvance, { maxFrames: REACH_FRAMES });
-  assert.equal(res.equal, false, "the gate FAILED to catch a dropped colour advance — it is worthless");
-  assert.notEqual(res.ram, null, "the caught diff must be a RAM difference");
-  assert.equal(res.ram.addr, BOARD_MODE, `expected the caught diff at BOARD_MODE (0x8057), got ${hx(res.ram.addr ?? 0)}`);
-  console.log(`  TEETH: dropped colour advance caught at ${hx(res.ram.addr)} (oracle=${res.ram.a} broken=${res.ram.b})`);
+  const [entry] = captureEntries(1, REACH_FRAMES);
+  assert.ok(entry, "attract must dispatch 0x48c4 at least once");
+
+  const { diffs, ram } = contractDiffs(entry, brokenNoAdvance);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a dropped colour advance — it is worthless");
+  assert.equal(
+    ram && ram.addr,
+    BOARD_MODE,
+    `expected the caught diff at BOARD_MODE (0x8057), got ${ram ? hx(ram.addr) : "(none)"}`,
+  );
+  console.log(`  TEETH: dropped colour advance caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
 
-// -- 5. REALISM ---------------------------------------------------------------
+// -- 4. REALISM ---------------------------------------------------------------
 
-test("REALISM: replay every real 0x48c4 dispatch — whole state + regs + pc identical", () => {
+test("REALISM: replay every real 0x48c4 dispatch — observable-equal to the oracle", () => {
   const caps = captureEntries(16, 1300);
   assert.ok(caps.length >= 1, "expected at least one real 0x48c4 dispatch in the run");
   for (const entry of caps) {
-    const a = entry.clone(), b = entry.clone();
-    oracle(a);
-    idiomatic(b);
-    const d = fullDiff(a, b);
-    assert.equal(d, null, d && `dispatch diff (${d.kind}) ${JSON.stringify(d)}`);
+    const { diffs } = contractDiffs(entry, idiomatic);
+    assert.equal(diffs.length, 0, diffs.join("; "));
   }
-  console.log(`  REALISM: ${caps.length} real 0x48c4 dispatch(es) — identical to the oracle`);
+  console.log(`  REALISM: ${caps.length} real 0x48c4 dispatch(es) — observable-equal to the oracle`);
 });

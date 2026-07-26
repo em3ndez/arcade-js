@@ -22,20 +22,24 @@
  * drives (which enemy / the UFO) is not yet pinned, so the name stays neutral rather than
  * assert a role above the evidence.
  *
- * Every non-idle exit rebuilds the two sprite records via loc_3a4c (a tail call whose ret
- * carries straight back to our caller's caller). The one idle exit — floor reached while
- * the hold timer is still running — returns directly.
+ * Every non-idle exit rebuilds the two sprite records via stageActorSpriteRecords (a tail
+ * call). The one idle exit — floor reached while the hold timer is still running — returns
+ * directly. On the arrival arm it also builds the object's deferral/probe record via
+ * loc_1b5b before descending. Both are called directly (they read their inputs from, and
+ * write their outputs to, fixed work RAM; neither takes an argument or returns a value).
  *
  * Memory-equivalent to the frozen oracle — equivalence-384a.test.js.
  * GATE:     crafted-entry + realism — dispatched in attract's gameplay demo (~584 times
  *           after frame 4000). Every real dispatch is replayed oracle-vs-idiomatic on a
- *           fresh clone and compared on full work RAM; crafted entries force the arms the
- *           demo underexercises (the floor re-arm, both tile-toggle directions). Teeth: a
- *           wrong shadow-X offset twin.
- * LIVE-OUT: memory-only. Non-idle exits route through loc_3a4c, which reloads the whole
- *           register file, so nothing the object leaves in a register survives; the idle
- *           direct-return's residual accumulator is dead ABI (the caller chain is all
- *           tail-jumps that read no returned register), backstopped by the whole-machine
+ *           fresh clone and compared on the observable work/sprite RAM, excluding the two
+ *           dead stack-scratch bytes below the entry stack pointer (the oracle's callee
+ *           return-address push, which the direct JS calls no longer make); crafted entries
+ *           force the arms the demo underexercises (the floor re-arm, both tile-toggle
+ *           directions, the latch+probe build). Teeth: a wrong shadow-X offset twin.
+ * LIVE-OUT: memory-only — the object/shadow coordinates and tiles, the arrival flag/latch,
+ *           the floor hold-timer, and the sprite + deferral records the two callees write.
+ *           The routine returns nothing its callers read (the caller chain is all
+ *           tail-jumps that consume no returned register), backstopped by the whole-machine
  *           gate.
  * NAMES:    ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y, TWIN_X, TWIN_TILE, TWIN_CLEAR,
  *           OBJ_X from ram.js. Hex-kept (unnamed in ram.js): 0x8079 arrival flag,
@@ -46,6 +50,8 @@ import {
   ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y,
   TWIN_X, TWIN_TILE, TWIN_CLEAR, OBJ_X,
 } from "./ram.js";
+import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
+import { loc_1b5b } from "./loc_1b5b.js";
 
 const ARRIVAL_FLAG = 0x8079; // cleared on arrival at the far column (unnamed in ram.js)
 const FLOOR_HOLD = 0x807c; // countdown that idles the object at the floor (unnamed in ram.js)
@@ -76,7 +82,7 @@ export function loc_384a(m) {
   }
 
   // 2. Move gate — only every 4th tick moves; otherwise just rebuild the sprite records.
-  if (timer % 4 !== 0) return m.call(0x3a4c);
+  if (timer % 4 !== 0) return stageActorSpriteRecords(m);
 
   // 3a. March across the travel row.
   const y = mem.read8(ACTOR_Y);
@@ -86,7 +92,7 @@ export function loc_384a(m) {
       // Step right one column; the shadow trails 16 columns behind.
       mem.write8(ACTOR_X, x + 1);
       mem.write8(TWIN_X, mem.read8(ACTOR_X) + SHADOW_X_OFFSET);
-      return m.call(0x3a4c);
+      return stageActorSpriteRecords(m);
     }
     if (y === TRAVEL_ROW) {
       // Reached the far column on the travel row: latch the arrival and build the probe
@@ -94,10 +100,8 @@ export function loc_384a(m) {
       mem.write8(ARRIVAL_FLAG, 0);
       mem.write8(OBJ_X, 0);
       mem.write8(ARRIVAL_LATCH, 1);
-      // loc_1b5b is still the frozen oracle and returns through the stack, so seed the
-      // return address it pops.
-      m.push16(0x3897);
-      m.call(0x1b5b);
+      // Build the object's deferral/probe record before the descent begins.
+      loc_1b5b(m);
     }
     // y above the travel row (or just latched): fall into the descent.
   }
@@ -109,7 +113,7 @@ export function loc_384a(m) {
     const nextRow = row - 1;
     mem.write8(ACTOR_Y, nextRow);
     mem.write8(TWIN_CLEAR, nextRow);
-    return m.call(0x3a4c);
+    return stageActorSpriteRecords(m);
   }
 
   // At the floor. While the hold timer is still running, just wait.
@@ -119,5 +123,5 @@ export function loc_384a(m) {
   mem.write8(FLOOR_HOLD, FLOOR_HOLD_FRAMES);
   mem.write8(ACTOR_TILE, IDLE_TILE);
   mem.write8(TWIN_TILE, IDLE_TILE);
-  return m.call(0x3a4c);
+  return stageActorSpriteRecords(m);
 }

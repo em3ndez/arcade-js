@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_3d7e (ROM 0x3d7e) — advance BOARD_MODE keeping bit 3
- * clear, then tail-call the still-oracle column fill (loc_3e01).
+ * clear, then hand off to the column fill fillColourColumn (loc_3e01), which is
+ * already decompiled: this routine now calls it directly instead of through the
+ * oracle registry.
  *
  * WHY CRAFTED ENTRIES (not the stock unitEquivalence capture). loc_3d7e is
  * dispatched ONLY from the fixed-screen display loop loc_3ba8, which a plain
@@ -14,18 +16,23 @@
  * on — and run oracle vs idiomatic on identical clones. Because BOARD_MODE spans
  * only 0..255, the EQUAL check is an EXHAUSTIVE sweep of the whole input domain.
  *
- * Both arms tail-call the SAME still-oracle column fill loc_3e01, so the only
- * thing that can diverge is loc_3d7e's own BOARD_MODE advance — exactly what this
- * isolates. The fill's base pointer + row count are poked to sane work-RAM values
- * so the fill is bounded and observable, and a wrong advance shows up both in the
- * stored BOARD_MODE byte and in the painted column.
+ * Both arms paint the SAME column fill, so the only thing that can diverge is
+ * loc_3d7e's own BOARD_MODE advance — exactly what this isolates. The fill's base
+ * pointer + row count are poked to sane work-RAM values so the fill is bounded and
+ * observable, and a wrong advance shows up both in the stored BOARD_MODE byte and
+ * in the painted column.
  *
- * THE CONTRACT is memory-equivalence: RAM + pc + SP. The routine's live-out is
- * MEMORY-ONLY. Its residual flags (the S/Z/PV bits the column fill preserves) are
- * dead ABI — the caller loc_3ba8 reloads A immediately after the call and never
- * reads the flags — so they are deliberately NOT compared; the whole-machine /
- * pixel gate backstops that. (Every other register the column fill leaves is
- * identical on both sides because both run that same oracle.)
+ * THE CONTRACT is OBSERVABLE equivalence: the RAM the routine affects, plus pc and
+ * SP. The oracle reaches the fill by a tail-jump, so the fill's own return pops
+ * loc_3d7e's caller's return address and lands there; the idiomatic routine makes
+ * a plain JS call to fillColourColumn and returns normally, with no Z80 return of
+ * its own. To line the return path up, the candidate does one m.ret() after the
+ * call — then pc + SP match the oracle exactly. There is NO dead stack-scratch
+ * window to carve out here (unlike the sound-stub dissolve): the column fill
+ * pushes nothing, so RAM is byte-identical across the whole dump and is compared
+ * in full. The routine's value registers / residual flags are dead ABI — the
+ * caller loc_3ba8 reloads A right after the call and never reads the flags — so
+ * they are deliberately not compared; the whole-machine / pixel gate backstops it.
  *
  * TWO checks, the gate's two directions:
  *   1. EQUAL (exhaustive) — over every BOARD_MODE value 0..255 the idiomatic
@@ -34,7 +41,9 @@
  *      every value where bit 3 matters (where the incremented byte would carry
  *      the 8s bit). On values where the mask is a no-op the twin coincides with
  *      the oracle — correctly not flagged; that is the mask being irrelevant
- *      there, not a hole in the gate.
+ *      there, not a hole in the gate. The twin is stack-free like the idiomatic,
+ *      so the candidate m.ret() models its return identically and the only thing
+ *      the diff can attribute is the dropped mask.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-3d7e.test.js
  */
@@ -46,6 +55,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_3d7e as oracle } from "../../translated/loc_3d7e.js";
 import { loc_3d7e as idiomatic } from "../loc_3d7e.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
+import { fillColourColumn } from "../fillColourColumn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { BOARD_MODE } from "../ram.js";
@@ -59,9 +69,9 @@ const test = ROM_PRESENT
 
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 
-// Column-fill inputs (read by the still-oracle loc_3e01): the base pointer word
-// and the row count. Poked to sane work-RAM values so the fill is bounded and its
-// bytes land in dumped RAM.
+// Column-fill inputs (read by fillColourColumn): the base pointer word and the row
+// count. Poked to sane work-RAM values so the fill is bounded and its bytes land in
+// dumped RAM.
 const FILL_PTR = 0x805e; // 16-bit column base pointer word
 const FILL_COUNT = 0x8055; // number of rows to paint
 const FILL_BASE = 0x8600; // a safe work-RAM column base (0x8600, 0x8620, …)
@@ -99,15 +109,20 @@ function craft(seed, v) {
 
 /**
  * Run oracle and candidate on two independent clones of one entry and diff the
- * memory-equivalence contract: RAM + pc + SP. Registers/flags are the routine's
- * dead-ABI residual and are not compared. Returns a list of mismatch strings
- * (empty when equivalent).
+ * observable-equivalence contract: full RAM + pc + SP. The oracle tail-jumps into
+ * the fill, whose ret pops loc_3d7e's caller's return address; the candidate is
+ * stack-free, so it does one m.ret() after the call to line pc + SP up with the
+ * oracle. The column fill pushes nothing, so there is no dead stack scratch and
+ * RAM is compared in full. Value registers/flags are the routine's dead-ABI
+ * residual and are not compared. Returns a list of mismatch strings (empty when
+ * equivalent).
  */
 function contractDiffs(entry, fn) {
   const a = entry.clone();
   oracle(a);
   const b = entry.clone();
   fn(b);
+  b.ret(); // model the tail-call return so pc + SP line up with the oracle
 
   const diffs = [];
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
@@ -117,10 +132,15 @@ function contractDiffs(entry, fn) {
   return diffs;
 }
 
-/** Broken twin: increments BOARD_MODE WITHOUT clearing bit 3, then the same fill. */
+/**
+ * Broken twin: increments BOARD_MODE WITHOUT clearing bit 3, then the same fill.
+ * Stack-free like the idiomatic (a direct call to fillColourColumn), so the
+ * candidate m.ret() models its return identically — the only difference the diff
+ * can attribute is the dropped mask.
+ */
 function maskDroppingTwin(m) {
   m.mem.write8(BOARD_MODE, m.mem.read8(BOARD_MODE) + 1); // BUG: no bit-3 mask
-  return m.call(0x3e01);
+  return fillColourColumn(m);
 }
 
 // -- 1. EQUAL (exhaustive over BOARD_MODE 0..255) -----------------------------

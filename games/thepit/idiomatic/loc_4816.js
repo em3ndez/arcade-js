@@ -12,32 +12,34 @@
  *     walked backwards through a ROM tile table at 0x494f (the tilemap fill).
  *   - The colour column then paints the same 10 cells with a single colour value (0).
  *
- * The cursor placement, address resolve, tilemap fill and colour-column fill are all
- * still the frozen oracle, so they are called across the oracle boundary. Two things
- * follow from that. First, the three returning calls keep the Z80 return-address push
- * beside them: those callees pop it on the way out, and this hardware's stack lives in
- * work RAM that the gate compares, so the pushed/popped bytes must land exactly where
- * the oracle leaves them. Second, the colour-column fill is a tail call — its own
- * return pops loc_4816's caller, so this routine returns whatever it returns and has no
- * return of its own. The only value handed across the boundary in a register is the
- * ROM source-table pointer the tilemap fill walks; every cursor, count and fill byte
- * is written straight to memory.
+ * The cursor placement, address resolve and colour-column fill are decompiled siblings,
+ * called directly: rowColToTileOffset stages the tilemap offset, deriveTileWriteCursors
+ * turns it into the colour-RAM / video-RAM write cursors, and fillColourColumn paints
+ * the colour run. The tilemap fill at 0x3ddb is still the frozen oracle (it has no
+ * idiomatic form yet), so it is reached across the boundary: the pushed word beside the
+ * call is the return address its own ret pops, and this hardware's stack lives in the
+ * work RAM the gate compares, so the pushed/popped bytes must land where the oracle
+ * leaves them. Its one register live-in is the ROM source-table pointer it walks; every
+ * cursor, count and fill byte is written straight to memory.
  *
  * NAME kept loc_4816: the mechanism (paint a fixed tile strip + colour column) is
  * clear, but this is one of a ~9-routine family (loc_472c..loc_48e5) that each paint a
  * different fixed strip, and which playfield element this particular one is has not
  * been earned — an English name would over-claim one strip's identity.
  *
- * Memory-equivalent to the frozen oracle — equivalence-4816.test.js.
+ * Memory-equivalent to the frozen oracle on the observable RAM — equivalence-4816.test.js.
  * GATE:     crafted-entry. loc_4816 is round-setup, NOT reached in attract, so it is
  *           validated on real machine states captured at a shared callee's dispatch
- *           (loc_3dae) during a boot/attract run: oracle and this run identically on
- *           clones, diffed on full RAM + registers + pc. Teeth = a wrong strip height.
+ *           (loc_3dae) during a boot/attract run. Because the decompiled helpers are
+ *           plain calls with no machine stack frame, this routine no longer reproduces
+ *           their return-address pushes and no longer runs the oracle's tail ret, so the
+ *           gate diffs the observable RAM the routine paints + pc + SP (after modelling
+ *           the return with one ret), excluding the dead stack-scratch window and the
+ *           declared-dead value registers. Teeth = a wrong strip height.
  * LIVE-OUT: memory-only — the painted tilemap strip + colour column and the paint
  *           scratch (cursor 0x8058/0x8059, offset/address words 0x805a/0x805e/0x8060,
  *           count 0x8055, fill byte 0x8057). The caller reloads its own register from
- *           RAM and consumes nothing this leaves; the residual registers are the tail
- *           callee's and are reproduced for free by making the identical calls.
+ *           RAM and consumes nothing this leaves.
  * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059) from ram.js. Kept hex: 0x8057 is the
  *           colour fill byte here — ram.js reads this scratch as BOARD_MODE for a
  *           different routine family, so naming it that here would mislead; 0x8055 is
@@ -45,6 +47,9 @@
  */
 
 import { TILE_COL, TILE_ROW } from "./ram.js";
+import { rowColToTileOffset } from "./rowColToTileOffset.js";
+import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
+import { fillColourColumn } from "./fillColourColumn.js";
 
 // ROM tile table the tilemap fill walks (backwards) for every cell below the cap.
 const STRIP_SOURCE_TABLE = 0x494f;
@@ -56,25 +61,27 @@ const STRIP_HEIGHT = 0x8055;
 export function loc_4816(m) {
   const { regs, mem } = m;
 
-  // Position the tile-cell cursor at column 1, row 11, and resolve that cell's
-  // tilemap offset then its colour/video-RAM addresses. The pushed word beside each
-  // call is the return address the callee pops (the stack is compared memory).
+  // Position the tile-cell cursor at column 1, row 11, then resolve that cell's
+  // tilemap offset (0x805a) and from it the colour-RAM and video-RAM write cursors
+  // (0x805e / 0x8060).
   mem.write8(TILE_COL, 1);
   mem.write8(TILE_ROW, 11);
-  m.push16(0x4823);
-  m.call(0x3dae); // cursor -> tilemap offset word (0x805a)
-  m.push16(0x4826);
-  m.call(0x3dc9); // offset -> colour + video addresses (0x805e / 0x8060)
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
 
   // Colour value 0, a 10-cell run, source table pointer, then paint the tilemap strip
-  // (top cell = the fixed cap, the nine below walked back through the ROM table).
+  // (top cell = the fixed cap, the nine below walked back through the ROM table). The
+  // tilemap fill is still the frozen oracle, so it is called across the boundary: the
+  // pushed word is the return address its ret pops, and the source pointer is its one
+  // register live-in.
   mem.write8(COLOUR_FILL, 0);
   mem.write8(STRIP_HEIGHT, 10);
-  regs.ix = STRIP_SOURCE_TABLE; // the tilemap fill's one register live-in
+  regs.ix = STRIP_SOURCE_TABLE;
   m.push16(0x4837);
   m.call(0x3ddb); // fill the 10-cell tilemap strip
 
-  // Tail into the colour-column fill: it paints the matching 10-cell colour run and
-  // its own return carries loc_4816's caller, so this routine has no return of its own.
-  return m.call(0x3e01);
+  // Paint the matching 10-cell colour column with colour 0. In the oracle this was a
+  // tail jump whose ret carried loc_4816's caller; as a direct call it paints the colour
+  // run and returns here, so loc_4816 returns to its own caller normally.
+  return fillColourColumn(m);
 }

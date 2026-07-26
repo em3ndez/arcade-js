@@ -3,31 +3,43 @@
  * Memory-equivalence gate for loc_3968 (ROM 0x3968, The Pit) — the per-frame
  * coordinate stepper that, on every fourth cadence tick, eases an actor's
  * coordinate (0x810a) down by one while it is at or above 193 and mirrors the new
- * value plus 16 into the shadow twin (0x811b), then tail-hands to the shared
- * record builder at 0x3a4c.
+ * value plus 16 into the shadow twin (0x811b), then hands off to the shared record
+ * builder stageActorSpriteRecords (the decompiled 0x3a4c).
  *
- * The tail handoff is the key to the contract. loc_3968 ends by running 0x3a4c
- * (still the frozen oracle) on both sides; 0x3a4c overwrites every working register
- * before it reads one and rebuilds its records purely from the two coordinate bytes
- * loc_3968 wrote. So once those two writes match, the full machine — RAM AND the
- * whole register file — reconverges after the handoff. That is why the natural gate
- * below can demand byte-and-register-exact equivalence rather than a declared subset.
+ * THE CONTRACT — OBSERVABLE RAM. loc_3968 used to tail-JUMP to the 0x3a4c oracle
+ * via m.call; the callee's `ret` popped this routine's own caller return address, so
+ * the whole register file AND pc/SP reconverged after the handoff and the gate could
+ * demand byte-and-register-exact equivalence. That stale call has been dissolved into
+ * a DIRECT JS call to stageActorSpriteRecords(m). A JS call has no Z80 stack frame:
+ * the direct callee stages the two sprite records but never rets, so it no longer
+ * marches SP, sets pc, or leaves the oracle's residual value registers. Those three
+ * therefore diverge from the oracle by construction and are EXCLUDED here — they are
+ * dead ABI (declared memory-only live-out; nothing downstream reads them before
+ * overwriting them) and Z80-return modelling the idiomatic layer deliberately drops.
+ *
+ * What the routine actually affects is RAM: the two coordinate writes (0x810a,
+ * 0x811b) and the two sprite records the tail builder stages from them (0x8238,
+ * 0x823c). The handoff touches no stack (0x3a4c only reads its ret address, never
+ * pushes), so no dead stack-scratch window exists to exclude either — the full RAM
+ * dump is compared byte-for-byte, which is strictly stronger than a windowed subset.
+ * (See equivalence-4c5f.test.js for the sibling dissolve where the oracle's register
+ * saves DID leave a [SP-4, SP) scratch window that had to be masked.)
  *
  * FOUR checks:
- *   1. WIRING (unitEquivalence) — capture the first natural attract dispatch, run
- *      oracle vs idiomatic on independent clones, and demand identical RAM +
- *      full register file + pc. Proves the gate runs end to end on The Pit and that
- *      the tail handoff reconverges everything.
+ *   1. WIRING — capture the first natural attract dispatch, run oracle vs idiomatic
+ *      on independent clones, and demand identical RAM (pc/SP/registers excluded per
+ *      the contract above). Proves the gate runs end to end on The Pit through the
+ *      direct stageActorSpriteRecords handoff.
  *   2. EQUAL (captured real dispatches) — a spread of real attract entry states
  *      (the coordinate walks down from ~240), each run both ways and diffed on the
- *      full state dump + full register file. Covers the step-down and idle arms as
- *      they actually occur in play.
+ *      full RAM dump. Covers the step-down and idle arms as they actually occur.
  *   3. EXHAUSTIVE — over all 65,536 (timer, coordinate) combinations, set both bytes
  *      identically on both sides and confirm the two writes (0x810a, 0x811b) match
  *      the oracle. Covers the below-limit arm and the not-a-fourth-tick arm across
  *      the whole input domain, not just the states attract reaches.
  *   4. TEETH — three broken twins (wrong threshold, wrong twin offset, dropped
- *      fourth-tick gate) MUST each be caught.
+ *      fourth-tick gate), each built on the SAME direct handoff, MUST each be caught
+ *      on the RAM dump.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-3968.test.js
  */
@@ -38,8 +50,9 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3968 as oracle } from "../../translated/loc_3968.js";
 import { loc_3968 } from "../loc_3968.js";
+import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence, firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
+import { firstStateDiff } from "../../../../core/equivalence.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -76,34 +89,38 @@ function captureEntries(maxFrames, stride, cap) {
   return entries;
 }
 
-/** Full-machine contract: RAM dump + the whole register file. null when identical. */
-function stateAndRegDiff(a, b) {
+/**
+ * The observable contract: the full RAM dump must be identical. pc, SP and the value
+ * registers are EXCLUDED — dissolving the Z80 tail-ret means the direct callee no
+ * longer marches SP, sets pc, or leaves the oracle's dead residual registers. Returns
+ * a diff message, or null when the RAM is byte-for-byte identical.
+ */
+function observableDiff(a, b) {
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return `RAM@${hx(ram.addr ?? 0)} oracle=${ram.a} other=${ram.b}`;
-  const reg = firstRegDiff(a.regs, b.regs);
-  if (reg) return `REG ${reg.reg} oracle=${reg.a} other=${reg.b}`;
   return null;
 }
 
-// -- 1. WIRING: the shared unit gate on the first natural dispatch --------------
+// -- 1. WIRING: first natural dispatch, observable RAM equivalence --------------
 
-test("WIRING: unitEquivalence reports EQUAL on the first natural attract dispatch", () => {
+test("WIRING: loc_3968 == oracle on the first natural attract dispatch (observable RAM)", () => {
   // The attract demo that drives this mover starts late (first dispatch ~frame 976),
-  // so the unit harness needs a longer run than its 240-frame default to reach it.
-  const res = unitEquivalence(makeMachine, TARGET, oracle, loc_3968, { maxFrames: 1200 });
-  assert.equal(
-    res.equal, true,
-    `gate reported a diff: ram=${JSON.stringify(res.ram)} regs=${JSON.stringify(res.regs)} pc=${JSON.stringify(res.pc)}`,
-  );
-  assert.equal(res.ram, null, "RAM must be identical");
-  assert.equal(res.regs, null, "the full register file must reconverge after the tail handoff");
-  assert.equal(res.pc, null, "pc must be identical");
-  console.log("  WIRING: captured 0x3968, ran oracle vs idiomatic through the 0x3a4c handoff -> EQUAL");
+  // so the capture needs a longer run to reach it.
+  const [entry] = captureEntries(1200, 1, 1);
+  assert.ok(entry, `expected 0x${TARGET.toString(16)} to dispatch during attract`);
+
+  const a = entry.clone();
+  const b = entry.clone();
+  oracle(a);
+  loc_3968(b);
+  const diff = observableDiff(a, b);
+  assert.equal(diff, null, diff && `gate reported a RAM diff on the first dispatch: ${diff}`);
+  console.log("  WIRING: captured 0x3968, ran oracle vs idiomatic through the direct stageActorSpriteRecords handoff -> RAM EQUAL");
 });
 
 // -- 2. EQUAL on a spread of real captured attract dispatches -------------------
 
-test("EQUAL: loc_3968 == oracle on real attract dispatches (full RAM + registers)", () => {
+test("EQUAL: loc_3968 == oracle on real attract dispatches (full RAM dump)", () => {
   const entries = captureEntries(3000, 3, 240);
   assert.ok(entries.length >= 20, `expected many captured dispatches, got ${entries.length}`);
 
@@ -119,7 +136,7 @@ test("EQUAL: loc_3968 == oracle on real attract dispatches (full RAM + registers
     const b = cap.clone();
     oracle(a);
     loc_3968(b);
-    const diff = stateAndRegDiff(a, b);
+    const diff = observableDiff(a, b);
     assert.equal(diff, null, diff && `mismatch on a real attract dispatch (timer=${hx(timer)} coord=${coord}): ${diff}`);
   }
 
@@ -127,7 +144,7 @@ test("EQUAL: loc_3968 == oracle on real attract dispatches (full RAM + registers
   assert.ok(stepDown > 0, "expected the step-down arm to occur in attract");
   assert.ok(idle > 0, "expected the not-a-fourth-tick arm to occur in attract");
   console.log(
-    `  EQUAL: ${entries.length} real dispatches identical (RAM+regs) — ` +
+    `  EQUAL: ${entries.length} real dispatches identical (full RAM) — ` +
       `step-down=${stepDown} idle=${idle} below-limit=${belowLimit}`,
   );
 });
@@ -139,8 +156,9 @@ test("EXHAUSTIVE: over all 65,536 (timer, coordinate) combos the two writes matc
   assert.ok(entry, "need a base attract state to sweep from");
   const oracleM = entry.clone();
   const idioM = entry.clone();
-  // A fixed scratch stack anchor so the tail handoff's return only ever pops a known
-  // cell as the routine is re-run in place (its net return would march SP otherwise).
+  // The oracle is re-run in place across the sweep and its tail-ret marches SP, so
+  // pin a fixed scratch stack anchor each iteration; the idiomatic side no longer
+  // touches SP, but pinning both keeps the two runs starting from identical state.
   const SP_ANCHOR = 0x8780;
 
   let checked = 0, sawStepDown = false, sawBelow = false, sawIdle = false;
@@ -174,6 +192,9 @@ test("EXHAUSTIVE: over all 65,536 (timer, coordinate) combos the two writes matc
 });
 
 // -- 4. TEETH: broken twins the gate MUST catch --------------------------------
+//
+// Each twin is built on the SAME direct stageActorSpriteRecords handoff as the real
+// routine, so the only difference the gate sees is the injected coordinate bug.
 
 /** Broken twin A: wrong threshold — steps down at 192 too. */
 function brokenThreshold(m) {
@@ -186,7 +207,7 @@ function brokenThreshold(m) {
       mem.write8(TWIN_X, stepped + 16);
     }
   }
-  return m.call(0x3a4c);
+  return stageActorSpriteRecords(m);
 }
 
 /** Broken twin B: wrong twin offset — trails 15 above instead of 16. */
@@ -200,7 +221,7 @@ function brokenOffset(m) {
       mem.write8(TWIN_X, stepped + 15); // BUG: should be +16
     }
   }
-  return m.call(0x3a4c);
+  return stageActorSpriteRecords(m);
 }
 
 /** Broken twin C: drops the fourth-tick gate — steps down every tick. */
@@ -212,7 +233,7 @@ function brokenNoGate(m) {
     mem.write8(ACTOR_X, stepped);
     mem.write8(TWIN_X, stepped + 16);
   }
-  return m.call(0x3a4c);
+  return stageActorSpriteRecords(m);
 }
 
 test("TEETH: three broken twins are all CAUGHT", () => {
@@ -226,7 +247,7 @@ test("TEETH: three broken twins are all CAUGHT", () => {
     cap.mem.write8(ACTOR_X, 192);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenThreshold(b);
-    const diff = stateAndRegDiff(a, b);
+    const diff = observableDiff(a, b);
     assert.notEqual(diff, null, "the gate FAILED to catch the wrong threshold — it is worthless");
     console.log(`  TEETH A (wrong threshold): caught (${diff})`);
   }
@@ -238,7 +259,7 @@ test("TEETH: three broken twins are all CAUGHT", () => {
     cap.mem.write8(ACTOR_X, 200);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenOffset(b);
-    const diff = stateAndRegDiff(a, b);
+    const diff = observableDiff(a, b);
     assert.notEqual(diff, null, "the gate FAILED to catch the wrong twin offset — it is worthless");
     console.log(`  TEETH B (wrong twin offset): caught (${diff})`);
   }
@@ -250,7 +271,7 @@ test("TEETH: three broken twins are all CAUGHT", () => {
     cap.mem.write8(ACTOR_X, 200);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenNoGate(b);
-    const diff = stateAndRegDiff(a, b);
+    const diff = observableDiff(a, b);
     assert.notEqual(diff, null, "the gate FAILED to catch the dropped fourth-tick gate — it is worthless");
     console.log(`  TEETH C (dropped fourth-tick gate): caught (${diff})`);
   }

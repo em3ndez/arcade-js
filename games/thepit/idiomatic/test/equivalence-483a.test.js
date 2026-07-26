@@ -2,9 +2,9 @@
 /**
  * Memory-equivalence gate for loc_483a (ROM 0x483a, The Pit) — the two-variant
  * panel painter: it names one tile cell (column 5), reads a live work-RAM byte to
- * pick a variant, asks the shared address helpers for that cell's tilemap offset and
- * colour-RAM / video-RAM cursors, stamps a label (plus a live-value cell in the
- * default variant), and tail-jumps into the colour-column filler.
+ * pick a variant, turns that cell into its tilemap offset and colour-RAM / video-RAM
+ * cursors, stamps a label (plus a live-value cell in the default variant), and paints
+ * the run in one colour.
  *
  * WHY THE GATE IS A CRAFTED ENTRY (not a captured dispatch):
  *
@@ -17,21 +17,35 @@
  *   video RAM are live — and loc_483a is then run directly on clones of it. The one
  *   input that steers the routine, the decision byte at 0x802b, is forced to each of
  *   its two arms IDENTICALLY on both sides, so any divergence is the rewrite's fault.
- *   (unitEquivalence's auto-capture cannot be used: it hooks 0x483a, which never
- *   fires in attract, so it would throw "never entered" — the reason this file drives
- *   the pair directly instead.)
  *
- *   Its five helpers (0x3dae/0x3dc9/0x3dea, and the 0x3e01 tail) are still the frozen
- *   oracle, reached the same way (through the registry) on both sides, so the gate is
- *   only testing loc_483a's own layout writes and its routing.
+ * WHY OBSERVABLE (not whole-dump) EQUIVALENCE:
+ *
+ *   loc_483a used to marshal registers and push a return address before each of its
+ *   address-setup / colour-fill helpers so those still-oracle callees found the return
+ *   they expected on the machine stack. Three of those helpers are now decompiled
+ *   (rowColToTileOffset 0x3dae, deriveTileWriteCursors 0x3dc9, fillColourColumn 0x3e01)
+ *   and are called as plain JS — no stack frame, no pushed return address. The glyph
+ *   copy helper at 0x3dea is still the oracle and keeps its call.
+ *
+ *   Because the decompiled helpers no longer push, the routine no longer reproduces
+ *   the oracle's return-address pushes below the stack pointer, and — the oracle's tail
+ *   returns through the colour filler, so it pops the caller's address while the plain
+ *   JS tail-call does not — the exit pc and the stack pointer legitimately differ. The
+ *   gate therefore compares the RAM the panel actually writes, EXCLUDING the dead
+ *   stack-scratch window just below the entry stack pointer, and lines the exit up by
+ *   running one ret() on the candidate so its pc + SP meet the oracle's internal ret.
+ *   (In practice the excluded window matches anyway — the retained copy helper rewrites
+ *   it last with the same value — but it is excluded on principle: the dissolved helpers
+ *   no longer own those bytes.)
  *
  * WHAT IS PROVEN:
  *   EQUAL on the default variant (the realistic 0x802b == 0 plus a sweep of the live
- *   displayed value) and on the alternate variant (0x802b == 1); IDENTITY (oracle vs
- *   oracle); and TEETH — a wrong colour (direct scratch), an off-by-one label pointer
- *   that surfaces only downstream in video RAM, and a post-hoc output corruption — all
- *   caught. The gate compares the full machine dump (memory incl. the reproduced stack)
- *   plus the exit pc, with no exclusions.
+ *   displayed value) and on the alternate variant (0x802b == 1) over RAM (outside the
+ *   stack scratch) + pc + SP; IDENTITY (oracle vs oracle, whole dump); and TEETH — a
+ *   wrong colour (direct scratch), an off-by-one label pointer that surfaces only
+ *   downstream in video RAM, and a post-hoc output corruption — all caught. The teeth
+ *   twins are written in the same dissolved form as the routine and change ONE thing,
+ *   so the caught diff is precisely the bug, never a spurious stack difference.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-483a.test.js
  */
@@ -43,6 +57,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_483a as oracle } from "../../translated/loc_483a.js";
 import { loc_483a as idiomatic } from "../loc_483a.js";
 import { loc_3d49 as sibling } from "../../translated/loc_3d49.js";
+import { rowColToTileOffset } from "../rowColToTileOffset.js";
+import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
+import { fillColourColumn } from "../fillColourColumn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -62,6 +79,7 @@ const FILL_ATTR = 0x8057; // colour attribute the panel is painted in
 const CELL_COUNT = 0x8055; // per-field cell count fed to the copy/fill helpers
 const DEFAULT_LABEL = 0x49ba; // ROM label glyph source, default variant (walked backwards)
 const CAPTURE_FRAMES = 240; // loc_3d49 first dispatches at frame 61 — well within this
+const STACK_SCRATCH = 16; // dead bytes below the entry SP the oracle's helper returns parked
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The Pit's routine registry is async, so build the factory once and reuse it.
@@ -96,67 +114,100 @@ function craftedEntry(value) {
 }
 
 /**
- * Run the oracle and a candidate on two independent clones of one entry state and
- * diff MEMORY (full dump, incl. the reproduced stack) + exit pc — the honest live-out.
+ * First differing RAM byte between two machines, EXCLUDING the dead stack-scratch
+ * window [entrySP - STACK_SCRATCH, entrySP) — the bytes the oracle's helper return
+ * pushes park below the entry stack pointer, which the stack-free direct calls no
+ * longer reproduce. Null when otherwise identical.
  */
-function runPair(entry, candidate) {
-  const a = entry.clone();
-  const b = entry.clone();
-  oracle(a);
-  candidate(b);
-  return {
-    ram: firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
-    pc: a.pc === b.pc ? null : { a: a.pc, b: b.pc },
-  };
+function ramDiffOutsideStack(a, b, entrySP) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
+}
+
+/**
+ * Compare a candidate against the oracle over the observable-equivalence contract for
+ * one entry: RAM (outside the stack scratch) + pc + SP. The oracle returns through the
+ * colour filler (one internal ret); the candidate models its plain-JS return with one
+ * ret() so pc + SP line up. Returns { diffs, ram } (diffs empty == EQUAL).
+ */
+function contractDiffs(entry, fn) {
+  const sp = entry.regs.sp;
+  const o = entry.clone();
+  oracle(o);
+  const c = entry.clone();
+  fn(c);
+  c.ret();
+
+  const diffs = [];
+  const ram = ramDiffOutsideStack(o, c, sp);
+  if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
+  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
+  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
+  return { diffs, ram };
 }
 
 // -- 1. EQUAL: default variant (the realistic arm) + a displayed-value sweep --------
 
-test("EQUAL (default variant): idiomatic == oracle across the live 0x802b value", () => {
+test("EQUAL (default variant): idiomatic == oracle over RAM + pc + SP across the live 0x802b value", () => {
   assert.ok(REAL, "captured a real sibling-panel attract dispatch");
   // Every value but 1 takes the default arm; each is also the byte shown in the last
   // cell, so this sweeps the one state-dependent input the routine has.
   const values = [0, 2, 3, 7, 10, 0x80, 0xff];
   for (const v of values) {
-    const r = runPair(craftedEntry(v), idiomatic);
-    assert.equal(r.ram, null, r.ram && `v=${hx(v)}: RAM diverged at ${hx(r.ram.addr ?? 0)} (oracle=${r.ram.a} idiomatic=${r.ram.b})`);
-    assert.equal(r.pc, null, r.pc && `v=${hx(v)}: exit pc diverged (oracle=${hx(r.pc?.a)} idiomatic=${hx(r.pc?.b)})`);
+    const { diffs } = contractDiffs(craftedEntry(v), idiomatic);
+    assert.equal(diffs.length, 0, `v=${hx(v)}: ${diffs.join("; ")}`);
   }
-  console.log(`  EQUAL/default: ${values.length} live-value inputs identical to the oracle (memory + pc)`);
+  console.log(`  EQUAL/default: ${values.length} live-value inputs identical to the oracle (RAM outside stack + pc + SP)`);
 });
 
 // -- 2. EQUAL: alternate variant (the crafted arm, 0x802b == 1) ---------------------
 
 test("EQUAL (alternate variant): idiomatic == oracle when 0x802b == 1", () => {
-  const r = runPair(craftedEntry(1), idiomatic);
-  assert.equal(r.ram, null, r.ram && `RAM diverged at ${hx(r.ram.addr ?? 0)} (oracle=${r.ram.a} idiomatic=${r.ram.b})`);
-  assert.equal(r.pc, null, r.pc && `exit pc diverged (oracle=${hx(r.pc?.a)} idiomatic=${hx(r.pc?.b)})`);
-  console.log("  EQUAL/alternate: 0x802b==1 arm identical to the oracle (memory + pc)");
+  const { diffs } = contractDiffs(craftedEntry(1), idiomatic);
+  assert.equal(diffs.length, 0, diffs.join("; "));
+  console.log("  EQUAL/alternate: 0x802b==1 arm identical to the oracle (RAM outside stack + pc + SP)");
 });
 
-// -- 3. IDENTITY: oracle vs oracle must be EQUAL (proves the gate wiring) -----------
+// -- 3. IDENTITY: oracle vs oracle must be EQUAL on the WHOLE dump ------------------
+// The oracle rets internally, so oracle-vs-oracle needs no ret handling and no stack
+// exclusion — the whole dump (stack included) plus pc must match. Proves the capture,
+// clone and diff plumbing is sound before the observable-equivalence gate leans on it.
 
-test("IDENTITY: oracle vs oracle reports EQUAL on both arms (gate wiring sanity)", () => {
+test("IDENTITY: oracle vs oracle reports EQUAL on the whole dump (gate wiring sanity)", () => {
   for (const v of [0, 1]) {
-    const r = runPair(craftedEntry(v), oracle);
-    assert.equal(r.ram, null, `identity RAM diff on v=${hx(v)}: ${JSON.stringify(r.ram)}`);
-    assert.equal(r.pc, null, `identity pc diff on v=${hx(v)}`);
+    const entry = craftedEntry(v);
+    const a = entry.clone();
+    oracle(a);
+    const b = entry.clone();
+    oracle(b);
+    const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+    assert.equal(d, null, d && `identity RAM diff on v=${hx(v)} at ${hx(d.addr ?? 0)}`);
+    assert.equal(a.pc, b.pc, `identity pc diff on v=${hx(v)}`);
+    assert.equal(a.regs.sp, b.regs.sp, `identity SP diff on v=${hx(v)}`);
   }
-  console.log("  IDENTITY: oracle vs oracle -> EQUAL on both arms");
+  console.log("  IDENTITY: oracle vs oracle -> EQUAL on both arms (whole dump)");
 });
 
 // -- 4. TEETH: broken twins the gate MUST catch ------------------------------------
-// Each twin mirrors the idiomatic routine exactly (including the oracle-stack return
-// pushes) and changes ONE thing, so the caught diff is precisely its bug — not a
-// spurious stack difference.
+// Each twin is the SAME dissolved form as loc_483a (direct helper calls, the 0x3dea
+// copy helper kept as the oracle) and changes ONE thing, so the caught diff is
+// precisely its bug — not a spurious stack difference.
 
 /** Broken twin A: default arm, painted in the WRONG colour attribute. */
 function brokenAttr(m) {
   const { mem, regs } = m;
   mem.write8(TILE_COL, 5);
   mem.write8(TILE_ROW, 11);
-  m.push16(0x484d); m.call(0x3dae);
-  m.push16(0x4850); m.call(0x3dc9);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
   mem.write8(FILL_ATTR, 152); // BUG: colour 152 instead of 151
   mem.write8(CELL_COUNT, 9);
   regs.ix = DEFAULT_LABEL;
@@ -165,12 +216,12 @@ function brokenAttr(m) {
   regs.ix = PANEL_VALUE;
   m.push16(0x486d); m.call(0x3dea);
   mem.write8(CELL_COUNT, 10);
-  return m.call(0x3e01);
+  return fillColourColumn(m);
 }
 
 /**
  * Broken twin B: default arm with an off-by-one label source pointer. The scratch
- * bytes are written exactly as the oracle does — this divergence surfaces ONLY through
+ * bytes are written exactly as the routine does — this divergence surfaces ONLY through
  * the copy helper, as wrong glyphs in video RAM. Proves the gate catches a purely
  * callee-mediated effect, not just a directly-written scratch byte.
  */
@@ -178,8 +229,8 @@ function brokenLabelSource(m) {
   const { mem, regs } = m;
   mem.write8(TILE_COL, 5);
   mem.write8(TILE_ROW, 11);
-  m.push16(0x484d); m.call(0x3dae);
-  m.push16(0x4850); m.call(0x3dc9);
+  rowColToTileOffset(m);
+  deriveTileWriteCursors(m);
   mem.write8(FILL_ATTR, 151);
   mem.write8(CELL_COUNT, 9);
   regs.ix = DEFAULT_LABEL - 1; // BUG: label glyphs shifted by one
@@ -188,7 +239,7 @@ function brokenLabelSource(m) {
   regs.ix = PANEL_VALUE;
   m.push16(0x486d); m.call(0x3dea);
   mem.write8(CELL_COUNT, 10);
-  return m.call(0x3e01);
+  return fillColourColumn(m);
 }
 
 /** Broken twin C: the correct idiomatic routine, then one wrong store. */
@@ -199,23 +250,23 @@ function brokenPostHoc(m) {
 }
 
 test("TEETH: a wrong colour attribute is CAUGHT", () => {
-  const r = runPair(craftedEntry(0), brokenAttr);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a wrong colour — it is worthless");
-  assert.equal(r.ram.addr, FILL_ATTR, `teeth caught ${hx(r.ram.addr ?? 0)} (expected the attribute byte ${hx(FILL_ATTR)})`);
-  console.log(`  TEETH: wrong colour caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
+  const { diffs, ram } = contractDiffs(craftedEntry(0), brokenAttr);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a wrong colour — it is worthless");
+  assert.equal(ram && ram.addr, FILL_ATTR, `teeth caught ${ram ? hx(ram.addr) : "(none)"} (expected the attribute byte ${hx(FILL_ATTR)})`);
+  console.log(`  TEETH: wrong colour caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
 
 test("TEETH: an off-by-one label pointer is CAUGHT downstream in video RAM", () => {
-  const r = runPair(craftedEntry(0), brokenLabelSource);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a callee-mediated label error — it is worthless");
+  const { diffs, ram } = contractDiffs(craftedEntry(0), brokenLabelSource);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a callee-mediated label error — it is worthless");
   // Scratch bytes are identical to the oracle; the first diff is a painted cell.
-  assert.ok(r.ram.addr >= 0x8800, `teeth caught ${hx(r.ram.addr ?? 0)}, expected a painted colour/video cell (>= 0x8800)`);
-  console.log(`  TEETH: off-by-one label caught downstream at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
+  assert.ok(ram && ram.addr >= 0x8800, `teeth caught ${ram ? hx(ram.addr) : "(none)"}, expected a painted colour/video cell (>= 0x8800)`);
+  console.log(`  TEETH: off-by-one label caught downstream at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
 
 test("TEETH: a post-hoc corrupted output is CAUGHT", () => {
-  const r = runPair(craftedEntry(0), brokenPostHoc);
-  assert.notEqual(r.ram, null, "the gate FAILED to catch a corrupted output — it is worthless");
-  assert.equal(r.ram.addr, TILE_COL, `teeth caught ${hx(r.ram.addr ?? 0)} (expected ${hx(TILE_COL)})`);
-  console.log(`  TEETH: corrupted layout byte caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
+  const { diffs, ram } = contractDiffs(craftedEntry(0), brokenPostHoc);
+  assert.ok(diffs.length > 0, "the gate FAILED to catch a corrupted output — it is worthless");
+  assert.equal(ram && ram.addr, TILE_COL, `teeth caught ${ram ? hx(ram.addr) : "(none)"} (expected ${hx(TILE_COL)})`);
+  console.log(`  TEETH: corrupted layout byte caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
