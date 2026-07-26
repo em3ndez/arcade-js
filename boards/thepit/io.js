@@ -58,15 +58,31 @@ export class Io {
 
     this.watchdog = new Watchdog();
     this.soundLatch = 0x00; // command to the (deferred) audio Z80
+
+    // Injected presses for input-tape testing: {portAddr: pressedBits} or null.
+    // Set per-frame by Machine.applyInputs (from emit --input / a tape); folded into
+    // the reads below with the right polarity. null in normal operation.
+    this.inputAssert = null;
   }
 
   // -- reads --------------------------------------------------------------
   readIn0() {
-    // LS157 mux: latch b6 selects IN0 (upright) vs IN2 (cocktail flipped).
-    return (this.latch & 0x40) ? this.in2 : this.in0;
+    // 0xA000 is NOT a plain port read. The driver's input_port_0_r returns
+    // ~m_inputmux->output_r(): the LS157 mux (latch b6 selects IN0 upright vs IN2
+    // cocktail) COMPLEMENTED. The complement turns the active-low switches (idle 0xff,
+    // a pressed direction/dig pulls its bit to 0) into the active-high logical form the
+    // ROM works with (idle 0x00, a pressed bit reads 1). Omitting the ~ made idle read
+    // 0xff instead of 0x00 — the debounced sample 0x8018/0x8019 then never matched MAME.
+    const muxed = (this.latch & 0x40) ? this.in2 : this.in0;
+    // Injected presses pull their physical (active-low) bits low BEFORE the complement,
+    // so the 0xa000 assert contract stays "press these physical bits" (shared with the lua).
+    const pressed = this.inputAssert ? this.inputAssert[0xa000] || 0 : 0;
+    return ~(muxed & ~pressed) & 0xff;
   }
   readIn1() {
-    return this.in1;
+    // IN1 is ACTIVE HIGH (idle 0x00): an injected coin/start SETS its bit.
+    const pressed = this.inputAssert ? this.inputAssert[0xa800] || 0 : 0;
+    return (this.in1 | pressed) & 0xff;
   }
   readDsw() {
     return this.dsw;

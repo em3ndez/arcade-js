@@ -12,7 +12,7 @@
  *   0x9800-0x983F  attribute / column-scroll RAM    mirror bits 0x0700
  *   0x9840-0x985F  sprite RAM (8 sprites x 4 bytes)
  *   0x9860-0x98FF  RAM
- *   0xA000   R: IN0 (LS157-muxed with IN2 by latch b6)   W: nop
+ *   0xA000   R: ~(IN0 LS157-muxed with IN2 by latch b6) — input_port_0_r COMPLEMENTS   W: nop
  *   0xA800   R: IN1 (coin/start, ACTIVE HIGH)
  *   0xB000   R: DSW   W: 0xB000-0xB007 LS259 latch (one addr per bit, data on d0)
  *   0xB800   R: watchdog reset (side effect!)  W: sound latch -> audio Z80

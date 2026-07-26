@@ -67,13 +67,22 @@ test("unmapped access throws loudly (a coverage signal, not a silent 0)", () => 
   assert.throws(() => m.write8(0x0000, 0x00), UnmappedAccess); // write to ROM
 });
 
-test("io: IN0 defaults released (0xFF, active-low) and muxes to IN2 on flip (latch b6)", () => {
+test("io: IN0 reads ~mux (input_port_0_r): idle 0x00, muxes to IN2 on flip (latch b6)", () => {
   const io = new Io();
-  assert.equal(io.readIn0(), 0xff);
+  // 0xA000 returns ~mux: released switches (raw 0xff active-low) complement to 0x00.
+  assert.equal(io.readIn0(), 0x00);
   io.in2 = 0x5a;
-  io.writeControlLatch(6, 1); // set flip/mux
-  assert.equal(io.readIn0(), 0x5a);
+  io.writeControlLatch(6, 1); // set flip/mux -> LS157 selects IN2 (cocktail)
+  assert.equal(io.readIn0(), 0xa5); // ~0x5a
   assert.equal(io.flipX, true);
+});
+
+test("io: IN0 injected press pulls a physical bit low, reads back high after ~", () => {
+  const io = new Io();
+  io.inputAssert = { 0xa000: 0x02 }; // press Right (physical bit 1, active low)
+  assert.equal(io.readIn0(), 0x02); // ~(0xff & ~0x02) = ~0xfd = 0x02
+  io.inputAssert = null;
+  assert.equal(io.readIn0(), 0x00); // released again
 });
 
 test("io: control latch bits — NMI mask (b0), flipY (b7)", () => {
