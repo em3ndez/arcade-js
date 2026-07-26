@@ -176,6 +176,12 @@ export class Machine {
     this.stoppedBy = null; // why a bounded run ended, if not the cycle budget
     this.stopError = null; // the actual error (UnregisteredRoutine / UnmappedAccess / …)
 
+    // Input-tape testing (null in normal operation). inputTape = [{port,bits,frame,dur}]
+    // asserted onto io each frame; pokes = [{addr,val,frame,dur}] written at the frame
+    // boundary. Set by emit.js --input/--poke before runFrames; mirror the MAME lua tape.
+    this.inputTape = null;
+    this.pokes = null;
+
     // ROM address of the NEXT instruction to execute — what the Z80 pushes when it
     // accepts an NMI. Maintained by step(); tick() invalidates it so fireNmi can
     // refuse to push a stale PC (which would land in diffed work RAM).
@@ -239,6 +245,35 @@ export class Machine {
     this.call(0x0066); // the NMI handler, via the same registry every call uses
   }
 
+  /** Apply --poke entries due for `frameIndex`, at the frame boundary before exec. */
+  applyPokes(frameIndex) {
+    if (!this.pokes) return;
+    for (const p of this.pokes) {
+      // dur frames from p.frame (null = indefinite hold); holdN releases after N so
+      // the game's own code manages the byte during play (e.g. a level-select poke).
+      const due =
+        frameIndex >= p.frame && (p.dur == null || frameIndex < p.frame + p.dur);
+      if (due) this.mem.write8(p.addr, p.val);
+    }
+  }
+
+  /**
+   * Assert --input tape entries for `frameIndex` onto io.inputAssert — a fresh
+   * {portAddr: pressedBits} map rebuilt every frame so a one-frame pulse (coin/start)
+   * releases and a held direction stays down. readIn0/readIn1 fold these in with the
+   * right polarity. Mirrors the MAME lua tape pressing the same physical bits.
+   */
+  applyInputs(frameIndex) {
+    if (!this.inputTape) return;
+    const assert = {};
+    for (const t of this.inputTape) {
+      const due =
+        frameIndex >= t.frame && (t.dur == null || frameIndex < t.frame + t.dur);
+      if (due) assert[t.port] = (assert[t.port] || 0) | t.bits;
+    }
+    this.io.inputAssert = assert;
+  }
+
   /**
    * Advance the T-state clock, capturing a state dump at each frame boundary
    * crossed, then service the vblank NMI. Ordering matches DK exactly:
@@ -253,6 +288,11 @@ export class Machine {
     this.cycles += n;
 
     while (this.cycles >= this.nextBoundary && this.frames.length < this.maxFrames) {
+      // Frame N (= this.frames.length) is about to execute after state[N] is
+      // sampled: assert its inputs and apply its pokes first, so both are in
+      // effect during frame N — the timing MAME's frame notifier uses.
+      this.applyInputs(this.frames.length);
+      this.applyPokes(this.frames.length);
       this.frames.push(this.dumpState());
       this.nextBoundary += CYCLES_PER_FRAME;
     }
@@ -276,6 +316,8 @@ export class Machine {
    * that stop reason is the work-list signal the emitter reports.
    */
   runFrames(count) {
+    this.io.inputAssert = null; // clear any assert from a prior run
+    this.applyPokes(0); // frame-0 (pre-boot) pokes, before sampling state[0]
     this.frames = [this.dumpState()]; // state[0], power-on
     this.stoppedBy = null;
     this.stopError = null;

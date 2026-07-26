@@ -47,7 +47,12 @@ function parseArgs(argv) {
     rom: join(GAME_DIR, "rom", "maincpu.bin"),
     frames: 200,
     stateOut: join(GAME_DIR, "out", "emit"),
+    inputs: [],
+    pokes: [],
   };
+  // ADDR=VAL@FRAME[:hold[N]|once] (--poke) and PORT=BITS@FRAME[:hold[N]|once]
+  // (--input) share one grammar, matching DK's emit.js and the MAME lua tapes.
+  const SPEC = /^(0x[0-9a-fA-F]+|\d+)=(0x[0-9a-fA-F]+|\d+)@(\d+)(?::(hold|once)(\d+)?)?$/;
   for (let i = 2; i < argv.length; i++) {
     switch (argv[i]) {
       case "--rom": args.rom = argv[++i]; break;
@@ -60,6 +65,38 @@ function parseArgs(argv) {
         break;
       }
       case "--state-out": args.stateOut = argv[++i]; break;
+      case "--poke": {
+        // Write RAM at the frame boundary before exec. hold(default)=rewrite every
+        // frame from FRAME; holdN=for N frames then release (game code takes over);
+        // once=single write. Mirrors lua/poke_ram.lua.
+        const spec = argv[++i];
+        const mt = spec.match(SPEC);
+        if (!mt) throw new Error(`--poke expects ADDR=VAL@FRAME[:hold[N]|once], got ${spec}`);
+        const mode = mt[4] || "hold";
+        args.pokes.push({
+          addr: Number(mt[1]) & 0xffff,
+          val: Number(mt[2]) & 0xff,
+          frame: Number(mt[3]),
+          dur: mode === "once" ? 1 : mt[5] ? Number(mt[5]) : null,
+        });
+        break;
+      }
+      case "--input": {
+        // Assert input bits on IN0(0xa000, active low) / IN1(0xa800, active high) so
+        // the ROM's own credit/start/move logic drives the game. once(default)=1-frame
+        // pulse (coin/start); holdN=N frames; hold=indefinite (a held direction).
+        const spec = argv[++i];
+        const mt = spec.match(SPEC);
+        if (!mt) throw new Error(`--input expects PORT=BITS@FRAME[:hold[N]|once], got ${spec}`);
+        const mode = mt[4] || "once";
+        args.inputs.push({
+          port: Number(mt[1]) & 0xffff,
+          bits: Number(mt[2]) & 0xff,
+          frame: Number(mt[3]),
+          dur: mode === "once" ? 1 : mt[5] ? Number(mt[5]) : null,
+        });
+        break;
+      }
       default: throw new Error(`unknown argument: ${argv[i]}`);
     }
   }
@@ -98,6 +135,8 @@ async function main() {
   const rom = new Uint8Array(readFileSync(args.rom));
 
   const machine = await Machine.create(rom);
+  machine.inputTape = args.inputs.length ? args.inputs : null;
+  machine.pokes = args.pokes.length ? args.pokes : null;
   const want = args.frames;
   // runFrames keeps whatever it captured and records why it stopped, so a boot
   // gap yields a short-but-valid artifact rather than nothing.
