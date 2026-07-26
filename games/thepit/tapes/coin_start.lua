@@ -22,6 +22,16 @@ local COIN_HOLD   = tonumber(os.getenv("TAPE_COIN_HOLD")   or "8")
 local START_FRAME = tonumber(os.getenv("TAPE_START_FRAME") or "460")
 local START_HOLD  = tonumber(os.getenv("TAPE_START_HOLD")  or "8")
 
+-- ★ JS-EMIT MIRROR OFFSET = +2. To reproduce a golden captured with THIS tape,
+-- the JS emitter presses the SAME bits two frames LATER than these lua frames:
+--     emit --input 0xa800=0x01@402:hold8  --input 0xa800=0x04@462:hold8
+-- (i.e. coin@400->402, start@460->462). Measured: at +2 the game accepts start on
+-- the SAME emulated frame both sides (0x8001 3->1 at frame 464) and the whole
+-- coin+start+gameplay run then diffs byte-clean except a 1-byte stack-scratch
+-- transient. This is The Pit's analogue of DK's documented emitter N+1 skew (the
+-- MAME frame notifier and the JS boundary sample count frames from different
+-- origins); it is a CONTRACT, re-verify it if the coin/start timing changes.
+
 -- The Pit input bits (from src/mame/taito/roundup.cpp, mirrored in boards/thepit/io.js):
 --   IN1 @ 0xA800 ACTIVE HIGH: b0=Coin1 (0x01)  b2=Start1 (0x04)
 --   IN0 @ 0xA000 ACTIVE LOW:  b0=Left b1=Right b2=Down b3=Up b4=Dig/Button1
