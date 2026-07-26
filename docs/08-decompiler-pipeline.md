@@ -211,6 +211,16 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   inputs; `loc_1cd2`'s five-line marshalling block then collapses to one named call, and the pair is
   leak-free — no `m.call`, `push16`, `m.step`, or register/flag marshalling in its own code. (Its
   tail `loc_1ceb` stays the frozen oracle, simply the next routine bottom-up order takes.)
+  **Before you write `m.call(0xADDR)`, check whether that callee is already decompiled** (grep
+  `idiomatic/` for its address). If it is, import and call the idiomatic function directly with
+  honest args — `m.call` is *only* for callees that have no idiomatic file yet. A stale
+  `regs.a = 5; m.call(0x4ca5)` to an already-decompiled `enqueueSoundCommand` is a
+  register-marshalling leak that the equivalence gate does **not** catch (both call paths are
+  memory-equivalent), so it survives to the reviewer — who must reject it. It bit us on The Pit:
+  a run of `requestSoundN` sound-trigger stubs marshalled `A` and `m.call`ed the enqueue tail while
+  a dozen sibling stubs had already dissolved to `enqueueSoundCommand(m, N)`; the mislabelled ones
+  even claimed the callee was "still-oracle." The gate is green either way — *readability and the
+  honest-signature rule*, enforced at review, are what force the direct call.
 - **Naming.** Uniform `loc_<addr>` is the baseline. Drop the `sub_`/`entry_`/`handler_`/`arm_`/
   `guard_`/`branch_`/`tail_` prefix zoo — it is *pseudo-semantics*, a taxonomy applied ad hoc
   routine-by-routine that implies meaning it does not consistently carry. **Promote** to an English
