@@ -217,3 +217,27 @@ export const GOAL_CROSSING_LATCH = 0x8077;
 /** Fixed DSW/cabinet-derived pixel offset (0 in normal play) biased into sprite coordinates;
  *  computed once by the DSW decode loc_4b55. (strong) */
 export const SPRITE_COORD_BIAS = 0x8051;
+
+// ── Tracked-object state-control block (0x8079-0x807d) ────────────────────────
+// A small control block for the tracked object that OBJ_X/OBJ_Y locate: a presence
+// flag, a busy-this-frame flag (0x807a), a spawn sub-phase (SPAWN_PHASE 0x807b), a
+// state timer, and a post-timer mode selector (0x807d). loc_13c9/loc_13de walk them
+// as the head guards of the per-frame object/state dispatcher.
+
+/** Presence flag for the tracked object (the one OBJ_X/OBJ_Y locate): 0 = no live object
+ *  (skip its per-frame work), 0xff = present. Set 0xff when the object is first seeded
+ *  (loc_3748, alongside its OBJ_X tile), cleared when it exits at a boundary (loc_384a,
+ *  together with OBJ_X); read as the "nothing active, done" guard by the object/state
+ *  dispatcher (loc_13de) and as the "nothing to classify" gate by loc_03e8. Consistent
+ *  0/0xff presence role across 6 routines. (strong) */
+export const OBJECT_ACTIVE = 0x8079;
+
+/** State-lockout countdown for the tracked object: while nonzero the object is held in
+ *  its current timed state and its normal per-frame processing is deferred — loc_13c9
+ *  decrements it and returns early each frame (vectoring on the mode byte 0x807d when it
+ *  expires), and loc_03e8 skips its recolour + classify while it runs. Armed to a duration
+ *  at events (0x78 idle-arm in loc_384a; 0xb4 boundary latch in loc_19e3/loc_19d0/loc_2d6b).
+ *  loc_13c9's translation reads it directly as "the countdown timer." (fair — the timer role
+ *  is well corroborated, but it sits among sibling busy bytes 0x807a/0x807b and the latched
+ *  values are not proven to be pure durations.) */
+export const STATE_TIMER = 0x807c;
