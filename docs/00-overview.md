@@ -28,7 +28,8 @@ The remaining documents describe the strategies, in the order you would apply th
 4. [Integration testing](05-integration-testing.md) — the MAME ground-truth harness.
 5. [The pixel gate](06-pixel-gate.md) — byte-exact where it must be, tolerant where reality is jittery.
 6. [The decompiler pipeline](07-decompiler-pipeline.md) — rewriting the faithful translation into idiomatic JavaScript, one memory-equivalence-gated routine at a time.
-7. [Porting a new game](08-porting-a-new-game.md) — the CPU / board / game layering in practice.
+7. [Understanding the mechanisms](09-understanding-the-mechanisms.md) — the living, code-grounded model of how the game plays; required reading before the idiomatic pass.
+8. [Porting a new game](08-porting-a-new-game.md) — the CPU / board / game layering in practice.
 
 The running example throughout is **Donkey Kong** (Z80, Nintendo `dkong` board). Nothing about
 the method is DK-specific; see [the decompiler pipeline](07-decompiler-pipeline.md) for what

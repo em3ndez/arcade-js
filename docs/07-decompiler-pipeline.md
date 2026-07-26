@@ -271,6 +271,12 @@ so that bulk (and most of the format drift) is absent. The idiomatic rewrite car
 
 ## The pipeline for the next game
 
+**Understanding runs across all of this, it is not a step in it.** Start it on day one — you need
+only the ROM and MAME to watch attract mode — and keep the living `games/<game>/MECHANISMS.md`
+growing through every step below ([doc 9](09-understanding-the-mechanisms.md)). The observation
+comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
+the map and can't be done well without it. It is required reading for anyone naming or decompiling.
+
 1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
    (This is [doc 3](03-translation.md), with uniform address names from line one.)
 2. **Call graph + reachability** — who calls whom, what is reachable, what is dead. This is the
@@ -285,13 +291,15 @@ so that bulk (and most of the format drift) is absent. The idiomatic rewrite car
    is reachable only at runtime through a dispatch the tracer can't resolve statically needs a
    separate entry-discovery pass (a PC-trace of the live program) folded into the entry points.
 3. **RAM naming pass** — evidence-based (control-poke, cross-routine corroboration,
-   proposer≠confirmer, the sprite-record trap). Front-loaded, because named memory is the single
-   biggest legibility lever; iterative, because some names only resolve during the decompile.
+   proposer≠confirmer, the sprite-record trap), and driven by the mechanism map above. Front-loaded,
+   because named memory is the single biggest legibility lever; iterative, because some names only
+   resolve during the decompile.
 4. **Bottom-up decompile *and* routine naming, as one interleaved step** — leaves first, direct
-   calls, drop cycles and dead registers/flags, recover structure, promote names where earned.
-   Each routine gated **memory-equivalent** against its `loc_XXXX` lift (pinned PRNG, teeth). Seed
-   the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) up front, but
-   expect most names to fall out *of* the decompile, not before it.
+   calls, drop cycles and dead registers/flags, recover structure, promote names where earned (an
+   earned name is a mechanism-map role that reached confidence). Each routine gated
+   **memory-equivalent** against its `loc_XXXX` lift (pinned PRNG, teeth). Seed the obvious routine
+   names (RST vectors, leaf sound triggers, the NMI handler) up front, but expect most names to fall
+   out *of* the decompile, not before it.
 5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is
    the one accepted sub-frame residual.
 
