@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Pre-push gate: never push a red tree. Runs the full unit suite once per push (~46s)
+# and BLOCKS the push if it fails -- the backstop the review gate cannot give (a review
+# token attests a review happened, not that the suite is green; a partial-suite pass once
+# masked a red translated test that got pushed). --no-verify bypasses it; don't.
+repo="$(git rev-parse --show-toplevel)" || { echo "[pre-push] not a git repo -- blocking" >&2; exit 1; }
+cd "$repo" || { echo "[pre-push] cannot cd to repo -- blocking" >&2; exit 1; }
+echo "[pre-push] running npm test (full suite, ~46s) before push..." >&2
+log="$(mktemp)"
+if npm test >"$log" 2>&1 </dev/null; then
+  echo "[pre-push] suite green -- push allowed." >&2
+  rm -f "$log"; exit 0
+fi
+echo "" >&2
+echo "PUSH BLOCKED -- npm test is RED. Fix the suite before pushing (do not --no-verify)." >&2
+grep -E '✖|^ℹ (tests|pass|fail)' "$log" | tail -25 >&2
+rm -f "$log"
+exit 1
