@@ -46,3 +46,14 @@ RAM and the DMA registers live), the interrupt/watchdog behaviour, the graphics/
 decode, and the DMA timing. Each fact is *verified* against the reference emulator, not guessed —
 the same discipline as the code translation. For Donkey Kong this modelling is written down as a
 worked example in the board sources under `boards/dkong/` and their comments.
+
+**Get every address and offset from the MAME driver's actual implementation — its memory map *and*
+its video/draw code — never by inference.** A plausible-looking guess for a sprite base, a
+per-column scroll base, a tile plane order, or a mirror mask is exactly where a subtle bug hides,
+and one class of it is invisible to the state gate: a **render-addressing offset**. The Pit shipped a
+16-byte offset in the renderer's interpretation of sprite/scroll RAM. Because that offset is in how
+the render *reads* the RAM, not in the RAM's contents, the whole-machine [state
+diff](05-integration-testing.md) still matched MAME byte-for-byte — a render-interpretation error
+moves no state. Only the [pixel gate](06-pixel-gate.md) surfaced it. So a green state diff is *not*
+evidence the render is right: run the pixel gate too, and pin the board's video addressing against
+the driver's own draw routine (for The Pit, `taito/roundup.cpp`), citing it in the board source.
