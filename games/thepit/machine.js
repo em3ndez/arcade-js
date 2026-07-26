@@ -7,9 +7,14 @@
  *   - NO i8257 DMA. The Pit renders sprites straight from sprite RAM, so there is
  *     no DMA stall to charge and no sprite-DMA blit. (DK's drainRaster / raster
  *     capture / sprite post-pass are all gone with it.)
- *   - NO optimized-override layer. This runs ONLY the frozen translated oracle:
- *     no manifest.optimized, no buildOverrides/resolveOverrides, no per-routine
- *     swap map. The registry (routines.js) IS the whole dispatch table.
+ *   - OVERRIDE LAYER for the memory-equivalence gate (core/equivalence.js). An
+ *     opts.overrides map (Map<number,function> of ALREADY-RESOLVED routines) is
+ *     layered over the oracle registry, so the gate can wire an idiomatic routine
+ *     live or install a capturing hook at a target address. With no overrides the
+ *     registry is the frozen translated oracle, byte-identical to pure translated
+ *     code. (Unlike DK there is no declarative manifest.optimized / resolveOverrides
+ *     yet — The Pit's idiomatic layer is just starting, so overrides arrive already
+ *     as functions, which is all the gate needs.)
  *
  * FRAME SAMPLING CONTRACT (do not drift): state frames are sampled at the frame
  * boundary BEFORE that frame's CPU execution.
@@ -73,17 +78,62 @@ export class UnregisteredRoutine extends Error {
   }
 }
 
+/**
+ * Build the per-routine OVERRIDE MAP: dispatch/call target (a number) -> handler
+ * function. This is what lets an idiomatic rewrite (or the gate's capturing hook)
+ * replace its translated counterpart WITHOUT editing any call site — m.call(addr)
+ * consults the layered registry.
+ *
+ * The Pit's overrides are ALREADY RESOLVED functions (the memory-equivalence gate
+ * hands in a Map<number,function> directly). There is no declarative
+ * { module, export } form here as DK has — that needs an async import a constructor
+ * cannot await, and The Pit's idiomatic layer has no shipped manifest.optimized yet.
+ * So a { module, export } value is rejected loudly rather than silently ignored, to
+ * name the missing resolver the day one is added.
+ *
+ * With no spec this returns an empty Map, so the override branch is inert and the
+ * Machine runs the exact translated behaviour.
+ *
+ * @param {object|Map} [spec]
+ * @returns {Map<number, function>}
+ */
+function buildOverrides(spec) {
+  const map = new Map();
+  if (!spec) return map;
+  const entries = spec instanceof Map ? [...spec.entries()] : Object.entries(spec);
+  for (const [key, val] of entries) {
+    const addr = typeof key === "number" ? key : parseInt(key, 16);
+    if (typeof val === "function") {
+      map.set(addr, val);
+    } else if (val && typeof val === "object" && "module" in val) {
+      throw new Error(
+        `override for 0x${addr.toString(16).padStart(4, "0")} is the declarative ` +
+          "{ module, export } form, which The Pit has no resolver for yet. Pass an " +
+          "already-resolved function as opts.overrides (the memory-equivalence gate " +
+          "does); a constructor cannot dynamic-import synchronously.",
+      );
+    } else {
+      throw new Error(
+        `override for key ${key} must be a function, got ${typeof val}`,
+      );
+    }
+  }
+  return map;
+}
+
 export class Machine {
   /**
    * @param {Uint8Array} rom          20KB maincpu image (0x0000-0x4FFF)
    * @param {object} opts
    * @param {Map<number,function>} opts.routines  the oracle registry (REQUIRED;
    *        built by buildRoutines(), which is async — use Machine.create()).
+   * @param {Map<number,function>|object} [opts.overrides]  already-resolved routines
+   *        (addr -> fn) layered over the oracle registry — the equivalence-gate seam.
    * @param {Uint8Array} [opts.gfx]   gfx image  — enables renderFrame()
    * @param {Uint8Array} [opts.proms] colour PROM — enables renderFrame()
    */
   constructor(rom, opts = {}) {
-    const { routines, gfx, proms } = opts;
+    const { routines, gfx, proms, overrides } = opts;
     if (!(routines instanceof Map)) {
       throw new Error(
         "Machine needs an already-built routine registry (opts.routines is a Map). " +
@@ -98,9 +148,21 @@ export class Machine {
     this.regs = new Regs();
     this.mem.clock = () => this.cycles;
 
-    // The whole dispatch table. m.call(addr) invokes routines.get(addr). No
-    // override layer: this is the frozen translated oracle, unmodified.
-    this.routines = routines;
+    // Per-routine override map: dispatch/call target -> handler. Empty and
+    // therefore INERT unless a caller supplies an already-resolved map/object via
+    // opts.overrides — the seam the memory-equivalence harness drives (a live
+    // idiomatic routine, or a capturing hook at a target address). See buildOverrides.
+    this.overrides = buildOverrides(overrides);
+
+    // The whole dispatch table the swap layer resolves through: the oracle registry
+    // (routines.js) with any overrides laid over the top. m.call(addr) invokes
+    // routines.get(addr), so an override replaces its oracle at EVERY call site, not
+    // just at a dispatch point. With no overrides this is the oracle table, so
+    // behaviour is byte-identical to pure translated code. A FRESH Map is taken so
+    // the passed-in registry (also held in this.assets) is never mutated — clone()
+    // rebuilds from it and re-layers.
+    this.routines = new Map(routines);
+    for (const [addr, fn] of this.overrides) this.routines.set(addr, fn);
 
     this.cycles = 0;
     this.frame = 0;
@@ -348,6 +410,68 @@ export class Machine {
   }
 
   /**
+   * A fresh Machine on this one's ROM + assets, restored to this machine's
+   * observable state: all board RAM, the full register file, and IO value-state.
+   * The clone's frame machinery is NEUTRALISED (boundaries / NMI / budget set to
+   * Infinity) so that running ONE routine on it in isolation cannot trip a frame
+   * sample, fire an NMI (whose handler would write RAM and masquerade as a side
+   * effect), or throw FramesComplete — the unit gate measures the routine, not the
+   * scheduler. Modelled on games/dkong/machine.js clone().
+   *
+   * The clone rebuilds from this.assets (the source's constructor opts), so it
+   * carries whatever `overrides` the source was built with — including the unit
+   * gate's snapshot override. That is harmless: the unit gate invokes the routine
+   * under test DIRECTLY on the clone (translatedFn/optimizedFn), so the override map
+   * is consulted only for an m.call the target makes back INTO itself, where the
+   * snapshot delegates to the oracle — exactly the callee-is-oracle isolation the
+   * unit gate wants. (Whole-machine equivalence backstops the one case this can't
+   * distinguish: an override that recurses into itself.)
+   */
+  clone() {
+    const c = new Machine(this.rom, this.assets);
+
+    // Board RAM — every diffed array, copied by value.
+    c.mem.workRam.set(this.mem.workRam);
+    c.mem.colorRam.set(this.mem.colorRam);
+    c.mem.videoRam.set(this.mem.videoRam);
+    c.mem.attrsprRam.set(this.mem.attrsprRam);
+    c.mem.pc = this.mem.pc; // diagnostic only; no diffed effect
+
+    // Register file — copies exactly REG_FIELDS (core/cpu/z80.js), so it stays in
+    // step with the CPU's own definition of its state.
+    c.regs.copyFrom(this.regs);
+
+    // IO value-state. The Pit's Io has no loadStateFrom (boards/ is frozen), so its
+    // mutable fields are copied here by hand: the raw port bytes, the DSW, the LS259
+    // control latch (nmiMask/flip live in it), the sound latch, and the watchdog
+    // counter — everything that can change during a run.
+    c.io.in0 = this.io.in0;
+    c.io.in1 = this.io.in1;
+    c.io.in2 = this.io.in2;
+    c.io.dsw = this.io.dsw;
+    c.io.latch = this.io.latch;
+    c.io.soundLatch = this.io.soundLatch;
+    c.io.watchdog.framesSinceKick = this.io.watchdog.framesSinceKick;
+    c.io.watchdog.enabled = this.io.watchdog.enabled;
+    c.io.watchdog.timeoutFrames = this.io.watchdog.timeoutFrames;
+
+    // Scheduler / bookkeeping.
+    c.cycles = this.cycles;
+    c.pc = this.pc;
+    c.pcKnown = this.pcKnown;
+    c.frame = this.frame;
+    c.nmiCount = this.nmiCount;
+    c.booted = this.booted;
+
+    // Neutralise the frame machinery (see the method contract above).
+    c.nextBoundary = Infinity;
+    c.nextNmi = Infinity;
+    c.maxFrames = Infinity;
+    c.maxCycles = Infinity;
+    return c;
+  }
+
+  /**
    * Render the current frame to 256x224 RGB888. Optional, on demand — requires gfx
    * and proms at construction. The Pit composes a whole frame at once (five layers,
    * see boards/thepit/video.js), so there is no per-scanline capture during a run.
@@ -356,6 +480,25 @@ export class Machine {
     if (!this.video) throw new Error("renderFrame needs gfx and proms at construction");
     return boardRenderFrame(this.mem, this.video.gfx, this.video.pal, this.io);
   }
+}
+
+/**
+ * Build a SYNCHRONOUS makeMachine(overrides) factory for the memory-equivalence
+ * engine (core/equivalence.js), which drives makeMachine(overrides) — a sync call —
+ * many times per gate. The Pit's routine registry is built by an async dynamic
+ * import (buildRoutines), which a synchronous factory cannot await, so it is built
+ * ONCE here and closed over; each factory call is then a plain synchronous Machine
+ * construction with the given overrides layered on. This is The Pit's analogue of
+ * DK's `new Machine(ROM, { overrides })` — DK's registry is a static import, so DK
+ * tests build the factory inline; The Pit needs this async bridge.
+ *
+ * @param {Uint8Array} rom
+ * @param {object} [assets]  gfx/proms etc, forwarded to every constructed Machine
+ * @returns {Promise<(overrides?:Map|object)=>Machine>}
+ */
+export async function makeMachineFactory(rom, assets = {}) {
+  const routines = await buildRoutines();
+  return (overrides) => new Machine(rom, { ...assets, routines, overrides });
 }
 
 export { STATE_DUMP_SIZE };
