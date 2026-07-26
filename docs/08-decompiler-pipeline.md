@@ -324,8 +324,16 @@ the map and can't be done well without it. It is required reading for anyone nam
    meaning — and clarify must run *after* and *across the whole set*, because a callee decompiled in a
    later batch is what makes an earlier caller's `m.call` dissolvable. A clarify pass is **two
    fan-outs, keyed differently**:
-   - **Dissolve (per-routine)** — replace every `m.call` to an already-decompiled callee with a
-     genuine function call (the dissolve invariant + lint above); gated by the equivalence test + a review.
+   - **Dissolve + promote the ABI (per-routine)** — (i) replace every `m.call` to an already-decompiled
+     callee with a genuine function call (the dissolve invariant + lint above); (ii) **promote register
+     live-ins to real parameters.** When a routine takes its inputs in registers (`waitFrames` reads the
+     count from the accumulator) and those registers are set *only* by idiomatic callers — nothing
+     reaches it through the registry (the idiomatic layer isn't wired live, and no idiomatic routine
+     `m.call`s it) — change its signature to honest params (`waitFrames(m, count)`) and drop every
+     caller's `regs.X =` marshalling. The still-*translated* callers are irrelevant: they `m.call` the
+     frozen **oracle** copy, never this file. This rides along with the rename for free — a rename
+     already rewrites every idiomatic caller, so promote the ABI in the same edit. Gated by the
+     equivalence tests (the routine's *and* every caller's) + a review.
    - **Routine names (per-routine)** — **earn the name from BOTH views: the routine body (the
      mechanism) AND every caller (the purpose).** Internals alone give `copyBytesToVram`; the callers
      reveal it is `drawScoreDigits`. Grep every `m.call(0xADDR)` and import of the routine and read
