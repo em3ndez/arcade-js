@@ -1,16 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// Drafter test for the translated loc_4cbf (ROM 0x4cbf-0x4d09 + fall-through into
-// loc_4d0c), The Pit.
+// Drafter test for the translated loc_4cbf (ROM 0x4cbf-0x4cc9 + fall-through into
+// loc_4cca), The Pit.
 //
-// Runs the routine on a lightweight machine built from the REAL thepit address
-// space (boards/thepit/memory.js) + Io + the shared Z80 Regs. The callees
-// (0x4644, 0x4d3a, 0x4d0c x3) are stubbed as "pop-and-return" routines that
-// balance the stack but add no cycles, so the asserted T-state total is
-// loc_4cbf's OWN instruction cost. The KEY control-flow claim under test is that
-// the THIRD format call is reached by FALL-THROUGH (a tail-call: no push, no
-// trailing ret), so loc_4d0c's ret lands on loc_4cbf's own caller. A deliberate
-// mutation (record 3's value store dropped) is asserted to be caught.
+// loc_4cbf is now just the prologue: it clears the flag at 0x8048, calls 0x4644
+// and 0x4d3a, then FALLS THROUGH into loc_4cca (its OWN routine -- 0x4cca is also
+// entered by `jp 0x4cca` from loc_4bc7 / loc_4df8, so it is a routine boundary and
+// must not be inlined). The record block-copies / value formatting belong to
+// loc_4cca and are NOT asserted here (0x4cca is stubbed).
+//
+// Runs on a lightweight machine built from the REAL thepit address space
+// (boards/thepit/memory.js) + Io + the shared Z80 Regs. The callees (0x4644,
+// 0x4d3a, and the tail-delegate 0x4cca) are stubbed as "pop-and-return" routines
+// that balance the stack but add no cycles, so the asserted T-state total is
+// loc_4cbf's OWN instruction cost (7+13+17+17 = 54). The KEY control-flow claim
+// under test is that loc_4cca is reached by FALL-THROUGH and delegated as a
+// TAIL-call (no trailing ret), so loc_4cca's ret lands on loc_4cbf's own caller. A
+// deliberate mutation (delegate modelled as a real call + trailing ret) is
+// asserted to be caught.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -19,19 +26,9 @@ import { AddressSpace } from "../../../../boards/thepit/memory.js";
 import { Io } from "../../../../boards/thepit/io.js";
 import { loc_4cbf } from "../loc_4cbf.js";
 
-const SENTINEL = 0xbeef; // return address loc_4d0c's ret (via fall-through) must land on
+const SENTINEL = 0xbeef; // caller's return address; loc_4cca's ret (via delegate) must land here
 
-// -- source records seeded in work RAM ----------------------------------------
-// Contiguous: block1 39..3b, value1 3c..3d, block2 3e..40, value2 41..42,
-//             block3 43..45, value3 46..47, flag 48.
-const BLOCK1 = [0x11, 0x12, 0x13];
-const BLOCK2 = [0x21, 0x22, 0x23];
-const BLOCK3 = [0x31, 0x32, 0x33];
-const VALUE1 = 0x1234; // -> lo 0x34 @0x8037, hi 0x12 @0x8038 (overwritten by later records)
-const VALUE2 = 0x5678;
-const VALUE3 = 0x9abc; // the LAST value store -- what 0x8037/0x8038 must hold at exit
-
-// -- minimal machine: real mem/io/regs + the step/call/ldir seam --------------
+// -- minimal machine: real mem/io/regs + the step/call/push seam ---------------
 class TestMachine {
   constructor() {
     this.io = new Io();
@@ -59,8 +56,8 @@ class TestMachine {
   }
   // Stubbed callee: record it, then behave as a bare `ret` (pop whatever the site
   // left on the stack). For the two mid-routine CALLs that is the pushed return;
-  // for the FALL-THROUGH tail-call (no push) it is the SENTINEL -- which is the
-  // whole point: loc_4d0c returns to loc_4cbf's caller.
+  // for the tail-DELEGATE (loc_4cca, entered with nothing extra pushed) it is the
+  // SENTINEL -- which is the whole point: loc_4cca returns to loc_4cbf's caller.
   call(addr) {
     this.calls.push(addr);
     this.pc = this.pop16();
@@ -69,32 +66,9 @@ class TestMachine {
   ret(cycles = 10) {
     this.step(this.pop16(), cycles);
   }
-  // Byte-for-byte the machine.js semantics: 21 T per repeating iter, 16 on exit.
-  ldirAt(self, nextAddr) {
-    const { regs, mem } = this;
-    for (;;) {
-      mem.write8(regs.de, mem.read8(regs.hl));
-      regs.hl = (regs.hl + 1) & 0xffff;
-      regs.de = (regs.de + 1) & 0xffff;
-      regs.bc = (regs.bc - 1) & 0xffff;
-      if (regs.bc === 0) {
-        this.step(nextAddr, 16);
-        return;
-      }
-      this.step(self, 21);
-    }
-  }
 }
 
 function seed(m) {
-  for (let i = 0; i < 3; i++) {
-    m.mem.write8(0x8039 + i, BLOCK1[i]);
-    m.mem.write8(0x803e + i, BLOCK2[i]);
-    m.mem.write8(0x8043 + i, BLOCK3[i]);
-  }
-  m.mem.write16(0x803c, VALUE1);
-  m.mem.write16(0x8041, VALUE2);
-  m.mem.write16(0x8046, VALUE3);
   m.mem.write8(0x8048, 0xff); // pre-dirty the flag so the ld (0x8048),a clear is observable
 }
 
@@ -106,80 +80,59 @@ function run(fn) {
   return {
     cycles: m.cycles,
     flag: m.mem.read8(0x8048),
-    copy1: [0, 1, 2].map((i) => m.mem.read8(0x8283 + i)),
-    copy2: [0, 1, 2].map((i) => m.mem.read8(0x828c + i)),
-    copy3: [0, 1, 2].map((i) => m.mem.read8(0x8295 + i)),
-    val: m.mem.read16(0x8037), // 0x8037 lo / 0x8038 hi -- the LAST record's value
     calls: m.calls,
     pc: m.pc,
     sp: m.regs.sp,
-    de: m.regs.de,
-    bc: m.regs.bc,
-    hl: m.regs.hl,
   };
 }
 
-// Full spec, factored so the mutant runs through the same checks.
+// Full spec for the SPLIT loc_4cbf: its OWN effects only (0x4cbf-0x4cc9) plus the
+// tail-call delegate into loc_4cca. loc_4cca's block copies / value formatting are
+// NO LONGER loc_4cbf's.
 function checkSpec(res) {
-  assert.equal(res.cycles, 478, "T-state total (own instructions)");
-  assert.equal(res.flag, 0x00, "0x8048 cleared to 0");
-  assert.deepEqual(res.copy1, BLOCK1, "record-1 block copied to 0x8283");
-  assert.deepEqual(res.copy2, BLOCK2, "record-2 block copied to 0x828c");
-  assert.deepEqual(res.copy3, BLOCK3, "record-3 block copied to 0x8295");
-  assert.equal(res.val, VALUE3, "0x8037/0x8038 hold the THIRD record's value");
-  assert.deepEqual(res.calls, [0x4644, 0x4d3a, 0x4d0c, 0x4d0c, 0x4d0c], "call sequence");
-  assert.equal(res.pc, SENTINEL, "fall-through tail-call: loc_4d0c ret lands on caller");
-  assert.equal(res.sp, 0x8780, "stack balanced (no double-push from the tail-call)");
-  assert.equal(res.de, 0x8298, "DE advanced past record-3 dest by the last ldir");
-  assert.equal(res.bc, 0x0000, "BC = 0 after the last ldir");
-  assert.equal(res.hl, 0x8298, "HL = 0x8298, the pointer handed to loc_4d0c");
+  assert.equal(res.cycles, 54, "T-state total (own instructions: 7+13+17+17)");
+  assert.equal(res.flag, 0x00, "0x8048 cleared to 0 (loc_4cbf's own store at 0x4cc1)");
+  assert.deepEqual(
+    res.calls,
+    [0x4644, 0x4d3a, 0x4cca],
+    "call sequence: 0x4644, 0x4d3a, then the tail-delegate 0x4cca",
+  );
+  assert.equal(res.pc, SENTINEL, "tail-call: loc_4cca's ret lands on loc_4cbf's OWN caller");
+  assert.equal(res.sp, 0x8780, "stack balanced (no trailing-ret double-pop)");
 }
 
-test("loc_4cbf: clears 0x8048, copies 3 blocks, formats 3 records, 478 T", () => {
+test("loc_4cbf: clears 0x8048, calls 0x4644 + 0x4d3a, delegates to loc_4cca, 54 T", () => {
   checkSpec(run(loc_4cbf));
 });
 
-// -- MUTATION: record 3's `ld (0x8037),hl` (and its 16 T) dropped. The 0x8037
-// value then holds record 2's value, and the total is 462 T instead of 478 --
-// so BOTH the value-memory assertion and the T-state assertion must reject it.
+// -- MUTATION: the fall-through into loc_4cca modelled as a REAL call + trailing
+// `ret` (`m.call(0x4cca); m.ret()`) instead of a TAIL-call (`return m.call(0x4cca)`).
+// loc_4cca's own ret already returned to loc_4cbf's caller, so the spurious ret
+// double-pops: PC ends at 0x0000 (not SENTINEL), SP is 2 low, and the extra ret
+// adds 10 T. All three of pc / sp / cycles reject it.
 function loc_4cbf_mut(m) {
   const { regs, mem } = m;
-  regs.a = 0x00; m.step(0x4cc1, 7);
-  mem.write8(0x8048, regs.a); m.step(0x4cc4, 13);
-  m.push16(0x4cc7); m.step(0x4644, 17); m.call(0x4644);
-  m.push16(0x4cca); m.step(0x4d3a, 17); m.call(0x4d3a);
-  regs.de = 0x8283; m.step(0x4ccd, 10);
-  regs.hl = 0x8039; m.step(0x4cd0, 10);
-  regs.bc = 0x0003; m.step(0x4cd3, 10);
-  m.ldirAt(0x4cd3, 0x4cd5);
-  regs.hl = mem.read16(0x803c); m.step(0x4cd8, 16);
-  mem.write16(0x8037, regs.hl); m.step(0x4cdb, 16);
-  regs.hl = 0x8286; m.step(0x4cde, 10);
-  m.push16(0x4ce1); m.step(0x4d0c, 17); m.call(0x4d0c);
-  regs.de = 0x828c; m.step(0x4ce4, 10);
-  regs.hl = 0x803e; m.step(0x4ce7, 10);
-  regs.bc = 0x0003; m.step(0x4cea, 10);
-  m.ldirAt(0x4cea, 0x4cec);
-  regs.hl = mem.read16(0x8041); m.step(0x4cef, 16);
-  mem.write16(0x8037, regs.hl); m.step(0x4cf2, 16);
-  regs.hl = 0x828f; m.step(0x4cf5, 10);
-  m.push16(0x4cf8); m.step(0x4d0c, 17); m.call(0x4d0c);
-  regs.de = 0x8295; m.step(0x4cfb, 10);
-  regs.hl = 0x8043; m.step(0x4cfe, 10);
-  regs.bc = 0x0003; m.step(0x4d01, 10);
-  m.ldirAt(0x4d01, 0x4d03);
-  regs.hl = mem.read16(0x8046); m.step(0x4d06, 16);
-  // BUG: `ld (0x8037),hl` and its 16 T dropped -- 0x8037 keeps record 2's value.
-  regs.hl = 0x8298; m.step(0x4d0c, 10);
-  return m.call(0x4d0c);
+  regs.a = 0x00;
+  m.step(0x4cc1, 7);
+  mem.write8(0x8048, regs.a);
+  m.step(0x4cc4, 13);
+  m.push16(0x4cc7);
+  m.step(0x4644, 17);
+  m.call(0x4644);
+  m.push16(0x4cca);
+  m.step(0x4d3a, 17);
+  m.call(0x4d3a);
+  m.step(0x4cca, 0);
+  m.call(0x4cca); // BUG: not a tail-call...
+  m.ret(); // ...so this spurious ret double-pops loc_4cbf's caller off the stack.
 }
 
-test("mutation (record-3 value store dropped) is caught by the spec", () => {
-  // Sanity: the mutant really does diverge (wrong 0x8037 value, 462 T).
+test("mutation (delegate as real call + trailing ret) is caught by the spec", () => {
+  // Sanity: the mutant really does diverge (wrong PC + unbalanced SP + 10 T long).
   const bad = run(loc_4cbf_mut);
-  assert.equal(bad.val, VALUE2, "mutant leaves record 2's value at 0x8037");
-  assert.equal(bad.cycles, 462, "mutant is 16 T short");
+  assert.notEqual(bad.pc, SENTINEL, "mutant's spurious ret lands PC off the caller");
+  assert.equal(bad.sp, 0x8782, "mutant double-popped -> SP is 2 high");
+  assert.equal(bad.cycles, 64, "mutant's extra ret adds 10 T");
   // The spec the real routine passes MUST reject the mutant.
-  assert.throws(() => checkSpec(bad), /THIRD record|T-state total/);
-}
-);
+  assert.throws(() => checkSpec(bad), /caller|balanced|T-state total/);
+});
