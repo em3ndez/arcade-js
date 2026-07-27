@@ -9,8 +9,8 @@ reverse-engineering — that's the point). Every claim is tagged:
 - **[guess]** — plausible but unverified; do not rely on it.
 
 This is the precursor to the naming + idiomatic passes: as roles get confirmed, they become
-`ram.js` names and English routine names. **Much of that has now happened** — 127/169 routines are
-decompiled to idiomatic JS, ~107 carry earned English names (proposer≠confirmer + adversarial-judge),
+`ram.js` names and English routine names. **Much of that has now happened** — 128/169 routines are
+decompiled to idiomatic JS, ~108 carry earned English names (proposer≠confirmer + adversarial-judge),
 and `ram.js` holds ~90 named work-RAM addresses. This map is updated to reflect that understanding;
 routine names below are the earned idiomatic names where they exist, neutral `loc_<addr>` otherwise.
 
@@ -80,7 +80,7 @@ Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a
 | **High-score table + entry** | `submitPlayerHighScore` (0x4cbf, end-of-round: load finishing score → insert → repaint), `loc_4d3a` (top-3 insert), `stepHighScoreInitialsEntry` (0x4eea), `advanceInitialUp` (0x4f38) / `stepInitialDown` (0x4f26) step an initial letter up/down | [code] backs "BEST SCORES TODAY" |
 | **Edge / terrain column paint** | `drawLeftEdgeColumn` (0x46f4 col 0), `drawRightEdgeColumn` (0x47a1 col 31), `drawTerrainColumn` (0x2fb7), `cycleColumnColour` (0x3e13 palette-cycle a column), `glitterDiamonds` (0x06ac diamond colour flash) | [code] |
 | **Sound request** | `requestSoundN` stubs → shared enqueue `enqueueSoundCommand` (0x4ca5) → ring at `SOUND_RING`/`SOUND_HEAD` (0x8020/0x801e) | [code] |
-| **DSW → gameplay params** | `loc_4b55` decodes dip bits into 0x804c–0x8053 (incl. lives → `0x802b` men-left, `STEP_TIMER_BASE` 0x804f) | [code] |
+| **DSW → gameplay params** | `applyDipSwitches` (0x4b55) decodes dip bits into 0x804c–0x8053 (incl. STEP_TIMER_BASE) + the flip-screen/cocktail latch (incl. lives → `0x802b` men-left, `STEP_TIMER_BASE` 0x804f) | [code] |
 | **Player-record swap** | `loadPlayerState` (0x4644) / `saveActivePlayerRecord` (0x4632) copy the active player's block to/from the shared live slot | [code] 2-player alternation |
 | **PRNG** | `advanceRandom` (0x4b1a) — 16-bit LFSR, reseeds if zero; drives enemy/column jitter | [code] |
 | **Tile-cell address calc** (row,col → tilemap + cursors) | `rowColToTileOffset` (0x3dae → `TILEMAP_OFFSET`), `deriveTileWriteCursors` (0x3dc9 → `COLOUR_RAM_CURSOR`); fills via `copyTileColumn`/`copyCappedTileColumn`/`fillColourColumn` | [code] |
