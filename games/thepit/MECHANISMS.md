@@ -13,9 +13,9 @@ This map is the precursor to (and companion of) the naming + idiomatic passes: a
 confidence it becomes a `ram.js` name and an English routine name. **Most of that has now
 happened.** As of this pass:
 
-- **148 / 169** ROM routines are decompiled to idiomatic JS; **117** of those carry earned
-  English names, **31** stay neutral `loc_<addr>` (role clear, but a single verb would over- or
-  under-claim). **21** routines are still the frozen oracle (registered, memory-faithful, not yet
+- **151 / 169** ROM routines are decompiled to idiomatic JS; **118** of those carry earned
+  English names, **33** stay neutral `loc_<addr>` (role clear, but a single verb would over- or
+  under-claim). **18** routines are still the frozen oracle (registered, memory-faithful, not yet
   rewritten).
 - `idiomatic/ram.js` holds **107** named work-RAM addresses (proposer≠confirmer + adversarial
   judge on the newest ~60; older ones tagged strong/fair/weak).
@@ -68,8 +68,8 @@ alternate on a fixed period — no RNG), which matters for pixel-matching by fra
 The whole boot/reset/interrupt spine is **still the frozen oracle** — memory-faithful but not yet
 decompiled — with a handful of decompiled helpers wired into it.
 
-- **Reset** `loc_0000` → `jp loc_01a4` — cold-boot init (`di`/`im1`, `ld sp,0x83ff`, seed work RAM,
-  a ~65536-iter busy delay). *(oracle)*
+- **Reset** `loc_0000` *(oracle)* → **`coldBootInit`** (0x01a4) — cold-boot init (`di`/`im1`, `ld sp,0x83ff`,
+  seed work RAM, a ~65536-iter busy delay). *(reset vector still oracle; `coldBootInit` decompiled)*
 - → **`loc_03ac`** reset/round-restart epilogue (begin a fresh attract cycle: clear mode, arm state,
   decode the DSW via `applyDipSwitches`) → `loc_01f9` boot fork (on the restart flag at 0x8000 →
   `showCreditScreen`) / `loc_031a` round setup *(both oracle)*.
@@ -135,7 +135,7 @@ state bytes; the axis (X vs Y under ROT90) is deliberately left un-named — see
 | Mechanism | Routine(s) |
 |---|---|
 | Terrain-response resolver (non-loot) | **`loc_1568`** (0x1568): latch the feature/goal tiles (38 / 39), classify solid / diagonal-gated / pushable (vs ROM tables at 0x1b78 / 0x1ce0), arm the push reaction. The vertical/other-axis counterpart of `loc_1704`. |
-| Object-vs-tilemap collision body | **`loc_14cd`** *(oracle)* / **`loc_1515`** (0x1515: collect grid-aligned loot, else delegate every non-collect case to `loc_1568`), reached via **`loc_1493`** *(oracle)* (from `loc_144c`'s bit-0 arm) and the tile-row dispatch **`loc_167f`** (0x167f: continue the step or fire the dig one-shot; bit-1 arm → `loc_16b9`). |
+| Object-vs-tilemap collision body | **`loc_14cd`** (0x14cd, screen row from `loc_1493`) / **`loc_1515`** (0x1515: collect grid-aligned loot, else delegate every non-collect case to `loc_1568`), reached via **`loc_1493`** *(oracle)* (from `loc_144c`'s bit-0 arm) and the tile-row dispatch **`loc_167f`** (0x167f: continue the step or fire the dig one-shot; bit-1 arm → `loc_16b9`). |
 | Probe-cell table search | **`tileInProbeRow`** (0x33bc: is the probe cell's tile in this phase's list?), **`loc_33da`** (0x33da), **`loc_3410`** (0x3410), **`loc_3425`** (0x3425) — phase-keyed ROM-table probes for the mover, using `PROBE_CELL_PTR` / `SUBTILE_PHASE` / `SAVED_CELL_PTR`. |
 
 ### Loot collect + score  [code]
@@ -164,7 +164,7 @@ spawned from a queue, descends to solid ground, and can capture the player.
 
 | Mechanism | Routine(s) |
 |---|---|
-| Move driver | **`loc_319d`** *(oracle)*: probe the tiles around the mover, pick a direction, tail-jump into one of four presets. |
+| Move driver | **`loc_319d`** (0x319d): probe the tiles around the mover, pick a direction, tail-jump into one of four presets. |
 | Direction presets | **`loc_3476`** / **`loc_347d`** / **`loc_3484`** / **`loc_348b`** (0x3476.., stamp `MOVER_DIRECTION` 0/1/2/3, step the object, refresh facing on the cadence tick). |
 | Mover housekeeping | **`advanceDormantMover`** (0x34da, two cadence counters incl. `MOVER_STATE`), **`loc_34f0`** (0x34f0, periodic refresh: reseed `ANIM_RAND`, re-arm `ACTOR_STATE`). |
 | The two object records | `OBJ1_*` (0x80e8..) and `OBJ2_*` (0x80f9..), seeded by `seedObjectRecords`, difficulty-scaled by `LEVEL`. |
