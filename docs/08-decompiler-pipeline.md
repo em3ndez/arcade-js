@@ -329,15 +329,20 @@ growing through every step below ([doc 7](07-understanding-the-mechanisms.md)). 
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 
-> **RULE — `MECHANISMS.md` is updated with EVERY clarify pass, as part of the pass, not later.** A
-> clarify pass exists to convert *correct* code into *understood* code, and the earned names and
-> resolved questions ARE that understanding — so folding them back into the mechanism map is part of
-> finishing the pass, in the same landable unit as the renames. Do not let the map drift behind the
-> names: every batch that promotes routine/RAM names or answers an open question edits `MECHANISMS.md`
-> in the same commit (new subsystems mapped, the routine/RAM table updated to the earned names,
-> newly-answered questions moved to a "resolved" note, still-open ones sharpened). A map that lags the
-> code is the tell that a clarify pass was left half-done — the names shipped but the understanding
-> they represent was never written down where the next agent reads it.
+> **RULE — every clarify pass REWRITES `MECHANISMS.md` from scratch, in the same landable unit as the
+> renames — do not incrementally edit it.** A clarify pass exists to convert *correct* code into
+> *understood* code, and the earned names and resolved questions ARE that understanding — so the map
+> must reflect them, and finishing the pass means re-deriving the whole map, not patching it. **Rewrite
+> wholesale, not edit.** Incremental edits accumulate exactly the drift that keeps biting: a count that
+> lags, `loc_` references that outlive their rename, stale "kept loc_" phrasings, rows that name old
+> callees, an internally-inconsistent structure. A from-scratch rewrite each pass forces re-reading the
+> *current* code state and producing a fresh, coherent, self-consistent map — it is the same discipline
+> as the clarify pass itself (re-derive across the whole set, never defend the prior state). Regenerate
+> the routine/RAM tables from what the idiomatic layer + `ram.js` actually contain *now*, re-synthesize
+> the subsystem prose, move newly-answered questions to a "resolved" note and sharpen the still-open
+> ones, and recount (decompiled / named / RAM-named) by measuring, not by adjusting the old numbers. A
+> map that lags the code — or reads as a patchwork of edits — is the tell that a clarify pass was left
+> half-done: the names shipped but the understanding was never re-written where the next agent reads it.
 
 1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
    (This is [doc 3](03-translation.md), with uniform address names from line one.)

@@ -42,6 +42,7 @@ import { GOAL_TILE_LATCH } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 import { windUpObjectMove } from "./windUpObjectMove.js";
+import { loc_167f } from "./loc_167f.js";
 
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
@@ -53,7 +54,7 @@ export function loc_144c(m) {
 
   // First-match-wins over the command's direction bits, each running one object handler.
   if (moveCommand & 0x01) return m.call(0x1493); // position the object; test the boundary
-  if (moveCommand & 0x02) return m.call(0x167f); // derive the object's tile row and dispatch
+  if (moveCommand & 0x02) return loc_167f(m); // derive the object's tile row and dispatch
   if (moveCommand & 0x0c) return windUpObjectMove(m, moveCommand); // reconcile the object's animation phase
 
   // No direction bit set: the object stands still this frame. Reset its animation phase.
