@@ -17,9 +17,9 @@
  *     P1_INPUT bit 7 is set for exactly one frame per press (a held jump does not repeat).
  *   - The cooked word (jump-edge bit 7 | direction nibble) goes to P1_INPUT, and the raw
  *     port to P1_INPUT_RAW (next frame's "previous reading"), as one 16-bit store.
- *   - Finally, raw bit 6 set means a service / soft-reset input (`jp 0x0000`); that arm is
- *     unexercised, so it throws NotImplemented, exactly as the oracle does — and only AFTER
- *     the store, so the two output bytes are already written when it throws.
+ *   - Finally, raw bit 6 set means a service / soft-reset input; that arm is unexercised,
+ *     so it throws NotImplemented, exactly as the oracle does — and only AFTER the store,
+ *     so the two output bytes are already written when it throws.
  *
  * Reads only memory (no live-in registers), so it is a pure function of memory state:
  * DIP_UPRIGHT, 0x600E, the selected port, and P1_INPUT_RAW.
@@ -61,17 +61,17 @@ export function readControls(m) {
 
   const direction = raw & 0x0f;
   const prevRaw = mem.read8(P1_INPUT_RAW);
-  // Edge-detect the jump bit: keep bit 4 only where it went 0->1, then shift it to bit 7.
-  // The oracle's three `rla`s start from a cleared carry (`and 0x10` clears it) and the
-  // value never carries out of bit 7, so they are an exact <<3 (0x10 -> 0x80).
+  // Edge-detect the jump bit: keep bit 4 only where it went 0->1 since last frame, then
+  // lift it three places to bit 7. Isolating bit 4 first (& 0x10) makes the shift exact —
+  // the value can only be 0 or 0x80 and never carries past bit 7.
   const jumpEdge = (((~prevRaw) & raw) & 0x10) << 3; // 0x00 or 0x80
-  const cooked = (jumpEdge | direction) & 0xff;
+  const cooked = jumpEdge | direction; // jump-edge bit 7 merged with the direction nibble
 
-  mem.write8(P1_INPUT, cooked); // 0x6010 = low byte of `ld (0x6010),hl`
+  mem.write8(P1_INPUT, cooked); // 0x6010 = low byte of the one 16-bit control-word store
   mem.write8(P1_INPUT_RAW, raw); // 0x6011 = high byte
 
-  // Raw bit 6 set -> `jp 0x0000` soft reset (unexercised); preserve the oracle's throw,
-  // which happens after the store above.
+  // Raw bit 6 set is a service / soft-reset input (unexercised); preserve the oracle's
+  // throw, which happens only after the store above.
   if (raw & 0x40) {
     throw new NotImplemented(
       "input bit 6 set: jp 0x0000 at ROM 0x00B2 -- soft reset via input, " +

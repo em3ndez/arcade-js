@@ -1,33 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for tickSubstateTimer (ROM 0x0018) — the rst-0x18 skip helper.
+ * Equivalence test for tickSubstateTimer (ROM 0x0018) — the sub-state countdown gate.
  *
  * sub_0018 is a LEAF whose entire memory-observable behaviour is a function of ONE
- * byte, SUBSTATE_TIMER (0x6009): it reads that byte, decrements it (mod 256), writes
- * it back, and returns whether the result is 0. Every other input the oracle touches
- * (SP, the return address it pops, HL/A/F) is the Z80 caller-skip *mechanism* the
- * direct-call model replaces with the boolean return — none of it reaches RAM, so
- * none of it is in the contract. That makes the strongest possible gate available:
+ * byte, SUBSTATE_TIMER (0x6009): it reads that byte, counts it down by one (wrapping
+ * mod 256), writes it back, and reports whether the result is 0. Everything else the
+ * oracle touches — SP, the return address it discards, HL/A/F — is the caller-skip
+ * mechanism the direct-call model replaces with the boolean return, and none of it
+ * reaches RAM, so none of it is in the contract. That makes the strongest possible
+ * gate available:
  *
  *   1. EQUAL (exhaustive) — tickSubstateTimer == oracle over all 256 values of
  *      SUBSTATE_TIMER, compared on BOTH halves of the contract: the resulting RAM
- *      (firstStateDiff over the whole 5120-byte dump, incl. the stack region — which
- *      neither side writes) AND the returned boolean. 256 values is the complete
- *      input space, so this is a proof, not a sample.
+ *      (firstStateDiff over the whole dump — which neither side writes outside 0x6009)
+ *      AND the returned boolean. 256 values is the complete input space, so this is a
+ *      proof, not a sample.
  *
  *   2. TEETH (exhaustive) — two deliberately-broken twins the sweep MUST catch, one
  *      per half of the contract:
- *        (a) pre-decrement compare (`return old === 0`) — writes the SAME RAM, so it
- *            is invisible to the RAM diff and only the RETURN check catches it, and
- *            only at the two edges old ∈ {0,1}. Proves the boolean check has teeth
- *            AND that the sweep actually exercises those edges.
- *        (b) double-decrement (`-2`) — writes the WRONG byte; caught by the RAM diff.
- *            Proves the memory check has teeth.
+ *        (a) pre-tick compare (report expiry from the value BEFORE the count-down) —
+ *            writes the SAME RAM, so it is invisible to the RAM diff and only the
+ *            RETURN check catches it, and only at the two edges where the input is 0 or
+ *            1. Proves the boolean check has teeth AND that the sweep exercises those
+ *            edges.
+ *        (b) double count-down (subtract 2) — writes the WRONG byte; caught by the RAM
+ *            diff. Proves the memory check has teeth.
  *
  *   3. REALISM (captured dispatches) — hook 0x0018 in a real attract run, clone the
- *      machine at each true rst-0x18 dispatch (fired from its ~50 sites and from
- *      sub_0020's tail-jump), and confirm tickSubstateTimer reproduces the oracle's
- *      RAM + return on every real state the game actually produces.
+ *      machine at each true dispatch (fired from its many timed-gate sites and from the
+ *      sibling prescaler's chain-in), and confirm tickSubstateTimer reproduces the
+ *      oracle's RAM + return on every real state the game actually produces.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-0018.test.js
  */
@@ -50,20 +52,20 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0018;
-// The oracle's `ret` pops the stack; point SP at work RAM so that pop reads valid
-// bytes (never I/O) on the synthetic entries below. The SKIP path does two `inc sp`
-// (SP += 2) BEFORE the pop, so SP must be low enough that SP+3 stays inside work RAM
-// (< 0x6c00). It writes no RAM, so it does not affect the compared state — it only
-// keeps the oracle well-defined.
+// The oracle's final return pops the stack; point SP at work RAM so that pop reads
+// valid bytes (never I/O) on the synthetic entries below. The skip path advances SP by
+// two before the pop, so SP must be low enough that SP+3 stays inside work RAM
+// (< 0x6c00). The oracle writes no RAM through the stack, so this choice never affects
+// the compared state — it only keeps the oracle well-defined.
 const SAFE_SP = 0x6bf8;
 
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 
 /**
- * Run the oracle and the candidate on two fresh clones of `entry` and diff the
- * memory-equivalence contract: RAM (whole dump) + the returned boolean. A FRESH
- * clone per side because the routine WRITES memory — a reused machine would carry
- * the previous tick forward (docs/06: only a pure read-only leaf may reuse a clone).
+ * Run the oracle and the candidate on two FRESH clones of `entry` and diff the
+ * memory-equivalence contract: RAM (whole dump) + the returned boolean. A fresh clone
+ * per side because the routine WRITES memory — a reused machine would carry the
+ * previous tick forward (only a pure read-only leaf may reuse a single clone).
  *
  * @returns {{ram: object|null, retOracle: boolean, retCand: boolean}}
  */
@@ -85,8 +87,8 @@ function makeEntry(base, v) {
 }
 
 /**
- * Sweep a candidate against the oracle over all 256 SUBSTATE_TIMER values. Returns
- * the first mismatch (RAM or return), or null, plus the count compared.
+ * Sweep a candidate against the oracle over all 256 SUBSTATE_TIMER values. Returns the
+ * first mismatch (RAM or return), or null, plus the count compared.
  */
 function sweep(base, candidate) {
   let count = 0;
@@ -121,30 +123,30 @@ test("EQUAL (exhaustive): tickSubstateTimer == oracle over all 256 SUBSTATE_TIME
 // -- 2. TEETH (exhaustive) ----------------------------------------------------
 
 /**
- * BUG: tests the value BEFORE the decrement instead of after. Writes the correct RAM
- * (still decrements), so the RAM diff can never see it — only the return diverges,
- * and only at 0x6009 ∈ {0,1}. A gate that skips those edges or ignores the return
- * would pass this.
+ * BUG: reports expiry from the value BEFORE the count-down instead of after. It still
+ * writes the correct RAM (the count-down is unchanged), so the RAM diff can never see
+ * it — only the return diverges, and only when the input is 0 or 1. A gate that skips
+ * those edges or ignores the return would pass this.
  */
-function brokenPreDecrementCompare(m) {
+function brokenPreTickCompare(m) {
   const { mem } = m;
-  const old = mem.read8(SUBSTATE_TIMER);
-  mem.write8(SUBSTATE_TIMER, (old - 1) & 0xff);
-  return old === 0;
+  const before = mem.read8(SUBSTATE_TIMER);
+  mem.write8(SUBSTATE_TIMER, before - 1);
+  return before === 0; // BUG: should be `before === 1` (expiry is AFTER the tick)
 }
 
-/** BUG: decrements by two — writes the wrong SUBSTATE_TIMER byte. Caught by the RAM diff. */
-function brokenDoubleDecrement(m) {
+/** BUG: counts down by two — writes the wrong SUBSTATE_TIMER byte. Caught by the RAM diff. */
+function brokenDoubleCountDown(m) {
   const { mem } = m;
-  const remaining = (mem.read8(SUBSTATE_TIMER) - 2) & 0xff;
-  mem.write8(SUBSTATE_TIMER, remaining);
-  return remaining === 0;
+  const before = mem.read8(SUBSTATE_TIMER);
+  mem.write8(SUBSTATE_TIMER, before - 2);
+  return before === 2;
 }
 
-test("TEETH (exhaustive): the pre-decrement-compare twin is CAUGHT (return check has teeth)", () => {
+test("TEETH (exhaustive): the pre-tick-compare twin is CAUGHT (return check has teeth)", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = sweep(base, brokenPreDecrementCompare);
-  assert.notEqual(mismatch, null, "the sweep FAILED to catch a pre/post-decrement compare bug — the return check is worthless");
+  const { mismatch, count } = sweep(base, brokenPreTickCompare);
+  assert.notEqual(mismatch, null, "the sweep FAILED to catch a pre/post-tick compare bug — the return check is worthless");
   assert.equal(mismatch.ram, null, "this twin writes correct RAM; it must be caught by the RETURN check, not RAM");
   console.log(
     `  TEETH/return: caught after ${count} values at 0x6009=${hx(mismatch.v)} ` +
@@ -152,11 +154,11 @@ test("TEETH (exhaustive): the pre-decrement-compare twin is CAUGHT (return check
   );
 });
 
-test("TEETH (exhaustive): the double-decrement twin is CAUGHT (memory check has teeth)", () => {
+test("TEETH (exhaustive): the double-count-down twin is CAUGHT (memory check has teeth)", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch } = sweep(base, brokenDoubleDecrement);
+  const { mismatch } = sweep(base, brokenDoubleCountDown);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a wrong SUBSTATE_TIMER write — the RAM check is worthless");
-  assert.notEqual(mismatch.ram, null, "the double-decrement twin must be caught by the RAM diff");
+  assert.notEqual(mismatch.ram, null, "the double-count-down twin must be caught by the RAM diff");
   console.log(`  TEETH/memory: caught — SUBSTATE_TIMER diverges at 0x6009=${hx(mismatch.v)}`);
 });
 
@@ -165,8 +167,8 @@ test("TEETH (exhaustive): the double-decrement twin is CAUGHT (memory check has 
 /**
  * Hook 0x0018 in a real attract run and clone the machine at up to K real dispatches.
  * The wrapper clones the entry state, then runs the oracle so the host game proceeds
- * undisturbed to a clean stop. rst 0x18 is a hot substate-timing helper, so attract
- * dispatches it many times.
+ * undisturbed to a clean stop. The 0x18 gate is a hot sub-state-timing helper, so
+ * attract dispatches it many times.
  */
 function captureDispatches(K, maxFrames) {
   const caps = [];
@@ -179,7 +181,7 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured rst-0x18 dispatches — tickSubstateTimer matches oracle RAM + return", () => {
+test("REALISM: real captured 0x18 dispatches — tickSubstateTimer matches oracle RAM + return", () => {
   const caps = captureDispatches(128, 1500);
   assert.ok(caps.length >= 1, "expected at least one real 0x0018 dispatch during attract");
 
@@ -197,5 +199,5 @@ test("REALISM: real captured rst-0x18 dispatches — tickSubstateTimer matches o
       `return diverges on real dispatch (0x6009 in=${hx(before)}): oracle=${retOracle} cand=${retCand}`,
     );
   }
-  console.log(`  REALISM: ${caps.length} real rst-0x18 dispatches — RAM + return == oracle`);
+  console.log(`  REALISM: ${caps.length} real 0x18 dispatches — RAM + return == oracle`);
 });
