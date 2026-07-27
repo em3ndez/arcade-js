@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_24cf (ROM 0x24cf, The Pit) — reset the per-object
+ * Memory-equivalence gate for resetReactionState (ROM 0x24cf, The Pit) — reset the per-object
  * reaction state machine to idle, seed its companion control bytes, then tail-jump
  * into the dig-object / round-parameter seeding chain (loc_287a → loc_2f2f →
  * seedObjectRecords → seedActorSpawnState).
  *
- * loc_24cf is entered ONLY at gameplay round init, above loc_287a in that tail-jump
+ * resetReactionState is entered ONLY at gameplay round init, above loc_287a in that tail-jump
  * chain; attract mode never enters gameplay, so it is never dispatched in a
  * boot/attract run — the unit harness (which needs a real dispatch) cannot capture
  * it. But its own body reads NOTHING from the entry state: it writes fixed
@@ -25,19 +25,19 @@
  *
  * FIVE checks:
  *   1. EQUAL (real captured entries) — clone the running attract machine at several
- *      frames (real title/demo RAM), run the oracle and loc_24cf on independent
+ *      frames (real title/demo RAM), run the oracle and resetReactionState on independent
  *      clones of each, and diff full work RAM. Must be identical.
  *   2. TAIL FIRED — after the idiomatic run the reaction block holds its seeded
  *      values AND the full tail's effects are present (the dig-object state code, the
  *      actor pair seeded, the spawn-phase flag cleared), proving the hand-off ran
  *      through the imported chain.
- *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set loc_24cf's own targets
+ *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set resetReactionState's own targets
  *      to a sentinel identically on both sides, so a no-op or partial twin cannot pass
  *      by the entry already holding the seeded values: every target must be
  *      overwritten, and both arms must still agree byte-for-byte.
  *   4. TEETH (wrong control byte) — a twin that seeds a wrong reaction-state byte is
  *      CAUGHT at that byte.
- *   5. TEETH (dropped hand-off) — a twin that does loc_24cf's own writes but drops the
+ *   5. TEETH (dropped hand-off) — a twin that does resetReactionState's own writes but drops the
  *      loc_287a tail is CAUGHT (the dig-object block + actor pair are never seeded).
  *
  * The oracle is run on a clone() (frame machinery neutralised) so its internal cycle
@@ -52,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_24cf as oracle } from "../../translated/loc_24cf.js";
-import { loc_24cf as idiomatic } from "../loc_24cf.js";
+import { resetReactionState as idiomatic } from "../resetReactionState.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -73,7 +73,7 @@ const test = ROM_PRESENT
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// loc_24cf's OWN fixed-value writes (address -> value). Every one is a constant, so
+// resetReactionState's OWN fixed-value writes (address -> value). Every one is a constant, so
 // the sentinel/non-vacuous check can assert both overwrite and value. The downstream
 // tail chain touches none of these addresses, so they are the whole routine's writes.
 const FIXED = [
@@ -109,7 +109,7 @@ function captureStates(count, stride, startFrame) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: loc_24cf leaves the same work RAM as the oracle over real captured states", () => {
+test("EQUAL: resetReactionState leaves the same work RAM as the oracle over real captured states", () => {
   const caps = captureStates(8, 120, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {
@@ -135,7 +135,7 @@ test("TAIL FIRED: the reaction block is seeded and the full tail's effects are p
   const b = entry.clone();
   idiomatic(b);
 
-  // loc_24cf's own writes.
+  // resetReactionState's own writes.
   for (const [addr, val] of FIXED) {
     assert.equal(b.mem.read8(addr), val, `control byte ${hx(addr)} not seeded`);
   }
@@ -148,11 +148,11 @@ test("TAIL FIRED: the reaction block is seeded and the full tail's effects are p
 });
 
 // -- 3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) -------------------------
-// Sentinel 85 is never a value loc_24cf writes (its values are {0,1,3,24}), and the
+// Sentinel 85 is never a value resetReactionState writes (its values are {0,1,3,24}), and the
 // downstream tail touches none of these addresses, so a target still holding it means
 // it was never written.
 
-test("NON-VACUOUS: with loc_24cf's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
+test("NON-VACUOUS: with resetReactionState's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
   const [entry] = captureStates(1, 1, 200);
   const SENTINEL = 85;
   for (const [addr] of FIXED) entry.mem.write8(addr, SENTINEL);
@@ -199,7 +199,7 @@ test("TEETH (wrong control byte): a wrong reaction-state byte is CAUGHT", () => 
 
 // -- 5. TEETH: a dropped tail hand-off is caught ------------------------------
 
-/** Broken twin B: does loc_24cf's own writes but drops the loc_287a tail hand-off. */
+/** Broken twin B: does resetReactionState's own writes but drops the loc_287a tail hand-off. */
 function brokenNoTail(m) {
   const { mem } = m;
   for (const [addr, val] of FIXED) mem.write8(addr, val);

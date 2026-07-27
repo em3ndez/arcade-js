@@ -36,12 +36,12 @@
  *           sprite code. The accumulator the oracle leaves behind (the object's unchanged
  *           position value) is dead ABI; the whole-machine/pixel gate backstops it.
  * NAMES:    ANIM_RAND (0x808b) is the per-step cadence counter here; ACTOR_STATE (0x8084)
- *           is the stored walk sprite code. The orientation accumulator (0x8083), the
- *           cadence-reload period (0x8091) and the direction-index cell (0x8092) have no
- *           ram.js name yet, so they stay hex.
+ *           is the stored walk sprite code; MOVER_MOVE_PERIOD (0x8091) is the
+ *           cadence-reload period. The orientation accumulator (0x8083) and the
+ *           direction-index cell (0x8092) have no ram.js name yet, so they stay hex.
  */
 
-import { ACTOR_STATE, ANIM_RAND, MOVER_DIRECTION } from "./ram.js";
+import { ACTOR_STATE, ANIM_RAND, MOVER_DIRECTION, MOVER_MOVE_PERIOD } from "./ram.js";
 
 // The four walk-frame sprite codes, cycled as the object steps; this direction stores
 // the code un-mirrored (no high-bit flip).
@@ -58,7 +58,7 @@ export function loc_348b(m) {
 
   // Cadence beat: take a step. Reload the counter from its period and publish the
   // direction index this entry represents.
-  mem8[ANIM_RAND] = mem8[0x8091];
+  mem8[ANIM_RAND] = mem8[MOVER_MOVE_PERIOD];
   mem8[MOVER_DIRECTION] = 3;
 
   // Advance the walk animation one frame: step the orientation accumulator backward,

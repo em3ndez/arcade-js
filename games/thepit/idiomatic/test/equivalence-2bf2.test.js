@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2bf2 (ROM 0x2bf2, The Pit) — start the next queued
+ * Memory-equivalence gate for startNextDigSpawn (ROM 0x2bf2, The Pit) — start the next queued
  * dig-object spawn, or clear the spawn-active flag when the 24-slot queue at 0x80c3 is
  * empty. Occupied queue -> tail-call the placement path loc_2c04; empty queue -> clear
  * SPAWN_STATE (0x80bd) and tail-call the background/terrain animation loc_2f71.
  *
  * WHY THE CONTRACT IS RAM-ONLY (outside a stack window). The occupied hand-off is the
  * already-decompiled spawnPendingDigObject; the empty hand-off (0x2f71) is the decompiled
- * advanceBackgroundSprite, called directly. The oracle loc_2bf2 leaves its scan's pointer-walk
+ * advanceBackgroundSprite, called directly. The oracle startNextDigSpawn leaves its scan's pointer-walk
  * in the registers and the placement chain saves register pairs on the stack; the
  * stack-free idiomatic path does not reproduce those exact saved bytes, so a few dead
  * bytes just below the entry stack pointer differ (pushed, popped, and never read
@@ -18,7 +18,7 @@
  * declared-dead live-out and are not compared (the idiomatic layer does not preserve
  * the Z80 trace).
  *
- * WHICH ARM EACH CHECK EXERCISES. loc_2bf2 is dispatched during attract (reached from
+ * WHICH ARM EACH CHECK EXERCISES. startNextDigSpawn is dispatched during attract (reached from
  * loc_29ad's "no spawn active -> go spawn one" path), and in every real dispatch the
  * queue is populated, so real captures cover the OCCUPIED path (loc_2c04). The empty
  * path is never reached naturally, so it is covered by a CRAFTED entry: a real captured
@@ -28,7 +28,7 @@
  *   0. HARNESS — capture a real 0x2bf2 dispatch and confirm the oracle run is
  *      deterministic (oracle vs oracle identical outside the stack window). Also
  *      documents that the real capture is the occupied path.
- *   1. EQUAL (real occupied entry) — loc_2bf2 == oracle over RAM (outside the stack
+ *   1. EQUAL (real occupied entry) — startNextDigSpawn == oracle over RAM (outside the stack
  *      window); positive check that the placement path ran (spawn-active flag raised).
  *   2. EQUAL (crafted empty queue) — with the whole queue zeroed on both sides, both
  *      clear the spawn-active flag and hand off to the animation, byte-for-byte
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2bf2 as oracle } from "../../translated/loc_2bf2.js";
-import { loc_2bf2 as idiomatic } from "../loc_2bf2.js";
+import { startNextDigSpawn as idiomatic } from "../startNextDigSpawn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { SPAWN_STATE } from "../ram.js";
@@ -132,7 +132,7 @@ test("HARNESS: a real 0x2bf2 dispatch is captured and the oracle run is determin
 
 // -- 1. EQUAL on the real captured occupied entry ----------------------------
 
-test("EQUAL (real occupied entry): loc_2bf2 == oracle over RAM, and the spawn is placed", () => {
+test("EQUAL (real occupied entry): startNextDigSpawn == oracle over RAM, and the spawn is placed", () => {
   const entry = captureFirstDispatch(MAX_FRAMES);
   assert.ok(entry, "need a captured 0x2bf2 entry");
 

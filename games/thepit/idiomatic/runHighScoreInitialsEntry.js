@@ -48,9 +48,9 @@
  *           or flag is read back by the caller (the two exits are a return and a tail hand-off
  *           to the readout painter). The idiomatic layer does not preserve the Z80 pc/SP.
  * NAMES:    FRAME_COUNTER, VARIANT (the rank selector), TILE_COL / TILE_ROW, PLOT_RUN_LENGTH,
- *           HIGH_SCORE_TABLE from ram.js; 0x804b (the initials-remaining counter, the same
- *           cell the per-frame handler counts down) has no ram.js name and is kept local. The
- *           ROM label strips, the on-screen cell addresses, and the finish colour byte are hex.
+ *           HIGH_SCORE_TABLE, INITIALS_REMAINING (0x804b, the initials-remaining counter, the
+ *           same cell the per-frame handler counts down) from ram.js. The ROM label strips, the
+ *           on-screen cell addresses, and the finish colour byte are hex.
  */
 
 import {
@@ -60,6 +60,7 @@ import {
   TILE_ROW,
   PLOT_RUN_LENGTH,
   HIGH_SCORE_TABLE,
+  INITIALS_REMAINING,
 } from "./ram.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { blankScreen } from "./blankScreen.js";
@@ -74,7 +75,6 @@ import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { requestSound5 } from "./requestSound5.js";
 import { renderScoreReadouts } from "./renderScoreReadouts.js";
 
-const INITIALS_REMAINING = 0x804b; // counts the three initials down as they are committed
 const INITIALS_COUNT = 3; // a high-score entry is three letters
 
 const CURSOR_TILE = 36; // the cursor glyph the cell alternates to while blinking

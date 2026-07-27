@@ -661,3 +661,83 @@ export const SPRITE_STAGING_BASE = 0x8220;
  *  loc_02ca/loc_02e1, screen-hold loc_3a6f, and animation-tier showBonusScreen. (fair)
  */
 export const LOOP_COUNTER = 0x800a;
+
+// ═══ NAMING PASS 2026-07-27 (full-decompile: credit/coin/mode + object/mover records) ═══════
+// proposer≠confirmer over the whole 169-routine layer; write-only/dead/mixed-role cells left hex
+// (0x801d/0x812d/0x8050/0x8052 mode+flip shadows are write-only; player-record backups stay hex).
+
+/** CREDIT_COUNT (0x8000) — the credit counter: banked from the coin lines (clamp 9), spent on start;
+ *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); loc_01f9
+ *  tests it >0 to show the credit screen. (strong) */
+export const CREDIT_COUNT = 0x8000;
+/** CREDIT_MIRROR_A (0x801c) — redundant copy of CREDIT_COUNT, read by the corruption watchdog. (strong) */
+export const CREDIT_MIRROR_A = 0x801c;
+/** CREDIT_MIRROR_B (0x812c) — third redundant copy of CREDIT_COUNT, also watchdog-read. (strong) */
+export const CREDIT_MIRROR_B = 0x812c;
+/** COIN_SW_ACCUM (0x8003) — coin switch (IN1 bit0) edge-detect accumulator (0x55/0xaa); a completed
+ *  pulse banks a credit. (strong) */
+export const COIN_SW_ACCUM = 0x8003;
+/** START1_SW_ACCUM (0x8004) — 1P-start switch (IN1 bit2) edge accumulator; a completed pulse pays a
+ *  credit and starts a 1-player game. (strong) */
+export const START1_SW_ACCUM = 0x8004;
+/** START2_SW_ACCUM (0x8005) — 2P-start switch (IN1 bit1) edge accumulator; starts a 2-player game. (strong) */
+export const START2_SW_ACCUM = 0x8005;
+/** FRAME_COUNTER_PRESCALER (0x8007) — /60 down-divider; on rollover reloads 60 and ticks FRAME_COUNTER. (strong) */
+export const FRAME_COUNTER_PRESCALER = 0x8007;
+/** MAIN_LOOP_DELAY (0x8011) — per-frame busy-wait length mainLoop burns; seeded = LOOP_DELAY_BASE − LEVEL
+ *  (higher level → faster). (strong) */
+export const MAIN_LOOP_DELAY = 0x8011;
+/** SOUND_TAIL (0x801f) — sound-command ring READ/dequeue index (mod 8); pairs with SOUND_HEAD/SOUND_RING. (strong) */
+export const SOUND_TAIL = 0x801f;
+/** MEN_LEFT (0x802b) — active player's working men/lives count; drawn by drawMenLeftPanel, docked at a
+ *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups 0x802c/0x802d kept hex. (strong) */
+export const MEN_LEFT = 0x802b;
+/** INITIALS_REMAINING (0x804b) — high-score initials-entry down-counter (seeded 3, →0 ends entry). (strong) */
+export const INITIALS_REMAINING = 0x804b;
+/** COINS_PER_CREDIT_A (0x804c) — DSW coin cost for coin line 2 (0 = free play). NOT bonus/lives. (strong) */
+export const COINS_PER_CREDIT_A = 0x804c;
+/** COINS_PER_CREDIT_B (0x804d) — DSW coin cost for coin line 3. (strong) */
+export const COINS_PER_CREDIT_B = 0x804d;
+/** LOOP_DELAY_BASE (0x804e) — DSW main-loop pacing base that MAIN_LOOP_DELAY derives from. (strong) */
+export const LOOP_DELAY_BASE = 0x804e;
+/** STARTING_MEN (0x8053) — DSW starting lives ((dsw&0x40)?4:3); startGame seeds MEN_LEFT from it. (strong) */
+export const STARTING_MEN = 0x8053;
+/** REACTION_OBJ_CODE (0x8095) — sprite/frame-code byte (byte1) of the reaction object's 4-byte record
+ *  (ends REACTION_OBJ_X/Y already named). (strong) */
+export const REACTION_OBJ_CODE = 0x8095;
+/** REACTION_OBJ_ATTR (0x8096) — attribute/anim byte (byte2) of that reaction record. (strong) */
+export const REACTION_OBJ_ATTR = 0x8096;
+/** OBJ2_MOVE_PERIOD (0x8107) — OBJ2 mover cadence reload period; structural mirror of OBJ1_MOVE_PERIOD. (strong) */
+export const OBJ2_MOVE_PERIOD = 0x8107;
+/** OBJ2_TARGET_COL (0x8109) — OBJ2 mover target column (seed 5 → loc_319d steer path); mirror of OBJ1_TARGET_COL. (strong) */
+export const OBJ2_TARGET_COL = 0x8109;
+/** OBJ1_TIMER (0x80f0) — OBJ1 mover cadence/dwell countdown (record offset 8). (fair) */
+export const OBJ1_TIMER = 0x80f0;
+/** OBJ1_STATE (0x80f5) — OBJ1 mover signed state byte loc_319d sign-dispatches on (record offset 13). (fair) */
+export const OBJ1_STATE = 0x80f5;
+/** OBJ2_TIMER (0x8101) — OBJ2 mover cadence/dwell countdown (mirror of OBJ1_TIMER). (fair) */
+export const OBJ2_TIMER = 0x8101;
+/** OBJ2_STATE (0x8106) — OBJ2 mover signed state byte (mirror of OBJ1_STATE). (fair) */
+export const OBJ2_STATE = 0x8106;
+/** MOVER_MOVE_PERIOD (0x8091) — working-block mover cadence reload period (parallels OBJ1_MOVE_PERIOD). (fair) */
+export const MOVER_MOVE_PERIOD = 0x8091;
+/** MOVER_TARGET_COL (0x8093) — working-block mover target column loc_319d steers toward. (fair) */
+export const MOVER_TARGET_COL = 0x8093;
+/** CARVE_SEAM_LEFT (0x807e) — flag loc_29ad sets when a dug channel abuts the object's tile column on
+ *  one side; loc_1493 reads it to defer that step. (fair — L/R axis under ROT90 unconfirmed) */
+export const CARVE_SEAM_LEFT = 0x807e;
+/** CARVE_SEAM_RIGHT (0x807f) — mirror seam flag for the opposite move arm (loc_167f reads it). (fair) */
+export const CARVE_SEAM_RIGHT = 0x807f;
+/** SCROLL_WINDOW_PTR (0x809a, 16-bit) — tilemap cell the horizontal terrain-scroll walker samples. (fair) */
+export const SCROLL_WINDOW_PTR = 0x809a;
+/** SCROLL_SUBPHASE (0x809e) — sub-tile column phase selecting the ROM stop-tile slice for the scroll. (fair) */
+export const SCROLL_SUBPHASE = 0x809e;
+/** DIG_SPAWN_QUEUE (0x80c3) — base of the 24-slot pending-spawn column queue (12 left paired to 12 right). (fair) */
+export const DIG_SPAWN_QUEUE = 0x80c3;
+/** SCORE_READOUT_STRIP (0x8280) — base of a 32-cell work-RAM display strip staging the rightmost
+ *  on-screen score-readout column. (fair) */
+export const SCORE_READOUT_STRIP = 0x8280;
+/** ACTOR_SPRITE_SLOT (0x8238) — sprite-staging slot 6 (SPRITE_STAGING_BASE+24), the actor body's record. (fair) */
+export const ACTOR_SPRITE_SLOT = 0x8238;
+/** TWIN_SPRITE_SLOT (0x823c) — sprite-staging slot 7 (SPRITE_STAGING_BASE+28), the twin's record. (fair) */
+export const TWIN_SPRITE_SLOT = 0x823c;

@@ -37,10 +37,10 @@
  * NAMES:    GOAL_CROSSING_LATCH, DIG_OBJ_ARM_STATE, SPAWN_STATE, REACTION_STATE,
  *           REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y, OBJ_X, OBJ_Y, ACTOR_CELL_PTR,
  *           EXPECTED_TILE, NEXT_TILE, SPRITE_CODE, SPRITE_COORD_BIAS, OBJECT_ACTIVE,
- *           SPAWN_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE from ram.js.
- *           The reaction object's own sprite code + animation bytes (0x8095/0x8096), the
- *           scroll step/window/sub-phase (0x80a1/0x809a/0x809e) and the ROM stop-tile table
- *           (0x277a) have no confirmed name yet and stay hex.
+ *           SPAWN_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE,
+ *           REACTION_OBJ_CODE (0x8095), REACTION_OBJ_ATTR (0x8096), SCROLL_WINDOW_PTR (0x809a)
+ *           and SCROLL_SUBPHASE (0x809e) from ram.js. The scroll step (0x80a1) and the ROM
+ *           stop-tile table (0x277a) have no confirmed name yet and stay hex.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -64,21 +64,19 @@ import {
   GOAL_TILE_LATCH,
   IN0_DEBOUNCED,
   SPRITE_STAGING_BASE,
+  REACTION_OBJ_CODE,
+  REACTION_OBJ_ATTR,
+  SCROLL_WINDOW_PTR,
+  SCROLL_SUBPHASE,
 } from "./ram.js";
 import { spawnDigEntity } from "./spawnDigEntity.js";
 import { requestSound9 } from "./requestSound9.js";
 import { requestSound12 } from "./requestSound12.js";
 import { loc_29ad } from "./loc_29ad.js";
 
-// The reaction object's own record bytes that have no ram.js name yet.
-const REACTION_SPRITE_CODE = 0x8095; // sprite/frame code shown for the reaction object
-const REACTION_ANIM = 0x8096; // 3-bit animation counter / attribute byte of the record
-
 // The horizontal-scroll state (a persistent 3-byte block driving the terrain walk).
 const SCROLL_STEP = 0x80a1; // signed per-frame X step; bit 3 set marks a scroll in progress,
 //                             bit 7 its direction (set -> window +32/row, clear -> -32/row)
-const SCROLL_WINDOW_PTR = 0x809a; // 16-bit tilemap cell the scroll currently sits on
-const SCROLL_SUBPHASE = 0x809e; // sub-tile column phase; selects the ROM stop-table slice
 const STOP_TILE_TABLE = 0x277a; // ROM: eight 32-byte per-sub-column lists of stop tiles
 
 // The reaction object owns sprite slot 1 (four bytes per slot) of the staging buffer.
@@ -117,7 +115,7 @@ export function advanceReactionObject(m) {
   // A goal crossing or an armed dig object owns the frame: force the rest sprite and just
   // publish the record.
   if (mem8[GOAL_CROSSING_LATCH] !== 0 || mem8[DIG_OBJ_ARM_STATE] !== 0) {
-    mem8[REACTION_SPRITE_CODE] = REST_SPRITE;
+    mem8[REACTION_OBJ_CODE] = REST_SPRITE;
     return buildReactionRecord(m);
   }
 
@@ -139,7 +137,7 @@ export function advanceReactionObject(m) {
 /** Animate one reaction phase this frame, resolving the dug tiles when its timer expires. */
 function runReactionPhase(m, phase) {
   const { mem8, mem16 } = m;
-  mem8[REACTION_SPRITE_CODE] = phase.animSprite;
+  mem8[REACTION_OBJ_CODE] = phase.animSprite;
 
   const ticked = u8(mem8[REACTION_TIMER] - 1);
   mem8[REACTION_TIMER] = ticked;
@@ -148,14 +146,14 @@ function runReactionPhase(m, phase) {
     // cycle the 3-bit animation counter.
     mem8[REACTION_OBJ_X] = mem8[OBJ_X] + phase.offX;
     mem8[REACTION_OBJ_Y] = mem8[OBJ_Y] + phase.offY;
-    mem8[REACTION_ANIM] = (mem8[REACTION_ANIM] - 1) & 7;
+    mem8[REACTION_OBJ_ATTR] = (mem8[REACTION_OBJ_ATTR] - 1) & 7;
     return buildReactionRecord(m);
   }
 
   // The reaction finished. Settle to the rest sprite, write the resolved tiles into the
   // actor's map cell, publish the facing code, and (except phase 3) spawn the dug entity.
   if (phase.clearStateFirst) mem8[REACTION_STATE] = 0;
-  mem8[REACTION_SPRITE_CODE] = REST_SPRITE;
+  mem8[REACTION_OBJ_CODE] = REST_SPRITE;
   const cell = mem16[ACTOR_CELL_PTR];
   if (mem8[EXPECTED_TILE] !== 0) mem8[cell] = mem8[EXPECTED_TILE];
   if (mem8[NEXT_TILE] !== 0) mem8[cell + phase.secondCell] = mem8[NEXT_TILE];
@@ -209,8 +207,8 @@ function seedScroll(m, scrollStep) {
   const { mem8, mem16 } = m;
   mem8[SCROLL_STEP] = scrollStep;
   requestSound12(m);
-  mem8[REACTION_ANIM] = 3;
-  mem8[REACTION_SPRITE_CODE] = SCROLL_SPRITE;
+  mem8[REACTION_OBJ_ATTR] = 3;
+  mem8[REACTION_OBJ_CODE] = SCROLL_SPRITE;
 
   const objX = mem8[OBJ_X];
   mem8[REACTION_OBJ_X] = objX;
@@ -254,7 +252,7 @@ function advanceScroll(m) {
   // Reached a stop tile: park the object and end the scroll.
   mem8[REACTION_OBJ_X] = 0;
   mem8[SCROLL_STEP] = 1;
-  mem8[REACTION_SPRITE_CODE] = REST_SPRITE;
+  mem8[REACTION_OBJ_CODE] = REST_SPRITE;
   return buildReactionRecord(m);
 }
 
@@ -267,8 +265,8 @@ function buildReactionRecord(m) {
   const { mem8 } = m;
   const bias = mem8[SPRITE_COORD_BIAS];
   mem8[REACTION_SPRITE_SLOT] = mem8[REACTION_OBJ_X] - bias;
-  mem8[REACTION_SPRITE_SLOT + 1] = mem8[REACTION_SPRITE_CODE];
-  mem8[REACTION_SPRITE_SLOT + 2] = mem8[REACTION_ANIM];
+  mem8[REACTION_SPRITE_SLOT + 1] = mem8[REACTION_OBJ_CODE];
+  mem8[REACTION_SPRITE_SLOT + 2] = mem8[REACTION_OBJ_ATTR];
   mem8[REACTION_SPRITE_SLOT + 3] = mem8[REACTION_OBJ_Y] + bias;
   return loc_29ad(m);
 }

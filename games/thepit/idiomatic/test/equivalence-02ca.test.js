@@ -4,7 +4,7 @@
  * setup: make the selected player's saved progress live, decode the dip switches, unmute
  * the audio, build the board screen and play the round-start sound, then hold an intro
  * (repaint the "MEN LEFT" / "PLAYERS" HUD panels and one playfield strip over eight short
- * frame-waits) before tail-jumping into the round-loop setup (0x031a), which never returns.
+ * frame-waits) before tail-jumping into the round-loop setup (loc_031a), which never returns.
  *
  * WHY A CRAFTED ENTRY. loc_02ca runs during boot, before attract, and is never dispatched
  * in a plain boot/attract run (0 dispatches in 300 frames — the demo never starts a round),
@@ -17,35 +17,39 @@
  * itself (through the strip painters), but after capture the hook just delegates to the
  * oracle, so it adds no divergence between the two arms.
  *
- * TWO HARNESS PIECES both arms share, so neither can fork the result:
- *   - THE FRAME-WAITS busy-wait on the per-frame countdown cell (0x8009) that the interrupt
- *     drains once a frame in the live game; run in isolation no interrupt fires, so the waits
- *     would never terminate. One identical hook on both clones models that tick — each
- *     watchdog read (the wait does exactly one per pass) decrements the countdown, floored at
- *     0 — exactly the discipline the waitFrames gate uses.
- *   - THE TAIL round-loop setup 0x031a runs the round forever (it never returns on hardware),
- *     so running either arm into it would hang. Both arms tail-jump to the SAME 0x031a, so it
- *     contributes nothing to any DIFFERENCE between them; it is stubbed with a no-op, installed
- *     at capture so the cloned entries inherit it.
+ * HOW THE NEVER-RETURNING TAIL IS BOUNDED. loc_02ca's tail is now the DIRECT idiomatic
+ * loc_031a (no longer a registry boundary), which restores the player record, PAINTS THE
+ * WHOLE BOARD, and falls into the main game loop that spins forever. Its board paint would
+ * overwrite the very HUD panels + playfield strip this routine's intro produces — so the
+ * gate stops both arms at the hand-off, the instant loc_031a's board paint is about to
+ * begin, BEFORE it repaints. paintScreen (inside loc_031a) waits one frame before its first
+ * copy, and that frame-wait is the first watchdog read that happens once this routine's intro
+ * loop has drained the shared loop counter to 0 (every intro frame-wait runs with the counter
+ * still >= 1). So the shared watchdog hook drains the intro's per-frame countdown (modelling
+ * the interrupt, so the intro's frame-waits terminate) and, on the first watchdog read it
+ * sees with the loop counter already at 0, throws — freezing both arms at loc_031a's paint
+ * boundary with this routine's intro output intact. Both arms reach it identically (oracle via
+ * m.call to the registered translated loc_031a, idiomatic via its import), so the hook can
+ * only reveal a difference. loc_031a's own correctness is separately gated (equivalence-031a).
  *
  * THE CONTRACT is observable-RAM equivalence: the work / colour / video / sprite RAM the
  * routine leaves. pc, SP and the value registers/flags are EXCLUDED — the idiomatic layer
  * does not preserve the Z80 register trace, and this routine has no genuine register live-out
- * (it tail-jumps into the round loop and the caller's return is carried by 0x031a). ONE
+ * (it tail-jumps into the round loop and the caller's return is carried by loc_031a). ONE
  * WRINKLE: the dissolved setup/loop calls no longer push their return addresses onto the work
  * stack, so the oracle parks a few return-address ghosts in the dead scratch just below the
- * entry stack pointer that the stack-free idiomatic calls do not. The oracle's deepest push
- * reaches only six bytes below entry SP (measured), and no game-observable cell lives in the
- * stack area (0x83xx) — every named work cell sits at/below 0x823f and colour RAM starts at
- * 0x8800 — so the RAM diff EXCLUDES a small window just below entry SP and compares every real
- * cell byte-for-byte.
+ * entry stack pointer that the stack-free idiomatic calls do not. No game-observable cell
+ * lives in the stack area (0x83xx) — every named work cell sits at/below 0x823f and colour RAM
+ * starts at 0x8800 — so the RAM diff EXCLUDES a small window just below entry SP and compares
+ * every real cell byte-for-byte.
  *
  * Three checks, the gate's two directions:
  *   1. EQUAL (real captured entry) — idiomatic leaves RAM byte-identical to the oracle outside
  *      the dead stack window, and the observable effects hold: the intro loop drains the loop
- *      counter to 0 and the round-start sound (command 4) is queued.
+ *      counter to 0 and the round-start sound (command 4) is queued in the ring.
  *   2. TEETH (dropped HUD panel) — a twin that forgets to paint the "MEN LEFT" panel is CAUGHT
- *      in the colour/video RAM those glyph cells occupy, well outside the stack window.
+ *      in the colour/video RAM those glyph cells occupy, well outside the stack window (the
+ *      intro output is intact at the paint boundary, so the drop shows).
  *   3. TEETH (intro loop left un-drained) — a twin that leaves the loop counter non-zero is
  *      CAUGHT at the loop-counter cell.
  *
@@ -58,6 +62,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02ca as oracle } from "../../translated/loc_02ca.js";
 import { loc_02ca as idiomatic } from "../loc_02ca.js";
+import { loc_031a as oracleRoundInit } from "../../translated/loc_031a.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 
 // The callees the dropped-HUD-panel teeth twin reuses (everything except drawMenLeftPanel).
@@ -81,12 +86,15 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const PROXY = 0x3dae; // a routine attract DOES reach; hooked to capture a real machine state
-const TAIL = 0x031a; // the round-loop setup loc_02ca tail-jumps to; stubbed (never returns)
+const TAIL = 0x031a; // the round-loop setup loc_02ca tail-jumps to (now a direct idiomatic call)
 const COUNTDOWN = 0x8009; // the per-frame countdown cell the frame-waits drain to 0
 const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per busy-wait pass)
 const ROUND_START_SOUND = 4 | 0x80; // 0x84 — the pending-marked command requestSound4 queues
 const STACK_WINDOW = 16; // dead stack-scratch just below entry SP (oracle's deepest push is -6)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
+
+// A unique token thrown to bound execution at loc_031a's board-paint boundary (see above).
+const BOUND = Symbol("round-init-paint-bound");
 
 // The Pit's routine registry is async, so build the factory once and reuse it.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
@@ -95,8 +103,8 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
  * Capture one real attract machine state to seed crafted entries. loc_02ca itself is never
  * dispatched in attract, so hook a routine that IS (loc_3dae, entered within the first ~100
  * frames) and clone the machine the first time it fires. The never-returning round-loop setup
- * 0x031a is stubbed on the host so the cloned entries inherit the stub and loc_02ca's tail
- * jump returns instead of running the round forever.
+ * 0x031a is stubbed on the host during capture so the boot run does not hang; the comparison
+ * clones re-register the REAL translated round init (see runBounded).
  */
 function captureSeed() {
   let seed = null;
@@ -105,7 +113,7 @@ function captureSeed() {
       if (seed === null) seed = mm.clone();
       return reachableOracle(mm);
     }],
-    [TAIL, () => {}], // no-op stub: identical on both arms, so it cannot fork them
+    [TAIL, () => {}], // no-op stub during capture only
   ]);
   makeMachine(overrides).runFrames(240);
   assert.ok(seed !== null, "expected loc_3dae to be dispatched during attract to seed the crafted entry");
@@ -115,21 +123,40 @@ function captureSeed() {
 const SEED = ROM_PRESENT ? captureSeed() : null;
 
 /**
- * Model the once-per-frame interrupt tick that drives the frame-waits to completion: each
- * watchdog read (a wait does exactly one per pass) decrements the countdown by one, floored at
- * 0 so every wait terminates. Installed identically on both clones, so it can only expose a
- * difference, never create one.
+ * Run `fn` on a fresh clone of `entry`, bounded at loc_031a's board-paint boundary. Register
+ * the REAL translated round init at 0x031a (so the oracle arm reaches it for real). The
+ * watchdog hook drains the per-frame countdown while the intro loop is still running (its loop
+ * counter >= 1, so the intro frame-waits terminate); the first watchdog read it sees with the
+ * loop counter already at 0 is loc_031a's paintScreen settle-wait, taken BEFORE the board is
+ * repainted, so it applies `atBound` (a teeth mutation, if any) and throws there. Restores
+ * read8 before `atBound` so it cannot re-enter the hook. Asserts the run reached the bound.
  */
-function installFrameTick(m) {
+function runBounded(entry, fn, atBound) {
+  const m = entry.clone();
+  m.routines.set(TAIL, oracleRoundInit);
   const mem = m.mem;
   const origRead8 = mem.read8.bind(mem);
   mem.read8 = (addr) => {
     if (addr === WATCHDOG) {
+      if (origRead8(LOOP_COUNTER) === 0) {
+        mem.read8 = origRead8;
+        if (atBound) atBound(m);
+        throw BOUND;
+      }
       const c = origRead8(COUNTDOWN);
       if (c !== 0) mem.write8(COUNTDOWN, c - 1);
     }
     return origRead8(addr);
   };
+  let bounded = false;
+  try {
+    fn(m);
+  } catch (e) {
+    if (e !== BOUND) throw e;
+    bounded = true;
+  }
+  assert.ok(bounded, "run did not reach loc_031a's paint boundary — the harness never engaged");
+  return m;
 }
 
 /**
@@ -152,20 +179,15 @@ function stateDiffOutsideStack(a, b, entrySP) {
 }
 
 /**
- * Run the oracle and a candidate on two independent clones of the captured entry — both with
- * the frame-tick harness so the intro's frame-waits terminate — and diff the observable-RAM
- * contract, excluding the dead stack scratch. Returns { diffs, ram } (diffs empty == EQUAL).
+ * Run the oracle and a candidate on two independent clones of the captured entry — both
+ * bounded at loc_031a's paint boundary — and diff the observable-RAM contract, excluding the
+ * dead stack scratch. `atBound` is applied only to the candidate (for the teeth). Returns
+ * { diffs, ram } (diffs empty == EQUAL).
  */
-function contractDiffs(entry, fn) {
+function contractDiffs(entry, fn, atBound) {
   const entrySP = entry.regs.sp;
-
-  const a = entry.clone();
-  installFrameTick(a);
-  oracle(a);
-
-  const b = entry.clone();
-  installFrameTick(b);
-  fn(b);
+  const a = runBounded(entry, oracle);
+  const b = runBounded(entry, fn, atBound);
 
   const diffs = [];
   const ram = stateDiffOutsideStack(a, b, entrySP);
@@ -179,18 +201,17 @@ test("EQUAL (real entry): loc_02ca == oracle over observable RAM", () => {
   const { diffs } = contractDiffs(SEED, idiomatic);
   assert.equal(diffs.length, 0, diffs.join("; "));
 
-  // Positive checks: the observable effects really happened.
-  const c = SEED.clone();
-  installFrameTick(c);
-  const seedHead = c.mem.read8(SOUND_HEAD);
-  idiomatic(c);
+  // Positive checks: the observable effects really happened (at the paint boundary). The
+  // round-start sound (command 4) sits at the slot loc_02ca queued it in; loc_031a's own
+  // requestSound6 uses the next slot, so this one is untouched.
+  const seedHead = SEED.mem.read8(SOUND_HEAD);
+  const c = runBounded(SEED, idiomatic);
   assert.equal(c.mem.read8(LOOP_COUNTER), 0, "the intro loop must drain the loop counter to 0");
   assert.equal(
     c.mem.read8(SOUND_RING + seedHead),
     ROUND_START_SOUND,
     "the round-start sound (command 4) must be queued in the ring",
   );
-  assert.equal(c.mem.read8(SOUND_HEAD), (seedHead + 1) % 8, "the sound-ring write pointer must advance one slot");
   console.log(
     `  EQUAL/real: idiomatic matches oracle over full RAM (outside ${STACK_WINDOW}-byte stack scratch); ` +
       `loop drained to 0, sound ${hx(ROUND_START_SOUND)} queued at slot ${seedHead}`,
@@ -200,7 +221,8 @@ test("EQUAL (real entry): loc_02ca == oracle over observable RAM", () => {
 // -- 2. TEETH: a dropped-HUD-panel twin is caught -----------------------------
 
 /** Broken twin: the real setup + intro loop, but the "MEN LEFT" panel is never painted, so
- *  the cells it would fill stay the board-build background. Everything else is identical. */
+ *  the cells it would fill stay the board-build background. It still drains the loop counter,
+ *  so it reaches the same paint boundary; the missing panel shows there. */
 function twinDropMenPanel(m) {
   const { mem8 } = m;
   loadPlayerState(m);
@@ -234,15 +256,10 @@ test("TEETH (dropped HUD panel): skipping the MEN-LEFT panel is CAUGHT in colour
 
 // -- 3. TEETH: an un-drained intro loop is caught -----------------------------
 
-/** Broken twin: runs the real routine, then leaves the intro loop counter re-armed instead of
- *  drained to 0 — the routine's own declared observable output is wrong. */
-function twinLoopNotDrained(m) {
-  idiomatic(m);
-  m.mem8[LOOP_COUNTER] = 8; // BUG: the intro loop counter is left non-zero
-}
-
 test("TEETH (loop not drained): a non-zero loop counter is CAUGHT at the loop-counter cell", () => {
-  const { diffs, ram } = contractDiffs(SEED, twinLoopNotDrained);
+  // The intro drains the loop counter to 0 (which the correct routine does, triggering the
+  // bound); a twin that left it re-armed is modelled by re-dirtying it at the bound.
+  const { diffs, ram } = contractDiffs(SEED, idiomatic, (m) => { m.mem8[LOOP_COUNTER] = 8; });
   assert.ok(diffs.length > 0, "the gate FAILED to catch the un-drained loop twin — it proves nothing");
   assert.equal(
     ram && ram.addr,

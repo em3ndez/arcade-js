@@ -31,8 +31,9 @@
  *           The oracle's exit registers/flags are dead; the tail hand-off is identical
  *           on both sides so the Z80 return path lines up for free.
  * NAMES:    SPAWN_STATE, DIG_OBJ_STATE, DIG_OBJ_ATTR, DIG_OBJ_TIMER, TARGET_X, TARGET_Y,
- *           OBJ_X, OBJ_Y, CLIMB_GATE (the byte this routine writes the overlap flag to).
- *           The 24-slot queue base and its reload byte have no ram.js name yet, kept hex.
+ *           OBJ_X, OBJ_Y, CLIMB_GATE (the byte this routine writes the overlap flag to),
+ *           and DIG_SPAWN_QUEUE (the 24-slot queue base) from ram.js. Its reload byte
+ *           (0x80c2) has no ram.js name yet, kept hex.
  */
 
 import { advanceRandom } from "./advanceRandom.js";
@@ -48,12 +49,10 @@ import {
   OBJ_X,
   OBJ_Y,
   CLIMB_GATE,
+  DIG_SPAWN_QUEUE,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 
-// Base of the 24-slot pending-spawn column queue: slots 0..11 are the left-of-centre
-// columns, 12..23 their paired right-of-centre columns. Role ungrounded, kept hex.
-const PENDING_QUEUE = 0x80c3;
 // Byte the dig-object lifetime timer is seeded from at spawn.
 const DIG_TIMER_RELOAD = 0x80c2;
 
@@ -78,14 +77,14 @@ export function spawnPendingDigObject(m) {
   let slot;
   do {
     slot = advanceRandom(m) & 0x1f;
-  } while (slot >= 24 || mem8[PENDING_QUEUE + slot] === 0);
+  } while (slot >= 24 || mem8[DIG_SPAWN_QUEUE + slot] === 0);
 
   // The chosen column and the value stored in its slot. A left-half column (0..11)
   // switches to its paired right-half column (+12) when that one is also queued.
   let column = slot;
-  let value = mem8[PENDING_QUEUE + slot];
+  let value = mem8[DIG_SPAWN_QUEUE + slot];
   if (slot < 12) {
-    const pairedValue = mem8[PENDING_QUEUE + slot + 12];
+    const pairedValue = mem8[DIG_SPAWN_QUEUE + slot + 12];
     if (pairedValue !== 0) {
       column = slot + 12;
       value = pairedValue;
@@ -94,7 +93,7 @@ export function spawnPendingDigObject(m) {
 
   // Dequeue the chosen column and turn it into a cell coordinate: one axis from the
   // slot value, the other a fixed left/right column base.
-  mem8[PENDING_QUEUE + column] = 0;
+  mem8[DIG_SPAWN_QUEUE + column] = 0;
   mem8[TARGET_X] = value + 1;
   mem8[TARGET_Y] = column < 12 ? 183 : 191; // left vs right column-base coordinate
 

@@ -41,14 +41,14 @@
  *           routine no longer reproduces their return-address pushes, so the stack
  *           scratch below the stack pointer, the stack pointer, and the exit address
  *           legitimately differ from the oracle and are excluded from the gate.
- * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
+ * NAMES:    TILE_COL, TILE_ROW, PLOT_RUN_LENGTH and MEN_LEFT (0x802b, the live
+ *           decision/display byte) from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
  *           proposes BOARD_MODE for it, but here the byte is unambiguously the panel's
- *           colour, so a local role name fits better than a misfit import. 0x8055
- *           (PLOT_RUN_LENGTH), the live decision/display byte 0x802b, and the ROM label
+ *           colour, so a local role name fits better than a misfit import. The ROM label
  *           sources 0x49ba / 0x49c2 are not in ram.js and stay local.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, MEN_LEFT } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -60,10 +60,6 @@ const FILL_ATTR = 0x8057;
 
 // How many cells the next copy/fill helper writes (reloaded before each field).
 
-// The live work-RAM byte that selects the variant and, in the default variant, is
-// itself copied into the panel's last cell as the displayed value.
-const PANEL_VALUE = 0x802b;
-
 // ROM glyph sources for the two labels (walked backwards by the copy helper).
 const DEFAULT_LABEL = 0x49ba;
 const ALT_LABEL = 0x49c2;
@@ -74,7 +70,7 @@ export function drawMenLeftPanel(m) {
   // The panel column is always 5.
   mem8[TILE_COL] = 5;
 
-  if (mem8[PANEL_VALUE] === 1) {
+  if (mem8[MEN_LEFT] === 1) {
     // Alternate variant: an eight-glyph label at row 12, no live-value cell.
     mem8[TILE_ROW] = 12;
 
@@ -109,7 +105,7 @@ export function drawMenLeftPanel(m) {
 
   // One more cell: the live value itself, continuing down the same video column.
   mem8[PLOT_RUN_LENGTH] = 1;
-  copyTileColumn(m, PANEL_VALUE); // display the live byte as the panel's last cell
+  copyTileColumn(m, MEN_LEFT); // display the live byte as the panel's last cell
 
   // Colour the full ten-cell run; this is drawMenLeftPanel's exit.
   mem8[PLOT_RUN_LENGTH] = 10;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2f2f — seed the first block of round/level parameters, derive the
+ * seedBackgroundAnimParams — seed the first block of round/level parameters, derive the
  * animation reload byte, then hand off to seedObjectRecords.  ROM 0x2f2f.
  *
  * The first half of the round/level parameter-seeding pass: it fills its own block
@@ -10,20 +10,18 @@
  * as difficulty climbs: it increments the counter, holds it at a ceiling of four,
  * and takes seven minus that — 6, 5, 4, then a floor of 3 — so the animation reloads
  * sooner (a shorter cadence) at harder levels. The hand-off is a tail jump:
- * seedObjectRecords's own return unwinds back to loc_2f2f's caller, so the delegation IS
- * loc_2f2f's exit.
+ * seedObjectRecords's own return unwinds back to seedBackgroundAnimParams's caller, so the delegation IS
+ * seedBackgroundAnimParams's exit.
  *
  * Every write lands on a distinct work-RAM byte, so their order does not affect the
  * resulting state.
  *
- * Name kept as loc_2f2f: like its sibling seedObjectRecords, the block it seeds drives a
- * subsystem that is not yet identified — the counter it reads is the named LEVEL field,
- * but the block's own role is a best-effort reading, below the bar to promote to an
- * English name.
+ * Named by effect: seeds the first block of round/level parameters (the background
+ * animation parameter block) and derives the animation reload byte.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f2f.test.js.
  * GATE:     crafted-entry — never dispatched in attract (it runs only from the
- *           gameplay round-init tail-jump chain loc_287a → loc_2f2f → seedObjectRecords, which
+ *           gameplay round-init tail-jump chain loc_287a → seedBackgroundAnimParams → seedObjectRecords, which
  *           attract never reaches), so it is validated on real captured attract
  *           machine states. It reads only the difficulty counter, so any realistic
  *           state is a valid entry: EQUAL over several captured states + a full
@@ -53,7 +51,7 @@ import {
   REVEAL_GATE,
   REVEAL_PERIOD,
 } from "./ram.js";
-export function loc_2f2f(m) {
+export function seedBackgroundAnimParams(m) {
   const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
@@ -76,6 +74,6 @@ export function loc_2f2f(m) {
   mem8[REVEAL_PERIOD] = 7 - cappedLevel;
 
   // Tail hand-off into seedObjectRecords; its return goes to our caller, so this is
-  // loc_2f2f's exit.
+  // seedBackgroundAnimParams's exit.
   return seedObjectRecords(m);
 }

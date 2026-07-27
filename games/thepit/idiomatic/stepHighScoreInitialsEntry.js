@@ -42,16 +42,15 @@
  *           (pc/SP); and, on the step arms only, the stepped index left in register C,
  *           which the caller re-reads next pass. The other exit registers/flags are
  *           dead and excluded from the diff.
- * NAMES:    IN0_DEBOUNCED (the action byte) and FRAME_COUNTER from ram.js; 0x804b (the
- *           per-move step counter) is unnamed in ram.js, kept as an address literal.
+ * NAMES:    IN0_DEBOUNCED (the action byte), FRAME_COUNTER and INITIALS_REMAINING (0x804b,
+ *           the per-move step counter) from ram.js.
  */
-import { IN0_DEBOUNCED, FRAME_COUNTER } from "./ram.js";
+import { IN0_DEBOUNCED, FRAME_COUNTER, INITIALS_REMAINING } from "./ram.js";
 import { stepInitialDown } from "./stepInitialDown.js";
 import { advanceInitialUp } from "./advanceInitialUp.js";
 import { requestSound16 } from "./requestSound16.js";
 import { waitFrames } from "./waitFrames.js";
 
-const STEP_COUNTER = 0x804b; // per-move counter the commit arm counts down toward the finish
 const TILEMAP_ROW = 32; // one tilemap row is 32 cells; "up one row" steps a cursor back 32
 const INDEX_HOME = 10; // the index/blank byte's home value, re-seated after a commit
 const HOLD_FRAMES = 20; // frames to hold after a committed move before returning
@@ -81,7 +80,7 @@ export function stepHighScoreInitialsEntry(m) {
 
   mem8[regs.de] = objectCode; // redraw the object one row up in the parallel plane
 
-  mem8[STEP_COUNTER] = mem8[STEP_COUNTER] - 1; // count this move off
+  mem8[INITIALS_REMAINING] = mem8[INITIALS_REMAINING] - 1; // count this move off
   mem8[FRAME_COUNTER] = 0; // restart the frame counter
 
   requestSound16(m); // play the move sound

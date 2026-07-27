@@ -36,11 +36,11 @@
  *           here by tail-jump and reads no register back.
  * NAMES:    ANIM_RAND (0x808b) is this object's cadence countdown here — loc_3490's
  *           reading of that dual-use byte, the same one loc_34f0 periodically
- *           reseeds. The reload period (0x8091), direction index (0x8092), and X
- *           position (0x8086) have no ram.js name yet and stay hex.
+ *           reseeds. MOVER_MOVE_PERIOD (0x8091) is the reload period; the direction
+ *           index (0x8092) and X position (0x8086) have no ram.js name yet and stay hex.
  */
 
-import { ANIM_RAND, MOVER_DIRECTION } from "./ram.js";
+import { ANIM_RAND, MOVER_DIRECTION, MOVER_MOVE_PERIOD } from "./ram.js";
 
 export function loc_3476(m) {
   const { mem8 } = m;
@@ -52,7 +52,7 @@ export function loc_3476(m) {
   // On the frame the countdown expires, re-commit the motion: reload the countdown
   // from its period byte and (re)publish this preset's travel-direction index (0).
   if (cadence === 0) {
-    mem8[ANIM_RAND] = mem8[0x8091]; // reload period for the cadence countdown
+    mem8[ANIM_RAND] = mem8[MOVER_MOVE_PERIOD]; // reload period for the cadence countdown
     mem8[MOVER_DIRECTION] = 0; // published travel-direction index the driver reads next frame
   }
 

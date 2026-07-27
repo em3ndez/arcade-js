@@ -6,8 +6,8 @@
  * on the spawn counter and runs the carve countdown: stepping the dig position + digging
  * animation while it ticks, and on expiry either completing the column or probing the
  * carve box and carving one tile into the tilemap. Every exit hands off to an idiomatic
- * callee (background update 0x2f71 = advanceBackgroundSprite, loc_2bf2, captureTargetOnOverlap,
- * loc_2934, stageDigObjectSpriteRecord).
+ * callee (background update 0x2f71 = advanceBackgroundSprite, startNextDigSpawn, captureTargetOnOverlap,
+ * commitDigEntity, stageDigObjectSpriteRecord).
  *
  * CONTRACT. The routine has NO register live-ins — every input is read from RAM — and
  * every hand-off is delegated to an idiomatic callee that is memory-equivalent to its
@@ -196,7 +196,7 @@ test("EQUAL (every arm): spawn-start / capture / spawn==2 overlap / animation / 
   assert.ok(entry, "need a captured 0x29ad entry");
 
   const cases = [
-    // Feature-aligned gate: no spawn active -> start the next queued spawn (loc_2bf2).
+    // Feature-aligned gate: no spawn active -> start the next queued spawn (startNextDigSpawn).
     { name: "gate: spawn-start", s: { featLatch: 1, tileLatch: 1, spawn: 0 } },
     // Feature-aligned gate: spawn active + not mid-carve -> capture hand-off (loc_2cb7).
     { name: "gate: capture hand-off", s: { featLatch: 1, tileLatch: 1, spawn: 1, digState: 9 } },
@@ -259,7 +259,7 @@ test("EQUAL (carve classify sweep): every tile-in-cell 0..255 across sub-columns
   }
 
   // Pending-entity hand-off: spawn==3 so the commit decrements to a nonzero count and tails
-  // into loc_2934 (its saved cell pointed into video RAM). A kept-wall tile drives the commit.
+  // into commitDigEntity (its saved cell pointed into video RAM). A kept-wall tile drives the commit.
   const pend = { spawn: 3, timer: 0, arm: 1, subtype: 0, objX: 50, objY: 0, targetX, targetY: 90, cellTile: WALL_TILE, savedCell: 0x9280 };
   const { ram: pendRam } = compare(entry, pend, idiomatic);
   assert.equal(pendRam, null, pendRam && `pending hand-off: RAM diff at ${hx(pendRam.addr)} oracle=${pendRam.a} cand=${pendRam.b}`);

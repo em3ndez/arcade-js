@@ -22,19 +22,25 @@
  * GATE:     crafted-entry — the real boot dispatch of 0x03be (reached ~frame 693 as
  *           attract cycles into the play demo), RAM-EQUAL to the oracle, plus a DIP
  *           sweep (0..127, top bit clear) and a garbage-prefill entry proving the
- *           seeds are unconditional. Teeth: wrong play value / a dropped seed.
+ *           seeds are unconditional. The tail hands into loc_031a, which paints the
+ *           board and falls into the never-returning main loop, so both arms run the
+ *           real chain under one shared watchdog hook (drain paintScreen's frame-waits;
+ *           stop at the main loop's entry). Teeth: wrong play value / a dropped seed.
  * LIVE-OUT: memory-only — the seeded work-RAM counters; the audio-enable and
  *           flip-screen control lines are driven for the live game but sit outside the
  *           RAM diff. No register or flag is read by the round init it hands off to.
- * NAMES:    GAME_MODE (0x8001), DEMO_STEER_DIR (0x801b), GAME_STATE2 (0x8002) from
- *           ram.js; the idle-delay base 0x804e, the gameplay-tick phase countdown
- *           0x800b / index 0x800c, and the per-round counter 0x8029 have no ram.js
- *           name yet (hex). disableSound / applyDipSwitches are called directly.
+ * NAMES:    GAME_MODE (0x8001), DEMO_STEER_DIR (0x801b), GAME_STATE2 (0x8002), and the
+ *           idle-delay base LOOP_DELAY_BASE (0x804e) from ram.js; the gameplay-tick phase
+ *           countdown 0x800b / index 0x800c have no ram.js name yet (hex), and 0x8029 is
+ *           the demo's saved Player-1 LEVEL backup — a player-record backup, kept hex.
+ *           disableSound / applyDipSwitches are called directly; the round-init
+ *           tail (loc_031a, 0x031a) is kept as an m.call boundary — it falls into the
+ *           never-returning main loop, so it stays a stubbable/boundable registry boundary.
  */
 
 import { disableSound } from "./disableSound.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
-import { GAME_MODE, DEMO_STEER_DIR, GAME_STATE2 } from "./ram.js";
+import { GAME_MODE, DEMO_STEER_DIR, GAME_STATE2, LOOP_DELAY_BASE } from "./ram.js";
 
 export function enterPlayMode(m) {
   const { mem8 } = m;
@@ -47,7 +53,8 @@ export function enterPlayMode(m) {
   // dispatcher reads this in place of the joystick during the attract demo).
   mem8[DEMO_STEER_DIR] = 1;
 
-  // Arm the secondary game-state byte, and seed a per-round gameplay counter.
+  // Arm the secondary game-state byte, then seed the demo's saved Player-1 LEVEL backup
+  // to 3 so the attract demo runs at level 3 (loadPlayerState promotes it to the working LEVEL).
   mem8[GAME_STATE2] = 1;
   mem8[0x8029] = 3;
 
@@ -60,14 +67,16 @@ export function enterPlayMode(m) {
   // Idle-delay base: the round init derives the main loop's per-frame pacing delay
   // from this minus the current level, so it overrides whatever the DIP decode just
   // left in this cell.
-  mem8[0x804e] = 12;
+  mem8[LOOP_DELAY_BASE] = 12;
 
   // Seed the gameplay tick's phasing: countdown to 1, phase index back to 0.
   mem8[0x800b] = 1;
   mem8[0x800c] = 0;
 
   // Hand off to the round (re)init, which finishes setting up the round and falls
-  // through into the main game loop; it never returns here. loc_031a has no idiomatic
-  // form yet, so this is a genuine oracle boundary.
+  // through into the main game loop; it never returns here.
+  // m.call boundary: tail hand-off into the never-returning round init (loc_031a 0x031a,
+  // which falls into mainLoop); a direct call is behaviorally identical and a terminal-test
+  // would be a fragile artifact.
   return m.call(0x031a);
 }

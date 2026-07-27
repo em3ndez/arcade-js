@@ -13,7 +13,7 @@
  *   - reads the tile a fixed step ahead of that cell and routes on it.
  *
  * If the tile ahead is solid ground (one of three wall codes) the target has arrived:
- * the embed continuation (loc_2d4e) stamps the wall tile into the neighbouring cell,
+ * the embed continuation (landDigTarget) stamps the wall tile into the neighbouring cell,
  * requests the dig sound, and resets the target's small state block — it takes the cell
  * directly. Otherwise the target simply keeps going and its sprite record is rebuilt at
  * the new position by the still-oracle record builder loc_2bd3. Both continuations finish
@@ -31,7 +31,7 @@
  *           probed tile crafted identically on both sides. Sweeps the whole tile domain to
  *           pin the embed-vs-continue boundary exactly, and the target's position across
  *           both axes to pin the row/column/advance arithmetic. The embed route runs the
- *           idiomatic loc_2d4e, the continue route the still-oracle loc_2bd3, so a wrong
+ *           idiomatic landDigTarget, the continue route the still-oracle loc_2bd3, so a wrong
  *           advance, cell, or route diverges the resulting RAM. Teeth: wrong advance,
  *           wrong cursor, wrong route, wrong embed cell.
  * LIVE-OUT: memory-only — the advanced target position and the stored cell pointer. The
@@ -45,7 +45,7 @@
 import { TARGET_X, TARGET_Y } from "./ram.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { u8 } from "../../../core/int.js";
-import { loc_2d4e } from "./loc_2d4e.js";
+import { landDigTarget } from "./landDigTarget.js";
 
 // Base of the on-screen tile map in video RAM; a cell is an offset from here.
 const VRAM_BASE = 0x9000;
@@ -70,6 +70,6 @@ export function advanceDigTarget(m) {
 
   // Solid-ground codes -> the target embeds at that cell; anything else -> keep going and
   // rebuild the sprite record (still-oracle loc_2bd3).
-  if (aheadTile === 42 || aheadTile === 43 || aheadTile === 65) return loc_2d4e(m, cell);
+  if (aheadTile === 42 || aheadTile === 43 || aheadTile === 65) return landDigTarget(m, cell);
   return stageDigObjectSpriteRecord(m);
 }

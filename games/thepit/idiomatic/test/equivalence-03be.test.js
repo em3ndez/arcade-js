@@ -14,21 +14,26 @@
  *
  * TWO WRINKLES this routine adds over a plain leaf:
  *
- *  1. IT NEVER RETURNS. Its tail-jump lands in the round init, which falls through into
- *     the main game loop and spins forever — so running it to completion on a clone (whose
- *     frame machinery is neutralised, so no NMI breaks the spin) would hang. The tail
- *     target 0x031a has no idiomatic form, so BOTH the oracle and the rewrite reach it the
- *     same way (m.call(0x031a)); the gate stubs 0x031a to a no-op on both clones, stopping
- *     each exactly at the tail boundary. That is "equal by construction" for the shared
- *     tail — the same identical call on both arms — and lets the diff measure only the
- *     work this routine does before it.
+ *  1. IT NEVER RETURNS. Its tail hand-off is now the DIRECT idiomatic loc_031a, which
+ *     paints the board (busy-waiting on the per-frame countdown) and then falls into the
+ *     main game loop and spins forever — so running it to completion on a clone (whose
+ *     frame machinery is neutralised, so no NMI breaks the spin) would hang. Rather than
+ *     stub the tail (the idiomatic direct call can no longer be intercepted by a registry
+ *     stub), both arms run the REAL chain — idiomatic via its import, oracle via m.call to
+ *     the registered translated routines — under ONE shared watchdog hook: each watchdog
+ *     read that finds the per-frame countdown non-zero drains it (so loc_031a's paintScreen
+ *     frame-waits terminate), and the FIRST read with the countdown already at 0 is the main
+ *     loop's pass top (the setup frame-waits never read it drained), where the hook throws.
+ *     Both arms stop at the main loop's entry, before it does any per-frame work — the same
+ *     point the old no-op stub compared at — so the diff still measures only enterPlayMode's
+ *     work plus the shared, separately-gated loc_031a chain.
  *
- *  2. STACK SCRATCH. The oracle path pushes a return address for each of its two setup
- *     calls (into the two bytes just below the entry stack pointer, 0x83fd..0x83fe) and the
- *     oracle callees pop them; the stack-free idiomatic JS calls disableSound /
- *     applyDipSwitches directly and pushes nothing, so those two bytes differ as classic
- *     dead stack scratch (overwritten by the next push before anything reads them). The RAM
- *     diff excludes exactly that [SP-2, SP) window and compares everything else byte-for-byte.
+ *  2. STACK SCRATCH. The oracle threads its calls (the two setup calls, and loc_031a's own
+ *     nested paint/setup calls) through the Z80 stack; the stack-free idiomatic JS calls
+ *     directly and pushes nothing, so the eight bytes just below the entry stack pointer
+ *     ([SP-8, SP), i.e. 0x83f7..0x83fe) differ as classic dead stack scratch (overwritten by
+ *     the next push before anything reads them, and the main loop re-seats the stack anyway).
+ *     The RAM diff excludes exactly that window and compares everything else byte-for-byte.
  *
  * Checks:
  *   0. HARNESS — capture a real 0x03be dispatch and confirm the oracle run is deterministic.
@@ -63,9 +68,14 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x03be;
-const TAIL = 0x031a; // the round-init tail-jump target (no idiomatic form; spins forever)
 const CAPTURE_FRAMES = 900; // 0x03be is first dispatched ~frame 693 as attract enters the demo
+const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per busy-wait / main-loop pass)
+const COUNTDOWN = 0x8009; // per-frame countdown loc_031a's paintScreen frame-waits drain to 0
+const STACK_SCRATCH = 8; // dead scratch cells just below the entry SP the two call styles differ in
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
+
+// A unique token thrown to bound the never-returning main loop at its entry (see wrinkle 1).
+const BOUND = Symbol("mainLoop-entry-bound");
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is async, so
 // build the factory once (it closes over the built registry).
@@ -85,30 +95,56 @@ function captureRealEntry(maxFrames) {
   return entry;
 }
 
-/** Run `fn` on a fresh clone of `entry` with the round-init tail-jump stubbed to a no-op,
- *  so execution stops at the tail boundary instead of spinning in the main loop. */
-function runArm(entry, fn) {
+/**
+ * Run `fn` on a fresh clone of `entry`, bounded at the main loop's entry. The watchdog hook
+ * drains the per-frame countdown (so loc_031a's paintScreen frame-waits terminate) and throws
+ * on the first watchdog read the countdown is already drained for — the main loop's pass top.
+ * `atBound` (a teeth mutation, if any) is applied there, after read8 is restored so it cannot
+ * re-enter the hook. Asserts the run reached the bound.
+ */
+function runArm(entry, fn, atBound) {
   const c = entry.clone();
-  c.routines.set(TAIL, () => {}); // bound the shared tail-jump on both arms
-  fn(c);
+  const mem = c.mem;
+  const origRead8 = mem.read8.bind(mem);
+  mem.read8 = (addr) => {
+    if (addr === WATCHDOG) {
+      const cd = origRead8(COUNTDOWN);
+      if (cd !== 0) {
+        mem.write8(COUNTDOWN, cd - 1);
+      } else {
+        mem.read8 = origRead8;
+        if (atBound) atBound(c);
+        throw BOUND;
+      }
+    }
+    return origRead8(addr);
+  };
+  let bounded = false;
+  try {
+    fn(c);
+  } catch (e) {
+    if (e !== BOUND) throw e;
+    bounded = true;
+  }
+  assert.ok(bounded, "run did not reach the main loop's entry bound — the harness never engaged");
   return c;
 }
 
 /** First differing observable-RAM byte between the oracle and `fn` on clones of one entry,
- *  EXCLUDING the two dead stack-scratch bytes just below the entry stack pointer (the return
- *  addresses the oracle's setup calls park there; the stack-free rewrite does not). Null when
- *  otherwise identical. */
-function ramDiff(entry, fn) {
+ *  EXCLUDING the dead stack-scratch bytes just below the entry stack pointer (the return
+ *  addresses the oracle's calls park there; the stack-free rewrite does not). `atBound` is
+ *  applied only to the candidate arm (for the teeth). Null when otherwise identical. */
+function ramDiff(entry, fn, atBound) {
   const sp = entry.regs.sp;
   const a = runArm(entry, oracle);
-  const b = runArm(entry, fn);
+  const b = runArm(entry, fn, atBound);
   const da = a.dumpState();
   const db = b.dumpState();
   const n = Math.min(da.length, db.length);
   for (let i = 0; i < n; i++) {
     if (da[i] === db[i]) continue;
     const addr = a.stateOffsetToAddr(i);
-    if (addr >= sp - 2 && addr < sp) continue; // dead stack scratch
+    if (addr >= sp - STACK_SCRATCH && addr < sp) continue; // dead stack scratch
     return { addr, a: da[i], b: db[i] };
   }
   return null;
@@ -198,17 +234,13 @@ test("EQUAL (garbage prefill): the seeds are unconditional, not prior-state depe
 
 // -- 4. TEETH: a wrong play value is caught ----------------------------------
 
-/** Broken twin: writes game-mode 5 instead of 4 — the machine would never enter play. */
-function twinWrongPlayValue(m) {
-  idiomatic(m);
-  m.mem8[GAME_MODE] = 5;
-}
-
 test("TEETH (wrong play value): game-mode 5 instead of 4 is CAUGHT at the game-mode byte", () => {
   const entry = captureRealEntry(CAPTURE_FRAMES);
   assert.ok(entry, "need a captured entry to seed the teeth check");
 
-  const d = ramDiff(entry, twinWrongPlayValue);
+  // At the main-loop entry bound, enterPlayMode has written the play value (4); a twin that
+  // wrote 5 instead — the machine would never enter play — corrupts it there.
+  const d = ramDiff(entry, idiomatic, (m) => { m.mem8[GAME_MODE] = 5; });
   assert.ok(d, "the gate FAILED to catch a wrong play value — it proves nothing");
   assert.equal(d.addr, GAME_MODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
   assert.equal(d.a, 4, "oracle enters play with game-mode 4");
@@ -218,17 +250,13 @@ test("TEETH (wrong play value): game-mode 5 instead of 4 is CAUGHT at the game-m
 
 // -- 5. TEETH: a dropped seed is caught --------------------------------------
 
-/** Broken twin: fails to seed the gameplay-tick phase countdown (leaves it 0). */
-function twinDropPhaseCountdown(m) {
-  idiomatic(m);
-  m.mem8[0x800b] = 0; // BUG: countdown never seeded
-}
-
 test("TEETH (dropped seed): a missing phase-countdown seed is CAUGHT at 0x800b", () => {
   const entry = captureRealEntry(CAPTURE_FRAMES);
   assert.ok(entry, "need a captured entry to seed the teeth check");
 
-  const d = ramDiff(entry, twinDropPhaseCountdown);
+  // enterPlayMode seeds the gameplay-tick phase countdown to 1 (it survives to the bound);
+  // a twin that failed to seed it would leave 0 — corrupt it there.
+  const d = ramDiff(entry, idiomatic, (m) => { m.mem8[0x800b] = 0; });
   assert.ok(d, "the gate FAILED to catch a dropped seed — it proves nothing");
   assert.equal(d.addr, 0x800b, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected 0x800b)`);
   assert.equal(d.a, 1, "oracle seeds the phase countdown to 1");

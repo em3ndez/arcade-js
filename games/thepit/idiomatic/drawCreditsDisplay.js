@@ -56,14 +56,14 @@
  *           (TILEMAP_OFFSET at 0x805a, and the COLOUR_RAM_CURSOR 0x805e / 0x8060 write
  *           cursors). The routine tail-calls the colour filler, whose return goes to
  *           our caller.
- * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
+ * NAMES:    TILE_COL, TILE_ROW, PLOT_RUN_LENGTH and CREDIT_COUNT (0x8000, the live
+ *           top-cell value source) from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
  *           proposes BOARD_MODE for that address, but here it is unambiguously the
  *           panel's colour byte, so a local role name is used instead of a misfit
- *           import. 0x8055 (PLOT_RUN_LENGTH, per-field cell count) and the source pointers
- *           0x8000 / 0x496d are not named in ram.js.
+ *           import. The ROM label source 0x496d is not named in ram.js.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, CREDIT_COUNT } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -76,8 +76,7 @@ const FILL_ATTR = 0x8057;
 
 // How many cells the next copy/fill helper writes (reloaded before each field).
 
-// Source of the top cell's live value (a work-RAM slot) and of the fixed ROM label.
-const VALUE_SOURCE = 0x8000;
+// Source of the fixed ROM label. (The top cell's live value comes from CREDIT_COUNT.)
 const LABEL_SOURCE = 0x496d;
 
 export function drawCreditsDisplay(m) {
@@ -100,7 +99,7 @@ export function drawCreditsDisplay(m) {
   // copy helper 0x3dea is now decompiled (copyTileColumn), called directly with its
   // source pointer — no IX load, no return-address push.
   mem8[PLOT_RUN_LENGTH] = 1;
-  copyTileColumn(m, VALUE_SOURCE);
+  copyTileColumn(m, CREDIT_COUNT);
 
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
   // down the same video column from where the value left off. The fill helper 0x3ddb is

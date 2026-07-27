@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2934 — commit one dig entity into its tilemap cell and patch the neighbours.  ROM 0x2934.
+ * commitDigEntity — commit one dig entity into its tilemap cell and patch the neighbours.  ROM 0x2934.
  *
  * The tail reached once the dig-object spawn counter has rolled down to a fresh
  * commit (from the placement classifier's `jr z` and from the per-frame carve
@@ -19,10 +19,8 @@
  *     patch two cells back), tiles in the dig-channel band are remapped through a ROM
  *     translation table, and anything else is left as the just-written sprite id.
  *
- * Name kept as loc_2934: it is one of the dig-object family whose higher-level game
- * role stays best-effort (its sibling loc_287a keeps loc_ for the same reason), and
- * roughly half the bytes it moves are staging scratch whose subsystem role is not yet
- * confirmed — below the bar to assert an English name.
+ * Named by effect: commits one staged dig entity into the live dig-object record and
+ * stamps it into the tilemap.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2934.test.js.
  * GATE:     crafted-entry — never dispatched in a boot/attract run (the demo never
@@ -58,7 +56,7 @@ const CARVING_STATE = 48; // dig-object state code for the carving phase
 const FILL_TILE = 112; // marker tile stamped into a committed cell
 const TILE_REMAP_TABLE = 0x2dc3; // ROM: dig-channel tile code -> patched seam tile
 
-export function loc_2934(m) {
+export function commitDigEntity(m) {
   const { mem8, mem16 } = m;
 
   // Arm the dig object's record and reload its saved tilemap cell as the carve cursor.

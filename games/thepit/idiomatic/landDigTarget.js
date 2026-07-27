@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d4e — land the descending dig/capture target when it reaches terrain.  ROM 0x2d4e.
+ * landDigTarget — land the descending dig/capture target when it reaches terrain.  ROM 0x2d4e.
  *
  * The caller (loc_2d06) steps the target object one row down each frame, works out the
  * map cell it now sits in, and checks the tile just ahead of it. When that tile is one of
@@ -38,7 +38,7 @@ import { requestSound17 } from "./requestSound17.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, SPAWN_STATE } from "./ram.js";
 
-export function loc_2d4e(m, targetCell = m.regs.ix) {
+export function landDigTarget(m, targetCell = m.regs.ix) {
   const { mem8 } = m;
 
   // Arrival cue for the target reaching terrain.

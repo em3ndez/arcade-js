@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2934 (ROM 0x2934, The Pit) — commit one dig entity
+ * Memory-equivalence gate for commitDigEntity (ROM 0x2934, The Pit) — commit one dig entity
  * into its tilemap cell: promote the staged placement values into the live dig-object
  * record, stamp the entity's sprite id + fill tile into the tilemap, and patch the
  * captured neighbour tile (a seam neighbour defers to the entity's sub-type, a
  * dig-channel tile is remapped through a ROM table, anything else is kept).
  *
- * loc_2934 is entered only once the dig-object spawn counter has rolled down to a fresh
+ * commitDigEntity is entered only once the dig-object spawn counter has rolled down to a fresh
  * commit — reached from the placement classifier and from the per-frame carve handler's
  * pending-entity tail-jump. The attract demo never digs deep enough to get there, so a
  * boot/attract run never dispatches it and the capture/replay harness cannot hook it.
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2934 as oracle } from "../../translated/loc_2934.js";
-import { loc_2934 as idiomatic } from "../loc_2934.js";
+import { commitDigEntity as idiomatic } from "../commitDigEntity.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -68,7 +68,7 @@ const test = ROM_PRESENT
 
 // Unnamed staging / pointer scratch this routine reads or mirrors (kept hex in ram.js).
 const SAVED_CELL_PTR = 0x80ba; // 16-bit saved tilemap cell pointer for the entity
-const CARVE_CURSOR = 0x80af; // 16-bit live carve cursor (loc_2934 sets it = SAVED_CELL_PTR)
+const CARVE_CURSOR = 0x80af; // 16-bit live carve cursor (commitDigEntity sets it = SAVED_CELL_PTR)
 const STAGED_COLUMN = 0x80b6; // staged target column -> TARGET_X + its mirror
 const STAGED_ROW = 0x80b9; // staged target row -> TARGET_Y
 const STAGED_TIMER = 0x80bc; // staged initial dig timer -> DIG_OBJ_TIMER
@@ -133,7 +133,7 @@ function stateDiff(entry, fn) {
 
 // -- 1. EQUAL over real captured attract states, with positive checks ----------
 
-test("EQUAL: loc_2934 leaves the same state as the oracle over real captured states", () => {
+test("EQUAL: commitDigEntity leaves the same state as the oracle over real captured states", () => {
   const bases = captureStates([120, 200, 320, 480, 640]);
   assert.ok(bases.length >= 1, "expected at least one captured attract state");
 

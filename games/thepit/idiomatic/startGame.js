@@ -32,12 +32,12 @@
  *           the loaded live record, and the blanked screen / flooded colour RAM. No
  *           register or flag is live out (it falls into the main loop, not a caller).
  * NAMES:    VARIANT 0x8048, LEVEL 0x8028, GAME_MODE 0x8001, GAME_STATE2 0x8002 (the 1/2
- *           player selector the record save/load reads). The dip-derived source bytes
- *           0x804e / 0x8053 and the round-state bytes they feed (0x8011, and 0x802b the
- *           men-left counter) have no ram.js name yet, so they stay hex.
+ *           player selector the record save/load reads), the dip-derived source bytes
+ *           LOOP_DELAY_BASE 0x804e / STARTING_MEN 0x8053 and the round-state bytes they
+ *           feed (MAIN_LOOP_DELAY 0x8011, MEN_LEFT 0x802b) from ram.js.
  */
 
-import { VARIANT, LEVEL, GAME_MODE, GAME_STATE2 } from "./ram.js";
+import { VARIANT, LEVEL, GAME_MODE, GAME_STATE2, MAIN_LOOP_DELAY, LOOP_DELAY_BASE, MEN_LEFT, STARTING_MEN } from "./ram.js";
 import { loc_0278 } from "./loc_0278.js";
 import { enableNmi } from "./enableNmi.js";
 import { enableSound } from "./enableSound.js";
@@ -66,9 +66,9 @@ export function startGame(m) {
   // round state from them: a dip-derived parameter into its live byte, the starting
   // level of 1, and the men-left count from the dip starting-lives value.
   applyDipSwitches(m);
-  mem8[0x8011] = mem8[0x804e];
+  mem8[MAIN_LOOP_DELAY] = mem8[LOOP_DELAY_BASE];
   mem8[LEVEL] = 1;
-  mem8[0x802b] = mem8[0x8053];
+  mem8[MEN_LEFT] = mem8[STARTING_MEN];
 
   // Prime both players' saved records from these fresh defaults so either player's turn
   // starts clean; the selector byte names which player's record to write.
@@ -81,7 +81,7 @@ export function startGame(m) {
   // slot, then count the man about to play into the men-left total.
   mem8[GAME_STATE2] = mem8[GAME_MODE];
   loadPlayerState(m);
-  mem8[0x802b] = mem8[0x802b] + 1;
+  mem8[MEN_LEFT] = mem8[MEN_LEFT] + 1;
 
   // Fall straight into the main round loop (loc_0278, now idiomatic); it never returns
   // here — its own successor chain carries control on into the game.

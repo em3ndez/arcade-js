@@ -45,7 +45,7 @@
  *           MOVER_DIRECTION (0x8092), PROBE_CELL_PTR (0x8089), SUBTILE_PHASE (0x808d),
  *           ACTOR_STATE (0x8084), SPRITE_CODE (0x8069), OBJ_X/OBJ_Y (0x8068/0x806b),
  *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_OBJ_ARM_STATE (0x80c1), OBJ1_X
- *           (0x80e8) from ram.js. The mover's own target column (0x8093), current
+ *           (0x80e8), MOVER_TARGET_COL (0x8093) from ram.js. The mover's own current
  *           column (0x807a), position bytes (0x8083/0x8086) and the player-box owner
  *           flag (0x80a1) have no ram.js name yet and stay hex.
  */
@@ -66,6 +66,7 @@ import {
   REACTION_OBJ_Y,
   DIG_OBJ_ARM_STATE,
   OBJ1_X,
+  MOVER_TARGET_COL,
 } from "./ram.js";
 import { loc_3458 } from "./loc_3458.js";
 import { advanceDormantMover } from "./advanceDormantMover.js";
@@ -81,7 +82,6 @@ import { loc_3484 } from "./loc_3484.js";
 import { loc_348b } from "./loc_348b.js";
 
 // The mover's own working-block bytes that have no ram.js name yet.
-const TARGET_COLUMN = 0x8093; // the column the mover is heading for
 const CURRENT_COLUMN = 0x807a; // the column it is locked to (0 = free)
 const MOVER_X = 0x8083; // one pixel-position axis of the mover
 const MOVER_Y = 0x8086; // the other pixel-position axis
@@ -91,7 +91,7 @@ export function loc_319d(m) {
   const { mem8 } = m;
 
   // Arrived at the target column: just tick the dwell timer and stop.
-  if (mem8[CURRENT_COLUMN] === mem8[TARGET_COLUMN]) return loc_3458(m);
+  if (mem8[CURRENT_COLUMN] === mem8[MOVER_TARGET_COL]) return loc_3458(m);
 
   const moverState = mem8[MOVER_STATE];
   if (moverState & 0x80) return advanceDormantMover(m); // negative: dormant housekeeping
@@ -164,7 +164,7 @@ function handleObjectBoxOverlap(m) {
 
   // Overlaps the tracked object: lock onto it, arm the capture-pose sprite and dwell
   // countdown, play the capture sound, then tick the dwell timer.
-  mem8[CURRENT_COLUMN] = mem8[TARGET_COLUMN]; // lock to the target column
+  mem8[CURRENT_COLUMN] = mem8[MOVER_TARGET_COL]; // lock to the target column
   mem8[MOVER_X] = mem8[OBJ_X]; // snap onto the object
   mem8[MOVER_Y] = mem8[OBJ_Y];
   mem8[ANIM_RAND] = 129; // arm the dwell countdown
@@ -189,7 +189,7 @@ function classifyEdgeCell(m) {
 
   // Top row.
   const moverX = mem8[MOVER_X];
-  if (mem8[TARGET_COLUMN] === 4) {
+  if (mem8[MOVER_TARGET_COL] === 4) {
     if (moverX === 229) return; // resting exactly at the column-4 seam: nothing to do
     return loc_348b(m);
   }
@@ -217,7 +217,7 @@ function decodePositionAndSteer(m) {
   mem16[PROBE_CELL_PTR] = 0x9000 + row * 32 + column;
 
   const direction = mem8[MOVER_DIRECTION];
-  if (mem8[TARGET_COLUMN] === 5) return steerColumnFive(m, direction);
+  if (mem8[MOVER_TARGET_COL] === 5) return steerColumnFive(m, direction);
   return steerColumnOther(m, direction);
 }
 

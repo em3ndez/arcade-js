@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_287a (ROM 0x287a, The Pit) — seed the dig/target
+ * Memory-equivalence gate for seedDigObjectBlock (ROM 0x287a, The Pit) — seed the dig/target
  * object control block at round start, copy a fixed column-position table from ROM,
  * then tail-jump into the round/level parameter-seeding chain (loc_2f2f → seedObjectRecords →
  * seedActorSpawnState).
  *
- * loc_287a is entered ONLY at gameplay round init, at the head of that tail-jump
+ * seedDigObjectBlock is entered ONLY at gameplay round init, at the head of that tail-jump
  * chain; attract mode never enters gameplay, so it is never dispatched in a
  * boot/attract run — the unit harness (which needs a real dispatch) cannot capture
  * it. But its own body reads NOTHING from the entry state: it writes fixed immediates
@@ -24,13 +24,13 @@
  *
  * FIVE checks:
  *   1. EQUAL (real captured entries) — clone the running attract machine at several
- *      frames (real title/demo RAM), run the oracle and loc_287a on independent clones
+ *      frames (real title/demo RAM), run the oracle and seedDigObjectBlock on independent clones
  *      of each, and diff work RAM. Must be identical.
  *   2. TAIL FIRED — after the idiomatic run the control block holds its seeded values,
  *      the copied table matches its ROM source, AND the full tail's effects are present
  *      (the derived reload byte, the actor pair seeded, the spawn-phase flag cleared),
  *      proving the hand-off ran through the imported chain.
- *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set loc_287a's own targets
+ *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set seedDigObjectBlock's own targets
  *      to a sentinel identically on both sides, so a no-op or partial twin cannot pass
  *      by the entry already holding the seeded values: every target must be
  *      overwritten, and both arms must still agree byte-for-byte.
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_287a as oracle } from "../../translated/loc_287a.js";
-import { loc_287a as idiomatic } from "../loc_287a.js";
+import { seedDigObjectBlock as idiomatic } from "../seedDigObjectBlock.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -77,7 +77,7 @@ const TABLE_LEN = 24;
 const RELOAD = 0x80e4; // the tail's derived animation reload byte
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// loc_287a's OWN fixed-value writes (address -> value). Every one is a constant, so
+// seedDigObjectBlock's OWN fixed-value writes (address -> value). Every one is a constant, so
 // the sentinel/non-vacuous check can assert both overwrite and value.
 const FIXED = [
   [DIG_OBJ_STATE, 48], // 0x80aa — carving-phase state code
@@ -113,7 +113,7 @@ function captureStates(count, stride, startFrame) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: loc_287a leaves the same work RAM as the oracle over real captured states", () => {
+test("EQUAL: seedDigObjectBlock leaves the same work RAM as the oracle over real captured states", () => {
   const caps = captureStates(8, 120, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {
@@ -139,7 +139,7 @@ test("TAIL FIRED: the control block is seeded, the table is copied, and the full
   const b = entry.clone();
   idiomatic(b);
 
-  // loc_287a's own control block.
+  // seedDigObjectBlock's own control block.
   for (const [addr, val] of FIXED) {
     assert.equal(b.mem.read8(addr), val, `control byte ${hx(addr)} not seeded`);
   }
@@ -163,7 +163,7 @@ test("TAIL FIRED: the control block is seeded, the table is copied, and the full
 // Sentinel 85 is never a value the routine writes (control values {48,7,0,32} nor any
 // table byte {80,88,...,168}), so a target still holding it means it was never written.
 
-test("NON-VACUOUS: with loc_287a's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
+test("NON-VACUOUS: with seedDigObjectBlock's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
   const [entry] = captureStates(1, 1, 200);
   const SENTINEL = 85;
   for (const [addr] of FIXED) entry.mem.write8(addr, SENTINEL);
@@ -225,7 +225,7 @@ function brokenNoTable(m) {
   loc_2f2fTail(m);
 }
 
-/** Broken twin C: does loc_287a's own writes but drops the tail hand-off. */
+/** Broken twin C: does seedDigObjectBlock's own writes but drops the tail hand-off. */
 function brokenNoTail(m) {
   const { mem } = m;
   mem.write8(DIG_OBJ_STATE, 48);

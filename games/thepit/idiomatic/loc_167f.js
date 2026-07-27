@@ -34,18 +34,17 @@
  *           one-shot the consumed feature latch / cleared spawn state / armed dig state,
  *           plus everything the horizontal-step router or the record builders write
  *           downstream. No register live-out (every exit tail-calls a memory-only routine).
- * NAMES:    OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE
- *           from ram.js. The overlap/defer flag 0x807f has no ram.js name yet, so it stays
- *           hex; the sprite code and map geometry are literals.
+ * NAMES:    OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE,
+ *           CARVE_SEAM_RIGHT (0x807f, the overlap/defer flag this arm reads) from ram.js;
+ *           the sprite code and map geometry are literals.
  */
 
-import { OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE } from "./ram.js";
+import { OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE, CARVE_SEAM_RIGHT } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { loc_16b9 } from "./loc_16b9.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 
-const DEFER_FLAG = 0x807f; // overlap flag: when set, defer the object's move and only rebuild its record
 const DEFAULT_SPRITE = 0x32; // sprite code pre-loaded for the object before this step
 const BOTTOM_ROW = 31; // the bottom tile row of the map; rows are counted up from here
 const POSITION_BIAS = 11; // rounding bias folded into the position before it reduces to a tile row
@@ -57,7 +56,7 @@ export function loc_167f(m, offset = m.regs.e) {
 
   // Deferred: the object's frame is held off, so skip the move and just rebuild its
   // sprite-deferral record.
-  if (mem8[DEFER_FLAG] !== 0) return stageObjectSpriteRecord(m);
+  if (mem8[CARVE_SEAM_RIGHT] !== 0) return stageObjectSpriteRecord(m);
 
   // Pre-load the object's sprite code for this step.
   mem8[SPRITE_CODE] = DEFAULT_SPRITE;

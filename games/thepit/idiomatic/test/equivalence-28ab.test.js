@@ -56,7 +56,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x28ab;
-const CARVING_STATE = 48; // dig-object state code the commit tail writes (loc_2934)
+const CARVING_STATE = 48; // dig-object state code the commit tail writes (commitDigEntity)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is async,

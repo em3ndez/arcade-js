@@ -31,15 +31,15 @@
  *           the true oracle leaves (0x031a setup / 0x01f9 reset), which are stubbed
  *           identically on both sides; the whole chain's RAM is diffed. TEETH: a twin
  *           that skips the dock and a twin that picks the wrong destination.
- * LIVE-OUT: memory-only — the docked man count 0x802b, the player record persisted by
+ * LIVE-OUT: memory-only — the docked man count MEN_LEFT, the player record persisted by
  *           saveActivePlayerRecord, and 0x802d / 0x8002 on the mode == 1 arm. No
  *           register or flag is read by any successor, and the routine has no ret.
- * NAMES:    GAME_MODE 0x8001, GAME_STATE2 0x8002 (ram.js). Kept hex: 0x802b = the
- *           working man count (field 1 of the player record based at 0x8028),
- *           0x802c / 0x802d = the two players' backup copies of it — no ram.js names yet.
+ * NAMES:    GAME_MODE 0x8001, GAME_STATE2 0x8002, MEN_LEFT 0x802b (ram.js). Kept hex:
+ *           0x802c / 0x802d = the two players' backup copies of the working man count
+ *           (field 1 of the player record based at 0x8028) — no ram.js names yet.
  */
 
-import { GAME_MODE, GAME_STATE2 } from "./ram.js";
+import { GAME_MODE, GAME_STATE2, MEN_LEFT } from "./ram.js";
 import { saveActivePlayerRecord } from "./saveActivePlayerRecord.js";
 import { loc_03ac } from "./loc_03ac.js";
 import { loc_02a1 } from "./loc_02a1.js";
@@ -54,7 +54,7 @@ export function loc_0278(m) {
 
   // Dock one man from the active player's working count, then persist their whole
   // record (including this new count) into their backup so it survives the turn switch.
-  mem8[0x802b] = mem8[0x802b] - 1; // working man count (field 1 of the player record)
+  mem8[MEN_LEFT] = mem8[MEN_LEFT] - 1; // working man count (field 1 of the player record)
   saveActivePlayerRecord(m);
 
   // The second leg (mode 2) runs its own phase sequencer to reach the destinations.

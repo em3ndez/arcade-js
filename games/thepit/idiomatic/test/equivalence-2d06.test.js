@@ -6,7 +6,7 @@
  * The routine advances the target's position (TARGET_Y += 1), builds the video-RAM cell it now
  * covers (row from TARGET_X, column from the advanced position), leaves that cell as the live carve
  * cursor (0x80af), and reads the tile a fixed step ahead of it. Three "solid" codes (42/43/65) route
- * to the embed continuation loc_2d4e — the idiomatic routine, called with the cell as an argument —
+ * to the embed continuation landDigTarget — the idiomatic routine, called with the cell as an argument —
  * which stamps the wall tile into that cell, requests the dig sound, and resets the target's small
  * state block; anything else routes to loc_2bd3, still the frozen ORACLE record builder, which
  * rebuilds the target's four-byte sprite record. A wrong advance, cell, or route diverges the
@@ -55,7 +55,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d06 as oracle } from "../../translated/loc_2d06.js";
 import { advanceDigTarget as idiomatic } from "../advanceDigTarget.js";
-import { loc_2d4e } from "../loc_2d4e.js";
+import { landDigTarget } from "../landDigTarget.js";
 import { loc_3dae as captureRoutine } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { TARGET_X, TARGET_Y } from "../ram.js";
@@ -72,7 +72,7 @@ const CAPTURE_AT = 0x3dae; // a routine reached in attract — seeds a valid mac
 const CARVE_CURSOR = 0x80af; // the live carve cursor this routine stores (no ram.js name yet)
 const VRAM_BASE = 0x9000;
 const PROBE_OFFSET = 30; // the tile is read this many cells before the target's cell
-const EMBED_TILES = [42, 43, 65]; // codes that route to the embed continuation loc_2d4e
+const EMBED_TILES = [42, 43, 65]; // codes that route to the embed continuation landDigTarget
 const STACK_SCRATCH = 32; // dead-scratch window below entry SP (the dig-sound enqueue parks a few
 // register saves here; no real output lives in 0x83xx, so the window can hide none — the teeth prove it)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -282,7 +282,7 @@ function twinWrongEmbedCell(m) {
   const cell = VRAM_BASE + row * 32 + col;
   mem16[CARVE_CURSOR] = cell;
   const aheadTile = mem8[cell - PROBE_OFFSET];
-  if (aheadTile === 42 || aheadTile === 43 || aheadTile === 65) return loc_2d4e(m, cell + 1); // BUG: wrong cell
+  if (aheadTile === 42 || aheadTile === 43 || aheadTile === 65) return landDigTarget(m, cell + 1); // BUG: wrong cell
   return m.call(0x2bd3);
 }
 

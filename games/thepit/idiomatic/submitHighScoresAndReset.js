@@ -108,7 +108,10 @@ export function submitHighScoresAndReset(m) {
   m.push16(RESUME_AFTER_SETUP);
   showSetupScreen(m);
 
-  // Tail hand-off to the reset/entry handler (still the frozen oracle), which owns the
-  // eventual return and takes the game back to attract.
+  // Tail hand-off to the reset/entry handler, which owns the eventual return and takes the
+  // game back to attract.
+  // m.call boundary: tail hand-off into the never-returning reset/entry handler (loc_01f9
+  // 0x01f9, which re-seats the stack and runs the game loop); a direct call is behaviorally
+  // identical and a terminal-test would be a fragile artifact.
   return m.call(0x01f9);
 }

@@ -36,12 +36,13 @@
  *           cell the formatter draws (all through the same still-oracle body on both sides);
  *           SP/pc land where its return goes. No register or flag is live out — the oracle's
  *           residual pointer/counter are dead scratch the formatter and callers reload.
- * NAMES:    0x8280 (readout display strip) and 0x8039 (readout source records) stay hex —
- *           not yet named in ram.js. BLANK_TILE (36) matches the score digit formatter's
- *           leading-zero blank.
+ * NAMES:    SCORE_READOUT_STRIP (0x8280, the readout display strip) from ram.js; 0x8039
+ *           (readout source records) stays hex — not yet named in ram.js. BLANK_TILE (36)
+ *           matches the score digit formatter's leading-zero blank.
  */
 
 import { renderScoreReadouts } from "./renderScoreReadouts.js";
+import { SCORE_READOUT_STRIP } from "./ram.js";
 
 // The blank display tile — same value the score digit formatter uses to blank a cell.
 const BLANK_TILE = 36;
@@ -53,7 +54,7 @@ export function initScoreDisplay(m) {
   const { mem8 } = m;
 
   // Blank the 32-cell numeric-readout display strip so no stale digit shows through.
-  for (let i = 0; i < 32; i++) mem8[0x8280 + i] = BLANK_TILE;
+  for (let i = 0; i < 32; i++) mem8[SCORE_READOUT_STRIP + i] = BLANK_TILE;
 
   // Seed the three readout source records back to back, each label + zero value.
   for (let r = 0; r < 3; r++) {

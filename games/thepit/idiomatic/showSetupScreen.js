@@ -42,9 +42,9 @@
  * LIVE-OUT: memory-only — the painted playfield + HUD tiles (video RAM), their colour
  *           columns (colour RAM), the two count records and the singular patch, and the
  *           hold counter 0x800a drained to 0. Nothing reads a register back afterward.
- * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH from ram.js. 0x804c / 0x804d (the two
- *           DSW-derived HUD counts, still unnamed) and the video/record cells (0x928c,
- *           0x928e, 0x9292, 0x9294, 0x918e) are kept hex.
+ * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH, COINS_PER_CREDIT_A / COINS_PER_CREDIT_B
+ *           (the two DSW-derived HUD counts, 0x804c / 0x804d) from ram.js. The video/record
+ *           cells (0x928c, 0x928e, 0x9292, 0x9294, 0x918e) are kept hex.
  */
 
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
@@ -61,13 +61,11 @@ import { copyTileColumn } from "./copyTileColumn.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { blankScreen } from "./blankScreen.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B } from "./ram.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
 const HOLD_FRAMES = 15; // video frames each hold pass waits
 const HOLD_COUNTER = 0x800a; // where the hold count is stored + drained to 0
-const DSW_COUNT_A = 0x804c; // first DSW-derived HUD count
-const DSW_COUNT_B = 0x804d; // second DSW-derived HUD count
 
 // Glyph-run source pointers and lengths for a count field's label. A nonzero count
 // gets the longer "plural" run; a zero count gets the shorter "singular" run.
@@ -127,7 +125,7 @@ export function showSetupScreen(m) {
   fillColourColumnAt(m, 12, 7); // colour column 12 in colour 7
 
   // First count field (DSW value 0x804c), at column 14.
-  const countA = mem8[DSW_COUNT_A];
+  const countA = mem8[COINS_PER_CREDIT_A];
   stampCountField(m, 0x928e, countA, 14);
   // When the count is exactly one, patch the cell above to the singular-form glyph.
   if (countA === 1) mem8[0x918e] = 0x24;
@@ -144,7 +142,7 @@ export function showSetupScreen(m) {
   fillColourColumnAt(m, 18, 3); // colour column 18 in colour 3
 
   // Second count field (DSW value 0x804d), at column 20. No singular patch here.
-  const countB = mem8[DSW_COUNT_B];
+  const countB = mem8[COINS_PER_CREDIT_B];
   stampCountField(m, 0x9294, countB, 20);
   fillColourColumnAt(m, 20, 3); // colour this field's column 20 in colour 3
 

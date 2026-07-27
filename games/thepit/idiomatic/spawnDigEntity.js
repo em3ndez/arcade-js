@@ -20,7 +20,7 @@
  * tilemap. Every later pass merely keeps the dig timer armed.
  *
  * Name kept as spawnDigEntity: it is part of the dig-object family whose higher-level game
- * role stays best-effort — its commit tail loc_2934 and sibling loc_287a keep loc_ for
+ * role stays best-effort — its commit tail commitDigEntity and sibling loc_287a keep loc_ for
  * the same reason, and the tile codes it classifies on have no confirmed meaning yet.
  *
  * Memory-equivalent to the frozen oracle — equivalence-28ab.test.js.
@@ -36,10 +36,10 @@
  *           SPAWN_STATE, DIG_OBJ_TIMER from ram.js. The staging scratch (0x80b6/0x80b9/
  *           0x80bc/0x80bf), the saved cell pointer (0x80ba) and the reaction period byte
  *           (0x80a3) have no confirmed name yet and stay hex. The commit is delegated to
- *           the already-decompiled loc_2934.
+ *           the already-decompiled commitDigEntity.
  */
 
-import { loc_2934 } from "./loc_2934.js";
+import { commitDigEntity } from "./commitDigEntity.js";
 import {
   ACTOR_CELL_PTR,
   REACTION_OBJ_X,
@@ -50,7 +50,7 @@ import {
   DIG_OBJ_TIMER,
 } from "./ram.js";
 
-// Scratch cells written here, then read back by the commit tail loc_2934.
+// Scratch cells written here, then read back by the commit tail commitDigEntity.
 const STAGED_SPRITE_ID = 0x80bf;
 const STAGED_COLUMN = 0x80b6;
 const STAGED_ROW = 0x80b9;
@@ -115,7 +115,7 @@ export function spawnDigEntity(m) {
   const spawnState = mem8[SPAWN_STATE];
   mem8[SPAWN_STATE] = spawnState + 1;
   if (spawnState === 0) {
-    loc_2934(m); // promote the staging into the dig-object record and stamp the cells
+    commitDigEntity(m); // promote the staging into the dig-object record and stamp the cells
     return;
   }
   mem8[DIG_OBJ_TIMER] = 8;

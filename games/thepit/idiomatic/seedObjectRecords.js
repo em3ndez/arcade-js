@@ -34,8 +34,9 @@
  * NAMES:    OBJ1_X (0x80e8), OBJ1_SPRITE_CODE (0x80e9), OBJ1_ATTR (0x80ea),
  *           OBJ1_MOVE_PERIOD (0x80f6), OBJ1_TARGET_COL (0x80f8), OBJ2_X (0x80f9),
  *           OBJ2_TILE (0x80fa) and OBJ2_ATTR (0x80fb), plus the LEVEL difficulty counter
- *           (0x8028), from ram.js; the rest of the 0x80eb–0x8109 parameter block
- *           (0x80eb / 0x80f0 / 0x80f5 / 0x8101 / 0x8106 / 0x8107 / 0x8109) stays hex.
+ *           (0x8028), and OBJ1_TIMER (0x80f0), OBJ1_STATE (0x80f5), OBJ2_TIMER (0x8101),
+ *           OBJ2_STATE (0x8106), OBJ2_MOVE_PERIOD (0x8107), OBJ2_TARGET_COL (0x8109), from
+ *           ram.js; the rest of the parameter block (0x80eb) stays hex.
  *           The tail is the decompiled seedActorSpawnState (ROM 0x36fe).
  */
 
@@ -46,10 +47,16 @@ import {
   OBJ1_ATTR,
   OBJ1_MOVE_PERIOD,
   OBJ1_SPRITE_CODE,
+  OBJ1_STATE,
   OBJ1_TARGET_COL,
+  OBJ1_TIMER,
   OBJ1_X,
   OBJ2_ATTR,
+  OBJ2_MOVE_PERIOD,
+  OBJ2_STATE,
+  OBJ2_TARGET_COL,
   OBJ2_TILE,
+  OBJ2_TIMER,
   OBJ2_X,
 } from "./ram.js";
 export function seedObjectRecords(m) {
@@ -60,8 +67,8 @@ export function seedObjectRecords(m) {
   mem8[OBJ1_X] = 236;
   mem8[0x80eb] = 35;
   mem8[OBJ1_ATTR] = 4;
-  mem8[0x80f5] = 1;
-  mem8[0x80f0] = 1;
+  mem8[OBJ1_STATE] = 1;
+  mem8[OBJ1_TIMER] = 1;
   mem8[OBJ1_TARGET_COL] = 4;
 
   // Difficulty-scaled pair: read the round's level/difficulty counter, keep only its
@@ -69,15 +76,15 @@ export function seedObjectRecords(m) {
   // the pair steps down 7, 5, 3, 1 as difficulty climbs. Both mirrored slots get it.
   const difficultyStep = 7 - (mem8[LEVEL] & 0x06);
   mem8[OBJ1_MOVE_PERIOD] = difficultyStep;
-  mem8[0x8107] = difficultyStep;
+  mem8[OBJ2_MOVE_PERIOD] = difficultyStep;
 
   // More fixed start values.
   mem8[OBJ2_TILE] = 9;
   mem8[OBJ2_ATTR] = 4;
   mem8[OBJ2_X] = 0;
-  mem8[0x8106] = 0;
-  mem8[0x8101] = 1;
-  mem8[0x8109] = 5;
+  mem8[OBJ2_STATE] = 0;
+  mem8[OBJ2_TIMER] = 1;
+  mem8[OBJ2_TARGET_COL] = 5;
 
   // Tail hand-off into seedActorSpawnState; its return goes to our caller, so this
   // is seedObjectRecords's exit.

@@ -4,8 +4,8 @@
  * the frame interrupt, run the blank-screen display setup, then hand off to the
  * fixed-screen painter that holds a static screen forever.  ROM 0x021c.
  *
- * Reached from the boot fork loc_01f9 when the restart flag (0x8000) is nonzero. In
- * order it:
+ * Reached from the boot fork loc_01f9 when the credit count (CREDIT_COUNT) is nonzero
+ * (credits present). In order it:
  *   1. Arms the game-mode cell to 3.
  *   2. Resets the stack pointer to the top of work RAM — a hard restart that discards
  *      the caller's return frame, so this routine never returns to its caller.
@@ -17,19 +17,21 @@
  * What game-mode 3 and the held screen mean is not pinned, so the name stays neutral;
  * the sequence above is exactly what the code does.
  *
- * The interrupt enable is now the idiomatic enableNmi (0x4b14) and the blank-screen
- * display setup is the idiomatic blankScreen (0x4b44), both direct JS calls. One callee is
- * still the frozen oracle, reached through the registry and bracketed with the return
- * address it pops off the work stack — a genuine oracle boundary that keeps the stack
- * byte-identical to the original: the fixed-screen painter (0x3ba8). The painter is a
- * tail hand-off — it owns the (never-taken) return.
+ * The interrupt enable is now the idiomatic enableNmi (0x4b14), the blank-screen display
+ * setup is the idiomatic blankScreen (0x4b44), and the fixed-screen painter is the idiomatic
+ * holdFixedScreen (0x3ba8) — all direct JS calls, none left as an oracle boundary. The
+ * painter is a tail hand-off: it paints a canned screen and then spins forever displaying
+ * it, so it owns the (never-taken) return.
  *
  * Memory-equivalent to the frozen oracle — equivalence-021c.test.js.
  * GATE:     crafted-entry — never reached in a plain boot/attract run (the restart
  *           flag is zero at cold boot, 0 dispatches in 1500 frames), so the gate runs
- *           it from a real captured attract state with the never-returning painter
- *           (0x3ba8) stubbed identically on both sides, and diffs full RAM. Teeth: a
- *           wrong game-mode value, and a dropped stack reset.
+ *           it from a real captured attract state. The painter never returns (it spins
+ *           forever on the display loop), so both arms run the real painter under the
+ *           SAME bounded frame-tick hook (drain the per-frame countdown; throw after a
+ *           fixed number of watchdog reads — the harness holdFixedScreen's own gate
+ *           uses), stopping at the identical point, and diff RAM outside the dead stack
+ *           scratch. Teeth: a wrong game-mode value, and a dropped stack reset.
  * LIVE-OUT: memory-only — the game-mode cell set to 3, plus the interrupt-enable and
  *           display-setup writes; the stack reset lands the callee return addresses at
  *           the top of work RAM. Nothing reads a register back (the routine exits into
@@ -40,6 +42,7 @@
 
 import { enableNmi } from "./enableNmi.js";
 import { blankScreen } from "./blankScreen.js";
+import { holdFixedScreen } from "./holdFixedScreen.js";
 import { GAME_MODE } from "./ram.js";
 
 export function showCreditScreen(m) {
@@ -61,5 +64,5 @@ export function showCreditScreen(m) {
 
   // Tail hand-off to the fixed-screen painter: it paints a canned screen and holds it
   // forever, so this is the routine's exit and it never returns.
-  return m.call(0x3ba8);
+  return holdFixedScreen(m);
 }

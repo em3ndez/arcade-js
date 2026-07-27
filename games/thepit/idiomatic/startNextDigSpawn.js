@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bf2 — start the next queued dig-object spawn, or clear the spawn-active flag
+ * startNextDigSpawn — start the next queued dig-object spawn, or clear the spawn-active flag
  * when nothing is queued.  ROM 0x2bf2.
  *
- * The dig subsystem keeps a 24-slot queue of pending object positions at 0x80c3
+ * The dig subsystem keeps a 24-slot queue of pending object positions at DIG_SPAWN_QUEUE (0x80c3)
  * (each slot holds a candidate position, 0 = empty). This routine runs when no spawn
  * is currently active and it is time to consider starting one: it walks the queue
  * looking for the first occupied slot.
@@ -24,22 +24,23 @@
  *           hand-off writes. The scan runs in locals and reads no register live-in;
  *           neither hand-off consumes a register from the scan, so nothing has to be
  *           marshalled across it.
- * NAMES:    SPAWN_STATE (0x80bd). The 24-slot pending queue at 0x80c3 is deliberately
- *           kept hex — its exact contents are not yet pinned. The occupied hand-off is
- *           the already-decompiled spawnPendingDigObject; the animation hand-off (0x2f71)
- *           is the decompiled advanceBackgroundSprite, called directly.
+ * NAMES:    SPAWN_STATE (0x80bd), DIG_SPAWN_QUEUE (0x80c3, base of the 24-slot pending
+ *           queue) from ram.js — the queue's exact per-slot contents are still not pinned.
+ *           The occupied hand-off is the already-decompiled spawnPendingDigObject; the
+ *           animation hand-off (0x2f71) is the decompiled advanceBackgroundSprite, called
+ *           directly.
  */
 
-import { SPAWN_STATE } from "./ram.js";
+import { SPAWN_STATE, DIG_SPAWN_QUEUE } from "./ram.js";
 import { spawnPendingDigObject } from "./spawnPendingDigObject.js";
 import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
 
-export function loc_2bf2(m) {
+export function startNextDigSpawn(m) {
   const { mem8 } = m;
 
   // Walk the 24-slot pending queue; the first occupied slot means work to place.
   for (let slot = 0; slot < 24; slot++) {
-    if (mem8[0x80c3 + slot] !== 0) {
+    if (mem8[DIG_SPAWN_QUEUE + slot] !== 0) {
       // Something is queued -> spawn it (this also raises the spawn-active flag).
       return spawnPendingDigObject(m);
     }

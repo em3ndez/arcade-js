@@ -39,9 +39,10 @@
  *           RAM. Nothing reads a register back: the tail hands off and just propagates
  *           onward into the attract flow.
  * NAMES:    GAME_MODE (0x8001), GAME_STATE2 (0x8002), IN1_DEBOUNCED (0x8015),
- *           IN1_PREV (0x8016) from ram.js. The credit counter (0x8000 + mirrors
- *           0x801c / 0x812c) and the coin-switch debounce accumulators (0x8003 /
- *           0x8004 / 0x8005) have no ram.js name yet, so they stay hex.
+ *           IN1_PREV (0x8016), the credit counter CREDIT_COUNT (0x8000) + mirrors
+ *           CREDIT_MIRROR_A (0x801c) / CREDIT_MIRROR_B (0x812c), and the coin/start
+ *           debounce accumulators COIN_SW_ACCUM (0x8003) / START1_SW_ACCUM (0x8004) /
+ *           START2_SW_ACCUM (0x8005), all from ram.js.
  */
 
 import { disableFrameInterrupt } from "./disableFrameInterrupt.js";
@@ -54,7 +55,18 @@ import { requestSound2 } from "./requestSound2.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
 import { loc_03ac } from "./loc_03ac.js";
-import { GAME_MODE, GAME_STATE2, IN1_DEBOUNCED, IN1_PREV } from "./ram.js";
+import {
+  GAME_MODE,
+  GAME_STATE2,
+  IN1_DEBOUNCED,
+  IN1_PREV,
+  CREDIT_COUNT,
+  CREDIT_MIRROR_A,
+  CREDIT_MIRROR_B,
+  COIN_SW_ACCUM,
+  START1_SW_ACCUM,
+  START2_SW_ACCUM,
+} from "./ram.js";
 
 export function coldBootInit(m) {
   const { mem8, regs } = m;
@@ -68,9 +80,9 @@ export function coldBootInit(m) {
   disableFrameInterrupt(m);
 
   // Clear the triple-redundant credit counter and the game-mode byte.
-  mem8[0x8000] = 0;
-  mem8[0x801c] = 0;
-  mem8[0x812c] = 0;
+  mem8[CREDIT_COUNT] = 0;
+  mem8[CREDIT_MIRROR_A] = 0;
+  mem8[CREDIT_MIRROR_B] = 0;
   mem8[GAME_MODE] = 0;
 
   // Prime the coin/start (IN1) input debounce: the latched value and its rolling sample.
@@ -78,10 +90,10 @@ export function coldBootInit(m) {
   mem8[IN1_PREV] = 6;
 
   // Seed the coin/start switch debounce accumulators to their idle alternating-bit
-  // patterns (the two coin slots share 0x55; the start line's is that pattern rotated).
-  mem8[0x8004] = 0x55;
-  mem8[0x8005] = 0x55;
-  mem8[0x8003] = 0xaa;
+  // patterns (the two start lines share 0x55; the coin line's is that pattern rotated).
+  mem8[START1_SW_ACCUM] = 0x55;
+  mem8[START2_SW_ACCUM] = 0x55;
+  mem8[COIN_SW_ACCUM] = 0xaa;
 
   // Ready the score + sound queue, the score/high-score tables, and the sound latch.
   resetScoreAndSoundQueue(m);

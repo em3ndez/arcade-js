@@ -25,24 +25,26 @@
  *
  * The board-screen build and the frame-waits keep their stack-return boundary — their
  * return is carried back through the work stack rather than a plain JS return — so each
- * is bracketed with the slot it pops; every other callee is already idiomatic and called
- * directly. The round-loop setup (0x031a) has no idiomatic form yet, so the closing tail
- * jump into it stays a registry call — a genuine oracle boundary.
+ * is bracketed with the slot it pops; every other callee is idiomatic and called directly.
+ * The closing tail hand-off to the round-loop setup (loc_031a, 0x031a) is kept as an m.call
+ * boundary: loc_031a falls into the never-returning main loop, so it stays a registry
+ * boundary the equivalence harness can stub or bound rather than a direct call.
  *
  * Memory-equivalent to the frozen oracle — equivalence-02ca.test.js.
  * GATE:     crafted-harness — validated on a real attract machine state (captured at a
  *           shared callee's dispatch). The frame-waits busy-wait on a per-frame countdown
  *           the interrupt drains in the live game; run in isolation that tick is modelled
- *           by one identical hook on both sides so the waits terminate, and the tail
- *           round-loop setup 0x031a (which never returns) is stubbed identically on both
- *           sides. The RAM diff excludes the dead stack-scratch window the dissolved calls
- *           no longer write. Teeth: a wrong intro pass count.
+ *           by one identical hook on both sides so the waits terminate. The tail loc_031a
+ *           paints the board and falls into the never-returning main loop, so both arms run
+ *           the real chain under that same watchdog hook and stop at the main loop's entry.
+ *           The RAM diff excludes the dead stack-scratch window the dissolved calls no
+ *           longer write. Teeth: a dropped HUD panel and a wrong intro pass count.
  * LIVE-OUT: memory-only — the loaded player block, the dip-config block, the board screen
  *           and HUD panels its callees paint, and the loop counter left at 0. No register
  *           or flag is read back: the routine tail-jumps into the round loop and the
- *           caller's return is carried by 0x031a.
- * NAMES:    LOOP_COUNTER (0x800a) from ram.js. 0x031a is the still-oracle round-loop
- *           setup (the tail target), kept hex.
+ *           caller's return is carried by loc_031a.
+ * NAMES:    LOOP_COUNTER (0x800a) from ram.js. loc_031a is the idiomatic round-loop setup
+ *           (the tail target).
  */
 
 import { loadPlayerState } from "./loadPlayerState.js";
@@ -88,5 +90,8 @@ export function loc_02ca(m) {
 
   // Hand off to the round-loop setup. Its own return carries this routine's caller, so
   // control never comes back here.
+  // m.call boundary: tail hand-off into the never-returning round init (loc_031a 0x031a,
+  // which falls into mainLoop); a direct call is behaviorally identical and a terminal-test
+  // would be a fragile artifact.
   return m.call(0x031a);
 }

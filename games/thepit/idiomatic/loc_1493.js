@@ -36,18 +36,17 @@
  *           one-shot the consumed feature latch / cleared spawn state / armed dig state, plus
  *           everything the positioning front or the record builders write downstream. No
  *           register live-out (every exit tail-calls a memory-only routine).
- * NAMES:    OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE
- *           from ram.js. The busy/defer flag 0x807e has no ram.js name yet, so it stays hex;
+ * NAMES:    OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE,
+ *           CARVE_SEAM_LEFT (0x807e, the busy/defer flag this arm reads) from ram.js;
  *           the sprite code and map geometry are literals.
  */
 
-import { OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE } from "./ram.js";
+import { OBJ_X, SPRITE_CODE, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE, CARVE_SEAM_LEFT } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { loc_14cd } from "./loc_14cd.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 
-const DEFER_FLAG = 0x807e; // busy flag: when set, defer the object's move and only rebuild its record
 const STEP_SPRITE = 178; // sprite code forced for the object before this step
 const TOP_ROW = 31; // the top tile row of the map; rows are counted down from here
 const POSITION_BIAS = 3; // rounding bias folded into the position before it reduces to a tile row
@@ -59,7 +58,7 @@ export function loc_1493(m, offset = m.regs.e) {
 
   // Deferred: the object's frame is held off, so skip the move and just rebuild its
   // sprite-deferral record.
-  if (mem8[DEFER_FLAG] !== 0) return stageObjectSpriteRecord(m);
+  if (mem8[CARVE_SEAM_LEFT] !== 0) return stageObjectSpriteRecord(m);
 
   // Force the object's sprite code for this step.
   mem8[SPRITE_CODE] = STEP_SPRITE;

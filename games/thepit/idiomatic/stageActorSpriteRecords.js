@@ -27,17 +27,15 @@
  * LIVE-OUT: memory-only — the two staged sprite records. The oracle's residual
  *           registers/flags are dead ABI; nothing downstream reads them.
  * NAMES:    ACTOR_X/ACTOR_Y (primary record base + its Y), TWIN_X/TWIN_CLEAR (twin
- *           record base + its Y) from ./ram.js. Kept hex: 0x8051 (the shared
- *           vertical offset, a dip-switch param with no individual name yet); the
- *           two sprite-buffer slots 0x8238/0x823c (unnamed staging-buffer offsets).
+ *           record base + its Y), ACTOR_SPRITE_SLOT/TWIN_SPRITE_SLOT (the two
+ *           sprite-buffer slots 0x8238/0x823c) from ./ram.js. Kept hex: 0x8051 (the
+ *           shared vertical offset, a dip-switch param with no individual name yet).
  */
 
-import { ACTOR_X, TWIN_X } from "./ram.js";
+import { ACTOR_X, TWIN_X, ACTOR_SPRITE_SLOT, TWIN_SPRITE_SLOT } from "./ram.js";
 
-// The two destination slots: entries 6 and 7 of the 32-byte sprite buffer at 0x8220
-// that the per-frame service mirrors into sprite RAM.
-const ACTOR_SPRITE_SLOT = 0x8238;
-const TWIN_SPRITE_SLOT = 0x823c;
+// The two destination slots ACTOR_SPRITE_SLOT / TWIN_SPRITE_SLOT are entries 6 and 7 of
+// the 32-byte sprite buffer at 0x8220 that the per-frame service mirrors into sprite RAM.
 
 // The shared vertical offset added to every staged sprite's Y (dip-switch param).
 const SPRITE_Y_OFFSET = 0x8051;

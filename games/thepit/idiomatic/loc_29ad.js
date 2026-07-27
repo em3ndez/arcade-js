@@ -26,7 +26,7 @@
  * routine's own caller.
  *
  * Name kept as loc_29ad: it is one of the dig-object family whose higher-level game role
- * stays best-effort (its siblings loc_2934 / loc_287a keep loc_ for the same reason), and
+ * stays best-effort (its siblings commitDigEntity / loc_287a keep loc_ for the same reason), and
  * it spans several distinct jobs (spawn gate, capture hand-off, carve timer, tile carving,
  * entity commit) that no single verb captures without over- or under-claiming.
  *
@@ -42,10 +42,10 @@
  *           every input from RAM and returns nothing a caller consumes.
  * NAMES:    CLIMB_GATE, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE, DIG_OBJ_TIMER,
  *           DIG_OBJ_ARM_STATE, DIG_OBJ_SUBTYPE, OBJ_X, OBJ_Y, TARGET_X, TARGET_Y,
- *           STAGED_TARGET_X, STAGED_TARGET_Y, SPRITE_CODE, STATE_TIMER, ACTOR_CELL_PTR
- *           from ram.js. The feature-align latch 0x8078, the left/right overlap seam flags
- *           0x807e/0x807f, and the live carve cursor 0x80af have no confirmed name yet and
- *           stay hex.
+ *           STAGED_TARGET_X, STAGED_TARGET_Y, SPRITE_CODE, STATE_TIMER, ACTOR_CELL_PTR,
+ *           CARVE_SEAM_LEFT (0x807e) / CARVE_SEAM_RIGHT (0x807f) from ram.js. The
+ *           feature-align latch 0x8078 and the live carve cursor 0x80af have no confirmed
+ *           name yet and stay hex.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -66,15 +66,17 @@ import {
   SPRITE_CODE,
   STATE_TIMER,
   ACTOR_CELL_PTR,
+  CARVE_SEAM_LEFT,
+  CARVE_SEAM_RIGHT,
 } from "./ram.js";
-import { loc_2bf2 } from "./loc_2bf2.js";
+import { startNextDigSpawn } from "./startNextDigSpawn.js";
 import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
 import { captureTargetOnOverlap } from "./captureTargetOnOverlap.js";
 import { requestSound10 } from "./requestSound10.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { requestSound19 } from "./requestSound19.js";
-import { loc_2934 } from "./loc_2934.js";
+import { commitDigEntity } from "./commitDigEntity.js";
 
 // The dig object's state codes and the tile codes it stamps into the maze.
 const CARVING_STATE = 48; // DIG_OBJ_STATE while actively tunnelling
@@ -86,24 +88,22 @@ const RETREAT_SPRITE = 55; // digging-up animation frame
 const ADVANCE_SPRITE = 183; // same frame flipped for digging down (bit-7 flip set)
 const COLUMN_HOLD_TIME = 180; // state-timer duration latched when a column completes
 const DIG_TILE_TABLE = 0x2dc7; // ROM: dig-channel tile + sub-column -> patched seam tile
-const CARVE_CURSOR = 0x80af; // 16-bit live carve cell pointer (published for loc_2934)
+const CARVE_CURSOR = 0x80af; // 16-bit live carve cell pointer (published for commitDigEntity)
 const FEATURE_ALIGN_LATCH = 0x8078; // set while the tracked object sits on a feature cell
-const SEAM_RIGHT_FLAG = 0x807f; // right-edge dug-channel seam this frame
-const SEAM_LEFT_FLAG = 0x807e; // left-edge dug-channel seam this frame
 
 export function loc_29ad(m) {
   const { mem8 } = m;
 
   // Fresh frame: no overlap seams until the carve below re-detects them.
   mem8[CLIMB_GATE] = 0;
-  mem8[SEAM_RIGHT_FLAG] = 0;
-  mem8[SEAM_LEFT_FLAG] = 0;
+  mem8[CARVE_SEAM_RIGHT] = 0;
+  mem8[CARVE_SEAM_LEFT] = 0;
 
   // When the tracked object is aligned on a feature cell, either kick off the next
   // queued spawn (nothing spawning) or, unless the dig object is mid-carve, hand the
   // frame to the capture handler.
   if (mem8[FEATURE_ALIGN_LATCH] !== 0 && mem8[FEATURE_TILE_LATCH] !== 0) {
-    if (mem8[SPAWN_STATE] === 0) return loc_2bf2(m);
+    if (mem8[SPAWN_STATE] === 0) return startNextDigSpawn(m);
     if (mem8[DIG_OBJ_STATE] !== CARVING_STATE) return captureTargetOnOverlap(m);
   }
 
@@ -249,9 +249,9 @@ function probeCarveBounds(m) {
   const alignedX = u8(mem8[OBJ_X] + 3) & 0xf8; // object's tile-column boundary (8px)
   const probeX = u8(mem8[TARGET_X] - 1);
   if (probeX === alignedX) {
-    mem8[SEAM_RIGHT_FLAG] = 1;
+    mem8[CARVE_SEAM_RIGHT] = 1;
   } else if (u8(probeX + 16) === alignedX) {
-    mem8[SEAM_LEFT_FLAG] = 1;
+    mem8[CARVE_SEAM_LEFT] = 1;
   }
   return carveTile(m);
 }
@@ -317,7 +317,7 @@ function commitCarveCell(m, cellPtr, spriteId, rewriteTile) {
 
   const remaining = u8(mem8[SPAWN_STATE] - 1);
   mem8[SPAWN_STATE] = remaining;
-  if (remaining !== 0) return loc_2934(m); // more entities in the run
+  if (remaining !== 0) return commitDigEntity(m); // more entities in the run
 
   // Last entity committed: reset the dig row and mark the object done.
   mem8[TARGET_X] = 0;

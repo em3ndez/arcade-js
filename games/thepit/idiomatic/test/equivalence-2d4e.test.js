@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2d4e (ROM 0x2d4e) — the "target landed on terrain" arm
+ * Memory-equivalence gate for landDigTarget (ROM 0x2d4e) — the "target landed on terrain" arm
  * of the descending-target handler. On a terrain hit it queues a sound, stamps the
  * finished-target tile into the map cell just ahead of the target, resets the target's
  * small state block (spawn gate → idle, target X → 0, state → done/target, attribute →
@@ -30,7 +30,7 @@
  * Checks:
  *   0. HARNESS — capture a real attract entry, place the target cell, and confirm the
  *      oracle run of 0x2d4e is deterministic (oracle vs oracle → identical whole state).
- *   1. EQUAL — loc_2d4e == oracle over RAM outside the stack scratch, and the routine's
+ *   1. EQUAL — landDigTarget == oracle over RAM outside the stack scratch, and the routine's
  *      own effects (stamped tile, reset state block, queued sound) hold their values.
  *   2. TEETH (wrong tile) — a twin that stamps a different completion tile is CAUGHT at
  *      the stamped video-RAM cell.
@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d4e as oracle } from "../../translated/loc_2d4e.js";
-import { loc_2d4e as idiomatic } from "../loc_2d4e.js";
+import { landDigTarget as idiomatic } from "../landDigTarget.js";
 import { loc_3dae as reachedLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -132,7 +132,7 @@ test("HARNESS: a real crafted terrain-hit entry is captured and the oracle run i
 
 // -- 1. EQUAL on the crafted terrain-hit entry -------------------------------
 
-test("EQUAL: loc_2d4e == oracle over RAM (outside stack scratch)", () => {
+test("EQUAL: landDigTarget == oracle over RAM (outside stack scratch)", () => {
   const entry = captureCraftedEntry(1500);
   assert.ok(entry, "need a captured attract entry");
   const sp = entry.regs.sp;
