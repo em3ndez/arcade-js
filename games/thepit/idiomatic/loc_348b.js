@@ -41,7 +41,7 @@
  *           ram.js name yet, so they stay hex.
  */
 
-import { ANIM_RAND, ACTOR_STATE } from "./ram.js";
+import { ACTOR_STATE, ANIM_RAND, MOVER_DIRECTION } from "./ram.js";
 
 // The four walk-frame sprite codes, cycled as the object steps; this direction stores
 // the code un-mirrored (no high-bit flip).
@@ -59,7 +59,7 @@ export function loc_348b(m) {
   // Cadence beat: take a step. Reload the counter from its period and publish the
   // direction index this entry represents.
   mem8[ANIM_RAND] = mem8[0x8091];
-  mem8[0x8092] = 3;
+  mem8[MOVER_DIRECTION] = 3;
 
   // Advance the walk animation one frame: step the orientation accumulator backward,
   // use it to choose one of four walk-frame sprite codes, and store the code un-mirrored.

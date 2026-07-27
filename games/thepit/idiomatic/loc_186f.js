@@ -38,15 +38,16 @@
  */
 
 import {
+  ACTOR_CELL_PTR,
+  CUR_TILE,
+  EXPECTED_TILE,
+  GOAL_CROSSING_LATCH,
+  GOAL_TILE_LATCH,
+  NEXT_TILE,
+  OBJ_TILE_COL,
+  OBJ_TILE_ROW,
   OBJ_X,
   OBJ_Y,
-  OBJ_TILE_ROW,
-  OBJ_TILE_COL,
-  ACTOR_CELL_PTR,
-  NEXT_TILE,
-  CUR_TILE,
-  GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { collectLootTile } from "./collectLootTile.js";
@@ -85,7 +86,7 @@ export function loc_186f(m, columnBias = m.regs.d) {
   mem8[NEXT_TILE] = 0;
   const tile = mem8[cellPtr];
   mem8[CUR_TILE] = tile;
-  mem8[0x80a7] = tile;
+  mem8[EXPECTED_TILE] = tile;
 
   // On the goal tile: latch that it was reached, and once the object is also past the crossing
   // position, record the crossing and hand off to the walk-forward continuation.

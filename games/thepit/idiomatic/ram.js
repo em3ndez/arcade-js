@@ -81,17 +81,20 @@ export const DEMO_STEER_DIR = 0x801b;
  *  "climb/vertical gate"). (weak) */
 export const CLIMB_GATE = 0x8080;
 
-// ── Actor records: primary + its "twin" (shadow/second sprite) ───────────────
-// The spawn/init code (loc_37cf/38c8/3984) seeds a primary block at 0x810a.. and a mirrored twin
-// at 0x811b..; the movers (descendActorToRest) advance both. Fields corroborated by the "primary"/"twin",
-// "X/coord", "tile", "Y" annotations across 6-7 routines each.
+// ── Actor records: a two-sprite actor (primary + its "twin") ─────────────────
+// NOT a separate shadow entity: the spawners (loc_37cf/38c8/3984) seed a primary block at 0x810a..
+// and a mirrored twin at 0x811b.., and descendActorToRest advances the primary then writes its
+// value + 16 into the twin every step — a RIGID one-tile (16px) lock. Two hardware sprites moving as
+// one unit at a fixed 16px offset = the two halves of a single ~32px-tall on-screen actor (the classic
+// compose-a-tall-character-from-two-16px-sprites trick), NOT a trailing shadow. Rendered together by
+// stageActorSpriteRecords. Distinct from the PLAYER (drawn via the tracked-object OBJ_X/OBJ_Y path).
 
-export const ACTOR_X = 0x810a; // primary actor X / coord (fair)
-export const ACTOR_TILE = 0x810b; // primary actor tile field (fair)
-export const ACTOR_Y = 0x810d; // primary actor Y (fair)
-export const TWIN_X = 0x811b; // twin (shadow) X / coord (fair)
-export const TWIN_TILE = 0x811c; // twin tile field (fair)
-export const TWIN_CLEAR = 0x811e; // twin mirror clear byte (weak)
+export const ACTOR_X = 0x810a; // primary half: X / coord (fair)
+export const ACTOR_TILE = 0x810b; // primary half: tile field (fair)
+export const ACTOR_Y = 0x810d; // primary half: Y (fair)
+export const TWIN_X = 0x811b; // twin half: X / coord, locked +16 to ACTOR_X (fair)
+export const TWIN_TILE = 0x811c; // twin half: tile field (fair)
+export const TWIN_CLEAR = 0x811e; // twin half: mirror clear byte (weak)
 
 /** Spawn/alt-phase flag — set 0xff to mark "spawned", tested to gate the alt-phase spawn (loc_37cf
  *  "alt-phase byte", loc_37e4 "mark", loc_3776 "mark spawned (0xff)"). Used across 6-9 routines. (fair) */
@@ -539,3 +542,122 @@ export const TWIN_TIMER = 0x8123;
  *  across two neighbour-search routines as a within-search save/restore. (fair)
  */
 export const SAVED_CELL_PTR = 0x8134;
+
+// ── Clarify pass 2026-07-27 (proposer≠confirmer + judge; the loot/dig/sprite subsystems
+//    that the batch-3/4/5 decompiles made legible). (fair) unless noted. ──────────────
+
+// ── Loot pickup counters + high-score table ──
+/**
+ *  LOOT_10PT_COUNT (0x8081) — Count of +10 loot pickups: tile-0x3a path calls the +10 award
+ *  (loc_467b, bc=0x0010) then increments it; seeded 0, bumped by the collect handlers, read
+ *  by loc_3bec as a completion threshold (==4); +10 value verified. (fair)
+ */
+export const LOOT_10PT_COUNT = 0x8081;
+/**
+ *  LOOT_20PT_COUNT (0x8082) — Count of +20 loot pickups: tile-0x3b/3c/3d path calls the +20
+ *  award (loc_4683, bc=0x0020) then increments it (latch 0x8078 gated); seeded 0, read by
+ *  loc_3bec (==3); +20 value verified. (fair)
+ */
+export const LOOT_20PT_COUNT = 0x8082;
+/**
+ *  HIGH_SCORE_TABLE (0x8039) — Base/top rank of the descending three-entry high-score table
+ *  (5-byte records: 3 initials + 16-bit score at 0x8039/0x803e/0x8043); seeded by loc_4bc7,
+ *  rendered by loc_4cca, ranked-inserted with 0xFF initials placeholders by loc_4d3a, blitted
+ *  by loc_4df8. (fair)
+ */
+export const HIGH_SCORE_TABLE = 0x8039;
+
+// ── Object phase/step + mover direction ──
+/**
+ *  OBJECT_PHASE (0x801a) — Tracked object's packed animation/command phase byte (high bits
+ *  wind-up countdown stepped -0x20, low bits &0x0c = move command vs L); seeded 0 by
+ *  loc_1362, reconciled each frame by loc_1468, zeroed on the idle path by loc_144c. (fair)
+ */
+export const OBJECT_PHASE = 0x801a;
+/**
+ *  OBJ_STEP_X (0x806c) — Tracked object's per-frame X step: added to the committed OBJ_X
+ *  (0x8068) by loc_184a, subtracted from it by loc_1659, low byte of the DE step-vector in
+ *  loc_13de, seeded 1 by loc_1362; structural twin of the committed OBJ_X/ACTOR_STEP_X
+ *  convention. (fair)
+ */
+export const OBJ_STEP_X = 0x806c;
+/**
+ *  OBJ_STEP_Y (0x806d) — Tracked object's per-frame Y step: added to the committed OBJ_Y
+ *  (0x806b) by loc_19d0, subtracted by loc_1a02, high byte of the DE step-vector in loc_13de,
+ *  seeded 1 by loc_1362; structural twin of the committed OBJ_Y/ACTOR_STEP_Y convention.
+ *  (fair)
+ */
+export const OBJ_STEP_Y = 0x806d;
+/**
+ *  MOVER_DIRECTION (0x8092) — Published travel-direction index: stamped 0/1/2/3 by the four
+ *  direction presets (loc_3476/347d/3484/348b) at 0x34a0, consumed by loc_319d's dec-a/jp-z
+ *  direction fan-out at 0x32ce and 0x3345; A and B and my derivation all converge. (fair)
+ */
+export const MOVER_DIRECTION = 0x8092;
+
+// ── Dig-entity staging (loc_28ab -> loc_2934 hand-off) + expected tile ──
+/**
+ *  EXPECTED_TILE (0x80a7) — The object cell's table-resolved expected tile: seeded from the
+ *  raw under-tile then overwritten with the ROM lookup, cross-checked vs CUR_TILE 0x80a5 in
+ *  loc_164f to detect a change, and stamped into (ix+0) by loc_24f3; both namers converged
+ *  high-confidence, real readers + writers. (fair)
+ */
+export const EXPECTED_TILE = 0x80a7;
+/**
+ *  STAGED_TARGET_X (0x80b6) — Staged X coord = REACTION_OBJ_X-4 written by loc_28ab, promoted
+ *  into TARGET_X 0x80a9 by loc_2934 and X-axis bbox-tested vs OBJ_X 0x8068 by loc_29ad; both
+ *  namers converged, grounded across all three. (fair)
+ */
+export const STAGED_TARGET_X = 0x80b6;
+/**
+ *  STAGED_TARGET_Y (0x80b9) — Staged Y coord (OBJ_Y grid-snapped and lifted) written by
+ *  loc_28ab, promoted into TARGET_Y 0x80ac by loc_2934 and Y-axis bbox-tested vs OBJ_Y 0x806b
+ *  by loc_29ad; both namers converged, grounded across all three. (fair)
+ */
+export const STAGED_TARGET_Y = 0x80b9;
+/**
+ *  STAGED_CELL_PTR (0x80ba) — 16-bit copy of ACTOR_CELL_PTR 0x806e saved by loc_28ab and
+ *  reloaded into the live carve cursor 0x80af by loc_2934; both namers converged and
+ *  SAVED_CELL_PTR is already taken by 0x8134 in ram.js, so STAGED_CELL_PTR is the correct
+ *  distinct name. (fair)
+ */
+export const STAGED_CELL_PTR = 0x80ba;
+/**
+ *  STAGED_DIG_TIMER (0x80bc) — loc_28ab writes REACTION_PERIOD<<1 here; loc_2934 promotes it
+ *  verbatim into the named DIG_OBJ_TIMER (0x80b1) -- a clean single writer/reader staging
+ *  cell for the dig timer, A+B converged. (fair)
+ */
+export const STAGED_DIG_TIMER = 0x80bc;
+/**
+ *  STAGED_DIG_SPRITE_ID (0x80bf) — loc_28ab stages the classified dig-entity id here;
+ *  loc_2934 stamps it into the tilemap cell before the carve cursor (mem[cellPtr-1]) -- clean
+ *  writer/reader pair, A+B converged. (fair)
+ */
+export const STAGED_DIG_SPRITE_ID = 0x80bf;
+
+// ── Sprite record attributes + staging buffer base + loop counter ──
+/**
+ *  ACTOR_ATTR (0x810c) — Byte+2 of the primary sprite record 0x810a: loc_3a4c copies it to
+ *  sprite-RAM byte2 (0x823a), which video.js decodes as color(bits0-2)+priority(bit3); seeded
+ *  by all four spawners. Grounded, A+B converged. (fair)
+ */
+export const ACTOR_ATTR = 0x810c;
+/**
+ *  TWIN_ATTR (0x811d) — Byte+2 of the twin record 0x811b; loc_3a4c copies it to sprite-RAM
+ *  byte2 (0x823e), decoded as color+priority by video.js -- mirror of ACTOR_ATTR, same
+ *  seeders. Grounded, A+B converged. (fair)
+ */
+export const TWIN_ATTR = 0x811d;
+/**
+ *  SPRITE_STAGING_BASE (0x8220) — Base of the 32-byte (8x4) sprite-record staging buffer the
+ *  NMI loc_0066 LDIRs to hardware sprite RAM 0x9840 each frame; filled by
+ *  stageObjectSpriteRecord/stageActorSpriteRecords, wiped by clearSpriteStagingBuffer.
+ *  Grounded, A+B converged. (fair)
+ */
+export const SPRITE_STAGING_BASE = 0x8220;
+/**
+ *  LOOP_COUNTER (0x800a) — Memory-resident down-counter seeded to an iteration count then
+ *  decremented to 0 to repeat a loop body; grounded identically across setup-repeat
+ *  loc_02ca/loc_02e1, screen-hold loc_3a6f, and animation-tier loc_3bec. (fair)
+ */
+export const LOOP_COUNTER = 0x800a;

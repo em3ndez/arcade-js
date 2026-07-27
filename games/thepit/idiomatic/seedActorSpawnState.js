@@ -34,6 +34,7 @@
  */
 
 import {
+  ACTOR_ATTR,
   ACTOR_STEP_X,
   ACTOR_STEP_Y,
   ACTOR_TILE,
@@ -41,6 +42,7 @@ import {
   ACTOR_X,
   ACTOR_Y,
   SPAWN_PHASE,
+  TWIN_ATTR,
   TWIN_CLEAR,
   TWIN_TILE,
   TWIN_TIMER,
@@ -54,7 +56,7 @@ export function seedActorSpawnState(m) {
   mem8[ACTOR_X] = 36; // start column
   mem8[ACTOR_TILE] = 46; // tile/sprite code
   mem8[ACTOR_Y] = 0; // start row — top of the lane
-  mem8[0x810c] = 151; // paired display byte (mirrored on the twin)
+  mem8[ACTOR_ATTR] = 151; // paired display byte (mirrored on the twin)
   mem8[ACTOR_STEP_X] = 0; // per-step move vector, low byte
   mem8[ACTOR_STEP_Y] = 1; // per-step move vector, high byte
   mem8[ACTOR_TIMER] = 1; // cadence timer, armed
@@ -63,7 +65,7 @@ export function seedActorSpawnState(m) {
   mem8[TWIN_X] = 52; // twin start column (primary + 16)
   mem8[TWIN_TILE] = 47; // twin tile code (one past the primary's)
   mem8[TWIN_CLEAR] = 0; // twin start row (mirror of the primary row)
-  mem8[0x811d] = 151; // twin paired display byte (mirror of 0x810c)
+  mem8[TWIN_ATTR] = 151; // twin paired display byte (mirror of 0x810c)
   mem8[0x811f] = 0; // twin move vector, low byte
   mem8[0x8120] = 0; // twin move vector, high byte
   mem8[TWIN_TIMER] = 1; // twin cadence timer, armed

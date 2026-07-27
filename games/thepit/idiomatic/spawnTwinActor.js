@@ -40,11 +40,13 @@
  */
 
 import {
+  ACTOR_ATTR,
   ACTOR_TILE,
   ACTOR_TIMER,
   ACTOR_X,
   ACTOR_Y,
   LEVEL,
+  TWIN_ATTR,
   TWIN_CLEAR,
   TWIN_TILE,
   TWIN_TIMER,
@@ -88,8 +90,8 @@ export function spawnTwinActor(m) {
   mem8[TWIN_TILE] = 9;
   mem8[ACTOR_X] = 0;
   mem8[TWIN_X] = 0;
-  mem8[0x810c] = 0; // primary state byte
-  mem8[0x811d] = 0; // twin state byte
+  mem8[ACTOR_ATTR] = 0; // primary state byte
+  mem8[TWIN_ATTR] = 0; // twin state byte
   mem8[0x8117] = 0; // primary sub-state
   mem8[0x8128] = 0; // twin sub-state
   mem8[ACTOR_TIMER] = 180; // primary countdown, ~3 seconds

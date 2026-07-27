@@ -41,10 +41,15 @@
 
 import { u8 } from "../../../core/int.js";
 import {
-  DIG_OBJ_STATE,
   DIG_OBJ_ATTR,
-  DIG_OBJ_TIMER,
+  DIG_OBJ_STATE,
   DIG_OBJ_SUBTYPE,
+  DIG_OBJ_TIMER,
+  STAGED_CELL_PTR,
+  STAGED_DIG_SPRITE_ID,
+  STAGED_DIG_TIMER,
+  STAGED_TARGET_X,
+  STAGED_TARGET_Y,
   TARGET_X,
   TARGET_Y,
 } from "./ram.js";
@@ -59,20 +64,20 @@ export function loc_2934(m) {
   // Arm the dig object's record and reload its saved tilemap cell as the carve cursor.
   mem8[DIG_OBJ_STATE] = CARVING_STATE;
   mem8[DIG_OBJ_ATTR] = 7;
-  const cellPtr = mem16[0x80ba];
+  const cellPtr = mem16[STAGED_CELL_PTR];
   mem16[0x80af] = cellPtr;
 
   // Promote the values staged earlier into the live record the carve handler reads.
-  const stagedColumn = mem8[0x80b6];
+  const stagedColumn = mem8[STAGED_TARGET_X];
   mem8[TARGET_X] = stagedColumn;
   mem8[0x80be] = stagedColumn; // mirror of the target column
-  mem8[TARGET_Y] = mem8[0x80b9];
-  mem8[DIG_OBJ_TIMER] = mem8[0x80bc];
+  mem8[TARGET_Y] = mem8[STAGED_TARGET_Y];
+  mem8[DIG_OBJ_TIMER] = mem8[STAGED_DIG_TIMER];
 
   // Capture the tile currently before the cursor, then stamp the entity in: its sprite
   // id where that neighbour was, and the fill tile in the cursor's own cell.
   const oldNeighbour = mem8[cellPtr - 1];
-  mem8[cellPtr - 1] = mem8[0x80bf];
+  mem8[cellPtr - 1] = mem8[STAGED_DIG_SPRITE_ID];
   mem8[cellPtr] = FILL_TILE;
 
   // Patch the captured neighbour so the dug channel joins up cleanly.

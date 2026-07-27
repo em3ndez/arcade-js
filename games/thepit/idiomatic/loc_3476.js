@@ -40,7 +40,7 @@
  *           position (0x8086) have no ram.js name yet and stay hex.
  */
 
-import { ANIM_RAND } from "./ram.js";
+import { ANIM_RAND, MOVER_DIRECTION } from "./ram.js";
 
 export function loc_3476(m) {
   const { mem8 } = m;
@@ -53,7 +53,7 @@ export function loc_3476(m) {
   // from its period byte and (re)publish this preset's travel-direction index (0).
   if (cadence === 0) {
     mem8[ANIM_RAND] = mem8[0x8091]; // reload period for the cadence countdown
-    mem8[0x8092] = 0; // published travel-direction index the driver reads next frame
+    mem8[MOVER_DIRECTION] = 0; // published travel-direction index the driver reads next frame
   }
 
   // Step the object's X position down one pixel every frame (this preset's delta).

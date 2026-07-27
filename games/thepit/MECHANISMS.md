@@ -70,7 +70,7 @@ Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a
 | **Dig reaction + dig-entity spawn** | `triggerDigReaction` (0x191f): on a diggable tile stages `REACTION_STATE`=3 + dig sprite + dig sound; `loc_28ab` stages a dig entity at the aligned cell and commits it into the map | [code] |
 | **Player walk-frame animation + step** | `walkActor` (0x184a step-by-velocity + walk-sprite cycle), `advanceActorWalk` (0x19d0), `drawActorWalkFrame` (0x19e3), `advanceObjectWalkFrame` (0x1659); `loc_186a`→`loc_186f` (cell geometry + tile dispatch) | [code] |
 | **Object / enemy movers** | `0x3490` velocity-preset family (`loc_3476/347d/3484/348b`, direction presets), `advanceDormantMover` (0x34da), `descendActorToRest` (0x3968 ease a two-body actor to its floor), `advanceAltPhaseActor` (0x384a) | [code] axis/direction semantics still partly unpinned |
-| **Actor spawn (primary + twin records)** | `seedObjectRecords` (0x30de), `loc_37cf`/`loc_38c8`/`loc_3984` seed `OBJ1_*`/`OBJ2_*` + `ACTOR_*` 0x810a.. / `TWIN_*` 0x811b.. + `stageObjectSpriteRecord` (0x1b5b) | [code] two-body actor (sprite + shadow) |
+| **Actor spawn (primary + twin records)** | `seedObjectRecords` (0x30de), `loc_37cf`/`loc_38c8`/`loc_3984` seed `OBJ1_*`/`OBJ2_*` + `ACTOR_*` 0x810a.. / `TWIN_*` 0x811b.. + `stageObjectSpriteRecord` (0x1b5b) | [code] **a TWO-SPRITE actor**: `descendActorToRest` locks the twin at primary+16 (one tile), so the two halves compose one ~32px-tall on-screen sprite — NOT a shadow, and NOT the player (player uses the tracked-object path) |
 | **Background scroll sprite** (the sky UFO?) | `BG_SPRITE_*` (0x80db.. X/frame/attr/Y) bounced by `loc_2f71`, frame set by `setBgSpriteFrame` (0x2fd9) | [guess] the patrolling top-band object |
 | **Column / vertical tile reveal animation** | `reseedColumnAnimation` (0x23e8) + `loc_241c` walk; `REVEAL_*` (0x80e4/5/6); the `loc_2f71`/`2f88`/`drawTerrainColumn` (0x2fb7)/`2fc0` blitters | [code] the dirt/shaft animation |
 | **Board-display setup** (screen rebuild per board mode) | `setupBoardDisplay(m, boardMode)` (0x4b46): clear sprites, wipe tilemap, flood colour RAM, blank staging; doors `loc_4b40`(0x90)/`loc_4b44`(0x00)/`loc_4b3c`(0xC0) | [code] |
@@ -88,7 +88,10 @@ Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a
 
 ## RAM roles
 
-The named work-RAM constants live in **`idiomatic/ram.js`** (~90 names). The newest ~43 got the full
+The named work-RAM constants live in **`idiomatic/ram.js`** (~107 names, incl. the loot-count/dig-staging/
+sprite-attr cells the batch-3/4/5 decompiles made legible: `LOOT_10PT_COUNT`/`LOOT_20PT_COUNT`,
+`STAGED_*` dig-spawn hand-off cells, `ACTOR_ATTR`/`TWIN_ATTR`, `SPRITE_STAGING_BASE`, `MOVER_DIRECTION`).
+The newest ~60 got the full
 proposer≠confirmer + adversarial-judge treatment (cross-routine consensus, keep-hex-if-ungrounded);
 older ones are tagged strong/fair/weak. Highlights:
 - **Probe / tile:** `OBJ_X`/`OBJ_Y` (0x8068/0x806b), `SPRITE_CODE` (0x8069), `DEMO_STEER_DIR` (0x801b

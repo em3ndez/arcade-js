@@ -34,6 +34,8 @@ import {
   CLIMB_GATE,
   NEXT_TILE,
   OBJ_SPRITE_ATTR,
+  OBJ_STEP_X,
+  OBJ_STEP_Y,
   OBJ_TILE_COL,
   OBJ_TILE_ROW,
   OBJ_X,
@@ -52,8 +54,8 @@ export function seedObjectStartState(m) {
 
   // Fixed non-zero start values for the block's counters.
   mem8[OBJ_SPRITE_ATTR] = 2;
-  mem8[0x806c] = 1;
-  mem8[0x806d] = 1;
+  mem8[OBJ_STEP_X] = 1;
+  mem8[OBJ_STEP_Y] = 1;
   mem8[0x8070] = 1;
   mem8[OBJ_TILE_COL] = 5;
   mem8[OBJ_TILE_ROW] = 25;

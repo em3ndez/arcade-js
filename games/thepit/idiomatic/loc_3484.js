@@ -38,7 +38,7 @@
  *           only thing that would distinguish an English name from its siblings.
  */
 
-import { ANIM_RAND } from "./ram.js";
+import { ANIM_RAND, MOVER_DIRECTION } from "./ram.js";
 
 export function loc_3484(m) {
   const { mem8 } = m;
@@ -51,7 +51,7 @@ export function loc_3484(m) {
   // preset's facing index as the mover's current direction.
   if (countdown === 0) {
     mem8[ANIM_RAND] = mem8[0x8091];
-    mem8[0x8092] = 2;
+    mem8[MOVER_DIRECTION] = 2;
   }
 
   // Advance the mover one unit forward along its axis, every frame.
