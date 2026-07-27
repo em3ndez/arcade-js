@@ -19,9 +19,13 @@
  *   2. The stack scratch. The oracle wraps every callee in a stack push + return, while
  *      the idiomatic routine calls its already-decompiled leaves directly (no push), so
  *      the two leave DIFFERENT dead bytes in the work stack just below the entry stack
- *      pointer. Those bytes are classic dead scratch (overwritten before anything reads
- *      them), so the RAM diff EXCLUDES that window and compares everything else — all of
- *      the video / colour / work RAM the screen paint actually produces — byte for byte.
+ *      pointer. And once a callee (0x4b44) is DISSOLVED — its m.call(0x4b44) becomes a
+ *      direct loc_4b44(m) — the oracle's push/return also parks a two-byte return-frame
+ *      ghost AT/just above the SP it resets to (entry SP=0x83fd, so 0x83fd/0x83fe) that
+ *      the stack-free idiomatic never writes. Both are classic dead scratch (overwritten
+ *      by the caller's next push before anything reads them), so the RAM diff EXCLUDES
+ *      that window — [entrySP - 32, entrySP + 2) — and compares everything else, all of
+ *      the video / colour / work RAM the screen paint actually produces, byte for byte.
  *      pc / SP / value registers are excluded per the memory-equivalence contract (the
  *      idiomatic layer does not preserve the register/pc trace; the whole-machine pixel
  *      gate backstops it, and this contract survives a callee later being dissolved).
@@ -76,6 +80,7 @@ const REC_B = 0x9294; // second count record cell (shows COUNT_B)
 const SINGULAR_CELL = 0x918e; // patched to the singular glyph when COUNT_A == 1
 const SINGULAR_GLYPH = 0x24;
 const STACK_SCRATCH = 32; // bytes below the entry SP the two call styles differ in
+const RETURN_SLOT = 2; // the two return-slot bytes AT/just above entry SP the dissolved callee no longer writes
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The Pit's routine registry is async, so build the factory once and reuse it.
@@ -130,7 +135,12 @@ function ramDiffOutsideStack(a, b, entrySP) {
   for (let i = 0; i < n; i++) {
     if (da[i] === db[i]) continue;
     const addr = a.stateOffsetToAddr(i);
-    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    // Dead stack scratch [entrySP - 32, entrySP) PLUS the two return-slot bytes
+    // [entrySP, entrySP + 2): the oracle's push/return leaves a return-frame ghost at/just
+    // above the SP it resets to, which the stack-free idiomatic (dissolved callee, direct
+    // call) never writes. Both windows are overwritten by the caller's next push before
+    // anything reads them, so neither can hide a real output cell.
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP + RETURN_SLOT) continue;
     return { addr, a: da[i], b: db[i] };
   }
   return null;

@@ -22,14 +22,10 @@
  *          colour-RAM column accent painted down colour column 13.
  *   3. Stamps the fixed right edge column and the playfield column with its trim.
  *
- * The strip/fill helper at 0x3ddb is still the frozen oracle, reached through the
- * registry: it reads a source pointer from a register and returns through the work
- * stack, so it is handed that input and its own return slot — a genuine oracle
- * boundary. This game keeps the Z80 stack (top of work RAM) byte-identical to the
- * hardware, so reproducing its return-address push keeps the work RAM, stack included,
- * exactly as the oracle leaves it. The already-decompiled helpers — the edge/HUD
- * columns, the cursor derivation, both colour-column fills, and the tile-column copy —
- * are called directly with no stack framing.
+ * Every draw helper is now decompiled and called directly with no stack framing — the
+ * edge/HUD columns, the cursor derivation, both colour-column fills, the tile-column
+ * copy, and the capped tile-column copy (0x3ddb, copyCappedTileColumn), which is handed
+ * its source pointer as an ordinary JS argument.
  *
  * The role kept a neutral loc_ name: the mechanism (a scripted fixed-panel layout) is
  * clear, but which specific game screen this skeleton belongs to is not yet
@@ -59,6 +55,7 @@ import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
+import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { loc_4785 } from "./loc_4785.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
@@ -68,7 +65,7 @@ import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 const FILL_ATTR = 0x8057;
 
 export function drawSharedPanel(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // 1. The panel skeleton: the fixed left edge column, then both players' score HUD.
   drawLeftEdgeColumn(m);
@@ -88,7 +85,7 @@ export function drawSharedPanel(m) {
   mem8[PLOT_RUN_LENGTH] = 1;
   copyTileColumn(m, GAME_STATE2); // one dynamic indicator glyph
   mem8[PLOT_RUN_LENGTH] = 7;
-  fillStripDown(m, 0x49b1, 0x3d18); // a fixed cap byte, then a second ROM strip
+  copyCappedTileColumn(m, 0x49b1); // a fixed cap byte, then a second ROM strip
   mem8[PLOT_RUN_LENGTH] = 8;
   fillColourColumn(m); // tint all eight cells
 
@@ -112,17 +109,4 @@ function seatCell(m, column, row) {
   m.mem8[TILE_ROW] = row;
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
-}
-
-/**
- * Fill a strip down the current video column: the first cell takes a fixed cap byte,
- * every later cell a byte walked backwards from `source`; run length in PLOT_RUN_LENGTH.
- * The fill helper (0x3ddb) is still the frozen oracle: it takes its source in the pointer
- * register and returns through the work stack, so it is handed the source and the
- * `returnSlot` it pops on the way back.
- */
-function fillStripDown(m, source, returnSlot) {
-  m.regs.ix = source;
-  m.push16(returnSlot);
-  m.call(0x3ddb);
 }

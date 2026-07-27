@@ -19,13 +19,11 @@
  * pinned; the name asserts only the mechanism — a fixed full-screen image shown for a
  * fixed spell — which is exactly what the code does.
  *
- * The blank-screen setup (0x4b44) is still the frozen oracle, reached through the
- * registry; its call is bracketed with the return address it pops off the work stack,
- * a genuine oracle boundary that keeps the stack byte-identical to the original. The
+ * The blank-screen setup is now the idiomatic loc_4b44 (0x4b44), a direct JS call. The
  * frame-wait (waitFrames) is already decompiled but kept its register-in / stack-return
  * boundary, so the frame count is handed to it in the machine and its non-tail call is
- * likewise bracketed with the return address it pops. The final wait is a tail call: its
- * return unwinds straight to showFixedScreen's caller, so it is this routine's exit.
+ * bracketed with the return address it pops. The final wait is a tail call: its return
+ * unwinds straight to showFixedScreen's caller, so it is this routine's exit.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3b81.test.js.
  * GATE:     crafted-harness — dispatched once in a boot/attract run (~frame 530). It is
@@ -44,6 +42,7 @@
  *           and the ROM image source (0x3e32) are fixed hardware/ROM addresses, not work RAM.
  */
 import { waitFrames } from "./waitFrames.js";
+import { loc_4b44 } from "./loc_4b44.js";
 
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOR_RAM_BASE = 0x8800; // start of the per-tile colour RAM
@@ -55,10 +54,7 @@ export function showFixedScreen(m) {
   const { mem8 } = m;
 
   // 1. Blank the screen to the neutral background, then let a frame pass.
-  //    0x4b44 is still the frozen oracle and returns through the work stack, so seed
-  //    the return address it pops (0x3b84, where it lands back in this routine).
-  m.push16(0x3b84);
-  m.call(0x4b44);
+  loc_4b44(m);
   m.push16(0x3b89); // the frame-wait returns here, back into this routine
   waitFrames(m, 1); // one frame to wait
 

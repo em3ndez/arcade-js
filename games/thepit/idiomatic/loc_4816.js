@@ -12,15 +12,12 @@
  *     walked backwards through a ROM tile table at 0x494f (the tilemap fill).
  *   - The colour column then paints the same 10 cells with a single colour value (0).
  *
- * The cursor placement, address resolve and colour-column fill are decompiled siblings,
- * called directly: rowColToTileOffset stages the tilemap offset, deriveTileWriteCursors
- * turns it into the colour-RAM / video-RAM write cursors, and fillColourColumn paints
- * the colour run. The tilemap fill at 0x3ddb is still the frozen oracle (it has no
- * idiomatic form yet), so it is reached across the boundary: the pushed word beside the
- * call is the return address its own ret pops, and this hardware's stack lives in the
- * work RAM the gate compares, so the pushed/popped bytes must land where the oracle
- * leaves them. Its one register live-in is the ROM source-table pointer it walks; every
- * cursor, count and fill byte is written straight to memory.
+ * The cursor placement, address resolve, tilemap fill and colour-column fill are all
+ * decompiled siblings, called directly: rowColToTileOffset stages the tilemap offset,
+ * deriveTileWriteCursors turns it into the colour-RAM / video-RAM write cursors,
+ * copyCappedTileColumn paints the tilemap strip (handed its ROM source-table pointer as
+ * an ordinary JS argument), and fillColourColumn paints the colour run. Every cursor,
+ * count and fill byte is written straight to memory.
  *
  * NAME kept loc_4816: the mechanism (paint a fixed tile strip + colour column) is
  * clear, but this is one of a ~9-routine family (loc_472c..loc_48e5) that each paint a
@@ -50,6 +47,7 @@ import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
+import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
 // ROM tile table the tilemap fill walks (backwards) for every cell below the cap.
 const STRIP_SOURCE_TABLE = 0x494f;
@@ -58,7 +56,7 @@ const STRIP_SOURCE_TABLE = 0x494f;
 const COLOUR_FILL = 0x8057;
 
 export function loc_4816(m) {
-  const { regs, mem8 } = m;
+  const { mem8 } = m;
 
   // Position the tile-cell cursor at column 1, row 11, then resolve that cell's
   // tilemap offset (TILEMAP_OFFSET) and from it the colour-RAM and video-RAM write cursors
@@ -68,16 +66,12 @@ export function loc_4816(m) {
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
 
-  // Colour value 0, a 10-cell run, source table pointer, then paint the tilemap strip
-  // (top cell = the fixed cap, the nine below walked back through the ROM table). The
-  // tilemap fill is still the frozen oracle, so it is called across the boundary: the
-  // pushed word is the return address its ret pops, and the source pointer is its one
-  // register live-in.
+  // Colour value 0, a 10-cell run, then paint the tilemap strip (top cell = the fixed
+  // cap, the nine below walked back through the ROM table). The tilemap fill is now
+  // decompiled (copyCappedTileColumn), called directly with its ROM source-table pointer.
   mem8[COLOUR_FILL] = 0;
   mem8[PLOT_RUN_LENGTH] = 10;
-  regs.ix = STRIP_SOURCE_TABLE;
-  m.push16(0x4837);
-  m.call(0x3ddb); // fill the 10-cell tilemap strip
+  copyCappedTileColumn(m, STRIP_SOURCE_TABLE); // fill the 10-cell tilemap strip
 
   // Paint the matching 10-cell colour column with colour 0. In the oracle this was a
   // tail jump whose ret carried loc_4816's caller; as a direct call it paints the colour

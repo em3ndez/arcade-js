@@ -10,11 +10,11 @@
  * colour), and wipes a work block. So the byte is both a mode selector that later
  * code reads and, in this immediate setup, the colour every cell is painted.
  *
- * The setup body is still the frozen oracle (0x4b46), so the byte is handed to it
- * the register way — a genuine oracle boundary, the one place register-passing is
- * kept. The body's own return unwinds to this routine's caller, so the hand-off IS
- * the exit and is returned straight through. Reads nothing on entry (the byte is
- * hardwired), so it always drives the same 0xC0 setup.
+ * The setup body (setupBoardDisplay, ROM 0x4b46) takes the byte as its boardMode
+ * parameter, so this door just passes 0xC0 in directly. The body's own return
+ * unwinds to this routine's caller, so the hand-off IS the exit and is returned
+ * straight through. Reads nothing on entry (the byte is hardwired), so it always
+ * drives the same 0xC0 setup.
  *
  * Name kept neutral: the action — pick the 0xC0 variant and run the shared setup —
  * is clear, but which game situation the 0xC0 variant corresponds to (versus its
@@ -28,23 +28,20 @@
  *           byte is caught at BOARD_MODE and in the colour RAM it flat-fills.
  * LIVE-OUT: memory-only — BOARD_MODE (0x8057) set to the selector byte, plus every
  *           byte the shared body writes (cleared sprite/attribute RAM, the repainted
- *           tilemap and colour RAM, the wiped work block), all through the same
- *           still-oracle body on both sides; SP/pc land where its return goes. No
- *           register or flag is live out — the oracle's residual byte/flags are dead
- *           scratch the shared body and callers reload before reading.
+ *           tilemap and colour RAM, the wiped work block); SP/pc land where its return
+ *           goes. No register or flag is live out — the shared body's residual
+ *           byte/flags are dead scratch the body and callers reload before reading.
  * NAMES:    BOARD_MODE (0x8057) from ram.js — the byte this door stows and the setup
  *           consumes as the colour fill. The 0xC0 selector stays hex: it is a
  *           colour / attribute byte, so its bit layout is the point.
  */
-export function loc_4b3c(m) {
-  // The 0xC0 variant's byte: the board-mode / entry-select value the shared setup
-  // stows at BOARD_MODE and reuses as the screen-wide colour-RAM fill. Siblings pick
-  // 0x90 and 0x00.
-  m.regs.a = 0xc0;
+import { setupBoardDisplay } from "./setupBoardDisplay.js";
 
-  // Hand off to the shared setup body (still the frozen oracle at 0x4b46): it stows
-  // the byte, clears sprite/attribute RAM, repaints the tilemap and colour RAM, then
-  // wipes a work block. Its return unwinds to our caller, so this tail hand-off is
-  // the exit — return it straight through.
-  return m.call(0x4b46);
+export function loc_4b3c(m) {
+  // Pick the 0xC0 variant and run the shared setup: it stows the byte at BOARD_MODE
+  // and reuses it as the screen-wide colour-RAM fill, then clears sprite/attribute
+  // RAM, repaints the tilemap and colour RAM, and wipes a work block. Siblings pick
+  // 0x90 and 0x00. Its return unwinds to our caller, so this tail hand-off is the
+  // exit — return it straight through.
+  return setupBoardDisplay(m, 0xc0);
 }

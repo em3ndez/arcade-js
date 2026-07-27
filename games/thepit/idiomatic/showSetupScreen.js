@@ -25,13 +25,12 @@
  *      colour index one step (cycling the accent band that tints the setup screen)
  *      and waits fifteen video frames, so the intro lingers about 450 frames.
  *
- * One callee is still the frozen oracle: the blank/setup 0x4b44. It returns through the
- * work stack, so it is handed the return address it pops, at the point the original code
- * left it. The idiomatic leaves are called directly: the colour fills (fillColourColumnAt),
- * the glyph-run copy (copyTileColumn), and the colour-cycle step (cycleColumnColour) return
- * in plain JS, so they take honest arguments and no stack return. The idiomatic callees
- * that still model their own return through the stack (the HUD redraw, the two column
- * paints, the frame wait) are likewise handed the return address they consume.
+ * The blank/setup 0x4b44 is now the idiomatic loc_4b44, a direct JS call. The idiomatic
+ * leaves are called directly: the colour fills (fillColourColumnAt), the glyph-run copy
+ * (copyTileColumn), and the colour-cycle step (cycleColumnColour) return in plain JS, so
+ * they take honest arguments and no stack return. The idiomatic callees that still model
+ * their own return through the stack (the HUD redraw, the two column paints, the frame
+ * wait) are handed the return address they consume.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3a6f.test.js.
  * GATE:     crafted-entry — the real boot dispatch (0x804c=1, 0x804d=2) plus a sweep
@@ -61,6 +60,7 @@ import { waitFrames } from "./waitFrames.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
+import { loc_4b44 } from "./loc_4b44.js";
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
@@ -93,9 +93,8 @@ export function showSetupScreen(m) {
   const { mem8 } = m;
 
   // ── 1. Fixed furniture ──────────────────────────────────────────────────────
-  // Blank the screen + run the variant-0 board setup (still oracle, returns via stack).
-  m.push16(0x3a72);
-  m.call(0x4b44);
+  // Blank the screen + run the variant-0 board setup.
+  loc_4b44(m);
 
   drawLeftEdgeColumn(m); // draw the left furniture column
 

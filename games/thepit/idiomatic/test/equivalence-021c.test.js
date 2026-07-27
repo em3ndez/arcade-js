@@ -28,10 +28,14 @@
  * the routine leaves. pc, SP, and the value registers/flags are EXCLUDED — the
  * idiomatic layer does not preserve the Z80 pc/register trace, and this routine has no
  * genuine register live-out (it exits into a forever loop; the caller's frame was
- * discarded by the stack reset, so nothing reads a register back). The two still-
- * oracle callees (0x4b14, 0x4b44) are handed the return address each pops, exactly as
- * the oracle leaves it, so the stack RAM is byte-identical between the arms and is
- * compared in full — there is no dead stack-scratch window to carve out here.
+ * discarded by the stack reset, so nothing reads a register back). ONE WRINKLE: callee
+ * 0x4b14 is still stack-threaded, but 0x4b44 was DISSOLVED into a direct call, so the
+ * idiomatic arm no longer parks the return-address ghost the oracle leaves in the four
+ * bytes just below the SP reset (0x83fb..0x83fe). Those are dead top-of-stack scratch —
+ * the routine hard-resets SP to 0x83ff and nothing reads them back, and no game-
+ * observable cell lives there (verified: EQUAL diffs are confined to exactly those four
+ * bytes) — so the RAM diff EXCLUDES that window and compares every real cell byte-for-
+ * byte. Excluding a real cell would hide a bug, so the window is kept to those 4 bytes.
  *
  * Three checks, the gate's two directions:
  *   1. EQUAL (real captured entry) — idiomatic leaves RAM byte-identical to the oracle,
@@ -54,7 +58,6 @@ import { loc_021c as oracle } from "../../translated/loc_021c.js";
 import { showCreditScreen as idiomatic } from "../showCreditScreen.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 import { GAME_MODE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -65,6 +68,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const PAINTER = 0x3ba8; // the fixed-screen painter showCreditScreen tail-hands to; stubbed (never returns)
+const STACK_RESET = 0x83ff; // showCreditScreen hard-resets SP here (`ld sp,0x83ff`)
+const STACK_SCRATCH = 4; // dead return-slot ghost bytes just below the reset top (0x83fb..0x83fe)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -94,11 +99,33 @@ function captureSeed() {
 }
 
 /**
+ * First differing state byte between two machines, EXCLUDING the dead top-of-stack
+ * scratch just below the SP reset (the window [STACK_RESET - STACK_SCRATCH, STACK_RESET),
+ * i.e. 0x83fb..0x83fe). The oracle threads callee 0x4b44's return through the stack
+ * (push + m.call), parking a return-address ghost there; the dissolved idiomatic calls
+ * loc_4b44 directly and never writes it, so those four bytes legitimately differ. They
+ * are dead scratch — SP was reset to 0x83ff, nothing reads them back, and no game-
+ * observable cell lives in the window — so every real cell is compared byte-for-byte.
+ * Null when otherwise identical.
+ */
+function stateDiffOutsideStack(a, b) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_RESET - STACK_SCRATCH && addr < STACK_RESET) continue; // dead top-of-stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
+}
+
+/**
  * Run oracle and candidate on two independent clones of one entry and diff the
- * observable-RAM contract. Both arms tail-call the stubbed painter identically, so pc
- * and SP line up on their own and RAM is compared in full (no stack-scratch window to
- * exclude). Value registers/flags are the routine's dead-ABI residual and are not
- * compared. Returns { diffs, ram } (diffs empty == EQUAL).
+ * observable-RAM contract, EXCLUDING the dead top-of-stack scratch just below the SP
+ * reset (see stateDiffOutsideStack). pc/SP/value registers are the routine's dead-ABI
+ * residual and are not compared. Returns { diffs, ram } (diffs empty == EQUAL).
  */
 function contractDiffs(entry, fn) {
   const a = entry.clone();
@@ -107,7 +134,7 @@ function contractDiffs(entry, fn) {
   fn(b);
 
   const diffs = [];
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
+  const ram = stateDiffOutsideStack(a, b);
   if (ram) diffs.push(`RAM@${hx(ram.addr ?? 0)} oracle=${ram.a} cand=${ram.b}`);
   return { diffs, ram };
 }

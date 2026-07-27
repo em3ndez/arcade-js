@@ -44,6 +44,8 @@
 import { ACTOR_CELL_PTR, SPAWN_STATE, FEATURE_TILE_LATCH } from "./ram.js";
 import { triggerDigReaction } from "./triggerDigReaction.js";
 import { awardTenPoints } from "./awardTenPoints.js";
+import { awardTwentyPoints } from "./awardTwentyPoints.js";
+import { advanceActorWalk } from "./advanceActorWalk.js";
 
 // Per-kind running pickup counters, and the enable/latch/guard that gate the second
 // kind. The roles are legible here but not yet grounded across routines, so the
@@ -81,8 +83,8 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
       }
       mem8[SECOND_TILE_LATCH] = 1;
     }
-    // Award 20 points (still the frozen oracle's scorer) and count it.
-    m.call(0x4683);
+    // Award 20 points and count it.
+    awardTwentyPoints(m);
     mem8[SECOND_TILE_COUNT] = mem8[SECOND_TILE_COUNT] + 1;
   } else {
     // Any other tile on the boundary is not a pickup — hand it to the dig-arm.
@@ -92,5 +94,5 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
   // Collected: blank the cell the actor stands on, then keep the actor moving.
   const cell = mem16[ACTOR_CELL_PTR];
   mem8[cell] = BLANK_TILE;
-  return m.call(0x19d0);
+  return advanceActorWalk(m);
 }

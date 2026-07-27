@@ -23,13 +23,10 @@
  * scratch cells this routine stages, and writes its results back to memory, so no value
  * is passed or returned in registers.
  *
- * The live-value glyph helper 0x3dea is NOW DECOMPILED (copyTileColumn) and called
- * directly, handed its source pointer as an ordinary JS argument — its IX load and stack
- * push are gone. The ROM-label helper 0x3ddb is NOT yet decompiled, so it remains a
- * frozen-oracle boundary reached through the registry: it is bracketed with the return
- * address it expects on the machine stack, and handed its source pointer in ix — the
- * calling convention the oracle uses. When 0x3ddb is later decompiled, that last stack
- * push dissolves into an ordinary call too.
+ * Both copy/fill helpers are now decompiled and called directly, each handed its source
+ * pointer as an ordinary JS argument with its IX load and stack push gone: the live-value
+ * glyph helper 0x3dea (copyTileColumn) and the ROM-label helper 0x3ddb
+ * (copyCappedTileColumn).
  *
  * Name kept as loc_3d49: it is clearly a fixed-panel painter, but which specific field
  * it draws is not pinned (the label glyphs are ROM tile codes, not decoded), and it is
@@ -41,8 +38,8 @@
  *           that entry, plus a sweep of the one state-dependent input (the live top-cell
  *           value at 0x8000). Compared over the work/colour/video RAM the routine paints
  *           plus pc + SP — EXCLUDING the two dead stack-scratch bytes just below the
- *           entry stack pointer (the return-address slot the still-oracle label helper
- *           0x3ddb pushes into, which the direct JS calls no longer model). Teeth twins caught.
+ *           entry stack pointer (the return-address slot the oracle's calls once pushed
+ *           into, which the direct JS calls no longer model). Teeth twins caught.
  * LIVE-OUT: memory-only — the panel's tilemap + colour cells and the layout scratch
  *           (TILEMAP_OFFSET 0x805a, COLOUR_RAM_CURSOR 0x805e / 0x8060 cursors). The routine hands off to the colour
  *           filler and returns to its caller by a plain JS return; the Z80 tail-jump's
@@ -59,6 +56,7 @@ import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
+import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
 // The colour attribute every cell of the panel is painted in. ram.js proposes
 // BOARD_MODE for 0x8057, but in this routine the byte is the fill colour, not a mode.
@@ -89,12 +87,10 @@ export function loc_3d49(m) {
   copyTileColumn(m, VALUE_SOURCE);
 
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
-  // down the same video column from where the value left off. (0x3ddb is not yet
-  // decompiled — still the oracle, reached through the registry.)
+  // down the same video column from where the value left off. (0x3ddb is now decompiled
+  // (copyCappedTileColumn), called directly with its source pointer.)
   mem8[PLOT_RUN_LENGTH] = 8;
-  m.regs.ix = LABEL_SOURCE; // the source pointer the fill helper reads
-  m.push16(0x3d76);
-  m.call(0x3ddb);
+  copyCappedTileColumn(m, LABEL_SOURCE);
 
   // Colour the full nine-cell run: hand off to the colour-column filler, which paints
   // the whole panel. This is loc_3d49's exit.

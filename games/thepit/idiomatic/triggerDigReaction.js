@@ -38,8 +38,8 @@
  * LIVE-OUT: memory-only — the staged reaction bytes, the per-actor arm state, its companion,
  *           the requested sound, and the record stageObjectSpriteRecord builds. The registers/flags the
  *           oracle leaves behind (from its tail into stageObjectSpriteRecord or the sound enqueue) are dead
- *           ABI no caller reads; the keep-moving path stays the frozen 0x19d0, so it
- *           reproduces the oracle's registers exactly.
+ *           ABI no caller reads; the keep-moving path delegates to advanceActorWalk, which
+ *           is memory-equivalent to the frozen 0x19d0.
  * NAMES:    SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE (the per-actor arm state
  *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from ram.js. The classifier scratch
  *           bytes 0x80a3-0x80a7 and the two ROM lookup tables at 0x1e48 / 0x1fb0 stay hex —
@@ -49,6 +49,7 @@
 import { SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE, DIG_OBJ_TIMER } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
+import { advanceActorWalk } from "./advanceActorWalk.js";
 
 // ROM tables of the tile a cell is expected to hold, one per diggable code (113..153) and
 // sub-cell offset (0..7): the current cell's table, and the neighbouring cell's table.
@@ -113,10 +114,10 @@ export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator =
   return armReactionLatch(m);
 }
 
-/** The movement continuation (still the frozen oracle at 0x19d0): advance the actor and
- *  build its record. Its own return unwinds to triggerDigReaction's caller. */
+/** The movement continuation (advanceActorWalk): advance the actor and build its record.
+ *  Its own return unwinds to triggerDigReaction's caller. */
 function movementContinuation(m) {
-  return m.call(0x19d0);
+  return advanceActorWalk(m);
 }
 
 /** Fire the reaction for an armed actor, then build the deferral record. An unarmed actor

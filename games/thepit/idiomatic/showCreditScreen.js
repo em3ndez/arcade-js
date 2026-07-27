@@ -17,12 +17,12 @@
  * What game-mode 3 and the held screen mean is not pinned, so the name stays neutral;
  * the sequence above is exactly what the code does.
  *
- * The interrupt enable is now the idiomatic enableNmi (0x4b14), a direct JS call. Two
- * callees are still the frozen oracle, reached through the registry and each bracketed
- * with the return address it pops off the work stack — a genuine oracle boundary that
- * keeps the stack byte-identical to the original: the blank-screen display setup
- * (0x4b44) and the fixed-screen painter (0x3ba8). The painter is a tail hand-off — it
- * owns the (never-taken) return.
+ * The interrupt enable is now the idiomatic enableNmi (0x4b14) and the blank-screen
+ * display setup is the idiomatic loc_4b44 (0x4b44), both direct JS calls. One callee is
+ * still the frozen oracle, reached through the registry and bracketed with the return
+ * address it pops off the work stack — a genuine oracle boundary that keeps the stack
+ * byte-identical to the original: the fixed-screen painter (0x3ba8). The painter is a
+ * tail hand-off — it owns the (never-taken) return.
  *
  * Memory-equivalent to the frozen oracle — equivalence-021c.test.js.
  * GATE:     crafted-entry — never reached in a plain boot/attract run (the restart
@@ -39,6 +39,7 @@
  */
 
 import { enableNmi } from "./enableNmi.js";
+import { loc_4b44 } from "./loc_4b44.js";
 import { GAME_MODE } from "./ram.js";
 
 export function showCreditScreen(m) {
@@ -55,10 +56,8 @@ export function showCreditScreen(m) {
   // Enable the frame interrupt.
   enableNmi(m);
 
-  // Run the blank-screen display setup — clear the screen and seed the board-mode
-  // fills (still oracle; returns through the work stack).
-  m.push16(0x022a);
-  m.call(0x4b44);
+  // Run the blank-screen display setup — clear the screen and seed the board-mode fills.
+  loc_4b44(m);
 
   // Tail hand-off to the fixed-screen painter: it paints a canned screen and holds it
   // forever, so this is the routine's exit and it never returns.
