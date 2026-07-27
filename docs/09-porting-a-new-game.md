@@ -38,6 +38,111 @@ every gate — the pixel harness never reads it — but it can't be played in th
 
 See `games/dkong/manifest.js` for the reference shape.
 
+## Bringing a validated game up in the browser — the web contract, and where The Pit tripped
+
+A game that renders **pixel-exact offline** still will not run in the web player until it meets the
+live-worker contract. `web/worker.js` + `web/player.html` drive every game the same way, but that
+"same way" is a real interface the game's Machine, board, and manifest must satisfy. The Pit passed
+every offline gate and *still* failed the browser on several separate points. Here they are as a
+checklist so the next game is right the first time — each one bit us:
+
+1. **Register it.** Add the id to `games/registry.js`; the selector reads this. (The Pit was missing —
+   it never appeared in the list.)
+
+2. **Assemble EVERY declared ROM image to `games/<id>/rom/`, not just `maincpu`.** The dev path
+   fetches each `manifest.rom.images` entry from there. `tools/build-rom.mjs` concatenates parts in
+   order and **does not honor an image's `offsets`** — so a gapped image (The Pit's `gfx` is
+   `p9`@0x0000 + `p8`@0x1000 with a 2 KB hole) assembles to the wrong bytes and fails its sha256, and
+   the other images silently never get built. Fix build-rom to honor `offsets`, or assemble the gapped
+   image by hand and verify against the pinned sha256.
+
+3. **Build the routine registry with STATIC imports — never `node:fs` / `file://`.** A registry that
+   `readdirSync`s `translated/` and `await import()`s each file works in Node (tests, `render.js`) but
+   the browser has no `node:fs` and rejects `file://` loads ("Cross-origin script load denied"). DK
+   hand-lists its imports; a game with too many routines needs a **generated** static list — see
+   `tools/gen-thepit-registry.mjs` → `translated/_registry.generated.js`, kept honest by a sync-check
+   test. Ensure no `node:` built-in appears anywhere in the browser load path (machine, board,
+   translated, registry).
+
+4. **The Machine must implement the web-worker contract** (match `games/dkong/machine.js`):
+   - a **synchronous constructor** — `new Machine(rom, { inputs, gfx, proms, overrides })` with no
+     pre-built registry (the worker cannot `await Machine.create`); build the registry from the static
+     table inside the constructor;
+   - an exported **`resolveOverrides(spec, baseUrl)`** — resolves `manifest.optimized` to a
+     `Map<addr, fn>`, empty when there is none (the worker calls it for every game);
+   - the **live-render interface**: a `captureVideo` flag, a `videoFrames` array, and a
+     `finishRasterFrame()` that pushes the composed RGB frame, called at each frame boundary while
+     `captureVideo` is set. Offline the flag stays off and nothing changes;
+   - an exported **`Inputs`** class in `boards/<id>/io.js`. The worker does `new Inputs()`; live keys
+     actually flow via the worker's `applyInputs` override onto `io.inputAssert`, so if the io reads
+     `inputAssert` this can be an inert placeholder.
+
+5. **Inputs are manifest-driven across IN0/IN1/IN2 — declare each action's real port.** The page maps
+   keys per `manifest.inputs.ports/actions`; coin/start are **not** always on the same port (DK: IN2;
+   The Pit: IN1). Declare them where the board actually reads them; the page routes all three ports.
+
+6. **★ Orientation: record the EXACT MAME `ROT`, never a `"vertical"`/`"horizontal"` boolean.** The
+   `GAME()` macro's `ROT0/ROT90/ROT180/ROT270` *is* the screen orientation: `ROT90` = `SWAP_XY|FLIP_X`
+   = 90° **clockwise**; `ROT270` = `SWAP_XY|FLIP_Y` = 90° **anti-clockwise**. **DK is `ROT270`, The Pit
+   is `ROT90` — opposite directions.** Collapsing both to `orientation: "vertical"` records "portrait"
+   but throws away *which way*, so the display comes out 180° wrong — **upside down**, exactly what The
+   Pit did. Copy the game's `ROT` straight out of its MAME `GAME()` line into the manifest and have the
+   renderer apply it faithfully (not a boolean "is it rotated").
+
+7. **Unported audio → silent, not broken — but you can add sound without porting the audio hardware.**
+   A game whose sound CPU/chips are not translated runs with no audio, which is expected. To give it
+   sound anyway, record and replay one clip per soundlatch command — see **Audio without emulating the
+   sound hardware** below.
+
+## Audio without emulating the sound hardware — record and replay
+
+A game's sound almost always lives on a *second* CPU (its own Z80/i8035 + PSG/DAC chips) the port has
+not translated — and you do not need to translate it to have sound. The board's main CPU asks for a
+sound by writing a **command byte to a soundlatch**; that write is the entire game-side interface. So
+tap it and play a **recording of what the real hardware produced for that command** — no second CPU,
+no chip emulation. Same "audio above the emulation" stance DK uses, in its simplest form.
+
+1. **Record one clip per command (`games/<id>/tools/record_samples.py`, adapt DK's).** It drives real
+   MAME once, headless, and for each command byte injects it to the soundlatch and captures what MAME
+   emits into `cmd_<decimal>.wav`, writing an `index.json` of which commands sounded, the file each
+   landed in, and whether the clip loops. Three things that bit The Pit and will bite the next game:
+   - **Mute the ROM's own soundlatch writes** while you inject, or the game's own audio fights your
+     stimulus. A Lua write-tap that swallows writes to the latch address does it.
+   - **Know how the command triggers.** On The Pit the soundlatch write does **not** assert the audio
+     CPU's interrupt — that CPU polls the latch on its own VSYNC IRQ — so "triggering" is just *hold
+     the byte ≥1 frame*. Read the driver for whether a latch write raises an IRQ or is polled.
+   - **Two signal traps:** the PSG idle DC bias can step by thousands of LSB between sounds, so
+     **median-center each segment**, not mean-center, or silent tails read as signal; and `soft_reset`
+     re-runs the autoboot script, so it cannot isolate one command — separate clips by the
+     pulse-vs-sustain *stop timing* instead.
+
+2. **Committed contract vs. BYO recordings — the same split as the ROM.**
+   - **Committed:** `manifest.audio = { map: "audio/sounds.js", samples: "audio/samples" }`, and
+     `audio/sounds.js` — **data only** — declaring the model and latch address
+     (`{ model: "clips", soundLatch: 0x… }`). No per-command table and no invented sound names live
+     here: names are evidence-based, and the per-command facts are a measurement of the ROM.
+   - **Gitignored (BYO):** everything under `audio/samples/` — the WAVs *and* `index.json`. It is
+     ROM-derived audio, so it is copyright, exactly like the ROM. A fresh clone is silent until the
+     user runs the recorder against their own ROM; that is the point, not a gap.
+
+3. **The web side — one generic tap, two playback models.**
+   - `web/worker.js` forwards each tapped sound write to the page, deduped **by address** (a `Map`
+     keyed by the raw write address), so a **single** soundlatch works as cleanly as DK's several latch
+     surfaces — only a *changed* value at an address ships. (An older DK-specific latch-index made the
+     single-latch case never dedup and flood; don't reintroduce it.) Guard any polled surface behind a
+     board-capability check so a board that lacks it ships no spurious edge.
+   - `web/player.html`'s `setupAudio()` dispatches on `SOUNDS.model`. DK's default model schedules
+     discrete synth effects + recorded tunes across trigger/latch/irq surfaces; the **`"clips"`** model
+     is the simple one — load `index.json`, one clip per command, play that command's clip on its write.
+
+4. **★ The trap that will get you: do NOT loop off the recorder's `loop` flag.** The recorder cannot
+   reliably tell a looping tune from a sustained one-shot — its clips are fixed-length captures, and on
+   The Pit it detected **no real loop point on any command** (`loop_period` null throughout) yet still
+   flagged most as "loop." Honor that and the last tune of the boot burst **drones forever**. The board
+   has one sound CPU, so model **one voice**: a new command stops the previous and plays it **once**,
+   nothing loops. If a game genuinely needs looping music, earn it by detecting a **real loop point** in
+   the recorder — never off the sustained-to-slot-end heuristic.
+
 ## The steps
 
 The porting-specific glue is the three layers above, the `inputs` block below, keeping the ROM out

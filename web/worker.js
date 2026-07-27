@@ -51,15 +51,16 @@ let PORTS = null;  // {in0,in1,in2} input port addresses, from manifest.inputs.p
 // ---------------------------------------------------------------------------
 let audioOn = false;
 let live = null;               // the LiveMachine currently running, for re-arming
-// 0 = 0x7C00, 1..8 = 0x7D00..0x7D07, 9 = 0x7D80 (polled, see below)
-const soundLast = new Int16Array(10).fill(-1);
-const IRQ_SLOT = 9, IRQ_ADDR = 0x7d80;
+// Edge dedup keyed by the raw write address, so it is game-agnostic: DK taps
+// several latch surfaces (0x7C00, 0x7D00..0x7D07, the polled 0x7D80), The Pit a
+// single soundlatch (0xB800). Only a CHANGED value at an address ships downstream.
+const soundLast = new Map();   // addr -> last value emitted
+const IRQ_ADDR = 0x7d80;       // DK's polled sound-IRQ surface (see below)
 let soundQueue = [];           // [addr, value, addr, value, ...] for this frame
 
 function emitSound(addr, value) {
-  const i = addr === 0x7c00 ? 0 : addr === IRQ_ADDR ? IRQ_SLOT : addr - 0x7cff;
-  if (soundLast[i] === value) return;
-  soundLast[i] = value;
+  if (soundLast.get(addr) === value) return; // unchanged at this address -> no edge
+  soundLast.set(addr, value);
   soundQueue.push(addr, value);
 }
 
@@ -98,7 +99,9 @@ function makeLive(Machine) {
       // The one polled sound surface. Sampled BEFORE the queue is flushed so its
       // edge ships with the frame it happened in, and only when audio is armed,
       // so a run with no audio reads nothing.
-      if (audioOn) emitSound(IRQ_ADDR, this.io.audioIrq & 1);
+      // DK's polled sound-IRQ surface. Boards without one (The Pit) leave audioIrq
+      // undefined, so this poll is skipped rather than shipping a spurious edge.
+      if (audioOn && this.io.audioIrq !== undefined) emitSound(IRQ_ADDR, this.io.audioIrq & 1);
       // Sound edges accumulated during the frame, shipped as one compact
       // message. Batching per frame (not per write) keeps this off the hot path
       // and keeps the events in execution order.
@@ -175,7 +178,7 @@ async function run(gameId, provided) {
     // A fresh machine has fresh latches, so the remembered edge state has to go
     // with it, or the first frame after a reboot would suppress real events.
     live = m;
-    soundLast.fill(-1);
+    soundLast.clear();
     soundQueue = [];
     syncSoundTap();
     let reason = null;
@@ -204,7 +207,7 @@ onmessage = (e) => {
     // loaded; it tells us here. Until it does (and forever, if it never does)
     // the board tap stays unset and the engine is untouched.
     audioOn = !!d.enabled;
-    soundLast.fill(-1); // re-announce the current latch state on the next write
+    soundLast.clear(); // re-announce the current latch state on the next write
     soundQueue = [];
     syncSoundTap();
   }

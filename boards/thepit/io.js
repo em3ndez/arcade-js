@@ -19,6 +19,15 @@ export class NotImplemented extends Error {
 }
 
 /**
+ * Live input source placeholder. The game-agnostic web worker constructs `new Inputs()`
+ * and hands it to the Machine, but The Pit drives live keys straight onto io.inputAssert
+ * (the worker's LiveMachine.applyInputs override sets IN0/IN1 from the current key bits),
+ * so nothing reads from an Inputs object here — this exists only so `new Inputs()` in the
+ * worker resolves. (DK's Inputs holds a live key map; The Pit's live path is inputAssert.)
+ */
+export class Inputs {}
+
+/**
  * The watchdog. Reading 0xB800 resets it — the READ is the kick; the write side of
  * 0xB800 is the sound latch. The Pit's main loop / NMI reads 0xB800, so it is fed in
  * normal operation. UNVERIFIED: timeoutFrames is a PLACEHOLDER — get the real count
@@ -57,7 +66,13 @@ export class Io {
     this.latch = 0x00;
 
     this.watchdog = new Watchdog();
-    this.soundLatch = 0x00; // command to the (deferred) audio Z80
+    this.soundLatch = 0x00; // command to the audio Z80 (0xb800)
+
+    // Optional sound-write tap: the web player's audio layer sets this to be notified
+    // of each soundlatch write, so it can play a sample/synth for the command WITHOUT
+    // emulating the audio Z80 + AY chips (same "audio above emulation" hack as DK).
+    // null (the default) is inert — the offline engine never touches it.
+    this.onSoundWrite = null;
 
     // Injected presses for input-tape testing: {portAddr: pressedBits} or null.
     // Set per-frame by Machine.applyInputs (from emit --input / a tape); folded into
@@ -99,7 +114,10 @@ export class Io {
     else this.latch &= ~(1 << bit) & 0xff;
   }
   writeSoundLatch(value) {
-    this.soundLatch = value & 0xff; // audio deferred — just latch it
+    this.soundLatch = value & 0xff;
+    // Notify the audio layer of the command so it can play a sample/synth (the audio
+    // Z80 + AY chips are not emulated). Inert offline (onSoundWrite is null).
+    if (this.onSoundWrite) this.onSoundWrite(0xb800, this.soundLatch);
   }
 
   // -- derived control lines (read by the machine) ------------------------

@@ -158,8 +158,16 @@ import { getCached, putCached, clearCached } from "./romstore.js";
 
   const SRC_W = manifest.screen?.width ?? 256, SRC_H = manifest.screen?.height ?? 224;
   const FRAME_BYTES = SRC_W * SRC_H * 3;
-  const rotate = (manifest.orientation ?? "vertical") === "vertical";
-  const DISP_W = rotate ? SRC_H : SRC_W, DISP_H = rotate ? SRC_W : SRC_H;
+  // Screen orientation straight from the game's MAME ROT (manifest.screen.rot: 0/90/180/270),
+  // decomposed into the same SWAP_XY/FLIP_X/FLIP_Y flags MAME uses. ROT90 = SWAP_XY|FLIP_X (90° CW),
+  // ROT270 = SWAP_XY|FLIP_Y (90° CCW) — DK (270) and The Pit (90) rotate OPPOSITE ways, so the page
+  // must not assume a direction. Fall back to the legacy orientation boolean (vertical => ROT270)
+  // for a manifest that predates screen.rot.
+  const ROT = manifest.screen?.rot ?? ((manifest.orientation ?? "vertical") === "vertical" ? 270 : 0);
+  const swapXY = ROT === 90 || ROT === 270;
+  const flipX = ROT === 90 || ROT === 180;
+  const flipY = ROT === 270 || ROT === 180;
+  const DISP_W = swapXY ? SRC_H : SRC_W, DISP_H = swapXY ? SRC_W : SRC_H;
 
   const C_IN0 = 0, C_IN1 = 1, C_IN2 = 2, C_PAUSED = 3, C_COUNTER = 4, C_RUNNING = 5, C_RESET = 6;
 
@@ -243,22 +251,18 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     const counter = Atomics.load(ctrl, C_COUNTER);
     if (counter !== lastCounter) {
       const base = (((counter - 1) % 2) + 2) % 2 * FRAME_BYTES;
-      if (rotate) {
-        // 90° CCW into portrait: dest(dx,dy) <- src(x=SRC_W-1-dy, y=dx)
-        for (let dy = 0; dy < DISP_H; dy++) {
-          const col = base + (SRC_W - 1 - dy) * 3;
-          let d = dy * DISP_W * 4;
-          for (let dx = 0; dx < DISP_W; dx++, d += 4) {
-            const s = col + dx * SRC_W * 3;
-            rgba[d] = fb[s]; rgba[d + 1] = fb[s + 1]; rgba[d + 2] = fb[s + 2];
-          }
-        }
-      } else {
-        for (let y = 0; y < DISP_H; y++) {
-          let d = y * DISP_W * 4, s = base + y * SRC_W * 3;
-          for (let x = 0; x < DISP_W; x++, d += 4, s += 3) {
-            rgba[d] = fb[s]; rgba[d + 1] = fb[s + 1]; rgba[d + 2] = fb[s + 2];
-          }
+      // Apply the game's MAME orientation generically (swapXY/flipX/flipY, above): for each
+      // display pixel, un-flip then un-swap to find its source pixel. No game-specific rotation
+      // is baked in — DK (ROT270) and The Pit (ROT90) fall out of the same code.
+      for (let dy = 0; dy < DISP_H; dy++) {
+        let d = dy * DISP_W * 4;
+        for (let dx = 0; dx < DISP_W; dx++, d += 4) {
+          const ux = flipX ? DISP_W - 1 - dx : dx;
+          const uy = flipY ? DISP_H - 1 - dy : dy;
+          const sx = swapXY ? uy : ux;
+          const sy = swapXY ? ux : uy;
+          const s = base + (sy * SRC_W + sx) * 3;
+          rgba[d] = fb[s]; rgba[d + 1] = fb[s + 1]; rgba[d + 2] = fb[s + 2];
         }
       }
       ctx.putImageData(img, 0, 0);
@@ -269,23 +273,26 @@ import { getCached, putCached, clearCached } from "./romstore.js";
   }
   requestAnimationFrame(present);
 
-  let in0 = 0, in2 = 0;
-  // Keyboard map comes from the game's declarative input contract
-  // (manifest.inputs), not from DK-specific literals here. Each binding names an
-  // action; the action carries its port + bit. We split the bindings into the
-  // two per-port key->bit maps that back the IN0 (joystick+jump) and IN2
-  // (coin/start) Atomics slots, so a key sets the right bit on the right port.
+  let in0 = 0, in1 = 0, in2 = 0;
+  // Keyboard map comes from the game's declarative input contract (manifest.inputs),
+  // not DK-specific literals. Each binding names an action carrying its port + bit; we
+  // split the bindings into the three per-port key->bit maps that back the IN0/IN1/IN2
+  // Atomics slots, so a key sets the right bit on the right port. Games differ on which
+  // port holds coin/start (DK: IN2; The Pit: IN1) — this reads it from the manifest.
   const { ports, actions, keys } = inputs;
-  const K0 = {}, K2 = {};
+  const K0 = {}, K1 = {}, K2 = {};
+  const mapFor = (port) =>
+    port === ports.in0 ? K0 : port === ports.in1 ? K1 : port === ports.in2 ? K2 : null;
   for (const [code, action] of Object.entries(keys)) {
     const a = actions[action];
     if (!a) continue;
-    if (a.port === ports.in0) K0[code] = a.bit;
-    else if (a.port === ports.in2) K2[code] = a.bit;
+    const K = mapFor(a.port);
+    if (K) K[code] = a.bit;
   }
   const push0 = () => Atomics.store(ctrl, C_IN0, in0);
+  const push1 = () => Atomics.store(ctrl, C_IN1, in1);
   const push2 = () => Atomics.store(ctrl, C_IN2, in2);
-  const isGameKey = (c) => c in K0 || c in K2 || c === "KeyP" || c === "KeyR" || c === "KeyM";
+  const isGameKey = (c) => c in K0 || c in K1 || c in K2 || c === "KeyP" || c === "KeyR" || c === "KeyM";
   addEventListener("keydown", (e) => {
     if (isGameKey(e.code)) e.preventDefault(); // stop arrow/space page-scroll, incl. auto-repeat
     if (e.repeat) return;                      // act once per press, but always preventDefault above
@@ -294,19 +301,25 @@ import { getCached, putCached, clearCached } from "./romstore.js";
     if (e.code === "KeyP") { togglePause(); return; }
     if (e.code === "KeyR") { Atomics.store(ctrl, C_RESET, 1); return; }
     if (e.code in K0) { in0 |= K0[e.code]; push0(); }
+    if (e.code in K1) { in1 |= K1[e.code]; push1(); }
     if (e.code in K2) { in2 |= K2[e.code]; push2(); }
   });
   addEventListener("keyup", (e) => {
     if (e.code in K0) { in0 &= ~K0[e.code]; push0(); e.preventDefault(); }
+    if (e.code in K1) { in1 &= ~K1[e.code]; push1(); e.preventDefault(); }
     if (e.code in K2) { in2 &= ~K2[e.code]; push2(); e.preventDefault(); }
   });
-  const pulse2 = (bit) => { in2 |= bit; push2(); setTimeout(() => { in2 &= ~bit; push2(); }, 120); };
   const togglePause = () => Atomics.store(ctrl, C_PAUSED, Atomics.load(ctrl, C_PAUSED) ? 0 : 1);
-  // Every one of these is a genuine user gesture, which is the only moment a
-  // browser will let an AudioContext start. audioGesture() is a no-op with no
-  // audio, and idempotent with it.
-  document.getElementById("coin").onclick = () => { audioGesture(); pulse2(actions.coin.bit); };
-  document.getElementById("start").onclick = () => { audioGesture(); pulse2(actions.start1.bit); };
+  // Pulse a momentary action (coin/start) on whichever port the manifest puts it on.
+  const pulse = (a) => {
+    if (a.port === ports.in0) { in0 |= a.bit; push0(); setTimeout(() => { in0 &= ~a.bit; push0(); }, 120); }
+    else if (a.port === ports.in1) { in1 |= a.bit; push1(); setTimeout(() => { in1 &= ~a.bit; push1(); }, 120); }
+    else { in2 |= a.bit; push2(); setTimeout(() => { in2 &= ~a.bit; push2(); }, 120); }
+  };
+  // Every one of these is a genuine user gesture, which is the only moment a browser
+  // will let an AudioContext start. audioGesture() is a no-op with no audio.
+  document.getElementById("coin").onclick = () => { audioGesture(); pulse(actions.coin); };
+  document.getElementById("start").onclick = () => { audioGesture(); pulse(actions.start1); };
   document.getElementById("pause").onclick = () => { audioGesture(); togglePause(); };
   document.getElementById("reset").onclick = () => { audioGesture(); Atomics.store(ctrl, C_RESET, 1); };
 
@@ -382,6 +395,11 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       SOUNDS = (await import(`../games/${gameId}/${spec.map}`)).default;
       ({ SamplePlayer } = await import("../core/audio.js"));
     } catch { return; }
+
+    // Two sound MODELS. DK schedules several latch surfaces (triggers/tunes/irq);
+    // The Pit hands one command byte to a second CPU we don't emulate, so its audio
+    // is one recorded clip per command. Dispatch on the map's declared shape.
+    if (SOUNDS?.model === "clips") return setupClipAudio(spec, SOUNDS, SamplePlayer);
     if (!SOUNDS?.ports || !SOUNDS?.triggers || !SOUNDS?.latch) return;
 
     // A map entry may be given a sound only if it is a sound at all, is measured
@@ -560,6 +578,88 @@ import { getCached, putCached, clearCached } from "./romstore.js";
       player.setMuted(!player.muted);
       if (player.muted) player.stopAll();
       background = null; // stopAll() killed it; forget it so it can restart
+      paintMute();
+    };
+    muteBtn.onclick = audioToggleMute;
+    paintMute();
+    muteBtn.classList.remove("hide");
+    const legend = document.querySelector(".legend");
+    if (legend) { legend.append(" · "); legend.append(el("kbd", "M")); legend.append(" mute"); }
+    armWorkerAudio(); // the worker may already be running; arm it now
+  }
+
+  // =========================================================================
+  // THE CLIP MODEL (SOUNDS.model === "clips"). Some boards have no sound schedule
+  // to interpret: a single soundlatch takes a COMMAND BYTE and a second CPU turns
+  // it into a whole effect or tune. We don't emulate that CPU — the local recorder
+  // (games/<id>/tools/record_samples.py) captured one clip PER COMMAND into
+  // samples/, and its index.json says which command sounds, which file it is, and
+  // whether it loops. So playback is direct: on each soundlatch write, play that
+  // command's clip. The board has one sound CPU, so we model ONE VOICE: a new command
+  // stops the one before it and plays once. Nothing loops — the recorder's clips are
+  // fixed-length captures with no detected loop point, so honouring a "loop" flag just
+  // drones the last tune forever. BYO-samples exactly like the synth/latch path above.
+  // =========================================================================
+  async function setupClipAudio(spec, SOUNDS, SamplePlayer) {
+    const LATCH = SOUNDS.soundLatch;
+    if (!spec.samples || LATCH == null) return;
+
+    // ONE request decides whether there are any recordings: index.json is the
+    // recorder's own record of which command produced sound and what file it landed
+    // in, so we never guess a filename or fire a request that 404s.
+    let index = null;
+    try {
+      const r = await fetch(`../games/${gameId}/${spec.samples}/index.json`);
+      if (r.ok) index = await r.json();
+    } catch { return; } // offline/blocked/no recordings — stay silent, no control
+    if (!index || !Array.isArray(index.clips)) return;
+
+    const player = new SamplePlayer({ masterGain: 0.7 });
+    const clips = new Map(); // command byte -> { name, loop }
+    const base = `../games/${gameId}/${spec.samples}`;
+
+    // Load every sounding clip up front. A clip that fails to arrive is simply
+    // absent from the map — its command then plays nothing (treated as silent).
+    await Promise.all(index.clips
+      .filter((c) => c && c.file && !c.silent && Number.isInteger(c.command))
+      .map(async (c) => {
+        try {
+          const r = await fetch(`${base}/${encodeURIComponent(c.file)}`);
+          if (!r.ok) return;
+          if (!(await player.loadSample(c.id, await r.arrayBuffer()))) return;
+          clips.set(c.command, { name: c.id, loop: !!c.loop });
+        } catch { /* one missing clip must not cost us the others */ }
+      }));
+    if (!clips.size) return; // nothing loaded -> no audio, and no control shown
+
+    let current = null; // the single clip currently sounding, or null
+    onSoundEvents = (ev) => {
+      for (let i = 0; i < ev.length; i += 2) {
+        if (ev[i] !== LATCH) continue;
+        const clip = clips.get(ev[i + 1]);
+        if (!clip) continue;                // silent/unknown command: leave the voice alone
+        if (current) player.stop(current);  // one sound CPU -> one voice at a time
+        player.play(clip.name);
+        current = clip.name;
+      }
+    };
+
+    // The mute control, wired exactly as the synth/latch path does: it appears only
+    // now that there is something to play, defaults to unmuted (nothing is audible
+    // until a gesture creates the AudioContext), and the M key toggles it.
+    const muteBtn = document.getElementById("mute");
+    const paintMute = () => {
+      muteBtn.textContent = "";
+      muteBtn.append(player.muted ? "Sound: off " : "Sound: on ", el("span", "(M)", "#8a8aa5"));
+      muteBtn.classList.toggle("hot", !player.muted);
+      muteBtn.setAttribute("aria-pressed", String(player.muted));
+    };
+    audioGesture = () => { void player.init(); };
+    audioToggleMute = () => {
+      void player.init();
+      player.setMuted(!player.muted);
+      if (player.muted) player.stopAll();
+      current = null; // stopAll() killed it; forget it so it can restart
       paintMute();
     };
     muteBtn.onclick = audioToggleMute;

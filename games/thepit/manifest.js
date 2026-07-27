@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// The Pit — game manifest (FIRST DRAFT for the game #2 port). Declares which CPU +
-// board this romset runs on, how to assemble its (uncommitted, copyrighted) ROM, and
-// metadata for the launcher. Modeled on games/dkong/manifest.js.
+// The Pit — game manifest (game #2 port). Declares which CPU + board this romset runs
+// on, how to assemble its (uncommitted, copyrighted) ROM, and metadata for the launcher.
+// Modeled on games/dkong/manifest.js.
 //
 // Romset = `thepitu1` ("The Pit (US set 1)", Zilec/Centuri). Verified against MAME
 // 0.288 taito/roundup.cpp by SHA-1 on every part. The user's current loose dump names
@@ -14,8 +14,8 @@ export default {
   title: "The Pit",
   year: 1982,
   manufacturer: "Zilec Electronics",
-  orientation: "vertical",     // ROT90, display rotated — same as DK
-  screen: { width: 256, height: 224 },
+  orientation: "vertical",     // portrait (display rotated). NB: rotation is OPPOSITE DK — see screen.rot
+  screen: { width: 256, height: 224, rot: 90 },  // MAME ROT90 = 90° CW (SWAP_XY|FLIP_X)
 
   cpu: "z80",                  // core/cpu/z80.js — reused verbatim
   board: "thepit",             // boards/thepit/ (Zilec "roundup" family hardware)
@@ -69,10 +69,19 @@ export default {
         size: 32,
         sha256: "8ca28db76430409265eaedcbaaf48353a5d049bf316eed7d16078e20a6413c14",
       },
-      // audiocpu (p30.ic30, 2KB, the second Z80) is DEFERRED — audio not ported yet.
+      // No audiocpu image (p30.ic30, the second Z80): its chip is NOT emulated — audio is
+      // recorded clips played above the emulation (see the `audio` block below).
     },
   },
 
-  // TODO(game #2): audio block (2nd Z80 + 2x AY-3-8910) deferred like DK's audio;
+  // Audio: the "clips" model — one recorded clip per soundlatch command, played
+  // ABOVE the emulation (the 2nd Z80 + 2x AY-3-8910 are NOT emulated). `map` is the
+  // committed, data-only model description (audio/sounds.js); `samples` is the
+  // gitignored directory the recorder fills (games/thepit/tools/record_samples.py)
+  // with one WAV per command plus an index.json. Omit both and the game is silent.
+  audio: {
+    map: "audio/sounds.js",
+    samples: "audio/samples",
+  },
   // entropyPin only if The Pit couples its RNG to timing (unknown until translation).
 }

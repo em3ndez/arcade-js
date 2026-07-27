@@ -28,7 +28,7 @@ import { Io, NotImplemented } from "../../boards/thepit/io.js";
 import { UnmappedAccess } from "../../boards/thepit/memory.js";
 import { Regs } from "../../core/cpu/z80.js";
 import { makeIndexedView } from "../../core/mem-views.js";
-import { buildRoutines } from "./routines.js";
+import { buildRoutines, ORACLE_ROUTINES } from "./routines.js";
 import { decodePalette, renderFrame as boardRenderFrame } from "../../boards/thepit/video.js";
 
 /**
@@ -134,14 +134,12 @@ export class Machine {
    * @param {Uint8Array} [opts.proms] colour PROM — enables renderFrame()
    */
   constructor(rom, opts = {}) {
-    const { routines, gfx, proms, overrides } = opts;
-    if (!(routines instanceof Map)) {
-      throw new Error(
-        "Machine needs an already-built routine registry (opts.routines is a Map). " +
-          "The registry is built by an async dynamic import, which a constructor " +
-          "cannot await — call `await Machine.create(rom, opts)` instead.",
-      );
-    }
+    const { gfx, proms, overrides } = opts;
+    // The registry is a static import now (routines.js), so the constructor builds it
+    // synchronously: reuse a caller-supplied Map (the equivalence factory shares one)
+    // or take the static oracle table. This is what lets the browser worker construct
+    // `new Machine(rom, {...})` directly, without the old async Machine.create().
+    const routines = opts.routines instanceof Map ? opts.routines : ORACLE_ROUTINES;
     this.rom = rom;
     this.assets = opts;
     this.io = new Io();
@@ -177,6 +175,13 @@ export class Machine {
     this.frame = 0;
     this.booted = false;
     this.frames = []; // captured state dumps, one per frame boundary
+    // Live raster-render interface (opt-in), matching DK's Machine so the web worker
+    // can drive it: with captureVideo set, each frame boundary pushes the composed RGB
+    // frame to videoFrames (see finishRasterFrame + tick). Off by default — the offline
+    // pipeline renders on demand from this.frames and never touches these.
+    this.captureVideo = false;
+    this.videoFrames = [];
+
     this.nextBoundary = Infinity; // set by runFrames()
     this.maxFrames = Infinity;
     this.maxCycles = Infinity;
@@ -303,6 +308,7 @@ export class Machine {
       this.applyInputs(this.frames.length);
       this.applyPokes(this.frames.length);
       this.frames.push(this.dumpState());
+      if (this.captureVideo) this.finishRasterFrame(); // live-render hook (web worker)
       this.nextBoundary += CYCLES_PER_FRAME;
     }
 
@@ -535,6 +541,38 @@ export class Machine {
     if (!this.video) throw new Error("renderFrame needs gfx and proms at construction");
     return boardRenderFrame(this.mem, this.video.gfx, this.video.pal, this.io);
   }
+
+  /**
+   * Live-render hook, called at each frame boundary while captureVideo is set: push
+   * the composed RGB frame to videoFrames. The offline pipeline leaves captureVideo
+   * off and renders on demand instead. The web worker's LiveMachine overrides this to
+   * also blit the frame to the shared framebuffer and pace to 60 Hz.
+   */
+  finishRasterFrame() {
+    if (this.video) this.videoFrames.push(this.renderFrame());
+  }
+}
+
+/**
+ * Resolve a game's declarative `manifest.optimized` block ({ "hhhh": {module, export} })
+ * into a Map<addr, fn> the Machine layers over the oracle registry — the same seam the
+ * web worker uses. An absent/empty block resolves to an empty Map (a pure translated
+ * run). The Pit ships no optimized routines yet, so this normally returns empty; it
+ * exists so the game-agnostic worker (which calls it for every game) works for The Pit.
+ */
+export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
+  const map = new Map();
+  for (const [key, ent] of Object.entries(spec)) {
+    const addr = parseInt(key, 16);
+    const url = new URL(ent.module, baseUrl).href;
+    const mod = await import(url);
+    const fn = mod[ent.export];
+    if (typeof fn !== "function") {
+      throw new Error(`override ${key}: module ${ent.module} has no function export "${ent.export}"`);
+    }
+    map.set(addr, fn);
+  }
+  return map;
 }
 
 /**

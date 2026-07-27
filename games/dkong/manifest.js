@@ -18,7 +18,7 @@ export default {
   year: 1981,
   manufacturer: "Nintendo",
   orientation: "vertical",     // portrait; the display is rotated 90° CCW
-  screen: { width: 256, height: 224 },
+  screen: { width: 256, height: 224, rot: 270 },  // MAME ROT270 = 90° CCW (SWAP_XY|FLIP_Y)
 
   cpu: "z80",                  // core/cpu/z80.js
   board: "dkong",              // boards/dkong/
