@@ -8,7 +8,7 @@
  * routine looks at the actor's coordinate and forks:
  *
  *   - Coordinate in the high half (128 or above): the actor is still on-screen, so hand
- *     the frame straight to the cadence/move path (loc_3945), whose result carries back
+ *     the frame straight to the cadence/move path (paceActorDescent), whose result carries back
  *     through to our caller.
  *   - Coordinate below the high half: the actor has run off the low edge, so REBUILD it
  *     from scratch. Park the coordinate back at the start edge (240) with the shadow twin
@@ -18,7 +18,7 @@
  *     cell figure (tiles 184..191, one shared colour) into the tilemap and colour map.
  *     Then return.
  *
- * The name stays neutral to match this actor's move path (loc_3945/descendActorToRest), which
+ * The name stays neutral to match this actor's move path (paceActorDescent/descendActorToRest), which
  * deliberately kept loc_ names because which actor it drives and whether the coordinate
  * is a screen X or Y are not pinned in the mechanism map. Promoting this gate above them
  * would claim more confidence than the family has earned; the mechanics below are exact.
@@ -29,7 +29,7 @@
  *           the move path); the whole coordinate domain 0..255 is then swept identically
  *           on both sides to cover the 127/128 branch boundary; plus teeth.
  * LIVE-OUT: memory-only — the rebuilt actor/twin records, the re-stamped tile+colour
- *           figure, and (on the move arm) everything loc_3945 leaves. The value registers
+ *           figure, and (on the move arm) everything paceActorDescent leaves. The value registers
  *           the oracle threads are dead ABI (this gate sits on a tail-jump ladder whose
  *           callers reload the register file next frame); the whole-machine gate backstops
  *           that.
@@ -51,7 +51,7 @@ import {
   TWIN_TILE,
   TWIN_X,
 } from "./ram.js";
-import { loc_3945 } from "./loc_3945.js";
+import { paceActorDescent } from "./paceActorDescent.js";
 
 const PRIMARY_PAIRED = 0x810c; // paired-display byte on the primary record (unnamed in ram.js)
 const TWIN_PAIRED = 0x811d; // paired-display byte on the twin record (unnamed in ram.js)
@@ -71,7 +71,7 @@ export function loc_38c8(m) {
   const { mem8 } = m;
 
   // While the actor is still in the high half of the field, keep it moving.
-  if (mem8[ACTOR_X] >= 128) return loc_3945(m);
+  if (mem8[ACTOR_X] >= 128) return paceActorDescent(m);
 
   // The actor ran off the low edge: rebuild the primary body and its shadow twin.
   mem8[ACTOR_X] = 240; // coordinate parked back at the start edge

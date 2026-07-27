@@ -18,7 +18,7 @@
  * the sequence above is exactly what the code does.
  *
  * The interrupt enable is now the idiomatic enableNmi (0x4b14) and the blank-screen
- * display setup is the idiomatic loc_4b44 (0x4b44), both direct JS calls. One callee is
+ * display setup is the idiomatic blankScreen (0x4b44), both direct JS calls. One callee is
  * still the frozen oracle, reached through the registry and bracketed with the return
  * address it pops off the work stack — a genuine oracle boundary that keeps the stack
  * byte-identical to the original: the fixed-screen painter (0x3ba8). The painter is a
@@ -39,7 +39,7 @@
  */
 
 import { enableNmi } from "./enableNmi.js";
-import { loc_4b44 } from "./loc_4b44.js";
+import { blankScreen } from "./blankScreen.js";
 import { GAME_MODE } from "./ram.js";
 
 export function showCreditScreen(m) {
@@ -57,7 +57,7 @@ export function showCreditScreen(m) {
   enableNmi(m);
 
   // Run the blank-screen display setup — clear the screen and seed the board-mode fills.
-  loc_4b44(m);
+  blankScreen(m);
 
   // Tail hand-off to the fixed-screen painter: it paints a canned screen and holds it
   // forever, so this is the routine's exit and it never returns.

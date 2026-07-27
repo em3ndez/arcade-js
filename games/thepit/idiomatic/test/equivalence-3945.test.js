@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3945 (ROM 0x3945, The Pit) — the cadence front
+ * Memory-equivalence gate for paceActorDescent (ROM 0x3945, The Pit) — the cadence front
  * end that counts the period-8 timer (0x8112) down one tick, reloads it to 8 on the
  * tick it runs out (a decrement of 1 down to 0), then runs the phase body descendActorToRest.
  *
- * THE CONTRACT — OBSERVABLE RAM (was full-state). loc_3945 tail-delegates to the
+ * THE CONTRACT — OBSERVABLE RAM (was full-state). paceActorDescent tail-delegates to the
  * phase body descendActorToRest, which USED to tail-jump into the shared record builder at
  * 0x3a4c via m.call; that callee's `ret` popped this whole tail chain's caller
  * return address, so the full register file AND pc/SP reconverged after the handoff
@@ -13,7 +13,7 @@
  * (equivalence-3968.test.js — PASSING under a RAM-only contract). A direct JS call
  * has no Z80 stack frame: the callee stages the two sprite records but never rets, so
  * it no longer marches SP, sets pc, or leaves the oracle's residual value registers.
- * loc_3945 imports and calls that dissolved descendActorToRest directly, so those same three —
+ * paceActorDescent imports and calls that dissolved descendActorToRest directly, so those same three —
  * pc, SP and the value register(s) — now diverge from the oracle by construction and
  * are EXCLUDED here.
  *
@@ -21,7 +21,7 @@
  *   1. RAM is byte-identical. The failing full-state diff reported ram=null (the whole
  *      RAM dump matched) with ONLY register `a` (oracle 31 vs idiomatic 240) and
  *      pc/SP differing — pure ABI residue, no observable effect moved.
- *   2. loc_3945 never touches register `a`: it only reads/writes the timer byte
+ *   2. paceActorDescent never touches register `a`: it only reads/writes the timer byte
  *      (0x8112) in RAM and then delegates. So its register live-out is IDENTICAL to
  *      descendActorToRest's, whose already-accepted RAM-only contract declared exactly these
  *      registers dead ("memory-only live-out; nothing downstream reads them before
@@ -29,9 +29,9 @@
  *      stageActorSpriteRecords deliberately does not reproduce ("takes nothing and
  *      returns nothing").
  *   3. The whole reach is a TAIL-JUMP ladder:
- *        loc_312d/loc_316f -> 0x3748 -> loc_38c8 -> loc_3945 -> descendActorToRest -> 0x3a4c
+ *        loc_312d/loc_316f -> 0x3748 -> loc_38c8 -> paceActorDescent -> descendActorToRest -> 0x3a4c
  *      Every link is a tail-jump (verified in the translated arms: loc_38c8's
- *      `jp nc,0x3945`, loc_3945's `jr 0x3968`, descendActorToRest's tail into 0x3a4c). No link
+ *      `jp nc,0x3945`, paceActorDescent's `jr 0x3968`, descendActorToRest's tail into 0x3a4c). No link
  *      reads the callee's register `a` — each simply transfers control and consumes
  *      nothing — so 0x3a4c's ret unwinds straight to the per-frame movement
  *      dispatcher's caller. That caller reloads the register file next frame and never
@@ -40,7 +40,7 @@
  *
  * What the routine actually affects is RAM: the timer write here (0x8112) plus the two
  * coordinate writes (0x810a, 0x811b) and the two sprite records the tail builder stages
- * (0x8238, 0x823c). The handoff touches no stack (loc_3945->descendActorToRest are `jr` tail-jumps
+ * (0x8238, 0x823c). The handoff touches no stack (paceActorDescent->descendActorToRest are `jr` tail-jumps
  * with no push; 0x3a4c only reads its ret address), so no dead stack-scratch window
  * exists to exclude either — the full RAM dump is compared byte-for-byte, strictly
  * stronger than a windowed subset.
@@ -69,7 +69,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3945 as oracle } from "../../translated/loc_3945.js";
-import { loc_3945 } from "../loc_3945.js";
+import { paceActorDescent } from "../paceActorDescent.js";
 import { descendActorToRest } from "../descendActorToRest.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -129,7 +129,7 @@ const decWrap = (c) => (c === 0 ? 255 : c - 1);
 
 // -- 1. WIRING: first natural dispatch, observable RAM equivalence --------------
 
-test("WIRING: loc_3945 == oracle on the first natural attract dispatch (observable RAM)", () => {
+test("WIRING: paceActorDescent == oracle on the first natural attract dispatch (observable RAM)", () => {
   // The attract demo that drives this mover starts late (first dispatch ~frame 976),
   // so the capture needs a longer run to reach it.
   const [entry] = captureEntries(1200, 1, 1);
@@ -138,7 +138,7 @@ test("WIRING: loc_3945 == oracle on the first natural attract dispatch (observab
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_3945(b);
+  paceActorDescent(b);
   const diff = observableDiff(a, b);
   assert.equal(diff, null, diff && `gate reported a RAM diff on the first dispatch: ${diff}`);
   console.log("  WIRING: captured 0x3945, ran oracle vs idiomatic through the dissolved descendActorToRest handoff -> RAM EQUAL");
@@ -146,7 +146,7 @@ test("WIRING: loc_3945 == oracle on the first natural attract dispatch (observab
 
 // -- 2. EQUAL on a spread of real captured attract dispatches -------------------
 
-test("EQUAL: loc_3945 == oracle on real attract dispatches (full RAM dump)", () => {
+test("EQUAL: paceActorDescent == oracle on real attract dispatches (full RAM dump)", () => {
   const entries = captureEntries(3000, 3, 240);
   assert.ok(entries.length >= 20, `expected many captured dispatches, got ${entries.length}`);
 
@@ -159,7 +159,7 @@ test("EQUAL: loc_3945 == oracle on real attract dispatches (full RAM dump)", () 
     const a = cap.clone();
     const b = cap.clone();
     oracle(a);
-    loc_3945(b);
+    paceActorDescent(b);
     const diff = observableDiff(a, b);
     assert.equal(diff, null, diff && `mismatch on a real attract dispatch (timer=${counter}): ${diff}`);
   }
@@ -186,7 +186,7 @@ test("EXHAUSTIVE: over all 256 timer values the full RAM dump agrees with the or
     a.mem.write8(ACTOR_TIMER, counter);
     b.mem.write8(ACTOR_TIMER, counter);
     oracle(a);
-    loc_3945(b);
+    paceActorDescent(b);
     const diff = observableDiff(a, b);
     assert.equal(diff, null, diff && `timer=${counter}: ${diff}`);
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_48c4 (ROM 0x48c4, The Pit) — the nine-cell
+ * Memory-equivalence gate for cyclePanelColumnColour (ROM 0x48c4, The Pit) — the nine-cell
  * colour-RAM column recolour that cycles its colour one step per call.
  *
  * The routine seats the fill length / colour / target cell, then drives three cell
@@ -9,7 +9,7 @@
  * idiomatic rewrite calls them DIRECTLY (a plain JS call), where the oracle reached
  * them through the real Z80 stack: it pushed a literal return address before each of
  * the first two helper calls and tail-jumped into the fill, whose own `ret` unwound
- * to loc_48c4's caller.
+ * to cyclePanelColumnColour's caller.
  *
  * Because the direct calls have no Z80 stack frame, the idiomatic routine no longer
  * pushes those return addresses, no longer advances SP, and no longer rets — so pc,
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_48c4 as oracle } from "../../translated/loc_48c4.js";
-import { loc_48c4 as idiomatic } from "../loc_48c4.js";
+import { cyclePanelColumnColour as idiomatic } from "../cyclePanelColumnColour.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
@@ -66,7 +66,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x48c4;
-// loc_48c4 is dispatched from the dig core only once the attract DEMO is playing —
+// cyclePanelColumnColour is dispatched from the dig core only once the attract DEMO is playing —
 // first entry lands near frame 695 (well past the title), so every capture/gate run
 // needs a budget that reaches the demo.
 const REACH_FRAMES = 820;
@@ -159,7 +159,7 @@ test("HARNESS: a real 0x48c4 dispatch is captured and the oracle run is determin
 
 // -- 1. EQUAL on the first real captured dispatch ----------------------------
 
-test("EQUAL: idiomatic loc_48c4 == oracle over RAM (outside stack scratch) + pc + SP", () => {
+test("EQUAL: idiomatic cyclePanelColumnColour == oracle over RAM (outside stack scratch) + pc + SP", () => {
   const [entry] = captureEntries(1, REACH_FRAMES);
   assert.ok(entry, "attract must dispatch 0x48c4 at least once");
   const colorBefore = entry.mem.read8(BOARD_MODE);

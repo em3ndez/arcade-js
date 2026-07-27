@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4b44 (ROM 0x4b44) — the mode-0 door of the
+ * Memory-equivalence gate for blankScreen (ROM 0x4b44) — the mode-0 door of the
  * display-setup fan-in.
  *
- * loc_4b44 stows board-mode 0 at BOARD_MODE and blanks the screen for setup in four
+ * blankScreen stows board-mode 0 at BOARD_MODE and blanks the screen for setup in four
  * fixed-region steps: clear sprite/attribute RAM, fill the tilemap, flat-fill colour
  * RAM with the board-mode byte, and wipe the sprite-staging work block. All four
  * callees are already decompiled, so the idiomatic rewrite calls them directly and
@@ -42,7 +42,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4b44 as oracle } from "../../translated/loc_4b44.js";
-import { loc_4b44 as idiomatic } from "../loc_4b44.js";
+import { blankScreen as idiomatic } from "../blankScreen.js";
 import { clearSpriteAndAttributeRam } from "../clearSpriteAndAttributeRam.js";
 import { fillVideoRam } from "../fillVideoRam.js";
 import { fillColorRam } from "../fillColorRam.js";
@@ -134,7 +134,7 @@ test("HARNESS: a real 0x4b44 dispatch is captured and the oracle run is determin
 
 // -- 1. EQUAL on real captured dispatches (memory-only) ----------------------
 
-test("EQUAL (real dispatches): idiomatic loc_4b44 == oracle over RAM outside the stack scratch", () => {
+test("EQUAL (real dispatches): idiomatic blankScreen == oracle over RAM outside the stack scratch", () => {
   const caps = captureEntries(8, 600);
   assert.ok(caps.length >= 1, "expected at least one real 0x4b44 dispatch");
   for (const cap of caps) {

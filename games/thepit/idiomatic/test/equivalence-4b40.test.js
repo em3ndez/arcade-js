@@ -13,9 +13,9 @@
  * WHY A CRAFTED ENTRY. The 0x90 door is never dispatched during attract (the demo only
  * reaches the 0x00 and 0xC0 doors), so the capture/replay harness cannot hook 0x4b40
  * directly. Per the crafted-entry method the gate instead runs the routine from a REAL
- * captured sibling state: loc_4b44 (the 0x00 door) IS reached in attract and shares the
+ * captured sibling state: blankScreen (the 0x00 door) IS reached in attract and shares the
  * identical call convention and body, so its entry is a faithful state for the 0x90
- * door too. Crucially loc_4b40 never calls loc_4b44, so cloning that entry introduces no
+ * door too. Crucially loc_4b40 never calls blankScreen, so cloning that entry introduces no
  * registry recursion. The one input that shapes the output — the board-mode byte — is
  * fixed 0x90 by the routine itself.
  *
@@ -30,7 +30,7 @@
  * and the idiomatic routine model their own return, so no external ret is added.
  *
  * Five checks:
- *   0. HARNESS — capture a real loc_4b44 sibling entry and confirm the oracle run of
+ *   0. HARNESS — capture a real blankScreen sibling entry and confirm the oracle run of
  *      loc_4b40 is deterministic (oracle vs oracle -> identical whole state + pc).
  *      Proves the capture/clone/diff plumbing reaches a genuine setup entry.
  *   1. EQUAL (crafted sibling entry) — loc_4b40 == oracle over RAM (outside the stack
@@ -178,7 +178,7 @@ function twinMissTilemap(m) {
 
 // -- 0. HARNESS (reachability + determinism) ---------------------------------
 
-test("HARNESS: a real loc_4b44 sibling entry is captured and the oracle run of loc_4b40 is deterministic", () => {
+test("HARNESS: a real blankScreen sibling entry is captured and the oracle run of loc_4b40 is deterministic", () => {
   const entry = captureSiblingEntry(1500);
   assert.ok(entry, "expected the sibling 0x00 door 0x4b44 to be dispatched during attract");
   assert.equal(entry.mem.read8(BOARD_MODE), 0x00, "the sibling entry should carry the 0x00 door's board mode (non-vacuous state)");

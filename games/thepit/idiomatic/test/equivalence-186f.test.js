@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_186f (ROM 0x186f) — locate the tracked object's tile cell,
+ * Memory-equivalence gate for resolveObjectTile (ROM 0x186f) — locate the tracked object's tile cell,
  * read the tile under it, and hand the object to the matching per-frame handler.
  *
  * From the object's position counters (plus the caller's horizontal bias) it derives the row
@@ -9,9 +9,9 @@
  * (advanceActorWalk); everything else -> the loot/dig collector (collectLootTile). Its declared
  * LIVE-OUT is MEMORY-ONLY (the cell coordinates + address, the published under-tile and cleared
  * next-tile slot, the goal latches, and whatever the handoff handler writes). Both handlers are
- * already idiomatic, so loc_186f calls them directly — no register hand-off survives.
+ * already idiomatic, so resolveObjectTile calls them directly — no register hand-off survives.
  *
- * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE loc_186f, whose tail-jumps
+ * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE resolveObjectTile, whose tail-jumps
  * thread through the stack (m.call/push16), against the stack-free idiomatic handler chain. The
  * two therefore leave different dead bytes just below the entry stack pointer (The Pit's stack
  * is real diffed work RAM, ~0x83fd here) — classic dead scratch, overwritten by the caller's
@@ -20,7 +20,7 @@
  * (0x8020..0x80e7 plus video RAM), so the window can never hide one — the teeth confirm it.
  *
  * Registers/flags/pc/SP are excluded (the honest-signature contract): the idiomatic layer does
- * not preserve the Z80 register/step trace, and the horizontal bias — loc_186f's one genuine
+ * not preserve the Z80 register/step trace, and the horizontal bias — resolveObjectTile's one genuine
  * register live-in — is surfaced as the columnBias parameter (defaulting to the register, so a
  * no-arg call reproduces the oracle exactly).
  *
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_186f as oracle } from "../../translated/loc_186f.js";
-import { loc_186f as idiomatic } from "../loc_186f.js";
+import { resolveObjectTile as idiomatic } from "../resolveObjectTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
   OBJ_X,
@@ -126,7 +126,7 @@ function stateDiff(entry, fn) {
   return stateDiffOutsideStack(a, b, sp);
 }
 
-/** Replicate loc_186f's cell geometry so a crafted entry can poke the exact video-RAM cell the
+/** Replicate resolveObjectTile's cell geometry so a crafted entry can poke the exact video-RAM cell the
  *  routine will read. Guarded by an assertion that the goal arm was actually taken. */
 function cellFor(objX, objY, bias) {
   const row = 31 - (((objX + 3) & 0xff) >> 3);
@@ -158,7 +158,7 @@ test("IDENTITY: the harness reaches 0x186f in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_186f leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: resolveObjectTile leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(600, 3000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 
@@ -224,7 +224,7 @@ test("NON-VACUOUS: a real dispatch writes the row/column cells, the cell address
   const expectedCol = ((objY + bias + 12) & 0xff) >> 3;
   const expectedCell = 0x9000 + expectedRow * 32 + expectedCol;
 
-  // These four are loc_186f's own stable outputs — the downstream handoff handler never rewrites
+  // These four are resolveObjectTile's own stable outputs — the downstream handoff handler never rewrites
   // them, so they hold exactly what the geometry computed (a no-op twin could not produce them).
   // (The published under-tile CUR_TILE is a real output too, but the collector may overwrite it
   // downstream, so its liveness is covered by the TEETH/tile check instead.)

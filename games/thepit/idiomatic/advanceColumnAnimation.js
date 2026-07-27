@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_241c — one frame-gated step of a vertical tile-column animation.  ROM 0x241c.
+ * advanceColumnAnimation — one frame-gated step of a vertical tile-column animation.  ROM 0x241c.
  *
  * Runs every frame from the main loop but does real work only occasionally, behind two
  * gates: it stays dormant until the round's frame counter has climbed past 10, and then
@@ -63,7 +63,7 @@ import { reseedColumnAnimation } from "./reseedColumnAnimation.js";
 
 const ROW = 32; // one tilemap row is 32 columns apart
 
-export function loc_241c(m) {
+export function advanceColumnAnimation(m) {
   const { mem8, mem16 } = m;
 
   // Gate 1: dormant until the round's frame counter has climbed past 10.

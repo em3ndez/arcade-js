@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1a02 (ROM 0x1a02) — step the tracked object one frame along
+ * Memory-equivalence gate for stepObjectAndResolveTile (ROM 0x1a02) — step the tracked object one frame along
  * its climb axis and resolve the tile it lands on (collect loot / carve / block / keep moving).
  *
  * From the object's position counters (plus the caller's column bias) it derives the tile cell,
@@ -10,7 +10,7 @@
  * MEMORY-ONLY. The column bias — its one genuine register live-in — is surfaced as the columnBias
  * parameter (defaulting to the register, so a no-arg call reproduces the oracle).
  *
- * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE loc_1a02 — whose every terminal
+ * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE stepObjectAndResolveTile — whose every terminal
  * threads through the stack (m.call the epilogue, and push16 + m.call the score/sound awards) —
  * against the stack-free idiomatic routine, which calls its already-idiomatic callees
  * (stageObjectSpriteRecord, awardTenPoints, awardTwentyPoints) directly. The two therefore leave
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a02 as oracle } from "../../translated/loc_1a02.js";
-import { loc_1a02 as idiomatic } from "../loc_1a02.js";
+import { stepObjectAndResolveTile as idiomatic } from "../stepObjectAndResolveTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
   CLIMB_GATE,
@@ -128,7 +128,7 @@ function stateDiff(entry, fn) {
   return stateDiffOutsideStack(a, b, sp);
 }
 
-/** Replicate loc_1a02's cell geometry so a crafted entry can poke the exact video-RAM cell the
+/** Replicate stepObjectAndResolveTile's cell geometry so a crafted entry can poke the exact video-RAM cell the
  *  routine will read. */
 function cellFor(objX, objY, bias) {
   const row = 31 - (((objX + 3) & 0xff) >> 3);
@@ -171,7 +171,7 @@ test("IDENTITY: the harness reaches 0x1a02 in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_1a02 leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: stepObjectAndResolveTile leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(64, 3000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 

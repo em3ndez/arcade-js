@@ -17,7 +17,7 @@
  *
  * Name kept as drawGameOverText: it is clearly a fixed-strip painter, but which specific field
  * the nine glyphs spell is not pinned (they are raw ROM tile codes, not decoded), and it
- * is one of a family of near-identical panel painters (the column-1 sibling loc_3d49
+ * is one of a family of near-identical panel painters (the column-1 sibling drawSetupCreditsPanel
  * shares this exact shape) — below the bar to promote to an English name.
  *
  * Memory-equivalent to the frozen oracle on the observable RAM — equivalence-3d8a.test.js.
@@ -40,7 +40,7 @@
  * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_COLOUR) — ram.js
  *           proposes BOARD_MODE for that address, but here it is unambiguously the strip's
  *           fill colour, not a mode, so a local role name is used rather than a misfit
- *           import (the sibling loc_3d49 and the tail filler fillColourColumn keep it hex
+ *           import (the sibling drawSetupCreditsPanel and the tail filler fillColourColumn keep it hex
  *           for the same reason). 0x8055 (PLOT_RUN_LENGTH, the per-strip cell count) and the
  *           ROM glyph table (0x49a5) are not named in ram.js.
  */

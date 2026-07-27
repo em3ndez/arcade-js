@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3d7e — advance the byte at BOARD_MODE, keeping bit 3 clear, then paint it
+ * cycleStagedColumnColour — advance the byte at BOARD_MODE, keeping bit 3 clear, then paint it
  *            down a column of cells.  ROM 0x3d7e.
  *
  * Reads the byte at BOARD_MODE, adds one, and forces bit 3 (the 8s bit) to stay
@@ -30,7 +30,7 @@
 import { BOARD_MODE } from "./ram.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 
-export function loc_3d7e(m) {
+export function cycleStagedColumnColour(m) {
   const { mem8 } = m;
 
   // Advance one step but hold bit 3 (the 8s bit) clear, so a value kept in 0..7

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_48c4 — recolour a fixed nine-cell colour-RAM column, cycling its colour one
+ * cyclePanelColumnColour — recolour a fixed nine-cell colour-RAM column, cycling its colour one
  * step each call.  ROM 0x48c4.
  *
  * Called from the dig / wall-collision core (loc_03e8) once its dig probe reads
@@ -38,7 +38,7 @@ import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 
-export function loc_48c4(m) {
+export function cyclePanelColumnColour(m) {
   const { mem8 } = m;
 
   // Nine cells tall — the length the column fill will paint.

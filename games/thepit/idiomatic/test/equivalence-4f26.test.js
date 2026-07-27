@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4f26 (ROM 0x4f26) — steps a caller's bounded cyclic
+ * Memory-equivalence gate for stepInitialDown (ROM 0x4f26) — steps a caller's bounded cyclic
  * index down one notch and requests sound 8.
  *
  * The routine has two observable effects: a MEMORY effect (the sound request fills a ring
@@ -34,7 +34,7 @@
  * Checks:
  *   0. HARNESS — capture a real 0x4c57 sound-request entry and confirm the oracle run of
  *      0x4f26 is deterministic (oracle vs oracle -> identical whole state).
- *   1. EQUAL (real entry) — loc_4f26 == oracle over RAM (outside the stack scratch) + pc +
+ *   1. EQUAL (real entry) — stepInitialDown == oracle over RAM (outside the stack scratch) + pc +
  *      SP, and the returned index matches the oracle's stepped index.
  *   2. EQUAL (exhaustive index sweep 0..255 x ring pointer 0..7) — for every index and every
  *      write pointer, the returned index and the filled/advanced ring match the oracle. This
@@ -54,7 +54,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4f26 as oracle } from "../../translated/loc_4f26.js";
-import { loc_4f26 as idiomatic } from "../loc_4f26.js";
+import { stepInitialDown as idiomatic } from "../stepInitialDown.js";
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { requestSound8 } from "../requestSound8.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -157,7 +157,7 @@ test("HARNESS: a real 0x4c57 sound-request entry is captured and the oracle run 
 
 // -- 1. EQUAL on the real captured sound-request entry -----------------------
 
-test("EQUAL (real entry): loc_4f26 == oracle over RAM + pc + SP + returned index", () => {
+test("EQUAL (real entry): stepInitialDown == oracle over RAM + pc + SP + returned index", () => {
   const entry = captureRealSoundRequestEntry(1500);
   assert.ok(entry, "need a captured 0x4c57 entry");
   const head = entry.mem.read8(SOUND_HEAD);

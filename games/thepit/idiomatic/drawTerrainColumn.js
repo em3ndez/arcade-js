@@ -18,11 +18,11 @@
  * six-cell run; the wrap is reproduced faithfully, not guarded against.
  *
  * When the column is written the routine falls through into the animation phase
- * clock (the already-decompiled loc_2fc0), whose return goes to our caller — so that
+ * clock (the already-decompiled advanceBackgroundAnimation), whose return goes to our caller — so that
  * hand-off is this routine's exit, not a nested call.
  *
  * Named drawTerrainColumn: same best-effort backdrop-animation subsystem as its
- * siblings loc_2fc0 / setBgSpriteFrame (both left neutral), and while the strided tile-map
+ * siblings advanceBackgroundAnimation / setBgSpriteFrame (both left neutral), and while the strided tile-map
  * copy is mechanically clear its game-role is an inference — below the bar to promote.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fb7.test.js.
@@ -33,7 +33,7 @@
  *           table, the column's bottom cell, the one-row-up step, a six-cell run),
  *           swept over run lengths and source offsets, plus a zero-length run that
  *           exercises the 256-cell wrap and a sweep of the animation phase that drives
- *           all three of loc_2fc0's arms through the delegation. The two still-oracle
+ *           all three of advanceBackgroundAnimation's arms through the delegation. The two still-oracle
  *           animation tails (0x2fe3, 0x3029) are delegated to one identical stub each
  *           on both sides. Teeth twins (wrong step, dropped cell) are caught.
  * LIVE-OUT: memory-only — the tile-map cells written plus the phase-clock memory the
@@ -41,10 +41,10 @@
  *           phase clock overwrites the working registers and never reads them.
  * NAMES:    none from ram.js — the inputs are registers and the writes land in the
  *           tile-map (video RAM), neither a named work-RAM field; the phase-clock tail
- *           is the decompiled loc_2fc0.
+ *           is the decompiled advanceBackgroundAnimation.
  */
 
-import { loc_2fc0 } from "./loc_2fc0.js";
+import { advanceBackgroundAnimation } from "./advanceBackgroundAnimation.js";
 
 export function drawTerrainColumn(m) {
   const { regs, mem8 } = m;
@@ -66,5 +66,5 @@ export function drawTerrainColumn(m) {
 
   // Fall through into the animation phase clock; its return goes to our caller, so
   // this hand-off is drawTerrainColumn's exit.
-  return loc_2fc0(m);
+  return advanceBackgroundAnimation(m);
 }

@@ -25,7 +25,7 @@
  *      colour index one step (cycling the accent band that tints the setup screen)
  *      and waits fifteen video frames, so the intro lingers about 450 frames.
  *
- * The blank/setup 0x4b44 is now the idiomatic loc_4b44, a direct JS call. The idiomatic
+ * The blank/setup 0x4b44 is now the idiomatic blankScreen, a direct JS call. The idiomatic
  * leaves are called directly: the colour fills (fillColourColumnAt), the glyph-run copy
  * (copyTileColumn), and the colour-cycle step (cycleColumnColour) return in plain JS, so
  * they take honest arguments and no stack return. The idiomatic callees that still model
@@ -49,10 +49,10 @@
 
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
-import { loc_3d49 } from "./loc_3d49.js";
+import { drawSetupCreditsPanel } from "./drawSetupCreditsPanel.js";
 import { drawGameOverText } from "./drawGameOverText.js";
-import { loc_492a } from "./loc_492a.js";
-import { loc_4785 } from "./loc_4785.js";
+import { drawCopyrightLine } from "./drawCopyrightLine.js";
+import { drawBestScoresTodayLabel } from "./drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
@@ -60,7 +60,7 @@ import { waitFrames } from "./waitFrames.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
-import { loc_4b44 } from "./loc_4b44.js";
+import { blankScreen } from "./blankScreen.js";
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
@@ -94,7 +94,7 @@ export function showSetupScreen(m) {
 
   // ── 1. Fixed furniture ──────────────────────────────────────────────────────
   // Blank the screen + run the variant-0 board setup.
-  loc_4b44(m);
+  blankScreen(m);
 
   drawLeftEdgeColumn(m); // draw the left furniture column
 
@@ -104,14 +104,14 @@ export function showSetupScreen(m) {
   // Colour a column: column 1 in colour 2.
   fillColourColumnAt(m, 1, 2);
 
-  loc_3d49(m); // fixed text panel at column 1
+  drawSetupCreditsPanel(m); // fixed text panel at column 1
   drawGameOverText(m); // fixed vertical strip at column 6
 
   m.push16(0x3a88);
-  loc_492a(m); // one full playfield column (tail-returns through the stack)
+  drawCopyrightLine(m); // one full playfield column (tail-returns through the stack)
 
   m.push16(0x3a8b);
-  loc_4785(m); // left edge column (tail-returns through the stack)
+  drawBestScoresTodayLabel(m); // left edge column (tail-returns through the stack)
 
   drawRightEdgeColumn(m); // right edge column
 

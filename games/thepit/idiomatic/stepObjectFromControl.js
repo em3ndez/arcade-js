@@ -31,7 +31,7 @@
  */
 
 import { REACTION_STATE, GAME_MODE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "./ram.js";
-import { loc_1434 } from "./loc_1434.js";
+import { advanceObjectFrame } from "./advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 export function stepObjectFromControl(m) {
@@ -49,5 +49,5 @@ export function stepObjectFromControl(m) {
   // Hand the command to the per-frame update dispatcher, which positions, animates, or
   // stands the object still. It reads the command from the slot the caller fills, so
   // setting it here is the sanctioned boundary into that still-register-ABI routine.
-  return loc_1434(m);
+  return advanceObjectFrame(m);
 }

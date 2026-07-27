@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2f88 — reveal the next column of the scrolling terrain backdrop on its frame
+ * revealTerrainColumn — reveal the next column of the scrolling terrain backdrop on its frame
  * gate, then hand off to the background phase clock.  ROM 0x2f88.
  *
  * The dirt/terrain backdrop is scrolled into view one vertical column at a time.
@@ -17,25 +17,25 @@
  *     cell first, one tile-row higher each byte — bringing the next column of
  *     terrain into the backdrop.
  *
- * Whichever arm it takes it ends by handing off to loc_2fc0, the background phase
+ * Whichever arm it takes it ends by handing off to advanceBackgroundAnimation, the background phase
  * clock; that routine tail-jumps onward and its return unwinds straight back to
- * loc_2f88's caller, so the hand-off IS this routine's exit. loc_2fc0 is already
+ * revealTerrainColumn's caller, so the hand-off IS this routine's exit. advanceBackgroundAnimation is already
  * decompiled, so it is called directly rather than through the oracle registry.
  *
  * This is the standalone, callable form of the same reveal that the per-frame
  * backdrop monolith loc_2f71 also carries inline; the standalone form is never
  * dispatched in attract, which shapes the gate below.
  *
- * Name kept as loc_2f88: this backdrop-reveal subsystem is a best-effort reading. Three
+ * Name kept as revealTerrainColumn: this backdrop-reveal subsystem is a best-effort reading. Three
  * of the counters it touches now carry ram.js names, but the subsystem as a whole is
- * still below the bar to promote to an English name (its siblings loc_2fc0/setBgSpriteFrame stay
+ * still below the bar to promote to an English name (its siblings advanceBackgroundAnimation/setBgSpriteFrame stay
  * loc_ for the same reason).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.
- * GATE:     crafted-entry — loc_2f88 is never dispatched in attract (the monolith
+ * GATE:     crafted-entry — revealTerrainColumn is never dispatched in attract (the monolith
  *           loc_2f71 inlines the same body instead of calling it), so real machine
- *           states are captured at loc_2f71's entry and loc_2f88 is run on clones of
- *           them; the two still-untranslated continuations reached through loc_2fc0
+ *           states are captured at loc_2f71's entry and revealTerrainColumn is run on clones of
+ *           them; the two still-untranslated continuations reached through advanceBackgroundAnimation
  *           (0x2fe3 oscillator body, 0x3029 publish tail) are delegated to one
  *           identical stub each, installed on both sides at once. EQUAL over every
  *           captured state plus an exhaustive sweep of the gate byte crossed with
@@ -47,10 +47,10 @@
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
  *           (0x80e6) are REVEAL_GATE/REVEAL_PERIOD/REVEAL_CURSOR from ram.js; the stashed
- *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled loc_2fc0.
+ *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceBackgroundAnimation.
  */
 
-import { loc_2fc0 } from "./loc_2fc0.js";
+import { advanceBackgroundAnimation } from "./advanceBackgroundAnimation.js";
 import { REVEAL_CURSOR, REVEAL_GATE, REVEAL_PERIOD } from "./ram.js";
 
 
@@ -63,7 +63,7 @@ const TILES_PER_COLUMN = 6;
 const COLUMN_BOTTOM_CELL = 0x938c;
 const ONE_ROW_UP = 32;
 
-export function loc_2f88(m) {
+export function revealTerrainColumn(m) {
   const { mem8, mem16 } = m;
 
   // Tick the reveal gate; act only on the frame it counts down to zero.
@@ -71,7 +71,7 @@ export function loc_2f88(m) {
   mem8[REVEAL_GATE] = gate;
   if (gate !== 0) {
     // Not a reveal frame — straight on to the phase clock.
-    return loc_2fc0(m);
+    return advanceBackgroundAnimation(m);
   }
 
   // Reload the gate from its period and step the cursor back one column.
@@ -79,7 +79,7 @@ export function loc_2f88(m) {
   const cursor = mem8[REVEAL_CURSOR] - TILES_PER_COLUMN;
   if (cursor < 0) {
     // Ran off the start of the pattern table — the reveal is done, draw nothing.
-    return loc_2fc0(m);
+    return advanceBackgroundAnimation(m);
   }
   mem8[REVEAL_CURSOR] = cursor;
 
@@ -94,5 +94,5 @@ export function loc_2f88(m) {
   }
 
   // Hand off to the phase clock; its return unwinds to our caller, so this is the exit.
-  return loc_2fc0(m);
+  return advanceBackgroundAnimation(m);
 }

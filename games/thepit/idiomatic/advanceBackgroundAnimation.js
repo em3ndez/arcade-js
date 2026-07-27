@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2fc0 — the per-frame phase clock for the background flip animation: tick the
+ * advanceBackgroundAnimation — the per-frame phase clock for the background flip animation: tick the
  * phase countdown and route the frame to one of three shared continuations.  ROM 0x2fc0.
  *
  * The dirt/shaft backdrop shimmers by flipping between two tile codes on a slow
@@ -21,10 +21,10 @@
  * it is set on the machine rather than passed as an argument). The two other
  * continuations (the oscillator body and the publish tail) are not yet decompiled, so
  * they stay registry hand-offs. All three are tail jumps: this routine has no return
- * of its own, so the continuation's return unwinds straight back to loc_2fc0's caller,
+ * of its own, so the continuation's return unwinds straight back to advanceBackgroundAnimation's caller,
  * which is why each delegation IS an exit.
  *
- * Name kept as loc_2fc0: the backdrop-animation subsystem is a best-effort reading, and
+ * Name kept as advanceBackgroundAnimation: the backdrop-animation subsystem is a best-effort reading, and
  * while the phase counter (ANIM_PHASE_COUNTER) and the flip-tile cell (BG_SPRITE_FRAME) are
  * now named in ram.js, that (fair-confidence) naming does not pin the routine's specific
  * role — below the bar to promote to an English name.
@@ -56,7 +56,7 @@ import { ANIM_PHASE_COUNTER, BG_SPRITE_FRAME } from "./ram.js";
 const FLIP_TILE_A = 56;
 const FLIP_TILE_B = 57;
 
-export function loc_2fc0(m) {
+export function advanceBackgroundAnimation(m) {
   const { mem8 } = m;
 
   // Tick the phase countdown (an 8-bit down-counter, so it wraps 0 -> 255).
@@ -79,6 +79,6 @@ export function loc_2fc0(m) {
   m.regs.a = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
 
   // Hand the chosen tile to the commit tail; its return goes to our caller, so this
-  // is loc_2fc0's exit.
+  // is advanceBackgroundAnimation's exit.
   return setBgSpriteFrame(m);
 }

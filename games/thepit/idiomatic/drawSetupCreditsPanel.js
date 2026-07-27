@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3d49 — paint one fixed 9-cell HUD/text panel at column 1, row 12.  ROM 0x3d49.
+ * drawSetupCreditsPanel — paint one fixed 9-cell HUD/text panel at column 1, row 12.  ROM 0x3d49.
  *
  * Draws a single vertical panel column made of three stacked fields:
  *   - the top cell shows a live value read from a work-RAM slot (it changes as the
@@ -28,7 +28,7 @@
  * glyph helper 0x3dea (copyTileColumn) and the ROM-label helper 0x3ddb
  * (copyCappedTileColumn).
  *
- * Name kept as loc_3d49: it is clearly a fixed-panel painter, but which specific field
+ * Name kept as drawSetupCreditsPanel: it is clearly a fixed-panel painter, but which specific field
  * it draws is not pinned (the label glyphs are ROM tile codes, not decoded), and it is
  * one of a family of near-identical panel painters — below the bar for an English name.
  *
@@ -66,7 +66,7 @@ const FILL_ATTR = 0x8057;
 const VALUE_SOURCE = 0x8000;
 const LABEL_SOURCE = 0x496d;
 
-export function loc_3d49(m) {
+export function drawSetupCreditsPanel(m) {
   const { mem8 } = m;
 
   // Target cell of the panel: column 1, row 12.
@@ -93,7 +93,7 @@ export function loc_3d49(m) {
   copyCappedTileColumn(m, LABEL_SOURCE);
 
   // Colour the full nine-cell run: hand off to the colour-column filler, which paints
-  // the whole panel. This is loc_3d49's exit.
+  // the whole panel. This is drawSetupCreditsPanel's exit.
   mem8[PLOT_RUN_LENGTH] = 9;
   return fillColourColumn(m);
 }

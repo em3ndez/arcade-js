@@ -15,7 +15,7 @@
  * function takes it as a real parameter, cycleColumnColour(m, column). So every check sets
  * the oracle's accumulator to `column` and passes the same `column` to the idiomatic side.
  *
- * The routine IS dispatched in a plain attract run (the screen-setup loops showSetupScreen/loc_3bec
+ * The routine IS dispatched in a plain attract run (the screen-setup loops showSetupScreen/showBonusScreen
  * feed it column 6, first reached within ~400 frames), so the primary EQUAL check runs from
  * a REAL captured entry. A crafted sweep then pokes the only two inputs — the column and the
  * starting colour index at 0x8057 — across their whole domain (32 x 256), which also pins the

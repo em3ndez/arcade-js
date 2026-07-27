@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_241c (ROM 0x241c) — one frame-gated step of a
+ * Memory-equivalence gate for advanceColumnAnimation (ROM 0x241c) — one frame-gated step of a
  * vertical tile-column animation, called every frame from the main loop.
  *
  * The routine's whole effect is memory: a step timer (0x8067), the tilemap write
@@ -29,7 +29,7 @@
  * Checks:
  *   0. HARNESS — capture real 0x241c dispatches and confirm the oracle run of a step
  *      entry is deterministic (oracle vs oracle -> identical whole state).
- *   1. EQUAL (real dispatches) — loc_241c == oracle over RAM (outside the stack scratch)
+ *   1. EQUAL (real dispatches) — advanceColumnAnimation == oracle over RAM (outside the stack scratch)
  *      + pc + SP across every captured dispatch, tallied by step arm.
  *   2. EQUAL (crafted arms) — every classify/finalise arm attract does not reach.
  *   3. TEETH (dropped timer store) — a twin that forgets to store the decremented timer
@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_241c as oracle } from "../../translated/loc_241c.js";
-import { loc_241c as idiomatic } from "../loc_241c.js";
+import { advanceColumnAnimation as idiomatic } from "../advanceColumnAnimation.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { FRAME_COUNTER, SPAWN_PHASE, ACTOR_Y } from "../ram.js";
@@ -179,7 +179,7 @@ test("HARNESS: real 0x241c dispatches are captured and the oracle step run is de
 
 // -- 1. EQUAL on every captured real dispatch --------------------------------
 
-test("EQUAL (real dispatches): loc_241c == oracle over RAM + pc + SP", () => {
+test("EQUAL (real dispatches): advanceColumnAnimation == oracle over RAM + pc + SP", () => {
   const seen = {};
   for (const { m, cls } of CAP.entries) {
     const { diffs } = contractDiffs(m, idiomatic);

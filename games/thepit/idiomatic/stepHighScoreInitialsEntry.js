@@ -46,7 +46,7 @@
  *           per-move step counter) is unnamed in ram.js, kept as an address literal.
  */
 import { IN0_DEBOUNCED, FRAME_COUNTER } from "./ram.js";
-import { loc_4f26 } from "./loc_4f26.js";
+import { stepInitialDown } from "./stepInitialDown.js";
 import { advanceInitialUp } from "./advanceInitialUp.js";
 import { requestSound16 } from "./requestSound16.js";
 import { waitFrames } from "./waitFrames.js";
@@ -61,9 +61,9 @@ export function stepHighScoreInitialsEntry(m) {
   const actionBits = mem8[IN0_DEBOUNCED];
 
   // First-match-wins over the low five action bits, tested in priority order.
-  if (actionBits & 0x01) { regs.c = loc_4f26(m, regs.c); return m.ret(); } // step index down
+  if (actionBits & 0x01) { regs.c = stepInitialDown(m, regs.c); return m.ret(); } // step index down
   if (actionBits & 0x02) { regs.c = advanceInitialUp(m, regs.c); return m.ret(); } // step index up
-  if (actionBits & 0x04) { regs.c = loc_4f26(m, regs.c); return m.ret(); } // step index down
+  if (actionBits & 0x04) { regs.c = stepInitialDown(m, regs.c); return m.ret(); } // step index down
   if (actionBits & 0x08) { regs.c = advanceInitialUp(m, regs.c); return m.ret(); } // step index up
   if (!(actionBits & 0x10)) return m.ret(); // no action bit set -> idle
 

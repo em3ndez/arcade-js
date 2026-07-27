@@ -14,7 +14,7 @@
  *   - Otherwise the stepped index stands.
  *
  * The new index is handed back — it is the value a caller reads to act on the object.
- * This is the step-up counterpart of loc_4f26, which walks the same index the other way
+ * This is the step-up counterpart of stepInitialDown, which walks the same index the other way
  * (rolling over at the bottom, clamping at the top); both fire the same step sound.
  *
  * The role the index plays for the object (a column, a rung, a frame) is not yet

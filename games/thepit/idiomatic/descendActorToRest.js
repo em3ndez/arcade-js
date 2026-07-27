@@ -3,7 +3,7 @@
  * descendActorToRest — per-frame coordinate stepper: eases an actor's coordinate down to a
  * resting floor and keeps its shadow twin a fixed 16 ahead.  ROM 0x3968.
  *
- * Reached each frame from the actor's cadence front end (loc_3945). What it does:
+ * Reached each frame from the actor's cadence front end (paceActorDescent). What it does:
  *   - It acts only on every FOURTH tick of the cadence timer. On the other three
  *     ticks it changes nothing and hands straight off to the shared record builder.
  *   - On a fourth tick it looks at the actor's coordinate. While the coordinate is

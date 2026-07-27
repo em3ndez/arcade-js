@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2f88 (ROM 0x2f88, The Pit) — reveal the next
+ * Memory-equivalence gate for revealTerrainColumn (ROM 0x2f88, The Pit) — reveal the next
  * column of the scrolling terrain backdrop on its frame gate, then hand off to the
- * background phase clock loc_2fc0.
+ * background phase clock advanceBackgroundAnimation.
  *
  * THREE WRINKLES this routine forces, all handled with a crafted entry:
  *
- *   1. loc_2f88 is NEVER dispatched in attract. Its whole subsystem DOES run there
+ *   1. revealTerrainColumn is NEVER dispatched in attract. Its whole subsystem DOES run there
  *      (the backdrop monolith loc_2f71 dispatches every frame), but that monolith
  *      INLINES the same reveal body instead of calling 0x2f88, so 0x2f88 is never
  *      entered on its own. A real machine state is therefore captured at loc_2f71's
- *      entry and loc_2f88 is invoked on clones of it — the crafted-entry escape
+ *      entry and revealTerrainColumn is invoked on clones of it — the crafted-entry escape
  *      hatch for an unreached entry. The monolith's preamble (an enable-flag check
  *      and one gated call) never touches the reveal gate, cursor or pattern pointer
  *      before the point 0x2f88 would run, so its entry state IS a valid 0x2f88 entry.
  *
- *   2. loc_2f88 tail-delegates to loc_2fc0, whose own two continuations are still
+ *   2. revealTerrainColumn tail-delegates to advanceBackgroundAnimation, whose own two continuations are still
  *      untranslated (0x2fe3 the oscillator body, 0x3029 the publish tail): reaching
  *      them would throw. Both the oracle and the idiomatic routine descend into the
  *      same continuations, so each is replaced by ONE stub installed on both sides at
@@ -24,7 +24,7 @@
  *      because the stub is the same function on both sides it can never manufacture
  *      or hide a difference between them.
  *
- *   3. loc_2f88 is a tail-jumping routine whose caller consumes no register, so its
+ *   3. revealTerrainColumn is a tail-jumping routine whose caller consumes no register, so its
  *      honest live-out is MEMORY-ONLY. The oracle threads intermediate flag/register
  *      values through every step; the idiomatic rewrite drops those dead values, so
  *      the two agree on memory + exit pc but NOT on the leftover register file. The
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f88 as oracle } from "../../translated/loc_2f88.js";
-import { loc_2f88 as idiomatic } from "../loc_2f88.js";
+import { revealTerrainColumn as idiomatic } from "../revealTerrainColumn.js";
 import { loc_2f71 } from "../../translated/loc_2f71.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
@@ -60,16 +60,16 @@ const test = ROM_PRESENT
   : (name, fn) =>
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x2f88; // loc_2f88
+const TARGET = 0x2f88; // revealTerrainColumn
 const SIB = 0x2f71; // the reachable monolith we capture real attract states at
-const OSC = 0x2fe3; // the oscillator-body tail reached via loc_2fc0 (still untranslated)
-const PUB = 0x3029; // the publish tail reached via loc_2fc0 (still untranslated)
+const OSC = 0x2fe3; // the oscillator-body tail reached via advanceBackgroundAnimation (still untranslated)
+const PUB = 0x3029; // the publish tail reached via advanceBackgroundAnimation (still untranslated)
 
-const GATE = 0x80e5; // the per-column reveal gate loc_2f88 ticks/reloads
+const GATE = 0x80e5; // the per-column reveal gate revealTerrainColumn ticks/reloads
 const PERIOD = 0x80e4; // the gate's reload period
-const CURSOR = 0x80e6; // the pattern-table cursor loc_2f88 steps back
+const CURSOR = 0x80e6; // the pattern-table cursor revealTerrainColumn steps back
 const POINTER = 0x80e1; // the stashed pattern pointer (16-bit)
-const PHASE = 0x80e3; // loc_2fc0's phase counter, ticked by the hand-off
+const PHASE = 0x80e3; // advanceBackgroundAnimation's phase counter, ticked by the hand-off
 const COLUMN_BOTTOM = 0x938c; // bottom video-RAM cell of the stamped column
 
 const STUB_MARK = 0x87f0; // dead scratch byte the tail stubs mark, to make routing visible
@@ -82,10 +82,10 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // The Pit's routine registry is async, so build the factory once and reuse it.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
-// Stubs standing in for the two untranslated continuations loc_2fc0 reaches.
+// Stubs standing in for the two untranslated continuations advanceBackgroundAnimation reaches.
 // Installed IDENTICALLY on both sides, so they can only move both in lockstep. Each
 // gives its continuation a distinct, observable memory effect + exit pc, so the
-// routing decision through the whole loc_2f88 -> loc_2fc0 chain is checkable.
+// routing decision through the whole revealTerrainColumn -> advanceBackgroundAnimation chain is checkable.
 function oscStub(mm) {
   mm.mem.write8(STUB_MARK, OSC_MARK);
   mm.pc = OSC;
@@ -103,7 +103,7 @@ const STUBS = [
 
 /**
  * Collect up to CAPTURE_LIMIT real machine states at the monolith loc_2f71's entry,
- * each carrying the tail stubs in its registry so loc_2f88 can be run on clones. The
+ * each carrying the tail stubs in its registry so revealTerrainColumn can be run on clones. The
  * monolith hook clones the pristine entry, then runs the real monolith so attract
  * goes on. The natural entries span whatever gate/cursor/phase the game produces.
  */
@@ -123,7 +123,7 @@ function captureMonolithStates() {
 
 const STATES = ROM_PRESENT ? captureMonolithStates() : [];
 
-/** Which of loc_2f88's three arms an entry state drives, from its gate + cursor. */
+/** Which of revealTerrainColumn's three arms an entry state drives, from its gate + cursor. */
 function armOf(entry) {
   const gate = (entry.mem.read8(GATE) - 1 + 256) % 256;
   if (gate !== 0) return "nothing-to-reveal";
@@ -243,7 +243,7 @@ function brokenHandoff(m) {
   const { mem } = m;
   const gate = (mem.read8(GATE) - 1 + 256) % 256;
   mem.write8(GATE, gate);
-  if (gate !== 0) return undefined; // BUG: never delegates to loc_2fc0
+  if (gate !== 0) return undefined; // BUG: never delegates to advanceBackgroundAnimation
   mem.write8(GATE, mem.read8(PERIOD));
   const cursor = mem.read8(CURSOR) - 6;
   if (cursor < 0) return undefined; // BUG
@@ -255,7 +255,7 @@ function brokenHandoff(m) {
   return undefined; // BUG
 }
 
-// The broken twins descend into loc_2fc0 the same way the real routine does — through
+// The broken twins descend into advanceBackgroundAnimation the same way the real routine does — through
 // the registry (the frozen oracle) — so their bug is the ONLY difference from oracle.
 function loc_2fc0Registry(m) {
   return m.call(0x2fc0);
@@ -293,7 +293,7 @@ test("TEETH: a dropped hand-off is CAUGHT at the phase counter", () => {
 });
 
 // -- 4. EQUAL + TEETH through the shared unitEquivalence harness ---------------
-// loc_2f88 is unreached in attract, so a makeMachine wrapper forces a real dispatch:
+// revealTerrainColumn is unreached in attract, so a makeMachine wrapper forces a real dispatch:
 // run the real monolith, then invoke the target so the harness's snapshot hook fires
 // on a genuine attract-derived state. The tail stubs are layered in the same wrapper.
 // The harness also diffs registers, which are a DEAD live-out here, so we assert only

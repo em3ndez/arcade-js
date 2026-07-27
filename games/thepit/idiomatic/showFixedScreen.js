@@ -19,7 +19,7 @@
  * pinned; the name asserts only the mechanism — a fixed full-screen image shown for a
  * fixed spell — which is exactly what the code does.
  *
- * The blank-screen setup is now the idiomatic loc_4b44 (0x4b44), a direct JS call. The
+ * The blank-screen setup is now the idiomatic blankScreen (0x4b44), a direct JS call. The
  * frame-wait (waitFrames) is already decompiled but kept its register-in / stack-return
  * boundary, so the frame count is handed to it in the machine and its non-tail call is
  * bracketed with the return address it pops. The final wait is a tail call: its return
@@ -42,7 +42,7 @@
  *           and the ROM image source (0x3e32) are fixed hardware/ROM addresses, not work RAM.
  */
 import { waitFrames } from "./waitFrames.js";
-import { loc_4b44 } from "./loc_4b44.js";
+import { blankScreen } from "./blankScreen.js";
 
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOR_RAM_BASE = 0x8800; // start of the per-tile colour RAM
@@ -54,7 +54,7 @@ export function showFixedScreen(m) {
   const { mem8 } = m;
 
   // 1. Blank the screen to the neutral background, then let a frame pass.
-  loc_4b44(m);
+  blankScreen(m);
   m.push16(0x3b89); // the frame-wait returns here, back into this routine
   waitFrames(m, 1); // one frame to wait
 

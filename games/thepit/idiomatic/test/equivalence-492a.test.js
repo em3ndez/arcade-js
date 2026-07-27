@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_492a (ROM 0x492a) — the screen-column painter.
+ * Memory-equivalence gate for drawCopyrightLine (ROM 0x492a) — the screen-column painter.
  *
- * loc_492a lays a fixed 32-tile column into video RAM from a ROM strip, then hands to
+ * drawCopyrightLine lays a fixed 32-tile column into video RAM from a ROM strip, then hands to
  * the pure-leaf fillColourColumnAt to colour that column. It WRITES memory (the column
  * + the colour column), and that memory is its only live-out. The idiomatic routine was
  * dissolved — it calls the leaf directly instead of the oracle's tail hand-off through
@@ -10,13 +10,13 @@
  * with pc at its entry. Those are dead ABI, not live-out, so it is gated by MEMORY-
  * equivalence against the frozen oracle: the painted RAM byte-identical, EXCLUDING the
  * dead [SP-8, SP) stack-scratch window, and NEVER pc, SP, or the register file (the
- * oracle's leftover ROM-strip pointer is dead too — both successors, loc_4785 and
+ * oracle's leftover ROM-strip pointer is dead too — both successors, drawBestScoresTodayLabel and
  * drawRightEdgeColumn, reload it before reading). The whole-machine/pixel gate backstops it.
  * Modelled on equivalence-47e1 / equivalence-18cf.
  *
  *   1. EQUAL (real dispatch) — boot the machine, hook 0x492a, and clone the machine
  *      at its single real dispatch (it fires once while the screen is drawn). Run the
- *      ORACLE on one clone and the idiomatic loc_492a on another, and prove the painted
+ *      ORACLE on one clone and the idiomatic drawCopyrightLine on another, and prove the painted
  *      RAM is byte-identical outside the stack scratch. The routine is straight-line
  *      (one fixed-length loop, no branches), so that one entry covers the whole path.
  *
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_492a as oracle } from "../../translated/loc_492a.js";
-import { loc_492a as idiomatic } from "../loc_492a.js";
+import { drawCopyrightLine as idiomatic } from "../drawCopyrightLine.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -108,7 +108,7 @@ function replay(entry, candidate) {
 
 // -- 1 + 2. EQUAL (real dispatch) + NON-VACUOUS -------------------------------
 
-test("EQUAL: idiomatic loc_492a == oracle on the real dispatch (painted RAM)", () => {
+test("EQUAL: idiomatic drawCopyrightLine == oracle on the real dispatch (painted RAM)", () => {
   const entry = captureEntry(120);
   assert.ok(entry, "expected a real 0x492a dispatch during boot");
 
@@ -134,7 +134,7 @@ test("EQUAL: idiomatic loc_492a == oracle on the real dispatch (painted RAM)", (
 
 // -- 3. TEETH -----------------------------------------------------------------
 
-/** Broken twin: reimplements loc_492a faithfully but corrupts every stored tile by
+/** Broken twin: reimplements drawCopyrightLine faithfully but corrupts every stored tile by
  *  one bit — a plausible store-path bug the RAM diff MUST catch in the column. */
 function brokenLoc492a(m) {
   const { mem, regs } = m;

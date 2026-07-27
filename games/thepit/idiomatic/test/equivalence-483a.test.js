@@ -12,7 +12,7 @@
  *   zero times. It draws in a state attract does not reach, so there is no genuine
  *   0x483a entry to snapshot. The pipeline's answer for unreached code is the crafted
  *   entry: take a REAL machine state and force the routine onto it. Here the entry is
- *   captured at the sibling panel painter loc_3d49's genuine frame-61 attract dispatch
+ *   captured at the sibling panel painter drawSetupCreditsPanel's genuine frame-61 attract dispatch
  *   — a real screen-setup moment where this panel-drawing subsystem's scratch and
  *   video RAM are live — and drawMenLeftPanel is then run directly on clones of it. The one
  *   input that steers the routine, the decision byte at 0x802b, is forced to each of
@@ -78,7 +78,7 @@ const TILE_ROW = 0x8059; // panel cell row byte (11 default / 12 alt)
 const FILL_ATTR = 0x8057; // colour attribute the panel is painted in
 const CELL_COUNT = 0x8055; // per-field cell count fed to the copy/fill helpers
 const DEFAULT_LABEL = 0x49ba; // ROM label glyph source, default variant (walked backwards)
-const CAPTURE_FRAMES = 240; // loc_3d49 first dispatches at frame 61 — well within this
+const CAPTURE_FRAMES = 240; // drawSetupCreditsPanel first dispatches at frame 61 — well within this
 const STACK_SCRATCH = 16; // dead bytes below the entry SP the oracle's helper returns parked
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -86,7 +86,7 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 /**
- * Capture a real attract machine state at the sibling painter loc_3d49's genuine
+ * Capture a real attract machine state at the sibling painter drawSetupCreditsPanel's genuine
  * frame-61 dispatch. The hook clones the pristine entry, then runs the sibling oracle
  * so the host run continues normally. drawMenLeftPanel is never driven on the host — only on
  * isolated clones of this real state.

@@ -24,7 +24,7 @@
  *           sides, proving it actually clears rather than re-reading zeros). Teeth: a
  *           short-count twin that leaves the block's last byte — invisible on the
  *           already-zero real entry, caught on the dirtied one. Reached from the
- *           multi-door entry family (loc_4b44 / loc_4b46) during the attract demo.
+ *           multi-door entry family (blankScreen / loc_4b46) during the attract demo.
  * LIVE-OUT: memory-only — the 128 cleared bytes, plus the return to the caller. The
  *           loop counter and walk pointer the oracle leaves behind are dead: every
  *           caller's next act is another setup call that reloads them before use. No

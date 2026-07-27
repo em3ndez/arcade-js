@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28ab — stage a dig entity at the actor's aligned tilemap cell, and commit it into
+ * spawnDigEntity — stage a dig entity at the actor's aligned tilemap cell, and commit it into
  * the map the first pass the spawn slot is free.  ROM 0x28ab.
  *
  * Runs from the per-frame carve/lift handler whenever the tracked actor lines up on a
@@ -19,7 +19,7 @@
  * promotes the staging into the live dig-object record and stamps the entity into the
  * tilemap. Every later pass merely keeps the dig timer armed.
  *
- * Name kept as loc_28ab: it is part of the dig-object family whose higher-level game
+ * Name kept as spawnDigEntity: it is part of the dig-object family whose higher-level game
  * role stays best-effort — its commit tail loc_2934 and sibling loc_287a keep loc_ for
  * the same reason, and the tile codes it classifies on have no confirmed meaning yet.
  *
@@ -85,7 +85,7 @@ function classifyDigEntity(neighbourTile, currentTile, tileTwoBack) {
   return { spriteId: 112, subtype: 0, yLift: 13 };
 }
 
-export function loc_28ab(m) {
+export function spawnDigEntity(m) {
   const { mem8, mem16 } = m;
 
   const cellPtr = mem16[ACTOR_CELL_PTR];

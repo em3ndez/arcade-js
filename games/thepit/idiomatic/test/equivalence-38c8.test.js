@@ -2,11 +2,11 @@
 /**
  * Memory-equivalence gate for loc_38c8 (ROM 0x38c8, The Pit) — the per-frame gate for
  * the two-body actor: while the actor's coordinate (ACTOR_X, 0x810a) is in the high half
- * of the field it hands the frame to the cadence/move path (loc_3945); below the high
+ * of the field it hands the frame to the cadence/move path (paceActorDescent); below the high
  * half it rebuilds the actor at the start edge and re-stamps its eight-cell tile figure
  * (tiles 184..191, colour 151) into the tilemap + colour map.
  *
- * THE CONTRACT — OBSERVABLE RAM ONLY. The move arm tail-delegates to loc_3945, whose
+ * THE CONTRACT — OBSERVABLE RAM ONLY. The move arm tail-delegates to paceActorDescent, whose
  * idiomatic form (and its callees descendActorToRest -> stageActorSpriteRecords) is a plain JS call
  * chain with no Z80 stack frame: it no longer marches SP, sets pc, or leaves the oracle's
  * residual value registers. So pc, SP and the value registers diverge from the oracle by

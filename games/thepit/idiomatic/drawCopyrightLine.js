@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_492a — paint one 32-tile screen column, then colour it.  ROM 0x492a.
+ * drawCopyrightLine — paint one 32-tile screen column, then colour it.  ROM 0x492a.
  *
- * Part of the boot screen-drawing family (siblings drawLeftEdgeColumn / loc_4785 / drawRightEdgeColumn,
+ * Part of the boot screen-drawing family (siblings drawLeftEdgeColumn / drawBestScoresTodayLabel / drawRightEdgeColumn,
  * each drawing a different column). This member lays a fixed 32-tile column into
  * video RAM from a ROM strip, bottom cell upward, then hands off to fillColourColumnAt
  * to fill the matching colour-RAM column. Reached once, while the screen is built.
@@ -25,7 +25,7 @@
 
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 
-export function loc_492a(m) {
+export function drawCopyrightLine(m) {
   const { mem8 } = m;
 
   // The column is 32 tiles tall. Its tile codes are a fixed strip in ROM, laid

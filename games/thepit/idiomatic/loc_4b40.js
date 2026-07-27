@@ -27,9 +27,9 @@
  * Memory-equivalent to the frozen oracle — equivalence-4b40.test.js.
  * GATE:     crafted-entry — the 0x90 door is never dispatched in attract (the demo
  *           only reaches the 0x00 and 0xC0 doors), so the gate runs it from a REAL
- *           captured sibling entry: loc_4b44 (the 0x00 door) IS reached in attract
+ *           captured sibling entry: blankScreen (the 0x00 door) IS reached in attract
  *           and shares the identical call convention and body, so its entry is a
- *           faithful state for the 0x90 door too. loc_4b40 never calls loc_4b44, so
+ *           faithful state for the 0x90 door too. loc_4b40 never calls blankScreen, so
  *           cloning that entry adds no recursion. The one input that shapes the
  *           output — the board-mode byte — is fixed 0x90 here. Teeth: a wrong
  *           board-mode twin (caught at BOARD_MODE and the colour RAM it fills) and a

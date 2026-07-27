@@ -4,7 +4,7 @@
  * for a two-cell object, keyed on the low five action bits of the debounced input byte.
  *
  * It has three kinds of arm: an IDLE arm (no bit set -> ret), two STEP arms (delegate
- * to loc_4f26 / advanceInitialUp, which request the step sound and walk the object's cyclic
+ * to stepInitialDown / advanceInitialUp, which request the step sound and walk the object's cyclic
  * index), and a COMMIT arm (blank both cells, redraw one row up, count the move off the
  * step counter, clear the frame counter, request the move sound, then hold 20 frames via
  * waitFrames). The declared live-out is memory + the return (pc/SP); the value registers
@@ -22,7 +22,7 @@
  *
  * TWO WRINKLES:
  *   - The oracle path parks dead bytes on the stack the stack-free idiomatic JS does not
- *     reproduce: on a step arm loc_4f26/advanceInitialUp's own call (2) + the shared enqueue's two
+ *     reproduce: on a step arm stepInitialDown/advanceInitialUp's own call (2) + the shared enqueue's two
  *     saved pairs (4); on the commit arm the 0x4c8f call (2) + the enqueue's saves (4). Six
  *     dead bytes sit just below the entry stack pointer. The Pit's stack is real diffed work
  *     RAM, so the diff excludes exactly that [SP-6, SP) window and compares everything else.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1a02 — step the tracked object one frame along its climb axis and resolve the tile it
+ * stepObjectAndResolveTile — step the tracked object one frame along its climb axis and resolve the tile it
  * lands on: collect loot, carve into terrain, block, or keep moving.  ROM 0x1a02.
  *
  * The vertical-move counterpart of the tracked object's horizontal walk-and-classify handler:
@@ -36,7 +36,7 @@
  * not yet earned.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1a02.test.js.
- * GATE:     RAM-only over real captured attract dispatches (loc_1a02 runs ~16x in a plain
+ * GATE:     RAM-only over real captured attract dispatches (stepObjectAndResolveTile runs ~16x in a plain
  *           boot/attract run, the object stepping down its column) + crafted cell-tile entries
  *           for the loot / solid / diggable / top-rung arms attract's natural path never hits.
  *           Excludes the dead stack scratch the still-oracle comparison run parks below the entry
@@ -112,7 +112,7 @@ const CROSSING_POSITION = 83; // below this the object has retreated past the go
 const DIGGABLE_LOW = 113; // first tile code of the diggable terrain band
 const DIGGABLE_HIGH = 158; // one past the last reactive tile code (>= this is passable)
 
-export function loc_1a02(m, columnBias = m.regs.d) {
+export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const { mem8, mem16 } = m;
 
   // Vertical move runs only while the climb gate is clear; otherwise just defer the frame.
@@ -226,7 +226,7 @@ export function loc_1a02(m, columnBias = m.regs.d) {
 
 /** Advance the object one step down its column by the per-step delta, cycle its walk-frame sprite
  *  on the stepped position's bit 1, then build the deferral record. The record's own return
- *  unwinds to loc_1a02's caller, so this is the "keep moving" return. */
+ *  unwinds to stepObjectAndResolveTile's caller, so this is the "keep moving" return. */
 function advanceStepAndStage(m) {
   const { mem8 } = m;
   const stepped = mem8[OBJ_Y] - mem8[STEP_DELTA];

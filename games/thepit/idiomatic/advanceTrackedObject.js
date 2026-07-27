@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_13de — route the tracked object to its per-frame handler by its state gates.  ROM 0x13de.
+ * advanceTrackedObject — route the tracked object to its per-frame handler by its state gates.  ROM 0x13de.
  *
  * The body of the per-frame object/state dispatcher, entered each frame from the countdown
  * gate (loc_13c9) once the object's state timer is idle. It holds no logic of its own: it reads
@@ -21,7 +21,7 @@
  *
  * Before dispatching it loads the object's position-bias pair (the word at 0x806c) into the D
  * and E registers, the way the countdown gate's oracle does. The per-frame handlers read that
- * pair straight out of the registers: the shared tile tail (loc_186a -> loc_186f) takes the
+ * pair straight out of the registers: the shared tile tail (loc_186a -> resolveObjectTile) takes the
  * horizontal column bias from D, and the still-oracle position handlers reached below (via the
  * at-rest router) take both bytes as the object's move deltas — so this is a genuine register
  * boundary that has to survive. The direct tile branch is additionally handed the column bias as
@@ -30,7 +30,7 @@
  * routine writes no memory of its own.
  *
  * Memory-equivalent to the frozen oracle — equivalence-13de.test.js.
- * GATE:     RAM-only over real captured attract dispatches (loc_13de runs whenever the object's
+ * GATE:     RAM-only over real captured attract dispatches (advanceTrackedObject runs whenever the object's
  *           state timer is idle) + crafted entries for the state arms attract does not reach.
  *           Excludes the dead stack scratch the still-oracle handler chain parks below the entry
  *           stack pointer (the idiomatic handlers are stack-free); no real work-RAM output lives
@@ -59,7 +59,7 @@ import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { walkActor } from "./walkActor.js";
 import { stepObjectFromControl } from "./stepObjectFromControl.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
-import { loc_186f } from "./loc_186f.js";
+import { resolveObjectTile } from "./resolveObjectTile.js";
 
 // Tracked-object control bytes that have no ram.js name yet.
 const BUSY_THIS_FRAME = 0x807a; // nonzero while the object is mid-work this frame
@@ -67,7 +67,7 @@ const MOTION_MARKER = 0x8075; // signed walk-mode selector; a set high bit route
 const BIAS_LO = 0x806c; // low byte of the object's position-bias pair (read from E by the position handlers)
 const COLUMN_BIAS = 0x806d; // high byte = horizontal column bias (read from D by the tile-cell tail)
 
-export function loc_13de(m) {
+export function advanceTrackedObject(m) {
   const { mem8, regs } = m;
 
   // Object still mid-work this frame: stage its deferral record and stop.
@@ -78,7 +78,7 @@ export function loc_13de(m) {
   if (mem8[SPAWN_PHASE] !== 0) return;
 
   // Load the object's position-bias pair into D and E the way the oracle does: the tile-cell
-  // tail (loc_186a -> loc_186f) reads the column bias from D, and the still-oracle position
+  // tail (loc_186a -> resolveObjectTile) reads the column bias from D, and the still-oracle position
   // handlers reached below read both bytes as the object's move deltas.
   const columnBias = mem8[COLUMN_BIAS];
   regs.e = mem8[BIAS_LO];
@@ -103,7 +103,7 @@ export function loc_13de(m) {
   if (mem8[GOAL_CROSSING_LATCH] !== 0) return advanceActorWalk(m);
 
   // Terrain reveal finished: locate the object's tile cell and dispatch on the tile under it.
-  if (mem8[REVEAL_CURSOR] === 0) return loc_186f(m, columnBias);
+  if (mem8[REVEAL_CURSOR] === 0) return resolveObjectTile(m, columnBias);
 
   // Otherwise advance the object from its control input.
   return stepObjectFromControl(m);

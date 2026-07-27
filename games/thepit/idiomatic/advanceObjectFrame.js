@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1434 — pick the tracked object's per-frame update from its mode and move command.  ROM 0x1434.
+ * advanceObjectFrame — pick the tracked object's per-frame update from its mode and move command.  ROM 0x1434.
  *
  * Runs once per frame for the object being processed. The object's mode byte decides the
  * broad case, its move command the fine one:
@@ -37,7 +37,7 @@ import { walkActor } from "./walkActor.js";
 
 const OBJECT_MODE = 0x8075; // per-frame motion/mode byte: 0 = at rest, sign selects a stepper
 
-export function loc_1434(m) {
+export function advanceObjectFrame(m) {
   const { regs, mem8 } = m;
 
   // The object's per-frame move command, handed over by the caller.

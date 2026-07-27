@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3bec — paint a tier-selected status screen, then hold it with a count-length
+ * showBonusScreen — paint a tier-selected status screen, then hold it with a count-length
  *            sound + score + colour-cycle animation.  ROM 0x3bec.
  *
  * Two gameplay-set config bytes choose a tier: the tier count starts at 5, gains 5
@@ -82,7 +82,7 @@ function seatCell(m, column, row) {
   deriveTileWriteCursors(m);
 }
 
-export function loc_3bec(m) {
+export function showBonusScreen(m) {
   const { mem8 } = m;
 
   // Choose the tier from the two config bytes: 5, then +5 per matching byte -> 5/10/15.

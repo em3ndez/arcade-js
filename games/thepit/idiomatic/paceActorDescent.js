@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3945 — cadence front end for the actor phase body: count the period-8 timer
+ * paceActorDescent — cadence front end for the actor phase body: count the period-8 timer
  * down one tick, reload it to 8 on the tick it runs out, then run the phase body.
  * ROM 0x3945.
  *
@@ -37,7 +37,7 @@
 import { ACTOR_TIMER } from "./ram.js";
 import { descendActorToRest } from "./descendActorToRest.js";
 
-export function loc_3945(m) {
+export function paceActorDescent(m) {
   const { mem8 } = m;
 
   // Count the period-8 cadence timer down one tick, wrapping as the 8-bit counter

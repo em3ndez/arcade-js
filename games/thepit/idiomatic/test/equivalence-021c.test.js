@@ -103,7 +103,7 @@ function captureSeed() {
  * scratch just below the SP reset (the window [STACK_RESET - STACK_SCRATCH, STACK_RESET),
  * i.e. 0x83fb..0x83fe). The oracle threads callee 0x4b44's return through the stack
  * (push + m.call), parking a return-address ghost there; the dissolved idiomatic calls
- * loc_4b44 directly and never writes it, so those four bytes legitimately differ. They
+ * blankScreen directly and never writes it, so those four bytes legitimately differ. They
  * are dead scratch — SP was reset to 0x83ff, nothing reads them back, and no game-
  * observable cell lives in the window — so every real cell is compared byte-for-byte.
  * Null when otherwise identical.

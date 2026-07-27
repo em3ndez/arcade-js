@@ -4,7 +4,7 @@
  * collect a loot tile in its path, hold against a wall, bump-react on a blocked diagonal,
  * or let it walk on.  ROM 0x1704.
  *
- * The horizontal counterpart of the vertical/climb handler loc_1a02, reached from the
+ * The horizontal counterpart of the vertical/climb handler stepObjectAndResolveTile, reached from the
  * collision arm loc_16b9. It is handed the actor's tile-cell pointer (the cell it stands on;
  * the cell one step ahead is the next byte) and its move direction, and decides the whole
  * outcome of this frame's step by writing to work RAM:
@@ -26,7 +26,7 @@
  * Both handoffs return straight to this routine's caller, so they are this routine's return.
  *
  * Kept as loc_1704: the high-level role (the horizontal terrain-interaction/collision handler)
- * is clear from three sources, but its sibling loc_1a02 and the wider tile-classify family are
+ * is clear from three sources, but its sibling stepObjectAndResolveTile and the wider tile-classify family are
  * still un-named, and which actor it serves plus the direction tables' exact semantics are not
  * yet pinned — a single effect-verb would over- or under-claim, so the neutral name stays.
  *

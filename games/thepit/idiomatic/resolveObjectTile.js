@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_186f — locate the tracked object's tile cell, read the tile under it, and hand the
+ * resolveObjectTile — locate the tracked object's tile cell, read the tile under it, and hand the
  * object to the matching per-frame handler.  ROM 0x186f.
  *
  * From the object's two position counters (plus a caller-supplied horizontal bias) it works
@@ -22,7 +22,7 @@
  * return unwinds to this routine's caller, so handing off is this routine's own return.
  *
  * Memory-equivalent to the frozen oracle — equivalence-186f.test.js.
- * GATE:     RAM-only over real captured attract dispatches (loc_186f runs ~500x in a plain
+ * GATE:     RAM-only over real captured attract dispatches (resolveObjectTile runs ~500x in a plain
  *           boot/attract run, reached from the movement/state dispatcher) + crafted goal-tile
  *           entries for the goal / crossing arms attract never reaches. Excludes the dead stack
  *           scratch the still-oracle comparison run parks below the entry stack pointer (the
@@ -61,7 +61,7 @@ const GOAL_TILE = 39;
 // Horizontal position at/after which standing on the goal tile counts as having crossed.
 const CROSSING_POSITION = 83;
 
-export function loc_186f(m, columnBias = m.regs.d) {
+export function resolveObjectTile(m, columnBias = m.regs.d) {
   const { mem8, mem16 } = m;
 
   // Which map row is the object on? Bias the vertical counter, drop it to an 8-pixel cell, and

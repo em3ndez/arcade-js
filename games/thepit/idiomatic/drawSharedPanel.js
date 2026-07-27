@@ -57,7 +57,7 @@ import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
-import { loc_4785 } from "./loc_4785.js";
+import { drawBestScoresTodayLabel } from "./drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
 // The colour attribute the colour fills stamp. ram.js proposes BOARD_MODE for 0x8057,
@@ -99,7 +99,7 @@ export function drawSharedPanel(m) {
   //    column and its colour trim. In the oracle this was a tail-jump whose own return
   //    unwound to our caller; called directly it paints and returns here, so it is this
   //    routine's last act.
-  loc_4785(m);
+  drawBestScoresTodayLabel(m);
   return drawRightEdgeColumn(m);
 }
 

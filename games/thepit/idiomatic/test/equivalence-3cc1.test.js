@@ -61,7 +61,7 @@ import { redrawScoreHud } from "../redrawScoreHud.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
-import { loc_4785 } from "../loc_4785.js";
+import { drawBestScoresTodayLabel } from "../drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "../drawRightEdgeColumn.js";
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, GAME_STATE2 } from "../ram.js";
 
@@ -208,7 +208,7 @@ function paintPanel(m, opts = {}) {
   copyGlyphsDown(m, 0x49f7, 0x3d3c);
   paintColourRamColumn(m, 13, 0xa3);
 
-  if (!dropEdgeColumn) loc_4785(m); // BUG hook: skip the right edge column
+  if (!dropEdgeColumn) drawBestScoresTodayLabel(m); // BUG hook: skip the right edge column
   return drawRightEdgeColumn(m);
 }
 

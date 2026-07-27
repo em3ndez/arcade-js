@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4785 — stamp a fixed edge column, then hand off to the colour fill to tint it.  ROM 0x4785.
+ * drawBestScoresTodayLabel — stamp a fixed edge column, then hand off to the colour fill to tint it.  ROM 0x4785.
  *
  * The tilemap is 32 cells wide, so one screen row is 32 bytes and stepping "up a
  * column" means stepping back one row. This copies a 32-byte picture strip stored
@@ -30,7 +30,7 @@
  */
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 
-export function loc_4785(m) {
+export function drawBestScoresTodayLabel(m) {
   const { mem8 } = m;
 
   // One tilemap row is 32 bytes, so "up one cell in a column" steps back 32.

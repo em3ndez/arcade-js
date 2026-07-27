@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_28ab (ROM 0x28ab) — stage-and-commit a dig entity at
+ * Memory-equivalence gate for spawnDigEntity (ROM 0x28ab) — stage-and-commit a dig entity at
  * the actor's aligned tilemap cell.
  *
  * The routine's whole effect is memory: it stashes the cell pointer, and (for a
@@ -12,7 +12,7 @@
  * would false-fail, and would break again the day its commit tail is dissolved. The
  * routine pushes nothing, so there is no dead stack window to exclude — full RAM matches.
  *
- * loc_28ab IS dispatched in a plain attract run (from the carve handler loc_24f3), so the
+ * spawnDigEntity IS dispatched in a plain attract run (from the carve handler loc_24f3), so the
  * gate runs the candidate against the oracle on every real captured dispatch. Those cover
  * the early-return and the idle-slot commit paths; a crafted sweep then forces each
  * classification arm crossed with an idle (commit) vs busy (arm-timer) spawn slot, by
@@ -23,7 +23,7 @@
  * Checks:
  *   0. HARNESS  — capture real 0x28ab dispatches and confirm the oracle run is
  *      deterministic (oracle vs oracle -> identical RAM).
- *   1. EQUAL (real dispatches) — loc_28ab == oracle over RAM on every captured dispatch.
+ *   1. EQUAL (real dispatches) — spawnDigEntity == oracle over RAM on every captured dispatch.
  *   2. EQUAL (crafted arm x spawn-slot sweep) — every classification arm, with the spawn
  *      slot idle and busy, is identical to the oracle; a positive check confirms the idle
  *      arms really commit (dig-object state armed to the carving code).
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_28ab as oracle } from "../../translated/loc_28ab.js";
-import { loc_28ab as idiomatic } from "../loc_28ab.js";
+import { spawnDigEntity as idiomatic } from "../spawnDigEntity.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -122,7 +122,7 @@ test("HARNESS: real 0x28ab dispatches are captured and the oracle run is determi
 
 // -- 1. EQUAL on every real captured dispatch --------------------------------
 
-test("EQUAL (real dispatches): loc_28ab == oracle over RAM on every captured dispatch", () => {
+test("EQUAL (real dispatches): spawnDigEntity == oracle over RAM on every captured dispatch", () => {
   const entries = captureRealEntries(4000, 60);
   assert.ok(entries.length > 0, "need captured dispatches");
 

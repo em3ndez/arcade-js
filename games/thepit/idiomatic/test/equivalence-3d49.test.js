@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Observable-equivalence gate for loc_3d49 (ROM 0x3d49, The Pit) — the fixed-panel
+ * Observable-equivalence gate for drawSetupCreditsPanel (ROM 0x3d49, The Pit) — the fixed-panel
  * painter: it names one tile cell (column 1, row 12), asks the shared address
  * helpers for that cell's tilemap offset and colour-RAM / video-RAM cursors, then
  * stamps a nine-cell vertical panel (a live work-RAM value on top, an eight-glyph
@@ -18,7 +18,7 @@
  *      fillColourColumn 0x3e01). The two glyph-stamping helpers (0x3dea for the live
  *      value, 0x3ddb for the ROM label) are still the frozen oracle, reached through
  *      the registry — both the oracle and the idiomatic routine run the identical
- *      callee for those two, so the gate only tests loc_3d49's own layout writes,
+ *      callee for those two, so the gate only tests drawSetupCreditsPanel's own layout writes,
  *      its routing, and that the direct calls reproduce the helpers' RAM effects.
  *
  *   3. THE CONTRACT IS OBSERVABLE-MEMORY EQUIVALENCE. Dissolving the 0x3dae / 0x3dc9
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3d49 as oracle } from "../../translated/loc_3d49.js";
-import { loc_3d49 as idiomatic } from "../loc_3d49.js";
+import { drawSetupCreditsPanel as idiomatic } from "../drawSetupCreditsPanel.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
   : (name, fn) =>
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x3d49; // loc_3d49
+const TARGET = 0x3d49; // drawSetupCreditsPanel
 const TILE_COL = 0x8058; // panel cell column byte
 const TILE_ROW = 0x8059; // panel cell row byte
 const FILL_ATTR = 0x8057; // colour attribute the panel is painted in

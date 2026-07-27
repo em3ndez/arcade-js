@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence gate for loc_186a (ROM 0x186a) — the thin frame-prologue that stamps a
  * fixed animation frame code into the actor's sprite-frame byte and then hands off to the
- * shared position/tile tail loc_186f.
+ * shared position/tile tail resolveObjectTile.
  *
  * The routine's declared live-out is MEMORY-ONLY: the sprite-frame byte it writes plus
  * everything the shared tail writes. It has no live registers of its own, so the gate compares
@@ -10,7 +10,7 @@
  *
  * THE STACK SCRATCH. loc_186a's own tail is now dissolved: where the frozen oracle hands off to
  * the shared tail through a stack-threaded jump, the idiomatic arm calls the already-idiomatic,
- * stack-free tail loc_186f directly. The two therefore leave different dead bytes just below the
+ * stack-free tail resolveObjectTile directly. The two therefore leave different dead bytes just below the
  * entry stack pointer (The Pit's stack is real diffed work RAM, entry SP ~0x83fd here) — classic
  * dead scratch the oracle's deeper call chain parks and the stack-free idiomatic never writes,
  * overwritten by the caller's next push before anything reads it. The diff excludes exactly that
@@ -91,7 +91,7 @@ function captureRealEntries(maxFrames) {
 /**
  * First differing RAM byte between two machines, EXCLUDING the dead stack scratch the oracle's
  * stack-threaded tail hand-off parks just below the entry stack pointer (which the stack-free
- * idiomatic tail loc_186f does not reproduce). Null when otherwise identical.
+ * idiomatic tail resolveObjectTile does not reproduce). Null when otherwise identical.
  */
 function stateDiffOutsideStack(o, c, entrySP) {
   const da = o.dumpState();

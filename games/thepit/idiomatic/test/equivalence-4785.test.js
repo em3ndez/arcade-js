@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4785 (ROM 0x4785) — stamps a fixed edge column:
+ * Memory-equivalence gate for drawBestScoresTodayLabel (ROM 0x4785) — stamps a fixed edge column:
  * a 32-byte ROM picture strip up one video column, then hands off to the shared
  * colour-column fill (loc_3e1d, still the frozen oracle) to paint 28 cells of
  * colour 1 down the colour column at offset 30.
  *
- * loc_4785 loads its own source, destination, and count — no live-in register, no
+ * drawBestScoresTodayLabel loads its own source, destination, and count — no live-in register, no
  * work RAM read — so its writes depend on nothing but the fixed ROM strip and the
  * offset/colour it hands the fill. Its declared LIVE-OUT is memory-only (the tile
  * cells + the colour cells the fill writes); the register file it leaves behind is
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4785 as oracle } from "../../translated/loc_4785.js";
-import { loc_4785 as idiomatic } from "../loc_4785.js";
+import { drawBestScoresTodayLabel as idiomatic } from "../drawBestScoresTodayLabel.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -152,7 +152,7 @@ function teethWrongColour(m) {
 
 // -- 1. EQUAL: real dispatch ---------------------------------------------------
 
-test("EQUAL: idiomatic loc_4785 == oracle at the real attract dispatch", () => {
+test("EQUAL: idiomatic drawBestScoresTodayLabel == oracle at the real attract dispatch", () => {
   const real = captureRealDispatch(CAP_FRAMES);
   assert.ok(real, "expected a real 0x4785 dispatch during attract");
   const diffs = contractDiffs(real, idiomatic);

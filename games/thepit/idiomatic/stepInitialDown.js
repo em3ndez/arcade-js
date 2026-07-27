@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4f26 — step a caller's bounded cyclic index down one notch and request sound 8.  ROM 0x4f26.
+ * stepInitialDown — step a caller's bounded cyclic index down one notch and request sound 8.  ROM 0x4f26.
  *
  * The caller hands in the current value of a small cyclic index and reads the stepped
  * value back. The index has a live range of 10..35 plus a single "off / not engaged"
@@ -35,7 +35,7 @@ const OFF = 255; // the "not engaged" sentinel the index parks at when off
 const TOP = 35; // top of the live index range
 const FLOOR = 9; // stepping to or past this floor (below the range's bottom, 10) turns the index off
 
-export function loc_4f26(m, index) {
+export function stepInitialDown(m, index) {
   // The feedback sound is requested on every call, before the index moves.
   requestSound8(m);
 

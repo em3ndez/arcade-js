@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4b44 — the mode-0 door into the shared display-setup body.  ROM 0x4b44.
+ * blankScreen — the mode-0 door into the shared display-setup body.  ROM 0x4b44.
  *
  * One of three sibling entries that each pick a board-mode / entry-select byte and
  * run the same screen-rebuild body with it: this door picks 0, the others 0x90 and
@@ -31,7 +31,7 @@
 
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 
-export function loc_4b44(m) {
+export function blankScreen(m) {
   // The mode-0 door: run the shared board-display rebuild with board-mode 0. Its tail
   // is this routine's exit, so hand its result straight back.
   return setupBoardDisplay(m, 0);

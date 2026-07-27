@@ -26,7 +26,7 @@
  * Name kept as drawMenLeftPanel: it is clearly a two-variant panel painter, but which
  * specific field it draws — and what the live byte counts — is not pinned, and it
  * is one of a family of near-identical panel painters; below the bar for an
- * English name (same call as its sibling loc_3d49).
+ * English name (same call as its sibling drawSetupCreditsPanel).
  *
  * Memory-equivalent to the frozen oracle on the observable RAM — equivalence-483a.test.js.
  * GATE:     crafted-entry — attract never dispatches 0x483a; the entry is captured

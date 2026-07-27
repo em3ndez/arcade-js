@@ -34,14 +34,14 @@
  *           here), and the caller reads no register back from this routine.
  * NAMES:    GOAL_TILE_LATCH from ram.js; the animation-phase byte 0x801a has no ram.js name
  *           yet, so it is a local constant; the three direction/phase handler addresses are
- *           still-oracle routines reached through the registry, and the goal handler loc_186f
+ *           still-oracle routines reached through the registry, and the goal handler resolveObjectTile
  *           is decompiled and called directly.
  */
 
 import { GOAL_TILE_LATCH } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
-import { loc_186f } from "./loc_186f.js";
-import { loc_1468 } from "./loc_1468.js";
+import { resolveObjectTile } from "./resolveObjectTile.js";
+import { windUpObjectMove } from "./windUpObjectMove.js";
 
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
@@ -54,13 +54,13 @@ export function loc_144c(m) {
   // First-match-wins over the command's direction bits, each running one object handler.
   if (moveCommand & 0x01) return m.call(0x1493); // position the object; test the boundary
   if (moveCommand & 0x02) return m.call(0x167f); // derive the object's tile row and dispatch
-  if (moveCommand & 0x0c) return loc_1468(m, moveCommand); // reconcile the object's animation phase
+  if (moveCommand & 0x0c) return windUpObjectMove(m, moveCommand); // reconcile the object's animation phase
 
   // No direction bit set: the object stands still this frame. Reset its animation phase.
   mem8[OBJECT_PHASE] = 0;
 
   // If the object has already reached the goal tile, run the goal handler; otherwise
   // defer the frame by building the object's record.
-  if (mem8[GOAL_TILE_LATCH] !== 0) return loc_186f(m); // locate the cell, classify the tile under it (columnBias defaults to regs.d)
+  if (mem8[GOAL_TILE_LATCH] !== 0) return resolveObjectTile(m); // locate the cell, classify the tile under it (columnBias defaults to regs.d)
   return stageObjectSpriteRecord(m); // build the object's deferral record
 }

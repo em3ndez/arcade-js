@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1468 — settle the object's animation phase toward a move command, then run its handler.  ROM 0x1468.
+ * windUpObjectMove — settle the object's animation phase toward a move command, then run its handler.  ROM 0x1468.
  *
  * One arm of the at-rest object dispatcher (loc_144c): reached when the object's per-frame move
  * command carries one of the two direction bits (bit 2 or bit 3). Instead of acting on the command
@@ -17,7 +17,7 @@
  * (six notches for the down command attract uses), then dispatches every frame once settled.
  *
  * The dispatch splits on the command's bit 2: set -> the frame-stamp handler loc_186a, clear -> the
- * step-and-resolve handler loc_1a02. Each handler's return unwinds straight to this routine's caller,
+ * step-and-resolve handler stepObjectAndResolveTile. Each handler's return unwinds straight to this routine's caller,
  * so dispatching is this routine's own return; the deferral likewise ends by building the object's
  * record, whose return unwinds the same way.
  *
@@ -28,7 +28,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-1468.test.js.
  * GATE:     RAM-only over real captured attract dispatches (the settled-dispatch, wind-down, and
  *           arm arms all occur — the demo's command is always bit 2) + crafted entries for the
- *           bit-3 dispatch (-> loc_1a02) and the snap-to-command wind-down sub-branch attract never
+ *           bit-3 dispatch (-> stepObjectAndResolveTile) and the snap-to-command wind-down sub-branch attract never
  *           reaches. Excludes the dead stack scratch the still-oracle comparison run parks below the
  *           entry stack pointer (the idiomatic handlers are stack-free). Teeth: a wrong wind-down
  *           phase, and a skipped handler dispatch.
@@ -38,12 +38,12 @@
  *           command is read, never written, so it stays intact for the handlers).
  * NAMES:    none from ram.js — the animation-phase byte 0x801a has no ram.js name yet, so it stays a
  *           local constant, matching loc_144c which resets the same byte. The callees
- *           stageObjectSpriteRecord, loc_186a and loc_1a02 are decompiled and called directly.
+ *           stageObjectSpriteRecord, loc_186a and stepObjectAndResolveTile are decompiled and called directly.
  */
 
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { loc_186a } from "./loc_186a.js";
-import { loc_1a02 } from "./loc_1a02.js";
+import { stepObjectAndResolveTile } from "./stepObjectAndResolveTile.js";
 
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte (also reset by loc_144c)
 const WIND_UP_START = 0xc0; // high bits armed when the wind-up begins; the command sits in the low bits
@@ -51,7 +51,7 @@ const WIND_STEP = 32; // one wind-up notch subtracted per frame (0x20 — one st
 const DIR_BITS = 0x0c; // the two move-command direction bits that route into this routine
 const STAMP_HANDLER_BIT = 0x04; // bit 2 of the command: set -> frame-stamp handler, clear -> step-and-resolve
 
-export function loc_1468(m, moveCommand = m.regs.l) {
+export function windUpObjectMove(m, moveCommand = m.regs.l) {
   const { mem8 } = m;
   const phase = mem8[OBJECT_PHASE];
 
@@ -74,8 +74,8 @@ export function loc_1468(m, moveCommand = m.regs.l) {
 }
 
 /** Dispatch the object's move handler on the command's bit 2 — set runs the frame-stamp handler,
- *  clear runs the step-and-resolve handler. Each handler's return unwinds to loc_1468's caller. */
+ *  clear runs the step-and-resolve handler. Each handler's return unwinds to windUpObjectMove's caller. */
 function dispatchMove(m, moveCommand) {
   if (moveCommand & STAMP_HANDLER_BIT) return loc_186a(m);
-  return loc_1a02(m);
+  return stepObjectAndResolveTile(m);
 }

@@ -6,7 +6,7 @@
  *
  * CONTRACT — OBSERVABLE RAM (relaxed after the callee dissolve). This gate USED to demand
  * whole-RAM + exit pc + SP byte-identity. That broke when the two painters this routine
- * reaches — drawCreditsDisplay (panel repaint) and loc_48c4 (column recolour) — were dissolved: their
+ * reaches — drawCreditsDisplay (panel repaint) and cyclePanelColumnColour (column recolour) — were dissolved: their
  * inner layout/colour helpers (rowColToTileOffset, deriveTileWriteCursors, fillColourColumn)
  * are now DIRECT JS calls with no Z80 stack frame. steerDemoPlayer itself is UNCHANGED
  * — its two housekeeping arms still `push16` a Z80 return address and then call the painter —
@@ -44,7 +44,7 @@
  *      while the game-mode byte is 4 — which the attract demo does enter — so real
  *      captured entries are available. The very first one (frame 1 of the demo)
  *      is rich: it repaints the panel (drawCreditsDisplay), reloads the 30-frame timer, and
- *      recolours a column (loc_48c4) before the probe-absent early return. Later
+ *      recolours a column (cyclePanelColumnColour) before the probe-absent early return. Later
  *      entries exercise the timer countdown + early return. EQUAL is proven on all.
  *
  *   2. CRAFTED entries for the classification chain. Attract's demo never presents a
@@ -54,7 +54,7 @@
  *      X/Y across every wall-line value and the band hint across every band, so every
  *      band, wall line, and half-plane split is driven on both sides.
  *
- *   3. Its callees (drawCreditsDisplay, loc_48c4) are already idiomatic and are imported and
+ *   3. Its callees (drawCreditsDisplay, cyclePanelColumnColour) are already idiomatic and are imported and
  *      called directly by the routine, and the oracle reaches the same two routines
  *      through the registry — so both sides run identical callee code and the gate
  *      tests 0x03e8's own logic and routing (the dissolve consequence above is theirs,
@@ -70,7 +70,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_03e8 as oracle } from "../../translated/loc_03e8.js";
 import { steerDemoPlayer as idiomatic } from "../steerDemoPlayer.js";
 import { drawCreditsDisplay as idiomaticPainter } from "../drawCreditsDisplay.js";
-import { loc_48c4 as idiomaticRecolour } from "../loc_48c4.js";
+import { cyclePanelColumnColour as idiomaticRecolour } from "../cyclePanelColumnColour.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -89,11 +89,11 @@ const WALL_TIMER = 0x800b;    // 30-frame countdown
 const BAND_HINT = 0x800c;     // cached maze band index
 const PROBE_GATE = 0x8079;    // nonzero -> classify this frame
 const TICK_BUSY = 0x807c;     // nonzero on a tick frame -> skip classification
-const SPAWN_PHASE = 0x807b;   // 0 on a tick frame -> recolour a column (loc_48c4)
+const SPAWN_PHASE = 0x807b;   // 0 on a tick frame -> recolour a column (cyclePanelColumnColour)
 const OBJ_X = 0x8068;
 const OBJ_Y = 0x806b;
 const DEMO_STEER_DIR = 0x801b;      // the one-of-four steering direction this routine produces
-const FILL_LEN = 0x8055;      // loc_48c4's first write (column length 9); where a skipped-recolour twin shows up
+const FILL_LEN = 0x8055;      // cyclePanelColumnColour's first write (column length 9); where a skipped-recolour twin shows up
 const CAPTURE_FRAMES = 720;   // the demo runs 0x03e8 within this window
 // The dead stack-scratch window excluded from the RAM diff. The dissolved painters'
 // direct JS helpers push no nested Z80 return address, and this routine's own push16
@@ -235,7 +235,7 @@ test("EQUAL (captured): the first entry really exercises the painter + recolour 
   assert.equal(e.mem.read8(FRAME_COUNTER), 0, "first demo entry repaints the panel (drawCreditsDisplay)");
   assert.equal(e.mem.read8(WALL_TIMER), 1, "first demo entry hits the 30-frame tick");
   assert.equal(e.mem.read8(TICK_BUSY), 0, "first demo entry is not busy -> reaches the recolour");
-  assert.equal(e.mem.read8(SPAWN_PHASE), 0, "first demo entry recolours a column (loc_48c4)");
+  assert.equal(e.mem.read8(SPAWN_PHASE), 0, "first demo entry recolours a column (cyclePanelColumnColour)");
   console.log("  EQUAL/captured: entry#0 covers the panel-repaint + timer-reload + recolour arms");
 });
 
@@ -252,7 +252,7 @@ test("EQUAL (crafted): the busy-tick arm returns without classifying", () => {
   console.log("  EQUAL/crafted: busy-tick reload-then-return arm identical");
 });
 
-test("EQUAL (crafted): the tick recolour arm (loc_48c4) with the painter skipped", () => {
+test("EQUAL (crafted): the tick recolour arm (cyclePanelColumnColour) with the painter skipped", () => {
   const e = ENTRIES[0].clone();
   e.mem.write8(FRAME_COUNTER, 1); // skip the painter
   e.mem.write8(WALL_TIMER, 1);    // dec -> 0 -> tick
@@ -260,7 +260,7 @@ test("EQUAL (crafted): the tick recolour arm (loc_48c4) with the painter skipped
   e.mem.write8(SPAWN_PHASE, 0);   // -> recolour a column
   e.mem.write8(PROBE_GATE, 0);    // then early-return (no live probe)
   assertEqual(e, idiomatic, "tick-recolour");
-  console.log("  EQUAL/crafted: tick recolour (loc_48c4) arm identical");
+  console.log("  EQUAL/crafted: tick recolour (cyclePanelColumnColour) arm identical");
 });
 
 test("EQUAL (crafted): the painter arm alone (frame counter at zero)", () => {
@@ -398,9 +398,9 @@ test("TEETH: a wrong band-hint stamp is CAUGHT at the hint byte", () => {
   console.log(`  TEETH: wrong band-hint caught at ${hx(r.ram.addr)} (oracle=${r.ram.a} broken=${r.ram.b})`);
 });
 
-test("TEETH: a skipped column recolour (loc_48c4) is CAUGHT", () => {
+test("TEETH: a skipped column recolour (cyclePanelColumnColour) is CAUGHT", () => {
   // The first real entry recolours a column; a twin that skips it first diverges at
-  // loc_48c4's opening write — the column length it sets to 9 (the painter left 8).
+  // cyclePanelColumnColour's opening write — the column length it sets to 9 (the painter left 8).
   const r = runPair(ENTRIES[0], makeBrokenRoutine("skip48c4"));
   assert.notEqual(r.ram, null, "the gate FAILED to catch a skipped recolour — it is worthless");
   assert.equal(r.ram.addr, FILL_LEN, `teeth caught ${hx(r.ram.addr ?? 0)} (expected ${hx(FILL_LEN)})`);

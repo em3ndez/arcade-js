@@ -6,7 +6,7 @@
  *
  * The routine reads one ROM constant and writes a fixed 1024-cell run into video RAM,
  * so it is gated on MEMORY-equivalence, not on a returned register. Its declared
- * live-out is memory-only: the return lands back inside loc_4b44, whose very next call
+ * live-out is memory-only: the return lands back inside blankScreen, whose very next call
  * (loc_4c37) reloads every value register (count, fill byte, cursor) before reading it,
  * so the registers the oracle leaves behind are dead and not reproduced.
  *
@@ -15,7 +15,7 @@
  *   0. IDENTITY — run the unit gate with both arms = the oracle; EQUAL proves the
  *      harness wiring (construct-with-override -> host run -> capture -> clone -> diff)
  *      works on The Pit and that 0x4c27 is actually reached during attract (it is
- *      dispatched at display setup, cold boot -> loc_4b44 -> here).
+ *      dispatched at display setup, cold boot -> blankScreen -> here).
  *   1. EQUAL (real dispatches, full contract) — hook 0x4c27 in a real attract run and,
  *      for each capture, run the oracle on one clone and fillVideoRam on another and
  *      confirm identical RAM + pc + SP. Because the whole state dump is compared, this

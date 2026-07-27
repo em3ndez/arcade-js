@@ -9,7 +9,7 @@
  * OBSERVABLE-EQUIVALENCE CONTRACT. The routine writes no RAM of its own — every effect is
  * produced by a delegated handler (the deferral-record staging, or the per-frame update
  * dispatcher). The idiomatic version calls the already-decompiled handlers
- * (stageObjectSpriteRecord, loc_1434) DIRECTLY instead of tail-jumping through the Z80
+ * (stageObjectSpriteRecord, advanceObjectFrame) DIRECTLY instead of tail-jumping through the Z80
  * registry; the oracle reaches them by tail-jump. A tail-jump only READS the return address
  * off the stack, so no stack-scratch byte ever differs and RAM is diffed in full with no
  * exclusion window. pc, SP and the dead value registers are excluded (the caller tail-jumps
@@ -42,7 +42,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1420 as oracle } from "../../translated/loc_1420.js";
 import { stepObjectFromControl as idiomatic } from "../stepObjectFromControl.js";
-import { loc_1434 } from "../loc_1434.js";
+import { advanceObjectFrame } from "../advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -147,7 +147,7 @@ function twinWrongSource(m) {
   const { mem8, regs } = m;
   if (mem8[REACTION_STATE] !== 0) return stageObjectSpriteRecord(m);
   regs.a = mem8[IN0_DEBOUNCED]; // BUG: should be the demo steering when the demo is running
-  return loc_1434(m);
+  return advanceObjectFrame(m);
 }
 
 test("TEETH (wrong input source): feeding the joystick in the demo is CAUGHT", () => {
@@ -174,7 +174,7 @@ function twinNoGuard(m) {
   const { mem8, regs } = m;
   const runningDemo = mem8[GAME_MODE] >= 3;
   regs.a = runningDemo ? mem8[DEMO_STEER_DIR] : mem8[IN0_DEBOUNCED];
-  return loc_1434(m); // BUG: no reaction-defer guard, so it never stages the deferral record
+  return advanceObjectFrame(m); // BUG: no reaction-defer guard, so it never stages the deferral record
 }
 
 test("TEETH (dropped defer guard): dispatching the move while a reaction owns the frame is CAUGHT", () => {

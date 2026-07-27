@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1434 (ROM 0x1434) — the per-frame object dispatcher that
+ * Memory-equivalence gate for advanceObjectFrame (ROM 0x1434) — the per-frame object dispatcher that
  * picks which update to run for the tracked object: the at-rest router when the object's
  * mode byte (0x8075) is clear, otherwise one of two walk steppers chosen by the move
  * command's direction bits and the mode byte's sign.
@@ -22,10 +22,10 @@
  * Checks:
  *   0. HARNESS — capture real 0x1434 entries in attract and confirm the oracle run is
  *      deterministic (oracle vs oracle -> identical whole state).
- *   1. EQUAL (real entries) — loc_1434 == oracle over the full RAM dump on every captured
+ *   1. EQUAL (real entries) — advanceObjectFrame == oracle over the full RAM dump on every captured
  *      mode-clear entry.
  *   2. EQUAL (crafted arms) — with the mode and command poked to force each of the four
- *      unreached arms, loc_1434 == oracle over full RAM.
+ *      unreached arms, advanceObjectFrame == oracle over full RAM.
  *   3. TEETH (mis-dispatch) — a twin that sends the mode-clear (at-rest) case to a walk
  *      stepper instead of the router MUST be caught by the RAM diff on a real entry.
  *   4. TEETH (corrupt output) — a twin that does the real work then flips the mode byte
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1434 as oracle } from "../../translated/loc_1434.js";
-import { loc_1434 as idiomatic } from "../loc_1434.js";
+import { advanceObjectFrame as idiomatic } from "../advanceObjectFrame.js";
 import { advanceObjectWalkFrame } from "../advanceObjectWalkFrame.js";
 import { walkActor } from "../walkActor.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -119,7 +119,7 @@ test("HARNESS: real 0x1434 entries are captured and the oracle run is determinis
 
 // -- 1. EQUAL over real captured attract entries ------------------------------
 
-test("EQUAL (real entries): loc_1434 leaves the same RAM as the oracle over every captured entry", () => {
+test("EQUAL (real entries): advanceObjectFrame leaves the same RAM as the oracle over every captured entry", () => {
   const caps = captureEntries(2500, 40);
   assert.ok(caps.length >= 1, "expected at least one captured entry");
   for (const cap of caps) {

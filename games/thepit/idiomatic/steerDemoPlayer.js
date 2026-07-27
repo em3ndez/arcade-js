@@ -42,7 +42,7 @@
  * helpers (0x3dea, 0x3ddb), and the bracket keeps the Z80 stack pointer where those
  * oracle helpers expect it, so their stack scratch matches the oracle run exactly. When
  * those two helpers are decompiled the bracket dissolves too. The column recolour
- * (loc_48c4) needs no bracket — its whole chain (the cell-address helpers and the colour
+ * (cyclePanelColumnColour) needs no bracket — its whole chain (the cell-address helpers and the colour
  * filler) is already idiomatic — so it is a plain direct call.
  *
  * Memory-equivalent to the frozen oracle — equivalence-03e8.test.js.
@@ -71,7 +71,7 @@ import {
   STATE_TIMER,
 } from "./ram.js";
 import { drawCreditsDisplay } from "./drawCreditsDisplay.js";
-import { loc_48c4 } from "./loc_48c4.js";
+import { cyclePanelColumnColour } from "./cyclePanelColumnColour.js";
 import { u8 } from "../../../core/int.js";
 
 // The per-frame countdown that paces the 30-frame service tick (the background column
@@ -212,7 +212,7 @@ export function steerDemoPlayer(m) {
     if (mem8[SPAWN_PHASE] === 0) {
       // Not mid-spawn: recolour one playfield column by one palette step. Its whole
       // chain is idiomatic, so this is a plain direct call.
-      loc_48c4(m);
+      cyclePanelColumnColour(m);
     }
   }
 

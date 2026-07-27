@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_3d7e (ROM 0x3d7e) — advance BOARD_MODE keeping bit 3
+ * Equivalence test for cycleStagedColumnColour (ROM 0x3d7e) — advance BOARD_MODE keeping bit 3
  * clear, then hand off to the column fill fillColourColumn (loc_3e01), which is
  * already decompiled: this routine now calls it directly instead of through the
  * oracle registry.
  *
- * WHY CRAFTED ENTRIES (not the stock unitEquivalence capture). loc_3d7e is
+ * WHY CRAFTED ENTRIES (not the stock unitEquivalence capture). cycleStagedColumnColour is
  * dispatched ONLY from the fixed-screen display loop loc_3ba8, which a plain
  * boot/attract run never enters — 0 dispatches in 5000 frames. So there is no
- * real dispatch of loc_3d7e to snapshot, and unitEquivalence (which requires the
+ * real dispatch of cycleStagedColumnColour to snapshot, and unitEquivalence (which requires the
  * target to be entered) cannot reach it. Instead this gate follows the
  * crafted-entry method: capture a real attract machine state (realistic full RAM
  * + the oracle routine registry + a live stack) by hooking a routine attract DOES
- * reach, then surgically poke BOARD_MODE — the one byte loc_3d7e's behaviour turns
+ * reach, then surgically poke BOARD_MODE — the one byte cycleStagedColumnColour's behaviour turns
  * on — and run oracle vs idiomatic on identical clones. Because BOARD_MODE spans
  * only 0..255, the EQUAL check is an EXHAUSTIVE sweep of the whole input domain.
  *
  * Both arms paint the SAME column fill, so the only thing that can diverge is
- * loc_3d7e's own BOARD_MODE advance — exactly what this isolates. The fill's base
+ * cycleStagedColumnColour's own BOARD_MODE advance — exactly what this isolates. The fill's base
  * pointer + row count are poked to sane work-RAM values so the fill is bounded and
  * observable, and a wrong advance shows up both in the stored BOARD_MODE byte and
  * in the painted column.
  *
  * THE CONTRACT is OBSERVABLE equivalence: the RAM the routine affects, plus pc and
  * SP. The oracle reaches the fill by a tail-jump, so the fill's own return pops
- * loc_3d7e's caller's return address and lands there; the idiomatic routine makes
+ * cycleStagedColumnColour's caller's return address and lands there; the idiomatic routine makes
  * a plain JS call to fillColourColumn and returns normally, with no Z80 return of
  * its own. To line the return path up, the candidate does one m.ret() after the
  * call — then pc + SP match the oracle exactly. There is NO dead stack-scratch
@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3d7e as oracle } from "../../translated/loc_3d7e.js";
-import { loc_3d7e as idiomatic } from "../loc_3d7e.js";
+import { cycleStagedColumnColour as idiomatic } from "../cycleStagedColumnColour.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 import { fillColourColumn } from "../fillColourColumn.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -82,7 +82,7 @@ const FILL_ROWS = 8;
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 /**
- * Capture one real attract machine state to seed crafted entries. loc_3d7e itself
+ * Capture one real attract machine state to seed crafted entries. cycleStagedColumnColour itself
  * is never dispatched in attract, so hook a routine that IS (loc_3dae, entered
  * within the first ~100 frames) and clone the machine the first time it fires —
  * that gives realistic full RAM, the oracle registry, and a live stack.
@@ -110,7 +110,7 @@ function craft(seed, v) {
 /**
  * Run oracle and candidate on two independent clones of one entry and diff the
  * observable-equivalence contract: full RAM + pc + SP. The oracle tail-jumps into
- * the fill, whose ret pops loc_3d7e's caller's return address; the candidate is
+ * the fill, whose ret pops cycleStagedColumnColour's caller's return address; the candidate is
  * stack-free, so it does one m.ret() after the call to line pc + SP up with the
  * oracle. The column fill pushes nothing, so there is no dead stack scratch and
  * RAM is compared in full. Value registers/flags are the routine's dead-ABI

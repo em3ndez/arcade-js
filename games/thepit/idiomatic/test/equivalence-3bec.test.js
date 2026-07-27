@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3bec (ROM 0x3bec, The Pit) — the tier-selected status
+ * Memory-equivalence gate for showBonusScreen (ROM 0x3bec, The Pit) — the tier-selected status
  * screen: two gameplay config bytes choose a tier count (5 / 10 / 15), the routine paints
  * the shared fixed panel plus three text rows (the top two picked by tier), then holds the
  * screen for `count` passes, each playing a sound, adding to the score, cycling a colour
@@ -59,7 +59,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3bec as oracle } from "../../translated/loc_3bec.js";
 import { loc_3a6f as oracle3a6f } from "../../translated/loc_3a6f.js";
-import { loc_3bec as idiomatic } from "../loc_3bec.js";
+import { showBonusScreen as idiomatic } from "../showBonusScreen.js";
 import { makeMachineFactory } from "../../machine.js";
 
 // The teeth mirror drives the same idiomatic leaves, so its only divergence is its bug.
@@ -314,7 +314,7 @@ test("EQUAL (active score): with an in-play player the score add fires and idiom
 
 // -- base fidelity: the teeth mirror IS the routine at default options --------
 
-test("MIRROR: paintTierScreen() at default options == idiomatic loc_3bec (so each twin's only diff is its bug)", () => {
+test("MIRROR: paintTierScreen() at default options == idiomatic showBonusScreen (so each twin's only diff is its bug)", () => {
   for (const { a, b, tier } of TIERS) {
     const { ram } = runPair((m) => paintTierScreen(m), { a, b });
     assert.equal(ram, null, ram && `tier ${tier}: mirror diverges from idiomatic at ${hx(ram.addr ?? 0)} (oracle=${ram.a} mirror=${ram.b})`);

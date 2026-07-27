@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1468 (ROM 0x1468) — settle the object's animation phase toward a
+ * Memory-equivalence gate for windUpObjectMove (ROM 0x1468) — settle the object's animation phase toward a
  * move command, deferring the frame while it settles, then dispatch the object's move handler.
  *
  * One arm of the at-rest object dispatcher (loc_144c), reached when the per-frame move command
@@ -9,7 +9,7 @@
  * a settled phase dispatches the move handler, a clear phase arms the wind-up then dispatches, and a
  * mid-wind-up phase steps the counter down and DEFERS the frame (snapping straight to the command
  * once it has run far enough). The dispatch splits on the command's bit 2: set -> the frame-stamp
- * handler loc_186a, clear -> the step-and-resolve handler loc_1a02.
+ * handler loc_186a, clear -> the step-and-resolve handler stepObjectAndResolveTile.
  *
  * The declared LIVE-OUT is MEMORY-ONLY: the phase byte plus whatever the dispatched handler (or the
  * deferral record) writes. The move command is its one genuine register live-in, surfaced as the
@@ -17,9 +17,9 @@
  * read, never written, so it stays intact for the handlers. Registers/flags/pc/SP are excluded per
  * the honest-signature contract — the idiomatic layer does not preserve the Z80 register/step trace.
  *
- * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE loc_1468 (every terminal a tail
+ * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE windUpObjectMove (every terminal a tail
  * `m.call` to the frozen handler/deferral routines) against the stack-free idiomatic routine (which
- * calls its already-idiomatic callees directly). loc_1468 does no stack manipulation of its own, so
+ * calls its already-idiomatic callees directly). windUpObjectMove does no stack manipulation of its own, so
  * for the arms this gate exercises the two leave byte-identical RAM including the stack; the diff
  * still excludes the standard dead-scratch window just below the entry stack pointer (The Pit's
  * stack is real diffed work RAM, ~0x83fd here) as the defensive guard for the delegated award /
@@ -29,10 +29,10 @@
  * Checks:
  *   0. HARNESS   — capture real 0x1468 dispatches from attract; confirm the oracle run is
  *      deterministic and that all three arms (settled dispatch, wind-down, arm) occur in a real run.
- *   1. EQUAL     — loc_1468 == oracle over RAM across every real attract dispatch (the demo's
+ *   1. EQUAL     — windUpObjectMove == oracle over RAM across every real attract dispatch (the demo's
  *      command is always bit 2, so these settle onto / dispatch through loc_186a).
  *   2. EQUAL (crafted bit-3 dispatch) — force a settled bit-3 command: both dispatch the OTHER
- *      handler (loc_1a02), identical; and it produces a different result than the bit-2 command on
+ *      handler (stepObjectAndResolveTile), identical; and it produces a different result than the bit-2 command on
  *      the same base, proving the bit-2 dispatch really selects the handler.
  *   3. EQUAL (crafted snap wind-down) — force a mid-wind-up phase that has run far enough to snap
  *      straight to the command: both write the snapped phase and defer, identical.
@@ -51,7 +51,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1468 as oracle } from "../../translated/loc_1468.js";
-import { loc_1468 as idiomatic } from "../loc_1468.js";
+import { windUpObjectMove as idiomatic } from "../windUpObjectMove.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -65,11 +65,11 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1468;
 const STACK_SCRATCH = 32; // dead-scratch window below entry SP (guards the delegated handler/award/
-// deferral push chain; in practice loc_1468's own arms leave the stack identical, and no real
+// deferral push chain; in practice windUpObjectMove's own arms leave the stack identical, and no real
 // work-RAM output lives in 0x83xx, so the window can hide none)
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte / wind-up counter (also reset by loc_144c)
 const BIT2_COMMAND = 0x04; // the down command attract uses (bit 2 -> loc_186a)
-const BIT3_COMMAND = 0x08; // crafted: bit 3 -> loc_1a02
+const BIT3_COMMAND = 0x08; // crafted: bit 3 -> stepObjectAndResolveTile
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is async, so build the
@@ -155,7 +155,7 @@ test("HARNESS: real 0x1468 dispatches are captured from attract, deterministic, 
 
 // -- 1. EQUAL over every real captured attract dispatch ----------------------
 
-test("EQUAL: loc_1468 leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: windUpObjectMove leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(200, 6000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 
@@ -168,7 +168,7 @@ test("EQUAL: loc_1468 leaves the same state as the oracle over every real attrac
 
 // -- 2. EQUAL crafted: a settled bit-3 command dispatches the OTHER handler ---
 
-test("EQUAL (crafted bit-3): a settled bit-3 command dispatches loc_1a02, identical + distinct from bit-2", () => {
+test("EQUAL (crafted bit-3): a settled bit-3 command dispatches stepObjectAndResolveTile, identical + distinct from bit-2", () => {
   const [base] = captureDispatches(1, 3000);
   assert.ok(base, "need a real capture to craft from");
 
@@ -199,7 +199,7 @@ test("EQUAL (crafted bit-3): a settled bit-3 command dispatches loc_1a02, identi
     break;
   }
   assert.notEqual(handlerDiff, null, "bit-2 and bit-3 wrote identical handler output — bit 2 is not selecting the handler");
-  console.log(`  EQUAL/bit-3: settled bit-3 -> loc_1a02 identical to the oracle; differs from bit-2 at ${hx(handlerDiff)}`);
+  console.log(`  EQUAL/bit-3: settled bit-3 -> stepObjectAndResolveTile identical to the oracle; differs from bit-2 at ${hx(handlerDiff)}`);
 });
 
 // -- 3. EQUAL crafted: a wind-down that snaps straight to the command --------

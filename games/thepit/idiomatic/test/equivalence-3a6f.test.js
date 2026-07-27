@@ -20,7 +20,7 @@
  *      the idiomatic routine calls its already-decompiled leaves directly (no push), so
  *      the two leave DIFFERENT dead bytes in the work stack just below the entry stack
  *      pointer. And once a callee (0x4b44) is DISSOLVED — its m.call(0x4b44) becomes a
- *      direct loc_4b44(m) — the oracle's push/return also parks a two-byte return-frame
+ *      direct blankScreen(m) — the oracle's push/return also parks a two-byte return-frame
  *      ghost AT/just above the SP it resets to (entry SP=0x83fd, so 0x83fd/0x83fe) that
  *      the stack-free idiomatic never writes. Both are classic dead scratch (overwritten
  *      by the caller's next push before anything reads them), so the RAM diff EXCLUDES

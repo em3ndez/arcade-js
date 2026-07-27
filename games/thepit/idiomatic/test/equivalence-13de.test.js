@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_13de (ROM 0x13de) — the body of the per-frame object/state
+ * Memory-equivalence gate for advanceTrackedObject (ROM 0x13de) — the body of the per-frame object/state
  * dispatcher. It reads a chain of the tracked object's control bytes and hands the frame to
  * exactly one handler (defer/stage, do nothing, a carve prologue, a walk stepper, the control
  * step, the walk-forward continuation, or the tile-cell tail). It writes no RAM of its own.
@@ -17,7 +17,7 @@
  * RAM 0x9000+), so the window can never hide one — the teeth confirm it. pc, SP and the value
  * registers are excluded (the honest-signature contract).
  *
- * THE REGISTER LIVE-OUT. loc_13de loads the object's position-bias pair (the word at 0x806c)
+ * THE REGISTER LIVE-OUT. advanceTrackedObject loads the object's position-bias pair (the word at 0x806c)
  * into D and E before dispatching; the tile-cell tail reads the column bias from D and the
  * still-oracle position handlers (reached via the at-rest router loc_144c) read both bytes as
  * the object's move deltas. That is a genuine register boundary the idiomatic routine
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_13de as oracle } from "../../translated/loc_13de.js";
-import { loc_13de as idiomatic } from "../loc_13de.js";
+import { advanceTrackedObject as idiomatic } from "../advanceTrackedObject.js";
 import { advanceObjectWalkFrame } from "../advanceObjectWalkFrame.js";
 import { walkActor } from "../walkActor.js";
 import { stepObjectFromControl } from "../stepObjectFromControl.js";
@@ -87,7 +87,7 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 const R = (mm, a) => mm.mem.read8(a);
 
-/** Re-derive which arm loc_13de takes for an entry, from its gate bytes (for coverage + non-vacuity). */
+/** Re-derive which arm advanceTrackedObject takes for an entry, from its gate bytes (for coverage + non-vacuity). */
 function branchOf(mm) {
   if (R(mm, BUSY_THIS_FRAME) !== 0) return "busy->stage";
   if (R(mm, OBJECT_ACTIVE) === 0) return "inactive->return";
@@ -178,7 +178,7 @@ test("IDENTITY: the harness reaches 0x13de in attract, the reached arms appear, 
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_13de leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: advanceTrackedObject leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = capture(2000, 3000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 
@@ -217,7 +217,7 @@ test("EQUAL (crafted arms): each unreached arm, forced from a real DE-stage entr
 
 // -- 3. TEETH (dropped active guard) -----------------------------------------
 
-/** Broken twin: reproduces loc_13de but DROPS the "no live object" guard, so it dispatches even
+/** Broken twin: reproduces advanceTrackedObject but DROPS the "no live object" guard, so it dispatches even
  *  when the tracked object is dead. On a nothing-active entry the oracle returns without writing,
  *  so the twin's handler writes are the divergence. */
 function twinNoActiveGuard(m) {

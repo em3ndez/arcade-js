@@ -4,7 +4,7 @@
  * points, play the pickup sound, bump that loot kind's count, and blank the tile so it is
  * removed from the playfield (delegates to the dig-arm otherwise).  ROM 0x18cf.
  *
- * Reached from the walk-animation step (loc_186f) once it decides the tile under the
+ * Reached from the walk-animation step (resolveObjectTile) once it decides the tile under the
  * actor may be worth collecting. It acts only on the final sub-step before the actor
  * crosses into a new tile column; on any other phase, and for any tile it does not
  * recognise, it hands the frame to the dig-arm classifier (triggerDigReaction) unchanged.
