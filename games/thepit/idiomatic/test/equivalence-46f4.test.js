@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_46f4 (ROM 0x46f4) — stamps the fixed playfield
+ * Memory-equivalence gate for drawLeftEdgeColumn (ROM 0x46f4) — stamps the fixed playfield
  * edge column: a 32-tile ROM picture strip up video column 0, then two 9-cell
  * colour-2 runs and one 10-cell colour-3 run that tint it (60 cells total).
  *
- * loc_46f4 loads its own source, destinations, counts, and colours — no live-in
+ * drawLeftEdgeColumn loads its own source, destinations, counts, and colours — no live-in
  * register, no work RAM read — so its writes depend on nothing but the fixed ROM
  * strip. Its declared LIVE-OUT is memory-only (the tile + colour cells); the
  * register file and flags it leaves behind are dead ABI. The routine touches no
@@ -40,7 +40,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_46f4 as oracle } from "../../translated/loc_46f4.js";
 import { loc_0066 as nmiOracle } from "../../translated/loc_0066.js";
-import { loc_46f4 as idiomatic } from "../loc_46f4.js";
+import { drawLeftEdgeColumn as idiomatic } from "../drawLeftEdgeColumn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 
@@ -187,7 +187,7 @@ test("LIVE-OUT: unitEquivalence's only disagreement is a dead register (RAM + pc
 
 // -- 2. EQUAL: real dispatch + sampled attract states --------------------------
 
-test("EQUAL: idiomatic loc_46f4 == oracle at the real dispatch and on sampled attract states", () => {
+test("EQUAL: idiomatic drawLeftEdgeColumn == oracle at the real dispatch and on sampled attract states", () => {
   const real = captureRealDispatch(CAP_FRAMES);
   assert.ok(real, "expected a real 0x46f4 dispatch during attract");
   assert.equal(contractDiffs(real, idiomatic).length, 0, "real-dispatch entry: " + contractDiffs(real, idiomatic).join("; "));

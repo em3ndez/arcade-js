@@ -44,7 +44,7 @@ import {
   SPAWN_PHASE, ACTOR_X, ACTOR_Y, ACTOR_TILE, ACTOR_TIMER,
   TWIN_X, TWIN_TILE, TWIN_CLEAR,
 } from "./ram.js";
-import { loc_384a } from "./loc_384a.js";
+import { advanceAltPhaseActor } from "./advanceAltPhaseActor.js";
 import { requestSound7 } from "./requestSound7.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
@@ -73,7 +73,7 @@ export function spawnAltPhaseActor(m) {
   const phase = mem8[SPAWN_PHASE];
 
   // Already alive: skip the spawn, just animate this frame.
-  if (phase === ACTIVE) return loc_384a(m);
+  if (phase === ACTIVE) return advanceAltPhaseActor(m);
 
   // First frame. The start row comes from the spawn sub-phase.
   const startRow = phase === 2 ? 22 : 23;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_34da — mover housekeeping: advance two cadence counters each call.  ROM 0x34da.
+ * advanceDormantMover — mover housekeeping: advance two cadence counters each call.  ROM 0x34da.
  *
  * Called once per mover update to keep two counters ticking:
  *   - A free-running tick counter is bumped every call. Once every 256 calls it
@@ -39,7 +39,7 @@ import { loc_34f0 } from "./loc_34f0.js";
 import { MOVER_STATE } from "./ram.js";
 
 
-export function loc_34da(m) {
+export function advanceDormantMover(m) {
   const { mem8 } = m;
 
   // Bump the free-running tick counter every call.

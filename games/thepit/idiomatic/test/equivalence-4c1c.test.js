@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4c1c (ROM 0x4c1c) — the 64-byte work-RAM wipe of
+ * Memory-equivalence gate for clearSpriteStagingBuffer (ROM 0x4c1c) — the 64-byte work-RAM wipe of
  * 0x8200..0x823f.
  *
- * loc_4c1c takes no register inputs and its only live output is memory: the 64
+ * clearSpriteStagingBuffer takes no register inputs and its only live output is memory: the 64
  * zeroed bytes. So the gate is MEMORY-ONLY (firstStateDiff over the whole state
  * dump), not a full register/PC compare — the oracle's exit registers, flags, and
  * Z80 return path (SP/PC) are dead scratch the idiomatic JS return replaces (the
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4c1c as oracle } from "../../translated/loc_4c1c.js";
-import { loc_4c1c as idiomatic } from "../loc_4c1c.js";
+import { clearSpriteStagingBuffer as idiomatic } from "../clearSpriteStagingBuffer.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
 

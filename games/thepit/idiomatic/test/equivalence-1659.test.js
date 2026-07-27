@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for loc_1659 (ROM 0x1659) — the tile-under-object classifier's
+ * Equivalence gate for advanceObjectWalkFrame (ROM 0x1659) — the tile-under-object classifier's
  * open-ground animation step: it re-expresses the object's column (0x8068) as an
  * offset from the reference point (0x806c), reads an 8-step walk phase off that
  * offset, sets the motion marker (0x8075) and the alternating sprite frame
- * (SPRITE_CODE), then calls the record builder loc_1b5b directly.
+ * (SPRITE_CODE), then calls the record builder stageObjectSpriteRecord directly.
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The idiomatic routine calls the already-decompiled
- * loc_1b5b directly instead of routing through the Z80 registry. That drops the stack
+ * stageObjectSpriteRecord directly instead of routing through the Z80 registry. That drops the stack
  * frame the oracle path carried: the oracle reaches loc_1b5b as a tail-jump whose ret
  * pops the caller return address (SP += 2) and whose body clobbers A/F/B/HL, while the
  * direct call touches none of them. Those residuals are all DEAD — nothing downstream
@@ -49,8 +49,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1659 as oracle } from "../../translated/loc_1659.js";
-import { loc_1659 as idiomatic } from "../loc_1659.js";
-import { loc_1b5b } from "../loc_1b5b.js";
+import { advanceObjectWalkFrame as idiomatic } from "../advanceObjectWalkFrame.js";
+import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { OBJ_X, SPRITE_CODE } from "../ram.js";
@@ -90,7 +90,7 @@ function captureStates(count, stride, startFrame) {
 
 /**
  * The routine's ONLY register live-out is the walk phase in E. Compare exactly that,
- * not the whole file: the dissolved direct call to loc_1b5b legitimately leaves the
+ * not the whole file: the dissolved direct call to stageObjectSpriteRecord legitimately leaves the
  * dead value registers (A/F/B/HL) and SP where the oracle's stack frame would have
  * moved them. Returns null when E matches, else a {reg:"e", a, b} diff.
  */
@@ -123,7 +123,7 @@ function withInputs(base, x, ref) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: loc_1659 leaves the same state + registers as the oracle over real attract states", () => {
+test("EQUAL: advanceObjectWalkFrame leaves the same state + registers as the oracle over real attract states", () => {
   const caps = captureStates(10, 90, 120);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {
@@ -193,7 +193,7 @@ function twinSpriteSwap(m) {
   mem.write8(MOTION_FLAG, phase === 0 ? 0 : 0xff);
   mem.write8(SPRITE_CODE, phase & 2 ? 0xb2 : 0xb3); // BUG: frames swapped
   regs.e = phase;
-  return loc_1b5b(m);
+  return stageObjectSpriteRecord(m);
 }
 
 test("TEETH (memory): a swapped-sprite twin is CAUGHT at SPRITE_CODE", () => {

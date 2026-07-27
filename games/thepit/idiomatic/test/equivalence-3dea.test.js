@@ -67,7 +67,7 @@ function read16(m, a) {
  * Hook 0x3dea in a real attract run and clone the machine at up to K real dispatches.
  * The wrapper snapshots the entry state, then runs the oracle so the host game proceeds
  * undisturbed. Attract's title/panel/record draws dispatch it from several plotters
- * (loc_3a6f, loc_483a, loc_3cc1, loc_3bec, loc_3d49, loc_3d8a, loc_4df8, ...) with a
+ * (loc_3a6f, loc_483a, loc_3cc1, loc_3bec, loc_3d49, drawGameOverText, loc_4df8, ...) with a
  * varied source pointer, run length and cursor.
  */
 function captureDispatches(K, maxFrames) {

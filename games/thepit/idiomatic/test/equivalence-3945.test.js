@@ -2,18 +2,18 @@
 /**
  * Memory-equivalence gate for loc_3945 (ROM 0x3945, The Pit) — the cadence front
  * end that counts the period-8 timer (0x8112) down one tick, reloads it to 8 on the
- * tick it runs out (a decrement of 1 down to 0), then runs the phase body loc_3968.
+ * tick it runs out (a decrement of 1 down to 0), then runs the phase body descendActorToRest.
  *
  * THE CONTRACT — OBSERVABLE RAM (was full-state). loc_3945 tail-delegates to the
- * phase body loc_3968, which USED to tail-jump into the shared record builder at
+ * phase body descendActorToRest, which USED to tail-jump into the shared record builder at
  * 0x3a4c via m.call; that callee's `ret` popped this whole tail chain's caller
  * return address, so the full register file AND pc/SP reconverged after the handoff
  * and the gate could demand byte-and-register-exact equivalence. That stale call in
- * loc_3968 has since been DISSOLVED into a DIRECT JS call to stageActorSpriteRecords
+ * descendActorToRest has since been DISSOLVED into a DIRECT JS call to stageActorSpriteRecords
  * (equivalence-3968.test.js — PASSING under a RAM-only contract). A direct JS call
  * has no Z80 stack frame: the callee stages the two sprite records but never rets, so
  * it no longer marches SP, sets pc, or leaves the oracle's residual value registers.
- * loc_3945 imports and calls that dissolved loc_3968 directly, so those same three —
+ * loc_3945 imports and calls that dissolved descendActorToRest directly, so those same three —
  * pc, SP and the value register(s) — now diverge from the oracle by construction and
  * are EXCLUDED here.
  *
@@ -23,15 +23,15 @@
  *      pc/SP differing — pure ABI residue, no observable effect moved.
  *   2. loc_3945 never touches register `a`: it only reads/writes the timer byte
  *      (0x8112) in RAM and then delegates. So its register live-out is IDENTICAL to
- *      loc_3968's, whose already-accepted RAM-only contract declared exactly these
+ *      descendActorToRest's, whose already-accepted RAM-only contract declared exactly these
  *      registers dead ("memory-only live-out; nothing downstream reads them before
  *      overwriting them"). The diverged `a` is 0x3a4c's residual, which the idiomatic
  *      stageActorSpriteRecords deliberately does not reproduce ("takes nothing and
  *      returns nothing").
  *   3. The whole reach is a TAIL-JUMP ladder:
- *        loc_312d/loc_316f -> 0x3748 -> loc_38c8 -> loc_3945 -> loc_3968 -> 0x3a4c
+ *        loc_312d/loc_316f -> 0x3748 -> loc_38c8 -> loc_3945 -> descendActorToRest -> 0x3a4c
  *      Every link is a tail-jump (verified in the translated arms: loc_38c8's
- *      `jp nc,0x3945`, loc_3945's `jr 0x3968`, loc_3968's tail into 0x3a4c). No link
+ *      `jp nc,0x3945`, loc_3945's `jr 0x3968`, descendActorToRest's tail into 0x3a4c). No link
  *      reads the callee's register `a` — each simply transfers control and consumes
  *      nothing — so 0x3a4c's ret unwinds straight to the per-frame movement
  *      dispatcher's caller. That caller reloads the register file next frame and never
@@ -40,7 +40,7 @@
  *
  * What the routine actually affects is RAM: the timer write here (0x8112) plus the two
  * coordinate writes (0x810a, 0x811b) and the two sprite records the tail builder stages
- * (0x8238, 0x823c). The handoff touches no stack (loc_3945->loc_3968 are `jr` tail-jumps
+ * (0x8238, 0x823c). The handoff touches no stack (loc_3945->descendActorToRest are `jr` tail-jumps
  * with no push; 0x3a4c only reads its ret address), so no dead stack-scratch window
  * exists to exclude either — the full RAM dump is compared byte-for-byte, strictly
  * stronger than a windowed subset.
@@ -48,7 +48,7 @@
  * FOUR checks:
  *   1. WIRING — capture the first natural attract dispatch, run oracle vs idiomatic on
  *      independent clones, and demand identical RAM (pc/SP/registers excluded per the
- *      contract above). Proves the gate runs end to end through the dissolved loc_3968
+ *      contract above). Proves the gate runs end to end through the dissolved descendActorToRest
  *      handoff.
  *   2. EQUAL (captured real dispatches) — a spread of real attract entry states, each
  *      run both ways and diffed on the full RAM dump. Covers the count-down and reload
@@ -58,7 +58,7 @@
  *      oracle. Covers the reload tick (counter == 1), the 8-bit wrap edge
  *      (counter == 0 -> 255, never reloads), and every ordinary count-down tick.
  *   4. TEETH — three broken twins (wrong reload value, no tick, no reload) MUST each be
- *      caught on the RAM dump. Each is built on the SAME direct loc_3968 handoff, so the
+ *      caught on the RAM dump. Each is built on the SAME direct descendActorToRest handoff, so the
  *      only difference the gate sees is the injected timer bug.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-3945.test.js
@@ -70,7 +70,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3945 as oracle } from "../../translated/loc_3945.js";
 import { loc_3945 } from "../loc_3945.js";
-import { loc_3968 } from "../loc_3968.js";
+import { descendActorToRest } from "../descendActorToRest.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -112,7 +112,7 @@ function captureEntries(maxFrames, stride, cap) {
 
 /**
  * The observable contract: the full RAM dump must be identical. pc, SP and the value
- * registers are EXCLUDED — dissolving loc_3968's Z80 tail-ret means the direct callee
+ * registers are EXCLUDED — dissolving descendActorToRest's Z80 tail-ret means the direct callee
  * no longer marches SP, sets pc, or leaves the oracle's dead residual registers (see
  * the header justification: those registers are dead ABI, reloaded next frame and
  * never read by any caller of this tail chain). Returns a diff message, or null when
@@ -141,7 +141,7 @@ test("WIRING: loc_3945 == oracle on the first natural attract dispatch (observab
   loc_3945(b);
   const diff = observableDiff(a, b);
   assert.equal(diff, null, diff && `gate reported a RAM diff on the first dispatch: ${diff}`);
-  console.log("  WIRING: captured 0x3945, ran oracle vs idiomatic through the dissolved loc_3968 handoff -> RAM EQUAL");
+  console.log("  WIRING: captured 0x3945, ran oracle vs idiomatic through the dissolved descendActorToRest handoff -> RAM EQUAL");
 });
 
 // -- 2. EQUAL on a spread of real captured attract dispatches -------------------
@@ -203,7 +203,7 @@ test("EXHAUSTIVE: over all 256 timer values the full RAM dump agrees with the or
 
 // -- 4. TEETH: broken twins the gate MUST catch --------------------------------
 //
-// Each twin is built on the SAME direct loc_3968 handoff as the real routine, so the
+// Each twin is built on the SAME direct descendActorToRest handoff as the real routine, so the
 // only difference the gate sees is the injected timer bug (which the phase body then
 // turns into an observable coordinate/timer RAM difference).
 
@@ -213,12 +213,12 @@ function brokenReloadValue(m) {
   const counter = mem.read8(ACTOR_TIMER);
   const ticked = counter === 0 ? 255 : counter - 1;
   mem.write8(ACTOR_TIMER, ticked === 0 ? 9 : ticked); // BUG: should reload to 8
-  return loc_3968(m);
+  return descendActorToRest(m);
 }
 
 /** Broken twin B: never advances the timer — passes the count through unchanged. */
 function brokenNoTick(m) {
-  return loc_3968(m); // BUG: dropped the decrement entirely
+  return descendActorToRest(m); // BUG: dropped the decrement entirely
 }
 
 /** Broken twin C: never reloads — stores 0 on the run-out tick instead of 8. */
@@ -227,7 +227,7 @@ function brokenNoReload(m) {
   const counter = mem.read8(ACTOR_TIMER);
   const ticked = counter === 0 ? 255 : counter - 1;
   mem.write8(ACTOR_TIMER, ticked); // BUG: run-out should reload to 8, not stay 0
-  return loc_3968(m);
+  return descendActorToRest(m);
 }
 
 test("TEETH: three broken twins are all CAUGHT", () => {

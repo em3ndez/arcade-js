@@ -48,13 +48,13 @@
  *           0x928e, 0x9292, 0x9294, 0x918e) are kept hex.
  */
 
-import { loc_46f4 } from "./loc_46f4.js";
+import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { loc_3d49 } from "./loc_3d49.js";
-import { loc_3d8a } from "./loc_3d8a.js";
+import { drawGameOverText } from "./drawGameOverText.js";
 import { loc_492a } from "./loc_492a.js";
 import { loc_4785 } from "./loc_4785.js";
-import { loc_47a1 } from "./loc_47a1.js";
+import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { waitFrames } from "./waitFrames.js";
@@ -97,7 +97,7 @@ export function loc_3a6f(m) {
   m.push16(0x3a72);
   m.call(0x4b44);
 
-  loc_46f4(m); // draw the left furniture column
+  drawLeftEdgeColumn(m); // draw the left furniture column
 
   m.push16(0x3a78);
   redrawScoreHud(m); // repaint the score HUD (returns through the stack)
@@ -106,7 +106,7 @@ export function loc_3a6f(m) {
   fillColourColumnAt(m, 1, 2);
 
   loc_3d49(m); // fixed text panel at column 1
-  loc_3d8a(m); // fixed vertical strip at column 6
+  drawGameOverText(m); // fixed vertical strip at column 6
 
   m.push16(0x3a88);
   loc_492a(m); // one full playfield column (tail-returns through the stack)
@@ -114,7 +114,7 @@ export function loc_3a6f(m) {
   m.push16(0x3a8b);
   loc_4785(m); // left edge column (tail-returns through the stack)
 
-  loc_47a1(m); // right edge column
+  drawRightEdgeColumn(m); // right edge column
 
   // ── 2. HUD records ──────────────────────────────────────────────────────────
   // A fixed marker cell, then its label run and colour.

@@ -10,7 +10,7 @@
  *   - On the single tick where the count runs out (a decrement of 1 down to 0) it
  *     reloads the timer to the full period of 8 before continuing; on every other
  *     tick it keeps the new count.
- *   - It then runs the phase body (loc_3968) on the freshly-updated timer. The body
+ *   - It then runs the phase body (descendActorToRest) on the freshly-updated timer. The body
  *     reads the very byte written here to decide whether this is one of its active
  *     ticks, and its return carries through to this routine's own caller.
  *
@@ -24,7 +24,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-3945.test.js.
  * GATE:     captured dispatches + exhaustive over the timer byte. Reached naturally
- *           in attract (the move-path front end feeding loc_3968); swept over all 256
+ *           in attract (the move-path front end feeding descendActorToRest); swept over all 256
  *           timer values so the run-out reload tick, the 8-bit wrap edge, and the
  *           ordinary count-down ticks are all covered; plus teeth.
  * LIVE-OUT: memory-only — the cadence timer (0x8112) it writes, which the phase body
@@ -35,7 +35,7 @@
  */
 
 import { ACTOR_TIMER } from "./ram.js";
-import { loc_3968 } from "./loc_3968.js";
+import { descendActorToRest } from "./descendActorToRest.js";
 
 export function loc_3945(m) {
   const { mem8 } = m;
@@ -47,5 +47,5 @@ export function loc_3945(m) {
   mem8[ACTOR_TIMER] = ticked === 0 ? 8 : ticked;
 
   // Run the phase body on the freshly-updated timer; its return is ours.
-  return loc_3968(m);
+  return descendActorToRest(m);
 }

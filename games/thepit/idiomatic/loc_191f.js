@@ -24,7 +24,7 @@
  * The reaction latch fires only for an already-armed actor: if the per-actor arm state is
  * clear it just builds the record; otherwise it advances that state, sets its companion
  * byte, requests the reaction sound, and builds the record. Every outcome ultimately hands
- * off to the record builder (loc_1b5b) or the movement continuation (0x19d0), each of whose
+ * off to the record builder (stageObjectSpriteRecord) or the movement continuation (0x19d0), each of whose
  * own return unwinds to this routine's caller.
  *
  * Memory-equivalent to the frozen oracle — equivalence-191f.test.js.
@@ -36,8 +36,8 @@
  *           neighbour / boundary / neighbour-out-of-range), and the armed sound path.
  *           Dispatched naturally during the attract demo.
  * LIVE-OUT: memory-only — the staged reaction bytes, the per-actor arm state, its companion,
- *           the requested sound, and the record loc_1b5b builds. The registers/flags the
- *           oracle leaves behind (from its tail into loc_1b5b or the sound enqueue) are dead
+ *           the requested sound, and the record stageObjectSpriteRecord builds. The registers/flags the
+ *           oracle leaves behind (from its tail into stageObjectSpriteRecord or the sound enqueue) are dead
  *           ABI no caller reads; the keep-moving path stays the frozen 0x19d0, so it
  *           reproduces the oracle's registers exactly.
  * NAMES:    SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE (the per-actor arm state
@@ -47,7 +47,7 @@
  */
 
 import { SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE, DIG_OBJ_TIMER } from "./ram.js";
-import { loc_1b5b } from "./loc_1b5b.js";
+import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
 // ROM tables of the tile a cell is expected to hold, one per diggable code (113..153) and
@@ -70,7 +70,7 @@ export function loc_191f(m, tileCode = m.regs.b, positionAccumulator = m.regs.e,
 
   // Codes 54..57 belong to a sibling arm — defer the frame with the plain record.
   if (tileCode >= 54 && tileCode < 58) {
-    loc_1b5b(m);
+    stageObjectSpriteRecord(m);
     return;
   }
 
@@ -128,5 +128,5 @@ function armReactionLatch(m) {
     mem8[DIG_OBJ_TIMER] = 64;
     enqueueSoundCommand(m, REACTION_SOUND);
   }
-  loc_1b5b(m);
+  stageObjectSpriteRecord(m);
 }

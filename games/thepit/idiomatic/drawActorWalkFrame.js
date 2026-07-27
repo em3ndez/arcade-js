@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_19e3 — commit the actor's animation frame, then fire the crossing's far-edge one-shot.  ROM 0x19e3.
+ * drawActorWalkFrame — commit the actor's animation frame, then fire the crossing's far-edge one-shot.  ROM 0x19e3.
  *
  * The tail of the actor-movement "keep moving" continuation (loc_19d0): the predecessor has
  * just advanced the actor and picked its walk-animation frame, and hands that frame in. This
@@ -13,7 +13,7 @@
  * actor that is not crossing, or one still short of the edge, does neither and leaves those two
  * cells untouched.
  *
- * Every path ends by rebuilding the object's display/deferral record (loc_1b5b); that rebuild's
+ * Every path ends by rebuilding the object's display/deferral record (stageObjectSpriteRecord); that rebuild's
  * own return unwinds to this routine's caller, so the routine produces no live register.
  *
  * Memory-equivalent to the frozen oracle — equivalence-19e3.test.js.
@@ -24,20 +24,20 @@
  *           inputs are the incoming frame plus a handful of work-RAM bytes, so any real state is
  *           a valid entry.
  * LIVE-OUT: memory-only — the committed sprite frame, the armed state timer and cleared leading
- *           coordinate on the far-edge path, and the record loc_1b5b rebuilds. The registers/flags
- *           the oracle leaves behind (from its tail into loc_1b5b) are dead ABI no caller reads.
+ *           coordinate on the far-edge path, and the record stageObjectSpriteRecord rebuilds. The registers/flags
+ *           the oracle leaves behind (from its tail into stageObjectSpriteRecord) are dead ABI no caller reads.
  * NAMES:    SPRITE_CODE, GOAL_CROSSING_LATCH, OBJ_Y, STATE_TIMER, OBJ_X from ram.js.
  */
 
 import { SPRITE_CODE, GOAL_CROSSING_LATCH, OBJ_Y, STATE_TIMER, OBJ_X } from "./ram.js";
-import { loc_1b5b } from "./loc_1b5b.js";
+import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 // The row the actor must reach before the crossing's far-edge one-shot fires.
 const CROSSING_FAR_EDGE = 138;
 // Duration armed into the state-lockout timer when the actor completes the crossing.
 const CROSSING_LOCKOUT = 180;
 
-export function loc_19e3(m, spriteCode = m.regs.a) {
+export function drawActorWalkFrame(m, spriteCode = m.regs.a) {
   const { mem8 } = m;
 
   // Commit the actor's chosen animation frame.
@@ -51,5 +51,5 @@ export function loc_19e3(m, spriteCode = m.regs.a) {
   }
 
   // Rebuild the object's display/deferral record; its return unwinds to our caller.
-  loc_1b5b(m);
+  stageObjectSpriteRecord(m);
 }

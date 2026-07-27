@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1659 — step a moving object's walk animation, then build its record.  ROM 0x1659.
+ * advanceObjectWalkFrame — step a moving object's walk animation, then build its record.  ROM 0x1659.
  *
  * The shared tail the tile-under-object classifier lands on when the object is on
  * open ground rather than settled on a solid tile (that settled case goes to the
@@ -16,7 +16,7 @@
  *     giving the two-frame walk.
  *
  * It then hands the phase forward and builds the object's deferral record by calling
- * the record builder loc_1b5b directly.
+ * the record builder stageObjectSpriteRecord directly.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1659.test.js.
  * GATE:     crafted-entry — reads only work RAM, so any real attract clone with its
@@ -25,23 +25,23 @@
  *           logic depends only on (column - reference) mod 256, swept over all 256
  *           offsets; real captured attract states back it where reached. The gate is
  *           OBSERVABLE equivalence: full RAM plus the E live-out. It excludes the dead
- *           value registers and SP — the oracle reaches loc_1b5b through a Z80 stack
+ *           value registers and SP — the oracle reaches stageObjectSpriteRecord through a Z80 stack
  *           frame that clobbers A/F/B/HL and pops the return address (SP += 2); the
  *           direct call reproduces neither, and nothing downstream reads them.
  * LIVE-OUT: memory (column 0x8068, SPRITE_CODE, the 0x8075 motion marker, and the
- *           four record bytes loc_1b5b writes) plus the phase left in E for the
+ *           four record bytes stageObjectSpriteRecord writes) plus the phase left in E for the
  *           record builder's caller. A/F/B/HL and SP are dead.
  * NAMES:    OBJ_X, SPRITE_CODE from ram.js. The reference point 0x806c and the motion
  *           marker 0x8075 stay hex — their roles are not yet grounded.
  */
 
 import { OBJ_X, SPRITE_CODE } from "./ram.js";
-import { loc_1b5b } from "./loc_1b5b.js";
+import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const REFERENCE = 0x806c; // moving reference point the object's column is measured against
 const MOTION_FLAG = 0x8075; // 0 at rest, else the high-bit marker the action dispatch reads as moving
 
-export function loc_1659(m) {
+export function advanceObjectWalkFrame(m) {
   const { regs, mem8 } = m;
 
   // Re-express the column as an offset from the reference point (wraps within a
@@ -61,9 +61,9 @@ export function loc_1659(m) {
   // cycle where phase bit 1 is set, back to the even code otherwise.
   mem8[SPRITE_CODE] = phase & 2 ? 0xb3 : 0xb2;
 
-  // Hand the phase forward and build the object's deferral record. loc_1b5b writes
+  // Hand the phase forward and build the object's deferral record. stageObjectSpriteRecord writes
   // the four record bytes straight to RAM and consumes nothing from E, so the phase
   // survives for the record builder's caller.
   regs.e = phase;
-  return loc_1b5b(m);
+  return stageObjectSpriteRecord(m);
 }

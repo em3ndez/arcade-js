@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence gate for loc_287a (ROM 0x287a, The Pit) — seed the dig/target
  * object control block at round start, copy a fixed column-position table from ROM,
- * then tail-jump into the round/level parameter-seeding chain (loc_2f2f → loc_30de →
+ * then tail-jump into the round/level parameter-seeding chain (loc_2f2f → seedObjectRecords →
  * seedActorSpawnState).
  *
  * loc_287a is entered ONLY at gameplay round init, at the head of that tail-jump

@@ -5,14 +5,14 @@
  * code list, the sub-cell bit-2 gate, the diggable ROM-table lookup, or a keep-moving path,
  * and stages a reaction (scratch bytes 0x80a2-0x80a7, SPRITE_CODE, NEXT_TILE) plus, for an
  * armed actor, an arm-state bump and a sound request, before handing off to the record
- * builder (loc_1b5b) or the movement continuation (0x19d0).
+ * builder (stageObjectSpriteRecord) or the movement continuation (0x19d0).
  *
  * Its declared LIVE-OUT is MEMORY-ONLY: everything it produces lands in work RAM (the staged
- * reaction, the per-actor arm state, the sound ring, and loc_1b5b's record). The oracle's
+ * reaction, the per-actor arm state, the sound ring, and stageObjectSpriteRecord's record). The oracle's
  * residual registers are dead ABI — and because the idiomatic tail calls the decompiled
- * loc_1b5b / enqueueSoundCommand directly (no Z80 ret, no stack pushes) rather than the
+ * stageObjectSpriteRecord / enqueueSoundCommand directly (no Z80 ret, no stack pushes) rather than the
  * oracle's stack-threaded tail, comparing the full register file or SP would false-fail an
- * honest rewrite. So the gate is the state dump only (via firstStateDiff), matching loc_1b5b's
+ * honest rewrite. So the gate is the state dump only (via firstStateDiff), matching stageObjectSpriteRecord's
  * contract — with ONE wrinkle:
  *
  *   THE STACK SCRATCH. The Pit's stack is real diffed work RAM (entry SP = 0x83fd here). On

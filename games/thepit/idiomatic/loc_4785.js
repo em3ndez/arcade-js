@@ -8,9 +8,9 @@
  * column its fixed tile image, then hands the matching colour column to the shared
  * colour-column fill so the two land from one call.
  *
- * It is the sibling of loc_46f4: its ROM strip begins exactly 32 bytes past that
+ * It is the sibling of drawLeftEdgeColumn: its ROM strip begins exactly 32 bytes past that
  * routine's, so it draws the neighbouring edge column with the identical copy loop.
- * Unlike loc_46f4 (which paints its own colour runs and returns), this one delegates
+ * Unlike drawLeftEdgeColumn (which paints its own colour runs and returns), this one delegates
  * the colour work: it asks the fill to paint 28 cells of colour 1 down the colour
  * column at offset 30. The fill ends by returning straight to our caller.
  *

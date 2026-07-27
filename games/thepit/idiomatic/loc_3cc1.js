@@ -53,7 +53,7 @@
  *           drawGameOverLabel / fillColourColumn). The ROM label strips are hex.
  */
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, GAME_STATE2 } from "./ram.js";
-import { loc_46f4 } from "./loc_46f4.js";
+import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
@@ -61,7 +61,7 @@ import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { loc_4785 } from "./loc_4785.js";
-import { loc_47a1 } from "./loc_47a1.js";
+import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
 // The colour attribute the colour fills stamp. ram.js proposes BOARD_MODE for 0x8057,
 // but here the byte is the panel's colour attribute, not a mode.
@@ -71,7 +71,7 @@ export function loc_3cc1(m) {
   const { mem8, regs } = m;
 
   // 1. The panel skeleton: the fixed left edge column, then both players' score HUD.
-  loc_46f4(m);
+  drawLeftEdgeColumn(m);
   redrawScoreHud(m);
 
   // 2a. First labelled run: 15 glyphs at column 7, row 9, one colour attribute.
@@ -103,7 +103,7 @@ export function loc_3cc1(m) {
   //    unwound to our caller; called directly it paints and returns here, so it is this
   //    routine's last act.
   loc_4785(m);
-  return loc_47a1(m);
+  return drawRightEdgeColumn(m);
 }
 
 /** Seat the tile cursor at (column, row) and derive its colour-RAM / video-RAM write cursors. */

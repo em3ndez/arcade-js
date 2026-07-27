@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4f38 — step an object's cyclic index up one notch and request sound 8.  ROM 0x4f38.
+ * advanceInitialUp — step an object's cyclic index up one notch and request sound 8.  ROM 0x4f38.
  *
  * An object carries a cyclic index that is either DISENGAGED (the off value 255) or
  * ENGAGED somewhere in the range 10..35. This routine nudges that index up by one and,
@@ -33,7 +33,7 @@
  */
 import { requestSound8 } from "./requestSound8.js";
 
-export function loc_4f38(m, index = m.regs.c) {
+export function advanceInitialUp(m, index = m.regs.c) {
   // Play the step sound.
   requestSound8(m);
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for loc_1b5b (ROM 0x1b5b) — the tile-under-object classifier's
+ * Equivalence gate for stageObjectSpriteRecord (ROM 0x1b5b) — the tile-under-object classifier's
  * solid-tile deferral step: it builds a 4-byte record at 0x8220 from the object's
  * probe block (0x8068-0x806b), with the leading byte biased down and the trailing
  * byte biased up by the value at 0x8051.
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1b5b as oracle } from "../../translated/loc_1b5b.js";
-import { loc_1b5b as idiomatic } from "../loc_1b5b.js";
+import { stageObjectSpriteRecord as idiomatic } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { OBJ_X, SPRITE_CODE, OBJ_Y } from "../ram.js";
@@ -103,7 +103,7 @@ function withInputs(base, { bias, x, code, mid, y }) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: loc_1b5b leaves the same state as the oracle over real captured attract states", () => {
+test("EQUAL: stageObjectSpriteRecord leaves the same state as the oracle over real captured attract states", () => {
   const caps = captureStates(10, 90, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {

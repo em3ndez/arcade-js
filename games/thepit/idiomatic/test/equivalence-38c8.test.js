@@ -7,7 +7,7 @@
  * (tiles 184..191, colour 151) into the tilemap + colour map.
  *
  * THE CONTRACT — OBSERVABLE RAM ONLY. The move arm tail-delegates to loc_3945, whose
- * idiomatic form (and its callees loc_3968 -> stageActorSpriteRecords) is a plain JS call
+ * idiomatic form (and its callees descendActorToRest -> stageActorSpriteRecords) is a plain JS call
  * chain with no Z80 stack frame: it no longer marches SP, sets pc, or leaves the oracle's
  * residual value registers. So pc, SP and the value registers diverge from the oracle by
  * construction and are EXCLUDED — the gate compares the full RAM dump (work + colour +

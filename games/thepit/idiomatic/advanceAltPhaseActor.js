@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_384a — per-frame animate + march step for an active object.  ROM 0x384a.
+ * advanceAltPhaseActor — per-frame animate + march step for an active object.  ROM 0x384a.
  *
  * Runs once a frame for an object that is already alive (its caller loc_37cf tail-jumps
  * here when the object's spawn flag is set). It does three things, in order:
@@ -13,19 +13,19 @@
  *   3. March, then descend. On a move tick, while the object is on its travel row it
  *      steps right one column (mirroring to the shadow shifted 16 across). Once it has
  *      marched to the far column it latches its arrival — clearing the arrival flag and
- *      the probe X, building the object's probe record (loc_1b5b) — and then, on this and
+ *      the probe X, building the object's probe record (stageObjectSpriteRecord) — and then, on this and
  *      every later move tick, descends one row toward the floor. At the floor (Y 0) it
  *      idles: if the hold timer is still running it just waits, otherwise it re-arms the
  *      120-frame hold and resets the tile to its idle frame.
  *
- * A sibling of loc_3748 / loc_3968 in the object-movement family; the exact object this
+ * A sibling of loc_3748 / descendActorToRest in the object-movement family; the exact object this
  * drives (which enemy / the UFO) is not yet pinned, so the name stays neutral rather than
  * assert a role above the evidence.
  *
  * Every non-idle exit rebuilds the two sprite records via stageActorSpriteRecords (a tail
  * call). The one idle exit — floor reached while the hold timer is still running — returns
  * directly. On the arrival arm it also builds the object's deferral/probe record via
- * loc_1b5b before descending. Both are called directly (they read their inputs from, and
+ * stageObjectSpriteRecord before descending. Both are called directly (they read their inputs from, and
  * write their outputs to, fixed work RAM; neither takes an argument or returns a value).
  *
  * Memory-equivalent to the frozen oracle — equivalence-384a.test.js.
@@ -51,7 +51,7 @@ import {
   TWIN_X, TWIN_TILE, TWIN_CLEAR, OBJ_X,
 } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
-import { loc_1b5b } from "./loc_1b5b.js";
+import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const ARRIVAL_FLAG = 0x8079; // cleared on arrival at the far column (unnamed in ram.js)
 const FLOOR_HOLD = 0x807c; // countdown that idles the object at the floor (unnamed in ram.js)
@@ -66,7 +66,7 @@ const TRAVEL_ROW = 23; // Y at or above which the object is still marching, not 
 const FAR_COLUMN = 36; // X the march stops at, where the descent begins
 const SHADOW_X_OFFSET = 16; // the shadow sprite trails the object by this many columns
 
-export function loc_384a(m) {
+export function advanceAltPhaseActor(m) {
   const { mem8 } = m;
 
   // 1. Cadence tick — count the frame timer down (wrapping at 0), and on underflow
@@ -101,7 +101,7 @@ export function loc_384a(m) {
       mem8[OBJ_X] = 0;
       mem8[ARRIVAL_LATCH] = 1;
       // Build the object's deferral/probe record before the descent begins.
-      loc_1b5b(m);
+      stageObjectSpriteRecord(m);
     }
     // y above the travel row (or just latched): fall into the descent.
   }

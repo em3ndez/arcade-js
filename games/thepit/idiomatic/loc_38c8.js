@@ -18,7 +18,7 @@
  *     cell figure (tiles 184..191, one shared colour) into the tilemap and colour map.
  *     Then return.
  *
- * The name stays neutral to match this actor's move path (loc_3945/loc_3968), which
+ * The name stays neutral to match this actor's move path (loc_3945/descendActorToRest), which
  * deliberately kept loc_ names because which actor it drives and whether the coordinate
  * is a screen X or Y are not pinned in the mechanism map. Promoting this gate above them
  * would claim more confidence than the family has earned; the mechanics below are exact.

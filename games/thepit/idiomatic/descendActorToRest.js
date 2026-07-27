@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3968 — per-frame coordinate stepper: eases an actor's coordinate down to a
+ * descendActorToRest — per-frame coordinate stepper: eases an actor's coordinate down to a
  * resting floor and keeps its shadow twin a fixed 16 ahead.  ROM 0x3968.
  *
  * Reached each frame from the actor's cadence front end (loc_3945). What it does:
@@ -36,7 +36,7 @@
 import { ACTOR_TIMER, ACTOR_X, TWIN_X } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
-export function loc_3968(m) {
+export function descendActorToRest(m) {
   const { mem8 } = m;
 
   // Only every fourth cadence tick does anything at all.

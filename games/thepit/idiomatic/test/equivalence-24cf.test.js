@@ -3,7 +3,7 @@
  * Memory-equivalence gate for loc_24cf (ROM 0x24cf, The Pit) — reset the per-object
  * reaction state machine to idle, seed its companion control bytes, then tail-jump
  * into the dig-object / round-parameter seeding chain (loc_287a → loc_2f2f →
- * loc_30de → seedActorSpawnState).
+ * seedObjectRecords → seedActorSpawnState).
  *
  * loc_24cf is entered ONLY at gameplay round init, above loc_287a in that tail-jump
  * chain; attract mode never enters gameplay, so it is never dispatched in a

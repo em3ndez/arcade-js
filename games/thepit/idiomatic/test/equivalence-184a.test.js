@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for loc_184a (ROM 0x184a) — the walk stepper that carries an actor's
+ * Equivalence gate for walkActor (ROM 0x184a) — the walk stepper that carries an actor's
  * position forward by its per-frame step (0x806c), reads a sub-tile walk phase off the new
  * position (stored at 0x8075), picks the alternating walk sprite (SPRITE_CODE), then calls
- * the record builder loc_1b5b to write the actor's 4-byte display record.
+ * the record builder stageObjectSpriteRecord to write the actor's 4-byte display record.
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The idiomatic routine calls the already-decompiled
- * loc_1b5b directly instead of routing through the Z80 registry, and unlike the sibling
- * loc_1659 it leaves NO genuine register live-out — the step value it happens to leave in
+ * stageObjectSpriteRecord directly instead of routing through the Z80 registry, and unlike the sibling
+ * advanceObjectWalkFrame it leaves NO genuine register live-out — the step value it happens to leave in
  * a register is dead scratch nothing downstream reads. So the gate is memory-only: the full
  * RAM dump (work + colour + video + attr) via firstStateDiff, NOT the register file. The
  * oracle reaches loc_1b5b as a tail-jump whose ret only READS the caller's return address
  * (it writes nothing to the stack) and whose body clobbers dead value registers and moves
  * SP, while the direct call touches none of them — all excluded, and RAM is compared in
- * full with no stack window to skip (same as the loc_1659 dissolve).
+ * full with no stack window to skip (same as the advanceObjectWalkFrame dissolve).
  *
  * CRAFTED ENTRY. Attract never dispatches 0x184a (measured: 0 in 1500 frames). The routine
  * reads only work RAM, so any real attract clone with its two inputs poked is a valid entry,
@@ -42,8 +42,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_184a as oracle } from "../../translated/loc_184a.js";
-import { loc_184a as idiomatic } from "../loc_184a.js";
-import { loc_1b5b } from "../loc_1b5b.js";
+import { walkActor as idiomatic } from "../walkActor.js";
+import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { OBJ_X, SPRITE_CODE } from "../ram.js";
@@ -101,7 +101,7 @@ function withInputs(base, x, step) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: loc_184a leaves the same state as the oracle over real captured attract states", () => {
+test("EQUAL: walkActor leaves the same state as the oracle over real captured attract states", () => {
   const caps = captureStates(10, 90, 120);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {
@@ -164,7 +164,7 @@ function twinSpriteSwap(m) {
   const phase = (mem8[OBJ_X] + 3) % 8;
   mem8[SUBTILE_PHASE] = phase;
   mem8[SPRITE_CODE] = phase & 2 ? 0x32 : 0x33; // BUG: frames swapped
-  return loc_1b5b(m);
+  return stageObjectSpriteRecord(m);
 }
 
 test("TEETH: a swapped-sprite twin is CAUGHT at SPRITE_CODE", () => {

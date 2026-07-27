@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_30de — seed the second block of round/level parameters, derive one
+ * seedObjectRecords — seed the second block of round/level parameters, derive one
  * difficulty-scaled byte pair, then hand off to seedActorSpawnState.  ROM 0x30de.
  *
  * The second half of the round/level parameter-seeding pass — loc_2f2f fills the
@@ -12,12 +12,12 @@
  * climbs — a smaller value at a harder level. It then hands straight on to
  * seedActorSpawnState, which puts the actor pair's records into their start state.
  * That hand-off is a tail jump: seedActorSpawnState's own return unwinds back to
- * loc_30de's caller, so the delegation IS loc_30de's exit.
+ * seedObjectRecords's caller, so the delegation IS seedObjectRecords's exit.
  *
  * Every write lands on a distinct work-RAM byte, so their order does not affect the
  * resulting state; the two mirrored slots always receive the same derived value.
  *
- * Name kept as loc_30de: the block it seeds drives a subsystem that is not yet
+ * Name kept as seedObjectRecords: the block it seeds drives a subsystem that is not yet
  * identified, and the counter it reads is not a confirmed, named field — the role is
  * a best-effort reading, below the bar to promote to an English name.
  *
@@ -52,7 +52,7 @@ import {
   OBJ2_TILE,
   OBJ2_X,
 } from "./ram.js";
-export function loc_30de(m) {
+export function seedObjectRecords(m) {
   const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
@@ -80,6 +80,6 @@ export function loc_30de(m) {
   mem8[0x8109] = 5;
 
   // Tail hand-off into seedActorSpawnState; its return goes to our caller, so this
-  // is loc_30de's exit.
+  // is seedObjectRecords's exit.
   return seedActorSpawnState(m);
 }

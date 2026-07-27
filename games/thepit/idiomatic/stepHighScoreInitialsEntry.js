@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4eea — per-frame action dispatch for a two-cell (vertically stacked) object,
+ * stepHighScoreInitialsEntry — per-frame action dispatch for a two-cell (vertically stacked) object,
  * keyed on the low five action bits of the debounced input byte.  ROM 0x4eea.
  *
  * The object occupies two tilemap cells: a top cell and the cell one row directly
@@ -47,7 +47,7 @@
  */
 import { IN0_DEBOUNCED, FRAME_COUNTER } from "./ram.js";
 import { loc_4f26 } from "./loc_4f26.js";
-import { loc_4f38 } from "./loc_4f38.js";
+import { advanceInitialUp } from "./advanceInitialUp.js";
 import { requestSound16 } from "./requestSound16.js";
 import { waitFrames } from "./waitFrames.js";
 
@@ -56,15 +56,15 @@ const TILEMAP_ROW = 32; // one tilemap row is 32 cells; "up one row" steps a cur
 const INDEX_HOME = 10; // the index/blank byte's home value, re-seated after a commit
 const HOLD_FRAMES = 20; // frames to hold after a committed move before returning
 
-export function loc_4eea(m) {
+export function stepHighScoreInitialsEntry(m) {
   const { regs, mem8 } = m;
   const actionBits = mem8[IN0_DEBOUNCED];
 
   // First-match-wins over the low five action bits, tested in priority order.
   if (actionBits & 0x01) { regs.c = loc_4f26(m, regs.c); return m.ret(); } // step index down
-  if (actionBits & 0x02) { regs.c = loc_4f38(m, regs.c); return m.ret(); } // step index up
+  if (actionBits & 0x02) { regs.c = advanceInitialUp(m, regs.c); return m.ret(); } // step index up
   if (actionBits & 0x04) { regs.c = loc_4f26(m, regs.c); return m.ret(); } // step index down
-  if (actionBits & 0x08) { regs.c = loc_4f38(m, regs.c); return m.ret(); } // step index up
+  if (actionBits & 0x08) { regs.c = advanceInitialUp(m, regs.c); return m.ret(); } // step index up
   if (!(actionBits & 0x10)) return m.ret(); // no action bit set -> idle
 
   // Commit: move the two-cell object up one tilemap row.

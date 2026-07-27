@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_4bea (ROM 0x4bea) — blanks the score block (6 bytes at
+ * Equivalence test for resetScoreAndSoundQueue (ROM 0x4bea) — blanks the score block (6 bytes at
  * 0x8031) and the sound-command queue (10 bytes at SOUND_HEAD = 0x801e) to zero.
  *
  * The routine takes no inputs and reads no memory: it always writes the SAME 16 zeroed
@@ -18,11 +18,11 @@
  *      harness wiring (construct-with-override -> host run -> capture -> clone -> diff)
  *      works on The Pit at all.
  *   1. EQUAL (real dispatch, full contract) — hook 0x4bea in a real boot run, and for
- *      the capture run the oracle on one clone and loc_4bea on another, confirming
- *      identical RAM + pc + SP. Proves loc_4bea touches ONLY the 16 bytes (no stray
+ *      the capture run the oracle on one clone and resetScoreAndSoundQueue on another, confirming
+ *      identical RAM + pc + SP. Proves resetScoreAndSoundQueue touches ONLY the 16 bytes (no stray
  *      write) on the real surrounding state — the memory-only signature is honest.
  *   2. EQUAL (dirtied entry) — pre-fill both blocks with garbage on the captured entry,
- *      then confirm oracle and loc_4bea agree over RAM + pc + SP AND that both blocks
+ *      then confirm oracle and resetScoreAndSoundQueue agree over RAM + pc + SP AND that both blocks
  *      really are zeroed. This is what proves it CLEARS, not merely re-reads zeros.
  *   3. TEETH — a short-count twin (leaves the last byte of each block) MUST be caught on
  *      the dirtied entry (and is correctly invisible on the clean boot entry, confirming
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4bea as oracle } from "../../translated/loc_4bea.js";
-import { loc_4bea } from "../loc_4bea.js";
+import { resetScoreAndSoundQueue } from "../resetScoreAndSoundQueue.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -138,11 +138,11 @@ test("IDENTITY: the unit gate runs on The Pit and reports EQUAL when both arms a
 
 // -- 1. EQUAL (real dispatch, full contract) ----------------------------------
 
-test("EQUAL (real dispatch): loc_4bea == oracle on the captured 0x4bea entry (only the 16 bytes touched)", () => {
+test("EQUAL (real dispatch): resetScoreAndSoundQueue == oracle on the captured 0x4bea entry (only the 16 bytes touched)", () => {
   const caps = captureDispatches(4, 400);
   assert.ok(caps.length >= 1, "expected at least one real 0x4bea dispatch during boot");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_4bea); // fresh clones inside — cap untouched
+    const diffs = contractDiffs(cap, resetScoreAndSoundQueue); // fresh clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   console.log(`  EQUAL/real: ${caps.length} captured dispatch(es) identical over RAM+pc+SP`);
@@ -150,18 +150,18 @@ test("EQUAL (real dispatch): loc_4bea == oracle on the captured 0x4bea entry (on
 
 // -- 2. EQUAL (dirtied entry) -------------------------------------------------
 
-test("EQUAL (dirtied entry): loc_4bea clears both garbage-filled blocks exactly like the oracle", () => {
+test("EQUAL (dirtied entry): resetScoreAndSoundQueue clears both garbage-filled blocks exactly like the oracle", () => {
   const cap = captureDispatches(1, 400)[0];
   assert.ok(cap, "expected a real 0x4bea dispatch to seed the dirtied entry");
 
   const dirtied = dirty(cap.clone());
-  const diffs = contractDiffs(dirtied, loc_4bea);
+  const diffs = contractDiffs(dirtied, resetScoreAndSoundQueue);
   assert.equal(diffs.length, 0, `dirtied entry diverged: ${diffs.join("; ")}`);
 
   // And confirm the clear actually happened (not a re-read of pre-existing zeros).
   const after = dirtied.clone();
-  loc_4bea(after);
-  assert.ok(bothBlocksZero(after), "loc_4bea did not zero both blocks on the dirtied entry");
+  resetScoreAndSoundQueue(after);
+  assert.ok(bothBlocksZero(after), "resetScoreAndSoundQueue did not zero both blocks on the dirtied entry");
   console.log("  EQUAL/dirtied: garbage-filled score + sound blocks zeroed identically to the oracle");
 });
 

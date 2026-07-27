@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_23e8 — seed a tilemap write pointer and a countdown, then conditionally cue a
+ * reseedColumnAnimation — seed a tilemap write pointer and a countdown, then conditionally cue a
  * sound and stamp a two-tile "cap" into the tilemap.  ROM 0x23e8.
  *
  * Runs during the boot/attract setup. In order it:
@@ -37,7 +37,7 @@
 import { requestSound21 } from "./requestSound21.js";
 
 import { COLUMN_ANIM_TIMER, COLUMN_ANIM_WRITE_PTR, LEVEL, STEP_TIMER_BASE } from "./ram.js";
-export function loc_23e8(m) {
+export function reseedColumnAnimation(m) {
   const { mem8, mem16 } = m;
 
   // 1. Seed the tilemap write pointer for later tilemap walks.

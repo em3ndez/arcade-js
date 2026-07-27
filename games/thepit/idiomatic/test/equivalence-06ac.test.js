@@ -8,14 +8,14 @@
  * memory-only: its only caller (the in-game main loop loc_0348) overwrites every
  * register it leaves before reading it, so the oracle's residual register/pc values
  * are dead ABI. The contract is therefore MEMORY-equivalence — the whole state dump
- * via firstStateDiff — NOT the full register file. This is the same contract loc_1b5b
+ * via firstStateDiff — NOT the full register file. This is the same contract stageObjectSpriteRecord
  * and seedActorSpawnState use; comparing registers (as unitEquivalence's `equal`
  * does) would false-fail an honest memory-only rewrite.
  *
  * WHY CRAFTED-ENTRY, NOT unitEquivalence's captured dispatch: 0x06ac is reached ONLY
  * through loc_0348, the in-game main loop, which attract never enters — over 600
  * attract frames it dispatches 0 times (loc_0348 likewise), so no natural dispatch
- * exists to capture. Exactly like the attract-unreachable loc_1b5b, the gate builds
+ * exists to capture. Exactly like the attract-unreachable stageObjectSpriteRecord, the gate builds
  * inputs by cloning real attract machine states and poking the bytes the routine
  * reads, identically on both sides. The output is a pure function of those bytes, so
  * a real state plus a surgical poke is airtight.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3d8a — paint one fixed 9-cell vertical strip at column 6, row 12.  ROM 0x3d8a.
+ * drawGameOverText — paint one fixed 9-cell vertical strip at column 6, row 12.  ROM 0x3d8a.
  *
  * Draws a single nine-cell column of the screen: it copies a run of nine glyph codes
  * out of a fixed ROM table straight down the video column, then paints the same nine
@@ -13,9 +13,9 @@
  * colour-RAM / video-RAM write cursors, stage the glyph count and fill colour, drive the
  * copy helper to stamp the nine glyphs down the video column, then tail into
  * the colour-column filler to colour the whole run — whose return unwinds straight back
- * to this routine's caller, so it is loc_3d8a's exit.
+ * to this routine's caller, so it is drawGameOverText's exit.
  *
- * Name kept as loc_3d8a: it is clearly a fixed-strip painter, but which specific field
+ * Name kept as drawGameOverText: it is clearly a fixed-strip painter, but which specific field
  * the nine glyphs spell is not pinned (they are raw ROM tile codes, not decoded), and it
  * is one of a family of near-identical panel painters (the column-1 sibling loc_3d49
  * shares this exact shape) — below the bar to promote to an English name.
@@ -60,7 +60,7 @@ const FILL_COLOUR = 0x8057;
 // Top of the descending ROM glyph table the strip's nine codes are copied from.
 const GLYPH_SOURCE = 0x49a5;
 
-export function loc_3d8a(m) {
+export function drawGameOverText(m) {
   const { mem8 } = m;
 
   // Target cell of the strip: column 6, row 12.
@@ -82,6 +82,6 @@ export function loc_3d8a(m) {
   copyTileColumn(m, GLYPH_SOURCE);
 
   // Tail into the colour-column filler to paint all nine cells; its return unwinds
-  // straight to our caller, so this is loc_3d8a's exit.
+  // straight to our caller, so this is drawGameOverText's exit.
   return fillColourColumn(m);
 }

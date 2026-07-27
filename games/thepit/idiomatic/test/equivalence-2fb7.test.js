@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2fb7 (ROM 0x2fb7, The Pit) — write one vertical
+ * Memory-equivalence gate for drawTerrainColumn (ROM 0x2fb7, The Pit) — write one vertical
  * strip of tiles up a backdrop column (a strided tile-map blit driven by register
  * inputs), then fall through into the animation phase clock loc_2fc0.
  *
  * THREE WRINKLES this routine forces, all handled with a crafted entry:
  *
- *   1. loc_2fb7's live-ins are REGISTERS (a source pointer, the column's bottom
+ *   1. drawTerrainColumn's live-ins are REGISTERS (a source pointer, the column's bottom
  *      cell, the one-row-up step, and a run length), not memory. And the blit is
  *      never dispatched at this address in attract — the column-animation step
  *      inlines the same body instead of calling it. So a real attract machine state
@@ -17,7 +17,7 @@
  *      a surgical register setup, swept over run lengths, source offsets, and (to
  *      drive the phase clock's three arms through the delegation) the animation phase.
  *
- *   2. The phase clock loc_2fb7 falls into (loc_2fc0) itself ends in two still-
+ *   2. The phase clock drawTerrainColumn falls into (loc_2fc0) itself ends in two still-
  *      untranslated continuations (0x2fe3 the oscillator body, 0x3029 the publish
  *      tail): calling them would throw. Both the oracle and the idiomatic routine
  *      reach them identically, so each is replaced by ONE stub installed on both
@@ -25,7 +25,7 @@
  *      pc, so a mis-route is visible to the diff, but because the stub is the same
  *      function on both sides it can never manufacture or hide a difference.
  *
- *   3. loc_2fb7 is a tail-jumping blit whose caller consumes no register (the phase
+ *   3. drawTerrainColumn is a tail-jumping blit whose caller consumes no register (the phase
  *      clock overwrites the working registers and never reads the run pointers), so
  *      its honest live-out is MEMORY-ONLY. The oracle advances the pointers/count in
  *      registers; the idiomatic rewrite correctly drops those dead values, so the two
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2fb7 as oracle } from "../../translated/loc_2fb7.js";
-import { loc_2fb7 as idiomatic } from "../loc_2fb7.js";
+import { drawTerrainColumn as idiomatic } from "../drawTerrainColumn.js";
 import { loc_2f71 } from "../../translated/loc_2f71.js";
 import { loc_2fc0 } from "../loc_2fc0.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
   : (name, fn) =>
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x2fb7; // loc_2fb7
+const TARGET = 0x2fb7; // drawTerrainColumn
 const SIB = 0x2f71; // the reachable sibling we capture real attract states at
 const OSC = 0x2fe3; // the phase clock's oscillator-body tail (still untranslated)
 const PUB = 0x3029; // the phase clock's publish tail (still untranslated)
@@ -83,7 +83,7 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 // Stubs standing in for the phase clock's two untranslated continuations. Installed
 // IDENTICALLY on both sides, so they can only move both in lockstep. Each gives its
 // continuation a distinct, observable memory effect + exit pc, so the phase-clock
-// routing that loc_2fb7 delegates into is checkable end to end.
+// routing that drawTerrainColumn delegates into is checkable end to end.
 function oscStub(mm) {
   mm.mem.write8(STUB_MARK, OSC_MARK);
   mm.pc = OSC;
@@ -122,7 +122,7 @@ function captureSiblingStates() {
 const STATES = ROM_PRESENT ? captureSiblingStates() : [];
 
 /**
- * Craft a valid loc_2fb7 entry from a real captured state: a clone with the four blit
+ * Craft a valid drawTerrainColumn entry from a real captured state: a clone with the four blit
  * registers set the way the oracle setup stages them, and optionally a poked phase /
  * flip tile so the delegation into the phase clock can be steered to a chosen arm.
  */
@@ -282,7 +282,7 @@ test("TEETH: a wrong row step is CAUGHT in the tile-map column", () => {
 });
 
 // -- 5. EQUAL + TEETH through the shared unitEquivalence harness ---------------
-// loc_2fb7 is unreached in attract, so a makeMachine wrapper forces a real dispatch:
+// drawTerrainColumn is unreached in attract, so a makeMachine wrapper forces a real dispatch:
 // run the real sibling, then invoke the target so the harness's snapshot hook fires on
 // a genuine attract-derived state. The tail stubs are layered in the same wrapper. The
 // harness also diffs registers, which are a DEAD live-out here, so we assert only the

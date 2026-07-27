@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_46f4 — stamp the fixed playfield edge column: a 32-tile picture strip up
+ * drawLeftEdgeColumn — stamp the fixed playfield edge column: a 32-tile picture strip up
  * video column 0, then three fixed colour runs that tint it.  ROM 0x46f4.
  *
  * The tilemap is 32 cells wide, so one screen row is 32 bytes and stepping "up a
@@ -26,7 +26,7 @@
  *           live registers/flags.
  * NAMES:    none — writes only raw video/colour RAM, no named work-RAM address.
  */
-export function loc_46f4(m) {
+export function drawLeftEdgeColumn(m) {
   const { mem8 } = m;
 
   // One tilemap row is 32 bytes, so "up one cell in a column" steps back 32.

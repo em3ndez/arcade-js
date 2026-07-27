@@ -2,7 +2,7 @@
 /**
  * loc_492a — paint one 32-tile screen column, then colour it.  ROM 0x492a.
  *
- * Part of the boot screen-drawing family (siblings loc_46f4 / loc_4785 / loc_47a1,
+ * Part of the boot screen-drawing family (siblings drawLeftEdgeColumn / loc_4785 / drawRightEdgeColumn,
  * each drawing a different column). This member lays a fixed 32-tile column into
  * video RAM from a ROM strip, bottom cell upward, then hands off to fillColourColumnAt
  * to fill the matching colour-RAM column. Reached once, while the screen is built.

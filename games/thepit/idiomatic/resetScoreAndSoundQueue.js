@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4bea — blank the score bytes and the sound-command queue back to zero.  ROM 0x4bea.
+ * resetScoreAndSoundQueue — blank the score bytes and the sound-command queue back to zero.  ROM 0x4bea.
  *
  * Part of both cold boot and new-game / round setup (called once from each). It zeroes
  * two fixed work-RAM blocks:
@@ -27,7 +27,7 @@
  */
 import { SCORE_LO, SOUND_HEAD } from "./ram.js";
 
-export function loc_4bea(m) {
+export function resetScoreAndSoundQueue(m) {
   const { mem8 } = m;
 
   // Reset the score block.

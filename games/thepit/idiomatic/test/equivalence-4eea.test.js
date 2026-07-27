@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4eea (ROM 0x4eea) — the per-frame action dispatch
+ * Memory-equivalence gate for stepHighScoreInitialsEntry (ROM 0x4eea) — the per-frame action dispatch
  * for a two-cell object, keyed on the low five action bits of the debounced input byte.
  *
  * It has three kinds of arm: an IDLE arm (no bit set -> ret), two STEP arms (delegate
- * to loc_4f26 / loc_4f38, which request the step sound and walk the object's cyclic
+ * to loc_4f26 / advanceInitialUp, which request the step sound and walk the object's cyclic
  * index), and a COMMIT arm (blank both cells, redraw one row up, count the move off the
  * step counter, clear the frame counter, request the move sound, then hold 20 frames via
  * waitFrames). The declared live-out is memory + the return (pc/SP); the value registers
@@ -22,7 +22,7 @@
  *
  * TWO WRINKLES:
  *   - The oracle path parks dead bytes on the stack the stack-free idiomatic JS does not
- *     reproduce: on a step arm loc_4f26/loc_4f38's own call (2) + the shared enqueue's two
+ *     reproduce: on a step arm loc_4f26/advanceInitialUp's own call (2) + the shared enqueue's two
  *     saved pairs (4); on the commit arm the 0x4c8f call (2) + the enqueue's saves (4). Six
  *     dead bytes sit just below the entry stack pointer. The Pit's stack is real diffed work
  *     RAM, so the diff excludes exactly that [SP-6, SP) window and compares everything else.
@@ -37,7 +37,7 @@
  *      idle arm is deterministic (oracle vs oracle -> identical whole state).
  *   1. EQUAL (idle) — no action bit set: both do nothing and return, identical.
  *   2. EQUAL (step arms) — each of bits 0..3, plus a priority case (bit0+bit1 -> down),
- *      swept over a few index values: loc_4eea == oracle over RAM (outside stack) + pc + SP.
+ *      swept over a few index values: stepHighScoreInitialsEntry == oracle over RAM (outside stack) + pc + SP.
  *   3. EQUAL (commit arm) — bit 4 with the object cursors poked: identical over RAM + pc +
  *      SP, and the cells blank / redraw, the counter decrements, the frame counter clears,
  *      and the move sound queues as expected.
@@ -56,7 +56,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4eea as oracle } from "../../translated/loc_4eea.js";
-import { loc_4eea as idiomatic } from "../loc_4eea.js";
+import { stepHighScoreInitialsEntry as idiomatic } from "../stepHighScoreInitialsEntry.js";
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { waitFrames } from "../waitFrames.js";
@@ -227,7 +227,7 @@ test("HARNESS: a real 0x4c57 entry is captured and the oracle idle run of 0x4eea
 
 // -- 1. EQUAL (idle) ---------------------------------------------------------
 
-test("EQUAL (idle): no action bit set -> loc_4eea == oracle (do nothing, return)", () => {
+test("EQUAL (idle): no action bit set -> stepHighScoreInitialsEntry == oracle (do nothing, return)", () => {
   const seed = captureRealEntry(1500);
   assert.ok(seed, "need a captured 0x4c57 entry");
   const { diffs } = contractDiffs(craftIdle(seed), idiomatic);
@@ -237,7 +237,7 @@ test("EQUAL (idle): no action bit set -> loc_4eea == oracle (do nothing, return)
 
 // -- 2. EQUAL (step arms) ----------------------------------------------------
 
-test("EQUAL (step arms): bits 0..3 + priority, swept over indices -> loc_4eea == oracle", () => {
+test("EQUAL (step arms): bits 0..3 + priority, swept over indices -> stepHighScoreInitialsEntry == oracle", () => {
   const seed = captureRealEntry(1500);
   assert.ok(seed, "need a captured 0x4c57 entry");
   const head = seed.mem.read8(SOUND_HEAD);
@@ -266,7 +266,7 @@ test("EQUAL (step arms): bits 0..3 + priority, swept over indices -> loc_4eea ==
 
 // -- 3. EQUAL (commit arm) ---------------------------------------------------
 
-test("EQUAL (commit arm): bit 4 -> loc_4eea == oracle over RAM + pc + SP, with the expected effects", () => {
+test("EQUAL (commit arm): bit 4 -> stepHighScoreInitialsEntry == oracle over RAM + pc + SP, with the expected effects", () => {
   const seed = captureRealEntry(1500);
   assert.ok(seed, "need a captured 0x4c57 entry");
   const head = seed.mem.read8(SOUND_HEAD);

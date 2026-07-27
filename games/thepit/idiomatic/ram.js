@@ -83,7 +83,7 @@ export const CLIMB_GATE = 0x8080;
 
 // ── Actor records: primary + its "twin" (shadow/second sprite) ───────────────
 // The spawn/init code (loc_37cf/38c8/3984) seeds a primary block at 0x810a.. and a mirrored twin
-// at 0x811b..; the movers (loc_3968) advance both. Fields corroborated by the "primary"/"twin",
+// at 0x811b..; the movers (descendActorToRest) advance both. Fields corroborated by the "primary"/"twin",
 // "X/coord", "tile", "Y" annotations across 6-7 routines each.
 
 export const ACTOR_X = 0x810a; // primary actor X / coord (fair)
@@ -159,7 +159,7 @@ export const PRNG_HIGH = 0x800e;
 // ── Round / difficulty ────────────────────────────────────────────────────────
 /** Current player's LEVEL / round counter — inits to 1, +1 per level cleared; every
  *  difficulty subsystem scales off it (countdowns, reloads). Proposer≠confirmer converged,
- *  both strong: init=1 (loc_022d), inc (loc_02fd), scaled in loc_23e8/loc_031a/loc_2f2f. (strong) */
+ *  both strong: init=1 (loc_022d), inc (loc_02fd), scaled in reseedColumnAnimation/loc_031a/loc_2f2f. (strong) */
 export const LEVEL = 0x8028;
 
 // ── Shared tile/colour column-plotter parameter block (0x8055-0x8060) ─────────
@@ -229,7 +229,7 @@ export const SPRITE_COORD_BIAS = 0x8051;
 
 /** Presence flag for the tracked object (the one OBJ_X/OBJ_Y locate): 0 = no live object
  *  (skip its per-frame work), 0xff = present. Set 0xff when the object is first seeded
- *  (loc_3748, alongside its OBJ_X tile), cleared when it exits at a boundary (loc_384a,
+ *  (loc_3748, alongside its OBJ_X tile), cleared when it exits at a boundary (advanceAltPhaseActor,
  *  together with OBJ_X); read as the "nothing active, done" guard by the object/state
  *  dispatcher (loc_13de) and as the "nothing to classify" gate by loc_03e8. Consistent
  *  0/0xff presence role across 6 routines. (strong) */
@@ -239,7 +239,7 @@ export const OBJECT_ACTIVE = 0x8079;
  *  its current timed state and its normal per-frame processing is deferred — loc_13c9
  *  decrements it and returns early each frame (vectoring on the mode byte 0x807d when it
  *  expires), and loc_03e8 skips its recolour + classify while it runs. Armed to a duration
- *  at events (0x78 idle-arm in loc_384a; 0xb4 boundary latch in loc_19e3/loc_19d0/loc_2d6b).
+ *  at events (0x78 idle-arm in advanceAltPhaseActor; 0xb4 boundary latch in drawActorWalkFrame/loc_19d0/loc_2d6b).
  *  loc_13c9's translation reads it directly as "the countdown timer." (fair — the timer role
  *  is well corroborated, but it sits among sibling busy bytes 0x807a/0x807b and the latched
  *  values are not proven to be pure durations.) */
@@ -254,13 +254,13 @@ export const STATE_TIMER = 0x807c;
 /**
  *  SCORE_LO (0x8031) — Low packed-BCD byte of the active player's 2-byte score; BCD-added by
  *  loc_4683/4689, split to digits by loc_46af, read as hiscore candidate by loc_4d3a, cleared
- *  by loc_4bea -- four independent users. (fair)
+ *  by resetScoreAndSoundQueue -- four independent users. (fair)
  */
 export const SCORE_LO = 0x8031;
 /**
  *  SCORE_HI (0x8034) — High packed-BCD byte of the active score paired with 0x8031, same four
  *  routines (loc_4689 carry target, loc_46af render with leading-zero blank, loc_4d3a
- *  candidate, loc_4bea clear). (fair)
+ *  candidate, resetScoreAndSoundQueue clear). (fair)
  */
 export const SCORE_HI = 0x8034;
 /**
@@ -283,7 +283,7 @@ export const SCORE_DISPLAY_HIGH = 0x8038;
 export const FRAME_WAIT_COUNTDOWN = 0x8009;
 /**
  *  STEP_TIMER_BASE (0x804f) — DSW-decoded base (loc_4b55) that seeds the step timer 0x8067 =
- *  0x804f - 4*LEVEL (loc_23e8); 0x8067 is the per-step countdown loc_241c decrements each
+ *  0x804f - 4*LEVEL (reseedColumnAnimation); 0x8067 is the per-step countdown loc_241c decrements each
  *  frame. (fair)
  */
 export const STEP_TIMER_BASE = 0x804f;
@@ -307,13 +307,13 @@ export const GLITTER_COUNTDOWN = 0x805c;
 export const COLOUR_RAM_CURSOR = 0x805e;
 /**
  *  COLUMN_ANIM_WRITE_PTR (0x8065) — 16-bit VRAM tilemap write cursor for the frame-gated
- *  column-reveal animation: seeded 0x9104 by loc_23e8, deref'd via IX and advanced +0x20/step
+ *  column-reveal animation: seeded 0x9104 by reseedColumnAnimation, deref'd via IX and advanced +0x20/step
  *  then stored back by loc_241c (fair)
  */
 export const COLUMN_ANIM_WRITE_PTR = 0x8065;
 /**
  *  COLUMN_ANIM_TIMER (0x8067) — per-step frame countdown pacing that same column animation:
- *  armed level-scaled (0x804f-4*LEVEL) by loc_23e8, decremented each frame by loc_241c which
+ *  armed level-scaled (0x804f-4*LEVEL) by reseedColumnAnimation, decremented each frame by loc_241c which
  *  runs the next step only when it expires (fair)
  */
 export const COLUMN_ANIM_TIMER = 0x8067;
@@ -321,7 +321,7 @@ export const COLUMN_ANIM_TIMER = 0x8067;
 // ── Tracked-object tile cell + sprite attribute ──
 /**
  *  OBJ_SPRITE_ATTR (0x806a) — object sprite attribute byte (palette bits0-2 + priority bit3):
- *  seeded 2 by loc_1362, copied by loc_1b5b into sprite-record byte+2 (0x8222) which video.js
+ *  seeded 2 by loc_1362, copied by stageObjectSpriteRecord into sprite-record byte+2 (0x8222) which video.js
  *  decodes as color and priority (fair)
  */
 export const OBJ_SPRITE_ATTR = 0x806a;
@@ -355,8 +355,8 @@ export const PROBE_CELL_PTR = 0x8089;
 export const SUBTILE_PHASE = 0x808d;
 /**
  *  MOVER_STATE (0x8090) — Signed state byte of the 0x8083 move-object: loc_319d dispatches on
- *  its sign (neg->loc_34da dormant tick, zero->arm 0x808b countdown, positive->player-box
- *  branch) and loc_34da bumps it each call; both agree on the sign-dispatch role (B's
+ *  its sign (neg->advanceDormantMover dormant tick, zero->arm 0x808b countdown, positive->player-box
+ *  branch) and advanceDormantMover bumps it each call; both agree on the sign-dispatch role (B's
  *  unsupported 'ANIM' dropped). (fair)
  */
 export const MOVER_STATE = 0x8090;
@@ -463,33 +463,33 @@ export const REVEAL_CURSOR = 0x80e6;
 // ── Object 1 record + Object 2 record ──
 /**
  *  OBJ1_X (0x80e8) — Base (offset 0) of the first object record: seeded/reset 0xec
- *  (loc_30de/loc_319d), copied to sprite record 0x8230 byte 0 by loc_312d — the SAME structural
+ *  (seedObjectRecords/loc_319d), copied to sprite record 0x8230 byte 0 by loc_312d — the SAME structural
  *  field as OBJ2_X (0x80f9), so X by the house convention (offset 0 = X, ACTOR_X/OBJ_X). Under
  *  ROT90 the sprite's hardware-Y byte is the on-screen horizontal, which the codebase calls X.
  *  (The record's Y is the offset-3 byte 0x80eb, still hex.) (fair)
  */
 export const OBJ1_X = 0x80e8;
 /**
- *  OBJ1_SPRITE_CODE (0x80e9) — Object-1 record byte1: seeded 0x09 by loc_30de, copied to
+ *  OBJ1_SPRITE_CODE (0x80e9) — Object-1 record byte1: seeded 0x09 by seedObjectRecords, copied to
  *  sprite byte 0x8231 by loc_312d; video.js decodes it as code&0x3f + flipX(0x40) +
  *  flipY(0x80) — sprite code+orientation confirmed. (fair)
  */
 export const OBJ1_SPRITE_CODE = 0x80e9;
 /**
- *  OBJ1_ATTR (0x80ea) — Object-1 record offset 2: seeded 0x04 (loc_30de), copied verbatim to
- *  sprite-record byte 2 (loc_312d), color-cycled with priority bit 3 held clear (loc_34da) --
+ *  OBJ1_ATTR (0x80ea) — Object-1 record offset 2: seeded 0x04 (seedObjectRecords), copied verbatim to
+ *  sprite-record byte 2 (loc_312d), color-cycled with priority bit 3 held clear (advanceDormantMover) --
  *  A/B and my derivation all agree. (fair)
  */
 export const OBJ1_ATTR = 0x80ea;
 /**
- *  OBJ1_MOVE_PERIOD (0x80f6) — Object-1 record offset 14: loc_30de derives 7-(LEVEL&6)
+ *  OBJ1_MOVE_PERIOD (0x80f6) — Object-1 record offset 14: seedObjectRecords derives 7-(LEVEL&6)
  *  (faster as level climbs) and loc_3490 reloads the offset-8 cadence timer from it -- A/B
  *  converge (reload/period) and my derivation agrees, grounded across two routines. (fair)
  */
 export const OBJ1_MOVE_PERIOD = 0x80f6;
 /**
  *  OBJ1_TARGET_COL (0x80f8) — Object-1 record offset 16 target column: seeded 0x04
- *  (loc_30de); loc_319d fast-exits when 0x807a equals it and keys the tile-probe/direction
+ *  (seedObjectRecords); loc_319d fast-exits when 0x807a equals it and keys the tile-probe/direction
  *  dispatch on it -- A/B and my derivation agree. (fair)
  */
 export const OBJ1_TARGET_COL = 0x80f8;
@@ -507,7 +507,7 @@ export const OBJ2_X = 0x80f9;
 export const OBJ2_TILE = 0x80fa;
 /**
  *  OBJ2_ATTR (0x80fb) — Object-2 record offset 2 attr/color byte: seeded 0x04, emitted to
- *  sprite byte 2, color-cycled with priority bit 3 held clear by loc_34da -- same field as
+ *  sprite byte 2, color-cycled with priority bit 3 held clear by advanceDormantMover -- same field as
  *  OBJ1_ATTR; A/B and my derivation agree. (fair)
  */
 export const OBJ2_ATTR = 0x80fb;

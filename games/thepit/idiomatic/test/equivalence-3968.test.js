@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3968 (ROM 0x3968, The Pit) — the per-frame
+ * Memory-equivalence gate for descendActorToRest (ROM 0x3968, The Pit) — the per-frame
  * coordinate stepper that, on every fourth cadence tick, eases an actor's
  * coordinate (0x810a) down by one while it is at or above 193 and mirrors the new
  * value plus 16 into the shadow twin (0x811b), then hands off to the shared record
  * builder stageActorSpriteRecords (the decompiled 0x3a4c).
  *
- * THE CONTRACT — OBSERVABLE RAM. loc_3968 used to tail-JUMP to the 0x3a4c oracle
+ * THE CONTRACT — OBSERVABLE RAM. descendActorToRest used to tail-JUMP to the 0x3a4c oracle
  * via m.call; the callee's `ret` popped this routine's own caller return address, so
  * the whole register file AND pc/SP reconverged after the handoff and the gate could
  * demand byte-and-register-exact equivalence. That stale call has been dissolved into
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3968 as oracle } from "../../translated/loc_3968.js";
-import { loc_3968 } from "../loc_3968.js";
+import { descendActorToRest } from "../descendActorToRest.js";
 import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -103,7 +103,7 @@ function observableDiff(a, b) {
 
 // -- 1. WIRING: first natural dispatch, observable RAM equivalence --------------
 
-test("WIRING: loc_3968 == oracle on the first natural attract dispatch (observable RAM)", () => {
+test("WIRING: descendActorToRest == oracle on the first natural attract dispatch (observable RAM)", () => {
   // The attract demo that drives this mover starts late (first dispatch ~frame 976),
   // so the capture needs a longer run to reach it.
   const [entry] = captureEntries(1200, 1, 1);
@@ -112,7 +112,7 @@ test("WIRING: loc_3968 == oracle on the first natural attract dispatch (observab
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_3968(b);
+  descendActorToRest(b);
   const diff = observableDiff(a, b);
   assert.equal(diff, null, diff && `gate reported a RAM diff on the first dispatch: ${diff}`);
   console.log("  WIRING: captured 0x3968, ran oracle vs idiomatic through the direct stageActorSpriteRecords handoff -> RAM EQUAL");
@@ -120,7 +120,7 @@ test("WIRING: loc_3968 == oracle on the first natural attract dispatch (observab
 
 // -- 2. EQUAL on a spread of real captured attract dispatches -------------------
 
-test("EQUAL: loc_3968 == oracle on real attract dispatches (full RAM dump)", () => {
+test("EQUAL: descendActorToRest == oracle on real attract dispatches (full RAM dump)", () => {
   const entries = captureEntries(3000, 3, 240);
   assert.ok(entries.length >= 20, `expected many captured dispatches, got ${entries.length}`);
 
@@ -135,7 +135,7 @@ test("EQUAL: loc_3968 == oracle on real attract dispatches (full RAM dump)", () 
     const a = cap.clone();
     const b = cap.clone();
     oracle(a);
-    loc_3968(b);
+    descendActorToRest(b);
     const diff = observableDiff(a, b);
     assert.equal(diff, null, diff && `mismatch on a real attract dispatch (timer=${hx(timer)} coord=${coord}): ${diff}`);
   }
@@ -170,7 +170,7 @@ test("EXHAUSTIVE: over all 65,536 (timer, coordinate) combos the two writes matc
         mm.regs.sp = SP_ANCHOR;
       }
       oracle(oracleM);
-      loc_3968(idioM);
+      descendActorToRest(idioM);
 
       for (const addr of [ACTOR_X, TWIN_X]) {
         const o = oracleM.mem.read8(addr);

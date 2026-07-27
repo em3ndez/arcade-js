@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_19e3 (ROM 0x19e3) — the tail of the actor-movement
+ * Memory-equivalence gate for drawActorWalkFrame (ROM 0x19e3) — the tail of the actor-movement
  * continuation: it commits the actor's animation frame into the sprite-code cell and, only
  * during a goal crossing once the actor has reached the far edge, arms the state-lockout timer
- * and clears the object's leading coordinate, before rebuilding the object's record (loc_1b5b).
+ * and clears the object's leading coordinate, before rebuilding the object's record (stageObjectSpriteRecord).
  *
  * Its declared LIVE-OUT is MEMORY-ONLY: everything it produces lands in work RAM (SPRITE_CODE,
- * the STATE_TIMER + OBJ_X far-edge pair, and loc_1b5b's record). The oracle's residual registers
- * are dead ABI — and because the idiomatic tail calls the decompiled loc_1b5b directly (no Z80
+ * the STATE_TIMER + OBJ_X far-edge pair, and stageObjectSpriteRecord's record). The oracle's residual registers
+ * are dead ABI — and because the idiomatic tail calls the decompiled stageObjectSpriteRecord directly (no Z80
  * ret, no stack pushes) rather than the oracle's stack-threaded tail-jump, comparing the full
  * register file or SP would false-fail an honest rewrite. So the gate is the RAM state dump only
- * (via firstStateDiff). No stack-scratch exclusion is needed: loc_1b5b makes no nested call, so
+ * (via firstStateDiff). No stack-scratch exclusion is needed: stageObjectSpriteRecord makes no nested call, so
  * the oracle's tail leaves no dead bytes below the entry stack pointer (verified — the dump
  * matches byte-for-byte on every arm).
  *
@@ -46,9 +46,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19e3 as oracle } from "../../translated/loc_19e3.js";
-import { loc_19e3 as idiomatic } from "../loc_19e3.js";
+import { drawActorWalkFrame as idiomatic } from "../drawActorWalkFrame.js";
 import { loc_19d0 as oracle19d0 } from "../../translated/loc_19d0.js";
-import { loc_1b5b } from "../loc_1b5b.js";
+import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { SPRITE_CODE, GOAL_CROSSING_LATCH, OBJ_Y, STATE_TIMER, OBJ_X } from "../ram.js";
@@ -116,7 +116,7 @@ test("IDENTITY: the harness reaches a real loc_19d0 state and oracle-vs-oracle i
 
 // -- 1. EQUAL over real captured attract states ------------------------------
 
-test("EQUAL: loc_19e3 leaves the same RAM as the oracle over every real captured state", () => {
+test("EQUAL: drawActorWalkFrame leaves the same RAM as the oracle over every real captured state", () => {
   const caps = captureBaseStates(300, 3000);
   assert.ok(caps.length >= 1, "expected at least one captured state");
 
@@ -213,7 +213,7 @@ function twinSkipLatch(m, spriteCode = m.regs.a) {
   if (mem8[GOAL_CROSSING_LATCH] !== 0 && mem8[OBJ_Y] >= FAR_EDGE) {
     mem8[OBJ_X] = 0; // BUG: STATE_TIMER left unarmed
   }
-  loc_1b5b(m);
+  stageObjectSpriteRecord(m);
 }
 
 test("TEETH (far-edge latch): a twin that skips arming the state-lockout timer is CAUGHT at STATE_TIMER", () => {

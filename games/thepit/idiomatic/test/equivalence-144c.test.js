@@ -4,11 +4,11 @@
  * It reads the object's per-frame move command (in L), and on the first set direction bit
  * runs one of four still-oracle handlers (0x1493 / 0x167f / 0x1468 / 0x186f); with no
  * direction bit it clears the animation-phase byte 0x801a and either runs the goal handler
- * (when the goal latch 0x80e7 is set) or defers the frame through the record builder loc_1b5b.
+ * (when the goal latch 0x80e7 is set) or defers the frame through the record builder stageObjectSpriteRecord.
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. Every arm delegates: the four direction arms m.call the
  * SAME frozen oracle handler both sides run, so those chains are byte-identical; the idle
- * fall-through calls the already-decompiled loc_1b5b DIRECTLY, which drops the stack frame
+ * fall-through calls the already-decompiled stageObjectSpriteRecord DIRECTLY, which drops the stack frame
  * the oracle's tail-jump carried (its ret pops the caller return address, SP += 2, and its
  * body leaves different value registers). Those residuals are all DEAD — the caller reads no
  * register back from this router — so the gate compares OBSERVABLE state only: the full RAM

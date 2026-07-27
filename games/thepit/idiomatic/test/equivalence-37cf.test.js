@@ -3,7 +3,7 @@
  * Memory-equivalence gate for spawnAltPhaseActor (ROM 0x37cf) — the alt-phase actor's
  * per-frame entry point: on the first frame it builds the primary+twin records, marks
  * the actor live, plays the spawn sound, and stamps its opening 2x4 tile+colour block;
- * every frame after, it hands off to the per-frame animator (loc_384a).
+ * every frame after, it hands off to the per-frame animator (advanceAltPhaseActor).
  *
  * The whole observable effect is memory: the seeded actor/twin records, the spawn flag,
  * the queued sound command, the stamped tile+colour block, and the two staged sprite

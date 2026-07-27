@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4c1c — zero a fixed 64-byte work-RAM block during setup.  ROM 0x4c1c.
+ * clearSpriteStagingBuffer — zero a fixed 64-byte work-RAM block during setup.  ROM 0x4c1c.
  *
  * Fills work RAM 0x8200 through 0x823f (64 bytes) with zero in a single pass — a
  * one-shot wipe of that block reached from the board/entry-select setup. The top
@@ -20,7 +20,7 @@
  * NAMES:    none — the 0x8200 block has no confirmed ram.js role, so the base
  *           address is kept literal rather than given an unearned name.
  */
-export function loc_4c1c(m) {
+export function clearSpriteStagingBuffer(m) {
   const { mem8 } = m;
   // Zero every byte of the 64-byte block [0x8200, 0x8240).
   for (let addr = 0x8200; addr < 0x8240; addr++) {

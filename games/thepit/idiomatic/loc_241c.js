@@ -16,8 +16,8 @@
  *        - the wall tile 0x30: if the cells below are still open it extends the fill;
  *          otherwise it either drops a 0x2d cap and clears the cursor, or shifts the
  *          three-cell horizontal window one place to the left — then reseeds the next
- *          window through loc_23e8.
- *        - any other tile is bumped up one animation frame, then reseeds through loc_23e8.
+ *          window through reseedColumnAnimation.
+ *        - any other tile is bumped up one animation frame, then reseeds through reseedColumnAnimation.
  *   3. Extending the fill stamps tile 0x31 at the cursor and steps the cursor down one row,
  *      stopping once it passes the bottom tilemap row. When the cursor lands on the trigger
  *      cell it finalises the spawn: unless a spawn is already past its first phase it
@@ -47,7 +47,7 @@
  *           flags and Z80 return path are dead scratch a plain JS call replaces.
  * NAMES:    FRAME_COUNTER, SPAWN_PHASE, ACTOR_Y, TWIN_CLEAR, COLUMN_ANIM_TIMER (the step
  *           timer) and COLUMN_ANIM_WRITE_PTR (the write cursor) from ram.js. Delegates the sound cues to
- *           requestSound15 / requestSound7 and the window reseed to loc_23e8.
+ *           requestSound15 / requestSound7 and the window reseed to reseedColumnAnimation.
  */
 import {
   FRAME_COUNTER,
@@ -59,7 +59,7 @@ import {
 } from "./ram.js";
 import { requestSound15 } from "./requestSound15.js";
 import { requestSound7 } from "./requestSound7.js";
-import { loc_23e8 } from "./loc_23e8.js";
+import { reseedColumnAnimation } from "./reseedColumnAnimation.js";
 
 const ROW = 32; // one tilemap row is 32 columns apart
 
@@ -103,18 +103,18 @@ export function loc_241c(m) {
       // Column is closed below: cap the cell below and clear the cursor, then reseed.
       mem8[cursor + ROW] = 0x2d;
       mem8[cursor] = 0x24;
-      return loc_23e8(m);
+      return reseedColumnAnimation(m);
     }
     // Left cell not yet empty: shift the three-cell window one place left, opening the
     // far slot, then reseed the next window.
     mem8[cursor] = mem8[cursor - 1];
     mem8[cursor - 1] = mem8[cursor - 2];
     mem8[cursor - 2] = 0x24;
-    return loc_23e8(m);
+    return reseedColumnAnimation(m);
   }
   // Any other tile: advance it one animation frame, then reseed the next window.
   mem8[cursor] = tile + 1;
-  return loc_23e8(m);
+  return reseedColumnAnimation(m);
 
   // 3. Extend the fill column one cell — shared by the five classify outcomes above.
   function extendFillColumn() {

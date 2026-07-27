@@ -37,7 +37,7 @@
  */
 
 import { GOAL_TILE_LATCH } from "./ram.js";
-import { loc_1b5b } from "./loc_1b5b.js";
+import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
@@ -58,5 +58,5 @@ export function loc_144c(m) {
   // If the object has already reached the goal tile, run the goal handler; otherwise
   // defer the frame by building the object's record.
   if (mem8[GOAL_TILE_LATCH] !== 0) return m.call(0x186f); // locate the cell, classify the tile under it
-  return loc_1b5b(m); // build the object's deferral record
+  return stageObjectSpriteRecord(m); // build the object's deferral record
 }

@@ -4,7 +4,7 @@
  * to the round/level parameter-seeding chain.  ROM 0x287a.
  *
  * The head of the gameplay round-init tail-jump chain
- * (loc_287a → loc_2f2f → loc_30de → seedActorSpawnState). It resets the dig-object
+ * (loc_287a → loc_2f2f → seedObjectRecords → seedActorSpawnState). It resets the dig-object
  * control block to its start-of-round state: the dig-object state byte to its
  * carving-phase code, the captured target column/row cleared (no target grabbed
  * yet), the active-spawn flag cleared (a fresh spawn is permitted), and a handful of
@@ -18,7 +18,7 @@
  * Every write lands on a distinct work-RAM byte, so their order does not affect the
  * resulting state.
  *
- * Name kept as loc_287a: like its successors loc_2f2f/loc_30de, roughly half of the
+ * Name kept as loc_287a: like its successors loc_2f2f/seedObjectRecords, roughly half of the
  * block it seeds (the companion bytes and the copied table) sits at addresses whose
  * subsystem role is not yet confirmed, so the routine's overall role is a best-effort
  * reading — below the bar to promote to an English name.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_384a (ROM 0x384a) — the per-frame animate + march
+ * Memory-equivalence gate for advanceAltPhaseActor (ROM 0x384a) — the per-frame animate + march
  * step for an active object (cadence tick + walk-tile flip, an every-4th-tick move that
  * marches the object across its travel row then descends it to the floor).
  *
@@ -8,11 +8,11 @@
  * and tile, the shadow sprite's coordinate and tile, the arrival flag/latch, the floor
  * hold-timer, and the records its two already-decompiled callees rebuild — the sprite
  * records from stageActorSpriteRecords (0x3a4c) and, on the arrival arm, the deferral/probe
- * record from loc_1b5b (0x1b5b). Both are now called directly (they read their inputs from,
+ * record from stageObjectSpriteRecord (0x1b5b). Both are now called directly (they read their inputs from,
  * and write their outputs to, fixed work RAM; neither takes an argument or returns a value),
  * so the routine's whole live-out is that RAM.
  *
- * WHY THE CONTRACT EXCLUDES THE STACK SCRATCH. The oracle reaches loc_1b5b through a Z80
+ * WHY THE CONTRACT EXCLUDES THE STACK SCRATCH. The oracle reaches stageObjectSpriteRecord through a Z80
  * CALL, which pushes the return address 0x3897 to [SP-2, SP) — top of work RAM (0x8000-
  * 0x87ff), inside the diffed state region. The dissolved direct JS call makes no such push,
  * so those two bytes legitimately differ from the oracle on the arrival arm. They are dead
@@ -48,16 +48,16 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_384a as oracle } from "../../translated/loc_384a.js";
-import { loc_384a as idiomatic } from "../loc_384a.js";
+import { advanceAltPhaseActor as idiomatic } from "../advanceAltPhaseActor.js";
 import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
-import { loc_1b5b } from "../loc_1b5b.js";
+import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y, TWIN_X } from "../ram.js";
 
 const FLOOR_HOLD = 0x807c; // idles the object at the floor (unnamed in ram.js)
 const BIAS = 0x8051; // record-build bias read by the still-oracle callees
 
-// The oracle reaches loc_1b5b through a Z80 CALL that pushes a 2-byte return address to
+// The oracle reaches stageObjectSpriteRecord through a Z80 CALL that pushes a 2-byte return address to
 // [SP-2, SP); the dissolved direct call makes no such push, so those two dead bytes differ.
 const STACK_SCRATCH = 2;
 
@@ -213,7 +213,7 @@ function brokenShadowOffset(m) {
       mem.write8(0x8079, 0);
       mem.write8(0x8068, 0);
       mem.write8(0x807d, 1);
-      loc_1b5b(m);
+      stageObjectSpriteRecord(m);
     }
   }
   const row = mem.read8(ACTOR_Y);

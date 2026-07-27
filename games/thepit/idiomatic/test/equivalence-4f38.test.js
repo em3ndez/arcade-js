@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4f38 (ROM 0x4f38) — steps an object's cyclic index up
+ * Memory-equivalence gate for advanceInitialUp (ROM 0x4f38) — steps an object's cyclic index up
  * one notch and requests sound 8.
  *
  * The index is either DISENGAGED (the off value 255) or ENGAGED in the range 10..35.
@@ -13,12 +13,12 @@
  * value registers/flags the oracle leaves behind.
  *
  * WHY A CRAFTED ENTRY. This routine requests sound command 8, and attract never requests
- * command 8 (a probe over thousands of frames sees 0 dispatches of it), so loc_4f38 is
+ * command 8 (a probe over thousands of frames sees 0 dispatches of it), so advanceInitialUp is
  * never reached in a boot/attract run — the capture/replay harness cannot hook it directly.
  * Per the crafted-entry method the gate instead runs it from a REAL captured sound-request
  * state: the sibling sound stub 0x4c57 (command 2) IS reached during attract and shares the
  * same call convention, so its entry (a valid stack with a return address, an in-play ring
- * pointer) is a faithful state to run loc_4f38 from. 0x4f38 never calls 0x4c57, so cloning
+ * pointer) is a faithful state to run advanceInitialUp from. 0x4f38 never calls 0x4c57, so cloning
  * that entry introduces no registry recursion. The one input that shapes the index output —
  * the incoming index — is then swept EXHAUSTIVELY over all 256 values identically on both
  * sides, pinning the roll-over and the disengage boundaries.
@@ -34,9 +34,9 @@
  *
  * SIX checks:
  *   0. HARNESS — capture a real 0x4c57 sound-request entry and confirm the oracle run of
- *      loc_4f38 is deterministic (oracle vs oracle -> identical whole state). Proves the
+ *      advanceInitialUp is deterministic (oracle vs oracle -> identical whole state). Proves the
  *      capture/clone/diff plumbing reaches a real sound-request state.
- *   1. EQUAL (real entry) — loc_4f38 == oracle over RAM + pc + SP + the new index, and the
+ *   1. EQUAL (real entry) — advanceInitialUp == oracle over RAM + pc + SP + the new index, and the
  *      ring slot holds sound-8-pending with the pointer advanced.
  *   2. EQUAL (exhaustive index sweep 0..255) — for every incoming index, both leave identical
  *      state and hand back the same new index; the roll-over (255 -> 10), the disengage
@@ -54,7 +54,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4f38 as oracle } from "../../translated/loc_4f38.js";
-import { loc_4f38 as idiomatic } from "../loc_4f38.js";
+import { advanceInitialUp as idiomatic } from "../advanceInitialUp.js";
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { requestSound8 } from "../requestSound8.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -157,7 +157,7 @@ test("HARNESS: a real 0x4c57 sound-request entry is captured and the oracle run 
 
 // -- 1. EQUAL on the real captured sound-request entry -----------------------
 
-test("EQUAL (real entry): loc_4f38 == oracle over RAM + pc + SP + the new index", () => {
+test("EQUAL (real entry): advanceInitialUp == oracle over RAM + pc + SP + the new index", () => {
   const entry = captureRealSoundRequestEntry(1500);
   assert.ok(entry, "need a captured 0x4c57 entry");
   const head = entry.mem.read8(SOUND_HEAD);

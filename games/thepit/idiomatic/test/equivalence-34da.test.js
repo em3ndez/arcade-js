@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_34da (ROM 0x34da, The Pit) — the mover
+ * Memory-equivalence gate for advanceDormantMover (ROM 0x34da, The Pit) — the mover
  * housekeeping that bumps a free-running tick counter (0x8090) each call, on the
  * once-every-256 wrap hands off to the periodic refresh (loc_34f0), and otherwise
  * advances a slower second counter (0x8085) on every 4th tick while holding that
  * counter's bit 3 clear.
  *
  * WHY THIS ISN'T unitEquivalence (same two reasons as its sibling loc_34f0):
- *   1. UNREACHED IN ATTRACT. loc_34da's caller (loc_319d's tick housekeeping) is a
+ *   1. UNREACHED IN ATTRACT. advanceDormantMover's caller (loc_319d's tick housekeeping) is a
  *      gameplay path — hooking 0x34da over 3000+ attract frames yields zero
  *      dispatches. There is no natural entry for the shared unitEquivalence harness
  *      to snapshot, and force-injecting one would corrupt the host stack.
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_34da as oracle } from "../../translated/loc_34da.js";
-import { loc_34da } from "../loc_34da.js";
+import { advanceDormantMover } from "../advanceDormantMover.js";
 import { loc_34f0 as idioRefresh } from "../loc_34f0.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -142,7 +142,7 @@ test("EXHAUSTIVE: over all 65,536 (tick, second) pairs the touched work RAM matc
       prime(oracleM, tickByte, secondByte);
       prime(idioM, tickByte, secondByte);
       oracle(oracleM);
-      loc_34da(idioM);
+      advanceDormantMover(idioM);
 
       const diff = contractDiff(oracleM, idioM, skip);
       if (diff) {
@@ -211,7 +211,7 @@ test("SCOPE: the oracle changes only its path's expected addresses (plus the wra
 
 // -- 3. EQUAL on real captured attract states ----------------------------------
 
-test("EQUAL: loc_34da == oracle on real captured attract states (work RAM)", () => {
+test("EQUAL: advanceDormantMover == oracle on real captured attract states (work RAM)", () => {
   const caps = captureStates(8, 120, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
 
@@ -221,7 +221,7 @@ test("EQUAL: loc_34da == oracle on real captured attract states (work RAM)", () 
     const a = cap.clone();
     const b = cap.clone();
     oracle(a);
-    loc_34da(b);
+    advanceDormantMover(b);
     const diff = contractDiff(a, b, skip);
     assert.equal(diff, null, diff && `contract mismatch on a real attract state: ${diff}`);
   }
@@ -249,7 +249,7 @@ test("WRAP: on the wrap beat the refresh reseed matches the oracle over a spread
         mm.regs.sp = SP_ANCHOR;
       }
       oracle(oracleM);
-      loc_34da(idioM);
+      advanceDormantMover(idioM);
       const diff = contractDiff(oracleM, idioM, skip);
       assert.equal(diff, null, diff && `wrap mismatch at generator ${hx((high << 8) | low)}: ${diff}`);
       // The refresh forces the stored seed's high bit set.

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_47a1 (ROM 0x47a1) — draws the rightmost playfield
+ * Memory-equivalence gate for drawRightEdgeColumn (ROM 0x47a1) — draws the rightmost playfield
  * column: a 28-tile strip from work RAM (0x8282..) up video column 31, a base colour
  * fill of the whole column (via the still-oracle colour-column fill loc_3e1d), then
  * three 3-cell colour accents (6, 4, 7). 56 display cells in all.
  *
- * loc_47a1 loads its own destinations, counts, and colours; the only state it reads
+ * drawRightEdgeColumn loads its own destinations, counts, and colours; the only state it reads
  * is the work-RAM tile strip, which both arms read identically. Its declared LIVE-OUT
  * is memory-only (the tile + colour cells the callee's cached colour byte); the
  * register file and flags it leaves behind are dead ABI. The idiomatic routine was
  * dissolved: instead of the oracle's mid-routine m.call into the frozen colour-column
  * fill (loc_3e1d) it calls the pure-leaf fillColourColumnAt directly, and no longer
- * models loc_47a1's own final return on the stack. So the oracle's dropped push16 return
+ * models drawRightEdgeColumn's own final return on the stack. So the oracle's dropped push16 return
  * address leaves a ghost byte in the dead [SP-8, SP) stack-scratch window, and the two
  * arms end at different pc/SP. Those are the dissolved routine's dead ABI, not its
  * live-out — so the contract compares the painted RAM ONLY, EXCLUDING that stack-scratch
@@ -35,7 +35,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_47a1 as oracle } from "../../translated/loc_47a1.js";
 import { loc_0066 as nmiOracle } from "../../translated/loc_0066.js";
-import { loc_47a1 as idiomatic } from "../loc_47a1.js";
+import { drawRightEdgeColumn as idiomatic } from "../drawRightEdgeColumn.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -47,7 +47,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x47a1;
 const NMI = 0x0066;
-const CAP_FRAMES = 800; // loc_47a1's first attract dispatch lands well within this
+const CAP_FRAMES = 800; // drawRightEdgeColumn's first attract dispatch lands well within this
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -180,7 +180,7 @@ function teethShiftedStrip(m) {
 
 // -- 1. EQUAL: real dispatch + sampled attract states --------------------------
 
-test("EQUAL: idiomatic loc_47a1 == oracle at the real dispatch and on sampled attract states", () => {
+test("EQUAL: idiomatic drawRightEdgeColumn == oracle at the real dispatch and on sampled attract states", () => {
   const real = captureRealDispatch(CAP_FRAMES);
   assert.ok(real, "expected a real 0x47a1 dispatch during attract");
   assert.equal(contractDiffs(real, idiomatic).length, 0, "real-dispatch entry: " + contractDiffs(real, idiomatic).join("; "));

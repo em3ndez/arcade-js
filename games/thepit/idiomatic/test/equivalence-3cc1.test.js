@@ -56,13 +56,13 @@ import { loc_46f4 as oracle46f4 } from "../../translated/loc_46f4.js";
 import { loc_3cc1 as idiomatic } from "../loc_3cc1.js";
 import { makeMachineFactory } from "../../machine.js";
 // The teeth twins mirror the routine, so they drive the same idiomatic helpers.
-import { loc_46f4 } from "../loc_46f4.js";
+import { drawLeftEdgeColumn } from "../drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "../redrawScoreHud.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
 import { loc_4785 } from "../loc_4785.js";
-import { loc_47a1 } from "../loc_47a1.js";
+import { drawRightEdgeColumn } from "../drawRightEdgeColumn.js";
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, GAME_STATE2 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -185,7 +185,7 @@ function paintPanel(m, opts = {}) {
   const dropEdgeColumn = opts.dropEdgeColumn ?? false;
   const { mem } = m;
 
-  loc_46f4(m);
+  drawLeftEdgeColumn(m);
   redrawScoreHud(m);
 
   seatCell(m, 7, 9);
@@ -209,7 +209,7 @@ function paintPanel(m, opts = {}) {
   paintColourRamColumn(m, 13, 0xa3);
 
   if (!dropEdgeColumn) loc_4785(m); // BUG hook: skip the right edge column
-  return loc_47a1(m);
+  return drawRightEdgeColumn(m);
 }
 
 // -- 0. HARNESS ----------------------------------------------------------------

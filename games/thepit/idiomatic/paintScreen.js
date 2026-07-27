@@ -44,9 +44,9 @@
  *           (0x8800) are hardware RAM and the tile/colour images are ROM tables, all hex.
  */
 import { waitFrames } from "./waitFrames.js";
-import { loc_46f4 } from "./loc_46f4.js";
+import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
-import { loc_47a1 } from "./loc_47a1.js";
+import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
 import { GLITTER_COUNTDOWN, LEVEL } from "./ram.js";
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
@@ -79,9 +79,9 @@ export function paintScreen(m) {
   }
 
   // Stamp the two fixed edge columns and repaint the score HUD over the new screen.
-  loc_46f4(m); // left edge column
+  drawLeftEdgeColumn(m); // left edge column
   redrawScoreHud(m); // both players' scores + status label + HUD colour columns
-  loc_47a1(m); // right edge column
+  drawRightEdgeColumn(m); // right edge column
 
   // Arm the cell-animation counter so the per-frame recolour cycle begins.
   mem8[GLITTER_COUNTDOWN] = 1;

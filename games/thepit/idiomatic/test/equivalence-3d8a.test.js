@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3d8a (ROM 0x3d8a, The Pit) — the fixed 9-cell
+ * Memory-equivalence gate for drawGameOverText (ROM 0x3d8a, The Pit) — the fixed 9-cell
  * vertical-strip painter at column 6, row 12: stage the cell, copy nine ROM glyphs down
  * the video column (copyTileColumn, ex-0x3dea), then tail into the colour-column filler.
  *
- * loc_3d8a is a CALLER with three real internal calls plus a tail jump. The idiomatic
+ * drawGameOverText is a CALLER with three real internal calls plus a tail jump. The idiomatic
  * rewrite reaches the SAME callees — rowColToTileOffset (0x3dae), deriveTileWriteCursors
  * (0x3dc9), copyTileColumn (0x3dea) and fillColourColumn (0x3e01) are now all decompiled
  * and called directly. So both sides run identical callee behaviour; the only thing that
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3d8a as oracle } from "../../translated/loc_3d8a.js";
-import { loc_3d8a as idiomatic } from "../loc_3d8a.js";
+import { drawGameOverText as idiomatic } from "../drawGameOverText.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";

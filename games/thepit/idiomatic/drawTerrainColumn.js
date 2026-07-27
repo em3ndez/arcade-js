@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2fb7 — write one vertical strip of tiles up a backdrop column, then tick the
+ * drawTerrainColumn — write one vertical strip of tiles up a backdrop column, then tick the
  * animation clock.  ROM 0x2fb7.
  *
  * The dirt/shaft backdrop refreshes one vertical strip of tiles per animation step.
@@ -21,7 +21,7 @@
  * clock (the already-decompiled loc_2fc0), whose return goes to our caller — so that
  * hand-off is this routine's exit, not a nested call.
  *
- * Name kept as loc_2fb7: same best-effort backdrop-animation subsystem as its
+ * Name kept as drawTerrainColumn: same best-effort backdrop-animation subsystem as its
  * siblings loc_2fc0 / loc_2fd9 (both left neutral), and while the strided tile-map
  * copy is mechanically clear its game-role is an inference — below the bar to promote.
  *
@@ -46,7 +46,7 @@
 
 import { loc_2fc0 } from "./loc_2fc0.js";
 
-export function loc_2fb7(m) {
+export function drawTerrainColumn(m) {
   const { regs, mem8 } = m;
 
   // Blit parameters staged in registers by the oracle animation-step code.
@@ -65,6 +65,6 @@ export function loc_2fb7(m) {
   } while (remaining !== 0);
 
   // Fall through into the animation phase clock; its return goes to our caller, so
-  // this hand-off is loc_2fb7's exit.
+  // this hand-off is drawTerrainColumn's exit.
   return loc_2fc0(m);
 }

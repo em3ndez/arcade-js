@@ -2,10 +2,10 @@
 /**
  * Memory-equivalence gate for loc_2f2f (ROM 0x2f2f, The Pit) — seed the first block
  * of round/level parameters, derive the animation reload byte from the level counter,
- * then tail-jump into loc_30de (ROM 0x30de).
+ * then tail-jump into seedObjectRecords (ROM 0x30de).
  *
  * loc_2f2f is entered ONLY by the gameplay round-init tail-jump chain
- * (loc_287a → loc_2f2f → loc_30de → seedActorSpawnState); attract mode never enters
+ * (loc_287a → loc_2f2f → seedObjectRecords → seedActorSpawnState); attract mode never enters
  * gameplay, so it is never dispatched in a boot/attract run — the unit harness (which
  * needs a real dispatch) cannot capture it. But the only thing it READS is the
  * level/difficulty counter at 0x8028; everything else is fixed immediates. So its
@@ -14,8 +14,8 @@
  * and run oracle vs idiomatic on independent clones of each.
  *
  * The oracle tail-jumps `m.call(0x30de)`, which resolves to the frozen translated
- * loc_30de (which in turn resolves the rest of the chain); the idiomatic routine hands
- * off to the already-decompiled loc_30de directly. That pair is proven
+ * seedObjectRecords (which in turn resolves the rest of the chain); the idiomatic routine hands
+ * off to the already-decompiled seedObjectRecords directly. That pair is proven
  * memory-equivalent by equivalence-30de.test.js, so the whole chain lands the same
  * work RAM. The Z80-stack plumbing the oracle's ret leaves behind (a bumped stack
  * pointer, a popped return PC) is dead ABI the round-init caller never reads, so the
@@ -26,7 +26,7 @@
  *      frames (real title/demo RAM), run the oracle and loc_2f2f on independent clones
  *      of each, and diff work RAM. Must be identical.
  *   2. TAIL FIRED — after the idiomatic run the derived reload byte tracks the entry's
- *      level counter AND the full tail's effects are present (loc_30de's derived pair,
+ *      level counter AND the full tail's effects are present (seedObjectRecords's derived pair,
  *      the actor pair seeded, the spawn-phase flag cleared), proving the hand-off ran.
  *   3. COUNTER SWEEP — over all 256 level-counter values, idiomatic == oracle and the
  *      reload byte tracks 7 - min((level + 1) mod 256, 4). Attract only ever exercises
@@ -36,7 +36,7 @@
  *      by the entry already holding the seeded values: every target must be
  *      overwritten, and both arms must still agree byte-for-byte.
  *   5. TEETH — two deliberately-broken twins MUST be caught: one that gets the derived
- *      reload byte wrong, and one that drops the loc_30de hand-off.
+ *      reload byte wrong, and one that drops the seedObjectRecords hand-off.
  *
  * The oracle is run on a clone() (frame machinery neutralised) so its internal cycle
  * steps cannot trip a live NMI whose handler would write RAM and masquerade as a side
@@ -86,12 +86,12 @@ const OWN_ADDRS = [
   0x80db, 0x80dc, 0x80dd, 0x80de, 0x80df, 0x80e0, 0x80e3, RELOAD, 0x80e5, 0x80e6, 0x80e7,
 ];
 
-// Every address the whole tail (loc_30de + seedActorSpawnState) writes — used to make
+// Every address the whole tail (seedObjectRecords + seedActorSpawnState) writes — used to make
 // the dropped-hand-off teeth deterministic. SPAWN_PHASE (0x807b) is the lowest of them,
 // so it is the address firstStateDiff reports when the hand-off is missing.
 const TAIL_ADDRS = [
   SPAWN_PHASE,
-  // loc_30de's own block
+  // seedObjectRecords's own block
   0x80e8, 0x80e9, 0x80ea, 0x80eb, 0x80f0, 0x80f5, 0x80f6, 0x80f8, 0x80f9, 0x80fa, 0x80fb,
   0x8101, 0x8106, 0x8107, 0x8109,
   // seedActorSpawnState's block
@@ -139,7 +139,7 @@ test("EQUAL: loc_2f2f leaves the same work RAM as the oracle over real captured 
   console.log(`  EQUAL: ${caps.length} real captured attract states — work RAM identical to the oracle`);
 });
 
-// -- 2. TAIL FIRED: the loc_30de hand-off (and its own tail) actually ran ------
+// -- 2. TAIL FIRED: the seedObjectRecords hand-off (and its own tail) actually ran ------
 
 test("TAIL FIRED: the reload byte tracks the level counter and the full tail's effects are present", () => {
   const [entry] = captureStates(1, 1, 175);
@@ -149,10 +149,10 @@ test("TAIL FIRED: the reload byte tracks the level counter and the full tail's e
   idiomatic(b);
 
   assert.equal(b.mem.read8(RELOAD), expectedReload(level), "the derived reload byte must track the level counter");
-  // loc_30de's own effect: the difficulty-scaled pair it derives from the same counter.
+  // seedObjectRecords's own effect: the difficulty-scaled pair it derives from the same counter.
   const expectedStep = 7 - (level & 0x06);
-  assert.equal(b.mem.read8(0x80f6), expectedStep, "loc_30de's derived pair must be present (first slot)");
-  assert.equal(b.mem.read8(0x8107), expectedStep, "loc_30de's derived pair must be present (mirror slot)");
+  assert.equal(b.mem.read8(0x80f6), expectedStep, "seedObjectRecords's derived pair must be present (first slot)");
+  assert.equal(b.mem.read8(0x8107), expectedStep, "seedObjectRecords's derived pair must be present (mirror slot)");
   // seedActorSpawnState's effect at the end of the chain.
   assert.equal(b.mem.read8(ACTOR_X), 36, "the chain's tail must seed the primary start column");
   assert.equal(b.mem.read8(TWIN_X), 52, "the chain's tail must seed the twin start column");
@@ -219,7 +219,7 @@ function brokenReload(m) {
   m.mem.write8(RELOAD, m.mem.read8(RELOAD) + 1); // BUG: wrong animation reload byte
 }
 
-/** Broken twin B: does loc_2f2f's own writes but drops the loc_30de hand-off. */
+/** Broken twin B: does loc_2f2f's own writes but drops the seedObjectRecords hand-off. */
 function brokenNoTail(m) {
   const { mem } = m;
   mem.write8(0x80db, 40);
@@ -233,7 +233,7 @@ function brokenNoTail(m) {
   mem.write8(0x80e6, 150);
   mem.write8(0x80e7, 0);
   mem.write8(RELOAD, 7 - Math.min((mem.read8(LEVEL_COUNTER) + 1) & 0xff, 4));
-  // BUG: no hand-off to loc_30de — the second parameter block and actor pair are never seeded.
+  // BUG: no hand-off to seedObjectRecords — the second parameter block and actor pair are never seeded.
 }
 
 test("TEETH: a wrong derived reload byte is CAUGHT", () => {
@@ -255,7 +255,7 @@ test("TEETH: a wrong derived reload byte is CAUGHT", () => {
   console.log(`  TEETH: wrong reload byte caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });
 
-test("TEETH: dropping the loc_30de hand-off is CAUGHT", () => {
+test("TEETH: dropping the seedObjectRecords hand-off is CAUGHT", () => {
   const [entry] = captureStates(1, 1, 220);
   const SENTINEL = 0x55; // preset the tail's targets so a missing hand-off is deterministic
   for (const addr of TAIL_ADDRS) entry.mem.write8(addr, SENTINEL);

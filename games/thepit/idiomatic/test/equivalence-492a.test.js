@@ -11,7 +11,7 @@
  * equivalence against the frozen oracle: the painted RAM byte-identical, EXCLUDING the
  * dead [SP-8, SP) stack-scratch window, and NEVER pc, SP, or the register file (the
  * oracle's leftover ROM-strip pointer is dead too — both successors, loc_4785 and
- * loc_47a1, reload it before reading). The whole-machine/pixel gate backstops it.
+ * drawRightEdgeColumn, reload it before reading). The whole-machine/pixel gate backstops it.
  * Modelled on equivalence-47e1 / equivalence-18cf.
  *
  *   1. EQUAL (real dispatch) — boot the machine, hook 0x492a, and clone the machine

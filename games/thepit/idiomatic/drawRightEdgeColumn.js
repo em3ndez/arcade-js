@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_47a1 — draw the rightmost playfield column: a 28-tile strip from work RAM up
+ * drawRightEdgeColumn — draw the rightmost playfield column: a 28-tile strip from work RAM up
  *            video column 31, a base colour, then three 3-cell colour accents.  ROM 0x47a1.
  *
  * The tilemap is 32 cells wide, so one screen row is 32 cells and "up one cell in a
@@ -19,7 +19,7 @@
  * leaves behind.
  *
  * The role kept a neutral loc_ name: this stamps a single column and its trim, the
- * mirror of the left-edge column stamper loc_46f4, but which playfield feature the
+ * mirror of the left-edge column stamper drawLeftEdgeColumn, but which playfield feature the
  * right column represents in the game is not yet confidently pinned.
  *
  * Memory-equivalent to the frozen oracle — equivalence-47a1.test.js.
@@ -37,7 +37,7 @@
 
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 
-export function loc_47a1(m) {
+export function drawRightEdgeColumn(m) {
   const { mem8 } = m;
 
   // One tilemap row is 32 cells, so "up one cell in a column" steps back 32.

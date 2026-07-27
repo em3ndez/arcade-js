@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_184a — advance an actor's walk: accumulate its position, pick the walk frame,
+ * walkActor — advance an actor's walk: accumulate its position, pick the walk frame,
  * then build its display record.  ROM 0x184a.
  *
- * A per-frame walk stepper, sibling to loc_1659. Where loc_1659 re-measures the actor's
+ * A per-frame walk stepper, sibling to advanceObjectWalkFrame. Where advanceObjectWalkFrame re-measures the actor's
  * position against a moving reference, this one carries the position FORWARD by a
  * per-frame step (a velocity), so it drives an actor that walks under its own momentum.
  * It:
@@ -13,7 +13,7 @@
  *     the frame flips at the right point in the stride — and stores it;
  *   - alternates the sprite between two adjacent walk frames as that phase advances,
  *     giving the two-frame walk cycle.
- * It then hands the actor block to the record builder loc_1b5b, which writes the 4-byte
+ * It then hands the actor block to the record builder stageObjectSpriteRecord, which writes the 4-byte
  * display record and returns straight to this routine's caller.
  *
  * Memory-equivalent to the frozen oracle — equivalence-184a.test.js.
@@ -23,8 +23,8 @@
  *           for several step values, including the accumulator's byte wrap, and the record
  *           builder's four writes are checked through the direct call.
  * LIVE-OUT: memory-only — the position accumulator (OBJ_X), the sub-tile phase byte, the
- *           walk-frame SPRITE_CODE, and the four record bytes loc_1b5b writes. Unlike
- *           loc_1659, this stepper stashes nothing in a register for its caller; the step
+ *           walk-frame SPRITE_CODE, and the four record bytes stageObjectSpriteRecord writes. Unlike
+ *           advanceObjectWalkFrame, this stepper stashes nothing in a register for its caller; the step
  *           value left behind is incidental scratch that nothing downstream reads.
  * NAMES:    OBJ_X, SPRITE_CODE from ram.js. The per-frame step 0x806c and the sub-tile
  *           phase byte 0x8075 stay hex — their roles are not yet grounded (the sibling
@@ -33,12 +33,12 @@
  */
 
 import { OBJ_X, SPRITE_CODE } from "./ram.js";
-import { loc_1b5b } from "./loc_1b5b.js";
+import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const STEP = 0x806c; // per-frame amount added onto the position accumulator
 const SUBTILE_PHASE = 0x8075; // low-3-bit sub-tile phase the walk frame is read off
 
-export function loc_184a(m) {
+export function walkActor(m) {
   const { mem8 } = m;
 
   // Move the actor forward by its per-frame step. The store keeps only the low byte,
@@ -57,5 +57,5 @@ export function loc_184a(m) {
   // Hand the actor block to the record builder, which writes the 4-byte display record
   // and returns straight to this routine's caller (the oracle reaches it by a tail-jump;
   // here it is a direct call).
-  return loc_1b5b(m);
+  return stageObjectSpriteRecord(m);
 }

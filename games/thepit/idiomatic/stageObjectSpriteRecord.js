@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1b5b — build the object's 4-byte deferral record at 0x8220, biasing its ends.  ROM 0x1b5b.
+ * stageObjectSpriteRecord — build the object's 4-byte deferral record at 0x8220, biasing its ends.  ROM 0x1b5b.
  *
  * Where the tile-under-object classifier lands when the object is sitting on a SOLID
  * (non-diggable) tile: rather than dig or collect, it defers the frame by writing a
@@ -31,7 +31,7 @@ import { OBJ_X, SPRITE_CODE, OBJ_Y, OBJ_SPRITE_ATTR } from "./ram.js";
 const RECORD = 0x8220; // base of the 4-byte deferral record built for the object
 const BIAS = 0x8051; // the end-bias, held in the dip-switch parameter block
 
-export function loc_1b5b(m) {
+export function stageObjectSpriteRecord(m) {
   const { mem8 } = m;
 
   const bias = mem8[BIAS];
