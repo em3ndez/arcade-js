@@ -9,7 +9,7 @@ reverse-engineering — that's the point). Every claim is tagged:
 - **[guess]** — plausible but unverified; do not rely on it.
 
 This is the precursor to the naming + idiomatic passes: as roles get confirmed, they become
-`ram.js` names and English routine names. **Much of that has now happened** — 125/169 routines are
+`ram.js` names and English routine names. **Much of that has now happened** — 127/169 routines are
 decompiled to idiomatic JS, ~89 carry earned English names (proposer≠confirmer + adversarial-judge),
 and `ram.js` holds ~90 named work-RAM addresses. This map is updated to reflect that understanding;
 routine names below are the earned idiomatic names where they exist, neutral `loc_<addr>` otherwise.
@@ -63,7 +63,7 @@ Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a
 | **Player dig / wall collision** | `steerDemoPlayer`-adjacent `loc_03e8` → maze-wall move-dir at `DEMO_STEER_DIR` 0x801b | [code] the tunnel-movement core |
 | **Attract-demo "AI" (fake joystick)** | `steerDemoPlayer` (0x03e8) writes a move dir the dispatcher reads *in place of* the stick | [code] the standout decompile |
 | **Per-frame object step from control** | `stepObjectFromControl` (0x1420): picks `DEMO_STEER_DIR` (demo) vs debounced joystick by `GAME_MODE`, hands to the update dispatcher `loc_1434` | [code] |
-| **Object action dispatch** (per-state) | `loc_13de`, `loc_1434`, `loc_144c` (first-set-bit command dispatcher), `stepHighScoreInitialsEntry` (0x4eea) | [code] state machines keyed on a mode byte |
+| **Object action dispatch** (per-state) | `loc_13de`, `loc_1434`, `loc_144c` (first-set-bit command dispatcher) → `loc_1468`/`loc_16b9` (per-command routers into the move+resolve handlers), `stepHighScoreInitialsEntry` (0x4eea) | [code] state machines keyed on a mode byte |
 | **Tile-under-object classify** (dirt / diamond / empty) | `loc_1568` / `loc_1515` / `loc_14cd` (shared body); probe walk via `PROBE_CELL_PTR`/`SUBTILE_PHASE`, tables in `loc_3476`-family region | [code] drives collect vs dig |
 | **Object move + terrain-resolve** (both axes) | `loc_1a02` (vertical/climb) and `loc_1704` (horizontal): step the tracked object one frame, then resolve the tile it enters — collect loot, carve, hold against a wall, bump-react, or walk on | [code] the paired move handlers; axis labels inferred |
 | **Loot collect + score + blank tile** | `collectLootTile` (0x18cf): `awardTenPoints`/`awardTwentyPoints`, bump per-kind counter, blank the cell, keep moving | [code] **the core scoring loop** |

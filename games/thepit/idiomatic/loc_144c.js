@@ -41,6 +41,7 @@
 import { GOAL_TILE_LATCH } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { loc_186f } from "./loc_186f.js";
+import { loc_1468 } from "./loc_1468.js";
 
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
@@ -53,7 +54,7 @@ export function loc_144c(m) {
   // First-match-wins over the command's direction bits, each running one object handler.
   if (moveCommand & 0x01) return m.call(0x1493); // position the object; test the boundary
   if (moveCommand & 0x02) return m.call(0x167f); // derive the object's tile row and dispatch
-  if (moveCommand & 0x0c) return m.call(0x1468); // reconcile the object's animation phase
+  if (moveCommand & 0x0c) return loc_1468(m, moveCommand); // reconcile the object's animation phase
 
   // No direction bit set: the object stands still this frame. Reset its animation phase.
   mem8[OBJECT_PHASE] = 0;
