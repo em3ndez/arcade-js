@@ -9,8 +9,8 @@ reverse-engineering — that's the point). Every claim is tagged:
 - **[guess]** — plausible but unverified; do not rely on it.
 
 This is the precursor to the naming + idiomatic passes: as roles get confirmed, they become
-`ram.js` names and English routine names. **Much of that has now happened** — 119/169 routines are
-decompiled to idiomatic JS, ~88 carry earned English names (proposer≠confirmer + adversarial-judge),
+`ram.js` names and English routine names. **Much of that has now happened** — 125/169 routines are
+decompiled to idiomatic JS, ~89 carry earned English names (proposer≠confirmer + adversarial-judge),
 and `ram.js` holds ~90 named work-RAM addresses. This map is updated to reflect that understanding;
 routine names below are the earned idiomatic names where they exist, neutral `loc_<addr>` otherwise.
 
@@ -65,8 +65,9 @@ Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a
 | **Per-frame object step from control** | `stepObjectFromControl` (0x1420): picks `DEMO_STEER_DIR` (demo) vs debounced joystick by `GAME_MODE`, hands to the update dispatcher `loc_1434` | [code] |
 | **Object action dispatch** (per-state) | `loc_13de`, `loc_1434`, `loc_144c` (first-set-bit command dispatcher), `stepHighScoreInitialsEntry` (0x4eea) | [code] state machines keyed on a mode byte |
 | **Tile-under-object classify** (dirt / diamond / empty) | `loc_1568` / `loc_1515` / `loc_14cd` (shared body); probe walk via `PROBE_CELL_PTR`/`SUBTILE_PHASE`, tables in `loc_3476`-family region | [code] drives collect vs dig |
+| **Object move + terrain-resolve** (both axes) | `loc_1a02` (vertical/climb) and `loc_1704` (horizontal): step the tracked object one frame, then resolve the tile it enters — collect loot, carve, hold against a wall, bump-react, or walk on | [code] the paired move handlers; axis labels inferred |
 | **Loot collect + score + blank tile** | `collectLootTile` (0x18cf): `awardTenPoints`/`awardTwentyPoints`, bump per-kind counter, blank the cell, keep moving | [code] **the core scoring loop** |
-| **Dig reaction** | `triggerDigReaction` (0x191f): on a diggable tile stages `REACTION_STATE`=3 + dig sprite + dig sound | [code] |
+| **Dig reaction + dig-entity spawn** | `triggerDigReaction` (0x191f): on a diggable tile stages `REACTION_STATE`=3 + dig sprite + dig sound; `loc_28ab` stages a dig entity at the aligned cell and commits it into the map | [code] |
 | **Player walk-frame animation + step** | `walkActor` (0x184a step-by-velocity + walk-sprite cycle), `advanceActorWalk` (0x19d0), `drawActorWalkFrame` (0x19e3), `advanceObjectWalkFrame` (0x1659); `loc_186a`→`loc_186f` (cell geometry + tile dispatch) | [code] |
 | **Object / enemy movers** | `0x3490` velocity-preset family (`loc_3476/347d/3484/348b`, direction presets), `advanceDormantMover` (0x34da), `descendActorToRest` (0x3968 ease a two-body actor to its floor), `advanceAltPhaseActor` (0x384a) | [code] axis/direction semantics still partly unpinned |
 | **Actor spawn (primary + twin records)** | `seedObjectRecords` (0x30de), `loc_37cf`/`loc_38c8`/`loc_3984` seed `OBJ1_*`/`OBJ2_*` + `ACTOR_*` 0x810a.. / `TWIN_*` 0x811b.. + `stageObjectSpriteRecord` (0x1b5b) | [code] two-body actor (sprite + shadow) |
@@ -76,7 +77,7 @@ Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a
 | **Static attract screens** | `showCreditScreen` (0x021c), `showSetupScreen` (0x3a6f), `showFixedScreen` (0x3b81) — paint a canned screen and hold | [code] |
 | **HUD panels & labels** | `drawSharedPanel` (0x3cc1 skeleton), `drawMenLeftPanel` (0x483a "MEN LEFT"/"LAST MAN" + count `0x802b`), `drawCreditsDisplay` (0x4894 "CREDITS"+count), `drawPlayerLabel` (0x47e1 "PLAYERS"), `drawGameOverText`/`drawGameOverLabel` | [code] ROM glyphs decoded + confirmed |
 | **Score readouts** | `renderScoreReadouts` (0x4cca), `initScoreDisplay` (0x4bc7), `drawScoreDigits` (0x46af), `unpackScoreDigits` (0x4d0c BCD→digits), `addScore`/`awardOnePoint`/`awardTenPoints` | [code] |
-| **High-score table + entry** | `loc_4d3a` (top-3 insert), `stepHighScoreInitialsEntry` (0x4eea), `advanceInitialUp` (0x4f38 step an initial letter) | [code] backs "BEST SCORES TODAY" |
+| **High-score table + entry** | `submitPlayerHighScore` (0x4cbf, end-of-round: load finishing score → insert → repaint), `loc_4d3a` (top-3 insert), `stepHighScoreInitialsEntry` (0x4eea), `advanceInitialUp` (0x4f38 step an initial letter) | [code] backs "BEST SCORES TODAY" |
 | **Edge / terrain column paint** | `drawLeftEdgeColumn` (0x46f4 col 0), `drawRightEdgeColumn` (0x47a1 col 31), `drawTerrainColumn` (0x2fb7), `cycleColumnColour` (0x3e13 palette-cycle a column), `glitterDiamonds` (0x06ac diamond colour flash) | [code] |
 | **Sound request** | `requestSoundN` stubs → shared enqueue `enqueueSoundCommand` (0x4ca5) → ring at `SOUND_RING`/`SOUND_HEAD` (0x8020/0x801e) | [code] |
 | **DSW → gameplay params** | `loc_4b55` decodes dip bits into 0x804c–0x8053 (incl. lives → `0x802b` men-left, `STEP_TIMER_BASE` 0x804f) | [code] |
