@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3cc1 — lay out a fixed panel: the left edge column and both players' score HUD,
+ * drawSharedPanel — lay out a fixed panel: the left edge column and both players' score HUD,
  *            three labelled tile/colour runs, then the right edge and playfield columns.  ROM 0x3cc1.
  *
  * A shared screen-layout routine: two different status screens (the difficulty
@@ -67,7 +67,7 @@ import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 // but here the byte is the panel's colour attribute, not a mode.
 const FILL_ATTR = 0x8057;
 
-export function loc_3cc1(m) {
+export function drawSharedPanel(m) {
   const { mem8, regs } = m;
 
   // 1. The panel skeleton: the fixed left edge column, then both players' score HUD.

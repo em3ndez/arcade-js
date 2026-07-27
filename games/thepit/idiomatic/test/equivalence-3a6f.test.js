@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3a6f (ROM 0x3a6f, The Pit) — the round-setup screen
+ * Memory-equivalence gate for showSetupScreen (ROM 0x3a6f, The Pit) — the round-setup screen
  * painter: it lays the fixed playfield furniture, stamps four HUD records (two of them
  * count fields showing the DSW-derived values 0x804c / 0x804d, with a plural/singular
  * label rule and a singular-glyph patch), then holds the finished screen for thirty
@@ -26,7 +26,7 @@
  *      idiomatic layer does not preserve the register/pc trace; the whole-machine pixel
  *      gate backstops it, and this contract survives a callee later being dissolved).
  *
- * loc_3a6f is reached at round setup (the reset epilogue loc_03ac and the per-player
+ * showSetupScreen is reached at round setup (the reset epilogue loc_03ac and the per-player
  * teardown loc_0371), NOT during idle attract, so the real dispatch is captured from a
  * boot run. The real dispatch runs it with 0x804c == 1 and 0x804d == 2 (the plural arm
  * for both, and the singular patch, since 0x804c == 1); a crafted sweep pokes those two
@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3a6f as oracle } from "../../translated/loc_3a6f.js";
-import { loc_3a6f as idiomatic } from "../loc_3a6f.js";
+import { showSetupScreen as idiomatic } from "../showSetupScreen.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -173,7 +173,7 @@ test("HARNESS: the real boot 0x3a6f dispatch is captured and the oracle run is d
 
 // -- 1. EQUAL on the real captured dispatch -----------------------------------
 
-test("EQUAL (real dispatch): loc_3a6f == oracle over RAM outside the stack scratch", () => {
+test("EQUAL (real dispatch): showSetupScreen == oracle over RAM outside the stack scratch", () => {
   const { ram, candM } = runPair(idiomatic);
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
 

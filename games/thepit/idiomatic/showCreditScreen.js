@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_021c — warm-restart state entry: arm game mode 3, reset the work stack, enable
+ * showCreditScreen — warm-restart state entry: arm game mode 3, reset the work stack, enable
  * the frame interrupt, run the blank-screen display setup, then hand off to the
  * fixed-screen painter that holds a static screen forever.  ROM 0x021c.
  *
@@ -41,7 +41,7 @@
 import { enableNmi } from "./enableNmi.js";
 import { GAME_MODE } from "./ram.js";
 
-export function loc_021c(m) {
+export function showCreditScreen(m) {
   const { mem8, regs } = m;
 
   // Arm game mode 3.

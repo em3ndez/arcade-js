@@ -4,11 +4,11 @@
  * refresh. It sweeps both player slots (copy the player's saved state into the shared
  * display slot, repaint its four score digits, blank the two cells above the score
  * column), restores the active player, draws the status label from the player count
- * (one/two players -> the in-game panel loc_47e1, otherwise -> the "GAME OVER" label
+ * (one/two players -> the in-game panel drawPlayerLabel, otherwise -> the "GAME OVER" label
  * loc_48e5), and tints colour 2 up two HUD colour columns.
  *
  * THE CONTRACT — OBSERVABLE RAM. This gate used to assert whole RAM + pc + SP, because
- * the two status-label routines it calls (loc_47e1 @ 0x47e1, drawGameOverLabel @ 0x48e5)
+ * the two status-label routines it calls (drawPlayerLabel @ 0x47e1, drawGameOverLabel @ 0x48e5)
  * tail-JUMPED into the colour-column filler 0x3e01 via an m.call whose `ret` popped the
  * label return slot redrawScoreHud had pushed (0x4768 / 0x476d) — so the whole Z80 stack
  * reconverged and pc + SP still matched the oracle. That tail-jump has now been DISSOLVED
@@ -27,7 +27,7 @@
  *      the oracle merely pops one more of them. The full RAM dump (stack included) matches.
  *   2. The diverged value registers are dead. All three callers of 0x472c reload their
  *      registers with a constant as the very first instruction after the call — loc_0673
- *      (06a3: `ld a,0x01`), loc_3a6f (3a78: `ld a,0x01`; 3a7a: `ld c,0x02`), loc_3cc1
+ *      (06a3: `ld a,0x01`), showSetupScreen (3a78: `ld a,0x01`; 3a7a: `ld c,0x02`), drawSharedPanel
  *      (3cc7: `ld a,0x07`) — so nothing reads the register file redrawScoreHud leaves.
  *   3. The diverged pc / SP have no live consumer. redrawScoreHud is not wired live (no
  *      manifest override, no idiomatic importer): the three callers dispatch to the frozen
@@ -56,7 +56,7 @@
  *   2. EQUAL (harness) — an independent fresh capture of the real dispatch, clone/replay,
  *      RAM-EQUAL outside the [SP-8, SP) stack scratch (NOT through unitEquivalence: its
  *      full-dump diff would false-catch the removed push16 ghost at 0x83f7 first).
- *   3. EQUAL (crafted) — a player-count-1 entry forces the in-game-panel arm (loc_47e1),
+ *   3. EQUAL (crafted) — a player-count-1 entry forces the in-game-panel arm (drawPlayerLabel),
  *      which attract never reaches; idiomatic == oracle on RAM there too.
  *   4. IDENTITY — oracle vs oracle is fully EQUAL (gate wiring sanity; identical arms
  *      share pc + registers, so the strict harness still reports equal here).
@@ -219,7 +219,7 @@ test("EQUAL (harness): a fresh-captured real 0x472c dispatch is RAM-EQUAL outsid
 
 // -- 3. EQUAL: crafted player-count-1 entry forces the in-game-panel arm -------
 
-test("EQUAL (crafted): the in-game-panel arm (player count 1 -> loc_47e1) is RAM-EQUAL", () => {
+test("EQUAL (crafted): the in-game-panel arm (player count 1 -> drawPlayerLabel) is RAM-EQUAL", () => {
   const seed = ENTRY.clone();
   seed.mem.write8(GAME_MODE, 1); // force the one/two-player branch attract never reaches
   const ram = observableDiff(seed, idiomatic);

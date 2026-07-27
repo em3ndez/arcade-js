@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_47e1 — paint one fixed vertical panel (a tile column plus its matching colour
+ * drawPlayerLabel — paint one fixed vertical panel (a tile column plus its matching colour
  * column) into the playfield at screen column 1, row 12. ROM 0x47e1.
  *
  * The panel is three stacked vertical runs down that one column, every run using the
@@ -56,7 +56,7 @@ const PLOT_FILL_BYTE = 0x8057; // the colour byte the colour-column paint writes
 // A fixed run of tile codes in ROM used for the panel's seven middle cells.
 const PANEL_TILE_TABLE = 0x49b1;
 
-export function loc_47e1(m) {
+export function drawPlayerLabel(m) {
   const { regs, mem8 } = m;
 
   // Aim the panel at tile column 1, row 12, then turn that cell into the tilemap offset

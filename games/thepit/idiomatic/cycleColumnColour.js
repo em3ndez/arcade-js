@@ -6,7 +6,7 @@
  * value — kept clear of one palette bit so it never strays out of the cycling range —
  * stored back so the next call continues from where this one left off, and then stamped
  * straight down one full-height column of colour RAM. The attract screen-setup loops
- * (loc_3a6f, loc_3bec) call this over and over while counting a delay down, so the chosen
+ * (showSetupScreen, loc_3bec) call this over and over while counting a delay down, so the chosen
  * column shimmers through the palette one shade per pass.
  *
  * `column` picks which column to repaint: it is the offset into the top row of colour

@@ -7,7 +7,7 @@
  * Reached from the walk-animation step (loc_186f) once it decides the tile under the
  * actor may be worth collecting. It acts only on the final sub-step before the actor
  * crosses into a new tile column; on any other phase, and for any tile it does not
- * recognise, it hands the frame to the dig-arm classifier (loc_191f) unchanged.
+ * recognise, it hands the frame to the dig-arm classifier (triggerDigReaction) unchanged.
  *
  * On a boundary it recognises two kinds of scoring tile, and for each awards score,
  * bumps that kind's running pickup counter, blanks the cell the actor stands on, and
@@ -26,7 +26,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-18cf.test.js.
  * GATE:     crafted-entry + real dispatches — memory-equivalence over real attract
- *           dispatches (which all take the decline path into loc_191f), plus crafted
+ *           dispatches (which all take the decline path into triggerDigReaction), plus crafted
  *           entries forcing every branch: the boundary gate, tile 58, tiles 59..61 over
  *           enabled/latch/guard, and the unrecognised-tile declines. The oracle's award
  *           and sound paths park dead scratch just below the entry stack pointer that the
@@ -38,11 +38,11 @@
  *           the second kind's enable flag 0x8076, its one-shot latch 0x8078, and the
  *           latch's guard 0x80bd stay hex — their roles are clear here but not yet
  *           grounded across the game. Named collectLootTile after the loot tiles it
- *           collects, matching its sibling loc_191f.
+ *           collects, matching its sibling triggerDigReaction.
  */
 
 import { ACTOR_CELL_PTR, SPAWN_STATE, FEATURE_TILE_LATCH } from "./ram.js";
-import { loc_191f } from "./loc_191f.js";
+import { triggerDigReaction } from "./triggerDigReaction.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 
 // Per-kind running pickup counters, and the enable/latch/guard that gate the second
@@ -60,7 +60,7 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
   // Collect only on the final sub-step before the actor crosses into a new tile
   // column; on every other phase the tile goes to the dig-arm classifier.
   if ((positionAccumulator + 1) % 8 !== 0) {
-    return loc_191f(m, tileCode, positionAccumulator);
+    return triggerDigReaction(m, tileCode, positionAccumulator);
   }
 
   if (tileCode === 58) {
@@ -70,14 +70,14 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
   } else if (tileCode >= 59 && tileCode <= 61) {
     // Second pickup kind, and only while its feature is enabled.
     if (mem8[FEATURE_TILE_LATCH] === 0) {
-      return loc_191f(m, tileCode, positionAccumulator);
+      return triggerDigReaction(m, tileCode, positionAccumulator);
     }
     // A one-shot latch opens the award. Once open it always awards; the very first
     // time, it opens only when the guard is clear (and arms the latch itself),
     // otherwise it defers this frame to the dig-arm.
     if (mem8[SECOND_TILE_LATCH] === 0) {
       if (mem8[SPAWN_STATE] !== 0) {
-        return loc_191f(m, tileCode, positionAccumulator);
+        return triggerDigReaction(m, tileCode, positionAccumulator);
       }
       mem8[SECOND_TILE_LATCH] = 1;
     }
@@ -86,7 +86,7 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
     mem8[SECOND_TILE_COUNT] = mem8[SECOND_TILE_COUNT] + 1;
   } else {
     // Any other tile on the boundary is not a pickup — hand it to the dig-arm.
-    return loc_191f(m, tileCode, positionAccumulator);
+    return triggerDigReaction(m, tileCode, positionAccumulator);
   }
 
   // Collected: blank the cell the actor stands on, then keep the actor moving.

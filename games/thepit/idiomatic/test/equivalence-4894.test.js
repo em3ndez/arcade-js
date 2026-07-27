@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4894 (ROM 0x4894, The Pit) — a fixed-panel
+ * Memory-equivalence gate for drawCreditsDisplay (ROM 0x4894, The Pit) — a fixed-panel
  * painter: it names one tile cell (column 6, row 10), asks the shared address
  * helpers for that cell's tilemap offset and colour-RAM / video-RAM cursors, then
  * stamps a panel (a live work-RAM value on top, an eight-glyph label below) and
  * tail-calls the colour-column filler.
  *
  * THIS GATE IS OBSERVABLE EQUIVALENCE (after the stale-call dissolve). Three of
- * loc_4894's layout helpers are now decompiled and called directly as ordinary JS —
+ * drawCreditsDisplay's layout helpers are now decompiled and called directly as ordinary JS —
  * rowColToTileOffset (0x3dae), deriveTileWriteCursors (0x3dc9) and fillColourColumn
  * (0x3e01, the tail). A direct JS call has no Z80 stack frame, so the routine no longer
  * pushes those three return addresses. Two consequences the gate now models instead of
  * demanding byte-identity of:
  *
  *   - the dead stack-scratch slot just below the entry stack pointer (where a dissolved
- *     CALL parked its return address) is no longer written by loc_4894 itself, so it is
+ *     CALL parked its return address) is no longer written by drawCreditsDisplay itself, so it is
  *     EXCLUDED from the RAM diff — classic dead scratch (re-covered by the caller's next
  *     push before anything reads it). Here it is in fact re-covered by the two copy/fill
  *     helpers that STAY the oracle (0x3dea, 0x3ddb), so the window matches too; excluding
  *     it is the principled dead-scratch treatment, not a diff being hidden.
- *   - the exit pc + SP: the oracle's tail 0x3e01 rets into loc_4894's caller (SP += 2),
+ *   - the exit pc + SP: the oracle's tail 0x3e01 rets into drawCreditsDisplay's caller (SP += 2),
  *     while the stack-free idiomatic routine plain-returns. The gate models that tail
  *     return with ONE m.ret() on the candidate, which lines pc + SP up with the oracle
  *     exactly — so pc + SP are still checked, not waived.
  *
  * The two copy/fill helpers (0x3dea, 0x3ddb) are STILL the frozen oracle, reached
- * through the registry on both sides, so the gate is only testing loc_4894's own layout
+ * through the registry on both sides, so the gate is only testing drawCreditsDisplay's own layout
  * writes, its routing, and the two still-oracle calls' IX-source + stack-return marshalling.
  *
  * WHY THIS ROUTINE IS INTERESTING FOR THE GATE:
@@ -57,7 +57,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4894 as oracle } from "../../translated/loc_4894.js";
-import { loc_4894 as idiomatic } from "../loc_4894.js";
+import { drawCreditsDisplay as idiomatic } from "../drawCreditsDisplay.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 // The three dissolved helpers, called directly by the idiomatic routine and mirrored by
@@ -74,7 +74,7 @@ const test = ROM_PRESENT
   : (name, fn) =>
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x4894; // loc_4894
+const TARGET = 0x4894; // drawCreditsDisplay
 const TILE_COL = 0x8058; // panel cell column byte
 const TILE_ROW = 0x8059; // panel cell row byte
 const FILL_ATTR = 0x8057; // colour attribute the colour run is painted in
@@ -173,12 +173,12 @@ test("EQUAL (captured): idiomatic == oracle over observable RAM + pc + SP", () =
   assert.equal(diffs.length, 0, diffs.join("; "));
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)}`);
 
-  // Positive check: loc_4894's distinguishing behaviour holds — the label field's count
+  // Positive check: drawCreditsDisplay's distinguishing behaviour holds — the label field's count
   // of eight is left in place (not reset to nine) and the fill colour is 150.
   const c = ENTRY.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(CELL_COUNT), 8, "loc_4894 must leave the label field's count of eight in place");
-  assert.equal(c.mem.read8(FILL_ATTR), 150, "loc_4894 must stage colour 150 for the label run");
+  assert.equal(c.mem.read8(CELL_COUNT), 8, "drawCreditsDisplay must leave the label field's count of eight in place");
+  assert.equal(c.mem.read8(FILL_ATTR), 150, "drawCreditsDisplay must stage colour 150 for the label run");
   console.log("  EQUAL/captured: real 0x4894 entry identical (observable RAM + pc + SP); count=8, colour=150");
 });
 
@@ -240,7 +240,7 @@ function brokenLabelSource(m) {
 
 /**
  * Broken twin C: restores the count-of-nine before the tail (the sibling behaviour).
- * loc_4894's whole point is that it leaves eight in place, so this twin changes the
+ * drawCreditsDisplay's whole point is that it leaves eight in place, so this twin changes the
  * colour run and MUST be caught.
  */
 function brokenColourCount(m) {
@@ -256,7 +256,7 @@ function brokenColourCount(m) {
   mem.write8(CELL_COUNT, 8);
   m.regs.ix = LABEL_SOURCE;
   m.push16(0x48c1); m.call(0x3ddb);
-  mem.write8(CELL_COUNT, 9); // BUG: sibling resets to 9; loc_4894 leaves 8
+  mem.write8(CELL_COUNT, 9); // BUG: sibling resets to 9; drawCreditsDisplay leaves 8
   return fillColourColumn(m);
 }
 

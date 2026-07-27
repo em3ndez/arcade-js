@@ -37,7 +37,7 @@
  *
  * Observably memory-equivalent to the frozen oracle — equivalence-3d49.test.js.
  * GATE:     captured at the real attract dispatch (0x3d49 runs during screen setup at
- *           frame 61, reached from loc_3a6f); oracle vs idiomatic diffed on clones of
+ *           frame 61, reached from showSetupScreen); oracle vs idiomatic diffed on clones of
  *           that entry, plus a sweep of the one state-dependent input (the live top-cell
  *           value at 0x8000). Compared over the work/colour/video RAM the routine paints
  *           plus pc + SP — EXCLUDING the two dead stack-scratch bytes just below the

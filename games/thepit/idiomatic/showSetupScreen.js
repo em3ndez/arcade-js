@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3a6f — paint the round-setup screen (playfield furniture + two HUD count
+ * showSetupScreen — paint the round-setup screen (playfield furniture + two HUD count
  * records) and hold it briefly while a colour band cycles.  ROM 0x3a6f.
  *
  * Run once when a round is (re)started — from the reset epilogue and from the
@@ -89,7 +89,7 @@ function stampCountField(m, cell, count, col) {
   copyTileColumn(m, label.source); // copy the glyph-run down the column from its source table
 }
 
-export function loc_3a6f(m) {
+export function showSetupScreen(m) {
   const { mem8 } = m;
 
   // ── 1. Fixed furniture ──────────────────────────────────────────────────────

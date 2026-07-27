@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4bc7 — blank the numeric-readout strip, seed three zeroed readout records, then
+ * initScoreDisplay — blank the numeric-readout strip, seed three zeroed readout records, then
  * render them.  ROM 0x4bc7.
  *
  * Runs once at cold boot (called from the cold-boot init) to bring up a clean numeric
@@ -46,7 +46,7 @@ const BLANK_TILE = 36;
 // One readout source record: a fixed 3-tile label block, then a two-byte value (zero here).
 const READOUT_RECORD = [16, 10, 22, 0, 0];
 
-export function loc_4bc7(m) {
+export function initScoreDisplay(m) {
   const { mem8 } = m;
 
   // Blank the 32-cell numeric-readout display strip so no stale digit shows through.

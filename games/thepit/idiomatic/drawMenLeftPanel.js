@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_483a — paint one HUD/text panel at column 5, in one of two variants.  ROM 0x483a.
+ * drawMenLeftPanel — paint one HUD/text panel at column 5, in one of two variants.  ROM 0x483a.
  *
  * Draws a single vertical panel column whose look is chosen from a live work-RAM
  * byte. The column is always at column 5; a decision byte picks the variant:
@@ -23,7 +23,7 @@
  * source pointer as an argument and advances the shared video cursor so the next
  * field lands directly below.
  *
- * Name kept as loc_483a: it is clearly a two-variant panel painter, but which
+ * Name kept as drawMenLeftPanel: it is clearly a two-variant panel painter, but which
  * specific field it draws — and what the live byte counts — is not pinned, and it
  * is one of a family of near-identical panel painters; below the bar for an
  * English name (same call as its sibling loc_3d49).
@@ -68,7 +68,7 @@ const PANEL_VALUE = 0x802b;
 const DEFAULT_LABEL = 0x49ba;
 const ALT_LABEL = 0x49c2;
 
-export function loc_483a(m) {
+export function drawMenLeftPanel(m) {
   const { mem8 } = m;
 
   // The panel column is always 5.
@@ -90,7 +90,7 @@ export function loc_483a(m) {
     mem8[PLOT_RUN_LENGTH] = 8;
     copyTileColumn(m, ALT_LABEL); // ALT_LABEL is the glyph-run source pointer
 
-    // Colour the full eight-cell run; this is loc_483a's exit.
+    // Colour the full eight-cell run; this is drawMenLeftPanel's exit.
     return fillColourColumn(m);
   }
 
@@ -111,7 +111,7 @@ export function loc_483a(m) {
   mem8[PLOT_RUN_LENGTH] = 1;
   copyTileColumn(m, PANEL_VALUE); // display the live byte as the panel's last cell
 
-  // Colour the full ten-cell run; this is loc_483a's exit.
+  // Colour the full ten-cell run; this is drawMenLeftPanel's exit.
   mem8[PLOT_RUN_LENGTH] = 10;
   return fillColourColumn(m);
 }

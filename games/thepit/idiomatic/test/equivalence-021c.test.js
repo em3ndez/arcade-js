@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_021c (ROM 0x021c) — the warm-restart state entry:
+ * Memory-equivalence gate for showCreditScreen (ROM 0x021c) — the warm-restart state entry:
  * arm game mode 3, reset the work stack, enable the frame interrupt, run the
  * blank-screen display setup, then tail-hand to the fixed-screen painter (0x3ba8),
  * which paints a canned screen and spins forever displaying it.
  *
- * WHY A CRAFTED ENTRY (not the stock unitEquivalence capture). loc_021c is reached
+ * WHY A CRAFTED ENTRY (not the stock unitEquivalence capture). showCreditScreen is reached
  * only from the boot fork loc_01f9 when the restart flag (0x8000) is nonzero, which a
  * plain boot/attract run never is — 0 dispatches in 1500 frames. So there is no real
- * dispatch of loc_021c to snapshot. Per the crafted-entry method this gate instead
+ * dispatch of showCreditScreen to snapshot. Per the crafted-entry method this gate instead
  * captures a real attract machine state (realistic full RAM, the oracle registry, a
  * live stack) by hooking a routine attract DOES reach (loc_3dae, entered within the
  * first ~100 frames) and cloning the machine the first time it fires, then runs oracle
- * vs idiomatic on independent clones of that state. loc_021c takes no register inputs,
+ * vs idiomatic on independent clones of that state. showCreditScreen takes no register inputs,
  * so one real captured state exercises its whole straight-line path.
  *
- * WHY 0x3ba8 IS STUBBED. loc_021c's exit is a tail hand-off to the fixed-screen
+ * WHY 0x3ba8 IS STUBBED. showCreditScreen's exit is a tail hand-off to the fixed-screen
  * painter 0x3ba8, whose own display loop never returns (it spins forever on hardware,
  * escaped only by the watchdog). Running either arm to completion would therefore
  * hang. Both arms tail-call the SAME 0x3ba8 through the registry, so it contributes
  * nothing to any DIFFERENCE between them; the gate replaces it with a no-op stub —
  * identical on both sides — installed at construction so the captured clones inherit
- * it. That lets the gate compare everything loc_021c does up to the hand-off, which is
+ * it. That lets the gate compare everything showCreditScreen does up to the hand-off, which is
  * the entire behaviour that distinguishes the idiomatic rewrite from the oracle.
  *
  * THE CONTRACT is OBSERVABLE-RAM equivalence: the work/colour/video/attr+sprite RAM
@@ -51,7 +51,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_021c as oracle } from "../../translated/loc_021c.js";
-import { loc_021c as idiomatic } from "../loc_021c.js";
+import { showCreditScreen as idiomatic } from "../showCreditScreen.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const PAINTER = 0x3ba8; // the fixed-screen painter loc_021c tail-hands to; stubbed (never returns)
+const PAINTER = 0x3ba8; // the fixed-screen painter showCreditScreen tail-hands to; stubbed (never returns)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -72,12 +72,12 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 /**
- * Capture one real attract machine state to seed crafted entries. loc_021c itself is
+ * Capture one real attract machine state to seed crafted entries. showCreditScreen itself is
  * never dispatched in attract, so hook a routine that IS (loc_3dae, entered within the
  * first ~100 frames) and clone the machine the first time it fires — that gives
  * realistic full RAM, the oracle registry, and a live stack. The never-returning
  * painter 0x3ba8 is stubbed on the host so the captured clones inherit the stub and
- * loc_021c's tail hand-off returns instead of spinning forever.
+ * showCreditScreen's tail hand-off returns instead of spinning forever.
  */
 function captureSeed() {
   let seed = null;
@@ -114,7 +114,7 @@ function contractDiffs(entry, fn) {
 
 // -- 1. EQUAL on a real captured attract entry --------------------------------
 
-test("EQUAL (real entry): loc_021c == oracle over observable RAM", () => {
+test("EQUAL (real entry): showCreditScreen == oracle over observable RAM", () => {
   const seed = captureSeed();
 
   const { diffs } = contractDiffs(seed, idiomatic);

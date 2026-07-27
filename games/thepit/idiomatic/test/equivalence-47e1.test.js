@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_47e1 (ROM 0x47e1) — the fixed vertical HUD/status panel
+ * Equivalence test for drawPlayerLabel (ROM 0x47e1) — the fixed vertical HUD/status panel
  * painter: seed the shared tile-plotter params and drive its five plot helpers to stamp
  * one tile column + colour column at screen column 1, row 12.
  *
- * loc_47e1 is only invoked while a game is running (round setup calls it for the 1-/2-
+ * drawPlayerLabel is only invoked while a game is running (round setup calls it for the 1-/2-
  * player modes; the in-play HUD loops call it), so it is NEVER dispatched during a plain
  * attract run — the natural-capture harness (unitEquivalence) would find no entry. This
  * is therefore a CRAFTED-ENTRY gate, the accepted fallback for an unreached arm:
@@ -12,10 +12,10 @@
  *   - Capture a real mid-attract machine state (by hooking loc_3dae, which IS reached
  *     early in attract) so the one input the routine actually reads, the secondary
  *     game-state byte at 0x8002, and the ROM tables are all realistic.
- *   - Craft the loc_47e1 entry from it: give it a clean cold-boot stack (sp = 0x83ff)
+ *   - Craft the drawPlayerLabel entry from it: give it a clean cold-boot stack (sp = 0x83ff)
  *     with one caller return address pushed, so the oracle's tail hand-off has somewhere
  *     to return.
- *   - Run the ORACLE on one clone and the idiomatic loc_47e1 on another and diff the
+ *   - Run the ORACLE on one clone and the idiomatic drawPlayerLabel on another and diff the
  *     OBSERVABLE contract.
  *
  * OBSERVABLE CONTRACT (why not the whole machine anymore). The dissolve replaced three
@@ -33,7 +33,7 @@
  * byte identical.
  *
  * TEETH (a green gate must be able to fail):
- *   - a broken twin of loc_47e1 that paints with the wrong fill byte MUST be caught;
+ *   - a broken twin of drawPlayerLabel that paints with the wrong fill byte MUST be caught;
  *   - corrupting one painted colour cell after the oracle runs MUST be caught.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-47e1.test.js
@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_47e1 as oracle } from "../../translated/loc_47e1.js";
 import { loc_3dae as real3dae } from "../../translated/loc_3dae.js";
-import { loc_47e1 as idiomatic } from "../loc_47e1.js";
+import { drawPlayerLabel as idiomatic } from "../drawPlayerLabel.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
@@ -59,7 +59,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const SEED_HOOK = 0x3dae; // a routine reached early in attract, used to grab a real state
-const GAME_STATE2 = 0x8002; // the one input loc_47e1 reads (its top-cell copy source)
+const GAME_STATE2 = 0x8002; // the one input drawPlayerLabel reads (its top-cell copy source)
 const CALLER_RETURN = 0x032c; // a real caller return address (round setup's call site)
 const PANEL_COLOUR_CELL = 0x8981; // colour-RAM cell for column 1, row 12 (a painted output)
 const STACK_SCRATCH_BYTES = 8; // dead return-address / helper-scratch window below the entry SP
@@ -84,7 +84,7 @@ function captureAttractSeed(maxFrames) {
 }
 
 /**
- * Craft the loc_47e1 entry from a real seed: a clean cold-boot stack with one caller
+ * Craft the drawPlayerLabel entry from a real seed: a clean cold-boot stack with one caller
  * return address staged (so the oracle's tail ret has somewhere to land), and optionally
  * the secondary game-state byte poked so the top-cell copy is exercised with different
  * values. Both compared sides run this same crafted entry.
@@ -132,7 +132,7 @@ function ramDiffOutsideStack(o, c, entrySP) {
  * Returns { diffs, ram } (diffs empty == EQUAL).
  */
 function contractDiffs(entry, fn) {
-  const entrySP = entry.regs.sp; // SP at loc_47e1 entry
+  const entrySP = entry.regs.sp; // SP at drawPlayerLabel entry
   const o = runOn(entry, oracle);
   const c = runOn(entry, fn);
   const diffs = [];
@@ -143,7 +143,7 @@ function contractDiffs(entry, fn) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: idiomatic loc_47e1 == oracle on painted RAM from a real crafted entry, across secondary-state values", () => {
+test("EQUAL: idiomatic drawPlayerLabel == oracle on painted RAM from a real crafted entry, across secondary-state values", () => {
   const seed = captureAttractSeed(240);
   assert.ok(seed, "no attract seed captured — loc_3dae was not reached in 240 frames");
 
@@ -166,7 +166,7 @@ test("EQUAL: idiomatic loc_47e1 == oracle on painted RAM from a real crafted ent
 // -- 2. TEETH -----------------------------------------------------------------
 
 /**
- * Broken twin of the DISSOLVED loc_47e1: paints the panel with the wrong fill byte (6, not
+ * Broken twin of the DISSOLVED drawPlayerLabel: paints the panel with the wrong fill byte (6, not
  * 7). Same structure and the same two oracle helpers, so only the fill-driven cells differ.
  */
 function brokenLoc47e1(m) {

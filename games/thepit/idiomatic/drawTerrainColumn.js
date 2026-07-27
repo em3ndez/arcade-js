@@ -21,8 +21,8 @@
  * clock (the already-decompiled loc_2fc0), whose return goes to our caller — so that
  * hand-off is this routine's exit, not a nested call.
  *
- * Name kept as drawTerrainColumn: same best-effort backdrop-animation subsystem as its
- * siblings loc_2fc0 / loc_2fd9 (both left neutral), and while the strided tile-map
+ * Named drawTerrainColumn: same best-effort backdrop-animation subsystem as its
+ * siblings loc_2fc0 / setBgSpriteFrame (both left neutral), and while the strided tile-map
  * copy is mechanically clear its game-role is an inference — below the bar to promote.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fb7.test.js.

@@ -13,7 +13,7 @@
  * with ONE hook installed IDENTICALLY on both clones: reading the watchdog (which
  * the loop does exactly once per pass) decrements the countdown by one. Being the
  * same hook on both sides, it can only ever reveal a difference between oracle and
- * idiomatic, never manufacture one — the same discipline the loc_2fd9 tail-stub uses.
+ * idiomatic, never manufacture one — the same discipline the setBgSpriteFrame tail-stub uses.
  *
  * The one memory-observable output is the countdown left at 0 plus the return to
  * the caller (pc/SP). The frame-COUNT the routine burns is a timing effect that

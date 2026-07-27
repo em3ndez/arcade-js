@@ -28,7 +28,7 @@
  *
  * Name kept as loc_2f88: this backdrop-reveal subsystem is a best-effort reading. Three
  * of the counters it touches now carry ram.js names, but the subsystem as a whole is
- * still below the bar to promote to an English name (its siblings loc_2fc0/loc_2fd9 stay
+ * still below the bar to promote to an English name (its siblings loc_2fc0/setBgSpriteFrame stay
  * loc_ for the same reason).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.

@@ -14,8 +14,8 @@
  * so both are a plain add — no wrap to model.
  *
  * Runs immediately after the offset is computed, as the second half of the address
- * setup for every panel / record / HUD plotter (loc_47e1, loc_4816, loc_483a,
- * loc_4894, loc_3a6f, loc_4df8); each then re-reads the two cursors from memory to
+ * setup for every panel / record / HUD plotter (drawPlayerLabel, loc_4816, drawMenLeftPanel,
+ * drawCreditsDisplay, showSetupScreen, loc_4df8); each then re-reads the two cursors from memory to
  * stamp a run of cells.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3dc9.test.js.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_483a (ROM 0x483a, The Pit) — the two-variant
+ * Memory-equivalence gate for drawMenLeftPanel (ROM 0x483a, The Pit) — the two-variant
  * panel painter: it names one tile cell (column 5), reads a live work-RAM byte to
  * pick a variant, turns that cell into its tilemap offset and colour-RAM / video-RAM
  * cursors, stamps a label (plus a live-value cell in the default variant), and paints
@@ -14,13 +14,13 @@
  *   entry: take a REAL machine state and force the routine onto it. Here the entry is
  *   captured at the sibling panel painter loc_3d49's genuine frame-61 attract dispatch
  *   — a real screen-setup moment where this panel-drawing subsystem's scratch and
- *   video RAM are live — and loc_483a is then run directly on clones of it. The one
+ *   video RAM are live — and drawMenLeftPanel is then run directly on clones of it. The one
  *   input that steers the routine, the decision byte at 0x802b, is forced to each of
  *   its two arms IDENTICALLY on both sides, so any divergence is the rewrite's fault.
  *
  * WHY OBSERVABLE (not whole-dump) EQUIVALENCE:
  *
- *   loc_483a used to marshal registers and push a return address before each of its
+ *   drawMenLeftPanel used to marshal registers and push a return address before each of its
  *   address-setup / colour-fill helpers so those still-oracle callees found the return
  *   they expected on the machine stack. Three of those helpers are now decompiled
  *   (rowColToTileOffset 0x3dae, deriveTileWriteCursors 0x3dc9, fillColourColumn 0x3e01)
@@ -55,7 +55,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_483a as oracle } from "../../translated/loc_483a.js";
-import { loc_483a as idiomatic } from "../loc_483a.js";
+import { drawMenLeftPanel as idiomatic } from "../drawMenLeftPanel.js";
 import { loc_3d49 as sibling } from "../../translated/loc_3d49.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
@@ -72,7 +72,7 @@ const test = ROM_PRESENT
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const SIBLING = 0x3d49; // the reachable panel painter we snapshot a real state at
-const PANEL_VALUE = 0x802b; // the live decision/display byte loc_483a reads
+const PANEL_VALUE = 0x802b; // the live decision/display byte drawMenLeftPanel reads
 const TILE_COL = 0x8058; // panel cell column byte (always 5)
 const TILE_ROW = 0x8059; // panel cell row byte (11 default / 12 alt)
 const FILL_ATTR = 0x8057; // colour attribute the panel is painted in
@@ -88,7 +88,7 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 /**
  * Capture a real attract machine state at the sibling painter loc_3d49's genuine
  * frame-61 dispatch. The hook clones the pristine entry, then runs the sibling oracle
- * so the host run continues normally. loc_483a is never driven on the host — only on
+ * so the host run continues normally. drawMenLeftPanel is never driven on the host — only on
  * isolated clones of this real state.
  */
 function captureRealEntry() {
@@ -197,7 +197,7 @@ test("IDENTITY: oracle vs oracle reports EQUAL on the whole dump (gate wiring sa
 });
 
 // -- 4. TEETH: broken twins the gate MUST catch ------------------------------------
-// Each twin is the SAME dissolved form as loc_483a (direct helper calls, the 0x3dea
+// Each twin is the SAME dissolved form as drawMenLeftPanel (direct helper calls, the 0x3dea
 // copy helper kept as the oracle) and changes ONE thing, so the caught diff is
 // precisely its bug — not a spurious stack difference.
 

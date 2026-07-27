@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4bc7 (ROM 0x4bc7) — the numeric-readout bring-up.
+ * Memory-equivalence gate for initScoreDisplay (ROM 0x4bc7) — the numeric-readout bring-up.
  *
- * loc_4bc7 blanks the 32-cell readout display strip (0x8280) with the blank tile, seeds
+ * initScoreDisplay blanks the 32-cell readout display strip (0x8280) with the blank tile, seeds
  * the three source records at 0x8039 (each a fixed 3-tile label block plus a zero value),
  * and tail-hands to the still-oracle score-readout formatter at 0x4cca, which copies each
  * label block to its display cell and formats each value into digit cells. The idiomatic
@@ -14,7 +14,7 @@
  *
  *   1. EQUAL (real dispatch) — boot the machine, hook 0x4bc7, and clone it at its single
  *      real dispatch (it fires once during the cold-boot init). Run the ORACLE on one clone
- *      and the idiomatic loc_4bc7 on another, and prove RAM is byte-identical and SP/pc
+ *      and the idiomatic initScoreDisplay on another, and prove RAM is byte-identical and SP/pc
  *      match. Straight-line (blank the strip, seed the records, tail-hand to the formatter),
  *      so one entry covers the whole control path.
  *
@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4bc7 as oracle } from "../../translated/loc_4bc7.js";
-import { loc_4bc7 as idiomatic } from "../loc_4bc7.js";
+import { initScoreDisplay as idiomatic } from "../initScoreDisplay.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -96,7 +96,7 @@ function replay(entry, candidate) {
 
 // -- 1 + 2. EQUAL (real dispatch) + NON-VACUOUS -------------------------------
 
-test("EQUAL: idiomatic loc_4bc7 == oracle on the real dispatch (RAM + SP + pc)", () => {
+test("EQUAL: idiomatic initScoreDisplay == oracle on the real dispatch (RAM + SP + pc)", () => {
   const entry = captureEntry(120);
   assert.ok(entry, "expected a real 0x4bc7 dispatch during boot");
 

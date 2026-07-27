@@ -69,7 +69,7 @@ function readOffset(m) {
  * Hook 0x3dae in a real attract run and clone the machine at up to K real dispatches.
  * The wrapper snapshots the entry state, then runs the oracle so the host game
  * proceeds undisturbed. Attract's title/panel draws dispatch it from several plotters
- * (loc_47e1, loc_4816, loc_483a, loc_4894, loc_3a6f, loc_4df8) with varied row/col.
+ * (drawPlayerLabel, loc_4816, drawMenLeftPanel, drawCreditsDisplay, showSetupScreen, loc_4df8) with varied row/col.
  */
 function captureDispatches(K, maxFrames) {
   const caps = [];

@@ -41,7 +41,7 @@
  * NAMES:    TILE_COL / TILE_ROW from ram.js — the tile cell fed to the address calc.
  *           0x8057 kept local (FILL_ATTR): ram.js proposes BOARD_MODE for it, but here
  *           it is unambiguously the label's colour byte, so a local role name is used
- *           rather than a misfit import (matches the sibling loc_4894). 0x8055
+ *           rather than a misfit import (matches the sibling drawCreditsDisplay). 0x8055
  *           (PLOT_RUN_LENGTH, the row count) and the ROM glyph source (0x49a5) are not
  *           named in ram.js.
  */

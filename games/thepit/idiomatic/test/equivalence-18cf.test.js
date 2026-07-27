@@ -5,12 +5,12 @@
  * into a new tile column it collects two kinds of scoring tile (tile 58 -> +10, tiles 59..61
  * -> +20, the latter gated by an enable flag and a one-shot latch with a guard), awarding
  * score, bumping that kind's pickup counter, blanking the collected cell, and continuing the
- * movement; any other phase or tile is handed to the dig-arm classifier loc_191f.
+ * movement; any other phase or tile is handed to the dig-arm classifier triggerDigReaction.
  *
  * Its declared LIVE-OUT is MEMORY-ONLY: the two pickup counters (0x8081/0x8082), the score
  * and its on-screen digits, the queued sound, the blanked cell, and whatever the movement
  * tail leaves — all work/video RAM. The oracle's residual registers are dead ABI, and because
- * the idiomatic layer dissolves its tails (loc_191f / awardTenPoints called directly, the
+ * the idiomatic layer dissolves its tails (triggerDigReaction / awardTenPoints called directly, the
  * +20 award and movement tail via the still-frozen oracle) rather than the oracle's
  * stack-threaded jumps, comparing the full register file or SP would false-fail an honest
  * rewrite. So the gate is the RAM state dump only, with ONE wrinkle:
@@ -28,7 +28,7 @@
  *   0. IDENTITY (harness) — oracle vs oracle on a captured entry; EQUAL proves the
  *      capture/clone/replay harness reaches 0x18cf in a real attract run.
  *   1. EQUAL (real dispatches) — every captured attract dispatch leaves identical state
- *      outside the stack scratch. Attract only ever takes the decline path into loc_191f.
+ *      outside the stack scratch. Attract only ever takes the decline path into triggerDigReaction.
  *   2. EQUAL (crafted branch sweep) — force every branch identically on both arms: the
  *      boundary gate, tile 58, tiles 59..61 across enabled / latch-open / first-open-guard,
  *      and the unrecognised-tile declines.

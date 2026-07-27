@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4894 — paint one fixed 9-cell HUD/text panel at column 6, row 10.  ROM 0x4894.
+ * drawCreditsDisplay — paint one fixed 9-cell HUD/text panel at column 6, row 10.  ROM 0x4894.
  *
  * Reached from the periodic-housekeeping arm of the movement core (loc_03e8) once a
  * counter runs out, so this is a periodic redraw of one fixed on-screen panel.
@@ -16,7 +16,7 @@
  * video-RAM write cursors. Then it drives the two copy/fill helpers to stamp the
  * glyphs down the video column — the video cursor is carried forward between them, so
  * the label continues directly below the live value — and finally tail-calls the
- * colour-column filler, which tints the run in one colour; its result is loc_4894's.
+ * colour-column filler, which tints the run in one colour; its result is drawCreditsDisplay's.
  *
  * Unlike the sibling panel painters, this one does NOT reset the cell count before
  * the colour fill: it leaves the label field's count of eight in place, so the colour
@@ -39,7 +39,7 @@
  * as the oracle leaves it. (When 0x3ddb is later decompiled, its push dissolves into an
  * ordinary call too.)
  *
- * Name kept as loc_4894: it is clearly a fixed-panel painter, but which specific field
+ * Name kept as drawCreditsDisplay: it is clearly a fixed-panel painter, but which specific field
  * it draws is not pinned (the label glyphs are ROM tile codes, not decoded), and it is
  * one of a family of near-identical panel painters — below the bar for an English name.
  *
@@ -82,7 +82,7 @@ const FILL_ATTR = 0x8057;
 const VALUE_SOURCE = 0x8000;
 const LABEL_SOURCE = 0x496d;
 
-export function loc_4894(m) {
+export function drawCreditsDisplay(m) {
   const { mem8 } = m;
 
   // Target cell of the panel: column 6, row 10.
@@ -113,6 +113,6 @@ export function loc_4894(m) {
   m.call(0x3ddb);
 
   // Hand off to the colour-column filler with the label field's count of eight still in
-  // place, so it tints those eight cells. A tail call: its result is loc_4894's result.
+  // place, so it tints those eight cells. A tail call: its result is drawCreditsDisplay's result.
   return fillColourColumn(m);
 }

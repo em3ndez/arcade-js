@@ -401,7 +401,7 @@ export const DIG_OBJ_SUBTYPE = 0x80c0;
 /**
  *  DIG_OBJ_ARM_STATE (0x80c1) — arm/capture state of the carve object
  *  (0=idle,1=armed/captured,2=latched): gates loc_13de dispatch, set by capture loc_2cb7 and
- *  arm loc_191f, cleared with the block by loc_287a; grounded across 7 routines, role
+ *  arm triggerDigReaction, cleared with the block by loc_287a; grounded across 7 routines, role
  *  converged (name prefix normalised to the DIG_OBJ family) (fair)
  */
 export const DIG_OBJ_ARM_STATE = 0x80c1;

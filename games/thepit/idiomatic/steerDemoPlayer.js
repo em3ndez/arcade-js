@@ -37,8 +37,8 @@
  * is 4, passes nothing and reads nothing back — the whole product is the direction
  * code left in work RAM (DEMO_STEER_DIR).
  *
- * The periodic panel redraw (loc_4894) is reached through a return-address bracket:
- * loc_4894 is itself idiomatic, but it still calls the two frozen-oracle copy/fill
+ * The periodic panel redraw (drawCreditsDisplay) is reached through a return-address bracket:
+ * drawCreditsDisplay is itself idiomatic, but it still calls the two frozen-oracle copy/fill
  * helpers (0x3dea, 0x3ddb), and the bracket keeps the Z80 stack pointer where those
  * oracle helpers expect it, so their stack scratch matches the oracle run exactly. When
  * those two helpers are decompiled the bracket dissolves too. The column recolour
@@ -70,7 +70,7 @@ import {
   OBJECT_ACTIVE,
   STATE_TIMER,
 } from "./ram.js";
-import { loc_4894 } from "./loc_4894.js";
+import { drawCreditsDisplay } from "./drawCreditsDisplay.js";
 import { loc_48c4 } from "./loc_48c4.js";
 import { u8 } from "../../../core/int.js";
 
@@ -193,10 +193,10 @@ export function steerDemoPlayer(m) {
 
   // 1. Periodic HUD panel redraw when the frame counter has wrapped to zero.
   if (mem8[FRAME_COUNTER] === 0) {
-    // loc_4894 is idiomatic but still calls two oracle copy/fill helpers; the bracket
+    // drawCreditsDisplay is idiomatic but still calls two oracle copy/fill helpers; the bracket
     // holds the stack pointer where they expect it (see header). Dissolves when they do.
     m.push16(0x03ef);
-    loc_4894(m);
+    drawCreditsDisplay(m);
   }
 
   // 2. 30-frame service tick.

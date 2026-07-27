@@ -17,7 +17,7 @@
  * The flip alternates between the two backdrop tile codes: whenever the tile is
  * currently the first, it becomes the second, and from anything else it becomes the
  * first — a strict two-state toggle. The chosen tile is handed to the commit tail
- * loc_2fd9 through the machine register it still reads (a genuine oracle boundary, so
+ * setBgSpriteFrame through the machine register it still reads (a genuine oracle boundary, so
  * it is set on the machine rather than passed as an argument). The two other
  * continuations (the oscillator body and the publish tail) are not yet decompiled, so
  * they stay registry hand-offs. All three are tail jumps: this routine has no return
@@ -45,10 +45,10 @@
  *           The registers/flags it leaves behind are dead.
  * NAMES:    ANIM_PHASE_COUNTER (0x80e3, the animation phase counter) and BG_SPRITE_FRAME
  *           (0x80dc, the two-state flip tile) from ram.js. The commit tail is the decompiled
- *           loc_2fd9; the oscillator body (0x2fe3) and publish tail (0x3029) are oracle.
+ *           setBgSpriteFrame; the oscillator body (0x2fe3) and publish tail (0x3029) are oracle.
  */
 
-import { loc_2fd9 } from "./loc_2fd9.js";
+import { setBgSpriteFrame } from "./setBgSpriteFrame.js";
 import { ANIM_PHASE_COUNTER, BG_SPRITE_FRAME } from "./ram.js";
 
 
@@ -80,5 +80,5 @@ export function loc_2fc0(m) {
 
   // Hand the chosen tile to the commit tail; its return goes to our caller, so this
   // is loc_2fc0's exit.
-  return loc_2fd9(m);
+  return setBgSpriteFrame(m);
 }

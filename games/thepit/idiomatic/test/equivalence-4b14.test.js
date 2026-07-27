@@ -15,7 +15,7 @@
  * CRAFTED ENTRY + MASK SWEEP. 0x4b14 is never dispatched in a plain attract run — its
  * callers (boot / round setup and the main loop) are not reached, and the per-frame NMI
  * handler re-arms the mask with its own direct write, never through this routine. So,
- * like loc_021c, the gate clones a real attract state captured at a routine that IS
+ * like showCreditScreen, the gate clones a real attract state captured at a routine that IS
  * reached (loc_3dae, within the first ~100 frames) and runs 0x4b14 from it; the routine
  * has no register live-ins, so any real machine state is a faithful entry. Because
  * "enable" is idempotent, an already-enabled entry would hide both a skipped write and

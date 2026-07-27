@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3cc1 (ROM 0x3cc1, The Pit) — the shared fixed-panel
+ * Memory-equivalence gate for drawSharedPanel (ROM 0x3cc1, The Pit) — the shared fixed-panel
  * layout: it stamps the left edge column and both players' score HUD, places three
  * labelled tile/colour runs (a ROM label strip at column 7 row 9; a dynamic glyph from
  * the game-state byte plus a filled strip at column 9 row 13; a second ROM label strip
@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3cc1 as oracle } from "../../translated/loc_3cc1.js";
 import { loc_46f4 as oracle46f4 } from "../../translated/loc_46f4.js";
-import { loc_3cc1 as idiomatic } from "../loc_3cc1.js";
+import { drawSharedPanel as idiomatic } from "../drawSharedPanel.js";
 import { makeMachineFactory } from "../../machine.js";
 // The teeth twins mirror the routine, so they drive the same idiomatic helpers.
 import { drawLeftEdgeColumn } from "../drawLeftEdgeColumn.js";
@@ -228,7 +228,7 @@ test("HARNESS: a real 0x46f4 board-setup entry is captured; the oracle run of 0x
 
 // -- 1. EQUAL ------------------------------------------------------------------
 
-test("EQUAL (captured): idiomatic loc_3cc1 == oracle over observable RAM", () => {
+test("EQUAL (captured): idiomatic drawSharedPanel == oracle over observable RAM", () => {
   const d = contractDiff(ENTRY, idiomatic);
   assert.equal(d, null, d && `observable RAM diff at ${hx(d.addr)} (oracle=${d.a} cand=${d.b})`);
 
@@ -251,7 +251,7 @@ test("EQUAL (captured): idiomatic loc_3cc1 == oracle over observable RAM", () =>
 
 // -- base fidelity: the teeth mirror IS the routine at default options ----------
 
-test("MIRROR: paintPanel() at default options == idiomatic loc_3cc1 (so each twin's only diff is its bug)", () => {
+test("MIRROR: paintPanel() at default options == idiomatic drawSharedPanel (so each twin's only diff is its bug)", () => {
   const d = contractDiff(ENTRY, (m) => paintPanel(m));
   assert.equal(d, null, d && `mirror diverges from idiomatic at ${hx(d.addr)} (oracle=${d.a} mirror=${d.b})`);
   console.log("  MIRROR: the parameterised twin base reproduces the routine exactly");

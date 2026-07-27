@@ -39,7 +39,7 @@
 
 import { drawScoreDigits } from "./drawScoreDigits.js";
 import { drawGameOverLabel } from "./drawGameOverLabel.js";
-import { loc_47e1 } from "./loc_47e1.js";
+import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { loadPlayerState } from "./loadPlayerState.js";
 import { GAME_MODE, GAME_STATE2 } from "./ram.js";
 
@@ -80,7 +80,7 @@ export function redrawScoreHud(m) {
   const players = mem8[GAME_MODE];
   if (players === 1 || players === 2) {
     m.push16(0x4768);
-    loc_47e1(m); // in-game status panel
+    drawPlayerLabel(m); // in-game status panel
   } else {
     m.push16(0x476d);
     drawGameOverLabel(m); // "GAME OVER" label

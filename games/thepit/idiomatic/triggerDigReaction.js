@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_191f — classify the tile under a digging actor and stage its reaction.  ROM 0x191f.
+ * triggerDigReaction — classify the tile under a digging actor and stage its reaction.  ROM 0x191f.
  *
  * The dig-arm of the actor-movement classifier, reached from its tile-boundary sibling
  * (collectLootTile) once that arm declines the tile it found. It takes the tile code currently
@@ -64,7 +64,7 @@ const NEIGHBOUR_TILE = 0x80a6; // the neighbouring cell's tile code, recorded fo
 const REACTION_SPRITE_FRAME = 54; // the sprite frame the actor shows while reacting
 const REACTION_SOUND = 20; // sound requested when an armed reaction fires
 
-export function loc_191f(m, tileCode = m.regs.b, positionAccumulator = m.regs.e, actorCellPtr = m.regs.ix) {
+export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator = m.regs.e, actorCellPtr = m.regs.ix) {
   const { mem8 } = m;
   const subCell = positionAccumulator & 7;
 
@@ -114,7 +114,7 @@ export function loc_191f(m, tileCode = m.regs.b, positionAccumulator = m.regs.e,
 }
 
 /** The movement continuation (still the frozen oracle at 0x19d0): advance the actor and
- *  build its record. Its own return unwinds to loc_191f's caller. */
+ *  build its record. Its own return unwinds to triggerDigReaction's caller. */
 function movementContinuation(m) {
   return m.call(0x19d0);
 }

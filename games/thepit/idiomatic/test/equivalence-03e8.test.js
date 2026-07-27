@@ -6,7 +6,7 @@
  *
  * CONTRACT — OBSERVABLE RAM (relaxed after the callee dissolve). This gate USED to demand
  * whole-RAM + exit pc + SP byte-identity. That broke when the two painters this routine
- * reaches — loc_4894 (panel repaint) and loc_48c4 (column recolour) — were dissolved: their
+ * reaches — drawCreditsDisplay (panel repaint) and loc_48c4 (column recolour) — were dissolved: their
  * inner layout/colour helpers (rowColToTileOffset, deriveTileWriteCursors, fillColourColumn)
  * are now DIRECT JS calls with no Z80 stack frame. steerDemoPlayer itself is UNCHANGED
  * — its two housekeeping arms still `push16` a Z80 return address and then call the painter —
@@ -43,7 +43,7 @@
  *   1. REAL dispatches for the housekeeping arms. The main loop runs 0x03e8 only
  *      while the game-mode byte is 4 — which the attract demo does enter — so real
  *      captured entries are available. The very first one (frame 1 of the demo)
- *      is rich: it repaints the panel (loc_4894), reloads the 30-frame timer, and
+ *      is rich: it repaints the panel (drawCreditsDisplay), reloads the 30-frame timer, and
  *      recolours a column (loc_48c4) before the probe-absent early return. Later
  *      entries exercise the timer countdown + early return. EQUAL is proven on all.
  *
@@ -54,7 +54,7 @@
  *      X/Y across every wall-line value and the band hint across every band, so every
  *      band, wall line, and half-plane split is driven on both sides.
  *
- *   3. Its callees (loc_4894, loc_48c4) are already idiomatic and are imported and
+ *   3. Its callees (drawCreditsDisplay, loc_48c4) are already idiomatic and are imported and
  *      called directly by the routine, and the oracle reaches the same two routines
  *      through the registry — so both sides run identical callee code and the gate
  *      tests 0x03e8's own logic and routing (the dissolve consequence above is theirs,
@@ -69,7 +69,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03e8 as oracle } from "../../translated/loc_03e8.js";
 import { steerDemoPlayer as idiomatic } from "../steerDemoPlayer.js";
-import { loc_4894 as idiomaticPainter } from "../loc_4894.js";
+import { drawCreditsDisplay as idiomaticPainter } from "../drawCreditsDisplay.js";
 import { loc_48c4 as idiomaticRecolour } from "../loc_48c4.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -232,7 +232,7 @@ test("EQUAL (captured): idiomatic == oracle on every real demo dispatch", () => 
 test("EQUAL (captured): the first entry really exercises the painter + recolour arms", () => {
   // Sanity that the rich arms are genuinely covered above (not vacuously all-early-return).
   const e = ENTRIES[0];
-  assert.equal(e.mem.read8(FRAME_COUNTER), 0, "first demo entry repaints the panel (loc_4894)");
+  assert.equal(e.mem.read8(FRAME_COUNTER), 0, "first demo entry repaints the panel (drawCreditsDisplay)");
   assert.equal(e.mem.read8(WALL_TIMER), 1, "first demo entry hits the 30-frame tick");
   assert.equal(e.mem.read8(TICK_BUSY), 0, "first demo entry is not busy -> reaches the recolour");
   assert.equal(e.mem.read8(SPAWN_PHASE), 0, "first demo entry recolours a column (loc_48c4)");
@@ -265,11 +265,11 @@ test("EQUAL (crafted): the tick recolour arm (loc_48c4) with the painter skipped
 
 test("EQUAL (crafted): the painter arm alone (frame counter at zero)", () => {
   const e = ENTRIES[0].clone();
-  e.mem.write8(FRAME_COUNTER, 0); // -> repaint the panel (loc_4894)
+  e.mem.write8(FRAME_COUNTER, 0); // -> repaint the panel (drawCreditsDisplay)
   e.mem.write8(WALL_TIMER, 5);    // dec -> 4, no tick, straight to the probe gate
   e.mem.write8(PROBE_GATE, 0);    // early return
   assertEqual(e, idiomatic, "painter-only");
-  console.log("  EQUAL/crafted: panel-repaint (loc_4894) arm identical");
+  console.log("  EQUAL/crafted: panel-repaint (drawCreditsDisplay) arm identical");
 });
 
 // -- 3. EQUAL: sweep the classification chain over every band + wall line ------

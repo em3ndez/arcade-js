@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_191f (ROM 0x191f) — the dig-arm of the actor-movement
+ * Memory-equivalence gate for triggerDigReaction (ROM 0x191f) — the dig-arm of the actor-movement
  * classifier: it sorts the tile code under a digging actor into an escape band, an always-hit
  * code list, the sub-cell bit-2 gate, the diggable ROM-table lookup, or a keep-moving path,
  * and stages a reaction (scratch bytes 0x80a2-0x80a7, SPRITE_CODE, NEXT_TILE) plus, for an
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_191f as oracle } from "../../translated/loc_191f.js";
-import { loc_191f as idiomatic } from "../loc_191f.js";
+import { triggerDigReaction as idiomatic } from "../triggerDigReaction.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -143,7 +143,7 @@ test("IDENTITY: the harness reaches 0x191f in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_191f leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: triggerDigReaction leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(300, 3000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 
