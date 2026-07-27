@@ -28,8 +28,10 @@
  * NAMES:    none — writes only raw video RAM; the offset/colour handed to the fill
  *           are its register inputs at the oracle boundary, not named work RAM.
  */
+import { fillColourColumnAt } from "./fillColourColumnAt.js";
+
 export function loc_4785(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // One tilemap row is 32 bytes, so "up one cell in a column" steps back 32.
   const ROW = 32;
@@ -46,7 +48,5 @@ export function loc_4785(m) {
   // Hand off to the shared colour-column fill: paint 28 cells of colour 1 down the
   // colour column at offset 30. Its own return goes straight to our caller, so this
   // is the routine's tail — nothing runs here afterward.
-  regs.a = 30; // colour-column offset the fill reads
-  regs.c = 1; // colour byte the fill stamps
-  return m.call(0x3e1d);
+  return fillColourColumnAt(m, 30, 1); // columnOffset 30, colour 1
 }

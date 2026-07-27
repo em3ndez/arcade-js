@@ -25,13 +25,13 @@
  *      colour index one step (cycling the accent band that tints the setup screen)
  *      and waits fifteen video frames, so the intro lingers about 450 frames.
  *
- * Several callees are still the frozen oracle (the blank/setup 0x4b44, the two colour
- * fills 0x3e1d, the glyph-run copy 0x3dea, the colour-cycle step 0x3e13). Each returns
- * through the work stack, so it is handed the return address it pops, at the point the
- * original code left it. Callees that are already idiomatic are called directly; the
- * ones that model their own return through the stack (the HUD redraw, the two column
- * paints, the frame wait) are likewise handed the return address they consume, while
- * the ones that return in plain JS are just called.
+ * One callee is still the frozen oracle: the blank/setup 0x4b44. It returns through the
+ * work stack, so it is handed the return address it pops, at the point the original code
+ * left it. The idiomatic leaves are called directly: the colour fills (fillColourColumnAt),
+ * the glyph-run copy (copyTileColumn), and the colour-cycle step (cycleColumnColour) return
+ * in plain JS, so they take honest arguments and no stack return. The idiomatic callees
+ * that still model their own return through the stack (the HUD redraw, the two column
+ * paints, the frame wait) are likewise handed the return address they consume.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3a6f.test.js.
  * GATE:     crafted-entry — the real boot dispatch (0x804c=1, 0x804d=2) plus a sweep
@@ -58,6 +58,9 @@ import { loc_47a1 } from "./loc_47a1.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { waitFrames } from "./waitFrames.js";
+import { copyTileColumn } from "./copyTileColumn.js";
+import { cycleColumnColour } from "./cycleColumnColour.js";
+import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
@@ -71,9 +74,8 @@ const DSW_COUNT_B = 0x804d; // second DSW-derived HUD count
 const PLURAL_LABEL = { source: 0x496c, run: 7 };
 const SINGULAR_LABEL = { source: 0x49ae, run: 9 };
 
-/** Stamp one count field: its digit tile, its (col,row) cell, and its label run.
- *  `copyReturn` is the address the still-oracle glyph-run copy pops on its way back. */
-function stampCountField(m, cell, count, col, copyReturn) {
+/** Stamp one count field: its digit tile, its (col,row) cell, and its label run. */
+function stampCountField(m, cell, count, col) {
   const { mem8 } = m;
   mem8[cell] = count; // the digit tile is the count itself
   mem8[TILE_COL] = col;
@@ -84,13 +86,11 @@ function stampCountField(m, cell, count, col, copyReturn) {
   // Nonzero -> plural label; zero -> singular label.
   const label = count === 0 ? SINGULAR_LABEL : PLURAL_LABEL;
   mem8[PLOT_RUN_LENGTH] = label.run;
-  m.regs.ix = label.source; // the glyph-run source the still-oracle copy reads
-  m.push16(copyReturn);
-  m.call(0x3dea);
+  copyTileColumn(m, label.source); // copy the glyph-run down the column from its source table
 }
 
 export function loc_3a6f(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // ── 1. Fixed furniture ──────────────────────────────────────────────────────
   // Blank the screen + run the variant-0 board setup (still oracle, returns via stack).
@@ -102,12 +102,8 @@ export function loc_3a6f(m) {
   m.push16(0x3a78);
   redrawScoreHud(m); // repaint the score HUD (returns through the stack)
 
-  // Colour a column: the fill helper is still oracle, so hand it its inputs and the
-  // return it pops.
-  regs.a = 1; // which colour column to fill
-  regs.c = 2; // the colour byte
-  m.push16(0x3a7f);
-  m.call(0x3e1d);
+  // Colour a column: column 1 in colour 2.
+  fillColourColumnAt(m, 1, 2);
 
   loc_3d49(m); // fixed text panel at column 1
   loc_3d8a(m); // fixed vertical strip at column 6
@@ -128,23 +124,15 @@ export function loc_3a6f(m) {
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
   mem8[PLOT_RUN_LENGTH] = 6;
-  regs.ix = 0x49b0; // the marker's glyph-run source
-  m.push16(0x3ab2);
-  m.call(0x3dea);
-  regs.a = 12; // colour column for the marker
-  regs.c = 7; // colour byte
-  m.push16(0x3ab9);
-  m.call(0x3e1d);
+  copyTileColumn(m, 0x49b0); // copy the marker's glyph-run from its source table
+  fillColourColumnAt(m, 12, 7); // colour column 12 in colour 7
 
   // First count field (DSW value 0x804c), at column 14.
   const countA = mem8[DSW_COUNT_A];
-  stampCountField(m, 0x928e, countA, 14, 0x3aed);
+  stampCountField(m, 0x928e, countA, 14);
   // When the count is exactly one, patch the cell above to the singular-form glyph.
   if (countA === 1) mem8[0x918e] = 0x24;
-  regs.a = 14; // colour column for this field
-  regs.c = 7;
-  m.push16(0x3b02);
-  m.call(0x3e1d);
+  fillColourColumnAt(m, 14, 7); // colour this field's column 14 in colour 7
 
   // A second fixed marker cell, then its label run and colour.
   mem8[0x9292] = 2;
@@ -153,30 +141,20 @@ export function loc_3a6f(m) {
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);
   mem8[PLOT_RUN_LENGTH] = 7;
-  regs.ix = 0x49b1; // the marker's glyph-run source
-  m.push16(0x3b26);
-  m.call(0x3dea);
-  regs.a = 18; // colour column for the marker
-  regs.c = 3; // colour byte
-  m.push16(0x3b2d);
-  m.call(0x3e1d);
+  copyTileColumn(m, 0x49b1); // copy the marker's glyph-run from its source table
+  fillColourColumnAt(m, 18, 3); // colour column 18 in colour 3
 
   // Second count field (DSW value 0x804d), at column 20. No singular patch here.
   const countB = mem8[DSW_COUNT_B];
-  stampCountField(m, 0x9294, countB, 20, 0x3b61);
-  regs.a = 20; // colour column for this field
-  regs.c = 3;
-  m.push16(0x3b68);
-  m.call(0x3e1d);
+  stampCountField(m, 0x9294, countB, 20);
+  fillColourColumnAt(m, 20, 3); // colour this field's column 20 in colour 3
 
   // ── 3. Hold the intro, cycling the accent colour ────────────────────────────
   mem8[HOLD_COUNTER] = HOLD_PASSES;
   let remaining;
   do {
-    // Advance the shared colour index one step and repaint the accent band (oracle).
-    regs.a = 6; // which colour column the cycle step repaints
-    m.push16(0x3b72);
-    m.call(0x3e13);
+    // Advance the shared colour index one step and repaint the accent band at column 6.
+    cycleColumnColour(m, 6);
 
     // Hold the screen for a spell.
     m.push16(0x3b77);

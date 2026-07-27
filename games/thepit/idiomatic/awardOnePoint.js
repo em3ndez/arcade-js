@@ -21,17 +21,16 @@
  *           digits the shared scorer stamps into video RAM. No value register is read
  *           downstream; the shared return path runs on both sides and matches the oracle.
  * NAMES:    none directly — the sound routes through requestSound13; the score counter
- *           and the digit render belong to the shared scorer, still the frozen oracle.
+ *           and the digit render belong to the shared scorer, addScore.
  */
 import { requestSound13 } from "./requestSound13.js";
+import { addScore } from "./addScore.js";
 
 export function awardOnePoint(m) {
   // Play the one-point pickup sound.
   requestSound13(m);
 
   // Add one point: the shared scorer folds this increment into the score counter and
-  // repaints the on-screen digits. That scorer is still the frozen oracle, so the
-  // increment is handed to it across that boundary for it to consume.
-  m.regs.bc = 1;
-  return m.call(0x4689);
+  // repaints the on-screen digits.
+  return addScore(m, 1);
 }

@@ -8,8 +8,8 @@
  *   - A 28-byte tile strip staged in work RAM (0x8282..) is copied up video column 31
  *     (rows 2..29), giving the column its current tile image. Unlike the fixed
  *     left-edge column, this strip is built in RAM, so the picture is dynamic.
- *   - The whole column then gets a base colour of 2, via the still-oracle colour-
- *     column fill; that fill also caches the colour byte in its own paint scratch.
+ *   - The whole column then gets a base colour of 2, via the shared colour-column
+ *     fill; that fill also caches the colour byte in its own paint scratch.
  *   - Finally three 3-cell colour bands accent the column: colour 6 near the bottom
  *     (rows 26..28), colour 4 in the middle (rows 17..19), and colour 7 higher up
  *     (rows 8..10) — the bands sit 7 rows apart, over the base colour just laid down.
@@ -30,13 +30,15 @@
  *           display writes visible. Teeth: a wrong-accent-colour twin and a
  *           shifted-tile-strip twin, each caught.
  * LIVE-OUT: memory-only — the 28 tile cells, the 28 colour cells, and the colour
- *           byte the still-oracle column fill caches; no live registers/flags.
+ *           byte the shared column fill caches; no live registers/flags.
  * NAMES:    none from ram.js — writes raw video/colour RAM and the callee's own
  *           colour-paint scratch, no named work-RAM address.
  */
 
+import { fillColourColumnAt } from "./fillColourColumnAt.js";
+
 export function loc_47a1(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // One tilemap row is 32 cells, so "up one cell in a column" steps back 32.
   const ROW = 32;
@@ -50,13 +52,8 @@ export function loc_47a1(m) {
     cell -= ROW;
   }
 
-  // Base-colour the whole column: stamp colour 2 down colour column 31 (selector 31).
-  // This stays the frozen oracle, so its inputs are handed over the register boundary
-  // and it pops the return address pushed here on its way back.
-  regs.c = 2; // the colour byte to fill down the column
-  regs.a = 31; // column selector: colour column 31
-  m.push16(0x47bd); // return address the oracle callee pops when it finishes
-  m.call(0x3e1d);
+  // Base-colour the whole column: stamp colour 2 down colour column 31 (offset 31).
+  fillColourColumnAt(m, 31, 2); // columnOffset 31, colour 2
 
   // Accent the base colour with three 3-cell bands, each painted upward from its own
   // bottom cell; the bands sit 7 rows apart.

@@ -4,10 +4,10 @@
  * label painter that stamps the nine-character "GAME OVER" run down its text
  * column. It names one tile cell (column 1, row 12), derives that cell's tilemap
  * offset and colour-RAM / video-RAM cursors (rowColToTileOffset, deriveTileWriteCursors),
- * copies the nine glyphs down the video column through the still-oracle copy helper
- * (0x3dea), and paints the nine colour cells (fillColourColumn).
+ * copies the nine glyphs down the video column through the decompiled copy leaf
+ * copyTileColumn (0x3dea), and paints the nine colour cells (fillColourColumn).
  *
- * WHY THE CONTRACT CHANGED FROM WHOLE-DUMP TO A MODELLED RETURN:
+ * WHY THE CONTRACT EXCLUDES A DEAD STACK-SCRATCH WORD (AND MODELS ONE RETURN):
  *
  *   The oracle finishes with a tail-jump into the colour filler (0x3e01), whose own
  *   `ret` unwinds to drawGameOverLabel's caller — so the oracle, as a whole, RETURNS
@@ -17,12 +17,17 @@
  *   stops with its exit pc and SP still at the routine's entry (the caller's return is
  *   its to close), so pc/SP legitimately differ from the oracle. Per the sound-stub
  *   dissolve (equivalence-4c5f.test.js) the gate models that one return with a single
- *   m.ret() on the candidate, which lines pc + SP up with the oracle. The three address/
- *   fill helpers are direct calls; only the copy helper (0x3dea) is still the oracle,
- *   reached through the registry with its source pointer and return slot, so the one
- *   transient return-address the oracle parks just below the entry SP is reproduced
- *   exactly. The upshot: after the modelled return the WHOLE work RAM matches with no
- *   exclusion, so the gate keeps the full contract — work/video/colour RAM + pc + SP.
+ *   m.ret() on the candidate, which lines pc + SP up with the oracle. ALL four helpers
+ *   are now direct idiomatic calls — including the copy leaf (0x3dea) copyTileColumn,
+ *   which takes its source pointer as a plain argument and touches no stack. So, unlike
+ *   the oracle, the idiomatic routine never pushes the copy-helper CALL's return-address
+ *   word (0x4906) that the oracle parks just below the entry SP; that word is dead
+ *   scratch (overwritten by the caller's next push before anything reads it) and is the
+ *   ONLY residual divergence. Modelled the way the sibling dissolves (equivalence-18cf /
+ *   -47e1 / -483a) do it, the gate EXCLUDES the [SP-8, SP) stack-scratch window and
+ *   compares everything else byte-for-byte — work/video/colour RAM + pc + SP. The real
+ *   outputs (0x8055..0x8060 scratch, colour RAM >= 0x8800, video RAM >= 0x9000) all sit
+ *   far below that window, so it never hides one; the teeth confirm it.
  *
  * WHY THIS ROUTINE IS STRAIGHTFORWARD FOR THE GATE:
  *
@@ -64,6 +69,7 @@ const test = ROM_PRESENT
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x48e5; // drawGameOverLabel
+const STACK_SCRATCH = 8; // dead bytes the oracle's copy-helper CALL parks just below entry SP
 const TILE_COL = 0x8058; // label cell column byte
 const TILE_ROW = 0x8059; // label cell row byte
 const FILL_ATTR = 0x8057; // colour attribute the label run is painted in
@@ -105,16 +111,38 @@ const CAP = ROM_PRESENT ? captureRealEntry() : { entry: null, playerCount: null 
 const ENTRY = CAP.entry;
 
 /**
- * Compare a candidate against the oracle over the full memory-equivalence contract for
- * one entry: work/video/colour RAM + pc + SP. The oracle rets internally (its tail
- * helper's own return unwinds to the caller); the idiomatic routine calls its
- * now-decompiled colour filler directly and does NOT ret, so the candidate is given
- * one modelled return (m.ret()) to line pc + SP up with the oracle. Because the
- * still-oracle copy helper reproduces the one transient return-address slot exactly,
- * no stack-scratch window needs excluding — the whole RAM is compared. Returns
+ * First differing RAM byte between the oracle run and a candidate run, EXCLUDING the dead
+ * stack-scratch window [entrySP - STACK_SCRATCH, entrySP). The dissolved routine calls the
+ * now-idiomatic copy leaf (copyTileColumn) directly, so it no longer reproduces the copy-
+ * helper CALL's return-address word (0x4906) the oracle parks just below the entry SP; that
+ * word is dead scratch and legitimately differs. Returns { addr, a, b } (a=oracle, b=cand)
+ * or null when otherwise equal.
+ */
+function stateDiffOutsideStack(o, c, entrySP) {
+  const da = o.dumpState();
+  const db = c.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = o.stateOffsetToAddr(i);
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
+}
+
+/**
+ * Compare a candidate against the oracle over the memory-equivalence contract for one entry:
+ * work/video/colour RAM (outside the dead stack scratch) + pc + SP. The oracle rets internally
+ * (its tail helper's own return unwinds to the caller); the idiomatic routine calls its
+ * now-decompiled colour filler directly and does NOT ret, so the candidate is given one
+ * modelled return (m.ret()) to line pc + SP up with the oracle. The dissolved copy leaf no
+ * longer pushes the oracle's copy-helper return-address word, so the [SP-8, SP) stack-scratch
+ * window is excluded (see the header); everything else is compared byte-for-byte. Returns
  * { diffs, ram } (diffs empty == EQUAL).
  */
 function contractDiffs(entry, fn) {
+  const entrySP = entry.regs.sp; // SP at 0x48e5 entry
   const o = entry.clone();
   oracle(o);
   const c = entry.clone();
@@ -122,7 +150,7 @@ function contractDiffs(entry, fn) {
   c.ret(); // model the routine's return so pc + SP line up with the ret-ing oracle
 
   const diffs = [];
-  const ram = firstStateDiff(o.dumpState(), c.dumpState(), (off) => o.stateOffsetToAddr(off));
+  const ram = stateDiffOutsideStack(o, c, entrySP);
   if (ram) diffs.push(`RAM@${hx(ram.addr ?? 0)} oracle=${ram.a} cand=${ram.b}`);
   if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
   if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);

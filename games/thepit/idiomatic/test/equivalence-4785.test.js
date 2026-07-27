@@ -9,25 +9,22 @@
  * work RAM read — so its writes depend on nothing but the fixed ROM strip and the
  * offset/colour it hands the fill. Its declared LIVE-OUT is memory-only (the tile
  * cells + the colour cells the fill writes); the register file it leaves behind is
- * dead ABI. The routine tail-jumps into the colour fill, whose own return goes to
- * loc_4785's caller — so both the oracle and the idiomatic routine perform ONE net
- * return (inside the fill), and the harness runs neither an extra return nor pop.
+ * dead ABI.
  *
- * WHY NOT unitEquivalence's own verdict: that gate diffs the FULL register file, so
- * it reports equal:false here purely because of a dead residual register — the
- * oracle walks its source pointer to the end of the strip while the idiomatic
- * routine keeps that pointer in a local, so the leftover pointer register differs —
- * while RAM and pc are identical. That is exactly the dead difference a memory-only
- * live-out is allowed to have, so the contract below compares RAM + pc + SP and
- * never the register file. The first test pins that down.
+ * WHY MEMORY-EQUIVALENCE (not pc/SP). The idiomatic routine was dissolved: instead of
+ * the oracle's tail-jump through the colour fill (loc_3e1d), it calls the pure-leaf
+ * fillColourColumnAt directly. That drops the fill's net `ret`, so the idiomatic routine
+ * leaves pc at its entry and SP one word above the oracle's (the oracle's tail ret pops
+ * the caller return; the leaf does not). Those are the dissolved routine's dead ABI, not
+ * its live-out — so the contract compares the painted RAM ONLY, EXCLUDING the dead
+ * [SP-8, SP) stack-scratch window (any dropped return-address ghost lives there), and
+ * never pc, SP, or the register file. Modelled on equivalence-47e1 / equivalence-18cf.
  *
- *   1. LIVE-OUT — unitEquivalence's only disagreement is a dead register (RAM + pc
- *      equal), justifying the memory-equivalence contract.
- *   2. EQUAL (real dispatch) — capture the true 0x4785 entry in an attract run;
- *      oracle vs idiomatic leave identical RAM + pc + SP.
- *   3. SENTINEL (crafted) — over a marker-filled colour+video background the oracle
+ *   1. EQUAL (real dispatch) — capture the true 0x4785 entry in an attract run;
+ *      oracle vs idiomatic leave identical painted RAM outside the stack scratch.
+ *   2. SENTINEL (crafted) — over a marker-filled colour+video background the oracle
  *      writes its full set of cells (non-vacuous) and the idiomatic routine matches.
- *   4. TEETH — two deliberately-broken twins, each CAUGHT on the sentinel background.
+ *   3. TEETH — two deliberately-broken twins, each CAUGHT on the sentinel background.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-4785.test.js
  */
@@ -39,7 +36,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_4785 as oracle } from "../../translated/loc_4785.js";
 import { loc_4785 as idiomatic } from "../loc_4785.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence } from "../../../../core/equivalence.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -59,12 +55,21 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 // -- the memory-equivalence contract ------------------------------------------
 
-/** First RAM byte that differs between two machines (full dump, nothing excluded), or null. */
-function firstRamDiff(a, b) {
+const STACK_SCRATCH = 8; // dead return-address / helper-scratch window just below the entry SP
+
+/**
+ * First RAM byte that differs between two machines, EXCLUDING the dead [entrySP-8, entrySP)
+ * stack-scratch window (the dropped tail return-address ghost lives there and legitimately
+ * differs). Null when otherwise equal.
+ */
+function firstRamDiff(a, b, entrySP) {
   const da = a.dumpState(), db = b.dumpState();
   const n = Math.min(da.length, db.length);
   for (let i = 0; i < n; i++) {
-    if (da[i] !== db[i]) return { addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] };
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
   }
   return null;
 }
@@ -80,15 +85,15 @@ function runOn(entry, fn) {
   return c;
 }
 
-/** Compare candidate vs oracle over RAM + pc + SP. Registers/flags are memory-only live-out, not compared. */
+/** Compare candidate vs oracle over painted RAM only, excluding the dead stack scratch.
+ *  pc, SP, and the register file are the dissolved routine's dead ABI, not compared. */
 function contractDiffs(entry, fn) {
+  const entrySP = entry.regs.sp;
   const o = runOn(entry, oracle);
   const c = runOn(entry, fn);
   const diffs = [];
-  const ram = firstRamDiff(o, c);
+  const ram = firstRamDiff(o, c, entrySP);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
   return diffs;
 }
 
@@ -145,30 +150,17 @@ function teethWrongColour(m) {
   return m.call(0x3e1d);
 }
 
-// -- 1. LIVE-OUT is memory-only ------------------------------------------------
-
-test("LIVE-OUT: unitEquivalence's only disagreement is a dead register (RAM + pc equal)", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, idiomatic, { maxFrames: CAP_FRAMES });
-  assert.equal(res.ram, null, "RAM must be identical — the whole point of the routine");
-  assert.equal(res.pc, null, "pc must be identical after the tail return through the colour fill");
-  assert.notEqual(res.regs, null, "expected the dead residual register to differ (memory-only live-out)");
-  console.log(
-    `  LIVE-OUT: RAM + pc identical; sole diff is dead register ${res.regs.reg} ` +
-      `(oracle=${res.regs.a} idiomatic=${res.regs.b}) — outside the memory-equivalence contract`,
-  );
-});
-
-// -- 2. EQUAL: real dispatch ---------------------------------------------------
+// -- 1. EQUAL: real dispatch ---------------------------------------------------
 
 test("EQUAL: idiomatic loc_4785 == oracle at the real attract dispatch", () => {
   const real = captureRealDispatch(CAP_FRAMES);
   assert.ok(real, "expected a real 0x4785 dispatch during attract");
   const diffs = contractDiffs(real, idiomatic);
   assert.equal(diffs.length, 0, "real-dispatch entry: " + diffs.join("; "));
-  console.log("  EQUAL: real 0x4785 dispatch — identical RAM + pc + SP");
+  console.log("  EQUAL: real 0x4785 dispatch — identical painted RAM outside the stack scratch");
 });
 
-// -- 3. SENTINEL: crafted background forces all writes visible ------------------
+// -- 2. SENTINEL: crafted background forces all writes visible ------------------
 
 test("SENTINEL (crafted): over a marker background the oracle writes its cells and idiomatic matches", () => {
   const real = captureRealDispatch(CAP_FRAMES);
@@ -188,7 +180,7 @@ test("SENTINEL (crafted): over a marker background the oracle writes its cells a
   console.log(`  SENTINEL: ${wrote} writes over a marker background — idiomatic identical to the oracle`);
 });
 
-// -- 4. TEETH -----------------------------------------------------------------
+// -- 3. TEETH -----------------------------------------------------------------
 
 test("TEETH: the shifted-strip twin and the wrong-colour twin are CAUGHT", () => {
   const real = captureRealDispatch(CAP_FRAMES);

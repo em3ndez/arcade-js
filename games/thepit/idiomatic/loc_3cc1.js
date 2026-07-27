@@ -22,15 +22,14 @@
  *          colour-RAM column accent painted down colour column 13.
  *   3. Stamps the fixed right edge column and the playfield column with its trim.
  *
- * The copy / fill / colour-column helpers at 0x3dea, 0x3ddb and 0x3e1d are still the
- * frozen oracle, reached through the registry: they read a source pointer (or a
- * column selector and colour byte) from registers and return through the work stack,
- * so each is handed those inputs and its own return slot — a genuine oracle boundary.
- * This game keeps the Z80 stack (top of work RAM) byte-identical to the hardware, so
- * reproducing each helper's return-address push keeps the work RAM, stack included,
- * exactly as the oracle leaves it. The five already-decompiled helpers (the edge/HUD
- * columns, the cursor derivation, the colour-column fill) are called directly with no
- * stack framing.
+ * The strip/fill helper at 0x3ddb is still the frozen oracle, reached through the
+ * registry: it reads a source pointer from a register and returns through the work
+ * stack, so it is handed that input and its own return slot — a genuine oracle
+ * boundary. This game keeps the Z80 stack (top of work RAM) byte-identical to the
+ * hardware, so reproducing its return-address push keeps the work RAM, stack included,
+ * exactly as the oracle leaves it. The already-decompiled helpers — the edge/HUD
+ * columns, the cursor derivation, both colour-column fills, and the tile-column copy —
+ * are called directly with no stack framing.
  *
  * The role kept a neutral loc_ name: the mechanism (a scripted fixed-panel layout) is
  * clear, but which specific game screen this skeleton belongs to is not yet
@@ -59,6 +58,8 @@ import { redrawScoreHud } from "./redrawScoreHud.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
+import { copyTileColumn } from "./copyTileColumn.js";
+import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { loc_4785 } from "./loc_4785.js";
 import { loc_47a1 } from "./loc_47a1.js";
 
@@ -77,7 +78,7 @@ export function loc_3cc1(m) {
   seatCell(m, 7, 9);
   mem8[FILL_ATTR] = 0xa5;
   mem8[PLOT_RUN_LENGTH] = 15;
-  copyGlyphsDown(m, 0x497b, 0x3ce8); // ROM label strip
+  copyTileColumn(m, 0x497b); // ROM label strip
   fillColourColumn(m); // tint the 15 cells
 
   // 2b. Second run at column 9, row 13: one glyph from the live game-state byte, then
@@ -85,7 +86,7 @@ export function loc_3cc1(m) {
   seatCell(m, 9, 13);
   mem8[FILL_ATTR] = 0xa5;
   mem8[PLOT_RUN_LENGTH] = 1;
-  copyGlyphsDown(m, GAME_STATE2, 0x3d0c); // one dynamic indicator glyph
+  copyTileColumn(m, GAME_STATE2); // one dynamic indicator glyph
   mem8[PLOT_RUN_LENGTH] = 7;
   fillStripDown(m, 0x49b1, 0x3d18); // a fixed cap byte, then a second ROM strip
   mem8[PLOT_RUN_LENGTH] = 8;
@@ -94,8 +95,8 @@ export function loc_3cc1(m) {
   // 2c. Third labelled run: 15 glyphs at column 13, row 9, then a colour-column accent.
   seatCell(m, 13, 9);
   mem8[PLOT_RUN_LENGTH] = 15;
-  copyGlyphsDown(m, 0x49f7, 0x3d3c); // ROM label strip
-  paintColourRamColumn(m, 13, 0xa3); // colour column 13, attribute 0xa3
+  copyTileColumn(m, 0x49f7); // ROM label strip
+  fillColourColumnAt(m, 13, 0xa3); // colour column 13, attribute 0xa3
 
   // 3. The right side of the panel: the fixed right edge column, then the playfield
   //    column and its colour trim. In the oracle this was a tail-jump whose own return
@@ -114,36 +115,14 @@ function seatCell(m, column, row) {
 }
 
 /**
- * Copy a run of glyphs down the current video column from `source` (walked backwards),
- * run length staged in PLOT_RUN_LENGTH. The copy helper (0x3dea) is still the frozen
- * oracle: it takes its source in the pointer register and returns through the work
- * stack, so it is handed the source and the `returnSlot` it pops on the way back.
- */
-function copyGlyphsDown(m, source, returnSlot) {
-  m.regs.ix = source;
-  m.push16(returnSlot);
-  m.call(0x3dea);
-}
-
-/**
  * Fill a strip down the current video column: the first cell takes a fixed cap byte,
  * every later cell a byte walked backwards from `source`; run length in PLOT_RUN_LENGTH.
- * The fill helper (0x3ddb) is still the frozen oracle, reached the same way as the copy.
+ * The fill helper (0x3ddb) is still the frozen oracle: it takes its source in the pointer
+ * register and returns through the work stack, so it is handed the source and the
+ * `returnSlot` it pops on the way back.
  */
 function fillStripDown(m, source, returnSlot) {
   m.regs.ix = source;
   m.push16(returnSlot);
   m.call(0x3ddb);
-}
-
-/**
- * Paint a whole colour-RAM column: stamp `colour` down the column selected by `column`.
- * The colour-column fill (0x3e1d) is still the frozen oracle: it takes the column
- * selector and colour byte in registers and returns through the work stack.
- */
-function paintColourRamColumn(m, column, colour) {
-  m.regs.a = column;
-  m.regs.c = colour;
-  m.push16(0x3d43);
-  m.call(0x3e1d);
 }

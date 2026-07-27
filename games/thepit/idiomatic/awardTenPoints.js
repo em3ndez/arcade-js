@@ -21,11 +21,11 @@
  * LIVE-OUT: memory-only — the packed-decimal score bytes, the repainted score digits, and
  *           the queued sound command. The registers and flags the oracle path leaves
  *           behind are dead scratch no caller reads.
- * NAMES:    none of its own — delegates to requestSound16 (which owns the sound ring) and,
- *           at the one remaining oracle boundary, the still-translated shared score adder
- *           (which owns the score bytes).
+ * NAMES:    none of its own — delegates to requestSound16 (which owns the sound ring) and
+ *           to the shared score adder addScore (which owns the score bytes).
  */
 import { requestSound16 } from "./requestSound16.js";
+import { addScore } from "./addScore.js";
 
 export function awardTenPoints(m) {
   // Play this entry's score sound.
@@ -34,9 +34,6 @@ export function awardTenPoints(m) {
   // Hand the +10 increment to the shared score adder and let it run: it adds 10 to the
   // active player's score and repaints the digits, skipping the add when no player is
   // active, then returns straight to our own caller. The increment is packed decimal —
-  // the low byte 0x10 is a decimal-coded "10" the adder folds into the score's tens
-  // place — passed in the register pair the still-oracle adder reads, the one register
-  // hand-off that stays at this boundary until the adder itself is decompiled.
-  m.regs.bc = 0x0010;
-  return m.call(0x4689);
+  // the low byte 0x10 is a decimal-coded "10" the adder folds into the score's tens place.
+  return addScore(m, 0x0010);
 }

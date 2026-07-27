@@ -17,11 +17,11 @@
  * previous one), and finally the colour-column filler paints the whole run in the
  * attribute.
  *
- * The address setup (rowColToTileOffset, deriveTileWriteCursors) and the final
- * colour fill (fillColourColumn) are decompiled siblings, called directly. The
- * glyph copy helper at 0x3dea is still the frozen oracle: it is reached by pointing
- * the source register at the glyph run and calling it, and it advances the shared
- * video cursor so the next field lands directly below.
+ * The address setup (rowColToTileOffset, deriveTileWriteCursors), the glyph copy
+ * helper (copyTileColumn, ROM 0x3dea) and the final colour fill (fillColourColumn)
+ * are all decompiled siblings, called directly. The copy helper takes the glyph-run
+ * source pointer as an argument and advances the shared video cursor so the next
+ * field lands directly below.
  *
  * Name kept as loc_483a: it is clearly a two-variant panel painter, but which
  * specific field it draws — and what the live byte counts — is not pinned, and it
@@ -51,6 +51,7 @@ import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
+import { copyTileColumn } from "./copyTileColumn.js";
 
 // The colour attribute the panel is painted in. ram.js proposes BOARD_MODE for
 // 0x8057, but in this routine the byte is the fill colour, not a mode.
@@ -67,7 +68,7 @@ const DEFAULT_LABEL = 0x49ba;
 const ALT_LABEL = 0x49c2;
 
 export function loc_483a(m) {
-  const { mem8, regs } = m;
+  const { mem8 } = m;
 
   // The panel column is always 5.
   mem8[TILE_COL] = 5;
@@ -84,10 +85,9 @@ export function loc_483a(m) {
     // Paint the panel in colour attribute 150.
     mem8[FILL_ATTR] = 150;
 
-    // The eight-glyph label, stamped down the video column by the still-oracle copy helper.
+    // The eight-glyph label, stamped down the video column by the copy helper.
     mem8[PLOT_RUN_LENGTH] = 8;
-    regs.ix = ALT_LABEL; // the source pointer the copy helper reads
-    m.push16(0x4891); m.call(0x3dea);
+    copyTileColumn(m, ALT_LABEL); // ALT_LABEL is the glyph-run source pointer
 
     // Colour the full eight-cell run; this is loc_483a's exit.
     return fillColourColumn(m);
@@ -102,15 +102,13 @@ export function loc_483a(m) {
   // Paint the panel in colour attribute 151.
   mem8[FILL_ATTR] = 151;
 
-  // The nine-glyph label field, stamped by the still-oracle copy helper.
+  // The nine-glyph label field, stamped by the copy helper.
   mem8[PLOT_RUN_LENGTH] = 9;
-  regs.ix = DEFAULT_LABEL; // the source pointer the copy helper reads
-  m.push16(0x4861); m.call(0x3dea);
+  copyTileColumn(m, DEFAULT_LABEL); // DEFAULT_LABEL is the glyph-run source pointer
 
   // One more cell: the live value itself, continuing down the same video column.
   mem8[PLOT_RUN_LENGTH] = 1;
-  regs.ix = PANEL_VALUE; // display the live byte as the panel's last cell
-  m.push16(0x486d); m.call(0x3dea);
+  copyTileColumn(m, PANEL_VALUE); // display the live byte as the panel's last cell
 
   // Colour the full ten-cell run; this is loc_483a's exit.
   mem8[PLOT_RUN_LENGTH] = 10;

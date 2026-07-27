@@ -29,13 +29,15 @@
  * `m`, so the direct call is a drop-in for the old register/stack-marshalled boundary
  * — no return address to push, no register to marshal.
  *
- * The two COPY/FILL helpers (0x3dea, 0x3ddb) are STILL the frozen oracle, reached
- * through the registry. Each reads its source pointer from IX and returns through the
- * machine's stack, so each of those two calls keeps its IX load and the return-address
- * push it expects to find on the stack — a genuine oracle boundary. This game keeps the
- * Z80 stack (which lives at the top of work RAM) byte-identical to the hardware, so
- * those two pushes still land the stack exactly as the oracle leaves it. (When those two
- * helpers are later decompiled, their pushes dissolve into ordinary calls too.)
+ * The copy helper 0x3dea is NOW DECOMPILED (copyTileColumn) and called directly, handed
+ * its source pointer as an ordinary JS argument — its old IX load and return-address push
+ * are gone. The fill helper 0x3ddb is STILL the frozen oracle, reached through the
+ * registry: it reads its source pointer from IX and returns through the machine's stack,
+ * so that call keeps its IX load and the return-address push it expects to find on the
+ * stack — a genuine oracle boundary. This game keeps the Z80 stack (which lives at the top
+ * of work RAM) byte-identical to the hardware, so that push still lands the stack exactly
+ * as the oracle leaves it. (When 0x3ddb is later decompiled, its push dissolves into an
+ * ordinary call too.)
  *
  * Name kept as loc_4894: it is clearly a fixed-panel painter, but which specific field
  * it draws is not pinned (the label glyphs are ROM tile codes, not decoded), and it is
@@ -46,8 +48,10 @@
  *           once during a boot/attract run, reached from loc_03e8 when its housekeeping
  *           counter hits zero), oracle vs idiomatic diffed on clones of that entry, plus
  *           a sweep of the one state-dependent input (the live top-cell value at 0x8000).
- *           The three dissolved calls no longer push their Z80 return addresses, so the
- *           dead stack-scratch window just below the entry SP, the exit pc, and SP now
+ *           The dissolved calls (the three layout helpers plus the copy helper 0x3dea) no
+ *           longer push their Z80 return addresses, so the dead stack-scratch window just
+ *           below the entry SP (still re-covered by the one remaining oracle push, 0x3ddb),
+ *           the exit pc, and SP now
  *           legitimately differ from the oracle; the gate aligns pc + SP by modelling the
  *           tail return with one m.ret() on the candidate and excludes that dead stack
  *           window, then compares the observable RAM byte-for-byte. Teeth twins caught.
@@ -65,6 +69,7 @@ import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
+import { copyTileColumn } from "./copyTileColumn.js";
 
 // The colour attribute every cell of the colour fill is painted in. ram.js proposes
 // BOARD_MODE for 0x8057, but in this routine the byte is the fill colour, not a mode.
@@ -93,12 +98,10 @@ export function loc_4894(m) {
   mem8[FILL_ATTR] = 150;
 
   // Top field: copy one cell from the live work-RAM value down the video column. The
-  // copy helper is still the oracle — it reads its source from IX and returns through
-  // the stack, so its IX load and return-address push stay.
+  // copy helper 0x3dea is now decompiled (copyTileColumn), called directly with its
+  // source pointer — no IX load, no return-address push.
   mem8[PLOT_RUN_LENGTH] = 1;
-  m.regs.ix = VALUE_SOURCE; // the source pointer the copy helper reads
-  m.push16(0x48b5);
-  m.call(0x3dea);
+  copyTileColumn(m, VALUE_SOURCE);
 
   // Label field: fill the next eight cells (cap glyph + seven ROM glyphs), continuing
   // down the same video column from where the value left off. The fill helper is still

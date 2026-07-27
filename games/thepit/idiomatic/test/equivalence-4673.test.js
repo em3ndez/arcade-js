@@ -8,10 +8,10 @@
  * The award's whole effect is memory: the pending sound command lands in the ring slot at
  * SOUND_HEAD (pointer advanced), and — when the game-mode gate is active — the score bytes
  * at 0x8031/0x8034 gain one BCD point and the digit tiles in video RAM are rewritten. Its
- * declared live-out is MEMORY-ONLY, so the gate compares that observable RAM effect. Because
- * the shared scorer's Z80 return runs on BOTH arms (the idiomatic award ends in the same
- * m.call(0x4689) the oracle tail-jumps into), the return pc and stack pointer are meaningful
- * here and are also checked equal.
+ * declared live-out is MEMORY-ONLY, so the gate compares that observable RAM effect ALONE.
+ * The dissolve replaced the oracle's m.call(0x4689) tail-jump with a direct addScore(m, 1)
+ * call, so the idiomatic award leaves pc at its entry value and SP below the oracle's; those
+ * are the routine's dead ABI, not its live-out, and are NOT compared (pc, SP, value regs).
  *
  * WHY A CRAFTED ENTRY. Attract never awards a point, so 0x4673 is never dispatched — the
  * capture/replay harness cannot hook it directly. Per the crafted-entry method the gate
@@ -33,7 +33,7 @@
  *   0. HARNESS — capture a real 0x4c57 sound-request entry and confirm the oracle run of
  *      0x4673 is deterministic (oracle vs oracle -> identical whole state, same pc).
  *   1. EQUAL (real entry) — awardOnePoint == oracle over the observable RAM (outside the
- *      stack scratch), with the return pc and SP equal, and the pending sound really queued.
+ *      stack scratch), and the pending sound really queued.
  *   2. EQUAL (game-mode sweep 0..3) — with GAME_MODE forced active (1,2) and idle (0,3),
  *      both arms match; the score gains exactly one point when active and is untouched when
  *      idle, confirming both scorer branches run identically.
@@ -114,8 +114,11 @@ function ramDiffOutsideStack(a, b, entrySP) {
 
 /**
  * Run the oracle and a candidate on independent clones of `entry` and diff the OBSERVABLE
- * RAM effect (outside the dead stack scratch), plus the return pc and SP — both arms end in
- * the same shared-scorer return, so those DO match. Returns { diffs, ram } (diffs empty == EQUAL).
+ * RAM effect (outside the dead stack scratch). pc, SP and the value registers are NOT
+ * compared — the dissolved award adds the score with a direct addScore(m, 1) call instead
+ * of the oracle's m.call(0x4689) tail-jump, so it leaves pc at its entry value and SP two
+ * below the oracle's; those are the routine's dead ABI, not its live-out. Returns
+ * { diffs, ram } (diffs empty == EQUAL).
  */
 function observableDiffs(entry, fn) {
   const sp = entry.regs.sp;
@@ -127,8 +130,6 @@ function observableDiffs(entry, fn) {
   const diffs = [];
   const ram = ramDiffOutsideStack(o, c, sp);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`sp oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
   return { diffs, ram };
 }
 
@@ -154,7 +155,7 @@ test("HARNESS: a real 0x4c57 entry is captured and the oracle run of 0x4673 is d
 
 // -- 1. EQUAL on the real captured entry -------------------------------------
 
-test("EQUAL (real entry): awardOnePoint == oracle over the observable RAM effect (pc + SP too)", () => {
+test("EQUAL (real entry): awardOnePoint == oracle over the observable RAM effect", () => {
   const entry = captureRealEntry(1500);
   assert.ok(entry, "need a captured 0x4c57 entry");
   const head = entry.mem.read8(SOUND_HEAD);
@@ -166,7 +167,7 @@ test("EQUAL (real entry): awardOnePoint == oracle over the observable RAM effect
   const c = entry.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(SOUND_RING + head), PENDING, `ring slot ${head} not filled with the pending sound`);
-  console.log(`  EQUAL/real: identical observable RAM + pc/SP; sound slot ${head} = ${hx(PENDING)}`);
+  console.log(`  EQUAL/real: identical observable RAM; sound slot ${head} = ${hx(PENDING)}`);
 });
 
 // -- 2. EQUAL across a game-mode sweep (both scorer branches) -----------------

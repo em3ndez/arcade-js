@@ -12,12 +12,13 @@
  * the active-player mode byte poked identically on both sides to reach each path — the
  * doc's crafted-entry technique for an arm attract never runs.
  *
- * THE CONTRACT is memory-equivalence, not the full register file: RAM (outside the dead
- * stack scratch) + pc + SP. The declared live-out is memory-only — the packed-decimal
- * score bytes, the repainted digit cells, and the queued sound command — so the value
- * registers and flags the oracle leaves behind are excluded. The idiomatic routine runs
- * the real return through the shared adder (the still-oracle callee), so its pc + SP
- * already line up with the oracle's; no extra return is modelled in the harness.
+ * THE CONTRACT is memory-equivalence, not the full register file: RAM outside the dead
+ * stack scratch, ALONE. The declared live-out is memory-only — the packed-decimal score
+ * bytes, the repainted digit cells, and the queued sound command — so pc, SP, and the
+ * value registers and flags the oracle leaves behind are excluded. The dissolve replaced
+ * the oracle's m.call(0x4689) tail-jump with a direct addScore(m, 0x0010) call, so the
+ * idiomatic award leaves pc at its entry value and SP below the oracle's; that is the
+ * routine's dead ABI, not its live-out, and is not compared.
  *
  * THE STACK SCRATCH. The oracle's own return-address push plus the sound routine's two
  * register saves leave six dead bytes just below the entry stack pointer that the
@@ -114,9 +115,11 @@ function ramDiffOutsideStack(a, b, entrySP) {
 }
 
 /**
- * Compare a candidate against the oracle over the contract (RAM outside the stack scratch
- * + pc + SP) for one entry. The idiomatic routine runs the real shared adder, so it makes
- * its own net return — pc + SP already align, no extra m.ret() here. Returns { diffs, ram }.
+ * Compare a candidate against the oracle over the memory contract (RAM outside the dead
+ * stack scratch) for one entry. pc, SP and the value registers are NOT compared — the
+ * dissolved award adds the score with a direct addScore(m, 0x0010) call instead of the
+ * oracle's m.call(0x4689) tail-jump, so it leaves pc at its entry value and SP two below
+ * the oracle's; those are the routine's dead ABI, not its live-out. Returns { diffs, ram }.
  */
 function contractDiffs(entry, fn) {
   const sp = entry.regs.sp;
@@ -128,8 +131,6 @@ function contractDiffs(entry, fn) {
   const diffs = [];
   const ram = ramDiffOutsideStack(o, c, sp);
   if (ram) diffs.push(`RAM@${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-  if (o.pc !== c.pc) diffs.push(`pc oracle=${hx(o.pc)} cand=${hx(c.pc)}`);
-  if (o.regs.sp !== c.regs.sp) diffs.push(`SP oracle=${hx(o.regs.sp)} cand=${hx(c.regs.sp)}`);
   return { diffs, ram };
 }
 
@@ -204,7 +205,7 @@ test("EQUAL (active-player add path): awardTenPoints == oracle; score gains 10; 
       );
     }
   }
-  console.log(`  EQUAL/add: modes 1 & 2 over ${caps.length} states — identical RAM+pc+SP; score +10; sound 16 pending`);
+  console.log(`  EQUAL/add: modes 1 & 2 over ${caps.length} states — identical RAM; score +10; sound 16 pending`);
 });
 
 // -- 3. EQUAL: inactive skip path ----------------------------------------------
@@ -233,7 +234,7 @@ test("EQUAL (inactive skip path): awardTenPoints == oracle; score untouched; sou
       );
     }
   }
-  console.log(`  EQUAL/skip: modes 0 & 3 over ${caps.length} states — identical RAM+pc+SP; score untouched; sound 16 pending`);
+  console.log(`  EQUAL/skip: modes 0 & 3 over ${caps.length} states — identical RAM; score untouched; sound 16 pending`);
 });
 
 // -- 4. TEETH: wrong sound / wrong increment -----------------------------------

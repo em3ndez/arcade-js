@@ -18,14 +18,11 @@
  *   - Tint all nine cells in one colour (fillColourColumn), which is this routine's
  *     last act.
  *
- * THE COPY HELPER (ROM 0x3dea) IS STILL THE FROZEN ORACLE, reached through the
- * registry. It reads its glyph source from a pointer register and returns through the
- * machine's stack, so its call is handed both that source pointer and the return
- * address it expects to find — a genuine oracle boundary. This game keeps the Z80
- * stack (which lives at the top of work RAM) byte-identical to the hardware, so
- * reproducing that copy helper's return-address push keeps the work RAM, stack
- * included, exactly as the oracle leaves it. The three address/fill helpers are
- * already decompiled, so they are called directly with no stack framing.
+ * THE COPY HELPER (ROM 0x3dea) is now the decompiled leaf copyTileColumn: it takes its
+ * glyph-source pointer as a plain argument and copies the run down the video column with
+ * no stack framing. All four helpers (the three address/fill helpers and the copy leaf)
+ * are decompiled, so every one is a direct call — this routine performs no Z80 stack
+ * push or oracle hand-off of its own.
  *
  * Memory-equivalent to the frozen oracle — equivalence-48e5.test.js.
  * GATE:     observable equivalence, captured at the one real attract dispatch (0x48e5
@@ -33,7 +30,9 @@
  *           state, player count 0). Straight-line with no input-dependent branch, so
  *           that single dispatch exercises the whole path; oracle vs idiomatic diffed
  *           on clones of the entry over the work/video/colour RAM the routine writes,
- *           plus pc + SP after the routine's return is modelled. Teeth twins caught.
+ *           excluding the dead stack-scratch word the oracle's copy-helper CALL parks
+ *           just below entry SP (this stack-free routine no longer reproduces it), plus
+ *           pc + SP after the routine's return is modelled. Teeth twins caught.
  * LIVE-OUT: memory-only — the nine label cells in video RAM, the nine colour cells,
  *           and the layout scratch (0x805a offset, 0x805e/0x8060 cursors). Unlike the
  *           oracle it does not perform the tail helper's own return, so its exit pc and
@@ -50,6 +49,7 @@ import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
+import { copyTileColumn } from "./copyTileColumn.js";
 
 // The colour attribute the whole label is painted in. ram.js proposes BOARD_MODE for
 // 0x8057, but in this routine the byte is the fill colour, not a mode.
@@ -77,12 +77,10 @@ export function drawGameOverLabel(m) {
   mem8[FILL_ATTR] = 6;
   mem8[PLOT_RUN_LENGTH] = 9;
 
-  // Copy the nine "GAME OVER" glyphs down the video column. The copy helper (ROM 0x3dea)
-  // is still the frozen oracle: it reads its source from the pointer register and returns
-  // through the stack, so it is handed the source pointer and its own return slot.
-  m.regs.ix = GAME_OVER_SOURCE;
-  m.push16(0x4906);
-  m.call(0x3dea);
+  // Copy the nine "GAME OVER" glyphs down the video column. copyTileColumn (ROM 0x3dea) is
+  // the decompiled leaf: it takes the glyph-source pointer as an argument and reads the run
+  // backwards from it, so no register marshalling or stack hand-off is needed.
+  copyTileColumn(m, GAME_OVER_SOURCE);
 
   // Tint all nine cells in one colour. In the oracle this was a tail-jump into the colour
   // filler whose own return unwound to the caller; called directly, it paints the column

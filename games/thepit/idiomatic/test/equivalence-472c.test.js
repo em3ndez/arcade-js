@@ -38,16 +38,24 @@
  *
  * The routine's only observable output is RAM: both players' repainted score digits, the
  * blanked cells above each score column, the status label glyphs + colour, and the two
- * tinted HUD colour columns. The handoff pushes and pops within the balanced stack (no
- * dead scratch window is left below the entry SP that the oracle wouldn't also write), so
- * the full RAM dump is compared byte-for-byte with no exclusions.
+ * tinted HUD colour columns — compared byte-for-byte, with ONE wrinkle:
+ *
+ *   THE STACK SCRATCH. The Pit's stack is real diffed work RAM (entry SP 0x83fb here). The
+ *   dissolved handoff removed the push16 return slots redrawScoreHud parked just below the
+ *   entry SP (the ghost byte at 0x83f7 = SP-4: oracle wrote it, the stack-free idiomatic never
+ *   does), and neither side writes ABOVE the entry SP. Classic dead stack scratch, overwritten
+ *   by the caller's next push before anything reads it — so the diff excludes exactly the
+ *   [SP-8, SP) window and compares everything else byte-for-byte. Every real output (score
+ *   digits, blanks, label, the tinted colour columns at 0x89xx/0x8bxx) sits far below the
+ *   stack, so the window never hides one — the teeth confirm it (caught at real painted cells,
+ *   never at the excluded 0x83f7).
  *
  * Checks:
  *   1. EQUAL (captured) — the real attract dispatch is the game-over arm (player count 0,
  *      "GAME OVER" label); idiomatic == oracle on the whole RAM dump.
- *   2. EQUAL (harness) — the same real dispatch through the shared unitEquivalence gate,
- *      asserting only its RAM diff (its equal/pc/regs fields legitimately differ per the
- *      contract above).
+ *   2. EQUAL (harness) — an independent fresh capture of the real dispatch, clone/replay,
+ *      RAM-EQUAL outside the [SP-8, SP) stack scratch (NOT through unitEquivalence: its
+ *      full-dump diff would false-catch the removed push16 ghost at 0x83f7 first).
  *   3. EQUAL (crafted) — a player-count-1 entry forces the in-game-panel arm (loc_47e1),
  *      which attract never reaches; idiomatic == oracle on RAM there too.
  *   4. IDENTITY — oracle vs oracle is fully EQUAL (gate wiring sanity; identical arms
@@ -56,7 +64,8 @@
  *      through the registry, so the correct instance is itself RAM-EQUAL to the oracle),
  *      so each teeth twin below differs from the oracle by exactly one thing.
  *   6. TEETH — a wrong HUD colour and a wrong blank offset are both CAUGHT on the RAM
- *      dump, and a corrupted output through the harness is CAUGHT at the corrupted cell.
+ *      dump, and a corrupted output through the harness is CAUGHT at the corrupted painted
+ *      cell — never masked by the excluded stack scratch.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-472c.test.js
  */
@@ -68,7 +77,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_472c as oracle } from "../../translated/loc_472c.js";
 import { redrawScoreHud as idiomatic } from "../redrawScoreHud.js";
 import { makeMachineFactory } from "../../machine.js";
-import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
+import { unitEquivalence } from "../../../../core/equivalence.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -79,6 +88,7 @@ const test = ROM_PRESENT
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x472c;
+const STACK_SCRATCH = 8; // dead bytes the dissolved handoff's removed push16 slots parked below entry SP
 const GAME_MODE = 0x8001; // player count -> which status label is drawn
 const GAME_STATE2 = 0x8002; // active player index (swept 1,2 then restored)
 const ROW = 32; // one screen row across the 32-wide map
@@ -111,19 +121,41 @@ const CAP = ROM_PRESENT ? captureRealEntry() : { entry: null, playerCount: null 
 const ENTRY = CAP.entry;
 
 /**
+ * First differing state byte between two machines, EXCLUDING the dead stack scratch the
+ * dissolved handoff parks just below the entry stack pointer — the removed push16 return
+ * slots the stack-free idiomatic never writes ([entrySP - STACK_SCRATCH, entrySP)). Compares
+ * everything else byte-for-byte. Null when otherwise identical. (Copied from
+ * equivalence-18cf.test.js so both gates share one stack-scratch exclusion.)
+ */
+function stateDiffOutsideStack(a, b, entrySP) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
+}
+
+/**
  * The observable contract: run the oracle and a candidate on two independent clones of one
- * entry and diff the whole RAM dump. pc, SP and the value registers are EXCLUDED — the
- * dissolved tail-jump into fillColourColumn means the direct callee no longer rets, so the
- * closing m.ret() pops the un-popped label slot and pc/SP diverge by one return slot while
- * the residual registers are dead (see the file header). Returns the RAM diff, or null when
- * the RAM is byte-for-byte identical.
+ * entry and diff the RAM dump OUTSIDE the dead [SP-8, SP) stack-scratch window. pc, SP and the
+ * value registers are also unobserved — the dissolved tail-jump into fillColourColumn means the
+ * direct callee no longer rets, so the closing m.ret() pops the un-popped label slot and pc/SP
+ * diverge by one return slot while the residual registers are dead (see the file header). The
+ * one RAM footprint of that dissolve is the un-written push16 ghost just below entry SP (0x83f7
+ * = SP-4), which the window excludes. Returns the RAM diff, or null when observable RAM matches.
  */
 function observableDiff(entry, candidate) {
+  const entrySP = entry.regs.sp;
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
   candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  return stateDiffOutsideStack(a, b, entrySP);
 }
 
 /**
@@ -170,16 +202,19 @@ test("EQUAL (captured): idiomatic == oracle on the real GAME OVER dispatch (whol
   console.log("  EQUAL/captured: real 0x472c entry identical (whole RAM dump)");
 });
 
-// -- 2. EQUAL: through the shared unitEquivalence harness ----------------------
-// The canonical gate captures the real dispatch, clones, runs both, and diffs memory +
-// pc + registers. Only its RAM diff is the honest contract here: the residual register
-// file is dead and the closing m.ret() pops the un-popped label slot, so res.equal / res.pc
-// / res.regs legitimately differ (per the file header) and are not asserted.
+// -- 2. EQUAL: an independent capture/clone/replay through stateDiffOutsideStack ------
+// Re-capture the real dispatch fresh (its own harness run), then run oracle vs idiomatic on
+// two clones and diff RAM outside the dead [SP-8, SP) stack scratch. This deliberately does
+// NOT go through unitEquivalence: that gate diffs the FULL dump (no stack exclusion) and so
+// false-catches the removed push16 ghost at 0x83f7 first — the honest contract is RAM outside
+// the stack scratch (as 18cf's harness checks do).
 
-test("EQUAL (harness): the real 0x472c dispatch is RAM-EQUAL through unitEquivalence", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, idiomatic, { maxFrames: CAPTURE_FRAMES });
-  assert.equal(res.ram, null, `harness RAM diverged: ${JSON.stringify(res.ram)}`);
-  console.log("  EQUAL/harness: unitEquivalence captured a real 0x472c entry -> RAM EQUAL");
+test("EQUAL (harness): a fresh-captured real 0x472c dispatch is RAM-EQUAL outside the stack scratch", () => {
+  const { entry } = captureRealEntry();
+  assert.ok(entry, "captured a real 0x472c attract dispatch");
+  const ram = observableDiff(entry, idiomatic);
+  assert.equal(ram, null, ram && `harness RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
+  console.log("  EQUAL/harness: fresh capture -> idiomatic RAM-EQUAL outside [SP-8, SP)");
 });
 
 // -- 3. EQUAL: crafted player-count-1 entry forces the in-game-panel arm -------
@@ -235,11 +270,13 @@ function brokenHarness(m) {
   m.mem.write8(FIRST_COLUMN_BOTTOM, m.mem.read8(FIRST_COLUMN_BOTTOM) ^ 0xff); // BUG: corrupt a tinted cell
 }
 
-test("TEETH (harness): a corrupted output is CAUGHT by unitEquivalence (on its RAM diff)", () => {
-  const res = unitEquivalence(makeMachine, TARGET, oracle, brokenHarness, { maxFrames: CAPTURE_FRAMES });
-  // The correct idiomatic is already RAM-EQUAL (res.ram === null); the corruption is the ONLY
-  // thing that moves RAM, so a non-null res.ram at the corrupted cell is the real tooth here.
-  assert.notEqual(res.ram, null, "unitEquivalence FAILED to catch the corrupted twin on RAM — it is worthless");
-  assert.equal(res.ram.addr, FIRST_COLUMN_BOTTOM, `harness caught ${hx(res.ram?.addr ?? 0)} (expected ${hx(FIRST_COLUMN_BOTTOM)})`);
-  console.log(`  TEETH/harness: corrupted tinted cell caught at ${hx(res.ram.addr)} (oracle=${res.ram.a} broken=${res.ram.b})`);
+test("TEETH (harness): a corrupted output is CAUGHT at the corrupted cell (not the stack ghost)", () => {
+  const { entry } = captureRealEntry();
+  const ram = observableDiff(entry, brokenHarness);
+  // The correct idiomatic is already RAM-EQUAL outside the stack scratch; the corruption is the
+  // ONLY thing that moves observable RAM, so the diff must land at the corrupted painted cell —
+  // proving the stack-scratch exclusion did not swallow a real cell (it would if too broad).
+  assert.notEqual(ram, null, "the gate FAILED to catch the corrupted twin on RAM — it is worthless");
+  assert.equal(ram.addr, FIRST_COLUMN_BOTTOM, `harness caught ${hx(ram?.addr ?? 0)} (expected ${hx(FIRST_COLUMN_BOTTOM)})`);
+  console.log(`  TEETH/harness: corrupted tinted cell caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
