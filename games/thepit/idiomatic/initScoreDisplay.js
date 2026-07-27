@@ -11,8 +11,9 @@
  *     tile, so no stale digit shows through before the readout is drawn.
  *   - Seeds the three source records at 0x8039 — each a fixed 3-tile label block followed
  *     by a two-byte value, here left at zero — so all three readout numbers start blank/zero.
- * Then it tail-hands to the still-oracle score-readout formatter (0x4cca), which copies
- * each record's label block into its display cell and formats each value into digit cells.
+ * Then it tail-hands to the decompiled score-readout formatter (renderScoreReadouts, 0x4cca),
+ * which copies each record's label block into its display cell and formats each value into
+ * digit cells.
  * That formatter's return unwinds to this routine's caller, so the tail hand-off is the
  * exit and is returned straight through.
  *
@@ -40,6 +41,8 @@
  *           leading-zero blank.
  */
 
+import { renderScoreReadouts } from "./renderScoreReadouts.js";
+
 // The blank display tile — same value the score digit formatter uses to blank a cell.
 const BLANK_TILE = 36;
 
@@ -58,7 +61,7 @@ export function initScoreDisplay(m) {
     for (let i = 0; i < READOUT_RECORD.length; i++) mem8[base + i] = READOUT_RECORD[i];
   }
 
-  // Render: hand off to the still-oracle score-readout formatter, whose return unwinds to
+  // Render: hand off to the score-readout formatter, whose return unwinds to
   // our caller, so this tail hand-off is the exit.
-  return m.call(0x4cca);
+  return renderScoreReadouts(m);
 }

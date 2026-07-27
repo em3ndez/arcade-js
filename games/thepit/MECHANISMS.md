@@ -9,7 +9,10 @@ reverse-engineering — that's the point). Every claim is tagged:
 - **[guess]** — plausible but unverified; do not rely on it.
 
 This is the precursor to the naming + idiomatic passes: as roles get confirmed, they become
-`ram.js` names and English routine names.
+`ram.js` names and English routine names. **Much of that has now happened** — 119/169 routines are
+decompiled to idiomatic JS, ~88 carry earned English names (proposer≠confirmer + adversarial-judge),
+and `ram.js` holds ~90 named work-RAM addresses. This map is updated to reflect that understanding;
+routine names below are the earned idiomatic names where they exist, neutral `loc_<addr>` otherwise.
 
 ## ★ Validation status  [seen]
 
@@ -51,43 +54,81 @@ alternate on a fixed period — no RNG), which matters for pixel-matching by fra
 
 ## Mechanisms → routines
 
+Names in **bold-code** are earned idiomatic names (confirmed); `loc_<addr>` is a correct-but-not-yet-named routine.
+
 | Mechanism | Routine(s) | Evidence |
 |---|---|---|
 | **Cold boot / init** | `loc_01a4` (di/im1, stack, RAM seed, busy-delay → 0x03ac) | [code] |
-| **Per-frame service (vblank NMI)** | `loc_0066` (the NMI handler; input sample, coin, re-arm) | [code] |
-| **Player dig / wall collision** | `loc_03e8` → 4-way blocked-direction bitmask at **0x801b** | [code] the tunnel-movement core |
-| **Tile-under-object classify** (dirt / diamond / empty) | `loc_1568` / `loc_1515` / `loc_14cd` (shared body) | [code] drives collect vs dig |
-| **Object/enemy movement** | `0x3490` velocity-preset family (`loc_3476/347d/3484/348b`), `loc_3748`, `loc_384a`, `loc_3968` | [code] |
-| **Player walk-frame animation** | `loc_184a`, `loc_186a`→`loc_186f` | [code] |
-| **Actor spawn + draw** (tile+colour stamp into VRAM/CRAM) | `loc_37cf`, `loc_38c8` | [code] |
-| **Object action dispatch** (per-state) | `loc_13de`, `loc_1434`, `loc_144c`, `loc_4eea` | [code] state machines keyed on a mode byte |
-| **Sound request** | `loc_4c1f..4ca3` stubs → shared enqueue `loc_4ca5` → ring at `SOUND_RING` 0x8020 | [code] |
-| **High-score table + score display** | `loc_4d3a` (top-3 insert), `loc_4d0c` (BCD digit unpack) | [code] backs "BEST SCORES TODAY" |
-| **DSW → gameplay params** | `loc_4b55` decodes dip bits into 0x804c–0x8053 | [code] |
-| **Actor spawn (primary + twin records)** | `loc_37cf`/`loc_38c8`/`loc_3984` seed `ACTOR_*` 0x810a.. + `TWIN_*` 0x811b.. + colour/tile stamp | [code] a two-body actor (sprite + shadow) |
-| **Column / vertical tile animation** | `loc_2f71`/`loc_2f88`/`loc_2fb7`/`loc_2fc0` (frame-gated 6-tile column blit) | [code] the dirt/shaft animation |
-| **Tile-cell address calc** (row,col → tilemap offset) | `loc_3dae`-style (`TILE_ROW`/`TILE_COL` → HL) | [code] |
+| **Per-frame service (vblank NMI)** | `loc_0066` (input sample + debounce, coin, service, re-arm) | [code] |
+| **Player dig / wall collision** | `steerDemoPlayer`-adjacent `loc_03e8` → maze-wall move-dir at `DEMO_STEER_DIR` 0x801b | [code] the tunnel-movement core |
+| **Attract-demo "AI" (fake joystick)** | `steerDemoPlayer` (0x03e8) writes a move dir the dispatcher reads *in place of* the stick | [code] the standout decompile |
+| **Per-frame object step from control** | `stepObjectFromControl` (0x1420): picks `DEMO_STEER_DIR` (demo) vs debounced joystick by `GAME_MODE`, hands to the update dispatcher `loc_1434` | [code] |
+| **Object action dispatch** (per-state) | `loc_13de`, `loc_1434`, `loc_144c` (first-set-bit command dispatcher), `stepHighScoreInitialsEntry` (0x4eea) | [code] state machines keyed on a mode byte |
+| **Tile-under-object classify** (dirt / diamond / empty) | `loc_1568` / `loc_1515` / `loc_14cd` (shared body); probe walk via `PROBE_CELL_PTR`/`SUBTILE_PHASE`, tables in `loc_3476`-family region | [code] drives collect vs dig |
+| **Loot collect + score + blank tile** | `collectLootTile` (0x18cf): `awardTenPoints`/`awardTwentyPoints`, bump per-kind counter, blank the cell, keep moving | [code] **the core scoring loop** |
+| **Dig reaction** | `triggerDigReaction` (0x191f): on a diggable tile stages `REACTION_STATE`=3 + dig sprite + dig sound | [code] |
+| **Player walk-frame animation + step** | `walkActor` (0x184a step-by-velocity + walk-sprite cycle), `advanceActorWalk` (0x19d0), `drawActorWalkFrame` (0x19e3), `advanceObjectWalkFrame` (0x1659); `loc_186a`→`loc_186f` (cell geometry + tile dispatch) | [code] |
+| **Object / enemy movers** | `0x3490` velocity-preset family (`loc_3476/347d/3484/348b`, direction presets), `advanceDormantMover` (0x34da), `descendActorToRest` (0x3968 ease a two-body actor to its floor), `advanceAltPhaseActor` (0x384a) | [code] axis/direction semantics still partly unpinned |
+| **Actor spawn (primary + twin records)** | `seedObjectRecords` (0x30de), `loc_37cf`/`loc_38c8`/`loc_3984` seed `OBJ1_*`/`OBJ2_*` + `ACTOR_*` 0x810a.. / `TWIN_*` 0x811b.. + `stageObjectSpriteRecord` (0x1b5b) | [code] two-body actor (sprite + shadow) |
+| **Background scroll sprite** (the sky UFO?) | `BG_SPRITE_*` (0x80db.. X/frame/attr/Y) bounced by `loc_2f71`, frame set by `setBgSpriteFrame` (0x2fd9) | [guess] the patrolling top-band object |
+| **Column / vertical tile reveal animation** | `reseedColumnAnimation` (0x23e8) + `loc_241c` walk; `REVEAL_*` (0x80e4/5/6); the `loc_2f71`/`2f88`/`drawTerrainColumn` (0x2fb7)/`2fc0` blitters | [code] the dirt/shaft animation |
+| **Board-display setup** (screen rebuild per board mode) | `setupBoardDisplay(m, boardMode)` (0x4b46): clear sprites, wipe tilemap, flood colour RAM, blank staging; doors `loc_4b40`(0x90)/`loc_4b44`(0x00)/`loc_4b3c`(0xC0) | [code] |
+| **Static attract screens** | `showCreditScreen` (0x021c), `showSetupScreen` (0x3a6f), `showFixedScreen` (0x3b81) — paint a canned screen and hold | [code] |
+| **HUD panels & labels** | `drawSharedPanel` (0x3cc1 skeleton), `drawMenLeftPanel` (0x483a "MEN LEFT"/"LAST MAN" + count `0x802b`), `drawCreditsDisplay` (0x4894 "CREDITS"+count), `drawPlayerLabel` (0x47e1 "PLAYERS"), `drawGameOverText`/`drawGameOverLabel` | [code] ROM glyphs decoded + confirmed |
+| **Score readouts** | `renderScoreReadouts` (0x4cca), `initScoreDisplay` (0x4bc7), `drawScoreDigits` (0x46af), `unpackScoreDigits` (0x4d0c BCD→digits), `addScore`/`awardOnePoint`/`awardTenPoints` | [code] |
+| **High-score table + entry** | `loc_4d3a` (top-3 insert), `stepHighScoreInitialsEntry` (0x4eea), `advanceInitialUp` (0x4f38 step an initial letter) | [code] backs "BEST SCORES TODAY" |
+| **Edge / terrain column paint** | `drawLeftEdgeColumn` (0x46f4 col 0), `drawRightEdgeColumn` (0x47a1 col 31), `drawTerrainColumn` (0x2fb7), `cycleColumnColour` (0x3e13 palette-cycle a column), `glitterDiamonds` (0x06ac diamond colour flash) | [code] |
+| **Sound request** | `requestSoundN` stubs → shared enqueue `enqueueSoundCommand` (0x4ca5) → ring at `SOUND_RING`/`SOUND_HEAD` (0x8020/0x801e) | [code] |
+| **DSW → gameplay params** | `loc_4b55` decodes dip bits into 0x804c–0x8053 (incl. lives → `0x802b` men-left, `STEP_TIMER_BASE` 0x804f) | [code] |
+| **Player-record swap** | `loadPlayerState` (0x4644) / `saveActivePlayerRecord` (0x4632) copy the active player's block to/from the shared live slot | [code] 2-player alternation |
+| **PRNG** | `advanceRandom` (0x4b1a) — 16-bit LFSR, reseeds if zero; drives enemy/column jitter | [code] |
+| **Tile-cell address calc** (row,col → tilemap + cursors) | `rowColToTileOffset` (0x3dae → `TILEMAP_OFFSET`), `deriveTileWriteCursors` (0x3dc9 → `COLOUR_RAM_CURSOR`); fills via `copyTileColumn`/`copyCappedTileColumn`/`fillColourColumn` | [code] |
 | **Render** (state → pixels) | `boards/thepit/video.js` — 5-layer compose, per-column Y-scroll, +16 vtop | [seen] pixel-exact vs MAME |
 
 ## RAM roles
 
-The named work-RAM constants now live in **`idiomatic/ram.js`** (~27 names, each proposed from
-cross-routine corroboration and tagged strong/fair/weak; a proposer≠confirmer verification pass is
-still owed). Highlights: `OBJ_X`/`OBJ_Y` (0x8068/0x806b probe coords), `SPRITE_CODE` (0x8069),
-`DIG_DIRS` (0x801b — the maze-wall bitmask), `GAME_MODE` (0x8001), `BOARD_MODE` (0x8057),
-`ACTOR_*`/`TWIN_*` (0x810a../0x811b.. actor records), `SPAWN_PHASE` (0x807b), `ACTOR_TIMER` (0x8112),
-`SOUND_HEAD`/`SOUND_RING` (0x801e/0x8020), the DSW params 0x804c–0x8053, and the score/high-score
-block (0x8031/0x8034, 0x803c/41/46, 0x8037/38). Not yet named (still hex): 0x8075 (object flags /
-dispatcher key), 0x8018 (object-action selector), 0x80c3 (24-entry object table, scanned by
-`loc_2bf2`), 0x80e7 (tile-under-object record).
+The named work-RAM constants live in **`idiomatic/ram.js`** (~90 names). The newest ~43 got the full
+proposer≠confirmer + adversarial-judge treatment (cross-routine consensus, keep-hex-if-ungrounded);
+older ones are tagged strong/fair/weak. Highlights:
+- **Probe / tile:** `OBJ_X`/`OBJ_Y` (0x8068/0x806b), `SPRITE_CODE` (0x8069), `DEMO_STEER_DIR` (0x801b
+  the demo move-dir), `OBJ_TILE_COL`/`OBJ_TILE_ROW` (0x8071/0x8073), `PROBE_CELL_PTR` (0x8089),
+  `SUBTILE_PHASE` (0x808d), `OBJ_SPRITE_ATTR` (0x806a), `MOVER_STATE` (0x8090).
+- **Score / HUD:** `SCORE_LO`/`SCORE_HI` (0x8031/0x8034), `SCORE_DISPLAY_LOW`/`HIGH` (0x8037/0x8038),
+  the men-left counter **0x802b**, `SOUND_HEAD`/`SOUND_RING` (0x801e/0x8020).
+- **Actor records:** `ACTOR_*`/`TWIN_*` (0x810a../0x811b..), `ACTOR_STEP_X`/`Y` (0x810e/0x810f),
+  `TWIN_TIMER` (0x8123), `OBJ1_X`/`OBJ2_X`… (0x80e8../0x80f9.. two object records), `SPAWN_PHASE`
+  (0x807b), `ACTOR_TIMER` (0x8112).
+- **Sub-objects:** `DIG_OBJ_ATTR`/`TIMER`/`SUBTYPE`/`ARM_STATE` (0x80ab..0x80c1), `REACTION_OBJ_X`/`Y`
+  (0x8094/0x8097), `BG_SPRITE_X`/`FRAME`/`ATTR`/`Y` (0x80db..0x80de, the sky object).
+- **Animation / geometry:** `TILEMAP_OFFSET` (0x805a), `COLOUR_RAM_CURSOR` (0x805e), `COLUMN_ANIM_TIMER`/
+  `WRITE_PTR` (0x8067/0x8065), `REVEAL_PERIOD`/`GATE`/`CURSOR` (0x80e4/5/6), `ANIM_PHASE_COUNTER`
+  (0x80e3), `GLITTER_COUNTDOWN` (0x805c), `FRAME_WAIT_COUNTDOWN` (0x8009), `STEP_TIMER_BASE` (0x804f),
+  `GAME_MODE` (0x8001), `BOARD_MODE` (0x8057), DSW params 0x804c–0x8053.
+
+Deliberately still hex (held by the judge as ungrounded — mixed/unpinned roles): the object-record axis
+bytes at 0x80e0/0x80e1/0x80eb/0x8086/0x80a1 (the object-1 Y and several velocity/step fields), 0x8075
+(object flags / dispatcher key), 0x80c3 (24-entry object table, scanned by `loc_2bf2`).
+
+## Resolved this pass  [code]
+
+- **How a collected diamond scores + removes its tile** — `collectLootTile` (0x18cf): on a scoring
+  tile it awards points (`awardTenPoints` / the 20-pt `awardTwentyPoints`), bumps that loot kind's
+  counter, **blanks the cell** (tile 112), and keeps the actor moving. The core scoring loop.
+- **The score display path** — `renderScoreReadouts`/`initScoreDisplay`/`drawScoreDigits` →
+  `unpackScoreDigits` (BCD→digit tiles), from the `SCORE_LO`/`HI` block.
+- **The HUD** — a lives panel `drawMenLeftPanel` ("MEN LEFT"/"LAST MAN" + count 0x802b, seeded from the
+  DSW lives dip), a "CREDITS n" display, a "PLAYERS" label, and a shared panel skeleton — all glyph-decoded.
+- **2-player alternation** — `loadPlayerState`/`saveActivePlayerRecord` swap the active player's record.
 
 ## Open questions (to resolve as translation completes)
 
-- Exact win/lose conditions and the timer (a tick counter gates flags — `loc_3458`/`loc_34da`).
-- What the **UFO** does — patrol only, or does it fire/bomb? (a sky-object dispatcher, not yet pinned).
+- Exact **win/lose conditions** and the timer (a tick counter gates flags — `loc_3458`/`advanceDormantMover`).
+- What the **UFO / background scroll sprite** does — `BG_SPRITE_*` is bounced left↔right by `loc_2f71`
+  and its frame animated by `setBgSpriteFrame`; whether it fires/bombs is still unpinned. [guess]
 - The bottom **creatures'** behaviour and the "ZUN…" label (full enemy name unread).
-- How a collected diamond scores + removes its tile (the classifier writes 0x80e7; the scoring link is unconfirmed).
-- The elevator/shaft the player starts in (top-left green structure) — is it a lift, or just the entry?
+- The **object-mover axis semantics** — the `loc_3476`-family direction presets and several object-record
+  step/velocity bytes stayed `loc_`/hex because X-vs-Y is contested under ROT90; needs a control-poke pass.
+- The **elevator/shaft** the player starts in (top-left green structure) — lift or just the entry?
 
 ## Pixel-testing status
 

@@ -28,11 +28,13 @@
  * LIVE-OUT: memory — the sprite-frame byte plus everything the shared tail writes — and the
  *           tail's control flow. No live registers of its own (the tail overwrites the
  *           accumulator before reading it, and no caller reads a register back).
- * NAMES:    SPRITE_CODE (0x8069). The shared tail loc_186f has no idiomatic file yet, so it is
- *           still reached through the frozen oracle at its ROM address.
+ * NAMES:    SPRITE_CODE (0x8069). The shared tail loc_186f is decompiled, so it is called
+ *           directly; its columnBias parameter defaults to the D register, which the
+ *           dispatcher set before jumping here and this routine leaves untouched.
  */
 
 import { SPRITE_CODE } from "./ram.js";
+import { loc_186f } from "./loc_186f.js";
 
 export function loc_186a(m) {
   const { mem8 } = m;
@@ -42,6 +44,6 @@ export function loc_186a(m) {
 
   // Hand off to the shared tail: rebuild the actor's screen cell, read the under-tile, and
   // dispatch on it. Its return unwinds to this routine's caller, so it is our return too.
-  // loc_186f is still the frozen oracle (no idiomatic file yet).
-  return m.call(0x186f);
+  // columnBias defaults to regs.d — the bias the dispatcher set, which we leave untouched.
+  return loc_186f(m);
 }

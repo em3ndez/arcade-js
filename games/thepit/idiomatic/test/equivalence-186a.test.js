@@ -7,11 +7,16 @@
  * The routine's declared live-out is MEMORY-ONLY: the sprite-frame byte it writes plus
  * everything the shared tail writes. It has no live registers of its own, so the gate compares
  * RAM only (dumpState), never the Z80 pc/SP/register/cycle trace the idiomatic layer drops.
- * The shared tail loc_186f has no idiomatic file yet, so BOTH arms reach it through the same
- * frozen oracle at its ROM address — the tail's whole cascade (cell rebuild, tile read,
- * downstream classify) runs identically on each side, which is why a plain full-RAM diff is the
- * right contract here (the stack activity is byte-identical between the two arms — no
- * stack-scratch exclusion needed).
+ *
+ * THE STACK SCRATCH. loc_186a's own tail is now dissolved: where the frozen oracle hands off to
+ * the shared tail through a stack-threaded jump, the idiomatic arm calls the already-idiomatic,
+ * stack-free tail loc_186f directly. The two therefore leave different dead bytes just below the
+ * entry stack pointer (The Pit's stack is real diffed work RAM, entry SP ~0x83fd here) — classic
+ * dead scratch the oracle's deeper call chain parks and the stack-free idiomatic never writes,
+ * overwritten by the caller's next push before anything reads it. The diff excludes exactly that
+ * [SP-8, SP) window and compares everything else byte-for-byte; the real outputs all sit far
+ * below the stack (the sprite-frame byte 0x8069 plus the tail's 0x80xx/video-RAM writes), so the
+ * window can never hide one — the teeth confirm it.
  *
  * A WRINKLE THE TEETH HANDLE. The frame the routine stamps is a DEFAULT: on almost every tile
  * the tail's classifier recomputes the actor frame and overwrites 0x8069, so the stamp is dead
@@ -57,6 +62,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x186a;
 const TAIL = 0x186f; // the shared position/tile tail loc_186a hands off to (still the oracle)
+const STACK_SCRATCH = 8; // dead bytes the oracle's stack-threaded tail hand-off parks just below
+// entry SP (the diff at entry 212 sits at SP-6, 0x83f7..0x83fc); the idiomatic tail is stack-free
 const FRAME_CODE = 52; // 0x34 — the fixed animation frame this prologue stamps
 const WRONG_FRAME = 53; // a deliberately-wrong frame for the payload teeth
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -82,16 +89,37 @@ function captureRealEntries(maxFrames) {
 }
 
 /**
+ * First differing RAM byte between two machines, EXCLUDING the dead stack scratch the oracle's
+ * stack-threaded tail hand-off parks just below the entry stack pointer (which the stack-free
+ * idiomatic tail loc_186f does not reproduce). Null when otherwise identical.
+ */
+function stateDiffOutsideStack(o, c, entrySP) {
+  const da = o.dumpState();
+  const db = c.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = o.stateOffsetToAddr(i);
+    if (addr >= entrySP - STACK_SCRATCH && addr < entrySP) continue; // dead stack scratch
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
+}
+
+/**
  * Replay one captured entry through the oracle and through `fn` on two independent clones and
- * return the first differing RAM byte (null == memory-equivalent). RAM only: pc/SP/registers/
- * cycles are the dropped, dead part of the contract.
+ * return the first differing RAM byte OUTSIDE the dead stack scratch (null == memory-equivalent).
+ * RAM only: pc/SP/registers/cycles are the dropped, dead part of the contract. The oracle's tail
+ * hand-off threads through the stack while the idiomatic tail is stack-free, so the two leave
+ * different dead bytes in [entrySP-8, entrySP) — excluded here; no real cell lives there.
  */
 function ramDiff(entry, fn) {
+  const sp = entry.regs.sp;
   const o = entry.clone();
   oracle(o);
   const c = entry.clone();
   fn(c);
-  return firstStateDiff(o.dumpState(), c.dumpState(), (off) => o.stateOffsetToAddr(off));
+  return stateDiffOutsideStack(o, c, sp);
 }
 
 /**
