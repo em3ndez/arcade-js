@@ -15,8 +15,12 @@ validated **pixel-exact against MAME**. Not a re-implementation from observation
 disassembled and translated instruction by instruction, then checked frame against frame until
 the pixels match.
 
-**Donkey Kong** is the first subject. The repo is structured to host many: multiple CPUs,
-multiple arcade boards, and multiple game romsets, sharing what they genuinely share.
+**Donkey Kong** is the first subject, and it is complete. **The Pit** (Zilec/Centuri, 1982) is
+the second, and it was chosen deliberately: **no public disassembly of it exists**, so there was
+nothing for a model to have memorized — the agents had to recover it from the raw ROM. That makes
+it the sharper test of the thesis, and the same falsifiable pixel gate keeps it honest. The repo
+is structured to host many: multiple CPUs, multiple arcade boards, and multiple game romsets,
+sharing what they genuinely share.
 
 How the agents were organised — the division of labour, the failure modes we actually hit, and
 what the tooling had to do about them — is written up in
@@ -24,9 +28,14 @@ what the tooling had to do about them — is written up in
 
 ![Donkey Kong running in the arcade-js browser player](docs/media/player-screenshot.png)
 
-> **Status:** Donkey Kong plays. All four boards, natural board-to-board progression, and the
+> **Status — Donkey Kong:** plays. All four boards, natural board-to-board progression, and the
 > level loop all work — finish 100m and it wraps back to 25m at the next level, indefinitely —
 > and the rendering is pixel-validated frame-by-frame against MAME 0.288.
+>
+> **Status — The Pit:** in progress. Its whole boot→attract sequence runs and renders pixel-exact
+> against MAME, and 127 of its 169 routines are additionally rewritten into idiomatic JavaScript
+> (with the memory and routines named from evidence, proposer≠confirmer). Full gameplay is not yet
+> validated — that's the current work.
 
 ## What's here (and what isn't)
 
@@ -75,8 +84,10 @@ at 2× speed; over this 35-second run the largest single-frame difference is 0.1
   instruction boundary (`make stepcheck`). The static tracer reaches ~77% of the ROM; targets
   in the spans it hasn't reached are reported as **coverage gaps rather than quietly counted
   as passes** — a green gate says what it actually covered.
-- **343 unit tests**, with mutation patches recorded next to the assertions they justify, so
-  a test that cannot fail is visible as such.
+- **Several thousand unit tests** (`npm test`), with mutation patches recorded next to the
+  assertions they justify, so a test that cannot fail is visible as such. Each idiomatic rewrite
+  additionally carries a memory-equivalence test against the frozen oracle, with deliberately-broken
+  twins it must catch.
 - **State and write diffs.** RAM and the hardware write surface are diffed independently of
   pixels, which separates "the CPU translation is wrong" from "the video model is wrong."
 
@@ -92,17 +103,19 @@ boards/               arcade hardware, named by MAME driver (a "board")
   dkong/hardware.json the same, as JSON: the single source the shared Python gate
                       tools read via --hardware, instead of hardcoding DK addresses
   dkong/test/         unit tests for the board
-games/                one directory per romset
+games/                one directory per romset (dkong, thepit)
   dkong/
     manifest.js       declares its cpu + board + rom set + inputs + metadata
-    translated/       the assembly-JS translation of the ROM
-    optimized/        (room for) idiomatic-JS rewrites, gated for equivalence
+    translated/       the assembly-JS translation of the ROM (the frozen oracle)
+    idiomatic/        readable-JS rewrites, each gated memory-equivalent to the oracle
     audio/            sound-command → sample trigger map
     rom/              gitignored — `make rom-dkong` builds it locally
     tapes/            test input tapes (published)
     test/             unit + integration tests for the translation
     entrypoints.json  disassembly entry points (folded into the trace)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
+  thepit/             the second game — same shape; its MECHANISMS.md maps the game
+                      as understood so far (see docs/07)
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·
                        gate runner (verdict.sh) — shared, game-agnostic
@@ -132,7 +145,7 @@ Pick Donkey Kong, press **5** to drop a coin and **1** to start — arrows or WA
 space to jump.
 
 ```sh
-npm test           # 343 unit tests (ROM-dependent ones skip cleanly if you haven't built one)
+npm test           # the full unit suite (ROM-dependent ones skip cleanly if you haven't built one)
 ```
 
 (`make rom-dkong` is an alias for `make -C games/dkong rom`; `make serve` is an alias for
