@@ -329,6 +329,16 @@ growing through every step below ([doc 7](07-understanding-the-mechanisms.md)). 
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 
+> **RULE — `MECHANISMS.md` is updated with EVERY clarify pass, as part of the pass, not later.** A
+> clarify pass exists to convert *correct* code into *understood* code, and the earned names and
+> resolved questions ARE that understanding — so folding them back into the mechanism map is part of
+> finishing the pass, in the same landable unit as the renames. Do not let the map drift behind the
+> names: every batch that promotes routine/RAM names or answers an open question edits `MECHANISMS.md`
+> in the same commit (new subsystems mapped, the routine/RAM table updated to the earned names,
+> newly-answered questions moved to a "resolved" note, still-open ones sharpened). A map that lags the
+> code is the tell that a clarify pass was left half-done — the names shipped but the understanding
+> they represent was never written down where the next agent reads it.
+
 1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
    (This is [doc 3](03-translation.md), with uniform address names from line one.)
 2. **Call graph + reachability** — who calls whom, what is reachable, what is dead. This is the
@@ -394,6 +404,9 @@ the map and can't be done well without it. It is required reading for anyone nam
    (equivalence tests, the `no-stale-mcall` lint, the third review). Loop decompile ⇄ clarify to 100%;
    seed the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) early, but expect
    most names to fall out *of* this loop, not before it.
+   - **Finish every clarify pass by updating `MECHANISMS.md` in the same commit** (the rule above). The
+     earned names + resolved questions are the pass's actual product; a pass that ships the names but
+     not the map update is half-done.
 5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is
    the one accepted sub-frame residual.
 
@@ -422,3 +435,19 @@ smuggles in understanding a tool lacks); that question needs its own stripped/fr
   measured, but verify per game that such a counter never reaches gameplay-visible state.
 - **The register-ABI marshalling leak** persists until you decompile bottom-up. It is not
   fundamental; it is the artifact of decompiling one routine while its callee is still raw ROM.
+- **Decompiling a shared-helper leaf is not a landable unit on its own — the landable unit is
+  decompile + dissolve-every-caller + migrate-the-strict-caller-tests.** Two coupled consequences
+  fire the moment the leaf lands: (1) every caller's `m.call(0xADDR)` to it is now stale, so the
+  `no-stale-mcall` dissolve-invariant lint goes red — the batch will not go green until all callers
+  are dissolved to direct calls (on The Pit, decompiling one copy/fill helper stranded 25 `m.call`s
+  across 15 files, including `push16` return-brackets). (2) Dissolving a *tail* `return m.call` or a
+  bracketed call changes the Z80 pc/SP/stack, which false-fails any caller test still written to the
+  **strict** pc/SP/whole-stack contract — those tests must be migrated to the memory-equivalence
+  contract (exclude the dead `[SP-8, SP)` stack scratch, keep the RAM diff and teeth; model on the
+  already-migrated `equivalence-18cf`/`-47e1`). Plan the batch as one unit: decompile the leaf,
+  dissolve every caller (partition the caller files across agents so no two touch one file), migrate
+  each stale strict test (each one must re-prove its relaxed gate still catches a broken-RAM twin at
+  a *real* cell, not a stack-scratch ghost), then gate the whole set on the full suite + the lint
+  before it lands. A per-agent "green" self-report is not the gate — a later dissolve in the same
+  batch can move a dead stack byte that a caller test three files away was silently asserting, so run
+  the whole suite yourself before committing.
