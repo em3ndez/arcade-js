@@ -28,14 +28,14 @@
  *           byte. It takes no register inputs and the caller reads its result from RAM;
  *           the residual registers/flags are dead ABI (the RAM gate backstops that). It
  *           models no stack, so SP and the return address are left untouched.
- * NAMES:    local names for the high-score block — no ram.js name exists for it. The
+ * NAMES:    the candidate score bytes 0x8031/0x8034 are SCORE_LO/SCORE_HI from ram.js;
+ *           the ranked table slots keep local names — no ram.js name exists for them. The
  *           landed-rank byte 0x8048 is what ram.js tentatively (weak) calls VARIANT for
  *           a different, round-setup role, so it is NOT imported here — using a wrong
  *           role name would mislead worse than a plain address.
  */
 
-const CANDIDATE_LO = 0x8031; // low byte of the candidate score
-const CANDIDATE_HI = 0x8034; // high byte of the candidate score
+import { SCORE_HI, SCORE_LO } from "./ram.js";
 
 // The ranked table: rank 1 (top) at TABLE_TOP, then rank 2, rank 3, each a 5-byte
 // record of [initial, initial, initial, score-low, score-high].
@@ -72,7 +72,7 @@ function landScoreAt(m, rank, score) {
 
 export function insertHighScore(m) {
   const { mem8, mem16 } = m;
-  const candidate = (mem8[CANDIDATE_HI] << 8) | mem8[CANDIDATE_LO];
+  const candidate = (mem8[SCORE_HI] << 8) | mem8[SCORE_LO];
 
   // Must strictly beat the lowest entry to make the table at all.
   if (candidate <= mem16[scoreAddr(3)]) return;

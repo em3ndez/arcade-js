@@ -33,12 +33,12 @@
  *           still-oracle HUD-redraw caller reads back. The scratch digit/flag state
  *           the oracle leaves behind is dead — its other callers invoke it only for
  *           the repaint side effect and read none of it.
- * NAMES:    GAME_STATE2 (0x8002) — read here as the active player index. 0x8031 /
- *           0x8034 kept hex: the packed BCD score low / high bytes, not yet named in
- *           ram.js. The two column bases are tile-map addresses (hex).
+ * NAMES:    GAME_STATE2 (0x8002) — read here as the active player index. SCORE_LO
+ *           (0x8031) / SCORE_HI (0x8034) from ram.js — the packed BCD score low /
+ *           high bytes. The two column bases are tile-map addresses (hex).
  */
 
-import { GAME_STATE2 } from "./ram.js";
+import { GAME_STATE2, SCORE_HI, SCORE_LO } from "./ram.js";
 
 // The blank tile that replaces a suppressed leading zero.
 const BLANK_TILE = 36;
@@ -55,12 +55,12 @@ export function drawScoreDigits(m) {
   const base = mem8[GAME_STATE2] === 1 ? P1_SCORE_COLUMN : OTHER_SCORE_COLUMN;
 
   // Low pair: the two lower-order digits, always drawn (no blanking).
-  const low = mem8[0x8031];
+  const low = mem8[SCORE_LO];
   mem8[base] = low & 0x0f; // least significant digit
   mem8[base + ROW] = low >> 4; // next digit up
 
   // High pair: the two leading digits, with leading-zero blanking.
-  const high = mem8[0x8034];
+  const high = mem8[SCORE_HI];
   const leadDigit = high >> 4;
   const secondDigit = high & 0x0f;
 

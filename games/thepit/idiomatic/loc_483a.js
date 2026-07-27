@@ -35,7 +35,8 @@
  *           of that entry over the RAM the panel writes, excluding the dead stack
  *           scratch the oracle's helper returns park below the stack pointer; teeth caught.
  * LIVE-OUT: memory-only — the panel's tilemap + colour cells and the layout scratch
- *           (0x805a offset, 0x805e/0x8060 cursors, 0x8055/0x8057 fill staging). Because
+ *           (TILEMAP_OFFSET (0x805a) offset, COLOUR_RAM_CURSOR (0x805e)/0x8060 cursors,
+ *           0x8055/0x8057 fill staging). Because
  *           the decompiled helpers are plain calls with no machine stack frame, this
  *           routine no longer reproduces their return-address pushes, so the stack
  *           scratch below the stack pointer, the stack pointer, and the exit address

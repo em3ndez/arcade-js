@@ -17,8 +17,8 @@
  * resulting state.
  *
  * Name kept as loc_2f2f: like its sibling loc_30de, the block it seeds drives a
- * subsystem that is not yet identified, and the counter it reads is not a confirmed,
- * named field — the role is a best-effort reading, below the bar to promote to an
+ * subsystem that is not yet identified — the counter it reads is the named LEVEL field,
+ * but the block's own role is a best-effort reading, below the bar to promote to an
  * English name.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f2f.test.js.
@@ -32,27 +32,40 @@
  * LIVE-OUT: memory-only — the seeded parameter bytes and the derived reload byte. The
  *           round-init caller consumes the seeded memory, not any register; the tail
  *           owns everything after the hand-off, identically on both sides.
- * NAMES:    none from ram.js — every address this touches (the 0x80db–0x80e7
- *           parameter block and the 0x8028 difficulty counter) is still unnamed. The
- *           tail is the decompiled loc_30de (ROM 0x30de).
+ * NAMES:    from ram.js — BG_SPRITE_X/FRAME/ATTR/Y (0x80db–0x80de), ANIM_PHASE_COUNTER
+ *           (0x80e3), REVEAL_PERIOD (0x80e4), REVEAL_GATE (0x80e5), REVEAL_CURSOR (0x80e6),
+ *           GOAL_TILE_LATCH (0x80e7), and the LEVEL difficulty counter (0x8028); only
+ *           0x80df–0x80e0 in the block stay unnamed hex. The tail is the decompiled
+ *           loc_30de (ROM 0x30de).
  */
 
 import { loc_30de } from "./loc_30de.js";
 
-import { LEVEL, GOAL_TILE_LATCH } from "./ram.js";
+import {
+  ANIM_PHASE_COUNTER,
+  BG_SPRITE_ATTR,
+  BG_SPRITE_FRAME,
+  BG_SPRITE_X,
+  BG_SPRITE_Y,
+  GOAL_TILE_LATCH,
+  LEVEL,
+  REVEAL_CURSOR,
+  REVEAL_GATE,
+  REVEAL_PERIOD,
+} from "./ram.js";
 export function loc_2f2f(m) {
   const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
-  mem8[0x80db] = 40;
-  mem8[0x80dc] = 57;
-  mem8[0x80dd] = 192;
-  mem8[0x80de] = 120;
+  mem8[BG_SPRITE_X] = 40;
+  mem8[BG_SPRITE_FRAME] = 57;
+  mem8[BG_SPRITE_ATTR] = 192;
+  mem8[BG_SPRITE_Y] = 120;
   mem8[0x80df] = 1;
   mem8[0x80e0] = 252;
-  mem8[0x80e3] = 1;
-  mem8[0x80e5] = 1;
-  mem8[0x80e6] = 150;
+  mem8[ANIM_PHASE_COUNTER] = 1;
+  mem8[REVEAL_GATE] = 1;
+  mem8[REVEAL_CURSOR] = 150;
   mem8[GOAL_TILE_LATCH] = 0;
 
   // Animation reload byte, scaled by difficulty. Increment the round's
@@ -60,7 +73,7 @@ export function loc_2f2f(m) {
   // and take seven minus that. As the level rises the reload steps down 6, 5, 4 and
   // then floors at 3 — a shorter animation cadence at harder levels.
   const cappedLevel = Math.min((mem8[LEVEL] + 1) & 0xff, 4);
-  mem8[0x80e4] = 7 - cappedLevel;
+  mem8[REVEAL_PERIOD] = 7 - cappedLevel;
 
   // Tail hand-off into loc_30de; its return goes to our caller, so this is
   // loc_2f2f's exit.

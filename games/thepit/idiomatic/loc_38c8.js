@@ -33,15 +33,23 @@
  *           the oracle threads are dead ABI (this gate sits on a tail-jump ladder whose
  *           callers reload the register file next frame); the whole-machine gate backstops
  *           that.
- * NAMES:    ACTOR_X/ACTOR_Y/ACTOR_TILE/ACTOR_TIMER, TWIN_X/TWIN_TILE/TWIN_CLEAR from
- *           ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on each record) and
- *           0x810e/0x810f (two primary-only record fields), none named in ram.js; and the
- *           video/colour anchors 0x93a3/0x8ba3 (hardware display addresses).
+ * NAMES:    ACTOR_X/ACTOR_Y/ACTOR_TILE/ACTOR_TIMER, TWIN_X/TWIN_TILE/TWIN_CLEAR and
+ *           ACTOR_STEP_X/ACTOR_STEP_Y (the two primary-only record fields 0x810e/0x810f)
+ *           from ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on each record),
+ *           not named in ram.js; and the video/colour anchors 0x93a3/0x8ba3 (hardware
+ *           display addresses).
  */
 
 import {
-  ACTOR_X, ACTOR_Y, ACTOR_TILE, ACTOR_TIMER,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR,
+  ACTOR_STEP_X,
+  ACTOR_STEP_Y,
+  ACTOR_TILE,
+  ACTOR_TIMER,
+  ACTOR_X,
+  ACTOR_Y,
+  TWIN_CLEAR,
+  TWIN_TILE,
+  TWIN_X,
 } from "./ram.js";
 import { loc_3945 } from "./loc_3945.js";
 
@@ -72,8 +80,8 @@ export function loc_38c8(m) {
   mem8[TWIN_CLEAR] = 31; // twin's matching row
   mem8[TWIN_TILE] = 42;
   mem8[ACTOR_TILE] = 43;
-  mem8[0x810e] = 0; // two primary-only record fields (no confirmed name)
-  mem8[0x810f] = 1;
+  mem8[ACTOR_STEP_X] = 0; // the two primary-only record fields
+  mem8[ACTOR_STEP_Y] = 1;
   mem8[ACTOR_TIMER] = 1; // cadence timer, armed to fire next tick
   mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
   mem8[TWIN_PAIRED] = PAIRED_DISPLAY;

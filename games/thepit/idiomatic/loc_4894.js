@@ -56,8 +56,9 @@
  *           tail return with one m.ret() on the candidate and excludes that dead stack
  *           window, then compares the observable RAM byte-for-byte. Teeth twins caught.
  * LIVE-OUT: memory-only — the panel's tilemap + colour cells and the layout scratch
- *           (0x805a offset, 0x805e/0x8060 cursors). The routine tail-calls the colour
- *           filler, whose return goes to our caller.
+ *           (TILEMAP_OFFSET at 0x805a, and the COLOUR_RAM_CURSOR 0x805e / 0x8060 write
+ *           cursors). The routine tail-calls the colour filler, whose return goes to
+ *           our caller.
  * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
  *           proposes BOARD_MODE for that address, but here it is unambiguously the
  *           panel's colour byte, so a local role name is used instead of a misfit

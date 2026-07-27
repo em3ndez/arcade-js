@@ -38,18 +38,20 @@
  *           oracle's found flag.
  * LIVE-OUT: the returned found flag (the oracle's Z result) — the only thing any
  *           caller reads. Writes no memory; leaves no live registers.
- * NAMES:    none from ram.js — the three work-RAM inputs (0x808d phase-row selector,
- *           0x8089 probe-cell tilemap pointer, 0x8086 object sub-row) are not yet
- *           named there; 0x34fe is the ROM probe table.
+ * NAMES:    SUBTILE_PHASE (0x808d, phase-row selector) and PROBE_CELL_PTR (0x8089,
+ *           probe-cell tilemap pointer) from ram.js; 0x8086 (object sub-row) is not yet
+ *           named there and kept hex; 0x34fe is the ROM probe table.
  */
+
+import { PROBE_CELL_PTR, SUBTILE_PHASE } from "./ram.js";
 export function tileInProbeRow(m) {
   const { mem8, mem16 } = m;
 
   // Which 32-tile row of the probe table to search (chosen by the object's phase).
-  const rowSelector = mem8[0x808d];
+  const rowSelector = mem8[SUBTILE_PHASE];
 
   // The tile to test lives at the object's probe-cell tilemap pointer.
-  let probeCell = mem16[0x8089];
+  let probeCell = mem16[PROBE_CELL_PTR];
 
   // At the phase where the object straddles a cell boundary, sample one cell back —
   // the cell being entered, not the one being left.

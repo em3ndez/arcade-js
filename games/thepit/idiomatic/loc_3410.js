@@ -8,19 +8,19 @@
  * dispatcher at 0x319d) tests that answer to pick which velocity-preset handler
  * to tail-jump into — a "can the object step this way?" gate.
  *
- *   - The row is chosen by an index byte at 0x808d: the row starts that many
- *     bytes past the table base. (In attract the index is 0, but the offset is
+ *   - The row is chosen by an index byte SUBTILE_PHASE (0x808d): the row starts that
+ *     many bytes past the table base. (In attract the index is 0, but the offset is
  *     faithful — a crafted non-zero index is exercised in the gate.)
  *   - The key is the byte just past the object's current display-cell pointer
- *     held at 0x8089 — i.e. the neighbouring tile code. The "+1" is load-bearing:
+ *     held at PROBE_CELL_PTR (0x8089) — i.e. the neighbouring tile code. The "+1" is load-bearing:
  *     without it the current cell, not the neighbour, would be tested.
  *   - The scan walks at most 32 bytes and stops at the first match; if the whole
  *     row is exhausted with no match the answer is "not allowed".
  *
  * The name stays neutral: the searched bytes read as tile codes and the tables as
- * per-direction allowed-tile sets, but the three inputs (0x808d, 0x8089, the
- * 0x35fe table) are all still unnamed in the mechanism map, so the role has not
- * reached the confidence an English name would claim.
+ * per-direction allowed-tile sets, but that reading is inferred — the ROM table at
+ * 0x35fe is still unnamed in the mechanism map — so the role has not reached the
+ * confidence an English name would claim.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3410.test.js.
  * GATE:     crafted-entry + captured dispatches; reached in attract via the
@@ -30,21 +30,23 @@
  * LIVE-OUT: the match result the caller branches on (the Z flag). HL — the cursor
  *           one past the matched byte — is reproduced to match the oracle, but no
  *           caller reads it: all six call sites branch on the flag alone.
- * NAMES:    none from ram.js — 0x808d (row index), 0x8089 (display-cell pointer),
- *           and the 0x35fe ROM table base are all still hex (unnamed).
+ * NAMES:    SUBTILE_PHASE (0x808d, row index) and PROBE_CELL_PTR (0x8089, display-cell
+ *           pointer) from ram.js. The 0x35fe ROM table base is still hex (unnamed).
  */
 
 import { F_Z } from "../../../core/cpu/z80.js";
+import { PROBE_CELL_PTR, SUBTILE_PHASE } from "./ram.js";
+
 
 export function loc_3410(m) {
   const { regs, mem8, mem16 } = m;
 
   // Which 32-byte row to scan, and where in ROM it starts.
-  const rowIndex = mem8[0x808d];
+  const rowIndex = mem8[SUBTILE_PHASE];
   const rowBase = 0x35fe + rowIndex;
 
   // The key: the tile code one cell past the object's current display cell.
-  const cellPtr = mem16[0x8089];
+  const cellPtr = mem16[PROBE_CELL_PTR];
   const key = mem8[cellPtr + 1];
 
   // Walk up to 32 bytes, stopping at the first match. The cursor lands one byte

@@ -26,10 +26,10 @@
  * backdrop monolith loc_2f71 also carries inline; the standalone form is never
  * dispatched in attract, which shapes the gate below.
  *
- * Name kept as loc_2f88: this backdrop-reveal subsystem is a best-effort reading and
- * none of the counters it touches is a confirmed, named work-RAM field yet — below
- * the bar to promote to an English name (its siblings loc_2fc0/loc_2fd9 stay loc_
- * for the same reason).
+ * Name kept as loc_2f88: this backdrop-reveal subsystem is a best-effort reading. Three
+ * of the counters it touches now carry ram.js names, but the subsystem as a whole is
+ * still below the bar to promote to an English name (its siblings loc_2fc0/loc_2fd9 stay
+ * loc_ for the same reason).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.
  * GATE:     crafted-entry — loc_2f88 is never dispatched in attract (the monolith
@@ -45,12 +45,14 @@
  *           pointer, and the 6 stamped video-RAM tiles; the routine tail-jumps, so
  *           its caller consumes no register and the phase clock owns everything after
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
- * NAMES:    none from ram.js — the reveal gate (0x80e5), its reload period (0x80e4),
- *           the table cursor (0x80e6) and the stashed pattern pointer (0x80e1) are
- *           all still unnamed. Delegates to the decompiled loc_2fc0.
+ * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
+ *           (0x80e6) are REVEAL_GATE/REVEAL_PERIOD/REVEAL_CURSOR from ram.js; the stashed
+ *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled loc_2fc0.
  */
 
 import { loc_2fc0 } from "./loc_2fc0.js";
+import { REVEAL_CURSOR, REVEAL_GATE, REVEAL_PERIOD } from "./ram.js";
+
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
 const PATTERN_TABLE = 0x3048;
@@ -65,21 +67,21 @@ export function loc_2f88(m) {
   const { mem8, mem16 } = m;
 
   // Tick the reveal gate; act only on the frame it counts down to zero.
-  const gate = (mem8[0x80e5] - 1 + 256) % 256;
-  mem8[0x80e5] = gate;
+  const gate = (mem8[REVEAL_GATE] - 1 + 256) % 256;
+  mem8[REVEAL_GATE] = gate;
   if (gate !== 0) {
     // Not a reveal frame — straight on to the phase clock.
     return loc_2fc0(m);
   }
 
   // Reload the gate from its period and step the cursor back one column.
-  mem8[0x80e5] = mem8[0x80e4];
-  const cursor = mem8[0x80e6] - TILES_PER_COLUMN;
+  mem8[REVEAL_GATE] = mem8[REVEAL_PERIOD];
+  const cursor = mem8[REVEAL_CURSOR] - TILES_PER_COLUMN;
   if (cursor < 0) {
     // Ran off the start of the pattern table — the reveal is done, draw nothing.
     return loc_2fc0(m);
   }
-  mem8[0x80e6] = cursor;
+  mem8[REVEAL_CURSOR] = cursor;
 
   // Remember where this column came from in the pattern table (a scratch pointer
   // the backdrop machinery leaves behind), then stamp its 6 tiles up the column.

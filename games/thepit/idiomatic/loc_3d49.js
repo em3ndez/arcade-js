@@ -44,15 +44,14 @@
  *           entry stack pointer (the return-address slot the still-oracle label helper
  *           0x3ddb pushes into, which the direct JS calls no longer model). Teeth twins caught.
  * LIVE-OUT: memory-only — the panel's tilemap + colour cells and the layout scratch
- *           (0x805a offset, 0x805e/0x8060 cursors). The routine hands off to the colour
+ *           (TILEMAP_OFFSET 0x805a, COLOUR_RAM_CURSOR 0x805e / 0x8060 cursors). The routine hands off to the colour
  *           filler and returns to its caller by a plain JS return; the Z80 tail-jump's
  *           final ret is no longer modelled here, so the gate does one ret on the
  *           candidate to line pc + SP up with the oracle before comparing them.
- * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
- *           proposes BOARD_MODE for that address, but here it is unambiguously the
+ * NAMES:    TILE_COL, TILE_ROW, PLOT_RUN_LENGTH from ram.js. 0x8057 kept local (FILL_ATTR) —
+ *           ram.js proposes BOARD_MODE for that address, but here it is unambiguously the
  *           panel's colour byte, so a local role name is used instead of a misfit
- *           import. 0x8055 (PLOT_RUN_LENGTH, per-field cell count) and the source pointers
- *           0x8000 / 0x496d are not named in ram.js.
+ *           import. The source pointers 0x8000 / 0x496d are not named in ram.js.
  */
 
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
@@ -64,8 +63,6 @@ import { copyTileColumn } from "./copyTileColumn.js";
 // The colour attribute every cell of the panel is painted in. ram.js proposes
 // BOARD_MODE for 0x8057, but in this routine the byte is the fill colour, not a mode.
 const FILL_ATTR = 0x8057;
-
-// How many cells the next copy/fill helper writes (reloaded before each field).
 
 // Source of the top cell's live value (a work-RAM slot) and of the fixed ROM label.
 const VALUE_SOURCE = 0x8000;

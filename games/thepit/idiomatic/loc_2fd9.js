@@ -16,8 +16,8 @@
  * oracle) left it in — a genuine oracle boundary — so it is read off the machine
  * rather than taken as a parameter; likewise the tail (0x2fe3) is still oracle, so
  * the hand-off stays a registry call. Name kept as loc_2fd9: the role here is a
- * best-effort reading of a two-tile backdrop flip, and the tile cell it writes is
- * not yet a confirmed, named work-RAM field — below the bar to promote to English.
+ * best-effort reading of a two-tile backdrop flip — below the bar to promote the
+ * routine to English, even though the tile cell it writes is now BG_SPRITE_FRAME.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fd9.test.js.
  * GATE:     crafted-entry — 0x2fd9 is never dispatched in attract (its whole
@@ -25,14 +25,17 @@
  *           the target is invoked on it; the tail 0x2fe3 (also never translated)
  *           is delegated to one identical stub on both sides. EQUAL over the full
  *           256-value input sweep + a forced real dispatch through unitEquivalence.
- * LIVE-OUT: memory-only — the one byte at the animation tile cell (0x80dc); the
- *           shared tail owns everything after the hand-off, identically both sides.
- * NAMES:    none — 0x80dc (the background-animation tile cell) and 0x2fe3 (the
- *           shared animation-update tail) are both still unnamed in ram.js.
+ * LIVE-OUT: memory-only — the one byte at the animation tile cell (BG_SPRITE_FRAME,
+ *           0x80dc); the shared tail owns everything after the hand-off, identically
+ *           both sides.
+ * NAMES:    BG_SPRITE_FRAME (0x80dc), the background-animation tile cell, from ram.js.
+ *           0x2fe3 (the shared animation-update tail) is still unnamed in ram.js.
  */
+
+import { BG_SPRITE_FRAME } from "./ram.js";
 export function loc_2fd9(m) {
   // Store the caller's just-chosen flip tile into the background-animation cell.
-  m.mem8[0x80dc] = m.regs.a;
+  m.mem8[BG_SPRITE_FRAME] = m.regs.a;
 
   // Tail hand-off into the shared animation-update tail; its return goes to our
   // caller, so this is loc_2fd9's exit.

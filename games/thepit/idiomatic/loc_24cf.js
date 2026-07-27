@@ -15,9 +15,9 @@
  * Every write lands on a distinct work-RAM byte, so their order does not matter.
  *
  * Name kept as loc_24cf: like loc_287a below it, several of the companion bytes it
- * seeds (0x8094 / 0x8096 / 0x8097 / 0x809c / 0x80a1) sit at addresses whose
- * subsystem role is not yet confirmed, so the routine's overall role is a
- * best-effort reading — below the bar to promote to an English name.
+ * seeds (0x8096 / 0x809c / 0x80a1) sit at addresses whose subsystem role is not yet
+ * confirmed, so the routine's overall role is a best-effort reading — below the bar
+ * to promote to an English name.
  *
  * Memory-equivalent to the frozen oracle — equivalence-24cf.test.js.
  * GATE:     crafted-entry — never dispatched in attract (it runs only from gameplay
@@ -29,14 +29,14 @@
  * LIVE-OUT: memory-only — the seeded reaction/companion bytes plus the whole tail's
  *           effects. The round-init caller consumes the seeded memory, not any
  *           register; the tail owns everything after the hand-off.
- * NAMES:    REACTION_STATE, REACTION_TIMER from ram.js. The reaction step-period
- *           byte (0x80a3) and the companion bytes (0x8094 / 0x8096 / 0x8097 /
- *           0x809c / 0x80a1) are still unnamed and stay hex. The tail is the
- *           decompiled loc_287a.
+ * NAMES:    REACTION_STATE, REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y from
+ *           ram.js. The reaction step-period byte (0x80a3) and the companion bytes
+ *           (0x8096 / 0x809c / 0x80a1) are still unnamed and stay hex. The tail is
+ *           the decompiled loc_287a.
  */
 
 import { loc_287a } from "./loc_287a.js";
-import { REACTION_STATE, REACTION_TIMER } from "./ram.js";
+import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER } from "./ram.js";
 
 export function loc_24cf(m) {
   const { mem8 } = m;
@@ -48,9 +48,9 @@ export function loc_24cf(m) {
 
   // Seed the companion control bytes to their fixed start values.
   mem8[0x80a1] = 1;
-  mem8[0x8094] = 0;
+  mem8[REACTION_OBJ_X] = 0;
   mem8[0x8096] = 3;
-  mem8[0x8097] = 0;
+  mem8[REACTION_OBJ_Y] = 0;
   mem8[0x809c] = 1;
 
   // Tail hand-off into loc_287a (dig-object control-block seed + round/level

@@ -34,7 +34,7 @@
  *           just below entry SP (this stack-free routine no longer reproduces it), plus
  *           pc + SP after the routine's return is modelled. Teeth twins caught.
  * LIVE-OUT: memory-only — the nine label cells in video RAM, the nine colour cells,
- *           and the layout scratch (0x805a offset, 0x805e/0x8060 cursors). Unlike the
+ *           and the layout scratch (TILEMAP_OFFSET offset, COLOUR_RAM_CURSOR/0x8060 cursors). Unlike the
  *           oracle it does not perform the tail helper's own return, so its exit pc and
  *           stack pointer are the caller's to close; the gate models that one return to
  *           line them up with the oracle before comparing.
@@ -68,7 +68,7 @@ export function drawGameOverLabel(m) {
   mem8[TILE_COL] = 1;
   mem8[TILE_ROW] = 12;
 
-  // Turn that tile cell into its tilemap offset, then into the colour-RAM (0x805e)
+  // Turn that tile cell into its tilemap offset, then into the colour-RAM (COLOUR_RAM_CURSOR)
   // and video-RAM (0x8060) write cursors.
   rowColToTileOffset(m);
   deriveTileWriteCursors(m);

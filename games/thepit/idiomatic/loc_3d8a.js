@@ -31,8 +31,8 @@
  *           excluded; the painted video / colour RAM is compared byte-for-byte. Teeth
  *           twins (wrong fill colour, wrong cell count, a corrupted painted cell) caught.
  * LIVE-OUT: memory-only — the strip's nine video cells and nine colour cells, plus the
- *           layout scratch (0x805a offset, 0x805e/0x8060 cursors, 0x8055 count, 0x8057
- *           colour). No caller reads a returned register (the residual registers are dead
+ *           layout scratch (TILEMAP_OFFSET 0x805a, cursors COLOUR_RAM_CURSOR 0x805e / 0x8060,
+ *           0x8055 count, 0x8057 colour). No caller reads a returned register (the residual registers are dead
  *           ABI), and the decompiled helpers take no leftover-register input — copyTileColumn
  *           is handed its source pointer as an argument, the rest read the shared scratch
  *           block — so the leftover register file is irrelevant to the compare. The exit pc

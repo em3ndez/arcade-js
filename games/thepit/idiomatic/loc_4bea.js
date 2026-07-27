@@ -4,8 +4,8 @@
  *
  * Part of both cold boot and new-game / round setup (called once from each). It zeroes
  * two fixed work-RAM blocks:
- *   - a 6-byte block at 0x8031 — the score block per the mechanism map (the running
- *     score bytes), reset to a clean zero score, and
+ *   - a 6-byte block at SCORE_LO (0x8031) — the running score bytes, reset to a clean
+ *     zero score, and
  *   - a 10-byte block at the sound-command queue: the ring head index followed by the
  *     eight command slots, so no stale sound request carries over the reset.
  * It reads nothing and takes no inputs — the two bases and lengths are fixed — so it
@@ -22,16 +22,16 @@
  *           pointer are dead scratch: each caller's next act is another call, so nothing
  *           reads them before they are overwritten. No flags are touched end to end.
  * NAMES:    SOUND_HEAD (0x801e) from ram.js heads the 10-byte sound-queue block (head
- *           index + eight ring slots). The 6-byte block at 0x8031 stays hex — the score
- *           block per the mechanism map, not yet confirmed at the ram.js bar.
+ *           index + eight ring slots). SCORE_LO (0x8031) from ram.js heads the 6-byte
+ *           score block (the running score bytes).
  */
-import { SOUND_HEAD } from "./ram.js";
+import { SCORE_LO, SOUND_HEAD } from "./ram.js";
 
 export function loc_4bea(m) {
   const { mem8 } = m;
 
   // Reset the score block.
-  for (let i = 0; i < 6; i++) mem8[0x8031 + i] = 0;
+  for (let i = 0; i < 6; i++) mem8[SCORE_LO + i] = 0;
 
   // Clear the sound-command queue: the ring head index plus its eight command slots.
   for (let i = 0; i < 10; i++) mem8[SOUND_HEAD + i] = 0;

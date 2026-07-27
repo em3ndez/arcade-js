@@ -21,16 +21,15 @@
  * LIVE-OUT: memory-only — the four record bytes at 0x8220-0x8223. The residual register
  *           values it leaves behind are dead ABI; the classifier's caller consumes no
  *           register from here (the record is the whole output, and it lives in RAM).
- * NAMES:    OBJ_X, SPRITE_CODE, OBJ_Y from ram.js. The bias 0x8051 (a dip-switch-derived
- *           value, not yet individually named), the probe-block middle byte 0x806a, and
- *           the record base 0x8220 stay hex — their roles are not yet grounded.
+ * NAMES:    OBJ_X, SPRITE_CODE, OBJ_Y, OBJ_SPRITE_ATTR (the probe-block middle byte, 0x806a)
+ *           from ram.js. The bias 0x8051 (a dip-switch-derived value, not yet individually
+ *           named) and the record base 0x8220 stay hex — their roles are not yet grounded.
  */
 
-import { OBJ_X, SPRITE_CODE, OBJ_Y } from "./ram.js";
+import { OBJ_X, SPRITE_CODE, OBJ_Y, OBJ_SPRITE_ATTR } from "./ram.js";
 
 const RECORD = 0x8220; // base of the 4-byte deferral record built for the object
 const BIAS = 0x8051; // the end-bias, held in the dip-switch parameter block
-const PROBE_MID = 0x806a; // middle byte of the object's probe block (unnamed field)
 
 export function loc_1b5b(m) {
   const { mem8 } = m;
@@ -41,6 +40,6 @@ export function loc_1b5b(m) {
   // Each store truncates to a byte, so the two biased ends wrap.
   mem8[RECORD] = mem8[OBJ_X] - bias; // leading: column, bias removed
   mem8[RECORD + 1] = mem8[SPRITE_CODE]; // sprite/animation code, copied through
-  mem8[RECORD + 2] = mem8[PROBE_MID]; // probe-block middle byte, copied through
+  mem8[RECORD + 2] = mem8[OBJ_SPRITE_ATTR]; // probe-block middle byte, copied through
   mem8[RECORD + 3] = mem8[OBJ_Y] + bias; // trailing: row, bias added
 }

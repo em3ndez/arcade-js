@@ -3,7 +3,7 @@
  * unpackScoreDigits — expand the staged packed score value into display digit cells.  ROM 0x4d0c.
  *
  * The score-readout formatter (loc_4cca) stages one record's packed value at
- * 0x8037/0x8038 (0x8038 the high byte, 0x8037 the low) and points the buffer at
+ * SCORE_DISPLAY_LOW/SCORE_DISPLAY_HIGH (0x8038 the high byte, 0x8037 the low) and points the buffer at
  * the record's on-screen digit cells, then hands off here. This routine splits
  * that value into four single-digit cells, most-significant digit first —
  *   cell 0 = high byte, upper digit
@@ -34,14 +34,16 @@
  * LIVE-OUT: memory (the five or six digit cells) + the advanced buffer pointer.
  *           The scratch digit/flag state the oracle leaves behind is dead (the
  *           caller reloads the pointer for its next record and reads nothing else).
- * NAMES:    0x8037/0x8038 kept hex — the staged score value low/high byte, not yet
- *           named in ram.js. The destination buffer is the caller-supplied pointer.
+ * NAMES:    SCORE_DISPLAY_LOW (0x8037) / SCORE_DISPLAY_HIGH (0x8038) from ram.js — the
+ *           staged score value low/high byte. The destination buffer is the caller-supplied pointer.
  */
+
+import { SCORE_DISPLAY_HIGH, SCORE_DISPLAY_LOW } from "./ram.js";
 export function unpackScoreDigits(m) {
   const { regs, mem8 } = m;
 
-  const hi = mem8[0x8038]; // staged value, high byte
-  const lo = mem8[0x8037]; // staged value, low byte
+  const hi = mem8[SCORE_DISPLAY_HIGH]; // staged value, high byte
+  const lo = mem8[SCORE_DISPLAY_LOW]; // staged value, low byte
 
   // The four value nibbles most-significant first, then two trailing zero cells.
   const cells = [hi >> 4, hi & 0x0f, lo >> 4, lo & 0x0f, 0, 0];

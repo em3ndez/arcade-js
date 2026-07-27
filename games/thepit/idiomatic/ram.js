@@ -244,3 +244,298 @@ export const OBJECT_ACTIVE = 0x8079;
  *  is well corroborated, but it sits among sibling busy bytes 0x807a/0x807b and the latched
  *  values are not proven to be pure durations.) */
 export const STATE_TIMER = 0x807c;
+
+// ── Named by the adversarial RAM-naming pass: proposer≠confirmer + an independent judge,
+//    by cross-routine consensus, keep-hex-if-ungrounded. Unlike the older names above,
+//    these DID get the adversarial re-derivation. Tag (fair): grounded + cross-checked,
+//    not yet pixel-verified — the pixel gate stays the correctness authority, not the name.
+
+// ── Score (packed-BCD) + high-score display staging ──
+/**
+ *  SCORE_LO (0x8031) — Low packed-BCD byte of the active player's 2-byte score; BCD-added by
+ *  loc_4683/4689, split to digits by loc_46af, read as hiscore candidate by loc_4d3a, cleared
+ *  by loc_4bea -- four independent users. (fair)
+ */
+export const SCORE_LO = 0x8031;
+/**
+ *  SCORE_HI (0x8034) — High packed-BCD byte of the active score paired with 0x8031, same four
+ *  routines (loc_4689 carry target, loc_46af render with leading-zero blank, loc_4d3a
+ *  candidate, loc_4bea clear). (fair)
+ */
+export const SCORE_HI = 0x8034;
+/**
+ *  SCORE_DISPLAY_LOW (0x8037) — Low byte of the 16-bit score value staged by loc_4cca per
+ *  high-score record and unpacked into digit tiles by loc_4d0c/unpackScoreDigits. (fair)
+ */
+export const SCORE_DISPLAY_LOW = 0x8037;
+/**
+ *  SCORE_DISPLAY_HIGH (0x8038) — High byte of the 16-bit score value staged at 0x8037 for the
+ *  digit unpacker; written by loc_4cca, read MSB-first by loc_4d0c. (fair)
+ */
+export const SCORE_DISPLAY_HIGH = 0x8038;
+
+// ── Tilemap write geometry + wait/glitter/step timers ──
+/**
+ *  FRAME_WAIT_COUNTDOWN (0x8009) — Per-frame countdown decremented each frame by the vblank
+ *  NMI (loc_0066 ld/dec/ld) and armed+busy-waited to 0 by waitFrames/loc_4bff; both namers
+ *  and my derivation agree, grounded in two independent routines. (fair)
+ */
+export const FRAME_WAIT_COUNTDOWN = 0x8009;
+/**
+ *  STEP_TIMER_BASE (0x804f) — DSW-decoded base (loc_4b55) that seeds the step timer 0x8067 =
+ *  0x804f - 4*LEVEL (loc_23e8); 0x8067 is the per-step countdown loc_241c decrements each
+ *  frame. (fair)
+ */
+export const STEP_TIMER_BASE = 0x804f;
+/**
+ *  TILEMAP_OFFSET (0x805a) — 16-bit tilemap offset 32*row+col computed by loc_3dae from
+ *  0x8059/0x8058 and consumed by loc_3dc9 to derive colour/video cursors; shared across ~10
+ *  painter routines, both converged. (fair)
+ */
+export const TILEMAP_OFFSET = 0x805a;
+/**
+ *  GLITTER_COUNTDOWN (0x805c) — Free-running 8->1 (reload 8) per-frame countdown that
+ *  loc_06ac uses to pace the diamond-glitter cell recolour, armed to 1 by
+ *  loc_0673/paintScreen; role behaviorally pinned, both converged. (fair)
+ */
+export const GLITTER_COUNTDOWN = 0x805c;
+/**
+ *  COLOUR_RAM_CURSOR (0x805e) — 16-bit colour-RAM write cursor = tilemap offset + 0x8800
+ *  colour base, stored by loc_3dc9 (paired with the 0x8060 video cursor) and walked down-
+ *  column by the fillers loc_3e01/loc_48c4/etc across ~10 routines. (fair)
+ */
+export const COLOUR_RAM_CURSOR = 0x805e;
+/**
+ *  COLUMN_ANIM_WRITE_PTR (0x8065) — 16-bit VRAM tilemap write cursor for the frame-gated
+ *  column-reveal animation: seeded 0x9104 by loc_23e8, deref'd via IX and advanced +0x20/step
+ *  then stored back by loc_241c (fair)
+ */
+export const COLUMN_ANIM_WRITE_PTR = 0x8065;
+/**
+ *  COLUMN_ANIM_TIMER (0x8067) — per-step frame countdown pacing that same column animation:
+ *  armed level-scaled (0x804f-4*LEVEL) by loc_23e8, decremented each frame by loc_241c which
+ *  runs the next step only when it expires (fair)
+ */
+export const COLUMN_ANIM_TIMER = 0x8067;
+
+// ── Tracked-object tile cell + sprite attribute ──
+/**
+ *  OBJ_SPRITE_ATTR (0x806a) — object sprite attribute byte (palette bits0-2 + priority bit3):
+ *  seeded 2 by loc_1362, copied by loc_1b5b into sprite-record byte+2 (0x8222) which video.js
+ *  decodes as color and priority (fair)
+ */
+export const OBJ_SPRITE_ATTR = 0x806a;
+/**
+ *  OBJ_TILE_COL (0x8071) — tilemap COLUMN cell under the tracked object, derived from
+ *  position counter 0x806b (>>3), written by loc_186f/1a02/14cd/16b9 and seeded 5; the low
+ *  part of the 0x806e VRAM cell pointer (fair)
+ */
+export const OBJ_TILE_COL = 0x8071;
+/**
+ *  OBJ_TILE_ROW (0x8073) — tilemap ROW cell under the tracked object, derived from counter
+ *  0x8068 (0x1f-((x+bias)>>3)), written by loc_186f/1a02/167f/1493 and seeded 0x19; the *0x20
+ *  major part of the 0x806e VRAM cell pointer (fair)
+ */
+export const OBJ_TILE_ROW = 0x8073;
+
+// ── Probe-cell walk + sub-tile phase + mover dispatch state ──
+/**
+ *  PROBE_CELL_PTR (0x8089) — 16-bit VRAM/tilemap cell pointer (base 0x9000) written in
+ *  loc_319d/loc_3289 and dereferenced+stepped ±0x20/row by the tile-probe helpers
+ *  loc_33bc/33da/3410/3425; A, B and my derivation all agree, grounded across writer + four
+ *  readers. (fair)
+ */
+export const PROBE_CELL_PTR = 0x8089;
+/**
+ *  SUBTILE_PHASE (0x808d) — Sub-tile phase / probe-table row index derived from the pixel
+ *  position in loc_3289 and loaded as the DE row selector (D=0) by all four probe helpers
+ *  (0x34fe/0x35fe ±0x20 rows); both namers and my derivation converge, grounded across five
+ *  routines. (fair)
+ */
+export const SUBTILE_PHASE = 0x808d;
+/**
+ *  MOVER_STATE (0x8090) — Signed state byte of the 0x8083 move-object: loc_319d dispatches on
+ *  its sign (neg->loc_34da dormant tick, zero->arm 0x808b countdown, positive->player-box
+ *  branch) and loc_34da bumps it each call; both agree on the sign-dispatch role (B's
+ *  unsupported 'ANIM' dropped). (fair)
+ */
+export const MOVER_STATE = 0x8090;
+
+// ── Reaction object (position paired with the player box) ──
+/**
+ *  REACTION_OBJ_X (0x8094) — OBJ_X-paired position coordinate of the REACTION_STATE (0x80a2)
+ *  entity: written each frame by loc_24f3 from OBJ_X±8, player-box-tested in loc_319d, placed
+ *  by loc_28ab, written to sprite record byte 0, inited 0 by loc_24cf; both converge, well
+ *  grounded. (fair)
+ */
+export const REACTION_OBJ_X = 0x8094;
+/**
+ *  REACTION_OBJ_Y (0x8097) — OBJ_Y-paired position coordinate of the REACTION_STATE (0x80a2)
+ *  entity: written by loc_24f3 from OBJ_Y±8, player-box-tested in loc_319d against the 0x8086
+ *  axis, written to sprite record byte 3, inited 0 by loc_24cf; both converge, well grounded.
+ *  (fair)
+ */
+export const REACTION_OBJ_Y = 0x8097;
+
+// ── Dig object record (attr / timer / subtype / arm-state) ──
+/**
+ *  DIG_OBJ_ATTR (0x80ab) — byte2 (color+priority attribute) of the dig-object sprite record
+ *  built at 0x8228 by loc_2bd3; seeded to small color consts 0x06/0x07 by 5 writers
+ *  (loc_287a/2d4e/2c04/2934/28ab); A/B and my derivation converge, consistent with the
+ *  established DIG_OBJ_STATE=0x80aa family (fair)
+ */
+export const DIG_OBJ_ATTR = 0x80ab;
+/**
+ *  DIG_OBJ_TIMER (0x80b1) — countdown/animation timer for the dig object, armed to
+ *  0x08/0x10/0x40 or reloaded from 0x80c2, decremented per frame and acted on at expiry
+ *  across 7 routines (loc_2cb7/29ad/191f/2c04/28ab/2934/287a); strongly grounded, both namers
+ *  agree (fair)
+ */
+export const DIG_OBJ_TIMER = 0x80b1;
+/**
+ *  DIG_OBJ_SUBTYPE (0x80c0) — sub-type/variant selector of the committed dig entity, written
+ *  by loc_28ab and dispatched by loc_298a and loc_29ad (0=plain/ret, 2=special: arm timer +
+ *  patch neighbour tiles to 0xc1); grounded across 4 routines, A/B converged (fair)
+ */
+export const DIG_OBJ_SUBTYPE = 0x80c0;
+/**
+ *  DIG_OBJ_ARM_STATE (0x80c1) — arm/capture state of the carve object
+ *  (0=idle,1=armed/captured,2=latched): gates loc_13de dispatch, set by capture loc_2cb7 and
+ *  arm loc_191f, cleared with the block by loc_287a; grounded across 7 routines, role
+ *  converged (name prefix normalised to the DIG_OBJ family) (fair)
+ */
+export const DIG_OBJ_ARM_STATE = 0x80c1;
+
+// ── Background scroll sprite record (X / frame / attr / Y) ──
+/**
+ *  BG_SPRITE_X (0x80db) — X (byte0) of the animated background sprite; horizontal bounce
+ *  oscillator in [0x19,0x38) (velocity 0x80df) init 0x28 by loc_2f2f, published as byte0 of
+ *  the slot-3 record 0x822c; matches the ACTOR_X byte convention, A/B converged (fair)
+ */
+export const BG_SPRITE_X = 0x80db;
+/**
+ *  BG_SPRITE_FRAME (0x80dc) — sprite tile/frame code toggled 0x38<->0x39 every 8 frames
+ *  (loc_2f71/2fc0/2fd9), init 0x39 by loc_2f2f, published as the code byte of the slot-3
+ *  record; 4 users, both namers high-confidence agree (fair)
+ */
+export const BG_SPRITE_FRAME = 0x80dc;
+/**
+ *  BG_SPRITE_ATTR (0x80dd) — byte2 attribute (color low bits + priority) of the background
+ *  sprite; bumped by loc_2f71 with `and 0xf7` holding priority bit3 clear while cycling
+ *  color, init 0xc0 by loc_2f2f; role converged (A=COLOR/B=ATTR, normalised to ATTR per
+ *  video.js decode) (fair)
+ */
+export const BG_SPRITE_ATTR = 0x80dd;
+/**
+ *  BG_SPRITE_Y (0x80de) — Y (byte3) of the animated background sprite; accelerating vertical
+ *  fall (step 0x80e0) clamped at 0x86 then RNG-reseeded by loc_2f71, init 0x78 by loc_2f2f,
+ *  published as byte3 of the slot-3 record; matches ACTOR_Y byte convention, A/B converged
+ *  (fair)
+ */
+export const BG_SPRITE_Y = 0x80de;
+
+// ── Column-reveal animation (phase / period / gate / cursor) ──
+/**
+ *  ANIM_PHASE_COUNTER (0x80e3) — Down-counter mod 8: decremented per frame, reloads 8 on wrap
+ *  and toggles sprite frame 0x80dc, low bits gate the oscillator; read by loc_2fc0 and
+ *  loc_2f71, seeded 1 by loc_2f2f — A and B agree, derivation confirms. (fair)
+ */
+export const ANIM_PHASE_COUNTER = 0x80e3;
+/**
+ *  REVEAL_PERIOD (0x80e4) — Level-derived reload period (7..3 via A^=0x07 from 0x8028) for
+ *  the reveal gate 0x80e5; written by loc_2f2f, consumed by loc_2f88/loc_2f71 on gate wrap —
+ *  both namers converge, derivation confirms. (fair)
+ */
+export const REVEAL_PERIOD = 0x80e4;
+/**
+ *  REVEAL_GATE (0x80e5) — Per-column frame-gate down-counter: decremented each call, on wrap
+ *  reloads from REVEAL_PERIOD 0x80e4 and reveals one terrain column; loc_2f88/loc_2f71,
+ *  seeded 1 by loc_2f2f — grounded and convergent. (fair)
+ */
+export const REVEAL_GATE = 0x80e5;
+/**
+ *  REVEAL_CURSOR (0x80e6) — Byte offset into tile-pattern table 0x3048, stepped back 6 per
+ *  reveal (underflow ends reveal), seeded 0x96 by loc_2f2f; advanced by loc_2f88/loc_2f71 and
+ *  independently tested ==0 by dispatcher loc_13de as the reveal-finished gate. (fair)
+ */
+export const REVEAL_CURSOR = 0x80e6;
+
+// ── Object 1 record + Object 2 record ──
+/**
+ *  OBJ1_X (0x80e8) — Base (offset 0) of the first object record: seeded/reset 0xec
+ *  (loc_30de/loc_319d), copied to sprite record 0x8230 byte 0 by loc_312d — the SAME structural
+ *  field as OBJ2_X (0x80f9), so X by the house convention (offset 0 = X, ACTOR_X/OBJ_X). Under
+ *  ROT90 the sprite's hardware-Y byte is the on-screen horizontal, which the codebase calls X.
+ *  (The record's Y is the offset-3 byte 0x80eb, still hex.) (fair)
+ */
+export const OBJ1_X = 0x80e8;
+/**
+ *  OBJ1_SPRITE_CODE (0x80e9) — Object-1 record byte1: seeded 0x09 by loc_30de, copied to
+ *  sprite byte 0x8231 by loc_312d; video.js decodes it as code&0x3f + flipX(0x40) +
+ *  flipY(0x80) — sprite code+orientation confirmed. (fair)
+ */
+export const OBJ1_SPRITE_CODE = 0x80e9;
+/**
+ *  OBJ1_ATTR (0x80ea) — Object-1 record offset 2: seeded 0x04 (loc_30de), copied verbatim to
+ *  sprite-record byte 2 (loc_312d), color-cycled with priority bit 3 held clear (loc_34da) --
+ *  A/B and my derivation all agree. (fair)
+ */
+export const OBJ1_ATTR = 0x80ea;
+/**
+ *  OBJ1_MOVE_PERIOD (0x80f6) — Object-1 record offset 14: loc_30de derives 7-(LEVEL&6)
+ *  (faster as level climbs) and loc_3490 reloads the offset-8 cadence timer from it -- A/B
+ *  converge (reload/period) and my derivation agrees, grounded across two routines. (fair)
+ */
+export const OBJ1_MOVE_PERIOD = 0x80f6;
+/**
+ *  OBJ1_TARGET_COL (0x80f8) — Object-1 record offset 16 target column: seeded 0x04
+ *  (loc_30de); loc_319d fast-exits when 0x807a equals it and keys the tile-probe/direction
+ *  dispatch on it -- A/B and my derivation agree. (fair)
+ */
+export const OBJ1_TARGET_COL = 0x80f8;
+/**
+ *  OBJ2_X (0x80f9) — Base (offset 0) of the second 17-byte object record: staged/emitted as
+ *  sprite byte 0 by loc_316f, position-tested in loc_319d, seeded 0x00; matches house
+ *  convention ACTOR_X=offset 0 -- A/B agree. (fair)
+ */
+export const OBJ2_X = 0x80f9;
+/**
+ *  OBJ2_TILE (0x80fa) — Object-2 record offset 1 sprite tile/code byte: seeded 0x09, emitted
+ *  verbatim to sprite byte 1 (loc_316f), rewritten with the direction/orientation code
+ *  (loc_319d/loc_3476); matches house convention ACTOR_TILE=offset 1 -- A/B agree. (fair)
+ */
+export const OBJ2_TILE = 0x80fa;
+/**
+ *  OBJ2_ATTR (0x80fb) — Object-2 record offset 2 attr/color byte: seeded 0x04, emitted to
+ *  sprite byte 2, color-cycled with priority bit 3 held clear by loc_34da -- same field as
+ *  OBJ1_ATTR; A/B and my derivation agree. (fair)
+ */
+export const OBJ2_ATTR = 0x80fb;
+
+// ── Actor per-frame step + twin timer + saved cell pointer ──
+/**
+ *  ACTOR_STEP_X (0x810e) — Low byte of the actor 16-bit step vector: loc_3748 loads it into L
+ *  and adds it to ACTOR_X (0x810a) each cadence tick; seeded 0xff(-1)/0 by
+ *  loc_36fe/3767/38c8. Real reader, A and B agree, my derivation confirms. (fair)
+ */
+export const ACTOR_STEP_X = 0x810e;
+/**
+ *  ACTOR_STEP_Y (0x810f) — High byte of the actor step vector: loc_3748 loads it into H and
+ *  adds it to ACTOR_Y (0x810d) each cadence tick; seeded alongside 0x810e. Real reader, A and
+ *  B agree, my derivation confirms. (fair)
+ */
+export const ACTOR_STEP_Y = 0x810f;
+/**
+ *  TWIN_TIMER (0x8123) — Both namers converged and my derivation agrees: twin of
+ *  ACTOR_TIMER(0x8112); record+8 -> scratch 0x808b, decremented/reloaded as the cadence
+ *  countdown by loc_319d (0x31b1) and armed (0xb4/0x01) by the spawn seeders. Grounded across
+ *  seeders + 319d; primary ACTOR_TIMER already named, so pairing is consistent. (fair)
+ */
+export const TWIN_TIMER = 0x8123;
+/**
+ *  SAVED_CELL_PTR (0x8134) — Both namers converged and my derivation agrees: a 16-bit scratch
+ *  slot holding a tilemap cell pointer. loc_33da and loc_3425 each do 'ld (0x8134),hl' (save
+ *  advanced/one-row-back cursor) then 'ld ix,(0x8134)' a few instructions later. Grounded
+ *  across two neighbour-search routines as a within-search save/restore. (fair)
+ */
+export const SAVED_CELL_PTR = 0x8134;

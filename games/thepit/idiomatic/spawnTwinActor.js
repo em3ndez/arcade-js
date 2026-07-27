@@ -39,13 +39,17 @@
  *           have no confirmed name yet and stay hex.
  */
 
-import { ACTOR_X,
+import {
   ACTOR_TILE,
-  ACTOR_Y,
   ACTOR_TIMER,
-  TWIN_X,
+  ACTOR_X,
+  ACTOR_Y,
+  LEVEL,
+  TWIN_CLEAR,
   TWIN_TILE,
-  TWIN_CLEAR, LEVEL } from "./ram.js";
+  TWIN_TIMER,
+  TWIN_X,
+} from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // The eight-cell figure: a 4-row x 2-col tile block. The anchor is its bottom-left
@@ -89,7 +93,7 @@ export function spawnTwinActor(m) {
   mem8[0x8117] = 0; // primary sub-state
   mem8[0x8128] = 0; // twin sub-state
   mem8[ACTOR_TIMER] = 180; // primary countdown, ~3 seconds
-  mem8[0x8123] = 180; // twin countdown
+  mem8[TWIN_TIMER] = 180; // twin countdown
   mem8[0x811a] = 6; // primary per-record constant
   mem8[0x812b] = 7; // twin per-record constant (one higher)
 

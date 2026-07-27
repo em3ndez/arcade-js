@@ -34,27 +34,36 @@
  * LIVE-OUT: memory-only — the seeded control-block bytes, the copied table, and the
  *           whole tail's effects. The round-init caller consumes the seeded memory,
  *           not any register; the tail owns everything after the hand-off.
- * NAMES:    DIG_OBJ_STATE, TARGET_X, TARGET_Y, SPAWN_STATE from ram.js. The companion
- *           block bytes (0x80ab/0x80b1/0x80c0/0x80c1/0x80c2) and the table
- *           destination (0x80c3) are still unnamed and stay hex. The tail is the
- *           decompiled loc_2f2f (ROM 0x2f2f).
+ * NAMES:    DIG_OBJ_STATE, DIG_OBJ_ATTR, DIG_OBJ_TIMER, DIG_OBJ_ARM_STATE,
+ *           DIG_OBJ_SUBTYPE, TARGET_X, TARGET_Y, SPAWN_STATE from ram.js. The companion
+ *           byte 0x80c2 and the table destination (0x80c3) are still unnamed and stay
+ *           hex. The tail is the decompiled loc_2f2f (ROM 0x2f2f).
  */
 
 import { loc_2f2f } from "./loc_2f2f.js";
-import { DIG_OBJ_STATE, TARGET_X, TARGET_Y, SPAWN_STATE } from "./ram.js";
+import {
+  DIG_OBJ_ARM_STATE,
+  DIG_OBJ_ATTR,
+  DIG_OBJ_STATE,
+  DIG_OBJ_SUBTYPE,
+  DIG_OBJ_TIMER,
+  SPAWN_STATE,
+  TARGET_X,
+  TARGET_Y,
+} from "./ram.js";
 
 export function loc_287a(m) {
   const { mem8 } = m;
 
   // Reset the dig-object control block to its start-of-round state.
   mem8[DIG_OBJ_STATE] = 48; // the carving-phase state code
-  mem8[0x80ab] = 7; // companion control byte
+  mem8[DIG_OBJ_ATTR] = 7; // companion control byte
   mem8[TARGET_X] = 0; // no captured target column yet
   mem8[TARGET_Y] = 0; // no captured target row yet
-  mem8[0x80b1] = 0; // companion counter byte
+  mem8[DIG_OBJ_TIMER] = 0; // companion counter byte
   mem8[SPAWN_STATE] = 0; // idle — a fresh spawn is permitted
-  mem8[0x80c1] = 0; // companion scratch byte
-  mem8[0x80c0] = 0; // companion scratch byte
+  mem8[DIG_OBJ_ARM_STATE] = 0; // companion scratch byte
+  mem8[DIG_OBJ_SUBTYPE] = 0; // companion scratch byte
 
   // Copy the fixed 24-byte column-position table (a 12-entry ramp, duplicated) from
   // ROM into the block.

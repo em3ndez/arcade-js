@@ -9,8 +9,8 @@
  * the first that reports a match, hands the object to a movement handler. loc_3425's
  * job here:
  *   - Take the object's current tilemap pointer, advance it by 32 (one row down in
- *     the 32-column tilemap), and stash that advanced pointer at 0x8134 — the probe
- *     re-reads it below.
+ *     the 32-column tilemap), and stash that advanced pointer at SAVED_CELL_PTR (0x8134)
+ *     — the probe re-reads it below.
  *   - Look up whether the tile now under that advanced pointer appears anywhere in
  *     the first table's 32-entry row, the row chosen by the object's sub-tile phase.
  *     If it does not, the probe fails.
@@ -21,10 +21,11 @@
  *
  * The phase indexes both table rows with a byte-wide wrap, so a large phase folds
  * back to a low row. Both table rows live in ROM (fixed valid-tile lists); the two
- * probed tiles live in the tilemap the pointer at 0x8089 addresses.
+ * probed tiles live in the tilemap the pointer at PROBE_CELL_PTR (0x8089) addresses.
  *
- * Reads the phase (0x808d) and the pointer (0x8089), writes only the advanced
- * pointer (0x8134), and reports its match result. The name stays neutral: the
+ * Reads the phase (SUBTILE_PHASE, 0x808d) and the pointer (PROBE_CELL_PTR, 0x8089),
+ * writes only the advanced pointer (SAVED_CELL_PTR, 0x8134), and reports its match
+ * result. The name stays neutral: the
  * probe's exact directional meaning and what the two ROM tables encode are not yet
  * pinned to the confidence an English name would claim.
  *
@@ -34,15 +35,17 @@
  *           bytes to also cover the byte-wrap seams and force the both-rows-scanned exit
  *           on demand, identically on both sides. Teeth on the pointer write and on the
  *           second-row phase shift.
- * LIVE-OUT: memory (the advanced pointer at 0x8134) + the match flag the still-oracle
+ * LIVE-OUT: memory (the advanced pointer at SAVED_CELL_PTR, 0x8134) + the match flag the still-oracle
  *           caller loc_319d branches on. Also returned as a boolean for a future
  *           direct-call caller. Every other register/flag it leaves is dead ABI.
- * NAMES:    none in ram.js for this routine's addresses — 0x808d (object sub-tile
- *           phase), 0x8089 (object tilemap pointer), 0x8134 (the advanced-pointer
- *           scratch) all stay hex; their roles are described but not yet grounded.
+ * NAMES:    SUBTILE_PHASE (0x808d, object sub-tile phase), PROBE_CELL_PTR (0x8089,
+ *           object tilemap pointer) and SAVED_CELL_PTR (0x8134, the advanced-pointer
+ *           scratch) from ram.js.
  */
 
 import { F_Z } from "../../../core/cpu/z80.js";
+import { PROBE_CELL_PTR, SAVED_CELL_PTR, SUBTILE_PHASE } from "./ram.js";
+
 
 const FIRST_TABLE = 0x34fe; // base of the first valid-tile table (rows of 32)
 const SECOND_TABLE = 0x35fe; // base of the second valid-tile table (rows of 32)
@@ -59,10 +62,10 @@ function rowContains(mem8, base, key) {
 export function loc_3425(m) {
   const { mem8, mem16, regs } = m;
 
-  const phase = mem8[0x808d];
+  const phase = mem8[SUBTILE_PHASE];
   // Advance the object's tilemap pointer one row and stash it for the reload below.
-  const cell = (mem16[0x8089] + ROW_LEN) & 0xffff;
-  mem16[0x8134] = cell;
+  const cell = (mem16[PROBE_CELL_PTR] + ROW_LEN) & 0xffff;
+  mem16[SAVED_CELL_PTR] = cell;
 
   // First row (selected by the phase, wrapping within a byte): must contain the
   // tile now under the advanced pointer, or the probe fails outright.

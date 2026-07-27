@@ -31,37 +31,50 @@
  * LIVE-OUT: memory-only — the seeded parameter bytes and the derived pair. The
  *           round-init caller consumes the seeded memory, not any register; the tail
  *           owns everything after the hand-off, identically on both sides.
- * NAMES:    none from ram.js — every address this touches (the 0x80e8–0x8109
- *           parameter block and the 0x8028 difficulty counter) is still unnamed. The
- *           tail is the decompiled seedActorSpawnState (ROM 0x36fe).
+ * NAMES:    OBJ1_X (0x80e8), OBJ1_SPRITE_CODE (0x80e9), OBJ1_ATTR (0x80ea),
+ *           OBJ1_MOVE_PERIOD (0x80f6), OBJ1_TARGET_COL (0x80f8), OBJ2_X (0x80f9),
+ *           OBJ2_TILE (0x80fa) and OBJ2_ATTR (0x80fb), plus the LEVEL difficulty counter
+ *           (0x8028), from ram.js; the rest of the 0x80eb–0x8109 parameter block
+ *           (0x80eb / 0x80f0 / 0x80f5 / 0x8101 / 0x8106 / 0x8107 / 0x8109) stays hex.
+ *           The tail is the decompiled seedActorSpawnState (ROM 0x36fe).
  */
 
 import { seedActorSpawnState } from "./seedActorSpawnState.js";
 
-import { LEVEL } from "./ram.js";
+import {
+  LEVEL,
+  OBJ1_ATTR,
+  OBJ1_MOVE_PERIOD,
+  OBJ1_SPRITE_CODE,
+  OBJ1_TARGET_COL,
+  OBJ1_X,
+  OBJ2_ATTR,
+  OBJ2_TILE,
+  OBJ2_X,
+} from "./ram.js";
 export function loc_30de(m) {
   const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
-  mem8[0x80e9] = 9;
-  mem8[0x80e8] = 236;
+  mem8[OBJ1_SPRITE_CODE] = 9;
+  mem8[OBJ1_X] = 236;
   mem8[0x80eb] = 35;
-  mem8[0x80ea] = 4;
+  mem8[OBJ1_ATTR] = 4;
   mem8[0x80f5] = 1;
   mem8[0x80f0] = 1;
-  mem8[0x80f8] = 4;
+  mem8[OBJ1_TARGET_COL] = 4;
 
   // Difficulty-scaled pair: read the round's level/difficulty counter, keep only its
   // two low-order selector bits (leaving 0, 2, 4, or 6), and subtract from seven so
   // the pair steps down 7, 5, 3, 1 as difficulty climbs. Both mirrored slots get it.
   const difficultyStep = 7 - (mem8[LEVEL] & 0x06);
-  mem8[0x80f6] = difficultyStep;
+  mem8[OBJ1_MOVE_PERIOD] = difficultyStep;
   mem8[0x8107] = difficultyStep;
 
   // More fixed start values.
-  mem8[0x80fa] = 9;
-  mem8[0x80fb] = 4;
-  mem8[0x80f9] = 0;
+  mem8[OBJ2_TILE] = 9;
+  mem8[OBJ2_ATTR] = 4;
+  mem8[OBJ2_X] = 0;
   mem8[0x8106] = 0;
   mem8[0x8101] = 1;
   mem8[0x8109] = 5;

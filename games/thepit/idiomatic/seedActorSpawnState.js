@@ -27,21 +27,24 @@
  *           observable, and the teeth twin is caught.
  * LIVE-OUT: memory-only — the fifteen seeded work-RAM bytes. The residual accumulator
  *           value is dead ABI; the round-init caller consumes no register.
- * NAMES:    SPAWN_PHASE, ACTOR_X/ACTOR_TILE/ACTOR_Y/ACTOR_TIMER, TWIN_X/TWIN_TILE/
- *           TWIN_CLEAR from ram.js. The neighbour fields 0x810c/0x810e/0x810f (primary)
- *           and 0x811d/0x811f/0x8120/0x8123 (twin) are still unnamed within the same two
+ * NAMES:    SPAWN_PHASE, ACTOR_X/ACTOR_TILE/ACTOR_Y/ACTOR_STEP_X/ACTOR_STEP_Y/ACTOR_TIMER,
+ *           TWIN_X/TWIN_TILE/TWIN_CLEAR/TWIN_TIMER from ram.js. The neighbour fields 0x810c
+ *           (primary) and 0x811d/0x811f/0x8120 (twin) are still unnamed within the same two
  *           records, so their addresses stay hex.
  */
 
 import {
-  SPAWN_PHASE,
-  ACTOR_X,
+  ACTOR_STEP_X,
+  ACTOR_STEP_Y,
   ACTOR_TILE,
-  ACTOR_Y,
   ACTOR_TIMER,
-  TWIN_X,
-  TWIN_TILE,
+  ACTOR_X,
+  ACTOR_Y,
+  SPAWN_PHASE,
   TWIN_CLEAR,
+  TWIN_TILE,
+  TWIN_TIMER,
+  TWIN_X,
 } from "./ram.js";
 
 export function seedActorSpawnState(m) {
@@ -52,8 +55,8 @@ export function seedActorSpawnState(m) {
   mem8[ACTOR_TILE] = 46; // tile/sprite code
   mem8[ACTOR_Y] = 0; // start row — top of the lane
   mem8[0x810c] = 151; // paired display byte (mirrored on the twin)
-  mem8[0x810e] = 0; // per-step move vector, low byte
-  mem8[0x810f] = 1; // per-step move vector, high byte
+  mem8[ACTOR_STEP_X] = 0; // per-step move vector, low byte
+  mem8[ACTOR_STEP_Y] = 1; // per-step move vector, high byte
   mem8[ACTOR_TIMER] = 1; // cadence timer, armed
 
   // Twin body — the primary shifted 16 columns right, next tile code.
@@ -63,7 +66,7 @@ export function seedActorSpawnState(m) {
   mem8[0x811d] = 151; // twin paired display byte (mirror of 0x810c)
   mem8[0x811f] = 0; // twin move vector, low byte
   mem8[0x8120] = 0; // twin move vector, high byte
-  mem8[0x8123] = 1; // twin cadence timer, armed
+  mem8[TWIN_TIMER] = 1; // twin cadence timer, armed
 
   // Back to the un-spawned phase.
   mem8[SPAWN_PHASE] = 0;

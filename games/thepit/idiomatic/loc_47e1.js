@@ -60,7 +60,8 @@ export function loc_47e1(m) {
   const { regs, mem8 } = m;
 
   // Aim the panel at tile column 1, row 12, then turn that cell into the tilemap offset
-  // (0x805a) and the colour-/video-RAM write cursors the paint helpers write through.
+  // (0x805a, TILEMAP_OFFSET in ram.js) and the colour-/video-RAM write cursors the paint
+  // helpers write through.
   mem8[TILE_COL] = 1;
   mem8[TILE_ROW] = 12;
   rowColToTileOffset(m); // (row, col) -> tilemap offset

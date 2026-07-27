@@ -27,18 +27,18 @@
  *           flag registers are dead: the painters tail-jump in, so the return lands in
  *           their own caller, whose next act re-stages its scratch and reads painted
  *           memory, never a leftover register.
- * NAMES:    none from ram.js. 0x805e (colour cursor), 0x8055 (row count) and 0x8057
- *           (the colour fill byte) are the same colour-paint staging cells the sibling
+ * NAMES:    COLOUR_RAM_CURSOR (0x805e) and PLOT_RUN_LENGTH (0x8055) from ram.js. 0x8057
+ *           (the colour fill byte) is a colour-paint staging cell the sibling
  *           deriveTileWriteCursors keeps hex; ram.js names 0x8057 BOARD_MODE for a
  *           mode-index role used elsewhere, which does not describe the colour byte
  *           staged here, so it is kept hex rather than misread.
  */
 
-import { PLOT_RUN_LENGTH } from "./ram.js";
+import { COLOUR_RAM_CURSOR, PLOT_RUN_LENGTH } from "./ram.js";
 export function fillColourColumn(m) {
   const { mem8, mem16 } = m;
 
-  const cursor = mem16[0x805e]; // address of the column's top colour cell
+  const cursor = mem16[COLOUR_RAM_CURSOR]; // address of the column's top colour cell
   const count = mem8[PLOT_RUN_LENGTH]; // how many cells to paint down the column
   const colour = mem8[0x8057]; // the colour byte to stamp into each cell
 

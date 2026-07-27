@@ -37,7 +37,7 @@
  *           the return with one ret), excluding the dead stack-scratch window and the
  *           declared-dead value registers. Teeth = a wrong strip height.
  * LIVE-OUT: memory-only — the painted tilemap strip + colour column and the paint
- *           scratch (cursor 0x8058/0x8059, offset/address words 0x805a/0x805e/0x8060,
+ *           scratch (cursor 0x8058/0x8059, offset/address words TILEMAP_OFFSET/COLOUR_RAM_CURSOR/0x8060,
  *           count 0x8055, fill byte 0x8057). The caller reloads its own register from
  *           RAM and consumes nothing this leaves.
  * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059) from ram.js. Kept hex: 0x8057 is the
@@ -61,8 +61,8 @@ export function loc_4816(m) {
   const { regs, mem8 } = m;
 
   // Position the tile-cell cursor at column 1, row 11, then resolve that cell's
-  // tilemap offset (0x805a) and from it the colour-RAM and video-RAM write cursors
-  // (0x805e / 0x8060).
+  // tilemap offset (TILEMAP_OFFSET) and from it the colour-RAM and video-RAM write cursors
+  // (COLOUR_RAM_CURSOR / 0x8060).
   mem8[TILE_COL] = 1;
   mem8[TILE_ROW] = 11;
   rowColToTileOffset(m);

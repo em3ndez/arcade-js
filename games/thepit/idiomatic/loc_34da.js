@@ -11,10 +11,11 @@
  *     second, slower counter — holding that counter's bit 3 clear so it can never
  *     set — and otherwise does nothing.
  *
- * The name stays neutral. The two counters it drives (0x8090, 0x8085) have no
- * confirmed game role — the timer/cadence question they sit under is still open —
- * so an English name would claim more than the evidence supports; the sibling
- * refresh it delegates to stays neutral for the same reason.
+ * The name stays neutral. Of the two counters it drives, the free-running tick counter
+ * is now MOVER_STATE (0x8090); the slower second counter (0x8085) still has no confirmed
+ * game role — the timer/cadence question it sits under is still open — so an English name
+ * for the routine would claim more than the evidence supports; the sibling refresh it
+ * delegates to stays neutral for the same reason.
  *
  * Memory-equivalent to the frozen oracle — equivalence-34da.test.js.
  * GATE:     exhaustive — over all 65,536 (tick, second-counter) pairs the touched
@@ -29,19 +30,21 @@
  *           new second-counter value on the 4th) and dead: the caller reaches here
  *           only by tail-jump, threading this return on out, and reads it as no
  *           pixel state — the whole-machine/pixel gate backstops any live register.
- * NAMES:    0x8090 (the free-running tick counter) and 0x8085 (the slower second
- *           counter) have no ram.js name yet, so they stay hex; the periodic
- *           refresh owns the bytes it writes.
+ * NAMES:    MOVER_STATE (0x8090) from ram.js is the free-running tick counter; the
+ *           slower second counter (0x8085) has no ram.js name yet, so it stays hex;
+ *           the periodic refresh owns the bytes it writes.
  */
 
 import { loc_34f0 } from "./loc_34f0.js";
+import { MOVER_STATE } from "./ram.js";
+
 
 export function loc_34da(m) {
   const { mem8 } = m;
 
   // Bump the free-running tick counter every call.
-  const tick = (mem8[0x8090] + 1) % 256;
-  mem8[0x8090] = tick;
+  const tick = (mem8[MOVER_STATE] + 1) % 256;
+  mem8[MOVER_STATE] = tick;
 
   // Once every 256 calls the counter wraps back to zero; on that beat, run the
   // periodic refresh and stop for this call.

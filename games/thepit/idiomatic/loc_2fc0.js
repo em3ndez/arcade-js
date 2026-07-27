@@ -24,9 +24,10 @@
  * of its own, so the continuation's return unwinds straight back to loc_2fc0's caller,
  * which is why each delegation IS an exit.
  *
- * Name kept as loc_2fc0: the backdrop-animation subsystem is a best-effort reading and
- * neither the phase counter nor the flip-tile cell is a confirmed, named work-RAM
- * field yet — below the bar to promote to an English name.
+ * Name kept as loc_2fc0: the backdrop-animation subsystem is a best-effort reading, and
+ * while the phase counter (ANIM_PHASE_COUNTER) and the flip-tile cell (BG_SPRITE_FRAME) are
+ * now named in ram.js, that (fair-confidence) naming does not pin the routine's specific
+ * role — below the bar to promote to an English name.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fc0.test.js.
  * GATE:     crafted-entry — this subsystem never enters through this address in
@@ -42,12 +43,14 @@
  *           the routine tail-jumps, so its caller consumes no register and the chosen
  *           continuation owns everything after the hand-off, identically both sides.
  *           The registers/flags it leaves behind are dead.
- * NAMES:    none from ram.js — 0x80e3 (the animation phase counter) and 0x80dc (the
- *           two-state flip tile) are still unnamed. The commit tail is the decompiled
+ * NAMES:    ANIM_PHASE_COUNTER (0x80e3, the animation phase counter) and BG_SPRITE_FRAME
+ *           (0x80dc, the two-state flip tile) from ram.js. The commit tail is the decompiled
  *           loc_2fd9; the oscillator body (0x2fe3) and publish tail (0x3029) are oracle.
  */
 
 import { loc_2fd9 } from "./loc_2fd9.js";
+import { ANIM_PHASE_COUNTER, BG_SPRITE_FRAME } from "./ram.js";
+
 
 // The two backdrop tile codes the shimmer toggles between.
 const FLIP_TILE_A = 56;
@@ -57,8 +60,8 @@ export function loc_2fc0(m) {
   const { mem8 } = m;
 
   // Tick the phase countdown (an 8-bit down-counter, so it wraps 0 -> 255).
-  const phase = (mem8[0x80e3] - 1 + 256) % 256;
-  mem8[0x80e3] = phase;
+  const phase = (mem8[ANIM_PHASE_COUNTER] - 1 + 256) % 256;
+  mem8[ANIM_PHASE_COUNTER] = phase;
 
   if (phase !== 0) {
     // Countdown still running.
@@ -71,8 +74,8 @@ export function loc_2fc0(m) {
   }
 
   // Countdown expired: reload it and flip the shimmer tile to its other code.
-  mem8[0x80e3] = 8;
-  const tile = mem8[0x80dc];
+  mem8[ANIM_PHASE_COUNTER] = 8;
+  const tile = mem8[BG_SPRITE_FRAME];
   m.regs.a = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
 
   // Hand the chosen tile to the commit tail; its return goes to our caller, so this

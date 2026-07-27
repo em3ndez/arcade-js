@@ -40,12 +40,13 @@
  *           oracle leaves behind (from its tail into loc_1b5b or the sound enqueue) are dead
  *           ABI no caller reads; the keep-moving path stays the frozen 0x19d0, so it
  *           reproduces the oracle's registers exactly.
- * NAMES:    SPRITE_CODE, NEXT_TILE from ram.js. The classifier scratch bytes 0x80a2-0x80a7,
- *           the per-actor arm state 0x80c1 and its companion 0x80b1, and the two ROM lookup
- *           tables at 0x1e48 / 0x1fb0 stay hex — their roles are not yet grounded.
+ * NAMES:    SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE (the per-actor arm state
+ *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from ram.js. The classifier scratch
+ *           bytes 0x80a3-0x80a7 and the two ROM lookup tables at 0x1e48 / 0x1fb0 stay hex —
+ *           their roles are not yet grounded.
  */
 
-import { SPRITE_CODE, NEXT_TILE, REACTION_STATE } from "./ram.js";
+import { SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE, DIG_OBJ_TIMER } from "./ram.js";
 import { loc_1b5b } from "./loc_1b5b.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 
@@ -54,13 +55,11 @@ import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 const EXPECTED_TILE_TABLE = 0x1e48;
 const NEIGHBOUR_TILE_TABLE = 0x1fb0;
 
-// Classifier scratch + per-actor reaction state (roles not yet grounded — kept as addresses).
+// Classifier scratch (roles not yet grounded — kept as addresses).
 const REACTION_PARAM_SRC = 0x80a3; // parameter copied into REACTION_PARAM on a reaction
 const REACTION_PARAM = 0x80a4;
 const EXPECTED_TILE = 0x80a7; // the current cell's expected tile, recorded for the reaction
 const NEIGHBOUR_TILE = 0x80a6; // the neighbouring cell's tile code, recorded for the reaction
-const ARM_STATE = 0x80c1; // per-actor reaction arm state (0 = not armed)
-const ARM_COMPANION = 0x80b1;
 
 const REACTION_SPRITE_FRAME = 54; // the sprite frame the actor shows while reacting
 const REACTION_SOUND = 20; // sound requested when an armed reaction fires
@@ -124,9 +123,9 @@ function movementContinuation(m) {
  *  (arm state 0) only builds the record. */
 function armReactionLatch(m) {
   const { mem8 } = m;
-  if (mem8[ARM_STATE] !== 0) {
-    mem8[ARM_STATE] = 2;
-    mem8[ARM_COMPANION] = 64;
+  if (mem8[DIG_OBJ_ARM_STATE] !== 0) {
+    mem8[DIG_OBJ_ARM_STATE] = 2;
+    mem8[DIG_OBJ_TIMER] = 64;
     enqueueSoundCommand(m, REACTION_SOUND);
   }
   loc_1b5b(m);

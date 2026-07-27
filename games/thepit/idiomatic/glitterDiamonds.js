@@ -4,7 +4,7 @@
  * each frame advance one diamond cell's colour attribute through the palette; a diamond
  * that has been collected drops out of the set and holds a fixed colour.  ROM 0x06ac.
  *
- * A free-running countdown at 0x805c runs 8 → 7 → ... → 1 and reloads to 8 when it
+ * A free-running countdown at GLITTER_COUNTDOWN (0x805c) runs 8 → 7 → ... → 1 and reloads to 8 when it
  * reaches 0, so it repeats on a fixed eight-frame period. Each value it passes
  * through names one fixed screen cell — a colour-RAM byte paired with the video-RAM
  * byte that holds the glyph currently shown at that cell. For that one cell:
@@ -26,9 +26,11 @@
  * LIVE-OUT: memory-only — the caller overwrites every register this leaves before
  *           reading it, so nothing is live out; SP/pc are the modelled return the
  *           direct-call layer drops.
- * NAMES:    none — 0x805c is unnamed work RAM, and the cell targets are colour/video
- *           RAM outside ram.js's work-RAM map; all stay hex.
+ * NAMES:    GLITTER_COUNTDOWN (0x805c) from ram.js is the countdown work-RAM byte; the
+ *           cell targets are colour/video RAM outside ram.js's work-RAM map and stay hex.
  */
+
+import { GLITTER_COUNTDOWN } from "./ram.js";
 
 // Countdown value → the cell it recolours:
 //   [ colour-RAM cell (written), video-RAM cell (read), animating glyph, resting colour ]
@@ -59,15 +61,15 @@ export function glitterDiamonds(m) {
 
   // Step the countdown one and store it back; the value it now holds selects the
   // cell recoloured below. (In play it runs 8..1; the byte store wraps for free.)
-  const countdown = mem8[0x805c] - 1;
+  const countdown = mem8[GLITTER_COUNTDOWN] - 1;
 
   if (countdown === 0) {
     // Wrapped: reload for the next cycle, then recolour the shared value-4 cell.
-    mem8[0x805c] = 8;
+    mem8[GLITTER_COUNTDOWN] = 8;
     recolorCell(m, ...CELLS[4]);
     return;
   }
 
-  mem8[0x805c] = countdown;
+  mem8[GLITTER_COUNTDOWN] = countdown;
   recolorCell(m, ...(CELLS[countdown] ?? CELL_DEFAULT));
 }

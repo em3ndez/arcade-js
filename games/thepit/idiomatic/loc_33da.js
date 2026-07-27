@@ -9,7 +9,7 @@
  * object's current sub-tile phase. The dispatcher branches on the answer, steering a match
  * into one of the velocity presets.
  *
- *   - It always stashes the one-row-back cell at 0x8134 (a later step reloads it).
+ *   - It always stashes the one-row-back cell at SAVED_CELL_PTR (a later step reloads it).
  *   - First it searches table A's phase row for the neighbouring tile. A miss ends the probe
  *     reporting "no match".
  *   - A hit while the sub-tile phase is 0 reports "match" immediately — there is no table-B
@@ -17,12 +17,12 @@
  *   - Otherwise it searches table B's phase row for the following tile and reports whether
  *     THAT tile matched.
  *
- * The sub-tile phase (0x808d) selects the table row and is deliberately kept to a single byte,
+ * The sub-tile phase (SUBTILE_PHASE, 0x808d) selects the table row and is deliberately kept to a single byte,
  * so the selector wraps within 0..255 (phase 224 + 32 lands back at row 0 — a real case here,
  * where the phase only ever takes multiples of 32).
  *
- * Reads the sub-tile phase (0x808d) and the probe-cell pointer (0x8089), plus the two
- * neighbouring tiles and the two ROM tables; writes only 0x8134. Returns whether a match was
+ * Reads the sub-tile phase (SUBTILE_PHASE) and the probe-cell pointer (PROBE_CELL_PTR), plus the two
+ * neighbouring tiles and the two ROM tables; writes only SAVED_CELL_PTR. Returns whether a match was
  * found and leaves the same answer in the zero flag for the still-oracle caller to branch on.
  *
  * Kept as loc_33da: a sibling single-table probe (0x33bc) earns the descriptive name, but this
@@ -37,14 +37,13 @@
  *           Reached from the tile-probe dispatcher during the attract demo (first dispatch ~frame 1600).
  * LIVE-OUT: the zero flag (match found) + the 0x8134 write. The leftover value registers (the
  *           search pointers and keys) are dead — the caller reads only the zero flag.
- * NAMES:    none in ram.js — 0x8089 (probe-cell tilemap pointer), 0x808d (object sub-tile phase)
- *           and 0x8134 (saved one-row-back cell) kept hex; F_Z is the CPU's zero-flag bit.
+ * NAMES:    PROBE_CELL_PTR (0x8089, probe-cell tilemap pointer), SUBTILE_PHASE (0x808d, object
+ *           sub-tile phase) and SAVED_CELL_PTR (0x8134, saved one-row-back cell) from ram.js;
+ *           F_Z is the CPU's zero-flag bit.
  */
 import { F_Z } from "../../../core/cpu/z80.js";
+import { SUBTILE_PHASE, PROBE_CELL_PTR, SAVED_CELL_PTR } from "./ram.js";
 
-const SUBTILE_PHASE = 0x808d; // the object's sub-tile phase; here it also selects the table row
-const PROBE_CELL = 0x8089;    // tilemap pointer at the object's probe cell (16-bit, into video RAM)
-const SAVED_CELL = 0x8134;    // the one-row-back cell, stashed here for a later reload
 const TABLE_A = 0x34fe;       // base of the first phase-keyed ROM probe table's rows
 const TABLE_B = 0x35fe;       // base of the second phase-keyed ROM probe table's rows
 
@@ -53,8 +52,8 @@ export function loc_33da(m) {
 
   // Look one tilemap row (the map is 32 cells wide) back from the probe cell, and stash that
   // cell — a later step reloads the pointer from here.
-  const oneRowBack = (mem16[PROBE_CELL] - 32) & 0xffff;
-  mem16[SAVED_CELL] = oneRowBack;
+  const oneRowBack = (mem16[PROBE_CELL_PTR] - 32) & 0xffff;
+  mem16[SAVED_CELL_PTR] = oneRowBack;
 
   const phase = mem8[SUBTILE_PHASE];
 

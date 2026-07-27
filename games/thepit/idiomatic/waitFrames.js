@@ -27,19 +27,21 @@
  *           the busy-wait terminates. EQUAL over a frame-count sweep {0,1,2,60,255}
  *           on the real boot dispatch state; count 0 is also proven with no hook
  *           (natural fall-through). Reached from boot (loc_01a4) onward.
- * LIVE-OUT: memory-only — the countdown cell (0x8009) left at 0, plus the return to
- *           the caller (pc/SP). The working registers and flags the loop leaves
+ * LIVE-OUT: memory-only — the countdown cell FRAME_WAIT_COUNTDOWN (0x8009) left at 0,
+ *           plus the return to the caller (pc/SP). The working registers and flags the loop leaves
  *           behind are dead — no caller reads them back.
- * NAMES:    none apply — 0x8009 (the per-frame countdown cell) is unnamed in ram.js;
+ * NAMES:    FRAME_WAIT_COUNTDOWN (0x8009), the per-frame countdown cell, from ram.js.
  *           0xb000 (interrupt-enable latch) and 0xb800 (watchdog kick) are I/O
  *           addresses, not work RAM.
  */
+
+import { FRAME_WAIT_COUNTDOWN } from "./ram.js";
 export function waitFrames(m, count) {
   const { mem8 } = m;
 
   // Arm the countdown with the caller's frame count, then enable the per-frame
   // interrupt whose service routine decrements that countdown once per frame.
-  mem8[0x8009] = count;
+  mem8[FRAME_WAIT_COUNTDOWN] = count;
   mem8[0xb000] = 1;
 
   // Spin until the countdown has been ticked all the way down to zero, kicking the
@@ -48,7 +50,7 @@ export function waitFrames(m, count) {
   let remaining;
   do {
     mem8[0xb800]; // kick the watchdog
-    remaining = mem8[0x8009]; // reload the countdown the interrupt is ticking
+    remaining = mem8[FRAME_WAIT_COUNTDOWN]; // reload the countdown the interrupt is ticking
   } while (remaining !== 0);
 
   return m.ret();

@@ -32,12 +32,12 @@
  * LIVE-OUT: memory-only — the two packed-BCD score bytes and the four repainted digit cells
  *           (drawScoreDigits' own column-base register is dead in the award path; no caller
  *           reads it here). The value registers and flags the oracle path leaves are dead.
- * NAMES:    GAME_MODE (0x8001) — the active-player gate. The score bytes 0x8031 / 0x8034 stay
- *           hex: the packed-BCD score low / high, not yet named in ram.js (matching
- *           drawScoreDigits). The redraw delegates to drawScoreDigits (ROM 0x46af).
+ * NAMES:    GAME_MODE (0x8001) — the active-player gate; SCORE_LO (0x8031) / SCORE_HI (0x8034),
+ *           the packed-BCD score low / high, from ram.js (matching drawScoreDigits). The redraw
+ *           delegates to drawScoreDigits (ROM 0x46af).
  */
 
-import { GAME_MODE } from "./ram.js";
+import { GAME_MODE, SCORE_HI, SCORE_LO } from "./ram.js";
 import { drawScoreDigits } from "./drawScoreDigits.js";
 
 // A packed-BCD byte holds two decimal digits, one per nibble. Convert to and from its
@@ -53,14 +53,14 @@ export function addScore(m, increment) {
   if (mode !== 1 && mode !== 2) return;
 
   // Low pair: add the increment's low byte, keep a carry when it rolls past 99.
-  const lowSum = fromBcd(mem8[0x8031]) + fromBcd(increment & 0xff);
+  const lowSum = fromBcd(mem8[SCORE_LO]) + fromBcd(increment & 0xff);
   const carry = lowSum >= 100 ? 1 : 0;
-  mem8[0x8031] = toBcd(lowSum % 100);
+  mem8[SCORE_LO] = toBcd(lowSum % 100);
 
   // High pair: add the increment's high byte plus the carry from the low pair; the score
   // wraps at 10000, so any overflow past 99 here is simply dropped.
-  const highSum = fromBcd(mem8[0x8034]) + fromBcd(increment >> 8) + carry;
-  mem8[0x8034] = toBcd(highSum % 100);
+  const highSum = fromBcd(mem8[SCORE_HI]) + fromBcd(increment >> 8) + carry;
+  mem8[SCORE_HI] = toBcd(highSum % 100);
 
   // Repaint the active player's on-screen score digits.
   drawScoreDigits(m);

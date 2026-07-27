@@ -30,7 +30,17 @@
  *           yet named, so their addresses stay hex.
  */
 
-import { OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, CLIMB_GATE, NEXT_TILE } from "./ram.js";
+import {
+  CLIMB_GATE,
+  NEXT_TILE,
+  OBJ_SPRITE_ATTR,
+  OBJ_TILE_COL,
+  OBJ_TILE_ROW,
+  OBJ_X,
+  OBJ_Y,
+  SPAWN_PHASE,
+  SPRITE_CODE,
+} from "./ram.js";
 
 export function seedObjectStartState(m) {
   const { mem8 } = m;
@@ -41,12 +51,12 @@ export function seedObjectStartState(m) {
   mem8[SPRITE_CODE] = 50; // default sprite / animation code
 
   // Fixed non-zero start values for the block's counters.
-  mem8[0x806a] = 2;
+  mem8[OBJ_SPRITE_ATTR] = 2;
   mem8[0x806c] = 1;
   mem8[0x806d] = 1;
   mem8[0x8070] = 1;
-  mem8[0x8071] = 5;
-  mem8[0x8073] = 25;
+  mem8[OBJ_TILE_COL] = 5;
+  mem8[OBJ_TILE_ROW] = 25;
 
   // Everything else in the block starts empty: the spawn-phase flag, the
   // vertical-move gate, the unnamed status bytes, and the tile-classifier scratch.

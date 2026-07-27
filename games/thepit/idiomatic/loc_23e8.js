@@ -4,10 +4,11 @@
  * sound and stamp a two-tile "cap" into the tilemap.  ROM 0x23e8.
  *
  * Runs during the boot/attract setup. In order it:
- *   1. Stores a fixed tilemap address (0x9104) into the pointer slot at 0x8065, so
- *      later code that walks the tilemap starts from that cell.
- *   2. Writes a countdown into 0x8067: a gameplay parameter (0x804f) minus four counts
- *      for every unit of the counter at 0x8028. The subtraction wraps within one byte.
+ *   1. Stores a fixed tilemap address (0x9104) into the pointer slot COLUMN_ANIM_WRITE_PTR
+ *      (0x8065), so later code that walks the tilemap starts from that cell.
+ *   2. Writes a countdown into COLUMN_ANIM_TIMER (0x8067): the STEP_TIMER_BASE parameter
+ *      (0x804f) minus four counts for every unit of the LEVEL counter (0x8028). The
+ *      subtraction wraps within one byte.
  *   3. If the marker cell at tilemap 0x9264 holds the trigger tile (0x32), cues a sound.
  *   4. If the head cell at tilemap 0x90e4 still holds its 0xfe marker, stamps tile 0xae
  *      into it and tile 0xac into the cell one row above it (0x90c4, 32 columns up);
@@ -28,21 +29,22 @@
  * LIVE-OUT: memory-only — 0x8065 / 0x8067 and the two tilemap cells, plus the sound
  *           ring on the cued arm. The oracle's exit registers, flags and Z80 return
  *           path are dead scratch a plain JS call replaces.
- * NAMES:    none in ram.js yet — all addresses kept hex (0x8028 / 0x804f / 0x8065 /
- *           0x8067 work RAM, 0x9104 / 0x9264 / 0x90e4 / 0x90c4 tilemap). Delegates the
- *           sound cue to requestSound21, which owns the sound-ring addresses.
+ * NAMES:    LEVEL (0x8028), STEP_TIMER_BASE (0x804f), COLUMN_ANIM_WRITE_PTR (0x8065) and
+ *           COLUMN_ANIM_TIMER (0x8067) from ram.js; the tilemap cells (0x9104 / 0x9264 /
+ *           0x90e4 / 0x90c4) stay hex. Delegates the sound cue to requestSound21, which
+ *           owns the sound-ring addresses.
  */
 import { requestSound21 } from "./requestSound21.js";
 
-import { LEVEL } from "./ram.js";
+import { COLUMN_ANIM_TIMER, COLUMN_ANIM_WRITE_PTR, LEVEL, STEP_TIMER_BASE } from "./ram.js";
 export function loc_23e8(m) {
   const { mem8, mem16 } = m;
 
   // 1. Seed the tilemap write pointer for later tilemap walks.
-  mem16[0x8065] = 0x9104;
+  mem16[COLUMN_ANIM_WRITE_PTR] = 0x9104;
 
   // 2. Countdown = gameplay parameter minus four per unit of the counter (wraps in a byte).
-  mem8[0x8067] = mem8[0x804f] - 4 * mem8[LEVEL];
+  mem8[COLUMN_ANIM_TIMER] = mem8[STEP_TIMER_BASE] - 4 * mem8[LEVEL];
 
   // 3. Cue a sound when the marker cell holds the trigger tile.
   if (mem8[0x9264] === 0x32) requestSound21(m);
