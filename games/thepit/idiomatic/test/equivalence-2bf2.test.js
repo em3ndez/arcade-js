@@ -6,8 +6,8 @@
  * SPAWN_STATE (0x80bd) and tail-call the background/terrain animation loc_2f71.
  *
  * WHY THE CONTRACT IS RAM-ONLY (outside a stack window). The occupied hand-off is the
- * already-decompiled spawnPendingDigObject; the empty hand-off (0x2f71) is still the
- * frozen oracle, reached by m.call. The oracle loc_2bf2 leaves its scan's pointer-walk
+ * already-decompiled spawnPendingDigObject; the empty hand-off (0x2f71) is the decompiled
+ * advanceBackgroundSprite, called directly. The oracle loc_2bf2 leaves its scan's pointer-walk
  * in the registers and the placement chain saves register pairs on the stack; the
  * stack-free idiomatic path does not reproduce those exact saved bytes, so a few dead
  * bytes just below the entry stack pointer differ (pushed, popped, and never read

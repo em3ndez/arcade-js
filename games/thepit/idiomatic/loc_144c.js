@@ -14,11 +14,11 @@
  *     then either run the goal handler if it has already reached the goal tile, or defer
  *     the frame by building the object's record.
  *
- * The three direction/phase handlers are still the frozen oracle; the object's position
- * deltas ride in through machine registers untouched (the caller sets them, each handler
- * reads them), so this passes the object's move command and those deltas straight through
- * and clobbers none of them. The goal handler and the record builder on the standing-still
- * path are already decompiled, so they are called directly (the goal handler's columnBias
+ * The three direction/phase handlers are decompiled and called directly; the object's
+ * position deltas ride in through machine registers untouched (the caller sets them, each
+ * handler reads them), so this passes the object's move command and those deltas straight
+ * through and clobbers none of them. The goal handler and the record builder on the standing-
+ * still path are likewise decompiled and called directly (the goal handler's columnBias
  * parameter defaults to the D register, which this routine leaves untouched).
  *
  * Memory-equivalent to the frozen oracle — equivalence-144c.test.js.
@@ -33,9 +33,9 @@
  *           register deltas are consumed by the still-oracle handlers (they pass through
  *           here), and the caller reads no register back from this routine.
  * NAMES:    GOAL_TILE_LATCH from ram.js; the animation-phase byte 0x801a has no ram.js name
- *           yet, so it is a local constant; the three direction/phase handler addresses are
- *           still-oracle routines reached through the registry, and the goal handler resolveObjectTile
- *           is decompiled and called directly.
+ *           yet, so it is a local constant; the direction/phase handlers (loc_1493, loc_167f,
+ *           windUpObjectMove) and the goal handler resolveObjectTile are decompiled and called
+ *           directly.
  */
 
 import { GOAL_TILE_LATCH } from "./ram.js";
@@ -43,6 +43,7 @@ import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 import { windUpObjectMove } from "./windUpObjectMove.js";
 import { loc_167f } from "./loc_167f.js";
+import { loc_1493 } from "./loc_1493.js";
 
 const OBJECT_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
@@ -53,7 +54,7 @@ export function loc_144c(m) {
   const moveCommand = regs.l;
 
   // First-match-wins over the command's direction bits, each running one object handler.
-  if (moveCommand & 0x01) return m.call(0x1493); // position the object; test the boundary
+  if (moveCommand & 0x01) return loc_1493(m); // position the object; test the boundary
   if (moveCommand & 0x02) return loc_167f(m); // derive the object's tile row and dispatch
   if (moveCommand & 0x0c) return windUpObjectMove(m, moveCommand); // reconcile the object's animation phase
 

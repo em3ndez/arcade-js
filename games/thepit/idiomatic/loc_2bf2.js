@@ -27,11 +27,12 @@
  * NAMES:    SPAWN_STATE (0x80bd). The 24-slot pending queue at 0x80c3 is deliberately
  *           kept hex — its exact contents are not yet pinned. The occupied hand-off is
  *           the already-decompiled spawnPendingDigObject; the animation hand-off (0x2f71)
- *           has no idiomatic file yet, so it stays a frozen-oracle call.
+ *           is the decompiled advanceBackgroundSprite, called directly.
  */
 
 import { SPAWN_STATE } from "./ram.js";
 import { spawnPendingDigObject } from "./spawnPendingDigObject.js";
+import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
 
 export function loc_2bf2(m) {
   const { mem8 } = m;
@@ -47,5 +48,5 @@ export function loc_2bf2(m) {
   // Queue empty: nothing is spawning, so allow a fresh spawn next time round.
   mem8[SPAWN_STATE] = 0;
   // Carry on with the per-frame background/terrain animation.
-  return m.call(0x2f71);
+  return advanceBackgroundSprite(m);
 }

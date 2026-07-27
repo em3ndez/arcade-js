@@ -13,9 +13,9 @@ This map is the precursor to (and companion of) the naming + idiomatic passes: a
 confidence it becomes a `ram.js` name and an English routine name. **Most of that has now
 happened.** As of this pass:
 
-- **151 / 169** ROM routines are decompiled to idiomatic JS; **118** of those carry earned
-  English names, **33** stay neutral `loc_<addr>` (role clear, but a single verb would over- or
-  under-claim). **18** routines are still the frozen oracle (registered, memory-faithful, not yet
+- **159 / 169** ROM routines are decompiled to idiomatic JS; **122** of those carry earned
+  English names, **37** stay neutral `loc_<addr>` (role clear, but a single verb would over- or
+  under-claim). **10** routines are still the frozen oracle (registered, memory-faithful, not yet
   rewritten).
 - `idiomatic/ram.js` holds **107** named work-RAM addresses (proposer≠confirmer + adversarial
   judge on the newest ~60; older ones tagged strong/fair/weak).
@@ -135,7 +135,7 @@ state bytes; the axis (X vs Y under ROT90) is deliberately left un-named — see
 | Mechanism | Routine(s) |
 |---|---|
 | Terrain-response resolver (non-loot) | **`loc_1568`** (0x1568): latch the feature/goal tiles (38 / 39), classify solid / diagonal-gated / pushable (vs ROM tables at 0x1b78 / 0x1ce0), arm the push reaction. The vertical/other-axis counterpart of `loc_1704`. |
-| Object-vs-tilemap collision body | **`loc_14cd`** (0x14cd, screen row from `loc_1493`) / **`loc_1515`** (0x1515: collect grid-aligned loot, else delegate every non-collect case to `loc_1568`), reached via **`loc_1493`** *(oracle)* (from `loc_144c`'s bit-0 arm) and the tile-row dispatch **`loc_167f`** (0x167f: continue the step or fire the dig one-shot; bit-1 arm → `loc_16b9`). |
+| Object-vs-tilemap collision body | **`loc_14cd`** (0x14cd, screen row from `loc_1493`) / **`loc_1515`** (0x1515: collect grid-aligned loot, else delegate every non-collect case to `loc_1568`), reached via **`loc_1493`** (0x1493, the mirror axis-arm of `loc_167f`; from `loc_144c`'s bit-0 arm) and the tile-row dispatch **`loc_167f`** (0x167f: continue the step or fire the dig one-shot; bit-1 arm → `loc_16b9`). |
 | Probe-cell table search | **`tileInProbeRow`** (0x33bc: is the probe cell's tile in this phase's list?), **`loc_33da`** (0x33da), **`loc_3410`** (0x3410), **`loc_3425`** (0x3425) — phase-keyed ROM-table probes for the mover, using `PROBE_CELL_PTR` / `SUBTILE_PHASE` / `SAVED_CELL_PTR`. |
 
 ### Loot collect + score  [code]
@@ -158,7 +158,7 @@ spawned from a queue, descends to solid ground, and can capture the player.
 | Descending target + capture | **`captureTargetOnOverlap`** (0x2cb7: tick the countdown, on expiry test the capture box and snap the object onto the target), **`advanceDigTarget`** (0x2d06: step the target, embed it into solid ground), **`loc_2d4e`** (0x2d4e: land it), **`loc_2c91`** (0x2c91: player-overlap record). |
 | Dig-object sprite record | **`stageDigObjectSpriteRecord`** (0x2bd3): compose slot 2 of the sprite buffer from `TARGET_X`/`DIG_OBJ_STATE`/`DIG_OBJ_ATTR`/`TARGET_Y`, biased by `SPRITE_COORD_BIAS`. |
 | Round-start / reset seeds | **`loc_287a`** (0x287a: seed the dig/target control block), **`loc_24cf`** (0x24cf: reset the reaction state machine to idle), **`stampGlyphColumn`** (0x2d6b). |
-| Per-frame drivers | **`loc_24f3`** *(oracle)*: the `REACTION_STATE` per-frame dispatcher (positions `REACTION_OBJ_X`/`Y` from `OBJ_X`/`Y` ± 8, ticks `REACTION_TIMER`). **`loc_29ad`** *(oracle)*: the dig-object commit/advance driver (branches on `DIG_OBJ_STATE`, decrements `SPAWN_STATE`, bbox-tests the target vs the player). |
+| Per-frame drivers | **`advanceReactionObject`** (0x24f3): the `REACTION_STATE` per-frame driver — the four 8px direction phases, terrain scroll-walk, and edge-collision seed, then tails into the dig driver. **`loc_29ad`** (0x29ad): the dig-object commit/advance driver (branches on `DIG_OBJ_STATE`, decrements `SPAWN_STATE`, bbox-tests the target vs the player). |
 
 ### Object / enemy movers  [code]
 
@@ -186,7 +186,7 @@ player** (the player uses the tracked-object path).
 
 | Mechanism | Routine(s) |
 |---|---|
-| Animated background sprite | `BG_SPRITE_X`/`FRAME`/`ATTR`/`Y` (0x80db..): a horizontal bounce oscillator + accelerating vertical fall, RNG-reseeded at the clamp. **`advanceBackgroundAnimation`** (0x2fc0 phase clock) + **`setBgSpriteFrame`** (0x2fd9 commit the flip tile); the per-frame monolith **`loc_2f71`** *(oracle)* drives the bounce inline. **[guess]** that this is the patrolling top-band UFO. |
+| Animated background sprite | `BG_SPRITE_X`/`FRAME`/`ATTR`/`Y` (0x80db..): a horizontal bounce oscillator + accelerating vertical fall, RNG-reseeded at the clamp. **`advanceBackgroundAnimation`** (0x2fc0 phase clock) + **`setBgSpriteFrame`** (0x2fd9 commit the flip tile); the per-frame monolith **`advanceBackgroundSprite`** (0x2f71) drives the bounce inline. **[guess]** that this is the patrolling top-band UFO. |
 
 ### Column / terrain reveal animation  [code]
 
@@ -332,13 +332,12 @@ reload byte 0x80c2.
 - **Object-mover axis semantics.** X vs Y is contested under ROT90, which is exactly why
   `stepObjectAndResolveTile` / `loc_1704` / `loc_1568` / the `loc_3476` presets keep neutral names.
   Needs a control-poke pass to pin the axis and promote them.
-- **The still-oracle per-frame drivers**, by their code-grounded roles (not yet decompiled):
-  - **`loc_319d`** — the object/enemy move driver (probe + direction dispatch).
-  - **`loc_29ad`** — the dig-object commit/advance driver (branches on `DIG_OBJ_STATE`).
-  - **`loc_24f3`** — the `REACTION_STATE` per-frame dispatcher (positions the reaction object,
-    ticks its timer). *(No code evidence that this is an "elevator" — described by role.)*
-  - **`loc_2f71`** — the per-frame backdrop monolith (background-sprite bounce + inline terrain
-    reveal).
+- **The per-frame driver cluster is now decompiled** (it was the last big oracle block): the move
+  driver `loc_319d`, the dig-object commit driver `loc_29ad`, the reaction-state driver
+  **`advanceReactionObject`** (0x24f3 — no code evidence of an "elevator"; named by role), the
+  backdrop monolith **`advanceBackgroundSprite`** (0x2f71), and the object/actor movers
+  (`advanceObjectMovers` 0x312d, `advanceActorMovers` 0x3a13, `loc_3748`, `loc_316f`). The routines
+  are pinned; the mover axis (X vs Y under ROT90) stays the open question above.
 - **What the background sprite is.** `BG_SPRITE_*` bounces horizontally and falls vertically
   (RNG-reseeded) — plausibly the patrolling top-band **UFO**, but the routine→on-screen-object link
   is **[guess]**.

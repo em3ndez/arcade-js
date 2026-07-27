@@ -15,9 +15,9 @@
  *   - continues into the shared per-frame background-animation update as a tail hand-off:
  *     that routine's return is this routine's return.
  *
- * The background-animation update (0x2f71) is still the frozen oracle — it has no
- * idiomatic form yet — and takes none of its inputs from a register, so the hand-off is
- * a plain oracle call with nothing to marshal.
+ * The background-animation update (0x2f71) is the decompiled advanceBackgroundSprite,
+ * called directly — and it takes none of its inputs from a register, so the hand-off has
+ * nothing to marshal.
  *
  * The name captures the visible effect (a fixed glyph appears at the object cell); what
  * that glyph depicts, and why it lands on the countdown's reload sentinel, is not yet
@@ -31,13 +31,14 @@
  *           caught by the RAM diff.
  * LIVE-OUT: memory-only — the five stamped tile cells, the five painted colour cells,
  *           the cleared latch (0x8078) and the re-armed state timer (0x807c); then the
- *           still-oracle background update runs identically on both sides (it reads no
+ *           decompiled background update runs identically on both sides (it reads no
  *           register left here). Leftover registers/flags are dead.
  * NAMES:    ACTOR_CELL_PTR (0x806e), STATE_TIMER (0x807c) from ram.js; the per-event
  *           latch 0x8078 has no ram.js name yet, so it stays hex.
  */
 
 import { ACTOR_CELL_PTR, STATE_TIMER } from "./ram.js";
+import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
 
 // The glyph's fixed tile codes, top cell to bottom cell.
 const GLYPH_TILES = [62, 20, 23, 24, 35];
@@ -73,7 +74,7 @@ export function stampGlyphColumn(m) {
   mem8[0x8078] = 0;
   mem8[STATE_TIMER] = 180;
 
-  // Hand off to the still-oracle background-animation update; its return unwinds to our
+  // Hand off to the background-animation update; its return unwinds to our
   // caller, so this is the exit.
-  return m.call(0x2f71);
+  return advanceBackgroundSprite(m);
 }
