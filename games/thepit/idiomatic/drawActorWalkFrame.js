@@ -2,7 +2,7 @@
 /**
  * drawActorWalkFrame — commit the actor's animation frame, then fire the crossing's far-edge one-shot.  ROM 0x19e3.
  *
- * The tail of the actor-movement "keep moving" continuation (loc_19d0): the predecessor has
+ * The tail of the actor-movement "keep moving" continuation (advanceActorWalk): the predecessor has
  * just advanced the actor and picked its walk-animation frame, and hands that frame in. This
  * routine commits the frame into the actor's sprite-code cell.
  *
@@ -17,8 +17,8 @@
  * own return unwinds to this routine's caller, so the routine produces no live register.
  *
  * Memory-equivalent to the frozen oracle — equivalence-19e3.test.js.
- * GATE:     crafted-entry — 0x19e3 is only ever reached inline as the tail of loc_19d0 (never
- *           dispatched on its own), so entries are cloned from real captured loc_19d0 attract
+ * GATE:     crafted-entry — 0x19e3 is only ever reached inline as the tail of advanceActorWalk (never
+ *           dispatched on its own), so entries are cloned from real captured advanceActorWalk attract
  *           dispatches. The far-edge latch is never taken in attract (the goal-crossing latch is
  *           always clear there), so all three branches are forced identically on both arms. Its
  *           inputs are the incoming frame plus a handful of work-RAM bytes, so any real state is

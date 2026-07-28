@@ -31,7 +31,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fc0.test.js.
  * GATE:     crafted-entry — this subsystem never enters through this address in
- *           attract (the sibling monolith loc_2f71 inlines the same body instead of
+ *           attract (the sibling monolith advanceBackgroundSprite inlines the same body instead of
  *           calling it), so real machine states are captured at that sibling and the
  *           target is invoked on clones of them. The two still-untranslated tails
  *           (0x2fe3 oscillator body, 0x3029 publish) are delegated to ONE identical

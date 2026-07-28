@@ -26,7 +26,7 @@
  * routine's own caller.
  *
  * Name kept as advanceDigCarveObject: it is one of the dig-object family whose higher-level game role
- * stays best-effort (its siblings commitDigEntity / loc_287a keep loc_ for the same reason), and
+ * stays best-effort (its siblings commitDigEntity / seedDigObjectBlock carry best-effort names for the same reason), and
  * it spans several distinct jobs (spawn gate, capture hand-off, carve timer, tile carving,
  * entity commit) that no single verb captures without over- or under-claiming.
  *

@@ -6,7 +6,7 @@
  * This routine toggles the round sub-phase (GAME_STATE2, held at 1 or 2) and, on two
  * continuation-select flags, routes control to one of two continuations: the round-setup
  * path (setUpRoundAndHoldIntro — reload the player, decode the switches, rebuild the setup screen) or
- * the end-of-round teardown-and-reset path (loc_0371).
+ * the end-of-round teardown-and-reset path (submitHighScoresAndReset).
  *
  *   - If the sub-phase is currently 1, advance it to 2; when the second flag is set,
  *     go straight to setup.
@@ -26,7 +26,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-02a1.test.js.
  * GATE:     crafted-entry — stepRoundSubPhaseAndBranch is on the round-transition path, never dispatched in
  *           attract, so it is validated on real machine states captured at a shared attract
- *           dispatch (loc_3dae) with the sub-phase and both flags swept across every branch.
+ *           dispatch (rowColToTileOffset) with the sub-phase and both flags swept across every branch.
  *           The two continuations are now idiomatic (setUpRoundAndHoldIntro setup / submitHighScoresAndReset
  *           teardown), called directly, so both sides run the real continuation chain and
  *           converge at the true oracle leaves (0x031a setup / 0x01f9 reset), which are

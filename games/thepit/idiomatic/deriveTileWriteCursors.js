@@ -15,7 +15,7 @@
  *
  * Runs immediately after the offset is computed, as the second half of the address
  * setup for every panel / record / HUD plotter (drawPlayerLabel, paintPlayfieldStripCol1Row11, drawMenLeftPanel,
- * drawCreditsDisplay, showSetupScreen, loc_4df8); each then re-reads the two cursors from memory to
+ * drawCreditsDisplay, showSetupScreen, runHighScoreInitialsEntry); each then re-reads the two cursors from memory to
  * stamp a run of cells.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3dc9.test.js.

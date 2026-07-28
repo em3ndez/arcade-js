@@ -29,7 +29,7 @@
  * advanceActorMovers.
  *
  * Memory-equivalent to the frozen oracle — equivalence-312d.test.js.
- * GATE:     real captured attract dispatches (the per-frame backdrop driver loc_2f71
+ * GATE:     real captured attract dispatches (the per-frame backdrop driver advanceBackgroundSprite
  *           tail-jumps here every frame) + crafted counter/mode entries that force each
  *           branch (skip-both, object-1-only, object-1+object-2), compared to the oracle
  *           over work RAM (dumpState) outside the dead stack scratch the oracle's driver

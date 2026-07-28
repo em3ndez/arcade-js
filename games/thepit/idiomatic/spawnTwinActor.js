@@ -4,7 +4,7 @@
  * due: paint its tile+colour figure, seed both object records, and stage its sprite
  * records for the move/animate driver.  ROM 0x3984.
  *
- * A sibling of loc_37cf/advanceOrRebuildTwinActor: the same conditional one-shot spawn shape. It
+ * A sibling of spawnAltPhaseActor/advanceOrRebuildTwinActor: the same conditional one-shot spawn shape. It
  * only fires when this actor's slot is flagged as pending — a nonzero request byte
  * at ACTOR_Y. When nothing is pending it returns immediately, touching nothing.
  * When a spawn IS pending it:
@@ -30,8 +30,8 @@
  *           body with a pending request), oracle vs this diffed on RAM. Reached in
  *           attract; body exercised on the pending-spawn dispatches.
  * LIVE-OUT: memory-only — the stamped tile+colour block and the two seeded actor
- *           records (which loc_3a4c then materialises). No live register/flag out:
- *           loc_3a4c overwrites the working registers and the whole-machine attract
+ *           records (which stageActorSpriteRecords then materialises). No live register/flag out:
+ *           stageActorSpriteRecords overwrites the working registers and the whole-machine attract
  *           gate backstops the rest.
  * NAMES:    ACTOR_Y / TWIN_CLEAR (the request byte + its mirror), ACTOR_X /
  *           ACTOR_TILE / ACTOR_TIMER and TWIN_X / TWIN_TILE from ram.js. The twin

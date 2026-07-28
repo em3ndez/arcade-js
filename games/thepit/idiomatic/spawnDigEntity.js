@@ -20,12 +20,12 @@
  * tilemap. Every later pass merely keeps the dig timer armed.
  *
  * Name kept as spawnDigEntity: it is part of the dig-object family whose higher-level game
- * role stays best-effort — its commit tail commitDigEntity and sibling loc_287a keep loc_ for
- * the same reason, and the tile codes it classifies on have no confirmed meaning yet.
+ * role stays best-effort — its commit tail commitDigEntity and sibling seedDigObjectBlock carry best-effort
+ * names for the same reason, and the tile codes it classifies on have no confirmed meaning yet.
  *
  * Memory-equivalent to the frozen oracle — equivalence-28ab.test.js.
  * GATE:     RAM-only — dispatched in a plain boot/attract run (from the carve handler
- *           loc_24f3); validated on every real captured dispatch, plus a crafted sweep
+ *           advanceReactionObject); validated on every real captured dispatch, plus a crafted sweep
  *           over each classification arm crossed with an idle vs busy spawn slot, plus
  *           teeth. pc/SP/registers excluded (the oracle rets internally; this returns).
  * LIVE-OUT: memory-only — the staged scratch block, the bumped spawn counter, the armed

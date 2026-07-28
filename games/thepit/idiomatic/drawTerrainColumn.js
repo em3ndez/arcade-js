@@ -28,7 +28,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-2fb7.test.js.
  * GATE:     crafted-entry — the blit is never dispatched at this address in attract
  *           (the column-animation step inlines the same body), so real attract states
- *           are captured at the reachable sibling loc_2f71 and the four blit registers
+ *           are captured at the reachable sibling advanceBackgroundSprite and the four blit registers
  *           are set to the values the real setup produces (source into the pattern
  *           table, the column's bottom cell, the one-row-up step, a six-cell run),
  *           swept over run lengths and source offsets, plus a zero-length run that

@@ -16,7 +16,7 @@
  * the embed continuation (landDigTarget) stamps the wall tile into the neighbouring cell,
  * requests the dig sound, and resets the target's small state block — it takes the cell
  * directly. Otherwise the target simply keeps going and its sprite record is rebuilt at
- * the new position by the still-oracle record builder loc_2bd3. Both continuations finish
+ * the new position by the record builder stageDigObjectSpriteRecord. Both continuations finish
  * by building the target's four-byte sprite record, whose own return unwinds to this
  * routine's caller — so each delegation is the exit, not a call.
  *
@@ -31,15 +31,14 @@
  *           probed tile crafted identically on both sides. Sweeps the whole tile domain to
  *           pin the embed-vs-continue boundary exactly, and the target's position across
  *           both axes to pin the row/column/advance arithmetic. The embed route runs the
- *           idiomatic landDigTarget, the continue route the still-oracle loc_2bd3, so a wrong
+ *           idiomatic landDigTarget, the continue route stageDigObjectSpriteRecord, so a wrong
  *           advance, cell, or route diverges the resulting RAM. Teeth: wrong advance,
  *           wrong cursor, wrong route, wrong embed cell.
  * LIVE-OUT: memory-only — the advanced target position and the stored cell pointer. The
  *           cell it computes is passed to the embed continuation as an argument, so no
  *           register crosses that boundary; the residual working registers/flags are dead.
  * NAMES:    TARGET_X, TARGET_Y from ram.js. The live carve cursor 0x80af has no confirmed
- *           name yet and stays hex; the record builder loc_2bd3 is still oracle and keeps
- *           its address.
+ *           name yet and stays hex.
  */
 
 import { TARGET_X, TARGET_Y } from "./ram.js";
@@ -69,7 +68,7 @@ export function advanceDigTarget(m) {
   const aheadTile = mem8[cell - 30];
 
   // Solid-ground codes -> the target embeds at that cell; anything else -> keep going and
-  // rebuild the sprite record (still-oracle loc_2bd3).
+  // rebuild the sprite record (stageDigObjectSpriteRecord).
   if (aheadTile === 42 || aheadTile === 43 || aheadTile === 65) return landDigTarget(m, cell);
   return stageDigObjectSpriteRecord(m);
 }

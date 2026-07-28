@@ -26,7 +26,7 @@
  *           job in the live game) is modelled by one identical hook on both sides so
  *           the busy-wait terminates. EQUAL over a frame-count sweep {0,1,2,60,255}
  *           on the real boot dispatch state; count 0 is also proven with no hook
- *           (natural fall-through). Reached from boot (loc_01a4) onward.
+ *           (natural fall-through). Reached from boot (coldBootInit) onward.
  * LIVE-OUT: memory-only — the countdown cell FRAME_WAIT_COUNTDOWN (0x8009) left at 0,
  *           plus the return to the caller (pc/SP). The working registers and flags the loop leaves
  *           behind are dead — no caller reads them back.

@@ -21,7 +21,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f2f.test.js.
  * GATE:     crafted-entry — never dispatched in attract (it runs only from the
- *           gameplay round-init tail-jump chain loc_287a → seedBackgroundAnimParams → seedObjectRecords, which
+ *           gameplay round-init tail-jump chain seedDigObjectBlock → seedBackgroundAnimParams → seedObjectRecords, which
  *           attract never reaches), so it is validated on real captured attract
  *           machine states. It reads only the difficulty counter, so any realistic
  *           state is a valid entry: EQUAL over several captured states + a full

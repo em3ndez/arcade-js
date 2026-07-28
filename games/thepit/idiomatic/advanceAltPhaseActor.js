@@ -2,14 +2,14 @@
 /**
  * advanceAltPhaseActor — per-frame animate + march step for an active object.  ROM 0x384a.
  *
- * Runs once a frame for an object that is already alive (its caller loc_37cf tail-jumps
+ * Runs once a frame for an object that is already alive (its caller spawnAltPhaseActor tail-jumps
  * here when the object's spawn flag is set). It does three things, in order:
  *
  *   1. Cadence tick. Count the object's frame timer down. Each time it underflows,
  *      reload it to 8 frames and flip the walk-cycle tile between its two frames,
  *      storing the paired code to the shadow sprite.
  *   2. Move gate. Only every 4th tick actually moves the object; on the other three the
- *      routine just rebuilds the object's sprite records (loc_3a4c) and exits.
+ *      routine just rebuilds the object's sprite records (stageActorSpriteRecords) and exits.
  *   3. March, then descend. On a move tick, while the object is on its travel row it
  *      steps right one column (mirroring to the shadow shifted 16 across). Once it has
  *      marched to the far column it latches its arrival — clearing the arrival flag and

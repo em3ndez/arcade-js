@@ -10,7 +10,7 @@
  * The fill code is not a literal — it is read once from a fixed ROM constant, so
  * whatever tile sits there is what the screen fills with. The display-setup entries
  * (setupBoardModeC0 / setupBoardMode90 / blankScreen) call this between their two other setup fills, and
- * its colour-RAM twin (loc_4c37) repaints colour the same way straight afterward.
+ * its colour-RAM twin (fillColorRam) repaints colour the same way straight afterward.
  *
  * Memory-equivalent to the frozen oracle — equivalence-4c27.test.js.
  * GATE:     every real attract dispatch checked on the full contract (RAM + pc + SP);
@@ -20,7 +20,7 @@
  *           cell is written and nothing outside it). Teeth: a short-fill twin that
  *           stops one page early.
  * LIVE-OUT: memory-only — the painted tilemap cells. The leftover value registers are
- *           dead: the return lands back in blankScreen, whose very next call (loc_4c37)
+ *           dead: the return lands back in blankScreen, whose very next call (fillColorRam)
  *           reloads all of them before any read.
  * NAMES:    none from ram.js. 0x9000..0x93FF is the video-RAM (tilemap) span and
  *           0x4b0f is a ROM constant holding the fill code — both kept hex (neither

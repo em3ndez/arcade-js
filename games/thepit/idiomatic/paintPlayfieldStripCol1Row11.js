@@ -20,14 +20,14 @@
  * count and fill byte is written straight to memory.
  *
  * NAME kept paintPlayfieldStripCol1Row11: the mechanism (paint a fixed tile strip + colour column) is
- * clear, but this is one of a ~9-routine family (loc_472c..loc_48e5) that each paint a
+ * clear, but this is one of a ~9-routine family (redrawScoreHud..drawGameOverLabel) that each paint a
  * different fixed strip, and which playfield element this particular one is has not
  * been earned — an English name would over-claim one strip's identity.
  *
  * Memory-equivalent to the frozen oracle on the observable RAM — equivalence-4816.test.js.
  * GATE:     crafted-entry. paintPlayfieldStripCol1Row11 is round-setup, NOT reached in attract, so it is
  *           validated on real machine states captured at a shared callee's dispatch
- *           (loc_3dae) during a boot/attract run. Because the decompiled helpers are
+ *           (rowColToTileOffset) during a boot/attract run. Because the decompiled helpers are
  *           plain calls with no machine stack frame, this routine no longer reproduces
  *           their return-address pushes and no longer runs the oracle's tail ret, so the
  *           gate diffs the observable RAM the routine paints + pc + SP (after modelling
@@ -42,7 +42,7 @@
  *           different routine family, so naming it that here would mislead; 0x8055 is
  *           the strip cell count (unnamed); 0x494f is a ROM tile-table address.
  *
- * PURPOSE [guess]: which playfield element; family caveat: loc_47e1 & loc_48e5 both = col1/row12, so coordinate naming has a latent collision — the whole loc_472c..loc_48e5 family should move to source/element-based names when decompiled. If the lead prefers not to lock in a coordinate name, hold at loc_4816 instead (mechanism is clear; only the element identity is un-earned).
+ * PURPOSE [guess]: which specific playfield element this strip draws is un-earned, so the name stays descriptive (paintPlayfieldStripCol1Row11) rather than element-based. The rest of the redrawScoreHud..drawGameOverLabel family has since taken source/element-based names (e.g. drawPlayerLabel, drawGameOverLabel) — which avoids the coordinate-naming collision drawPlayerLabel & drawGameOverLabel would otherwise share (both map to col1/row12).
  */
 
 import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";

@@ -3,7 +3,7 @@
  * seedObjectRecords — seed the second block of round/level parameters, derive one
  * difficulty-scaled byte pair, then hand off to seedActorSpawnState.  ROM 0x30de.
  *
- * The second half of the round/level parameter-seeding pass — loc_2f2f fills the
+ * The second half of the round/level parameter-seeding pass — seedBackgroundAnimParams fills the
  * first block, then jumps straight here. This routine fills its own block of
  * subsystem parameter/counter bytes with fixed start values, derives a single pair
  * of bytes from the round's level/difficulty counter, and writes that pair into two

@@ -23,11 +23,10 @@
  *     and republish the direction. Top-row and far-edge cells take fixed presets without probing.
  *
  * The mover's VERTICAL axis (0x8086) is now pinned, so its two vertical presets are named
- * (stepMoverUp / stepMoverDown). The two horizontal presets (stepMoverMirrored / stepMoverUnmirrored) keep loc_
- * names because their left-vs-right sign is rotation-ambiguous; the four tile probes, the
- * dormant tick and the dwell timer likewise stay loc_ because what a probe "match" means for
- * travel is not yet pinned. This routine itself earned a name (stepEnemyMover) as the per-frame
- * step for one enemy mover.
+ * (stepMoverUp / stepMoverDown). The two horizontal presets (stepMoverMirrored / stepMoverUnmirrored)
+ * are named for their mirror relationship, though their left-vs-right sign stays rotation-ambiguous;
+ * the four tile probes, the dormant tick and the dwell timer are likewise named now. This routine
+ * itself earned a name (stepEnemyMover) as the per-frame step for one enemy mover.
  *
  * Memory-equivalent to the frozen oracle — equivalence-319d.test.js.
  * GATE:     real captured attract dispatches (the entry state machine + edge cells —

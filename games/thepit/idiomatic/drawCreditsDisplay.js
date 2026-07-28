@@ -2,7 +2,7 @@
 /**
  * drawCreditsDisplay — paint one fixed 9-cell HUD/text panel at column 6, row 10.  ROM 0x4894.
  *
- * Reached from the periodic-housekeeping arm of the movement core (loc_03e8) once a
+ * Reached from the periodic-housekeeping arm of the movement core (steerDemoPlayer) once a
  * counter runs out, so this is a periodic redraw of one fixed on-screen panel.
  *
  * Draws a single vertical panel column made of two stacked fields:
@@ -42,7 +42,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-4894.test.js.
  * GATE:     observable equivalence — captured at the real attract dispatch (0x4894 runs
- *           once during a boot/attract run, reached from loc_03e8 when its housekeeping
+ *           once during a boot/attract run, reached from steerDemoPlayer when its housekeeping
  *           counter hits zero), oracle vs idiomatic diffed on clones of that entry, plus
  *           a sweep of the one state-dependent input (the live top-cell value at 0x8000).
  *           The dissolved calls (the three layout helpers plus both copy/fill helpers,

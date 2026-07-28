@@ -38,7 +38,7 @@
  *           reach both count-label arms and the singular-glyph patch; RAM diff outside
  *           the stack-scratch window (pc/SP/registers excluded per the contract). The
  *           thirty frame-waits are driven by one identical per-frame tick hook on both
- *           sides. Reached at round setup (resetStateAndShowSetup, loc_0371), not per-frame attract.
+ *           sides. Reached at round setup (resetStateAndShowSetup, submitHighScoresAndReset), not per-frame attract.
  * LIVE-OUT: memory-only — the painted playfield + HUD tiles (video RAM), their colour
  *           columns (colour RAM), the two count records and the singular patch, and the
  *           hold counter 0x800a drained to 0. Nothing reads a register back afterward.

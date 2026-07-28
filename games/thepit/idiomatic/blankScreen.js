@@ -17,7 +17,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-4b44.test.js.
  * GATE:     memory-only (RAM diff outside the dead stack scratch below the entry
  *           stack pointer); real captured dispatches — fires during cold-boot init
- *           (loc_01a4) and round setup, plus a crafted dirty-screen check that proves
+ *           (coldBootInit) and round setup, plus a crafted dirty-screen check that proves
  *           the rebuild actually runs. Teeth: the shared body handed the wrong
  *           board-mode byte (caught at BOARD_MODE and the colour RAM it floods) + a
  *           skipped staging wipe on a dirtied block (caught at 0x8200).

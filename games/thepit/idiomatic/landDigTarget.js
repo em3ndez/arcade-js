@@ -2,7 +2,7 @@
 /**
  * landDigTarget — land the descending dig/capture target when it reaches terrain.  ROM 0x2d4e.
  *
- * The caller (loc_2d06) steps the target object one row down each frame, works out the
+ * The caller (advanceDigTarget) steps the target object one row down each frame, works out the
  * map cell it now sits in, and checks the tile just ahead of it. When that tile is one of
  * the "solid terrain" codes, control arrives here: the target has hit ground and stops.
  * This routine settles it:

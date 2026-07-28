@@ -31,7 +31,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-02e1.test.js.
  * GATE:     crafted-entry — never dispatched in plain attract (the round-start path), so it
  *           is validated on a real attract machine state captured at a shared callee's
- *           dispatch (loc_3dae), with the caller-armed pass count poked to a small value.
+ *           dispatch (rowColToTileOffset), with the caller-armed pass count poked to a small value.
  *           The frame-waits busy-wait on a per-frame countdown the interrupt drains in the
  *           live game; run in isolation that tick is modelled by one identical hook on both
  *           sides so the waits terminate. The tail initRoundAndEnterMainLoop paints the board and falls into

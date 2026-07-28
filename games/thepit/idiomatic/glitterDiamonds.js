@@ -15,7 +15,7 @@
  * distinct cells share the eight-frame cycle. Any countdown value outside 2..7
  * falls to the value-1 cell.
  *
- * Called once per main-loop pass (loc_0348) as a decorative recolour; it takes no
+ * Called once per main-loop pass (mainLoop) as a decorative recolour; it takes no
  * caller input beyond the countdown and screen bytes it reads, and returns nothing.
  *
  * Memory-equivalent to the frozen oracle — equivalence-06ac.test.js.

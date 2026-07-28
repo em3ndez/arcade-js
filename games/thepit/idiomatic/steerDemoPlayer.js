@@ -5,7 +5,7 @@
  * would go) that walks the auto-played digger along the maze walls.  ROM 0x03e8.
  *
  * The direction code (DEMO_STEER_DIR) is read by the movement dispatcher IN PLACE OF THE
- * JOYSTICK in the mode this routine runs in — the attract demo (loc_1420 selects
+ * JOYSTICK in the mode this routine runs in — the attract demo (stepObjectFromControl selects
  * mem[DEMO_STEER_DIR] over the debounced joystick when the game-mode byte is >= 3). So this
  * classifier is what steers the demo object along the maze walls: each call it picks
  * the single direction the wall it is against implies, and hands that to movement.
@@ -33,7 +33,7 @@
  * probe sits on that line a half-plane test on the other coordinate picks which of
  * the four direction bits to raise.
  *
- * Its only caller is the main loop (loc_0348), which runs it while the game-mode byte
+ * Its only caller is the main loop (mainLoop), which runs it while the game-mode byte
  * is 4, passes nothing and reads nothing back — the whole product is the direction
  * code left in work RAM (DEMO_STEER_DIR).
  *
@@ -57,7 +57,7 @@
  *           deliberately not part of the contract.
  * NAMES:    OBJECT_ACTIVE, OBJ_X, OBJ_Y, FRAME_COUNTER, SPAWN_PHASE, STATE_TIMER,
  *           DEMO_STEER_DIR from ram.js. Local: HOUSEKEEPING_TIMER (0x800b) and BAND_HINT
- *           (0x800c) — both private to this per-frame service (loc_03be only inits them),
+ *           (0x800c) — both private to this per-frame service (enterPlayMode only inits them),
  *           so they stay local rather than shared.
  */
 

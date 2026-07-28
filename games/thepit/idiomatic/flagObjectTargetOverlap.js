@@ -3,8 +3,8 @@
  * flagObjectTargetOverlap — flag whether the freshly-placed target cell coincides with the tracked
  * object, then hand off to build the cell's record.  ROM 0x2c91.
  *
- * The dig/projectile-spawn path (loc_2c04) has just painted a target cell at
- * (TARGET_X, TARGET_Y); the cell's per-tick countdown handler (loc_2cb7) also drops
+ * The dig/projectile-spawn path (spawnPendingDigObject) has just painted a target cell at
+ * (TARGET_X, TARGET_Y); the cell's per-tick countdown handler (captureTargetOnOverlap) also drops
  * in here on every tick the cell is still alive. This shared tail decides whether the
  * tracked object is sitting on that cell and publishes a single 0/1 flag to
  * DIG_OVERLAP_HOLD, then continues into building the cell's 4-byte record.

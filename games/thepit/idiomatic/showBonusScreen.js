@@ -21,7 +21,7 @@
  * The role kept a neutral loc_ name: the mechanism (a tier-selected status screen with an
  * animated hold) is clear, but which game screen it is — and what the two config bytes
  * and the ROM strips mean — is not yet confidently pinned, so a routine name would claim
- * more than the evidence supports. Reached only from the round/mode transition (loc_02fd),
+ * more than the evidence supports. Reached only from the round/mode transition (advanceToNextLevel),
  * never during idle attract.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3bec.test.js.

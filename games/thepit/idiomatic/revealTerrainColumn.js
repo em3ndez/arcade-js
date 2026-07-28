@@ -23,7 +23,7 @@
  * decompiled, so it is called directly rather than through the oracle registry.
  *
  * This is the standalone, callable form of the same reveal that the per-frame
- * backdrop monolith loc_2f71 also carries inline; the standalone form is never
+ * backdrop monolith advanceBackgroundSprite also carries inline; the standalone form is never
  * dispatched in attract, which shapes the gate below.
  *
  * Name kept as revealTerrainColumn: this backdrop-reveal subsystem is a best-effort reading. Three
@@ -33,8 +33,8 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.
  * GATE:     crafted-entry — revealTerrainColumn is never dispatched in attract (the monolith
- *           loc_2f71 inlines the same body instead of calling it), so real machine
- *           states are captured at loc_2f71's entry and revealTerrainColumn is run on clones of
+ *           advanceBackgroundSprite inlines the same body instead of calling it), so real machine
+ *           states are captured at advanceBackgroundSprite's entry and revealTerrainColumn is run on clones of
  *           them; the two still-untranslated continuations reached through advanceBackgroundAnimation
  *           (0x2fe3 oscillator body, 0x3029 publish tail) are delegated to one
  *           identical stub each, installed on both sides at once. EQUAL over every

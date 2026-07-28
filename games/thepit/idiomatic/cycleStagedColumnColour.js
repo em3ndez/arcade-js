@@ -12,7 +12,7 @@
  * runs after it (the hand-off is a tail call, so the fill's exit lands back in
  * this routine's caller).
  *
- * Reached only from the fixed-screen display loop loc_3ba8, which calls it once
+ * Reached only from the fixed-screen display loop holdFixedScreen, which calls it once
  * per pass to re-tint one column; a plain boot/attract run never enters it.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3d7e.test.js.

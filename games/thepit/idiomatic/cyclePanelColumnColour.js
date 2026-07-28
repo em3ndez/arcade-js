@@ -3,7 +3,7 @@
  * cyclePanelColumnColour — recolour a fixed nine-cell colour-RAM column, cycling its colour one
  * step each call.  ROM 0x48c4.
  *
- * Called from the dig / wall-collision core (loc_03e8) once its dig probe reads
+ * Called from the dig / wall-collision core (steerDemoPlayer) once its dig probe reads
  * clear, so it runs as a slow background recolour of one playfield column. Each call:
  *   - Sets the fill length to nine cells (the count the column-fill helper reads).
  *   - Advances the colour value one step while holding bit 3 permanently clear: the
@@ -21,7 +21,7 @@
  * column, which is also this routine's only live-out.
  *
  * Memory-equivalent to the frozen oracle — equivalence-48c4.test.js.
- * GATE:     observable — real captured boot/attract dispatches (loc_03e8 fires it 26x
+ * GATE:     observable — real captured boot/attract dispatches (steerDemoPlayer fires it 26x
  *           in a 1200-frame run, first during boot); oracle vs this leave identical
  *           work / colour RAM outside the dead stack-scratch window. Teeth: a dropped
  *           colour advance is caught at BOARD_MODE.

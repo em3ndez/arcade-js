@@ -15,7 +15,7 @@
  * choice — it always disables.
  *
  * Memory-equivalent to the frozen oracle — equivalence-4b10.test.js.
- * GATE:     real-dispatch — the one cold-boot dispatch (loc_01a4), contract is
+ * GATE:     real-dispatch — the one cold-boot dispatch (coldBootInit), contract is
  *           work-RAM (nothing stray touched) + the interrupt-mask control line (the
  *           real effect, invisible to a RAM-only diff), plus an interrupt-ENABLED
  *           entry proving it genuinely drives the line off (not a re-read of an

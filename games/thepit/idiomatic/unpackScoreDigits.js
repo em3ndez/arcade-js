@@ -2,7 +2,7 @@
 /**
  * unpackScoreDigits — expand the staged packed score value into display digit cells.  ROM 0x4d0c.
  *
- * The score-readout formatter (loc_4cca) stages one record's packed value at
+ * The score-readout formatter (renderScoreReadouts) stages one record's packed value at
  * SCORE_DISPLAY_LOW/SCORE_DISPLAY_HIGH (0x8038 the high byte, 0x8037 the low) and points the buffer at
  * the record's on-screen digit cells, then hands off here. This routine splits
  * that value into four single-digit cells, most-significant digit first —
@@ -20,7 +20,7 @@
  *
  * The buffer pointer comes in as a register and the advanced pointer goes back
  * out the same way (this routine runs at the boundary with its still-oracle
- * caller loc_4cca). It rests on the LAST cell written, not one past it — the
+ * caller renderScoreReadouts). It rests on the LAST cell written, not one past it — the
  * final store deliberately does not advance the pointer, and the caller relies on
  * exactly that resting point.
  *

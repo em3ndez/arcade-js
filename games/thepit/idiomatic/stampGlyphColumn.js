@@ -5,7 +5,7 @@
  * background-animation update.  ROM 0x2d6b.
  *
  * Reached when the dig/target object's countdown reaches its reload sentinel (from the
- * per-tick handler loc_2cb7). Working from the object's current display-cell pointer it:
+ * per-tick handler captureTargetOnOverlap). Working from the object's current display-cell pointer it:
  *   - stamps five fixed tile codes straight down one map column — one cell every 32
  *     addresses (the map is 32 cells wide) — in the column just before the object's,
  *     spanning two rows above the object cell to two below: 62, 20, 23, 24, 35 top→bottom;
@@ -25,7 +25,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2d6b.test.js.
  * GATE:     real captured entry — 0x2d6b is dispatched once in the attract demo and its
- *           caller loc_2cb7 ~119 times — checked RAM-only, plus a crafted sweep of the
+ *           caller captureTargetOnOverlap ~119 times — checked RAM-only, plus a crafted sweep of the
  *           display-cell pointer across several map positions, identical both sides.
  *           Teeth: wrong-tile, wrong-colour, wrong-timer and un-cleared-latch twins are
  *           caught by the RAM diff.
@@ -73,7 +73,7 @@ export function stampGlyphColumn(m) {
   }
 
   // Clear the object's per-event latch (0x8078, the byte ram.js names DIAMOND_COLLECTED) and
-  // re-arm its state timer. This clear is on the DIG-object glyph-stamp path (loc_2cb7 -> here),
+  // re-arm its state timer. This clear is on the DIG-object glyph-stamp path (captureTargetOnOverlap -> here),
   // a SEPARATE subsystem from the player collect -> climb -> top-rung completion flow. The
   // observed natural level completion proves the completion gate SURVIVES this clear — the byte
   // is shared, but this is not a completion threat. Kept as a hex literal: on this dig path it

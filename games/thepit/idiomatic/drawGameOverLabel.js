@@ -3,7 +3,7 @@
  * drawGameOverLabel — stamp the nine-character "GAME OVER" label down its HUD
  * text column.  ROM 0x48e5.
  *
- * The HUD redraw (loc_472c) repaints both players' score displays and then, from
+ * The HUD redraw (redrawScoreHud) repaints both players' score displays and then, from
  * the count of players still in the game, picks which status label to draw: with
  * no player left active — player count 0, the game-over state — it draws this one.
  * The label's glyphs are a fixed nine-byte run of character codes in ROM that
@@ -26,7 +26,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-48e5.test.js.
  * GATE:     observable equivalence, captured at the one real attract dispatch (0x48e5
- *           runs once in a boot/attract run, reached from loc_472c in the game-over
+ *           runs once in a boot/attract run, reached from redrawScoreHud in the game-over
  *           state, player count 0). Straight-line with no input-dependent branch, so
  *           that single dispatch exercises the whole path; oracle vs idiomatic diffed
  *           on clones of the entry over the work/video/colour RAM the routine writes,

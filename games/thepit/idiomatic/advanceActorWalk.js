@@ -20,7 +20,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-19d0.test.js.
  * GATE:     strict — reads only work RAM. Validated on real captured attract dispatches
- *           (loc_19d0 runs in the movement continuation reached from the dig classifier)
+ *           (advanceActorWalk runs in the movement continuation reached from the dig classifier)
  *           plus a crafted sweep of the position accumulator over all 256 new values,
  *           covering both walk frames and the accumulator's byte wrap.
  * LIVE-OUT: memory-only — the advanced position accumulator (OBJ_Y), plus everything

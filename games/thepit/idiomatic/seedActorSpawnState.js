@@ -3,7 +3,7 @@
  * seedActorSpawnState — put the two-body actor (a primary sprite and its twin) into
  * its fixed starting state and drop it back to the un-spawned phase.  ROM 0x36fe.
  *
- * The tail of the round/level parameter-seeding chain (loc_2f2f → seedObjectRecords → here):
+ * The tail of the round/level parameter-seeding chain (seedBackgroundAnimParams → seedObjectRecords → here):
  * seedObjectRecords fills one block of subsystem parameters, then hands straight to this,
  * which fills the actor pair's records. Both records are written from constants —
  * nothing is read — so the pair always starts in the same pose:

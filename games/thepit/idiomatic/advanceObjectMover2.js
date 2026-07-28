@@ -2,7 +2,7 @@
 /**
  * advanceObjectMover2 — advance the second object mover one frame and stage its sprite.  ROM 0x316f.
  *
- * The object-2 half of the two-object mover pass: loc_312d runs object 1, then hands
+ * The object-2 half of the two-object mover pass: advanceObjectMovers runs object 1, then hands
  * here for object 2 (both share one mover, stepEnemyMover, which works out of a scratch
  * block rather than either record directly). For object 2 this:
  *
@@ -16,7 +16,7 @@
  *   - and continues into the shared per-frame actor update, whose own return carries
  *     back to this pass's caller.
  *
- * Structurally identical to loc_312d's object-1 body, only with object 2's record
+ * Structurally identical to advanceObjectMovers's object-1 body, only with object 2's record
  * (OBJ2_X) and sprite slot in place of object 1's.
  *
  * Memory-equivalent to the frozen oracle — equivalence-316f.test.js.

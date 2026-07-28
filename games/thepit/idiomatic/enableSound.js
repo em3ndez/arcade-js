@@ -20,7 +20,7 @@
  *           proving it genuinely raises the line (not a re-read of an already-high
  *           one). Teeth: a mute twin (drives the line low, the mirror routine's
  *           effect) is caught by the control-line compare. Reached from boot
- *           (loc_01a4), round setup, and the per-frame service onward.
+ *           (coldBootInit), round setup, and the per-frame service onward.
  * LIVE-OUT: the hardware sound-enable line, driven high. No work RAM is touched and
  *           no register or flag is live out — every caller's next act is another
  *           call that reloads before it reads, so the value the pair leaves is dead.

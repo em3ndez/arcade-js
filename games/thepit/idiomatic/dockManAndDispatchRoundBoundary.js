@@ -4,7 +4,7 @@
  * persist their record, then hand off to next-round setup or end-of-round teardown.
  * ROM 0x0278.
  *
- * Reached at a round boundary — by round-init fall-through (loc_022d) and when a
+ * Reached at a round boundary — by round-init fall-through (startGame) and when a
  * per-frame timer or counter expires (dispatchObjectFrameByStateTimer, tickObjectDwellThenTransition). It first guards on the
  * mode/player byte: any value of 3 or more means there is no live 1-or-2-player
  * round to wind down, so it hands straight to the reset epilogue and touches nothing.
