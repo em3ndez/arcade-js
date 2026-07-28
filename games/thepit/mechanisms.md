@@ -2,8 +2,8 @@
 
 **The inside-out game model, measured against the current code.** This is the authoritative
 map of how The Pit actually works, built from the decompiled routines, the named RAM map,
-the board (hardware/render) layer, and the MAME-0.288 grounding in
-`docs/PIT-CLARIFY-LEARNINGS.md`. Where the public-research frame in
+the board (hardware/render) layer, and the MAME-0.288 grounding pass (its method is
+[`docs/grounding.md`](../../docs/grounding.md)). Where the public-research frame in
 [`gameplay.md`](./gameplay.md) agrees, it is confirmed; where they diverge, the code and the
 grounded observation win and the disagreement is called out under
 [§2 Public lore vs. grounded reality](#2-public-lore-vs-grounded-reality).
@@ -325,8 +325,8 @@ shooting path this is where to flag it — but the current code has none. `[code
 
 ## 4. Confidence conventions
 
-- **`[seen]`** — grounded by playing the real ROM in MAME 0.288 (the Phase-1 observation rounds
-  in `docs/PIT-CLARIFY-LEARNINGS.md`).
+- **`[seen]`** — grounded by playing the real ROM in MAME 0.288 (the
+  [grounding](../../docs/grounding.md) rounds).
 - **`[code]`** — read directly from the current idiomatic routines / `ram.js` / board layer.
 - **`[guess]`** — plausible but unproven; the honest floor.
 

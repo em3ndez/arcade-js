@@ -97,8 +97,7 @@ Each links to the doc that details it.
 - confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [mechanisms](mechanisms.md)
 - proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [mechanisms](mechanisms.md), [decompiler pipeline](decompiler-pipeline.md)
 - grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
-  find where to poke; persistence + completeness-critic rounds — [mechanisms](mechanisms.md) *(the
-  method; [`PIT-CLARIFY-LEARNINGS`](PIT-CLARIFY-LEARNINGS.md) is the game-#2 case study, not the general rule)*
+  find where to poke; persistence + completeness-critic rounds — [grounding](grounding.md)
 
 **Ship**
 - web-worker contract, audio record/replay (without emulating the sound CPU), ROM stays out — [porting](porting.md)
@@ -123,7 +122,7 @@ Each details one cluster inside a move (read in any order):
 - [decompiler pipeline](decompiler-pipeline.md) — **Structure**, the idiomatic rewrite in depth
 - [porting a new game](porting.md) — **Ship** + CPU / board / game layering
 - [how the agents worked](how-the-agents-worked.md) — the experiment (the agents, not the method)
-- [PIT-CLARIFY-LEARNINGS](PIT-CLARIFY-LEARNINGS.md) — working log of rules-in-flight (game #2)
+- [grounding](grounding.md) — playing the game in MAME to recover its meaning (the probe face of the oracle)
 
 The running example is **Donkey Kong** (Z80, `dkong` board); **The Pit** (Zilec / Centuri, `thepit`)
 is the second game. Nothing about the method is game-specific.
