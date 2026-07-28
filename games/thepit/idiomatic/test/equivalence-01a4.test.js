@@ -6,11 +6,11 @@
  * seeds the coin/start input debounce state, readies the score / sound / high-score
  * tables and the blank board screen, requests the power-on sound, decodes the DIP
  * switches, holds briefly, then tail-jumps into the reset/round-restart epilogue
- * (loc_03ac), which itself tail-hands into the still-oracle reset/entry handler 0x01f9.
+ * (resetStateAndShowSetup), which itself tail-hands into the still-oracle reset/entry handler 0x01f9.
  *
- * THREE WRINKLES this routine forces (the same shape its sibling loc_03ac forces):
+ * THREE WRINKLES this routine forces (the same shape its sibling resetStateAndShowSetup forces):
  *
- *   1. The tail never returns. coldBootInit -> loc_03ac -> the reset/entry handler
+ *   1. The tail never returns. coldBootInit -> resetStateAndShowSetup -> the reset/entry handler
  *      (0x01f9) re-seats the stack and runs the game loop, which spins forever — so the
  *      routine cannot run to completion. The gate installs a no-op stub at 0x01f9
  *      IDENTICALLY on both arms (via the machine's override map, which clone() carries),
@@ -84,11 +84,11 @@ import { resetScoreAndSoundQueue } from "../resetScoreAndSoundQueue.js";
 import { initScoreDisplay } from "../initScoreDisplay.js";
 import { enableSound } from "../enableSound.js";
 import { blankScreen } from "../blankScreen.js";
-import { loc_4b3c } from "../loc_4b3c.js";
+import { setupBoardModeC0 } from "../setupBoardModeC0.js";
 import { requestSound2 } from "../requestSound2.js";
 import { applyDipSwitches } from "../applyDipSwitches.js";
 import { waitFrames } from "../waitFrames.js";
-import { loc_03ac } from "../loc_03ac.js";
+import { resetStateAndShowSetup } from "../resetStateAndShowSetup.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -286,13 +286,13 @@ function twinDropCreditClear(m) {
   initScoreDisplay(m);
   enableSound(m);
   blankScreen(m);
-  loc_4b3c(m);
+  setupBoardModeC0(m);
   requestSound2(m);
   mem8[GAME_STATE2] = 1;
   applyDipSwitches(m);
   m.push16(0x01f6);
   waitFrames(m, 60);
-  return loc_03ac(m);
+  return resetStateAndShowSetup(m);
 }
 
 test("TEETH (dropped credit-clear): with 0x8000 pre-poked non-zero, skipping the clear is CAUGHT at 0x8000", () => {

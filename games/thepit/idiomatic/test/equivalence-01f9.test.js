@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_01f9 (ROM 0x01f9) — the boot/restart state entry: it
+ * Memory-equivalence gate for rearmMachineAndBranchOnCredits (ROM 0x01f9) — the boot/restart state entry: it
  * hard-resets the stack, re-arms the machine (frame interrupt on, secondary game-state
  * byte armed, DIP settings committed), then forks on the restart flag (0x8000) into either
  * the held credit screen (flag set) or the mute → clear game-mode → paint fixed screen →
@@ -41,7 +41,7 @@
  *   0. HARNESS — capture a real 0x01f9 dispatch; confirm it is the flag-clear path with the
  *      DIP top bit clear (so the DIP decode takes no diversion), and the oracle run is
  *      deterministic.
- *   1. EQUAL (real flag-clear entry) — loc_01f9 leaves the same observable RAM as the
+ *   1. EQUAL (real flag-clear entry) — rearmMachineAndBranchOnCredits leaves the same observable RAM as the
  *      oracle, and the effects hold: secondary game-state armed, entering play left the
  *      play-mode value, the fixed screen was painted.
  *   2. EQUAL (crafted flag-set entry) — with the restart flag poked nonzero identically on
@@ -61,7 +61,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_01f9 as oracle } from "../../translated/loc_01f9.js";
-import { loc_01f9 as idiomatic } from "../loc_01f9.js";
+import { rearmMachineAndBranchOnCredits as idiomatic } from "../rearmMachineAndBranchOnCredits.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { GAME_MODE, GAME_STATE2 } from "../ram.js";
@@ -184,7 +184,7 @@ test("HARNESS: a real 0x01f9 dispatch is captured on the flag-clear path and the
 
 // -- 1. EQUAL on the real captured flag-clear entry --------------------------
 
-test("EQUAL (real flag-clear entry): loc_01f9 == oracle over observable RAM", () => {
+test("EQUAL (real flag-clear entry): rearmMachineAndBranchOnCredits == oracle over observable RAM", () => {
   const entry = captureRealEntry(CAPTURE_FRAMES);
   assert.ok(entry, "need a captured 0x01f9 entry");
 

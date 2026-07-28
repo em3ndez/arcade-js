@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3484 (ROM 0x3484) — one fixed-direction preset of
+ * Memory-equivalence gate for stepMoverDown (ROM 0x3484) — one fixed-direction preset of
  * the patrol mover: advance the position one unit forward each frame and, on the
  * cadence tick, re-arm the cadence and publish this preset's facing index (2).
  *
  * The routine is a LEAF whose whole effect is memory: the cadence countdown byte
- * (ANIM_RAND 0x808b), the published facing byte (0x8092), and the advanced position
+ * (MOVER_CADENCE 0x808b), the published facing byte (0x8092), and the advanced position
  * byte (0x8086). It reads no register input (its first act is to load its own fixed
  * direction constants, overwriting whatever the dispatcher left in the registers) and
  * calls nothing — so its result is a pure function of the countdown, reload (0x8091)
@@ -14,7 +14,7 @@
  * any, so the gate diffs RAM (the full state dump) and ignores pc/SP/value registers,
  * per the honest-signature contract.
  *
- * loc_3484 does no stack pushes (it only returns), so there is no dead stack scratch
+ * stepMoverDown does no stack pushes (it only returns), so there is no dead stack scratch
  * to exclude — the RAM dumps compare byte-for-byte directly.
  *
  * Checks:
@@ -22,7 +22,7 @@
  *      mover dispatch); capture real entries and confirm they span BOTH the tick-only
  *      branch (countdown > 1) and the cadence-reload branch (countdown == 1), and that
  *      the oracle run is deterministic.
- *   1. EQUAL (real entries) — over every captured attract entry, loc_3484 leaves the
+ *   1. EQUAL (real entries) — over every captured attract entry, stepMoverDown leaves the
  *      same RAM as the oracle; plus positive checks that the position advanced by one
  *      and, on reload-branch entries, the facing became 2 and the countdown reloaded.
  *   2. EQUAL (crafted countdown sweep 0..7) — force the countdown to each value on
@@ -43,10 +43,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3484 as oracle } from "../../translated/loc_3484.js";
-import { loc_3484 as idiomatic } from "../loc_3484.js";
+import { stepMoverDown as idiomatic } from "../stepMoverDown.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ANIM_RAND } from "../ram.js";
+import { MOVER_CADENCE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -78,7 +78,7 @@ function captureEntries(maxFrames, cap) {
   const entries = [];
   const snapshot = new Map([[TARGET, (mm) => {
     if (entries.length < cap) {
-      entries.push({ entry: mm.clone(), countdown: mm.mem.read8(ANIM_RAND) });
+      entries.push({ entry: mm.clone(), countdown: mm.mem.read8(MOVER_CADENCE) });
     }
     return oracle(mm);
   }]]);
@@ -128,7 +128,7 @@ test("HARNESS: real 0x3484 attract entries are captured, span both branches, and
 
 // -- 1. EQUAL on every real captured entry ------------------------------------
 
-test("EQUAL (real entries): loc_3484 == oracle over RAM on every captured attract dispatch", () => {
+test("EQUAL (real entries): stepMoverDown == oracle over RAM on every captured attract dispatch", () => {
   const entries = captureEntries(3000, 400);
   assert.ok(entries.length > 0, "need captured 0x3484 entries");
 
@@ -146,7 +146,7 @@ test("EQUAL (real entries): loc_3484 == oracle over RAM on every captured attrac
     assert.equal(c.mem.read8(POS), (pos0 + 1) & 0xff, "position did not advance by one");
     if (countdown === 1) {
       assert.equal(c.mem.read8(FACING), FACING_INDEX, "reload branch did not publish facing 2");
-      assert.equal(c.mem.read8(ANIM_RAND), reloadVal, "reload branch did not re-arm the countdown");
+      assert.equal(c.mem.read8(MOVER_CADENCE), reloadVal, "reload branch did not re-arm the countdown");
     }
   }
   console.log(`  EQUAL/real: identical RAM over all ${entries.length} captured entries; position +1 and reload/facing verified`);
@@ -163,7 +163,7 @@ test("EQUAL (countdown sweep 0..7): each branch is taken identically, covering r
 
   for (let cd = 0; cd < 8; cd++) {
     const entry = seed.entry.clone();
-    entry.mem.write8(ANIM_RAND, cd);
+    entry.mem.write8(MOVER_CADENCE, cd);
     entry.mem.write8(RELOAD, RELOAD_SENTINEL);
     entry.mem.write8(FACING, FACING_SENTINEL);
     const pos0 = entry.mem.read8(POS);
@@ -176,11 +176,11 @@ test("EQUAL (countdown sweep 0..7): each branch is taken identically, covering r
     assert.equal(c.mem.read8(POS), (pos0 + 1) & 0xff, `cd=${cd}: position did not advance by one`);
     if (cd === 1) {
       // Countdown expires: reload + publish facing 2.
-      assert.equal(c.mem.read8(ANIM_RAND), RELOAD_SENTINEL, `cd=1: countdown not reloaded`);
+      assert.equal(c.mem.read8(MOVER_CADENCE), RELOAD_SENTINEL, `cd=1: countdown not reloaded`);
       assert.equal(c.mem.read8(FACING), FACING_INDEX, `cd=1: facing not published`);
     } else {
       // Countdown does not expire: just ticks down (0 wraps to 255), facing untouched.
-      assert.equal(c.mem.read8(ANIM_RAND), (cd - 1) & 0xff, `cd=${cd}: countdown not ticked`);
+      assert.equal(c.mem.read8(MOVER_CADENCE), (cd - 1) & 0xff, `cd=${cd}: countdown not ticked`);
       assert.equal(c.mem.read8(FACING), FACING_SENTINEL, `cd=${cd}: facing changed on a non-reload frame`);
     }
   }
@@ -192,10 +192,10 @@ test("EQUAL (countdown sweep 0..7): each branch is taken identically, covering r
 /** Twin: advances the position by two instead of one. */
 function twinWrongDelta(m) {
   const { mem8 } = m;
-  const countdown = mem8[ANIM_RAND] - 1;
-  mem8[ANIM_RAND] = countdown;
+  const countdown = mem8[MOVER_CADENCE] - 1;
+  mem8[MOVER_CADENCE] = countdown;
   if (countdown === 0) {
-    mem8[ANIM_RAND] = mem8[RELOAD];
+    mem8[MOVER_CADENCE] = mem8[RELOAD];
     mem8[FACING] = FACING_INDEX;
   }
   mem8[POS] = mem8[POS] + 2; // BUG: wrong step size
@@ -204,10 +204,10 @@ function twinWrongDelta(m) {
 /** Twin: publishes facing 3 (a sibling's index) instead of 2 on the reload branch. */
 function twinWrongFacing(m) {
   const { mem8 } = m;
-  const countdown = mem8[ANIM_RAND] - 1;
-  mem8[ANIM_RAND] = countdown;
+  const countdown = mem8[MOVER_CADENCE] - 1;
+  mem8[MOVER_CADENCE] = countdown;
   if (countdown === 0) {
-    mem8[ANIM_RAND] = mem8[RELOAD];
+    mem8[MOVER_CADENCE] = mem8[RELOAD];
     mem8[FACING] = 3; // BUG: wrong facing index
   }
   mem8[POS] = mem8[POS] + 1;
@@ -216,8 +216,8 @@ function twinWrongFacing(m) {
 /** Twin: forgets to re-arm the countdown on the reload branch (leaves it at 0). */
 function twinNoReload(m) {
   const { mem8 } = m;
-  const countdown = mem8[ANIM_RAND] - 1;
-  mem8[ANIM_RAND] = countdown;
+  const countdown = mem8[MOVER_CADENCE] - 1;
+  mem8[MOVER_CADENCE] = countdown;
   if (countdown === 0) {
     mem8[FACING] = FACING_INDEX; // BUG: countdown not reloaded
   }
@@ -229,7 +229,7 @@ function reloadEntry() {
   const seed = captureEntries(3000, 1)[0];
   assert.ok(seed, "need a captured 0x3484 entry to craft the teeth check");
   const entry = seed.entry.clone();
-  entry.mem.write8(ANIM_RAND, 1); // countdown expires this frame
+  entry.mem.write8(MOVER_CADENCE, 1); // countdown expires this frame
   entry.mem.write8(RELOAD, 42);
   entry.mem.write8(FACING, 153);
   return entry;
@@ -255,6 +255,6 @@ test("TEETH (skipped reload): a twin that does not re-arm the countdown is CAUGH
   const entry = reloadEntry();
   const diff = ramDiff(entry, twinNoReload);
   assert.ok(diff, "the gate FAILED to catch the no-reload twin — it proves nothing");
-  assert.equal(diff.addr, ANIM_RAND, `teeth caught the wrong address ${hx(diff.addr ?? 0)} (expected ${hx(ANIM_RAND)})`);
+  assert.equal(diff.addr, MOVER_CADENCE, `teeth caught the wrong address ${hx(diff.addr ?? 0)} (expected ${hx(MOVER_CADENCE)})`);
   console.log(`  TEETH/reload: skipped re-arm caught at ${hx(diff.addr)} (oracle=${diff.a} broken=${diff.b})`);
 });

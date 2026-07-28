@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3425 (ROM 0x3425, The Pit) — the two-stage
- * tile-table probe used by the object move/collision driver loc_319d.
+ * Memory-equivalence gate for probeRowAheadTilePair (ROM 0x3425, The Pit) — the two-stage
+ * tile-table probe used by the object move/collision driver stepEnemyMover.
  *
  * WHAT THE ROUTINE OUTPUTS. It writes exactly one memory byte-pair — the advanced
- * tilemap pointer at 0x8134 — and hands its caller a MATCH RESULT. loc_319d is still
+ * tilemap pointer at 0x8134 — and hands its caller a MATCH RESULT. stepEnemyMover is still
  * the frozen oracle and consumes that result as the Z flag (`call 0x3425` then a
  * branch-if-matched), so the declared LIVE-OUT is memory (0x8134) PLUS the Z flag —
  * NOT the full register file. Comparing the whole register file (as the shared
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3425 as oracle } from "../../translated/loc_3425.js";
-import { loc_3425 as idiomatic } from "../loc_3425.js";
+import { probeRowAheadTilePair as idiomatic } from "../probeRowAheadTilePair.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

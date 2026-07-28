@@ -24,12 +24,15 @@
 
 // ── Object / tile geometry (the probe + collision + tile-cell system) ─────────
 
-/** Tracked-object X (column) coordinate — the probe point the collision/tile code reads and writes.
- *  Used across 21 routines (movement, collision loc_03e8, tile-classify, spawns). (strong) */
+/** Tracked-object X coordinate — the screen-HORIZONTAL probe point the collision/tile code reads and
+ *  writes. It drives the tilemap ROW index (row = 31-((OBJ_X+3)>>3), ×32 stride) — NOT the column;
+ *  the earlier "(column)" label was inverted (P5 verified vs stepObjectAndResolveTile, stepEnemyMover, the
+ *  carve path). Used across 21 routines (movement, collision loc_03e8, tile-classify, spawns). (strong) */
 export const OBJ_X = 0x8068;
 
-/** Tracked-object Y (row) coordinate — paired with OBJ_X as the probe point. Used across 17 routines
- *  ("column"/"reload column" in the movers loc_1a40/loc_1a21). (strong) */
+/** Tracked-object Y coordinate — the screen-VERTICAL probe point paired with OBJ_X. It drives the
+ *  tilemap COLUMN index (col = (OBJ_Y-bias+5)>>3) — NOT the row; the earlier "(row)" label was
+ *  inverted (P5 verified vs stepObjectAndResolveTile). Used across 17 routines. (strong) */
 export const OBJ_Y = 0x806b;
 
 /** Tile-cell COLUMN byte fed to the (row,col)→tilemap-offset calc (loc_3dae-style). Paired with
@@ -57,11 +60,11 @@ export const SPRITE_CODE = 0x8069;
 export const GAME_MODE = 0x8001;
 
 /** Secondary game-state byte armed to 1 or 2 alongside GAME_MODE (loc_038b/loc_03b2 `(0x8002)=1/2`).
- *  Gates the 2P/second-record path (loc_3a13's 0x8078 sibling). (fair) */
+ *  Observed as the active-player index (P1->P2 handoff). (fair) */
 export const GAME_STATE2 = 0x8002;
 
 /** Board/entry-select mode byte — the value the multi-door entry family stows before the shared body
- *  (loc_4b40/4b44/4b46 "entry-selected byte", "mode/variant"). Used across 17 routines. (fair) */
+ *  (setupBoardMode90/4b44/4b46 "entry-selected byte", "mode/variant"). Used across 17 routines. (fair) */
 export const BOARD_MODE = 0x8057;
 
 /** Variant selector read at round setup (loc_0391/loc_03a5) and by the fill dispatch (loc_4e2e
@@ -77,13 +80,14 @@ export const VARIANT = 0x8048;
  *  (strong — proven one-hot by observation.) */
 export const DEMO_STEER_DIR = 0x801b;
 
-/** Climb / vertical-move gate the actor dispatch tests before the vertical branch (stepObjectAndResolveTile
- *  "climb/vertical gate"). (weak) */
-export const CLIMB_GATE = 0x8080;
+/** DIG_OVERLAP_HOLD (0x8080) — set by advanceDigCarveObject from a dig-target box-overlap; stepObjectAndResolveTile
+ *  reads it to DEFER the vertical move that frame = a dig-overlap hold. (The earlier "climb gate"
+ *  reading is REFUTED — observation kept it 0 through a full dig-down + climb-up.) (weak) */
+export const DIG_OVERLAP_HOLD = 0x8080;
 
 // ── Actor records: a two-sprite actor (primary + its "twin") ─────────────────
 // NOT a separate shadow entity: the spawners (loc_37cf/38c8/3984) seed a primary block at 0x810a..
-// and a mirrored twin at 0x811b.., and descendActorToRest advances the primary then writes its
+// and a mirrored twin at 0x811b.., and easeActorToRest advances the primary then writes its
 // value + 16 into the twin every step — a RIGID one-tile (16px) lock. Two hardware sprites moving as
 // one unit at a fixed 16px offset = the two halves of a single ~32px-tall on-screen actor (the classic
 // compose-a-tall-character-from-two-16px-sprites trick), NOT a trailing shadow. Rendered together by
@@ -110,9 +114,10 @@ export const ACTOR_STATE = 0x8084;
 
 // ── Free-running counters ─────────────────────────────────────────────────────
 
-/** Per-frame animation/random counter (loc_3490 reads it as "frame counter"; loc_34f5 stores a
- *  "masked random byte" — an LFSR-seeded per-actor field). (weak — dual reading). */
-export const ANIM_RAND = 0x808b;
+/** MOVER_CADENCE (0x808b) — mover-record offset 8: a decrementing cadence/dwell timer every mover
+ *  routine drives (stepEnemyMover dwell/respawn countdown; stepMoverUp/3484/347d/348b per-step cadence),
+ *  parallel to OBJ1_TIMER/OBJ2_TIMER. (The earlier "random/animation" reading is refuted.) (weak) */
+export const MOVER_CADENCE = 0x808b;
 
 /** Frame counter cleared at reset/round init (loc_4dfa "clear frame counter", read by loc_03e8's
  *  30-frame gate and loc_374f). (fair) */
@@ -162,7 +167,7 @@ export const PRNG_HIGH = 0x800e;
 // ── Round / difficulty ────────────────────────────────────────────────────────
 /** Current player's LEVEL / round counter — inits to 1, +1 per level cleared; every
  *  difficulty subsystem scales off it (countdowns, reloads). Proposer≠confirmer converged,
- *  both strong: init=1 (loc_022d), inc (loc_02fd), scaled in reseedColumnAnimation/loc_031a/loc_2f2f. (strong) */
+ *  both strong: init=1 (loc_022d), inc (loc_02fd), scaled in reseedColumnAnimation/initRoundAndEnterMainLoop/loc_2f2f. (strong) */
 export const LEVEL = 0x8028;
 
 // ── Shared tile/colour column-plotter parameter block (0x8055-0x8060) ─────────
@@ -175,14 +180,14 @@ export const PLOT_RUN_LENGTH = 0x8055;
 // ── Dig-object spawn ──────────────────────────────────────────────────────────
 /** Active-spawn state of the dig-triggered tile object: 0 = idle (a new spawn is permitted),
  *  non-zero = a spawn sequence is active (value indexes its progress; gates re-spawn/awards).
- *  set=1 on spawn (loc_2c04), decremented per commit (loc_29ad), cleared on reset/boundary.
+ *  set=1 on spawn (loc_2c04), decremented per commit (advanceDigCarveObject), cleared on reset/boundary.
  *  Proposer≠confirmer converged, both fair. (fair) */
 export const SPAWN_STATE = 0x80bd;
 
 // ── Per-object reaction state machine (first field of the 0x80a2-0x80a9 block) ─
 /** Per-object reaction/animation state selector: 0 = idle (normal per-frame movement runs),
  *  1-4 = a specific collision/dig/push reaction is armed + playing; also a busy-lock that
- *  defers the normal frame. Armed to 1-4 by loc_14cd/1515/1568/1704/191f, dispatched by
+ *  defers the normal frame. Armed to 1-4 by locateObjectCellCheckGoal/1515/1568/1704/191f, dispatched by
  *  loc_24f3, deferred by loc_1420, render-Y-biased at ==4. Proposer≠confirmer converged,
  *  both strong. (strong) */
 export const REACTION_STATE = 0x80a2;
@@ -195,9 +200,11 @@ export const REACTION_STATE = 0x80a2;
  *  role (names MARKER/GOAL, confidence strong/fair). (fair) */
 export const GOAL_TILE_LATCH = 0x80e7;
 /** Latch set when the object's under-tile == 0x26 — a DISTINCT field from GOAL_TILE_LATCH's
- *  0x27 (the shared classify ladder loc_1568 records both adjacently, which is why the two
+ *  0x27 (the shared classify ladder resolveObjectTerrainStep records both adjacently, which is why the two
  *  look twinned). Gates the 0x3b-0x3d feature path (collectLootTile) and is cleared by a boundary
- *  one-shot (loc_167f/loc_1493, alongside SPAWN_STATE). NOT part of the 0x27 goal path.
+ *  one-shot (stepObjectRowUnflipped/stepObjectRowFlipped, alongside SPAWN_STATE). NOT part of the 0x27 goal path.
+ *  The 0x26 feature cell is the PREREQUISITE that unlocks the +20 diamond pickup
+ *  (DIAMOND_COLLECTED 0x8078); verified vs collectLootTile, resolveActorTerrainStep.
  *  ★ Proposer≠confirmer BOTH converged on the wrong tile (0x27); the adversarial review
  *  corrected it to 0x26 — why the third review is load-bearing even after convergence. (fair) */
 export const FEATURE_TILE_LATCH = 0x8076;
@@ -214,7 +221,7 @@ export const TARGET_X = 0x80a9;
  *  (fair — the X/Y label is rotation-dependent, but it consistently pairs with OBJ_Y.) (fair) */
 export const TARGET_Y = 0x80ac;
 /** State/phase byte of the dig/carve object: discrete codes (0x30=carving, 0x09=done/target,
- *  0x10=spawn) branched on by loc_29ad, copied into the object's sprite record. (fair) */
+ *  0x10=spawn) branched on by advanceDigCarveObject, copied into the object's sprite record. (fair) */
 export const DIG_OBJ_STATE = 0x80aa;
 /** Second-stage goal-crossing latch, twin of GOAL_TILE_LATCH: set when the object reaches the
  *  0x27 goal tile past crossing-column 0x53; drives the post-goal crossing sequence (route to
@@ -227,23 +234,23 @@ export const SPRITE_COORD_BIAS = 0x8051;
 // ── Tracked-object state-control block (0x8079-0x807d) ────────────────────────
 // A small control block for the tracked object that OBJ_X/OBJ_Y locate: a presence
 // flag, a busy-this-frame flag (0x807a), a spawn sub-phase (SPAWN_PHASE 0x807b), a
-// state timer, and a post-timer mode selector (0x807d). loc_13c9/advanceTrackedObject walk them
+// state timer, and a post-timer mode selector (0x807d). dispatchObjectFrameByStateTimer/advanceTrackedObject walk them
 // as the head guards of the per-frame object/state dispatcher.
 
 /** Presence flag for the tracked object (the one OBJ_X/OBJ_Y locate): 0 = no live object
  *  (skip its per-frame work), 0xff = present. Set 0xff when the object is first seeded
- *  (loc_3748, alongside its OBJ_X tile), cleared when it exits at a boundary (advanceAltPhaseActor,
+ *  (advanceTwoSpriteActor, alongside its OBJ_X tile), cleared when it exits at a boundary (advanceAltPhaseActor,
  *  together with OBJ_X); read as the "nothing active, done" guard by the object/state
  *  dispatcher (advanceTrackedObject) and as the "nothing to classify" gate by loc_03e8. Consistent
  *  0/0xff presence role across 6 routines. (strong) */
 export const OBJECT_ACTIVE = 0x8079;
 
 /** State-lockout countdown for the tracked object: while nonzero the object is held in
- *  its current timed state and its normal per-frame processing is deferred — loc_13c9
+ *  its current timed state and its normal per-frame processing is deferred — dispatchObjectFrameByStateTimer
  *  decrements it and returns early each frame (vectoring on the mode byte 0x807d when it
  *  expires), and loc_03e8 skips its recolour + classify while it runs. Armed to a duration
  *  at events (0x78 idle-arm in advanceAltPhaseActor; 0xb4 boundary latch in drawActorWalkFrame/loc_19d0/loc_2d6b).
- *  loc_13c9's translation reads it directly as "the countdown timer." (fair — the timer role
+ *  dispatchObjectFrameByStateTimer's translation reads it directly as "the countdown timer." (fair — the timer role
  *  is well corroborated, but it sits among sibling busy bytes 0x807a/0x807b and the latched
  *  values are not proven to be pure durations.) */
 export const STATE_TIMER = 0x807c;
@@ -344,7 +351,7 @@ export const OBJ_TILE_ROW = 0x8073;
 // ── Probe-cell walk + sub-tile phase + mover dispatch state ──
 /**
  *  PROBE_CELL_PTR (0x8089) — 16-bit VRAM/tilemap cell pointer (base 0x9000) written in
- *  loc_319d/loc_3289 and dereferenced+stepped ±0x20/row by the tile-probe helpers
+ *  stepEnemyMover/loc_3289 and dereferenced+stepped ±0x20/row by the tile-probe helpers
  *  loc_33bc/33da/3410/3425; A, B and my derivation all agree, grounded across writer + four
  *  readers. (fair)
  */
@@ -357,7 +364,7 @@ export const PROBE_CELL_PTR = 0x8089;
  */
 export const SUBTILE_PHASE = 0x808d;
 /**
- *  MOVER_STATE (0x8090) — Signed state byte of the 0x8083 move-object: loc_319d dispatches on
+ *  MOVER_STATE (0x8090) — Signed state byte of the 0x8083 move-object: stepEnemyMover dispatches on
  *  its sign (neg->advanceDormantMover dormant tick, zero->arm 0x808b countdown, positive->player-box
  *  branch) and advanceDormantMover bumps it each call; both agree on the sign-dispatch role (B's
  *  unsupported 'ANIM' dropped). (fair)
@@ -367,14 +374,14 @@ export const MOVER_STATE = 0x8090;
 // ── Reaction object (position paired with the player box) ──
 /**
  *  REACTION_OBJ_X (0x8094) — OBJ_X-paired position coordinate of the REACTION_STATE (0x80a2)
- *  entity: written each frame by loc_24f3 from OBJ_X±8, player-box-tested in loc_319d, placed
+ *  entity: written each frame by loc_24f3 from OBJ_X±8, player-box-tested in stepEnemyMover, placed
  *  by spawnDigEntity, written to sprite record byte 0, inited 0 by loc_24cf; both converge, well
  *  grounded. (fair)
  */
 export const REACTION_OBJ_X = 0x8094;
 /**
  *  REACTION_OBJ_Y (0x8097) — OBJ_Y-paired position coordinate of the REACTION_STATE (0x80a2)
- *  entity: written by loc_24f3 from OBJ_Y±8, player-box-tested in loc_319d against the 0x8086
+ *  entity: written by loc_24f3 from OBJ_Y±8, player-box-tested in stepEnemyMover against the 0x8086
  *  axis, written to sprite record byte 3, inited 0 by loc_24cf; both converge, well grounded.
  *  (fair)
  */
@@ -397,7 +404,7 @@ export const DIG_OBJ_ATTR = 0x80ab;
 export const DIG_OBJ_TIMER = 0x80b1;
 /**
  *  DIG_OBJ_SUBTYPE (0x80c0) — sub-type/variant selector of the committed dig entity, written
- *  by spawnDigEntity and dispatched by loc_298a and loc_29ad (0=plain/ret, 2=special: arm timer +
+ *  by spawnDigEntity and dispatched by loc_298a and advanceDigCarveObject (0=plain/ret, 2=special: arm timer +
  *  patch neighbour tiles to 0xc1); grounded across 4 routines, A/B converged (fair)
  */
 export const DIG_OBJ_SUBTYPE = 0x80c0;
@@ -466,7 +473,7 @@ export const REVEAL_CURSOR = 0x80e6;
 // ── Object 1 record + Object 2 record ──
 /**
  *  OBJ1_X (0x80e8) — Base (offset 0) of the first object record: seeded/reset 0xec
- *  (seedObjectRecords/loc_319d), copied to sprite record 0x8230 byte 0 by loc_312d — the SAME structural
+ *  (seedObjectRecords/stepEnemyMover), copied to sprite record 0x8230 byte 0 by loc_312d — the SAME structural
  *  field as OBJ2_X (0x80f9), so X by the house convention (offset 0 = X, ACTOR_X/OBJ_X). Under
  *  ROT90 the sprite's hardware-Y byte is the on-screen horizontal, which the codebase calls X.
  *  (The record's Y is the offset-3 byte 0x80eb, still hex.) (fair)
@@ -492,20 +499,20 @@ export const OBJ1_ATTR = 0x80ea;
 export const OBJ1_MOVE_PERIOD = 0x80f6;
 /**
  *  OBJ1_TARGET_COL (0x80f8) — Object-1 record offset 16 target column: seeded 0x04
- *  (seedObjectRecords); loc_319d fast-exits when 0x807a equals it and keys the tile-probe/direction
+ *  (seedObjectRecords); stepEnemyMover fast-exits when 0x807a equals it and keys the tile-probe/direction
  *  dispatch on it -- A/B and my derivation agree. (fair)
  */
 export const OBJ1_TARGET_COL = 0x80f8;
 /**
  *  OBJ2_X (0x80f9) — Base (offset 0) of the second 17-byte object record: staged/emitted as
- *  sprite byte 0 by loc_316f, position-tested in loc_319d, seeded 0x00; matches house
+ *  sprite byte 0 by advanceObjectMover2, position-tested in stepEnemyMover, seeded 0x00; matches house
  *  convention ACTOR_X=offset 0 -- A/B agree. (fair)
  */
 export const OBJ2_X = 0x80f9;
 /**
  *  OBJ2_TILE (0x80fa) — Object-2 record offset 1 sprite tile/code byte: seeded 0x09, emitted
- *  verbatim to sprite byte 1 (loc_316f), rewritten with the direction/orientation code
- *  (loc_319d/loc_3476); matches house convention ACTOR_TILE=offset 1 -- A/B agree. (fair)
+ *  verbatim to sprite byte 1 (advanceObjectMover2), rewritten with the direction/orientation code
+ *  (stepEnemyMover/stepMoverUp); matches house convention ACTOR_TILE=offset 1 -- A/B agree. (fair)
  */
 export const OBJ2_TILE = 0x80fa;
 /**
@@ -517,13 +524,13 @@ export const OBJ2_ATTR = 0x80fb;
 
 // ── Actor per-frame step + twin timer + saved cell pointer ──
 /**
- *  ACTOR_STEP_X (0x810e) — Low byte of the actor 16-bit step vector: loc_3748 loads it into L
+ *  ACTOR_STEP_X (0x810e) — Low byte of the actor 16-bit step vector: advanceTwoSpriteActor loads it into L
  *  and adds it to ACTOR_X (0x810a) each cadence tick; seeded 0xff(-1)/0 by
  *  loc_36fe/3767/38c8. Real reader, A and B agree, my derivation confirms. (fair)
  */
 export const ACTOR_STEP_X = 0x810e;
 /**
- *  ACTOR_STEP_Y (0x810f) — High byte of the actor step vector: loc_3748 loads it into H and
+ *  ACTOR_STEP_Y (0x810f) — High byte of the actor step vector: advanceTwoSpriteActor loads it into H and
  *  adds it to ACTOR_Y (0x810d) each cadence tick; seeded alongside 0x810e. Real reader, A and
  *  B agree, my derivation confirms. (fair)
  */
@@ -531,13 +538,13 @@ export const ACTOR_STEP_Y = 0x810f;
 /**
  *  TWIN_TIMER (0x8123) — Both namers converged and my derivation agrees: twin of
  *  ACTOR_TIMER(0x8112); record+8 -> scratch 0x808b, decremented/reloaded as the cadence
- *  countdown by loc_319d (0x31b1) and armed (0xb4/0x01) by the spawn seeders. Grounded across
+ *  countdown by stepEnemyMover (0x31b1) and armed (0xb4/0x01) by the spawn seeders. Grounded across
  *  seeders + 319d; primary ACTOR_TIMER already named, so pairing is consistent. (fair)
  */
 export const TWIN_TIMER = 0x8123;
 /**
  *  SAVED_CELL_PTR (0x8134) — Both namers converged and my derivation agrees: a 16-bit scratch
- *  slot holding a tilemap cell pointer. loc_33da and loc_3425 each do 'ld (0x8134),hl' (save
+ *  slot holding a tilemap cell pointer. probeRowBackTilePair and probeRowAheadTilePair each do 'ld (0x8134),hl' (save
  *  advanced/one-row-back cursor) then 'ld ix,(0x8134)' a few instructions later. Grounded
  *  across two neighbour-search routines as a within-search save/restore. (fair)
  */
@@ -560,6 +567,18 @@ export const LOOT_10PT_COUNT = 0x8081;
  */
 export const LOOT_20PT_COUNT = 0x8082;
 /**
+ *  DIAMOND_COLLECTED (0x8078) — set nonzero on a +20 diamond pickup (loot tiles 59-61, gated by the
+ *  0x26 feature cell); read at the top rung (OBJ_Y==0x23, object surfacing UP) where it flips
+ *  SPAWN_PHASE=1 = level complete (observed A/B). Precise to the diamond: the +10 dirt-gems (tile 58)
+ *  do NOT set it. Grounded across the loot routines (collectLootTile, stepObjectAndResolveTile,
+ *  resolveActorTerrainStep, collectAlignedLootElseResolveTile, loc_1362-family).
+ *  ★ HONEST CAVEAT — the SAME physical byte is also read by the dig driver (advanceDigCarveObject, as a dig-spawn
+ *  condition), read by the twin-actor advance (advanceActorMovers, as its second-record gate), and
+ *  cleared by the dig glyph-stamp (stampGlyphColumn). Whether those are true couplings or byte-reuse
+ *  is UNPROVEN — do not assert a coupling. (fair)
+ */
+export const DIAMOND_COLLECTED = 0x8078;
+/**
  *  HIGH_SCORE_TABLE (0x8039) — Base/top rank of the descending three-entry high-score table
  *  (5-byte records: 3 initials + 16-bit score at 0x8039/0x803e/0x8043); seeded by loc_4bc7,
  *  rendered by loc_4cca, ranked-inserted with 0xFF initials placeholders by loc_4d3a, blitted
@@ -571,7 +590,7 @@ export const HIGH_SCORE_TABLE = 0x8039;
 /**
  *  OBJECT_PHASE (0x801a) — Tracked object's packed animation/command phase byte (high bits
  *  wind-up countdown stepped -0x20, low bits &0x0c = move command vs L); seeded 0 by
- *  loc_1362, reconciled each frame by windUpObjectMove, zeroed on the idle path by loc_144c. (fair)
+ *  loc_1362, reconciled each frame by windUpObjectMove, zeroed on the idle path by routeIdleObjectByMoveCommand. (fair)
  */
 export const OBJECT_PHASE = 0x801a;
 /**
@@ -590,7 +609,7 @@ export const OBJ_STEP_X = 0x806c;
 export const OBJ_STEP_Y = 0x806d;
 /**
  *  MOVER_DIRECTION (0x8092) — Published travel-direction index: stamped 0/1/2/3 by the four
- *  direction presets (loc_3476/347d/3484/348b) at 0x34a0, consumed by loc_319d's dec-a/jp-z
+ *  direction presets (stepMoverUp/347d/3484/348b) at 0x34a0, consumed by stepEnemyMover's dec-a/jp-z
  *  direction fan-out at 0x32ce and 0x3345; A and B and my derivation all converge. (fair)
  */
 export const MOVER_DIRECTION = 0x8092;
@@ -605,14 +624,14 @@ export const MOVER_DIRECTION = 0x8092;
 export const EXPECTED_TILE = 0x80a7;
 /**
  *  STAGED_TARGET_X (0x80b6) — Staged X coord = REACTION_OBJ_X-4 written by spawnDigEntity, promoted
- *  into TARGET_X 0x80a9 by loc_2934 and X-axis bbox-tested vs OBJ_X 0x8068 by loc_29ad; both
+ *  into TARGET_X 0x80a9 by loc_2934 and X-axis bbox-tested vs OBJ_X 0x8068 by advanceDigCarveObject; both
  *  namers converged, grounded across all three. (fair)
  */
 export const STAGED_TARGET_X = 0x80b6;
 /**
  *  STAGED_TARGET_Y (0x80b9) — Staged Y coord (OBJ_Y grid-snapped and lifted) written by
  *  spawnDigEntity, promoted into TARGET_Y 0x80ac by loc_2934 and Y-axis bbox-tested vs OBJ_Y 0x806b
- *  by loc_29ad; both namers converged, grounded across all three. (fair)
+ *  by advanceDigCarveObject; both namers converged, grounded across all three. (fair)
  */
 export const STAGED_TARGET_Y = 0x80b9;
 /**
@@ -658,7 +677,7 @@ export const SPRITE_STAGING_BASE = 0x8220;
 /**
  *  LOOP_COUNTER (0x800a) — Memory-resident down-counter seeded to an iteration count then
  *  decremented to 0 to repeat a loop body; grounded identically across setup-repeat
- *  loc_02ca/loc_02e1, screen-hold loc_3a6f, and animation-tier showBonusScreen. (fair)
+ *  setUpRoundAndHoldIntro/holdRoundIntroLoop, screen-hold loc_3a6f, and animation-tier showBonusScreen. (fair)
  */
 export const LOOP_COUNTER = 0x800a;
 
@@ -667,7 +686,7 @@ export const LOOP_COUNTER = 0x800a;
 // (0x801d/0x812d/0x8050/0x8052 mode+flip shadows are write-only; player-record backups stay hex).
 
 /** CREDIT_COUNT (0x8000) — the credit counter: banked from the coin lines (clamp 9), spent on start;
- *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); loc_01f9
+ *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); rearmMachineAndBranchOnCredits
  *  tests it >0 to show the credit screen. (strong) */
 export const CREDIT_COUNT = 0x8000;
 /** CREDIT_MIRROR_A (0x801c) — redundant copy of CREDIT_COUNT, read by the corruption watchdog. (strong) */
@@ -709,11 +728,11 @@ export const REACTION_OBJ_CODE = 0x8095;
 export const REACTION_OBJ_ATTR = 0x8096;
 /** OBJ2_MOVE_PERIOD (0x8107) — OBJ2 mover cadence reload period; structural mirror of OBJ1_MOVE_PERIOD. (strong) */
 export const OBJ2_MOVE_PERIOD = 0x8107;
-/** OBJ2_TARGET_COL (0x8109) — OBJ2 mover target column (seed 5 → loc_319d steer path); mirror of OBJ1_TARGET_COL. (strong) */
+/** OBJ2_TARGET_COL (0x8109) — OBJ2 mover target column (seed 5 → stepEnemyMover steer path); mirror of OBJ1_TARGET_COL. (strong) */
 export const OBJ2_TARGET_COL = 0x8109;
 /** OBJ1_TIMER (0x80f0) — OBJ1 mover cadence/dwell countdown (record offset 8). (fair) */
 export const OBJ1_TIMER = 0x80f0;
-/** OBJ1_STATE (0x80f5) — OBJ1 mover signed state byte loc_319d sign-dispatches on (record offset 13). (fair) */
+/** OBJ1_STATE (0x80f5) — OBJ1 mover signed state byte stepEnemyMover sign-dispatches on (record offset 13). (fair) */
 export const OBJ1_STATE = 0x80f5;
 /** OBJ2_TIMER (0x8101) — OBJ2 mover cadence/dwell countdown (mirror of OBJ1_TIMER). (fair) */
 export const OBJ2_TIMER = 0x8101;
@@ -721,12 +740,13 @@ export const OBJ2_TIMER = 0x8101;
 export const OBJ2_STATE = 0x8106;
 /** MOVER_MOVE_PERIOD (0x8091) — working-block mover cadence reload period (parallels OBJ1_MOVE_PERIOD). (fair) */
 export const MOVER_MOVE_PERIOD = 0x8091;
-/** MOVER_TARGET_COL (0x8093) — working-block mover target column loc_319d steers toward. (fair) */
+/** MOVER_TARGET_COL (0x8093) — working-block mover target column stepEnemyMover steers toward. (fair) */
 export const MOVER_TARGET_COL = 0x8093;
-/** CARVE_SEAM_LEFT (0x807e) — flag loc_29ad sets when a dug channel abuts the object's tile column on
- *  one side; loc_1493 reads it to defer that step. (fair — L/R axis under ROT90 unconfirmed) */
+/** CARVE_SEAM_LEFT (0x807e) — flag advanceDigCarveObject sets when a dug channel abuts the object's tile column on
+ *  one side; stepObjectRowFlipped reads it to defer that step. Axis confirmed screen-HORIZONTAL; the specific
+ *  left-vs-right assignment is rotation-ambiguous (which arm is "left" is not pinned). (fair) */
 export const CARVE_SEAM_LEFT = 0x807e;
-/** CARVE_SEAM_RIGHT (0x807f) — mirror seam flag for the opposite move arm (loc_167f reads it). (fair) */
+/** CARVE_SEAM_RIGHT (0x807f) — mirror seam flag for the opposite move arm (stepObjectRowUnflipped reads it). (fair) */
 export const CARVE_SEAM_RIGHT = 0x807f;
 /** SCROLL_WINDOW_PTR (0x809a, 16-bit) — tilemap cell the horizontal terrain-scroll walker samples. (fair) */
 export const SCROLL_WINDOW_PTR = 0x809a;

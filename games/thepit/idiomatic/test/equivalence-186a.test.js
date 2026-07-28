@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_186a (ROM 0x186a) — the thin frame-prologue that stamps a
+ * Memory-equivalence gate for stampFixedFrameAndResolveTile (ROM 0x186a) — the thin frame-prologue that stamps a
  * fixed animation frame code into the actor's sprite-frame byte and then hands off to the
  * shared position/tile tail resolveObjectTile.
  *
@@ -8,7 +8,7 @@
  * everything the shared tail writes. It has no live registers of its own, so the gate compares
  * RAM only (dumpState), never the Z80 pc/SP/register/cycle trace the idiomatic layer drops.
  *
- * THE STACK SCRATCH. loc_186a's own tail is now dissolved: where the frozen oracle hands off to
+ * THE STACK SCRATCH. stampFixedFrameAndResolveTile's own tail is now dissolved: where the frozen oracle hands off to
  * the shared tail through a stack-threaded jump, the idiomatic arm calls the already-idiomatic,
  * stack-free tail resolveObjectTile directly. The two therefore leave different dead bytes just below the
  * entry stack pointer (The Pit's stack is real diffed work RAM, entry SP ~0x83fd here) — classic
@@ -33,7 +33,7 @@
  * Four checks:
  *   0. HARNESS  — capture real 0x186a dispatches from attract; confirm the oracle run is
  *      deterministic (oracle vs oracle over one entry -> identical RAM).
- *   1. EQUAL    — loc_186a == oracle over RAM across every captured entry; and on the one entry
+ *   1. EQUAL    — stampFixedFrameAndResolveTile == oracle over RAM across every captured entry; and on the one entry
  *      where the stamp survives, the idiomatic run leaves the chosen frame code (52).
  *   2. TEETH    — a twin that skips the shared-tail hand-off is CAUGHT (the tail's writes are
  *      missing), proving the delegation half of the routine is under the gate.
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_186a as oracle } from "../../translated/loc_186a.js";
-import { loc_186a as idiomatic } from "../loc_186a.js";
+import { stampFixedFrameAndResolveTile as idiomatic } from "../stampFixedFrameAndResolveTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { SPRITE_CODE } from "../ram.js";
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x186a;
-const TAIL = 0x186f; // the shared position/tile tail loc_186a hands off to (still the oracle)
+const TAIL = 0x186f; // the shared position/tile tail stampFixedFrameAndResolveTile hands off to (still the oracle)
 const STACK_SCRATCH = 8; // dead bytes the oracle's stack-threaded tail hand-off parks just below
 // entry SP (the diff at entry 212 sits at SP-6, 0x83f7..0x83fc); the idiomatic tail is stack-free
 const FRAME_CODE = 52; // 0x34 — the fixed animation frame this prologue stamps
@@ -160,7 +160,7 @@ test("HARNESS: real 0x186a dispatches are captured from attract and the oracle r
 
 // -- 1. EQUAL across every captured entry ------------------------------------
 
-test("EQUAL: loc_186a == oracle over RAM on every captured attract entry", () => {
+test("EQUAL: stampFixedFrameAndResolveTile == oracle over RAM on every captured attract entry", () => {
   const entries = captureRealEntries(6000);
   assert.ok(entries.length > 0, "need captured 0x186a entries");
 

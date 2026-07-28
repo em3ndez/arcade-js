@@ -5,7 +5,7 @@
  *
  * This is the object-record analog of advanceActorMovers: the two mover records OBJ1
  * (0x80e8) and OBJ2 (0x80f9) are the OBJ1/OBJ2 movers, distinct from the tracked object
- * (the player). The shared move/collision driver (loc_319d) works out of one fixed
+ * (the player). The shared move/collision driver (stepEnemyMover) works out of one fixed
  * working block, so each record is stepped the same way — copy the 17-byte record into
  * the working block, run the driver to step and collide it in place, then copy the
  * result back.
@@ -15,14 +15,14 @@
  *   - Object 1 always steps: drive it through the mover, commit it, then stage its
  *     sprite record — three record bytes verbatim plus a fourth = record byte 3 shifted
  *     by the cabinet sprite-coordinate bias (0 in normal upright play).
- *   - Object 2 then runs the identical pass in loc_316f, which stages its record and
+ *   - Object 2 then runs the identical pass in advanceObjectMover2, which stages its record and
  *     hands the frame to the actor dispatcher — EXCEPT in the attract demo (game mode 4)
  *     while the counter is still in its opening window (< 10), when only object 1 moves
  *     and the frame goes straight to the actor dispatcher.
  *
- * Object 2's half (loc_316f) and the actor dispatcher (loc_3748) are decompiled, so this
+ * Object 2's half (advanceObjectMover2) and the actor dispatcher (advanceTwoSpriteActor) are decompiled, so this
  * calls them directly; both are tail calls, so their return goes to this routine's caller.
- * The mover core loc_319d and object 2's loc_316f keep neutral names for the same reason
+ * The mover core stepEnemyMover and object 2's advanceObjectMover2 keep neutral names for the same reason
  * the whole mover cluster does — the tilemap's on-screen axis and what a probe match means
  * for travel are not yet pinned — but the wrapper's job (marshal a record through the
  * driver, stage its sprite) is clear, exactly as it is for the blessed sibling
@@ -42,12 +42,12 @@
  * NAMES:    FRAME_COUNTER (0x8010), OBJ1_X (0x80e8, base of object 1's record),
  *           SPRITE_COORD_BIAS (0x8051), GAME_MODE (0x8001), SPRITE_STAGING_BASE (0x8220)
  *           from ram.js. Kept hex: 0x8083 (the driver's shared working block) has no
- *           ram.js name yet. loc_316f / loc_3748 are decompiled and called directly.
+ *           ram.js name yet. advanceObjectMover2 / advanceTwoSpriteActor are decompiled and called directly.
  */
 
-import { loc_319d } from "./loc_319d.js";
-import { loc_3748 } from "./loc_3748.js";
-import { loc_316f } from "./loc_316f.js";
+import { stepEnemyMover } from "./stepEnemyMover.js";
+import { advanceTwoSpriteActor } from "./advanceTwoSpriteActor.js";
+import { advanceObjectMover2 } from "./advanceObjectMover2.js";
 import { FRAME_COUNTER, OBJ1_X, SPRITE_COORD_BIAS, GAME_MODE, SPRITE_STAGING_BASE } from "./ram.js";
 
 // The move/collision driver's shared working block: a record is copied in, driven in
@@ -63,7 +63,7 @@ const RECORD_SIZE = 17;
 function driveRecordThroughMover(m, recordBase) {
   const { mem8 } = m;
   for (let i = 0; i < RECORD_SIZE; i++) mem8[MOVER_SCRATCH + i] = mem8[recordBase + i];
-  loc_319d(m);
+  stepEnemyMover(m);
   for (let i = 0; i < RECORD_SIZE; i++) mem8[recordBase + i] = mem8[MOVER_SCRATCH + i];
 }
 
@@ -71,7 +71,7 @@ export function advanceObjectMovers(m) {
   const { mem8 } = m;
 
   // Until the intro/phase counter has passed its opening, neither object mover steps.
-  if (mem8[FRAME_COUNTER] < 8) return loc_3748(m);
+  if (mem8[FRAME_COUNTER] < 8) return advanceTwoSpriteActor(m);
 
   // Object 1 always steps, then stages its sprite record: three bytes verbatim, then its
   // 4th byte shifted by the cabinet sprite-coordinate bias.
@@ -81,6 +81,6 @@ export function advanceObjectMovers(m) {
 
   // Object 2 runs the identical pass next — unless this is the attract demo while the
   // counter is still low, when only object 1 moves this frame.
-  if (mem8[GAME_MODE] === 4 && mem8[FRAME_COUNTER] < 10) return loc_3748(m);
-  return loc_316f(m);
+  if (mem8[GAME_MODE] === 4 && mem8[FRAME_COUNTER] < 10) return advanceTwoSpriteActor(m);
+  return advanceObjectMover2(m);
 }

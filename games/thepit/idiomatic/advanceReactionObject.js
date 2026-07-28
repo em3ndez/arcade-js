@@ -72,7 +72,7 @@ import {
 import { spawnDigEntity } from "./spawnDigEntity.js";
 import { requestSound9 } from "./requestSound9.js";
 import { requestSound12 } from "./requestSound12.js";
-import { loc_29ad } from "./loc_29ad.js";
+import { advanceDigCarveObject } from "./advanceDigCarveObject.js";
 
 // The horizontal-scroll state (a persistent 3-byte block driving the terrain walk).
 const SCROLL_STEP = 0x80a1; // signed per-frame X step; bit 3 set marks a scroll in progress,
@@ -171,15 +171,15 @@ function runReactionPhase(m, phase) {
  */
 function handleEdgeCollision(m) {
   const { mem8 } = m;
-  if (mem8[OBJECT_ACTIVE] === 0) return loc_29ad(m);
-  if (mem8[SPAWN_PHASE] !== 0) return loc_29ad(m);
-  if (mem8[GOAL_TILE_LATCH] !== 0) return loc_29ad(m);
+  if (mem8[OBJECT_ACTIVE] === 0) return advanceDigCarveObject(m);
+  if (mem8[SPAWN_PHASE] !== 0) return advanceDigCarveObject(m);
+  if (mem8[GOAL_TILE_LATCH] !== 0) return advanceDigCarveObject(m);
 
   const in0 = mem8[IN0_DEBOUNCED];
   if (mem8[SCROLL_STEP] === 0) return maybeStartScroll(m, in0);
-  if ((in0 & 0x10) !== 0) return loc_29ad(m); // dig still held -> leave the scroll mode as is
+  if ((in0 & 0x10) !== 0) return advanceDigCarveObject(m); // dig still held -> leave the scroll mode as is
   mem8[SCROLL_STEP] = 0;
-  return loc_29ad(m);
+  return advanceDigCarveObject(m);
 }
 
 /**
@@ -189,11 +189,11 @@ function handleEdgeCollision(m) {
  */
 function maybeStartScroll(m, in0) {
   const { mem8 } = m;
-  if ((in0 & 0x10) === 0) return loc_29ad(m); // dig not held -> nothing to start
+  if ((in0 & 0x10) === 0) return advanceDigCarveObject(m); // dig not held -> nothing to start
   const facing = mem8[SPRITE_CODE];
   if (facing === 178 || facing === 179) return seedScroll(m, SCROLL_STEP_NEG);
   if (facing === 50 || facing === 51) return seedScroll(m, SCROLL_STEP_POS);
-  return loc_29ad(m); // facing is none of the four scroll-capable codes
+  return advanceDigCarveObject(m); // facing is none of the four scroll-capable codes
 }
 
 /**
@@ -268,5 +268,5 @@ function buildReactionRecord(m) {
   mem8[REACTION_SPRITE_SLOT + 1] = mem8[REACTION_OBJ_CODE];
   mem8[REACTION_SPRITE_SLOT + 2] = mem8[REACTION_OBJ_ATTR];
   mem8[REACTION_SPRITE_SLOT + 3] = mem8[REACTION_OBJ_Y] + bias;
-  return loc_29ad(m);
+  return advanceDigCarveObject(m);
 }

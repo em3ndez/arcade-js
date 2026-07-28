@@ -47,7 +47,6 @@ import { loc_2d6b as oracle } from "../../translated/loc_2d6b.js";
 import { loc_2cb7 as caller } from "../../translated/loc_2cb7.js";
 import { stampGlyphColumn as idiomatic } from "../stampGlyphColumn.js";
 import { makeMachineFactory } from "../../machine.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ACTOR_CELL_PTR, STATE_TIMER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -90,9 +89,27 @@ function captureEntry(target, oracleFn) {
 const realEntry = ROM_PRESENT ? captureEntry(0x2d6b, oracle) : null; // the genuine dispatch
 const callerSeed = ROM_PRESENT ? captureEntry(0x2cb7, caller) : null; // a frequent dig-object state
 
-/** RAM-only first-difference between two machines (dumpState), or null when identical. */
+// Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff). The
+// background chain stampGlyphColumn tails into reaches the object movers, whose shared actor-update
+// tail (advanceObjectMover2 -> advanceTwoSpriteActor) is a dissolved DIRECT call: it runs stack-free
+// on the idiomatic side while the oracle marshals the same tail through the Z80 stack, so those dead
+// bytes differ. Nothing observable lives there (all of 0x2d6b's writes are far below it).
+const STACK_LO = 0x8380;
+const STACK_HI = 0x8400;
+
+/** RAM-only first-difference between two machines (dumpState), EXCLUDING the dead stack scratch,
+ *  or null when identical. */
 function ramDiff(a, b) {
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_LO && addr < STACK_HI) continue; // dead stack scratch (see STACK_LO/STACK_HI)
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
 }
 
 /** The five glyph tile-cell addresses for a given object-cell pointer. */

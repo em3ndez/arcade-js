@@ -24,8 +24,8 @@
  * LIVE-OUT: memory-only — the four record bytes, then whatever the background update leaves.
  *           The residual value registers are dead ABI; no caller reads one back from here.
  * NAMES:    TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, TARGET_Y, SPRITE_COORD_BIAS,
- *           SPRITE_STAGING_BASE from ram.js. The background-update tail 0x2f71 has no
- *           idiomatic file yet, so it stays a call into the frozen oracle.
+ *           SPRITE_STAGING_BASE from ram.js. The background-update tail 0x2f71 is the
+ *           decompiled advanceBackgroundSprite, called directly.
  */
 
 import {
@@ -36,13 +36,10 @@ import {
   SPRITE_COORD_BIAS,
   SPRITE_STAGING_BASE,
 } from "./ram.js";
+import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
 
 // The dig object occupies sprite slot 2 (records are 4 bytes each) of the staging buffer.
 const DIG_RECORD = SPRITE_STAGING_BASE + 8;
-
-// Per-frame background-element update the dig-object publish flows into; its chain returns
-// to this routine's caller. No idiomatic file yet, so it resolves to the frozen oracle.
-const BACKGROUND_UPDATE = 0x2f71;
 
 export function stageDigObjectSpriteRecord(m) {
   const { mem8 } = m;
@@ -57,6 +54,7 @@ export function stageDigObjectSpriteRecord(m) {
   mem8[DIG_RECORD + 2] = mem8[DIG_OBJ_ATTR]; // colour + priority attribute
   mem8[DIG_RECORD + 3] = mem8[TARGET_Y] + offset; // trailing: row, offset added
 
-  // Continue into the per-frame background-element update; its return unwinds to our caller.
-  return m.call(BACKGROUND_UPDATE);
+  // Continue into the per-frame background-element update (advanceBackgroundSprite, ROM 0x2f71),
+  // called directly now that it is decompiled; its return unwinds to our caller.
+  return advanceBackgroundSprite(m);
 }

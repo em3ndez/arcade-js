@@ -4,7 +4,7 @@
  * fixed start-of-play defaults.  ROM 0x1362.
  *
  * One of the pre-play setup calls the round/play (re)init chain fires before a round
- * begins (loc_031a). It stamps a whole run of work-RAM bytes with constants — nothing
+ * begins (initRoundAndEnterMainLoop). It stamps a whole run of work-RAM bytes with constants — nothing
  * is read — so the object always starts a round in the same pose:
  *
  *   - The tracked-object probe coordinate is parked at its origin (left column, a
@@ -25,7 +25,7 @@
  *           observable, and the teeth twin is caught.
  * LIVE-OUT: memory-only — the seeded work-RAM bytes. The round-init caller consumes
  *           no register.
- * NAMES:    OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, CLIMB_GATE, NEXT_TILE, CARVE_SEAM_LEFT,
+ * NAMES:    OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, DIG_OVERLAP_HOLD, NEXT_TILE, CARVE_SEAM_LEFT,
  *           CARVE_SEAM_RIGHT from ram.js. The remaining counters and status/scratch bytes
  *           in the same block are not yet named, so their addresses stay hex.
  */
@@ -33,7 +33,7 @@
 import {
   CARVE_SEAM_LEFT,
   CARVE_SEAM_RIGHT,
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
   NEXT_TILE,
   OBJ_SPRITE_ATTR,
   OBJ_STEP_X,
@@ -66,7 +66,7 @@ export function seedObjectStartState(m) {
   // vertical-move gate, the unnamed status bytes, and the tile-classifier scratch.
   for (const addr of [
     0x801a, 0x8075, 0x8076, 0x8077, 0x8078, 0x8079, 0x807a,
-    SPAWN_PHASE, 0x807c, 0x807d, CARVE_SEAM_LEFT, CARVE_SEAM_RIGHT, CLIMB_GATE, 0x8081, 0x8082,
+    SPAWN_PHASE, 0x807c, 0x807d, CARVE_SEAM_LEFT, CARVE_SEAM_RIGHT, DIG_OVERLAP_HOLD, 0x8081, 0x8082,
     0x80a2, 0x80a4, 0x80a7, NEXT_TILE,
   ]) {
     mem8[addr] = 0;

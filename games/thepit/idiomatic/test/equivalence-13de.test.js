@@ -19,7 +19,7 @@
  *
  * THE REGISTER LIVE-OUT. advanceTrackedObject loads the object's position-bias pair (the word at 0x806c)
  * into D and E before dispatching; the tile-cell tail reads the column bias from D and the
- * still-oracle position handlers (reached via the at-rest router loc_144c) read both bytes as
+ * still-oracle position handlers (reached via the at-rest router routeIdleObjectByMoveCommand) read both bytes as
  * the object's move deltas. That is a genuine register boundary the idiomatic routine
  * reproduces — dropping the E half forks SPRITE_CODE on the control-step path.
  *

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_031a (ROM 0x031a, The Pit) — the final per-round
+ * Memory-equivalence gate for initRoundAndEnterMainLoop (ROM 0x031a, The Pit) — the final per-round
  * (re)init: request the round-start sound, restore the player record, paint the board,
  * (in real play) draw the players HUD, seed the object / column-reveal / reaction state,
  * derive the main loop's per-frame pacing delay (0x8011 = 0x804e - LEVEL), clear the
@@ -14,7 +14,7 @@
  *
  * TWO WRINKLES the harness models identically on both sides, so neither can manufacture
  * a difference — only reveal one:
- *   - The main-loop fall-through. loc_031a's tail is a fall-through into the in-game main
+ *   - The main-loop fall-through. initRoundAndEnterMainLoop's tail is a fall-through into the in-game main
  *     loop (mainLoop, 0x0348), now a DIRECT idiomatic call, no longer a registry boundary.
  *     It re-seats the stack and spins forever, so running either arm to completion would
  *     hang. Rather than stub it (the idiomatic direct call can no longer be intercepted),
@@ -25,7 +25,7 @@
  *     the per-frame countdown is still draining, so the FIRST watchdog read the hook sees
  *     with the countdown already at 0 is unambiguously the loop's pass top — it throws
  *     there. That is the identical point the old no-op stub compared at (the loop has done
- *     nothing yet), so the diff still measures exactly loc_031a's own work.
+ *     nothing yet), so the diff still measures exactly initRoundAndEnterMainLoop's own work.
  *   - paintScreen's frame-waits. The board paint pauses one frame before each copy via a
  *     busy-wait on the per-frame countdown cell (0x8009), which nothing in the code drives
  *     — in the live game the per-frame interrupt ticks it down. The same watchdog hook
@@ -46,10 +46,10 @@
  *   1. HARNESS — the real boot dispatch is captured (0x031a fires once from entering play
  *      mode, ~frame 530), the entry is sane (SP in the stack page, the excluded window
  *      pure stack, game mode 4 = attract), and the oracle run is deterministic.
- *   2. EQUAL (captured, mode 4) — loc_031a == oracle outside the stack scratch; the pacing
+ *   2. EQUAL (captured, mode 4) — initRoundAndEnterMainLoop == oracle outside the stack scratch; the pacing
  *      delay is derived and the frame counter + first sound slot are cleared.
  *   3. EQUAL (crafted, mode 1) — poking game mode to 1 forces the real-play arm that draws
- *      the players HUD; loc_031a == oracle there too, which proves the mode gate on that
+ *      the players HUD; initRoundAndEnterMainLoop == oracle there too, which proves the mode gate on that
  *      draw matches the oracle (a wrong condition would diff the HUD region).
  *   4. TEETH (wrong pacing delay) — a twin that corrupts 0x8011 is CAUGHT at 0x8011.
  *   5. TEETH (skipped flag clear) — a twin that leaves the frame counter non-zero (skips
@@ -66,7 +66,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_031a as oracle } from "../../translated/loc_031a.js";
-import { loc_031a as idiomatic } from "../loc_031a.js";
+import { initRoundAndEnterMainLoop as idiomatic } from "../initRoundAndEnterMainLoop.js";
 import { loc_0348 as oracleMainLoop } from "../../translated/loc_0348.js";
 import { drawPlayerLabel } from "../drawPlayerLabel.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -81,7 +81,7 @@ const test = ROM_PRESENT
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x031a;
-const MAIN_LOOP = 0x0348; // the never-returning main loop loc_031a falls into (now a direct call)
+const MAIN_LOOP = 0x0348; // the never-returning main loop initRoundAndEnterMainLoop falls into (now a direct call)
 const COUNTDOWN = 0x8009; // per-frame countdown paintScreen's frame-waits drain to 0
 const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per busy-wait / loop pass)
 const DELAY = 0x8011; // the main loop's per-frame pacing delay this routine derives
@@ -210,7 +210,7 @@ test("HARNESS: 0x031a boot dispatch captured, entry sane, oracle deterministic",
 
 // -- 2. EQUAL: real captured dispatch (attract, mode 4) -----------------------
 
-test("EQUAL (captured, mode 4): loc_031a == oracle outside the stack scratch", () => {
+test("EQUAL (captured, mode 4): initRoundAndEnterMainLoop == oracle outside the stack scratch", () => {
   assert.ok(ENTRY, "need the captured 0x031a entry");
   const ram = observableDiff(ENTRY, idiomatic);
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
@@ -243,7 +243,7 @@ test("EQUAL (crafted, mode 1): drawing the players HUD in real play, still == or
 // -- 4. TEETH: a wrong pacing delay -------------------------------------------
 
 test("TEETH (wrong delay): a corrupted 0x8011 is CAUGHT", () => {
-  // At the main-loop entry bound, loc_031a has already derived the pacing delay; flip it there.
+  // At the main-loop entry bound, initRoundAndEnterMainLoop has already derived the pacing delay; flip it there.
   const ram = observableDiff(ENTRY, idiomatic, (m) => m.mem.write8(DELAY, m.mem.read8(DELAY) ^ 0xff));
   assert.notEqual(ram, null, "the gate FAILED to catch a wrong pacing delay — it is worthless");
   assert.equal(ram.addr, DELAY, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(DELAY)})`);
@@ -253,7 +253,7 @@ test("TEETH (wrong delay): a corrupted 0x8011 is CAUGHT", () => {
 // -- 5. TEETH: a skipped flag clear -------------------------------------------
 
 test("TEETH (skipped flag clear): a non-zero frame counter is CAUGHT", () => {
-  // loc_031a clears the frame counter before the loop; re-dirty it at the bound (the "skip").
+  // initRoundAndEnterMainLoop clears the frame counter before the loop; re-dirty it at the bound (the "skip").
   const ram = observableDiff(ENTRY, idiomatic, (m) => m.mem.write8(FRAME_COUNTER, 0xff));
   assert.notEqual(ram, null, "the gate FAILED to catch a skipped flag clear — it is worthless");
   assert.equal(ram.addr, FRAME_COUNTER, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(FRAME_COUNTER)})`);

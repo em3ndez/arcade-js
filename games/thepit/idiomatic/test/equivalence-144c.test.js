@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for loc_144c (ROM 0x144c) — the at-rest object's move-command router.
+ * Equivalence gate for routeIdleObjectByMoveCommand (ROM 0x144c) — the at-rest object's move-command router.
  * It reads the object's per-frame move command (in L), and on the first set direction bit
  * runs one of four still-oracle handlers (0x1493 / 0x167f / 0x1468 / 0x186f); with no
  * direction bit it clears the animation-phase byte 0x801a and either runs the goal handler
@@ -43,7 +43,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_144c as oracle } from "../../translated/loc_144c.js";
-import { loc_144c as idiomatic } from "../loc_144c.js";
+import { routeIdleObjectByMoveCommand as idiomatic } from "../routeIdleObjectByMoveCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { GOAL_TILE_LATCH } from "../ram.js";
@@ -101,7 +101,7 @@ function ramDiff(entry, fn) {
 
 // -- 1. EQUAL over real captured attract entries (naturally-reached arms) ------
 
-test("EQUAL: loc_144c leaves the same RAM as the oracle over real captured attract entries", () => {
+test("EQUAL: routeIdleObjectByMoveCommand leaves the same RAM as the oracle over real captured attract entries", () => {
   const byArm = captureEntries(2000, 6);
   const reached = [...byArm.keys()].sort();
   assert.ok(reached.length >= 1, "expected at least one 0x144c dispatch during attract");

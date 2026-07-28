@@ -33,8 +33,10 @@
  *           the cleared latch (0x8078) and the re-armed state timer (0x807c); then the
  *           decompiled background update runs identically on both sides (it reads no
  *           register left here). Leftover registers/flags are dead.
- * NAMES:    ACTOR_CELL_PTR (0x806e), STATE_TIMER (0x807c) from ram.js; the per-event
- *           latch 0x8078 has no ram.js name yet, so it stays hex.
+ * NAMES:    ACTOR_CELL_PTR (0x806e), STATE_TIMER (0x807c) from ram.js. The per-event latch
+ *           0x8078 is the byte ram.js names DIAMOND_COLLECTED; it is kept as a hex literal
+ *           here because on this dig-glyph subsystem it reads as a per-event latch clear,
+ *           distinct from the loot collect->completion flow that shares the byte.
  */
 
 import { ACTOR_CELL_PTR, STATE_TIMER } from "./ram.js";
@@ -70,7 +72,12 @@ export function stampGlyphColumn(m) {
     colourCell += ROW_STRIDE;
   }
 
-  // Clear the object's per-event latch and re-arm its state timer.
+  // Clear the object's per-event latch (0x8078, the byte ram.js names DIAMOND_COLLECTED) and
+  // re-arm its state timer. This clear is on the DIG-object glyph-stamp path (loc_2cb7 -> here),
+  // a SEPARATE subsystem from the player collect -> climb -> top-rung completion flow. The
+  // observed natural level completion proves the completion gate SURVIVES this clear — the byte
+  // is shared, but this is not a completion threat. Kept as a hex literal: on this dig path it
+  // reads as a per-event latch, not the loot flag.
   mem8[0x8078] = 0;
   mem8[STATE_TIMER] = 180;
 

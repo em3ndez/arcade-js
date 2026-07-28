@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_319d (ROM 0x319d) — the per-frame enemy/object move
+ * Memory-equivalence gate for stepEnemyMover (ROM 0x319d) — the per-frame enemy/object move
  * step: arrival, player-box capture, object-box retarget, and steer into a movement
  * preset.
  *
@@ -19,7 +19,7 @@
  *     arm — the paths attract does not reach.
  *
  * ONE WRINKLE — the arrival / capture tails hand off to the round/state-boundary
- * transition (loc_3458 -> loc_0278), whose real successor chain converges at two TRUE
+ * transition (tickObjectDwellThenTransition -> dockManAndDispatchRoundBoundary), whose real successor chain converges at two TRUE
  * oracle leaves (0x031a round setup, 0x01f9 reset entry) that never return on hardware
  * (they busy-wait on the vblank NMI, which never fires on a single-routine clone). Both
  * the oracle and the candidate reach those same leaves, so the gate stubs them
@@ -29,7 +29,7 @@
  *
  * Checks:
  *   0. HARNESS — capture real 0x319d attract dispatches; the oracle run is deterministic.
- *   1. EQUAL (real dispatches) — loc_319d == oracle over RAM on every captured entry.
+ *   1. EQUAL (real dispatches) — stepEnemyMover == oracle over RAM on every captured entry.
  *   2. EQUAL (crafted capture/retarget) — the player-box capture and object-box retarget
  *      paths match the oracle, with positive checks on the armed pose + park state.
  *   3. EQUAL (crafted steer grid) — over a grid of position / column / direction the
@@ -47,14 +47,14 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_319d as oracle } from "../../translated/loc_319d.js";
-import { loc_319d as idiomatic } from "../loc_319d.js";
-import { loc_3458 } from "../loc_3458.js";
+import { stepEnemyMover as idiomatic } from "../stepEnemyMover.js";
+import { tickObjectDwellThenTransition } from "../tickObjectDwellThenTransition.js";
 import { requestSound20 } from "../requestSound20.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   MOVER_STATE,
-  ANIM_RAND,
+  MOVER_CADENCE,
   MOVER_DIRECTION,
   PROBE_CELL_PTR,
   SPRITE_CODE,
@@ -205,7 +205,7 @@ test("HARNESS: real 0x319d attract dispatches are captured and the oracle run is
 
 // -- 1. EQUAL on real captured attract dispatches ----------------------------
 
-test("EQUAL (real dispatches): loc_319d == oracle over RAM on every captured entry", () => {
+test("EQUAL (real dispatches): stepEnemyMover == oracle over RAM on every captured entry", () => {
   const caps = captureRealEntries(4000, 200);
   assert.ok(caps.length >= 1, "need captured 0x319d entries");
 
@@ -305,11 +305,11 @@ function twinWrongPose(m) {
   mem8[CURRENT_COLUMN] = mem8[TARGET_COLUMN];
   mem8[MOVER_X] = mem8[OBJ_X];
   mem8[MOVER_Y] = mem8[OBJ_Y];
-  mem8[ANIM_RAND] = 129;
+  mem8[MOVER_CADENCE] = 129;
   mem8[ACTOR_STATE] = 23;
   mem8[SPRITE_CODE] = 52; // BUG: the capture pose is 53
   requestSound20(m);
-  return loc_3458(m);
+  return tickObjectDwellThenTransition(m);
 }
 
 test("TEETH (wrong capture pose): a sprite-52 retarget twin is CAUGHT at the sprite code", () => {

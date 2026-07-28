@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3458 (ROM 0x3458) — the per-object state countdown
+ * Memory-equivalence gate for tickObjectDwellThenTransition (ROM 0x3458) — the per-object state countdown
  * that blinks the actor's sprite while it runs and hands off to the round/mode
  * transition (0x0278) when it expires.
  *
@@ -22,11 +22,11 @@
  * (0x808b==0).
  *
  * ONE WRINKLE — the expiry branch runs the real round/state-boundary transition
- * (idiomatic loc_0278, the same code the candidate calls directly). loc_0278 and its
+ * (idiomatic dockManAndDispatchRoundBoundary, the same code the candidate calls directly). dockManAndDispatchRoundBoundary and its
  * successors are all idiomatic now, so it runs its whole real successor chain, which
  * converges at the two TRUE oracle leaves — 0x031a (round-loop setup) and 0x01f9
  * (reset/entry handler) — that never return on hardware (they busy-wait on the vblank NMI,
- * which never fires on a neutralised clone). Both the oracle loc_3458 (via loc_0278) and
+ * which never fires on a neutralised clone). Both the oracle tickObjectDwellThenTransition (via dockManAndDispatchRoundBoundary) and
  * the candidate reach those same leaves, so the gate stubs THOSE identically on both clones
  * with a sentinel-writing no-op, and models the once-per-frame tick the chain's frame-waits
  * drain (else they never terminate). That keeps the expiry branch exercised and terminating,
@@ -36,7 +36,7 @@
  * Checks:
  *   0. HARNESS — capture a real 0x3dae attract state and confirm the oracle run of
  *      0x3458 is deterministic (oracle vs oracle -> identical RAM) across a few pokes.
- *   1. EQUAL (exhaustive sweep 0..255) — loc_3458 == oracle over RAM for every countdown
+ *   1. EQUAL (exhaustive sweep 0..255) — tickObjectDwellThenTransition == oracle over RAM for every countdown
  *      value, plus positive checks that the blink fired (0x808b==9), the idle tick did
  *      nothing (0x808b==3), and the expiry branch reached 0x0278 (0x808b==1 -> sentinel).
  *   2. TEETH (wrong flip bit) — a twin that flips bit 6 instead of bit 7 on the blink
@@ -52,12 +52,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3458 as oracle } from "../../translated/loc_3458.js";
-import { loc_3458 as idiomatic } from "../loc_3458.js";
-import { loc_0278 } from "../loc_0278.js";
+import { tickObjectDwellThenTransition as idiomatic } from "../tickObjectDwellThenTransition.js";
+import { dockManAndDispatchRoundBoundary } from "../dockManAndDispatchRoundBoundary.js";
 import { loc_3dae as captureLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ANIM_RAND, ACTOR_STATE, SPRITE_CODE } from "../ram.js";
+import { MOVER_CADENCE, ACTOR_STATE, SPRITE_CODE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -67,7 +67,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const CAPTURE_AT = 0x3dae; // a real attract leaf, reached ~frame 81 in a plain boot run
-// The two TRUE oracle leaves loc_0278's real successor chain converges at — each never
+// The two TRUE oracle leaves dockManAndDispatchRoundBoundary's real successor chain converges at — each never
 // returns on hardware, so the gate stubs both. Reaching either means the expiry transition
 // ran to completion.
 const EXPIRY_LEAVES = [0x031a, 0x01f9];
@@ -77,7 +77,7 @@ const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per frame-wait p
 const COUNTDOWN = 0x8009; // the per-frame countdown the chain's frame-waits drain to 0
 // Dead top-of-stack scratch the round-boundary chain leaves (its calls push return
 // addresses / the teardown leaf resets SP to 0x83ff); the stack-free idiomatic calls do
-// not. No real cell of loc_3458 or its chain lives here (all named cells sit far below).
+// not. No real cell of tickObjectDwellThenTransition or its chain lives here (all named cells sit far below).
 const STACK_SCRATCH_LO = 0x83e0;
 const STACK_SCRATCH_HI = 0x8400;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -99,7 +99,7 @@ function captureRealAttractState(maxFrames) {
   return entry;
 }
 
-/** Identical no-op stub for each of loc_0278's chain leaves: writes a sentinel so "the
+/** Identical no-op stub for each of dockManAndDispatchRoundBoundary's chain leaves: writes a sentinel so "the
  *  expiry branch ran to a leaf" is observable in RAM, and terminates (the real leaves
  *  would hang on a single-routine clone by busy-waiting on the NMI). */
 function expiryStub(mm) {
@@ -127,7 +127,7 @@ function runFrom(seed, v, fn) {
   const c = seed.clone();
   for (const addr of EXPIRY_LEAVES) c.routines.set(addr, expiryStub);
   installFrameTick(c);
-  c.mem.write8(ANIM_RAND, v);
+  c.mem.write8(MOVER_CADENCE, v);
   fn(c);
   return c;
 }
@@ -169,13 +169,13 @@ test("HARNESS: a real 0x3dae attract state is captured and the oracle run is det
   }
   console.log(
     `  HARNESS: captured a real 0x3dae entry (SP=${hx(seed.regs.sp)}, ` +
-      `0x808b=${seed.mem.read8(ANIM_RAND)}); oracle run of 0x3458 deterministic`,
+      `0x808b=${seed.mem.read8(MOVER_CADENCE)}); oracle run of 0x3458 deterministic`,
   );
 });
 
 // -- 1. EQUAL over the exhaustive countdown sweep 0..255 ----------------------
 
-test("EQUAL (sweep 0..255): loc_3458 == oracle over RAM for every countdown value", () => {
+test("EQUAL (sweep 0..255): tickObjectDwellThenTransition == oracle over RAM for every countdown value", () => {
   const seed = captureRealAttractState(300);
   assert.ok(seed, "need a captured 0x3dae entry");
 
@@ -190,19 +190,19 @@ test("EQUAL (sweep 0..255): loc_3458 == oracle over RAM for every countdown valu
   const blink = runFrom(seed, 9, idiomatic); // remaining 8, a fourth tick -> blink
   assert.equal(blink.mem.read8(ACTOR_STATE), base84 ^ 0x80, "blink tick did not flip the actor-state top bit");
   assert.equal(blink.mem.read8(SPRITE_CODE), base69 ^ 0x80, "blink tick did not flip the sprite-code top bit");
-  assert.equal(blink.mem.read8(ANIM_RAND), 8, "countdown did not decrement on the blink tick");
+  assert.equal(blink.mem.read8(MOVER_CADENCE), 8, "countdown did not decrement on the blink tick");
 
   const idle = runFrom(seed, 3, idiomatic); // remaining 2, not a fourth tick -> idle
   assert.equal(idle.mem.read8(ACTOR_STATE), base84, "idle tick wrongly touched the actor-state flag");
   assert.equal(idle.mem.read8(SPRITE_CODE), base69, "idle tick wrongly touched the sprite code");
-  assert.equal(idle.mem.read8(ANIM_RAND), 2, "countdown did not decrement on the idle tick");
+  assert.equal(idle.mem.read8(MOVER_CADENCE), 2, "countdown did not decrement on the idle tick");
 
   const expiry = runFrom(seed, 1, idiomatic); // remaining 0 -> hand off to 0x0278
   assert.equal(expiry.mem.read8(SENTINEL_ADDR), SENTINEL, "expiry tick did not reach the transition 0x0278");
-  assert.equal(expiry.mem.read8(ANIM_RAND), 0, "countdown did not decrement to zero on expiry");
+  assert.equal(expiry.mem.read8(MOVER_CADENCE), 0, "countdown did not decrement to zero on expiry");
 
   const wrap = runFrom(seed, 0, idiomatic); // dec of 0 wraps to 255, then an idle tick
-  assert.equal(wrap.mem.read8(ANIM_RAND), 255, "countdown did not wrap 0 -> 255");
+  assert.equal(wrap.mem.read8(MOVER_CADENCE), 255, "countdown did not wrap 0 -> 255");
 
   console.log("  EQUAL/sweep: all 256 countdown values match the oracle; blink, idle, expiry and the 0->255 wrap confirmed");
 });
@@ -212,9 +212,9 @@ test("EQUAL (sweep 0..255): loc_3458 == oracle over RAM for every countdown valu
 /** Broken twin: flips bit 6 instead of bit 7 on the blink tick. */
 function twinWrongFlipBit(m) {
   const { mem8 } = m;
-  const remaining = mem8[ANIM_RAND] - 1;
-  mem8[ANIM_RAND] = remaining;
-  if (remaining === 0) return loc_0278(m);
+  const remaining = mem8[MOVER_CADENCE] - 1;
+  mem8[MOVER_CADENCE] = remaining;
+  if (remaining === 0) return dockManAndDispatchRoundBoundary(m);
   if ((remaining & 3) !== 0) return;
   mem8[ACTOR_STATE] ^= 0x40; // BUG: wrong bit
   mem8[SPRITE_CODE] ^= 0x40; // BUG: wrong bit
@@ -234,8 +234,8 @@ test("TEETH (wrong flip bit): a bit-6 twin is CAUGHT at the blink flags", () => 
 /** Broken twin: no expiry branch — on the zero tick it blinks instead of transitioning. */
 function twinSkipsExpiry(m) {
   const { mem8 } = m;
-  const remaining = mem8[ANIM_RAND] - 1;
-  mem8[ANIM_RAND] = remaining;
+  const remaining = mem8[MOVER_CADENCE] - 1;
+  mem8[MOVER_CADENCE] = remaining;
   // BUG: missing `if (remaining === 0) return m.call(EXPIRY_TARGET);`
   if ((remaining & 3) !== 0) return;
   mem8[ACTOR_STATE] ^= 0x80;

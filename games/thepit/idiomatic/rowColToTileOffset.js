@@ -10,7 +10,7 @@
  * The staged row and column are always small enough that row*32 + col never
  * overflows 16 bits, so it is a plain multiply-add — no wrap to model.
  *
- * Called by every panel / record / HUD plotter (drawPlayerLabel, loc_4816, drawMenLeftPanel,
+ * Called by every panel / record / HUD plotter (drawPlayerLabel, paintPlayfieldStripCol1Row11, drawMenLeftPanel,
  * drawCreditsDisplay, showSetupScreen, loc_4df8) as the first step of placing a run of cells,
  * immediately before the cursor-derivation step that reads the offset back.
  *

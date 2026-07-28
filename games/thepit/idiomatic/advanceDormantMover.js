@@ -35,7 +35,7 @@
  *           the periodic refresh owns the bytes it writes.
  */
 
-import { loc_34f0 } from "./loc_34f0.js";
+import { reseedMoverCadenceAndRearmState } from "./reseedMoverCadenceAndRearmState.js";
 import { MOVER_STATE } from "./ram.js";
 
 
@@ -49,7 +49,7 @@ export function advanceDormantMover(m) {
   // Once every 256 calls the counter wraps back to zero; on that beat, run the
   // periodic refresh and stop for this call.
   if (tick === 0) {
-    loc_34f0(m);
+    reseedMoverCadenceAndRearmState(m);
     return;
   }
 

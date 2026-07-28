@@ -31,7 +31,7 @@
  *           its cross-routine meaning is unsettled — and it stays hex.
  */
 
-import { loc_144c } from "./loc_144c.js";
+import { routeIdleObjectByMoveCommand } from "./routeIdleObjectByMoveCommand.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { walkActor } from "./walkActor.js";
 
@@ -48,7 +48,7 @@ export function advanceObjectFrame(m) {
   // takes its command through the register slot the caller filled.
   if (mode === 0) {
     regs.l = moveCommand;
-    return loc_144c(m);
+    return routeIdleObjectByMoveCommand(m);
   }
 
   // In motion: the command's direction bits pick the walk stepper directly; with neither

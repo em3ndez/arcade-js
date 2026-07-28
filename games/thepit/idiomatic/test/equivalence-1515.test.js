@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1515 (ROM 0x1515) — resolve the tile the object is sitting on:
+ * Memory-equivalence gate for collectAlignedLootElseResolveTile (ROM 0x1515) — resolve the tile the object is sitting on:
  * collect a loot tile it has landed squarely on (score + remove it), otherwise hand the step to
- * the terrain resolver loc_1568.
+ * the terrain resolver resolveObjectTerrainStep.
  *
  * Given the object's biased tile column (column; low 3 bits = the sub-tile offset) and its
  * tile-cell pointer (cellPtr; the tile under the object is at cellPtr, the cell ahead is the next
  * byte), it records the under tile as the saved-current / expected-tile, then either collects loot
  * (tile 58 -> +10; tiles 59..61 -> +20, gated by a one-shot latch and a dig-spawn guard) or, for
- * every non-collect case, delegates to loc_1568. Its declared LIVE-OUT is MEMORY-ONLY.
+ * every non-collect case, delegates to resolveObjectTerrainStep. Its declared LIVE-OUT is MEMORY-ONLY.
  *
- * STACK-TOP WINDOW. Unlike loc_1568 (all tail-jumps, no pushing CALL), loc_1515's two loot awards
+ * STACK-TOP WINDOW. Unlike resolveObjectTerrainStep (all tail-jumps, no pushing CALL), collectAlignedLootElseResolveTile's two loot awards
  * reach the score adder through the oracle's ordinary calls (0x467b / 0x4683), which push a return
  * address the stack-free idiomatic never writes. Measured: the oracle parks at most a handful of
  * dead bytes just below the entry stack pointer (SP=0x83fb, lowest write 0x83f3). So the diff
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1515 as oracle } from "../../translated/loc_1515.js";
-import { loc_1515 as idiomatic } from "../loc_1515.js";
+import { collectAlignedLootElseResolveTile as idiomatic } from "../collectAlignedLootElseResolveTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
   CUR_TILE,
@@ -148,7 +148,7 @@ test("HARNESS: 0x1515 is never dispatched in attract, and oracle-vs-oracle on a 
 
 // -- 1. EQUAL over real captured attract clones --------------------------------------------------
 
-test("EQUAL: loc_1515 leaves the same RAM as the oracle over real attract clones", () => {
+test("EQUAL: collectAlignedLootElseResolveTile leaves the same RAM as the oracle over real attract clones", () => {
   const caps = captureStates(10, 90, 120);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {

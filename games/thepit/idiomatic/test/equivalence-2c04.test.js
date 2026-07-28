@@ -59,7 +59,7 @@ import {
   TARGET_Y,
   OBJ_X,
   OBJ_Y,
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -207,7 +207,7 @@ test("EQUAL (control-path shapes): idiomatic == oracle over RAM, outputs hand-ch
     assert.equal(c.mem.read8(TARGET_X), (exp.value + 1) & 0xff, `${name}: target X wrong`);
     assert.equal(c.mem.read8(TARGET_Y), exp.targetY, `${name}: target Y (column base) wrong`);
     assert.equal(c.mem.read8(paintedCell(c)), SPAWN_TILE, `${name}: spawn tile not painted`);
-    assert.equal(c.mem.read8(CLIMB_GATE), exp.overlap, `${name}: player-overlap flag wrong`);
+    assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), exp.overlap, `${name}: player-overlap flag wrong`);
   }
   console.log(`  EQUAL/shapes: ${shapes.length} control paths — RAM identical, spawn outputs hand-verified`);
 });
@@ -245,7 +245,7 @@ test("EQUAL (randomized sweep): random seed + queue + object position, RAM ident
 
     const c = entry.clone();
     idiomatic(c);
-    if (c.mem.read8(CLIMB_GATE) === 1) overlapSeen++;
+    if (c.mem.read8(DIG_OVERLAP_HOLD) === 1) overlapSeen++;
     // Classify which control path ran from the painted column base.
     const ty = c.mem.read8(TARGET_Y);
     if (ty === 0xbf) rightSeen++; else backupSeen++;
@@ -274,11 +274,11 @@ test("TEETH (overlap flag): a twin that flips the published player-overlap flag 
 
   const twin = (m) => {
     idiomatic(m);
-    m.mem.write8(CLIMB_GATE, m.mem.read8(CLIMB_GATE) ^ 1); // BUG: wrong overlap verdict
+    m.mem.write8(DIG_OVERLAP_HOLD, m.mem.read8(DIG_OVERLAP_HOLD) ^ 1); // BUG: wrong overlap verdict
   };
   const d = contractDiff(entry, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a flipped overlap flag — it proves nothing");
-  assert.equal(d.addr, CLIMB_GATE, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(CLIMB_GATE)})`);
+  assert.equal(d.addr, DIG_OVERLAP_HOLD, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
   console.log(`  TEETH/overlap: flipped flag caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 

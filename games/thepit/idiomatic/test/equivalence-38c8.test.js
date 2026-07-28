@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_38c8 (ROM 0x38c8, The Pit) — the per-frame gate for
+ * Memory-equivalence gate for advanceOrRebuildTwinActor (ROM 0x38c8, The Pit) — the per-frame gate for
  * the two-body actor: while the actor's coordinate (ACTOR_X, 0x810a) is in the high half
- * of the field it hands the frame to the cadence/move path (paceActorDescent); below the high
+ * of the field it hands the frame to the cadence/move path (paceActorCadence); below the high
  * half it rebuilds the actor at the start edge and re-stamps its eight-cell tile figure
  * (tiles 184..191, colour 151) into the tilemap + colour map.
  *
- * THE CONTRACT — OBSERVABLE RAM ONLY. The move arm tail-delegates to paceActorDescent, whose
- * idiomatic form (and its callees descendActorToRest -> stageActorSpriteRecords) is a plain JS call
+ * THE CONTRACT — OBSERVABLE RAM ONLY. The move arm tail-delegates to paceActorCadence, whose
+ * idiomatic form (and its callees easeActorToRest -> stageActorSpriteRecords) is a plain JS call
  * chain with no Z80 stack frame: it no longer marches SP, sets pc, or leaves the oracle's
  * residual value registers. So pc, SP and the value registers diverge from the oracle by
  * construction and are EXCLUDED — the gate compares the full RAM dump (work + colour +
@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_38c8 as oracle } from "../../translated/loc_38c8.js";
-import { loc_38c8 } from "../loc_38c8.js";
+import { advanceOrRebuildTwinActor } from "../advanceOrRebuildTwinActor.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ACTOR_X, ACTOR_TIMER } from "../ram.js";
@@ -92,7 +92,7 @@ function observableDiff(a, b) {
 
 // -- 1. WIRING: first natural dispatch (the rebuild arm) ------------------------
 
-test("WIRING: loc_38c8 == oracle on the first natural attract dispatch (observable RAM)", () => {
+test("WIRING: advanceOrRebuildTwinActor == oracle on the first natural attract dispatch (observable RAM)", () => {
   const [entry] = captureEntries(1200, 1, 1);
   assert.ok(entry, `expected 0x${TARGET.toString(16)} to dispatch during attract`);
   assert.ok(entry.mem.read8(ACTOR_X) < 128, "the first dispatch should still hold the boot coordinate (rebuild arm)");
@@ -100,7 +100,7 @@ test("WIRING: loc_38c8 == oracle on the first natural attract dispatch (observab
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_38c8(b);
+  advanceOrRebuildTwinActor(b);
   const diff = observableDiff(a, b);
   assert.equal(diff, null, diff && `gate reported a RAM diff on the first dispatch: ${diff.msg}`);
   console.log("  WIRING: captured 0x38c8, ran oracle vs idiomatic through the rebuild arm -> RAM EQUAL");
@@ -108,7 +108,7 @@ test("WIRING: loc_38c8 == oracle on the first natural attract dispatch (observab
 
 // -- 2. EQUAL on a spread of real captured attract dispatches -------------------
 
-test("EQUAL: loc_38c8 == oracle on real attract dispatches (full RAM dump)", () => {
+test("EQUAL: advanceOrRebuildTwinActor == oracle on real attract dispatches (full RAM dump)", () => {
   const entries = captureEntries(3000, 1, 400);
   assert.ok(entries.length >= 20, `expected many captured dispatches, got ${entries.length}`);
 
@@ -120,7 +120,7 @@ test("EQUAL: loc_38c8 == oracle on real attract dispatches (full RAM dump)", () 
     const a = cap.clone();
     const b = cap.clone();
     oracle(a);
-    loc_38c8(b);
+    advanceOrRebuildTwinActor(b);
     const diff = observableDiff(a, b);
     assert.equal(diff, null, diff && `mismatch on a real dispatch (ACTOR_X=${cap.mem.read8(ACTOR_X)}): ${diff.msg}`);
   }
@@ -130,7 +130,7 @@ test("EQUAL: loc_38c8 == oracle on real attract dispatches (full RAM dump)", () 
   const rebuildEntry = entries.find((e) => e.mem.read8(ACTOR_X) < 128);
   assert.ok(rebuildEntry, "expected at least one rebuild-arm dispatch in attract");
   const r = rebuildEntry.clone();
-  loc_38c8(r);
+  advanceOrRebuildTwinActor(r);
   assert.equal(r.mem.read8(ACTOR_X), 240, "rebuild must park the coordinate at the start edge");
   assert.equal(r.mem.read8(ACTOR_TIMER), 1, "rebuild must arm the cadence timer");
   assert.equal(r.mem.read8(TOP_LEFT_CELL), 184, "rebuild must stamp the figure's first tile");
@@ -155,7 +155,7 @@ test("EXHAUSTIVE: over all 256 coordinate values the full RAM dump agrees with t
     a.mem.write8(ACTOR_X, x);
     b.mem.write8(ACTOR_X, x);
     oracle(a);
-    loc_38c8(b);
+    advanceOrRebuildTwinActor(b);
     const diff = observableDiff(a, b);
     assert.equal(diff, null, diff && `ACTOR_X=${x}: ${diff.msg}`);
 
@@ -174,19 +174,19 @@ test("EXHAUSTIVE: over all 256 coordinate values the full RAM dump agrees with t
 /** Broken twin A: on the move arm, drop the delegation (the cadence path never runs). */
 function twinDropsMove(m) {
   if (m.mem.read8(ACTOR_X) >= 128) return; // BUG: should hand off to the move path
-  return loc_38c8(m); // rebuild arm is unaffected
+  return advanceOrRebuildTwinActor(m); // rebuild arm is unaffected
 }
 
 /** Broken twin B: rebuild, but park the coordinate at the wrong edge. */
 function twinWrongCoordinate(m) {
-  loc_38c8(m);
+  advanceOrRebuildTwinActor(m);
   if (m.mem.read8(ACTOR_X) === 240) m.mem.write8(ACTOR_X, 200); // BUG: wrong start edge
 }
 
 /** Broken twin C: rebuild, but stamp the wrong tile into the figure's first cell. */
 function twinWrongTile(m) {
   const wasRebuild = m.mem.read8(ACTOR_X) < 128;
-  loc_38c8(m);
+  advanceOrRebuildTwinActor(m);
   if (wasRebuild) m.mem.write8(TOP_LEFT_CELL, 200); // BUG: wrong tile code (oracle stamps 184)
 }
 

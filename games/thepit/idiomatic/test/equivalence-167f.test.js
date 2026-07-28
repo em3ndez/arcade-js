@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_167f (ROM 0x167f) — advance the tracked object one step
+ * Memory-equivalence gate for stepObjectRowUnflipped (ROM 0x167f) — advance the tracked object one step
  * along the row axis: derive its tile row and route on it, firing the dig one-shot at the
  * trigger row.
  *
  * Given the caller's position offset (register live-in, surfaced as `offset`), it either
  * defers the whole move (overlap flag set) to the record builder stageObjectSpriteRecord,
  * or pre-loads the object's sprite code (SPRITE_CODE), derives the tile row (OBJ_TILE_ROW)
- * and hands the step to the horizontal-step router loc_16b9 — except at the trigger row
+ * and hands the step to the horizontal-step router locateActorCellCheckGoal — except at the trigger row
  * with the feature latch pending, where it consumes the latch (FEATURE_TILE_LATCH), clears
  * the pending dig spawn (SPAWN_STATE), arms the dig object's phase (DIG_OBJ_STATE) and
  * builds its record via stageDigObjectSpriteRecord. All three callees are already idiomatic,
- * so loc_167f calls them directly (the row is passed to loc_16b9 as an honest arg; nothing
+ * so stepObjectRowUnflipped calls them directly (the row is passed to locateActorCellCheckGoal as an honest arg; nothing
  * is marshalled through registers). Its declared LIVE-OUT is MEMORY-ONLY.
  *
- * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE loc_167f, whose tail-jumps
+ * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE stepObjectRowUnflipped, whose tail-jumps
  * thread through the Z80 stack (m.call, plus register saves in the deeper still-oracle
  * terrain/background handlers), against the stack-free idiomatic handoff chain. Any dead
  * bytes the oracle parks just below the entry stack pointer (The Pit's stack is real diffed
@@ -25,7 +25,7 @@
  * flags / pc / SP are excluded (the honest-signature contract); the offset live-in defaults
  * to the register so a no-arg call reproduces the oracle exactly.
  *
- * Attract dispatches loc_167f during the demo (the row-axis move arm), always reaching the
+ * Attract dispatches stepObjectRowUnflipped during the demo (the row-axis move arm), always reaching the
  * common step, so real captured dispatches drive that arm; CRAFTED entries drive the arms
  * the demo never produces: the deferred arm (overlap flag set), the trigger row with the
  * feature latch clear, and the dig one-shot (trigger row + feature latch pending).
@@ -57,7 +57,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_167f as oracle } from "../../translated/loc_167f.js";
-import { loc_167f as idiomatic } from "../loc_167f.js";
+import { stepObjectRowUnflipped as idiomatic } from "../stepObjectRowUnflipped.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import { OBJ_X, OBJ_TILE_ROW, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE } from "../ram.js";
@@ -71,7 +71,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x167f;
 const STACK_SCRATCH = 64; // dead bytes the oracle's stack-threaded tails may park below entry SP
-const DEFER_FLAG = 0x807f; // overlap flag: when set, loc_167f defers the move to the record builder
+const DEFER_FLAG = 0x807f; // overlap flag: when set, stepObjectRowUnflipped defers the move to the record builder
 const TRIGGER_X = 0xb5; // an OBJ_X that, with offset 0, lands the tile row exactly on the trigger row 7
 const DIG_TARGET_STATE = 9; // the dig phase the one-shot arms
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -125,7 +125,7 @@ function stateDiff(entry, fn) {
   return stateDiffOutsideStack(a, b, sp);
 }
 
-/** The tile row loc_167f derives for an entry: bias the position by the offset + 11, wrap to a
+/** The tile row stepObjectRowUnflipped derives for an entry: bias the position by the offset + 11, wrap to a
  *  byte, then count rows up from the bottom of the map (one per 8 pixels). */
 function expectedRow(entry) {
   return 31 - (u8(entry.mem.read8(OBJ_X) + entry.regs.e + 11) >> 3);
@@ -157,7 +157,7 @@ test("IDENTITY: the harness reaches 0x167f in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_167f leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: stepObjectRowUnflipped leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(500, 4000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
   for (const cap of caps) {
@@ -169,7 +169,7 @@ test("EQUAL: loc_167f leaves the same state as the oracle over every real attrac
 
 // -- 2. NON-VACUOUS: the derived tile row is really published ----------------
 // (The sprite-code pre-load is a transient the downstream router overwrites before the
-//  routine returns; the derived tile row is loc_167f's durable observable output.)
+//  routine returns; the derived tile row is stepObjectRowUnflipped's durable observable output.)
 
 test("NON-VACUOUS: a real dispatch overwrites a sentinel tile row with the derived row", () => {
   const caps = captureDispatches(50, 4000);

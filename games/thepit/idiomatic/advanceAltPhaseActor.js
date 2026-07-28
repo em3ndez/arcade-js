@@ -18,8 +18,8 @@
  *      idles: if the hold timer is still running it just waits, otherwise it re-arms the
  *      120-frame hold and resets the tile to its idle frame.
  *
- * A sibling of loc_3748 / descendActorToRest in the object-movement family; the exact object this
- * drives (which enemy / the UFO) is not yet pinned, so the name stays neutral rather than
+ * A sibling of advanceTwoSpriteActor / easeActorToRest in the object-movement family; the exact object this
+ * drives is not yet pinned, so the name stays neutral rather than
  * assert a role above the evidence.
  *
  * Every non-idle exit rebuilds the two sprite records via stageActorSpriteRecords (a tail

@@ -20,7 +20,7 @@
  * window (dead scratch — overwritten before anything reads it).
  *
  * REACHABILITY. 0x4b46 is dispatched through the registry during cold boot: the 0xC0 door
- * (loc_4b3c) sets the byte and tail-calls it. The capture hook fires there, so the real
+ * (setupBoardModeC0) sets the byte and tail-calls it. The capture hook fires there, so the real
  * entry is genuine, mid-boot state.
  *
  * Checks:

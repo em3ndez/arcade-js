@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1704 (ROM 0x1704) — resolve a moving actor's horizontal step
+ * Memory-equivalence gate for resolveActorTerrainStep (ROM 0x1704) — resolve a moving actor's horizontal step
  * against the terrain it is entering: collect a loot tile, hold against a wall, bump-react on a
  * blocked diagonal, or walk on.
  *
  * Given the actor's tile-cell pointer (register live-in, surfaced as tilePtr) and its move
  * direction (moveDir), it writes the whole outcome of the step to work RAM and then hands off to
  * either walkActor (walk on) or stageObjectSpriteRecord (hold / rebuild in place) — both already
- * idiomatic, so loc_1704 calls them directly; no register hand-off survives. Its declared
+ * idiomatic, so resolveActorTerrainStep calls them directly; no register hand-off survives. Its declared
  * LIVE-OUT is MEMORY-ONLY: the pickup counters (0x8081/0x8082), the score/digits/sound on a
  * collect, the blanked cell, the bump-reaction state/timer/sprite (0x80a2/0x80a4/0x8069), the
  * walk position/frame, and the display record.
  *
- * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE loc_1704, whose tail-jumps and
+ * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE resolveActorTerrainStep, whose tail-jumps and
  * loot-award calls thread through the stack (push16 / m.call / the sound + score sub-calls save
  * register pairs), against the stack-free idiomatic handler chain. The two therefore leave
  * different dead bytes just below the entry stack pointer (The Pit's stack is real diffed work
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1704 as oracle } from "../../translated/loc_1704.js";
-import { loc_1704 as idiomatic } from "../loc_1704.js";
+import { resolveActorTerrainStep as idiomatic } from "../resolveActorTerrainStep.js";
 import { makeMachineFactory } from "../../machine.js";
 import { OBJ_X, SPRITE_CODE, REACTION_STATE, ACTOR_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
@@ -152,7 +152,7 @@ test("IDENTITY: the harness reaches 0x1704 in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_1704 leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: resolveActorTerrainStep leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(500, 4000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
 

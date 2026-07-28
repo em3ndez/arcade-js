@@ -19,7 +19,7 @@
  * the Z80 trace).
  *
  * WHICH ARM EACH CHECK EXERCISES. startNextDigSpawn is dispatched during attract (reached from
- * loc_29ad's "no spawn active -> go spawn one" path), and in every real dispatch the
+ * advanceDigCarveObject's "no spawn active -> go spawn one" path), and in every real dispatch the
  * queue is populated, so real captures cover the OCCUPIED path (loc_2c04). The empty
  * path is never reached naturally, so it is covered by a CRAFTED entry: a real captured
  * state with the whole queue zeroed identically on both sides.
@@ -163,8 +163,11 @@ test("EQUAL (crafted empty queue): both clear the spawn-active flag and hand off
   oracle(a);
   idiomatic(b);
 
-  // The empty arm never touches the stack differently — compare full RAM.
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  // The empty arm hands off (0x2f71 -> the object movers) into the shared actor-update tail
+  // (advanceObjectMover2 -> advanceTwoSpriteActor), a dissolved DIRECT call that runs stack-free
+  // while the oracle marshals the same tail through the Z80 stack; those dead stack bytes differ, so
+  // exclude the dead stack-scratch window and compare the rest.
+  const d = ramDiffOutsideStack(a, b, entry.regs.sp);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   assert.equal(b.mem.read8(SPAWN_STATE), 0, "the empty path should clear the spawn-active flag to 0");
   console.log("  EQUAL/empty: whole queue zeroed, both clear the flag and hand off, byte-for-byte identical");

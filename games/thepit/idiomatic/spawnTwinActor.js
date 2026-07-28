@@ -4,7 +4,7 @@
  * due: paint its tile+colour figure, seed both object records, and stage its sprite
  * records for the move/animate driver.  ROM 0x3984.
  *
- * A sibling of loc_37cf/loc_38c8: the same conditional one-shot spawn shape. It
+ * A sibling of loc_37cf/advanceOrRebuildTwinActor: the same conditional one-shot spawn shape. It
  * only fires when this actor's slot is flagged as pending — a nonzero request byte
  * at ACTOR_Y. When nothing is pending it returns immediately, touching nothing.
  * When a spawn IS pending it:

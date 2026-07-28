@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_29ad (ROM 0x29ad, The Pit) — the per-frame driver for
+ * Memory-equivalence gate for advanceDigCarveObject (ROM 0x29ad, The Pit) — the per-frame driver for
  * the dig/carve object. It clears the three overlap-seam flags, gates a new spawn or a
  * capture hand-off when the tracked object is aligned on a feature cell, then dispatches
  * on the spawn counter and runs the carve countdown: stepping the dig position + digging
@@ -48,11 +48,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_29ad as oracle } from "../../translated/loc_29ad.js";
-import { loc_29ad as idiomatic } from "../loc_29ad.js";
+import { advanceDigCarveObject as idiomatic } from "../advanceDigCarveObject.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import {
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
   FEATURE_TILE_LATCH,
   SPAWN_STATE,
   DIG_OBJ_STATE,
@@ -181,7 +181,7 @@ test("HARNESS: a real 0x29ad entry is captured and the oracle run is determinist
 
 // -- 1. EQUAL on the real captured entry (background arm) ----------------------
 
-test("EQUAL (real entry): loc_29ad == oracle over RAM (minus stack) on the natural inputs", () => {
+test("EQUAL (real entry): advanceDigCarveObject == oracle over RAM (minus stack) on the natural inputs", () => {
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x29ad entry");
   const { ram } = compare(entry, {}, idiomatic);
@@ -202,7 +202,7 @@ test("EQUAL (every arm): spawn-start / capture / spawn==2 overlap / animation / 
     { name: "gate: capture hand-off", s: { featLatch: 1, tileLatch: 1, spawn: 1, digState: 9 } },
     // Feature-aligned gate: spawn active + mid-carve -> falls through to the carve timer.
     { name: "gate: fall-through (mid-carve)", s: { featLatch: 1, tileLatch: 1, spawn: 1, digState: 48, timer: 5, arm: 1, subtype: 0 } },
-    // spawn==2 staged overlap, timer=1+armed -> completeCarveColumn keeps CLIMB_GATE.
+    // spawn==2 staged overlap, timer=1+armed -> completeCarveColumn keeps DIG_OVERLAP_HOLD.
     { name: "spawn==2 overlap=1 -> complete", s: { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 44, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 } },
     { name: "spawn==2 overlap=0 -> complete", s: { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 200, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 } },
     // Timer running: the three animation sub-phases.
@@ -219,13 +219,13 @@ test("EQUAL (every arm): spawn-start / capture / spawn==2 overlap / animation / 
     assert.equal(ram, null, ram && `${name}: RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   }
 
-  // Positive: spawn==2 overlap survives to CLIMB_GATE on the completed-column path.
+  // Positive: spawn==2 overlap survives to DIG_OVERLAP_HOLD on the completed-column path.
   const c1 = seed(entry, { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 44, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 });
   idiomatic(c1);
-  assert.equal(c1.mem.read8(CLIMB_GATE), 1, "row-aligned, in-band staged box must set the overlap flag");
+  assert.equal(c1.mem.read8(DIG_OVERLAP_HOLD), 1, "row-aligned, in-band staged box must set the overlap flag");
   const c0 = seed(entry, { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 200, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 });
   idiomatic(c0);
-  assert.equal(c0.mem.read8(CLIMB_GATE), 0, "out-of-band staged box must leave the overlap flag clear");
+  assert.equal(c0.mem.read8(DIG_OVERLAP_HOLD), 0, "out-of-band staged box must leave the overlap flag clear");
 
   // Positive: arm-in-box capture snaps OBJ_X to the target's near edge and arms the object.
   const cap = seed(entry, { spawn: 1, timer: 0, arm: 0, subtype: 0, objX: 101, objY: 112, targetX: 100, targetY: 100 });
@@ -275,7 +275,7 @@ test("EQUAL (carve classify sweep): every tile-in-cell 0..255 across sub-columns
  */
 function twinWideDiggableBand(m) {
   const { mem8, mem16 } = m;
-  mem8[CLIMB_GATE] = 0;
+  mem8[DIG_OVERLAP_HOLD] = 0;
   mem8[SEAM_RIGHT_FLAG] = 0;
   mem8[SEAM_LEFT_FLAG] = 0;
   // spawn active, timer==0, armed -> straight to the carve (objY=0 keeps the probe above).
@@ -327,11 +327,11 @@ test("TEETH (dropped live-outs): the overlap gate and the carve sprite are each 
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x29ad entry for the teeth check");
 
-  // Background arm leaves CLIMB_GATE = 0; a twin that stamps it is caught at CLIMB_GATE.
+  // Background arm leaves DIG_OVERLAP_HOLD = 0; a twin that stamps it is caught at DIG_OVERLAP_HOLD.
   const bg = { featLatch: 0, spawn: 0, objX: 40, objY: 60 };
-  const { ram: gateRam } = compare(entry, bg, (m) => { idiomatic(m); m.mem.write8(CLIMB_GATE, 0x77); });
+  const { ram: gateRam } = compare(entry, bg, (m) => { idiomatic(m); m.mem.write8(DIG_OVERLAP_HOLD, 0x77); });
   assert.ok(gateRam, "gate FAILED to catch a stamped overlap gate on the background arm");
-  assert.equal(gateRam.addr, CLIMB_GATE, `teeth caught ${hx(gateRam.addr)} (expected ${hx(CLIMB_GATE)})`);
+  assert.equal(gateRam.addr, DIG_OVERLAP_HOLD, `teeth caught ${hx(gateRam.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
 
   // Carve path stamps the sprite id into the carved cell; corrupting it is caught there.
   const carve = { spawn: 1, timer: 0, arm: 1, subtype: 0, objX: 50, objY: 0, targetX: 100, targetY: 90, cellTile: WALL_TILE };
@@ -339,5 +339,5 @@ test("TEETH (dropped live-outs): the overlap gate and the carve sprite are each 
   const { ram: cellRam } = compare(entry, carve, (m) => { idiomatic(m); m.mem.write8(cellPtr, m.mem.read8(cellPtr) ^ 0xff); });
   assert.ok(cellRam, "gate FAILED to catch a corrupted carved cell");
   assert.equal(cellRam.addr, cellPtr, `teeth caught ${hx(cellRam.addr)} (expected the carved cell ${hx(cellPtr)})`);
-  console.log(`  TEETH/live-outs: overlap gate caught at ${hx(CLIMB_GATE)}, carved cell at ${hx(cellPtr)}`);
+  console.log(`  TEETH/live-outs: overlap gate caught at ${hx(DIG_OVERLAP_HOLD)}, carved cell at ${hx(cellPtr)}`);
 });

@@ -30,7 +30,7 @@
  *      idiomatic layer does not preserve the register/pc trace; the whole-machine pixel
  *      gate backstops it, and this contract survives a callee later being dissolved).
  *
- * showSetupScreen is reached at round setup (the reset epilogue loc_03ac and the per-player
+ * showSetupScreen is reached at round setup (the reset epilogue resetStateAndShowSetup and the per-player
  * teardown loc_0371), NOT during idle attract, so the real dispatch is captured from a
  * boot run. The real dispatch runs it with 0x804c == 1 and 0x804d == 2 (the plural arm
  * for both, and the singular patch, since 0x804c == 1); a crafted sweep pokes those two

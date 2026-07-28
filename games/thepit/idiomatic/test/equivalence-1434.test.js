@@ -7,7 +7,7 @@
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The routine writes no RAM of its own — every effect is
  * produced by the delegated handler. The idiomatic version calls the already-decompiled
- * handlers (loc_144c, advanceObjectWalkFrame, walkActor) DIRECTLY instead of tail-jumping
+ * handlers (routeIdleObjectByMoveCommand, advanceObjectWalkFrame, walkActor) DIRECTLY instead of tail-jumping
  * through the Z80 registry; the oracle reaches them by tail-jump. A tail-jump only READS
  * the return address off the stack, so no stack-scratch byte ever differs and RAM is diffed
  * in full with no exclusion window. pc, SP and the dead value registers are excluded (the

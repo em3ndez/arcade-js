@@ -23,7 +23,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-022d.test.js.
  * GATE:     crafted-entry — a credit is never banked in a plain attract run, so this is
  *           never dispatched; the gate runs it from a real captured attract state (a
- *           sound-request entry). It falls into the now-idiomatic round loop (loc_0278),
+ *           sound-request entry). It falls into the now-idiomatic round loop (dockManAndDispatchRoundBoundary),
  *           so both sides run the real round-boundary chain and converge at the true
  *           oracle leaves (0x031a setup / 0x01f9 reset), stubbed identically on both
  *           sides; the gate compares RAM outside the dead Z80 stack scratch below the
@@ -38,7 +38,7 @@
  */
 
 import { VARIANT, LEVEL, GAME_MODE, GAME_STATE2, MAIN_LOOP_DELAY, LOOP_DELAY_BASE, MEN_LEFT, STARTING_MEN } from "./ram.js";
-import { loc_0278 } from "./loc_0278.js";
+import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 import { enableNmi } from "./enableNmi.js";
 import { enableSound } from "./enableSound.js";
 import { blankScreen } from "./blankScreen.js";
@@ -83,7 +83,7 @@ export function startGame(m) {
   loadPlayerState(m);
   mem8[MEN_LEFT] = mem8[MEN_LEFT] + 1;
 
-  // Fall straight into the main round loop (loc_0278, now idiomatic); it never returns
+  // Fall straight into the main round loop (dockManAndDispatchRoundBoundary, now idiomatic); it never returns
   // here — its own successor chain carries control on into the game.
-  return loc_0278(m);
+  return dockManAndDispatchRoundBoundary(m);
 }

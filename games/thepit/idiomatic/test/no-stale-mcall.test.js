@@ -33,14 +33,14 @@ const IDIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 // Keyed `<caller-file>` -> Set of allowed target addresses (numbers). Anything NOT listed
 // here that m.call()s a decompiled callee is still a genuine stale-call leak.
 const FOREVER_LOOP_BOUNDARIES = new Map([
-  ["loc_031a.js", new Set([0x0348])], // -> mainLoop
+  ["initRoundAndEnterMainLoop.js", new Set([0x0348])], // -> mainLoop
   ["enterPlayMode.js", new Set([0x031a])], // -> round init (falls into mainLoop)
   ["advanceToNextLevel.js", new Set([0x031a])], // -> round init (falls into mainLoop)
-  ["loc_02ca.js", new Set([0x031a])], // -> round init (falls into mainLoop)
-  ["loc_02e1.js", new Set([0x031a])], // -> round init (falls into mainLoop)
-  ["loc_03ac.js", new Set([0x01f9])], // -> reset/entry handler (re-enters play, forever)
+  ["setUpRoundAndHoldIntro.js", new Set([0x031a])], // -> round init (falls into mainLoop)
+  ["holdRoundIntroLoop.js", new Set([0x031a])], // -> round init (falls into mainLoop)
+  ["resetStateAndShowSetup.js", new Set([0x01f9])], // -> reset/entry handler (re-enters play, forever)
   ["submitHighScoresAndReset.js", new Set([0x01f9])], // -> reset/entry handler (forever)
-  ["loc_01f9.js", new Set([0x021c])], // -> credit-screen hold (displays forever)
+  ["rearmMachineAndBranchOnCredits.js", new Set([0x021c])], // -> credit-screen hold (displays forever)
 ]);
 
 test("no idiomatic routine m.call()s an already-decompiled callee (dissolve invariant)", () => {
@@ -57,12 +57,27 @@ test("no idiomatic routine m.call()s an already-decompiled callee (dissolve inva
   const leaks = [];
   for (const f of files) {
     const src = readFileSync(join(IDIR, f), "utf8");
-    for (const m of src.matchAll(/m\.call\(\s*0x([0-9a-f]{2,4})/g)) {
-      const addr = parseInt(m[1], 16);
+    // Resolve file-local `const NAME = 0x....;` aliases FIRST, so a const-aliased m.call target
+    // (e.g. `const ACTOR_UPDATE = 0x3748; ... m.call(ACTOR_UPDATE)`) is caught, not only a
+    // literal-hex m.call. Without this, the "const-alias evasion" hides a stale call to an
+    // already-decompiled callee: the regex never matches the symbolic target, so the guard
+    // passes while the leak stands (both a stale m.call and a direct call are memory-equivalent,
+    // so neither the per-routine review nor the equivalence gate can see it either).
+    const constAlias = new Map();
+    for (const c of src.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*=\s*0x([0-9a-f]{2,4})\b/gi)) {
+      constAlias.set(c[1], parseInt(c[2], 16));
+    }
+    // Match m.call(<first-arg>) where the arg is a literal hex address OR an identifier; resolve
+    // the identifier through the const-alias map.
+    for (const mm of src.matchAll(/m\.call\(\s*(0x[0-9a-f]{2,4}|[A-Za-z_$][\w$]*)/gi)) {
+      const tok = mm[1];
+      const addr = /^0x/i.test(tok) ? parseInt(tok, 16) : constAlias.get(tok);
+      if (addr === undefined) continue; // unresolved identifier: cannot prove it targets a decompiled callee
       if (!decompiled.has(addr)) continue;
       // Skip documented never-returning forever-loop boundaries (see FOREVER_LOOP_BOUNDARIES).
       if (FOREVER_LOOP_BOUNDARIES.get(f)?.has(addr)) continue;
-      leaks.push(`${f} -> 0x${addr.toString(16)} (decompiled: equivalence-${addr.toString(16)}.test.js exists)`);
+      const via = /^0x/i.test(tok) ? "" : ` (via const ${tok})`;
+      leaks.push(`${f} -> 0x${addr.toString(16)}${via} (decompiled: equivalence-${addr.toString(16)}.test.js exists)`);
     }
   }
   assert.equal(

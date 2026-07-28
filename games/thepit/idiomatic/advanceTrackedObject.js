@@ -3,14 +3,14 @@
  * advanceTrackedObject — route the tracked object to its per-frame handler by its state gates.  ROM 0x13de.
  *
  * The body of the per-frame object/state dispatcher, entered each frame from the countdown
- * gate (loc_13c9) once the object's state timer is idle. It holds no logic of its own: it reads
+ * gate (dispatchObjectFrameByStateTimer) once the object's state timer is idle. It holds no logic of its own: it reads
  * a chain of the tracked object's control bytes and hands the frame to exactly one handler.
  *
  * The chain, in order — each gate either acts or falls through to the next:
  *   - object mid-work this frame  -> stage the object's deferral record and stop
  *   - no live object              -> nothing to advance this frame
  *   - a spawn sub-phase running    -> defer; let the spawn finish first
- *   - carve state armed (== 1)     -> the fixed-frame prologue (loc_186a) + shared tile tail
+ *   - carve state armed (== 1)     -> the fixed-frame prologue (stampFixedFrameAndResolveTile) + shared tile tail
  *   - carve state past armed (> 1) -> stage the deferral record
  *   - motion marker "negative"     -> step the moving object's walk animation
  *   - motion marker positive       -> run the player walk step
@@ -21,7 +21,7 @@
  *
  * Before dispatching it loads the object's position-bias pair (the word at 0x806c) into the D
  * and E registers, the way the countdown gate's oracle does. The per-frame handlers read that
- * pair straight out of the registers: the shared tile tail (loc_186a -> resolveObjectTile) takes the
+ * pair straight out of the registers: the shared tile tail (stampFixedFrameAndResolveTile -> resolveObjectTile) takes the
  * horizontal column bias from D, and the still-oracle position handlers reached below (via the
  * at-rest router) take both bytes as the object's move deltas — so this is a genuine register
  * boundary that has to survive. The direct tile branch is additionally handed the column bias as
@@ -54,7 +54,7 @@ import {
   REVEAL_CURSOR,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
-import { loc_186a } from "./loc_186a.js";
+import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { walkActor } from "./walkActor.js";
 import { stepObjectFromControl } from "./stepObjectFromControl.js";
@@ -78,7 +78,7 @@ export function advanceTrackedObject(m) {
   if (mem8[SPAWN_PHASE] !== 0) return;
 
   // Load the object's position-bias pair into D and E the way the oracle does: the tile-cell
-  // tail (loc_186a -> resolveObjectTile) reads the column bias from D, and the still-oracle position
+  // tail (stampFixedFrameAndResolveTile -> resolveObjectTile) reads the column bias from D, and the still-oracle position
   // handlers reached below read both bytes as the object's move deltas.
   const columnBias = mem8[COLUMN_BIAS];
   regs.e = mem8[BIAS_LO];
@@ -87,7 +87,7 @@ export function advanceTrackedObject(m) {
   // Carve/arm state: armed runs the fixed-frame prologue plus the shared tile tail; any state
   // past armed stages the deferral record instead.
   const armState = mem8[DIG_OBJ_ARM_STATE];
-  if (armState === 1) return loc_186a(m);
+  if (armState === 1) return stampFixedFrameAndResolveTile(m);
   if (armState !== 0) return stageObjectSpriteRecord(m);
 
   // Motion marker: a "negative" marker (high bit set) steps the moving object's walk animation;

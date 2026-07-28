@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4b40 (ROM 0x4b40) — the 0x90 board-mode door.
+ * Memory-equivalence gate for setupBoardMode90 (ROM 0x4b40) — the 0x90 board-mode door.
  *
- * loc_4b40 stows the board-mode / entry-select byte 0x90 at BOARD_MODE and rebuilds
+ * setupBoardMode90 stows the board-mode / entry-select byte 0x90 at BOARD_MODE and rebuilds
  * the screen for that board: it clears sprite/attribute RAM, repaints the whole
  * tilemap, flat-fills colour RAM (using that byte as the screen-wide colour), and
  * wipes the sprite-record staging block. Its declared live-out is MEMORY-ONLY — every
@@ -15,7 +15,7 @@
  * directly. Per the crafted-entry method the gate instead runs the routine from a REAL
  * captured sibling state: blankScreen (the 0x00 door) IS reached in attract and shares the
  * identical call convention and body, so its entry is a faithful state for the 0x90
- * door too. Crucially loc_4b40 never calls blankScreen, so cloning that entry introduces no
+ * door too. Crucially setupBoardMode90 never calls blankScreen, so cloning that entry introduces no
  * registry recursion. The one input that shapes the output — the board-mode byte — is
  * fixed 0x90 by the routine itself.
  *
@@ -31,9 +31,9 @@
  *
  * Five checks:
  *   0. HARNESS — capture a real blankScreen sibling entry and confirm the oracle run of
- *      loc_4b40 is deterministic (oracle vs oracle -> identical whole state + pc).
+ *      setupBoardMode90 is deterministic (oracle vs oracle -> identical whole state + pc).
  *      Proves the capture/clone/diff plumbing reaches a genuine setup entry.
- *   1. EQUAL (crafted sibling entry) — loc_4b40 == oracle over RAM (outside the stack
+ *   1. EQUAL (crafted sibling entry) — setupBoardMode90 == oracle over RAM (outside the stack
  *      scratch) + pc + SP, and the setup actually landed: BOARD_MODE = 0x90, colour RAM
  *      all 0x90, tilemap all the fill code, sprite/attribute block and staging block
  *      zeroed.
@@ -52,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4b40 as oracle } from "../../translated/loc_4b40.js";
-import { loc_4b40 as idiomatic } from "../loc_4b40.js";
+import { setupBoardMode90 as idiomatic } from "../setupBoardMode90.js";
 import { loc_4b44 as siblingDoor } from "../../translated/loc_4b44.js";
 import { clearSpriteAndAttributeRam } from "../clearSpriteAndAttributeRam.js";
 import { fillVideoRam } from "../fillVideoRam.js";
@@ -178,7 +178,7 @@ function twinMissTilemap(m) {
 
 // -- 0. HARNESS (reachability + determinism) ---------------------------------
 
-test("HARNESS: a real blankScreen sibling entry is captured and the oracle run of loc_4b40 is deterministic", () => {
+test("HARNESS: a real blankScreen sibling entry is captured and the oracle run of setupBoardMode90 is deterministic", () => {
   const entry = captureSiblingEntry(1500);
   assert.ok(entry, "expected the sibling 0x00 door 0x4b44 to be dispatched during attract");
   assert.equal(entry.mem.read8(BOARD_MODE), 0x00, "the sibling entry should carry the 0x00 door's board mode (non-vacuous state)");
@@ -198,7 +198,7 @@ test("HARNESS: a real blankScreen sibling entry is captured and the oracle run o
 
 // -- 1. EQUAL (crafted sibling entry) + 2. NON-VACUOUS ------------------------
 
-test("EQUAL (crafted sibling entry): loc_4b40 == oracle over RAM + pc + SP, and the setup landed", () => {
+test("EQUAL (crafted sibling entry): setupBoardMode90 == oracle over RAM + pc + SP, and the setup landed", () => {
   const entry = captureSiblingEntry(1500);
   assert.ok(entry, "need a captured 0x4b44 entry");
 

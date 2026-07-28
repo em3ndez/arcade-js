@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3410 (ROM 0x3410) — the 32-byte table-row
+ * Memory-equivalence gate for nextTileInProbeRow (ROM 0x3410) — the 32-byte table-row
  * search the object-movement dispatcher uses as a "can the object step this way?"
  * test. It reads memory (the row index at 0x808d, the display-cell pointer at
  * 0x8089, the ROM table at 0x35fe) and writes NO work RAM; its only result the
@@ -14,7 +14,7 @@
  *
  * Jobs:
  *   1. EQUAL (captured dispatches) — hook 0x3410 in a real attract run; on every
- *      true dispatch, oracle vs loc_3410 leave identical RAM + HL + Z. Attract
+ *      true dispatch, oracle vs nextTileInProbeRow leave identical RAM + HL + Z. Attract
  *      naturally exercises BOTH arms (found and not-found), which is asserted.
  *   2. PURITY (captured) — the oracle writes no work RAM on any captured state,
  *      which is what licenses the memory-only-except-the-flag contract.
@@ -33,7 +33,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3410 as oracle } from "../../translated/loc_3410.js";
-import { loc_3410 } from "../loc_3410.js";
+import { nextTileInProbeRow } from "../nextTileInProbeRow.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { F_Z } from "../../../../core/cpu/z80.js";
@@ -103,7 +103,7 @@ test("EQUAL + PURITY: idiomatic == oracle on every real dispatch (RAM+HL+Z), ora
 
     // EQUAL: idiomatic reproduces the oracle on the declared contract.
     const a = runOn(cap, oracle);
-    const b = runOn(cap, loc_3410);
+    const b = runOn(cap, nextTileInProbeRow);
     const diff = contractDiff(a, b);
     assert.equal(diff, null, diff && `contract mismatch on a real dispatch: ${diff}`);
 
@@ -144,7 +144,7 @@ test("CRAFTED: a non-zero row index with a forced found & not-found key matches 
     entry.mem.write8(PTR + 1, key); // the neighbour byte the search keys on
 
     const a = runOn(entry, oracle);
-    const b = runOn(entry, loc_3410);
+    const b = runOn(entry, nextTileInProbeRow);
     const diff = contractDiff(a, b);
     assert.equal(diff, null, diff && `crafted ${label}: contract mismatch: ${diff}`);
     assert.equal((a.regs.f & F_Z) !== 0, wantZ, `crafted ${label}: expected Z=${wantZ}`);

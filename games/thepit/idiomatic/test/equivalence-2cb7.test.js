@@ -2,13 +2,13 @@
 /**
  * Memory-equivalence gate for captureTargetOnOverlap (ROM 0x2cb7) — the per-frame
  * handler for the timed dig target the tracked object is closing on. It clears the
- * shared overlap gate (CLIMB_GATE), advances the target's countdown (DIG_OBJ_TIMER),
+ * shared overlap gate (DIG_OVERLAP_HOLD), advances the target's countdown (DIG_OBJ_TIMER),
  * and on expiry — if the target is not already captured — tests whether the tracked
  * object (OBJ_X/OBJ_Y) sits in a small capture box near the target (TARGET_X/TARGET_Y).
  * Inside the box it snaps OBJ_X onto the target's near edge, raises the captured flag
  * (DIG_OBJ_ARM_STATE), plays the capture sound (requestSound20), and hands off to the
  * record builder (stageDigObjectSpriteRecord, 0x2bd3). Otherwise it delegates to one of
- * the reload / overlap-record / advance tails (stampGlyphColumn 0x2d6b, loc_2c91 0x2c91,
+ * the reload / overlap-record / advance tails (stampGlyphColumn 0x2d6b, flagObjectTargetOverlap 0x2c91,
  * advanceDigTarget 0x2d06).
  *
  * CONTRACT. The routine has NO register live-ins — every input is read from RAM — and
@@ -59,7 +59,7 @@ import { requestSound20 } from "../requestSound20.js";
 import { advanceDigTarget } from "../advanceDigTarget.js";
 import { stageDigObjectSpriteRecord } from "../stageDigObjectSpriteRecord.js";
 import {
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
   DIG_OBJ_TIMER,
   DIG_OBJ_ARM_STATE,
   OBJ_X,
@@ -129,7 +129,7 @@ function ramDiffExStack(a, b) {
 function seed(entry, s = {}) {
   const e = entry.clone();
   const w = (addr, v) => { if (v !== undefined) e.mem.write8(addr, v); };
-  w(CLIMB_GATE, s.gate);
+  w(DIG_OVERLAP_HOLD, s.gate);
   w(DIG_OBJ_TIMER, s.timer);
   w(DIG_OBJ_ARM_STATE, s.arm);
   w(OBJ_Y, s.objRow);
@@ -228,7 +228,7 @@ test("EQUAL (every path): reload / running / already-captured / window-miss / ca
   idiomatic(c);
   assert.equal(c.mem.read8(OBJ_X), 104, "capture must snap OBJ_X to the target's near edge (targetCol+4)");
   assert.equal(c.mem.read8(DIG_OBJ_ARM_STATE), 1, "capture must raise the captured flag");
-  assert.equal(c.mem.read8(CLIMB_GATE), 0, "the overlap gate must be cleared");
+  assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), 0, "the overlap gate must be cleared");
   assert.equal(c.mem.read8(SOUND_RING + head), SOUND_CAPTURE | 0x80, "capture sound must be queued (pending) in the ring");
   assert.equal(c.mem.read8(SOUND_HEAD), (head + 1) % 8, "sound ring write pointer must advance");
   console.log(`  EQUAL/paths: all ${cases.length} branches identical; capture snapped OBJ_X->104, flag=1, sound queued`);
@@ -280,7 +280,7 @@ test("EQUAL (window sweep): row axis + boundary column axis, incl. wraps, all ma
  *  that single edge so the diff is the bug, not an unrelated deviation. */
 function twinWideColumnBox(m) {
   const { mem8 } = m;
-  mem8[CLIMB_GATE] = 0;
+  mem8[DIG_OVERLAP_HOLD] = 0;
   const timer = mem8[DIG_OBJ_TIMER];
   if (timer === RELOAD_SENTINEL) return stampGlyphColumnUnused(m); // unreachable in the teeth inputs
   const ticked = timer - 1;
@@ -342,9 +342,9 @@ test("TEETH (captured flag + overlap gate): dropping either write is CAUGHT at i
   assert.equal(armRam.addr, DIG_OBJ_ARM_STATE, `teeth caught ${hx(armRam.addr)} (expected ${hx(DIG_OBJ_ARM_STATE)})`);
 
   // Twin drops the overlap-gate clear (leaves it at the seeded sentinel 0x77).
-  const { ram: gateRam } = compare(entry, capSpec, (m) => { idiomatic(m); m.mem.write8(CLIMB_GATE, 0x77); });
+  const { ram: gateRam } = compare(entry, capSpec, (m) => { idiomatic(m); m.mem.write8(DIG_OVERLAP_HOLD, 0x77); });
   assert.ok(gateRam, "gate FAILED to catch a dropped overlap-gate clear");
-  assert.equal(gateRam.addr, CLIMB_GATE, `teeth caught ${hx(gateRam.addr)} (expected ${hx(CLIMB_GATE)})`);
+  assert.equal(gateRam.addr, DIG_OVERLAP_HOLD, `teeth caught ${hx(gateRam.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
 
-  console.log(`  TEETH/live-outs: captured flag caught at ${hx(DIG_OBJ_ARM_STATE)}, overlap gate at ${hx(CLIMB_GATE)}`);
+  console.log(`  TEETH/live-outs: captured flag caught at ${hx(DIG_OBJ_ARM_STATE)}, overlap gate at ${hx(DIG_OVERLAP_HOLD)}`);
 });

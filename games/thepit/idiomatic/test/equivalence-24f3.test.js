@@ -7,10 +7,10 @@
  * the active reaction phase (one of four 8-pixel directions): sliding the object while its
  * timer ticks, and on expiry settling it, writing the resolved tiles into the actor's map
  * cell, and (except the 3rd phase) spawning the dug entity. Every path builds the object's
- * sprite record and tails into the dig-object driver loc_29ad.
+ * sprite record and tails into the dig-object driver advanceDigCarveObject.
  *
  * CONTRACT. The routine has NO register live-ins — every input is read from RAM — and every
- * hand-off is an idiomatic callee (spawnDigEntity, requestSound9/12, loc_29ad) that is
+ * hand-off is an idiomatic callee (spawnDigEntity, requestSound9/12, advanceDigCarveObject) that is
  * memory-equivalent to its oracle but returns via plain JS instead of the Z80 stack dance.
  * So the gate is a RAM-only diff via dumpState: pc/SP and value-registers are the dead Z80
  * trace and are NOT compared, and the dead stack-scratch window at the top of work RAM is
@@ -48,7 +48,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_24f3 as oracle } from "../../translated/loc_24f3.js";
 import { advanceReactionObject as idiomatic } from "../advanceReactionObject.js";
-import { loc_29ad } from "../loc_29ad.js";
+import { advanceDigCarveObject } from "../advanceDigCarveObject.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import {
@@ -339,7 +339,7 @@ function twinPhase1WrongMove(m) {
   mem8[REACTION_SPRITE_SLOT + 1] = mem8[REACTION_SPRITE_CODE];
   mem8[REACTION_SPRITE_SLOT + 2] = mem8[REACTION_ANIM];
   mem8[REACTION_SPRITE_SLOT + 3] = mem8[REACTION_OBJ_Y] + bias;
-  return loc_29ad(m);
+  return advanceDigCarveObject(m);
 }
 
 test("TEETH (wrong-way slide): a phase-1 twin sliding the object the wrong way is CAUGHT", () => {

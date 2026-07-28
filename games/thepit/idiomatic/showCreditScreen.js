@@ -4,7 +4,7 @@
  * the frame interrupt, run the blank-screen display setup, then hand off to the
  * fixed-screen painter that holds a static screen forever.  ROM 0x021c.
  *
- * Reached from the boot fork loc_01f9 when the credit count (CREDIT_COUNT) is nonzero
+ * Reached from the boot fork rearmMachineAndBranchOnCredits when the credit count (CREDIT_COUNT) is nonzero
  * (credits present). In order it:
  *   1. Arms the game-mode cell to 3.
  *   2. Resets the stack pointer to the top of work RAM — a hard restart that discards

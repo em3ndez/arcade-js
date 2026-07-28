@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_16b9 (ROM 0x16b9) — route a moving actor's horizontal step:
+ * Memory-equivalence gate for locateActorCellCheckGoal (ROM 0x16b9) — route a moving actor's horizontal step:
  * if it has reached the goal terminator tile, latch the goal crossing and walk it on; otherwise
  * resolve the terrain step it is entering.
  *
@@ -8,11 +8,11 @@
  * (surfaced as `spriteCode`), it locates the tilemap cell under the actor, publishes the tile
  * column (OBJ_TILE_COL) and the cell pointer (ACTOR_CELL_PTR), and either latches the goal
  * crossing (GOAL_TILE_LATCH + GOAL_CROSSING_LATCH) and hands off to advanceActorWalk, or hands
- * the step to the terrain-collision handler loc_1704. Both callees are already idiomatic, so
- * loc_16b9 calls them directly with honest args (cell pointer + biased column); no register
+ * the step to the terrain-collision handler resolveActorTerrainStep. Both callees are already idiomatic, so
+ * locateActorCellCheckGoal calls them directly with honest args (cell pointer + biased column); no register
  * hand-off survives. Its declared LIVE-OUT is MEMORY-ONLY.
  *
- * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE loc_16b9, whose tail-jumps
+ * THE STACK SCRATCH. The comparison runs the still-frozen ORACLE locateActorCellCheckGoal, whose tail-jumps
  * thread through the Z80 stack (m.call, and, on the terrain handler's collect paths, register
  * saves), against the stack-free idiomatic handoff chain. Any dead bytes the oracle parks just
  * below the entry stack pointer (The Pit's stack is real diffed work RAM, entry SP 0x83fd here)
@@ -52,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_16b9 as oracle } from "../../translated/loc_16b9.js";
-import { loc_16b9 as idiomatic } from "../loc_16b9.js";
+import { locateActorCellCheckGoal as idiomatic } from "../locateActorCellCheckGoal.js";
 import { makeMachineFactory } from "../../machine.js";
 import { OBJ_Y, OBJ_TILE_COL, ACTOR_CELL_PTR, GOAL_TILE_LATCH, GOAL_CROSSING_LATCH } from "../ram.js";
 
@@ -119,7 +119,7 @@ function stateDiff(entry, fn) {
   return stateDiffOutsideStack(a, b, sp);
 }
 
-/** The tile column + cell pointer loc_16b9 computes for an entry (mirrors the routine's geometry:
+/** The tile column + cell pointer locateActorCellCheckGoal computes for an entry (mirrors the routine's geometry:
  *  bias the column by 5, top bits = tile column, fold with the row into the tilemap address). */
 function expectedCell(entry) {
   const biased = (entry.mem.read8(OBJ_Y) + 5) & 0xff;
@@ -150,7 +150,7 @@ test("IDENTITY: the harness reaches 0x16b9 in attract and oracle-vs-oracle is EQ
 
 // -- 1. EQUAL over real captured attract dispatches --------------------------
 
-test("EQUAL: loc_16b9 leaves the same state as the oracle over every real attract dispatch", () => {
+test("EQUAL: locateActorCellCheckGoal leaves the same state as the oracle over every real attract dispatch", () => {
   const caps = captureDispatches(500, 4000);
   assert.ok(caps.length >= 1, "expected at least one captured attract dispatch");
   for (const cap of caps) {

@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_02a1 (ROM 0x02a1) — the round sub-phase sequencer: it
+ * Memory-equivalence gate for stepRoundSubPhaseAndBranch (ROM 0x02a1) — the round sub-phase sequencer: it
  * toggles GAME_STATE2 between 1 and 2 and, on two continuation-select flags (0x802c /
- * 0x802d), hands off to either the round-setup continuation (loc_02ca) or the end-of-round
+ * 0x802d), hands off to either the round-setup continuation (setUpRoundAndHoldIntro) or the end-of-round
  * teardown continuation (submitHighScoresAndReset / ROM 0x0371).
  *
- * CRAFTED-ENTRY, because attract never dispatches loc_02a1 (it sits on the round-transition
+ * CRAFTED-ENTRY, because attract never dispatches stepRoundSubPhaseAndBranch (it sits on the round-transition
  * path reached only once a game is under way — a 6000-frame attract run hits it zero times).
  * So instead of hooking the target, we capture REAL machine states at a routine attract DOES
  * dispatch — loc_3dae, the shared row/col -> offset calc (first entered ~frame 81) — clone
- * at its entry, and run oracle-vs-idiomatic loc_02a1 on those real, in-distribution states
- * after poking the three inputs loc_02a1 actually reads (the sub-phase byte and the two
+ * at its entry, and run oracle-vs-idiomatic stepRoundSubPhaseAndBranch on those real, in-distribution states
+ * after poking the three inputs stepRoundSubPhaseAndBranch actually reads (the sub-phase byte and the two
  * flags). The capture just supplies a realistic RAM image; the pokes drive every branch.
  *
- * WHY THE FULL CONTINUATION CHAIN NOW RUNS. loc_02a1's two continuations are idiomatic now
- * (loc_02ca setup / submitHighScoresAndReset teardown), so idiomatic loc_02a1 calls them
+ * WHY THE FULL CONTINUATION CHAIN NOW RUNS. stepRoundSubPhaseAndBranch's two continuations are idiomatic now
+ * (setUpRoundAndHoldIntro setup / submitHighScoresAndReset teardown), so idiomatic stepRoundSubPhaseAndBranch calls them
  * DIRECTLY — a registry stub at 0x02ca / 0x0371 would no longer intercept. So both sides run
  * the REAL continuation chain: the idiomatic side via its direct imports, the oracle side via
  * m.call through the frozen registry. Both chains converge at the two TRUE oracle leaves —
@@ -25,7 +25,7 @@
  *   - STUBBED LEAVES. 0x031a and 0x01f9 are stubbed identically on both sides with a spy that
  *     stamps a sentinel (0x1a setup / 0xf9 teardown) into an unused work-RAM cell (BRANCH_MARKER)
  *     and returns. That terminates the otherwise-endless chain AND surfaces which continuation
- *     loc_02a1 chose — its real live-out alongside the sub-phase write — as a RAM difference.
+ *     stepRoundSubPhaseAndBranch chose — its real live-out alongside the sub-phase write — as a RAM difference.
  *     The leaves are stubbed per-run (NOT at capture), because 0x01f9 is the boot reset handler
  *     and stubbing it during the capture run would break boot.
  *   - FRAME-TICK. The continuations busy-wait on the per-frame countdown 0x8009 the interrupt
@@ -57,10 +57,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02a1 as oracle } from "../../translated/loc_02a1.js";
-import { loc_02a1 as idiomatic } from "../loc_02a1.js";
+import { stepRoundSubPhaseAndBranch as idiomatic } from "../stepRoundSubPhaseAndBranch.js";
 import { loc_3dae as proxyOracle } from "../../translated/loc_3dae.js";
-// The idiomatic continuations the broken twins hand off to directly (mirroring loc_02a1).
-import { loc_02ca } from "../loc_02ca.js";
+// The idiomatic continuations the broken twins hand off to directly (mirroring stepRoundSubPhaseAndBranch).
+import { setUpRoundAndHoldIntro } from "../setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "../submitHighScoresAndReset.js";
 import { makeMachineFactory } from "../../machine.js";
 import { GAME_STATE2 } from "../ram.js";
@@ -73,7 +73,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const PROXY = 0x3dae; // a shared callee attract dispatches; its entry states are real
-const SETUP_LEAF = 0x031a; // round-loop setup, reached by the setup continuation (loc_02ca)
+const SETUP_LEAF = 0x031a; // round-loop setup, reached by the setup continuation (setUpRoundAndHoldIntro)
 const RESET_LEAF = 0x01f9; // reset/entry handler, reached by the teardown continuation (0x0371)
 const FLAG_C = 0x802c; // first continuation-select flag
 const FLAG_D = 0x802d; // second continuation-select flag
@@ -81,7 +81,7 @@ const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per frame-wait p
 const COUNTDOWN = 0x8009; // the per-frame countdown the frame-waits drain to 0
 
 // An unused work-RAM cell (0x8000-0x87ff) the leaf stubs stamp so the continuation choice is
-// observable: above the stack, written by nothing in loc_02a1 or its continuation chain (the
+// observable: above the stack, written by nothing in stepRoundSubPhaseAndBranch or its continuation chain (the
 // stub stamps it LAST, so any earlier write is overwritten identically on both sides).
 const BRANCH_MARKER = 0x8700;
 const MARK_SETUP = SETUP_LEAF & 0xff; // 0x1a: the setup continuation reached the setup leaf
@@ -127,7 +127,7 @@ function installLeafStubs(m) {
 /**
  * Capture up to K real machine states at PROXY's dispatch during a boot/attract run. The
  * capture proceeds through boot undisturbed (no leaf stubs installed here — attract never
- * reaches loc_02a1's arms anyway).
+ * reaches stepRoundSubPhaseAndBranch's arms anyway).
  */
 function captureEntries(K, maxFrames) {
   const caps = [];
@@ -205,14 +205,14 @@ test("HARNESS: a real loc_3dae entry is captured; the stubbed oracle chain run i
   const b = base.clone(); installFrameTick(b); installLeafStubs(b); oracle(b);
   assert.equal(ramDiff(a, b), null, "oracle run not deterministic");
   assert.equal(a.mem.read8(BRANCH_MARKER), MARK_TEARDOWN, "the both-flags-clear arm should reach the teardown leaf");
-  // (The teardown continuation re-arms GAME_STATE2 to 1 at its reset epilogue, so loc_02a1's
+  // (The teardown continuation re-arms GAME_STATE2 to 1 at its reset epilogue, so stepRoundSubPhaseAndBranch's
   // transient write of 2 is legitimately overwritten by the time the chain reaches the leaf.)
   console.log(`  HARNESS: captured a real ${hx(PROXY)} entry (SP=${hx(ENTRIES[0].regs.sp)}); oracle chain deterministic, teardown arm reaches ${hx(RESET_LEAF)}`);
 });
 
 // -- 2. EQUAL over the crafted sweep -----------------------------------------
 
-test("EQUAL (sub-phase x both flags sweep): idiomatic loc_02a1 == oracle over full RAM", () => {
+test("EQUAL (sub-phase x both flags sweep): idiomatic stepRoundSubPhaseAndBranch == oracle over full RAM", () => {
   assert.ok(ENTRIES.length >= 1, "need a captured entry");
   const entry = ENTRIES[0];
   let count = 0;
@@ -257,19 +257,19 @@ test("EQUAL (across all captured entries): every real base state agrees on a rep
 // -- 3. TEETH -----------------------------------------------------------------
 
 /** Broken twin: resets the sub-phase to 2 where it should reset to 1 (wrong sub-phase). Hands
- *  off to the real idiomatic continuations, mirroring loc_02a1. On the reset-arm-to-setup path
+ *  off to the real idiomatic continuations, mirroring stepRoundSubPhaseAndBranch. On the reset-arm-to-setup path
  *  the setup continuation does not overwrite GAME_STATE2, so the wrong value survives. */
 function twinWrongPhase(m) {
   const { mem8 } = m;
   if (mem8[GAME_STATE2] === 1) {
     mem8[GAME_STATE2] = 2;
-    if (mem8[FLAG_D] !== 0) return loc_02ca(m);
+    if (mem8[FLAG_D] !== 0) return setUpRoundAndHoldIntro(m);
   }
   mem8[GAME_STATE2] = 2; // BUG: this arm must reset the sub-phase to 1
-  if (mem8[FLAG_C] !== 0) return loc_02ca(m);
+  if (mem8[FLAG_C] !== 0) return setUpRoundAndHoldIntro(m);
   mem8[GAME_STATE2] = 2;
   if (mem8[FLAG_D] === 0) return submitHighScoresAndReset(m);
-  return loc_02ca(m);
+  return setUpRoundAndHoldIntro(m);
 }
 
 /** Broken twin: always hands off to setup, never to teardown (wrong continuation). */
@@ -277,12 +277,12 @@ function twinWrongBranch(m) {
   const { mem8 } = m;
   if (mem8[GAME_STATE2] === 1) {
     mem8[GAME_STATE2] = 2;
-    if (mem8[FLAG_D] !== 0) return loc_02ca(m);
+    if (mem8[FLAG_D] !== 0) return setUpRoundAndHoldIntro(m);
   }
   mem8[GAME_STATE2] = 1;
-  if (mem8[FLAG_C] !== 0) return loc_02ca(m);
+  if (mem8[FLAG_C] !== 0) return setUpRoundAndHoldIntro(m);
   mem8[GAME_STATE2] = 2;
-  return loc_02ca(m); // BUG: both-flags-clear must hand off to teardown (0x0371)
+  return setUpRoundAndHoldIntro(m); // BUG: both-flags-clear must hand off to teardown (0x0371)
 }
 
 test("TEETH (wrong sub-phase): a twin that resets to 2 instead of 1 is CAUGHT at GAME_STATE2", () => {

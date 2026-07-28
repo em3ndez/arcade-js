@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_13c9 (ROM 0x13c9) — the per-frame head of the object/state
+ * Memory-equivalence gate for dispatchObjectFrameByStateTimer (ROM 0x13c9) — the per-frame head of the object/state
  * dispatcher, gated by the state-lockout countdown. Each frame it reads the countdown and either
  * advances the tracked object (countdown idle), ticks the countdown down and holds (still running),
  * or — the frame it expires — hands to a round-boundary routine chosen by the post-timer mode byte
- * (0 -> the round/state-boundary dispatcher loc_0278; nonzero -> the round-advance / state-reset
+ * (0 -> the round/state-boundary dispatcher dockManAndDispatchRoundBoundary; nonzero -> the round-advance / state-reset
  * path 0x02fd, still the frozen oracle).
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The routine's own write is the countdown decrement; every other
@@ -25,7 +25,7 @@
  *     attract.
  *   - tick (countdown still running) — a pure decrement + stop; the arm's only write is the countdown
  *     byte. Reached 243× in attract, plus a crafted sweep of every start value 2..255.
- *   - expiry -> loc_0278 (post-timer mode 0) — the idiomatic side calls loc_0278 directly, the oracle
+ *   - expiry -> dockManAndDispatchRoundBoundary (post-timer mode 0) — the idiomatic side calls dockManAndDispatchRoundBoundary directly, the oracle
  *     reaches it through the registry; both run the REAL boundary chain, which busy-waits on the
  *     per-frame countdown and never returns (it reaches the true oracle leaves 0x031a setup /
  *     0x01f9 reset). One shared frame-tick hook drains the countdown and identical stubs at the two
@@ -40,7 +40,7 @@
  *   1. EQUAL (dispatch arm) — every real countdown-idle dispatch leaves identical RAM.
  *   2. EQUAL (tick arm) — every real countdown-running dispatch, plus a crafted 2..255 start-value
  *      sweep, leaves identical RAM and decrements the countdown by exactly one.
- *   3. EQUAL (expiry -> loc_0278) — a crafted mode-0 expiry runs the real boundary chain identically
+ *   3. EQUAL (expiry -> dockManAndDispatchRoundBoundary) — a crafted mode-0 expiry runs the real boundary chain identically
  *      and both sides reach the same leaf with the countdown drained to zero.
  *   4. EQUAL (expiry -> 0x02fd) — a crafted mode-nonzero expiry reaches the stubbed 0x02fd on both
  *      sides identically, countdown drained to zero.
@@ -57,9 +57,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_13c9 as oracle } from "../../translated/loc_13c9.js";
-import { loc_13c9 as idiomatic } from "../loc_13c9.js";
+import { dispatchObjectFrameByStateTimer as idiomatic } from "../dispatchObjectFrameByStateTimer.js";
 import { advanceTrackedObject } from "../advanceTrackedObject.js";
-import { loc_0278 as loc_0278Ref } from "../loc_0278.js"; // the mode-0 expiry destination (teeth mirror)
+import { dockManAndDispatchRoundBoundary as loc_0278Ref } from "../dockManAndDispatchRoundBoundary.js"; // the mode-0 expiry destination (teeth mirror)
 import { advanceToNextLevel } from "../advanceToNextLevel.js"; // the mode-nonzero expiry destination (teeth mirror)
 import { makeMachineFactory } from "../../machine.js";
 import { STATE_TIMER, GAME_MODE } from "../ram.js";
@@ -92,7 +92,7 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 const R = (mm, a) => mm.mem.read8(a);
 
-/** Re-derive which arm loc_13c9 takes for an entry, from its gate bytes (coverage + non-vacuity). */
+/** Re-derive which arm dispatchObjectFrameByStateTimer takes for an entry, from its gate bytes (coverage + non-vacuity). */
 function armOf(mm) {
   const t = R(mm, STATE_TIMER);
   if (t === 0) return "dispatch";
@@ -175,7 +175,7 @@ const boundaryHarness = (m) => { m.mem.write8(MARKER, 0); installFrameTick(m); i
  * (GAME_MODE 2). Only these bytes are touched: the record the handlers read is left exactly as the
  * real capture minted it, so the deep chain (which tallies the score on the bonus screen) runs on a
  * consistent state. With a live game both expiry handlers run their real chain and genuinely diverge
- * — loc_0278 docks/persists the man count, advanceToNextLevel bumps the level + rebuilds the board.
+ * — dockManAndDispatchRoundBoundary docks/persists the man count, advanceToNextLevel bumps the level + rebuilds the board.
  */
 function craftLiveExpiry(base, postTimerMode) {
   const entry = base.clone();
@@ -206,7 +206,7 @@ test("HARNESS: the harness reaches 0x13c9 in attract, the reached arms appear, a
 
 // -- 1. EQUAL over the real dispatch arm (countdown idle) --------------------
 
-test("EQUAL (dispatch): loc_13c9 == oracle over every real countdown-idle dispatch", () => {
+test("EQUAL (dispatch): dispatchObjectFrameByStateTimer == oracle over every real countdown-idle dispatch", () => {
   const caps = capture(2000, 3000, (mm) => R(mm, STATE_TIMER) === 0);
   assert.ok(caps.length >= 1, "expected countdown-idle dispatches in attract");
 
@@ -219,7 +219,7 @@ test("EQUAL (dispatch): loc_13c9 == oracle over every real countdown-idle dispat
 
 // -- 2. EQUAL over the tick arm (countdown running) + a crafted start-value sweep --
 
-test("EQUAL (tick): loc_13c9 == oracle over real running-countdown ticks and a crafted 2..255 sweep", () => {
+test("EQUAL (tick): dispatchObjectFrameByStateTimer == oracle over real running-countdown ticks and a crafted 2..255 sweep", () => {
   const caps = capture(1000, 3000, (mm) => R(mm, STATE_TIMER) > 1);
   assert.ok(caps.length >= 1, "expected running-countdown dispatches in attract");
 
@@ -249,17 +249,17 @@ test("EQUAL (tick): loc_13c9 == oracle over real running-countdown ticks and a c
   console.log(`  EQUAL/tick: ${caps.length} real ticks + 254 crafted start values identical; countdown always -1`);
 });
 
-// -- 3. EQUAL on the expiry -> loc_0278 arm (real boundary chain) -------------
+// -- 3. EQUAL on the expiry -> dockManAndDispatchRoundBoundary arm (real boundary chain) -------------
 
-test("EQUAL (expiry->loc_0278): a crafted mode-0 expiry runs the real boundary chain identically", () => {
+test("EQUAL (expiry->dockManAndDispatchRoundBoundary): a crafted mode-0 expiry runs the real boundary chain identically", () => {
   const [base] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) === 0);
   assert.ok(base, "need a real entry to craft the expiry arm from");
 
-  const entry = craftLiveExpiry(base, 0); // mode 0 -> loc_0278
-  assert.equal(armOf(entry), "expiry->0278", "craft did not reach the expiry->loc_0278 arm");
+  const entry = craftLiveExpiry(base, 0); // mode 0 -> dockManAndDispatchRoundBoundary
+  assert.equal(armOf(entry), "expiry->0278", "craft did not reach the expiry->dockManAndDispatchRoundBoundary arm");
 
   const d = stateDiff(entry, idiomatic, boundaryHarness);
-  assert.equal(d, null, d && `expiry->loc_0278 diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
+  assert.equal(d, null, d && `expiry->dockManAndDispatchRoundBoundary diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
 
   // Non-vacuity: the countdown drained to zero and both sides ran the chain to the SAME leaf.
   const o = entry.clone(); boundaryHarness(o); oracle(o);
@@ -267,7 +267,7 @@ test("EQUAL (expiry->loc_0278): a crafted mode-0 expiry runs the real boundary c
   assert.equal(R(c, STATE_TIMER), 0, "the countdown should have drained to zero on expiry");
   assert.notEqual(R(c, MARKER), 0, "the boundary chain should have reached a leaf");
   assert.equal(R(c, MARKER), R(o, MARKER), "idiomatic and oracle reached different boundary leaves");
-  console.log(`  EQUAL/expiry->loc_0278: identical RAM; countdown -> 0, chain reached leaf ${hx(R(c, MARKER) === (SETUP_LEAF & 0xff) ? SETUP_LEAF : RESET_LEAF)}`);
+  console.log(`  EQUAL/expiry->dockManAndDispatchRoundBoundary: identical RAM; countdown -> 0, chain reached leaf ${hx(R(c, MARKER) === (SETUP_LEAF & 0xff) ? SETUP_LEAF : RESET_LEAF)}`);
 });
 
 // -- 4. EQUAL on the expiry -> advanceToNextLevel arm (real boundary chain) ---
@@ -339,7 +339,7 @@ function twinSwapExpiry(m) {
   const remaining = mem8[STATE_TIMER] - 1;
   mem8[STATE_TIMER] = remaining;
   if (remaining !== 0) return;
-  if (mem8[POST_TIMER_MODE] === 0) return advanceToNextLevel(m); // BUG: mode 0 should run loc_0278
+  if (mem8[POST_TIMER_MODE] === 0) return advanceToNextLevel(m); // BUG: mode 0 should run dockManAndDispatchRoundBoundary
   return loc_0278Ref(m); // BUG: mode nonzero should advance the level
 }
 
@@ -362,7 +362,7 @@ test("TEETH (drop the dispatch): returning instead of advancing the object is CA
 
 // -- 7. TEETH: a twin that swaps the two expiry destinations -----------------
 
-test("TEETH (swap expiry routing): sending mode-nonzero to loc_0278 instead of advanceToNextLevel is CAUGHT", () => {
+test("TEETH (swap expiry routing): sending mode-nonzero to dockManAndDispatchRoundBoundary instead of advanceToNextLevel is CAUGHT", () => {
   const [base] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) === 0);
   assert.ok(base, "need a real entry to craft the expiry arm from");
   const entry = craftLiveExpiry(base, 1); // mode nonzero -> should advance the level

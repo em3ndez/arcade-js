@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1568 (ROM 0x1568) — resolve a moving object's step against the
+ * Memory-equivalence gate for resolveObjectTerrainStep (ROM 0x1568) — resolve a moving object's step against the
  * terrain directly under it (and, off the grid, the tile one step ahead): hold against a solid,
- * push a pushable block, or walk on. The vertical/other-axis counterpart of loc_1704.
+ * push a pushable block, or walk on. The vertical/other-axis counterpart of resolveActorTerrainStep.
  *
  * Given the tile the object sits ON (register live-in, surfaced as underTile), the object's biased
  * tile column (column; low 3 bits = the sub-tile offset), and the object's tile-cell pointer
  * (cellPtr; the cell one step ahead is the next byte), it writes the whole outcome of the step to
  * work RAM and then hands off to either advanceObjectWalkFrame (walk on) or stageObjectSpriteRecord
- * (hold / arm / settle — rebuild the record in place). Both are already idiomatic, so loc_1568 calls
+ * (hold / arm / settle — rebuild the record in place). Both are already idiomatic, so resolveObjectTerrainStep calls
  * them directly; no register hand-off survives. Its declared LIVE-OUT is MEMORY-ONLY: the two
  * special-tile latches (FEATURE_TILE_LATCH / GOAL_TILE_LATCH), the under/ahead expected-tile records
  * (EXPECTED_TILE / NEXT_TILE / the raw-ahead scratch 0x80a6), the push-reaction state/timer/sprite
  * (REACTION_STATE / REACTION_TIMER / SPRITE_CODE), and whatever the record builder or walk step
  * leaves.
  *
- * FULL-RAM CONTRACT, NO STACK WINDOW. loc_1568 has no ret of its own — every exit is a tail-jump to
+ * FULL-RAM CONTRACT, NO STACK WINDOW. resolveObjectTerrainStep has no ret of its own — every exit is a tail-jump to
  * a separate routine — so the still-frozen oracle reaches its tail targets by tail-jump too, never a
  * pushing CALL. Measured oracle-vs-idiomatic across the whole input domain: the two leave IDENTICAL
- * RAM with nothing written below the entry stack pointer (unlike loc_1704, whose loot-award sub-calls
+ * RAM with nothing written below the entry stack pointer (unlike resolveActorTerrainStep, whose loot-award sub-calls
  * pushed dead scratch). So the diff is the full RAM dump with no exclusion — tighter than the
- * sound-stub / loc_1704 dissolves. Registers/flags/pc/SP are excluded (the honest-signature
+ * sound-stub / resolveActorTerrainStep dissolves. Registers/flags/pc/SP are excluded (the honest-signature
  * contract); the three register live-ins default to the registers so a no-arg call reproduces the
  * oracle exactly.
  *
@@ -54,7 +54,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1568 as oracle } from "../../translated/loc_1568.js";
-import { loc_1568 as idiomatic } from "../loc_1568.js";
+import { resolveObjectTerrainStep as idiomatic } from "../resolveObjectTerrainStep.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -151,7 +151,7 @@ test("HARNESS: 0x1568 is never dispatched in attract, and oracle-vs-oracle on a 
 
 // -- 1. EQUAL over real captured attract clones ---------------------------------------------------
 
-test("EQUAL: loc_1568 leaves the same RAM as the oracle over real attract clones", () => {
+test("EQUAL: resolveObjectTerrainStep leaves the same RAM as the oracle over real attract clones", () => {
   const caps = captureStates(10, 90, 120);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {

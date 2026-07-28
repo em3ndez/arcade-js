@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3748 (ROM 0x3748, The Pit) — the per-frame update
+ * Memory-equivalence gate for advanceTwoSpriteActor (ROM 0x3748, The Pit) — the per-frame update
  * for the two-sprite actor: dispatch by spawn state (SPAWN_PHASE) and animation phase
  * (FRAME_COUNTER), and on the running phases march + walk-animate the actor inline
  * before staging its two sprite records.
  *
  * THE CONTRACT — OBSERVABLE RAM ONLY. Every arm is a TAIL JUMP: the oracle hands the
- * frame to a callee whose `ret` returns to loc_3748's own caller. The idiomatic routine
+ * frame to a callee whose `ret` returns to advanceTwoSpriteActor's own caller. The idiomatic routine
  * dissolves each tail jump into a direct JS call to the already-decompiled callee
- * (spawnAltPhaseActor / loc_38c8 / spawnTwinActor / stageActorSpriteRecords), which run
+ * (spawnAltPhaseActor / advanceOrRebuildTwinActor / spawnTwinActor / stageActorSpriteRecords), which run
  * stack-free — they no longer march SP, set pc, or leave the oracle's residual value
  * registers. The steady mover at 0x3a13 is likewise the decompiled advanceActorMovers,
  * called directly and stack-free. So pc, SP and the value registers diverge from the
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3748 as oracle } from "../../translated/loc_3748.js";
-import { loc_3748 } from "../loc_3748.js";
+import { advanceTwoSpriteActor } from "../advanceTwoSpriteActor.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
   ACTOR_STEP_X, ACTOR_X, FRAME_COUNTER, OBJ_X, OBJECT_ACTIVE, SPAWN_PHASE, TWIN_X,
@@ -133,7 +133,7 @@ function diffAgainstOracle(entry, fn) {
 
 // -- 1. EQUAL on the naturally-reached arms ----------------------------------
 
-test("EQUAL (natural): loc_3748 == oracle on every captured attract dispatch (full RAM)", () => {
+test("EQUAL (natural): advanceTwoSpriteActor == oracle on every captured attract dispatch (full RAM)", () => {
   const caps = captureEntries(4000, 3, 700);
   assert.ok(caps.length >= 100, `expected many captured dispatches, got ${caps.length}`);
 
@@ -142,7 +142,7 @@ test("EQUAL (natural): loc_3748 == oracle on every captured attract dispatch (fu
   for (let i = 0; i < caps.length; i++) {
     armCounts[caps[i].arm] = (armCounts[caps[i].arm] || 0) + 1;
     if (!firstDiff) {
-      const diff = diffAgainstOracle(caps[i].entry, loc_3748);
+      const diff = diffAgainstOracle(caps[i].entry, advanceTwoSpriteActor);
       if (diff) firstDiff = { i, arm: caps[i].arm, diff };
     }
   }
@@ -172,14 +172,14 @@ test("EQUAL (crafted alt-phase spawn): SPAWN_PHASE-forced arm == oracle, incl. t
   for (const phase of [1, 2, 255]) {
     const entry = seed.entry.clone();
     entry.mem.write8(SPAWN_PHASE, phase);
-    const diff = diffAgainstOracle(entry, loc_3748);
+    const diff = diffAgainstOracle(entry, advanceTwoSpriteActor);
     assert.equal(diff, null, diff && `SPAWN_PHASE=${phase}: RAM diff at ${hx(diff.addr)} oracle=${diff.a} idiomatic=${diff.b}`);
   }
 
   // Positive check: forcing a spawn sub-phase marks the actor live (255).
   const spawnCase = seed.entry.clone();
   spawnCase.mem.write8(SPAWN_PHASE, 2);
-  loc_3748(spawnCase);
+  advanceTwoSpriteActor(spawnCase);
   assert.equal(spawnCase.mem.read8(SPAWN_PHASE), 255, "the spawn body should mark the actor live");
   console.log("  EQUAL/altspawn: spawn body (rows 22/23) + already-active hand-off identical outside the dead stack window");
 });
@@ -195,7 +195,7 @@ test("EQUAL (crafted seed body): the one-shot seed == oracle and seeds the expec
     entry.mem.write8(SPAWN_PHASE, 0); // stay on the phase-routed path
     entry.mem.write8(FRAME_COUNTER, fc);
     entry.mem.write8(OBJECT_ACTIVE, 0); // not yet present -> the seed runs
-    const diff = diffAgainstOracle(entry, loc_3748);
+    const diff = diffAgainstOracle(entry, advanceTwoSpriteActor);
     assert.equal(diff, null, diff && `FRAME_COUNTER=${fc}: RAM diff at ${hx(diff.addr)} oracle=${diff.a} idiomatic=${diff.b}`);
   }
 
@@ -205,7 +205,7 @@ test("EQUAL (crafted seed body): the one-shot seed == oracle and seeds the expec
   entry.mem.write8(SPAWN_PHASE, 0);
   entry.mem.write8(FRAME_COUNTER, 4);
   entry.mem.write8(OBJECT_ACTIVE, 0);
-  loc_3748(entry);
+  advanceTwoSpriteActor(entry);
   assert.equal(entry.mem.read8(OBJECT_ACTIVE), 255, "seed must mark the actor present");
   assert.equal(entry.mem.read8(OBJ_X), 45, "seed must park the start cell at 45");
   assert.equal(entry.mem.read8(ACTOR_STEP_X), 255, "seed must set the step to march one cell left (255 == -1)");
@@ -218,7 +218,7 @@ test("EQUAL (crafted seed body): the one-shot seed == oracle and seeds the expec
  *  twin's X byte is bumped, the exact defect a wrong twin-lead offset would produce. */
 function twinBadMarch(m) {
   const beforeX = m.mem.read8(ACTOR_X);
-  loc_3748(m);
+  advanceTwoSpriteActor(m);
   if (m.mem.read8(ACTOR_X) !== beforeX) {
     m.mem.write8(TWIN_X, (m.mem.read8(TWIN_X) + 1) & 0xff); // BUG: twin no longer leads the body correctly
   }
@@ -248,7 +248,7 @@ function twinBadSeed(m) {
   const willSeed = m.mem.read8(SPAWN_PHASE) === 0 &&
     m.mem.read8(FRAME_COUNTER) >= 3 && m.mem.read8(FRAME_COUNTER) < 6 &&
     m.mem.read8(OBJECT_ACTIVE) === 0;
-  loc_3748(m);
+  advanceTwoSpriteActor(m);
   if (willSeed) m.mem.write8(OBJ_X, 46); // BUG: oracle parks the start cell at 45
 }
 

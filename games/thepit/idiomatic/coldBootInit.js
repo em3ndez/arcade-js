@@ -50,11 +50,11 @@ import { resetScoreAndSoundQueue } from "./resetScoreAndSoundQueue.js";
 import { initScoreDisplay } from "./initScoreDisplay.js";
 import { enableSound } from "./enableSound.js";
 import { blankScreen } from "./blankScreen.js";
-import { loc_4b3c } from "./loc_4b3c.js";
+import { setupBoardModeC0 } from "./setupBoardModeC0.js";
 import { requestSound2 } from "./requestSound2.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
-import { loc_03ac } from "./loc_03ac.js";
+import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
 import {
   GAME_MODE,
   GAME_STATE2,
@@ -102,7 +102,7 @@ export function coldBootInit(m) {
 
   // Blank the board screen (mode 0), then run the 0xC0 display-setup variant.
   blankScreen(m);
-  loc_4b3c(m);
+  setupBoardModeC0(m);
 
   // Play the power-on sound and arm the secondary game-state byte.
   requestSound2(m);
@@ -117,5 +117,5 @@ export function coldBootInit(m) {
   waitFrames(m, 60);
 
   // Hand off to the reset/round-restart epilogue and never return here.
-  return loc_03ac(m);
+  return resetStateAndShowSetup(m);
 }

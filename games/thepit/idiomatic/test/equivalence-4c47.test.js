@@ -64,7 +64,7 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 /**
  * Hook 0x4c47 in a real boot run and clone the machine at up to K real dispatches.
  * The wrapper snapshots the entry state, then runs the oracle so the host game
- * proceeds undisturbed. Round setup (loc_01f9) and the reset epilogue (loc_03be)
+ * proceeds undisturbed. Round setup (rearmMachineAndBranchOnCredits) and the reset epilogue (loc_03be)
  * both call it during boot.
  */
 function captureDispatches(K, maxFrames) {

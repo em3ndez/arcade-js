@@ -3,13 +3,13 @@
  * Memory-equivalence gate for windUpObjectMove (ROM 0x1468) — settle the object's animation phase toward a
  * move command, deferring the frame while it settles, then dispatch the object's move handler.
  *
- * One arm of the at-rest object dispatcher (loc_144c), reached when the per-frame move command
+ * One arm of the at-rest object dispatcher (routeIdleObjectByMoveCommand), reached when the per-frame move command
  * carries a direction bit (bit 2 or bit 3). It runs the command through the animation-phase byte
  * 0x801a — a short wind-up counter packed in the byte's high bits with the command in the low bits:
  * a settled phase dispatches the move handler, a clear phase arms the wind-up then dispatches, and a
  * mid-wind-up phase steps the counter down and DEFERS the frame (snapping straight to the command
  * once it has run far enough). The dispatch splits on the command's bit 2: set -> the frame-stamp
- * handler loc_186a, clear -> the step-and-resolve handler stepObjectAndResolveTile.
+ * handler stampFixedFrameAndResolveTile, clear -> the step-and-resolve handler stepObjectAndResolveTile.
  *
  * The declared LIVE-OUT is MEMORY-ONLY: the phase byte plus whatever the dispatched handler (or the
  * deferral record) writes. The move command is its one genuine register live-in, surfaced as the
@@ -30,7 +30,7 @@
  *   0. HARNESS   — capture real 0x1468 dispatches from attract; confirm the oracle run is
  *      deterministic and that all three arms (settled dispatch, wind-down, arm) occur in a real run.
  *   1. EQUAL     — windUpObjectMove == oracle over RAM across every real attract dispatch (the demo's
- *      command is always bit 2, so these settle onto / dispatch through loc_186a).
+ *      command is always bit 2, so these settle onto / dispatch through stampFixedFrameAndResolveTile).
  *   2. EQUAL (crafted bit-3 dispatch) — force a settled bit-3 command: both dispatch the OTHER
  *      handler (stepObjectAndResolveTile), identical; and it produces a different result than the bit-2 command on
  *      the same base, proving the bit-2 dispatch really selects the handler.
@@ -67,8 +67,8 @@ const TARGET = 0x1468;
 const STACK_SCRATCH = 32; // dead-scratch window below entry SP (guards the delegated handler/award/
 // deferral push chain; in practice windUpObjectMove's own arms leave the stack identical, and no real
 // work-RAM output lives in 0x83xx, so the window can hide none)
-const OBJECT_PHASE = 0x801a; // the object's animation-phase byte / wind-up counter (also reset by loc_144c)
-const BIT2_COMMAND = 0x04; // the down command attract uses (bit 2 -> loc_186a)
+const OBJECT_PHASE = 0x801a; // the object's animation-phase byte / wind-up counter (also reset by routeIdleObjectByMoveCommand)
+const BIT2_COMMAND = 0x04; // the down command attract uses (bit 2 -> stampFixedFrameAndResolveTile)
 const BIT3_COMMAND = 0x08; // crafted: bit 3 -> stepObjectAndResolveTile
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 

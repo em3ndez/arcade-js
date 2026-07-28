@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_0278 (ROM 0x0278) — the round/state-boundary
+ * Memory-equivalence gate for dockManAndDispatchRoundBoundary (ROM 0x0278) — the round/state-boundary
  * dispatcher that docks the active player's man count, saves their record, and hands
  * off to next-round setup or end-of-round teardown.
  *
@@ -10,8 +10,8 @@
  * RAM only (via dumpState); pc / SP / value registers are excluded per the honest-
  * signature contract (the idiomatic layer keeps no Z80 pc/step/register trace).
  *
- * WHY THE FULL SUCCESSOR CHAIN NOW RUNS. loc_0278's four tail successors (0x03ac,
- * 0x02a1, 0x02ca, 0x0371) are all idiomatic now, so the idiomatic loc_0278 calls them
+ * WHY THE FULL SUCCESSOR CHAIN NOW RUNS. dockManAndDispatchRoundBoundary's four tail successors (0x03ac,
+ * 0x02a1, 0x02ca, 0x0371) are all idiomatic now, so the idiomatic dockManAndDispatchRoundBoundary calls them
  * DIRECTLY (not through the registry) — a registry stub at those addresses would no
  * longer intercept. So both sides run the REAL successor chain: the idiomatic side via
  * its direct imports, the oracle side via m.call through the frozen registry. Every
@@ -41,11 +41,11 @@
  * Checks:
  *   0. HARNESS — capture the real 0x0278 entry and confirm the oracle run of the whole
  *      chain is deterministic (oracle vs oracle -> identical RAM).
- *   1. EQUAL — loc_0278 == oracle over observable RAM on all four arms (real bail arm +
+ *   1. EQUAL — dockManAndDispatchRoundBoundary == oracle over observable RAM on all four arms (real bail arm +
  *      three crafted arms); each arm reaches the same leaf on both sides; both leaves
  *      (setup + reset) are exercised across the arms.
  *   2. TEETH (skip the dock) — a twin that forgets to decrement 0x802b is CAUGHT: the
- *      dropped decrement changes the backup byte the sub-phase sequencer (loc_02a1)
+ *      dropped decrement changes the backup byte the sub-phase sequencer (stepRoundSubPhaseAndBranch)
  *      consults, diverging the whole downstream chain.
  *   3. TEETH (wrong destination) — a twin that tears down where it should set up is CAUGHT
  *      at the destination leaf (reset 0xf9 instead of setup 0x1a).
@@ -58,12 +58,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0278 as oracle } from "../../translated/loc_0278.js";
-import { loc_0278 as idiomatic } from "../loc_0278.js";
+import { dockManAndDispatchRoundBoundary as idiomatic } from "../dockManAndDispatchRoundBoundary.js";
 import { saveActivePlayerRecord } from "../saveActivePlayerRecord.js";
-// The idiomatic successors the broken twins hand off to directly (mirroring loc_0278).
-import { loc_03ac } from "../loc_03ac.js";
-import { loc_02a1 } from "../loc_02a1.js";
-import { loc_02ca } from "../loc_02ca.js";
+// The idiomatic successors the broken twins hand off to directly (mirroring dockManAndDispatchRoundBoundary).
+import { resetStateAndShowSetup } from "../resetStateAndShowSetup.js";
+import { stepRoundSubPhaseAndBranch } from "../stepRoundSubPhaseAndBranch.js";
+import { setUpRoundAndHoldIntro } from "../setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "../submitHighScoresAndReset.js";
 import { makeMachineFactory } from "../../machine.js";
 import { GAME_MODE, GAME_STATE2 } from "../ram.js";
@@ -203,7 +203,7 @@ test("HARNESS: the real 0x0278 entry is captured and the oracle chain run is det
 
 // -- 1. EQUAL across all four arms -------------------------------------------
 
-test("EQUAL: loc_0278 == oracle over observable RAM on every dispatch arm", () => {
+test("EQUAL: dockManAndDispatchRoundBoundary == oracle over observable RAM on every dispatch arm", () => {
   const entry = captureEntry(2500);
   assert.ok(entry, "need a captured 0x0278 entry");
 
@@ -236,23 +236,23 @@ test("EQUAL: loc_0278 == oracle over observable RAM on every dispatch arm", () =
 /** Broken twin: the real logic + direct successor hand-offs, but WITHOUT decrementing the
  *  working man count. The dropped decrement leaves a wrong value in the persisted backup
  *  (saveActivePlayerRecord writes column 2 = 0x802d), which the sub-phase sequencer
- *  loc_02a1 then reads as a continuation flag — so the whole downstream dispatch diverges. */
+ *  stepRoundSubPhaseAndBranch then reads as a continuation flag — so the whole downstream dispatch diverges. */
 function twinNoDock(m) {
   const { mem8 } = m;
-  if (mem8[GAME_MODE] >= 3) return loc_03ac(m);
+  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
   // BUG: the man-count dock (mem8[0x802b]--) is missing here.
   saveActivePlayerRecord(m);
-  if (mem8[GAME_MODE] !== 1) return loc_02a1(m);
+  if (mem8[GAME_MODE] !== 1) return stepRoundSubPhaseAndBranch(m);
   mem8[P2_BACKUP_MEN] = 0;
   mem8[GAME_STATE2] = 1;
-  if (mem8[P1_BACKUP_MEN] !== 0) return loc_02ca(m);
+  if (mem8[P1_BACKUP_MEN] !== 0) return setUpRoundAndHoldIntro(m);
   return submitHighScoresAndReset(m);
 }
 
 test("TEETH (skip the dock): a twin that never decrements the man count is CAUGHT", () => {
   const entry = captureEntry(2500);
   assert.ok(entry, "need a captured 0x0278 entry");
-  // The second-leg (mode 2) arm: the dock feeds the backup byte loc_02a1 consults, so
+  // The second-leg (mode 2) arm: the dock feeds the backup byte stepRoundSubPhaseAndBranch consults, so
   // dropping it flips the sub-phase dispatch (here setup vs teardown) — observable in RAM.
   const pokes = [[GAME_MODE, 2], [GAME_STATE2, 2], [P1_BACKUP_MEN, 0]];
 
@@ -268,10 +268,10 @@ test("TEETH (skip the dock): a twin that never decrements the man count is CAUGH
 /** Broken twin: always tears down, ignoring the reserve-man test at 0x802c. */
 function twinWrongDest(m) {
   const { mem8 } = m;
-  if (mem8[GAME_MODE] >= 3) return loc_03ac(m);
+  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
   mem8[WORKING_MEN] = mem8[WORKING_MEN] - 1;
   saveActivePlayerRecord(m);
-  if (mem8[GAME_MODE] !== 1) return loc_02a1(m);
+  if (mem8[GAME_MODE] !== 1) return stepRoundSubPhaseAndBranch(m);
   mem8[P2_BACKUP_MEN] = 0;
   mem8[GAME_STATE2] = 1;
   return submitHighScoresAndReset(m); // BUG: should set up the next round (0x02ca) when 0x802c != 0

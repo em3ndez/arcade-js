@@ -14,21 +14,21 @@
  *
  * TWO WRINKLES this routine adds over a plain leaf:
  *
- *  1. IT NEVER RETURNS. Its tail hand-off is now the DIRECT idiomatic loc_031a, which
+ *  1. IT NEVER RETURNS. Its tail hand-off is now the DIRECT idiomatic initRoundAndEnterMainLoop, which
  *     paints the board (busy-waiting on the per-frame countdown) and then falls into the
  *     main game loop and spins forever — so running it to completion on a clone (whose
  *     frame machinery is neutralised, so no NMI breaks the spin) would hang. Rather than
  *     stub the tail (the idiomatic direct call can no longer be intercepted by a registry
  *     stub), both arms run the REAL chain — idiomatic via its import, oracle via m.call to
  *     the registered translated routines — under ONE shared watchdog hook: each watchdog
- *     read that finds the per-frame countdown non-zero drains it (so loc_031a's paintScreen
+ *     read that finds the per-frame countdown non-zero drains it (so initRoundAndEnterMainLoop's paintScreen
  *     frame-waits terminate), and the FIRST read with the countdown already at 0 is the main
  *     loop's pass top (the setup frame-waits never read it drained), where the hook throws.
  *     Both arms stop at the main loop's entry, before it does any per-frame work — the same
  *     point the old no-op stub compared at — so the diff still measures only enterPlayMode's
- *     work plus the shared, separately-gated loc_031a chain.
+ *     work plus the shared, separately-gated initRoundAndEnterMainLoop chain.
  *
- *  2. STACK SCRATCH. The oracle threads its calls (the two setup calls, and loc_031a's own
+ *  2. STACK SCRATCH. The oracle threads its calls (the two setup calls, and initRoundAndEnterMainLoop's own
  *     nested paint/setup calls) through the Z80 stack; the stack-free idiomatic JS calls
  *     directly and pushes nothing, so the eight bytes just below the entry stack pointer
  *     ([SP-8, SP), i.e. 0x83f7..0x83fe) differ as classic dead stack scratch (overwritten by
@@ -70,7 +70,7 @@ const test = ROM_PRESENT
 const TARGET = 0x03be;
 const CAPTURE_FRAMES = 900; // 0x03be is first dispatched ~frame 693 as attract enters the demo
 const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per busy-wait / main-loop pass)
-const COUNTDOWN = 0x8009; // per-frame countdown loc_031a's paintScreen frame-waits drain to 0
+const COUNTDOWN = 0x8009; // per-frame countdown initRoundAndEnterMainLoop's paintScreen frame-waits drain to 0
 const STACK_SCRATCH = 8; // dead scratch cells just below the entry SP the two call styles differ in
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -97,7 +97,7 @@ function captureRealEntry(maxFrames) {
 
 /**
  * Run `fn` on a fresh clone of `entry`, bounded at the main loop's entry. The watchdog hook
- * drains the per-frame countdown (so loc_031a's paintScreen frame-waits terminate) and throws
+ * drains the per-frame countdown (so initRoundAndEnterMainLoop's paintScreen frame-waits terminate) and throws
  * on the first watchdog read the countdown is already drained for — the main loop's pass top.
  * `atBound` (a teeth mutation, if any) is applied there, after read8 is restored so it cannot
  * re-enter the hook. Asserts the run reached the bound.

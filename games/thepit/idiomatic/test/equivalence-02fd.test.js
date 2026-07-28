@@ -13,7 +13,7 @@
  *
  * WHY A CRAFTED ENTRY. 0x02fd never dispatches in a boot/attract run (the demo never
  * clears a level), so the capture/replay harness cannot hook it directly. Its sibling
- * 0x0278 (the lost-a-life arm of the same timer-expiry gate loc_13c9) IS reached at boot,
+ * 0x0278 (the lost-a-life arm of the same timer-expiry gate dispatchObjectFrameByStateTimer) IS reached at boot,
  * and both are tail-jumped from that gate with the same call convention, so 0x0278's
  * captured entry — a genuine round-boundary state with a valid return on the stack — is a
  * faithful entry for 0x02fd too. GAME_MODE is then poked to force each branch, identically
@@ -21,11 +21,11 @@
  *
  * WHY THE FULL SUCCESSOR CHAIN RUNS, AND HOW IT IS BOUNDED. Every callee below
  * advanceToNextLevel is idiomatic now — the advance body's callees (saveActivePlayerRecord,
- * setupBoardDisplay, showBonusScreen), the round (re)init loc_031a it advances into, and the
- * reset epilogue loc_03ac it bails to — so the idiomatic routine calls them DIRECTLY; a
+ * setupBoardDisplay, showBonusScreen), the round (re)init initRoundAndEnterMainLoop it advances into, and the
+ * reset epilogue resetStateAndShowSetup it bails to — so the idiomatic routine calls them DIRECTLY; a
  * registry stub at those addresses would no longer intercept. So both sides run the REAL
- * successor chain to the end: the advance branch through loc_031a, the bail branch through
- * loc_03ac's reset cascade (loc_03ac -> the reset/entry handler -> re-enter play), and BOTH
+ * successor chain to the end: the advance branch through initRoundAndEnterMainLoop, the bail branch through
+ * resetStateAndShowSetup's reset cascade (resetStateAndShowSetup -> the reset/entry handler -> re-enter play), and BOTH
  * land in the never-returning main game loop (the captured entry has the restart flag clear,
  * so the bail cascade re-enters play rather than the credit screen). The main loop reads the
  * watchdog once at the top of every pass, before any per-frame work; the many setup / bonus /
@@ -34,8 +34,8 @@
  * frame-waits terminate) and, on the first watchdog read it sees with the countdown already at
  * 0 — the main loop's pass top — throws, stopping both arms at the loop's entry, before it does
  * any work. Both arms reach it identically (oracle via m.call through the frozen registry,
- * idiomatic via its imports), so the hook can only reveal a difference. loc_031a / loc_03ac /
- * loc_01f9 are each separately gated.
+ * idiomatic via its imports), so the hook can only reveal a difference. initRoundAndEnterMainLoop / resetStateAndShowSetup /
+ * rearmMachineAndBranchOnCredits are each separately gated.
  *
  * TWO HARNESS PIECES both sides share, so neither can fork the result:
  *   - THE SHARED WATCHDOG BOUND (above): drains the frame-waits and stops both arms at the
@@ -53,7 +53,7 @@
  *      bail); the advance branch bumps LEVEL, the bail branch does not, and the two branches
  *      reach visibly different machine states (game mode 1 vs 4 at the main-loop entry).
  *   2. TEETH (skip the level bump) — a twin that forgets to increment LEVEL is CAUGHT at
- *      0x8028 (the dropped bump survives into the persisted backup loc_031a reloads).
+ *      0x8028 (the dropped bump survives into the persisted backup initRoundAndEnterMainLoop reloads).
  *   3. TEETH (wrong destination) — a twin that always bails to reset where it should advance
  *      is CAUGHT: the bail chain leaves a different machine state than the advance chain.
  *
@@ -68,7 +68,7 @@ import { loc_02fd as oracle } from "../../translated/loc_02fd.js";
 import { loc_0278 as siblingOracle } from "../../translated/loc_0278.js";
 import { advanceToNextLevel as idiomatic } from "../advanceToNextLevel.js";
 // The idiomatic successors the broken twins hand off to directly (mirroring the routine).
-import { loc_03ac } from "../loc_03ac.js";
+import { resetStateAndShowSetup } from "../resetStateAndShowSetup.js";
 import { saveActivePlayerRecord } from "../saveActivePlayerRecord.js";
 import { setupBoardDisplay } from "../setupBoardDisplay.js";
 import { showBonusScreen } from "../showBonusScreen.js";
@@ -243,10 +243,10 @@ test("EQUAL: advanceToNextLevel == oracle over observable RAM on both branches",
 
 /** Broken twin: the real logic + direct successor hand-offs, but WITHOUT incrementing the
  *  level counter. The dropped bump leaves the wrong level in the persisted backup that
- *  loc_031a reloads — an observable RAM divergence at LEVEL. */
+ *  initRoundAndEnterMainLoop reloads — an observable RAM divergence at LEVEL. */
 function twinSkipBump(m) {
   const { mem8 } = m;
-  if (mem8[GAME_MODE] >= 3) return loc_03ac(m);
+  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
   // BUG: the level bump (mem8[LEVEL] = mem8[LEVEL] + 1) is missing here.
   saveActivePlayerRecord(m);
   setupBoardDisplay(m, 160);
@@ -264,8 +264,8 @@ test("TEETH (skip the level bump): a twin that never increments the level counte
   const t = runArm(entry, twinSkipBump, pokes);
   const d = ramDiff(o, t);
   assert.ok(d, "the gate FAILED to catch the skipped-bump twin — it proves nothing");
-  // The dropped bump leaves the wrong level in the persisted backup loc_031a reloads. It shows
-  // both at LEVEL (0x8028) itself and at the pacing delay (0x8011 = base - LEVEL) loc_031a
+  // The dropped bump leaves the wrong level in the persisted backup initRoundAndEnterMainLoop reloads. It shows
+  // both at LEVEL (0x8028) itself and at the pacing delay (0x8011 = base - LEVEL) initRoundAndEnterMainLoop
   // derives from it; the derived cell sits below LEVEL, so the scan reports it first.
   assert.equal(o.mem.read8(LEVEL), (t.mem.read8(LEVEL) + 1) & 0xff, "the dropped bump must leave LEVEL one lower on the twin");
   console.log(`  TEETH/bump: skipped-bump twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b}); LEVEL ${t.mem.read8(LEVEL)} vs ${o.mem.read8(LEVEL)}`);
@@ -275,7 +275,7 @@ test("TEETH (skip the level bump): a twin that never increments the level counte
 
 /** Broken twin: always bails to the reset epilogue, ignoring the live-game guard. */
 function twinWrongDest(m) {
-  return loc_03ac(m); // BUG: should advance the level (fall into loc_031a) when a game is live
+  return resetStateAndShowSetup(m); // BUG: should advance the level (fall into initRoundAndEnterMainLoop) when a game is live
 }
 
 test("TEETH (wrong destination): a twin that always bails to reset is CAUGHT", () => {

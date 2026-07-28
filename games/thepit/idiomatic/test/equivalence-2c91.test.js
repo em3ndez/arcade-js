@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2c91 (ROM 0x2c91) — the overlap-flag tail of the
+ * Memory-equivalence gate for flagObjectTargetOverlap (ROM 0x2c91) — the overlap-flag tail of the
  * dig/projectile-spawn path. It reads the tracked object (OBJ_X/OBJ_Y) and the
  * freshly-placed target cell (TARGET_X/TARGET_Y), publishes a 0/1 overlap flag to
- * CLIMB_GATE, then hands off to the idiomatic record builder stageDigObjectSpriteRecord
- * (ROM 0x2bd3), which continues into 0x2f71 and unwinds to loc_2c91's caller.
+ * DIG_OVERLAP_HOLD, then hands off to the idiomatic record builder stageDigObjectSpriteRecord
+ * (ROM 0x2bd3), which continues into 0x2f71 and unwinds to flagObjectTargetOverlap's caller.
  *
- * CONTRACT. loc_2c91 has NO register live-ins — every input is read from RAM — and its
- * only own side effect is the CLIMB_GATE byte; the record-build tail is delegated to the
+ * CONTRACT. flagObjectTargetOverlap has NO register live-ins — every input is read from RAM — and its
+ * only own side effect is the DIG_OVERLAP_HOLD byte; the record-build tail is delegated to the
  * idiomatic stageDigObjectSpriteRecord, which is memory-equivalent to the oracle's tail
  * but returns via plain JS rather than the Z80 stack dance. So the gate is a RAM-only
  * diff via dumpState: pc/SP and value-registers are the dead Z80 trace and are NOT
  * compared (the idiomatic tail deliberately does not reproduce them), and the dead
  * stack-scratch window at the top of work RAM is excluded for the same reason (nothing
- * loc_2c91 touches lives there).
+ * flagObjectTargetOverlap touches lives there).
  *
  * REACHABILITY. This tail is genuinely reached in attract (~62 dispatches per 3000
  * frames), so the entry is captured live via the dispatch/​m.call override hook, then
@@ -24,16 +24,16 @@
  *   0. HARNESS   — capture a real 0x2c91 entry; the oracle run is deterministic
  *      (oracle vs oracle over the whole state is identical). Proves the capture/clone
  *      plumbing reaches a real state and the delegated tail is stable.
- *   1. EQUAL (real entry) — loc_2c91 == oracle over RAM (minus dead stack scratch).
+ *   1. EQUAL (real entry) — flagObjectTargetOverlap == oracle over RAM (minus dead stack scratch).
  *   2. EQUAL (branch/boundary/wrap set) — crafted inputs that hit every arm of the
  *      overlap test (row-miss, X-not-right, X-in-band, X-past-band, both wraps).
  *   3. EQUAL (sweep) — exhaustive over the compared X axis for every boundary cell X,
- *      plus an exhaustive row-equality sweep including the +12 wrap. CLIMB_GATE also
+ *      plus an exhaustive row-equality sweep including the +12 wrap. DIG_OVERLAP_HOLD also
  *      cross-checked against a from-first-principles truth table each time.
  *   4. TEETH (inverted flag) — a twin that publishes the opposite flag is CAUGHT at
- *      CLIMB_GATE, in BOTH directions (overlap input and non-overlap input).
+ *      DIG_OVERLAP_HOLD, in BOTH directions (overlap input and non-overlap input).
  *   5. TEETH (band off-by-one) — a twin whose X window is one pixel too wide is CAUGHT
- *      at CLIMB_GATE on the exact boundary cell it mis-classifies.
+ *      at DIG_OVERLAP_HOLD on the exact boundary cell it mis-classifies.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-2c91.test.js
  */
@@ -43,10 +43,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c91 as oracle } from "../../translated/loc_2c91.js";
-import { loc_2c91 as idiomatic } from "../loc_2c91.js";
+import { flagObjectTargetOverlap as idiomatic } from "../flagObjectTargetOverlap.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
-import { OBJ_X, OBJ_Y, TARGET_X, TARGET_Y, CLIMB_GATE } from "../ram.js";
+import { OBJ_X, OBJ_Y, TARGET_X, TARGET_Y, DIG_OVERLAP_HOLD } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -57,7 +57,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x2c91;
 // Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff).
-// The delegated tail uses it identically on both arms; nothing loc_2c91 writes lives here.
+// The delegated tail uses it identically on both arms; nothing flagObjectTargetOverlap writes lives here.
 const STACK_LO = 0x8380;
 const STACK_HI = 0x8400;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -155,7 +155,7 @@ test("HARNESS: a real 0x2c91 entry is captured and the oracle run is determinist
 
 // -- 1. EQUAL on the real captured entry --------------------------------------
 
-test("EQUAL (real entry): loc_2c91 == oracle over RAM (minus dead stack scratch)", () => {
+test("EQUAL (real entry): flagObjectTargetOverlap == oracle over RAM (minus dead stack scratch)", () => {
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x2c91 entry");
 
@@ -168,8 +168,8 @@ test("EQUAL (real entry): loc_2c91 == oracle over RAM (minus dead stack scratch)
     objX: entry.mem.read8(OBJ_X),
     tgtX: entry.mem.read8(TARGET_X),
   };
-  assert.equal(c.mem.read8(CLIMB_GATE), expectedFlag(inputs), "published overlap flag mismatch");
-  console.log(`  EQUAL/real: identical over RAM; CLIMB_GATE = ${c.mem.read8(CLIMB_GATE)}`);
+  assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), expectedFlag(inputs), "published overlap flag mismatch");
+  console.log(`  EQUAL/real: identical over RAM; DIG_OVERLAP_HOLD = ${c.mem.read8(DIG_OVERLAP_HOLD)}`);
 });
 
 // -- 2. EQUAL on a crafted branch/boundary/wrap set ---------------------------
@@ -195,7 +195,7 @@ test("EQUAL (branch/boundary/wrap set): every arm of the overlap test matches th
     assert.equal(expectedFlag(i), flag, `truth-table sanity: ${name}`);
     const { ram, c } = compare(entry, i, idiomatic);
     assert.equal(ram, null, ram && `${name}: RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-    assert.equal(c.mem.read8(CLIMB_GATE), flag, `${name}: CLIMB_GATE`);
+    assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), flag, `${name}: DIG_OVERLAP_HOLD`);
   }
   console.log(`  EQUAL/crafted: all ${cases.length} branch/boundary/wrap cases identical to the oracle`);
 });
@@ -215,7 +215,7 @@ test("EQUAL (sweep): exhaustive over the X axis at every boundary cell + exhaust
       const i = { objY: 112, tgtY: 100, objX, tgtX };
       const { ram, c } = compare(entry, i, idiomatic);
       assert.equal(ram, null, ram && `X-sweep objX=${objX} tgtX=${tgtX}: RAM diff at ${hx(ram.addr)}`);
-      assert.equal(c.mem.read8(CLIMB_GATE), expectedFlag(i), `X-sweep objX=${objX} tgtX=${tgtX}: flag`);
+      assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), expectedFlag(i), `X-sweep objX=${objX} tgtX=${tgtX}: flag`);
       checked++;
     }
   }
@@ -228,7 +228,7 @@ test("EQUAL (sweep): exhaustive over the X axis at every boundary cell + exhaust
       const i = { objY, tgtY, objX: 105, tgtX: 100 };
       const { ram, c } = compare(entry, i, idiomatic);
       assert.equal(ram, null, ram && `row-sweep objY=${objY} tgtY=${tgtY}: RAM diff at ${hx(ram.addr)}`);
-      assert.equal(c.mem.read8(CLIMB_GATE), expectedFlag(i), `row-sweep objY=${objY} tgtY=${tgtY}: flag`);
+      assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), expectedFlag(i), `row-sweep objY=${objY} tgtY=${tgtY}: flag`);
       checked++;
     }
   }
@@ -244,11 +244,11 @@ function twinInvertedFlag(m) {
   const rightOfCell = mem8[TARGET_X] < mem8[OBJ_X];
   const withinBand = u8(mem8[TARGET_X] + 8) >= mem8[OBJ_X];
   const overlaps = rowsAlign && rightOfCell && withinBand;
-  mem8[CLIMB_GATE] = overlaps ? 0 : 1; // BUG: flag inverted
+  mem8[DIG_OVERLAP_HOLD] = overlaps ? 0 : 1; // BUG: flag inverted
   return m.call(0x2bd3);
 }
 
-test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at CLIMB_GATE", () => {
+test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at DIG_OVERLAP_HOLD", () => {
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x2c91 entry for the teeth check");
 
@@ -258,9 +258,9 @@ test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at C
   for (const [label, i] of [["overlap", overlapInput], ["non-overlap", missInput]]) {
     const { ram } = compare(entry, i, twinInvertedFlag);
     assert.ok(ram, `${label}: gate FAILED to catch the inverted-flag twin — it proves nothing`);
-    assert.equal(ram.addr, CLIMB_GATE, `${label}: teeth caught ${hx(ram.addr)} (expected ${hx(CLIMB_GATE)})`);
+    assert.equal(ram.addr, DIG_OVERLAP_HOLD, `${label}: teeth caught ${hx(ram.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
   }
-  console.log(`  TEETH/inverted: caught at ${hx(CLIMB_GATE)} on both an overlap and a non-overlap input`);
+  console.log(`  TEETH/inverted: caught at ${hx(DIG_OVERLAP_HOLD)} on both an overlap and a non-overlap input`);
 });
 
 // -- 5. TEETH: a one-pixel-too-wide band is caught at its boundary ------------
@@ -272,7 +272,7 @@ function twinWideBand(m) {
   const rightOfCell = mem8[TARGET_X] < mem8[OBJ_X];
   const withinBand = u8(mem8[TARGET_X] + 9) >= mem8[OBJ_X]; // BUG: band too wide
   const overlaps = rowsAlign && rightOfCell && withinBand;
-  mem8[CLIMB_GATE] = overlaps ? 1 : 0;
+  mem8[DIG_OVERLAP_HOLD] = overlaps ? 1 : 0;
   return m.call(0x2bd3);
 }
 
@@ -286,6 +286,6 @@ test("TEETH (band off-by-one): a one-pixel-too-wide window is CAUGHT at the boun
 
   const { ram } = compare(entry, boundary, twinWideBand);
   assert.ok(ram, "gate FAILED to catch the too-wide-band twin — it proves nothing");
-  assert.equal(ram.addr, CLIMB_GATE, `teeth caught ${hx(ram.addr)} (expected ${hx(CLIMB_GATE)})`);
+  assert.equal(ram.addr, DIG_OVERLAP_HOLD, `teeth caught ${hx(ram.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
   console.log(`  TEETH/band: too-wide window caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });

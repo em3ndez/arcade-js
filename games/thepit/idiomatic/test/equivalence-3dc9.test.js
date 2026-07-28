@@ -78,7 +78,7 @@ function readCursors(m) {
  * Hook 0x3dc9 in a real attract run and clone the machine at up to K real dispatches.
  * The wrapper snapshots the entry state, then runs the oracle so the host game proceeds
  * undisturbed. Attract's title/panel draws dispatch it from several plotters (drawPlayerLabel,
- * loc_4816, drawMenLeftPanel, drawCreditsDisplay, showSetupScreen, loc_4df8) with varied offsets.
+ * paintPlayfieldStripCol1Row11, drawMenLeftPanel, drawCreditsDisplay, showSetupScreen, loc_4df8) with varied offsets.
  */
 function captureDispatches(K, maxFrames) {
   const caps = [];

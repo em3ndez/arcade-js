@@ -10,7 +10,7 @@
  * byte, wipes the sprite-staging block). With board-mode 0 the field is flat colour 0.
  *
  * Reached from cold-boot init and from each round/board setup. The name stays neutral
- * for the same reason its sibling loc_4b3c does: the rebuild it runs is clear, but
+ * for the same reason its sibling setupBoardModeC0 does: the rebuild it runs is clear, but
  * which game situation the mode-0 door corresponds to (versus its 0x90 / 0xC0
  * siblings) is not confirmed to the naming bar, so it earns no specific name yet.
  *

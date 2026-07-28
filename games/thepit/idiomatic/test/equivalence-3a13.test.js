@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3a13 as oracle } from "../../translated/loc_3a13.js";
 import { advanceActorMovers as idiomatic } from "../advanceActorMovers.js";
-import { loc_319d } from "../loc_319d.js";
+import { stepEnemyMover } from "../stepEnemyMover.js";
 import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -182,11 +182,11 @@ function copyOut(mem8, recordBase) {
 function twinDroppedCopyBack(m) {
   const { mem8 } = m;
   copyIn(mem8, PRIMARY_LO);
-  loc_319d(m);
+  stepEnemyMover(m);
   // BUG: the copy-back is missing here.
   if (mem8[GATE] !== 0) {
     copyIn(mem8, TWIN_LO);
-    loc_319d(m);
+    stepEnemyMover(m);
     copyOut(mem8, TWIN_LO);
   }
   return stageActorSpriteRecords(m);
@@ -197,7 +197,7 @@ function twinDroppedCopyBack(m) {
 function twinSkipsSecondRecord(m) {
   const { mem8 } = m;
   copyIn(mem8, PRIMARY_LO);
-  loc_319d(m);
+  stepEnemyMover(m);
   copyOut(mem8, PRIMARY_LO);
   // BUG: the gated twin advance is dropped.
   return stageActorSpriteRecords(m);

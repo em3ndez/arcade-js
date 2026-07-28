@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4816 (ROM 0x4816) — the round-setup strip painter:
+ * Memory-equivalence gate for paintPlayfieldStripCol1Row11 (ROM 0x4816) — the round-setup strip painter:
  * it places a tile-cell cursor at column 1 / row 11, resolves the cell's addresses,
  * fills a 10-cell vertical tilemap strip from the ROM table at 0x494f (top cell a fixed
  * cap, the nine below walked back through the table), then paints the same 10 cells with
  * colour 0.
  *
- * CRAFTED-ENTRY, because attract never dispatches loc_4816 (it is round setup — the
- * caller loc_02e1/loc_02ca only runs once a game starts). So instead of hooking the
- * target itself, we capture REAL machine states at a routine loc_4816 shares and that
+ * CRAFTED-ENTRY, because attract never dispatches paintPlayfieldStripCol1Row11 (it is round setup — the
+ * caller holdRoundIntroLoop/setUpRoundAndHoldIntro only runs once a game starts). So instead of hooking the
+ * target itself, we capture REAL machine states at a routine paintPlayfieldStripCol1Row11 shares and that
  * attract DOES dispatch — loc_3dae, the shared row/col -> offset calc (first entered
- * ~frame 81) — clone at its entry, and run oracle-vs-idiomatic loc_4816 on those real,
- * in-distribution states. loc_4816 supplies all of its own inputs (it overwrites the
+ * ~frame 81) — clone at its entry, and run oracle-vs-idiomatic paintPlayfieldStripCol1Row11 on those real,
+ * in-distribution states. paintPlayfieldStripCol1Row11 supplies all of its own inputs (it overwrites the
  * cursor/count/fill scratch it reads and sets its own source pointer), so any real
  * captured state is a valid entry; the capture just provides a realistic RAM image and
  * a valid stack for the return to pop.
@@ -22,7 +22,7 @@
  * calls with no Z80 stack frame. Two consequences the oracle does but the idiomatic no
  * longer does: (a) it no longer pushes those callees' return addresses onto the compared
  * work-RAM stack, and (b) the final colour fill was the oracle's tail `jp` whose `ret`
- * returned to loc_4816's caller — as a direct call it just paints and returns, so the
+ * returned to paintPlayfieldStripCol1Row11's caller — as a direct call it just paints and returns, so the
  * idiomatic leaves pc/SP one return short. So the gate models the return with one
  * m.ret() on the candidate (lining pc + SP up with the oracle), compares the observable
  * RAM the strip paints + pc + SP, and EXCLUDES the dead stack-scratch window just below
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4816 as oracle } from "../../translated/loc_4816.js";
-import { loc_4816 as idiomatic } from "../loc_4816.js";
+import { paintPlayfieldStripCol1Row11 as idiomatic } from "../paintPlayfieldStripCol1Row11.js";
 import { loc_3dae as proxyOracle } from "../../translated/loc_3dae.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
@@ -143,7 +143,7 @@ function contractDiffs(entry, fn) {
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: real captured entries — idiomatic loc_4816 == oracle in observable RAM + pc + SP", () => {
+test("EQUAL: real captured entries — idiomatic paintPlayfieldStripCol1Row11 == oracle in observable RAM + pc + SP", () => {
   assert.ok(ENTRIES.length >= 1, "expected at least one real proxy dispatch in the run window");
   for (const entry of ENTRIES) {
     const { diffs } = contractDiffs(entry, idiomatic);

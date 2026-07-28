@@ -40,7 +40,7 @@
 import { blankScreen } from "./blankScreen.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
-import { loc_03ac } from "./loc_03ac.js";
+import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
 import { GAME_MODE, IN0_DEBOUNCED } from "./ram.js";
 
 const PASS_COLOUR = 0x8012; // scratch holding the current pass's colour byte
@@ -79,5 +79,5 @@ export function showColourTestScreen(m) {
   }
 
   // Sweep done: restart the attract cycle.
-  return loc_03ac(m);
+  return resetStateAndShowSetup(m);
 }

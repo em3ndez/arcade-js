@@ -2,12 +2,12 @@
 /**
  * Memory-equivalence gate for advanceDormantMover (ROM 0x34da, The Pit) — the mover
  * housekeeping that bumps a free-running tick counter (0x8090) each call, on the
- * once-every-256 wrap hands off to the periodic refresh (loc_34f0), and otherwise
+ * once-every-256 wrap hands off to the periodic refresh (reseedMoverCadenceAndRearmState), and otherwise
  * advances a slower second counter (0x8085) on every 4th tick while holding that
  * counter's bit 3 clear.
  *
- * WHY THIS ISN'T unitEquivalence (same two reasons as its sibling loc_34f0):
- *   1. UNREACHED IN ATTRACT. advanceDormantMover's caller (loc_319d's tick housekeeping) is a
+ * WHY THIS ISN'T unitEquivalence (same two reasons as its sibling reseedMoverCadenceAndRearmState):
+ *   1. UNREACHED IN ATTRACT. advanceDormantMover's caller (stepEnemyMover's tick housekeeping) is a
  *      gameplay path — hooking 0x34da over 3000+ attract frames yields zero
  *      dispatches. There is no natural entry for the shared unitEquivalence harness
  *      to snapshot, and force-injecting one would corrupt the host stack.
@@ -16,12 +16,12 @@
  *      new second-counter value on the 4th tick — all dead ABI (the caller reaches
  *      here only by tail-jump). unitEquivalence diffs the FULL register file, so it
  *      would false-fail a correct rewrite on those dead registers.
- * So, like loc_34f0 and advanceRandom, this gate compares the DECLARED live-out —
+ * So, like reseedMoverCadenceAndRearmState and advanceRandom, this gate compares the DECLARED live-out —
  * work RAM only — via a memory diff, and uses the machine-factory overrides hook to
  * CAPTURE real attract states (clone, run both) rather than to dispatch the target.
  *
  * The one wrinkle: on the WRAP path the oracle vectors into the still-oracle refresh
- * (loc_34f0), which models the Z80 stack — it pushes a two-byte return address for
+ * (reseedMoverCadenceAndRearmState), which models the Z80 stack — it pushes a two-byte return address for
  * its generator call just below SP. The cycle-free idiomatic routine calls the
  * idiomatic refresh directly and never touches the stack, so those two dead stack
  * bytes are excluded from the RAM diff (the dropped stack ABI, read by nothing).
@@ -50,7 +50,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_34da as oracle } from "../../translated/loc_34da.js";
 import { advanceDormantMover } from "../advanceDormantMover.js";
-import { loc_34f0 as idioRefresh } from "../loc_34f0.js";
+import { reseedMoverCadenceAndRearmState as idioRefresh } from "../reseedMoverCadenceAndRearmState.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -65,7 +65,7 @@ const TICK = 0x8090; // the free-running tick counter, bumped every call
 const SECOND = 0x8085; // the slower second counter, advanced on every 4th tick
 const RNG_LOW = 0x800d;
 const RNG_HIGH = 0x800e;
-const ANIM_RAND = 0x808b; // reseeded by the refresh on a wrap
+const MOVER_CADENCE = 0x808b; // reseeded by the refresh on a wrap
 const ACTOR_STATE = 0x8084; // re-armed to 9 by the refresh on a wrap
 // A fixed SP high in scratch so the oracle's refresh push lands at a known cell.
 const SP_ANCHOR = 0x8780;
@@ -185,7 +185,7 @@ test("SCOPE: the oracle changes only its path's expected addresses (plus the wra
     {
       tickByte: 0xff,
       secondByte: 0x10,
-      expect: new Set([TICK, ANIM_RAND, ACTOR_STATE, RNG_LOW, RNG_HIGH]),
+      expect: new Set([TICK, MOVER_CADENCE, ACTOR_STATE, RNG_LOW, RNG_HIGH]),
       label: "wrap → refresh",
     },
   ];
@@ -254,8 +254,8 @@ test("WRAP: on the wrap beat the refresh reseed matches the oracle over a spread
       assert.equal(diff, null, diff && `wrap mismatch at generator ${hx((high << 8) | low)}: ${diff}`);
       // The refresh forces the stored seed's high bit set.
       assert.ok(
-        (idioM.mem.read8(ANIM_RAND) & 0x80) !== 0,
-        `wrap: stored seed ${hx(idioM.mem.read8(ANIM_RAND))} lost its high bit`,
+        (idioM.mem.read8(MOVER_CADENCE) & 0x80) !== 0,
+        `wrap: stored seed ${hx(idioM.mem.read8(MOVER_CADENCE))} lost its high bit`,
       );
       if ((high & 1) === 0) sawHighBitForced = true;
       checked++;
@@ -323,7 +323,7 @@ test("TEETH: skipping the refresh on a wrap is CAUGHT", () => {
   brokenSkipRefresh(b);
   const diff = contractDiff(a, b, skip);
   assert.notEqual(diff, null, "the gate FAILED to catch a skipped refresh — it is worthless");
-  const refreshAddrs = new Set([`RAM@${hx(RNG_LOW)}`, `RAM@${hx(RNG_HIGH)}`, `RAM@${hx(ACTOR_STATE)}`, `RAM@${hx(ANIM_RAND)}`]);
+  const refreshAddrs = new Set([`RAM@${hx(RNG_LOW)}`, `RAM@${hx(RNG_HIGH)}`, `RAM@${hx(ACTOR_STATE)}`, `RAM@${hx(MOVER_CADENCE)}`]);
   assert.ok(
     [...refreshAddrs].some((p) => diff.startsWith(p)),
     `teeth caught the wrong thing: ${diff} (expected one of the refresh's bytes)`,

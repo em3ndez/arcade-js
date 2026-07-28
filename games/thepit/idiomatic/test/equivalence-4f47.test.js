@@ -30,7 +30,7 @@
  *      write it), freezing the sweep's output intact for the diff. The sweep's frame waits
  *      (the frame-hold between passes) are driven by one identical per-frame countdown tick
  *      hook on both clones — reading the watchdog decrements the countdown, floored at 0 —
- *      the same device the loc_03ac / coldBootInit gates use.
+ *      the same device the resetStateAndShowSetup / coldBootInit gates use.
  *
  * The stack scratch: the oracle wraps its callees in stack pushes + returns while the
  * idiomatic routine calls its already-decompiled leaves directly, so the two leave
@@ -73,7 +73,7 @@ import { GAME_MODE, IN0_DEBOUNCED } from "../ram.js";
 import { blankScreen } from "../blankScreen.js";
 import { applyDipSwitches } from "../applyDipSwitches.js";
 import { waitFrames } from "../waitFrames.js";
-import { loc_03ac } from "../loc_03ac.js";
+import { resetStateAndShowSetup } from "../resetStateAndShowSetup.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -313,7 +313,7 @@ function twinWrongSweepColour(m) {
     m.push16(0x4f7e);
     waitFrames(m, 120);
   }
-  return loc_03ac(m);
+  return resetStateAndShowSetup(m);
 }
 
 test("TEETH (wrong sweep colour): a colour off by one bit is CAUGHT in the colour map", () => {

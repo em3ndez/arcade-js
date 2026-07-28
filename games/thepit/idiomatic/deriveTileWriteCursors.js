@@ -14,7 +14,7 @@
  * so both are a plain add — no wrap to model.
  *
  * Runs immediately after the offset is computed, as the second half of the address
- * setup for every panel / record / HUD plotter (drawPlayerLabel, loc_4816, drawMenLeftPanel,
+ * setup for every panel / record / HUD plotter (drawPlayerLabel, paintPlayfieldStripCol1Row11, drawMenLeftPanel,
  * drawCreditsDisplay, showSetupScreen, loc_4df8); each then re-reads the two cursors from memory to
  * stamp a run of cells.
  *

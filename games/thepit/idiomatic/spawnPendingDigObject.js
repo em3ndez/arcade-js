@@ -31,7 +31,7 @@
  *           The oracle's exit registers/flags are dead; the tail hand-off is identical
  *           on both sides so the Z80 return path lines up for free.
  * NAMES:    SPAWN_STATE, DIG_OBJ_STATE, DIG_OBJ_ATTR, DIG_OBJ_TIMER, TARGET_X, TARGET_Y,
- *           OBJ_X, OBJ_Y, CLIMB_GATE (the byte this routine writes the overlap flag to),
+ *           OBJ_X, OBJ_Y, DIG_OVERLAP_HOLD (the byte this routine writes the overlap flag to),
  *           and DIG_SPAWN_QUEUE (the 24-slot queue base) from ram.js. Its reload byte
  *           (0x80c2) has no ram.js name yet, kept hex.
  */
@@ -48,7 +48,7 @@ import {
   TARGET_Y,
   OBJ_X,
   OBJ_Y,
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
   DIG_SPAWN_QUEUE,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
@@ -111,7 +111,7 @@ export function spawnPendingDigObject(m) {
     const playerX = mem8[OBJ_X];
     if (targetX < playerX && u8(targetX + 8) >= playerX) landsOnPlayer = 1;
   }
-  mem8[CLIMB_GATE] = landsOnPlayer;
+  mem8[DIG_OVERLAP_HOLD] = landsOnPlayer;
 
   // Finish the spawn: build the dig-object sprite record (still the oracle), whose
   // return unwinds to this routine's own caller.

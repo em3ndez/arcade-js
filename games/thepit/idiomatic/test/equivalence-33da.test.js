@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_33da (ROM 0x33da) — the two-stage 0x34fe/0x35fe ROM-table
+ * Equivalence test for probeRowBackTilePair (ROM 0x33da) — the two-stage 0x34fe/0x35fe ROM-table
  * probe of the tilemap cell one row back from the write cursor (0x8089), keyed on the
  * row index at 0x808d, stashing the one-row-back cursor at 0x8134 and reporting a match
  * through the zero flag.
  *
  * The routine WRITES one 16-bit RAM word (0x8134) and its consumed result is the ZERO
- * FLAG (the tile-probe dispatcher loc_319d branches `if (regs.fZ)` immediately after every
+ * FLAG (the tile-probe dispatcher stepEnemyMover branches `if (regs.fZ)` immediately after every
  * one of its six calls, and reads no other register), so the contract is
  * RAM + pc + SP + the zero flag. The idiomatic routine models the return as a plain JS
  * return, so each contract check does one m.ret() on the candidate clone AFTER the call to
@@ -19,7 +19,7 @@
  *
  *   0. IDENTITY — run the unit gate with both arms = the oracle; EQUAL proves the harness
  *      wiring (construct-with-override -> host run -> capture -> clone -> diff) reaches 0x33da.
- *   1. EQUAL (real dispatches) — for every captured attract dispatch, run oracle vs loc_33da
+ *   1. EQUAL (real dispatches) — for every captured attract dispatch, run oracle vs probeRowBackTilePair
  *      on fresh clones and confirm identical RAM + pc + SP + zero flag. Proves nothing outside
  *      0x8134 is touched and the flag matches on the real input distribution.
  *   2. EQUAL (crafted + exhaustive) — a crafted index-0 hit (the short-circuit path), plus
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_33da as oracle } from "../../translated/loc_33da.js";
-import { loc_33da } from "../loc_33da.js";
+import { probeRowBackTilePair } from "../probeRowBackTilePair.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
 import { F_Z } from "../../../../core/cpu/z80.js";
@@ -160,7 +160,7 @@ function twinSkipTableB(m) {
 
 /** Stashes the wrong cursor (does not step one row back). Correct flag, wrong RAM@0x8134. */
 function twinWrongStash(m) {
-  loc_33da(m); // correct zero flag + correct stash
+  probeRowBackTilePair(m); // correct zero flag + correct stash
   m.mem.write16(SAVED_CELL, m.mem.read16(PROBE_CELL)); // BUG: overwrite the stash with the un-stepped cursor
 }
 
@@ -178,13 +178,13 @@ test("IDENTITY: the unit gate runs on The Pit and reports EQUAL when both arms a
 
 // -- 1. EQUAL (real dispatches, full contract) --------------------------------
 
-test("EQUAL (real dispatches): loc_33da == oracle on every captured 0x33da entry", () => {
+test("EQUAL (real dispatches): probeRowBackTilePair == oracle on every captured 0x33da entry", () => {
   const caps = captureDispatches(64, MAXF);
   assert.ok(caps.length >= 1, "expected at least one real 0x33da dispatch during attract");
 
   const paths = {};
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_33da); // fresh clones inside — cap untouched
+    const diffs = contractDiffs(cap, probeRowBackTilePair); // fresh clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
     const p = classify(cap);
     paths[p] = (paths[p] ?? 0) + 1;
@@ -206,13 +206,13 @@ test("EQUAL (crafted + exhaustive): index-0 hit and full key1/key2/index sweeps 
   const p0 = tableAProbe(0);
   assert.ok(p0.present >= 0 && p0.absent >= 0, "table A's index-0 row must have both a present and absent value");
   assert.equal(classify(craft(seed, 0, p0.present, 0)), "B-index0-hit", "crafted index-0 hit must take the short-circuit path");
-  assert.equal(contractDiffs(craft(seed, 0, p0.present, 0), loc_33da).length, 0, "index-0 hit diverged");
-  assert.equal(contractDiffs(craft(seed, 0, p0.absent, 0), loc_33da).length, 0, "index-0 miss diverged");
+  assert.equal(contractDiffs(craft(seed, 0, p0.present, 0), probeRowBackTilePair).length, 0, "index-0 hit diverged");
+  assert.equal(contractDiffs(craft(seed, 0, p0.absent, 0), probeRowBackTilePair).length, 0, "index-0 miss diverged");
 
   // Exhaustive first-key sweep at a real index (32): every possible neighbouring tile.
   let bad = 0;
   for (let k1 = 0; k1 < 256; k1++) {
-    if (contractDiffs(craft(seed, 32, k1, 0), loc_33da).length) bad++;
+    if (contractDiffs(craft(seed, 32, k1, 0), probeRowBackTilePair).length) bad++;
   }
   assert.equal(bad, 0, `first-key sweep diverged on ${bad}/256 values`);
 
@@ -221,14 +221,14 @@ test("EQUAL (crafted + exhaustive): index-0 hit and full key1/key2/index sweeps 
   assert.ok(p32.present >= 0, "need a table-A hit value to force the second search");
   let bad2 = 0;
   for (let k2 = 0; k2 < 256; k2++) {
-    if (contractDiffs(craft(seed, 32, p32.present, k2), loc_33da).length) bad2++;
+    if (contractDiffs(craft(seed, 32, p32.present, k2), probeRowBackTilePair).length) bad2++;
   }
   assert.equal(bad2, 0, `second-key sweep diverged on ${bad2}/256 values`);
 
   // Exhaustive row-index sweep (all 256), fixed arbitrary keys.
   let bad3 = 0;
   for (let idx = 0; idx < 256; idx++) {
-    if (contractDiffs(craft(seed, idx, 0x33, 0x77), loc_33da).length) bad3++;
+    if (contractDiffs(craft(seed, idx, 0x33, 0x77), probeRowBackTilePair).length) bad3++;
   }
   assert.equal(bad3, 0, `index sweep diverged on ${bad3}/256 values`);
 

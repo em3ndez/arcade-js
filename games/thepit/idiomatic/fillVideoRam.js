@@ -9,7 +9,7 @@
  *
  * The fill code is not a literal — it is read once from a fixed ROM constant, so
  * whatever tile sits there is what the screen fills with. The display-setup entries
- * (loc_4b3c / loc_4b40 / blankScreen) call this between their two other setup fills, and
+ * (setupBoardModeC0 / setupBoardMode90 / blankScreen) call this between their two other setup fills, and
  * its colour-RAM twin (loc_4c37) repaints colour the same way straight afterward.
  *
  * Memory-equivalent to the frozen oracle — equivalence-4c27.test.js.

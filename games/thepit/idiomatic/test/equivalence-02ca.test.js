@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_02ca (ROM 0x02ca, The Pit) — the one-time round-start
+ * Memory-equivalence gate for setUpRoundAndHoldIntro (ROM 0x02ca, The Pit) — the one-time round-start
  * setup: make the selected player's saved progress live, decode the dip switches, unmute
  * the audio, build the board screen and play the round-start sound, then hold an intro
  * (repaint the "MEN LEFT" / "PLAYERS" HUD panels and one playfield strip over eight short
- * frame-waits) before tail-jumping into the round-loop setup (loc_031a), which never returns.
+ * frame-waits) before tail-jumping into the round-loop setup (initRoundAndEnterMainLoop), which never returns.
  *
- * WHY A CRAFTED ENTRY. loc_02ca runs during boot, before attract, and is never dispatched
+ * WHY A CRAFTED ENTRY. setUpRoundAndHoldIntro runs during boot, before attract, and is never dispatched
  * in a plain boot/attract run (0 dispatches in 300 frames — the demo never starts a round),
  * so there is no real dispatch to snapshot. Per the crafted-entry method the gate captures a
  * real attract machine state — realistic full RAM, the oracle registry, a live stack — by
  * hooking a routine attract DOES reach (loc_3dae, the tile-offset calc entered within the
- * first ~100 frames) and cloning the machine the first time it fires. loc_02ca takes no
+ * first ~100 frames) and cloning the machine the first time it fires. setUpRoundAndHoldIntro takes no
  * register inputs (it reads its inputs from RAM / the dip switches / constants), so one real
  * captured state exercises its whole straight-line path. The setup body reuses loc_3dae
  * itself (through the strip painters), but after capture the hook just delegates to the
  * oracle, so it adds no divergence between the two arms.
  *
- * HOW THE NEVER-RETURNING TAIL IS BOUNDED. loc_02ca's tail is now the DIRECT idiomatic
- * loc_031a (no longer a registry boundary), which restores the player record, PAINTS THE
+ * HOW THE NEVER-RETURNING TAIL IS BOUNDED. setUpRoundAndHoldIntro's tail is now the DIRECT idiomatic
+ * initRoundAndEnterMainLoop (no longer a registry boundary), which restores the player record, PAINTS THE
  * WHOLE BOARD, and falls into the main game loop that spins forever. Its board paint would
  * overwrite the very HUD panels + playfield strip this routine's intro produces — so the
- * gate stops both arms at the hand-off, the instant loc_031a's board paint is about to
- * begin, BEFORE it repaints. paintScreen (inside loc_031a) waits one frame before its first
+ * gate stops both arms at the hand-off, the instant initRoundAndEnterMainLoop's board paint is about to
+ * begin, BEFORE it repaints. paintScreen (inside initRoundAndEnterMainLoop) waits one frame before its first
  * copy, and that frame-wait is the first watchdog read that happens once this routine's intro
  * loop has drained the shared loop counter to 0 (every intro frame-wait runs with the counter
  * still >= 1). So the shared watchdog hook drains the intro's per-frame countdown (modelling
  * the interrupt, so the intro's frame-waits terminate) and, on the first watchdog read it
- * sees with the loop counter already at 0, throws — freezing both arms at loc_031a's paint
+ * sees with the loop counter already at 0, throws — freezing both arms at initRoundAndEnterMainLoop's paint
  * boundary with this routine's intro output intact. Both arms reach it identically (oracle via
- * m.call to the registered translated loc_031a, idiomatic via its import), so the hook can
- * only reveal a difference. loc_031a's own correctness is separately gated (equivalence-031a).
+ * m.call to the registered translated initRoundAndEnterMainLoop, idiomatic via its import), so the hook can
+ * only reveal a difference. initRoundAndEnterMainLoop's own correctness is separately gated (equivalence-031a).
  *
  * THE CONTRACT is observable-RAM equivalence: the work / colour / video / sprite RAM the
  * routine leaves. pc, SP and the value registers/flags are EXCLUDED — the idiomatic layer
  * does not preserve the Z80 register trace, and this routine has no genuine register live-out
- * (it tail-jumps into the round loop and the caller's return is carried by loc_031a). ONE
+ * (it tail-jumps into the round loop and the caller's return is carried by initRoundAndEnterMainLoop). ONE
  * WRINKLE: the dissolved setup/loop calls no longer push their return addresses onto the work
  * stack, so the oracle parks a few return-address ghosts in the dead scratch just below the
  * entry stack pointer that the stack-free idiomatic calls do not. No game-observable cell
@@ -61,7 +61,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_02ca as oracle } from "../../translated/loc_02ca.js";
-import { loc_02ca as idiomatic } from "../loc_02ca.js";
+import { setUpRoundAndHoldIntro as idiomatic } from "../setUpRoundAndHoldIntro.js";
 import { loc_031a as oracleRoundInit } from "../../translated/loc_031a.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 
@@ -69,11 +69,11 @@ import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 import { loadPlayerState } from "../loadPlayerState.js";
 import { applyDipSwitches } from "../applyDipSwitches.js";
 import { enableSound } from "../enableSound.js";
-import { loc_4b40 } from "../loc_4b40.js";
+import { setupBoardMode90 } from "../setupBoardMode90.js";
 import { requestSound4 } from "../requestSound4.js";
 import { drawPlayerLabel } from "../drawPlayerLabel.js";
 import { waitFrames } from "../waitFrames.js";
-import { loc_4816 } from "../loc_4816.js";
+import { paintPlayfieldStripCol1Row11 } from "../paintPlayfieldStripCol1Row11.js";
 
 import { makeMachineFactory } from "../../machine.js";
 import { LOOP_COUNTER, SOUND_HEAD, SOUND_RING } from "../ram.js";
@@ -86,21 +86,21 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const PROXY = 0x3dae; // a routine attract DOES reach; hooked to capture a real machine state
-const TAIL = 0x031a; // the round-loop setup loc_02ca tail-jumps to (now a direct idiomatic call)
+const TAIL = 0x031a; // the round-loop setup setUpRoundAndHoldIntro tail-jumps to (now a direct idiomatic call)
 const COUNTDOWN = 0x8009; // the per-frame countdown cell the frame-waits drain to 0
 const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per busy-wait pass)
 const ROUND_START_SOUND = 4 | 0x80; // 0x84 — the pending-marked command requestSound4 queues
 const STACK_WINDOW = 16; // dead stack-scratch just below entry SP (oracle's deepest push is -6)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// A unique token thrown to bound execution at loc_031a's board-paint boundary (see above).
+// A unique token thrown to bound execution at initRoundAndEnterMainLoop's board-paint boundary (see above).
 const BOUND = Symbol("round-init-paint-bound");
 
 // The Pit's routine registry is async, so build the factory once and reuse it.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
 /**
- * Capture one real attract machine state to seed crafted entries. loc_02ca itself is never
+ * Capture one real attract machine state to seed crafted entries. setUpRoundAndHoldIntro itself is never
  * dispatched in attract, so hook a routine that IS (loc_3dae, entered within the first ~100
  * frames) and clone the machine the first time it fires. The never-returning round-loop setup
  * 0x031a is stubbed on the host during capture so the boot run does not hang; the comparison
@@ -123,11 +123,11 @@ function captureSeed() {
 const SEED = ROM_PRESENT ? captureSeed() : null;
 
 /**
- * Run `fn` on a fresh clone of `entry`, bounded at loc_031a's board-paint boundary. Register
+ * Run `fn` on a fresh clone of `entry`, bounded at initRoundAndEnterMainLoop's board-paint boundary. Register
  * the REAL translated round init at 0x031a (so the oracle arm reaches it for real). The
  * watchdog hook drains the per-frame countdown while the intro loop is still running (its loop
  * counter >= 1, so the intro frame-waits terminate); the first watchdog read it sees with the
- * loop counter already at 0 is loc_031a's paintScreen settle-wait, taken BEFORE the board is
+ * loop counter already at 0 is initRoundAndEnterMainLoop's paintScreen settle-wait, taken BEFORE the board is
  * repainted, so it applies `atBound` (a teeth mutation, if any) and throws there. Restores
  * read8 before `atBound` so it cannot re-enter the hook. Asserts the run reached the bound.
  */
@@ -155,7 +155,7 @@ function runBounded(entry, fn, atBound) {
     if (e !== BOUND) throw e;
     bounded = true;
   }
-  assert.ok(bounded, "run did not reach loc_031a's paint boundary — the harness never engaged");
+  assert.ok(bounded, "run did not reach initRoundAndEnterMainLoop's paint boundary — the harness never engaged");
   return m;
 }
 
@@ -180,7 +180,7 @@ function stateDiffOutsideStack(a, b, entrySP) {
 
 /**
  * Run the oracle and a candidate on two independent clones of the captured entry — both
- * bounded at loc_031a's paint boundary — and diff the observable-RAM contract, excluding the
+ * bounded at initRoundAndEnterMainLoop's paint boundary — and diff the observable-RAM contract, excluding the
  * dead stack scratch. `atBound` is applied only to the candidate (for the teeth). Returns
  * { diffs, ram } (diffs empty == EQUAL).
  */
@@ -197,12 +197,12 @@ function contractDiffs(entry, fn, atBound) {
 
 // -- 1. EQUAL on a real captured attract entry --------------------------------
 
-test("EQUAL (real entry): loc_02ca == oracle over observable RAM", () => {
+test("EQUAL (real entry): setUpRoundAndHoldIntro == oracle over observable RAM", () => {
   const { diffs } = contractDiffs(SEED, idiomatic);
   assert.equal(diffs.length, 0, diffs.join("; "));
 
   // Positive checks: the observable effects really happened (at the paint boundary). The
-  // round-start sound (command 4) sits at the slot loc_02ca queued it in; loc_031a's own
+  // round-start sound (command 4) sits at the slot setUpRoundAndHoldIntro queued it in; initRoundAndEnterMainLoop's own
   // requestSound6 uses the next slot, so this one is untouched.
   const seedHead = SEED.mem.read8(SOUND_HEAD);
   const c = runBounded(SEED, idiomatic);
@@ -229,7 +229,7 @@ function twinDropMenPanel(m) {
   applyDipSwitches(m);
   enableSound(m);
   m.push16(0x02d6);
-  loc_4b40(m);
+  setupBoardMode90(m);
   requestSound4(m);
   mem8[LOOP_COUNTER] = 8;
   // BUG: drawMenLeftPanel(m) is dropped — the "MEN LEFT" panel is never painted.
@@ -237,7 +237,7 @@ function twinDropMenPanel(m) {
     drawPlayerLabel(m);
     m.push16(0x02e9);
     waitFrames(m, 10);
-    loc_4816(m);
+    paintPlayfieldStripCol1Row11(m);
     m.push16(0x02f1);
     waitFrames(m, 5);
     mem8[LOOP_COUNTER] = mem8[LOOP_COUNTER] - 1;

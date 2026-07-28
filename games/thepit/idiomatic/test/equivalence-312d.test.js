@@ -18,7 +18,7 @@
  *     intro/phase counter to force each branch: skip-both (counter < 8), object-1-only
  *     (game mode 4, counter 8..9), and object-1 + object-2 (counter >= 10).
  *
- * ONE WRINKLE — object 1's mover (loc_319d) can, on its rare arrival/capture tail, reach
+ * ONE WRINKLE — object 1's mover (stepEnemyMover) can, on its rare arrival/capture tail, reach
  * the round/state-boundary transition, whose real successor chain converges at two TRUE
  * oracle leaves (0x031a round setup, 0x01f9 reset entry) that never return on hardware
  * (they busy-wait on the vblank NMI, which never fires on a single-routine clone). Both
@@ -228,7 +228,7 @@ test("EQUAL (object-1-only): game mode 4 + counter 9 runs only object 1 and stag
 test("EQUAL (object-1 + object-2): counter >= 10 runs both movers, identical to the oracle", () => {
   const entry = baseAttractState(300);
   entry.mem.write8(GAME_MODE, 4);
-  entry.mem.write8(FRAME_COUNTER, 12); // >= 10 -> object 2 also runs (hand-off to loc_316f)
+  entry.mem.write8(FRAME_COUNTER, 12); // >= 10 -> object 2 also runs (hand-off to advanceObjectMover2)
 
   const diff = ramDiffVsOracle(entry, idiomatic);
   assert.equal(diff, null, diff && `both-movers RAM diff at ${hx(diff.addr ?? 0)} oracle=${diff.a} cand=${diff.b}`);

@@ -52,7 +52,7 @@ import { GAME_MODE } from "../ram.js";
 // The idiomatic services the teeth twins reuse (they mirror mainLoop's body, one break each).
 import { enableNmi } from "../enableNmi.js";
 import { steerDemoPlayer } from "../steerDemoPlayer.js";
-import { loc_13c9 } from "../loc_13c9.js";
+import { dispatchObjectFrameByStateTimer } from "../dispatchObjectFrameByStateTimer.js";
 import { advanceColumnAnimation } from "../advanceColumnAnimation.js";
 import { glitterDiamonds } from "../glitterDiamonds.js";
 import { advanceReactionObject } from "../advanceReactionObject.js";
@@ -221,7 +221,7 @@ function twinDroppedService(m) {
     void mem8[WATCHDOG];
     enableNmi(m);
     if (mem8[GAME_MODE] === 4) steerDemoPlayer(m);
-    loc_13c9(m);
+    dispatchObjectFrameByStateTimer(m);
     advanceColumnAnimation(m);
     glitterDiamonds(m);
     // BUG: advanceReactionObject(m) omitted
@@ -235,7 +235,7 @@ function twinFlippedDemoTest(m) {
     void mem8[WATCHDOG];
     enableNmi(m);
     if (mem8[GAME_MODE] !== 4) steerDemoPlayer(m); // BUG: should be === 4
-    loc_13c9(m);
+    dispatchObjectFrameByStateTimer(m);
     advanceColumnAnimation(m);
     glitterDiamonds(m);
     advanceReactionObject(m);

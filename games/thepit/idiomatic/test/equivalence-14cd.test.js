@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_14cd (ROM 0x14cd) — locate the object's tilemap cell, latch a goal
+ * Memory-equivalence gate for locateObjectCellCheckGoal (ROM 0x14cd) — locate the object's tilemap cell, latch a goal
  * crossing if the goal is just ahead, else resolve the tile under it.
  *
- * loc_14cd is the positioning front of the tile-under-object path: from the object's screen row (a
+ * locateObjectCellCheckGoal is the positioning front of the tile-under-object path: from the object's screen row (a
  * register live-in, surfaced as `row`) plus its row/column coordinates it derives the tilemap cell
  * (publishing OBJ_TILE_COL + ACTOR_CELL_PTR), clears the ahead-tile scratch (NEXT_TILE), then either
  * latches the two goal flags and walks (when the cell ahead is the goal tile and the object is
- * cross-axis grid-aligned) or hands the whole step to the resolver loc_1515. Its declared LIVE-OUT is
+ * cross-axis grid-aligned) or hands the whole step to the resolver collectAlignedLootElseResolveTile. Its declared LIVE-OUT is
  * MEMORY-ONLY.
  *
- * STACK-TOP WINDOW. loc_14cd itself pushes nothing, but the loot awards inside the delegated resolver
+ * STACK-TOP WINDOW. locateObjectCellCheckGoal itself pushes nothing, but the loot awards inside the delegated resolver
  * reach the score adder through the oracle's ordinary calls (0x467b / 0x4683), which park a return
- * address the stack-free idiomatic cascade never writes. As measured for loc_1515, the oracle leaves
+ * address the stack-free idiomatic cascade never writes. As measured for collectAlignedLootElseResolveTile, the oracle leaves
  * at most a handful of dead bytes just below the entry stack pointer, so the diff excludes a small
  * [SP-16, SP) window — well above the work + video RAM this routine writes — and compares everything
  * else byte-for-byte. Registers/flags/pc/SP are the honest-signature dead live-out and never compared;
  * the `row` live-in defaults to the register so a no-arg call reproduces the oracle.
  *
- * REACHED IN ATTRACT. Unlike its resolver siblings, loc_14cd IS dispatched during attract (measured 61
+ * REACHED IN ATTRACT. Unlike its resolver siblings, locateObjectCellCheckGoal IS dispatched during attract (measured 61
  * dispatches in 4000 frames), so the gate validates every real captured entry directly. The arms the
  * demo never drives — the goal-ahead latch and the loot/push cases — are covered by crafted entries
  * built on real attract clones (a valid stack, video RAM, object record) with the row / column / cell
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_14cd as oracle } from "../../translated/loc_14cd.js";
-import { loc_14cd as idiomatic } from "../loc_14cd.js";
+import { locateObjectCellCheckGoal as idiomatic } from "../locateObjectCellCheckGoal.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
   OBJ_Y,
@@ -103,7 +103,7 @@ function captureStates(count, stride, startFrame) {
   return caps;
 }
 
-/** The video-RAM cell loc_14cd computes for a given screen row + object column coordinate. */
+/** The video-RAM cell locateObjectCellCheckGoal computes for a given screen row + object column coordinate. */
 function cellFor(row, objY) {
   const column = (objY + 5) & 0xff;
   return (VRAM_BASE + row * ROW_STRIDE + (column >> 3)) & 0xffff;
@@ -112,7 +112,7 @@ function cellFor(row, objY) {
 /**
  * Craft an entry from a real base: set the screen row (register live-in), the object's row/column
  * coordinates (objY drives the tile column + sub-offset; objX drives the cross-axis alignment), then
- * write the tile under the object and the tile one step ahead at the cell loc_14cd will compute.
+ * write the tile under the object and the tile one step ahead at the cell locateObjectCellCheckGoal will compute.
  * Returns the entry plus the cell address for assertions.
  */
 function craft(base, { row = CRAFT_ROW, objY, objX = 0, underTile, aheadTile = 0x74 }) {
@@ -161,7 +161,7 @@ test("HARNESS: 0x14cd is dispatched in attract, entries capture, and oracle-vs-o
 
 // -- 1. EQUAL over every real captured attract dispatch -------------------------------------------
 
-test("EQUAL (real entries): loc_14cd leaves the same RAM as the oracle over every real dispatch", () => {
+test("EQUAL (real entries): locateObjectCellCheckGoal leaves the same RAM as the oracle over every real dispatch", () => {
   const entries = captureEntries(2000, 40);
   assert.ok(entries.length >= 1, "expected at least one captured 0x14cd entry");
   for (const entry of entries) {

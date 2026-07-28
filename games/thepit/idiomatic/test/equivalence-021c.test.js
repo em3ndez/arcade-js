@@ -6,7 +6,7 @@
  * which paints a canned screen and spins forever displaying it.
  *
  * WHY A CRAFTED ENTRY (not the stock unitEquivalence capture). showCreditScreen is reached
- * only from the boot fork loc_01f9 when the restart flag (0x8000) is nonzero, which a
+ * only from the boot fork rearmMachineAndBranchOnCredits when the restart flag (0x8000) is nonzero, which a
  * plain boot/attract run never is — 0 dispatches in 1500 frames. So there is no real
  * dispatch of showCreditScreen to snapshot. Per the crafted-entry method this gate instead
  * captures a real attract machine state (realistic full RAM, the oracle registry, a

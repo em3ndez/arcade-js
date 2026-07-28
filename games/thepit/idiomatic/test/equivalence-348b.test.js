@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_348b (ROM 0x348b, The Pit) — one of the four
+ * Memory-equivalence gate for stepMoverUnmirrored (ROM 0x348b, The Pit) — one of the four
  * fixed-velocity entries into the shared object-mover body. This entry carries a zero
  * horizontal step, direction index 3, and refreshes the walk sprite un-mirrored.
  *
@@ -12,7 +12,7 @@
  * deliberately untouched (zero step), which the oracle confirms by writing the same
  * value back (no net change).
  *
- * THE CONTRACT IS A RAM-ONLY DIFF. loc_348b's declared live-out is memory only: the
+ * THE CONTRACT IS A RAM-ONLY DIFF. stepMoverUnmirrored's declared live-out is memory only: the
  * accumulator the oracle leaves behind is the object's unchanged position value, dead
  * ABI. So the gate compares RAM (dumpState) — pc, SP and the value registers/flags are
  * excluded, exactly the case the pipeline calls for. The oracle returns by popping the
@@ -23,7 +23,7 @@
  * SIX checks:
  *   0. HARNESS — capture the routine's real attract dispatches and confirm the oracle
  *      run is deterministic; confirm both counter paths are exercised.
- *   1. EQUAL + SCOPE (real attract dispatches) — loc_348b == oracle on every real
+ *   1. EQUAL + SCOPE (real attract dispatches) — stepMoverUnmirrored == oracle on every real
  *      captured entry, and the oracle writes only within {0x808b, 0x8092, 0x8083, 0x8084}.
  *   2. EQUAL (crafted, both counter paths) — with the counter forced still-counting and
  *      forced to expire, both sides leave identical RAM; the positive values (reload,
@@ -42,10 +42,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_348b as oracle } from "../../translated/loc_348b.js";
-import { loc_348b } from "../loc_348b.js";
+import { stepMoverUnmirrored } from "../stepMoverUnmirrored.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ANIM_RAND, ACTOR_STATE } from "../ram.js";
+import { MOVER_CADENCE, ACTOR_STATE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -54,12 +54,12 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x348b; // this mover entry, reached in attract via loc_319d's tail-jump
+const TARGET = 0x348b; // this mover entry, reached in attract via stepEnemyMover's tail-jump
 const RELOAD_PERIOD = 0x8091; // cadence-reload value (read only)
 const DIR_INDEX = 0x8092; // published direction index (this entry = 3)
 const ORIENT_ACC = 0x8083; // orientation/walk-phase accumulator (steps backward here)
 const POSITION = 0x8086; // horizontal position (untouched — zero step)
-const EXPECTED_WRITES = new Set([ANIM_RAND, DIR_INDEX, ORIENT_ACC, ACTOR_STATE]);
+const EXPECTED_WRITES = new Set([MOVER_CADENCE, DIR_INDEX, ORIENT_ACC, ACTOR_STATE]);
 // The stored walk sprite code for a given (pre-step) accumulator value: step the
 // accumulator backward, then pick one of four frames by bits 1-2 of (acc+4); no mirror.
 const WALK_FRAMES = [0x17, 0x14, 0x15, 0x16];
@@ -112,7 +112,7 @@ test("HARNESS: real 0x348b dispatches captured, oracle run deterministic, both p
 
   let stillCounting = 0;
   let cadenceBeat = 0;
-  for (const cap of caps) (cap.mem.read8(ANIM_RAND) === 1 ? cadenceBeat++ : stillCounting++);
+  for (const cap of caps) (cap.mem.read8(MOVER_CADENCE) === 1 ? cadenceBeat++ : stillCounting++);
   assert.ok(stillCounting > 0, "expected some still-counting dispatches");
   assert.ok(cadenceBeat > 0, "expected some cadence-beat (counter==1) dispatches");
   console.log(
@@ -123,7 +123,7 @@ test("HARNESS: real 0x348b dispatches captured, oracle run deterministic, both p
 
 // -- 1. EQUAL + SCOPE on every real captured dispatch ------------------------
 
-test("EQUAL + SCOPE: loc_348b == oracle on every real dispatch; oracle writes only its four bytes", () => {
+test("EQUAL + SCOPE: stepMoverUnmirrored == oracle on every real dispatch; oracle writes only its four bytes", () => {
   const caps = captureRealDispatches(1500);
   assert.ok(caps.length >= 1, "expected captured 0x348b dispatches");
 
@@ -144,7 +144,7 @@ test("EQUAL + SCOPE: loc_348b == oracle on every real dispatch; oracle writes on
 
     // EQUAL: idiomatic reproduces the oracle over RAM.
     const idioClone = cap.clone();
-    loc_348b(idioClone);
+    stepMoverUnmirrored(idioClone);
     const diff = ramDiff(oracleClone, idioClone);
     assert.equal(diff, null, diff && `contract mismatch on a real dispatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
   }
@@ -159,28 +159,28 @@ test("EQUAL (both counter paths): still-counting and cadence-beat leave identica
   // Still-counting path: counter well above 1, only the counter changes.
   {
     const seed = base.clone();
-    seed.mem.write8(ANIM_RAND, 40);
+    seed.mem.write8(MOVER_CADENCE, 40);
     seed.mem.write8(POSITION, 0x44);
     const o = seed.clone(); oracle(o);
-    const c = seed.clone(); loc_348b(c);
+    const c = seed.clone(); stepMoverUnmirrored(c);
     const diff = ramDiff(o, c);
     assert.equal(diff, null, diff && `still-counting mismatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
-    assert.equal(c.mem.read8(ANIM_RAND), 39, "counter must tick down by one");
+    assert.equal(c.mem.read8(MOVER_CADENCE), 39, "counter must tick down by one");
     assert.equal(c.mem.read8(POSITION), 0x44, "position must be untouched (zero horizontal step)");
   }
 
   // Cadence-beat path: counter at 1 -> expires; reload + publish + refresh the sprite.
   {
     const seed = base.clone();
-    seed.mem.write8(ANIM_RAND, 1);
+    seed.mem.write8(MOVER_CADENCE, 1);
     seed.mem.write8(RELOAD_PERIOD, 0x37);
     seed.mem.write8(ORIENT_ACC, 0x05);
     seed.mem.write8(POSITION, 0x44);
     const o = seed.clone(); oracle(o);
-    const c = seed.clone(); loc_348b(c);
+    const c = seed.clone(); stepMoverUnmirrored(c);
     const diff = ramDiff(o, c);
     assert.equal(diff, null, diff && `cadence-beat mismatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
-    assert.equal(c.mem.read8(ANIM_RAND), 0x37, "counter must reload from its period");
+    assert.equal(c.mem.read8(MOVER_CADENCE), 0x37, "counter must reload from its period");
     assert.equal(c.mem.read8(DIR_INDEX), 3, "direction index 3 must be published");
     assert.equal(c.mem.read8(ORIENT_ACC), 0x04, "orientation accumulator must step backward");
     assert.equal(c.mem.read8(ACTOR_STATE), expectedSprite(0x05), "walk sprite must be the un-mirrored frame for this phase");
@@ -198,11 +198,11 @@ test("EQUAL (orientation sweep 0..255): on the cadence beat every accumulator va
   const framesSeen = new Set();
   for (let acc = 0; acc < 256; acc++) {
     const seed = base.clone();
-    seed.mem.write8(ANIM_RAND, 1); // expire the counter so the walk-frame branch runs
+    seed.mem.write8(MOVER_CADENCE, 1); // expire the counter so the walk-frame branch runs
     seed.mem.write8(RELOAD_PERIOD, 0x2a);
     seed.mem.write8(ORIENT_ACC, acc);
     const o = seed.clone(); oracle(o);
-    const c = seed.clone(); loc_348b(c);
+    const c = seed.clone(); stepMoverUnmirrored(c);
     const diff = ramDiff(o, c);
     assert.equal(diff, null, diff && `acc=${hx(acc)} mismatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
     framesSeen.add(c.mem.read8(ACTOR_STATE));
@@ -213,14 +213,14 @@ test("EQUAL (orientation sweep 0..255): on the cadence beat every accumulator va
 
 // -- 4/5. TEETH: broken twins the gate MUST catch ----------------------------
 
-/** The cadence-beat effect of loc_348b, with a single injected bug. */
+/** The cadence-beat effect of stepMoverUnmirrored, with a single injected bug. */
 function beatTwin({ mirror = false, dir = 3 } = {}) {
   return (m) => {
     const { mem8 } = m;
-    const cadence = mem8[ANIM_RAND] - 1;
-    mem8[ANIM_RAND] = cadence;
+    const cadence = mem8[MOVER_CADENCE] - 1;
+    mem8[MOVER_CADENCE] = cadence;
     if (cadence !== 0) return;
-    mem8[ANIM_RAND] = mem8[RELOAD_PERIOD];
+    mem8[MOVER_CADENCE] = mem8[RELOAD_PERIOD];
     mem8[DIR_INDEX] = dir;
     mem8[ORIENT_ACC] = mem8[ORIENT_ACC] - 1;
     const walkPhase = ((mem8[ORIENT_ACC] + 4) & 6) >> 1;
@@ -231,7 +231,7 @@ function beatTwin({ mirror = false, dir = 3 } = {}) {
 test("TEETH (added mirror): a twin that flips the sprite high bit is CAUGHT at 0x8084", () => {
   const base = baseState(200);
   const seed = base.clone();
-  seed.mem.write8(ANIM_RAND, 1);
+  seed.mem.write8(MOVER_CADENCE, 1);
   seed.mem.write8(ORIENT_ACC, 0x05);
   const a = seed.clone(); oracle(a);
   const b = seed.clone(); beatTwin({ mirror: true })(b);
@@ -244,7 +244,7 @@ test("TEETH (added mirror): a twin that flips the sprite high bit is CAUGHT at 0
 test("TEETH (wrong direction): a twin that publishes direction 2 is CAUGHT at 0x8092", () => {
   const base = baseState(200);
   const seed = base.clone();
-  seed.mem.write8(ANIM_RAND, 1);
+  seed.mem.write8(MOVER_CADENCE, 1);
   seed.mem.write8(ORIENT_ACC, 0x05);
   const a = seed.clone(); oracle(a);
   const b = seed.clone(); beatTwin({ dir: 2 })(b);

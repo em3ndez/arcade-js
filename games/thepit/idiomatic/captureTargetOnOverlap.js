@@ -28,18 +28,18 @@
  *           diff minus the dead stack scratch; pc/SP/value-registers are the dead Z80
  *           trace and excluded — every hand-off is an idiomatic call (plain JS return),
  *           so a pc/SP contract would false-fail against the oracle's stack dance.
- * LIVE-OUT: memory-only — CLIMB_GATE, DIG_OBJ_TIMER, DIG_OBJ_ARM_STATE, OBJ_X, plus
+ * LIVE-OUT: memory-only — DIG_OVERLAP_HOLD, DIG_OBJ_TIMER, DIG_OBJ_ARM_STATE, OBJ_X, plus
  *           whatever the delegated tail leaves, passed straight through. No register
  *           live-ins or live-outs: every input is read from RAM and every callee reads
  *           its inputs from RAM (no register hand-off).
- * NAMES:    CLIMB_GATE (per-tick overlap gate), DIG_OBJ_TIMER (target countdown),
+ * NAMES:    DIG_OVERLAP_HOLD (per-tick overlap gate), DIG_OBJ_TIMER (target countdown),
  *           DIG_OBJ_ARM_STATE (captured flag), OBJ_X/OBJ_Y (tracked object),
  *           TARGET_X/TARGET_Y (dig target cell).
  */
 
 import { u8 } from "../../../core/int.js";
 import {
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
   DIG_OBJ_TIMER,
   DIG_OBJ_ARM_STATE,
   OBJ_X,
@@ -48,7 +48,7 @@ import {
   TARGET_Y,
 } from "./ram.js";
 import { requestSound20 } from "./requestSound20.js";
-import { loc_2c91 } from "./loc_2c91.js";
+import { flagObjectTargetOverlap } from "./flagObjectTargetOverlap.js";
 import { advanceDigTarget } from "./advanceDigTarget.js";
 import { stampGlyphColumn } from "./stampGlyphColumn.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
@@ -60,7 +60,7 @@ export function captureTargetOnOverlap(m) {
   const { mem8 } = m;
 
   // Every tick starts with the shared overlap gate cleared (no overlap so far this frame).
-  mem8[CLIMB_GATE] = 0;
+  mem8[DIG_OVERLAP_HOLD] = 0;
 
   // At the reload sentinel the target's cycle is done — stamp its glyph and reset it.
   const timer = mem8[DIG_OBJ_TIMER];
@@ -70,7 +70,7 @@ export function captureTargetOnOverlap(m) {
   // and just refreshes its overlap record.
   const ticked = timer - 1;
   mem8[DIG_OBJ_TIMER] = ticked;
-  if (ticked !== 0) return loc_2c91(m);
+  if (ticked !== 0) return flagObjectTargetOverlap(m);
 
   // The countdown expired: re-arm it to fire again next frame, then try to capture.
   mem8[DIG_OBJ_TIMER] = 1;

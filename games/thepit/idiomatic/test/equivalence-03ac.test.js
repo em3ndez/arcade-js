@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_03ac (ROM 0x03ac, The Pit) — the reset/round-restart
+ * Memory-equivalence gate for resetStateAndShowSetup (ROM 0x03ac, The Pit) — the reset/round-restart
  * epilogue: it clears the active-player byte (0x8001) and arms the secondary state byte
  * (0x8002), applies the DIP switches, paints + holds the round-setup screen, then tail-
  * jumps into the still-oracle reset/entry handler 0x01f9.
  *
  * THREE WRINKLES this routine forces:
  *
- *   1. The tail-jump never returns. loc_03ac's hand-off (0x01f9) re-seats the stack and
+ *   1. The tail-jump never returns. resetStateAndShowSetup's hand-off (0x01f9) re-seats the stack and
  *      runs the game loop, which spins forever — so the routine cannot be run to
  *      completion. The gate installs a no-op stub at 0x01f9 IDENTICALLY on both arms (via
  *      the machine's override map, which clone() carries), so the tail-jump terminates
- *      the same way on each side and the comparison isolates loc_03ac's own work + its two
+ *      the same way on each side and the comparison isolates resetStateAndShowSetup's own work + its two
  *      already-decompiled callees. The same stub is in place during capture, so the boot
  *      cascade unwinds after the first 0x03ac dispatch instead of running into the loop.
  *
@@ -34,7 +34,7 @@
  *      trace; the whole-machine pixel gate backstops it, and this contract survives the
  *      0x01f9 callee later being dissolved).
  *
- * loc_03ac is dispatched once, at the tail of cold boot (the power-on init tail-jumps to
+ * resetStateAndShowSetup is dispatched once, at the tail of cold boot (the power-on init tail-jumps to
  * it), so the real entry is captured from a boot run. The real dispatch runs with DSW = 0
  * (the default upright cabinet); a crafted sweep pokes the DIP byte across representative
  * values (bit 7 clear — the top bit diverts to a colour-test screen that only makes
@@ -44,7 +44,7 @@
  * CHECKS:
  *   0. HARNESS — capture the real boot dispatch; oracle vs oracle is deterministic, the
  *      state bytes come out 0 / 1, and the setup hold counter drains to 0.
- *   1. EQUAL (real dispatch) — loc_03ac == oracle over RAM outside the stack scratch, and
+ *   1. EQUAL (real dispatch) — resetStateAndShowSetup == oracle over RAM outside the stack scratch, and
  *      the state bytes / DIP-decoded block / setup records / drained hold hold their values.
  *   2. EQUAL (DIP sweep) — the DIP byte poked to representative values (< 0x80) identically
  *      on both sides stays equal across the decode + count-label arms.
@@ -65,7 +65,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03ac as oracle } from "../../translated/loc_03ac.js";
-import { loc_03ac as idiomatic } from "../loc_03ac.js";
+import { resetStateAndShowSetup as idiomatic } from "../resetStateAndShowSetup.js";
 import { applyDipSwitches } from "../applyDipSwitches.js";
 import { showSetupScreen } from "../showSetupScreen.js";
 import { makeMachineFactory } from "../../machine.js";
@@ -94,9 +94,9 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // The Pit's routine registry is async, so build the factory once and reuse it.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
-/** No-op stub for the reset handler, so loc_03ac's tail-jump terminates instead of
+/** No-op stub for the reset handler, so resetStateAndShowSetup's tail-jump terminates instead of
  *  running into the endless game loop. Identical on both arms — it can only isolate the
- *  comparison to loc_03ac's own work, never hide a difference. */
+ *  comparison to resetStateAndShowSetup's own work, never hide a difference. */
 const resetHandlerStub = () => {};
 
 /**
@@ -194,7 +194,7 @@ test("HARNESS: the real boot 0x03ac dispatch is captured and the oracle run is d
 
 // -- 1. EQUAL on the real captured dispatch -----------------------------------
 
-test("EQUAL (real dispatch): loc_03ac == oracle over RAM outside the stack scratch", () => {
+test("EQUAL (real dispatch): resetStateAndShowSetup == oracle over RAM outside the stack scratch", () => {
   const { ram, candM } = runPair(idiomatic);
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
 
@@ -236,7 +236,7 @@ test("TEETH (wrong mode store): a corrupted active-player byte is CAUGHT at 0x80
 
 // -- 4. TEETH: a dropped mode-clear is caught (the store is load-bearing) ------
 
-/** Broken twin: loc_03ac with the clear-to-0 of the active-player byte OMITTED. With the
+/** Broken twin: resetStateAndShowSetup with the clear-to-0 of the active-player byte OMITTED. With the
  *  entry pre-poked non-zero, the missing store leaves the wrong value behind. */
 function twinDropModeClear(m) {
   const { mem8 } = m;

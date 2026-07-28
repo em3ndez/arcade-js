@@ -9,7 +9,7 @@
  * per step, which is 32 cells further along the 32-cell-wide map — writing the colour
  * byte into each cell until the row count is used up.
  *
- * The panel / record / HUD painters (cycleStagedColumnColour, drawPlayerLabel, loc_4816, drawMenLeftPanel) each
+ * The panel / record / HUD painters (cycleStagedColumnColour, drawPlayerLabel, paintPlayfieldStripCol1Row11, drawMenLeftPanel) each
  * finish by handing off to this, so a whole colour column lands from one call.
  *
  * A row count of zero is not a no-op: the count is only checked after the first cell

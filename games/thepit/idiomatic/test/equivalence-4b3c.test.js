@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_4b3c (ROM 0x4b3c) — the 0xC0 board-mode door.
+ * Memory-equivalence gate for setupBoardModeC0 (ROM 0x4b3c) — the 0xC0 board-mode door.
  *
- * loc_4b3c stows the board-mode / entry-select byte 0xC0 (into BOARD_MODE) and tail-
+ * setupBoardModeC0 stows the board-mode / entry-select byte 0xC0 (into BOARD_MODE) and tail-
  * hands to the still-oracle shared setup body at 0x4b46, which clears sprite/attribute
  * RAM, repaints the tilemap, flat-fills colour RAM with that byte, and wipes a work
  * block. The idiomatic rewrite passes the byte the register way (a genuine oracle
@@ -14,7 +14,7 @@
  *
  *   1. EQUAL (real dispatch) — boot the machine, hook 0x4b3c, and clone it at its
  *      single real dispatch (it fires once during the cold-boot init). Run the ORACLE
- *      on one clone and the idiomatic loc_4b3c on another, and prove RAM is byte-
+ *      on one clone and the idiomatic setupBoardModeC0 on another, and prove RAM is byte-
  *      identical and SP/pc match. The routine is straight-line (set the byte, tail-hand
  *      to the shared body), so that one entry covers the whole control path.
  *
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_4b3c as oracle } from "../../translated/loc_4b3c.js";
-import { loc_4b3c as idiomatic } from "../loc_4b3c.js";
+import { setupBoardModeC0 as idiomatic } from "../setupBoardModeC0.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -92,7 +92,7 @@ function replay(entry, candidate) {
 
 // -- 1 + 2. EQUAL (real dispatch) + NON-VACUOUS -------------------------------
 
-test("EQUAL: idiomatic loc_4b3c == oracle on the real dispatch (RAM + SP + pc)", () => {
+test("EQUAL: idiomatic setupBoardModeC0 == oracle on the real dispatch (RAM + SP + pc)", () => {
   const entry = captureEntry(120);
   assert.ok(entry, "expected a real 0x4b3c dispatch during boot");
 

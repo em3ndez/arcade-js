@@ -4,7 +4,7 @@
  * step that seeds the tracked-object / level state block to its start-of-play
  * defaults (a few fixed non-zero counters, the rest cleared).
  *
- * loc_1362 is entered ONLY from the gameplay round-init chain (loc_031a's pre-play
+ * loc_1362 is entered ONLY from the gameplay round-init chain (initRoundAndEnterMainLoop's pre-play
  * setup calls); attract mode never enters gameplay, so it is never dispatched in a
  * boot/attract run — the unit harness (which needs a real dispatch) cannot capture
  * it. But the routine READS NOTHING: it stores fixed constants into 28 distinct
@@ -38,7 +38,7 @@ import { loc_1362 as oracle } from "../../translated/loc_1362.js";
 import { seedObjectStartState } from "../seedObjectStartState.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, CLIMB_GATE, NEXT_TILE } from "../ram.js";
+import { OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, DIG_OVERLAP_HOLD, NEXT_TILE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -54,7 +54,7 @@ const TARGET_ADDRS = [
   OBJ_X, OBJ_Y, SPRITE_CODE,
   0x806a, 0x806c, 0x806d, 0x8070, 0x8071, 0x8073,
   0x801a, 0x8075, 0x8076, 0x8077, 0x8078, 0x8079, 0x807a,
-  SPAWN_PHASE, 0x807c, 0x807d, 0x807e, 0x807f, CLIMB_GATE, 0x8081, 0x8082,
+  SPAWN_PHASE, 0x807c, 0x807d, 0x807e, 0x807f, DIG_OVERLAP_HOLD, 0x8081, 0x8082,
   0x80a2, 0x80a4, 0x80a7, NEXT_TILE,
 ];
 

@@ -22,7 +22,7 @@
  * GATE:     crafted-entry — the real boot dispatch of 0x03be (reached ~frame 693 as
  *           attract cycles into the play demo), RAM-EQUAL to the oracle, plus a DIP
  *           sweep (0..127, top bit clear) and a garbage-prefill entry proving the
- *           seeds are unconditional. The tail hands into loc_031a, which paints the
+ *           seeds are unconditional. The tail hands into initRoundAndEnterMainLoop, which paints the
  *           board and falls into the never-returning main loop, so both arms run the
  *           real chain under one shared watchdog hook (drain paintScreen's frame-waits;
  *           stop at the main loop's entry). Teeth: wrong play value / a dropped seed.
@@ -34,7 +34,7 @@
  *           countdown 0x800b / index 0x800c have no ram.js name yet (hex), and 0x8029 is
  *           the demo's saved Player-1 LEVEL backup — a player-record backup, kept hex.
  *           disableSound / applyDipSwitches are called directly; the round-init
- *           tail (loc_031a, 0x031a) is kept as an m.call boundary — it falls into the
+ *           tail (initRoundAndEnterMainLoop, 0x031a) is kept as an m.call boundary — it falls into the
  *           never-returning main loop, so it stays a stubbable/boundable registry boundary.
  */
 
@@ -75,7 +75,7 @@ export function enterPlayMode(m) {
 
   // Hand off to the round (re)init, which finishes setting up the round and falls
   // through into the main game loop; it never returns here.
-  // m.call boundary: tail hand-off into the never-returning round init (loc_031a 0x031a,
+  // m.call boundary: tail hand-off into the never-returning round init (initRoundAndEnterMainLoop 0x031a,
   // which falls into mainLoop); a direct call is behaviorally identical and a terminal-test
   // would be a fragile artifact.
   return m.call(0x031a);

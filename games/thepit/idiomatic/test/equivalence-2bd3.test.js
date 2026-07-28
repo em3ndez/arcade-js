@@ -3,16 +3,18 @@
  * Equivalence gate for stageDigObjectSpriteRecord (ROM 0x2bd3) — publishes the dig object's
  * 4-byte sprite record into slot 2 of the staging buffer (0x8228) from the object's fields
  * (TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, TARGET_Y), the leading coordinate byte biased down
- * and the trailing one biased up by the cabinet offset SPRITE_COORD_BIAS, then TAIL-JUMPS into
- * the still-oracle per-frame background update 0x2f71.
+ * and the trailing one biased up by the cabinet offset SPRITE_COORD_BIAS, then continues into the
+ * per-frame background update 0x2f71 — now the decompiled advanceBackgroundSprite, called directly.
  *
- * OBSERVABLE-EQUIVALENCE CONTRACT. Both arms run the SAME frozen oracle tail (0x2f71 -> its
- * own chain), from identical memory — the background update loads everything fresh from RAM and
- * never reads the dig record bytes or any incoming register, so the two runs stay in lockstep
- * (including the PRNG the background fall draws from, which advances identically on both clones).
- * So the gate compares OBSERVABLE state only: the full RAM dump via firstStateDiff. pc, SP and
- * the value registers are the declared-dead live-out and excluded — a tail-jump only READS the
- * caller's return address off the stack, it writes nothing there, so no stack byte ever differs.
+ * OBSERVABLE-EQUIVALENCE CONTRACT. The background-update tail runs on BOTH arms — the oracle m.call's
+ * the frozen registry copy, the idiomatic arm calls the imported advanceBackgroundSprite directly —
+ * and the two are memory-equivalent (equivalence-2f71), from identical memory: the background update
+ * loads everything fresh from RAM and never reads the dig record bytes or any incoming register, so
+ * the two runs stay in lockstep (including the PRNG the background fall draws from, which advances
+ * identically on both clones). So the gate compares OBSERVABLE RAM only via a dumpState diff. pc, SP
+ * and the value registers are the declared-dead live-out and excluded; and because the oracle
+ * marshals its tail through the Z80 stack while the stack-free idiomatic JS does not, the dead
+ * stack-scratch window near the top of work RAM (0x8380..0x83ff) is excluded too.
  *
  * CRAFTED ENTRY. 0x2bd3 is never dispatched in a boot/attract run (the demo spawns no dig
  * object, so the target and dig-object fields all sit at 0 — a valid but non-discriminating
@@ -66,6 +68,12 @@ const RECORD = SPRITE_STAGING_BASE + 8; // dig object's sprite-staging slot (slo
 const RECORD_ADDRS = [RECORD, RECORD + 1, RECORD + 2, RECORD + 3];
 const INPUT_ADDRS = { bias: SPRITE_COORD_BIAS, x: TARGET_X, state: DIG_OBJ_STATE, attr: DIG_OBJ_ATTR, y: TARGET_Y };
 
+// Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff). The
+// dissolved 0x2f71 tail (advanceBackgroundSprite) runs stack-free on the idiomatic side while the
+// oracle marshals it through the Z80 stack, so those bytes differ and are excluded from the diff.
+const STACK_LO = 0x8380;
+const STACK_HI = 0x8400;
+
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
 // async, so build the factory once.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
@@ -93,7 +101,16 @@ function stateDiff(entry, fn) {
   const b = entry.clone(); // candidate
   oracle(a);
   fn(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const n = Math.min(da.length, db.length);
+  for (let i = 0; i < n; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= STACK_LO && addr < STACK_HI) continue; // dead stack scratch (see STACK_LO/STACK_HI)
+    return { addr, a: da[i], b: db[i] };
+  }
+  return null;
 }
 
 /** Poke the five input bytes identically, returning a fresh entry clone. */

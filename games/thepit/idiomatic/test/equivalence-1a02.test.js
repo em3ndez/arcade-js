@@ -51,7 +51,7 @@ import { loc_1a02 as oracle } from "../../translated/loc_1a02.js";
 import { stepObjectAndResolveTile as idiomatic } from "../stepObjectAndResolveTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  CLIMB_GATE,
+  DIG_OVERLAP_HOLD,
   SPRITE_CODE,
   OBJ_X,
   OBJ_TILE_ROW,
@@ -161,7 +161,7 @@ function craftTileEntry(base, objY, tile) {
 test("IDENTITY: the harness reaches 0x1a02 in attract and oracle-vs-oracle is EQUAL", () => {
   const [entry] = captureDispatches(1, 3000);
   assert.ok(entry, "expected at least one real 0x1a02 dispatch during attract");
-  assert.equal(entry.mem.read8(CLIMB_GATE), 0, "captured entry should have the climb gate clear");
+  assert.equal(entry.mem.read8(DIG_OVERLAP_HOLD), 0, "captured entry should have the climb gate clear");
   assert.equal(stateDiff(entry, oracle), null, "oracle vs oracle must be identical");
   console.log(
     `  IDENTITY: captured a real 0x1a02 dispatch (SP=${hx(entry.regs.sp)}, bias D=${entry.regs.d}, ` +

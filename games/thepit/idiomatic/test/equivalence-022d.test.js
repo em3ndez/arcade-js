@@ -14,7 +14,7 @@
  * WHY THE FULL CHAIN NOW RUNS. startGame falls into the round loop at 0x0278, which is
  * idiomatic now, so startGame calls it DIRECTLY — a registry stub at 0x0278 would no
  * longer intercept. So both sides run the REAL round-boundary chain: the idiomatic side
- * via its direct imports (startGame -> loc_0278 -> loc_02a1 / loc_02ca / ...), the oracle
+ * via its direct imports (startGame -> dockManAndDispatchRoundBoundary -> stepRoundSubPhaseAndBranch / setUpRoundAndHoldIntro / ...), the oracle
  * side via m.call through the frozen registry. Both chains converge at the TRUE oracle
  * leaves — 0x031a (round-loop setup) and 0x01f9 (reset/entry handler) — neither of which
  * has an idiomatic form yet and both of which never return on hardware. For this captured

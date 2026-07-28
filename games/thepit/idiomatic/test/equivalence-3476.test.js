@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_3476 (ROM 0x3476, The Pit) — the "direction 0"
- * preset move-step the per-object move driver (loc_319d) tail-jumps into. It
+ * Memory-equivalence gate for stepMoverUp (ROM 0x3476, The Pit) — the "direction 0"
+ * preset move-step the per-object move driver (stepEnemyMover) tail-jumps into. It
  * decreases the object's X position (0x8086) by one every call, ticks the movement-
  * cadence countdown (0x808b), and on the frame that countdown expires reloads it
  * from the period byte (0x8091) and republishes the travel-direction index (0x8092)
@@ -12,7 +12,7 @@
  * not model the Z80 return, so its pc/SP differ from the oracle (which rets), and
  * the accumulator the oracle leaves (the new X) is dead ABI (the driver reaches
  * here by tail-jump and reads no register back). So, like its mover-region siblings
- * loc_34f0/advanceDormantMover, the gate compares the declared live-out — work RAM
+ * reseedMoverCadenceAndRearmState/advanceDormantMover, the gate compares the declared live-out — work RAM
  * via dumpState — and excludes pc/SP/registers. This routine has NO stack push (a
  * pure leaf with a single ret), so there is no dead stack-scratch window to skip
  * either; the whole RAM dump is compared byte-for-byte.
@@ -20,7 +20,7 @@
  * FIVE checks:
  *   1. EQUAL + SCOPE (real captured attract dispatches) — this entry IS dispatched
  *      in attract (always on the running path); clone the machine at each real
- *      entry, run the oracle and loc_3476 on independent clones, confirm identical
+ *      entry, run the oracle and stepMoverUp on independent clones, confirm identical
  *      work RAM, and confirm the oracle only ever writes {0x808b, 0x8086, 0x8092}.
  *   2. EXHAUSTIVE (cadence x position) — over all 65,536 (countdown, X) pairs with a
  *      fixed reload period, poked identically on both sides, work RAM matches the
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3476 as oracle } from "../../translated/loc_3476.js";
-import { loc_3476 } from "../loc_3476.js";
+import { stepMoverUp } from "../stepMoverUp.js";
 import { makeMachineFactory } from "../../machine.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -50,7 +50,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x3476;
-const CADENCE = 0x808b; // movement-cadence countdown (ANIM_RAND), ticked every call
+const CADENCE = 0x808b; // movement-cadence countdown (MOVER_CADENCE), ticked every call
 const RELOAD = 0x8091; // period the countdown is reloaded from on expiry
 const DIRECTION = 0x8092; // published travel-direction index (this preset stamps 0)
 const POSITION = 0x8086; // the object's X position, stepped -1 every call
@@ -108,7 +108,7 @@ function prime(m, cadence, reload, position) {
 
 // -- 1. EQUAL + SCOPE on real captured attract dispatches ---------------------
 
-test("EQUAL + SCOPE: loc_3476 == oracle on real attract dispatches; oracle writes only its three bytes", () => {
+test("EQUAL + SCOPE: stepMoverUp == oracle on real attract dispatches; oracle writes only its three bytes", () => {
   const caps = captureRealEntries(3000, 12);
   assert.ok(caps.length >= 1, "expected 0x3476 to be dispatched during attract");
 
@@ -129,7 +129,7 @@ test("EQUAL + SCOPE: loc_3476 == oracle on real attract dispatches; oracle write
 
     // EQUAL: idiomatic reproduces the oracle over work RAM.
     const idioM = cap.clone();
-    loc_3476(idioM);
+    stepMoverUp(idioM);
     const diff = contractDiff(oracleM, idioM);
     assert.equal(diff, null, diff && `contract mismatch on a real attract dispatch: ${diff}`);
   }
@@ -155,7 +155,7 @@ test("EXHAUSTIVE: over all 65,536 (countdown, X) pairs the touched work RAM matc
       prime(oracleM, cadence, FIXED_RELOAD, position);
       prime(idioM, cadence, FIXED_RELOAD, position);
       oracle(oracleM);
-      loc_3476(idioM);
+      stepMoverUp(idioM);
 
       const diff = contractDiff(oracleM, idioM);
       if (diff) assert.fail(`(countdown=${hx(cadence)}, X=${hx(position)}): ${diff}`);
@@ -195,7 +195,7 @@ test("RELOAD: on the expire beat, over all 256 period values the reloaded countd
     prime(oracleM, 1, reload, FIXED_POS); // countdown == 1 forces the expire beat
     prime(idioM, 1, reload, FIXED_POS);
     oracle(oracleM);
-    loc_3476(idioM);
+    stepMoverUp(idioM);
 
     const diff = contractDiff(oracleM, idioM);
     assert.equal(diff, null, diff && `reload=${hx(reload)}: ${diff}`);
