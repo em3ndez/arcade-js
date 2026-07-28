@@ -328,13 +328,13 @@ so that bulk (and most of the format drift) is absent. The idiomatic rewrite car
 > elaborated for the next game, **not** a linear conveyor of stages.
 
 **Understanding runs across all of this, it is not a step in it.** Start it on day one — you need
-only the ROM and MAME to watch attract mode — and keep the living `games/<game>/MECHANISMS.md`
+only the ROM and MAME to watch attract mode — and keep the living `games/<game>/mechanisms.md`
 growing through every step below ([the mechanisms doc](mechanisms.md)). The observation
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 
-> **RULE — every clarify pass REWRITES `MECHANISMS.md` from scratch, in the same landable unit as the
-> renames — do not incrementally edit it.** The **first step of a rewrite is to read `GAMEPLAY.md`** —
+> **RULE — every clarify pass REWRITES `mechanisms.md` from scratch, in the same landable unit as the
+> renames — do not incrementally edit it.** The **first step of a rewrite is to read `gameplay.md`** —
 > the outside-in, public-research view of how the game plays — as the frame, then re-derive the
 > inside-out model from the *current* code and grounding (blind to the prior MECHANISMS). A clarify
 > pass exists to convert *correct* code into
@@ -352,7 +352,7 @@ the map and can't be done well without it. It is required reading for anyone nam
 > half-done: the names shipped but the understanding was never re-written where the next agent reads it.
 >
 > **Enforced, not just advised:** `tools/clarify_gate.py` runs in the pre-commit hook and blocks any
-> commit that renames routines / changes `ram.js` exports without staging `MECHANISMS.md`, or that
+> commit that renames routines / changes `ram.js` exports without staging `mechanisms.md`, or that
 > leaves a retired name anywhere in the map. A recipe step that matters gets a gate — ungated prose
 > loses to task momentum (this rule was nearly skipped once before it had teeth).
 
@@ -428,7 +428,7 @@ the map and can't be done well without it. It is required reading for anyone nam
    (equivalence tests, the `no-stale-mcall` lint, the third review). Loop decompile ⇄ clarify to 100%;
    seed the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) early, but expect
    most names to fall out *of* this loop, not before it.
-   - **Finish every clarify pass by updating `MECHANISMS.md` in the same commit** (the rule above). The
+   - **Finish every clarify pass by updating `mechanisms.md` in the same commit** (the rule above). The
      earned names + resolved questions are the pass's actual product; a pass that ships the names but
      not the map update is half-done.
 5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is

@@ -47,10 +47,11 @@ what the tooling had to do about them — is written up in
 
 ## What's here (and what isn't)
 
-This repo ships our **tools** and our **translation** (the JavaScript — our own expression of
-the ROM's logic). It does **not** ship the copyrighted ROM data, and it does not ship analysis
-metadata either — `dk.asm`, `coverage.json`, `blocks.def`, `unreached.txt` under
-`games/dkong/out/` are gitignored build output; regenerate them locally with `make trace`. You
+This repo ships our **tools**, our **translation** (the JavaScript — our own expression of the
+ROM's logic), and our **understanding** — each game's `gameplay.md` (how it's played, from public
+research) and `mechanisms.md` (the code-grounded model of how it works). It does **not** ship the
+copyrighted ROM data, nor the gitignored **build metadata** — `dk.asm`, `coverage.json`,
+`blocks.def`, `unreached.txt` under `games/dkong/out/` (regenerate locally with `make trace`). You
 supply your own ROM; `make rom-dkong` assembles and **sha256-verifies** it locally. See
 [`games/dkong/rom/README.md`](games/dkong/rom/README.md).
 
@@ -122,7 +123,7 @@ games/                one directory per romset (dkong, thepit)
     test/             unit + integration tests for the translation
     entrypoints.json  disassembly entry points (folded into the trace)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
-  thepit/             the second game — same shape; its MECHANISMS.md maps the game
+  thepit/             the second game — same shape; its mechanisms.md maps the game
                       as understood so far (see docs/mechanisms)
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·

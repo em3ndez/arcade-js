@@ -23,16 +23,16 @@ the call graph* and mistaken for a conveyor belt.
 ## Day zero — GAMEPLAY (know the game before you touch the ROM)
 
 Before disassembling a single byte, research the game from **public sources** and write down how it's
-*played* — objective, controls, enemies, scoring, the boards/levels — in `games/<game>/GAMEPLAY.md`.
+*played* — objective, controls, enemies, scoring, the boards/levels — in `games/<game>/gameplay.md`.
 This is the **outside-in** view: what a player or researcher can know *without* the code. It's the north
 star for everything after, and cheap insurance against building the wrong thing.
 
-`GAMEPLAY.md` has an **inside-out counterpart, `MECHANISMS.md`** — the *earned* model built from the code
+`gameplay.md` has an **inside-out counterpart, `mechanisms.md`** — the *earned* model built from the code
 plus grounding, at the end. The two bookend the port: what the world says the game is, versus what the
 silicon actually does. The gap between them is informative — public lore is often vague or wrong, and a
 game with almost nothing online (The Pit) is exactly the one that must be grounded by hand.
 
-Drafting `MECHANISMS.md` **starts by reading `GAMEPLAY.md`** — take the outside-in view as the frame,
+Drafting `mechanisms.md` **starts by reading `gameplay.md`** — take the outside-in view as the frame,
 then correct and deepen it against the code and grounding (while staying blind to any *prior*
 MECHANISMS, so the map is re-derived, not inherited).
 
@@ -59,7 +59,7 @@ moves. Structure feeds Meaning; Meaning picks the next lap's target.
 - **translate** — Z80→JS, faithful, memory-equivalence gated. Routines named `loc_<addr>`.
 - **decompile** — idiomatic, direct calls, gated against the frozen `translated/` oracle.
 
-### Meaning — on the *probe* face → produces **the understood game**, consolidated in `MECHANISMS.md`
+### Meaning — on the *probe* face → produces **the understood game**, consolidated in `mechanisms.md`
 - **name** — label the map at the current understanding level. Grades (strong/fair/weak/keep-hex)
   and `[guess]/[seen]` tags carry between laps, so a later lap sharpens an earlier guess instead of
   starting cold.
@@ -97,7 +97,8 @@ Each links to the doc that details it.
 - confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [mechanisms](mechanisms.md)
 - proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [mechanisms](mechanisms.md), [decompiler pipeline](decompiler-pipeline.md)
 - grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
-  find where to poke; persistence + completeness-critic rounds — [PIT-CLARIFY-LEARNINGS](PIT-CLARIFY-LEARNINGS.md)
+  find where to poke; persistence + completeness-critic rounds — [mechanisms](mechanisms.md) *(the
+  method; [`PIT-CLARIFY-LEARNINGS`](PIT-CLARIFY-LEARNINGS.md) is the game-#2 case study, not the general rule)*
 
 **Ship**
 - web-worker contract, audio record/replay (without emulating the sound CPU), ROM stays out — [porting](porting.md)

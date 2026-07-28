@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pre-commit gates. Do NOT --no-verify around these — that defeats the rules they enforce.
-#   1. clarify_gate — a clarify pass must rewrite the game's MECHANISMS.md in the SAME commit
+#   1. clarify_gate — a clarify pass must rewrite the game's mechanisms.md in the SAME commit
 #      as its renames, and the map must reference no retired names.  tools/clarify_gate.py
 #   2. review_gate  — every commit's staged changes carry an independent PASS review token
 #      bound to their exact content.  tools/review_gate.py

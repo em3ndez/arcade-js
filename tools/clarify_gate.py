@@ -3,7 +3,7 @@
 """Clarify-completeness gate — make the MECHANISMS-with-renames rule MECHANICAL.
 
 The recipe rule (docs/decompiler-pipeline.md, the mechanisms doc): a clarify pass
-rewrites the game's MECHANISMS.md in the SAME landable unit as the renames, and the
+rewrites the game's mechanisms.md in the SAME landable unit as the renames, and the
 map must reference only names that exist in the code. Prose can't enforce that — an
 agent (or a lead) under a "correctness gates are green -> commit" reflex ships the
 renames and leaves the map stale. Every gate we DO follow has teeth; this gives the
@@ -13,10 +13,10 @@ Two checks, per game with staged changes, computed on the STAGED (index) content
 they bind to exactly what will be committed:
 
   A. same-landable-unit — if the commit renames idiomatic routine files OR changes the
-     ram.js export set for game G, then games/G/MECHANISMS.md must ALSO be staged. A
+     ram.js export set for game G, then games/G/mechanisms.md must ALSO be staged. A
      clarify pass that renames without touching the map is half-done.
 
-  B. no-retired-names — games/G/MECHANISMS.md must contain NONE of the names this commit
+  B. no-retired-names — games/G/mechanisms.md must contain NONE of the names this commit
      retired: idiomatic routine files removed, or ram.js exports removed, between HEAD
      and the index. A retired name still in the map is a dangling reference the renames
      left behind (this is what caught the stale CLIMB_GATE / ANIM_RAND).
@@ -134,7 +134,7 @@ def check():
     failures = []
 
     for game in sorted(games_touched(rows)):
-        mech = f"games/{game}/MECHANISMS.md"
+        mech = f"games/{game}/mechanisms.md"
         mech_head = blob("HEAD", mech)
         mech_index = blob(":", mech)
         mech_exists = bool(mech_head or mech_index)
@@ -180,9 +180,9 @@ def check():
     if failures:
         sys.stderr.write(
             "\nCOMMIT BLOCKED — clarify-completeness gate (tools/clarify_gate.py):\n"
-            "  the renames landed but the game map (MECHANISMS.md) is out of sync.\n\n"
+            "  the renames landed but the game map (mechanisms.md) is out of sync.\n\n"
             + "\n".join("  " + f for f in failures)
-            + "\n\n  Rewrite the game's MECHANISMS.md from the current code, in THIS commit "
+            + "\n\n  Rewrite the game's mechanisms.md from the current code, in THIS commit "
             "(do not --no-verify).\n\n"
         )
         return 1

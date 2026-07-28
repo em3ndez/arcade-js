@@ -4,7 +4,7 @@
 map of how The Pit actually works, built from the decompiled routines, the named RAM map,
 the board (hardware/render) layer, and the MAME-0.288 grounding in
 `docs/PIT-CLARIFY-LEARNINGS.md`. Where the public-research frame in
-[`GAMEPLAY.md`](./GAMEPLAY.md) agrees, it is confirmed; where they diverge, the code and the
+[`gameplay.md`](./gameplay.md) agrees, it is confirmed; where they diverge, the code and the
 grounded observation win and the disagreement is called out under
 [§2 Public lore vs. grounded reality](#2-public-lore-vs-grounded-reality).
 
@@ -75,7 +75,7 @@ confirmed). `[seen]`
 
 ## 2. Public lore vs. grounded reality
 
-`GAMEPLAY.md` is the outside-in public record. It gets the premise right (dig down, grab a
+`gameplay.md` is the outside-in public record. It gets the premise right (dig down, grab a
 jewel, climb out) but three specifics are wrong or unsupported once measured against the code
 and the MAME grounding. **Code + grounding win.**
 
@@ -663,6 +663,6 @@ Confidence tags in parentheses are the `ram.js` provenance grade (`strong`/`fair
 | 0x8280 | `SCORE_READOUT_STRIP` | Base of a 32-cell work-RAM strip staging the score-readout column (fair). |
 
 ---
-*Blind clarify-pass rewrite: written from `GAMEPLAY.md` + the current code + the MAME grounding,
-with no reference to any prior `MECHANISMS.md`. Counts measured from the current tree
+*Blind clarify-pass rewrite: written from `gameplay.md` + the current code + the MAME grounding,
+with no reference to any prior `mechanisms.md`. Counts measured from the current tree
 (169 routines / 169 English-named / 0 `loc_` / 141 RAM cells).*

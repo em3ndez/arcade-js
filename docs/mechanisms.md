@@ -6,7 +6,7 @@ writes `0x801b`, not that `0x801b` is *which directions the player is allowed to
 without that meaning — a name is a claim about what a routine does *in the game*. This step builds
 that claim, on evidence, before and during the idiomatic rewrite.
 
-The output is one **living** document per game: `games/<game>/MECHANISMS.md` — a code-grounded
+The output is one **living** document per game: `games/<game>/mechanisms.md` — a code-grounded
 model of how the game actually plays.
 
 ## It is grounded, not recalled
@@ -75,6 +75,6 @@ then grows with the lift, and the deepest understanding lands *during* the decom
 whole [decompiler pipeline](decompiler-pipeline.md), whose RAM-naming and bottom-up-decompile
 steps **consume** it: an earned English name *is* a mechanism-map role that reached confidence. So:
 
-> **The mechanism map (`games/<game>/MECHANISMS.md`) is required reading for the idiomatic /
+> **The mechanism map (`games/<game>/mechanisms.md`) is required reading for the idiomatic /
 > decompile workers**, along with this doc — before proposing any name or writing any idiomatic
 > routine. You cannot name what you don't understand.
