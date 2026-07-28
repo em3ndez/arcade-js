@@ -57,6 +57,11 @@ capture sound, and hands to `tickObjectDwellThenTransition`; when that expires t
 boundary docks a man (`dockManAndDispatchRoundBoundary`: `MEN_LEFT`--). `MEN_LEFT` → 0 →
 game-over teardown → high-score offer → attract. `[seen][code]`
 
+**Offense — the laser.** The digger is not defenceless: holding the button while facing left or
+right fires a **horizontal laser bolt** that flies across the shaft and destroys any maze enemy
+it hits, for a point (§3.11). This document first *denied* the laser existed — a code-only
+misreading that a play-through corrected (§2b). `[seen` (played) `][code]`
+
 **The cast** (sprite slot ↔ RAM entity, 100% match in both attract and gameplay observation):
 
 | On screen | Sprite slot(s) | RAM | Role |
@@ -76,8 +81,10 @@ confirmed). `[seen]`
 ## 2. Public lore vs. grounded reality
 
 `gameplay.md` is the outside-in public record. It gets the premise right (dig down, grab a
-jewel, climb out) but three specifics are wrong or unsupported once measured against the code
-and the MAME grounding. **Code + grounding win.**
+jewel, climb out). Of the three specifics flagged below, two are genuinely wrong once measured
+against play — but the third (the laser, §2b) is one **we** got wrong: a code-only pass refuted
+a real mechanic, and a play-through had to restore it. The lore/code gap cuts **both ways**, and
+only grounding adjudicates it — reading the code is not enough.
 
 ### 2a. The ZONKER is decorative, not a tank that destroys your ship
 Public lore (Wikipedia/Centuri): a **tank called the "Zonker"** sits up top and slowly shoots
@@ -89,25 +96,41 @@ There *is* a DSW **"Time Limit" (Long/Short)** bit in the driver `[code]`, so a 
 exists as a setting, but it is not the sprite-tank the lore describes; how a time limit
 manifests in play is not separately grounded — **open item**.
 
-### 2b. There is no horizontal laser — the "fire button" is the DIG button
-Public lore: a **single button fires a horizontal laser** to disintegrate enemies. **Refuted
-by the code.** The MAME driver (`taito/roundup.cpp`) does define **IN0 bit4 = BUTTON1**, and
-the code *does* read it — but never to shoot:
+### 2b. The horizontal laser IS real — our first pass wrongly refuted it
+Public lore: a **single button fires a horizontal laser** that disintegrates enemies. **The lore
+is right, and denying it was the sharpest error in this document.** The laser is a real,
+code-confirmed weapon:
 
-- In gameplay, `advanceReactionObject` reads `IN0 & 0x10` as **dig held**: holding it drives
-  the carve object, and while facing left/right it seeds a horizontal **terrain scroll** (the
-  crossing mechanic, §3.5). `[code]`
-- `stepHighScoreInitialsEntry` reads `0x10` as the **confirm/advance** button in initials
-  entry. `[code]`
-- `showColourTestScreen` reads UP+BUTTON1 (`0x08`+`0x10`) to step the **diagnostic** screen. `[code]`
+- **Fire** — in `advanceReactionObject`, holding the button (`IN0 & 0x10`) while facing left
+  (facing code 178/179) or right (50/51) seeds `0x80a1` with a signed step (**−8 / +8**) and
+  places a bolt at the digger's cell. `[code]`
+- **Flight** — `advanceScroll` slides that bolt (the `REACTION_OBJ_X/Y` object, 0x8094/0x8097)
+  **±8 px/frame** across the shaft, checking the tile ahead each step, until it hits a stop tile
+  (a wall), then parks it and clears the state. One bolt aloft at a time. `[code]`
+- **Kill** — in `stepEnemyMover`, while `0x80a1` is nonzero (a bolt is live) any maze enemy whose
+  box overlaps the bolt (`handlePlayerBoxOverlap`) fires `awardOnePoint` and parks that mover in
+  a dead state (`MOVER_STATE`=192). That is the laser destroying an enemy for score.
+  `[seen` (played) `][code]`
 
-The player-movement router (`routeIdleObjectByMoveCommand`) tests **only** the four direction
-bits (`0x01`/`0x02`/`0x0c`) and ignores `0x10`. **A repo-wide check of all 169 routines finds
-no fire / shoot / laser / projectile / bullet spawn routine of any kind.** (The one code
-comment that says "dig/projectile-spawn path" in `flagObjectTargetOverlap` refers to the
-**dig-target loot cell** placement, not a weapon.) The player kills nothing; enemies are
-**avoided**, never shot; contact kills *you*. The button is a dig/action/confirm button.
-**Verdict: the horizontal-laser mechanic does not exist in this ROM.** `[code]`
+**The tell we missed:** the single byte `0x80a1` is imported as **`SCROLL_STEP`** by the fire
+routine and as **`PLAYER_BOX_OWNER`** by the kill routine — two different wrong names for *"a
+bolt is in flight."* And the bolt object `REACTION_OBJ` is **dual-use**: the same sprite slot is
+the dig/carve reaction animation *and* the laser bolt, which is exactly how a weapon hid inside a
+"dig reaction."
+
+**Why the original pass got it wrong — the lesson of this whole document.** From the code alone,
+"an object seeded on a button that travels horizontally and whose box is tested against enemies"
+reads *equally* as a laser (fire → fly → shoot) or as a benign "terrain scroll + collision proxy."
+Never having played the game, the pass picked the benign reading, wrote a confident repo-wide
+*"no fire/shoot/laser routine of any kind"* verdict on top, and **renamed the laser's parts out of
+existence** (`SCROLL_STEP`, `PLAYER_BOX_OWNER`, "reaction object"). A single play-through — knowing
+a laser exists — makes the same code unambiguous. **This is why behavioural grounding is not
+optional:** the code cannot tell you which of two readings is the game; only playing it can.
+`[seen][code]`
+
+**Still to pin (a MAME grounding pass, needs the romset):** whether fire is the same action
+button as dig (context-switched on facing/terrain) or a distinct input; any cooldown or one-shot
+limit beyond the single-bolt state; and which enemy types the bolt can and cannot destroy.
 
 ### 2c. "Cross the Pit / retractable floor / arrows" ≈ the goal-tile scroll-reveal
 Public lore frames the return trip as crossing a room with a sliding/retractable floor while
@@ -136,7 +159,7 @@ never the raw port. `[code]`
 
 - **IN0** (`0xA000`, active-low, complemented in `io.readIn0` to the active-high form the ROM
   uses) → `IN0_DEBOUNCED` (0x8018): bit0 LEFT, bit1 RIGHT, bit2 DOWN, bit3 UP (8-way), **bit4
-  BUTTON1** (dig/action/confirm). `[code]`
+  BUTTON1** (dig / fire the laser §2b / confirm). `[code]`
 - **IN1** (`0xA800`, active-high) → `IN1_DEBOUNCED` (0x8015): bit0 COIN1, bit1 START2, bit2
   START1. `[code]`
 - **IN2** is the cocktail 2P mux twin of IN0; LS259 control-latch **bit6** selects IN0 (upright)
@@ -239,17 +262,21 @@ So the full set — **4 ten-point dirt-gems + 3 twenty-point diamonds** — yiel
 over-collecting past the exact counts (via pokes) *drops* the tier. Grounding confirms
 SINGLE/DOUBLE/TRIPLE = 5000/10000/15000 verbatim. `[seen][code]`
 
-### 3.5 The goal tile and terrain scroll-reveal
+### 3.5 The goal tile and terrain reveal
 Distinct from the diamond win: crossing the **goal tile `0x27`** (once past crossing-column
 `0x53`) latches `GOAL_TILE_LATCH` (0x80e7) and its twin `GOAL_CROSSING_LATCH` (0x8077). That
 reroutes the dispatcher to auto-walk the object toward the far edge (`advanceActorWalk` /
-`drawActorWalkFrame` fire a far-edge one-shot) and enables the **scroll-reveal**: with the dig
-button held and the object facing a scroll-capable direction, `advanceReactionObject` seeds a
-horizontal terrain scroll; `revealTerrainColumn` / `drawTerrainColumn` step `REVEAL_CURSOR`
-(0x80e6) back 6 per reveal (underflow = reveal finished) to open the next pit section, paced by
-`REVEAL_GATE`/`REVEAL_PERIOD`, with the column-reveal animation in `advanceColumnAnimation` /
-`reseedColumnAnimation`. Retreating below the crossing column clears the latch. Not required to
-complete the level. `[seen][code]`
+`drawActorWalkFrame` fire a far-edge one-shot) and drives a progressive **terrain reveal**:
+`revealTerrainColumn` / `drawTerrainColumn` step `REVEAL_CURSOR` (0x80e6) back 6 per reveal
+(underflow = reveal finished) to open the next pit section, paced by `REVEAL_GATE`/`REVEAL_PERIOD`,
+with the column animation in `advanceColumnAnimation` / `reseedColumnAnimation`. Retreating below
+the crossing column clears the latch. Not required to complete the level. `[seen][code]`
+
+> **Corrected (the "no laser" error bleeding through):** the earlier text folded
+> `advanceReactionObject`'s button+facing "horizontal scroll" into this reveal. That "scroll" is
+> the **laser** (§2b / §3.11), a separate, always-available mechanic — `advanceReactionObject`
+> in fact *suppresses* it while `GOAL_TILE_LATCH` is set (`handleEdgeCollision` hands to the dig
+> driver first). The goal-crossing reveal here is only the `REVEAL_CURSOR` terrain animation.
 
 ### 3.6 Level and difficulty scaling
 **Layout is level-independent** — every level rebuilds the *same* fixed board (`setupBoardDisplay`
@@ -315,11 +342,17 @@ A sound-command ring: `enqueueSoundCommand` writes `(code|0x80)` at `SOUND_RING`
 there is no audio oracle; the web build plays samples/synth "above emulation," tunes BYO-recorded
 by ear, and the audio Z80 + AY chips are not emulated.
 
-### 3.11 Shooting — the missing weapon
-Restated because it is the sharpest lore correction: **no routine in the 169 reads the fire
-button to spawn a projectile.** BUTTON1 (IN0 bit4) exists and is read as dig/confirm only
-(§2b). Enemies cannot be shot; survival is evasion. If a future observation ever surfaces a
-shooting path this is where to flag it — but the current code has none. `[code]`
+### 3.11 The laser (offense)
+Restated because it is the sharpest correction in this document — and it flipped the wrong way
+first: **the player has a horizontal laser** (§2b). Holding BUTTON1 (IN0 bit4) while facing
+left/right seeds `0x80a1` with a ±8 step and launches a bolt (`REACTION_OBJ`, 0x8094/0x8097)
+that flies horizontally across the shaft (`advanceScroll`) until it hits a wall. While the bolt
+is live, any maze enemy whose box it overlaps is destroyed for a point
+(`stepEnemyMover.handlePlayerBoxOverlap` → `awardOnePoint`, `MOVER_STATE`=192). One bolt aloft at
+a time; the bolt shares its sprite slot with the dig/carve reaction, which is how the weapon
+stayed hidden inside a "reaction object." Survival is evasion **or** offense. Trigger context vs
+the dig button, any cooldown, and which enemies are vulnerable are still to be pinned by a MAME
+grounding pass. `[seen` (played) `][code]`
 
 ---
 
@@ -390,7 +423,7 @@ per cell; the pixel gate, not the name, is the correctness authority.
 | 0x23e8 | `reseedColumnAnimation` | Seed a tilemap write pointer + level-scaled countdown; cue the reveal. |
 | 0x241c | `advanceColumnAnimation` | One frame-gated step of a vertical tile-column animation. |
 | 0x24cf | `resetReactionState` | Reset the per-object reaction state machine to idle. |
-| 0x24f3 | `advanceReactionObject` | Per-frame driver of the dig/push reaction; reads BUTTON1 as **dig-held** / starts the scroll. |
+| 0x24f3 | `advanceReactionObject` | Per-frame driver of the dig/push reaction **and the laser** (§3.11): reads BUTTON1, and on facing left/right launches the horizontal bolt. |
 | 0x287a | `seedDigObjectBlock` | Seed the dig/target object control block at round start. |
 | 0x28ab | `spawnDigEntity` | Stage a dig entity at the actor's aligned cell, commit it. |
 | 0x2934 | `commitDigEntity` | Commit one dig entity into its tilemap cell, patch neighbours. |
