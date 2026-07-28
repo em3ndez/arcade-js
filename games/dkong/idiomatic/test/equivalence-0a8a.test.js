@@ -5,7 +5,7 @@
  *
  * setupIntroCutsceneStep WRITES memory and is NOT a leaf — it draws the playfield via
  * the idiomatic callee loc_0da7 (which walks the 0x380D segment table, itself calling
- * the frozen oracle sub_2ff0) — so it is gated by capture / clone / replay (docs/06)
+ * the frozen oracle sub_2ff0) — so it is gated by capture / clone / replay (docs/decompiler-pipeline)
  * with a FRESH clone per case. It is straight-line with NO work-RAM inputs: every value
  * is an immediate or the deterministic 0x380D ROM record walk, so the ONLY output byte
  * that depends on prior RAM is `inc (INTRO_STEP)` at the tail. That makes INTRO_STEP the
@@ -13,7 +13,7 @@
  *
  * A 6000-frame attract run dispatches 0x0a8a ZERO times (the intro cutscene is a
  * credited game's per-board head, GAME_SUBSTATE 7 / INTRO_STEP 0 — not reached in
- * attract), so — exactly as docs/06 prescribes for arms attract never reaches — the gate
+ * attract), so — exactly as docs/decompiler-pipeline prescribes for arms attract never reaches — the gate
  * is CRAFTED: a real booted attract machine, cloned, oracle-vs-idiomatic on independent
  * fresh clones. The comparison is game-visible RAM MINUS the dead STACK_SCRATCH region:
  * loc_0da7's leaf sub_2ff0 does an unmatched `ret` on the direct-call path that drifts SP
@@ -107,7 +107,7 @@ function base() {
   return _base;
 }
 
-/** Two independent fresh clones of the base at the same INTRO_STEP + crafted SP (docs/06
+/** Two independent fresh clones of the base at the same INTRO_STEP + crafted SP (docs/decompiler-pipeline
  *  fresh clone per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(step) {
   const a = base().clone(), b = base().clone();

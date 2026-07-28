@@ -118,7 +118,7 @@ export default {
   // once per frame by sub_0057 (0x6018 = 0x6018 + 0x601a + 0x6019). The spin count is the only
   // divergent input (0x601a, the NMI counter, is the synced twin) — it forks within ~9 frames
   // because the translation isn't cycle-exact on the CPU-vs-beam race, and every RNG-driven sprite
-  // then drifts. Discovered by the attract-mode RAM diff (docs/06-decompiler-pipeline.md (Entropy pinning)).
+  // then drifts. Discovered by the attract-mode RAM diff (docs/decompiler-pipeline.md (Entropy pinning)).
   //
   // The pin makes the whole RNG working set read a deterministic 0 on both engines: pin the seed
   // 0x6018 to its boot value (drop its single writer, sub_0057's store) and point 0x6019's direct

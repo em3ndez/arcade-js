@@ -44,7 +44,7 @@ const TABLE_INDEX_MASK = 0x7f; //  `and 0x7f` after `add a,a` -- keep the double
  * diffed work RAM -- while a per-iteration charge has PC 0x0600 at that instant,
  * pushing a different (but equally valid, coarser) return address. That is
  * exactly the INTERRUPTIBLE-collapse signature the CONVERGENT gate exists for
- * (docs/06): the pushed PC lands in the dead stack scratch [0x6be0,0x6c00)
+ * (docs/decompiler-pipeline): the pushed PC lands in the dead stack scratch [0x6be0,0x6c00)
  * (excluded), the divergence heals, and no persistent non-stack state or pixel
  * divergence survives. So this routine is now collapsed and gated by
  * convergentGate rather than the strict whole-machine gate (see the

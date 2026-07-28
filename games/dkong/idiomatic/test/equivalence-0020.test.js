@@ -68,7 +68,7 @@ const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
  * Run the oracle and the candidate on two fresh clones of `entry` and diff the
  * memory-equivalence contract: RAM (whole dump) + the returned boolean. A FRESH clone
  * per side because the routine WRITES memory — a reused machine would carry the previous
- * tick forward (docs/06: only a pure read-only leaf may reuse a clone).
+ * tick forward (docs/decompiler-pipeline: only a pure read-only leaf may reuse a clone).
  *
  * @returns {{ram: object|null, retOracle: boolean, retCand: boolean}}
  */

@@ -1,0 +1,128 @@
+# The Method
+
+*The front door to `docs/`: the shape of how arcade-js works. The other files each detail one
+technique; read them in any order the work needs — the model below is the map, not the filenames.*
+
+## The thesis
+
+> **Don't reimplement the game from observation — translate its actual machine code.**
+> Disassemble the original ROM, translate every routine to JavaScript that mirrors the original
+> instruction-for-instruction, and prove the result **pixel-exact against MAME**.
+
+Reimplementing an arcade game by watching it and guessing the rules *diverges*: every behaviour you
+didn't observe is a bug waiting to happen. Translating the ROM *converges*: the JavaScript does what
+the silicon did because it runs the same logic, and a frame-against-frame diff against a reference
+emulator catches any place it doesn't. The port is produced by AI agents — see
+[how the agents worked](how-the-agents-worked.md) for the division of labour and the failure modes
+actually hit.
+
+**One oracle, one spiral, then ship.** It is *not* a numbered sequence of stages — that framing (an
+old "reading-order = filename number" index, a "5-step pipeline") was these same moves *unrolled up
+the call graph* and mistaken for a conveyor belt.
+
+## Day zero — GAMEPLAY (know the game before you touch the ROM)
+
+Before disassembling a single byte, research the game from **public sources** and write down how it's
+*played* — objective, controls, enemies, scoring, the boards/levels — in `games/<game>/GAMEPLAY.md`.
+This is the **outside-in** view: what a player or researcher can know *without* the code. It's the north
+star for everything after, and cheap insurance against building the wrong thing.
+
+`GAMEPLAY.md` has an **inside-out counterpart, `MECHANISMS.md`** — the *earned* model built from the code
+plus grounding, at the end. The two bookend the port: what the world says the game is, versus what the
+silicon actually does. The gap between them is informative — public lore is often vague or wrong, and a
+game with almost nothing online (The Pit) is exactly the one that must be grounded by hand.
+
+Drafting `MECHANISMS.md` **starts by reading `GAMEPLAY.md`** — take the outside-in view as the frame,
+then correct and deepen it against the code and grounding (while staying blind to any *prior*
+MECHANISMS, so the map is re-derived, not inherited).
+
+---
+
+## One oracle — MAME
+
+The reference emulator runs the real ROM. It has two faces, and we use both:
+
+- **gate** — *is our JS correct?* Frame-exact pixels, and per-routine memory-equivalence against the
+  frozen faithful translation. Correctness is falsifiable frame-by-frame.
+- **probe** — *what does the game mean?* Play it, poke it, watch RAM and frames. Meaning is
+  falsifiable experiment-by-experiment.
+
+Same oracle, both jobs. Most of the corpus only ever describes the gate face; the probe face is
+just as load-bearing.
+
+## One spiral
+
+Repeat **up the call graph** until the game is both *correct* and *understood*. Each lap is two
+moves. Structure feeds Meaning; Meaning picks the next lap's target.
+
+### Structure — on the *gate* face → produces **the map**
+- **translate** — Z80→JS, faithful, memory-equivalence gated. Routines named `loc_<addr>`.
+- **decompile** — idiomatic, direct calls, gated against the frozen `translated/` oracle.
+
+### Meaning — on the *probe* face → produces **the understood game**, consolidated in `MECHANISMS.md`
+- **name** — label the map at the current understanding level. Grades (strong/fair/weak/keep-hex)
+  and `[guess]/[seen]` tags carry between laps, so a later lap sharpens an earlier guess instead of
+  starting cold.
+- **ground** — play/poke in MAME to learn what things mean; feed it back into naming.
+- **MECHANISMS** — the written game model. The *capstone of Meaning*, not a ship artifact.
+
+> **Meaning rides on the map.** Naming labels the map; poke-grounding needs it to know *where* to
+> poke. Only *watch-only* grounding is map-free (day-zero); bootstrap pokes with **memory-diffing**
+> ("which byte changed when I died?") when there's no map yet.
+
+## Ship
+
+Package for humans: wire the idiomatic routines **live** (manifest, pixel-gated integration), web
+player, audio (by ear — no audio oracle exists), publish.
+
+---
+
+## Techniques live inside a move — they are not extra steps
+
+Each links to the doc that details it.
+
+**Structure**
+- disassembly / recursive-descent tracer, modelling the board from ROM accesses — [disassembly](disassembly.md)
+- per-routine tests proven to have teeth by mutation — [testing & mutation](testing-and-mutation.md)
+- boot-gap-driven order (the gate doubles as the work-list) — [integration testing](integration-testing.md)
+- memory-equivalence fidelity contract, collapse (total-preservation), entropy-pinning,
+  capture-clone-replay, NMI-at-vblank-yield, the `no-stale-mcall` guard **(must resolve const-aliases,
+  not just literal hex)** — [decompiler pipeline](decompiler-pipeline.md)
+
+**Gate face**
+- pixel gate (byte-exact vs tolerance, never lower the floor) — [pixel gate](pixel-gate.md)
+- integration state→writes→pixels diff order — [integration testing](integration-testing.md)
+
+**Meaning**
+- confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [mechanisms](mechanisms.md)
+- proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [mechanisms](mechanisms.md), [decompiler pipeline](decompiler-pipeline.md)
+- grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
+  find where to poke; persistence + completeness-critic rounds — [PIT-CLARIFY-LEARNINGS](PIT-CLARIFY-LEARNINGS.md)
+
+**Ship**
+- web-worker contract, audio record/replay (without emulating the sound CPU), ROM stays out — [porting](porting.md)
+
+## Two properties that fall out of the shape
+
+1. **Meaning rides on structure** — pokes need the map, so poke-assisted grounding lives inside the
+   spiral, not before it. Front-load only the *watch-only* half of grounding at day zero.
+2. **The spiral lifts understanding each lap** — early names, chosen at partial understanding, get
+   re-derived later (that's why a game's `ram.js` grows 4→85→140 across laps, not in one sitting).
+   Schedule one adversarial **name-revisit** once grounding is complete; if you front-loaded
+   watch-only grounding, it shrinks from a re-derivation to a confirmation.
+
+---
+
+## The technique docs
+
+Each details one cluster inside a move (read in any order):
+
+- [disassembly](disassembly.md) · [translation](translation.md) · [testing & mutation](testing-and-mutation.md) · [integration testing](integration-testing.md) · [pixel gate](pixel-gate.md) — **Structure & the gate face**
+- [mechanisms](mechanisms.md) — **Meaning** (cross-cutting; starts day one)
+- [decompiler pipeline](decompiler-pipeline.md) — **Structure**, the idiomatic rewrite in depth
+- [porting a new game](porting.md) — **Ship** + CPU / board / game layering
+- [how the agents worked](how-the-agents-worked.md) — the experiment (the agents, not the method)
+- [PIT-CLARIFY-LEARNINGS](PIT-CLARIFY-LEARNINGS.md) — working log of rules-in-flight (game #2)
+
+The running example is **Donkey Kong** (Z80, `dkong` board); **The Pit** (Zilec / Centuri, `thepit`)
+is the second game. Nothing about the method is game-specific.

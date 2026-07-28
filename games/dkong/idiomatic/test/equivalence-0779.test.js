@@ -5,7 +5,7 @@
  *
  * The routine WRITES a lot of memory (task ring, sub-state timer/index, playfield +
  * sprite buffer, score labels, coinage digits) and calls six sub-routines, so it is NOT
- * a pure leaf. It is gated by capture / clone / replay (docs/06) with a FRESH clone per
+ * a pure leaf. It is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per
  * case (it mutates RAM), never the exhaustive-leaf pattern. The diff is whole-RAM minus
  * STACK_SCRATCH: the oracle models each call's push/ret stack traffic (its SP/pc move)
  * while the idiomatic routine uses the JS call stack and models neither, so the only
@@ -19,7 +19,7 @@
  *      Attract is always 1-player with 2P-coins == 2, so this covers the 1P path only.
  *
  *   2. EQUAL (crafted arms) — the arms attract never reaches, forced by poking ONE byte
- *      IDENTICALLY on both sides of a real entry (docs/06 crafted entry):
+ *      IDENTICALLY on both sides of a real entry (docs/decompiler-pipeline crafted entry):
  *        - TWO_PLAYER (0x600F = 1): the `cp 1 / call z` arm fires draw2UpLabel (the 2UP
  *          label at 0x74A0/0x74C0/0x74E0).
  *        - TENS_CARRY (0x6023 = 10): the first digit-writer pass hits the D==10 split,
@@ -112,7 +112,7 @@ function captureDispatches(K, maxFrames) {
 }
 
 // Poke a whole ring state (fill + tail) IDENTICALLY on a real entry — a surgical
-// crafted nudge (docs/06), not a fabrication.
+// crafted nudge (docs/decompiler-pipeline), not a fabrication.
 const fillRing = (m, byte) => { for (let s = RING_LO; s <= RING_HI; s++) m.mem.write8(s, byte); };
 const CLEAN = (m) => { fillRing(m, 0xff); m.mem.write8(TASK_TAIL, 0xc0); }; // all free, base
 const FULL  = (m) => { fillRing(m, 0x00); m.mem.write8(TASK_TAIL, 0xc0); }; // all occupied

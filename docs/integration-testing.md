@@ -5,12 +5,12 @@ matches reality, where reality is **MAME** running the same ROM. The comparison 
 if both sides are deterministic and produce the same artifacts, so most of the harness is about
 pinning determinism. The one channel this cannot hold — the timing-seeded RNG — has a shared
 **entropy-pin** mode (`--pin-entropy` on both the golden and the port); see the *Entropy pinning*
-section of [the decompiler pipeline](08-decompiler-pipeline.md).
+section of [the decompiler pipeline](decompiler-pipeline.md).
 
 ## Run it alongside translation, not after
 
 Stand up the machine as soon as it can boot and run this gate **continuously, in parallel with
-[translation](03-translation.md)** — it is not a final step. The whole-machine diff validates the
+[translation](translation.md)** — it is not a final step. The whole-machine diff validates the
 routines you *already* have, working together, and it fails at the first routine that diverges (or
 the first unregistered `m.call`) — which is exactly the routine to translate or fix next. So the
 gate doubles as the work-list: boot it, see where it stops or diverges, address that, boot again.

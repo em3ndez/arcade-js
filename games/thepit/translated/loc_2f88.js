@@ -15,7 +15,7 @@
  * 0x930c, 0x92ec.
  *
  * ROUTINE BOUNDARY -- loc_2f88 does NOT inline 0x2fc0. loc_2fc0 is entered from a
- * DIFFERENT routine (loc_2f71 does `jp z,0x2fc0` at 0x2f75), so per doc 03 it is
+ * DIFFERENT routine (loc_2f71 does `jp z,0x2fc0` at 0x2f75), so per the translation doc it is
  * its own routine; loc_2f88 stops at 0x2fbf and DELEGATES `return m.call(0x2fc0)`
  * at each of its three exits (the two `jr` skips and the djnz fall-through). Its
  * bytes therefore live only in loc_2fc0's file, never duplicated here. The exits

@@ -3,7 +3,7 @@
  * Equivalence test for fillTileBlock (ROM 0x1826) — the 5×14 tilemap block fill.
  *
  * fillTileBlock WRITES memory (70 tilemap cells) and is a subroutine, not a pure
- * leaf, so it is gated by capture / clone / replay (docs/06). sub_1826 is UNREACHED
+ * leaf, so it is gated by capture / clone / replay (docs/decompiler-pipeline). sub_1826 is UNREACHED
  * in attract — its five callers are the death / player-switch render (loc_12f2,
  * loc_1344) and the board-start intro-setup arms (loc_17b6, loc_1880), none of which
  * attract enters (probed: 0 dispatches of 0x1826 and of every caller over 4000

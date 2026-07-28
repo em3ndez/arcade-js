@@ -59,7 +59,7 @@ import { BOARD } from "./ram.js";
  * A is still set to BOARD (matching the oracle at the call boundary); the handlers
  * do not read incoming A either, but the store is the faithful `ld a,(0x6227)`.
  *
- * CYCLES -- COLLAPSED per doc 06: each arm's fixed decode (the `ld`, the dead `cp`s,
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc: each arm's fixed decode (the `ld`, the dead `cp`s,
  * and the `jp z`s it passes through) folds into ONE m.step charged at that arm's
  * call-instruction PC; the CALL boundary (push16 + m.step(handler,17) + m.call) and
  * the trailing m.ret (10 t) stay verbatim -- never folded across the call. Per-arm
@@ -71,7 +71,7 @@ import { BOARD } from "./ram.js";
  * boundary is pinned; a latch write inside a handler is reached at the exact oracle
  * cycle (the call boundary is preserved), so it is automatically preserved too.
  *
- * GATE -- CRAFTED ENTRY + pinned cycle totals (docs/06), like sub_2a22 / arm_1a4b.
+ * GATE -- CRAFTED ENTRY + pinned cycle totals (docs/decompiler-pipeline), like sub_2a22 / arm_1a4b.
  * sub_32bd's dispatcher is the UNTRANSLATED frontier entry_3202 (reached via the
  * untranslated entry_31b1; "nothing in translated src invokes entry_3202"), so it
  * DISPATCHES 0x -- measured 0 invocations over a 700-frame attract run. A

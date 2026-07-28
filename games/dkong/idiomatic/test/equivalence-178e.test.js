@@ -4,7 +4,7 @@
  *
  * advanceToNextBoard WRITES memory (BOARD_SEQ_PTR / BOARD / the task ring / 0x6388 /
  * SUBSTATE_TIMER / GAME_SUBSTATE) and calls two sub-routines, so it is gated by
- * capture / clone / replay (docs/06), NOT the exhaustive-leaf pattern. It is dispatched
+ * capture / clone / replay (docs/decompiler-pipeline), NOT the exhaustive-leaf pattern. It is dispatched
  * only during board-advance (GAME_STATE == 3, GAME_SUBSTATE == 0x16, loc_1615's rst-0x28
  * table, 0x6388 selector at this step) — a state a bounded attract run never reaches — so
  * its real entries are FORCED with an identical-both-sides poke (Karl's sanctioned "poke
@@ -21,7 +21,7 @@
  *      confirm advanceToNextBoard leaves SP + pc untouched (it models no stack).
  *
  *   2. EQUAL (crafted arms) — the three data-dependent paths, each poked one variable
- *      identically on both sides on a real captured entry (docs/06 crafted entry):
+ *      identically on both sides on a real captured entry (docs/decompiler-pipeline crafted entry):
  *        - SKIP    : SUBSTATE_TIMER=5 → the rst-0x18 gate has not expired → early return.
  *        - WALK    : SUBSTATE_TIMER=1, BOARD_SEQ_PTR=0x3A65 → +1=0x3A66 is a board byte.
  *        - WRAP    : SUBSTATE_TIMER=1, BOARD_SEQ_PTR=0x3A78 → +1=0x3A79 is the 0x7F

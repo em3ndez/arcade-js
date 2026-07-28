@@ -54,7 +54,7 @@
  *      at SP) lands the wrong value (XOR 0xFF) is CAUGHT: NOT-EQUAL, naming that stack
  *      address. Run under the 0x0028 stub so the corrupted push is NOT masked -- in a
  *      full run the dispatched subtree's own pushes overwrite the same stack slots
- *      (the "re-poked output" wrinkle, docs/06), so the unit teeth targets the
+ *      (the "re-poked output" wrinkle, docs/decompiler-pipeline), so the unit teeth targets the
  *      routine's own store directly with the subtree stubbed off.
  *
  * THE CYCLE DECISION this routine records: sub_286f is COLLAPSED to ONE m.step. Its

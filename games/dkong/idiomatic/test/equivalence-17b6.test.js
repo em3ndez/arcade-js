@@ -7,7 +7,7 @@
  * seed the blink code / sub-state gate / animation stepper, then inc the step counter
  * 0x6388 and repoint SEQ_ADVANCE_PTR (0x63C0) at it.
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), not the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. loc_17b6 WRITES RAM (and, via loc_0da7, walks the stack), so every
  * case uses a FRESH clone per side. The oracle runs on one clone, loc_17b6 on the other,
  * and they are compared on the go-forward contract:

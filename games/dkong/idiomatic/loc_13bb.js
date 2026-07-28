@@ -33,7 +33,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-13bb.test.js.
  * GATE:     crafted-entry; 0x13bb dispatches ZERO times in 6000 attract frames and
  *           in 1P/2P coin+start runs (its sub-state is reached only in a credited
- *           game's player-switch path), so — per docs/06 for arms attract never
+ *           game's player-switch path), so — per docs/decompiler-pipeline for arms attract never
  *           reaches — the gate is crafted from real booted machines. The routine
  *           reads nothing (a constant function), so the sweep pre-dirties all four
  *           outputs + the flip latch to sentinels over several diverse bases and

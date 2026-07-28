@@ -5,7 +5,7 @@
  * sub_3f24 WRITES memory (two video-RAM tilemap cells) but takes NO INPUTS: it
  * loads HL/DE from literals and always writes 0x9F to 0x74AF and 0x9E to 0x748F,
  * with no branches. So it is a CONSTANT action, gated by capture / clone / replay
- * (docs/06) plus crafts that prove the constancy — NOT the exhaustive-leaf pattern:
+ * (docs/decompiler-pipeline) plus crafts that prove the constancy — NOT the exhaustive-leaf pattern:
  *
  *   1. EQUAL (real captured dispatches) — hook 0x3F24 in a real attract run and
  *      clone the machine at each true dispatch (loc_07cb's countdown repaint calls
@@ -155,7 +155,7 @@ test("EQUAL (crafts): oracle and idiomatic agree regardless of cell/register/RAM
   const entry = caps[0];
 
   // Each craft pokes state IDENTICALLY on both sides; a real state with a surgical
-  // nudge (docs/06), aimed at anything the routine might wrongly read.
+  // nudge (docs/decompiler-pipeline), aimed at anything the routine might wrongly read.
   const crafts = [
     ["junk-cells", (m) => { m.mem.write8(CELL_TOP, 0x00); m.mem.write8(CELL_BOT, 0xff); m.mem.write8(0x74cf, 0x55); }],
     ["prefilled", (m) => { m.mem.write8(CELL_TOP, 0x9f); m.mem.write8(CELL_BOT, 0x9e); }],

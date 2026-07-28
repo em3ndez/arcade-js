@@ -86,7 +86,7 @@ function firstRamDiffExStack(a, b, offToAddr) {
 /**
  * Run the oracle and a candidate on two fresh clones of `entry` and diff the
  * memory-equivalence contract (RAM − STACK_SCRATCH). A FRESH clone per side because the
- * routine WRITES memory (docs/06: only a pure read-only leaf may reuse a clone).
+ * routine WRITES memory (docs/decompiler-pipeline: only a pure read-only leaf may reuse a clone).
  */
 function runPair(entry, candidate) {
   const a = entry.clone(); // oracle

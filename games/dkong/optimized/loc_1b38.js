@@ -65,7 +65,7 @@
  * to read A and set F twice -- so the readability win is names, structure, and the
  * cycle collapse.
  *
- * CYCLES -- COLLAPSED per doc 06: each executed path's straight-line T-states are folded
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc: each executed path's straight-line T-states are folded
  * into ONE charge placed immediately before that arm's control transfer, preserving the
  * oracle's per-arm TOTAL exactly. There are NO writes in loc_1b38 (it only reads 0x6010
  * and 0x6215), so no hardware-latch bus cycle is crossed and a full fold is safe.

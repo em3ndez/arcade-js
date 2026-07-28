@@ -4,7 +4,7 @@
  * hardware": zero the eight ls259.6h trigger latches + their work-RAM shadow, the
  * 0x6088-0x608B sound-control block, the audio IRQ line, and the ls175.3d latch.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired
  * strict whole-machine one. silenceSound WRITES RAM, so every captured case uses a
  * FRESH clone per side (never a reused machine). The oracle is run on one clone,
  * silenceSound on another, and they are compared on the go-forward contract:

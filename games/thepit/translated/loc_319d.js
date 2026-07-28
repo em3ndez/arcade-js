@@ -17,7 +17,7 @@
  * except the entry ends in a return, so each `loc_*` is modelled as a nested
  * helper reached by `return loc_xxxx()` (a jp: control transfer, no stack
  * effect), and a tail-jump into another routine as `return m.call(target)`
- * (the target's own ret pops THIS routine's return address, per doc 03).
+ * (the target's own ret pops THIS routine's return address, per the translation doc).
  *
  *   319d  3a 93 80     ld   a,(0x8093)
  *   31a0  47           ld   b,a

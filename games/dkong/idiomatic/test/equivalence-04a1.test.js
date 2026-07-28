@@ -118,7 +118,7 @@ function contractDiffs(entry, fn) {
 /**
  * Hook 0x04a1 in a real attract run and clone the machine at up to K real dispatches. The
  * wrapper snapshots the entry state, then runs the oracle so the host game proceeds undisturbed.
- * Single runFrames() call — frame-by-frame stepping shifts NMI timing (see docs/06).
+ * Single runFrames() call — frame-by-frame stepping shifts NMI timing (see docs/decompiler-pipeline).
  */
 function captureDispatches(K, maxFrames) {
   const caps = [];

@@ -5,7 +5,7 @@
  *
  * entry_06b8 WRITES memory (video-RAM HUD cells + a conditional LEVEL clamp),
  * READS work RAM (ATTRACT, LIVES, LEVEL), and skips its whole body behind a
- * `rst 0x08` guard — so it is gated by capture / clone / replay (docs/06), not
+ * `rst 0x08` guard — so it is gated by capture / clone / replay (docs/decompiler-pipeline), not
  * the exhaustive-leaf pattern. A FRESH clone is used per case because it mutates
  * RAM. The oracle pushes/pops (the rst-0x08 skip trick + the terminal `ret`), so
  * a few bytes of DEAD stack-scratch residue are expected and excluded from the

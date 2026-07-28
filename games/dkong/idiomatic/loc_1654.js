@@ -27,7 +27,7 @@
  * return. NAME: kept as loc_1654 — the whole sibling family (loc_1670/168a/1732/… and
  * the tail loc_1662) stayed address-named because the exact visual the animation depicts
  * is not independently confirmed; the mechanics are understood but the single unifying
- * role is not earned, so a neutral loc_ name is the honest choice (docs/06: a wrong
+ * role is not earned, so a neutral loc_ name is the honest choice (docs/decompiler-pipeline: a wrong
  * English name misleads worse than a neutral one).
  *
  * CALLEES (all landed idiomatic — called directly, no stack modelling):

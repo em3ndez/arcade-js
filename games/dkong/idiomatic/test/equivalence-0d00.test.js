@@ -5,7 +5,7 @@
  * 0x0D17 and write the fixed tile codes 0xB8 then 0xB7 into each destination cell pair
  * (0x76CA/0x76CF/0x76D4/0x76D9 then 0x752A/0x752F/0x7534/0x7539).
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES video RAM, so every case uses a FRESH clone
  * per side. The oracle runs on one clone, stampRivetBoardTiles on another, and they
  * are compared on the go-forward contract:

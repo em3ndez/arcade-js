@@ -72,7 +72,7 @@ import { MARIO_MOVE_STEP_TIMER, MARIO_WALK_ANIM } from "./ram.js";
  *     the twin, there is essentially NO churn to drop -- the register ops ARE the logic; the
  *     win is names, flat control flow, the docstring, and the cycle collapse.
  *
- * CYCLES -- COLLAPSED to one m.step per basic block, EXACT per-arm totals (doc 06). The
+ * CYCLES -- COLLAPSED to one m.step per basic block, EXACT per-arm totals (the decompiler-pipeline doc). The
  * mid-body `call 0x3009` is a BOUNDARY: its `push16` (return 0x1CBD) + `m.step(0x3009,17)`
  * (the CALL's own 17 t) + `m.call(0x3009)` stay verbatim and the fold does NOT cross it.
  *   - arm A (timer!=0): ld b(7) + ld a(13) + and a(4) + jp nz taken(10)                 = 34 t, exit 0x1CD2.

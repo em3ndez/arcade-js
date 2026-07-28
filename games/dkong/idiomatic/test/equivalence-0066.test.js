@@ -4,7 +4,7 @@
  * ack the interrupt, kick the watchdog / reject SERVICE, DMA-blit the sprites, read the
  * controls when a game is in play, then run the per-frame work + epilogue (perFrame).
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. serviceVblankNmi WRITES RAM everywhere (frame counter, RNG, sound
  * and task rings, the input latch, and whatever the GAME_STATE handler dispatches), so
  * every case uses a FRESH clone per side. The go-forward contract compared here is:

@@ -197,7 +197,7 @@ test("loc_312d: stop after object 1 when 0x8001==4 && 0x8010<0x0a (991 T, to 0x3
 });
 
 // -- MUTATION: model the 0x316c `jp c,0x3748` as a `ret` instead of a tail-jump.
-// This is the exact trap doc 03 warns about: a jp that discards the current frame
+// This is the exact trap the translation doc warns about: a jp that discards the current frame
 // must be `return m.call(target)`, NOT m.ret(). The mutant pops SENTINEL and
 // "returns" to the caller directly, skipping 0x3748 -- wrong control flow at the
 // IDENTICAL 991 T (jp-taken and ret are both 10 T). Everything up to 0x316c is the

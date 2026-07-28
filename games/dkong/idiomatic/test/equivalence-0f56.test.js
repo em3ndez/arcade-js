@@ -4,7 +4,7 @@
  * reset + bonus/timer setup + shared-sprite seed, which then tail-dispatches (via the
  * ROM 0x0FCD rst-0x28 table) to the board's own object setup (seed25m/50m/75m/100m).
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), NOT the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), NOT the retired strict
  * whole-machine one. sub_0f56 WRITES a large span (0x6200–0x6226, 0x6280–0x6AFF, the
  * bonus bytes, and — via the dispatched board setup — the object/sprite records) and
  * reads only LEVEL (0x6229), BOARD (0x6227) and ROM. It has NO `ret`: it tail-jumps to

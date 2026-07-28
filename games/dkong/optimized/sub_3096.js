@@ -65,7 +65,7 @@
  * And it is ATOMIC: io.nmiMask == 0 at 100% of those 62 dispatches (measured), because
  * loc_0ae8 runs inside the NMI game-state cascade (mask cleared on NMI entry), so the
  * vblank NMI cannot land inside it and the per-block fold cannot push a coarse PC. An
- * atomic byte-exact collapse passes the ordinary strict gate (docs/06), which -- being
+ * atomic byte-exact collapse passes the ordinary strict gate (docs/decompiler-pipeline), which -- being
  * non-vacuous (62 invocations) -- also covers the cycle total through the spin-count /
  * stack channel; a unit crafted-entry pair (both HL configs) localizes it and pins the
  * 96 t total explicitly for belt-and-suspenders.

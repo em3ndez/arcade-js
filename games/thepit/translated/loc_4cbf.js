@@ -14,7 +14,7 @@
  *
  * 0x4cca is its OWN routine (loc_4cca) because it is also entered by `jp 0x4cca`
  * from loc_4bc7 and loc_4df8 — an externally-entered address is a routine boundary
- * (docs/03), so loc_4cbf must NOT inline across it. The `call 0x4d3a` at 0x4cc7 is
+ * (docs/translation), so loc_4cbf must NOT inline across it. The `call 0x4d3a` at 0x4cc7 is
  * loc_4cbf's last own instruction; loc_4d3a's `ret` pops the pushed 0x4cca and
  * lands PC at loc_4cca's first byte. From there loc_4cbf tail-delegates into
  * loc_4cca (m.call with NO trailing m.ret — loc_4cca itself tail-rets into

@@ -149,11 +149,11 @@ The porting-specific glue is the three layers above, the `inputs` block below, k
 below, and registering the game — add its id to `games/registry.js`, write `games/<id>/manifest.js`
 (ROM part list + sha256 checksums + the `inputs` block), and a `Makefile` `rom` target.
 
-The **method** sequence that turns the ROM into validated JavaScript — lift → call graph &
-reachability → RAM naming → bottom-up decompile, each routine memory-equivalence-gated →
-pixel-exact-vs-MAME capstone — lives in exactly one place: **The pipeline for the next game** in
-[the decompiler pipeline](08-decompiler-pipeline.md). Follow it there; it builds on the disassembly,
-translation, and gate mechanics in docs 2–6.
+The **method** — the model that turns a ROM into validated, *understood* JavaScript — lives in
+exactly one place: **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call
+graph, then Ship). Its detailed Structure/Meaning techniques are in
+[the decompiler pipeline](decompiler-pipeline.md), building on the disassembly, translation, and
+gate mechanics in the disassembly-through-pixel-gate docs.
 
 ## The ROM stays out
 
@@ -170,4 +170,4 @@ a few frames and every RNG-driven sprite drifts — a long pixel diff then looks
 is identical. Don't chase cycle-exactness for it; **pin the entropy** for equivalence testing instead
 (declare `manifest.entropyPin`, run with `--pin-entropy`). The full method — discovery, the pin, and
 the convergent diff for the residual DMA artifact — is the *Entropy pinning* section of
-[the decompiler pipeline](08-decompiler-pipeline.md).
+[the decompiler pipeline](decompiler-pipeline.md).

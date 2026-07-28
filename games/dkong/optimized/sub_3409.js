@@ -61,7 +61,7 @@
  *   - `cp 0x0f` is kept verbatim: `ret nz` reads its Z, and on ARM 2 it is the exit
  *     F. `xor 0x02` is kept verbatim: it is ARM 3's exit F.
  *
- * CYCLES -- COLLAPSED per doc 06, per-arm TOTAL preserved EXACTLY (the routine is
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc, per-arm TOTAL preserved EXACTLY (the routine is
  * atomic -- see below -- and has no hardware-latch write and no call, so folding the
  * straight-line runs is licensed; only the total is observable):
  *   ARM 1: ld19 + and4 + jpTaken10 + dec23           = 56 t @0x342b, then ret 10  = 66

@@ -7,14 +7,14 @@
  *
  * The routine WRITES memory and is NOT a leaf — it drives sub_0f56 (the oracle, incl.
  * its rst-0x28 per-board setup dispatch), loadBoardObjectRecords, loadSpriteObjectBlock,
- * and the add-strided leaves — so it is gated by clone / replay (docs/06) with a FRESH
+ * and the add-strided leaves — so it is gated by clone / replay (docs/decompiler-pipeline) with a FRESH
  * clone per case. The memory-equivalence contract is RAM − STACK_SCRATCH: the oracle's
  * push16 / m.call / ret stack traffic (and the whole board-setup call chain) lands in the
  * dead stack region, which the compare excludes; the direct-call layer drops it entirely.
  *
  * Attract sets up 25m ONLY, so it dispatches 0x0D5F exactly once, with BOARD == 1. That
  * one real entry validates the common path + the 25m arm; the 50m/75m/100m arms are
- * reached — exactly as docs/06 prescribes for arms attract never takes — by a
+ * reached — exactly as docs/decompiler-pipeline prescribes for arms attract never takes — by a
  * Karl-sanctioned BOARD poke (2/3/4) applied identically on both sides of the real entry.
  *
  *   1. STRUCTURE — on the real board-1 entry, game-visible RAM (RAM − STACK_SCRATCH) is

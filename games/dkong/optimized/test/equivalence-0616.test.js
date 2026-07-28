@@ -19,7 +19,7 @@
  *      COLLAPSED (one m.step per basic block; see sub_0616.js's CYCLES note) and
  *      NOT atomic -- every call path runs with the NMI mask enabled -- so the
  *      convergent gate is the correct license, not the strict byte-exact one
- *      (docs/06; see sub_0350): a strict pass would only prove no NMI happened to
+ *      (docs/decompiler-pipeline; see sub_0350): a strict pass would only prove no NMI happened to
  *      land mid-routine in THIS scenario, not that the collapse is safe in general.
  *
  *   2. EQUAL (unit) -- idiomatic optimized sub_0616 reads EQUAL against its

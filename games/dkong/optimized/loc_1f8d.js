@@ -66,7 +66,7 @@
  * PC never lands in [0x1F8D,0x1F92] (0 landings; all landings fall in the 0x02BD-0x0372
  * main-loop band). An atomic collapse pushes no mistimed PC and tears no raster, so it
  * passes the BYTE-EXACT whole-machine gate directly and does NOT need the convergent
- * gate (docs/06 "a byte-exact collapse of an ATOMIC routine passes the ordinary strict
+ * gate (docs/decompiler-pipeline "a byte-exact collapse of an ATOMIC routine passes the ordinary strict
  * gate"). See equivalence-1f8d.test.js.
  */
 export function loc_1f8d(m) {

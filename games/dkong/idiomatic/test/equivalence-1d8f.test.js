@@ -4,7 +4,7 @@
  * (footstep) sound": store 3 into SND_TRIGGER[0] (0x6080), a 3-frame hold that the
  * per-vblank sound driver counts down onto ls259.6h bit 0 (hardware latch 0x7D00).
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. triggerWalkSound WRITES RAM, so every captured case uses a FRESH
  * clone per side (never a reused machine). The oracle runs on one clone, the rewrite
  * on another, and they are compared on the go-forward contract:

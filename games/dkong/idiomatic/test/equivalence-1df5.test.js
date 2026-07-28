@@ -7,7 +7,7 @@
  * loc_1df5 writes NO memory of its own — every game-visible byte is written by the CHOSEN
  * arm's loc_1e15 chain (task ring via enqueueTask, the *(0x6343) block[0] clear, and — via
  * the loc_1e36 tail — the 4-byte sprite record 0x6A30..0x6A33 + the board-gated sound
- * 0x6085). So it is gated by capture / clone / replay (docs/06) with a FRESH clone per case,
+ * 0x6085). So it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case,
  * on the contract RAM − STACK_SCRATCH (never the full register file, never cycles), with the
  * extra requirement that idiomatic loc_1df5 leaves SP/pc unchanged (it models no stack while
  * the oracle's `jp`/`call` chain does).

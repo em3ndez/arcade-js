@@ -95,7 +95,7 @@ const SLOT_DIRBITS = 0x02; // ix+2: direction bitfield; bits 0/1/2 select 1fac/1
  * plus the thin 0x00xx/0x06xx tail). Its ONLY caller is loc_1f83's active arm, itself
  * atomic on every call path (equivalence-1f83), so loc_1f93 is atomic on every call path.
  * An atomic byte-exact collapse pushes no mistimed PC and tears no raster, so it passes the
- * BYTE-EXACT (strict) whole-machine gate directly (docs/06: "a byte-exact collapse of an
+ * BYTE-EXACT (strict) whole-machine gate directly (docs/decompiler-pipeline: "a byte-exact collapse of an
  * ATOMIC routine passes the ordinary strict gate"). This matches SCC neighbours loc_1f83 /
  * loc_1f8d; the oracle docstring's "not yet wired" note is STALE. See equivalence-1f93.test.js.
  */

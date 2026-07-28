@@ -35,7 +35,7 @@
  *      produces.
  *
  * A FRESH clone per side everywhere: the routine WRITES memory on the grounded arm, so
- * a reused machine would carry the previous advance forward (docs/06: only a pure
+ * a reused machine would carry the previous advance forward (docs/decompiler-pipeline: only a pure
  * read-only leaf may reuse one).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1a2a.test.js

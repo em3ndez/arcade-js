@@ -63,7 +63,7 @@
  * one m.step + one m.ret. The carry arm is KEPT PER-INSTRUCTION rather than collapsed:
  * it is interruptible (loc_197a cascade) AND never exercised by the convergent attract
  * run (0 of 816 dispatches), so a collapse of it cannot be whole-machine verified --
- * docs/06 keeps such an arm split. All effects on the carry arm are in the callees
+ * docs/decompiler-pipeline keeps such an arm split. All effects on the carry arm are in the callees
  * (0x694D, 0x600A -- WORK RAM, not 0x7Dxx hardware latches), so there is NO hardware
  * bus cycle to pin and NO write-trace test.
  *

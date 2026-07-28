@@ -35,21 +35,23 @@ board observes the program's *sound-command writes* and hands the command value 
 emulation core deterministic and sound-free (the pixel gate never depends on audio), and makes
 audio a thin, swappable layer. A game supplies the trigger map + samples in `games/<x>/audio/`.
 
-**Optimization is layered, not in-place.** The translated ROM in `games/<x>/translated/` is
-deliberately close to the original assembly. Idiomatic-JS rewrites of individual routines go
-in `games/<x>/optimized/` and are swapped in via the manifest — only after passing the same
-pixel/mutation gates that prove equivalence to the assembly-JS version. (Future work; the room
-is here now.)
+**The idiomatic rewrite is layered, not in-place.** The translated ROM in `games/<x>/translated/`
+is deliberately close to the original assembly. Idiomatic, memory-equivalent rewrites of individual
+routines live in `games/<x>/idiomatic/` (the go-forward layer; the older strict `optimized/` is
+superseded and deleted per-routine) and are swapped in via the manifest — only after passing the
+memory-equivalence gate against the oracle. See [docs/decompiler-pipeline](../docs/decompiler-pipeline.md).
 
 **A shared board is factored out on the second game.** DK's hardware lives in `boards/dkong/`.
 When a second romset reuses it (DK Jr. / DK3 / Mario Bros family), it just references
 `board: 'dkong'` — no duplication.
 
-## Parameterizing the core for a second board (the future seam)
+## Parameterizing the core for a second board (still optional)
 
-`cpu/z80.js` is already generic. Making the *machine scaffolding* generic — so a new board only
-supplies data, not forked code — means lifting four things out of the DK board into
-parameterized core pieces (deferred until a second board actually needs them):
+`cpu/z80.js` is already generic. A second board now exists — `boards/thepit` — but it was written
+standalone (its own `memory.js` / `io.js` / `video.js`, the way `boards/dkong` is), which is why the
+data-only parameterization below stayed optional rather than becoming required. Making the *machine
+scaffolding* generic — so a new board only supplies data, not forked code — would mean lifting four
+things out of a board into parameterized core pieces:
 
 1. **Address map** — RAM/ROM/sprite/video/DMA ranges (today hardcoded in `boards/dkong/memory.js`).
 2. **I/O config** — input-bit maps, dip switches, the i8257/watchdog/latch layout

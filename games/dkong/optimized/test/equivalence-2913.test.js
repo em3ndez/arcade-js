@@ -8,7 +8,7 @@
  * under the strict gate for the plain-attract scenario tested here, but atomicity is a
  * property of the SCENARIO, not the routine -- a strict pass here is not a guarantee it
  * stays byte-exact under every input tape (e.g. active gameplay), so it is licensed the same
- * way as every other collapsed routine (docs/06; see sub_0350): pixels are the ground truth,
+ * way as every other collapsed routine (docs/decompiler-pipeline; see sub_0350): pixels are the ground truth,
  * transient state/pixel divergence is fine if it reconverges, the dead stack is excluded, and
  * a PERSISTENT divergence still fails. Its whole-machine teeth is a CYCLE-DROP twin, not a
  * value-corruption one: being READ-ONLY (it writes no work RAM), a corrupted active-flag read

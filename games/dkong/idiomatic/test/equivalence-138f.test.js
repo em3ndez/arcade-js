@@ -5,13 +5,13 @@
  *
  * loc_138f WRITES memory (SUBSTATE_TIMER 0x6009 and, on the expiry frame, GAME_SUBSTATE
  * 0x600A) and is NOT a leaf (it runs the `rst 0x18` gate, tickSubstateTimer), so it is
- * gated by capture / clone / replay (docs/06) with a FRESH clone per case. Its entire
+ * gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its entire
  * logic is (a) the timer gate — only the frame SUBSTATE_TIMER decrements to 0 does the
  * rest run — and (b) a single non-zero test of P2_CONTEXT (0x6048) that picks the next
  * sub-state (0x17 if live, 0x14 if dead).
  *
  * A 6000-frame attract run dispatches 0x138f ZERO times (its sub-state is reached only in
- * a credited game's death/game-over path, GAME_STATE 3), so — exactly as docs/06
+ * a credited game's death/game-over path, GAME_STATE 3), so — exactly as docs/decompiler-pipeline
  * prescribes for arms attract never reaches — the gate is CRAFTED: a real booted attract
  * machine, cloned, with the three input bytes surgically poked, then oracle-vs-idiomatic
  * on independent fresh clones. Because the logic inputs are small, the crafted sweeps are
@@ -93,7 +93,7 @@ function base() {
   return _base;
 }
 
-/** Two independent fresh clones of the base with identical input pokes (docs/06 fresh
+/** Two independent fresh clones of the base with identical input pokes (docs/decompiler-pipeline fresh
  *  clone per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(timer, p2, sub = SUB_SENTINEL) {
   const a = base().clone(), b = base().clone();

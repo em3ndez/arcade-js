@@ -2,7 +2,7 @@
 /**
  * The convergent gate binding for Donkey Kong — the gate that LICENSES collapsing an
  * INTERRUPTIBLE routine (one the vblank NMI lands inside). See core/equivalence.js
- * `convergentEquivalence` and docs/06 for the theory: pixels are the ground truth; both
+ * `convergentEquivalence` and docs/decompiler-pipeline for the theory: pixels are the ground truth; both
  * non-stack state and pixels may diverge TRANSIENTLY as long as they RECONVERGE; PERSISTENT
  * divergence in either fails; the dead stack scratch (where the mistimed NMI pushes a coarse
  * PC) is excluded outright. A byte-exact collapse of an ATOMIC routine passes the ordinary

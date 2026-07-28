@@ -11,7 +11,7 @@
  * gameplay tape.  So there is no natural/convergent whole-machine run to gate it,
  * and (being interruptible + unverifiable) it is kept PER-INSTRUCTION rather than
  * collapsed.  Its charges are byte-identical to the oracle, but the tests still
- * pin the exact 17 t total with teeth, per docs/06's crafted-entry rule.
+ * pin the exact 17 t total with teeth, per docs/decompiler-pipeline's crafted-entry rule.
  *
  * loc_1e10's ENTIRE observable footprint is: regs B:=0x7F, DE:=0x0008; pc->0x1E15;
  * +17 t; and NOTHING else (no RAM write, no stack op, no flag write).  It has no

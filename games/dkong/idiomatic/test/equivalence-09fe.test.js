@@ -8,7 +8,7 @@
  *
  * restorePlayer2Context WRITES memory and is reached by dispatch (dispatchGameState,
  * the NMI's rst-0x28 game-state dispatch) — not a pure leaf — so it is gated by
- * capture / clone / replay (docs/06), with a FRESH clone per case. It is straight-
+ * capture / clone / replay (docs/decompiler-pipeline), with a FRESH clone per case. It is straight-
  * line (no data-dependent branch — unlike its P1 twin loc_09ab, which branches on
  * TWO_PLAYER_GAME), so real captures + crafted entries are full path coverage.
  *

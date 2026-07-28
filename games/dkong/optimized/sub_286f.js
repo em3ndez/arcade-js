@@ -70,7 +70,7 @@ import { BOARD } from "./ram.js";
  * sub_286f is NOT atomic: it is dispatched from the interruptible per-frame update
  * cascade loc_197a (via game-state-3 gameplay -> sub_2808 -> here), ~816x in a
  * 1400-frame attract run, so the vblank NMI can land inside its 35 t window. The
- * collapse is therefore LICENSED by the CONVERGENT gate (docs/06;
+ * collapse is therefore LICENSED by the CONVERGENT gate (docs/decompiler-pipeline;
  * equivalence-286f.test.js uses convergentGate with SCENARIOS.attract, not the
  * strict whole-machine gate): a mistimed NMI pushes the coarse block-exit PC into
  * the DEAD stack (excluded) and can leave a single-frame raster tear that heals next

@@ -6,7 +6,7 @@
  *
  * loc_0a1b WRITES memory (palette latches, task ring + tail, three video cells,
  * GAME_SUBSTATE) and calls two subroutines — not a pure leaf — so it is gated by
- * capture / clone / replay (docs/06), NOT the exhaustive-leaf pattern. A FRESH clone
+ * capture / clone / replay (docs/decompiler-pipeline), NOT the exhaustive-leaf pattern. A FRESH clone
  * is used per side because the routine mutates state.
  *
  * REACHABILITY. 1-player attract NEVER dispatches 0x0A1B: it is the TWO-PLAYER
@@ -14,7 +14,7 @@
  * is one-player, so loc_0986 takes its non-2P arm and the cascade never runs. Even a
  * driven 2-player *start* goes loc_0986 → sub_09d6 → loc_0a37 and skips this step —
  * 0x0A1B is the player-2-turn setup, which needs full alternation gameplay to reach
- * naturally. So every entry here is CRAFTED (docs/06 "a real state with a surgical
+ * naturally. So every entry here is CRAFTED (docs/decompiler-pipeline "a real state with a surgical
  * nudge"): a REAL in-game 2-player machine (driven by a coin+START2 input tape) is
  * captured, and the task-ring state / palette bank / GAME_SUBSTATE / target video
  * cells are poked IDENTICALLY on both sides to exercise each arm.
@@ -132,7 +132,7 @@ function replay(entry, candidate) {
 test("EQUAL (crafted): loc_0a1b == oracle over clean / DROP / wrap / 2nd-occupied ring arms", () => {
   const base = captureBase();
 
-  // Each arm pokes the task ring identically on both sides (docs/06 crafted entry).
+  // Each arm pokes the task ring identically on both sides (docs/decompiler-pipeline crafted entry).
   const arms = [
     // Both slots at the tail free -> both messages written, tail advances by 4.
     ["clean", (m) => {

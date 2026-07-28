@@ -7,7 +7,7 @@
  *
  * loc_186f WRITES memory and is NOT a leaf — it runs the idiomatic leaves tickSubstateTimer
  * (rst 0x18 gate, ROM 0x0018) and loadSpriteObjectBlock (the fixed 0x28-byte copy, ROM
- * 0x004e) — so it is gated by capture / clone / replay (docs/06) with a FRESH clone per
+ * 0x004e) — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per
  * case. tickSubstateTimer is itself memory-equivalent to the oracle's rst-0x18, so loc_186f's
  * branch decision tracks the oracle; what this test pins is that loc_186f (a) skips the whole
  * body until the timer expires, (b) on the single expiry frame runs the copy + latch + step
@@ -16,7 +16,7 @@
  *
  * A 6000-frame attract run dispatches 0x186f ZERO times (it is a credited game's
  * board-advance cutscene step, reached only when GAME_SUBSTATE 0x600A == 0x16, which attract
- * never enters), so — exactly as docs/06 prescribes for arms attract never reaches — the gate
+ * never enters), so — exactly as docs/decompiler-pipeline prescribes for arms attract never reaches — the gate
  * is CRAFTED: a real booted attract machine, cloned, with SUBSTATE_TIMER / the step selector
  * surgically poked, then oracle-vs-idiomatic on independent fresh clones. The two inputs that
  * select the behaviour are each a single byte, so the crafted sweeps are EXHAUSTIVE over them:
@@ -103,7 +103,7 @@ function base() {
 }
 
 /**
- * Two independent fresh clones of the base (docs/06 fresh clone per case — this routine
+ * Two independent fresh clones of the base (docs/decompiler-pipeline fresh clone per case — this routine
  * writes RAM), each with SUBSTATE_TIMER and (optionally) the step selector poked, SP planted
  * in STACK_SCRATCH, and a sentinel laid over the push window so the oracle's pushes provably
  * land in the excluded stack region. Returns [oracleClone, candidateClone].
@@ -225,7 +225,7 @@ function brokenNoLatch(m) {
 }
 
 /** Twin (c): inverts the gate polarity — runs the body while the timer is still ticking and
- *  skips it on expiry (docs/06's exact "reading it the other way inverts the routine" trap). */
+ *  skips it on expiry (docs/decompiler-pipeline's exact "reading it the other way inverts the routine" trap). */
 function brokenGatePolarity(m) {
   const { regs, mem } = m;
   if (tickSubstateTimer(m)) return; // BUG: returns on expiry, runs while counting

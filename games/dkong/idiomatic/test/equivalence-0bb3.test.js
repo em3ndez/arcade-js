@@ -15,7 +15,7 @@
  *
  * REACHABILITY. This is an IN-GAME cutscene step (GAME_SUBSTATE == 7): attract never enters
  * it (test 4 checks this — 0 dispatches over a long run). So there is no real dispatch to
- * capture; per docs/06 the gate is crafted entries over a REAL attract base — a real state
+ * capture; per docs/decompiler-pipeline the gate is crafted entries over a REAL attract base — a real state
  * with a surgical nudge — which still proves equivalence because both sides start from a
  * byte-identical clone:
  *
@@ -80,7 +80,7 @@ function firstNonStackDiff(a, b, m) {
 
 /**
  * Run the oracle and a candidate on two FRESH clones of `entry` and diff RAM minus
- * STACK_SCRATCH. Fresh clones because the routine WRITES memory (docs/06: only a pure
+ * STACK_SCRATCH. Fresh clones because the routine WRITES memory (docs/decompiler-pipeline: only a pure
  * read-only leaf may reuse a clone).
  */
 function runPair(entry, candidate) {

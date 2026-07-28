@@ -7,7 +7,7 @@
  * loc_1e15 WRITES memory (the task ring via enqueueTask, the block[0] clear at
  * *(0x6343), and — through its loc_1e36 tail — the sprite record 0x6A30..0x6A33 and the
  * gated sound 0x6085) and is NOT a leaf, so it is gated by capture / clone / replay
- * (docs/06) with a FRESH clone per case. Its own body is straight-line; the only
+ * (docs/decompiler-pipeline) with a FRESH clone per case. Its own body is straight-line; the only
  * branches live in its callees (enqueueTask's full-ring drop, loc_1e36's board gate).
  * Attract only ever dispatches it on 25m (BOARD 1) with a free ring slot, so the closed
  * arms are reached with crafted entries:

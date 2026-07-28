@@ -6,7 +6,7 @@
  * loc_1670 WRITES memory and is NOT a leaf — it runs the rst-0x18 gate (tickSubstateTimer),
  * a block copy (loadSpriteObjectBlock), the rst-0x30 per-board gate (boardBitGate) and the
  * rst-0x38 Y-column nudge (addToSpriteObjectColumn) — so it is gated by capture / clone /
- * replay (docs/06) with a FRESH clone per case. Its logic has three inputs:
+ * replay (docs/decompiler-pipeline) with a FRESH clone per case. Its logic has three inputs:
  *   - SUBSTATE_TIMER (0x6009) — the pose-hold gate; only the frame it decrements to 0 runs
  *     the body. Otherwise it just decrements and returns.
  *   - the 0x6388 step selector — the only input-dependent WRITE on the body (`inc`), the rest
@@ -14,7 +14,7 @@
  *   - BOARD (0x6227) — the rst-0x30 gate: A = 0x04 (mask bit2) opens the Y nudge on 75m only.
  *
  * A long attract run dispatches 0x1670 ZERO times (attract never completes a board, so it
- * never reaches GAME_SUBSTATE 0x16), so — exactly as docs/06 prescribes for arms attract
+ * never reaches GAME_SUBSTATE 0x16), so — exactly as docs/decompiler-pipeline prescribes for arms attract
  * never reaches — the gate is CRAFTED: a real booted attract machine, cloned, with the input
  * bytes surgically poked, then oracle-vs-idiomatic on independent fresh clones. The inputs are
  * small, so the crafted sweeps are EXHAUSTIVE:
@@ -113,7 +113,7 @@ function base() {
   return _base;
 }
 
-/** Two independent fresh clones of the base with identical input pokes (docs/06 fresh clone
+/** Two independent fresh clones of the base with identical input pokes (docs/decompiler-pipeline fresh clone
  *  per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(timer, board, step) {
   const a = base().clone(), b = base().clone();

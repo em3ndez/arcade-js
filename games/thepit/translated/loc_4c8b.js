@@ -20,7 +20,7 @@
  * neighbours are loc_4c83 (0x0d) below and loc_4c8f (0x10) above.
  *
  * The `jr 0x4ca5` is UNCONDITIONAL and discards no return address of its own, so
- * loc_4ca5's `ret` unwinds to loc_4c8b's OWN caller. Modelled per doc 03 as
+ * loc_4ca5's `ret` unwinds to loc_4c8b's OWN caller. Modelled per the translation doc as
  * `return m.call(0x4ca5)` with NO trailing m.ret — a second ret would double-pop.
  * `ld a,n` and `jr` touch NO flags, so the caller's F survives unchanged.
  *

@@ -157,7 +157,7 @@ function oracleWriteFootprint(entry) {
  * count its dispatches, in ONE attract run. The 0x04a3 wrapper snapshots the entry state
  * then runs its own oracle so the host proceeds undisturbed; the 0x04f1 wrapper counts (and
  * would run its oracle if ever hit). Single runFrames() call — frame-by-frame stepping
- * shifts NMI timing and takes a different attract branch (see docs/06).
+ * shifts NMI timing and takes a different attract branch (see docs/decompiler-pipeline).
  */
 function captureRun(K, maxFrames) {
   const caps = [];

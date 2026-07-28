@@ -37,7 +37,7 @@
  * loc_0dd3 is a draw primitive of sub_0da7, whose call graph includes callers
  * (loc_17b6/loc_1880) not analytically pinned to the mask-cleared NMI, so the
  * collapse coarsens where an in-flight NMI's PC would land (a block-exit address,
- * not the exact instruction) -- the CONVERGENT gate's license (docs/06). "Atomic" is
+ * not the exact instruction) -- the CONVERGENT gate's license (docs/decompiler-pipeline). "Atomic" is
  * a property of the SCENARIO tested, not of the routine, so even though the OLD
  * strict whole-machine test happened to pass unchanged after this collapse, that is
  * a brittle guarantee that could false-fail on a benign tear under a different

@@ -16,7 +16,7 @@
 //
 // The MUTATION is a CYCLE-ONLY break (the first `call` charged 10 instead of 17).
 // It moves no memory and changes no register or control-flow landing, so ONLY the
-// T-state assertion catches it -- the docs/03-translation.md point that a timing
+// T-state assertion catches it -- the docs/translation.md point that a timing
 // error can be invisible to the state diff.
 
 import { test } from "node:test";
@@ -114,7 +114,7 @@ test("loc_021c: seeds mode=3, resets SP, enables NMI, sets up, tail-jumps 0x3ba8
 // -- MUTATION: charge the first `call 0x4b14` 10 T instead of 17. It pushes/pops
 // the same word, lands control the same place, and touches no register -- memory,
 // PC, SP and A are all byte-identical. ONLY the 7-T-short total exposes it, which
-// is the whole reason cycles are charged (docs/03-translation.md).
+// is the whole reason cycles are charged (docs/translation.md).
 function loc_021c_mutant(m) {
   const { regs, mem } = m;
   regs.a = 0x03;

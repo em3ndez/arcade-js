@@ -6,7 +6,7 @@
  * RIVET_PRESENT flag, dec RIVETS_LEFT, blank 3 VRAM tiles, raise 0x6340/0x6342/0x6225,
  * and — grounded — call loc_1d95).
  *
- * The routine WRITES memory only, so it is gated by capture / clone / replay (docs/06)
+ * The routine WRITES memory only, so it is gated by capture / clone / replay (docs/decompiler-pipeline)
  * with a FRESH clone per case. The idiomatic form models no Z80 stack while the oracle's
  * `ret`/`rst`/`call` push+pop it, so the contract is RAM − STACK_SCRATCH (never the full
  * register file, never cycles), plus the requirement that idiomatic collectEdgeRivet

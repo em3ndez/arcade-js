@@ -13,7 +13,7 @@
 // The mutation is a CYCLE-ONLY break (the first `ld ix,nn` charged 10 T like a
 // `ld hl,nn`, dropping the DD prefix's 4 T). It moves no memory -- every RAM
 // byte is byte-identical -- so ONLY the T-state assertion catches it. That is
-// the whole point of charging cycles (docs/03-translation.md): a timing error
+// the whole point of charging cycles (docs/translation.md): a timing error
 // invisible to the state diff.
 
 import { test } from "node:test";

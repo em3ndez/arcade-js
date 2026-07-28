@@ -6,7 +6,7 @@
  * It touches only PER-OBJECT RECORD fields — (ix+0x10) and (ix+0x11), reached
  * through the object slot IX (0x6700 table, stride 0x20) that the caller supplies.
  * These are RECORD-RELATIVE offsets, not global addresses, so they are deliberately
- * kept HEX (the record-offset naming trap in docs/06): the same +0x10/+0x11 pair
+ * kept HEX (the record-offset naming trap in docs/decompiler-pipeline): the same +0x10/+0x11 pair
  * means different bytes for every slot, so a global ram.js name would be wrong. No
  * ram.js import — like arm_1a4b, this routine references no absolute address.
  *
@@ -56,7 +56,7 @@
  * file including F (and F3/F5). Keeping the one op makes F byte-exact for free
  * instead of hand-deriving sz/half-carry/parity. The branch itself reads A, not F
  * -- `regs.a !== 0` is exactly `jp nz` after `and a` (Z is set iff A==0, and `and a`
- * does not change A), the idiomatic form docs/06 asks for.
+ * does not change A), the idiomatic form docs/decompiler-pipeline asks for.
  *
  * CYCLES -- COLLAPSED to ONE m.step per branch arm, each charging that arm's exact
  * oracle total at the arm's transfer PC:
@@ -66,13 +66,13 @@
  * The collapse is LICENSED because sub_20b5 is ATOMIC: its ONLY call path runs
  * inside the vblank NMI's 0x197a cascade (measured: io.nmiMask == 0 at 100% of
  * dispatches over a 1200/2000-frame attract run; no NMI pushed-PC lands in the
- * 0x1900-0x2FFF cascade band, docs/06). No NMI can fire between the folded charges,
+ * 0x1900-0x2FFF cascade band, docs/decompiler-pipeline). No NMI can fire between the folded charges,
  * so only each arm's TOTAL is observable (via the main-loop spin count / PRNG),
  * and the total is preserved exactly. Neither store is a 0x7Dxx hardware latch --
  * (ix+0x10)/(ix+0x11) are work RAM in the 0x6700 object table -- so no bus-cycle
  * boundary needs pinning and no write-trace test is required.
  *
- * GATE -- STRICT whole-machine + unit (docs/06). sub_20b5 dispatches NON-vacuously
+ * GATE -- STRICT whole-machine + unit (docs/decompiler-pipeline). sub_20b5 dispatches NON-vacuously
  * in attract (measured: 4x over 1200 frames, 15x over 2000 -- object slots at
  * 0x6700 animate during the attract board-1 demo) and BOTH arms occur naturally
  * (Z: (ix+0x10)==0, and NZ: (ix+0x10)==0xff). Because it is atomic, a total-

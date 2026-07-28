@@ -5,7 +5,7 @@
  *
  * loc_0b06 WRITES memory and is NOT a leaf (it calls loadSpriteObjectBlock, the rst-0x38
  * vector addToSpriteObjectColumn, scrollClimbGraphicStep and loc_0da7 — all already
- * idiomatic), so it is gated by capture / clone / replay (docs/06) with a FRESH clone per
+ * idiomatic), so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per
  * case. It is reached ONLY in a credited game while the opening cutscene (GAME_SUBSTATE 7)
  * runs at INTRO_STEP == 4 — never in plain attract — so the states are captured from a
  * DRIVEN coin+start run. The comparison is RAM − STACK_SCRATCH: the oracle's stack traffic

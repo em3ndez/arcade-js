@@ -65,7 +65,7 @@
  *     lump: loc_1e7a runs inside the interruptible per-frame update cascade loc_197a,
  *     so the vblank NMI CAN land in this window, but the carry branch is NEVER taken
  *     in the attract run the convergent gate exercises (0 of 816 dispatches) — so a
- *     collapse of it cannot be whole-machine verified. Per docs/06 ("genuinely
+ *     collapse of it cannot be whole-machine verified. Per docs/decompiler-pipeline ("genuinely
  *     interruptible AND the convergent run can't verify a collapse -> keep
  *     per-instruction"), it stays split. It matches the oracle charge-for-charge; the
  *     branch's exact TOTAL (102 t incl. the loc_1e6d/loc_1e85 tail cascade) is

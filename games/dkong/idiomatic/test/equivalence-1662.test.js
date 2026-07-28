@@ -6,7 +6,7 @@
  *
  * loc_1662 WRITES memory and is NOT a leaf — it runs the idiomatic leaves boardBitGate
  * (rst 0x30 board gate, ROM 0x0030) and addToSpriteObjectColumn (rst 0x38 strided add,
- * ROM 0x0038) — so it is gated by capture / clone / replay (docs/06) with a FRESH clone
+ * ROM 0x0038) — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone
  * per case. boardBitGate is itself memory-equivalent to the oracle's gate, so loc_1662's
  * branch decision tracks the oracle; what this test pins is that loc_1662 (a) does the
  * inc, (b) gates the subtract on that decision, and (c) sets up and runs the subtract on
@@ -14,7 +14,7 @@
  *
  * A 6000-frame attract run dispatches 0x1662 ZERO times (it is a credited game's
  * board-setup tail, reached only through the 0x1644-index handlers sub_1654/sub_168a),
- * so — exactly as docs/06 prescribes for arms attract never reaches — the gate is
+ * so — exactly as docs/decompiler-pipeline prescribes for arms attract never reaches — the gate is
  * CRAFTED: a real booted attract machine, cloned, with BOARD (0x6227) surgically
  * poked, then oracle-vs-idiomatic on independent fresh clones. The one input that
  * selects the branch is a single byte, so the crafted sweep is EXHAUSTIVE over it:
@@ -104,7 +104,7 @@ function seedStrided(m, seeds) {
 }
 
 /**
- * Two independent fresh clones of the base (docs/06 fresh clone per case — this
+ * Two independent fresh clones of the base (docs/decompiler-pipeline fresh clone per case — this
  * routine writes RAM), each with BOARD poked and SP planted in STACK_SCRATCH.
  * `seeds`, if given, primes the strided block identically on both. Returns
  * [oracleClone, candidateClone].

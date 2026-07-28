@@ -6,7 +6,7 @@
  * loc_1e10 WRITES memory only through its loc_1e15 chain (the task ring via enqueueTask,
  * the block[0] clear at *(0x6343), and — via the loc_1e36 tail — the sprite record
  * 0x6A30..0x6A33 + the gated sound 0x6085), so it is gated by capture / clone / replay
- * (docs/06) with a FRESH clone per case. Because the idiomatic loc_1e15 does NOT model
+ * (docs/decompiler-pipeline) with a FRESH clone per case. Because the idiomatic loc_1e15 does NOT model
  * the Z80 stack while the oracle's `jp 0x1e15` chain does, the contract is RAM −
  * STACK_SCRATCH (never the full register file, never cycles), with the additional
  * requirement that idiomatic loc_1e10 leaves SP/pc UNCHANGED (it models no stack).

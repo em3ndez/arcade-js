@@ -71,7 +71,7 @@ import { MARIO_CLIMB_LIMIT_B, MARIO_Y } from "./ram.js";
  * names (MARIO_CLIMB_LIMIT_B / MARIO_Y), the Z/NC/C arm structure, the docstring,
  * and the cycle collapse -- not dropped register churn.
  *
- * CYCLES -- COLLAPSED to one m.step per basic block, EXACT per-arm totals (doc 06).
+ * CYCLES -- COLLAPSED to one m.step per basic block, EXACT per-arm totals (the decompiler-pipeline doc).
  * There is NO hardware-latch write (0x6219 and, in entry_1d8a, 0x620F are work RAM)
  * and NO mid-body real call, so no bus-cycle boundary is pinned inside a fold and no
  * push16 is elided. The two tail transfers keep their `m.call(0x1d8a)` verbatim; the
@@ -91,7 +91,7 @@ import { MARIO_CLIMB_LIMIT_B, MARIO_Y } from "./ram.js";
  * inside the per-frame movement cascade. Probed over 1200 attract frames: 46 entries
  * (first ~frame 842), and EVERY one takes arm Z (gate 0x621A == 0) -- the NZ arms are
  * NOT reached naturally on this trajectory, so they get crafted-entry coverage with
- * cycle-total teeth (doc 06 full-branch). It is ATOMIC: all 46 entries occur with
+ * cycle-total teeth (the decompiler-pipeline doc full-branch). It is ATOMIC: all 46 entries occur with
  * io.nmiMask CLEARED -- inside the vblank NMI, whose handler zeroed the mask on entry
  * so it cannot re-enter (46/46 in-NMI) -- and the NMI's pushed PC NEVER lands in
  * [0x1D76,0x1D8A) (0 landings over 1994 NMIs). So an atomic collapse pushes no

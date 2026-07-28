@@ -75,7 +75,7 @@ import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY } from "./ram.js";
  *   preserved EXACTLY. Because it is atomic AND the collapse is byte-exact, the
  *   STRICT whole-machine gate proves it (like loc_144f) -- the convergent gate,
  *   which only licenses an interruptible collapse's transient raster tear, is neither
- *   needed nor used (docs/06). No hardware (0x7Dxx) write occurs -- both stores are
+ *   needed nor used (docs/decompiler-pipeline). No hardware (0x7Dxx) write occurs -- both stores are
  *   work RAM -- so there is no bus-cycle boundary to pin and no --writes trace at stake.
  */
 export function loc_1a15(m) {

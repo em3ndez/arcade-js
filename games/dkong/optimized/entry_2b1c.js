@@ -76,7 +76,7 @@ import { MARIO_ACTIVE } from "./ram.js";
  * entry_0066 has cleared the NMI mask so the interrupt cannot re-enter -- and the NMI's
  * pushed PC never lands in [0x2B1C,0x2B28] (0 landings; all land in the 0x02BD-0x0372
  * main-loop band). Its sole caller entry_1c05 runs only on that in-NMI cascade path. So a
- * correct byte-exact collapse passes the ordinary STRICT whole-machine gate (docs/06); this
+ * correct byte-exact collapse passes the ordinary STRICT whole-machine gate (docs/decompiler-pipeline); this
  * routine does NOT need the convergent gate. See equivalence-2b1c.test.js.
  */
 export function entry_2b1c(m) {

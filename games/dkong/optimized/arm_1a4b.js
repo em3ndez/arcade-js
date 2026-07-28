@@ -47,13 +47,13 @@ import { EDGE_RIVET_ARMED } from "./ram.js";
  *   (2) it is UNREACHABLE by the drivable whole-machine scenarios -- sub_1a33 fires
  *       ~198x over a 2000-frame gameplay run, but the player never lands on an exact
  *       edge column, so arm_1a4b dispatches 0x (measured). A collapse could not be
- *       whole-machine / convergent verified anyway (docs/06: "a collapse it can't
+ *       whole-machine / convergent verified anyway (docs/decompiler-pipeline: "a collapse it can't
  *       whole-machine verify" is kept per-instruction).
  * So the oracle's charge distribution is preserved verbatim, making the routine
  * byte-and-cycle identical to the oracle on its one path; the 30 t total is pinned
  * explicitly by the crafted-entry cycle test.
  *
- * GATE -- CRAFTED ENTRY (docs/06). No natural or driven dispatch reaches this routine
+ * GATE -- CRAFTED ENTRY (docs/decompiler-pipeline). No natural or driven dispatch reaches this routine
  * (0 invocations, measured), so it is proven from a captured real entry (snapshotted
  * at loc_0fd7's dispatch, deterministic in attract -- the sub_13ca pattern), cloned,
  * run oracle vs optimized, diffed on RAM + full register file + pc + SP, with the

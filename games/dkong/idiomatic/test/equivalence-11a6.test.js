@@ -29,7 +29,7 @@
  *      a copy-paste bug between the two near-identical setup calls) mis-places the second
  *      record's fields and MUST be caught, on the real capture and on a prefilled craft.
  *
- * NOT COMPARED, deliberately: SP, PC, cycles, and the full register file (docs/06). The
+ * NOT COMPARED, deliberately: SP, PC, cycles, and the full register file (docs/decompiler-pipeline). The
  * oracle's `ret` and internal `call`s move SP/PC and the cycle counter; the idiomatic
  * layer drops that model (the JS call stack replaces it). Its callees' stray stores land
  * only in STACK_SCRATCH (SP=0x6bec in the real capture), which the RAM diff skips.

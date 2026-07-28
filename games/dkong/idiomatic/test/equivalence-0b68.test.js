@@ -8,7 +8,7 @@
  *
  * loc_0b68 WRITES memory and is NOT a leaf: it calls addStrided (0x003D, via `rst 0x38`) to
  * nudge the sprite columns and loc_0da7 (0x0DA7) to draw a board-layout band (which in turn
- * calls the frozen oracle leaf sub_2ff0). So it is gated by capture / clone / replay (docs/06)
+ * calls the frozen oracle leaf sub_2ff0). So it is gated by capture / clone / replay (docs/decompiler-pipeline)
  * on MEMORY-equivalence against the frozen oracle — RAM − STACK_SCRATCH — never the full
  * register file and never cycles, with a FRESH clone per case. SP/pc are the dropped
  * stack/cycle model: the oracle's push/call/ret churn lands in STACK_SCRATCH, and its sentinel

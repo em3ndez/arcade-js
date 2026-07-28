@@ -167,7 +167,7 @@ test("TEETH (unit behavioural): a twin that forgets to bail on `ret m` is CAUGHT
 
 /**
  * Fresh machine with a valid stack (a sentinel caller-return frame) and RAM poked so
- * the routine's OWN gate + the real sub_31f6 drive it down the chosen arm (doc 06
+ * the routine's OWN gate + the real sub_31f6 drive it down the chosen arm (the decompiler-pipeline doc
  * pattern 3), applied to both oracle and optimized clones through the same seed:
  *   - DIFFICULTY<3 or >=0x83                  -> arm1 `ret m` bail
  *   - DIFFICULTY in [3,0x82], RANDOM&3 != 1   -> arm2 `ret nz` (verdict 0/2/3)

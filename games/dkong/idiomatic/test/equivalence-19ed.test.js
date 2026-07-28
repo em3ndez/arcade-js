@@ -5,14 +5,14 @@
  *
  * confirmObjectHit WRITES memory (registers a hit into the object-interaction flag trio
  * 0x6343 / 0x6342 / 0x6340) and takes HL as LIVE-IN (the X-matched object record), so it
- * is gated by capture / clone / replay (docs/06) with a FRESH clone per case. Its logic is
+ * is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its logic is
  * two guards over the record HL points at — Mario's Y (0x6205) must equal the record's Y
  * byte (+3), and bit 3 of the record's flag byte (+1) must be CLEAR — and, only when both
  * pass, the three flag writes.
  *
  * A 6000-frame attract run dispatches 0x19ED ZERO times: sub_19da (the upstream X-search)
  * runs ~1532x, but the 0x6A0C object table is empty in attract (all-zero), so Mario's X
- * never matches and the `jp z` into 0x19ED never fires. So — exactly as docs/06 prescribes
+ * never matches and the `jp z` into 0x19ED never fires. So — exactly as docs/decompiler-pipeline prescribes
  * for arms attract never reaches — the gate is CRAFTED: a real booted attract machine,
  * cloned, with the record pointer + the deciding bytes surgically poked, then
  * oracle-vs-idiomatic on independent fresh clones. Because the deciding inputs are single
@@ -108,7 +108,7 @@ function base() {
 }
 
 /**
- * Two independent fresh clones of the base, identically poked (docs/06 fresh clone per
+ * Two independent fresh clones of the base, identically poked (docs/decompiler-pipeline fresh clone per
  * case — this routine writes RAM). `record` = HL live-in; Mario's Y := playerY; the
  * record's Y (+3) := recY; the record's flag byte (+1) := flags. The trio is pre-set to
  * SENTINEL so any wrongful write shows. Returns [oracleClone, candidateClone].

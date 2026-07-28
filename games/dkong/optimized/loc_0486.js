@@ -87,7 +87,7 @@ import { BOARD } from "./ram.js";
  * main-loop per-frame colour cascade (and the scheduled task entry_0400), where every
  * caller is interruptible with the NMI mask ENABLED. So the collapse coarsens where
  * an in-flight NMI's PC would land (a block-exit address, not the exact instruction)
- * -- the CONVERGENT gate's license (docs/06). "Atomic" is a property of the SCENARIO
+ * -- the CONVERGENT gate's license (docs/decompiler-pipeline). "Atomic" is a property of the SCENARIO
  * tested, not of the routine, so even though the OLD strict driven whole-machine test
  * (1830 frames of coin+start-1 gameplay) happened to pass unchanged after this
  * collapse, that is a brittle guarantee that could false-fail on a benign tear under

@@ -92,7 +92,7 @@
  * CYCLES — COLLAPSED to one m.step per basic block. sub_03a2 is reached
  * mask-ENABLED: its ONLY caller is the main loop (ROM 0x02DE), on the per-frame-work
  * path where the vblank NMI is armed, so it is NOT atomic — the collapse is LICENSED
- * by the CONVERGENT gate (docs/06), not the strict whole-machine gate, exactly as
+ * by the CONVERGENT gate (docs/decompiler-pipeline), not the strict whole-machine gate, exactly as
  * sub_0350's: a mistimed NMI can push a coarser PC into the diffed stack RAM, which
  * the convergent gate tolerates as long as it heals and non-stack state/pixels stay
  * identical. Every block's TOTAL is the oracle's, EXACTLY (see the per-block

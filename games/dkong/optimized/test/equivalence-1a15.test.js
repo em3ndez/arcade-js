@@ -18,9 +18,9 @@
  * 158/158 entries with the mask clear). Its collapse is therefore byte-exact and the
  * STRICT whole-machine gate proves it (as loc_144f's does) -- the convergent gate,
  * which only licenses an interruptible collapse's transient raster tear, is not needed
- * here (docs/06). Confirmed directly: the collapsed loc_1a15 reads EQUAL byte-for-byte
+ * here (docs/decompiler-pipeline). Confirmed directly: the collapsed loc_1a15 reads EQUAL byte-for-byte
  * over 1150 frames / 108 invocations, and a wrong-cycle twin is CAUGHT in the stack
- * region (0x6BFE) -- the NMI-stack-landing channel (docs/06 "Cycles" channel 2).
+ * region (0x6BFE) -- the NMI-stack-landing channel (docs/decompiler-pipeline "Cycles" channel 2).
  *
  * Jobs (mirrors equivalence-144f -- same NMI-path, atomic, single-block shape):
  *
@@ -36,12 +36,12 @@
  *      is held at 1, so loc_1a1f never reads it), so the corruption persists.
  *      NB: 0x6386 CANNOT be the value-teeth target -- it is re-poked to 1 every frame
  *      (the reach below holds it), so a wrong store to it is overwritten at the next
- *      frame boundary and MASKED (the docs/06 "re-poked output masks the store"
+ *      frame boundary and MASKED (the docs/decompiler-pipeline "re-poked output masks the store"
  *      wrinkle). The whole-machine value teeth therefore targets 0x6387; the 0x6386
  *      advance is proven instead by the unit + PATH output probes below.
  *   4. TEETH (whole-machine, cycles) -- a broken twin that charges 27t instead of the
  *      oracle's 37t is CAUGHT: a wrong total shifts where a later frame's NMI pushes
- *      its PC, diverging in the stack region (docs/06 "Cycles" channel 2).
+ *      its PC, diverging in the stack region (docs/decompiler-pipeline "Cycles" channel 2).
  *   5. TEETH (unit, value) -- the same broken 0x6387 store is caught and names 0x6387
  *      on the naturally-captured entry.
  *   6. PATH (single-arm coverage) -- the one path proven EQUAL RAM + regs + pc AND
@@ -144,7 +144,7 @@ const brokenDelayCounter = makeBroken(DELAY_COUNTER); // loc_1a15's own store to
  * Deliberately-broken CYCLE twin: identical behaviour and identical RAM/register
  * effects, but charges 27t for the collapsed block instead of the oracle's 37t. The
  * wrong TOTAL shifts where a later frame's vblank NMI pushes its PC, so the diff
- * diverges in the stack region (docs/06 "Cycles" channel 2). It also fails the unit
+ * diverges in the stack region (docs/decompiler-pipeline "Cycles" channel 2). It also fails the unit
  * cycle-total assertion below.
  */
 function brokenCycles(m) {

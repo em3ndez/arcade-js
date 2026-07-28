@@ -68,7 +68,7 @@
  * CAN land inside this prologue or inside its interruptible callee loop_0583 (which
  * itself `m.call`s sub_0593 twice per digit pair). The collapse coarsens WHERE an
  * in-flight NMI's pushed PC lands -- the block-exit PC, not the exact instruction --
- * which is exactly what the CONVERGENT gate LICENSES (docs/06;
+ * which is exactly what the CONVERGENT gate LICENSES (docs/decompiler-pipeline;
  * equivalence-0578.test.js gates the whole-machine job with convergentGate, not the
  * strict byte-exact comparison). Its only observable effect is what a strict gate
  * false-fails on: a mistimed NMI pushes the coarse block-exit PC into the DEAD stack

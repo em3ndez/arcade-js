@@ -96,7 +96,7 @@ function firstRamDiffExStack(a, b, offToAddr) {
 }
 
 /**
- * Run the oracle and a candidate on two FRESH clones of `entry` (docs/06: a routine
+ * Run the oracle and a candidate on two FRESH clones of `entry` (docs/decompiler-pipeline: a routine
  * that WRITES memory must get a fresh clone per side — only a pure read-only leaf may
  * reuse one) and diff the full contract: RAM − STACK_SCRATCH first, then the flip-screen
  * latch (io.flipScreen — the 0x7D82 write dumpState() cannot see). Returns a

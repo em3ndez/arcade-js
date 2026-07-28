@@ -7,7 +7,7 @@
  * a tens 1 at the fixed carry cell 0x758E) and hands off DE=0x0201 / HL=0x768C to
  * the fall-through second pass — so DE and HL are LIVE-OUT registers, not just
  * memory. It reads no work RAM; its inputs are the HL/DE registers. It is gated by
- * capture / clone / replay (docs/06) on a FRESH clone per case — never the full
+ * capture / clone / replay (docs/decompiler-pipeline) on a FRESH clone per case — never the full
  * register file, never cycles. The compared contract is game-visible RAM (minus
  * STACK_SCRATCH) + the live-out registers D/E/H/L. The oracle's terminal `ret` pops
  * the stack (SP += 2) and vectors PC; the idiomatic layer drops that bookkeeping, so

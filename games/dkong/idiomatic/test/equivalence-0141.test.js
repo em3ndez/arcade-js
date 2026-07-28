@@ -4,7 +4,7 @@
  * sprite DMA: program the i8257 from the 9-byte block at (HL) and pulse DRQ so the
  * sprite shadow buffer (0x6900) is blitted into sprite RAM (0x7000).
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES RAM (sprite RAM, via the DMA blit), so every
  * captured case uses a FRESH clone per side (never a reused machine): the oracle runs
  * on one clone, blitSpritesViaDma on another, and they are compared on the go-forward
@@ -26,7 +26,7 @@
  * bus the DMA steals) via m.tick. The idiomatic layer drops the cycle model, so
  * blitSpritesViaDma does NOT charge it. This is the routine where dropping cycles has
  * its LARGEST single effect — those stolen cycles are the bulk of the NMI's cost and
- * feed SPIN_COUNT / the PRNG — but it is exactly the design docs/06 endorses (the
+ * feed SPIN_COUNT / the PRNG — but it is exactly the design docs/decompiler-pipeline endorses (the
  * shipped game runs a real, non-MAME-bit-identical RNG). cyclesStolen is io-side, not
  * RAM, so it is outside this gate regardless.
  *

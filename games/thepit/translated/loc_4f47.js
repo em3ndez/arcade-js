@@ -49,7 +49,7 @@
  *   4f82  20 df        jr   nz,0x4f63        ; next pass while non-zero (0x80..0xFF)
  *   4f84  c3 ac 03     jp   0x03ac           ; done -> tail-jump loc_03ac
  *
- * CONTROL-FLOW MODELLING (doc 03):
+ * CONTROL-FLOW MODELLING (the translation doc):
  *   - `call 0x4b44` and both `call 0x4bff` are ordinary calls: push16(return-addr) +
  *     m.step(target,17) + m.call, control resumes at the pushed address after each.
  *     They may clobber A/flags, but every value the routine branches on is

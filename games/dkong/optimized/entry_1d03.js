@@ -56,7 +56,7 @@ import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
  * timer reset is written as a plain literal `mem.write8(...,0x04)`, so A is not clobbered
  * through it (the oracle reloads A = 0xFE right after regardless, so the exit A is identical).
  *
- * CYCLES -- COLLAPSED per doc 06: each executed path's straight-line T-states are folded into
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc: each executed path's straight-line T-states are folded into
  * ONE charge placed immediately before that arm's control transfer, preserving the oracle's
  * per-arm TOTAL exactly. The routine's only write, 0x620F := 4, is WORK RAM, not a tagged
  * hardware latch, so no bus-cycle boundary is crossed and a full fold is safe. Per-arm OWN

@@ -6,7 +6,7 @@
  *
  * draw1UpLabel WRITES memory (three video-RAM cells) and is a subroutine reached
  * by `m.call` — not a pure leaf — so it is gated by capture / clone / replay
- * (docs/06), not the exhaustive-leaf pattern. It is input-independent and
+ * (docs/decompiler-pipeline), not the exhaustive-leaf pattern. It is input-independent and
  * straight-line (every value is an immediate, no data-dependent branch), so there
  * are NO unreached arms to craft; instead the crafted entries PRE-DIRTY the target
  * cells to prove the stamp is unconditional:

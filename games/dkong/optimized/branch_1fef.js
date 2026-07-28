@@ -59,7 +59,7 @@ const SLOT_X = 0x03;
  *
  * FLAGS. Only `dec (ix+3)` writes a flag, and it is the LAST flag-writer before the
  *   exit, so F at the tail transfer is exactly the dec's result -- it is KEPT, not
- *   dropped (docs/06: keep the flag-producing op when it is the last writer before the
+ *   dropped (docs/decompiler-pipeline: keep the flag-producing op when it is the last writer before the
  *   exit). `decMem8` reproduces the Z80 dec semantics (carry preserved, N set, S/Z/H/PV
  *   per the result) identically to the oracle's `dec8`, so the whole register file (incl.
  *   F and the undocumented F3/F5 bits) matches. `exx` and `ld bc` set no flags. There is
@@ -82,7 +82,7 @@ const SLOT_X = 0x03;
  *   branch_1fef is NOT atomic: loc_1f93 dispatches it from sub_1f72's object scan, which
  *   runs in the INTERRUPTIBLE per-frame update cascade loc_197a (@0x1986) and during
  *   attract's demo play, so the vblank NMI can land inside its 37 t window. The collapse
- *   is therefore LICENSED by the CONVERGENT gate (docs/06; equivalence-1fef.test.js uses
+ *   is therefore LICENSED by the CONVERGENT gate (docs/decompiler-pipeline; equivalence-1fef.test.js uses
  *   convergentGate + SCENARIOS.attract, not the strict whole-machine gate): a mistimed
  *   NMI pushes the coarse block-exit PC into the DEAD stack (excluded) and can leave a
  *   single-frame raster tear that heals next frame; non-stack RAM stays byte-identical

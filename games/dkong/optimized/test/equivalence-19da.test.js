@@ -4,7 +4,7 @@
  * that tail-jumps to entry_19ed (0x19ED) on an X-match and `ret`s on no match. See
  * optimized/sub_19da.js for the full behaviour block.
  *
- * COLLAPSED per doc 06: the prologue folds into one m.step (30 t @ 0x19E2); each loop
+ * COLLAPSED per the decompiler-pipeline doc: the prologue folds into one m.step (30 t @ 0x19E2); each loop
  * iteration folds into one m.step (a looping no-match iter = 46 t @ 0x19E2, the last
  * no-match iter = 41 t @ 0x19EC, a match iter = 17 t @ 0x19ED); the `m.call` tail-jump
  * and the `m.ret` stay verbatim boundaries. The register/flag ops (cp, inc l x4, djnz)
@@ -173,7 +173,7 @@ test("TEETH (unit behavioural): dropping the inc-l flags on the no-match exit is
 /**
  * Fresh machine with a valid stack (sub_19da's own return frame at 0x19B0) and RAM
  * poked so the game's OWN loop drives sub_19da down the chosen arm -- the sanctioned
- * identical-both-sides poke (doc 06 pattern 3), applied to both clones through one seed:
+ * identical-both-sides poke (the decompiler-pipeline doc pattern 3), applied to both clones through one seed:
  *   - no-match          : X=0x53, table 0xAA/0xBB/0xCC        -> ret (no tail-jump)
  *   - match slot 1 (HIT): X=0x50, table[0]=0x50; entry_19ed confirms (Y match, bit3
  *                         clear) and WRITES 0x6340/0x6342/0x6343 -> RAM coverage

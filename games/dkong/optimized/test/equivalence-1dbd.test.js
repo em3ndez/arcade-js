@@ -23,7 +23,7 @@
  * the router) asserting the correct dispatch TARGET *and* the collapsed router CYCLE
  * TOTAL of 98 t — the mandatory pin for a collapsed routine. The state-3 reset arm
  * is the untranslated arm: both oracle and optimized throw NotImplemented (after the
- * same 98 t), exempt per doc 06 and asserted as such.
+ * same 98 t), exempt per the decompiler-pipeline doc and asserted as such.
  *
  * Jobs: EQUAL (whole-machine over 716 dispatches, all arms + unit); BRANCH + CYCLE
  * COVERAGE (target + 98 t for states 0/1/2; NotImplemented + 98 t for state 3);

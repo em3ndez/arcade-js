@@ -19,7 +19,7 @@
  * NAME KEPT NEUTRAL: the mechanical effect is clear, but 0x600E (the byte that gates
  * the double-inc) is unnamed in ram.js and reads 0 for the whole attract run, so the
  * two-inc arm is a dead path in every state the game actually produces. With no
- * confirmer and that arm unresolved, an English name is not yet earned (docs/06: a
+ * confirmer and that arm unresolved, an English name is not yet earned (docs/decompiler-pipeline: a
  * wrong routine name misleads worse than a neutral loc_ one); left as loc_12de.
  *
  * Bottom-up: both callees are already idiomatic and called directly —

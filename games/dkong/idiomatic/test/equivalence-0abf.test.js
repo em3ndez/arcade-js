@@ -6,13 +6,13 @@
  * runIntroClimbStep WRITES memory and is NOT a leaf — it runs the rst-0x18 gate
  * (tickSubstateTimer), the rst-0x38 add-passes (the frozen oracle loc_0038), and the
  * block copy (loadSpriteObjectBlock) — so it is gated by capture / clone / replay
- * (docs/06) with a FRESH clone per case. Its logic is (a) the timer gate — only the
+ * (docs/decompiler-pipeline) with a FRESH clone per case. Its logic is (a) the timer gate — only the
  * frame SUBSTATE_TIMER (0x6009) decrements to 0 does the body run — and (b) an otherwise
  * DETERMINISTIC body: the copy overwrites 0x6908..0x692F from a fixed ROM template, so
  * the only input-dependent output is the `inc (INTRO_STEP)` at the tail.
  *
  * A 6000-frame attract run dispatches 0x0abf ZERO times (the intro cutscene is a
- * credited game's per-board head, GAME_SUBSTATE 7), so — exactly as docs/06 prescribes
+ * credited game's per-board head, GAME_SUBSTATE 7), so — exactly as docs/decompiler-pipeline prescribes
  * for arms attract never reaches — the gate is CRAFTED: a real booted attract machine,
  * cloned, with the input bytes surgically poked, then oracle-vs-idiomatic on independent
  * fresh clones. Because the logic inputs are small, the crafted sweeps are EXHAUSTIVE:
@@ -102,7 +102,7 @@ function base() {
   return _base;
 }
 
-/** Two independent fresh clones of the base with identical input pokes (docs/06 fresh
+/** Two independent fresh clones of the base with identical input pokes (docs/decompiler-pipeline fresh
  *  clone per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(timer, step) {
   const a = base().clone(), b = base().clone();

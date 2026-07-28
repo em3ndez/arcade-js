@@ -5,7 +5,7 @@
  *
  * loc_1732 WRITES memory and is NOT a leaf — every frame it ticks animateSpriteObjectBlock
  * (ROM 0x306f, itself already idiomatic and memory-validated), then branches on the scrolled
- * result — so it is gated by capture / clone / replay (docs/06) with a FRESH clone per case.
+ * result — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case.
  * The oracle reaches 0x306f through `m.call`, which on a no-override machine resolves to the
  * frozen translated sub_306f, so the oracle side is (frozen sub_1732 ∘ frozen sub_306f) and
  * the candidate side is (loc_1732 ∘ idiomatic animateSpriteObjectBlock) — a faithful bottom-up
@@ -18,7 +18,7 @@
  *     advance the 0x6388 step selector).
  *
  * A long attract run dispatches 0x1732 ZERO times (attract never completes a board, so it never
- * reaches GAME_SUBSTATE 0x16) — so, exactly as docs/06 prescribes for arms attract never
+ * reaches GAME_SUBSTATE 0x16) — so, exactly as docs/decompiler-pipeline prescribes for arms attract never
  * reaches, the gate is CRAFTED: a real booted attract machine, cloned, with the input bytes
  * surgically poked (plus sentinels on the reset targets so EQUAL is never vacuous), then
  * oracle-vs-idiomatic on independent fresh clones. The inputs are small, so the sweeps are
@@ -127,7 +127,7 @@ const S_X = 0xee; // parked-to-0 X bytes
 const S_CODE = 0x40; // inc'd code byte -> 0x41
 const S_STEP = 0x40; // inc'd step selector -> 0x41
 
-/** Two independent fresh clones of the base with identical input pokes + sentinels (docs/06
+/** Two independent fresh clones of the base with identical input pokes + sentinels (docs/decompiler-pipeline
  *  fresh clone per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(y, phase) {
   const a = base().clone(), b = base().clone();

@@ -88,7 +88,7 @@ import { MARIO_X, MARIO_Y } from "./ram.js";
  * BRANCH COVERAGE. Only the gate-ON arm (D != 1 -> 0x1BF2) is reached naturally in attract
  * (360/360; entry_1bf2 fires exactly as often). The gate-OFF arm (D == 1) is never
  * dispatched, so the test SYNTHESISES it with cycle teeth and explicit record-write
- * assertions (docs/06 full-branch coverage). See equivalence-1bb2.test.js.
+ * assertions (docs/decompiler-pipeline full-branch coverage). See equivalence-1bb2.test.js.
  */
 export function loc_1bb2(m) {
   const { regs, mem } = m;

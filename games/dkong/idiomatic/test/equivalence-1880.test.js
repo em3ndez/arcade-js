@@ -13,13 +13,13 @@
  *     draw the board segment layout from ROM 0x3a5f (loc_0da7), shift sprite-buffer
  *     records 0/1 down 0x28 (addStrided), reset the 0x62af pace counter, pulse sound
  *     latch 0x6082, and advance the 0x6388 step.
- * So it is gated by capture / clone / replay (docs/06) with a FRESH clone per case. Its
+ * So it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its
  * only input-dependent WRITEs on the LANDED arm are the 0x6388 `inc` (the rest of the
  * scene build is a deterministic fill/draw/shift off ROM + fixed constants); the gate
  * input is the single byte 0x691b.
  *
  * A long attract run dispatches 0x1880 ZERO times (attract never completes a board, so it
- * never reaches GAME_SUBSTATE 0x16), so — exactly as docs/06 prescribes for arms attract
+ * never reaches GAME_SUBSTATE 0x16), so — exactly as docs/decompiler-pipeline prescribes for arms attract
  * never reaches — the gate is CRAFTED: a real booted attract machine, cloned, with the
  * input bytes surgically poked, then oracle-vs-idiomatic on independent fresh clones. The
  * inputs are small, so the crafted sweeps are EXHAUSTIVE:
@@ -116,7 +116,7 @@ function base() {
   return _base;
 }
 
-/** Two independent FRESH clones of the base with identical input pokes (docs/06 fresh
+/** Two independent FRESH clones of the base with identical input pokes (docs/decompiler-pipeline fresh
  *  clone per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(gate, step) {
   const a = base().clone(), b = base().clone();

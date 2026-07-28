@@ -85,7 +85,7 @@ const RENDER_DIGIT = 0x0593;
  *       runs 256 trips (~14k cycles, most of a frame), long enough for the NMI to
  *       land INSIDE it.
  * So the collapse coarsens where an in-flight NMI's PC would land (a block-exit
- * address, not the exact instruction) -- the CONVERGENT gate's license (docs/06);
+ * address, not the exact instruction) -- the CONVERGENT gate's license (docs/decompiler-pipeline);
  * see equivalence-0583.test.js, which gates the whole-machine job with
  * convergentGate rather than a strict comparison. The per-iteration branch/cycle
  * totals are unchanged by the fold: B=1 190t, B=2 375t, B=3 560t; +185t per extra

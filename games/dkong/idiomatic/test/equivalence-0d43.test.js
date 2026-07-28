@@ -7,7 +7,7 @@
  * (DE=0x001C), then writes 0xFC across four cells (base+0x20..base+0x23) — sixteen
  * video-RAM writes in all (eight per row).
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES video RAM, so every case uses a FRESH clone per
  * side. The ORACLE (translated/sub_0d43, which reaches its filler through m.call) runs
  * on one clone, stampRivetBoardBands (which calls the decompiled stampTwoTileBands

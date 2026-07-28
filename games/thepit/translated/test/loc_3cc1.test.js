@@ -15,7 +15,7 @@
 // as if it were a plain `ld rr,nn`, dropping the +4 prefix cost). It moves NO
 // memory and touches no register the callees don't, so every state/register
 // assertion stays green -- ONLY the T-state total (4 T short) catches it. That is
-// the whole point of charging cycles (docs/03-translation.md): a timing error
+// the whole point of charging cycles (docs/translation.md): a timing error
 // invisible to the state diff.
 
 import { test } from "node:test";

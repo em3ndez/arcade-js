@@ -42,7 +42,7 @@
  *
  * WHY PER-INSTRUCTION (no cycle collapse). The vblank NMI lands INSIDE this routine
  * on real gameplay -- 0x0315/0x0318/0x0319/0x031B are among the most-hit NMI-landing
- * addresses (doc 06). It runs from the main loop with the NMI mask ENABLED, so a
+ * addresses (the decompiler-pipeline doc). It runs from the main loop with the NMI mask ENABLED, so a
  * frame boundary routinely falls mid-routine; collapsing the m.step charges would
  * move where the NMI lands and change the PC it pushes into diffed stack RAM (the
  * loc_197a / entry_0611 mechanism). So the charges stay byte-identical to the oracle.

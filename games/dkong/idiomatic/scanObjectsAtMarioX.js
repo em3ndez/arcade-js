@@ -24,7 +24,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-19da.test.js.
  * GATE:     crafted + captured. Attract dispatches 0x19DA ~1532x but the 0x6A0C
  *           table is empty there, so no X-match ever fires the confirm arm — so per
- *           docs/06 the match arm is gated CRAFTED (real attract state + a surgical
+ *           docs/decompiler-pipeline the match arm is gated CRAFTED (real attract state + a surgical
  *           table poke), EXHAUSTIVELY over the scan's deciding input (Mario's X) with
  *           a match placed at each of the 3 slots, oracle-vs-idiomatic on fresh clones
  *           (this routine writes RAM via the callee — never a shared clone); the

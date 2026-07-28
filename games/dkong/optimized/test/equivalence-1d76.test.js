@@ -16,7 +16,7 @@
  * 46/46 in-NMI), and the NMI's pushed PC never lands in [0x1D76,0x1D8A) (0/1994
  * NMIs). So the STRICT byte-exact whole-machine gate is the right license, NOT the
  * convergent gate. The two NZ arms (NC / C) are unreached in attract, so they get
- * crafted-entry EQUAL + exact cycle-total teeth (doc 06 full-branch coverage).
+ * crafted-entry EQUAL + exact cycle-total teeth (the decompiler-pipeline doc full-branch coverage).
  *
  * Jobs: an explicit ATOMICITY measurement; WHOLE-MACHINE strict EQUAL (+ invocation
  * proof) and its cycle-total teeth; UNIT EQUAL on the natural first entry (arm Z,

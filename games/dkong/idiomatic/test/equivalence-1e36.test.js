@@ -5,7 +5,7 @@
  *
  * loc_1e36 WRITES memory (record 0x6A30..0x6A33 and, when the board gate is open,
  * SND_TRIGGER[5] at 0x6085) and is NOT a leaf (it calls boardBitGate / the oracle's
- * `rst 0x30`), so it is gated by capture / clone / replay (docs/06) with a FRESH clone
+ * `rst 0x30`), so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone
  * per case. Its only branch is the board gate; A, B, C are stored verbatim. The gate
  * depends solely on BOARD (0x6227) — mask A = 0x05 opens on 25m (1) and 75m (3):
  *
@@ -140,7 +140,7 @@ test("REALISM: real captured 25m 0x1e36 dispatch — game-visible RAM identical,
 // -- 2. BOARD (exhaustive crafted) --------------------------------------------
 
 // A real captured 0x1e36 entry (BOARD 1) to poke BOARD onto — a real state + a surgical
-// nudge (docs/06 crafted entry). Its SP is real, in STACK_SCRATCH, so the oracle's push
+// nudge (docs/decompiler-pipeline crafted entry). Its SP is real, in STACK_SCRATCH, so the oracle's push
 // lands in the tolerated region.
 function craftedBase() {
   const caps = captureDispatches(1, 3000);

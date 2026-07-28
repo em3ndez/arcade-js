@@ -5,7 +5,7 @@
  *
  * The routine WRITES memory (VRAM tilemap cells) and its data comes from RAM (the
  * 0x364B pointer table, the descriptor, the character bytes), so it is gated by
- * capture / clone / replay (docs/06), NOT an exhaustive-leaf sweep — and every
+ * capture / clone / replay (docs/decompiler-pipeline), NOT an exhaustive-leaf sweep — and every
  * replay uses a FRESH clone per side because it mutates RAM:
  *
  *   1. EQUAL (real captured dispatches) — hook 0x05E9 in a real attract run and clone
@@ -23,7 +23,7 @@
  *      with bit 7 clear), so the erase arm (payload bit 7 -> overwrite each cell with
  *      the blank tile 0x10) is unreached. Force it by setting bit 7 on a real captured
  *      entry, IDENTICALLY on both sides (the crafted entry: a real state with a one-bit
- *      poke, docs/06). Setting bit 7 keeps the SAME string (it survives `add a,a` only
+ *      poke, docs/decompiler-pipeline). Setting bit 7 keeps the SAME string (it survives `add a,a` only
  *      as carry; `and 0x7f` drops it from the index), so the descriptor stays valid.
  *
  *   3. TEETH — a twin that corrupts the FIRST character store (XOR 0xFF) MUST be caught

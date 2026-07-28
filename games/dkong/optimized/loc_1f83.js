@@ -55,7 +55,7 @@ const SLOT_STATE = 0x00; // ix+0: 1 = active object slot, else inactive
  * FLAGS -- little droppable churn; every flag writer is load-bearing, so all are KEPT:
  *   - `dec a` sets S/Z/H/PV/N from A-1 (carry preserved). Its Z is READ by the branch,
  *     and on the ACTIVE arm `dec a` is also the LAST flag writer before the
- *     m.call(0x1f93) boundary -- so F there IS the dec result and must match (docs/06:
+ *     m.call(0x1f93) boundary -- so F there IS the dec result and must match (docs/decompiler-pipeline:
  *     keep the flag-producing op when the branch reads it AND when it is the last writer
  *     before the exit). `dec8` reproduces the Z80 dec flags exactly.
  *   - On the INACTIVE arm the three `inc l` each overwrite S/Z/H/PV (carry preserved),
@@ -90,10 +90,10 @@ const SLOT_STATE = 0x00; // ix+0: 1 = active object slot, else inactive
  * correspondingly the NMI's pushed PC NEVER lands in loc_1f83's body [0x1F83,0x1F93) nor
  * anywhere in the whole SCC (0 landings over 1394 NMIs; all land in the 0x02BD-0x0372
  * main-loop band). Its only two entry paths -- sub_1f72's dispatch and loc_1f8d's djnz --
- * both originate from that NMI cascade, so it is atomic on EVERY call path (docs/06's
+ * both originate from that NMI cascade, so it is atomic on EVERY call path (docs/decompiler-pipeline's
  * "check the callers" caution). An atomic collapse pushes no mistimed PC and tears no
  * raster, so it passes the BYTE-EXACT (strict) whole-machine gate directly and does NOT
- * need the convergent gate (docs/06 "a byte-exact collapse of an ATOMIC routine passes
+ * need the convergent gate (docs/decompiler-pipeline "a byte-exact collapse of an ATOMIC routine passes
  * the ordinary strict gate"). This matches its SCC neighbour loc_1f8d; the sibling arm
  * branch_1fe5's "NOT atomic / convergent" note predates that measured correction. See
  * equivalence-1f83.test.js.

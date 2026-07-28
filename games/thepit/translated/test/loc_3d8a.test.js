@@ -162,7 +162,7 @@ test("mutation (row count 0x08 not 0x09) is caught by the memory/register assert
 
 // -- MUTATION 2 (CYCLE): charge `ld ix,0x49a5` 10 T instead of 14. Moves no
 // memory and leaves every register identical — only the T-state total (4 T
-// short) exposes it (docs/03: a timing error is invisible to the state diff).
+// short) exposes it (docs/translation: a timing error is invisible to the state diff).
 function loc_3d8a_cycleMutant(m) {
   const { regs, mem } = m;
   regs.a = 0x06;

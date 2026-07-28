@@ -50,7 +50,7 @@ const SLOT_X = 0x03;
  *
  * FLAGS. Only `inc (ix+3)` writes a flag, and it is the LAST flag-writer before the
  *   exit, so F at the tail transfer is exactly the inc's result -- it is KEPT, not
- *   dropped (docs/06: keep the flag-producing op when it is the last writer before
+ *   dropped (docs/decompiler-pipeline: keep the flag-producing op when it is the last writer before
  *   the exit). `incMem8` reproduces the Z80 inc semantics (carry preserved, S/Z/H/PV
  *   set) identically to the oracle's `inc8`, so the whole register file (incl. F and
  *   the undocumented F3/F5 bits) matches. `exx` and `ld bc` set no flags. There is no
@@ -73,7 +73,7 @@ const SLOT_X = 0x03;
  *   which runs in the INTERRUPTIBLE per-frame update cascade loc_197a (@0x1986) and
  *   during attract's demo play, so the vblank NMI can land inside its 47 t window
  *   (measured: ~550 dispatches in a 1200-frame attract run). The collapse is
- *   therefore LICENSED by the CONVERGENT gate (docs/06; equivalence-1fe5.test.js uses
+ *   therefore LICENSED by the CONVERGENT gate (docs/decompiler-pipeline; equivalence-1fe5.test.js uses
  *   convergentGate + SCENARIOS.attract, not the strict whole-machine gate): a
  *   mistimed NMI pushes the coarse block-exit PC into the DEAD stack (excluded) and
  *   can leave a single-frame raster tear that heals next frame; non-stack RAM stays

@@ -75,7 +75,7 @@ import { FRAME } from "./ram.js";
  *     itself is kept per-instruction for exactly this reason), and
  *   - entry_0400 (a dispatchTask task, ROM 0x0400).
  * So the collapse coarsens where an in-flight NMI's PC would land (a block-exit
- * address, not the exact instruction) -- the CONVERGENT gate's license (docs/06).
+ * address, not the exact instruction) -- the CONVERGENT gate's license (docs/decompiler-pipeline).
  * "Atomic" is a property of the SCENARIO tested, not of the routine, so
  * equivalence-0413.test.js gates the whole-machine job with convergentGate (a
  * custom driven scenario) rather than a strict comparison, even though a strict

@@ -17,7 +17,7 @@
  * over a 1200-frame ATTRACT run, io.nmiMask == 0 at 100% of them (probed) -- sub_2407
  * runs mask-cleared inside the vblank-NMI loc_197a object-physics cascade, so a second
  * NMI cannot land inside it and no coarse PC is ever pushed into its span. An atomic
- * byte-exact collapse passes the ORDINARY strict gate (docs/06 -- the CONVERGENT gate
+ * byte-exact collapse passes the ORDINARY strict gate (docs/decompiler-pipeline -- the CONVERGENT gate
  * is only for INTERRUPTIBLE collapses).
  *
  * TEETH NOTE. Because sub_2407 writes no memory, a wrong result is NOT a RAM diff of

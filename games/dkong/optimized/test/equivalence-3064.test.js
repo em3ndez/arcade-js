@@ -11,7 +11,7 @@
  * frame 116), and io.nmiMask == 0 at 100% of those 42 dispatches -> ATOMIC (the slide runs
  * inside the NMI game-state cascade, mask cleared on entry), so the vblank NMI cannot land
  * inside the routine and the per-block cycle fold cannot push a coarse mid-routine PC.
- * An atomic byte-exact collapse passes the ordinary STRICT gate (docs/06 -- the CONVERGENT
+ * An atomic byte-exact collapse passes the ordinary STRICT gate (docs/decompiler-pipeline -- the CONVERGENT
  * gate is only for INTERRUPTIBLE collapses), and being non-vacuous (42 invocations) the
  * strict per-frame RAM diff also covers the cycle total through the spin-count / stack
  * channel (verified: a dropped charge forks the trace at frame 117, stack 0x6BF4).

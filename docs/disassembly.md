@@ -53,8 +53,8 @@ per-column scroll base, a tile plane order, or a mirror mask is exactly where a 
 and one class of it is invisible to the state gate: a **render-addressing offset**. The Pit shipped a
 16-byte offset in the renderer's interpretation of sprite/scroll RAM. Because that offset is in how
 the render *reads* the RAM, not in the RAM's contents, the whole-machine [state
-diff](05-integration-testing.md) still matched MAME byte-for-byte — a render-interpretation error
-moves no state. Only the [pixel gate](06-pixel-gate.md) surfaced it. So a green state diff is *not*
+diff](integration-testing.md) still matched MAME byte-for-byte — a render-interpretation error
+moves no state. Only the [pixel gate](pixel-gate.md) surfaced it. So a green state diff is *not*
 evidence the render is right: run the pixel gate too, and pin the board's video addressing against
 the driver's own draw routine (for The Pit, `taito/roundup.cpp`), citing it in the board source.
 

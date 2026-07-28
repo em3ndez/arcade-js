@@ -6,7 +6,7 @@
  *
  * loc_3e70 WRITES memory (through its loc_1e28 tail: the task ring via sub_309f, the
  * sprite record 0x6A30..0x6A33, the gated sound 0x6085) and is NOT a leaf, so it is gated
- * by capture / clone / replay (docs/06) with a FRESH clone per case. Its own body is a
+ * by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its own body is a
  * pure priority encoder on A; every downstream branch lives in loc_1e28 and is IDENTICAL
  * on both sides (both call the same frozen oracle tail). Because it delegates the tail to
  * the still-oracle loc_1e28 (which re-derives A and the flags the dropped `rra` would have

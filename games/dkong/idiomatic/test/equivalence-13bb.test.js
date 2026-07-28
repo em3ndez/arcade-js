@@ -8,7 +8,7 @@
  *
  * loc_13bb WRITES memory (three work-RAM bytes) and the flip-screen board latch, and
  * READS nothing — it is a CONSTANT function of no inputs. So it is validated by
- * capture/clone/replay on a FRESH clone per case (docs/06) — never reusing one machine
+ * capture/clone/replay on a FRESH clone per case (docs/decompiler-pipeline) — never reusing one machine
  * for a case that writes memory, never the full register file, never cycles. The
  * compared contract is:
  *
@@ -22,7 +22,7 @@
  *
  * A 6000-frame attract run dispatches 0x13bb ZERO times, and so do 1P and 2P coin+start
  * runs (its sub-state is reached only in a credited game's player-switch path). So —
- * exactly as docs/06 prescribes for arms attract never reaches — the gate is CRAFTED
+ * exactly as docs/decompiler-pipeline prescribes for arms attract never reaches — the gate is CRAFTED
  * from real booted machines with a surgical nudge, and because the routine has no inputs
  * the sweep is effectively exhaustive over its behaviour:
  *

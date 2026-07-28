@@ -4,7 +4,7 @@
  * tile motif from HL": 17 cells of 0xFD along one tilemap row, then 17 cells of 0xFC on
  * the row directly below (HL + 0x20, the map being 0x20 cells wide).
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES video RAM, so every case uses a FRESH clone per
  * side. The oracle runs on one clone, fillTileRowPair on another, and they are compared
  * on the go-forward contract:

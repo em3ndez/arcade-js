@@ -6,7 +6,7 @@
  * loc_1e00's own body is a straight-line "set two constants, delegate" — no branches of
  * its own. But it WRITES memory (through loc_1e15 → enqueueTask + loc_1e36: the task ring,
  * the block[0] clear at *(0x6343), the sprite record 0x6A30..0x6A33, and the gated sound
- * 0x6085), so it is gated by capture / clone / replay (docs/06) with a FRESH clone per
+ * 0x6085), so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per
  * case — never a reused clone. The two things this setter alone can get wrong are the two
  * CONSTANTS it loads; the composition arms below inherit the loc_1e15/1e36/enqueueTask
  * branches. Attract dispatches this arm only on 25m (BOARD 1) with a free ring slot, so

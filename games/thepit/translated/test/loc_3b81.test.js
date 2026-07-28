@@ -11,7 +11,7 @@
 // The mutation is a CYCLE-ONLY break (djnz taken charged 12 instead of 13). It
 // moves no memory -- the video/colour diffs are byte-identical -- so ONLY the
 // T-state assertion catches it. That is the whole point of charging cycles
-// (docs/03-translation.md): a timing error invisible to the state diff.
+// (docs/translation.md): a timing error invisible to the state diff.
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

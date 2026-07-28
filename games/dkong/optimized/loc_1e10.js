@@ -63,7 +63,7 @@
  * UNREACHABLE in every available whole-machine scenario (0 dispatches over attract
  * 1200/4000 frames and the gameplay tape — it only fires on a real board
  * completion), so a collapse could not be convergent-verified regardless. Per
- * docs/06 that pairing is kept per-instruction; a 2-instruction setter gains
+ * docs/decompiler-pipeline that pairing is kept per-instruction; a 2-instruction setter gains
  * nothing from a collapse anyway. The crafted-entry test pins the exact 17 t total
  * with teeth (a dropped charge is caught).
  */

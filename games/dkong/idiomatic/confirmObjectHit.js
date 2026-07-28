@@ -31,7 +31,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-19ed.test.js.
  * GATE:     crafted, exhaustive over the deciding bytes. Attract never reaches 0x19ed
  *           (sub_19da runs ~1532x but the 0x6A0C table is empty, so no X-match jp-z's
- *           here), so per docs/06 the gate is real-state-plus-surgical-poke: a Mario-Y
+ *           here), so per docs/decompiler-pipeline the gate is real-state-plus-surgical-poke: a Mario-Y
  *           sweep (the Y gate), a flag-byte sweep (the eligibility gate), and an
  *           L-wrap edge set, each oracle-vs-idiomatic on fresh clones; two teeth twins.
  * LIVE-OUT: memory-only — the 0x6343 / 0x6342 / 0x6340 trio. No live registers/flags:

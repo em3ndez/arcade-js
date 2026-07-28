@@ -6,7 +6,7 @@ This is the ground-truth side of the arcade-js validation harness. It runs MAME
 under a pinned, determinism-controlled command line and emits artifacts in
 exactly the formats the translated JS also emits, so comparison is a memcmp.
 
-DETERMINISM (proven, see docs/04-integration-testing.md): two independent runs under
+DETERMINISM (proven, see docs/integration-testing.md): two independent runs under
 this command line produce BYTE-IDENTICAL AVI output. The controls that matter
 are a fresh empty -nvram_directory per run (DK writes high scores), -nonvram_save,
 -nocheat, -noautosave, -frameskip 0, -nothrottle.
@@ -56,7 +56,7 @@ def lua_paths(lua_dir):
 
 
 def build_mame_argv(args, hw, workdir, avi_name="out"):
-    """The known-good command line. Every flag here is load-bearing -- see docs/04-integration-testing.md.
+    """The known-good command line. Every flag here is load-bearing -- see docs/integration-testing.md.
 
     Gotchas encoded here so nobody rediscovers them:
       * MAME boolean options take the -noX form. '-nocheat 0' is a parse error.
@@ -252,7 +252,7 @@ def main():
         dest="pin_entropy",
         help="TEST-ONLY: entropy-pin spec 'AAAA:VV,...' (from the game's "
         "entropyPinRomSpec). Applies tools/lua/pin_entropy.lua before the tape so the "
-        "game's RNG matches the pinned JS engine. See docs/06-decompiler-pipeline.md (Entropy pinning).",
+        "game's RNG matches the pinned JS engine. See docs/decompiler-pipeline.md (Entropy pinning).",
     )
     p.add_argument("--rompath", default=os.path.expanduser("~/Downloads"))
     p.add_argument("--mame", default="mame")

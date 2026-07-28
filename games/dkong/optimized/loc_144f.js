@@ -69,7 +69,7 @@ import { CURRENT_PLAYER } from "./ram.js";
  *   unchanged via m.call). Because loc_144f is atomic and this collapse is byte-exact,
  *   the STRICT whole-machine gate proves it (like its parent loc_141e); the convergent
  *   gate -- which only LICENSES an interruptible collapse's transient raster tear /
- *   dead-stack PC -- is neither needed nor used (docs/06).
+ *   dead-stack PC -- is neither needed nor used (docs/decompiler-pipeline).
  *
  * The fall-through into loc_1459 is a TAIL transfer with NO push16: loc_1459's own
  * `ret` returns to loc_144f's caller (ultimately loc_141e's caller's caller, since

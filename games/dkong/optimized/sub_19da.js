@@ -72,7 +72,7 @@ const CONFIRM = 0x19ed; // entry_19ed -- the X-match confirm half (tail-jump tar
  *     (see the behavioural teeth). So the collapse redistributes only the CYCLE
  *     charges; every register/flag op is the identical z80.js helper in oracle order.
  *
- * CYCLES -- COLLAPSED per doc 06, one m.step per basic block / per loop iteration,
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc, one m.step per basic block / per loop iteration,
  * each charging the block's exact oracle total at the block's exit PC:
  *   - prologue (0x19DA-0x19DF): 13+7+10 = 30 t, exit 0x19E2.
  *   - a NO-MATCH iteration that loops: cp 7 + jp-not-taken 10 + inc l x4 16 +

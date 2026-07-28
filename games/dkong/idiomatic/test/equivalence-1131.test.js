@@ -10,7 +10,7 @@
  * activation marks + a permuting gather (+3,+7,+8,+5) into two sprite records at 0x6950
  * (gatherSpriteRecords).
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), not the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES memory and reads only ROM (never pre-existing work
  * RAM), so every case runs on a FRESH clone per side and is compared on:
  *
@@ -22,7 +22,7 @@
  * oracle (which rets internally). The oracle's transient push16/push land inside
  * STACK_SCRATCH (measured: entry SP = 0x6bec, deepest push ≈ 0x6be4 ≥ 0x6be0), so the dead
  * stack scratch the candidate never writes is excluded by the contract. Cycles and flags are
- * never compared (docs/06): the routine returns into a fresh `call 0x2441` (0x0D62) that
+ * never compared (docs/decompiler-pipeline): the routine returns into a fresh `call 0x2441` (0x0D62) that
  * reloads every register, so the whole register file and all flags are DEAD — live-out is
  * memory only; the a/b/c/d/e/h/l/ix check is a free safety margin (the callees + the step-5/6
  * immediates leave them byte-faithful to the oracle anyway).

@@ -168,7 +168,7 @@ test("loc_3bec: count=0x0f, selects 0x4a2e/0x4a55/0x4a07, loops 15x; 2671 T", ()
 // -- MUTATION: charge the taken loop back-edge `jr nz` 11 T instead of 12. It
 // moves NO memory and changes NO register or call -- the state diff and the call
 // trace stay byte-identical -- so ONLY the T-state total (COUNT-1 = 14 T short)
-// exposes it. Proves the cycle assertion earns its keep (docs/03-translation.md).
+// exposes it. Proves the cycle assertion earns its keep (docs/translation.md).
 function loc_3bec_mutant(m) {
   const { regs, mem } = m;
   regs.a = 0x05; m.step(0x3bee, 7);

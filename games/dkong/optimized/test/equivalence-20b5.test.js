@@ -165,7 +165,7 @@ function runArm(entry) {
 
 // Isolated OWN total: stub m.call so the transfer does NOT run the downstream cascade;
 // the cycle delta is then sub_20b5's own charge alone (NZ 33 t / Z 71 t), the explicit
-// per-arm pin docs/06 asks for on a collapsed routine.
+// per-arm pin docs/decompiler-pipeline asks for on a collapsed routine.
 function ownTotal(entry, fn) {
   const c = entry.clone();
   c.call = () => undefined; // isolate this routine -- do not execute the continuation

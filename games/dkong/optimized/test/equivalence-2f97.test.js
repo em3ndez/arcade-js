@@ -181,7 +181,7 @@ test("TEETH (unit behavioural): ignoring the ret-nc branch (always building) is 
 /**
  * Fresh machine with a valid stack (a sentinel caller-return frame) and RAM/registers set
  * so loc_2f97's OWN branch drives the chosen arm -- the sanctioned identical-both-sides
- * seed (doc 06 pattern 3), applied to oracle and optimized through the same factory:
+ * seed (the decompiler-pipeline doc pattern 3), applied to oracle and optimized through the same factory:
  *   - 0x6218 bit0=0            -> RET arm (early `ret nc`), self-contained, 28 t.
  *   - 0x6218 bit0=1 + IX/DE set -> BUILD arm: build B/C, mirror BGM, jp into loc_2f7c, 297 t.
  * IX/DE mirror entry_2ed4's live-ins (0x6680 base, 0x6A18 record dest); (ix+0e/0f) and

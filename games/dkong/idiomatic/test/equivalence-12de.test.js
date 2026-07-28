@@ -11,7 +11,7 @@
  * drops; every byte of it lands in STACK_SCRATCH (SP sits at 0x6bec-0x6bf0 for every
  * real dispatch) and its residual A/HL/F are dead ABI (the rst-0x28 dispatch this
  * returns into reads none). A FRESH clone per side everywhere — the routine writes
- * memory, so a reused clone would carry a previous advance forward (docs/06: only a
+ * memory, so a reused clone would carry a previous advance forward (docs/decompiler-pipeline: only a
  * pure read-only leaf may reuse one).
  *
  *   1. REALISM (real captured dispatches) — hook 0x12de in a real attract run and clone

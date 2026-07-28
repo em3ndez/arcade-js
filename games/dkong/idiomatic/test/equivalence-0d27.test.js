@@ -6,7 +6,7 @@
  * laying 68 background-tilemap bytes: 17×0xFD then 17×0xFC below it, for each of the
  * two motifs.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES video RAM (via its callee), so every case uses
  * a FRESH clone per side. The oracle runs on one clone, stamp75mBoardTiles on another,
  * and they are compared on the go-forward contract:

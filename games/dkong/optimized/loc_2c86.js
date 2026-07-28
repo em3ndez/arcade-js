@@ -62,7 +62,7 @@
  *
  * loc_2c86 is NOT atomic: it is reached only from the interruptible per-frame update
  * cascade loc_197a (via entry_2c03 @ ROM 0x1989, and entry_2c41), the same cascade
- * docs/06 names as the demonstrated place the vblank NMI lands mid-work. So the
+ * docs/decompiler-pipeline names as the demonstrated place the vblank NMI lands mid-work. So the
  * collapse is LICENSED by the CONVERGENT gate (equivalence-2c86.test.js uses
  * convergentGate under the ATTRACT scenario, where loc_2c86 naturally dispatches),
  * not the strict byte-exact gate. In practice the collapse is byte-clean in that run
@@ -80,7 +80,7 @@
  * frontier ("only caller 0x1989 is itself untranslated"). That is STALE — loc_197a
  * (translated and wired live) calls entry_2c03 at ROM 0x1989, and loc_2c86 dispatches
  * 5x in a 1200-frame attract run. The optimization understands it as reachable; the
- * oracle is not edited (docs/06 "oracle docstrings can go stale").
+ * oracle is not edited (docs/decompiler-pipeline "oracle docstrings can go stale").
  */
 export function loc_2c86(m) {
   const { regs, mem } = m;

@@ -29,7 +29,7 @@
  *      per basic block; see loc_04f1.js's CYCLES note) and sits inside the
  *      interruptible loc_197a -> entry_03fb per-frame cascade with the NMI mask
  *      ENABLED, so the convergent gate is the correct license, not the strict
- *      byte-exact one (docs/06; see sub_0350).
+ *      byte-exact one (docs/decompiler-pipeline; see sub_0350).
  *
  *   2. EQUAL (unit) — translated vs optimized leave identical RAM + all registers
  *      (incl. F, A, SP) + pc from the captured first-entry state (frame ~1041).

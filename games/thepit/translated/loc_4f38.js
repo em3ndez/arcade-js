@@ -31,7 +31,7 @@
  *   4f44  0e ff        ld   c,0xff          ; passed the ceiling -> clamp to sentinel
  *   4f46  c9           ret
  *
- * CONTROL-FLOW MODELLING (doc 03): `call 0x4c6f` is an ordinary mid-body call -- it
+ * CONTROL-FLOW MODELLING (the translation doc): `call 0x4c6f` is an ordinary mid-body call -- it
  * pushes its own return address 0x4f3b and control resumes here after it -- so it is
  * `m.push16(0x4f3b); m.step(0x4c6f,17); m.call(0x4c6f)` with no return threaded through.
  * `jr nz` is the ordinary conditional branch (taken 12 / not taken 7). Both `ret nc`

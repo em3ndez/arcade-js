@@ -51,7 +51,7 @@ import { MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER } from "./ram.js";
  *   There is essentially no droppable churn -- the win is names, flat control flow,
  *   the docstring, and the cycle collapse.
  *
- * CYCLES -- COLLAPSED to one m.step per basic block, EXACT per-arm totals (doc 06).
+ * CYCLES -- COLLAPSED to one m.step per basic block, EXACT per-arm totals (the decompiler-pipeline doc).
  * The `call c,0x1d8f` is a BOUNDARY (conditional CALL); its `push16`(0x1CCA) +
  * `m.step(0x1d8f,17)` + `m.call(0x1d8f)` stay verbatim and the fold does NOT cross it.
  * sub_1d8f's own 0x6080 write is work RAM (a sound latch counter, NOT a tagged hardware

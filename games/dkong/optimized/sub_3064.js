@@ -39,7 +39,7 @@
  * register file incl. F, and the NMI pushes AF into diffed RAM). Replacing addHl
  * with a plain 16-bit add would leave F stale, so nothing is dropped: this routine
  * is pure register/flag churn with no droppable slack -- the win is the cycle
- * collapse and the behavioural naming, per docs/06 ("almost no droppable churn").
+ * collapse and the behavioural naming, per docs/decompiler-pipeline ("almost no droppable churn").
  *
  * CYCLES -- COLLAPSED. The four instructions form ONE basic block (no branch, no
  * call, no hardware-latch write -- writes are untagged video RAM) and fold to a

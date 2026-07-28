@@ -5,7 +5,7 @@
  * run (span counter 0x63B2, write pointer HL), then draws the end cap (its ROM tail
  * into loc_0e2a) which advances the table cursor DE.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. drawGirderSpan WRITES memory and calls a subroutine, so every case
  * uses a FRESH clone per side (never a reused machine). The oracle (translated loc_0e19,
  * whose own tail `m.call(0x0e2a)` runs the wired end cap) is run on one clone, and

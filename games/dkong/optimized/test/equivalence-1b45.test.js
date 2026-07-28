@@ -3,7 +3,7 @@
  * Equivalence tests for loc_1b45 (the on-ladder "climb up" input test, ROM
  * 0x1B45-0x1B4D). KEPT PER-INSTRUCTION (see optimized/loc_1b45.js for why): it lives
  * inside the entry_1ac3 movement cascade reached only from loc_197a, the interruptible
- * in-game update cascade the vblank NMI lands inside, and docs/06 forbids collapsing a
+ * in-game update cascade the vblank NMI lands inside, and docs/decompiler-pipeline forbids collapsing a
  * 0x1xxx cascade routine on short-run evidence. Because the charges stay one-per-
  * instruction, the per-frame cycle distribution is byte-identical to the oracle by
  * construction, so no whole-machine / convergent gate is needed to license a collapse
@@ -18,7 +18,7 @@
  * LIVE stack with a poppable return address), clone it, poke the one deciding byte
  * P1_INPUT (0x6010) identically on both sides, and run oracle vs optimized directly.
  * The poke is applied to BOTH clones through the same factory, so it steers the real
- * routine rather than faking its effect (docs/06 reach pattern 3).
+ * routine rather than faking its effect (docs/decompiler-pipeline reach pattern 3).
  *
  * Jobs:
  *   1. EQUAL (crafted entry) -- optimized loc_1b45 matches the oracle in RAM + full

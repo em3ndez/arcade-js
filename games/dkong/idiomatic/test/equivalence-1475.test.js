@@ -4,7 +4,7 @@
  * mode": flip-screen latch 0x7D82 := 1, GAME_STATE (0x6005) := 1, ATTRACT (0x6007)
  * := 1, GAME_SUBSTATE (0x600A) := 0.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. enterAttractMode WRITES RAM, so every case uses a FRESH clone
  * per side (never a reused machine). The oracle runs on one clone, enterAttractMode
  * on another, and they are compared on the go-forward contract:

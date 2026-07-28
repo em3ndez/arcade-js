@@ -7,14 +7,14 @@
  * sprite/object records 0x694C-0x694F / 0x6A20-0x6A23, the sound cue, and on the
  * counter wrap BOARD/LEVEL/BOARD_SEQ_PTR/HOW_HIGH_INDEX/SUBSTATE_TIMER/GAME_SUBSTATE
  * + the task ring) and is NOT a leaf (it calls loc_3009 and, on the wrap, enqueueTask).
- * So it is gated by capture / clone / replay (docs/06) with a FRESH clone per case:
+ * So it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case:
  *
  *   REACHABILITY. 0x18C6 is NOT dispatched in plain attract — it runs only during the
  *   in-game board-advance transition, which attract never reaches. The test PROVES
  *   this (hooks 0x18C6 over an attract run and asserts 0 dispatches), so there is no
  *   "real captured 0x18C6 dispatch" to replay. Instead a real, valid mid-demo machine
  *   is captured (hook 0x2333, which fires during the 25m attract DEMO) and every entry
- *   is that real machine with a surgical, identical-both-sides poke (docs/06 crafted
+ *   is that real machine with a surgical, identical-both-sides poke (docs/decompiler-pipeline crafted
  *   entry). The demo runs 25m, so MARIO_X / LEVEL / the task ring are realistic; the
  *   0x62AF counter (and, per arm, MARIO_X / LEVEL / BOARD_SEQ_PTR) are poked.
  *
@@ -132,7 +132,7 @@ function capture() {
 
 /**
  * A real mid-demo machine with the given identical-both-sides pokes applied. This is
- * the docs/06 crafted entry: a captured, valid machine + a surgical nudge. Every key
+ * the docs/decompiler-pipeline crafted entry: a captured, valid machine + a surgical nudge. Every key
  * is optional; unset RAM keeps its real captured value.
  */
 function craftBase({ counter, x6919, seqptr, marioX, level } = {}) {

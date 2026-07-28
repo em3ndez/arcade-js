@@ -48,7 +48,7 @@
  * cascade with the vblank NMI mask ENABLED. The NMI can land inside this routine
  * (and inside the interruptible sub-tree it falls into via sub_0514 / loc_04f9 /
  * loc_04ac), so its internal cycle distribution is observable — exactly the
- * mistimed-NMI raster tear the CONVERGENT gate exists for (docs/06; see sub_0350),
+ * mistimed-NMI raster tear the CONVERGENT gate exists for (docs/decompiler-pipeline; see sub_0350),
  * not the strict byte-exact gate. The routine is entirely straight-line (`ld a` /
  * `ld hl`, no branches of its own), so the whole body before the `call 0x0514`
  * folds to ONE block: ld-a,0xef [7] + ld-hl,0x7583 [10] = 17 t, the exact SUM of

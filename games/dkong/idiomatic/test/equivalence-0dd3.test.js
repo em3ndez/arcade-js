@@ -6,7 +6,7 @@
  * loc_0dd3 WRITES memory (the segment scratch 0x63b0-0x63b3 / 0x63ad, and — through
  * its renderer tails loc_0e19 (girder) / loc_0e4f (ladder) — girder tile 0xC0 spans,
  * endpoint caps, and ladder columns in VRAM) and is NOT a leaf, so it is gated by
- * capture / clone / replay (docs/06) with a FRESH clone per case. Its callees are the
+ * capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its callees are the
  * frozen oracles sub_2ff0 / loc_0e4f / loc_0e19 (no idiomatic yet), called directly;
  * those model the Z80 stack (push/call/ret), so the ONLY residual divergence between
  * oracle and idiomatic is confined to the dead STACK_SCRATCH region, which the diff

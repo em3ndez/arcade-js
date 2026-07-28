@@ -16,7 +16,7 @@
 //      0x08 not 0x00 and A/flags differ; only the memory/register/flag asserts
 //      catch it (a cycle-only check would miss it).
 //   2. CYCLE     (ld a,(nn) charged 7 T not 13) — moves no memory; only the
-//      T-state assertion catches it (docs/03: timing invisible to the state diff).
+//      T-state assertion catches it (docs/translation: timing invisible to the state diff).
 
 import { test } from "node:test";
 import assert from "node:assert/strict";

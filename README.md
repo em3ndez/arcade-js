@@ -15,6 +15,13 @@ validated **pixel-exact against MAME**. Not a re-implementation from observation
 disassembled and translated instruction by instruction, then checked frame against frame until
 the pixels match.
 
+That falsifiable translation is the foundation. On top of it the port is made **readable** — routines
+are decompiled to idiomatic JavaScript, each still proven memory-equivalent to the translation (a sweep
+that's complete for The Pit and ongoing for Donkey Kong) — and **understood** — the game's mechanics
+*grounded by playing it in MAME*, not guessed from the code.
+The same oracle does double duty: a **gate** that proves the pixels match, and a **probe** we drive
+to learn what the game means. The whole method is one page: [docs/README.md](docs/README.md).
+
 **Donkey Kong** is the first subject, and it is complete. **The Pit** (Zilec/Centuri, 1982) is
 the second, and it was chosen deliberately: **no public disassembly of it exists**, so there was
 nothing for a model to have memorized — the agents had to recover it from the raw ROM. That makes
@@ -24,7 +31,7 @@ sharing what they genuinely share.
 
 How the agents were organised — the division of labour, the failure modes we actually hit, and
 what the tooling had to do about them — is written up in
-[docs/01-how-the-agents-worked.md](docs/01-how-the-agents-worked.md).
+[docs/how-the-agents-worked.md](docs/how-the-agents-worked.md).
 
 ![Donkey Kong running in the arcade-js browser player](docs/media/player-screenshot.png)
 
@@ -33,9 +40,10 @@ what the tooling had to do about them — is written up in
 > and the rendering is pixel-validated frame-by-frame against MAME 0.288.
 >
 > **Status — The Pit:** in progress. Its whole boot→attract sequence runs and renders pixel-exact
-> against MAME, and 127 of its 169 routines are additionally rewritten into idiomatic JavaScript
-> (with the memory and routines named from evidence, proposer≠confirmer). Full gameplay is not yet
-> validated — that's the current work.
+> against MAME; **all 169 of its routines are now rewritten into idiomatic JavaScript**
+> (memory-equivalent to the oracle, with memory and routines named from evidence, proposer≠confirmer);
+> and its full mechanics — objective, cast, win/lose — have been mapped by *playing it under MAME*.
+> End-to-end gameplay pixel-validation is the remaining work.
 
 ## What's here (and what isn't)
 
@@ -115,11 +123,11 @@ games/                one directory per romset (dkong, thepit)
     entrypoints.json  disassembly entry points (folded into the trace)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
   thepit/             the second game — same shape; its MECHANISMS.md maps the game
-                      as understood so far (see docs/07)
+                      as understood so far (see docs/mechanisms)
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·
                        gate runner (verdict.sh) — shared, game-agnostic
-docs/                 how it's done: disassembly → translation → testing → the pixel gate
+docs/                 the method: one model (docs/README.md) + a technique guide per move
 ```
 
 Tests are colocated with the code they test (`core/**/test/`, `boards/**/test/`,
@@ -128,8 +136,11 @@ Tests are colocated with the code they test (`core/**/test/`, `boards/**/test/`,
 The three layers — **CPU**, **board**, **game** — are independent axes. A game's
 `manifest.js` names its CPU (`z80`) and board (`dkong`); the machine assembles
 CPU + board + translated ROM. Frogger, for example, would reuse `core/cpu/z80.js` on a
-future `boards/galaxian/`. The manifest also declares an `inputs` block (ports, actions,
-key bindings) that `web/` reads to build its keyboard map — see doc 8 — so a manifest
+future `boards/galaxian/`. A board is named for the **MAME machine config** it implements —
+usually identical to the driver file (`dkong`), but not always: The Pit runs the `thepit` config
+*inside* MAME's `taito/roundup.cpp` family file, so it lives at `boards/thepit/` while its hardware
+is cited from `roundup.cpp`. The manifest also declares an `inputs` block (ports, actions,
+key bindings) that `web/` reads to build its keyboard map — see [porting](docs/porting.md) — so a manifest
 without it can't be played in the browser.
 
 ## Quickstart
@@ -156,9 +167,10 @@ decoder for `make verify`), and — for regenerating MAME goldens — MAME 0.288
 
 ## Adding a game
 
-See [`docs/`](docs/) for the full methodology and the "add a game" guide. In short: pick
-(or write) the CPU and board, disassemble and translate the ROM into `games/<name>/`, and
-drive it under the pixel gate until it matches MAME.
+See **[docs/README.md](docs/README.md)** — the whole method — and [`docs/`](docs/) for the
+technique guides. In short: pick (or write) the CPU and board, translate the ROM into
+`games/<name>/`, prove it pixel-exact against MAME, then decompile it to idiomatic JS and *ground*
+its mechanics by playing it under MAME.
 
 ## License
 

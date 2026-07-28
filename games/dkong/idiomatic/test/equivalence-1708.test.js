@@ -5,7 +5,7 @@
  * the blink-sprite code at 0x6905, paint a 3-cell descending colour column from
  * 0x75C4 (call 0x0514), then set the sound-priority pair 0x608A/0x608B.
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), not the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. loc_1708 WRITES RAM, so every case uses a FRESH clone per side
  * (never a reused machine). The oracle runs on one clone, loc_1708 on another, and
  * they are compared on the go-forward contract:

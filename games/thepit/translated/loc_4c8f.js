@@ -16,7 +16,7 @@
  * REQUEST sound 0x10.
  *
  * The `jr 0x4ca5` is UNCONDITIONAL and discards no return address of its own, so
- * loc_4ca5's `ret` unwinds to loc_4c8f's OWN caller. Modelled per doc 03 as
+ * loc_4ca5's `ret` unwinds to loc_4c8f's OWN caller. Modelled per the translation doc as
  * `return m.call(0x4ca5)` with NO trailing m.ret — a second ret would double-pop.
  * `ld a,n` and `jr` touch NO flags, so the caller's F survives unchanged.
  *

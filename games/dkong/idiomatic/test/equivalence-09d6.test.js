@@ -5,7 +5,7 @@
  * armTwoPlayerBoardSetup WRITES memory (two control latches, two posts through enqueueTask,
  * GAME_SUBSTATE, and a 3-cell VRAM column via the sub_09ee oracle) and ends by FALLING
  * THROUGH into sub_09ee, whose `ret` moves the stack — so unlike a pure leaf it is gated by
- * capture / clone / replay (docs/06) with a FRESH clone per case, and the contract includes
+ * capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case, and the contract includes
  * pc + SP (not just RAM):
  *
  *   1. EQUAL (real driven dispatch) — attract is a 1-player demo and never reaches this arm,
@@ -120,7 +120,7 @@ function captureDrivenDispatches(K, maxFrames) {
 }
 
 // Poke a whole ring state (fill + tail) IDENTICALLY on a real entry — a surgical crafted
-// nudge (docs/06), not a fabrication.
+// nudge (docs/decompiler-pipeline), not a fabrication.
 const fillRing = (m, byte) => { for (let s = RING_LO; s <= RING_HI; s++) m.mem.write8(s, byte); };
 const CLEAN = (m) => { fillRing(m, 0xff); m.mem.write8(TASK_TAIL, 0xc0); }; // all free, base
 const FULL  = (m) => { fillRing(m, 0x00); m.mem.write8(TASK_TAIL, 0xc0); }; // all occupied

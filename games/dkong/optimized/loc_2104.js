@@ -82,7 +82,7 @@ const SLOT_X = 0x03;     // ix+3: object X coordinate field (also copied to the 
  * interrupt cannot re-enter -- and correspondingly the NMI's pushed PC NEVER lands in the body
  * [0x2104,0x2117] (0 landings over 1394 NMIs). An atomic byte-exact collapse pushes no mistimed
  * PC and tears no raster, so it passes the STRICT (byte-exact) whole-machine gate directly
- * (docs/06), like SCC siblings loc_1fce / loc_1f83 / loc_21ba.
+ * (docs/decompiler-pipeline), like SCC siblings loc_1fce / loc_1f83 / loc_21ba.
  *
  * BRANCH COVERAGE. The attract run reaches ONLY the ON-SCREEN arm (NC -> loc_1fce fires
  * 171/171; the objects never walk off-screen in that window, so the DEACTIVATE arm fires 0x).

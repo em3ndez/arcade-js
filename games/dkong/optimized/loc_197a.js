@@ -70,7 +70,7 @@ import { MARIO_ACTIVE } from "./ram.js";
  * was a MISDIAGNOSIS. Collapsing the branch to a single front-loaded total (the
  * handler_05c6-style collapse) DOES diverge at frame 1035, stack 0x6BF6 (base 131 vs
  * collapsed 192) -- but that collapse changed the cycle TOTAL, which reseeds
- * SPIN_COUNT / the PRNG (docs/06 cycles channel 1), and the forked entropy propagates
+ * SPIN_COUNT / the PRNG (docs/decompiler-pipeline cycles channel 1), and the forked entropy propagates
  * into the dead stack. It is a WRONG-TOTAL PRNG fork, NOT a mid-cascade NMI landing
  * (there are none). The lesson is the ordinary one -- preserve the total -- not
  * interruptibility. Harness-verified the other way too: with per-instruction charges

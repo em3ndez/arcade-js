@@ -67,7 +67,7 @@
  * loc_2153 is NOT atomic: it runs inside sub_1f72, dispatched from the interruptible
  * per-frame update cascade loc_197a (@0x1986) AND during attract's demo play, so the
  * vblank NMI can land inside its 67 t window. The collapse is therefore LICENSED by
- * the CONVERGENT gate (docs/06; equivalence-2153.test.js uses convergentGate, not the
+ * the CONVERGENT gate (docs/decompiler-pipeline; equivalence-2153.test.js uses convergentGate, not the
  * strict whole-machine gate): a mistimed NMI pushes the coarse block-exit PC into the
  * DEAD stack (excluded) and can leave a single-frame raster tear that heals next
  * frame; non-stack RAM stays byte-identical and nothing persistent survives.

@@ -5,7 +5,7 @@
  *
  * A pure arithmetic LEAF: it calls nothing and writes NO memory, so it imports no
  * RAM names. Its only operands are the three IX-relative record fields (ix+0x12,
- * +0x13, +0x14); those offsets are kept HEX (the record-offset trap in docs/06 —
+ * +0x13, +0x14); those offsets are kept HEX (the record-offset trap in docs/decompiler-pipeline —
  * an ix+d displacement is a structure offset, not an absolute address, and naming
  * it would misread it). See the naming note in the test / report.
  */

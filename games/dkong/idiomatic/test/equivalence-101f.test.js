@@ -6,7 +6,7 @@
  * ROM->sprite-buffer block copies, and closes by writing the board-object bookkeeping
  * byte 0x62B9 = 1.
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), not the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES a lot of memory and reads implicit inputs (the
  * pre-existing +3/+5 fields of the 0x6500 and 0x65A0 object blocks that the two gathers
  * permute into X/Y), so every case runs on a FRESH clone per side and is compared on:
@@ -27,7 +27,7 @@
  * oracle (which rets internally). The oracle's transient push16/push land inside
  * STACK_SCRATCH (measured below; entry SP is one call level above the 0x1186 gate's
  * 0x6bea), so the dead stack scratch the candidate never writes is excluded by the
- * contract, exactly as intended. Cycles and flags are never compared (docs/06).
+ * contract, exactly as intended. Cycles and flags are never compared (docs/decompiler-pipeline).
  *
  * REACHABILITY. seed50mBoardObjects is dispatched only for BOARD=2 (0x6227==2); attract
  * only plays 25m, so it NEVER dispatches in a plain run. Following the sibling 0x1186

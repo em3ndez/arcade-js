@@ -16,7 +16,7 @@
  * `(0x801e + 1) & 0x07`). So this routine's whole job is to REQUEST sound 0x15.
  *
  * The fall-through discards no return address of its own, so loc_4ca5's `ret` unwinds
- * to loc_4ca3's OWN caller. Modelled per doc 03 exactly like the `jr`-based siblings
+ * to loc_4ca3's OWN caller. Modelled per the translation doc exactly like the `jr`-based siblings
  * (loc_4c9f etc.): `return m.call(0x4ca5)` with NO trailing m.ret -- a second ret would
  * double-pop. Unlike those siblings there is no `jr`, so only the `ld a,0x15` (7 T) is
  * charged locally before control passes to loc_4ca5. `ld a,n` touches no flags, so the

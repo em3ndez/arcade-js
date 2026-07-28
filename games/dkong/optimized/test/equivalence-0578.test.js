@@ -13,7 +13,7 @@
  * inside the folded prologue or the downstream loop; the collapse coarsens the pushed
  * PC to a block-exit address and can leave a benign single-frame raster tear -- both
  * of which a strict byte-exact gate false-fails on but the convergent gate LICENSES
- * (docs/06). The convergent gate still catches everything that matters (a wrong cycle
+ * (docs/decompiler-pipeline). The convergent gate still catches everything that matters (a wrong cycle
  * total, a wrong memory op, a forked PRNG) as a PERSISTENT divergence.
  *
  * Because the convergent gate wraps its overrides with an arg-FORWARDING invocation

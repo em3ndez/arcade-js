@@ -54,12 +54,12 @@
  *     then the callee, then the tail `jp` (10 t) at 0x1DA6 before entry_1da6.
  *   - normal (NZ) path: inc a (4) + not-taken `call z` (10) + `jp` (10) = 24 t as a
  *     single lump before the tail — no push16/call/ret boundary sits between them.
- * loc_1c33 is a callee of loc_197a, the per-frame update cascade docs/06 names as
+ * loc_1c33 is a callee of loc_197a, the per-frame update cascade docs/decompiler-pipeline names as
  * INTERRUPTIBLE in gameplay ("the NMI routinely lands mid-cascade"). On the path this
  * routine is ACTUALLY reached — the attract demo — the NMI mask is measured OFF for
  * every one of its 39 invocations, so no NMI lands inside it there and the collapse is
  * byte-exact in attract. But atomicity is a property of EVERY call path, not the
- * routine alone (docs/06): loc_1c33 could be interrupted if reached under the
+ * routine alone (docs/decompiler-pipeline): loc_1c33 could be interrupted if reached under the
  * mask-enabled gameplay cascade, so the collapse is LICENSED by the CONVERGENT gate
  * (equivalence-1c33.test.js uses convergentGate, not the strict whole-machine gate),
  * which is safe either way. Total-preservation keeps the main loop's spin count

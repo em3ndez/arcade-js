@@ -93,7 +93,7 @@ const ANIM_FRAME = 0x07; // ix+07: sprite/animation-frame field; bit0 toggled on
  * Both callers (branch_1fac, loc_2104) live in the same mask-cleared NMI cascade, so
  * loc_1fce is atomic on every call path. An atomic byte-exact collapse pushes no mistimed
  * PC and tears no raster, so it passes the BYTE-EXACT (strict) whole-machine gate directly
- * (docs/06). This matches SCC neighbours loc_1f83 / loc_1f8d / loc_1f93; the oracle
+ * (docs/decompiler-pipeline). This matches SCC neighbours loc_1f83 / loc_1f8d / loc_1f93; the oracle
  * docstring carries no stale "not yet wired" note here. See equivalence-1fce.test.js.
  */
 export function loc_1fce(m) {

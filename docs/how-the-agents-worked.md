@@ -90,7 +90,7 @@ happily build the wrong thing correctly.
 ## The idiomatic rewrite is a second wave, same discipline
 
 Rewriting the faithful translation into idiomatic JavaScript (see
-[the decompiler pipeline](08-decompiler-pipeline.md)) is a second wave of agent work, and it
+[the decompiler pipeline](decompiler-pipeline.md)) is a second wave of agent work, and it
 keeps the same load-bearing separation: an agent rewrites one routine and proves it observably
 equivalent, a separate reviewer (in fact two, adversarially) gates it against the frozen oracle
 without ever having written it, and the lead owns the batch orchestration and the judgement
@@ -116,8 +116,9 @@ hand-verifies a routine and never lets an author's own confidence stand in for t
 
 ## What this does not show
 
-- One codebase, one CPU, one board, one game. The method is not yet demonstrated on a second
-  target — that is the obvious next experiment, and the repo is structured for it.
+- Two games on two boards now (Donkey Kong on `dkong`, The Pit on `thepit`), but still one CPU
+  family (Z80) and one era of arcade hardware. How far the method carries to a very different CPU,
+  or to a non-arcade target, is still open.
 - The oracle does a great deal of the work. How much of this transfers to porting problems with
   no MAME-equivalent to diff against is precisely the open question, and this project does not
   answer it.

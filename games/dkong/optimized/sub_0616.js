@@ -61,7 +61,7 @@ import { CREDITS } from "./ram.js";
  * with the vblank NMI mask ENABLED: entry_0611's task-table fall-through from the main loop
  * (ROM 0x0611), loc_141e (0x141E), sub_1486 (0x1489), and the state-0 attract site at 0x08F0.
  * So the NMI CAN land inside this routine and push a live (now-coarser) PC into the diffed
- * stack RAM -- exactly the mistimed-NMI raster tear the CONVERGENT gate exists for (docs/06;
+ * stack RAM -- exactly the mistimed-NMI raster tear the CONVERGENT gate exists for (docs/decompiler-pipeline;
  * see sub_0350). sub_0616 is entirely straight-line (no branches at all) apart from its one
  * `call` and its tail `jp`, both of which keep their own charge/scaffolding, never folded
  * across: `m.push16(0x061b)` before `call 0x05e9` (handler_05e9's `ret` balances it), and the

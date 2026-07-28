@@ -104,7 +104,7 @@
  * collapse are NEVER exercised in attract. So the STRICT whole-machine gate proves the
  * gate1-skip arm byte-exact (816x, non-vacuous), and the two board-3-gated arms
  * (gate2-skip, full-loop) -- exactly like sub_2a22's board-gated collapse -- are proven
- * from crafted identical-both-sides pokes (doc 06 pattern 3: poke 0x6227 = 3, 0x6200
+ * from crafted identical-both-sides pokes (the decompiler-pipeline doc pattern 3: poke 0x6227 = 3, 0x6200
  * bit0) that steer the game's OWN gates, with each arm's EXACT oracle cycle total pinned
  * DIRECTLY (the teeth for the fold: a dropped 35->30 charge is CAUGHT). See
  * equivalence-2e04.test.js.

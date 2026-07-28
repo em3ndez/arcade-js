@@ -40,12 +40,12 @@
  * range. MEASURED: over 855 dispatches (716 in a 1300-frame plain-boot attract +
  * 139 in a coin+start+walk driven run) io.nmiMask was 0 at 100% of them, and 0
  * NMI pushed-PC landings fell in the router region (all landings cluster in the
- * 0x02BD-0x0372 main-loop band, docs 06). Atomic + total-preserving => the strict
+ * 0x02BD-0x0372 main-loop band, the decompiler-pipeline doc). Atomic + total-preserving => the strict
  * byte-exact gate is the right, stronger one, and it self-validates atomicity: had
  * the collapse redistributed cycles across a real mid-routine NMI, the wrong
  * pushed PC would surface as stack drift.
  *
- * COLLAPSE (doc 06 §Cycles — preserve the TOTAL, drop the per-instruction split).
+ * COLLAPSE (the decompiler-pipeline doc §Cycles — preserve the TOTAL, drop the per-instruction split).
  * The whole routine is ONE straight-line basic block: no conditional branch, no
  * hardware-latch write (the only writes are the push16/pop16 to WORK-RAM stack,
  * never a 0x7Dxx latch), and no call/dispatch boundary until the final `jp (hl)`.

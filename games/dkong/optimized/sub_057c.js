@@ -88,7 +88,7 @@ const BYTE_COUNT = 0x0304; //    ld bc,0x0304 -> B=3 source bytes, C=4 (a dead m
  * can land inside sub_1486 or its callees -- sub_057c is ATOMIC on its one call
  * path, so this collapse is byte-safe (no in-flight NMI ever pushes the coarsened
  * block-exit PC into diffed stack RAM). The fleet gates ALL collapsed routines with
- * the CONVERGENT gate uniformly (docs/06; equivalence-057c.test.js uses
+ * the CONVERGENT gate uniformly (docs/decompiler-pipeline; equivalence-057c.test.js uses
  * convergentGate on a phase-21 scenario, not the strict whole-machine comparator);
  * for an atomic routine like this one it passes with ZERO raster tear, but the
  * per-branch cycle TOTAL -- where the collapse's correctness lives -- is pinned by

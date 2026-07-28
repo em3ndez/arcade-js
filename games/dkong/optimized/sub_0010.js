@@ -59,7 +59,7 @@ import { MARIO_ACTIVE } from "./ram.js";
  * here while the NMI mask is SET -- so the vblank NMI CAN fire inside this 4-6
  * instruction body on the gameplay path, and a collapse's coarse block-exit PC can land
  * in the diffed stack instead of the oracle's exact per-instruction PC. That is exactly
- * the case the CONVERGENT gate (docs/06; equivalence-0010.test.js) is for: pixels are
+ * the case the CONVERGENT gate (docs/decompiler-pipeline; equivalence-0010.test.js) is for: pixels are
  * ground truth, a mistimed-NMI raster tear or dead-stack PC is tolerated if it heals,
  * and a PERSISTENT divergence (e.g. a wrong cycle total forking the PRNG) still fails.
  * Two blocks:

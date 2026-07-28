@@ -24,7 +24,7 @@
  * best-effort; addresses, flags, cycle costs and control flow are EXACT, one JS
  * statement per Z80 instruction.
  *
- * CONTROL-FLOW MODELLING (doc 03): the four `jr nz` land on sibling routines
+ * CONTROL-FLOW MODELLING (the translation doc): the four `jr nz` land on sibling routines
  * loc_4f26 / loc_4f38, each of which ends in its own `ret` that unwinds to OUR
  * caller -- so each taken branch is a conditional TAIL-jump: `m.step(target,12);
  * return m.call(target)` with NO trailing m.ret (a second ret would double-pop).

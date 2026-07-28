@@ -35,7 +35,7 @@
  *
  * THE CYCLE DECISION. loc_1c33 is COLLAPSED to one m.step per branch TOTAL (normal
  * 24 t; roll-over 21 t before entry_2954 + 10 t before entry_1da6), each equal to the
- * oracle's. It is a callee of loc_197a, the per-frame cascade docs/06 names as
+ * oracle's. It is a callee of loc_197a, the per-frame cascade docs/decompiler-pipeline names as
  * INTERRUPTIBLE in gameplay. On the ONLY reached path (attract) the NMI mask is
  * measured OFF for all 39 invocations, so the collapse is byte-exact there -- but
  * atomicity is a property of every call path, so a collapse is licensed by the

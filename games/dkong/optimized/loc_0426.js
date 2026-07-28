@@ -82,7 +82,7 @@ import { SND_TRIGGER } from "./ram.js";
  * NMI mask ENABLED (main-loop cascade loc_197a<-entry_03fb, + the dispatchTask
  * entry_0400), so the vblank NMI CAN land inside loc_0426 and push a live
  * (now-coarser) PC into the diffed stack RAM -- exactly the mistimed-NMI raster
- * tear the CONVERGENT gate exists for (docs/06; see sub_0350). Each block total
+ * tear the CONVERGENT gate exists for (docs/decompiler-pipeline; see sub_0350). Each block total
  * below is the exact SUM of the oracle's per-instruction charges for that block:
  * ld-hl+inc(hl)+ld-a,(hl)+cp+jpz 45 t; ld-a,(0x6393)+and-a+jpnz 27 t;
  * ld-a,(hl)+ld-b,a+and-0x1f+jpnz 28 t; ld-hl,0x39cf+bit5+jrnz 30 t (taken) / 25 t

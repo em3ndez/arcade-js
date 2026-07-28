@@ -36,7 +36,7 @@ if [ -z "$ACTUAL" ]; then
 fi
 
 if [ ! -d "$GOLDEN" ]; then
-  echo "no golden at '$GOLDEN'. Capture it first (docs/04-integration-testing.md):" >&2
+  echo "no golden at '$GOLDEN'. Capture it first (docs/integration-testing.md):" >&2
   echo "  tools/mame_golden.py --hardware $HARDWARE --lua-dir games/dkong/tools/lua --out $GOLDEN --seconds 12" >&2
   exit 2
 fi

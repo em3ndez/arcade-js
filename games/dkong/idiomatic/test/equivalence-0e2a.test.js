@@ -4,7 +4,7 @@
  * renderer's segment end cap: stamps a segment's endpoint tiles into video RAM, then
  * advances the table cursor DE and re-enters sub_0da7's walk.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. drawSegmentEndCap WRITES memory, so every case uses a FRESH clone
  * per side (never a reused machine). The oracle is run on one clone, drawSegmentEndCap
  * on another, and they are compared on the go-forward contract:

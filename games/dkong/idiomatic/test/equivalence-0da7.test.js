@@ -5,7 +5,7 @@
  *
  * loc_0da7 WRITES memory (the segment scratch 0x63ab/0x63af/0x63b3/0x63b4 and, via
  * loc_0dd3 and its girder/ladder renderers, tiles across VRAM) and is NOT a leaf, so
- * it is gated by capture / clone / replay (docs/06) with a FRESH clone per case. Its
+ * it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its
  * callees are idiomatic loc_0dd3 (already gated) and the frozen oracle sub_2ff0
  * (no idiomatic yet), called directly. Those model no stack on this path — the ONLY
  * stack traffic is sub_2ff0's `ret`, a read that drifts SP but writes nothing — so the

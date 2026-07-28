@@ -18,7 +18,7 @@
  *      sub_0008 is COLLAPSED (one m.step per basic block; see sub_0008.js's CYCLES
  *      note) and reached from the mask-ENABLED main loop (entry_051c's `rst 0x08`),
  *      so the vblank NMI CAN land inside its ~4 instructions -- the convergent gate
- *      is the correct license, not the strict byte-exact one (docs/06; see
+ *      is the correct license, not the strict byte-exact one (docs/decompiler-pipeline; see
  *      sub_0350). The override must fire (or EQUAL is vacuous); it dispatches many
  *      times over the scenario, exercising BOTH branches naturally.
  *

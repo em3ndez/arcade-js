@@ -262,7 +262,7 @@ export const INTRO_STEP = 0x6385;
 
 // ── Engine / object scratch (mined from the optimization sweep) ───────────────
 // Cross-routine consistency across the optimized set + ROM cites; confirmed by a separate verifier
-// (proposer != confirmer). See docs/06 "Expanding the table is a standing job of optimization".
+// (proposer != confirmer). See docs/decompiler-pipeline "Expanding the table is a standing job of optimization".
 
 /** Record count of the object-list sweep currently being searched, staged for the bounding-box
  *  search entry_2913. Every per-board collision handler stores its sweep length here just before the

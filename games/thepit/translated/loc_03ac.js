@@ -24,7 +24,7 @@
  *
  * NOTE: loc_03ac is a real label the disassembler emits, and loc_0371 currently
  * *inlines* these same bytes (its case 0x03ac) because it falls through / jumps here.
- * Per doc 03 (an externally-entered address is a routine boundary), this file is the
+ * Per the translation doc (an externally-entered address is a routine boundary), this file is the
  * sole implementation; loc_0371 should be trimmed to `return m.call(0x03ac)` in a
  * separate pass so the two copies cannot drift. (Out of scope here; not edited.)
  *

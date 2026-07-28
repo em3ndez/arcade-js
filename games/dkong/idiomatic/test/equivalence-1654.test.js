@@ -8,14 +8,14 @@
  * loc_1654 WRITES memory and is NOT a leaf — it runs loc_1708 (the spawn init, ROM
  * 0x1708), a block copy (loadSpriteObjectBlock, ROM 0x004e) and the shared tail loc_1662
  * (ROM 0x1662, itself the rst-0x30 board gate + rst-0x38 Y-column subtract) — so it is
- * gated by capture / clone / replay (docs/06) with a FRESH clone per case. Every step is
+ * gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Every step is
  * deterministic given the ROM: loc_1708 is input-independent, the copy reads a fixed ROM
  * template, and SUBSTATE_TIMER := 0x20 is constant. The routine's ONLY input-dependent
  * branch is the tail's rst-0x30 board gate (A = 1 = bit0), which subtracts 4 from the ten
  * records' Y column on 25m only.
  *
  * A long attract run dispatches 0x1654 ZERO times (attract never completes a board, so it
- * never reaches GAME_SUBSTATE 0x16), so — exactly as docs/06 prescribes for arms attract
+ * never reaches GAME_SUBSTATE 0x16), so — exactly as docs/decompiler-pipeline prescribes for arms attract
  * never reaches — the gate is CRAFTED: a real booted attract machine, cloned, with the
  * inputs surgically poked, then oracle-vs-idiomatic on independent fresh clones. The one
  * branch input is a single byte, so the crafted sweep is EXHAUSTIVE over it:
@@ -117,7 +117,7 @@ function base() {
   return _base;
 }
 
-/** Two independent fresh clones of the base with identical input pokes (docs/06 fresh clone
+/** Two independent fresh clones of the base with identical input pokes (docs/decompiler-pipeline fresh clone
  *  per case — this routine writes RAM). `step`, if given, seeds the 0x6388 selector.
  *  Returns [oracleClone, candidateClone]. */
 function craftPair(board, step) {

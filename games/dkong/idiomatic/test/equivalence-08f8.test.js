@@ -5,7 +5,7 @@
  * commitGameStart WRITES a lot of memory (CREDITS via spendCredit, the task ring via
  * enqueueTask, both player context records, the tilemap + sprite buffer via
  * clearPlayfieldAndSprites, TWO_PLAYER_GAME, GAME_SUBSTATE, GAME_STATE) and is deep in
- * a call cascade, so it is gated by capture / clone / replay (docs/06) with a FRESH
+ * a call cascade, so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH
  * clone per case. Because it under-charges cycles (no m.step), the strict whole-machine
  * byte-exact gate does not apply; the contract is RAM (minus STACK_SCRATCH) + candidate
  * SP/pc unchanged, exactly the memory-equivalence contract.

@@ -20,7 +20,7 @@
  *        - step 3 (WAIT+EXIT): the full 0..255 sweep of MARIO_AIRBORNE, covering the
  *          "hold, return true" arm and the "grounded → advance sub-state, return false"
  *          exit arm.
- *      A FRESH clone per side everywhere — the router writes memory (docs/06: only a
+ *      A FRESH clone per side everywhere — the router writes memory (docs/decompiler-pipeline: only a
  *      pure read-only leaf may reuse a machine).
  *
  *   2. TEETH (two twins, one per half of the contract):

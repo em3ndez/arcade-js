@@ -45,7 +45,7 @@
  * arm's exact cycle TOTAL pushes no mistimed PC and tears no raster, so it passes the strict
  * byte-exact gate directly and does NOT need the convergent gate.
  *
- * COLLAPSE (doc 06). No hardware-latch write occurs — every write is work RAM: (ix+9)/(ix+a)
+ * COLLAPSE (the decompiler-pipeline doc). No hardware-latch write occurs — every write is work RAM: (ix+9)/(ix+a)
  * at 0x6689/0x668A (or 0x6699/0x669A) and SCRATCH_6389; none in 0x7800-0f/0x7c00/0x7c80/
  * 0x7d00-07/0x7d80-87 — so straight-line runs fold freely; only the `ret` and the `jp`
  * boundary (m.call) are kept. Per-arm OWN totals (excluding loc_2f7c):

@@ -88,7 +88,7 @@ function ramDiffNoStack(mA, mB) {
 
 /**
  * Run the oracle and the candidate on two FRESH clones of `entry` (the routine WRITES
- * memory, so a clone per side — docs/06: only a pure read-only leaf may reuse one) and
+ * memory, so a clone per side — docs/decompiler-pipeline: only a pure read-only leaf may reuse one) and
  * diff RAM minus STACK_SCRATCH. loc_084b returns nothing consumed, so RAM is the whole
  * contract.
  */

@@ -94,7 +94,7 @@
  *
  * Only the gate-ON arm (E != 1 -> 0x1C05) is reached naturally in attract (360/360); the
  * gate-OFF arm (E == 1) is never dispatched in attract, so the test SYNTHESISES it with
- * cycle teeth and explicit record-write assertions (docs/06 full-branch coverage).
+ * cycle teeth and explicit record-write assertions (docs/decompiler-pipeline full-branch coverage).
  */
 export function entry_1bf2(m, X) {
   const { regs, mem } = m;

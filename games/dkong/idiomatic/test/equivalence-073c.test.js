@@ -4,7 +4,7 @@
  *
  * runAttractState WRITES memory (GAME_SUBSTATE / GAME_STATE) and, on the no-credit
  * branch, DISPATCHES a sub-state handler (up to the whole demo-gameplay cascade), so it
- * is gated by capture / clone / replay (docs/06), NOT an exhaustive-leaf sweep:
+ * is gated by capture / clone / replay (docs/decompiler-pipeline), NOT an exhaustive-leaf sweep:
  *
  *   1. EQUAL (real captured dispatches) — hook 0x073C in a real attract run and clone
  *      the machine at a strided set of true dispatches (a FRESH clone per case, since
@@ -20,7 +20,7 @@
  *   2. EQUAL (crafted arms) — attract never inserts a coin, and slot 5 is rare, so a
  *      deterministic crafted sweep forces CREDIT and EVERY sub-state 0-7 on one real
  *      captured entry, IDENTICALLY on both sides (the crafted entry: a real state with
- *      a one-byte poke, docs/06). The CREDIT arm additionally asserts runAttractState
+ *      a one-byte poke, docs/decompiler-pipeline). The CREDIT arm additionally asserts runAttractState
  *      leaves SP/pc UNCHANGED from entry — its `ret` is a JS return, no stack modelling
  *      (the oracle's `ret` moves them; we compare RAM, not SP, on that branch).
  *

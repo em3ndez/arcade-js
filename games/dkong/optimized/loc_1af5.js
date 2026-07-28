@@ -90,7 +90,7 @@
  *
  * Only the fall-through and move arms are reached naturally in attract (bit1-clear 138x,
  * bit1-set 149x); the gate-off arm (D==1) is not, so the test SYNTHESISES it with cycle
- * teeth (docs/06 full-branch coverage).
+ * teeth (docs/decompiler-pipeline full-branch coverage).
  */
 export function loc_1af5(m, R) {
   const { regs } = m;

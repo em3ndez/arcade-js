@@ -54,7 +54,7 @@
  * caller path is loc_0486 <- loc_0413 <- entry_03fb <- loc_197a, the interruptible
  * per-frame update cascade (NMI mask ENABLED). It also spans a `call` into sub_0514.
  * The vblank NMI can therefore land INSIDE this routine and push a live PC into the
- * diffed stack RAM -- so the collapse is LICENSED by the CONVERGENT gate (docs/06),
+ * diffed stack RAM -- so the collapse is LICENSED by the CONVERGENT gate (docs/decompiler-pipeline),
  * not the strict whole-machine gate. Each block's TOTAL is the oracle's, EXACTLY:
  * Block 1 (ld hl,0x75c4 [10] + call 0x0514's own charge [17]) = 27 t, ending right at
  * the call; Block 2 (ld a,(0x6905) [13], falling into loc_04ac) = 13 t. No writes of

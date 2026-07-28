@@ -5,7 +5,7 @@
  *
  * loc_1e08 WRITES memory (through loc_1e15: the task ring via enqueueTask, the block[0]
  * clear at *(0x6343), and — via loc_1e36 — the sprite record 0x6A30..0x6A33 + the gated
- * sound 0x6085) and is NOT a leaf, so it is gated by capture / clone / replay (docs/06)
+ * sound 0x6085) and is NOT a leaf, so it is gated by capture / clone / replay (docs/decompiler-pipeline)
  * with a FRESH clone per case. Its own body is two register loads and a delegate; every
  * branch lives in its callees (enqueueTask's full-ring drop, loc_1e36's board gate).
  *

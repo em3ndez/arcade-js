@@ -5,7 +5,7 @@
  * and on the open arm write 0x10/0xC0 into the cell pairs 0x776C/0x776E and
  * 0x748C/0x748E; off the 50m board, write nothing.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES video RAM on the open arm, so every case uses
  * a FRESH clone per side. The oracle runs on one clone, stamp50mBoardTiles on another,
  * and they are compared on the go-forward contract:

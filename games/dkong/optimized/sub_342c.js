@@ -54,7 +54,7 @@
  * mistimed PC, and a per-arm-total-preserving collapse is byte-exact -> STRICT (not the
  * convergent gate), exactly like the sibling sub_3409. See equivalence-342c.test.js.
  *
- * CYCLES -- COLLAPSED per doc 06, per-arm TOTAL preserved EXACTLY (atomic, no
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc, per-arm TOTAL preserved EXACTLY (atomic, no
  * hardware-latch write, and the fall-through into loc_3445 is the one boundary NOT
  * folded across):
  *   PREFIX (both arms): ld19 + ld19 + xor4 + ldbc10 + adc15 = 67 t @0x3438 (the jp)

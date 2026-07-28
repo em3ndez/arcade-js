@@ -60,7 +60,7 @@
  * one of its callers sits under loc_197a's per-frame in-game cascade (loc_197a ->
  * entry_03fb -> ... -> loc_04a3/04e1/04f9 -> here), which runs with the NMI mask
  * ENABLED. The vblank NMI can therefore land inside this routine -- so the collapse
- * below is LICENSED by the CONVERGENT gate (docs/06), not the strict whole-machine
+ * below is LICENSED by the CONVERGENT gate (docs/decompiler-pipeline), not the strict whole-machine
  * gate, exactly as sub_0350's. Each branch's cycle TOTAL is still the oracle's,
  * EXACTLY (EXIT-1 32t, EXIT-2 52t, EXIT-3 80t), asserted on clones by the branch
  * tests -- total-preservation is what keeps this collapse's PRNG/spin-count effect

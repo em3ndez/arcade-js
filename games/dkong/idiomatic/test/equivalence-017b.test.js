@@ -4,7 +4,7 @@
  *
  * serviceCoinInput WRITES memory (COIN_EDGE, COINS_PARTIAL, CREDITS, the coin-sound
  * trigger and — via enqueueTask — the task ring) and calls two subroutines, so it is
- * gated by capture / clone / replay (docs/06), with a FRESH clone per case since it
+ * gated by capture / clone / replay (docs/decompiler-pipeline), with a FRESH clone per case since it
  * mutates RAM. The routine's exit stack (push/pop HL, two calls, ret) plus the two
  * callees' own stack traffic is the ONLY oracle-vs-idiomatic residue, and it is
  * confined to STACK_SCRATCH; the idiomatic uses the JS call stack instead:
@@ -150,7 +150,7 @@ test("EQUAL (captured): serviceCoinInput == oracle on every real attract dispatc
 // -- 2. EQUAL (crafted arms) --------------------------------------------------
 
 // Each craft pokes ONE arm's variables identically on both sides. `assertCoin`
-// raises IN2 bit 7 (a real state with a surgical nudge, docs/06). These arms are
+// raises IN2 bit 7 (a real state with a surgical nudge, docs/decompiler-pipeline). These arms are
 // unreachable in attract, which inserts no coin.
 const ARMS = [
   // Coin present but latch already consumed -> ret z, no writes at all.

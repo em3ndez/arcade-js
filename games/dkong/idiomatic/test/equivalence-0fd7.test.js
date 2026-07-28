@@ -29,7 +29,7 @@
  *      stride. That mis-fills the 0x68 records and MUST be caught — on the real capture
  *      (0x6807 differs) and on a prefilled craft.
  *
- * NOT COMPARED, deliberately: SP, PC, cycles, and the full register file (docs/06). The
+ * NOT COMPARED, deliberately: SP, PC, cycles, and the full register file (docs/decompiler-pipeline). The
  * oracle's `ret` and internal `call`s move SP/PC and the cycle counter; the idiomatic
  * layer drops that model (the JS call stack replaces it). The oracle's stack pushes land
  * only in STACK_SCRATCH, which the RAM diff skips.

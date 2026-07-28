@@ -591,7 +591,7 @@ def write_listing(tr: Tracer, path: str):
     # sub_/entry_/handler_ prefix zoo. How a routine is reached (call target, jump
     # target, entry vector) does not change its name; entry semantics live in
     # entrypoints.json, the role lives in the translation's comments. See the naming
-    # rule in docs/03-translation.md.
+    # rule in docs/translation.md.
     labels = {}
     for a in sorted(tr.call_targets):
         labels[a] = f"loc_{a:04x}"

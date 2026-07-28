@@ -4,7 +4,7 @@
  * commit A into the 0x6225 collection flag, then (off 25m) queue priority tune 0x0D
  * for 3 frames (SND_PRIORITY 0x608A / SND_PRIORITY_FRAMES 0x608B).
  *
- * loc_1d95 WRITES memory only, so it is gated by capture / clone / replay (docs/06)
+ * loc_1d95 WRITES memory only, so it is gated by capture / clone / replay (docs/decompiler-pipeline)
  * with a FRESH clone per case. Because the idiomatic routine does NOT model the Z80
  * stack while the oracle's `ret` pops the pushed return address, the contract is
  * RAM − STACK_SCRATCH (never the full register file, never cycles), with the extra

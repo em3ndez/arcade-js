@@ -175,7 +175,7 @@ test("TEETH (unit behavioural): inverting the BOARD gate is CAUGHT on the natura
 /**
  * Fresh machine with a valid stack (a sentinel caller-return frame), BOARD poked, and IX
  * pointing at a work-RAM record whose +0d/+0e/+0f are seeded -- the sanctioned
- * identical-both-sides poke (doc 06 pattern 3), applied to both oracle and optimized clones.
+ * identical-both-sides poke (the decompiler-pipeline doc pattern 3), applied to both oracle and optimized clones.
  *   - board != 1                 -> early-ret arm, no field work        (31 t, no callee)
  *   - board == 1 + H/L/B fields  -> continue arm: load, entry_2333, store (deterministic total)
  */

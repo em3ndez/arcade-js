@@ -5,7 +5,7 @@
  *
  * spendCredit WRITES memory (CREDITS at 0x6001 and, via enqueueTask, the task ring
  * 0x60C0–0x60FF + tail 0x60B0) and is NOT a leaf (it calls enqueueTask), so it is
- * gated by capture / clone / replay (docs/06), with a FRESH clone per case:
+ * gated by capture / clone / replay (docs/decompiler-pipeline), with a FRESH clone per case:
  *
  *   1. REALISM (real captured dispatch) — 0x0977 is NOT reached in plain attract
  *      (attract inserts no coin, so no start is ever accepted). A coin+start input
@@ -151,7 +151,7 @@ test("REALISM: real captured 0x0977 dispatch — game-visible RAM identical, SP/
 // -- 2. CREDITS decrement (exhaustive crafted) --------------------------------
 
 // A real credited-state 0x0977 entry to poke CREDITS onto (a real state + a surgical
-// nudge — docs/06 crafted entry). Free the tail slot so every iteration also exercises
+// nudge — docs/decompiler-pipeline crafted entry). Free the tail slot so every iteration also exercises
 // the enqueue WRITE path, not only the decrement.
 function craftedBase() {
   const caps = captureDispatches(1, 150);

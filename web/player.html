@@ -143,7 +143,7 @@ import { getCached, putCached, clearCached } from "./romstore.js";
   document.title = `${manifest.title} — arcade-js`;
 
   // The web layer is game-agnostic: it builds its keyboard map and its coin/start
-  // buttons entirely from manifest.inputs (ports/actions/keys — see docs/06). A
+  // buttons entirely from manifest.inputs (ports/actions/keys — see docs/porting.md). A
   // manifest that hasn't declared it, or is missing the coin/start1 actions the
   // buttons below need, can still pass every other gate (the pixel harness never
   // reads it), so fail here with a clear message instead of letting the

@@ -28,7 +28,7 @@
  *
  * Four call paths, not all provably mask-cleared, so the collapse coarsens where an
  * in-flight NMI's PC would land (a block-exit address, not the exact instruction) --
- * the CONVERGENT gate's license (docs/06); see equivalence-30fa.test.js.
+ * the CONVERGENT gate's license (docs/decompiler-pipeline); see equivalence-30fa.test.js.
  */
 export function sub_30fa(m) {
   const { regs, mem } = m;

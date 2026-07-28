@@ -6,7 +6,7 @@
  * builds the block's 10 hardware sprite records at 0x6980 (permuting gather +3/+7/+8/+5
  * from IX=0x6500, stride 0x10, via gatherSpriteRecords).
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), not the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES memory (the 40 template-seed bytes at 0x6507..
  * and the 40 sprite bytes at 0x6980..) and reads implicit inputs (the 0x6500 record
  * contents), so every case runs on a FRESH clone per side and is compared on:
@@ -19,7 +19,7 @@
  * oracle (which rets internally). The oracle's transient push16/push land inside
  * STACK_SCRATCH (measured: entry SP = 0x6bea, deepest push reaches 0x6be4 >= 0x6be0), so
  * the dead stack scratch the candidate never writes is excluded by the contract, exactly
- * as intended. Cycles and flags are never compared (docs/06): both call sites reload HL
+ * as intended. Cycles and flags are never compared (docs/decompiler-pipeline): both call sites reload HL
  * on return and read no register/flag, so the whole register file and flags are DEAD —
  * live-out is memory only; the a/b/c/d/e/h/l/ix check is a free safety margin (the two
  * callees leave them byte-faithful to the oracle anyway).

@@ -74,7 +74,7 @@ import { MARIO_X, MARIO_Y, BOARD } from "./ram.js";
  * into the register file the unit gate checks; on ARM 2 the later `ld a,l` / `ld a,(...)`
  * legitimately overwrite it, matching the oracle.
  *
- * CYCLES -- COLLAPSED per doc 06: each executed path's straight-line T-states are folded
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc: each executed path's straight-line T-states are folded
  * into ONE m.step placed immediately before its control transfer, preserving the oracle's
  * per-arm TOTAL exactly. loc_1cd2 performs NO hardware-latch writes -- MARIO_X (0x6203),
  * MARIO_Y (0x6205) and the stack push are all WORK RAM -- so a fold across them is safe;

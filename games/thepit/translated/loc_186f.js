@@ -58,7 +58,7 @@
  * CONTROL FLOW: the routine never executes a `ret` -- it always tail-jumps into a
  * sibling. `jr nz,0x18cf` (tile != 0x27) and `jr c,0x18cf` (0x806b < 0x53) both hand
  * off to loc_18cf; otherwise `jp 0x19d0` hands off to loc_19d0. Each is modelled per
- * doc 03 as `return m.call(0xTARGET)` with NO trailing m.ret -- the callee's own ret
+ * the translation doc as `return m.call(0xTARGET)` with NO trailing m.ret -- the callee's own ret
  * unwinds to loc_186f's caller; a second ret would double-pop. loc_186a falls through
  * into here, so this is also the tail those thin frame-id prologues reach.
  *

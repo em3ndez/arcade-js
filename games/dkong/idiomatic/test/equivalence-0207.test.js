@@ -15,7 +15,7 @@
  *   1. EQUAL (exhaustive) — decodeDipSwitches == oracle over all 256 DSW0 values,
  *      compared on the RAM dump minus STACK_SCRATCH (the routine writes no stack; the
  *      exclusion is the documented contract, not a workaround). A FRESH clone per side
- *      because the routine WRITES memory (docs/06: only a pure read-only leaf may reuse
+ *      because the routine WRITES memory (docs/decompiler-pipeline: only a pure read-only leaf may reuse
  *      a clone). 256 values is the complete input space, so this is a proof, not a
  *      sample — it also proves the BCD bonus-life lookup equals the oracle's DAA chain
  *      and that the derived coinage rotate matches, for every input.

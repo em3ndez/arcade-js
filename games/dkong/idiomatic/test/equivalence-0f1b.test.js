@@ -3,11 +3,11 @@
  * Equivalence test for fillTileColumn (ROM 0x0F1B) — the kind-4/5/6 tilemap column fill.
  *
  * entry_0f1b WRITES memory (0x63B5 fill tile, 0x63B1 extent, and the tilemap VRAM)
- * and advances DE, so it is gated by capture / clone / replay (docs/06), NOT the
+ * and advances DE, so it is gated by capture / clone / replay (docs/decompiler-pipeline), NOT the
  * exhaustive-leaf pattern. It is also UNREACHED in attract — the attract board's 9
  * segment records are all kind 2, which route to loc_0e4f (the ladder drawer), so
  * 0x0F1B never dispatches (probed: 0 hits over 2500 frames). Every case here is
- * therefore a CRAFTED ENTRY (docs/06): a real render-walk state with a surgical
+ * therefore a CRAFTED ENTRY (docs/decompiler-pipeline): a real render-walk state with a surgical
  * nudge. The states are captured at the live sibling loc_0e4f, which shares the
  * exact render-scratch entry_0f1b consumes — 0x63AB (converted tilemap address),
  * 0x63B1 (column extent), 0x63B3 (record kind), and DE (record pointer) — and the

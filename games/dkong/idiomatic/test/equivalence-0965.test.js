@@ -4,7 +4,7 @@
  *
  * enqueueTaskBatch posts seven messages through enqueueTask, so it WRITES memory
  * (the ring at 0x60C0–0x60FF and the tail at 0x60B0) and is not a pure leaf. It is
- * therefore gated by capture / clone / replay (docs/06), with a FRESH clone per case
+ * therefore gated by capture / clone / replay (docs/decompiler-pipeline), with a FRESH clone per case
  * because it mutates RAM — never the exhaustive-leaf pattern:
  *
  *   1. EQUAL (real captured dispatches) — hook 0x0965 in a real attract run and clone
@@ -97,7 +97,7 @@ function captureDispatches(K, maxFrames) {
 }
 
 // Poke a whole ring state (fill + tail) IDENTICALLY on a real entry — a surgical
-// crafted nudge (docs/06), not a fabrication.
+// crafted nudge (docs/decompiler-pipeline), not a fabrication.
 const fillRing = (m, byte) => { for (let s = RING_LO; s <= RING_HI; s++) m.mem.write8(s, byte); };
 const CLEAN = (m) => { fillRing(m, 0xff); m.mem.write8(TASK_TAIL, 0xc0); }; // all free, base
 const FULL  = (m) => { fillRing(m, 0x00); m.mem.write8(TASK_TAIL, 0xc0); }; // all occupied

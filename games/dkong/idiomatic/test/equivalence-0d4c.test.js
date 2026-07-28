@@ -5,7 +5,7 @@
  * four cells (base..base+3), skip a 28-cell gap (DE=0x001C), then write tile 0xFC across
  * four cells (base+0x20..base+0x23) — eight video-RAM writes, ending base+36.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES video RAM, so every case uses a FRESH clone per
  * side. The oracle runs on one clone, stampTwoTileBands on another, and they are compared
  * on the go-forward contract:

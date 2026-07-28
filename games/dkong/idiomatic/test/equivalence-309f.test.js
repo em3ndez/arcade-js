@@ -4,7 +4,7 @@
  *
  * enqueueTask WRITES memory (the ring at 0x60C0–0x60FF and the tail at 0x60B0) and
  * is a subroutine, not a pure leaf, so it is gated by capture / clone / replay
- * (docs/06), NOT the exhaustive-leaf pattern:
+ * (docs/decompiler-pipeline), NOT the exhaustive-leaf pattern:
  *
  *   1. EQUAL (real captured dispatches) — hook 0x309F in a real attract run and
  *      clone the machine at each true dispatch (a FRESH clone per case, since the
@@ -139,7 +139,7 @@ test("EQUAL (crafted): DROP / WRAP / boundary arms attract never reaches match t
   const entry = caps[0];
 
   // Each craft pokes ONE variable identically on both sides; the crafted entry is
-  // a real state with a surgical nudge (docs/06), not a fabrication.
+  // a real state with a surgical nudge (docs/decompiler-pipeline), not a fabrication.
   const arms = [
     // Occupied slot at the tail (bit 7 clear) -> ring full -> DROP, tail untouched.
     ["DROP", (m) => { m.mem.write8(0x6000 | m.mem.read8(TASK_TAIL), 0x00); }],

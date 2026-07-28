@@ -163,7 +163,7 @@ test("TEETH (unit behavioural): ignoring guard #2's skip boolean is CAUGHT", () 
 /**
  * Fresh machine with a valid stack (a sentinel caller-return frame) and RAM poked so
  * the game's OWN callees drive entry_30ed down the chosen arm -- the sanctioned
- * identical-both-sides poke (doc 06 pattern 3), applied to both oracle and optimized
+ * identical-both-sides poke (the decompiler-pipeline doc pattern 3), applied to both oracle and optimized
  * clones through the same seed:
  *   - fresh                 -> guard #1 (0x3110) splices ((0x601a&1)!=1)      -> guard1-skip
  *   - 0x601a=1              -> guard #1 normal; entry_313c sees 0 objects -> splice -> guard2-skip

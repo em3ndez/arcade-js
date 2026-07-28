@@ -78,7 +78,7 @@ import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
  *   interruptible per-frame update cascade loc_197a dispatches (measured: 221 dispatches
  *   over a 1200-frame attract run, exit `ret` landing at 0x1983 in the cascade), so the
  *   vblank NMI can land inside its 31 t window. The collapse is therefore LICENSED by
- *   the CONVERGENT gate (docs/06; equivalence-1ceb.test.js uses convergentGate, not the
+ *   the CONVERGENT gate (docs/decompiler-pipeline; equivalence-1ceb.test.js uses convergentGate, not the
  *   strict whole-machine gate): a mistimed NMI pushes the coarse block-exit PC into the
  *   DEAD stack (excluded) and can leave a single-frame raster tear that heals next frame;
  *   non-stack RAM stays byte-identical and nothing persistent survives.

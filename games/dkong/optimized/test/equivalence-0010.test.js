@@ -41,7 +41,7 @@
  * entry_2c03 (0x2C03) and entry_2ddb (0x2DDB), which `rst 0x10` into here while the NMI
  * mask is SET. A vblank NMI can therefore land inside this 4-6 instruction body on the
  * gameplay path, moving where a collapsed block's coarse exit PC lands in the diffed
- * stack -- exactly the case the CONVERGENT gate (docs/06) licenses: pixels are ground
+ * stack -- exactly the case the CONVERGENT gate (docs/decompiler-pipeline) licenses: pixels are ground
  * truth, a mistimed-NMI tear/dead-stack PC heals, a PERSISTENT divergence (e.g. a wrong
  * cycle total forking the PRNG) still fails. The whole-machine test below runs
  * SCENARIOS.gameplay specifically because loc_197a (the interruptible caller) does NOT run

@@ -29,7 +29,7 @@
  * NOT COMPARED, deliberately: SP and PC. The oracle's terminal `ret` pops the stack
  * (SP += 2) and vectors PC to the return address; the idiomatic layer drops that
  * stack/PC bookkeeping (the JS call stack replaces it), so those are dead ABI here.
- * Cycles and the full register file are likewise never compared (docs/06). FLAGS are
+ * Cycles and the full register file are likewise never compared (docs/decompiler-pipeline). FLAGS are
  * dropped as dead — the final add-ix carry the oracle preserves propagates up through
  * the rets but is overwritten before any reader (see the routine header).
  *

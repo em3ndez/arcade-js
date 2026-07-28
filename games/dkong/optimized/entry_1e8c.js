@@ -35,7 +35,7 @@
  *     one frame so loc_197a does NOT resume. Modelled as returning `false` -- the caller
  *     sees `!false` and aborts its cascade (it must NOT double-run past 0x1980).
  *
- * This is the same single-frame caller-skip idiom as sub_1e57 / entry_1e94 (docs/02):
+ * This is the same single-frame caller-skip idiom as sub_1e57 / entry_1e94 (docs/disassembly):
  * the callee reaches back over its immediate caller's stack frame and returns to the
  * caller's caller. `call 0x1e96` and the skip-tail are BOTH dispatched through the
  * registry (`m.call`), so they resolve to the oracle or their own optimized rewrites;
@@ -86,7 +86,7 @@
  * [0x1E8C,0x1E93] (0 landings over 1194 NMIs; 1185 fall in the 0x02BD-0x0372 main-loop
  * band). An atomic byte-exact collapse pushes no mistimed PC and tears no raster, so it
  * passes the STRICT whole-machine gate directly and does NOT need the convergent gate
- * (docs/06: "a byte-exact collapse of an ATOMIC routine passes the ordinary strict
+ * (docs/decompiler-pipeline: "a byte-exact collapse of an ATOMIC routine passes the ordinary strict
  * gate"). See equivalence-1e8c.test.js.
  *
  * The only stores are the two stack pushes (WORK RAM near the 0x6BFF stack top) -- NOT a

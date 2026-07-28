@@ -6,7 +6,7 @@
 > go-forward layer is [`../idiomatic/`](../idiomatic/README.md) — memory-equivalent, cycle-free,
 > direct-call — and each file here is deleted as its `idiomatic/` replacement lands. For the current
 > method and the reasoning behind the switch, see
-> [docs/08, the decompiler pipeline](../../../docs/08-decompiler-pipeline.md). The rest of this
+> [docs/decompiler-pipeline, the decompiler pipeline](../../../docs/decompiler-pipeline.md). The rest of this
 > README stays as the record of the shipped strict layer.
 
 The translation in `../translated/` is deliberately close to the original Z80 assembly: each
@@ -46,7 +46,7 @@ to the optimized rewrite if one exists, else the oracle. So an optimized routine
 by address and never imports them — and installing an override swaps that callee at *every* call
 site, not just the two dispatch points, which is what lets a leaf subroutine go live at all. The
 only imports here are RAM *names* (from `ram.js`) and the odd error class (`NotImplemented`, for an
-untranslated stub); code — every callee — is reached by address, never imported. See `docs/02` for the
+untranslated stub); code — every callee — is reached by address, never imported. See `docs/disassembly` for the
 `m.call`, export-everything, and one-file-per-routine conventions the next game writes from line one.
 
 (Donkey Kong predates those conventions, so two one-time, behaviour-neutral, gate-verified passes

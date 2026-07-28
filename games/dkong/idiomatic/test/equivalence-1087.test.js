@@ -7,14 +7,14 @@
  * seedObjectBlockSprites 0x1186, copyBytePairsStrided 0x11ec, gatherSpriteRecords 0x11d3)
  * plus in-line fills and two ROM->RAM block copies.
  *
- * This is the cycle-free / memory-equivalence gate (docs/06), not the retired strict
+ * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. The routine WRITES a large RAM footprint and reads implicit inputs
  * (the 0x6500 block's +3/+5 fields), so every case runs on FRESH clones per side and is
  * compared on:
  *
  *     RAM (dumpState, minus STACK_SCRATCH) + pc + SP.
  *
- * NO registers and NO cycles are compared (docs/06). Live-out here is memory-only: the
+ * NO registers and NO cycles are compared (docs/decompiler-pipeline). Live-out here is memory-only: the
  * board-setup caller reads game RAM next frame, not registers, and — unlike the sibling
  * 0x1186 gate — the register file is NOT byte-faithful (the helpers and block copies leave
  * HL/DE/BC/IX/A in helper-specific states the oracle's trailing `ld`s never reconcile), so

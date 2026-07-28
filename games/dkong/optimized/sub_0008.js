@@ -54,7 +54,7 @@ import { ATTRACT } from "./ram.js";
  * task that does `m.push16(0x051e) / rst 0x08 / if (!m.call(0x0008)) return;`, and the main
  * loop runs with the vblank NMI mask ENABLED. So the NMI CAN land inside this ~4-instruction
  * routine and push a live (now-coarser) PC into the diffed stack RAM -- exactly the
- * mistimed-NMI raster tear the CONVERGENT gate exists for (docs/06; see sub_0350), not the
+ * mistimed-NMI raster tear the CONVERGENT gate exists for (docs/decompiler-pipeline; see sub_0350), not the
  * strict byte-exact gate a short attract run would pass by never exercising entry_051c. Block
  * totals are the exact SUM of the oracle's per-instruction charges: ld-a,(ATTRACT)+rrca 17 t
  * (the decision block, ending at the `ret nc`); on the SKIP arm, the `ret nc`-not-taken charge

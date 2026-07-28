@@ -5,13 +5,13 @@
  * patches three record fields, clears a bookkeeping byte, and advances the 0x6388 step.
  *
  * The routine WRITES memory and is NOT a leaf — it calls the landed idiomatic leaf
- * loadSpriteObjectBlock (0x004E) — so it is gated by clone / replay (docs/06) with a
+ * loadSpriteObjectBlock (0x004E) — so it is gated by clone / replay (docs/decompiler-pipeline) with a
  * FRESH clone per case. Its body is almost entirely CONSTANT: the copy overwrites
  * 0x6908..0x692F from the fixed ROM template at 0x388C, then the patches and the 0x62AF
  * clear are fixed values, so the ONLY input-dependent output is the tail `inc (0x6388)`.
  *
  * A long attract run dispatches 0x16ee ZERO times (attract never completes a board, so
- * sub-state 0x16 is never entered), so — exactly as docs/06 prescribes for arms attract
+ * sub-state 0x16 is never entered), so — exactly as docs/decompiler-pipeline prescribes for arms attract
  * never reaches — the gate is CRAFTED: a real booted attract machine, cloned, with the
  * one input byte (0x6388) surgically poked, then oracle-vs-idiomatic on independent fresh
  * clones. Because the only logic input is 0x6388, the crafted sweep is EXHAUSTIVE:
@@ -97,7 +97,7 @@ function base() {
   return _base;
 }
 
-/** Two independent fresh clones of the base with the same input poke (docs/06 fresh clone
+/** Two independent fresh clones of the base with the same input poke (docs/decompiler-pipeline fresh clone
  *  per case — this routine writes RAM). Returns [oracleClone, candidateClone]. */
 function craftPair(step) {
   const a = base().clone(), b = base().clone();

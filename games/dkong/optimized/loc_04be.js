@@ -61,7 +61,7 @@ import { MARIO_X } from "./ram.js";
  * colour tree -> loc_0486 — the INTERRUPTIBLE per-frame in-game cascade with the
  * vblank NMI mask ENABLED. The NMI can land inside this routine (and inside the
  * interruptible sub-tree it tail-calls) — so the collapse below is LICENSED by the
- * CONVERGENT gate (docs/06), not the strict whole-machine gate, exactly as
+ * CONVERGENT gate (docs/decompiler-pipeline), not the strict whole-machine gate, exactly as
  * sub_0350's. Same decision as loc_197a / entry_03fb / handler_01c3.
  *
  * FLAGS. Kept verbatim on every exit, because the unit gate compares the whole

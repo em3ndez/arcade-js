@@ -73,7 +73,7 @@ import { MARIO_Y, MARIO_AIR_START_Y, MARIO_FATAL_FALL, SND_TRIGGER } from "./ram
  *     file incl. F, so both are load-bearing; the win here is names, flat control flow, the
  *     docstring, and the cycle collapse.
  *
- * CYCLES -- COLLAPSED per doc 06: each executed path's straight-line T-states are folded
+ * CYCLES -- COLLAPSED per the decompiler-pipeline doc: each executed path's straight-line T-states are folded
  * into ONE m.step placed immediately before its control transfer, preserving the oracle's
  * per-arm TOTAL exactly. There is NO mid-body call (the only callee is the tail 0x1DA6) and
  * NO hardware-latch write, so there is no boundary to keep verbatim inside the body -- each

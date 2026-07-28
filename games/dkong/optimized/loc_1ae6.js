@@ -64,7 +64,7 @@
  *   readability win is named intent, flat early-return control flow (vs the oracle's nested
  *   if/else), the docstring, and the cycle collapse below.
  *
- * CYCLES -- COLLAPSED to ONE m.step per branch, per doc 06. The mid-body `call 0x241f`
+ * CYCLES -- COLLAPSED to ONE m.step per branch, per the decompiler-pipeline doc. The mid-body `call 0x241f`
  * is a BOUNDARY (the callee runs between the charge and the next instruction) so its 17 t
  * charge stays verbatim BEFORE m.call(0x241f) and is NOT folded across; the post-call
  * straight-line run is then folded once per arm at the arm's exit PC:
@@ -102,7 +102,7 @@
  * Naturally reached in attract: the move arm (bit0-set, 335x) and the fall-through arm
  * (bit0-clear, 287x -- these are exactly loc_1af5's 287 entries, since arm C is its
  * feeder). The gate-off arm (E==1, the sub_241f far-right-edge (0,1) case) is NOT reached
- * in attract, so the test SYNTHESISES it with cycle teeth (docs/06 full-branch coverage).
+ * in attract, so the test SYNTHESISES it with cycle teeth (docs/decompiler-pipeline full-branch coverage).
  */
 export function loc_1ae6(m, R) {
   const { regs, mem } = m;

@@ -18,7 +18,7 @@
  * 0x1900-0x2FFF cascade band; all landings in the 0x02BD-0x0372 main-loop band). Atomic +
  * total-preserving + writes no VRAM/latch => byte-exact, so the STRICT gate is the correct
  * license (NOT convergent -- the sibling loc_1e7a's "interruptible" note is the stale
- * reading doc 06 corrects). Only arm2 occurs in attract (816/816); arms 1/3/4 are proven
+ * reading the decompiler-pipeline doc corrects). Only arm2 occurs in attract (816/816); arms 1/3/4 are proven
  * from crafted identical-both-sides seeds with committed cycle totals.
  *
  * Jobs: STRICT whole-machine EQUAL (+ invocation proof) and its PRNG-fork cycle teeth;
@@ -113,7 +113,7 @@ test("EQUAL (unit): idiomatic sub_1e57 matches translated in RAM + full register
 /**
  * Fresh machine modelling `call 0x1e57 from loc_197a @0x19B9`: a two-frame stack
  * (SENTINEL = loc_197a's caller frame, then RET_ADDR = sub_1e57's own return), and RAM
- * poked so the game's OWN dispatch drives sub_1e57 down the chosen arm (doc 06 pattern 3).
+ * poked so the game's OWN dispatch drives sub_1e57 down the chosen arm (the decompiler-pipeline doc pattern 3).
  * Returns { m, entrySP } with entrySP pointing at RET_ADDR.
  */
 function seed(pokes) {

@@ -71,7 +71,7 @@ import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./ram.js";
  *
  * ATOMIC? NO — decisively, and MEASURED so. The vblank NMI lands INSIDE this
  * routine on real gameplay: its first instructions (0x0315/0x0318/0x0319/0x031B)
- * are among the most-hit NMI-landing addresses (2488 NMIs, doc 06 "interruptible
+ * are among the most-hit NMI-landing addresses (2488 NMIs, the decompiler-pipeline doc "interruptible
  * surface"), which stands to reason — it is called ~140x/frame from the main
  * loop (mask ENABLED) and spends most of those passes on the `ret nz` early-out.
  *

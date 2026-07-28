@@ -84,7 +84,7 @@ function firstRamDiffExStack(a, b, offToAddr) {
 }
 
 /**
- * Run the oracle and a candidate on two FRESH clones of `entry` (docs/06: a routine that
+ * Run the oracle and a candidate on two FRESH clones of `entry` (docs/decompiler-pipeline: a routine that
  * WRITES memory must get a fresh clone per side — only a pure read-only leaf may reuse one)
  * and diff RAM − STACK_SCRATCH. Returns a divergence descriptor or null.
  */

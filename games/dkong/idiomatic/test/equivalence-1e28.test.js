@@ -5,7 +5,7 @@
  *
  * awardScorePopup WRITES memory (the task ring + tail, the four POPUP_SPRITE bytes at
  * 0x6A30, and conditionally SND_TRIGGER[5]) and CALLS two subroutines (enqueueTask
- * 0x309F, boardBitGate 0x0030), so it is gated by capture / clone / replay (docs/06),
+ * 0x309F, boardBitGate 0x0030), so it is gated by capture / clone / replay (docs/decompiler-pipeline),
  * NOT the exhaustive-leaf pattern. A FRESH clone is used per case because the routine
  * mutates RAM. The oracle models the Z80 stack (`push … call … rst … ret`, moving
  * SP/pc); the idiomatic version uses the JS call stack and models neither, so the only
@@ -21,7 +21,7 @@
  *
  *   2. EQUAL (crafted arms) — attract only exercises one tier on one board, so the arms
  *      it never reaches are forced by poking a real entry IDENTICALLY on both sides
- *      (the crafted entry, docs/06): the other two score tiers (E=3/B=0x7D, E=5/B=0x7F)
+ *      (the crafted entry, docs/decompiler-pipeline): the other two score tiers (E=3/B=0x7D, E=5/B=0x7F)
  *      and every board — BOARD 2 and 4 CLOSE the `rst 0x30` gate (no sound), BOARD 3
  *      OPENS it (sound). The test asserts the gate actually branched both ways (oracle
  *      SND_TRIGGER[5] == 3 open vs 0 closed), so the conditional is proven non-vacuous.
@@ -157,7 +157,7 @@ test("EQUAL (crafted): the other score tiers and every board's gate arm match th
   const entry = caps[0];
 
   // Each craft pokes only score tier and/or BOARD, identically on both sides — a real
-  // state with a surgical nudge (docs/06). `sound` is the EXPECTED gate outcome, which
+  // state with a surgical nudge (docs/decompiler-pipeline). `sound` is the EXPECTED gate outcome, which
   // we also assert on the oracle so the conditional is proven to branch both ways.
   const arms = [
     ["25m tier E=3/B=0x7D", (m) => { m.regs.e = 0x03; m.regs.b = 0x7d; }, true],

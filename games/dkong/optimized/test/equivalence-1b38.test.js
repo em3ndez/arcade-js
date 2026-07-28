@@ -26,7 +26,7 @@
  *   3. EQUAL (unit, natural entry) -- optimized loc_1b38 matches the oracle in RAM + full
  *      register file + pc on the real first dispatch (an ARM-C, Mario-climbing state).
  *   4. FULL-BRANCH COVERAGE -- all three arms, forced by identical-both-sides pokes of
- *      0x6010/0x6215 (doc 06 reach pattern 3), EQUAL over RAM + regs + pc + SP AND
+ *      0x6010/0x6215 (the decompiler-pipeline doc reach pattern 3), EQUAL over RAM + regs + pc + SP AND
  *      oracle==optimized cycle total (callees run live, so the callee effects are covered):
  *        - ARM A: Down set          -> loc_1cf2 runs (jump-phase).
  *        - ARM B: Down clr, 0x6215=0 -> ret.

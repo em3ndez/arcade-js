@@ -1,6 +1,6 @@
 # 8. The decompiler pipeline — dropping fidelity down to what pixels need
 
-The pipeline rewrites the [translated](03-translation.md) lift into idiomatic JavaScript, held
+The pipeline rewrites the [translated](translation.md) lift into idiomatic JavaScript, held
 **memory-equivalent** to the oracle: it reproduces the memory the display reads — plus the
 registers and flags a caller actually consumes — and is otherwise free to be ordinary JavaScript.
 It does not hold the full register file, every flag, or exact per-branch cycle totals; those are
@@ -282,7 +282,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
 - **Numbers are base-10.** Write decimal like normal JS. Reserve hex for an *irreducible* bit
   operation the behaviour genuinely depends on (a real mask or bit-flag). Most `& 0xff` / `& 0x0f` /
   `& 0x80` is a Z80 8-bit-width artifact, not behaviour: the register/memory model already truncates
-  on assignment (see [doc 3](03-translation.md)) and so does every memory store (`mem8[]`/`write8`), so
+  on assignment (see [the translation doc](translation.md)) and so does every memory store (`mem8[]`/`write8`), so
   a mask that lands in a register or memory — including one right before a store — is dropped outright.
   A wrap is load-bearing only on a **local** observed at its width (compared, indexed) in a way that
   would actually differ wrapped vs unwrapped, and not passing through a store — the routine's own
@@ -304,7 +304,7 @@ Two canonical file templates keep the format consistent:
 /** <name>  (ROM 0x<start>–0x<end>) — <terse role>. */
 ```
 Range always present; em-dash; behaviour body stays faithful (one statement per Z80 instruction,
-`// <mnemonic>` per line, per [doc 3](03-translation.md)).
+`// <mnemonic>` per line, per [the translation doc](translation.md)).
 
 **`idiomatic/` — fixed header, fixed section order (memory-equivalent, cycle-free):**
 ```js
@@ -321,16 +321,23 @@ Range always present; em-dash; behaviour body stays faithful (one statement per 
 No `CYCLES`/`COLLAPSE` sections and no inline disassembly dumps — there is no cycle model to record,
 so that bulk (and most of the format drift) is absent. The idiomatic rewrite carries the final form.
 
-## The pipeline for the next game
+## Running the spiral: Structure & Meaning in detail
+
+> The *shape* this elaborates — one oracle (gate + probe), a Structure⇄Meaning spiral up the call
+> graph, then Ship — is **[The Method](README.md)**. The numbered items below are those two moves
+> elaborated for the next game, **not** a linear conveyor of stages.
 
 **Understanding runs across all of this, it is not a step in it.** Start it on day one — you need
 only the ROM and MAME to watch attract mode — and keep the living `games/<game>/MECHANISMS.md`
-growing through every step below ([doc 7](07-understanding-the-mechanisms.md)). The observation
+growing through every step below ([the mechanisms doc](mechanisms.md)). The observation
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 
 > **RULE — every clarify pass REWRITES `MECHANISMS.md` from scratch, in the same landable unit as the
-> renames — do not incrementally edit it.** A clarify pass exists to convert *correct* code into
+> renames — do not incrementally edit it.** The **first step of a rewrite is to read `GAMEPLAY.md`** —
+> the outside-in, public-research view of how the game plays — as the frame, then re-derive the
+> inside-out model from the *current* code and grounding (blind to the prior MECHANISMS). A clarify
+> pass exists to convert *correct* code into
 > *understood* code, and the earned names and resolved questions ARE that understanding — so the map
 > must reflect them, and finishing the pass means re-deriving the whole map, not patching it. **Rewrite
 > wholesale, not edit.** Incremental edits accumulate exactly the drift that keeps biting: a count that
@@ -343,9 +350,14 @@ the map and can't be done well without it. It is required reading for anyone nam
 > ones, and recount (decompiled / named / RAM-named) by measuring, not by adjusting the old numbers. A
 > map that lags the code — or reads as a patchwork of edits — is the tell that a clarify pass was left
 > half-done: the names shipped but the understanding was never re-written where the next agent reads it.
+>
+> **Enforced, not just advised:** `tools/clarify_gate.py` runs in the pre-commit hook and blocks any
+> commit that renames routines / changes `ram.js` exports without staging `MECHANISMS.md`, or that
+> leaves a retired name anywhere in the map. A recipe step that matters gets a gate — ungated prose
+> loses to task momentum (this rule was nearly skipped once before it had teeth).
 
 1. **Lift → `loc_XXXX()`** — the faithful per-instruction transliteration; the frozen oracle.
-   (This is [doc 3](03-translation.md), with uniform address names from line one.)
+   (This is [the translation doc](translation.md), with uniform address names from line one.)
 2. **Call graph + reachability** — who calls whom, what is reachable, what is dead. This is the
    prerequisite that makes "bottom-up" meaningful. **The routine worklist is every label the
    disassembler emits — every `loc_<addr>` — not just static `call` targets.** A call-target-only
@@ -391,10 +403,16 @@ the map and can't be done well without it. It is required reading for anyone nam
      frozen **oracle** copy, never this file. This rides along with the rename for free — a rename
      already rewrites every idiomatic caller, so promote the ABI in the same edit. Gated by the
      equivalence tests (the routine's *and* every caller's) + a review.
-   - **Routine names (per-routine)** — **earn the name from BOTH views: the routine body (the
-     mechanism) AND every caller (the purpose).** Internals alone give `copyBytesToVram`; the callers
-     reveal it is `drawScoreDigits`. Grep every `m.call(0xADDR)` and import of the routine and read
-     what each caller uses it *for* — the name is the intersection.
+   - **Routine names (per-routine)** — **if you understand the routine, NAME it.** A `loc_XXXX` a human
+     can't read is nonsense to the next reader; a routine whose **mechanism** is confident MUST get a
+     descriptive name, *even when its game-purpose is still open* — record that open purpose as a
+     `[guess]`, do not withhold the name over it. Name by the **mechanism** (what the body does) and
+     sharpen with the **callers** (what it's *for*) when they resolve it — internals alone give
+     `copyBytesToVram`, the callers reveal `drawScoreDigits`. `loc_` is reserved for a routine whose
+     **mechanism itself** is genuinely unclear, NOT for one we understand but whose downstream meaning
+     we haven't grounded yet (a mechanism name like `tickObjectDwellThenTransition` claims only what the
+     body does and says nothing false about the unknown purpose). An open purpose is often a *grounding*
+     question — name by mechanism now, and let grounding upgrade it to a purpose name later.
    - **Variable names (per-address, cross-routine)** — decided by the *consensus across every routine
      that touches an address*, never by one routine (a single routine's view of `0x8055` is "a loop
      count"; the ~18 routines that stage it reveal `PLOT_RUN_LENGTH` — left to themselves they pick
@@ -404,8 +422,9 @@ the map and can't be done well without it. It is required reading for anyone nam
    *blind* to each other (routine → from body+callers; variable → over all uses of the address),
    promote only on convergence, then a **third adversarial review** before it lands — because two blind
    derivations can still converge on the same wrong reading (that is how `0x8076` slipped through until
-   the third pass). Routine naming carries one extra floor variable naming lacks — the strong **"keep
-   `loc_` if unsure"** default — but still runs the full three looks. Every output stays gated
+   the third pass). Routine naming keeps `loc_` only when the **mechanism** is genuinely unresolved
+   (don't invent a name for code you can't read) — a confident mechanism with an open *purpose* is
+   **named, not held** — and still runs the full three looks. Every output stays gated
    (equivalence tests, the `no-stale-mcall` lint, the third review). Loop decompile ⇄ clarify to 100%;
    seed the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) early, but expect
    most names to fall out *of* this loop, not before it.

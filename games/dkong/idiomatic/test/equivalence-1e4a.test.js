@@ -63,7 +63,7 @@ const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
  * Run the oracle and the candidate on two FRESH clones of `entry` and diff the
  * memory-equivalence contract: RAM (whole dump; neither side writes the stack region).
  * A fresh clone per side because the routine WRITES memory — a reused machine would carry
- * the previous tick forward (docs/06: only a pure read-only leaf may reuse a clone).
+ * the previous tick forward (docs/decompiler-pipeline: only a pure read-only leaf may reuse a clone).
  *
  * @returns {object|null}  the first RAM diff, or null when identical.
  */

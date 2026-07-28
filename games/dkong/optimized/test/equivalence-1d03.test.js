@@ -25,7 +25,7 @@
  *   3. EQUAL (unit, natural entry) -- optimized entry_1d03 matches the oracle in RAM + full
  *      register file + pc on the real first dispatch (a climbing state), callees live.
  *   4. FULL-BRANCH COVERAGE -- both arms, forced by identical-both-sides pokes of 0x620F
- *      (doc 06 reach pattern 3), EQUAL over RAM + regs + pc + SP AND oracle==optimized cycle
+ *      (the decompiler-pipeline doc reach pattern 3), EQUAL over RAM + regs + pc + SP AND oracle==optimized cycle
  *      total (callees run LIVE, so their effects are covered):
  *        - ARM A: timer=0x03 -> loc_1d76 runs.   ARM A': timer=0x01 -> still loc_1d76
  *          (proves "timer != 0", not a specific value, is the decider).

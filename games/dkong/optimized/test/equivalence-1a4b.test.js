@@ -17,7 +17,7 @@
  *
  * Because no whole-machine run covers it, the collapsed-cycle PRNG gate does not apply;
  * the routine is kept PER-INSTRUCTION (7/13/10 t), not collapsed, and the CYCLES test
- * pins its total (30 t) against the oracle EXPLICITLY (docs/06: a crafted-entry-only
+ * pins its total (30 t) against the oracle EXPLICITLY (docs/decompiler-pipeline: a crafted-entry-only
  * routine must assert its cycle total, since no downstream run would catch a wrong one).
  *
  * FULL-BRANCH COVERAGE is trivial: arm_1a4b is straight-line with NO data-dependent

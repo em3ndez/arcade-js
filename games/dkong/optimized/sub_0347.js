@@ -57,7 +57,7 @@ const VRAM_P2_MARK = 0x74e0; // "2UP" marker column base (also written by sub_09
  * ~140x/frame), and the vblank NMI is MEASURED to land INSIDE this routine on real
  * runs. So the collapse coarsens where an in-flight NMI's PC would land (a
  * block-exit address, not the exact instruction) -- exactly the CONVERGENT gate's
- * license (docs/06): an earlier attempt at this same collapse, gated with the
+ * license (docs/decompiler-pipeline): an earlier attempt at this same collapse, gated with the
  * STRICT whole-machine comparison, diverged in dead stack RAM (excluded by the
  * convergent gate, not by the strict one) -- see equivalence-0347.test.js, which
  * gates the whole-machine job with convergentGate. The optimization win here is

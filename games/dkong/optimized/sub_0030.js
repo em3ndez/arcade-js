@@ -58,7 +58,7 @@ import { BOARD } from "./ram.js";
  * call path the vblank NMI CAN land between this routine's instructions, and the
  * rrca/djnz loop can run up to 256 iterations, so it plainly spans NMI-eligible
  * instruction boundaries -- NOT atomic, by ATOMICITY IS PER-CALL-PATH. So the
- * collapse below is LICENSED by the CONVERGENT gate (docs/06), not the strict
+ * collapse below is LICENSED by the CONVERGENT gate (docs/decompiler-pipeline), not the strict
  * whole-machine gate, exactly as sub_0350's: a mistimed NMI can push a coarser PC
  * into the diffed stack RAM, which the convergent gate tolerates as long as it
  * heals and non-stack state/pixels stay identical.

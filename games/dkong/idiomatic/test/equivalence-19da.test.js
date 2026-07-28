@@ -11,7 +11,7 @@
  *
  * A long attract run dispatches 0x19DA ~1500x, but the 0x6A0C table is EMPTY in attract
  * (Mario's X never matches a record), so the confirm arm is never taken naturally. So —
- * exactly as docs/06 prescribes for arms attract never reaches — the match arm is gated
+ * exactly as docs/decompiler-pipeline prescribes for arms attract never reaches — the match arm is gated
  * CRAFTED: a real booted attract machine, cloned, with Mario's X + the table X bytes
  * surgically poked, then oracle-vs-idiomatic on independent fresh clones. Because the
  * scan's deciding input is a single byte (Mario's X), the crafted sweep is EXHAUSTIVE:

@@ -159,7 +159,7 @@ test("EQUAL (unit): idiomatic loc_1f93 matches translated in RAM + full register
 test("TEETH (unit, dispatch): the record-offset trap (read (ix+2) not (ix+1)) flips the arm and is CAUGHT", () => {
   // loc_1f93's primary observable is WHICH handler it dispatches to, and a bare register
   // (A) teeth is masked -- the chosen handler overwrites A downstream, so an A-only diff
-  // washes out (docs/06's "re-poked output masked" wrinkle). The load-bearing teeth is the
+  // washes out (docs/decompiler-pipeline's "re-poked output masked" wrinkle). The load-bearing teeth is the
   // record-offset trap the routine warns about: reading (ix+2) instead of (ix+1) for the
   // type test. On the natural type==1 entry ((ix+1)==1, (ix+2)==0) that dec's 0 -> NZ, so
   // the twin falls to the all-bits-clear arm (0x2053) instead of the type arm (0x20ec) --

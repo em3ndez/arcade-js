@@ -32,7 +32,7 @@
  * 0x060d onto the stack; a per-iteration charge pushes 0x0600 instead, so the STRICT
  * whole-machine trace diverges at frame 7, addr 0x6bf2 -- squarely inside the dead
  * stack scratch [0x6be0,0x6c00). That is exactly the INTERRUPTIBLE-collapse signature
- * the CONVERGENT gate exists for (docs/06): the divergence heals, no persistent
+ * the CONVERGENT gate exists for (docs/decompiler-pipeline): the divergence heals, no persistent
  * non-stack state or pixel divergence survives, so the whole-machine job now runs
  * under convergentGate instead (unlike handler_05c6, short enough to stay byte-exact).
  *

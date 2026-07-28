@@ -85,7 +85,7 @@ import { BONUS_LIFE_AWARDED, CURRENT_PLAYER, DIP_BONUS_LIFE, LIVES } from "./ram
  * deterministic. sub_0350 is NOT atomic: it is called every frame from the main
  * loop (mask enabled, ROM 0x02CA `m.call(0x0350)`), and the vblank NMI lands inside
  * it heavily in real gameplay -- so the collapse is LICENSED by the CONVERGENT gate
- * (docs/06; equivalence-0350.test.js uses convergentEquivalence, not the strict
+ * (docs/decompiler-pipeline; equivalence-0350.test.js uses convergentEquivalence, not the strict
  * whole-machine gate). The collapse's only observable effect is what a strict
  * byte-exact gate false-fails on: a mistimed NMI pushes the coarse block-exit PC
  * into the DEAD stack (excluded) and can leave a single-frame <=6px raster tear that

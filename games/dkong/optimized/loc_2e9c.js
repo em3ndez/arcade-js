@@ -68,7 +68,7 @@ const SND_REQUEST = 0x03;
  * for a SEPARATE reason: it has 0 whole-machine dispatches in attract or driven
  * 25m gameplay (its object loop is board-gated by entry_2e04's rst-30/rst-10 skip
  * gates), so there is NO whole-machine run to convergent-verify a collapse
- * against. Per docs/06 ("when in doubt, keep per-instruction"), the charges stay
+ * against. Per docs/decompiler-pipeline ("when in doubt, keep per-instruction"), the charges stay
  * one-per-instruction, exact.
  * Total-preservation is therefore trivial (identical charges to the oracle), and
  * the crafted-entry test pins the total explicitly for insurance. The tail

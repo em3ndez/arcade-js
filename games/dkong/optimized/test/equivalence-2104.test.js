@@ -243,7 +243,7 @@ test("BRANCH (unit): DEACTIVATE arm -- (ix+3)=0x02 -> +8=0x0a (C), zero (ix+0)/(
 test("BRANCH-TEETH (cycles): a dropped charge on the DEACTIVATE arm yields a wrong total and is CAUGHT", () => {
   // DEACTIVATE arm charged 94 t instead of 95 -> total no longer matches the oracle. This is
   // the arm the attract run never reaches, so its cycle teeth live HERE (crafted), not in the
-  // whole-machine gate -- exactly the full-branch-coverage requirement in docs/06.
+  // whole-machine gate -- exactly the full-branch-coverage requirement in docs/decompiler-pipeline.
   const dropped = (m) => {
     const { regs, mem } = m;
     const ix = regs.ix;

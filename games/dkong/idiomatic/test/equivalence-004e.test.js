@@ -27,7 +27,7 @@
  * NOT COMPARED, deliberately: SP and PC. The oracle's terminal `ret` pops the stack
  * (SP += 2) and vectors PC to the return address; the idiomatic layer drops that
  * stack/PC bookkeeping (the JS call stack replaces it), so those are dead ABI here.
- * Cycles and the full register file are likewise never compared (docs/06). Flags and A
+ * Cycles and the full register file are likewise never compared (docs/decompiler-pipeline). Flags and A
  * are untouched by BOTH sides (the oracle's ldirAt models no flags).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-004e.test.js

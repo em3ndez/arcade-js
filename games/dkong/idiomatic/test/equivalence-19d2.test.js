@@ -30,7 +30,7 @@
  *      the oracle's RAM on every real state the game actually produces.
  *
  * A FRESH clone per side everywhere: the routine WRITES memory, so a reused machine would
- * carry the previous advance forward (docs/06: only a pure read-only leaf may reuse one).
+ * carry the previous advance forward (docs/decompiler-pipeline: only a pure read-only leaf may reuse one).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-19d2.test.js
  */

@@ -10,7 +10,7 @@
  * attract + 2000 gameplay frames: 0 dispatches) -- its confluence is deep: BOARD==2,
  * the 0x6280/0x6288 object record in state 1 with its base+4 timer at 0, sub_2243's
  * hit test passing (MARIO_Y<0x7a, (0x6216)==0, MARIO_X==record base+2), and then
- * MARIO_Y<0x68 or odd. So it is reached the sanctioned third way (docs/06): an
+ * MARIO_Y<0x68 or odd. So it is reached the sanctioned third way (docs/decompiler-pipeline): an
  * IDENTICAL-BOTH-SIDES poke of exactly that confluence, applied to baseline AND
  * override through the shared factory, so the game's OWN dispatch runs the routine.
  * Under that poke it is dispatched ~1x (frame ~1163), healthy.
@@ -18,12 +18,12 @@
  * THE CYCLE DECISION this routine records: descend_2284 is KEPT PER-INSTRUCTION (its
  * charges are NOT collapsed; 10, 11, 17[call], 11, 10[ret] -- own total 59 t, whole
  * total 97 t incl. sub_3fc0's 38 t). It is reached ONLY through the interruptible
- * 0x197a cascade, so the vblank NMI can land inside it on that path -- docs/06's
+ * 0x197a cascade, so the vblank NMI can land inside it on that path -- docs/decompiler-pipeline's
  * atomicity rule keeps such a routine per-instruction. AND a collapse here is one the
  * whole-machine gate CANNOT license: it is dispatched ~1x under the poke, and a single
  * wrong total does not fork the PRNG persistently under that heavy poking, so the
  * convergent gate does NOT catch a cycle-broken twin on this trajectory (measured --
- * see the note on the CONVERGENT test). That is docs/06's per-instruction frontier
+ * see the note on the CONVERGENT test). That is docs/decompiler-pipeline's per-instruction frontier
  * case ("a collapse it can't whole-machine verify, kept per-instruction"). The
  * reliable TEETH are therefore at the UNIT level, on a REAL DISPATCHED entry (stronger
  * than the synthesised entry the frontier pattern settles for).

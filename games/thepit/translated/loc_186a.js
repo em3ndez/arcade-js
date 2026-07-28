@@ -20,7 +20,7 @@
  * (`jp nz,0x186a` when L bit 2 is set). The whole job of THIS routine is: 0x8069 := 0x34.
  *
  * The fall-through discards no return address of its own, so loc_186f's own `ret` unwinds
- * to loc_186a's OWN caller. Modelled per doc 03 exactly like the `jp`-based / fall-through
+ * to loc_186a's OWN caller. Modelled per the translation doc exactly like the `jp`-based / fall-through
  * siblings (loc_4ca3, loc_4cbf): `return m.call(0x186f)` with NO trailing m.ret -- a second
  * ret would double-pop. Because it is a fall-through there is no jump byte to charge, so
  * only `ld a,0x34` (7 T) and `ld (0x8069),a` (13 T) are charged locally before control

@@ -5,7 +5,7 @@
  * slanting) ladder run, paying the height counter 0x63B1 down 8 px per row, then steps
  * the record cursor DE past the record.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. drawLadder WRITES memory (0x63B5 tile code, 0x63B1 height, and the
  * tilemap VRAM cells) and, on the kind != 2 arm, calls a subroutine, so every case uses
  * a FRESH clone per side (never a reused machine). The oracle (translated loc_0e4f) is
@@ -26,7 +26,7 @@
  * and they naturally span straight (x-delta 0), slant-right (0x07/0x0C) and slant-left
  * (0xF4/0xFD) runs over real heights, so the stamp loop, both descend blocks, and both
  * slant arms are exercised by real states. The kind != 2 DELEGATION (to drawCappedTileColumn)
- * is unreached in attract, so it is a CRAFTED entry (docs/06): a real render-walk state with
+ * is unreached in attract, so it is a CRAFTED entry (docs/decompiler-pipeline): a real render-walk state with
  * a surgical kind nudge, identical on both sides.
  *
  * Jobs:

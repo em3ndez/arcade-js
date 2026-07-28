@@ -5,7 +5,7 @@
  * routines (PRNG stir, coin service, sound tick), dispatch the current GAME_STATE through
  * the 4-entry ROM table at 0x00CA, then the interrupt-return epilogue.
  *
- * This is the CYCLE-FREE / memory-equivalence gate (docs/06), not the retired strict
+ * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. perFrame WRITES RAM everywhere (frame counter, PRNG, coin/credit and
  * sound/task state, and whatever the GAME_STATE handler dispatches), so every case uses a
  * FRESH clone per side. The contract compared is:

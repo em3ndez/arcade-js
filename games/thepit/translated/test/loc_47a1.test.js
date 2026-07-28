@@ -173,7 +173,7 @@ test("loc_47a1: column walked UP (stride -0x20)", () => {
 // to `add hl,de` (-0x20). Both are 11 T, so the T-state total is UNCHANGED and
 // the call trace is byte-identical -- ONLY the colour-RAM image and final HL move
 // (the 0x04/0x07 runs land in the wrong columns). Proves the memory/register
-// assertions earn their keep (docs/03-translation.md: DE=0xFFE0 vs BC=0xFF20 trap).
+// assertions earn their keep (docs/translation.md: DE=0xFFE0 vs BC=0xFF20 trap).
 function loc_47a1_mutant(m) {
   const { regs, mem } = m;
   regs.ix = 0x8282; m.step(0x47a5, 14);

@@ -7,7 +7,7 @@
  *
  * loc_0ae8 WRITES memory and is NOT a leaf: it calls animateSpriteObjectBlock (0x306F,
  * which stirs the PRNG + edits the sprite block) and scrollClimbGraphicStep (0x304A, which
- * writes video RAM). So it is gated by capture / clone / replay (docs/06) on MEMORY-
+ * writes video RAM). So it is gated by capture / clone / replay (docs/decompiler-pipeline) on MEMORY-
  * equivalence against the frozen oracle — RAM − STACK_SCRATCH — never the full register
  * file and never cycles, with a FRESH clone per case. Its four branch combinations are the
  * cross of two independent data-dependent branches: `call z,0x304A` (taken iff

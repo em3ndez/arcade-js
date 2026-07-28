@@ -43,7 +43,7 @@
  *           `cp 0x51` flags). B/C/D/E/H/L/IX/IY are untouched by sub_1e57 and pass
  *           through (loc_1e85's `pop hl` on the unwind arms is inside the callee).
  *
- * FLAGS (doc 06 discipline — drop a flag ONLY when it is provably dead before its next
+ * FLAGS (the decompiler-pipeline doc discipline — drop a flag ONLY when it is provably dead before its next
  * writer; keep it when it reaches an exit):
  *   - `bit 2,a` (arm1 branch): DROPPED. Its flags never reach an exit — arm1 tail-calls
  *     loc_1e80 whose first op `and a` overwrites F, and on the fall-through path the next
@@ -57,7 +57,7 @@
  *     op between here and the final `ret` rewrites F, rla's C/H/N/F3/F5 (over cp's S/Z/PV)
  *     are the exit F. Its shifted A is dead (loc_1e6d's `ld a` overwrites it).
  *
- * CYCLES — COLLAPSED per doc 06: each arm's straight-line run of instructions folds into
+ * CYCLES — COLLAPSED per the decompiler-pipeline doc: each arm's straight-line run of instructions folds into
  * ONE m.step charging that arm's exact oracle total, placed immediately before the arm's
  * control transfer; the `m.call`/`m.ret` boundaries stay verbatim. Per-arm OWN totals
  * (sub_1e57 only, excluding the callee):
@@ -80,7 +80,7 @@
  * tears no raster. An atomic, total-preserving collapse is byte-exact, so it passes the
  * STRICT gate directly — the convergent gate is NOT needed. (This corrects the sibling
  * loc_1e7a docstring's "INTERRUPTIBLE loc_197a cascade" note, which is the stale reading
- * doc 06 supersedes: the cascade is atomic.) Only arm2 is reached in attract (816/816);
+ * the decompiler-pipeline doc supersedes: the cascade is atomic.) Only arm2 is reached in attract (816/816);
  * arms 1/3/4 are proven from crafted identical-both-sides seeds with committed cycle
  * totals, in equivalence-1e57.test.js.
  */

@@ -65,7 +65,7 @@ import { MARIO_Y } from "./ram.js";
  * nonetheless kept per-instruction for a SEPARATE reason: it has 0 natural whole-machine
  * dispatches — it fires only via an identical-both-sides poke (a board-2 confluence),
  * ~1x, and a single wrong total does not fork the PRNG persistently under that poking —
- * so a collapse cannot be whole-machine verified (docs/06's per-instruction frontier
+ * so a collapse cannot be whole-machine verified (docs/decompiler-pipeline's per-instruction frontier
  * case; measured — the convergent gate does NOT catch a cycle-broken twin here). The
  * de-scaffolding win is therefore entirely NAMES, STRUCTURE and this docstring (which
  * corrects the HL-clobber semantics); the two pre-call charges stay separate so the

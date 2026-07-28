@@ -6,7 +6,7 @@ Reports the FIRST differing frame and where it differs. That is the signal the
 method runs on: a divergence points straight at the routine that just
 ran. Nobody should be debugging frame 900 when frame 12 already differs.
 
-THE FROZEN OFFSET (docs/04-integration-testing.md):
+THE FROZEN OFFSET (docs/integration-testing.md):
 
     JS frame M  <->  AVI frame M+1      (offset 1)
 
@@ -173,7 +173,7 @@ import hardware  # noqa: E402
 import frameio  # noqa: E402
 import scope  # noqa: E402
 
-# Frozen. See module docstring and docs/04-integration-testing.md.
+# Frozen. See module docstring and docs/integration-testing.md.
 # 2 -> 1 -> 0 -> 1. The value is not what kept being wrong; THE BASIS WAS WRONG
 # EVERY TIME. 2 and 1 came from a transition test that scored 100% for both
 # candidates; 0 came from a frame whose arithmetic ran through a wrong tilemap

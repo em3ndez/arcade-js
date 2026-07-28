@@ -18,7 +18,7 @@
  * or the loc_1459 it falls into. Its collapse is therefore byte-exact and the STRICT
  * whole-machine gate proves it (as its parent loc_141e's test does) -- the convergent
  * gate, which only licenses an interruptible collapse's transient raster tear, is not
- * needed here (docs/06: "A byte-exact collapse of an ATOMIC routine passes the
+ * needed here (docs/decompiler-pipeline: "A byte-exact collapse of an ATOMIC routine passes the
  * ordinary strict gate and does NOT need this").
  *
  * Jobs (mirrors equivalence-141e -- same NMI-path, rst-0x18-gated shape, one tail
@@ -37,7 +37,7 @@
  *      loc_141e never re-clears it -- the corruption persists.
  *   4. TEETH (whole-machine, cycles) -- a broken twin that charges 30t instead of the
  *      oracle's 40t is CAUGHT: a wrong total reseeds the PRNG (SPIN_COUNT 0x6019) and
- *      the whole-machine trace diverges (docs/06 "Cycles" channel 1).
+ *      the whole-machine trace diverges (docs/decompiler-pipeline "Cycles" channel 1).
  *   5. TEETH (unit, value) -- the same broken 0x600E store is caught and names 0x600E
  *      on the naturally-captured entry.
  *   6. PATH (single-arm coverage) -- the one path proven EQUAL RAM + regs + pc AND

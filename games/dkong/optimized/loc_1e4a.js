@@ -34,13 +34,13 @@
  * runs inside the vblank-NMI cascade (entry_0066 -> ... -> loc_197a -> sub_1dbd ->
  * here) under the handler's cleared NMI mask, so the NMI cannot re-enter it and no
  * pushed PC lands in its 0x1Exx range (the 0x02BD–0x0372 main-loop band owns 99.6%
- * of landings; docs 06). The rewrite is also byte-exact (identical writes, same
+ * of landings; the decompiler-pipeline doc). The rewrite is also byte-exact (identical writes, same
  * order) and total-preserving, so the strict gate is the right, stronger gate — and
  * it is self-validating for atomicity: had the collapse redistributed cycles across
  * a real mid-routine NMI, the wrong pushed PC would surface as stack drift. It fires
  * 64x over the 1210-frame window (63 ret-nz + 1 expiry), covering BOTH arms.
  *
- * COLLAPSE (doc 06 §Cycles — preserve each arm's TOTAL, drop the per-instr split).
+ * COLLAPSE (the decompiler-pipeline doc §Cycles — preserve each arm's TOTAL, drop the per-instr split).
  * Two basic blocks, one per arm; no callees, no hardware-latch write, so nothing
  * pins an interior charge.
  *   • ret-nz arm (timer > 0): ld hl (10) + dec (hl) (11) folded to one m.step at the

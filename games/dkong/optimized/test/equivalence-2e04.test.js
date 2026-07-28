@@ -18,7 +18,7 @@
  * only for board == 3), so the loop + its fold are never exercised in attract. The
  * STRICT gate therefore proves the gate1-skip arm byte-exact (non-vacuous, 816x), and
  * the two board-3-gated arms (gate2-skip, full-loop) are proven -- like sub_2a22's
- * board-gated collapse -- from crafted identical-both-sides pokes (doc 06 pattern 3:
+ * board-gated collapse -- from crafted identical-both-sides pokes (the decompiler-pipeline doc pattern 3:
  * poke 0x6227 = 3 and 0x6200 bit0) that steer the game's OWN gates, with each arm's
  * EXACT oracle cycle total pinned directly and a dropped-fold twin as the teeth.
  *
@@ -164,7 +164,7 @@ test("TEETH (unit behavioural): ignoring rst 0x30's skip boolean is CAUGHT", () 
 /**
  * Fresh machine with a valid stack (a sentinel caller-return frame) and RAM poked so
  * the game's OWN gates drive entry_2e04 down the chosen arm -- the sanctioned
- * identical-both-sides poke (doc 06 pattern 3), applied to both oracle and optimized
+ * identical-both-sides poke (the decompiler-pipeline doc pattern 3), applied to both oracle and optimized
  * clones through the same seed:
  *   - board != 3              -> rst 0x30 (needs board 3) splices          -> gate1-skip
  *   - board == 3, 0x6200 bit0=0 -> rst 0x30 normal; rst 0x10 splices       -> gate2-skip
