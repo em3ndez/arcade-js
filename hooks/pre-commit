@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Review gate (top-level rule: ALL commits reviewed). Blocks any commit whose staged
-# changes lack a PASS review token bound to their exact content. See tools/review_gate.py.
-# --no-verify bypasses this and defeats the rule; do not.
-exec python3 "$(git rev-parse --show-toplevel)/tools/review_gate.py" check
+# Pre-commit gates. Do NOT --no-verify around these — that defeats the rules they enforce.
+#   1. clarify_gate — a clarify pass must rewrite the game's MECHANISMS.md in the SAME commit
+#      as its renames, and the map must reference no retired names.  tools/clarify_gate.py
+#   2. review_gate  — every commit's staged changes carry an independent PASS review token
+#      bound to their exact content.  tools/review_gate.py
+set -euo pipefail
+root="$(git rev-parse --show-toplevel)"
+python3 "$root/tools/clarify_gate.py" check
+exec python3 "$root/tools/review_gate.py" check
