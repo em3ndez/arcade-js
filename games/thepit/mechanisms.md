@@ -38,10 +38,10 @@ surface band at the top, a deep field of diggable dirt below.
    prerequisite that *unlocks* diamond pickup. Until it is set, the collector refuses the
    diamonds, so a "drive straight through the diamonds" run collects nothing. `[seen]`
 3. **Collect the diamonds — loot tiles 59–61, +20 each.** The first +20 pickup sets
-   `DIAMOND_COLLECTED` (0x8078); this is the completion gate. The +10 "dirt-gems" (tile 58) do
+   `TREASURE_COLLECTED` (0x8078); this is the completion gate. The +10 "dirt-gems" (tile 58) do
    **not** set it. `[seen][code]`
 4. **Climb back up and surface at the top rung.** When the digger reaches the top rung
-   (`OBJ_Y` == `0x23`) with `DIAMOND_COLLECTED` set, `stepObjectAndResolveTile` writes
+   (`OBJ_Y` == `0x23`) with `TREASURE_COLLECTED` set, `stepObjectAndResolveTile` writes
    `SPAWN_PHASE` = 1 — the observed **level-complete** trigger. The two-sprite completion actor
    fires and `advanceToNextLevel` bumps `LEVEL`; the same fixed board (mode 160) is rebuilt
    one difficulty step harder. A/B proven: gate set → clears; gate clear → never clears. `[seen]`
@@ -175,10 +175,10 @@ bits (0x01/0x02/0x0c). `[code]`
 **`stepObjectAndResolveTile`** is the heart of dig-and-collect. Each frame it computes the
 map cell under the object and, on a cell boundary:
 
-- Top-rung column (`OBJ_Y`==`0x23`): if `DIAMOND_COLLECTED` set → `SPAWN_PHASE`=1 (**win**),
+- Top-rung column (`OBJ_Y`==`0x23`): if `TREASURE_COLLECTED` set → `SPAWN_PHASE`=1 (**win**),
   else defer. `[seen][code]`
 - Tile **58** → `awardTenPoints`, bump `LOOT_10PT_COUNT`, blank the cell, keep moving. `[code]`
-- Tiles **59–61** → record the code in `DIAMOND_COLLECTED`, `awardTwentyPoints`, bump
+- Tiles **59–61** → record the code in `TREASURE_COLLECTED`, `awardTwentyPoints`, bump
   `LOOT_20PT_COUNT`, blank the cell. `[code]`
 - Solid tiles (42/65/193, band 149–153) → block (defer, no move); a phase-gated band
   (197, 154–157) blocks unless the sub-cell phase bit is set; tiles ≥ the diggable-high bound
@@ -194,9 +194,9 @@ The carve reaction is then driven by the reaction state machine (`REACTION_STATE
 `DIG_SPAWN_QUEUE`). The feature/diamond gating: crossing tile `0x26` sets `FEATURE_TILE_LATCH`
 (0x8076); the collect handlers (`collectLootTile`, `resolveActorTerrainStep`,
 `collectAlignedLootElseResolveTile`) check it before allowing a +20; the first +20 sets the
-one-shot `DIAMOND_COLLECTED`, after which those tiles always score. `[seen][code]`
+one-shot `TREASURE_COLLECTED`, after which those tiles always score. `[seen][code]`
 
-> **Honest caveat (from `ram.js`):** the *same physical byte* 0x8078 (`DIAMOND_COLLECTED`) is
+> **Honest caveat (from `ram.js`):** the *same physical byte* 0x8078 (`TREASURE_COLLECTED`) is
 > also read by the dig driver and the twin-actor advance, and cleared by the dig glyph stamp.
 > Whether those are true couplings or byte-reuse is **unproven** — do not assert a coupling.
 > `[guess]`
@@ -302,7 +302,7 @@ panels, and GAME OVER. Each frame the NMI LDIRs the 32-byte staging buffer `SPRI
 `stageDigObjectSpriteRecord` fill it, `clearSpriteStagingBuffer` wipes it. The animated
 background sprite (the **spider**, slots via `BG_SPRITE_*`) bounces horizontally and falls
 vertically with an RNG reseed (`advanceBackgroundSprite` / `advanceBackgroundAnimation` /
-`setBgSpriteFrame`); `glitterDiamonds` colour-cycles the on-screen diamond cells. `[code]`
+`setBgSpriteFrame`); `glitterJewels` colour-cycles the on-screen diamond cells. `[code]`
 The board (video/io/memory) layer is the one **ungated** surface — hand-transcribed from
 `taito/roundup.cpp`, attract-validated — and remains a FIRST DRAFT (io.js/hardware.json say so:
 watchdog timeout and some landmarks are placeholders). `[code]`
@@ -334,7 +334,7 @@ shooting path this is where to flag it — but the current code has none. `[code
 sound-command → audio mapping is `[guess]` (no oracle); `VARIANT` (0x8048) and
 `DIG_OVERLAP_HOLD` (0x8080, the refuted "climb gate") are dormant in every reachable play path;
 the left-vs-right sign of the movers (`CARVE_SEAM_LEFT`/`RIGHT`) is rotation-ambiguous — the axis
-is confirmed screen-horizontal but which arm is "left" is not pinned; the `DIAMOND_COLLECTED`
+is confirmed screen-horizontal but which arm is "left" is not pinned; the `TREASURE_COLLECTED`
 byte-reuse coupling (§3.2) is unproven. `ram.js` name confidence is tagged `(strong/fair/weak)`
 per cell; the pixel gate, not the name, is the correctness authority.
 
@@ -362,7 +362,7 @@ per cell; the pixel gate, not the name, is the correctness authority.
 | 0x03be | `enterPlayMode` | Switch into active play, seed the per-round counters. |
 | 0x03e8 | `steerDemoPlayer` | Generate the attract demo's per-frame one-hot steering. |
 | 0x0673 | `paintScreen` | Lay down a whole screen: a selectable tile layer and its colour. |
-| 0x06ac | `glitterDiamonds` | Colour-cycle the on-screen diamond cells so they glitter. |
+| 0x06ac | `glitterJewels` | Colour-cycle the on-screen diamond cells so they glitter. |
 | 0x1362 | `seedObjectStartState` | Drop the tracked-object / level state block back to its start values. |
 | 0x13c9 | `dispatchObjectFrameByStateTimer` | Head of the object/state dispatcher, gated by the state-lockout timer. |
 | 0x13de | `advanceTrackedObject` | Route the tracked object (digger) to its per-frame handler by its state gates. |
@@ -578,7 +578,7 @@ Confidence tags in parentheses are the `ram.js` provenance grade (`strong`/`fair
 | 0x8073 | `OBJ_TILE_ROW` | Tilemap row cell under the tracked object (fair). |
 | 0x8076 | `FEATURE_TILE_LATCH` | Under-tile `0x26` latch; **prerequisite that unlocks the +20 diamond pickup** (fair). |
 | 0x8077 | `GOAL_CROSSING_LATCH` | Second-stage goal-crossing latch (drives the post-goal walk) (fair). |
-| 0x8078 | `DIAMOND_COLLECTED` | Set on a +20 diamond pickup; at the top rung → `SPAWN_PHASE`=1 = **win** (fair). |
+| 0x8078 | `TREASURE_COLLECTED` | Set on a +20 diamond pickup; at the top rung → `SPAWN_PHASE`=1 = **win** (fair). |
 | 0x8079 | `OBJECT_ACTIVE` | Tracked-object presence flag (0 / 0xff) (strong). |
 | 0x807b | `SPAWN_PHASE` | Spawn/alt-phase flag; **level-complete trigger** the completion actor fires on (fair). |
 | 0x807c | `STATE_TIMER` | State-lockout countdown for the tracked object (fair). |

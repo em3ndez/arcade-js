@@ -54,7 +54,7 @@ import { enableNmi } from "../enableNmi.js";
 import { steerDemoPlayer } from "../steerDemoPlayer.js";
 import { dispatchObjectFrameByStateTimer } from "../dispatchObjectFrameByStateTimer.js";
 import { advanceColumnAnimation } from "../advanceColumnAnimation.js";
-import { glitterDiamonds } from "../glitterDiamonds.js";
+import { glitterJewels } from "../glitterJewels.js";
 import { advanceReactionObject } from "../advanceReactionObject.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -223,7 +223,7 @@ function twinDroppedService(m) {
     if (mem8[GAME_MODE] === 4) steerDemoPlayer(m);
     dispatchObjectFrameByStateTimer(m);
     advanceColumnAnimation(m);
-    glitterDiamonds(m);
+    glitterJewels(m);
     // BUG: advanceReactionObject(m) omitted
   }
 }
@@ -237,7 +237,7 @@ function twinFlippedDemoTest(m) {
     if (mem8[GAME_MODE] !== 4) steerDemoPlayer(m); // BUG: should be === 4
     dispatchObjectFrameByStateTimer(m);
     advanceColumnAnimation(m);
-    glitterDiamonds(m);
+    glitterJewels(m);
     advanceReactionObject(m);
   }
 }

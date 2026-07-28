@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * glitterDiamonds — cycle the colour of the on-screen diamond cells so they glitter:
+ * glitterJewels — cycle the colour of the on-screen diamond cells so they glitter:
  * each frame advance one diamond cell's colour attribute through the palette; a diamond
  * that has been collected drops out of the set and holds a fixed colour.  ROM 0x06ac.
  *
@@ -56,7 +56,7 @@ function recolorCell(m, colourCell, tileCell, animatingGlyph, restingColor) {
   }
 }
 
-export function glitterDiamonds(m) {
+export function glitterJewels(m) {
   const { mem8 } = m;
 
   // Step the countdown one and store it back; the value it now holds selects the

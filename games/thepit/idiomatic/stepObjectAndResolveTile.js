@@ -50,7 +50,7 @@
  * NAMES:    DIG_OVERLAP_HOLD, SPRITE_CODE, OBJ_X, OBJ_TILE_ROW, OBJ_Y, OBJ_TILE_COL, SPAWN_PHASE,
  *           GOAL_TILE_LATCH, ACTOR_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER
  *           from ram.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
- *           (ram.js DIAMOND_COLLECTED), and
+ *           (ram.js TREASURE_COLLECTED), and
  *           the blank tile match the horizontal collector; the carve-reaction scratch 0x80a3/
  *           0x80a6/0x80a7, the step delta 0x806d, the video-RAM base, and the two ROM
  *           expected-terrain tables at 0x2118 / 0x2280 stay hex — grounded here but not across
@@ -130,7 +130,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const objY = mem8[OBJ_Y];
 
   // Top-rung column (OBJ_Y == 0x23, the object surfacing UP): nothing to resolve. If a +20 diamond
-  // was already collected (SECOND_LOOT_LATCH 0x8078 = ram.js DIAMOND_COLLECTED), set the top-rung
+  // was already collected (SECOND_LOOT_LATCH 0x8078 = ram.js TREASURE_COLLECTED), set the top-rung
   // spawn flag SPAWN_PHASE = 1 — the observed LEVEL-COMPLETE trigger. Either way defer this frame.
   if (objY === TOP_RUNG_COLUMN) {
     if (mem8[SECOND_LOOT_LATCH] !== 0) mem8[SPAWN_PHASE] = 1;

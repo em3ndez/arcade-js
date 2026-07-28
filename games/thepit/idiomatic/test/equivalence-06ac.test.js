@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for glitterDiamonds (ROM 0x06ac) — the cell-animation countdown at
+ * Equivalence gate for glitterJewels (ROM 0x06ac) — the cell-animation countdown at
  * 0x805c plus the per-frame recolour of the one fixed screen cell it selects.
  *
- * glitterDiamonds READS the countdown 0x805c and the selected cell's video-RAM glyph, and
+ * glitterJewels READS the countdown 0x805c and the selected cell's video-RAM glyph, and
  * WRITES the countdown and the cell's colour-RAM byte. Its declared LIVE-OUT is
  * memory-only: its only caller (the in-game main loop loc_0348) overwrites every
  * register it leaves before reading it, so the oracle's residual register/pc values
@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_06ac as oracle } from "../../translated/loc_06ac.js";
-import { glitterDiamonds as idiomatic } from "../glitterDiamonds.js";
+import { glitterJewels as idiomatic } from "../glitterJewels.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -110,7 +110,7 @@ function craft(base, { start, glyphsAnimating, colourSeed }) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: glitterDiamonds leaves the same state as the oracle over real captured attract states", () => {
+test("EQUAL: glitterJewels leaves the same state as the oracle over real captured attract states", () => {
   const caps = captureStates(10, 90, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {

@@ -43,18 +43,18 @@
  * NAMES:    DIG_OVERLAP_HOLD, FEATURE_TILE_LATCH, SPAWN_STATE, DIG_OBJ_STATE, DIG_OBJ_TIMER,
  *           DIG_OBJ_ARM_STATE, DIG_OBJ_SUBTYPE, OBJ_X, OBJ_Y, TARGET_X, TARGET_Y,
  *           STAGED_TARGET_X, STAGED_TARGET_Y, SPRITE_CODE, STATE_TIMER, ACTOR_CELL_PTR,
- *           CARVE_SEAM_LEFT (0x807e) / CARVE_SEAM_RIGHT (0x807f), DIAMOND_COLLECTED (0x8078,
+ *           CARVE_SEAM_LEFT (0x807e) / CARVE_SEAM_RIGHT (0x807f), TREASURE_COLLECTED (0x8078,
  *           read here as a dig-spawn condition — the shared treasure-collected byte, coupling
  *           vs reuse unproven) from ram.js. Kept hex: the live carve cursor 0x80af has no
  *           confirmed name yet.
  *
- * PURPOSE [guess]: dig-object's game role; DIAMOND_COLLECTED (0x8078) read as spawn cond — coupling vs byte-reuse unproven.
+ * PURPOSE [guess]: dig-object's game role; TREASURE_COLLECTED (0x8078) read as spawn cond — coupling vs byte-reuse unproven.
  */
 
 import { u8 } from "../../../core/int.js";
 import {
   DIG_OVERLAP_HOLD,
-  DIAMOND_COLLECTED,
+  TREASURE_COLLECTED,
   FEATURE_TILE_LATCH,
   SPAWN_STATE,
   DIG_OBJ_STATE,
@@ -93,7 +93,7 @@ const ADVANCE_SPRITE = 183; // same frame flipped for digging down (bit-7 flip s
 const COLUMN_HOLD_TIME = 180; // state-timer duration latched when a column completes
 const DIG_TILE_TABLE = 0x2dc7; // ROM: dig-channel tile + sub-column -> patched seam tile
 const CARVE_CURSOR = 0x80af; // 16-bit live carve cell pointer (published for commitDigEntity)
-// 0x8078 = DIAMOND_COLLECTED (the treasure-collected byte). This routine reads it here as a
+// 0x8078 = TREASURE_COLLECTED (the treasure-collected byte). This routine reads it here as a
 // dig-spawn condition; whether that is a true coupling to the loot flag or byte-reuse is
 // UNPROVEN (see ram.js caveat). The earlier "feature-align latch" label was wrong — that role
 // belongs to FEATURE_TILE_LATCH (0x8076).
@@ -109,7 +109,7 @@ export function advanceDigCarveObject(m) {
   // When the tracked object is aligned on a feature cell, either kick off the next
   // queued spawn (nothing spawning) or, unless the dig object is mid-carve, hand the
   // frame to the capture handler.
-  if (mem8[DIAMOND_COLLECTED] !== 0 && mem8[FEATURE_TILE_LATCH] !== 0) {
+  if (mem8[TREASURE_COLLECTED] !== 0 && mem8[FEATURE_TILE_LATCH] !== 0) {
     if (mem8[SPAWN_STATE] === 0) return startNextDigSpawn(m);
     if (mem8[DIG_OBJ_STATE] !== CARVING_STATE) return captureTargetOnOverlap(m);
   }

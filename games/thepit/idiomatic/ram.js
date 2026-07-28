@@ -204,7 +204,7 @@ export const GOAL_TILE_LATCH = 0x80e7;
  *  look twinned). Gates the 0x3b-0x3d feature path (collectLootTile) and is cleared by a boundary
  *  one-shot (stepObjectRowUnflipped/stepObjectRowFlipped, alongside SPAWN_STATE). NOT part of the 0x27 goal path.
  *  The 0x26 feature cell is the PREREQUISITE that unlocks the +20 diamond pickup
- *  (DIAMOND_COLLECTED 0x8078); verified vs collectLootTile, resolveActorTerrainStep.
+ *  (TREASURE_COLLECTED 0x8078); verified vs collectLootTile, resolveActorTerrainStep.
  *  ★ Proposer≠confirmer BOTH converged on the wrong tile (0x27); the adversarial review
  *  corrected it to 0x26 — why the third review is load-bearing even after convergence. (fair) */
 export const FEATURE_TILE_LATCH = 0x8076;
@@ -305,7 +305,7 @@ export const STEP_TIMER_BASE = 0x804f;
 export const TILEMAP_OFFSET = 0x805a;
 /**
  *  GLITTER_COUNTDOWN (0x805c) — Free-running 8->1 (reload 8) per-frame countdown that
- *  glitterDiamonds uses to pace the diamond-glitter cell recolour, armed to 1 by
+ *  glitterJewels uses to pace the diamond-glitter cell recolour, armed to 1 by
  *  paintScreen/paintScreen; role behaviorally pinned, both converged. (fair)
  */
 export const GLITTER_COUNTDOWN = 0x805c;
@@ -567,7 +567,7 @@ export const LOOT_10PT_COUNT = 0x8081;
  */
 export const LOOT_20PT_COUNT = 0x8082;
 /**
- *  DIAMOND_COLLECTED (0x8078) — set nonzero on a +20 diamond pickup (loot tiles 59-61, gated by the
+ *  TREASURE_COLLECTED (0x8078) — set nonzero on a +20 diamond pickup (loot tiles 59-61, gated by the
  *  0x26 feature cell); read at the top rung (OBJ_Y==0x23, object surfacing UP) where it flips
  *  SPAWN_PHASE=1 = level complete (observed A/B). Precise to the diamond: the +10 dirt-gems (tile 58)
  *  do NOT set it. Grounded across the loot routines (collectLootTile, stepObjectAndResolveTile,
@@ -577,7 +577,7 @@ export const LOOT_20PT_COUNT = 0x8082;
  *  cleared by the dig glyph-stamp (stampGlyphColumn). Whether those are true couplings or byte-reuse
  *  is UNPROVEN — do not assert a coupling. (fair)
  */
-export const DIAMOND_COLLECTED = 0x8078;
+export const TREASURE_COLLECTED = 0x8078;
 /**
  *  HIGH_SCORE_TABLE (0x8039) — Base/top rank of the descending three-entry high-score table
  *  (5-byte records: 3 initials + 16-bit score at 0x8039/0x803e/0x8043); seeded by initScoreDisplay,

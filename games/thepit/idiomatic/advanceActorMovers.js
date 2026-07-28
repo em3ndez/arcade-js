@@ -29,12 +29,12 @@
  *           The move driver and the sprite-staging tail leave no register a caller reads
  *           (the actor is reached by tail-jump; dead ABI).
  * NAMES:    ACTOR_X (0x810a, primary record base), TWIN_X (0x811b, second record base),
- *           DIAMOND_COLLECTED (0x8078, read here as the second-record gate — the shared byte
+ *           TREASURE_COLLECTED (0x8078, read here as the second-record gate — the shared byte
  *           whose twin-advance coupling vs reuse is unproven, see ram.js) from ram.js. Kept
  *           hex: 0x8083 (the driver's shared working block) has no ram.js name yet.
  */
 
-import { ACTOR_X, TWIN_X, DIAMOND_COLLECTED } from "./ram.js";
+import { ACTOR_X, TWIN_X, TREASURE_COLLECTED } from "./ram.js";
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
@@ -42,7 +42,7 @@ import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 // place, then copied back out.
 const MOVER_SCRATCH = 0x8083;
 // Second-record gate: nonzero means also advance the twin record this frame. This is the
-// same physical byte as DIAMOND_COLLECTED (0x8078); whether the twin-advance couples to the
+// same physical byte as TREASURE_COLLECTED (0x8078); whether the twin-advance couples to the
 // diamond-collect flag or merely reuses the byte is UNPROVEN (see ram.js caveat).
 // Object records are 17 bytes each; the primary and twin sit back to back.
 const RECORD_SIZE = 17;
@@ -63,7 +63,7 @@ export function advanceActorMovers(m) {
   driveRecordThroughMover(m, ACTOR_X);
 
   // The twin record steps too only while its gate is set.
-  if (mem8[DIAMOND_COLLECTED] !== 0) driveRecordThroughMover(m, TWIN_X);
+  if (mem8[TREASURE_COLLECTED] !== 0) driveRecordThroughMover(m, TWIN_X);
 
   // Both paths finish by staging the two sprite records for the display.
   return stageActorSpriteRecords(m);
