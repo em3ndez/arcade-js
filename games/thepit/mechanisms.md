@@ -1,701 +1,459 @@
-# The Pit (`thepitu1`) — MECHANISMS
+# The Pit — mechanisms (inside-out model, grounding-corrected FINAL)
 
-**The inside-out game model, measured against the current code.** This is the authoritative
-map of how The Pit actually works, built from the decompiled routines, the named RAM map,
-the board (hardware/render) layer, and the MAME-0.288 grounding pass (its method is
-[`docs/grounding.md`](../../docs/grounding.md)). Where the public-research frame in
-[`gameplay.md`](./gameplay.md) agrees, it is confirmed; where they diverge, the code and the
-grounded observation win and the disagreement is called out under
-[§2 Public lore vs. grounded reality](#2-public-lore-vs-grounded-reality).
+A GAMEPLAY-FIRST model of *The Pit* (Zilec/Centuri/Taito, 1982; MAME `thepit`/`thepitu1`),
+re-derived from `gameplay.md`, the lap-2 RAM map (`thepit-vars-lap2.md`), the routine-lap notes
+(`thepit-routine-revisions.md`), and the faithful `translated/*.js` — then **corrected against two
+rounds of live MAME grounding** (`thepit-grounding-results.md`, `thepit-grounding-results-2.md`).
+Confirmations were promoted, overturns applied, and new grounded facts folded in.
 
-**Measured counts** (counted from the current tree, not carried over):
+**Naming note:** the names in this doc are the earned, gameplay-first vocabulary. The repo's
+`ram.js` still carries the older export names (`OBJ_X`, etc.) pending a rename pass, so **the hex
+addresses (`0x80..`) are the stable anchor** — match on the address, not the label, when
+cross-referencing code.
 
-| What | Count | How measured |
-|---|---|---|
-| Routines decompiled | **169** | `idiomatic/*.js` minus `ram.js` |
-| Routines with an earned English name | **169** | every file; **0** `loc_`-named files remain |
-| RAM cells named | **141** | `export const` lines in `idiomatic/ram.js` |
+Every substantive claim is tagged with its evidence level. This document once existed to *drive
+grounding*; most of that worklist is now closed. See §3 for what remains open.
 
-**Ground truth for meaning is MAME 0.288**, observed by playing the real ROM. The idiomatic
-layer is memory-equivalent to the frozen `translated/` oracle (per-routine equivalence gates);
-the correctness authority is the pixel gate, never a RAM name — a wrong name is worse than a
-neutral hex address. Names carry a confidence tag; see [§4](#4-confidence-conventions).
+## Tags
+- **`[seen]`** — directly observed in the running game (MAME `thepitu1`, 0.288-class: headless
+  per-frame RAM dump + rendered frames, forced via DK "poke, don't grind" Lua tapes). Highest
+  authority. Citations give the tape/frame/RAM evidence.
+- **`[code]`** — proven from the translated routines + the named RAM map, but not (or not yet)
+  observed live.
+- **`[guess]`** — inferred, not observed. Do not promote without grounding. (The prior doc
+  mis-declared "no laser exists" as a verdict; it was an ungrounded guess and it was wrong.)
 
----
-
-## 1. The game model
-
-**You are the digger** — a small one-man explorer rendered from two stacked 16-pixel sprites
-(hardware sprite slots 0+1). `[seen]` The screen is a vertical (ROT90) shaft: a shallow
-surface band at the top, a deep field of diggable dirt below.
-
-**The objective, end to end** (grounded in a natural, no-poke MAME run):
-
-1. **Dig down** into the pit. You carve through diggable terrain by *walking into it* — there
-   is no separate "dig" verb beyond holding the action button and moving; movement into a
-   dirt cell arms a carve reaction that replaces the cell with its dug form. `[seen][code]`
-2. **Cross the feature tile `0x26`.** Passing over it sets `FEATURE_TILE_LATCH` (0x8076) — the
-   prerequisite that *unlocks* diamond pickup. Until it is set, the collector refuses the
-   diamonds, so a "drive straight through the diamonds" run collects nothing. `[seen]`
-3. **Collect the diamonds — loot tiles 59–61, +20 each.** The first +20 pickup sets
-   `TREASURE_COLLECTED` (0x8078); this is the completion gate. The +10 "dirt-gems" (tile 58) do
-   **not** set it. `[seen][code]`
-4. **Climb back up and surface at the top rung.** When the digger reaches the top rung
-   (`OBJ_Y` == `0x23`) with `TREASURE_COLLECTED` set, `stepObjectAndResolveTile` writes
-   `SPAWN_PHASE` = 1 — the observed **level-complete** trigger. The two-sprite completion actor
-   fires and `advanceToNextLevel` bumps `LEVEL`; the same fixed board (mode 160) is rebuilt
-   one difficulty step harder. A/B proven: gate set → clears; gate clear → never clears. `[seen]`
-
-**Win = surface at the top rung with a diamond in hand.** It is emphatically **not**
-collect-all-loot and **not** the goal tile — those are separate systems (bonus tiers and the
-scroll-reveal crossing; see §3.4 and §3.5). `[seen]`
-
-**Lose = get touched.** The maze enemies kill on contact. When an enemy mover's box overlaps
-the digger's box (`handleObjectBoxOverlap` inside `stepEnemyMover`), it snaps onto the digger,
-arms the **capture/death pose sprite `0x35`** (decimal 53) and a dwell countdown, plays the
-capture sound, and hands to `tickObjectDwellThenTransition`; when that expires the round
-boundary docks a man (`dockManAndDispatchRoundBoundary`: `MEN_LEFT`--). `MEN_LEFT` → 0 →
-game-over teardown → high-score offer → attract. `[seen][code]`
-
-**Offense — the laser.** The digger is not defenceless: holding the button while facing left or
-right fires a **horizontal laser bolt** that flies across the shaft and destroys any maze enemy
-it hits, for a point (§3.11). This document first *denied* the laser existed — a code-only
-misreading that a play-through corrected (§2b). `[seen` (played) `][code]`
-
-**The cast** (sprite slot ↔ RAM entity, 100% match in both attract and gameplay observation):
-
-| On screen | Sprite slot(s) | RAM | Role |
-|---|---|---|---|
-| **The digger** (player, a little man) | 0 + 1 | tracked object `OBJ_X`/`OBJ_Y` | You. Two 16px halves = one ~32px tall man. `[seen]` |
-| **Background spider** | 3 | `BG_SPRITE_*` (0x80db–0x80de) | A small left-chamber spider that bounces/falls decoratively. **Not** a UFO. `[seen]` |
-| **Claw-creature OBJ1** | 4 | `OBJ1_*` (0x80e8…) | Pink claw-creature; normally parked clipped just above the top edge. `[seen]` |
-| **Claw-creature OBJ2** | 5 | `OBJ2_*` (0x80f9…) | The same pink claw-creature, visible in the maze. `[seen]` |
-| **The saucer** (two-sprite actor) | 6 + 7 | actor `0x810a` + twin `0x811b` | A flying saucer that descends, then continues solo as a maze creature. **Dual-role: also the completion actor.** Kills on contact via the *same* shared collision driver as the claw-creatures. `[seen]` |
-
-All three enemy kinds — OBJ1, OBJ2, and the saucer — kill through the one shared
-`stepEnemyMover` / `handleObjectBoxOverlap` path (positive test + negative control both
-confirmed). `[seen]`
+Where a claim is both grounded AND code-proven it carries both tags.
 
 ---
 
-## 2. Public lore vs. grounded reality
+## 1. The game model — what The Pit IS
 
-`gameplay.md` is the outside-in public record. It gets the premise right (dig down, grab a
-jewel, climb out). Of the three specifics flagged below, two are genuinely wrong once measured
-against play — but the third (the laser, §2b) is one **we** got wrong: a code-only pass refuted
-a real mechanic, and a play-through had to restore it. The lore/code gap cuts **both ways**, and
-only grounding adjudicates it — reading the code is not enough.
+You are an **Astronaut-Explorer** who has landed on a forbidden planet. You **dig down** through a
+tunnel field to a bottom treasure chamber, **grab jewels**, and **climb/escape back up to your
+ship** — the last stretch of which is the **"Pit."** A rival craft has also landed; **rival
+explorers** roam the tunnels, and a tank called the **Zonker** slowly erodes a mountain by your
+ship. `[seen]` (premise from gameplay.md; the mechanical consequences corrected by grounding below)
 
-### 2a. The ZONKER is decorative, not a tank that destroys your ship
-Public lore (Wikipedia/Centuri): a **tank called the "Zonker"** sits up top and slowly shoots
-away a mountain by your ship; dawdle and it **destroys your ship, costing a life** — the game's
-timer. **Refuted.** Grounding: the "ZONKER" banner, the top-left "UFO" dock graphic, and the
-entire bottom-band "creatures" are **decorative tilemap, not sprites** — no active enemy, no
-ship-destroying actor. The real enemies are the maze movers (OBJ1/OBJ2/saucer). `[seen]`
-There *is* a DSW **"Time Limit" (Long/Short)** bit in the driver `[code]`, so a pacing pressure
-exists as a setting, but it is not the sprite-tank the lore describes; how a time limit
-manifests in play is not separately grounded — **open item**.
+**Cast:**
+- **Player** — astronaut; digs automatically by moving through dirt; fires a horizontal **laser**.
+  `[seen]` (laser fire + bolt flight both observed, §2.3)
+- **Three roaming enemies** ("rival explorers") — records `0x80e8`, `0x80f9`, `0x810a`, self-moving
+  hostiles that wander the tunnels. `0x810a` is **enemy #3**, *not* a ship. `[seen]`
+  (`0x810a` observed roaming as a live hostile — X drifts 0xe3→0xd5, Y 0x23→0x33, walk-cycle tiles
+  0x16/15/14/17; grounding-1 G.17)
+- **The saucer / "ship" (top-left) and the "ZONKER" tank (top-right)** are **background scenery**:
+  the board intro borrows enemy #3's sprite pair (slots 6&7) to fly them into place, then bakes
+  each into the background tilemap and frees the sprite. `[seen]` (both visible as baked scenery in
+  `frame_1180_cw.png`; G.17)
+- **The Zonker** doubles as an **idle-pressure animation** via a mountain-erosion mechanic (§2.6) —
+  but it does **not** destroy your ship or cost a life (overturn, §2.6). `[seen]`
+- **Hazards** — falling rocks and raining arrows (both are the SAME falling-hazard object with a
+  different glyph, §2.5), plus the **Pit** crossing. They **block/obstruct**; only enemy contact
+  and the transition-timer are lethal (§2.4). `[seen]`/`[code]`
+- **Jewels** — crystals and diamonds you collect for points (§2.8). `[seen]`
 
-### 2b. The horizontal laser IS real — our first pass wrongly refuted it
-Public lore: a **single button fires a horizontal laser** that disintegrates enemies. **The lore
-is right, and denying it was the sharpest error in this document.** The laser is a real,
-code-confirmed weapon:
+**Objective / win:** dig down, collect jewels, escape back up and reboard the ship by crossing the
+Pit; the board then rebuilds one level higher and faster. `[seen]` (board-complete → level++ →
+fresh-board loop observed end-to-end, §2.9)
 
-- **Fire** — in `advanceReactionObject`, holding the button (`IN0 & 0x10`) while facing left
-  (facing code 178/179) or right (50/51) seeds `0x80a1` with a signed step (**−8 / +8**) and
-  places a bolt at the digger's cell. `[code]`
-- **Flight** — `advanceScroll` slides that bolt (the `REACTION_OBJ_X/Y` object, 0x8094/0x8097)
-  **±8 px/frame** across the shaft, checking the tile ahead each step, until it hits a stop tile
-  (a wall), then parks it and clears the state. One bolt aloft at a time. `[code]`
-- **Kill** — in `stepEnemyMover`, while `0x80a1` is nonzero (a bolt is live) any maze enemy whose
-  box overlaps the bolt (`handlePlayerBoxOverlap`) fires `awardOnePoint` and parks that mover in
-  a dead state (`MOVER_STATE`=192). That is the laser destroying an enemy for score.
-  `[seen` (played) `][code]`
-
-**The tell we missed:** the single byte `0x80a1` is imported as **`SCROLL_STEP`** by the fire
-routine and as **`PLAYER_BOX_OWNER`** by the kill routine — two different wrong names for *"a
-bolt is in flight."* And the bolt object `REACTION_OBJ` is **dual-use**: the same sprite slot is
-the dig/carve reaction animation *and* the laser bolt, which is exactly how a weapon hid inside a
-"dig reaction."
-
-**Why the original pass got it wrong — the lesson of this whole document.** From the code alone,
-"an object seeded on a button that travels horizontally and whose box is tested against enemies"
-reads *equally* as a laser (fire → fly → shoot) or as a benign "terrain scroll + collision proxy."
-Never having played the game, the pass picked the benign reading, wrote a confident repo-wide
-*"no fire/shoot/laser routine of any kind"* verdict on top, and **renamed the laser's parts out of
-existence** (`SCROLL_STEP`, `PLAYER_BOX_OWNER`, "reaction object"). A single play-through — knowing
-a laser exists — makes the same code unambiguous. **This is why behavioural grounding is not
-optional:** the code cannot tell you which of two readings is the game; only playing it can.
-`[seen][code]`
-
-**Still to pin (a MAME grounding pass, needs the romset):** whether fire is the same action
-button as dig (context-switched on facing/terrain) or a distinct input; any cooldown or one-shot
-limit beyond the single-bolt state; and which enemy types the bolt can and cannot destroy.
-
-### 2c. "Cross the Pit / retractable floor / arrows" ≈ the goal-tile scroll-reveal
-Public lore frames the return trip as crossing a room with a sliding/retractable floor while
-arrows rain down. In the code this maps onto the **goal tile `0x27`** system: crossing it
-latches `GOAL_TILE_LATCH`/`GOAL_CROSSING_LATCH` and triggers an **auto-walk plus a progressive
-terrain scroll-reveal** (`REVEAL_CURSOR` counts down, opening the next pit section). But this
-crossing is **separate from and not required for** level completion — the win is surfacing with
-a diamond (§1). The "retractable floor / arrows" flavor has no distinct code entity beyond the
-scroll-reveal and the diamond chamber. `[seen][code]`
-
-### Where lore and code agree
-Dig down; grab a jewel to escape; **8-way** joystick (the driver's `PORT_8WAY` settles the
-public "4-way vs 8-way" conflict → 8-way); one action button; digging is slower/precise
-(cell-boundary aligned carve); **one level that just gets faster** (layout is level-independent,
-only difficulty scales); bonus grows with a fuller jewel collection (SINGLE/DOUBLE/TRIPLE);
-Z80 + AY-3-8910 on rotated 256×224 hardware. `[seen][code]`
+**Lose:** run out of lives. A whole-ROM enumeration finds **exactly two** things that take a life
+(§2.4): **(1) enemy contact** (`loc_3203` catch → countdown → `loc_0278`) and **(2) the
+transition-timer expiring in death mode** (`loc_13c9`, `0x807d==0` → `loc_0278`). Falling rocks,
+arrows, the Pit, and the Zonker/mountain are **NOT** independently lethal. `[seen]`/`[code]`
+Starting lives = 3 (DSW `0x8053`, live count `0x802b`). `[seen]`
 
 ---
 
-## 3. Subsystems
+## 2. Subsystems
 
-### 3.1 Input, coin, start
-Two input ports, both debounced once per frame by the vblank NMI (`serviceVblankNmi`), which
-double-samples each port and latches the stable value; game logic reads the debounced RAM cell,
-never the raw port. `[code]`
+### 2.1 Frame loop, game state, input, RNG
 
-- **IN0** (`0xA000`, active-low, complemented in `io.readIn0` to the active-high form the ROM
-  uses) → `IN0_DEBOUNCED` (0x8018): bit0 LEFT, bit1 RIGHT, bit2 DOWN, bit3 UP (8-way), **bit4
-  BUTTON1** (dig / fire the laser §2b / confirm). `[code]`
-- **IN1** (`0xA800`, active-high) → `IN1_DEBOUNCED` (0x8015): bit0 COIN1, bit1 START2, bit2
-  START1. `[code]`
-- **IN2** is the cocktail 2P mux twin of IN0; LS259 control-latch **bit6** selects IN0 (upright)
-  vs IN2 (cocktail) and is also flip-X. `[code]`
-- **DSW**: coinage (b0–1), Game Speed Fast/Slow (b2), Time Limit Long/Short (b3), Flip Screen
-  (b4), Cabinet upright/cocktail (b5), Lives 3/4 (b6), Diagnostic tests (b7). Decoded once by
-  `applyDipSwitches` into `COINS_PER_CREDIT_A/B`, `LOOP_DELAY_BASE`, `STARTING_MEN`,
-  `SPRITE_COORD_BIAS`. `[code]`
+**Main loop** `loc_0348` runs forever; each pass it re-seats SP, kicks the watchdog (reads
+`0xb800`), then calls, in order: `[code]`
+1. `0x4b14` — per-frame service (timers/coin/sound drain).
+2. `0x03e8` **only when gameState (`0x8001`) == 4** — the attract-**demo** wall-sense/autopilot nav.
+3. `0x13c9 → 0x13de` — the **player dispatcher** — which is ALSO the **master board-transition
+   gate** (§2.9): before dispatching movement it counts `transitionTimer 0x807c` down, and on
+   expiry vectors to death or advance by `postTransitionMode 0x807d`. `[seen]`/`[code]`
+4. `0x241c` — **mountain erosion / Zonker animation** (§2.6).
+5. `0x06ac` — per-frame service.
+6. `0x24f3` — **the laser**, which then **tail-chains the entire actor pipeline** (§2.3).
+7. a busy-delay of length `frameDelay` (`0x8011`) — the frame-rate throttle (drops 9→8 at level 2,
+   = `speedBase 0x804e − level`; observed, §2.9). `[seen]`
 
-Coin/credit is a small edge-detect machine: `COIN_SW_ACCUM`/`START1_SW_ACCUM`/`START2_SW_ACCUM`
-(0x8003–0x8005) are pulse accumulators; a completed pulse banks a credit into `CREDIT_COUNT`
-(0x8000, clamped 9) mirrored to `CREDIT_MIRROR_A/B` (0x801c/0x812c) that the NMI corruption
-watchdog cross-checks (a mismatch cold-boots). `rearmMachineAndBranchOnCredits` forks on
-credits to show the credit screen; a START pulse pays a credit and runs **`startGame`**, which
-clears state, decodes the DSW, seeds `LEVEL`=1 and `MEN_LEFT` from `STARTING_MEN`, primes both
-players' saved records, loads the starting player's record, and falls into the round loop.
-`GAME_MODE` (0x8001) doubles as player-count/mode: **1 = 1-player, 2 = 2-player, ≥3 = attract
-demo**. `[code]`
+**The actor tail-chain** (one long jp-chain, all `[code]`):
+`0x24f3` laser → `0x29ad` dig-carve/falling-hazards → `0x2f71` Zonker tank+shell →
+`0x312d`/`0x316f` enemies 1&2 → `0x3748` ship/enemy-3. So laser, digging, hazards, the Zonker,
+enemies and enemy-3 are all updated as one chain kicked off by the laser routine each frame.
 
-### 3.2 The core loop: dig, collect, surface
-The digger is "the tracked object" the collision/tile code locates through `OBJ_X`
-(screen-horizontal, drives the tilemap **row**) and `OBJ_Y` (screen-vertical, drives the
-**column**) — the ROT90 sprite-format swap and the display rotation cancel, so `_X`/`_Y` read
-as screen axes. `[seen]`
+**gameState `0x8001`:** 0 attract · 1 one-player game · 2 two-player · 3 credit-standby · 4 attract
+demo. `[seen]`/`[code]` (grounding pinned the coin→start→play flow: coin@f400, start@f460, `0x8001`
+3→1 at f464, live play from ~f1180)
 
-Per frame the object/state dispatcher runs: `dispatchObjectFrameByStateTimer` (holds the object
-in a timed state while `STATE_TIMER` is nonzero) → `advanceTrackedObject`, which walks a chain
-of control gates (busy-this-frame, `OBJECT_ACTIVE` presence, `SPAWN_PHASE`, dig-arm state,
-motion marker, `GOAL_TILE_LATCH`, `GOAL_CROSSING_LATCH`, `REVEAL_CURSOR`) and hands the frame to
-exactly one handler. In ordinary play that handler is **`stepObjectFromControl`**: unless a
-reaction animation owns the object, it picks the move command — the attract demo's synthetic
-one-hot `DEMO_STEER_DIR` when `GAME_MODE` ≥ 3, otherwise the debounced joystick — and passes it
-to `advanceObjectFrame` → `routeIdleObjectByMoveCommand`, which routes on the four direction
-bits (0x01/0x02/0x0c). `[code]`
+**Input select** `loc_1420`: states **0–2 read the real input `0x8018`**; states **≥3 read the
+demo-nav byte `0x801b`** — attract-mode plays itself off a synthetic input stream. `[code]`
+Input byte `0x8018` carries joystick + fire on **bit 4** (`0x10`). `[seen]`/`[code]` (fire bit4
+directly drove `laserState 0x80a1` 0→1, §2.3)
 
-**`stepObjectAndResolveTile`** is the heart of dig-and-collect. Each frame it computes the
-map cell under the object and, on a cell boundary:
+**RNG** `0x800d`/`0x800e` (`loc_4b1a` steps it). Used by falling-hazard slot selection and the
+Zonker shell reset. `[code]` The DK spin-RNG-pinning trick applies here if determinism is ever
+needed `[guess]` (not needed for grounding — the pokes forced state directly).
 
-- Top-rung column (`OBJ_Y`==`0x23`): if `TREASURE_COLLECTED` set → `SPAWN_PHASE`=1 (**win**),
-  else defer. `[seen][code]`
-- Tile **58** → `awardTenPoints`, bump `LOOT_10PT_COUNT`, blank the cell, keep moving. `[code]`
-- Tiles **59–61** → record the code in `TREASURE_COLLECTED`, `awardTwentyPoints`, bump
-  `LOOT_20PT_COUNT`, blank the cell. `[code]`
-- Solid tiles (42/65/193, band 149–153) → block (defer, no move); a phase-gated band
-  (197, 154–157) blocks unless the sub-cell phase bit is set; tiles ≥ the diggable-high bound
-  are passable. `[code]`
-- **Diggable band (113–157):** compare the cell against the ROM's expected-terrain table for
-  this sub-cell; a mismatch means fresh terrain → arm the **carve reaction** (`REACTION_STATE` =
-  carve, `REACTION_TIMER` from `REACTION_PERIOD`, carve sprite `0xf6`). `[code]`
+**Phase counter `0x8010`** ("playPhaseCounter") is a master gate: enemies don't run until
+`0x8010 ≥ 8` (`loc_312d`), enemy-3 changes behavior at `0x8010 ≥ 0x0a` (`loc_3748`), and mountain
+erosion won't advance until `0x8010 ≥ 0x0a` (`loc_241c`). So `0x8010` is the **board-startup ramp**
+that stages the intro → live play. `[seen]`/`[code]` (live play consistently begins at `0x8010 ≥
+0x0a` ~f1180; on every board rebuild it re-ramps 0,1,2,… with the player respawning from the top)
 
-The carve reaction is then driven by the reaction state machine (`REACTION_STATE` 0x80a2 = idle
-/ 1–4 armed) via `advanceReactionObject` / `triggerDigReaction` / the dig-object family
-(`spawnDigEntity` → `commitDigEntity`, `advanceDigCarveObject`, `advanceDigTarget`,
-`captureTargetOnOverlap`, `landDigTarget`, `spawnPendingDigObject` popping the 24-slot
-`DIG_SPAWN_QUEUE`). The feature/diamond gating: crossing tile `0x26` sets `FEATURE_TILE_LATCH`
-(0x8076); the collect handlers (`collectLootTile`, `resolveActorTerrainStep`,
-`collectAlignedLootElseResolveTile`) check it before allowing a +20; the first +20 sets the
-one-shot `TREASURE_COLLECTED`, after which those tiles always score. `[seen][code]`
+### 2.2 Player movement & digging
 
-> **Honest caveat (from `ram.js`):** the *same physical byte* 0x8078 (`TREASURE_COLLECTED`) is
-> also read by the dig driver and the twin-actor advance, and cleared by the dig glyph stamp.
-> Whether those are true couplings or byte-reuse is **unproven** — do not assert a coupling.
-> `[guess]`
+The player dispatcher `loc_13de` reads a chain of gate bytes (`0x807a` busy, `0x8079` active,
+`0x807b` sub-state, `0x80c1` dig-collision, `0x8075` move-mode, `0x8077` pit-cross, `0x80e6`,
+`0x80e7`) and vectors to a movement handler, else falls into `loc_1420 → loc_1434`. `[code]`
 
-### 3.3 Enemies: the movers, the saucer, and death-on-contact
-There are two structurally identical maze-mover records — **OBJ1** (0x80e8, ~17 bytes:
-X/sprite/attr/timer/state/move-period/target-col) and **OBJ2** (0x80f9), plus a working mover
-block (`MOVER_*` at 0x8090…). `advanceObjectMovers` drives OBJ1, `advanceObjectMover2` drives
-OBJ2, both through the shared **`stepEnemyMover`** (0x319d): arrival / capture / retarget /
-patrol steering. Steering derives a tilemap probe cell + sub-tile phase from the mover's pixel
-position (`decodePositionAndSteer`), consults phase-keyed ROM tile tables
-(`tileInProbeRow`, `nextTileInProbeRow`, `probeRowAheadTilePair`, `probeRowBackTilePair`) and
-picks a direction preset (`stepMoverUp`/`stepMoverDown`/`stepMoverMirrored`/`stepMoverUnmirrored`,
-publishing `MOVER_DIRECTION`). A dormant mover just ticks its cadence counters
-(`advanceDormantMover`); `MOVER_STATE`'s sign selects dormant-tick vs armed vs player-box branch.
-`[code]`
+- **Horizontal move + tile interaction:** `loc_1704` (sibling) and the classifier `loc_1515`/
+  `loc_1568`. **Vertical move (climb / dig-down):** `loc_1a02`, gated by the climb byte `0x8080`.
+  `[code]` (grounding confirmed `0x8080` is a pure movement blocker — see §2.5)
+- **Tile classification** (`loc_1515`/`loc_1568`, per frame, on the cell under & ahead): `[code]`
+  - **Solid / impassable tile ids** (block movement, defer the frame): `0x2a`, `0x41`, `0xc1`,
+    `0x95`, `0xc4`, the `0x96–0x99` band, and `0xc5` (gated on a sub-tile bit). `[code]`
+  - **Diggable "dirt" band `0x71–0x9d`:** looked up in expected-tile tables (`0x1b78` under /
+    `0x1ce0` ahead for horizontal; `0x1e48`/`0x1fb0` in `loc_191f`; `0x2118`/`0x2280` in the
+    vertical `loc_1a02`). On a mismatch it **arms a carve reaction** — a sprite/state code
+    (`0xb5` horizontal, `0x36` in `loc_191f`, `0xf6` vertical) with phase `0x80a2` and reload
+    `0x80a4` — and sets the dig-collision state. `[code]`
+  - **Digging is AUTOMATIC**: the carve is armed by *moving into* a dirt tile, not by any button.
+    `[seen]` + `[code]` (grounding drove the player DOWN into dirt with no fire bit and watched
+    crystals get collected as it dug, §2.8; the fire bit belongs to the laser, §2.3)
+  - **Dig-carve engine** `loc_29ad`/`loc_191f`: on arming, `digCollisionState 0x80c1` → 2, dig
+    arm-timer `0x80b1` → `0x40`, and **sound `0x14`** is requested (`0x4c9f`). The carve rewrites
+    tilemap cells through the `0x2dc7` translation table (carved dirt → sprite ids `0xc1`/`0xc4`/
+    blank `0x70`). `[code]`
+- **Collectible tiles** (auto-collected when the player's cell lands on them; the cell is then
+  overwritten with blank `0x70`): tile `0x3a` (crystal) and `0x3b`/`0x3c`/`0x3d` (diamond). See
+  §2.8. `[seen]`/`[code]`
+- **Special path tiles:** tile **`0x26` arms the prize gate `0x8076`** (enables diamond pickup);
+  tile **`0x27` is the goal/rescue terminator** — reaching it latches `0x80e7` (goalZoneLatch) and
+  `0x8077` (pitCrossActive) and hands to `loc_19d0` (`loc_16b9` scans for `0x27` one/one-row-down
+  from the player cell). `[code]`
+- **Player facing `0x8069`** takes codes `0x32`/`0x33`/`0xb2`/`0xb3` (bit 7 = horizontal mirror);
+  this selects the laser direction. `[seen]`/`[code]` (grounding forced `0x8069=0x32` to launch a
+  rightward bolt)
+- The "must be pixel-aligned to start a dig" twitchiness players report corresponds to the
+  `(col & 7)==0` grid-alignment gates in the classifiers — and was felt directly in grounding:
+  navigating the player to a specific tile by input was too twitchy to reach a jewel/chamber by
+  hand, so the "poke, don't grind" method was used throughout. `[code]`/`[seen]`
 
-The **saucer** is a two-sprite actor (`advanceTwoSpriteActor`): a primary body at 0x810a plus a
-rigid `+16px` **twin** at 0x811b, advanced together (`easeActorToRest` writes primary+16 into the
-twin every step) and staged by `stageActorSpriteRecords` into sprite slots 6/7. It is seeded /
-spawned by `seedActorSpawnState` / `spawnAltPhaseActor` / `spawnTwinActor` /
-`advanceOrRebuildTwinActor`, paced by `paceActorCadence`, and marched by `advanceAltPhaseActor` /
-`advanceActorMovers`. It descends, then patrols as a maze creature — and it is *also* the
-**completion actor** that fires when `SPAWN_PHASE` is set. `[seen][code]`
+### 2.3 The laser
 
-**Death:** any mover (OBJ1/OBJ2/saucer) whose box overlaps the digger's runs
-`handleObjectBoxOverlap` → snaps onto the digger, sets sprite `0x35` (death pose) + dwell +
-capture sound → `tickObjectDwellThenTransition` blinks it, then the round boundary docks a man.
-The same collision driver serves all three, so "is X an enemy?" is answered uniformly. `[seen]`
+`loc_24f3` per frame handles the shared reaction/laser sprite slot (`0x8094`–`0x80a4`) and, at
+`loc_26be`, reads **fire = input `0x8018` bit 4 (`0x10`)**. `[seen]`/`[code]`
 
-### 3.4 Scoring and the bonus tiers
-Score is 2-byte packed BCD (`SCORE_LO`/`SCORE_HI`). `awardOnePoint`/`awardTenPoints`/
-`awardTwentyPoints` wrap `addScore`, which BCD-adds and repaints via `drawScoreDigits` /
-`redrawScoreHud` / `unpackScoreDigits` / `renderScoreReadouts`. `[code]`
+- **Firing:** if fire is held, the player is facing horizontally (`0x8069` ∈ {`0x32`,`0x33`,`0xb2`,
+  `0xb3`}), and the laser is **ready (`laserState 0x80a1 == 0`)**, it launches a bolt: direction
+  `0x80a1` := `+8` (right) or `0xf8` (−8, left) by facing, sprite `0x8095` := `0x3a` (bolt),
+  position seeded from the player (`0x8094`/`0x8097` from `0x8068`/`0x806b`), and a VRAM scan
+  pointer `0x809a` seeded into the `0x9000` tilemap. `[seen]`/`[code]` (fire bit4 with horizontal
+  facing drove `0x80a1` 0→1, grounding-1 D.11 — there the bolt hit the wall on launch so `0x8095`
+  read `0x09` blank; a clean live launch to `0x8095=0x3a` was captured in grounding-2 Z-7 at f1253)
+- **Flight:** `loc_272d` advances the bolt as a **straight beam**: the VRAM scan pointer `0x809a`
+  steps **−0x20 per frame** (one tilemap column, e.g. 0x9305→0x92e5→0x92a5→…), the pixel coord
+  `0x8094` advances **+8..+0x10 px per frame**, and the perpendicular coord `0x8097` stays constant
+  → a straight beam down the corridor. It `cpir`-scans the wall table at `0x277a`; on a wall/edge
+  match (grounding: the scan running off the VRAM edge, ptr < 0x9000) it **stops and marks the bolt
+  spent** (`0x8094`:=0 / `0x80a1`:=0, sprite blank `0x8095=0x09`). So the bolt travels an
+  already-cleared corridor and dies at the first wall/edge. `[seen]`/`[code]` (`tape_laser3.lua`,
+  clean flight over ~24 frames then spent; grounding-2 Z-7)
+- **Re-arm / rate:** **one bolt in flight at a time.** While fire is HELD after a bolt goes spent it
+  stays spent; releasing fire clears `0x80a1` back to 0 (`loc_2696`) and the next press launches a
+  fresh bolt. `[seen]` (grounding-1 D.11: while fire is held after a bolt goes spent it stays spent; grounding-2
+  Z-7: releasing fire at f1277-1280 re-armed, and the next press at f1281 launched a fresh bolt)
+- **Enemy kill:** inside the shared move/collision driver `loc_319d`, the overlap test `loc_31d0`
+  compares the **laser box (`0x8094`/`0x8097`)** against the **enemy work box (`0x8083`/`0x8086`)**;
+  on a hit it calls the score routine `0x4673` (**enemy = +100** — see §2.8, overturn), parks the
+  enemy in death state `freeRunTick 0x8090 = 0xc0`, and jumps to the death handler `0x34da`.
+  `[seen]`/`[code]`
+- **Slot sharing:** the dig-carve reaction and the laser bolt time-multiplex ONE sprite slot
+  (`0x8094`–`0x80a4`); `0x80a1` is laser-specific, `0x80a2`/`0x80a3`/`0x80a4` are the shared
+  phase/reload/timer. `[seen]`/`[code]`
+- **Which enemies are shootable:** **all three roaming enemies are shootable.** Enemies 1&2 pass
+  through `loc_319d`/`loc_31d0` `[code]`; **enemy-3 (`0x810a`) too** — its driver `loc_3a13` copies
+  its record into the same scratch box `0x8083` and calls the same `loc_319d`, reaching the same
+  `loc_31d0` kill test. `[seen]` (grounding-2 Z-6: bolt box on enemy-3 → score `0x8031` +1 per
+  overlap at f1352/1365/1373/1377; +100 each, same as enemies 1&2)
 
-The **bonus screen** (`showBonusScreen`) picks a tier from two gameplay config bytes:
-`count = 5; if LOOT_10PT_COUNT (0x8081)==4 count+=5; if LOOT_20PT_COUNT (0x8082)==3 count+=5` →
-**5 / 10 / 15**, which selects the 5000 / 10000 / 15000 ROM label strip and the hold length.
-So the full set — **4 ten-point dirt-gems + 3 twenty-point diamonds** — yields TRIPLE (15000);
-over-collecting past the exact counts (via pokes) *drops* the tier. Grounding confirms
-SINGLE/DOUBLE/TRIPLE = 5000/10000/15000 verbatim. `[seen][code]`
+### 2.4 Enemies (rival explorers) & the two death triggers
 
-### 3.5 The goal tile and terrain reveal
-Distinct from the diamond win: crossing the **goal tile `0x27`** (once past crossing-column
-`0x53`) latches `GOAL_TILE_LATCH` (0x80e7) and its twin `GOAL_CROSSING_LATCH` (0x8077). That
-reroutes the dispatcher to auto-walk the object toward the far edge (`advanceActorWalk` /
-`drawActorWalkFrame` fire a far-edge one-shot) and drives a progressive **terrain reveal**:
-`revealTerrainColumn` / `drawTerrainColumn` step `REVEAL_CURSOR` (0x80e6) back 6 per reveal
-(underflow = reveal finished) to open the next pit section, paced by `REVEAL_GATE`/`REVEAL_PERIOD`,
-with the column animation in `advanceColumnAnimation` / `reseedColumnAnimation`. Retreating below
-the crossing column clears the latch. Not required to complete the level. `[seen][code]`
+`loc_312d`/`loc_316f` drive enemies 1&2 (records `0x80e8`, `0x80f9`, 17 bytes each); `loc_3748 →
+loc_3a13` drives enemy-3 (`0x810a`) during live play. Each frame a record is `ldir`'d into the
+shared work slot `0x8083`, run through `loc_319d`, copied back, and rendered. Enemies 1&2 run only
+when phase `0x8010 ≥ 8`; in attract-demo only enemy 1 runs. `[seen]`/`[code]`
 
-> **Corrected (the "no laser" error bleeding through):** the earlier text folded
-> `advanceReactionObject`'s button+facing "horizontal scroll" into this reveal. That "scroll" is
-> the **laser** (§2b / §3.11), a separate, always-available mechanic — `advanceReactionObject`
-> in fact *suppresses* it while `GOAL_TILE_LATCH` is set (`handleEdgeCollision` hands to the dig
-> driver first). The goal-crossing reveal here is only the `REVEAL_CURSOR` terrain animation.
+- **AI** `loc_319d`: a maze-follower. It derives the enemy's VRAM cell from its pixel position,
+  probes neighbour tiles (`cpir` helpers `sub_33bc`/`33da`/`3410`/`3425`) keyed by its direction
+  `0x8092` and column `0x8093`, and tail-jumps to a movement handler (`0x3476`/`347d`/`3484`/
+  `348b`). The "wander the tunnels" feel = this local tile-probe walk. `[seen]`/`[code]` (enemy-3
+  observed roaming smoothly, §1)
+- **Difficulty scaling:** `loc_30de` seeds the enemy records and derives the speed pair
+  `0x80f6`/`0x8107 = 0x07 − (level & 6)`, i.e. `7,5,3,1` as the level climbs. **Observed:** at the
+  level-1→2 rebuild the pair went **7→5** (grounding-1 B.5, f1336) — "the game just gets faster."
+  `[seen]`/`[code]`
 
-### 3.6 Level and difficulty scaling
-**Layout is level-independent** — every level rebuilds the *same* fixed board (`setupBoardDisplay`
-with `NEXT_LEVEL_BOARD_MODE` = **160**), same 3 diamonds + 4 dirt-gems + geometry. Only
-**difficulty** scales, and it is latched per-round at setup (poking `LEVEL` mid-round does not
-retro-change the seeded knobs). `advanceToNextLevel` does `LEVEL`++ then rebuilds board 160.
-`[seen][code]` The difficulty formulas, **read from the current code** (correcting stale
-folklore):
+**★ The two — and only two — death triggers** (whole-ROM enumeration, grounding-2): only two
+routines write lives `0x802b` — `loc_022d` (round-init: `0x802b = dswLives 0x8053`, then `inc`) and
+`loc_0278` (the death decrement). `loc_0278` is entered from **exactly two** call sites: `jp
+z,0x0278` at **0x13d8** (the transition-timer path in `loc_13c9`, §2.9) and `jp z,0x0278` at
+**0x345f** (the enemy-catch countdown `loc_3458`). So the entire game loses a life in exactly two
+ways: `[seen]`/`[code]`
 
-| Cell | Formula | Source | Range as LEVEL climbs |
-|---|---|---|---|
-| `REVEAL_PERIOD` (0x80e4) | `7 − min(LEVEL+1, 4)` | `seedBackgroundAnimParams.js:73–74` | 6 → 5 → 4 → floor **3** |
-| `OBJ1_MOVE_PERIOD` (0x80f6) | `7 − (LEVEL & 6)` | `seedObjectRecords.js:77` | faster mover cadence |
-| `MAIN_LOOP_DELAY` (0x8011) | `LOOP_DELAY_BASE − LEVEL` | `initRoundAndEnterMainLoop.js:76` | shorter per-frame busy-wait |
-| step timer (0x8067) | `STEP_TIMER_BASE (0x804f) − 4·LEVEL` | `reseedColumnAnimation` | faster column steps |
+1. **Enemy contact → death** — `loc_3203` overlaps the enemy box against the **player box
+   (`0x8068`/`0x806b`)**; on a hit it retargets the enemy, sets a catch sprite `0x8084 = 0x17`,
+   facing `0x8069 = 0x35`, action timer `0x808b = 0x81`, and calls `0x4c9f`. `loc_3458` then ticks
+   `0x808b` down and at 0 does `jp 0x0278`. **Observed live:** poking an enemy record onto the
+   player fired the catch, and **lives `0x802b` 3→2 at frame 1295**, with the on-screen interstitial
+   **"PLAYER 1 / 2 MEN LEFT"** (`frame_1300_cw.png`) — the first real DEATH observed.
+   `[seen]`/`[code]` (grounding-1 A.1)
+2. **Transition-timer expiry in death mode** — the `loc_13c9` mechanism with `0x807d==0` (§2.9).
+   `[seen]`/`[code]`
 
-> **Correction:** `REVEAL_PERIOD` is **`7 − min(LEVEL+1, 4)`** (stepping 6→3), **not**
-> `LEVEL ^ 0x07`. The `ram.js` doc-comment for 0x80e4 still repeats the old `A^=0x07` reading;
-> the executable code in `seedBackgroundAnimParams` is authoritative — trust the code.
+- **Death → board reset (not just reposition):** after the enemy-contact death the transition
+  **clears the tilemap** (~1009/1024 cells → fill `0x24` by f1330) then **redraws the fresh board**
+  by f1418 (phase `0x8010`→0, playerActive `0x8079`→0, player Y `0x8068`→0 respawn-from-top,
+  frameBusyLock `0x807a`→0). Tile counts at f1420 (203×`0x24`, 73×`0x70`) exactly match the
+  pre-death fresh board at f1285, and `frame_1440_cw.png` matches the initial `frame_1180_cw.png`.
+  Matches gameplay.md "jewels restored, tunnels erased." `[seen]`/`[code]` (grounding-1 A.3)
+- **Laser-kill death & respawn (of an enemy):** a shot enemy gets `0x8090 = 0xc0`; `loc_34da`
+  free-runs `0x8090`, and on the `0xff→0x00` wrap (~64 frames) vectors to `loc_34f0` (respawn).
+  `[code]` (that the respawn re-enters the maze is `[guess]`)
 
-### 3.7 Two-player
-`GAME_MODE` (0x8001) = player **count** (1 or 2; ≥3 = attract); `GAME_STATE2` (0x8002) = active
-**player index**. Each player has a backup record (level/round/score/men) saved by
-`saveActivePlayerRecord` and restored by `loadPlayerState`. At a round boundary
-`dockManAndDispatchRoundBoundary` docks the active player's man, persists the record, and on the
-1-player leg routes by men-in-reserve (next round vs teardown); the 2-player leg runs its own
-sub-phase sequencer (`stepRoundSubPhaseAndBranch`) — the P1→P2 handoff and the saved-record swap
-were watched end-to-end on a forced death. `[seen][code]`
+### 2.5 Hazards — falling rocks & arrows, the Pit (they BLOCK, they don't kill)
 
-### 3.8 High score and initials entry
-Three-entry descending table (`HIGH_SCORE_TABLE` 0x8039, 5-byte records: 3 initials + 16-bit
-score). `submitHighScoresAndReset` / `submitPlayerHighScore` offer each finishing player's score;
-`insertHighScore` ranked-inserts a candidate (with 0xFF-initials placeholders) **only if it beats
-`table[rank3]`**. `runHighScoreInitialsEntry` builds the "RECORD YOUR INITIALS" screen and
-`stepHighScoreInitialsEntry` runs the 3-dial entry (`INITIALS_REMAINING` 0x804b counts 3→0),
-reading BUTTON1 to confirm and UP/DOWN to spin (`advanceInitialUp` / `stepInitialDown`).
-Grounded gotcha: the default table is seeded to all-zero scores and the insert needs
-candidate > `table[rank3]`, so a score of 0 never qualifies — any nonzero score does. `[seen][code]`
+**★ Overturn (both grounding laps):** falling rocks (and arrows) **BLOCK / freeze movement — they
+do NOT take a life.** The rock spawner `loc_2c04` paints tile `0x25` and sets overlap flag
+`0x8080`, but `0x8080` is read **only** as a movement blocker: in the vertical/climb routine
+`loc_1a02` a nonzero `0x8080` bails straight to the epilogue (freezes climbing). None of the hazard
+routines touch either death trigger (§2.4) — the whole-ROM enumeration bounds this. So the model's
+old "rocks crush you / a falling hazard costs a life" is **not supported**; gameplay.md's lethal
+falling hazards are, in this ROM, only obstructions. `[seen]`/`[code]` (grounding-1 A.2 code-path;
+extended by the grounding-2 2-death-trigger enumeration. *Caveat:* a rock was never physically
+landed on the player on-screen — the verdict is code-path-grounded plus the exhaustive enumeration,
+not a single rock-on-player frame.)
 
-### 3.9 Rendering, sprites, background
-No i8257 DMA — sprites render straight from sprite RAM. Work-RAM regions (from
-`boards/thepit/hardware.json`): work `0x8000–0x87FF`, colour `0x8800–0x8BFF`, video/tilemap
-`0x9000–0x93FF`, attribute+sprite `0x9800–0x98FF` (per-column scroll `0x9800–0x983F`, 8 sprite
-records `0x9840–0x985F`). The frame is a 32×32 tile grid (`paintScreen`) with a companion
-colour layer; the shared column plotter (`rowColToTileOffset` → `deriveTileWriteCursors` →
-`copyTileColumn`/`copyCappedTileColumn`/`fillColourColumn*`, run length `PLOT_RUN_LENGTH`) paints
-straight down map columns. HUD/furniture painters draw the edges, score HUDs, men/credits/label
-panels, and GAME OVER. Each frame the NMI LDIRs the 32-byte staging buffer `SPRITE_STAGING_BASE`
-(0x8220) to hardware sprite RAM 0x9840; `stageObjectSpriteRecord` / `stageActorSpriteRecords` /
-`stageDigObjectSpriteRecord` fill it, `clearSpriteStagingBuffer` wipes it. The animated
-background sprite (the **spider**, slots via `BG_SPRITE_*`) bounces horizontally and falls
-vertically with an RNG reseed (`advanceBackgroundSprite` / `advanceBackgroundAnimation` /
-`setBgSpriteFrame`); `glitterJewels` colour-cycles the on-screen diamond cells. `[code]`
-The board (video/io/memory) layer is the one **ungated** surface — hand-transcribed from
-`taito/roundup.cpp`, attract-validated — and remains a FIRST DRAFT (io.js/hardware.json say so:
-watchdog timeout and some landmarks are placeholders). `[code]`
+- **Drop queue & falling rocks** `loc_29ad`/`loc_2bf2`/`loc_2c04`: a **24-entry pending table at
+  `0x80c3`** (ROM seed `0x2dab`). When a dig disturbs it, `loc_2c04` picks a **random** non-empty
+  slot (RNG `0x4b1a`, mask `0x1f`, reject ≥24), pairs left/right halves, clears the slot, and
+  **paints tile `0x25`** into the mapped tilemap cell — a rock appears and falls (`0x80ac += 1`
+  per frame). Record bytes: `hazardState 0x80aa=0x10`, `hazardType 0x80ab=0x06` (**rock**), lifetime
+  `0x80b1` from `0x80c2`; the overlap test vs the player sets the blocker flag `0x8080`. `[code]`
+- **Rock vs arrow are the SAME object, different glyph** (grounding-2 Z-9, LOCATED): `hazardType
+  0x80ab` selects `0x06` rock / `0x07` arrow, and `loc_2bd3` writes `0x80ab` straight into the
+  hazard sprite record's **tile byte `0x822a`** — so the type IS the glyph drawn; rock and arrow
+  share identical fall physics. The **resting/seed type is `0x07` (arrow)** — seeded at board setup
+  by `loc_287a` (`0x80aa=0x30, 0x80ab=0x07`, via `loc_24cf`) and on the treasure-capture path
+  (`loc_2cb7 → loc_2d06 → loc_2d4e`, also `loc_28ab`/`loc_2934`; stamps tile `0x41`, sound `0x11`).
+  A dig-disturbed drop flips it to `0x06` (rock) via `loc_2c04`. **Observed:** `0x80ab=0x07` is the
+  resting value from board start (e.g. `collect` f588: `0x80ab=0x07, 0x80aa=0x30`); it flips to
+  `0x06` only when `loc_2c04` spawns a rock. The bottom chamber's row of magenta down-arrows is
+  visible baked in the tilemap (`collect_1080_r270.png`). `[seen]`/`[code]` A live *falling* arrow
+  (`0x80aa=0x10`, `hazardActiveCount 0x80bd>0`) was not captured — see §3. `[guess]` on the live
+  arrow-rain descent.
+- **The Pit crossing** `0x8077` (sticky): set when the player reaches goal tile `0x27`; it gates
+  boarding the ship at the far edge (`col ≥ 0x8a`, `loc_19d0/19e3`) and disables the laser while
+  crossing. **The crossing awards no points** (grounding-2 Z-5: `0x8077=1` + position past `0x8a`
+  fired `loc_19d0/19e3` and armed `0x807c=0xb4`, but score stayed 0000). By itself the cross leaves
+  `0x807d=0` → the timer would expire into the DEATH branch; a *real* reboard reaches the ADVANCE
+  branch only because the ship-landing actor `loc_384a` sets `0x807d=1` (§2.6/§2.9). `[seen]`/`[code]`
+  The sliding-floor tile-animation and the monster beneath it live in VRAM (no work-RAM cell) and
+  were not located/observed — see §3. `[guess]` (the visual only).
+- **Acid vat:** there is **no distinct "acid" cell or routine in the ROM.** The word "acid" appears
+  only in gameplay.md (sourced to Wikipedia / Data Driven Gamer as the pit of acid under the sliding
+  floor). Best read: acid / sliding-floor / monster are gameplay.md **flavour for the ONE grounded
+  Pit-crossing hazard** (`0x8077`), not separate subsystems. `[seen]`(-that-it's-absent)/`[guess]`
+  (the on-screen crossing look).
 
-### 3.10 Sound
-A sound-command ring: `enqueueSoundCommand` writes `(code|0x80)` at `SOUND_RING`+`SOUND_HEAD`
-(mod 8); the NMI dequeues one per frame at `SOUND_TAIL` and writes it to the 0xB800 sound latch
-(`enableSound`/`disableSound` gate the master line). Twenty thin `requestSoundN` wrappers
-(commands 2–21) enqueue specific effects. **What each command *sounds* like is `[guess]`** —
-there is no audio oracle; the web build plays samples/synth "above emulation," tunes BYO-recorded
-by ear, and the audio Z80 + AY chips are not emulated.
+### 2.6 The Zonker + mountain erosion (background animation — NOT a life-loss)
 
-### 3.11 The laser (offense)
-Restated because it is the sharpest correction in this document — and it flipped the wrong way
-first: **the player has a horizontal laser** (§2b). Holding BUTTON1 (IN0 bit4) while facing
-left/right seeds `0x80a1` with a ±8 step and launches a bolt (`REACTION_OBJ`, 0x8094/0x8097)
-that flies horizontally across the shaft (`advanceScroll`) until it hits a wall. While the bolt
-is live, any maze enemy whose box it overlaps is destroyed for a point
-(`stepEnemyMover.handlePlayerBoxOverlap` → `awardOnePoint`, `MOVER_STATE`=192). One bolt aloft at
-a time; the bolt shares its sprite slot with the dig/carve reaction, which is how the weapon
-stayed hidden inside a "reaction object." Survival is evasion **or** offense. Trigger context vs
-the dig button, any cooldown, and which enemies are vulnerable are still to be pinned by a MAME
-grounding pass. `[seen` (played) `][code]`
+**★ Overturn (both grounding laps):** the Zonker / mountain-gone event does **NOT** cost a life.
+The flyer's "the Zonker destroys your ship, costing a life" is **not implemented in this ROM.** In
+90 s of pure idle, lives stayed 3 and level stayed 1 (grounding-2 Z-1); and the whole-ROM
+2-death-trigger enumeration (§2.4) touches neither death site on the mountain path. Instead,
+mountain-gone routes to the level-**ADVANCE** path. `[seen]`/`[code]`
 
----
+- **Mountain erosion** `loc_241c` (main-loop step 4) + seed `loc_23e8`: `[seen]`/`[code]`
+  - `loc_23e8` sets erosion pointer `0x8065 = 0x9104` and countdown
+    `0x8067 = diffBase(0x804f) − 4×level(0x8028)` — **erosion runs faster every level** (observed
+    `0x8067` cycling ~0x33→0).
+  - `loc_241c` bails until phase `0x8010 ≥ 0x0a`, then each expiry walks the pointer down the
+    mountain column writing tile `0x31`, advancing `0x8065` by `0x20` until the `0x92a4`/`0x93c0`
+    row boundary — the mountain visibly eating away. In **pure idle** the pointer merely oscillates
+    (`0x8066` 0x91↔0x92, no net progress) — the mountain animates but never fully erodes on its own
+    (grounding-2 Z-1). `[seen]`
+  - **When the mountain is gone** it reads `boardEndPhase 0x807b`: `[seen]`/`[code]`
+    - `0x807b == 0` (pure-idle case) → `loc_24c7`: sets `0x807b = 2`, plays sound `0x4c6b`, and
+      **does nothing else** — no life, no ship drop.
+    - `0x807b == 1` (the **ESCAPE** case — player reached the top rung with treasure, latched by
+      `loc_1a02`) → forces `shipY 0x810d = 0x16` (ship descends); the ship-landing actor `loc_384a`
+      then sets `0x807d = 1` → **ADVANCE** (level++), never a life loss.
+    - `0x807b ≥ 2` → `ret`.
+  - **Observed** (grounding-1 A.4, forced two ways): the ship descends (X 0x00→0x24, Y 0x16→0x17),
+    `loc_384a` sets `0x807d=1` + `0x807c=0x78`; on expiry → `0x02fd` → **level `0x8028` 1→2 (~f1460)**
+    → full board rebuild — **lives `0x802b` stayed 3 the whole time.** `[seen]`
+- **The Zonker tank + shell** `loc_2f71` (background scenery animation): `[code]`
+  - Stage 1 (gated by `0x80e7`): scroll-reveals 6-tile terrain rows from ROM table `0x3048` into a
+    VRAM column at `0x938c` — the mountain being drawn.
+  - Stage 2: an oscillator — tank X (`0x80db`) bounces in `[0x19,0x38)`, sprite frame `0x80dc`
+    toggles `0x38/0x39`, and a **shell Y (`0x80de`) accelerates downward** (step `0x80e0`) until
+    `y ≥ 0x86`, where it clamps, re-rolls RNG, and resets — the tank repeatedly lobbing a shell.
+  - Stage 3: publishes the 4-byte sprite record `0x822c`, biased by `0x8051` (§2.10).
+- Net: the Zonker is a **visual idle-pressure animation** the flyer dramatizes — but with no
+  countdown clock and no ship-kill, it exerts no mechanical life penalty in this ROM. `[seen]`
 
-## 4. Confidence conventions
+### 2.7 Enemy-3 / the ship / the board intro (one slot, triple use)
 
-- **`[seen]`** — grounded by playing the real ROM in MAME 0.288 (the
-  [grounding](../../docs/grounding.md) rounds).
-- **`[code]`** — read directly from the current idiomatic routines / `ram.js` / board layer.
-- **`[guess]`** — plausible but unproven; the honest floor.
+`0x810a` is a **2-sprite actor** (primary `0x810a`–`0x8112`, twin `0x811b`–`0x8123`), init'd by
+`loc_36fe` and stepped by `loc_3748`/`0x3a4c`/`0x384a`/`0x3a13`/`0x38c8`/`0x3984`. `[seen]`/`[code]`
+Grounding (G.17) confirmed **all three of its jobs** on one slot:
 
-**The honest floor (one more pass won't move these — structural, not unlooked):**
-sound-command → audio mapping is `[guess]` (no oracle); `VARIANT` (0x8048) and
-`DIG_OVERLAP_HOLD` (0x8080, the refuted "climb gate") are dormant in every reachable play path;
-the left-vs-right sign of the movers (`CARVE_SEAM_LEFT`/`RIGHT`) is rotation-ambiguous — the axis
-is confirmed screen-horizontal but which arm is "left" is not pinned; the `TREASURE_COLLECTED`
-byte-reuse coupling (§3.2) is unproven. `ram.js` name confidence is tagged `(strong/fair/weak)`
-per cell; the pixel gate, not the name, is the correctness authority.
+- **Intro set-piece:** during the low-phase intro this actor flies the **saucer (top-left) and
+  ZONKER tank (top-right)** into place, then they're baked into the background tilemap and the
+  sprite freed. Both are visible as baked scenery in `frame_1180_cw.png`. `[seen]`
+- **Live enemy-3:** during live play (`0x8010 ≥ 0x0a` → `loc_3a13`) the same slot is a **roaming
+  hostile** — observed drifting X 0xe3→0xd5, Y 0x23→0x33, walk-cycle tiles 0x16/15/14/17 — and it is
+  **shootable** by the laser (§2.3, grounding-2 Z-6). `[seen]`
+- **Event-ship:** when the mountain is gone in the escape case, the same slot becomes the
+  **descending rescue ship** (`loc_384a` → advance, §2.6). `[seen]`
 
----
+`loc_36fe` seeds it (primary tile `0x2e`, X `0x24`, Y 0, step `0x0100`; twin tile `0x2f`, X `0x34`);
+`loc_3748` is phase-keyed on `0x8010` (0–2 move; 3–5 one-shot spawn then move; 6–8 → `0x38c8`; 9 →
+`0x3984`; `≥0x0a` → `0x3a13` live enemy-3; alt `0x807b != 0` → `0x37cf`). `[code]`
 
-## 5. Routine map — all 169 (by ROM address)
+### 2.8 Jewels & scoring
 
-| ROM | Routine | Role |
-|---|---|---|
-| 0x0000 | `resetVector` | Power-on entry: the first thing the CPU runs after reset. |
-| 0x0066 | `serviceVblankNmi` | Per-frame vblank service: ack, watchdog/credit guard, fire a queued sound, blit sprites, tick timers, debounce inputs. |
-| 0x01a4 | `coldBootInit` | Power-on cold-boot init: bring the machine up from reset and seed state. |
-| 0x01f9 | `rearmMachineAndBranchOnCredits` | Boot/restart entry: re-arm the machine, fork on the credit count. |
-| 0x021c | `showCreditScreen` | Warm-restart entry: arm game mode 3, reset the work stack, enable interrupts. |
-| 0x022d | `startGame` | Set up a fresh game once a credit registers, then enter play. |
-| 0x0278 | `dockManAndDispatchRoundBoundary` | Round boundary: dock the active player's man, persist their record, route to setup/teardown. |
-| 0x02a1 | `stepRoundSubPhaseAndBranch` | Sequence the round sub-phase byte; hand off to setup or teardown. |
-| 0x02ca | `setUpRoundAndHoldIntro` | One-time round-start setup: load the player's saved progress, hold the intro. |
-| 0x02e1 | `holdRoundIntroLoop` | Round-start intro-hold loop: repaint the "PLAYERS" HUD label. |
-| 0x02fd | `advanceToNextLevel` | Clear the current level, `LEVEL`++, rebuild the fixed board (mode 160). |
-| 0x031a | `initRoundAndEnterMainLoop` | Final per-round (re)init: run the setup chain, derive `MAIN_LOOP_DELAY`, enter the loop. |
-| 0x0348 | `mainLoop` | The in-game / attract-demo main loop: one frame of game work, forever. |
-| 0x0371 | `submitHighScoresAndReset` | Game-over teardown: offer each finishing player's final score, then reset. |
-| 0x03ac | `resetStateAndShowSetup` | Reset/round-restart epilogue: begin a fresh attract cycle. |
-| 0x03be | `enterPlayMode` | Switch into active play, seed the per-round counters. |
-| 0x03e8 | `steerDemoPlayer` | Generate the attract demo's per-frame one-hot steering. |
-| 0x0673 | `paintScreen` | Lay down a whole screen: a selectable tile layer and its colour. |
-| 0x06ac | `glitterJewels` | Colour-cycle the on-screen diamond cells so they glitter. |
-| 0x1362 | `seedObjectStartState` | Drop the tracked-object / level state block back to its start values. |
-| 0x13c9 | `dispatchObjectFrameByStateTimer` | Head of the object/state dispatcher, gated by the state-lockout timer. |
-| 0x13de | `advanceTrackedObject` | Route the tracked object (digger) to its per-frame handler by its state gates. |
-| 0x1420 | `stepObjectFromControl` | Advance the tracked object one frame from its control input (joystick or demo). |
-| 0x1434 | `advanceObjectFrame` | Pick the object's per-frame update from its mode + move command. |
-| 0x144c | `routeIdleObjectByMoveCommand` | Route an at-rest object on its move-command **direction** bits (0x01/0x02/0x0c). |
-| 0x1468 | `windUpObjectMove` | Settle the object's animation phase toward a move command, then run its handler. |
-| 0x1493 | `stepObjectRowFlipped` | Step the object the opposite way along its move axis; fire the dig one-shot at the boundary. |
-| 0x14cd | `locateObjectCellCheckGoal` | Locate the object's tilemap cell; latch a goal crossing if the goal is just ahead. |
-| 0x1515 | `collectAlignedLootElseResolveTile` | Collect a loot tile the object landed on, else resolve the tile. |
-| 0x1568 | `resolveObjectTerrainStep` | Resolve a moving object's step against the terrain under it. |
-| 0x1659 | `advanceObjectWalkFrame` | Step a moving object's walk animation, then build its record. |
-| 0x167f | `stepObjectRowUnflipped` | Advance the object one step along the row axis; derive its tile row. |
-| 0x16b9 | `locateActorCellCheckGoal` | Route a moving actor's horizontal step; detect goal reach. |
-| 0x1704 | `resolveActorTerrainStep` | Resolve a moving actor's horizontal step vs terrain; collect loot (death pose `0x35` on the kill path). |
-| 0x184a | `walkActor` | Advance an actor's walk: accumulate position, pick the walk frame. |
-| 0x186a | `stampFixedFrameAndResolveTile` | Stamp the actor's fixed animation frame, then run the shared cell/tile tail. |
-| 0x186f | `resolveObjectTile` | Locate the object's tile cell, read the tile under it, dispatch. |
-| 0x18cf | `collectLootTile` | Collect the scoring loot tile the actor aligned onto; +20 gated by the feature latch. |
-| 0x191f | `triggerDigReaction` | Classify the tile under a digging actor and stage its reaction. |
-| 0x19d0 | `advanceActorWalk` | Carry an actor's walk one frame; fire the goal-crossing far-edge one-shot. |
-| 0x19e3 | `drawActorWalkFrame` | Commit the actor's animation frame; fire the crossing's far-edge one-shot. |
-| 0x1a02 | `stepObjectAndResolveTile` | **Core dig/collect/surface:** step the digger along the climb axis, resolve loot/solid/diggable, set the win flag at the top rung. |
-| 0x1b5b | `stageObjectSpriteRecord` | Build the object's 4-byte deferral sprite record at 0x8220. |
-| 0x23e8 | `reseedColumnAnimation` | Seed a tilemap write pointer + level-scaled countdown; cue the reveal. |
-| 0x241c | `advanceColumnAnimation` | One frame-gated step of a vertical tile-column animation. |
-| 0x24cf | `resetReactionState` | Reset the per-object reaction state machine to idle. |
-| 0x24f3 | `advanceReactionObject` | Per-frame driver of the dig/push reaction **and the laser** (§3.11): reads BUTTON1, and on facing left/right launches the horizontal bolt. |
-| 0x287a | `seedDigObjectBlock` | Seed the dig/target object control block at round start. |
-| 0x28ab | `spawnDigEntity` | Stage a dig entity at the actor's aligned cell, commit it. |
-| 0x2934 | `commitDigEntity` | Commit one dig entity into its tilemap cell, patch neighbours. |
-| 0x29ad | `advanceDigCarveObject` | Per-frame driver for the dig/carve object. |
-| 0x2bd3 | `stageDigObjectSpriteRecord` | Compose the dig object's sprite so it draws at its cell. |
-| 0x2bf2 | `startNextDigSpawn` | Start the next queued dig-object spawn, or clear the spawn-active flag. |
-| 0x2c04 | `spawnPendingDigObject` | Pop a random queued column and spawn a dig object there. |
-| 0x2c91 | `flagObjectTargetOverlap` | Flag whether the placed dig-target cell coincides with the object (the "projectile-spawn" comment = this loot cell). |
-| 0x2cb7 | `captureTargetOnOverlap` | Tick the dig target's countdown; on expiry snap the target. |
-| 0x2d06 | `advanceDigTarget` | Advance the dig target one step, route on the tile it now covers. |
-| 0x2d4e | `landDigTarget` | Land the descending dig/capture target when it reaches terrain. |
-| 0x2d6b | `stampGlyphColumn` | Stamp the fixed five-tile glyph down the object's map column. |
-| 0x2f2f | `seedBackgroundAnimParams` | Seed round/level param block 1; derive `REVEAL_PERIOD` = 7−min(LEVEL+1,4). |
-| 0x2f71 | `advanceBackgroundSprite` | Per-frame driver for the animated background sprite (the spider). |
-| 0x2f88 | `revealTerrainColumn` | Reveal the next column of the scrolling terrain backdrop. |
-| 0x2fb7 | `drawTerrainColumn` | Write one vertical strip of backdrop tiles, tick the reveal. |
-| 0x2fc0 | `advanceBackgroundAnimation` | Per-frame phase clock for the background flip animation. |
-| 0x2fd9 | `setBgSpriteFrame` | Commit the chosen background flip tile. |
-| 0x30de | `seedObjectRecords` | Seed round/level param block 2; derive `OBJ1_MOVE_PERIOD` = 7−(LEVEL&6). |
-| 0x312d | `advanceObjectMovers` | Per-frame object-pair mover pass: drive OBJ1 (claw-creature). |
-| 0x316f | `advanceObjectMover2` | Advance OBJ2 (claw-creature) one frame, stage its sprite. |
-| 0x319d | `stepEnemyMover` | **Shared enemy step:** arrival/capture/retarget/patrol; the death-on-contact box overlap lives here. |
-| 0x33bc | `tileInProbeRow` | Is the tile at a mover's probe cell listed in this phase's table? |
-| 0x33da | `probeRowBackTilePair` | Probe phase-keyed ROM tables for the tile one row back. |
-| 0x3410 | `nextTileInProbeRow` | Sibling table search for the object-movement dispatcher. |
-| 0x3425 | `probeRowAheadTilePair` | Two-stage probe: the tile one row ahead of the mover. |
-| 0x3458 | `tickObjectDwellThenTransition` | Tick a per-object state countdown; blink the sprite (death dwell). |
-| 0x3476 | `stepMoverUp` | One preset move-step for the mover: step its X along a column. |
-| 0x347d | `stepMoverMirrored` | Object-mover step for direction 1. |
-| 0x3484 | `stepMoverDown` | Fixed-direction patrol-mover preset. |
-| 0x348b | `stepMoverUnmirrored` | Object-mover step for direction 3. |
-| 0x34da | `advanceDormantMover` | Mover housekeeping: advance two cadence counters. |
-| 0x34f0 | `reseedMoverCadenceAndRearmState` | Periodic refresh: reseed the cadence byte, re-arm the mover state. |
-| 0x36fe | `seedActorSpawnState` | Put the two-body actor (saucer + twin) into its spawn state. |
-| 0x3748 | `advanceTwoSpriteActor` | Per-frame update for the two-sprite actor (saucer body + twin). |
-| 0x37cf | `spawnAltPhaseActor` | Bring the alt-phase actor (primary + shadow twin) online. |
-| 0x384a | `advanceAltPhaseActor` | Per-frame animate + march step for an active object. |
-| 0x38c8 | `advanceOrRebuildTwinActor` | Per-frame gate for the two-body actor; keep it moving while in view. |
-| 0x3945 | `paceActorCadence` | Cadence front-end for the actor phase body (period-8 timer). |
-| 0x3968 | `easeActorToRest` | Coordinate stepper: ease an actor's coord toward rest; lock the twin +16. |
-| 0x3984 | `spawnTwinActor` | Spawn the two-body actor once when its spawn is requested. |
-| 0x3a13 | `advanceActorMovers` | Advance the two-sprite actor's record(s) through the shared mover. |
-| 0x3a4c | `stageActorSpriteRecords` | Stage the actor's two hardware sprite records (slots 6/7). |
-| 0x3a6f | `showSetupScreen` | Paint the round-setup screen (playfield furniture + HUD counts). |
-| 0x3b81 | `showFixedScreen` | Paint a canned full-screen image from ROM, hold briefly. |
-| 0x3ba8 | `holdFixedScreen` | Paint a canned full-screen image, hold it forever. |
-| 0x3bec | `showBonusScreen` | Tier-selected bonus screen (5/10/15 → 5000/10000/15000), animated hold. |
-| 0x3cc1 | `drawSharedPanel` | Lay out the fixed panel: left edge + both players' score HUD. |
-| 0x3d49 | `drawSetupCreditsPanel` | Paint a fixed 9-cell HUD panel at column 1, row 12. |
-| 0x3d7e | `cycleStagedColumnColour` | Advance the `BOARD_MODE` byte (bit3 clear), paint it as colour. |
-| 0x3d8a | `drawGameOverText` | Paint a fixed 9-cell vertical strip at column 6, row 12. |
-| 0x3dae | `rowColToTileOffset` | Turn a (row, column) tile-cell into a linear tilemap offset. |
-| 0x3dc9 | `deriveTileWriteCursors` | Turn a tilemap offset into colour-RAM + video-RAM write cursors. |
-| 0x3ddb | `copyCappedTileColumn` | Copy a tile-code run down a VRAM column, capping the top cell. |
-| 0x3dea | `copyTileColumn` | Copy a stored run of tile codes straight down a VRAM column. |
-| 0x3e01 | `fillColourColumn` | Paint a vertical run of colour-RAM cells with one byte. |
-| 0x3e13 | `cycleColumnColour` | Advance the shared colour index; repaint one column. |
-| 0x3e1d | `fillColourColumnAt` | Paint a full-height colour-RAM column with one colour. |
-| 0x4632 | `saveActivePlayerRecord` | Copy the live game record into the active player's backup slot. |
-| 0x4644 | `loadPlayerState` | Make the selected player's saved level/score the live state. |
-| 0x4673 | `awardOnePoint` | Add one point to the running score. |
-| 0x467b | `awardTenPoints` | Add 10 (with sound), repaint the digits. |
-| 0x4683 | `awardTwentyPoints` | Add 20 (with sound), repaint the digits. |
-| 0x4689 | `addScore` | BCD-add points to the active player's score, repaint. |
-| 0x46af | `drawScoreDigits` | Repaint the active player's on-screen score digits. |
-| 0x46f4 | `drawLeftEdgeColumn` | Stamp the fixed playfield left edge column. |
-| 0x472c | `redrawScoreHud` | Repaint both players' score displays + status. |
-| 0x4785 | `drawBestScoresTodayLabel` | Stamp a fixed edge column, tint it. |
-| 0x47a1 | `drawRightEdgeColumn` | Draw the rightmost playfield column from work RAM. |
-| 0x47e1 | `drawPlayerLabel` | Paint a fixed vertical panel (tile column + colour). |
-| 0x4816 | `paintPlayfieldStripCol1Row11` | Paint one fixed vertical strip of the static playfield. |
-| 0x483a | `drawMenLeftPanel` | Paint the men-left HUD panel at column 5 (two variants). |
-| 0x4894 | `drawCreditsDisplay` | Paint the credits HUD panel at column 6, row 10. |
-| 0x48c4 | `cyclePanelColumnColour` | Recolour a fixed nine-cell colour-RAM column. |
-| 0x48e5 | `drawGameOverLabel` | Stamp the "GAME OVER" label down its HUD column. |
-| 0x492a | `drawCopyrightLine` | Paint one 32-tile screen column, colour it. |
-| 0x4b10 | `disableFrameInterrupt` | Switch the per-frame (vblank) interrupt off. |
-| 0x4b14 | `enableNmi` | Switch on the per-frame vblank interrupt. |
-| 0x4b1a | `advanceRandom` | Step the 16-bit LFSR PRNG, return a fresh byte. |
-| 0x4b3c | `setupBoardModeC0` | Stow the 0xC0 board-mode byte, run the shared display setup. |
-| 0x4b40 | `setupBoardMode90` | Stow the 0x90 board-mode byte, rebuild the screen. |
-| 0x4b44 | `blankScreen` | The mode-0 door into the shared display-setup body. |
-| 0x4b46 | `setupBoardDisplay` | Record the board-mode byte, rebuild the whole screen (mode 160 at level up). |
-| 0x4b55 | `applyDipSwitches` | Read the cabinet DIP switches, commit difficulty/lives/coinage. |
-| 0x4bc7 | `initScoreDisplay` | Blank the readout strip, seed three zeroed readout records. |
-| 0x4bea | `resetScoreAndSoundQueue` | Blank the score bytes + sound queue. |
-| 0x4bff | `waitFrames` | Pause a fixed number of video frames, then return. |
-| 0x4c11 | `clearSpriteAndAttributeRam` | Wipe sprites + per-column scroll for a clean frame. |
-| 0x4c1c | `clearSpriteStagingBuffer` | Zero the 64-byte staging block during setup. |
-| 0x4c27 | `fillVideoRam` | Paint every tilemap cell with one tile code. |
-| 0x4c37 | `fillColorRam` | Repaint every colour-RAM cell with one board-mode byte. |
-| 0x4c47 | `disableSound` | Pull the sound-enable line low (silence). |
-| 0x4c4d | `enableSound` | Switch the master sound-enable line on. |
-| 0x4c57 | `requestSound2` | Enqueue sound-command 2. |
-| 0x4c5b | `requestSound3` | Enqueue sound-command 3. |
-| 0x4c5f | `requestSound4` | Enqueue sound-command 4 (game-start). |
-| 0x4c63 | `requestSound5` | Enqueue sound-command 5. |
-| 0x4c67 | `requestSound6` | Enqueue sound-command 6. |
-| 0x4c6b | `requestSound7` | Enqueue sound-command 7. |
-| 0x4c6f | `requestSound8` | Enqueue sound-command 8. |
-| 0x4c73 | `requestSound9` | Enqueue sound-command 9. |
-| 0x4c77 | `requestSound10` | Enqueue sound-command 10. |
-| 0x4c7b | `requestSound11` | Enqueue sound-command 11. |
-| 0x4c7f | `requestSound12` | Enqueue sound-command 12. |
-| 0x4c83 | `requestSound13` | Enqueue sound-command 13. |
-| 0x4c8b | `requestSound15` | Enqueue sound-command 15. |
-| 0x4c8f | `requestSound16` | Enqueue sound-command 16. |
-| 0x4c93 | `requestSound17` | Enqueue sound-command 17. |
-| 0x4c97 | `requestSound18` | Enqueue sound-command 18. |
-| 0x4c9b | `requestSound19` | Enqueue sound-command 19. |
-| 0x4c9f | `requestSound20` | Enqueue sound-command 20 (enemy capture). |
-| 0x4ca3 | `requestSound21` | Enqueue sound-command 21. |
-| 0x4ca5 | `enqueueSoundCommand` | Append one sound request to the ring buffer. |
-| 0x4cbf | `submitPlayerHighScore` | Offer the finishing player's score to the "BEST SCORES" table. |
-| 0x4cca | `renderScoreReadouts` | Lay the three score-readout numbers into their display cells. |
-| 0x4d0c | `unpackScoreDigits` | Expand the staged packed score into display digit cells. |
-| 0x4d3a | `insertHighScore` | Ranked-insert a candidate into the descending three-entry table. |
-| 0x4df8 | `runHighScoreInitialsEntry` | The initials-entry screen: build display, run the dial loop, commit. |
-| 0x4eea | `stepHighScoreInitialsEntry` | Per-frame initials-entry action dispatch; reads BUTTON1 to confirm. |
-| 0x4f26 | `stepInitialDown` | Step a bounded cyclic index down one notch, request sound 8. |
-| 0x4f38 | `advanceInitialUp` | Step a cyclic index up one notch, request sound 8. |
-| 0x4f47 | `showColourTestScreen` | The DIP-selected colour/tile test pattern (UP+BUTTON1 advances). |
+Collection is handled identically in the horizontal (`loc_18cf`/`loc_1515`), vertical (`loc_1a02`),
+and terrain (`loc_1568`) paths, and **all scoring is displayed ×100** (grounding-2 Z-2: the BCD
+field `0x8034:0x8031` renders as four digit tiles with fixed trailing zeros in the tilemap; field
+`0x0060` reads **"SCORE1 6000"** on screen, `collect_1080_r270.png`). `[seen]`/`[code]`
 
-## 6. RAM map — all 141 named cells (by address)
+- **Crystal** — tile `0x3a`: award routine **`0x467b`** (`BC=0x0010`, sound `0x10`), bump
+  **`crystalCount 0x8081`**, blank the cell to `0x70`. **Displayed +1000.** `[seen]` (grounding-2
+  Z-3: as the player dug down, `0x8081` incremented 1,2,3,4,6 in lockstep with `0x8031` = 0x10,0x20,
+  0x30,0x40,0x60 — each crystal +0x10 BCD = +1000)
+- **Diamond** — tiles `0x3b`/`0x3c`/`0x3d`: **gated by prizeGate `0x8076`** (armed by tile `0x26`),
+  with a **one-shot latch `0x8078` (firstDiamondLatch)** — the first diamond only awards when
+  `hazardActiveCount 0x80bd == 0`, sets the latch, and thereafter diamonds award directly. Award
+  routine **`0x4683`** (`BC=0x0020`), bump **`diamondCount 0x8082`**, blank to `0x70`. **Displayed
+  +2000.** `[seen]`/`[code]` (code path + ×100 scale confirmed; Z-2/Z-3)
+- **Enemy kill** — `0x4673` (via `loc_31d0`), `BC=0x0001` → **+100 displayed.** `[seen]`
+  **★ Overturn:** the old model/gameplay.md "+200 per enemy" is wrong; it is **+100** (grounding-2
+  Z-2 scale + Z-6 live +1/kill on enemy-3).
+- **Cross the Pit / reboard — NO separate award.** `[seen]` **★ Overturn:** there is no +1000
+  "reboard" bonus. The pit-cross awards **zero** (grounding-2 Z-5). gameplay.md's "+1000 for
+  crossing" is really the **crystal** (+1000); the only board reward is the `loc_3bec` bonus below.
+- **Board-complete BONUS** — routine **`loc_3bec`, called by `loc_02fd`** (the level-advance
+  routine), so it runs at **board-complete**. `[seen]` **★ Overturn** of gameplay.md's "6 diamonds
+  doubles / 7 triples": the real rule is a **3-tier additive threshold**:
+  ```
+  count 0x800a = 5 + 5·(crystalCount 0x8081 == 0x04) + 5·(diamondCount 0x8082 == 0x03)  → {5, 10, 15}
+  ```
+  It then picks one of **three text messages** (ROM 0x4a14/0x4a21/0x4a2e, keyed by 5/10/15) and adds
+  `BC=0x0010` (+1000) to the score `count` times. So the bonus = **count × 1000 = 5000 / 10000 /
+  15000** — NOT a x2/x3 multiplier keyed to 6/7 diamonds. **Observed** (grounding-2 Z-4: crys=4,
+  diam=3 → `0x800a=0x0f (15)`, level 1→2, score ramped 0000→0150 = **+15000**). `[seen]`/`[code]`
+- **Score storage:** `scoreLo/Hi 0x8031/0x8034` (BCD), per-player `0x8032`/`0x8035` (P1),
+  `0x8033`/`0x8036` (P2). `[code]`
 
-Confidence tags in parentheses are the `ram.js` provenance grade (`strong`/`fair`/`weak`).
+**Treasure-reveal glyph** `loc_2d6b` (LOCATED, not rendered on-screen — grounding-2 Z-10): on a
+dig/countdown expiry (`0x80b1` hits the `0x40` reload sentinel via `loc_2cb7`, `jp z,0x2d6b`) it
+stamps a **fixed 5-tile glyph** (codes `0x23,0x18,0x17,0x14,0x3e` at offsets +0x3f/+0x1f/−0x01/
+−0x21/−0x41 from the object pointer `0x806e`) and a 5-cell colour-`0x06` column, then **resets
+`firstDiamondLatch 0x8078=0`** and arms `transitionTimer 0x807c=0xb4`. The latch-reset ties it to
+the prize sequence → it is the **buried-treasure reveal.** Code role solid `[code]`; on-screen
+render not captured `[guess]` (needs the full capture-window state — see §3).
 
-| Addr | Name | Role |
-|---|---|---|
-| 0x8000 | `CREDIT_COUNT` | Credit counter (clamp 9); watchdog anchor (strong). |
-| 0x8001 | `GAME_MODE` | Player count / mode: 1/2 = 1P/2P, ≥3 = attract demo (fair). |
-| 0x8002 | `GAME_STATE2` | Active-player index (fair). |
-| 0x8003 | `COIN_SW_ACCUM` | Coin-switch edge accumulator (strong). |
-| 0x8004 | `START1_SW_ACCUM` | 1P-start switch accumulator (strong). |
-| 0x8005 | `START2_SW_ACCUM` | 2P-start switch accumulator (strong). |
-| 0x8007 | `FRAME_COUNTER_PRESCALER` | /60 down-divider feeding `FRAME_COUNTER` (strong). |
-| 0x8009 | `FRAME_WAIT_COUNTDOWN` | Per-frame countdown the NMI decrements; `waitFrames` arms it (fair). |
-| 0x800a | `LOOP_COUNTER` | Memory-resident loop down-counter (fair). |
-| 0x800d | `PRNG_LOW` | LFSR low byte + the returned random draw (strong). |
-| 0x800e | `PRNG_HIGH` | LFSR high byte (strong). |
-| 0x8010 | `FRAME_COUNTER` | Frame counter cleared at reset/round init (fair). |
-| 0x8011 | `MAIN_LOOP_DELAY` | Per-frame busy-wait = `LOOP_DELAY_BASE − LEVEL` (strong). |
-| 0x8015 | `IN1_DEBOUNCED` | Debounced IN1 (coin/start) (strong). |
-| 0x8016 | `IN1_PREV` | Previous IN1 sample (strong). |
-| 0x8018 | `IN0_DEBOUNCED` | Debounced IN0 (joystick + dig button) (strong). |
-| 0x8019 | `IN0_PREV` | Previous IN0 sample (strong). |
-| 0x801a | `OBJECT_PHASE` | Object packed anim/command phase (fair). |
-| 0x801b | `DEMO_STEER_DIR` | Attract-demo one-hot steering command (strong). |
-| 0x801c | `CREDIT_MIRROR_A` | Redundant credit copy (watchdog) (strong). |
-| 0x801e | `SOUND_HEAD` | Sound-ring head index mod 8 (strong). |
-| 0x801f | `SOUND_TAIL` | Sound-ring read/dequeue index mod 8 (strong). |
-| 0x8020 | `SOUND_RING` | Sound-ring buffer base (8 slots) (strong). |
-| 0x8028 | `LEVEL` | Current player's level/round; every difficulty knob scales off it (strong). |
-| 0x802b | `MEN_LEFT` | Active player's working lives count (strong). |
-| 0x8031 | `SCORE_LO` | Low packed-BCD score byte (fair). |
-| 0x8034 | `SCORE_HI` | High packed-BCD score byte (fair). |
-| 0x8037 | `SCORE_DISPLAY_LOW` | Low byte of the 16-bit score staged for display (fair). |
-| 0x8038 | `SCORE_DISPLAY_HIGH` | High byte of the staged display score (fair). |
-| 0x8039 | `HIGH_SCORE_TABLE` | Base of the descending 3-entry table (5-byte records) (fair). |
-| 0x8048 | `VARIANT` | Round-variant selector; dormant in reachable paths (weak). |
-| 0x804b | `INITIALS_REMAINING` | Initials-entry down-counter (3→0) (strong). |
-| 0x804c | `COINS_PER_CREDIT_A` | DSW coin cost, line 2 (strong). |
-| 0x804d | `COINS_PER_CREDIT_B` | DSW coin cost, line 3 (strong). |
-| 0x804e | `LOOP_DELAY_BASE` | DSW main-loop pacing base (strong). |
-| 0x804f | `STEP_TIMER_BASE` | DSW step-timer base; seeds 0x8067 = base − 4·LEVEL (fair). |
-| 0x8051 | `SPRITE_COORD_BIAS` | Cabinet-derived pixel offset (0 in normal play) (strong). |
-| 0x8053 | `STARTING_MEN` | DSW starting lives (3 or 4) (strong). |
-| 0x8055 | `PLOT_RUN_LENGTH` | Run length for the shared column plotter (strong). |
-| 0x8057 | `BOARD_MODE` | Board/entry-select mode byte (fair). |
-| 0x8058 | `TILE_COL` | Tile-cell column byte for (row,col)→offset (fair). |
-| 0x8059 | `TILE_ROW` | Tile-cell row byte (fair). |
-| 0x805a | `TILEMAP_OFFSET` | 16-bit tilemap offset 32·row+col (fair). |
-| 0x805c | `GLITTER_COUNTDOWN` | Diamond-glitter recolour countdown (fair). |
-| 0x805e | `COLOUR_RAM_CURSOR` | 16-bit colour-RAM write cursor (fair). |
-| 0x8065 | `COLUMN_ANIM_WRITE_PTR` | VRAM write cursor for the column-reveal animation (fair). |
-| 0x8067 | `COLUMN_ANIM_TIMER` | Per-step frame countdown for the column animation (fair). |
-| 0x8068 | `OBJ_X` | Tracked-object screen-horizontal probe; drives the tilemap **row** (strong). |
-| 0x8069 | `SPRITE_CODE` | Current sprite/anim frame code for the actor being drawn (strong). |
-| 0x806a | `OBJ_SPRITE_ATTR` | Object sprite attribute (palette + priority) (fair). |
-| 0x806b | `OBJ_Y` | Tracked-object screen-vertical probe; drives the tilemap **column** (strong). |
-| 0x806c | `OBJ_STEP_X` | Tracked-object per-frame X step (fair). |
-| 0x806d | `OBJ_STEP_Y` | Tracked-object per-frame Y step (fair). |
-| 0x806e | `ACTOR_CELL_PTR` | 16-bit ptr to the actor's current VRAM display cell (strong). |
-| 0x8071 | `OBJ_TILE_COL` | Tilemap column cell under the tracked object (fair). |
-| 0x8073 | `OBJ_TILE_ROW` | Tilemap row cell under the tracked object (fair). |
-| 0x8076 | `FEATURE_TILE_LATCH` | Under-tile `0x26` latch; **prerequisite that unlocks the +20 diamond pickup** (fair). |
-| 0x8077 | `GOAL_CROSSING_LATCH` | Second-stage goal-crossing latch (drives the post-goal walk) (fair). |
-| 0x8078 | `TREASURE_COLLECTED` | Set on a +20 diamond pickup; at the top rung → `SPAWN_PHASE`=1 = **win** (fair). |
-| 0x8079 | `OBJECT_ACTIVE` | Tracked-object presence flag (0 / 0xff) (strong). |
-| 0x807b | `SPAWN_PHASE` | Spawn/alt-phase flag; **level-complete trigger** the completion actor fires on (fair). |
-| 0x807c | `STATE_TIMER` | State-lockout countdown for the tracked object (fair). |
-| 0x807e | `CARVE_SEAM_LEFT` | Dug-channel seam flag, one move arm (axis horizontal; L/R side unpinned) (fair). |
-| 0x807f | `CARVE_SEAM_RIGHT` | Mirror seam flag, opposite move arm (fair). |
-| 0x8080 | `DIG_OVERLAP_HOLD` | Dig-target box-overlap hold flag (the refuted "climb gate") (weak). |
-| 0x8081 | `LOOT_10PT_COUNT` | Count of +10 dirt-gem pickups; ==4 adds a bonus tier (fair). |
-| 0x8082 | `LOOT_20PT_COUNT` | Count of +20 diamond pickups; ==3 adds a bonus tier (fair). |
-| 0x8084 | `ACTOR_STATE` | Actor state/timer + sprite-code byte (weak). |
-| 0x8089 | `PROBE_CELL_PTR` | 16-bit VRAM/tilemap cell ptr for the mover tile probes (fair). |
-| 0x808b | `MOVER_CADENCE` | Mover cadence/dwell timer (weak). |
-| 0x808d | `SUBTILE_PHASE` | Sub-tile phase / probe-table row index (fair). |
-| 0x8090 | `MOVER_STATE` | Signed mover state byte `stepEnemyMover` sign-dispatches on (fair). |
-| 0x8091 | `MOVER_MOVE_PERIOD` | Working-block mover cadence reload period (fair). |
-| 0x8092 | `MOVER_DIRECTION` | Published travel-direction index 0/1/2/3 (fair). |
-| 0x8093 | `MOVER_TARGET_COL` | Working-block mover target column (fair). |
-| 0x8094 | `REACTION_OBJ_X` | X of the reaction-state entity (OBJ_X-paired) (fair). |
-| 0x8095 | `REACTION_OBJ_CODE` | Sprite/frame-code byte of the reaction object record (strong). |
-| 0x8096 | `REACTION_OBJ_ATTR` | Attribute/anim byte of the reaction object record (strong). |
-| 0x8097 | `REACTION_OBJ_Y` | Y of the reaction-state entity (OBJ_Y-paired) (fair). |
-| 0x809a | `SCROLL_WINDOW_PTR` | Tilemap cell the horizontal terrain-scroll walker samples (fair). |
-| 0x809e | `SCROLL_SUBPHASE` | Sub-tile column phase selecting the ROM stop-tile slice (fair). |
-| 0x80a2 | `REACTION_STATE` | Per-object reaction/animation state (0 idle, 1–4 armed) (strong). |
-| 0x80a4 | `REACTION_TIMER` | Reaction step/animation countdown (strong). |
-| 0x80a5 | `CUR_TILE` | Saved current tile under the object (fair). |
-| 0x80a7 | `EXPECTED_TILE` | The cell's table-resolved expected tile (fair). |
-| 0x80a8 | `NEXT_TILE` | Next-tile slot, pre-cleared before classify (fair). |
-| 0x80a9 | `TARGET_X` | X of the dig-spawned target/loot cell (strong). |
-| 0x80aa | `DIG_OBJ_STATE` | Dig/carve object phase byte (0x30 carving / 0x09 done / 0x10 spawn) (fair). |
-| 0x80ab | `DIG_OBJ_ATTR` | Colour+priority attribute of the dig-object sprite record (fair). |
-| 0x80ac | `TARGET_Y` | Y of the dig-spawned target/loot cell (fair). |
-| 0x80b1 | `DIG_OBJ_TIMER` | Countdown/animation timer for the dig object (fair). |
-| 0x80b6 | `STAGED_TARGET_X` | Staged X handed into `TARGET_X` (fair). |
-| 0x80b9 | `STAGED_TARGET_Y` | Staged Y handed into `TARGET_Y` (fair). |
-| 0x80ba | `STAGED_CELL_PTR` | Staged copy of `ACTOR_CELL_PTR` for the carve cursor (fair). |
-| 0x80bc | `STAGED_DIG_TIMER` | Staged dig timer handed into `DIG_OBJ_TIMER` (fair). |
-| 0x80bd | `SPAWN_STATE` | Dig-object active-spawn state (0 idle) (fair). |
-| 0x80bf | `STAGED_DIG_SPRITE_ID` | Staged dig-entity id stamped into the tilemap cell (fair). |
-| 0x80c0 | `DIG_OBJ_SUBTYPE` | Sub-type of the committed dig entity (0 plain / 2 special) (fair). |
-| 0x80c1 | `DIG_OBJ_ARM_STATE` | Arm/capture state of the carve object (0/1/2) (fair). |
-| 0x80c3 | `DIG_SPAWN_QUEUE` | Base of the 24-slot pending-spawn column queue (fair). |
-| 0x80db | `BG_SPRITE_X` | Background spider X (horizontal bounce oscillator) (fair). |
-| 0x80dc | `BG_SPRITE_FRAME` | Background spider tile/frame code (toggles 0x38↔0x39) (fair). |
-| 0x80dd | `BG_SPRITE_ATTR` | Background spider attribute byte (fair). |
-| 0x80de | `BG_SPRITE_Y` | Background spider Y (accelerating fall, RNG reseed) (fair). |
-| 0x80e3 | `ANIM_PHASE_COUNTER` | Down-counter mod 8 gating the background flip + oscillator (fair). |
-| 0x80e4 | `REVEAL_PERIOD` | Level-scaled reveal reload = **`7 − min(LEVEL+1, 4)`** (6→3) (fair). |
-| 0x80e5 | `REVEAL_GATE` | Per-column reveal frame-gate down-counter (fair). |
-| 0x80e6 | `REVEAL_CURSOR` | Offset into the reveal tile-pattern table; ==0 = reveal finished (fair). |
-| 0x80e7 | `GOAL_TILE_LATCH` | Set when the object reaches goal tile `0x27`; enables the scroll-reveal (fair). |
-| 0x80e8 | `OBJ1_X` | OBJ1 (claw-creature) record base / X (fair). |
-| 0x80e9 | `OBJ1_SPRITE_CODE` | OBJ1 sprite code + orientation (fair). |
-| 0x80ea | `OBJ1_ATTR` | OBJ1 colour+priority attribute (fair). |
-| 0x80f0 | `OBJ1_TIMER` | OBJ1 cadence/dwell countdown (record offset 8) (fair). |
-| 0x80f5 | `OBJ1_STATE` | OBJ1 signed state byte (sign-dispatched) (fair). |
-| 0x80f6 | `OBJ1_MOVE_PERIOD` | OBJ1 cadence reload = **`7 − (LEVEL & 6)`** (fair). |
-| 0x80f8 | `OBJ1_TARGET_COL` | OBJ1 target column (fair). |
-| 0x80f9 | `OBJ2_X` | OBJ2 (claw-creature) record base / X (fair). |
-| 0x80fa | `OBJ2_TILE` | OBJ2 sprite tile/code (fair). |
-| 0x80fb | `OBJ2_ATTR` | OBJ2 colour attribute (fair). |
-| 0x8101 | `OBJ2_TIMER` | OBJ2 cadence/dwell countdown (fair). |
-| 0x8106 | `OBJ2_STATE` | OBJ2 signed state byte (fair). |
-| 0x8107 | `OBJ2_MOVE_PERIOD` | OBJ2 cadence reload period (strong). |
-| 0x8109 | `OBJ2_TARGET_COL` | OBJ2 target column (strong). |
-| 0x810a | `ACTOR_X` | Saucer primary half X (fair). |
-| 0x810b | `ACTOR_TILE` | Saucer primary half tile field (fair). |
-| 0x810c | `ACTOR_ATTR` | Saucer primary half colour+priority attribute (fair). |
-| 0x810d | `ACTOR_Y` | Saucer primary half Y (fair). |
-| 0x810e | `ACTOR_STEP_X` | Low byte of the saucer's step vector (fair). |
-| 0x810f | `ACTOR_STEP_Y` | High byte of the saucer's step vector (fair). |
-| 0x8112 | `ACTOR_TIMER` | Saucer cadence timer (fair). |
-| 0x811b | `TWIN_X` | Saucer twin half X, locked +16 to `ACTOR_X` (fair). |
-| 0x811c | `TWIN_TILE` | Saucer twin half tile field (fair). |
-| 0x811d | `TWIN_ATTR` | Saucer twin half attribute (fair). |
-| 0x811e | `TWIN_CLEAR` | Saucer twin mirror clear byte (weak). |
-| 0x8123 | `TWIN_TIMER` | Twin cadence countdown (twin of `ACTOR_TIMER`) (fair). |
-| 0x812c | `CREDIT_MIRROR_B` | Third redundant credit copy (watchdog) (strong). |
-| 0x8134 | `SAVED_CELL_PTR` | 16-bit scratch holding a tilemap cell ptr during a probe search (fair). |
-| 0x8220 | `SPRITE_STAGING_BASE` | Base of the 32-byte sprite-record staging buffer (NMI LDIRs to 0x9840) (fair). |
-| 0x8238 | `ACTOR_SPRITE_SLOT` | Sprite-staging slot 6 (the saucer body's record) (fair). |
-| 0x823c | `TWIN_SPRITE_SLOT` | Sprite-staging slot 7 (the twin's record) (fair). |
-| 0x8280 | `SCORE_READOUT_STRIP` | Base of a 32-cell work-RAM strip staging the score-readout column (fair). |
+### 2.9 Board flow & progression — the master transition mechanism
+
+**★ Master board-transition mechanism** (new, grounded — grounding-1): both "lose a life" and
+"advance a level" flow through **ONE** gate in the player dispatcher `loc_13c9`. Each frame it counts
+`transitionTimer 0x807c` down; **on expiry it reads mode `postTransitionMode 0x807d`:**
+`[seen]`/`[code]`
+- **`0x807d == 0`** → `jp 0x0278` (`loc_0278`) → **decrement lives `0x802b`** → death / retry same
+  board (respawn + fresh-board reset, §2.4).
+- **`0x807d == 1`** → `jp 0x02fd` (`loc_02fd`) → **increment level `0x8028`** → advance: runs the
+  `loc_3bec` bonus (§2.8) then rebuilds the board (`loc_031a`).
+
+**Grounded directly** (`tape_transition.lua`, poke at f1250, timer=8): with `0x807d=1` the countdown
+ran `0x807c` 8→0 over f1251-1256 and **level `0x8028` 1→2 at f1256** (lives held 3); with `0x807d=0`
+the same countdown drove **lives `0x802b` 3→2 at f1256** (level held 1). `[seen]`
+
+`0x807d` is set to 1 (advance) by the escape/reboard actors — the ship-landing `loc_384a` (§2.6) and
+the pit-cross `loc_19d0/19e3` path when a real reboard completes — and left/forced 0 (death) by the
+enemy-catch and bare timer paths. `[seen]`/`[code]`
+
+- **Board-complete → level++ → fresh board → faster** (grounding-1 B.5): forcing the advance gives
+  **level 1→2**, a full board rebuild (phase re-ramps 0,1,2,…; player respawns from top; ~765
+  tilemap cells redrawn), and difficulty scales — enemy speed pair `0x80f6`/`0x8107` **7→5**,
+  frameDelay `0x8011` **9→8** (=`speedBase 0x804e − level`), erosion base faster. `[seen]`/`[code]`
+- **Two tilemaps by `level 0x8028` bit 0** (grounding-1 B.7, CONFIRMED): level-1 (bit0=1) vs level-2
+  (bit0=0) settled boards differ in **60 dirt-field cells** (of 66 total), whereas a level-1
+  self-comparison over time (erosion only) differs by just **4** — two genuinely distinct boulder
+  layouts alternating by bit 0, matching gameplay.md's "two boulder layouts." `[seen]`/`[code]`
+- **Board setup:** `loc_2f2f → loc_30de → loc_36fe` seed the enemy + ship blocks and the per-level
+  difficulty; the intro then ramps `0x8010` 0→`≥0x0a`, flying the set-pieces in before live play.
+  `[seen]`/`[code]`
+
+### 2.10 Rendering
+
+- **Tilemap** in VRAM at **`0x9000`** (0x20-wide rows). The display is rotated: **ROT270 is the
+  correct upright player view** (ROT90 comes out upside-down — grounding-2). Digging, carving,
+  jewel-blanking, rock/arrow-painting (`0x25`/glyph), erosion (`0x31`), and the set-piece bake all
+  write here. `[seen]`/`[code]`
+- **Sprite records:** player shadow `0x8220` (slot 0); reaction/laser `0x8224`; Zonker `0x822c`;
+  enemies `0x8230`/`0x8234`; ship/enemy-3 slots `0x8238`/`0x823c` (6&7). Each is a 4-byte record.
+  Under ROT270 the axis mapping is: **record byte0 = screen-HORIZONTAL, record byte3 = screen-
+  VERTICAL** (byte0 = work-Y `0x8068`, byte3 = work-X `0x806b`; and dig-mode moves the player DOWN
+  on screen while work-X `0x806b` increases → work-X = screen-vertical). `[seen]` (grounding-2 Z-8,
+  two independent derivations + a frame check)
+- **`spriteFlipYBias 0x8051`** — **resolves the ROT ambiguity:** it is **added into every sprite
+  record's byte3, which is the screen-VERTICAL axis.** `[seen]` **★** (grounding-2 Z-8: poking
+  `0x8051=0x40` shifted **every** sprite's byte3 by +0x40 — player 0x23→0x63, enemy1 0x23→0x63,
+  enemy2 0x33→0x73, ship 0x00→0x40 — a universal screen-vertical shift; the player additionally
+  carries a byte0/screen-horizontal component). This is the cocktail/flip bias; the AXIS is the
+  grounded result (an arbitrary 0x40 was poked, not the true cocktail value).
+- **Colour** RAM / draw scratch: `0x8055`–`0x8060` (run-length, fill byte, col/row, CRAM/VRAM
+  pointers). `[code]`
+
+### 2.11 Sound
+
+- **Sound queue:** ring buffer `0x8020` with write/read indices `0x801e`/`0x801f`; helpers
+  `0x4c9b`/`0x4c9f`/`0x4c77`/`0x467b`… enqueue sfx ids. The hardware **sound latch is the write side
+  of `0xb800`** (its read side is the watchdog kick). `[code]`
+- **Known sfx ids:** **`0x14` = dig/carve** (armed carve), **`0x10` = crystal collect** (`0x467b`),
+  **`0x11` = treasure-capture** (`loc_2d4e` path), **`0x4c6b` = mountain-gone** (idle case). `[code]`
+  Other ids (laser fire, boom, enemy death) are `[guess]` — handle audio by ear (no audio oracle).
 
 ---
-*Blind clarify-pass rewrite: written from `gameplay.md` + the current code + the MAME grounding,
-with no reference to any prior `mechanisms.md`. Counts measured from the current tree
-(169 routines / 169 English-named / 0 `loc_` / 141 RAM cells).*
+
+## 3. STILL-OPEN worklist (what grounding did NOT close)
+
+Grounding rounds 1 & 2 closed the whole lethality/death question, the board-transition + level loop,
+scoring economy, laser flight, enemy-3 shootability, the flip-bias axis, the two tilemaps, and the
+enemy-3/ship/scenery dual-use. The old A–H worklist is retired. Only these remain — each needs
+**skilled player navigation** to a specific on-screen situation (the "poke, don't grind" method
+forced RAM states but couldn't hand-navigate the twitchy player to these spots):
+
+1. **Live arrow-rain descent** in the bottom jewel/treasure chamber — a `hazardType 0x07` hazard
+   actually *falling* (`0x80aa=0x10`, `0x80bd>0`), fired via the capture sequence
+   `loc_2cb7 → loc_2d4e`. The type, seed value, and mechanism are grounded in code (§2.5); only the
+   live falling arrow on-screen is uncaptured. `[code]` located / `[guess]` on the live descent.
+2. **The Pit sliding-floor tile-animation + its monster sprite.** The crossing **logic** is grounded
+   (`pitCrossActive 0x8077`, `loc_19d0` far-edge at col≥0x8a, no points; §2.5) — but the retracting-
+   floor VRAM tile animation (no work-RAM cell) and the monster beneath were not located in a
+   routine or observed on-screen. The gameplay.md "acid vat" is almost certainly flavour for this
+   one crossing hazard, not a separate subsystem. `[code]` (logic) / `[guess]` (the visual).
+3. **The treasure-glyph render on-screen** — `loc_2d6b` (§2.8) is code-located (the 5-tile glyph +
+   latch reset) but never force-triggered to a rendered frame; needs the full capture-window state.
+   `[code]` located / `[guess]` on the visual.
+
+Everything else previously tagged `[guess]` in this document has been promoted (`[seen]`) or
+overturned by the two grounding docs.
