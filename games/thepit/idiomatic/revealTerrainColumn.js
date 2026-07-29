@@ -17,25 +17,25 @@
  *     cell first, one tile-row higher each byte — bringing the next column of
  *     terrain into the backdrop.
  *
- * Whichever arm it takes it ends by handing off to advanceBackgroundAnimation, the background phase
+ * Whichever arm it takes it ends by handing off to advanceZonkerAnimation, the background phase
  * clock; that routine tail-jumps onward and its return unwinds straight back to
- * revealTerrainColumn's caller, so the hand-off IS this routine's exit. advanceBackgroundAnimation is already
+ * revealTerrainColumn's caller, so the hand-off IS this routine's exit. advanceZonkerAnimation is already
  * decompiled, so it is called directly rather than through the oracle registry.
  *
  * This is the standalone, callable form of the same reveal that the per-frame
- * backdrop monolith advanceBackgroundSprite also carries inline; the standalone form is never
+ * backdrop monolith advanceZonker also carries inline; the standalone form is never
  * dispatched in attract, which shapes the gate below.
  *
  * Name kept as revealTerrainColumn: this backdrop-reveal subsystem is a best-effort reading. Three
  * of the counters it touches now carry ram.js names, but the subsystem as a whole is
- * still below the bar to promote to an English name (its siblings advanceBackgroundAnimation/setBgSpriteFrame stay
+ * still below the bar to promote to an English name (its siblings advanceZonkerAnimation/setZonkerFrame stay
  * loc_ for the same reason).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.
  * GATE:     crafted-entry — revealTerrainColumn is never dispatched in attract (the monolith
- *           advanceBackgroundSprite inlines the same body instead of calling it), so real machine
- *           states are captured at advanceBackgroundSprite's entry and revealTerrainColumn is run on clones of
- *           them; the two still-untranslated continuations reached through advanceBackgroundAnimation
+ *           advanceZonker inlines the same body instead of calling it), so real machine
+ *           states are captured at advanceZonker's entry and revealTerrainColumn is run on clones of
+ *           them; the two still-untranslated continuations reached through advanceZonkerAnimation
  *           (0x2fe3 oscillator body, 0x3029 publish tail) are delegated to one
  *           identical stub each, installed on both sides at once. EQUAL over every
  *           captured state plus an exhaustive sweep of the gate byte crossed with
@@ -47,10 +47,10 @@
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
  *           (0x80e6) are ZONKER_REVEAL_GATE/ZONKER_REVEAL_PERIOD/ZONKER_REVEAL_CURSOR from ram.js; the stashed
- *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceBackgroundAnimation.
+ *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceZonkerAnimation.
  */
 
-import { advanceBackgroundAnimation } from "./advanceBackgroundAnimation.js";
+import { advanceZonkerAnimation } from "./advanceZonkerAnimation.js";
 import { ZONKER_REVEAL_CURSOR, ZONKER_REVEAL_GATE, ZONKER_REVEAL_PERIOD } from "./ram.js";
 
 
@@ -71,7 +71,7 @@ export function revealTerrainColumn(m) {
   mem8[ZONKER_REVEAL_GATE] = gate;
   if (gate !== 0) {
     // Not a reveal frame — straight on to the phase clock.
-    return advanceBackgroundAnimation(m);
+    return advanceZonkerAnimation(m);
   }
 
   // Reload the gate from its period and step the cursor back one column.
@@ -79,7 +79,7 @@ export function revealTerrainColumn(m) {
   const cursor = mem8[ZONKER_REVEAL_CURSOR] - TILES_PER_COLUMN;
   if (cursor < 0) {
     // Ran off the start of the pattern table — the reveal is done, draw nothing.
-    return advanceBackgroundAnimation(m);
+    return advanceZonkerAnimation(m);
   }
   mem8[ZONKER_REVEAL_CURSOR] = cursor;
 
@@ -94,5 +94,5 @@ export function revealTerrainColumn(m) {
   }
 
   // Hand off to the phase clock; its return unwinds to our caller, so this is the exit.
-  return advanceBackgroundAnimation(m);
+  return advanceZonkerAnimation(m);
 }

@@ -4,15 +4,15 @@
  * to the round/level parameter-seeding chain.  ROM 0x287a.
  *
  * The head of the gameplay round-init tail-jump chain
- * (seedDigObjectBlock → seedBackgroundAnimParams → seedObjectRecords → seedActorSpawnState). It resets the dig-object
+ * (seedDigObjectBlock → seedZonker → seedEnemyRecords → seedActorSpawnState). It resets the dig-object
  * control block to its start-of-round state: the dig-object state byte to its
  * carving-phase code, the captured target column/row cleared (no target grabbed
  * yet), the active-spawn flag cleared (a fresh spawn is permitted), and a handful of
  * companion counter/scratch bytes of the same block held at fixed start values. It
  * then copies a fixed 24-byte column-position table (a 12-entry ramp of evenly
- * spaced columns, duplicated) from ROM into the block, and hands off to seedBackgroundAnimParams,
+ * spaced columns, duplicated) from ROM into the block, and hands off to seedZonker,
  * which seeds the round's level/difficulty parameter block. The hand-off is a tail
- * jump: seedBackgroundAnimParams's chain returns straight to seedDigObjectBlock's caller, so the delegation IS
+ * jump: seedZonker's chain returns straight to seedDigObjectBlock's caller, so the delegation IS
  * seedDigObjectBlock's exit.
  *
  * Every write lands on a distinct work-RAM byte, so their order does not affect the
@@ -35,10 +35,10 @@
  * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_COLLISION_STATE,
  *           DIG_OBJ_SUBTYPE, HAZARD_X, HAZARD_Y, HAZARD_ACTIVE_COUNT, DROP_QUEUE (the table
  *           destination 0x80c3) from ram.js. The companion byte 0x80c2 is still unnamed
- *           and stays hex. The tail is the decompiled seedBackgroundAnimParams (ROM 0x2f2f).
+ *           and stays hex. The tail is the decompiled seedZonker (ROM 0x2f2f).
  */
 
-import { seedBackgroundAnimParams } from "./seedBackgroundAnimParams.js";
+import { seedZonker } from "./seedZonker.js";
 import {
   DIG_COLLISION_STATE,
   HAZARD_TYPE,
@@ -71,7 +71,7 @@ export function seedDigObjectBlock(m) {
   }
   mem8[0x80c2] = 32; // table-header / count byte
 
-  // Tail hand-off into seedBackgroundAnimParams (round/level parameter seeding); its chain returns to
+  // Tail hand-off into seedZonker (round/level parameter seeding); its chain returns to
   // our caller, so this is seedDigObjectBlock's exit.
-  return seedBackgroundAnimParams(m);
+  return seedZonker(m);
 }

@@ -25,7 +25,7 @@
  *           The residual value registers are dead ABI; no caller reads one back from here.
  * NAMES:    HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_Y, SPRITE_COORD_BIAS,
  *           SPRITE_STAGING_BASE from ram.js. The background-update tail 0x2f71 is the
- *           decompiled advanceBackgroundSprite, called directly.
+ *           decompiled advanceZonker, called directly.
  */
 
 import {
@@ -36,7 +36,7 @@ import {
   SPRITE_COORD_BIAS,
   SPRITE_STAGING_BASE,
 } from "./ram.js";
-import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
+import { advanceZonker } from "./advanceZonker.js";
 
 // The dig object occupies sprite slot 2 (records are 4 bytes each) of the staging buffer.
 const DIG_RECORD = SPRITE_STAGING_BASE + 8;
@@ -54,7 +54,7 @@ export function stageDigObjectSpriteRecord(m) {
   mem8[DIG_RECORD + 2] = mem8[HAZARD_TYPE]; // colour + priority attribute
   mem8[DIG_RECORD + 3] = mem8[HAZARD_Y] + offset; // trailing: row, offset added
 
-  // Continue into the per-frame background-element update (advanceBackgroundSprite, ROM 0x2f71),
+  // Continue into the per-frame background-element update (advanceZonker, ROM 0x2f71),
   // called directly now that it is decompiled; its return unwinds to our caller.
-  return advanceBackgroundSprite(m);
+  return advanceZonker(m);
 }

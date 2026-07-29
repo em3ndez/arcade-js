@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for advanceObjectMover2 (ROM 0x316f) — the object-2 half of the two-object
+ * Memory-equivalence gate for updateEnemy2 (ROM 0x316f) — the object-2 half of the two-object
  * mover pass: stage object 2's record into the shared mover scratch, step the mover on it,
  * copy it back, stage object 2's sprite (three bytes verbatim + a coordinate-biased fourth),
  * then tail into the shared per-frame actor update.
@@ -10,11 +10,11 @@
  * tail-jump, so no caller reads a value register back; the gate compares work RAM (dumpState)
  * and excludes the Z80 pc/SP/value-registers the honest-signature rewrite does not preserve.
  *
- * THE TAIL RUNS FOR REAL ON BOTH SIDES. advanceObjectMover2's last act was a stale m.call into the
+ * THE TAIL RUNS FOR REAL ON BOTH SIDES. updateEnemy2's last act was a stale m.call into the
  * shared actor update 0x3748; that call has now been DISSOLVED to a direct call to the decompiled
  * advanceTwoSpriteActor. So the tail runs on both arms — the oracle m.call's the frozen registry copy,
  * the idiomatic arm calls the imported idiomatic function — and the two are memory-equivalent
- * (equivalence-3748), so the tail's work cancels in the diff, leaving advanceObjectMover2's own work
+ * (equivalence-3748), so the tail's work cancels in the diff, leaving updateEnemy2's own work
  * compared. The mover (stepEnemyMover) likewise runs for real on both sides. On the rare arrival/
  * capture path the tail chains into the round-boundary transition, which resets the stack and
  * converges at two never-returning leaves (0x031a, 0x01f9); those are stubbed identically on both
@@ -30,7 +30,7 @@
  *
  * Checks:
  *   0. HARNESS — capture real 0x316f attract dispatches; the oracle run is deterministic.
- *   1. EQUAL (real dispatches) — advanceObjectMover2 == oracle over RAM on every captured entry, with a
+ *   1. EQUAL (real dispatches) — updateEnemy2 == oracle over RAM on every captured entry, with a
  *      positive check that the staged sprite is object 2's record bytes (+ zero bias).
  *   2. EQUAL (crafted nonzero bias) — with SPRITE_COORD_BIAS poked nonzero the fourth sprite
  *      byte still matches the oracle, and equals record[3] + bias.
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_316f as oracle } from "../../translated/loc_316f.js";
-import { advanceObjectMover2 as idiomatic } from "../advanceObjectMover2.js";
+import { updateEnemy2 as idiomatic } from "../updateEnemy2.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { ENEMY2_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
@@ -64,7 +64,7 @@ const OBJ2_SPRITE_RECORD = SPRITE_STAGING_BASE + 20; // object 2's slot in the s
 // The actor-update tail (advanceTwoSpriteActor, ROM 0x3748) is now DISSOLVED to a direct call, so it
 // runs for real on BOTH sides (the idiomatic routine calls it directly; the oracle m.call's it
 // through the registry). It is memory-equivalent either way (equivalence-3748), so its work cancels
-// in the diff — leaving advanceObjectMover2's own work compared. On the rare arrival/capture path the
+// in the diff — leaving updateEnemy2's own work compared. On the rare arrival/capture path the
 // tail reaches the round-boundary transition's never-returning leaves, so those are stubbed
 // identically on both clones, and a once-per-frame tick drains any frame-wait.
 const EXPIRY_LEAVES = [0x031a, 0x01f9];
@@ -167,7 +167,7 @@ test("HARNESS: real 0x316f attract dispatches are captured and the oracle run is
 
 // -- 1. EQUAL on real captured attract dispatches ----------------------------
 
-test("EQUAL (real dispatches): advanceObjectMover2 == oracle over RAM on every captured entry", () => {
+test("EQUAL (real dispatches): updateEnemy2 == oracle over RAM on every captured entry", () => {
   const caps = captureRealEntries(4000, 200);
   assert.ok(caps.length >= 1, "need captured 0x316f entries");
 

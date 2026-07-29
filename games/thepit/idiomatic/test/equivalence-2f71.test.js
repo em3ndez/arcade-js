@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for advanceBackgroundSprite (ROM 0x2f71, The Pit) — the per-frame
+ * Memory-equivalence gate for advanceZonker (ROM 0x2f71, The Pit) — the per-frame
  * monolith that steps the animated background sprite (sideways bounce + accelerating
  * fall + shimmer flip), publishes its screen-relative sprite record, reveals one column
  * of terrain once the goal is reached, and tail-jumps into the object-record pass (0x312d).
@@ -25,14 +25,14 @@
  * record pass both sides run next, and never read before that — so the RAM diff excludes
  * a window just below the entry stack pointer and compares everything else byte-for-byte.
  * pc/SP are not compared: both sides reach the object-record pass (the idiomatic side
- * calls the decompiled advanceObjectMovers directly, the oracle side m.calls the frozen
+ * calls the decompiled updateEnemy1 directly, the oracle side m.calls the frozen
  * loc_312d — memory-equivalent), so excluding pc/SP keeps the gate independent of that
  * pass's exact stack trace.
  *
  * Checks:
  *   0. HARNESS — capture real 0x2f71 entries and confirm the oracle run is deterministic
  *      (oracle vs oracle → identical whole state incl. stack).
- *   1. EQUAL (real captured entries) — advanceBackgroundSprite == oracle over RAM (outside the
+ *   1. EQUAL (real captured entries) — advanceZonker == oracle over RAM (outside the
  *      dead stack scratch) on every naturally-occurring attract state.
  *   2. EQUAL (crafted reveal) — goal latch on: full 6-tile reveal + reveal sound, the
  *      gate-not-yet-zero skip, and the cursor-exhausted skip all match the oracle.
@@ -51,7 +51,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f71 as oracle } from "../../translated/loc_2f71.js";
-import { advanceBackgroundSprite as idiomatic } from "../advanceBackgroundSprite.js";
+import { advanceZonker as idiomatic } from "../advanceZonker.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -150,7 +150,7 @@ test("HARNESS: real 0x2f71 entries captured and the oracle run is deterministic"
 
 // -- 1. EQUAL: every naturally-occurring captured state -----------------------
 
-test("EQUAL (captured): advanceBackgroundSprite == oracle on every real attract state", () => {
+test("EQUAL (captured): advanceZonker == oracle on every real attract state", () => {
   assert.ok(STATES.length > 0, "need captured attract states");
   for (const entry of STATES) {
     const ram = runPair(entry, idiomatic);

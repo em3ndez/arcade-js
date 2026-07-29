@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for advanceReactionObject (ROM 0x24f3, The Pit) — the per-frame
+ * Memory-equivalence gate for advancePlayerLaser (ROM 0x24f3, The Pit) — the per-frame
  * driver of the tracked object's dig/push reaction. Each frame it either forces the rest
  * sprite (a goal crossing / armed dig owns the frame), advances an in-progress horizontal
  * scroll across the terrain, services an edge collision (maybe seeding a scroll), or runs
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_24f3 as oracle } from "../../translated/loc_24f3.js";
-import { advanceReactionObject as idiomatic } from "../advanceReactionObject.js";
+import { advancePlayerLaser as idiomatic } from "../advancePlayerLaser.js";
 import { advanceDigCarveObject } from "../advanceDigCarveObject.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
@@ -185,7 +185,7 @@ test("HARNESS: a real 0x24f3 entry is captured and the oracle run is determinist
 
 // -- 1. EQUAL on the real captured entry --------------------------------------
 
-test("EQUAL (real entry): advanceReactionObject == oracle over RAM (minus stack) on the natural inputs", () => {
+test("EQUAL (real entry): advancePlayerLaser == oracle over RAM (minus stack) on the natural inputs", () => {
   const entry = captureRealEntry(2000);
   assert.ok(entry, "need a captured 0x24f3 entry");
   const { ram } = compare(entry, {}, idiomatic);

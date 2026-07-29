@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence gate for revealTerrainColumn (ROM 0x2f88, The Pit) — reveal the next
  * column of the scrolling terrain backdrop on its frame gate, then hand off to the
- * background phase clock advanceBackgroundAnimation.
+ * background phase clock advanceZonkerAnimation.
  *
  * THREE WRINKLES this routine forces, all handled with a crafted entry:
  *
@@ -15,7 +15,7 @@
  *      and one gated call) never touches the reveal gate, cursor or pattern pointer
  *      before the point 0x2f88 would run, so its entry state IS a valid 0x2f88 entry.
  *
- *   2. revealTerrainColumn tail-delegates to advanceBackgroundAnimation, whose own two continuations are still
+ *   2. revealTerrainColumn tail-delegates to advanceZonkerAnimation, whose own two continuations are still
  *      untranslated (0x2fe3 the oscillator body, 0x3029 the publish tail): reaching
  *      them would throw. Both the oracle and the idiomatic routine descend into the
  *      same continuations, so each is replaced by ONE stub installed on both sides at
@@ -62,14 +62,14 @@ const test = ROM_PRESENT
 
 const TARGET = 0x2f88; // revealTerrainColumn
 const SIB = 0x2f71; // the reachable monolith we capture real attract states at
-const OSC = 0x2fe3; // the oscillator-body tail reached via advanceBackgroundAnimation (still untranslated)
-const PUB = 0x3029; // the publish tail reached via advanceBackgroundAnimation (still untranslated)
+const OSC = 0x2fe3; // the oscillator-body tail reached via advanceZonkerAnimation (still untranslated)
+const PUB = 0x3029; // the publish tail reached via advanceZonkerAnimation (still untranslated)
 
 const GATE = 0x80e5; // the per-column reveal gate revealTerrainColumn ticks/reloads
 const PERIOD = 0x80e4; // the gate's reload period
 const CURSOR = 0x80e6; // the pattern-table cursor revealTerrainColumn steps back
 const POINTER = 0x80e1; // the stashed pattern pointer (16-bit)
-const PHASE = 0x80e3; // advanceBackgroundAnimation's phase counter, ticked by the hand-off
+const PHASE = 0x80e3; // advanceZonkerAnimation's phase counter, ticked by the hand-off
 const COLUMN_BOTTOM = 0x938c; // bottom video-RAM cell of the stamped column
 
 const STUB_MARK = 0x87f0; // dead scratch byte the tail stubs mark, to make routing visible
@@ -82,10 +82,10 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // The Pit's routine registry is async, so build the factory once and reuse it.
 const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 
-// Stubs standing in for the two untranslated continuations advanceBackgroundAnimation reaches.
+// Stubs standing in for the two untranslated continuations advanceZonkerAnimation reaches.
 // Installed IDENTICALLY on both sides, so they can only move both in lockstep. Each
 // gives its continuation a distinct, observable memory effect + exit pc, so the
-// routing decision through the whole revealTerrainColumn -> advanceBackgroundAnimation chain is checkable.
+// routing decision through the whole revealTerrainColumn -> advanceZonkerAnimation chain is checkable.
 function oscStub(mm) {
   mm.mem.write8(STUB_MARK, OSC_MARK);
   mm.pc = OSC;
@@ -243,7 +243,7 @@ function brokenHandoff(m) {
   const { mem } = m;
   const gate = (mem.read8(GATE) - 1 + 256) % 256;
   mem.write8(GATE, gate);
-  if (gate !== 0) return undefined; // BUG: never delegates to advanceBackgroundAnimation
+  if (gate !== 0) return undefined; // BUG: never delegates to advanceZonkerAnimation
   mem.write8(GATE, mem.read8(PERIOD));
   const cursor = mem.read8(CURSOR) - 6;
   if (cursor < 0) return undefined; // BUG
@@ -255,7 +255,7 @@ function brokenHandoff(m) {
   return undefined; // BUG
 }
 
-// The broken twins descend into advanceBackgroundAnimation the same way the real routine does — through
+// The broken twins descend into advanceZonkerAnimation the same way the real routine does — through
 // the registry (the frozen oracle) — so their bug is the ONLY difference from oracle.
 function loc_2fc0Registry(m) {
   return m.call(0x2fc0);

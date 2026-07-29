@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceColumnAnimation — one frame-gated step of a vertical tile-column animation.  ROM 0x241c.
+ * erodeMountain — one frame-gated step of the mountain erosion: walk a tile-column write pointer
+ * down the mountain (writing tile 0x31) as it visibly eats away.  ROM 0x241c. (§2.6)
  *
  * Runs every frame from the main loop but does real work only occasionally, behind two
  * gates: it stays dormant until the round's frame counter has climbed past 10, and then
@@ -16,20 +17,20 @@
  *        - the wall tile 0x30: if the cells below are still open it extends the fill;
  *          otherwise it either drops a 0x2d cap and clears the cursor, or shifts the
  *          three-cell horizontal window one place to the left — then reseeds the next
- *          window through reseedColumnAnimation.
- *        - any other tile is bumped up one animation frame, then reseeds through reseedColumnAnimation.
+ *          window through seedMountainErosion.
+ *        - any other tile is bumped up one animation frame, then reseeds through seedMountainErosion.
  *   3. Extending the fill stamps tile 0x31 at the cursor and steps the cursor down one row,
  *      stopping once it passes the bottom tilemap row. When the cursor lands on the trigger
  *      cell it finalises the spawn: unless a spawn is already past its first phase it
  *      re-tops the actor (and its twin mirror), marks the spawn phase reached, and cues a
  *      sound.
  *
- * Kept as the neutral address name: this is plainly a frame-gated column-animation step,
- * but exactly which on-screen structure it carves is not yet pinned, and a confident wrong
- * name would mislead worse than the address. The tile-code and marker bytes (0x24 / 0x30 /
- * 0x31 / 0x2d / 0xae / 0xfe / 0xfd / 0x33 / 0x32) are opaque graphics-ROM indices, kept hex
- * like the other marker bytes in this layer; the tilemap addresses (the 0x9400 bottom-row
- * boundary, the 0x92a4 trigger cell) stay hex too. The write cursor is now
+ * This is the mountain erosion (§2.6, grounded): each open frame walks the write cursor down
+ * the mountain column stamping tile 0x31, the mountain visibly eating away, until it is gone —
+ * which in the ESCAPE case forces the rescue ship down and advances the level. The tile-code and
+ * marker bytes (0x24 / 0x30 / 0x31 / 0x2d / 0xae / 0xfe / 0xfd / 0x33 / 0x32) are opaque
+ * graphics-ROM indices, kept hex like the other marker bytes in this layer; the tilemap addresses
+ * (the 0x9400 bottom-row boundary, the 0x92a4 trigger cell) stay hex too. The write cursor is
  * MOUNTAIN_ERODE_PTR and the step timer MOUNTAIN_ERODE_TIMER (both from ram.js).
  *
  * Memory-equivalent to the frozen oracle — equivalence-241c.test.js.
@@ -47,7 +48,7 @@
  *           flags and Z80 return path are dead scratch a plain JS call replaces.
  * NAMES:    PLAY_PHASE_COUNTER, BOARD_END_PHASE, ENEMY3_Y, ENEMY3_TWIN_Y, MOUNTAIN_ERODE_TIMER (the step
  *           timer) and MOUNTAIN_ERODE_PTR (the write cursor) from ram.js. Delegates the sound cues to
- *           requestSound15 / requestSound7 and the window reseed to reseedColumnAnimation.
+ *           requestSound15 / requestSound7 and the window reseed to seedMountainErosion.
  */
 import {
   PLAY_PHASE_COUNTER,
@@ -59,11 +60,11 @@ import {
 } from "./ram.js";
 import { requestSound15 } from "./requestSound15.js";
 import { requestSound7 } from "./requestSound7.js";
-import { reseedColumnAnimation } from "./reseedColumnAnimation.js";
+import { seedMountainErosion } from "./seedMountainErosion.js";
 
 const ROW = 32; // one tilemap row is 32 columns apart
 
-export function advanceColumnAnimation(m) {
+export function erodeMountain(m) {
   const { mem8, mem16 } = m;
 
   // Gate 1: dormant until the round's frame counter has climbed past 10.
@@ -103,18 +104,18 @@ export function advanceColumnAnimation(m) {
       // Column is closed below: cap the cell below and clear the cursor, then reseed.
       mem8[cursor + ROW] = 0x2d;
       mem8[cursor] = 0x24;
-      return reseedColumnAnimation(m);
+      return seedMountainErosion(m);
     }
     // Left cell not yet empty: shift the three-cell window one place left, opening the
     // far slot, then reseed the next window.
     mem8[cursor] = mem8[cursor - 1];
     mem8[cursor - 1] = mem8[cursor - 2];
     mem8[cursor - 2] = 0x24;
-    return reseedColumnAnimation(m);
+    return seedMountainErosion(m);
   }
   // Any other tile: advance it one animation frame, then reseed the next window.
   mem8[cursor] = tile + 1;
-  return reseedColumnAnimation(m);
+  return seedMountainErosion(m);
 
   // 3. Extend the fill column one cell — shared by the five classify outcomes above.
   function extendFillColumn() {

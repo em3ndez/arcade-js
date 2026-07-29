@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceBackgroundSprite — per-frame driver for the animated background sprite (the
- * backdrop element that bounces sideways and falls): step its position and shimmer,
- * publish its screen-relative sprite record, and — once the goal has been reached —
- * scroll one more column of terrain into view.  ROM 0x2f71.
+ * advanceZonker — per-frame driver for the Zonker tank and its lobbed shell (§2.6): bounce the
+ * tank sideways, accelerate the shell downward, cycle the tank's sprite frame, publish its
+ * screen-relative sprite record, and — once the goal has been reached — scroll one more column of
+ * mountain terrain into view.  ROM 0x2f71.
  *
  * Every frame this element does four things, in order:
  *
@@ -25,14 +25,14 @@
  *      advances its colour (holding the priority bit clear).
  *   4. Publish. Writes the element's four sprite bytes — X and Y made screen-relative
  *      by the cabinet coordinate bias, plus its tile and colour — into its sprite
- *      staging slot, then hands off to the object-record pass (advanceObjectMovers) that
+ *      staging slot, then hands off to the object-record pass (updateEnemy1) that
  *      moves and publishes the two foreground objects; that pass's return unwinds
  *      straight to our caller, so the hand-off IS this routine's exit.
  *
  * This is the real per-frame monolith. Its position oscillator and publish step exist
  * only here (they have no standalone form), so they are carried inline; the reveal and
  * shimmer-clock bodies also have standalone callable twins (revealTerrainColumn /
- * advanceBackgroundAnimation), but those twins hand off through the still-oracle
+ * advanceZonkerAnimation), but those twins hand off through the still-oracle
  * oscillator/publish, so the monolith cannot reuse them and reproduces the body itself.
  * The three already-decompiled routines it calls — the reveal-sound trigger, the random
  * generator, and the object-record pass — are all called directly.
@@ -56,12 +56,12 @@
  *           Still hex: the pattern-table scratch pointer (0x80e1), the bounce velocity
  *           (0x80df), the fall step (0x80e0), and the sprite-staging slot (0x822c) —
  *           none carry a ram.js name. Delegates to the decompiled requestSound11,
- *           advanceRandom, and advanceObjectMovers (the tail-jump object-record pass).
+ *           advanceRandom, and updateEnemy1 (the tail-jump object-record pass).
  */
 
 import { requestSound11 } from "./requestSound11.js";
 import { advanceRandom } from "./advanceRandom.js";
-import { advanceObjectMovers } from "./advanceObjectMovers.js";
+import { updateEnemy1 } from "./updateEnemy1.js";
 import { u8 } from "../../../core/int.js";
 import {
   GOAL_TILE_LATCH,
@@ -111,7 +111,7 @@ const SPRITE_SLOT = 0x822c;
 // The goal row the element sits on when it cues the reveal sound.
 const GOAL_ROW = 107;
 
-export function advanceBackgroundSprite(m) {
+export function advanceZonker(m) {
   const { mem8, mem16 } = m;
 
   // --- 1. Terrain reveal (only once the goal tile has been reached) ---
@@ -182,7 +182,7 @@ export function advanceBackgroundSprite(m) {
 
   // --- 4. Publish, then hand off to the object-record pass (its return is our exit) ---
   publishBackgroundSprite(m);
-  return advanceObjectMovers(m);
+  return updateEnemy1(m);
 }
 
 /** Write the element's four screen-relative sprite bytes into its staging slot. */

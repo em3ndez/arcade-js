@@ -25,7 +25,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-28ab.test.js.
  * GATE:     RAM-only — dispatched in a plain boot/attract run (from the carve handler
- *           advanceReactionObject); validated on every real captured dispatch, plus a crafted sweep
+ *           advancePlayerLaser); validated on every real captured dispatch, plus a crafted sweep
  *           over each classification arm crossed with an idle vs busy spawn slot, plus
  *           teeth. pc/SP/registers excluded (the oracle rets internally; this returns).
  * LIVE-OUT: memory-only — the staged scratch block, the bumped spawn counter, the armed

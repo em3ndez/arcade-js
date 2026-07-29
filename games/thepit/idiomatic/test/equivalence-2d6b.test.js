@@ -91,7 +91,7 @@ const callerSeed = ROM_PRESENT ? captureEntry(0x2cb7, caller) : null; // a frequ
 
 // Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff). The
 // background chain stampGlyphColumn tails into reaches the object movers, whose shared actor-update
-// tail (advanceObjectMover2 -> advanceTwoSpriteActor) is a dissolved DIRECT call: it runs stack-free
+// tail (updateEnemy2 -> advanceTwoSpriteActor) is a dissolved DIRECT call: it runs stack-free
 // on the idiomatic side while the oracle marshals the same tail through the Z80 stack, so those dead
 // bytes differ. Nothing observable lives there (all of 0x2d6b's writes are far below it).
 const STACK_LO = 0x8380;

@@ -7,7 +7,7 @@
  *
  * WHY THE CONTRACT IS RAM-ONLY (outside a stack window). The occupied hand-off is the
  * already-decompiled spawnPendingDigObject; the empty hand-off (0x2f71) is the decompiled
- * advanceBackgroundSprite, called directly. The oracle startNextDigSpawn leaves its scan's pointer-walk
+ * advanceZonker, called directly. The oracle startNextDigSpawn leaves its scan's pointer-walk
  * in the registers and the placement chain saves register pairs on the stack; the
  * stack-free idiomatic path does not reproduce those exact saved bytes, so a few dead
  * bytes just below the entry stack pointer differ (pushed, popped, and never read
@@ -164,7 +164,7 @@ test("EQUAL (crafted empty queue): both clear the spawn-active flag and hand off
   idiomatic(b);
 
   // The empty arm hands off (0x2f71 -> the object movers) into the shared actor-update tail
-  // (advanceObjectMover2 -> advanceTwoSpriteActor), a dissolved DIRECT call that runs stack-free
+  // (updateEnemy2 -> advanceTwoSpriteActor), a dissolved DIRECT call that runs stack-free
   // while the oracle marshals the same tail through the Z80 stack; those dead stack bytes differ, so
   // exclude the dead stack-scratch window and compare the rest.
   const d = ramDiffOutsideStack(a, b, entry.regs.sp);

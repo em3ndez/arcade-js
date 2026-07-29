@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceReactionObject — per-frame driver of the tracked object's dig/push reaction.  ROM 0x24f3.
+ * advancePlayerLaser — per-frame driver of the player's horizontal laser AND the dig/push carve
+ * reaction, which time-multiplex ONE sprite slot (0x8094-0x80a4); also tail-chains the whole actor
+ * pipeline each frame (dig-carve/hazards → Zonker → enemies → enemy-3).  ROM 0x24f3. (§2.3)
  *
- * Runs once each frame for the reaction object — the short animation the tracked object
- * plays as it digs or pushes into terrain. Each frame it decides what that object does:
+ * At loc_26be it reads fire (input bit 4) and, with a horizontal facing, launches/flies a laser bolt
+ * (see LASER_STATE 0x80a1). Otherwise it runs the reaction object — the short animation the player
+ * plays as it digs or pushes into terrain. Each frame it decides what that shared object does:
  *
  *   - If a goal crossing or an armed dig object already owns the frame, it just shows the
  *     rest sprite and publishes the object's sprite record.
@@ -109,7 +112,7 @@ const PHASES = {
   4: { animSprite: 105, restFacing: 180, offX: 0, offY: -8, spawnEntity: true, secondCell: -1, clearStateFirst: false },
 };
 
-export function advanceReactionObject(m) {
+export function advancePlayerLaser(m) {
   const { mem8 } = m;
 
   // A goal crossing or an armed dig object owns the frame: force the rest sprite and just

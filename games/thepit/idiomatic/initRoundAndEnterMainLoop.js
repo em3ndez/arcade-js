@@ -50,7 +50,7 @@ import { loadPlayerState } from "./loadPlayerState.js";
 import { paintScreen } from "./paintScreen.js";
 import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { seedObjectStartState } from "./seedObjectStartState.js";
-import { reseedColumnAnimation } from "./reseedColumnAnimation.js";
+import { seedMountainErosion } from "./seedMountainErosion.js";
 import { resetReactionState } from "./resetReactionState.js";
 import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE } from "./ram.js";
 
@@ -68,7 +68,7 @@ export function initRoundAndEnterMainLoop(m) {
 
   // Seed the per-round object start state, the terrain-column reveal, and the reaction machine.
   seedObjectStartState(m);
-  reseedColumnAnimation(m);
+  seedMountainErosion(m);
   resetReactionState(m);
 
   // Main loop's per-frame idle delay: the pacing base minus the current level, read here

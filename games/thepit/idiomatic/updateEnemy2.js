@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceObjectMover2 — advance the second object mover one frame and stage its sprite.  ROM 0x316f.
+ * updateEnemy2 — advance enemy 2 (record 0x80f9) one frame and stage its sprite.  ROM 0x316f. (§2.4)
  *
- * The object-2 half of the two-object mover pass: advanceObjectMovers runs object 1, then hands
- * here for object 2 (both share one mover, stepEnemyMover, which works out of a scratch
+ * The enemy-2 half of the two-enemy pass: updateEnemy1 runs enemy 1, then hands
+ * here for enemy 2 (both share one mover, stepEnemyMover, which works out of a scratch
  * block rather than either record directly). For object 2 this:
  *
  *   - copies object 2's 17-byte record into the shared mover scratch block,
@@ -16,7 +16,7 @@
  *   - and continues into the shared per-frame actor update, whose own return carries
  *     back to this pass's caller.
  *
- * Structurally identical to advanceObjectMovers's object-1 body, only with object 2's record
+ * Structurally identical to updateEnemy1's object-1 body, only with object 2's record
  * (ENEMY2_X) and sprite slot in place of object 1's.
  *
  * Memory-equivalent to the frozen oracle — equivalence-316f.test.js.
@@ -44,7 +44,7 @@ const OBJECT_RECORD_BYTES = 17;
 // Object 2's four-byte slot in the sprite staging buffer (the sixth of eight slots).
 const OBJ2_SPRITE_RECORD = SPRITE_STAGING_BASE + 20;
 
-export function advanceObjectMover2(m) {
+export function updateEnemy2(m) {
   const { mem8 } = m;
 
   // Stage object 2's record into the mover scratch, step the mover on it, then copy the
@@ -59,6 +59,6 @@ export function advanceObjectMover2(m) {
   mem8[OBJ2_SPRITE_RECORD + 3] = mem8[ENEMY2_X + 3] + mem8[SPRITE_COORD_BIAS];
 
   // Continue into the shared per-frame actor update (advanceTwoSpriteActor, ROM 0x3748), called
-  // directly now that it is decompiled — same as advanceObjectMovers does.
+  // directly now that it is decompiled — same as updateEnemy1 does.
   return advanceTwoSpriteActor(m);
 }

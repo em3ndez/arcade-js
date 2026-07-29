@@ -27,13 +27,13 @@
  * NAMES:    HAZARD_ACTIVE_COUNT (0x80bd), DROP_QUEUE (0x80c3, base of the 24-slot pending
  *           queue) from ram.js — the queue's exact per-slot contents are still not pinned.
  *           The occupied hand-off is the already-decompiled spawnPendingDigObject; the
- *           animation hand-off (0x2f71) is the decompiled advanceBackgroundSprite, called
+ *           animation hand-off (0x2f71) is the decompiled advanceZonker, called
  *           directly.
  */
 
 import { HAZARD_ACTIVE_COUNT, DROP_QUEUE } from "./ram.js";
 import { spawnPendingDigObject } from "./spawnPendingDigObject.js";
-import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
+import { advanceZonker } from "./advanceZonker.js";
 
 export function startNextDigSpawn(m) {
   const { mem8 } = m;
@@ -49,5 +49,5 @@ export function startNextDigSpawn(m) {
   // Queue empty: nothing is spawning, so allow a fresh spawn next time round.
   mem8[HAZARD_ACTIVE_COUNT] = 0;
   // Carry on with the per-frame background/terrain animation.
-  return advanceBackgroundSprite(m);
+  return advanceZonker(m);
 }

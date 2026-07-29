@@ -53,9 +53,9 @@ import { GAME_STATE } from "../ram.js";
 import { enableNmi } from "../enableNmi.js";
 import { steerDemoPlayer } from "../steerDemoPlayer.js";
 import { dispatchObjectFrameByStateTimer } from "../dispatchObjectFrameByStateTimer.js";
-import { advanceColumnAnimation } from "../advanceColumnAnimation.js";
+import { erodeMountain } from "../erodeMountain.js";
 import { glitterJewels } from "../glitterJewels.js";
-import { advanceReactionObject } from "../advanceReactionObject.js";
+import { advancePlayerLaser } from "../advancePlayerLaser.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -222,9 +222,9 @@ function twinDroppedService(m) {
     enableNmi(m);
     if (mem8[GAME_STATE] === 4) steerDemoPlayer(m);
     dispatchObjectFrameByStateTimer(m);
-    advanceColumnAnimation(m);
+    erodeMountain(m);
     glitterJewels(m);
-    // BUG: advanceReactionObject(m) omitted
+    // BUG: advancePlayerLaser(m) omitted
   }
 }
 
@@ -236,9 +236,9 @@ function twinFlippedDemoTest(m) {
     enableNmi(m);
     if (mem8[GAME_STATE] !== 4) steerDemoPlayer(m); // BUG: should be === 4
     dispatchObjectFrameByStateTimer(m);
-    advanceColumnAnimation(m);
+    erodeMountain(m);
     glitterJewels(m);
-    advanceReactionObject(m);
+    advancePlayerLaser(m);
   }
 }
 

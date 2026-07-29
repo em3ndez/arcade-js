@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for advanceObjectMovers (ROM 0x312d) — the per-frame object-
+ * Memory-equivalence gate for updateEnemy1 (ROM 0x312d) — the per-frame object-
  * pair mover pass: drive object 1 through the shared move/collision driver, stage its
  * sprite record, then hand off object 2.
  *
@@ -30,7 +30,7 @@
  *
  * Checks:
  *   0. HARNESS — capture real 0x312d attract dispatches; the oracle run is deterministic.
- *   1. EQUAL (real dispatches) — advanceObjectMovers == oracle over RAM on every capture.
+ *   1. EQUAL (real dispatches) — updateEnemy1 == oracle over RAM on every capture.
  *   2. EQUAL (crafted skip-both) — counter < 8 runs neither mover, identical to the oracle.
  *   3. EQUAL (crafted object-1-only) — game mode 4 + counter 9 runs only object 1 + stages
  *      its sprite (bias applied), identical to the oracle.
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_312d as oracle } from "../../translated/loc_312d.js";
-import { advanceObjectMovers as idiomatic } from "../advanceObjectMovers.js";
+import { updateEnemy1 as idiomatic } from "../updateEnemy1.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { PLAY_PHASE_COUNTER, GAME_STATE, ENEMY1_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
@@ -179,7 +179,7 @@ test("HARNESS: real 0x312d attract dispatches are captured and the oracle run is
 
 // -- 1. EQUAL on real captured attract dispatches ----------------------------
 
-test("EQUAL (real dispatches): advanceObjectMovers == oracle over RAM on every captured entry", () => {
+test("EQUAL (real dispatches): updateEnemy1 == oracle over RAM on every captured entry", () => {
   const caps = captureRealEntries(2500, 120);
   assert.ok(caps.length >= 1, "need captured 0x312d entries");
 
@@ -228,7 +228,7 @@ test("EQUAL (object-1-only): game mode 4 + counter 9 runs only object 1 and stag
 test("EQUAL (object-1 + object-2): counter >= 10 runs both movers, identical to the oracle", () => {
   const entry = baseAttractState(300);
   entry.mem.write8(GAME_STATE, 4);
-  entry.mem.write8(PLAY_PHASE_COUNTER, 12); // >= 10 -> object 2 also runs (hand-off to advanceObjectMover2)
+  entry.mem.write8(PLAY_PHASE_COUNTER, 12); // >= 10 -> object 2 also runs (hand-off to updateEnemy2)
 
   const diff = ramDiffVsOracle(entry, idiomatic);
   assert.equal(diff, null, diff && `both-movers RAM diff at ${hx(diff.addr ?? 0)} oracle=${diff.a} cand=${diff.b}`);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceBackgroundAnimation — the per-frame phase clock for the background flip animation: tick the
- * phase countdown and route the frame to one of three shared continuations.  ROM 0x2fc0.
+ * advanceZonkerAnimation — the per-frame phase clock for the Zonker's sprite-flip animation: tick
+ * the phase countdown and route the frame to one of three shared continuations.  ROM 0x2fc0. (§2.6)
  *
  * The dirt/shaft backdrop shimmers by flipping between two tile codes on a slow
  * cadence. This routine owns that cadence's clock. Once per frame it ticks a phase
@@ -17,21 +17,19 @@
  * The flip alternates between the two backdrop tile codes: whenever the tile is
  * currently the first, it becomes the second, and from anything else it becomes the
  * first — a strict two-state toggle. The chosen tile is handed to the commit tail
- * setBgSpriteFrame through the machine register it still reads (a genuine oracle boundary, so
+ * setZonkerFrame through the machine register it still reads (a genuine oracle boundary, so
  * it is set on the machine rather than passed as an argument). The two other
  * continuations (the oscillator body and the publish tail) are not yet decompiled, so
  * they stay registry hand-offs. All three are tail jumps: this routine has no return
- * of its own, so the continuation's return unwinds straight back to advanceBackgroundAnimation's caller,
+ * of its own, so the continuation's return unwinds straight back to advanceZonkerAnimation's caller,
  * which is why each delegation IS an exit.
  *
- * Name kept as advanceBackgroundAnimation: the backdrop-animation subsystem is a best-effort reading, and
- * while the phase counter (ZONKER_ANIM_PHASE) and the flip-tile cell (ZONKER_FRAME) are
- * now named in ram.js, that (fair-confidence) naming does not pin the routine's specific
- * role — below the bar to promote to an English name.
+ * This is the phase clock for the Zonker tank's shimmer animation (§2.6): the phase counter is
+ * ZONKER_ANIM_PHASE (0x80e3) and the flip-tile cell ZONKER_FRAME (0x80dc), both named in ram.js.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fc0.test.js.
  * GATE:     crafted-entry — this subsystem never enters through this address in
- *           attract (the sibling monolith advanceBackgroundSprite inlines the same body instead of
+ *           attract (the sibling monolith advanceZonker inlines the same body instead of
  *           calling it), so real machine states are captured at that sibling and the
  *           target is invoked on clones of them. The two still-untranslated tails
  *           (0x2fe3 oscillator body, 0x3029 publish) are delegated to ONE identical
@@ -45,10 +43,10 @@
  *           The registers/flags it leaves behind are dead.
  * NAMES:    ZONKER_ANIM_PHASE (0x80e3, the animation phase counter) and ZONKER_FRAME
  *           (0x80dc, the two-state flip tile) from ram.js. The commit tail is the decompiled
- *           setBgSpriteFrame; the oscillator body (0x2fe3) and publish tail (0x3029) are oracle.
+ *           setZonkerFrame; the oscillator body (0x2fe3) and publish tail (0x3029) are oracle.
  */
 
-import { setBgSpriteFrame } from "./setBgSpriteFrame.js";
+import { setZonkerFrame } from "./setZonkerFrame.js";
 import { ZONKER_ANIM_PHASE, ZONKER_FRAME } from "./ram.js";
 
 
@@ -56,7 +54,7 @@ import { ZONKER_ANIM_PHASE, ZONKER_FRAME } from "./ram.js";
 const FLIP_TILE_A = 56;
 const FLIP_TILE_B = 57;
 
-export function advanceBackgroundAnimation(m) {
+export function advanceZonkerAnimation(m) {
   const { mem8 } = m;
 
   // Tick the phase countdown (an 8-bit down-counter, so it wraps 0 -> 255).
@@ -79,6 +77,6 @@ export function advanceBackgroundAnimation(m) {
   m.regs.a = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
 
   // Hand the chosen tile to the commit tail; its return goes to our caller, so this
-  // is advanceBackgroundAnimation's exit.
-  return setBgSpriteFrame(m);
+  // is advanceZonkerAnimation's exit.
+  return setZonkerFrame(m);
 }

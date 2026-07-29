@@ -9,7 +9,11 @@ Confirmations were promoted, overturns applied, and new grounded facts folded in
 **Naming note:** the names in this doc are the earned, gameplay-first vocabulary. The repo's
 `ram.js` now carries matching gameplay-first export names (`PLAYER_Y`, `ENEMY3_X`, `ZONKER_X`,
 `HAZARD_TYPE`, …, in SCREAMING_SNAKE vs this doc's camelCase); the old abstract export names are
-retired. The hex addresses (`0x80..`) remain the stable anchor — match on the address when
+retired. The idiomatic routine files are likewise renamed to gameplay-first names as their
+identities are grounded — e.g. `advancePlayerLaser` (0x24f3), `advanceZonker` (0x2f71),
+`erodeMountain` (0x241c), `seedMountainErosion` (0x23e8), `updateEnemy1`/`updateEnemy2`
+(0x312d/0x316f) — while this doc still references routines by ROM address (`loc_XXXX`). The hex
+addresses (`0x80..`, `loc_XXXX`) remain the stable anchor — match on the address when
 cross-referencing code.
 
 Every substantive claim is tagged with its evidence level. This document once existed to *drive

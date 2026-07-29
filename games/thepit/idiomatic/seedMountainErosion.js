@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * reseedColumnAnimation — seed a tilemap write pointer and a countdown, then conditionally cue a
- * sound and stamp a two-tile "cap" into the tilemap.  ROM 0x23e8.
+ * seedMountainErosion — seed the mountain-erosion tilemap write pointer (0x9104) and its
+ * level-scaled countdown, then conditionally cue a sound and stamp a two-tile "cap" into the
+ * tilemap.  ROM 0x23e8. (§2.6)
  *
  * Runs during the boot/attract setup. In order it:
  *   1. Stores a fixed tilemap address (0x9104) into the pointer slot MOUNTAIN_ERODE_PTR
@@ -14,10 +15,10 @@
  *      into it and tile 0xac into the cell one row above it (0x90c4, 32 columns up);
  *      otherwise it leaves the tilemap untouched.
  *
- * Kept as the neutral address name: the game role of the pointer, the countdown, and
- * the tile patch is not yet understood, and a wrong English name would mislead worse
- * than the address. The tile-code and marker bytes (0x32 / 0xae / 0xac / 0xfe) are
- * opaque graphics-ROM indices, kept hex like the other marker bytes in this layer.
+ * This seeds the mountain erosion (§2.6, grounded): the write pointer (0x9104), the level-scaled
+ * step countdown (erosion runs faster every level), and the initial cap patch. The tile-code and
+ * marker bytes (0x32 / 0xae / 0xac / 0xfe) are opaque graphics-ROM indices, kept hex like the
+ * other marker bytes in this layer.
  *
  * Memory-equivalent to the frozen oracle — equivalence-23e8.test.js.
  * GATE:     real captured dispatches (8 in a 1500-frame attract run — they cover the
@@ -37,7 +38,7 @@
 import { requestSound21 } from "./requestSound21.js";
 
 import { MOUNTAIN_ERODE_TIMER, MOUNTAIN_ERODE_PTR, LEVEL, STEP_TIMER_BASE } from "./ram.js";
-export function reseedColumnAnimation(m) {
+export function seedMountainErosion(m) {
   const { mem8, mem16 } = m;
 
   // 1. Seed the tilemap write pointer for later tilemap walks.

@@ -38,9 +38,9 @@ import { GAME_STATE } from "./ram.js";
 import { enableNmi } from "./enableNmi.js"; //                       ROM 0x4b14
 import { steerDemoPlayer } from "./steerDemoPlayer.js"; //           ROM 0x03e8
 import { dispatchObjectFrameByStateTimer } from "./dispatchObjectFrameByStateTimer.js"; //                         ROM 0x13c9
-import { advanceColumnAnimation } from "./advanceColumnAnimation.js"; // ROM 0x241c
+import { erodeMountain } from "./erodeMountain.js"; // ROM 0x241c
 import { glitterJewels } from "./glitterJewels.js"; //           ROM 0x06ac
-import { advanceReactionObject } from "./advanceReactionObject.js"; // ROM 0x24f3
+import { advancePlayerLaser } from "./advancePlayerLaser.js"; // ROM 0x24f3
 
 // Reading this hardware port pets the watchdog timer; the value read is discarded,
 // the read itself is the effect. (The write side of the same port is the sound latch.)
@@ -65,8 +65,8 @@ export function mainLoop(m) {
 
     // The per-frame game services, in order.
     dispatchObjectFrameByStateTimer(m); //               object / state dispatcher (gated by the state-lockout timer)
-    advanceColumnAnimation(m); // one frame-gated step of the vertical column reveal
+    erodeMountain(m); // one frame-gated step of the vertical column reveal
     glitterJewels(m); //        recolour the next diamond in the glitter cycle
-    advanceReactionObject(m); //  drive the tracked object's dig/push reaction
+    advancePlayerLaser(m); //  drive the tracked object's dig/push reaction
   }
 }

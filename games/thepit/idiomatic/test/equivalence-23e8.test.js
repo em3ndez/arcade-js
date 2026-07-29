@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for reseedColumnAnimation (ROM 0x23e8) — the tilemap-setup routine that
+ * Memory-equivalence gate for seedMountainErosion (ROM 0x23e8) — the tilemap-setup routine that
  * seeds a write pointer + a countdown, conditionally cues a sound, and conditionally
  * stamps a two-tile "cap" into the tilemap.
  *
@@ -29,7 +29,7 @@
  * Checks:
  *   0. HARNESS   — capture real 0x23e8 entries and confirm the oracle run is
  *                  deterministic (oracle vs oracle -> identical whole state incl. pc).
- *   1. EQUAL     — reseedColumnAnimation == oracle over every real captured dispatch; both head-cell
+ *   1. EQUAL     — seedMountainErosion == oracle over every real captured dispatch; both head-cell
  *                  arms are exercised, with positive checks on the pointer + countdown.
  *   2. EQUAL     — a crafted entry forces the sound arm (0x9264 = 0x32): identical RAM
  *                  outside the stack scratch, and the ring slot + pointer hold the cue.
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_23e8 as oracle } from "../../translated/loc_23e8.js";
-import { reseedColumnAnimation as idiomatic } from "../reseedColumnAnimation.js";
+import { seedMountainErosion as idiomatic } from "../seedMountainErosion.js";
 import { requestSound21 } from "../requestSound21.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -161,7 +161,7 @@ test("HARNESS: real 0x23e8 entries are captured and the oracle run is determinis
 
 // -- 1. EQUAL on every real captured dispatch --------------------------------
 
-test("EQUAL (real entries): reseedColumnAnimation == oracle over every real dispatch; both head-cell arms", () => {
+test("EQUAL (real entries): seedMountainErosion == oracle over every real dispatch; both head-cell arms", () => {
   const caps = captureEntries(25, 1500);
   assert.ok(caps.length >= 1, "need at least one captured 0x23e8 entry");
 

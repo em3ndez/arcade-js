@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for seedObjectRecords (ROM 0x30de, The Pit) — seed the second block
+ * Memory-equivalence gate for seedEnemyRecords (ROM 0x30de, The Pit) — seed the second block
  * of round/level parameters, derive one difficulty-scaled byte pair from the level
  * counter, then tail-jump into seedActorSpawnState (ROM 0x36fe).
  *
- * seedObjectRecords is entered ONLY by the gameplay round-init tail-jump chain
- * (loc_2f2f → seedObjectRecords → loc_36fe); attract mode never enters gameplay, so it is
+ * seedEnemyRecords is entered ONLY by the gameplay round-init tail-jump chain
+ * (loc_2f2f → seedEnemyRecords → loc_36fe); attract mode never enters gameplay, so it is
  * never dispatched in a boot/attract run — the unit harness (which needs a real
  * dispatch) cannot capture it. But the only thing it READS is the level/difficulty
  * counter at 0x8028; everything else is fixed immediates. So its output is a function
@@ -23,11 +23,11 @@
  *
  * FOUR checks:
  *   1. EQUAL (real captured entries) — clone the running attract machine at several
- *      frames (real title/demo RAM), run the oracle and seedObjectRecords on independent clones
+ *      frames (real title/demo RAM), run the oracle and seedEnemyRecords on independent clones
  *      of each, and diff work RAM. Must be identical.
  *   2. TAIL FIRED — after the idiomatic run the tail's effects are present (the actor
  *      pair seeded, the spawn-phase flag cleared), proving the hand-off actually ran.
- *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set seedObjectRecords's own targets
+ *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set seedEnemyRecords's own targets
  *      to a sentinel identically on both sides, so a no-op or partial twin cannot pass
  *      by the entry already holding the seeded values: every target must be
  *      overwritten, and both arms must still agree byte-for-byte.
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_30de as oracle } from "../../translated/loc_30de.js";
-import { seedObjectRecords as idiomatic } from "../seedObjectRecords.js";
+import { seedEnemyRecords as idiomatic } from "../seedEnemyRecords.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -73,7 +73,7 @@ const DERIVED_LO = 0x80f6; // first mirrored slot for the difficulty-scaled pair
 const DERIVED_HI = 0x8107; // second mirrored slot (same value)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// seedObjectRecords's OWN parameter-block writes (the tail's writes are the seedActorSpawnState
+// seedEnemyRecords's OWN parameter-block writes (the tail's writes are the seedActorSpawnState
 // set, listed separately below). Two of these — DERIVED_LO/DERIVED_HI — are computed
 // from the level counter; the rest are fixed immediates.
 const OWN_ADDRS = [
@@ -111,7 +111,7 @@ function captureStates(count, stride, startFrame) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: seedObjectRecords leaves the same work RAM as the oracle over real captured states", () => {
+test("EQUAL: seedEnemyRecords leaves the same work RAM as the oracle over real captured states", () => {
   const caps = captureStates(8, 120, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {
@@ -176,7 +176,7 @@ test("COUNTER SWEEP: idiomatic == oracle across all 256 level-counter values, an
 
 // -- 3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) -------------------------
 
-test("NON-VACUOUS: with seedObjectRecords's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
+test("NON-VACUOUS: with seedEnemyRecords's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
   const [entry] = captureStates(1, 1, 200);
   const SENTINEL = 0x55; // 85 — never a value the routine writes (fixed or derived)
   for (const addr of OWN_ADDRS) entry.mem.write8(addr, SENTINEL);
@@ -206,7 +206,7 @@ function brokenDerivedPair(m) {
   m.mem.write8(DERIVED_LO, m.mem.read8(DERIVED_LO) + 1); // BUG: wrong difficulty step
 }
 
-/** Broken twin B: does seedObjectRecords's own writes but drops the seedActorSpawnState tail. */
+/** Broken twin B: does seedEnemyRecords's own writes but drops the seedActorSpawnState tail. */
 function brokenNoTail(m) {
   const { mem } = m;
   mem.write8(0x80e9, 9);

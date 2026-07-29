@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * seedBackgroundAnimParams — seed the first block of round/level parameters, derive the
- * animation reload byte, then hand off to seedObjectRecords.  ROM 0x2f2f.
+ * seedZonker — seed the Zonker + mountain-animation parameters (the first block of round/level
+ * setup), derive the animation reload byte, then hand off to seedEnemyRecords.  ROM 0x2f2f. (§2.6)
  *
  * The first half of the round/level parameter-seeding pass: it fills its own block
  * of subsystem parameter/counter bytes with fixed start values, then derives a
  * single animation-reload byte from the round's level/difficulty counter and jumps
- * straight into seedObjectRecords, which seeds the second block. The reload byte counts down
+ * straight into seedEnemyRecords, which seeds the second block. The reload byte counts down
  * as difficulty climbs: it increments the counter, holds it at a ceiling of four,
  * and takes seven minus that — 6, 5, 4, then a floor of 3 — so the animation reloads
  * sooner (a shorter cadence) at harder levels. The hand-off is a tail jump:
- * seedObjectRecords's own return unwinds back to seedBackgroundAnimParams's caller, so the delegation IS
- * seedBackgroundAnimParams's exit.
+ * seedEnemyRecords's own return unwinds back to seedZonker's caller, so the delegation IS
+ * seedZonker's exit.
  *
  * Every write lands on a distinct work-RAM byte, so their order does not affect the
  * resulting state.
@@ -21,7 +21,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f2f.test.js.
  * GATE:     crafted-entry — never dispatched in attract (it runs only from the
- *           gameplay round-init tail-jump chain seedDigObjectBlock → seedBackgroundAnimParams → seedObjectRecords, which
+ *           gameplay round-init tail-jump chain seedDigObjectBlock → seedZonker → seedEnemyRecords, which
  *           attract never reaches), so it is validated on real captured attract
  *           machine states. It reads only the difficulty counter, so any realistic
  *           state is a valid entry: EQUAL over several captured states + a full
@@ -34,10 +34,10 @@
  *           (0x80e3), ZONKER_REVEAL_PERIOD (0x80e4), ZONKER_REVEAL_GATE (0x80e5), ZONKER_REVEAL_CURSOR (0x80e6),
  *           GOAL_TILE_LATCH (0x80e7), and the LEVEL difficulty counter (0x8028); only
  *           0x80df–0x80e0 in the block stay unnamed hex. The tail is the decompiled
- *           seedObjectRecords (ROM 0x30de).
+ *           seedEnemyRecords (ROM 0x30de).
  */
 
-import { seedObjectRecords } from "./seedObjectRecords.js";
+import { seedEnemyRecords } from "./seedEnemyRecords.js";
 
 import {
   ZONKER_ANIM_PHASE,
@@ -51,7 +51,7 @@ import {
   ZONKER_REVEAL_GATE,
   ZONKER_REVEAL_PERIOD,
 } from "./ram.js";
-export function seedBackgroundAnimParams(m) {
+export function seedZonker(m) {
   const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
@@ -73,7 +73,7 @@ export function seedBackgroundAnimParams(m) {
   const cappedLevel = Math.min((mem8[LEVEL] + 1) & 0xff, 4);
   mem8[ZONKER_REVEAL_PERIOD] = 7 - cappedLevel;
 
-  // Tail hand-off into seedObjectRecords; its return goes to our caller, so this is
-  // seedBackgroundAnimParams's exit.
-  return seedObjectRecords(m);
+  // Tail hand-off into seedEnemyRecords; its return goes to our caller, so this is
+  // seedZonker's exit.
+  return seedEnemyRecords(m);
 }

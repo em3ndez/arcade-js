@@ -4,7 +4,7 @@
  * that seeds the primary+twin actor records and clears the spawn-phase flag.
  *
  * loc_36fe is entered ONLY by the gameplay round-init tail-jump chain
- * (loc_2f2f → seedObjectRecords → loc_36fe); attract mode never enters gameplay, so it is
+ * (loc_2f2f → seedEnemyRecords → loc_36fe); attract mode never enters gameplay, so it is
  * never dispatched in a boot/attract run — the unit harness (which requires a real
  * dispatch) cannot capture it. But the routine READS NOTHING: it stores fixed
  * immediates into fifteen distinct work-RAM bytes. Its output is therefore

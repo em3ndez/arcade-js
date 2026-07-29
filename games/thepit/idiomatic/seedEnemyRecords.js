@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * seedObjectRecords — seed the second block of round/level parameters, derive one
- * difficulty-scaled byte pair, then hand off to seedActorSpawnState.  ROM 0x30de.
+ * seedEnemyRecords — seed the enemy records (the second block of round/level setup), derive the
+ * difficulty-scaled enemy-speed pair (0x07-(level&6) = 7,5,3,1), then hand off to seedActorSpawnState
+ * (enemy #3).  ROM 0x30de. (§2.4)
  *
- * The second half of the round/level parameter-seeding pass — seedBackgroundAnimParams fills the
+ * The second half of the round/level parameter-seeding pass — seedZonker fills the
  * first block, then jumps straight here. This routine fills its own block of
  * subsystem parameter/counter bytes with fixed start values, derives a single pair
  * of bytes from the round's level/difficulty counter, and writes that pair into two
@@ -12,14 +13,14 @@
  * climbs — a smaller value at a harder level. It then hands straight on to
  * seedActorSpawnState, which puts the actor pair's records into their start state.
  * That hand-off is a tail jump: seedActorSpawnState's own return unwinds back to
- * seedObjectRecords's caller, so the delegation IS seedObjectRecords's exit.
+ * seedEnemyRecords's caller, so the delegation IS seedEnemyRecords's exit.
  *
  * Every write lands on a distinct work-RAM byte, so their order does not affect the
  * resulting state; the two mirrored slots always receive the same derived value.
  *
- * Name kept as seedObjectRecords: the block it seeds drives a subsystem that is not yet
- * identified, and the counter it reads is not a confirmed, named field — the role is
- * a best-effort reading, below the bar to promote to an English name.
+ * The block it seeds is the enemy records, and the derived pair is the enemy-speed difficulty
+ * scaling (§2.4, grounded: at the level-1→2 rebuild the pair went 7→5 — "the game just gets
+ * faster"). The counter it reads is LEVEL (0x8028).
  *
  * Memory-equivalent to the frozen oracle — equivalence-30de.test.js.
  * GATE:     crafted-entry — never dispatched in attract (it runs only from the
@@ -59,7 +60,7 @@ import {
   ENEMY2_TIMER,
   ENEMY2_X,
 } from "./ram.js";
-export function seedObjectRecords(m) {
+export function seedEnemyRecords(m) {
   const { mem8 } = m;
 
   // Fixed start values for the parameter/counter block.
@@ -87,6 +88,6 @@ export function seedObjectRecords(m) {
   mem8[ENEMY2_TARGET_COL] = 5;
 
   // Tail hand-off into seedActorSpawnState; its return goes to our caller, so this
-  // is seedObjectRecords's exit.
+  // is seedEnemyRecords's exit.
   return seedActorSpawnState(m);
 }

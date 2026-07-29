@@ -29,7 +29,7 @@
  *      stageActorSpriteRecords deliberately does not reproduce ("takes nothing and
  *      returns nothing").
  *   3. The whole reach is a TAIL-JUMP ladder:
- *        loc_312d/advanceObjectMover2 -> 0x3748 -> advanceOrRebuildTwinActor -> paceActorCadence -> easeActorToRest -> 0x3a4c
+ *        loc_312d/updateEnemy2 -> 0x3748 -> advanceOrRebuildTwinActor -> paceActorCadence -> easeActorToRest -> 0x3a4c
  *      Every link is a tail-jump (verified in the translated arms: advanceOrRebuildTwinActor's
  *      `jp nc,0x3945`, paceActorCadence's `jr 0x3968`, easeActorToRest's tail into 0x3a4c). No link
  *      reads the callee's register `a` — each simply transfers control and consumes

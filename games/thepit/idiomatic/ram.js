@@ -187,7 +187,7 @@ export const PRNG_HIGH = 0x800e;
 // ── Round / difficulty ────────────────────────────────────────────────────────
 /** Current player's LEVEL / round counter — inits to 1, +1 per level cleared; every
  *  difficulty subsystem scales off it (countdowns, reloads). Proposer≠confirmer converged,
- *  both strong: init=1 (startGame), inc (advanceToNextLevel), scaled in reseedColumnAnimation/initRoundAndEnterMainLoop/seedBackgroundAnimParams. (strong) */
+ *  both strong: init=1 (startGame), inc (advanceToNextLevel), scaled in seedMountainErosion/initRoundAndEnterMainLoop/seedZonker. (strong) */
 export const LEVEL = 0x8028;
 
 // ── Shared tile/colour column-plotter parameter block (0x8055-0x8060) ─────────
@@ -213,7 +213,7 @@ export const LASER_STATE = 0x80a1;
 /** Per-object reaction/animation state selector: 0 = idle (normal per-frame movement runs),
  *  1-4 = a specific collision/dig/push reaction is armed + playing; also a busy-lock that
  *  defers the normal frame. Armed to 1-4 by locateObjectCellCheckGoal/collectAlignedLootElseResolveTile/resolveObjectTerrainStep/resolveActorTerrainStep/triggerDigReaction, dispatched by
- *  advanceReactionObject, deferred by stepObjectFromControl, render-Y-biased at ==4. Proposer≠confirmer converged,
+ *  advancePlayerLaser, deferred by stepObjectFromControl, render-Y-biased at ==4. Proposer≠confirmer converged,
  *  both strong. (strong) */
 export const REACTION_STATE = 0x80a2;
 
@@ -236,7 +236,7 @@ export const PRIZE_GATE = 0x8076;
 
 // ── Naming batch 2 (proposer≠confirmer, all 6 converged) ──────────────────────
 /** Reaction step/animation countdown for the REACTION_STATE machine: reloaded from the period
- *  byte 0x80a3 when a reaction (1-4) is armed, decremented per frame by advanceReactionObject, and on zero
+ *  byte 0x80a3 when a reaction (1-4) is armed, decremented per frame by advancePlayerLaser, and on zero
  *  ends the reaction (clears REACTION_STATE); the value 0x18 also cues a sound. (strong) */
 export const REACTION_TIMER = 0x80a4;
 /** HAZARD_X (0x80a9) — X of the falling-hazard / dig-carve target cell (>>3 -> tile column); this ONE
@@ -325,7 +325,7 @@ export const SCORE_DISPLAY_HIGH = 0x8038;
 export const FRAME_WAIT_COUNTDOWN = 0x8009;
 /**
  *  STEP_TIMER_BASE (0x804f) — DSW-decoded base (applyDipSwitches) that seeds the step timer 0x8067 =
- *  0x804f - 4*LEVEL (reseedColumnAnimation); 0x8067 is the per-step countdown advanceColumnAnimation decrements each
+ *  0x804f - 4*LEVEL (seedMountainErosion); 0x8067 is the per-step countdown erodeMountain decrements each
  *  frame. (fair)
  */
 export const STEP_TIMER_BASE = 0x804f;
@@ -349,13 +349,13 @@ export const GLITTER_COUNTDOWN = 0x805c;
 export const COLOUR_RAM_CURSOR = 0x805e;
 /**
  *  MOUNTAIN_ERODE_PTR (0x8065) — 16-bit VRAM write cursor for the mountain erosion (§2.6): seeded
- *  0x9104 by reseedColumnAnimation, deref'd via IX and walked +0x20/step down the mountain column (writing
- *  tile 0x31) by advanceColumnAnimation as the mountain visibly eats away. Grounded (§2.6). (fair) */
+ *  0x9104 by seedMountainErosion, deref'd via IX and walked +0x20/step down the mountain column (writing
+ *  tile 0x31) by erodeMountain as the mountain visibly eats away. Grounded (§2.6). (fair) */
 export const MOUNTAIN_ERODE_PTR = 0x8065;
 /**
  *  MOUNTAIN_ERODE_TIMER (0x8067) — per-step countdown pacing the erosion: armed level-scaled
- *  (diffBase 0x804f − 4*LEVEL, so erosion runs faster every level) by reseedColumnAnimation, decremented each
- *  frame by advanceColumnAnimation which advances one step only on expiry. Grounded (§2.6). (fair) */
+ *  (diffBase 0x804f − 4*LEVEL, so erosion runs faster every level) by seedMountainErosion, decremented each
+ *  frame by erodeMountain which advances one step only on expiry. Grounded (§2.6). (fair) */
 export const MOUNTAIN_ERODE_TIMER = 0x8067;
 
 // ── Tracked-object tile cell + sprite attribute ──
@@ -404,14 +404,14 @@ export const ENEMY_WORK_STATE = 0x8090;
 // ── Reaction object (position paired with the player box) ──
 /**
  *  REACTION_OBJ_X (0x8094) — PLAYER_Y-paired position coordinate of the REACTION_STATE (0x80a2)
- *  entity: written each frame by advanceReactionObject from PLAYER_Y±8, player-box-tested in stepEnemyMover, placed
+ *  entity: written each frame by advancePlayerLaser from PLAYER_Y±8, player-box-tested in stepEnemyMover, placed
  *  by spawnDigEntity, written to sprite record byte 0, inited 0 by resetReactionState; both converge, well
  *  grounded. (fair)
  */
 export const REACTION_OBJ_X = 0x8094;
 /**
  *  REACTION_OBJ_Y (0x8097) — PLAYER_X-paired position coordinate of the REACTION_STATE (0x80a2)
- *  entity: written by advanceReactionObject from PLAYER_X±8, player-box-tested in stepEnemyMover against the 0x8086
+ *  entity: written by advancePlayerLaser from PLAYER_X±8, player-box-tested in stepEnemyMover against the 0x8086
  *  axis, written to sprite record byte 3, inited 0 by resetReactionState; both converge, well grounded.
  *  (fair)
  */
@@ -448,47 +448,47 @@ export const DIG_COLLISION_STATE = 0x80c1;
 // ── The Zonker tank + its lobbed shell (background scenery animation, §2.6) ──
 /**
  *  ZONKER_X (0x80db) — the Zonker TANK's X (byte0): a horizontal bounce oscillator in [0x19,0x38)
- *  (velocity 0x80df) init 0x28 by seedBackgroundAnimParams, published as byte0 of the slot-3 record 0x822c;
+ *  (velocity 0x80df) init 0x28 by seedZonker, published as byte0 of the slot-3 record 0x822c;
  *  matches the ENEMY3_X byte convention. Grounded (§2.6). (fair) */
 export const ZONKER_X = 0x80db;
 /**
  *  ZONKER_FRAME (0x80dc) — tank sprite tile/frame code toggled 0x38<->0x39 every 8 frames
- *  (advanceBackgroundSprite/advanceBackgroundAnimation/setBgSpriteFrame), init 0x39, published as the code byte of the slot-3
+ *  (advanceZonker/advanceZonkerAnimation/setZonkerFrame), init 0x39, published as the code byte of the slot-3
  *  record. Grounded (§2.6). (fair) */
 export const ZONKER_FRAME = 0x80dc;
 /**
  *  ZONKER_ATTR (0x80dd) — byte2 attribute (color low bits + priority) of the tank sprite; bumped by
- *  advanceBackgroundSprite with `and 0xf7` holding priority bit3 clear while cycling color, init 0xc0;
+ *  advanceZonker with `and 0xf7` holding priority bit3 clear while cycling color, init 0xc0;
  *  role converged (normalised to ATTR per video.js decode) (fair) */
 export const ZONKER_ATTR = 0x80dd;
 /**
  *  ZONKER_SHELL_Y (0x80de) — Y (byte3) of the SHELL the tank lobs: accelerating vertical fall
- *  (step 0x80e0) clamped at 0x86 then RNG-reseeded by advanceBackgroundSprite (the tank repeatedly
+ *  (step 0x80e0) clamped at 0x86 then RNG-reseeded by advanceZonker (the tank repeatedly
  *  lobbing a shell, §2.6), init 0x78, published as byte3 of the slot-3 record. Grounded (§2.6). (fair) */
 export const ZONKER_SHELL_Y = 0x80de;
 
 // ── Zonker oscillator phase + mountain scroll-reveal (period / gate / cursor), §2.6 ──
 /**
  *  ZONKER_ANIM_PHASE (0x80e3) — Down-counter mod 8: decremented per frame, reloads 8 on wrap
- *  and toggles sprite frame 0x80dc, low bits gate the oscillator; read by advanceBackgroundAnimation and
- *  advanceBackgroundSprite, seeded 1 by seedBackgroundAnimParams — A and B agree, derivation confirms. (fair)
+ *  and toggles sprite frame 0x80dc, low bits gate the oscillator; read by advanceZonkerAnimation and
+ *  advanceZonker, seeded 1 by seedZonker — A and B agree, derivation confirms. (fair)
  */
 export const ZONKER_ANIM_PHASE = 0x80e3;
 /**
  *  ZONKER_REVEAL_PERIOD (0x80e4) — Level-derived reload period (7..3 via A^=0x07 from 0x8028) for
- *  the reveal gate 0x80e5; written by seedBackgroundAnimParams, consumed by revealTerrainColumn/advanceBackgroundSprite on gate wrap —
+ *  the reveal gate 0x80e5; written by seedZonker, consumed by revealTerrainColumn/advanceZonker on gate wrap —
  *  both namers converge, derivation confirms. (fair)
  */
 export const ZONKER_REVEAL_PERIOD = 0x80e4;
 /**
  *  ZONKER_REVEAL_GATE (0x80e5) — Per-column frame-gate down-counter: decremented each call, on wrap
- *  reloads from ZONKER_REVEAL_PERIOD 0x80e4 and reveals one terrain column; revealTerrainColumn/advanceBackgroundSprite,
- *  seeded 1 by seedBackgroundAnimParams — grounded and convergent. (fair)
+ *  reloads from ZONKER_REVEAL_PERIOD 0x80e4 and reveals one terrain column; revealTerrainColumn/advanceZonker,
+ *  seeded 1 by seedZonker — grounded and convergent. (fair)
  */
 export const ZONKER_REVEAL_GATE = 0x80e5;
 /**
  *  ZONKER_REVEAL_CURSOR (0x80e6) — Byte offset into tile-pattern table 0x3048, stepped back 6 per
- *  reveal (underflow ends reveal), seeded 0x96 by seedBackgroundAnimParams; advanced by revealTerrainColumn/advanceBackgroundSprite and
+ *  reveal (underflow ends reveal), seeded 0x96 by seedZonker; advanced by revealTerrainColumn/advanceZonker and
  *  independently tested ==0 by dispatcher advanceTrackedObject as the reveal-finished gate. (fair)
  */
 export const ZONKER_REVEAL_CURSOR = 0x80e6;
@@ -496,45 +496,45 @@ export const ZONKER_REVEAL_CURSOR = 0x80e6;
 // ── Object 1 record + Object 2 record ──
 /**
  *  ENEMY1_X (0x80e8) — Base (offset 0) of the first object record: seeded/reset 0xec
- *  (seedObjectRecords/stepEnemyMover), copied to sprite record 0x8230 byte 0 by advanceObjectMovers — the SAME structural
+ *  (seedEnemyRecords/stepEnemyMover), copied to sprite record 0x8230 byte 0 by updateEnemy1 — the SAME structural
  *  field as ENEMY2_X (0x80f9), so X by the house convention (offset 0 = X, ENEMY3_X/PLAYER_Y). Under
  *  ROT90 the sprite's hardware-Y byte is the on-screen horizontal, which the codebase calls X.
  *  (The record's Y is the offset-3 byte 0x80eb, still hex.) (fair)
  */
 export const ENEMY1_X = 0x80e8;
 /**
- *  ENEMY1_SPRITE (0x80e9) — Object-1 record byte1: seeded 0x09 by seedObjectRecords, copied to
- *  sprite byte 0x8231 by advanceObjectMovers; video.js decodes it as code&0x3f + flipX(0x40) +
+ *  ENEMY1_SPRITE (0x80e9) — Object-1 record byte1: seeded 0x09 by seedEnemyRecords, copied to
+ *  sprite byte 0x8231 by updateEnemy1; video.js decodes it as code&0x3f + flipX(0x40) +
  *  flipY(0x80) — sprite code+orientation confirmed. (fair)
  */
 export const ENEMY1_SPRITE = 0x80e9;
 /**
- *  ENEMY1_ATTR (0x80ea) — Object-1 record offset 2: seeded 0x04 (seedObjectRecords), copied verbatim to
- *  sprite-record byte 2 (advanceObjectMovers), color-cycled with priority bit 3 held clear (advanceDormantMover) --
+ *  ENEMY1_ATTR (0x80ea) — Object-1 record offset 2: seeded 0x04 (seedEnemyRecords), copied verbatim to
+ *  sprite-record byte 2 (updateEnemy1), color-cycled with priority bit 3 held clear (advanceDormantMover) --
  *  A/B and my derivation all agree. (fair)
  */
 export const ENEMY1_ATTR = 0x80ea;
 /**
- *  ENEMY1_MOVE_PERIOD (0x80f6) — Object-1 record offset 14: seedObjectRecords derives 7-(LEVEL&6)
+ *  ENEMY1_MOVE_PERIOD (0x80f6) — Object-1 record offset 14: seedEnemyRecords derives 7-(LEVEL&6)
  *  (faster as level climbs) and loc_3490 reloads the offset-8 cadence timer from it -- A/B
  *  converge (reload/period) and my derivation agrees, grounded across two routines. (fair)
  */
 export const ENEMY1_MOVE_PERIOD = 0x80f6;
 /**
  *  ENEMY1_TARGET_COL (0x80f8) — Object-1 record offset 16 target column: seeded 0x04
- *  (seedObjectRecords); stepEnemyMover fast-exits when 0x807a equals it and keys the tile-probe/direction
+ *  (seedEnemyRecords); stepEnemyMover fast-exits when 0x807a equals it and keys the tile-probe/direction
  *  dispatch on it -- A/B and my derivation agree. (fair)
  */
 export const ENEMY1_TARGET_COL = 0x80f8;
 /**
  *  ENEMY2_X (0x80f9) — Base (offset 0) of the second 17-byte object record: staged/emitted as
- *  sprite byte 0 by advanceObjectMover2, position-tested in stepEnemyMover, seeded 0x00; matches house
+ *  sprite byte 0 by updateEnemy2, position-tested in stepEnemyMover, seeded 0x00; matches house
  *  convention ENEMY3_X=offset 0 -- A/B agree. (fair)
  */
 export const ENEMY2_X = 0x80f9;
 /**
  *  ENEMY2_SPRITE (0x80fa) — Object-2 record offset 1 sprite tile/code byte: seeded 0x09, emitted
- *  verbatim to sprite byte 1 (advanceObjectMover2), rewritten with the direction/orientation code
+ *  verbatim to sprite byte 1 (updateEnemy2), rewritten with the direction/orientation code
  *  (stepEnemyMover/stepMoverUp); matches house convention ENEMY3_TILE=offset 1 -- A/B agree. (fair)
  */
 export const ENEMY2_SPRITE = 0x80fa;
@@ -638,7 +638,7 @@ export const ENEMY_WORK_DIR = 0x8092;
 /**
  *  EXPECTED_TILE (0x80a7) — The object cell's table-resolved expected tile: seeded from the
  *  raw under-tile then overwritten with the ROM lookup, cross-checked vs CUR_TILE 0x80a5 in
- *  loc_164f to detect a change, and stamped into (ix+0) by advanceReactionObject; both namers converged
+ *  loc_164f to detect a change, and stamped into (ix+0) by advancePlayerLaser; both namers converged
  *  high-confidence, real readers + writers. (fair)
  */
 export const EXPECTED_TILE = 0x80a7;
