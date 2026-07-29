@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for setZonkerFrame (ROM 0x2fd9, The Pit) — commit the chosen
+ * Memory-equivalence gate for setChamberCreatureFrame (ROM 0x2fd9, The Pit) — commit the chosen
  * background-animation flip tile into 0x80dc, then hand off to the shared
  * animation-update tail at 0x2fe3.
  *
  * TWO WRINKLES this routine forces, both handled with a crafted entry:
  *
- *   1. setZonkerFrame is NEVER dispatched during attract — its whole background-flip
+ *   1. setChamberCreatureFrame is NEVER dispatched during attract — its whole background-flip
  *      subsystem stays idle there (the sibling loc_2f71 runs ~1000x but never takes
  *      the arm that reaches this commit tail). So there is no natural capture. A
  *      real machine state is captured at the sibling loc_2f71 instead, and the
@@ -19,7 +19,7 @@
  *      once: the stub gives the tail an observable memory effect (bumps a mark byte)
  *      and a fixed exit, so "the hand-off happened" is visible to the diff. Because
  *      the stub is the same function on both sides, it can never manufacture or hide
- *      a difference between them — only setZonkerFrame's own behaviour can.
+ *      a difference between them — only setChamberCreatureFrame's own behaviour can.
  *
  * The routine's one genuine input is the tile byte the caller left in the machine
  * register file; its one memory effect is the store at 0x80dc. So EQUAL is proven
@@ -34,7 +34,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2fd9 as oracle } from "../../translated/loc_2fd9.js";
-import { setZonkerFrame as idiomatic } from "../setZonkerFrame.js";
+import { setChamberCreatureFrame as idiomatic } from "../setChamberCreatureFrame.js";
 import { loc_2f71 } from "../../translated/loc_2f71.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff, firstRegDiff } from "../../../../core/equivalence.js";
@@ -47,10 +47,10 @@ const test = ROM_PRESENT
   : (name, fn) =>
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x2fd9; // setZonkerFrame
+const TARGET = 0x2fd9; // setChamberCreatureFrame
 const TAIL = 0x2fe3; // the shared animation-update tail (still untranslated)
 const SIB = 0x2f71; // the reachable sibling we capture a real attract state at
-const TILE_CELL = 0x80dc; // the background-animation tile cell setZonkerFrame writes
+const TILE_CELL = 0x80dc; // the background-animation tile cell setChamberCreatureFrame writes
 const TAIL_MARK = 0x80de; // stub's stand-in for the tail's real memory effect
 const TAIL_EXIT = 0x3029; // stub's stand-in for where the tail leaves the machine
 const CAPTURE_FRAMES = 900; // the sibling first runs ~frame 695, so run well past it
@@ -72,7 +72,7 @@ function tailStub(mm) {
 
 /**
  * Capture one real attract machine state at the sibling loc_2f71's entry, carrying
- * the tail stub in its registry so setZonkerFrame can be run on clones of it. The sibling
+ * the tail stub in its registry so setChamberCreatureFrame can be run on clones of it. The sibling
  * hook clones the pristine entry, then runs the real sibling so attract continues.
  */
 function captureSiblingState() {
@@ -171,7 +171,7 @@ test("TEETH: dropping the tail hand-off is CAUGHT", () => {
 });
 
 // -- 3. EQUAL + TEETH through the shared unitEquivalence harness ---------------
-// setZonkerFrame is unreached in attract, so a makeMachine wrapper forces a real dispatch:
+// setChamberCreatureFrame is unreached in attract, so a makeMachine wrapper forces a real dispatch:
 // run the real sibling, then invoke the target so the harness's snapshot hook fires
 // on a genuine attract-derived state. The tail stub is layered in the same wrapper.
 

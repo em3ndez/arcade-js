@@ -1,39 +1,44 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceZonker — per-frame driver for the Zonker tank and its lobbed shell (§2.6): bounce the
- * tank sideways, accelerate the shell downward, cycle the tank's sprite frame, publish its
- * screen-relative sprite record, and — once the goal has been reached — scroll one more column of
- * mountain terrain into view.  ROM 0x2f71.
+ * advanceChamberCreature — per-frame driver for the left-chamber creature's sprite (§2.8): bounce
+ * it sideways within a fixed band, accelerate its own fall-Y until it hits the floor and RNG-resets,
+ * cycle its sprite frame, publish its screen-relative sprite record, and — once the goal-zone latch
+ * is set — dissolve one more column of the Pit sliding-floor reveal into view.  ROM 0x2f71.
+ *
+ * This drives the live slot-3 creature in the left chamber (§2.8). It is NOT the "Zonker tank +
+ * shell": that tank is baked top-right scenery (§2.9), and 0x80de is the creature's OWN
+ * accelerating fall-Y, not a lobbed shell. The creature's canonical identity (caged specimen /
+ * decorative monster) is [guess]; its mechanism is grounded.
  *
  * Every frame this element does four things, in order:
  *
- *   1. Terrain reveal (only after the goal tile has been reached). While that gate is
- *      set, a per-frame countdown lets one column through at a time: when it reaches
- *      zero it reloads and steps a cursor back one 6-tile column through the terrain
- *      pattern table, then stamps those 6 tiles up a fixed video-RAM column (bottom
- *      cell first, one tile-row higher each tile). When the cursor runs off the start
- *      of the table the reveal is finished and nothing is drawn. As the element sits
- *      on the goal row this stage also cues the reveal sound once. Before the goal is
- *      reached the whole stage is skipped.
- *   2. Shimmer clock. A phase countdown ticks once per frame. On the frame it expires
- *      it reloads and flips the element's tile between its two codes; otherwise the
- *      element only moves every fourth frame (off-beat frames just republish).
+ *   1. Pit sliding-floor reveal (only once the goal-zone latch is set). While that gate
+ *      is set, a per-frame countdown lets one column through at a time: when it reaches
+ *      zero it reloads and steps a cursor back one 6-tile column through the tile-pattern
+ *      table, then stamps those 6 tiles up a fixed video-RAM column (bottom cell first,
+ *      one tile-row higher each tile), so a 6-tile bar dissolves (0x36 -> ... -> 0x27).
+ *      When the cursor runs off the start of the table the reveal is finished and nothing
+ *      is drawn. As the player rests on the goal row this stage also cues the reveal sound
+ *      once. Before the latch is set the whole stage is skipped.
+ *   2. Frame clock. A phase countdown ticks once per frame. On the frame it expires
+ *      it reloads and flips the creature's tile between its two codes; otherwise the
+ *      creature only moves every fourth frame (off-beat frames just republish).
  *   3. Position. Horizontal bounce: X steps by a velocity that reverses to leftward at
- *      the right wall and to rightward at the left wall, so the element paces within a
- *      fixed band. Vertical fall: Y adds an ever-accelerating step until it reaches the
- *      floor, where it clamps, draws a fresh random step to start rising again, and
- *      advances its colour (holding the priority bit clear).
- *   4. Publish. Writes the element's four sprite bytes — X and Y made screen-relative
+ *      the right wall and to rightward at the left wall, so the creature paces within a
+ *      fixed band. Vertical drop: its fall-Y adds an ever-accelerating step until it
+ *      reaches the floor, where it clamps, draws a fresh random step to start dropping
+ *      again, and advances its colour (holding the priority bit clear).
+ *   4. Publish. Writes the creature's four sprite bytes — X and Y made screen-relative
  *      by the cabinet coordinate bias, plus its tile and colour — into its sprite
  *      staging slot, then hands off to the object-record pass (updateEnemy1) that
  *      moves and publishes the two foreground objects; that pass's return unwinds
  *      straight to our caller, so the hand-off IS this routine's exit.
  *
- * This is the real per-frame monolith. Its position oscillator and publish step exist
+ * This is the real per-frame monolith. Its position-step and publish step exist
  * only here (they have no standalone form), so they are carried inline; the reveal and
- * shimmer-clock bodies also have standalone callable twins (revealTerrainColumn /
- * advanceZonkerAnimation), but those twins hand off through the still-oracle
- * oscillator/publish, so the monolith cannot reuse them and reproduces the body itself.
+ * frame-clock bodies also have standalone callable twins (revealTerrainColumn /
+ * advanceChamberCreatureAnimation), but those twins hand off through the still-oracle
+ * position-step/publish, so the monolith cannot reuse them and reproduces the body itself.
  * The three already-decompiled routines it calls — the reveal-sound trigger, the random
  * generator, and the object-record pass — are all called directly.
  *
@@ -51,8 +56,8 @@
  *           video-RAM tiles, and its published sprite record; the routine tail-jumps, so
  *           its caller consumes no register and the object-record pass owns everything
  *           after the hand-off, identically both sides. Leftover registers/flags are dead.
- * NAMES:    GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, PLAYER_X, ZONKER_REVEAL_GATE/PERIOD/CURSOR,
- *           ZONKER_ANIM_PHASE, ZONKER_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from ram.js.
+ * NAMES:    GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, PLAYER_X, PIT_FLOOR_REVEAL_GATE/PERIOD/CURSOR,
+ *           CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from ram.js.
  *           Still hex: the pattern-table scratch pointer (0x80e1), the bounce velocity
  *           (0x80df), the fall step (0x80e0), and the sprite-staging slot (0x822c) —
  *           none carry a ram.js name. Delegates to the decompiled requestSound11,
@@ -67,14 +72,14 @@ import {
   GOAL_TILE_LATCH,
   PIT_CROSS_ACTIVE,
   PLAYER_X,
-  ZONKER_REVEAL_GATE,
-  ZONKER_REVEAL_PERIOD,
-  ZONKER_REVEAL_CURSOR,
-  ZONKER_ANIM_PHASE,
-  ZONKER_X,
-  ZONKER_FRAME,
-  ZONKER_ATTR,
-  ZONKER_SHELL_Y,
+  PIT_FLOOR_REVEAL_GATE,
+  PIT_FLOOR_REVEAL_PERIOD,
+  PIT_FLOOR_REVEAL_CURSOR,
+  CHAMBER_CREATURE_ANIM_PHASE,
+  CHAMBER_CREATURE_X,
+  CHAMBER_CREATURE_FRAME,
+  CHAMBER_CREATURE_ATTR,
+  CHAMBER_CREATURE_FALL_Y,
   SPRITE_COORD_BIAS,
 } from "./ram.js";
 
@@ -111,7 +116,7 @@ const SPRITE_SLOT = 0x822c;
 // The goal row the element sits on when it cues the reveal sound.
 const GOAL_ROW = 107;
 
-export function advanceZonker(m) {
+export function advanceChamberCreature(m) {
   const { mem8, mem16 } = m;
 
   // --- 1. Terrain reveal (only once the goal tile has been reached) ---
@@ -122,15 +127,15 @@ export function advanceZonker(m) {
     }
 
     // Tick the reveal gate; reveal a column only on the frame it reaches zero.
-    const gate = mem8[ZONKER_REVEAL_GATE] - 1;
-    mem8[ZONKER_REVEAL_GATE] = gate;
+    const gate = mem8[PIT_FLOOR_REVEAL_GATE] - 1;
+    mem8[PIT_FLOOR_REVEAL_GATE] = gate;
     if (gate === 0) {
       // Reload the gate and step the cursor back one column through the pattern table.
-      mem8[ZONKER_REVEAL_GATE] = mem8[ZONKER_REVEAL_PERIOD];
-      const cursor = mem8[ZONKER_REVEAL_CURSOR] - TILES_PER_COLUMN;
+      mem8[PIT_FLOOR_REVEAL_GATE] = mem8[PIT_FLOOR_REVEAL_PERIOD];
+      const cursor = mem8[PIT_FLOOR_REVEAL_CURSOR] - TILES_PER_COLUMN;
       if (cursor >= 0) {
         // Still inside the table — stamp this column's 6 tiles up the video column.
-        mem8[ZONKER_REVEAL_CURSOR] = cursor;
+        mem8[PIT_FLOOR_REVEAL_CURSOR] = cursor;
         const source = PATTERN_TABLE + cursor;
         mem16[PATTERN_SCRATCH_PTR] = source;
         let cell = COLUMN_BOTTOM_CELL;
@@ -144,8 +149,8 @@ export function advanceZonker(m) {
   }
 
   // --- 2. Shimmer clock ---
-  const phase = mem8[ZONKER_ANIM_PHASE] - 1;
-  mem8[ZONKER_ANIM_PHASE] = phase;
+  const phase = mem8[CHAMBER_CREATURE_ANIM_PHASE] - 1;
+  mem8[CHAMBER_CREATURE_ANIM_PHASE] = phase;
 
   // Off-beat: countdown still running and not the every-fourth frame — no motion, just
   // republish the element where it already is.
@@ -153,15 +158,15 @@ export function advanceZonker(m) {
   if (!offBeat) {
     if (phase === 0) {
       // Countdown expired: reload it and flip the shimmer tile to its other code.
-      mem8[ZONKER_ANIM_PHASE] = 8;
-      const tile = mem8[ZONKER_FRAME];
-      mem8[ZONKER_FRAME] = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
+      mem8[CHAMBER_CREATURE_ANIM_PHASE] = 8;
+      const tile = mem8[CHAMBER_CREATURE_FRAME];
+      mem8[CHAMBER_CREATURE_FRAME] = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
     }
 
     // --- 3a. Horizontal bounce ---
     const velocity = mem8[BOUNCE_VELOCITY];
-    const newX = u8(mem8[ZONKER_X] + velocity);
-    mem8[ZONKER_X] = newX;
+    const newX = u8(mem8[CHAMBER_CREATURE_X] + velocity);
+    mem8[CHAMBER_CREATURE_X] = newX;
     if (newX >= RIGHT_WALL) mem8[BOUNCE_VELOCITY] = STEP_LEFT;
     else if (newX < LEFT_WALL) mem8[BOUNCE_VELOCITY] = STEP_RIGHT;
     // else: mid-band, hold the current velocity.
@@ -169,14 +174,14 @@ export function advanceZonker(m) {
     // --- 3b. Vertical fall ---
     const fallStep = mem8[FALL_STEP] + 1; // accelerate the fall each frame
     mem8[FALL_STEP] = fallStep;
-    const newY = u8(mem8[ZONKER_SHELL_Y] + fallStep);
-    mem8[ZONKER_SHELL_Y] = newY;
+    const newY = u8(mem8[CHAMBER_CREATURE_FALL_Y] + fallStep);
+    mem8[CHAMBER_CREATURE_FALL_Y] = newY;
     if (newY >= FLOOR_Y) {
       // Reached the floor: clamp, draw a fresh small upward step so it rises again, and
       // advance the colour while holding the priority bit clear.
-      mem8[ZONKER_SHELL_Y] = FLOOR_Y;
+      mem8[CHAMBER_CREATURE_FALL_Y] = FLOOR_Y;
       mem8[FALL_STEP] = (advanceRandom(m) | 0xf8) - 1;
-      mem8[ZONKER_ATTR] = (mem8[ZONKER_ATTR] + 1) & 0xf7;
+      mem8[CHAMBER_CREATURE_ATTR] = (mem8[CHAMBER_CREATURE_ATTR] + 1) & 0xf7;
     }
   }
 
@@ -189,8 +194,8 @@ export function advanceZonker(m) {
 function publishBackgroundSprite(m) {
   const { mem8 } = m;
   const bias = mem8[SPRITE_COORD_BIAS]; // cabinet coordinate bias (0 in normal play)
-  mem8[SPRITE_SLOT] = mem8[ZONKER_X] - bias; // X, screen-relative
-  mem8[SPRITE_SLOT + 1] = mem8[ZONKER_FRAME]; // tile / frame code
-  mem8[SPRITE_SLOT + 2] = mem8[ZONKER_ATTR]; // colour + priority
-  mem8[SPRITE_SLOT + 3] = mem8[ZONKER_SHELL_Y] + bias; // Y, screen-relative
+  mem8[SPRITE_SLOT] = mem8[CHAMBER_CREATURE_X] - bias; // X, screen-relative
+  mem8[SPRITE_SLOT + 1] = mem8[CHAMBER_CREATURE_FRAME]; // tile / frame code
+  mem8[SPRITE_SLOT + 2] = mem8[CHAMBER_CREATURE_ATTR]; // colour + priority
+  mem8[SPRITE_SLOT + 3] = mem8[CHAMBER_CREATURE_FALL_Y] + bias; // Y, screen-relative
 }

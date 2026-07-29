@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for seedZonker (ROM 0x2f2f, The Pit) — seed the first block
+ * Memory-equivalence gate for seedChamberCreature (ROM 0x2f2f, The Pit) — seed the first block
  * of round/level parameters, derive the animation reload byte from the level counter,
  * then tail-jump into seedEnemyRecords (ROM 0x30de).
  *
- * seedZonker is entered ONLY by the gameplay round-init tail-jump chain
- * (loc_287a → seedZonker → seedEnemyRecords → seedActorSpawnState); attract mode never enters
+ * seedChamberCreature is entered ONLY by the gameplay round-init tail-jump chain
+ * (loc_287a → seedChamberCreature → seedEnemyRecords → seedActorSpawnState); attract mode never enters
  * gameplay, so it is never dispatched in a boot/attract run — the unit harness (which
  * needs a real dispatch) cannot capture it. But the only thing it READS is the
  * level/difficulty counter at 0x8028; everything else is fixed immediates. So its
@@ -23,7 +23,7 @@
  *
  * FIVE checks:
  *   1. EQUAL (real captured entries) — clone the running attract machine at several
- *      frames (real title/demo RAM), run the oracle and seedZonker on independent clones
+ *      frames (real title/demo RAM), run the oracle and seedChamberCreature on independent clones
  *      of each, and diff work RAM. Must be identical.
  *   2. TAIL FIRED — after the idiomatic run the derived reload byte tracks the entry's
  *      level counter AND the full tail's effects are present (seedEnemyRecords's derived pair,
@@ -31,7 +31,7 @@
  *   3. COUNTER SWEEP — over all 256 level-counter values, idiomatic == oracle and the
  *      reload byte tracks 7 - min((level + 1) mod 256, 4). Attract only ever exercises
  *      one counter value, so this is what proves the routine READS and DERIVES from it.
- *   4. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set seedZonker's own targets
+ *   4. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set seedChamberCreature's own targets
  *      to a sentinel identically on both sides, so a no-op or partial twin cannot pass
  *      by the entry already holding the seeded values: every target must be
  *      overwritten, and both arms must still agree byte-for-byte.
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f2f as oracle } from "../../translated/loc_2f2f.js";
-import { seedZonker as idiomatic } from "../seedZonker.js";
+import { seedChamberCreature as idiomatic } from "../seedChamberCreature.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -80,7 +80,7 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // ceiling of four, and take seven minus that.
 const expectedReload = (level) => 7 - Math.min((level + 1) & 0xff, 4);
 
-// seedZonker's OWN parameter-block writes. RELOAD is derived from the level counter; the
+// seedChamberCreature's OWN parameter-block writes. RELOAD is derived from the level counter; the
 // rest are fixed immediates. (0x80e1/0x80e2 are deliberately skipped by the routine.)
 const OWN_ADDRS = [
   0x80db, 0x80dc, 0x80dd, 0x80de, 0x80df, 0x80e0, 0x80e3, RELOAD, 0x80e5, 0x80e6, 0x80e7,
@@ -121,7 +121,7 @@ function captureStates(count, stride, startFrame) {
 
 // -- 1. EQUAL over real captured attract states -------------------------------
 
-test("EQUAL: seedZonker leaves the same work RAM as the oracle over real captured states", () => {
+test("EQUAL: seedChamberCreature leaves the same work RAM as the oracle over real captured states", () => {
   const caps = captureStates(8, 120, 90);
   assert.ok(caps.length >= 1, "expected at least one captured attract state");
   for (const cap of caps) {
@@ -189,7 +189,7 @@ test("COUNTER SWEEP: idiomatic == oracle across all 256 level-counter values, an
 
 // -- 4. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) -------------------------
 
-test("NON-VACUOUS: with seedZonker's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
+test("NON-VACUOUS: with seedChamberCreature's own targets pre-set to a sentinel, both arms overwrite them and agree", () => {
   const [entry] = captureStates(1, 1, 200);
   const SENTINEL = 0x55; // 85 — never a value the routine writes (fixed or derived)
   for (const addr of OWN_ADDRS) entry.mem.write8(addr, SENTINEL);
@@ -219,7 +219,7 @@ function brokenReload(m) {
   m.mem.write8(RELOAD, m.mem.read8(RELOAD) + 1); // BUG: wrong animation reload byte
 }
 
-/** Broken twin B: does seedZonker's own writes but drops the seedEnemyRecords hand-off. */
+/** Broken twin B: does seedChamberCreature's own writes but drops the seedEnemyRecords hand-off. */
 function brokenNoTail(m) {
   const { mem } = m;
   mem.write8(0x80db, 40);

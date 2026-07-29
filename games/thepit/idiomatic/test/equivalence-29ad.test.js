@@ -6,7 +6,7 @@
  * on the spawn counter and runs the carve countdown: stepping the dig position + digging
  * animation while it ticks, and on expiry either completing the column or probing the
  * carve box and carving one tile into the tilemap. Every exit hands off to an idiomatic
- * callee (background update 0x2f71 = advanceZonker, startNextDigSpawn, captureTargetOnOverlap,
+ * callee (background update 0x2f71 = advanceChamberCreature, startNextDigSpawn, captureTargetOnOverlap,
  * commitDigEntity, stageDigObjectSpriteRecord).
  *
  * CONTRACT. The routine has NO register live-ins — every input is read from RAM — and

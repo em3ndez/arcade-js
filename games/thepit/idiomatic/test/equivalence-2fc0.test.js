@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for advanceZonkerAnimation (ROM 0x2fc0, The Pit) — the per-frame phase
+ * Memory-equivalence gate for advanceChamberCreatureAnimation (ROM 0x2fc0, The Pit) — the per-frame phase
  * clock for the background flip animation: tick the phase countdown, and route the
  * frame to the publish tail (off-beat), the oscillator body (on-beat), or the reload
  * + tile-flip + commit tail (countdown expired).
  *
  * THREE WRINKLES this routine forces, all handled with a crafted entry:
  *
- *   1. advanceZonkerAnimation is NEVER entered through this address in attract. Its subsystem does
+ *   1. advanceChamberCreatureAnimation is NEVER entered through this address in attract. Its subsystem does
  *      run there (the sibling monolith loc_2f71 dispatches ~460x per 1000 frames),
  *      but that sibling INLINES the same body instead of calling 0x2fc0, so 0x2fc0 is
  *      never dispatched on its own. A real machine state is therefore captured at the
- *      sibling loc_2f71's entry, and advanceZonkerAnimation is invoked on clones of it — the exact
+ *      sibling loc_2f71's entry, and advanceChamberCreatureAnimation is invoked on clones of it — the exact
  *      crafted-entry escape hatch for an unreached entry. The sibling's own inline
  *      logic never touches the phase counter or the flip tile before the point 0x2fc0
- *      would run, so its entry state IS a valid advanceZonkerAnimation entry.
+ *      would run, so its entry state IS a valid advanceChamberCreatureAnimation entry.
  *
- *   2. Two of advanceZonkerAnimation's continuations are still untranslated (0x2fe3 the oscillator
+ *   2. Two of advanceChamberCreatureAnimation's continuations are still untranslated (0x2fe3 the oscillator
  *      body, 0x3029 the publish tail): calling them would throw. Both the oracle and
  *      the idiomatic routine delegate to them identically, so each is replaced by ONE
  *      stub installed on both sides at once. Each stub writes a DISTINCT mark byte and
@@ -24,7 +24,7 @@
  *      a mis-route is caught — but because the stub is the same function on both sides
  *      it can never manufacture or hide a difference between them.
  *
- *   3. advanceZonkerAnimation is a tail-jumping routine whose caller consumes no register, so its
+ *   3. advanceChamberCreatureAnimation is a tail-jumping routine whose caller consumes no register, so its
  *      honest live-out is MEMORY-ONLY. The oracle threads intermediate flag/register
  *      values through every step; the idiomatic rewrite correctly drops those dead
  *      values, so the two agree on memory + exit pc but NOT on the leftover register
@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2fc0 as oracle } from "../../translated/loc_2fc0.js";
-import { advanceZonkerAnimation as idiomatic } from "../advanceZonkerAnimation.js";
+import { advanceChamberCreatureAnimation as idiomatic } from "../advanceChamberCreatureAnimation.js";
 import { loc_2f71 } from "../../translated/loc_2f71.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
@@ -57,11 +57,11 @@ const test = ROM_PRESENT
   : (name, fn) =>
       nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const TARGET = 0x2fc0; // advanceZonkerAnimation
+const TARGET = 0x2fc0; // advanceChamberCreatureAnimation
 const SIB = 0x2f71; // the reachable sibling we capture real attract states at
 const OSC = 0x2fe3; // the oscillator-body tail (still untranslated)
 const PUB = 0x3029; // the publish tail (still untranslated)
-const PHASE = 0x80e3; // the animation phase counter advanceZonkerAnimation ticks/reloads
+const PHASE = 0x80e3; // the animation phase counter advanceChamberCreatureAnimation ticks/reloads
 const FLIP_TILE = 0x80dc; // the two-state flip tile cell, written on the reload frame
 const STUB_MARK = 0x87f0; // dead scratch byte the tail stubs mark, to make routing visible
 const OSC_MARK = 0xe3; // stub value that says "the oscillator body ran"
@@ -93,7 +93,7 @@ const STUBS = [
 
 /**
  * Collect up to CAPTURE_LIMIT real machine states at the sibling loc_2f71's entry,
- * each carrying the tail stubs in its registry so advanceZonkerAnimation can be run on clones. The
+ * each carrying the tail stubs in its registry so advanceChamberCreatureAnimation can be run on clones. The
  * sibling hook clones the pristine entry, then runs the real sibling so attract goes
  * on. The natural entries span every phase value (1..8) and both flip tiles.
  */
@@ -264,7 +264,7 @@ test("TEETH: a dropped tile flip is CAUGHT at the flip-tile cell", () => {
 });
 
 // -- 4. EQUAL + TEETH through the shared unitEquivalence harness ---------------
-// advanceZonkerAnimation is unreached in attract, so a makeMachine wrapper forces a real dispatch:
+// advanceChamberCreatureAnimation is unreached in attract, so a makeMachine wrapper forces a real dispatch:
 // run the real sibling, then invoke the target so the harness's snapshot hook fires on
 // a genuine attract-derived state. The tail stubs are layered in the same wrapper. The
 // harness also diffs registers, which are a DEAD live-out here, so we assert only the

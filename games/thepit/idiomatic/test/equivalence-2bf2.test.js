@@ -7,7 +7,7 @@
  *
  * WHY THE CONTRACT IS RAM-ONLY (outside a stack window). The occupied hand-off is the
  * already-decompiled spawnPendingDigObject; the empty hand-off (0x2f71) is the decompiled
- * advanceZonker, called directly. The oracle startNextDigSpawn leaves its scan's pointer-walk
+ * advanceChamberCreature, called directly. The oracle startNextDigSpawn leaves its scan's pointer-walk
  * in the registers and the placement chain saves register pairs on the stack; the
  * stack-free idiomatic path does not reproduce those exact saved bytes, so a few dead
  * bytes just below the entry stack pointer differ (pushed, popped, and never read

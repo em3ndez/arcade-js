@@ -17,25 +17,25 @@
  *     cell first, one tile-row higher each byte — bringing the next column of
  *     terrain into the backdrop.
  *
- * Whichever arm it takes it ends by handing off to advanceZonkerAnimation, the background phase
+ * Whichever arm it takes it ends by handing off to advanceChamberCreatureAnimation, the background phase
  * clock; that routine tail-jumps onward and its return unwinds straight back to
- * revealTerrainColumn's caller, so the hand-off IS this routine's exit. advanceZonkerAnimation is already
+ * revealTerrainColumn's caller, so the hand-off IS this routine's exit. advanceChamberCreatureAnimation is already
  * decompiled, so it is called directly rather than through the oracle registry.
  *
  * This is the standalone, callable form of the same reveal that the per-frame
- * backdrop monolith advanceZonker also carries inline; the standalone form is never
+ * backdrop monolith advanceChamberCreature also carries inline; the standalone form is never
  * dispatched in attract, which shapes the gate below.
  *
  * Name kept as revealTerrainColumn: this backdrop-reveal subsystem is a best-effort reading. Three
  * of the counters it touches now carry ram.js names, but the subsystem as a whole is
- * still below the bar to promote to an English name (its siblings advanceZonkerAnimation/setZonkerFrame stay
+ * still below the bar to promote to an English name (its siblings advanceChamberCreatureAnimation/setChamberCreatureFrame stay
  * loc_ for the same reason).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f88.test.js.
  * GATE:     crafted-entry — revealTerrainColumn is never dispatched in attract (the monolith
- *           advanceZonker inlines the same body instead of calling it), so real machine
- *           states are captured at advanceZonker's entry and revealTerrainColumn is run on clones of
- *           them; the two still-untranslated continuations reached through advanceZonkerAnimation
+ *           advanceChamberCreature inlines the same body instead of calling it), so real machine
+ *           states are captured at advanceChamberCreature's entry and revealTerrainColumn is run on clones of
+ *           them; the two still-untranslated continuations reached through advanceChamberCreatureAnimation
  *           (0x2fe3 oscillator body, 0x3029 publish tail) are delegated to one
  *           identical stub each, installed on both sides at once. EQUAL over every
  *           captured state plus an exhaustive sweep of the gate byte crossed with
@@ -46,12 +46,12 @@
  *           its caller consumes no register and the phase clock owns everything after
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
- *           (0x80e6) are ZONKER_REVEAL_GATE/ZONKER_REVEAL_PERIOD/ZONKER_REVEAL_CURSOR from ram.js; the stashed
- *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceZonkerAnimation.
+ *           (0x80e6) are PIT_FLOOR_REVEAL_GATE/PIT_FLOOR_REVEAL_PERIOD/PIT_FLOOR_REVEAL_CURSOR from ram.js; the stashed
+ *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceChamberCreatureAnimation.
  */
 
-import { advanceZonkerAnimation } from "./advanceZonkerAnimation.js";
-import { ZONKER_REVEAL_CURSOR, ZONKER_REVEAL_GATE, ZONKER_REVEAL_PERIOD } from "./ram.js";
+import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
+import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD } from "./ram.js";
 
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
@@ -67,21 +67,21 @@ export function revealTerrainColumn(m) {
   const { mem8, mem16 } = m;
 
   // Tick the reveal gate; act only on the frame it counts down to zero.
-  const gate = (mem8[ZONKER_REVEAL_GATE] - 1 + 256) % 256;
-  mem8[ZONKER_REVEAL_GATE] = gate;
+  const gate = (mem8[PIT_FLOOR_REVEAL_GATE] - 1 + 256) % 256;
+  mem8[PIT_FLOOR_REVEAL_GATE] = gate;
   if (gate !== 0) {
     // Not a reveal frame — straight on to the phase clock.
-    return advanceZonkerAnimation(m);
+    return advanceChamberCreatureAnimation(m);
   }
 
   // Reload the gate from its period and step the cursor back one column.
-  mem8[ZONKER_REVEAL_GATE] = mem8[ZONKER_REVEAL_PERIOD];
-  const cursor = mem8[ZONKER_REVEAL_CURSOR] - TILES_PER_COLUMN;
+  mem8[PIT_FLOOR_REVEAL_GATE] = mem8[PIT_FLOOR_REVEAL_PERIOD];
+  const cursor = mem8[PIT_FLOOR_REVEAL_CURSOR] - TILES_PER_COLUMN;
   if (cursor < 0) {
     // Ran off the start of the pattern table — the reveal is done, draw nothing.
-    return advanceZonkerAnimation(m);
+    return advanceChamberCreatureAnimation(m);
   }
-  mem8[ZONKER_REVEAL_CURSOR] = cursor;
+  mem8[PIT_FLOOR_REVEAL_CURSOR] = cursor;
 
   // Remember where this column came from in the pattern table (a scratch pointer
   // the backdrop machinery leaves behind), then stamp its 6 tiles up the column.
@@ -94,5 +94,5 @@ export function revealTerrainColumn(m) {
   }
 
   // Hand off to the phase clock; its return unwinds to our caller, so this is the exit.
-  return advanceZonkerAnimation(m);
+  return advanceChamberCreatureAnimation(m);
 }

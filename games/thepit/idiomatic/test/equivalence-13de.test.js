@@ -60,7 +60,7 @@ import {
   DIG_COLLISION_STATE,
   GOAL_TILE_LATCH,
   PIT_CROSS_ACTIVE,
-  ZONKER_REVEAL_CURSOR,
+  PIT_FLOOR_REVEAL_CURSOR,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -100,7 +100,7 @@ function branchOf(mm) {
   if (mk !== 0) return "marker>0->playerWalk";
   if (R(mm, GOAL_TILE_LATCH) === 0) return "goal0->controlStep";
   if (R(mm, PIT_CROSS_ACTIVE) !== 0) return "crossing->walkForward";
-  if (R(mm, ZONKER_REVEAL_CURSOR) === 0) return "reveal0->tileTail";
+  if (R(mm, PIT_FLOOR_REVEAL_CURSOR) === 0) return "reveal0->tileTail";
   return "else->controlStep";
 }
 
@@ -200,8 +200,8 @@ test("EQUAL (crafted arms): each unreached arm, forced from a real DE-stage entr
     { arm: "spawnbusy->return", pokes: [[BOARD_END_PHASE, 1]] },
     { arm: "armed+->stage", pokes: [[DIG_COLLISION_STATE, 2]] },
     { arm: "crossing->walkForward", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0x50]] },
-    { arm: "reveal0->tileTail", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0], [ZONKER_REVEAL_CURSOR, 0]] },
-    { arm: "else->controlStep", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0], [ZONKER_REVEAL_CURSOR, 5]] },
+    { arm: "reveal0->tileTail", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0], [PIT_FLOOR_REVEAL_CURSOR, 0]] },
+    { arm: "else->controlStep", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0], [PIT_FLOOR_REVEAL_CURSOR, 5]] },
   ];
 
   for (const { arm, pokes } of arms) {

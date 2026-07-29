@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence gate for drawTerrainColumn (ROM 0x2fb7, The Pit) — write one vertical
  * strip of tiles up a backdrop column (a strided tile-map blit driven by register
- * inputs), then fall through into the animation phase clock advanceZonkerAnimation.
+ * inputs), then fall through into the animation phase clock advanceChamberCreatureAnimation.
  *
  * THREE WRINKLES this routine forces, all handled with a crafted entry:
  *
@@ -17,7 +17,7 @@
  *      a surgical register setup, swept over run lengths, source offsets, and (to
  *      drive the phase clock's three arms through the delegation) the animation phase.
  *
- *   2. The phase clock drawTerrainColumn falls into (advanceZonkerAnimation) itself ends in two still-
+ *   2. The phase clock drawTerrainColumn falls into (advanceChamberCreatureAnimation) itself ends in two still-
  *      untranslated continuations (0x2fe3 the oscillator body, 0x3029 the publish
  *      tail): calling them would throw. Both the oracle and the idiomatic routine
  *      reach them identically, so each is replaced by ONE stub installed on both
@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2fb7 as oracle } from "../../translated/loc_2fb7.js";
 import { drawTerrainColumn as idiomatic } from "../drawTerrainColumn.js";
 import { loc_2f71 } from "../../translated/loc_2f71.js";
-import { advanceZonkerAnimation } from "../advanceZonkerAnimation.js";
+import { advanceChamberCreatureAnimation } from "../advanceChamberCreatureAnimation.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -68,7 +68,7 @@ const PUB = 0x3029; // the phase clock's publish tail (still untranslated)
 const PATTERN_TABLE = 0x3048; // ROM base of the tile-pattern table the blit reads from
 const COLUMN_BOTTOM = 0x938c; // the column's bottom tile-map cell (the blit's start)
 const ROW_STEP = 0xffe0; // -0x20: the step one screen row up the column
-const PHASE = 0x80e3; // the animation phase counter advanceZonkerAnimation ticks/reloads
+const PHASE = 0x80e3; // the animation phase counter advanceChamberCreatureAnimation ticks/reloads
 const FLIP_TILE = 0x80dc; // the two-state flip tile cell the phase clock writes
 const STUB_MARK = 0x87f0; // dead scratch byte the tail stubs mark, to make routing visible
 const OSC_MARK = 0xe3; // stub value that says "the oscillator body ran"
@@ -243,7 +243,7 @@ function brokenData(m) {
     src = (src + 1) & 0xffff;
     remaining = (remaining - 1 + 256) % 256;
   } while (remaining !== 0);
-  return advanceZonkerAnimation(m);
+  return advanceChamberCreatureAnimation(m);
 }
 
 /** Broken twin B: steps the destination by the wrong stride, so every cell past the
@@ -259,7 +259,7 @@ function brokenStep(m) {
     src = (src + 1) & 0xffff;
     remaining = (remaining - 1 + 256) % 256;
   } while (remaining !== 0);
-  return advanceZonkerAnimation(m);
+  return advanceChamberCreatureAnimation(m);
 }
 
 test("TEETH: a corrupted tile code is CAUGHT in the tile-map column", () => {

@@ -4,7 +4,7 @@
  * difficulty-scaled enemy-speed pair (0x07-(level&6) = 7,5,3,1), then hand off to seedActorSpawnState
  * (enemy #3).  ROM 0x30de. (§2.4)
  *
- * The second half of the round/level parameter-seeding pass — seedZonker fills the
+ * The second half of the round/level parameter-seeding pass — seedChamberCreature fills the
  * first block, then jumps straight here. This routine fills its own block of
  * subsystem parameter/counter bytes with fixed start values, derives a single pair
  * of bytes from the round's level/difficulty counter, and writes that pair into two

@@ -4,10 +4,10 @@
  * 4-byte sprite record into slot 2 of the staging buffer (0x8228) from the object's fields
  * (HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_Y), the leading coordinate byte biased down
  * and the trailing one biased up by the cabinet offset SPRITE_COORD_BIAS, then continues into the
- * per-frame background update 0x2f71 — now the decompiled advanceZonker, called directly.
+ * per-frame background update 0x2f71 — now the decompiled advanceChamberCreature, called directly.
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The background-update tail runs on BOTH arms — the oracle m.call's
- * the frozen registry copy, the idiomatic arm calls the imported advanceZonker directly —
+ * the frozen registry copy, the idiomatic arm calls the imported advanceChamberCreature directly —
  * and the two are memory-equivalent (equivalence-2f71), from identical memory: the background update
  * loads everything fresh from RAM and never reads the dig record bytes or any incoming register, so
  * the two runs stay in lockstep (including the PRNG the background fall draws from, which advances
@@ -69,7 +69,7 @@ const RECORD_ADDRS = [RECORD, RECORD + 1, RECORD + 2, RECORD + 3];
 const INPUT_ADDRS = { bias: SPRITE_COORD_BIAS, x: HAZARD_X, state: HAZARD_STATE, attr: HAZARD_TYPE, y: HAZARD_Y };
 
 // Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff). The
-// dissolved 0x2f71 tail (advanceZonker) runs stack-free on the idiomatic side while the
+// dissolved 0x2f71 tail (advanceChamberCreature) runs stack-free on the idiomatic side while the
 // oracle marshals it through the Z80 stack, so those bytes differ and are excluded from the diff.
 const STACK_LO = 0x8380;
 const STACK_HI = 0x8400;

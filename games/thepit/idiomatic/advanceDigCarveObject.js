@@ -74,7 +74,7 @@ import {
   CARVE_SEAM_RIGHT,
 } from "./ram.js";
 import { startNextDigSpawn } from "./startNextDigSpawn.js";
-import { advanceZonker } from "./advanceZonker.js";
+import { advanceChamberCreature } from "./advanceChamberCreature.js";
 import { captureTargetOnOverlap } from "./captureTargetOnOverlap.js";
 import { requestSound10 } from "./requestSound10.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
@@ -116,7 +116,7 @@ export function advanceDigCarveObject(m) {
 
   // Dispatch on the spawn counter.
   const spawn = mem8[HAZARD_ACTIVE_COUNT];
-  if (spawn === 0) return advanceZonker(m); // nothing to carve -> per-frame background update
+  if (spawn === 0) return advanceChamberCreature(m); // nothing to carve -> per-frame background update
   if (spawn === 2) {
     // A freshly staged target: publish whether the object vertically overlaps it.
     mem8[MOVE_BLOCK_FLAG] = boxOverlap(mem8[PLAYER_Y], mem8[PLAYER_X], mem8[STAGED_TARGET_X], mem8[STAGED_TARGET_Y]);

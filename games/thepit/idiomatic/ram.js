@@ -187,7 +187,7 @@ export const PRNG_HIGH = 0x800e;
 // ── Round / difficulty ────────────────────────────────────────────────────────
 /** Current player's LEVEL / round counter — inits to 1, +1 per level cleared; every
  *  difficulty subsystem scales off it (countdowns, reloads). Proposer≠confirmer converged,
- *  both strong: init=1 (startGame), inc (advanceToNextLevel), scaled in seedMountainErosion/initRoundAndEnterMainLoop/seedZonker. (strong) */
+ *  both strong: init=1 (startGame), inc (advanceToNextLevel), scaled in seedMountainErosion/initRoundAndEnterMainLoop/seedChamberCreature. (strong) */
 export const LEVEL = 0x8028;
 
 // ── Shared tile/colour column-plotter parameter block (0x8055-0x8060) ─────────
@@ -247,16 +247,21 @@ export const HAZARD_X = 0x80a9;
 /** HAZARD_Y (0x80ac) — Y of the same record; when a hazard is falling it advances +1/frame (§2.5).
  *  Paired with HAZARD_X. (fair — the X/Y label is rotation-dependent but consistently pairs.) (fair) */
 export const HAZARD_Y = 0x80ac;
-/** HAZARD_STATE (0x80aa) — state/phase of the falling-hazard / dig-carve object: 0x10 = falling/spawn,
- *  0x30 = resting/carving, 0x09 = done/target (§2.5). Branched on by advanceDigCarveObject, copied into
- *  the sprite record. (fair) */
+/** HAZARD_STATE (0x80aa) — state/phase of the falling-hazard / dig-carve object AND the sprite
+ *  CODE/shape it publishes: 0x10 = falling/spawn (drawn as the down-arrow SHAPE), 0x30 = resting/carving,
+ *  0x09 = done/target (§2.5). Branched on by advanceDigCarveObject and copied into the sprite record's
+ *  code byte 0x8229 by stageDigObjectSpriteRecord — so THIS cell (not HAZARD_TYPE) selects the falling
+ *  shape. (fair) */
 export const HAZARD_STATE = 0x80aa;
 /** PIT_CROSS_ACTIVE (0x8077, sticky) — the Pit-crossing flag: set when the player reaches goal tile
  *  0x27 (past column 0x53); it gates boarding the ship at the far edge (col ≥ 0x8a, loc_19d0/19e3) and
  *  disables the laser while crossing. The cross itself awards no points (§2.5, grounding-2 Z-5). (fair) */
 export const PIT_CROSS_ACTIVE = 0x8077;
-/** Fixed DSW/cabinet-derived pixel offset (0 in normal play) biased into sprite coordinates;
- *  computed once by the DSW decode applyDipSwitches. (strong) */
+/** SPRITE_COORD_BIAS (0x8051) — flipBit<<1, i.e. true value **0x02** when the picture is flipped
+ *  (0 in an upright cabinet): a +2 sprite-Y nudge biased into published sprite coordinates, computed
+ *  once by the DSW decode applyDipSwitches. It is NOT the screen flip itself — the real 180° flip is
+ *  the hardware LS259 flipscreen latch lines b6/b7 that loc_4b55 writes to 0xb006/0xb007, not this
+ *  cell. (strong) */
 export const SPRITE_COORD_BIAS = 0x8051;
 
 // ── Player / board-transition control block (0x8079-0x807d) ───────────────────
@@ -419,11 +424,12 @@ export const REACTION_OBJ_Y = 0x8097;
 
 // ── Falling-hazard / dig object record (type / timer / subtype / arm-state) ──
 /**
- *  HAZARD_TYPE (0x80ab) — falling-hazard type = its glyph: **0x06 rock / 0x07 arrow** (§2.5, grounded).
- *  loc_2bd3 writes it straight into the hazard sprite record's TILE byte (0x822a), so the type IS the
- *  tile drawn — rock and arrow are the SAME object with a different glyph. The resting/seed value is 0x07
- *  (arrow), flipped to 0x06 (rock) when a dig disturbs the drop queue. (★ the earlier "byte2 color
- *  attribute" reading was wrong — 0x06/0x07 are type codes, not colours.) (fair) */
+ *  HAZARD_TYPE (0x80ab) — falling-hazard COLOUR, not its glyph: the sprite palette select **0x06 rock /
+ *  0x07 arrow** (§2.5, grounded). stageDigObjectSpriteRecord copies it into the hazard sprite record's
+ *  attribute/COLOUR byte 0x822a, whose low 3 bits pick the palette (palette 6 rock / 7 arrow, confirmed
+ *  vs boards/thepit/video.js). Rock and arrow are the SAME object drawn as the SAME down-arrow SHAPE —
+ *  the shape comes from HAZARD_STATE's code, not from here — in a different COLOUR. The resting/seed
+ *  value is 0x07 (arrow), flipped to 0x06 (rock) when a dig disturbs the drop queue. (fair) */
 export const HAZARD_TYPE = 0x80ab;
 /**
  *  DIG_OBJ_TIMER (0x80b1) — countdown/animation timer for the dig-carve object, armed to
@@ -445,53 +451,54 @@ export const DIG_OBJ_SUBTYPE = 0x80c0;
  */
 export const DIG_COLLISION_STATE = 0x80c1;
 
-// ── The Zonker tank + its lobbed shell (background scenery animation, §2.6) ──
+// ── The left-chamber creature (live slot-3 sprite, §2.8) ──
 /**
- *  ZONKER_X (0x80db) — the Zonker TANK's X (byte0): a horizontal bounce oscillator in [0x19,0x38)
- *  (velocity 0x80df) init 0x28 by seedZonker, published as byte0 of the slot-3 record 0x822c;
- *  matches the ENEMY3_X byte convention. Grounded (§2.6). (fair) */
-export const ZONKER_X = 0x80db;
+ *  CHAMBER_CREATURE_X (0x80db) — the left-chamber creature's X (byte0): a horizontal bounce in
+ *  [0x19,0x38) (velocity 0x80df) init 0x28 by seedChamberCreature, published as byte0 of the slot-3
+ *  record 0x822c; matches the ENEMY3_X byte convention. Grounded (§2.8). (fair) */
+export const CHAMBER_CREATURE_X = 0x80db;
 /**
- *  ZONKER_FRAME (0x80dc) — tank sprite tile/frame code toggled 0x38<->0x39 every 8 frames
- *  (advanceZonker/advanceZonkerAnimation/setZonkerFrame), init 0x39, published as the code byte of the slot-3
- *  record. Grounded (§2.6). (fair) */
-export const ZONKER_FRAME = 0x80dc;
+ *  CHAMBER_CREATURE_FRAME (0x80dc) — creature sprite tile/frame code toggled 0x38<->0x39 every 8 frames
+ *  (advanceChamberCreature/advanceChamberCreatureAnimation/setChamberCreatureFrame), init 0x39, published as the code byte of the slot-3
+ *  record. Grounded (§2.8). (fair) */
+export const CHAMBER_CREATURE_FRAME = 0x80dc;
 /**
- *  ZONKER_ATTR (0x80dd) — byte2 attribute (color low bits + priority) of the tank sprite; bumped by
- *  advanceZonker with `and 0xf7` holding priority bit3 clear while cycling color, init 0xc0;
+ *  CHAMBER_CREATURE_ATTR (0x80dd) — byte2 attribute (color low bits + priority) of the creature sprite; bumped by
+ *  advanceChamberCreature with `and 0xf7` holding priority bit3 clear while cycling color, init 0xc0;
  *  role converged (normalised to ATTR per video.js decode) (fair) */
-export const ZONKER_ATTR = 0x80dd;
+export const CHAMBER_CREATURE_ATTR = 0x80dd;
 /**
- *  ZONKER_SHELL_Y (0x80de) — Y (byte3) of the SHELL the tank lobs: accelerating vertical fall
- *  (step 0x80e0) clamped at 0x86 then RNG-reseeded by advanceZonker (the tank repeatedly
- *  lobbing a shell, §2.6), init 0x78, published as byte3 of the slot-3 record. Grounded (§2.6). (fair) */
-export const ZONKER_SHELL_Y = 0x80de;
+ *  CHAMBER_CREATURE_FALL_Y (0x80de) — Y (byte3) of the creature: its OWN accelerating vertical fall
+ *  (step 0x80e0) clamped at 0x86 then RNG-reseeded by advanceChamberCreature (the creature repeatedly
+ *  drops and resets, §2.8) — there is NO separate "shell". Init 0x78, published as byte3 of the
+ *  slot-3 record. Grounded (§2.8). (fair) */
+export const CHAMBER_CREATURE_FALL_Y = 0x80de;
 
-// ── Zonker oscillator phase + mountain scroll-reveal (period / gate / cursor), §2.6 ──
+// ── Creature frame-clock phase + Pit sliding-floor reveal (period / gate / cursor), §2.8 ──
 /**
- *  ZONKER_ANIM_PHASE (0x80e3) — Down-counter mod 8: decremented per frame, reloads 8 on wrap
- *  and toggles sprite frame 0x80dc, low bits gate the oscillator; read by advanceZonkerAnimation and
- *  advanceZonker, seeded 1 by seedZonker — A and B agree, derivation confirms. (fair)
+ *  CHAMBER_CREATURE_ANIM_PHASE (0x80e3) — Down-counter mod 8: decremented per frame, reloads 8 on wrap
+ *  and toggles sprite frame 0x80dc, low bits gate the position-step; read by advanceChamberCreatureAnimation and
+ *  advanceChamberCreature, seeded 1 by seedChamberCreature — A and B agree, derivation confirms. (fair)
  */
-export const ZONKER_ANIM_PHASE = 0x80e3;
+export const CHAMBER_CREATURE_ANIM_PHASE = 0x80e3;
 /**
- *  ZONKER_REVEAL_PERIOD (0x80e4) — Level-derived reload period (7..3 via A^=0x07 from 0x8028) for
- *  the reveal gate 0x80e5; written by seedZonker, consumed by revealTerrainColumn/advanceZonker on gate wrap —
+ *  PIT_FLOOR_REVEAL_PERIOD (0x80e4) — Level-derived reload period (7..3 via A^=0x07 from 0x8028) for
+ *  the Pit sliding-floor reveal gate 0x80e5; written by seedChamberCreature, consumed by revealTerrainColumn/advanceChamberCreature on gate wrap —
  *  both namers converge, derivation confirms. (fair)
  */
-export const ZONKER_REVEAL_PERIOD = 0x80e4;
+export const PIT_FLOOR_REVEAL_PERIOD = 0x80e4;
 /**
- *  ZONKER_REVEAL_GATE (0x80e5) — Per-column frame-gate down-counter: decremented each call, on wrap
- *  reloads from ZONKER_REVEAL_PERIOD 0x80e4 and reveals one terrain column; revealTerrainColumn/advanceZonker,
- *  seeded 1 by seedZonker — grounded and convergent. (fair)
+ *  PIT_FLOOR_REVEAL_GATE (0x80e5) — Per-column frame-gate down-counter for the Pit sliding-floor reveal:
+ *  decremented each call, on wrap reloads from PIT_FLOOR_REVEAL_PERIOD 0x80e4 and reveals one floor
+ *  column; revealTerrainColumn/advanceChamberCreature, seeded 1 by seedChamberCreature — grounded and convergent. (fair)
  */
-export const ZONKER_REVEAL_GATE = 0x80e5;
+export const PIT_FLOOR_REVEAL_GATE = 0x80e5;
 /**
- *  ZONKER_REVEAL_CURSOR (0x80e6) — Byte offset into tile-pattern table 0x3048, stepped back 6 per
- *  reveal (underflow ends reveal), seeded 0x96 by seedZonker; advanced by revealTerrainColumn/advanceZonker and
+ *  PIT_FLOOR_REVEAL_CURSOR (0x80e6) — Byte offset into tile-pattern table 0x3048, stepped back 6 per
+ *  reveal (underflow ends reveal), seeded 0x96 by seedChamberCreature; advanced by revealTerrainColumn/advanceChamberCreature and
  *  independently tested ==0 by dispatcher advanceTrackedObject as the reveal-finished gate. (fair)
  */
-export const ZONKER_REVEAL_CURSOR = 0x80e6;
+export const PIT_FLOOR_REVEAL_CURSOR = 0x80e6;
 
 // ── Object 1 record + Object 2 record ──
 /**

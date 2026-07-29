@@ -19,7 +19,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-4b1a.test.js.
  * GATE:     exhaustive — new state + returned byte vs the oracle over all 65,536
  *           (low,high) generator states, plus real captured attract states for a
- *           full-RAM check. Reached in attract (dispatched from advanceZonker/spawnPendingDigObject/
+ *           full-RAM check. Reached in attract (dispatched from advanceChamberCreature/spawnPendingDigObject/
  *           reseedMoverCadenceAndRearmState), but its output depends only on the two state bytes.
  * LIVE-OUT: memory (the two PRNG-state bytes) + the accumulator (the returned
  *           byte). The residual working registers and flags are dead ABI — every

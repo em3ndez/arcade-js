@@ -15,7 +15,7 @@
  *   - continues into the shared per-frame background-animation update as a tail hand-off:
  *     that routine's return is this routine's return.
  *
- * The background-animation update (0x2f71) is the decompiled advanceZonker,
+ * The background-animation update (0x2f71) is the decompiled advanceChamberCreature,
  * called directly — and it takes none of its inputs from a register, so the hand-off has
  * nothing to marshal.
  *
@@ -40,7 +40,7 @@
  */
 
 import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "./ram.js";
-import { advanceZonker } from "./advanceZonker.js";
+import { advanceChamberCreature } from "./advanceChamberCreature.js";
 
 // The glyph's fixed tile codes, top cell to bottom cell.
 const GLYPH_TILES = [62, 20, 23, 24, 35];
@@ -83,5 +83,5 @@ export function stampGlyphColumn(m) {
 
   // Hand off to the background-animation update; its return unwinds to our
   // caller, so this is the exit.
-  return advanceZonker(m);
+  return advanceChamberCreature(m);
 }

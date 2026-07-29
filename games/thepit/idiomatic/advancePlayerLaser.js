@@ -2,7 +2,7 @@
 /**
  * advancePlayerLaser — per-frame driver of the player's horizontal laser AND the dig/push carve
  * reaction, which time-multiplex ONE sprite slot (0x8094-0x80a4); also tail-chains the whole actor
- * pipeline each frame (dig-carve/hazards → Zonker → enemies → enemy-3).  ROM 0x24f3. (§2.3)
+ * pipeline each frame (dig-carve/hazards → chamber creature → enemies → enemy-3).  ROM 0x24f3. (§2.3)
  *
  * At loc_26be it reads fire (input bit 4) and, with a horizontal facing, launches/flies a laser bolt
  * (see LASER_STATE 0x80a1). Otherwise it runs the reaction object — the short animation the player

@@ -41,7 +41,7 @@
  *           position-bias pair loaded into D and E, which the tile-cell tail and the still-oracle
  *           position handlers read.
  * NAMES:    PLAYER_ACTIVE, BOARD_END_PHASE, DIG_COLLISION_STATE, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE,
- *           ZONKER_REVEAL_CURSOR from ram.js; 0x807a (busy-this-frame flag), 0x8075 (motion marker) and
+ *           PIT_FLOOR_REVEAL_CURSOR from ram.js; 0x807a (busy-this-frame flag), 0x8075 (motion marker) and
  *           the position-bias pair at 0x806c/0x806d have no ram.js name yet and stay hex.
  */
 
@@ -51,7 +51,7 @@ import {
   DIG_COLLISION_STATE,
   GOAL_TILE_LATCH,
   PIT_CROSS_ACTIVE,
-  ZONKER_REVEAL_CURSOR,
+  PIT_FLOOR_REVEAL_CURSOR,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
@@ -103,7 +103,7 @@ export function advanceTrackedObject(m) {
   if (mem8[PIT_CROSS_ACTIVE] !== 0) return advanceActorWalk(m);
 
   // Terrain reveal finished: locate the object's tile cell and dispatch on the tile under it.
-  if (mem8[ZONKER_REVEAL_CURSOR] === 0) return resolveObjectTile(m, columnBias);
+  if (mem8[PIT_FLOOR_REVEAL_CURSOR] === 0) return resolveObjectTile(m, columnBias);
 
   // Otherwise advance the object from its control input.
   return stepObjectFromControl(m);
