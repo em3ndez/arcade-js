@@ -30,7 +30,7 @@
  * 0x31 / 0x2d / 0xae / 0xfe / 0xfd / 0x33 / 0x32) are opaque graphics-ROM indices, kept hex
  * like the other marker bytes in this layer; the tilemap addresses (the 0x9400 bottom-row
  * boundary, the 0x92a4 trigger cell) stay hex too. The write cursor is now
- * COLUMN_ANIM_WRITE_PTR and the step timer COLUMN_ANIM_TIMER (both from ram.js).
+ * MOUNTAIN_ERODE_PTR and the step timer MOUNTAIN_ERODE_TIMER (both from ram.js).
  *
  * Memory-equivalent to the frozen oracle — equivalence-241c.test.js.
  * GATE:     real captured dispatches (attract dispatches it ~2400× / 3000 frames — both
@@ -40,22 +40,22 @@
  *           swept over spawn phase and actor height). RAM compared outside the dead stack
  *           scratch the oracle's call/enqueue parks just below the entry stack pointer,
  *           plus pc + SP. Teeth catch a dropped timer store and a corrupted finalise.
- * LIVE-OUT: memory-only — the step timer (COLUMN_ANIM_TIMER), the write cursor
- *           (COLUMN_ANIM_WRITE_PTR), the patched
- *           tilemap cells, the spawn phase (SPAWN_PHASE), the actor height (ACTOR_Y /
- *           TWIN_CLEAR) and the sound ring on the finalise arm. The oracle's exit registers,
+ * LIVE-OUT: memory-only — the step timer (MOUNTAIN_ERODE_TIMER), the write cursor
+ *           (MOUNTAIN_ERODE_PTR), the patched
+ *           tilemap cells, the spawn phase (BOARD_END_PHASE), the actor height (ENEMY3_Y /
+ *           ENEMY3_TWIN_Y) and the sound ring on the finalise arm. The oracle's exit registers,
  *           flags and Z80 return path are dead scratch a plain JS call replaces.
- * NAMES:    FRAME_COUNTER, SPAWN_PHASE, ACTOR_Y, TWIN_CLEAR, COLUMN_ANIM_TIMER (the step
- *           timer) and COLUMN_ANIM_WRITE_PTR (the write cursor) from ram.js. Delegates the sound cues to
+ * NAMES:    PLAY_PHASE_COUNTER, BOARD_END_PHASE, ENEMY3_Y, ENEMY3_TWIN_Y, MOUNTAIN_ERODE_TIMER (the step
+ *           timer) and MOUNTAIN_ERODE_PTR (the write cursor) from ram.js. Delegates the sound cues to
  *           requestSound15 / requestSound7 and the window reseed to reseedColumnAnimation.
  */
 import {
-  FRAME_COUNTER,
-  SPAWN_PHASE,
-  ACTOR_Y,
-  TWIN_CLEAR,
-  COLUMN_ANIM_TIMER,
-  COLUMN_ANIM_WRITE_PTR,
+  PLAY_PHASE_COUNTER,
+  BOARD_END_PHASE,
+  ENEMY3_Y,
+  ENEMY3_TWIN_Y,
+  MOUNTAIN_ERODE_TIMER,
+  MOUNTAIN_ERODE_PTR,
 } from "./ram.js";
 import { requestSound15 } from "./requestSound15.js";
 import { requestSound7 } from "./requestSound7.js";
@@ -67,19 +67,19 @@ export function advanceColumnAnimation(m) {
   const { mem8, mem16 } = m;
 
   // Gate 1: dormant until the round's frame counter has climbed past 10.
-  if (mem8[FRAME_COUNTER] < 10) return;
+  if (mem8[PLAY_PHASE_COUNTER] < 10) return;
 
   // Gate 2: only the frame the step timer reaches its final count runs the step;
   // otherwise store the decremented timer and wait for the next frame.
-  const timer = mem8[COLUMN_ANIM_TIMER];
+  const timer = mem8[MOUNTAIN_ERODE_TIMER];
   if (timer !== 1) {
-    mem8[COLUMN_ANIM_TIMER] = timer - 1;
+    mem8[MOUNTAIN_ERODE_TIMER] = timer - 1;
     return;
   }
 
   // A step runs this frame: cue the step sound and take the current write cursor.
   requestSound15(m);
-  const cursor = mem16[COLUMN_ANIM_WRITE_PTR];
+  const cursor = mem16[MOUNTAIN_ERODE_PTR];
 
   // 1. Patch the cell one row above the cursor (and, for the marker case, two rows above).
   if (mem8[cursor - ROW] === 0xae) {
@@ -118,26 +118,26 @@ export function advanceColumnAnimation(m) {
 
   // 3. Extend the fill column one cell — shared by the five classify outcomes above.
   function extendFillColumn() {
-    let ptr = mem16[COLUMN_ANIM_WRITE_PTR];
+    let ptr = mem16[MOUNTAIN_ERODE_PTR];
     // Stop once the cursor has stepped past the bottom tilemap row.
     if (ptr >= 0x9400) return;
     // Stamp the fill tile, then step the cursor down one row and store it.
     mem8[ptr] = 0x31;
     ptr = (ptr + ROW) & 0xffff;
-    mem16[COLUMN_ANIM_WRITE_PTR] = ptr;
+    mem16[MOUNTAIN_ERODE_PTR] = ptr;
     // Only the trigger cell finalises the spawn; every other cell waits for the next frame.
     if (ptr !== 0x92a4) return;
 
     // Trigger cell reached: finalise the spawn phase.
-    const phase = mem8[SPAWN_PHASE];
+    const phase = mem8[BOARD_END_PHASE];
     if (phase !== 0) {
       if (phase >= 2) return; // already past the first phase — nothing to do
       // Phase 1: re-top the actor and its twin mirror, but only once it has sunk far enough.
-      if (mem8[ACTOR_Y] < 23) return;
-      mem8[ACTOR_Y] = 22;
-      mem8[TWIN_CLEAR] = 22;
+      if (mem8[ENEMY3_Y] < 23) return;
+      mem8[ENEMY3_Y] = 22;
+      mem8[ENEMY3_TWIN_Y] = 22;
     }
-    mem8[SPAWN_PHASE] = 2; // mark the spawn phase reached
+    mem8[BOARD_END_PHASE] = 2; // mark the spawn phase reached
     return requestSound7(m); // cue the finalise sound
   }
 }

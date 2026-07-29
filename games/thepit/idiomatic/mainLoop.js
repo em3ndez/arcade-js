@@ -29,12 +29,12 @@
  * LIVE-OUT: memory-only — the loop never returns, so nothing downstream reads a
  *           register or flag from it; its whole effect is the work/colour/video/
  *           sprite RAM its per-frame services leave behind.
- * NAMES:    GAME_MODE (0x8001) from ram.js. The watchdog/sound port 0xb800 is board
+ * NAMES:    GAME_STATE (0x8001) from ram.js. The watchdog/sound port 0xb800 is board
  *           I/O (not work RAM), kept hex. The callees are the decomposed idiomatic
  *           per-frame services.
  */
 
-import { GAME_MODE } from "./ram.js";
+import { GAME_STATE } from "./ram.js";
 import { enableNmi } from "./enableNmi.js"; //                       ROM 0x4b14
 import { steerDemoPlayer } from "./steerDemoPlayer.js"; //           ROM 0x03e8
 import { dispatchObjectFrameByStateTimer } from "./dispatchObjectFrameByStateTimer.js"; //                         ROM 0x13c9
@@ -61,7 +61,7 @@ export function mainLoop(m) {
     enableNmi(m);
 
     // During the attract demo, produce the auto-player's move for this frame.
-    if (mem8[GAME_MODE] === DEMO_MODE) steerDemoPlayer(m);
+    if (mem8[GAME_STATE] === DEMO_MODE) steerDemoPlayer(m);
 
     // The per-frame game services, in order.
     dispatchObjectFrameByStateTimer(m); //               object / state dispatcher (gated by the state-lockout timer)

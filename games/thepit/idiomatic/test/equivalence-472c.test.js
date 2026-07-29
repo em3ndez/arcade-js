@@ -89,8 +89,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x472c;
 const STACK_SCRATCH = 8; // dead bytes the dissolved handoff's removed push16 slots parked below entry SP
-const GAME_MODE = 0x8001; // player count -> which status label is drawn
-const GAME_STATE2 = 0x8002; // active player index (swept 1,2 then restored)
+const GAME_STATE = 0x8001; // player count -> which status label is drawn
+const ACTIVE_PLAYER = 0x8002; // active player index (swept 1,2 then restored)
 const ROW = 32; // one screen row across the 32-wide map
 const FIRST_COLUMN_BOTTOM = 0x8ba1; // first tinted HUD colour column
 const CAPTURE_FRAMES = 240; // 0x472c dispatches early in attract (its 0x48e5 arm ~frame 61)
@@ -107,7 +107,7 @@ function captureRealEntry() {
     [TARGET, (mm) => {
       if (entry === null) {
         entry = mm.clone();
-        playerCount = mm.mem.read8(GAME_MODE);
+        playerCount = mm.mem.read8(GAME_STATE);
       }
       return oracle(mm);
     }],
@@ -168,18 +168,18 @@ function observableDiff(entry, candidate) {
 function emitHud({ colour, blankRowsAbove }) {
   return function (m) {
     const { mem } = m;
-    const activePlayer = mem.read8(GAME_STATE2);
+    const activePlayer = mem.read8(ACTIVE_PLAYER);
     for (const [player, copyRet, drawRet] of [[1, 0x4738, 0x473b], [2, 0x474b, 0x474e]]) {
-      mem.write8(GAME_STATE2, player);
+      mem.write8(ACTIVE_PLAYER, player);
       m.push16(copyRet); m.call(0x4644); // copy player state into the shared slot
       m.push16(drawRet); m.call(0x46af); // repaint the digits; base returned in ix
       const base = m.regs.ix;
       mem.write8(base - ROW, 0);
       mem.write8(base - blankRowsAbove * ROW, 0);
     }
-    mem.write8(GAME_STATE2, activePlayer);
+    mem.write8(ACTIVE_PLAYER, activePlayer);
     m.push16(0x475d); m.call(0x4644);
-    const players = mem.read8(GAME_MODE);
+    const players = mem.read8(GAME_STATE);
     if (players === 1 || players === 2) { m.push16(0x4768); m.call(0x47e1); }
     else { m.push16(0x476d); m.call(0x48e5); }
     let cell = 0x8ba1; for (let i = 0; i < 9; i++) { mem.write8(cell, colour); cell -= ROW; }
@@ -221,7 +221,7 @@ test("EQUAL (harness): a fresh-captured real 0x472c dispatch is RAM-EQUAL outsid
 
 test("EQUAL (crafted): the in-game-panel arm (player count 1 -> drawPlayerLabel) is RAM-EQUAL", () => {
   const seed = ENTRY.clone();
-  seed.mem.write8(GAME_MODE, 1); // force the one/two-player branch attract never reaches
+  seed.mem.write8(GAME_STATE, 1); // force the one/two-player branch attract never reaches
   const ram = observableDiff(seed, idiomatic);
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
   console.log("  EQUAL/crafted: player-count-1 (in-game panel) entry identical (whole RAM dump)");

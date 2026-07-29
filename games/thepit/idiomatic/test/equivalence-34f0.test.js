@@ -62,9 +62,9 @@ const test = ROM_PRESENT
 
 const RNG_LOW = 0x800d;
 const RNG_HIGH = 0x800e;
-const MOVER_CADENCE = 0x808b; // the random/animation byte reseedMoverCadenceAndRearmState seeds
-const ACTOR_STATE = 0x8084; // the actor state/timer byte reseedMoverCadenceAndRearmState re-arms
-const EXPECTED_WRITES = new Set([RNG_LOW, RNG_HIGH, MOVER_CADENCE, ACTOR_STATE]);
+const ENEMY_ACTION_TIMER = 0x808b; // the random/animation byte reseedMoverCadenceAndRearmState seeds
+const ENEMY_WORK_SPRITE = 0x8084; // the actor state/timer byte reseedMoverCadenceAndRearmState re-arms
+const EXPECTED_WRITES = new Set([RNG_LOW, RNG_HIGH, ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE]);
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The Pit's routine registry is async, so build the factory once and reuse it.
@@ -144,7 +144,7 @@ test("EQUAL + SCOPE: reseedMoverCadenceAndRearmState == oracle on real attract s
 
     // The attract PRNG sits at 0 here, so this is the all-zero reseed path: the
     // draw is 1, forced to 0x81, and the state byte is armed to 9.
-    assert.equal(idioClone.mem.read8(ACTOR_STATE), 9, "state byte must be armed to 9");
+    assert.equal(idioClone.mem.read8(ENEMY_WORK_SPRITE), 9, "state byte must be armed to 9");
     assert.equal(idioClone.regs.a, 9, "accumulator must be left at 9");
   }
   console.log(`  EQUAL/scope: ${caps.length} real attract states — RAM+A identical, oracle wrote only its four bytes`);
@@ -175,7 +175,7 @@ test("EXHAUSTIVE: over all 65,536 generator states the written + advanced bytes 
       oracle(oracleM);
       reseedMoverCadenceAndRearmState(idioM);
 
-      for (const addr of [RNG_LOW, RNG_HIGH, MOVER_CADENCE, ACTOR_STATE]) {
+      for (const addr of [RNG_LOW, RNG_HIGH, ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE]) {
         const o = oracleM.mem.read8(addr);
         const b = idioM.mem.read8(addr);
         if (o !== b) {
@@ -186,8 +186,8 @@ test("EXHAUSTIVE: over all 65,536 generator states the written + advanced bytes 
       }
       // The stored seed always has its high bit set, whatever the draw was.
       assert.ok(
-        (idioM.mem.read8(MOVER_CADENCE) & 0x80) !== 0,
-        `state ${hx((high << 8) | low)}: stored seed ${hx(idioM.mem.read8(MOVER_CADENCE))} lost its high bit`,
+        (idioM.mem.read8(ENEMY_ACTION_TIMER) & 0x80) !== 0,
+        `state ${hx((high << 8) | low)}: stored seed ${hx(idioM.mem.read8(ENEMY_ACTION_TIMER))} lost its high bit`,
       );
       // The raw draw's high bit is the old high byte's low bit; an even high byte
       // clears it, so the high-bit force actually changed the stored value here.
@@ -208,16 +208,16 @@ test("EXHAUSTIVE: over all 65,536 generator states the written + advanced bytes 
 /** Broken twin A: stores the RAW draw, dropping the high-bit force. */
 function brokenNoHighBit(m) {
   const draw = advanceRandomLike(m); // same generator step, no `| 0x80`
-  m.mem.write8(MOVER_CADENCE, draw);
-  m.mem.write8(ACTOR_STATE, 9);
+  m.mem.write8(ENEMY_ACTION_TIMER, draw);
+  m.mem.write8(ENEMY_WORK_SPRITE, 9);
   m.regs.a = 9;
 }
 
 /** Broken twin B: arms the state byte to the wrong value. */
 function brokenWrongState(m) {
   const draw = advanceRandomLike(m) | 0x80;
-  m.mem.write8(MOVER_CADENCE, draw);
-  m.mem.write8(ACTOR_STATE, 8); // BUG: should be 9
+  m.mem.write8(ENEMY_ACTION_TIMER, draw);
+  m.mem.write8(ENEMY_WORK_SPRITE, 8); // BUG: should be 9
   m.regs.a = 8;
 }
 
@@ -250,7 +250,7 @@ test("TEETH: dropping the high-bit force is CAUGHT at the seed byte", () => {
   brokenNoHighBit(b);
   const diff = contractDiff(a, b, skip);
   assert.notEqual(diff, null, "the gate FAILED to catch the dropped high-bit force — it is worthless");
-  assert.ok(diff.startsWith(`RAM@${hx(MOVER_CADENCE)}`), `teeth caught the wrong thing: ${diff} (expected ${hx(MOVER_CADENCE)})`);
+  assert.ok(diff.startsWith(`RAM@${hx(ENEMY_ACTION_TIMER)}`), `teeth caught the wrong thing: ${diff} (expected ${hx(ENEMY_ACTION_TIMER)})`);
   console.log(`  TEETH: dropped high-bit force caught (${diff})`);
 });
 
@@ -266,6 +266,6 @@ test("TEETH: arming the state byte to the wrong value is CAUGHT at 0x8084", () =
   brokenWrongState(b);
   const diff = contractDiff(a, b, skip);
   assert.notEqual(diff, null, "the gate FAILED to catch a wrong state-byte arm — it is worthless");
-  assert.ok(diff.startsWith(`RAM@${hx(ACTOR_STATE)}`), `teeth caught the wrong thing: ${diff} (expected ${hx(ACTOR_STATE)})`);
+  assert.ok(diff.startsWith(`RAM@${hx(ENEMY_WORK_SPRITE)}`), `teeth caught the wrong thing: ${diff} (expected ${hx(ENEMY_WORK_SPRITE)})`);
   console.log(`  TEETH: wrong state-byte arm caught (${diff})`);
 });

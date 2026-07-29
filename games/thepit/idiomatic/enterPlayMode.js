@@ -29,7 +29,7 @@
  * LIVE-OUT: memory-only — the seeded work-RAM counters; the audio-enable and
  *           flip-screen control lines are driven for the live game but sit outside the
  *           RAM diff. No register or flag is read by the round init it hands off to.
- * NAMES:    GAME_MODE (0x8001), DEMO_STEER_DIR (0x801b), GAME_STATE2 (0x8002), and the
+ * NAMES:    GAME_STATE (0x8001), DEMO_STEER_DIR (0x801b), ACTIVE_PLAYER (0x8002), and the
  *           idle-delay base LOOP_DELAY_BASE (0x804e) from ram.js; the gameplay-tick phase
  *           countdown 0x800b / index 0x800c have no ram.js name yet (hex), and 0x8029 is
  *           the demo's saved Player-1 LEVEL backup — a player-record backup, kept hex.
@@ -40,14 +40,14 @@
 
 import { disableSound } from "./disableSound.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
-import { GAME_MODE, DEMO_STEER_DIR, GAME_STATE2, LOOP_DELAY_BASE } from "./ram.js";
+import { GAME_STATE, DEMO_STEER_DIR, ACTIVE_PLAYER, LOOP_DELAY_BASE } from "./ram.js";
 
 export function enterPlayMode(m) {
   const { mem8 } = m;
 
   // Enter play: the main loop runs the per-frame gameplay tick only while the
   // game-mode byte holds the play value (4).
-  mem8[GAME_MODE] = 4;
+  mem8[GAME_STATE] = 4;
 
   // Seed the demo's starting steering heading to a single direction (the movement
   // dispatcher reads this in place of the joystick during the attract demo).
@@ -55,7 +55,7 @@ export function enterPlayMode(m) {
 
   // Arm the secondary game-state byte, then seed the demo's saved Player-1 LEVEL backup
   // to 3 so the attract demo runs at level 3 (loadPlayerState promotes it to the working LEVEL).
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   mem8[0x8029] = 3;
 
   // Quiet the audio while the round is set up, then commit the cabinet DIP settings

@@ -4,10 +4,10 @@
  * object, then hand off to build the cell's record.  ROM 0x2c91.
  *
  * The dig/projectile-spawn path (spawnPendingDigObject) has just painted a target cell at
- * (TARGET_X, TARGET_Y); the cell's per-tick countdown handler (captureTargetOnOverlap) also drops
+ * (HAZARD_X, HAZARD_Y); the cell's per-tick countdown handler (captureTargetOnOverlap) also drops
  * in here on every tick the cell is still alive. This shared tail decides whether the
  * tracked object is sitting on that cell and publishes a single 0/1 flag to
- * DIG_OVERLAP_HOLD, then continues into building the cell's 4-byte record.
+ * MOVE_BLOCK_FLAG, then continues into building the cell's 4-byte record.
  *
  * Overlap needs BOTH axes to line up, otherwise the flag is 0:
  *   - Row: the cell's row plus 12 must land exactly on the object's row.
@@ -23,35 +23,35 @@
  *           dead Z80 trace and excluded — the record-build tail is idiomatic (a plain JS
  *           return, no stack dance), so a pc/SP contract would false-fail against the
  *           oracle even though the memory matches.
- * LIVE-OUT: memory (DIG_OVERLAP_HOLD) + whatever the record-build tail returns, passed
+ * LIVE-OUT: memory (MOVE_BLOCK_FLAG) + whatever the record-build tail returns, passed
  *           straight through. No register live-ins — every input is read from RAM, and
  *           the record builder reads its inputs from RAM too (no register hand-off).
- * NAMES:    OBJ_X/OBJ_Y (tracked object), TARGET_X/TARGET_Y (placed cell),
- *           DIG_OVERLAP_HOLD (the published flag). Stays loc_ — the flag's downstream effect
- *           is only weakly grounded (DIG_OVERLAP_HOLD is a weak name and the oracle tags the
+ * NAMES:    PLAYER_Y/PLAYER_X (tracked object), HAZARD_X/HAZARD_Y (placed cell),
+ *           MOVE_BLOCK_FLAG (the published flag). Stays loc_ — the flag's downstream effect
+ *           is only weakly grounded (MOVE_BLOCK_FLAG is a weak name and the oracle tags the
  *           role best-effort), so there is no earned action verb to name it by.
  *
- * PURPOSE [guess]: what consumes DIG_OVERLAP_HOLD.
+ * PURPOSE [guess]: what consumes MOVE_BLOCK_FLAG.
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_X, OBJ_Y, TARGET_X, TARGET_Y, DIG_OVERLAP_HOLD } from "./ram.js";
+import { PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG } from "./ram.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 
 export function flagObjectTargetOverlap(m) {
   const { mem8 } = m;
 
-  const objectRow = mem8[OBJ_Y];
-  const objectX = mem8[OBJ_X];
-  const cellX = mem8[TARGET_X];
+  const objectRow = mem8[PLAYER_X];
+  const objectX = mem8[PLAYER_Y];
+  const cellX = mem8[HAZARD_X];
 
   // Both axes must coincide for the cell and the object to count as overlapping.
-  const rowsAlign = u8(mem8[TARGET_Y] + 12) === objectRow;
+  const rowsAlign = u8(mem8[HAZARD_Y] + 12) === objectRow;
   const objectRightOfCell = cellX < objectX;
   const objectWithinBand = u8(cellX + 8) >= objectX;
   const overlaps = rowsAlign && objectRightOfCell && objectWithinBand;
 
-  mem8[DIG_OVERLAP_HOLD] = overlaps ? 1 : 0;
+  mem8[MOVE_BLOCK_FLAG] = overlaps ? 1 : 0;
 
   // Build the placed cell's sprite record and continue; its return unwinds to our caller.
   return stageDigObjectSpriteRecord(m);

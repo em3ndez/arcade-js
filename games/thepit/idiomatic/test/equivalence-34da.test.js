@@ -65,8 +65,8 @@ const TICK = 0x8090; // the free-running tick counter, bumped every call
 const SECOND = 0x8085; // the slower second counter, advanced on every 4th tick
 const RNG_LOW = 0x800d;
 const RNG_HIGH = 0x800e;
-const MOVER_CADENCE = 0x808b; // reseeded by the refresh on a wrap
-const ACTOR_STATE = 0x8084; // re-armed to 9 by the refresh on a wrap
+const ENEMY_ACTION_TIMER = 0x808b; // reseeded by the refresh on a wrap
+const ENEMY_WORK_SPRITE = 0x8084; // re-armed to 9 by the refresh on a wrap
 // A fixed SP high in scratch so the oracle's refresh push lands at a known cell.
 const SP_ANCHOR = 0x8780;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -185,7 +185,7 @@ test("SCOPE: the oracle changes only its path's expected addresses (plus the wra
     {
       tickByte: 0xff,
       secondByte: 0x10,
-      expect: new Set([TICK, MOVER_CADENCE, ACTOR_STATE, RNG_LOW, RNG_HIGH]),
+      expect: new Set([TICK, ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, RNG_LOW, RNG_HIGH]),
       label: "wrap → refresh",
     },
   ];
@@ -254,8 +254,8 @@ test("WRAP: on the wrap beat the refresh reseed matches the oracle over a spread
       assert.equal(diff, null, diff && `wrap mismatch at generator ${hx((high << 8) | low)}: ${diff}`);
       // The refresh forces the stored seed's high bit set.
       assert.ok(
-        (idioM.mem.read8(MOVER_CADENCE) & 0x80) !== 0,
-        `wrap: stored seed ${hx(idioM.mem.read8(MOVER_CADENCE))} lost its high bit`,
+        (idioM.mem.read8(ENEMY_ACTION_TIMER) & 0x80) !== 0,
+        `wrap: stored seed ${hx(idioM.mem.read8(ENEMY_ACTION_TIMER))} lost its high bit`,
       );
       if ((high & 1) === 0) sawHighBitForced = true;
       checked++;
@@ -315,7 +315,7 @@ test("TEETH: skipping the refresh on a wrap is CAUGHT", () => {
   const [entry] = captureStates(1, 1, 200);
   const cap = entry.clone();
   prime(cap, 0xff, 0x22); // wrap beat
-  cap.mem.write8(ACTOR_STATE, 0); // ensure the refresh's re-arm to 9 is observable
+  cap.mem.write8(ENEMY_WORK_SPRITE, 0); // ensure the refresh's re-arm to 9 is observable
   const skip = stackWindow(cap.regs.sp);
   const a = cap.clone();
   const b = cap.clone();
@@ -323,7 +323,7 @@ test("TEETH: skipping the refresh on a wrap is CAUGHT", () => {
   brokenSkipRefresh(b);
   const diff = contractDiff(a, b, skip);
   assert.notEqual(diff, null, "the gate FAILED to catch a skipped refresh — it is worthless");
-  const refreshAddrs = new Set([`RAM@${hx(RNG_LOW)}`, `RAM@${hx(RNG_HIGH)}`, `RAM@${hx(ACTOR_STATE)}`, `RAM@${hx(MOVER_CADENCE)}`]);
+  const refreshAddrs = new Set([`RAM@${hx(RNG_LOW)}`, `RAM@${hx(RNG_HIGH)}`, `RAM@${hx(ENEMY_WORK_SPRITE)}`, `RAM@${hx(ENEMY_ACTION_TIMER)}`]);
   assert.ok(
     [...refreshAddrs].some((p) => diff.startsWith(p)),
     `teeth caught the wrong thing: ${diff} (expected one of the refresh's bytes)`,

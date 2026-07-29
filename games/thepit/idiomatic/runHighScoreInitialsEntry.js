@@ -47,14 +47,14 @@
  *           the counters, and the queued sounds; plus the return to the caller. No register
  *           or flag is read back by the caller (the two exits are a return and a tail hand-off
  *           to the readout painter). The idiomatic layer does not preserve the Z80 pc/SP.
- * NAMES:    FRAME_COUNTER, VARIANT (the rank selector), TILE_COL / TILE_ROW, PLOT_RUN_LENGTH,
+ * NAMES:    PLAY_PHASE_COUNTER, VARIANT (the rank selector), TILE_COL / TILE_ROW, PLOT_RUN_LENGTH,
  *           HIGH_SCORE_TABLE, INITIALS_REMAINING (0x804b, the initials-remaining counter, the
  *           same cell the per-frame handler counts down) from ram.js. The ROM label strips, the
  *           on-screen cell addresses, and the finish colour byte are hex.
  */
 
 import {
-  FRAME_COUNTER,
+  PLAY_PHASE_COUNTER,
   VARIANT,
   TILE_COL,
   TILE_ROW,
@@ -124,7 +124,7 @@ export function runHighScoreInitialsEntry(m) {
   const rank = mem8[VARIANT]; // which top-three rank is being entered
 
   // 1. Build the fixed part of the screen.
-  mem8[FRAME_COUNTER] = 0;
+  mem8[PLAY_PHASE_COUNTER] = 0;
   applyDipSwitches(m);
   blankScreen(m);
   drawSharedPanel(m);
@@ -157,7 +157,7 @@ export function runHighScoreInitialsEntry(m) {
   regs.hl = display.videoCell;
   regs.de = display.colourCell;
 
-  mem8[FRAME_COUNTER] = 0; // restart the idle timeout
+  mem8[PLAY_PHASE_COUNTER] = 0; // restart the idle timeout
   regs.c = HOME_LETTER; // the letter shown starts at its home code
   mem8[regs.de] = regs.b; // paint the initial's colour into its colour cell
 
@@ -176,7 +176,7 @@ export function runHighScoreInitialsEntry(m) {
 
     if (mem8[INITIALS_REMAINING] !== 0) {
       // Still entering: abandon the entry only once the player has sat idle past the timeout.
-      if (mem8[FRAME_COUNTER] >= IDLE_TIMEOUT_FRAMES) return m.ret();
+      if (mem8[PLAY_PHASE_COUNTER] >= IDLE_TIMEOUT_FRAMES) return m.ret();
       continue;
     }
     break; // all three initials committed

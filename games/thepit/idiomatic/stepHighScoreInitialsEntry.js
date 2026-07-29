@@ -42,10 +42,10 @@
  *           (pc/SP); and, on the step arms only, the stepped index left in register C,
  *           which the caller re-reads next pass. The other exit registers/flags are
  *           dead and excluded from the diff.
- * NAMES:    IN0_DEBOUNCED (the action byte), FRAME_COUNTER and INITIALS_REMAINING (0x804b,
+ * NAMES:    IN0_DEBOUNCED (the action byte), PLAY_PHASE_COUNTER and INITIALS_REMAINING (0x804b,
  *           the per-move step counter) from ram.js.
  */
-import { IN0_DEBOUNCED, FRAME_COUNTER, INITIALS_REMAINING } from "./ram.js";
+import { IN0_DEBOUNCED, PLAY_PHASE_COUNTER, INITIALS_REMAINING } from "./ram.js";
 import { stepInitialDown } from "./stepInitialDown.js";
 import { advanceInitialUp } from "./advanceInitialUp.js";
 import { requestSound16 } from "./requestSound16.js";
@@ -81,7 +81,7 @@ export function stepHighScoreInitialsEntry(m) {
   mem8[regs.de] = objectCode; // redraw the object one row up in the parallel plane
 
   mem8[INITIALS_REMAINING] = mem8[INITIALS_REMAINING] - 1; // count this move off
-  mem8[FRAME_COUNTER] = 0; // restart the frame counter
+  mem8[PLAY_PHASE_COUNTER] = 0; // restart the frame counter
 
   requestSound16(m); // play the move sound
   return waitFrames(m, HOLD_FRAMES); // hold the fixed number of frames, then return to the caller

@@ -49,7 +49,7 @@ import { landDigTarget as idiomatic } from "../landDigTarget.js";
 import { loc_3dae as reachedLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, SPAWN_STATE, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -148,10 +148,10 @@ test("EQUAL: landDigTarget == oracle over RAM (outside stack scratch)", () => {
 
   // Positive checks: the routine's own effects landed (cells the downstream tail doesn't touch).
   assert.equal(c.mem.read8(STAMP_CELL), STAMP_TILE, "finished-target tile not stamped");
-  assert.equal(c.mem.read8(SPAWN_STATE), 0, "spawn gate not reopened to idle");
-  assert.equal(c.mem.read8(TARGET_X), 0, "target X not cleared");
-  assert.equal(c.mem.read8(DIG_OBJ_STATE), DONE_STATE, "done/target state not seeded");
-  assert.equal(c.mem.read8(DIG_OBJ_ATTR), FIXED_ATTR, "fixed attribute not seeded");
+  assert.equal(c.mem.read8(HAZARD_ACTIVE_COUNT), 0, "spawn gate not reopened to idle");
+  assert.equal(c.mem.read8(HAZARD_X), 0, "target X not cleared");
+  assert.equal(c.mem.read8(HAZARD_STATE), DONE_STATE, "done/target state not seeded");
+  assert.equal(c.mem.read8(HAZARD_TYPE), FIXED_ATTR, "fixed attribute not seeded");
   assert.equal(c.mem.read8(SOUND_RING + head), PENDING, `arrival sound not queued into ring slot ${head}`);
   console.log(
     `  EQUAL: identical over RAM outside stack scratch; stamp ${hx(STAMP_CELL)}=${STAMP_TILE}, ` +
@@ -188,7 +188,7 @@ test("TEETH (wrong tile): a twin that stamps the wrong tile is CAUGHT at the sta
 /** Broken twin: correct routine, then one wrong store to the done/target state byte. */
 function twinWrongState(m) {
   idiomatic(m);
-  m.mem.write8(DIG_OBJ_STATE, DONE_STATE - 1); // BUG: wrong done/target state code
+  m.mem.write8(HAZARD_STATE, DONE_STATE - 1); // BUG: wrong done/target state code
 }
 
 test("TEETH (wrong state): a twin that seeds the wrong state code is CAUGHT at the state byte", () => {
@@ -203,6 +203,6 @@ test("TEETH (wrong state): a twin that seeds the wrong state code is CAUGHT at t
 
   const ram = ramDiffOutsideStack(o, c, sp);
   assert.ok(ram, "the gate FAILED to catch the wrong-state twin — it proves nothing");
-  assert.equal(ram.addr, DIG_OBJ_STATE, `teeth caught the wrong address ${hx(ram.addr)} (expected ${hx(DIG_OBJ_STATE)})`);
+  assert.equal(ram.addr, HAZARD_STATE, `teeth caught the wrong address ${hx(ram.addr)} (expected ${hx(HAZARD_STATE)})`);
   console.log(`  TEETH/state: wrong-state twin caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });

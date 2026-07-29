@@ -46,7 +46,7 @@ import { advanceObjectFrame } from "../advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { REACTION_STATE, GAME_MODE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "../ram.js";
+import { REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -134,7 +134,7 @@ test("EQUAL (crafted joystick arm): with game mode < 3 the joystick is dispatche
   assert.ok(base, "need a reaction-clear entry to craft the joystick arm from");
 
   const entry = base.clone();
-  entry.mem.write8(GAME_MODE, 0); // force real-play input selection (game mode < 3)
+  entry.mem.write8(GAME_STATE, 0); // force real-play input selection (game mode < 3)
   const d = ramDiff(entry, idiomatic);
   assert.equal(d, null, d && `joystick arm: RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
   console.log("  EQUAL/crafted: game mode < 3 dispatches the joystick — full RAM identical to the oracle");
@@ -154,7 +154,7 @@ test("TEETH (wrong input source): feeding the joystick in the demo is CAUGHT", (
   const [entry] = captureEntries(2500, 1, isDemoArm);
   assert.ok(entry, "need a demo-steer entry to seed the teeth check");
   assert.equal(entry.mem.read8(REACTION_STATE), 0, "expected a reaction-clear (demo-steer) entry");
-  assert.ok(entry.mem.read8(GAME_MODE) >= 3, "expected the demo to be running (game mode >= 3)");
+  assert.ok(entry.mem.read8(GAME_STATE) >= 3, "expected the demo to be running (game mode >= 3)");
   assert.notEqual(
     entry.mem.read8(DEMO_STEER_DIR),
     entry.mem.read8(IN0_DEBOUNCED),
@@ -172,7 +172,7 @@ test("TEETH (wrong input source): feeding the joystick in the demo is CAUGHT", (
 /** Broken twin: skips the reaction guard and dispatches the move even while a reaction owns the frame. */
 function twinNoGuard(m) {
   const { mem8, regs } = m;
-  const runningDemo = mem8[GAME_MODE] >= 3;
+  const runningDemo = mem8[GAME_STATE] >= 3;
   regs.a = runningDemo ? mem8[DEMO_STEER_DIR] : mem8[IN0_DEBOUNCED];
   return advanceObjectFrame(m); // BUG: no reaction-defer guard, so it never stages the deferral record
 }

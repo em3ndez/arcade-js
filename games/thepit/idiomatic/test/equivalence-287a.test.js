@@ -54,13 +54,13 @@ import { seedDigObjectBlock as idiomatic } from "../seedDigObjectBlock.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  DIG_OBJ_STATE,
-  TARGET_X,
-  TARGET_Y,
-  SPAWN_STATE,
-  SPAWN_PHASE,
-  ACTOR_X,
-  TWIN_X,
+  HAZARD_STATE,
+  HAZARD_X,
+  HAZARD_Y,
+  HAZARD_ACTIVE_COUNT,
+  BOARD_END_PHASE,
+  ENEMY3_X,
+  ENEMY3_TWIN_X,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -80,12 +80,12 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 // seedDigObjectBlock's OWN fixed-value writes (address -> value). Every one is a constant, so
 // the sentinel/non-vacuous check can assert both overwrite and value.
 const FIXED = [
-  [DIG_OBJ_STATE, 48], // 0x80aa — carving-phase state code
+  [HAZARD_STATE, 48], // 0x80aa — carving-phase state code
   [0x80ab, 7],
-  [TARGET_X, 0], // 0x80a9
-  [TARGET_Y, 0], // 0x80ac
+  [HAZARD_X, 0], // 0x80a9
+  [HAZARD_Y, 0], // 0x80ac
   [0x80b1, 0],
-  [SPAWN_STATE, 0], // 0x80bd
+  [HAZARD_ACTIVE_COUNT, 0], // 0x80bd
   [0x80c1, 0],
   [0x80c0, 0],
   [0x80c2, 32],
@@ -153,9 +153,9 @@ test("TAIL FIRED: the control block is seeded, the table is copied, and the full
   }
   // The tail's effects: the round-parameter chain and the actor-seed tail ran.
   assert.ok(b.mem.read8(RELOAD) >= 3 && b.mem.read8(RELOAD) <= 6, "the tail's derived reload byte must be present");
-  assert.equal(b.mem.read8(ACTOR_X), 36, "the chain's tail must seed the primary start column");
-  assert.equal(b.mem.read8(TWIN_X), 52, "the chain's tail must seed the twin start column");
-  assert.equal(b.mem.read8(SPAWN_PHASE), 0, "the chain's tail must clear the spawn-phase flag");
+  assert.equal(b.mem.read8(ENEMY3_X), 36, "the chain's tail must seed the primary start column");
+  assert.equal(b.mem.read8(ENEMY3_TWIN_X), 52, "the chain's tail must seed the twin start column");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), 0, "the chain's tail must clear the spawn-phase flag");
   console.log("  TAIL FIRED: control block seeded, 24-byte table copied, full seed chain ran");
 });
 
@@ -206,18 +206,18 @@ test("TABLE COPY: the 24 destination bytes match the ROM source table exactly", 
 /** Broken twin A: seeds everything, but one control byte is wrong. */
 function brokenControlByte(m) {
   idiomatic(m);
-  m.mem.write8(DIG_OBJ_STATE, m.mem.read8(DIG_OBJ_STATE) + 1); // BUG: wrong dig-object state
+  m.mem.write8(HAZARD_STATE, m.mem.read8(HAZARD_STATE) + 1); // BUG: wrong dig-object state
 }
 
 /** Broken twin B: does everything except copy the ROM table. */
 function brokenNoTable(m) {
   const { mem } = m;
-  mem.write8(DIG_OBJ_STATE, 48);
+  mem.write8(HAZARD_STATE, 48);
   mem.write8(0x80ab, 7);
-  mem.write8(TARGET_X, 0);
-  mem.write8(TARGET_Y, 0);
+  mem.write8(HAZARD_X, 0);
+  mem.write8(HAZARD_Y, 0);
   mem.write8(0x80b1, 0);
-  mem.write8(SPAWN_STATE, 0);
+  mem.write8(HAZARD_ACTIVE_COUNT, 0);
   mem.write8(0x80c1, 0);
   mem.write8(0x80c0, 0);
   // BUG: the 24-byte table copy is dropped.
@@ -228,12 +228,12 @@ function brokenNoTable(m) {
 /** Broken twin C: does seedDigObjectBlock's own writes but drops the tail hand-off. */
 function brokenNoTail(m) {
   const { mem } = m;
-  mem.write8(DIG_OBJ_STATE, 48);
+  mem.write8(HAZARD_STATE, 48);
   mem.write8(0x80ab, 7);
-  mem.write8(TARGET_X, 0);
-  mem.write8(TARGET_Y, 0);
+  mem.write8(HAZARD_X, 0);
+  mem.write8(HAZARD_Y, 0);
   mem.write8(0x80b1, 0);
-  mem.write8(SPAWN_STATE, 0);
+  mem.write8(HAZARD_ACTIVE_COUNT, 0);
   mem.write8(0x80c1, 0);
   mem.write8(0x80c0, 0);
   for (let i = 0; i < TABLE_LEN; i++) mem.write8(TABLE_DST + i, mem.read8(TABLE_SRC + i));
@@ -263,7 +263,7 @@ test("TEETH (wrong control byte): a wrong dig-object state is CAUGHT", () => {
     }
   }
   assert.notEqual(caught, null, "the gate FAILED to catch a wrong control byte — it proves nothing");
-  assert.equal(caught.addr, DIG_OBJ_STATE, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
+  assert.equal(caught.addr, HAZARD_STATE, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
   console.log(`  TEETH: wrong control byte caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });
 
@@ -289,7 +289,7 @@ test("TEETH (dropped hand-off): dropping the loc_2f2f tail is CAUGHT", () => {
   const [entry] = captureStates(1, 1, 220);
   // Pre-set the tail's lowest write so a missing hand-off is deterministic.
   const SENTINEL = 85;
-  entry.mem.write8(SPAWN_PHASE, SENTINEL);
+  entry.mem.write8(BOARD_END_PHASE, SENTINEL);
 
   const a = entry.clone(); // oracle (runs the tail)
   const b = entry.clone(); // broken twin (no tail)
@@ -298,6 +298,6 @@ test("TEETH (dropped hand-off): dropping the loc_2f2f tail is CAUGHT", () => {
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.notEqual(d, null, "the gate FAILED to catch a dropped hand-off — it proves nothing");
-  assert.equal(b.mem.read8(SPAWN_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
   console.log(`  TEETH: dropped hand-off caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

@@ -53,17 +53,17 @@ import { requestSound20 } from "../requestSound20.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  MOVER_STATE,
-  MOVER_CADENCE,
-  MOVER_DIRECTION,
+  ENEMY_WORK_STATE,
+  ENEMY_ACTION_TIMER,
+  ENEMY_WORK_DIR,
   PROBE_CELL_PTR,
-  SPRITE_CODE,
-  ACTOR_STATE,
-  OBJ_X,
-  OBJ_Y,
+  PLAYER_FACING,
+  ENEMY_WORK_SPRITE,
+  PLAYER_Y,
+  PLAYER_X,
   REACTION_OBJ_X,
   REACTION_OBJ_Y,
-  DIG_OBJ_ARM_STATE,
+  DIG_COLLISION_STATE,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -177,11 +177,11 @@ function ramDiffVsOracle(entry, fn) {
 /** Poke a base state into a mover that reaches the position decoder + steer for the
  *  given target column and travel direction, at the given pixel position. */
 function primeSteerEntry(m, { column, direction, moverX, moverY }) {
-  m.mem.write8(MOVER_STATE, 1); // positive: run the active step
+  m.mem.write8(ENEMY_WORK_STATE, 1); // positive: run the active step
   m.mem.write8(TARGET_COLUMN, column);
   m.mem.write8(CURRENT_COLUMN, 0xff); // locked (nonzero, != column) -> skip both box tests
   m.mem.write8(PLAYER_BOX_OWNER, 0); // player box not live
-  m.mem.write8(MOVER_DIRECTION, direction);
+  m.mem.write8(ENEMY_WORK_DIR, direction);
   m.mem.write8(MOVER_X, moverX);
   m.mem.write8(MOVER_Y, moverY);
 }
@@ -222,7 +222,7 @@ test("EQUAL (player-box capture): the capture path matches the oracle and parks 
   const seed = baseAttractState(300);
 
   const entry = seed.clone();
-  entry.mem.write8(MOVER_STATE, 1); // positive -> active step
+  entry.mem.write8(ENEMY_WORK_STATE, 1); // positive -> active step
   entry.mem.write8(TARGET_COLUMN, 3);
   entry.mem.write8(CURRENT_COLUMN, 0); // free (!= target column)
   entry.mem.write8(PLAYER_BOX_OWNER, 1); // capture box live
@@ -236,7 +236,7 @@ test("EQUAL (player-box capture): the capture path matches the oracle and parks 
 
   // Positive check: the mover was parked negative (192, then bumped by the dormant tick).
   const c = runIsolated(entry, idiomatic);
-  assert.equal(c.mem.read8(MOVER_STATE), 193, "capture must park the mover (192 then +1 from the dormant tick)");
+  assert.equal(c.mem.read8(ENEMY_WORK_STATE), 193, "capture must park the mover (192 then +1 from the dormant tick)");
   console.log("  EQUAL/capture: player-box capture matches the oracle; mover parked");
 });
 
@@ -244,13 +244,13 @@ test("EQUAL (object-box retarget): the retarget path matches the oracle and arms
   const seed = baseAttractState(300);
 
   const entry = seed.clone();
-  entry.mem.write8(MOVER_STATE, 1);
+  entry.mem.write8(ENEMY_WORK_STATE, 1);
   entry.mem.write8(TARGET_COLUMN, 3);
   entry.mem.write8(CURRENT_COLUMN, 0); // free
   entry.mem.write8(PLAYER_BOX_OWNER, 0); // player box not live -> object-box test
-  entry.mem.write8(DIG_OBJ_ARM_STATE, 0); // no dig reaction owns the mover
-  entry.mem.write8(OBJ_X, 100);
-  entry.mem.write8(OBJ_Y, 100);
+  entry.mem.write8(DIG_COLLISION_STATE, 0); // no dig reaction owns the mover
+  entry.mem.write8(PLAYER_Y, 100);
+  entry.mem.write8(PLAYER_X, 100);
   entry.mem.write8(MOVER_X, 100); // inside the object box
   entry.mem.write8(MOVER_Y, 100);
 
@@ -303,11 +303,11 @@ test("EQUAL (steer grid): every column/direction/position steer arm matches the 
 function twinWrongPose(m) {
   const { mem8 } = m;
   mem8[CURRENT_COLUMN] = mem8[TARGET_COLUMN];
-  mem8[MOVER_X] = mem8[OBJ_X];
-  mem8[MOVER_Y] = mem8[OBJ_Y];
-  mem8[MOVER_CADENCE] = 129;
-  mem8[ACTOR_STATE] = 23;
-  mem8[SPRITE_CODE] = 52; // BUG: the capture pose is 53
+  mem8[MOVER_X] = mem8[PLAYER_Y];
+  mem8[MOVER_Y] = mem8[PLAYER_X];
+  mem8[ENEMY_ACTION_TIMER] = 129;
+  mem8[ENEMY_WORK_SPRITE] = 23;
+  mem8[PLAYER_FACING] = 52; // BUG: the capture pose is 53
   requestSound20(m);
   return tickObjectDwellThenTransition(m);
 }
@@ -315,19 +315,19 @@ function twinWrongPose(m) {
 test("TEETH (wrong capture pose): a sprite-52 retarget twin is CAUGHT at the sprite code", () => {
   const seed = baseAttractState(300);
   const entry = seed.clone();
-  entry.mem.write8(MOVER_STATE, 1);
+  entry.mem.write8(ENEMY_WORK_STATE, 1);
   entry.mem.write8(TARGET_COLUMN, 3);
   entry.mem.write8(CURRENT_COLUMN, 0);
   entry.mem.write8(PLAYER_BOX_OWNER, 0);
-  entry.mem.write8(DIG_OBJ_ARM_STATE, 0);
-  entry.mem.write8(OBJ_X, 100);
-  entry.mem.write8(OBJ_Y, 100);
+  entry.mem.write8(DIG_COLLISION_STATE, 0);
+  entry.mem.write8(PLAYER_Y, 100);
+  entry.mem.write8(PLAYER_X, 100);
   entry.mem.write8(MOVER_X, 100);
   entry.mem.write8(MOVER_Y, 100);
 
   const diff = ramDiffVsOracle(entry, twinWrongPose);
   assert.notEqual(diff, null, "the gate FAILED to catch the wrong-pose twin — it proves nothing");
-  assert.equal(diff.addr, SPRITE_CODE, `teeth caught the wrong address ${hx(diff.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`);
+  assert.equal(diff.addr, PLAYER_FACING, `teeth caught the wrong address ${hx(diff.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`);
   console.log(`  TEETH/pose: wrong capture pose caught at ${hx(diff.addr)} (oracle=${diff.a} broken=${diff.b})`);
 });
 

@@ -54,14 +54,14 @@ import { seedBackgroundAnimParams as idiomatic } from "../seedBackgroundAnimPara
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  SPAWN_PHASE,
-  ACTOR_X,
-  ACTOR_TILE,
-  ACTOR_Y,
-  ACTOR_TIMER,
-  TWIN_X,
-  TWIN_TILE,
-  TWIN_CLEAR,
+  BOARD_END_PHASE,
+  ENEMY3_X,
+  ENEMY3_TILE,
+  ENEMY3_Y,
+  ENEMY3_TIMER,
+  ENEMY3_TWIN_X,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_Y,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -87,16 +87,16 @@ const OWN_ADDRS = [
 ];
 
 // Every address the whole tail (seedObjectRecords + seedActorSpawnState) writes — used to make
-// the dropped-hand-off teeth deterministic. SPAWN_PHASE (0x807b) is the lowest of them,
+// the dropped-hand-off teeth deterministic. BOARD_END_PHASE (0x807b) is the lowest of them,
 // so it is the address firstStateDiff reports when the hand-off is missing.
 const TAIL_ADDRS = [
-  SPAWN_PHASE,
+  BOARD_END_PHASE,
   // seedObjectRecords's own block
   0x80e8, 0x80e9, 0x80ea, 0x80eb, 0x80f0, 0x80f5, 0x80f6, 0x80f8, 0x80f9, 0x80fa, 0x80fb,
   0x8101, 0x8106, 0x8107, 0x8109,
   // seedActorSpawnState's block
-  ACTOR_X, ACTOR_TILE, ACTOR_Y, 0x810c, 0x810e, 0x810f, ACTOR_TIMER,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR, 0x811d, 0x811f, 0x8120, 0x8123,
+  ENEMY3_X, ENEMY3_TILE, ENEMY3_Y, 0x810c, 0x810e, 0x810f, ENEMY3_TIMER,
+  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, 0x811d, 0x811f, 0x8120, 0x8123,
 ];
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -154,9 +154,9 @@ test("TAIL FIRED: the reload byte tracks the level counter and the full tail's e
   assert.equal(b.mem.read8(0x80f6), expectedStep, "seedObjectRecords's derived pair must be present (first slot)");
   assert.equal(b.mem.read8(0x8107), expectedStep, "seedObjectRecords's derived pair must be present (mirror slot)");
   // seedActorSpawnState's effect at the end of the chain.
-  assert.equal(b.mem.read8(ACTOR_X), 36, "the chain's tail must seed the primary start column");
-  assert.equal(b.mem.read8(TWIN_X), 52, "the chain's tail must seed the twin start column");
-  assert.equal(b.mem.read8(SPAWN_PHASE), 0, "the chain's tail must clear the spawn-phase flag");
+  assert.equal(b.mem.read8(ENEMY3_X), 36, "the chain's tail must seed the primary start column");
+  assert.equal(b.mem.read8(ENEMY3_TWIN_X), 52, "the chain's tail must seed the twin start column");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), 0, "the chain's tail must clear the spawn-phase flag");
   console.log(`  TAIL FIRED: counter=${level} -> reload=${expectedReload(level)}; full seed chain ran`);
 });
 
@@ -267,7 +267,7 @@ test("TEETH: dropping the seedObjectRecords hand-off is CAUGHT", () => {
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.notEqual(d, null, "the gate FAILED to catch a dropped hand-off — it proves nothing");
-  assert.equal(d.addr, SPAWN_PHASE, `teeth caught ${hx(d.addr ?? 0)} (expected the tail's lowest write ${hx(SPAWN_PHASE)})`);
-  assert.equal(b.mem.read8(SPAWN_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
+  assert.equal(d.addr, BOARD_END_PHASE, `teeth caught ${hx(d.addr ?? 0)} (expected the tail's lowest write ${hx(BOARD_END_PHASE)})`);
+  assert.equal(b.mem.read8(BOARD_END_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
   console.log(`  TEETH: dropped hand-off caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

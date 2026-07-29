@@ -22,17 +22,17 @@
  *           1500 frames). The phase and sprite selection are swept over all 256 positions
  *           for several step values, including the accumulator's byte wrap, and the record
  *           builder's four writes are checked through the direct call.
- * LIVE-OUT: memory-only — the position accumulator (OBJ_X), the sub-tile phase byte, the
- *           walk-frame SPRITE_CODE, and the four record bytes stageObjectSpriteRecord writes. Unlike
+ * LIVE-OUT: memory-only — the position accumulator (PLAYER_Y), the sub-tile phase byte, the
+ *           walk-frame PLAYER_FACING, and the four record bytes stageObjectSpriteRecord writes. Unlike
  *           advanceObjectWalkFrame, this stepper stashes nothing in a register for its caller; the step
  *           value left behind is incidental scratch that nothing downstream reads.
- * NAMES:    OBJ_X, SPRITE_CODE from ram.js. The per-frame step 0x806c and the sub-tile
+ * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The per-frame step 0x806c and the sub-tile
  *           phase byte 0x8075 stay hex — their roles are not yet grounded (the sibling
  *           writes 0x8075 as a 0/moving marker instead, so its cross-routine meaning is
  *           still open).
  */
 
-import { OBJ_X, SPRITE_CODE } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const STEP = 0x806c; // per-frame amount added onto the position accumulator
@@ -43,16 +43,16 @@ export function walkActor(m) {
 
   // Move the actor forward by its per-frame step. The store keeps only the low byte,
   // so the position accumulator wraps.
-  mem8[OBJ_X] = mem8[OBJ_X] + mem8[STEP];
+  mem8[PLAYER_Y] = mem8[PLAYER_Y] + mem8[STEP];
 
   // Walk phase: the low three bits of the new position, biased by 3 so the frame flips
   // at the right point in the stride.
-  const phase = (mem8[OBJ_X] + 3) % 8;
+  const phase = (mem8[PLAYER_Y] + 3) % 8;
   mem8[SUBTILE_PHASE] = phase;
 
   // Two-frame walk: hold the even sprite code through the first half of the phase, then
   // step to its odd neighbour once phase bit 1 is set.
-  mem8[SPRITE_CODE] = phase & 2 ? 0x33 : 0x32;
+  mem8[PLAYER_FACING] = phase & 2 ? 0x33 : 0x32;
 
   // Hand the actor block to the record builder, which writes the 4-byte display record
   // and returns straight to this routine's caller (the oracle reaches it by a tail-jump;

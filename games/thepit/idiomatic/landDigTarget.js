@@ -29,14 +29,14 @@
  *           state-block bytes (everything the shared downstream tail writes is identical
  *           on both sides). The tail return just propagates the downstream result; no
  *           register or flag is a live-out.
- * NAMES:    TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, SPAWN_STATE from ram.js. The stamped
+ * NAMES:    HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT from ram.js. The stamped
  *           tile code and the two seed values stay literal; the record builder at 0x2bd3
  *           has no idiomatic form yet, so the tail hands off to the frozen oracle.
  */
 
 import { requestSound17 } from "./requestSound17.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
-import { TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, SPAWN_STATE } from "./ram.js";
+import { HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT } from "./ram.js";
 
 export function landDigTarget(m, targetCell = m.regs.ix) {
   const { mem8 } = m;
@@ -48,10 +48,10 @@ export function landDigTarget(m, targetCell = m.regs.ix) {
   mem8[targetCell - 31] = 65;
 
   // Settle the target's state block into its finished configuration.
-  mem8[SPAWN_STATE] = 0; // spawn gate reopens: a fresh target may now be seeded
-  mem8[TARGET_X] = 0; // clear the target X
-  mem8[DIG_OBJ_STATE] = 9; // done/target state code
-  mem8[DIG_OBJ_ATTR] = 7; // fixed colour/attribute for the settled target
+  mem8[HAZARD_ACTIVE_COUNT] = 0; // spawn gate reopens: a fresh target may now be seeded
+  mem8[HAZARD_X] = 0; // clear the target X
+  mem8[HAZARD_STATE] = 9; // done/target state code
+  mem8[HAZARD_TYPE] = 7; // fixed colour/attribute for the settled target
 
   // Build the target's sprite record from the block just written, then continue the frame.
   return stageDigObjectSpriteRecord(m);

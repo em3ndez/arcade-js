@@ -37,11 +37,11 @@
  * LIVE-OUT: memory-only — the advanced target position and the stored cell pointer. The
  *           cell it computes is passed to the embed continuation as an argument, so no
  *           register crosses that boundary; the residual working registers/flags are dead.
- * NAMES:    TARGET_X, TARGET_Y from ram.js. The live carve cursor 0x80af has no confirmed
+ * NAMES:    HAZARD_X, HAZARD_Y from ram.js. The live carve cursor 0x80af has no confirmed
  *           name yet and stays hex.
  */
 
-import { TARGET_X, TARGET_Y } from "./ram.js";
+import { HAZARD_X, HAZARD_Y } from "./ram.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { u8 } from "../../../core/int.js";
 import { landDigTarget } from "./landDigTarget.js";
@@ -53,11 +53,11 @@ export function advanceDigTarget(m) {
   const { mem8, mem16 } = m;
 
   // Cross-axis position -> map row, measured from the far edge (32 rows, 0..31).
-  const row = 31 - (mem8[TARGET_X] >> 3);
+  const row = 31 - (mem8[HAZARD_X] >> 3);
 
   // Advance the target one step along its travel axis and store the new position back.
-  const advancedY = mem8[TARGET_Y] + 1;
-  mem8[TARGET_Y] = advancedY;
+  const advancedY = mem8[HAZARD_Y] + 1;
+  mem8[HAZARD_Y] = advancedY;
 
   // The cell the target now covers; the probe reads one step further along the axis.
   const col = u8(advancedY + 1) >> 3;

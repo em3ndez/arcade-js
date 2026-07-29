@@ -44,8 +44,8 @@
  *           and whatever the record builder or walk step leaves. No register live-out: the tail
  *           targets' output is the whole result and lives in RAM (the walk path's E is set inside
  *           advanceObjectWalkFrame, already gated by its own test).
- * NAMES:    FEATURE_TILE_LATCH, GOAL_TILE_LATCH, EXPECTED_TILE, NEXT_TILE, CUR_TILE, REACTION_STATE,
- *           REACTION_TIMER, SPRITE_CODE from ram.js. The reaction-timer reload source 0x80a3 and the
+ * NAMES:    PRIZE_GATE, GOAL_TILE_LATCH, EXPECTED_TILE, NEXT_TILE, CUR_TILE, REACTION_STATE,
+ *           REACTION_TIMER, PLAYER_FACING from ram.js. The reaction-timer reload source 0x80a3 and the
  *           raw-ahead scratch 0x80a6 stay hex (clear here, not yet grounded across the game); the
  *           two expected-terrain tables live in ROM at 0x1b78 / 0x1ce0.
  *
@@ -53,20 +53,20 @@
  */
 
 import {
-  FEATURE_TILE_LATCH,
+  PRIZE_GATE,
   GOAL_TILE_LATCH,
   EXPECTED_TILE,
   NEXT_TILE,
   CUR_TILE,
   REACTION_STATE,
   REACTION_TIMER,
-  SPRITE_CODE,
+  PLAYER_FACING,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 
 // The two special tiles the object can sit exactly on, latched for later feature/goal logic.
-const FEATURE_TILE = 38; // 0x26 -> FEATURE_TILE_LATCH
+const FEATURE_TILE = 38; // 0x26 -> PRIZE_GATE
 const GOAL_TILE = 39; // 0x27 -> GOAL_TILE_LATCH
 
 // Solid tiles: the object cannot settle onto them, so it holds and the frame is deferred.
@@ -91,7 +91,7 @@ function armPushReaction(m) {
   const { mem8 } = m;
   mem8[REACTION_TIMER] = mem8[REACTION_PERIOD];
   mem8[REACTION_STATE] = 1;
-  mem8[SPRITE_CODE] = PUSH_HANDLER_SPRITE;
+  mem8[PLAYER_FACING] = PUSH_HANDLER_SPRITE;
   return stageObjectSpriteRecord(m);
 }
 
@@ -142,7 +142,7 @@ export function resolveObjectTerrainStep(m, underTile = m.regs.b, column = m.reg
   const { mem8 } = m;
 
   // Latch the two special tiles the object can sit exactly on.
-  if (underTile === FEATURE_TILE) mem8[FEATURE_TILE_LATCH] = FEATURE_TILE;
+  if (underTile === FEATURE_TILE) mem8[PRIZE_GATE] = FEATURE_TILE;
   if (underTile === GOAL_TILE) mem8[GOAL_TILE_LATCH] = GOAL_TILE;
 
   const subOffset = column & 7; // where the object sits within its tile cell (0 = grid-aligned)

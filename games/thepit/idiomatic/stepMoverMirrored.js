@@ -34,15 +34,15 @@
  *           published direction index, the stepped horizontal position (0x8083), and the
  *           stored walk sprite code. The coordinate the oracle leaves behind in a register
  *           is dead ABI; the whole-machine/pixel gate backstops it.
- * NAMES:    MOVER_CADENCE (0x808b) is the per-step cadence counter here; ACTOR_STATE (0x8084)
- *           is the stored walk sprite code; MOVER_MOVE_PERIOD (0x8091) is the
+ * NAMES:    ENEMY_ACTION_TIMER (0x808b) is the per-step cadence counter here; ENEMY_WORK_SPRITE (0x8084)
+ *           is the stored walk sprite code; ENEMY_WORK_MOVE_PERIOD (0x8091) is the
  *           cadence-reload period. The horizontal position (0x8083 = MOVER_X, screen-horizontal)
  *           and the direction-index cell (0x8092) have no ram.js name yet, so they stay hex.
  *
  * PURPOSE [guess]: "Mirrored"=0x80 bit; screen sign of the step / "direction 1" rotation-ambiguous. (optional: stepMoverXMirrored to future-proof vs the Y-axis pair.)
  */
 
-import { ACTOR_STATE, MOVER_CADENCE, MOVER_DIRECTION, MOVER_MOVE_PERIOD } from "./ram.js";
+import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD } from "./ram.js";
 
 // The four walk-frame sprite codes, cycled as the object steps; the stored code is
 // always mirrored (high bit set) for this direction.
@@ -53,18 +53,18 @@ export function stepMoverMirrored(m) {
 
   // Tick the per-step cadence counter. Most frames it is still counting down, and the
   // object neither steps nor re-animates.
-  const cadence = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = cadence;
+  const cadence = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = cadence;
   if (cadence !== 0) return;
 
   // Cadence beat: take a step. Reload the counter from its period and publish the
   // direction index this entry represents.
-  mem8[MOVER_CADENCE] = mem8[MOVER_MOVE_PERIOD];
-  mem8[MOVER_DIRECTION] = 1;
+  mem8[ENEMY_ACTION_TIMER] = mem8[ENEMY_WORK_MOVE_PERIOD];
+  mem8[ENEMY_WORK_DIR] = 1;
 
   // Step the mover's horizontal position (0x8083 = MOVER_X, screen-horizontal) one pixel;
   // its low bits choose one of four walk-frame sprite codes, mirrored for the draw.
   mem8[0x8083] = mem8[0x8083] + 1;
   const walkPhase = ((mem8[0x8083] + 4) & 6) >> 1;
-  mem8[ACTOR_STATE] = WALK_FRAMES[walkPhase] ^ 0x80;
+  mem8[ENEMY_WORK_SPRITE] = WALK_FRAMES[walkPhase] ^ 0x80;
 }

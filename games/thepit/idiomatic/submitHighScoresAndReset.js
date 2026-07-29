@@ -33,7 +33,7 @@
  *           and refreshed score readouts, the player-count / secondary-state bytes, and the
  *           painted setup screen; the reset/entry handler owns the eventual return. No
  *           register or flag is read back.
- * NAMES:    GAME_MODE (0x8001, the player-count byte) and GAME_STATE2 (0x8002, the
+ * NAMES:    GAME_STATE (0x8001, the player-count byte) and ACTIVE_PLAYER (0x8002, the
  *           selected-player / secondary-state byte) from ram.js. LANDED_RANK (0x8048) is a
  *           local — the rank the just-submitted score placed at (0 = did not place), the
  *           same cell submitPlayerHighScore records and runHighScoreInitialsEntry consumes;
@@ -41,7 +41,7 @@
  *           mislead here.
  */
 
-import { GAME_MODE, GAME_STATE2 } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "./ram.js";
 import { requestSound5 } from "./requestSound5.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { waitFrames } from "./waitFrames.js";
@@ -82,7 +82,7 @@ export function submitHighScoresAndReset(m) {
   requestSound5(m); // game-over jingle
 
   // Only a real 1- or 2-player game has scores to finish.
-  const playerCount = mem8[GAME_MODE];
+  const playerCount = mem8[GAME_STATE];
   if (playerCount === 1 || playerCount === 2) {
     // Rebuild the board display for the game-over screen and hold it a moment.
     setupBoardDisplay(m, GAMEOVER_BOARD_MODE);
@@ -90,11 +90,11 @@ export function submitHighScoresAndReset(m) {
     waitFrames(m, GAMEOVER_HOLD_FRAMES);
 
     // Player 1 always finishes.
-    mem8[GAME_STATE2] = 1;
+    mem8[ACTIVE_PLAYER] = 1;
     submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_1);
 
     // A two-player game also finishes player 2.
-    mem8[GAME_STATE2] = playerCount;
+    mem8[ACTIVE_PLAYER] = playerCount;
     if (playerCount === 2) {
       submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_2);
     }
@@ -102,8 +102,8 @@ export function submitHighScoresAndReset(m) {
 
   // Reset for what comes next: clear the player-count byte, re-arm the secondary state,
   // re-read the DIP switches, and paint the round-setup screen.
-  mem8[GAME_MODE] = 0;
-  mem8[GAME_STATE2] = 1;
+  mem8[GAME_STATE] = 0;
+  mem8[ACTIVE_PLAYER] = 1;
   applyDipSwitches(m);
   m.push16(RESUME_AFTER_SETUP);
   showSetupScreen(m);

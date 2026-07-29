@@ -6,7 +6,7 @@
  * The five game-progress fields (level, two round counters, two score bytes) each live
  * as three consecutive bytes [working, player-1 backup, player-2 backup]. The routine
  * copies the working byte of every field into the backup byte of the player named by
- * the index byte GAME_STATE2 (1 -> column 1, anything else -> column 2). Its whole
+ * the index byte ACTIVE_PLAYER (1 -> column 1, anything else -> column 2). Its whole
  * effect is those five stores, so the declared live-out is MEMORY-ONLY — the diff is
  * over RAM (dumpState), excluding pc, SP and the dead value registers/flags the oracle
  * leaves behind. The routine pushes nothing to the stack (a plain copy + ret), so there
@@ -15,7 +15,7 @@
  * WHY A CRAFTED ENTRY. Attract never dispatches 0x4632: its call sites (the round-init
  * priming and the level-advance path) sit behind branches the input-free demo doesn't
  * take. So the gate runs it from a REAL captured entry of its RESTORE sibling 0x4644,
- * which IS reached in attract and shares the exact call convention (both read GAME_STATE2
+ * which IS reached in attract and shares the exact call convention (both read ACTIVE_PLAYER
  * and operate on the 0x8028 block with a valid return stack). 0x4632 calls nothing, so
  * cloning that entry introduces no registry recursion. The one input that shapes the
  * output — the player-index byte — is then swept over 1 / 2 / 0 / 3 to cover both the
@@ -28,7 +28,7 @@
  *   1. EQUAL (real entry) — saveActivePlayerRecord == oracle over RAM from the captured
  *      state.
  *   2. EQUAL (crafted sweep 1/2/0/3) — with the working/backup bytes seeded to distinct
- *      sentinels and GAME_STATE2 forced to each value, both leave identical RAM, and the
+ *      sentinels and ACTIVE_PLAYER forced to each value, both leave identical RAM, and the
  *      selected backup column really holds the working values (the other column untouched).
  *   3. TEETH (wrong column) — a twin that writes the OTHER player's backup column is
  *      CAUGHT at the correct column's first byte (this routine's payload is which column
@@ -48,7 +48,7 @@ import { saveActivePlayerRecord as idiomatic } from "../saveActivePlayerRecord.j
 import { loc_4644 as siblingRestore } from "../../translated/loc_4644.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { LEVEL, GAME_STATE2 } from "../ram.js";
+import { LEVEL, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -92,12 +92,12 @@ function ramDiff(a, b) {
 /**
  * Seed the record block with distinct sentinels so the copy is observable: working
  * bytes 0x91.. , player-1 backups 0x40.. , player-2 backups 0x50.. (all disjoint), and
- * force GAME_STATE2 to the given player index. Makes EQUAL non-trivial (the values
+ * force ACTIVE_PLAYER to the given player index. Makes EQUAL non-trivial (the values
  * differ per column) and the teeth reliable.
  */
 function craftDistinctEntry(seed, playerIndex) {
   const e = seed.clone();
-  e.mem.write8(GAME_STATE2, playerIndex);
+  e.mem.write8(ACTIVE_PLAYER, playerIndex);
   for (let f = 0; f < FIELDS; f++) {
     const base = LEVEL + f * STRIDE;
     e.mem.write8(base, 0x91 + f); // working
@@ -115,7 +115,7 @@ const columnFor = (playerIndex) => (playerIndex === 1 ? 1 : 2);
 /** BUG: writes the OTHER player's backup column. */
 function twinWrongColumn(m) {
   const { mem8 } = m;
-  const wrong = mem8[GAME_STATE2] === 1 ? 2 : 1;
+  const wrong = mem8[ACTIVE_PLAYER] === 1 ? 2 : 1;
   for (let f = 0; f < FIELDS; f++) {
     const base = LEVEL + f * STRIDE;
     mem8[base + wrong] = mem8[base];
@@ -125,7 +125,7 @@ function twinWrongColumn(m) {
 /** BUG: copies only four of the five fields (the fifth backup is left stale). */
 function twinDroppedField(m) {
   const { mem8 } = m;
-  const col = columnFor(mem8[GAME_STATE2]);
+  const col = columnFor(mem8[ACTIVE_PLAYER]);
   for (let f = 0; f < FIELDS - 1; f++) {
     const base = LEVEL + f * STRIDE;
     mem8[base + col] = mem8[base];
@@ -146,7 +146,7 @@ test("HARNESS: a real 0x4644 entry is captured and the oracle run of 0x4632 is d
   assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr ?? 0)}`);
   console.log(
     `  HARNESS: captured a real 0x4644 entry (SP=${hx(entry.regs.sp)}, ` +
-      `GAME_STATE2=${entry.mem.read8(GAME_STATE2)}); oracle run of 0x4632 deterministic`,
+      `ACTIVE_PLAYER=${entry.mem.read8(ACTIVE_PLAYER)}); oracle run of 0x4632 deterministic`,
   );
 });
 

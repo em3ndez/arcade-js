@@ -40,18 +40,18 @@
  *           caller reads no register back. The genuine register live-out is the object's
  *           position-bias pair loaded into D and E, which the tile-cell tail and the still-oracle
  *           position handlers read.
- * NAMES:    OBJECT_ACTIVE, SPAWN_PHASE, DIG_OBJ_ARM_STATE, GOAL_TILE_LATCH, GOAL_CROSSING_LATCH,
- *           REVEAL_CURSOR from ram.js; 0x807a (busy-this-frame flag), 0x8075 (motion marker) and
+ * NAMES:    PLAYER_ACTIVE, BOARD_END_PHASE, DIG_COLLISION_STATE, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE,
+ *           ZONKER_REVEAL_CURSOR from ram.js; 0x807a (busy-this-frame flag), 0x8075 (motion marker) and
  *           the position-bias pair at 0x806c/0x806d have no ram.js name yet and stay hex.
  */
 
 import {
-  OBJECT_ACTIVE,
-  SPAWN_PHASE,
-  DIG_OBJ_ARM_STATE,
+  PLAYER_ACTIVE,
+  BOARD_END_PHASE,
+  DIG_COLLISION_STATE,
   GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
-  REVEAL_CURSOR,
+  PIT_CROSS_ACTIVE,
+  ZONKER_REVEAL_CURSOR,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
@@ -74,8 +74,8 @@ export function advanceTrackedObject(m) {
   if (mem8[BUSY_THIS_FRAME] !== 0) return stageObjectSpriteRecord(m);
 
   // No live object, or a spawn sub-phase is still running: nothing to advance this frame.
-  if (mem8[OBJECT_ACTIVE] === 0) return;
-  if (mem8[SPAWN_PHASE] !== 0) return;
+  if (mem8[PLAYER_ACTIVE] === 0) return;
+  if (mem8[BOARD_END_PHASE] !== 0) return;
 
   // Load the object's position-bias pair into D and E the way the oracle does: the tile-cell
   // tail (stampFixedFrameAndResolveTile -> resolveObjectTile) reads the column bias from D, and the still-oracle position
@@ -86,7 +86,7 @@ export function advanceTrackedObject(m) {
 
   // Carve/arm state: armed runs the fixed-frame prologue plus the shared tile tail; any state
   // past armed stages the deferral record instead.
-  const armState = mem8[DIG_OBJ_ARM_STATE];
+  const armState = mem8[DIG_COLLISION_STATE];
   if (armState === 1) return stampFixedFrameAndResolveTile(m);
   if (armState !== 0) return stageObjectSpriteRecord(m);
 
@@ -100,10 +100,10 @@ export function advanceTrackedObject(m) {
   if (mem8[GOAL_TILE_LATCH] === 0) return stepObjectFromControl(m);
 
   // Goal reached, and the crossing point was recorded: walk the object forward past it.
-  if (mem8[GOAL_CROSSING_LATCH] !== 0) return advanceActorWalk(m);
+  if (mem8[PIT_CROSS_ACTIVE] !== 0) return advanceActorWalk(m);
 
   // Terrain reveal finished: locate the object's tile cell and dispatch on the tile under it.
-  if (mem8[REVEAL_CURSOR] === 0) return resolveObjectTile(m, columnBias);
+  if (mem8[ZONKER_REVEAL_CURSOR] === 0) return resolveObjectTile(m, columnBias);
 
   // Otherwise advance the object from its control input.
   return stepObjectFromControl(m);

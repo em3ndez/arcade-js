@@ -50,7 +50,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x3476;
-const CADENCE = 0x808b; // movement-cadence countdown (MOVER_CADENCE), ticked every call
+const CADENCE = 0x808b; // movement-cadence countdown (ENEMY_ACTION_TIMER), ticked every call
 const RELOAD = 0x8091; // period the countdown is reloaded from on expiry
 const DIRECTION = 0x8092; // published travel-direction index (this preset stamps 0)
 const POSITION = 0x8086; // the object's X position, stepped -1 every call

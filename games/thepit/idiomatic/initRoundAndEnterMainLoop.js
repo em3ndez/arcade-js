@@ -38,7 +38,7 @@
  * LIVE-OUT: memory-only — the setup chain's writes, the pacing delay at MAIN_LOOP_DELAY, and
  *           the two cleared bytes. No register is read back — it exits into a forever loop
  *           that re-establishes its own state.
- * NAMES:    GAME_MODE (0x8001), LEVEL (0x8028), SOUND_RING (0x8020), FRAME_COUNTER
+ * NAMES:    GAME_STATE (0x8001), LEVEL (0x8028), SOUND_RING (0x8020), PLAY_PHASE_COUNTER
  *           (0x8010), the pacing base LOOP_DELAY_BASE (0x804e) and the delay cell
  *           MAIN_LOOP_DELAY (0x8011) from ram.js.
  *
@@ -52,7 +52,7 @@ import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { seedObjectStartState } from "./seedObjectStartState.js";
 import { reseedColumnAnimation } from "./reseedColumnAnimation.js";
 import { resetReactionState } from "./resetReactionState.js";
-import { GAME_MODE, LEVEL, SOUND_RING, FRAME_COUNTER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE } from "./ram.js";
+import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE } from "./ram.js";
 
 export function initRoundAndEnterMainLoop(m) {
   const { mem8 } = m;
@@ -63,7 +63,7 @@ export function initRoundAndEnterMainLoop(m) {
   paintScreen(m);
 
   // Real play (game mode 1 or 2, not the attract demo) draws the players HUD panel.
-  const mode = mem8[GAME_MODE];
+  const mode = mem8[GAME_STATE];
   if (mode === 1 || mode === 2) drawPlayerLabel(m);
 
   // Seed the per-round object start state, the terrain-column reveal, and the reaction machine.
@@ -77,7 +77,7 @@ export function initRoundAndEnterMainLoop(m) {
 
   // Clear the first sound-command slot and the frame counter before play begins.
   mem8[SOUND_RING] = 0;
-  mem8[FRAME_COUNTER] = 0;
+  mem8[PLAY_PHASE_COUNTER] = 0;
 
   // Hand off into the main game loop; it re-seats the stack and runs forever.
   // m.call boundary: tail hand-off into the never-returning mainLoop (0x0348); a direct

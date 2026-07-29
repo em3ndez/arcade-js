@@ -40,13 +40,13 @@
  *           oracle leaves behind (from its tail into stageObjectSpriteRecord or the sound enqueue) are dead
  *           ABI no caller reads; the keep-moving path delegates to advanceActorWalk, which
  *           is memory-equivalent to the frozen 0x19d0.
- * NAMES:    SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE (the per-actor arm state
+ * NAMES:    PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE (the per-actor arm state
  *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from ram.js. The classifier scratch
  *           bytes 0x80a3-0x80a7 and the two ROM lookup tables at 0x1e48 / 0x1fb0 stay hex —
  *           their roles are not yet grounded.
  */
 
-import { SPRITE_CODE, NEXT_TILE, REACTION_STATE, DIG_OBJ_ARM_STATE, DIG_OBJ_TIMER } from "./ram.js";
+import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
@@ -99,7 +99,7 @@ export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator =
   // Mismatch: the actor has run into a tile it must react to. Stage the reaction.
   mem8[REACTION_PARAM] = mem8[REACTION_PARAM_SRC];
   mem8[REACTION_STATE] = 3;
-  mem8[SPRITE_CODE] = REACTION_SPRITE_FRAME;
+  mem8[PLAYER_FACING] = REACTION_SPRITE_FRAME;
 
   // Exactly on a cell boundary — no neighbour to consider; go straight to the latch.
   if (subCell === 0) return armReactionLatch(m);
@@ -124,8 +124,8 @@ function movementContinuation(m) {
  *  (arm state 0) only builds the record. */
 function armReactionLatch(m) {
   const { mem8 } = m;
-  if (mem8[DIG_OBJ_ARM_STATE] !== 0) {
-    mem8[DIG_OBJ_ARM_STATE] = 2;
+  if (mem8[DIG_COLLISION_STATE] !== 0) {
+    mem8[DIG_COLLISION_STATE] = 2;
     mem8[DIG_OBJ_TIMER] = 64;
     enqueueSoundCommand(m, REACTION_SOUND);
   }

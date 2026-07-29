@@ -66,7 +66,7 @@ import { stepRoundSubPhaseAndBranch } from "../stepRoundSubPhaseAndBranch.js";
 import { setUpRoundAndHoldIntro } from "../setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "../submitHighScoresAndReset.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, GAME_STATE2 } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -177,10 +177,10 @@ function arms() {
     // The first-leg / second-leg arms pin the player-index byte 0x8002 to 2 so the record
     // save writes backup column 2 (0x802d); the reserve-man byte 0x802c then routes the
     // first-leg dispatch (men left -> setup 0x02ca, none left -> teardown 0x0371).
-    { name: "bail (mode>=3)", pokes: [[GAME_MODE, 4]], leaf: MARK_RESET },
-    { name: "second leg (mode 2)", pokes: [[GAME_MODE, 2], [GAME_STATE2, 2], [P1_BACKUP_MEN, 0]], leaf: MARK_SETUP },
-    { name: "first leg, men left", pokes: [[GAME_MODE, 1], [GAME_STATE2, 2], [P1_BACKUP_MEN, 9]], leaf: MARK_SETUP },
-    { name: "first leg, none left", pokes: [[GAME_MODE, 1], [GAME_STATE2, 2], [P1_BACKUP_MEN, 0]], leaf: MARK_RESET },
+    { name: "bail (mode>=3)", pokes: [[GAME_STATE, 4]], leaf: MARK_RESET },
+    { name: "second leg (mode 2)", pokes: [[GAME_STATE, 2], [ACTIVE_PLAYER, 2], [P1_BACKUP_MEN, 0]], leaf: MARK_SETUP },
+    { name: "first leg, men left", pokes: [[GAME_STATE, 1], [ACTIVE_PLAYER, 2], [P1_BACKUP_MEN, 9]], leaf: MARK_SETUP },
+    { name: "first leg, none left", pokes: [[GAME_STATE, 1], [ACTIVE_PLAYER, 2], [P1_BACKUP_MEN, 0]], leaf: MARK_RESET },
   ];
 }
 
@@ -190,14 +190,14 @@ test("HARNESS: the real 0x0278 entry is captured and the oracle chain run is det
   const entry = captureEntry(2500);
   assert.ok(entry, "expected 0x0278 to be dispatched during boot/attract");
 
-  const a = runArm(entry, oracle, [[GAME_MODE, 4]]);
-  const b = runArm(entry, oracle, [[GAME_MODE, 4]]);
+  const a = runArm(entry, oracle, [[GAME_STATE, 4]]);
+  const b = runArm(entry, oracle, [[GAME_STATE, 4]]);
   const d = ramDiff(a, b);
   assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr)}`);
   assert.equal(a.mem.read8(MARKER), MARK_RESET, "the bail arm should reach the reset leaf");
   console.log(
     `  HARNESS: captured a real 0x0278 entry (SP=${hx(entry.regs.sp)}, ` +
-      `GAME_MODE=${entry.mem.read8(GAME_MODE)}); oracle chain run deterministic, bail arm reaches ${hx(RESET_LEAF)}`,
+      `GAME_STATE=${entry.mem.read8(GAME_STATE)}); oracle chain run deterministic, bail arm reaches ${hx(RESET_LEAF)}`,
   );
 });
 
@@ -239,12 +239,12 @@ test("EQUAL: dockManAndDispatchRoundBoundary == oracle over observable RAM on ev
  *  stepRoundSubPhaseAndBranch then reads as a continuation flag — so the whole downstream dispatch diverges. */
 function twinNoDock(m) {
   const { mem8 } = m;
-  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
+  if (mem8[GAME_STATE] >= 3) return resetStateAndShowSetup(m);
   // BUG: the man-count dock (mem8[0x802b]--) is missing here.
   saveActivePlayerRecord(m);
-  if (mem8[GAME_MODE] !== 1) return stepRoundSubPhaseAndBranch(m);
+  if (mem8[GAME_STATE] !== 1) return stepRoundSubPhaseAndBranch(m);
   mem8[P2_BACKUP_MEN] = 0;
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   if (mem8[P1_BACKUP_MEN] !== 0) return setUpRoundAndHoldIntro(m);
   return submitHighScoresAndReset(m);
 }
@@ -254,7 +254,7 @@ test("TEETH (skip the dock): a twin that never decrements the man count is CAUGH
   assert.ok(entry, "need a captured 0x0278 entry");
   // The second-leg (mode 2) arm: the dock feeds the backup byte stepRoundSubPhaseAndBranch consults, so
   // dropping it flips the sub-phase dispatch (here setup vs teardown) — observable in RAM.
-  const pokes = [[GAME_MODE, 2], [GAME_STATE2, 2], [P1_BACKUP_MEN, 0]];
+  const pokes = [[GAME_STATE, 2], [ACTIVE_PLAYER, 2], [P1_BACKUP_MEN, 0]];
 
   const o = runArm(entry, oracle, pokes);
   const t = runArm(entry, twinNoDock, pokes);
@@ -268,19 +268,19 @@ test("TEETH (skip the dock): a twin that never decrements the man count is CAUGH
 /** Broken twin: always tears down, ignoring the reserve-man test at 0x802c. */
 function twinWrongDest(m) {
   const { mem8 } = m;
-  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
+  if (mem8[GAME_STATE] >= 3) return resetStateAndShowSetup(m);
   mem8[WORKING_MEN] = mem8[WORKING_MEN] - 1;
   saveActivePlayerRecord(m);
-  if (mem8[GAME_MODE] !== 1) return stepRoundSubPhaseAndBranch(m);
+  if (mem8[GAME_STATE] !== 1) return stepRoundSubPhaseAndBranch(m);
   mem8[P2_BACKUP_MEN] = 0;
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   return submitHighScoresAndReset(m); // BUG: should set up the next round (0x02ca) when 0x802c != 0
 }
 
 test("TEETH (wrong destination): a twin that ignores the reserve-man test is CAUGHT at the leaf", () => {
   const entry = captureEntry(2500);
   assert.ok(entry, "need a captured 0x0278 entry");
-  const pokes = [[GAME_MODE, 1], [GAME_STATE2, 2], [P1_BACKUP_MEN, 9]]; // men left -> oracle sets up (0x1a)
+  const pokes = [[GAME_STATE, 1], [ACTIVE_PLAYER, 2], [P1_BACKUP_MEN, 9]]; // men left -> oracle sets up (0x1a)
 
   const o = runArm(entry, oracle, pokes);
   const t = runArm(entry, twinWrongDest, pokes);

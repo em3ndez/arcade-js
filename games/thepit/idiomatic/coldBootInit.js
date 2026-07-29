@@ -38,7 +38,7 @@
  *           decode and the delegated epilogue leave in work / colour / video / sprite
  *           RAM. Nothing reads a register back: the tail hands off and just propagates
  *           onward into the attract flow.
- * NAMES:    GAME_MODE (0x8001), GAME_STATE2 (0x8002), IN1_DEBOUNCED (0x8015),
+ * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002), IN1_DEBOUNCED (0x8015),
  *           IN1_PREV (0x8016), the credit counter CREDIT_COUNT (0x8000) + mirrors
  *           CREDIT_MIRROR_A (0x801c) / CREDIT_MIRROR_B (0x812c), and the coin/start
  *           debounce accumulators COIN_SW_ACCUM (0x8003) / START1_SW_ACCUM (0x8004) /
@@ -56,8 +56,8 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
 import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
 import {
-  GAME_MODE,
-  GAME_STATE2,
+  GAME_STATE,
+  ACTIVE_PLAYER,
   IN1_DEBOUNCED,
   IN1_PREV,
   CREDIT_COUNT,
@@ -83,7 +83,7 @@ export function coldBootInit(m) {
   mem8[CREDIT_COUNT] = 0;
   mem8[CREDIT_MIRROR_A] = 0;
   mem8[CREDIT_MIRROR_B] = 0;
-  mem8[GAME_MODE] = 0;
+  mem8[GAME_STATE] = 0;
 
   // Prime the coin/start (IN1) input debounce: the latched value and its rolling sample.
   mem8[IN1_DEBOUNCED] = 6;
@@ -106,7 +106,7 @@ export function coldBootInit(m) {
 
   // Play the power-on sound and arm the secondary game-state byte.
   requestSound2(m);
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
 
   // Decode the cabinet DIP switches into the gameplay-parameter block.
   applyDipSwitches(m);

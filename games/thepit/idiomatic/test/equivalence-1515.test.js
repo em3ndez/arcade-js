@@ -36,7 +36,7 @@
  *      expected (or, when blocked, do not).
  *   4. NON-VACUOUS — a +10 collect really bumps the count and blanks the cell; a no-op twin cannot
  *      pass, and the real routine agrees with the oracle.
- *   5. TEETH (pickup count) — a twin that skips the +10 count bump is CAUGHT at LOOT_10PT_COUNT.
+ *   5. TEETH (pickup count) — a twin that skips the +10 count bump is CAUGHT at CRYSTAL_COUNT.
  *   6. TEETH (blank cell) — a twin that skips blanking the collected cell is CAUGHT at that cell.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-1515.test.js
@@ -52,10 +52,10 @@ import { makeMachineFactory } from "../../machine.js";
 import {
   CUR_TILE,
   EXPECTED_TILE,
-  LOOT_10PT_COUNT,
-  LOOT_20PT_COUNT,
-  SPAWN_STATE,
-  ACTOR_CELL_PTR,
+  CRYSTAL_COUNT,
+  DIAMOND_COUNT,
+  HAZARD_ACTIVE_COUNT,
+  PLAYER_CELL_PTR,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -95,7 +95,7 @@ function captureStates(count, stride, startFrame) {
 /**
  * Craft an entry from a real base: point the object's cell pointer at an isolated cell, set the
  * tile under it (underTile) and the tile one step ahead (aheadTile), the column, and — so the
- * collect path's cell-blank is deterministic — the cell-pointer work-RAM word ACTOR_CELL_PTR.
+ * collect path's cell-blank is deterministic — the cell-pointer work-RAM word PLAYER_CELL_PTR.
  */
 function craft(base, { underTile, column, aheadTile = 0 }) {
   const e = base.clone();
@@ -103,8 +103,8 @@ function craft(base, { underTile, column, aheadTile = 0 }) {
   e.regs.ix = CELL;
   e.mem.write8(CELL, underTile);
   e.mem.write8((CELL + 1) & 0xffff, aheadTile);
-  e.mem.write8(ACTOR_CELL_PTR, CELL & 0xff);
-  e.mem.write8((ACTOR_CELL_PTR + 1) & 0xffff, (CELL >> 8) & 0xff);
+  e.mem.write8(PLAYER_CELL_PTR, CELL & 0xff);
+  e.mem.write8((PLAYER_CELL_PTR + 1) & 0xffff, (CELL >> 8) & 0xff);
   return e;
 }
 
@@ -185,11 +185,11 @@ test("EQUAL (loot paths): tile 58 and tiles 59..61 over latch/guard all match th
   // Tile 58 (aligned): +10, count it, blank the cell.
   {
     const e = craft(base, { underTile: 58, column: 0 });
-    const before = e.mem.read8(LOOT_10PT_COUNT);
+    const before = e.mem.read8(CRYSTAL_COUNT);
     assert.equal(ramDiff(e, idiomatic), null, "tile 58 collect must match the oracle");
     const c = e.clone();
     idiomatic(c);
-    assert.equal(c.mem.read8(LOOT_10PT_COUNT), (before + 1) & 0xff, "the +10 pickup count did not bump");
+    assert.equal(c.mem.read8(CRYSTAL_COUNT), (before + 1) & 0xff, "the +10 pickup count did not bump");
     assert.equal(c.mem.read8(CELL), BLANK_TILE, "the collected cell was not blanked");
   }
 
@@ -197,12 +197,12 @@ test("EQUAL (loot paths): tile 58 and tiles 59..61 over latch/guard all match th
   for (const tile of [59, 60, 61]) {
     const e = craft(base, { underTile: tile, column: 0 });
     e.mem.write8(SECOND_LOOT_LATCH, 1);
-    e.mem.write8(SPAWN_STATE, 0x55); // guard set — but the armed latch awards anyway
-    const before = e.mem.read8(LOOT_20PT_COUNT);
+    e.mem.write8(HAZARD_ACTIVE_COUNT, 0x55); // guard set — but the armed latch awards anyway
+    const before = e.mem.read8(DIAMOND_COUNT);
     assert.equal(ramDiff(e, idiomatic), null, `tile ${tile} (latch armed) must match the oracle`);
     const c = e.clone();
     idiomatic(c);
-    assert.equal(c.mem.read8(LOOT_20PT_COUNT), (before + 1) & 0xff, `tile ${tile}: the +20 pickup count did not bump`);
+    assert.equal(c.mem.read8(DIAMOND_COUNT), (before + 1) & 0xff, `tile ${tile}: the +20 pickup count did not bump`);
     assert.equal(c.mem.read8(CELL), BLANK_TILE, `tile ${tile}: the collected cell was not blanked`);
   }
 
@@ -210,13 +210,13 @@ test("EQUAL (loot paths): tile 58 and tiles 59..61 over latch/guard all match th
   for (const tile of [59, 60, 61]) {
     const e = craft(base, { underTile: tile, column: 0 });
     e.mem.write8(SECOND_LOOT_LATCH, 0);
-    e.mem.write8(SPAWN_STATE, 0);
-    const before = e.mem.read8(LOOT_20PT_COUNT);
+    e.mem.write8(HAZARD_ACTIVE_COUNT, 0);
+    const before = e.mem.read8(DIAMOND_COUNT);
     assert.equal(ramDiff(e, idiomatic), null, `tile ${tile} (arm now) must match the oracle`);
     const c = e.clone();
     idiomatic(c);
     assert.equal(c.mem.read8(SECOND_LOOT_LATCH), 1, `tile ${tile}: the one-shot latch was not armed`);
-    assert.equal(c.mem.read8(LOOT_20PT_COUNT), (before + 1) & 0xff, `tile ${tile}: the +20 pickup count did not bump`);
+    assert.equal(c.mem.read8(DIAMOND_COUNT), (before + 1) & 0xff, `tile ${tile}: the +20 pickup count did not bump`);
     assert.equal(c.mem.read8(CELL), BLANK_TILE, `tile ${tile}: the collected cell was not blanked`);
   }
 
@@ -225,13 +225,13 @@ test("EQUAL (loot paths): tile 58 and tiles 59..61 over latch/guard all match th
   for (const tile of [59, 60, 61]) {
     const e = craft(base, { underTile: tile, column: 0 });
     e.mem.write8(SECOND_LOOT_LATCH, 0);
-    e.mem.write8(SPAWN_STATE, 0x55);
-    const before = e.mem.read8(LOOT_20PT_COUNT);
+    e.mem.write8(HAZARD_ACTIVE_COUNT, 0x55);
+    const before = e.mem.read8(DIAMOND_COUNT);
     assert.equal(ramDiff(e, idiomatic), null, `tile ${tile} (guard blocked) must match the oracle`);
     const c = e.clone();
     idiomatic(c);
     assert.equal(c.mem.read8(CELL), tile, `tile ${tile}: a guard-blocked tile must not be blanked`);
-    assert.equal(c.mem.read8(LOOT_20PT_COUNT), before, `tile ${tile}: a guard-blocked tile must not score`);
+    assert.equal(c.mem.read8(DIAMOND_COUNT), before, `tile ${tile}: a guard-blocked tile must not score`);
   }
 
   console.log("  EQUAL/loot: tile 58 (+10) and tiles 59..61 (+20 armed / arm-now / guard-blocked) all match; counts, latch, blank as expected");
@@ -255,18 +255,18 @@ test("NON-VACUOUS: a +10 collect bumps the count and blanks the cell; a no-op tw
 
 /** Broken twin: does the real work, then reverts the +10 pickup count. */
 function twinNoCountBump(m) {
-  const before = m.mem.read8(LOOT_10PT_COUNT);
+  const before = m.mem.read8(CRYSTAL_COUNT);
   idiomatic(m);
-  m.mem.write8(LOOT_10PT_COUNT, before); // BUG: undo the count bump
+  m.mem.write8(CRYSTAL_COUNT, before); // BUG: undo the count bump
 }
 
-test("TEETH (pickup count): a twin that skips the +10 count bump is CAUGHT at LOOT_10PT_COUNT", () => {
+test("TEETH (pickup count): a twin that skips the +10 count bump is CAUGHT at CRYSTAL_COUNT", () => {
   const [base] = captureStates(1, 1, 280);
   const entry = craft(base, { underTile: 58, column: 0 });
 
   const d = ramDiff(entry, twinNoCountBump);
   assert.notEqual(d, null, "the gate FAILED to catch a dropped pickup count — it proves nothing");
-  assert.equal(d.addr, LOOT_10PT_COUNT, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(LOOT_10PT_COUNT)})`);
+  assert.equal(d.addr, CRYSTAL_COUNT, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(CRYSTAL_COUNT)})`);
   assert.equal(ramDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/count: dropped +10 count caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

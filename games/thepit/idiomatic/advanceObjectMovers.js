@@ -39,8 +39,8 @@
  * LIVE-OUT: memory-only — object 1's committed record, its four staged sprite bytes, and
  *           whatever the mover / delegated tails leave. Reached by tail-jump; no caller
  *           reads a value register back (dead ABI).
- * NAMES:    FRAME_COUNTER (0x8010), OBJ1_X (0x80e8, base of object 1's record),
- *           SPRITE_COORD_BIAS (0x8051), GAME_MODE (0x8001), SPRITE_STAGING_BASE (0x8220)
+ * NAMES:    PLAY_PHASE_COUNTER (0x8010), ENEMY1_X (0x80e8, base of object 1's record),
+ *           SPRITE_COORD_BIAS (0x8051), GAME_STATE (0x8001), SPRITE_STAGING_BASE (0x8220)
  *           from ram.js. Kept hex: 0x8083 (the driver's shared working block) has no
  *           ram.js name yet. advanceObjectMover2 / advanceTwoSpriteActor are decompiled and called directly.
  */
@@ -48,7 +48,7 @@
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { advanceTwoSpriteActor } from "./advanceTwoSpriteActor.js";
 import { advanceObjectMover2 } from "./advanceObjectMover2.js";
-import { FRAME_COUNTER, OBJ1_X, SPRITE_COORD_BIAS, GAME_MODE, SPRITE_STAGING_BASE } from "./ram.js";
+import { PLAY_PHASE_COUNTER, ENEMY1_X, SPRITE_COORD_BIAS, GAME_STATE, SPRITE_STAGING_BASE } from "./ram.js";
 
 // The move/collision driver's shared working block: a record is copied in, driven in
 // place, then copied back out.
@@ -71,16 +71,16 @@ export function advanceObjectMovers(m) {
   const { mem8 } = m;
 
   // Until the intro/phase counter has passed its opening, neither object mover steps.
-  if (mem8[FRAME_COUNTER] < 8) return advanceTwoSpriteActor(m);
+  if (mem8[PLAY_PHASE_COUNTER] < 8) return advanceTwoSpriteActor(m);
 
   // Object 1 always steps, then stages its sprite record: three bytes verbatim, then its
   // 4th byte shifted by the cabinet sprite-coordinate bias.
-  driveRecordThroughMover(m, OBJ1_X);
-  for (let i = 0; i < 3; i++) mem8[OBJ1_SPRITE_RECORD + i] = mem8[OBJ1_X + i];
-  mem8[OBJ1_SPRITE_RECORD + 3] = mem8[OBJ1_X + 3] + mem8[SPRITE_COORD_BIAS];
+  driveRecordThroughMover(m, ENEMY1_X);
+  for (let i = 0; i < 3; i++) mem8[OBJ1_SPRITE_RECORD + i] = mem8[ENEMY1_X + i];
+  mem8[OBJ1_SPRITE_RECORD + 3] = mem8[ENEMY1_X + 3] + mem8[SPRITE_COORD_BIAS];
 
   // Object 2 runs the identical pass next — unless this is the attract demo while the
   // counter is still low, when only object 1 moves this frame.
-  if (mem8[GAME_MODE] === 4 && mem8[FRAME_COUNTER] < 10) return advanceTwoSpriteActor(m);
+  if (mem8[GAME_STATE] === 4 && mem8[PLAY_PHASE_COUNTER] < 10) return advanceTwoSpriteActor(m);
   return advanceObjectMover2(m);
 }

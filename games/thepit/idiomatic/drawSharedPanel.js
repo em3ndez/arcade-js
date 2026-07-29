@@ -43,12 +43,12 @@
  * LIVE-OUT: memory-only — the edge/HUD/playfield columns and the three labelled runs
  *           in video + colour RAM, plus the plotter cursor/staging cells. No live
  *           registers/flags; the oracle's tail-jump return is modelled by the gate.
- * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH / GAME_STATE2 from ram.js. 0x8057 is
+ * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH / ACTIVE_PLAYER from ram.js. 0x8057 is
  *           kept local (FILL_ATTR): ram.js proposes BOARD_MODE for it, a mode-index
  *           role that does not describe the colour attribute staged here (matches
  *           drawGameOverLabel / fillColourColumn). The ROM label strips are hex.
  */
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, GAME_STATE2 } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "./ram.js";
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
@@ -83,7 +83,7 @@ export function drawSharedPanel(m) {
   seatCell(m, 9, 13);
   mem8[FILL_ATTR] = 0xa5;
   mem8[PLOT_RUN_LENGTH] = 1;
-  copyTileColumn(m, GAME_STATE2); // one dynamic indicator glyph
+  copyTileColumn(m, ACTIVE_PLAYER); // one dynamic indicator glyph
   mem8[PLOT_RUN_LENGTH] = 7;
   copyCappedTileColumn(m, 0x49b1); // a fixed cap byte, then a second ROM strip
   mem8[PLOT_RUN_LENGTH] = 8;

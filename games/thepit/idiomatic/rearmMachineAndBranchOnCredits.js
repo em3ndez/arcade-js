@@ -42,7 +42,7 @@
  *           are driven for the live game but sit outside the RAM diff. No register or
  *           flag is read back (both exits spin forever and the caller's frame was
  *           discarded by the stack reset).
- * NAMES:    GAME_MODE (0x8001), GAME_STATE2 (0x8002), and the credit count CREDIT_COUNT
+ * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002), and the credit count CREDIT_COUNT
  *           (0x8000) from ram.js. enableNmi / applyDipSwitches / disableSound /
  *           showFixedScreen / enterPlayMode are called directly; the credit
  *           screen (showCreditScreen, 0x021c) is kept as an m.call boundary — it holds a
@@ -56,7 +56,7 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { disableSound } from "./disableSound.js";
 import { showFixedScreen } from "./showFixedScreen.js";
 import { enterPlayMode } from "./enterPlayMode.js";
-import { GAME_MODE, GAME_STATE2, CREDIT_COUNT } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT } from "./ram.js";
 
 export function rearmMachineAndBranchOnCredits(m) {
   const { mem8, regs } = m;
@@ -68,7 +68,7 @@ export function rearmMachineAndBranchOnCredits(m) {
   // Re-arm the machine: turn the per-frame interrupt on and arm the secondary
   // game-state byte, which the DIP decode below folds into its flip-screen configuration.
   enableNmi(m);
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   applyDipSwitches(m);
 
   // Fork on the credit count.
@@ -83,7 +83,7 @@ export function rearmMachineAndBranchOnCredits(m) {
   // Normal path: mute the audio, clear the game-mode byte (entering play overwrites it
   // straight after), hold the fixed screen for a beat, then enter play.
   disableSound(m);
-  mem8[GAME_MODE] = 0;
+  mem8[GAME_STATE] = 0;
   showFixedScreen(m);
   return enterPlayMode(m);
 }

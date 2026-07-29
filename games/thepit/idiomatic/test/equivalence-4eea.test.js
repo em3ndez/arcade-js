@@ -62,7 +62,7 @@ import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { waitFrames } from "../waitFrames.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { IN0_DEBOUNCED, FRAME_COUNTER, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { IN0_DEBOUNCED, PLAY_PHASE_COUNTER, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -186,7 +186,7 @@ function craftCommit(seed) {
   e.regs.b = COMMIT_CODE;
   e.regs.c = COMMIT_BLANK;
   e.mem.write8(STEP_COUNTER, 0x05); // a live counter -> decrements to 4
-  e.mem.write8(FRAME_COUNTER, 0xaa); // a nonzero frame counter -> cleared to 0
+  e.mem.write8(PLAY_PHASE_COUNTER, 0xaa); // a nonzero frame counter -> cleared to 0
   return e;
 }
 
@@ -203,7 +203,7 @@ function brokenCommit(m, { row = 32, decrement = true, soundCmd = 16 } = {}) {
   regs.c = 10;
   mem.write8(regs.de, code);
   if (decrement) mem.write8(STEP_COUNTER, mem.read8(STEP_COUNTER) - 1);
-  mem.write8(FRAME_COUNTER, 0);
+  mem.write8(PLAY_PHASE_COUNTER, 0);
   enqueueSoundCommand(m, soundCmd);
   return waitFrames(m, 20);
 }
@@ -283,7 +283,7 @@ test("EQUAL (commit arm): bit 4 -> stepHighScoreInitialsEntry == oracle over RAM
   assert.equal(c.mem.read8(COMMIT_IX), COMMIT_BLANK, "bottom cell not blanked");
   assert.equal(c.mem.read8(COMMIT_DE - 32), COMMIT_CODE, "object not redrawn one row up in the parallel plane");
   assert.equal(c.mem.read8(STEP_COUNTER), 4, "step counter not decremented 5 -> 4");
-  assert.equal(c.mem.read8(FRAME_COUNTER), 0, "frame counter not cleared");
+  assert.equal(c.mem.read8(PLAY_PHASE_COUNTER), 0, "frame counter not cleared");
   assert.equal(c.mem.read8(SOUND_RING + head), COMMIT_SOUND, "move sound (16) not queued at the ring slot");
   console.log("  EQUAL/commit: identical over RAM + pc + SP; cells blank, redraw up one row, counter 5->4, sound 16 queued");
 });

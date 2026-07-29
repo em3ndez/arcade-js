@@ -7,8 +7,9 @@ rounds of live MAME grounding** (`thepit-grounding-results.md`, `thepit-groundin
 Confirmations were promoted, overturns applied, and new grounded facts folded in.
 
 **Naming note:** the names in this doc are the earned, gameplay-first vocabulary. The repo's
-`ram.js` still carries the older export names (`OBJ_X`, etc.) pending a rename pass, so **the hex
-addresses (`0x80..`) are the stable anchor** — match on the address, not the label, when
+`ram.js` now carries matching gameplay-first export names (`PLAYER_Y`, `ENEMY3_X`, `ZONKER_X`,
+`HAZARD_TYPE`, …, in SCREAMING_SNAKE vs this doc's camelCase); the old abstract export names are
+retired. The hex addresses (`0x80..`) remain the stable anchor — match on the address when
 cross-referencing code.
 
 Every substantive claim is tagged with its evidence level. This document once existed to *drive

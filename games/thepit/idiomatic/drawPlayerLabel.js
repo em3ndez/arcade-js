@@ -36,13 +36,13 @@
  *           frozen oracle any more; the decompiled helpers take no leftover-register input
  *           (copyTileColumn and copyCappedTileColumn are each handed their source pointer as
  *           an argument; the rest read the scratch block below).
- * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059), GAME_STATE2 (0x8002) from ram.js.
+ * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059), ACTIVE_PLAYER (0x8002) from ram.js.
  *           Hex-kept: the plotter scratch params below (ram.js names 0x8057 BOARD_MODE
  *           for a different entry-select role, so it is not imported here); and the ROM
  *           tile table.
  */
 
-import { TILE_COL, TILE_ROW, GAME_STATE2, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH } from "./ram.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -73,7 +73,7 @@ export function drawPlayerLabel(m) {
   // Top cell: stamp the current secondary game-state byte as the panel's first tile.
   // copyTileColumn copies one byte down the column from the source pointer it is handed.
   mem8[PLOT_RUN_LENGTH] = 1;
-  copyTileColumn(m, GAME_STATE2); // source: the byte at GAME_STATE2
+  copyTileColumn(m, ACTIVE_PLAYER); // source: the byte at ACTIVE_PLAYER
 
   // Next seven cells: a fixed tile run out of the ROM table (its first cell takes the fill
   // helper's own cap byte, the remaining cells walk the table backwards). copyCappedTileColumn

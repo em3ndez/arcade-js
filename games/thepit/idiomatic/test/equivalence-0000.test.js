@@ -61,7 +61,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0000 as oracle } from "../../translated/loc_0000.js";
 import { resetVector as idiomatic } from "../resetVector.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, GAME_STATE2, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -178,8 +178,8 @@ test("HARNESS: the real reset 0x0000 dispatch is captured and the oracle run is 
   const { ram, oracleM } = runPair(oracle); // candidate arm = the oracle itself
   assert.equal(ram, null, ram && `oracle run not deterministic: diff at ${hx(ram.addr ?? 0)}`);
   assert.equal(oracleM.mem.read8(CREDIT_COUNTER), 0, "the boot must clear the credit counter to 0");
-  assert.equal(oracleM.mem.read8(GAME_MODE), 0, "the boot must clear the game-mode byte to 0");
-  assert.equal(oracleM.mem.read8(GAME_STATE2), 1, "the boot must arm the secondary state byte to 1");
+  assert.equal(oracleM.mem.read8(GAME_STATE), 0, "the boot must clear the game-mode byte to 0");
+  assert.equal(oracleM.mem.read8(ACTIVE_PLAYER), 1, "the boot must arm the secondary state byte to 1");
   assert.equal(oracleM.mem.read8(HOLD_COUNTER), 0, "the setup screen's hold must drain to 0");
   console.log(
     `  HARNESS: captured a real 0x0000 entry (SP=${hx(ENTRY.regs.sp)}); ` +
@@ -196,8 +196,8 @@ test("EQUAL (real dispatch): resetVector == oracle over RAM outside the stack sc
   // Positive checks: the delegated boot really ran (not a no-op that matches a zeroed
   // power-on state). Seed stores, the two state bytes, the DIP-decoded block, drained hold.
   assert.equal(candM.mem.read8(CREDIT_COUNTER), 0, "credit counter must be cleared to 0");
-  assert.equal(candM.mem.read8(GAME_MODE), 0, "game-mode byte must be cleared to 0");
-  assert.equal(candM.mem.read8(GAME_STATE2), 1, "secondary state byte must be armed to 1");
+  assert.equal(candM.mem.read8(GAME_STATE), 0, "game-mode byte must be cleared to 0");
+  assert.equal(candM.mem.read8(ACTIVE_PLAYER), 1, "secondary state byte must be armed to 1");
   assert.equal(candM.mem.read8(IN1_DEBOUNCED), 6, "coin/start debounce latch must be seeded to 6");
   assert.equal(candM.mem.read8(IN1_PREV), 6, "coin/start debounce sample must be seeded to 6");
   assert.equal(candM.mem.read8(COIN_DEBOUNCE), 0xaa, "coin-switch debounce accumulator must be seeded to 0xAA");
@@ -214,15 +214,15 @@ function twinNoDelegation() {
 }
 
 test("TEETH (delegation dropped): a twin that skips coldBootInit is CAUGHT at a pre-poked boot cell", () => {
-  // Sanity: with GAME_STATE2 pre-poked to a non-boot value, the CORRECT routine still boots
+  // Sanity: with ACTIVE_PLAYER pre-poked to a non-boot value, the CORRECT routine still boots
   // and overwrites it to 1 (so the poke is not itself the diff), and the no-boot twin is caught.
-  const clean = runPair(idiomatic, { poke: { addr: GAME_STATE2, val: 0x55 } });
+  const clean = runPair(idiomatic, { poke: { addr: ACTIVE_PLAYER, val: 0x55 } });
   assert.equal(clean.ram, null, clean.ram && `pre-poked entry must stay equal for the correct routine (diff at ${hx(clean.ram?.addr ?? 0)})`);
-  assert.equal(clean.candM.mem.read8(GAME_STATE2), 1, "the correct routine must overwrite the pre-poked byte to 1");
+  assert.equal(clean.candM.mem.read8(ACTIVE_PLAYER), 1, "the correct routine must overwrite the pre-poked byte to 1");
 
-  const { ram } = runPair(twinNoDelegation, { poke: { addr: GAME_STATE2, val: 0x55 } });
+  const { ram } = runPair(twinNoDelegation, { poke: { addr: ACTIVE_PLAYER, val: 0x55 } });
   assert.notEqual(ram, null, "the gate FAILED to catch the dropped delegation — it is worthless");
-  assert.equal(ram.addr, GAME_STATE2, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_STATE2)})`);
+  assert.equal(ram.addr, ACTIVE_PLAYER, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(ACTIVE_PLAYER)})`);
   assert.equal(ram.a, 1, "oracle boots and arms the byte to 1");
   assert.equal(ram.b, 0x55, "the no-delegation twin leaves the pre-poked value");
   console.log(`  TEETH/nodelegate: caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b}) — the hand-off is load-bearing`);

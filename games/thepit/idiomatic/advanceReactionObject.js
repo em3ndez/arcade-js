@@ -34,39 +34,39 @@
  *           cell + spawned dig entity, the scroll window/step/sub-phase, plus whatever the
  *           delegated dig-object driver leaves. Reads every input from RAM; returns nothing
  *           a caller consumes.
- * NAMES:    GOAL_CROSSING_LATCH, DIG_OBJ_ARM_STATE, SPAWN_STATE, REACTION_STATE,
- *           REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y, OBJ_X, OBJ_Y, ACTOR_CELL_PTR,
- *           EXPECTED_TILE, NEXT_TILE, SPRITE_CODE, SPRITE_COORD_BIAS, OBJECT_ACTIVE,
- *           SPAWN_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE,
- *           REACTION_OBJ_CODE (0x8095), REACTION_OBJ_ATTR (0x8096), SCROLL_WINDOW_PTR (0x809a)
+ * NAMES:    PIT_CROSS_ACTIVE, DIG_COLLISION_STATE, HAZARD_ACTIVE_COUNT, REACTION_STATE,
+ *           REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y, PLAYER_Y, PLAYER_X, PLAYER_CELL_PTR,
+ *           EXPECTED_TILE, NEXT_TILE, PLAYER_FACING, SPRITE_COORD_BIAS, PLAYER_ACTIVE,
+ *           BOARD_END_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE,
+ *           REACTION_OBJ_CODE (0x8095), REACTION_OBJ_ATTR (0x8096), LASER_SCAN_PTR (0x809a)
  *           and SCROLL_SUBPHASE (0x809e) from ram.js. The scroll step (0x80a1) and the ROM
  *           stop-tile table (0x277a) have no confirmed name yet and stay hex.
  */
 
 import { u8 } from "../../../core/int.js";
 import {
-  GOAL_CROSSING_LATCH,
-  DIG_OBJ_ARM_STATE,
-  SPAWN_STATE,
+  PIT_CROSS_ACTIVE,
+  DIG_COLLISION_STATE,
+  HAZARD_ACTIVE_COUNT,
   REACTION_STATE,
   REACTION_TIMER,
   REACTION_OBJ_X,
   REACTION_OBJ_Y,
-  OBJ_X,
-  OBJ_Y,
-  ACTOR_CELL_PTR,
+  PLAYER_Y,
+  PLAYER_X,
+  PLAYER_CELL_PTR,
   EXPECTED_TILE,
   NEXT_TILE,
-  SPRITE_CODE,
+  PLAYER_FACING,
   SPRITE_COORD_BIAS,
-  OBJECT_ACTIVE,
-  SPAWN_PHASE,
+  PLAYER_ACTIVE,
+  BOARD_END_PHASE,
   GOAL_TILE_LATCH,
   IN0_DEBOUNCED,
   SPRITE_STAGING_BASE,
   REACTION_OBJ_CODE,
   REACTION_OBJ_ATTR,
-  SCROLL_WINDOW_PTR,
+  LASER_SCAN_PTR,
   SCROLL_SUBPHASE,
 } from "./ram.js";
 import { spawnDigEntity } from "./spawnDigEntity.js";
@@ -114,7 +114,7 @@ export function advanceReactionObject(m) {
 
   // A goal crossing or an armed dig object owns the frame: force the rest sprite and just
   // publish the record.
-  if (mem8[GOAL_CROSSING_LATCH] !== 0 || mem8[DIG_OBJ_ARM_STATE] !== 0) {
+  if (mem8[PIT_CROSS_ACTIVE] !== 0 || mem8[DIG_COLLISION_STATE] !== 0) {
     mem8[REACTION_OBJ_CODE] = REST_SPRITE;
     return buildReactionRecord(m);
   }
@@ -123,7 +123,7 @@ export function advanceReactionObject(m) {
   if ((mem8[SCROLL_STEP] & 0x08) !== 0) return advanceScroll(m);
 
   // An edge collision was just flagged: maybe start a scroll.
-  if (mem8[SPAWN_STATE] === 2) return handleEdgeCollision(m);
+  if (mem8[HAZARD_ACTIVE_COUNT] === 2) return handleEdgeCollision(m);
 
   // The reaction timer reaching 24 on its way down cues the reaction sound.
   if (mem8[REACTION_TIMER] === 24) requestSound9(m);
@@ -144,8 +144,8 @@ function runReactionPhase(m, phase) {
   if (ticked !== 0) {
     // Still animating: slide the object to its fixed offset from the tracked object and
     // cycle the 3-bit animation counter.
-    mem8[REACTION_OBJ_X] = mem8[OBJ_X] + phase.offX;
-    mem8[REACTION_OBJ_Y] = mem8[OBJ_Y] + phase.offY;
+    mem8[REACTION_OBJ_X] = mem8[PLAYER_Y] + phase.offX;
+    mem8[REACTION_OBJ_Y] = mem8[PLAYER_X] + phase.offY;
     mem8[REACTION_OBJ_ATTR] = (mem8[REACTION_OBJ_ATTR] - 1) & 7;
     return buildReactionRecord(m);
   }
@@ -154,25 +154,25 @@ function runReactionPhase(m, phase) {
   // actor's map cell, publish the facing code, and (except phase 3) spawn the dug entity.
   if (phase.clearStateFirst) mem8[REACTION_STATE] = 0;
   mem8[REACTION_OBJ_CODE] = REST_SPRITE;
-  const cell = mem16[ACTOR_CELL_PTR];
+  const cell = mem16[PLAYER_CELL_PTR];
   if (mem8[EXPECTED_TILE] !== 0) mem8[cell] = mem8[EXPECTED_TILE];
   if (mem8[NEXT_TILE] !== 0) mem8[cell + phase.secondCell] = mem8[NEXT_TILE];
-  mem8[SPRITE_CODE] = phase.restFacing;
+  mem8[PLAYER_FACING] = phase.restFacing;
   if (phase.spawnEntity) spawnDigEntity(m);
   if (!phase.clearStateFirst) mem8[REACTION_STATE] = 0;
   return buildReactionRecord(m);
 }
 
 /**
- * The edge-collision arm (SPAWN_STATE == 2, and the idle default). If the object is busy in
+ * The edge-collision arm (HAZARD_ACTIVE_COUNT == 2, and the idle default). If the object is busy in
  * another sub-system just hand the frame straight to the dig-object driver; otherwise, when
  * no scroll mode is set start one from the facing, and when one is set clear it unless the
  * dig button is still held.
  */
 function handleEdgeCollision(m) {
   const { mem8 } = m;
-  if (mem8[OBJECT_ACTIVE] === 0) return advanceDigCarveObject(m);
-  if (mem8[SPAWN_PHASE] !== 0) return advanceDigCarveObject(m);
+  if (mem8[PLAYER_ACTIVE] === 0) return advanceDigCarveObject(m);
+  if (mem8[BOARD_END_PHASE] !== 0) return advanceDigCarveObject(m);
   if (mem8[GOAL_TILE_LATCH] !== 0) return advanceDigCarveObject(m);
 
   const in0 = mem8[IN0_DEBOUNCED];
@@ -190,7 +190,7 @@ function handleEdgeCollision(m) {
 function maybeStartScroll(m, in0) {
   const { mem8 } = m;
   if ((in0 & 0x10) === 0) return advanceDigCarveObject(m); // dig not held -> nothing to start
-  const facing = mem8[SPRITE_CODE];
+  const facing = mem8[PLAYER_FACING];
   if (facing === 178 || facing === 179) return seedScroll(m, SCROLL_STEP_NEG);
   if (facing === 50 || facing === 51) return seedScroll(m, SCROLL_STEP_POS);
   return advanceDigCarveObject(m); // facing is none of the four scroll-capable codes
@@ -210,16 +210,16 @@ function seedScroll(m, scrollStep) {
   mem8[REACTION_OBJ_ATTR] = 3;
   mem8[REACTION_OBJ_CODE] = SCROLL_SPRITE;
 
-  const objX = mem8[OBJ_X];
+  const objX = mem8[PLAYER_Y];
   mem8[REACTION_OBJ_X] = objX;
-  const objY = mem8[OBJ_Y];
+  const objY = mem8[PLAYER_X];
   mem8[REACTION_OBJ_Y] = objY;
 
   const windowRow = 31 - (u8(objX + 3) >> 3);
   const stepY = u8(objY + 5);
   const windowCol = stepY >> 3;
   mem8[SCROLL_SUBPHASE] = (stepY & 7) << 5;
-  mem16[SCROLL_WINDOW_PTR] = 0x9000 + windowRow * 32 + windowCol;
+  mem16[LASER_SCAN_PTR] = 0x9000 + windowRow * 32 + windowCol;
 
   return advanceScroll(m);
 }
@@ -236,8 +236,8 @@ function advanceScroll(m) {
   const rowDelta = (step & 0x80) !== 0 ? 32 : -32;
 
   mem8[REACTION_OBJ_X] = mem8[REACTION_OBJ_X] + step;
-  mem16[SCROLL_WINDOW_PTR] = mem16[SCROLL_WINDOW_PTR] + rowDelta;
-  const windowPtr = mem16[SCROLL_WINDOW_PTR]; // read back the wrapped 16-bit value
+  mem16[LASER_SCAN_PTR] = mem16[LASER_SCAN_PTR] + rowDelta;
+  const windowPtr = mem16[LASER_SCAN_PTR]; // read back the wrapped 16-bit value
 
   const subPhase = mem8[SCROLL_SUBPHASE];
   const tile = subPhase < SEAM_SUBPHASE ? mem8[windowPtr] : mem8[windowPtr + 1];

@@ -27,49 +27,49 @@
  *           observable, and the teeth twin is caught.
  * LIVE-OUT: memory-only — the fifteen seeded work-RAM bytes. The residual accumulator
  *           value is dead ABI; the round-init caller consumes no register.
- * NAMES:    SPAWN_PHASE, ACTOR_X/ACTOR_TILE/ACTOR_Y/ACTOR_STEP_X/ACTOR_STEP_Y/ACTOR_TIMER,
- *           TWIN_X/TWIN_TILE/TWIN_CLEAR/TWIN_TIMER from ram.js. The neighbour fields 0x810c
+ * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_TILE/ENEMY3_Y/ENEMY3_STEP_X/ENEMY3_STEP_Y/ENEMY3_TIMER,
+ *           ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y/ENEMY3_TWIN_TIMER from ram.js. The neighbour fields 0x810c
  *           (primary) and 0x811d/0x811f/0x8120 (twin) are still unnamed within the same two
  *           records, so their addresses stay hex.
  */
 
 import {
-  ACTOR_ATTR,
-  ACTOR_STEP_X,
-  ACTOR_STEP_Y,
-  ACTOR_TILE,
-  ACTOR_TIMER,
-  ACTOR_X,
-  ACTOR_Y,
-  SPAWN_PHASE,
-  TWIN_ATTR,
-  TWIN_CLEAR,
-  TWIN_TILE,
-  TWIN_TIMER,
-  TWIN_X,
+  ENEMY3_ATTR,
+  ENEMY3_STEP_X,
+  ENEMY3_STEP_Y,
+  ENEMY3_TILE,
+  ENEMY3_TIMER,
+  ENEMY3_X,
+  ENEMY3_Y,
+  BOARD_END_PHASE,
+  ENEMY3_TWIN_ATTR,
+  ENEMY3_TWIN_Y,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_TIMER,
+  ENEMY3_TWIN_X,
 } from "./ram.js";
 
 export function seedActorSpawnState(m) {
   const { mem8 } = m;
 
   // Primary body.
-  mem8[ACTOR_X] = 36; // start column
-  mem8[ACTOR_TILE] = 46; // tile/sprite code
-  mem8[ACTOR_Y] = 0; // start row — top of the lane
-  mem8[ACTOR_ATTR] = 151; // paired display byte (mirrored on the twin)
-  mem8[ACTOR_STEP_X] = 0; // per-step move vector, low byte
-  mem8[ACTOR_STEP_Y] = 1; // per-step move vector, high byte
-  mem8[ACTOR_TIMER] = 1; // cadence timer, armed
+  mem8[ENEMY3_X] = 36; // start column
+  mem8[ENEMY3_TILE] = 46; // tile/sprite code
+  mem8[ENEMY3_Y] = 0; // start row — top of the lane
+  mem8[ENEMY3_ATTR] = 151; // paired display byte (mirrored on the twin)
+  mem8[ENEMY3_STEP_X] = 0; // per-step move vector, low byte
+  mem8[ENEMY3_STEP_Y] = 1; // per-step move vector, high byte
+  mem8[ENEMY3_TIMER] = 1; // cadence timer, armed
 
   // Twin body — the primary shifted 16 columns right, next tile code.
-  mem8[TWIN_X] = 52; // twin start column (primary + 16)
-  mem8[TWIN_TILE] = 47; // twin tile code (one past the primary's)
-  mem8[TWIN_CLEAR] = 0; // twin start row (mirror of the primary row)
-  mem8[TWIN_ATTR] = 151; // twin paired display byte (mirror of 0x810c)
+  mem8[ENEMY3_TWIN_X] = 52; // twin start column (primary + 16)
+  mem8[ENEMY3_TWIN_TILE] = 47; // twin tile code (one past the primary's)
+  mem8[ENEMY3_TWIN_Y] = 0; // twin start row (mirror of the primary row)
+  mem8[ENEMY3_TWIN_ATTR] = 151; // twin paired display byte (mirror of 0x810c)
   mem8[0x811f] = 0; // twin move vector, low byte
   mem8[0x8120] = 0; // twin move vector, high byte
-  mem8[TWIN_TIMER] = 1; // twin cadence timer, armed
+  mem8[ENEMY3_TWIN_TIMER] = 1; // twin cadence timer, armed
 
   // Back to the un-spawned phase.
-  mem8[SPAWN_PHASE] = 0;
+  mem8[BOARD_END_PHASE] = 0;
 }

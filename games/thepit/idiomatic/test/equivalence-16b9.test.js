@@ -6,8 +6,8 @@
  *
  * Given the actor's tile row (register live-in, surfaced as `row`) and its sprite/state code
  * (surfaced as `spriteCode`), it locates the tilemap cell under the actor, publishes the tile
- * column (OBJ_TILE_COL) and the cell pointer (ACTOR_CELL_PTR), and either latches the goal
- * crossing (GOAL_TILE_LATCH + GOAL_CROSSING_LATCH) and hands off to advanceActorWalk, or hands
+ * column (PLAYER_TILE_COL) and the cell pointer (PLAYER_CELL_PTR), and either latches the goal
+ * crossing (GOAL_TILE_LATCH + PIT_CROSS_ACTIVE) and hands off to advanceActorWalk, or hands
  * the step to the terrain-collision handler resolveActorTerrainStep. Both callees are already idiomatic, so
  * locateActorCellCheckGoal calls them directly with honest args (cell pointer + biased column); no register
  * hand-off survives. Its declared LIVE-OUT is MEMORY-ONLY.
@@ -40,7 +40,7 @@
  *   5. EQUAL (crafted head short-circuit) — latch set + sprite 0x17 latches the sprite code and
  *      advances, identical to the oracle.
  *   6. TEETH (cell pointer) — a twin that corrupts the published cell pointer is CAUGHT at
- *      ACTOR_CELL_PTR.
+ *      PLAYER_CELL_PTR.
  *   7. TEETH (goal latch) — on a crafted goal entry, a twin that skips the goal latch is CAUGHT at
  *      GOAL_TILE_LATCH.
  *
@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_16b9 as oracle } from "../../translated/loc_16b9.js";
 import { locateActorCellCheckGoal as idiomatic } from "../locateActorCellCheckGoal.js";
 import { makeMachineFactory } from "../../machine.js";
-import { OBJ_Y, OBJ_TILE_COL, ACTOR_CELL_PTR, GOAL_TILE_LATCH, GOAL_CROSSING_LATCH } from "../ram.js";
+import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -122,7 +122,7 @@ function stateDiff(entry, fn) {
 /** The tile column + cell pointer locateActorCellCheckGoal computes for an entry (mirrors the routine's geometry:
  *  bias the column by 5, top bits = tile column, fold with the row into the tilemap address). */
 function expectedCell(entry) {
-  const biased = (entry.mem.read8(OBJ_Y) + 5) & 0xff;
+  const biased = (entry.mem.read8(PLAYER_X) + 5) & 0xff;
   const tileColumn = biased >> 3;
   return { tileColumn, cellPtr: 0x9000 + entry.regs.h * 32 + tileColumn };
 }
@@ -170,8 +170,8 @@ test("NON-VACUOUS: a real dispatch publishes the computed tile column + cell poi
 
   const c = entry.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(OBJ_TILE_COL), tileColumn, "the tile column was not published");
-  assert.equal(c.mem.read16(ACTOR_CELL_PTR), cellPtr, "the cell pointer was not published");
+  assert.equal(c.mem.read8(PLAYER_TILE_COL), tileColumn, "the tile column was not published");
+  assert.equal(c.mem.read16(PLAYER_CELL_PTR), cellPtr, "the cell pointer was not published");
   assert.equal(c.mem.read8(GOAL_TILE_LATCH), 0, "the terrain path must not touch the goal latch");
 
   assert.equal(stateDiff(entry, idiomatic), null, "the entry must also match the oracle");
@@ -188,7 +188,7 @@ test("EQUAL (column wrap): a column position whose +5 bias overflows a byte stil
   // right at the wrap the routine's byte-width bias handles.
   for (let col = 250; col < 256; col++) {
     const entry = base.clone();
-    entry.mem.write8(OBJ_Y, col);
+    entry.mem.write8(PLAYER_X, col);
     const d = stateDiff(entry, idiomatic);
     assert.equal(d, null, d && `col=${col}: state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
   }
@@ -209,7 +209,7 @@ test("EQUAL (crafted goal ahead): a goal tile one step ahead latches the crossin
   const c = entry.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(GOAL_TILE_LATCH), GOAL_TILE, "goal latch not set to the matched tile");
-  assert.equal(c.mem.read8(GOAL_CROSSING_LATCH), GOAL_TILE, "goal crossing latch not set");
+  assert.equal(c.mem.read8(PIT_CROSS_ACTIVE), GOAL_TILE, "goal crossing latch not set");
   console.log(`  EQUAL/goal-ahead: crossing latched (${hx(GOAL_TILE)}) + walk advanced; identical to the oracle`);
 });
 
@@ -246,7 +246,7 @@ test("EQUAL (crafted head short-circuit): latch set + sprite 0x17 latches the sp
   const c = entry.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(GOAL_TILE_LATCH), AT_TERMINATOR_SPRITE, "goal latch not overwritten with the sprite code");
-  assert.equal(c.mem.read8(GOAL_CROSSING_LATCH), AT_TERMINATOR_SPRITE, "goal crossing latch not set to the sprite code");
+  assert.equal(c.mem.read8(PIT_CROSS_ACTIVE), AT_TERMINATOR_SPRITE, "goal crossing latch not set to the sprite code");
   console.log(`  EQUAL/head-short: sprite code ${hx(AT_TERMINATOR_SPRITE)} latched into both latches; identical to the oracle`);
 });
 
@@ -255,16 +255,16 @@ test("EQUAL (crafted head short-circuit): latch set + sprite 0x17 latches the sp
 /** Broken twin: does the real work, then corrupts the published cell pointer. */
 function twinBadCellPtr(m) {
   idiomatic(m);
-  m.mem.write16(ACTOR_CELL_PTR, m.mem.read16(ACTOR_CELL_PTR) ^ 0xffff);
+  m.mem.write16(PLAYER_CELL_PTR, m.mem.read16(PLAYER_CELL_PTR) ^ 0xffff);
 }
 
-test("TEETH (cell pointer): a twin that corrupts the published cell pointer is CAUGHT at ACTOR_CELL_PTR", () => {
+test("TEETH (cell pointer): a twin that corrupts the published cell pointer is CAUGHT at PLAYER_CELL_PTR", () => {
   const [entry] = captureDispatches(1, 4000);
   assert.ok(entry, "need a real capture");
 
   const d = stateDiff(entry, twinBadCellPtr);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted cell pointer — it proves nothing");
-  assert.equal(d.addr, ACTOR_CELL_PTR, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(ACTOR_CELL_PTR)})`);
+  assert.equal(d.addr, PLAYER_CELL_PTR, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_CELL_PTR)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/cell-ptr: corrupted-pointer twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

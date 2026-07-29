@@ -56,14 +56,14 @@ import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
-  OBJ_Y,
-  REVEAL_GATE,
-  REVEAL_PERIOD,
-  REVEAL_CURSOR,
-  ANIM_PHASE_COUNTER,
-  BG_SPRITE_X,
-  BG_SPRITE_Y,
+  PIT_CROSS_ACTIVE,
+  PLAYER_X,
+  ZONKER_REVEAL_GATE,
+  ZONKER_REVEAL_PERIOD,
+  ZONKER_REVEAL_CURSOR,
+  ZONKER_ANIM_PHASE,
+  ZONKER_X,
+  ZONKER_SHELL_Y,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -78,7 +78,7 @@ const TARGET = 0x2f71;
 const SPRITE_SLOT = 0x822c; // the background sprite's 4-byte staging slot (unnamed RAM)
 const REVEAL_BOTTOM_CELL = 0x938c; // the video-RAM cell of a revealed column's bottom tile
 const FALL_STEP = 0x80e0; // the accelerating fall step (unnamed RAM)
-const GOAL_ROW = 107; // OBJ_Y value that arms the reveal sound
+const GOAL_ROW = 107; // PLAYER_X value that arms the reveal sound
 const STACK_SCRATCH = 16; // bytes just below entry SP the oracle's call brackets dirty
 const CAPTURE_FRAMES = 900; // 0x2f71 first runs ~frame 695
 const CAPTURE_LIMIT = 128; // real states to collect (they span the phase + fall cycle)
@@ -173,11 +173,11 @@ test("EQUAL (crafted reveal): full reveal + sound, gate-skip, and cursor-exhaust
   {
     const entry = STATES[0].clone();
     entry.mem.write8(GOAL_TILE_LATCH, 1);
-    entry.mem.write8(GOAL_CROSSING_LATCH, 1);
-    entry.mem.write8(OBJ_Y, GOAL_ROW);
-    entry.mem.write8(REVEAL_GATE, 1); // -> 0, reveal this frame
-    entry.mem.write8(REVEAL_PERIOD, 5);
-    entry.mem.write8(REVEAL_CURSOR, 12); // -> 6, source = table + 6 (inside the table)
+    entry.mem.write8(PIT_CROSS_ACTIVE, 1);
+    entry.mem.write8(PLAYER_X, GOAL_ROW);
+    entry.mem.write8(ZONKER_REVEAL_GATE, 1); // -> 0, reveal this frame
+    entry.mem.write8(ZONKER_REVEAL_PERIOD, 5);
+    entry.mem.write8(ZONKER_REVEAL_CURSOR, 12); // -> 6, source = table + 6 (inside the table)
     const ram = runPair(entry, idiomatic);
     assert.equal(ram, null, ram && `reveal-full diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
     // Prove the reveal really wrote the column (guards against a vacuous pass).
@@ -190,8 +190,8 @@ test("EQUAL (crafted reveal): full reveal + sound, gate-skip, and cursor-exhaust
   {
     const entry = STATES[0].clone();
     entry.mem.write8(GOAL_TILE_LATCH, 1);
-    entry.mem.write8(GOAL_CROSSING_LATCH, 0);
-    entry.mem.write8(REVEAL_GATE, 5); // -> 4, skip
+    entry.mem.write8(PIT_CROSS_ACTIVE, 0);
+    entry.mem.write8(ZONKER_REVEAL_GATE, 5); // -> 4, skip
     const ram = runPair(entry, idiomatic);
     assert.equal(ram, null, ram && `reveal-gate-skip diverged at ${hx(ram.addr ?? 0)}`);
   }
@@ -200,10 +200,10 @@ test("EQUAL (crafted reveal): full reveal + sound, gate-skip, and cursor-exhaust
   {
     const entry = STATES[0].clone();
     entry.mem.write8(GOAL_TILE_LATCH, 1);
-    entry.mem.write8(GOAL_CROSSING_LATCH, 0);
-    entry.mem.write8(REVEAL_GATE, 1); // -> 0
-    entry.mem.write8(REVEAL_PERIOD, 5);
-    entry.mem.write8(REVEAL_CURSOR, 3); // -> -3, underflow, no copy
+    entry.mem.write8(PIT_CROSS_ACTIVE, 0);
+    entry.mem.write8(ZONKER_REVEAL_GATE, 1); // -> 0
+    entry.mem.write8(ZONKER_REVEAL_PERIOD, 5);
+    entry.mem.write8(ZONKER_REVEAL_CURSOR, 3); // -> -3, underflow, no copy
     const ram = runPair(entry, idiomatic);
     assert.equal(ram, null, ram && `reveal-cursor-skip diverged at ${hx(ram.addr ?? 0)}`);
   }
@@ -216,15 +216,15 @@ test("EQUAL (crafted clamp): oscillator with Y at the floor reseeds the fall ste
   assert.ok(STATES.length > 0, "need a captured state to craft from");
   const entry = STATES[0].clone();
   entry.mem.write8(GOAL_TILE_LATCH, 0); // skip reveal, isolate the fall/clamp
-  entry.mem.write8(ANIM_PHASE_COUNTER, 1); // -> phase 0: reload + flip, then run the oscillator
-  entry.mem.write8(BG_SPRITE_Y, 0x84); // near the floor
+  entry.mem.write8(ZONKER_ANIM_PHASE, 1); // -> phase 0: reload + flip, then run the oscillator
+  entry.mem.write8(ZONKER_SHELL_Y, 0x84); // near the floor
   entry.mem.write8(FALL_STEP, 8); // -> +9, Y = 0x8d >= floor -> clamp + advanceRandom
   const ram = runPair(entry, idiomatic);
   assert.equal(ram, null, ram && `clamp diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
 
   const c = entry.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(BG_SPRITE_Y), 0x86, "Y did not clamp to the floor");
+  assert.equal(c.mem.read8(ZONKER_SHELL_Y), 0x86, "Y did not clamp to the floor");
   console.log("  EQUAL/clamp: floor clamp + random fall-step reseed + colour bump identical (PRNG in lockstep)");
 });
 
@@ -253,10 +253,10 @@ test("TEETH (wrong published X): a corrupted publish is CAUGHT at the sprite slo
 test("TEETH (dropped reveal tile): a corrupted revealed tile is CAUGHT in video RAM", () => {
   const entry = STATES[0].clone();
   entry.mem.write8(GOAL_TILE_LATCH, 1);
-  entry.mem.write8(GOAL_CROSSING_LATCH, 0);
-  entry.mem.write8(REVEAL_GATE, 1);
-  entry.mem.write8(REVEAL_PERIOD, 5);
-  entry.mem.write8(REVEAL_CURSOR, 12);
+  entry.mem.write8(PIT_CROSS_ACTIVE, 0);
+  entry.mem.write8(ZONKER_REVEAL_GATE, 1);
+  entry.mem.write8(ZONKER_REVEAL_PERIOD, 5);
+  entry.mem.write8(ZONKER_REVEAL_CURSOR, 12);
   const ram = runPair(entry, twinDroppedRevealTile);
   assert.notEqual(ram, null, "the gate FAILED to catch a dropped reveal tile — it is worthless");
   assert.equal(ram.addr, REVEAL_BOTTOM_CELL, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(REVEAL_BOTTOM_CELL)})`);
@@ -268,14 +268,14 @@ test("TEETH (dropped horizontal step): a twin that fails to move X is CAUGHT at 
   // entry value — a genuine "forgot to commit the horizontal step" logic bug.
   const entry = STATES[0].clone();
   entry.mem.write8(GOAL_TILE_LATCH, 0);
-  entry.mem.write8(ANIM_PHASE_COUNTER, 1); // reload -> oscillator runs
-  const savedX = entry.mem.read8(BG_SPRITE_X);
+  entry.mem.write8(ZONKER_ANIM_PHASE, 1); // reload -> oscillator runs
+  const savedX = entry.mem.read8(ZONKER_X);
   const twinDroppedHorizontalStep = (m) => {
     idiomatic(m);
-    m.mem8[BG_SPRITE_X] = savedX; // BUG: undoes the committed horizontal step
+    m.mem8[ZONKER_X] = savedX; // BUG: undoes the committed horizontal step
   };
   const ram = runPair(entry, twinDroppedHorizontalStep);
   assert.notEqual(ram, null, "the gate FAILED to catch a dropped horizontal step — it is worthless");
-  assert.equal(ram.addr, BG_SPRITE_X, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(BG_SPRITE_X)})`);
+  assert.equal(ram.addr, ZONKER_X, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(ZONKER_X)})`);
   console.log(`  TEETH/bounce: dropped horizontal step caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });

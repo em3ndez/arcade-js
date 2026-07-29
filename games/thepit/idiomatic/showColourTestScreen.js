@@ -31,7 +31,7 @@
  * LIVE-OUT: memory-only — the mode byte, the flooded video + colour RAM, the pass-colour
  *           scratch, and everything the screen-blank writes. Neither hand-off reads a
  *           register back from here.
- * NAMES:    GAME_MODE (0x8001), IN0_DEBOUNCED (0x8018) from ram.js. The pass-colour scratch
+ * NAMES:    GAME_STATE (0x8001), IN0_DEBOUNCED (0x8018) from ram.js. The pass-colour scratch
  *           0x8012 has no ram.js name yet (hex); the video/colour RAM bases are fixed
  *           hardware regions kept as addresses. 0x4f61 / 0x4f7e are the frame-wait's resume
  *           slots (code addresses), pushed the way the still-stack-return frame-wait expects.
@@ -41,7 +41,7 @@ import { blankScreen } from "./blankScreen.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
 import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
-import { GAME_MODE, IN0_DEBOUNCED } from "./ram.js";
+import { GAME_STATE, IN0_DEBOUNCED } from "./ram.js";
 
 const PASS_COLOUR = 0x8012; // scratch holding the current pass's colour byte
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
@@ -52,7 +52,7 @@ export function showColourTestScreen(m) {
   const { mem8 } = m;
 
   // Mark the mode as the test screen and blank the whole display.
-  mem8[GAME_MODE] = 9;
+  mem8[GAME_STATE] = 9;
   blankScreen(m);
 
   // The sweep only runs while both trigger inputs are held; otherwise re-decode the DIP

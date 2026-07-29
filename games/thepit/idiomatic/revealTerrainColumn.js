@@ -46,12 +46,12 @@
  *           its caller consumes no register and the phase clock owns everything after
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
- *           (0x80e6) are REVEAL_GATE/REVEAL_PERIOD/REVEAL_CURSOR from ram.js; the stashed
+ *           (0x80e6) are ZONKER_REVEAL_GATE/ZONKER_REVEAL_PERIOD/ZONKER_REVEAL_CURSOR from ram.js; the stashed
  *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceBackgroundAnimation.
  */
 
 import { advanceBackgroundAnimation } from "./advanceBackgroundAnimation.js";
-import { REVEAL_CURSOR, REVEAL_GATE, REVEAL_PERIOD } from "./ram.js";
+import { ZONKER_REVEAL_CURSOR, ZONKER_REVEAL_GATE, ZONKER_REVEAL_PERIOD } from "./ram.js";
 
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
@@ -67,21 +67,21 @@ export function revealTerrainColumn(m) {
   const { mem8, mem16 } = m;
 
   // Tick the reveal gate; act only on the frame it counts down to zero.
-  const gate = (mem8[REVEAL_GATE] - 1 + 256) % 256;
-  mem8[REVEAL_GATE] = gate;
+  const gate = (mem8[ZONKER_REVEAL_GATE] - 1 + 256) % 256;
+  mem8[ZONKER_REVEAL_GATE] = gate;
   if (gate !== 0) {
     // Not a reveal frame — straight on to the phase clock.
     return advanceBackgroundAnimation(m);
   }
 
   // Reload the gate from its period and step the cursor back one column.
-  mem8[REVEAL_GATE] = mem8[REVEAL_PERIOD];
-  const cursor = mem8[REVEAL_CURSOR] - TILES_PER_COLUMN;
+  mem8[ZONKER_REVEAL_GATE] = mem8[ZONKER_REVEAL_PERIOD];
+  const cursor = mem8[ZONKER_REVEAL_CURSOR] - TILES_PER_COLUMN;
   if (cursor < 0) {
     // Ran off the start of the pattern table — the reveal is done, draw nothing.
     return advanceBackgroundAnimation(m);
   }
-  mem8[REVEAL_CURSOR] = cursor;
+  mem8[ZONKER_REVEAL_CURSOR] = cursor;
 
   // Remember where this column came from in the pattern table (a scratch pointer
   // the backdrop machinery leaves behind), then stamp its 6 tiles up the column.

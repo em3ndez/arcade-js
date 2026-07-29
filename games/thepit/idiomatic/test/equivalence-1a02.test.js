@@ -37,8 +37,8 @@
  *   6. NON-VACUOUS — a real dispatch writes the row/column cells, the cell address, the under-tile
  *      and the stepped position (a no-op twin cannot pass), and agrees with the oracle.
  *   7. TEETH (tile) — a twin that publishes the wrong under-tile is CAUGHT at CUR_TILE.
- *   8. TEETH (row) — a twin with a wrong row cell is CAUGHT at OBJ_TILE_ROW.
- *   9. TEETH (step) — a twin with a wrong stepped position is CAUGHT at OBJ_Y.
+ *   8. TEETH (row) — a twin with a wrong row cell is CAUGHT at PLAYER_TILE_ROW.
+ *   9. TEETH (step) — a twin with a wrong stepped position is CAUGHT at PLAYER_X.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-1a02.test.js
  */
@@ -51,15 +51,15 @@ import { loc_1a02 as oracle } from "../../translated/loc_1a02.js";
 import { stepObjectAndResolveTile as idiomatic } from "../stepObjectAndResolveTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  DIG_OVERLAP_HOLD,
-  SPRITE_CODE,
-  OBJ_X,
-  OBJ_TILE_ROW,
-  OBJ_Y,
-  OBJ_TILE_COL,
-  SPAWN_PHASE,
+  MOVE_BLOCK_FLAG,
+  PLAYER_FACING,
+  PLAYER_Y,
+  PLAYER_TILE_ROW,
+  PLAYER_X,
+  PLAYER_TILE_COL,
+  BOARD_END_PHASE,
   GOAL_TILE_LATCH,
-  ACTOR_CELL_PTR,
+  PLAYER_CELL_PTR,
   NEXT_TILE,
   CUR_TILE,
   REACTION_STATE,
@@ -150,8 +150,8 @@ function offBoundaryY(bias) {
  *  exact cell the routine reads. Both arms then see that tile there. */
 function craftTileEntry(base, objY, tile) {
   const e = base.clone();
-  e.mem.write8(OBJ_Y, objY);
-  const cell = cellFor(e.mem.read8(OBJ_X), objY, e.regs.d);
+  e.mem.write8(PLAYER_X, objY);
+  const cell = cellFor(e.mem.read8(PLAYER_Y), objY, e.regs.d);
   e.mem.write8(cell, tile);
   return { entry: e, cell };
 }
@@ -161,11 +161,11 @@ function craftTileEntry(base, objY, tile) {
 test("IDENTITY: the harness reaches 0x1a02 in attract and oracle-vs-oracle is EQUAL", () => {
   const [entry] = captureDispatches(1, 3000);
   assert.ok(entry, "expected at least one real 0x1a02 dispatch during attract");
-  assert.equal(entry.mem.read8(DIG_OVERLAP_HOLD), 0, "captured entry should have the climb gate clear");
+  assert.equal(entry.mem.read8(MOVE_BLOCK_FLAG), 0, "captured entry should have the climb gate clear");
   assert.equal(stateDiff(entry, oracle), null, "oracle vs oracle must be identical");
   console.log(
     `  IDENTITY: captured a real 0x1a02 dispatch (SP=${hx(entry.regs.sp)}, bias D=${entry.regs.d}, ` +
-      `objY=${entry.mem.read8(OBJ_Y)}); oracle vs oracle -> EQUAL`,
+      `objY=${entry.mem.read8(PLAYER_X)}); oracle vs oracle -> EQUAL`,
   );
 });
 
@@ -212,10 +212,10 @@ test("EQUAL (crafted solid): a solid tile defers the frame (no move), identical"
   const objY = offBoundaryY(bias);
   const { entry } = craftTileEntry(base, objY, 42); // 42 == a hard-solid tile
 
-  // A solid tile must NOT advance the position (the deferral path leaves OBJ_Y untouched).
+  // A solid tile must NOT advance the position (the deferral path leaves PLAYER_X untouched).
   const probe = entry.clone();
   oracle(probe);
-  assert.equal(probe.mem.read8(OBJ_Y), objY, "solid craft unexpectedly advanced the object");
+  assert.equal(probe.mem.read8(PLAYER_X), objY, "solid craft unexpectedly advanced the object");
 
   const d = stateDiff(entry, idiomatic);
   assert.equal(d, null, d && `state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
@@ -252,12 +252,12 @@ test("EQUAL (crafted top-rung): the top-rung column defers, latching the spawn f
   assert.ok(base, "need a real capture to craft from");
 
   const e = base.clone();
-  e.mem.write8(OBJ_Y, TOP_RUNG_COLUMN);
+  e.mem.write8(PLAYER_X, TOP_RUNG_COLUMN);
   e.mem.write8(SECOND_LOOT_LATCH, 3); // second-loot latch set -> the top-rung spawn flag should latch
 
   const probe = e.clone();
   oracle(probe);
-  assert.equal(probe.mem.read8(SPAWN_PHASE), 1, "top-rung craft did not latch the spawn flag on the oracle");
+  assert.equal(probe.mem.read8(BOARD_END_PHASE), 1, "top-rung craft did not latch the spawn flag on the oracle");
 
   const d = stateDiff(e, idiomatic);
   assert.equal(d, null, d && `state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
@@ -270,8 +270,8 @@ test("NON-VACUOUS: a real dispatch writes the row/column cells, the cell address
   const [entry] = captureDispatches(1, 3000);
   assert.ok(entry, "need a real capture");
 
-  const objX = entry.mem.read8(OBJ_X);
-  const objY = entry.mem.read8(OBJ_Y);
+  const objX = entry.mem.read8(PLAYER_Y);
+  const objY = entry.mem.read8(PLAYER_X);
   const bias = entry.regs.d;
   const delta = entry.mem.read8(0x806d);
   const expectedRow = 31 - (((objX + 3) & 0xff) >> 3);
@@ -282,11 +282,11 @@ test("NON-VACUOUS: a real dispatch writes the row/column cells, the cell address
   const c = entry.clone();
   idiomatic(c);
 
-  assert.equal(c.mem.read8(OBJ_TILE_ROW), expectedRow, "row cell not written");
-  assert.equal(c.mem.read8(OBJ_TILE_COL), expectedCol, "column cell not written");
-  assert.equal(c.mem.read16(ACTOR_CELL_PTR), expectedCell, "cell address not written");
+  assert.equal(c.mem.read8(PLAYER_TILE_ROW), expectedRow, "row cell not written");
+  assert.equal(c.mem.read8(PLAYER_TILE_COL), expectedCol, "column cell not written");
+  assert.equal(c.mem.read16(PLAYER_CELL_PTR), expectedCell, "cell address not written");
   assert.equal(c.mem.read8(CUR_TILE), expectedTile, "under-tile not published");
-  assert.equal(c.mem.read8(OBJ_Y), (objY - delta) & 0xff, "object did not advance one step");
+  assert.equal(c.mem.read8(PLAYER_X), (objY - delta) & 0xff, "object did not advance one step");
 
   assert.equal(stateDiff(entry, idiomatic), null, "the dispatch must also match the oracle");
   console.log(
@@ -315,14 +315,14 @@ test("TEETH (tile): a twin that publishes the wrong under-tile is CAUGHT at CUR_
 
 function twinWrongRow(m) {
   idiomatic(m);
-  m.mem.write8(OBJ_TILE_ROW, m.mem.read8(OBJ_TILE_ROW) ^ 0xff);
+  m.mem.write8(PLAYER_TILE_ROW, m.mem.read8(PLAYER_TILE_ROW) ^ 0xff);
 }
 
-test("TEETH (row): a twin with a wrong row cell is CAUGHT at OBJ_TILE_ROW", () => {
+test("TEETH (row): a twin with a wrong row cell is CAUGHT at PLAYER_TILE_ROW", () => {
   const [entry] = captureDispatches(1, 3000);
   const d = stateDiff(entry, twinWrongRow);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong row cell — it proves nothing");
-  assert.equal(d.addr, OBJ_TILE_ROW, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJ_TILE_ROW)})`);
+  assert.equal(d.addr, PLAYER_TILE_ROW, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_TILE_ROW)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/row: wrong-row twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
@@ -331,14 +331,14 @@ test("TEETH (row): a twin with a wrong row cell is CAUGHT at OBJ_TILE_ROW", () =
 
 function twinWrongStep(m) {
   idiomatic(m);
-  m.mem.write8(OBJ_Y, m.mem.read8(OBJ_Y) ^ 0xff);
+  m.mem.write8(PLAYER_X, m.mem.read8(PLAYER_X) ^ 0xff);
 }
 
-test("TEETH (step): a twin with a wrong stepped position is CAUGHT at OBJ_Y", () => {
+test("TEETH (step): a twin with a wrong stepped position is CAUGHT at PLAYER_X", () => {
   const [entry] = captureDispatches(1, 3000);
   const d = stateDiff(entry, twinWrongStep);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong stepped position — it proves nothing");
-  assert.equal(d.addr, OBJ_Y, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJ_Y)})`);
+  assert.equal(d.addr, PLAYER_X, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_X)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/step: wrong-step twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

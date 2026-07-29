@@ -47,7 +47,7 @@ import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   FRAME_WAIT_COUNTDOWN,
-  FRAME_COUNTER,
+  PLAY_PHASE_COUNTER,
   IN1_PREV,
   SOUND_HEAD,
   SOUND_RING,
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
 const TARGET = 0x0066;
 const READ_INDEX = 0x801f; // sound-ring consume index (no ram.js name yet)
 const DIVIDER_A = 0x8006; // 60-frame divider that borrows from 0x800f
-const DIVIDER_B = 0x8007; // 60-frame divider that bumps FRAME_COUNTER
+const DIVIDER_B = 0x8007; // 60-frame divider that bumps PLAY_PHASE_COUNTER
 const SPRITE_RAM = 0x9840; // hardware sprite RAM (blit destination)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -193,7 +193,7 @@ test("EQUAL (crafted timer reload): both dividers roll over, reload 60 and move 
 
   const entry = seed.clone();
   entry.mem.write8(DIVIDER_A, 1); // about to expire -> reload + decrement 0x800f
-  entry.mem.write8(DIVIDER_B, 1); // about to expire -> reload + increment FRAME_COUNTER
+  entry.mem.write8(DIVIDER_B, 1); // about to expire -> reload + increment PLAY_PHASE_COUNTER
 
   const d = diffAgainstOracle(entry, idiomatic);
   assert.equal(d, null, d && `crafted-timer RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} cand=${d.b}`);
@@ -203,7 +203,7 @@ test("EQUAL (crafted timer reload): both dividers roll over, reload 60 and move 
   assert.equal(c.mem.read8(DIVIDER_A), 60, "divider A did not reload");
   assert.equal(c.mem.read8(DIVIDER_B), 60, "divider B did not reload");
   assert.equal(c.mem.read8(0x800f), (entry.mem.read8(0x800f) - 1) & 0xff, "0x800f not decremented on rollover");
-  assert.equal(c.mem.read8(FRAME_COUNTER), (entry.mem.read8(FRAME_COUNTER) + 1) & 0xff, "FRAME_COUNTER not incremented");
+  assert.equal(c.mem.read8(PLAY_PHASE_COUNTER), (entry.mem.read8(PLAY_PHASE_COUNTER) + 1) & 0xff, "PLAY_PHASE_COUNTER not incremented");
   console.log("  EQUAL/timer-reload: both 60-frame dividers reloaded and moved their paired counters");
 });
 

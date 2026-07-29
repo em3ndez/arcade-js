@@ -64,7 +64,7 @@ import { loc_01f9 as oracle } from "../../translated/loc_01f9.js";
 import { rearmMachineAndBranchOnCredits as idiomatic } from "../rearmMachineAndBranchOnCredits.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { GAME_MODE, GAME_STATE2 } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -193,8 +193,8 @@ test("EQUAL (real flag-clear entry): rearmMachineAndBranchOnCredits == oracle ov
 
   // Positive checks: the flag-clear path re-armed and entered play, and painted the screen.
   const c = runArm(entry, idiomatic);
-  assert.equal(c.mem8[GAME_STATE2], 1, "secondary game-state armed before the fork");
-  assert.equal(c.mem8[GAME_MODE], 4, "entering play left the play-mode value in the game-mode byte");
+  assert.equal(c.mem8[ACTIVE_PLAYER], 1, "secondary game-state armed before the fork");
+  assert.equal(c.mem8[GAME_STATE], 4, "entering play left the play-mode value in the game-mode byte");
   assert.equal(c.mem8[VIDEO_CELL], c.mem8[IMAGE_SOURCE], "the fixed screen was painted from the ROM image");
   console.log("  EQUAL/flag-clear: identical observable RAM; re-armed, painted, entered play (game mode 4)");
 });
@@ -210,7 +210,7 @@ test("EQUAL (crafted flag-set entry): the credit-screen arm == oracle over obser
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} oracle=${d.a} cand=${d.b}`);
 
   const c = runArm(entry, idiomatic);
-  assert.equal(c.mem8[GAME_MODE], 3, "the warm-restart arm armed the credit-screen game mode");
+  assert.equal(c.mem8[GAME_STATE], 3, "the warm-restart arm armed the credit-screen game mode");
   console.log("  EQUAL/flag-set: identical observable RAM; credit-screen arm armed game mode 3");
 });
 
@@ -221,7 +221,7 @@ function twinAlwaysCredit(m) {
   const { mem8, regs } = m;
   regs.sp = 0x83ff;
   enableNmiInline(m);
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   applyDipInline(m);
   return m.call(0x021c); // BUG: ignores the restart flag -> credit screen even when it is clear
 }
@@ -237,7 +237,7 @@ test("TEETH (inverted fork, flag-clear): always taking the credit arm is CAUGHT 
 
   const d = ramDiff(entry, twinAlwaysCredit);
   assert.ok(d, "the gate FAILED to catch an inverted fork — it proves nothing");
-  assert.equal(d.addr, GAME_MODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
+  assert.equal(d.addr, GAME_STATE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_STATE)})`);
   assert.equal(d.a, 4, "oracle enters play (game mode 4) on the flag-clear path");
   assert.equal(d.b, 3, "twin wrongly armed the credit-screen game mode 3");
   console.log(`  TEETH/fork-clear: inverted fork caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
@@ -250,10 +250,10 @@ function twinAlwaysPlay(m) {
   const { mem8, regs } = m;
   regs.sp = 0x83ff;
   enableNmiInline(m);
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   applyDipInline(m);
   m.push16(0x0000); m.call(0x4c47); // disable sound
-  mem8[GAME_MODE] = 0;
+  mem8[GAME_STATE] = 0;
   m.push16(0x0000); m.call(0x3b81); // paint the fixed screen
   return m.call(0x03be); // BUG: ignores the set flag -> enters play instead of the credit screen
 }
@@ -265,7 +265,7 @@ test("TEETH (inverted fork, flag-set): always taking the play arm is CAUGHT at t
 
   const d = ramDiff(entry, twinAlwaysPlay);
   assert.ok(d, "the gate FAILED to catch an inverted fork — it proves nothing");
-  assert.equal(d.addr, GAME_MODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
+  assert.equal(d.addr, GAME_STATE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_STATE)})`);
   assert.equal(d.a, 3, "oracle shows the credit screen (game mode 3) on the flag-set path");
   assert.equal(d.b, 4, "twin wrongly entered play (game mode 4)");
   console.log(`  TEETH/fork-set: inverted fork caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);

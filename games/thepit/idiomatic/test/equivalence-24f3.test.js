@@ -16,7 +16,7 @@
  * trace and are NOT compared, and the dead stack-scratch window at the top of work RAM is
  * excluded (the oracle's bracketed calls + tail park return addresses there; the routine's
  * own writes are the reaction object's position/sprite bytes 0x8094-0x8097, the scroll
- * step/window/sub-phase 0x80a1/0x809a/0x809e, the resolved map cell around ACTOR_CELL_PTR,
+ * step/window/sub-phase 0x80a1/0x809a/0x809e, the resolved map cell around PLAYER_CELL_PTR,
  * the sprite slot at 0x8224, plus the delegated dig/spawn writes — all far below the stack).
  *
  * REACHABILITY. 0x24f3 is dispatched every frame from the main loop, so the entry is
@@ -34,7 +34,7 @@
  *      sound cue; plus positive checks on the slid position and the ended reaction.
  *   4. EQUAL (scroll arm) — an in-progress scroll over several window/sub-phase seeds, and a
  *      forced stop-tile hit that parks the object and ends the scroll (positive check).
- *   5. EQUAL (edge-collision arm) — every gate of the SPAWN_STATE==2 arm: busy sub-systems
+ *   5. EQUAL (edge-collision arm) — every gate of the HAZARD_ACTIVE_COUNT==2 arm: busy sub-systems
  *      pass through, the facing-driven scroll seed, the dig-held/clear scroll-mode branches.
  *   6. TEETH — a genuine logic twin (phase 1 sliding the WRONG way) is CAUGHT at the object's
  *      X, and a dropped live-out (the settled facing code) is CAUGHT at its address.
@@ -52,21 +52,21 @@ import { advanceDigCarveObject } from "../advanceDigCarveObject.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import {
-  GOAL_CROSSING_LATCH,
-  DIG_OBJ_ARM_STATE,
-  SPAWN_STATE,
+  PIT_CROSS_ACTIVE,
+  DIG_COLLISION_STATE,
+  HAZARD_ACTIVE_COUNT,
   REACTION_STATE,
   REACTION_TIMER,
   REACTION_OBJ_X,
   REACTION_OBJ_Y,
-  OBJ_X,
-  OBJ_Y,
-  ACTOR_CELL_PTR,
+  PLAYER_Y,
+  PLAYER_X,
+  PLAYER_CELL_PTR,
   EXPECTED_TILE,
   NEXT_TILE,
-  SPRITE_CODE,
-  OBJECT_ACTIVE,
-  SPAWN_PHASE,
+  PLAYER_FACING,
+  PLAYER_ACTIVE,
+  BOARD_END_PHASE,
   GOAL_TILE_LATCH,
   IN0_DEBOUNCED,
 } from "../ram.js";
@@ -84,7 +84,7 @@ const REACTION_SPRITE_CODE = 0x8095;
 const REACTION_ANIM = 0x8096;
 const REACTION_SPRITE_SLOT = 0x8224; // sprite slot 1 (the reaction object's record)
 const SCROLL_STEP = 0x80a1;
-const SCROLL_WINDOW_PTR = 0x809a;
+const LASER_SCAN_PTR = 0x809a;
 const SCROLL_SUBPHASE = 0x809e;
 const STOP_TILE_TABLE = 0x277a;
 // Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff).
@@ -128,25 +128,25 @@ function ramDiffExStack(a, b) {
 function seed(entry, s = {}) {
   const e = entry.clone();
   const w8 = (addr, v) => { if (v !== undefined) e.mem.write8(addr, v); };
-  w8(GOAL_CROSSING_LATCH, s.goalCross);
-  w8(DIG_OBJ_ARM_STATE, s.digArm);
+  w8(PIT_CROSS_ACTIVE, s.goalCross);
+  w8(DIG_COLLISION_STATE, s.digArm);
   w8(SCROLL_STEP, s.scrollStep);
-  w8(SPAWN_STATE, s.spawn);
+  w8(HAZARD_ACTIVE_COUNT, s.spawn);
   w8(REACTION_STATE, s.state);
   w8(REACTION_TIMER, s.timer);
   w8(REACTION_ANIM, s.anim);
   w8(EXPECTED_TILE, s.expTile);
   w8(NEXT_TILE, s.nextTile);
-  w8(OBJ_X, s.objX);
-  w8(OBJ_Y, s.objY);
-  w8(OBJECT_ACTIVE, s.active);
-  w8(SPAWN_PHASE, s.spawnPhase);
+  w8(PLAYER_Y, s.objX);
+  w8(PLAYER_X, s.objY);
+  w8(PLAYER_ACTIVE, s.active);
+  w8(BOARD_END_PHASE, s.spawnPhase);
   w8(GOAL_TILE_LATCH, s.goalLatch);
   w8(IN0_DEBOUNCED, s.in0);
-  w8(SPRITE_CODE, s.facing);
+  w8(PLAYER_FACING, s.facing);
   w8(SCROLL_SUBPHASE, s.subphase);
-  if (s.actorCell !== undefined) e.mem.write16(ACTOR_CELL_PTR, s.actorCell);
-  if (s.windowPtr !== undefined) e.mem.write16(SCROLL_WINDOW_PTR, s.windowPtr);
+  if (s.actorCell !== undefined) e.mem.write16(PLAYER_CELL_PTR, s.actorCell);
+  if (s.windowPtr !== undefined) e.mem.write16(LASER_SCAN_PTR, s.windowPtr);
   if (s.plantAt !== undefined) e.mem.write8(s.plantAt, s.plantVal);
   return e;
 }
@@ -179,7 +179,7 @@ test("HARNESS: a real 0x24f3 entry is captured and the oracle run is determinist
   assert.equal(ramDiffExStack(a, b), null, "oracle run of 0x24f3 is not deterministic");
   console.log(
     `  HARNESS: captured a real 0x24f3 entry (SP=${hx(entry.regs.sp)}); ` +
-      `REACTION_STATE=${entry.mem.read8(REACTION_STATE)} SPAWN_STATE=${entry.mem.read8(SPAWN_STATE)}; oracle deterministic`,
+      `REACTION_STATE=${entry.mem.read8(REACTION_STATE)} HAZARD_ACTIVE_COUNT=${entry.mem.read8(HAZARD_ACTIVE_COUNT)}; oracle deterministic`,
   );
 });
 
@@ -231,21 +231,21 @@ test("EQUAL (phases): all four reaction phases match while ticking and on expiry
     assert.equal(ram, null, ram && `${name}: RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   }
 
-  // Positive: phase 1 running slides the object to OBJ_X-8 / OBJ_Y; phase 3 to OBJ_Y+8.
+  // Positive: phase 1 running slides the object to PLAYER_Y-8 / PLAYER_X; phase 3 to PLAYER_X+8.
   const p1 = seed(entry, { ...DISPATCH, state: 1, timer: 3, objX: 100, objY: 90 });
   idiomatic(p1);
-  assert.equal(p1.mem.read8(REACTION_OBJ_X), u8(100 - 8), "phase 1 must slide the object to OBJ_X-8");
-  assert.equal(p1.mem.read8(REACTION_OBJ_Y), 90, "phase 1 must place the object at OBJ_Y");
+  assert.equal(p1.mem.read8(REACTION_OBJ_X), u8(100 - 8), "phase 1 must slide the object to PLAYER_Y-8");
+  assert.equal(p1.mem.read8(REACTION_OBJ_Y), 90, "phase 1 must place the object at PLAYER_X");
   const p3 = seed(entry, { ...DISPATCH, state: 3, timer: 3, objX: 100, objY: 90 });
   idiomatic(p3);
-  assert.equal(p3.mem.read8(REACTION_OBJ_Y), u8(90 + 8), "phase 3 must slide the object to OBJ_Y+8");
+  assert.equal(p3.mem.read8(REACTION_OBJ_Y), u8(90 + 8), "phase 3 must slide the object to PLAYER_X+8");
 
   // Positive: expiry ends the reaction and settles to the rest sprite + facing.
   const ex = seed(entry, { ...DISPATCH, state: 2, timer: 1, expTile: 200, nextTile: 150, actorCell: CELL, objX: 80, objY: 80 });
   idiomatic(ex);
   assert.equal(ex.mem.read8(REACTION_STATE), 0, "expiry must end the reaction");
   assert.equal(ex.mem.read8(REACTION_SPRITE_CODE), 9, "expiry must settle to the rest sprite");
-  assert.equal(ex.mem.read8(SPRITE_CODE), 50, "phase 2 expiry must publish facing code 50");
+  assert.equal(ex.mem.read8(PLAYER_FACING), 50, "phase 2 expiry must publish facing code 50");
   console.log(`  EQUAL/phases: all ${cases.length} phase arms identical; slide + settle + facing verified`);
 });
 
@@ -283,7 +283,7 @@ test("EQUAL (scroll): an in-progress scroll matches, and a stop-tile hit parks t
 
 // -- 5. EQUAL over the edge-collision arm -------------------------------------
 
-test("EQUAL (edge collision): every gate of the SPAWN_STATE==2 arm matches", () => {
+test("EQUAL (edge collision): every gate of the HAZARD_ACTIVE_COUNT==2 arm matches", () => {
   const entry = captureRealEntry(2000);
   assert.ok(entry, "need a captured 0x24f3 entry");
 
@@ -323,7 +323,7 @@ test("EQUAL (edge collision): every gate of the SPAWN_STATE==2 arm matches", () 
 
 /**
  * Broken twin: faithful for a running phase-1 state, but slides the reaction object the
- * WRONG way (OBJ_X+8 instead of the correct OBJ_X-8). Builds the record + tail exactly so
+ * WRONG way (PLAYER_Y+8 instead of the correct PLAYER_Y-8). Builds the record + tail exactly so
  * the ONLY divergence is the object's X.
  */
 function twinPhase1WrongMove(m) {
@@ -331,8 +331,8 @@ function twinPhase1WrongMove(m) {
   mem8[REACTION_SPRITE_CODE] = 168;
   const ticked = u8(mem8[REACTION_TIMER] - 1);
   mem8[REACTION_TIMER] = ticked;
-  mem8[REACTION_OBJ_X] = mem8[OBJ_X] + 8; // BUG: phase 1 slides -8, not +8
-  mem8[REACTION_OBJ_Y] = mem8[OBJ_Y];
+  mem8[REACTION_OBJ_X] = mem8[PLAYER_Y] + 8; // BUG: phase 1 slides -8, not +8
+  mem8[REACTION_OBJ_Y] = mem8[PLAYER_X];
   mem8[REACTION_ANIM] = (mem8[REACTION_ANIM] - 1) & 7;
   const bias = mem8[0x8051];
   mem8[REACTION_SPRITE_SLOT] = mem8[REACTION_OBJ_X] - bias;
@@ -358,10 +358,10 @@ test("TEETH (dropped facing): corrupting the settled facing code on expiry is CA
   const entry = captureRealEntry(2000);
   assert.ok(entry, "need a captured 0x24f3 entry for the teeth check");
 
-  // A phase-2 expiry settles SPRITE_CODE to the facing; a twin that corrupts it is caught there.
+  // A phase-2 expiry settles PLAYER_FACING to the facing; a twin that corrupts it is caught there.
   const s = { ...DISPATCH, state: 2, timer: 1, expTile: 200, nextTile: 150, actorCell: CELL, objX: 80, objY: 80 };
-  const { ram } = compare(entry, s, (m) => { idiomatic(m); m.mem.write8(SPRITE_CODE, m.mem.read8(SPRITE_CODE) ^ 0xff); });
+  const { ram } = compare(entry, s, (m) => { idiomatic(m); m.mem.write8(PLAYER_FACING, m.mem.read8(PLAYER_FACING) ^ 0xff); });
   assert.ok(ram, "the gate FAILED to catch the corrupted facing — it proves nothing");
-  assert.equal(ram.addr, SPRITE_CODE, `teeth caught ${hx(ram.addr)} (expected the facing ${hx(SPRITE_CODE)})`);
+  assert.equal(ram.addr, PLAYER_FACING, `teeth caught ${hx(ram.addr)} (expected the facing ${hx(PLAYER_FACING)})`);
   console.log(`  TEETH/facing: corrupted facing caught at ${hx(ram.addr)} (oracle=${ram.a} twin=${ram.b})`);
 });

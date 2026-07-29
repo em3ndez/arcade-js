@@ -48,7 +48,7 @@ import { loc_241c as oracle } from "../../translated/loc_241c.js";
 import { advanceColumnAnimation as idiomatic } from "../advanceColumnAnimation.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { FRAME_COUNTER, SPAWN_PHASE, ACTOR_Y } from "../ram.js";
+import { PLAY_PHASE_COUNTER, BOARD_END_PHASE, ENEMY3_Y } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -72,7 +72,7 @@ const makeMachine = ROM_PRESENT ? await makeMachineFactory(ROM) : null;
 /** Which arm a dispatch takes, read from the entry state (matches the routine's gates). */
 function classify(mm) {
   const { mem } = mm;
-  if (mem.read8(FRAME_COUNTER) < 10) return "fcEarly";
+  if (mem.read8(PLAY_PHASE_COUNTER) < 10) return "fcEarly";
   if (((mem.read8(STEP_TIMER) - 1) & 0xff) !== 0) return "timer";
   const cursor = mem.read16(WRITE_CURSOR) & 0xffff;
   return "STEP:" + hx(mem.read8(cursor));
@@ -150,8 +150,8 @@ function crafted(seed, poke) {
 function finaliseSeed(mc, phase, actorY) {
   mc.mem.write16(WRITE_CURSOR, (TRIGGER_CELL - 32) & 0xffff); // +32 -> the trigger cell
   mc.mem.write8((TRIGGER_CELL - 32) & 0xffff, 0x24); // empty tile at the cursor
-  mc.mem.write8(SPAWN_PHASE, phase);
-  if (actorY !== null) mc.mem.write8(ACTOR_Y, actorY);
+  mc.mem.write8(BOARD_END_PHASE, phase);
+  if (actorY !== null) mc.mem.write8(ENEMY3_Y, actorY);
 }
 
 // One shared capture, reused across the checks below.
@@ -248,7 +248,7 @@ test("EQUAL (crafted arms): every classify/finalise arm attract does not present
 /** Twin that forgets to store the decremented timer on the countdown path. */
 function twinDropTimerStore(m) {
   const { mem } = m;
-  if (mem.read8(FRAME_COUNTER) < 10) return;
+  if (mem.read8(PLAY_PHASE_COUNTER) < 10) return;
   if (mem.read8(STEP_TIMER) !== 1) return; // BUG: should store STEP_TIMER - 1 and return
   idiomatic(m); // the step frame is untouched, so only the countdown path breaks
 }
@@ -268,7 +268,7 @@ test("TEETH (dropped timer store): a twin that skips the countdown store is CAUG
 /** Twin that writes the wrong spawn-phase value on the finalise arm. */
 function twinCorruptFinalise(m) {
   idiomatic(m);
-  m.mem.write8(SPAWN_PHASE, 99); // BUG: finalise must mark the phase reached (== 2)
+  m.mem.write8(BOARD_END_PHASE, 99); // BUG: finalise must mark the phase reached (== 2)
 }
 
 test("TEETH (corrupted finalise): a twin that writes the wrong spawn phase is CAUGHT", () => {
@@ -277,6 +277,6 @@ test("TEETH (corrupted finalise): a twin that writes the wrong spawn phase is CA
 
   const { diffs, ram } = contractDiffs(e, twinCorruptFinalise);
   assert.ok(diffs.length > 0, "the gate FAILED to catch the corrupted finalise — it proves nothing");
-  assert.equal(ram && ram.addr, SPAWN_PHASE, `teeth caught ${ram ? hx(ram.addr) : "(none)"} (expected ${hx(SPAWN_PHASE)})`);
+  assert.equal(ram && ram.addr, BOARD_END_PHASE, `teeth caught ${ram ? hx(ram.addr) : "(none)"} (expected ${hx(BOARD_END_PHASE)})`);
   console.log(`  TEETH/finalise: wrong spawn phase caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });

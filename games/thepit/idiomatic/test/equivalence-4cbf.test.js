@@ -55,7 +55,7 @@ import { insertHighScore } from "../insertHighScore.js";
 import { renderScoreReadouts } from "../renderScoreReadouts.js";
 import { loc_3dae as reachedLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE2, SCORE_LO, SCORE_HI } from "../ram.js";
+import { ACTIVE_PLAYER, SCORE_LO, SCORE_HI } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -149,7 +149,7 @@ const scene = (player, cand, r1, r2, r3, landedSeed = 0) => ({
 function craft(seed, s) {
   const e = seed.clone();
   const { mem } = e;
-  mem.write8(GAME_STATE2, s.player);
+  mem.write8(ACTIVE_PLAYER, s.player);
   // Player 1's saved copy is one byte past each shared cell; any other player's is two.
   const off = s.player === 1 ? 1 : 2;
   mem.write8(SCORE_LO + off, s.cand & 0xff);

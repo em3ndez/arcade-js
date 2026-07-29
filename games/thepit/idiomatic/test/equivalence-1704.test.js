@@ -36,8 +36,8 @@
  *      sound and advances the walk (a no-op twin cannot pass), and agrees with the oracle.
  *   5. TEETH (loot count) — a twin that fails to bump the pickup counter is CAUGHT at 0x8081.
  *   6. TEETH (bump reaction) — on an arming entry, a twin that skips the reaction sprite is CAUGHT
- *      at SPRITE_CODE.
- *   7. TEETH (walk) — on a walk entry, a twin that corrupts the walk position is CAUGHT at OBJ_X.
+ *      at PLAYER_FACING.
+ *   7. TEETH (walk) — on a walk entry, a twin that corrupts the walk position is CAUGHT at PLAYER_Y.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-1704.test.js
  */
@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1704 as oracle } from "../../translated/loc_1704.js";
 import { resolveActorTerrainStep as idiomatic } from "../resolveActorTerrainStep.js";
 import { makeMachineFactory } from "../../machine.js";
-import { OBJ_X, SPRITE_CODE, REACTION_STATE, ACTOR_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING, REACTION_STATE, PLAYER_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -120,10 +120,10 @@ function stateDiff(entry, fn) {
 /** Classify what the oracle does with an entry, so tests can pick a real WALK / ARM / STAGE state. */
 function outcome(entry) {
   const c = entry.clone();
-  const objxBefore = c.mem.read8(OBJ_X);
+  const objxBefore = c.mem.read8(PLAYER_Y);
   oracle(c);
-  if (c.mem.read8(SPRITE_CODE) === 0x35 && c.mem.read8(REACTION_STATE) === 2) return "ARM";
-  if (c.mem.read8(OBJ_X) !== objxBefore) return "WALK";
+  if (c.mem.read8(PLAYER_FACING) === 0x35 && c.mem.read8(REACTION_STATE) === 2) return "ARM";
+  if (c.mem.read8(PLAYER_Y) !== objxBefore) return "WALK";
   return "STAGE";
 }
 
@@ -206,7 +206,7 @@ test("EQUAL (crafted bump-react): a grid-step wall mismatch arms the reaction, i
   const c = entry.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(REACTION_STATE), 2, "reaction state not armed");
-  assert.equal(c.mem.read8(SPRITE_CODE), 0x35, "bump sprite not set");
+  assert.equal(c.mem.read8(PLAYER_FACING), 0x35, "bump sprite not set");
   console.log("  EQUAL/bump: reaction armed (state 2, sprite 0x35); identical to the oracle");
 });
 
@@ -220,8 +220,8 @@ test("NON-VACUOUS: a tile-58 collect bumps the counter, blanks the cell, queues 
 
   const head = entry.mem.read8(SOUND_HEAD);
   const count = entry.mem.read8(FIRST_LOOT_COUNT);
-  const cell = entry.mem.read16(ACTOR_CELL_PTR);
-  const objxBefore = entry.mem.read8(OBJ_X);
+  const cell = entry.mem.read16(PLAYER_CELL_PTR);
+  const objxBefore = entry.mem.read8(PLAYER_Y);
 
   const c = entry.clone();
   idiomatic(c);
@@ -229,7 +229,7 @@ test("NON-VACUOUS: a tile-58 collect bumps the counter, blanks the cell, queues 
   assert.equal(c.mem.read8(cell), 112, "the collected cell was not blanked to tile 112");
   assert.equal(c.mem.read8(SOUND_HEAD), (head + 1) % 8, "the sound write pointer did not advance");
   assert.equal(c.mem.read8(SOUND_RING + head), TWENTY_SOUND, "the score sound was not queued");
-  assert.notEqual(c.mem.read8(OBJ_X), objxBefore, "the actor did not walk on after collecting");
+  assert.notEqual(c.mem.read8(PLAYER_Y), objxBefore, "the actor did not walk on after collecting");
 
   assert.equal(stateDiff(entry, idiomatic), null, "the collect entry must also match the oracle");
   console.log(
@@ -263,21 +263,21 @@ test("TEETH (loot count): a twin that fails to bump the pickup counter is CAUGHT
 function makeTwinNoBumpSprite(before) {
   return (m) => {
     idiomatic(m);
-    m.mem.write8(SPRITE_CODE, before);
+    m.mem.write8(PLAYER_FACING, before);
   };
 }
 
-test("TEETH (bump reaction): on an arming entry, a twin that skips the reaction sprite is CAUGHT at SPRITE_CODE", () => {
+test("TEETH (bump reaction): on an arming entry, a twin that skips the reaction sprite is CAUGHT at PLAYER_FACING", () => {
   const caps = captureDispatches(200, 4000);
   const base = caps.find((c) => (c.regs.d & 7) === 0);
   const entry = craftOnGrid(base, 0x74);
   assert.equal(outcome(entry), "ARM", "precondition: the crafted entry must drive the bump reaction");
-  const before = entry.mem.read8(SPRITE_CODE);
+  const before = entry.mem.read8(PLAYER_FACING);
   assert.notEqual(before, 0x35, "precondition: the sprite must start un-armed for this teeth check");
 
   const d = stateDiff(entry, makeTwinNoBumpSprite(before));
   assert.notEqual(d, null, "the gate FAILED to catch a skipped bump sprite — it proves nothing");
-  assert.equal(d.addr, SPRITE_CODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`);
+  assert.equal(d.addr, PLAYER_FACING, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/bump: skipped-sprite twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
@@ -287,17 +287,17 @@ test("TEETH (bump reaction): on an arming entry, a twin that skips the reaction 
 /** Broken twin: does the real work, then corrupts the walk position accumulator. */
 function twinCorruptWalk(m) {
   idiomatic(m);
-  m.mem.write8(OBJ_X, m.mem.read8(OBJ_X) ^ 0xff);
+  m.mem.write8(PLAYER_Y, m.mem.read8(PLAYER_Y) ^ 0xff);
 }
 
-test("TEETH (walk): on a walk entry, a twin that corrupts the walk position is CAUGHT at OBJ_X", () => {
+test("TEETH (walk): on a walk entry, a twin that corrupts the walk position is CAUGHT at PLAYER_Y", () => {
   const caps = captureDispatches(500, 4000);
   const entry = caps.find((c) => outcome(c) === "WALK");
   assert.ok(entry, "expected at least one real walk dispatch");
 
   const d = stateDiff(entry, twinCorruptWalk);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted walk — it proves nothing");
-  assert.equal(d.addr, OBJ_X, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJ_X)})`);
+  assert.equal(d.addr, PLAYER_Y, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_Y)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/walk: corrupted-walk twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

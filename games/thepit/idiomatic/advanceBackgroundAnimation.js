@@ -25,7 +25,7 @@
  * which is why each delegation IS an exit.
  *
  * Name kept as advanceBackgroundAnimation: the backdrop-animation subsystem is a best-effort reading, and
- * while the phase counter (ANIM_PHASE_COUNTER) and the flip-tile cell (BG_SPRITE_FRAME) are
+ * while the phase counter (ZONKER_ANIM_PHASE) and the flip-tile cell (ZONKER_FRAME) are
  * now named in ram.js, that (fair-confidence) naming does not pin the routine's specific
  * role — below the bar to promote to an English name.
  *
@@ -43,13 +43,13 @@
  *           the routine tail-jumps, so its caller consumes no register and the chosen
  *           continuation owns everything after the hand-off, identically both sides.
  *           The registers/flags it leaves behind are dead.
- * NAMES:    ANIM_PHASE_COUNTER (0x80e3, the animation phase counter) and BG_SPRITE_FRAME
+ * NAMES:    ZONKER_ANIM_PHASE (0x80e3, the animation phase counter) and ZONKER_FRAME
  *           (0x80dc, the two-state flip tile) from ram.js. The commit tail is the decompiled
  *           setBgSpriteFrame; the oscillator body (0x2fe3) and publish tail (0x3029) are oracle.
  */
 
 import { setBgSpriteFrame } from "./setBgSpriteFrame.js";
-import { ANIM_PHASE_COUNTER, BG_SPRITE_FRAME } from "./ram.js";
+import { ZONKER_ANIM_PHASE, ZONKER_FRAME } from "./ram.js";
 
 
 // The two backdrop tile codes the shimmer toggles between.
@@ -60,8 +60,8 @@ export function advanceBackgroundAnimation(m) {
   const { mem8 } = m;
 
   // Tick the phase countdown (an 8-bit down-counter, so it wraps 0 -> 255).
-  const phase = (mem8[ANIM_PHASE_COUNTER] - 1 + 256) % 256;
-  mem8[ANIM_PHASE_COUNTER] = phase;
+  const phase = (mem8[ZONKER_ANIM_PHASE] - 1 + 256) % 256;
+  mem8[ZONKER_ANIM_PHASE] = phase;
 
   if (phase !== 0) {
     // Countdown still running.
@@ -74,8 +74,8 @@ export function advanceBackgroundAnimation(m) {
   }
 
   // Countdown expired: reload it and flip the shimmer tile to its other code.
-  mem8[ANIM_PHASE_COUNTER] = 8;
-  const tile = mem8[BG_SPRITE_FRAME];
+  mem8[ZONKER_ANIM_PHASE] = 8;
+  const tile = mem8[ZONKER_FRAME];
   m.regs.a = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
 
   // Hand the chosen tile to the commit tail; its return goes to our caller, so this

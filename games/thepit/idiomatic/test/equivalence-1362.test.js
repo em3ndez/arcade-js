@@ -38,7 +38,7 @@ import { loc_1362 as oracle } from "../../translated/loc_1362.js";
 import { seedObjectStartState } from "../seedObjectStartState.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_X, OBJ_Y, SPRITE_CODE, SPAWN_PHASE, DIG_OVERLAP_HOLD, NEXT_TILE } from "../ram.js";
+import { PLAYER_Y, PLAYER_X, PLAYER_FACING, BOARD_END_PHASE, MOVE_BLOCK_FLAG, NEXT_TILE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -51,10 +51,10 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // Every byte the routine writes (named where ram.js has a name, hex otherwise).
 const TARGET_ADDRS = [
-  OBJ_X, OBJ_Y, SPRITE_CODE,
+  PLAYER_Y, PLAYER_X, PLAYER_FACING,
   0x806a, 0x806c, 0x806d, 0x8070, 0x8071, 0x8073,
   0x801a, 0x8075, 0x8076, 0x8077, 0x8078, 0x8079, 0x807a,
-  SPAWN_PHASE, 0x807c, 0x807d, 0x807e, 0x807f, DIG_OVERLAP_HOLD, 0x8081, 0x8082,
+  BOARD_END_PHASE, 0x807c, 0x807d, 0x807e, 0x807f, MOVE_BLOCK_FLAG, 0x8081, 0x8082,
   0x80a2, 0x80a4, 0x80a7, NEXT_TILE,
 ];
 
@@ -127,7 +127,7 @@ test("NON-VACUOUS: with every target pre-set to a sentinel, both arms overwrite 
 /** Broken twin: seeds correctly but the tracked-object start row is one off. */
 function brokenSeedObjectStartState(m) {
   seedObjectStartState(m);
-  m.mem.write8(OBJ_Y, 36); // BUG: start row should be 35
+  m.mem.write8(PLAYER_X, 36); // BUG: start row should be 35
 }
 
 test("TEETH: a twin with the start row one off is CAUGHT", () => {
@@ -145,6 +145,6 @@ test("TEETH: a twin with the start row one off is CAUGHT", () => {
     }
   }
   assert.notEqual(caught, null, "the gate FAILED to catch a wrong-value twin — it proves nothing");
-  assert.equal(caught.addr, OBJ_Y, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
+  assert.equal(caught.addr, PLAYER_X, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
   console.log(`  TEETH: caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });

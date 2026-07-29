@@ -10,9 +10,9 @@
  * work RAM and then hands off to either advanceObjectWalkFrame (walk on) or stageObjectSpriteRecord
  * (hold / arm / settle — rebuild the record in place). Both are already idiomatic, so resolveObjectTerrainStep calls
  * them directly; no register hand-off survives. Its declared LIVE-OUT is MEMORY-ONLY: the two
- * special-tile latches (FEATURE_TILE_LATCH / GOAL_TILE_LATCH), the under/ahead expected-tile records
+ * special-tile latches (PRIZE_GATE / GOAL_TILE_LATCH), the under/ahead expected-tile records
  * (EXPECTED_TILE / NEXT_TILE / the raw-ahead scratch 0x80a6), the push-reaction state/timer/sprite
- * (REACTION_STATE / REACTION_TIMER / SPRITE_CODE), and whatever the record builder or walk step
+ * (REACTION_STATE / REACTION_TIMER / PLAYER_FACING), and whatever the record builder or walk step
  * leaves.
  *
  * FULL-RAM CONTRACT, NO STACK WINDOW. resolveObjectTerrainStep has no ret of its own — every exit is a tail-jump to
@@ -42,7 +42,7 @@
  *   4. EQUAL (cross-check) — both branches of the under-record cross-check (walk vs re-arm the push).
  *   5. NON-VACUOUS — a push-arm entry really sets the reaction state/timer/sprite, and a feature
  *      entry really latches; a no-op twin cannot pass, and both agree with the oracle.
- *   6. TEETH (feature latch) — a twin that skips the feature-tile latch is CAUGHT at FEATURE_TILE_LATCH.
+ *   6. TEETH (feature latch) — a twin that skips the feature-tile latch is CAUGHT at PRIZE_GATE.
  *   7. TEETH (push arm) — a twin that skips the push-reaction arm is CAUGHT at REACTION_STATE.
  *   8. TEETH (ahead lookup) — a twin that corrupts the ahead expected-tile record is CAUGHT at NEXT_TILE.
  *
@@ -58,14 +58,14 @@ import { resolveObjectTerrainStep as idiomatic } from "../resolveObjectTerrainSt
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  FEATURE_TILE_LATCH,
+  PRIZE_GATE,
   GOAL_TILE_LATCH,
   EXPECTED_TILE,
   NEXT_TILE,
   CUR_TILE,
   REACTION_STATE,
   REACTION_TIMER,
-  SPRITE_CODE,
+  PLAYER_FACING,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -230,16 +230,16 @@ test("NON-VACUOUS: a push-arm entry sets the reaction, a feature entry latches, 
   const c = arm.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(REACTION_STATE), 1, "push reaction state not armed");
-  assert.equal(c.mem.read8(SPRITE_CODE), PUSH_SPRITE, "push sprite/handler not set");
+  assert.equal(c.mem.read8(PLAYER_FACING), PUSH_SPRITE, "push sprite/handler not set");
   assert.equal(c.mem.read8(REACTION_TIMER), arm.mem.read8(0x80a3), "push timer not reloaded from its source");
   assert.equal(ramDiff(arm, idiomatic), null, "the push-arm entry must also match the oracle");
 
   // Feature-tile latch: under tile 38 with the latch pre-cleared.
   const feat = craft(base, { underTile: 38, column: 0 });
-  feat.mem.write8(FEATURE_TILE_LATCH, 0);
+  feat.mem.write8(PRIZE_GATE, 0);
   const f = feat.clone();
   idiomatic(f);
-  assert.equal(f.mem.read8(FEATURE_TILE_LATCH), 38, "feature tile not latched");
+  assert.equal(f.mem.read8(PRIZE_GATE), 38, "feature tile not latched");
   assert.equal(ramDiff(feat, idiomatic), null, "the feature entry must also match the oracle");
 
   console.log("  NON-VACUOUS: push reaction armed (state 1, sprite 0xb5, timer reloaded); feature tile 38 latched; both agree");
@@ -249,19 +249,19 @@ test("NON-VACUOUS: a push-arm entry sets the reaction, a feature entry latches, 
 
 /** Broken twin: does the real work, then reverts the feature-tile latch. */
 function twinNoFeatureLatch(m) {
-  const before = m.mem.read8(FEATURE_TILE_LATCH);
+  const before = m.mem.read8(PRIZE_GATE);
   idiomatic(m);
-  m.mem.write8(FEATURE_TILE_LATCH, before); // BUG: undo the latch
+  m.mem.write8(PRIZE_GATE, before); // BUG: undo the latch
 }
 
-test("TEETH (feature latch): a twin that skips the feature-tile latch is CAUGHT at FEATURE_TILE_LATCH", () => {
+test("TEETH (feature latch): a twin that skips the feature-tile latch is CAUGHT at PRIZE_GATE", () => {
   const [base] = captureStates(1, 1, 300);
   const entry = craft(base, { underTile: 38, column: 0 });
-  entry.mem.write8(FEATURE_TILE_LATCH, 0); // start clear so the real routine writes 38
+  entry.mem.write8(PRIZE_GATE, 0); // start clear so the real routine writes 38
 
   const d = ramDiff(entry, twinNoFeatureLatch);
   assert.notEqual(d, null, "the gate FAILED to catch a dropped feature latch — it proves nothing");
-  assert.equal(d.addr, FEATURE_TILE_LATCH, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(FEATURE_TILE_LATCH)})`);
+  assert.equal(d.addr, PRIZE_GATE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PRIZE_GATE)})`);
   assert.equal(ramDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/feature: dropped latch caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

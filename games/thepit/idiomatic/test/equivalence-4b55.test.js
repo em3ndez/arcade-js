@@ -46,7 +46,7 @@ import { loc_4b55 as oracle } from "../../translated/loc_4b55.js";
 import { applyDipSwitches as idiomatic } from "../applyDipSwitches.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
-import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, GAME_STATE2 } from "../ram.js";
+import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -90,7 +90,7 @@ function ramDiff(entry, fn) {
 function craft(seed, dsw, player) {
   const e = seed.clone();
   e.io.dsw = dsw;
-  e.mem.write8(GAME_STATE2, player);
+  e.mem.write8(ACTIVE_PLAYER, player);
   return e;
 }
 
@@ -108,7 +108,7 @@ test("HARNESS: a real 0x4b55 boot entry is captured and the oracle run is determ
   assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr ?? 0)}`);
   console.log(
     `  HARNESS: captured a real 0x4b55 entry (DSW=${hx(entry.io.dsw)}, ` +
-      `player=${entry.mem.read8(GAME_STATE2)}); oracle run deterministic`,
+      `player=${entry.mem.read8(ACTIVE_PLAYER)}); oracle run deterministic`,
   );
 });
 

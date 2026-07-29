@@ -37,7 +37,7 @@
  *           windUpObjectMove) and the goal handler resolveObjectTile are decompiled and called
  *           directly.
  *
- * PURPOSE [guess]: OBJECT_PHASE (0x801a) unnamed; the object-entity identity (see caveat 2).
+ * PURPOSE [guess]: PLAYER_ANIM_PHASE (0x801a) unnamed; the object-entity identity (see caveat 2).
  */
 
 import { GOAL_TILE_LATCH } from "./ram.js";
@@ -47,7 +47,7 @@ import { windUpObjectMove } from "./windUpObjectMove.js";
 import { stepObjectRowUnflipped } from "./stepObjectRowUnflipped.js";
 import { stepObjectRowFlipped } from "./stepObjectRowFlipped.js";
 
-const OBJECT_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
+const PLAYER_ANIM_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
 export function routeIdleObjectByMoveCommand(m) {
   const { regs, mem8 } = m;
@@ -61,7 +61,7 @@ export function routeIdleObjectByMoveCommand(m) {
   if (moveCommand & 0x0c) return windUpObjectMove(m, moveCommand); // reconcile the object's animation phase
 
   // No direction bit set: the object stands still this frame. Reset its animation phase.
-  mem8[OBJECT_PHASE] = 0;
+  mem8[PLAYER_ANIM_PHASE] = 0;
 
   // If the object has already reached the goal tile, run the goal handler; otherwise
   // defer the frame by building the object's record.

@@ -34,14 +34,14 @@
  * LIVE-OUT: memory-only — the docked man count MEN_LEFT, the player record persisted by
  *           saveActivePlayerRecord, and 0x802d / 0x8002 on the mode == 1 arm. No
  *           register or flag is read by any successor, and the routine has no ret.
- * NAMES:    GAME_MODE 0x8001, GAME_STATE2 0x8002, MEN_LEFT 0x802b (ram.js). Kept hex:
+ * NAMES:    GAME_STATE 0x8001, ACTIVE_PLAYER 0x8002, MEN_LEFT 0x802b (ram.js). Kept hex:
  *           0x802c / 0x802d = the two players' backup copies of the working man count
  *           (field 1 of the player record based at 0x8028) — no ram.js names yet.
  *
  * PURPOSE [guess]: the mode 1-vs-2-leg semantics; backup man-count cells 0x802c/0x802d.
  */
 
-import { GAME_MODE, GAME_STATE2, MEN_LEFT } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, MEN_LEFT } from "./ram.js";
 import { saveActivePlayerRecord } from "./saveActivePlayerRecord.js";
 import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
 import { stepRoundSubPhaseAndBranch } from "./stepRoundSubPhaseAndBranch.js";
@@ -52,7 +52,7 @@ export function dockManAndDispatchRoundBoundary(m) {
   const { mem8 } = m;
 
   // No live 1-or-2-player round to wind down: hand straight to the reset epilogue.
-  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
+  if (mem8[GAME_STATE] >= 3) return resetStateAndShowSetup(m);
 
   // Dock one man from the active player's working count, then persist their whole
   // record (including this new count) into their backup so it survives the turn switch.
@@ -60,12 +60,12 @@ export function dockManAndDispatchRoundBoundary(m) {
   saveActivePlayerRecord(m);
 
   // The second leg (mode 2) runs its own phase sequencer to reach the destinations.
-  if (mem8[GAME_MODE] !== 1) return stepRoundSubPhaseAndBranch(m);
+  if (mem8[GAME_STATE] !== 1) return stepRoundSubPhaseAndBranch(m);
 
   // First leg: clear the other player's backup man count and arm the phase byte, then
   // route by whether this player still has men in reserve.
   mem8[0x802d] = 0; // the other player's backup man count
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   if (mem8[0x802c] !== 0) return setUpRoundAndHoldIntro(m); // men left -> set up the next round
   return submitHighScoresAndReset(m); // none left -> end-of-round teardown
 }

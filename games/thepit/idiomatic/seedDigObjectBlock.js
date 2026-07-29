@@ -32,42 +32,42 @@
  * LIVE-OUT: memory-only — the seeded control-block bytes, the copied table, and the
  *           whole tail's effects. The round-init caller consumes the seeded memory,
  *           not any register; the tail owns everything after the hand-off.
- * NAMES:    DIG_OBJ_STATE, DIG_OBJ_ATTR, DIG_OBJ_TIMER, DIG_OBJ_ARM_STATE,
- *           DIG_OBJ_SUBTYPE, TARGET_X, TARGET_Y, SPAWN_STATE, DIG_SPAWN_QUEUE (the table
+ * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_COLLISION_STATE,
+ *           DIG_OBJ_SUBTYPE, HAZARD_X, HAZARD_Y, HAZARD_ACTIVE_COUNT, DROP_QUEUE (the table
  *           destination 0x80c3) from ram.js. The companion byte 0x80c2 is still unnamed
  *           and stays hex. The tail is the decompiled seedBackgroundAnimParams (ROM 0x2f2f).
  */
 
 import { seedBackgroundAnimParams } from "./seedBackgroundAnimParams.js";
 import {
-  DIG_OBJ_ARM_STATE,
-  DIG_OBJ_ATTR,
-  DIG_OBJ_STATE,
+  DIG_COLLISION_STATE,
+  HAZARD_TYPE,
+  HAZARD_STATE,
   DIG_OBJ_SUBTYPE,
   DIG_OBJ_TIMER,
-  DIG_SPAWN_QUEUE,
-  SPAWN_STATE,
-  TARGET_X,
-  TARGET_Y,
+  DROP_QUEUE,
+  HAZARD_ACTIVE_COUNT,
+  HAZARD_X,
+  HAZARD_Y,
 } from "./ram.js";
 
 export function seedDigObjectBlock(m) {
   const { mem8 } = m;
 
   // Reset the dig-object control block to its start-of-round state.
-  mem8[DIG_OBJ_STATE] = 48; // the carving-phase state code
-  mem8[DIG_OBJ_ATTR] = 7; // companion control byte
-  mem8[TARGET_X] = 0; // no captured target column yet
-  mem8[TARGET_Y] = 0; // no captured target row yet
+  mem8[HAZARD_STATE] = 48; // the carving-phase state code
+  mem8[HAZARD_TYPE] = 7; // companion control byte
+  mem8[HAZARD_X] = 0; // no captured target column yet
+  mem8[HAZARD_Y] = 0; // no captured target row yet
   mem8[DIG_OBJ_TIMER] = 0; // companion counter byte
-  mem8[SPAWN_STATE] = 0; // idle — a fresh spawn is permitted
-  mem8[DIG_OBJ_ARM_STATE] = 0; // companion scratch byte
+  mem8[HAZARD_ACTIVE_COUNT] = 0; // idle — a fresh spawn is permitted
+  mem8[DIG_COLLISION_STATE] = 0; // companion scratch byte
   mem8[DIG_OBJ_SUBTYPE] = 0; // companion scratch byte
 
   // Copy the fixed 24-byte column-position table (a 12-entry ramp, duplicated) from
   // ROM into the block.
   for (let i = 0; i < 24; i++) {
-    mem8[DIG_SPAWN_QUEUE + i] = mem8[0x2dab + i];
+    mem8[DROP_QUEUE + i] = mem8[0x2dab + i];
   }
   mem8[0x80c2] = 32; // table-header / count byte
 

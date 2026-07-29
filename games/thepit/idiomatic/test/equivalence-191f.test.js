@@ -3,7 +3,7 @@
  * Memory-equivalence gate for triggerDigReaction (ROM 0x191f) — the dig-arm of the actor-movement
  * classifier: it sorts the tile code under a digging actor into an escape band, an always-hit
  * code list, the sub-cell bit-2 gate, the diggable ROM-table lookup, or a keep-moving path,
- * and stages a reaction (scratch bytes 0x80a2-0x80a7, SPRITE_CODE, NEXT_TILE) plus, for an
+ * and stages a reaction (scratch bytes 0x80a2-0x80a7, PLAYER_FACING, NEXT_TILE) plus, for an
  * armed actor, an arm-state bump and a sound request, before handing off to the record
  * builder (stageObjectSpriteRecord) or the movement continuation (0x19d0).
  *
@@ -51,7 +51,7 @@ import { triggerDigReaction as idiomatic } from "../triggerDigReaction.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { SPRITE_CODE, NEXT_TILE, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { PLAYER_FACING, NEXT_TILE, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -68,7 +68,7 @@ const REACTION_PARAM = 0x80a4;
 const NEIGHBOUR_TILE = 0x80a6;
 const EXPECTED_TILE = 0x80a7;
 const ARM_STATE = 0x80c1;
-const REACTION_BYTES = [REACTION_STEP, REACTION_PARAM, NEIGHBOUR_TILE, EXPECTED_TILE, SPRITE_CODE, NEXT_TILE];
+const REACTION_BYTES = [REACTION_STEP, REACTION_PARAM, NEIGHBOUR_TILE, EXPECTED_TILE, PLAYER_FACING, NEXT_TILE];
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is async, so
 // build the factory once (it closes over the built registry).

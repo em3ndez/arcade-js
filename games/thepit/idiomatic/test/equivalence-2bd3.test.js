@@ -2,7 +2,7 @@
 /**
  * Equivalence gate for stageDigObjectSpriteRecord (ROM 0x2bd3) — publishes the dig object's
  * 4-byte sprite record into slot 2 of the staging buffer (0x8228) from the object's fields
- * (TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, TARGET_Y), the leading coordinate byte biased down
+ * (HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_Y), the leading coordinate byte biased down
  * and the trailing one biased up by the cabinet offset SPRITE_COORD_BIAS, then continues into the
  * per-frame background update 0x2f71 — now the decompiled advanceBackgroundSprite, called directly.
  *
@@ -47,10 +47,10 @@ import { stageDigObjectSpriteRecord as idiomatic } from "../stageDigObjectSprite
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  TARGET_X,
-  DIG_OBJ_STATE,
-  DIG_OBJ_ATTR,
-  TARGET_Y,
+  HAZARD_X,
+  HAZARD_STATE,
+  HAZARD_TYPE,
+  HAZARD_Y,
   SPRITE_COORD_BIAS,
   SPRITE_STAGING_BASE,
 } from "../ram.js";
@@ -66,7 +66,7 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 const RECORD = SPRITE_STAGING_BASE + 8; // dig object's sprite-staging slot (slot 2 = base + 8)
 const RECORD_ADDRS = [RECORD, RECORD + 1, RECORD + 2, RECORD + 3];
-const INPUT_ADDRS = { bias: SPRITE_COORD_BIAS, x: TARGET_X, state: DIG_OBJ_STATE, attr: DIG_OBJ_ATTR, y: TARGET_Y };
+const INPUT_ADDRS = { bias: SPRITE_COORD_BIAS, x: HAZARD_X, state: HAZARD_STATE, attr: HAZARD_TYPE, y: HAZARD_Y };
 
 // Dead stack-scratch window at the top of The Pit's work RAM (stack tops out at 0x83ff). The
 // dissolved 0x2f71 tail (advanceBackgroundSprite) runs stack-free on the idiomatic side while the
@@ -215,7 +215,7 @@ test("NON-VACUOUS: with every record byte pre-set to a sentinel, both arms overw
 /** Broken twin: builds the record and runs the tail, but forgets the offset on the leading byte. */
 function brokenLoc2bd3(m) {
   idiomatic(m); // writes the record (offset applied) then runs the 0x2f71 tail
-  m.mem.write8(RECORD, m.mem.read8(TARGET_X)); // BUG: leading byte should be column - offset
+  m.mem.write8(RECORD, m.mem.read8(HAZARD_X)); // BUG: leading byte should be column - offset
 }
 
 test("TEETH: a twin that drops the offset on the leading byte is CAUGHT", () => {

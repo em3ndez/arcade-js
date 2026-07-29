@@ -18,7 +18,7 @@
  * instead runs the award from a REAL captured sound-request state: the sibling sound stub
  * 0x4c57 (command 2) IS reached during attract, and it leaves a faithful machine state —
  * a valid stack with a return address, an in-play sound-ring pointer, real score bytes.
- * The one input that steers the scorer — the game-mode gate at GAME_MODE — is then swept
+ * The one input that steers the scorer — the game-mode gate at GAME_STATE — is then swept
  * across active (1,2 → add) and idle (0,3 → skip) identically on both sides.
  *
  * ONE WRINKLE — the oracle award routes its sound through the shared enqueue, which parks
@@ -34,7 +34,7 @@
  *      0x4673 is deterministic (oracle vs oracle -> identical whole state, same pc).
  *   1. EQUAL (real entry) — awardOnePoint == oracle over the observable RAM (outside the
  *      stack scratch), and the pending sound really queued.
- *   2. EQUAL (game-mode sweep 0..3) — with GAME_MODE forced active (1,2) and idle (0,3),
+ *   2. EQUAL (game-mode sweep 0..3) — with GAME_STATE forced active (1,2) and idle (0,3),
  *      both arms match; the score gains exactly one point when active and is untouched when
  *      idle, confirming both scorer branches run identically.
  *   3. TEETH (wrong increment) — with the scorer active, a twin that adds TWO points is
@@ -54,7 +54,7 @@ import { awardOnePoint as idiomatic } from "../awardOnePoint.js";
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { GAME_MODE, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { GAME_STATE, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -148,7 +148,7 @@ test("HARNESS: a real 0x4c57 entry is captured and the oracle run of 0x4673 is d
   assert.equal(a.pc, b.pc, "oracle pc not deterministic");
   console.log(
     `  HARNESS: captured a real 0x4c57 entry (SP=${hx(entry.regs.sp)}, ` +
-      `GAME_MODE=${entry.mem.read8(GAME_MODE)}, SOUND_HEAD=${entry.mem.read8(SOUND_HEAD)}); ` +
+      `GAME_STATE=${entry.mem.read8(GAME_STATE)}, SOUND_HEAD=${entry.mem.read8(SOUND_HEAD)}); ` +
       "oracle run of 0x4673 deterministic",
   );
 });
@@ -178,7 +178,7 @@ test("EQUAL (game-mode sweep 0..3): award-when-active, skip-when-idle, both iden
 
   for (let mode = 0; mode < 4; mode++) {
     const entry = seed.clone();
-    entry.mem.write8(GAME_MODE, mode);
+    entry.mem.write8(GAME_STATE, mode);
     const before = entry.mem.read8(SCORE_LO);
 
     const { diffs } = observableDiffs(entry, idiomatic);
@@ -217,7 +217,7 @@ function requestSound13Direct(m) {
 test("TEETH (wrong increment): a twin that awards two points is CAUGHT at the score low byte", () => {
   const entry = captureRealEntry(1500);
   assert.ok(entry, "need a captured 0x4c57 entry to seed the teeth check");
-  entry.mem.write8(GAME_MODE, 1); // scorer active, so the increment reaches memory
+  entry.mem.write8(GAME_STATE, 1); // scorer active, so the increment reaches memory
 
   const { diffs, ram } = observableDiffs(entry, twinWrongIncrement);
   assert.ok(diffs.length > 0, "the gate FAILED to catch the wrong-increment twin — it proves nothing");

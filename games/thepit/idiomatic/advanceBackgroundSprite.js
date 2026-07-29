@@ -51,8 +51,8 @@
  *           video-RAM tiles, and its published sprite record; the routine tail-jumps, so
  *           its caller consumes no register and the object-record pass owns everything
  *           after the hand-off, identically both sides. Leftover registers/flags are dead.
- * NAMES:    GOAL_TILE_LATCH, GOAL_CROSSING_LATCH, OBJ_Y, REVEAL_GATE/PERIOD/CURSOR,
- *           ANIM_PHASE_COUNTER, BG_SPRITE_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from ram.js.
+ * NAMES:    GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, PLAYER_X, ZONKER_REVEAL_GATE/PERIOD/CURSOR,
+ *           ZONKER_ANIM_PHASE, ZONKER_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from ram.js.
  *           Still hex: the pattern-table scratch pointer (0x80e1), the bounce velocity
  *           (0x80df), the fall step (0x80e0), and the sprite-staging slot (0x822c) —
  *           none carry a ram.js name. Delegates to the decompiled requestSound11,
@@ -65,16 +65,16 @@ import { advanceObjectMovers } from "./advanceObjectMovers.js";
 import { u8 } from "../../../core/int.js";
 import {
   GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
-  OBJ_Y,
-  REVEAL_GATE,
-  REVEAL_PERIOD,
-  REVEAL_CURSOR,
-  ANIM_PHASE_COUNTER,
-  BG_SPRITE_X,
-  BG_SPRITE_FRAME,
-  BG_SPRITE_ATTR,
-  BG_SPRITE_Y,
+  PIT_CROSS_ACTIVE,
+  PLAYER_X,
+  ZONKER_REVEAL_GATE,
+  ZONKER_REVEAL_PERIOD,
+  ZONKER_REVEAL_CURSOR,
+  ZONKER_ANIM_PHASE,
+  ZONKER_X,
+  ZONKER_FRAME,
+  ZONKER_ATTR,
+  ZONKER_SHELL_Y,
   SPRITE_COORD_BIAS,
 } from "./ram.js";
 
@@ -117,20 +117,20 @@ export function advanceBackgroundSprite(m) {
   // --- 1. Terrain reveal (only once the goal tile has been reached) ---
   if (mem8[GOAL_TILE_LATCH] !== 0) {
     // As the element rests on the goal row, cue the reveal sound.
-    if (mem8[GOAL_CROSSING_LATCH] !== 0 && mem8[OBJ_Y] === GOAL_ROW) {
+    if (mem8[PIT_CROSS_ACTIVE] !== 0 && mem8[PLAYER_X] === GOAL_ROW) {
       requestSound11(m);
     }
 
     // Tick the reveal gate; reveal a column only on the frame it reaches zero.
-    const gate = mem8[REVEAL_GATE] - 1;
-    mem8[REVEAL_GATE] = gate;
+    const gate = mem8[ZONKER_REVEAL_GATE] - 1;
+    mem8[ZONKER_REVEAL_GATE] = gate;
     if (gate === 0) {
       // Reload the gate and step the cursor back one column through the pattern table.
-      mem8[REVEAL_GATE] = mem8[REVEAL_PERIOD];
-      const cursor = mem8[REVEAL_CURSOR] - TILES_PER_COLUMN;
+      mem8[ZONKER_REVEAL_GATE] = mem8[ZONKER_REVEAL_PERIOD];
+      const cursor = mem8[ZONKER_REVEAL_CURSOR] - TILES_PER_COLUMN;
       if (cursor >= 0) {
         // Still inside the table — stamp this column's 6 tiles up the video column.
-        mem8[REVEAL_CURSOR] = cursor;
+        mem8[ZONKER_REVEAL_CURSOR] = cursor;
         const source = PATTERN_TABLE + cursor;
         mem16[PATTERN_SCRATCH_PTR] = source;
         let cell = COLUMN_BOTTOM_CELL;
@@ -144,8 +144,8 @@ export function advanceBackgroundSprite(m) {
   }
 
   // --- 2. Shimmer clock ---
-  const phase = mem8[ANIM_PHASE_COUNTER] - 1;
-  mem8[ANIM_PHASE_COUNTER] = phase;
+  const phase = mem8[ZONKER_ANIM_PHASE] - 1;
+  mem8[ZONKER_ANIM_PHASE] = phase;
 
   // Off-beat: countdown still running and not the every-fourth frame — no motion, just
   // republish the element where it already is.
@@ -153,15 +153,15 @@ export function advanceBackgroundSprite(m) {
   if (!offBeat) {
     if (phase === 0) {
       // Countdown expired: reload it and flip the shimmer tile to its other code.
-      mem8[ANIM_PHASE_COUNTER] = 8;
-      const tile = mem8[BG_SPRITE_FRAME];
-      mem8[BG_SPRITE_FRAME] = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
+      mem8[ZONKER_ANIM_PHASE] = 8;
+      const tile = mem8[ZONKER_FRAME];
+      mem8[ZONKER_FRAME] = tile === FLIP_TILE_A ? FLIP_TILE_B : FLIP_TILE_A;
     }
 
     // --- 3a. Horizontal bounce ---
     const velocity = mem8[BOUNCE_VELOCITY];
-    const newX = u8(mem8[BG_SPRITE_X] + velocity);
-    mem8[BG_SPRITE_X] = newX;
+    const newX = u8(mem8[ZONKER_X] + velocity);
+    mem8[ZONKER_X] = newX;
     if (newX >= RIGHT_WALL) mem8[BOUNCE_VELOCITY] = STEP_LEFT;
     else if (newX < LEFT_WALL) mem8[BOUNCE_VELOCITY] = STEP_RIGHT;
     // else: mid-band, hold the current velocity.
@@ -169,14 +169,14 @@ export function advanceBackgroundSprite(m) {
     // --- 3b. Vertical fall ---
     const fallStep = mem8[FALL_STEP] + 1; // accelerate the fall each frame
     mem8[FALL_STEP] = fallStep;
-    const newY = u8(mem8[BG_SPRITE_Y] + fallStep);
-    mem8[BG_SPRITE_Y] = newY;
+    const newY = u8(mem8[ZONKER_SHELL_Y] + fallStep);
+    mem8[ZONKER_SHELL_Y] = newY;
     if (newY >= FLOOR_Y) {
       // Reached the floor: clamp, draw a fresh small upward step so it rises again, and
       // advance the colour while holding the priority bit clear.
-      mem8[BG_SPRITE_Y] = FLOOR_Y;
+      mem8[ZONKER_SHELL_Y] = FLOOR_Y;
       mem8[FALL_STEP] = (advanceRandom(m) | 0xf8) - 1;
-      mem8[BG_SPRITE_ATTR] = (mem8[BG_SPRITE_ATTR] + 1) & 0xf7;
+      mem8[ZONKER_ATTR] = (mem8[ZONKER_ATTR] + 1) & 0xf7;
     }
   }
 
@@ -189,8 +189,8 @@ export function advanceBackgroundSprite(m) {
 function publishBackgroundSprite(m) {
   const { mem8 } = m;
   const bias = mem8[SPRITE_COORD_BIAS]; // cabinet coordinate bias (0 in normal play)
-  mem8[SPRITE_SLOT] = mem8[BG_SPRITE_X] - bias; // X, screen-relative
-  mem8[SPRITE_SLOT + 1] = mem8[BG_SPRITE_FRAME]; // tile / frame code
-  mem8[SPRITE_SLOT + 2] = mem8[BG_SPRITE_ATTR]; // colour + priority
-  mem8[SPRITE_SLOT + 3] = mem8[BG_SPRITE_Y] + bias; // Y, screen-relative
+  mem8[SPRITE_SLOT] = mem8[ZONKER_X] - bias; // X, screen-relative
+  mem8[SPRITE_SLOT + 1] = mem8[ZONKER_FRAME]; // tile / frame code
+  mem8[SPRITE_SLOT + 2] = mem8[ZONKER_ATTR]; // colour + priority
+  mem8[SPRITE_SLOT + 3] = mem8[ZONKER_SHELL_Y] + bias; // Y, screen-relative
 }

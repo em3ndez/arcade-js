@@ -3,7 +3,7 @@
  * Memory-equivalence gate for startNextDigSpawn (ROM 0x2bf2, The Pit) — start the next queued
  * dig-object spawn, or clear the spawn-active flag when the 24-slot queue at 0x80c3 is
  * empty. Occupied queue -> tail-call the placement path loc_2c04; empty queue -> clear
- * SPAWN_STATE (0x80bd) and tail-call the background/terrain animation loc_2f71.
+ * HAZARD_ACTIVE_COUNT (0x80bd) and tail-call the background/terrain animation loc_2f71.
  *
  * WHY THE CONTRACT IS RAM-ONLY (outside a stack window). The occupied hand-off is the
  * already-decompiled spawnPendingDigObject; the empty hand-off (0x2f71) is the decompiled
@@ -50,7 +50,7 @@ import { loc_2bf2 as oracle } from "../../translated/loc_2bf2.js";
 import { startNextDigSpawn as idiomatic } from "../startNextDigSpawn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { SPAWN_STATE } from "../ram.js";
+import { HAZARD_ACTIVE_COUNT } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -145,7 +145,7 @@ test("EQUAL (real occupied entry): startNextDigSpawn == oracle over RAM, and the
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
 
   // Positive check: the placement path really ran (it raises the spawn-active flag).
-  assert.equal(b.mem.read8(SPAWN_STATE), 1, "the placement path should raise the spawn-active flag");
+  assert.equal(b.mem.read8(HAZARD_ACTIVE_COUNT), 1, "the placement path should raise the spawn-active flag");
   console.log("  EQUAL/occupied: identical outside the stack window; spawn-active flag raised to 1");
 });
 
@@ -169,7 +169,7 @@ test("EQUAL (crafted empty queue): both clear the spawn-active flag and hand off
   // exclude the dead stack-scratch window and compare the rest.
   const d = ramDiffOutsideStack(a, b, entry.regs.sp);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
-  assert.equal(b.mem.read8(SPAWN_STATE), 0, "the empty path should clear the spawn-active flag to 0");
+  assert.equal(b.mem.read8(HAZARD_ACTIVE_COUNT), 0, "the empty path should clear the spawn-active flag to 0");
   console.log("  EQUAL/empty: whole queue zeroed, both clear the flag and hand off, byte-for-byte identical");
 });
 
@@ -181,7 +181,7 @@ function twinWrongSpawnFlag(m) {
   for (let slot = 0; slot < QUEUE_LEN; slot++) {
     if (mem8[QUEUE_BASE + slot] !== 0) return m.call(0x2c04);
   }
-  mem8[SPAWN_STATE] = 0xff; // BUG: should clear the flag to 0
+  mem8[HAZARD_ACTIVE_COUNT] = 0xff; // BUG: should clear the flag to 0
   return m.call(0x2f71);
 }
 
@@ -199,7 +199,7 @@ test("TEETH (empty path): a wrong spawn-active flag is CAUGHT at 0x80bd", () => 
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.notEqual(d, null, "the gate FAILED to catch a wrong spawn-active flag — it proves nothing");
-  assert.equal(d.addr, SPAWN_STATE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(SPAWN_STATE)})`);
+  assert.equal(d.addr, HAZARD_ACTIVE_COUNT, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(HAZARD_ACTIVE_COUNT)})`);
   console.log(`  TEETH/empty: wrong spawn flag caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
@@ -208,7 +208,7 @@ test("TEETH (empty path): a wrong spawn-active flag is CAUGHT at 0x80bd", () => 
 /** Broken twin: never scans the queue, always takes the empty path (misses the spawn). */
 function twinNeverScans(m) {
   const { mem8 } = m;
-  mem8[SPAWN_STATE] = 0; // BUG: treats the queue as empty without checking
+  mem8[HAZARD_ACTIVE_COUNT] = 0; // BUG: treats the queue as empty without checking
   return m.call(0x2f71);
 }
 
@@ -225,7 +225,7 @@ test("TEETH (occupied path): ignoring the queue and skipping the spawn is CAUGHT
   const d = ramDiffOutsideStack(a, b, entry.regs.sp);
   assert.notEqual(d, null, "the gate FAILED to catch a skipped spawn — it proves nothing");
   // The meaningful behavioural signal: the oracle raised the spawn-active flag, the twin left it clear.
-  assert.equal(a.mem.read8(SPAWN_STATE), 1, "the oracle should have raised the spawn-active flag");
-  assert.equal(b.mem.read8(SPAWN_STATE), 0, "the twin should have left the spawn-active flag clear");
+  assert.equal(a.mem.read8(HAZARD_ACTIVE_COUNT), 1, "the oracle should have raised the spawn-active flag");
+  assert.equal(b.mem.read8(HAZARD_ACTIVE_COUNT), 0, "the twin should have left the spawn-active flag clear");
   console.log(`  TEETH/occupied: skipped spawn caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b}); flag 1 vs 0`);
 });

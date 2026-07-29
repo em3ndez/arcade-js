@@ -48,7 +48,7 @@ import { loc_347d as oracle } from "../../translated/loc_347d.js";
 import { stepMoverMirrored } from "../stepMoverMirrored.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { MOVER_CADENCE, ACTOR_STATE } from "../ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -61,7 +61,7 @@ const RELOAD_PERIOD = 0x8091; // cadence-reload value (read only)
 const DIR_INDEX = 0x8092; // published direction index (this entry = 1)
 const ORIENT_ACC = 0x8083; // orientation/walk-phase accumulator
 const POSITION = 0x8086; // horizontal position (untouched — zero step)
-const EXPECTED_WRITES = new Set([MOVER_CADENCE, DIR_INDEX, ORIENT_ACC, ACTOR_STATE]);
+const EXPECTED_WRITES = new Set([ENEMY_ACTION_TIMER, DIR_INDEX, ORIENT_ACC, ENEMY_WORK_SPRITE]);
 // The stored walk sprite code for a given (post-increment) accumulator value: pick one
 // of four frames by bits 1-2 of (acc+4), then mirror (high bit).
 const WALK_FRAMES = [0x17, 0x14, 0x15, 0x16];
@@ -144,20 +144,20 @@ test("EQUAL (both counter paths): still-counting and cadence-beat leave identica
   // Still-counting path: counter well above 1, only the counter changes.
   {
     const seed = base.clone();
-    seed.mem.write8(MOVER_CADENCE, 40);
+    seed.mem.write8(ENEMY_ACTION_TIMER, 40);
     seed.mem.write8(POSITION, 0x44);
     const o = seed.clone(); oracle(o);
     const c = seed.clone(); stepMoverMirrored(c);
     const diff = ramDiff(o, c);
     assert.equal(diff, null, diff && `still-counting mismatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
-    assert.equal(c.mem.read8(MOVER_CADENCE), 39, "counter must tick down by one");
+    assert.equal(c.mem.read8(ENEMY_ACTION_TIMER), 39, "counter must tick down by one");
     assert.equal(c.mem.read8(POSITION), 0x44, "position must be untouched (zero horizontal step)");
   }
 
   // Cadence-beat path: counter at 1 -> expires; reload + publish + refresh the sprite.
   {
     const seed = base.clone();
-    seed.mem.write8(MOVER_CADENCE, 1);
+    seed.mem.write8(ENEMY_ACTION_TIMER, 1);
     seed.mem.write8(RELOAD_PERIOD, 0x37);
     seed.mem.write8(ORIENT_ACC, 0x05);
     seed.mem.write8(POSITION, 0x44);
@@ -165,10 +165,10 @@ test("EQUAL (both counter paths): still-counting and cadence-beat leave identica
     const c = seed.clone(); stepMoverMirrored(c);
     const diff = ramDiff(o, c);
     assert.equal(diff, null, diff && `cadence-beat mismatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
-    assert.equal(c.mem.read8(MOVER_CADENCE), 0x37, "counter must reload from its period");
+    assert.equal(c.mem.read8(ENEMY_ACTION_TIMER), 0x37, "counter must reload from its period");
     assert.equal(c.mem.read8(DIR_INDEX), 1, "direction index 1 must be published");
     assert.equal(c.mem.read8(ORIENT_ACC), 0x06, "orientation accumulator must advance");
-    assert.equal(c.mem.read8(ACTOR_STATE), expectedSprite(0x05), "walk sprite must be the mirrored frame for this phase");
+    assert.equal(c.mem.read8(ENEMY_WORK_SPRITE), expectedSprite(0x05), "walk sprite must be the mirrored frame for this phase");
     assert.equal(c.mem.read8(POSITION), 0x44, "position must be untouched (zero horizontal step)");
   }
   console.log("  EQUAL/paths: still-counting and cadence-beat both identical to the oracle");
@@ -183,14 +183,14 @@ test("EQUAL (orientation sweep 0..255): on the cadence beat every accumulator va
   const framesSeen = new Set();
   for (let acc = 0; acc < 256; acc++) {
     const seed = base.clone();
-    seed.mem.write8(MOVER_CADENCE, 1); // expire the counter so the walk-frame branch runs
+    seed.mem.write8(ENEMY_ACTION_TIMER, 1); // expire the counter so the walk-frame branch runs
     seed.mem.write8(RELOAD_PERIOD, 0x2a);
     seed.mem.write8(ORIENT_ACC, acc);
     const o = seed.clone(); oracle(o);
     const c = seed.clone(); stepMoverMirrored(c);
     const diff = ramDiff(o, c);
     assert.equal(diff, null, diff && `acc=${hx(acc)} mismatch: RAM@${hx(diff.addr ?? 0)} oracle=${diff.a} idiomatic=${diff.b}`);
-    framesSeen.add(c.mem.read8(ACTOR_STATE));
+    framesSeen.add(c.mem.read8(ENEMY_WORK_SPRITE));
   }
   assert.equal(framesSeen.size, 4, `expected all four walk frames across the sweep, saw ${framesSeen.size}`);
   console.log(`  EQUAL/sweep: 256 orientation values identical to the oracle; all four walk frames exercised`);
@@ -202,34 +202,34 @@ test("EQUAL (orientation sweep 0..255): on the cadence beat every accumulator va
 function beatTwin({ mirror = true, dir = 1 } = {}) {
   return (m) => {
     const { mem8 } = m;
-    const cadence = mem8[MOVER_CADENCE] - 1;
-    mem8[MOVER_CADENCE] = cadence;
+    const cadence = mem8[ENEMY_ACTION_TIMER] - 1;
+    mem8[ENEMY_ACTION_TIMER] = cadence;
     if (cadence !== 0) return;
-    mem8[MOVER_CADENCE] = mem8[RELOAD_PERIOD];
+    mem8[ENEMY_ACTION_TIMER] = mem8[RELOAD_PERIOD];
     mem8[DIR_INDEX] = dir;
     mem8[ORIENT_ACC] = mem8[ORIENT_ACC] + 1;
     const walkPhase = ((mem8[ORIENT_ACC] + 4) & 6) >> 1;
-    mem8[ACTOR_STATE] = WALK_FRAMES[walkPhase] ^ (mirror ? 0x80 : 0x00);
+    mem8[ENEMY_WORK_SPRITE] = WALK_FRAMES[walkPhase] ^ (mirror ? 0x80 : 0x00);
   };
 }
 
 test("TEETH (dropped mirror): a twin that stores the un-mirrored sprite is CAUGHT at 0x8084", () => {
   const [base] = captureStates(1, 1, 200);
   const seed = base.clone();
-  seed.mem.write8(MOVER_CADENCE, 1);
+  seed.mem.write8(ENEMY_ACTION_TIMER, 1);
   seed.mem.write8(ORIENT_ACC, 0x05);
   const a = seed.clone(); oracle(a);
   const b = seed.clone(); beatTwin({ mirror: false })(b);
   const diff = ramDiff(a, b);
   assert.notEqual(diff, null, "the gate FAILED to catch a dropped sprite mirror — it is worthless");
-  assert.equal(diff.addr, ACTOR_STATE, `teeth caught the wrong address ${hx(diff.addr ?? 0)} (expected ${hx(ACTOR_STATE)})`);
+  assert.equal(diff.addr, ENEMY_WORK_SPRITE, `teeth caught the wrong address ${hx(diff.addr ?? 0)} (expected ${hx(ENEMY_WORK_SPRITE)})`);
   console.log(`  TEETH/mirror: dropped-mirror twin caught at ${hx(diff.addr)} (oracle=${diff.a} broken=${diff.b})`);
 });
 
 test("TEETH (wrong direction): a twin that publishes direction 2 is CAUGHT at 0x8092", () => {
   const [base] = captureStates(1, 1, 200);
   const seed = base.clone();
-  seed.mem.write8(MOVER_CADENCE, 1);
+  seed.mem.write8(ENEMY_ACTION_TIMER, 1);
   seed.mem.write8(ORIENT_ACC, 0x05);
   const a = seed.clone(); oracle(a);
   const b = seed.clone(); beatTwin({ dir: 2 })(b);

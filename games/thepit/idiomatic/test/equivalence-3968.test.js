@@ -62,9 +62,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x3968;
-const ACTOR_TIMER = 0x8112; // cadence timer — the fourth-tick gate
-const ACTOR_X = 0x810a;     // the coordinate stepped down
-const TWIN_X = 0x811b;      // the shadow twin (coordinate + 16)
+const ENEMY3_TIMER = 0x8112; // cadence timer — the fourth-tick gate
+const ENEMY3_X = 0x810a;     // the coordinate stepped down
+const ENEMY3_TWIN_X = 0x811b;      // the shadow twin (coordinate + 16)
 const LIMIT = 193;          // steps down only while at or above this
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -126,8 +126,8 @@ test("EQUAL: easeActorToRest == oracle on real attract dispatches (full RAM dump
 
   let stepDown = 0, idle = 0, belowLimit = 0;
   for (const cap of entries) {
-    const timer = cap.mem.read8(ACTOR_TIMER);
-    const coord = cap.mem.read8(ACTOR_X);
+    const timer = cap.mem.read8(ENEMY3_TIMER);
+    const coord = cap.mem.read8(ENEMY3_X);
     if (timer % 4 !== 0) idle++;
     else if (coord >= LIMIT) stepDown++;
     else belowLimit++;
@@ -165,14 +165,14 @@ test("EXHAUSTIVE: over all 65,536 (timer, coordinate) combos the two writes matc
   for (let timer = 0; timer < 256; timer++) {
     for (let coord = 0; coord < 256; coord++) {
       for (const mm of [oracleM, idioM]) {
-        mm.mem.write8(ACTOR_TIMER, timer);
-        mm.mem.write8(ACTOR_X, coord);
+        mm.mem.write8(ENEMY3_TIMER, timer);
+        mm.mem.write8(ENEMY3_X, coord);
         mm.regs.sp = SP_ANCHOR;
       }
       oracle(oracleM);
       easeActorToRest(idioM);
 
-      for (const addr of [ACTOR_X, TWIN_X]) {
+      for (const addr of [ENEMY3_X, ENEMY3_TWIN_X]) {
         const o = oracleM.mem.read8(addr);
         const b = idioM.mem.read8(addr);
         if (o !== b) {
@@ -199,12 +199,12 @@ test("EXHAUSTIVE: over all 65,536 (timer, coordinate) combos the two writes matc
 /** Broken twin A: wrong threshold — steps down at 192 too. */
 function brokenThreshold(m) {
   const { mem } = m;
-  if (mem.read8(ACTOR_TIMER) % 4 === 0) {
-    const coord = mem.read8(ACTOR_X);
+  if (mem.read8(ENEMY3_TIMER) % 4 === 0) {
+    const coord = mem.read8(ENEMY3_X);
     if (coord >= 192) { // BUG: should be 193
       const stepped = coord - 1;
-      mem.write8(ACTOR_X, stepped);
-      mem.write8(TWIN_X, stepped + 16);
+      mem.write8(ENEMY3_X, stepped);
+      mem.write8(ENEMY3_TWIN_X, stepped + 16);
     }
   }
   return stageActorSpriteRecords(m);
@@ -213,12 +213,12 @@ function brokenThreshold(m) {
 /** Broken twin B: wrong twin offset — trails 15 above instead of 16. */
 function brokenOffset(m) {
   const { mem } = m;
-  if (mem.read8(ACTOR_TIMER) % 4 === 0) {
-    const coord = mem.read8(ACTOR_X);
+  if (mem.read8(ENEMY3_TIMER) % 4 === 0) {
+    const coord = mem.read8(ENEMY3_X);
     if (coord >= 193) {
       const stepped = coord - 1;
-      mem.write8(ACTOR_X, stepped);
-      mem.write8(TWIN_X, stepped + 15); // BUG: should be +16
+      mem.write8(ENEMY3_X, stepped);
+      mem.write8(ENEMY3_TWIN_X, stepped + 15); // BUG: should be +16
     }
   }
   return stageActorSpriteRecords(m);
@@ -227,11 +227,11 @@ function brokenOffset(m) {
 /** Broken twin C: drops the fourth-tick gate — steps down every tick. */
 function brokenNoGate(m) {
   const { mem } = m;
-  const coord = mem.read8(ACTOR_X); // BUG: no `timer % 4 === 0` guard
+  const coord = mem.read8(ENEMY3_X); // BUG: no `timer % 4 === 0` guard
   if (coord >= 193) {
     const stepped = coord - 1;
-    mem.write8(ACTOR_X, stepped);
-    mem.write8(TWIN_X, stepped + 16);
+    mem.write8(ENEMY3_X, stepped);
+    mem.write8(ENEMY3_TWIN_X, stepped + 16);
   }
   return stageActorSpriteRecords(m);
 }
@@ -243,8 +243,8 @@ test("TEETH: three broken twins are all CAUGHT", () => {
   // Twin A: only bites when coord == 192 on a fourth tick.
   {
     const cap = entry.clone();
-    cap.mem.write8(ACTOR_TIMER, 4); // 4 % 4 == 0
-    cap.mem.write8(ACTOR_X, 192);
+    cap.mem.write8(ENEMY3_TIMER, 4); // 4 % 4 == 0
+    cap.mem.write8(ENEMY3_X, 192);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenThreshold(b);
     const diff = observableDiff(a, b);
@@ -255,8 +255,8 @@ test("TEETH: three broken twins are all CAUGHT", () => {
   // Twin B: bites on any step-down (coord >= 193 on a fourth tick).
   {
     const cap = entry.clone();
-    cap.mem.write8(ACTOR_TIMER, 4);
-    cap.mem.write8(ACTOR_X, 200);
+    cap.mem.write8(ENEMY3_TIMER, 4);
+    cap.mem.write8(ENEMY3_X, 200);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenOffset(b);
     const diff = observableDiff(a, b);
@@ -267,8 +267,8 @@ test("TEETH: three broken twins are all CAUGHT", () => {
   // Twin C: bites on a NON-fourth tick with coord >= 193 (oracle idles, twin steps).
   {
     const cap = entry.clone();
-    cap.mem.write8(ACTOR_TIMER, 5); // 5 % 4 != 0 -> oracle does nothing
-    cap.mem.write8(ACTOR_X, 200);
+    cap.mem.write8(ENEMY3_TIMER, 5); // 5 % 4 != 0 -> oracle does nothing
+    cap.mem.write8(ENEMY3_X, 200);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenNoGate(b);
     const diff = observableDiff(a, b);

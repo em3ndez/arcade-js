@@ -69,7 +69,7 @@ import { resetStateAndShowSetup as idiomatic } from "../resetStateAndShowSetup.j
 import { applyDipSwitches } from "../applyDipSwitches.js";
 import { showSetupScreen } from "../showSetupScreen.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, GAME_STATE2, STEP_TIMER_BASE } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, STEP_TIMER_BASE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -183,8 +183,8 @@ test("HARNESS: the real boot 0x03ac dispatch is captured and the oracle run is d
 
   const { ram, oracleM } = runPair(oracle); // candidate arm = the oracle itself
   assert.equal(ram, null, ram && `oracle run not deterministic: diff at ${hx(ram.addr ?? 0)}`);
-  assert.equal(oracleM.mem.read8(GAME_MODE), 0, "the epilogue must clear the active-player byte to 0");
-  assert.equal(oracleM.mem.read8(GAME_STATE2), 1, "the epilogue must arm the secondary state byte to 1");
+  assert.equal(oracleM.mem.read8(GAME_STATE), 0, "the epilogue must clear the active-player byte to 0");
+  assert.equal(oracleM.mem.read8(ACTIVE_PLAYER), 1, "the epilogue must arm the secondary state byte to 1");
   assert.equal(oracleM.mem.read8(HOLD_COUNTER), 0, "the setup screen's thirty-pass hold must drain to 0");
   console.log(
     `  HARNESS: captured a real 0x03ac entry (SP=${hx(ENTRY.regs.sp)}, DSW=${hx(ENTRY.io.dsw)}); ` +
@@ -200,8 +200,8 @@ test("EQUAL (real dispatch): resetStateAndShowSetup == oracle over RAM outside t
 
   // Positive checks: the two state bytes, the DIP-decoded block (DSW=0 -> slow base 55),
   // the delegated setup record, and the drained hold counter.
-  assert.equal(candM.mem.read8(GAME_MODE), 0, "active-player byte must be cleared to 0");
-  assert.equal(candM.mem.read8(GAME_STATE2), 1, "secondary state byte must be armed to 1");
+  assert.equal(candM.mem.read8(GAME_STATE), 0, "active-player byte must be cleared to 0");
+  assert.equal(candM.mem.read8(ACTIVE_PLAYER), 1, "secondary state byte must be armed to 1");
   assert.equal(candM.mem.read8(STEP_TIMER_BASE), 55, "DIP decode must run (default cabinet step-timer base)");
   assert.equal(candM.mem.read8(REC_A), candM.mem.read8(DSW_COUNT_A), "setup screen must stamp the count record");
   assert.equal(candM.mem.read8(HOLD_COUNTER), 0, "setup hold counter must drain to 0");
@@ -224,13 +224,13 @@ test("EQUAL (DIP sweep): the DIP byte poked to representative values (< 0x80) st
 /** Broken twin: runs correctly, then corrupts the active-player byte. */
 function twinWrongModeStore(m) {
   idiomatic(m);
-  m.mem.write8(GAME_MODE, m.mem.read8(GAME_MODE) ^ 0xff); // BUG: wrong active-player byte
+  m.mem.write8(GAME_STATE, m.mem.read8(GAME_STATE) ^ 0xff); // BUG: wrong active-player byte
 }
 
 test("TEETH (wrong mode store): a corrupted active-player byte is CAUGHT at 0x8001", () => {
   const { ram } = runPair(twinWrongModeStore);
   assert.notEqual(ram, null, "the gate FAILED to catch a corrupted mode store — it is worthless");
-  assert.equal(ram.addr, GAME_MODE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
+  assert.equal(ram.addr, GAME_STATE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_STATE)})`);
   console.log(`  TEETH/mode: caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
 
@@ -240,8 +240,8 @@ test("TEETH (wrong mode store): a corrupted active-player byte is CAUGHT at 0x80
  *  entry pre-poked non-zero, the missing store leaves the wrong value behind. */
 function twinDropModeClear(m) {
   const { mem8 } = m;
-  // BUG: the `mem8[GAME_MODE] = 0` store is dropped.
-  mem8[GAME_STATE2] = 1;
+  // BUG: the `mem8[GAME_STATE] = 0` store is dropped.
+  mem8[ACTIVE_PLAYER] = 1;
   applyDipSwitches(m);
   m.push16(0x03bb);
   showSetupScreen(m);
@@ -251,13 +251,13 @@ function twinDropModeClear(m) {
 test("TEETH (dropped mode-clear): with 0x8001 pre-poked non-zero, skipping the clear is CAUGHT at 0x8001", () => {
   // Sanity: with the entry pre-poked non-zero, the CORRECT routine still clears it to 0
   // (so the poke is not itself the diff), and the drop-twin is caught.
-  const clean = runPair(idiomatic, { poke: { addr: GAME_MODE, val: 0x55 } });
+  const clean = runPair(idiomatic, { poke: { addr: GAME_STATE, val: 0x55 } });
   assert.equal(clean.ram, null, clean.ram && `pre-poked entry must stay equal for the correct routine (diff at ${hx(clean.ram?.addr ?? 0)})`);
-  assert.equal(clean.candM.mem.read8(GAME_MODE), 0, "the correct routine must clear the pre-poked byte to 0");
+  assert.equal(clean.candM.mem.read8(GAME_STATE), 0, "the correct routine must clear the pre-poked byte to 0");
 
-  const { ram } = runPair(twinDropModeClear, { poke: { addr: GAME_MODE, val: 0x55 } });
+  const { ram } = runPair(twinDropModeClear, { poke: { addr: GAME_STATE, val: 0x55 } });
   assert.notEqual(ram, null, "the gate FAILED to catch the dropped mode-clear — the store looks dead");
-  assert.equal(ram.addr, GAME_MODE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
+  assert.equal(ram.addr, GAME_STATE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_STATE)})`);
   assert.equal(ram.a, 0, "oracle clears the byte to 0");
   assert.equal(ram.b, 0x55, "the drop-twin leaves the pre-poked value");
   console.log(`  TEETH/dropclear: caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b}) — the clear store is load-bearing`);

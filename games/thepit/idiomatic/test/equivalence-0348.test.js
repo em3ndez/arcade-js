@@ -47,7 +47,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0348 as oracle } from "../../translated/loc_0348.js";
 import { mainLoop as idiomatic } from "../mainLoop.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE } from "../ram.js";
+import { GAME_STATE } from "../ram.js";
 
 // The idiomatic services the teeth twins reuse (they mirror mainLoop's body, one break each).
 import { enableNmi } from "../enableNmi.js";
@@ -182,7 +182,7 @@ test("HARNESS: a real 0x0348 entry is captured and the oracle's one pass is dete
   const diff = diffOnePass(entry, oracle); // oracle vs oracle -> must be identical
   assert.equal(diff, null, diff && `oracle run not deterministic: diff at ${hx(diff.addr)}`);
   console.log(
-    `  HARNESS: captured a real 0x0348 entry (game-mode ${entry.mem.read8(GAME_MODE)}); ` +
+    `  HARNESS: captured a real 0x0348 entry (game-mode ${entry.mem.read8(GAME_STATE)}); ` +
       "oracle one-pass deterministic; loop confirmed non-returning",
   );
 });
@@ -192,7 +192,7 @@ test("HARNESS: a real 0x0348 entry is captured and the oracle's one pass is dete
 test("EQUAL (real entry, demo mode): mainLoop == oracle over work/colour/video/sprite RAM", () => {
   const entry = captureRealEntry();
   assert.ok(entry, "need a captured 0x0348 entry");
-  assert.equal(entry.mem.read8(GAME_MODE), 4, "the attract-demo entry is game-mode 4 (demo-steer arm)");
+  assert.equal(entry.mem.read8(GAME_STATE), 4, "the attract-demo entry is game-mode 4 (demo-steer arm)");
 
   const diff = diffOnePass(entry, idiomatic);
   assert.equal(diff, null, diff && `RAM diff at ${hx(diff.addr)} oracle=${diff.a} idiomatic=${diff.b}`);
@@ -205,7 +205,7 @@ test("EQUAL (crafted game-mode 0): the demo steerer is skipped on both sides, id
   const seed = captureRealEntry();
   assert.ok(seed, "need a captured 0x0348 entry to craft from");
   const entry = seed.clone();
-  entry.mem.write8(GAME_MODE, 0); // force the non-demo mode identically for both sides
+  entry.mem.write8(GAME_STATE, 0); // force the non-demo mode identically for both sides
 
   const diff = diffOnePass(entry, idiomatic);
   assert.equal(diff, null, diff && `RAM diff at ${hx(diff.addr)} oracle=${diff.a} idiomatic=${diff.b}`);
@@ -220,7 +220,7 @@ function twinDroppedService(m) {
   for (;;) {
     void mem8[WATCHDOG];
     enableNmi(m);
-    if (mem8[GAME_MODE] === 4) steerDemoPlayer(m);
+    if (mem8[GAME_STATE] === 4) steerDemoPlayer(m);
     dispatchObjectFrameByStateTimer(m);
     advanceColumnAnimation(m);
     glitterJewels(m);
@@ -234,7 +234,7 @@ function twinFlippedDemoTest(m) {
   for (;;) {
     void mem8[WATCHDOG];
     enableNmi(m);
-    if (mem8[GAME_MODE] !== 4) steerDemoPlayer(m); // BUG: should be === 4
+    if (mem8[GAME_STATE] !== 4) steerDemoPlayer(m); // BUG: should be === 4
     dispatchObjectFrameByStateTimer(m);
     advanceColumnAnimation(m);
     glitterJewels(m);
@@ -254,7 +254,7 @@ test("TEETH (dropped service): a twin that omits the reaction driver is CAUGHT i
 test("TEETH (flipped demo test): a twin that steers on the wrong mode is CAUGHT in RAM", () => {
   const entry = captureRealEntry();
   assert.ok(entry, "need a captured 0x0348 entry to seed the teeth check");
-  assert.equal(entry.mem.read8(GAME_MODE), 4, "demo-mode entry needed to expose the flipped test");
+  assert.equal(entry.mem.read8(GAME_STATE), 4, "demo-mode entry needed to expose the flipped test");
 
   const diff = diffOnePass(entry, twinFlippedDemoTest);
   assert.ok(diff, "the gate FAILED to catch the flipped demo-mode test — it proves nothing");

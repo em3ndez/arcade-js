@@ -34,15 +34,15 @@
  *           records. The registers/flags and the return address the oracle path pushes
  *           for the sound call are dead: the caller chain is all tail-jumps that read
  *           no returned register.
- * NAMES:    SPAWN_PHASE, ACTOR_X/ACTOR_Y/ACTOR_TILE/ACTOR_TIMER, TWIN_X/TWIN_TILE/
- *           TWIN_CLEAR from ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on
+ * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/
+ *           ENEMY3_TWIN_Y from ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on
  *           each record, unnamed in ram.js) and the video/colour anchor cells
  *           0x93a3/0x8ba3 (hardware display addresses).
  */
 
 import {
-  SPAWN_PHASE, ACTOR_X, ACTOR_Y, ACTOR_TILE, ACTOR_TIMER,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR,
+  BOARD_END_PHASE, ENEMY3_X, ENEMY3_Y, ENEMY3_TILE, ENEMY3_TIMER,
+  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
 } from "./ram.js";
 import { advanceAltPhaseActor } from "./advanceAltPhaseActor.js";
 import { requestSound7 } from "./requestSound7.js";
@@ -70,26 +70,26 @@ const BLOCK_COLS = 2;
 export function spawnAltPhaseActor(m) {
   const { mem8 } = m;
 
-  const phase = mem8[SPAWN_PHASE];
+  const phase = mem8[BOARD_END_PHASE];
 
   // Already alive: skip the spawn, just animate this frame.
   if (phase === ACTIVE) return advanceAltPhaseActor(m);
 
   // First frame. The start row comes from the spawn sub-phase.
   const startRow = phase === 2 ? 22 : 23;
-  mem8[ACTOR_Y] = startRow;
-  mem8[TWIN_CLEAR] = startRow; // twin mirrors the primary's row
+  mem8[ENEMY3_Y] = startRow;
+  mem8[ENEMY3_TWIN_Y] = startRow; // twin mirrors the primary's row
 
   // Mark the actor live so later frames animate, and play the spawn sound.
-  mem8[SPAWN_PHASE] = ACTIVE;
+  mem8[BOARD_END_PHASE] = ACTIVE;
   requestSound7(m);
 
   // Seed the primary + shadow-twin records.
-  mem8[ACTOR_X] = START_COLUMN;
-  mem8[TWIN_X] = START_COLUMN + SHADOW_COLUMN_OFFSET;
-  mem8[ACTOR_TILE] = PRIMARY_TILE;
-  mem8[TWIN_TILE] = SHADOW_TILE;
-  mem8[ACTOR_TIMER] = 1; // cadence timer, armed
+  mem8[ENEMY3_X] = START_COLUMN;
+  mem8[ENEMY3_TWIN_X] = START_COLUMN + SHADOW_COLUMN_OFFSET;
+  mem8[ENEMY3_TILE] = PRIMARY_TILE;
+  mem8[ENEMY3_TWIN_TILE] = SHADOW_TILE;
+  mem8[ENEMY3_TIMER] = 1; // cadence timer, armed
   mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
   mem8[TWIN_PAIRED] = PAIRED_DISPLAY;
 

@@ -37,8 +37,8 @@
  *           second-loot latch, the queued sound and score, the blanked cell, and whatever the
  *           walk step or the terrain resolver leaves. No register live-out (the walk path's phase
  *           is set inside advanceObjectWalkFrame, already covered by its own gate).
- * NAMES:    CUR_TILE, EXPECTED_TILE, LOOT_10PT_COUNT, LOOT_20PT_COUNT, SPAWN_STATE,
- *           ACTOR_CELL_PTR from ram.js. The one-shot second-loot latch 0x8078 stays hex — its
+ * NAMES:    CUR_TILE, EXPECTED_TILE, CRYSTAL_COUNT, DIAMOND_COUNT, HAZARD_ACTIVE_COUNT,
+ *           PLAYER_CELL_PTR from ram.js. The one-shot second-loot latch 0x8078 stays hex — its
  *           role is clear here but not yet grounded across the game. The terrain classification,
  *           its ROM tables, and the push-reaction state live inside resolveObjectTerrainStep.
  *
@@ -48,10 +48,10 @@
 import {
   CUR_TILE,
   EXPECTED_TILE,
-  LOOT_10PT_COUNT,
-  LOOT_20PT_COUNT,
-  SPAWN_STATE,
-  ACTOR_CELL_PTR,
+  CRYSTAL_COUNT,
+  DIAMOND_COUNT,
+  HAZARD_ACTIVE_COUNT,
+  PLAYER_CELL_PTR,
 } from "./ram.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
@@ -67,7 +67,7 @@ const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup
 /** Blank the collected cell the object stands on, then step its walk animation + record. */
 function clearCollectedCellAndWalk(m) {
   const { mem8, mem16 } = m;
-  mem8[mem16[ACTOR_CELL_PTR]] = BLANK_TILE;
+  mem8[mem16[PLAYER_CELL_PTR]] = BLANK_TILE;
   return advanceObjectWalkFrame(m);
 }
 
@@ -87,7 +87,7 @@ export function collectAlignedLootElseResolveTile(m, column = m.regs.d, cellPtr 
     // First loot kind: 10 points, count it, blank the cell, walk on.
     if (underTile === 58) {
       awardTenPoints(m);
-      mem8[LOOT_10PT_COUNT] = mem8[LOOT_10PT_COUNT] + 1;
+      mem8[CRYSTAL_COUNT] = mem8[CRYSTAL_COUNT] + 1;
       return clearCollectedCellAndWalk(m);
     }
 
@@ -96,11 +96,11 @@ export function collectAlignedLootElseResolveTile(m, column = m.regs.d, cellPtr 
     // falls through to a plain terrain step).
     if (underTile >= 59 && underTile <= 61) {
       if (mem8[SECOND_LOOT_LATCH] === 0) {
-        if (mem8[SPAWN_STATE] !== 0) return resolveObjectTerrainStep(m, underTile, column, cellPtr);
+        if (mem8[HAZARD_ACTIVE_COUNT] !== 0) return resolveObjectTerrainStep(m, underTile, column, cellPtr);
         mem8[SECOND_LOOT_LATCH] = 1;
       }
       awardTwentyPoints(m);
-      mem8[LOOT_20PT_COUNT] = mem8[LOOT_20PT_COUNT] + 1;
+      mem8[DIAMOND_COUNT] = mem8[DIAMOND_COUNT] + 1;
       return clearCollectedCellAndWalk(m);
     }
   }

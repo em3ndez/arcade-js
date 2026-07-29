@@ -56,7 +56,7 @@ import { requestSound16 } from "../requestSound16.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { SOUND_HEAD, SOUND_RING, GAME_MODE } from "../ram.js";
+import { SOUND_HEAD, SOUND_RING, GAME_STATE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -187,7 +187,7 @@ test("EQUAL (active-player add path): awardTenPoints == oracle; score gains 10; 
   for (const active of [1, 2]) {
     for (const cap of caps) {
       const entry = cap.clone();
-      entry.mem.write8(GAME_MODE, active); // force an active player so the add lands
+      entry.mem.write8(GAME_STATE, active); // force an active player so the add lands
       const head = entry.mem.read8(SOUND_HEAD);
       const before = entry.mem.read8(SCORE_LOW);
 
@@ -217,7 +217,7 @@ test("EQUAL (inactive skip path): awardTenPoints == oracle; score untouched; sou
   for (const inactive of [0, 3]) {
     for (const cap of caps) {
       const entry = cap.clone();
-      entry.mem.write8(GAME_MODE, inactive); // no active player -> the adder skips the add
+      entry.mem.write8(GAME_STATE, inactive); // no active player -> the adder skips the add
       const head = entry.mem.read8(SOUND_HEAD);
       const before = entry.mem.read8(SCORE_LOW);
 
@@ -243,7 +243,7 @@ test("TEETH (wrong sound / wrong increment): both twins are CAUGHT", () => {
   const caps = captureAttractStates(6, CAP_FRAMES);
   assert.ok(caps.length >= 1, "need a capture to seed the teeth check");
   const seed = caps[0].clone();
-  seed.mem.write8(GAME_MODE, 1); // active player so the score path is exercised
+  seed.mem.write8(GAME_STATE, 1); // active player so the score path is exercised
   const head = seed.mem.read8(SOUND_HEAD);
 
   const soundRes = contractDiffs(seed, twinWrongSound);
@@ -271,7 +271,7 @@ test("TEETH (dropped add): a twin that never adds to the score is CAUGHT at the 
   const caps = captureAttractStates(6, CAP_FRAMES);
   assert.ok(caps.length >= 1, "need a capture to seed the teeth check");
   const seed = caps[0].clone();
-  seed.mem.write8(GAME_MODE, 1); // active player so the oracle really adds
+  seed.mem.write8(GAME_STATE, 1); // active player so the oracle really adds
 
   const res = contractDiffs(seed, twinDroppedAdd);
   assert.ok(res.diffs.length > 0, "the gate FAILED to catch the dropped-add twin — it proves nothing");

@@ -35,27 +35,27 @@
  *           and, on the cadence tick, the travel-direction index (0x8092). The new
  *           coordinate the oracle leaves in the accumulator is dead ABI: the driver reaches
  *           here by tail-jump and reads no register back.
- * NAMES:    MOVER_CADENCE (0x808b) is this object's cadence countdown here — loc_3490's
+ * NAMES:    ENEMY_ACTION_TIMER (0x808b) is this object's cadence countdown here — loc_3490's
  *           reading of that dual-use byte, the same one reseedMoverCadenceAndRearmState periodically
- *           reseeds. MOVER_MOVE_PERIOD (0x8091) is the reload period; the direction
+ *           reseeds. ENEMY_WORK_MOVE_PERIOD (0x8091) is the reload period; the direction
  *           index (0x8092) and vertical position (0x8086 = MOVER_Y, screen-vertical) have
  *           no ram.js name yet and stay hex.
  */
 
-import { MOVER_CADENCE, MOVER_DIRECTION, MOVER_MOVE_PERIOD } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD } from "./ram.js";
 
 export function stepMoverUp(m) {
   const { mem8 } = m;
 
   // Tick the movement-cadence countdown (stored back; 0 becomes 255 on wrap).
-  const cadence = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = cadence;
+  const cadence = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = cadence;
 
   // On the frame the countdown expires, re-commit the motion: reload the countdown
   // from its period byte and (re)publish this preset's travel-direction index (0).
   if (cadence === 0) {
-    mem8[MOVER_CADENCE] = mem8[MOVER_MOVE_PERIOD]; // reload period for the cadence countdown
-    mem8[MOVER_DIRECTION] = 0; // published travel-direction index the driver reads next frame
+    mem8[ENEMY_ACTION_TIMER] = mem8[ENEMY_WORK_MOVE_PERIOD]; // reload period for the cadence countdown
+    mem8[ENEMY_WORK_DIR] = 0; // published travel-direction index the driver reads next frame
   }
 
   // Step the object UP the screen one pixel every frame: decrement its vertical position

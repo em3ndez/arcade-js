@@ -55,20 +55,20 @@
  *           timer, and the panel/colour cells the two painters write. The residual
  *           register file is dead here (the caller overwrites it at once), so it is
  *           deliberately not part of the contract.
- * NAMES:    OBJECT_ACTIVE, OBJ_X, OBJ_Y, FRAME_COUNTER, SPAWN_PHASE, STATE_TIMER,
+ * NAMES:    PLAYER_ACTIVE, PLAYER_Y, PLAYER_X, PLAY_PHASE_COUNTER, BOARD_END_PHASE, TRANSITION_TIMER,
  *           DEMO_STEER_DIR from ram.js. Local: HOUSEKEEPING_TIMER (0x800b) and BAND_HINT
  *           (0x800c) — both private to this per-frame service (enterPlayMode only inits them),
  *           so they stay local rather than shared.
  */
 
 import {
-  FRAME_COUNTER,
-  OBJ_X,
-  OBJ_Y,
-  SPAWN_PHASE,
+  PLAY_PHASE_COUNTER,
+  PLAYER_Y,
+  PLAYER_X,
+  BOARD_END_PHASE,
   DEMO_STEER_DIR,
-  OBJECT_ACTIVE,
-  STATE_TIMER,
+  PLAYER_ACTIVE,
+  TRANSITION_TIMER,
 } from "./ram.js";
 import { drawCreditsDisplay } from "./drawCreditsDisplay.js";
 import { cyclePanelColumnColour } from "./cyclePanelColumnColour.js";
@@ -192,7 +192,7 @@ export function steerDemoPlayer(m) {
   const { mem8 } = m;
 
   // 1. Periodic HUD panel redraw when the frame counter has wrapped to zero.
-  if (mem8[FRAME_COUNTER] === 0) {
+  if (mem8[PLAY_PHASE_COUNTER] === 0) {
     // drawCreditsDisplay is idiomatic but still calls two oracle copy/fill helpers; the bracket
     // holds the stack pointer where they expect it (see header). Dissolves when they do.
     m.push16(0x03ef);
@@ -204,12 +204,12 @@ export function steerDemoPlayer(m) {
   mem8[HOUSEKEEPING_TIMER] = timer;
   if (timer === 0) {
     mem8[HOUSEKEEPING_TIMER] = 30; // reload the countdown
-    if (mem8[STATE_TIMER] !== 0) {
+    if (mem8[TRANSITION_TIMER] !== 0) {
       // The object is locked in a timed state — give up the whole frame, no classify.
       m.ret();
       return;
     }
-    if (mem8[SPAWN_PHASE] === 0) {
+    if (mem8[BOARD_END_PHASE] === 0) {
       // Not mid-spawn: recolour one playfield column by one palette step. Its whole
       // chain is idiomatic, so this is a plain direct call.
       cyclePanelColumnColour(m);
@@ -218,14 +218,14 @@ export function steerDemoPlayer(m) {
 
   // 3. Classify the maze wall under the probe — only when the tracked object is live;
   //    otherwise the previous frame's direction code stands.
-  if (mem8[OBJECT_ACTIVE] === 0) {
+  if (mem8[PLAYER_ACTIVE] === 0) {
     m.ret();
     return;
   }
 
   // The probe point sits a few pixels inside the tracked object's bounding box.
-  const probeX = u8(mem8[OBJ_X] + 3);
-  const probeY = u8(mem8[OBJ_Y] + 5);
+  const probeX = u8(mem8[PLAYER_Y] + 3);
+  const probeY = u8(mem8[PLAYER_X] + 5);
 
   mem8[DEMO_STEER_DIR] = classifyBands(m, probeX, probeY);
   m.ret();

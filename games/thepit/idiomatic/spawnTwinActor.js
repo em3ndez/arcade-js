@@ -6,10 +6,10 @@
  *
  * A sibling of spawnAltPhaseActor/advanceOrRebuildTwinActor: the same conditional one-shot spawn shape. It
  * only fires when this actor's slot is flagged as pending — a nonzero request byte
- * at ACTOR_Y. When nothing is pending it returns immediately, touching nothing.
+ * at ENEMY3_Y. When nothing is pending it returns immediately, touching nothing.
  * When a spawn IS pending it:
  *
- *   - Clears the request (ACTOR_Y and its twin mirror back to 0) so the spawn runs
+ *   - Clears the request (ENEMY3_Y and its twin mirror back to 0) so the spawn runs
  *     exactly once.
  *   - Stamps the actor's on-screen figure: a fixed 4-row x 2-col block of eight
  *     consecutive tiles (0xa8..0xaf, filled top-to-bottom then left-to-right) into
@@ -33,24 +33,24 @@
  *           records (which stageActorSpriteRecords then materialises). No live register/flag out:
  *           stageActorSpriteRecords overwrites the working registers and the whole-machine attract
  *           gate backstops the rest.
- * NAMES:    ACTOR_Y / TWIN_CLEAR (the request byte + its mirror), ACTOR_X /
- *           ACTOR_TILE / ACTOR_TIMER and TWIN_X / TWIN_TILE from ram.js. The twin
+ * NAMES:    ENEMY3_Y / ENEMY3_TWIN_Y (the request byte + its mirror), ENEMY3_X /
+ *           ENEMY3_TILE / ENEMY3_TIMER and ENEMY3_TWIN_X / ENEMY3_TWIN_TILE from ram.js. The twin
  *           timer, the twin-mirror state/phase fields, and the phase source 0x8028
  *           have no confirmed name yet and stay hex.
  */
 
 import {
-  ACTOR_ATTR,
-  ACTOR_TILE,
-  ACTOR_TIMER,
-  ACTOR_X,
-  ACTOR_Y,
+  ENEMY3_ATTR,
+  ENEMY3_TILE,
+  ENEMY3_TIMER,
+  ENEMY3_X,
+  ENEMY3_Y,
   LEVEL,
-  TWIN_ATTR,
-  TWIN_CLEAR,
-  TWIN_TILE,
-  TWIN_TIMER,
-  TWIN_X,
+  ENEMY3_TWIN_ATTR,
+  ENEMY3_TWIN_Y,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_TIMER,
+  ENEMY3_TWIN_X,
 } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
@@ -68,11 +68,11 @@ export function spawnTwinActor(m) {
   const { mem8 } = m;
 
   // Only spawn when this actor's slot is flagged pending; otherwise do nothing.
-  if (mem8[ACTOR_Y] === 0) return;
+  if (mem8[ENEMY3_Y] === 0) return;
 
   // Consume the request so the spawn happens exactly once.
-  mem8[ACTOR_Y] = 0;
-  mem8[TWIN_CLEAR] = 0;
+  mem8[ENEMY3_Y] = 0;
+  mem8[ENEMY3_TWIN_Y] = 0;
 
   // Draw the figure: eight consecutive tiles, one shared colour, top row first.
   let tile = FIRST_TILE;
@@ -86,16 +86,16 @@ export function spawnTwinActor(m) {
   }
 
   // Seed the primary actor record and its mirrored twin to identical start values.
-  mem8[ACTOR_TILE] = 9;
-  mem8[TWIN_TILE] = 9;
-  mem8[ACTOR_X] = 0;
-  mem8[TWIN_X] = 0;
-  mem8[ACTOR_ATTR] = 0; // primary state byte
-  mem8[TWIN_ATTR] = 0; // twin state byte
+  mem8[ENEMY3_TILE] = 9;
+  mem8[ENEMY3_TWIN_TILE] = 9;
+  mem8[ENEMY3_X] = 0;
+  mem8[ENEMY3_TWIN_X] = 0;
+  mem8[ENEMY3_ATTR] = 0; // primary state byte
+  mem8[ENEMY3_TWIN_ATTR] = 0; // twin state byte
   mem8[0x8117] = 0; // primary sub-state
   mem8[0x8128] = 0; // twin sub-state
-  mem8[ACTOR_TIMER] = 180; // primary countdown, ~3 seconds
-  mem8[TWIN_TIMER] = 180; // twin countdown
+  mem8[ENEMY3_TIMER] = 180; // primary countdown, ~3 seconds
+  mem8[ENEMY3_TWIN_TIMER] = 180; // twin countdown
   mem8[0x811a] = 6; // primary per-record constant
   mem8[0x812b] = 7; // twin per-record constant (one higher)
 

@@ -5,7 +5,7 @@
  * difficulty/scoring code read.
  *
  * The block is interleaved as triples [shared cell, player-1 copy, player-2 copy]
- * strided three apart from LEVEL. GAME_STATE2 selects the player: 1 uses the
+ * strided three apart from LEVEL. ACTIVE_PLAYER selects the player: 1 uses the
  * player-1 copies (one byte past each shared cell), anything else the player-2
  * copies (two bytes past). Its declared live-out is MEMORY-ONLY — the five
  * refreshed shared cells — so the gate compares RAM only; the oracle's residual
@@ -17,7 +17,7 @@
  * Per the crafted-entry method the gate instead runs the routine from a REAL captured
  * attract state (cloned at the first dispatch of the unrelated, reached leaf 0x3dae,
  * which gives a valid stack + register file), then pokes the routine's only inputs —
- * GAME_STATE2 and the two players' source blocks — identically on both sides. The
+ * ACTIVE_PLAYER and the two players' source blocks — identically on both sides. The
  * player index is swept across 1 / 2 / 0 so both the player-1 and player-2 (and the
  * "not 1" edge) branches are exercised, with distinct source bytes so the branch
  * choice is observable in the shared cells.
@@ -32,8 +32,8 @@
  *   0. HARNESS — capture a real attract state and confirm the oracle run of 0x4644 is
  *      deterministic (oracle vs oracle -> identical RAM).
  *   1. EQUAL (real entry) — loadPlayerState == oracle over RAM on the captured state
- *      as-is (its natural GAME_STATE2).
- *   2. EQUAL (player sweep 1/2/0) — with GAME_STATE2 forced to each and distinct
+ *      as-is (its natural ACTIVE_PLAYER).
+ *   2. EQUAL (player sweep 1/2/0) — with ACTIVE_PLAYER forced to each and distinct
  *      player-1/player-2 source blocks, both copy the SAME selected block into the
  *      shared cells; positive checks confirm which block landed.
  *   3. TEETH (wrong player) — a twin that always reads the player-1 copies is CAUGHT
@@ -53,7 +53,7 @@ import { loadPlayerState as idiomatic } from "../loadPlayerState.js";
 import { loc_3dae as reachedLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { LEVEL, GAME_STATE2 } from "../ram.js";
+import { LEVEL, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -92,7 +92,7 @@ function captureRealEntry(maxFrames) {
 
 /** Poke the routine's inputs: the selected-player index and both players' source blocks. */
 function seedInputs(m, playerIndex) {
-  m.mem.write8(GAME_STATE2, playerIndex);
+  m.mem.write8(ACTIVE_PLAYER, playerIndex);
   for (let i = 0; i < 5; i++) {
     m.mem.write8(SHARED_CELLS[i] + 1, PLAYER1[i]); // player-1 copy, one byte past the shared cell
     m.mem.write8(SHARED_CELLS[i] + 2, PLAYER2[i]); // player-2 copy, two bytes past
@@ -122,7 +122,7 @@ test("HARNESS: a real attract entry is captured and the oracle run of 0x4644 is 
   assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr ?? 0)}`);
   console.log(
     `  HARNESS: captured a real attract state (SP=${hx(entry.regs.sp)}, ` +
-      `GAME_STATE2=${entry.mem.read8(GAME_STATE2)}); oracle run of 0x4644 deterministic`,
+      `ACTIVE_PLAYER=${entry.mem.read8(ACTIVE_PLAYER)}); oracle run of 0x4644 deterministic`,
   );
 });
 
@@ -134,7 +134,7 @@ test("EQUAL (real entry): loadPlayerState == oracle over RAM", () => {
 
   const d = ramDiff(entry, idiomatic);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)} (oracle=${d.a} cand=${d.b})`);
-  console.log("  EQUAL/real: identical RAM on the captured state's natural GAME_STATE2");
+  console.log("  EQUAL/real: identical RAM on the captured state's natural ACTIVE_PLAYER");
 });
 
 // -- 2. EQUAL across a crafted sweep of the selected player -------------------

@@ -31,7 +31,7 @@
  *           registers right after the call, so the residual register file (and the
  *           transient stack return-slots) are dead. pc + SP still match: the routine
  *           returns to its still-oracle caller through the balanced stack.
- * NAMES:    GAME_MODE (0x8001), GAME_STATE2 (0x8002) from ram.js. Hex-kept: 0x8028 is
+ * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002) from ram.js. Hex-kept: 0x8028 is
  *           the shared display slot; 0x8ba1 / 0x8961 are the two HUD colour-column
  *           bottom cells. The state-copy callee is now the idiomatic loadPlayerState
  *           (0x4644), a direct JS call.
@@ -41,7 +41,7 @@ import { drawScoreDigits } from "./drawScoreDigits.js";
 import { drawGameOverLabel } from "./drawGameOverLabel.js";
 import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { loadPlayerState } from "./loadPlayerState.js";
-import { GAME_MODE, GAME_STATE2 } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "./ram.js";
 
 // One screen row = 32 cells across the 32-wide tile/colour map.
 const ROW = 32;
@@ -58,11 +58,11 @@ export function redrawScoreHud(m) {
   const { mem8 } = m;
 
   // Remember the active player; the per-player sweep reselects each slot in turn.
-  const activePlayer = mem8[GAME_STATE2];
+  const activePlayer = mem8[ACTIVE_PLAYER];
 
   // Player 1 then player 2: refresh the score column and clear the cells above it.
   for (const player of [1, 2]) {
-    mem8[GAME_STATE2] = player;
+    mem8[ACTIVE_PLAYER] = player;
     loadPlayerState(m); // copy this player's saved state into the shared display slot 0x8028
     drawScoreDigits(m); // repaint the four digits; hands the score-column base back in ix
     const columnBase = m.regs.ix;
@@ -71,13 +71,13 @@ export function redrawScoreHud(m) {
   }
 
   // Reselect the active player and re-copy its state for the downstream HUD work.
-  mem8[GAME_STATE2] = activePlayer;
+  mem8[ACTIVE_PLAYER] = activePlayer;
   loadPlayerState(m);
 
   // Draw the status label from the player count. Both label routines are idiomatic but
   // tail-return through the stack (their leaf helpers are still the oracle), so each is
   // handed the return slot the oracle would push for it.
-  const players = mem8[GAME_MODE];
+  const players = mem8[GAME_STATE];
   if (players === 1 || players === 2) {
     m.push16(0x4768);
     drawPlayerLabel(m); // in-game status panel

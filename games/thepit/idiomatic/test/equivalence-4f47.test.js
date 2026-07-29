@@ -67,7 +67,7 @@ import { loc_4f47 as oracle } from "../../translated/loc_4f47.js";
 import { showColourTestScreen as idiomatic } from "../showColourTestScreen.js";
 import { loc_4b55 as oracleDipDecode } from "../../translated/loc_4b55.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, IN0_DEBOUNCED } from "../ram.js";
+import { GAME_STATE, IN0_DEBOUNCED } from "../ram.js";
 
 // Idiomatic callees for the faithful teeth twins.
 import { blankScreen } from "../blankScreen.js";
@@ -149,7 +149,7 @@ function installEpilogueStop(m) {
   const mem = m.mem;
   const origWrite8 = mem.write8.bind(mem);
   mem.write8 = (addr, val) => {
-    if (addr === GAME_MODE && val === 0) throw new EpilogueReached();
+    if (addr === GAME_STATE && val === 0) throw new EpilogueReached();
     origWrite8(addr, val);
   };
 }
@@ -217,7 +217,7 @@ test("HARNESS: the real 0x4b55 entry is captured and the oracle run is determini
   // Idle branch: a released trigger, DIP top bit clear so the decode returns.
   const idle = runPair(oracle, { in0: 0x00, dsw: 0x00 });
   assert.equal(idle.ram, null, idle.ram && `oracle idle run not deterministic: diff at ${hx(idle.ram.addr ?? 0)}`);
-  assert.equal(idle.oracleM.mem.read8(GAME_MODE), 9, "the routine marks the mode byte as the test screen (9)");
+  assert.equal(idle.oracleM.mem.read8(GAME_STATE), 9, "the routine marks the mode byte as the test screen (9)");
 
   // Sweep branch: both triggers held.
   const sweep = runPair(oracle, { in0: TRIGGERS_HELD, sweep: true });
@@ -234,7 +234,7 @@ test("EQUAL (idle branch): showColourTestScreen == oracle over RAM outside the s
   const { ram, candM } = runPair(idiomatic, { in0: 0x00, dsw: 0x00 });
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
 
-  assert.equal(candM.mem.read8(GAME_MODE), 9, "the mode byte must be marked as the test screen (9)");
+  assert.equal(candM.mem.read8(GAME_STATE), 9, "the mode byte must be marked as the test screen (9)");
   assert.equal(candM.mem.read8(COLOUR_BASE), 0, "the screen must be blanked (colour map flooded with 0)");
   console.log("  EQUAL/idle: identical observable RAM; mode byte 9, screen blanked");
 });
@@ -262,7 +262,7 @@ test("EQUAL (sweep branch): the flooded video + colour RAM match the oracle at t
   assert.equal(candM.mem.read8(COLOUR_BASE + 1023), 255, "the whole colour map must be flooded, to the last cell");
   assert.equal(candM.mem.read8(VIDEO_BASE + 5), 5, "the tilemap ramp: cell 5 holds tile index 5");
   assert.equal(candM.mem.read8(VIDEO_BASE + 256), 0, "the tilemap ramp repeats every 256 cells (cell 256 -> 0)");
-  assert.equal(candM.mem.read8(GAME_MODE), 9, "the mode byte holds the test-screen value (9) at the hand-off");
+  assert.equal(candM.mem.read8(GAME_STATE), 9, "the mode byte holds the test-screen value (9) at the hand-off");
   assert.equal(candM.mem.read8(PASS_COLOUR), 255, "the pass-colour scratch holds the final pass value (255)");
   console.log("  EQUAL/sweep: identical flooded screen at the hand-off; colour=255, tile ramp 0..255, mode 9");
 });
@@ -272,7 +272,7 @@ test("EQUAL (sweep branch): the flooded video + colour RAM match the oracle at t
 /** Faithful idle-branch twin with the mode=9 store OMITTED. */
 function twinDropModeStore(m) {
   const { mem8 } = m;
-  // BUG: the mem8[GAME_MODE] = 9 store is dropped.
+  // BUG: the mem8[GAME_STATE] = 9 store is dropped.
   blankScreen(m);
   const input = mem8[IN0_DEBOUNCED];
   if ((input & 0x08) === 0 || (input & 0x10) === 0) return applyDipSwitches(m);
@@ -281,13 +281,13 @@ function twinDropModeStore(m) {
 
 test("TEETH (dropped mode store): with 0x8001 pre-poked non-zero, skipping the mode store is CAUGHT at 0x8001", () => {
   // Sanity: with the entry pre-poked non-zero, the CORRECT routine still sets it to 9.
-  const clean = runPair(idiomatic, { in0: 0x00, dsw: 0x00, poke: { addr: GAME_MODE, val: 0x55 } });
+  const clean = runPair(idiomatic, { in0: 0x00, dsw: 0x00, poke: { addr: GAME_STATE, val: 0x55 } });
   assert.equal(clean.ram, null, clean.ram && `pre-poked entry must stay equal for the correct routine (diff at ${hx(clean.ram?.addr ?? 0)})`);
-  assert.equal(clean.candM.mem.read8(GAME_MODE), 9, "the correct routine must set the pre-poked byte to 9");
+  assert.equal(clean.candM.mem.read8(GAME_STATE), 9, "the correct routine must set the pre-poked byte to 9");
 
-  const { ram } = runPair(twinDropModeStore, { in0: 0x00, dsw: 0x00, poke: { addr: GAME_MODE, val: 0x55 } });
+  const { ram } = runPair(twinDropModeStore, { in0: 0x00, dsw: 0x00, poke: { addr: GAME_STATE, val: 0x55 } });
   assert.notEqual(ram, null, "the gate FAILED to catch the dropped mode store — the store looks dead");
-  assert.equal(ram.addr, GAME_MODE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
+  assert.equal(ram.addr, GAME_STATE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(GAME_STATE)})`);
   assert.equal(ram.a, 9, "oracle sets the mode byte to 9");
   assert.equal(ram.b, 0x55, "the drop-twin leaves the pre-poked value");
   console.log(`  TEETH/mode: caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b}) — the mode store is load-bearing`);
@@ -298,7 +298,7 @@ test("TEETH (dropped mode store): with 0x8001 pre-poked non-zero, skipping the m
 /** Faithful sweep-branch twin that floods the colour map off by one bit. */
 function twinWrongSweepColour(m) {
   const { mem8 } = m;
-  mem8[GAME_MODE] = 9;
+  mem8[GAME_STATE] = 9;
   blankScreen(m);
   const input = mem8[IN0_DEBOUNCED];
   if ((input & 0x08) === 0 || (input & 0x10) === 0) return applyDipSwitches(m);
@@ -330,7 +330,7 @@ test("TEETH (wrong sweep colour): a colour off by one bit is CAUGHT in the colou
 /** Twin that bails even with both triggers held — never runs the sweep. */
 function twinDropSweep(m) {
   const { mem8 } = m;
-  mem8[GAME_MODE] = 9;
+  mem8[GAME_STATE] = 9;
   blankScreen(m);
   return applyDipSwitches(m); // BUG: ignores the triggers, never sweeps
 }

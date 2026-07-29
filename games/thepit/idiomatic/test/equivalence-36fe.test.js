@@ -40,14 +40,14 @@ import { seedActorSpawnState } from "../seedActorSpawnState.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  SPAWN_PHASE,
-  ACTOR_X,
-  ACTOR_TILE,
-  ACTOR_Y,
-  ACTOR_TIMER,
-  TWIN_X,
-  TWIN_TILE,
-  TWIN_CLEAR,
+  BOARD_END_PHASE,
+  ENEMY3_X,
+  ENEMY3_TILE,
+  ENEMY3_Y,
+  ENEMY3_TIMER,
+  ENEMY3_TWIN_X,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_Y,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -62,9 +62,9 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // Every byte the routine writes (named where ram.js has a name, hex otherwise).
 const TARGET_ADDRS = [
-  ACTOR_X, ACTOR_TILE, ACTOR_Y, 0x810c, 0x810e, 0x810f, ACTOR_TIMER,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR, 0x811d, 0x811f, 0x8120, 0x8123,
-  SPAWN_PHASE,
+  ENEMY3_X, ENEMY3_TILE, ENEMY3_Y, 0x810c, 0x810e, 0x810f, ENEMY3_TIMER,
+  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, 0x811d, 0x811f, 0x8120, 0x8123,
+  BOARD_END_PHASE,
 ];
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -136,7 +136,7 @@ test("NON-VACUOUS: with every target pre-set to a sentinel, both arms overwrite 
 /** Broken twin: seeds correctly but the primary start column is one off. */
 function brokenSeedActorSpawnState(m) {
   seedActorSpawnState(m);
-  m.mem.write8(ACTOR_X, 37); // BUG: start column should be 36
+  m.mem.write8(ENEMY3_X, 37); // BUG: start column should be 36
 }
 
 test("TEETH: a twin with the primary start column one off is CAUGHT", () => {
@@ -154,6 +154,6 @@ test("TEETH: a twin with the primary start column one off is CAUGHT", () => {
     }
   }
   assert.notEqual(caught, null, "the gate FAILED to catch a wrong-value twin — it proves nothing");
-  assert.equal(caught.addr, ACTOR_X, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
+  assert.equal(caught.addr, ENEMY3_X, `teeth caught the wrong address ${hx(caught.addr ?? 0)}`);
   console.log(`  TEETH: caught at ${hx(caught.addr)} (oracle=${caught.a} broken=${caught.b})`);
 });

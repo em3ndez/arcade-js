@@ -5,8 +5,8 @@
  * during a goal crossing once the actor has reached the far edge, arms the state-lockout timer
  * and clears the object's leading coordinate, before rebuilding the object's record (stageObjectSpriteRecord).
  *
- * Its declared LIVE-OUT is MEMORY-ONLY: everything it produces lands in work RAM (SPRITE_CODE,
- * the STATE_TIMER + OBJ_X far-edge pair, and stageObjectSpriteRecord's record). The oracle's residual registers
+ * Its declared LIVE-OUT is MEMORY-ONLY: everything it produces lands in work RAM (PLAYER_FACING,
+ * the TRANSITION_TIMER + PLAYER_Y far-edge pair, and stageObjectSpriteRecord's record). The oracle's residual registers
  * are dead ABI — and because the idiomatic tail calls the decompiled stageObjectSpriteRecord directly (no Z80
  * ret, no stack pushes) rather than the oracle's stack-threaded tail-jump, comparing the full
  * register file or SP would false-fail an honest rewrite. So the gate is the RAM state dump only
@@ -34,9 +34,9 @@
  *      (row 138+), the exact >= boundary, and frames {0x34, 0xb4, 0, 0xff}.
  *   3. NON-VACUOUS — pre-set the three written bytes to a sentinel on a far-edge entry; both arms
  *      overwrite all three and agree, so a no-op twin cannot pass.
- *   4. TEETH (frame) — a twin that commits the wrong animation frame is CAUGHT at SPRITE_CODE.
+ *   4. TEETH (frame) — a twin that commits the wrong animation frame is CAUGHT at PLAYER_FACING.
  *   5. TEETH (far-edge latch) — a twin that skips arming the state-lockout timer on the far-edge
- *      branch is CAUGHT at STATE_TIMER (this routine's distinctive one-shot).
+ *      branch is CAUGHT at TRANSITION_TIMER (this routine's distinctive one-shot).
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-19e3.test.js
  */
@@ -51,7 +51,7 @@ import { loc_19d0 as oracle19d0 } from "../../translated/loc_19d0.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { SPRITE_CODE, GOAL_CROSSING_LATCH, OBJ_Y, STATE_TIMER, OBJ_X } from "../ram.js";
+import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -62,7 +62,7 @@ const test = ROM_PRESENT
 
 const CAPTURE_AT = 0x19d0; // loc_19d0 — 0x19e3's only in-code predecessor, dispatched in attract
 const FAR_EDGE = 138; // the row the actor must reach for the far-edge one-shot (oracle cp 0x8a)
-const LOCKOUT = 180; // the value armed into STATE_TIMER on the far-edge path (oracle 0xb4)
+const LOCKOUT = 180; // the value armed into TRANSITION_TIMER on the far-edge path (oracle 0xb4)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is async, so
@@ -98,10 +98,10 @@ function stateDiff(entry, fn) {
 function craft(base, { frame, latch, objY, stateTimer, objX } = {}) {
   const e = base.clone();
   if (frame !== undefined) e.regs.a = frame;
-  if (latch !== undefined) e.mem.write8(GOAL_CROSSING_LATCH, latch);
-  if (objY !== undefined) e.mem.write8(OBJ_Y, objY);
-  if (stateTimer !== undefined) e.mem.write8(STATE_TIMER, stateTimer);
-  if (objX !== undefined) e.mem.write8(OBJ_X, objX);
+  if (latch !== undefined) e.mem.write8(PIT_CROSS_ACTIVE, latch);
+  if (objY !== undefined) e.mem.write8(PLAYER_X, objY);
+  if (stateTimer !== undefined) e.mem.write8(TRANSITION_TIMER, stateTimer);
+  if (objX !== undefined) e.mem.write8(PLAYER_Y, objX);
   return e;
 }
 
@@ -122,7 +122,7 @@ test("EQUAL: drawActorWalkFrame leaves the same RAM as the oracle over every rea
 
   const latchesSeen = new Set();
   for (const cap of caps) {
-    latchesSeen.add(cap.mem.read8(GOAL_CROSSING_LATCH));
+    latchesSeen.add(cap.mem.read8(PIT_CROSS_ACTIVE));
     const entry = craft(cap, { frame: 0x34 }); // commit a realistic walk frame
     const d = stateDiff(entry, idiomatic);
     assert.equal(d, null, d && `state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
@@ -157,9 +157,9 @@ test("EQUAL (crafted): every branch and every incoming frame matches the oracle"
   const fired = craft(base, { frame: 0xb4, latch: 1, objY: FAR_EDGE, stateTimer: 0, objX: 99 });
   const c = fired.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(SPRITE_CODE), 0xb4, "far-edge arm must commit the frame");
-  assert.equal(c.mem.read8(STATE_TIMER), LOCKOUT, "far-edge arm must arm the state-lockout timer");
-  assert.equal(c.mem.read8(OBJ_X), 0, "far-edge arm must clear the leading coordinate");
+  assert.equal(c.mem.read8(PLAYER_FACING), 0xb4, "far-edge arm must commit the frame");
+  assert.equal(c.mem.read8(TRANSITION_TIMER), LOCKOUT, "far-edge arm must arm the state-lockout timer");
+  assert.equal(c.mem.read8(PLAYER_Y), 0, "far-edge arm must clear the leading coordinate");
   console.log(`  EQUAL/crafted: ${arms.length} branch/frame arms identical; far-edge one-shot fires (timer=${LOCKOUT}, X=0)`);
 });
 
@@ -170,35 +170,35 @@ test("NON-VACUOUS: with the written bytes pre-set to a sentinel, both arms overw
   const SENTINEL = 0x55;
   // Far-edge entry so all three written bytes (frame, timer, leading X) are touched.
   const entry = craft(base, { frame: 0xb4, latch: 1, objY: FAR_EDGE, stateTimer: SENTINEL, objX: SENTINEL });
-  entry.mem.write8(SPRITE_CODE, SENTINEL);
+  entry.mem.write8(PLAYER_FACING, SENTINEL);
 
   const a = entry.clone(); // oracle
   const b = entry.clone(); // idiomatic
   oracle(a);
   idiomatic(b);
 
-  for (const addr of [SPRITE_CODE, STATE_TIMER, OBJ_X]) {
+  for (const addr of [PLAYER_FACING, TRANSITION_TIMER, PLAYER_Y]) {
     assert.notEqual(b.mem.read8(addr), SENTINEL, `idiomatic left ${hx(addr)} unwritten (still the sentinel)`);
   }
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.equal(d, null, d && `state diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
-  console.log("  NON-VACUOUS: SPRITE_CODE, STATE_TIMER, OBJ_X all overwritten from the sentinel; arms agree");
+  console.log("  NON-VACUOUS: PLAYER_FACING, TRANSITION_TIMER, PLAYER_Y all overwritten from the sentinel; arms agree");
 });
 
 // -- 4. TEETH (frame): a wrong committed frame is CAUGHT ---------------------
 
 /** Broken twin: commits an animation frame one off from the one it was handed. */
 function twinWrongFrame(m, spriteCode = m.regs.a) {
-  idiomatic(m, (spriteCode + 1) & 0xff); // BUG: wrong frame committed to SPRITE_CODE
+  idiomatic(m, (spriteCode + 1) & 0xff); // BUG: wrong frame committed to PLAYER_FACING
 }
 
-test("TEETH (frame): a twin that commits the wrong animation frame is CAUGHT at SPRITE_CODE", () => {
+test("TEETH (frame): a twin that commits the wrong animation frame is CAUGHT at PLAYER_FACING", () => {
   const [base] = captureBaseStates(1, 3000);
   const entry = craft(base, { frame: 0x34, latch: 0, objY: 10 });
 
   const d = stateDiff(entry, twinWrongFrame);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong-frame twin — it proves nothing");
-  assert.equal(d.addr, SPRITE_CODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`);
+  assert.equal(d.addr, PLAYER_FACING, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`);
 
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/frame: wrong-frame twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
@@ -209,20 +209,20 @@ test("TEETH (frame): a twin that commits the wrong animation frame is CAUGHT at 
 /** Broken twin: does the routine but forgets to arm the state-lockout timer on the far-edge path. */
 function twinSkipLatch(m, spriteCode = m.regs.a) {
   const { mem8 } = m;
-  mem8[SPRITE_CODE] = spriteCode;
-  if (mem8[GOAL_CROSSING_LATCH] !== 0 && mem8[OBJ_Y] >= FAR_EDGE) {
-    mem8[OBJ_X] = 0; // BUG: STATE_TIMER left unarmed
+  mem8[PLAYER_FACING] = spriteCode;
+  if (mem8[PIT_CROSS_ACTIVE] !== 0 && mem8[PLAYER_X] >= FAR_EDGE) {
+    mem8[PLAYER_Y] = 0; // BUG: TRANSITION_TIMER left unarmed
   }
   stageObjectSpriteRecord(m);
 }
 
-test("TEETH (far-edge latch): a twin that skips arming the state-lockout timer is CAUGHT at STATE_TIMER", () => {
+test("TEETH (far-edge latch): a twin that skips arming the state-lockout timer is CAUGHT at TRANSITION_TIMER", () => {
   const [base] = captureBaseStates(1, 3000);
   const entry = craft(base, { frame: 0xb4, latch: 1, objY: FAR_EDGE, stateTimer: 0 });
 
   const d = stateDiff(entry, twinSkipLatch);
   assert.notEqual(d, null, "the gate FAILED to catch a skipped far-edge latch — it proves nothing");
-  assert.equal(d.addr, STATE_TIMER, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(STATE_TIMER)})`);
+  assert.equal(d.addr, TRANSITION_TIMER, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(TRANSITION_TIMER)})`);
 
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/latch: skipped-latch twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);

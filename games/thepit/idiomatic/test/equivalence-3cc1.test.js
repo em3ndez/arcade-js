@@ -63,7 +63,7 @@ import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
 import { drawBestScoresTodayLabel } from "../drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "../drawRightEdgeColumn.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, GAME_STATE2 } from "../ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -197,7 +197,7 @@ function paintPanel(m, opts = {}) {
   seatCell(m, 9, 13);
   mem.write8(FILL_ATTR, 0xa5);
   mem.write8(PLOT_RUN_LENGTH, 1);
-  copyGlyphsDown(m, GAME_STATE2, 0x3d0c);
+  copyGlyphsDown(m, ACTIVE_PLAYER, 0x3d0c);
   mem.write8(PLOT_RUN_LENGTH, 7);
   fillStripDown(m, 0x49b1, 0x3d18);
   mem.write8(PLOT_RUN_LENGTH, 8);

@@ -3,8 +3,8 @@
  * Memory-equivalence gate for advanceDigTarget (ROM 0x2d06) — advance the dig target one step and
  * route on the tile it now covers: embed it into the terrain on solid ground, else re-stage it.
  *
- * The routine advances the target's position (TARGET_Y += 1), builds the video-RAM cell it now
- * covers (row from TARGET_X, column from the advanced position), leaves that cell as the live carve
+ * The routine advances the target's position (HAZARD_Y += 1), builds the video-RAM cell it now
+ * covers (row from HAZARD_X, column from the advanced position), leaves that cell as the live carve
  * cursor (0x80af), and reads the tile a fixed step ahead of it. Three "solid" codes (42/43/65) route
  * to the embed continuation landDigTarget — the idiomatic routine, called with the cell as an argument —
  * which stamps the wall tile into that cell, requests the dig sound, and resets the target's small
@@ -37,9 +37,9 @@
  *      state as the oracle; the sweep spans both the embed route (3 codes) and the continue route.
  *   2. EQUAL (position sweep, both axes) — sweeping the advanced axis and the row axis 0..255 with a
  *      passable tile, every advance/cell is identical, including the top-of-range byte wraps.
- *   3. NON-VACUOUS — a crafted entry actually advances TARGET_Y and writes the carve cursor (a no-op
+ *   3. NON-VACUOUS — a crafted entry actually advances HAZARD_Y and writes the carve cursor (a no-op
  *      twin cannot pass), and agrees with the oracle on both routes.
- *   4. TEETH (advance) — a twin with the wrong advanced position is CAUGHT at TARGET_Y.
+ *   4. TEETH (advance) — a twin with the wrong advanced position is CAUGHT at HAZARD_Y.
  *   5. TEETH (cursor) — a twin with the wrong carve cursor is CAUGHT at 0x80af.
  *   6. TEETH (route) — a twin that never embeds is CAUGHT on a solid-tile entry (the embed path's
  *      dig-sound request + state reset are all missing).
@@ -58,7 +58,7 @@ import { advanceDigTarget as idiomatic } from "../advanceDigTarget.js";
 import { landDigTarget } from "../landDigTarget.js";
 import { loc_3dae as captureRoutine } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
-import { TARGET_X, TARGET_Y } from "../ram.js";
+import { HAZARD_X, HAZARD_Y } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -108,8 +108,8 @@ function cellFor(targetX, targetY) {
  *  routine probes (a fixed step ahead of the target's cell). Both arms then see that tile there. */
 function craft(targetX, targetY, tile) {
   const e = SEED.clone();
-  e.mem.write8(TARGET_X, targetX);
-  e.mem.write8(TARGET_Y, targetY);
+  e.mem.write8(HAZARD_X, targetX);
+  e.mem.write8(HAZARD_Y, targetY);
   const cell = cellFor(targetX, targetY);
   const aheadAddr = (cell - PROBE_OFFSET) & 0xffff;
   e.mem.write8(aheadAddr, tile);
@@ -165,10 +165,10 @@ test("EQUAL (tile sweep 0..255): every tile ahead resolves identically to the or
     const d = stateDiff(entry, idiomatic);
     assert.equal(d, null, d && `tile ${hx(tile)}: state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
     if (EMBED_TILES.includes(tile)) {
-      // Confirm this tile really drives the embed route on the oracle (it clears TARGET_X to 0).
+      // Confirm this tile really drives the embed route on the oracle (it clears HAZARD_X to 0).
       const probe = entry.clone();
       oracle(probe);
-      assert.equal(probe.mem.read8(TARGET_X), 0, `tile ${hx(tile)} did not drive the embed route`);
+      assert.equal(probe.mem.read8(HAZARD_X), 0, `tile ${hx(tile)} did not drive the embed route`);
       embeds++;
     }
   }
@@ -197,32 +197,32 @@ test("EQUAL (position sweep, both axes): advance + row/column arithmetic identic
 
 // -- 3. NON-VACUOUS: the routine really advances the target + writes the cursor --
 
-test("NON-VACUOUS: a crafted entry advances TARGET_Y and writes the carve cursor, agreeing with the oracle", () => {
+test("NON-VACUOUS: a crafted entry advances HAZARD_Y and writes the carve cursor, agreeing with the oracle", () => {
   assert.ok(SEED, "need a seed");
   const targetX = 0x50, targetY = 0x40;
   const { entry, cell } = craft(targetX, targetY, 0x99);
 
   const c = entry.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(TARGET_Y), u8(targetY + 1), "target position was not advanced");
+  assert.equal(c.mem.read8(HAZARD_Y), u8(targetY + 1), "target position was not advanced");
   assert.equal(c.mem.read16(CARVE_CURSOR), cell, "carve cursor was not written");
 
   assert.equal(stateDiff(entry, idiomatic), null, "the crafted dispatch must also match the oracle");
-  console.log(`  NON-VACUOUS: TARGET_Y ${hx(targetY)}->${hx(u8(targetY + 1))}, carve cursor -> ${hx(cell)}; arms agree`);
+  console.log(`  NON-VACUOUS: HAZARD_Y ${hx(targetY)}->${hx(u8(targetY + 1))}, carve cursor -> ${hx(cell)}; arms agree`);
 });
 
 // -- 4. TEETH (advance): a wrong advanced position is CAUGHT -----------------
 
 function twinWrongAdvance(m) {
   idiomatic(m);
-  m.mem.write8(TARGET_Y, m.mem.read8(TARGET_Y) ^ 0xff);
+  m.mem.write8(HAZARD_Y, m.mem.read8(HAZARD_Y) ^ 0xff);
 }
 
-test("TEETH (advance): a twin with the wrong advanced position is CAUGHT at TARGET_Y", () => {
+test("TEETH (advance): a twin with the wrong advanced position is CAUGHT at HAZARD_Y", () => {
   const { entry } = craft(0x50, 0x40, 0x99);
   const d = stateDiff(entry, twinWrongAdvance);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong advance — it proves nothing");
-  assert.equal(d.addr, TARGET_Y, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(TARGET_Y)})`);
+  assert.equal(d.addr, HAZARD_Y, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(HAZARD_Y)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/advance: wrong-advance twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
@@ -246,12 +246,12 @@ test("TEETH (cursor): a twin with the wrong carve cursor is CAUGHT at 0x80af", (
 // -- 6. TEETH (route): never embedding is CAUGHT on a solid-tile entry --------
 
 /** A twin that computes everything correctly but always takes the continue route — so on a solid tile
- *  it fails to embed (leaves TARGET_X, which the real embed path clears). */
+ *  it fails to embed (leaves HAZARD_X, which the real embed path clears). */
 function twinNeverEmbeds(m) {
   const { mem8, mem16 } = m;
-  const row = 31 - (mem8[TARGET_X] >> 3);
-  const advancedY = mem8[TARGET_Y] + 1;
-  mem8[TARGET_Y] = advancedY;
+  const row = 31 - (mem8[HAZARD_X] >> 3);
+  const advancedY = mem8[HAZARD_Y] + 1;
+  mem8[HAZARD_Y] = advancedY;
   const col = u8(advancedY + 1) >> 3;
   const cell = VRAM_BASE + row * 32 + col;
   mem16[CARVE_CURSOR] = cell;
@@ -275,9 +275,9 @@ test("TEETH (route): a twin that never embeds is CAUGHT on a solid-tile entry", 
  *  wall stamp lands one cell off in video RAM. Proves the cell argument is a real, tested output. */
 function twinWrongEmbedCell(m) {
   const { mem8, mem16 } = m;
-  const row = 31 - (mem8[TARGET_X] >> 3);
-  const advancedY = mem8[TARGET_Y] + 1;
-  mem8[TARGET_Y] = advancedY;
+  const row = 31 - (mem8[HAZARD_X] >> 3);
+  const advancedY = mem8[HAZARD_Y] + 1;
+  mem8[HAZARD_Y] = advancedY;
   const col = u8(advancedY + 1) >> 3;
   const cell = VRAM_BASE + row * 32 + col;
   mem16[CARVE_CURSOR] = cell;

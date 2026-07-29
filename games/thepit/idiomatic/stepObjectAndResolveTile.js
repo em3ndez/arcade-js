@@ -31,7 +31,7 @@
  * own return unwinds to this routine's caller — so building the record is this routine's return.
  *
  * The role (step-and-resolve-tile) is clear. The "climb / vertical" axis — earlier only an
- * inference — is now GROUNDED: the digger surfaces to WIN at the top rung (OBJ_Y == 0x23, offset 3
+ * inference — is now GROUNDED: the digger surfaces to WIN at the top rung (PLAYER_X == 0x23, offset 3
  * decreasing = up), which fixes offset 3 as the screen-vertical axis. The name stays generic only
  * because the routine does more than climb (it also resolves and collects the cell's tile).
  *
@@ -47,8 +47,8 @@
  *           the carve-reaction bytes, the stepped position, and the deferral record. No live
  *           registers of its own; the column bias is a genuine register live-in surfaced as the
  *           columnBias parameter (defaulting to the register, so a no-arg call matches the oracle).
- * NAMES:    DIG_OVERLAP_HOLD, SPRITE_CODE, OBJ_X, OBJ_TILE_ROW, OBJ_Y, OBJ_TILE_COL, SPAWN_PHASE,
- *           GOAL_TILE_LATCH, ACTOR_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER
+ * NAMES:    MOVE_BLOCK_FLAG, PLAYER_FACING, PLAYER_Y, PLAYER_TILE_ROW, PLAYER_X, PLAYER_TILE_COL, BOARD_END_PHASE,
+ *           GOAL_TILE_LATCH, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER
  *           from ram.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
  *           (ram.js TREASURE_COLLECTED), and
  *           the blank tile match the horizontal collector; the carve-reaction scratch 0x80a3/
@@ -58,15 +58,15 @@
  */
 
 import {
-  DIG_OVERLAP_HOLD,
-  SPRITE_CODE,
-  OBJ_X,
-  OBJ_TILE_ROW,
-  OBJ_Y,
-  OBJ_TILE_COL,
-  SPAWN_PHASE,
+  MOVE_BLOCK_FLAG,
+  PLAYER_FACING,
+  PLAYER_Y,
+  PLAYER_TILE_ROW,
+  PLAYER_X,
+  PLAYER_TILE_COL,
+  BOARD_END_PHASE,
   GOAL_TILE_LATCH,
-  ACTOR_CELL_PTR,
+  PLAYER_CELL_PTR,
   NEXT_TILE,
   CUR_TILE,
   REACTION_STATE,
@@ -117,23 +117,23 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const { mem8, mem16 } = m;
 
   // Vertical move runs only while the climb gate is clear; otherwise just defer the frame.
-  if (mem8[DIG_OVERLAP_HOLD] !== 0) return stageObjectSpriteRecord(m);
+  if (mem8[MOVE_BLOCK_FLAG] !== 0) return stageObjectSpriteRecord(m);
 
   // Default walk-frame sprite; the tile resolution below overrides it where needed.
-  mem8[SPRITE_CODE] = WALK_FRAME_A;
+  mem8[PLAYER_FACING] = WALK_FRAME_A;
 
   // Which map row is the object on? Bias the vertical counter, drop it to an 8-pixel cell, and
   // flip it so screen-top is the highest index (32 rows, indices 0..31).
-  const row = 31 - (u8(mem8[OBJ_X] + 3) >> 3);
-  mem8[OBJ_TILE_ROW] = row;
+  const row = 31 - (u8(mem8[PLAYER_Y] + 3) >> 3);
+  mem8[PLAYER_TILE_ROW] = row;
 
-  const objY = mem8[OBJ_Y];
+  const objY = mem8[PLAYER_X];
 
-  // Top-rung column (OBJ_Y == 0x23, the object surfacing UP): nothing to resolve. If a +20 diamond
+  // Top-rung column (PLAYER_X == 0x23, the object surfacing UP): nothing to resolve. If a +20 diamond
   // was already collected (SECOND_LOOT_LATCH 0x8078 = ram.js TREASURE_COLLECTED), set the top-rung
-  // spawn flag SPAWN_PHASE = 1 — the observed LEVEL-COMPLETE trigger. Either way defer this frame.
+  // spawn flag BOARD_END_PHASE = 1 — the observed LEVEL-COMPLETE trigger. Either way defer this frame.
   if (objY === TOP_RUNG_COLUMN) {
-    if (mem8[SECOND_LOOT_LATCH] !== 0) mem8[SPAWN_PHASE] = 1;
+    if (mem8[SECOND_LOOT_LATCH] !== 0) mem8[BOARD_END_PHASE] = 1;
     return stageObjectSpriteRecord(m);
   }
 
@@ -143,11 +143,11 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   // Position along the climb axis: both the column source and the sub-cell boundary phase.
   const positionAccumulator = u8(objY - columnBias + 5);
   const col = positionAccumulator >> 3;
-  mem8[OBJ_TILE_COL] = col;
+  mem8[PLAYER_TILE_COL] = col;
 
   // Video-RAM address of the cell the object occupies (32 cells per row).
   const cellPtr = VRAM_BASE + row * 32 + col;
-  mem16[ACTOR_CELL_PTR] = cellPtr;
+  mem16[PLAYER_CELL_PTR] = cellPtr;
 
   // Read and publish the tile under the object (two copies), and clear the next-tile slot.
   mem8[NEXT_TILE] = 0;
@@ -210,7 +210,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   // Mismatch: the object has run into fresh terrain — arm the carve reaction.
   mem8[REACTION_TIMER] = mem8[REACTION_PERIOD];
   mem8[REACTION_STATE] = CARVE_REACTION;
-  mem8[SPRITE_CODE] = CARVE_SPRITE;
+  mem8[PLAYER_FACING] = CARVE_SPRITE;
 
   // If the next sub-cell rolls onto a boundary there is no neighbour cell to sample.
   const nextSubCell = (positionAccumulator + 1) & 7;
@@ -231,8 +231,8 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
  *  unwinds to stepObjectAndResolveTile's caller, so this is the "keep moving" return. */
 function advanceStepAndStage(m) {
   const { mem8 } = m;
-  const stepped = mem8[OBJ_Y] - mem8[STEP_DELTA];
-  mem8[OBJ_Y] = stepped;
-  mem8[SPRITE_CODE] = (stepped & 2) === 0 ? WALK_FRAME_A : WALK_FRAME_B;
+  const stepped = mem8[PLAYER_X] - mem8[STEP_DELTA];
+  mem8[PLAYER_X] = stepped;
+  mem8[PLAYER_FACING] = (stepped & 2) === 0 ? WALK_FRAME_A : WALK_FRAME_B;
   return stageObjectSpriteRecord(m);
 }

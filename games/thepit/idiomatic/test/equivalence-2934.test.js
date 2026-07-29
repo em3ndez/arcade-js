@@ -51,12 +51,12 @@ import { commitDigEntity as idiomatic } from "../commitDigEntity.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  DIG_OBJ_STATE,
-  DIG_OBJ_ATTR,
+  HAZARD_STATE,
+  HAZARD_TYPE,
   DIG_OBJ_TIMER,
   DIG_OBJ_SUBTYPE,
-  TARGET_X,
-  TARGET_Y,
+  HAZARD_X,
+  HAZARD_Y,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -69,8 +69,8 @@ const test = ROM_PRESENT
 // Unnamed staging / pointer scratch this routine reads or mirrors (kept hex in ram.js).
 const SAVED_CELL_PTR = 0x80ba; // 16-bit saved tilemap cell pointer for the entity
 const CARVE_CURSOR = 0x80af; // 16-bit live carve cursor (commitDigEntity sets it = SAVED_CELL_PTR)
-const STAGED_COLUMN = 0x80b6; // staged target column -> TARGET_X + its mirror
-const STAGED_ROW = 0x80b9; // staged target row -> TARGET_Y
+const STAGED_COLUMN = 0x80b6; // staged target column -> HAZARD_X + its mirror
+const STAGED_ROW = 0x80b9; // staged target row -> HAZARD_Y
 const STAGED_TIMER = 0x80bc; // staged initial dig timer -> DIG_OBJ_TIMER
 const STAGED_SPRITE = 0x80bf; // staged sprite id stamped at cellPtr-1
 const COLUMN_MIRROR = 0x80be; // second copy of the target column
@@ -147,12 +147,12 @@ test("EQUAL: commitDigEntity leaves the same state as the oracle over real captu
   // Positive checks: the record was armed, staged values promoted, entity stamped in.
   const b = craft(bases[0], { subtype: 1, n1: 151, n2: 160 });
   idiomatic(b);
-  assert.equal(b.mem.read8(DIG_OBJ_STATE), 48, "carving-phase state code");
-  assert.equal(b.mem.read8(DIG_OBJ_ATTR), 7, "attribute byte");
+  assert.equal(b.mem.read8(HAZARD_STATE), 48, "carving-phase state code");
+  assert.equal(b.mem.read8(HAZARD_TYPE), 7, "attribute byte");
   assert.equal(b.mem.read16(CARVE_CURSOR), CELL_PTR, "carve cursor reloaded from the saved pointer");
-  assert.equal(b.mem.read8(TARGET_X), COL, "target column promoted");
+  assert.equal(b.mem.read8(HAZARD_X), COL, "target column promoted");
   assert.equal(b.mem.read8(COLUMN_MIRROR), COL, "target column mirrored");
-  assert.equal(b.mem.read8(TARGET_Y), ROW, "target row promoted");
+  assert.equal(b.mem.read8(HAZARD_Y), ROW, "target row promoted");
   assert.equal(b.mem.read8(CELL_PTR), 112, "fill tile stamped in the cursor cell");
   // n1=151 is a dig-channel tile, so cellPtr-1 is the remap-table value, not the sprite id.
   assert.equal(b.mem.read8(CELL_PTR - 1), b.mem.read8(TILE_REMAP_TABLE + (151 - 150)), "dig-channel neighbour remapped");
@@ -197,7 +197,7 @@ test("NON-VACUOUS: with the record targets pre-set to a sentinel, both arms over
   const [base] = captureStates([360]);
   const SENTINEL = 85; // never a value the routine writes here
   const entry = craft(base, { subtype: 1, n1: 100, n2: 151 }); // n1<150 -> keep sprite id at cellPtr-1
-  const targets = [DIG_OBJ_STATE, DIG_OBJ_ATTR, TARGET_X, COLUMN_MIRROR, TARGET_Y, DIG_OBJ_TIMER, CELL_PTR, CELL_PTR - 1];
+  const targets = [HAZARD_STATE, HAZARD_TYPE, HAZARD_X, COLUMN_MIRROR, HAZARD_Y, DIG_OBJ_TIMER, CELL_PTR, CELL_PTR - 1];
   for (const addr of targets) entry.mem.write8(addr, SENTINEL);
 
   const a = entry.clone();
@@ -218,7 +218,7 @@ test("NON-VACUOUS: with the record targets pre-set to a sentinel, both arms over
 /** Broken twin: everything, then the wrong carving-state code. */
 function twinWrongState(m) {
   idiomatic(m);
-  m.mem.write8(DIG_OBJ_STATE, 47); // BUG: should be the carving-phase code 48
+  m.mem.write8(HAZARD_STATE, 47); // BUG: should be the carving-phase code 48
 }
 /** Broken twin: everything, then the wrong fill tile in the cursor cell. */
 function twinWrongFill(m) {
@@ -228,14 +228,14 @@ function twinWrongFill(m) {
 /** Broken twin: does the record + stamp but drops the dig-channel neighbour remap. */
 function twinNoRemap(m) {
   const { mem8 } = m;
-  mem8[DIG_OBJ_STATE] = 48;
-  mem8[DIG_OBJ_ATTR] = 7;
+  mem8[HAZARD_STATE] = 48;
+  mem8[HAZARD_TYPE] = 7;
   const cellPtr = m.mem.read16(SAVED_CELL_PTR);
   m.mem.write16(CARVE_CURSOR, cellPtr);
   const col = mem8[STAGED_COLUMN];
-  mem8[TARGET_X] = col;
+  mem8[HAZARD_X] = col;
   mem8[COLUMN_MIRROR] = col;
-  mem8[TARGET_Y] = mem8[STAGED_ROW];
+  mem8[HAZARD_Y] = mem8[STAGED_ROW];
   mem8[DIG_OBJ_TIMER] = mem8[STAGED_TIMER];
   mem8[cellPtr - 1] = mem8[STAGED_SPRITE]; // BUG: leaves the sprite id; never remaps the dig-channel tile
   mem8[cellPtr] = 112;
@@ -251,7 +251,7 @@ test("TEETH (wrong state code): a wrong carving-state code is CAUGHT at the reco
   const entry = craft(base, { subtype: 1, n1: 151, n2: 160 });
   const d = stateDiff(entry, twinWrongState);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong state code — it proves nothing");
-  assert.equal(d.addr, DIG_OBJ_STATE, `teeth caught ${hx(d.addr ?? 0)} (expected ${hx(DIG_OBJ_STATE)})`);
+  assert.equal(d.addr, HAZARD_STATE, `teeth caught ${hx(d.addr ?? 0)} (expected ${hx(HAZARD_STATE)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/state: wrong state code caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

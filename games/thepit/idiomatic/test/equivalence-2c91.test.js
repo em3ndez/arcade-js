@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for flagObjectTargetOverlap (ROM 0x2c91) — the overlap-flag tail of the
- * dig/projectile-spawn path. It reads the tracked object (OBJ_X/OBJ_Y) and the
- * freshly-placed target cell (TARGET_X/TARGET_Y), publishes a 0/1 overlap flag to
- * DIG_OVERLAP_HOLD, then hands off to the idiomatic record builder stageDigObjectSpriteRecord
+ * dig/projectile-spawn path. It reads the tracked object (PLAYER_Y/PLAYER_X) and the
+ * freshly-placed target cell (HAZARD_X/HAZARD_Y), publishes a 0/1 overlap flag to
+ * MOVE_BLOCK_FLAG, then hands off to the idiomatic record builder stageDigObjectSpriteRecord
  * (ROM 0x2bd3), which continues into 0x2f71 and unwinds to flagObjectTargetOverlap's caller.
  *
  * CONTRACT. flagObjectTargetOverlap has NO register live-ins — every input is read from RAM — and its
- * only own side effect is the DIG_OVERLAP_HOLD byte; the record-build tail is delegated to the
+ * only own side effect is the MOVE_BLOCK_FLAG byte; the record-build tail is delegated to the
  * idiomatic stageDigObjectSpriteRecord, which is memory-equivalent to the oracle's tail
  * but returns via plain JS rather than the Z80 stack dance. So the gate is a RAM-only
  * diff via dumpState: pc/SP and value-registers are the dead Z80 trace and are NOT
@@ -28,12 +28,12 @@
  *   2. EQUAL (branch/boundary/wrap set) — crafted inputs that hit every arm of the
  *      overlap test (row-miss, X-not-right, X-in-band, X-past-band, both wraps).
  *   3. EQUAL (sweep) — exhaustive over the compared X axis for every boundary cell X,
- *      plus an exhaustive row-equality sweep including the +12 wrap. DIG_OVERLAP_HOLD also
+ *      plus an exhaustive row-equality sweep including the +12 wrap. MOVE_BLOCK_FLAG also
  *      cross-checked against a from-first-principles truth table each time.
  *   4. TEETH (inverted flag) — a twin that publishes the opposite flag is CAUGHT at
- *      DIG_OVERLAP_HOLD, in BOTH directions (overlap input and non-overlap input).
+ *      MOVE_BLOCK_FLAG, in BOTH directions (overlap input and non-overlap input).
  *   5. TEETH (band off-by-one) — a twin whose X window is one pixel too wide is CAUGHT
- *      at DIG_OVERLAP_HOLD on the exact boundary cell it mis-classifies.
+ *      at MOVE_BLOCK_FLAG on the exact boundary cell it mis-classifies.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-2c91.test.js
  */
@@ -46,7 +46,7 @@ import { loc_2c91 as oracle } from "../../translated/loc_2c91.js";
 import { flagObjectTargetOverlap as idiomatic } from "../flagObjectTargetOverlap.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
-import { OBJ_X, OBJ_Y, TARGET_X, TARGET_Y, DIG_OVERLAP_HOLD } from "../ram.js";
+import { PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -105,10 +105,10 @@ function ramDiffExStack(a, b) {
 function seedInputs(entry, inputs) {
   const seed = entry.clone();
   if (inputs) {
-    seed.mem.write8(OBJ_Y, inputs.objY);
-    seed.mem.write8(TARGET_Y, inputs.tgtY);
-    seed.mem.write8(OBJ_X, inputs.objX);
-    seed.mem.write8(TARGET_X, inputs.tgtX);
+    seed.mem.write8(PLAYER_X, inputs.objY);
+    seed.mem.write8(HAZARD_Y, inputs.tgtY);
+    seed.mem.write8(PLAYER_Y, inputs.objX);
+    seed.mem.write8(HAZARD_X, inputs.tgtX);
   }
   return seed;
 }
@@ -148,8 +148,8 @@ test("HARNESS: a real 0x2c91 entry is captured and the oracle run is determinist
   assert.equal(ramDiffExStack(a, b), null, "oracle run of 0x2c91 is not deterministic");
   console.log(
     `  HARNESS: captured a real 0x2c91 entry (SP=${hx(entry.regs.sp)}); ` +
-      `OBJ_Y=${entry.mem.read8(OBJ_Y)} TARGET_Y=${entry.mem.read8(TARGET_Y)} ` +
-      `OBJ_X=${entry.mem.read8(OBJ_X)} TARGET_X=${entry.mem.read8(TARGET_X)}; oracle deterministic`,
+      `PLAYER_X=${entry.mem.read8(PLAYER_X)} HAZARD_Y=${entry.mem.read8(HAZARD_Y)} ` +
+      `PLAYER_Y=${entry.mem.read8(PLAYER_Y)} HAZARD_X=${entry.mem.read8(HAZARD_X)}; oracle deterministic`,
   );
 });
 
@@ -163,13 +163,13 @@ test("EQUAL (real entry): flagObjectTargetOverlap == oracle over RAM (minus dead
   assert.equal(ram, null, ram && `RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
 
   const inputs = {
-    objY: entry.mem.read8(OBJ_Y),
-    tgtY: entry.mem.read8(TARGET_Y),
-    objX: entry.mem.read8(OBJ_X),
-    tgtX: entry.mem.read8(TARGET_X),
+    objY: entry.mem.read8(PLAYER_X),
+    tgtY: entry.mem.read8(HAZARD_Y),
+    objX: entry.mem.read8(PLAYER_Y),
+    tgtX: entry.mem.read8(HAZARD_X),
   };
-  assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), expectedFlag(inputs), "published overlap flag mismatch");
-  console.log(`  EQUAL/real: identical over RAM; DIG_OVERLAP_HOLD = ${c.mem.read8(DIG_OVERLAP_HOLD)}`);
+  assert.equal(c.mem.read8(MOVE_BLOCK_FLAG), expectedFlag(inputs), "published overlap flag mismatch");
+  console.log(`  EQUAL/real: identical over RAM; MOVE_BLOCK_FLAG = ${c.mem.read8(MOVE_BLOCK_FLAG)}`);
 });
 
 // -- 2. EQUAL on a crafted branch/boundary/wrap set ---------------------------
@@ -195,7 +195,7 @@ test("EQUAL (branch/boundary/wrap set): every arm of the overlap test matches th
     assert.equal(expectedFlag(i), flag, `truth-table sanity: ${name}`);
     const { ram, c } = compare(entry, i, idiomatic);
     assert.equal(ram, null, ram && `${name}: RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
-    assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), flag, `${name}: DIG_OVERLAP_HOLD`);
+    assert.equal(c.mem.read8(MOVE_BLOCK_FLAG), flag, `${name}: MOVE_BLOCK_FLAG`);
   }
   console.log(`  EQUAL/crafted: all ${cases.length} branch/boundary/wrap cases identical to the oracle`);
 });
@@ -215,7 +215,7 @@ test("EQUAL (sweep): exhaustive over the X axis at every boundary cell + exhaust
       const i = { objY: 112, tgtY: 100, objX, tgtX };
       const { ram, c } = compare(entry, i, idiomatic);
       assert.equal(ram, null, ram && `X-sweep objX=${objX} tgtX=${tgtX}: RAM diff at ${hx(ram.addr)}`);
-      assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), expectedFlag(i), `X-sweep objX=${objX} tgtX=${tgtX}: flag`);
+      assert.equal(c.mem.read8(MOVE_BLOCK_FLAG), expectedFlag(i), `X-sweep objX=${objX} tgtX=${tgtX}: flag`);
       checked++;
     }
   }
@@ -228,7 +228,7 @@ test("EQUAL (sweep): exhaustive over the X axis at every boundary cell + exhaust
       const i = { objY, tgtY, objX: 105, tgtX: 100 };
       const { ram, c } = compare(entry, i, idiomatic);
       assert.equal(ram, null, ram && `row-sweep objY=${objY} tgtY=${tgtY}: RAM diff at ${hx(ram.addr)}`);
-      assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), expectedFlag(i), `row-sweep objY=${objY} tgtY=${tgtY}: flag`);
+      assert.equal(c.mem.read8(MOVE_BLOCK_FLAG), expectedFlag(i), `row-sweep objY=${objY} tgtY=${tgtY}: flag`);
       checked++;
     }
   }
@@ -240,15 +240,15 @@ test("EQUAL (sweep): exhaustive over the X axis at every boundary cell + exhaust
 /** Broken twin: correct overlap logic, but publishes the OPPOSITE flag. */
 function twinInvertedFlag(m) {
   const { mem8 } = m;
-  const rowsAlign = u8(mem8[TARGET_Y] + 12) === mem8[OBJ_Y];
-  const rightOfCell = mem8[TARGET_X] < mem8[OBJ_X];
-  const withinBand = u8(mem8[TARGET_X] + 8) >= mem8[OBJ_X];
+  const rowsAlign = u8(mem8[HAZARD_Y] + 12) === mem8[PLAYER_X];
+  const rightOfCell = mem8[HAZARD_X] < mem8[PLAYER_Y];
+  const withinBand = u8(mem8[HAZARD_X] + 8) >= mem8[PLAYER_Y];
   const overlaps = rowsAlign && rightOfCell && withinBand;
-  mem8[DIG_OVERLAP_HOLD] = overlaps ? 0 : 1; // BUG: flag inverted
+  mem8[MOVE_BLOCK_FLAG] = overlaps ? 0 : 1; // BUG: flag inverted
   return m.call(0x2bd3);
 }
 
-test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at DIG_OVERLAP_HOLD", () => {
+test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at MOVE_BLOCK_FLAG", () => {
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x2c91 entry for the teeth check");
 
@@ -258,9 +258,9 @@ test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at D
   for (const [label, i] of [["overlap", overlapInput], ["non-overlap", missInput]]) {
     const { ram } = compare(entry, i, twinInvertedFlag);
     assert.ok(ram, `${label}: gate FAILED to catch the inverted-flag twin — it proves nothing`);
-    assert.equal(ram.addr, DIG_OVERLAP_HOLD, `${label}: teeth caught ${hx(ram.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
+    assert.equal(ram.addr, MOVE_BLOCK_FLAG, `${label}: teeth caught ${hx(ram.addr)} (expected ${hx(MOVE_BLOCK_FLAG)})`);
   }
-  console.log(`  TEETH/inverted: caught at ${hx(DIG_OVERLAP_HOLD)} on both an overlap and a non-overlap input`);
+  console.log(`  TEETH/inverted: caught at ${hx(MOVE_BLOCK_FLAG)} on both an overlap and a non-overlap input`);
 });
 
 // -- 5. TEETH: a one-pixel-too-wide band is caught at its boundary ------------
@@ -268,11 +268,11 @@ test("TEETH (inverted flag): a twin that publishes the wrong flag is CAUGHT at D
 /** Broken twin: X window one pixel too wide (+9 instead of +8). */
 function twinWideBand(m) {
   const { mem8 } = m;
-  const rowsAlign = u8(mem8[TARGET_Y] + 12) === mem8[OBJ_Y];
-  const rightOfCell = mem8[TARGET_X] < mem8[OBJ_X];
-  const withinBand = u8(mem8[TARGET_X] + 9) >= mem8[OBJ_X]; // BUG: band too wide
+  const rowsAlign = u8(mem8[HAZARD_Y] + 12) === mem8[PLAYER_X];
+  const rightOfCell = mem8[HAZARD_X] < mem8[PLAYER_Y];
+  const withinBand = u8(mem8[HAZARD_X] + 9) >= mem8[PLAYER_Y]; // BUG: band too wide
   const overlaps = rowsAlign && rightOfCell && withinBand;
-  mem8[DIG_OVERLAP_HOLD] = overlaps ? 1 : 0;
+  mem8[MOVE_BLOCK_FLAG] = overlaps ? 1 : 0;
   return m.call(0x2bd3);
 }
 
@@ -286,6 +286,6 @@ test("TEETH (band off-by-one): a one-pixel-too-wide window is CAUGHT at the boun
 
   const { ram } = compare(entry, boundary, twinWideBand);
   assert.ok(ram, "gate FAILED to catch the too-wide-band twin — it proves nothing");
-  assert.equal(ram.addr, DIG_OVERLAP_HOLD, `teeth caught ${hx(ram.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
+  assert.equal(ram.addr, MOVE_BLOCK_FLAG, `teeth caught ${hx(ram.addr)} (expected ${hx(MOVE_BLOCK_FLAG)})`);
   console.log(`  TEETH/band: too-wide window caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });

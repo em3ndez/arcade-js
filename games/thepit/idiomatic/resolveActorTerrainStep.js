@@ -41,8 +41,8 @@
  *           (on a collect), the blanked cell, the bump-reaction state/timer/sprite, the walk
  *           position + frame, and the display record. No register live-out (the oracle tail-jumps
  *           to the record builder, whose result is the whole output and lives in RAM).
- * NAMES:    CUR_TILE, NEXT_TILE, FEATURE_TILE_LATCH, SPAWN_STATE, ACTOR_CELL_PTR, REACTION_STATE,
- *           REACTION_TIMER, SPRITE_CODE from ram.js; the pickup counters 0x8081/0x8082, the +20
+ * NAMES:    CUR_TILE, NEXT_TILE, PRIZE_GATE, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, REACTION_STATE,
+ *           REACTION_TIMER, PLAYER_FACING from ram.js; the pickup counters 0x8081/0x8082, the +20
  *           latch 0x8078, the current/next scratch copies 0x80a7/0x80a6, and the reaction period
  *           0x80a3 stay hex (clear here, not yet grounded across the game). The two direction
  *           tables live in ROM at 0x1b78 / 0x1ce0.
@@ -53,12 +53,12 @@
 import {
   CUR_TILE,
   NEXT_TILE,
-  FEATURE_TILE_LATCH,
-  SPAWN_STATE,
-  ACTOR_CELL_PTR,
+  PRIZE_GATE,
+  HAZARD_ACTIVE_COUNT,
+  PLAYER_CELL_PTR,
   REACTION_STATE,
   REACTION_TIMER,
-  SPRITE_CODE,
+  PLAYER_FACING,
 } from "./ram.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
@@ -101,7 +101,7 @@ const SOLID_NEXT = new Set([42, 65, 149, 193]);
 /** Stamp the blanked cell over the collected pickup and let the actor walk on. */
 function consumeLootAndWalk(m) {
   const { mem8, mem16 } = m;
-  mem8[mem16[ACTOR_CELL_PTR]] = BLANK_TILE;
+  mem8[mem16[PLAYER_CELL_PTR]] = BLANK_TILE;
   return walkActor(m);
 }
 
@@ -110,7 +110,7 @@ function armBumpReaction(m) {
   const { mem8 } = m;
   mem8[REACTION_TIMER] = mem8[REACTION_PERIOD];
   mem8[REACTION_STATE] = 2;
-  mem8[SPRITE_CODE] = 0x35;
+  mem8[PLAYER_FACING] = 0x35;
   return stageObjectSpriteRecord(m);
 }
 
@@ -122,7 +122,7 @@ function armBumpReaction(m) {
 function secondLootAllowed(m) {
   const { mem8 } = m;
   if (mem8[SECOND_LOOT_LATCH] !== 0) return true; // already open
-  if (mem8[SPAWN_STATE] !== 0) return false; // guard closed this frame
+  if (mem8[HAZARD_ACTIVE_COUNT] !== 0) return false; // guard closed this frame
   mem8[SECOND_LOOT_LATCH] = 1; // first open — arm the latch
   return true;
 }
@@ -157,7 +157,7 @@ export function resolveActorTerrainStep(m, tilePtr = m.regs.ix, moveDir = m.regs
   // ---- Classify the terrain the actor is moving into ----
 
   // Latch the feature tile so the +20 loot gate can see it next frame.
-  if (tile === FEATURE_TILE) mem8[FEATURE_TILE_LATCH] = FEATURE_TILE;
+  if (tile === FEATURE_TILE) mem8[PRIZE_GATE] = FEATURE_TILE;
 
   // Decide the tile the actor stands on: solid (hold), walkable-band (direction table), or pass.
   let checkCurrentTable = false;

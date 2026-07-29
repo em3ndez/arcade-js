@@ -30,24 +30,24 @@
  *           at 9 to match the oracle (likely dead ABI; the memory gate backstops
  *           it). The oracle's residual working registers/flags and its dead stack
  *           push are not part of the contract.
- * NAMES:    MOVER_CADENCE (0x808b, the random/animation byte) and ACTOR_STATE (0x8084,
+ * NAMES:    ENEMY_ACTION_TIMER (0x808b, the random/animation byte) and ENEMY_WORK_SPRITE (0x8084,
  *           the actor state/timer byte), both weakly identified; the generator
  *           state bytes are owned by advanceRandom.
  *
- * PURPOSE [guess]: both bytes weakly identified; MOVER_CADENCE overloaded (here a random/animation seed).
+ * PURPOSE [guess]: both bytes weakly identified; ENEMY_ACTION_TIMER overloaded (here a random/animation seed).
  */
 
 import { advanceRandom } from "./advanceRandom.js";
-import { MOVER_CADENCE, ACTOR_STATE } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE } from "./ram.js";
 
 export function reseedMoverCadenceAndRearmState(m) {
   // A fresh generator draw, forced into the upper half of the byte range (high
   // bit set, so 128..255), becomes this cycle's random/animation seed.
   const seed = advanceRandom(m) | 0x80;
-  m.mem8[MOVER_CADENCE] = seed;
+  m.mem8[ENEMY_ACTION_TIMER] = seed;
 
   // Re-arm the actor state/timer byte to its fixed restart value.
-  m.mem8[ACTOR_STATE] = 9;
+  m.mem8[ENEMY_WORK_SPRITE] = 9;
 
   // The oracle leaves the accumulator holding this value; match it in case a
   // caller reads it back.

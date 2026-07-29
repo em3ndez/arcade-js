@@ -59,7 +59,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const SEED_HOOK = 0x3dae; // a routine reached early in attract, used to grab a real state
-const GAME_STATE2 = 0x8002; // the one input drawPlayerLabel reads (its top-cell copy source)
+const ACTIVE_PLAYER = 0x8002; // the one input drawPlayerLabel reads (its top-cell copy source)
 const CALLER_RETURN = 0x032c; // a real caller return address (round setup's call site)
 const PANEL_COLOUR_CELL = 0x8981; // colour-RAM cell for column 1, row 12 (a painted output)
 const STACK_SCRATCH_BYTES = 8; // dead return-address / helper-scratch window below the entry SP
@@ -91,7 +91,7 @@ function captureAttractSeed(maxFrames) {
  */
 function craftEntry(seed, state2) {
   const e = seed.clone();
-  if (state2 !== undefined) e.mem.write8(GAME_STATE2, state2);
+  if (state2 !== undefined) e.mem.write8(ACTIVE_PLAYER, state2);
   e.regs.sp = 0x83ff;
   e.push16(CALLER_RETURN);
   return e;

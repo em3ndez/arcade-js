@@ -52,14 +52,14 @@ import { spawnPendingDigObject as idiomatic } from "../spawnPendingDigObject.js"
 import { advanceRandom } from "../advanceRandom.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  SPAWN_STATE,
-  DIG_OBJ_STATE,
-  DIG_OBJ_ATTR,
-  TARGET_X,
-  TARGET_Y,
-  OBJ_X,
-  OBJ_Y,
-  DIG_OVERLAP_HOLD,
+  HAZARD_ACTIVE_COUNT,
+  HAZARD_STATE,
+  HAZARD_TYPE,
+  HAZARD_X,
+  HAZARD_Y,
+  PLAYER_Y,
+  PLAYER_X,
+  MOVE_BLOCK_FLAG,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -108,8 +108,8 @@ function craft(base, { slots, objX = null, objY = null, seed = null }) {
   const e = base.clone();
   for (let i = 0; i < 24; i++) e.mem.write8(QUEUE + i, 0);
   for (const [i, v] of slots) e.mem.write8(QUEUE + i, v);
-  if (objX !== null) e.mem.write8(OBJ_X, objX);
-  if (objY !== null) e.mem.write8(OBJ_Y, objY);
+  if (objX !== null) e.mem.write8(PLAYER_Y, objX);
+  if (objY !== null) e.mem.write8(PLAYER_X, objY);
   if (seed) {
     e.mem.write8(PRNG_LOW, seed[0]);
     e.mem.write8(PRNG_HIGH, seed[1]);
@@ -145,8 +145,8 @@ function contractDiff(entry, fn) {
 
 /** The tilemap cell the spawn paints, computed from the target coordinates left in RAM. */
 function paintedCell(m) {
-  const targetX = m.mem.read8(TARGET_X);
-  const targetY = m.mem.read8(TARGET_Y);
+  const targetX = m.mem.read8(HAZARD_X);
+  const targetY = m.mem.read8(HAZARD_Y);
   return 0x9000 + (31 - (targetX >> 3)) * 32 + ((targetY + 1) >> 3) - 31;
 }
 
@@ -201,13 +201,13 @@ test("EQUAL (control-path shapes): idiomatic == oracle over RAM, outputs hand-ch
     const c = entry.clone();
     idiomatic(c);
     assert.equal(c.mem.read8(QUEUE + exp.column), 0, `${name}: chosen queue slot not cleared`);
-    assert.equal(c.mem.read8(SPAWN_STATE), 1, `${name}: spawn-active flag not raised`);
-    assert.equal(c.mem.read8(DIG_OBJ_STATE), 16, `${name}: dig-object state not seeded`);
-    assert.equal(c.mem.read8(DIG_OBJ_ATTR), 6, `${name}: dig-object attr not seeded`);
-    assert.equal(c.mem.read8(TARGET_X), (exp.value + 1) & 0xff, `${name}: target X wrong`);
-    assert.equal(c.mem.read8(TARGET_Y), exp.targetY, `${name}: target Y (column base) wrong`);
+    assert.equal(c.mem.read8(HAZARD_ACTIVE_COUNT), 1, `${name}: spawn-active flag not raised`);
+    assert.equal(c.mem.read8(HAZARD_STATE), 16, `${name}: dig-object state not seeded`);
+    assert.equal(c.mem.read8(HAZARD_TYPE), 6, `${name}: dig-object attr not seeded`);
+    assert.equal(c.mem.read8(HAZARD_X), (exp.value + 1) & 0xff, `${name}: target X wrong`);
+    assert.equal(c.mem.read8(HAZARD_Y), exp.targetY, `${name}: target Y (column base) wrong`);
     assert.equal(c.mem.read8(paintedCell(c)), SPAWN_TILE, `${name}: spawn tile not painted`);
-    assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), exp.overlap, `${name}: player-overlap flag wrong`);
+    assert.equal(c.mem.read8(MOVE_BLOCK_FLAG), exp.overlap, `${name}: player-overlap flag wrong`);
   }
   console.log(`  EQUAL/shapes: ${shapes.length} control paths — RAM identical, spawn outputs hand-verified`);
 });
@@ -245,16 +245,16 @@ test("EQUAL (randomized sweep): random seed + queue + object position, RAM ident
 
     const c = entry.clone();
     idiomatic(c);
-    if (c.mem.read8(DIG_OVERLAP_HOLD) === 1) overlapSeen++;
+    if (c.mem.read8(MOVE_BLOCK_FLAG) === 1) overlapSeen++;
     // Classify which control path ran from the painted column base.
-    const ty = c.mem.read8(TARGET_Y);
+    const ty = c.mem.read8(HAZARD_Y);
     if (ty === 0xbf) rightSeen++; else backupSeen++;
   }
   // Track that a paired-switch is reachable: force it once and confirm.
   const sw = craft(cap, { slots: [[4, 0x33], [16, 0x44]], seed: seedForDraw(cap, 4) });
   const swc = sw.clone();
   idiomatic(swc);
-  if (swc.mem.read8(QUEUE + 16) === 0 && swc.mem.read8(TARGET_Y) === 0xbf) switchSeen = 1;
+  if (swc.mem.read8(QUEUE + 16) === 0 && swc.mem.read8(HAZARD_Y) === 0xbf) switchSeen = 1;
 
   // Overlap needs an exact band+window alignment that random object positions rarely hit;
   // it is covered exhaustively (true and false) by the deterministic shapes test above.
@@ -274,11 +274,11 @@ test("TEETH (overlap flag): a twin that flips the published player-overlap flag 
 
   const twin = (m) => {
     idiomatic(m);
-    m.mem.write8(DIG_OVERLAP_HOLD, m.mem.read8(DIG_OVERLAP_HOLD) ^ 1); // BUG: wrong overlap verdict
+    m.mem.write8(MOVE_BLOCK_FLAG, m.mem.read8(MOVE_BLOCK_FLAG) ^ 1); // BUG: wrong overlap verdict
   };
   const d = contractDiff(entry, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a flipped overlap flag — it proves nothing");
-  assert.equal(d.addr, DIG_OVERLAP_HOLD, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
+  assert.equal(d.addr, MOVE_BLOCK_FLAG, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(MOVE_BLOCK_FLAG)})`);
   console.log(`  TEETH/overlap: flipped flag caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 
@@ -290,11 +290,11 @@ test("TEETH (target coordinate): a twin that corrupts the spawn X coordinate is 
 
   const twin = (m) => {
     idiomatic(m);
-    m.mem.write8(TARGET_X, m.mem.read8(TARGET_X) ^ 0xff); // BUG: wrong spawn coordinate
+    m.mem.write8(HAZARD_X, m.mem.read8(HAZARD_X) ^ 0xff); // BUG: wrong spawn coordinate
   };
   const d = contractDiff(entry, twin);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted target coordinate");
-  assert.equal(d.addr, TARGET_X, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(TARGET_X)})`);
+  assert.equal(d.addr, HAZARD_X, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(HAZARD_X)})`);
   console.log(`  TEETH/coord: corrupted target X caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 

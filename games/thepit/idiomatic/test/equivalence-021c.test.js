@@ -66,7 +66,7 @@ import { loc_021c as oracle } from "../../translated/loc_021c.js";
 import { showCreditScreen as idiomatic } from "../showCreditScreen.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE } from "../ram.js";
+import { GAME_STATE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -208,7 +208,7 @@ test("EQUAL (real entry): showCreditScreen == oracle over observable RAM", () =>
 
   // Positive checks: the observable effects really happened (through the bounded painter).
   const c = runBounded(seed, idiomatic);
-  assert.equal(c.mem.read8(GAME_MODE), 3, "game mode not armed to 3");
+  assert.equal(c.mem.read8(GAME_STATE), 3, "game mode not armed to 3");
   assert.equal(c.io.nmiMask, true, "frame interrupt not enabled");
   assert.equal(c.mem.read8(COLOR_CELL), BACKGROUND, "the painter's background flood did not land");
   assert.equal(
@@ -216,7 +216,7 @@ test("EQUAL (real entry): showCreditScreen == oracle over observable RAM", () =>
     c.mem.read8(IMAGE_SOURCE + (VIDEO_LAST - 0x9000)),
     "the painter's canned image copy did not land",
   );
-  console.log(`  EQUAL/real: idiomatic matches oracle over full RAM; GAME_MODE=3, frame interrupt enabled, screen painted`);
+  console.log(`  EQUAL/real: idiomatic matches oracle over full RAM; GAME_STATE=3, frame interrupt enabled, screen painted`);
 });
 
 // -- 2. TEETH: a wrong game-mode twin is caught -------------------------------
@@ -224,7 +224,7 @@ test("EQUAL (real entry): showCreditScreen == oracle over observable RAM", () =>
 /** Broken twin: arms game mode 2 instead of 3; everything else identical (real painter runs). */
 function twinWrongMode(m) {
   const { mem8, regs } = m;
-  mem8[GAME_MODE] = 2; // BUG: wrong game mode
+  mem8[GAME_STATE] = 2; // BUG: wrong game mode
   regs.sp = 0x83ff;
   m.push16(0x0227);
   m.call(0x4b14);
@@ -240,8 +240,8 @@ test("TEETH (wrong game mode): arming mode 2 instead of 3 is CAUGHT at the game-
   assert.ok(diffs.length > 0, "the gate FAILED to catch the wrong-game-mode twin — it proves nothing");
   assert.equal(
     ram && ram.addr,
-    GAME_MODE,
-    `teeth caught the wrong address ${ram ? hx(ram.addr) : "(none)"} (expected ${hx(GAME_MODE)})`,
+    GAME_STATE,
+    `teeth caught the wrong address ${ram ? hx(ram.addr) : "(none)"} (expected ${hx(GAME_STATE)})`,
   );
   console.log(`  TEETH/mode: wrong-mode twin caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
@@ -252,7 +252,7 @@ test("TEETH (wrong game mode): arming mode 2 instead of 3 is CAUGHT at the game-
  *  captured stack top instead of 0x83ff — the reset is load-bearing. */
 function twinNoStackReset(m) {
   const { mem8 } = m;
-  mem8[GAME_MODE] = 3;
+  mem8[GAME_STATE] = 3;
   // BUG: no `regs.sp = 0x83ff` — pushes land wherever the captured SP happens to be.
   m.push16(0x0227);
   m.call(0x4b14);

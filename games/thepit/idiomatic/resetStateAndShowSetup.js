@@ -39,7 +39,7 @@
  * LIVE-OUT: memory-only — the two state bytes it writes plus everything the DIP decode
  *           and the setup-screen paint leave in work/colour/video RAM. Nothing reads a
  *           register back: the power-on init tail-jumps here and just propagates onward.
- * NAMES:    GAME_MODE (0x8001), GAME_STATE2 (0x8002) from ram.js. rearmMachineAndBranchOnCredits is the reset
+ * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002) from ram.js. rearmMachineAndBranchOnCredits is the reset
  *           handler, kept as an m.call boundary (0x01f9) — it re-seats the stack and runs the
  *           never-returning game loop, so it stays a stubbable/boundable registry boundary
  *           rather than a direct call; the setup-call return slot 0x03bb is a code address,
@@ -50,14 +50,14 @@
 
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { showSetupScreen } from "./showSetupScreen.js";
-import { GAME_MODE, GAME_STATE2 } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "./ram.js";
 
 export function resetStateAndShowSetup(m) {
   const { mem8 } = m;
 
   // Fresh attract cycle: no active player, secondary state armed.
-  mem8[GAME_MODE] = 0;
-  mem8[GAME_STATE2] = 1;
+  mem8[GAME_STATE] = 0;
+  mem8[ACTIVE_PLAYER] = 1;
 
   // Commit the cabinet DIP settings into the gameplay-parameter block.
   applyDipSwitches(m);

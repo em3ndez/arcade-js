@@ -39,8 +39,8 @@ import { loc_37cf as oracle } from "../../translated/loc_37cf.js";
 import { spawnAltPhaseActor as idiomatic } from "../spawnAltPhaseActor.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  SPAWN_PHASE, ACTOR_X, ACTOR_Y, ACTOR_TILE, ACTOR_TIMER,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR,
+  BOARD_END_PHASE, ENEMY3_X, ENEMY3_Y, ENEMY3_TILE, ENEMY3_TIMER,
+  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -93,7 +93,7 @@ function captureDispatches() {
   const caps = [];
   const snapshot = new Map([[TARGET, (mm) => {
     const c = mm.clone();
-    c._entryPhase = mm.mem.read8(SPAWN_PHASE);
+    c._entryPhase = mm.mem.read8(BOARD_END_PHASE);
     caps.push(c);
     return oracle(mm);
   }]]);
@@ -147,11 +147,11 @@ test("NATURAL SPAWN: idiomatic == oracle on the real first-frame-spawn dispatch"
 test("CRAFTED: both start-row sub-phases match the oracle on real backgrounds", () => {
   const bg = caps[caps.length - 1];
   const crafted = [
-    { tag: "sub-phase 2 -> start row 22", pokes: [[SPAWN_PHASE, 2]] },
-    { tag: "sub-phase 1 -> start row 23", pokes: [[SPAWN_PHASE, 1]] },
-    { tag: "sub-phase 0 -> start row 23", pokes: [[SPAWN_PHASE, 0]] },
-    { tag: "sub-phase 3 -> start row 23", pokes: [[SPAWN_PHASE, 3]] },
-    { tag: "sub-phase 200 -> start row 23", pokes: [[SPAWN_PHASE, 200]] },
+    { tag: "sub-phase 2 -> start row 22", pokes: [[BOARD_END_PHASE, 2]] },
+    { tag: "sub-phase 1 -> start row 23", pokes: [[BOARD_END_PHASE, 1]] },
+    { tag: "sub-phase 0 -> start row 23", pokes: [[BOARD_END_PHASE, 0]] },
+    { tag: "sub-phase 3 -> start row 23", pokes: [[BOARD_END_PHASE, 3]] },
+    { tag: "sub-phase 200 -> start row 23", pokes: [[BOARD_END_PHASE, 200]] },
   ];
   for (const { tag, pokes } of crafted) {
     const d = ramDiff(craft(bg, pokes), idiomatic);
@@ -163,9 +163,9 @@ test("CRAFTED: both start-row sub-phases match the oracle on real backgrounds", 
 test("NON-VACUOUS: every spawn target is overwritten from a sentinel and both arms agree", () => {
   const SENTINEL = 0x55;
   // Every byte the first-frame spawn writes from a constant (records + block + a sample of
-  // the staged sprite bytes); SPAWN_PHASE is set to 2 to select the spawn path deterministically.
+  // the staged sprite bytes); BOARD_END_PHASE is set to 2 to select the spawn path deterministically.
   const RECORD_TARGETS = [
-    ACTOR_Y, TWIN_CLEAR, ACTOR_X, TWIN_X, ACTOR_TILE, TWIN_TILE, ACTOR_TIMER,
+    ENEMY3_Y, ENEMY3_TWIN_Y, ENEMY3_X, ENEMY3_TWIN_X, ENEMY3_TILE, ENEMY3_TWIN_TILE, ENEMY3_TIMER,
     PRIMARY_PAIRED, TWIN_PAIRED,
   ];
   const BLOCK_TARGETS = [
@@ -174,7 +174,7 @@ test("NON-VACUOUS: every spawn target is overwritten from a sentinel and both ar
   ];
 
   const base = caps[caps.length - 1].clone();
-  base.mem.write8(SPAWN_PHASE, 2); // select the spawn path (row 22)
+  base.mem.write8(BOARD_END_PHASE, 2); // select the spawn path (row 22)
   for (const addr of [...RECORD_TARGETS, ...BLOCK_TARGETS]) base.mem.write8(addr, SENTINEL);
 
   const a = base.clone();
@@ -185,7 +185,7 @@ test("NON-VACUOUS: every spawn target is overwritten from a sentinel and both ar
   for (const addr of [...RECORD_TARGETS, ...BLOCK_TARGETS]) {
     assert.notEqual(b.mem.read8(addr), SENTINEL, `idiomatic left ${hx(addr)} unwritten (still the sentinel)`);
   }
-  assert.equal(b.mem.read8(SPAWN_PHASE), 255, "spawn must mark the actor active (255)");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), 255, "spawn must mark the actor active (255)");
   const d = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   console.log(`  NON-VACUOUS: all ${RECORD_TARGETS.length + BLOCK_TARGETS.length} spawn targets overwritten, arms agree`);
@@ -196,14 +196,14 @@ test("NON-VACUOUS: every spawn target is overwritten from a sentinel and both ar
 /** Broken twin: spawns correctly, then puts the shadow twin at the wrong column offset. */
 function brokenShadowOffset(m) {
   idiomatic(m);
-  m.mem.write8(TWIN_X, 48); // BUG: shadow offset should be +16 (column 32), not +32
+  m.mem.write8(ENEMY3_TWIN_X, 48); // BUG: shadow offset should be +16 (column 32), not +32
 }
 
 test("TEETH: a wrong shadow-column-offset twin is CAUGHT", () => {
   const bg = caps[caps.length - 1];
-  const spawnEntry = craft(bg, [[SPAWN_PHASE, 2]]);
+  const spawnEntry = craft(bg, [[BOARD_END_PHASE, 2]]);
   const d = ramDiff(spawnEntry, brokenShadowOffset);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong shadow-offset twin — it proves nothing");
-  assert.equal(d.addr, TWIN_X, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(TWIN_X)})`);
+  assert.equal(d.addr, ENEMY3_TWIN_X, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(ENEMY3_TWIN_X)})`);
   console.log(`  TEETH: caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

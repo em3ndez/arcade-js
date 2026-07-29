@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for advanceActorWalk (ROM 0x19d0) — the "keep moving" arm of the
- * actor-movement dispatch: it carries the OBJ_Y position accumulator forward by the actor's
+ * actor-movement dispatch: it carries the PLAYER_X position accumulator forward by the actor's
  * per-frame step (0x806d), picks the walk frame off bit 1 of the new position (base frame
  * 0x34, or the same frame mirrored 0xb4), then hands that frame to the already-decompiled
  * tail drawActorWalkFrame (0x19e3), which commits it and builds the object's record.
@@ -32,9 +32,9 @@
  *   3. NON-VACUOUS + WRITE-COMPLETE — pre-set the position accumulator and the sprite-code cell
  *      to a sentinel so a no-op/partial twin cannot pass by the entry already holding the
  *      answer: both are overwritten and both arms agree.
- *   4. TEETH (frame) — a twin that SWAPS the two walk frames MUST be caught at SPRITE_CODE.
+ *   4. TEETH (frame) — a twin that SWAPS the two walk frames MUST be caught at PLAYER_FACING.
  *   5. TEETH (advance) — a twin that advances the accumulator by the wrong amount MUST be caught
- *      at OBJ_Y.
+ *      at PLAYER_X.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-19d0.test.js
  */
@@ -48,7 +48,7 @@ import { advanceActorWalk as idiomatic } from "../advanceActorWalk.js";
 import { drawActorWalkFrame } from "../drawActorWalkFrame.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_Y, SPRITE_CODE, GOAL_CROSSING_LATCH } from "../ram.js";
+import { PLAYER_X, PLAYER_FACING, PIT_CROSS_ACTIVE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -58,7 +58,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const CAPTURE_AT = 0x19d0; // advanceActorWalk — dispatched in attract from the movement continuation
-const STEP = 0x806d; // per-frame step added onto the OBJ_Y position accumulator
+const STEP = 0x806d; // per-frame step added onto the PLAYER_X position accumulator
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is async, so
@@ -94,9 +94,9 @@ function stateDiff(entry, fn) {
  *  the delegated far-edge one-shot stays out of the way (attract keeps it clear anyway). */
 function withInputs(base, y, step) {
   const e = base.clone();
-  e.mem.write8(OBJ_Y, y);
+  e.mem.write8(PLAYER_X, y);
   e.mem.write8(STEP, step);
-  e.mem.write8(GOAL_CROSSING_LATCH, 0);
+  e.mem.write8(PIT_CROSS_ACTIVE, 0);
   return e;
 }
 
@@ -149,16 +149,16 @@ test("NON-VACUOUS: with the accumulator and sprite-code pre-set to a sentinel, b
   // from the sentinel so "overwritten" is observable.
   const entry = withInputs(seed, 40, 3);
   const SENTINEL = 0x55;
-  entry.mem.write8(SPRITE_CODE, SENTINEL);
+  entry.mem.write8(PLAYER_FACING, SENTINEL);
 
   const a = entry.clone(); // oracle
   const b = entry.clone(); // idiomatic
   oracle(a);
   idiomatic(b);
 
-  assert.equal(b.mem.read8(OBJ_Y), 43, "idiomatic did not advance the position accumulator (40 -> 43)");
-  assert.notEqual(b.mem.read8(SPRITE_CODE), SENTINEL, "idiomatic left the sprite code unwritten");
-  assert.equal(b.mem.read8(SPRITE_CODE), 0xb4, "idiomatic committed the wrong walk frame for a bit-1-set position");
+  assert.equal(b.mem.read8(PLAYER_X), 43, "idiomatic did not advance the position accumulator (40 -> 43)");
+  assert.notEqual(b.mem.read8(PLAYER_FACING), SENTINEL, "idiomatic left the sprite code unwritten");
+  assert.equal(b.mem.read8(PLAYER_FACING), 0xb4, "idiomatic committed the wrong walk frame for a bit-1-set position");
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
@@ -170,18 +170,18 @@ test("NON-VACUOUS: with the accumulator and sprite-code pre-set to a sentinel, b
 /** Broken twin: does the right advance but SWAPS the two walk frames. */
 function twinSwapFrame(m) {
   const { mem8 } = m;
-  mem8[OBJ_Y] = mem8[OBJ_Y] + mem8[STEP];
-  const walkFrame = mem8[OBJ_Y] & 2 ? 0x34 : 0xb4; // BUG: frames swapped
+  mem8[PLAYER_X] = mem8[PLAYER_X] + mem8[STEP];
+  const walkFrame = mem8[PLAYER_X] & 2 ? 0x34 : 0xb4; // BUG: frames swapped
   return drawActorWalkFrame(m, walkFrame);
 }
 
-test("TEETH (frame): a swapped-frame twin is CAUGHT at SPRITE_CODE", () => {
+test("TEETH (frame): a swapped-frame twin is CAUGHT at PLAYER_FACING", () => {
   const [base] = captureStates(1, 3000);
   const entry = withInputs(base, 40, 3); // new position 43 -> bit 1 set, the two frames differ
 
   const d = stateDiff(entry, twinSwapFrame);
   assert.notEqual(d, null, "the gate FAILED to catch a swapped-frame twin — it proves nothing");
-  assert.equal(d.addr, SPRITE_CODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`);
+  assert.equal(d.addr, PLAYER_FACING, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`);
 
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/frame: swapped-frame twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
@@ -193,18 +193,18 @@ test("TEETH (frame): a swapped-frame twin is CAUGHT at SPRITE_CODE", () => {
  *  the picked walk frame still matches and the ONLY divergence is the position itself. */
 function twinWrongAdvance(m) {
   const { mem8 } = m;
-  mem8[OBJ_Y] = mem8[OBJ_Y] + mem8[STEP] + 4; // BUG: advanced too far (bit 1 preserved)
-  const walkFrame = mem8[OBJ_Y] & 2 ? 0xb4 : 0x34;
+  mem8[PLAYER_X] = mem8[PLAYER_X] + mem8[STEP] + 4; // BUG: advanced too far (bit 1 preserved)
+  const walkFrame = mem8[PLAYER_X] & 2 ? 0xb4 : 0x34;
   return drawActorWalkFrame(m, walkFrame);
 }
 
-test("TEETH (advance): a twin that advances the accumulator by the wrong amount is CAUGHT at OBJ_Y", () => {
+test("TEETH (advance): a twin that advances the accumulator by the wrong amount is CAUGHT at PLAYER_X", () => {
   const [base] = captureStates(1, 3000);
   const entry = withInputs(base, 40, 3);
 
   const d = stateDiff(entry, twinWrongAdvance);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong-advance twin — it proves nothing");
-  assert.equal(d.addr, OBJ_Y, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJ_Y)})`);
+  assert.equal(d.addr, PLAYER_X, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_X)})`);
 
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/advance: wrong-advance twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);

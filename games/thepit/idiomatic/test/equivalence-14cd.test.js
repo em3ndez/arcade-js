@@ -5,7 +5,7 @@
  *
  * locateObjectCellCheckGoal is the positioning front of the tile-under-object path: from the object's screen row (a
  * register live-in, surfaced as `row`) plus its row/column coordinates it derives the tilemap cell
- * (publishing OBJ_TILE_COL + ACTOR_CELL_PTR), clears the ahead-tile scratch (NEXT_TILE), then either
+ * (publishing PLAYER_TILE_COL + PLAYER_CELL_PTR), clears the ahead-tile scratch (NEXT_TILE), then either
  * latches the two goal flags and walks (when the cell ahead is the goal tile and the object is
  * cross-axis grid-aligned) or hands the whole step to the resolver collectAlignedLootElseResolveTile. Its declared LIVE-OUT is
  * MEMORY-ONLY.
@@ -36,7 +36,7 @@
  *   4. NON-VACUOUS — a crafted entry really writes RAM; a no-op twin cannot pass.
  *   5. TEETH (goal latch) — a twin that drops the goal-tile latch is CAUGHT at GOAL_TILE_LATCH.
  *   6. TEETH (ahead scratch) — a twin that skips clearing the ahead-tile scratch is CAUGHT at NEXT_TILE.
- *   7. TEETH (cell column) — a twin that corrupts the published tile column is CAUGHT at OBJ_TILE_COL.
+ *   7. TEETH (cell column) — a twin that corrupts the published tile column is CAUGHT at PLAYER_TILE_COL.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-14cd.test.js
  */
@@ -49,12 +49,12 @@ import { loc_14cd as oracle } from "../../translated/loc_14cd.js";
 import { locateObjectCellCheckGoal as idiomatic } from "../locateObjectCellCheckGoal.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  OBJ_Y,
-  OBJ_X,
-  OBJ_TILE_COL,
+  PLAYER_X,
+  PLAYER_Y,
+  PLAYER_TILE_COL,
   NEXT_TILE,
   GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
+  PIT_CROSS_ACTIVE,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -118,8 +118,8 @@ function cellFor(row, objY) {
 function craft(base, { row = CRAFT_ROW, objY, objX = 0, underTile, aheadTile = 0x74 }) {
   const e = base.clone();
   e.regs.h = row;
-  e.mem.write8(OBJ_Y, objY);
-  e.mem.write8(OBJ_X, objX);
+  e.mem.write8(PLAYER_X, objY);
+  e.mem.write8(PLAYER_Y, objX);
   const cellPtr = cellFor(row, objY);
   e.mem.write8(cellPtr, underTile);
   e.mem.write8((cellPtr + 1) & 0xffff, aheadTile);
@@ -198,14 +198,14 @@ test("EQUAL (goal-ahead latch): the goal tile ahead + cross-axis aligned latches
   // objX = 5 -> (5+3)&7 == 0, cross-axis aligned; the cell ahead holds the goal tile.
   const { e } = craft(base, { objY: 3, objX: 5, underTile: 0x30, aheadTile: GOAL_TILE });
   e.mem.write8(GOAL_TILE_LATCH, 0);
-  e.mem.write8(GOAL_CROSSING_LATCH, 0);
+  e.mem.write8(PIT_CROSS_ACTIVE, 0);
 
   assert.equal(ramDiff(e, idiomatic), null, "the goal-ahead path must match the oracle");
 
   const c = e.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(GOAL_TILE_LATCH), 1, "the goal-tile latch was not set");
-  assert.equal(c.mem.read8(GOAL_CROSSING_LATCH), 1, "the goal-crossing latch was not set");
+  assert.equal(c.mem.read8(PIT_CROSS_ACTIVE), 1, "the goal-crossing latch was not set");
   console.log("  EQUAL/goal: both goal flags latched and the walk step ran, identical to the oracle");
 });
 
@@ -270,16 +270,16 @@ test("TEETH (ahead scratch): a twin that skips clearing the ahead-tile scratch i
 /** Broken twin: does the real work, then corrupts the published tile column. */
 function twinCorruptCellColumn(m) {
   idiomatic(m);
-  m.mem.write8(OBJ_TILE_COL, m.mem.read8(OBJ_TILE_COL) ^ 0xff); // BUG: wrong tile column
+  m.mem.write8(PLAYER_TILE_COL, m.mem.read8(PLAYER_TILE_COL) ^ 0xff); // BUG: wrong tile column
 }
 
-test("TEETH (cell column): a twin that corrupts the published tile column is CAUGHT at OBJ_TILE_COL", () => {
+test("TEETH (cell column): a twin that corrupts the published tile column is CAUGHT at PLAYER_TILE_COL", () => {
   const [base] = captureStates(1, 1, 320);
   const { e } = craft(base, { objY: 3, objX: 5, underTile: 0x30, aheadTile: GOAL_TILE });
 
   const d = ramDiff(e, twinCorruptCellColumn);
   assert.notEqual(d, null, "the gate FAILED to catch a corrupted tile column — it proves nothing");
-  assert.equal(d.addr, OBJ_TILE_COL, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJ_TILE_COL)})`);
+  assert.equal(d.addr, PLAYER_TILE_COL, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_TILE_COL)})`);
   assert.equal(ramDiff(e, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/column: corrupted tile column caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

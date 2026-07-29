@@ -50,14 +50,14 @@ import { seedObjectRecords as idiomatic } from "../seedObjectRecords.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  SPAWN_PHASE,
-  ACTOR_X,
-  ACTOR_TILE,
-  ACTOR_Y,
-  ACTOR_TIMER,
-  TWIN_X,
-  TWIN_TILE,
-  TWIN_CLEAR,
+  BOARD_END_PHASE,
+  ENEMY3_X,
+  ENEMY3_TILE,
+  ENEMY3_Y,
+  ENEMY3_TIMER,
+  ENEMY3_TWIN_X,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_Y,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -82,11 +82,11 @@ const OWN_ADDRS = [
 ];
 
 // The tail seedActorSpawnState's fifteen writes — used to make the dropped-hand-off
-// teeth deterministic (SPAWN_PHASE 0x807b is the lowest of these addresses).
+// teeth deterministic (BOARD_END_PHASE 0x807b is the lowest of these addresses).
 const TAIL_ADDRS = [
-  ACTOR_X, ACTOR_TILE, ACTOR_Y, 0x810c, 0x810e, 0x810f, ACTOR_TIMER,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR, 0x811d, 0x811f, 0x8120, 0x8123,
-  SPAWN_PHASE,
+  ENEMY3_X, ENEMY3_TILE, ENEMY3_Y, 0x810c, 0x810e, 0x810f, ENEMY3_TIMER,
+  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, 0x811d, 0x811f, 0x8120, 0x8123,
+  BOARD_END_PHASE,
 ];
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -143,9 +143,9 @@ test("TAIL FIRED: the derived pair matches 7 - (counter & 6) and the actor seed 
   assert.equal(b.mem.read8(DERIVED_LO), expectedStep, "first mirrored slot must be the difficulty step");
   assert.equal(b.mem.read8(DERIVED_HI), expectedStep, "second mirrored slot must equal the first");
   // Tail effects: the actor pair seeded to its start pose and the spawn-phase cleared.
-  assert.equal(b.mem.read8(ACTOR_X), 36, "the tail must seed the primary start column");
-  assert.equal(b.mem.read8(TWIN_X), 52, "the tail must seed the twin start column");
-  assert.equal(b.mem.read8(SPAWN_PHASE), 0, "the tail must clear the spawn-phase flag");
+  assert.equal(b.mem.read8(ENEMY3_X), 36, "the tail must seed the primary start column");
+  assert.equal(b.mem.read8(ENEMY3_TWIN_X), 52, "the tail must seed the twin start column");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), 0, "the tail must clear the spawn-phase flag");
   console.log(`  TAIL FIRED: counter=${level} -> step=${expectedStep}; actor pair seeded, spawn-phase cleared`);
 });
 
@@ -259,7 +259,7 @@ test("TEETH: dropping the seedActorSpawnState hand-off is CAUGHT", () => {
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.notEqual(d, null, "the gate FAILED to catch a dropped hand-off — it proves nothing");
-  assert.equal(d.addr, SPAWN_PHASE, `teeth caught ${hx(d.addr ?? 0)} (expected the tail's ${hx(SPAWN_PHASE)})`);
-  assert.equal(b.mem.read8(SPAWN_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
+  assert.equal(d.addr, BOARD_END_PHASE, `teeth caught ${hx(d.addr ?? 0)} (expected the tail's ${hx(BOARD_END_PHASE)})`);
+  assert.equal(b.mem.read8(BOARD_END_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
   console.log(`  TEETH: dropped hand-off caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

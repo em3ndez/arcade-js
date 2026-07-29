@@ -16,7 +16,7 @@
  * 0x0278 (the lost-a-life arm of the same timer-expiry gate dispatchObjectFrameByStateTimer) IS reached at boot,
  * and both are tail-jumped from that gate with the same call convention, so 0x0278's
  * captured entry — a genuine round-boundary state with a valid return on the stack — is a
- * faithful entry for 0x02fd too. GAME_MODE is then poked to force each branch, identically
+ * faithful entry for 0x02fd too. GAME_STATE is then poked to force each branch, identically
  * on both sides (the crafted-entry method).
  *
  * WHY THE FULL SUCCESSOR CHAIN RUNS, AND HOW IT IS BOUNDED. Every callee below
@@ -73,7 +73,7 @@ import { saveActivePlayerRecord } from "../saveActivePlayerRecord.js";
 import { setupBoardDisplay } from "../setupBoardDisplay.js";
 import { showBonusScreen } from "../showBonusScreen.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, LEVEL } from "../ram.js";
+import { GAME_STATE, LEVEL } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -176,12 +176,12 @@ function ramDiff(a, b) {
 }
 
 // The two branches: a name + the poke that forces it + the game-mode it lands in at the
-// main-loop entry. GAME_MODE >= 3 bails to reset (which re-enters play, mode 4); a live
+// main-loop entry. GAME_STATE >= 3 bails to reset (which re-enters play, mode 4); a live
 // 1-or-2-player game advances the level (real play, mode 1).
 function branches() {
   return [
-    { name: "advance (mode 1)", pokes: [[GAME_MODE, 1]], endMode: 1 },
-    { name: "bail (mode>=3)", pokes: [[GAME_MODE, 4]], endMode: 4 },
+    { name: "advance (mode 1)", pokes: [[GAME_STATE, 1]], endMode: 1 },
+    { name: "bail (mode>=3)", pokes: [[GAME_STATE, 4]], endMode: 4 },
   ];
 }
 
@@ -197,11 +197,11 @@ test("HARNESS: the real 0x0278 entry is captured and the oracle chain run is det
     const b = runArm(entry, oracle, br.pokes);
     const d = ramDiff(a, b);
     assert.equal(d, null, d && `${br.name}: oracle run not deterministic: diff at ${hx(d.addr)}`);
-    assert.equal(a.mem.read8(GAME_MODE), br.endMode, `${br.name}: oracle reached the wrong end state`);
+    assert.equal(a.mem.read8(GAME_STATE), br.endMode, `${br.name}: oracle reached the wrong end state`);
   }
   console.log(
     `  HARNESS: captured a real 0x0278 entry (SP=${hx(entry.regs.sp)}, ` +
-      `GAME_MODE=${entry.mem.read8(GAME_MODE)}, LEVEL=${entry.mem.read8(LEVEL)}); ` +
+      `GAME_STATE=${entry.mem.read8(GAME_STATE)}, LEVEL=${entry.mem.read8(LEVEL)}); ` +
       `oracle chain deterministic on both branches (advance -> mode 1, bail -> mode 4 at the main-loop entry)`,
   );
 });
@@ -222,17 +222,17 @@ test("EQUAL: advanceToNextLevel == oracle over observable RAM on both branches",
 
     // Both sides ran the whole chain to the SAME main-loop entry state.
     assert.equal(
-      c.mem.read8(GAME_MODE),
-      o.mem.read8(GAME_MODE),
+      c.mem.read8(GAME_STATE),
+      o.mem.read8(GAME_STATE),
       `${br.name}: idiomatic and oracle reached different end states`,
     );
-    assert.equal(c.mem.read8(GAME_MODE), br.endMode, `${br.name}: reached the wrong end state`);
+    assert.equal(c.mem.read8(GAME_STATE), br.endMode, `${br.name}: reached the wrong end state`);
     seenModes.add(br.endMode);
-    console.log(`  EQUAL/${br.name}: identical RAM; chain reached game mode ${c.mem.read8(GAME_MODE)} at the main-loop entry`);
+    console.log(`  EQUAL/${br.name}: identical RAM; chain reached game mode ${c.mem.read8(GAME_STATE)} at the main-loop entry`);
   }
   // Positive check for the advance branch: the level counter really was bumped.
   const before = entry.mem.read8(LEVEL);
-  const advanced = runArm(entry, idiomatic, [[GAME_MODE, 1]]);
+  const advanced = runArm(entry, idiomatic, [[GAME_STATE, 1]]);
   assert.equal(advanced.mem.read8(LEVEL), (before + 1) & 0xff, "the advance branch did not bump the level counter");
 
   // The branches land in visibly different states, so the diff really exercises both.
@@ -246,7 +246,7 @@ test("EQUAL: advanceToNextLevel == oracle over observable RAM on both branches",
  *  initRoundAndEnterMainLoop reloads — an observable RAM divergence at LEVEL. */
 function twinSkipBump(m) {
   const { mem8 } = m;
-  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
+  if (mem8[GAME_STATE] >= 3) return resetStateAndShowSetup(m);
   // BUG: the level bump (mem8[LEVEL] = mem8[LEVEL] + 1) is missing here.
   saveActivePlayerRecord(m);
   setupBoardDisplay(m, 160);
@@ -258,7 +258,7 @@ function twinSkipBump(m) {
 test("TEETH (skip the level bump): a twin that never increments the level counter is CAUGHT", () => {
   const entry = captureEntry(2500);
   assert.ok(entry, "need a captured 0x0278 entry");
-  const pokes = [[GAME_MODE, 1]]; // the advance branch — where the bump happens
+  const pokes = [[GAME_STATE, 1]]; // the advance branch — where the bump happens
 
   const o = runArm(entry, oracle, pokes);
   const t = runArm(entry, twinSkipBump, pokes);
@@ -281,7 +281,7 @@ function twinWrongDest(m) {
 test("TEETH (wrong destination): a twin that always bails to reset is CAUGHT", () => {
   const entry = captureEntry(2500);
   assert.ok(entry, "need a captured 0x0278 entry");
-  const pokes = [[GAME_MODE, 1]]; // a live game -> oracle advances (mode 1)
+  const pokes = [[GAME_STATE, 1]]; // a live game -> oracle advances (mode 1)
 
   const o = runArm(entry, oracle, pokes);
   const t = runArm(entry, twinWrongDest, pokes);
@@ -289,8 +289,8 @@ test("TEETH (wrong destination): a twin that always bails to reset is CAUGHT", (
   assert.ok(d, "the gate FAILED to catch the wrong-destination twin — it proves nothing");
   // The advance chain lands in real play (mode 1); the bail chain re-enters play through the
   // reset cascade (mode 4). The differing destinations leave a different machine state.
-  assert.equal(o.mem.read8(GAME_MODE), 1, "oracle should advance into real play (mode 1)");
-  assert.equal(t.mem.read8(GAME_MODE), 4, "the wrong-destination twin should re-enter play via reset (mode 4)");
+  assert.equal(o.mem.read8(GAME_STATE), 1, "oracle should advance into real play (mode 1)");
+  assert.equal(t.mem.read8(GAME_STATE), 4, "the wrong-destination twin should re-enter play via reset (mode 4)");
   console.log(
     `  TEETH/dest: wrong-destination twin caught at ${hx(d.addr)}; ` +
       `game mode oracle=1 broken=4 at the main-loop entry`,

@@ -40,12 +40,12 @@
  *           never produces. Excludes the dead stack scratch the still-oracle terrain
  *           handler parks below the entry stack pointer (the idiomatic handoffs are
  *           stack-free). Teeth: a corrupted cell pointer, a dropped goal latch.
- * LIVE-OUT: memory-only — the staged tile column (OBJ_TILE_COL) and cell pointer
- *           (ACTOR_CELL_PTR), the goal/crossing latches on a goal hit, plus everything
+ * LIVE-OUT: memory-only — the staged tile column (PLAYER_TILE_COL) and cell pointer
+ *           (PLAYER_CELL_PTR), the goal/crossing latches on a goal hit, plus everything
  *           the terrain handler or the walk advance writes downstream. No register
  *           live-out (both handoffs tail into the record builder, whose whole result
  *           is RAM).
- * NAMES:    OBJ_Y, OBJ_TILE_COL, ACTOR_CELL_PTR, GOAL_TILE_LATCH, GOAL_CROSSING_LATCH
+ * NAMES:    PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE
  *           from ram.js. The goal terminator tile (39) and the already-at-terminator
  *           sprite/state code (0x17, kept hex like the sibling sprite-code family) are
  *           literals; so are the tilemap base/row-stride and the column rounding bias.
@@ -53,7 +53,7 @@
  * PURPOSE [guess]: "Actor"=downstream vocab; same shared-entity caveat.
  */
 
-import { OBJ_Y, OBJ_TILE_COL, ACTOR_CELL_PTR, GOAL_TILE_LATCH, GOAL_CROSSING_LATCH } from "./ram.js";
+import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { resolveActorTerrainStep } from "./resolveActorTerrainStep.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
@@ -68,7 +68,7 @@ const COLUMN_BIAS = 5; // rounding bias folded into the column before reducing i
 function latchGoalAndAdvance(m, latchValue) {
   const { mem8 } = m;
   mem8[GOAL_TILE_LATCH] = latchValue;
-  mem8[GOAL_CROSSING_LATCH] = latchValue;
+  mem8[PIT_CROSS_ACTIVE] = latchValue;
   return advanceActorWalk(m);
 }
 
@@ -84,11 +84,11 @@ export function locateActorCellCheckGoal(m, row = m.regs.h, spriteCode = m.regs.
   // Locate the tilemap cell under the actor. The biased column's top bits are the tile
   // column; its low bits are the sub-tile phase the terrain handler reads. Row and column
   // fold into the cell address; both column and pointer are published for that handler.
-  const biasedColumn = u8(mem8[OBJ_Y] + COLUMN_BIAS);
+  const biasedColumn = u8(mem8[PLAYER_X] + COLUMN_BIAS);
   const tileColumn = biasedColumn >> 3;
-  mem8[OBJ_TILE_COL] = tileColumn;
+  mem8[PLAYER_TILE_COL] = tileColumn;
   const cellPtr = TILEMAP_BASE + row * ROW_STRIDE + tileColumn;
-  mem16[ACTOR_CELL_PTR] = cellPtr;
+  mem16[PLAYER_CELL_PTR] = cellPtr;
 
   // Reaching the goal terminator in the cell one step ahead, or that cell one full row
   // further down, latches the crossing and walks the actor toward it.

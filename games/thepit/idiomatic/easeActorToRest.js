@@ -29,25 +29,25 @@
  *           two sprite records the tail builder stages from them. The value registers
  *           this routine leaves are dead ABI (nothing downstream reads them before
  *           overwriting them), and the whole-machine gate backstops that.
- * NAMES:    ACTOR_TIMER (0x8112, cadence timer), ACTOR_X (0x810a, the coordinate),
- *           TWIN_X (0x811b, the shadow twin) — all fair-confidence.
+ * NAMES:    ENEMY3_TIMER (0x8112, cadence timer), ENEMY3_X (0x810a, the coordinate),
+ *           ENEMY3_TWIN_X (0x811b, the shadow twin) — all fair-confidence.
  */
 
-import { ACTOR_TIMER, ACTOR_X, TWIN_X } from "./ram.js";
+import { ENEMY3_TIMER, ENEMY3_X, ENEMY3_TWIN_X } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 export function easeActorToRest(m) {
   const { mem8 } = m;
 
   // Only every fourth cadence tick does anything at all.
-  if (mem8[ACTOR_TIMER] % 4 === 0) {
-    const coord = mem8[ACTOR_X];
+  if (mem8[ENEMY3_TIMER] % 4 === 0) {
+    const coord = mem8[ENEMY3_X];
     // Step the coordinate down by one only while it is still at or above the limit;
     // it therefore eases downward and settles at 192.
     if (coord >= 193) {
       const stepped = coord - 1;
-      mem8[ACTOR_X] = stepped;
-      mem8[TWIN_X] = stepped + 16; // the twin trails a constant 16 above
+      mem8[ENEMY3_X] = stepped;
+      mem8[ENEMY3_TWIN_X] = stepped + 16; // the twin trails a constant 16 above
     }
   }
 

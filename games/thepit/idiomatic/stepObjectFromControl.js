@@ -4,7 +4,7 @@
  *
  * The last arm of the per-frame object/state dispatcher: once every earlier gate has
  * passed (the object is active, at rest, and not on a special tile), this is where the
- * tracked object (the one OBJ_X/OBJ_Y locate) takes its ordinary per-frame move.
+ * tracked object (the one PLAYER_Y/PLAYER_X locate) takes its ordinary per-frame move.
  *
  *   - If a reaction animation currently owns the object — a collision/dig/push reaction
  *     is armed and playing — the ordinary move is deferred for this frame: instead of
@@ -27,10 +27,10 @@
  * LIVE-OUT: memory-only — every effect is produced by the delegated handler (the per-frame
  *           update dispatcher or the deferral-record staging); this routine writes no RAM
  *           of its own, and its caller tail-jumps here and reads no register back.
- * NAMES:    REACTION_STATE, GAME_MODE, DEMO_STEER_DIR, IN0_DEBOUNCED from ram.js.
+ * NAMES:    REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED from ram.js.
  */
 
-import { REACTION_STATE, GAME_MODE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "./ram.js";
+import { REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "./ram.js";
 import { advanceObjectFrame } from "./advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
@@ -43,7 +43,7 @@ export function stepObjectFromControl(m) {
 
   // Pick the move command: the demo's generated steering while the attract demo runs,
   // the debounced joystick during real play.
-  const runningDemo = mem8[GAME_MODE] >= 3;
+  const runningDemo = mem8[GAME_STATE] >= 3;
   regs.a = runningDemo ? mem8[DEMO_STEER_DIR] : mem8[IN0_DEBOUNCED];
 
   // Hand the command to the per-frame update dispatcher, which positions, animates, or

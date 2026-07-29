@@ -49,7 +49,7 @@ import { loc_316f as oracle } from "../../translated/loc_316f.js";
 import { advanceObjectMover2 as idiomatic } from "../advanceObjectMover2.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ2_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
+import { ENEMY2_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -184,13 +184,13 @@ test("EQUAL (real dispatches): advanceObjectMover2 == oracle over RAM on every c
   for (let i = 0; i < 3; i++) {
     assert.equal(
       c.mem.read8(OBJ2_SPRITE_RECORD + i),
-      c.mem.read8(OBJ2_X + i),
+      c.mem.read8(ENEMY2_X + i),
       `staged sprite byte ${i} must equal object-2 record byte ${i}`,
     );
   }
   assert.equal(
     c.mem.read8(OBJ2_SPRITE_RECORD + 3),
-    (c.mem.read8(OBJ2_X + 3) + bias) & 0xff,
+    (c.mem.read8(ENEMY2_X + 3) + bias) & 0xff,
     "staged sprite byte 3 must equal record[3] + bias",
   );
   console.log(`  EQUAL/real: ${caps.length} real attract dispatches — work RAM identical to the oracle`);
@@ -212,7 +212,7 @@ test("EQUAL (nonzero bias): the coordinate-biased fourth sprite byte matches the
   const c = runIsolated(entry, idiomatic);
   assert.equal(
     c.mem.read8(OBJ2_SPRITE_RECORD + 3),
-    (c.mem.read8(OBJ2_X + 3) + BIAS) & 0xff,
+    (c.mem.read8(ENEMY2_X + 3) + BIAS) & 0xff,
     "the fourth sprite byte must carry the nonzero bias",
   );
   console.log(`  EQUAL/bias: fourth sprite byte = record[3] + ${BIAS}, identical to the oracle`);
@@ -246,7 +246,7 @@ test("TEETH (corrupted sprite byte): a flipped staged sprite byte is CAUGHT", ()
 /** Broken twin: run the real routine, then restage the fourth sprite byte WITHOUT the bias. */
 function twinDropBias(m) {
   idiomatic(m);
-  m.mem8[OBJ2_SPRITE_RECORD + 3] = m.mem8[OBJ2_X + 3]; // BUG: coordinate bias dropped
+  m.mem8[OBJ2_SPRITE_RECORD + 3] = m.mem8[ENEMY2_X + 3]; // BUG: coordinate bias dropped
 }
 
 test("TEETH (dropped bias): with a nonzero bias, an unbiased fourth byte is CAUGHT", () => {

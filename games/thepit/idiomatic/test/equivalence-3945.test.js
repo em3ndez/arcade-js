@@ -82,9 +82,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x3945;
-const ACTOR_TIMER = 0x8112; // the period-8 cadence timer this routine advances
-const ACTOR_X = 0x810a;     // coordinate the phase body may step (downstream effect)
-const TWIN_X = 0x811b;      // the shadow twin the phase body mirrors
+const ENEMY3_TIMER = 0x8112; // the period-8 cadence timer this routine advances
+const ENEMY3_X = 0x810a;     // coordinate the phase body may step (downstream effect)
+const ENEMY3_TWIN_X = 0x811b;      // the shadow twin the phase body mirrors
 const RELOAD = 8;           // period-8 reload value
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -152,7 +152,7 @@ test("EQUAL: paceActorCadence == oracle on real attract dispatches (full RAM dum
 
   let reload = 0, countDown = 0;
   for (const cap of entries) {
-    const counter = cap.mem.read8(ACTOR_TIMER);
+    const counter = cap.mem.read8(ENEMY3_TIMER);
     if (decWrap(counter) === 0) reload++;
     else countDown++;
 
@@ -183,8 +183,8 @@ test("EXHAUSTIVE: over all 256 timer values the full RAM dump agrees with the or
   for (let counter = 0; counter < 256; counter++) {
     const a = base.clone();
     const b = base.clone();
-    a.mem.write8(ACTOR_TIMER, counter);
-    b.mem.write8(ACTOR_TIMER, counter);
+    a.mem.write8(ENEMY3_TIMER, counter);
+    b.mem.write8(ENEMY3_TIMER, counter);
     oracle(a);
     paceActorCadence(b);
     const diff = observableDiff(a, b);
@@ -210,9 +210,9 @@ test("EXHAUSTIVE: over all 256 timer values the full RAM dump agrees with the or
 /** Broken twin A: wrong reload value — reloads to 9 instead of 8. */
 function brokenReloadValue(m) {
   const { mem } = m;
-  const counter = mem.read8(ACTOR_TIMER);
+  const counter = mem.read8(ENEMY3_TIMER);
   const ticked = counter === 0 ? 255 : counter - 1;
-  mem.write8(ACTOR_TIMER, ticked === 0 ? 9 : ticked); // BUG: should reload to 8
+  mem.write8(ENEMY3_TIMER, ticked === 0 ? 9 : ticked); // BUG: should reload to 8
   return easeActorToRest(m);
 }
 
@@ -224,9 +224,9 @@ function brokenNoTick(m) {
 /** Broken twin C: never reloads — stores 0 on the run-out tick instead of 8. */
 function brokenNoReload(m) {
   const { mem } = m;
-  const counter = mem.read8(ACTOR_TIMER);
+  const counter = mem.read8(ENEMY3_TIMER);
   const ticked = counter === 0 ? 255 : counter - 1;
-  mem.write8(ACTOR_TIMER, ticked); // BUG: run-out should reload to 8, not stay 0
+  mem.write8(ENEMY3_TIMER, ticked); // BUG: run-out should reload to 8, not stay 0
   return easeActorToRest(m);
 }
 
@@ -239,8 +239,8 @@ test("TEETH: three broken twins are all CAUGHT", () => {
   // the timer bug into an observable coordinate difference the RAM dump catches.
   {
     const cap = base.clone();
-    cap.mem.write8(ACTOR_TIMER, 1);
-    cap.mem.write8(ACTOR_X, 200);
+    cap.mem.write8(ENEMY3_TIMER, 1);
+    cap.mem.write8(ENEMY3_X, 200);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenReloadValue(b);
     const diff = observableDiff(a, b);
@@ -251,7 +251,7 @@ test("TEETH: three broken twins are all CAUGHT", () => {
   // Twin B: bites on any ordinary tick — oracle stores counter-1, twin leaves counter.
   {
     const cap = base.clone();
-    cap.mem.write8(ACTOR_TIMER, 5);
+    cap.mem.write8(ENEMY3_TIMER, 5);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenNoTick(b);
     const diff = observableDiff(a, b);
@@ -262,7 +262,7 @@ test("TEETH: three broken twins are all CAUGHT", () => {
   // Twin C: bites on the reload tick — oracle stores 8, twin stores 0.
   {
     const cap = base.clone();
-    cap.mem.write8(ACTOR_TIMER, 1);
+    cap.mem.write8(ENEMY3_TIMER, 1);
     const a = cap.clone(); const b = cap.clone();
     oracle(a); brokenNoReload(b);
     const diff = observableDiff(a, b);

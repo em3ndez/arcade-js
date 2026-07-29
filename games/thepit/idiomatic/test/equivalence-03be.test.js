@@ -58,7 +58,7 @@ import { loc_03be as oracle } from "../../translated/loc_03be.js";
 import { enterPlayMode as idiomatic } from "../enterPlayMode.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { GAME_MODE, DEMO_STEER_DIR, GAME_STATE2 } from "../ram.js";
+import { GAME_STATE, DEMO_STEER_DIR, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -184,9 +184,9 @@ test("EQUAL (real entry): enterPlayMode == oracle over observable RAM", () => {
 
   // Positive check: the seeded cells hold the play-mode values.
   const c = runArm(entry, idiomatic);
-  assert.equal(c.mem8[GAME_MODE], 4, "game-mode byte = play value");
+  assert.equal(c.mem8[GAME_STATE], 4, "game-mode byte = play value");
   assert.equal(c.mem8[DEMO_STEER_DIR], 1, "demo steering heading seeded");
-  assert.equal(c.mem8[GAME_STATE2], 1, "secondary game-state armed");
+  assert.equal(c.mem8[ACTIVE_PLAYER], 1, "secondary game-state armed");
   assert.equal(c.mem8[0x8029], 3, "per-round counter seeded");
   assert.equal(c.mem8[0x804e], 12, "idle-delay base (overrides the DIP decode)");
   assert.equal(c.mem8[0x800b], 1, "gameplay-tick phase countdown");
@@ -220,7 +220,7 @@ test("EQUAL (garbage prefill): the seeds are unconditional, not prior-state depe
   // converge; a cell the routine leaves alone stays equal because both keep the garbage.
   const e = seed.clone();
   for (const [addr, val] of [
-    [GAME_MODE, 0x55], [DEMO_STEER_DIR, 0x55], [GAME_STATE2, 0x55], [0x8029, 0x55],
+    [GAME_STATE, 0x55], [DEMO_STEER_DIR, 0x55], [ACTIVE_PLAYER, 0x55], [0x8029, 0x55],
     [0x804c, 0xaa], [0x804d, 0xaa], [0x804e, 0xaa], [0x804f, 0xaa],
     [0x8050, 0xaa], [0x8051, 0xaa], [0x8052, 0xaa], [0x8053, 0xaa],
     [0x800b, 0xaa], [0x800c, 0xaa],
@@ -240,9 +240,9 @@ test("TEETH (wrong play value): game-mode 5 instead of 4 is CAUGHT at the game-m
 
   // At the main-loop entry bound, enterPlayMode has written the play value (4); a twin that
   // wrote 5 instead — the machine would never enter play — corrupts it there.
-  const d = ramDiff(entry, idiomatic, (m) => { m.mem8[GAME_MODE] = 5; });
+  const d = ramDiff(entry, idiomatic, (m) => { m.mem8[GAME_STATE] = 5; });
   assert.ok(d, "the gate FAILED to catch a wrong play value — it proves nothing");
-  assert.equal(d.addr, GAME_MODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_MODE)})`);
+  assert.equal(d.addr, GAME_STATE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(GAME_STATE)})`);
   assert.equal(d.a, 4, "oracle enters play with game-mode 4");
   assert.equal(d.b, 5, "twin wrote the wrong value 5");
   console.log(`  TEETH/playvalue: wrong game-mode caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);

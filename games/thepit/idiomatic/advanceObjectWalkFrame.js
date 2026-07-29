@@ -28,14 +28,14 @@
  *           value registers and SP — the oracle reaches stageObjectSpriteRecord through a Z80 stack
  *           frame that clobbers A/F/B/HL and pops the return address (SP += 2); the
  *           direct call reproduces neither, and nothing downstream reads them.
- * LIVE-OUT: memory (column 0x8068, SPRITE_CODE, the 0x8075 motion marker, and the
+ * LIVE-OUT: memory (column 0x8068, PLAYER_FACING, the 0x8075 motion marker, and the
  *           four record bytes stageObjectSpriteRecord writes) plus the phase left in E for the
  *           record builder's caller. A/F/B/HL and SP are dead.
- * NAMES:    OBJ_X, SPRITE_CODE from ram.js. The reference point 0x806c and the motion
+ * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The reference point 0x806c and the motion
  *           marker 0x8075 stay hex — their roles are not yet grounded.
  */
 
-import { OBJ_X, SPRITE_CODE } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const REFERENCE = 0x806c; // moving reference point the object's column is measured against
@@ -46,8 +46,8 @@ export function advanceObjectWalkFrame(m) {
 
   // Re-express the column as an offset from the reference point (wraps within a
   // byte) and store it back in place.
-  const offset = (mem8[OBJ_X] - mem8[REFERENCE]) & 0xff;
-  mem8[OBJ_X] = offset;
+  const offset = (mem8[PLAYER_Y] - mem8[REFERENCE]) & 0xff;
+  mem8[PLAYER_Y] = offset;
 
   // The walk cycle: an 8-step phase taken off the offset, biased by 3 so the frame
   // flips at the right travel point. Phase 0 is the rest point.
@@ -59,7 +59,7 @@ export function advanceObjectWalkFrame(m) {
 
   // Two-frame walk: the sprite code steps to its odd neighbour on the half of the
   // cycle where phase bit 1 is set, back to the even code otherwise.
-  mem8[SPRITE_CODE] = phase & 2 ? 0xb3 : 0xb2;
+  mem8[PLAYER_FACING] = phase & 2 ? 0xb3 : 0xb2;
 
   // Hand the phase forward and build the object's deferral record. stageObjectSpriteRecord writes
   // the four record bytes straight to RAM and consumes nothing from E, so the phase

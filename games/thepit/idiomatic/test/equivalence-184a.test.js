@@ -2,7 +2,7 @@
 /**
  * Equivalence gate for walkActor (ROM 0x184a) — the walk stepper that carries an actor's
  * position forward by its per-frame step (0x806c), reads a sub-tile walk phase off the new
- * position (stored at 0x8075), picks the alternating walk sprite (SPRITE_CODE), then calls
+ * position (stored at 0x8075), picks the alternating walk sprite (PLAYER_FACING), then calls
  * the record builder stageObjectSpriteRecord to write the actor's 4-byte display record.
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The idiomatic routine calls the already-decompiled
@@ -31,7 +31,7 @@
  *   3. NON-VACUOUS + WRITE-COMPLETE (sentinel entry) — pre-set the three output bytes to a
  *      sentinel so a no-op or partial twin cannot pass by the entry already holding the
  *      answer: every output must be overwritten and both arms agree.
- *   4. TEETH — a twin that SWAPS the two walk frames MUST be caught at SPRITE_CODE; forced
+ *   4. TEETH — a twin that SWAPS the two walk frames MUST be caught at PLAYER_FACING; forced
  *      onto a phase where the two frames differ so the twin genuinely diverges.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-184a.test.js
@@ -46,7 +46,7 @@ import { walkActor as idiomatic } from "../walkActor.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_X, SPRITE_CODE } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -94,7 +94,7 @@ function stateDiff(entry, fn) {
 /** Poke the two inputs identically, returning a fresh entry clone. */
 function withInputs(base, x, step) {
   const e = base.clone();
-  e.mem.write8(OBJ_X, x);
+  e.mem.write8(PLAYER_Y, x);
   e.mem.write8(STEP, step);
   return e;
 }
@@ -135,10 +135,10 @@ test("NON-VACUOUS: with the three outputs pre-set to a sentinel, every one is ov
   const [seed] = captureStates(1, 1, 220);
   // x+step = 40+3 = 43 -> phase (43+3)&7 = 6: sprite 0x33, phase byte 6, accumulator 43 —
   // all distinct from the sentinel so "overwritten" is observable.
-  const entry = withInputs(seed, 40, 3); // OBJ_X carries the input position (40)
+  const entry = withInputs(seed, 40, 3); // PLAYER_Y carries the input position (40)
   const SENTINEL = 0x55;
   entry.mem.write8(SUBTILE_PHASE, SENTINEL);
-  entry.mem.write8(SPRITE_CODE, SENTINEL);
+  entry.mem.write8(PLAYER_FACING, SENTINEL);
 
   const a = entry.clone(); // oracle
   const b = entry.clone(); // idiomatic
@@ -146,9 +146,9 @@ test("NON-VACUOUS: with the three outputs pre-set to a sentinel, every one is ov
   idiomatic(b);
 
   assert.notEqual(b.mem.read8(SUBTILE_PHASE), SENTINEL, "idiomatic left the phase byte unwritten");
-  assert.notEqual(b.mem.read8(SPRITE_CODE), SENTINEL, "idiomatic left the sprite code unwritten");
+  assert.notEqual(b.mem.read8(PLAYER_FACING), SENTINEL, "idiomatic left the sprite code unwritten");
   // the accumulator must have advanced from its input (40 -> 43)
-  assert.equal(b.mem.read8(OBJ_X), 43, "idiomatic did not advance the position accumulator");
+  assert.equal(b.mem.read8(PLAYER_Y), 43, "idiomatic did not advance the position accumulator");
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
@@ -160,20 +160,20 @@ test("NON-VACUOUS: with the three outputs pre-set to a sentinel, every one is ov
 /** Broken twin: does the right position/phase work but SWAPS the two walk frames. */
 function twinSpriteSwap(m) {
   const { mem8 } = m;
-  mem8[OBJ_X] = mem8[OBJ_X] + mem8[STEP];
-  const phase = (mem8[OBJ_X] + 3) % 8;
+  mem8[PLAYER_Y] = mem8[PLAYER_Y] + mem8[STEP];
+  const phase = (mem8[PLAYER_Y] + 3) % 8;
   mem8[SUBTILE_PHASE] = phase;
-  mem8[SPRITE_CODE] = phase & 2 ? 0x32 : 0x33; // BUG: frames swapped
+  mem8[PLAYER_FACING] = phase & 2 ? 0x32 : 0x33; // BUG: frames swapped
   return stageObjectSpriteRecord(m);
 }
 
-test("TEETH: a swapped-sprite twin is CAUGHT at SPRITE_CODE", () => {
+test("TEETH: a swapped-sprite twin is CAUGHT at PLAYER_FACING", () => {
   const [seed] = captureStates(1, 1, 240);
   const entry = withInputs(seed, 40, 3); // phase 6 -> phase bit 1 set, the two frames differ
 
   const d = stateDiff(entry, twinSpriteSwap);
   assert.notEqual(d, null, "the gate FAILED to catch a swapped-sprite twin — it proves nothing");
-  assert.equal(d.addr, SPRITE_CODE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`);
+  assert.equal(d.addr, PLAYER_FACING, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`);
 
   // and the correct routine is still EQUAL on the very same entry
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");

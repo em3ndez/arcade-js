@@ -42,10 +42,10 @@ import { spawnDigEntity as idiomatic } from "../spawnDigEntity.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
-  ACTOR_CELL_PTR,
-  SPAWN_STATE,
+  PLAYER_CELL_PTR,
+  HAZARD_ACTIVE_COUNT,
   DIG_OBJ_TIMER,
-  DIG_OBJ_STATE,
+  HAZARD_STATE,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -98,11 +98,11 @@ function compare(entry, fn) {
 /** Poke the three tilemap cells under the actor and the spawn slot, identically per clone. */
 function craft(entry, { neigh, cur, twoBack, spawnState }) {
   const c = entry.clone();
-  const cellPtr = c.mem.read16(ACTOR_CELL_PTR);
+  const cellPtr = c.mem.read16(PLAYER_CELL_PTR);
   c.mem.write8((cellPtr - 2) & 0xffff, twoBack);
   c.mem.write8((cellPtr - 1) & 0xffff, neigh);
   c.mem.write8(cellPtr & 0xffff, cur);
-  c.mem.write8(SPAWN_STATE, spawnState);
+  c.mem.write8(HAZARD_ACTIVE_COUNT, spawnState);
   return c;
 }
 
@@ -133,7 +133,7 @@ test("EQUAL (real dispatches): spawnDigEntity == oracle over RAM on every captur
     // Note whether this real dispatch reached the commit tail (dig state armed).
     const c = entries[i].clone();
     idiomatic(c);
-    if (c.mem.read8(DIG_OBJ_STATE) === CARVING_STATE && entries[i].mem.read8(DIG_OBJ_STATE) !== CARVING_STATE) {
+    if (c.mem.read8(HAZARD_STATE) === CARVING_STATE && entries[i].mem.read8(HAZARD_STATE) !== CARVING_STATE) {
       committed++;
     }
   }
@@ -177,7 +177,7 @@ test("EQUAL (crafted arm x spawn-slot sweep): every arm, idle and busy, matches 
         const c = entry.clone();
         idiomatic(c);
         assert.equal(
-          c.mem.read8(DIG_OBJ_STATE),
+          c.mem.read8(HAZARD_STATE),
           CARVING_STATE,
           `${arm.name}: idle slot did not commit the dig object`,
         );
@@ -212,7 +212,7 @@ test("TEETH (busy path): a wrong dig-timer arm is CAUGHT", () => {
 /** Broken twin: correct routine, then corrupt the sprite id stamped before the cursor. */
 function twinWrongStamp(m) {
   idiomatic(m);
-  const cellPtr = m.mem.read16(ACTOR_CELL_PTR);
+  const cellPtr = m.mem.read16(PLAYER_CELL_PTR);
   const before = m.mem.read8((cellPtr - 1) & 0xffff);
   m.mem.write8((cellPtr - 1) & 0xffff, before ^ 0xff); // BUG: wrong tile stamped into the map
 }
@@ -222,7 +222,7 @@ test("TEETH (commit path): a wrong stamped sprite id is CAUGHT in the tilemap", 
   assert.ok(seed, "need a captured entry to seed the teeth check");
   // A recognised pair with an idle slot -> the commit path stamps the tilemap cell.
   const entry = craft(seed, { neigh: 193, cur: 197, twoBack: 0, spawnState: 0 });
-  const cellPtr = entry.mem.read16(ACTOR_CELL_PTR);
+  const cellPtr = entry.mem.read16(PLAYER_CELL_PTR);
 
   const diff = compare(entry, twinWrongStamp);
   assert.notEqual(diff, null, "the gate FAILED to catch the wrong-stamp twin — it proves nothing");

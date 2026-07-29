@@ -76,7 +76,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_01a4 as oracle } from "../../translated/loc_01a4.js";
 import { coldBootInit as idiomatic } from "../coldBootInit.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, GAME_STATE2, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../ram.js";
 
 // Callees imported for the dropped-credit-clear twin (a faithful copy of the body).
 import { disableFrameInterrupt } from "../disableFrameInterrupt.js";
@@ -208,8 +208,8 @@ test("HARNESS: the real boot 0x01a4 dispatch is captured and the oracle run is d
   const { ram, oracleM } = runPair(oracle); // candidate arm = the oracle itself
   assert.equal(ram, null, ram && `oracle run not deterministic: diff at ${hx(ram.addr ?? 0)}`);
   assert.equal(oracleM.mem.read8(CREDIT_COUNTER), 0, "the boot must clear the credit counter to 0");
-  assert.equal(oracleM.mem.read8(GAME_MODE), 0, "the boot must clear the game-mode byte to 0");
-  assert.equal(oracleM.mem.read8(GAME_STATE2), 1, "the boot must arm the secondary state byte to 1");
+  assert.equal(oracleM.mem.read8(GAME_STATE), 0, "the boot must clear the game-mode byte to 0");
+  assert.equal(oracleM.mem.read8(ACTIVE_PLAYER), 1, "the boot must arm the secondary state byte to 1");
   assert.equal(oracleM.mem.read8(HOLD_COUNTER), 0, "the setup screen's hold must drain to 0");
   console.log(
     `  HARNESS: captured a real 0x01a4 entry (SP=${hx(ENTRY.regs.sp)}, DSW=${hx(ENTRY.io.dsw)}); ` +
@@ -228,8 +228,8 @@ test("EQUAL (real dispatch): coldBootInit == oracle over RAM outside the stack s
   assert.equal(candM.mem.read8(CREDIT_COUNTER), 0, "credit counter must be cleared to 0");
   assert.equal(candM.mem.read8(0x801c), 0, "credit mirror 1 must be cleared to 0");
   assert.equal(candM.mem.read8(0x812c), 0, "credit mirror 2 must be cleared to 0");
-  assert.equal(candM.mem.read8(GAME_MODE), 0, "game-mode byte must be cleared to 0");
-  assert.equal(candM.mem.read8(GAME_STATE2), 1, "secondary state byte must be armed to 1");
+  assert.equal(candM.mem.read8(GAME_STATE), 0, "game-mode byte must be cleared to 0");
+  assert.equal(candM.mem.read8(ACTIVE_PLAYER), 1, "secondary state byte must be armed to 1");
   assert.equal(candM.mem.read8(IN1_DEBOUNCED), 6, "coin/start debounce latch must be seeded to 6");
   assert.equal(candM.mem.read8(IN1_PREV), 6, "coin/start debounce sample must be seeded to 6");
   assert.equal(candM.mem.read8(COIN_DEBOUNCE), 0xaa, "coin-switch debounce accumulator must be seeded to 0xAA");
@@ -276,7 +276,7 @@ function twinDropCreditClear(m) {
   // BUG: the `mem8[0x8000] = 0` clear is dropped (the two mirrors are still cleared).
   mem8[0x801c] = 0;
   mem8[0x812c] = 0;
-  mem8[GAME_MODE] = 0;
+  mem8[GAME_STATE] = 0;
   mem8[IN1_DEBOUNCED] = 6;
   mem8[IN1_PREV] = 6;
   mem8[0x8004] = 0x55;
@@ -288,7 +288,7 @@ function twinDropCreditClear(m) {
   blankScreen(m);
   setupBoardModeC0(m);
   requestSound2(m);
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   applyDipSwitches(m);
   m.push16(0x01f6);
   waitFrames(m, 60);

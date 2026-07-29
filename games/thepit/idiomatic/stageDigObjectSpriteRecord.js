@@ -23,16 +23,16 @@
  *           edges. It reads all its inputs from RAM, so any realistic state is a valid entry.
  * LIVE-OUT: memory-only — the four record bytes, then whatever the background update leaves.
  *           The residual value registers are dead ABI; no caller reads one back from here.
- * NAMES:    TARGET_X, DIG_OBJ_STATE, DIG_OBJ_ATTR, TARGET_Y, SPRITE_COORD_BIAS,
+ * NAMES:    HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_Y, SPRITE_COORD_BIAS,
  *           SPRITE_STAGING_BASE from ram.js. The background-update tail 0x2f71 is the
  *           decompiled advanceBackgroundSprite, called directly.
  */
 
 import {
-  TARGET_X,
-  DIG_OBJ_STATE,
-  DIG_OBJ_ATTR,
-  TARGET_Y,
+  HAZARD_X,
+  HAZARD_STATE,
+  HAZARD_TYPE,
+  HAZARD_Y,
   SPRITE_COORD_BIAS,
   SPRITE_STAGING_BASE,
 } from "./ram.js";
@@ -49,10 +49,10 @@ export function stageDigObjectSpriteRecord(m) {
   // Copy the dig object's four fields into its sprite-staging slot, pulling the two
   // coordinate ends apart by the cabinet offset. Each store truncates to a byte, so the
   // biased ends wrap.
-  mem8[DIG_RECORD] = mem8[TARGET_X] - offset; // leading: column, offset removed
-  mem8[DIG_RECORD + 1] = mem8[DIG_OBJ_STATE]; // sprite code for the object's current phase
-  mem8[DIG_RECORD + 2] = mem8[DIG_OBJ_ATTR]; // colour + priority attribute
-  mem8[DIG_RECORD + 3] = mem8[TARGET_Y] + offset; // trailing: row, offset added
+  mem8[DIG_RECORD] = mem8[HAZARD_X] - offset; // leading: column, offset removed
+  mem8[DIG_RECORD + 1] = mem8[HAZARD_STATE]; // sprite code for the object's current phase
+  mem8[DIG_RECORD + 2] = mem8[HAZARD_TYPE]; // colour + priority attribute
+  mem8[DIG_RECORD + 3] = mem8[HAZARD_Y] + offset; // trailing: row, offset added
 
   // Continue into the per-frame background-element update (advanceBackgroundSprite, ROM 0x2f71),
   // called directly now that it is decompiled; its return unwinds to our caller.

@@ -53,7 +53,7 @@
  *      draw matches the oracle (a wrong condition would diff the HUD region).
  *   4. TEETH (wrong pacing delay) — a twin that corrupts 0x8011 is CAUGHT at 0x8011.
  *   5. TEETH (skipped flag clear) — a twin that leaves the frame counter non-zero (skips
- *      the clear) is CAUGHT at FRAME_COUNTER.
+ *      the clear) is CAUGHT at PLAY_PHASE_COUNTER.
  *   6. TEETH (wrong players-HUD arm) — a twin that draws the players HUD in attract (mode 4,
  *      where the oracle does not) is CAUGHT in the HUD region, proving the draw arm is
  *      load-bearing.
@@ -70,7 +70,7 @@ import { initRoundAndEnterMainLoop as idiomatic } from "../initRoundAndEnterMain
 import { loc_0348 as oracleMainLoop } from "../../translated/loc_0348.js";
 import { drawPlayerLabel } from "../drawPlayerLabel.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_MODE, LEVEL, SOUND_RING, FRAME_COUNTER } from "../ram.js";
+import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -202,10 +202,10 @@ test("HARNESS: 0x031a boot dispatch captured, entry sane, oracle deterministic",
   // The excluded window must sit in the stack page, above every observable output (named
   // work RAM ends by 0x823f, colour map 0x8800, tilemap 0x9000), so it can hide nothing.
   assert.ok(sp - STACK_SCRATCH > 0x8300 && sp <= 0x83ff, `entry SP ${hx(sp)} not in the stack page`);
-  assert.equal(ENTRY.mem.read8(GAME_MODE), 4, "captured boot dispatch is the attract demo (game mode 4)");
+  assert.equal(ENTRY.mem.read8(GAME_STATE), 4, "captured boot dispatch is the attract demo (game mode 4)");
 
   assert.equal(observableDiff(ENTRY, oracle), null, "oracle run not deterministic outside the stack scratch");
-  console.log(`  HARNESS: captured 0x031a (SP=${hx(sp)}, mode=${ENTRY.mem.read8(GAME_MODE)}); oracle deterministic, real main loop bounded at entry`);
+  console.log(`  HARNESS: captured 0x031a (SP=${hx(sp)}, mode=${ENTRY.mem.read8(GAME_STATE)}); oracle deterministic, real main loop bounded at entry`);
 });
 
 // -- 2. EQUAL: real captured dispatch (attract, mode 4) -----------------------
@@ -219,7 +219,7 @@ test("EQUAL (captured, mode 4): initRoundAndEnterMainLoop == oracle outside the 
   const c = run(ENTRY, idiomatic);
   const o = run(ENTRY, oracle);
   assert.equal(c.mem.read8(DELAY), o.mem.read8(DELAY), "pacing delay 0x8011 not derived to match the oracle");
-  assert.equal(c.mem.read8(FRAME_COUNTER), 0, "frame counter not cleared");
+  assert.equal(c.mem.read8(PLAY_PHASE_COUNTER), 0, "frame counter not cleared");
   assert.equal(c.mem.read8(SOUND_RING), 0, "first sound slot not cleared");
   console.log(`  EQUAL/captured: identical outside the stack scratch; delay 0x8011=${c.mem.read8(DELAY)}, flags cleared`);
 });
@@ -228,7 +228,7 @@ test("EQUAL (captured, mode 4): initRoundAndEnterMainLoop == oracle outside the 
 
 test("EQUAL (crafted, mode 1): drawing the players HUD in real play, still == oracle", () => {
   const seed = ENTRY.clone();
-  seed.mem.write8(GAME_MODE, 1); // real play, 1 player -> the drawPlayerLabel arm fires
+  seed.mem.write8(GAME_STATE, 1); // real play, 1 player -> the drawPlayerLabel arm fires
   const ram = observableDiff(seed, idiomatic);
   assert.equal(ram, null, ram && `RAM diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} idiomatic=${ram.b})`);
 
@@ -254,9 +254,9 @@ test("TEETH (wrong delay): a corrupted 0x8011 is CAUGHT", () => {
 
 test("TEETH (skipped flag clear): a non-zero frame counter is CAUGHT", () => {
   // initRoundAndEnterMainLoop clears the frame counter before the loop; re-dirty it at the bound (the "skip").
-  const ram = observableDiff(ENTRY, idiomatic, (m) => m.mem.write8(FRAME_COUNTER, 0xff));
+  const ram = observableDiff(ENTRY, idiomatic, (m) => m.mem.write8(PLAY_PHASE_COUNTER, 0xff));
   assert.notEqual(ram, null, "the gate FAILED to catch a skipped flag clear — it is worthless");
-  assert.equal(ram.addr, FRAME_COUNTER, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(FRAME_COUNTER)})`);
+  assert.equal(ram.addr, PLAY_PHASE_COUNTER, `teeth caught ${hx(ram.addr ?? 0)} (expected ${hx(PLAY_PHASE_COUNTER)})`);
   console.log(`  TEETH/flag: uncleared frame counter caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);
 });
 

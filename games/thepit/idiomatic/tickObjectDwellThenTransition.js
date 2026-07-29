@@ -31,21 +31,21 @@
  * LIVE-OUT: memory-only — the decremented countdown, plus (on a fourth tick) the two
  *           flipped flags. No caller reads a value register (dead ABI); the expiry
  *           branch is a JS tail return of the transition's own result.
- * NAMES:    MOVER_CADENCE (0x808b, serving here as the state countdown), ACTOR_STATE
- *           (0x8084), SPRITE_CODE (0x8069).
+ * NAMES:    ENEMY_ACTION_TIMER (0x808b, serving here as the state countdown), ENEMY_WORK_SPRITE
+ *           (0x8084), PLAYER_FACING (0x8069).
  *
  * PURPOSE [guess]: which game event the expiry gates (lost life vs other).
  */
 
-import { MOVER_CADENCE, ACTOR_STATE, SPRITE_CODE } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, PLAYER_FACING } from "./ram.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 
 export function tickObjectDwellThenTransition(m) {
   const { mem8 } = m;
 
   // Knock one off the countdown (the byte store wraps 0 back round to 255).
-  const remaining = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = remaining;
+  const remaining = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = remaining;
 
   // The tick that reaches zero ends the wait: hand off to the round/state-boundary
   // transition, whose own return unwinds past this routine to our caller.
@@ -56,6 +56,6 @@ export function tickObjectDwellThenTransition(m) {
 
   // Flip the shared top (flip / frame-select) bit of the actor-state flag and the
   // sprite code together, advancing the actor's two-frame blink.
-  mem8[ACTOR_STATE] ^= 0x80;
-  mem8[SPRITE_CODE] ^= 0x80;
+  mem8[ENEMY_WORK_SPRITE] ^= 0x80;
+  mem8[PLAYER_FACING] ^= 0x80;
 }

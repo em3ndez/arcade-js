@@ -52,7 +52,7 @@ import { advanceAltPhaseActor as idiomatic } from "../advanceAltPhaseActor.js";
 import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
-import { ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y, TWIN_X } from "../ram.js";
+import { ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y, ENEMY3_TWIN_X } from "../ram.js";
 
 const FLOOR_HOLD = 0x807c; // idles the object at the floor (unnamed in ram.js)
 const BIAS = 0x8051; // record-build bias read by the still-oracle callees
@@ -162,16 +162,16 @@ test("CRAFTED: floor re-arm, tile toggles, and latch+probe match on real backgro
   // A move tick fires when the post-decrement timer is a multiple of 4; timer=5 gives a
   // clean move tick with no cadence underflow, timer=1 underflows (reload + tile flip).
   const crafted = [
-    { tag: "floor re-arm (hold elapsed)", pokes: [[ACTOR_TIMER, 5], [ACTOR_Y, 0], [FLOOR_HOLD, 0]] },
-    { tag: "floor idle (hold running)", pokes: [[ACTOR_TIMER, 5], [ACTOR_Y, 0], [FLOOR_HOLD, 0x40]] },
-    { tag: "tile toggle A->B", pokes: [[ACTOR_TIMER, 1], [ACTOR_TILE, 46], [ACTOR_Y, 0], [FLOOR_HOLD, 0x40]] },
-    { tag: "tile toggle B->A", pokes: [[ACTOR_TIMER, 1], [ACTOR_TILE, 175], [ACTOR_Y, 0], [FLOOR_HOLD, 0x40]] },
-    { tag: "tile toggle other->A", pokes: [[ACTOR_TIMER, 1], [ACTOR_TILE, 99], [ACTOR_Y, 0], [FLOOR_HOLD, 0x40]] },
-    { tag: "march right", pokes: [[ACTOR_TIMER, 5], [ACTOR_Y, 30], [ACTOR_X, 10]] },
-    { tag: "march to far column (X edge)", pokes: [[ACTOR_TIMER, 5], [ACTOR_Y, 30], [ACTOR_X, 35]] },
-    { tag: "latch + probe build", pokes: [[ACTOR_TIMER, 5], [ACTOR_Y, 23], [ACTOR_X, 40], [BIAS, 3]] },
-    { tag: "descend", pokes: [[ACTOR_TIMER, 5], [ACTOR_Y, 30], [ACTOR_X, 40]] },
-    { tag: "tail-early (not a move tick)", pokes: [[ACTOR_TIMER, 4]] },
+    { tag: "floor re-arm (hold elapsed)", pokes: [[ENEMY3_TIMER, 5], [ENEMY3_Y, 0], [FLOOR_HOLD, 0]] },
+    { tag: "floor idle (hold running)", pokes: [[ENEMY3_TIMER, 5], [ENEMY3_Y, 0], [FLOOR_HOLD, 0x40]] },
+    { tag: "tile toggle A->B", pokes: [[ENEMY3_TIMER, 1], [ENEMY3_TILE, 46], [ENEMY3_Y, 0], [FLOOR_HOLD, 0x40]] },
+    { tag: "tile toggle B->A", pokes: [[ENEMY3_TIMER, 1], [ENEMY3_TILE, 175], [ENEMY3_Y, 0], [FLOOR_HOLD, 0x40]] },
+    { tag: "tile toggle other->A", pokes: [[ENEMY3_TIMER, 1], [ENEMY3_TILE, 99], [ENEMY3_Y, 0], [FLOOR_HOLD, 0x40]] },
+    { tag: "march right", pokes: [[ENEMY3_TIMER, 5], [ENEMY3_Y, 30], [ENEMY3_X, 10]] },
+    { tag: "march to far column (X edge)", pokes: [[ENEMY3_TIMER, 5], [ENEMY3_Y, 30], [ENEMY3_X, 35]] },
+    { tag: "latch + probe build", pokes: [[ENEMY3_TIMER, 5], [ENEMY3_Y, 23], [ENEMY3_X, 40], [BIAS, 3]] },
+    { tag: "descend", pokes: [[ENEMY3_TIMER, 5], [ENEMY3_Y, 30], [ENEMY3_X, 40]] },
+    { tag: "tail-early (not a move tick)", pokes: [[ENEMY3_TIMER, 4]] },
   ];
 
   for (const { tag, pokes } of crafted) {
@@ -191,22 +191,22 @@ test("CRAFTED: floor re-arm, tile toggles, and latch+probe match on real backgro
  */
 function brokenShadowOffset(m) {
   const { mem } = m;
-  mem.write8(ACTOR_TIMER, mem.read8(ACTOR_TIMER) - 1);
-  let timer = mem.read8(ACTOR_TIMER);
+  mem.write8(ENEMY3_TIMER, mem.read8(ENEMY3_TIMER) - 1);
+  let timer = mem.read8(ENEMY3_TIMER);
   if (timer === 0) {
     timer = 8;
-    mem.write8(ACTOR_TIMER, 8);
-    const next = mem.read8(ACTOR_TILE) === 46 ? 175 : 46;
-    mem.write8(ACTOR_TILE, next);
+    mem.write8(ENEMY3_TIMER, 8);
+    const next = mem.read8(ENEMY3_TILE) === 46 ? 175 : 46;
+    mem.write8(ENEMY3_TILE, next);
     mem.write8(0x811c, next ^ 1);
   }
   if (timer % 4 !== 0) return stageActorSpriteRecords(m);
-  const y = mem.read8(ACTOR_Y);
+  const y = mem.read8(ENEMY3_Y);
   if (y >= 23) {
-    const x = mem.read8(ACTOR_X);
+    const x = mem.read8(ENEMY3_X);
     if (x < 36) {
-      mem.write8(ACTOR_X, x + 1);
-      mem.write8(0x811b, mem.read8(ACTOR_X) + 32); // BUG: shadow-X offset should be 16
+      mem.write8(ENEMY3_X, x + 1);
+      mem.write8(0x811b, mem.read8(ENEMY3_X) + 32); // BUG: shadow-X offset should be 16
       return stageActorSpriteRecords(m);
     }
     if (y === 23) {
@@ -216,16 +216,16 @@ function brokenShadowOffset(m) {
       stageObjectSpriteRecord(m);
     }
   }
-  const row = mem.read8(ACTOR_Y);
+  const row = mem.read8(ENEMY3_Y);
   if (row !== 0) {
     const nextRow = row - 1;
-    mem.write8(ACTOR_Y, nextRow);
+    mem.write8(ENEMY3_Y, nextRow);
     mem.write8(0x811e, nextRow);
     return stageActorSpriteRecords(m);
   }
   if (mem.read8(FLOOR_HOLD) !== 0) return;
   mem.write8(FLOOR_HOLD, 120);
-  mem.write8(ACTOR_TILE, 9);
+  mem.write8(ENEMY3_TILE, 9);
   mem.write8(0x811c, 9);
   return stageActorSpriteRecords(m);
 }
@@ -233,14 +233,14 @@ function brokenShadowOffset(m) {
 test("TEETH: the wrong-shadow-offset twin is CAUGHT (observable RAM has teeth)", () => {
   const caps = captureDispatches();
   const bg = caps[caps.length - 1];
-  const marchEntry = craft(bg, [[ACTOR_TIMER, 5], [ACTOR_Y, 30], [ACTOR_X, 10]]);
+  const marchEntry = craft(bg, [[ENEMY3_TIMER, 5], [ENEMY3_Y, 30], [ENEMY3_X, 10]]);
 
   const ram = ramDiff(marchEntry, brokenShadowOffset);
   assert.ok(ram, "the wrong-shadow-offset twin must be caught by the observable-RAM diff on a march arm");
   assert.equal(
     ram.addr,
-    TWIN_X,
-    `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected the shadow-X field ${hx(TWIN_X)})`,
+    ENEMY3_TWIN_X,
+    `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected the shadow-X field ${hx(ENEMY3_TWIN_X)})`,
   );
   console.log(`  TEETH: caught at ${hx(ram.addr)} (oracle=${ram.a} twin=${ram.b})`);
 });

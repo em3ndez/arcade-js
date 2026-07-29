@@ -51,7 +51,7 @@ import { addScore } from "../addScore.js";
 import { drawScoreDigits } from "../drawScoreDigits.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { GAME_MODE, GAME_STATE2 } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -64,7 +64,7 @@ const TARGET = 0x4689;
 const NMI = 0x0066;
 const SCORE_LOW = 0x8031; // low pair of the two-byte packed-BCD score (not yet named in ram.js)
 const SCORE_HIGH = 0x8034; // high pair of the score
-const P1_COLUMN = 0x9301; // player-1 score column base (drawScoreDigits picks by GAME_STATE2)
+const P1_COLUMN = 0x9301; // player-1 score column base (drawScoreDigits picks by ACTIVE_PLAYER)
 const OTHER_COLUMN = 0x90c1; // any-other-player score column base
 const ROW = 32; // per-digit tile-map row stride
 const SAFE_SP = 0x83f0; // a work-RAM stack the oracle's ret can pop harmlessly in crafted sweeps
@@ -134,7 +134,7 @@ const cellsOf = (m, base) => [0, ROW, 2 * ROW, 3 * ROW].map((o) => m.mem.read8((
 /** BUG: honours the mode gate and repaints, but never adds to the score. */
 function twinDroppedAdd(m, _increment) {
   const { mem8 } = m;
-  const mode = mem8[GAME_MODE];
+  const mode = mem8[GAME_STATE];
   if (mode !== 1 && mode !== 2) return;
   drawScoreDigits(m);
 }
@@ -147,7 +147,7 @@ function twinWrongIncrement(m, _increment) {
 /** BUG: adds the low byte but drops the carry into the high pair. */
 function twinLostCarry(m, increment) {
   const { mem8 } = m;
-  const mode = mem8[GAME_MODE];
+  const mode = mem8[GAME_STATE];
   if (mode !== 1 && mode !== 2) return;
   const lowSum = fromBcd(mem8[SCORE_LOW]) + fromBcd(increment & 0xff);
   mem8[SCORE_LOW] = toBcd(lowSum % 100);
@@ -197,10 +197,10 @@ test("EQUAL (real skip path): addScore == oracle on the real captured attract st
   assert.ok(caps.length >= 4, `expected several captured attract states, got ${caps.length}`);
   const modes = new Set();
   for (const cap of caps) {
-    modes.add(cap.mem.read8(GAME_MODE));
+    modes.add(cap.mem.read8(GAME_STATE));
     const before = [cap.mem.read8(SCORE_LOW), cap.mem.read8(SCORE_HIGH)];
     const { diffs } = scoreDiff(cap, addScore, 0x0020);
-    assert.equal(diffs.length, 0, `mode ${hx(cap.mem.read8(GAME_MODE))}: ${diffs.join("; ")}`);
+    assert.equal(diffs.length, 0, `mode ${hx(cap.mem.read8(GAME_STATE))}: ${diffs.join("; ")}`);
 
     const c = cap.clone();
     addScore(c, 0x0020);
@@ -223,7 +223,7 @@ test("EQUAL (poked skip path): modes 0 and 3 leave the score untouched, whole RA
   for (const idle of [0, 3]) {
     for (const cap of caps) {
       const entry = cap.clone();
-      entry.mem.write8(GAME_MODE, idle);
+      entry.mem.write8(GAME_STATE, idle);
       entry.mem.write8(SCORE_LOW, 0x45); // a nonzero score so a stray add would show
       entry.mem.write8(SCORE_HIGH, 0x67);
       const { diffs } = scoreDiff(entry, addScore, 0x0020);
@@ -261,8 +261,8 @@ test("EQUAL (add path, curated): modes 1 & 2 over valid-BCD scores (incl. carry 
   for (const player of [1, 2]) {
     for (const [lo, hi, inc, wantLo, wantHi] of cases) {
       const entry = seed.clone();
-      entry.mem.write8(GAME_MODE, player); // active player -> the add lands
-      entry.mem.write8(GAME_STATE2, player); // which score column drawScoreDigits repaints
+      entry.mem.write8(GAME_STATE, player); // active player -> the add lands
+      entry.mem.write8(ACTIVE_PLAYER, player); // which score column drawScoreDigits repaints
       entry.mem.write8(SCORE_LOW, lo);
       entry.mem.write8(SCORE_HIGH, hi);
 
@@ -299,8 +299,8 @@ function exhaustiveAddSweep(candidate) {
           const lo = toBcd(ld), hi = toBcd(hd);
           for (const mm of [mo, mi]) {
             mm.regs.sp = SAFE_SP;
-            mm.mem.write8(GAME_MODE, player);
-            mm.mem.write8(GAME_STATE2, player);
+            mm.mem.write8(GAME_STATE, player);
+            mm.mem.write8(ACTIVE_PLAYER, player);
             mm.mem.write8(SCORE_LOW, lo);
             mm.mem.write8(SCORE_HIGH, hi);
             for (const o of [0, ROW, 2 * ROW, 3 * ROW]) mm.mem.write8((base + o) & 0xffff, 0xaa);
@@ -347,8 +347,8 @@ test("TEETH: dropped add / wrong increment / lost carry / ignored gate are each 
 
   // Active-player seed with a low pair that will carry, so the carry teeth can bite.
   const active = seed.clone();
-  active.mem.write8(GAME_MODE, 1);
-  active.mem.write8(GAME_STATE2, 1);
+  active.mem.write8(GAME_STATE, 1);
+  active.mem.write8(ACTIVE_PLAYER, 1);
   active.mem.write8(SCORE_LOW, 0x99);
   active.mem.write8(SCORE_HIGH, 0x12);
 
@@ -366,7 +366,7 @@ test("TEETH: dropped add / wrong increment / lost carry / ignored gate are each 
 
   // Idle seed so the mode gate is load-bearing: the oracle adds nothing, the twin does.
   const idle = seed.clone();
-  idle.mem.write8(GAME_MODE, 0);
+  idle.mem.write8(GAME_STATE, 0);
   idle.mem.write8(SCORE_LOW, 0x45);
   idle.mem.write8(SCORE_HIGH, 0x67);
   const ignoreGate = scoreDiff(idle, twinIgnoreGate, 0x0020);

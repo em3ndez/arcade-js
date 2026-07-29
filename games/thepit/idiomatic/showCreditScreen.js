@@ -36,20 +36,20 @@
  *           display-setup writes; the stack reset lands the callee return addresses at
  *           the top of work RAM. Nothing reads a register back (the routine exits into
  *           a forever loop and the caller's frame was discarded).
- * NAMES:    GAME_MODE (0x8001) from ram.js. The interrupt-mask port (0xb000) is
+ * NAMES:    GAME_STATE (0x8001) from ram.js. The interrupt-mask port (0xb000) is
  *           hardware, not work RAM, and stays inside enableNmi.
  */
 
 import { enableNmi } from "./enableNmi.js";
 import { blankScreen } from "./blankScreen.js";
 import { holdFixedScreen } from "./holdFixedScreen.js";
-import { GAME_MODE } from "./ram.js";
+import { GAME_STATE } from "./ram.js";
 
 export function showCreditScreen(m) {
   const { mem8, regs } = m;
 
   // Arm game mode 3.
-  mem8[GAME_MODE] = 3;
+  mem8[GAME_STATE] = 3;
 
   // Hard restart: drop the stack to the top of work RAM, discarding the caller's
   // return frame. Every callee below pushes and pops relative to this fresh top, so

@@ -32,12 +32,12 @@
  * LIVE-OUT: memory-only — the two packed-BCD score bytes and the four repainted digit cells
  *           (drawScoreDigits' own column-base register is dead in the award path; no caller
  *           reads it here). The value registers and flags the oracle path leaves are dead.
- * NAMES:    GAME_MODE (0x8001) — the active-player gate; SCORE_LO (0x8031) / SCORE_HI (0x8034),
+ * NAMES:    GAME_STATE (0x8001) — the active-player gate; SCORE_LO (0x8031) / SCORE_HI (0x8034),
  *           the packed-BCD score low / high, from ram.js (matching drawScoreDigits). The redraw
  *           delegates to drawScoreDigits (ROM 0x46af).
  */
 
-import { GAME_MODE, SCORE_HI, SCORE_LO } from "./ram.js";
+import { GAME_STATE, SCORE_HI, SCORE_LO } from "./ram.js";
 import { drawScoreDigits } from "./drawScoreDigits.js";
 
 // A packed-BCD byte holds two decimal digits, one per nibble. Convert to and from its
@@ -49,7 +49,7 @@ export function addScore(m, increment) {
   const { mem8 } = m;
 
   // Only an active player (mode 1 or 2) accrues score; any other mode drops the award.
-  const mode = mem8[GAME_MODE];
+  const mode = mem8[GAME_STATE];
   if (mode !== 1 && mode !== 2) return;
 
   // Low pair: add the increment's low byte, keep a carry when it rolls past 99.

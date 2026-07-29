@@ -45,7 +45,7 @@ import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
 import { stepObjectAndResolveTile } from "./stepObjectAndResolveTile.js";
 
-const OBJECT_PHASE = 0x801a; // the object's animation-phase byte (also reset by routeIdleObjectByMoveCommand)
+const PLAYER_ANIM_PHASE = 0x801a; // the object's animation-phase byte (also reset by routeIdleObjectByMoveCommand)
 const WIND_UP_START = 0xc0; // high bits armed when the wind-up begins; the command sits in the low bits
 const WIND_STEP = 32; // one wind-up notch subtracted per frame (0x20 — one step of the top-bit counter)
 const DIR_BITS = 0x0c; // the two move-command direction bits that route into this routine
@@ -53,7 +53,7 @@ const STAMP_HANDLER_BIT = 0x04; // bit 2 of the command: set -> frame-stamp hand
 
 export function windUpObjectMove(m, moveCommand = m.regs.l) {
   const { mem8 } = m;
-  const phase = mem8[OBJECT_PHASE];
+  const phase = mem8[PLAYER_ANIM_PHASE];
 
   // Already settled: run the object's move handler this frame.
   if (phase === moveCommand) return dispatchMove(m, moveCommand);
@@ -61,15 +61,15 @@ export function windUpObjectMove(m, moveCommand = m.regs.l) {
   // Mid wind-up: step the counter down one notch and defer the frame (no move).
   if (phase !== 0) {
     const nextPhase = phase - WIND_STEP;
-    mem8[OBJECT_PHASE] = nextPhase;
+    mem8[PLAYER_ANIM_PHASE] = nextPhase;
     // Once the command no longer reads out of the low bits, the wind-up has run far enough:
     // snap the phase to the settled command so the next frame dispatches.
-    if ((nextPhase & DIR_BITS) !== moveCommand) mem8[OBJECT_PHASE] = moveCommand;
+    if ((nextPhase & DIR_BITS) !== moveCommand) mem8[PLAYER_ANIM_PHASE] = moveCommand;
     return stageObjectSpriteRecord(m); // defer this frame
   }
 
   // Nothing armed yet: start the wind-up high, then run the handler this frame.
-  mem8[OBJECT_PHASE] = moveCommand | WIND_UP_START;
+  mem8[PLAYER_ANIM_PHASE] = moveCommand | WIND_UP_START;
   return dispatchMove(m, moveCommand);
 }
 

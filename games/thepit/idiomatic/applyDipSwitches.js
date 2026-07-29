@@ -29,14 +29,14 @@
  * LIVE-OUT: memory-only — the parameter block 0x804c..0x8053; it also drives the two
  *           flip-screen control lines (I/O, outside the RAM diff, driven for the live
  *           game). No register or flag is read by the caller.
- * NAMES:    STEP_TIMER_BASE (0x804f), SPRITE_COORD_BIAS (0x8051), GAME_STATE2 (0x8002),
+ * NAMES:    STEP_TIMER_BASE (0x804f), SPRITE_COORD_BIAS (0x8051), ACTIVE_PLAYER (0x8002),
  *           the coins-per-credit costs COINS_PER_CREDIT_A (0x804c)/COINS_PER_CREDIT_B
  *           (0x804d), the loop-delay base LOOP_DELAY_BASE (0x804e), and the starting-men
  *           count STARTING_MEN (0x8053) from ram.js; the write-only flip flags
  *           0x8050/0x8052 stay hex; 0xb000/0xb006/0xb007 are I/O ports, not work RAM.
  */
 
-import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, GAME_STATE2, COINS_PER_CREDIT_A, LOOP_DELAY_BASE, STARTING_MEN } from "./ram.js";
+import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, ACTIVE_PLAYER, COINS_PER_CREDIT_A, LOOP_DELAY_BASE, STARTING_MEN } from "./ram.js";
 import { showColourTestScreen } from "./showColourTestScreen.js";
 
 export function applyDipSwitches(m) {
@@ -66,7 +66,7 @@ export function applyDipSwitches(m) {
 
   // Is the picture flipped for whoever is playing right now? In cocktail mode it flips
   // for player 2; the invert dip then toggles it. The player index is 1 or 2.
-  const activePlayer = mem8[GAME_STATE2];
+  const activePlayer = mem8[ACTIVE_PLAYER];
   const flipScreen = ((activePlayer - 1) & flipFollowsPlayer) ^ flipInvert;
   mem8[0xb006] = flipScreen; // flip-screen control lines (only the low bit is latched)
   mem8[0xb007] = flipScreen;

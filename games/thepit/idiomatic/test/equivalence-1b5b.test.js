@@ -43,7 +43,7 @@ import { loc_1b5b as oracle } from "../../translated/loc_1b5b.js";
 import { stageObjectSpriteRecord as idiomatic } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_X, SPRITE_CODE, OBJ_Y } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING, PLAYER_X } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -59,7 +59,7 @@ const BIAS = 0x8051;
 const PROBE_MID = 0x806a;
 const RECORD = 0x8220;
 const RECORD_ADDRS = [RECORD, RECORD + 1, RECORD + 2, RECORD + 3];
-const INPUT_ADDRS = [BIAS, OBJ_X, SPRITE_CODE, PROBE_MID, OBJ_Y];
+const INPUT_ADDRS = [BIAS, PLAYER_Y, PLAYER_FACING, PROBE_MID, PLAYER_X];
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
 // async, so build the factory once.
@@ -94,10 +94,10 @@ function stateDiff(entry, fn) {
 function withInputs(base, { bias, x, code, mid, y }) {
   const e = base.clone();
   e.mem.write8(BIAS, bias);
-  e.mem.write8(OBJ_X, x);
-  e.mem.write8(SPRITE_CODE, code);
+  e.mem.write8(PLAYER_Y, x);
+  e.mem.write8(PLAYER_FACING, code);
   e.mem.write8(PROBE_MID, mid);
-  e.mem.write8(OBJ_Y, y);
+  e.mem.write8(PLAYER_X, y);
   return e;
 }
 
@@ -176,7 +176,7 @@ test("NON-VACUOUS: with every record byte pre-set to a sentinel, both arms overw
 /** Broken twin: builds the record but forgets the bias on the leading byte. */
 function brokenLoc1b5b(m) {
   idiomatic(m);
-  m.mem.write8(RECORD, m.mem.read8(OBJ_X)); // BUG: leading byte should be column - bias
+  m.mem.write8(RECORD, m.mem.read8(PLAYER_Y)); // BUG: leading byte should be column - bias
 }
 
 test("TEETH: a twin that drops the bias on the leading byte is CAUGHT", () => {

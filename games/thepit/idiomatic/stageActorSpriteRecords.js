@@ -26,15 +26,15 @@
  *           since attract only ever runs it with offset 0.
  * LIVE-OUT: memory-only — the two staged sprite records. The oracle's residual
  *           registers/flags are dead ABI; nothing downstream reads them.
- * NAMES:    ACTOR_X/ACTOR_Y (primary record base + its Y), TWIN_X/TWIN_CLEAR (twin
- *           record base + its Y), ACTOR_SPRITE_SLOT/TWIN_SPRITE_SLOT (the two
+ * NAMES:    ENEMY3_X/ENEMY3_Y (primary record base + its Y), ENEMY3_TWIN_X/ENEMY3_TWIN_Y (twin
+ *           record base + its Y), ENEMY3_SPRITE_SLOT/ENEMY3_TWIN_SPRITE_SLOT (the two
  *           sprite-buffer slots 0x8238/0x823c) from ./ram.js. Kept hex: 0x8051 (the
  *           shared vertical offset, a dip-switch param with no individual name yet).
  */
 
-import { ACTOR_X, TWIN_X, ACTOR_SPRITE_SLOT, TWIN_SPRITE_SLOT } from "./ram.js";
+import { ENEMY3_X, ENEMY3_TWIN_X, ENEMY3_SPRITE_SLOT, ENEMY3_TWIN_SPRITE_SLOT } from "./ram.js";
 
-// The two destination slots ACTOR_SPRITE_SLOT / TWIN_SPRITE_SLOT are entries 6 and 7 of
+// The two destination slots ENEMY3_SPRITE_SLOT / ENEMY3_TWIN_SPRITE_SLOT are entries 6 and 7 of
 // the 32-byte sprite buffer at 0x8220 that the per-frame service mirrors into sprite RAM.
 
 // The shared vertical offset added to every staged sprite's Y (dip-switch param).
@@ -54,6 +54,6 @@ function stageRecord(m, srcBase, destSlot, yOffset) {
 
 export function stageActorSpriteRecords(m) {
   const yOffset = m.mem8[SPRITE_Y_OFFSET];
-  stageRecord(m, ACTOR_X, ACTOR_SPRITE_SLOT, yOffset); // primary body
-  stageRecord(m, TWIN_X, TWIN_SPRITE_SLOT, yOffset); // shadow twin
+  stageRecord(m, ENEMY3_X, ENEMY3_SPRITE_SLOT, yOffset); // primary body
+  stageRecord(m, ENEMY3_TWIN_X, ENEMY3_TWIN_SPRITE_SLOT, yOffset); // shadow twin
 }

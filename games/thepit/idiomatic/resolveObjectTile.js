@@ -32,22 +32,22 @@
  *           under-tile (both copies) and cleared next-tile slot, the goal latches, plus
  *           whatever the handoff handler writes. No live registers of its own; the horizontal
  *           bias is a genuine register live-in surfaced as the columnBias parameter.
- * NAMES:    OBJ_X, OBJ_Y, OBJ_TILE_ROW, OBJ_TILE_COL, ACTOR_CELL_PTR, NEXT_TILE, CUR_TILE,
- *           GOAL_TILE_LATCH, GOAL_CROSSING_LATCH from ram.js; 0x80a7 (the second under-tile
+ * NAMES:    PLAYER_Y, PLAYER_X, PLAYER_TILE_ROW, PLAYER_TILE_COL, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE,
+ *           GOAL_TILE_LATCH, PIT_CROSS_ACTIVE from ram.js; 0x80a7 (the second under-tile
  *           copy) and 0x9000 (video-RAM base) have no name yet and stay hex.
  */
 
 import {
-  ACTOR_CELL_PTR,
+  PLAYER_CELL_PTR,
   CUR_TILE,
   EXPECTED_TILE,
-  GOAL_CROSSING_LATCH,
+  PIT_CROSS_ACTIVE,
   GOAL_TILE_LATCH,
   NEXT_TILE,
-  OBJ_TILE_COL,
-  OBJ_TILE_ROW,
-  OBJ_X,
-  OBJ_Y,
+  PLAYER_TILE_COL,
+  PLAYER_TILE_ROW,
+  PLAYER_Y,
+  PLAYER_X,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { collectLootTile } from "./collectLootTile.js";
@@ -66,21 +66,21 @@ export function resolveObjectTile(m, columnBias = m.regs.d) {
 
   // Which map row is the object on? Bias the vertical counter, drop it to an 8-pixel cell, and
   // flip it so screen-top is the highest index (the map is 32 rows tall, indices 0..31).
-  const objX = mem8[OBJ_X];
+  const objX = mem8[PLAYER_Y];
   const row = 31 - (u8(objX + 3) >> 3);
-  mem8[OBJ_TILE_ROW] = row;
+  mem8[PLAYER_TILE_ROW] = row;
 
   // Which map column? Bias the horizontal counter by the caller's offset plus a fixed margin.
   // That biased value is both the column source (dropped to an 8-pixel cell) and the position
   // the collector reads to tell when the object is crossing a tile boundary; keep it byte-wide.
-  const objY = mem8[OBJ_Y];
+  const objY = mem8[PLAYER_X];
   const positionAccumulator = u8(objY + columnBias + 12);
   const col = positionAccumulator >> 3;
-  mem8[OBJ_TILE_COL] = col;
+  mem8[PLAYER_TILE_COL] = col;
 
   // The cell's video-RAM address: 32 cells per row, offset from the tile-map base.
   const cellPtr = VRAM_BASE + row * 32 + col;
-  mem16[ACTOR_CELL_PTR] = cellPtr;
+  mem16[PLAYER_CELL_PTR] = cellPtr;
 
   // Read and publish the tile currently under the object (two copies), and clear the next slot.
   mem8[NEXT_TILE] = 0;
@@ -93,7 +93,7 @@ export function resolveObjectTile(m, columnBias = m.regs.d) {
   if (tile === GOAL_TILE) {
     mem8[GOAL_TILE_LATCH] = tile;
     if (objY >= CROSSING_POSITION) {
-      mem8[GOAL_CROSSING_LATCH] = objY;
+      mem8[PIT_CROSS_ACTIVE] = objY;
       return advanceActorWalk(m);
     }
   }

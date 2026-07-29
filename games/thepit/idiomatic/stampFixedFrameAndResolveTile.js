@@ -28,21 +28,21 @@
  * LIVE-OUT: memory — the sprite-frame byte plus everything the shared tail writes — and the
  *           tail's control flow. No live registers of its own (the tail overwrites the
  *           accumulator before reading it, and no caller reads a register back).
- * NAMES:    SPRITE_CODE (0x8069). The shared tail resolveObjectTile is decompiled, so it is called
+ * NAMES:    PLAYER_FACING (0x8069). The shared tail resolveObjectTile is decompiled, so it is called
  *           directly; its columnBias parameter defaults to the D register, which the
  *           dispatcher set before jumping here and this routine leaves untouched.
  *
  * PURPOSE [guess]: what pose frame 52 depicts; stamp is a mostly-dead default (live 1/521).
  */
 
-import { SPRITE_CODE } from "./ram.js";
+import { PLAYER_FACING } from "./ram.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 
 export function stampFixedFrameAndResolveTile(m) {
   const { mem8 } = m;
 
   // Choose this prologue's fixed animation frame; the draw code renders the actor with it.
-  mem8[SPRITE_CODE] = 52;
+  mem8[PLAYER_FACING] = 52;
 
   // Hand off to the shared tail: rebuild the actor's screen cell, read the under-tile, and
   // dispatch on it. Its return unwinds to this routine's caller, so it is our return too.

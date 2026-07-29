@@ -21,7 +21,7 @@
  * into D and E before dispatching; the tile-cell tail reads the column bias from D and the
  * still-oracle position handlers (reached via the at-rest router routeIdleObjectByMoveCommand) read both bytes as
  * the object's move deltas. That is a genuine register boundary the idiomatic routine
- * reproduces — dropping the E half forks SPRITE_CODE on the control-step path.
+ * reproduces — dropping the E half forks PLAYER_FACING on the control-step path.
  *
  * REACHABILITY. Attract dispatches five arms: nothing-active (388×), the control step (1429×),
  * the two walk steppers (217× / 119×), and the carve prologue (9× over 3000 frames). The other
@@ -55,12 +55,12 @@ import { walkActor } from "../walkActor.js";
 import { stepObjectFromControl } from "../stepObjectFromControl.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  OBJECT_ACTIVE,
-  SPAWN_PHASE,
-  DIG_OBJ_ARM_STATE,
+  PLAYER_ACTIVE,
+  BOARD_END_PHASE,
+  DIG_COLLISION_STATE,
   GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
-  REVEAL_CURSOR,
+  PIT_CROSS_ACTIVE,
+  ZONKER_REVEAL_CURSOR,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -90,17 +90,17 @@ const R = (mm, a) => mm.mem.read8(a);
 /** Re-derive which arm advanceTrackedObject takes for an entry, from its gate bytes (for coverage + non-vacuity). */
 function branchOf(mm) {
   if (R(mm, BUSY_THIS_FRAME) !== 0) return "busy->stage";
-  if (R(mm, OBJECT_ACTIVE) === 0) return "inactive->return";
-  if (R(mm, SPAWN_PHASE) !== 0) return "spawnbusy->return";
-  const arm = R(mm, DIG_OBJ_ARM_STATE);
+  if (R(mm, PLAYER_ACTIVE) === 0) return "inactive->return";
+  if (R(mm, BOARD_END_PHASE) !== 0) return "spawnbusy->return";
+  const arm = R(mm, DIG_COLLISION_STATE);
   if (arm === 1) return "armed->prologue";
   if (arm !== 0) return "armed+->stage";
   const mk = R(mm, MOTION_MARKER);
   if (mk >= 128) return "marker<0->objectWalk";
   if (mk !== 0) return "marker>0->playerWalk";
   if (R(mm, GOAL_TILE_LATCH) === 0) return "goal0->controlStep";
-  if (R(mm, GOAL_CROSSING_LATCH) !== 0) return "crossing->walkForward";
-  if (R(mm, REVEAL_CURSOR) === 0) return "reveal0->tileTail";
+  if (R(mm, PIT_CROSS_ACTIVE) !== 0) return "crossing->walkForward";
+  if (R(mm, ZONKER_REVEAL_CURSOR) === 0) return "reveal0->tileTail";
   return "else->controlStep";
 }
 
@@ -147,15 +147,15 @@ function stateDiff(entry, fn) {
 }
 
 // Entry filters over the attract distribution.
-const isInactive = (mm) => R(mm, BUSY_THIS_FRAME) === 0 && R(mm, OBJECT_ACTIVE) === 0;
+const isInactive = (mm) => R(mm, BUSY_THIS_FRAME) === 0 && R(mm, PLAYER_ACTIVE) === 0;
 const isMarkerPos = (mm) =>
-  R(mm, BUSY_THIS_FRAME) === 0 && R(mm, OBJECT_ACTIVE) !== 0 && R(mm, SPAWN_PHASE) === 0 &&
-  R(mm, DIG_OBJ_ARM_STATE) === 0 && R(mm, MOTION_MARKER) > 0 && R(mm, MOTION_MARKER) < 128;
+  R(mm, BUSY_THIS_FRAME) === 0 && R(mm, PLAYER_ACTIVE) !== 0 && R(mm, BOARD_END_PHASE) === 0 &&
+  R(mm, DIG_COLLISION_STATE) === 0 && R(mm, MOTION_MARKER) > 0 && R(mm, MOTION_MARKER) < 128;
 // A "DE-stage" entry: reaches the position-bias load with every later gate at rest, so a single
 // poke drives it to any downstream arm.
 const isDeStage = (mm) =>
-  R(mm, BUSY_THIS_FRAME) === 0 && R(mm, OBJECT_ACTIVE) !== 0 && R(mm, SPAWN_PHASE) === 0 &&
-  R(mm, DIG_OBJ_ARM_STATE) === 0 && R(mm, MOTION_MARKER) === 0 && R(mm, GOAL_TILE_LATCH) === 0;
+  R(mm, BUSY_THIS_FRAME) === 0 && R(mm, PLAYER_ACTIVE) !== 0 && R(mm, BOARD_END_PHASE) === 0 &&
+  R(mm, DIG_COLLISION_STATE) === 0 && R(mm, MOTION_MARKER) === 0 && R(mm, GOAL_TILE_LATCH) === 0;
 
 // -- 0. IDENTITY (harness sanity) --------------------------------------------
 
@@ -197,11 +197,11 @@ test("EQUAL (crafted arms): each unreached arm, forced from a real DE-stage entr
 
   const arms = [
     { arm: "busy->stage", pokes: [[BUSY_THIS_FRAME, 1]] },
-    { arm: "spawnbusy->return", pokes: [[SPAWN_PHASE, 1]] },
-    { arm: "armed+->stage", pokes: [[DIG_OBJ_ARM_STATE, 2]] },
-    { arm: "crossing->walkForward", pokes: [[GOAL_TILE_LATCH, 1], [GOAL_CROSSING_LATCH, 0x50]] },
-    { arm: "reveal0->tileTail", pokes: [[GOAL_TILE_LATCH, 1], [GOAL_CROSSING_LATCH, 0], [REVEAL_CURSOR, 0]] },
-    { arm: "else->controlStep", pokes: [[GOAL_TILE_LATCH, 1], [GOAL_CROSSING_LATCH, 0], [REVEAL_CURSOR, 5]] },
+    { arm: "spawnbusy->return", pokes: [[BOARD_END_PHASE, 1]] },
+    { arm: "armed+->stage", pokes: [[DIG_COLLISION_STATE, 2]] },
+    { arm: "crossing->walkForward", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0x50]] },
+    { arm: "reveal0->tileTail", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0], [ZONKER_REVEAL_CURSOR, 0]] },
+    { arm: "else->controlStep", pokes: [[GOAL_TILE_LATCH, 1], [PIT_CROSS_ACTIVE, 0], [ZONKER_REVEAL_CURSOR, 5]] },
   ];
 
   for (const { arm, pokes } of arms) {
@@ -223,11 +223,11 @@ test("EQUAL (crafted arms): each unreached arm, forced from a real DE-stage entr
 function twinNoActiveGuard(m) {
   const { mem8, regs } = m;
   if (mem8[BUSY_THIS_FRAME] !== 0) return idiomatic(m);
-  // BUG: the `if (mem8[OBJECT_ACTIVE] === 0) return;` guard is gone.
-  if (mem8[SPAWN_PHASE] !== 0) return;
+  // BUG: the `if (mem8[PLAYER_ACTIVE] === 0) return;` guard is gone.
+  if (mem8[BOARD_END_PHASE] !== 0) return;
   regs.e = mem8[BIAS_LO];
   regs.d = mem8[COLUMN_BIAS];
-  if (mem8[DIG_OBJ_ARM_STATE] !== 0) return idiomatic(m);
+  if (mem8[DIG_COLLISION_STATE] !== 0) return idiomatic(m);
   const marker = mem8[MOTION_MARKER];
   if (marker >= 128) return advanceObjectWalkFrame(m);
   if (marker !== 0) return walkActor(m);
@@ -237,7 +237,7 @@ function twinNoActiveGuard(m) {
 test("TEETH (dropped active guard): dispatching a dead object is CAUGHT", () => {
   const [entry] = capture(1, 3000, isInactive);
   assert.ok(entry, "need a nothing-active entry to seed the teeth check");
-  assert.equal(R(entry, OBJECT_ACTIVE), 0, "expected a nothing-active entry");
+  assert.equal(R(entry, PLAYER_ACTIVE), 0, "expected a nothing-active entry");
 
   const d = stateDiff(entry, twinNoActiveGuard);
   assert.notEqual(d, null, "the gate FAILED to catch the dropped-guard twin — it proves nothing");

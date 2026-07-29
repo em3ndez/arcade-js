@@ -31,10 +31,10 @@
  *           reads immediately. Every working register is overwritten downstream
  *           before it is read, so the registers this routine leaves are dead; the
  *           whole-machine gate backstops that.
- * NAMES:    ACTOR_TIMER (0x8112, the period-8 cadence timer) — fair-confidence.
+ * NAMES:    ENEMY3_TIMER (0x8112, the period-8 cadence timer) — fair-confidence.
  */
 
-import { ACTOR_TIMER } from "./ram.js";
+import { ENEMY3_TIMER } from "./ram.js";
 import { easeActorToRest } from "./easeActorToRest.js";
 
 export function paceActorCadence(m) {
@@ -42,9 +42,9 @@ export function paceActorCadence(m) {
 
   // Count the period-8 cadence timer down one tick, wrapping as the 8-bit counter
   // does, then reload it to a full period of 8 on the single tick it runs out.
-  const counter = mem8[ACTOR_TIMER];
+  const counter = mem8[ENEMY3_TIMER];
   const ticked = counter === 0 ? 255 : counter - 1;
-  mem8[ACTOR_TIMER] = ticked === 0 ? 8 : ticked;
+  mem8[ENEMY3_TIMER] = ticked === 0 ? 8 : ticked;
 
   // Run the phase body on the freshly-updated timer; its return is ours.
   return easeActorToRest(m);

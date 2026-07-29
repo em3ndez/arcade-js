@@ -16,12 +16,12 @@
  * NOT compared, and the dead stack-scratch window at the top of work RAM is excluded (the
  * oracle's bracketed calls park return addresses there; nothing this routine's own effect
  * lives there — its writes are the 0x807e/0x807f/0x8080 flags, the dig-object record around
- * 0x80a9-0x80c1, ACTOR_CELL_PTR neighbours + the carved cells in video RAM, and the
+ * 0x80a9-0x80c1, PLAYER_CELL_PTR neighbours + the carved cells in video RAM, and the
  * delegated record/sprite/sound writes, all far below the stack).
  *
  * REACHABILITY. 0x29ad is dispatched every frame in attract (~3694 / 4000 frames, entry
  * SP≈0x83fd), so the entry is captured live via the dispatch/m.call override hook. Its
- * natural inputs sit on the background arm (SPAWN_STATE==0, no feature latch), so the
+ * natural inputs sit on the background arm (HAZARD_ACTIVE_COUNT==0, no feature latch), so the
  * spawn / capture / carve / commit arms — and the exact tile the classifier sees — are
  * driven by poking the decision bytes identically on both sides (the crafted-entry method).
  *
@@ -32,7 +32,7 @@
  *   2. EQUAL (every arm) — crafted states take each branch: spawn-start gate, capture
  *      gate, spawn==2 staged-overlap (surviving to a completed column), timer-running
  *      animation (retreat / advance / mid-phase), column complete (sub-type 0 and 2),
- *      arm-in-box capture. Plus positive checks (overlap flag value, snapped OBJ_X).
+ *      arm-in-box capture. Plus positive checks (overlap flag value, snapped PLAYER_Y).
  *   3. EQUAL (carve classify sweep) — reach the carve and sweep the tile already in the
  *      cell 0..255 across several sub-columns; every classification (keep / channel edge /
  *      diggable remap / blank / pass-through) identical, incl. the pending-entity hand-off.
@@ -52,20 +52,20 @@ import { advanceDigCarveObject as idiomatic } from "../advanceDigCarveObject.js"
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import {
-  DIG_OVERLAP_HOLD,
-  FEATURE_TILE_LATCH,
-  SPAWN_STATE,
-  DIG_OBJ_STATE,
+  MOVE_BLOCK_FLAG,
+  PRIZE_GATE,
+  HAZARD_ACTIVE_COUNT,
+  HAZARD_STATE,
   DIG_OBJ_TIMER,
-  DIG_OBJ_ARM_STATE,
+  DIG_COLLISION_STATE,
   DIG_OBJ_SUBTYPE,
-  OBJ_X,
-  OBJ_Y,
-  TARGET_X,
-  TARGET_Y,
+  PLAYER_Y,
+  PLAYER_X,
+  HAZARD_X,
+  HAZARD_Y,
   STAGED_TARGET_X,
   STAGED_TARGET_Y,
-  ACTOR_CELL_PTR,
+  PLAYER_CELL_PTR,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -123,19 +123,19 @@ function seed(entry, s = {}) {
   const e = entry.clone();
   const w8 = (addr, v) => { if (v !== undefined) e.mem.write8(addr, v); };
   w8(FEATURE_ALIGN_LATCH, s.featLatch);
-  w8(FEATURE_TILE_LATCH, s.tileLatch);
-  w8(SPAWN_STATE, s.spawn);
-  w8(DIG_OBJ_STATE, s.digState);
+  w8(PRIZE_GATE, s.tileLatch);
+  w8(HAZARD_ACTIVE_COUNT, s.spawn);
+  w8(HAZARD_STATE, s.digState);
   w8(DIG_OBJ_TIMER, s.timer);
-  w8(DIG_OBJ_ARM_STATE, s.arm);
+  w8(DIG_COLLISION_STATE, s.arm);
   w8(DIG_OBJ_SUBTYPE, s.subtype);
-  w8(OBJ_X, s.objX);
-  w8(OBJ_Y, s.objY);
-  w8(TARGET_X, s.targetX);
-  w8(TARGET_Y, s.targetY);
+  w8(PLAYER_Y, s.objX);
+  w8(PLAYER_X, s.objY);
+  w8(HAZARD_X, s.targetX);
+  w8(HAZARD_Y, s.targetY);
   w8(STAGED_TARGET_X, s.stagedX);
   w8(STAGED_TARGET_Y, s.stagedY);
-  if (s.actorCell !== undefined) e.mem.write16(ACTOR_CELL_PTR, s.actorCell);
+  if (s.actorCell !== undefined) e.mem.write16(PLAYER_CELL_PTR, s.actorCell);
   if (s.savedCell !== undefined) e.mem.write16(SAVED_CELL_PTR, s.savedCell);
   if (s.cellTile !== undefined) e.mem.write8(carveCellOf(s.targetX, s.targetY) + 1, s.cellTile);
   return e;
@@ -153,7 +153,7 @@ function compare(entry, s, fn) {
 
 /**
  * The video-RAM cell the carve folds the dig position into (from first principles): an
- * inverted row from TARGET_X, the advanced column from TARGET_Y. Mirrors the routine's
+ * inverted row from HAZARD_X, the advanced column from HAZARD_Y. Mirrors the routine's
  * arithmetic so a crafted tile can be planted at cellPtr+1 where the classifier reads it.
  */
 function carveCellOf(targetX, targetY) {
@@ -175,7 +175,7 @@ test("HARNESS: a real 0x29ad entry is captured and the oracle run is determinist
   assert.equal(ramDiffExStack(a, b), null, "oracle run of 0x29ad is not deterministic");
   console.log(
     `  HARNESS: captured a real 0x29ad entry (SP=${hx(entry.regs.sp)}); ` +
-      `SPAWN_STATE=${entry.mem.read8(SPAWN_STATE)} DIG_OBJ_STATE=${entry.mem.read8(DIG_OBJ_STATE)}; oracle deterministic`,
+      `HAZARD_ACTIVE_COUNT=${entry.mem.read8(HAZARD_ACTIVE_COUNT)} HAZARD_STATE=${entry.mem.read8(HAZARD_STATE)}; oracle deterministic`,
   );
 });
 
@@ -202,7 +202,7 @@ test("EQUAL (every arm): spawn-start / capture / spawn==2 overlap / animation / 
     { name: "gate: capture hand-off", s: { featLatch: 1, tileLatch: 1, spawn: 1, digState: 9 } },
     // Feature-aligned gate: spawn active + mid-carve -> falls through to the carve timer.
     { name: "gate: fall-through (mid-carve)", s: { featLatch: 1, tileLatch: 1, spawn: 1, digState: 48, timer: 5, arm: 1, subtype: 0 } },
-    // spawn==2 staged overlap, timer=1+armed -> completeCarveColumn keeps DIG_OVERLAP_HOLD.
+    // spawn==2 staged overlap, timer=1+armed -> completeCarveColumn keeps MOVE_BLOCK_FLAG.
     { name: "spawn==2 overlap=1 -> complete", s: { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 44, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 } },
     { name: "spawn==2 overlap=0 -> complete", s: { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 200, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 } },
     // Timer running: the three animation sub-phases.
@@ -219,21 +219,21 @@ test("EQUAL (every arm): spawn-start / capture / spawn==2 overlap / animation / 
     assert.equal(ram, null, ram && `${name}: RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   }
 
-  // Positive: spawn==2 overlap survives to DIG_OVERLAP_HOLD on the completed-column path.
+  // Positive: spawn==2 overlap survives to MOVE_BLOCK_FLAG on the completed-column path.
   const c1 = seed(entry, { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 44, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 });
   idiomatic(c1);
-  assert.equal(c1.mem.read8(DIG_OVERLAP_HOLD), 1, "row-aligned, in-band staged box must set the overlap flag");
+  assert.equal(c1.mem.read8(MOVE_BLOCK_FLAG), 1, "row-aligned, in-band staged box must set the overlap flag");
   const c0 = seed(entry, { spawn: 2, timer: 1, arm: 1, subtype: 0, objX: 200, objY: 60, stagedX: 40, stagedY: 48, actorCell: 0x9300 });
   idiomatic(c0);
-  assert.equal(c0.mem.read8(DIG_OVERLAP_HOLD), 0, "out-of-band staged box must leave the overlap flag clear");
+  assert.equal(c0.mem.read8(MOVE_BLOCK_FLAG), 0, "out-of-band staged box must leave the overlap flag clear");
 
-  // Positive: arm-in-box capture snaps OBJ_X to the target's near edge and arms the object.
+  // Positive: arm-in-box capture snaps PLAYER_Y to the target's near edge and arms the object.
   const cap = seed(entry, { spawn: 1, timer: 0, arm: 0, subtype: 0, objX: 101, objY: 112, targetX: 100, targetY: 100 });
   const { ram: capRam } = compare(entry, { spawn: 1, timer: 0, arm: 0, subtype: 0, objX: 101, objY: 112, targetX: 100, targetY: 100 }, idiomatic);
   assert.equal(capRam, null, capRam && `arm-in-box: RAM diff at ${hx(capRam.addr)}`);
   idiomatic(cap);
-  assert.equal(cap.mem.read8(OBJ_X), 104, "arm-in-box capture must snap OBJ_X to targetX+4");
-  assert.equal(cap.mem.read8(DIG_OBJ_ARM_STATE), 1, "arm-in-box capture must arm the dig object");
+  assert.equal(cap.mem.read8(PLAYER_Y), 104, "arm-in-box capture must snap PLAYER_Y to targetX+4");
+  assert.equal(cap.mem.read8(DIG_COLLISION_STATE), 1, "arm-in-box capture must arm the dig object");
   console.log(`  EQUAL/arms: all ${cases.length} arms identical; overlap flag + arm-in-box snap verified`);
 });
 
@@ -275,13 +275,13 @@ test("EQUAL (carve classify sweep): every tile-in-cell 0..255 across sub-columns
  */
 function twinWideDiggableBand(m) {
   const { mem8, mem16 } = m;
-  mem8[DIG_OVERLAP_HOLD] = 0;
+  mem8[MOVE_BLOCK_FLAG] = 0;
   mem8[SEAM_RIGHT_FLAG] = 0;
   mem8[SEAM_LEFT_FLAG] = 0;
   // spawn active, timer==0, armed -> straight to the carve (objY=0 keeps the probe above).
-  const rowTile = u8(31 - (u8(mem8[TARGET_X] + 7) >> 3));
-  const column = u8(mem8[TARGET_Y] + 1);
-  mem8[TARGET_Y] = column;
+  const rowTile = u8(31 - (u8(mem8[HAZARD_X] + 7) >> 3));
+  const column = u8(mem8[HAZARD_Y] + 1);
+  mem8[HAZARD_Y] = column;
   const colByte = u8(column + 9);
   const cellPtr = 0x9000 + rowTile * 32 + (colByte >> 3);
   mem16[0x80af] = cellPtr;
@@ -292,10 +292,10 @@ function twinWideDiggableBand(m) {
     mem8[cellPtr] = spriteId;
     m.mem.write8(0x8020 + mem8[0x801e], 19 | 0x80); // enqueue carve sound (like requestSound19)
     mem8[0x801e] = (mem8[0x801e] + 1) & 7;
-    const remaining = u8(mem8[SPAWN_STATE] - 1);
-    mem8[SPAWN_STATE] = remaining;
-    mem8[TARGET_X] = 0;
-    mem8[DIG_OBJ_STATE] = 9;
+    const remaining = u8(mem8[HAZARD_ACTIVE_COUNT] - 1);
+    mem8[HAZARD_ACTIVE_COUNT] = remaining;
+    mem8[HAZARD_X] = 0;
+    mem8[HAZARD_STATE] = 9;
     return m.call(0x2f71);
   };
   if (existing === 42 || existing === 43 || existing === 193 || existing === 149) return commit(193, null);
@@ -327,11 +327,11 @@ test("TEETH (dropped live-outs): the overlap gate and the carve sprite are each 
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x29ad entry for the teeth check");
 
-  // Background arm leaves DIG_OVERLAP_HOLD = 0; a twin that stamps it is caught at DIG_OVERLAP_HOLD.
+  // Background arm leaves MOVE_BLOCK_FLAG = 0; a twin that stamps it is caught at MOVE_BLOCK_FLAG.
   const bg = { featLatch: 0, spawn: 0, objX: 40, objY: 60 };
-  const { ram: gateRam } = compare(entry, bg, (m) => { idiomatic(m); m.mem.write8(DIG_OVERLAP_HOLD, 0x77); });
+  const { ram: gateRam } = compare(entry, bg, (m) => { idiomatic(m); m.mem.write8(MOVE_BLOCK_FLAG, 0x77); });
   assert.ok(gateRam, "gate FAILED to catch a stamped overlap gate on the background arm");
-  assert.equal(gateRam.addr, DIG_OVERLAP_HOLD, `teeth caught ${hx(gateRam.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
+  assert.equal(gateRam.addr, MOVE_BLOCK_FLAG, `teeth caught ${hx(gateRam.addr)} (expected ${hx(MOVE_BLOCK_FLAG)})`);
 
   // Carve path stamps the sprite id into the carved cell; corrupting it is caught there.
   const carve = { spawn: 1, timer: 0, arm: 1, subtype: 0, objX: 50, objY: 0, targetX: 100, targetY: 90, cellTile: WALL_TILE };
@@ -339,5 +339,5 @@ test("TEETH (dropped live-outs): the overlap gate and the carve sprite are each 
   const { ram: cellRam } = compare(entry, carve, (m) => { idiomatic(m); m.mem.write8(cellPtr, m.mem.read8(cellPtr) ^ 0xff); });
   assert.ok(cellRam, "gate FAILED to catch a corrupted carved cell");
   assert.equal(cellRam.addr, cellPtr, `teeth caught ${hx(cellRam.addr)} (expected the carved cell ${hx(cellPtr)})`);
-  console.log(`  TEETH/live-outs: overlap gate caught at ${hx(DIG_OVERLAP_HOLD)}, carved cell at ${hx(cellPtr)}`);
+  console.log(`  TEETH/live-outs: overlap gate caught at ${hx(MOVE_BLOCK_FLAG)}, carved cell at ${hx(cellPtr)}`);
 });

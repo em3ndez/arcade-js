@@ -51,7 +51,7 @@ import { loc_312d as oracle } from "../../translated/loc_312d.js";
 import { advanceObjectMovers as idiomatic } from "../advanceObjectMovers.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { FRAME_COUNTER, GAME_MODE, OBJ1_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
+import { PLAY_PHASE_COUNTER, GAME_STATE, ENEMY1_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -194,7 +194,7 @@ test("EQUAL (real dispatches): advanceObjectMovers == oracle over RAM on every c
 
 test("EQUAL (skip-both): counter < 8 runs neither mover, identical to the oracle", () => {
   const entry = baseAttractState(300);
-  entry.mem.write8(FRAME_COUNTER, 5); // below the intro gate -> skip straight to the dispatcher
+  entry.mem.write8(PLAY_PHASE_COUNTER, 5); // below the intro gate -> skip straight to the dispatcher
 
   const diff = ramDiffVsOracle(entry, idiomatic);
   assert.equal(diff, null, diff && `skip-both RAM diff at ${hx(diff.addr ?? 0)} oracle=${diff.a} cand=${diff.b}`);
@@ -205,8 +205,8 @@ test("EQUAL (skip-both): counter < 8 runs neither mover, identical to the oracle
 
 test("EQUAL (object-1-only): game mode 4 + counter 9 runs only object 1 and stages its sprite", () => {
   const entry = baseAttractState(300);
-  entry.mem.write8(GAME_MODE, 4); // attract demo
-  entry.mem.write8(FRAME_COUNTER, 9); // in [8,10) -> only object 1 runs
+  entry.mem.write8(GAME_STATE, 4); // attract demo
+  entry.mem.write8(PLAY_PHASE_COUNTER, 9); // in [8,10) -> only object 1 runs
   entry.mem.write8(SPRITE_COORD_BIAS, 16); // a nonzero bias so the 4th-byte shift is observable
 
   const diff = ramDiffVsOracle(entry, idiomatic);
@@ -214,7 +214,7 @@ test("EQUAL (object-1-only): game mode 4 + counter 9 runs only object 1 and stag
 
   // Positive check: object 1's sprite record was staged with its 4th byte shifted by the bias.
   const c = runIsolated(entry, idiomatic);
-  const expected4th = (c.mem.read8(OBJ1_X + 3) + 16) & 0xff;
+  const expected4th = (c.mem.read8(ENEMY1_X + 3) + 16) & 0xff;
   assert.equal(
     c.mem.read8(OBJ1_SPRITE_RECORD + 3),
     expected4th,
@@ -227,8 +227,8 @@ test("EQUAL (object-1-only): game mode 4 + counter 9 runs only object 1 and stag
 
 test("EQUAL (object-1 + object-2): counter >= 10 runs both movers, identical to the oracle", () => {
   const entry = baseAttractState(300);
-  entry.mem.write8(GAME_MODE, 4);
-  entry.mem.write8(FRAME_COUNTER, 12); // >= 10 -> object 2 also runs (hand-off to advanceObjectMover2)
+  entry.mem.write8(GAME_STATE, 4);
+  entry.mem.write8(PLAY_PHASE_COUNTER, 12); // >= 10 -> object 2 also runs (hand-off to advanceObjectMover2)
 
   const diff = ramDiffVsOracle(entry, idiomatic);
   assert.equal(diff, null, diff && `both-movers RAM diff at ${hx(diff.addr ?? 0)} oracle=${diff.a} cand=${diff.b}`);
@@ -240,7 +240,7 @@ test("EQUAL (object-1 + object-2): counter >= 10 runs both movers, identical to 
 /** A crafted entry with a nonzero bias so the 4th-byte shift is meaningful. */
 function biasedEntry() {
   const entry = baseAttractState(300);
-  entry.mem.write8(FRAME_COUNTER, 12); // object 1 runs + stages
+  entry.mem.write8(PLAY_PHASE_COUNTER, 12); // object 1 runs + stages
   entry.mem.write8(SPRITE_COORD_BIAS, 16);
   return entry;
 }
@@ -249,7 +249,7 @@ function biasedEntry() {
  *  the sprite-coordinate bias. */
 function twinDroppedBias(m) {
   idiomatic(m);
-  m.mem8[OBJ1_SPRITE_RECORD + 3] = m.mem8[OBJ1_X + 3]; // BUG: bias dropped
+  m.mem8[OBJ1_SPRITE_RECORD + 3] = m.mem8[ENEMY1_X + 3]; // BUG: bias dropped
 }
 
 test("TEETH (dropped bias): a twin that omits the sprite-coordinate bias is CAUGHT at the 4th byte", () => {

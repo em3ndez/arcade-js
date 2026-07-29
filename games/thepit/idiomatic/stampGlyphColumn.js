@@ -33,13 +33,13 @@
  *           the cleared latch (0x8078) and the re-armed state timer (0x807c); then the
  *           decompiled background update runs identically on both sides (it reads no
  *           register left here). Leftover registers/flags are dead.
- * NAMES:    ACTOR_CELL_PTR (0x806e), STATE_TIMER (0x807c) from ram.js. The per-event latch
+ * NAMES:    PLAYER_CELL_PTR (0x806e), TRANSITION_TIMER (0x807c) from ram.js. The per-event latch
  *           0x8078 is the byte ram.js names TREASURE_COLLECTED; it is kept as a hex literal
  *           here because on this dig-glyph subsystem it reads as a per-event latch clear,
  *           distinct from the loot collect->completion flow that shares the byte.
  */
 
-import { ACTOR_CELL_PTR, STATE_TIMER } from "./ram.js";
+import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "./ram.js";
 import { advanceBackgroundSprite } from "./advanceBackgroundSprite.js";
 
 // The glyph's fixed tile codes, top cell to bottom cell.
@@ -55,7 +55,7 @@ export function stampGlyphColumn(m) {
 
   // The object's current display cell. The glyph is a vertical five-cell strip in the
   // map column just before it, so its top cell is two rows up and one cell back.
-  const objectCell = mem16[ACTOR_CELL_PTR];
+  const objectCell = mem16[PLAYER_CELL_PTR];
   const topCell = objectCell - 2 * ROW_STRIDE - 1;
 
   // Stamp the fixed glyph straight down the column.
@@ -79,7 +79,7 @@ export function stampGlyphColumn(m) {
   // is shared, but this is not a completion threat. Kept as a hex literal: on this dig path it
   // reads as a per-event latch, not the loot flag.
   mem8[0x8078] = 0;
-  mem8[STATE_TIMER] = 180;
+  mem8[TRANSITION_TIMER] = 180;
 
   // Hand off to the background-animation update; its return unwinds to our
   // caller, so this is the exit.

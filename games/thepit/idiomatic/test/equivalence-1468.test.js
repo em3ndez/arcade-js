@@ -67,7 +67,7 @@ const TARGET = 0x1468;
 const STACK_SCRATCH = 32; // dead-scratch window below entry SP (guards the delegated handler/award/
 // deferral push chain; in practice windUpObjectMove's own arms leave the stack identical, and no real
 // work-RAM output lives in 0x83xx, so the window can hide none)
-const OBJECT_PHASE = 0x801a; // the object's animation-phase byte / wind-up counter (also reset by routeIdleObjectByMoveCommand)
+const PLAYER_ANIM_PHASE = 0x801a; // the object's animation-phase byte / wind-up counter (also reset by routeIdleObjectByMoveCommand)
 const BIT2_COMMAND = 0x04; // the down command attract uses (bit 2 -> stampFixedFrameAndResolveTile)
 const BIT3_COMMAND = 0x08; // crafted: bit 3 -> stepObjectAndResolveTile
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -92,7 +92,7 @@ function captureDispatches(K, maxFrames) {
 
 /** Which arm a captured entry lands on, from the phase byte vs the move command. */
 function armOf(entry) {
-  const phase = entry.mem.read8(OBJECT_PHASE);
+  const phase = entry.mem.read8(PLAYER_ANIM_PHASE);
   const cmd = entry.regs.l;
   if (phase === cmd) return "dispatch";
   if (phase !== 0) return "wind-down";
@@ -175,7 +175,7 @@ test("EQUAL (crafted bit-3): a settled bit-3 command dispatches stepObjectAndRes
   // A settled bit-3 command: phase already equals the command, so it dispatches immediately.
   const bit3 = base.clone();
   bit3.regs.l = BIT3_COMMAND;
-  bit3.mem.write8(OBJECT_PHASE, BIT3_COMMAND);
+  bit3.mem.write8(PLAYER_ANIM_PHASE, BIT3_COMMAND);
   const d = stateDiff(bit3, idiomatic);
   assert.equal(d, null, d && `bit-3: state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
 
@@ -185,7 +185,7 @@ test("EQUAL (crafted bit-3): a settled bit-3 command dispatches stepObjectAndRes
   // difference is in the geometry/sprite the two handlers write (they compute the column oppositely).
   const bit2 = base.clone();
   bit2.regs.l = BIT2_COMMAND;
-  bit2.mem.write8(OBJECT_PHASE, BIT2_COMMAND);
+  bit2.mem.write8(PLAYER_ANIM_PHASE, BIT2_COMMAND);
   const r3 = bit3.clone(); idiomatic(r3);
   const r2 = bit2.clone(); idiomatic(r2);
   const da = r2.dumpState();
@@ -194,7 +194,7 @@ test("EQUAL (crafted bit-3): a settled bit-3 command dispatches stepObjectAndRes
   for (let i = 0; i < Math.min(da.length, db.length); i++) {
     if (da[i] === db[i]) continue;
     const addr = r2.stateOffsetToAddr(i);
-    if (addr === OBJECT_PHASE) continue; // the input phase byte, not a handler output
+    if (addr === PLAYER_ANIM_PHASE) continue; // the input phase byte, not a handler output
     handlerDiff = addr;
     break;
   }
@@ -212,11 +212,11 @@ test("EQUAL (crafted snap wind-down): a run-down counter snaps to the command an
   // routine snaps the phase straight to the command (the sub-branch attract's bit-2 wind-up never hits).
   const e = base.clone();
   e.regs.l = BIT2_COMMAND;
-  e.mem.write8(OBJECT_PHASE, 0x10);
+  e.mem.write8(PLAYER_ANIM_PHASE, 0x10);
 
   const probe = e.clone();
   oracle(probe);
-  assert.equal(probe.mem.read8(OBJECT_PHASE), BIT2_COMMAND, "snap craft did not snap the phase to the command on the oracle");
+  assert.equal(probe.mem.read8(PLAYER_ANIM_PHASE), BIT2_COMMAND, "snap craft did not snap the phase to the command on the oracle");
 
   const d = stateDiff(e, idiomatic);
   assert.equal(d, null, d && `snap: state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
@@ -235,14 +235,14 @@ test("NON-VACUOUS: the arm arm seeds the phase high and the wind-down arm steps 
   // Arm arm: phase clear -> armed to command | 0xc0 (bit 2 command -> 0xc4).
   const s = seed.clone();
   idiomatic(s);
-  assert.equal(s.mem.read8(OBJECT_PHASE), seed.regs.l | 0xc0, "arm arm did not seed the phase to command | 0xc0");
+  assert.equal(s.mem.read8(PLAYER_ANIM_PHASE), seed.regs.l | 0xc0, "arm arm did not seed the phase to command | 0xc0");
   assert.equal(stateDiff(seed, idiomatic), null, "arm arm must also match the oracle");
 
   // Wind-down arm: phase steps down one notch (0x20) from where it was.
-  const startPhase = wind.mem.read8(OBJECT_PHASE);
+  const startPhase = wind.mem.read8(PLAYER_ANIM_PHASE);
   const w = wind.clone();
   idiomatic(w);
-  assert.equal(w.mem.read8(OBJECT_PHASE), (startPhase - 0x20) & 0xff, "wind-down arm did not step the phase down by 0x20");
+  assert.equal(w.mem.read8(PLAYER_ANIM_PHASE), (startPhase - 0x20) & 0xff, "wind-down arm did not step the phase down by 0x20");
   assert.equal(stateDiff(wind, idiomatic), null, "wind-down arm must also match the oracle");
 
   console.log(
@@ -256,7 +256,7 @@ test("NON-VACUOUS: the arm arm seeds the phase high and the wind-down arm steps 
 /** Broken twin: runs the routine, then corrupts the resulting phase byte. */
 function twinWrongPhase(m) {
   idiomatic(m);
-  m.mem.write8(OBJECT_PHASE, m.mem.read8(OBJECT_PHASE) ^ 0xff);
+  m.mem.write8(PLAYER_ANIM_PHASE, m.mem.read8(PLAYER_ANIM_PHASE) ^ 0xff);
 }
 
 test("TEETH (phase): a twin that leaves the wrong wind-down phase is CAUGHT at the phase byte", () => {
@@ -266,11 +266,11 @@ test("TEETH (phase): a twin that leaves the wrong wind-down phase is CAUGHT at t
   // A wind-down entry (phase 0xc4 with command 0x04 steps to 0xa4).
   const e = base.clone();
   e.regs.l = BIT2_COMMAND;
-  e.mem.write8(OBJECT_PHASE, 0xc4);
+  e.mem.write8(PLAYER_ANIM_PHASE, 0xc4);
 
   const d = stateDiff(e, twinWrongPhase);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong wind-down phase — it proves nothing");
-  assert.equal(d.addr, OBJECT_PHASE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJECT_PHASE)})`);
+  assert.equal(d.addr, PLAYER_ANIM_PHASE, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_ANIM_PHASE)})`);
   assert.equal(stateDiff(e, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/phase: wrong wind-down phase caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

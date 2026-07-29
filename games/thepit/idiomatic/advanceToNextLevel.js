@@ -26,7 +26,7 @@
  * GATE:     crafted-entry — 0x02fd never dispatches in attract (the demo never clears a
  *           level), so the gate captures the sibling round-boundary dispatch 0x0278
  *           (reached at boot; both are tail-jumped from the same timer-expiry gate, so
- *           its entry state is faithful) and pokes GAME_MODE to force each branch. Both
+ *           its entry state is faithful) and pokes GAME_STATE to force each branch. Both
  *           successors run for real down to the never-returning main loop — the advance
  *           branch through initRoundAndEnterMainLoop, the bail branch through resetStateAndShowSetup's reset cascade — so
  *           both arms run under one shared watchdog hook that drains the setup/paint
@@ -36,14 +36,14 @@
  * LIVE-OUT: memory-only — the bumped LEVEL, the persisted player-record backups, the
  *           rebuilt board display + bonus screen, and which successor the tail hand-off
  *           reaches. No register or flag is read back; every exit is a tail hand-off.
- * NAMES:    GAME_MODE (0x8001), LEVEL (0x8028) from ram.js. initRoundAndEnterMainLoop is the round-setup
+ * NAMES:    GAME_STATE (0x8001), LEVEL (0x8028) from ram.js. initRoundAndEnterMainLoop is the round-setup
  *           successor (the advance destination), kept as an m.call boundary (0x031a) — it
  *           falls into the never-returning main loop, so it stays a stubbable/boundable
  *           registry boundary rather than a direct call. resetStateAndShowSetup (the bail destination) is
  *           idiomatic and called directly.
  */
 
-import { GAME_MODE, LEVEL } from "./ram.js";
+import { GAME_STATE, LEVEL } from "./ram.js";
 import { saveActivePlayerRecord } from "./saveActivePlayerRecord.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { showBonusScreen } from "./showBonusScreen.js";
@@ -58,7 +58,7 @@ export function advanceToNextLevel(m) {
 
   // No live game in progress (attract / game over) means there is no level to advance;
   // hand off to the reset epilogue that begins a fresh cycle.
-  if (mem8[GAME_MODE] >= 3) return resetStateAndShowSetup(m);
+  if (mem8[GAME_STATE] >= 3) return resetStateAndShowSetup(m);
 
   // Count this level cleared.
   mem8[LEVEL] = mem8[LEVEL] + 1;

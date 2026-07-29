@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_18cf as oracle } from "../../translated/loc_18cf.js";
 import { collectLootTile as idiomatic } from "../collectLootTile.js";
 import { makeMachineFactory } from "../../machine.js";
-import { ACTOR_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { PLAYER_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -197,7 +197,7 @@ test("NON-VACUOUS: a tile-58 award bumps the counter, blanks the cell, and queue
 
   const head = entry.mem.read8(SOUND_HEAD);
   const count = entry.mem.read8(FIRST_TILE_COUNT);
-  const cell = entry.mem.read16(ACTOR_CELL_PTR);
+  const cell = entry.mem.read16(PLAYER_CELL_PTR);
 
   const c = entry.clone();
   idiomatic(c);
@@ -237,7 +237,7 @@ test("TEETH (counter): a twin that fails to bump the pickup counter is CAUGHT at
 
 /** Broken twin: does the real work, then stamps the wrong tile over the collected cell. */
 function twinWrongBlank(m) {
-  const cell = m.mem.read16(ACTOR_CELL_PTR);
+  const cell = m.mem.read16(PLAYER_CELL_PTR);
   idiomatic(m);
   m.mem.write8(cell, 113); // BUG: should be the blank tile 112
 }
@@ -245,7 +245,7 @@ function twinWrongBlank(m) {
 test("TEETH (blank): a twin that stamps the wrong tile over the collected cell is CAUGHT", () => {
   const [base] = captureDispatches(1, 3000);
   const entry = craft(base, { tile: 58, pos: 7 }); // the +10 award blanks the cell
-  const cell = entry.mem.read16(ACTOR_CELL_PTR);
+  const cell = entry.mem.read16(PLAYER_CELL_PTR);
 
   const d = stateDiff(entry, twinWrongBlank);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong blank-tile twin — it proves nothing");

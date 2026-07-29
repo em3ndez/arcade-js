@@ -58,10 +58,10 @@ import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
   REACTION_STATE,
   REACTION_TIMER,
-  DIG_OBJ_STATE,
-  SPAWN_PHASE,
-  ACTOR_X,
-  TWIN_X,
+  HAZARD_STATE,
+  BOARD_END_PHASE,
+  ENEMY3_X,
+  ENEMY3_TWIN_X,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -140,10 +140,10 @@ test("TAIL FIRED: the reaction block is seeded and the full tail's effects are p
     assert.equal(b.mem.read8(addr), val, `control byte ${hx(addr)} not seeded`);
   }
   // The tail's effects: loc_287a's dig-object block and the actor-seed tail ran.
-  assert.equal(b.mem.read8(DIG_OBJ_STATE), 48, "the tail must seed the dig-object carving-phase state");
-  assert.equal(b.mem.read8(ACTOR_X), 36, "the chain's tail must seed the primary start column");
-  assert.equal(b.mem.read8(TWIN_X), 52, "the chain's tail must seed the twin start column");
-  assert.equal(b.mem.read8(SPAWN_PHASE), 0, "the chain's tail must clear the spawn-phase flag");
+  assert.equal(b.mem.read8(HAZARD_STATE), 48, "the tail must seed the dig-object carving-phase state");
+  assert.equal(b.mem.read8(ENEMY3_X), 36, "the chain's tail must seed the primary start column");
+  assert.equal(b.mem.read8(ENEMY3_TWIN_X), 52, "the chain's tail must seed the twin start column");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), 0, "the chain's tail must clear the spawn-phase flag");
   console.log("  TAIL FIRED: reaction block seeded, dig-object + actor seed chain ran");
 });
 
@@ -211,7 +211,7 @@ test("TEETH (dropped hand-off): dropping the loc_287a tail is CAUGHT", () => {
   const [entry] = captureStates(1, 1, 220);
   // Pre-set a downstream tail write target so a missing hand-off is deterministic.
   const SENTINEL = 85;
-  entry.mem.write8(SPAWN_PHASE, SENTINEL);
+  entry.mem.write8(BOARD_END_PHASE, SENTINEL);
 
   const a = entry.clone(); // oracle (runs the tail)
   const b = entry.clone(); // broken twin (no tail)
@@ -220,6 +220,6 @@ test("TEETH (dropped hand-off): dropping the loc_287a tail is CAUGHT", () => {
 
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.notEqual(d, null, "the gate FAILED to catch a dropped hand-off — it proves nothing");
-  assert.equal(b.mem.read8(SPAWN_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
+  assert.equal(b.mem.read8(BOARD_END_PHASE), SENTINEL, "the broken twin never cleared the spawn-phase flag");
   console.log(`  TEETH: dropped hand-off caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

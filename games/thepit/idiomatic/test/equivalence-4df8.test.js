@@ -59,7 +59,7 @@ import { runHighScoreInitialsEntry as idiomatic } from "../runHighScoreInitialsE
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { VARIANT, IN0_DEBOUNCED, FRAME_COUNTER } from "../ram.js";
+import { VARIANT, IN0_DEBOUNCED, PLAY_PHASE_COUNTER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -131,7 +131,7 @@ function installFrameTick(m) {
       if (t6 === 0) { mem.write8(SLOW6, dec8(orig(SLOW6))); t6 = 0x3c; }
       mem.write8(T6, t6);
       let t7 = dec8(orig(T7));
-      if (t7 === 0) { mem.write8(FRAME_COUNTER, inc8(orig(FRAME_COUNTER))); t7 = 0x3c; }
+      if (t7 === 0) { mem.write8(PLAY_PHASE_COUNTER, inc8(orig(PLAY_PHASE_COUNTER))); t7 = 0x3c; }
       mem.write8(T7, t7);
     }
     return orig(addr);
@@ -245,7 +245,7 @@ test("EQUAL (idle timeout): no input, each rank -> runHighScoreInitialsEntry == 
     // climbed to the timeout, which is what ended the loop.
     const c = runOne(entry, idiomatic);
     assert.equal(c.mem.read8(INITIALS_REMAINING), 3, `rank ${rank}: idle path committed an initial`);
-    assert.ok(c.mem.read8(FRAME_COUNTER) >= 60, `rank ${rank}: frame counter did not reach the timeout`);
+    assert.ok(c.mem.read8(PLAY_PHASE_COUNTER) >= 60, `rank ${rank}: frame counter did not reach the timeout`);
   }
   console.log("  EQUAL/idle: both rank arms identical to the oracle; nothing committed, frame counter reached the timeout");
 });

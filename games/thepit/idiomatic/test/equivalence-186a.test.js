@@ -51,7 +51,7 @@ import { loc_186a as oracle } from "../../translated/loc_186a.js";
 import { stampFixedFrameAndResolveTile as idiomatic } from "../stampFixedFrameAndResolveTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { SPRITE_CODE } from "../ram.js";
+import { PLAYER_FACING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -130,10 +130,10 @@ function ramDiff(entry, fn) {
 function findFrameSurviveEntry(entries) {
   for (const entry of entries) {
     const a = entry.clone();
-    a.mem.write8(SPRITE_CODE, FRAME_CODE);
+    a.mem.write8(PLAYER_FACING, FRAME_CODE);
     a.call(TAIL);
     const b = entry.clone();
-    b.mem.write8(SPRITE_CODE, FRAME_CODE ^ 0x40);
+    b.mem.write8(PLAYER_FACING, FRAME_CODE ^ 0x40);
     b.call(TAIL);
     if (firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off))) return entry;
   }
@@ -154,7 +154,7 @@ test("HARNESS: real 0x186a dispatches are captured from attract and the oracle r
   assert.equal(d, null, d && `oracle run not deterministic: diff at ${hx(d.addr ?? 0)}`);
   console.log(
     `  HARNESS: captured ${entries.length} real 0x186a entries ` +
-      `(first: SPRITE_CODE=${hx(entries[0].mem.read8(SPRITE_CODE))}); oracle run deterministic`,
+      `(first: PLAYER_FACING=${hx(entries[0].mem.read8(PLAYER_FACING))}); oracle run deterministic`,
   );
 });
 
@@ -180,7 +180,7 @@ test("EQUAL: stampFixedFrameAndResolveTile == oracle over RAM on every captured 
   assert.ok(survive, "expected one attract dispatch whose stamped frame survives the tail");
   const c = survive.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(SPRITE_CODE), FRAME_CODE, "survive-state: sprite-frame byte not left at the chosen frame");
+  assert.equal(c.mem.read8(PLAYER_FACING), FRAME_CODE, "survive-state: sprite-frame byte not left at the chosen frame");
 
   console.log(`  EQUAL: ${entries.length} real entries all memory-equivalent; survive-state frame -> ${hx(FRAME_CODE)}`);
 });
@@ -190,7 +190,7 @@ test("EQUAL: stampFixedFrameAndResolveTile == oracle over RAM on every captured 
 /** Broken twin: stamps the frame but forgets to hand off to the shared tail. */
 function twinNoTail(m) {
   const { mem8 } = m;
-  mem8[SPRITE_CODE] = FRAME_CODE;
+  mem8[PLAYER_FACING] = FRAME_CODE;
   // BUG: no `return m.call(0x186f)` — the whole cell-rebuild / tile-read / classify is skipped.
 }
 
@@ -208,7 +208,7 @@ test("TEETH (no tail): a twin that skips the shared-tail hand-off is CAUGHT by t
 /** Broken twin: stamps the WRONG frame code, then the same shared-tail hand-off. */
 function twinWrongFrame(m) {
   const { mem8 } = m;
-  mem8[SPRITE_CODE] = WRONG_FRAME; // BUG: wrong animation frame code (should be 52)
+  mem8[PLAYER_FACING] = WRONG_FRAME; // BUG: wrong animation frame code (should be 52)
   return m.call(TAIL);
 }
 
@@ -221,8 +221,8 @@ test("TEETH (wrong frame): a wrong-frame twin is CAUGHT at the sprite-frame byte
   assert.notEqual(d, null, "the gate FAILED to catch the wrong-frame twin — it proves nothing");
   assert.equal(
     d.addr,
-    SPRITE_CODE,
-    `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`,
+    PLAYER_FACING,
+    `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`,
   );
   console.log(`  TEETH/frame: wrong-frame twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

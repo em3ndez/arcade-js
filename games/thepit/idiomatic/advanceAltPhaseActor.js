@@ -41,14 +41,14 @@
  *           The routine returns nothing its callers read (the caller chain is all
  *           tail-jumps that consume no returned register), backstopped by the whole-machine
  *           gate.
- * NAMES:    ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y, TWIN_X, TWIN_TILE, TWIN_CLEAR,
- *           OBJ_X from ram.js. Hex-kept (unnamed in ram.js): 0x8079 arrival flag,
+ * NAMES:    ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y, ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
+ *           PLAYER_Y from ram.js. Hex-kept (unnamed in ram.js): 0x8079 arrival flag,
  *           0x807c floor hold-timer, 0x807d arrival latch.
  */
 
 import {
-  ACTOR_TIMER, ACTOR_TILE, ACTOR_X, ACTOR_Y,
-  TWIN_X, TWIN_TILE, TWIN_CLEAR, OBJ_X,
+  ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y,
+  ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, PLAYER_Y,
 } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
@@ -71,34 +71,34 @@ export function advanceAltPhaseActor(m) {
 
   // 1. Cadence tick — count the frame timer down (wrapping at 0), and on underflow
   //    reload it and flip to the other walk tile.
-  mem8[ACTOR_TIMER] = mem8[ACTOR_TIMER] - 1;
-  let timer = mem8[ACTOR_TIMER];
+  mem8[ENEMY3_TIMER] = mem8[ENEMY3_TIMER] - 1;
+  let timer = mem8[ENEMY3_TIMER];
   if (timer === 0) {
     timer = CADENCE;
-    mem8[ACTOR_TIMER] = CADENCE;
-    const next = mem8[ACTOR_TILE] === WALK_TILE_A ? WALK_TILE_B : WALK_TILE_A;
-    mem8[ACTOR_TILE] = next;
-    mem8[TWIN_TILE] = next ^ 1; // shadow shows the paired tile (bit 0 flipped)
+    mem8[ENEMY3_TIMER] = CADENCE;
+    const next = mem8[ENEMY3_TILE] === WALK_TILE_A ? WALK_TILE_B : WALK_TILE_A;
+    mem8[ENEMY3_TILE] = next;
+    mem8[ENEMY3_TWIN_TILE] = next ^ 1; // shadow shows the paired tile (bit 0 flipped)
   }
 
   // 2. Move gate — only every 4th tick moves; otherwise just rebuild the sprite records.
   if (timer % 4 !== 0) return stageActorSpriteRecords(m);
 
   // 3a. March across the travel row.
-  const y = mem8[ACTOR_Y];
+  const y = mem8[ENEMY3_Y];
   if (y >= TRAVEL_ROW) {
-    const x = mem8[ACTOR_X];
+    const x = mem8[ENEMY3_X];
     if (x < FAR_COLUMN) {
       // Step right one column; the shadow trails 16 columns behind.
-      mem8[ACTOR_X] = x + 1;
-      mem8[TWIN_X] = mem8[ACTOR_X] + SHADOW_X_OFFSET;
+      mem8[ENEMY3_X] = x + 1;
+      mem8[ENEMY3_TWIN_X] = mem8[ENEMY3_X] + SHADOW_X_OFFSET;
       return stageActorSpriteRecords(m);
     }
     if (y === TRAVEL_ROW) {
       // Reached the far column on the travel row: latch the arrival and build the probe
       // record before the descent begins.
       mem8[ARRIVAL_FLAG] = 0;
-      mem8[OBJ_X] = 0;
+      mem8[PLAYER_Y] = 0;
       mem8[ARRIVAL_LATCH] = 1;
       // Build the object's deferral/probe record before the descent begins.
       stageObjectSpriteRecord(m);
@@ -107,12 +107,12 @@ export function advanceAltPhaseActor(m) {
   }
 
   // 3b. Descend toward the floor, or idle once there.
-  const row = mem8[ACTOR_Y];
+  const row = mem8[ENEMY3_Y];
   if (row !== 0) {
     // Step down one row; mirror to the shadow.
     const nextRow = row - 1;
-    mem8[ACTOR_Y] = nextRow;
-    mem8[TWIN_CLEAR] = nextRow;
+    mem8[ENEMY3_Y] = nextRow;
+    mem8[ENEMY3_TWIN_Y] = nextRow;
     return stageActorSpriteRecords(m);
   }
 
@@ -121,7 +121,7 @@ export function advanceAltPhaseActor(m) {
 
   // Hold elapsed: re-arm it and drop the object to its idle tile.
   mem8[FLOOR_HOLD] = FLOOR_HOLD_FRAMES;
-  mem8[ACTOR_TILE] = IDLE_TILE;
-  mem8[TWIN_TILE] = IDLE_TILE;
+  mem8[ENEMY3_TILE] = IDLE_TILE;
+  mem8[ENEMY3_TWIN_TILE] = IDLE_TILE;
   return stageActorSpriteRecords(m);
 }

@@ -27,16 +27,16 @@
  *           from a live-game crafted entry, where the two handlers genuinely diverge. Teeth: a twin
  *           that skips the countdown decrement, one that drops the object dispatch, and one that
  *           swaps the two expiry destinations.
- * LIVE-OUT: memory-only — the decremented countdown (STATE_TIMER) plus whatever the chosen handler
+ * LIVE-OUT: memory-only — the decremented countdown (TRANSITION_TIMER) plus whatever the chosen handler
  *           writes. No caller reads a register or flag back; every exit is a tail hand-off or a bare
  *           stop.
- * NAMES:    STATE_TIMER (ram.js). The post-timer mode selector 0x807d has no ram.js name yet, so it
+ * NAMES:    TRANSITION_TIMER (ram.js). The post-timer mode selector 0x807d has no ram.js name yet, so it
  *           stays a locally-named hex constant.
  *
  * PURPOSE [guess]: POST_TIMER_MODE (0x807d) unnamed; what each expiry gates.
  */
 
-import { STATE_TIMER } from "./ram.js";
+import { TRANSITION_TIMER } from "./ram.js";
 import { advanceTrackedObject } from "./advanceTrackedObject.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 import { advanceToNextLevel } from "./advanceToNextLevel.js";
@@ -49,11 +49,11 @@ export function dispatchObjectFrameByStateTimer(m) {
   const { mem8 } = m;
 
   // Countdown idle: the object is free this frame — run the object/state dispatcher.
-  if (mem8[STATE_TIMER] === 0) return advanceTrackedObject(m);
+  if (mem8[TRANSITION_TIMER] === 0) return advanceTrackedObject(m);
 
   // Countdown running: tick it down and hold the object locked while it is still running.
-  const remaining = mem8[STATE_TIMER] - 1;
-  mem8[STATE_TIMER] = remaining;
+  const remaining = mem8[TRANSITION_TIMER] - 1;
+  mem8[TRANSITION_TIMER] = remaining;
   if (remaining !== 0) return; // still locked -> nothing else this frame
 
   // Countdown just reached zero: the timed state is over. Hand to the round-boundary routine the

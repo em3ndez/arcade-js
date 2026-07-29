@@ -24,10 +24,10 @@
  * LIVE-OUT: memory-only — the five backup bytes of the selected player's record. The
  *           oracle's residual value registers and flags are dead ABI (no caller reads them).
  * NAMES:    LEVEL 0x8028 = field 0 / working-record base (the block runs through
- *           SCORE_HI 0x8034); GAME_STATE2 0x8002 = the 1/2 player-index selector.
+ *           SCORE_HI 0x8034); ACTIVE_PLAYER 0x8002 = the 1/2 player-index selector.
  */
 
-import { LEVEL, GAME_STATE2 } from "./ram.js";
+import { LEVEL, ACTIVE_PLAYER } from "./ram.js";
 
 export function saveActivePlayerRecord(m) {
   const { mem8 } = m;
@@ -35,7 +35,7 @@ export function saveActivePlayerRecord(m) {
   // Each field's three bytes are [working, player-1 backup, player-2 backup].
   // The player-index byte names the current player: its backup column is offset 1
   // for player 1, offset 2 for anyone else.
-  const backupColumn = mem8[GAME_STATE2] === 1 ? 1 : 2;
+  const backupColumn = mem8[ACTIVE_PLAYER] === 1 ? 1 : 2;
 
   // Persist the live working value of all five fields into that player's backup
   // column, so their level, round counters, and score are preserved for their turn.

@@ -53,7 +53,7 @@ import { stepEnemyMover } from "../stepEnemyMover.js";
 import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ACTOR_X, TWIN_X } from "../ram.js";
+import { ENEMY3_X, ENEMY3_TWIN_X } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -66,10 +66,10 @@ const TARGET = 0x3a13;
 const GATE = 0x8078; // second-record gate: nonzero -> also advance the twin record
 const MOVER_SCRATCH = 0x8083; // the driver's shared working block
 const RECORD_SIZE = 17;
-const PRIMARY_LO = ACTOR_X; // 0x810a
-const PRIMARY_HI = ACTOR_X + RECORD_SIZE; // 0x811b (exclusive)
-const TWIN_LO = TWIN_X; // 0x811b
-const TWIN_HI = TWIN_X + RECORD_SIZE; // 0x812c (exclusive)
+const PRIMARY_LO = ENEMY3_X; // 0x810a
+const PRIMARY_HI = ENEMY3_X + RECORD_SIZE; // 0x811b (exclusive)
+const TWIN_LO = ENEMY3_TWIN_X; // 0x811b
+const TWIN_HI = ENEMY3_TWIN_X + RECORD_SIZE; // 0x812c (exclusive)
 const POKED_GATE = 0xff; // any nonzero value forces the twin path
 
 // The two TRUE oracle leaves the arrival/capture transition converges at — each never

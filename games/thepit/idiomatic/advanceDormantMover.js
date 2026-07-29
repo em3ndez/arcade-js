@@ -12,7 +12,7 @@
  *     set — and otherwise does nothing.
  *
  * The name stays neutral. Of the two counters it drives, the free-running tick counter
- * is now MOVER_STATE (0x8090); the slower second counter (0x8085) still has no confirmed
+ * is now ENEMY_WORK_STATE (0x8090); the slower second counter (0x8085) still has no confirmed
  * game role — the timer/cadence question it sits under is still open — so an English name
  * for the routine would claim more than the evidence supports; the sibling refresh it
  * delegates to stays neutral for the same reason.
@@ -30,21 +30,21 @@
  *           new second-counter value on the 4th) and dead: the caller reaches here
  *           only by tail-jump, threading this return on out, and reads it as no
  *           pixel state — the whole-machine/pixel gate backstops any live register.
- * NAMES:    MOVER_STATE (0x8090) from ram.js is the free-running tick counter; the
+ * NAMES:    ENEMY_WORK_STATE (0x8090) from ram.js is the free-running tick counter; the
  *           slower second counter (0x8085) has no ram.js name yet, so it stays hex;
  *           the periodic refresh owns the bytes it writes.
  */
 
 import { reseedMoverCadenceAndRearmState } from "./reseedMoverCadenceAndRearmState.js";
-import { MOVER_STATE } from "./ram.js";
+import { ENEMY_WORK_STATE } from "./ram.js";
 
 
 export function advanceDormantMover(m) {
   const { mem8 } = m;
 
   // Bump the free-running tick counter every call.
-  const tick = (mem8[MOVER_STATE] + 1) % 256;
-  mem8[MOVER_STATE] = tick;
+  const tick = (mem8[ENEMY_WORK_STATE] + 1) % 256;
+  mem8[ENEMY_WORK_STATE] = tick;
 
   // Once every 256 calls the counter wraps back to zero; on that beat, run the
   // periodic refresh and stop for this call.

@@ -2,11 +2,11 @@
 /**
  * Memory-equivalence gate for captureTargetOnOverlap (ROM 0x2cb7) — the per-frame
  * handler for the timed dig target the tracked object is closing on. It clears the
- * shared overlap gate (DIG_OVERLAP_HOLD), advances the target's countdown (DIG_OBJ_TIMER),
+ * shared overlap gate (MOVE_BLOCK_FLAG), advances the target's countdown (DIG_OBJ_TIMER),
  * and on expiry — if the target is not already captured — tests whether the tracked
- * object (OBJ_X/OBJ_Y) sits in a small capture box near the target (TARGET_X/TARGET_Y).
- * Inside the box it snaps OBJ_X onto the target's near edge, raises the captured flag
- * (DIG_OBJ_ARM_STATE), plays the capture sound (requestSound20), and hands off to the
+ * object (PLAYER_Y/PLAYER_X) sits in a small capture box near the target (HAZARD_X/HAZARD_Y).
+ * Inside the box it snaps PLAYER_Y onto the target's near edge, raises the captured flag
+ * (DIG_COLLISION_STATE), plays the capture sound (requestSound20), and hands off to the
  * record builder (stageDigObjectSpriteRecord, 0x2bd3). Otherwise it delegates to one of
  * the reload / overlap-record / advance tails (stampGlyphColumn 0x2d6b, flagObjectTargetOverlap 0x2c91,
  * advanceDigTarget 0x2d06).
@@ -34,14 +34,14 @@
  *      scratch) on the natural captured inputs.
  *   2. EQUAL (every path) — crafted inputs that take each branch (reload, still-running,
  *      already-captured, the four window misses, and a real capture), each identical to
- *      the oracle, plus positive checks that a capture snapped OBJ_X, raised the flag,
+ *      the oracle, plus positive checks that a capture snapped PLAYER_Y, raised the flag,
  *      and queued the capture sound.
  *   3. EQUAL (window sweep) — on the expiry+not-captured path, exhaustive over the row
  *      axis (incl. the +10/+13 wrap) and over the column axis at boundary target columns
- *      (incl. the ±4 wrap); OBJ_X / DIG_OBJ_ARM_STATE cross-checked against a
+ *      (incl. the ±4 wrap); PLAYER_Y / DIG_COLLISION_STATE cross-checked against a
  *      from-first-principles predictor each time.
  *   4. TEETH — a genuine logic twin (column box one pixel too wide → spurious capture) is
- *      CAUGHT at OBJ_X; and post-hoc corruptions of the captured flag and the overlap gate
+ *      CAUGHT at PLAYER_Y; and post-hoc corruptions of the captured flag and the overlap gate
  *      are each CAUGHT at their address (the gate sees every live-out of this routine).
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-2cb7.test.js
@@ -59,13 +59,13 @@ import { requestSound20 } from "../requestSound20.js";
 import { advanceDigTarget } from "../advanceDigTarget.js";
 import { stageDigObjectSpriteRecord } from "../stageDigObjectSpriteRecord.js";
 import {
-  DIG_OVERLAP_HOLD,
+  MOVE_BLOCK_FLAG,
   DIG_OBJ_TIMER,
-  DIG_OBJ_ARM_STATE,
-  OBJ_X,
-  OBJ_Y,
-  TARGET_X,
-  TARGET_Y,
+  DIG_COLLISION_STATE,
+  PLAYER_Y,
+  PLAYER_X,
+  HAZARD_X,
+  HAZARD_Y,
   SOUND_HEAD,
   SOUND_RING,
 } from "../ram.js";
@@ -129,13 +129,13 @@ function ramDiffExStack(a, b) {
 function seed(entry, s = {}) {
   const e = entry.clone();
   const w = (addr, v) => { if (v !== undefined) e.mem.write8(addr, v); };
-  w(DIG_OVERLAP_HOLD, s.gate);
+  w(MOVE_BLOCK_FLAG, s.gate);
   w(DIG_OBJ_TIMER, s.timer);
-  w(DIG_OBJ_ARM_STATE, s.arm);
-  w(OBJ_Y, s.objRow);
-  w(TARGET_Y, s.targetRow);
-  w(OBJ_X, s.objCol);
-  w(TARGET_X, s.targetCol);
+  w(DIG_COLLISION_STATE, s.arm);
+  w(PLAYER_X, s.objRow);
+  w(HAZARD_Y, s.targetRow);
+  w(PLAYER_Y, s.objCol);
+  w(HAZARD_X, s.targetCol);
   return e;
 }
 
@@ -151,7 +151,7 @@ function compare(entry, s, fn) {
 
 /**
  * The routine's outcome, re-derived from first principles (independent of the routine):
- * which tail it takes, and — for a capture — the value OBJ_X is snapped to. The capture
+ * which tail it takes, and — for a capture — the value PLAYER_Y is snapped to. The capture
  * box is 11..13 rows below the target and up to 4 columns right of it.
  */
 function expectedOutcome({ timer, arm, objRow, targetRow, objCol, targetCol }) {
@@ -179,7 +179,7 @@ test("HARNESS: a real 0x2cb7 entry is captured and the oracle run is determinist
   assert.equal(ramDiffExStack(a, b), null, "oracle run of 0x2cb7 is not deterministic");
   console.log(
     `  HARNESS: captured a real 0x2cb7 entry (SP=${hx(entry.regs.sp)}); ` +
-      `DIG_OBJ_TIMER=${entry.mem.read8(DIG_OBJ_TIMER)} DIG_OBJ_ARM_STATE=${entry.mem.read8(DIG_OBJ_ARM_STATE)}; ` +
+      `DIG_OBJ_TIMER=${entry.mem.read8(DIG_OBJ_TIMER)} DIG_COLLISION_STATE=${entry.mem.read8(DIG_COLLISION_STATE)}; ` +
       "oracle deterministic",
   );
 });
@@ -202,7 +202,7 @@ test("EQUAL (every path): reload / running / already-captured / window-miss / ca
   assert.ok(entry, "need a captured 0x2cb7 entry");
 
   // Aligned capture box: targetRow=100 -> rows 111..113 overlap; targetCol=100 -> columns
-  // 97..104 overlap, snapping OBJ_X to 104.
+  // 97..104 overlap, snapping PLAYER_Y to 104.
   const cases = [
     { name: "reload sentinel", s: { timer: RELOAD_SENTINEL } },
     { name: "still running (timer decrements, nonzero)", s: { timer: 5 } },
@@ -219,19 +219,19 @@ test("EQUAL (every path): reload / running / already-captured / window-miss / ca
     assert.equal(ram, null, ram && `${name}: RAM diff at ${hx(ram.addr)} oracle=${ram.a} cand=${ram.b}`);
   }
 
-  // Positive checks on the capture arm: OBJ_X snapped to the near edge, flag raised,
+  // Positive checks on the capture arm: PLAYER_Y snapped to the near edge, flag raised,
   // capture sound queued into the ring, gate cleared.
   const capSpec = { gate: 0x77, timer: 1, arm: 0, objRow: 112, targetRow: 100, objCol: 101, targetCol: 100 };
   const base = seed(entry, capSpec);
   const head = base.mem.read8(SOUND_HEAD);
   const c = base.clone();
   idiomatic(c);
-  assert.equal(c.mem.read8(OBJ_X), 104, "capture must snap OBJ_X to the target's near edge (targetCol+4)");
-  assert.equal(c.mem.read8(DIG_OBJ_ARM_STATE), 1, "capture must raise the captured flag");
-  assert.equal(c.mem.read8(DIG_OVERLAP_HOLD), 0, "the overlap gate must be cleared");
+  assert.equal(c.mem.read8(PLAYER_Y), 104, "capture must snap PLAYER_Y to the target's near edge (targetCol+4)");
+  assert.equal(c.mem.read8(DIG_COLLISION_STATE), 1, "capture must raise the captured flag");
+  assert.equal(c.mem.read8(MOVE_BLOCK_FLAG), 0, "the overlap gate must be cleared");
   assert.equal(c.mem.read8(SOUND_RING + head), SOUND_CAPTURE | 0x80, "capture sound must be queued (pending) in the ring");
   assert.equal(c.mem.read8(SOUND_HEAD), (head + 1) % 8, "sound ring write pointer must advance");
-  console.log(`  EQUAL/paths: all ${cases.length} branches identical; capture snapped OBJ_X->104, flag=1, sound queued`);
+  console.log(`  EQUAL/paths: all ${cases.length} branches identical; capture snapped PLAYER_Y->104, flag=1, sound queued`);
 });
 
 // -- 3. EQUAL over the window sweep (expiry + not-captured) --------------------
@@ -250,8 +250,8 @@ test("EQUAL (window sweep): row axis + boundary column axis, incl. wraps, all ma
       const { ram, c } = compare(entry, s, idiomatic);
       assert.equal(ram, null, ram && `row-sweep targetRow=${targetRow} objRow=${objRow}: RAM diff at ${hx(ram.addr)}`);
       const exp = expectedOutcome(s);
-      assert.equal(c.mem.read8(OBJ_X), exp.path === "capture" ? exp.snap : 101, `row-sweep objRow=${objRow}: OBJ_X`);
-      assert.equal(c.mem.read8(DIG_OBJ_ARM_STATE), exp.path === "capture" ? 1 : 0, `row-sweep objRow=${objRow}: flag`);
+      assert.equal(c.mem.read8(PLAYER_Y), exp.path === "capture" ? exp.snap : 101, `row-sweep objRow=${objRow}: PLAYER_Y`);
+      assert.equal(c.mem.read8(DIG_COLLISION_STATE), exp.path === "capture" ? 1 : 0, `row-sweep objRow=${objRow}: flag`);
       checked++;
     }
   }
@@ -265,8 +265,8 @@ test("EQUAL (window sweep): row axis + boundary column axis, incl. wraps, all ma
       const { ram, c } = compare(entry, s, idiomatic);
       assert.equal(ram, null, ram && `col-sweep targetCol=${targetCol} objCol=${objCol}: RAM diff at ${hx(ram.addr)}`);
       const exp = expectedOutcome(s);
-      assert.equal(c.mem.read8(OBJ_X), exp.path === "capture" ? exp.snap : objCol, `col-sweep objCol=${objCol} targetCol=${targetCol}: OBJ_X`);
-      assert.equal(c.mem.read8(DIG_OBJ_ARM_STATE), exp.path === "capture" ? 1 : 0, `col-sweep objCol=${objCol} targetCol=${targetCol}: flag`);
+      assert.equal(c.mem.read8(PLAYER_Y), exp.path === "capture" ? exp.snap : objCol, `col-sweep objCol=${objCol} targetCol=${targetCol}: PLAYER_Y`);
+      assert.equal(c.mem.read8(DIG_COLLISION_STATE), exp.path === "capture" ? 1 : 0, `col-sweep objCol=${objCol} targetCol=${targetCol}: flag`);
       checked++;
     }
   }
@@ -280,25 +280,25 @@ test("EQUAL (window sweep): row axis + boundary column axis, incl. wraps, all ma
  *  that single edge so the diff is the bug, not an unrelated deviation. */
 function twinWideColumnBox(m) {
   const { mem8 } = m;
-  mem8[DIG_OVERLAP_HOLD] = 0;
+  mem8[MOVE_BLOCK_FLAG] = 0;
   const timer = mem8[DIG_OBJ_TIMER];
   if (timer === RELOAD_SENTINEL) return stampGlyphColumnUnused(m); // unreachable in the teeth inputs
   const ticked = timer - 1;
   mem8[DIG_OBJ_TIMER] = ticked;
   if (ticked !== 0) return advanceDigTarget(m); // unreachable in the teeth inputs
   mem8[DIG_OBJ_TIMER] = 1;
-  if (mem8[DIG_OBJ_ARM_STATE] !== 0) return advanceDigTarget(m);
-  const objectRow = mem8[OBJ_Y];
-  const targetRow = mem8[TARGET_Y];
+  if (mem8[DIG_COLLISION_STATE] !== 0) return advanceDigTarget(m);
+  const objectRow = mem8[PLAYER_X];
+  const targetRow = mem8[HAZARD_Y];
   if (u8(targetRow + 10) >= objectRow) return advanceDigTarget(m);
   if (u8(targetRow + 13) < objectRow) return advanceDigTarget(m);
-  const objectCol = mem8[OBJ_X];
-  const targetCol = mem8[TARGET_X];
+  const objectCol = mem8[PLAYER_Y];
+  const targetCol = mem8[HAZARD_X];
   if (u8(targetCol - 4) >= objectCol) return advanceDigTarget(m);
   const snapCol = u8(targetCol + 4);
   if (u8(targetCol + 5) < objectCol) return advanceDigTarget(m); // BUG: box one column too wide
-  mem8[OBJ_X] = snapCol;
-  mem8[DIG_OBJ_ARM_STATE] = 1;
+  mem8[PLAYER_Y] = snapCol;
+  mem8[DIG_COLLISION_STATE] = 1;
   requestSound20(m);
   return stageDigObjectSpriteRecord(m);
 }
@@ -306,12 +306,12 @@ function twinWideColumnBox(m) {
 // the twin is a total function.
 function stampGlyphColumnUnused(m) { return advanceDigTarget(m); }
 
-test("TEETH (too-wide column box): a spurious capture one column past the box is CAUGHT at OBJ_X", () => {
+test("TEETH (too-wide column box): a spurious capture one column past the box is CAUGHT at PLAYER_Y", () => {
   const entry = captureRealEntry(3000);
   assert.ok(entry, "need a captured 0x2cb7 entry for the teeth check");
 
-  // objCol = targetCol + 5: the oracle stops (miss, leaves OBJ_X = 105); the too-wide twin
-  // captures and snaps OBJ_X to 104.
+  // objCol = targetCol + 5: the oracle stops (miss, leaves PLAYER_Y = 105); the too-wide twin
+  // captures and snaps PLAYER_Y to 104.
   const s = { timer: 1, arm: 0, objRow: 112, targetRow: 100, objCol: 105, targetCol: 100 };
   assert.equal(expectedOutcome(s).path, "advance", "boundary sanity: oracle should not capture at +5");
 
@@ -319,12 +319,12 @@ test("TEETH (too-wide column box): a spurious capture one column past the box is
   assert.ok(ram, "gate FAILED to catch the too-wide-box twin — it proves nothing");
   // The bug is a spurious capture: the oracle leaves the object where it was (no capture),
   // the twin snaps it onto the target and raises the flag. (The first byte the gate reports
-  // is the phantom capture sound at the sound ring, a lower address than OBJ_X.)
-  assert.equal(o.mem.read8(OBJ_X), 105, "oracle must NOT capture at +5 (object unmoved)");
-  assert.equal(o.mem.read8(DIG_OBJ_ARM_STATE), 0, "oracle must NOT raise the captured flag at +5");
-  assert.equal(c.mem.read8(OBJ_X), 104, "twin spuriously snapped OBJ_X onto the target");
-  assert.equal(c.mem.read8(DIG_OBJ_ARM_STATE), 1, "twin spuriously raised the captured flag");
-  console.log(`  TEETH/box: spurious capture caught (first at ${hx(ram.addr)}); oracle OBJ_X=105/flag=0 vs twin OBJ_X=104/flag=1`);
+  // is the phantom capture sound at the sound ring, a lower address than PLAYER_Y.)
+  assert.equal(o.mem.read8(PLAYER_Y), 105, "oracle must NOT capture at +5 (object unmoved)");
+  assert.equal(o.mem.read8(DIG_COLLISION_STATE), 0, "oracle must NOT raise the captured flag at +5");
+  assert.equal(c.mem.read8(PLAYER_Y), 104, "twin spuriously snapped PLAYER_Y onto the target");
+  assert.equal(c.mem.read8(DIG_COLLISION_STATE), 1, "twin spuriously raised the captured flag");
+  console.log(`  TEETH/box: spurious capture caught (first at ${hx(ram.addr)}); oracle PLAYER_Y=105/flag=0 vs twin PLAYER_Y=104/flag=1`);
 
   // And the real routine must PASS the very input the twin fails.
   assert.equal(compare(entry, s, idiomatic).ram, null, "idiomatic must pass the input the twin fails");
@@ -337,14 +337,14 @@ test("TEETH (captured flag + overlap gate): dropping either write is CAUGHT at i
   const capSpec = { gate: 0x77, timer: 1, arm: 0, objRow: 112, targetRow: 100, objCol: 101, targetCol: 100 };
 
   // Twin drops the captured-flag write.
-  const { ram: armRam } = compare(entry, capSpec, (m) => { idiomatic(m); m.mem.write8(DIG_OBJ_ARM_STATE, 0); });
+  const { ram: armRam } = compare(entry, capSpec, (m) => { idiomatic(m); m.mem.write8(DIG_COLLISION_STATE, 0); });
   assert.ok(armRam, "gate FAILED to catch a dropped captured flag");
-  assert.equal(armRam.addr, DIG_OBJ_ARM_STATE, `teeth caught ${hx(armRam.addr)} (expected ${hx(DIG_OBJ_ARM_STATE)})`);
+  assert.equal(armRam.addr, DIG_COLLISION_STATE, `teeth caught ${hx(armRam.addr)} (expected ${hx(DIG_COLLISION_STATE)})`);
 
   // Twin drops the overlap-gate clear (leaves it at the seeded sentinel 0x77).
-  const { ram: gateRam } = compare(entry, capSpec, (m) => { idiomatic(m); m.mem.write8(DIG_OVERLAP_HOLD, 0x77); });
+  const { ram: gateRam } = compare(entry, capSpec, (m) => { idiomatic(m); m.mem.write8(MOVE_BLOCK_FLAG, 0x77); });
   assert.ok(gateRam, "gate FAILED to catch a dropped overlap-gate clear");
-  assert.equal(gateRam.addr, DIG_OVERLAP_HOLD, `teeth caught ${hx(gateRam.addr)} (expected ${hx(DIG_OVERLAP_HOLD)})`);
+  assert.equal(gateRam.addr, MOVE_BLOCK_FLAG, `teeth caught ${hx(gateRam.addr)} (expected ${hx(MOVE_BLOCK_FLAG)})`);
 
-  console.log(`  TEETH/live-outs: captured flag caught at ${hx(DIG_OBJ_ARM_STATE)}, overlap gate at ${hx(DIG_OVERLAP_HOLD)}`);
+  console.log(`  TEETH/live-outs: captured flag caught at ${hx(DIG_COLLISION_STATE)}, overlap gate at ${hx(MOVE_BLOCK_FLAG)}`);
 });

@@ -84,14 +84,14 @@ const test = ROM_PRESENT
 
 const TARGET = 0x03e8;
 // Work-RAM cells this routine reads / writes.
-const FRAME_COUNTER = 0x8010; // wraps to 0 -> repaint the panel
+const PLAY_PHASE_COUNTER = 0x8010; // wraps to 0 -> repaint the panel
 const WALL_TIMER = 0x800b;    // 30-frame countdown
 const BAND_HINT = 0x800c;     // cached maze band index
 const PROBE_GATE = 0x8079;    // nonzero -> classify this frame
 const TICK_BUSY = 0x807c;     // nonzero on a tick frame -> skip classification
-const SPAWN_PHASE = 0x807b;   // 0 on a tick frame -> recolour a column (cyclePanelColumnColour)
-const OBJ_X = 0x8068;
-const OBJ_Y = 0x806b;
+const BOARD_END_PHASE = 0x807b;   // 0 on a tick frame -> recolour a column (cyclePanelColumnColour)
+const PLAYER_Y = 0x8068;
+const PLAYER_X = 0x806b;
 const DEMO_STEER_DIR = 0x801b;      // the one-of-four steering direction this routine produces
 const FILL_LEN = 0x8055;      // cyclePanelColumnColour's first write (column length 9); where a skipped-recolour twin shows up
 const CAPTURE_FRAMES = 720;   // the demo runs 0x03e8 within this window
@@ -172,17 +172,17 @@ function assertEqual(entry, candidate, label) {
 }
 
 // Build a crafted entry that forces the classification path without any subroutine
-// call: FRAME_COUNTER != 0 (no panel repaint), the timer held off its 30-frame tick
+// call: PLAY_PHASE_COUNTER != 0 (no panel repaint), the timer held off its 30-frame tick
 // (dec leaves it nonzero, so no reload / recolour), and the probe marked live.
 function classifyBase(bVal, cVal, hint) {
   const e = ENTRIES[0].clone();
-  e.mem.write8(FRAME_COUNTER, 1);
+  e.mem.write8(PLAY_PHASE_COUNTER, 1);
   e.mem.write8(WALL_TIMER, 5);
   e.mem.write8(PROBE_GATE, 1);
   e.mem.write8(TICK_BUSY, 0);
   e.mem.write8(BAND_HINT, hint);
-  e.mem.write8(OBJ_X, (bVal - 3 + 256) % 256); // probe X so OBJ_X + 3 == bVal
-  e.mem.write8(OBJ_Y, (cVal - 5 + 256) % 256); // probe Y so OBJ_Y + 5 == cVal
+  e.mem.write8(PLAYER_Y, (bVal - 3 + 256) % 256); // probe X so PLAYER_Y + 3 == bVal
+  e.mem.write8(PLAYER_X, (cVal - 5 + 256) % 256); // probe Y so PLAYER_X + 5 == cVal
   return e;
 }
 
@@ -232,10 +232,10 @@ test("EQUAL (captured): idiomatic == oracle on every real demo dispatch", () => 
 test("EQUAL (captured): the first entry really exercises the painter + recolour arms", () => {
   // Sanity that the rich arms are genuinely covered above (not vacuously all-early-return).
   const e = ENTRIES[0];
-  assert.equal(e.mem.read8(FRAME_COUNTER), 0, "first demo entry repaints the panel (drawCreditsDisplay)");
+  assert.equal(e.mem.read8(PLAY_PHASE_COUNTER), 0, "first demo entry repaints the panel (drawCreditsDisplay)");
   assert.equal(e.mem.read8(WALL_TIMER), 1, "first demo entry hits the 30-frame tick");
   assert.equal(e.mem.read8(TICK_BUSY), 0, "first demo entry is not busy -> reaches the recolour");
-  assert.equal(e.mem.read8(SPAWN_PHASE), 0, "first demo entry recolours a column (cyclePanelColumnColour)");
+  assert.equal(e.mem.read8(BOARD_END_PHASE), 0, "first demo entry recolours a column (cyclePanelColumnColour)");
   console.log("  EQUAL/captured: entry#0 covers the panel-repaint + timer-reload + recolour arms");
 });
 
@@ -245,7 +245,7 @@ test("EQUAL (crafted): the busy-tick arm returns without classifying", () => {
   // Timer hits its 30-frame tick AND the busy flag is set -> reload timer, then return
   // with no classification (DEMO_STEER_DIR untouched).
   const e = ENTRIES[0].clone();
-  e.mem.write8(FRAME_COUNTER, 1); // skip the painter to isolate this arm
+  e.mem.write8(PLAY_PHASE_COUNTER, 1); // skip the painter to isolate this arm
   e.mem.write8(WALL_TIMER, 1);    // dec -> 0 -> tick
   e.mem.write8(TICK_BUSY, 0x5a);  // busy -> early return before classify
   assertEqual(e, idiomatic, "busy-tick");
@@ -254,10 +254,10 @@ test("EQUAL (crafted): the busy-tick arm returns without classifying", () => {
 
 test("EQUAL (crafted): the tick recolour arm (cyclePanelColumnColour) with the painter skipped", () => {
   const e = ENTRIES[0].clone();
-  e.mem.write8(FRAME_COUNTER, 1); // skip the painter
+  e.mem.write8(PLAY_PHASE_COUNTER, 1); // skip the painter
   e.mem.write8(WALL_TIMER, 1);    // dec -> 0 -> tick
   e.mem.write8(TICK_BUSY, 0);     // not busy
-  e.mem.write8(SPAWN_PHASE, 0);   // -> recolour a column
+  e.mem.write8(BOARD_END_PHASE, 0);   // -> recolour a column
   e.mem.write8(PROBE_GATE, 0);    // then early-return (no live probe)
   assertEqual(e, idiomatic, "tick-recolour");
   console.log("  EQUAL/crafted: tick recolour (cyclePanelColumnColour) arm identical");
@@ -265,7 +265,7 @@ test("EQUAL (crafted): the tick recolour arm (cyclePanelColumnColour) with the p
 
 test("EQUAL (crafted): the painter arm alone (frame counter at zero)", () => {
   const e = ENTRIES[0].clone();
-  e.mem.write8(FRAME_COUNTER, 0); // -> repaint the panel (drawCreditsDisplay)
+  e.mem.write8(PLAY_PHASE_COUNTER, 0); // -> repaint the panel (drawCreditsDisplay)
   e.mem.write8(WALL_TIMER, 5);    // dec -> 4, no tick, straight to the probe gate
   e.mem.write8(PROBE_GATE, 0);    // early return
   assertEqual(e, idiomatic, "painter-only");
@@ -355,17 +355,17 @@ function refClassify(b, c, bug) {
 function makeBrokenRoutine(bug) {
   return function broken(m) {
     const { mem } = m;
-    if (mem.read8(FRAME_COUNTER) === 0) { m.push16(0x03ef); idiomaticPainter(m); }
+    if (mem.read8(PLAY_PHASE_COUNTER) === 0) { m.push16(0x03ef); idiomaticPainter(m); }
     const timer = (mem.read8(WALL_TIMER) - 1) % 256;
     mem.write8(WALL_TIMER, timer);
     if (timer === 0) {
       mem.write8(WALL_TIMER, 30);
       if (mem.read8(TICK_BUSY) !== 0) { m.ret(); return; }
-      if (mem.read8(SPAWN_PHASE) === 0 && bug !== "skip48c4") { m.push16(0x0409); idiomaticRecolour(m); }
+      if (mem.read8(BOARD_END_PHASE) === 0 && bug !== "skip48c4") { m.push16(0x0409); idiomaticRecolour(m); }
     }
     if (mem.read8(PROBE_GATE) === 0) { m.ret(); return; }
-    const b = (mem.read8(OBJ_X) + 3) % 256;
-    const c = (mem.read8(OBJ_Y) + 5) % 256;
+    const b = (mem.read8(PLAYER_Y) + 3) % 256;
+    const c = (mem.read8(PLAYER_X) + 5) % 256;
     const hint = mem.read8(BAND_HINT);
     const { bandTop, band7 } = refClassify(b, c, bug);
     let mask = null;

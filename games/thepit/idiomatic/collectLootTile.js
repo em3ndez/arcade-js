@@ -34,14 +34,14 @@
  * LIVE-OUT: memory-only — the two pickup counters, the score and its on-screen digits,
  *           the queued sound, the blanked cell, and whatever the movement tail leaves.
  *           The registers/flags the oracle threads out are dead ABI no caller reads.
- * NAMES:    ACTOR_CELL_PTR from ram.js. The two per-kind pickup counters 0x8081/0x8082,
+ * NAMES:    PLAYER_CELL_PTR from ram.js. The two per-kind pickup counters 0x8081/0x8082,
  *           the second kind's enable flag 0x8076, its one-shot latch 0x8078, and the
  *           latch's guard 0x80bd stay hex — their roles are clear here but not yet
  *           grounded across the game. Named collectLootTile after the loot tiles it
  *           collects, matching its sibling triggerDigReaction.
  */
 
-import { ACTOR_CELL_PTR, SPAWN_STATE, FEATURE_TILE_LATCH } from "./ram.js";
+import { PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT, PRIZE_GATE } from "./ram.js";
 import { triggerDigReaction } from "./triggerDigReaction.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
@@ -71,14 +71,14 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
     mem8[FIRST_TILE_COUNT] = mem8[FIRST_TILE_COUNT] + 1;
   } else if (tileCode >= 59 && tileCode <= 61) {
     // Second pickup kind, and only while its feature is enabled.
-    if (mem8[FEATURE_TILE_LATCH] === 0) {
+    if (mem8[PRIZE_GATE] === 0) {
       return triggerDigReaction(m, tileCode, positionAccumulator);
     }
     // A one-shot latch opens the award. Once open it always awards; the very first
     // time, it opens only when the guard is clear (and arms the latch itself),
     // otherwise it defers this frame to the dig-arm.
     if (mem8[SECOND_TILE_LATCH] === 0) {
-      if (mem8[SPAWN_STATE] !== 0) {
+      if (mem8[HAZARD_ACTIVE_COUNT] !== 0) {
         return triggerDigReaction(m, tileCode, positionAccumulator);
       }
       mem8[SECOND_TILE_LATCH] = 1;
@@ -92,7 +92,7 @@ export function collectLootTile(m, tileCode = m.regs.b, positionAccumulator = m.
   }
 
   // Collected: blank the cell the actor stands on, then keep the actor moving.
-  const cell = mem16[ACTOR_CELL_PTR];
+  const cell = mem16[PLAYER_CELL_PTR];
   mem8[cell] = BLANK_TILE;
   return advanceActorWalk(m);
 }

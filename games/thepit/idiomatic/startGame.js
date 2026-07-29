@@ -31,13 +31,13 @@
  * LIVE-OUT: memory-only — the seeded round-state bytes, both players' primed records,
  *           the loaded live record, and the blanked screen / flooded colour RAM. No
  *           register or flag is live out (it falls into the main loop, not a caller).
- * NAMES:    VARIANT 0x8048, LEVEL 0x8028, GAME_MODE 0x8001, GAME_STATE2 0x8002 (the 1/2
+ * NAMES:    VARIANT 0x8048, LEVEL 0x8028, GAME_STATE 0x8001, ACTIVE_PLAYER 0x8002 (the 1/2
  *           player selector the record save/load reads), the dip-derived source bytes
  *           LOOP_DELAY_BASE 0x804e / STARTING_MEN 0x8053 and the round-state bytes they
  *           feed (MAIN_LOOP_DELAY 0x8011, MEN_LEFT 0x802b) from ram.js.
  */
 
-import { VARIANT, LEVEL, GAME_MODE, GAME_STATE2, MAIN_LOOP_DELAY, LOOP_DELAY_BASE, MEN_LEFT, STARTING_MEN } from "./ram.js";
+import { VARIANT, LEVEL, GAME_STATE, ACTIVE_PLAYER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE, MEN_LEFT, STARTING_MEN } from "./ram.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 import { enableNmi } from "./enableNmi.js";
 import { enableSound } from "./enableSound.js";
@@ -72,14 +72,14 @@ export function startGame(m) {
 
   // Prime both players' saved records from these fresh defaults so either player's turn
   // starts clean; the selector byte names which player's record to write.
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   saveActivePlayerRecord(m);
-  mem8[GAME_STATE2] = 2;
+  mem8[ACTIVE_PLAYER] = 2;
   saveActivePlayerRecord(m);
 
   // Load the starting player's record (the player the coin logic selected) into the live
   // slot, then count the man about to play into the men-left total.
-  mem8[GAME_STATE2] = mem8[GAME_MODE];
+  mem8[ACTIVE_PLAYER] = mem8[GAME_STATE];
   loadPlayerState(m);
   mem8[MEN_LEFT] = mem8[MEN_LEFT] + 1;
 

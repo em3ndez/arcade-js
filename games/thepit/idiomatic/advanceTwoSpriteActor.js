@@ -8,7 +8,7 @@
  * primary body and a twin locked one tile alongside it. Each frame it lands here and
  * is routed from two control bytes:
  *
- *   - Still mid-spawn (SPAWN_PHASE set): hand the frame to the spawn handler.
+ *   - Still mid-spawn (BOARD_END_PHASE set): hand the frame to the spawn handler.
  *   - Otherwise route on the animation phase, a counter that cycles ~0..25 each round:
  *       * phase 10+ : the steady per-frame mover (decompiled, called directly).
  *       * phases 6..8 : the rebuild-at-edge sibling.
@@ -40,15 +40,15 @@
  *           Z80 stack the oracle threads are dead ABI (this sits on a tail-jump ladder
  *           whose callers reload the register file next frame); the full-RAM gate
  *           backstops that.
- * NAMES:    SPAWN_PHASE, FRAME_COUNTER, OBJECT_ACTIVE, OBJ_X, ACTOR_STEP_X/ACTOR_STEP_Y,
- *           ACTOR_TIMER, ACTOR_TILE/TWIN_TILE, ACTOR_X/TWIN_X, ACTOR_Y/TWIN_CLEAR from
+ * NAMES:    BOARD_END_PHASE, PLAY_PHASE_COUNTER, PLAYER_ACTIVE, PLAYER_Y, ENEMY3_STEP_X/ENEMY3_STEP_Y,
+ *           ENEMY3_TIMER, ENEMY3_TILE/ENEMY3_TWIN_TILE, ENEMY3_X/ENEMY3_TWIN_X, ENEMY3_Y/ENEMY3_TWIN_Y from
  *           ram.js. The steady per-frame mover at 0x3a13 is the decompiled
  *           advanceActorMovers, called directly.
  */
 
 import {
-  ACTOR_STEP_X, ACTOR_STEP_Y, ACTOR_TILE, ACTOR_TIMER, ACTOR_X, ACTOR_Y,
-  FRAME_COUNTER, OBJ_X, OBJECT_ACTIVE, SPAWN_PHASE, TWIN_CLEAR, TWIN_TILE, TWIN_X,
+  ENEMY3_STEP_X, ENEMY3_STEP_Y, ENEMY3_TILE, ENEMY3_TIMER, ENEMY3_X, ENEMY3_Y,
+  PLAY_PHASE_COUNTER, PLAYER_Y, PLAYER_ACTIVE, BOARD_END_PHASE, ENEMY3_TWIN_Y, ENEMY3_TWIN_TILE, ENEMY3_TWIN_X,
 } from "./ram.js";
 import { spawnAltPhaseActor } from "./spawnAltPhaseActor.js";
 import { advanceOrRebuildTwinActor } from "./advanceOrRebuildTwinActor.js";
@@ -67,50 +67,50 @@ export function advanceTwoSpriteActor(m) {
   const { mem8 } = m;
 
   // Still mid-spawn: let the spawn handler own the frame.
-  if (mem8[SPAWN_PHASE] !== 0) return spawnAltPhaseActor(m);
+  if (mem8[BOARD_END_PHASE] !== 0) return spawnAltPhaseActor(m);
 
   // Route on where we are in the actor's animation cycle.
-  const phase = mem8[FRAME_COUNTER];
+  const phase = mem8[PLAY_PHASE_COUNTER];
   if (phase >= 10) return advanceActorMovers(m); // steady per-frame mover (decompiled, called directly)
   if (phase >= 9) return spawnTwinActor(m); // phase 9: spawn the twin figure
   if (phase >= 6) return advanceOrRebuildTwinActor(m); // phases 6..8: rebuild the actor at the edge
   // phases 0..5 run the inline walk / march below.
 
   // Phases 3..5 seed the actor once, on the first frame it becomes live.
-  if (phase >= 3 && mem8[OBJECT_ACTIVE] === 0) {
-    mem8[ACTOR_STEP_X] = -1; // step -1: march one cell left each tick
-    mem8[ACTOR_STEP_Y] = 0; // no vertical drift
-    mem8[OBJECT_ACTIVE] = 255; // mark present so later frames animate, not re-seed
-    mem8[OBJ_X] = 45; // park the actor's start cell
+  if (phase >= 3 && mem8[PLAYER_ACTIVE] === 0) {
+    mem8[ENEMY3_STEP_X] = -1; // step -1: march one cell left each tick
+    mem8[ENEMY3_STEP_Y] = 0; // no vertical drift
+    mem8[PLAYER_ACTIVE] = 255; // mark present so later frames animate, not re-seed
+    mem8[PLAYER_Y] = 45; // park the actor's start cell
   }
 
   // Inline walk / march. Read the step vector (freshly seeded above on the first frame).
-  const stepX = mem8[ACTOR_STEP_X];
-  const stepY = mem8[ACTOR_STEP_Y];
+  const stepX = mem8[ENEMY3_STEP_X];
+  const stepY = mem8[ENEMY3_STEP_Y];
 
   // Tick the cadence timer; on underflow, reload it and flip the walk tile.
-  const nextTimer = mem8[ACTOR_TIMER] - 1;
-  mem8[ACTOR_TIMER] = nextTimer;
+  const nextTimer = mem8[ENEMY3_TIMER] - 1;
+  mem8[ENEMY3_TIMER] = nextTimer;
   if (nextTimer === 0) {
-    mem8[ACTOR_TIMER] = CADENCE_RELOAD;
-    const walkTile = mem8[ACTOR_TILE] === WALK_TILE_A ? WALK_TILE_B : WALK_TILE_A;
-    mem8[ACTOR_TILE] = walkTile;
-    mem8[TWIN_TILE] = walkTile ^ 1; // twin shows the paired frame (low bit flipped)
+    mem8[ENEMY3_TIMER] = CADENCE_RELOAD;
+    const walkTile = mem8[ENEMY3_TILE] === WALK_TILE_A ? WALK_TILE_B : WALK_TILE_A;
+    mem8[ENEMY3_TILE] = walkTile;
+    mem8[ENEMY3_TWIN_TILE] = walkTile ^ 1; // twin shows the paired frame (low bit flipped)
   }
 
   // The actor advances only on every fourth tick.
-  if ((mem8[ACTOR_TIMER] & 3) === 0) {
+  if ((mem8[ENEMY3_TIMER] & 3) === 0) {
     // March along X once past the left margin; place the twin ahead of the body.
-    if (mem8[ACTOR_X] >= LEFT_MARGIN) {
-      const newX = mem8[ACTOR_X] + stepX;
-      mem8[ACTOR_X] = newX;
-      mem8[TWIN_X] = newX + TWIN_LEAD;
+    if (mem8[ENEMY3_X] >= LEFT_MARGIN) {
+      const newX = mem8[ENEMY3_X] + stepX;
+      mem8[ENEMY3_X] = newX;
+      mem8[ENEMY3_TWIN_X] = newX + TWIN_LEAD;
 
       // Descend along Y until the actor reaches the floor; mirror into the twin.
-      if (mem8[ACTOR_Y] < FLOOR) {
-        const newY = mem8[ACTOR_Y] + stepY;
-        mem8[ACTOR_Y] = newY;
-        mem8[TWIN_CLEAR] = newY;
+      if (mem8[ENEMY3_Y] < FLOOR) {
+        const newY = mem8[ENEMY3_Y] + stepY;
+        mem8[ENEMY3_Y] = newY;
+        mem8[ENEMY3_TWIN_Y] = newY;
       }
     }
   }

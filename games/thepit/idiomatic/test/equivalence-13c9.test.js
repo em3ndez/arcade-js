@@ -62,7 +62,7 @@ import { advanceTrackedObject } from "../advanceTrackedObject.js";
 import { dockManAndDispatchRoundBoundary as loc_0278Ref } from "../dockManAndDispatchRoundBoundary.js"; // the mode-0 expiry destination (teeth mirror)
 import { advanceToNextLevel } from "../advanceToNextLevel.js"; // the mode-nonzero expiry destination (teeth mirror)
 import { makeMachineFactory } from "../../machine.js";
-import { STATE_TIMER, GAME_MODE } from "../ram.js";
+import { TRANSITION_TIMER, GAME_STATE } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -94,7 +94,7 @@ const R = (mm, a) => mm.mem.read8(a);
 
 /** Re-derive which arm dispatchObjectFrameByStateTimer takes for an entry, from its gate bytes (coverage + non-vacuity). */
 function armOf(mm) {
-  const t = R(mm, STATE_TIMER);
+  const t = R(mm, TRANSITION_TIMER);
   if (t === 0) return "dispatch";
   if (t - 1 !== 0) return "tick";
   return R(mm, POST_TIMER_MODE) === 0 ? "expiry->0278" : "expiry->02fd";
@@ -172,16 +172,16 @@ const boundaryHarness = (m) => { m.mem.write8(MARKER, 0); installFrameTick(m); i
 /**
  * Craft a live-game expiry entry from a real countdown-idle capture with a SURGICAL nudge — force
  * the countdown to expire this frame, set the post-timer mode, and mark a live game in progress
- * (GAME_MODE 2). Only these bytes are touched: the record the handlers read is left exactly as the
+ * (GAME_STATE 2). Only these bytes are touched: the record the handlers read is left exactly as the
  * real capture minted it, so the deep chain (which tallies the score on the bonus screen) runs on a
  * consistent state. With a live game both expiry handlers run their real chain and genuinely diverge
  * — dockManAndDispatchRoundBoundary docks/persists the man count, advanceToNextLevel bumps the level + rebuilds the board.
  */
 function craftLiveExpiry(base, postTimerMode) {
   const entry = base.clone();
-  entry.mem.write8(STATE_TIMER, 1); // decrements to 0 this frame -> expiry
+  entry.mem.write8(TRANSITION_TIMER, 1); // decrements to 0 this frame -> expiry
   entry.mem.write8(POST_TIMER_MODE, postTimerMode);
-  entry.mem.write8(GAME_MODE, 2); // a live 1-or-2-player game -> the handlers run their real chain
+  entry.mem.write8(GAME_STATE, 2); // a live 1-or-2-player game -> the handlers run their real chain
   return entry;
 }
 
@@ -207,7 +207,7 @@ test("HARNESS: the harness reaches 0x13c9 in attract, the reached arms appear, a
 // -- 1. EQUAL over the real dispatch arm (countdown idle) --------------------
 
 test("EQUAL (dispatch): dispatchObjectFrameByStateTimer == oracle over every real countdown-idle dispatch", () => {
-  const caps = capture(2000, 3000, (mm) => R(mm, STATE_TIMER) === 0);
+  const caps = capture(2000, 3000, (mm) => R(mm, TRANSITION_TIMER) === 0);
   assert.ok(caps.length >= 1, "expected countdown-idle dispatches in attract");
 
   for (const cap of caps) {
@@ -220,31 +220,31 @@ test("EQUAL (dispatch): dispatchObjectFrameByStateTimer == oracle over every rea
 // -- 2. EQUAL over the tick arm (countdown running) + a crafted start-value sweep --
 
 test("EQUAL (tick): dispatchObjectFrameByStateTimer == oracle over real running-countdown ticks and a crafted 2..255 sweep", () => {
-  const caps = capture(1000, 3000, (mm) => R(mm, STATE_TIMER) > 1);
+  const caps = capture(1000, 3000, (mm) => R(mm, TRANSITION_TIMER) > 1);
   assert.ok(caps.length >= 1, "expected running-countdown dispatches in attract");
 
   for (const cap of caps) {
-    const start = R(cap, STATE_TIMER);
+    const start = R(cap, TRANSITION_TIMER);
     const d = stateDiff(cap, idiomatic);
     assert.equal(d, null, d && `tick diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
     const c = cap.clone();
     idiomatic(c);
-    assert.equal(R(c, STATE_TIMER), start - 1, `countdown not decremented by one (start ${start})`);
+    assert.equal(R(c, TRANSITION_TIMER), start - 1, `countdown not decremented by one (start ${start})`);
   }
 
   // Crafted sweep: from a real countdown-idle entry, force every start value 2..255 (so the tick
   // arm holds after decrement) and confirm the decrement + no stray writes.
-  const [base] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) === 0);
+  const [base] = capture(1, 3000, (mm) => R(mm, TRANSITION_TIMER) === 0);
   assert.ok(base, "need a real entry to craft the tick sweep from");
   for (let start = 2; start <= 255; start++) {
     const entry = base.clone();
-    entry.mem.write8(STATE_TIMER, start);
+    entry.mem.write8(TRANSITION_TIMER, start);
     assert.equal(armOf(entry), "tick", `craft did not reach the tick arm at start ${start}`);
     const d = stateDiff(entry, idiomatic);
     assert.equal(d, null, d && `sweep start ${start}: diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
     const c = entry.clone();
     idiomatic(c);
-    assert.equal(R(c, STATE_TIMER), start - 1, `sweep start ${start}: countdown not decremented by one`);
+    assert.equal(R(c, TRANSITION_TIMER), start - 1, `sweep start ${start}: countdown not decremented by one`);
   }
   console.log(`  EQUAL/tick: ${caps.length} real ticks + 254 crafted start values identical; countdown always -1`);
 });
@@ -252,7 +252,7 @@ test("EQUAL (tick): dispatchObjectFrameByStateTimer == oracle over real running-
 // -- 3. EQUAL on the expiry -> dockManAndDispatchRoundBoundary arm (real boundary chain) -------------
 
 test("EQUAL (expiry->dockManAndDispatchRoundBoundary): a crafted mode-0 expiry runs the real boundary chain identically", () => {
-  const [base] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) === 0);
+  const [base] = capture(1, 3000, (mm) => R(mm, TRANSITION_TIMER) === 0);
   assert.ok(base, "need a real entry to craft the expiry arm from");
 
   const entry = craftLiveExpiry(base, 0); // mode 0 -> dockManAndDispatchRoundBoundary
@@ -264,7 +264,7 @@ test("EQUAL (expiry->dockManAndDispatchRoundBoundary): a crafted mode-0 expiry r
   // Non-vacuity: the countdown drained to zero and both sides ran the chain to the SAME leaf.
   const o = entry.clone(); boundaryHarness(o); oracle(o);
   const c = entry.clone(); boundaryHarness(c); idiomatic(c);
-  assert.equal(R(c, STATE_TIMER), 0, "the countdown should have drained to zero on expiry");
+  assert.equal(R(c, TRANSITION_TIMER), 0, "the countdown should have drained to zero on expiry");
   assert.notEqual(R(c, MARKER), 0, "the boundary chain should have reached a leaf");
   assert.equal(R(c, MARKER), R(o, MARKER), "idiomatic and oracle reached different boundary leaves");
   console.log(`  EQUAL/expiry->dockManAndDispatchRoundBoundary: identical RAM; countdown -> 0, chain reached leaf ${hx(R(c, MARKER) === (SETUP_LEAF & 0xff) ? SETUP_LEAF : RESET_LEAF)}`);
@@ -273,7 +273,7 @@ test("EQUAL (expiry->dockManAndDispatchRoundBoundary): a crafted mode-0 expiry r
 // -- 4. EQUAL on the expiry -> advanceToNextLevel arm (real boundary chain) ---
 
 test("EQUAL (expiry->advanceToNextLevel): a crafted mode-nonzero expiry runs the real chain identically", () => {
-  const [base] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) === 0);
+  const [base] = capture(1, 3000, (mm) => R(mm, TRANSITION_TIMER) === 0);
   assert.ok(base, "need a real entry to craft the expiry arm from");
 
   const entry = craftLiveExpiry(base, 1); // nonzero -> advanceToNextLevel
@@ -284,7 +284,7 @@ test("EQUAL (expiry->advanceToNextLevel): a crafted mode-nonzero expiry runs the
 
   const o = entry.clone(); boundaryHarness(o); oracle(o);
   const c = entry.clone(); boundaryHarness(c); idiomatic(c);
-  assert.equal(R(c, STATE_TIMER), 0, "the countdown should have drained to zero on expiry");
+  assert.equal(R(c, TRANSITION_TIMER), 0, "the countdown should have drained to zero on expiry");
   assert.notEqual(R(c, MARKER), 0, "the boundary chain should have reached a leaf");
   assert.equal(R(c, MARKER), R(o, MARKER), "idiomatic and oracle reached different boundary leaves");
   console.log(`  EQUAL/expiry->advanceToNextLevel: identical RAM; countdown -> 0, chain reached leaf ${hx(R(c, MARKER) === (SETUP_LEAF & 0xff) ? SETUP_LEAF : RESET_LEAF)}`);
@@ -296,8 +296,8 @@ test("EQUAL (expiry->advanceToNextLevel): a crafted mode-nonzero expiry runs the
  *  the oracle leaves count-1 and the twin leaves count, so the countdown byte is the divergence. */
 function twinSkipDecrement(m) {
   const { mem8 } = m;
-  if (mem8[STATE_TIMER] === 0) return advanceTrackedObject(m);
-  const remaining = mem8[STATE_TIMER] - 1;
+  if (mem8[TRANSITION_TIMER] === 0) return advanceTrackedObject(m);
+  const remaining = mem8[TRANSITION_TIMER] - 1;
   // BUG: the decremented countdown is never stored back.
   if (remaining !== 0) return;
   if (mem8[POST_TIMER_MODE] === 0) return loc_0278Ref(m);
@@ -305,13 +305,13 @@ function twinSkipDecrement(m) {
 }
 
 test("TEETH (skip the decrement): a twin that never decrements the countdown is CAUGHT", () => {
-  const [entry] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) > 1);
+  const [entry] = capture(1, 3000, (mm) => R(mm, TRANSITION_TIMER) > 1);
   assert.ok(entry, "need a running-countdown entry to seed the teeth check");
-  const start = R(entry, STATE_TIMER);
+  const start = R(entry, TRANSITION_TIMER);
 
   const d = stateDiff(entry, twinSkipDecrement);
   assert.notEqual(d, null, "the gate FAILED to catch the skipped-decrement twin — it proves nothing");
-  assert.equal(d.addr, STATE_TIMER, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(STATE_TIMER)})`);
+  assert.equal(d.addr, TRANSITION_TIMER, `teeth caught the wrong address ${hx(d.addr)} (expected ${hx(TRANSITION_TIMER)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/decrement: skipped-decrement twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b}, start=${start})`);
 });
@@ -322,9 +322,9 @@ test("TEETH (skip the decrement): a twin that never decrements the countdown is 
  *  write the real dispatch would make is missing. */
 function twinDropDispatch(m) {
   const { mem8 } = m;
-  if (mem8[STATE_TIMER] === 0) return; // BUG: dropped advanceTrackedObject
-  const remaining = mem8[STATE_TIMER] - 1;
-  mem8[STATE_TIMER] = remaining;
+  if (mem8[TRANSITION_TIMER] === 0) return; // BUG: dropped advanceTrackedObject
+  const remaining = mem8[TRANSITION_TIMER] - 1;
+  mem8[TRANSITION_TIMER] = remaining;
   if (remaining !== 0) return;
   if (mem8[POST_TIMER_MODE] === 0) return loc_0278Ref(m);
   return advanceToNextLevel(m);
@@ -335,9 +335,9 @@ function twinDropDispatch(m) {
  *  so a swap is observable. */
 function twinSwapExpiry(m) {
   const { mem8 } = m;
-  if (mem8[STATE_TIMER] === 0) return advanceTrackedObject(m);
-  const remaining = mem8[STATE_TIMER] - 1;
-  mem8[STATE_TIMER] = remaining;
+  if (mem8[TRANSITION_TIMER] === 0) return advanceTrackedObject(m);
+  const remaining = mem8[TRANSITION_TIMER] - 1;
+  mem8[TRANSITION_TIMER] = remaining;
   if (remaining !== 0) return;
   if (mem8[POST_TIMER_MODE] === 0) return advanceToNextLevel(m); // BUG: mode 0 should run dockManAndDispatchRoundBoundary
   return loc_0278Ref(m); // BUG: mode nonzero should advance the level
@@ -346,7 +346,7 @@ function twinSwapExpiry(m) {
 test("TEETH (drop the dispatch): returning instead of advancing the object is CAUGHT", () => {
   // Find a countdown-idle entry whose dispatch actually writes RAM (many attract frames just
   // return with no live object; those cannot expose a dropped dispatch).
-  const caps = capture(2000, 3000, (mm) => R(mm, STATE_TIMER) === 0);
+  const caps = capture(2000, 3000, (mm) => R(mm, TRANSITION_TIMER) === 0);
   let entry = null;
   for (const cap of caps) {
     const o = cap.clone(); oracle(o);
@@ -363,7 +363,7 @@ test("TEETH (drop the dispatch): returning instead of advancing the object is CA
 // -- 7. TEETH: a twin that swaps the two expiry destinations -----------------
 
 test("TEETH (swap expiry routing): sending mode-nonzero to dockManAndDispatchRoundBoundary instead of advanceToNextLevel is CAUGHT", () => {
-  const [base] = capture(1, 3000, (mm) => R(mm, STATE_TIMER) === 0);
+  const [base] = capture(1, 3000, (mm) => R(mm, TRANSITION_TIMER) === 0);
   assert.ok(base, "need a real entry to craft the expiry arm from");
   const entry = craftLiveExpiry(base, 1); // mode nonzero -> should advance the level
 

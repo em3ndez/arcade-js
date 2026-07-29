@@ -20,7 +20,7 @@
  * the same window. The routine reads no timer of its own — the caller checks the reload
  * sentinel and jumps here unconditionally — so any real dig-object entry state is a
  * faithful input. The one input that shapes the output, the object's display-cell
- * pointer (ACTOR_CELL_PTR, 0x806e), is additionally swept across several map positions,
+ * pointer (PLAYER_CELL_PTR, 0x806e), is additionally swept across several map positions,
  * poked identically on both sides, to prove the address arithmetic is position-exact.
  *
  * Checks:
@@ -47,7 +47,7 @@ import { loc_2d6b as oracle } from "../../translated/loc_2d6b.js";
 import { loc_2cb7 as caller } from "../../translated/loc_2cb7.js";
 import { stampGlyphColumn as idiomatic } from "../stampGlyphColumn.js";
 import { makeMachineFactory } from "../../machine.js";
-import { ACTOR_CELL_PTR, STATE_TIMER } from "../ram.js";
+import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -134,7 +134,7 @@ test("HARNESS: the genuine 0x2d6b entry is captured and the oracle run is determ
   oracle(b);
   assert.equal(ramDiff(a, b), null, "oracle run of 0x2d6b is not deterministic");
   console.log(
-    `  HARNESS: real 0x2d6b entry (0x806e=${hx(entry.mem.read16(ACTOR_CELL_PTR))}, ` +
+    `  HARNESS: real 0x2d6b entry (0x806e=${hx(entry.mem.read16(PLAYER_CELL_PTR))}, ` +
       `SP=${hx(entry.regs.sp)}); oracle run deterministic`,
   );
 });
@@ -144,7 +144,7 @@ test("HARNESS: the genuine 0x2d6b entry is captured and the oracle run is determ
 test("EQUAL (real entry): stampGlyphColumn == oracle over RAM", () => {
   const entry = realEntry;
   assert.ok(entry, "need a captured 0x2d6b entry");
-  const objectCell = entry.mem.read16(ACTOR_CELL_PTR);
+  const objectCell = entry.mem.read16(PLAYER_CELL_PTR);
 
   const o = entry.clone();
   oracle(o);
@@ -161,7 +161,7 @@ test("EQUAL (real entry): stampGlyphColumn == oracle over RAM", () => {
     assert.equal(c.mem.read8(addr), COLOUR, `colour cell ${i} at ${hx(addr)}`),
   );
   assert.equal(c.mem.read8(LATCH), 0, "per-event latch not cleared");
-  assert.equal(c.mem.read8(STATE_TIMER), TIMER, "state timer not armed to 180");
+  assert.equal(c.mem.read8(TRANSITION_TIMER), TIMER, "state timer not armed to 180");
   console.log(`  EQUAL/real: identical RAM; glyph + colour + latch + timer at 0x806e=${hx(objectCell)}`);
 });
 
@@ -173,7 +173,7 @@ test("EQUAL (pointer sweep): every map position stamps identically to the oracle
 
   for (const ptr of [0x9100, 0x9200, 0x929d, 0x9300, 0x9380]) {
     const base = seed.clone();
-    base.mem.write16(ACTOR_CELL_PTR, ptr);
+    base.mem.write16(PLAYER_CELL_PTR, ptr);
 
     const o = base.clone();
     oracle(o);
@@ -197,7 +197,7 @@ test("EQUAL (pointer sweep): every map position stamps identically to the oracle
 function runTeeth(twin) {
   const entry = realEntry;
   assert.ok(entry, "need a captured 0x2d6b entry for the teeth check");
-  const objectCell = entry.mem.read16(ACTOR_CELL_PTR);
+  const objectCell = entry.mem.read16(PLAYER_CELL_PTR);
   const o = entry.clone();
   oracle(o);
   const c = entry.clone();
@@ -230,10 +230,10 @@ test("TEETH (wrong colour): a twin with a wrong colour byte is CAUGHT", () => {
 test("TEETH (wrong timer): a twin that arms the state timer to 179 is CAUGHT", () => {
   const { d } = runTeeth((m) => {
     oracle(m);
-    m.mem.write8(STATE_TIMER, TIMER - 1); // BUG: state timer off by one
+    m.mem.write8(TRANSITION_TIMER, TIMER - 1); // BUG: state timer off by one
   });
   assert.ok(d, "the gate FAILED to catch a wrong state-timer value — it proves nothing");
-  assert.equal(d.addr, STATE_TIMER, `teeth caught ${hx(d.addr ?? 0)} (expected ${hx(STATE_TIMER)})`);
+  assert.equal(d.addr, TRANSITION_TIMER, `teeth caught ${hx(d.addr ?? 0)} (expected ${hx(TRANSITION_TIMER)})`);
   console.log(`  TEETH/timer: wrong timer caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });
 

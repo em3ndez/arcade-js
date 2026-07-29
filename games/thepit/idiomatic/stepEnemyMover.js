@@ -8,7 +8,7 @@
  *
  *   - ARRIVED. If the mover already occupies its target column, tick its dwell timer
  *     (tickObjectDwellThenTransition) and stop — nothing else moves this frame.
- *   - STATE FAN-OUT on the signed state byte MOVER_STATE: a negative state runs the
+ *   - STATE FAN-OUT on the signed state byte ENEMY_WORK_STATE: a negative state runs the
  *     dormant housekeeping (advanceDormantMover); a positive state runs the active
  *     step below; a zero state counts down a (re)spawn delay and, when it reaches
  *     zero, drops the mover back at its start position and runs the active step.
@@ -41,11 +41,11 @@
  *           pointer + sub-tile phase, the retarget/capture writes, and whatever the
  *           tail preset/transition leaves. The mover is reached by tail-jump; no
  *           caller reads a value register back (dead ABI).
- * NAMES:    MOVER_STATE (0x8090), MOVER_CADENCE (0x808b, the dwell/respawn countdown),
- *           MOVER_DIRECTION (0x8092), PROBE_CELL_PTR (0x8089), SUBTILE_PHASE (0x808d),
- *           ACTOR_STATE (0x8084), SPRITE_CODE (0x8069), OBJ_X/OBJ_Y (0x8068/0x806b),
- *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_OBJ_ARM_STATE (0x80c1), OBJ1_X
- *           (0x80e8), MOVER_TARGET_COL (0x8093) from ram.js. The mover's own current
+ * NAMES:    ENEMY_WORK_STATE (0x8090), ENEMY_ACTION_TIMER (0x808b, the dwell/respawn countdown),
+ *           ENEMY_WORK_DIR (0x8092), PROBE_CELL_PTR (0x8089), SUBTILE_PHASE (0x808d),
+ *           ENEMY_WORK_SPRITE (0x8084), PLAYER_FACING (0x8069), PLAYER_Y/PLAYER_X (0x8068/0x806b),
+ *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_COLLISION_STATE (0x80c1), ENEMY1_X
+ *           (0x80e8), ENEMY_WORK_TARGET_COL (0x8093) from ram.js. The mover's own current
  *           column (0x807a), position bytes (0x8083/0x8086) and the player-box owner
  *           flag (0x80a1) have no ram.js name yet and stay hex.
  */
@@ -53,20 +53,20 @@
 import { u8 } from "../../../core/int.js";
 import { F_Z } from "../../../core/cpu/z80.js";
 import {
-  MOVER_STATE,
-  MOVER_CADENCE,
-  MOVER_DIRECTION,
+  ENEMY_WORK_STATE,
+  ENEMY_ACTION_TIMER,
+  ENEMY_WORK_DIR,
   PROBE_CELL_PTR,
   SUBTILE_PHASE,
-  ACTOR_STATE,
-  SPRITE_CODE,
-  OBJ_X,
-  OBJ_Y,
+  ENEMY_WORK_SPRITE,
+  PLAYER_FACING,
+  PLAYER_Y,
+  PLAYER_X,
   REACTION_OBJ_X,
   REACTION_OBJ_Y,
-  DIG_OBJ_ARM_STATE,
-  OBJ1_X,
-  MOVER_TARGET_COL,
+  DIG_COLLISION_STATE,
+  ENEMY1_X,
+  ENEMY_WORK_TARGET_COL,
 } from "./ram.js";
 import { tickObjectDwellThenTransition } from "./tickObjectDwellThenTransition.js";
 import { advanceDormantMover } from "./advanceDormantMover.js";
@@ -91,24 +91,24 @@ export function stepEnemyMover(m) {
   const { mem8 } = m;
 
   // Arrived at the target column: just tick the dwell timer and stop.
-  if (mem8[CURRENT_COLUMN] === mem8[MOVER_TARGET_COL]) return tickObjectDwellThenTransition(m);
+  if (mem8[CURRENT_COLUMN] === mem8[ENEMY_WORK_TARGET_COL]) return tickObjectDwellThenTransition(m);
 
-  const moverState = mem8[MOVER_STATE];
+  const moverState = mem8[ENEMY_WORK_STATE];
   if (moverState & 0x80) return advanceDormantMover(m); // negative: dormant housekeeping
   if (moverState !== 0) return handlePlayerBoxOverlap(m); // positive: run the active step
 
   // Zero state: count down the (re)spawn delay; the mover only reappears on the tick
   // that reaches zero.
-  const delay = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = delay;
+  const delay = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = delay;
   if (delay !== 0) return; // still waiting (a 0 -> 255 wrap counts as still waiting)
 
   // Delay elapsed: drop the mover back at its start position and run the active step.
-  mem8[MOVER_STATE] = 1;
-  mem8[MOVER_CADENCE] = 1;
+  mem8[ENEMY_WORK_STATE] = 1;
+  mem8[ENEMY_ACTION_TIMER] = 1;
   mem8[MOVER_X] = 228; // start position
   mem8[MOVER_Y] = 35; // (35 is the top row)
-  mem8[OBJ1_X] = 236;
+  mem8[ENEMY1_X] = 236;
   return handlePlayerBoxOverlap(m);
 }
 
@@ -141,7 +141,7 @@ function handlePlayerBoxOverlap(m) {
   // Caught by the player box: score a point, park the mover in a negative state, and
   // run the dormant tick straight away.
   awardOnePoint(m);
-  mem8[MOVER_STATE] = 192; // parked (bit 7 set -> read as negative next frame)
+  mem8[ENEMY_WORK_STATE] = 192; // parked (bit 7 set -> read as negative next frame)
   return advanceDormantMover(m);
 }
 
@@ -152,24 +152,24 @@ function handleObjectBoxOverlap(m) {
   const { mem8 } = m;
 
   // A column-locked mover, or one a dig reaction already owns, skips the retarget test.
-  if (mem8[CURRENT_COLUMN] !== 0 || mem8[DIG_OBJ_ARM_STATE] !== 0) {
+  if (mem8[CURRENT_COLUMN] !== 0 || mem8[DIG_COLLISION_STATE] !== 0) {
     return classifyEdgeCell(m);
   }
 
   const moverX = mem8[MOVER_X];
   const moverY = mem8[MOVER_Y];
   const overlaps =
-    withinBox(moverX, mem8[OBJ_X], 8, 18) && withinBox(moverY, mem8[OBJ_Y], 7, 15);
+    withinBox(moverX, mem8[PLAYER_Y], 8, 18) && withinBox(moverY, mem8[PLAYER_X], 7, 15);
   if (!overlaps) return classifyEdgeCell(m);
 
   // Overlaps the tracked object: lock onto it, arm the capture-pose sprite and dwell
   // countdown, play the capture sound, then tick the dwell timer.
-  mem8[CURRENT_COLUMN] = mem8[MOVER_TARGET_COL]; // lock to the target column
-  mem8[MOVER_X] = mem8[OBJ_X]; // snap onto the object
-  mem8[MOVER_Y] = mem8[OBJ_Y];
-  mem8[MOVER_CADENCE] = 129; // arm the dwell countdown
-  mem8[ACTOR_STATE] = 23;
-  mem8[SPRITE_CODE] = 53; // capture-pose sprite
+  mem8[CURRENT_COLUMN] = mem8[ENEMY_WORK_TARGET_COL]; // lock to the target column
+  mem8[MOVER_X] = mem8[PLAYER_Y]; // snap onto the object
+  mem8[MOVER_Y] = mem8[PLAYER_X];
+  mem8[ENEMY_ACTION_TIMER] = 129; // arm the dwell countdown
+  mem8[ENEMY_WORK_SPRITE] = 23;
+  mem8[PLAYER_FACING] = 53; // capture-pose sprite
   requestSound20(m);
   return tickObjectDwellThenTransition(m);
 }
@@ -189,7 +189,7 @@ function classifyEdgeCell(m) {
 
   // Top row.
   const moverX = mem8[MOVER_X];
-  if (mem8[MOVER_TARGET_COL] === 4) {
+  if (mem8[ENEMY_WORK_TARGET_COL] === 4) {
     if (moverX === 229) return; // resting exactly at the column-4 seam: nothing to do
     return stepMoverUnmirrored(m);
   }
@@ -216,8 +216,8 @@ function decodePositionAndSteer(m) {
   const column = cellY >> 3;
   mem16[PROBE_CELL_PTR] = 0x9000 + row * 32 + column;
 
-  const direction = mem8[MOVER_DIRECTION];
-  if (mem8[MOVER_TARGET_COL] === 5) return steerColumnFive(m, direction);
+  const direction = mem8[ENEMY_WORK_DIR];
+  if (mem8[ENEMY_WORK_TARGET_COL] === 5) return steerColumnFive(m, direction);
   return steerColumnOther(m, direction);
 }
 

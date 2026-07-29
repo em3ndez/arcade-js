@@ -44,7 +44,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x46af;
-const PLAYER = 0x8002; // active player index (GAME_STATE2)
+const PLAYER = 0x8002; // active player index (ACTIVE_PLAYER)
 const LO = 0x8031; // score low BCD byte
 const HI = 0x8034; // score high BCD byte
 const P1_BASE = 0x9301; // player-1 score column

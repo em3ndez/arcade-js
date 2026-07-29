@@ -20,7 +20,7 @@
  *
  * The name stays neutral even though this actor's move-path siblings are now English-named
  * (paceActorCadence / easeActorToRest) and the actor record's offset-0 coordinate is resolved as
- * ACTOR_X = screen-horizontal. advanceOrRebuildTwinActor keeps its address name because which actor it drives is
+ * ENEMY3_X = screen-horizontal. advanceOrRebuildTwinActor keeps its address name because which actor it drives is
  * still not pinned in the mechanism map; the mechanics below are exact.
  *
  * Memory-equivalent to the frozen oracle — equivalence-38c8.test.js.
@@ -33,8 +33,8 @@
  *           the oracle threads are dead ABI (this gate sits on a tail-jump ladder whose
  *           callers reload the register file next frame); the whole-machine gate backstops
  *           that.
- * NAMES:    ACTOR_X/ACTOR_Y/ACTOR_TILE/ACTOR_TIMER, TWIN_X/TWIN_TILE/TWIN_CLEAR and
- *           ACTOR_STEP_X/ACTOR_STEP_Y (the two primary-only record fields 0x810e/0x810f)
+ * NAMES:    ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y and
+ *           ENEMY3_STEP_X/ENEMY3_STEP_Y (the two primary-only record fields 0x810e/0x810f)
  *           from ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on each record),
  *           not named in ram.js; and the video/colour anchors 0x93a3/0x8ba3 (hardware
  *           display addresses).
@@ -43,15 +43,15 @@
  */
 
 import {
-  ACTOR_STEP_X,
-  ACTOR_STEP_Y,
-  ACTOR_TILE,
-  ACTOR_TIMER,
-  ACTOR_X,
-  ACTOR_Y,
-  TWIN_CLEAR,
-  TWIN_TILE,
-  TWIN_X,
+  ENEMY3_STEP_X,
+  ENEMY3_STEP_Y,
+  ENEMY3_TILE,
+  ENEMY3_TIMER,
+  ENEMY3_X,
+  ENEMY3_Y,
+  ENEMY3_TWIN_Y,
+  ENEMY3_TWIN_TILE,
+  ENEMY3_TWIN_X,
 } from "./ram.js";
 import { paceActorCadence } from "./paceActorCadence.js";
 
@@ -73,18 +73,18 @@ export function advanceOrRebuildTwinActor(m) {
   const { mem8 } = m;
 
   // While the actor is still in the high half of the field, keep it moving.
-  if (mem8[ACTOR_X] >= 128) return paceActorCadence(m);
+  if (mem8[ENEMY3_X] >= 128) return paceActorCadence(m);
 
   // The actor ran off the low edge: rebuild the primary body and its shadow twin.
-  mem8[ACTOR_X] = 240; // coordinate parked back at the start edge
-  mem8[TWIN_X] = (240 + 16) % 256; // twin trails 16 ahead, wrapping to 0
-  mem8[ACTOR_Y] = 31; // primary starting row
-  mem8[TWIN_CLEAR] = 31; // twin's matching row
-  mem8[TWIN_TILE] = 42;
-  mem8[ACTOR_TILE] = 43;
-  mem8[ACTOR_STEP_X] = 0; // the two primary-only record fields
-  mem8[ACTOR_STEP_Y] = 1;
-  mem8[ACTOR_TIMER] = 1; // cadence timer, armed to fire next tick
+  mem8[ENEMY3_X] = 240; // coordinate parked back at the start edge
+  mem8[ENEMY3_TWIN_X] = (240 + 16) % 256; // twin trails 16 ahead, wrapping to 0
+  mem8[ENEMY3_Y] = 31; // primary starting row
+  mem8[ENEMY3_TWIN_Y] = 31; // twin's matching row
+  mem8[ENEMY3_TWIN_TILE] = 42;
+  mem8[ENEMY3_TILE] = 43;
+  mem8[ENEMY3_STEP_X] = 0; // the two primary-only record fields
+  mem8[ENEMY3_STEP_Y] = 1;
+  mem8[ENEMY3_TIMER] = 1; // cadence timer, armed to fire next tick
   mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
   mem8[TWIN_PAIRED] = PAIRED_DISPLAY;
 

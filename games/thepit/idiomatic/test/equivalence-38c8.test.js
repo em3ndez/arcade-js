@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for advanceOrRebuildTwinActor (ROM 0x38c8, The Pit) — the per-frame gate for
- * the two-body actor: while the actor's coordinate (ACTOR_X, 0x810a) is in the high half
+ * the two-body actor: while the actor's coordinate (ENEMY3_X, 0x810a) is in the high half
  * of the field it hands the frame to the cadence/move path (paceActorCadence); below the high
  * half it rebuilds the actor at the start edge and re-stamps its eight-cell tile figure
  * (tiles 184..191, colour 151) into the tilemap + colour map.
@@ -48,7 +48,7 @@ import { loc_38c8 as oracle } from "../../translated/loc_38c8.js";
 import { advanceOrRebuildTwinActor } from "../advanceOrRebuildTwinActor.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ACTOR_X, ACTOR_TIMER } from "../ram.js";
+import { ENEMY3_X, ENEMY3_TIMER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -95,7 +95,7 @@ function observableDiff(a, b) {
 test("WIRING: advanceOrRebuildTwinActor == oracle on the first natural attract dispatch (observable RAM)", () => {
   const [entry] = captureEntries(1200, 1, 1);
   assert.ok(entry, `expected 0x${TARGET.toString(16)} to dispatch during attract`);
-  assert.ok(entry.mem.read8(ACTOR_X) < 128, "the first dispatch should still hold the boot coordinate (rebuild arm)");
+  assert.ok(entry.mem.read8(ENEMY3_X) < 128, "the first dispatch should still hold the boot coordinate (rebuild arm)");
 
   const a = entry.clone();
   const b = entry.clone();
@@ -114,7 +114,7 @@ test("EQUAL: advanceOrRebuildTwinActor == oracle on real attract dispatches (ful
 
   let rebuild = 0, move = 0;
   for (const cap of entries) {
-    const onMoveArm = cap.mem.read8(ACTOR_X) >= 128;
+    const onMoveArm = cap.mem.read8(ENEMY3_X) >= 128;
     onMoveArm ? move++ : rebuild++;
 
     const a = cap.clone();
@@ -122,17 +122,17 @@ test("EQUAL: advanceOrRebuildTwinActor == oracle on real attract dispatches (ful
     oracle(a);
     advanceOrRebuildTwinActor(b);
     const diff = observableDiff(a, b);
-    assert.equal(diff, null, diff && `mismatch on a real dispatch (ACTOR_X=${cap.mem.read8(ACTOR_X)}): ${diff.msg}`);
+    assert.equal(diff, null, diff && `mismatch on a real dispatch (ENEMY3_X=${cap.mem.read8(ENEMY3_X)}): ${diff.msg}`);
   }
 
   // Positive checks on the rebuild arm: pull a rebuild entry and confirm the parked
   // coordinate and the stamped figure actually landed.
-  const rebuildEntry = entries.find((e) => e.mem.read8(ACTOR_X) < 128);
+  const rebuildEntry = entries.find((e) => e.mem.read8(ENEMY3_X) < 128);
   assert.ok(rebuildEntry, "expected at least one rebuild-arm dispatch in attract");
   const r = rebuildEntry.clone();
   advanceOrRebuildTwinActor(r);
-  assert.equal(r.mem.read8(ACTOR_X), 240, "rebuild must park the coordinate at the start edge");
-  assert.equal(r.mem.read8(ACTOR_TIMER), 1, "rebuild must arm the cadence timer");
+  assert.equal(r.mem.read8(ENEMY3_X), 240, "rebuild must park the coordinate at the start edge");
+  assert.equal(r.mem.read8(ENEMY3_TIMER), 1, "rebuild must arm the cadence timer");
   assert.equal(r.mem.read8(TOP_LEFT_CELL), 184, "rebuild must stamp the figure's first tile");
 
   assert.ok(move > 0, "expected move-arm dispatches in attract");
@@ -145,19 +145,19 @@ test("EQUAL: advanceOrRebuildTwinActor == oracle on real attract dispatches (ful
 test("EXHAUSTIVE: over all 256 coordinate values the full RAM dump agrees with the oracle", () => {
   // Base from a real mid-attract move-arm state so the move path has valid downstream RAM.
   const entries = captureEntries(1500, 1, 60);
-  const base = entries.find((e) => e.mem.read8(ACTOR_X) >= 128) ?? entries[0];
+  const base = entries.find((e) => e.mem.read8(ENEMY3_X) >= 128) ?? entries[0];
   assert.ok(base, "need a base attract state to sweep from");
 
   let checked = 0, sawRebuild = false, sawMove = false, sawBoundary = false;
   for (let x = 0; x < 256; x++) {
     const a = base.clone();
     const b = base.clone();
-    a.mem.write8(ACTOR_X, x);
-    b.mem.write8(ACTOR_X, x);
+    a.mem.write8(ENEMY3_X, x);
+    b.mem.write8(ENEMY3_X, x);
     oracle(a);
     advanceOrRebuildTwinActor(b);
     const diff = observableDiff(a, b);
-    assert.equal(diff, null, diff && `ACTOR_X=${x}: ${diff.msg}`);
+    assert.equal(diff, null, diff && `ENEMY3_X=${x}: ${diff.msg}`);
 
     if (x < 128) sawRebuild = true; else sawMove = true;
     if (x === 127 || x === 128) sawBoundary = true;
@@ -173,26 +173,26 @@ test("EXHAUSTIVE: over all 256 coordinate values the full RAM dump agrees with t
 
 /** Broken twin A: on the move arm, drop the delegation (the cadence path never runs). */
 function twinDropsMove(m) {
-  if (m.mem.read8(ACTOR_X) >= 128) return; // BUG: should hand off to the move path
+  if (m.mem.read8(ENEMY3_X) >= 128) return; // BUG: should hand off to the move path
   return advanceOrRebuildTwinActor(m); // rebuild arm is unaffected
 }
 
 /** Broken twin B: rebuild, but park the coordinate at the wrong edge. */
 function twinWrongCoordinate(m) {
   advanceOrRebuildTwinActor(m);
-  if (m.mem.read8(ACTOR_X) === 240) m.mem.write8(ACTOR_X, 200); // BUG: wrong start edge
+  if (m.mem.read8(ENEMY3_X) === 240) m.mem.write8(ENEMY3_X, 200); // BUG: wrong start edge
 }
 
 /** Broken twin C: rebuild, but stamp the wrong tile into the figure's first cell. */
 function twinWrongTile(m) {
-  const wasRebuild = m.mem.read8(ACTOR_X) < 128;
+  const wasRebuild = m.mem.read8(ENEMY3_X) < 128;
   advanceOrRebuildTwinActor(m);
   if (wasRebuild) m.mem.write8(TOP_LEFT_CELL, 200); // BUG: wrong tile code (oracle stamps 184)
 }
 
 test("TEETH (drop move delegation): a twin that skips the move path is CAUGHT", () => {
   const entries = captureEntries(3000, 1, 200);
-  const moveEntry = entries.find((e) => e.mem.read8(ACTOR_X) >= 128);
+  const moveEntry = entries.find((e) => e.mem.read8(ENEMY3_X) >= 128);
   assert.ok(moveEntry, "need a move-arm entry for the move-delegation teeth");
 
   const a = moveEntry.clone();
@@ -206,9 +206,9 @@ test("TEETH (drop move delegation): a twin that skips the move path is CAUGHT", 
 
 test("TEETH (wrong rebuild): wrong coordinate and wrong tile are each CAUGHT", () => {
   const [entry] = captureEntries(1200, 1, 1);
-  assert.ok(entry && entry.mem.read8(ACTOR_X) < 128, "need a rebuild-arm entry for the rebuild teeth");
+  assert.ok(entry && entry.mem.read8(ENEMY3_X) < 128, "need a rebuild-arm entry for the rebuild teeth");
 
-  // Wrong parked coordinate -> caught at ACTOR_X.
+  // Wrong parked coordinate -> caught at ENEMY3_X.
   {
     const a = entry.clone();
     const b = entry.clone();
@@ -216,7 +216,7 @@ test("TEETH (wrong rebuild): wrong coordinate and wrong tile are each CAUGHT", (
     twinWrongCoordinate(b);
     const diff = observableDiff(a, b);
     assert.notEqual(diff, null, "the gate FAILED to catch the wrong rebuild coordinate — it is worthless");
-    assert.equal(diff.addr, ACTOR_X, `wrong-coordinate teeth caught ${hx(diff.addr)} (expected ${hx(ACTOR_X)})`);
+    assert.equal(diff.addr, ENEMY3_X, `wrong-coordinate teeth caught ${hx(diff.addr)} (expected ${hx(ENEMY3_X)})`);
     console.log(`  TEETH/coord: wrong start edge caught at ${hx(diff.addr)} (${diff.msg})`);
   }
 

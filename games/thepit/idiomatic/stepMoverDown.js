@@ -30,28 +30,28 @@
  *           advanced position. The oracle's residual value registers/flags are dead
  *           ABI: the caller overwrites the registers and reads the mover's record from
  *           memory, so none is consumed. The RAM gate backstops that.
- * NAMES:    MOVER_CADENCE (0x808b) serves as this mover's cadence countdown here; the
- *           reload MOVER_MOVE_PERIOD (0x8091). The facing (0x8092) and position (0x8086)
+ * NAMES:    ENEMY_ACTION_TIMER (0x808b) serves as this mover's cadence countdown here; the
+ *           reload ENEMY_WORK_MOVE_PERIOD (0x8091). The facing (0x8092) and position (0x8086)
  *           bytes have no ram.js name yet and stay hex. The name stays neutral loc_: the effect
  *           (advance the mover, publish its facing) is clear, but the screen direction
  *           this preset encodes is not pinned to an axis, and that direction is the
  *           only thing that would distinguish an English name from its siblings.
  */
 
-import { MOVER_CADENCE, MOVER_DIRECTION, MOVER_MOVE_PERIOD } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD } from "./ram.js";
 
 export function stepMoverDown(m) {
   const { mem8 } = m;
 
   // Tick the cadence countdown down one, every frame.
-  const countdown = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = countdown;
+  const countdown = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = countdown;
 
   // The frame it runs out, re-arm the cadence from its reload value and publish this
   // preset's facing index as the mover's current direction.
   if (countdown === 0) {
-    mem8[MOVER_CADENCE] = mem8[MOVER_MOVE_PERIOD];
-    mem8[MOVER_DIRECTION] = 2;
+    mem8[ENEMY_ACTION_TIMER] = mem8[ENEMY_WORK_MOVE_PERIOD];
+    mem8[ENEMY_WORK_DIR] = 2;
   }
 
   // Advance the mover one unit forward along its axis, every frame.

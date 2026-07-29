@@ -28,13 +28,13 @@
  * LIVE-OUT: memory-only — the advanced record(s) and the two staged sprite records.
  *           The move driver and the sprite-staging tail leave no register a caller reads
  *           (the actor is reached by tail-jump; dead ABI).
- * NAMES:    ACTOR_X (0x810a, primary record base), TWIN_X (0x811b, second record base),
+ * NAMES:    ENEMY3_X (0x810a, primary record base), ENEMY3_TWIN_X (0x811b, second record base),
  *           TREASURE_COLLECTED (0x8078, read here as the second-record gate — the shared byte
  *           whose twin-advance coupling vs reuse is unproven, see ram.js) from ram.js. Kept
  *           hex: 0x8083 (the driver's shared working block) has no ram.js name yet.
  */
 
-import { ACTOR_X, TWIN_X, TREASURE_COLLECTED } from "./ram.js";
+import { ENEMY3_X, ENEMY3_TWIN_X, TREASURE_COLLECTED } from "./ram.js";
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
@@ -60,10 +60,10 @@ export function advanceActorMovers(m) {
   const { mem8 } = m;
 
   // The primary actor record always steps this frame.
-  driveRecordThroughMover(m, ACTOR_X);
+  driveRecordThroughMover(m, ENEMY3_X);
 
   // The twin record steps too only while its gate is set.
-  if (mem8[TREASURE_COLLECTED] !== 0) driveRecordThroughMover(m, TWIN_X);
+  if (mem8[TREASURE_COLLECTED] !== 0) driveRecordThroughMover(m, ENEMY3_TWIN_X);
 
   // Both paths finish by staging the two sprite records for the display.
   return stageActorSpriteRecords(m);

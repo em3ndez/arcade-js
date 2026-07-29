@@ -56,7 +56,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x144c;
-const OBJECT_PHASE = 0x801a; // the object's animation-phase byte, reset on the idle path
+const PLAYER_ANIM_PHASE = 0x801a; // the object's animation-phase byte, reset on the idle path
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The engine drives makeMachine(overrides) synchronously; The Pit's registry is
@@ -151,15 +151,15 @@ test("NON-VACUOUS: with the phase byte pre-set to a sentinel, both arms reset it
   const entry = base.clone();
   entry.regs.l = 0x00; // standing-still fall-through
   entry.mem.write8(GOAL_TILE_LATCH, 0x00); // record-builder arm (does not touch the phase byte)
-  entry.mem.write8(OBJECT_PHASE, SENTINEL);
+  entry.mem.write8(PLAYER_ANIM_PHASE, SENTINEL);
 
   const a = entry.clone(); // oracle
   const b = entry.clone(); // idiomatic
   oracle(a);
   idiomatic(b);
 
-  assert.notEqual(b.mem.read8(OBJECT_PHASE), SENTINEL, "idiomatic left the phase byte unwritten");
-  assert.equal(b.mem.read8(OBJECT_PHASE), 0, "idiomatic did not reset the phase byte to 0");
+  assert.notEqual(b.mem.read8(PLAYER_ANIM_PHASE), SENTINEL, "idiomatic left the phase byte unwritten");
+  assert.equal(b.mem.read8(PLAYER_ANIM_PHASE), 0, "idiomatic did not reset the phase byte to 0");
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} idiomatic=${d.b}`);
   console.log("  NON-VACUOUS: phase byte reset from the sentinel to 0, arms agree");
@@ -170,7 +170,7 @@ test("NON-VACUOUS: with the phase byte pre-set to a sentinel, both arms reset it
 /** Broken twin: ignores the command bits and always defers to the record builder. */
 function twinAlwaysDefer(m) {
   const { mem8 } = m;
-  mem8[OBJECT_PHASE] = 0;
+  mem8[PLAYER_ANIM_PHASE] = 0;
   return m.call(0x1b5b); // BUG: skips the direction-bit handlers
 }
 

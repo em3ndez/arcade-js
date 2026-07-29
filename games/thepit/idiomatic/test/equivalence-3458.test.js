@@ -57,7 +57,7 @@ import { dockManAndDispatchRoundBoundary } from "../dockManAndDispatchRoundBound
 import { loc_3dae as captureLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { MOVER_CADENCE, ACTOR_STATE, SPRITE_CODE } from "../ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, PLAYER_FACING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -127,7 +127,7 @@ function runFrom(seed, v, fn) {
   const c = seed.clone();
   for (const addr of EXPIRY_LEAVES) c.routines.set(addr, expiryStub);
   installFrameTick(c);
-  c.mem.write8(MOVER_CADENCE, v);
+  c.mem.write8(ENEMY_ACTION_TIMER, v);
   fn(c);
   return c;
 }
@@ -169,7 +169,7 @@ test("HARNESS: a real 0x3dae attract state is captured and the oracle run is det
   }
   console.log(
     `  HARNESS: captured a real 0x3dae entry (SP=${hx(seed.regs.sp)}, ` +
-      `0x808b=${seed.mem.read8(MOVER_CADENCE)}); oracle run of 0x3458 deterministic`,
+      `0x808b=${seed.mem.read8(ENEMY_ACTION_TIMER)}); oracle run of 0x3458 deterministic`,
   );
 });
 
@@ -185,24 +185,24 @@ test("EQUAL (sweep 0..255): tickObjectDwellThenTransition == oracle over RAM for
   }
 
   // Positive checks: the routine actually did the work on each branch (not vacuous).
-  const base84 = seed.mem.read8(ACTOR_STATE), base69 = seed.mem.read8(SPRITE_CODE);
+  const base84 = seed.mem.read8(ENEMY_WORK_SPRITE), base69 = seed.mem.read8(PLAYER_FACING);
 
   const blink = runFrom(seed, 9, idiomatic); // remaining 8, a fourth tick -> blink
-  assert.equal(blink.mem.read8(ACTOR_STATE), base84 ^ 0x80, "blink tick did not flip the actor-state top bit");
-  assert.equal(blink.mem.read8(SPRITE_CODE), base69 ^ 0x80, "blink tick did not flip the sprite-code top bit");
-  assert.equal(blink.mem.read8(MOVER_CADENCE), 8, "countdown did not decrement on the blink tick");
+  assert.equal(blink.mem.read8(ENEMY_WORK_SPRITE), base84 ^ 0x80, "blink tick did not flip the actor-state top bit");
+  assert.equal(blink.mem.read8(PLAYER_FACING), base69 ^ 0x80, "blink tick did not flip the sprite-code top bit");
+  assert.equal(blink.mem.read8(ENEMY_ACTION_TIMER), 8, "countdown did not decrement on the blink tick");
 
   const idle = runFrom(seed, 3, idiomatic); // remaining 2, not a fourth tick -> idle
-  assert.equal(idle.mem.read8(ACTOR_STATE), base84, "idle tick wrongly touched the actor-state flag");
-  assert.equal(idle.mem.read8(SPRITE_CODE), base69, "idle tick wrongly touched the sprite code");
-  assert.equal(idle.mem.read8(MOVER_CADENCE), 2, "countdown did not decrement on the idle tick");
+  assert.equal(idle.mem.read8(ENEMY_WORK_SPRITE), base84, "idle tick wrongly touched the actor-state flag");
+  assert.equal(idle.mem.read8(PLAYER_FACING), base69, "idle tick wrongly touched the sprite code");
+  assert.equal(idle.mem.read8(ENEMY_ACTION_TIMER), 2, "countdown did not decrement on the idle tick");
 
   const expiry = runFrom(seed, 1, idiomatic); // remaining 0 -> hand off to 0x0278
   assert.equal(expiry.mem.read8(SENTINEL_ADDR), SENTINEL, "expiry tick did not reach the transition 0x0278");
-  assert.equal(expiry.mem.read8(MOVER_CADENCE), 0, "countdown did not decrement to zero on expiry");
+  assert.equal(expiry.mem.read8(ENEMY_ACTION_TIMER), 0, "countdown did not decrement to zero on expiry");
 
   const wrap = runFrom(seed, 0, idiomatic); // dec of 0 wraps to 255, then an idle tick
-  assert.equal(wrap.mem.read8(MOVER_CADENCE), 255, "countdown did not wrap 0 -> 255");
+  assert.equal(wrap.mem.read8(ENEMY_ACTION_TIMER), 255, "countdown did not wrap 0 -> 255");
 
   console.log("  EQUAL/sweep: all 256 countdown values match the oracle; blink, idle, expiry and the 0->255 wrap confirmed");
 });
@@ -212,12 +212,12 @@ test("EQUAL (sweep 0..255): tickObjectDwellThenTransition == oracle over RAM for
 /** Broken twin: flips bit 6 instead of bit 7 on the blink tick. */
 function twinWrongFlipBit(m) {
   const { mem8 } = m;
-  const remaining = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = remaining;
+  const remaining = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = remaining;
   if (remaining === 0) return dockManAndDispatchRoundBoundary(m);
   if ((remaining & 3) !== 0) return;
-  mem8[ACTOR_STATE] ^= 0x40; // BUG: wrong bit
-  mem8[SPRITE_CODE] ^= 0x40; // BUG: wrong bit
+  mem8[ENEMY_WORK_SPRITE] ^= 0x40; // BUG: wrong bit
+  mem8[PLAYER_FACING] ^= 0x40; // BUG: wrong bit
 }
 
 test("TEETH (wrong flip bit): a bit-6 twin is CAUGHT at the blink flags", () => {
@@ -234,12 +234,12 @@ test("TEETH (wrong flip bit): a bit-6 twin is CAUGHT at the blink flags", () => 
 /** Broken twin: no expiry branch — on the zero tick it blinks instead of transitioning. */
 function twinSkipsExpiry(m) {
   const { mem8 } = m;
-  const remaining = mem8[MOVER_CADENCE] - 1;
-  mem8[MOVER_CADENCE] = remaining;
+  const remaining = mem8[ENEMY_ACTION_TIMER] - 1;
+  mem8[ENEMY_ACTION_TIMER] = remaining;
   // BUG: missing `if (remaining === 0) return m.call(EXPIRY_TARGET);`
   if ((remaining & 3) !== 0) return;
-  mem8[ACTOR_STATE] ^= 0x80;
-  mem8[SPRITE_CODE] ^= 0x80;
+  mem8[ENEMY_WORK_SPRITE] ^= 0x80;
+  mem8[PLAYER_FACING] ^= 0x80;
 }
 
 test("TEETH (skips expiry): a twin with no expiry branch is CAUGHT on the zero tick", () => {

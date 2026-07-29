@@ -26,10 +26,10 @@
  * LIVE-OUT: memory-only — the committed sprite frame, the armed state timer and cleared leading
  *           coordinate on the far-edge path, and the record stageObjectSpriteRecord rebuilds. The registers/flags
  *           the oracle leaves behind (from its tail into stageObjectSpriteRecord) are dead ABI no caller reads.
- * NAMES:    SPRITE_CODE, GOAL_CROSSING_LATCH, OBJ_Y, STATE_TIMER, OBJ_X from ram.js.
+ * NAMES:    PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y from ram.js.
  */
 
-import { SPRITE_CODE, GOAL_CROSSING_LATCH, OBJ_Y, STATE_TIMER, OBJ_X } from "./ram.js";
+import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 // The row the actor must reach before the crossing's far-edge one-shot fires.
@@ -41,13 +41,13 @@ export function drawActorWalkFrame(m, spriteCode = m.regs.a) {
   const { mem8 } = m;
 
   // Commit the actor's chosen animation frame.
-  mem8[SPRITE_CODE] = spriteCode;
+  mem8[PLAYER_FACING] = spriteCode;
 
   // Far-edge one-shot: only while a goal crossing is active and the actor has walked out
   // to the far edge. Arm the state-lockout timer and reset the object's leading coordinate.
-  if (mem8[GOAL_CROSSING_LATCH] !== 0 && mem8[OBJ_Y] >= CROSSING_FAR_EDGE) {
-    mem8[STATE_TIMER] = CROSSING_LOCKOUT;
-    mem8[OBJ_X] = 0;
+  if (mem8[PIT_CROSS_ACTIVE] !== 0 && mem8[PLAYER_X] >= CROSSING_FAR_EDGE) {
+    mem8[TRANSITION_TIMER] = CROSSING_LOCKOUT;
+    mem8[PLAYER_Y] = 0;
   }
 
   // Rebuild the object's display/deferral record; its return unwinds to our caller.

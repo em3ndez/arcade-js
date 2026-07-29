@@ -10,7 +10,7 @@
  * harness cannot hook 0x0371 directly. Per the crafted-entry method the gate runs it from a
  * REAL captured sound-request state: the sibling sound stub 0x4c57 IS reached during attract,
  * and its entry is a faithful machine — a valid stack with a return address and live work RAM.
- * The one input that steers the routine — the player-count byte (GAME_MODE) — is then poked
+ * The one input that steers the routine — the player-count byte (GAME_STATE) — is then poked
  * identically on both sides over its arms (0/3 skip, 1 = one player, 2 = two players). The top
  * DIP bit is cleared so the dip decode takes its normal path (its set-bit arm tail-jumps into a
  * still-oracle test screen that only makes progress under the live frame loop). 0x0371 never
@@ -62,7 +62,7 @@ import { submitHighScoresAndReset as idiomatic } from "../submitHighScoresAndRes
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { GAME_MODE, GAME_STATE2, SOUND_RING } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, SOUND_RING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -86,7 +86,7 @@ const STACK_SCRATCH_LO = 0x83f5;
 const STACK_SCRATCH_HI = 0x8400;
 
 // Real output cells the teeth corrupt (all far outside the stack window; the routine writes each).
-const RESET_ARM_CELL = GAME_STATE2; // 0x8002 — secondary state re-armed to 1 by the reset epilogue
+const RESET_ARM_CELL = ACTIVE_PLAYER; // 0x8002 — secondary state re-armed to 1 by the reset epilogue
 const SETUP_RECORD_CELL = 0x928e; // a count record the round-setup screen paints (video RAM)
 const JINGLE_SLOT = SOUND_RING; // 0x8020 — ring slot 0, where the game-over jingle is queued
 const JINGLE_PENDING = 0x85; // command 5 with the pending high bit set
@@ -151,7 +151,7 @@ function stubEntryHandler(m) {
  */
 function craft(seed, playerCount) {
   const e = seed.clone();
-  e.mem.write8(GAME_MODE, playerCount);
+  e.mem.write8(GAME_STATE, playerCount);
   e.io.dsw = e.io.dsw & 0x7f;
   return e;
 }
@@ -227,8 +227,8 @@ test("EQUAL (player-count sweep): submitHighScoresAndReset == oracle over RAM fo
     // Positive checks on a fresh run: the reset epilogue cleared the player-count byte and armed
     // the secondary state to 1, and the game-over jingle (command 5) was queued.
     const c = runOne(entry, idiomatic);
-    assert.equal(c.mem.read8(GAME_MODE), 0, `player count ${playerCount}: player-count byte not cleared`);
-    assert.equal(c.mem.read8(GAME_STATE2), 1, `player count ${playerCount}: secondary state not armed to 1`);
+    assert.equal(c.mem.read8(GAME_STATE), 0, `player count ${playerCount}: player-count byte not cleared`);
+    assert.equal(c.mem.read8(ACTIVE_PLAYER), 1, `player count ${playerCount}: secondary state not armed to 1`);
     assert.equal(c.mem.read8(JINGLE_SLOT), JINGLE_PENDING, `player count ${playerCount}: game-over jingle not queued`);
   }
   console.log("  EQUAL/sweep: player counts 0/1/2/3 — idiomatic == oracle; player-count cleared, state armed, jingle queued");

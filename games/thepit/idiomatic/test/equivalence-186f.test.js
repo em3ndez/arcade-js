@@ -36,7 +36,7 @@
  *      both latch the goal and still route to the collector, identical.
  *   4. NON-VACUOUS — a real dispatch actually writes the row/column cells, the cell address, and
  *      publishes the under-tile (a no-op twin cannot pass), and agrees with the oracle.
- *   5. TEETH (row) — a twin with a wrong row cell is CAUGHT at OBJ_TILE_ROW.
+ *   5. TEETH (row) — a twin with a wrong row cell is CAUGHT at PLAYER_TILE_ROW.
  *   6. TEETH (tile) — a twin that publishes the wrong under-tile is CAUGHT at CUR_TILE.
  *   7. TEETH (goal latch) — on a goal entry, a twin that skips the goal latch is CAUGHT at
  *      GOAL_TILE_LATCH.
@@ -52,15 +52,15 @@ import { loc_186f as oracle } from "../../translated/loc_186f.js";
 import { resolveObjectTile as idiomatic } from "../resolveObjectTile.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
-  OBJ_X,
-  OBJ_Y,
-  OBJ_TILE_ROW,
-  OBJ_TILE_COL,
-  ACTOR_CELL_PTR,
+  PLAYER_Y,
+  PLAYER_X,
+  PLAYER_TILE_ROW,
+  PLAYER_TILE_COL,
+  PLAYER_CELL_PTR,
   CUR_TILE,
   NEXT_TILE,
   GOAL_TILE_LATCH,
-  GOAL_CROSSING_LATCH,
+  PIT_CROSS_ACTIVE,
 } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -138,8 +138,8 @@ function cellFor(objX, objY, bias) {
  *  tile into the exact cell the routine reads. Both arms then see the goal tile there. */
 function craftGoalEntry(base, objYVal) {
   const e = base.clone();
-  e.mem.write8(OBJ_Y, objYVal);
-  const cell = cellFor(e.mem.read8(OBJ_X), objYVal, e.regs.d);
+  e.mem.write8(PLAYER_X, objYVal);
+  const cell = cellFor(e.mem.read8(PLAYER_Y), objYVal, e.regs.d);
   e.mem.write8(cell, GOAL_TILE);
   return { entry: e, cell };
 }
@@ -180,7 +180,7 @@ test("EQUAL (crafted goal tile, past crossing): both latch goal+crossing and rou
   const probe = entry.clone();
   oracle(probe);
   assert.equal(probe.mem.read8(cell) !== undefined && probe.mem.read8(GOAL_TILE_LATCH), GOAL_TILE, "craft did not reach the goal tile");
-  assert.equal(probe.mem.read8(GOAL_CROSSING_LATCH), CROSSING_POSITION + 8, "oracle did not record the crossing position");
+  assert.equal(probe.mem.read8(PIT_CROSS_ACTIVE), CROSSING_POSITION + 8, "oracle did not record the crossing position");
 
   const d = stateDiff(entry, idiomatic);
   assert.equal(d, null, d && `state diff at ${hx(d.addr ?? 0)} oracle=${d.a} idiomatic=${d.b}`);
@@ -188,7 +188,7 @@ test("EQUAL (crafted goal tile, past crossing): both latch goal+crossing and rou
   const c = entry.clone();
   idiomatic(c);
   assert.equal(c.mem.read8(GOAL_TILE_LATCH), GOAL_TILE, "idiomatic did not latch the goal tile");
-  assert.equal(c.mem.read8(GOAL_CROSSING_LATCH), CROSSING_POSITION + 8, "idiomatic did not record the crossing");
+  assert.equal(c.mem.read8(PIT_CROSS_ACTIVE), CROSSING_POSITION + 8, "idiomatic did not record the crossing");
   console.log(`  EQUAL/goal-past: goal latched, crossing=${CROSSING_POSITION + 8}, routed to the continuation; identical to the oracle`);
 });
 
@@ -217,8 +217,8 @@ test("NON-VACUOUS: a real dispatch writes the row/column cells, the cell address
   const c = entry.clone();
   idiomatic(c);
 
-  const objX = entry.mem.read8(OBJ_X);
-  const objY = entry.mem.read8(OBJ_Y);
+  const objX = entry.mem.read8(PLAYER_Y);
+  const objY = entry.mem.read8(PLAYER_X);
   const bias = entry.regs.d;
   const expectedRow = 31 - (((objX + 3) & 0xff) >> 3);
   const expectedCol = ((objY + bias + 12) & 0xff) >> 3;
@@ -228,9 +228,9 @@ test("NON-VACUOUS: a real dispatch writes the row/column cells, the cell address
   // them, so they hold exactly what the geometry computed (a no-op twin could not produce them).
   // (The published under-tile CUR_TILE is a real output too, but the collector may overwrite it
   // downstream, so its liveness is covered by the TEETH/tile check instead.)
-  assert.equal(c.mem.read8(OBJ_TILE_ROW), expectedRow, "row cell not written");
-  assert.equal(c.mem.read8(OBJ_TILE_COL), expectedCol, "column cell not written");
-  assert.equal(c.mem.read16(ACTOR_CELL_PTR), expectedCell, "cell address not written");
+  assert.equal(c.mem.read8(PLAYER_TILE_ROW), expectedRow, "row cell not written");
+  assert.equal(c.mem.read8(PLAYER_TILE_COL), expectedCol, "column cell not written");
+  assert.equal(c.mem.read16(PLAYER_CELL_PTR), expectedCell, "cell address not written");
   assert.equal(c.mem.read8(NEXT_TILE), 0, "next-tile slot not cleared");
 
   assert.equal(stateDiff(entry, idiomatic), null, "the dispatch must also match the oracle");
@@ -242,14 +242,14 @@ test("NON-VACUOUS: a real dispatch writes the row/column cells, the cell address
 /** Broken twin: does the real work, then corrupts the stored row cell. */
 function twinWrongRow(m) {
   idiomatic(m);
-  m.mem.write8(OBJ_TILE_ROW, m.mem.read8(OBJ_TILE_ROW) ^ 0xff);
+  m.mem.write8(PLAYER_TILE_ROW, m.mem.read8(PLAYER_TILE_ROW) ^ 0xff);
 }
 
-test("TEETH (row): a twin with a wrong row cell is CAUGHT at OBJ_TILE_ROW", () => {
+test("TEETH (row): a twin with a wrong row cell is CAUGHT at PLAYER_TILE_ROW", () => {
   const [entry] = captureDispatches(1, 3000);
   const d = stateDiff(entry, twinWrongRow);
   assert.notEqual(d, null, "the gate FAILED to catch a wrong row cell — it proves nothing");
-  assert.equal(d.addr, OBJ_TILE_ROW, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(OBJ_TILE_ROW)})`);
+  assert.equal(d.addr, PLAYER_TILE_ROW, `teeth caught the wrong address ${hx(d.addr ?? 0)} (expected ${hx(PLAYER_TILE_ROW)})`);
   assert.equal(stateDiff(entry, idiomatic), null, "idiomatic must pass the entry the twin fails");
   console.log(`  TEETH/row: wrong-row twin caught at ${hx(d.addr)} (oracle=${d.a} broken=${d.b})`);
 });

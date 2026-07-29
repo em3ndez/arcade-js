@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence gate for stepRoundSubPhaseAndBranch (ROM 0x02a1) — the round sub-phase sequencer: it
- * toggles GAME_STATE2 between 1 and 2 and, on two continuation-select flags (0x802c /
+ * toggles ACTIVE_PLAYER between 1 and 2 and, on two continuation-select flags (0x802c /
  * 0x802d), hands off to either the round-setup continuation (setUpRoundAndHoldIntro) or the end-of-round
  * teardown continuation (submitHighScoresAndReset / ROM 0x0371).
  *
@@ -46,7 +46,7 @@
  *   2. EQUAL   — sweep the sub-phase byte x both flags across every branch; idiomatic and oracle
  *      leave identical RAM (sub-phase byte + whole continuation chain) on every combo, and both
  *      continuations are exercised.
- *   3. TEETH   — a twin that writes the wrong sub-phase value is CAUGHT at GAME_STATE2, and a twin
+ *   3. TEETH   — a twin that writes the wrong sub-phase value is CAUGHT at ACTIVE_PLAYER, and a twin
  *      that hands off to the wrong continuation is CAUGHT at the destination leaf.
  *
  * Run: node --test games/thepit/idiomatic/test/equivalence-02a1.test.js
@@ -63,7 +63,7 @@ import { loc_3dae as proxyOracle } from "../../translated/loc_3dae.js";
 import { setUpRoundAndHoldIntro } from "../setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "../submitHighScoresAndReset.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE2 } from "../ram.js";
+import { ACTIVE_PLAYER } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -143,7 +143,7 @@ const ENTRIES = ROM_PRESENT ? captureEntries(4, 300) : [];
 /** A real captured entry with the three inputs poked and the branch marker cleared. */
 function pokedEntry(entry, subPhase, flagC, flagD) {
   const m = entry.clone();
-  m.mem.write8(GAME_STATE2, subPhase);
+  m.mem.write8(ACTIVE_PLAYER, subPhase);
   m.mem.write8(FLAG_C, flagC);
   m.mem.write8(FLAG_D, flagD);
   m.mem.write8(BRANCH_MARKER, 0);
@@ -205,7 +205,7 @@ test("HARNESS: a real loc_3dae entry is captured; the stubbed oracle chain run i
   const b = base.clone(); installFrameTick(b); installLeafStubs(b); oracle(b);
   assert.equal(ramDiff(a, b), null, "oracle run not deterministic");
   assert.equal(a.mem.read8(BRANCH_MARKER), MARK_TEARDOWN, "the both-flags-clear arm should reach the teardown leaf");
-  // (The teardown continuation re-arms GAME_STATE2 to 1 at its reset epilogue, so stepRoundSubPhaseAndBranch's
+  // (The teardown continuation re-arms ACTIVE_PLAYER to 1 at its reset epilogue, so stepRoundSubPhaseAndBranch's
   // transient write of 2 is legitimately overwritten by the time the chain reaches the leaf.)
   console.log(`  HARNESS: captured a real ${hx(PROXY)} entry (SP=${hx(ENTRIES[0].regs.sp)}); oracle chain deterministic, teardown arm reaches ${hx(RESET_LEAF)}`);
 });
@@ -258,16 +258,16 @@ test("EQUAL (across all captured entries): every real base state agrees on a rep
 
 /** Broken twin: resets the sub-phase to 2 where it should reset to 1 (wrong sub-phase). Hands
  *  off to the real idiomatic continuations, mirroring stepRoundSubPhaseAndBranch. On the reset-arm-to-setup path
- *  the setup continuation does not overwrite GAME_STATE2, so the wrong value survives. */
+ *  the setup continuation does not overwrite ACTIVE_PLAYER, so the wrong value survives. */
 function twinWrongPhase(m) {
   const { mem8 } = m;
-  if (mem8[GAME_STATE2] === 1) {
-    mem8[GAME_STATE2] = 2;
+  if (mem8[ACTIVE_PLAYER] === 1) {
+    mem8[ACTIVE_PLAYER] = 2;
     if (mem8[FLAG_D] !== 0) return setUpRoundAndHoldIntro(m);
   }
-  mem8[GAME_STATE2] = 2; // BUG: this arm must reset the sub-phase to 1
+  mem8[ACTIVE_PLAYER] = 2; // BUG: this arm must reset the sub-phase to 1
   if (mem8[FLAG_C] !== 0) return setUpRoundAndHoldIntro(m);
-  mem8[GAME_STATE2] = 2;
+  mem8[ACTIVE_PLAYER] = 2;
   if (mem8[FLAG_D] === 0) return submitHighScoresAndReset(m);
   return setUpRoundAndHoldIntro(m);
 }
@@ -275,23 +275,23 @@ function twinWrongPhase(m) {
 /** Broken twin: always hands off to setup, never to teardown (wrong continuation). */
 function twinWrongBranch(m) {
   const { mem8 } = m;
-  if (mem8[GAME_STATE2] === 1) {
-    mem8[GAME_STATE2] = 2;
+  if (mem8[ACTIVE_PLAYER] === 1) {
+    mem8[ACTIVE_PLAYER] = 2;
     if (mem8[FLAG_D] !== 0) return setUpRoundAndHoldIntro(m);
   }
-  mem8[GAME_STATE2] = 1;
+  mem8[ACTIVE_PLAYER] = 1;
   if (mem8[FLAG_C] !== 0) return setUpRoundAndHoldIntro(m);
-  mem8[GAME_STATE2] = 2;
+  mem8[ACTIVE_PLAYER] = 2;
   return setUpRoundAndHoldIntro(m); // BUG: both-flags-clear must hand off to teardown (0x0371)
 }
 
-test("TEETH (wrong sub-phase): a twin that resets to 2 instead of 1 is CAUGHT at GAME_STATE2", () => {
+test("TEETH (wrong sub-phase): a twin that resets to 2 instead of 1 is CAUGHT at ACTIVE_PLAYER", () => {
   const entry = ENTRIES[0];
   // Reset arm with the first flag set: correct final sub-phase is 1, routing to setup (which
   // does not overwrite the sub-phase), so the wrong value 2 is observable.
   const diff = armDiff(entry, twinWrongPhase, 2, 1, 0);
   assert.ok(diff, "the gate FAILED to catch a wrong sub-phase value — it proves nothing");
-  assert.equal(diff.addr, GAME_STATE2, `teeth caught the wrong address ${hx(diff.addr)} (expected ${hx(GAME_STATE2)})`);
+  assert.equal(diff.addr, ACTIVE_PLAYER, `teeth caught the wrong address ${hx(diff.addr)} (expected ${hx(ACTIVE_PLAYER)})`);
   console.log(`  TEETH/sub-phase: wrong reset caught at ${hx(diff.addr)} (oracle=${diff.a} twin=${diff.b})`);
 });
 

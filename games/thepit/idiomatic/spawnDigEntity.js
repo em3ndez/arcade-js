@@ -32,8 +32,8 @@
  *           dig timer, and (on commit) the dig-object record + stamped tilemap cells.
  *           The oracle's residual registers/flags are dead ABI; every caller overwrites
  *           the accumulator or jumps away without reading them.
- * NAMES:    ACTOR_CELL_PTR, REACTION_OBJ_X, OBJ_Y, REACTION_STATE, DIG_OBJ_SUBTYPE,
- *           SPAWN_STATE, DIG_OBJ_TIMER from ram.js. The staging scratch (0x80b6/0x80b9/
+ * NAMES:    PLAYER_CELL_PTR, REACTION_OBJ_X, PLAYER_X, REACTION_STATE, DIG_OBJ_SUBTYPE,
+ *           HAZARD_ACTIVE_COUNT, DIG_OBJ_TIMER from ram.js. The staging scratch (0x80b6/0x80b9/
  *           0x80bc/0x80bf), the saved cell pointer (0x80ba) and the reaction period byte
  *           (0x80a3) have no confirmed name yet and stay hex. The commit is delegated to
  *           the already-decompiled commitDigEntity.
@@ -41,12 +41,12 @@
 
 import { commitDigEntity } from "./commitDigEntity.js";
 import {
-  ACTOR_CELL_PTR,
+  PLAYER_CELL_PTR,
   REACTION_OBJ_X,
-  OBJ_Y,
+  PLAYER_X,
   REACTION_STATE,
   DIG_OBJ_SUBTYPE,
-  SPAWN_STATE,
+  HAZARD_ACTIVE_COUNT,
   DIG_OBJ_TIMER,
 } from "./ram.js";
 
@@ -88,7 +88,7 @@ function classifyDigEntity(neighbourTile, currentTile, tileTwoBack) {
 export function spawnDigEntity(m) {
   const { mem8, mem16 } = m;
 
-  const cellPtr = mem16[ACTOR_CELL_PTR];
+  const cellPtr = mem16[PLAYER_CELL_PTR];
   mem16[SAVED_CELL_PTR] = cellPtr; // the commit tail reloads the cell from here
 
   const entity = classifyDigEntity(mem8[cellPtr - 1], mem8[cellPtr], mem8[cellPtr - 2]);
@@ -102,7 +102,7 @@ export function spawnDigEntity(m) {
   mem8[STAGED_COLUMN] = mem8[REACTION_OBJ_X] - 4;
 
   // Row snapped to the 8-pixel grid below the object, then lifted for the entity height.
-  let row = mem8[OBJ_Y];
+  let row = mem8[PLAYER_X];
   if (mem8[REACTION_STATE] === 4) row -= 1; // one-pixel bias during the 4th reaction phase
   row = (row + 5) & 0xf8; // round to the nearest 8-pixel grid line
   mem8[STAGED_ROW] = row - entity.yLift;
@@ -112,8 +112,8 @@ export function spawnDigEntity(m) {
 
   // One-shot spawn debounce: bump the counter every pass, but commit only the pass that
   // finds the slot idle; every later pass just keeps the dig timer armed.
-  const spawnState = mem8[SPAWN_STATE];
-  mem8[SPAWN_STATE] = spawnState + 1;
+  const spawnState = mem8[HAZARD_ACTIVE_COUNT];
+  mem8[HAZARD_ACTIVE_COUNT] = spawnState + 1;
   if (spawnState === 0) {
     commitDigEntity(m); // promote the staging into the dig-object record and stamp the cells
     return;

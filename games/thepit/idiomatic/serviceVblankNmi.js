@@ -37,8 +37,8 @@
  * LIVE-OUT: memory-only — the sound ring, hardware sprite RAM, the frame timers, the
  *           debounced input latches, and the coin/credit bytes. Nothing is live out to
  *           the interrupted code: the shadow-register swap restores every caller register.
- * NAMES:    FRAME_WAIT_COUNTDOWN, FRAME_COUNTER, IN0_DEBOUNCED/IN0_PREV,
- *           IN1_DEBOUNCED/IN1_PREV, GAME_MODE, VARIANT, SOUND_HEAD, SOUND_RING,
+ * NAMES:    FRAME_WAIT_COUNTDOWN, PLAY_PHASE_COUNTER, IN0_DEBOUNCED/IN0_PREV,
+ *           IN1_DEBOUNCED/IN1_PREV, GAME_STATE, VARIANT, SOUND_HEAD, SOUND_RING,
  *           SPRITE_STAGING_BASE, plus the credit count CREDIT_COUNT and its mirrors
  *           CREDIT_MIRROR_A/CREDIT_MIRROR_B, the coin accumulators COIN_SW_ACCUM/
  *           START1_SW_ACCUM/START2_SW_ACCUM, and the coins-per-credit rates
@@ -51,12 +51,12 @@
 
 import {
   FRAME_WAIT_COUNTDOWN,
-  FRAME_COUNTER,
+  PLAY_PHASE_COUNTER,
   IN0_DEBOUNCED,
   IN0_PREV,
   IN1_DEBOUNCED,
   IN1_PREV,
-  GAME_MODE,
+  GAME_STATE,
   VARIANT,
   SOUND_HEAD,
   SOUND_RING,
@@ -145,11 +145,11 @@ function tickFrameTimers(m) {
     mem8[0x8006] = 60;
   }
 
-  // A second 60-frame divider that counts FRAME_COUNTER up on each rollover.
+  // A second 60-frame divider that counts PLAY_PHASE_COUNTER up on each rollover.
   const upDivider = mem8[0x8007] - 1;
   mem8[0x8007] = upDivider;
   if (upDivider === 0) {
-    mem8[FRAME_COUNTER] = mem8[FRAME_COUNTER] + 1;
+    mem8[PLAY_PHASE_COUNTER] = mem8[PLAY_PHASE_COUNTER] + 1;
     mem8[0x8007] = 60;
   }
 }
@@ -183,7 +183,7 @@ function bankCoinInput(m) {
   const { mem8 } = m;
 
   const coinSwitches = mem8[IN1_DEBOUNCED];
-  const mode = mem8[GAME_MODE];
+  const mode = mem8[GAME_STATE];
   // The credit/start action is suppressed while a game is already in play (mode 1 or 2)
   // and no variant override is set; slots 2 and 3 are not serviced at all in that case.
   const suppressCreditAction = mem8[VARIANT] === 0 && (mode === 1 || mode === 2);
@@ -246,7 +246,7 @@ function bankCreditAndStart(m, cost, slot) {
   mem8[CREDIT_COUNT] = remaining;
   mem8[CREDIT_MIRROR_A] = remaining;
   mem8[CREDIT_MIRROR_B] = remaining;
-  mem8[GAME_MODE] = slot;
+  mem8[GAME_STATE] = slot;
   mem8[0x801d] = slot;
   mem8[0x812d] = slot;
   startGame(m); // hands off; never returns here

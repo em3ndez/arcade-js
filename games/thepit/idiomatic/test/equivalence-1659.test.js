@@ -4,7 +4,7 @@
  * open-ground animation step: it re-expresses the object's column (0x8068) as an
  * offset from the reference point (0x806c), reads an 8-step walk phase off that
  * offset, sets the motion marker (0x8075) and the alternating sprite frame
- * (SPRITE_CODE), then calls the record builder stageObjectSpriteRecord directly.
+ * (PLAYER_FACING), then calls the record builder stageObjectSpriteRecord directly.
  *
  * OBSERVABLE-EQUIVALENCE CONTRACT. The idiomatic routine calls the already-decompiled
  * stageObjectSpriteRecord directly instead of routing through the Z80 registry. That drops the stack
@@ -36,7 +36,7 @@
  *      then confirm every one is overwritten and both arms agree — a no-op twin cannot
  *      pass by the entry already holding the answer.
  *   4. TEETH (memory) — a twin that swaps the two sprite frames MUST be caught at
- *      SPRITE_CODE.
+ *      PLAYER_FACING.
  *   5. TEETH (register) — a twin that drops the phase live-out (leaves E as it found it)
  *      MUST be caught by the E diff. Proves the register half of the gate still bites
  *      after it narrowed from the whole file to the one live-out.
@@ -53,7 +53,7 @@ import { advanceObjectWalkFrame as idiomatic } from "../advanceObjectWalkFrame.j
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_X, SPRITE_CODE } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING } from "../ram.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -116,7 +116,7 @@ function runDiff(entry, fn) {
 /** Poke the two inputs identically, returning a fresh entry clone. */
 function withInputs(base, x, ref) {
   const e = base.clone();
-  e.mem.write8(OBJ_X, x);
+  e.mem.write8(PLAYER_Y, x);
   e.mem.write8(REFERENCE, ref);
   return e;
 }
@@ -163,7 +163,7 @@ test("NON-VACUOUS: with outputs + E pre-set to sentinels, every one is overwritt
   const OUT_SENTINEL = 0x55;
   const E_SENTINEL = 0x99;
   entry.mem.write8(MOTION_FLAG, OUT_SENTINEL); // 0x8075 — distinct from the inputs at 0x8068/0x806c
-  entry.mem.write8(SPRITE_CODE, OUT_SENTINEL); // 0x8069 — likewise distinct
+  entry.mem.write8(PLAYER_FACING, OUT_SENTINEL); // 0x8069 — likewise distinct
   entry.regs.e = E_SENTINEL;
 
   const a = entry.clone(); // oracle
@@ -172,7 +172,7 @@ test("NON-VACUOUS: with outputs + E pre-set to sentinels, every one is overwritt
   idiomatic(b);
 
   assert.notEqual(b.mem.read8(MOTION_FLAG), OUT_SENTINEL, "idiomatic left the motion marker unwritten");
-  assert.notEqual(b.mem.read8(SPRITE_CODE), OUT_SENTINEL, "idiomatic left the sprite code unwritten");
+  assert.notEqual(b.mem.read8(PLAYER_FACING), OUT_SENTINEL, "idiomatic left the sprite code unwritten");
   assert.notEqual(b.regs.e, E_SENTINEL, "idiomatic left the phase register (E) unwritten");
 
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
@@ -187,22 +187,22 @@ test("NON-VACUOUS: with outputs + E pre-set to sentinels, every one is overwritt
 /** Broken twin: swaps the two walk frames (odd where it should be even, and vice-versa). */
 function twinSpriteSwap(m) {
   const { regs, mem } = m;
-  const offset = (mem.read8(OBJ_X) - mem.read8(REFERENCE)) & 0xff;
-  mem.write8(OBJ_X, offset);
+  const offset = (mem.read8(PLAYER_Y) - mem.read8(REFERENCE)) & 0xff;
+  mem.write8(PLAYER_Y, offset);
   const phase = (offset + 3) % 8;
   mem.write8(MOTION_FLAG, phase === 0 ? 0 : 0xff);
-  mem.write8(SPRITE_CODE, phase & 2 ? 0xb2 : 0xb3); // BUG: frames swapped
+  mem.write8(PLAYER_FACING, phase & 2 ? 0xb2 : 0xb3); // BUG: frames swapped
   regs.e = phase;
   return stageObjectSpriteRecord(m);
 }
 
-test("TEETH (memory): a swapped-sprite twin is CAUGHT at SPRITE_CODE", () => {
+test("TEETH (memory): a swapped-sprite twin is CAUGHT at PLAYER_FACING", () => {
   const [seed] = captureStates(1, 1, 240);
   const entry = withInputs(seed, 41, 3); // phase 1 -> the two frames differ
 
   const { ram } = runDiff(entry, twinSpriteSwap);
   assert.notEqual(ram, null, "the gate FAILED to catch a swapped-sprite twin — it proves nothing");
-  assert.equal(ram.addr, SPRITE_CODE, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(SPRITE_CODE)})`);
+  assert.equal(ram.addr, PLAYER_FACING, `teeth caught the wrong address ${hx(ram.addr ?? 0)} (expected ${hx(PLAYER_FACING)})`);
 
   const clean = runDiff(entry, idiomatic);
   assert.equal(clean.ram, null, "idiomatic must pass the entry the twin fails (state)");

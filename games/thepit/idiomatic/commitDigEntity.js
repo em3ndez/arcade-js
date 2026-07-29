@@ -31,16 +31,16 @@
  * LIVE-OUT: memory-only — the seeded dig-object record and the stamped/patched tilemap
  *           cells. It reads all its inputs from RAM and returns nothing; the oracle's
  *           residual registers/flags are dead ABI.
- * NAMES:    DIG_OBJ_STATE, DIG_OBJ_ATTR, DIG_OBJ_TIMER, DIG_OBJ_SUBTYPE, TARGET_X,
- *           TARGET_Y from ram.js. The staging scratch (0x80b6/0x80b9/0x80bc/0x80bf),
+ * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_OBJ_SUBTYPE, HAZARD_X,
+ *           HAZARD_Y from ram.js. The staging scratch (0x80b6/0x80b9/0x80bc/0x80bf),
  *           the saved + live carve cell pointers (0x80ba/0x80af) and the target-column
  *           mirror (0x80be) have no confirmed name yet and stay hex.
  */
 
 import { u8 } from "../../../core/int.js";
 import {
-  DIG_OBJ_ATTR,
-  DIG_OBJ_STATE,
+  HAZARD_TYPE,
+  HAZARD_STATE,
   DIG_OBJ_SUBTYPE,
   DIG_OBJ_TIMER,
   STAGED_CELL_PTR,
@@ -48,8 +48,8 @@ import {
   STAGED_DIG_TIMER,
   STAGED_TARGET_X,
   STAGED_TARGET_Y,
-  TARGET_X,
-  TARGET_Y,
+  HAZARD_X,
+  HAZARD_Y,
 } from "./ram.js";
 
 const CARVING_STATE = 48; // dig-object state code for the carving phase
@@ -60,16 +60,16 @@ export function commitDigEntity(m) {
   const { mem8, mem16 } = m;
 
   // Arm the dig object's record and reload its saved tilemap cell as the carve cursor.
-  mem8[DIG_OBJ_STATE] = CARVING_STATE;
-  mem8[DIG_OBJ_ATTR] = 7;
+  mem8[HAZARD_STATE] = CARVING_STATE;
+  mem8[HAZARD_TYPE] = 7;
   const cellPtr = mem16[STAGED_CELL_PTR];
   mem16[0x80af] = cellPtr;
 
   // Promote the values staged earlier into the live record the carve handler reads.
   const stagedColumn = mem8[STAGED_TARGET_X];
-  mem8[TARGET_X] = stagedColumn;
+  mem8[HAZARD_X] = stagedColumn;
   mem8[0x80be] = stagedColumn; // mirror of the target column
-  mem8[TARGET_Y] = mem8[STAGED_TARGET_Y];
+  mem8[HAZARD_Y] = mem8[STAGED_TARGET_Y];
   mem8[DIG_OBJ_TIMER] = mem8[STAGED_DIG_TIMER];
 
   // Capture the tile currently before the cursor, then stamp the entity in: its sprite

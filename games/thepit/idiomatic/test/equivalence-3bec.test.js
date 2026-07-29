@@ -88,7 +88,7 @@ const COUNTDOWN = 0x8009; // the per-frame countdown each frame-wait drains to 0
 const TIER_COUNTER = 0x800a; // the tier count, drained to 0 by the hold loop
 const CONFIG_A = 0x8081; // first config byte (== 4 adds a tier)
 const CONFIG_B = 0x8082; // second config byte (== 3 adds a tier)
-const GAME_MODE = 0x8001; // active-player gate the score add tests
+const GAME_STATE = 0x8001; // active-player gate the score add tests
 const SCORE_LO = 0x8031; // low packed-BCD score byte the hold's add moves
 const STACK_SCRATCH = 32; // dead-scratch headroom below the entry SP (measured reach: 6 bytes)
 const RETURN_SLOT = 2; // the two return-slot bytes at/just above entry SP
@@ -188,7 +188,7 @@ function applyPokes(m, pokes) {
   if (!pokes) return;
   if (pokes.a !== undefined) m.mem.write8(CONFIG_A, pokes.a);
   if (pokes.b !== undefined) m.mem.write8(CONFIG_B, pokes.b);
-  if (pokes.mode !== undefined) m.mem.write8(GAME_MODE, pokes.mode);
+  if (pokes.mode !== undefined) m.mem.write8(GAME_STATE, pokes.mode);
 }
 
 /**
