@@ -201,7 +201,7 @@ work slot `0x8083`, run through `loc_319d`, copied back, and rendered. Enemies 1
 / slot-4 record stays dormant at level 1 and comes alive as the level counter climbs. `[seen]`/`[code]`
 
 - **AI** `loc_319d`: a maze-follower. It derives the enemy's VRAM cell from its pixel position, probes
-  neighbour tiles (`cpir` helpers `sub_33bc`/`33da`/`3410`/`3425`) keyed by its direction `0x8092` and
+  neighbour tiles (`cpir` helpers `loc_33bc`/`33da`/`3410`/`3425`) keyed by its direction `0x8092` and
   column `0x8093`, and tail-jumps to a movement handler (`0x3476`/`347d`/`3484`/`348b`). The "wander
   the tunnels" feel = this local tile-probe walk. `[seen]`/`[code]`
 - **★ Speed is PERIODIC (mod 8), not monotonic.** `loc_30de` seeds the enemy records and derives the
@@ -345,7 +345,7 @@ doc names `0x80db`–`0x80de` **`CHAMBER_CREATURE_*`** and `loc_2f71` **`advance
   - Horizontal bob: `CHAMBER_CREATURE_X 0x80db += velocity 0x80df`, bouncing in `[0x19, 0x38)`
     (velocity flips to `−1` at `x≥0x38`, `+1` at `x<0x19`); the observed on-screen range is ~[0x18,
     0x34] after the `0x8051` bias.
-  - Vertical drop: `CHAMBER_CREATURE_Y 0x80de += an accelerating step 0x80e0`; at `y ≥ 0x86` it clamps
+  - Vertical drop: `CHAMBER_CREATURE_FALL_Y 0x80de += an accelerating step 0x80e0`; at `y ≥ 0x86` it clamps
     `y=0x86`, re-rolls the RNG (`loc_4b1a`), resets the step, and starts falling again — i.e. the
     creature repeatedly **drops and resets**. **`0x80de` is the creature's OWN falling-Y — there is NO
     separate "shell."** (The prior "tank lobbing a shell" reading was the same one object.)
@@ -383,7 +383,10 @@ Grounding (G.17) confirmed **all three of its jobs** on one slot: `[seen]`/`[cod
 
 `loc_36fe` seeds it (primary tile `0x2e`, X `0x24`, Y 0, step `0x0100`; twin tile `0x2f`, X `0x34`);
 `loc_3748` is phase-keyed on `0x8010` (0–2 move; 3–5 one-shot spawn then move; 6–8 → `0x38c8`; 9 →
-`0x3984`; `≥0x0a` → `0x3a13` live enemy-3; alt `0x807b != 0` → `0x37cf`). `[code]`
+`0x3984`; `≥0x0a` → `0x3a13` live enemy-3; alt `0x807b != 0` → `0x37cf`). `[code]` The phase-6–8 arm
+`0x38c8` rebuilds the two-body actor at the start edge and re-stamps its figure; its record mechanics are
+exact, but **which specific figure** that rebuild serves is not pinned from code — the sole routine still
+tagged `[guess]` in the map (§3). `[code]`/`[guess]`
 
 ### 2.10 Jewels, scoring, the ZONK popup, & the board-complete bonus
 
@@ -518,7 +521,7 @@ A full subsystem, grounded end-to-end this pass. `[seen]`/`[code]`
 
 ### 2.14 Sound
 
-- **Queue:** the enqueue stubs `loc_4c1f..0x4ca3` each load a distinct command index into A and fall
+- **Queue:** the enqueue stubs `loc_4c57..0x4ca3` each load a distinct command index into A and fall
   into the shared tail **`loc_4ca5`**, which does **`or 0x80`** (sets bit 7) and appends the byte to the
   8-slot ring at `SOUND_RING 0x8020` (write index `SOUND_HEAD 0x801e`). The NMI consumer (`loc_0066`)
   dequeues one slot per frame and writes it to the hardware latch `0xb800` **only if bit 7 is set** —
@@ -550,6 +553,11 @@ of both the chamber creature and the Pit sliding-floor reveal. Only these remain
    grounded in code (§2.6), but a `HAZARD_STATE 0x80aa=0x10` arrow *falling* in the bottom chamber
    (`0x80bd>0`) was not captured to a frame; needs skilled navigation to trigger the capture sequence.
    `[code]` located / `[guess]` on the live descent.
+4. **The two-body actor's per-arm figure attribution** — the enemy-3 / rescue-ship / intro-set-piece
+   slot's rebuild-at-edge routine (`0x38c8`, §2.9) has exact record mechanics, but WHICH specific figure
+   its redraw serves is not determinable from code. The slot's three observed roles (§2.9) are `[seen]`;
+   only this internal attribution stays `[guess]` — it is the sole routine still tagged `[guess]` in the
+   `ram.js` routine map.
 
 Everything else previously tagged `[guess]` or mis-identified has been promoted (`[seen]`/`[code]`) or
 overturned above.
