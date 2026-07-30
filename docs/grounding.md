@@ -22,6 +22,15 @@ needs no JS build at all, which is why the behavioural half can, and should, run
   the completion gate," "*this* routine kills the player"). This needs the memory map, so it **threads
   through the decompile** as the map fills in.
 
+**Grounding GATES a load-bearing, code-undecidable pick — in-loop, not deferred.** When the decompile
+is about to commit an identity that (a) downstream work will *trust* and (b) the code alone cannot
+settle — laser vs terrain-scroll, enemy vs ship, which axis is X — fire the experiment *then* and let
+the result set the name. Do **not** name it from code and "let grounding upgrade it later": that
+deferral is exactly how The Pit committed *"no laser exists"* and named enemy-3 a *"ship,"* each
+caught only by a later round after the wrong pick had propagated through the map. Resolve a
+load-bearing `[guess]` *as it is generated*, before building on it. (Low-stakes or code-decidable
+calls defer freely — this gate is for the picks everything downstream will lean on.)
+
 **Meaning rides on the map.** Poke-assisted grounding needs to know *where* to poke, which is the
 decompile's output. With no map yet, bootstrap pokes with **memory-diffing**: play, snapshot RAM around
 an event, and find the byte that changed ("which cell decrements when I die?" → the lives counter,
@@ -56,6 +65,12 @@ sound-command→audio mapping with no audio oracle, or a RAM cell dormant on eve
 "we couldn't observe this" is a result, not a gap.
 
 ## The MAME observation rig
+
+**Stand this rig up at day zero, alongside `gameplay.md`** — a verified romset, the per-frame RAM
+dump, and the poke/input harness. It is the precondition for grounding *in-loop*: if the rig is a
+late-phase setup, grounding slides to the end and stops gating the picks it should (§ the gate rule
+above), and a whole session can be lost to a false "I can't ground yet." Build it before naming, not
+after.
 
 Agent-driven, headless, reproducible:
 

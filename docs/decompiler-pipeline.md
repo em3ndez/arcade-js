@@ -412,7 +412,12 @@ the map and can't be done well without it. It is required reading for anyone nam
      **mechanism itself** is genuinely unclear, NOT for one we understand but whose downstream meaning
      we haven't grounded yet (a mechanism name like `tickObjectDwellThenTransition` claims only what the
      body does and says nothing false about the unknown purpose). An open purpose is often a *grounding*
-     question — name by mechanism now, and let grounding upgrade it to a purpose name later.
+     question — name by mechanism now, and let grounding upgrade it to a purpose name later. **But
+     distinguish an open *purpose* from a code-undecidable *identity*: if the mechanism itself has two
+     readings the code cannot settle and downstream work will trust the pick (laser vs terrain-scroll,
+     enemy vs ship), that is NOT a defer-and-upgrade case — ground it in-loop *before* committing the
+     name, or the wrong pick propagates (The Pit's *"no laser"* / enemy-3-as-*"ship"*). Grounding gates
+     a load-bearing pick; it only upgrades a low-stakes one.**
    - **Variable names (per-address, cross-routine)** — decided by the *consensus across every routine
      that touches an address*, never by one routine (a single routine's view of `0x8055` is "a loop
      count"; the ~18 routines that stage it reveal `PLOT_RUN_LENGTH` — left to themselves they pick
