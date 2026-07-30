@@ -127,10 +127,12 @@ Each details one cluster inside a move (read in any order):
 
 - [disassembly](disassembly.md) · [translation](translation.md) · [testing & mutation](testing-and-mutation.md) · [integration testing](integration-testing.md) · [pixel gate](pixel-gate.md) — **Structure & the gate face**
 - [mechanisms](mechanisms.md) — **Meaning** (cross-cutting; starts day one)
+- [the names registry](names-registry.md) — **Meaning**: `ram.js`, the one file mapping every address (RAM cell and routine) to its name
 - [decompiler pipeline](decompiler-pipeline.md) — **Structure**, the idiomatic rewrite in depth
 - [porting a new game](porting.md) — **Ship** + CPU / board / game layering
 - [how the agents worked](how-the-agents-worked.md) — the experiment (the agents, not the method)
 - [grounding](grounding.md) — playing the game in MAME to recover its meaning (the probe face of the oracle)
+- [contributing a disassembly](contributing-disassembly.md) — **beyond the port**: publishing a clean-room ROM disassembly to an external archive
 
 The running example is **Donkey Kong** (Z80, `dkong` board); **The Pit** (Zilec / Centuri, `thepit`)
 is the second game. Nothing about the method is game-specific.

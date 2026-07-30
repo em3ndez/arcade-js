@@ -1,9 +1,8 @@
 # The Pit — Work RAM
 
-Work RAM lives at `0x8000`–`0x87FF`. The names below are the grounded, gameplay-first
-vocabulary (see [README](README.md) for how they were derived and verified); the hex
-address is the stable identity. Cells that share a byte, or whose role is only partly
-pinned, carry a terse caveat.
+Work RAM lives at `0x8000`–`0x87FF`. Each name below describes the cell by its role in
+the running game; the hex address is the stable identity. Cells that share a byte, or
+whose role is only partly pinned, carry a terse caveat.
 
 >>> memory
 
@@ -148,7 +147,7 @@ pinned, carry a terse caveat.
 | 8123 | enemy3TwinTimer | Enemy-3 twin cadence countdown (twin of enemy3Timer) |
 | 812c | creditMirrorB | Third redundant copy of creditCount, watchdog-read |
 | 8134 | savedCellPtr | 16-bit scratch holding a tilemap cell pointer (save/restore within the enemy neighbour-search) |
-| 8220 | spriteStagingBase | Base of the 32-byte (8x4) sprite-record staging buffer the NMI LDIRs to sprite RAM 0x9840 |
+| 8220 | spriteStagingBase | Base of the 32-byte (8x4) sprite-record staging buffer the NMI copies to sprite RAM 0x9840 |
 | 8238 | enemy3SpriteSlot | Sprite-staging slot 6 (base+24), the actor body's record |
 | 823c | enemy3TwinSpriteSlot | Sprite-staging slot 7 (base+28), the twin's record |
 | 8280 | scoreReadoutStrip | Base of a 32-cell work-RAM strip staging the on-screen score-readout column |
