@@ -49,9 +49,41 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
    score, a spawn), find the routines that drive it and the addresses they read/write. Record a
    mechanism→routine table and a RAM-role table. This is the **[code]** layer.
 
-3. **Leave the unknowns visible.** Keep an explicit *open questions* list (win/lose conditions, a
-   timer, an actor whose behaviour you haven't pinned). Named unknowns are the to-do list for
-   understanding, exactly as unreached spans are the to-do list for [disassembly](disassembly.md).
+3. **Leave the unknowns visible — and enumerate them, don't curate.** Keep an explicit *open
+   questions* list (win/lose conditions, a timer, an actor whose behaviour you haven't pinned).
+   Named unknowns are the to-do list for understanding, exactly as unreached spans are the to-do list
+   for [disassembly](disassembly.md).
+
+   **That prose list is a highlighted subset, NOT the whole to-do — never treat it as complete.** The
+   exhaustive, ground-truth to-do for an understanding pass is *every undefined memory location*: each
+   work-RAM cell still referenced as a raw `mem8[0x..]` hex literal with no `ram.js` name, plus each
+   routine still tagged `[guess]`. An undefined cell is an unnamed unknown even when no prose question
+   mentions it. So an understanding pass **ENUMERATES the undefined cells mechanically** and works
+   that whole set — it does not read the map's open-questions section and stop. (This is a real,
+   recorded failure: an agent read only the map's "still-open" list, promoted its handful of items,
+   and reported the game "as understood as it gets" while **30** cells sat unnamed and un-enumerated.)
+   Verified game-agnostic enumeration (`<game>` = e.g. `thepit`):
+
+   ```sh
+   node --input-type=module -e '
+   const game="<game>";
+   const ram=await import(`./games/${game}/idiomatic/ram.js`);
+   const fs=await import("node:fs");
+   const named=new Set(Object.values(ram).filter(v=>typeof v==="number"));
+   const dir=`games/${game}/idiomatic`, seen=new Set();
+   for(const f of fs.readdirSync(dir)) if(f.endsWith(".js")&&f!=="ram.js")
+     for(const m of fs.readFileSync(`${dir}/${f}`,"utf8").matchAll(/mem8\[(0x8[0-9a-f]{3})\]/gi)){
+       const a=parseInt(m[1],16);
+       if(a>=0x8000&&a<=0x87ff&&!named.has(a)) seen.add(m[1].toLowerCase());
+     }
+   console.log([...seen].sort().join(" "), "\nUNNAMED:", seen.size);'
+   ```
+
+   Each cell it prints is a to-do item: pin its role from its readers/writers (and a control-poke if
+   needed), then either promote it to a `ram.js` name if the role is earned, or leave a comment saying
+   *why* it stays hex (genuine scratch / a role you deliberately won't over-claim). "Understanding is
+   as complete as it gets" is a claim about THIS set being empty-or-accounted-for — verify it against
+   this command's output before ever saying it.
 
 ## Maintain it as understanding grows
 
