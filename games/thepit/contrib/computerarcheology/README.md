@@ -46,4 +46,4 @@ against that evidence. Project: [https://github.com/qarl/arcade-js](https://gith
 
 The disassembly covers the code reached from the two entry points — the reset vector
 (`0x0000`) and the vblank NMI (`0x0066`); ROM data tables (tilemaps, lookup tables, the
-drop queue, text) are shown as `DEFB` data.
+drop queue, text) are shown as `DEFB` dat
