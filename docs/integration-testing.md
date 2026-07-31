@@ -108,3 +108,42 @@ YIELDS, never a busy-delay's inner djnz, or the NMI fires thousands of times per
 entropy pin — find the byte that forks while the interrupt counter stays synced (the attract-mode
 RAM diff auto-identifies it; see decompiler-pipeline.md). Put both in `manifest.convergence` /
 `manifest.entropyPin` and the tool works unchanged.
+
+## Go-live — running the WHOLE game idiomatic
+
+`runCycleFree` detects the frame boundary via **`m.step` reaching a poll PC**. That only works while
+the poll routines (`mainLoop`, `waitFrames`) are still TRANSLATED — they are what emit the `m.step`.
+Idiomatic routines are cycle-free and **never call `m.step`**, so once you wire the poll routines
+themselves idiomatic (the whole-game state), the poll-PC seam goes dark and the run hangs. That is
+why per-routine swaps validate under `runCycleFree` but the *whole idiomatic game* needs a second
+engine.
+
+**`core/frame-stepped.js` — `runIdiomaticGame(machine, {watchdogPort, nmiReturnPC, maxFrames, onFrame})`.**
+The go-live engine. It fires the vblank NMI on the ONE control-flow event the idiomatic poll routines
+still perform once per frame: the **watchdog kick** — a read of `watchdogPort` (The Pit `0xb800`) that
+`mainLoop` does once per pass and `waitFrames` once per spin. That read IS the vblank-poll yield:
+sample the pre-NMI state (same order as `runCycleFree` — sampling *after* the NMI fakes a one-frame
+phase shift in every NMI-updated cell, e.g. the sound ring / input debounce), then run the real NMI.
+An `inNmi` guard stops the handler's own watchdog kick from re-triggering. `nmiReturnPC` is any valid
+ROM PC for the NMI's pushed return (use the main-loop top). Wire EVERY idiomatic routine as an
+override; `machine.reset()` then enters the idiomatic boot at `0x0000` and the game self-drives.
+
+**The gate: `<game>/idiomatic/test/golive.test.js`.** Run the assembled idiomatic game under
+`runIdiomaticGame` AND the pure-translated game under `runCycleFree` for the same frame count, and
+assert byte-identical over the **used game-state region `[0x8000, gameStateHi]`** minus the
+cycle-proxy cells — plus that it reaches a known state (The Pit: `GAME_STATE == 4`, the attract demo,
+proving boot → setup → demo all run idiomatic). This is the capstone the per-routine equivalence
+tests build toward: not "each routine matches in isolation" but "all N routines run together AS the
+game and reproduce the oracle" (which is itself pixel-validated vs MAME). The translated oracle is
+the practical ground truth here; the pinned-MAME *pixel* golden is the final capstone once the
+shipped runtime is flipped.
+
+**Porting go-live is three facts** in `manifest.convergence.golive = { watchdogPort, nmiReturnPC,
+gameStateHi }`: (1) `watchdogPort` — the I/O address whose READ kicks the watchdog (once per frame in
+the poll loops). (2) `nmiReturnPC` — the main-loop top. (3) `gameStateHi` — the top of the used
+game-state region: instrument a pure-translated run and take the **highest DIRECT store** (a write
+where `addr != SP` and `!= SP+1`) in work RAM; everything above it is stack / unused scratch and is
+not compared. Confirm the gate has TEETH by injecting a fault into a routine that actually WRITES in
+the scenario (verify it is a live writer first — a rendering-only routine whose colour-RAM output is
+outside `[0x8000, gameStateHi]` will not trip a game-state gate, which is a poor teeth target, not a
+missing tooth).

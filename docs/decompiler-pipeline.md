@@ -494,3 +494,44 @@ smuggles in understanding a tool lacks); that question needs its own stripped/fr
   discarded *tap* token was the GC victim). Verify the *explanation*, not just the finding, and
   cross-check any stall/reset/divergence against an independent GC-immune signal — the screen frame
   counter, a fresh state dump, or a second agent — before you believe it or write it down.
+
+### Whole-game go-live (all routines idiomatic at once)
+
+Per-routine swaps validate under `runCycleFree` (poll-PC seam, poll routines still translated). Wiring
+the whole game idiomatic is a different regime — these fired the first time The Pit ran end-to-end
+idiomatic (2026-07-31), each cost real time, and each has a one-line answer now. See the runbook in
+[integration-testing.md](integration-testing.md) "Go-live".
+
+- **The poll-PC seam goes dark when the poll routines themselves are idiomatic.** `runCycleFree`
+  fires the NMI when `m.step` reaches a poll PC; idiomatic code never calls `m.step`, so once
+  `mainLoop`/`waitFrames` are idiomatic there is no `m.step` to catch and the run hangs. Fix: the
+  second engine `runIdiomaticGame`, which fires the NMI on the **once-per-frame watchdog kick** (the
+  I/O read those routines already do) instead. Do NOT try to keep a token `m.step(pollPC)` inside the
+  idiomatic poll routine — it collides with the equivalence harness's own `m.step` hooks.
+- **Idiomatic routines silently DROP load-bearing stack ops that were no-ops in the swap harness.**
+  With the whole game running, two were missing and had to be restored: `mainLoop`'s per-pass SP
+  re-seat (`m.regs.sp = 0x83ff`; without it the stack drifts down over a long round) and
+  `serviceVblankNmi`'s normal-exit `ret` (pops the PC the NMI pushed; without it SP leaks 2 bytes
+  every frame down into game state during the pre-mainLoop setup phase). Both were dropped because in
+  the swap harness a *translated* caller balanced the stack, so they read as dead. Restoring them is
+  the readability-leak class again — and both still pass their equivalence tests, because the
+  restored op is exactly what the translated oracle does. When a whole-game run leaks/creeps stack,
+  suspect a dropped `ld sp` / `ret` in a poll or NMI routine before anything exotic.
+- **The mixed-migration stack leak is real but benign — bound the exclusion, don't "fix" the pop.** A
+  still-translated caller `push16`s a return address an idiomatic callee never pops, so SP drifts ~2
+  bytes/call until the main loop re-seats it. Game state is untouched (control flow is JS-driven), so
+  it is dead stack scratch: set the state-diff's `stack` exclusion to the whole stack region **above
+  the measured game-state ceiling** (highest direct store), not a hand-picked window that the next
+  deeper-nesting routine overflows. Do NOT try to balance it by popping in `m.call` for overrides — a
+  blanket pop OVER-pops the tail-`jp` routines (whose caller did not `push`), corrupting real state;
+  it breaks more than it fixes.
+- **`m.ret()` inside an idiomatic routine over-pops when reached idiomatic→idiomatic.** The ~10% of
+  routines that keep an `m.ret()` (needed for their equivalence test's SP/pc live-out) pop a return
+  address that a *direct-import* idiomatic caller never pushed → SP climbs above the stack top. In the
+  steady state `mainLoop`'s per-frame SP re-seat heals it, leaving only bounded boot-transient scratch
+  above game state — benign, but it is why the whole-game gate compares only `[0x8000, gameStateHi]`
+  and excludes everything above the ceiling.
+- **Sample the PRE-NMI state at the frame boundary.** `runIdiomaticGame` must sample in the same order
+  as `runCycleFree` — at the poll, before firing the NMI. Sampling *after* the NMI shifts every
+  NMI-updated cell (sound ring index, input debounce accumulators) by one frame and fakes a handful of
+  "game-state divergences" that are pure measurement phase. (Cost ~an hour chasing six phantom cells.)
