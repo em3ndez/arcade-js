@@ -28,9 +28,9 @@
  * LIVE-OUT: memory-only — the fifteen seeded work-RAM bytes. The residual accumulator
  *           value is dead ABI; the round-init caller consumes no register.
  * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_TILE/ENEMY3_Y/ENEMY3_STEP_X/ENEMY3_STEP_Y/ENEMY3_TIMER,
- *           ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y/ENEMY3_TWIN_TIMER from ram.js. The neighbour fields 0x810c
- *           (primary) and 0x811d/0x811f/0x8120 (twin) are still unnamed within the same two
- *           records, so their addresses stay hex.
+ *           ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y/ENEMY3_TWIN_ATTR/ENEMY3_TWIN_TIMER from ram.js. The neighbour
+ *           primary field 0x810c is ENEMY3_ATTR (ram.js); the twin fields 0x811f/0x8120 are still
+ *           unnamed within the same records, so their addresses stay hex.
  */
 
 import {

@@ -19,7 +19,7 @@
  *   - terrain reveal finished      -> locate the tile cell and dispatch on the tile under it
  *   - otherwise                    -> advance the object from its control input
  *
- * Before dispatching it loads the object's position-bias pair (the word at 0x806c) into the D
+ * Before dispatching it loads the object's position-bias pair (the word at PLAYER_STEP_Y) into the D
  * and E registers, the way the countdown gate's oracle does. The per-frame handlers read that
  * pair straight out of the registers: the shared tile tail (stampFixedFrameAndResolveTile -> resolveObjectTile) takes the
  * horizontal column bias from D, and the still-oracle position handlers reached below (via the
@@ -41,8 +41,8 @@
  *           position-bias pair loaded into D and E, which the tile-cell tail and the still-oracle
  *           position handlers read.
  * NAMES:    PLAYER_ACTIVE, BOARD_END_PHASE, DIG_COLLISION_STATE, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE,
- *           PIT_FLOOR_REVEAL_CURSOR from ram.js; 0x807a (busy-this-frame flag), 0x8075 (motion marker) and
- *           the position-bias pair at 0x806c/0x806d have no ram.js name yet and stay hex.
+ *           PIT_FLOOR_REVEAL_CURSOR, PLAYER_STEP_Y, PLAYER_STEP_X (0x806d, the pair's high byte) from ram.js;
+ *           0x807a (busy-this-frame flag), 0x8075 (motion marker) have no ram.js name yet and stay hex.
  */
 
 import {
@@ -52,6 +52,8 @@ import {
   GOAL_TILE_LATCH,
   PIT_CROSS_ACTIVE,
   PIT_FLOOR_REVEAL_CURSOR,
+  PLAYER_STEP_X,
+  PLAYER_STEP_Y,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
@@ -64,8 +66,6 @@ import { resolveObjectTile } from "./resolveObjectTile.js";
 // Tracked-object control bytes that have no ram.js name yet.
 const BUSY_THIS_FRAME = 0x807a; // nonzero while the object is mid-work this frame
 const MOTION_MARKER = 0x8075; // signed walk-mode selector; a set high bit routes to the object walker
-const BIAS_LO = 0x806c; // low byte of the object's position-bias pair (read from E by the position handlers)
-const COLUMN_BIAS = 0x806d; // high byte = horizontal column bias (read from D by the tile-cell tail)
 
 export function advanceTrackedObject(m) {
   const { mem8, regs } = m;
@@ -80,8 +80,8 @@ export function advanceTrackedObject(m) {
   // Load the object's position-bias pair into D and E the way the oracle does: the tile-cell
   // tail (stampFixedFrameAndResolveTile -> resolveObjectTile) reads the column bias from D, and the still-oracle position
   // handlers reached below read both bytes as the object's move deltas.
-  const columnBias = mem8[COLUMN_BIAS];
-  regs.e = mem8[BIAS_LO];
+  const columnBias = mem8[PLAYER_STEP_X];
+  regs.e = mem8[PLAYER_STEP_Y];
   regs.d = columnBias;
 
   // Carve/arm state: armed runs the fixed-frame prologue plus the shared tile tail; any state

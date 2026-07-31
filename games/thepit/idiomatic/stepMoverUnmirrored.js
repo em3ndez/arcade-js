@@ -38,8 +38,9 @@
  *           is dead ABI; the whole-machine/pixel gate backstops it.
  * NAMES:    ENEMY_ACTION_TIMER (0x808b) is the per-step cadence counter here; ENEMY_WORK_SPRITE (0x8084)
  *           is the stored walk sprite code; ENEMY_WORK_MOVE_PERIOD (0x8091) is the
- *           cadence-reload period. The horizontal position (0x8083 = MOVER_X, screen-horizontal)
- *           and the direction-index cell (0x8092) have no ram.js name yet, so they stay hex.
+ *           cadence-reload period; ENEMY_WORK_DIR (0x8092) is the published direction-index cell.
+ *           The horizontal position (0x8083 = MOVER_X, screen-horizontal) has no ram.js name yet,
+ *           so it stays hex.
  *
  * PURPOSE [guess]: "Unmirrored"=0x80 clear; "direction 3"; rotation-ambiguous.
  */

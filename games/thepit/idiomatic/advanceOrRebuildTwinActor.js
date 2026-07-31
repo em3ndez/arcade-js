@@ -33,10 +33,10 @@
  *           the oracle threads are dead ABI (this gate sits on a tail-jump ladder whose
  *           callers reload the register file next frame); the whole-machine gate backstops
  *           that.
- * NAMES:    ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y and
- *           ENEMY3_STEP_X/ENEMY3_STEP_Y (the two primary-only record fields 0x810e/0x810f)
- *           from ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on each record),
- *           not named in ram.js; and the video/colour anchors 0x93a3/0x8ba3 (hardware
+ * NAMES:    ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y,
+ *           ENEMY3_STEP_X/ENEMY3_STEP_Y (the two primary-only record fields 0x810e/0x810f) and
+ *           ENEMY3_ATTR/ENEMY3_TWIN_ATTR (the paired-display byte on each record, 0x810c/0x811d)
+ *           from ram.js. Kept hex: the video/colour anchors 0x93a3/0x8ba3 (hardware
  *           display addresses).
  *
  * PURPOSE [guess]: which specific game actor the twin figure is (twin RECORD structure IS grounded).
@@ -52,11 +52,11 @@ import {
   ENEMY3_TWIN_Y,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_X,
+  ENEMY3_ATTR,
+  ENEMY3_TWIN_ATTR,
 } from "./ram.js";
 import { paceActorCadence } from "./paceActorCadence.js";
 
-const PRIMARY_PAIRED = 0x810c; // paired-display byte on the primary record (unnamed in ram.js)
-const TWIN_PAIRED = 0x811d; // paired-display byte on the twin record (unnamed in ram.js)
 const PAIRED_DISPLAY = 147; // value stamped on both paired-display bytes
 
 // The actor's figure: a 2-wide x 4-tall tile block re-stamped into the tilemap and its
@@ -85,8 +85,8 @@ export function advanceOrRebuildTwinActor(m) {
   mem8[ENEMY3_STEP_X] = 0; // the two primary-only record fields
   mem8[ENEMY3_STEP_Y] = 1;
   mem8[ENEMY3_TIMER] = 1; // cadence timer, armed to fire next tick
-  mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
-  mem8[TWIN_PAIRED] = PAIRED_DISPLAY;
+  mem8[ENEMY3_ATTR] = PAIRED_DISPLAY;
+  mem8[ENEMY3_TWIN_ATTR] = PAIRED_DISPLAY;
 
   // Re-stamp the actor's eight-cell figure into the display.
   let tile = FIRST_TILE;

@@ -30,20 +30,15 @@
  * LIVE-OUT: memory-only — the decremented countdown (TRANSITION_TIMER) plus whatever the chosen handler
  *           writes. No caller reads a register or flag back; every exit is a tail hand-off or a bare
  *           stop.
- * NAMES:    TRANSITION_TIMER (ram.js). The post-timer mode selector 0x807d has no ram.js name yet, so it
- *           stays a locally-named hex constant.
+ * NAMES:    TRANSITION_TIMER, POST_TRANSITION_MODE (ram.js).
  *
- * PURPOSE [guess]: POST_TIMER_MODE (0x807d) unnamed; what each expiry gates.
+ * PURPOSE [guess]: POST_TRANSITION_MODE — what each expiry gates.
  */
 
-import { TRANSITION_TIMER } from "./ram.js";
+import { TRANSITION_TIMER, POST_TRANSITION_MODE } from "./ram.js";
 import { advanceTrackedObject } from "./advanceTrackedObject.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 import { advanceToNextLevel } from "./advanceToNextLevel.js";
-
-// Selects the round-boundary routine when the countdown expires: 0 -> the round/state-boundary
-// dispatcher, anything else -> the next-level advance. No ram.js name yet.
-const POST_TIMER_MODE = 0x807d;
 
 export function dispatchObjectFrameByStateTimer(m) {
   const { mem8 } = m;
@@ -60,6 +55,6 @@ export function dispatchObjectFrameByStateTimer(m) {
   // into a fresh, never-returning main loop; in the coroutine model that is a mid-frame warm
   // restart — abandon this frame and swap the whole main generator (m.restartMain throws RESTART,
   // caught by runGeneratorGame). The post-timer mode selector picks which boundary loop runs.
-  if (mem8[POST_TIMER_MODE] === 0) return m.restartMain(() => dockManAndDispatchRoundBoundary(m));
+  if (mem8[POST_TRANSITION_MODE] === 0) return m.restartMain(() => dockManAndDispatchRoundBoundary(m));
   return m.restartMain(() => advanceToNextLevel(m));
 }

@@ -32,22 +32,20 @@
  *           the standing-still path this clears the phase byte. No register live-out: the
  *           register deltas are consumed by the still-oracle handlers (they pass through
  *           here), and the caller reads no register back from this routine.
- * NAMES:    GOAL_TILE_LATCH from ram.js; the animation-phase byte 0x801a has no ram.js name
- *           yet, so it is a local constant; the direction/phase handlers (stepObjectRowFlipped, stepObjectRowUnflipped,
+ * NAMES:    GOAL_TILE_LATCH and PLAYER_ANIM_PHASE (the animation-phase byte 0x801a) from ram.js;
+ *           the direction/phase handlers (stepObjectRowFlipped, stepObjectRowUnflipped,
  *           windUpObjectMove) and the goal handler resolveObjectTile are decompiled and called
  *           directly.
  *
- * PURPOSE [guess]: PLAYER_ANIM_PHASE (0x801a) unnamed; the object-entity identity (see caveat 2).
+ * PURPOSE [guess]: the object-entity identity (see caveat 2).
  */
 
-import { GOAL_TILE_LATCH } from "./ram.js";
+import { GOAL_TILE_LATCH, PLAYER_ANIM_PHASE } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 import { windUpObjectMove } from "./windUpObjectMove.js";
 import { stepObjectRowUnflipped } from "./stepObjectRowUnflipped.js";
 import { stepObjectRowFlipped } from "./stepObjectRowFlipped.js";
-
-const PLAYER_ANIM_PHASE = 0x801a; // the object's animation-phase byte; the phase arm reconciles it, the idle path resets it
 
 export function routeIdleObjectByMoveCommand(m) {
   const { regs, mem8 } = m;

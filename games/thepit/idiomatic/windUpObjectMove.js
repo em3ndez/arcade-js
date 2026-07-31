@@ -36,16 +36,16 @@
  *           deferral record) writes. No live registers of its own: the residual accumulator is dead
  *           ABI, and neither the caller nor any callee reads a register back from here (the move
  *           command is read, never written, so it stays intact for the handlers).
- * NAMES:    none from ram.js — the animation-phase byte 0x801a has no ram.js name yet, so it stays a
- *           local constant, matching routeIdleObjectByMoveCommand which resets the same byte. The callees
+ * NAMES:    PLAYER_ANIM_PHASE (the animation-phase byte 0x801a) from ram.js, matching
+ *           routeIdleObjectByMoveCommand which resets the same byte. The callees
  *           stageObjectSpriteRecord, stampFixedFrameAndResolveTile and stepObjectAndResolveTile are decompiled and called directly.
  */
 
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
 import { stepObjectAndResolveTile } from "./stepObjectAndResolveTile.js";
+import { PLAYER_ANIM_PHASE } from "./ram.js";
 
-const PLAYER_ANIM_PHASE = 0x801a; // the object's animation-phase byte (also reset by routeIdleObjectByMoveCommand)
 const WIND_UP_START = 0xc0; // high bits armed when the wind-up begins; the command sits in the low bits
 const WIND_STEP = 32; // one wind-up notch subtracted per frame (0x20 — one step of the top-bit counter)
 const DIR_BITS = 0x0c; // the two move-command direction bits that route into this routine

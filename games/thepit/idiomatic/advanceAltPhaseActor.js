@@ -42,20 +42,17 @@
  *           tail-jumps that consume no returned register), backstopped by the whole-machine
  *           gate.
  * NAMES:    ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y, ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
- *           PLAYER_Y from ram.js. Hex-kept (unnamed in ram.js): 0x8079 arrival flag,
- *           0x807c floor hold-timer, 0x807d arrival latch.
+ *           PLAYER_Y, and PLAYER_ACTIVE (arrival flag), TRANSITION_TIMER (floor hold-timer),
+ *           POST_TRANSITION_MODE (arrival latch) — all from ram.js.
  */
 
 import {
   ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y,
   ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, PLAYER_Y,
+  PLAYER_ACTIVE, TRANSITION_TIMER, POST_TRANSITION_MODE,
 } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
-
-const ARRIVAL_FLAG = 0x8079; // cleared on arrival at the far column (unnamed in ram.js)
-const FLOOR_HOLD = 0x807c; // countdown that idles the object at the floor (unnamed in ram.js)
-const ARRIVAL_LATCH = 0x807d; // set to 1 the frame the object reaches the far column (unnamed in ram.js)
 
 const WALK_TILE_A = 46; // the two frames of the walk-cycle animation
 const WALK_TILE_B = 175;
@@ -97,9 +94,9 @@ export function advanceAltPhaseActor(m) {
     if (y === TRAVEL_ROW) {
       // Reached the far column on the travel row: latch the arrival and build the probe
       // record before the descent begins.
-      mem8[ARRIVAL_FLAG] = 0;
+      mem8[PLAYER_ACTIVE] = 0;
       mem8[PLAYER_Y] = 0;
-      mem8[ARRIVAL_LATCH] = 1;
+      mem8[POST_TRANSITION_MODE] = 1;
       // Build the object's deferral/probe record before the descent begins.
       stageObjectSpriteRecord(m);
     }
@@ -117,10 +114,10 @@ export function advanceAltPhaseActor(m) {
   }
 
   // At the floor. While the hold timer is still running, just wait.
-  if (mem8[FLOOR_HOLD] !== 0) return;
+  if (mem8[TRANSITION_TIMER] !== 0) return;
 
   // Hold elapsed: re-arm it and drop the object to its idle tile.
-  mem8[FLOOR_HOLD] = FLOOR_HOLD_FRAMES;
+  mem8[TRANSITION_TIMER] = FLOOR_HOLD_FRAMES;
   mem8[ENEMY3_TILE] = IDLE_TILE;
   mem8[ENEMY3_TWIN_TILE] = IDLE_TILE;
   return stageActorSpriteRecords(m);

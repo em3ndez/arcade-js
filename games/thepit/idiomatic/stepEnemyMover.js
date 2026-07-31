@@ -45,9 +45,9 @@
  *           ENEMY_WORK_DIR (0x8092), PROBE_CELL_PTR (0x8089), SUBTILE_PHASE (0x808d),
  *           ENEMY_WORK_SPRITE (0x8084), PLAYER_FACING (0x8069), PLAYER_Y/PLAYER_X (0x8068/0x806b),
  *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_COLLISION_STATE (0x80c1), ENEMY1_X
- *           (0x80e8), ENEMY_WORK_TARGET_COL (0x8093) from ram.js. The mover's own current
- *           column (0x807a), position bytes (0x8083/0x8086) and the player-box owner
- *           flag (0x80a1) have no ram.js name yet and stay hex.
+ *           (0x80e8), ENEMY_WORK_TARGET_COL (0x8093), LASER_STATE (0x80a1, the player-box
+ *           owner flag here) from ram.js. The mover's own current column (0x807a) and
+ *           position bytes (0x8083/0x8086) have no ram.js name yet and stay hex.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -67,6 +67,7 @@ import {
   DIG_COLLISION_STATE,
   ENEMY1_X,
   ENEMY_WORK_TARGET_COL,
+  LASER_STATE,
 } from "./ram.js";
 import { tickObjectDwellThenTransition } from "./tickObjectDwellThenTransition.js";
 import { advanceDormantMover } from "./advanceDormantMover.js";
@@ -85,7 +86,6 @@ import { stepMoverUnmirrored } from "./stepMoverUnmirrored.js";
 const CURRENT_COLUMN = 0x807a; // the column it is locked to (0 = free)
 const MOVER_X = 0x8083; // mover horizontal position (screen-horizontal; record offset 0)
 const MOVER_Y = 0x8086; // mover vertical position (screen-vertical; record offset 3)
-const PLAYER_BOX_OWNER = 0x80a1; // nonzero while the player-capture box is live
 
 export function stepEnemyMover(m) {
   const { mem8 } = m;
@@ -129,7 +129,7 @@ function withinBox(pos, boxCoord, ahead, span) {
 function handlePlayerBoxOverlap(m) {
   const { mem8 } = m;
 
-  if (mem8[PLAYER_BOX_OWNER] === 0) return handleObjectBoxOverlap(m);
+  if (mem8[LASER_STATE] === 0) return handleObjectBoxOverlap(m);
 
   const moverX = mem8[MOVER_X];
   const moverY = mem8[MOVER_Y];

@@ -36,7 +36,7 @@
  *           register or flag is read by any successor, and the routine has no ret.
  * NAMES:    GAME_STATE 0x8001, ACTIVE_PLAYER 0x8002, MEN_LEFT 0x802b (ram.js). Kept hex:
  *           0x802c / 0x802d = the two players' backup copies of the working man count
- *           (field 1 of the player record based at 0x8028) — no ram.js names yet.
+ *           (field 1 of the player record based at LEVEL) — no ram.js names yet.
  *
  * PURPOSE [guess]: the mode 1-vs-2-leg semantics; backup man-count cells 0x802c/0x802d.
  */

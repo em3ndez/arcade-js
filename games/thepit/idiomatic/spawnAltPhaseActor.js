@@ -35,14 +35,15 @@
  *           for the sound call are dead: the caller chain is all tail-jumps that read
  *           no returned register.
  * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/
- *           ENEMY3_TWIN_Y from ram.js. Kept hex: 0x810c/0x811d (the paired-display byte on
- *           each record, unnamed in ram.js) and the video/colour anchor cells
+ *           ENEMY3_TWIN_Y, ENEMY3_ATTR/ENEMY3_TWIN_ATTR (the paired-display byte on each record)
+ *           from ram.js. Kept hex: the video/colour anchor cells
  *           0x93a3/0x8ba3 (hardware display addresses).
  */
 
 import {
   BOARD_END_PHASE, ENEMY3_X, ENEMY3_Y, ENEMY3_TILE, ENEMY3_TIMER,
   ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
+  ENEMY3_ATTR, ENEMY3_TWIN_ATTR,
 } from "./ram.js";
 import { advanceAltPhaseActor } from "./advanceAltPhaseActor.js";
 import { requestSound7 } from "./requestSound7.js";
@@ -54,8 +55,6 @@ const SHADOW_COLUMN_OFFSET = 16; // the shadow twin trails this many columns to 
 const PRIMARY_TILE = 46; // primary actor's spawn tile
 const SHADOW_TILE = 47; // shadow twin's tile (one past the primary's)
 const PAIRED_DISPLAY = 151; // shared paired-display byte on both records
-const PRIMARY_PAIRED = 0x810c; // primary record's paired-display byte (unnamed in ram.js)
-const TWIN_PAIRED = 0x811d; // twin record's paired-display byte (unnamed in ram.js)
 
 // The opening tile block: a 2-wide x 4-tall grid stamped into the tilemap and its
 // colour map, growing upward from an anchor cell.
@@ -90,8 +89,8 @@ export function spawnAltPhaseActor(m) {
   mem8[ENEMY3_TILE] = PRIMARY_TILE;
   mem8[ENEMY3_TWIN_TILE] = SHADOW_TILE;
   mem8[ENEMY3_TIMER] = 1; // cadence timer, armed
-  mem8[PRIMARY_PAIRED] = PAIRED_DISPLAY;
-  mem8[TWIN_PAIRED] = PAIRED_DISPLAY;
+  mem8[ENEMY3_ATTR] = PAIRED_DISPLAY;
+  mem8[ENEMY3_TWIN_ATTR] = PAIRED_DISPLAY;
 
   // Stamp the opening tile+colour block into the display, growing upward from the anchor.
   for (let row = 0; row < BLOCK_ROWS; row++) {
