@@ -60,9 +60,9 @@ moves. Structure feeds Meaning; Meaning picks the next lap's target.
 - **decompile** — idiomatic, direct calls, gated against the frozen `translated/` oracle.
 
 ### Meaning — on the *probe* face → produces **the understood game**, consolidated in `mechanisms.md`
-- **name** — label the map at the current understanding level. Grades (strong/fair/weak/keep-hex)
-  and `[guess]/[seen]` tags carry between laps, so a later lap sharpens an earlier guess instead of
-  starting cold.
+- **name** — label the map at the current understanding level. One confidence vocabulary for RAM cells
+  *and* routines — `[seen]`/`[code]`/`[guess]` (+ keep-hex for an unnamed cell) — and the tags carry
+  between laps, so a later lap sharpens an earlier `[guess]` instead of starting cold.
 - **ground** — play/poke in MAME to learn what things mean; feed it back into naming.
 - **MECHANISMS** — the written game model. The *capstone of Meaning*, not a ship artifact.
 

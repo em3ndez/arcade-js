@@ -23,22 +23,26 @@ and ends with a **confidence grade**:
 
 ```js
 /** Player X (game-space) — work-X at 0x806b, paired with PLAYER_Y; renders screen-VERTICAL under ROT270.
- *  Drives the tilemap COLUMN index. Used across 17 routines. Grounded (§2.10). (strong) */
+ *  Drives the tilemap COLUMN index. Used across 17 routines. Grounded (§2.10). [seen] */
 export const PLAYER_X = 0x806b;
 ```
 
-The grades (the legend lives at the top of the file):
+The tag is the **same evidence class used for routines** (`[seen]`/`[code]`/`[guess]`, defined in
+[mechanisms](mechanisms.md)) — how we know what the byte is (legend also at the top of ram.js):
 
-- **(strong)** — consistent role across 10+ routines, or an unambiguous use.
-- **(fair)** — consistent across a few routines; role clear but not cross-checked.
-- **(weak)** — a single plausible reading; treat as a hint, verify before trusting.
+- **`[seen]`** — the cell's role was observed under MAME (a grounding capture / control-poke watched the
+  address and confirmed what it does).
+- **`[code]`** — the role is understood by reading the routines that touch the address — consistent across
+  them, but not directly observed. (The common case.)
+- **`[guess]`** — a single plausible reading, not yet confirmed; treat as a hint, verify before trusting.
 - **keep-hex** — no confident name yet, so *no const is created*: the address stays a bare literal in the
   code rather than wearing a misleading label. (The absence of an entry is itself the signal.)
 
 These consts are **live**: the idiomatic routines `import { PLAYER_X } from "./ram.js"`, so the name is
-the actual symbol the code runs on, not a comment. A grade is about the *identity* of the byte, and it is
-decided by the **consensus across every routine that touches the address** — never by one routine's local
-view (one routine sees `0x8055` as "a loop count"; the ~18 that stage it reveal `PLOT_RUN_LENGTH`).
+the actual symbol the code runs on, not a comment. The tag reflects the **consensus across every routine
+that touches the address** — never one routine's local view (one routine sees `0x8055` as "a loop count";
+the ~18 that stage it reveal `PLOT_RUN_LENGTH`). How broadly a name is corroborated is stated in the
+cell's prose ("used across N routines"), not as a separate grade (see [the single vocabulary](#one-confidence-vocabulary-seen--code--guess)).
 
 ### Routines — the `ROUTINES` map
 
@@ -63,19 +67,31 @@ export const ROUTINES = {
 Unlike the RAM consts, `ROUTINES` is **metadata, not imported by the running code** — the routines call
 each other directly by function name. It is a lookup table for tooling and for the two uses below.
 
-## Two confidence vocabularies, on purpose
+## One confidence vocabulary (`[seen]` / `[code]` / `[guess]`)
 
-RAM cells carry an *identity* grade (strong / fair / weak / keep-hex — how sure we are **what the byte
-is**); routines carry an *evidence* cert (code / seen / guess — **how we know what the routine does**).
-They answer different questions, so they use different words. A routine's `guess` is the exact analogue
-of a RAM cell's keep-hex: an open item on the work-list, to be resolved by grounding — never asked of a
-human, only grounded or left flagged.
+RAM cells and routines both carry the **same evidence class** — `[seen]` (observed under MAME), `[code]`
+(understood from the code that touches the address), `[guess]` (a hypothesis not yet confirmed) — plus
+**keep-hex** for a cell with no confident name (no const is created). One vocabulary, so a cell's
+confidence and a routine's confidence mean the same thing and rank the same way, consistent with
+`mechanisms.md`'s tags.
+
+**Changed 2026-07-31 (was two vocabularies).** Cells previously carried a separate *identity* grade
+(`strong`/`fair`/`weak`) measuring **corroboration breadth** — how many routines agree — while routines
+used the evidence cert `code`/`seen`/`guess`. That split answered a real second question (how broadly a
+name is corroborated), but two confidence axes for the same kind of claim were inconsistent and could not
+be compared. We unified on the **evidence-source** axis (`[seen]`/`[code]`/`[guess]`) because *how* we
+know a name is the more meaningful confidence signal, and made it the single system across cells,
+routines, and `mechanisms.md`. Breadth is not lost — it stays in the cell's prose ("used across N
+routines") — it is just no longer a separate grade. A routine's/cell's `[guess]` is the exact analogue of
+keep-hex: an open work-list item, resolved by grounding, never asked of a human. **Every name here is
+still a *proposal* until it clears proposer≠confirmer** — see [mechanisms](mechanisms.md) "Maintain it as
+understanding grows".
 
 ## Used two ways
 
 1. **The understanding phase.** A namer resolves any address's established label from this one file
-   instead of grepping the port, and the grades/certs **carry between laps** — a later lap sharpens an
-   earlier `(weak)` / `guess` instead of starting cold. Names are *proposed* by the namer/optimizer and
+   instead of grepping the port, and the tags **carry between laps** — a later lap sharpens an
+   earlier `[guess]` instead of starting cold. Names are *proposed* by the namer/optimizer and
    *gated by a separate reviewer* (proposer ≠ confirmer); the lead edits `ram.js` — proposers never do.
 2. **Clean-room external generation.** When we contribute a disassembly to an outside archive, the
    generator may read the raw disassembly, `mechanisms.md`, and **this file's names — and nothing else**

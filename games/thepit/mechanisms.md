@@ -295,8 +295,9 @@ overlap case WAS held for ~1476 frames with `0x8080=1` and **zero** life loss).
     stamps tile `0x41`, sound `0x11`). A dig-disturbed drop flips the type to `0x06` (rock) via
     `loc_2c04`. **Observed:** `0x80ab=0x07` is the resting value from board start; it flips to `0x06`
     only when `loc_2c04` spawns a rock. `[seen]`/`[code]` A live *falling* arrow-rain descent
-    (`0x80aa=0x10`, `HAZARD_ACTIVE_COUNT 0x80bd>0`) is now `[seen]` — captured on-screen via a
-    control-poke (see §3).
+    (`0x80aa=0x10`, `HAZARD_ACTIVE_COUNT 0x80bd>0`) was captured via a control-poke but that observation
+    is **proposer-only — NOT a confirmed `[seen]`** (same agent proposed + observed; see §3). So the
+    hazard cells stay `[code]` until an independent re-derivation.
 - **The Pit crossing** `PIT_CROSS_ACTIVE 0x8077` (sticky): set when the player reaches goal tile
   `0x27`; it gates boarding the ship at the far edge (col ≥ 0x8a, `loc_19d0/19e3`) and disables the
   laser while crossing. **The crossing itself awards no points** (grounding-2 Z-5: score stayed 0000).
