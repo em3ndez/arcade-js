@@ -92,9 +92,30 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
 
 - A newly translated routine turns a `[guess]` into `[code]`, or adds a row.
 - A RAM-naming corroboration or a control-poke turns `[code]` into `[seen]`/confirmed, and closes an
-  open question.
+  open question — **but the promotion only counts under proposer≠confirmer (below): whoever grounded
+  or proposed it cannot be the one who confirms it.**
 - The idiomatic decompile is where the deepest understanding lands — fold what you learn back in as
   you go, don't leave it in your head.
+
+**Promotion requires proposer ≠ confirmer — interpretation gets the same bar as code.** A name or a
+role-tag is a claim about what something *means*, and the method holds interpretation to the same
+proposer-≠-confirmer discipline as code ([README](README.md): "proposer≠confirmer (RAM *and* routines)
++ third adversarial review"; [how-the-agents-worked](how-the-agents-worked.md): "a separate confirmer re-derives
+it by control-poke or citation before it is trusted"; also [names-registry](names-registry.md),
+[decompiler-pipeline](decompiler-pipeline.md)). So a `[guess]`/`[code]` item is promoted to
+`[seen]`/confirmed — and a name is trusted in `ram.js` — only after a **separate** agent (not the
+proposer) **independently re-derives it from scratch**: reproduces the control-poke and reads the result
+themselves, or cites the corroborating readers/writers themselves, and reaches the same conclusion (or
+refutes it). Grounding a claim yourself makes it a *proposal*, not a confirmation.
+
+**A write-up review is NOT a confirmer.** Having a reviewer check your *prose* for honesty/over-claiming
+catches an over-claimed sentence; it does not catch a wrong observation — a misread cell, a render
+artifact, a pattern-match — because the reviewer never re-ran the experiment. If the confirmer cannot,
+or does not, re-derive the finding independently, the promotion does not happen and the item keeps its
+prior tag. (Recorded failure, 2026-07-31: an understanding pass promoted an arrow-render
+`[guess]`→`[seen]` with the *same* agent proposing and "confirming" — the review could not re-run MAME
+— which is a proposer-only `[seen]` mislabeled as confirmed; see [that promotion](../games/thepit/mechanisms.md)
+§3, still owed an independent re-derivation.)
 
 Anyone who touches the game — translating, naming, or decompiling — updates the map in the same
 change. Treat a stale mechanism map the way you treat a stale doc: a bug.
