@@ -43,7 +43,7 @@
 
 import { PLOT_RUN_LENGTH } from "./ram.js";
 
-export function copyTileColumn(m, sourcePtr) {
+export function copyTileColumn(m, sourcePtr = m.regs.ix) {
   const { mem8, mem16 } = m;
 
   const count = mem8[PLOT_RUN_LENGTH];

@@ -51,7 +51,7 @@ import { PLOT_RUN_LENGTH } from "./ram.js";
 // ROM address of the fixed tile that caps the top of the column.
 const CAP_TILE = 0x4b0f;
 
-export function copyCappedTileColumn(m, sourcePtr) {
+export function copyCappedTileColumn(m, sourcePtr = m.regs.ix) {
   const { mem8, mem16 } = m;
 
   const count = mem8[PLOT_RUN_LENGTH];

@@ -30,7 +30,7 @@
  *           so it is kept hex rather than misread. 0x8840 is colour RAM (outside the
  *           work-RAM range ram.js covers).
  */
-export function cycleColumnColour(m, column) {
+export function cycleColumnColour(m, column = m.regs.a) {
   const { mem8 } = m;
 
   // Advance the shared colour index to its next shade, keeping one palette bit clear so

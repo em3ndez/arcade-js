@@ -36,7 +36,7 @@ import { fillVideoRam } from "./fillVideoRam.js";
 import { fillColorRam } from "./fillColorRam.js";
 import { clearSpriteStagingBuffer } from "./clearSpriteStagingBuffer.js";
 
-export function setupBoardDisplay(m, boardMode) {
+export function setupBoardDisplay(m, boardMode = m.regs.a) {
   const { mem8 } = m;
 
   // Record the board-mode byte where later code reads it as the mode selector, and

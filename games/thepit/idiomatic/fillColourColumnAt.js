@@ -33,7 +33,7 @@
  *           which does not describe the colour byte staged here, so it is kept hex rather
  *           than misread (matching the sibling fillColourColumn).
  */
-export function fillColourColumnAt(m, columnOffset, colour) {
+export function fillColourColumnAt(m, columnOffset = m.regs.a, colour = m.regs.c) {
   const { mem8 } = m;
 
   // Record the colour as the shared colour index the sibling colour fills read.
