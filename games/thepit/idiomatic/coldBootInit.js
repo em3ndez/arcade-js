@@ -68,7 +68,7 @@ import {
   START2_SW_ACCUM,
 } from "./ram.js";
 
-export function coldBootInit(m) {
+export function* coldBootInit(m) {
   const { mem8, regs } = m;
 
   // Re-seat the stack at the top of work RAM. The frame-wait and the downstream setup
@@ -114,8 +114,8 @@ export function coldBootInit(m) {
   // Hold briefly. waitFrames re-enables the per-frame interrupt that ticks its countdown
   // and returns through the work stack, so push the resume slot it pops.
   m.push16(0x01f6);
-  waitFrames(m, 60);
+  yield* waitFrames(m, 60);
 
   // Hand off to the reset/round-restart epilogue and never return here.
-  return resetStateAndShowSetup(m);
+  return yield* resetStateAndShowSetup(m);
 }

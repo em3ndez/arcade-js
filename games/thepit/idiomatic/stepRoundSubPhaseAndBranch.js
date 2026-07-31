@@ -49,22 +49,22 @@ import { submitHighScoresAndReset } from "./submitHighScoresAndReset.js";
 const FLAG_AT_RESET = 0x802c; // consulted after the sub-phase resets to 1
 const FLAG_AT_ADVANCE = 0x802d; // consulted in the two "advance to sub-phase 2" arms
 
-export function stepRoundSubPhaseAndBranch(m) {
+export function* stepRoundSubPhaseAndBranch(m) {
   const { mem8 } = m;
 
   // Sub-phase 1 advances to 2; the second flag sends it straight to setup.
   if (mem8[ACTIVE_PLAYER] === 1) {
     mem8[ACTIVE_PLAYER] = 2;
-    if (mem8[FLAG_AT_ADVANCE] !== 0) return setUpRoundAndHoldIntro(m);
+    if (mem8[FLAG_AT_ADVANCE] !== 0) return yield* setUpRoundAndHoldIntro(m);
   }
 
   // Reset the sub-phase to 1; the first flag alone routes to setup.
   mem8[ACTIVE_PLAYER] = 1;
-  if (mem8[FLAG_AT_RESET] !== 0) return setUpRoundAndHoldIntro(m);
+  if (mem8[FLAG_AT_RESET] !== 0) return yield* setUpRoundAndHoldIntro(m);
 
   // Neither flag chose setup: advance the sub-phase to 2, then take teardown when the
   // second flag is clear, otherwise fall through to setup.
   mem8[ACTIVE_PLAYER] = 2;
-  if (mem8[FLAG_AT_ADVANCE] === 0) return submitHighScoresAndReset(m);
-  return setUpRoundAndHoldIntro(m);
+  if (mem8[FLAG_AT_ADVANCE] === 0) return yield* submitHighScoresAndReset(m);
+  return yield* setUpRoundAndHoldIntro(m);
 }

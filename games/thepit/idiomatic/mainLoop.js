@@ -53,17 +53,19 @@ const DEMO_MODE = 4;
 // Top of the work-RAM stack (ld sp,0x83ff) — re-seated at the top of every pass.
 const STACK_TOP = 0x83ff;
 
-export function mainLoop(m) {
+export function* mainLoop(m) {
   const { mem8 } = m;
 
   for (;;) {
     // Re-seat the stack at the top of every pass (ld sp,0x83ff). The whole round runs inside
-    // this loop with the vblank interrupt nesting on top, so resetting the stack pointer each
-    // frame keeps the work stack from drifting down over a long round.
+    // this loop, so resetting the stack pointer each frame keeps the work stack from drifting.
     m.regs.sp = STACK_TOP;
 
     // Pet the watchdog so the hardware does not reset mid-round.
     void mem8[WATCHDOG_KICK];
+
+    // The vblank wait: the coroutine engine fires the per-frame NMI here, then resumes.
+    yield;
 
     // Re-arm the vblank interrupt for the coming frame.
     enableNmi(m);

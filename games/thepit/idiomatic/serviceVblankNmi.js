@@ -86,10 +86,14 @@ export function serviceVblankNmi(m) {
   mem8[0xb000] = 0;
 
   // Credit watchdog: the count lives in three redundant copies. A disagreement or an
-  // overflow means the counter was corrupted, so cold-reset the machine.
+  // overflow means the counter was corrupted, so cold-reset the machine. This handler runs at
+  // the engine's top level (outside gen.next()), so hand off via nextMain like the coin/start
+  // restarts below — NOT restartMain (its RESTART throw would escape the inner catch). coldBootInit
+  // re-seats everything, so abandoning the rest of the handler here is faithful to the oracle's jp.
   const credit = mem8[CREDIT_COUNT];
   if (credit >= CREDIT_CAP || mem8[CREDIT_MIRROR_A] !== credit || mem8[CREDIT_MIRROR_B] !== credit) {
-    return coldBootInit(m);
+    m.nextMain = () => coldBootInit(m); // warm restart: the engine swaps in the cold-boot loop
+    return true;
   }
 
   fireQueuedSound(m);
@@ -208,7 +212,7 @@ function bankCoinInput(m) {
       if (suppressCreditAction) return false;
       enableSound(m);
       requestSound3(m);
-      showCreditScreen(m); // hands off; never returns here
+      m.nextMain = () => showCreditScreen(m); // warm restart: the engine swaps in the credit-screen loop
       return true;
     }
   }
@@ -253,6 +257,6 @@ function bankCreditAndStart(m, cost, slot) {
   mem8[GAME_STATE] = slot;
   mem8[0x801d] = slot;
   mem8[0x812d] = slot;
-  startGame(m); // hands off; never returns here
+  m.nextMain = () => startGame(m); // warm restart: the engine swaps in the new game
   return true;
 }

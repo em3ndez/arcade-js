@@ -82,7 +82,7 @@ function seatCell(m, column, row) {
   deriveTileWriteCursors(m);
 }
 
-export function showBonusScreen(m) {
+export function* showBonusScreen(m) {
   const { mem8 } = m;
 
   // Choose the tier from the two config bytes: 5, then +5 per matching byte -> 5/10/15.
@@ -119,7 +119,7 @@ export function showBonusScreen(m) {
     cycleColumnColour(m, CYCLE_COLUMN); // advance the top row's colour band one shade
 
     m.push16(RESUME_AFTER_WAIT);
-    waitFrames(m, HOLD_FRAMES); // hold fifteen frames (returns through the stack)
+    yield* waitFrames(m, HOLD_FRAMES); // hold fifteen frames (returns through the stack)
 
     remaining = mem8[TIER_COUNTER] - 1;
     mem8[TIER_COUNTER] = remaining;

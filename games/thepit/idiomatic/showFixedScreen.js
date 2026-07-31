@@ -50,13 +50,13 @@ const SCREEN_IMAGE_SOURCE = 0x3e32; // ROM address of the prebuilt full-screen t
 const SCREEN_CELLS = 1024; // the whole 32x32 tilemap / colour RAM (0x9000..0x93ff, 0x8800..0x8bff)
 const SCREEN_ATTRIBUTE = 147; // the one flat colour attribute painted across the whole screen
 
-export function showFixedScreen(m) {
+export function* showFixedScreen(m) {
   const { mem8 } = m;
 
   // 1. Blank the screen to the neutral background, then let a frame pass.
   blankScreen(m);
   m.push16(0x3b89); // the frame-wait returns here, back into this routine
-  waitFrames(m, 1); // one frame to wait
+  yield* waitFrames(m, 1); // one frame to wait
 
   // 2. Stamp the prebuilt full-screen tile image over the blanked tilemap.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
@@ -70,5 +70,5 @@ export function showFixedScreen(m) {
 
   // 4. Hold the finished screen for 160 frames. This is a tail call: the frame-wait's
   //    return unwinds straight to showFixedScreen's caller, so it is this routine's exit.
-  return waitFrames(m, 160);
+  return yield* waitFrames(m, 160);
 }

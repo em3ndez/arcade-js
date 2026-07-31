@@ -58,7 +58,7 @@ import { showFixedScreen } from "./showFixedScreen.js";
 import { enterPlayMode } from "./enterPlayMode.js";
 import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT } from "./ram.js";
 
-export function rearmMachineAndBranchOnCredits(m) {
+export function* rearmMachineAndBranchOnCredits(m) {
   const { mem8, regs } = m;
 
   // Hard restart: drop the stack to the top of work RAM, discarding the frame the
@@ -77,13 +77,13 @@ export function rearmMachineAndBranchOnCredits(m) {
     // m.call boundary: tail hand-off into the never-returning credit-screen hold
     // (showCreditScreen 0x021c, which tails into holdFixedScreen and displays forever);
     // a direct call is behaviorally identical and a terminal-test would be a fragile artifact.
-    return m.call(0x021c);
+    return yield* m.call(0x021c);
   }
 
   // Normal path: mute the audio, clear the game-mode byte (entering play overwrites it
   // straight after), hold the fixed screen for a beat, then enter play.
   disableSound(m);
   mem8[GAME_STATE] = 0;
-  showFixedScreen(m);
-  return enterPlayMode(m);
+  yield* showFixedScreen(m);
+  return yield* enterPlayMode(m);
 }

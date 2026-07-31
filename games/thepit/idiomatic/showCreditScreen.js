@@ -45,7 +45,7 @@ import { blankScreen } from "./blankScreen.js";
 import { holdFixedScreen } from "./holdFixedScreen.js";
 import { GAME_STATE } from "./ram.js";
 
-export function showCreditScreen(m) {
+export function* showCreditScreen(m) {
   const { mem8, regs } = m;
 
   // Arm game mode 3.
@@ -64,5 +64,5 @@ export function showCreditScreen(m) {
 
   // Tail hand-off to the fixed-screen painter: it paints a canned screen and holds it
   // forever, so this is the routine's exit and it never returns.
-  return holdFixedScreen(m);
+  return yield* holdFixedScreen(m);
 }

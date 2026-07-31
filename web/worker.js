@@ -166,13 +166,15 @@ async function run(gameId, provided) {
   const { Inputs } = await import(`../boards/${manifest.board}/io.js`);
 
   // Live runtime (manifest.runtime): "idiomatic" runs the whole readable idiomatic layer on the
-  // cycle-free frame-stepped engine; absent/other runs the faithful translated layer on the
-  // cycle-driven engine. The idiomatic runtime is validated byte-for-byte vs the translated
-  // oracle over game state (idiomatic/test/golive.test.js).
+  // coroutine engine (the control spine is generators that yield at each vblank; runGeneratorGame
+  // drives the current main generator one frame at a time and swaps it on a warm restart, so the
+  // host stack stays flat); absent/other runs the faithful translated layer on the cycle-driven
+  // engine. The idiomatic runtime is validated byte-for-byte vs the translated oracle over game
+  // state (idiomatic/test/{golive,tape,transition}.test.js).
   const idiomatic = manifest.runtime === "idiomatic";
   const golive = manifest.convergence?.golive;
   if (idiomatic && !golive) throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.golive`);
-  const runIdiomaticGame = idiomatic ? (await import("../core/frame-stepped.js")).runIdiomaticGame : null;
+  const runGeneratorGame = idiomatic ? (await import("../core/frame-stepped.js")).runGeneratorGame : null;
   const LiveMachine = idiomatic ? null : makeLive(Machine);
 
   // The override set, resolved ONCE and reused for every (re)boot below. Idiomatic: every routine
@@ -215,11 +217,12 @@ async function run(gameId, provided) {
     let reason = null;
     try {
       if (idiomatic) {
-        // The frame-stepped engine drives frames off the once-per-frame watchdog kick and calls
-        // serviceIdiomaticFrame at each boundary. It catches its own unwinds (never returns from
-        // reset() otherwise), so inspect the returned stop reason rather than relying on a throw.
-        const r = runIdiomaticGame(m, {
-          watchdogPort: golive.watchdogPort, nmiReturnPC: golive.nmiReturnPC,
+        // The coroutine engine resumes the current main generator to its next vblank yield and calls
+        // serviceIdiomaticFrame at each boundary (PRE-NMI, exactly where the game state is sampled by
+        // the gates). It catches its own unwinds — the reset() long-jump and the mid-frame warm
+        // restart (RESTART sentinel) — so inspect the returned stop reason rather than relying on a throw.
+        const r = runGeneratorGame(m, {
+          nmiReturnPC: golive.nmiReturnPC,
           onFrame: serviceIdiomaticFrame,
         });
         if (r.stopError) {

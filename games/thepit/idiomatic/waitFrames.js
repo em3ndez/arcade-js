@@ -36,7 +36,7 @@
  */
 
 import { FRAME_WAIT_COUNTDOWN } from "./ram.js";
-export function waitFrames(m, count) {
+export function* waitFrames(m, count) {
   const { mem8 } = m;
 
   // Arm the countdown with the caller's frame count, then enable the per-frame
@@ -45,12 +45,13 @@ export function waitFrames(m, count) {
   mem8[0xb000] = 1;
 
   // Spin until the countdown has been ticked all the way down to zero, kicking the
-  // watchdog on every pass. Always makes at least one pass, so a zero count still
-  // kicks the watchdog once before falling through.
+  // watchdog on every pass. `yield` is the vblank wait: the coroutine engine fires the
+  // per-frame NMI there, which ticks the countdown down by one, then resumes here.
   let remaining;
   do {
     mem8[0xb800]; // kick the watchdog
-    remaining = mem8[FRAME_WAIT_COUNTDOWN]; // reload the countdown the interrupt is ticking
+    yield;        // wait one vblank (the NMI decrements FRAME_WAIT_COUNTDOWN)
+    remaining = mem8[FRAME_WAIT_COUNTDOWN]; // reload the countdown the NMI is decrementing
   } while (remaining !== 0);
 
   return m.ret();

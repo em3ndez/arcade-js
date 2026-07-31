@@ -67,13 +67,13 @@ const ACCENT_STRIPS = [
   [26, 6],
 ];
 
-export function holdFixedScreen(m) {
+export function* holdFixedScreen(m) {
   const { mem8 } = m;
 
   // 1. Let the previous display setup settle for one frame. The frame-wait returns here,
   //    back into this routine, so hand it that resume address.
   m.push16(0x3bad);
-  waitFrames(m, 1);
+  yield* waitFrames(m, 1);
 
   // 2. Stamp the prebuilt full-screen tile image over the tilemap.
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
@@ -97,7 +97,7 @@ export function holdFixedScreen(m) {
     cycleStagedColumnColour(m);
 
     m.push16(0x3be7); // the frame-wait returns here, back into this loop
-    waitFrames(m, 15);
+    yield* waitFrames(m, 15);
 
     applyDipSwitches(m);
   }

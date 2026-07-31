@@ -56,8 +56,10 @@ export function dispatchObjectFrameByStateTimer(m) {
   mem8[TRANSITION_TIMER] = remaining;
   if (remaining !== 0) return; // still locked -> nothing else this frame
 
-  // Countdown just reached zero: the timed state is over. Hand to the round-boundary routine the
-  // post-timer mode selector picks.
-  if (mem8[POST_TIMER_MODE] === 0) return dockManAndDispatchRoundBoundary(m);
-  return advanceToNextLevel(m);
+  // Countdown just reached zero: the timed state is over. The frozen oracle tail-jumps from here
+  // into a fresh, never-returning main loop; in the coroutine model that is a mid-frame warm
+  // restart — abandon this frame and swap the whole main generator (m.restartMain throws RESTART,
+  // caught by runGeneratorGame). The post-timer mode selector picks which boundary loop runs.
+  if (mem8[POST_TIMER_MODE] === 0) return m.restartMain(() => dockManAndDispatchRoundBoundary(m));
+  return m.restartMain(() => advanceToNextLevel(m));
 }

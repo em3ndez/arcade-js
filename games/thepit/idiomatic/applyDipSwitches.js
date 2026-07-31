@@ -75,9 +75,11 @@ export function applyDipSwitches(m) {
   // One more count from bit 6.
   mem8[STARTING_MEN] = (dsw & 0x40) ? 4 : 3;
 
-  // The top dip is the colour-cycle test screen: hand off to it and never return here
-  // (its own loop runs the test). Otherwise the round setup continues with the block above.
-  // showColourTestScreen calls back into this routine, so the two form an ES-module cycle;
-  // the import binds at runtime (inside this branch), not at module top level, so it resolves.
-  if (dsw & 0x80) return showColourTestScreen(m);
+  // The top dip is the colour-cycle test screen: the oracle tail-jumps to it and NEVER returns
+  // here (its own loop runs the test), abandoning this routine's caller. showColourTestScreen is a
+  // spine generator and applyDipSwitches is always reached from within a gen.next()-driven main
+  // generator, so this is a mid-frame warm restart: m.restartMain throws RESTART, the engine
+  // abandons the current main and swaps in the colour-test loop. (showColourTestScreen calls back
+  // into this routine, an ES-module cycle; the import binds at runtime inside this branch.)
+  if (dsw & 0x80) return m.restartMain(() => showColourTestScreen(m));
 }

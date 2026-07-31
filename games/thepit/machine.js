@@ -206,6 +206,30 @@ export class Machine {
     // renders a whole frame at once (no per-scanline raster), so this is a lazy,
     // on-demand hook — nothing is captured during runFrames().
     this.video = gfx && proms ? { gfx, pal: decodePalette(proms) } : null;
+
+    // Coroutine go-live (runGeneratorGame): the current main generator hands the engine a
+    // successor loop by setting nextMain (a warm restart). RESTART is the sentinel thrown by
+    // restartMain() for a MID-FRAME restart — see the method below. Per-instance so a clone's
+    // throw/catch pair share one identity.
+    this.nextMain = null;
+    this.RESTART = Symbol("restart-main");
+  }
+
+  /**
+   * Warm-restart from mid-frame. A per-frame round-boundary service (dispatchObjectFrameByStateTimer,
+   * tickObjectDwellThenTransition) runs DEEP in the plain gameplay call tree; when its timer
+   * expires the frozen oracle tail-jumps into a fresh, never-returning main loop. In the coroutine
+   * model that is a non-local exit: abandon this frame's remaining work and swap the whole main
+   * generator. So the service records the successor in nextMain and throws RESTART, which unwinds
+   * up through the plain call tree (nothing there catches it) out of the mainLoop generator's
+   * .next(); runGeneratorGame catches RESTART, swaps in the successor, and the abandoned frame is
+   * never resumed. `factory` is a thunk that builds the successor generator, e.g.
+   *   () => advanceToNextLevel(m). No-op outside the coroutine engine (the throw would escape), so
+   * only the live idiomatic layer uses it.
+   */
+  restartMain(factory) {
+    this.nextMain = factory;
+    throw this.RESTART;
   }
 
   /**

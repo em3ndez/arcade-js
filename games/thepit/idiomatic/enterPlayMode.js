@@ -42,7 +42,7 @@ import { disableSound } from "./disableSound.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { GAME_STATE, DEMO_STEER_DIR, ACTIVE_PLAYER, LOOP_DELAY_BASE } from "./ram.js";
 
-export function enterPlayMode(m) {
+export function* enterPlayMode(m) {
   const { mem8 } = m;
 
   // Enter play: the main loop runs the per-frame gameplay tick only while the
@@ -78,5 +78,5 @@ export function enterPlayMode(m) {
   // m.call boundary: tail hand-off into the never-returning round init (initRoundAndEnterMainLoop 0x031a,
   // which falls into mainLoop); a direct call is behaviorally identical and a terminal-test
   // would be a fragile artifact.
-  return m.call(0x031a);
+  return yield* m.call(0x031a);
 }

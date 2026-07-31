@@ -118,7 +118,7 @@ function seatCell(m, column, row) {
   deriveTileWriteCursors(m);
 }
 
-export function runHighScoreInitialsEntry(m) {
+export function* runHighScoreInitialsEntry(m) {
   const { mem8, regs } = m;
 
   const rank = mem8[VARIANT]; // which top-three rank is being entered
@@ -165,14 +165,14 @@ export function runHighScoreInitialsEntry(m) {
   for (;;) {
     mem8[regs.hl] = regs.c; // draw the current letter
     m.push16(RESUME_AFTER_LETTER);
-    waitFrames(m, BLINK_LETTER_FRAMES);
+    yield* waitFrames(m, BLINK_LETTER_FRAMES);
 
     mem8[regs.hl] = CURSOR_TILE; // swap to the cursor glyph (the blink)
     m.push16(RESUME_AFTER_CURSOR);
-    waitFrames(m, BLINK_CURSOR_FRAMES);
+    yield* waitFrames(m, BLINK_CURSOR_FRAMES);
 
     m.push16(RESUME_AFTER_STEP);
-    stepHighScoreInitialsEntry(m); // step the letter up/down, or commit this initial
+    yield* stepHighScoreInitialsEntry(m); // step the letter up/down, or commit this initial
 
     if (mem8[INITIALS_REMAINING] !== 0) {
       // Still entering: abandon the entry only once the player has sat idle past the timeout.
@@ -186,7 +186,7 @@ export function runHighScoreInitialsEntry(m) {
   setupBoardDisplay(m, FINISH_BOARD_MODE);
   requestSound5(m);
   m.push16(RESUME_AFTER_FINISH_HOLD);
-  waitFrames(m, FINISH_HOLD_FRAMES);
+  yield* waitFrames(m, FINISH_HOLD_FRAMES);
   mem8[VARIANT] = 0;
   return renderScoreReadouts(m); // draw the final score readouts — this hand-off is the exit
 }

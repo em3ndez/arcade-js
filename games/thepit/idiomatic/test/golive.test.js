@@ -22,7 +22,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine, resolveOverrides } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { ROUTINES, GAME_STATE } from "../ram.js";
-import { runCycleFree, runIdiomaticGame } from "../../../../core/frame-stepped.js";
+import { runCycleFree, runGeneratorGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -33,7 +33,7 @@ const test = ROM_PRESENT
 
 const FRAMES = 700; // enough to boot, run attract setup, and enter the playable demo
 const { pollPCs, stateExclude, golive } = manifest.convergence;
-const { watchdogPort, nmiReturnPC, gameStateHi } = golive;
+const { nmiReturnPC, gameStateHi } = golive;
 
 test("the whole idiomatic game reproduces the translated oracle (all 169 routines live)", async () => {
   // Wire EVERY idiomatic routine that has a file.
@@ -47,7 +47,7 @@ test("the whole idiomatic game reproduces the translated oracle (all 169 routine
   // Idiomatic run (all routines live) via the watchdog-kick go-live engine.
   const mi = await Machine.create(ROM, { overrides });
   const idi = [];
-  const ri = runIdiomaticGame(mi, { watchdogPort, nmiReturnPC, maxFrames: FRAMES, readBudget: FRAMES * 40000, onFrame: (m) => idi.push(Buffer.from(m.dumpState())) });
+  const ri = runGeneratorGame(mi, { nmiReturnPC, maxFrames: FRAMES, onFrame: (m) => idi.push(Buffer.from(m.dumpState())) });
   assert.equal(ri.stopError, null, `idiomatic run errored: ${ri.stop}`);
   assert.ok(ri.frames >= FRAMES, `idiomatic run covered only ${ri.frames}/${FRAMES} frames (${ri.stop})`);
 

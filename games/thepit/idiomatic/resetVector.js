@@ -25,8 +25,9 @@
 
 import { coldBootInit } from "./coldBootInit.js";
 
-export function resetVector(m) {
+export function* resetVector(m) {
   // Nothing happens at the reset address itself — hand straight to cold-boot init,
-  // which brings the machine up and runs the game; it never returns here.
-  return coldBootInit(m);
+  // which brings the machine up and runs the game; it never returns here. It is a generator
+  // (the control spine yields at each vblank wait), so delegate with yield*.
+  return yield* coldBootInit(m);
 }

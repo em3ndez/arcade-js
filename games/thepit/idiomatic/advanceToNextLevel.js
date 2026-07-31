@@ -53,12 +53,12 @@ import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
 // fill colour when it rebuilds the display for the new level.
 const NEXT_LEVEL_BOARD_MODE = 160;
 
-export function advanceToNextLevel(m) {
+export function* advanceToNextLevel(m) {
   const { mem8 } = m;
 
   // No live game in progress (attract / game over) means there is no level to advance;
   // hand off to the reset epilogue that begins a fresh cycle.
-  if (mem8[GAME_STATE] >= 3) return resetStateAndShowSetup(m);
+  if (mem8[GAME_STATE] >= 3) return yield* resetStateAndShowSetup(m);
 
   // Count this level cleared.
   mem8[LEVEL] = mem8[LEVEL] + 1;
@@ -67,16 +67,15 @@ export function advanceToNextLevel(m) {
   saveActivePlayerRecord(m);
 
   // Rebuild the whole screen for the new level, then show and hold the between-levels
-  // bonus/status screen (which also adds to the score as it tallies).
+  // bonus/status screen (which also adds to the score as it tallies). The bonus screen holds
+  // over several vblanks, so it is a generator we delegate into.
   setupBoardDisplay(m, NEXT_LEVEL_BOARD_MODE);
-  showBonusScreen(m);
+  yield* showBonusScreen(m);
 
   // Persist again to capture the score the bonus screen just added.
   saveActivePlayerRecord(m);
 
-  // Fall into the round (re)init that seats the next level and enters its play loop.
-  // m.call boundary: tail hand-off into the never-returning round init (initRoundAndEnterMainLoop 0x031a,
-  // which falls into mainLoop); a direct call is behaviorally identical and a terminal-test
-  // would be a fragile artifact.
-  return m.call(0x031a);
+  // Fall into the round (re)init that seats the next level and enters its (never-returning) play
+  // loop. m.call(0x031a) returns the initRoundAndEnterMainLoop generator; we delegate into it.
+  return yield* m.call(0x031a);
 }

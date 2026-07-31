@@ -55,7 +55,7 @@ const TILEMAP_ROW = 32; // one tilemap row is 32 cells; "up one row" steps a cur
 const INDEX_HOME = 10; // the index/blank byte's home value, re-seated after a commit
 const HOLD_FRAMES = 20; // frames to hold after a committed move before returning
 
-export function stepHighScoreInitialsEntry(m) {
+export function* stepHighScoreInitialsEntry(m) {
   const { regs, mem8 } = m;
   const actionBits = mem8[IN0_DEBOUNCED];
 
@@ -84,5 +84,5 @@ export function stepHighScoreInitialsEntry(m) {
   mem8[PLAY_PHASE_COUNTER] = 0; // restart the frame counter
 
   requestSound16(m); // play the move sound
-  return waitFrames(m, HOLD_FRAMES); // hold the fixed number of frames, then return to the caller
+  return yield* waitFrames(m, HOLD_FRAMES); // hold the fixed number of frames, then return to the caller
 }

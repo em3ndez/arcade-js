@@ -21,7 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { GAME_STATE, CREDIT_COUNT, PLAYER_X } from "../ram.js";
-import { runIdiomaticGame } from "../../../../core/frame-stepped.js";
+import { runIdiomaticGame, runGeneratorGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -52,17 +52,19 @@ async function play(overrides, mode) {
   const m = await Machine.create(ROM, overrides ? { overrides } : {});
   const frames = [];
   const t = { peakCredit: 0, startedAt: -1, minPX: 256, maxPX: -1 };
-  const r = runIdiomaticGame(m, {
-    watchdogPort, nmiReturnPC, maxFrames: FRAMES,
-    onFrame: (mm, fi) => {
-      mm.io.inputAssert = tapeInput(fi, mode);
-      frames.push(Buffer.from(mm.dumpState()));
-      const credit = mm.mem.read8(CREDIT_COUNT);
-      if (credit > t.peakCredit) t.peakCredit = credit;
-      if (mm.mem.read8(GAME_STATE) === 1 && t.startedAt < 0) t.startedAt = fi;
-      if (t.startedAt >= 0) { const px = mm.mem.read8(PLAYER_X); if (px < t.minPX) t.minPX = px; if (px > t.maxPX) t.maxPX = px; }
-    },
-  });
+  const onFrame = (mm, fi) => {
+    mm.io.inputAssert = tapeInput(fi, mode);
+    frames.push(Buffer.from(mm.dumpState()));
+    const credit = mm.mem.read8(CREDIT_COUNT);
+    if (credit > t.peakCredit) t.peakCredit = credit;
+    if (mm.mem.read8(GAME_STATE) === 1 && t.startedAt < 0) t.startedAt = fi;
+    if (t.startedAt >= 0) { const px = mm.mem.read8(PLAYER_X); if (px < t.minPX) t.minPX = px; if (px > t.maxPX) t.maxPX = px; }
+  };
+  // The idiomatic layer is generators -> the coroutine engine; the translated oracle is plain
+  // functions -> the watchdog engine (which also handles the coin/warm-restart for translated).
+  const r = overrides
+    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: FRAMES, onFrame })
+    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: FRAMES, onFrame });
   assert.equal(r.stopError, null, `${mode} run errored: ${r.stop}`);
   return { frames, t };
 }

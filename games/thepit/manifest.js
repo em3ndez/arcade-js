@@ -22,11 +22,12 @@ export default {
   mameDriver: "roundup.cpp",   // machine `thepitu1`
 
   // Live runtime: "idiomatic" runs the whole game on the readable idiomatic layer under the
-  // cycle-free frame-stepped engine (web/worker.js: runIdiomaticGame + machine.js
-  // resolveAllIdiomatic, driven by the watchdog kick — see manifest.convergence.golive).
+  // COROUTINE engine (web/worker.js: runGeneratorGame + machine.js resolveAllIdiomatic — the
+  // control spine is generators that yield at each vblank; the engine resumes the current main
+  // generator one frame at a time and swaps it on a warm restart — see manifest.convergence.golive).
   // Absent/"translated" (the default, e.g. DK) runs the faithful translated layer on the
-  // cycle-driven engine. The idiomatic runtime is validated byte-for-byte against the
-  // translated oracle over game state (idiomatic/test/golive.test.js).
+  // cycle-driven engine. The idiomatic runtime is validated byte-for-byte against the translated
+  // oracle over game state (idiomatic/test/{golive,tape,transition}.test.js).
   runtime: "idiomatic",
 
   // Input contract (from MAME INPUT_PORTS_START(thepit)). NOTE the mixed polarity:

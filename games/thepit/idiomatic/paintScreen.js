@@ -56,14 +56,14 @@ const TILE_IMAGE_B = 0x0b62; // ROM tile image chosen when the display-mode bit 
 const COLOR_IMAGE = 0x0f62; // ROM colour image (single, not selectable)
 const SCREEN_CELLS = 1024; // the whole 32x32 grid (0x9000..0x93ff, 0x8800..0x8bff)
 
-export function paintScreen(m) {
+export function* paintScreen(m) {
   const { mem8 } = m;
 
   // Let a frame pass so the prior display setup takes, then copy the selected tile
   // image over the whole tilemap. The frame-wait returns through the work stack, so
   // push the slot it pops before handing it the one-frame count.
   m.push16(0x0678);
-  waitFrames(m, 1);
+  yield* waitFrames(m, 1);
 
   const tileImage = (mem8[LEVEL] & 1) === 1 ? TILE_IMAGE_A : TILE_IMAGE_B;
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
@@ -72,7 +72,7 @@ export function paintScreen(m) {
 
   // Let another frame pass, then tint the tile image with the fixed colour map.
   m.push16(0x0692);
-  waitFrames(m, 1);
+  yield* waitFrames(m, 1);
 
   for (let cell = 0; cell < SCREEN_CELLS; cell++) {
     mem8[COLOR_RAM_BASE + cell] = mem8[COLOR_IMAGE + cell];

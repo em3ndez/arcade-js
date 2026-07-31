@@ -52,7 +52,7 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { showSetupScreen } from "./showSetupScreen.js";
 import { GAME_STATE, ACTIVE_PLAYER } from "./ram.js";
 
-export function resetStateAndShowSetup(m) {
+export function* resetStateAndShowSetup(m) {
   const { mem8 } = m;
 
   // Fresh attract cycle: no active player, secondary state armed.
@@ -67,11 +67,10 @@ export function resetStateAndShowSetup(m) {
   // handed the return slot the reset flow would leave for it — the same way it hands its
   // own still-stack-return leaves theirs.
   m.push16(0x03bb);
-  showSetupScreen(m);
+  yield* showSetupScreen(m);
 
-  // Hand off to the reset/entry handler and never return here.
-  // m.call boundary: tail hand-off into the never-returning reset/entry handler (rearmMachineAndBranchOnCredits
-  // 0x01f9, which re-seats the stack and runs the game loop); a direct call is behaviorally
-  // identical and a terminal-test would be a fragile artifact.
-  return m.call(0x01f9);
+  // Hand off to the reset/entry handler and never return here (rearmMachineAndBranchOnCredits
+  // 0x01f9, which branches on credits into the demo or the credit hold). It is a spine generator,
+  // and m.call of a generator returns the generator object, so delegate with yield*.
+  return yield* m.call(0x01f9);
 }

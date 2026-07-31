@@ -22,9 +22,18 @@ import { runCycleFree } from "../../../../core/frame-stepped.js";
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
-const test = ROM_PRESENT
-  ? nodeTest
-  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
+// RETIRED (coroutine go-live): the SWAP harness promoted idiomatic routines one leaf at a time and
+// gated them by running the ASSEMBLED game cycle-free (runCycleFree) with manifest.idiomatic wired
+// over the translated oracle. That model is superseded: the whole idiomatic layer now runs live under
+// the coroutine engine (runGeneratorGame), where the control spine is generators — which runCycleFree
+// cannot drive (it dispatches them as plain calls, so an un-run generator is a silent no-op; this gate
+// only ever "passed" because attract never reaches the converted routines). The coroutine gates cover
+// the same ground and more: golive.test.js diffs the SAME attract run idiomatic-vs-translated under the
+// correct engine, tape.test.js adds coin/start/dig, transition.test.js adds the level/round/game-over
+// boundaries. Kept (not deleted) for history; manifest.idiomatic / tools/swap_check.mjs are likewise
+// retired promotion tooling. See docs/integration-testing.md "Go-live, the RIGHT way".
+const test = (name, fn) =>
+  nodeTest(name, { skip: "retired: swap-era gate superseded by the whole-game coroutine gates (golive/tape/transition)" }, fn);
 
 const FRAMES = 720;
 const { pollPCs, stateExclude } = manifest.convergence;

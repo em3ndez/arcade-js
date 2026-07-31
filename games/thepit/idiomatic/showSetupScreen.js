@@ -87,7 +87,7 @@ function stampCountField(m, cell, count, col) {
   copyTileColumn(m, label.source); // copy the glyph-run down the column from its source table
 }
 
-export function showSetupScreen(m) {
+export function* showSetupScreen(m) {
   const { mem8 } = m;
 
   // ── 1. Fixed furniture ──────────────────────────────────────────────────────
@@ -155,7 +155,7 @@ export function showSetupScreen(m) {
 
     // Hold the screen for a spell.
     m.push16(0x3b77);
-    waitFrames(m, HOLD_FRAMES);
+    yield* waitFrames(m, HOLD_FRAMES);
 
     remaining = (mem8[HOLD_COUNTER] - 1) & 0xff;
     mem8[HOLD_COUNTER] = remaining;

@@ -73,9 +73,15 @@ import { LOOP_COUNTER, COLOUR_RAM_CURSOR } from "../ram.js";
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
-const test = ROM_PRESENT
-  ? nodeTest
-  : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
+// RETIRED (coroutine go-live): this address is a control-SPINE routine — now a generator (or a caller of
+// one) under runGeneratorGame. Its isolated crafted-entry harness below drove it as a plain function,
+// which no longer models it: a boot-chain / main-loop / wait generator never "returns", and a transition
+// is a mid-frame throw-restart, neither expressible as one plain call. The WHOLE-GAME byte-exact coroutine
+// gates SUBSUME it — golive.test.js (boot->attract), tape.test.js (coin/start/dig), transition.test.js
+// (level / round / game-over boundaries) run every spine routine live and diff against the translated
+// oracle frame-for-frame. Kept (not deleted) to preserve the harness + rationale. See
+// docs/integration-testing.md "Go-live, the RIGHT way".
+const test = (name, fn) => nodeTest(name, { skip: "retired: control-spine routine validated by the whole-game coroutine gates (golive/tape/transition)" }, fn);
 
 const PROXY = 0x3dae; // a routine attract DOES reach; hooked to capture a real machine state
 const TAIL = 0x031a; // the round-loop setup holdRoundIntroLoop tail-jumps to (now a direct idiomatic call)

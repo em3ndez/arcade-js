@@ -159,3 +159,72 @@ banks, the game starts at the tape's contract frame, the player moves/digs — a
 oracle through coin → start → in-game → dig. Port it with the tape: press the same bits the lua tape
 does via `io.inputAssert` (the JS mirror is offset a couple frames — the tape file documents it), and
 expand a thin coin/start tape until it exercises much of the game.
+
+## Go-live, the RIGHT way — the coroutine engine (`runGeneratorGame`)
+
+`runIdiomaticGame` (above) fires the vblank NMI as a NESTED JS call at the watchdog read. It works,
+but a warm restart (coin/start/level/game-over) long-jumps into a *new* forever main loop that never
+returns, so the JS HOST stack grows ~one frame per restart — bounded for a normal session, but a leak,
+and it needs a per-game "find the forever loops" analysis. **The coroutine engine removes both.** It is
+the recommended go-live model and the template every future game should use.
+
+**The model.** The idiomatic control SPINE — the boot chain, the main loops, the wait/hold loops — are
+GENERATORS (`function*`) that `yield` at each vblank wait; everything else (per-frame services, physics,
+render) stays a plain function. `core/frame-stepped.js` `runGeneratorGame(machine, {nmiReturnPC, onFrame,
+maxFrames})` drives the CURRENT main generator one frame at a time: resume it to its next `yield`, sample
+the pre-NMI state, fire the vblank NMI (a plain handler), repeat. A state change is a WARM RESTART: the
+handler (or a spine tail) sets `machine.nextMain = () => nextLoop(m)` and the engine swaps the generator;
+the abandoned one is garbage-collected, so **the host stack stays flat forever** (measured spread 0
+across boot→attract→coin→credit→start→game, vs +20 for the nested engine). A `yield` suspends the whole
+call tree wherever it sits, so it is fully general — deep waits, interrupt-driven loops, any control flow,
+no per-game analysis. Perf is a non-issue: the generator tax lands on the low-frequency spine
+(~one yield/frame), measured at ~0.0002 ms/frame against a 16.67 ms budget.
+
+**The conversion recipe (mechanical, per game):**
+1. **Spine = every routine that can reach a vblank wait via a normal call.** Convert each to `function*`;
+   convert every call *to a spine routine* into `yield*` (including `yield* m.call(0xADDR)`, since calling
+   a generator through the registry returns the generator object). **The #1 bug: a `function*` you call
+   without `yield*` — it builds a generator and never runs it, silently skipping the wait.**
+2. **The vblank wait becomes `yield`.** Keep the watchdog kick / countdown read next to it; the engine
+   fires the NMI at the yield (same order the watchdog engine fired it at the read).
+3. **A warm restart is a boundary, NOT a `yield*`.** Where the old code long-jumped into a *new* forever
+   loop, set `machine.nextMain = () => theNewLoop(m)` and hand off instead of entering it — this is what
+   keeps the gameplay/physics code PLAIN by stopping the generator propagation. There are two kinds:
+   - **Top-of-frame restart** (the NMI's coin/start hand-off): the plain NMI handler sets `nextMain` and
+     returns; the engine swaps at the top of its next iteration. No throw needed — the handler already
+     runs between frames.
+   - **Mid-frame restart** (a level/round/game-over transition from a per-frame service buried deep in the
+     plain gameplay tree): the service must ABANDON the rest of the frame and swap the whole main loop.
+     Making the entire call tree `yield*` just to bubble that up would drag gameplay into generators, so
+     instead it's a non-local exit: `machine.restartMain(() => theNewLoop(m))` sets `nextMain` and throws
+     the per-machine `RESTART` sentinel. Nothing in the plain tree catches it, so it unwinds out of the
+     mainLoop generator's `.next()`; `runGeneratorGame` catches `RESTART`, swaps in the successor, and the
+     aborted frame fires no NMI (its vblank never arrived). The frozen oracle reached the same place by a
+     tail-`jp` into a nested never-returning main loop — the throw is the faithful coroutine analogue.
+     On The Pit these are `dispatchObjectFrameByStateTimer` / `tickObjectDwellThenTransition` (the timer
+     expiry) handing off to `advanceToNextLevel` (level clear) or `dockManAndDispatchRoundBoundary` (life
+     lost → next round / game-over teardown), all of which are generators.
+4. **Leave the Z80 stack ops (`push16`/`m.ret`) alone** — they model the *emulated* CPU's stack in RAM
+   and are orthogonal to the host-side `yield`.
+
+**Validation — byte-exact against the prior engine.** Before converting, capture a golden of the used
+game-state region per frame from the current (validated) engine for each tape scenario. After converting,
+run the coroutine game and assert byte-identical per frame (minus the cycle-proxy cells — note
+`MAIN_LOOP_DELAY`-style busy-wait-length cells belong in that exclusion). On The Pit this was byte-clean
+across attract, coin/start and dig, AND — critically for the transition tree the tapes never reach — through
+FORCED transitions: drive the game live, then poke the ROM's own transition trigger (arm the master
+countdown to expire next frame with its level-vs-life selector set) and assert the coroutine game still
+matches the translated oracle frame-for-frame through the mid-frame `RESTART` and out into the next round.
+The whole-game gates that lock this in: `idiomatic/test/golive.test.js` (boot→attract), `tape.test.js`
+(coin/start/dig), `transition.test.js` (level clear / round boundary / game-over teardown). Then flip the
+worker to `runGeneratorGame` and re-run them all on it, plus a check that VIDEO RAM (0x9000+, which the
+gates' work-RAM window excludes) is byte-identical too — that is the browser's render.
+
+**Retiring the swap-era gates.** The coroutine gates SUBSUME the per-routine `equivalence-<addr>.test.js`
+for every control-SPINE routine (boot chain, main/wait/hold loops, transitions) and the `assembled-swap`
+gate: those drove a spine routine as one plain call under `runCycleFree`, which cannot express a
+never-returning generator or a mid-frame throw, and `assembled-swap` only ever passed because attract
+never reaches the converted routines. Skip them with a pointer here (keep the file for its crafted-entry
+harness + rationale); the leaf/gameplay `equivalence-<addr>.test.js` that DON'T touch the spine stay live.
+`manifest.idiomatic` + `tools/swap_check.mjs` (the one-leaf-at-a-time promotion set/classifier) are retired
+with them — the whole idiomatic layer now runs live, so there is no promotion subset to track.

@@ -62,17 +62,18 @@ const RESUME_AFTER_ENTRY_2 = 0x03ac;
 const RESUME_AFTER_SETUP = 0x03bb;
 
 /** Offer the currently-selected player's score to the high-score table; if it placed, run
- *  the initials-entry screen for the rank it landed at. */
-function submitScoreAndMaybeEnterInitials(m, resumeAfterEntry) {
+ *  the initials-entry screen for the rank it landed at. The entry screen holds over many
+ *  vblanks, so this is a generator delegated into with `yield*`. */
+function* submitScoreAndMaybeEnterInitials(m, resumeAfterEntry) {
   const { mem8 } = m;
   submitPlayerHighScore(m); // records the landed rank in LANDED_RANK (0 if it did not place)
   if (mem8[LANDED_RANK] !== 0) {
     m.push16(resumeAfterEntry);
-    runHighScoreInitialsEntry(m);
+    yield* runHighScoreInitialsEntry(m);
   }
 }
 
-export function submitHighScoresAndReset(m) {
+export function* submitHighScoresAndReset(m) {
   const { mem8, regs } = m;
 
   // State entry reached by a jump: discard the caller's return frame so the reset below
@@ -87,16 +88,16 @@ export function submitHighScoresAndReset(m) {
     // Rebuild the board display for the game-over screen and hold it a moment.
     setupBoardDisplay(m, GAMEOVER_BOARD_MODE);
     m.push16(RESUME_AFTER_WAIT);
-    waitFrames(m, GAMEOVER_HOLD_FRAMES);
+    yield* waitFrames(m, GAMEOVER_HOLD_FRAMES);
 
     // Player 1 always finishes.
     mem8[ACTIVE_PLAYER] = 1;
-    submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_1);
+    yield* submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_1);
 
     // A two-player game also finishes player 2.
     mem8[ACTIVE_PLAYER] = playerCount;
     if (playerCount === 2) {
-      submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_2);
+      yield* submitScoreAndMaybeEnterInitials(m, RESUME_AFTER_ENTRY_2);
     }
   }
 
@@ -106,12 +107,10 @@ export function submitHighScoresAndReset(m) {
   mem8[ACTIVE_PLAYER] = 1;
   applyDipSwitches(m);
   m.push16(RESUME_AFTER_SETUP);
-  showSetupScreen(m);
+  yield* showSetupScreen(m);
 
   // Tail hand-off to the reset/entry handler, which owns the eventual return and takes the
-  // game back to attract.
-  // m.call boundary: tail hand-off into the never-returning reset/entry handler (rearmMachineAndBranchOnCredits
-  // 0x01f9, which re-seats the stack and runs the game loop); a direct call is behaviorally
-  // identical and a terminal-test would be a fragile artifact.
-  return m.call(0x01f9);
+  // game back to attract. m.call(0x01f9) returns the rearmMachineAndBranchOnCredits generator
+  // (it re-seats the stack and runs the never-returning game loop); we delegate into it.
+  return yield* m.call(0x01f9);
 }

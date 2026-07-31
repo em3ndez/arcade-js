@@ -48,7 +48,7 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { saveActivePlayerRecord } from "./saveActivePlayerRecord.js";
 import { loadPlayerState } from "./loadPlayerState.js";
 
-export function startGame(m) {
+export function* startGame(m) {
   const { mem8 } = m;
 
   // Clear the round-variant selector, arm the per-frame interrupt and sound, and blank
@@ -85,5 +85,5 @@ export function startGame(m) {
 
   // Fall straight into the main round loop (dockManAndDispatchRoundBoundary, now idiomatic); it never returns
   // here — its own successor chain carries control on into the game.
-  return dockManAndDispatchRoundBoundary(m);
+  return yield* dockManAndDispatchRoundBoundary(m);
 }

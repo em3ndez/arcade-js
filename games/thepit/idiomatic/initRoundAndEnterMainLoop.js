@@ -54,13 +54,13 @@ import { seedMountainErosion } from "./seedMountainErosion.js";
 import { resetReactionState } from "./resetReactionState.js";
 import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE } from "./ram.js";
 
-export function initRoundAndEnterMainLoop(m) {
+export function* initRoundAndEnterMainLoop(m) {
   const { mem8 } = m;
 
   // Pre-play setup chain: round-start sound, restore the player's record, paint the board.
   requestSound6(m);
   loadPlayerState(m);
-  paintScreen(m);
+  yield* paintScreen(m);
 
   // Real play (game mode 1 or 2, not the attract demo) draws the players HUD panel.
   const mode = mem8[GAME_STATE];
@@ -82,5 +82,5 @@ export function initRoundAndEnterMainLoop(m) {
   // Hand off into the main game loop; it re-seats the stack and runs forever.
   // m.call boundary: tail hand-off into the never-returning mainLoop (0x0348); a direct
   // call is behaviorally identical and a terminal-test would be a fragile artifact.
-  return m.call(0x0348);
+  return yield* m.call(0x0348);
 }

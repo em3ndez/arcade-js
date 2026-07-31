@@ -48,7 +48,7 @@ const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOUR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
 const SCREEN_CELLS = 1024; // the whole 32x32 grid (0x9000..0x93ff, 0x8800..0x8bff)
 
-export function showColourTestScreen(m) {
+export function* showColourTestScreen(m) {
   const { mem8 } = m;
 
   // Mark the mode as the test screen and blank the whole display.
@@ -64,7 +64,7 @@ export function showColourTestScreen(m) {
   // Settle one frame before the first pass (the frame-wait returns through the work
   // stack, so push the slot it pops before handing it the count).
   m.push16(0x4f61);
-  waitFrames(m, 1);
+  yield* waitFrames(m, 1);
 
   // Cycle the colour byte across the top half of its range (128 through 255), one value
   // per pass. Each pass repaints the full test pattern and holds a moment before the next.
@@ -75,9 +75,9 @@ export function showColourTestScreen(m) {
       mem8[COLOUR_RAM_BASE + cell] = fill; // whole colour map set to this pass's colour
     }
     m.push16(0x4f7e);
-    waitFrames(m, 120);
+    yield* waitFrames(m, 120);
   }
 
   // Sweep done: restart the attract cycle.
-  return resetStateAndShowSetup(m);
+  return yield* resetStateAndShowSetup(m);
 }

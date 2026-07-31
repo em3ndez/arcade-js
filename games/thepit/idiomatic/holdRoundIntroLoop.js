@@ -53,7 +53,7 @@ import { waitFrames } from "./waitFrames.js";
 import { paintPlayfieldStripCol1Row11 } from "./paintPlayfieldStripCol1Row11.js";
 import { LOOP_COUNTER } from "./ram.js";
 
-export function holdRoundIntroLoop(m) {
+export function* holdRoundIntroLoop(m) {
   const { mem8 } = m;
 
   // Hold the intro for as many passes as the caller armed in the loop counter. Each pass
@@ -63,10 +63,10 @@ export function holdRoundIntroLoop(m) {
   do {
     drawPlayerLabel(m);
     m.push16(0x02e9); // the frame-wait returns through the work stack; push the slot it pops
-    waitFrames(m, 10);
+    yield* waitFrames(m, 10);
     paintPlayfieldStripCol1Row11(m);
     m.push16(0x02f1);
-    waitFrames(m, 5);
+    yield* waitFrames(m, 5);
     mem8[LOOP_COUNTER] = mem8[LOOP_COUNTER] - 1;
   } while (mem8[LOOP_COUNTER] !== 0);
 
@@ -75,5 +75,5 @@ export function holdRoundIntroLoop(m) {
   // m.call boundary: tail hand-off into the never-returning round init (initRoundAndEnterMainLoop 0x031a,
   // which falls into mainLoop); a direct call is behaviorally identical and a terminal-test
   // would be a fragile artifact.
-  return m.call(0x031a);
+  return yield* m.call(0x031a);
 }

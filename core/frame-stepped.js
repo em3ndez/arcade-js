@@ -222,3 +222,88 @@ export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames
 
   return { frames: frame, stop, stopError };
 }
+
+/**
+ * runGeneratorGame — the COROUTINE go-live engine. The idiomatic control spine (boot, the main
+ * loops, the wait/hold loops) are GENERATORS that `yield` at each vblank wait; everything else
+ * (per-frame services, physics, render) stays a plain function. The engine drives the CURRENT
+ * main generator one frame at a time: resume it to its next vblank `yield`, sample the pre-NMI
+ * state, then fire the vblank NMI (a plain handler). A state change — coin, start, level, game
+ * over — is a WARM RESTART: the handler (or a spine tail) sets `machine.nextMain` to a factory
+ * for the next main generator, and the engine swaps it. The abandoned generator is just
+ * garbage-collected, so unlike the nested-NMI engines (runCycleFree/runIdiomaticGame) the JS HOST
+ * stack never grows across warm restarts — it stays flat forever. See docs/decompiler-pipeline.md.
+ *
+ * WHY a second go-live engine. runIdiomaticGame fires the NMI as a NESTED JS call at the watchdog
+ * read; a warm restart there long-jumps into a new forever loop that never returns, so the host
+ * stack grows ~one frame per restart (bounded, but a leak). The coroutine model removes it
+ * structurally — a `yield` suspends the whole call tree wherever it is, and a swapped-out loop is
+ * reclaimed. It is also the general model: the yield can sit anywhere (deep waits, interrupt-driven
+ * loops), so it ports to any game without per-game "find the forever loops" analysis.
+ *
+ * @param {object} machine  a Machine with the idiomatic overrides wired (the spine must be generators)
+ * @param {object} opts
+ * @param {number} [opts.bootAddr=0x0000]     ROM address of the boot entry (a generator)
+ * @param {number} [opts.serviceNmiAddr]      ROM address of the vblank NMI handler (a plain fn); fired via machine.fireNmi
+ * @param {number} [opts.nmiReturnPC]         a valid ROM PC for the NMI's pushed return (the mainloop top)
+ * @param {number} [opts.maxFrames=Infinity]
+ * @param {(machine:object, frameIndex:number)=>void} [opts.onFrame]
+ * @returns {{frames:number, stop:string, stopError:(Error|null)}}
+ */
+export function runGeneratorGame(machine, { bootAddr = 0x0000, nmiReturnPC, maxFrames = Infinity, onFrame } = {}) {
+  machine.nextBoundary = Infinity;
+  machine.maxFrames = Infinity;
+  machine.maxCycles = Infinity;
+  machine.nextNmi = Infinity;
+
+  const realFire = machine.fireNmi.bind(machine);
+  machine.fireNmi = function () {}; // the scheduler must never fire it; only a vblank yield does
+  machine.booted = true;
+  machine.nextMain = null;
+
+  let frame = 0;
+  let stop = "returned";
+  let stopError = null;
+
+  if (onFrame) onFrame(machine, 0); // frame 0 = power-on, before the boot generator runs
+
+  // The boot entry is a generator, dispatched through the registry exactly like every inter-routine
+  // call (m.call of a generator returns the generator object; a spine tail delegates with `yield*`).
+  let gen = machine.call(bootAddr);
+
+  try {
+    for (;;) {
+      // Apply any pending warm restart BEFORE resuming, so an abandoned loop is never resumed.
+      if (machine.nextMain) { gen = machine.nextMain(); machine.nextMain = null; }
+      let r;
+      try {
+        r = gen.next(); // run the current main generator to its next vblank yield (or return)
+      } catch (e) {
+        // A MID-FRAME warm restart (machine.restartMain): a round-boundary service deep in the
+        // plain gameplay tree abandoned the frame and handed us a successor loop. Swap it in and
+        // start its first frame; the aborted frame fires no NMI (its vblank never arrived).
+        if (e === machine.RESTART && machine.nextMain) continue;
+        throw e;
+      }
+      if (r.done) {
+        if (machine.nextMain) continue; // it returned AND handed off (boot -> attract) -> swap
+        stop = "returned";              // a main loop that returns with no hand-off is worth seeing
+        break;
+      }
+      frame += 1;
+      if (onFrame) onFrame(machine, frame); // sample PRE-NMI, at the vblank yield
+      if (frame >= maxFrames) { stop = "reached maxFrames"; break; }
+      // Fire the vblank NMI: push16(pc) + run the handler; it may set machine.nextMain (warm restart).
+      machine.pcKnown = true;
+      if (nmiReturnPC != null) machine.pc = nmiReturnPC;
+      realFire();
+    }
+  } catch (e) {
+    stop = `${e.name}: ${e.message}`;
+    stopError = e;
+  } finally {
+    machine.fireNmi = realFire;
+  }
+
+  return { frames: frame, stop, stopError };
+}
