@@ -24,7 +24,12 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
-import { GAME_STATE, LEVEL, MEN_LEFT, TRANSITION_TIMER, POST_TRANSITION_MODE } from "../ram.js";
+import { GAME_STATE, LEVEL, MEN_LEFT, TRANSITION_TIMER, POST_TRANSITION_MODE,
+  SCORE_LO, SCORE_HI, INITIALS_REMAINING } from "../ram.js";
+
+// 0x8048 = the rank a submitted score landed at (0 = did not place). A submitPlayerHighScore local,
+// deliberately NOT a ram.js export (ram.js's 0x8048 carries a different tentative round-setup name).
+const LANDED_RANK = 0x8048;
 import { runIdiomaticGame, runGeneratorGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -174,4 +179,49 @@ test("credit-corruption cold-reset (serviceVblankNmi -> nextMain=coldBootInit): 
   const tr = await playColdReset(false);
   // Both engines detect the mirror mismatch and cold-reset through the whole boot, byte-for-byte.
   assertIdentical(idi, tr, "cold-reset");
+});
+
+// The HIGH-SCORE INITIALS ENTRY is the one converted spine screen the coin/dig/transition tapes
+// never reach — it only runs when a finishing score PLACES on the table. Drive a game to the last
+// life with a poked-high score so dockMan -> submitHighScoresAndReset -> submitPlayerHighScore places
+// (LANDED_RANK != 0) -> runHighScoreInitialsEntry runs, then HOLD the commit input (IN0 bit 4; the
+// debounce at serviceVblankNmi is a 2-frame-stable LEVEL, so holding settles it) to enter all three
+// initials -- which exercises stepHighScoreInitialsEntry's commit arm (its `yield* waitFrames`) and
+// runHighScoreInitialsEntry's completion. Asserts idiomatic coroutine == translated oracle throughout.
+async function playHighScore(useIdiomatic) {
+  const overrides = useIdiomatic ? await resolveAllIdiomatic() : null;
+  const m = await Machine.create(ROM, overrides ? { overrides } : {});
+  const frames = [];
+  let placedRank = 0, minInitials = 9;
+  const onFrame = (mm, fi) => {
+    let in1 = 0; if (fi >= 402 && fi < 410) in1 |= 0x01; if (fi >= 462 && fi < 470) in1 |= 0x04;
+    let in0 = 0;
+    if (fi >= 480 && fi < 660) { in0 |= 0x04; if ((fi - 480) % 32 < 6) in0 |= 0x10; } // dig to the transition
+    else if (fi >= 660) in0 |= 0x10;                                                   // then HOLD commit
+    mm.io.inputAssert = { 0xa000: in0, 0xa800: in1 };
+    if (fi === FORCE_AT && mm.mem.read8(GAME_STATE) === 1) {
+      for (const a of [SCORE_LO, SCORE_LO + 1, SCORE_LO + 2, SCORE_HI]) mm.mem.write8(a, 0x99); // placing score
+      mm.mem.write8(MEN_LEFT, 1);             // last life
+      mm.mem.write8(POST_TRANSITION_MODE, 0); // lose-a-life path
+      mm.mem.write8(TRANSITION_TIMER, 1);
+    }
+    const lr = mm.mem.read8(LANDED_RANK); if (lr !== 0) placedRank = lr;
+    if (placedRank) { const ir = mm.mem.read8(INITIALS_REMAINING); if (ir < minInitials) minInitials = ir; }
+    frames.push(Buffer.from(mm.dumpState()));
+  };
+  const r = useIdiomatic
+    ? runGeneratorGame(m, { nmiReturnPC, maxFrames: 880, onFrame })
+    : runIdiomaticGame(m, { watchdogPort, nmiReturnPC, maxFrames: 880, onFrame });
+  return { frames, r, placedRank, minInitials };
+}
+
+test("high-score initials entry (runHighScoreInitialsEntry / stepHighScoreInitialsEntry): idiomatic coroutine == translated oracle", async () => {
+  const idi = await playHighScore(true);
+  const tr = await playHighScore(false);
+  // The placing score reached the entry, and all three initials were committed (the commit arm ran).
+  assert.equal(idi.placedRank, 1, `idiomatic score did not place at rank 1 (got ${idi.placedRank})`);
+  assert.equal(idi.placedRank, tr.placedRank, "idiomatic and translated placed at different ranks");
+  assert.equal(idi.minInitials, 0, `idiomatic did not commit all three initials (min INITIALS_REMAINING=${idi.minInitials})`);
+  assert.equal(idi.minInitials, tr.minInitials, "idiomatic and translated committed a different number of initials");
+  assertIdentical(idi, tr, "high-score");
 });
