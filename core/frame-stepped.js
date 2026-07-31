@@ -132,3 +132,82 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
 
   return { frames: frame, steps, stop, stopError };
 }
+
+/**
+ * runIdiomaticGame — drive the WHOLE game running idiomatic (every routine wired live) with no
+ * T-state clock. `runCycleFree` fires the NMI when `m.step` reaches a poll PC, which needs the
+ * poll routines (mainLoop/waitFrames) to stay TRANSLATED so they emit that `m.step`. The
+ * idiomatic layer is cycle-free and never calls `m.step`, so it cannot use that seam — the poll
+ * routines are idiomatic too. Instead we hook the ONE control-flow event those routines already
+ * perform once per frame: the WATCHDOG KICK (a read of `watchdogPort`, done exactly once per
+ * mainLoop pass and once per waitFrames spin). That read IS the vblank-poll yield: sample the
+ * pre-NMI state, then run the real vblank NMI (which ticks the frame countdown, samples inputs,
+ * blits sprites). `inNmi` stops the handler's own watchdog kick from re-triggering.
+ *
+ * This is the go-live engine: it runs the assembled idiomatic game and is validated against the
+ * translated oracle (golive.test.js) and, as the capstone, MAME pixels. The only two routines
+ * that need a stack op restored for standalone use are the SP re-seat in mainLoop and the `ret`
+ * in serviceVblankNmi (both were dropped as no-ops in the translated-caller swap harness).
+ *
+ * @param {object} machine  a Machine with the FULL idiomatic override set wired (opts.overrides)
+ * @param {object} opts
+ * @param {number} opts.watchdogPort   the I/O address whose read kicks the watchdog (0xb800)
+ * @param {number} opts.nmiReturnPC    a valid ROM PC for the NMI's pushed return (the mainloop top)
+ * @param {number} [opts.maxFrames=Infinity]
+ * @param {(machine:object, frameIndex:number)=>void} [opts.onFrame]
+ * @param {number} [opts.readBudget=6e8]  backstop against an unpolled spin
+ * @returns {{frames:number, reads:number, stop:string, stopError:(Error|null)}}
+ */
+export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames = Infinity, onFrame, readBudget = 6e8 } = {}) {
+  if (watchdogPort == null || nmiReturnPC == null) throw new Error("runIdiomaticGame needs watchdogPort and nmiReturnPC");
+
+  machine.nextBoundary = Infinity;
+  machine.maxFrames = Infinity;
+  machine.maxCycles = Infinity;
+  machine.nextNmi = Infinity;
+
+  const realFire = machine.fireNmi.bind(machine);
+  const realRead = machine.mem.read8.bind(machine.mem);
+  machine.fireNmi = function () {}; // the scheduler must never fire it; only the watchdog poll does
+
+  let frame = 0;
+  let reads = 0;
+  let inNmi = false;
+
+  if (onFrame) onFrame(machine, 0); // frame 0 = power-on
+
+  machine.mem.read8 = function (addr) {
+    const v = realRead(addr);
+    if (++reads > readBudget) throw new RunComplete("read-budget (unpolled spin?)");
+    if ((addr & 0xffff) === watchdogPort && !inNmi && machine.io.nmiMask) {
+      // Sample the pre-NMI state at the poll (matches runCycleFree's order), then fire the NMI.
+      frame += 1;
+      if (onFrame) onFrame(machine, frame);
+      if (frame >= maxFrames) throw new RunComplete("reached maxFrames");
+      inNmi = true;
+      machine.pcKnown = true;
+      machine.pc = nmiReturnPC;
+      try {
+        realFire();
+      } finally {
+        inNmi = false;
+      }
+    }
+    return v;
+  };
+
+  let stop = "returned";
+  let stopError = null;
+  try {
+    machine.reset(); // enters idiomatic boot via the override at 0x0000; never returns
+    stop = "returned";
+  } catch (e) {
+    if (e instanceof RunComplete) stop = e.message;
+    else { stop = `${e.name}: ${e.message}`; stopError = e; }
+  } finally {
+    machine.mem.read8 = realRead;
+    machine.fireNmi = realFire;
+  }
+
+  return { frames: frame, reads, stop, stopError };
+}

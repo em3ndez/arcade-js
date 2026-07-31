@@ -129,6 +129,15 @@ export default {
       // full go-live (no translated callers left to push).
       stack: [0x82a0, 0x8400], // [start, end) — the stack region, above the game-state ceiling
     },
+    // Go-live: run the WHOLE game idiomatic (core/frame-stepped.js runIdiomaticGame). The
+    // idiomatic layer is cycle-free and never calls m.step, so the poll-PC seam runCycleFree
+    // uses does not apply — the frame boundary is the once-per-frame WATCHDOG KICK (a read of
+    // watchdogPort) that idiomatic mainLoop/waitFrames already perform. nmiReturnPC is a valid
+    // ROM PC for the NMI's pushed return (the mainloop top). gameStateHi is the top of the used
+    // game-state region (0x829f = top of SCORE_READOUT_STRIP); everything above it is stack /
+    // unused work RAM, so the whole-game gate compares [0x8000, gameStateHi] (minus the
+    // cycle-proxy cells) — see idiomatic/test/golive.test.js.
+    golive: { watchdogPort: 0xb800, nmiReturnPC: 0x0348, gameStateHi: 0x829f },
   },
 
   // Idiomatic promotion set: ROM addresses whose readable idiomatic rewrite is promoted to

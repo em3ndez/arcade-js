@@ -50,10 +50,18 @@ const WATCHDOG_KICK = 0xb800;
 // joystick; the game-mode byte holds this value while that demo is active.
 const DEMO_MODE = 4;
 
+// Top of the work-RAM stack (ld sp,0x83ff) — re-seated at the top of every pass.
+const STACK_TOP = 0x83ff;
+
 export function mainLoop(m) {
   const { mem8 } = m;
 
   for (;;) {
+    // Re-seat the stack at the top of every pass (ld sp,0x83ff). The whole round runs inside
+    // this loop with the vblank interrupt nesting on top, so resetting the stack pointer each
+    // frame keeps the work stack from drifting down over a long round.
+    m.regs.sp = STACK_TOP;
+
     // Pet the watchdog so the hardware does not reset mid-round.
     void mem8[WATCHDOG_KICK];
 
