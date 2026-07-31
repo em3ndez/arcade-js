@@ -70,65 +70,86 @@ function syncSoundTap() {
   live.io.onSoundWrite = audioOn ? emitSound : null;
 }
 
+// ---------------------------------------------------------------------------
+// PER-FRAME SEAMS, shared by both runtimes. The cycle-driven runtime (LiveMachine
+// + runFrames, e.g. DK) calls these from the two engine seams runFrames already
+// invokes; the idiomatic runtime (runIdiomaticGame, e.g. The Pit) calls them from
+// its once-per-frame onFrame. Same live-key read, same framebuffer publish, same
+// sound flush, same 60fps pace — only the engine that drives them differs.
+// ---------------------------------------------------------------------------
+
+/** Latch the live keys into the machine's input ports; a reset request unwinds the run. */
+function readInputsInto(machine) {
+  if (Atomics.load(ctrl, C_RESET) === 1) {
+    Atomics.store(ctrl, C_RESET, 0);
+    throw new Error("__reset__"); // unwinds the run; worker reboots to attract
+  }
+  machine.io.inputAssert = {
+    [PORTS.in0]: Atomics.load(ctrl, C_IN0) & 0xff, // IN0 joystick + jump (P1)
+    [PORTS.in1]: Atomics.load(ctrl, C_IN1) & 0xff, // IN1 (P2 / cocktail)
+    [PORTS.in2]: Atomics.load(ctrl, C_IN2) & 0xff, // IN2 coin / start
+  };
+}
+
+/** Publish an RGB frame to the shared double-buffered framebuffer (page reads the front). */
+function publishFrame(frame) {
+  const counter = Atomics.load(ctrl, C_COUNTER);
+  fb.set(frame, (counter % 2) * FRAME_BYTES); // write the back slot
+  Atomics.store(ctrl, C_COUNTER, counter + 1); // publish
+}
+
+/** Ship this frame's accumulated sound edges (+ the polled IRQ surface for boards that have one). */
+function flushSound(machine) {
+  if (audioOn && machine.io.audioIrq !== undefined) emitSound(IRQ_ADDR, machine.io.audioIrq & 1);
+  if (soundQueue.length) {
+    postMessage({ type: "sound", ev: soundQueue });
+    soundQueue = [];
+  }
+}
+
+/** Pace to 60fps and honour pause, clocking off machine._next. */
+function pace(machine) {
+  while (
+    Atomics.load(ctrl, C_PAUSED) === 1 &&
+    Atomics.load(ctrl, C_RUNNING) === 1 &&
+    Atomics.load(ctrl, C_RESET) === 0
+  ) {
+    Atomics.wait(ctrl, C_SLEEP, 0, 80);
+    machine._next = performance.now();
+  }
+  const now = performance.now();
+  if (machine._next === undefined) machine._next = now;
+  const delay = machine._next - now;
+  if (delay > 1) Atomics.wait(ctrl, C_SLEEP, 0, delay); // precise sleep, no busy-wait
+  machine._next += 1000 / 60;
+  if (performance.now() - machine._next > 500) machine._next = performance.now();
+}
+
 function makeLive(Machine) {
   return class LiveMachine extends Machine {
-    applyInputs(_frameIndex) {
-      if (Atomics.load(ctrl, C_RESET) === 1) {
-        Atomics.store(ctrl, C_RESET, 0);
-        throw new Error("__reset__"); // unwinds runFrames; worker reboots to attract
-      }
-      this.io.inputAssert = {
-        [PORTS.in0]: Atomics.load(ctrl, C_IN0) & 0xff, // IN0 joystick + jump (P1)
-        [PORTS.in1]: Atomics.load(ctrl, C_IN1) & 0xff, // IN1 (P2 / cocktail)
-        [PORTS.in2]: Atomics.load(ctrl, C_IN2) & 0xff, // IN2 coin / start
-      };
-    }
+    applyInputs(_frameIndex) { readInputsInto(this); }
 
     finishRasterFrame() {
       super.finishRasterFrame();
       const vf = this.videoFrames;
-      if (vf.length) {
-        const frame = vf[vf.length - 1];
-        const counter = Atomics.load(ctrl, C_COUNTER);
-        fb.set(frame, (counter % 2) * FRAME_BYTES); // write the back slot
-        Atomics.store(ctrl, C_COUNTER, counter + 1); // publish -> page reads front
-        vf.length = 0;
-      }
+      if (vf.length) { publishFrame(vf[vf.length - 1]); vf.length = 0; }
       const fl = this.frames.length;         // bound memory over a long session
       if (fl >= 3) this.frames[fl - 3] = null;
-      // The one polled sound surface. Sampled BEFORE the queue is flushed so its
-      // edge ships with the frame it happened in, and only when audio is armed,
-      // so a run with no audio reads nothing.
-      // DK's polled sound-IRQ surface. Boards without one (The Pit) leave audioIrq
-      // undefined, so this poll is skipped rather than shipping a spurious edge.
-      if (audioOn && this.io.audioIrq !== undefined) emitSound(IRQ_ADDR, this.io.audioIrq & 1);
-      // Sound edges accumulated during the frame, shipped as one compact
-      // message. Batching per frame (not per write) keeps this off the hot path
-      // and keeps the events in execution order.
-      if (soundQueue.length) {
-        postMessage({ type: "sound", ev: soundQueue });
-        soundQueue = [];
-      }
-      this._pace();
-    }
-
-    _pace() {
-      while (
-        Atomics.load(ctrl, C_PAUSED) === 1 &&
-        Atomics.load(ctrl, C_RUNNING) === 1 &&
-        Atomics.load(ctrl, C_RESET) === 0
-      ) {
-        Atomics.wait(ctrl, C_SLEEP, 0, 80);
-        this._next = performance.now();
-      }
-      const now = performance.now();
-      if (this._next === undefined) this._next = now;
-      const delay = this._next - now;
-      if (delay > 1) Atomics.wait(ctrl, C_SLEEP, 0, delay); // precise sleep, no busy-wait
-      this._next += 1000 / 60;
-      if (performance.now() - this._next > 500) this._next = performance.now();
+      flushSound(this);
+      pace(this);
     }
   };
+}
+
+// The idiomatic runtime's per-frame seam. runIdiomaticGame calls this at each frame boundary
+// (the vblank-poll yield, BEFORE the NMI). The state here is the just-completed frame, so render
+// and publish it; then latch the live keys for the coming frame's NMI to read; ship sound; pace.
+// Frame 0 is power-on (nothing drawn yet), so only latch + pace there.
+function serviceIdiomaticFrame(machine, frameIndex) {
+  readInputsInto(machine);
+  if (frameIndex > 0) publishFrame(machine.renderFrame());
+  flushSound(machine);
+  pace(machine);
 }
 
 async function fetchBin(url) {
@@ -140,19 +161,27 @@ async function fetchBin(url) {
 async function run(gameId, provided) {
   const manifest = (await import(`../games/${gameId}/manifest.js`)).default;
   PORTS = manifest.inputs.ports; // input port addresses -> inputAssert slots (IN0/IN1/IN2)
-  const { Machine, resolveOverrides } = await import(`../games/${gameId}/machine.js`);
+  const machineMod = await import(`../games/${gameId}/machine.js`);
+  const { Machine } = machineMod;
   const { Inputs } = await import(`../boards/${manifest.board}/io.js`);
-  const LiveMachine = makeLive(Machine);
 
-  // Resolve the game's declarative manifest.optimized (proven-equal optimized
-  // routines) into a Map<addr,fn> ONCE, relative to the game's manifest — exactly
-  // as games/dkong/tools/emit.js does — and reuse it for every (re)boot below.
-  // The Machine constructor cannot resolve the { module, export } form itself; an
-  // absent/empty block resolves to an empty Map, i.e. a pure translated run.
-  const overrides = await resolveOverrides(
-    manifest.optimized,
-    new URL(`../games/${gameId}/manifest.js`, import.meta.url),
-  );
+  // Live runtime (manifest.runtime): "idiomatic" runs the whole readable idiomatic layer on the
+  // cycle-free frame-stepped engine; absent/other runs the faithful translated layer on the
+  // cycle-driven engine. The idiomatic runtime is validated byte-for-byte vs the translated
+  // oracle over game state (idiomatic/test/golive.test.js).
+  const idiomatic = manifest.runtime === "idiomatic";
+  const golive = manifest.convergence?.golive;
+  if (idiomatic && !golive) throw new Error(`${gameId}: runtime "idiomatic" needs manifest.convergence.golive`);
+  const runIdiomaticGame = idiomatic ? (await import("../core/frame-stepped.js")).runIdiomaticGame : null;
+  const LiveMachine = idiomatic ? null : makeLive(Machine);
+
+  // The override set, resolved ONCE and reused for every (re)boot below. Idiomatic: every routine
+  // wired to its idiomatic/<name>.js (machine.resolveAllIdiomatic). Cycle-driven: the game's
+  // declarative manifest.optimized (proven-equal optimized routines; absent -> an empty Map =
+  // pure translated). The Machine constructor cannot resolve the { module, export } form itself.
+  const overrides = idiomatic
+    ? await machineMod.resolveAllIdiomatic(new URL(`../games/${gameId}/machine.js`, import.meta.url))
+    : await machineMod.resolveOverrides(manifest.optimized, new URL(`../games/${gameId}/manifest.js`, import.meta.url));
 
   // Every declared ROM image, per image: use the one the page handed us (already
   // size- and sha256-checked there) if present, else fetch the locally-built
@@ -172,8 +201,10 @@ async function run(gameId, provided) {
   postMessage({ type: "ready" });
 
   while (Atomics.load(ctrl, C_RUNNING) === 1) {
-    const m = new LiveMachine(maincpu, { inputs: new Inputs(), ...gfx, overrides });
-    m.captureVideo = true;
+    const m = idiomatic
+      ? new Machine(maincpu, { inputs: new Inputs(), ...gfx, overrides })
+      : new LiveMachine(maincpu, { inputs: new Inputs(), ...gfx, overrides });
+    if (!idiomatic) m.captureVideo = true; // idiomatic renders on demand in serviceIdiomaticFrame
     m._next = performance.now();
     // A fresh machine has fresh latches, so the remembered edge state has to go
     // with it, or the first frame after a reboot would suppress real events.
@@ -183,8 +214,24 @@ async function run(gameId, provided) {
     syncSoundTap();
     let reason = null;
     try {
-      m.runFrames(5_000_000); // huge budget; every frame is paced to 1/60s
-      reason = m.stoppedBy || "budget reached";
+      if (idiomatic) {
+        // The frame-stepped engine drives frames off the once-per-frame watchdog kick and calls
+        // serviceIdiomaticFrame at each boundary. It catches its own unwinds (never returns from
+        // reset() otherwise), so inspect the returned stop reason rather than relying on a throw.
+        const r = runIdiomaticGame(m, {
+          watchdogPort: golive.watchdogPort, nmiReturnPC: golive.nmiReturnPC,
+          onFrame: serviceIdiomaticFrame,
+        });
+        if (r.stopError) {
+          if (r.stopError.message === "__reset__") { postMessage({ type: "reset" }); continue; }
+          reason = r.stopError.message;
+        } else {
+          reason = r.stop;
+        }
+      } else {
+        m.runFrames(5_000_000); // huge budget; every frame is paced to 1/60s
+        reason = m.stoppedBy || "budget reached";
+      }
     } catch (e) {
       const msg = String((e && e.message) || e);
       if (msg === "__reset__") { postMessage({ type: "reset" }); continue; }

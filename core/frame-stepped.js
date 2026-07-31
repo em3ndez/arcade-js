@@ -91,8 +91,11 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
   machine.step = function (nextAddr, cycles) {
     realStep(nextAddr, cycles);
     if (++steps > stepBudget) throw new RunComplete("step-budget (unpolled spin?)");
-    // A poll PC reached with the NMI unmasked IS a frame boundary. `inNmi` blocks the
-    // handler itself from re-triggering if it happens to cross a poll PC.
+    // A poll PC reached with the NMI unmasked IS a frame boundary. `inNmi` blocks the handler
+    // itself from re-triggering: the translated handler's final `m.ret` steps back to the poll PC
+    // it interrupted, which would otherwise re-fire. (This is the poll-PC engine, for validating
+    // TRANSLATED attract runs against the oracle; the whole-game idiomatic runtime with its
+    // coin/warm-restart long-jumps is runIdiomaticGame below, which needs no such guard.)
     if (!inNmi && poll.has(this.pc) && this.io.nmiMask) {
       frame += 1;
       if (onFrame) onFrame(this, frame);
@@ -155,10 +158,10 @@ export function runCycleFree(machine, { pollPCs, maxFrames = Infinity, onFrame, 
  * @param {number} opts.nmiReturnPC    a valid ROM PC for the NMI's pushed return (the mainloop top)
  * @param {number} [opts.maxFrames=Infinity]
  * @param {(machine:object, frameIndex:number)=>void} [opts.onFrame]
- * @param {number} [opts.readBudget=6e8]  backstop against an unpolled spin
- * @returns {{frames:number, reads:number, stop:string, stopError:(Error|null)}}
+ * @param {number} [opts.readBudget=5e6]  PER-FRAME read cap (reset each frame) — an unpolled-spin backstop
+ * @returns {{frames:number, stop:string, stopError:(Error|null)}}
  */
-export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames = Infinity, onFrame, readBudget = 6e8 } = {}) {
+export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames = Infinity, onFrame, readBudget = 5e6 } = {}) {
   if (watchdogPort == null || nmiReturnPC == null) throw new Error("runIdiomaticGame needs watchdogPort and nmiReturnPC");
 
   machine.nextBoundary = Infinity;
@@ -171,27 +174,35 @@ export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames
   machine.fireNmi = function () {}; // the scheduler must never fire it; only the watchdog poll does
 
   let frame = 0;
-  let reads = 0;
-  let inNmi = false;
+  let readsSinceFrame = 0;
 
   if (onFrame) onFrame(machine, 0); // frame 0 = power-on
 
   machine.mem.read8 = function (addr) {
     const v = realRead(addr);
-    if (++reads > readBudget) throw new RunComplete("read-budget (unpolled spin?)");
-    if ((addr & 0xffff) === watchdogPort && !inNmi && machine.io.nmiMask) {
-      // Sample the pre-NMI state at the poll (matches runCycleFree's order), then fire the NMI.
+    // Per-frame spin backstop: a real frame resolves in ~hundreds-to-thousands of reads, so a
+    // huge burst with NO frame boundary is an unpolled spin. Reset each frame, so a long, healthy
+    // game never trips it (a total-read cap would kill a multi-hour session; boot/warm-restart
+    // frames legitimately read a lot).
+    if (++readsSinceFrame > readBudget) throw new RunComplete("per-frame read budget (unpolled spin?)");
+    if ((addr & 0xffff) === watchdogPort && machine.io.nmiMask) {
+      // The watchdog kick is the vblank-poll yield. Sample the pre-NMI state (matches
+      // runCycleFree's order), then fire the NMI. There is deliberately NO "in NMI" guard: a
+      // watchdog READ that happens while a prior NMI is still on the JS call stack means that
+      // handler LONG-JUMPED into a new forever main loop (The Pit's coin path: serviceVblankNmi
+      // banks a credit -> showCreditScreen resets SP and tail-calls holdFixedScreen, which spins
+      // on waitFrames). Those reads are genuine frame boundaries and MUST fire the NMI, or the
+      // game freezes on the credit screen. Safe because the NMI handler itself never READS the
+      // watchdog (it only WRITES 0xb800 for sound), so it cannot re-trigger its own frame. The
+      // abandoned outer handler stays on the JS stack — one frame per warm-restart, bounded for a
+      // normal session; a coroutine/unwind engine would reclaim it.
       frame += 1;
+      readsSinceFrame = 0;
       if (onFrame) onFrame(machine, frame);
       if (frame >= maxFrames) throw new RunComplete("reached maxFrames");
-      inNmi = true;
       machine.pcKnown = true;
       machine.pc = nmiReturnPC;
-      try {
-        realFire();
-      } finally {
-        inNmi = false;
-      }
+      realFire();
     }
     return v;
   };
@@ -209,5 +220,5 @@ export function runIdiomaticGame(machine, { watchdogPort, nmiReturnPC, maxFrames
     machine.fireNmi = realFire;
   }
 
-  return { frames: frame, reads, stop, stopError };
+  return { frames: frame, stop, stopError };
 }

@@ -576,6 +576,23 @@ export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
 }
 
 /**
+ * Resolve the WHOLE idiomatic layer to an override Map<addr,fn> — every routine in ROUTINES
+ * wired to its `idiomatic/<name>.js`. This is the go-live override set the frame-stepped engine
+ * (core/frame-stepped.js runIdiomaticGame) runs live: with it wired, `machine.reset()` enters the
+ * idiomatic boot at 0x0000 and the assembled game runs entirely in the readable JS layer. Every
+ * one of The Pit's routines has an idiomatic file, so this resolves all of them; a missing file
+ * would throw at import (loud, not silent). Used by the browser worker for the idiomatic runtime.
+ */
+export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
+  const { ROUTINES } = await import(new URL("idiomatic/ram.js", baseUrl).href);
+  const spec = {};
+  for (const [addr, meta] of Object.entries(ROUTINES)) {
+    spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.name };
+  }
+  return resolveOverrides(spec, baseUrl);
+}
+
+/**
  * Build a SYNCHRONOUS makeMachine(overrides) factory for the memory-equivalence
  * engine (core/equivalence.js), which drives makeMachine(overrides) — a sync call —
  * many times per gate. The Pit's routine registry is built by an async dynamic

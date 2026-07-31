@@ -21,6 +21,14 @@ export default {
   board: "thepit",             // boards/thepit/ (Zilec "roundup" family hardware)
   mameDriver: "roundup.cpp",   // machine `thepitu1`
 
+  // Live runtime: "idiomatic" runs the whole game on the readable idiomatic layer under the
+  // cycle-free frame-stepped engine (web/worker.js: runIdiomaticGame + machine.js
+  // resolveAllIdiomatic, driven by the watchdog kick — see manifest.convergence.golive).
+  // Absent/"translated" (the default, e.g. DK) runs the faithful translated layer on the
+  // cycle-driven engine. The idiomatic runtime is validated byte-for-byte against the
+  // translated oracle over game state (idiomatic/test/golive.test.js).
+  runtime: "idiomatic",
+
   // Input contract (from MAME INPUT_PORTS_START(thepit)). NOTE the mixed polarity:
   // IN0 (joystick + dig) is ACTIVE-LOW like DK; IN1 (coin/start) is ACTIVE-HIGH —
   // boards/thepit/io.js applies each port's polarity. IN0 is muxed with a cocktail
