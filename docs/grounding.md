@@ -77,8 +77,16 @@ Agent-driven, headless, reproducible:
 - Capture with `-video none -aviwrite` in the **displayed** orientation (rotation applied — *not*
   `-norotate`) so frames match what a player sees; extract frames with ffmpeg.
 - A **per-frame Lua notifier** (`emu.add_machine_frame_notifier`) logs the RAM cells of interest each
-  frame and can poke state / drive inputs. **Retain the notifier token in a global** — otherwise the Lua
-  GC silently unregisters it after ~40 frames and the log just stops.
+  frame and can poke state / drive inputs. **Retain EVERY subscription token in a global — the notifier
+  AND every `mem:install_write_tap` / `install_read_tap`.** A discarded token is silently
+  garbage-collected mid-run and the tap/notifier stops firing, so the log flatlines partway through —
+  which reads as *the game stalled or reset* when it is actually still running fine. Measured on The Pit
+  (MAME 0.288): an **unheld** write-tap died at frame 184; the identical tap **held** in a global
+  (`_G.__t = mem:install_write_tap(...)`) ran to completion (frame 529). Note which one bit: the
+  notifier held globally tracked frame-for-frame all run — so when a trace goes dark, suspect an unheld
+  **tap** token first, not the notifier. Cross-check any "it stopped" reading against a GC-immune
+  signal: `manager.machine.screens:at(1):frame_number()` is a register read, not a subscription, and
+  never lies.
 - Reach cells with `mem = manager.machine.devices[":maincpu"].spaces["program"]; mem:read_u8 / write_u8`.
 
 Gotchas that cost real time:

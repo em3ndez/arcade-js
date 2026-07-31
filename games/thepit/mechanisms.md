@@ -122,8 +122,16 @@ advances at `0x8010 ≥ 0x0a` (`loc_3748`/`loc_241c`). Live play consistently be
 `[seen]`/`[code]`
 
 **RNG** `0x800d`/`0x800e` (LFSR stepped by `loc_4b1a`). Used by falling-hazard slot selection and the
-chamber-creature drop-reset. `[code]` The DK spin-RNG-pinning trick applies if determinism is ever
-needed. `[guess]`
+chamber-creature drop-reset. `[code]` The DK spin-RNG-pinning trick **works here — validated.** The
+game runs the full attract fine with the RNG frozen (both a ROM-operand patch and a runtime
+debugger-reset of `0x800d`/`0x800e`); neither the watchdog nor the credit-corruption check (§2.1) trips
+on a frozen seed — the game does **not** reset (the "reset on a frozen RNG" reading was a truncated-trace
+artifact — see decompiler-pipeline.md §Traps). The pin makes the *deterministic* structure reproducible:
+`gameState`→4 demo entry is RNG-independent (the `loc_3a6f` delay loop, `0x800a` ticking 0x1e→0) and
+**converges** JS↔MAME to a bounded ~20-frame cycle-free drift (JS f671 / MAME f691). The RNG-*driven*
+demo content (hazard-slot selection, the chamber creature, the synthetic nav stream) is the
+entropy-timing residual that legitimately can't be frame-matched — validated by the pixel gate, not a
+state diff. `[seen]`/`[code]`
 
 ### 2.2 Player movement & digging
 

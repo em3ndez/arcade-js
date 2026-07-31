@@ -453,6 +453,7 @@ smuggles in understanding a tool lacks); that question needs its own stripped/fr
 
 ## Traps
 
+- **Symptom — running the idiomatic layer live HANGS** (a vblank busy-wait like `waitFrames` spinning on `FRAME_WAIT_COUNTDOWN` never returns; the main-loop vblank spin never exits). Expected, not a bug: idiomatic routines charge zero cycles, so the *cycle-driven* NMI never fires to tick the wait down. The fix is the frame-stepped engine above (fire the NMI at the vblank-poll yield), switched in as the whole-game capstone — **not** re-adding cycles to idiomatic routines to unstick it. (Re-derived the hard way 2026-07-30; the whole answer was already in this section.)
 - **The NMI must fire at the vblank-poll yield.** An arbitrary preemption point forks real state
   (`GAME_STATE`) even with the PRNG pinned. This is a hard requirement of the cycle-free model, not
   a nicety.
@@ -480,3 +481,16 @@ smuggles in understanding a tool lacks); that question needs its own stripped/fr
   before it lands. A per-agent "green" self-report is not the gate — a later dissolve in the same
   batch can move a dead stack byte that a caller test three files away was silently asserting, so run
   the whole suite yourself before committing.
+- **A measurement that says "the game stalled / reset / diverged" is a claim about your *instrument*
+  first.** Two traces of the same *deterministic* run disagreeing — one shows the game running, one
+  shows it stuck — means an instrument is lying; stop and isolate which, never rationalize the
+  contradiction into a game-behavior story. On The Pit this cost a long detour: a truncating MAME trace
+  (an unheld write-tap GC'd at ~frame 185 — see grounding.md) made the game look like it *reset when the
+  RNG was frozen*, and later like it *never entered the attract demo*. Both were false — the game runs
+  fine with a pinned RNG, and demo entry (`GAME_STATE`→4, driven by the RNG-independent `loc_3a6f`
+  delay loop) **converges**: JS frame 671 vs MAME 691, a bounded ~20-frame cycle-free drift. **And the
+  explanation is a claim too:** the first root cause offered ("the frame notifier GC'd") was itself
+  unverified and *wrong* — a two-line held-vs-unheld probe refuted it (the notifier was fine; the
+  discarded *tap* token was the GC victim). Verify the *explanation*, not just the finding, and
+  cross-check any stall/reset/divergence against an independent GC-immune signal — the screen frame
+  counter, a fresh state dump, or a second agent — before you believe it or write it down.
