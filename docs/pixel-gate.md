@@ -39,6 +39,30 @@ frame ~1600) plus a pickup assertion the movement gate doesn't need: the prize s
 value. Nine scenarios — `{50m,75m,100m} × {hat,parasol,purse}` — each with its own committed tape
 in `games/dkong/tapes/`.
 
+## Gameplay, not just attract (The Pit)
+
+Attract is the easy half — it takes no input, so a golden captures itself. The gate that matters
+runs the game. `games/thepit/tools/pixel_suite.py` drives **coin → start → dig** into both MAME
+(the oracle) and the JS renderer on the *same* entropy-pinned input, and asserts the JS frame
+buffer is byte-identical to MAME's, pixel-for-pixel, through the tunnelling gameplay — result:
+every gameplay frame clean, 0 px. `render.js --pin` freezes the RNG the same way MAME's
+`--pin-entropy` does, so the two stay in lock-step instead of drifting on random actor content.
+It renders the *translated* layer; the idiomatic coroutine layer is separately proven byte-identical
+to it over video RAM, so one gate covers both. BYO-ROM: the golden is captured live from your own
+romset (never committed), and the gate SKIPs green if MAME can't verify it.
+
+Two artifacts are handled in the open, not papered over — both instances of "the reading is the
+instrument first":
+- **A one-frame boot-transition phase.** One edge tile turns on a frame earlier in the JS render
+  than in MAME (the frame-stepped boot phase differs by one) — cosmetically invisible, present in
+  attract too. The diff window starts at frame 2 so *that* transient is excluded; a regression at
+  any later attract-or-gameplay frame still fails. Skipping two boot frames is not "widening the
+  tolerance" — the floor stays 0 px everywhere the game is actually drawing.
+- **A false "watchdog reset" flag.** The golden tool's boot-signature heuristic fires on the
+  coin/start frames, where the screen blanks and *looks* like boot. It is not a reset: the gate
+  re-checks the STATE dump (work RAM at those frames is not the boot image; GAME_STATE steps
+  0→3→1 normally) and only fails on a *real* reset (work RAM == boot).
+
 ## The discipline around the gate
 
 Three rules keep the gate honest, each learned the hard way:

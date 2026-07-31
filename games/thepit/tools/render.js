@@ -38,6 +38,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Machine, UnregisteredRoutine } from "../machine.js";
 import { UnmappedAccess } from "../../../boards/thepit/memory.js";
+import { installEntropyPin } from "../../../core/entropy-pin.js";
 import manifest from "../manifest.js";
 
 const GAME_DIR = dirname(dirname(fileURLToPath(import.meta.url))); // games/thepit
@@ -58,6 +59,7 @@ function parseArgs(argv) {
     framesOut: join(GAME_DIR, "out", "emit"),
     inputs: [],
     pokes: [],
+    pin: false,
   };
   // Same --input/--poke grammar as emit.js so a tape renders identically to how it
   // state-emits: PORT=BITS@FRAME[:hold[N]|once] / ADDR=VAL@FRAME[:hold[N]|once].
@@ -75,6 +77,7 @@ function parseArgs(argv) {
         break;
       }
       case "--frames-out": args.framesOut = argv[++i]; break;
+      case "--pin": args.pin = true; break; // entropy-pin the RNG (match a --pin-entropy MAME golden)
       case "--poke": {
         const mt = argv[++i].match(SPEC);
         if (!mt) throw new Error(`--poke expects ADDR=VAL@FRAME[:hold[N]|once]`);
@@ -148,6 +151,7 @@ async function main() {
   const proms = assembleImage("proms", manifest.rom.images.proms, args.romset);
 
   const machine = await Machine.create(rom, { gfx, proms });
+  if (args.pin) installEntropyPin(machine, manifest.entropyPin); // freeze RNG to match a --pin-entropy golden
   machine.inputTape = args.inputs.length ? args.inputs : null;
   machine.pokes = args.pokes.length ? args.pokes : null;
 
