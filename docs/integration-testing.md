@@ -147,3 +147,15 @@ not compared. Confirm the gate has TEETH by injecting a fault into a routine tha
 the scenario (verify it is a live writer first — a rendering-only routine whose colour-RAM output is
 outside `[0x8000, gameStateHi]` will not trip a game-state gate, which is a poor teeth target, not a
 missing tooth).
+
+**The go-live gate above runs ATTRACT — which takes no input. That is only half the machine.** A
+runtime can reproduce the attract loop byte-for-byte and still freeze the instant a player inserts a
+coin (The Pit did: the coin/credit warm-restart long-jumps out of the NMI — see decompiler-pipeline.md
+Traps). So the gate set MUST also **replay the input tapes**. `games/<game>/idiomatic/test/tape.test.js`
+replays `games/<game>/tapes/*.lua` through the idiomatic runtime AND the translated oracle (both under
+`runIdiomaticGame` — pure-translated runs under it too, since the translated poll loops also kick the
+watchdog and the translated NMI handler doesn't read it). It asserts the game RESPONDS — a credit
+banks, the game starts at the tape's contract frame, the player moves/digs — and that idiomatic == the
+oracle through coin → start → in-game → dig. Port it with the tape: press the same bits the lua tape
+does via `io.inputAssert` (the JS mirror is offset a couple frames — the tape file documents it), and
+expand a thin coin/start tape until it exercises much of the game.

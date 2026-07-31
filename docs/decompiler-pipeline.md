@@ -535,3 +535,25 @@ idiomatic (2026-07-31), each cost real time, and each has a one-line answer now.
   as `runCycleFree` — at the poll, before firing the NMI. Sampling *after* the NMI shifts every
   NMI-updated cell (sound ring index, input debounce accumulators) by one frame and fakes a handful of
   "game-state divergences" that are pure measurement phase. (Cost ~an hour chasing six phantom cells.)
+- **The NMI can LONG-JUMP into a new main loop — the in-NMI guard freezes it.** A frame-stepped engine
+  fires the vblank NMI as a nested JS call and assumes it *returns*. But a coin/credit/start/game-over
+  path is a warm restart driven FROM the interrupt: the handler resets SP to the stack top and
+  tail-calls a new forever main loop (The Pit: `serviceVblankNmi` banks a credit → `showCreditScreen`
+  resets SP → `holdFixedScreen` spins in `waitFrames`). That nested call never returns, and the guard
+  that stops the handler re-triggering its own frame ALSO blocks the new loop's poll → the game freezes
+  the instant a coin drops. Fix per engine: the **watchdog-keyed** `runIdiomaticGame` DROPS the guard —
+  a watchdog READ while an NMI is on the stack means the handler long-jumped, and those reads are real
+  frames; safe *iff the NMI handler never READS the watchdog* (The Pit only writes 0xb800 for sound —
+  verify per game). The **poll-PC** `runCycleFree` KEEPS its guard (its translated handler's final `ret`
+  steps back to the poll PC it interrupted, which would re-fire). The abandoned outer handler stays on
+  the JS stack — one frame per warm-restart, bounded for a normal session; a coroutine/unwind engine
+  would reclaim it. Also use a PER-FRAME read/step backstop (reset each frame), not a total cap, or a
+  long healthy session trips it.
+- **Attract-only gates are BLIND to input — replay the tapes.** The whole go-live gate (`golive.test.js`)
+  and every per-routine/swap gate run ATTRACT, which takes no input, so the entire coin → credit →
+  start → in-game → dig path is unexercised. "The whole game reproduces the oracle byte-for-byte" passed
+  green while the browser froze on the first coin. Every game's gates MUST replay its input tapes
+  (`games/<g>/tapes/*.lua`) through the runtime AND the oracle, and assert the game RESPONDS (a credit
+  banks, the game starts at the tape's contract frame, the player moves/digs/scores) as well as
+  idiomatic == translated through the play sequence. Pattern: `games/thepit/idiomatic/test/tape.test.js`.
+  Expand thin tapes so they exercise much of the game, not just coin/start.
