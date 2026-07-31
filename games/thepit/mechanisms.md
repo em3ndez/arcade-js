@@ -295,7 +295,8 @@ overlap case WAS held for ~1476 frames with `0x8080=1` and **zero** life loss).
     stamps tile `0x41`, sound `0x11`). A dig-disturbed drop flips the type to `0x06` (rock) via
     `loc_2c04`. **Observed:** `0x80ab=0x07` is the resting value from board start; it flips to `0x06`
     only when `loc_2c04` spawns a rock. `[seen]`/`[code]` A live *falling* arrow-rain descent
-    (`0x80aa=0x10`, `HAZARD_ACTIVE_COUNT 0x80bd>0`) was not captured on-screen — see §3.
+    (`0x80aa=0x10`, `HAZARD_ACTIVE_COUNT 0x80bd>0`) is now `[seen]` — captured on-screen via a
+    control-poke (see §3).
 - **The Pit crossing** `PIT_CROSS_ACTIVE 0x8077` (sticky): set when the player reaches goal tile
   `0x27`; it gates boarding the ship at the far edge (col ≥ 0x8a, `loc_19d0/19e3`) and disables the
   laser while crossing. **The crossing itself awards no points** (grounding-2 Z-5: score stayed 0000).
@@ -558,9 +559,15 @@ of both the chamber creature and the Pit sliding-floor reveal. Only these remain
 2. **Isolated laser / boom / enemy-death sounds** — no audio oracle exists; only the command→event map
    with clear visual correlates is `[seen]` (§2.14). These arms and the two ambient tones stay `[guess]`.
 3. **A live falling arrow-rain descent on-screen** — the arrow type, seed, physics, and render split are
-   grounded in code (§2.6), but a `HAZARD_STATE 0x80aa=0x10` arrow *falling* in the bottom chamber
-   (`0x80bd>0`) was not captured to a frame; needs skilled navigation to trigger the capture sequence.
-   `[code]` located / `[guess]` on the live descent.
+   grounded in code (§2.6). **The live descent is now `[seen]` (control-poke, 2026-07-31).** Poking a
+   live hazard mid-game under MAME (`HAZARD_STATE 0x80aa=0x10`, `HAZARD_TYPE 0x80ab=0x07`,
+   `HAZARD_ACTIVE_COUNT 0x80bd=1`, a descending `HAZARD_Y 0x80ac`) makes the game's own composer
+   (`loc_2bd3`) emit the sprite record `[SHAPE 0x10, COLOUR 0x07]` and render it, and captured MAME
+   frames show that sprite descending on-screen at the position the hardware decode predicts
+   (`y=240−spr[+0]`, `x=spr[+3]+1`; the poked `HAZARD_Y` drives raster-x = screen-vertical under ROT90).
+   The confirmed claim is the **live render + descent** of a `STATE 0x10`/`TYPE 0x07` hazard; the sprite is
+   small and dirt-occluded so the exact glyph outline is not crisply legible, and this was a poked
+   hazard, not a naturally-triggered rain in the bottom chamber (that spawn location stays `[code]`).
 4. **The two-body actor's per-arm figure attribution** — the enemy-3 / rescue-ship / intro-set-piece
    slot's rebuild-at-edge routine (`0x38c8`, §2.9) has exact record mechanics, but WHICH specific figure
    its redraw serves is not determinable from code. The slot's three observed roles (§2.9) are `[seen]`;
