@@ -1,3 +1,5 @@
+![The Pit](thepit.jpg)
+
 # The Pit — Work RAM
 
 Work RAM lives at `0x8000`–`0x87FF`. Each name below describes the cell by its role in
@@ -30,7 +32,7 @@ whose role is only partly pinned, carry a terse caveat.
 | 801c | creditMirrorA | Redundant copy of creditCount, cross-checked by the corruption watchdog |
 | 801e | soundHead | Sound-command ring WRITE/head index (mod 8) |
 | 801f | soundTail | Sound-command ring READ/dequeue index (mod 8) |
-| 8020 | soundRing | Sound-command ring buffer base (8 slots); enqueue writes (code \| 0x80) at head |
+| 8020 | soundRing | Sound-command ring buffer base (8 slots); enqueue writes (code ors 0x80) at head |
 | 8028 | level | Current player's level/round counter (inits 1, +1 per clear); every difficulty subsystem scales off it |
 | 802b | menLeft | Active player's working lives; game-over gate is this reaching 0 (P1/P2 backups 802c/802d kept hex) |
 | 8031 | scoreLo | Low packed-BCD byte of the active score (all score is displayed x100) |
