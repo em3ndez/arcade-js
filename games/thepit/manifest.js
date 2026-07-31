@@ -83,5 +83,41 @@ export default {
     map: "audio/sounds.js",
     samples: "audio/samples",
   },
-  // entropyPin only if The Pit couples its RNG to timing (unknown until translation).
+  // Entropy pin — The Pit's RNG is a pure 16-bit LFSR at 0x800d/0x800e (loc_4b1a); with
+  // the frame-stepped engine (no cycle clock) it is advanced a slightly different number
+  // of times per frame than MAME, so the seed forks unless pinned. Validated: a frozen seed
+  // does NOT reset the game (no watchdog/credit-check trip) and the RNG-independent demo
+  // entry converges. A fully-pinned run can later reach an attract state outside the poll
+  // set (caught by the step-budget backstop), so the PIXEL gate runs UNPINNED at full length
+  // and the pinned STATE gate is diagnostic. Both representations express the SAME intent
+  // (see core/entropy-pin.js):
+  //   JS  — drop writes to the LFSR working set so it stays at its boot value (0).
+  //   MAME — redirect advanceRandom's two stores (`ld (0x800e),a` @0x4b33,
+  //          `ld (0x800d),a` @0x4b38) to 0x0000. Alternatively a debugger write-reset
+  //          of 0x800d/0x800e at loc_4b1a's ret (0x4b3b) — see the convergence runbook.
+  entropyPin: {
+    seedBytes: [0x800d, 0x800e],
+    romPatches: [
+      { at: 0x4b34, to: 0x00 }, { at: 0x4b35, to: 0x00 }, // ld (0x800e),a operand -> 0x0000
+      { at: 0x4b39, to: 0x00 }, { at: 0x4b3a, to: 0x00 }, // ld (0x800d),a operand -> 0x0000
+    ],
+  },
+
+  // Cycle-free convergence config (core/frame-stepped.js + tools/convergence.mjs).
+  //   pollPCs      — the vblank-poll yields where the frame-stepped engine fires the NMI:
+  //                  the waitFrames spin (0x4c07) and the in-game main-loop top (0x0348).
+  //   stateExclude — the free-running cycle-proxy counters + dead Z80 stack scratch that
+  //                  legitimately hold a bounded phase offset under frame-stepping, so a
+  //                  deterministic-state diff excludes them. The RNG-DRIVEN actor content
+  //                  is a separate residual validated by pixels, not this list.
+  convergence: {
+    pollPCs: [0x4c07, 0x0348],
+    stateExclude: {
+      cells: [
+        0x8006, 0x8007, 0x8008, 0x8009, 0x800a, 0x800b, 0x800c, 0x800d, 0x800e, 0x800f,
+        0x8010, 0x804f, 0x805c, 0x8065, 0x8067,
+      ],
+      stack: [0x83c0, 0x8400], // [start, end)
+    },
+  },
 }
