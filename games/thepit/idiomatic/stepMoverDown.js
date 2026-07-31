@@ -31,14 +31,14 @@
  *           ABI: the caller overwrites the registers and reads the mover's record from
  *           memory, so none is consumed. The RAM gate backstops that.
  * NAMES:    ENEMY_ACTION_TIMER (0x808b) serves as this mover's cadence countdown here; the
- *           reload ENEMY_WORK_MOVE_PERIOD (0x8091). The facing (0x8092) and position (0x8086)
- *           bytes have no ram.js name yet and stay hex. The name stays neutral loc_: the effect
+ *           reload ENEMY_WORK_MOVE_PERIOD (0x8091). The facing (0x8092) byte has no ram.js name
+ *           yet and stays hex; the position byte is ENEMY_WORK_Y (0x8086). The name stays neutral loc_: the effect
  *           (advance the mover, publish its facing) is clear, but the screen direction
  *           this preset encodes is not pinned to an axis, and that direction is the
  *           only thing that would distinguish an English name from its siblings.
  */
 
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_Y } from "./ram.js";
 
 export function stepMoverDown(m) {
   const { mem8 } = m;
@@ -55,5 +55,5 @@ export function stepMoverDown(m) {
   }
 
   // Advance the mover one unit forward along its axis, every frame.
-  mem8[0x8086] = mem8[0x8086] + 1;
+  mem8[ENEMY_WORK_Y] = mem8[ENEMY_WORK_Y] + 1;
 }

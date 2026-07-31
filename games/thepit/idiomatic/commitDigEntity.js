@@ -33,8 +33,9 @@
  *           residual registers/flags are dead ABI.
  * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_OBJ_SUBTYPE, HAZARD_X,
  *           HAZARD_Y from ram.js. The staging scratch (0x80b6/0x80b9/0x80bc/0x80bf),
- *           the saved + live carve cell pointers (0x80ba/0x80af) and the target-column
- *           mirror (0x80be) have no confirmed name yet and stay hex.
+ *           the saved carve cell pointer (0x80ba) and the target-column
+ *           mirror (0x80be) have no confirmed name yet and stay hex; the live carve cell pointer
+ *           is CARVE_CELL_PTR (0x80af).
  */
 
 import { u8 } from "../../../core/int.js";
@@ -50,6 +51,7 @@ import {
   STAGED_TARGET_Y,
   HAZARD_X,
   HAZARD_Y,
+  CARVE_CELL_PTR,
 } from "./ram.js";
 
 const CARVING_STATE = 48; // dig-object state code for the carving phase
@@ -63,7 +65,7 @@ export function commitDigEntity(m) {
   mem8[HAZARD_STATE] = CARVING_STATE;
   mem8[HAZARD_TYPE] = 7;
   const cellPtr = mem16[STAGED_CELL_PTR];
-  mem16[0x80af] = cellPtr;
+  mem16[CARVE_CELL_PTR] = cellPtr;
 
   // Promote the values staged earlier into the live record the carve handler reads.
   const stagedColumn = mem8[STAGED_TARGET_X];

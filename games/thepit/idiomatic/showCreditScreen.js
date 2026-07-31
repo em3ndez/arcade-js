@@ -43,7 +43,7 @@
 import { enableNmi } from "./enableNmi.js";
 import { blankScreen } from "./blankScreen.js";
 import { holdFixedScreen } from "./holdFixedScreen.js";
-import { GAME_STATE } from "./ram.js";
+import { GAME_STATE, STACK_TOP } from "./ram.js";
 
 export function* showCreditScreen(m) {
   const { mem8, regs } = m;
@@ -54,7 +54,7 @@ export function* showCreditScreen(m) {
   // Hard restart: drop the stack to the top of work RAM, discarding the caller's
   // return frame. Every callee below pushes and pops relative to this fresh top, so
   // resetting it here is what lands their return addresses where the original does.
-  regs.sp = 0x83ff;
+  regs.sp = STACK_TOP;
 
   // Enable the frame interrupt.
   enableNmi(m);

@@ -30,17 +30,14 @@
  *           (the actor is reached by tail-jump; dead ABI).
  * NAMES:    ENEMY3_X (0x810a, primary record base), ENEMY3_TWIN_X (0x811b, second record base),
  *           TREASURE_COLLECTED (0x8078, read here as the second-record gate — the shared byte
- *           whose twin-advance coupling vs reuse is unproven, see ram.js) from ram.js. Kept
- *           hex: 0x8083 (the driver's shared working block) has no ram.js name yet.
+ *           whose twin-advance coupling vs reuse is unproven, see ram.js) from ram.js.
+ *           ENEMY_WORK_X 0x8083 is the driver's shared working block.
  */
 
-import { ENEMY3_X, ENEMY3_TWIN_X, TREASURE_COLLECTED } from "./ram.js";
+import { ENEMY3_X, ENEMY3_TWIN_X, TREASURE_COLLECTED, ENEMY_WORK_X } from "./ram.js";
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
-// The move/collision driver's shared working block: a record is copied in, driven in
-// place, then copied back out.
-const MOVER_SCRATCH = 0x8083;
 // Second-record gate: nonzero means also advance the twin record this frame. This is the
 // same physical byte as TREASURE_COLLECTED (0x8078); whether the twin-advance couples to the
 // diamond-collect flag or merely reuses the byte is UNPROVEN (see ram.js caveat).
@@ -51,9 +48,9 @@ const RECORD_SIZE = 17;
  *  the driver's working block, run the driver, then copy the stepped result back. */
 function driveRecordThroughMover(m, recordBase) {
   const { mem8 } = m;
-  for (let i = 0; i < RECORD_SIZE; i++) mem8[MOVER_SCRATCH + i] = mem8[recordBase + i];
+  for (let i = 0; i < RECORD_SIZE; i++) mem8[ENEMY_WORK_X + i] = mem8[recordBase + i];
   stepEnemyMover(m);
-  for (let i = 0; i < RECORD_SIZE; i++) mem8[recordBase + i] = mem8[MOVER_SCRATCH + i];
+  for (let i = 0; i < RECORD_SIZE; i++) mem8[recordBase + i] = mem8[ENEMY_WORK_X + i];
 }
 
 export function advanceActorMovers(m) {

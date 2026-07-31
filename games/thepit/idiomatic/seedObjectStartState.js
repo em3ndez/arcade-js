@@ -35,6 +35,8 @@ import {
   CARVE_SEAM_RIGHT,
   MOVE_BLOCK_FLAG,
   NEXT_TILE,
+  OBJECT_MOTION_MODE,
+  LOCKED_COLUMN,
   PLAYER_SPRITE_ATTR,
   PLAYER_STEP_Y,
   PLAYER_STEP_X,
@@ -65,7 +67,7 @@ export function seedObjectStartState(m) {
   // Everything else in the block starts empty: the spawn-phase flag, the
   // vertical-move gate, the unnamed status bytes, and the tile-classifier scratch.
   for (const addr of [
-    0x801a, 0x8075, 0x8076, 0x8077, 0x8078, 0x8079, 0x807a,
+    0x801a, OBJECT_MOTION_MODE, 0x8076, 0x8077, 0x8078, 0x8079, LOCKED_COLUMN,
     BOARD_END_PHASE, 0x807c, 0x807d, CARVE_SEAM_LEFT, CARVE_SEAM_RIGHT, MOVE_BLOCK_FLAG, 0x8081, 0x8082,
     0x80a2, 0x80a4, 0x80a7, NEXT_TILE,
   ]) {

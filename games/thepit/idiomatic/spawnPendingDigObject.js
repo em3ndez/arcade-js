@@ -32,8 +32,8 @@
  *           on both sides so the Z80 return path lines up for free.
  * NAMES:    HAZARD_ACTIVE_COUNT, HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, HAZARD_X, HAZARD_Y,
  *           PLAYER_Y, PLAYER_X, MOVE_BLOCK_FLAG (the byte this routine writes the overlap flag to),
- *           and DROP_QUEUE (the 24-slot queue base) from ram.js. Its reload byte
- *           (0x80c2) has no ram.js name yet, kept hex.
+ *           and DROP_QUEUE (the 24-slot queue base) from ram.js. Its reload byte is
+ *           DIG_OBJ_TIMER_RELOAD (0x80c2).
  */
 
 import { advanceRandom } from "./advanceRandom.js";
@@ -44,6 +44,7 @@ import {
   HAZARD_STATE,
   HAZARD_TYPE,
   DIG_OBJ_TIMER,
+  DIG_OBJ_TIMER_RELOAD,
   HAZARD_X,
   HAZARD_Y,
   PLAYER_Y,
@@ -52,9 +53,6 @@ import {
   DROP_QUEUE,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
-
-// Byte the dig-object lifetime timer is seeded from at spawn.
-const DIG_TIMER_RELOAD = 0x80c2;
 
 // The tile code painted into the spawned cell.
 const SPAWN_TILE = 37;
@@ -70,7 +68,7 @@ export function spawnPendingDigObject(m) {
   requestSound18(m);
   mem8[HAZARD_STATE] = 16; // spawn-phase code
   mem8[HAZARD_TYPE] = 6; // colour attribute
-  mem8[DIG_OBJ_TIMER] = mem8[DIG_TIMER_RELOAD]; // lifetime for the new object
+  mem8[DIG_OBJ_TIMER] = mem8[DIG_OBJ_TIMER_RELOAD]; // lifetime for the new object
 
   // Draw random queue slots until one holds a column. Each draw keeps the low 5 bits
   // (0..31) and rejects 24..31, so it picks uniformly among the 24 slots.

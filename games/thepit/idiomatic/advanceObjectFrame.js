@@ -26,23 +26,22 @@
  * LIVE-OUT: memory-only — every effect is produced by the delegated per-frame handler (the
  *           at-rest router or a walk stepper); this routine writes no RAM of its own and
  *           the caller reads no register back (it tail-jumps here).
- * NAMES:    the mode byte 0x8075 has no ram.js name yet — the sibling steppers read it as a
+ * NAMES:    the mode byte OBJECT_MOTION_MODE (0x8075) — the sibling steppers read it as a
  *           motion marker (advanceObjectWalkFrame) versus a sub-tile phase (walkActor), so
- *           its cross-routine meaning is unsettled — and it stays hex.
+ *           its cross-routine meaning is unsettled.
  */
 
 import { routeIdleObjectByMoveCommand } from "./routeIdleObjectByMoveCommand.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { walkActor } from "./walkActor.js";
-
-const OBJECT_MODE = 0x8075; // per-frame motion/mode byte: 0 = at rest, sign selects a stepper
+import { OBJECT_MOTION_MODE } from "./ram.js";
 
 export function advanceObjectFrame(m) {
   const { regs, mem8 } = m;
 
   // The object's per-frame move command, handed over by the caller.
   const moveCommand = regs.a;
-  const mode = mem8[OBJECT_MODE];
+  const mode = mem8[OBJECT_MOTION_MODE];
 
   // At rest this frame: route on the command bits to the at-rest handler, which still
   // takes its command through the register slot the caller filled.

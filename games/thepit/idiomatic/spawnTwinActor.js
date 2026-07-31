@@ -45,12 +45,18 @@ import {
   ENEMY3_TIMER,
   ENEMY3_X,
   ENEMY3_Y,
+  ENEMY3_STATE,
+  ENEMY3_MOVE_PERIOD,
+  ENEMY3_TARGET_COL,
   LEVEL,
   ENEMY3_TWIN_ATTR,
   ENEMY3_TWIN_Y,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_TIMER,
   ENEMY3_TWIN_X,
+  ENEMY3_TWIN_STATE,
+  ENEMY3_TWIN_MOVE_PERIOD,
+  ENEMY3_TWIN_TARGET_COL,
 } from "./ram.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
@@ -92,17 +98,17 @@ export function spawnTwinActor(m) {
   mem8[ENEMY3_TWIN_X] = 0;
   mem8[ENEMY3_ATTR] = 0; // primary state byte
   mem8[ENEMY3_TWIN_ATTR] = 0; // twin state byte
-  mem8[0x8117] = 0; // primary sub-state
-  mem8[0x8128] = 0; // twin sub-state
+  mem8[ENEMY3_STATE] = 0; // primary sub-state
+  mem8[ENEMY3_TWIN_STATE] = 0; // twin sub-state
   mem8[ENEMY3_TIMER] = 180; // primary countdown, ~3 seconds
   mem8[ENEMY3_TWIN_TIMER] = 180; // twin countdown
-  mem8[0x811a] = 6; // primary per-record constant
-  mem8[0x812b] = 7; // twin per-record constant (one higher)
+  mem8[ENEMY3_TARGET_COL] = 6; // primary per-record constant
+  mem8[ENEMY3_TWIN_TARGET_COL] = 7; // twin per-record constant (one higher)
 
   // Start phase: a low-bit slice of the shared state byte staggers the first action.
   const startPhase = 7 - (mem8[LEVEL] & 0x06);
-  mem8[0x8118] = startPhase; // primary
-  mem8[0x8129] = startPhase; // twin
+  mem8[ENEMY3_MOVE_PERIOD] = startPhase; // primary
+  mem8[ENEMY3_TWIN_MOVE_PERIOD] = startPhase; // twin
 
   // Hand off to the record-to-sprite copier: it stages both freshly-seeded records
   // into the sprite buffer. Its effect is memory-only, and this is a tail hand-off,

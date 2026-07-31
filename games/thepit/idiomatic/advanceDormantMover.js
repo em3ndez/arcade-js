@@ -31,12 +31,12 @@
  *           only by tail-jump, threading this return on out, and reads it as no
  *           pixel state — the whole-machine/pixel gate backstops any live register.
  * NAMES:    ENEMY_WORK_STATE (0x8090) from ram.js is the free-running tick counter; the
- *           slower second counter (0x8085) has no ram.js name yet, so it stays hex;
+ *           slower second counter is ENEMY_WORK_ATTR (0x8085);
  *           the periodic refresh owns the bytes it writes.
  */
 
 import { reseedMoverCadenceAndRearmState } from "./reseedMoverCadenceAndRearmState.js";
-import { ENEMY_WORK_STATE } from "./ram.js";
+import { ENEMY_WORK_STATE, ENEMY_WORK_ATTR } from "./ram.js";
 
 
 export function advanceDormantMover(m) {
@@ -57,6 +57,6 @@ export function advanceDormantMover(m) {
   if (tick % 4 !== 0) return;
 
   // On the 4th tick, advance the slower second counter, holding its bit 3 clear.
-  const second = (mem8[0x8085] + 1) & 0xf7;
-  mem8[0x8085] = second;
+  const second = (mem8[ENEMY_WORK_ATTR] + 1) & 0xf7;
+  mem8[ENEMY_WORK_ATTR] = second;
 }

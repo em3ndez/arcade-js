@@ -34,20 +34,15 @@
  *           sub-phase value and a wrong continuation.
  * LIVE-OUT: memory-only — the sub-phase byte ACTIVE_PLAYER and everything the chosen
  *           continuation leaves in RAM. No registers/flags.
- * NAMES:    ACTIVE_PLAYER (0x8002) from ram.js. Kept as raw addresses: 0x802c / 0x802d are the
- *           two continuation-select flags (roles not pinned).
+ * NAMES:    ACTIVE_PLAYER (0x8002) from ram.js. PLAYER1_MEN_BACKUP (0x802c) / PLAYER2_MEN_BACKUP (0x802d) are the
+ *           two continuation-select flags here (roles not pinned).
  *
  * PURPOSE [guess]: the two continuation-select flags' game meaning.
  */
 
-import { ACTIVE_PLAYER } from "./ram.js";
+import { ACTIVE_PLAYER, PLAYER1_MEN_BACKUP, PLAYER2_MEN_BACKUP } from "./ram.js";
 import { setUpRoundAndHoldIntro } from "./setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "./submitHighScoresAndReset.js";
-
-// The two continuation-select flags. Their game-level meaning is not pinned, so they stay
-// raw addresses; here each just gates whether a transition hands off to the setup path.
-const FLAG_AT_RESET = 0x802c; // consulted after the sub-phase resets to 1
-const FLAG_AT_ADVANCE = 0x802d; // consulted in the two "advance to sub-phase 2" arms
 
 export function* stepRoundSubPhaseAndBranch(m) {
   const { mem8 } = m;
@@ -55,16 +50,16 @@ export function* stepRoundSubPhaseAndBranch(m) {
   // Sub-phase 1 advances to 2; the second flag sends it straight to setup.
   if (mem8[ACTIVE_PLAYER] === 1) {
     mem8[ACTIVE_PLAYER] = 2;
-    if (mem8[FLAG_AT_ADVANCE] !== 0) return yield* setUpRoundAndHoldIntro(m);
+    if (mem8[PLAYER2_MEN_BACKUP] !== 0) return yield* setUpRoundAndHoldIntro(m);
   }
 
   // Reset the sub-phase to 1; the first flag alone routes to setup.
   mem8[ACTIVE_PLAYER] = 1;
-  if (mem8[FLAG_AT_RESET] !== 0) return yield* setUpRoundAndHoldIntro(m);
+  if (mem8[PLAYER1_MEN_BACKUP] !== 0) return yield* setUpRoundAndHoldIntro(m);
 
   // Neither flag chose setup: advance the sub-phase to 2, then take teardown when the
   // second flag is clear, otherwise fall through to setup.
   mem8[ACTIVE_PLAYER] = 2;
-  if (mem8[FLAG_AT_ADVANCE] === 0) return yield* submitHighScoresAndReset(m);
+  if (mem8[PLAYER2_MEN_BACKUP] === 0) return yield* submitHighScoresAndReset(m);
   return yield* setUpRoundAndHoldIntro(m);
 }

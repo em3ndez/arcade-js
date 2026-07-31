@@ -34,7 +34,7 @@
  *           per-frame services.
  */
 
-import { GAME_STATE } from "./ram.js";
+import { GAME_STATE, STACK_TOP } from "./ram.js";
 import { enableNmi } from "./enableNmi.js"; //                       ROM 0x4b14
 import { steerDemoPlayer } from "./steerDemoPlayer.js"; //           ROM 0x03e8
 import { dispatchObjectFrameByStateTimer } from "./dispatchObjectFrameByStateTimer.js"; //                         ROM 0x13c9
@@ -49,9 +49,6 @@ const WATCHDOG_KICK = 0xb800;
 // The attract demo runs the game itself, with the auto-player steering in place of the
 // joystick; the game-mode byte holds this value while that demo is active.
 const DEMO_MODE = 4;
-
-// Top of the work-RAM stack (ld sp,0x83ff) — re-seated at the top of every pass.
-const STACK_TOP = 0x83ff;
 
 export function* mainLoop(m) {
   const { mem8 } = m;

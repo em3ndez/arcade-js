@@ -56,14 +56,14 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { disableSound } from "./disableSound.js";
 import { showFixedScreen } from "./showFixedScreen.js";
 import { enterPlayMode } from "./enterPlayMode.js";
-import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT, STACK_TOP } from "./ram.js";
 
 export function* rearmMachineAndBranchOnCredits(m) {
   const { mem8, regs } = m;
 
   // Hard restart: drop the stack to the top of work RAM, discarding the frame the
   // jumper left behind. This is a state entry — it never returns to its caller.
-  regs.sp = 0x83ff;
+  regs.sp = STACK_TOP;
 
   // Re-arm the machine: turn the per-frame interrupt on and arm the secondary
   // game-state byte, which the DIP decode below folds into its flip-screen configuration.

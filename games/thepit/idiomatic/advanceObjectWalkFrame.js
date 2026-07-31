@@ -31,15 +31,14 @@
  * LIVE-OUT: memory (column 0x8068, PLAYER_FACING, the 0x8075 motion marker, and the
  *           four record bytes stageObjectSpriteRecord writes) plus the phase left in E for the
  *           record builder's caller. A/F/B/HL and SP are dead.
- * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The reference point 0x806c and the motion
- *           marker 0x8075 stay hex — their roles are not yet grounded.
+ * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The reference point 0x806c stays hex — its
+ *           role is not yet grounded; the motion marker is OBJECT_MOTION_MODE (0x8075).
  */
 
-import { PLAYER_Y, PLAYER_FACING } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const REFERENCE = 0x806c; // moving reference point the object's column is measured against
-const MOTION_FLAG = 0x8075; // 0 at rest, else the high-bit marker the action dispatch reads as moving
 
 export function advanceObjectWalkFrame(m) {
   const { regs, mem8 } = m;
@@ -55,7 +54,7 @@ export function advanceObjectWalkFrame(m) {
 
   // At rest only on phase 0; otherwise mark "in motion" with the high bit set, which
   // the object-action dispatcher tests as a negative marker.
-  mem8[MOTION_FLAG] = phase === 0 ? 0 : 0xff;
+  mem8[OBJECT_MOTION_MODE] = phase === 0 ? 0 : 0xff;
 
   // Two-frame walk: the sprite code steps to its odd neighbour on the half of the
   // cycle where phase bit 1 is set, back to the even code otherwise.

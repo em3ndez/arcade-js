@@ -32,7 +32,7 @@
  *           scratch, and everything the screen-blank writes. Neither hand-off reads a
  *           register back from here.
  * NAMES:    GAME_STATE (0x8001), IN0_DEBOUNCED (0x8018) from ram.js. The pass-colour scratch
- *           0x8012 has no ram.js name yet (hex); the video/colour RAM bases are fixed
+ *           is COLOUR_TEST_FILL (0x8012); the video/colour RAM bases are fixed
  *           hardware regions kept as addresses. 0x4f61 / 0x4f7e are the frame-wait's resume
  *           slots (code addresses), pushed the way the still-stack-return frame-wait expects.
  */
@@ -41,9 +41,8 @@ import { blankScreen } from "./blankScreen.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { waitFrames } from "./waitFrames.js";
 import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
-import { GAME_STATE, IN0_DEBOUNCED } from "./ram.js";
+import { GAME_STATE, IN0_DEBOUNCED, COLOUR_TEST_FILL } from "./ram.js";
 
-const PASS_COLOUR = 0x8012; // scratch holding the current pass's colour byte
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOUR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
 const SCREEN_CELLS = 1024; // the whole 32x32 grid (0x9000..0x93ff, 0x8800..0x8bff)
@@ -69,7 +68,7 @@ export function* showColourTestScreen(m) {
   // Cycle the colour byte across the top half of its range (128 through 255), one value
   // per pass. Each pass repaints the full test pattern and holds a moment before the next.
   for (let fill = 128; fill <= 255; fill++) {
-    mem8[PASS_COLOUR] = fill;
+    mem8[COLOUR_TEST_FILL] = fill;
     for (let cell = 0; cell < SCREEN_CELLS; cell++) {
       mem8[VIDEO_RAM_BASE + cell] = cell; // low 8 bits = the ramping tile index, 0..255
       mem8[COLOUR_RAM_BASE + cell] = fill; // whole colour map set to this pass's colour

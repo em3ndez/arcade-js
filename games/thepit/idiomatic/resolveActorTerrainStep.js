@@ -43,8 +43,9 @@
  *           to the record builder, whose result is the whole output and lives in RAM).
  * NAMES:    CUR_TILE, NEXT_TILE, PRIZE_GATE, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, REACTION_STATE,
  *           REACTION_TIMER, PLAYER_FACING from ram.js; the pickup counters 0x8081/0x8082, the +20
- *           latch 0x8078, the current/next scratch copies 0x80a7/0x80a6, and the reaction period
- *           0x80a3 stay hex (clear here, not yet grounded across the game). The two direction
+ *           latch 0x8078, and the current scratch copy 0x80a7 stay hex (clear here, not yet grounded
+ *           across the game); the ahead scratch copy is AHEAD_TILE_RAW (0x80a6) and the reaction
+ *           period is REACTION_PERIOD (0x80a3). The two direction
  *           tables live in ROM at 0x1b78 / 0x1ce0.
  *
  * PURPOSE [guess]: "Actor"=vocab (walkActor); tables unpinned.
@@ -59,6 +60,8 @@ import {
   REACTION_STATE,
   REACTION_TIMER,
   PLAYER_FACING,
+  REACTION_PERIOD,
+  AHEAD_TILE_RAW,
 } from "./ram.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
@@ -67,18 +70,14 @@ import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 // Scratch slots that mirror the tile under the actor (0x80a5 is CUR_TILE); the direction-table
 // check overwrites CUR_TILE_COPY with the tile it EXPECTS, and the final walk-vs-react decision
-// re-reads it. NEXT_TILE_RAW holds the raw tile one step ahead.
+// re-reads it. AHEAD_TILE_RAW holds the raw tile one step ahead.
 const CUR_TILE_COPY = 0x80a7;
-const NEXT_TILE_RAW = 0x80a6;
 
 // The two per-kind pickup counters and the one-shot latch that gates the +20 loot (roles clear
 // here but not grounded across the game — matching collectLootTile's local naming).
 const FIRST_LOOT_COUNT = 0x8081; // times a tile-58 pickup was collected
 const SECOND_LOOT_COUNT = 0x8082; // times a tile-59..61 pickup was collected
 const SECOND_LOOT_LATCH = 0x8078; // one-shot latch that opens the +20 loot
-
-// Reload source for the bump-reaction timer.
-const REACTION_PERIOD = 0x80a3;
 
 // Direction-keyed "expected terrain" tables in ROM: one for the tile the actor stands on, one
 // for the tile one step ahead. Row = tile - FIRST_TABLE_TILE, column = the direction's low bits.
@@ -194,7 +193,7 @@ export function resolveActorTerrainStep(m, tilePtr = m.regs.ix, moveDir = m.regs
   if (onGrid) return walkActor(m);
 
   const nextTile = mem8[tilePtr + 1];
-  mem8[NEXT_TILE_RAW] = nextTile;
+  mem8[AHEAD_TILE_RAW] = nextTile;
 
   if (SOLID_NEXT.has(nextTile)) return stageObjectSpriteRecord(m); // blocked ahead — hold
 

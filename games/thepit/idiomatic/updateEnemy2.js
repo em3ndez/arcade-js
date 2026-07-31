@@ -30,15 +30,14 @@
  *           tail-jump, so no caller reads a value register back (dead ABI).
  * NAMES:    ENEMY2_X (0x80f9, the object-2 record base), SPRITE_COORD_BIAS (0x8051),
  *           SPRITE_STAGING_BASE (0x8220) from ram.js; the shared mover scratch block
- *           base (0x8083) has no ram.js name yet and stays hex.
+ *           base is ENEMY_WORK_X (0x8083).
  */
 
-import { ENEMY2_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "./ram.js";
+import { ENEMY2_X, ENEMY_WORK_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "./ram.js";
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { advanceTwoSpriteActor } from "./advanceTwoSpriteActor.js";
 
 // The shared 17-byte scratch block the mover (stepEnemyMover) reads and updates in place.
-const MOVER_SCRATCH = 0x8083;
 const OBJECT_RECORD_BYTES = 17;
 
 // Object 2's four-byte slot in the sprite staging buffer (the sixth of eight slots).
@@ -49,9 +48,9 @@ export function updateEnemy2(m) {
 
   // Stage object 2's record into the mover scratch, step the mover on it, then copy the
   // updated scratch back over the record.
-  for (let i = 0; i < OBJECT_RECORD_BYTES; i++) mem8[MOVER_SCRATCH + i] = mem8[ENEMY2_X + i];
+  for (let i = 0; i < OBJECT_RECORD_BYTES; i++) mem8[ENEMY_WORK_X + i] = mem8[ENEMY2_X + i];
   stepEnemyMover(m);
-  for (let i = 0; i < OBJECT_RECORD_BYTES; i++) mem8[ENEMY2_X + i] = mem8[MOVER_SCRATCH + i];
+  for (let i = 0; i < OBJECT_RECORD_BYTES; i++) mem8[ENEMY2_X + i] = mem8[ENEMY_WORK_X + i];
 
   // Stage object 2's sprite: position/tile/attribute verbatim, then the fourth byte
   // shifted by the sprite coordinate offset.

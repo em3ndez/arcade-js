@@ -41,18 +41,15 @@
  *           reads a value register back (dead ABI).
  * NAMES:    PLAY_PHASE_COUNTER (0x8010), ENEMY1_X (0x80e8, base of object 1's record),
  *           SPRITE_COORD_BIAS (0x8051), GAME_STATE (0x8001), SPRITE_STAGING_BASE (0x8220)
- *           from ram.js. Kept hex: 0x8083 (the driver's shared working block) has no
- *           ram.js name yet. updateEnemy2 / advanceTwoSpriteActor are decompiled and called directly.
+ *           from ram.js. ENEMY_WORK_X 0x8083 is the driver's shared working block.
+ *           updateEnemy2 / advanceTwoSpriteActor are decompiled and called directly.
  */
 
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { advanceTwoSpriteActor } from "./advanceTwoSpriteActor.js";
 import { updateEnemy2 } from "./updateEnemy2.js";
-import { PLAY_PHASE_COUNTER, ENEMY1_X, SPRITE_COORD_BIAS, GAME_STATE, SPRITE_STAGING_BASE } from "./ram.js";
+import { PLAY_PHASE_COUNTER, ENEMY1_X, SPRITE_COORD_BIAS, GAME_STATE, SPRITE_STAGING_BASE, ENEMY_WORK_X } from "./ram.js";
 
-// The move/collision driver's shared working block: a record is copied in, driven in
-// place, then copied back out.
-const MOVER_SCRATCH = 0x8083;
 // Object 1's 4-byte record in the sprite-staging buffer (0x8230).
 const OBJ1_SPRITE_RECORD = SPRITE_STAGING_BASE + 16;
 // The move records (and their working-block copies) are 17 bytes each.
@@ -62,9 +59,9 @@ const RECORD_SIZE = 17;
  *  driver's working block, run the driver, then copy the stepped result back. */
 function driveRecordThroughMover(m, recordBase) {
   const { mem8 } = m;
-  for (let i = 0; i < RECORD_SIZE; i++) mem8[MOVER_SCRATCH + i] = mem8[recordBase + i];
+  for (let i = 0; i < RECORD_SIZE; i++) mem8[ENEMY_WORK_X + i] = mem8[recordBase + i];
   stepEnemyMover(m);
-  for (let i = 0; i < RECORD_SIZE; i++) mem8[recordBase + i] = mem8[MOVER_SCRATCH + i];
+  for (let i = 0; i < RECORD_SIZE; i++) mem8[recordBase + i] = mem8[ENEMY_WORK_X + i];
 }
 
 export function updateEnemy1(m) {

@@ -37,11 +37,10 @@
  * LIVE-OUT: memory-only — the advanced target position and the stored cell pointer. The
  *           cell it computes is passed to the embed continuation as an argument, so no
  *           register crosses that boundary; the residual working registers/flags are dead.
- * NAMES:    HAZARD_X, HAZARD_Y from ram.js. The live carve cursor 0x80af has no confirmed
- *           name yet and stays hex.
+ * NAMES:    HAZARD_X, HAZARD_Y from ram.js. The live carve cursor is CARVE_CELL_PTR (0x80af).
  */
 
-import { HAZARD_X, HAZARD_Y } from "./ram.js";
+import { HAZARD_X, HAZARD_Y, CARVE_CELL_PTR } from "./ram.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { u8 } from "../../../core/int.js";
 import { landDigTarget } from "./landDigTarget.js";
@@ -62,7 +61,7 @@ export function advanceDigTarget(m) {
   // The cell the target now covers; the probe reads one step further along the axis.
   const col = u8(advancedY + 1) >> 3;
   const cell = VRAM_BASE + row * 32 + col;
-  mem16[0x80af] = cell; // leave it as the live carve cursor
+  mem16[CARVE_CELL_PTR] = cell; // leave it as the live carve cursor
 
   // The tile a fixed step ahead of the target's cell.
   const aheadTile = mem8[cell - 30];

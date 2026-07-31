@@ -33,8 +33,8 @@
  *           owns everything after the hand-off, identically on both sides.
  * NAMES:    from ram.js — CHAMBER_CREATURE_X/FRAME/ATTR/Y (0x80db–0x80de), CHAMBER_CREATURE_ANIM_PHASE
  *           (0x80e3), PIT_FLOOR_REVEAL_PERIOD (0x80e4), PIT_FLOOR_REVEAL_GATE (0x80e5), PIT_FLOOR_REVEAL_CURSOR (0x80e6),
- *           GOAL_TILE_LATCH (0x80e7), and the LEVEL difficulty counter (0x8028); only
- *           0x80df–0x80e0 in the block stay unnamed hex. The tail is the decompiled
+ *           GOAL_TILE_LATCH (0x80e7), and the LEVEL difficulty counter (0x8028); the block's
+ *           0x80df–0x80e0 are CHAMBER_CREATURE_X_VELOCITY/CHAMBER_CREATURE_FALL_STEP. The tail is the decompiled
  *           seedEnemyRecords (ROM 0x30de).
  */
 
@@ -46,6 +46,8 @@ import {
   CHAMBER_CREATURE_FRAME,
   CHAMBER_CREATURE_X,
   CHAMBER_CREATURE_FALL_Y,
+  CHAMBER_CREATURE_X_VELOCITY,
+  CHAMBER_CREATURE_FALL_STEP,
   GOAL_TILE_LATCH,
   LEVEL,
   PIT_FLOOR_REVEAL_CURSOR,
@@ -60,8 +62,8 @@ export function seedChamberCreature(m) {
   mem8[CHAMBER_CREATURE_FRAME] = 57;
   mem8[CHAMBER_CREATURE_ATTR] = 192;
   mem8[CHAMBER_CREATURE_FALL_Y] = 120;
-  mem8[0x80df] = 1;
-  mem8[0x80e0] = 252;
+  mem8[CHAMBER_CREATURE_X_VELOCITY] = 1;
+  mem8[CHAMBER_CREATURE_FALL_STEP] = 252;
   mem8[CHAMBER_CREATURE_ANIM_PHASE] = 1;
   mem8[PIT_FLOOR_REVEAL_GATE] = 1;
   mem8[PIT_FLOOR_REVEAL_CURSOR] = 150;

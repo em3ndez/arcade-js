@@ -5,7 +5,7 @@
  *
  * One of four fixed-velocity entry points into the shared object-mover body. Each
  * entry hard-wires which axis/sign it steps, a direction index, and whether the walk sprite
- * is refreshed; this entry steps the mover's horizontal position (0x8083 = MOVER_X,
+ * is refreshed; this entry steps the mover's horizontal position (ENEMY_WORK_X 0x8083,
  * screen-horizontal) by one pixel, publishes direction index 3, and does refresh the sprite —
  * always UN-mirrored (the opposite of the sibling that steps the same axis the other way).
  * The screen sign of that one-pixel step (left vs right) is rotation-ambiguous, so the name stays loc_.
@@ -39,13 +39,12 @@
  * NAMES:    ENEMY_ACTION_TIMER (0x808b) is the per-step cadence counter here; ENEMY_WORK_SPRITE (0x8084)
  *           is the stored walk sprite code; ENEMY_WORK_MOVE_PERIOD (0x8091) is the
  *           cadence-reload period; ENEMY_WORK_DIR (0x8092) is the published direction-index cell.
- *           The horizontal position (0x8083 = MOVER_X, screen-horizontal) has no ram.js name yet,
- *           so it stays hex.
+ *           The horizontal position is ENEMY_WORK_X (0x8083, screen-horizontal).
  *
  * PURPOSE [guess]: "Unmirrored"=0x80 clear; "direction 3"; rotation-ambiguous.
  */
 
-import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD } from "./ram.js";
+import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_X } from "./ram.js";
 
 // The four walk-frame sprite codes, cycled as the object steps; this direction stores
 // the code un-mirrored (no high-bit flip).
@@ -65,9 +64,9 @@ export function stepMoverUnmirrored(m) {
   mem8[ENEMY_ACTION_TIMER] = mem8[ENEMY_WORK_MOVE_PERIOD];
   mem8[ENEMY_WORK_DIR] = 3;
 
-  // Step the mover's horizontal position (0x8083 = MOVER_X, screen-horizontal) one pixel;
+  // Step the mover's horizontal position (ENEMY_WORK_X 0x8083, screen-horizontal) one pixel;
   // its low bits choose one of four walk-frame sprite codes, stored un-mirrored.
-  mem8[0x8083] = mem8[0x8083] - 1;
-  const walkPhase = ((mem8[0x8083] + 4) & 6) >> 1;
+  mem8[ENEMY_WORK_X] = mem8[ENEMY_WORK_X] - 1;
+  const walkPhase = ((mem8[ENEMY_WORK_X] + 4) & 6) >> 1;
   mem8[ENEMY_WORK_SPRITE] = WALK_FRAMES[walkPhase];
 }

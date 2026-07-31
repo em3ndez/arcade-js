@@ -56,9 +56,8 @@
  *           register file is dead here (the caller overwrites it at once), so it is
  *           deliberately not part of the contract.
  * NAMES:    PLAYER_ACTIVE, PLAYER_Y, PLAYER_X, PLAY_PHASE_COUNTER, BOARD_END_PHASE, TRANSITION_TIMER,
- *           DEMO_STEER_DIR from ram.js. Local: HOUSEKEEPING_TIMER (0x800b) and BAND_HINT
- *           (0x800c) — both private to this per-frame service (enterPlayMode only inits them),
- *           so they stay local rather than shared.
+ *           DEMO_STEER_DIR from ram.js. DEMO_STEER_SERVICE_TIMER (0x800b) and DEMO_STEER_BAND_HINT
+ *           (0x800c) are private to this per-frame service (enterPlayMode only inits them).
  */
 
 import {
@@ -69,18 +68,12 @@ import {
   DEMO_STEER_DIR,
   PLAYER_ACTIVE,
   TRANSITION_TIMER,
+  DEMO_STEER_SERVICE_TIMER,
+  DEMO_STEER_BAND_HINT,
 } from "./ram.js";
 import { drawCreditsDisplay } from "./drawCreditsDisplay.js";
 import { cyclePanelColumnColour } from "./cyclePanelColumnColour.js";
 import { u8 } from "../../../core/int.js";
-
-// The per-frame countdown that paces the 30-frame service tick (the background column
-// recolour). Reloads to 30 each time it fires. Private to this routine; not in ram.js.
-const HOUSEKEEPING_TIMER = 0x800b;
-// Cached maze band the probe was last classified in — a resume hint so a
-// roughly-stationary probe re-scans only its last band. The six band indices are
-// 0-and-below / 7 / 10 / 14 / 23 / 30. Private to this routine; not in ram.js.
-const BAND_HINT = 0x800c;
 
 // -- the six maze bands ------------------------------------------------------
 // Each returns one of the four direction bits when the probe sits on one of the band's
@@ -175,14 +168,14 @@ const BANDS = [
  */
 function classifyBands(m, probeX, probeY) {
   const { mem8 } = m;
-  const hint = mem8[BAND_HINT];
+  const hint = mem8[DEMO_STEER_BAND_HINT];
 
   // Because `below` increases while `hint` is fixed, once `hint < below` holds it holds
   // for every later band too: the loop runs from the hint's start band through the end,
-  // re-stamping BAND_HINT as it enters each band, exactly like the `hint < N` ladder did.
+  // re-stamping DEMO_STEER_BAND_HINT as it enters each band, exactly like the `hint < N` ladder did.
   for (const band of BANDS) {
     if (hint >= band.below) continue;                     // not into this band yet
-    if (band.restamp !== null) mem8[BAND_HINT] = band.restamp;
+    if (band.restamp !== null) mem8[DEMO_STEER_BAND_HINT] = band.restamp;
     const dir = band.scan(probeX, probeY);
     if (dir !== null) return dir;
   }
@@ -200,10 +193,10 @@ export function steerDemoPlayer(m) {
   }
 
   // 2. 30-frame service tick.
-  const timer = mem8[HOUSEKEEPING_TIMER] - 1;
-  mem8[HOUSEKEEPING_TIMER] = timer;
+  const timer = mem8[DEMO_STEER_SERVICE_TIMER] - 1;
+  mem8[DEMO_STEER_SERVICE_TIMER] = timer;
   if (timer === 0) {
-    mem8[HOUSEKEEPING_TIMER] = 30; // reload the countdown
+    mem8[DEMO_STEER_SERVICE_TIMER] = 30; // reload the countdown
     if (mem8[TRANSITION_TIMER] !== 0) {
       // The object is locked in a timed state — give up the whole frame, no classify.
       m.ret();

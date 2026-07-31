@@ -512,7 +512,7 @@ export const PIT_FLOOR_REVEAL_CURSOR = 0x80e6;
  *  (seedEnemyRecords/stepEnemyMover), copied to sprite record 0x8230 byte 0 by updateEnemy1 — the SAME structural
  *  field as ENEMY2_X (0x80f9), so X by the house convention (offset 0 = X, ENEMY3_X/PLAYER_Y). Under
  *  ROT90 the sprite's hardware-Y byte is the on-screen horizontal, which the codebase calls X.
- *  (The record's Y is the offset-3 byte 0x80eb, still hex.) [code]
+ *  (The record's Y is the offset-3 byte ENEMY1_Y 0x80eb.) [code]
  */
 export const ENEMY1_X = 0x80e8;
 /**
@@ -715,8 +715,16 @@ export const SPRITE_STAGING_BASE = 0x8220;
 export const LOOP_COUNTER = 0x800a;
 
 // ═══ NAMING PASS 2026-07-27 (full-decompile: credit/coin/mode + object/mover records) ═══════
-// proposer≠confirmer over the whole 169-routine layer; write-only/dead/mixed-role cells left hex
-// (0x801d/0x812d/0x8050/0x8052 mode+flip shadows are write-only; player-record backups stay hex).
+// proposer≠confirmer over the whole 169-routine layer; write-only/dead/mixed-role cells left hex.
+// The 2026-07-31 centralization pass revisited the still-hex set: the player-record backups are now
+// NAMED (PLAYER1_LEVEL_BACKUP/PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP — the [working,P1,P2] record is
+// fully pinned by save/load and the backups are read at round boundaries). Deliberately KEPT hex,
+// with no const (each has no reader / no earned role — naming would invent one):
+//   0x800f  once-per-second counter fed by SECONDS_PRESCALER but only ever decremented, never read.
+//   0x801d, 0x812d  write-only GAME_STATE shadows (nothing reads them; unlike the watchdog-read
+//                   credit mirror). 0x8050, 0x8052  write-only cocktail flip-DIP shadows.
+//   0x8070, 0x809c  write-only bytes seeded to a constant 1 with no consumer.
+//   0x80be  write-only mirror of the staged dig target column (0x80b6), never read back.
 
 /** CREDIT_COUNT (0x8000) — the credit counter: banked from the coin lines (clamp 9), spent on start;
  *  the corruption-watchdog anchor (serviceVblankNmi cold-boots if the mirrors disagree); rearmMachineAndBranchOnCredits
@@ -742,7 +750,7 @@ export const MAIN_LOOP_DELAY = 0x8011;
 /** SOUND_TAIL (0x801f) — sound-command ring READ/dequeue index (mod 8); pairs with SOUND_HEAD/SOUND_RING. [code] */
 export const SOUND_TAIL = 0x801f;
 /** MEN_LEFT (0x802b) — active player's working men/lives count; drawn by drawMenLeftPanel, docked at a
- *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups 0x802c/0x802d kept hex. [code] */
+ *  round boundary, seeded from STARTING_MEN. Field 1 of the player record; P1/P2 backups PLAYER1_MEN_BACKUP/PLAYER2_MEN_BACKUP (0x802c/0x802d). [code] */
 export const MEN_LEFT = 0x802b;
 /** INITIALS_REMAINING (0x804b) — high-score initials-entry down-counter (seeded 3, →0 ends entry). [code] */
 export const INITIALS_REMAINING = 0x804b;
@@ -794,6 +802,109 @@ export const SCORE_READOUT_STRIP = 0x8280;
 export const ENEMY3_SPRITE_SLOT = 0x8238;
 /** ENEMY3_TWIN_SPRITE_SLOT (0x823c) — sprite-staging slot 7 (SPRITE_STAGING_BASE+28), the twin's record. [code] */
 export const ENEMY3_TWIN_SPRITE_SLOT = 0x823c;
+
+// ── Centralized 2026-07-31: cells previously referenced by raw hex or by a LOCAL const
+//    inside one routine, promoted to the single registry (proposer≠confirmer: two blind
+//    derivations + a third adjudicator on splits). Records are cross-referenced in prose. ──
+/** Per-frame 60->reload-60 down-divider (twin of the named FRAME_COUNTER_PRESCALER 0x8007); read
+ *  and branched every frame, its once-per-second rollover decrements 0x800f. [code] */
+export const SECONDS_PRESCALER = 0x8006;
+/** 30-frame reload countdown inside the attract demo's player-steering classifier (loc_03e8 /
+ *  steerDemoPlayer); when it hits 0 it reloads to 0x1e and fires the classifier's periodic
+ *  housekeeping call (0x48c4). Seeded to 1 so it fires on the first frame. [code] */
+export const DEMO_STEER_SERVICE_TIMER = 0x800b;
+/** Cached maze-region index in the demo-steer classifier: a stationary demo player re-tests only
+ *  the boundary block for the region it was last in; a block that heads a new region rewrites this
+ *  hint to that region's index. Reset to 0 at round init. [code] */
+export const DEMO_STEER_BAND_HINT = 0x800c;
+/** Colour-test screen per-pass fill-colour byte; also the 0x80->0xFF pass loop counter (each pass
+ *  floods colour RAM 0x8800-0x8BFF with this value). [code] */
+export const COLOUR_TEST_FILL = 0x8012;
+/** Player 1's backup copy of the LEVEL field (offset 0 of the interleaved [working,P1,P2] per-
+ *  player record based at LEVEL 0x8028). loadPlayerState restores it into working LEVEL for
+ *  P1's turn; saveActivePlayerRecord writes it; enterPlayMode seeds it to 3 so the attract demo
+ *  plays at level 3. [code] */
+export const PLAYER1_LEVEL_BACKUP = 0x8029;
+/** Player 1's backup copy of the working man count MEN_LEFT (field 1, offset 3 of the interleaved
+ *  player record). Read as a round-boundary condition byte (P1 men-left test that routes to
+ *  next-round setup vs end-of-round teardown); written by saveActivePlayerRecord. [code] */
+export const PLAYER1_MEN_BACKUP = 0x802c;
+/** Player 2's backup copy of the working man count (field 1, offset 3 of P2's record). At the P1
+ *  round boundary it is cleared ('the other player's backup man count'); read as a condition
+ *  byte by the round-boundary phase sequencer; written by saveActivePlayerRecord. [code] */
+export const PLAYER2_MEN_BACKUP = 0x802d;
+/** Signed per-frame motion mode of the tracked object/actor: dispatcher branches on its sign; each
+ *  stepper then rewrites it with the derived sub-tile phase, so it also carries the walk phase;
+ *  0 = at rest. [code] */
+export const OBJECT_MOTION_MODE = 0x8075;
+/** Column the active/tracked object is locked (committed) to; 0 = free. Nonzero freezes the player
+ *  dispatcher into redraw-only, and the mover latches it to the target column 0x8093 on
+ *  arrival/catch. [code] */
+export const LOCKED_COLUMN = 0x807a;
+/** Horizontal position byte (offset 0, the base) of the enemy/object work-slot scratch record;
+ *  stepped one pixel by the left/right movers and drives the walk-frame phase. [code] */
+export const ENEMY_WORK_X = 0x8083;
+/** Sprite attribute/color byte (offset 2) of the enemy work-slot record; color-cycled by
+ *  advanceDormantMover (v+1 & 0xf7, holding priority bit3 clear), then copied back to the live
+ *  enemy's ATTR. [code] */
+export const ENEMY_WORK_ATTR = 0x8085;
+/** Vertical / sub-row position byte (offset 3) of the enemy work-slot record; stepped one pixel by
+ *  the up/down movers and used as the tile-probe row alignment. [code] */
+export const ENEMY_WORK_Y = 0x8086;
+/** Reload/period constant (0x18 = 24) for the reaction step timer REACTION_TIMER (0x80a4); read to
+ *  re-arm the timer each time a reaction is armed. [code] */
+export const REACTION_PERIOD = 0x80a3;
+/** Raw tile code of the cell one step AHEAD/neighbouring the object, recorded before the
+ *  table-0x1ce0 classification lookup that produces the classified NEXT_TILE (0x80a8). [code] */
+export const AHEAD_TILE_RAW = 0x80a6;
+/** 16-bit VRAM cell pointer for the dig-carve / falling-hazard object -- the live cell being
+ *  drawn/erased; dereferenced through IX. [code] */
+export const CARVE_CELL_PTR = 0x80af;
+/** Reload/lifetime constant (seeded 0x20) copied into the dig-carve/falling-hazard lifetime timer
+ *  DIG_OBJ_TIMER (0x80b1) when the object spawns. [code] */
+export const DIG_OBJ_TIMER_RELOAD = 0x80c2;
+/** Horizontal bounce velocity (+1 / -1 = 0xff) of the left-chamber creature; added to
+ *  CHAMBER_CREATURE_X (0x80db) each frame, sign flipped at the bounce bounds. [code] */
+export const CHAMBER_CREATURE_X_VELOCITY = 0x80df;
+/** Accelerating vertical fall step/velocity for CHAMBER_CREATURE_FALL_Y (0x80de); pre-incremented
+ *  each frame (start 0xfc = -4, so it rises then accelerates down), reset when the creature re-
+ *  drops. [code] */
+export const CHAMBER_CREATURE_FALL_STEP = 0x80e0;
+/** 16-bit scratch holding the source pointer into tile-pattern table 0x3048 for the Pit floor-
+ *  reveal / chamber pattern copy; stored then reloaded into IX (an HL->IX spill). [code] */
+export const PATTERN_SOURCE_PTR = 0x80e1;
+/** Y coordinate (offset +3) of the enemy-1 17-byte record; published to sprite byte 3 with the flip
+ *  bias. [code] */
+export const ENEMY1_Y = 0x80eb;
+/** Signed mover state byte (offset +13) of the enemy-3 primary record; dispatched on sign by the
+ *  generic mover. [code] */
+export const ENEMY3_STATE = 0x8117;
+/** Cadence reload period (offset +14) of enemy-3 primary; level-scaled step speed reloaded into the
+ *  mover timer. [code] */
+export const ENEMY3_MOVE_PERIOD = 0x8118;
+/** Target tile column (offset +16) of enemy-3 primary; mover fast-exits/keys direction on it.
+ *  [code] */
+export const ENEMY3_TARGET_COL = 0x811a;
+/** Low byte of the enemy-3 twin per-step move vector (offset +4). [code] */
+export const ENEMY3_TWIN_STEP_X = 0x811f;
+/** High byte of the enemy-3 twin per-step move vector (offset +5). [code] */
+export const ENEMY3_TWIN_STEP_Y = 0x8120;
+/** Signed mover state byte (offset +13) of the enemy-3 twin record. [code] */
+export const ENEMY3_TWIN_STATE = 0x8128;
+/** Cadence reload period (offset +14) of the enemy-3 twin record; level-scaled step speed. [code] */
+export const ENEMY3_TWIN_MOVE_PERIOD = 0x8129;
+/** Target tile column (offset +16) of the enemy-3 twin record. [code] */
+export const ENEMY3_TWIN_TARGET_COL = 0x812b;
+/** Base of hardware sprite-record slot 3 (4 bytes: X, frame, attr, Y) where the left-chamber
+ *  creature is staged each frame. [code] */
+export const CHAMBER_CREATURE_SPRITE = 0x822c;
+/** Base of the first of three 9-byte on-screen numeric-readout display records
+ *  (0x8283/0x828c/0x8295): a 3-byte header copied from a ROM template + 4 digit cells (at +3) +
+ *  2 blanks. [code] */
+export const SCORE_READOUT_DEST = 0x8283;
+/** Initial stack pointer = top of work RAM (0x8000-0x83ff); every boot / state-entry routine re-
+ *  seats SP here, discarding the caller's frame. [code] */
+export const STACK_TOP = 0x83ff;
 
 // ═══ ROUTINE LABELS ═══════════════════════════════════════════════════════════
 // Address → { name, role, cert } for every named main-CPU routine (ROM 0x0000-0x4FFF).

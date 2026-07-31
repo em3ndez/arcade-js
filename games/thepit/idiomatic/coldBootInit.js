@@ -66,6 +66,7 @@ import {
   COIN_SW_ACCUM,
   START1_SW_ACCUM,
   START2_SW_ACCUM,
+  STACK_TOP,
 } from "./ram.js";
 
 export function* coldBootInit(m) {
@@ -74,7 +75,7 @@ export function* coldBootInit(m) {
   // Re-seat the stack at the top of work RAM. The frame-wait and the downstream setup
   // screen still return through the machine stack, so this is where their return frames
   // land; every push below is relative to this fresh top.
-  regs.sp = 0x83ff;
+  regs.sp = STACK_TOP;
 
   // Switch the per-frame interrupt off while the machine is seeded.
   disableFrameInterrupt(m);

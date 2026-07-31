@@ -34,8 +34,8 @@
  *           the accumulator or jumps away without reading them.
  * NAMES:    PLAYER_CELL_PTR, REACTION_OBJ_X, PLAYER_X, REACTION_STATE, DIG_OBJ_SUBTYPE,
  *           HAZARD_ACTIVE_COUNT, DIG_OBJ_TIMER from ram.js. The staging scratch (0x80b6/0x80b9/
- *           0x80bc/0x80bf), the saved cell pointer (0x80ba) and the reaction period byte
- *           (0x80a3) have no confirmed name yet and stay hex. The commit is delegated to
+ *           0x80bc/0x80bf) and the saved cell pointer (0x80ba) have no confirmed name yet and stay
+ *           hex; the reaction period byte is REACTION_PERIOD (0x80a3). The commit is delegated to
  *           the already-decompiled commitDigEntity.
  */
 
@@ -48,6 +48,7 @@ import {
   DIG_OBJ_SUBTYPE,
   HAZARD_ACTIVE_COUNT,
   DIG_OBJ_TIMER,
+  REACTION_PERIOD,
 } from "./ram.js";
 
 // Scratch cells written here, then read back by the commit tail commitDigEntity.
@@ -56,7 +57,6 @@ const STAGED_COLUMN = 0x80b6;
 const STAGED_ROW = 0x80b9;
 const STAGED_ATTR = 0x80bc;
 const SAVED_CELL_PTR = 0x80ba;
-const REACTION_PERIOD = 0x80a3;
 
 /**
  * Classify the tile pair under the actor's cell into the dig entity to place, or null

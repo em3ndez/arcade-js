@@ -28,13 +28,13 @@
  *           effects. The round-init caller consumes the seeded memory, not any
  *           register; the tail owns everything after the hand-off.
  * NAMES:    REACTION_STATE, REACTION_TIMER, REACTION_OBJ_X, REACTION_OBJ_Y,
- *           REACTION_OBJ_ATTR from ram.js. The reaction step-period byte (0x80a3) and
+ *           REACTION_OBJ_ATTR from ram.js. The reaction step-period byte is REACTION_PERIOD (0x80a3);
  *           the companion bytes (0x809c / 0x80a1) are still unnamed and stay hex. The
  *           tail is the decompiled seedDigObjectBlock.
  */
 
 import { seedDigObjectBlock } from "./seedDigObjectBlock.js";
-import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_ATTR } from "./ram.js";
+import { REACTION_OBJ_X, REACTION_OBJ_Y, REACTION_STATE, REACTION_TIMER, REACTION_OBJ_ATTR, REACTION_PERIOD } from "./ram.js";
 
 export function resetReactionState(m) {
   const { mem8 } = m;
@@ -42,7 +42,7 @@ export function resetReactionState(m) {
   // Reset the per-object reaction state machine to its rest state.
   mem8[REACTION_STATE] = 0; // idle — no reaction armed
   mem8[REACTION_TIMER] = 0; // reaction step timer cleared
-  mem8[0x80a3] = 24; // reaction step period (the reload value)
+  mem8[REACTION_PERIOD] = 24; // reaction step period (the reload value)
 
   // Seed the companion control bytes to their fixed start values.
   mem8[0x80a1] = 1;

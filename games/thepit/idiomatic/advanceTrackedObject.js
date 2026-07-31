@@ -42,7 +42,7 @@
  *           position handlers read.
  * NAMES:    PLAYER_ACTIVE, BOARD_END_PHASE, DIG_COLLISION_STATE, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE,
  *           PIT_FLOOR_REVEAL_CURSOR, PLAYER_STEP_Y, PLAYER_STEP_X (0x806d, the pair's high byte) from ram.js;
- *           0x807a (busy-this-frame flag), 0x8075 (motion marker) have no ram.js name yet and stay hex.
+ *           LOCKED_COLUMN 0x807a (busy-this-frame flag), OBJECT_MOTION_MODE 0x8075 (motion marker).
  */
 
 import {
@@ -54,6 +54,8 @@ import {
   PIT_FLOOR_REVEAL_CURSOR,
   PLAYER_STEP_X,
   PLAYER_STEP_Y,
+  OBJECT_MOTION_MODE,
+  LOCKED_COLUMN,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
@@ -63,15 +65,11 @@ import { stepObjectFromControl } from "./stepObjectFromControl.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 
-// Tracked-object control bytes that have no ram.js name yet.
-const BUSY_THIS_FRAME = 0x807a; // nonzero while the object is mid-work this frame
-const MOTION_MARKER = 0x8075; // signed walk-mode selector; a set high bit routes to the object walker
-
 export function advanceTrackedObject(m) {
   const { mem8, regs } = m;
 
   // Object still mid-work this frame: stage its deferral record and stop.
-  if (mem8[BUSY_THIS_FRAME] !== 0) return stageObjectSpriteRecord(m);
+  if (mem8[LOCKED_COLUMN] !== 0) return stageObjectSpriteRecord(m);
 
   // No live object, or a spawn sub-phase is still running: nothing to advance this frame.
   if (mem8[PLAYER_ACTIVE] === 0) return;
@@ -92,7 +90,7 @@ export function advanceTrackedObject(m) {
 
   // Motion marker: a "negative" marker (high bit set) steps the moving object's walk animation;
   // a positive marker runs the player walk step; zero falls through to the goal/control gates.
-  const motionMarker = mem8[MOTION_MARKER];
+  const motionMarker = mem8[OBJECT_MOTION_MODE];
   if (motionMarker >= 128) return advanceObjectWalkFrame(m);
   if (motionMarker !== 0) return walkActor(m);
 

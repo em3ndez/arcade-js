@@ -47,11 +47,11 @@
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
  *           (0x80e6) are PIT_FLOOR_REVEAL_GATE/PIT_FLOOR_REVEAL_PERIOD/PIT_FLOOR_REVEAL_CURSOR from ram.js; the stashed
- *           pattern pointer (0x80e1) is still unnamed. Delegates to the decompiled advanceChamberCreatureAnimation.
+ *           pattern pointer is PATTERN_SOURCE_PTR (0x80e1). Delegates to the decompiled advanceChamberCreatureAnimation.
  */
 
 import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
-import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD } from "./ram.js";
+import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD, PATTERN_SOURCE_PTR } from "./ram.js";
 
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
@@ -86,7 +86,7 @@ export function revealTerrainColumn(m) {
   // Remember where this column came from in the pattern table (a scratch pointer
   // the backdrop machinery leaves behind), then stamp its 6 tiles up the column.
   const source = PATTERN_TABLE + cursor;
-  mem16[0x80e1] = source;
+  mem16[PATTERN_SOURCE_PTR] = source;
   let cell = COLUMN_BOTTOM_CELL;
   for (let i = 0; i < TILES_PER_COLUMN; i++) {
     mem8[cell] = mem8[source + i];

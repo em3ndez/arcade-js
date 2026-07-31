@@ -45,8 +45,7 @@
  *           STAGED_TARGET_X, STAGED_TARGET_Y, PLAYER_FACING, TRANSITION_TIMER, PLAYER_CELL_PTR,
  *           CARVE_SEAM_LEFT (0x807e) / CARVE_SEAM_RIGHT (0x807f), TREASURE_COLLECTED (0x8078,
  *           read here as a dig-spawn condition — the shared treasure-collected byte, coupling
- *           vs reuse unproven) from ram.js. Kept hex: the live carve cursor 0x80af has no
- *           confirmed name yet.
+ *           vs reuse unproven) from ram.js. The live carve cursor is CARVE_CELL_PTR (0x80af).
  *
  * PURPOSE [guess]: dig-object's game role; TREASURE_COLLECTED (0x8078) read as spawn cond — coupling vs byte-reuse unproven.
  */
@@ -72,6 +71,7 @@ import {
   PLAYER_CELL_PTR,
   CARVE_SEAM_LEFT,
   CARVE_SEAM_RIGHT,
+  CARVE_CELL_PTR,
 } from "./ram.js";
 import { startNextDigSpawn } from "./startNextDigSpawn.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
@@ -92,7 +92,6 @@ const RETREAT_SPRITE = 55; // digging-up animation frame
 const ADVANCE_SPRITE = 183; // same frame flipped for digging down (bit-7 flip set)
 const COLUMN_HOLD_TIME = 180; // state-timer duration latched when a column completes
 const DIG_TILE_TABLE = 0x2dc7; // ROM: dig-channel tile + sub-column -> patched seam tile
-const CARVE_CURSOR = 0x80af; // 16-bit live carve cell pointer (published for commitDigEntity)
 // 0x8078 = TREASURE_COLLECTED (the treasure-collected byte). This routine reads it here as a
 // dig-spawn condition; whether that is a true coupling to the loot flag or byte-reuse is
 // UNPROVEN (see ram.js caveat). The earlier "feature-align latch" label was wrong — that role
@@ -282,7 +281,7 @@ function carveTile(m) {
   const colByte = u8(column + 9);
   const colTile = colByte >> 3;
   const cellPtr = 0x9000 + rowTile * 32 + colTile; // VRAM base + row*32 + column
-  mem16[CARVE_CURSOR] = cellPtr;
+  mem16[CARVE_CELL_PTR] = cellPtr;
 
   const existing = mem8[cellPtr + 1];
   const subCol = colByte & 7;

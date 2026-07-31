@@ -41,12 +41,13 @@
  *           ABI no caller reads; the keep-moving path delegates to advanceActorWalk, which
  *           is memory-equivalent to the frozen 0x19d0.
  * NAMES:    PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE (the per-actor arm state
- *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from ram.js. The classifier scratch
- *           bytes 0x80a3-0x80a7 and the two ROM lookup tables at 0x1e48 / 0x1fb0 stay hex —
+ *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from ram.js. Within the classifier
+ *           scratch bytes 0x80a3-0x80a7, 0x80a3 is REACTION_PERIOD and 0x80a6 is AHEAD_TILE_RAW;
+ *           the remaining scratch bytes and the two ROM lookup tables at 0x1e48 / 0x1fb0 stay hex —
  *           their roles are not yet grounded.
  */
 
-import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER } from "./ram.js";
+import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";
@@ -57,10 +58,8 @@ const EXPECTED_TILE_TABLE = 0x1e48;
 const NEIGHBOUR_TILE_TABLE = 0x1fb0;
 
 // Classifier scratch (roles not yet grounded — kept as addresses).
-const REACTION_PARAM_SRC = 0x80a3; // parameter copied into REACTION_PARAM on a reaction
 const REACTION_PARAM = 0x80a4;
 const EXPECTED_TILE = 0x80a7; // the current cell's expected tile, recorded for the reaction
-const NEIGHBOUR_TILE = 0x80a6; // the neighbouring cell's tile code, recorded for the reaction
 
 const REACTION_SPRITE_FRAME = 54; // the sprite frame the actor shows while reacting
 const REACTION_SOUND = 20; // sound requested when an armed reaction fires
@@ -97,7 +96,7 @@ export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator =
   if (expected === tileCode) return movementContinuation(m);
 
   // Mismatch: the actor has run into a tile it must react to. Stage the reaction.
-  mem8[REACTION_PARAM] = mem8[REACTION_PARAM_SRC];
+  mem8[REACTION_PARAM] = mem8[REACTION_PERIOD];
   mem8[REACTION_STATE] = 3;
   mem8[PLAYER_FACING] = REACTION_SPRITE_FRAME;
 
@@ -107,7 +106,7 @@ export function triggerDigReaction(m, tileCode = m.regs.b, positionAccumulator =
   // Off the boundary: record the neighbouring cell's tile, and when it too is diggable,
   // record its expected tile from the neighbour table.
   const neighbourTile = mem8[actorCellPtr + 1];
-  mem8[NEIGHBOUR_TILE] = neighbourTile;
+  mem8[AHEAD_TILE_RAW] = neighbourTile;
   if (neighbourTile >= 113 && neighbourTile < 154) {
     mem8[NEXT_TILE] = mem8[NEIGHBOUR_TILE_TABLE + (neighbourTile - 113) * 8 + subCell];
   }

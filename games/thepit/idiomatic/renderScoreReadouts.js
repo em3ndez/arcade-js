@@ -39,12 +39,12 @@
  *           shared value-staging slot. No register or flag is live out (the oracle's
  *           residual pointer/counter are dead scratch every caller reloads).
  * NAMES:    SCORE_DISPLAY_LOW (0x8037) from ram.js — low byte of the 16-bit value
- *           staging slot the digit unpacker reads. The source records (0x8039) and
- *           the readout display cells (0x8283) are not yet named, so they stay hex.
+ *           staging slot the digit unpacker reads. The source records (0x8039) are not yet named,
+ *           so they stay hex; the readout display cells are SCORE_READOUT_DEST (0x8283).
  */
 
 import { unpackScoreDigits } from "./unpackScoreDigits.js";
-import { SCORE_DISPLAY_LOW } from "./ram.js";
+import { SCORE_DISPLAY_LOW, SCORE_READOUT_DEST } from "./ram.js";
 
 const READOUT_COUNT = 3;
 
@@ -56,8 +56,7 @@ const LABEL_TILES = 3; // also the offset of the value within a record
 
 // Each readout's display cells: the label block, then the digit cells the unpacker
 // fills. The three readouts are 9 cells apart, and the digits follow the 3 label tiles.
-const LABEL_DEST_BASE = 0x8283;
-const DIGIT_DEST_BASE = LABEL_DEST_BASE + LABEL_TILES;
+const DIGIT_DEST_BASE = SCORE_READOUT_DEST + LABEL_TILES;
 const DEST_STRIDE = 9;
 
 export function renderScoreReadouts(m) {
@@ -65,7 +64,7 @@ export function renderScoreReadouts(m) {
 
   for (let readout = 0; readout < READOUT_COUNT; readout++) {
     const source = SOURCE_BASE + readout * SOURCE_STRIDE;
-    const labelDest = LABEL_DEST_BASE + readout * DEST_STRIDE;
+    const labelDest = SCORE_READOUT_DEST + readout * DEST_STRIDE;
     const digitDest = DIGIT_DEST_BASE + readout * DEST_STRIDE;
 
     // Copy the label tiles verbatim into this readout's display cell.

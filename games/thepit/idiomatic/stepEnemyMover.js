@@ -46,15 +46,18 @@
  *           ENEMY_WORK_SPRITE (0x8084), PLAYER_FACING (0x8069), PLAYER_Y/PLAYER_X (0x8068/0x806b),
  *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_COLLISION_STATE (0x80c1), ENEMY1_X
  *           (0x80e8), ENEMY_WORK_TARGET_COL (0x8093), LASER_STATE (0x80a1, the player-box
- *           owner flag here) from ram.js. The mover's own current column (0x807a) and
- *           position bytes (0x8083/0x8086) have no ram.js name yet and stay hex.
+ *           owner flag here) from ram.js. The mover's own current column is LOCKED_COLUMN (0x807a),
+ *           and its position bytes are ENEMY_WORK_X/ENEMY_WORK_Y (0x8083/0x8086).
  */
 
 import { u8 } from "../../../core/int.js";
 import { F_Z } from "../../../core/cpu/z80.js";
 import {
   ENEMY_WORK_STATE,
+  ENEMY_WORK_X,
+  ENEMY_WORK_Y,
   ENEMY_ACTION_TIMER,
+  LOCKED_COLUMN,
   ENEMY_WORK_DIR,
   PROBE_CELL_PTR,
   SUBTILE_PHASE,
@@ -82,16 +85,11 @@ import { stepMoverMirrored } from "./stepMoverMirrored.js";
 import { stepMoverDown } from "./stepMoverDown.js";
 import { stepMoverUnmirrored } from "./stepMoverUnmirrored.js";
 
-// The mover's own working-block bytes that have no ram.js name yet.
-const CURRENT_COLUMN = 0x807a; // the column it is locked to (0 = free)
-const MOVER_X = 0x8083; // mover horizontal position (screen-horizontal; record offset 0)
-const MOVER_Y = 0x8086; // mover vertical position (screen-vertical; record offset 3)
-
 export function stepEnemyMover(m) {
   const { mem8 } = m;
 
   // Arrived at the target column: just tick the dwell timer and stop.
-  if (mem8[CURRENT_COLUMN] === mem8[ENEMY_WORK_TARGET_COL]) return tickObjectDwellThenTransition(m);
+  if (mem8[LOCKED_COLUMN] === mem8[ENEMY_WORK_TARGET_COL]) return tickObjectDwellThenTransition(m);
 
   const moverState = mem8[ENEMY_WORK_STATE];
   if (moverState & 0x80) return advanceDormantMover(m); // negative: dormant housekeeping
@@ -106,8 +104,8 @@ export function stepEnemyMover(m) {
   // Delay elapsed: drop the mover back at its start position and run the active step.
   mem8[ENEMY_WORK_STATE] = 1;
   mem8[ENEMY_ACTION_TIMER] = 1;
-  mem8[MOVER_X] = 228; // start position
-  mem8[MOVER_Y] = 35; // (35 is the top row)
+  mem8[ENEMY_WORK_X] = 228; // start position
+  mem8[ENEMY_WORK_Y] = 35; // (35 is the top row)
   mem8[ENEMY1_X] = 236;
   return handlePlayerBoxOverlap(m);
 }
@@ -131,8 +129,8 @@ function handlePlayerBoxOverlap(m) {
 
   if (mem8[LASER_STATE] === 0) return handleObjectBoxOverlap(m);
 
-  const moverX = mem8[MOVER_X];
-  const moverY = mem8[MOVER_Y];
+  const moverX = mem8[ENEMY_WORK_X];
+  const moverY = mem8[ENEMY_WORK_Y];
   const overlaps =
     withinBox(moverX, mem8[REACTION_OBJ_X], 4, 12) &&
     withinBox(moverY, mem8[REACTION_OBJ_Y], 3, 7);
@@ -152,21 +150,21 @@ function handleObjectBoxOverlap(m) {
   const { mem8 } = m;
 
   // A column-locked mover, or one a dig reaction already owns, skips the retarget test.
-  if (mem8[CURRENT_COLUMN] !== 0 || mem8[DIG_COLLISION_STATE] !== 0) {
+  if (mem8[LOCKED_COLUMN] !== 0 || mem8[DIG_COLLISION_STATE] !== 0) {
     return classifyEdgeCell(m);
   }
 
-  const moverX = mem8[MOVER_X];
-  const moverY = mem8[MOVER_Y];
+  const moverX = mem8[ENEMY_WORK_X];
+  const moverY = mem8[ENEMY_WORK_Y];
   const overlaps =
     withinBox(moverX, mem8[PLAYER_Y], 8, 18) && withinBox(moverY, mem8[PLAYER_X], 7, 15);
   if (!overlaps) return classifyEdgeCell(m);
 
   // Overlaps the tracked object: lock onto it, arm the capture-pose sprite and dwell
   // countdown, play the capture sound, then tick the dwell timer.
-  mem8[CURRENT_COLUMN] = mem8[ENEMY_WORK_TARGET_COL]; // lock to the target column
-  mem8[MOVER_X] = mem8[PLAYER_Y]; // snap onto the object
-  mem8[MOVER_Y] = mem8[PLAYER_X];
+  mem8[LOCKED_COLUMN] = mem8[ENEMY_WORK_TARGET_COL]; // lock to the target column
+  mem8[ENEMY_WORK_X] = mem8[PLAYER_Y]; // snap onto the object
+  mem8[ENEMY_WORK_Y] = mem8[PLAYER_X];
   mem8[ENEMY_ACTION_TIMER] = 129; // arm the dwell countdown
   mem8[ENEMY_WORK_SPRITE] = 23;
   mem8[PLAYER_FACING] = 53; // capture-pose sprite
@@ -178,17 +176,17 @@ function handleObjectBoxOverlap(m) {
  *  everything else goes to the position decoder. */
 function classifyEdgeCell(m) {
   const { mem8 } = m;
-  const moverY = mem8[MOVER_Y];
+  const moverY = mem8[ENEMY_WORK_Y];
 
   if (moverY !== 35) {
     // Not the top row: only the far-edge column is special.
-    const moverX = mem8[MOVER_X];
+    const moverX = mem8[ENEMY_WORK_X];
     if (moverX !== 220) return decodePositionAndSteer(m);
     return moverY < 51 ? stepMoverDown(m) : stepMoverUnmirrored(m);
   }
 
   // Top row.
-  const moverX = mem8[MOVER_X];
+  const moverX = mem8[ENEMY_WORK_X];
   if (mem8[ENEMY_WORK_TARGET_COL] === 4) {
     if (moverX === 229) return; // resting exactly at the column-4 seam: nothing to do
     return stepMoverUnmirrored(m);
@@ -202,8 +200,8 @@ function classifyEdgeCell(m) {
  */
 function decodePositionAndSteer(m) {
   const { mem8, mem16 } = m;
-  const moverX = mem8[MOVER_X];
-  const moverY = mem8[MOVER_Y];
+  const moverX = mem8[ENEMY_WORK_X];
+  const moverY = mem8[ENEMY_WORK_Y];
 
   // Sub-tile phase: the low 3 bits of (moverY + 5) lifted into the top of the byte —
   // the row selector the tile probes index their tables by (always a multiple of 32).
@@ -230,7 +228,7 @@ function probeRowAhead(m) {
 /** The gated steer arms only run their probe chain when the mover sits on an 8-pixel
  *  cell boundary; off the boundary they commit a fixed preset immediately. */
 function onCellBoundary(m) {
-  return (m.mem8[MOVER_X] + 4) % 8 === 0;
+  return (m.mem8[ENEMY_WORK_X] + 4) % 8 === 0;
 }
 
 /** Try each [probe, preset] in order; hand off to the first preset whose probe matches,

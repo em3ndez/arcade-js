@@ -11,7 +11,7 @@
  * driver's own caller.
  *
  * Two things happen:
- *   - Every call, the object's vertical position (0x8086 = MOVER_Y, screen-vertical) is
+ *   - Every call, the object's vertical position (ENEMY_WORK_Y 0x8086, screen-vertical) is
  *     decreased by one pixel — moving it UP the screen — this preset's move delta (it
  *     wraps within a byte).
  *   - The object's movement-cadence countdown is ticked. It runs freely most
@@ -38,11 +38,11 @@
  * NAMES:    ENEMY_ACTION_TIMER (0x808b) is this object's cadence countdown here — loc_3490's
  *           reading of that dual-use byte, the same one reseedMoverCadenceAndRearmState periodically
  *           reseeds. ENEMY_WORK_MOVE_PERIOD (0x8091) is the reload period; the direction
- *           index (0x8092) and vertical position (0x8086 = MOVER_Y, screen-vertical) have
- *           no ram.js name yet and stay hex.
+ *           index (0x8092) has no ram.js name yet and stays hex; the vertical position is
+ *           ENEMY_WORK_Y (0x8086, screen-vertical).
  */
 
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_Y } from "./ram.js";
 
 export function stepMoverUp(m) {
   const { mem8 } = m;
@@ -59,6 +59,6 @@ export function stepMoverUp(m) {
   }
 
   // Step the object UP the screen one pixel every frame: decrement its vertical position
-  // (0x8086 = MOVER_Y, screen-vertical). This preset's move delta.
-  mem8[0x8086] = mem8[0x8086] - 1;
+  // (ENEMY_WORK_Y 0x8086, screen-vertical). This preset's move delta.
+  mem8[ENEMY_WORK_Y] = mem8[ENEMY_WORK_Y] - 1;
 }

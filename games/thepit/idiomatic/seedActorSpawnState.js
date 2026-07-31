@@ -29,8 +29,8 @@
  *           value is dead ABI; the round-init caller consumes no register.
  * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_TILE/ENEMY3_Y/ENEMY3_STEP_X/ENEMY3_STEP_Y/ENEMY3_TIMER,
  *           ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y/ENEMY3_TWIN_ATTR/ENEMY3_TWIN_TIMER from ram.js. The neighbour
- *           primary field 0x810c is ENEMY3_ATTR (ram.js); the twin fields 0x811f/0x8120 are still
- *           unnamed within the same records, so their addresses stay hex.
+ *           primary field 0x810c is ENEMY3_ATTR (ram.js); the twin fields 0x811f/0x8120 are
+ *           ENEMY3_TWIN_STEP_X/ENEMY3_TWIN_STEP_Y.
  */
 
 import {
@@ -47,6 +47,8 @@ import {
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_TIMER,
   ENEMY3_TWIN_X,
+  ENEMY3_TWIN_STEP_X,
+  ENEMY3_TWIN_STEP_Y,
 } from "./ram.js";
 
 export function seedActorSpawnState(m) {
@@ -66,8 +68,8 @@ export function seedActorSpawnState(m) {
   mem8[ENEMY3_TWIN_TILE] = 47; // twin tile code (one past the primary's)
   mem8[ENEMY3_TWIN_Y] = 0; // twin start row (mirror of the primary row)
   mem8[ENEMY3_TWIN_ATTR] = 151; // twin paired display byte (mirror of 0x810c)
-  mem8[0x811f] = 0; // twin move vector, low byte
-  mem8[0x8120] = 0; // twin move vector, high byte
+  mem8[ENEMY3_TWIN_STEP_X] = 0; // twin move vector, low byte
+  mem8[ENEMY3_TWIN_STEP_Y] = 0; // twin move vector, high byte
   mem8[ENEMY3_TWIN_TIMER] = 1; // twin cadence timer, armed
 
   // Back to the un-spawned phase.

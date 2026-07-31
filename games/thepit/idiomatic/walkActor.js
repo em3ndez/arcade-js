@@ -26,17 +26,16 @@
  *           walk-frame PLAYER_FACING, and the four record bytes stageObjectSpriteRecord writes. Unlike
  *           advanceObjectWalkFrame, this stepper stashes nothing in a register for its caller; the step
  *           value left behind is incidental scratch that nothing downstream reads.
- * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The per-frame step 0x806c and the sub-tile
- *           phase byte 0x8075 stay hex — their roles are not yet grounded (the sibling
- *           writes 0x8075 as a 0/moving marker instead, so its cross-routine meaning is
- *           still open).
+ * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The per-frame step 0x806c stays hex — its
+ *           role is not yet grounded; the sub-tile phase byte is OBJECT_MOTION_MODE (0x8075),
+ *           though the sibling writes it as a 0/moving marker instead, so its cross-routine
+ *           meaning is still open.
  */
 
-import { PLAYER_Y, PLAYER_FACING } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const STEP = 0x806c; // per-frame amount added onto the position accumulator
-const SUBTILE_PHASE = 0x8075; // low-3-bit sub-tile phase the walk frame is read off
 
 export function walkActor(m) {
   const { mem8 } = m;
@@ -48,7 +47,7 @@ export function walkActor(m) {
   // Walk phase: the low three bits of the new position, biased by 3 so the frame flips
   // at the right point in the stride.
   const phase = (mem8[PLAYER_Y] + 3) % 8;
-  mem8[SUBTILE_PHASE] = phase;
+  mem8[OBJECT_MOTION_MODE] = phase;
 
   // Two-frame walk: hold the even sprite code through the first half of the phase, then
   // step to its odd neighbour once phase bit 1 is set.

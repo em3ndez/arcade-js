@@ -34,8 +34,8 @@
  *           not any register; the tail owns everything after the hand-off.
  * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_COLLISION_STATE,
  *           DIG_OBJ_SUBTYPE, HAZARD_X, HAZARD_Y, HAZARD_ACTIVE_COUNT, DROP_QUEUE (the table
- *           destination 0x80c3) from ram.js. The companion byte 0x80c2 is still unnamed
- *           and stays hex. The tail is the decompiled seedChamberCreature (ROM 0x2f2f).
+ *           destination 0x80c3) from ram.js. The companion byte is DIG_OBJ_TIMER_RELOAD (0x80c2).
+ *           The tail is the decompiled seedChamberCreature (ROM 0x2f2f).
  */
 
 import { seedChamberCreature } from "./seedChamberCreature.js";
@@ -45,6 +45,7 @@ import {
   HAZARD_STATE,
   DIG_OBJ_SUBTYPE,
   DIG_OBJ_TIMER,
+  DIG_OBJ_TIMER_RELOAD,
   DROP_QUEUE,
   HAZARD_ACTIVE_COUNT,
   HAZARD_X,
@@ -69,7 +70,7 @@ export function seedDigObjectBlock(m) {
   for (let i = 0; i < 24; i++) {
     mem8[DROP_QUEUE + i] = mem8[0x2dab + i];
   }
-  mem8[0x80c2] = 32; // table-header / count byte
+  mem8[DIG_OBJ_TIMER_RELOAD] = 32; // table-header / count byte
 
   // Tail hand-off into seedChamberCreature (round/level parameter seeding); its chain returns to
   // our caller, so this is seedDigObjectBlock's exit.

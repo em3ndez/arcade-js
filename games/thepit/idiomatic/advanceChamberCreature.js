@@ -58,9 +58,10 @@
  *           after the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, PLAYER_X, PIT_FLOOR_REVEAL_GATE/PERIOD/CURSOR,
  *           CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from ram.js.
- *           Still hex: the pattern-table scratch pointer (0x80e1), the bounce velocity
- *           (0x80df), the fall step (0x80e0), and the sprite-staging slot (0x822c) —
- *           none carry a ram.js name. Delegates to the decompiled requestSound11,
+ *           Also from ram.js: PATTERN_SOURCE_PTR (0x80e1, the pattern-table scratch pointer),
+ *           CHAMBER_CREATURE_X_VELOCITY (0x80df, the bounce velocity), CHAMBER_CREATURE_FALL_STEP
+ *           (0x80e0, the fall step), and CHAMBER_CREATURE_SPRITE (0x822c, the sprite-staging slot).
+ *           Delegates to the decompiled requestSound11,
  *           advanceRandom, and updateEnemy1 (the tail-jump object-record pass).
  */
 
@@ -81,6 +82,10 @@ import {
   CHAMBER_CREATURE_ATTR,
   CHAMBER_CREATURE_FALL_Y,
   SPRITE_COORD_BIAS,
+  CHAMBER_CREATURE_X_VELOCITY,
+  CHAMBER_CREATURE_FALL_STEP,
+  PATTERN_SOURCE_PTR,
+  CHAMBER_CREATURE_SPRITE,
 } from "./ram.js";
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
@@ -92,9 +97,6 @@ const TILES_PER_COLUMN = 6;
 const COLUMN_BOTTOM_CELL = 0x938c;
 const ONE_ROW_UP = 32;
 
-// The scratch pointer the backdrop machinery leaves the reveal source in (unnamed RAM).
-const PATTERN_SCRATCH_PTR = 0x80e1;
-
 // The element's two shimmer tile codes; the flip toggles strictly between them.
 const FLIP_TILE_A = 56;
 const FLIP_TILE_B = 57;
@@ -105,13 +107,6 @@ const LEFT_WALL = 25; // below this, step right
 const STEP_LEFT = 255; // velocity byte for a leftward step (-1)
 const STEP_RIGHT = 1; // velocity byte for a rightward step (+1)
 const FLOOR_Y = 134; // Y clamps here when the fall reaches the floor
-
-// The element's bounce velocity and its accelerating fall step (unnamed RAM).
-const BOUNCE_VELOCITY = 0x80df;
-const FALL_STEP = 0x80e0;
-
-// The element's sprite-staging slot (4 bytes: X, tile, colour, Y).
-const SPRITE_SLOT = 0x822c;
 
 // The goal row the element sits on when it cues the reveal sound.
 const GOAL_ROW = 107;
@@ -137,7 +132,7 @@ export function advanceChamberCreature(m) {
         // Still inside the table — stamp this column's 6 tiles up the video column.
         mem8[PIT_FLOOR_REVEAL_CURSOR] = cursor;
         const source = PATTERN_TABLE + cursor;
-        mem16[PATTERN_SCRATCH_PTR] = source;
+        mem16[PATTERN_SOURCE_PTR] = source;
         let cell = COLUMN_BOTTOM_CELL;
         for (let i = 0; i < TILES_PER_COLUMN; i++) {
           mem8[cell] = mem8[source + i];
@@ -164,23 +159,23 @@ export function advanceChamberCreature(m) {
     }
 
     // --- 3a. Horizontal bounce ---
-    const velocity = mem8[BOUNCE_VELOCITY];
+    const velocity = mem8[CHAMBER_CREATURE_X_VELOCITY];
     const newX = u8(mem8[CHAMBER_CREATURE_X] + velocity);
     mem8[CHAMBER_CREATURE_X] = newX;
-    if (newX >= RIGHT_WALL) mem8[BOUNCE_VELOCITY] = STEP_LEFT;
-    else if (newX < LEFT_WALL) mem8[BOUNCE_VELOCITY] = STEP_RIGHT;
+    if (newX >= RIGHT_WALL) mem8[CHAMBER_CREATURE_X_VELOCITY] = STEP_LEFT;
+    else if (newX < LEFT_WALL) mem8[CHAMBER_CREATURE_X_VELOCITY] = STEP_RIGHT;
     // else: mid-band, hold the current velocity.
 
     // --- 3b. Vertical fall ---
-    const fallStep = mem8[FALL_STEP] + 1; // accelerate the fall each frame
-    mem8[FALL_STEP] = fallStep;
+    const fallStep = mem8[CHAMBER_CREATURE_FALL_STEP] + 1; // accelerate the fall each frame
+    mem8[CHAMBER_CREATURE_FALL_STEP] = fallStep;
     const newY = u8(mem8[CHAMBER_CREATURE_FALL_Y] + fallStep);
     mem8[CHAMBER_CREATURE_FALL_Y] = newY;
     if (newY >= FLOOR_Y) {
       // Reached the floor: clamp, draw a fresh small upward step so it rises again, and
       // advance the colour while holding the priority bit clear.
       mem8[CHAMBER_CREATURE_FALL_Y] = FLOOR_Y;
-      mem8[FALL_STEP] = (advanceRandom(m) | 0xf8) - 1;
+      mem8[CHAMBER_CREATURE_FALL_STEP] = (advanceRandom(m) | 0xf8) - 1;
       mem8[CHAMBER_CREATURE_ATTR] = (mem8[CHAMBER_CREATURE_ATTR] + 1) & 0xf7;
     }
   }
@@ -194,8 +189,8 @@ export function advanceChamberCreature(m) {
 function publishBackgroundSprite(m) {
   const { mem8 } = m;
   const bias = mem8[SPRITE_COORD_BIAS]; // cabinet coordinate bias (0 in normal play)
-  mem8[SPRITE_SLOT] = mem8[CHAMBER_CREATURE_X] - bias; // X, screen-relative
-  mem8[SPRITE_SLOT + 1] = mem8[CHAMBER_CREATURE_FRAME]; // tile / frame code
-  mem8[SPRITE_SLOT + 2] = mem8[CHAMBER_CREATURE_ATTR]; // colour + priority
-  mem8[SPRITE_SLOT + 3] = mem8[CHAMBER_CREATURE_FALL_Y] + bias; // Y, screen-relative
+  mem8[CHAMBER_CREATURE_SPRITE] = mem8[CHAMBER_CREATURE_X] - bias; // X, screen-relative
+  mem8[CHAMBER_CREATURE_SPRITE + 1] = mem8[CHAMBER_CREATURE_FRAME]; // tile / frame code
+  mem8[CHAMBER_CREATURE_SPRITE + 2] = mem8[CHAMBER_CREATURE_ATTR]; // colour + priority
+  mem8[CHAMBER_CREATURE_SPRITE + 3] = mem8[CHAMBER_CREATURE_FALL_Y] + bias; // Y, screen-relative
 }

@@ -31,8 +31,8 @@
  *           RAM diff. No register or flag is read by the round init it hands off to.
  * NAMES:    GAME_STATE (0x8001), DEMO_STEER_DIR (0x801b), ACTIVE_PLAYER (0x8002), and the
  *           idle-delay base LOOP_DELAY_BASE (0x804e) from ram.js; the gameplay-tick phase
- *           countdown 0x800b / index 0x800c have no ram.js name yet (hex), and 0x8029 is
- *           the demo's saved Player-1 LEVEL backup — a player-record backup, kept hex.
+ *           countdown DEMO_STEER_SERVICE_TIMER (0x800b) / index DEMO_STEER_BAND_HINT (0x800c), and
+ *           PLAYER1_LEVEL_BACKUP (0x8029) is the demo's saved Player-1 LEVEL backup — a player-record backup.
  *           disableSound / applyDipSwitches are called directly; the round-init
  *           tail (initRoundAndEnterMainLoop, 0x031a) is kept as an m.call boundary — it falls into the
  *           never-returning main loop, so it stays a stubbable/boundable registry boundary.
@@ -40,7 +40,15 @@
 
 import { disableSound } from "./disableSound.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
-import { GAME_STATE, DEMO_STEER_DIR, ACTIVE_PLAYER, LOOP_DELAY_BASE } from "./ram.js";
+import {
+  GAME_STATE,
+  DEMO_STEER_DIR,
+  ACTIVE_PLAYER,
+  LOOP_DELAY_BASE,
+  DEMO_STEER_SERVICE_TIMER,
+  DEMO_STEER_BAND_HINT,
+  PLAYER1_LEVEL_BACKUP,
+} from "./ram.js";
 
 export function* enterPlayMode(m) {
   const { mem8 } = m;
@@ -56,7 +64,7 @@ export function* enterPlayMode(m) {
   // Arm the secondary game-state byte, then seed the demo's saved Player-1 LEVEL backup
   // to 3 so the attract demo runs at level 3 (loadPlayerState promotes it to the working LEVEL).
   mem8[ACTIVE_PLAYER] = 1;
-  mem8[0x8029] = 3;
+  mem8[PLAYER1_LEVEL_BACKUP] = 3;
 
   // Quiet the audio while the round is set up, then commit the cabinet DIP settings
   // into the gameplay-parameter block (order matters: the DIP decode reads the
@@ -70,8 +78,8 @@ export function* enterPlayMode(m) {
   mem8[LOOP_DELAY_BASE] = 12;
 
   // Seed the gameplay tick's phasing: countdown to 1, phase index back to 0.
-  mem8[0x800b] = 1;
-  mem8[0x800c] = 0;
+  mem8[DEMO_STEER_SERVICE_TIMER] = 1;
+  mem8[DEMO_STEER_BAND_HINT] = 0;
 
   // Hand off to the round (re)init, which finishes setting up the round and falls
   // through into the main game loop; it never returns here.

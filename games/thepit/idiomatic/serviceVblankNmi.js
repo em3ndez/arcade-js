@@ -43,7 +43,7 @@
  *           CREDIT_MIRROR_A/CREDIT_MIRROR_B, the coin accumulators COIN_SW_ACCUM/
  *           START1_SW_ACCUM/START2_SW_ACCUM, and the coins-per-credit rates
  *           COINS_PER_CREDIT_A/COINS_PER_CREDIT_B, all from ram.js. Kept hex: the mode
- *           mirrors 0x801d/0x812d; the divider timers 0x8006/0x800f/0x8007; the
+ *           mirrors 0x801d/0x812d; the divider timers 0x800f/0x8007 (0x8006 is SECONDS_PRESCALER); the
  *           sound-ring read index 0x801f; the hardware sprite RAM 0x9840; and the I/O
  *           latches 0xb000 (interrupt enable), 0xb800 (sound), 0xa000 (joystick port)
  *           and 0xa800 (coin/start port).
@@ -52,6 +52,7 @@
 import {
   FRAME_WAIT_COUNTDOWN,
   PLAY_PHASE_COUNTER,
+  SECONDS_PRESCALER,
   IN0_DEBOUNCED,
   IN0_PREV,
   IN1_DEBOUNCED,
@@ -146,11 +147,11 @@ function tickFrameTimers(m) {
   mem8[FRAME_WAIT_COUNTDOWN] = mem8[FRAME_WAIT_COUNTDOWN] - 1;
 
   // A 60-frame divider: on each rollover it borrows from the counter beneath it and reloads.
-  const downDivider = mem8[0x8006] - 1;
-  mem8[0x8006] = downDivider;
+  const downDivider = mem8[SECONDS_PRESCALER] - 1;
+  mem8[SECONDS_PRESCALER] = downDivider;
   if (downDivider === 0) {
     mem8[0x800f] = mem8[0x800f] - 1;
-    mem8[0x8006] = 60;
+    mem8[SECONDS_PRESCALER] = 60;
   }
 
   // A second 60-frame divider that counts PLAY_PHASE_COUNTER up on each rollover.

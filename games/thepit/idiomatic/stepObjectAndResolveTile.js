@@ -51,10 +51,10 @@
  *           GOAL_TILE_LATCH, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER
  *           from ram.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
  *           (ram.js TREASURE_COLLECTED), and
- *           the blank tile match the horizontal collector; the carve-reaction scratch 0x80a3/
- *           0x80a6/0x80a7, the step delta 0x806d, the video-RAM base, and the two ROM
- *           expected-terrain tables at 0x2118 / 0x2280 stay hex — grounded here but not across
- *           the game.
+ *           the blank tile match the horizontal collector; the carve-reaction scratch is
+ *           REACTION_PERIOD (0x80a3) and AHEAD_TILE_RAW (0x80a6); its companion 0x80a7, the step
+ *           delta 0x806d, the video-RAM base, and the two ROM expected-terrain tables at
+ *           0x2118 / 0x2280 stay hex — grounded here but not across the game.
  */
 
 import {
@@ -71,6 +71,8 @@ import {
   CUR_TILE,
   REACTION_STATE,
   REACTION_TIMER,
+  REACTION_PERIOD,
+  AHEAD_TILE_RAW,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
@@ -92,8 +94,6 @@ const SECOND_LOOT_TALLY = 0x8082; // times a 20-point pickup was collected
 const SECOND_LOOT_LATCH = 0x8078; // records the collected 20-point code; gates the top-rung flag
 
 // Carve-reaction scratch (the reaction state/timer are named; these three are not yet grounded).
-const REACTION_PERIOD = 0x80a3; // reload value copied into the reaction timer when a carve arms
-const NEIGHBOUR_TILE = 0x80a6; // the neighbouring cell's tile, recorded for the reaction
 const EXPECTED_TILE = 0x80a7; // the under-tile, then overwritten with the cell's expected terrain
 
 const STEP_DELTA = 0x806d; // how far the object moves along its column each step
@@ -219,7 +219,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   // Sample the neighbouring cell one step back; if it too is diggable, record the terrain its own
   // table expects there into the next-tile slot.
   const neighbourTile = mem8[cellPtr - 1];
-  mem8[NEIGHBOUR_TILE] = neighbourTile;
+  mem8[AHEAD_TILE_RAW] = neighbourTile;
   if (neighbourTile >= DIGGABLE_LOW && neighbourTile < DIGGABLE_HIGH) {
     mem8[NEXT_TILE] = mem8[NEIGHBOUR_TILE_TABLE + (neighbourTile - DIGGABLE_LOW) * 8 + nextSubCell];
   }

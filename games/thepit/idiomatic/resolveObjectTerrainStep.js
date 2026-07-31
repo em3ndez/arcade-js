@@ -45,9 +45,9 @@
  *           targets' output is the whole result and lives in RAM (the walk path's E is set inside
  *           advanceObjectWalkFrame, already gated by its own test).
  * NAMES:    PRIZE_GATE, GOAL_TILE_LATCH, EXPECTED_TILE, NEXT_TILE, CUR_TILE, REACTION_STATE,
- *           REACTION_TIMER, PLAYER_FACING from ram.js. The reaction-timer reload source 0x80a3 and the
- *           raw-ahead scratch 0x80a6 stay hex (clear here, not yet grounded across the game); the
- *           two expected-terrain tables live in ROM at 0x1b78 / 0x1ce0.
+ *           REACTION_TIMER, PLAYER_FACING from ram.js. The reaction-timer reload source is REACTION_PERIOD (0x80a3) and the
+ *           raw-ahead scratch is AHEAD_TILE_RAW (0x80a6) (cleared here, roles not yet grounded
+ *           across the game); the two expected-terrain tables live in ROM at 0x1b78 / 0x1ce0.
  *
  * PURPOSE [guess]: "Object"=vocab; ROM tables 0x1b78/0x1ce0 semantics + entity unpinned.
  */
@@ -61,6 +61,8 @@ import {
   REACTION_STATE,
   REACTION_TIMER,
   PLAYER_FACING,
+  REACTION_PERIOD,
+  AHEAD_TILE_RAW,
 } from "./ram.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
@@ -78,10 +80,6 @@ const PUSHABLE_LO = 113; // 0x71 — first tile in the band
 const PUSHABLE_HI = 158; // 0x9e — one past the band
 const UNDER_TILE_TABLE = 0x1b78; // expected tile UNDER the object
 const AHEAD_TILE_TABLE = 0x1ce0; // expected tile one step AHEAD
-
-// Scratch cells without ram.js names yet.
-const REACTION_PERIOD = 0x80a3; // reload source for the push-reaction timer
-const NEXT_TILE_RAW = 0x80a6; // raw tile one step ahead, before the table lookup
 
 // The sprite/handler code that plays the object's push reaction.
 const PUSH_HANDLER_SPRITE = 0xb5;
@@ -109,7 +107,7 @@ function resolveTileAhead(m, column, cellPtr) {
   const { mem8 } = m;
 
   const aheadTile = mem8[(cellPtr + 1) & 0xffff];
-  mem8[NEXT_TILE_RAW] = aheadTile;
+  mem8[AHEAD_TILE_RAW] = aheadTile;
 
   // Solid tiles ahead: hold and defer.
   if (aheadTile === 42 || aheadTile === 65 || aheadTile === 193) {

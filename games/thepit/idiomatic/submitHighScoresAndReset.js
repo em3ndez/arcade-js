@@ -41,7 +41,7 @@
  *           mislead here.
  */
 
-import { GAME_STATE, ACTIVE_PLAYER } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP } from "./ram.js";
 import { requestSound5 } from "./requestSound5.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { waitFrames } from "./waitFrames.js";
@@ -78,7 +78,7 @@ export function* submitHighScoresAndReset(m) {
 
   // State entry reached by a jump: discard the caller's return frame so the reset below
   // starts from a clean stack.
-  regs.sp = 0x83ff;
+  regs.sp = STACK_TOP;
 
   requestSound5(m); // game-over jingle
 

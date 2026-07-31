@@ -55,14 +55,20 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
    for [disassembly](disassembly.md).
 
    **That prose list is a highlighted subset, NOT the whole to-do — never treat it as complete.** The
-   exhaustive, ground-truth to-do for an understanding pass is *every undefined memory location*: each
-   work-RAM cell still referenced as a raw `mem8[0x..]` hex literal with no `ram.js` name, plus each
-   routine still tagged `[guess]`. An undefined cell is an unnamed unknown even when no prose question
-   mentions it. So an understanding pass **ENUMERATES the undefined cells mechanically** and works
-   that whole set — it does not read the map's open-questions section and stop. (This is a real,
-   recorded failure: an agent read only the map's "still-open" list, promoted its handful of items,
-   and reported the game "as understood as it gets" while **30** cells sat unnamed and un-enumerated.)
-   Verified game-agnostic enumeration (`<game>` = e.g. `thepit`):
+   exhaustive, ground-truth to-do for an understanding pass is *every undefined memory location*, and it
+   has TWO nets, because either one alone leaks: **(a)** each work-RAM cell still referenced as a raw
+   `mem8[0x..]` hex literal with no `ram.js` name; **and (b)** each work-RAM cell aliased to a file-LOCAL
+   `const NAME = 0x8..` inside a routine but never centralized in `ram.js`. A local alias was understood
+   well enough to earn a name — yet it is *invisible* to net (a) (every use goes through the const), it
+   is absent from the one registry, and different files may give the SAME address DIFFERENT local names
+   (the exact "one routine's local view" the registry exists to reconcile). Plus each routine still
+   tagged `[guess]`. An undefined cell is an unnamed unknown even when no prose question mentions it. So
+   an understanding pass **ENUMERATES both nets mechanically** and works that whole set — it does not
+   read the map's open-questions section and stop. (Recorded failures: an agent read only the map's
+   "still-open" list and reported the game "as understood as it gets" while **30** cells sat unnamed;
+   and a first single-net recipe caught only (a), hiding **~19** more cells that lived as local
+   consts — a one-net enumeration UNDER-reports.) Verified game-agnostic enumeration (`<game>` = e.g.
+   `thepit`):
 
    ```sh
    node --input-type=module -e '
@@ -70,20 +76,34 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
    const ram=await import(`./games/${game}/idiomatic/ram.js`);
    const fs=await import("node:fs");
    const named=new Set(Object.values(ram).filter(v=>typeof v==="number"));
-   const dir=`games/${game}/idiomatic`, seen=new Set();
-   for(const f of fs.readdirSync(dir)) if(f.endsWith(".js")&&f!=="ram.js")
-     for(const m of fs.readFileSync(`${dir}/${f}`,"utf8").matchAll(/mem8\[(0x8[0-9a-f]{3})\]/gi)){
+   const dir=`games/${game}/idiomatic`, rawHex=new Set(), local=new Map();
+   for(const f of fs.readdirSync(dir)){ if(!f.endsWith(".js")||f==="ram.js") continue;
+     const t=fs.readFileSync(`${dir}/${f}`,"utf8");
+     for(const m of t.matchAll(/mem(?:8|16)\[(0x8[0-9a-f]{3})\]/gi)){          // net (a): raw hex (8- AND 16-bit)
        const a=parseInt(m[1],16);
-       if(a>=0x8000&&a<=0x87ff&&!named.has(a)) seen.add(m[1].toLowerCase());
-     }
-   console.log([...seen].sort().join(" "), "\nUNNAMED:", seen.size);'
+       if(a>=0x8000&&a<=0x87ff&&!named.has(a)) rawHex.add(m[1].toLowerCase()); }
+     for(const m of t.matchAll(/const ([A-Za-z_]\w*) *= *(0x8[0-9a-f]{3})\b/g)){ // net (b): local const
+       const a=parseInt(m[2],16), k=m[2].toLowerCase();
+       if(a>=0x8000&&a<=0x87ff&&!named.has(a)){ if(!local.has(k)) local.set(k,new Set()); local.get(k).add(m[1]); } }
+   }
+   console.log("RAW-HEX unnamed:", [...rawHex].sort().join(" "), "("+rawHex.size+")");
+   console.log("LOCAL-CONST (named in a file, not in ram.js):");
+   for(const [a,ns] of [...local].sort()) console.log("  "+a+"  ["+[...ns].join(" | ")+"]");'
    ```
 
-   Each cell it prints is a to-do item: pin its role from its readers/writers (and a control-poke if
-   needed), then either promote it to a `ram.js` name if the role is earned, or leave a comment saying
-   *why* it stays hex (genuine scratch / a role you deliberately won't over-claim). "Understanding is
-   as complete as it gets" is a claim about THIS set being empty-or-accounted-for — verify it against
-   this command's output before ever saying it.
+   Both nets still read cells through `mem8`/`mem16[...]` and `const` — a **bare** `0x8xxx` literal (in a
+   clear-array, a `regs.sp = 0x83ff`, an offset base) hides a cell from either. So also
+   `grep -nE "0x8[0-9a-f]{3}"` the **non-comment** code and reconcile every hit against `ram.js`: a hit on
+   a NAMED address is a missed rewire (the cell must be used by its imported name — that a const is *live*
+   is the other half of single-source), a hit on an UNNAMED one is an enumeration to-do net (a) missed.
+
+   Each address either net prints is a to-do item: pin its role from its readers/writers (and a
+   control-poke if needed), then either promote it to a `ram.js` name if the role is earned — reconciling
+   any conflicting local names into one consensus, and replacing the local `const` with an `import` so
+   the registry stays the single source of truth — or leave a comment saying *why* it stays hex (genuine
+   scratch / a role you deliberately won't over-claim). "Understanding is as complete as it gets" is a
+   claim about BOTH sets being empty-or-accounted-for — verify it against this command's output before
+   ever saying it.
 
 ## Maintain it as understanding grows
 

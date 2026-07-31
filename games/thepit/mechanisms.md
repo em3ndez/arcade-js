@@ -16,10 +16,15 @@ left-CHAMBER creature** (§2.8), *not* the "Zonker tank" — and the code now ma
 idiomatic routines carry the `CHAMBER_CREATURE_*` cell names (`0x80db-0x80de`, `0x80e3`) and the
 `PIT_FLOOR_REVEAL_*` cell names (`0x80e4-0x80e6`), plus the routines `advanceChamberCreature`,
 `seedChamberCreature`, `advanceChamberCreatureAnimation`, and `setChamberCreatureFrame`. **The word
-"Zonker" is reserved here for the baked top-right tank scenery** (§2.9). Current layer sizes (measured
-2026-07-29): `translated/` = 169 routines, `idiomatic/` = 169 routine files + `ram.js`, `ram.js` = 143
-named work-RAM cells (the slot-3 creature + Pit floor-reveal cells were renamed off their old tank
-labels — the rename is complete, none of the old labels remain).
+"Zonker" is reserved here for the baked top-right tank scenery** (§2.9). Current layer sizes:
+`translated/` = 169 routines, `idiomatic/` = 169 routine files + `ram.js`. `ram.js` names **174**
+work-RAM cells (measured 2026-07-31): the 2026-07-31 centralization pass added 31 — cells that had
+been referenced by raw hex or by a file-LOCAL `const` inside one routine (the enemy-3 record fields,
+the enemy-work scratch slot, the per-player level/men backups, the attract demo-steer state, the
+chamber-creature velocity/sprite, …), promoted to the single registry under proposer≠confirmer (two
+blind derivations + a third adjudicator on splits); 8 write-only/vestigial cells are deliberately left
+hex. The slot-3 creature + Pit floor-reveal cells were renamed off their old tank labels — the rename
+is complete, none of the old labels remain.
 
 ## Tags
 - **`[seen]`** — directly observed in the running game (MAME `thepitu1`, 0.288-class: headless
