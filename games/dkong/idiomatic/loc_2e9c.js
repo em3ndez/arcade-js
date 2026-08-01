@@ -44,7 +44,8 @@
  *           next object before any test.
  * NAMES:    SND_TRIGGER (0x6080) — from ram.js. The animation-string base 0x39AA is a ROM address
  *           (the object animation-string table), not work RAM, so it carries no ram.js name and stays
- *           a local const. The object-record field offsets (+0x0d/+0x0e) live inside loc_2e4b.
+ *           a local const. The object-record field offsets used by the tail live inside loc_2e4b: the
+ *           state field is OBJ_STATE (+0x0d, ram.js); the string-pointer (+0x0e/+0x0f) stays local.
  */
 
 import { SND_TRIGGER } from "./ram.js";

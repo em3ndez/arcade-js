@@ -25,8 +25,8 @@
  *
  * NAME: kept the neutral loc_ — the mechanics are pinned to the oracle, but the
  * on-screen object this animates is unconfirmed (the same sprite-record trap that keeps
- * its loc_26a6 callee neutral), and its published/animated cells (0x63A6, 0x69F4) are
- * unnamed. Promote once corroborated.
+ * its loc_26a6 callee neutral); its published step is named M50_OBJ3_STEP (0x63A6) while
+ * the animated sprite-pair cell (0x69F4) stays unnamed. Promote once corroborated.
  *
  * Memory-equivalent to the frozen oracle — equivalence-268d.test.js.
  * GATE:     crafted-entry + captured — plain attract never dispatches 0x268D (the whole
@@ -42,18 +42,15 @@
  *           before reading it, and likewise recomputes flags — so nothing downstream
  *           consumes a register this routine leaves. The oracle's terminal `ret` is
  *           modelled by the JS return.
- * NAMES:    M50_OBJ3_STEP_DIR (0x62A6), FRAME (0x601A) — from ram.js. The published
- *           shadow (0x63A6) and the sprite-pair base (0x69F4) have no ram.js name yet;
- *           they stay hex here (0x69F4 is a SPRITE_BUFFER code byte, addressed
- *           relatively per loc_26a6's note).
+ * NAMES:    M50_OBJ3_STEP_DIR (0x62A6), M50_OBJ3_STEP (0x63A6, the published step), FRAME
+ *           (0x601A) — from ram.js. The sprite-pair base (0x69F4) has no ram.js name yet and
+ *           stays hex here (a SPRITE_BUFFER code byte, addressed relatively per loc_26a6's note).
  */
 
-import { M50_OBJ3_STEP_DIR, FRAME } from "./ram.js";
+import { M50_OBJ3_STEP_DIR, M50_OBJ3_STEP, FRAME } from "./ram.js";
 import { signStepHalfRate } from "./signStepHalfRate.js"; // ROM 0x26E9
 import { loc_26a6 } from "./loc_26a6.js"; // ROM 0x26A6
 
-// Object-3's published step shadow, read by the 50m platform mover (no ram.js name yet).
-const OBJ3_STEP_SHADOW = 0x63a6;
 // Base of object-3's mirrored sprite-code pair in SPRITE_BUFFER (kept hex per loc_26a6's note).
 const OBJ3_SPRITE_PAIR = 0x69f4;
 
@@ -65,7 +62,7 @@ export function loc_268d(m) {
   // latch address from the pointer register and leaves the step in the accumulator.
   regs.hl = M50_OBJ3_STEP_DIR;
   signStepHalfRate(m);
-  mem.write8(OBJ3_STEP_SHADOW, regs.a);
+  mem.write8(M50_OBJ3_STEP, regs.a);
 
   // Only every 32nd frame (low 5 bits of the frame counter == 2) advance the sprite pair.
   if ((mem.read8(FRAME) & 0x1f) !== 0x02) return;

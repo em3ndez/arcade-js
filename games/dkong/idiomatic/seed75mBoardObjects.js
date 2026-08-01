@@ -76,15 +76,16 @@
  *           imported from ram.js and used in code; OBJ_ARRAY_65 (0x6500) and ACTOR_SPRITES
  *           (0x6980) are named in ram.js too but appear only in this file's prose (their writes
  *           happen inside the callees). SPRITE_BUFFER (0x6900) is the parent every sprite
- *           destination lands in. The per-record field offsets and the intra-SPRITE_BUFFER
- *           slots 0x6958 / 0x69A0 / 0x6970 stay hex (unnamed in ram.js).
+ *           destination lands in. OBJ_STATE (+0x0d) is imported from ram.js for the state fill;
+ *           the remaining per-record field offsets and the intra-SPRITE_BUFFER slots 0x6958 /
+ *           0x69A0 / 0x6970 stay hex (unnamed in ram.js).
  */
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES } from "./ram.js";
+import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES, OBJ_STATE } from "./ram.js";
 
 /** Forward block-copy `count` bytes ROM/RAM[src..] -> RAM[dst..] — an `ldir`, cycle-free. */
 function blockCopy(mem, dst, src, count) {
@@ -109,9 +110,10 @@ export function seed75mBoardObjects(m) {
   // 3. Fill 6 cells of the OBJ_ARRAY_66 block, stride 0x10, with 0x01.
   for (let i = 0; i < 6; i++) mem.write8((OBJ_ARRAY_66 + i * 0x10) & 0xffff, 0x01);
 
-  // 4. Fill the 3 cells at OBJ_ARRAY_66 + 0x0D, stride 0x10, with 0x08. The ROM's outer C=2 loop
-  //    re-runs this over the SAME cells with HL reset, so one pass is memory-identical.
-  for (let i = 0; i < 3; i++) mem.write8((OBJ_ARRAY_66 + 0x0d + i * 0x10) & 0xffff, 0x08);
+  // 4. Fill the 3 cells at OBJ_ARRAY_66 + OBJ_STATE (+0x0d), stride 0x10, with 0x08 (spawn state).
+  //    The ROM's outer C=2 loop re-runs this over the SAME cells with HL reset, so one pass is
+  //    memory-identical.
+  for (let i = 0; i < 3; i++) mem.write8((OBJ_ARRAY_66 + OBJ_STATE + i * 0x10) & 0xffff, 0x08);
 
   // 5. Scatter 6 source byte-pairs from the ROM table at 0x3E64 into OBJ_ARRAY_66 + 0x03, stride 0x10.
   regs.hl = 0x3e64; // contiguous source (walks 2*B = 12 bytes)

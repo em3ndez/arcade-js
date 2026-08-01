@@ -13,10 +13,10 @@
  *      frames) and REVERSE the object's step-direction sign at M50_OBJ1_STEP_DIR (reverseStep-
  *      Direction: M50_OBJ1_STEP_DIR := +2 if it was negative, else -2).
  *
- *   2. EVERY frame, refresh 0x63A3 from the odd-frame sign helper (sub_26e9) applied to
- *      M50_OBJ1_STEP_DIR. On even frames sub_26e9 writes nothing and returns 0; on odd frames
- *      it rewrites M50_OBJ1_STEP_DIR to 0xFF/0x01 by its current sign and returns that byte.
- *      Either way the returned byte is stored to 0x63A3.
+ *   2. EVERY frame, refresh M50_OBJ1_STEP (0x63A3) from the odd-frame sign helper (sub_26e9)
+ *      applied to M50_OBJ1_STEP_DIR. On even frames sub_26e9 writes nothing and returns 0; on odd
+ *      frames it rewrites M50_OBJ1_STEP_DIR to 0xFF/0x01 by its current sign and returns that byte.
+ *      Either way the returned byte is stored to M50_OBJ1_STEP.
  *
  *   3. On every 32nd frame (FRAME & 0x1F == 1) advance the object's mirrored
  *      sprite-animation counter pair at 0x69E4 one step (loc_26a6), its direction taken
@@ -39,12 +39,12 @@
  * LIVE-OUT: memory-only. Both exits (`ret nz` when FRAME & 0x1F != 1, and the tail `ret`)
  *           feed straight back into sub_25f2's next `call`, which reads no register or flag
  *           this routine leaves — A/HL/flags are dead ABI (the RAM diff backstops that).
- * NAMES:    FRAME (0x601A), M50_OBJ1_REVERSE_TIMER (0x62A0, even-frame countdown) and
- *           M50_OBJ1_STEP_DIR (0x62A1, signed step-direction) from ram.js. The publish cell
- *           0x63A3 and the sprite-pair base 0x69E4 stay hex — unnamed engine/sprite scratch.
+ * NAMES:    FRAME (0x601A), M50_OBJ1_REVERSE_TIMER (0x62A0, even-frame countdown),
+ *           M50_OBJ1_STEP_DIR (0x62A1, signed step-direction) and M50_OBJ1_STEP (0x63A3, the
+ *           published step) from ram.js. The sprite-pair base 0x69E4 stays hex — unnamed sprite scratch.
  */
 
-import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR } from "./ram.js";
+import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR, M50_OBJ1_STEP } from "./ram.js";
 import { reverseStepDirection } from "./reverseStepDirection.js";
 import { loc_26a6 } from "./loc_26a6.js";
 import { sub_26e9 } from "../translated/sub_26e9.js";
@@ -65,11 +65,11 @@ export function loc_2602(m) {
     }
   }
 
-  // Every frame: publish sub_26e9(0x62A1) into 0x63A3. (Even frame -> A=0, no write to
+  // Every frame: publish sub_26e9(0x62A1) into M50_OBJ1_STEP. (Even frame -> A=0, no write to
   // 0x62A1; odd frame -> 0x62A1 rewritten by its sign, A = that byte.)
   regs.hl = M50_OBJ1_STEP_DIR;
   sub_26e9(m);
-  mem.write8(0x63a3, regs.a);
+  mem.write8(M50_OBJ1_STEP, regs.a);
 
   // Every 32nd frame: advance the mirrored sprite-animation pair at 0x69E4.
   if ((mem.read8(FRAME) & 0x1f) !== 0x01) return;

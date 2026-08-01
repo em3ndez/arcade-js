@@ -181,7 +181,11 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
 
 - **Shared field layout** — the same offsets hold across every array (the individual field
   cells stay hex, reached as base+offset): `OBJ_ACTIVE (+0)` bit0 = slot active, `OBJ_X (+3)`,
-  `OBJ_Y (+5)`, `OBJ_SPRITE_CODE (+7)`, `OBJ_SPRITE_ATTR (+8)`. `[code]`
+  `OBJ_Y (+5)`, `OBJ_SPRITE_CODE (+7)`, `OBJ_SPRITE_ATTR (+8)`, and `OBJ_STATE (+0x0d)` — the
+  per-object **state-machine selector**, read-and-dispatched or written-as-next-state at every
+  site (never a coordinate/timer/count). Its enum differs per array (as a state field does):
+  e.g. the `0x6600` spawn objects use `8` = spawned / `4` = landed; the `0x6400` records run a
+  movement/collision state machine on it. `[code]`
 - **gather → sprite → DMA.** `gatherSpriteRecords` copies each active object's fields into a
   4-byte hardware record in `SPRITE_BUFFER (0x6900)` — object `+3 → sprite +0` (X),
   `+5 → +3` (Y), `+7 → +1` (code), `+8 → +2` (attr) — which `blitSpritesViaDma` then DMAs to
@@ -202,12 +206,17 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   separate request (posted `=3` by the periodic bonus tick, consumed via bit0) that activates a
   waiting object. `EDGE_REPOSITION_FLAG (0x6398)` is a one-shot set the frame Mario's Y is
   repositioned at a board edge, read as a gate by the edge-reset code. `[code]`
-- **50m step cascade.** On the 50m board only (board-2 gate), a small cascade drives the
-  horizontal step of three moving objects: a reversal timer `M50_OBJ1_REVERSE_TIMER (0x62A0)`
-  and three signed step-direction latches `M50_OBJ1/2/3_STEP_DIR (0x62A1 / 0x62A3 / 0x62A6)`,
-  whose *sign* is republished each frame (`reverseStepDirection`, `signStepHalfRate`,
-  `loc_2602`) as the per-frame X step the group movers add. Never runs in attract (25m), so
-  code-only. `[code]`
+- **50m step cascade.** On the 50m board only (board-2 gate), a small three-object cascade
+  drives the horizontal step of three moving objects. Each object *i* owns a **signed
+  step-direction latch** `M50_OBJi_STEP_DIR` (`0x62A1 / 0x62A3 / 0x62A6`) and a paired
+  **reversal timer** `M50_OBJi_REVERSE_TIMER` (`0x62A0 / 0x62A2 / 0x62A5`) that decrements on
+  even frames and, on underflow, reloads a per-object period (`0x80 / 0xC0 / 0xFF`) and flips
+  the latch's sign (`reverseStepDirection`). Each frame the latch is reduced to a ±1 unit step
+  (`signStepHalfRate`, 0 on even frames) and **published to a shadow byte** the group movers
+  read: `M50_OBJ1_STEP (0x63A3)`, `M50_OBJ3_STEP (0x63A6)`, and — for object 2 — *both*
+  polarities `M50_OBJ2_STEP_POS (0x63A5)` / `M50_OBJ2_STEP_NEG (0x63A4)`, the mover taking the
+  positive arm when the field/Mario X ≥ 0x80 else the negative. Drivers `loc_2602 / sub_262f /
+  sub_2679`, shared tails `loc_264c / loc_268d`. Never runs in attract (25m), so code-only. `[code]`
 
 ---
 

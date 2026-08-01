@@ -27,8 +27,9 @@
  *
  * NAME: kept the neutral loc_ — the mechanism (a timed step-direction reversal) is pinned to
  * the oracle, but WHICH on-screen 50m object this steers is board-2 ungrounded (the same
- * sprite-record caution that keeps loc_268d and the M50 family neutral), and its countdown
- * cell (0x62A5) is unnamed. Promote once corroborated on a real 50m board.
+ * sprite-record caution that keeps loc_268d and the M50 family neutral). Its countdown cell is
+ * named M50_OBJ3_REVERSE_TIMER (0x62A5); promote the routine name once corroborated on a real
+ * 50m board.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2679.test.js.
  * GATE:     crafted-entry — plain attract never dispatches 0x2679 (the whole sub_25F2 object
@@ -41,21 +42,14 @@
  *           Mario's X on its first instruction and recomputes flags, so nothing downstream
  *           consumes a register this routine leaves; the oracle's terminal `ret` is the JS
  *           return (the tail-jump chain nets exactly one caller-return pop).
- * NAMES:    FRAME (0x601A), M50_OBJ3_STEP_DIR (0x62A6) — from ram.js. The reversal-timer
- *           countdown (0x62A5) has no ram.js name yet, so it stays a local hex const here.
- *           The tail's published shadow (0x63A6) and sprite pair (0x69F4) live inside loc_268d.
+ * NAMES:    FRAME (0x601A), M50_OBJ3_REVERSE_TIMER (0x62A5), M50_OBJ3_STEP_DIR (0x62A6) — from
+ *           ram.js. The tail's published shadow (0x63A6) and sprite pair (0x69F4) live inside loc_268d.
  */
 
 import { u8 } from "../../../core/int.js";
-import { FRAME, M50_OBJ3_STEP_DIR } from "./ram.js";
+import { FRAME, M50_OBJ3_REVERSE_TIMER, M50_OBJ3_STEP_DIR } from "./ram.js";
 import { loc_268d } from "./loc_268d.js"; // ROM 0x268D — the shared publish/animate tail
 import { reverseStepDirection } from "./reverseStepDirection.js"; // ROM 0x26DE
-
-// Object-3's reversal-timer countdown (no ram.js name yet). Ticked once every other frame;
-// on underflow it is reloaded to 255 and object-3's step direction is reversed. The object-1
-// analog is M50_OBJ1_REVERSE_TIMER (0x62A0), one below M50_OBJ1_STEP_DIR — this is that slot
-// one below M50_OBJ3_STEP_DIR.
-const OBJ3_REVERSE_TIMER = 0x62a5;
 
 export function loc_2679(m) {
   const { regs, mem } = m;
@@ -65,12 +59,12 @@ export function loc_2679(m) {
   if ((mem.read8(FRAME) & 0x01) !== 0) return loc_268d(m);
 
   // Tick the reversal-timer countdown. Until it underflows to zero, just run the tail.
-  const remaining = u8(mem.read8(OBJ3_REVERSE_TIMER) - 1);
-  mem.write8(OBJ3_REVERSE_TIMER, remaining);
+  const remaining = u8(mem.read8(M50_OBJ3_REVERSE_TIMER) - 1);
+  mem.write8(M50_OBJ3_REVERSE_TIMER, remaining);
   if (remaining !== 0) return loc_268d(m);
 
   // Countdown expired: reload it and reverse object-3's step direction, then run the tail.
-  mem.write8(OBJ3_REVERSE_TIMER, 0xff);
+  mem.write8(M50_OBJ3_REVERSE_TIMER, 0xff);
   regs.hl = M50_OBJ3_STEP_DIR; // reverseStepDirection flips the byte at this pointer
   reverseStepDirection(m);
   return loc_268d(m);

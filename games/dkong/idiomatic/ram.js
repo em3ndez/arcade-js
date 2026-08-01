@@ -586,6 +586,13 @@ export const SND_PRIORITY_FRAMES = 0x608B;
 
 /** [code] Object-record field: active flag (+0); bit0 = active (the 0x6700 array also uses bit1 = occupied). */
 export const OBJ_ACTIVE = 0x00;
+/** [code] Object-record field: per-object state-machine selector (+0x0d). Every site READS-and-dispatches
+ *  or WRITES-a-next-state on it — never a coordinate/pointer/timer/count. Enums differ per array (a state
+ *  field): 0x6500 array (obj_2e12: state 4 -> loc_2e84); 0x6400 stride-0x20 array (entry_333d movement/
+ *  collision state machine, 0/4/8); 0x6600 array (sub_27da spawn -> 8, sub_2797 bit3 land -> 4,
+ *  seed75mBoardObjects inits 8). Offset < 0x10, so it stays IN-record for the stride-0x10 arrays too —
+ *  no cross-record aliasing. Directly analogous to the shared OBJ_ACTIVE. */
+export const OBJ_STATE = 0x0d;
 /** [code] Object-record field: X (+3). Grounded transitively via the [seen] sprite X
  *  (gatherSpriteRecords obj+3 -> sprite+0 = X). */
 export const OBJ_X = 0x03;
@@ -679,12 +686,31 @@ export const BOARD_OBJ_SCRATCH = 0x6280;
 /** [code] 50m: object-1 reversal timer; loc_2602 decs on even frames, reloads 0x80 + reverses the step
  *  on underflow. Board-2 only. */
 export const M50_OBJ1_REVERSE_TIMER = 0x62a0;
-/** [code] 50m: object-1 signed step-direction latch; only the SIGN is published (to 0x63A3). Board-2 only. */
+/** [code] 50m: object-1 signed step-direction latch; only the SIGN is published (to M50_OBJ1_STEP). Board-2 only. */
 export const M50_OBJ1_STEP_DIR = 0x62a1;
-/** [code] 50m: object-2 signed step-direction latch (sub_262f); published to 0x63A5. Board-2 only. */
+/** [code] 50m: object-2 reversal timer (sub_262f); even-frame `dec`, reload 0xC0 + reverses
+ *  M50_OBJ2_STEP_DIR on underflow. Structural sibling of M50_OBJ1_REVERSE_TIMER. Board-2 only. */
+export const M50_OBJ2_REVERSE_TIMER = 0x62a2;
+/** [code] 50m: object-2 signed step-direction latch (sub_262f); published to M50_OBJ2_STEP_POS. Board-2 only. */
 export const M50_OBJ2_STEP_DIR = 0x62a3;
-/** [code] 50m: object-3 signed step-direction latch (sub_2679); published to 0x63A6. Board-2 only. */
+/** [code] 50m: object-3 reversal timer (sub_2679); even-frame `dec`, reload 0xFF + reverses
+ *  M50_OBJ3_STEP_DIR on underflow. Board-2 only. */
+export const M50_OBJ3_REVERSE_TIMER = 0x62a5;
+/** [code] 50m: object-3 signed step-direction latch (sub_2679); published to M50_OBJ3_STEP. Board-2 only. */
 export const M50_OBJ3_STEP_DIR = 0x62a6;
+
+// 50m published per-object ±step shadows: each dir-latch above is reduced to a signed unit step by
+// sub_26e9 (odd frame ±1 / even frame 0) and stored here for the 50m platform/object mover to read.
+/** [code] 50m: object-1's published signed X-step, from sub_26e9 of M50_OBJ1_STEP_DIR (0x62A1). Board-2 only. */
+export const M50_OBJ1_STEP = 0x63a3;
+/** [code] 50m: object-2's published +step shadow, from sub_26e9 of M50_OBJ2_STEP_DIR (0x62A3); the mover
+ *  reads this arm when the field/Mario X >= 0x80. Board-2 only. */
+export const M50_OBJ2_STEP_POS = 0x63a5;
+/** [code] 50m: object-2's published -step shadow (negation of M50_OBJ2_STEP_POS, same publisher 0x62A3);
+ *  the mover reads this arm when the field/Mario X < 0x80. Board-2 only. */
+export const M50_OBJ2_STEP_NEG = 0x63a4;
+/** [code] 50m: object-3's published signed X-step, from sub_26e9 of M50_OBJ3_STEP_DIR (0x62A6). Board-2 only. */
+export const M50_OBJ3_STEP = 0x63a6;
 
 /** [code] Spawn-cadence timer; at 0 sub_27da claims a free 0x6600 slot, seeds it, reloads 0x34; always
  *  decrements. */

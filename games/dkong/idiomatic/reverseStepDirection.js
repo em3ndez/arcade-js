@@ -9,9 +9,9 @@
  * when it is non-negative (bit 7 clear). The magnitude is always reset to 2, but
  * only the resulting SIGN is consumed downstream — sub_2523 reads M50_OBJ2_STEP_DIR /
  * M50_OBJ3_STEP_DIR (0x62A3/0x62A6) and takes bit 7 (via `rlca`) to pick a +7 vs -8 sprite
- * movement field, and loc_264c/tail_268d publish the byte on to 0x63A5/0x63A6 (unnamed
- * publish slots). So the observable effect is a direction reversal on the object this byte
- * steers.
+ * movement field, and loc_264c/tail_268d publish the byte on to M50_OBJ2_STEP_POS /
+ * M50_OBJ3_STEP (0x63A5/0x63A6, the 50m published-step shadows). So the observable effect is a
+ * direction reversal on the object this byte steers.
  *
  * A LEAF: it calls nothing and touches exactly one byte — a single read and a single
  * write, both at (HL). Its three live callers all sit under sub_25f2 and use it as an
