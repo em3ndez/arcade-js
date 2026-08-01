@@ -14,6 +14,10 @@ Four roles, deliberately separated:
 - **Integrator** — merges a draft into the live engine and *measures* the result. A change
   that is supposed to alter nothing observable has to be shown to alter nothing observable.
 - **Reviewer** — gates the work independently. **The author never gates their own reach.**
+  Beyond correctness, the reviewer checks the process-rules checklist in
+  [`reviewer-rules.md`](reviewer-rules.md) (cadence, grounding-is-part-of-understanding,
+  proposer≠confirmer, single-source, staging hygiene) — the rules that drift when only the lead
+  watches them. Enforcement lives in those rules, not in bespoke gate scripts.
 - **Lead** — owns the seams between the others and the judgement calls they escalate, and
   does not do the work itself.
 
