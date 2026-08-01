@@ -264,7 +264,8 @@ state code, **bit 7 = facing**), and a cluster of airborne registers. `[code]`
   **Trap confirmed by play:** to climb you must first *walk* horizontally onto the ladder
   X; posing on the ladder and pressing Up never latches. `[seen]`
 - **Climb.** With `MARIO_ON_LADDER` set, `advanceClimbStep` (ROM 0x1D11) is the shared
-  climb-step body both steppers fall into (climb-up steps Y by −2, climb-down by +2): it
+  climb-step body both steppers — `climbMarioUp` (ROM 0x1D03, −2) and `climbMarioDown`
+  (ROM 0x1CF2, +2) — fall into: it
   nudges Mario's Y, then either finalizes through the centering path
   (`centerMarioAndCommitClimbStep` snaps Mario to the ladder centre) or, off-beat, picks the
   climb pose. `setClimbSpriteFrame` cycles that pose, `markOnLadderAndCommitSprite` flags the
@@ -284,9 +285,11 @@ state code, **bit 7 = facing**), and a cluster of airborne registers. `[code]`
   check; on landing, if Mario is more than 0x0F px below his take-off Y, `MARIO_FATAL_FALL
   (0x6220)` is set and the landing kills him (`MARIO_ACTIVE = fatal XOR 1`). Falling off a
   ledge sets `MARIO_START_FALL (0x6221)` with zero initial velocity. `[code]`
-- **Landing freeze.** Landing loads a 4-frame `MARIO_FREEZE_TIMER (0x621E)` during which
-  Mario is unresponsive; on expiry it applies any pending hammer pickup and clears the
-  walk animation (`tickPostLandingFreeze`). `[code]`
+- **Landing freeze.** The instant Mario touches down, `settleMarioOnLanding` marks him
+  grounded, sets him alive-unless-fatal (`MARIO_ACTIVE = MARIO_FATAL_FALL XOR 1`), snaps the
+  standing pose, commits any pending item pickup, and arms a 4-frame `MARIO_FREEZE_TIMER
+  (0x621E)` during which Mario is unresponsive; on expiry it applies any pending hammer pickup
+  and clears the walk animation (`tickPostLandingFreeze`). `[code]`
 - **Sprite commit.** `writeMarioSpriteRecord` refreshes Mario's 4-byte hardware record
   (X, code, attr, Y) each frame from his state. `[code]`
 
@@ -635,12 +638,15 @@ yet English-named.
 | `snapYToGirder` | nudge a coordinate one pixel along the 25m girder slope |
 | `markOnLadderAndCommitSprite` | flag Mario on a ladder, refresh his sprite |
 | `advanceClimbStep` | the shared climb-step body (step Y ±2, center or pick the climb frame) |
+| `climbMarioUp` | drive Mario's upward ladder climb one step per frame (feeds the shared body a −2 step) |
+| `climbMarioDown` | drive Mario's downward ladder climb one step per frame (feeds the shared body a +2 step) |
 | `centerMarioAndCommitClimbStep` | the ladder-centering phase of a climb step |
 | `endClimbAtLadderLimit` | finish a ladder climb that reached a ladder end |
 | `setClimbSpriteFrame` | stamp Mario's climb-animation sprite for one step |
 | `initMarioJump` | begin a jump: flag airborne, pick horizontal velocity |
 | `launchMarioJump` | commit the ballistic jump; snapshot take-off Y; jump sound |
 | `stepBallisticMotion` | advance an airborne actor one frame along its arc |
+| `settleMarioOnLanding` | settle Mario on touchdown: grounded/alive/pose, arm the freeze, commit a pending pickup |
 | `tickPostLandingFreeze` | count down the post-landing freeze; unfreeze on expiry |
 | `updateActiveHammer` | tick the active hammer's duration counter; on expiry end it + restore the tune |
 | `writeMarioSpriteRecord` | refresh Mario's 4-byte hardware sprite record |

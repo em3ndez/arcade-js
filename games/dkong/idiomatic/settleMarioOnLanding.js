@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1c4f — settle Mario's state the instant he lands from a jump or fall, commit any
- * pending item pickup, then refresh his hardware sprite record.  ROM 0x1C4F.
+ * settleMarioOnLanding — settle Mario's state the instant he lands from a jump or fall,
+ * commit any pending item pickup, then refresh his hardware sprite record.  ROM 0x1C4F.
  *
  * Reached from the mover's landing branch (loc_1c3a, when its object counter hits its
  * terminal value). It runs a fixed sequence of one-shot state resets:
@@ -52,7 +52,7 @@ import {
 import { loc_1d95 } from "./loc_1d95.js";                     // ROM 0x1D95
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js"; // ROM 0x1DA6
 
-export function loc_1c4f(m) {
+export function settleMarioOnLanding(m) {
   const { regs, mem } = m;
 
   // Mark Mario grounded — the caller passes the landing flag (0 in play) in a register.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1cf2 — per-frame driver for Mario's DOWNWARD ladder climb.  ROM 0x1CF2.
+ * climbMarioDown — per-frame driver for Mario's DOWNWARD ladder climb.  ROM 0x1CF2.
  *
  * Paces the descent one animation sub-step at a time. Each frame Mario is climbing
  * down, this reads the shared move sub-step pacer (MARIO_MOVE_STEP_TIMER):
@@ -12,15 +12,15 @@
  *     height — through the shared climb stepper.
  *
  * So the descent advances one sub-step every few frames, its cadence set by the
- * reload value. This is the twin of the climb-UP driver (entry_1d03, ROM 0x1D03),
+ * reload value. This is the twin of the climb-UP driver (climbMarioUp, ROM 0x1D03),
  * which feeds the same shared stepper a −2 step at the walk/climb reload; here the
  * fixed +2 step and the climb reload of 3 are what make it the DOWN direction.
  *
- * NAME: kept the neutral loc_ for the identifier. The mechanism is verified
- * climb-DOWN (the +2 step and the climb-pace reload of 3, corroborated by the shared
- * stepper advanceClimbStep, whose header already calls this caller the climb-down
- * twin), but promoting the routine name is a naming-pass job (proposer≠confirmer +
- * adversarial review); flagged for that pass — a fitting name is `stepClimbDown`.
+ * NAME (promoted, DK understanding pass 8 — independent proposer≠confirmer): the
+ * climb-DOWN driver. The +2 step and the climb-pace reload of 3 are the sole direction
+ * discriminant vs its twin climbMarioUp (ROM 0x1D03, −2 step); the shared stepper
+ * advanceClimbStep's header names this caller the climb-down twin, and
+ * MARIO_MOVE_STEP_TIMER (0x620F) is the only cell it touches itself.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1cf2.test.js.
  * GATE:     crafted-entry — 0x1CF2 is NOT reached in attract (the demo only climbs
@@ -52,7 +52,7 @@ const CLIMB_DOWN_STEP = 2;
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1cf2(m) {
+export function climbMarioDown(m) {
   const { mem } = m;
 
   // Pacer still running: just tick it down and hold this frame's climb sub-step.

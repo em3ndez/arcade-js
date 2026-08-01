@@ -3,7 +3,7 @@
  * climbMarioUp — drive Mario's upward climb one animation step per frame, paced by
  * the move-step timer.  ROM 0x1D03.
  *
- * The climb-UP driver (its mirror-image twin loc_1cf2 at ROM 0x1CF2 is the climb-DOWN
+ * The climb-UP driver (its mirror-image twin climbMarioDown at ROM 0x1CF2 is the climb-DOWN
  * driver). Called once per frame while Mario is holding UP on a ladder. It paces the
  * climb with MARIO_MOVE_STEP_TIMER so the animation advances every few frames rather
  * than every frame:
@@ -16,7 +16,7 @@
  *     / ladder-end handling is committed.
  *
  * NAME (promoted): advanceClimbStep (ROM 0x1D11, the confirmed shared climb stepper)
- * documents its two callers — this one and loc_1cf2, step −2 / +2 — as climb-up /
+ * documents its two callers — this one and climbMarioDown, step −2 / +2 — as climb-up /
  * climb-down; the −2 step this routine feeds it (Mario's height decreasing = moving up
  * the screen) corroborates the climb-up role, and the only cell it touches itself is
  * the move-step timer that paces the animation.

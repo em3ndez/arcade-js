@@ -48,8 +48,9 @@
  *           JS call stack replaces (the harness supplies one m.ret()). The branch flag is a genuine
  *           LIVE-IN from the still-translated caller (read here as the incoming flag).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), M50_OBJ1_STEP (0x63a3), M50_OBJ_ROW_SHIFT (0x63b7) — all from
- *           ram.js. The third-record X byte at 0x6910 (SPRITE_OBJ_BLOCK + 8, inside the sprite
- *           buffer) has no named cell — kept hex. Colour-cycle cells live inside serviceColorCycle.
+ *           ram.js. The third-record X byte at 0x6910 is record 2's X field inside the named
+ *           SPRITE_OBJ_BLOCK span, reached as SPRITE_OBJ_BLOCK + 8 (matching loc_16a3's
+ *           SPRITE_OBJ_BLOCK + 0x08). Colour-cycle cells live inside serviceColorCycle.
  */
 
 import { SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./ram.js";
@@ -73,7 +74,7 @@ export function loc_0400(m) {
 
   // Stage this frame's row-shift delta: the (now-shifted) X byte of the third record less 0x3b.
   // The store truncates, so the subtraction's 8-bit wrap needs no explicit mask.
-  mem.write8(M50_OBJ_ROW_SHIFT, mem.read8(0x6910) - 0x3b); // 0x6910 = SPRITE_OBJ_BLOCK + 8
+  mem.write8(M50_OBJ_ROW_SHIFT, mem.read8(SPRITE_OBJ_BLOCK + 8) - 0x3b); // record 2's X in SPRITE_OBJ_BLOCK
 
   // Then the same colour-cycle service the not-50m arm runs.
   serviceColorCycle(m);

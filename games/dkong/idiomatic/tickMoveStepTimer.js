@@ -4,7 +4,7 @@
  *
  * The SHARED decrement TAIL of the player walk/climb animation steppers. Both the
  * walk stepper (entry_1d03, via loc_1d76's timer-running branch) and its climb twin
- * (loc_1cf2) route here to do one thing: knock MARIO_MOVE_STEP_TIMER (0x620F) down by
+ * (climbMarioDown) route here to do one thing: knock MARIO_MOVE_STEP_TIMER (0x620F) down by
  * one and return. That timer is the sub-step pacer — while it is non-zero the mover
  * holds its current animation sub-step; the frame it reaches 0 the stepper (next
  * frame, by RE-READING 0x620F) reloads it (to 4 for walk, 3 for climb) and advances

@@ -52,7 +52,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1cf2 as oracle } from "../../translated/loc_1cf2.js";
 import { loc_1d11 as body1d11 } from "../../translated/loc_1d11.js"; // run in the capture hook
-import { loc_1cf2 } from "../loc_1cf2.js";
+import { climbMarioDown as loc_1cf2 } from "../climbMarioDown.js";
 import { tickMoveStepTimer } from "../tickMoveStepTimer.js"; // ROM 0x1D8A (for the teeth twins)
 import { advanceClimbStep } from "../advanceClimbStep.js";   // ROM 0x1D11 (for the teeth twins)
 import { Machine } from "../../machine.js";

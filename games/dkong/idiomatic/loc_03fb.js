@@ -50,17 +50,18 @@
  *           supplies one m.ret()).
  * NAMES:    BOARD (0x6227), SPRITE_OBJ_BLOCK (0x6908), M50_OBJ1_STEP (0x63A3),
  *           M50_OBJ_ROW_SHIFT (0x63B7) — all from ram.js. The third sprite-object X
- *           byte (0x6910 = SPRITE_OBJ_BLOCK record 2, field +0) has no dedicated
- *           ram.js name; it is kept hex, reached as a field inside SPRITE_OBJ_BLOCK.
+ *           byte (0x6910) is record 2's X field inside the named SPRITE_OBJ_BLOCK span,
+ *           reached as SPRITE_OBJ_BLOCK + 8 (the same field loc_16a3 reaches as
+ *           SPRITE_OBJ_BLOCK + 0x08); no distinct cross-reader role, so no dedicated cell.
  */
 
 import { BOARD, SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./ram.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { serviceColorCycle } from "./serviceColorCycle.js"; // ROM 0x0413
 
-// The third sprite-object record's X byte, read back after the row shift. Inside
-// SPRITE_OBJ_BLOCK (0x6908 + 2*4); no dedicated ram.js name.
-const SPRITE_OBJ_REC2_X = 0x6910;
+// Record 2's X byte in the SPRITE_OBJ_BLOCK span, read back after the row shift
+// (0x6908 + 2*4 = 0x6910). The same field loc_16a3 reaches as SPRITE_OBJ_BLOCK + 0x08.
+const SPRITE_OBJ_REC2_X = SPRITE_OBJ_BLOCK + 8;
 
 export function loc_03fb(m) {
   const { regs, mem } = m;

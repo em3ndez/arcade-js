@@ -3,7 +3,7 @@
  * advanceClimbStep — advance one climb-animation step for Mario.  ROM 0x1D11.
  *
  * The shared body both climb steppers fall into: entry_1d03 (ROM 0x1D03) enters it
- * with a −2 step, its twin loc_1cf2 (ROM 0x1CF2) with a +2 step, so the per-frame
+ * with a −2 step, its twin climbMarioDown (ROM 0x1CF2) with a +2 step, so the per-frame
  * vertical step is the caller's input.
  *
  * Each step it:
@@ -23,9 +23,8 @@
  * NAME (promoted, DK understanding pass 7 — independent proposer≠confirmer): the shared
  * climb stepper. Grounded by the [seen] MARIO_CLIMB_LIMIT_A/B (0x621B/0x621C) cells, whose
  * registry comment names this routine (ROM 0x1D28/0x1D2E) the climb stepper that stops and
- * clears MARIO_ON_LADDER when (newY+8) equals either limit. (The two translated callers
- * entry_1d03 / loc_1cf2 — step −2 / +2 — are climb-up / climb-down; relabel them when they
- * are brought idiomatic.)
+ * clears MARIO_ON_LADDER when (newY+8) equals either limit. (Its two idiomatic callers
+ * climbMarioUp (ROM 0x1D03, −2) and climbMarioDown (ROM 0x1CF2, +2) are climb-up / climb-down.)
  *
  * Memory-equivalent to the frozen oracle — equivalence-1d11.test.js.
  * GATE:     crafted-entry + real dispatches — attract's 25m demo climbs a ladder, so

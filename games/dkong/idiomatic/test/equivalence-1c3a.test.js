@@ -47,7 +47,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1c3a as oracle } from "../../translated/loc_1c3a.js";
 import { loc_1c3a } from "../loc_1c3a.js";
-import { loc_1c4f } from "../loc_1c4f.js";
+import { settleMarioOnLanding as loc_1c4f } from "../settleMarioOnLanding.js";
 import { writeMarioSpriteRecord } from "../writeMarioSpriteRecord.js";
 import { Machine } from "../../machine.js";
 import {
