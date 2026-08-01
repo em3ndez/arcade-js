@@ -37,7 +37,7 @@
  *           SP/pc land where its return goes. No register or flag is live out — the oracle's
  *           residual pointer/counter are dead scratch the formatter and callers reload.
  * NAMES:    SCORE_READOUT_STRIP (0x8280, the readout display strip) from ram.js; 0x8039
- *           (readout source records) stays hex — not yet named in ram.js. BLANK_TILE (36)
+ *           is HIGH_SCORE_TABLE (the readout source records). BLANK_TILE (36)
  *           matches the score digit formatter's leading-zero blank.
  */
 

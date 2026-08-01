@@ -52,9 +52,10 @@
  *           from ram.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
  *           (ram.js TREASURE_COLLECTED), and
  *           the blank tile match the horizontal collector; the carve-reaction scratch is
- *           REACTION_PERIOD (0x80a3) and AHEAD_TILE_RAW (0x80a6); its companion 0x80a7, the step
- *           delta 0x806d, the video-RAM base, and the two ROM expected-terrain tables at
- *           0x2118 / 0x2280 stay hex — grounded here but not across the game.
+ *           REACTION_PERIOD (0x80a3) and AHEAD_TILE_RAW (0x80a6); its companion 0x80a7 is
+ *           EXPECTED_TILE and the step delta 0x806d is PLAYER_STEP_X; the video-RAM base and
+ *           the two ROM expected-terrain tables at 0x2118 / 0x2280 stay hex — grounded here
+ *           but not across the game.
  */
 
 import {

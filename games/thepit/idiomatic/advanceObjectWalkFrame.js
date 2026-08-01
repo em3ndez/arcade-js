@@ -31,8 +31,8 @@
  * LIVE-OUT: memory (column 0x8068, PLAYER_FACING, the 0x8075 motion marker, and the
  *           four record bytes stageObjectSpriteRecord writes) plus the phase left in E for the
  *           record builder's caller. A/F/B/HL and SP are dead.
- * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The reference point 0x806c stays hex — its
- *           role is not yet grounded; the motion marker is OBJECT_MOTION_MODE (0x8075).
+ * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The reference point is PLAYER_STEP_Y (0x806c);
+ *           the motion marker is OBJECT_MOTION_MODE (0x8075).
  */
 
 import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./ram.js";

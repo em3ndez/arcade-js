@@ -36,10 +36,11 @@
  *           columns (colour RAM), the queued sound-ring slots, the cycled colour band, the
  *           score digits (when a player is in play), and the tier counter 0x800a drained to
  *           0. No register/flag is read back; the oracle's tail return is modelled by m.ret.
- * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH from ram.js. 0x8081 / 0x8082 (the two
- *           gameplay config bytes) and 0x800a (this routine's tier counter, the same hold
- *           cell showSetupScreen drains) are unnamed in ram.js and kept hex; the ROM label
- *           strips (0x4a07..0x4a55) and the colour attributes (0xa3 / 0xa6) are hex too.
+ * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH from ram.js. 0x8081 / 0x8082 are
+ *           CRYSTAL_COUNT / DIAMOND_COUNT (reused here as the two gameplay config bytes)
+ *           and 0x800a is LOOP_COUNTER (used here as this routine's tier counter, the same
+ *           hold cell showSetupScreen drains); the ROM label strips (0x4a07..0x4a55) and
+ *           the colour attributes (0xa3 / 0xa6) stay hex.
  */
 
 import { drawSharedPanel } from "./drawSharedPanel.js";

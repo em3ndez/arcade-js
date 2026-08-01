@@ -28,8 +28,8 @@
  *           registers/flags are dead ABI; nothing downstream reads them.
  * NAMES:    ENEMY3_X/ENEMY3_Y (primary record base + its Y), ENEMY3_TWIN_X/ENEMY3_TWIN_Y (twin
  *           record base + its Y), ENEMY3_SPRITE_SLOT/ENEMY3_TWIN_SPRITE_SLOT (the two
- *           sprite-buffer slots 0x8238/0x823c) from ./ram.js. Kept hex: 0x8051 (the
- *           shared vertical offset, a dip-switch param with no individual name yet).
+ *           sprite-buffer slots 0x8238/0x823c) from ./ram.js. 0x8051 is SPRITE_COORD_BIAS,
+ *           used raw here as the shared vertical-offset (end-bias) dip-switch param.
  */
 
 import { ENEMY3_X, ENEMY3_TWIN_X, ENEMY3_SPRITE_SLOT, ENEMY3_TWIN_SPRITE_SLOT } from "./ram.js";

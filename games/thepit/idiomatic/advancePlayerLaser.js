@@ -42,8 +42,8 @@
  *           EXPECTED_TILE, NEXT_TILE, PLAYER_FACING, SPRITE_COORD_BIAS, PLAYER_ACTIVE,
  *           BOARD_END_PHASE, GOAL_TILE_LATCH, IN0_DEBOUNCED, SPRITE_STAGING_BASE,
  *           REACTION_OBJ_CODE (0x8095), REACTION_OBJ_ATTR (0x8096), LASER_SCAN_PTR (0x809a)
- *           and SCROLL_SUBPHASE (0x809e) from ram.js. The scroll step (0x80a1) and the ROM
- *           stop-tile table (0x277a) have no confirmed name yet and stay hex.
+ *           and SCROLL_SUBPHASE (0x809e) from ram.js. The scroll step is LASER_STATE (0x80a1,
+ *           the laser's scroll/state byte); the ROM stop-tile table (0x277a) stays hex.
  */
 
 import { u8 } from "../../../core/int.js";

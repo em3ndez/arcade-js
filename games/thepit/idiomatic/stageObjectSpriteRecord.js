@@ -22,8 +22,8 @@
  *           values it leaves behind are dead ABI; the classifier's caller consumes no
  *           register from here (the record is the whole output, and it lives in RAM).
  * NAMES:    PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR (the probe-block middle byte, 0x806a)
- *           from ram.js. The bias 0x8051 (a dip-switch-derived value, not yet individually
- *           named) and the record base 0x8220 stay hex — their roles are not yet grounded.
+ *           from ram.js. The bias is SPRITE_COORD_BIAS (0x8051), used raw here as a
+ *           dip-switch-derived end value, and the record base is SPRITE_STAGING_BASE (0x8220).
  */
 
 import { PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR } from "./ram.js";

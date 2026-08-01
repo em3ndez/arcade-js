@@ -39,8 +39,8 @@
  *           shared value-staging slot. No register or flag is live out (the oracle's
  *           residual pointer/counter are dead scratch every caller reloads).
  * NAMES:    SCORE_DISPLAY_LOW (0x8037) from ram.js — low byte of the 16-bit value
- *           staging slot the digit unpacker reads. The source records (0x8039) are not yet named,
- *           so they stay hex; the readout display cells are SCORE_READOUT_DEST (0x8283).
+ *           staging slot the digit unpacker reads. The source records (0x8039) are
+ *           HIGH_SCORE_TABLE; the readout display cells are SCORE_READOUT_DEST (0x8283).
  */
 
 import { unpackScoreDigits } from "./unpackScoreDigits.js";

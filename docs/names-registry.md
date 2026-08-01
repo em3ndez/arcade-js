@@ -87,6 +87,33 @@ keep-hex: an open work-list item, resolved by grounding, never asked of a human.
 still a *proposal* until it clears proposer≠confirmer** — see [mechanisms](mechanisms.md) "Maintain it as
 understanding grows".
 
+## One source per fact — prose must not contradict the registry
+
+`ram.js` is the **single source of truth** for a cell's three facts: its **name**, its **role**, and its
+**confidence tag**. Everything else that mentions a cell *cites* it and must not restate or contradict
+those facts:
+
+- **`mechanisms.md`** describes the game's *mechanisms* — how cells interact to produce play — and tags
+  **mechanism claims** ("the laser fires on press `[seen]`"), NOT individual cells. It refers to a cell
+  by its `ram.js` name and carries no per-cell tag that could drift from the registry. (A *behaviour*
+  can be `[seen]` while a *cell* it touches is `[code]` — different subjects, so the two tags
+  legitimately differ; that is exactly why `mechanisms.md` tags **claims**, not cells.)
+- **Routine comments** describe the *routine*. They refer to cells by their imported name and never
+  restate registry status — never "0x8083 has no ram.js name / stays hex" for an address `ram.js` names.
+
+This prevents the drift where a fact copied into two independently-edited places goes stale. Three
+separate sync bugs on 2026-07-31 traced to exactly it — a `mechanisms.md` tag contradicting `ram.js`, a
+stale "backups stay hex" note in `ram.js`, and dozens of routine comments still calling promoted cells
+"hex" after they were named.
+
+**Enforced.** `tools/names_consistency.py` is a fail-closed pre-commit gate: it blocks any commit whose
+staged prose — in `mechanisms.md` or a routine comment — calls a `ram.js`-named work-RAM address
+"unnamed / no ram.js name / stays hex", *unless the same clause also spells the cell's registry name*.
+Acknowledging a deliberate raw / different-role use is allowed ("0x8057 is `BOARD_MODE`, reused here as
+the plotter fill byte"); a bare false "0x8057 stays hex" is not. The registry wins; the prose follows.
+(The gate deliberately does NOT force every reference to a named cell through its const — an address is
+sometimes used raw for a genuinely different role, where the registry name would read as a lie.)
+
 ## Used two ways
 
 1. **The understanding phase.** A namer resolves any address's established label from this one file

@@ -42,9 +42,10 @@
  *           position + frame, and the display record. No register live-out (the oracle tail-jumps
  *           to the record builder, whose result is the whole output and lives in RAM).
  * NAMES:    CUR_TILE, NEXT_TILE, PRIZE_GATE, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, REACTION_STATE,
- *           REACTION_TIMER, PLAYER_FACING from ram.js; the pickup counters 0x8081/0x8082, the +20
- *           latch 0x8078, and the current scratch copy 0x80a7 stay hex (clear here, not yet grounded
- *           across the game); the ahead scratch copy is AHEAD_TILE_RAW (0x80a6) and the reaction
+ *           REACTION_TIMER, PLAYER_FACING from ram.js; the pickup counters CRYSTAL_COUNT (0x8081) /
+ *           DIAMOND_COUNT (0x8082) (roles clear here, not yet grounded across the game); the +20 latch is TREASURE_COLLECTED
+ *           (0x8078) and the current scratch copy is EXPECTED_TILE (0x80a7); the ahead scratch
+ *           copy is AHEAD_TILE_RAW (0x80a6) and the reaction
  *           period is REACTION_PERIOD (0x80a3). The two direction
  *           tables live in ROM at 0x1b78 / 0x1ce0.
  *

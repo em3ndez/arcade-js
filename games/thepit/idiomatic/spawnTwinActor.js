@@ -35,8 +35,8 @@
  *           gate backstops the rest.
  * NAMES:    ENEMY3_Y / ENEMY3_TWIN_Y (the request byte + its mirror), ENEMY3_X /
  *           ENEMY3_TILE / ENEMY3_TIMER and ENEMY3_TWIN_X / ENEMY3_TWIN_TILE from ram.js. The twin
- *           timer, the twin-mirror state/phase fields, and the phase source 0x8028
- *           have no confirmed name yet and stay hex.
+ *           timer and the twin-mirror state/phase fields have no confirmed name yet and stay
+ *           hex; the phase source is LEVEL (0x8028), whose low bits derive the twin start-phase.
  */
 
 import {

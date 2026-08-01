@@ -95,6 +95,7 @@ Each links to the doc that details it.
 
 **Meaning**
 - confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [mechanisms](mechanisms.md)
+- **one source per fact**: `ram.js` owns a cell's name/role/tag; `mechanisms.md` tags *mechanisms* not cells, comments never restate registry status — a fail-closed gate (`tools/names_consistency.py`) blocks prose that calls a named cell "hex/unnamed" — [the names registry](names-registry.md)
 - proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [mechanisms](mechanisms.md), [decompiler pipeline](decompiler-pipeline.md)
 - grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
   find where to poke; persistence + completeness-critic rounds — [grounding](grounding.md)

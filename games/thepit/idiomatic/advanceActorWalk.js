@@ -27,8 +27,8 @@
  *           drawActorWalkFrame writes (the committed walk frame, the far-edge
  *           timer/coordinate pair, the display record). The registers the oracle leaves
  *           behind are dead ABI no caller reads.
- * NAMES:    PLAYER_X from ram.js. The per-frame step 0x806d stays hex — its role (the PLAYER_X
- *           step, distinct from walkActor's 0x806c) is not yet individually named.
+ * NAMES:    PLAYER_X from ram.js. The per-frame step is PLAYER_STEP_X (0x806d) — the PLAYER_X
+ *           step, distinct from walkActor's PLAYER_STEP_Y (0x806c).
  */
 
 import { PLAYER_X } from "./ram.js";

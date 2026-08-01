@@ -38,7 +38,7 @@
  * NAMES:    ENEMY_ACTION_TIMER (0x808b) is this object's cadence countdown here — loc_3490's
  *           reading of that dual-use byte, the same one reseedMoverCadenceAndRearmState periodically
  *           reseeds. ENEMY_WORK_MOVE_PERIOD (0x8091) is the reload period; the direction
- *           index (0x8092) has no ram.js name yet and stays hex; the vertical position is
+ *           index is ENEMY_WORK_DIR (0x8092); the vertical position is
  *           ENEMY_WORK_Y (0x8086, screen-vertical).
  */
 

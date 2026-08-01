@@ -38,8 +38,8 @@
  *           walk step or the terrain resolver leaves. No register live-out (the walk path's phase
  *           is set inside advanceObjectWalkFrame, already covered by its own gate).
  * NAMES:    CUR_TILE, EXPECTED_TILE, CRYSTAL_COUNT, DIAMOND_COUNT, HAZARD_ACTIVE_COUNT,
- *           PLAYER_CELL_PTR from ram.js. The one-shot second-loot latch 0x8078 stays hex — its
- *           role is clear here but not yet grounded across the game. The terrain classification,
+ *           PLAYER_CELL_PTR from ram.js. The one-shot second-loot latch is TREASURE_COLLECTED (0x8078);
+ *           its role is clear here but not yet grounded across the game. The terrain classification,
  *           its ROM tables, and the push-reaction state live inside resolveObjectTerrainStep.
  *
  * PURPOSE [guess]: +20 latch (0x8078) role not grounded.
@@ -58,8 +58,8 @@ import { awardTwentyPoints } from "./awardTwentyPoints.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { resolveObjectTerrainStep } from "./resolveObjectTerrainStep.js";
 
-// One-shot latch that opens the 20-point loot: once armed, tiles 59..61 always score. Its
-// role is legible here but not yet grounded across routines, so the address stays hex.
+// One-shot latch that opens the 20-point loot: once armed, tiles 59..61 always score.
+// (0x8078 is TREASURE_COLLECTED in ram.js; kept as a local alias here.)
 const SECOND_LOOT_LATCH = 0x8078;
 
 const BLANK_TILE = 112; // the empty-cell tile stamped over a collected pickup

@@ -37,10 +37,10 @@
  *           scratch (cursor 0x8058/0x8059, offset/address words TILEMAP_OFFSET/COLOUR_RAM_CURSOR/0x8060,
  *           count 0x8055, fill byte 0x8057). The caller reloads its own register from
  *           RAM and consumes nothing this leaves.
- * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059) from ram.js. Kept hex: 0x8057 is the
- *           colour fill byte here — ram.js reads this scratch as BOARD_MODE for a
- *           different routine family, so naming it that here would mislead; 0x8055 is
- *           the strip cell count (unnamed); 0x494f is a ROM tile-table address.
+ * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059) from ram.js. 0x8057 is BOARD_MODE in ram.js,
+ *           reused here raw as the colour fill byte — a different role than its board-mode
+ *           use, so importing that name here would mislead; 0x8055 is PLOT_RUN_LENGTH in ram.js,
+ *           reused here raw as the strip cell count; 0x494f is a ROM tile-table address.
  *
  * PURPOSE [guess]: which specific playfield element this strip draws is un-earned, so the name stays descriptive (paintPlayfieldStripCol1Row11) rather than element-based. The rest of the redrawScoreHud..drawGameOverLabel family has since taken source/element-based names (e.g. drawPlayerLabel, drawGameOverLabel) — which avoids the coordinate-naming collision drawPlayerLabel & drawGameOverLabel would otherwise share (both map to col1/row12).
  */
