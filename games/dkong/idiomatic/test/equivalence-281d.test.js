@@ -42,7 +42,14 @@ import { loc_281d as oracle } from "../../translated/loc_281d.js";
 import { loc_281d as candidate } from "../loc_281d.js";
 import { dispatchBoardCollision } from "../dispatchBoardCollision.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, OBJ_PAIR_6680, OBJ_SEARCH_COUNT } from "../ram.js";
+import {
+  STACK_SCRATCH,
+  OBJ_PAIR_6680,
+  OBJ_SEARCH_COUNT,
+  COLLIDED_OBJECT_BASE,
+  COLLIDED_OBJECT_STRIDE,
+  COLLIDED_OBJECT_INDEX,
+} from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -54,7 +61,9 @@ const test = ROM_PRESENT
 const TARGET = 0x281d;
 const REC0_FLAG = OBJ_PAIR_6680 + 1;          // 0x6681 — record 0 active flag
 const REC1_FLAG = OBJ_PAIR_6680 + 0x10 + 1;   // 0x6691 — record 1 active flag
-const RECORD_CELLS = [0x6350, 0x6351, 0x6352, 0x6353, 0x6354]; // the record-write targets
+// The record-write targets: 0x6350 hit marker (hex), COLLIDED_OBJECT_BASE (0x6351) + its high byte
+// 0x6352 (hex), COLLIDED_OBJECT_STRIDE (0x6353), COLLIDED_OBJECT_INDEX (0x6354).
+const RECORD_CELLS = [0x6350, COLLIDED_OBJECT_BASE, 0x6352, COLLIDED_OBJECT_STRIDE, COLLIDED_OBJECT_INDEX];
 const HANDLER_RETURN = 0x283e; // the folded call's return marker
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -188,9 +197,9 @@ function brokenNoIndexSub(m) {
   const overlap = regs.a;
   if (overlap === 0) { m.ret(); return; }
   mem.write8(0x6350, overlap);
-  mem.write8(0x6354, mem.read8(OBJ_SEARCH_COUNT)); // BUG: no `- regs.b`
-  mem.write8(0x6353, regs.e);
-  mem.write16(0x6351, regs.ix);
+  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT)); // BUG: no `- regs.b`
+  mem.write8(COLLIDED_OBJECT_STRIDE, regs.e);
+  mem.write16(COLLIDED_OBJECT_BASE, regs.ix);
   m.ret();
 }
 
@@ -213,9 +222,9 @@ function brokenWrongBase(m) {
   const overlap = regs.a;
   if (overlap === 0) { m.ret(); return; }
   mem.write8(0x6350, overlap);
-  mem.write8(0x6354, mem.read8(OBJ_SEARCH_COUNT) - regs.b);
-  mem.write8(0x6353, regs.e);
-  mem.write16(0x6351, (regs.ix + 1) & 0xffff); // BUG: wrong base
+  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT) - regs.b);
+  mem.write8(COLLIDED_OBJECT_STRIDE, regs.e);
+  mem.write16(COLLIDED_OBJECT_BASE, (regs.ix + 1) & 0xffff); // BUG: wrong base
   m.ret();
 }
 
@@ -227,7 +236,7 @@ test("TEETH: the dropped-index-subtraction and wrong-base twins are CAUGHT at li
   for (const cap of hit) {
     if (!caughtA) {
       const d = contractDiffs(cap, brokenNoIndexSub);
-      if (d.length && d[0].startsWith(`RAM@${hx(0x6354)}`)) caughtA = d[0];
+      if (d.length && d[0].startsWith(`RAM@${hx(COLLIDED_OBJECT_INDEX)}`)) caughtA = d[0];
     }
     if (!caughtB) {
       const d = contractDiffs(cap, brokenWrongBase);

@@ -40,10 +40,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { entry_3e88 as oracle } from "../../translated/entry_3e88.js";
-import { loc_3e88 } from "../loc_3e88.js";
+import { dispatchBoardOverlapSearch } from "../dispatchBoardOverlapSearch.js"; // promoted from loc_3e88
 import { dispatchInlineJumpTable } from "../dispatchInlineJumpTable.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD } from "../ram.js";
+import { STACK_SCRATCH, BOARD, OVERLAP_COUNT } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,7 +56,7 @@ const TABLE_BASE = 0x3e8d;              // loc_3e88's inline rst-0x28 table base
 const SITE = "0x3E8D (entry_3e88 dispatch)"; // dispatch-site label (only surfaces in a throw)
 const RET = 0x286e;                     // a plausible caller return (the arm's ret lands here)
 const LIVES = 0x6228;                   // used only to build the wrong-selector twin
-const OVERLAP_COUNT = 0x6060;           // the collision counter entry_3e99/entry_3ec3 write
+// OVERLAP_COUNT (0x6060) imported from ram.js — the collision counter entry_3e99/entry_3ec3 write.
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
@@ -184,7 +184,7 @@ function sweepFirstMismatch(base, fn) {
 
 test("SWEEP: loc_3e88 == oracle over all 256 board selectors (dispatch handoff)", () => {
   const base = attractBase();
-  const mismatch = sweepFirstMismatch(base, loc_3e88);
+  const mismatch = sweepFirstMismatch(base, dispatchBoardOverlapSearch);
   assert.equal(
     mismatch,
     null,
@@ -201,7 +201,7 @@ test("REAL ARM: the board-1..4 arms run for real and reproduce the oracle", () =
   // Boards 1..4 on a plain attract base — full chain through the frozen oracle target.
   for (const board of [1, 2, 3, 4]) {
     const entry = craft(base, { board, hl: 0x8899 });
-    const diffs = contractDiffs(entry, loc_3e88);
+    const diffs = contractDiffs(entry, dispatchBoardOverlapSearch);
     assert.equal(diffs.length, 0, `board ${board}: ${diffs.join("; ")}`);
   }
 
@@ -210,7 +210,7 @@ test("REAL ARM: the board-1..4 arms run for real and reproduce the oracle", () =
   // must reproduce the oracle exactly.
   for (const hl of [0x00ff, 0x0000]) {
     const entry = craftActive(base, { board: 1, hl });
-    const diffs = contractDiffs(entry, loc_3e88);
+    const diffs = contractDiffs(entry, dispatchBoardOverlapSearch);
     assert.equal(diffs.length, 0, `active board 1 hl=${hx(hl)}: ${diffs.join("; ")}`);
     // Confirm the arm really counted (or not) as expected — the hand-off is live, not dead.
     const after = runOutcome(entry, oracle).c;
@@ -230,7 +230,7 @@ test("NULL GUARD: boards 0 and 5 hit the 0x0000 guards and BOTH throw identicall
   for (const board of [0, 5]) {
     const entry = craft(base, { board });
     const o = runOutcome(entry, oracle);
-    const c = runOutcome(entry, loc_3e88);
+    const c = runOutcome(entry, dispatchBoardOverlapSearch);
     assert.ok(o.threw, `board ${board}: oracle should throw on the 0x0000 guard`);
     assert.equal(c.threw, o.threw, `board ${board}: candidate throw differs from oracle`);
   }

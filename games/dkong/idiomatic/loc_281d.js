@@ -21,9 +21,10 @@
  *   - the base address of that array.
  *
  * NAME: kept the neutral loc_ — the scan/dispatch/record mechanism is pinned to the
- * oracle, but the four destination cells are unnamed shared engine scratch and which
- * game event consumes them is not confirmed to the routine-name bar. Promote once
- * corroborated.
+ * oracle. Three of the four destination cells are now named (pass-9): the collision-hit
+ * record COLLIDED_OBJECT_BASE/STRIDE/INDEX, produced here and walked by entry_1ea0. The
+ * routine name still awaits corroboration of which game event consumes the record; promote
+ * once corroborated (a future `recordSpecialObjectCollision`).
  *
  * Memory-equivalent to the frozen oracle — equivalence-281d.test.js.
  * GATE:     captured — 0x281D is dispatched every frame by the object-update cascade
@@ -39,12 +40,20 @@
  *           register this leaves behind, so the residual registers/flags and the terminal
  *           return are dead ABI. pc/SP net from the handler's own return plus the routine's
  *           terminal return, so both are checked too.
- * NAMES:    OBJ_PAIR_6680 (0x6680) and OBJ_SEARCH_COUNT (0x63B9) from ram.js. The four
- *           destination cells (0x6350/0x6354/0x6353/0x6351) are unnamed shared scratch and
- *           stay hex. The 0x283E return marker is a ROM code address, not work RAM, so hex.
+ * NAMES:    OBJ_PAIR_6680 (0x6680) and OBJ_SEARCH_COUNT (0x63B9) from ram.js; the collision-hit
+ *           record COLLIDED_OBJECT_INDEX (0x6354) / COLLIDED_OBJECT_STRIDE (0x6353) /
+ *           COLLIDED_OBJECT_BASE (0x6351, 16-bit) from ram.js. The 0x6350 hit marker stays hex
+ *           (SHARED with the effect-seq gate — see ram.js DOWNGRADE). The 0x283E return marker is
+ *           a ROM code address, not work RAM, so hex.
  */
 
-import { OBJ_PAIR_6680, OBJ_SEARCH_COUNT } from "./ram.js";
+import {
+  OBJ_PAIR_6680,
+  OBJ_SEARCH_COUNT,
+  COLLIDED_OBJECT_BASE,
+  COLLIDED_OBJECT_STRIDE,
+  COLLIDED_OBJECT_INDEX,
+} from "./ram.js";
 import { dispatchBoardCollision } from "./dispatchBoardCollision.js"; // ROM 0x286F
 
 // Stride between the two records of the special-object pair.
@@ -94,9 +103,9 @@ export function loc_281d(m) {
   // Record the collided hazard: the marker, the hit's index within its sweep array
   // (array count minus the count still left when it fired), the array's stride low byte,
   // and the array's base.
-  mem.write8(0x6350, overlap);
-  mem.write8(0x6354, mem.read8(OBJ_SEARCH_COUNT) - regs.b);
-  mem.write8(0x6353, regs.e);
-  mem.write16(0x6351, regs.ix);
+  mem.write8(0x6350, overlap); // 0x6350: hit marker, kept hex (SHARED — see ram.js DOWNGRADE)
+  mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT) - regs.b);
+  mem.write8(COLLIDED_OBJECT_STRIDE, regs.e);
+  mem.write16(COLLIDED_OBJECT_BASE, regs.ix);
   m.ret();
 }

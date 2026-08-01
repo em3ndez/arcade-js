@@ -243,6 +243,29 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   with the reload-and-sign-flip proven on the underflow frame, the step shadows `0`-even / `±1`-odd
   with `STEP_POS == −STEP_NEG` byte-for-byte, and `M50_OBJ_ROW_SHIFT` sweeping the full `0..255`.
   All 11 cascade cells lifted to `[seen]`. `[seen]`
+- **Per-frame object collision search.** Each frame `loc_281d` tests the active special-object
+  record against the board's hazard arrays through `dispatchBoardCollision (0x286F)` — a
+  `BOARD`-selected `rst 0x28` inline-table dispatcher that runs the current board's collision arm.
+  On a hit it records the collided hazard as a small **collision-hit record**:
+  `COLLIDED_OBJECT_BASE (0x6351, 16-bit)` = the hit array's base (grounded `0x6700`/`0x6400` =
+  `OBJ_ARRAY_67`/`OBJ_ARRAY_64` exactly; its low byte is a page-aligned `0x00`, the high byte
+  `0x6352` is the array classifier), `COLLIDED_OBJECT_STRIDE (0x6353)` = the array's record stride
+  (grounded `0x20`), and `COLLIDED_OBJECT_INDEX (0x6354)` = the hit record's index
+  (`= OBJ_SEARCH_COUNT − B`); `entry_1ea0` later walks `base + index*stride` back to the record.
+  A structural twin, `dispatchBoardOverlapSearch (0x3E88)` (reached only
+  from the `0x286B` search caller), shares the boards-2/3/4 arms with the collision dispatcher but
+  on board 1 runs an **overlap-count** arm: `entry_3e99` clears `OVERLAP_COUNT (0x6060)` and
+  `entry_3ec3` `inc`s it per overlapping object across both groups, then reads it back as a
+  `0/1/3/7` severity code. `OVERLAP_COUNT`, the collision-hit record, and the recorded array
+  base/stride are all grounded `[seen]` live vs MAME (understanding pass 9). `[seen]`
+- **Velocity-mode latch (`0x6348`, kept hex).** A one-shot latch read differently by different
+  consumers: object velocity-source select (`loc_22cb`: clear → level-based arm, set → difficulty
+  arms), a spawn/movement difficulty gate (`sub_216d`: clear → success tail, set → difficulty
+  gating), one-shot set to 1 by `entry_24b4` and cleared at board init. **Grounded (pass 9):** its
+  own byte takes `{0,1}` live vs MAME in a clean set-in-play / clear-at-board-init cycle — which
+  answers the earlier "does its own byte take {0,nonzero}?" ask (= yes). It nonetheless stays hex:
+  the readers agree only on the branch *shape* (clear = base path, set = difficulty-graded path),
+  not one subsystem meaning, so no single grounded name fits. `[seen]`
 
 ---
 
@@ -362,9 +385,15 @@ hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on scre
 `0x40`) before blanking `POPUP_SPRITE (0x6A30)` and resetting the router. A nested follow-on
 countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `loc_1e96`) with inner/outer
 counters `EFFECT_SEQ_INNER (0x6346)` / `EFFECT_SEQ_OUTER (0x6347)` — steps a short sequence
-and re-arms `EFFECT_STATE` on completion. The state-machine *structure* is code-certain; the
-"effect sprite" *semantic* is `[code]` inference, flagged to ground vs MAME (watch these cells
-while an object is hit / a prize is collected). `[code]`
+and re-arms `EFFECT_STATE` on completion. The effect's own hardware sprite is `EFFECT_SPRITE
+(0x6A2C)`, a 4-byte record inside `SPRITE_BUFFER` immediately before `POPUP_SPRITE`; `entry_1ea0`
+builds it and points `EFFECT_PARAM_PTR` at it, and on each ordinary beat `loc_1f09` flips bit0 of
+its `+1` code byte to flash the effect tile between `0x60` and `0x61`. That `+1` code field
+(`0x6A2D`, reached as `EFFECT_SPRITE + 1`) is grounded `[seen]` live vs MAME (pass 9, 41 flips tied
+to `EFFECT_SEQ_STATE`); the base cell is named `[code]` like its sibling `POPUP_SPRITE`. The
+state-machine *structure* is code-certain; the "effect sprite" *semantic* is still `[code]`
+inference, flagged to ground vs MAME (watch these cells while an object is hit / a prize is
+collected). `[code]`
 
 **The pickup flag.** `ITEM_COLLECTED (0x6225)` latches when a prize/item is collected (edge
 pickup, airborne collision, or rivet) and is consumed at landing (`loc_1d95` clears it and,
@@ -640,6 +669,7 @@ yet English-named.
 | `advanceClimbStep` | the shared climb-step body (step Y ±2, center or pick the climb frame) |
 | `climbMarioUp` | drive Mario's upward ladder climb one step per frame (feeds the shared body a −2 step) |
 | `climbMarioDown` | drive Mario's downward ladder climb one step per frame (feeds the shared body a +2 step) |
+| `climbUpWhileHeld` | while the player holds Up (control bit 2) drive Mario's climb up — the "Up" half of the ladder-input dispatch (0x1B45) |
 | `centerMarioAndCommitClimbStep` | the ladder-centering phase of a climb step |
 | `endClimbAtLadderLimit` | finish a ladder climb that reached a ladder end |
 | `setClimbSpriteFrame` | stamp Mario's climb-animation sprite for one step |
@@ -658,6 +688,9 @@ yet English-named.
 |---------|--------------|
 | `scanObjectsAtMarioX` | broad-phase X test of the per-frame object-collision scan |
 | `confirmObjectHit` | confirm an X-match is Y-aligned + eligible; register the hit |
+| `loc_281d` | test the active special-object record vs the board's hazards; on a hit record the collision-hit location (`COLLIDED_OBJECT_*`) |
+| `dispatchBoardCollision` | `BOARD`-selected `rst 0x28` dispatch to the current board's object-collision arm |
+| `dispatchBoardOverlapSearch` | twin dispatcher reached from the `0x286B` search; board 1 counts object overlaps (`OVERLAP_COUNT`) (0x3E88) |
 | `animateSpriteObjectBlock` | advance one animation frame of the ten-record block |
 | `stepSpriteAnimationSequence` | advance one step of the 0x6388-driven sprite anim |
 | `addToSpriteObjectColumn` | the `rst 0x38` vector: add a delta into one record field |

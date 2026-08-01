@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1b45 — when the player is holding UP, drive Mario's upward climb this frame.  ROM 0x1B45.
+ * climbUpWhileHeld — when the player is holding UP, drive Mario's upward climb this frame.  ROM 0x1B45.
  *
  * Reads the cooked control word and tests its UP bit (bit 2). If Up is held this frame it
  * hands off to the climb-UP driver (climbMarioUp), which paces and advances Mario's ladder
@@ -11,9 +11,10 @@
  * tests the DOWN bit (bit 3) and hands off to the climb-DOWN driver (climbMarioDown) before
  * falling through here to test Up.
  *
- * [guess] purpose: bit 2 of the control word is the confirmed UP direction and climbMarioUp
- * is the confirmed climb-up driver, so a promoted name (e.g. climbUpWhileHoldingUp) is well
- * corroborated — left as loc_ here for the clarify pass's proposer/confirmer step.
+ * Name: bit 2 of the control word is the confirmed UP direction (a named input bit) and
+ * climbMarioUp is the confirmed climb-up driver (promoted, ROM 0x1D03), so the meaning is
+ * fully pinned with zero interpretive leap — promoted from loc_1b45 (pass-9 proposer/confirmer,
+ * HIGH confidence).
  *
  * Memory-equivalent to the frozen oracle — equivalence-1b45.test.js.
  * GATE:     real captured 0x1B45 dispatches from an attract run (both arms fire — attract
@@ -39,7 +40,7 @@ const HOLDING_UP = 0x04;
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1b45(m) {
+export function climbUpWhileHeld(m) {
   const { mem } = m;
 
   // Only climb while the player is holding Up this frame; otherwise leave Mario be.

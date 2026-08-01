@@ -237,6 +237,13 @@ export const TOP_SPRITES = 0x6a00;
 /** [code] 3 collision sprite records (stride 4) inside SPRITE_BUFFER; scanObjectsAtMarioX/confirmObjectHit
  *  read +0 X / +3 Y / +1 flag vs Mario (cleared as a 5-record group by clearSpriteColumns). */
 export const OBJECT_COLLISION_SPRITES = 0x6a0c;
+/** [code] Effect sprite record (4 bytes at 0x6A2C inside SPRITE_BUFFER, immediately before
+ *  POPUP_SPRITE): +0 Y, +1 SPRITE_CODE, +2 SPRITE_ATTR, +3 X. entry_1ea0 builds it and stores its
+ *  base into EFFECT_PARAM_PTR (0x6343); loc_1f09 flips bit0 of its code byte (0x60↔0x61) each effect
+ *  beat, loc_1f23 steps it. Its +1 code field (0x6A2D) IS grounded [seen] live (flips 0x60↔0x61, 41
+ *  transitions, tied to EFFECT_SEQ_STATE) — reach 0x6A2D as EFFECT_SPRITE + SPRITE_CODE. [code] because
+ *  grounding grounded the +1 field, not the base cell's own byte (same rating as sibling POPUP_SPRITE). */
+export const EFFECT_SPRITE = 0x6a2c;
 /** [code] Score-popup sprite record inside SPRITE_BUFFER; awardScorePopup writes +0=MarioX, +1=glyph,
  *  +2=attr 7, +3=MarioY+0x14. */
 export const POPUP_SPRITE = 0x6a30;
@@ -330,6 +337,40 @@ export const PLAYER_SLOT_RECORDS = 0x611c;
  *  reads it back and recovers the matched record's index as count − B (loc_281d, ROM 0x2846). HOW WE
  *  KNOW: 9 writers all storing a sweep count + one index-recovery reader. */
 export const OBJ_SEARCH_COUNT = 0x63B9;
+
+// ── Collision-search result cells ─────────────────────────────────────────────
+// Two sibling board object-search mechanisms record their result here. OVERLAP_COUNT is the
+// overlap-search counter (dispatchBoardOverlapSearch's board-1 arm); COLLIDED_OBJECT_* is the
+// collision handler's "where was the hit found" record (loc_281d writes the triple, entry_1ea0
+// walks base+index*stride to the hit record). Grounded live vs MAME 0.288 (pass-9). Listed in
+// address order (0x6060 first) though grouped here by subsystem, per this file's convention.
+
+/** [seen] (own byte {0,1} live — nonzero only in SUB=3 attract; PLAY {0:6268,1:2823}, 20
+ *  transitions, heavier when Mario is among barrels; no >1 seen this run) Board collision-search
+ *  overlap counter. entry_3e99 clears it, runs entry_3ec3 (per-overlap `inc (0x6060)`) over both
+ *  object groups (0x6700 ×10, 0x6400 ×5), then reads it back as the overlap severity code
+ *  (0/1/2+/3+ → 0/1/3/7). Only these two routines touch it — transient within one
+ *  dispatchBoardOverlapSearch dispatch, but single-meaning. */
+export const OVERLAP_COUNT = 0x6060;
+
+/** [seen] (16-bit WORD; recorded on every hit = 0x6700 or 0x6400 = OBJ_ARRAY_67/64 base exactly.
+ *  The observable is the WORD: the low byte 0x6351 reads a constant page-aligned 0x00; the high
+ *  byte 0x6352 is the array classifier — entry_1ea0 `cp 0x65` on it tells which array was hit.)
+ *  Base address of the hazard-object array that contained the collision hit. loc_281d writes it
+ *  (write16 IX from dispatchBoardCollision); entry_1ea0 reads `ix,(0x6351)` to walk to the hit
+ *  record. Only loc_281d/entry_1ea0 touch it. */
+export const COLLIDED_OBJECT_BASE = 0x6351; // 16-bit; 0x6352 is its high byte, do not name separately
+
+/** [seen] (= 0x20 on every hit = OBJ_ARRAY_67/64 record stride exactly) Low byte of the hit array's
+ *  per-record stride. loc_281d writes E; entry_1ea0 reads it into E and uses DE=0x00:stride as the
+ *  per-record IX increment while walking to the hit record. Only these two touch it. */
+export const COLLIDED_OBJECT_STRIDE = 0x6353;
+
+/** [seen] (small index set {0,2,3,4,7} live — the record's position in the swept array) Index of
+ *  the hit object within its array (= OBJ_SEARCH_COUNT − B, the records already scanned). loc_281d
+ *  writes it; entry_1ea0 reads it as the loop count that walks base+index*stride to the hit record
+ *  ((0x6354)==0 → skip). Only these two touch it. */
+export const COLLIDED_OBJECT_INDEX = 0x6354;
 
 /** [seen] (own low byte observed = 0x85 -> points at 0x6385 INTRO_STEP during the cutscene, RUN-1P; single meaningful value) 16-bit INDIRECT pointer (lo,hi): the ADDRESS of the counter the gated tick helper loc_3069
  *  advances. loc_3069 (ROM 0x306A `ld hl,(0x63c0) / inc (hl)`) loads the WORD stored here and
@@ -853,8 +894,11 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 //   No ROM reference at all:    0x6004 0x6006 0x600B 0x600C
 //   Written once at boot:       0x6000
 //   Board/animation scratch:    0x6030 0x6031 0x6032 0x6034 0x6035 0x6036 0x6038 0x603A
-//                               0x6060 0x6100 0x61A5 0x61B1 0x61C6 0x61C7
-//                               (0x611C was PROMOTED to PLAYER_SLOT_RECORDS above — DE naming pass:
+//                               0x6100 0x61A5 0x61B1 0x61C6 0x61C7
+//                               (0x6060 was PROMOTED to OVERLAP_COUNT above — pass-9: the board
+//                               collision-search overlap counter, only entry_3e99/entry_3ec3 touch it,
+//                               single-meaning, own byte {0,1} grounded live vs MAME.
+//                               0x611C was PROMOTED to PLAYER_SLOT_RECORDS above — DE naming pass:
 //                               base + stride 0x22, 5 records, owner-tag field[0] = 1/3 via loc_141e)
 //   0x63xx engine scratch:      0x6348 0x6350 0x6382 0x638C 0x638F 0x6390
 //                               0x6392 0x6393 0x63A0
@@ -868,9 +912,18 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 //                               readers+writers (inc to advance, reset to 0), NO sharing evidence.
 //                               0x6300/0x6310 PROMOTED to OBJ_PARAM_TABLE0/1, and 0x6340-0x6343 /
 //                               0x6345 / 0x6346 to the EFFECT_* / EFFECT_SEQ_* cluster above — ABC
-//                               naming pass. 0x6348 & 0x6350 stay hex under DOWNGRADE: 0x6348 is a thin
-//                               one-shot velocity-mode latch, 0x6350 is SHARED across the effect-seq gate
-//                               (whole-byte) and sub_03a2 (bit0) — ground vs MAME before naming either.
+//                               naming pass. 0x6348 stays hex under DOWNGRADE: own byte GROUNDED
+//                               live vs MAME ({0,1}, clean one-shot cycle — set once during play @
+//                               SUB=3, cleared at board init, ~7 transitions/run; answers the earlier
+//                               "does its own byte take {0,nonzero}?" = YES). But it is MULTIPLEXED:
+//                               loc_22cb reads it as a velocity-source mode (clear→level arm /
+//                               set→difficulty arms), sub_216d reads it as a spawn/movement difficulty
+//                               gate (clear→success tail / set→difficulty gating), entry_24b4 is its
+//                               one-shot writer (:=1 on first pass). The readers agree only on the
+//                               branch SHAPE (clear=base path, set=difficulty-graded path), not one
+//                               subsystem meaning — VELOCITY_MODE_LATCH is too narrow, no single
+//                               grounded name fits, so kept hex. 0x6350 stays hex — SHARED across the
+//                               effect-seq gate (whole-byte) and sub_03a2 (bit0).
 //                               0x638C stays hex: transient two-digit BCD display scratch.)
 //   Board-object bookkeeping:   0x62AF 0x62B5 0x62B6 0x62B7 0x62B8 0x62B9
 //                               0x62BA

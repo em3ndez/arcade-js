@@ -10,7 +10,8 @@
  *   EFFECT_SEQ_INNER  (0x6346)  the fast divider, ticked every dispatch
  *   EFFECT_SEQ_OUTER  (0x6347)  the slow divider, ticked on each beat
  *   EFFECT_SEQ_STATE  (0x6345)  the dispatch state, advanced on the fourth beat
- *   0x6A2D                      an unnamed sprite-shadow cell whose low bit is flashed
+ *   0x6A2D                      EFFECT_SPRITE + 1 (the effect sprite's +1 SPRITE_CODE field),
+ *                               the sprite-shadow byte whose low bit is flashed
  *
  * The oracle threads flags/registers through and returns via the router's dispatch tail,
  * but no caller consumes them (the router and its own caller take an independent skip
@@ -53,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f09 as oracle } from "../../translated/loc_1f09.js";
 import { loc_1f09 } from "../loc_1f09.js";
-import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE } from "../ram.js";
+import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -65,7 +66,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1f09;
-const SPRITE_CELL = 0x6a2d; // unnamed sprite-shadow cell whose low bit this routine flashes
+const SPRITE_CELL = EFFECT_SPRITE + 1; // 0x6A2D — the effect sprite's +1 SPRITE_CODE field this routine flashes
 
 // The oracle's `ret`s pop the stack; point SP at work RAM so those pops read valid bytes
 // (never I/O). The routine is a leaf that only pops (no push), so this never affects the

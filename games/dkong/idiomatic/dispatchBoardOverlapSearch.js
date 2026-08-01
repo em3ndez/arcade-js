@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3e88 — vector to the current board's collision-search arm, handing it the
- * caller's bounds word across the dispatch.  ROM 0x3E88.
+ * dispatchBoardOverlapSearch — vector to the current board's collision-search arm, handing
+ * it the caller's bounds word across the dispatch.  ROM 0x3E88.
+ *
+ * Promoted from loc_3e88 (pass-9 proposer/confirmer, MEDIUM-HIGH). Exact structural twin of
+ * the promoted dispatchBoardCollision (0x286F): same BOARD selector, same rst-0x28 inline-table
+ * idiom, same declared live-out. Its DISTINCT purpose — why it exists apart from the collision
+ * twin — is the board-1 arm 0x3E99, which counts object overlaps (OVERLAP_COUNT, grounded live)
+ * instead of running the plain girder collision; boards 2/3/4 share the collision twin's arms.
+ * Reached only from the 0x286B search caller.
  *
  * The caller (still-untranslated, from 0x286B) hands a bounds word in a register and
  * wants the board-specific object-overlap search run for it. This routine reads the
@@ -60,7 +67,7 @@ const BOARD_DISPATCH_TABLE = 0x3e8d;
 // identical to the frozen oracle's site string so the throw text matches byte-for-byte.
 const DISPATCH_SITE = "0x3E8D (entry_3e88 dispatch)";
 
-export function loc_3e88(m) {
+export function dispatchBoardOverlapSearch(m) {
   const { regs, mem } = m;
 
   // ld a,(0x6227) — the board type selects which arm of the inline table runs.

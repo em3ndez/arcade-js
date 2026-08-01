@@ -50,7 +50,9 @@ import { loc_2303 } from "./loc_2303.js";
 import { loc_231a } from "./loc_231a.js";
 
 // One-shot latch selecting the velocity source: clear -> the level-based arm, set -> the
-// difficulty-graded arms below. No ram.js name yet (kept hex, reported to the lead).
+// difficulty-graded arms below. Own byte grounded {0,1} live vs MAME (pass-9), but no ram.js
+// name: it is MULTIPLEXED across readers (velocity-mode here, spawn/movement gate in sub_216d),
+// so it stays hex under DOWNGRADE — this file-local const names only its role here.
 const VELOCITY_MODE_LATCH = 0x6348;
 
 export function loc_22cb(m) {

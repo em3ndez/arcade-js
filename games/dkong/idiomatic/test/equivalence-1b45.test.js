@@ -43,7 +43,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1b45 as oracle } from "../../translated/loc_1b45.js";
-import { loc_1b45 } from "../loc_1b45.js";
+import { climbUpWhileHeld } from "../climbUpWhileHeld.js"; // promoted from loc_1b45
 import { climbMarioUp } from "../climbMarioUp.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, P1_INPUT, MARIO_MOVE_STEP_TIMER, MARIO_Y } from "../ram.js";
@@ -188,7 +188,7 @@ test("EQUAL (real dispatches): loc_1b45 == oracle on every captured 0x1B45 entry
   assert.ok(caps.length >= 1, "expected at least one real 0x1B45 dispatch during attract");
   let up = 0, idle = 0;
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_1b45); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, climbUpWhileHeld); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
     if ((cap.mem.read8(P1_INPUT) & UP_BIT) !== 0) up++; else idle++;
   }
@@ -205,7 +205,7 @@ test("EQUAL (input sweep): all 256 P1_INPUT values match the oracle", () => {
   let climbArm = 0, idleArm = 0;
   for (let v = 0; v < 256; v++) {
     const entry = withInput(seed, v);
-    const diffs = contractDiffs(entry, loc_1b45);
+    const diffs = contractDiffs(entry, climbUpWhileHeld);
     assert.equal(diffs.length, 0, `input=${hx(v)}: ${diffs.join("; ")}`);
     if ((v & UP_BIT) !== 0) climbArm++; else idleArm++;
   }

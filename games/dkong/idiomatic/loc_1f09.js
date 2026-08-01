@@ -34,16 +34,16 @@
  *           dispatch tail, but the caller chain (the router, then its own caller) consumes
  *           none of them — it takes an independent skip decision — so the residual is dead.
  * NAMES:    EFFECT_SEQ_INNER (0x6346), EFFECT_SEQ_OUTER (0x6347), EFFECT_SEQ_STATE (0x6345)
- *           from ram.js. 0x6A2D is an unnamed byte inside the sprite shadow buffer, kept a
- *           local hex const.
+ *           and EFFECT_SPRITE (0x6A2C) from ram.js. The flashed cell 0x6A2D is the effect sprite
+ *           record's +1 SPRITE_CODE field, reached as EFFECT_SPRITE + 1.
  */
 
-import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE } from "./ram.js";
+import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE } from "./ram.js";
 
-// 0x6A2D — an unnamed cell inside the sprite shadow buffer (0x6900-0x6A7F, the block the
-// DMA blits to sprite RAM each vblank). This routine flips its low bit each beat; ram.js
-// has no name for it yet, so it stays a local hex const.
-const EFFECT_SPRITE_CELL = 0x6a2d;
+// The +1 SPRITE_CODE field of EFFECT_SPRITE (0x6A2C, named in ram.js) — a cell inside the sprite
+// shadow buffer (SPRITE_BUFFER, the block the DMA blits to sprite RAM each vblank). This routine
+// flips its low bit each beat, toggling the effect sprite's tile between 0x60 and 0x61.
+const EFFECT_SPRITE_CELL = EFFECT_SPRITE + 1; // 0x6A2D
 
 /**
  * @param {object} m  the machine (uses m.mem only).
