@@ -26,6 +26,23 @@ blind derivations + a third adjudicator on splits); 8 write-only/vestigial cells
 hex. The slot-3 creature + Pit floor-reveal cells were renamed off their old tank labels — the rename
 is complete, none of the old labels remain.
 
+**Grounding pass (2026-07-31) — 18 of the 31 new cells lifted `[code]`→`[seen]`.** A dig-gameplay and
+an attract capture watched each cell's value against its code-derived role; a blind confirmer re-ran its
+own certified captures and re-derived every one (measurement caveat: the attract dump-notifier tears
+down on the demo's soft-reset, so an attract golden must run **≤30 s** — a 45 s run poisons the tail).
+Seven matched the code-predicted **exact** value, which also cross-validated the byte-offset mapping:
+`PLAYER1_LEVEL_BACKUP`=1, `PLAYER1_MEN_BACKUP`=3, `REACTION_PERIOD`=0x18, `DIG_OBJ_TIMER_RELOAD`=0x20,
+`ENEMY3_MOVE_PERIOD`/`ENEMY3_TWIN_MOVE_PERIOD`=7 (=`7−(LEVEL&6)` at L1), `SECONDS_PRESCALER` decrements
+1/frame 60→1→reload-60 (a `/60` divider, not a plain counter), `DEMO_STEER_SERVICE_TIMER` reloads to
+0x1e=30. The other confirmed-`[seen]`: `DEMO_STEER_BAND_HINT`, `AHEAD_TILE_RAW`, `ENEMY_WORK_X`/`_Y`,
+`CHAMBER_CREATURE_X_VELOCITY` (±1 bounce)/`_FALL_STEP` (accelerating signed)/`CHAMBER_CREATURE_SPRITE`
+(sweep), `ENEMY3_STATE`/`ENEMY3_TARGET_COL`/`ENEMY3_TWIN_TARGET_COL`. **Left `[code]`** (owed a grounding
+run): `ENEMY_WORK_ATTR` + `ENEMY1_Y` (observed but weakly-discriminating in the dig tape); and the cells
+the two tapes never reach — `PLAYER2_MEN_BACKUP` (needs 2-player), `OBJECT_MOTION_MODE`/`LOCKED_COLUMN`
+(need horizontal walking), `COLOUR_TEST_FILL` (boot self-test), the `ENEMY3_TWIN_STEP_*`/`_STATE` (twin
+didn't spawn), `CARVE_CELL_PTR`/`PATTERN_SOURCE_PTR`/`SCORE_READOUT_DEST`, and `STACK_TOP` (a structural
+SP-init constant, no cell-value to observe).
+
 ## Tags
 - **`[seen]`** — directly observed in the running game (MAME `thepitu1`, 0.288-class: headless
   per-frame RAM dump + rendered frames, forced via "poke, don't grind" Lua tapes). Highest authority.

@@ -105,6 +105,42 @@ A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — i
    claim about BOTH sets being empty-or-accounted-for — verify it against this command's output before
    ever saying it.
 
+### A naming pass produces `[code]` proposals — it is FOLLOWED BY a grounding pass
+
+Naming a cell from the code alone earns it `[code]`, not `[seen]`: you have a consistent reading of what
+the byte *is*, not a confirmation of what it *does*. So a naming pass is **not** the terminus of the
+spiral — it FEEDS a grounding pass. Two stages, and stage B is not optional:
+
+**A. Land the names cleanly (the code side).** The pass's code-side is finished only when all of:
+
+1. **The const is live everywhere.** Rewire EVERY reference to the new name — not just `mem8[0x..]`,
+   but `mem16[0x..]`, `regs.sp = 0x..`, and **bare `0x..` literals** (clear-arrays, offset bases). A
+   named cell still read as raw hex means the registry is not yet its single source. (A reviewer caught
+   a "single source" claim that was false because only the `mem8[...]` sites had been rewired — the
+   enumeration's bracket-only net (a) is not enough; also `grep` the non-comment code for every bare
+   `0x8xxx` and reconcile.) The rewire is behaviour-preserving, so the equivalence suite must stay green.
+2. **No prose contradicts the registry.** Sweep routine comments AND `mechanisms.md`: nothing may call a
+   now-named cell "hex / no ram.js name / unnamed". `tools/names_consistency.py` (pre-commit gate #2)
+   enforces this — run it. Acknowledging a deliberate raw / different-role use is allowed ("0x8057 is
+   `BOARD_MODE`, reused raw here"); a bare "0x8057 stays hex" is not. See [names-registry](names-registry.md)
+   "One source per fact".
+3. **The names cleared proposer≠confirmer + a third adversarial review.** Two independent *blind*
+   derivations, promoted on convergence — but convergence is necessary, not sufficient (two blind
+   derivations can converge on the same *wrong* reading, the recorded `0x8076` case), so a third
+   adversarial review reads every promoted name before it lands, not only the ones the two split on. The
+   lead — not a proposer — edits `ram.js`. (See [decompiler-pipeline](decompiler-pipeline.md).)
+4. **Verify the code side mechanically, don't assert.** Both-net enumeration prints zero uncentralized
+   cells; the names-consistency gate reports zero; the equivalence suite is green; a reviewer≠author
+   reads the diff.
+
+**B. Then GROUND the `[code]` names.** They are *proposals*. A grounding pass plays/pokes each in MAME —
+never the JS engine, which is our own model (grounding it against itself is circular) — to lift
+`[code]`→`[seen]` or to OVERTURN it. Ground the **load-bearing, code-undecidable** picks first and
+*before you build on them*: a name derived from code alone can be confidently wrong (The Pit shipped
+"no laser exists" and called enemy-3 a "ship", both from code, both overturned only by grounding). A
+batch of fresh `[code]` names is a grounding **work-list**, not a finished map — the pass is complete
+only when that list is grounded-or-accounted-for, exactly as the mechanism map is (below).
+
 ## Maintain it as understanding grows
 
 **The mechanism map is never "done" — it is maintained continuously.** It starts as mostly

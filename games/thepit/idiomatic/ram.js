@@ -805,17 +805,23 @@ export const ENEMY3_TWIN_SPRITE_SLOT = 0x823c;
 
 // ── Centralized 2026-07-31: cells previously referenced by raw hex or by a LOCAL const
 //    inside one routine, promoted to the single registry (proposer≠confirmer: two blind
-//    derivations + a third adjudicator on splits). Records are cross-referenced in prose. ──
+//    derivations + a third adjudicator on splits). Records are cross-referenced in prose.
+//    GROUNDED 2026-07-31: 18 of these were lifted [code]→[seen] by MAME capture (dig-gameplay
+//    + attract), a blind confirmer independently re-deriving each — 7 hit the code-predicted
+//    EXACT value (level=1, men=3, REACTION_PERIOD=0x18, DIG_OBJ_TIMER_RELOAD=0x20, ENEMY3
+//    MOVE_PERIOD=7, SECONDS_PRESCALER /60→60, DEMO_STEER_SERVICE_TIMER reload 0x1e). The rest
+//    stay [code] (weakly-discriminating: ENEMY_WORK_ATTR/ENEMY1_Y; or the tape never reached
+//    them: the 2-player / walk / colour-test / twin-spawn cells). See mechanisms.md. ──
 /** Per-frame 60->reload-60 down-divider (twin of the named FRAME_COUNTER_PRESCALER 0x8007); read
- *  and branched every frame, its once-per-second rollover decrements 0x800f. [code] */
+ *  and branched every frame, its once-per-second rollover decrements 0x800f. [seen] */
 export const SECONDS_PRESCALER = 0x8006;
 /** 30-frame reload countdown inside the attract demo's player-steering classifier (loc_03e8 /
  *  steerDemoPlayer); when it hits 0 it reloads to 0x1e and fires the classifier's periodic
- *  housekeeping call (0x48c4). Seeded to 1 so it fires on the first frame. [code] */
+ *  housekeeping call (0x48c4). Seeded to 1 so it fires on the first frame. [seen] */
 export const DEMO_STEER_SERVICE_TIMER = 0x800b;
 /** Cached maze-region index in the demo-steer classifier: a stationary demo player re-tests only
  *  the boundary block for the region it was last in; a block that heads a new region rewrites this
- *  hint to that region's index. Reset to 0 at round init. [code] */
+ *  hint to that region's index. Reset to 0 at round init. [seen] */
 export const DEMO_STEER_BAND_HINT = 0x800c;
 /** Colour-test screen per-pass fill-colour byte; also the 0x80->0xFF pass loop counter (each pass
  *  floods colour RAM 0x8800-0x8BFF with this value). [code] */
@@ -823,11 +829,11 @@ export const COLOUR_TEST_FILL = 0x8012;
 /** Player 1's backup copy of the LEVEL field (offset 0 of the interleaved [working,P1,P2] per-
  *  player record based at LEVEL 0x8028). loadPlayerState restores it into working LEVEL for
  *  P1's turn; saveActivePlayerRecord writes it; enterPlayMode seeds it to 3 so the attract demo
- *  plays at level 3. [code] */
+ *  plays at level 3. [seen] */
 export const PLAYER1_LEVEL_BACKUP = 0x8029;
 /** Player 1's backup copy of the working man count MEN_LEFT (field 1, offset 3 of the interleaved
  *  player record). Read as a round-boundary condition byte (P1 men-left test that routes to
- *  next-round setup vs end-of-round teardown); written by saveActivePlayerRecord. [code] */
+ *  next-round setup vs end-of-round teardown); written by saveActivePlayerRecord. [seen] */
 export const PLAYER1_MEN_BACKUP = 0x802c;
 /** Player 2's backup copy of the working man count (field 1, offset 3 of P2's record). At the P1
  *  round boundary it is cleared ('the other player's backup man count'); read as a condition
@@ -842,33 +848,33 @@ export const OBJECT_MOTION_MODE = 0x8075;
  *  arrival/catch. [code] */
 export const LOCKED_COLUMN = 0x807a;
 /** Horizontal position byte (offset 0, the base) of the enemy/object work-slot scratch record;
- *  stepped one pixel by the left/right movers and drives the walk-frame phase. [code] */
+ *  stepped one pixel by the left/right movers and drives the walk-frame phase. [seen] */
 export const ENEMY_WORK_X = 0x8083;
 /** Sprite attribute/color byte (offset 2) of the enemy work-slot record; color-cycled by
  *  advanceDormantMover (v+1 & 0xf7, holding priority bit3 clear), then copied back to the live
  *  enemy's ATTR. [code] */
 export const ENEMY_WORK_ATTR = 0x8085;
 /** Vertical / sub-row position byte (offset 3) of the enemy work-slot record; stepped one pixel by
- *  the up/down movers and used as the tile-probe row alignment. [code] */
+ *  the up/down movers and used as the tile-probe row alignment. [seen] */
 export const ENEMY_WORK_Y = 0x8086;
 /** Reload/period constant (0x18 = 24) for the reaction step timer REACTION_TIMER (0x80a4); read to
- *  re-arm the timer each time a reaction is armed. [code] */
+ *  re-arm the timer each time a reaction is armed. [seen] */
 export const REACTION_PERIOD = 0x80a3;
 /** Raw tile code of the cell one step AHEAD/neighbouring the object, recorded before the
- *  table-0x1ce0 classification lookup that produces the classified NEXT_TILE (0x80a8). [code] */
+ *  table-0x1ce0 classification lookup that produces the classified NEXT_TILE (0x80a8). [seen] */
 export const AHEAD_TILE_RAW = 0x80a6;
 /** 16-bit VRAM cell pointer for the dig-carve / falling-hazard object -- the live cell being
  *  drawn/erased; dereferenced through IX. [code] */
 export const CARVE_CELL_PTR = 0x80af;
 /** Reload/lifetime constant (seeded 0x20) copied into the dig-carve/falling-hazard lifetime timer
- *  DIG_OBJ_TIMER (0x80b1) when the object spawns. [code] */
+ *  DIG_OBJ_TIMER (0x80b1) when the object spawns. [seen] */
 export const DIG_OBJ_TIMER_RELOAD = 0x80c2;
 /** Horizontal bounce velocity (+1 / -1 = 0xff) of the left-chamber creature; added to
- *  CHAMBER_CREATURE_X (0x80db) each frame, sign flipped at the bounce bounds. [code] */
+ *  CHAMBER_CREATURE_X (0x80db) each frame, sign flipped at the bounce bounds. [seen] */
 export const CHAMBER_CREATURE_X_VELOCITY = 0x80df;
 /** Accelerating vertical fall step/velocity for CHAMBER_CREATURE_FALL_Y (0x80de); pre-incremented
  *  each frame (start 0xfc = -4, so it rises then accelerates down), reset when the creature re-
- *  drops. [code] */
+ *  drops. [seen] */
 export const CHAMBER_CREATURE_FALL_STEP = 0x80e0;
 /** 16-bit scratch holding the source pointer into tile-pattern table 0x3048 for the Pit floor-
  *  reveal / chamber pattern copy; stored then reloaded into IX (an HL->IX spill). [code] */
@@ -877,13 +883,13 @@ export const PATTERN_SOURCE_PTR = 0x80e1;
  *  bias. [code] */
 export const ENEMY1_Y = 0x80eb;
 /** Signed mover state byte (offset +13) of the enemy-3 primary record; dispatched on sign by the
- *  generic mover. [code] */
+ *  generic mover. [seen] */
 export const ENEMY3_STATE = 0x8117;
 /** Cadence reload period (offset +14) of enemy-3 primary; level-scaled step speed reloaded into the
- *  mover timer. [code] */
+ *  mover timer. [seen] */
 export const ENEMY3_MOVE_PERIOD = 0x8118;
 /** Target tile column (offset +16) of enemy-3 primary; mover fast-exits/keys direction on it.
- *  [code] */
+ *  [seen] */
 export const ENEMY3_TARGET_COL = 0x811a;
 /** Low byte of the enemy-3 twin per-step move vector (offset +4). [code] */
 export const ENEMY3_TWIN_STEP_X = 0x811f;
@@ -891,12 +897,12 @@ export const ENEMY3_TWIN_STEP_X = 0x811f;
 export const ENEMY3_TWIN_STEP_Y = 0x8120;
 /** Signed mover state byte (offset +13) of the enemy-3 twin record. [code] */
 export const ENEMY3_TWIN_STATE = 0x8128;
-/** Cadence reload period (offset +14) of the enemy-3 twin record; level-scaled step speed. [code] */
+/** Cadence reload period (offset +14) of the enemy-3 twin record; level-scaled step speed. [seen] */
 export const ENEMY3_TWIN_MOVE_PERIOD = 0x8129;
-/** Target tile column (offset +16) of the enemy-3 twin record. [code] */
+/** Target tile column (offset +16) of the enemy-3 twin record. [seen] */
 export const ENEMY3_TWIN_TARGET_COL = 0x812b;
 /** Base of hardware sprite-record slot 3 (4 bytes: X, frame, attr, Y) where the left-chamber
- *  creature is staged each frame. [code] */
+ *  creature is staged each frame. [seen] */
 export const CHAMBER_CREATURE_SPRITE = 0x822c;
 /** Base of the first of three 9-byte on-screen numeric-readout display records
  *  (0x8283/0x828c/0x8295): a 3-byte header copied from a ROM template + 4 digit cells (at +3) +
