@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_05c6 — the score-counter draw task: repaint one of the three on-screen score
+ * drawScoreTask — the score-counter draw task: repaint one of the three on-screen score
  * readouts, chosen by the task payload.  ROM 0x05C6.
  *
  * Dispatched from the main-loop task ring (dispatchTask hands the task's second byte
@@ -29,11 +29,11 @@
  * score arm needs none; drawHighScore overrides the source itself), and it leaves the
  * payload in place as the renderer's column selector.
  *
- * NAME: kept the neutral loc_ — the select-a-score-and-render MECHANISM is pinned to
- * the oracle and the three sources are the rated P1_SCORE / P2_SCORE / HIGH_SCORE
- * cells, so the evidence for a name like "draw the score counter for this task" is
- * strong; deferred to the naming pass (proposer≠confirmer + review) since the sibling
- * front end loc_056b was likewise left neutral. Promote once corroborated.
+ * NAME (promoted, DK understanding pass 7 — independent proposer≠confirmer): the
+ * select-a-score-and-render task. The MECHANISM is pinned to the oracle and the three
+ * payload sources are the rated P1_SCORE / P2_SCORE / HIGH_SCORE cells (payload 0 → P1,
+ * 1/other → P2, 2 → high), so "draw the score counter for this task" is grounded. The
+ * task-ring dispatch (payload = the task's second byte) is oracle-pinned.
  *
  * Memory-equivalent to the frozen oracle — equivalence-05c6.test.js.
  * GATE:     crafted-entry, grounded in real captured RAM. Attract dispatches 0x05C6
@@ -59,14 +59,14 @@ import { loc_056b } from "./loc_056b.js"; // ROM 0x056B — column-selecting BCD
 import { drawHighScore } from "./drawHighScore.js"; // ROM 0x05DA — fixed-column high-score tail
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
-export function loc_05c6(m) {
+export function drawScoreTask(m) {
   const { regs } = m;
   const payload = regs.a;
 
   // Payload 3 -> the un-lifted clear-and-redraw arm at ROM 0x05E0. Never enqueued in
   // play; faulted loudly rather than mis-rendered, matching the oracle.
   if (payload === 3) {
-    throw new NotImplemented("loc_05c6 payload 3 path at ROM 0x05E0 (un-lifted arm)");
+    throw new NotImplemented("drawScoreTask payload 3 path at ROM 0x05E0 (un-lifted arm)");
   }
 
   // Payload 2 -> repaint the high score from the record itself up its fixed column.

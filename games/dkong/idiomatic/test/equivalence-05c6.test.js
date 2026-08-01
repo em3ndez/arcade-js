@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { handler_05c6 as oracle } from "../../translated/handler_05c6.js";
-import { loc_05c6 } from "../loc_05c6.js";
+import { drawScoreTask as loc_05c6 } from "../drawScoreTask.js";
 import { loc_056b } from "../loc_056b.js";
 import { drawHighScore } from "../drawHighScore.js";
 import { Machine } from "../../machine.js";

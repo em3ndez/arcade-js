@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1d11 — advance one climb-animation step for Mario.  ROM 0x1D11.
+ * advanceClimbStep — advance one climb-animation step for Mario.  ROM 0x1D11.
  *
  * The shared body both climb steppers fall into: entry_1d03 (ROM 0x1D03) enters it
  * with a −2 step, its twin loc_1cf2 (ROM 0x1CF2) with a +2 step, so the per-frame
@@ -19,6 +19,13 @@
  *        - otherwise pick this step's climb sprite frame by how far above the near
  *          limit Mario sits — 8 units up is frame 5, 12 up is frame 4, anything else
  *          is frame 3 (setClimbSpriteFrame).
+ *
+ * NAME (promoted, DK understanding pass 7 — independent proposer≠confirmer): the shared
+ * climb stepper. Grounded by the [seen] MARIO_CLIMB_LIMIT_A/B (0x621B/0x621C) cells, whose
+ * registry comment names this routine (ROM 0x1D28/0x1D2E) the climb stepper that stops and
+ * clears MARIO_ON_LADDER when (newY+8) equals either limit. (The two translated callers
+ * entry_1d03 / loc_1cf2 — step −2 / +2 — are climb-up / climb-down; relabel them when they
+ * are brought idiomatic.)
  *
  * Memory-equivalent to the frozen oracle — equivalence-1d11.test.js.
  * GATE:     crafted-entry + real dispatches — attract's 25m demo climbs a ladder, so
@@ -52,7 +59,7 @@ const CENTERING_PHASE = 0x6222;
  *   0x02 = down 2); added to MARIO_Y with byte-wrap.
  * @returns {void}
  */
-export function loc_1d11(m, climbStep) {
+export function advanceClimbStep(m, climbStep) {
   const { mem } = m;
 
   // 1. Advance Mario's height by this frame's step; remember the new height.

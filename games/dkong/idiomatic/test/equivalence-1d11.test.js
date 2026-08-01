@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1d11 as oracle } from "../../translated/loc_1d11.js";
-import { loc_1d11 } from "../loc_1d11.js";
+import { advanceClimbStep as loc_1d11 } from "../advanceClimbStep.js";
 import { centerMarioAndCommitClimbStep } from "../centerMarioAndCommitClimbStep.js";
 import { endClimbAtLadderLimit } from "../endClimbAtLadderLimit.js";
 import { setClimbSpriteFrame } from "../setClimbSpriteFrame.js";

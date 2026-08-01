@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f43 as oracle } from "../../translated/loc_2f43.js";
-import { loc_2f43 } from "../loc_2f43.js";
+import { updateActiveHammer as loc_2f43 } from "../updateActiveHammer.js";
 import { selectHammerSpriteBlinkByTimer } from "../selectHammerSpriteBlinkByTimer.js"; // proven-equal select arm (0x2FB7), used by the teeth
 import { blinkHammerSpriteOnFramePhase } from "../blinkHammerSpriteOnFramePhase.js";   // proven-equal blink arm (0x2FBE), used by the teeth
 import { commitSpriteRecordAtMarioOffset } from "../commitSpriteRecordAtMarioOffset.js"; // proven-equal record write (0x2F7C), used by the teeth
@@ -56,6 +56,7 @@ import {
   HAMMER_TIMER_LO, HAMMER_TIMER_HI, MARIO_HAMMER_ACTIVE,
   MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_RECORD,
   SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_ACTIVE, OBJ_X, OBJ_Y, SND_BGM, FRAME,
+  HAMMER_SAVED_BGM as SAVED_BGM,
 } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -80,7 +81,6 @@ const EXPIRY_HIGH = 0x02;     // counter high byte at which the hammer's ~512-co
 const OBJ_FIELD_01 = 0x01;    // object-record field cleared on expiry
 const OBJ_X_DISP = 0x0e;      // object-record field: horizontal displacement from Mario
 const OBJ_Y_DISP = 0x0f;      // object-record field: vertical displacement from Mario
-const SAVED_BGM = 0x6389;     // scratch cell holding the tune saved at hammer grab
 const HAMMER_SPRITE_CELL = MARIO_SPRITE_RECORD + SPRITE_CODE; // 0x694D — Mario record's code byte
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

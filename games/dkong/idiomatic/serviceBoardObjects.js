@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2722 — service the six board objects for one pass, then publish their
+ * serviceBoardObjects — service the six board objects for one pass, then publish their
  * positions to the sprite buffer.  ROM 0x2722.
  *
  * The 0x6600 array holds six 16-byte board-object records. Once per board-object
@@ -19,10 +19,13 @@
  * walk reads the positions they just produced — so the sprite records always show
  * this pass's motion.
  *
- * NAME: kept the neutral loc_. The mechanism is certain (advance + spawn + mirror
- * positions to sprites), but what these board objects ARE in gameplay is not
- * grounded — the same reason the animate callee stays loc_2797 and the spawn seed
- * bytes are ungrounded in spawnBoardObject. Promote once the object kind is known.
+ * NAME (promoted, DK understanding pass 7 — independent proposer≠confirmer): the
+ * board-object service loop. The name describes the STRUCTURAL service pass (advance +
+ * spawn + mirror positions to sprites) — oracle-pinned over the rated OBJ_ARRAY_66 /
+ * OBJ_X / OBJ_Y / SPRITE_BUFFER cells, using the blessed "board object" vocabulary
+ * already carried by spawnBoardObject and the loc_2797 header — and makes no claim about
+ * what the objects ARE in gameplay (that identity stays ungrounded, so the animate callee
+ * stays loc_2797 and the spawn seed bytes stay ungrounded in spawnBoardObject).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2722.test.js.
  * GATE:     crafted. 0x2722 is board-gated and never dispatches in 25m attract
@@ -59,7 +62,7 @@ const SPRITE_Y = 3;          // Y byte offset within a 4-byte sprite record (X i
  * @param {object} m  the machine (uses m.mem; direct-calls the two service callees).
  * @returns {void}
  */
-export function loc_2722(m) {
+export function serviceBoardObjects(m) {
   const { mem } = m;
 
   // Advance the existing objects, then try to spawn a new one. (The oracle hands the

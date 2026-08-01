@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2f43 — advance the active hammer's duration counter one tick and lay down this
- * frame's hammer sprite; when the counter passes its ~512-frame limit, end the hammer.
+ * updateActiveHammer — advance the active hammer's duration counter one tick and lay down
+ * this frame's hammer sprite; when the counter passes its ~512-frame limit, end the hammer.
  * ROM 0x2F43.
  *
  * The per-frame updater for an active hammer (reached from entry_2ed4's hammer-active
@@ -31,11 +31,12 @@
  * permits, since this updater's own callers are still the translated oracle — and the
  * attribute byte is the shared value set here.
  *
- * NAME: kept the neutral loc_ — the mechanism (hammer duration tick + expiry teardown)
- * is strongly corroborated by ram.js (HAMMER_TIMER_LO/HI note the counter, its high
- * byte reaching 2 ends the hammer clearing MARIO_HAMMER_ACTIVE and restoring the tune)
- * and by the sibling build arms, but a routine-name promotion wants the independent
- * proposer/confirmer bar; the lead promotes.
+ * NAME (promoted, DK understanding pass 7 — independent proposer≠confirmer): the active
+ * hammer's per-frame updater. The mechanism (hammer duration tick + expiry teardown) is
+ * grounded by the [seen] HAMMER_TIMER_LO/HI cells, whose registry comment names this
+ * routine (ROM 0x2F4C `inc (hl)`) the counter's incrementer and states the hammer ends
+ * when the high byte reaches 2 (~512 frames), clearing MARIO_HAMMER_ACTIVE and restoring
+ * the saved background tune — precisely this routine's expiry arm.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f43.test.js.
  * GATE:     captured + crafted. 0x2F43 runs every frame an attract hammer is active, so
@@ -53,10 +54,10 @@
  * NAMES:    HAMMER_TIMER_LO/HI (0x6394/0x6395), MARIO_HAMMER_ACTIVE (0x6217), MARIO_X
  *           (0x6203), MARIO_SPRITE_CODE (0x6207), MARIO_SPRITE_RECORD (0x694C) with the
  *           SPRITE_CODE field offset, OBJ_ACTIVE, SND_BGM (0x6089) — all from ram.js.
- *           The object-record field +0x01 (cleared on expiry), the object X-displacement
- *           field +0x0E, and the saved-tune scratch cell 0x6389 have no ram.js name yet
- *           and stay local hex consts here. The three tails are direct-called; the shared
- *           record attribute is marshalled into the register slot the tail reads.
+ *           The object-record field +0x01 (cleared on expiry) and the object X-displacement
+ *           field +0x0E have no ram.js name yet and stay local hex consts here; the saved-tune
+ *           scratch cell is HAMMER_SAVED_BGM (0x6389, from ram.js). The three tails are
+ *           direct-called; the shared record attribute is marshalled into the tail's register.
  */
 
 import {
@@ -69,6 +70,7 @@ import {
   SPRITE_CODE,
   OBJ_ACTIVE,
   SND_BGM,
+  HAMMER_SAVED_BGM,
 } from "./ram.js";
 import { u8 } from "../../../core/int.js";
 import { selectHammerSpriteBlinkByTimer } from "./selectHammerSpriteBlinkByTimer.js"; // ROM 0x2FB7 — low-byte-no-wrap build arm
@@ -79,17 +81,13 @@ import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffs
 const OBJ_FIELD_01 = 0x01;       // cleared to 0 when the hammer ends
 const OBJ_X_DISPLACEMENT = 0x0e; // horizontal offset added to Mario's X by the record write
 
-// Scratch cell holding the background tune saved when the hammer was grabbed
-// (buildPendingHammerSprite stores it); restored here when the hammer ends. Unnamed in ram.js.
-const SAVED_BGM = 0x6389;
-
 // The attribute byte the shared record write stores; set here for every route.
 const RECORD_ATTR = 0x07;
 
 // High-byte value at which the ~512-count hammer lifetime is up.
 const EXPIRY_HIGH = 0x02;
 
-export function loc_2f43(m) {
+export function updateActiveHammer(m) {
   const { regs, mem } = m;
   const objBase = regs.ix; // the object record this hammer sprite belongs to (from the caller)
 
@@ -128,7 +126,7 @@ export function loc_2f43(m) {
   // Restore Mario's normal sprite code and the background tune saved at hammer grab.
   mem.write8(MARIO_SPRITE_RECORD + SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE));
   mem.write8((objBase + OBJ_ACTIVE) & 0xffff, 0);
-  mem.write8(SND_BGM, mem.read8(SAVED_BGM));
+  mem.write8(SND_BGM, mem.read8(HAMMER_SAVED_BGM));
 
   // Commit the now-cleared record one last time.
   commitSpriteRecordAtMarioOffset(m);

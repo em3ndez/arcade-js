@@ -59,6 +59,7 @@ import {
   SPRITE_Y,
   OBJ_X,
   OBJ_Y,
+  HAMMER_SAVED_BGM as SAVED_BGM,
 } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -80,7 +81,6 @@ const OBJ_FIELD_09 = 0x09; // object-record state byte the arm stamps to 0x06
 const OBJ_FIELD_0A = 0x0a; // object-record state byte the arm stamps to 0x03
 const OBJ_X_DISP = 0x0e;   // object-record field: horizontal displacement (read by loc_2f7c)
 const OBJ_Y_DISP = 0x0f;   // object-record field: vertical displacement (read by loc_2f7c)
-const SAVED_BGM = 0x6389;  // scratch cell the arm saves SND_BGM into
 const SPRITE_TILE = 0x1e;  // base sprite tile code; Mario's facing bit is OR'd on top
 const SENTINEL = 0x5a;     // seeded into every write target so a real write is visible
 

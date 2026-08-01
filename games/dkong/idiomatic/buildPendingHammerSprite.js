@@ -42,24 +42,20 @@
  *           tile-code / attribute it computes are consumed by commitSpriteRecordAtMarioOffset, not a caller,
  *           and the oracle's residual registers/flags and its returns reach no one.
  * NAMES:    MARIO_HAMMER_PENDING (0x6218), MARIO_SPRITE_CODE (0x6207), SND_BGM
- *           (0x6089) — from ram.js. The two object-record state offsets +0x09/+0x0A
- *           and the saved-tune scratch cell 0x6389 have no ram.js name yet and stay
- *           local hex here. commitSpriteRecordAtMarioOffset is direct-called with the tile code and
+ *           (0x6089), HAMMER_SAVED_BGM (0x6389 — the saved-tune scratch) — from ram.js.
+ *           The two object-record state offsets +0x09/+0x0A have no ram.js name yet and
+ *           stay local hex here. commitSpriteRecordAtMarioOffset is direct-called with the tile code and
  *           attribute marshalled into the register slots it reads (the record
  *           destination and object base pass through from the caller).
  */
 
-import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM } from "./ram.js";
+import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM, HAMMER_SAVED_BGM } from "./ram.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js"; // ROM 0x2F7C — the shared object-sprite record write
 
 // Object-record field offsets with no ram.js name yet: two per-object state bytes
 // this arm stamps to fixed values before the record write.
 const OBJ_FIELD_09 = 0x09;
 const OBJ_FIELD_0A = 0x0a;
-
-// Scratch cell holding a saved copy of the background-tune index (SND_BGM) for a
-// later restore. Unnamed in ram.js — stays hex.
-const SAVED_BGM = 0x6389;
 
 // Sprite fields this arm produces for the record write.
 const SPRITE_TILE = 0x1e;  // base tile code; Mario's facing bit is OR'd on top
@@ -83,7 +79,7 @@ export function buildPendingHammerSprite(m) {
   regs.c = SPRITE_ATTRIBUTE;     // attribute byte commitSpriteRecordAtMarioOffset will store
 
   // Save the current background tune so it can be restored when this episode ends.
-  mem.write8(SAVED_BGM, mem.read8(SND_BGM));
+  mem.write8(HAMMER_SAVED_BGM, mem.read8(SND_BGM));
 
   // Commit the sprite record (Mario's position + the object's displacement) and
   // mirror the position back into the object record.

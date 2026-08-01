@@ -263,11 +263,13 @@ state code, **bit 7 = facing**), and a cluster of airborne registers. `[code]`
   slopes, so `snapYToGirder` nudges Y one pixel along the slope as Mario walks. `[code]`
   **Trap confirmed by play:** to climb you must first *walk* horizontally onto the ladder
   X; posing on the ladder and pressing Up never latches. `[seen]`
-- **Climb.** With `MARIO_ON_LADDER` set, `centerMarioAndCommitClimbStep` snaps Mario to
-  the ladder centre, `setClimbSpriteFrame` cycles the climb pose,
-  `markOnLadderAndCommitSprite` flags the ladder state, and `endClimbAtLadderLimit` stops
-  the climb when `(Y+8)` hits either ladder-extent limit (`MARIO_CLIMB_LIMIT_A/B
-  0x621B/0x621C`). `[code]`
+- **Climb.** With `MARIO_ON_LADDER` set, `advanceClimbStep` (ROM 0x1D11) is the shared
+  climb-step body both steppers fall into (climb-up steps Y by −2, climb-down by +2): it
+  nudges Mario's Y, then either finalizes through the centering path
+  (`centerMarioAndCommitClimbStep` snaps Mario to the ladder centre) or, off-beat, picks the
+  climb pose. `setClimbSpriteFrame` cycles that pose, `markOnLadderAndCommitSprite` flags the
+  ladder state, and `endClimbAtLadderLimit` stops the climb when `(Y+8)` hits either
+  ladder-extent limit (`MARIO_CLIMB_LIMIT_A/B 0x621B/0x621C`). `[code]`
 - **Jump.** `initMarioJump` flags airborne and picks a horizontal launch velocity from
   the held direction (**+0x0080** Right / **0xFF80** Left / **0** straight up);
   `launchMarioJump` (ROM 0x1B8A) commits the arc: fixed upward impulse **VY = 0x0148**,
@@ -289,10 +291,14 @@ state code, **bit 7 = facing**), and a cluster of airborne registers. `[code]`
   (X, code, attr, Y) each frame from his state. `[code]`
 
 **The hammer** (`gameplay.md` §5) is code-confirmed: `MARIO_HAMMER_ACTIVE (0x6217)` swaps
-in the hammer sprite + BGM and a duration counter `HAMMER_TIMER (0x6394)`; the hammer ends
-when the counter's high byte reaches 2 (~512 frames). A touched-but-not-held hammer is
-latched in `MARIO_HAMMER_PENDING (0x6218)` and transferred on the post-landing freeze. The
-swing animation is driven by bit 3 of the low timer byte. `[code]`
+in the hammer sprite + BGM and a duration counter `HAMMER_TIMER (0x6394)`. `updateActiveHammer`
+(ROM 0x2F43) ticks that counter each active frame and lays down the hammer sprite; the hammer
+ends when the counter's high byte reaches 2 (~512 frames), at which point it clears
+`MARIO_HAMMER_ACTIVE`, parks the sprite, and restores the pre-hammer background tune from
+`HAMMER_SAVED_BGM (0x6389)` — the copy of `SND_BGM` that `buildPendingHammerSprite` saved when
+the hammer was grabbed (grounded `[seen]` at 0x08 = 25m theme across the whole hammer arc). A
+touched-but-not-held hammer is latched in `MARIO_HAMMER_PENDING (0x6218)` and transferred on the
+post-landing freeze. The swing animation is driven by bit 3 of the low timer byte. `[code]`
 
 ---
 
@@ -421,14 +427,14 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   to copy the 384-byte shadow buffer `0x6900 → 0x7000` every vblank. Sprite `+0 == MARIO_X` /
   `+3 == MARIO_Y` are grounded byte-exact vs MAME (1819 attract frames); the hardware reads
   each record rotated 90° for the portrait screen. `[seen]` `[code]`
-- **Colour-cycle & blink.** Each frame `loc_0413` (gated on `COLOUR_CYCLE_ACTIVE (0x6391)` + the
+- **Colour-cycle & blink.** Each frame `serviceColorCycle` (gated on `COLOUR_CYCLE_ACTIVE (0x6391)` + the
   frame counter) falls into `advanceColorCycleSweep` (ROM 0x0426), which bumps the sweep counter
   `0x6390` and routes this frame's colour work — top-of-sweep reset, repaint-only, or (on a 32-frame
   boundary) a sprite-object reload plus the full cascade. The cascade is headed by `dispatchColorCascadeByBoard`
   (routes on `BOARD`): the even-board arm `shiftEvenBoardSpriteColumn` first shifts the sprite-object
   row's X column, then both arms fall into the repaint `dispatchColorCyclePaint`;
   `resetColorCycleSweep` clears the sweep counter and `COLOUR_CYCLE_ACTIVE (0x6391)` when the sweep
-  tops out at `0x80` (the re-arm that starts the next sweep is `loc_0413`'s job). `runRivetColorCycleBlink`
+  tops out at `0x80` (the re-arm that starts the next sweep is `serviceColorCycle`'s job). `runRivetColorCycleBlink`
   is the 100m branch. On the 50m arm the row X-shift delta is `M50_OBJ_ROW_SHIFT (0x63B7)` —
   `entry_03fb`/`entry_0400` compute `(0x6910) − 0x3b` and store it, and `shiftEvenBoardSpriteColumn`
   adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; grounded live on
@@ -628,6 +634,7 @@ yet English-named.
 | `loc_1d76` | the "sub-step timer still running" walk/climb branch |
 | `snapYToGirder` | nudge a coordinate one pixel along the 25m girder slope |
 | `markOnLadderAndCommitSprite` | flag Mario on a ladder, refresh his sprite |
+| `advanceClimbStep` | the shared climb-step body (step Y ±2, center or pick the climb frame) |
 | `centerMarioAndCommitClimbStep` | the ladder-centering phase of a climb step |
 | `endClimbAtLadderLimit` | finish a ladder climb that reached a ladder end |
 | `setClimbSpriteFrame` | stamp Mario's climb-animation sprite for one step |
@@ -635,6 +642,7 @@ yet English-named.
 | `launchMarioJump` | commit the ballistic jump; snapshot take-off Y; jump sound |
 | `stepBallisticMotion` | advance an airborne actor one frame along its arc |
 | `tickPostLandingFreeze` | count down the post-landing freeze; unfreeze on expiry |
+| `updateActiveHammer` | tick the active hammer's duration counter; on expiry end it + restore the tune |
 | `writeMarioSpriteRecord` | refresh Mario's 4-byte hardware sprite record |
 | `loc_241f` | classify Mario's X into a two-flag position gate |
 | `loc_1d95` | commit the 0x6225 collection flag; off-25m pickup sound |
@@ -648,6 +656,7 @@ yet English-named.
 | `stepSpriteAnimationSequence` | advance one step of the 0x6388-driven sprite anim |
 | `addToSpriteObjectColumn` | the `rst 0x38` vector: add a delta into one record field |
 | `cullSpriteObjectsAtTop` | clear the X of any sprite-object risen to the top |
+| `serviceBoardObjects` | service the six board objects (advance + spawn), publish X/Y to the sprite buffer |
 | `gatherSpriteRecords` | build a run of hardware sprite records |
 | `allSlotsClear` | is a strided table of ten object slots fully cleared? |
 | `reverseStepDirection` | flip the sign of a signed direction-step byte |
@@ -696,6 +705,7 @@ yet English-named.
 |---------|--------------|
 | `collectEdgeRivet` | the 100m edge-rivet pickup handler |
 | `armEdgeRivetPickup` | raise the edge-item pickup latch |
+| `serviceColorCycle` | per-frame colour-cycle entry: advance the running sweep or re-arm at the frame wrap |
 | `runRivetColorCycleBlink` | the 100m rivet-board branch of the colour-cycle |
 | `dispatchColorCyclePaint` | per-frame colour-cycle repaint router |
 | `blinkSpritePairByX` | pick the blink phase by the player's X |
@@ -735,6 +745,7 @@ yet English-named.
 | `clearTilemapAndSprites` | blank the ENTIRE tilemap and zero the sprite shadow |
 | `clearSpriteColumns` | zero the X byte of four fixed groups of sprite records |
 | `tileAddrForPixel` | map a screen pixel (y,x) to its tilemap cell address |
+| `drawScoreTask` | the score-counter draw task: repaint P1 / P2 / high score by task payload |
 | `renderBcdColumn` | draw a packed 3-byte BCD value as six digits up a column |
 | `expandBcdDigits` | unpack packed BCD/hex bytes into two digit cells each |
 | `drawStringVertical` | draw a doubly-indirected string down a tilemap column |

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0413 — the per-frame entry to the state-0 colour cycle: advance a running sweep, or
- * re-arm a fresh one at the frame-counter wrap, else just repaint.  ROM 0x0413.
+ * serviceColorCycle — the per-frame entry to the state-0 colour cycle: advance a running
+ * sweep, or re-arm a fresh one at the frame-counter wrap, else just repaint.  ROM 0x0413.
  *
  * Called once per frame in the colour-cycle context (entry_03fb / entry_0400 tail-call it
  * whenever the mode selector is not board 2). It is the outer gate in front of the sweep
@@ -24,11 +24,12 @@
  * from RAM and take no register live-in, so both are bare direct calls — no register-ABI
  * marshalling.
  *
- * NAME: kept the neutral loc_ for this decompile pass. The behaviour verifies the spec's
- * hypothesis — this IS the colour-cycle entry / re-arm (it reads COLOUR_CYCLE_ACTIVE + FRAME,
- * sets COLOUR_CYCLE_ACTIVE at the wrap, and dispatches only to the colour-cycle routines) —
- * and a promotion (e.g. serviceColorCycle) is recommended, but that belongs to a clarify pass
- * with the proposer!=confirmer review and the mechanisms.md rewrite that a rename requires.
+ * NAME (promoted, DK understanding pass 7 — independent proposer≠confirmer): this IS the
+ * colour-cycle service entry / re-arm. It reads COLOUR_CYCLE_ACTIVE + FRAME, sets
+ * COLOUR_CYCLE_ACTIVE at the frame-counter wrap, and dispatches only to the colour-cycle
+ * routines; its sole write is that re-arm. Grounded by the [seen] COLOUR_CYCLE_ACTIVE (0x6391)
+ * cell, whose registry comment names this routine (ROM 0x0423) the re-arm site of the sweep
+ * driver / clear trio.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0413.test.js.
  * GATE:     strict/whole-contract over real captured 0x0413 dispatches (all three routes occur
@@ -50,7 +51,7 @@ import { COLOUR_CYCLE_ACTIVE, FRAME } from "./ram.js";
 import { advanceColorCycleSweep } from "./advanceColorCycleSweep.js"; // ROM 0x0426
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
 
-export function loc_0413(m) {
+export function serviceColorCycle(m) {
   const { mem } = m;
 
   // A sweep is already running: advance it and paint this frame's colour work.

@@ -307,6 +307,14 @@ export const INTRO_STEP = 0x6385;
  *  both layers. */
 export const BOARD_ADVANCE_STEP = 0x6388;
 
+/** [seen] (own byte {0,8}, RUN-attract) Saved copy of SND_BGM taken when a hammer is
+ *  grabbed (buildPendingHammerSprite / ROM 0x2FB4), so updateActiveHammer can restore the
+ *  pre-hammer tune to SND_BGM at hammer expiry (ROM 0x2F79). Observed 0x08 (25m theme) saved
+ *  at the grab, held through the ~876-frame active hammer while SND_BGM plays the hammer tune
+ *  0x04, then read back to restore SND_BGM at expiry. Not cleared on restore (goes stale until
+ *  the next grab / attract-cycle reset). */
+export const HAMMER_SAVED_BGM = 0x6389;
+
 /** [code] Player-slot records: base 0x611C, stride 0x22, 5 records; field[0] = owner tag (1 = P1,
  *  3 = P2). loc_141e is ground-truth (compares field[0] vs 1 then 3); runBonusItemValueDisplay/sub_1486
  *  key it with 2*(0x600E)+1. Base + stride + owner-tag solid; full per-record layout inferred. */
