@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0cf2 (ROM 0x0CF2) — the 75m (board 3, elevators)
+ * Memory-equivalence test for setUp75mBoard (ROM 0x0CF2) — the 75m (board 3, elevators)
  * board-setup arm. It stamps the elevator board's fixed tile motifs
  * (stamp75mBoardTiles, ROM 0x0D27), selects the 75m background tune (SND_BGM = 0x0A),
  * points DE at the 75m elevator layout table (ROM 0x3BE5), and runs the shared draw +
@@ -20,7 +20,7 @@
  * caller) reads no return value. DE is set only as a live-IN handed to the tail, not a
  * live-out of this arm.
  *
- * REACHABILITY. loc_0cf2 is 75m-only: loc_0c92 branches to it exactly when BOARD == 3.
+ * REACHABILITY. setUp75mBoard is 75m-only: loc_0c92 branches to it exactly when BOARD == 3.
  * Attract plays 25m, so it NEVER dispatches in a plain run. Following the sanctioned
  * "poke the board state to reach a state for validation", the test forces the real
  * dispatch with an IDENTICAL-BOTH-SIDES board-3 poke at frame 100 (GAME_STATE=3,
@@ -29,7 +29,7 @@
  * register file, real stack).
  *
  * Jobs:
- *   1. EQUAL (real forced dispatch) — oracle vs loc_0cf2 on fresh clones of the real
+ *   1. EQUAL (real forced dispatch) — oracle vs setUp75mBoard on fresh clones of the real
  *      board-3 entry leave identical RAM (−STACK_SCRATCH). Non-vacuous: the oracle side
  *      shows the whole chain ran — SND_BGM = 0x0A, the first elevator motif cell stamped
  *      (0x770D = 0xFD), and the setup continuation armed SUBSTATE_TIMER = 0x40. The dead
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0cf2 as oracle } from "../../translated/loc_0cf2.js";
-import { loc_0cf2 as idiomatic } from "../loc_0cf2.js";
+import { setUp75mBoard as idiomatic } from "../setUp75mBoard.js";
 import { stamp75mBoardTiles } from "../stamp75mBoardTiles.js";
 import { loc_0cc6 } from "../loc_0cc6.js";
 import { Machine } from "../../machine.js";
@@ -107,14 +107,14 @@ function stackDiffCount(ma, mb) {
 }
 
 // Identical-both-sides one-shot poke that forces 75m (BOARD==3) board setup, whose arm
-// loc_0cf2 the board-build dispatch (loc_0c92) calls. dur 1 so the game manages state
+// setUp75mBoard the board-build dispatch (loc_0c92) calls. dur 1 so the game manages state
 // from f101 onward.
 const POKE_FRAME = 100;
 const FORCE_0CF2_POKE = [
   { addr: GAME_STATE, val: 0x03, frame: POKE_FRAME, dur: 1 },     // in-game dispatch
   { addr: GAME_SUBSTATE, val: 0x0a, frame: POKE_FRAME, dur: 1 },  // 0x0A -> board setup
   { addr: SUBSTATE_TIMER, val: 0x01, frame: POKE_FRAME, dur: 1 }, // proceeds this frame
-  { addr: BOARD, val: 0x03, frame: POKE_FRAME, dur: 1 },          // 75m elevator -> loc_0cf2
+  { addr: BOARD, val: 0x03, frame: POKE_FRAME, dur: 1 },          // 75m elevator -> setUp75mBoard
 ];
 const FRAMES = 140; // the forced dispatch lands ~frame 102
 
@@ -139,7 +139,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(4) : [];
 
 // -- 1. EQUAL (real forced dispatch) ------------------------------------------
 
-test("EQUAL: real forced board-3 dispatch — loc_0cf2 == oracle in RAM (−stack)", () => {
+test("EQUAL: real forced board-3 dispatch — setUp75mBoard == oracle in RAM (−stack)", () => {
   assert.ok(CAPS.length >= 1, `expected the real 0x0CF2 dispatch on board 3; got ${CAPS.length}`);
 
   for (const cap of CAPS) {

@@ -47,18 +47,17 @@
  *           so pc/SP line up with the oracle (both exit paths land at SP+2, pc =
  *           word@SP — the grandparent return, reached via this routine's own `ret`
  *           on the clear arm and via allSlotsClear's caller-skip on the abort arm).
- * NAMES:    SUBSTATE_TIMER (0x6009) — ram.js. 0x6388 stays hex: ram.js rejects it
- *           (0x63xx engine scratch) — it is the board-advance SEQUENCE SELECTOR that
- *           loc_1615's rst-0x28 indexes and each advance arm increments. The 0x62AF
- *           phase counter lives inside animateSpriteObjectBlock, not here.
+ * NAMES:    SUBSTATE_TIMER (0x6009), BOARD_ADVANCE_STEP (0x6388) — ram.js. 0x6388 is the
+ *           board-advance SEQUENCE SELECTOR that loc_1615's rst-0x28 indexes and each
+ *           advance arm increments. The 0x62AF phase counter lives inside
+ *           animateSpriteObjectBlock, not here.
  */
 
-import { SUBSTATE_TIMER } from "./ram.js";
+import { SUBSTATE_TIMER, BOARD_ADVANCE_STEP } from "./ram.js";
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
 import { cullSpriteObjectsAtTop } from "./cullSpriteObjectsAtTop.js"; // ROM 0x176c
 import { allSlotsClear } from "./allSlotsClear.js"; // ROM 0x1783
 
-const SEQUENCE_SELECTOR = 0x6388; // board-advance sequence index (ram.js: 0x63xx engine scratch)
 const SUBSTATE_DWELL = 0x40; // frames to hold before the next sub-state proceeds
 
 export function advanceBoardStepWhenSpritesCleared(m) {
@@ -78,5 +77,5 @@ export function advanceBoardStepWhenSpritesCleared(m) {
 
   // Block fully cleared: arm the dwell timer and step to the next sequence arm.
   mem.write8(SUBSTATE_TIMER, SUBSTATE_DWELL);
-  mem.write8(SEQUENCE_SELECTOR, (mem.read8(SEQUENCE_SELECTOR) + 1) & 0xff);
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff);
 }

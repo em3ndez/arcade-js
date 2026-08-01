@@ -155,6 +155,15 @@ their sub-tile offsets (`SEG_SUBTILE1`/`SEG_SUBTILE2`/`SEG_SUBTILE_Y1`), the hei
 selector that dispatches girder-span vs `drawLadder` vs `fillTileColumn` while `SEG_TILE`
 holds the tile being stamped (endpoints → run deltas → body fill). `[code]`
 
+**The board-build dispatch and the tune family.** A separate arm-dispatch (`loc_0c92`, on
+`BOARD`) makes each board's three fixed choices before the shared draw tail `loc_0cc6`:
+`setUp75mBoard` (75m) first stamps the elevator tile motif (`stamp75mBoardTiles`), `loc_0cdf`
+is the 50m arm, and the 25m / 100m arms sit alongside. Each arm selects its background music
+from a **consecutive `SND_BGM (0x6089)` tune family** — `0x08` 25m, `0x09` 50m, `0x0A` 75m,
+`0x0B` 100m — then points `DE` at its board's ROM layout table (75m = `0x3BE5` elevators,
+between the 50m `0x3B5D` and 100m `0x3C8B` tables in board order) for `loc_0cc6` to walk into
+VRAM. `[code]`
+
 Objects for the board are scattered into records by `loadBoardObjectRecords`,
 `loadSpriteObjectBlock`, `seedObjectBlockSprites`, `seedSpriteObjectPair`,
 `replicateGroupStrided`, and Mario himself is spawned by `seedMarioActorRecord` at a
@@ -335,6 +344,12 @@ off 25m, queues the pickup tune). The item's identity is inferred, so `[code]`. 
   incremented at the terminator, `HOW_HIGH_INDEX (0x622E)` is reset, and the "HOW HIGH CAN
   YOU GET?" interlude plays for the new board. **Validated end-to-end in play including
   100m→wrap→level++→25m.** `[seen]` `[code]`
+- **The advance machine's step index.** Everything under sub-state `0x16` is one small state
+  machine keyed on **`BOARD_ADVANCE_STEP (0x6388)`**: `loc_1615` / `loc_1641` / `loc_1644`
+  dispatch `rst 0x28` through board-parity tables on it, each step's handler renders one stage
+  then `inc`s it to advance (step 0 is the how-high screen, `loc_17b6`); `advanceToNextBoard`
+  resets it to 0 when the interlude ends. The how-high interlude is thus a *step* of this one
+  sequence, not a separate machine. `[code]`
 - **Difficulty ramp.** `DIFFICULTY (0x6380) = min(LEVEL + (DIFFICULTY_CLOCK>>3), 5)` rises
   with both level and time-on-board; it feeds barrel/enemy behaviour, so the same board
   gets meaner the longer you dawdle and each loop is harder — the qualitative "faster,

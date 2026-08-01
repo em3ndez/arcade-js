@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2e6c (ROM 0x2E6C) — the per-object scan's position mirror.
+ * Equivalence test for mirrorObjectPositionToSprite (ROM 0x2E6C) — the per-object scan's
+ * position mirror.
  *
- * loc_2e6c copies the object record's X (+3) and Y (+5) into the paired sprite record's
+ * mirrorObjectPositionToSprite copies the object record's X (+3) and Y (+5) into the paired sprite record's
  * X (+0) and Y (+3), then falls straight into advanceToNextObject (0x2E78), which advances
  * the object cursor by 16, the sprite cursor by 4, preserves the remaining-object count, and
  * leaves 4 as the step amount. The idiomatic routine dissolves the oracle's fall-through
@@ -52,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e6c as oracle } from "../../translated/loc_2e6c.js";
-import { loc_2e6c } from "../loc_2e6c.js";
+import { mirrorObjectPositionToSprite } from "../mirrorObjectPositionToSprite.js";
 import { advanceToNextObject } from "../advanceToNextObject.js"; // ROM 0x2E78 (for the twins)
 import { entry_2e04 } from "../../translated/entry_2e04.js";
 import { Machine } from "../../machine.js";
@@ -153,9 +154,9 @@ function sweepSourceBytes(base, candidate) {
 
 // -- 1. EQUAL (byte sweeps) ---------------------------------------------------
 
-test("EQUAL (byte sweeps): loc_2e6c == oracle over all 256 values of each copied field", () => {
+test("EQUAL (byte sweeps): mirrorObjectPositionToSprite == oracle over all 256 values of each copied field", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = sweepSourceBytes(base, loc_2e6c);
+  const { mismatch, count } = sweepSourceBytes(base, mirrorObjectPositionToSprite);
   assert.equal(mismatch, null, mismatch || "");
   assert.equal(count, 512, "must have swept both fields over their full 256-value range");
 
@@ -184,7 +185,7 @@ test("EQUAL (grid): the exact in-game cursor sequence, cross-producted, matches 
       prep(om, ix, iy, (0x30 + k) & 0xff, (0xc0 + k) & 0xff);
       prep(cm, ix, iy, (0x30 + k) & 0xff, (0xc0 + k) & 0xff);
       oracle(om);
-      loc_2e6c(cm);
+      mirrorObjectPositionToSprite(cm);
       const d = contractDiff(om, cm);
       assert.equal(d, null, d ? `grid k=${k} j=${j} (ix=${hx16(ix)} iy=${hx16(iy)}): ${d}` : "");
       count++;
@@ -211,7 +212,7 @@ test("EQUAL (independence): output depends ONLY on the cursors + their fields, n
         m.mem.write8(0x6100, 0xa5); // a work-RAM byte the routine must not read or write
       }
       oracle(om);
-      loc_2e6c(cm);
+      mirrorObjectPositionToSprite(cm);
       const d = contractDiff(om, cm);
       assert.equal(d, null, d ? `de=${hx16(de)} b=${hx(b)}: ${d}` : "");
       // And the output is the expected transform regardless of the ignored inputs.
@@ -260,7 +261,7 @@ function captureRealDispatches() {
   return caps;
 }
 
-test("REALISM: real captured 0x2e6c dispatches — loc_2e6c matches the oracle", () => {
+test("REALISM: real captured 0x2e6c dispatches — mirrorObjectPositionToSprite matches the oracle", () => {
   const caps = captureRealDispatches();
   assert.equal(caps.length, 10, "the steered full-loop entry_2e04 should dispatch 0x2e6c once per object (10)");
 
@@ -273,7 +274,7 @@ test("REALISM: real captured 0x2e6c dispatches — loc_2e6c matches the oracle",
     o.nextNmi = Infinity; o.nextBoundary = Infinity;
     c.nextNmi = Infinity; c.nextBoundary = Infinity;
     oracle(o);
-    loc_2e6c(c);
+    mirrorObjectPositionToSprite(c);
     const d = contractDiff(o, c);
     assert.equal(d, null, d ? `real dispatch ${i} (ix=${hx16(cap.regs.ix)}): ${d}` : "");
   });

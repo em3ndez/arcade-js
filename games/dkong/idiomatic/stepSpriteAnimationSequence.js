@@ -44,16 +44,15 @@
  *           residual A/HL/DE/BC/flags the oracle leaves — dead ABI, backstopped by the
  *           whole-RAM gate. SP/PC are not compared (the idiomatic layer drops the
  *           `ret`'s stack/PC bookkeeping; the JS call stack replaces it).
- * NAMES:    SUBSTATE_TIMER (0x6009), SPRITE_OBJ_BLOCK (0x6908) — ram.js. 0x6390 (the
- *           sub-counter) and 0x6388 (the selector) stay hex: ram.js leaves both
- *           unnamed as shared engine-scratch bytes.
+ * NAMES:    SUBSTATE_TIMER (0x6009), SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388,
+ *           the sequence selector) — ram.js. 0x6390 (the sub-counter) stays hex: ram.js
+ *           leaves it unnamed as a shared engine-scratch byte.
  */
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 
 const ANIM_COUNTER = 0x6390; // per-call sub-counter; wraps 0xFF->0x00 every 256 calls
-const SEQ_SELECTOR = 0x6388; // this sequence's rst-0x28 step index (dispatched by loc_1644)
 
 // ROM sprite-object-block templates (each 40 bytes = ten 4-byte hardware sprite records).
 const FRAME_A = 0x39cf; // animation frame A — counter bit 3 SET
@@ -85,7 +84,7 @@ export function stepSpriteAnimationSequence(m) {
     // WRAP: stamp the base figure, re-arm the hold timer, advance to the next step.
     stampFigure(m, BASE_FIGURE);
     mem.write8(SUBSTATE_TIMER, HOLD_FRAMES); // 0x6009 = 0x20
-    mem.write8(SEQ_SELECTOR, (mem.read8(SEQ_SELECTOR) + 1) & 0xff); // 0x6388++ -> next step
+    mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff); // 0x6388++ -> next step
     return;
   }
 

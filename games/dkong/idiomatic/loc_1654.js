@@ -49,7 +49,7 @@
  *           push16/ret stack + PC bookkeeping with the JS call stack.
  * NAMES:    SUBSTATE_TIMER (0x6009) from ram.js. Hex-kept: the ROM template source 0x385C
  *           (an immediate, no ram.js symbol); the callees carry their own named memory
- *           (SPRITE_OBJ_BLOCK, BOARD, the 0x6388 animation scratch).
+ *           (SPRITE_OBJ_BLOCK, BOARD, BOARD_ADVANCE_STEP at 0x6388).
  */
 
 import { loc_1708 } from "./loc_1708.js"; // ROM 0x1708 — intro/board spawn init

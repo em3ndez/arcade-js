@@ -28,14 +28,13 @@
  *
  *   5. Advance the sequence step: `inc (0x6388)`.
  *
- * NAME KEPT NEUTRAL. The mechanics above are confirmed, but the routine's ROLE name is
- * not promoted: 0x6388's "sequence step selector" reading is a SIBLING's local naming
- * (stepSpriteAnimationSequence), not a ram.js-confirmed symbol — ram.js leaves 0x6388
- * unnamed engine scratch — and the directly-parallel sibling sub_1654 (same loc_1708
- * spawn at the same table-index-0 position, for the other board-bit group) is likewise
- * kept neutral in this codebase. Naming this "board-advance figure spawn" would assert a
- * role on top of an unconfirmed RAM name (the routine-level sprite-record trap), so it
- * stays loc_16a3 with the understood mechanics in this header for a later promoter.
+ * NAME KEPT NEUTRAL. The mechanics above are confirmed, and 0x6388 is now the ram.js-confirmed
+ * BOARD_ADVANCE_STEP (this routine advances it), but the routine's ROLE name is not promoted:
+ * the directly-parallel sibling sub_1654 (same loc_1708 spawn at the same table-index-0
+ * position, for the other board-bit group) is likewise kept neutral in this codebase, and the
+ * exact figure it spawns is not independently confirmed. Naming this "board-advance figure
+ * spawn" would over-assert a role, so it stays loc_16a3 with the understood mechanics in this
+ * header for a later promoter.
  *
  * Memory-equivalent to the frozen oracle — equivalence-16a3.test.js.
  * GATE:     exhaustive over the input surface — UNREACHED in attract (0 dispatches /
@@ -52,12 +51,12 @@
  *           A/B/C/HL/DE/flags the oracle leaves (the next frame re-dispatches on 0x6388
  *           fresh from memory). SP/PC are not compared — the idiomatic layer drops the
  *           oracle's push16/ret stack+PC bookkeeping; the JS call stack replaces it.
- * NAMES:    SPRITE_OBJ_BLOCK (0x6908) from ram.js. 0x385c (ROM figure template), 0x3b
- *           (that template's record-2 X anchor) and 0x6388 (the step selector — ram.js
- *           leaves it unnamed engine scratch) stay local hex constants.
+ * NAMES:    SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388, the step selector) from
+ *           ram.js. 0x385c (ROM figure template) and 0x3b (that template's record-2 X anchor)
+ *           stay local hex constants.
  */
 
-import { SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
 import { loc_1708 } from "./loc_1708.js"; // ROM 0x1708 — spawn init
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e — 40-byte template -> 0x6908
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38) — X column += C
@@ -68,8 +67,6 @@ const RECORD2_X = SPRITE_OBJ_BLOCK + 0x08; // 0x6910
 const FIGURE_TEMPLATE = 0x385c;
 // The template's own record-2 X (ROM 0x3864). shift is measured relative to it.
 const TEMPLATE_ANCHOR_X = 0x3b;
-// This dispatcher's rst-0x28 step selector; ram.js leaves 0x6388 unnamed engine scratch.
-const SEQ_STEP = 0x6388;
 
 export function loc_16a3(m) {
   const { regs, mem } = m;
@@ -92,5 +89,5 @@ export function loc_16a3(m) {
   addToSpriteObjectColumn(m); // ROM 0x0038 (rst 0x38) — X column += shift, all ten records
 
   // 5. Advance the sequence step so the next frame dispatches the next step.
-  mem.write8(SEQ_STEP, (mem.read8(SEQ_STEP) + 1) & 0xff); // inc (0x6388)
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff); // inc (0x6388)
 }

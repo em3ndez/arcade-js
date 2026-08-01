@@ -40,16 +40,15 @@
  *           rst-0x28 dispatch tail, which discards this handler's return; the oracle's residual
  *           A/flags (the `cp 0x2c` result) are dead ABI. SP/pc are not compared: the oracle
  *           models the call's push/pop in STACK_SCRATCH, this routine needs no stack at all.
- * NAMES:    SPRITE_BUFFER (0x6900), SPRITE_OBJ_BLOCK (0x6908) from ram.js — records are 4 bytes
- *           (+0 X, +1 code, +2 attr, +3 Y). Hex-kept: the step selector 0x6388 (unnamed in
- *           ram.js — the shared board-advance render-sequence counter, same one loc_1662/1670
- *           advance) and the scroll probe 0x6913 (= record 2's Y = SPRITE_OBJ_BLOCK + 0x0B).
+ * NAMES:    SPRITE_BUFFER (0x6900), SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388 —
+ *           the board-advance render-sequence step, same one loc_1662/1670 advance) from
+ *           ram.js — records are 4 bytes (+0 X, +1 code, +2 attr, +3 Y). Hex-kept: the scroll
+ *           probe 0x6913 (= record 2's Y = SPRITE_OBJ_BLOCK + 0x0B).
  */
 
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
-import { SPRITE_BUFFER, SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SPRITE_BUFFER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
 
-const STEP_SELECTOR = 0x6388; // board-advance render-sequence step index (unnamed in ram.js)
 const SCROLL_PROBE = SPRITE_OBJ_BLOCK + 0x0b; // 0x6913 — sprite-object record 2's Y (field 3)
 const SCROLL_TOP = 0x2c; // reset once the probed record's Y has scrolled ABOVE this (Y < 0x2c)
 
@@ -76,5 +75,5 @@ export function loc_1732(m) {
   mem.write8(codeByte, (mem.read8(codeByte) + 1) & 0xff);
 
   // `ld hl,0x6388 / inc (hl)` — advance the render-sequence step selector (→ step 4, 0x1757).
-  mem.write8(STEP_SELECTOR, (mem.read8(STEP_SELECTOR) + 1) & 0xff);
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff);
 }

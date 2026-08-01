@@ -50,11 +50,12 @@
  *           with the JS call stack. The three sound-hardware latches silenceSound issues
  *           (0x7D00-07, 0x7D80, 0x7C00) are write-only io outputs, not in the RAM dump.
  * NAMES:    SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B), SUBSTATE_TIMER (0x6009),
- *           SPRITE_OBJ_BLOCK (0x6908), SEQ_ADVANCE_PTR (0x63C0) from ram.js. The step
- *           counter 0x6388, the how-high animation stepper 0x6390 (both rejected as shared
- *           bytes in ram.js) and the blink code 0x6905 have no ram.js symbol and stay local
- *           hex consts; the VRAM/colour dests, ROM segment tables and the 0x385C sprite
- *           template are caller-fixed addresses kept hex.
+ *           SPRITE_OBJ_BLOCK (0x6908), SEQ_ADVANCE_PTR (0x63C0), BOARD_ADVANCE_STEP (0x6388 —
+ *           the step counter this arm increments and repoints SEQ_ADVANCE_PTR at) from ram.js.
+ *           The how-high animation stepper 0x6390 (rejected as a shared byte in ram.js) and the
+ *           blink code 0x6905 have no ram.js symbol and stay local hex consts; the VRAM/colour
+ *           dests, ROM segment tables and the 0x385C sprite template are caller-fixed addresses
+ *           kept hex.
  */
 
 import {
@@ -63,6 +64,7 @@ import {
   SUBSTATE_TIMER,
   SPRITE_OBJ_BLOCK,
   SEQ_ADVANCE_PTR,
+  BOARD_ADVANCE_STEP,
 } from "./ram.js";
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
@@ -71,10 +73,6 @@ import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 
-// Sequence step counter this arm belongs to; the rst-0x28 dispatch (0x1648) jumps on it,
-// and this routine both increments it and repoints SEQ_ADVANCE_PTR at it. Shared byte in
-// ram.js (no symbol), kept hex.
-const HOW_HIGH_SEQ_STEP = 0x6388;
 // How-high interlude animation stepper (shared byte in ram.js), seeded to 0x80 here.
 const HOW_HIGH_ANIM = 0x6390;
 // Sprite-buffer record 1, +1 byte — the blink-sprite code the colour cycle toggles.
@@ -140,6 +138,6 @@ export function loc_17b6(m) {
 
   // 8. Advance the sequence: inc the step counter (the one input-dependent byte), then
   //    point SEQ_ADVANCE_PTR at it so the gated advancer loc_3069 steps it next.
-  mem.write8(HOW_HIGH_SEQ_STEP, (mem.read8(HOW_HIGH_SEQ_STEP) + 1) & 0xff); // inc (0x6388)
-  mem.write16(SEQ_ADVANCE_PTR, HOW_HIGH_SEQ_STEP); // 0x63C0 = 0x6388 (little-endian)
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff); // inc (0x6388)
+  mem.write16(SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP); // 0x63C0 = 0x6388 (little-endian)
 }

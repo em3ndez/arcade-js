@@ -35,11 +35,11 @@
  * it away is memory-equivalent. The oracle discards the arm's return value at this level, so
  * this routine returns nothing too.
  *
- * NAME: kept neutral loc_1644 on purpose. The dispatch MECHANISM is fully understood, but the
- * selector 0x6388 is unconfirmed engine scratch (deliberately unnamed in ram.js) and the
- * board-render animation's exact visual is not settled — the whole render family (loc_1654,
- * loc_1670, loc_186f, loc_1880, loc_18c6, …) is kept address-named for the same reason, so an
- * English name here would over-assert. Promote once 0x6388's sequence is confirmed to ram.js.
+ * NAME: kept neutral loc_1644 on purpose. The dispatch MECHANISM is fully understood, and the
+ * selector 0x6388 is now named BOARD_ADVANCE_STEP in ram.js, but the board-render animation's
+ * exact visual is not settled — the whole render family (loc_1654, loc_1670, loc_186f, loc_1880,
+ * loc_18c6, …) is kept address-named for the same reason, so an English routine name here would
+ * over-assert. Promote once the render sequence's visual is confirmed.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1644.test.js.
  * GATE:     crafted-entry — a real attract-run machine with the step 0x6388 poked to each of
@@ -55,15 +55,12 @@
  *           slot before it is read). The oracle discards the arm's return value at this level,
  *           so this routine returns nothing; loc_1644's callers ignore any return. Residual
  *           A/HL/DE/flags are the trampoline's dead ABI handoff, read by no arm.
- * NAMES:    none from ram.js — the selector 0x6388 is unconfirmed engine scratch, so kept hex;
+ * NAMES:    BOARD_ADVANCE_STEP (0x6388) from ram.js — the board-advance sequence step selector;
  *           table base 0x1648 kept hex (ROM data, not work RAM).
  */
 
 import { dispatchGameState } from "../translated/dispatchGameState.js";
-
-// The board-render / how-high sequence step selector (0..5 in play). Unconfirmed in ram.js,
-// so kept hex.
-const STEP = 0x6388;
+import { BOARD_ADVANCE_STEP } from "./ram.js"; // 0x6388 — board-render / how-high sequence step selector (0..5 in play)
 
 // The `rst 0x28` inline jump table: 6 little-endian target addresses in ROM starting at 0x1648
 // (0x17B6, 0x3069, 0x1839, 0x186F, 0x1880, 0x18C6), indexed by the step. A ROM-data address, hex.
@@ -78,7 +75,7 @@ export function loc_1644(m) {
   const { mem } = m;
 
   // ld a,(0x6388) — the board-render sequence step index (0..5).
-  const step = mem.read8(STEP);
+  const step = mem.read8(BOARD_ADVANCE_STEP);
 
   // rst 0x28: `add a,a` doubles the index to a 2-byte table offset, and it is an 8-bit result —
   // selector 0x80 wraps the offset to 0 — so the address math is `base + (2*step & 0xff)`, NOT

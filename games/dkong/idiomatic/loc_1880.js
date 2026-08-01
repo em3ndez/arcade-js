@@ -60,18 +60,18 @@
  *           oracle callees sub_1826 / loc_0da7 do use the modeled stack, but every push
  *           lands in STACK_SCRATCH and is excluded from the compare.
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), SPRITE_BUFFER (0x6900), SND_TRIGGER (0x6080 →
- *           +2 = latch bit 2) from ram.js. Hex-kept: 0x62AF (pace counter — ram.js's
- *           rejected board-object bookkeeping, the byte loc_18c6 consumes), 0x6A24 (a
- *           4-byte object record), 0x76C6 (VRAM tile-fill target), 0x3A5F (ROM
- *           segment-table base, an immediate), and the step selector 0x6388 (unnamed in
- *           ram.js — a shared 0x63xx render-sequence counter).
+ *           +2 = latch bit 2), BOARD_ADVANCE_STEP (0x6388 — the render-sequence step
+ *           selector) from ram.js. Hex-kept: 0x62AF (pace counter — ram.js's rejected
+ *           board-object bookkeeping, the byte loc_18c6 consumes), 0x6A24 (a 4-byte
+ *           object record), 0x76C6 (VRAM tile-fill target), 0x3A5F (ROM segment-table
+ *           base, an immediate).
  */
 
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — draw the board segment layout
 import { sub_1826 } from "../translated/sub_1826.js"; // ROM 0x1826 — 70-tile VRAM fill (oracle; no idiomatic yet)
-import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./ram.js";
 
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field +3 (Y) of sprite-object record 0
 const DESCEND_STEP = 0x01; // +1 into the Y column each frame (slide the block down)
@@ -94,7 +94,6 @@ const SPRITE_BUF_Y_SHIFT = 0x28; // move those two records down 0x28 px
 const PACE_COUNTER = 0x62af; // per-frame pace counter loc_18c6 (the next step) counts down
 const SND_LATCH = SND_TRIGGER + 2; // 0x6082 — SND_TRIGGER[2]
 const SND_ASSERT_FRAMES = 0x03; // 3-frame sound-latch assert (sub_00e0 counts it down)
-const STEP_SELECTOR = 0x6388; // the board-advance render-sequence step index
 
 export function loc_1880(m) {
   const { regs, mem } = m;
@@ -140,5 +139,5 @@ export function loc_1880(m) {
   // 3-frame sound-latch assert, and advance the render-sequence step selector.
   mem.write8(PACE_COUNTER, 0x00); // 0x62af
   mem.write8(SND_LATCH, SND_ASSERT_FRAMES); // 0x6082 := 3
-  mem.write8(STEP_SELECTOR, (mem.read8(STEP_SELECTOR) + 1) & 0xff); // inc (0x6388)
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff); // inc (0x6388)
 }

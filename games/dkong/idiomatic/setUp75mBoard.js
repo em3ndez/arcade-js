@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0cf2 — the 75m (board 3, elevators) board-setup arm.  ROM 0x0CF2.
+ * setUp75mBoard — the 75m (board 3, elevators) board-setup arm.  ROM 0x0CF2.
  *
  * One of the four per-board setup arms the board-build dispatch (loc_0c92) branches
  * to on BOARD (0x6227): loc_0cd4 is 25m, loc_0cdf is 50m, this is 75m, and the
@@ -45,7 +45,7 @@ import { stamp75mBoardTiles } from "./stamp75mBoardTiles.js"; // ROM 0x0D27 — 
 import { loc_0cc6 } from "./loc_0cc6.js"; // ROM 0x0CC6 — shared draw + setup tail
 import { SND_BGM } from "./ram.js"; // 0x6089 — background-tune slot
 
-export function loc_0cf2(m) {
+export function setUp75mBoard(m) {
   const { regs, mem } = m;
 
   // Plant the elevator board's fixed decorative tile motifs.

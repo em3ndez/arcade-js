@@ -29,9 +29,10 @@
  *
  * The scene these sprites belong to is UNCONFIRMED: the motion tails loc_16d0 / loc_16d5 and
  * their meaning-bearing callee loc_2602 all declined an English name over the sprite-record
- * trap, and this routine's rail thresholds and the 0x6388 counter sit in unnamed engine
- * scratch — so it keeps the neutral loc_16e1 name and states the mechanic in prose. A
- * reviewer who promotes loc_2602 can promote this whole family in the same pass.
+ * trap, and this routine's rail thresholds remain unnamed engine scratch (the 0x6388 counter
+ * its loc_16ee callee advances is now BOARD_ADVANCE_STEP) — so it keeps the neutral loc_16e1
+ * name and states the mechanic in prose. A reviewer who promotes loc_2602 can promote this
+ * whole family in the same pass.
  *
  * Inputs: recordX = record #2's X (0x6910); stepByte = the published step (0x63A3). Needs the
  * machine only to hand it to the chosen handler.
@@ -51,7 +52,8 @@
  *           ABI. RAM (+ SP/pc) backstops that.
  * NAMES:    none imported — recordX / stepByte are honest inputs (record #2's X and the
  *           object's published step, named in prose to match loc_16d5). The 93 rail threshold
- *           and the 0x6388 counter are unnamed engine scratch, kept in prose.
+ *           is unnamed engine scratch, kept in prose; the 0x6388 counter its loc_16ee callee
+ *           advances is BOARD_ADVANCE_STEP (named in ram.js).
  */
 
 import { loc_16d0 } from "./loc_16d0.js"; // ROM 0x16D0 — schedule a reversal, then slide

@@ -42,19 +42,18 @@
  *           dispatch tail reads no register/flag this leaves; the oracle's residual A/HL/DE/
  *           BC/flags are dead ABI, and its SP/pc are the Z80 caller-skip mechanism the boolean
  *           gate replaces.
- * NAMES:    SUBSTATE_TIMER (0x6009), SND_TRIGGER (0x6080 → +4 = latch bit 4) from ram.js.
- *           Hex-kept: ROM table base 0x3A1F (an immediate) and the step selector 0x6388
- *           (unnamed in ram.js — a shared 0x63xx render-sequence counter).
+ * NAMES:    SUBSTATE_TIMER (0x6009), SND_TRIGGER (0x6080 → +4 = latch bit 4), BOARD_ADVANCE_STEP
+ *           (0x6388 — the board-advance render-sequence step) from ram.js. Hex-kept: ROM table
+ *           base 0x3A1F (an immediate).
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { SUBSTATE_TIMER, SND_TRIGGER } from "./ram.js";
+import { SUBSTATE_TIMER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./ram.js";
 
 const COPY_SOURCE = 0x3a1f; // ROM base of this step's 40-byte sprite-object frame
 const SND_LATCH = SND_TRIGGER + 4; // 0x6084 — SND_TRIGGER[4]
 const SND_ASSERT_FRAMES = 0x03; // 3-frame sound-latch assert (sub_00e0 counts it down)
-const STEP_SELECTOR = 0x6388; // 0x6388 — the board-advance render-sequence step index
 
 export function loc_186f(m) {
   const { regs, mem } = m;
@@ -70,5 +69,5 @@ export function loc_186f(m) {
 
   // Pulse the 3-frame sound-latch assert, then advance the render-sequence step selector.
   mem.write8(SND_LATCH, SND_ASSERT_FRAMES);
-  mem.write8(STEP_SELECTOR, (mem.read8(STEP_SELECTOR) + 1) & 0xff);
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff);
 }

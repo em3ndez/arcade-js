@@ -299,6 +299,14 @@ export const TWO_PLAYER_GAME = 0x600F;
  *  step 7). Reached only while GAME_SUBSTATE (0x600A) == 7. */
 export const INTRO_STEP = 0x6385;
 
+/** [code] Board-advance / "how high" render-sequence step index — the machine step for the
+ *  GAME_SUBSTATE (0x600A) == 0x16 board-advance state. loc_1615/loc_1641/loc_1644 dispatch
+ *  `ld a,(0x6388) / rst 0x28` through their board-parity tables on it; each step's routine renders
+ *  one stage then `inc`s it to advance (a write of 0 resets/restarts the sequence). Step 0 is the
+ *  how-high screen (loc_17b6). Pass-2 confirmer: a single step-index role across every reader+writer,
+ *  both layers. */
+export const BOARD_ADVANCE_STEP = 0x6388;
+
 /** [code] Player-slot records: base 0x611C, stride 0x22, 5 records; field[0] = owner tag (1 = P1,
  *  3 = P2). loc_141e is ground-truth (compares field[0] vs 1 then 3); runBonusItemValueDisplay/sub_1486
  *  key it with 2*(0x600E)+1. Base + stride + owner-tag solid; full per-record layout inferred. */
@@ -767,12 +775,16 @@ export const BLINK_COUNT = 0x639e;
 //                               0x6060 0x6100 0x61A5 0x61B1 0x61C6 0x61C7
 //                               (0x611C was PROMOTED to PLAYER_SLOT_RECORDS above — DE naming pass:
 //                               base + stride 0x22, 5 records, owner-tag field[0] = 1/3 via loc_141e)
-//   0x63xx engine scratch:      0x6348 0x6350 0x6382 0x6388 0x638C 0x638F 0x6390
+//   0x63xx engine scratch:      0x6348 0x6350 0x6382 0x638C 0x638F 0x6390
 //                               0x6392 0x6393 0x63A0
 //                               (0x6391 was PROMOTED to COLOUR_CYCLE_ACTIVE above — control-poke
 //                               confirmed it unshared; 0x6390 & 0x6393 rejection UPHELD as shared bytes.
 //                               0x6387 was PROMOTED to BONUS_EXPIRED_DELAY above — the
 //                               bonus-expired sequence's delay timer, ROM-cited unshared.
+//                               0x6388 was PROMOTED to BOARD_ADVANCE_STEP above — the
+//                               GAME_SUBSTATE-0x16 board-advance / how-high render-sequence step
+//                               index; pass-2 confirmer found a single step-index role across all
+//                               readers+writers (inc to advance, reset to 0), NO sharing evidence.
 //                               0x6300/0x6310 PROMOTED to OBJ_PARAM_TABLE0/1, and 0x6340-0x6343 /
 //                               0x6345 / 0x6346 to the EFFECT_* / EFFECT_SEQ_* cluster above — ABC
 //                               naming pass. 0x6348 & 0x6350 stay hex under DOWNGRADE: 0x6348 is a thin

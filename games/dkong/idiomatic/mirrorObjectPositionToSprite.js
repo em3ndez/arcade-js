@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2e6c — mirror the current object's position into its paired sprite record, then
- * advance the per-object scan.  ROM 0x2E6C.
+ * mirrorObjectPositionToSprite — mirror the current object's position into its paired
+ * sprite record, then advance the per-object scan.  ROM 0x2E6C.
  *
  * A convergence tail of the per-object update loop (entry_2e04), reached from loc_2e4b
  * at the animation-string boundary and from loc_2e84 in the rise/deactivate state. It
@@ -15,10 +15,10 @@
  * here (a genuine oracle boundary). The field offsets (object X/Y, sprite X/Y) are the
  * shared record layout the whole scan uses.
  *
- * NAME: kept the neutral loc_ for the decompile pass. The mechanism — mirror the object's
- * X/Y into the paired sprite record — is clear and every touched cell is a named, grounded
- * record field, so this is a strong candidate to promote (e.g. mirrorObjectPositionToSprite)
- * in the clarify pass under proposer!=confirmer.
+ * NAME: promoted from loc_2e6c in the clarify pass (proposer != confirmer). The mechanism —
+ * mirror the object's X/Y into the paired sprite record — is clear and every touched cell is a
+ * named, grounded record field, so the effect names the routine exactly; the fall-through
+ * advance is the shared tail (advanceToNextObject), correctly left out of the name.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2e6c.test.js.
  * GATE:     crafted + captured. Each copied byte is swept over all 256 values (pins the copy
@@ -44,7 +44,7 @@ import { advanceToNextObject } from "./advanceToNextObject.js"; // ROM 0x2E78
  *                    two-byte position copy goes through memory.
  * @returns {void}
  */
-export function loc_2e6c(m) {
+export function mirrorObjectPositionToSprite(m) {
   const { regs, mem } = m;
 
   // Place the object's sprite at the object's position: copy the object record's X and Y

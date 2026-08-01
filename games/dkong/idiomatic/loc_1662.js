@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1662 — bump an animation-scratch counter, then (only on the 25m board)
+ * loc_1662 — bump the board-advance sequence step, then (only on the 25m board)
  * subtract 4 from field 3 of every sprite-object record.  ROM 0x1662.
  *
  * The shared tail of two 0x1644-index board-setup handlers: sub_1654 falls through
  * into it and sub_168a jumps to it. It does three things:
  *
- *   1. `inc (0x6388)` — advance an animation-scratch byte (unnamed in ram.js; the
+ *   1. `inc (0x6388)` — advance BOARD_ADVANCE_STEP, the board-advance sequence step (the
  *      same counter loc_17b6 seeds elsewhere). Runs unconditionally.
  *   2. `rst 0x30` with A = 1 — the per-board skip gate (boardBitGate). A is a mask
  *      with one bit per board; boardBitGate selects the current board's bit. With
@@ -32,22 +32,20 @@
  *           registers/flags; no register or flag is live out (the oracle just `ret`s
  *           with no result convention). SP/pc are not compared: the oracle models the
  *           rst push/pop in STACK_SCRATCH, this routine needs no stack at all.
- * NAMES:    SPRITE_OBJ_BLOCK (0x6908; the strided target 0x690B is field 3 = +3).
- *           0x6388 is unnamed animation scratch, kept hex. BOARD (0x6227) is read by
- *           boardBitGate, not here.
+ * NAMES:    SPRITE_OBJ_BLOCK (0x6908; the strided target 0x690B is field 3 = +3) and
+ *           BOARD_ADVANCE_STEP (0x6388, the board-advance sequence step) from ram.js.
+ *           BOARD (0x6227) is read by boardBitGate, not here.
  */
 
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — the per-board skip gate
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
-import { SPRITE_OBJ_BLOCK } from "./ram.js";
-
-const ANIM_SCRATCH = 0x6388; // per-board animation-scratch counter, unnamed in ram.js
+import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
 
 export function loc_1662(m) {
   const { regs, mem } = m;
 
-  // inc (0x6388) — advance the animation-scratch counter (both arms).
-  mem.write8(ANIM_SCRATCH, (mem.read8(ANIM_SCRATCH) + 1) & 0xff);
+  // inc (0x6388) — advance the board-advance sequence step (both arms).
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff);
 
   // rst 0x30 board gate. A = 1 asks "is bit 0 (25m) set for the current board?"; a
   // false return means "not this board" — skip the strided subtract. The oracle's
