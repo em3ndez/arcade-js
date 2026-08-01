@@ -25,6 +25,8 @@
 // idiomatised as the base expands.
 
 import { dispatchTask } from "../translated/dispatchTask.js";
+import { rampDifficulty } from "./rampDifficulty.js";
+import { awardBonusLifeAtThreshold } from "./awardBonusLifeAtThreshold.js";
 
 export function* mainLoop(m) {
   const { regs, mem } = m;
@@ -44,11 +46,11 @@ export function* mainLoop(m) {
       continue;
     }
 
-    // Bit 7 set: run the per-frame work.
+    // Bit 7 set: run the per-frame work. 0x0350 is idiomatic (awardBonusLifeAtThreshold) — call it
+    // DIRECTLY; 0x0315 is still translated and keeps the m.call bracket.
     m.push16(0x02ca);
     m.call(0x0315);
-    m.push16(0x02cd);
-    m.call(0x0350);
+    awardBonusLifeAtThreshold(m);
 
     // inc (0x6019)
     regs.hl = 0x6019;
@@ -66,9 +68,10 @@ export function* mainLoop(m) {
     }
 
     // A new frame arrived: remember it, run the two per-new-frame tasks, then the tail `jr 0x02BD`.
+    // 0x037F is idiomatic (rampDifficulty) — call it DIRECTLY (no push16/m.call), so the guest stack
+    // stays clean; 0x03A2 is still translated and keeps the m.call bracket.
     mem.write8(regs.hl, regs.a);
-    m.push16(0x02de);
-    m.call(0x037f);
+    rampDifficulty(m);
     m.push16(0x02e1);
     m.call(0x03a2);
     yield;

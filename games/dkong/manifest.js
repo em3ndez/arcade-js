@@ -145,16 +145,20 @@ export default {
   // main loop busy-waits at 0x02BD (`cp (0x6383); jr z,0x02BD`) until the NMI advances the frame
   // counter 0x601A. That is the yield point for the coroutine go-live engine (runGeneratorGame) AND
   // the poll PC where the translated oracle (runCycleFree) fires its once-per-frame NMI, so both
-  // runs cross the frame boundary at the same logical point and reproduce each other over the entire
-  // dumped state (work + sprite + video RAM). See idiomatic/test/golive.test.js.
+  // runs cross the frame boundary at the same logical point and reproduce each other on every live
+  // cell (work + sprite + video RAM) — except the dead stack scratch (see below and
+  // idiomatic/test/golive.test.js).
   convergence: {
     pollPCs: [0x02bd],
-    // The coroutine spine reproduces the poll-PC oracle BYTE-IDENTICALLY over the ENTIRE dumped
-    // state (all 5120 bytes: work RAM 0x6000-0x6BFF incl. the stack scratch, sprite RAM
-    // 0x7000-0x73FF, video RAM 0x7400-0x77FF) across the attract run — no per-cell excludes needed.
-    // The yield sits at each main-loop path's pc==0x02BD arrival, matching the oracle's NMI firings
-    // 1:1, so nothing drifts. (If a future GAMEPLAY tape ever exposes a bounded free-running
-    // cycle-proxy offset — see core/frame-stepped.js — add a documented exclude here THEN.)
+    // The go-live gate compares the idiomatic run against the poll-PC oracle over the whole dumped
+    // state — work RAM 0x6000-0x6BFF, sprite RAM 0x7000-0x73FF, video RAM 0x7400-0x77FF — EXCEPT the
+    // dead stack scratch. This is the MEMORY-EQUIVALENCE contract (docs/decompiler-pipeline.md): once
+    // a leaf is idiomatic and DIRECT-called, the caller drops the oracle's push16/ret bracket, so the
+    // guest stack stays clean and the transient bytes the oracle pushes below SP are simply never
+    // written. Those bytes are dead — SP stays at/above the scratch floor, nothing reads them as data
+    // — so they are excluded; every LIVE cell (incl. the rendered sprite/video output) is still
+    // compared byte-for-byte. STACK_SCRATCH = [0x6BE0, 0x6C00) (SP inits at 0x6C00).
+    stateExclude: { stack: [0x6be0, 0x6c00] }, // [start, end) — dead stack scratch below SP
     golive: { nmiReturnPC: 0x02bd },
   },
 
