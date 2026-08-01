@@ -2,12 +2,12 @@
 /**
  * loc_0cc6 — the shared tail every board-setup dispatch arm converges on.  ROM 0x0cc6.
  *
- * The four board-setup arms (loc_0cd4 25m girders, setup50mConveyorBoard 50m conveyors,
+ * The four board-setup arms (setup25mGirderBoard 25m girders, setup50mConveyorBoard 50m conveyors,
  * loc_0cf2 75m elevators, and the loc_0cb6 fall-through 100m rivets) each leave DE
  * pointing at their own ROM layout table and then jump here. This tail does three
  * things in order:
  *
- *   1. loc_0da7 — walk the DE-selected, 0xAA-terminated layout table, drawing every
+ *   1. drawBoardLayout — walk the DE-selected, 0xAA-terminated layout table, drawing every
  *      girder/ladder segment into video RAM (and the 0x63ab.. render scratch).
  *   2. On the 100m rivet board ONLY (BOARD == 4): stampRivetBoardTiles, which block-
  *      stamps the eight fixed rivet-decoration cells. The other three arms enter with
@@ -40,14 +40,14 @@
  *           (DE, live-in), the rivet cells, and all continuation state are named inside
  *           the callees this delegates to.
  */
-import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — walk + draw the layout table
+import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — walk + draw the layout table
 import { stampRivetBoardTiles } from "./stampRivetBoardTiles.js"; // ROM 0x0d00 — 100m rivet decoration
 import { loc_3fa0 } from "./loc_3fa0.js"; // ROM 0x3fa0 — board-setup prelude + continuation
 import { BOARD } from "./ram.js";
 
 export function loc_0cc6(m) {
   // Walk the DE-selected layout table into VRAM / the render scratch.
-  loc_0da7(m);
+  drawBoardLayout(m);
 
   // 100m rivet board (BOARD == 4) only: stamp the eight fixed rivet-decoration cells.
   if (m.mem.read8(BOARD) === 0x04) {

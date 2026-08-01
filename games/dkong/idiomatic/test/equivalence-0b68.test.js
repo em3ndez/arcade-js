@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0b68 as oracle } from "../../translated/loc_0b68.js";
 import { loc_0b68 as idiomatic } from "../loc_0b68.js";
 import { addStrided } from "../addStrided.js"; // idiomatic leaf, for the teeth twins
-import { loc_0da7 } from "../loc_0da7.js"; // idiomatic leaf, for the teeth twins
+import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js"; // idiomatic leaf, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK } from "../../optimized/ram.js";
 

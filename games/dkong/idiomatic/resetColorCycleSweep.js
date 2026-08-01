@@ -4,7 +4,7 @@
  * continue the frame's colour work.  ROM 0x0464.
  *
  * The colour-cycle sweep counter climbs one step per frame and reaches its top of 0x80 once
- * per sweep; its driver (loc_0426, which does the increment) jumps here on the frame it wraps.
+ * per sweep; its driver (advanceColorCycleSweep, which does the increment) jumps here on the frame it wraps.
  * This routine ends the sweep — clear the counter back to 0 and lower the colour-cycle active
  * flag — and then continues into the SAME per-frame colour work the non-wrap path runs, selected
  * by the sprite-object reload gate. (It is the reset/end half only: the re-arm that STARTS the

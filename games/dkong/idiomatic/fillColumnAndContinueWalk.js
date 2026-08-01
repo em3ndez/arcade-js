@@ -24,7 +24,7 @@
  * mechanism: fillTileColumn's back-edge `jp 0x0DA7` is a RETURN (it runs inside the
  * walk, so returning continues it), whereas a hypothetical standalone dispatch of
  * 0x0F35 must DRIVE the remaining walk itself — which the frozen oracle models as a
- * tail `call 0x0DA7`, mirrored here as a direct call to loc_0da7.
+ * tail `call 0x0DA7`, mirrored here as a direct call to drawBoardLayout.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0f35.test.js.
  * GATE:     crafted-entry — 0x0F35 never dispatches standalone (and its 0x0F1B host is
@@ -35,7 +35,7 @@
  *           fillTileColumn would, on
  *           both sides. The fill is isolated by pointing DE at a 0xAA terminator so the
  *           tail walk returns at once; one case instead points DE at the real 25m table
- *           (0x3AE4) so the tail drives a whole real board draw (the walk loc_0da7 is
+ *           (0x3AE4) so the tail drives a whole real board draw (the walk drawBoardLayout is
  *           itself gated). Teeth: a wrong column step (fewer rows), a dropped `inc de`
  *           (DE live-out), and a dropped tail walk (the walk's SEG_KIND (0x63B3) write
  *           missing).
@@ -50,7 +50,7 @@
  *           is SEG_ADDR1 (0x63AB; referenced in prose, not touched here).
  */
 import { SEG_TILE, SEG_HEIGHT } from "./ram.js";
-import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — walk + draw the rest of the layout table
+import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — walk + draw the rest of the layout table
 
 export function fillColumnAndContinueWalk(m) {
   const { regs, mem } = m;
@@ -68,5 +68,5 @@ export function fillColumnAndContinueWalk(m) {
 
   // Step the record pointer past this record and resume the layout walk.
   regs.de = (regs.de + 1) & 0xffff;
-  loc_0da7(m);
+  drawBoardLayout(m);
 }

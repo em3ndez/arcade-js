@@ -63,7 +63,7 @@ import { loc_17b6 as candidate } from "../loc_17b6.js";
 import { silenceSound } from "../silenceSound.js";
 import { fillDescendingColumn } from "../fillDescendingColumn.js";
 import { fillTileBlock } from "../fillTileBlock.js";
-import { loc_0da7 } from "../loc_0da7.js";
+import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";

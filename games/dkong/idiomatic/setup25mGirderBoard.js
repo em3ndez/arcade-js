@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0cd4 — the 25m board-setup arm: select the 25m girder layout table, queue the
- * 25m background tune, then hand off to the shared board-setup tail.  ROM 0x0CD4.
+ * setup25mGirderBoard — the 25m (board 1) board-setup arm: select the 25m girder layout
+ * table, queue the 25m background tune, then hand off to the shared board-setup tail.  ROM 0x0CD4.
  *
  * One of four sibling arms the in-game board-setup dispatcher selects on the board
  * type; this is the 25m (girder) arm. It does two things and then converges on the
@@ -11,7 +11,8 @@
  *      walks that table to draw the board's girders and ladders.
  *   2. Queue the 25m background tune for the sound driver to start.
  *
- * Then it hands off to loc_0cc6 — the tail every arm converges on (walk the selected
+ * The 25m sibling of setup50mConveyorBoard / setUp75mBoard; the 100m arm is the loc_0cb6
+ * fall-through. Then it hands off to loc_0cc6 — the tail every arm converges on (walk the selected
  * table into the playfield, the 100m-only rivet stamp, and the rest of board setup).
  * loc_0cc6's eventual return is this routine's return; nothing is done after it.
  *
@@ -33,11 +34,11 @@
 import { loc_0cc6 } from "./loc_0cc6.js"; // ROM 0x0CC6 — the shared board-setup tail
 import { SND_BGM } from "./ram.js";
 
-// The 25m girder layout table in ROM; the shared tail (loc_0da7, reached through
+// The 25m girder layout table in ROM; the shared tail (drawBoardLayout, reached through
 // loc_0cc6) walks it as a 0xAA-terminated list of girder/ladder segment records.
 const LAYOUT_TABLE_25M = 0x3ae4;
 
-export function loc_0cd4(m) {
+export function setup25mGirderBoard(m) {
   const { regs, mem } = m;
 
   // Select the 25m girder layout table for the shared tail to walk. The tail's record

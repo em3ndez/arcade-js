@@ -11,7 +11,7 @@
  * branch, no work-RAM inputs (every value is an immediate or a ROM table):
  *
  *   - Select palette bank %01 (PALETTE_BANK_LO <- 0, PALETTE_BANK_HI <- 1).
- *   - Draw the cutscene's static playfield: call loc_0da7, which walks the
+ *   - Draw the cutscene's static playfield: call drawBoardLayout, which walks the
  *     0xAA-terminated line-segment table at ROM 0x380D (girders + ladders) and
  *     stamps each segment into VRAM, leaving its per-record scratch in 0x63AB..
  *   - Stamp three fixed cutscene tiles: 0x76A3 <- 0x10, 0x7663 <- 0x10, 0x75AA <- 0xD4.
@@ -24,11 +24,11 @@
  *   - `inc (INTRO_STEP)` — advance 0 -> 1 so the NEXT dispatch runs the following
  *     phase instead of re-running this setup.
  *
- * CALLEE. loc_0da7 is already idiomatic but still reads its table pointer from the
+ * CALLEE. drawBoardLayout is already idiomatic but still reads its table pointer from the
  * Z80 register file (regs.de) and pins the vestigial SP internally — so this routine
  * sets regs.de = 0x380D before the direct call (the boundary where registers remain),
  * exactly as the oracle's `ld de,0x380D` did. SP is inherited from the caller and left
- * alone; loc_0da7 pins it per record and returns it unchanged.
+ * alone; drawBoardLayout pins it per record and returns it unchanged.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0a8a.test.js.
  * GATE:     crafted-entry — attract (6000 frames) dispatches 0x0a8a ZERO times (the
@@ -38,12 +38,12 @@
  *           INTRO_STEP is swept EXHAUSTIVELY (0..255, incl. the 0xFF->0x00 wrap); every
  *           other output is an immediate / the deterministic 0x380D record walk. Teeth:
  *           a swapped walk-pointer seed (0x63C2) and a dropped INTRO_STEP advance.
- * LIVE-OUT: memory-only — the palette latch, VRAM (0x76A3/0x7663/0x75AA + loc_0da7's
+ * LIVE-OUT: memory-only — the palette latch, VRAM (0x76A3/0x7663/0x75AA + drawBoardLayout's
  *           girder/ladder tiles), the SEG_* segment scratch (0x63AB..), 0x62AF,
  *           INTRO_WALK_PTR_A/B, SUBSTATE_TIMER, and INTRO_STEP. No live registers/flags: the caller
  *           (dispatchIntroCutsceneStep's rst-0x28 tail) makes no `ret cc` and reloads
  *           A/HL/DE before reading them (oracle's residual A=0x40, HL=0x6385, DE/BC =
- *           loc_0da7's leavings are all dead ABI). SP/pc are the dropped stack model.
+ *           drawBoardLayout's leavings are all dead ABI). SP/pc are the dropped stack model.
  * NAMES:    SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), INTRO_WALK_PTR_A (0x63C2) and
  *           INTRO_WALK_PTR_B (0x63C4, the cutscene walk pointers) from ram.js. Hex-kept
  *           (no ram.js name): PALETTE_BANK_LO/HI (ls259 board latch, not work RAM), the
@@ -52,14 +52,14 @@
  */
 
 import { SUBSTATE_TIMER, INTRO_STEP, INTRO_WALK_PTR_A, INTRO_WALK_PTR_B } from "./ram.js";
-import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0DA7 — walk 0x380D + draw the playfield
+import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0DA7 — walk 0x380D + draw the playfield
 
 // The two-bit palette-bank select latch (ls259.6h at 0x7D86/0x7D87) — a board control
 // output, NOT work RAM, so it has no ram.js name. Setting %01: LO <- 0, HI <- 1.
 const PALETTE_BANK_LO = 0x7d86;
 const PALETTE_BANK_HI = 0x7d87;
 
-const RECORD_TABLE = 0x380d; // ROM line-segment table loc_0da7 walks (girders + ladders)
+const RECORD_TABLE = 0x380d; // ROM line-segment table drawBoardLayout walks (girders + ladders)
 
 // Three fixed cutscene tiles stamped into VRAM (ROM-data addresses, no ram.js name).
 const CUTSCENE_TILE_A = 0x76a3;
@@ -75,10 +75,10 @@ export function setupIntroCutsceneStep(m) {
   mem.write8(PALETTE_BANK_LO, 0x00);
   mem.write8(PALETTE_BANK_HI, 0x01);
 
-  // Draw the cutscene playfield from the 0x380D segment table. loc_0da7 reads its
+  // Draw the cutscene playfield from the 0x380D segment table. drawBoardLayout reads its
   // table pointer from regs.de (still-register boundary), so set it as `ld de,0x380D`.
   regs.de = RECORD_TABLE;
-  loc_0da7(m);
+  drawBoardLayout(m);
 
   // Three fixed cutscene tiles.
   mem.write8(CUTSCENE_TILE_A, 0x10);

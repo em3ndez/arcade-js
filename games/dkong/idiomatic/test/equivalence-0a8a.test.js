@@ -47,7 +47,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0a8a as oracle } from "../../translated/loc_0a8a.js";
 import { setupIntroCutsceneStep as idiomatic } from "../setupIntroCutsceneStep.js";
-import { loc_0da7 } from "../loc_0da7.js"; // idiomatic callee, for the teeth twins
+import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, SUBSTATE_TIMER, INTRO_STEP } from "../../optimized/ram.js";
 

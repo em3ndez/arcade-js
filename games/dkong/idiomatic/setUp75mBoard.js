@@ -3,7 +3,7 @@
  * setUp75mBoard — the 75m (board 3, elevators) board-setup arm.  ROM 0x0CF2.
  *
  * One of the four per-board setup arms the board-build dispatch (loc_0c92) branches
- * to on BOARD (0x6227): loc_0cd4 is 25m, setup50mConveyorBoard is 50m, this is 75m, and the
+ * to on BOARD (0x6227): setup25mGirderBoard is 25m, setup50mConveyorBoard is 50m, this is 75m, and the
  * loc_0cb6 fall-through is 100m. Each arm makes its board's three fixed choices and
  * then hands off to the shared draw tail loc_0cc6. This arm does, in order:
  *
@@ -14,7 +14,7 @@
  *      SND_BGM: 0x08 (25m), 0x09 (50m), 0x0A here (75m).
  *   3. Point at the 75m elevator layout table (ROM 0x3BE5) and run the shared tail
  *      loc_0cc6, which walks that table into video RAM and finishes board setup. The
- *      table address is handed to the tail through DE (a live-in loc_0cc6 -> loc_0da7
+ *      table address is handed to the tail through DE (a live-in loc_0cc6 -> drawBoardLayout
  *      reads), so it is set LAST, right before the call, to survive into it.
  *
  * The tail's eventual return is this routine's return; loc_0c92 (its caller) consumes
@@ -31,7 +31,7 @@
  *           load-bearing), and a dropped tile stamp (caught at the elevator motif cells).
  * LIVE-OUT: memory-only — SND_BGM = 0x0A, the 68 elevator-motif tilemap bytes, and the
  *           whole board the tail draws (VRAM tiles + the SEG_* render scratch, via
- *           loc_0cc6 -> loc_0da7) plus the setup continuation. DE is set as a live-IN
+ *           loc_0cc6 -> drawBoardLayout) plus the setup continuation. DE is set as a live-IN
  *           handed to the tail, not a live-out of this arm; A/HL/B and all flags are dead
  *           (the caller loc_0c92 reads no return). SP/pc are the dropped stack model —
  *           the oracle's push16/call/ret becomes the JS call stack.
@@ -55,7 +55,7 @@ export function setUp75mBoard(m) {
   mem.write8(SND_BGM, 0x0a);
 
   // Select the 75m elevator layout table and run the shared draw/setup tail. The table
-  // address reaches the tail through DE (loc_0cc6 -> loc_0da7 walks the DE-selected
+  // address reaches the tail through DE (loc_0cc6 -> drawBoardLayout walks the DE-selected
   // table), so it is set last, right before the call.
   regs.de = 0x3be5;
   loc_0cc6(m);

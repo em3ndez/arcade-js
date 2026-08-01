@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_25f2 — the 50m board's per-frame object update: gate on the 50m board, then run the
- * three conveyor-object step drivers and carry Mario along his conveyor row.  ROM 0x25F2.
+ * update50mConveyorObjects — the 50m board's per-frame object update: gate on the 50m board,
+ * then run the three conveyor-object step drivers and carry Mario along his conveyor row.  ROM 0x25F2.
  *
  * Dispatched once per serviced frame from the board-object cascade (`call 0x25F2`). A single
  * `rst 0x30` board gate with mask 0x02 (bit1 -> the 50m board) opens the update ONLY on the
@@ -19,12 +19,12 @@
  * moves this frame (into the M50_OBJ*_STEP shadows), and the carry consumes those steps. This
  * routine only sequences the four; every cell it affects lives inside the callees.
  *
- * NAME: kept the neutral loc_ to match its already-decompiled sibling drivers
- * (loc_2602/262f/2679), which stay neutral under the M50 "which on-screen object" sprite-record
- * caution. This orchestrator's PURPOSE is well corroborated — the gate selects the 50m board
- * (mask 0x02 -> BOARD 2), the drivers work the named M50_OBJ* 50m cells, and the grounded tail
- * carryMarioOnConveyorRow commits the family to the conveyor reading — so a reviewer can promote
- * it (e.g. update50mConveyorObjects) once confirmed proposer!=confirmer.
+ * NAME: promoted (understanding pass 6, proposer!=confirmer). The purpose is corroborated —
+ * the gate selects the 50m board (mask 0x02 -> BOARD 2; mechanisms.md board 2 = 50m conveyors /
+ * pie factory), the drivers work the named M50_OBJ* 50m cells, and the grounded tail
+ * carryMarioOnConveyorRow commits the family to the conveyor reading. This orchestrator only
+ * SEQUENCES its callees; the per-object drivers (loc_2602/262f/2679) stay neutral loc_ under the
+ * M50 "which on-screen object" sprite-record caution — the name does not over-reach to them.
  *
  * Memory-equivalent to the frozen oracle — equivalence-25f2.test.js.
  * GATE:     captured + crafted. 0x25F2 is dispatched every board-object pass, so real attract
@@ -51,7 +51,7 @@ import { carryMarioOnConveyorRow } from "./carryMarioOnConveyorRow.js"; // ROM 0
 // rst-0x30 board mask: bit1 -> the 50m board, the only board this update runs on.
 const BOARD_MASK = 0x02;
 
-export function loc_25f2(m) {
+export function update50mConveyorObjects(m) {
   const { regs } = m;
 
   // Board gate: run the object update only on the 50m board. boardBitGate reads the mask from

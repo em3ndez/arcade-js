@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2fcb — pace the bonus countdown on the timed boards (50m / 75m / 100m).  ROM 0x2FCB.
+ * tickTimedBoardBonus — pace the bonus countdown on the timed boards (50m / 75m / 100m).  ROM 0x2FCB.
  *
  * Called once per frame from the shared per-frame update cascade (loc_197a). It runs a
  * two-level countdown that walks the on-screen bonus down at a fixed cadence, and posts
@@ -51,7 +51,7 @@ import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — p
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F — post a task-ring message
 import { BONUS_TICK, BONUS_PERIOD, BONUS, BONUS_EXPIRED_STEP, SPAWN_REQUEST } from "./ram.js";
 
-export function loc_2fcb(m) {
+export function tickTimedBoardBonus(m) {
   const { regs, mem } = m;
 
   // Per-board skip gate. The mask 0x0E has the bits for boards 2/3/4 set, so the gate

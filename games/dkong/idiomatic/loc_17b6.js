@@ -17,7 +17,7 @@
  *      first left (0x0D), so 0x7583 -> 0x0D/0x0C/0x0B — a continuous six-step gradient.
  *   4. Render four items, each a 5x14 backing block of tile 0x10 (fillTileBlock, ROM
  *      0x1826) at a tilemap cell plus the girder/ladder segments walked from a ROM
- *      segment table (loc_0da7, ROM 0x0da7). The four dests step left by 5 cells
+ *      segment table (drawBoardLayout, ROM 0x0da7). The four dests step left by 5 cells
  *      (0x76DA/D5/D0/CB) over the four ROM tables (0x3A47/4D/53/59).
  *   5. Load the 40-byte sprite-object block from ROM template 0x385C into SPRITE_OBJ_BLOCK
  *      (loadSpriteObjectBlock, ROM 0x004e), then shift its X column right by 0x44 across
@@ -33,7 +33,7 @@
  * for the how-high render", so the mechanism and its how-high role are documented; the
  * neutral loc_ name is kept because the division of labour with buildHowHighScreen
  * (0x0bda, the sub-state-8 how-high builder) is not resolved at the routine-name bar —
- * same convention the loc_0da7 record-drawing family follows.
+ * same convention the drawBoardLayout record-drawing family follows.
  *
  * Memory-equivalent to the frozen oracle — equivalence-17b6.test.js.
  * GATE:     crafted-entry — NOT dispatched in attract (measured: 0 over 6000 frames; its
@@ -69,7 +69,7 @@ import {
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 import { fillTileBlock } from "./fillTileBlock.js"; // ROM 0x1826
-import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7
+import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 
@@ -119,7 +119,7 @@ export function loc_17b6(m) {
     regs.hl = tileDest; // ld hl,vhl
     fillTileBlock(m); //    ROM 0x1826 — 5x14 block of tile 0x10
     regs.de = segTable; //  ld de,rde
-    loc_0da7(m); //         ROM 0x0da7 — walk the segment table and draw
+    drawBoardLayout(m); //         ROM 0x0da7 — walk the segment table and draw
   }
 
   // 5. Load the sprite-object block from ROM 0x385C, then shift its X column by 0x44.

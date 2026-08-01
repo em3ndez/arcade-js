@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0426 as oracle } from "../../translated/loc_0426.js";
-import { loc_0426 } from "../loc_0426.js";
+import { advanceColorCycleSweep as loc_0426 } from "../advanceColorCycleSweep.js";
 import { resetColorCycleSweep } from "../resetColorCycleSweep.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";

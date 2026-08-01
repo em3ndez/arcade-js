@@ -43,7 +43,7 @@ import { loc_0b06 as idiomatic } from "../loc_0b06.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js"; // idiomatic callees, for the twins
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { scrollClimbGraphicStep } from "../scrollClimbGraphicStep.js";
-import { loc_0da7 } from "../loc_0da7.js";
+import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../../optimized/ram.js";
 

@@ -46,9 +46,12 @@
  *           push/call/ret becomes the JS call stack).
  * NAMES:    the segment scratch is the SEG_* cluster in ram.js (SEG_ADDR1/SEG_ADDR2/
  *           SEG_SUBTILE1/SEG_SUBTILE2/SEG_HEIGHT/SEG_RUN/SEG_KIND) — imported and used
- *           below. Neutral loc_ name kept to match the sibling record routines
- *           (sub_0da7 / loc_0e19 / loc_0e4f / loc_0e2a), whose game-level "kind"
- *           semantics are documented but not at the routine-name evidence bar.
+ *           below. Kept loc_ pending its own confirmer (proposer!=confirmer): the sibling
+ *           record routines it once matched as "neutral" are already named — the walk head
+ *           drawBoardLayout (0x0da7) and the leaf drawers drawGirderSpan (0x0e19) /
+ *           drawLadder (0x0e4f) / drawSegmentEndCap (0x0e2a) — so loc_0dd3 is now the last
+ *           neutral member of the family and a reasonable future promotion (its game-level
+ *           "kind" semantics are documented).
  */
 
 import { sub_2ff0 } from "../translated/sub_2ff0.js"; // ROM 0x2FF0 — (y,x) -> tile address; no idiomatic yet

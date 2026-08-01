@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0da7 — walk the board-layout segment table and draw each segment.  ROM 0x0da7.
+ * drawBoardLayout — walk the board-layout segment table and draw each segment.  ROM 0x0da7.
  *
  * The head of the playfield-record walk. DE points at a table of LINE-SEGMENT
  * records (girders and ladders) that make up the static board; each record is at
@@ -39,16 +39,17 @@
  *           stack); sub_2ff0's `ret` drifts SP but writes no game-visible RAM.
  * NAMES:    SEG_ADDR1 (0x63ab), SEG_SUBTILE1 (0x63af), SEG_KIND (0x63b3),
  *           SEG_SUBTILE_Y1 (0x63b4) from ram.js — the board-render segment scratch.
- *           Neutral loc_ name kept to match the record-drawing family (loc_0dd3 /
- *           loc_0e19 / loc_0e4f / loc_0e2a), per loc_0dd3's confirmer note that this
- *           family's game-level semantics are documented but not at the name bar.
+ *           Promoted (understanding pass 6): this is the walk HEAD the board-setup arms call
+ *           to draw the whole static board; its per-segment leaf drawers are the already-named
+ *           drawGirderSpan (0x0e19) / drawLadder (0x0e4f) / drawSegmentEndCap (0x0e2a). Its
+ *           partner loc_0dd3 (the per-segment second-endpoint + dispatch step) stays loc_.
  */
 
 import { sub_2ff0 } from "../translated/sub_2ff0.js"; // ROM 0x2FF0 — (H=y, L=x) -> HL = tile address; no idiomatic yet
 import { loc_0dd3 } from "./loc_0dd3.js"; // ROM 0x0DD3 — convert the 2nd endpoint + draw the segment
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./ram.js"; // board-render segment scratch
 
-export function loc_0da7(m) {
+export function drawBoardLayout(m) {
   const { regs, mem } = m;
 
   // The frozen-oracle leaf sub_2ff0 ends in `ret`, which pops the JS-modeled Z80

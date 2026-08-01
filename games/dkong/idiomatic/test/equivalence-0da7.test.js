@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0da7 as oracle } from "../../translated/sub_0da7.js";
-import { loc_0da7 as idiomatic } from "../loc_0da7.js";
+import { drawBoardLayout as idiomatic } from "../drawBoardLayout.js";
 import { sub_2ff0 } from "../../translated/sub_2ff0.js"; // oracle callee, for the teeth twins
 import { loc_0dd3 } from "../loc_0dd3.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";

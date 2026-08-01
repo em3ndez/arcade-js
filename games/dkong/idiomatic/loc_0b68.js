@@ -22,7 +22,7 @@
  *         trigger a sound (SND_TRIGGER+2 = 0x6082 := 3), and draw the next board band. The
  *         band's ROM record address is BAND_TABLE(0x38DC) + ((count-1) nibble-swapped) — four
  *         `rlca`, which is *16 for the small band count CUTSCENE_BAND_COUNT (0x638D, seeded
- *         to 5 by step 4's loc_0B06) — handed to loc_0da7, which walks that segment table and
+ *         to 5 by step 4's loc_0B06) — handed to drawBoardLayout, which walks that segment table and
  *         draws its girders/ladders. Then decrement CUTSCENE_BAND_COUNT (0x638D); while it is
  *         still non-zero, return (more bands to place on later wraps).
  *   - When the band count reaches 0 the scene is complete: arm SUBSTATE_TIMER (0x6009) to
@@ -34,17 +34,17 @@
  *     entry loc_0038 fixes stride 4 / count 10 then falls into it. addStrided still reads the
  *     Z80 register file, so strideAddTen() below sets the regs it consumes (HL/C/DE/B) — the
  *     one register-ABI boundary this routine keeps. addStrided touches no SP/pc.
- *   - loc_0da7 (ROM 0x0DA7) is the landed idiomatic segment-table drawer; it reads DE as the
+ *   - drawBoardLayout (ROM 0x0DA7) is the landed idiomatic segment-table drawer; it reads DE as the
  *     record-table pointer, so DE is set before the call. It is SP-neutral (it pins SP to its
  *     entry value each record and returns at the terminator), but it calls the frozen oracle
  *     leaf sub_2ff0, which advances m.pc/cycles — so this routine's pc is NOT held on the
  *     sentinel arm (that is dropped stack/cycle model, outside the memory contract).
  *
  * NAME: kept neutral. The mechanic — even-frame diagonal scroll of the sprite-object block +
- * per-wrap band stamp via loc_0da7, advancing the step when the band count drains — is fully
+ * per-wrap band stamp via drawBoardLayout, advancing the step when the band count drains — is fully
  * proven against the oracle. What is NOT earned to the name bar: which sprites the block holds
  * at this step (loc_0B06 reloads 0x6900 with a fresh template at step 4, so step 2's "climbing
- * figure" read does not carry forward) and whether loc_0da7's segments here are specifically
+ * figure" read does not carry forward) and whether drawBoardLayout's segments here are specifically
  * girders vs generic board line-segments. Single-proposer inferences below the promotion bar;
  * the sibling beat loc_0B06 was likewise kept neutral. Promote with corroboration.
  *
@@ -69,7 +69,7 @@
  */
 
 import { addStrided } from "./addStrided.js"; // ROM 0x003d — add C to B stride-DE bytes (rst 0x38 body)
-import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — walk a board-layout segment table and draw it
+import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — walk a board-layout segment table and draw it
 import {
   FRAME,
   SUBSTATE_TIMER,
@@ -128,10 +128,10 @@ export function loc_0b68(m) {
   mem.write8(SND_TRIGGER + 2, 0x03); // 0x6082 := 3 (a 3-frame sound assert)
 
   // Draw the next board band. Its ROM record address = BAND_TABLE + ((count-1) nibble-swapped);
-  // loc_0da7 reads DE as that record-table pointer.
+  // drawBoardLayout reads DE as that record-table pointer.
   const bandIdx = nibbleSwap((mem.read8(CUTSCENE_BAND_COUNT) - 1) & 0xff);
   regs.de = (BAND_TABLE + bandIdx) & 0xffff;
-  loc_0da7(m); // ROM 0x0da7
+  drawBoardLayout(m); // ROM 0x0da7
 
   // dec (0x638d) / ret nz — one band placed; stay in step 6 until the count drains.
   const bandsLeft = (mem.read8(CUTSCENE_BAND_COUNT) - 1) & 0xff;

@@ -40,7 +40,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0cc6 as oracle } from "../../translated/loc_0cc6.js";
 import { loc_0cc6 as idiomatic } from "../loc_0cc6.js";
-import { loc_0da7 } from "../loc_0da7.js";
+import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js";
 import { stampRivetBoardTiles } from "../stampRivetBoardTiles.js";
 import { loc_3fa0 } from "../loc_3fa0.js";
 import { Machine } from "../../machine.js";

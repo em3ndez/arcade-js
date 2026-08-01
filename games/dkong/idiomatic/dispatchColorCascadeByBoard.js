@@ -4,7 +4,7 @@
  * board into one of the colour-cycle arms.  ROM 0x0450.
  *
  * Head of the colour-cycle family (its arms are shiftEvenBoardSpriteColumn and the English-named
- * dispatchColorCyclePaint). Reached every colour-cycle beat (the loc_0426 / resetColorCycleSweep
+ * dispatchColorCyclePaint). Reached every colour-cycle beat (the advanceColorCycleSweep / resetColorCycleSweep
  * sites rejoin here). It reads the current board (BOARD) and splits three ways on its low two bits:
  *
  *   - board bit 0 CLEAR (the even boards, 50m and 100m) -> shiftEvenBoardSpriteColumn, which shifts

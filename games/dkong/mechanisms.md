@@ -152,7 +152,7 @@ drawing primitives — `drawGirderSpan` (fills a segment body with the girder ti
 `drawLadder` (a kind-2 ladder run down a column), `drawSegmentEndCap`, `fillTileColumn`,
 `fillTileBlock`, `fillTileRowPair`, `fillDescendingColumn`, plus board-specific stampers
 (`stamp50mBoardTiles`, `stamp75mBoardTiles`, `stampRivetBoardBands/Tiles`,
-`stampFixedTilePair`, `stampTwoTileBands`). `loc_0da7`/`loc_0dd3` walk the board-layout
+`stampFixedTilePair`, `stampTwoTileBands`). `drawBoardLayout`/`loc_0dd3` walk the board-layout
 **segment table** (`0xAA`-terminated) and draw each segment through a shared per-record
 working block `SEG_* (0x63AB–0x63B5)`: the two endpoint tile addresses `SEG_ADDR1`/`SEG_ADDR2`,
 their sub-tile offsets (`SEG_SUBTILE1`/`SEG_SUBTILE2`/`SEG_SUBTILE_Y1`), the height
@@ -163,8 +163,9 @@ holds the tile being stamped (endpoints → run deltas → body fill). `[code]`
 **The board-build dispatch and the tune family.** A separate arm-dispatch (`loc_0c92`, on
 `BOARD`) makes each board's three fixed choices before the shared draw tail `loc_0cc6`:
 `setUp75mBoard` (75m) first stamps the elevator tile motif (`stamp75mBoardTiles`),
-`setup50mConveyorBoard` is the 50m arm (`SND_BGM = 0x09`, `DE = 0x3B5D` conveyor layout), and the
-25m / 100m arms sit alongside. Each arm selects its background music
+`setup50mConveyorBoard` is the 50m arm (`SND_BGM = 0x09`, `DE = 0x3B5D` conveyor layout),
+`setup25mGirderBoard` is the 25m arm (board 1; `SND_BGM = 0x08`, `DE = 0x3AE4` girder layout),
+and the 100m arm sits alongside. Each arm selects its background music
 from a **consecutive `SND_BGM (0x6089)` tune family** — `0x08` 25m, `0x09` 50m, `0x0A` 75m,
 `0x0B` 100m — then points `DE` at its board's ROM layout table (75m = `0x3BE5` elevators,
 between the 50m `0x3B5D` and 100m `0x3C8B` tables in board order) for `loc_0cc6` to walk into
@@ -235,7 +236,8 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   carries his X by that row's published step, with the object-2 row handled by
   `selectConveyorStepAndMoveMario` (0x2AF6, X-selects the ± polarity). The 50m sprite-object **row
   X-shift** `M50_OBJ_ROW_SHIFT (0x63B7)` shifts the object block's X column on the board-2 arm.
-  Drivers `loc_2602 / sub_262f / sub_2679`, shared tails `loc_264c / loc_268d`.
+  The board-2 per-frame orchestrator `update50mConveyorObjects` (ROM 0x25F2) sequences the three
+  drivers `loc_2602 / sub_262f / sub_2679` (shared tails `loc_264c / loc_268d`) then the Mario-carry.
   **Grounded (understanding pass 5):** a real-ROM run on the credited 50m board confirmed the whole
   cascade live — reverse timers ranging `1..128 / 1..192 / 1..255` (reloads `0x80 / 0xC0 / 0xFF`)
   with the reload-and-sign-flip proven on the underflow frame, the step shadows `0`-even / `±1`-odd
@@ -298,8 +300,8 @@ swing animation is driven by bit 3 of the low timer byte. `[code]`
 
 **Bonus timer.** `initBoardState` sets the starting bonus (§4). It is held in
 `BONUS (0x62B1)`, units of 100 (on-screen = `BONUS*100`). It ticks down two different
-ways: on **boards 2/3/4** a metronomic decrementer (period `BONUS_PERIOD 0x62B3`,
-measured L2→100, L3→80, L4→60 frames), and on **board 1** the barrel-release routine
+ways: on **boards 2/3/4** a metronomic decrementer `tickTimedBoardBonus` (ROM 0x2FCB; period
+`BONUS_PERIOD 0x62B3`, measured L2→100, L3→80, L4→60 frames), and on **board 1** the barrel-release routine
 doubles as the tick. Reaching 0 sets `BONUS_EXPIRED_STEP (0x6386)`, whose small state
 machine (`dispatchBonusExpiredStep`, `bonusExpiredIdle`, `startBonusExpiredDelay`,
 `advanceBonusExpiredStepWhenDelayExpires`) runs the timeout death. `[code]`
@@ -419,7 +421,10 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   to copy the 384-byte shadow buffer `0x6900 → 0x7000` every vblank. Sprite `+0 == MARIO_X` /
   `+3 == MARIO_Y` are grounded byte-exact vs MAME (1819 attract frames); the hardware reads
   each record rotated 90° for the portrait screen. `[seen]` `[code]`
-- **Colour-cycle & blink.** The per-frame colour cascade is headed by `dispatchColorCascadeByBoard`
+- **Colour-cycle & blink.** Each frame `loc_0413` (gated on `COLOUR_CYCLE_ACTIVE (0x6391)` + the
+  frame counter) falls into `advanceColorCycleSweep` (ROM 0x0426), which bumps the sweep counter
+  `0x6390` and routes this frame's colour work — top-of-sweep reset, repaint-only, or (on a 32-frame
+  boundary) a sprite-object reload plus the full cascade. The cascade is headed by `dispatchColorCascadeByBoard`
   (routes on `BOARD`): the even-board arm `shiftEvenBoardSpriteColumn` first shifts the sprite-object
   row's X column, then both arms fall into the repaint `dispatchColorCyclePaint`;
   `resetColorCycleSweep` clears the sweep counter and `COLOUR_CYCLE_ACTIVE (0x6391)` when the sweep
@@ -593,7 +598,7 @@ yet English-named.
 | `replicateGroupStrided` | copy one 4-byte group into B strided destinations |
 | `loc_0d5f` | board-setup continuation: common per-board init + scatter |
 | `loc_0cc6` | the shared tail every board-setup dispatch arm converges on |
-| `loc_0da7` | walk the board-layout segment table and draw each segment |
+| `drawBoardLayout` | walk the board-layout segment table and draw each segment |
 | `loc_0dd3` | convert a segment endpoint, compute run deltas |
 | `loc_3fa0` | board-setup prelude: stamp the 50m-only tiles |
 | `loc_11fa` | scatter a 6-byte source record into an IX record + array |

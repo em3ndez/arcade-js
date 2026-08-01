@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0f35 as oracle } from "../../translated/loc_0f35.js";
 import { fillColumnAndContinueWalk as idiomatic } from "../fillColumnAndContinueWalk.js";
 import { loc_0e4f } from "../../translated/loc_0e4f.js"; // live capture sibling (kind-2 drawer)
-import { loc_0da7 } from "../loc_0da7.js"; // idiomatic callee, for the teeth twins
+import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../../optimized/ram.js";
 
