@@ -57,7 +57,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0cdf as oracle } from "../../translated/loc_0cdf.js";
-import { loc_0cdf as idiomatic } from "../loc_0cdf.js";
+import { setup50mConveyorBoard as idiomatic } from "../setup50mConveyorBoard.js";
 import { loc_0cc6 } from "../loc_0cc6.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

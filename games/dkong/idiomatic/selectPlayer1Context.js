@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_13bb — reset the live player/display context to player 1, single-player,
+ * selectPlayer1Context — reset the live player/display context to player 1, single-player,
  * sub-state 0, with the flip-screen latch forced ON.  ROM 0x13bb.
  *
  * Idx 19 of the in-game sub-state table (ROM 0x0702), dispatched by
@@ -20,17 +20,17 @@
  *                                     cocktail mirror)
  *
  * The (0x600D, 0x600E) pair is the CURRENT_PLAYER byte and the adjacent
- * ACTIVE_PLAYER_INDEX byte loc_08f8 wrote at game start; loc_13bb clears both. It is the player-1
- * half of a mirror pair with loc_13aa (idx 18), which instead sets that pair to
+ * ACTIVE_PLAYER_INDEX byte loc_08f8 wrote at game start; this routine clears both. It is the
+ * player-1 half of a mirror pair with loc_13aa (idx 18), which instead sets that pair to
  * (1, 1) — selecting player 2 — and sets the flip latch from the cabinet DIP
  * (DIP_UPRIGHT 0x6026), so a cocktail player 2 gets the mirrored view. ram.js
  * corroborates the player-select half: CURRENT_PLAYER is "toggled on the player
  * switch (loc_13aa sets 1, loc_13bb clears 0)".
  *
- * Kept as loc_13bb rather than promoted to an English name: the byte-level effect
- * is certain, but the sub-state's exact trigger is unconfirmed and the immediate
- * siblings (loc_138f/loc_13a1) are likewise unpromoted — a reviewer confirmer can
- * promote it (a candidate name: selectPlayer1Context).
+ * GROUNDED (DK understanding pass 4, independent confirmer): ram.js CURRENT_PLAYER (0x600D)
+ * cites it explicitly — "toggled on the player switch (loc_13aa sets 1, loc_13bb clears 0)".
+ * It writes CURRENT_PLAYER / ACTIVE_PLAYER_INDEX / GAME_SUBSTATE = 0 plus the flip latch = 1,
+ * the player-1 mirror of loc_13aa. The immediate siblings loc_138f / loc_13a1 stay loc_.
  *
  * Memory-equivalent to the frozen oracle — equivalence-13bb.test.js.
  * GATE:     crafted-entry; 0x13bb dispatches ZERO times in 6000 attract frames and
@@ -63,7 +63,7 @@ import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, GAME_SUBSTATE } from "./ram.js";
 // RAM, so it lives outside ram.js as a local constant.
 const FLIPSCREEN = 0x7d82;
 
-export function loc_13bb(m) {
+export function selectPlayer1Context(m) {
   const { mem } = m;
   mem.write8(CURRENT_PLAYER, 0); // 0x600D = 0 -> player 1 up
   mem.write8(ACTIVE_PLAYER_INDEX, 0); // 0x600E = 0 -> player-1 active-player index

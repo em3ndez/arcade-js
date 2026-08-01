@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0478 as oracle } from "../../translated/loc_0478.js";
-import { loc_0478 } from "../loc_0478.js";
+import { shiftEvenBoardSpriteColumn as loc_0478 } from "../shiftEvenBoardSpriteColumn.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { Machine } from "../../machine.js";

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0347 — pick one of two video-RAM column-base addresses from a player selector.  ROM 0x0347.
+ * selectPlayerIndicatorColumnBase — pick one of two video-RAM column-base addresses from a player
+ * selector.  ROM 0x0347.
  *
  * A tiny selector: given a player index (0 = player 1, anything else = player 2) it
  * returns the base address of that player's on-screen indicator column in the tilemap.
@@ -30,7 +31,7 @@
  *           cell. The two returned values are video-RAM column bases (0x74e0, 0x7740),
  *           not work RAM, so they have no ram.js name.
  */
-export function loc_0347(playerSelector) {
+export function selectPlayerIndicatorColumnBase(playerSelector) {
   // Zero selects the player-1 column base; any nonzero value selects the player-2 base.
   return playerSelector === 0 ? 0x7740 : 0x74e0;
 }

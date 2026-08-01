@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { arm_2af6 as oracle } from "../../translated/arm_2af6.js";
-import { loc_2af6 } from "../loc_2af6.js";
+import { selectConveyorStepAndMoveMario as loc_2af6 } from "../selectConveyorStepAndMoveMario.js";
 import { moveMarioX } from "../moveMarioX.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_X, MARIO_Y, BOARD, M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG } from "../ram.js";

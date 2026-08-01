@@ -51,7 +51,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2ea7 as oracle } from "../../translated/loc_2ea7.js";
-import { loc_2ea7 } from "../loc_2ea7.js";
+import { spawnObjectIntoInactiveSlot as loc_2ea7 } from "../spawnObjectIntoInactiveSlot.js";
 import { stirRandomSeed } from "../stirRandomSeed.js";           // ROM 0x0057 (for the twins)
 import { advanceToNextObject } from "../advanceToNextObject.js"; // ROM 0x2E78 (for the twins)
 import { entry_2e04 } from "../../translated/entry_2e04.js";

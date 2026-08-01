@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0450 — the per-frame colour-cascade dispatcher: route by the current board into one
- * of the colour-cycle arms.  ROM 0x0450.
+ * dispatchColorCascadeByBoard — the per-frame colour-cascade dispatcher: route by the current
+ * board into one of the colour-cycle arms.  ROM 0x0450.
  *
- * Reached every colour-cycle beat (the loc_0426 / loc_0464 sites rejoin here). It reads the
- * current board and splits three ways on its low two bits:
+ * Head of the colour-cycle family (its arms are shiftEvenBoardSpriteColumn and the English-named
+ * dispatchColorCyclePaint). Reached every colour-cycle beat (the loc_0426 / resetColorCycleSweep
+ * sites rejoin here). It reads the current board (BOARD) and splits three ways on its low two bits:
  *
- *   - board bit 0 CLEAR (the even boards, 50m and 100m) -> loc_0478, which shifts the
- *     sprite-object block's X column by a board-specific delta and then falls into the
+ *   - board bit 0 CLEAR (the even boards, 50m and 100m) -> shiftEvenBoardSpriteColumn, which shifts
+ *     the sprite-object block's X column by a board-specific delta and then falls into the
  *     colour-cycle repaint.
  *   - board bit 0 SET, bit 1 SET (75m)                  -> straight into dispatchColorCyclePaint,
  *     the colour-cycle repaint, with no sprite shift.
@@ -20,17 +21,21 @@
  * every record. This routine writes no RAM of its own — the arms do the visible sprite and
  * colour-RAM writes.
  *
+ * GROUNDED (DK understanding pass 4, independent confirmer): reads BOARD and routes 3-way into
+ * shiftEvenBoardSpriteColumn + the English-named sibling dispatchColorCyclePaint — the head of the
+ * named colour-cycle family (all arms rest on named BOARD / SPRITE_OBJ_BLOCK / COLOUR_CYCLE_ACTIVE).
+ *
  * REGISTER-ABI MARSHALLING (dissolves once addToSpriteObjectColumn takes honest args): only the
  * 25m arm marshals — that callee still reads its field pointer and signed delta from registers,
  * so this routine loads exactly what the oracle's rst-0x38 site loads: the sprite-object block's
- * Y field as the pointer and the −4 delta. loc_0478 and dispatchColorCyclePaint read their own
- * inputs from RAM (the board and the sweep counter), so both are bare calls.
+ * Y field as the pointer and the −4 delta. shiftEvenBoardSpriteColumn and dispatchColorCyclePaint
+ * read their own inputs from RAM (the board and the sweep counter), so both are bare calls.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0450.test.js.
  * GATE:     crafted-entry (+ a few real captures). 0x0450 is dispatched on 25m in attract
  *           (BOARD == 1 -> the Y-shift + colour-cycle arm), so a handful of natural captures
  *           cover that path; crafted entries reposed on a real attract base then drive the even
- *           arm (BOARD == 2 and 4 -> loc_0478) and the 75m direct arm (BOARD == 3 -> straight to
+ *           arm (BOARD == 2 and 4 -> shiftEvenBoardSpriteColumn) and the 75m direct arm (BOARD == 3 -> straight to
  *           dispatchColorCyclePaint). Whole contract each time: RAM − STACK_SCRATCH + pc + SP;
  *           the candidate models its one net return with a single m.ret(). Teeth: an inverted
  *           even/odd dispatch, a dropped 25m Y-shift, and a wrong Y-shift delta.
@@ -44,7 +49,7 @@
  */
 
 import { BOARD, SPRITE_OBJ_BLOCK, SPRITE_Y } from "./ram.js";
-import { loc_0478 } from "./loc_0478.js"; // ROM 0x0478 — the even-board arm
+import { shiftEvenBoardSpriteColumn } from "./shiftEvenBoardSpriteColumn.js"; // ROM 0x0478 — the even-board arm
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
 
@@ -52,14 +57,14 @@ const BOARD_BIT0 = 0x01; // low bit: clear on the even boards (50m/100m), set on
 const BOARD_BIT1 = 0x02; // next bit: distinguishes 75m (set) from 25m (clear) among the odd boards
 const Y_SHIFT = 0xfc;    // signed byte −4: the 25m per-frame nudge of the sprite-object Y column
 
-export function loc_0450(m) {
+export function dispatchColorCascadeByBoard(m) {
   const { regs, mem } = m;
 
   const board = mem.read8(BOARD);
 
   // Even board (50m/100m): the X-shift + colour-cycle arm.
   if ((board & BOARD_BIT0) === 0) {
-    loc_0478(m);
+    shiftEvenBoardSpriteColumn(m);
     return;
   }
 

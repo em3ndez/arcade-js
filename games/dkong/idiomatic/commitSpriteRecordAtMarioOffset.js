@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2f7c — commit an object's on-screen sprite record, positioned at a fixed
- * offset from Mario, and mirror that position back into the object record.
+ * commitSpriteRecordAtMarioOffset — commit an object's on-screen sprite record, positioned at a
+ * fixed offset from Mario, and mirror that position back into the object record.
  * ROM 0x2F7C.
  *
- * This is the convergence point of the hammer/object sprite updater: entry_2ed4
- * and its build arms (loc_2f97 / loc_2f43 / loc_2fbe / loc_2fb7) all tail here to
- * write the finished record. It receives a destination sprite-record address, the
+ * This is the convergence point of the hammer/object sprite updater: entry_2ed4 and its build
+ * arms (buildPendingHammerSprite / loc_2f43 / blinkHammerSpriteOnFramePhase /
+ * selectHammerSpriteBlinkByTimer) all tail here to write the finished record. It receives a destination sprite-record address, the
  * object-record base it belongs to, and the tile-code and attribute bytes to store,
  * then lays down the 4-byte record and updates the object's own position copy:
  *
@@ -32,6 +32,10 @@
  *
  * A LEAF: calls nothing. Its position sum is taken at the store, which truncates,
  * so no explicit byte-width wrap is needed.
+ *
+ * GROUNDED (DK understanding pass 4, independent confirmer): the shared convergence write for
+ * entry_2ed4's arms; reads named MARIO_X/Y, SPRITE_X/CODE/ATTR/Y and OBJ_X/Y. Mechanism-descriptive
+ * — deliberately the generic record-writer, correctly NOT named "hammer".
  *
  * Memory-equivalent to the frozen oracle — equivalence-2f7c.test.js.
  * GATE:     captured + crafted. 0x2F7C is tail-called every serviced attract frame
@@ -59,7 +63,7 @@ import { MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, 
 const OBJ_X_DISPLACEMENT = 0x0e;
 const OBJ_Y_DISPLACEMENT = 0x0f;
 
-export function loc_2f7c(m) {
+export function commitSpriteRecordAtMarioOffset(m) {
   const { regs, mem } = m;
 
   // Inputs supplied by the (still-oracle) caller through the register file.

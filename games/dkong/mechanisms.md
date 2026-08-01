@@ -116,6 +116,11 @@ that gate most per-frame work. `[code]`
   `composeAttractTitleScreen` builds the title/score screen. Attract plays **25m only**,
   which is why so many gameplay routines can only be gated by crafted pokes, not captured
   attract frames (noted throughout the equivalence tests). `[code]`
+- **Attract-demo input player.** During attract the game replays a scripted joystick demo:
+  `loc_21ee` is the **sole** reader/writer of `DEMO_SCRIPT_INDEX (0x63CC)` — the script step index,
+  which walks `0 → 18` and resets to 0 each demo cycle (3 cycles observed) — and
+  `DEMO_SCRIPT_COUNTDOWN (0x63CD)`, the per-step dwell (reloaded at every `DEMO_SCRIPT_INDEX`
+  advance, decremented ~each frame). Each advance coincides with a fresh `P1_INPUT`. `[seen]`
 - **Coins.** `serviceCoinInput` (ROM 0x017B) debounces the coin line via a `COIN_EDGE
   (0x6003)` latch (so holding the coin line never repeat-credits), tallies
   `COINS_PARTIAL (0x6002)` against the DIP ratio, and awards BCD `CREDITS (0x6001)`.
@@ -157,8 +162,9 @@ holds the tile being stamped (endpoints → run deltas → body fill). `[code]`
 
 **The board-build dispatch and the tune family.** A separate arm-dispatch (`loc_0c92`, on
 `BOARD`) makes each board's three fixed choices before the shared draw tail `loc_0cc6`:
-`setUp75mBoard` (75m) first stamps the elevator tile motif (`stamp75mBoardTiles`), `loc_0cdf`
-is the 50m arm, and the 25m / 100m arms sit alongside. Each arm selects its background music
+`setUp75mBoard` (75m) first stamps the elevator tile motif (`stamp75mBoardTiles`),
+`setup50mConveyorBoard` is the 50m arm (`SND_BGM = 0x09`, `DE = 0x3B5D` conveyor layout), and the
+25m / 100m arms sit alongside. Each arm selects its background music
 from a **consecutive `SND_BGM (0x6089)` tune family** — `0x08` 25m, `0x09` 50m, `0x0A` 75m,
 `0x0B` 100m — then points `DE` at its board's ROM layout table (75m = `0x3BE5` elevators,
 between the 50m `0x3B5D` and 100m `0x3C8B` tables in board order) for `loc_0cc6` to walk into
@@ -185,7 +191,13 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   per-object **state-machine selector**, read-and-dispatched or written-as-next-state at every
   site (never a coordinate/timer/count). Its enum differs per array (as a state field does):
   e.g. the `0x6600` spawn objects use `8` = spawned / `4` = landed; the `0x6400` records run a
-  movement/collision state machine on it. `[code]`
+  movement/collision state machine on it. **Grounded (understanding pass 4):** a live 25m-attract
+  run under MAME exercised the own bytes of `OBJ_ACTIVE`/`OBJ_X`/`OBJ_Y`/`OBJ_SPRITE_CODE` and
+  `OBJ_STATE` (small-enum state values), and record-0 of both `OBJ_ARRAY_64`/`OBJ_ARRAY_67` — all
+  lifted to `[seen]`. **Reconciliation:** `entry_333d`'s code writes `OBJ_STATE` values `0/4/8` on
+  the `0x6400` array, but that same live run observed rec-0's `0x640d` taking only `{0,1,2}` — so
+  the byte is `[seen]` while the specific `0/4/8` value-set stays `[code]` (unreconciled). Only
+  `OBJ_SPRITE_ATTR (+8)` remains `[code]`.
 - **gather → sprite → DMA.** `gatherSpriteRecords` copies each active object's fields into a
   4-byte hardware record in `SPRITE_BUFFER (0x6900)` — object `+3 → sprite +0` (X),
   `+5 → +3` (Y), `+7 → +1` (code), `+8 → +2` (attr) — which `blitSpritesViaDma` then DMAs to
@@ -395,11 +407,17 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   to copy the 384-byte shadow buffer `0x6900 → 0x7000` every vblank. Sprite `+0 == MARIO_X` /
   `+3 == MARIO_Y` are grounded byte-exact vs MAME (1819 attract frames); the hardware reads
   each record rotated 90° for the portrait screen. `[seen]` `[code]`
-- **Colour-cycle & blink.** `dispatchColorCyclePaint` and `runRivetColorCycleBlink` drive the
-  attract/rivet colour animation via a sweep counter and blink pair
-  (`blinkSpritePair*`, `paintColorColumn*`), gated by `COLOUR_CYCLE_ACTIVE (0x6391)`. The blink
-  is itself a short animation sequence: `BLINK_ANIM_PHASE (0x639D)` routes 4 phases (`loc_127f`)
-  and `BLINK_COUNT (0x639E)` (primed `0x0D`) times each toggle of the sprite pair. `[code]`
+- **Colour-cycle & blink.** The per-frame colour cascade is headed by `dispatchColorCascadeByBoard`
+  (routes on `BOARD`): the even-board arm `shiftEvenBoardSpriteColumn` first shifts the sprite-object
+  row's X column, then both arms fall into the repaint `dispatchColorCyclePaint`;
+  `resetColorCycleSweep` clears the sweep counter and `COLOUR_CYCLE_ACTIVE (0x6391)` when the sweep
+  tops out at `0x80` (the re-arm that starts the next sweep is `loc_0413`'s job). `runRivetColorCycleBlink`
+  is the 100m branch. On the 50m arm the row X-shift delta is `M50_OBJ_ROW_SHIFT (0x63B7)` —
+  `entry_03fb`/`entry_0400` compute `(0x6910) − 0x3b` and store it, and `shiftEvenBoardSpriteColumn`
+  adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; board-2 only, so
+  `[code]`). The blink is itself a short animation sequence: `BLINK_ANIM_PHASE (0x639D)` routes 4
+  phases (`loc_127f`) and `BLINK_COUNT (0x639E)` (primed `0x0D`) times each toggle of the sprite
+  pair. `[code]`
 
 ---
 
@@ -515,7 +533,7 @@ yet English-named.
 | `draw1UpLabel` / `draw2UpLabel` | stamp the fixed "1UP"/"2UP" score-label cells |
 | `loc_0a1b` | one step of the two-player board-setup chain |
 | `loc_13aa` | small reset: mirror the cabinet DIP into flip-screen |
-| `loc_13bb` | reset the live player/display context to player 1 |
+| `selectPlayer1Context` | reset the live player/display context to player 1 |
 | `loc_138f` | timed sub-state transition, branched on P2's saved context |
 | `loc_1344` | idx-15 in-game handler: decrement the current player's timer |
 | `loc_13ca` | format a packed-BCD score into display digits |

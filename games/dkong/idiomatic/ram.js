@@ -584,28 +584,37 @@ export const SND_PRIORITY_FRAMES = 0x608B;
 // Individual field CELLS stay hex — reach them as base + offset. Load-bearing: a downstream
 // decompile indexes off these; ground one live sweep per stride vs MAME.
 
-/** [code] Object-record field: active flag (+0); bit0 = active (the 0x6700 array also uses bit1 = occupied). */
+/** [seen] Object-record field: active flag (+0); bit0 = active (the 0x6700 array also uses bit1 =
+ *  occupied). Grounded live in real MAME 25m attract: 0x6400+0 took {0,1} (3 transitions), 0x6700+0
+ *  took {0,1,2} (13 transitions) — its own byte, a live active-flag enum. */
 export const OBJ_ACTIVE = 0x00;
-/** [code] Object-record field: per-object state-machine selector (+0x0d). Every site READS-and-dispatches
- *  or WRITES-a-next-state on it — never a coordinate/pointer/timer/count. Enums differ per array (a state
- *  field): 0x6500 array (obj_2e12: state 4 -> loc_2e84); 0x6400 stride-0x20 array (entry_333d movement/
- *  collision state machine, 0/4/8); 0x6600 array (sub_27da spawn -> 8, sub_2797 bit3 land -> 4,
- *  seed75mBoardObjects inits 8). Offset < 0x10, so it stays IN-record for the stride-0x10 arrays too —
- *  no cross-record aliasing. Directly analogous to the shared OBJ_ACTIVE. */
+/** [seen] Object-record field: per-object state-machine selector (+0x0d). Grounded live: 0x640d took
+ *  meaningful small-enum values across 23 transitions over the object lifecycle in real MAME 25m attract
+ *  (its own byte — a state field, not a coordinate/pointer/timer/count). Every site READS-and-dispatches
+ *  or WRITES-a-next-state on it. Enums differ per array: 0x6500 array (obj_2e12: state 4 -> loc_2e84);
+ *  0x6400 stride-0x20 array (entry_333d movement/collision state machine; entry_333d's code writes 0/4/8,
+ *  but a live 25m-attract run observed rec-0's 0x640d taking only {0,1,2} — value-set unreconciled, kept
+ *  [code]); 0x6600 array (sub_27da spawn -> 8, sub_2797 bit3 land -> 4, seed75mBoardObjects inits 8).
+ *  Offset < 0x10, so it stays IN-record for the stride-0x10 arrays too — no cross-record aliasing.
+ *  Directly analogous to the shared OBJ_ACTIVE. */
 export const OBJ_STATE = 0x0d;
-/** [code] Object-record field: X (+3). Grounded transitively via the [seen] sprite X
- *  (gatherSpriteRecords obj+3 -> sprite+0 = X). */
+/** [seen] Object-record field: X (+3). Grounded live in real MAME 25m attract: 0x6403 swept 227 distinct
+ *  values 0..240, 0x6703 223 distinct — its own byte, a live horizontal sweep (stronger than the earlier
+ *  transitive sprite-X grounding: gatherSpriteRecords obj+3 -> sprite+0 = X). */
 export const OBJ_X = 0x03;
-/** [code] Object-record field: Y (+5). Grounded transitively via the [seen] sprite Y
- *  (gatherSpriteRecords obj+5 -> sprite+3 = Y). */
+/** [seen] Object-record field: Y (+5). Grounded live in real MAME 25m attract: 0x6405 took 22 distinct,
+ *  0x6705 158 distinct (77..243) — its own byte, a live vertical sweep (stronger than the earlier
+ *  transitive sprite-Y grounding: gatherSpriteRecords obj+5 -> sprite+3 = Y). */
 export const OBJ_Y = 0x05;
-/** [code] Object-record field: sprite tile code (+7); gatherSpriteRecords copies to sprite +1. */
+/** [seen] Object-record field: sprite tile code (+7); gatherSpriteRecords copies to sprite +1. Grounded
+ *  live in real MAME 25m attract: 0x6407 cycled {61,62,189,190}, 0x6707 11 distinct animation frames. */
 export const OBJ_SPRITE_CODE = 0x07;
 /** [code] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. */
 export const OBJ_SPRITE_ATTR = 0x08;
 
-/** [code] Object array, stride 0x20, 5 records swept together (the page holds up to 7 on 100m);
- *  sub_2880 / entry_31b1. */
+/** [seen] Object array, stride 0x20, 5 records swept together (the page holds up to 7 on 100m);
+ *  sub_2880 / entry_31b1. Grounded live (record-0 only): record-0's fields all took live values in real
+ *  MAME 25m attract (records 1,2 stayed 0) — the base is exercised; honest record-0-only [seen]. */
 export const OBJ_ARRAY_64 = 0x6400;
 /** [code] Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F); entry_2e04, mirrored to
  *  ACTOR_SPRITES. */
@@ -618,8 +627,9 @@ export const OBJ_ARRAY_66 = 0x6600;
 export const OBJ_PAIR_6680 = 0x6680;
 /** [code] Single object record; sub_2880 sweep3 (count 1), loc_11fa scatters a ROM template into it. */
 export const OBJ_RECORD_66A0 = 0x66a0;
-/** [code] Object array, stride 0x20, 10 records spanning page 0x68 (0x6700-0x6840);
- *  sub_2880 / entry_2c8f / sub_1f72. */
+/** [seen] Object array, stride 0x20, 10 records spanning page 0x68 (0x6700-0x6840);
+ *  sub_2880 / entry_2c8f / sub_1f72. Grounded live (record-0 only): record-0's fields all took live
+ *  values (full-playfield barrel) in real MAME 25m attract — honest record-0-only [seen]. */
 export const OBJ_ARRAY_67 = 0x6700;
 
 /** [code] Saved iterator pointer (word) walking the 0x6400 stride-0x20 array; entry_31b1 seeds/advances
@@ -712,6 +722,13 @@ export const M50_OBJ2_STEP_NEG = 0x63a4;
 /** [code] 50m: object-3's published signed X-step, from sub_26e9 of M50_OBJ3_STEP_DIR (0x62A6). Board-2 only. */
 export const M50_OBJ3_STEP = 0x63a6;
 
+/** [code] 50m sprite-object row X-shift delta. On the BOARD==2 arm, entry_03fb/entry_0400 compute
+ *  (0x6910)-0x3b (a sprite-object X byte less 0x3b) and store it here; shiftEvenBoardSpriteColumn
+ *  (ROM 0x0478) then reads it on the 50m arm and adds it into the X column of the sprite-object block
+ *  (SPRITE_OBJ_BLOCK base). An X-shift, NOT a colour delta (the colour repaint is a separate
+ *  fall-through after). Board-2 only, so never observed live in the 25m attract — [code]. */
+export const M50_OBJ_ROW_SHIFT = 0x63b7;
+
 /** [code] Spawn-cadence timer; at 0 sub_27da claims a free 0x6600 slot, seeds it, reloads 0x34; always
  *  decrements. */
 export const SPAWN_TIMER = 0x62a7;
@@ -768,6 +785,18 @@ export const BLINK_ANIM_PHASE = 0x639d;
 /** [code] Blink repeat count; primed 0x0D, decremented each gate tick while toggling the pair, advances
  *  BLINK_ANIM_PHASE at 0. */
 export const BLINK_COUNT = 0x639e;
+
+// ── Attract-demo input player ────────────────────────────────────────────────
+// Source: DK understanding pass 4 (proposer + independent confirmer). The attract
+// mode replays a scripted joystick demo; loc_21ee (its SCRIPT_INDEX / SCRIPT_COUNTDOWN
+// locals) is the SOLE reader/writer of both cells (grep-verified, no other refs).
+
+/** [seen] Attract-demo script step index — sole r/w loc_21ee. Walks 0 -> 18 then resets to 0 each demo
+ *  cycle (observed 3 cycles live), and each advance coincides with a new P1_INPUT. */
+export const DEMO_SCRIPT_INDEX = 0x63cc;
+/** [seen] Attract-demo per-step countdown — sole r/w loc_21ee. Reloaded to a fresh duration at every
+ *  DEMO_SCRIPT_INDEX advance, decremented ~every frame (wraps 0..255). */
+export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 
 // ── Deliberately unnamed ─────────────────────────────────────────────────────
 // Addresses that appear in the findings files (ram-findings-*.md) but were

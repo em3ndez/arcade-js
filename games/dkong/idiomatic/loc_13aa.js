@@ -16,7 +16,7 @@
  *   - ld hl,0x0101 / ld (0x600d),hl — set CURRENT_PLAYER (0x600D) = 1 and the
  *     adjacent ACTIVE_PLAYER_INDEX (0x600E) = 1 (the low/high halves of the 16-bit store).
  *
- * Its sibling loc_13bb (idx 19) is the mirror image — it clears CURRENT_PLAYER (0x600D) /
+ * Its sibling selectPlayer1Context (idx 19) is the mirror image — it clears CURRENT_PLAYER (0x600D) /
  * ACTIVE_PLAYER_INDEX (0x600E) / GAME_SUBSTATE (0x600A) to 0 and forces the flip-screen
  * latch to 1. ram.js reads the pair as the two-player "player switch" (CURRENT_PLAYER's
  * note: "loc_13aa sets 1, loc_13bb clears 0").

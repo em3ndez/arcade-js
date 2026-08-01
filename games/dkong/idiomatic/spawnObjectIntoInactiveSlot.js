@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2ea7 — inactive object slot: consume a pending spawn request and bring the slot
- * to life, otherwise just step the scan on.  ROM 0x2EA7.
+ * spawnObjectIntoInactiveSlot — inactive object slot: consume a pending spawn request and bring
+ * the slot to life, otherwise just step the scan on.  ROM 0x2EA7.
  *
  * The inactive-object arm of the per-object update loop (entry_2e04), dispatched by
  * obj_2e12 when a slot's active flag is clear. It tests the one-shot spawn request
@@ -20,10 +20,11 @@
  * still-translated scan loop (a genuine oracle boundary); the paired sprite cursor is
  * passed straight through, untouched, to the advance tail.
  *
- * NAME: kept as loc_2ea7, matching the sibling state handlers loc_2e84 / loc_2e9c. The
- * mechanism (consume the spawn request, seed and activate the slot, advance) is clear,
- * but which object this spawns and its game role are not grounded here, so the
- * effect-level name is left for a clarify/grounding pass rather than guessing.
+ * GROUNDED (DK understanding pass 4, independent confirmer): ram.js SPAWN_REQUEST (0x6396) cites it
+ * explicitly — "loc_2ea7 tests bit0 -> activates the object (+0:=1, position/appearance seeded) and
+ * clears it to 0"; it sets named OBJ_ACTIVE / X / Y / STATE. The name claims only the spawn ACTION;
+ * which object this spawns and its game role stay ungrounded (sibling state handlers loc_2e84 /
+ * loc_2e9c remain loc_).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2ea7.test.js.
  * GATE:     crafted + captured. The spawn-request byte is swept over all 256 values (pins
@@ -67,7 +68,7 @@ const SPAWN_Y = 80;
  *                    sprite cursor is passed through to the advance tail unchanged.
  * @returns {void}
  */
-export function loc_2ea7(m) {
+export function spawnObjectIntoInactiveSlot(m) {
   const { regs, mem } = m;
 
   // No spawn pending for this slot -> leave it inactive and step the scan on.

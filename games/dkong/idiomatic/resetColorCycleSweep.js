@@ -1,29 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0464 — restart the colour-cycle sweep when its counter tops out, then continue the
- * frame's colour work.  ROM 0x0464.
+ * resetColorCycleSweep — reset (end) the colour-cycle sweep when its counter tops out, then
+ * continue the frame's colour work.  ROM 0x0464.
  *
  * The colour-cycle sweep counter climbs one step per frame and reaches its top of 0x80 once
  * per sweep; its driver (loc_0426, which does the increment) jumps here on the frame it wraps.
- * This routine restarts the sweep — clear the counter back to 0 and lower the colour-cycle
- * active flag — and then continues into the SAME per-frame colour work the non-wrap path runs,
- * selected by the sprite-object reload gate:
+ * This routine ends the sweep — clear the counter back to 0 and lower the colour-cycle active
+ * flag — and then continues into the SAME per-frame colour work the non-wrap path runs, selected
+ * by the sprite-object reload gate. (It is the reset/end half only: the re-arm that STARTS the
+ * next sweep is loc_0413's job at the next FRAME wrap, not this routine's — hence "reset", not
+ * "restart".)
  *
  *   - reload gate NONZERO -> straight into the colour-cycle repaint, skipping both the
  *     sprite-object block reload and the cascade's per-board sprite-column shift.
  *   - reload gate ZERO    -> reload the 40-byte sprite-object block from its ROM template,
- *     then run the full colour-cascade dispatch (loc_0450), which additionally shifts the
- *     sprite-object column by board before the repaint.
+ *     then run the full colour-cascade dispatch (dispatchColorCascadeByBoard), which additionally
+ *     shifts the sprite-object column by board before the repaint.
  *
- * So the top-of-sweep frame both restarts the counter and re-seeds the sprite-object block
+ * So the top-of-sweep frame both resets the counter and re-seeds the sprite-object block
  * from ROM, unless the gate suppresses the reload. This routine's own writes are just the two
  * counter clears; the block reload and every colour/sprite write happen in the callees.
+ *
+ * GROUNDED (DK understanding pass 4, independent confirmer): ram.js COLOUR_CYCLE_ACTIVE (0x6391)
+ * explicitly cites this routine — "loc_0464 clears it to 0 when the counter finishes its sweep at
+ * 0x80 (ROM 0x0468)" — pinning the reset/end role on a named cell.
  *
  * REGISTER-ABI MARSHALLING (dissolves once loadSpriteObjectBlock takes an honest source
  * param): that callee still reads its copy SOURCE from a register, so on the reload arm this
  * routine loads the ROM template address exactly as the oracle's `call` site does.
- * dispatchColorCyclePaint and loc_0450 read their inputs (the board and the sweep counter)
- * from RAM, so both are bare calls.
+ * dispatchColorCyclePaint and dispatchColorCascadeByBoard read their inputs (the board and the
+ * sweep counter) from RAM, so both are bare calls.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0464.test.js.
  * GATE:     strict/whole-contract over real captured dispatches — 0x0464 fires in attract every
@@ -45,13 +51,13 @@
 import { COLOUR_CYCLE_ACTIVE } from "./ram.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
-import { loc_0450 } from "./loc_0450.js"; // ROM 0x0450
+import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js"; // ROM 0x0450
 
 const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed/shared in ram.js — kept hex)
 const OBJ_RELOAD_GATE = 0x6393; // 0 -> reload the block + full cascade; nonzero -> repaint only (shared — hex)
 const OBJ_TEMPLATE = 0x385c; //   ROM sprite-object template copied into the block on the reload arm
 
-export function loc_0464(m) {
+export function resetColorCycleSweep(m) {
   const { regs, mem } = m;
 
   // Top of the sweep: restart the counter and lower the colour-cycle active flag.
@@ -67,5 +73,5 @@ export function loc_0464(m) {
   // Gate clear: reload the sprite-object block from its ROM template, then run the full cascade.
   regs.hl = OBJ_TEMPLATE; // loadSpriteObjectBlock reads its source pointer from a register
   loadSpriteObjectBlock(m);
-  loc_0450(m);
+  dispatchColorCascadeByBoard(m);
 }

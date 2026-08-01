@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2ab4 — decide whether Mario keeps his footing on an angled girder or the
+ * decideSlopeGirderFooting — decide whether Mario keeps his footing on an angled girder or the
  * ground has run out and he starts to fall.  ROM 0x2AB4.
  *
  * Reached from the foot-contact cascade (sub_2a85) once Mario's foot-probe tile is a
@@ -15,6 +15,10 @@
  *
  * Starting the fall is a single one-shot request (triggerMarioFall); the keeps-footing
  * case writes nothing. Whichever way it goes, this routine returns nothing a caller reads.
+ *
+ * GROUNDED (DK understanding pass 4, independent confirmer): the named callee triggerMarioFall
+ * cites "the slope/ledge contact cascade (loc_2ab4)", and mechanisms.md covers the 25m girder
+ * slopes / slope-contact; the fall write is the named MARIO_START_FALL inside triggerMarioFall.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2ab4.test.js.
  * GATE:     crafted-entry, factored-exhaustive over the two decision variables — the
@@ -40,7 +44,7 @@ import { triggerMarioFall } from "./triggerMarioFall.js"; // ROM 0x2ACD
 // cell directly above it in the 32-wide tilemap.
 const ONE_ROW = 0x20;
 
-export function loc_2ab4(m) {
+export function decideSlopeGirderFooting(m) {
   const { regs, mem } = m;
 
   // The horizontal probe coordinate; its low 3 bits are Mario's offset within the tile.

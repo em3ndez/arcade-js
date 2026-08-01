@@ -3,7 +3,7 @@
  * setUp75mBoard — the 75m (board 3, elevators) board-setup arm.  ROM 0x0CF2.
  *
  * One of the four per-board setup arms the board-build dispatch (loc_0c92) branches
- * to on BOARD (0x6227): loc_0cd4 is 25m, loc_0cdf is 50m, this is 75m, and the
+ * to on BOARD (0x6227): loc_0cd4 is 25m, setup50mConveyorBoard is 50m, this is 75m, and the
  * loc_0cb6 fall-through is 100m. Each arm makes its board's three fixed choices and
  * then hands off to the shared draw tail loc_0cc6. This arm does, in order:
  *

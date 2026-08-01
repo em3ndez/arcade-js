@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0cdf — the 50m (board 2, conveyors) board-setup arm.  ROM 0x0CDF.
+ * setup50mConveyorBoard — the 50m (board 2, conveyors) board-setup arm.  ROM 0x0CDF.
+ *
+ * GROUNDED (DK understanding pass 4, independent confirmer): 50m = conveyors / "pie factory"
+ * (mechanisms.md); the board-setup arms pick consecutive SND_BGM 0x08/0x09/0x0A and the ROM
+ * layout tables (0x3B5D 50m). This arm writes SND_BGM = 0x09 and DE = 0x3B5D, then tails the
+ * shared draw tail — an exact match to the 50m board.
  *
  * One of the four per-board setup arms the board-build dispatch (loc_0c92) branches
  * to on BOARD (0x6227): loc_0cd4 is 25m, this is 50m, loc_0cf2 is 75m, and the
@@ -54,7 +59,7 @@ import { SND_BGM } from "./ram.js"; // 0x6089 — background-tune slot
 const PALETTE_BANK_BIT0 = 0x7d86;
 const PALETTE_BANK_BIT1 = 0x7d87;
 
-export function loc_0cdf(m) {
+export function setup50mConveyorBoard(m) {
   const { regs, mem } = m;
 
   // Select the 50m colour/palette bank = 1 (bit0 set, bit1 clear).

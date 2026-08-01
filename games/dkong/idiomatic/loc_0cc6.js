@@ -2,7 +2,7 @@
 /**
  * loc_0cc6 — the shared tail every board-setup dispatch arm converges on.  ROM 0x0cc6.
  *
- * The four board-setup arms (loc_0cd4 25m girders, loc_0cdf 50m conveyors,
+ * The four board-setup arms (loc_0cd4 25m girders, setup50mConveyorBoard 50m conveyors,
  * loc_0cf2 75m elevators, and the loc_0cb6 fall-through 100m rivets) each leave DE
  * pointing at their own ROM layout table and then jump here. This tail does three
  * things in order:

@@ -45,8 +45,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f97 as oracle } from "../../translated/loc_2f97.js";
-import { loc_2f97 } from "../loc_2f97.js";
-import { loc_2f7c } from "../loc_2f7c.js";
+import { buildPendingHammerSprite as loc_2f97 } from "../buildPendingHammerSprite.js";
+import { commitSpriteRecordAtMarioOffset as loc_2f7c } from "../commitSpriteRecordAtMarioOffset.js";
 import {
   MARIO_HAMMER_PENDING,
   MARIO_SPRITE_CODE,

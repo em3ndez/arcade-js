@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2243 — has Mario reached the target position? a three-condition hit test.
+ * marioReachedTargetColumn — has Mario reached the target position? a three-condition hit test.
  * ROM 0x2243.
  *
  * Called from the sub_2207 state machine (its loc_2227 / loc_2259 arms), each of
@@ -24,6 +24,9 @@
  * caller leaves in place; that stays a register read because its callers are still
  * the frozen oracle (a genuine oracle boundary), to be promoted to a real parameter
  * once loc_2227 / loc_2259 are idiomatic.
+ *
+ * GROUNDED (DK understanding pass 4, independent confirmer): a pure predicate over named MARIO_X /
+ * MARIO_Y / MARIO_AIRBORNE — mechanism-descriptive, claiming no game-purpose its callers can't ground.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2243.test.js.
  * GATE:     factored-exhaustive + realism. The result is a pure function of three
@@ -55,7 +58,7 @@ const REACH_Y = 122;
  *   (regs.hl) — a genuine oracle boundary, still a register read.
  * @returns {boolean} true on a hit (caller continues); false on a miss (caller skips).
  */
-export function loc_2243(m) {
+export function marioReachedTargetColumn(m) {
   const { regs, mem } = m;
 
   // Out of the reach band — too high on the playfield to count.

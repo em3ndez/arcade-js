@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2af6 — pick the drift step for this platform row by Mario's X, then move him.
- * ROM 0x2AF6.
+ * selectConveyorStepAndMoveMario — pick the drift step for this platform row by Mario's X, then
+ * move him.  ROM 0x2AF6.
  *
  * One arm of the moving-platform row mover (the row whose Mario Y is 0x78). Object-2's
  * signed drift step is published as two shadow bytes — a positive arm and a negative arm —
@@ -10,6 +10,11 @@
  * handed to the shared X mover as the drift velocity, which advances Mario's X by it and
  * holds him inside the horizontal limits. Mario's prior X carries through unchanged as the
  * mover's other input.
+ *
+ * GROUNDED (DK understanding pass 4, independent confirmer): reads the named M50_OBJ2_STEP_POS /
+ * M50_OBJ2_STEP_NEG 50m step-shadows and hands to the named moveMarioX; 50m = conveyors
+ * (mechanisms.md). NB its parent loc_2ad3 is still loc_ (deferred to pass 5) — the grounding here is
+ * independent (named M50 cells), though the lead may prefer to hold for the conveyor cohort.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2af6.test.js.
  * GATE:     crafted-entry — attract never rides the moving-platform rows (0 real 0x2AF6
@@ -32,7 +37,7 @@
 import { M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG } from "./ram.js";
 import { moveMarioX } from "./moveMarioX.js"; // ROM 0x2B02 — advance X by velocity + clamp
 
-export function loc_2af6(m) {
+export function selectConveyorStepAndMoveMario(m) {
   const { regs, mem } = m;
 
   // Mario's X selects the sign of object-2's published drift step: the far-right half of the

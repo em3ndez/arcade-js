@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2ab4 as oracle } from "../../translated/loc_2ab4.js";
-import { loc_2ab4 } from "../loc_2ab4.js";
+import { decideSlopeGirderFooting as loc_2ab4 } from "../decideSlopeGirderFooting.js";
 import { MARIO_START_FALL } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

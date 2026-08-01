@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1e57 — Mario's per-frame board-won position check: decide whether the current
+ * checkBoardWonByType — Mario's per-frame board-won position check: decide whether the current
  * board has been won, dispatched by board type, and hand off to the arm that completes
  * it.  ROM 0x1E57.
  *
@@ -31,10 +31,11 @@
  * before loc_1e6d (the facing selector it reads). completeRivetBoardWhenCleared reads only
  * RAM, so its arm needs no marshalling.
  *
- * NAME: kept the neutral loc_ — the mechanism is confident (per-frame board-won check,
- * dispatched by board type) and corroborated by all three arm headers, but promotion is a
- * proposer≠confirmer naming job, matching the neutral names on its direct siblings
- * loc_1e6d / loc_1e7a. Promote once independently confirmed.
+ * GROUNDED (DK understanding pass 4, independent confirmer): promoted as the DISPATCHER — its
+ * board-type routing role is corroborated by two English-named board-completion callees
+ * (completeRivetBoardWhenCleared on the rivet arm; enterBoardAdvanceAndUnwind via loc_1e6d) and it
+ * reads named BOARD / MARIO_X / MARIO_Y. Its two positional-test arms loc_1e6d / loc_1e7a stay loc_:
+ * that reflects ungrounded arm INTERNALS, not a gap in the dispatcher's grounded role.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1e57.test.js.
  * GATE:     crafted-entry + captured. Attract only plays the girder board and never wins
@@ -61,7 +62,7 @@ import { completeRivetBoardWhenCleared } from "./completeRivetBoardWhenCleared.j
 import { loc_1e7a } from "./loc_1e7a.js"; // ROM 0x1E7A
 import { loc_1e6d } from "./loc_1e6d.js"; // ROM 0x1E6D
 
-export function loc_1e57(m) {
+export function checkBoardWonByType(m) {
   const { regs, mem } = m;
 
   const board = mem.read8(BOARD);

@@ -18,7 +18,7 @@
  *     player's marker shows while the active one is blanked. In a one-player game
  *     this phase just blanks and stops.
  *
- * The current-player index feeds loc_0347, which maps 0 → the player-1 column
+ * The current-player index feeds selectPlayerIndicatorColumnBase, which maps 0 → the player-1 column
  * base (0x7740) and anything else → the player-2 column base (0x74e0). The glyph
  * value written at the base cell is that same selector plus one (player 1 → tile
  * 1, player 2 → tile 2).
@@ -43,13 +43,13 @@
  *           writes land in video RAM (the two indicator columns), not work RAM.
  * NAMES:    FRAME (0x601A), CURRENT_PLAYER (0x600D), TWO_PLAYER_GAME (0x600F),
  *           ATTRACT (0x6007 via gameActiveGuard) — all from ram.js. The two column
- *           bases 0x7740/0x74e0 are VIDEO RAM (returned by loc_0347), not work RAM,
+ *           bases 0x7740/0x74e0 are VIDEO RAM (returned by selectPlayerIndicatorColumnBase), not work RAM,
  *           so they carry no ram.js name and stay hex.
  */
 
 import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./ram.js";
 import { gameActiveGuard } from "./gameActiveGuard.js"; // ROM 0x0008
-import { loc_0347 } from "./loc_0347.js"; // ROM 0x0347 — column-base selector
+import { selectPlayerIndicatorColumnBase } from "./selectPlayerIndicatorColumnBase.js"; // ROM 0x0347 — column-base selector
 
 // Video-RAM step between the three stacked indicator cells: −32 columns = one
 // screen row back in the 32-wide tilemap (the oracle's DE = 0xFFE0).
@@ -67,7 +67,7 @@ export function redrawPlayerUpIndicator(m) {
 
   // The current player's column base + the glyph value for its number tile.
   let selector = mem.read8(CURRENT_PLAYER);
-  let colBase = loc_0347(selector);
+  let colBase = selectPlayerIndicatorColumnBase(selector);
 
   if ((frame & 0x10) !== 0) {
     // Blink OFF phase: blank the current player's three cells.
@@ -83,7 +83,7 @@ export function redrawPlayerUpIndicator(m) {
 
     // Two-player: repaint the OTHER player's column with its glyphs below.
     selector = mem.read8(CURRENT_PLAYER) ^ 0x01;
-    colBase = loc_0347(selector);
+    colBase = selectPlayerIndicatorColumnBase(selector);
   }
 
   // Paint the selected column's glyphs: the player-number tile (index + 1) at the

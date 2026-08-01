@@ -51,10 +51,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0464 as oracle } from "../../translated/loc_0464.js";
-import { loc_0464 } from "../loc_0464.js";
+import { resetColorCycleSweep as loc_0464 } from "../resetColorCycleSweep.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
-import { loc_0450 } from "../loc_0450.js";
+import { dispatchColorCascadeByBoard as loc_0450 } from "../dispatchColorCascadeByBoard.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, COLOUR_CYCLE_ACTIVE, BOARD, SPRITE_OBJ_BLOCK } from "../ram.js";
 

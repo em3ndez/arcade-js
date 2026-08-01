@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_13bb as oracle } from "../../translated/loc_13bb.js";
-import { loc_13bb as idiomatic } from "../loc_13bb.js";
+import { selectPlayer1Context as idiomatic } from "../selectPlayer1Context.js";
 import { Machine } from "../../machine.js";
 import { CURRENT_PLAYER, GAME_SUBSTATE, STACK_SCRATCH } from "../../optimized/ram.js";
 

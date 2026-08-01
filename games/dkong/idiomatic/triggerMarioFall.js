@@ -3,7 +3,7 @@
  * triggerMarioFall — request that Mario begin falling because the ground under him
  * went away.  ROM 0x2ACD.
  *
- * Reached from the slope/ledge contact cascade (loc_2ab4) on the branches that find no
+ * Reached from the slope/ledge contact cascade (decideSlopeGirderFooting) on the branches that find no
  * girder under Mario's foot. Its whole job is to raise the one-shot "start falling"
  * trigger. The player-state reset picks the trigger up on the next frame: it puts Mario
  * airborne with zero initial velocity, snapshots his height, and clears the trigger — so

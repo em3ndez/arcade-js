@@ -49,9 +49,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2fb7 as oracle } from "../../translated/loc_2fb7.js";
-import { loc_2fb7 } from "../loc_2fb7.js";
-import { loc_2f7c } from "../loc_2f7c.js"; // proven-equal direct record write, used by the teeth
-import { loc_2fbe } from "../loc_2fbe.js"; // proven-equal blink arm, used by the teeth
+import { selectHammerSpriteBlinkByTimer as loc_2fb7 } from "../selectHammerSpriteBlinkByTimer.js";
+import { commitSpriteRecordAtMarioOffset as loc_2f7c } from "../commitSpriteRecordAtMarioOffset.js"; // proven-equal direct record write, used by the teeth
+import { blinkHammerSpriteOnFramePhase as loc_2fbe } from "../blinkHammerSpriteOnFramePhase.js"; // proven-equal blink arm, used by the teeth
 import {
   HAMMER_TIMER_HI, FRAME, MARIO_X, MARIO_Y,
   SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y,

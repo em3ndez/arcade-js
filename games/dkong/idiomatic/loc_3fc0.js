@@ -22,12 +22,15 @@
  * NAME: kept the neutral loc_ — the mechanism (pin the record's pose byte to 3, return
  * a pointer to its Y field) is pinned to the oracle, but which descend/climb animation
  * this serves, and the exact meaning of pose 3 here, are not grounded to the
- * routine-name bar; the sole caller is still the untranslated oracle, so the game
- * purpose cannot yet be corroborated. Promote once it is.
+ * routine-name bar. Its sole caller loc_2284 now EXISTS in the idiomatic layer, but is
+ * itself still loc_ (deferred to pass 5), so the meaning-giving caller cannot yet
+ * corroborate a game purpose. The proposed setMarioClimbDownPose was held back for
+ * over-claiming DIRECTION ("down") — which rests on that still-loc_ caller — and a
+ * pure-pose name also drops the Y pointer this returns. Promote WITH loc_2284 in pass 5.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3fc0.test.js.
- * GATE:     crafted-entry — 0x3FC0 is never dispatched in attract (its only caller is
- *           still-translated and unwired), so there are no real captures. Instead the
+ * GATE:     crafted-entry — 0x3FC0 is never dispatched in attract (attract never reaches
+ *           the descend path its caller loc_2284 drives), so there are no real captures. Instead the
  *           routine is provably input-independent — it reads no memory and no registers —
  *           and the gate proves that by running it against the oracle over many base
  *           states with the three target record bytes pre-poked to adversarial values

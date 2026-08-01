@@ -55,7 +55,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { sub_1e57 as oracle } from "../../translated/sub_1e57.js";
-import { loc_1e57 } from "../loc_1e57.js";
+import { checkBoardWonByType as loc_1e57 } from "../checkBoardWonByType.js";
 // The real idiomatic arms — the twins call them directly to isolate loc_1e57's own logic.
 import { completeRivetBoardWhenCleared } from "../completeRivetBoardWhenCleared.js"; // ROM 0x1E80
 import { loc_1e7a } from "../loc_1e7a.js"; // ROM 0x1E7A

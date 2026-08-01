@@ -21,7 +21,7 @@
  *           the body is branch-free, so there are no unreached arms) + real captured
  *           vblank dispatches. Teeth: a twin that drops the FRAME term.
  * LIVE-OUT: memory RANDOM (0x6018); + register A (the fresh seed — every caller
- *           consumes it immediately: entry_2c41/loc_2ea7 `and 0x0f`, sub_306f
+ *           consumes it immediately: entry_2c41/spawnObjectIntoInactiveSlot `and 0x0f`, sub_306f
  *           `and 0x80`, sub_2523 `cp 0x60`); + register HL == 0x6019, because
  *           sub_2523's spawn tail runs `dec (hl)` on the HL this routine leaves,
  *           so the closing `ld hl,0x6019` is LOAD-BEARING, not dead. Flags are
