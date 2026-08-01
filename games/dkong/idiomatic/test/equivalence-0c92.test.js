@@ -56,7 +56,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0c92 as oracle } from "../../translated/loc_0c92.js";
-import { loc_0c92 as idiomatic } from "../loc_0c92.js";
+import { buildBoard as idiomatic } from "../buildBoard.js";
 import { clearPlayfieldAndSprites } from "../clearPlayfieldAndSprites.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { setup25mGirderBoard } from "../setup25mGirderBoard.js";

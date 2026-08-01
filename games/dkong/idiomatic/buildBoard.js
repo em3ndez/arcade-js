@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c92 — build a board: wipe the playfield, arm the palette bank and the opening
+ * buildBoard — build a board: wipe the playfield, arm the palette bank and the opening
  * task, then dispatch to the per-board setup arm selected by BOARD.  ROM 0x0C92.
  *
  * Runs during board setup, from inside the vblank service. It does a fixed prologue and
@@ -18,6 +18,11 @@
  *      table, and runs the same shared draw/setup tail the other arms converge on.
  *
  * Every arm's eventual return is this routine's return; its caller consumes no value.
+ *
+ * Promoted from loc_0c92 (DK understanding pass 10, independent proposer≠confirmer, HIGH):
+ * mechanisms.md §4 names this the board-build arm-dispatch (on BOARD) before the shared draw
+ * tail loc_0cc6; every arm is English-named (setup25mGirderBoard / setup50mConveyorBoard /
+ * setUp75mBoard / stampRivetBoardBands→loc_0cc6) and the dispatch key is the rated BOARD.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0c92.test.js.
  * GATE:     crafted-entry — attract only ever builds the 25m board, so board 1 is a
@@ -66,7 +71,7 @@ const OPENING_TASK = 0x0501;
 // The 100m-rivet layout table in ROM, handed to the shared tail through the register image.
 const LAYOUT_TABLE_RIVET = 0x3c8b;
 
-export function loc_0c92(m) {
+export function buildBoard(m) {
   const { regs, mem } = m;
 
   // Wipe the playfield tilemap and the sprite shadow buffer for the fresh board.

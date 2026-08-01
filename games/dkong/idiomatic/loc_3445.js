@@ -39,27 +39,26 @@
  *           finalize copies, and a never-terminate twin.
  * LIVE-OUT: memory-only — the callers drive control flow through this tail and read the
  *           object back through its record on the next pass (the saved pointer is
- *           reloaded from +0x1a/+0x1b); the oracle's residual registers/flags and its
+ *           reloaded from OBJ_WALK_PTR_LO/HI); the oracle's residual registers/flags and its
  *           terminal return are dead.
- * NAMES:    OBJ_X (record +0x03), OBJ_Y (record +0x05), OBJ_STATE (record +0x0d) — all
- *           from ram.js (the OBJ_ARRAY_64 record). The walk's own fields — the two latch
- *           targets (+0x0e/+0x0f), the saved-pointer bytes (+0x1a/+0x1b), and the three
- *           other cleared state bytes (+0x13/+0x18/+0x1c) — have no ram.js offset name yet
- *           and stay local consts here.
+ * NAMES:    OBJ_X (record +0x03), OBJ_Y (record +0x05), OBJ_STATE (record +0x0d),
+ *           OBJ_WALK_PTR_LO (+0x1a), OBJ_WALK_PTR_HI (+0x1b) — all from ram.js (the
+ *           OBJ_ARRAY_64 record). The walk's own remaining fields — the two latch targets
+ *           (+0x0e/+0x0f) and the three other cleared state bytes (+0x13/+0x18/+0x1c) —
+ *           have no ram.js offset name yet and stay local consts here.
  */
 
 import { u16 } from "../../../core/int.js";
-import { OBJ_X, OBJ_Y, OBJ_STATE } from "./ram.js";
+import { OBJ_X, OBJ_Y, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./ram.js";
 
 // End-of-table marker in the path table the walk reads.
 const TABLE_TERMINATOR = 0xaa;
 
 // Object-record fields addressed off the record pointer that have no ram.js offset name
-// yet (only OBJ_X/OBJ_Y/OBJ_STATE do). Named here for their role in this walk.
+// yet (OBJ_X/OBJ_Y/OBJ_STATE and the saved walk-pointer bytes OBJ_WALK_PTR_LO/HI are
+// imported from ram.js). Named here for their role in this walk.
 const FINAL_X = 0x0e; // object's final X, latched when the walk completes
 const FINAL_Y = 0x0f; // object's final Y, latched when the walk completes
-const WALK_PTR_LO = 0x1a; // saved table pointer, low byte — the caller reloads it next pass
-const WALK_PTR_HI = 0x1b; // saved table pointer, high byte
 const WALK_FLAG_A = 0x13; // per-object animation-state bytes cleared on completion
 const WALK_FLAG_B = 0x18; //   (their specific roles are not yet named in ram.js)
 const WALK_FLAG_C = 0x1c;
@@ -87,8 +86,8 @@ export function loc_3445(m) {
     mem.write8(field(WALK_FLAG_C), 0);
     mem.write8(field(FINAL_X), mem.read8(field(OBJ_X)));
     mem.write8(field(FINAL_Y), mem.read8(field(OBJ_Y)));
-    mem.write8(field(WALK_PTR_LO), 0);
-    mem.write8(field(WALK_PTR_HI), 0);
+    mem.write8(field(OBJ_WALK_PTR_LO), 0);
+    mem.write8(field(OBJ_WALK_PTR_HI), 0);
     return;
   }
 
@@ -97,6 +96,6 @@ export function loc_3445(m) {
 
   // Step the saved table pointer one byte forward and store it back, low then high.
   const next = u16(regs.hl + 1);
-  mem.write8(field(WALK_PTR_LO), next); // low byte (the store truncates to 8 bits)
-  mem.write8(field(WALK_PTR_HI), next >> 8); // high byte
+  mem.write8(field(OBJ_WALK_PTR_LO), next); // low byte (the store truncates to 8 bits)
+  mem.write8(field(OBJ_WALK_PTR_HI), next >> 8); // high byte
 }

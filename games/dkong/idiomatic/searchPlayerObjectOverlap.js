@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2853 — run the current board's object-overlap search for the player and hand its
- * severity code back to the caller.  ROM 0x2853.
+ * searchPlayerObjectOverlap — run the current board's object-overlap search for the player
+ * and hand its severity code back to the caller.  ROM 0x2853.
  *
  * A thin setup-and-dispatch step. It prepares the three inputs the board's overlap-search
  * arm consumes, then tail-dispatches to that arm and returns whatever code it produces:
@@ -23,6 +23,12 @@
  * threshold word exactly as the oracle's `call` site loads them, then lets
  * dispatchBoardOverlapSearch route to the current board's arm. That marshalling dissolves
  * once the arms take honest parameters.
+ *
+ * Promoted from loc_2853 (DK understanding pass 10, independent proposer≠confirmer, MODERATE):
+ * a thin setup (MARIO_ACTIVE base, MARIO_Y+12 bound, P1_INPUT-selected threshold word) that
+ * tail-dispatches to the named dispatchBoardOverlapSearch (mechanisms.md), the severity code
+ * landing in the rated OVERLAP_COUNT. The name is mechanism-descriptive and claims no ungrounded
+ * game-object identity.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2853.test.js.
  * GATE:     crafted-entry — never dispatched in attract (reached only from the still-
@@ -51,7 +57,7 @@ import { dispatchBoardOverlapSearch } from "./dispatchBoardOverlapSearch.js";
 const OVERLAP_THRESHOLDS_NEUTRAL = 0x0508; // no direction pressed
 const OVERLAP_THRESHOLDS_DIRECTED = 0x1308; // a direction held (wider cross-axis threshold)
 
-export function loc_2853(m) {
+export function searchPlayerObjectOverlap(m) {
   const { regs, mem } = m;
 
   // The object-record block the search arm walks (its base pointer).

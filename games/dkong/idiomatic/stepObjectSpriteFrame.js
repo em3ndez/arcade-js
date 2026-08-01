@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3409 — advance an object's animation sprite tile on a period-2 timer, flipping a
- * bit at every sixteenth step.  ROM 0x3409.
+ * stepObjectSpriteFrame — advance an object's animation sprite tile on a period-2 timer,
+ * flipping a bit at every sixteenth step.  ROM 0x3409.
  *
  * Called during the object update for one record of the 0x6400 object array (the record is
  * addressed relative to a base pointer, so that base is the parameter). It runs a small
@@ -17,9 +17,10 @@
  * steps) bit 1 of the code is TOGGLED. Because the low nibble is all-ones at that point bit 1
  * is set, so the toggle clears it — a flip, not a blind set or clear.
  *
- * The routine name is kept neutral: the mechanism is pinned to the oracle and the field it
- * animates is the grounded sprite tile code, but which object this services and why bit 1 is
- * flipped at the nibble boundary is not corroborated to the routine-name bar.
+ * Promoted from loc_3409 (DK understanding pass 10, independent proposer≠confirmer, MODERATE):
+ * it advances the grounded OBJ_SPRITE_CODE (+0x07) on a period-2 down-counter (+0x15, grounded
+ * live vs MAME as a period-2 anim timer). The name is mechanism-descriptive and asserts no object
+ * identity; WHICH object it services is ungrounded but the name does not claim it.
  *
  * A LEAF: reads and writes only the two record bytes of the object it is handed; calls
  * nothing and returns nothing.
@@ -47,7 +48,7 @@ const OBJ_ANIM_TIMER = 0x15;
  * @param {number} objBase  base address of the object record to animate.
  * @returns {void}
  */
-export function loc_3409(m, objBase) {
+export function stepObjectSpriteFrame(m, objBase) {
   const { mem } = m;
   const timerAddr = (objBase + OBJ_ANIM_TIMER) & 0xffff;
   const codeAddr = (objBase + OBJ_SPRITE_CODE) & 0xffff;

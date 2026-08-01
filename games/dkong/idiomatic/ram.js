@@ -664,6 +664,15 @@ export const OBJ_Y = 0x05;
 export const OBJ_SPRITE_CODE = 0x07;
 /** [code] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. */
 export const OBJ_SPRITE_ATTR = 0x08;
+/** [seen] Object-record field: low/high byte of a saved 16-bit table-walk pointer (+0x1a/+0x1b)
+ *  into a ROM path table near 0x3A70. Walker chain: sub_342c/sub_3478 reload it, loc_3445
+ *  advances+saves it and zeroes it on the 0xAA terminator. Grounded live vs MAME: contiguous
+ *  16-bit pointer stepping +1/frame, high byte constant 0x3A, rewinds to 0 when idle; live at
+ *  records 0/1. Mechanism (saved walk pointer) grounded; which path it walks is not.
+ *  OFFSET >= 0x10 -> in-record ONLY for the stride-0x20 arrays (OBJ_ARRAY_64 / OBJ_ARRAY_67);
+ *  aliases the next record on the stride-0x10 arrays. */
+export const OBJ_WALK_PTR_LO = 0x1a;
+export const OBJ_WALK_PTR_HI = 0x1b;
 
 /** [seen] Object array, stride 0x20, 5 records swept together (the page holds up to 7 on 100m);
  *  sub_2880 / entry_31b1. Grounded live (record-0 only): record-0's fields all took live values in real
@@ -806,6 +815,28 @@ export const SPAWN_REQUEST = 0x6396;
  *  as a gate by sub_2a85/sub_2745, cleared by the edge-reset routines. */
 export const EDGE_REPOSITION_FLAG = 0x6398;
 
+// Periodic object event-request latches raised by loc_2ddb (board-gated, difficulty-scaled)
+// and consumed one-per-frame by their inserters. Two distinct request/consumer chains.
+/** [seen] ({0,1}, board-gated) Object-SPAWN request into OBJ_ARRAY_65A0 (the 50m moving
+ *  objects), consumed by sub_2523: when 1 and OBJ_SPAWN_TIMER (0x639B) has drained, sub_2523
+ *  scans OBJ_ARRAY_65A0 for a free slot, spawns an object, clears this, reloads the timer to
+ *  0x7C. Producer: loc_2ddb. Grounded live vs MAME on 50m: {0,1}, 128-frame rise period,
+ *  each rise coincident with the timer at 0. Single producer + single consumer. */
+export const OBJ_SPAWN_REQ = 0x639a;
+/** [seen] (free-runs 0x7C->0) Reload/cooldown timer gating OBJ_SPAWN_REQ: sub_2523 decrements
+ *  it and returns while nonzero, services the spawn only when it hits 0, reloads it to 0x7C
+ *  after a spawn. Grounded live vs MAME on 50m (free-runs 0x7C->0, 1455 transitions); pinned 0
+ *  on 100m where the request stays stuck. */
+export const OBJ_SPAWN_TIMER = 0x639b;
+/** [seen] ({0,1}, board-gated) Object-INSERT event-request latch consumed by entry_313c:
+ *  when 1 (and a free slot exists in OBJ_ARRAY_64 on 50m) entry_313c activates a slot and
+ *  clears it (consume-and-clear); also cleared on board reset (handler_0763). TWO producers
+ *  raise it := 1 — loc_2ddb's difficulty-scaled periodic trigger (50m/100m) and loc_03a2's
+ *  ARM_COUNTER-underflow re-arm (loc_03a2 does not read it back — one reader only). Grounded
+ *  live vs MAME: {0,1}, 100m 128-frame rise period, consumed within a frame or two. Reverses
+ *  the earlier "0x63xx engine scratch" rejection — single reader, one coherent request role. */
+export const EVENT_REQ_313C = 0x63a0;
+
 /** [code] Base of the per-board type-0 object-init table (stride 5); loadBoardObjectRecords de-interleaves
  *  type-0 records here, sub_2441/sub_236e consume it. Exact record layout inferred. */
 export const OBJ_PARAM_TABLE0 = 0x6300;
@@ -901,7 +932,7 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 //                               0x611C was PROMOTED to PLAYER_SLOT_RECORDS above — DE naming pass:
 //                               base + stride 0x22, 5 records, owner-tag field[0] = 1/3 via loc_141e)
 //   0x63xx engine scratch:      0x6348 0x6350 0x6382 0x638C 0x638F 0x6390
-//                               0x6392 0x6393 0x63A0
+//                               0x6392 0x6393
 //                               (0x6391 was PROMOTED to COLOUR_CYCLE_ACTIVE above — control-poke
 //                               confirmed it unshared; 0x6390 & 0x6393 rejection UPHELD as shared bytes.
 //                               0x6387 was PROMOTED to BONUS_EXPIRED_DELAY above — the
@@ -924,7 +955,12 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 //                               subsystem meaning — VELOCITY_MODE_LATCH is too narrow, no single
 //                               grounded name fits, so kept hex. 0x6350 stays hex — SHARED across the
 //                               effect-seq gate (whole-byte) and sub_03a2 (bit0).
-//                               0x638C stays hex: transient two-digit BCD display scratch.)
+//                               0x638C stays hex: transient two-digit BCD display scratch.
+//                               0x63A0 was PROMOTED to EVENT_REQ_313C above — pass-10 confirmer
+//                               OVERTURNED this rejection: it has a single reader (entry_313c) and
+//                               one coherent object-INSERT request role (two producers raise the
+//                               same one-reader latch := 1, loc_03a2 never reads it back), grounded
+//                               live vs MAME {0,1}, board-gated, 100m 128-frame rise period.)
 //   Board-object bookkeeping:   0x62AF 0x62B5 0x62B6 0x62B7 0x62B8 0x62B9
 //                               0x62BA
 //                               (0x6291 was PROMOTED to EDGE_RIVET_ARMED above — the

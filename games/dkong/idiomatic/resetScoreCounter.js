@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_059b — zero one of the three score counters, then repaint it via the score-draw
- * task.  ROM 0x059B.
+ * resetScoreCounter — zero one of the three score counters, then repaint it via the
+ * score-draw task.  ROM 0x059B.
  *
  * Task-table entry 2, dispatched from the main-loop task ring (the task's second byte
  * arrives as the payload in the same register drawScoreTask reads). It RESETS one of the
@@ -27,14 +27,14 @@
  * task-ring boundary, not yet promotable to a parameter), so the payload is left in place
  * — untouched by the clear — as its input, in the same register the task ring delivered it.
  *
- * NAME: kept the neutral loc_ — the clear-then-repaint MECHANISM is pinned to the oracle
- * and the three counters are the rated P1_SCORE / P2_SCORE / HIGH_SCORE cells, so "reset
- * the score counter for this task" is well grounded; but the routine-name evidence bar
- * (independent proposer≠confirmer + adversarial review) is a lead step, so promotion is
- * deferred. Candidate: resetScoreCounter / clearAndDrawScoreTask.
+ * Promoted from loc_059b (DK understanding pass 10, independent proposer≠confirmer, HIGH):
+ * the clear-then-repaint MECHANISM is pinned to the oracle and it operates only on the rated
+ * P1_SCORE / P2_SCORE / HIGH_SCORE cells — it is drawScoreTask's clear-first twin (same
+ * payload→counter select), zeroing the three BCD bytes before rendering. The name states the
+ * mechanism exactly.
  *
  * Memory-equivalent to the frozen oracle — equivalence-059b.test.js.
- * GATE:     crafted-entry, grounded in a real captured dispatch. loc_059b never fires in
+ * GATE:     crafted-entry, grounded in a real captured dispatch. resetScoreCounter never fires in
  *           attract (it is the score RESET, not the per-frame redraw), so it is driven
  *           once at game start by the coin+start tape (payload 0 → P1_SCORE), which
  *           grounds the player-1 arm; crafted entries then force the player-2 arm
@@ -59,7 +59,7 @@ import { P1_SCORE, P2_SCORE, HIGH_SCORE } from "./ram.js";
 import { drawScoreTask } from "./drawScoreTask.js"; // ROM 0x05C6 — select-a-score-and-render task
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
-export function loc_059b(m) {
+export function resetScoreCounter(m) {
   const { regs, mem } = m;
   const payload = regs.a;
 
@@ -68,7 +68,7 @@ export function loc_059b(m) {
   // the oracle (and its twin drawScoreTask, which stubs its own high-payload arm).
   if (payload >= 3) {
     throw new NotImplemented(
-      "loc_059b payload>=3 recursion at ROM 0x05BD (twin-consistent stub; see the header)",
+      "resetScoreCounter payload>=3 recursion at ROM 0x05BD (twin-consistent stub; see the header)",
     );
   }
 

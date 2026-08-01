@@ -56,7 +56,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1b38 as oracle } from "../../translated/loc_1b38.js";
-import { loc_1b38 as candidate } from "../loc_1b38.js";
+import { climbDownWhileHeld as candidate } from "../climbDownWhileHeld.js";
 import { climbMarioDown } from "../climbMarioDown.js";     // ROM 0x1CF2
 import { climbUpWhileHeld } from "../climbUpWhileHeld.js"; // ROM 0x1B45
 import { Machine } from "../../machine.js";

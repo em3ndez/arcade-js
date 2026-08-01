@@ -38,7 +38,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { sub_2591 as oracle } from "../../translated/sub_2591.js";
-import { loc_2591 } from "../loc_2591.js";
+import { advance50mObjectRow as loc_2591 } from "../advance50mObjectRow.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";

@@ -4,7 +4,7 @@
  *
  * Called every frame by the per-frame cascade loc_197a. Two skip gates open the routine,
  * then it fires a difficulty-scaled periodic trigger: when the trigger lands this frame it
- * raises two one-shot request latches (0x63A0 and 0x639A) to 1; otherwise it does nothing.
+ * raises two one-shot request latches (EVENT_REQ_313C and OBJ_SPAWN_REQ) to 1; otherwise it does nothing.
  *   • rst 0x30 with the board mask 0x0A (boardBitGate): bits 1 and 3 of the mask are the
  *     current-board bit only on 50m (BOARD 2) and 100m (BOARD 4) — so on 25m / 75m the whole
  *     routine is skipped.
@@ -20,8 +20,8 @@
  *   • The event fires on the frames where FRAME lands zero under the mask — i.e. every
  *     2^(9-steps)th frame (mask 0x7F -> every 128, 0x1F -> every 32, mask 0 -> every frame).
  * On a firing frame both request latches are set to 1; they are consumed elsewhere
- * (0x639A by sub_2523 as its pending "request", 0x63A0 by entry_313c) and this routine only
- * raises them, never clears them.
+ * (OBJ_SPAWN_REQ by sub_2523 as its pending "request", EVENT_REQ_313C by entry_313c) and this
+ * routine only raises them, never clears them.
  *
  * NAME: kept as loc_2ddb. The mechanism is pinned to the oracle (a board-and-alive-gated,
  * difficulty-scaled periodic double-request), but which game event these two latches drive on
@@ -44,21 +44,18 @@
  *           the flags are all dead). The two boolean-guard returns replace the rst-0x30 /
  *           rst-0x10 caller-skip stack idiom; the terminal ret pops the one caller-return every
  *           path consumes.
- * NAMES:    DIFFICULTY (0x6380), BOARD (0x6227), FRAME (0x601A) — from ram.js. The board mask
- *           0x0A is a literal. The two raised latches 0x63A0 / 0x639A have no ram.js name
- *           (each is a thin cross-routine request flag) — kept as local hex consts here.
+ * NAMES:    DIFFICULTY (0x6380), BOARD (0x6227), FRAME (0x601A), EVENT_REQ_313C (0x63A0),
+ *           OBJ_SPAWN_REQ (0x639A) — all from ram.js. The board mask 0x0A is a literal.
  *           Callees direct-called: boardBitGate (ROM 0x0030, reads regs.a + BOARD 0x6227),
  *           marioActiveGuard (ROM 0x0010, reads MARIO_ACTIVE 0x6200).
  */
 
-import { DIFFICULTY, BOARD, FRAME } from "./ram.js";
+import { DIFFICULTY, BOARD, FRAME, EVENT_REQ_313C, OBJ_SPAWN_REQ } from "./ram.js";
 import { boardBitGate } from "./boardBitGate.js";        // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x10)
 import { u8 } from "../../../core/int.js";
 
 const BOARD_MASK = 0x0a; // rst-0x30 applicability mask: the current-board bit only on 50m/100m
-const REQUEST_A = 0x63a0; // one-shot request latch, consumed by entry_313c (unnamed in ram.js)
-const REQUEST_B = 0x639a; // one-shot request latch, consumed by sub_2523 (unnamed in ram.js)
 
 export function loc_2ddb(m) {
   const { regs, mem } = m;
@@ -88,6 +85,6 @@ export function loc_2ddb(m) {
   if ((mem.read8(FRAME) & mask) !== 0) return;
 
   // Firing frame: raise both one-shot request latches.
-  mem.write8(REQUEST_A, 1);
-  mem.write8(REQUEST_B, 1);
+  mem.write8(EVENT_REQ_313C, 1);
+  mem.write8(OBJ_SPAWN_REQ, 1);
 }

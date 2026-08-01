@@ -50,6 +50,8 @@ import {
   BOARD,
   FRAME,
   MARIO_ACTIVE,
+  EVENT_REQ_313C,
+  OBJ_SPAWN_REQ,
 } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -62,8 +64,6 @@ const test = ROM_PRESENT
 const TARGET = 0x2ddb;
 const RET_ADDR = 0x1998;    // the loc_197a site right after `call 0x2ddb` (the real caller return)
 const SP_TOP = 0x6c00;      // stack top: every push16 in this cascade lands in STACK_SCRATCH
-const REQUEST_A = 0x63a0;   // request latch this routine raises (consumed by entry_313c)
-const REQUEST_B = 0x639a;   // request latch this routine raises (consumed by sub_2523)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const hx16 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -150,8 +150,8 @@ function craft(base, { board, marioActive, difficulty, frame }) {
   m.mem.write8(MARIO_ACTIVE, marioActive);
   m.mem.write8(DIFFICULTY, difficulty);
   m.mem.write8(FRAME, frame);
-  m.mem.write8(REQUEST_A, 0);
-  m.mem.write8(REQUEST_B, 0);
+  m.mem.write8(EVENT_REQ_313C, 0);
+  m.mem.write8(OBJ_SPAWN_REQ, 0);
   m.nextNmi = Infinity; m.nextBoundary = Infinity;
   return m;
 }
@@ -229,8 +229,8 @@ test("EQUAL (crafted): the difficulty/frame trigger sweep, alive-gate skip, and 
         // Non-vacuity: a firing frame writes BOTH latches to 1; a non-firing frame writes nothing.
         const o = runOracle(entry);
         if ((frame & mask) === 0) {
-          assert.equal(o.mem.read8(REQUEST_A), 1, `board=${board} diff=${hx(difficulty)} frame=${hx(frame)}: 0x63A0 not raised`);
-          assert.equal(o.mem.read8(REQUEST_B), 1, `board=${board} diff=${hx(difficulty)} frame=${hx(frame)}: 0x639A not raised`);
+          assert.equal(o.mem.read8(EVENT_REQ_313C), 1, `board=${board} diff=${hx(difficulty)} frame=${hx(frame)}: 0x63A0 not raised`);
+          assert.equal(o.mem.read8(OBJ_SPAWN_REQ), 1, `board=${board} diff=${hx(difficulty)} frame=${hx(frame)}: 0x639A not raised`);
           fired++;
         } else {
           assert.deepEqual(changedAddrs(entry, o), [], `board=${board} diff=${hx(difficulty)} frame=${hx(frame)}: no-trigger path wrote RAM`);
@@ -278,7 +278,7 @@ function brokenNoAliveGate(m) {
   let steps = u8(mem.read8(DIFFICULTY) + 1) >> 1;
   if (mem.read8(BOARD) === 2) steps += 1;
   if ((mem.read8(FRAME) & buildMask(steps)) !== 0) return;
-  mem.write8(REQUEST_A, 1); mem.write8(REQUEST_B, 1);
+  mem.write8(EVENT_REQ_313C, 1); mem.write8(OBJ_SPAWN_REQ, 1);
 }
 /** (b) skips the board gate: runs on any board. */
 function brokenNoBoardGate(m) {
@@ -288,7 +288,7 @@ function brokenNoBoardGate(m) {
   let steps = u8(mem.read8(DIFFICULTY) + 1) >> 1;
   if (mem.read8(BOARD) === 2) steps += 1;
   if ((mem.read8(FRAME) & buildMask(steps)) !== 0) return;
-  mem.write8(REQUEST_A, 1); mem.write8(REQUEST_B, 1);
+  mem.write8(EVENT_REQ_313C, 1); mem.write8(OBJ_SPAWN_REQ, 1);
 }
 /** (c) wrong board mask (0x05 = boards 1/3 instead of 0x0A = boards 2/4). */
 function brokenWrongMask(m) {
@@ -299,7 +299,7 @@ function brokenWrongMask(m) {
   let steps = u8(mem.read8(DIFFICULTY) + 1) >> 1;
   if (mem.read8(BOARD) === 2) steps += 1;
   if ((mem.read8(FRAME) & buildMask(steps)) !== 0) return;
-  mem.write8(REQUEST_A, 1); mem.write8(REQUEST_B, 1);
+  mem.write8(EVENT_REQ_313C, 1); mem.write8(OBJ_SPAWN_REQ, 1);
 }
 /** (d) drops the 50m step bump (no +1 on board 2 -> wrong mask on 50m). */
 function brokenNoBump(m) {
@@ -309,7 +309,7 @@ function brokenNoBump(m) {
   if (!marioActiveGuard(m)) return;
   const steps = u8(mem.read8(DIFFICULTY) + 1) >> 1; // BUG: no +1 on board 2
   if ((mem.read8(FRAME) & buildMask(steps)) !== 0) return;
-  mem.write8(REQUEST_A, 1); mem.write8(REQUEST_B, 1);
+  mem.write8(EVENT_REQ_313C, 1); mem.write8(OBJ_SPAWN_REQ, 1);
 }
 /** (e) inverts the trigger polarity (fires when the masked frame is non-zero). */
 function brokenPolarity(m) {
@@ -320,7 +320,7 @@ function brokenPolarity(m) {
   let steps = u8(mem.read8(DIFFICULTY) + 1) >> 1;
   if (mem.read8(BOARD) === 2) steps += 1;
   if ((mem.read8(FRAME) & buildMask(steps)) === 0) return; // BUG: inverted
-  mem.write8(REQUEST_A, 1); mem.write8(REQUEST_B, 1);
+  mem.write8(EVENT_REQ_313C, 1); mem.write8(OBJ_SPAWN_REQ, 1);
 }
 /** (f) raises only the first latch. */
 function brokenOneLatch(m) {
@@ -331,7 +331,7 @@ function brokenOneLatch(m) {
   let steps = u8(mem.read8(DIFFICULTY) + 1) >> 1;
   if (mem.read8(BOARD) === 2) steps += 1;
   if ((mem.read8(FRAME) & buildMask(steps)) !== 0) return;
-  mem.write8(REQUEST_A, 1); // BUG: 0x639A left un-raised
+  mem.write8(EVENT_REQ_313C, 1); // BUG: 0x639A left un-raised
 }
 
 test("TEETH: the crafted cases CATCH every broken twin", () => {

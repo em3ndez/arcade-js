@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2ed4 — per-frame hammer sprite / background-tune dispatcher.  ROM 0x2ED4.
+ * driveHammerSprite — per-frame hammer sprite / background-tune dispatcher.  ROM 0x2ED4.
  *
  * Called once every serviced frame (from loc_197a). It drives one of the two hammer
  * objects and routes on whether Mario currently holds a hammer:
@@ -30,9 +30,11 @@
  * destination before both build arms, and the object tile code + on-screen hammer code
  * before updateActiveHammer.
  *
- * NAME: kept the neutral loc_ — the hammer role is grounded (MARIO_HAMMER_ACTIVE's registry
- * note names this routine the hammer sprite/BGM swap, and its two build arms are named), but
- * the routine name is held to the proposer≠confirmer bar. Promote once corroborated.
+ * Promoted from loc_2ed4 (DK understanding pass 10, independent proposer≠confirmer, MODERATE-HIGH):
+ * MARIO_HAMMER_ACTIVE's registry note names this routine the hammer sprite/BGM swap; it touches
+ * only rated cells (MARIO_HAMMER_ACTIVE / _PENDING, MARIO_SPRITE_CODE, HAMMER_TIMER_LO, SND_BGM,
+ * OBJ_PAIR_6680) and both build arms are English-named (buildPendingHammerSprite / updateActiveHammer).
+ * The board mask 0x0b (25m/50m/100m) is exactly the hammer boards.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2ed4.test.js.
  * GATE:     captured + crafted. 0x2ED4 is dispatched every serviced attract frame (1478
@@ -97,7 +99,7 @@ const SWING_PHASE_BIT = 0x08;    // HAMMER_TIMER_LO bit3 — the 8-frame swing-a
 const HAMMER_CODE_FLAG = 0x08;   // fixed flag set in the on-screen hammer-swing code
 const SWING_ALT_BIT = 0x01;      // low bit set on both codes during the alternate swing pose
 
-export function loc_2ed4(m) {
+export function driveHammerSprite(m) {
   const { regs, mem } = m;
 
   // rst 0x30 — the hammer only exists on 25m/50m/100m; skip the whole routine otherwise.

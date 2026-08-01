@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_059b as oracle } from "../../translated/loc_059b.js";
-import { loc_059b as candidate } from "../loc_059b.js";
+import { resetScoreCounter as candidate } from "../resetScoreCounter.js";
 import { drawScoreTask } from "../drawScoreTask.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, P1_SCORE, P2_SCORE, HIGH_SCORE } from "../ram.js";

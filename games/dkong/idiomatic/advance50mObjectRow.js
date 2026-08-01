@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2591 — advance and edge-cull the 50m moving-object row.  ROM 0x2591.
+ * advance50mObjectRow — advance and edge-cull the 50m moving-object row.  ROM 0x2591.
  *
  * Walks the six records of the 50m object array (OBJ_ARRAY_65A0, stride 0x10). Each
  * active record (field +0 bit0 set) has its X position (field +3) stepped horizontally,
@@ -20,6 +20,11 @@
  *
  * The step shadows are the signed ±1/0 unit steps the 50m reversal machinery publishes,
  * so this routine is the consumer that actually moves the 50m objects across the screen.
+ *
+ * Promoted from loc_2591 (DK understanding pass 10, independent proposer≠confirmer, MODERATE-HIGH):
+ * it walks OBJ_ARRAY_65A0 (rated, grounded live vs MAME as the 50m horizontally-moving objects)
+ * and steps X by the named-and-grounded M50_OBJ2_STEP_POS/NEG and M50_OBJ3_STEP shadows, culling
+ * at the edges/center. The object family is grounded and the advance-and-cull role is exactly the name.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2591.test.js.
  * GATE:     crafted-entry — a real boot/attract base with the six records + step shadows
@@ -61,7 +66,7 @@ const CULL_SPRITE_STRIDE = 0x04; // four bytes per sprite record
  * @param {object} m  the machine (uses m.mem and m.regs.de for the live-out).
  * @returns {void}
  */
-export function loc_2591(m) {
+export function advance50mObjectRow(m) {
   const { regs, mem } = m;
 
   // The record stride. The oracle leaves it in DE and the still-oracle caller reuses it

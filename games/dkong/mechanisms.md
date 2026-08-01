@@ -160,8 +160,8 @@ their sub-tile offsets (`SEG_SUBTILE1`/`SEG_SUBTILE2`/`SEG_SUBTILE_Y1`), the hei
 selector that dispatches girder-span vs `drawLadder` vs `fillTileColumn` while `SEG_TILE`
 holds the tile being stamped (endpoints → run deltas → body fill). `[code]`
 
-**The board-build dispatch and the tune family.** A separate arm-dispatch (`loc_0c92`, on
-`BOARD`) makes each board's three fixed choices before the shared draw tail `loc_0cc6`:
+**The board-build dispatch and the tune family.** A separate arm-dispatch (`buildBoard` (0x0C92),
+on `BOARD`) makes each board's three fixed choices before the shared draw tail `loc_0cc6`:
 `setUp75mBoard` (75m) first stamps the elevator tile motif (`stamp75mBoardTiles`),
 `setup50mConveyorBoard` is the 50m arm (`SND_BGM = 0x09`, `DE = 0x3B5D` conveyor layout),
 `setup25mGirderBoard` is the 25m arm (board 1; `SND_BGM = 0x08`, `DE = 0x3AE4` girder layout),
@@ -190,7 +190,10 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   cells stay hex, reached as base+offset): `OBJ_ACTIVE (+0)` bit0 = slot active, `OBJ_X (+3)`,
   `OBJ_Y (+5)`, `OBJ_SPRITE_CODE (+7)`, `OBJ_SPRITE_ATTR (+8)`, and `OBJ_STATE (+0x0d)` — the
   per-object **state-machine selector**, read-and-dispatched or written-as-next-state at every
-  site (never a coordinate/timer/count). Its enum differs per array (as a state field does):
+  site (never a coordinate/timer/count). The `0x6400` animation walker also saves a 16-bit
+  ROM-path-table pointer in `OBJ_WALK_PTR_LO (+0x1a)` / `OBJ_WALK_PTR_HI (+0x1b)` — grounded
+  (understanding pass 10) as a contiguous pointer stepping `+1`/frame with high byte constant
+  `0x3A`; offset ≥ 0x10, so it is in-record only for the stride-0x20 arrays. Its enum differs per array (as a state field does):
   e.g. the `0x6600` spawn objects use `8` = spawned / `4` = landed; the `0x6400` records run a
   movement/collision state machine on it. **Grounded (understanding pass 4):** a live 25m-attract
   run under MAME exercised the own bytes of `OBJ_ACTIVE`/`OBJ_X`/`OBJ_Y`/`OBJ_SPRITE_CODE` and
@@ -222,6 +225,15 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   separate request (posted `=3` by the periodic bonus tick, consumed via bit0) that activates a
   waiting object. `EDGE_REPOSITION_FLAG (0x6398)` is a one-shot set the frame Mario's Y is
   repositioned at a board edge, read as a gate by the edge-reset code. `[code]`
+- **Periodic object event requests.** On 50m/100m while Mario is alive, `loc_2ddb` fires a
+  difficulty-scaled periodic trigger (every `2^(9−steps)` frames — 128 at difficulty 1) that
+  raises two one-shot request latches. `OBJ_SPAWN_REQ (0x639A)` is consumed by `sub_2523`: once
+  its reload/cooldown timer `OBJ_SPAWN_TIMER (0x639B)` has drained (free-runs `0x7C→0`), it scans
+  `OBJ_ARRAY_65A0` for a free slot, spawns an object, clears the request and reloads the timer.
+  `EVENT_REQ_313C (0x63A0)` is an object-INSERT request consumed by `entry_313c`, which activates
+  a free `OBJ_ARRAY_64` slot and clears it (also cleared on board reset). **Grounded (understanding
+  pass 10):** both latches cycle `{0,1}` board-gated on a 128-frame rise period live vs MAME,
+  consumed within a frame or two. `[seen]`
 - **50m step cascade.** On the 50m board only (board-2 gate), a small three-object cascade
   drives the horizontal step of three moving objects. Each object *i* owns a **signed
   step-direction latch** `M50_OBJi_STEP_DIR` (`0x62A1 / 0x62A3 / 0x62A6`) and a paired

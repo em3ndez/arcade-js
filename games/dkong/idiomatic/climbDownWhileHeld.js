@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1b38 — the Down half of the ladder-climb input dispatch: drive Mario's downward
- * climb when Down is held, otherwise hand the frame to the up-climb path.  ROM 0x1B38.
+ * climbDownWhileHeld — the Down half of the ladder-climb input dispatch: drive Mario's
+ * downward climb when Down is held, otherwise hand the frame to the up-climb path.  ROM 0x1B38.
  *
  * Reads the cooked control word and tests its DOWN bit (bit 3) first:
  *   - Down held: hand off to the climb-DOWN driver (climbMarioDown), which paces and
@@ -16,11 +16,10 @@
  * movement machine (entry_1ac3, only while the on-ladder flag is set) and from the climb
  * setup routine loc_1afe; it writes no memory of its own.
  *
- * NAME: strong climbDownWhileHeld candidate — bit 3 is the confirmed Down direction (a
- * named input bit) and climbMarioDown is the confirmed climb-down driver — but the
- * routine ALSO delegates the up-climb case to climbUpWhileHeld when on a ladder, so a
- * pure "down" name understates it (its real job is Down-or-delegate). Kept loc_ for the
- * naming pass to settle; flagged.
+ * Promoted from loc_1b38 (DK understanding pass 10, independent proposer≠confirmer, MODERATE):
+ * bit 3 is the confirmed Down direction (a named input bit) and climbMarioDown is the confirmed
+ * climb-down driver; the name captures this routine's OWN action (the exact framing of its
+ * accepted sibling climbUpWhileHeld, 0x1B45). The up-delegation is the documented else-path.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1b38.test.js.
  * GATE:     real captured 0x1B38 dispatches from an attract run (natural dispatches take
@@ -51,7 +50,7 @@ const HOLDING_DOWN = 0x08;
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1b38(m) {
+export function climbDownWhileHeld(m) {
   const { mem } = m;
 
   // Holding Down this frame: drive Mario's downward ladder climb and stop.
