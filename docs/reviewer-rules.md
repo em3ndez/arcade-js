@@ -56,14 +56,10 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   hook) + scan comments in the diff.
 - **R8 [ALL]** A cell named in ram.js is IMPORTED from ram.js, not redefined as a local hex const.
   Verify: grep the diff for `const [A-Z_0-9]+ = 0x6[0-9a-f]{3}` duplicating a ram.js name.
-- **R16 [ALL, if the commit touches ram.js]** Every named cell carries a grounding RATING — a name
-  is not understanding. Verify by PARSING ram.js: for each `export const NAME = 0x…`, its own
-  comment (the block/line comment attached to it) must contain `[seen]`, `[code]`, or `[guess]`.
-  Report the total count of UNRATED named cells. FAIL if this commit raises that count vs HEAD
-  (`git show HEAD:games/dkong/idiomatic/ram.js`), or if any cell this diff ADDS or re-annotates is
-  left unrated. (Legacy unrated cells are known debt that may only shrink; the reviewer surfaces the
-  number every time so it is never invisible again. This is a COMPLETENESS check over the whole
-  registry, not a grep for specific prose — it catches unrated cells nobody thought to look for.)
+- **R16 [ALL]** Every named cell in ram.js carries a grounding rating. Verify by PARSING ram.js: for
+  each `export const NAME = 0x…`, its own comment must contain `[seen]`, `[code]`, or `[guess]`.
+  **FAIL if ANY named cell is unrated** — no ratchet, no legacy-debt exception. A name is not
+  understanding; the registry is complete only when every cell is labeled.
 
 ## Translation conventions
 - **R9 [ALL]** No import from `optimized/` (retired layer). Imports resolve from `./ram.js` and other
