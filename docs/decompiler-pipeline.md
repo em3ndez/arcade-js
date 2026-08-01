@@ -236,7 +236,12 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   honest-signature rule*, enforced at review, are what force the direct call.
 - **Naming.** Uniform `loc_<addr>` is the baseline. Drop the `sub_`/`entry_`/`handler_`/`arm_`/
   `guard_`/`branch_`/`tail_` prefix zoo — it is *pseudo-semantics*, a taxonomy applied ad hoc
-  routine-by-routine that implies meaning it does not consistently carry. **Promote** to an English
+  routine-by-routine that implies meaning it does not consistently carry. **This holds even when the
+  frozen `translated/` oracle still carries a zoo name — DK's translated layer does (250/434 files are
+  `sub_`/`entry_`/`handler_`/`bootInit`…, never normalized). NEVER mirror the oracle's cute filename
+  into the idiomatic file: the idiomatic file AND its export are `loc_<addr>`, and the frozen oracle
+  keeps its own name (imported under that name). "we don't give cute names to our routines" (Karl).**
+  **Promote** to an English
   name only where the meaning is genuinely earned, and **keep the identifier clean**
   — the address lives in a `// ROM 0x<addr>` header tag and the manifest key, **never in the identifier**. Routine names get
   the same evidence bar as RAM names (corroborated, proposer≠confirmer) — a *wrong* English name

@@ -66,8 +66,15 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   idiomatic files. Verify: `git diff --cached | grep optimized/`.
 - **R10 [ALL]** No idiomatic routine calls an already-idiomatic callee via `m.call(0xADDR…)`/push16
   (stale oracle leak) — idiomatic callees are direct JS calls. Verify: grep the diff for `m.call(0x`.
-- **R11 [D]** Faithful-translation routines are named loc_<addr>; English names ONLY via a confirmed
-  promotion (R4). Verify: new files in a decompile batch use address names unless promoted.
+- **R11 [D]** Every UNNAMED idiomatic routine is named `loc_<addr>` — NEVER a cute prefix
+  (`sub_`/`handler_`/`entry_`/`draw_`/`branch_`/`tail_`/`guard_`) or an English name, EVEN when the
+  frozen `translated/` oracle carries such a name (DK's oracle does; do not mirror it into idiomatic).
+  English names come ONLY via a confirmed understanding-pass promotion (R4). Verify: a new decompile
+  batch's idiomatic files are all `loc_<addr>` —
+  `ls games/dkong/idiomatic/*.js | xargs -n1 basename | grep -E '^(sub_|handler_|entry_|draw_[0-9]|branch_|tail_|guard_)'`
+  must be EMPTY (earned English promotions like buildBoard/drawHighScore are exempt — those went
+  through R4). Also FAIL a redundant re-decompile: if a batch adds `loc_<addr>.js` for an address
+  that already has a committed idiomatic file (any name), the duplicate must be reconciled, not committed.
 
 ## Every routine gated with teeth
 - **R12 [D]** Each new/changed routine has an equivalence test that (a) compares work-RAM to the
