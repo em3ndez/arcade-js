@@ -12,12 +12,13 @@
  *      (0x7400-0x77FF -> 0x10) and zeroes the 384-byte sprite shadow buffer
  *      (0x6900-0x6A7F) — the same full-screen wipe arm 0 of this table
  *      (configureFlipScreenAndSelectSubstate, ROM 0x0986) opens with.
- *   2. SELECT. Store GAME_SUBSTATE (0x600A) = (byte at 0x600E) + 0x12, an 8-bit add
- *      (`ld a,(0x600e) / add a,0x12 / ld (0x600a),a`). 0x600E is the low byte of the
- *      game-start join value loc_08f8 wrote (0 for a 1-player start) — the very byte
- *      arm 0 reads as its start-up selector — and 0x12 is the base index of the phase
- *      group jumped into. The base is NOT folded into a single constant: the target
- *      sub-state is genuinely computed from 0x600E.
+ *   2. SELECT. Store GAME_SUBSTATE (0x600A) = ACTIVE_PLAYER_INDEX (0x600E) + 0x12, an
+ *      8-bit add (`ld a,(0x600e) / add a,0x12 / ld (0x600a),a`). ACTIVE_PLAYER_INDEX is
+ *      the active-player index — the low byte of the game-start join value loc_08f8
+ *      wrote (0 for a 1-player start), the very byte arm 0 reads as its start-up selector
+ *      — and 0x12 is the base index of the phase group jumped into (ram.js cites this
+ *      "+0x12 substate" reader in the ACTIVE_PLAYER_INDEX entry). The base is NOT folded
+ *      into a single constant: the target sub-state is genuinely computed from it.
  *
  * Every other effect is on fixed memory; it reads no register.
  *
@@ -37,23 +38,19 @@
  *           terminal A/B/C/HL/F are dead ABI (the whole-machine gate backstops that).
  *           SP/PC are not compared — the idiomatic layer drops the oracle's push16 /
  *           call / ret stack + PC bookkeeping (the JS call stack replaces it).
- * NAMES:    GAME_SUBSTATE (0x600A) from ram.js. The cleared tilemap / sprite-buffer
- *           addresses are owned by clearTilemapAndSprites (ROM 0x0852). 0x600E — the
- *           game-start join low byte used here as the phase selector — is not evidenced
- *           in ram.js and stays a local hex constant, as in
- *           configureFlipScreenAndSelectSubstate (ROM 0x0986).
+ * NAMES:    GAME_SUBSTATE (0x600A) and ACTIVE_PLAYER_INDEX (0x600E) from ram.js. The
+ *           cleared tilemap / sprite-buffer addresses are owned by clearTilemapAndSprites
+ *           (ROM 0x0852). ACTIVE_PLAYER_INDEX — the active-player index / game-start join
+ *           low byte — is the phase selector here; its +0x12 gives the next sub-state, the
+ *           reader ram.js cites for that cell. (The sibling arm 0,
+ *           configureFlipScreenAndSelectSubstate at ROM 0x0986, reads the same byte.)
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE, ACTIVE_PLAYER_INDEX } from "./ram.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
 
-// Low byte of the 16-bit join value loc_08f8 stored at game start; read here as the
-// selector whose +0x12 gives the next sub-state. Not evidenced in ram.js, so it stays
-// hex (named JOIN_VALUE_LO in configureFlipScreenAndSelectSubstate, ROM 0x0986).
-const PHASE_SELECTOR = 0x600e;
-
-// Base index of the phase group this arm jumps into; added to the selector to form the
-// next sub-state. Kept explicit (not folded) — the oracle computes it live.
+// Base index of the phase group this arm jumps into; added to ACTIVE_PLAYER_INDEX to form
+// the next sub-state. Kept explicit (not folded) — the oracle computes it live.
 const PHASE_GROUP_BASE = 0x12;
 
 export function clearScreenAndSelectSubstate(m) {
@@ -62,6 +59,6 @@ export function clearScreenAndSelectSubstate(m) {
   // 1. Blank the whole display (tilemap + sprite shadow buffer) for the next phase.
   clearTilemapAndSprites(m); // ROM 0x0852
 
-  // 2. Select the next sub-state: base + the selector byte, 8-bit wrap.
-  mem.write8(GAME_SUBSTATE, (mem.read8(PHASE_SELECTOR) + PHASE_GROUP_BASE) & 0xff);
+  // 2. Select the next sub-state: base + the active-player index, 8-bit wrap.
+  mem.write8(GAME_SUBSTATE, (mem.read8(ACTIVE_PLAYER_INDEX) + PHASE_GROUP_BASE) & 0xff);
 }

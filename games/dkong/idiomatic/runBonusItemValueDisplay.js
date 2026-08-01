@@ -17,8 +17,9 @@
  *   INIT (0x6009 == 0), one-shot setup, then FALL INTO the per-frame body:
  *     clear both palette-bank latches, mark running (0x6009:=1), seed the item-state block
  *     (position reload / sprite toggle / anim timer / value=30 / display timer / position
- *     index), set the video pointer to 0x75E8, locate the item's slot row in the 0x611C
- *     table (stride 0x22, 4 rows, key = 2*(0x600E)+1), and render the item once.
+ *     index), set the video pointer to 0x75E8, locate the item's slot row in
+ *     PLAYER_SLOT_RECORDS (0x611C, stride 0x22; key = 2*ACTIVE_PLAYER_INDEX (0x600E)+1;
+ *     this routine scans 4 rows), and render the item once.
  *
  *   RUNNING (0x6009 != 0), every frame, three stages:
  *     1. display-timer countdown (0x6034); on wrap, tick the value (0x6033) — value 0 EXITs
@@ -52,15 +53,17 @@
  *           dropped stack becomes the JS call stack), so the harness applies one m.ret()
  *           after the call to line pc + SP up with the oracle's single net caller-return pop.
  * NAMES:    SUBSTATE_TIMER (0x6009, re-used as the mode latch), P1_INPUT (0x6010),
- *           GAME_SUBSTATE (0x600A) from ram.js. The item-state block (0x6030-0x6036, 0x6038,
- *           0x603A) is ram.js "board/animation scratch" — deliberately UNNAMED there because
- *           it is shared across the game — so it is labelled with LOCAL role constants (valid
+ *           GAME_SUBSTATE (0x600A), PLAYER_SLOT_RECORDS (0x611C, the item-slot table:
+ *           stride-0x22 rows keyed by 2*ACTIVE_PLAYER_INDEX+1) and ACTIVE_PLAYER_INDEX
+ *           (0x600E) from ram.js. The item-state block (0x6030-0x6036, 0x6038, 0x603A) is
+ *           ram.js "board/animation scratch" — deliberately UNNAMED there because it is
+ *           shared across the game — so it is labelled with LOCAL role constants (valid
  *           only inside this routine), not promoted to global names. The palette-bank latches
- *           0x7D86/0x7D87 are hardware outputs (ls259.6h), not work RAM. The 0x611C slot
- *           table, the digit cells 0x7552/0x7572, and the video base 0x75E8 / sentinels
- *           0x7588/0x7608 are ROM / VRAM literals kept hex.
+ *           0x7D86/0x7D87 are hardware outputs (ls259.6h), not work RAM. The digit cells
+ *           0x7552/0x7572 and the video base 0x75E8 / sentinels 0x7588/0x7608 are ROM / VRAM
+ *           literals kept hex.
  */
-import { SUBSTATE_TIMER, P1_INPUT, GAME_SUBSTATE } from "./ram.js";
+import { SUBSTATE_TIMER, P1_INPUT, GAME_SUBSTATE, PLAYER_SLOT_RECORDS, ACTIVE_PLAYER_INDEX } from "./ram.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js";           // ROM 0x0616
 import { positionBonusItemSprite } from "./positionBonusItemSprite.js"; // ROM 0x15fa
 import { renderBcdColumn } from "./renderBcdColumn.js";               // ROM 0x057c
@@ -80,8 +83,6 @@ const SLOT_COL_PTR = 0x603a;  // 16-bit ptr = SLOT_PTR - 0x0D, the exit-copy des
 // -- ROM / VRAM / hardware literals (not work RAM, so none are ram.js names). --
 const PALETTE_BANK_LO = 0x7d86; // ls259.6h palette-bank latch bit 0 (hardware output)
 const PALETTE_BANK_HI = 0x7d87; // ls259.6h palette-bank latch bit 1 (hardware output)
-const SLOT_TABLE = 0x611c;      // item-slot table: 4 rows of stride 0x22
-const SLOT_KEY_SRC = 0x600e;    // the byte whose 2*x+1 is the slot search key
 const VALUE_ONES_CELL = 0x7552; // VRAM cell for the value's ones digit
 const VALUE_TENS_CELL = 0x7572; // VRAM cell for the value's tens digit
 const VIDEO_BASE = 0x75e8;      // top of the value's video column
@@ -111,10 +112,10 @@ export function runBonusItemValueDisplay(m) {
     mem.write8(POS_INDEX, 0x00);
     mem.write16(VIDEO_PTR, VIDEO_BASE);
 
-    // Locate the item's slot row in the 0x611C table: scan 4 rows of stride 0x22 for
-    // key = 2*(0x600E)+1. No match leaves the pointer at the 4th row (the ROM does not guard).
-    const key = (rotl8(mem.read8(SLOT_KEY_SRC)) + 1) & 0xff;
-    let slot = SLOT_TABLE;
+    // Locate the item's slot row in PLAYER_SLOT_RECORDS: scan 4 rows of stride 0x22 for
+    // key = 2*ACTIVE_PLAYER_INDEX+1. No match leaves the pointer at the 4th row (the ROM does not guard).
+    const key = (rotl8(mem.read8(ACTIVE_PLAYER_INDEX)) + 1) & 0xff;
+    let slot = PLAYER_SLOT_RECORDS;
     for (let i = 0; i < 4; i++) {
       if (mem.read8(slot) === key) break;
       slot = (slot + 0x22) & 0xffff;

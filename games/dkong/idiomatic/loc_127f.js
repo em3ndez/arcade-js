@@ -6,14 +6,16 @@
  * (dispatchInGameSubstate 0x06FE, dispatchCreditedSubstate 0x08B2,
  * dispatchIntroCutsceneStep 0x0A76): read a one-byte step index and vector through a
  * ROM table of little-endian target addresses to the handler for that step. Here the
- * selector is the sequence-phase counter at 0x639D and the 4-entry table lives at ROM
- * 0x1283:
+ * selector is the sequence-phase counter BLINK_ANIM_PHASE (0x639D) and the 4-entry table
+ * lives at ROM 0x1283:
  *   0 -> 0x128B  — seed the sequence: set Mario's sprite-record byte 0x694D (flip a
- *                  two-cell blinker on), load the blink repeat-count 0x639E = 0x0D,
- *                  advance 0x639D, re-arm the 0x6009 tick gate, fire a sound (0x6088).
- *   1 -> 0x12AC  — each expiry of the 0x6009 gate: decrement the blink count 0x639E and
- *                  toggle the two-cell blinker (0x694D/0x694E); when 0x639E reaches 0,
- *                  advance the phase 0x639D 1 -> 2 and re-arm the gate long (0x80 ticks).
+ *                  two-cell blinker on), load the blink repeat-count BLINK_COUNT (0x639E)
+ *                  = 0x0D, advance BLINK_ANIM_PHASE, re-arm the SUBSTATE_TIMER (0x6009)
+ *                  tick gate, fire a sound (0x6088).
+ *   1 -> 0x12AC  — each expiry of the SUBSTATE_TIMER gate: decrement BLINK_COUNT (0x639E)
+ *                  and toggle the two-cell blinker (0x694D/0x694E); when BLINK_COUNT
+ *                  reaches 0, advance BLINK_ANIM_PHASE 1 -> 2 and re-arm the gate long
+ *                  (0x80 ticks).
  *   2 -> 0x12DE  — advance the game sub-state GAME_SUBSTATE (0x600A) (by 2 for player 2,
  *                  1 for player 1) and set the gate to fire next frame — i.e. hand the
  *                  sequence off to the following sub-state.
@@ -41,11 +43,11 @@
  * verified statically, and the full-handler replay in the gate confirms it), so folding it
  * away is memory-equivalent.
  *
- * NAME: kept neutral loc_127f on purpose. The dispatch MECHANISM is fully understood, but
- * the selector 0x639D is unconfirmed (deliberately unnamed in ram.js) and the animated
- * sequence's game-semantic identity is not settled to the proposer!=confirmer bar, so an
- * English name would over-assert. Promote (e.g. dispatchAnimationStep) only once 0x639D is
- * confirmed to ram.js.
+ * NAME: kept neutral loc_127f on purpose. The dispatch MECHANISM is fully understood, and
+ * the selector is now named BLINK_ANIM_PHASE (0x639D) in ram.js — but at [code] confidence,
+ * and the animated sequence's game-semantic identity (WHAT blinks) is still inferential, so
+ * an English function name would over-assert. Promote (e.g. dispatchAnimationStep) once the
+ * blink sequence's identity is settled to the proposer!=confirmer bar.
  *
  * Memory-equivalent to the frozen oracle — equivalence-127f.test.js.
  * GATE:     crafted-entry — a real attract-run machine with the phase 0x639D poked to each
@@ -62,14 +64,12 @@
  *           this level, so this routine returns nothing too; loc_127f's callers ignore any
  *           return. Residual A/HL/DE/flags are the trampoline's dead ABI handoff, read by
  *           no arm.
- * NAMES:    none from ram.js — the selector 0x639D is unconfirmed, so kept hex; table base
- *           0x1283 kept hex (ROM data, not work RAM).
+ * NAMES:    BLINK_ANIM_PHASE (0x639D) from ram.js is the selector; BLINK_COUNT (0x639E) the
+ *           repeat-count the arms step. Table base 0x1283 kept hex (ROM data, not work RAM).
  */
 
 import { dispatchGameState } from "../translated/dispatchGameState.js";
-
-// The sequence-phase selector byte (0..2 in play). Unconfirmed in ram.js, so kept hex.
-const PHASE = 0x639d;
+import { BLINK_ANIM_PHASE } from "./ram.js";
 
 // The `rst 0x28` inline jump table: 4 little-endian target addresses in ROM starting at
 // 0x1283 (0x128B, 0x12AC, 0x12DE, 0x0000), indexed by the phase. A ROM-data address, hex.
@@ -84,7 +84,7 @@ export function loc_127f(m) {
   const { mem } = m;
 
   // ld a,(0x639d) — the animation-sequence phase index (0..2).
-  const phase = mem.read8(PHASE);
+  const phase = mem.read8(BLINK_ANIM_PHASE);
 
   // rst 0x28: `add a,a` doubles the index to a 2-byte table offset, and it is an 8-bit
   // result — selector 0x80 wraps the offset to 0 — so the address math is

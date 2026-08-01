@@ -5,7 +5,7 @@
  * A single-byte `ret`. It takes no inputs, reads and writes no memory, and just
  * returns to its caller. entry_1a07 (ROM 0x1A07) dispatches an rst-0x28 inline jump
  * table on BONUS_EXPIRED_STEP (0x6386, values 0..3): idx0 -> 0x1A1E (THIS), idx1 ->
- * loc_1a15 (INIT: clear the delay counter 0x6387, advance the step to 2), idx2 ->
+ * loc_1a15 (INIT: clear BONUS_EXPIRED_DELAY 0x6387, advance the step to 2), idx2 ->
  * loc_1a1f (DELAY: count that counter down, advance to step 3), idx3 -> 0x1A2A. THIS
  * is idx0 — the arm taken while the step is 0, i.e. every frame the on-screen BONUS
  * has not yet reached zero. Both bonus-decrement sites (entry_2cb8, sub_2fcb) set the
@@ -13,11 +13,12 @@
  * sits in state 0 and this no-op runs, so the router does nothing that frame.
  *
  * NAME PROMOTED (vs a neutral loc_): unlike the structural twin loc_1e49 — whose
- * router byte 0x6340 is unnamed engine scratch (a REJECT in ram.js), so it correctly
- * kept a loc_ name — this arm's router byte 0x6386 = BONUS_EXPIRED_STEP is a RAM name
- * confirmed by both verifiers, and the bonus-expired sequence's purpose is established,
- * so the ROLE is earned, not guessed. Both facts (the byte's identity and that step 0
- * is the pre-expiry idle) are ROM-cited via entry_1a07's table. (A reviewer preferring
+ * router byte 0x6340 = EFFECT_STATE carries only a [code]-level ram.js name whose
+ * game-semantics are still to be grounded, so that twin kept a loc_ name — this arm's
+ * router byte 0x6386 = BONUS_EXPIRED_STEP is a RAM name confirmed by both verifiers,
+ * and the bonus-expired sequence's purpose is established, so the ROLE is earned, not
+ * guessed. Both facts (the byte's identity and that step 0 is the pre-expiry idle) are
+ * ROM-cited via entry_1a07's table. (A reviewer preferring
  * maximal conservatism can fall back to loc_1a1e — the mechanics are identical either
  * way; only the label's confidence differs.)
  *

@@ -17,7 +17,8 @@
  *   - Stamp three fixed cutscene tiles: 0x76A3 <- 0x10, 0x7663 <- 0x10, 0x75AA <- 0xD4.
  *   - Clear the work-RAM cutscene bookkeeping byte 0x62AF to 0.
  *   - Seed the two cutscene walk pointers the later steps consume:
- *       0x63C2 <- 0x38B4 (loc_0b06's) and 0x63C4 <- 0x38CB (loc_0b68's).
+ *       INTRO_WALK_PTR_A (0x63C2) <- 0x38B4 (loc_0b06's) and INTRO_WALK_PTR_B (0x63C4)
+ *       <- 0x38CB (loc_0b68's).
  *   - Arm SUBSTATE_TIMER (0x6009) to 0x40 — a 64-frame countdown for step 1
  *     (runIntroClimbStep gates on this expiring).
  *   - `inc (INTRO_STEP)` — advance 0 -> 1 so the NEXT dispatch runs the following
@@ -38,18 +39,19 @@
  *           other output is an immediate / the deterministic 0x380D record walk. Teeth:
  *           a swapped walk-pointer seed (0x63C2) and a dropped INTRO_STEP advance.
  * LIVE-OUT: memory-only — the palette latch, VRAM (0x76A3/0x7663/0x75AA + loc_0da7's
- *           girder/ladder tiles), the 0x63AB.. segment scratch, 0x62AF, 0x63C2/0x63C4,
- *           SUBSTATE_TIMER, and INTRO_STEP. No live registers/flags: the caller
+ *           girder/ladder tiles), the SEG_* segment scratch (0x63AB..), 0x62AF,
+ *           INTRO_WALK_PTR_A/B, SUBSTATE_TIMER, and INTRO_STEP. No live registers/flags: the caller
  *           (dispatchIntroCutsceneStep's rst-0x28 tail) makes no `ret cc` and reloads
  *           A/HL/DE before reading them (oracle's residual A=0x40, HL=0x6385, DE/BC =
  *           loc_0da7's leavings are all dead ABI). SP/pc are the dropped stack model.
- * NAMES:    SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385) from ram.js. Hex-kept (no
- *           ram.js name): PALETTE_BANK_LO/HI (ls259 board latch, not work RAM), the
+ * NAMES:    SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), INTRO_WALK_PTR_A (0x63C2) and
+ *           INTRO_WALK_PTR_B (0x63C4, the cutscene walk pointers) from ram.js. Hex-kept
+ *           (no ram.js name): PALETTE_BANK_LO/HI (ls259 board latch, not work RAM), the
  *           0x380D record table + 0x38B4/0x38CB pointer seeds (ROM data), the three
- *           cutscene tiles (VRAM), 0x62AF, and 0x63C2/0x63C4 (cutscene walk pointers).
+ *           cutscene tiles (VRAM), and 0x62AF (board bookkeeping, rejected in ram.js).
  */
 
-import { SUBSTATE_TIMER, INTRO_STEP } from "./ram.js";
+import { SUBSTATE_TIMER, INTRO_STEP, INTRO_WALK_PTR_A, INTRO_WALK_PTR_B } from "./ram.js";
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0DA7 — walk 0x380D + draw the playfield
 
 // The two-bit palette-bank select latch (ls259.6h at 0x7D86/0x7D87) — a board control
@@ -64,12 +66,7 @@ const CUTSCENE_TILE_A = 0x76a3;
 const CUTSCENE_TILE_B = 0x7663;
 const CUTSCENE_TILE_C = 0x75aa;
 
-const CUTSCENE_BOOKKEEPING = 0x62af; // work-RAM byte cleared each setup (unnamed)
-
-// The two cutscene walk pointers later steps consume: 0x63C2 is loc_0b06's, 0x63C4 is
-// loc_0b68's (unnamed in ram.js). Seeded to ROM addresses 0x38B4 / 0x38CB.
-const WALK_PTR_0B06 = 0x63c2;
-const WALK_PTR_0B68 = 0x63c4;
+const CUTSCENE_BOOKKEEPING = 0x62af; // work-RAM byte cleared each setup (unnamed in ram.js)
 
 export function setupIntroCutsceneStep(m) {
   const { regs, mem } = m;
@@ -92,8 +89,8 @@ export function setupIntroCutsceneStep(m) {
   mem.write8(CUTSCENE_BOOKKEEPING, 0x00);
 
   // Seed the two walk pointers the later cutscene steps advance.
-  mem.write16(WALK_PTR_0B06, 0x38b4);
-  mem.write16(WALK_PTR_0B68, 0x38cb);
+  mem.write16(INTRO_WALK_PTR_A, 0x38b4);
+  mem.write16(INTRO_WALK_PTR_B, 0x38cb);
 
   // Arm the 64-frame phase countdown, then advance INTRO_STEP 0 -> 1 so the next
   // dispatch runs step 1 instead of re-running this setup.

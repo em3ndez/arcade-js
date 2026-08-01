@@ -7,7 +7,7 @@
  * least five bytes and the table ends with a leading 0xAA. Record layout as the
  * code uses it:
  *
- *   +0  kind / terminator   -> stashed at KIND (0x63b3); 0xAA ends the walk
+ *   +0  kind / terminator   -> stashed at SEG_KIND (0x63b3); 0xAA ends the walk
  *   +1  y  (first point)     -> H/B
  *   +2  x  (first point)     -> L/C
  *   +3  y2 (second point y)  -> H, then A = |y2 - y| (the segment's height/extent)
@@ -31,13 +31,14 @@
  *           empty-table terminator. Teeth: a dropped-neg abs-diff (caught in RAM at
  *           the height byte) and a widened sub-tile mask (caught at 0x63b4).
  * LIVE-OUT: memory-only — the drawn playfield (VRAM tiles) plus the segment scratch
- *           0x63ab/0x63af/0x63b3/0x63b4 this routine writes and 0x63ad/0x63b0-0x63b2
- *           loc_0dd3 writes. No live registers: every caller reloads A/HL/DE right
+ *           SEG_ADDR1/SEG_SUBTILE1/SEG_KIND/SEG_SUBTILE_Y1 this routine writes and
+ *           SEG_ADDR2/SEG_SUBTILE2/SEG_HEIGHT/SEG_RUN loc_0dd3 writes. No live registers:
+ *           every caller reloads A/HL/DE right
  *           after the call (loc_0f35/loc_0b68/loc_0a8a/loc_0cc6 checked). SP/pc are
  *           the dropped stack model (the oracle's push/call/ret becomes the JS call
  *           stack); sub_2ff0's `ret` drifts SP but writes no game-visible RAM.
- * NAMES:    none confirmed in ram.js for the segment scratch (0x63ab/0x63af/0x63b3/
- *           0x63b4) — kept hex via local consts, matching the sibling loc_0dd3.
+ * NAMES:    SEG_ADDR1 (0x63ab), SEG_SUBTILE1 (0x63af), SEG_KIND (0x63b3),
+ *           SEG_SUBTILE_Y1 (0x63b4) from ram.js — the board-render segment scratch.
  *           Neutral loc_ name kept to match the record-drawing family (loc_0dd3 /
  *           loc_0e19 / loc_0e4f / loc_0e2a), per loc_0dd3's confirmer note that this
  *           family's game-level semantics are documented but not at the name bar.
@@ -45,11 +46,7 @@
 
 import { sub_2ff0 } from "../translated/sub_2ff0.js"; // ROM 0x2FF0 — (H=y, L=x) -> HL = tile address; no idiomatic yet
 import { loc_0dd3 } from "./loc_0dd3.js"; // ROM 0x0DD3 — convert the 2nd endpoint + draw the segment
-
-const KIND = 0x63b3; // record kind / 0xAA terminator / segment-drawer dispatch selector
-const ADDR1 = 0x63ab; // first point's tile address (from sub_2ff0)
-const PHASE_Y1 = 0x63b4; // first point's y & 7 (sub-tile Y remainder)
-const SUBTILE1 = 0x63af; // first point's x & 7 (sub-tile X remainder)
+import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./ram.js"; // board-render segment scratch
 
 export function loc_0da7(m) {
   const { regs, mem } = m;
@@ -67,9 +64,9 @@ export function loc_0da7(m) {
   for (;;) {
     regs.sp = spBase;
 
-    // record[+0] = kind -> KIND scratch; 0xAA terminates the walk.
+    // record[+0] = kind -> SEG_KIND scratch; 0xAA terminates the walk.
     const kind = mem.read8(regs.de);
-    mem.write8(KIND, kind);
+    mem.write8(SEG_KIND, kind);
     if (kind === 0xaa) return; // cp 0xaa / ret z
 
     // First point: record[+1] = y, record[+2] = x. Held in H/B and L/C for the
@@ -88,12 +85,12 @@ export function loc_0da7(m) {
     const savedDe = regs.de; // = record+2
     sub_2ff0(m); // ROM 0x2FF0
     regs.de = savedDe;
-    mem.write16(ADDR1, regs.hl);
+    mem.write16(SEG_ADDR1, regs.hl);
 
     // Sub-tile remainders kept beside the tile address — sub_2ff0 divided each
     // coordinate by 8 and dropped the low three bits, so save them here.
-    mem.write8(PHASE_Y1, y & 0x07); // from B
-    mem.write8(SUBTILE1, x & 0x07); // from C
+    mem.write8(SEG_SUBTILE_Y1, y & 0x07); // from B
+    mem.write8(SEG_SUBTILE1, x & 0x07); // from C
 
     // Second point's y: record[+3]. A := |y2 - y| — the segment's height/extent
     // (the ROM's `sub b / jp nc / neg`; the neg runs only on the borrow path, so the

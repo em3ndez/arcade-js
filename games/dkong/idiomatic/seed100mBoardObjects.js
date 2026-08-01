@@ -17,10 +17,11 @@
  *
  *   1. replicateGroupStrided (0x122a): broadcast the 4-byte ROM group at 0x3DF0 into 5
  *      object records at 0x6407, record stride C+4 = 0x20.
- *   2. seedSpriteObjectPair (0x11a6) with the live-in position table HL = 0x3E14: seed a
- *      pair of objects at 0x6680/0x6690 and emit their two sprite records at 0x6A18.
- *   3. Block-copy the 0x0C-byte ROM table at 0x3E54 into 0x6A0C (inside SPRITE_BUFFER) — an
- *      `ldir`, cycle-free.
+ *   2. seedSpriteObjectPair (0x11a6) with the live-in position table HL = 0x3E14: seed
+ *      OBJ_PAIR_6680 (the pair of objects at 0x6680/0x6690) and emit their two sprite
+ *      records at 0x6A18.
+ *   3. Block-copy the 0x0C-byte ROM table at 0x3E54 into OBJECT_COLLISION_SPRITES (0x6A0C,
+ *      inside SPRITE_BUFFER) — an `ldir`, cycle-free.
  *   4. copyBytePairsStrided (0x11ec): scatter the ROM table at 0x1182 (the 2nd inline data
  *      unit after the routine body, used first) into offsets +3/+5 of two records at
  *      0x64A3, record stride C+2 = 0x20 — the objects' X (+3) and Y (+5) position fields.
@@ -33,8 +34,10 @@
  *      0x6950 — X <- +3, code <- +7, attr <- +8, Y <- +5.
  *
  * The precise identity of the seeded objects (which 100m actors — the rivet board's
- * firefoxes/hammers/decor) is not independently established; 0x6407/0x64A0/0x6680 are
- * unnamed work RAM. The name describes the MECHANISM and the board, exactly at the evidence
+ * firefoxes/hammers/decor) is not independently established: 0x6680/0x6690 is OBJ_PAIR_6680
+ * in ram.js but 0x6407 and 0x64A0/0x64C0 are only reachable as fields/records of OBJ_ARRAY_64
+ * (0x6400, "up to 7 records on 100m"), whose per-record identities stay hex. The name
+ * describes the MECHANISM and the board, exactly at the evidence
  * bar of its callee seedObjectBlockSprites — object-record blocks (they feed the same
  * gather/seed helpers with the same +3/+7/+8/+5 field layout) plus their sprite mirror in
  * SPRITE_BUFFER. 100m == board 4 is airtight from the dispatch table (sub_0f56's 0x0FCD
@@ -64,12 +67,17 @@
  *           verifies them as a free safety margin. The oracle's terminal `ret` (pc/SP) is the
  *           dropped control-flow model — the JS call stack replaces it; the test models one
  *           `ret` on the candidate to line pc + SP up.
- * NAMES:    none imported — every operand is a fixed immediate; the object records (0x6407,
- *           0x6680, 0x64A0) are unnamed work RAM and the sprite destinations (0x6950, 0x6A0C,
- *           0x6A18) fall inside SPRITE_BUFFER (0x6900–0x6A7F) but stay hex, matching the
- *           sibling coordinators seedObjectBlockSprites / seedSpriteObjectPair.
+ * NAMES:    OBJECT_COLLISION_SPRITES (0x6A0C) from ram.js — the step-3 ldir destination,
+ *           the exact named base of the 3 collision sprite records (0x0C bytes = 3 records).
+ *           Everything else is a fixed immediate the callee ABIs consume: 0x6680/0x6690 is
+ *           OBJ_PAIR_6680 but appears only inside seedSpriteObjectPair (not this file's code);
+ *           the object records 0x6407 / 0x64A0 / 0x64A3 / 0x64A7 are fields/records of
+ *           OBJ_ARRAY_64 (0x6400) with no per-cell names, so they stay hex register loads; and
+ *           the other sprite destinations 0x6950 / 0x6A18 sit inside SPRITE_BUFFER
+ *           (0x6900–0x6A7F) at no named sub-base, so they stay hex too.
  */
 
+import { OBJECT_COLLISION_SPRITES } from "./ram.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
@@ -91,11 +99,11 @@ export function seed100mBoardObjects(m) {
   regs.hl = 0x3e14;
   seedSpriteObjectPair(m);
 
-  // Step 3 — copy the 0x0C-byte ROM table at 0x3E54 into 0x6A0C (a forward block copy,
-  // faithful to the oracle's `ldir`). The ldir's terminal HL/DE/BC are dead — step 4
-  // reloads all three — so they are not reproduced.
+  // Step 3 — copy the 0x0C-byte ROM table at 0x3E54 into OBJECT_COLLISION_SPRITES (0x6A0C,
+  // the 3 collision sprite records) — a forward block copy faithful to the oracle's `ldir`.
+  // The ldir's terminal HL/DE/BC are dead — step 4 reloads all three — so they are not reproduced.
   let src = 0x3e54;
-  let dst = 0x6a0c;
+  let dst = OBJECT_COLLISION_SPRITES;
   for (let i = 0; i < LDIR_BYTES; i++) {
     mem.write8(dst, mem.read8(src));
     src = (src + 1) & 0xffff;

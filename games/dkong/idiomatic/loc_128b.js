@@ -15,17 +15,18 @@
  *     a plain early return on the callee's `false`.
  *   - On expiry it turns the blinker ON: rewrites Mario's sprite-code byte (0x694D) to the
  *     fixed tile code 0x78, preserving its old bit 7 (Mario's facing flag → 0xF8 if set).
- *   - Advances the phase 0x639D 0 → 1 and primes the blink repeat-count 0x639E = 0x0D, then
- *     re-arms the gate to 8 (the 8-frame blink cadence arm 1 runs on).
+ *   - Advances BLINK_ANIM_PHASE (0x639D) 0 → 1 and primes the blink repeat-count BLINK_COUNT
+ *     (0x639E) = 0x0D, then re-arms the gate to 8 (the 8-frame blink cadence arm 1 runs on).
  *   - Clears the blinker's four disjoint sprite-record runs via sub_30bd, then fires the
  *     sequence's sound cue (SND_IRQ_TRIGGER 0x6088 = 3).
  *
  * NAME: kept neutral loc_128b on purpose, to match its dispatcher loc_127f and its sibling
  * arm loc_12ac. The seed/blink/advance MECHANISM is fully understood and corroborated (the
- * oracle header and loc_127f's arm-0 description agree), but the selector 0x639D is
- * deliberately unnamed in ram.js and the animated sequence's game-semantic identity is not
- * settled to the proposer!=confirmer bar, so an English name would over-assert. Promote
- * alongside loc_127f/loc_12ac only once 0x639D is confirmed.
+ * oracle header and loc_127f's arm-0 description agree). The selector 0x639D and repeat-count
+ * 0x639E are now BLINK_ANIM_PHASE / BLINK_COUNT in ram.js, but those are [code]-level names
+ * ("WHAT blinks is inferential") — the animated sequence's game-semantic identity is still
+ * not settled to the proposer!=confirmer bar, so an English ROUTINE name would over-assert.
+ * Promote alongside loc_127f/loc_12ac only once the sequence's identity is confirmed.
  *
  * Callees: tickSubstateTimer (rst 0x18, 0x0018), the idiomatic version, called directly;
  * and sub_30bd (0x30BD), still the frozen oracle (no idiomatic yet), called directly. The
@@ -46,18 +47,20 @@
  *           reads none of its registers; the oracle's residual A/HL and flags are dead ABI
  *           (pc/SP model the caller-skip return + sub_30bd's tail-jump pop, both reconciled
  *           by the harness).
- * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C), SND_IRQ_TRIGGER (0x6088)
- *           from ram.js; 0x639D (phase) and 0x639E (blink repeat-count) kept hex, unconfirmed
- *           in ram.js.
+ * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C), SND_IRQ_TRIGGER (0x6088),
+ *           BLINK_ANIM_PHASE (0x639D) and BLINK_COUNT (0x639E) from ram.js — the last two
+ *           landed as [code]-level names in the DE naming pass (semantics still inferential).
  */
 
-import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "./ram.js";
+import {
+  SUBSTATE_TIMER,
+  MARIO_SPRITE_RECORD,
+  SND_IRQ_TRIGGER,
+  BLINK_ANIM_PHASE,
+  BLINK_COUNT,
+} from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { sub_30bd } from "../translated/sub_30bd.js"; // ROM 0x30BD — no idiomatic yet; call the oracle
-
-// Sequence-phase selector and the blink repeat-count. Unconfirmed in ram.js, kept hex.
-const PHASE = 0x639d;
-const BLINK_COUNT = 0x639e;
 
 // The blinker cell: sprite-code byte (+1) of Mario's hardware sprite record at 0x694C.
 const SPRITE_CODE = MARIO_SPRITE_RECORD + 1; // 0x694D
@@ -76,9 +79,9 @@ export function loc_128b(m) {
   const code = mem.read8(SPRITE_CODE);
   mem.write8(SPRITE_CODE, (code & 0x80) | 0x78);
 
-  // Advance the phase 0 → 1, prime the blink repeat-count, and re-arm the gate to the
+  // Advance BLINK_ANIM_PHASE 0 → 1, prime the blink repeat-count, and re-arm the gate to the
   // 8-frame blink cadence arm 1 (loc_12ac) runs on.
-  mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
+  mem.write8(BLINK_ANIM_PHASE, (mem.read8(BLINK_ANIM_PHASE) + 1) & 0xff);
   mem.write8(BLINK_COUNT, 0x0d);
   mem.write8(SUBSTATE_TIMER, 0x08);
 

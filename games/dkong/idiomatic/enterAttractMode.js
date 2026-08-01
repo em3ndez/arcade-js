@@ -3,7 +3,7 @@
  * enterAttractMode — reset the machine into attract mode.  ROM 0x1475.
  *
  * The tail of loc_141e's player-record search (ROM 0x141E): that routine scans the
- * five 0x611C player-context records for one marked 1 or 3 (a game still in play);
+ * five PLAYER_SLOT_RECORDS (0x611C) for one marked 1 or 3 (a game still in play);
  * when NEITHER is found it falls through here (`jp 0x1475`) to put the cabinet back
  * into its idle attract demo. Four unconditional stores do that:
  *

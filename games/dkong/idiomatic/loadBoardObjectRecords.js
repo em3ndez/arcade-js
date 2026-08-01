@@ -9,18 +9,21 @@
  * groups, routed by the record's leading TYPE byte:
  *
  *   - Record layout (5 bytes): [type, fieldA, fieldB, (unused +3), fieldC].
- *   - TYPE 0  -> the IX group at 0x6300: fieldA -> +0, fieldB -> +0x15, fieldC -> +0x2a,
- *               then the group index advances by one (three parallel arrays, stride 0x15).
- *   - TYPE 1  -> the IY group at 0x6310, same +0/+0x15/+0x2a de-interleave and advance.
+ *   - TYPE 0  -> the IX group OBJ_PARAM_TABLE0 (0x6300): fieldA -> +0, fieldB -> +0x15,
+ *               fieldC -> +0x2a, then the group index advances by one (three parallel
+ *               arrays, stride 0x15).
+ *   - TYPE 1  -> the IY group OBJ_PARAM_TABLE1 (0x6310), same +0/+0x15/+0x2a de-interleave
+ *               and advance.
  *   - TYPE 0xAA -> terminator: return. THE ONLY EXIT.
  *   - Any other TYPE -> skip this record (advance 5 bytes) and continue.
  *
  * Two small heads run before the walk:
  *   - HEAD A picks the IY group's base. It forms an 8-bit modular checksum, seeded
- *     with 0x5E, over the six ROM bytes at 0x3F0C; base is 0x6310 when the checksum
- *     is 0, else 0x6311. On the shipped ROM those bytes sum the checksum to exactly
- *     0, so the base is always 0x6310 and the 0x6311 arm is dead in practice — but it
- *     is modelled faithfully (a data-integrity guard whose result is a constant here).
+ *     with 0x5E, over the six ROM bytes at 0x3F0C; base is OBJ_PARAM_TABLE1 (0x6310)
+ *     when the checksum is 0, else 0x6311. On the shipped ROM those bytes sum the
+ *     checksum to exactly 0, so the base is always 0x6310 and the 0x6311 arm is dead
+ *     in practice — but it is modelled faithfully (a data-integrity guard whose result
+ *     is a constant here).
  *   - HEAD B picks the ROM record table from BOARD (0x6227): 1->0x3AE4, 2->0x3B5D,
  *     3->0x3BE5, and everything else (4, 0, 5+) -> the default table 0x3C8B.
  *
@@ -40,22 +43,20 @@
  *           not live either: the oracle's terminal `ret` (pc<-return addr, SP+2) is the
  *           modelled stack ABI the direct-call layer replaces with a JS return, and the
  *           harness supplies one m.ret() on the candidate to line them up.
- * NAMES:    BOARD (0x6227) from ram.js — the board selector. Everything else stays hex:
- *           the checksum/record ROM addresses (0x3F0C, 0x3AE4/0x3B5D/0x3BE5/0x3C8B) are
- *           ROM data; the destination bases 0x6300/0x6310 are unnamed engine/object
- *           scratch (ram.js leaves them hex); +0/+0x15/+0x2a are record field strides.
+ * NAMES:    BOARD (0x6227), OBJ_PARAM_TABLE0 (0x6300), OBJ_PARAM_TABLE1 (0x6310) from
+ *           ram.js — the board selector and the two destination group bases (the ABC
+ *           naming pass named them: this routine is cited as the de-interleaver). The
+ *           rest stays hex: the checksum/record ROM addresses (0x3F0C,
+ *           0x3AE4/0x3B5D/0x3BE5/0x3C8B) are ROM data; +0/+0x15/+0x2a are record field
+ *           strides.
  */
 
-import { BOARD } from "./ram.js";
+import { BOARD, OBJ_PARAM_TABLE0, OBJ_PARAM_TABLE1 } from "./ram.js";
 
 // HEAD A — the ROM checksum that picks the IY group base.
 const CHECKSUM_SEED = 0x5e;
 const CHECKSUM_ROM = 0x3f0c; // six ROM data bytes, summed mod 256
 const CHECKSUM_LEN = 6;
-
-// Destination group bases (unnamed 0x63xx object scratch — kept hex).
-const IX_GROUP_BASE = 0x6300; // type-0 records land here
-const IY_GROUP_BASE = 0x6310; // type-1 records land here (0x6311 when checksum != 0)
 
 // Per-board ROM record tables (ROM data addresses — kept hex).
 const TABLE_BOARD_1 = 0x3ae4;
@@ -81,7 +82,7 @@ export function loadBoardObjectRecords(m) {
     checksum = (checksum + mem.read8((CHECKSUM_ROM + i) & 0xffff)) & 0xff;
   }
   // 0 -> 0x6310, non-zero -> 0x6311 (the ROM sums this to 0, so 0x6310 in practice).
-  let iy = checksum === 0 ? IY_GROUP_BASE : (IY_GROUP_BASE + 1) & 0xffff;
+  let iy = checksum === 0 ? OBJ_PARAM_TABLE1 : (OBJ_PARAM_TABLE1 + 1) & 0xffff;
 
   // -- HEAD B: BOARD picks the ROM record table --------------------------
   const board = mem.read8(BOARD);
@@ -92,7 +93,7 @@ export function loadBoardObjectRecords(m) {
     TABLE_DEFAULT;
 
   // -- the walk: de-interleave records into the two groups ---------------
-  let ix = IX_GROUP_BASE;
+  let ix = OBJ_PARAM_TABLE0;
   for (;;) {
     const type = mem.read8(hl);
 

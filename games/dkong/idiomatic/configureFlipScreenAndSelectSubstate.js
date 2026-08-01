@@ -14,8 +14,8 @@
  *      sound output and its work-RAM shadow. A blank slate for the board build.
  *   2. FLIP ON. Turn the flip-screen latch (0x7D82) ON unconditionally here; the
  *      cocktail 2-player arm below is the only path that turns it back off.
- *   3. SELECT SUB-STATE from the join value's low byte at 0x600E (written by
- *      loc_08f8: zero for a 1-player start, non-zero for a 2-player start):
+ *   3. SELECT SUB-STATE from ACTIVE_PLAYER_INDEX (0x600E), the join value's low byte
+ *      (written by loc_08f8: zero for a 1-player start, non-zero for a 2-player start):
  *        - == 0  (1-player start): GAME_SUBSTATE = 1, flip-screen left ON. Return.
  *        - != 0  (2-player start): GAME_SUBSTATE = 3, and the cabinet decides the
  *          flip-screen latch — DIP_UPRIGHT(0x6026) == 1 keeps it ON (upright);
@@ -39,22 +39,18 @@
  *           NMI path and consumes none of them; SP/PC are not compared (the
  *           direct-call layer replaces the oracle's `ret` stack/PC bookkeeping with
  *           the JS call stack).
- * NAMES:    GAME_SUBSTATE (0x600A), DIP_UPRIGHT (0x6026) from ram.js. 0x600E (join
- *           low byte) and 0x7D82 (flip-screen board latch) are not in ram.js and
- *           stay local hex constants.
+ * NAMES:    GAME_SUBSTATE (0x600A), DIP_UPRIGHT (0x6026), ACTIVE_PLAYER_INDEX (0x600E)
+ *           from ram.js. 0x7D82 (flip-screen board latch) is not in ram.js and stays a
+ *           local hex constant.
  */
 
-import { GAME_SUBSTATE, DIP_UPRIGHT } from "./ram.js";
+import { GAME_SUBSTATE, DIP_UPRIGHT, ACTIVE_PLAYER_INDEX } from "./ram.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 
 // Flip-screen control latch (ls259.6h bit 2) — a board hardware register, not work
 // RAM, so it lives outside ram.js as a local constant (as in handler_01c3).
 const FLIPSCREEN = 0x7d82;
-
-// Low byte of the 16-bit join value loc_08f8 stored at game start (0 = 1-player,
-// non-zero = 2-player). Not evidenced in ram.js, so it stays hex.
-const JOIN_VALUE_LO = 0x600e;
 
 export function configureFlipScreenAndSelectSubstate(m) {
   const { mem } = m;
@@ -66,8 +62,8 @@ export function configureFlipScreenAndSelectSubstate(m) {
   // 2. Flip-screen ON (the default; only the cocktail arm turns it back off).
   mem.write8(FLIPSCREEN, 1);
 
-  // 3. Select the starting sub-state from the join value's low byte.
-  if (mem.read8(JOIN_VALUE_LO) === 0) {
+  // 3. Select the starting sub-state from the join value's low byte (0 = 1-player start).
+  if (mem.read8(ACTIVE_PLAYER_INDEX) === 0) {
     // 1-player start: sub-state 1, flip-screen left ON.
     mem.write8(GAME_SUBSTATE, 0x01);
     return;

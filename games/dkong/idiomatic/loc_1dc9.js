@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * loc_1dc9 — sub_1dbd's state-1 handler: arm the state-2 countdown, advance the state
- * 1 -> 2, then dispatch to the effect-sprite setter selected by 0x6342's low bits (or,
- * if none are set, by the current LEVEL).  ROM 0x1dc9.
+ * 1 -> 2, then dispatch to the effect-sprite setter selected by EFFECT_SELECT's (0x6342)
+ * low bits (or, if none are set, by the current LEVEL).  ROM 0x1dc9.
  *
- * sub_1dbd is the rst-0x28 router on the effect-sprite state byte 0x6340 (0 = idle
- * loc_1e49, 1 = here, 2 = the countdown loc_1e4a, 3 = reset). This is the one-shot that
- * runs when the machine enters state 1: it stores 0x6341 := 0x40 (the value the state-2
- * countdown loc_1e4a works down) and advances 0x6340 := 2 unconditionally, on every path,
- * before doing anything else. Then it spawns exactly one effect sprite by tail-jumping to
- * one of the sibling setters:
+ * sub_1dbd is the rst-0x28 router on the effect-sprite state byte EFFECT_STATE (0x6340; 0 =
+ * idle loc_1e49, 1 = here, 2 = the countdown loc_1e4a, 3 = reset). This is the one-shot that
+ * runs when the machine enters state 1: it stores EFFECT_TIMER (0x6341) := 0x40 (the value the
+ * state-2 countdown loc_1e4a works down) and advances EFFECT_STATE (0x6340) := 2 unconditionally,
+ * on every path, before doing anything else. Then it spawns exactly one effect sprite by
+ * tail-jumping to one of the sibling setters:
  *
- *   - 0x6342 bit 0 set   -> loc_3e70  (RNG-free encoder over the remaining 0x6342 bits)
+ *   - EFFECT_SELECT bit 0 set -> loc_3e70  (RNG-free encoder over the remaining EFFECT_SELECT bits)
  *   - else bit 1 set     -> loc_1e00  (constant setter B=0x7D / DE=0x0003)
  *   - else bit 2 set     -> loc_1df5  (dispatch on RANDOM's low two bits)
  *   - else (bits 0-2 all clear) -> cue the effect sound (SND_TRIGGER[5] := 3), then pick
  *     the setter by LEVEL: 1 -> loc_1e00, 2 -> loc_1e08, otherwise -> loc_1e10.
  *
- * The oracle walks 0x6342's bits with a chain of `rra`s (carry = bit 0, then bit 1, then
+ * The oracle walks EFFECT_SELECT's bits with a chain of `rra`s (carry = bit 0, then bit 1, then
  * bit 2) — "first set bit wins" is exactly the if/else-if here without the register model —
  * and walks the LEVEL cases with a `dec a` chain off (0x6229). Every exit is a TAIL jump,
  * so in this layer each is a direct JS call and the Z80 stack becomes the JS call stack.
@@ -31,32 +31,34 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-1dc9.test.js.
  * GATE:     crafted-entry — oracle-vs-idiomatic on real captured 0x1dc9 dispatches (attract
- *           reaches this while the 25m demo plays; sub_1dbd calls it whenever 0x6340 == 1),
- *           compared on RAM − STACK_SCRATCH. Plus an EXHAUSTIVE 0x6342 sweep (0..255) that
+ *           reaches this while the 25m demo plays; sub_1dbd calls it whenever EFFECT_STATE == 1),
+ *           compared on RAM − STACK_SCRATCH. Plus an EXHAUSTIVE EFFECT_SELECT sweep (0..255) that
  *           crafts every top-level arm attract does not naturally reach, and an EXHAUSTIVE
  *           LEVEL sweep (0..255) on a forced fall-through base that crafts the 1/2/>=3
  *           LEVEL sub-dispatch. Each swept value uses a FRESH clone (the routine and its
  *           callees write memory / advance the task ring). Two teeth: a dispatch bit-order
- *           swap (bit 1 tested before bit 0) and a wrong state-advance constant (0x6340 := 3).
- * LIVE-OUT: memory-only — 0x6341 := 0x40, 0x6340 := 2 (both unconditional), plus, on the
- *           fall-through arm, SND_TRIGGER[5] := 3; everything else is written by the chosen
- *           setter's chain (task ring + TASK_TAIL, the sprite record 0x6A30.., the gated
+ *           swap (bit 1 tested before bit 0) and a wrong state-advance constant (EFFECT_STATE := 3).
+ * LIVE-OUT: memory-only — EFFECT_TIMER (0x6341) := 0x40, EFFECT_STATE (0x6340) := 2 (both
+ *           unconditional), plus, on the fall-through arm, SND_TRIGGER[5] := 3; everything else
+ *           is written by the chosen setter's chain (task ring + TASK_TAIL, the sprite record
+ *           POPUP_SPRITE (0x6A30).., the gated
  *           sound). No register is a live-out: the rst-0x28 caller consumes none after the
  *           state handler. The one register that stays is the BOUNDARY into loc_3e70, which
- *           still reads A (its low two bits) — set from 0x6342 >> 1 below; A's high bit and
+ *           still reads A (its low two bits) — set from EFFECT_SELECT >> 1 below; A's high bit and
  *           the oracle's residual A/HL/flags are dead. SP/pc are the dropped stack model:
  *           on the bit-0 arm they track the still-oracle loc_1e28 tail and match it exactly;
  *           on the other arms the fully-idiomatic setters leave them at entry while the
  *           oracle's `ret` chain moves them within STACK_SCRATCH — dead either way.
- * NAMES:    LEVEL (0x6229), SND_TRIGGER (0x6080; the effect sound is SND_TRIGGER[5] = 0x6085)
- *           imported from ram.js. 0x6340 / 0x6341 / 0x6342 are the sub_1dbd effect-sprite
- *           state / countdown / select bytes — engine scratch that ram.js deliberately
- *           leaves unnamed (below the RAM-name evidence bar), so they stay raw hex.
+ * NAMES:    LEVEL (0x6229), SND_TRIGGER (0x6080; the effect sound is SND_TRIGGER[5] = 0x6085),
+ *           and the sub_1dbd effect-sprite cluster EFFECT_STATE (0x6340) / EFFECT_TIMER (0x6341) /
+ *           EFFECT_SELECT (0x6342) — the state / countdown / select bytes — all imported from
+ *           ram.js. (ram.js tags the EFFECT_* names "[code]": the state-machine STRUCTURE is
+ *           certain, the "effect-sprite" semantic is the interpretation still to ground vs MAME.)
  */
-import { LEVEL, SND_TRIGGER } from "./ram.js";
-import { loc_3e70 } from "./loc_3e70.js"; // ROM 0x3E70 — 0x6342 bit 0 arm (reads register A)
-import { loc_1e00 } from "./loc_1e00.js"; // ROM 0x1E00 — 0x6342 bit 1 arm; LEVEL == 1 arm
-import { loc_1df5 } from "./loc_1df5.js"; // ROM 0x1DF5 — 0x6342 bit 2 arm (RNG sub-dispatch)
+import { LEVEL, SND_TRIGGER, EFFECT_STATE, EFFECT_TIMER, EFFECT_SELECT } from "./ram.js";
+import { loc_3e70 } from "./loc_3e70.js"; // ROM 0x3E70 — EFFECT_SELECT bit 0 arm (reads register A)
+import { loc_1e00 } from "./loc_1e00.js"; // ROM 0x1E00 — EFFECT_SELECT bit 1 arm; LEVEL == 1 arm
+import { loc_1df5 } from "./loc_1df5.js"; // ROM 0x1DF5 — EFFECT_SELECT bit 2 arm (RNG sub-dispatch)
 import { loc_1e08 } from "./loc_1e08.js"; // ROM 0x1E08 — LEVEL == 2 arm
 import { loc_1e10 } from "./loc_1e10.js"; // ROM 0x1E10 — LEVEL >= 3 (and 0) arm
 
@@ -66,16 +68,16 @@ export function loc_1dc9(m) {
   const { regs, mem } = m;
 
   // Unconditional on every path: arm the state-2 countdown, then advance the state.
-  mem.write8(0x6341, 0x40); // countdown value the state-2 handler loc_1e4a works down
-  mem.write8(0x6340, 0x02); // *** STATE ADVANCE 1 -> 2 ***
+  mem.write8(EFFECT_TIMER, 0x40); // countdown value the state-2 handler loc_1e4a works down
+  mem.write8(EFFECT_STATE, 0x02); // *** STATE ADVANCE 1 -> 2 ***
 
-  // Dispatch on the low three bits of the effect-select byte 0x6342 (first set bit wins).
-  const select = mem.read8(0x6342);
+  // Dispatch on the low three bits of the effect-select byte EFFECT_SELECT (first set bit wins).
+  const select = mem.read8(EFFECT_SELECT);
 
   if (select & 0x01) {
     // bit 0 -> loc_3e70. It reads register A (its low two bits). The oracle enters it with
-    // A = 0x6342 rotated right once through carry; loc_3e70 consumes only A bits 0-1
-    // (= 0x6342 bits 1-2), so the rotated-in high bit is dead. Hand it that byte here —
+    // A = EFFECT_SELECT rotated right once through carry; loc_3e70 consumes only A bits 0-1
+    // (= EFFECT_SELECT bits 1-2), so the rotated-in high bit is dead. Hand it that byte here —
     // this is the one register that stays, at the boundary into the (register-reading) callee.
     regs.a = select >> 1;
     return loc_3e70(m);

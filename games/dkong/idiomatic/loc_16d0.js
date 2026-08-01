@@ -5,17 +5,18 @@
  * One of two entry variants of the loc_16d5 group-slide tail, in the loc_16bb / loc_16d0 /
  * loc_16e1 substate family that walks a horizontally-moving group of 10 sprites back and
  * forth. The dispatcher loc_16bb runs first every frame: it CLEARS object #1's even-frame
- * countdown (0x62A0 := 0), reads record #2's X (0x6910) and the object's published step sign
+ * countdown (M50_OBJ1_REVERSE_TIMER := 0), reads record #2's X (0x6910) and the object's step sign
  * (bit 7 of 0x63A3), and routes to a tail by whether the group has reached the edge it is
  * currently moving toward (X vs the 0x5A / 0x5D rails). loc_16d0 is the "hit the boundary"
  * arm:
  *
- *   1. Set object #1's countdown 0x62A0 := 1. Because loc_2602 decrements this on the next
- *      EVEN frame, a value of 1 makes it underflow immediately — which is exactly the event
- *      loc_2602 turns into "reload the period (0x80) and REVERSE the step-direction sign at
- *      0x62A1". So writing 1 here schedules a direction reversal for the next tick: the group
- *      bounces off the edge. (The plain loc_16d5 arm leaves 0x62A0 at the 0 the dispatcher
- *      pre-set, so its countdown wraps to 0xFF and the group keeps travelling.)
+ *   1. Set object #1's countdown M50_OBJ1_REVERSE_TIMER := 1. Because loc_2602 decrements this
+ *      on the next EVEN frame, a value of 1 makes it underflow immediately — which is exactly
+ *      the event loc_2602 turns into "reload the period (0x80) and REVERSE the step-direction
+ *      sign at M50_OBJ1_STEP_DIR (0x62A1)". So writing 1 here schedules a direction reversal for
+ *      the next tick: the group bounces off the edge. (The plain loc_16d5 arm leaves
+ *      M50_OBJ1_REVERSE_TIMER at the 0 the dispatcher pre-set, so its countdown wraps to 0xFF
+ *      and the group keeps travelling.)
  *
  *   2. Fall straight into loc_16d5 to run THIS frame's motion tick — advance object #1 and
  *      shift the whole 10-record sprite-object block one step along X.
@@ -24,10 +25,11 @@
  * (loc_16d5 → loc_2602 reads FRAME, not A), so the store is expressed directly as a memory
  * write with no register plumbing. Not a leaf: it tail-calls loc_16d5 (0x16d5, already
  * idiomatic), which drives loc_2602 + addStrided. The on-screen object/scene is UNCONFIRMED
- * — loc_16d5 and loc_2602 both declined an English name over the sprite-record trap, and
- * 0x62A0 is unnamed engine scratch (not in ram.js) — so this routine keeps the neutral
- * loc_16d0 name and describes the mechanic in prose; a reviewer who promotes loc_2602 can
- * promote this in the same pass.
+ * — loc_16d5 and loc_2602 both declined an English name over the sprite-record trap (the
+ * 50m-object cells 0x62A0/0x62A1 are now named M50_OBJ1_REVERSE_TIMER/M50_OBJ1_STEP_DIR in
+ * ram.js at [code] confidence, but WHAT they animate is not settled) — so this routine keeps
+ * the neutral loc_16d0 name and describes the mechanic in prose; a reviewer who promotes
+ * loc_2602 can promote this in the same pass.
  *
  * Memory-equivalent to the frozen oracle — equivalence-16d0.test.js.
  * GATE:     crafted-entry; attract never dispatches 0x16d0 (0× / 2500 frames, asserted — the
@@ -42,11 +44,13 @@
  *           dispatched from the in-game substate table (0x0702) and returns through the NMI
  *           dispatcher, which reads no register or flag it leaves — A/B/C/DE/HL are dead ABI.
  *           The RAM diff (+ SP/pc) backstops that.
- * NAMES:    0x62A0 — object #1's even-frame countdown (named in prose only, matching loc_2602;
- *           it is not in ram.js). SPRITE_OBJ_BLOCK and the rest live inside loc_16d5.
+ * NAMES:    M50_OBJ1_REVERSE_TIMER (0x62A0) — object #1's even-frame reversal countdown — and
+ *           M50_OBJ1_STEP_DIR (0x62A1) from ram.js (matching loc_2602). SPRITE_OBJ_BLOCK and
+ *           the rest live inside loc_16d5.
  */
 
 import { loc_16d5 } from "./loc_16d5.js"; // ROM 0x16D5 — the shared group-slide motion tick
+import { M50_OBJ1_REVERSE_TIMER } from "./ram.js";
 
 export function loc_16d0(m) {
   const { mem } = m;
@@ -54,7 +58,7 @@ export function loc_16d0(m) {
   // Arm object #1's countdown to underflow on the next even frame -> loc_2602 reloads the
   // period and reverses the group's step direction. (The oracle's `ld a,1` / `ld (0x62A0),a`;
   // A is dead past the store, so no register is set.)
-  mem.write8(0x62a0, 0x01);
+  mem.write8(M50_OBJ1_REVERSE_TIMER, 0x01);
 
   // Fall through to the shared motion tick (advance object #1, slide the 10-record block).
   loc_16d5(m);

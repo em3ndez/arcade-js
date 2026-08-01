@@ -148,12 +148,57 @@ drawing primitives — `drawGirderSpan` (fills a segment body with the girder ti
 `fillTileBlock`, `fillTileRowPair`, `fillDescendingColumn`, plus board-specific stampers
 (`stamp50mBoardTiles`, `stamp75mBoardTiles`, `stampRivetBoardBands/Tiles`,
 `stampFixedTilePair`, `stampTwoTileBands`). `loc_0da7`/`loc_0dd3` walk the board-layout
-**segment table** and draw each segment (endpoints → run deltas → body fill). `[code]`
+**segment table** (`0xAA`-terminated) and draw each segment through a shared per-record
+working block `SEG_* (0x63AB–0x63B5)`: the two endpoint tile addresses `SEG_ADDR1`/`SEG_ADDR2`,
+their sub-tile offsets (`SEG_SUBTILE1`/`SEG_SUBTILE2`/`SEG_SUBTILE_Y1`), the height
+`SEG_HEIGHT = |y2−y|`, the run `SEG_RUN = x2−x` (its sign gives the slant), and a `SEG_KIND`
+selector that dispatches girder-span vs `drawLadder` vs `fillTileColumn` while `SEG_TILE`
+holds the tile being stamped (endpoints → run deltas → body fill). `[code]`
 
 Objects for the board are scattered into records by `loadBoardObjectRecords`,
 `loadSpriteObjectBlock`, `seedObjectBlockSprites`, `seedSpriteObjectPair`,
 `replicateGroupStrided`, and Mario himself is spawned by `seedMarioActorRecord` at a
 board-dependent start. `[code]`
+
+### Object records: the arrays, the shared fields, and the gather → sprite → DMA path
+
+Every non-Mario actor lives as a fixed-stride record in one of a handful of **object-record
+arrays**, seeded at board build and updated each frame by the (mostly oracle-only) actor AI:
+`OBJ_ARRAY_64 (0x6400)` (stride 0x20), `OBJ_ARRAY_65 (0x6500)` (stride 0x10, 10 records),
+`OBJ_ARRAY_65A0 (0x65A0)` (0x10, 6), `OBJ_ARRAY_66 (0x6600)` (0x10, 6),
+`OBJ_PAIR_6680 (0x6680)` (a 2-record pair), `OBJ_RECORD_66A0 (0x66A0)` (single), and
+`OBJ_ARRAY_67 (0x6700)` (stride 0x20, 10 records, spanning page 0x68). `BOARD_OBJ_SCRATCH
+(0x6280)` is the heterogeneous base cleared+templated at each board build. `[code]`
+
+- **Shared field layout** — the same offsets hold across every array (the individual field
+  cells stay hex, reached as base+offset): `OBJ_ACTIVE (+0)` bit0 = slot active, `OBJ_X (+3)`,
+  `OBJ_Y (+5)`, `OBJ_SPRITE_CODE (+7)`, `OBJ_SPRITE_ATTR (+8)`. `[code]`
+- **gather → sprite → DMA.** `gatherSpriteRecords` copies each active object's fields into a
+  4-byte hardware record in `SPRITE_BUFFER (0x6900)` — object `+3 → sprite +0` (X),
+  `+5 → +3` (Y), `+7 → +1` (code), `+8 → +2` (attr) — which `blitSpritesViaDma` then DMAs to
+  sprite RAM `0x7000` every vblank (§9). Named windows inside the buffer:
+  `ACTOR_SPRITES (0x6980)` (10×4, mirrors the `0x6500` array), `TOP_SPRITES (0x6A00)` (the 3
+  decorative records), `OBJECT_COLLISION_SPRITES (0x6A0C)` (the 3 records
+  `scanObjectsAtMarioX`/`confirmObjectHit` test against Mario), and `POPUP_SPRITE (0x6A30)`
+  (the floating score glyph). **Grounded:** sprite `+0 == MARIO_X` and `+3 == MARIO_Y`
+  byte-exact on the real ROM under MAME across 1819 attract frames — which fixes the record's
+  X/Y field positions and, transitively, object `+3`/`+5`. The video hardware reads each record
+  **rotated 90°** for the portrait screen (raster `+0 = y`, `+3 = x`), so the game-frame
+  "X at +0 / Y at +3" is correct, not a naming bug. `[seen]` `[code]`
+- **Per-board init tables.** `loadBoardObjectRecords` de-interleaves each board's ROM
+  object-init records into two parallel tables, `OBJ_PARAM_TABLE0 (0x6300)` (type 0, stride 5)
+  and `OBJ_PARAM_TABLE1 (0x6310)` (type 1), which the per-object setup then reads. `[code]`
+- **Spawn cadence & edge reposition.** `SPAWN_TIMER (0x62A7)` paces spawns: at 0, `sub_27da`
+  claims a free `0x6600` slot, seeds it, and reloads `0x34`. `SPAWN_REQUEST (0x6396)` is a
+  separate request (posted `=3` by the periodic bonus tick, consumed via bit0) that activates a
+  waiting object. `EDGE_REPOSITION_FLAG (0x6398)` is a one-shot set the frame Mario's Y is
+  repositioned at a board edge, read as a gate by the edge-reset code. `[code]`
+- **50m step cascade.** On the 50m board only (board-2 gate), a small cascade drives the
+  horizontal step of three moving objects: a reversal timer `M50_OBJ1_REVERSE_TIMER (0x62A0)`
+  and three signed step-direction latches `M50_OBJ1/2/3_STEP_DIR (0x62A1 / 0x62A3 / 0x62A6)`,
+  whose *sign* is republished each frame (`reverseStepDirection`, `signStepHalfRate`,
+  `loc_2602`) as the per-frame X step the group movers add. Never runs in attract (25m), so
+  code-only. `[code]`
 
 ---
 
@@ -256,6 +301,22 @@ on-screen digits — collect it sooner for more. `positionBonusItemSprite` place
 This matches `gameplay.md`'s prizes-on-50m/75m/100m and the "walk over it to collect"
 model; the exact 300/500/800-by-level scaling is in ROM data, so `[guess]` on the code side.
 
+**The effect-sprite subsystem.** A small state machine plays a transient "effect" — a popup
+sprite plus a sound — when an object is hit or a prize is collected. `EFFECT_STATE (0x6340)`
+is a 4-way router (`loc_1dbd`): a pickup/hit raises it to 1, `EFFECT_SELECT (0x6342)` picks
+which setter runs from its low bits (`loc_1dc9`), `EFFECT_PARAM_PTR (0x6343)` points at the
+hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on screen (armed
+`0x40`) before blanking `POPUP_SPRITE (0x6A30)` and resetting the router. A nested follow-on
+countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `loc_1e96`) with inner/outer
+counters `EFFECT_SEQ_INNER (0x6346)` / `EFFECT_SEQ_OUTER (0x6347)` — steps a short sequence
+and re-arms `EFFECT_STATE` on completion. The state-machine *structure* is code-certain; the
+"effect sprite" *semantic* is `[code]` inference, flagged to ground vs MAME (watch these cells
+while an object is hit / a prize is collected). `[code]`
+
+**The pickup flag.** `ITEM_COLLECTED (0x6225)` latches when a prize/item is collected (edge
+pickup, airborne collision, or rivet) and is consumed at landing (`loc_1d95` clears it and,
+off 25m, queues the pickup tune). The item's identity is inferred, so `[code]`. `[code]`
+
 ---
 
 ## 7. Board completion, advance, and the level loop
@@ -305,11 +366,16 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   8 per-bit triggers `SND_TRIGGER[8] (0x6080)` are 3-frame asserts; `SND_BGM (0x6089)` /
   `SND_PRIORITY (0x608A)` select the looping tune vs a priority override. `silenceSound`
   zeroes it all. Per-bit sound *meanings* are the audio layer's, not re-derived here. `[code]`
-- **Sprite DMA.** `blitSpritesViaDma` (ROM 0x0141) programs the i8257 to copy the 384-byte
-  sprite shadow buffer `0x6900 → 0x7000` every vblank. `[code]`
-- **Colour-cycle.** `dispatchColorCyclePaint` and `runRivetColorCycleBlink` drive the
+- **Sprite DMA.** `gatherSpriteRecords` first assembles each active object's 4-byte record
+  into `SPRITE_BUFFER (0x6900)` (§4), then `blitSpritesViaDma` (ROM 0x0141) programs the i8257
+  to copy the 384-byte shadow buffer `0x6900 → 0x7000` every vblank. Sprite `+0 == MARIO_X` /
+  `+3 == MARIO_Y` are grounded byte-exact vs MAME (1819 attract frames); the hardware reads
+  each record rotated 90° for the portrait screen. `[seen]` `[code]`
+- **Colour-cycle & blink.** `dispatchColorCyclePaint` and `runRivetColorCycleBlink` drive the
   attract/rivet colour animation via a sweep counter and blink pair
-  (`blinkSpritePair*`, `paintColorColumn*`), gated by `COLOUR_CYCLE_ACTIVE (0x6391)`. `[code]`
+  (`blinkSpritePair*`, `paintColorColumn*`), gated by `COLOUR_CYCLE_ACTIVE (0x6391)`. The blink
+  is itself a short animation sequence: `BLINK_ANIM_PHASE (0x639D)` routes 4 phases (`loc_127f`)
+  and `BLINK_COUNT (0x639E)` (primed `0x0D`) times each toggle of the sprite pair. `[code]`
 
 ---
 

@@ -21,9 +21,10 @@
  *         decrement RIVETS_LEFT;
  *       · blank the rivet's three tilemap cells (tile 0x10) at a per-slot VRAM
  *         address (column base 0x012B right / 0x02CB left, +5 per row, +0x7400);
- *       · raise the collection flags 0x6340 / 0x6342 / 0x6225;
+ *       · raise the collection flags EFFECT_STATE / EFFECT_SELECT / ITEM_COLLECTED
+ *         (0x6340 / 0x6342 / 0x6225);
  *       · if the player is grounded (MARIO_AIRBORNE == 0), call loc_1d95 (which here
- *         re-clears 0x6225 to A == 0 and, being 100m, queues the pickup sound).
+ *         re-clears ITEM_COLLECTED (0x6225) to A == 0 and, being 100m, queues the pickup sound).
  *     Two early-outs before the slot test leave the latch DISARMED but change nothing
  *     else: the player is off the rivet field (MARIO_Y-1 >= 0xD0), or the slot is empty.
  *
@@ -48,8 +49,8 @@
  *           to honest params) — boardBitGate reads the 0x08 gate mask, loc_1d95 reads the
  *           byte it stores — so A is SET immediately before each, purely as their input.
  * NAMES:    MARIO_X, MARIO_Y, MARIO_AIRBORNE, EDGE_RIVET_ARMED, RIVET_PRESENT,
- *           RIVETS_LEFT from ram.js. Collection flags 0x6340 / 0x6342 / 0x6225 kept hex
- *           (ram.js examined and declined to name them); edge columns / gate mask / VRAM
+ *           RIVETS_LEFT and the collection flags EFFECT_STATE (0x6340) / EFFECT_SELECT
+ *           (0x6342) / ITEM_COLLECTED (0x6225) from ram.js; edge columns / gate mask / VRAM
  *           bases kept hex (raw coordinates + a bit mask).
  */
 
@@ -60,6 +61,9 @@ import {
   EDGE_RIVET_ARMED,
   RIVET_PRESENT,
   RIVETS_LEFT,
+  EFFECT_STATE,
+  EFFECT_SELECT,
+  ITEM_COLLECTED,
 } from "./ram.js";
 
 import { boardBitGate } from "./boardBitGate.js";           // ROM 0x0030 (rst 0x30) — board-apply gate
@@ -74,11 +78,6 @@ const COL_BASE_RIGHT = 0x012b; // VRAM column base when slot bit0 set (right hal
 const COL_BASE_LEFT = 0x02cb;  // VRAM column base when slot bit0 clear (left half)
 const VRAM = 0x7400;           // tilemap base added to the per-slot column offset
 const BLANK_TILE = 0x10;       // erase tile written to the three rivet cells
-
-// Collection flags raised on a pickup; ram.js examined all three and left them unnamed.
-const COLLECT_FLAG_A = 0x6340;
-const COLLECT_FLAG_B = 0x6342;
-const COLLECT_FLAG_C = 0x6225;
 
 // Z80 `rlca`: rotate the 8-bit value left one, bit7 -> bit0; the carry it tests is the
 // rotated-in low bit, i.e. (result & 1).
@@ -137,16 +136,16 @@ export function collectEdgeRivet(m) {
   mem.write8(page | ((lo - 1) & 0xff), BLANK_TILE);
   mem.write8(page | ((lo + 1) & 0xff), BLANK_TILE);
 
-  // ld a,1 -> 0x6340 / 0x6342 / 0x6225 — raise the collection flags.
-  mem.write8(COLLECT_FLAG_A, 0x01);
-  mem.write8(COLLECT_FLAG_B, 0x01);
-  mem.write8(COLLECT_FLAG_C, 0x01);
+  // ld a,1 -> EFFECT_STATE / EFFECT_SELECT / ITEM_COLLECTED — raise the collection flags.
+  mem.write8(EFFECT_STATE, 0x01);
+  mem.write8(EFFECT_SELECT, 0x01);
+  mem.write8(ITEM_COLLECTED, 0x01);
 
   // ld a,(0x6216) / and a / call z,0x1d95 — grounded: run the pickup follow-up. loc_1d95
-  // reads A (the byte it stores into 0x6225), so pass A == the 0x6216 value (0 here).
+  // reads A (the byte it stores into ITEM_COLLECTED 0x6225), so pass A == the 0x6216 value (0 here).
   const airborne = mem.read8(MARIO_AIRBORNE);
   if (airborne === 0) {
-    regs.a = airborne; // == 0; boundary: loc_1d95 stores A -> 0x6225 (re-clears it)
+    regs.a = airborne; // == 0; boundary: loc_1d95 stores A -> ITEM_COLLECTED (0x6225) (re-clears it)
     loc_1d95(m);       // ROM 0x1D95
   }
 }

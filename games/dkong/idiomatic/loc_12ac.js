@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_12ac — phase-1 arm of the 0x639D animation sequence: on each gate tick toggle
- * the two-cell blinker, and when its repeat-count runs out advance the phase.  ROM 0x12AC.
+ * loc_12ac — phase-1 arm of the BLINK_ANIM_PHASE (0x639D) animation sequence: on each
+ * gate tick toggle the two-cell blinker, and when its repeat-count runs out advance the
+ * phase.  ROM 0x12AC.
  *
  * One of the three arms of the sequence-phase state machine dispatched by loc_127f
- * (the rst-0x28 table at ROM 0x1283, selector 0x639D): arm 0 (entry_128b) seeds the
+ * (the rst-0x28 table at ROM 0x1283, selector BLINK_ANIM_PHASE 0x639D): arm 0 (entry_128b) seeds the
  * blinker and the repeat count, this arm (phase == 1) runs the blink loop, arm 2
  * (loc_12de) hands off to the following game sub-state. It is gated by the sub-state
  * timer so it acts only on the frames that gate expires:
@@ -13,22 +14,24 @@
  *     is still counting down the arm is skipped this frame — the Z80 caller-skip,
  *     modelled as a plain early return on the callee's `false`. On expiry the timer is
  *     reloaded to 8 (a fixed 8-frame blink cadence).
- *   - Decrement the blink repeat-count 0x639E. If it has NOT yet reached zero, toggle
+ *   - Decrement the blink repeat-count BLINK_COUNT (0x639E). If it has NOT yet reached zero, toggle
  *     the two-cell blinker at Mario's sprite record (0x694D/0x694E): flip bit 0 of the
  *     sprite-code byte every tick (a two-frame tile swap) and, on the tick that bit 0
  *     falls back to 0, also flip bit 7 of the sprite-code byte and bit 7 of the
  *     attribute byte. Then return.
- *   - When the repeat-count reaches zero (0x639E was 1), advance instead: rewrite the
+ *   - When the repeat-count reaches zero (BLINK_COUNT was 1), advance instead: rewrite the
  *     sprite-code byte to a fixed 0x7A (its old bit 7 preserved, so 0xFA if it was set),
- *     bump the phase 0x639D 1 -> 2, and reload the gate long (0x80 = 128 ticks) so arm 2
- *     fires only after a pause.
+ *     bump the phase BLINK_ANIM_PHASE (0x639D) 1 -> 2, and reload the gate long (0x80 = 128
+ *     ticks) so arm 2 fires only after a pause.
  *
  * NAME: kept neutral loc_12ac on purpose, to match its dispatcher loc_127f. The
  * blink/advance MECHANISM is fully understood and corroborated (entry_128b seeds the
- * blinker, loc_127f's header describes this arm, the oracle header agrees), but the
- * selector 0x639D is deliberately unnamed in ram.js and the animated sequence's
- * game-semantic identity is not settled to the proposer!=confirmer bar, so an English
- * name would over-assert. Promote alongside loc_127f only once 0x639D is confirmed.
+ * blinker, loc_127f's header describes this arm, the oracle header agrees), and ram.js
+ * now names the selector BLINK_ANIM_PHASE (0x639D) and the repeat-count BLINK_COUNT
+ * (0x639E) — but at [code] confidence ("WHAT blinks is inferential" per ram.js): the
+ * animated sequence's game-semantic identity is still not settled to the
+ * proposer!=confirmer bar, so a fully English routine name would over-assert. Promote
+ * alongside loc_127f only once the effect is corroborated.
  *
  * Sole callee: tickSubstateTimer (rst 0x18, 0x0018), the idiomatic version, called
  * directly. No other calls; the Z80 `ret` is the caller-skip's single net return, which
@@ -41,21 +44,19 @@
  *           every arm is covered regardless of timing. Teeth: a wrong blink store and a
  *           gate-polarity inversion, both caught. Compared vs the oracle over RAM
  *           (−STACK_SCRATCH) + pc + SP.
- * LIVE-OUT: memory-only — SUBSTATE_TIMER (0x6009), the blink count 0x639E, the phase
- *           0x639D, and the sprite record 0x694D/0x694E. Dispatched from the rst-0x28
+ * LIVE-OUT: memory-only — SUBSTATE_TIMER (0x6009), the blink count BLINK_COUNT (0x639E),
+ *           the phase BLINK_ANIM_PHASE (0x639D), and the sprite record 0x694D/0x694E
+ *           (MARIO_SPRITE_RECORD +1/+2). Dispatched from the rst-0x28
  *           table inside the vblank NMI, whose tail reads none of its registers; the
  *           oracle's residual A/B/HL and flags are dead ABI (pc/SP model the single
  *           caller-skip return the harness reconciles).
- * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C) — from ram.js;
- *           0x639D (phase) and 0x639E (blink repeat-count) kept hex, unconfirmed in ram.js.
+ * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C), BLINK_ANIM_PHASE
+ *           (0x639D), BLINK_COUNT (0x639E) — from ram.js (the last two at [code]
+ *           confidence). 0x694D/0x694E are MARIO_SPRITE_RECORD +1/+2.
  */
 
-import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD } from "./ram.js";
+import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD, BLINK_ANIM_PHASE, BLINK_COUNT } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
-
-// Sequence-phase selector and the blink repeat-count. Unconfirmed in ram.js, kept hex.
-const PHASE = 0x639d;
-const BLINK_COUNT = 0x639e;
 
 // The two blinker cells: sprite-code byte (+1) and attribute byte (+2) of Mario's
 // hardware sprite record at 0x694C.
@@ -106,6 +107,6 @@ function advancePhase(m) {
   mem.write8(MARIO_SPRITE_RECORD + 1, (code & 0x80) | 0x7a);
 
   // Advance the phase 1 -> 2 and re-arm the gate long (128 ticks) so arm 2 waits.
-  mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
+  mem.write8(BLINK_ANIM_PHASE, (mem.read8(BLINK_ANIM_PHASE) + 1) & 0xff);
   mem.write8(SUBSTATE_TIMER, 0x80);
 }

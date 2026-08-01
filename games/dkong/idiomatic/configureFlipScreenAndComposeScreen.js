@@ -4,7 +4,7 @@
  * step to the next in-game sub-state, and post this screen's draw tasks.  ROM 0x1459.
  *
  * The interior tail of the sub-state-0x14 handler loc_141e (ROM 0x141E), reached when
- * that handler's scan of the 0x611C object records finds an active player slot and
+ * that handler's scan of the PLAYER_SLOT_RECORDS (0x611C) finds an active player slot and
  * dispatches here with the player key already in the A register:
  *   - a record == 1  -> entered directly with A = 0x01,
  *   - a record == 3  -> via loc_144f (which first sets the player index) with A = 0x00.

@@ -2,15 +2,15 @@
 /**
  * tickDispatcherCountdown — tick sub_1dbd's state-2 hold timer; reset the dispatcher on expiry.  ROM 0x1E4A.
  *
- * sub_1dbd (ROM 0x1DBD) is a 4-entry rst-0x28 router on a dispatcher-state byte
- * (0x6340): 0 = idle, 1 = arm-timer, 2 = this countdown, 3 = reset. This is the
- * state-2 arm. State 1 (loc_1dc9) arms a countdown byte (0x6341) to 0x40 and advances
+ * sub_1dbd (ROM 0x1DBD) is a 4-entry rst-0x28 router on EFFECT_STATE (0x6340):
+ * 0 = idle, 1 = arm-timer, 2 = this countdown, 3 = reset. This is the
+ * state-2 arm. State 1 (loc_1dc9) arms EFFECT_TIMER (0x6341) to 0x40 and advances
  * the dispatcher 1 -> 2; state 2 then runs here once per frame:
  *
- *   - decrement the countdown byte (0x6341) in place, and
+ *   - decrement EFFECT_TIMER (0x6341) in place, and
  *   - while it is still non-zero, do nothing else (stay in state 2), or
- *   - on the frame it reaches 0, end the hold: clear the popup param byte (0x6a30)
- *     and reset the dispatcher (0x6340) := 0, dropping sub_1dbd back to its idle arm.
+ *   - on the frame it reaches 0, end the hold: clear POPUP_SPRITE (0x6a30)
+ *     and reset EFFECT_STATE (0x6340) := 0, dropping sub_1dbd back to its idle arm.
  *
  * So a full hold is exactly 0x40 = 64 dispatches — 63 still-counting frames then one
  * expiry (measured: fires 64x in a plain attract run, frames ~1138..1201).
@@ -25,18 +25,18 @@
  *           the oracle on RAM over all 256 values (both arms: 255 still-counting +
  *           the single expiry at 0x6341 == 1), plus real captured attract dispatches
  *           that naturally cover both arms. Reached only via sub_1dbd state 2.
- * LIVE-OUT: memory-only — mem[0x6341] always decremented; on expiry mem[0x6a30] := 0
- *           and mem[0x6340] := 0. The oracle's `ret` (SP += 2, PC := return addr) is
- *           the normal return the JS return replaces, so SP/PC are not in the contract;
- *           its residual A/F are dead ABI (loc_197a's next op after this returns is
- *           `call 0x1e8c`, which reads neither).
- * NAMES:    none in ram.js — 0x6340/0x6341/0x6a30 kept hex (dispatcher state / state-2
- *           countdown / popup param byte); control-proven candidates, not landed in ram.js.
+ * LIVE-OUT: memory-only — EFFECT_TIMER (0x6341) always decremented; on expiry
+ *           POPUP_SPRITE (0x6a30) := 0 and EFFECT_STATE (0x6340) := 0. The oracle's
+ *           `ret` (SP += 2, PC := return addr) is the normal return the JS return
+ *           replaces, so SP/PC are not in the contract; its residual A/F are dead ABI
+ *           (loc_197a's next op after this returns is `call 0x1e8c`, which reads neither).
+ * NAMES:    EFFECT_STATE (0x6340), EFFECT_TIMER (0x6341), POPUP_SPRITE (0x6a30) from
+ *           ram.js — all three landed in the ABC/DE naming pass (this is sub_1dbd's
+ *           effect state machine: EFFECT_STATE router, EFFECT_TIMER the state-2 hold
+ *           countdown, POPUP_SPRITE the score-popup record blanked on expiry).
  */
 
-const COUNTDOWN = 0x6341; // sub_1dbd state-2 countdown, armed to 0x40 by state 1 (loc_1dc9)
-const DISPATCH_STATE = 0x6340; // sub_1dbd rst-28 router index; reset to 0 (idle) on expiry
-const POPUP_PARAM = 0x6a30; // param-block byte written by loc_1e28/loc_1e36; cleared on expiry
+import { EFFECT_STATE, EFFECT_TIMER, POPUP_SPRITE } from "./ram.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).
@@ -45,15 +45,15 @@ const POPUP_PARAM = 0x6a30; // param-block byte written by loc_1e28/loc_1e36; cl
 export function tickDispatcherCountdown(m) {
   const { mem } = m;
 
-  // dec (hl) at 0x6341 — decrement the state-2 countdown in place.
-  const remaining = (mem.read8(COUNTDOWN) - 1) & 0xff;
-  mem.write8(COUNTDOWN, remaining);
+  // dec (hl) at EFFECT_TIMER (0x6341) — decrement the state-2 countdown in place.
+  const remaining = (mem.read8(EFFECT_TIMER) - 1) & 0xff;
+  mem.write8(EFFECT_TIMER, remaining);
 
   // ret nz — still counting: stay in state 2, nothing else to do.
   if (remaining !== 0) return;
 
-  // Timer expired (xor a / ld (0x6a30),a / ld (0x6340),a): end the hold — clear the
-  // popup param byte and reset the dispatcher to its idle arm (state 0).
-  mem.write8(POPUP_PARAM, 0);
-  mem.write8(DISPATCH_STATE, 0);
+  // Timer expired (xor a / ld (0x6a30),a / ld (0x6340),a): end the hold — clear
+  // POPUP_SPRITE and reset EFFECT_STATE to its idle arm (state 0).
+  mem.write8(POPUP_SPRITE, 0);
+  mem.write8(EFFECT_STATE, 0);
 }

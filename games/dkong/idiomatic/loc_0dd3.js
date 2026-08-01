@@ -5,22 +5,24 @@
  *
  * The tail of sub_0da7's playfield-record walk. Each record is a LINE SEGMENT
  * between two points; sub_0da7 has already converted the first point (+1,+2 =
- * y,x) to a tile address at 0x63ab and stashed its sub-tile x at 0x63af, and it
- * enters here with A = |y2 - y| (the segment's height/length), H = y2, C = the
- * first point's x, and DE pointing at record+3. This routine:
+ * y,x) to a tile address at SEG_ADDR1 (0x63ab) and stashed its sub-tile x at
+ * SEG_SUBTILE1 (0x63af), and it enters here with A = |y2 - y| (the segment's
+ * height/length), H = y2, C = the first point's x, and DE pointing at record+3.
+ * This routine:
  *
- *   1. Stores the height counter A at 0x63b1.
- *   2. Reads the second x (record+4) into L, computes x2 - x -> 0x63b2 (the
- *      horizontal run) and x2 & 7 -> 0x63b0 (the second point's sub-tile x).
- *   3. Converts (y2, x2) to a tile address via sub_2ff0 -> 0x63ad. DE is saved
- *      across that call (sub_2ff0 clobbers D/E) exactly as the ROM's push/pop did.
- *   4. Dispatches on the record kind at 0x63b3:
+ *   1. Stores the height counter A at SEG_HEIGHT (0x63b1).
+ *   2. Reads the second x (record+4) into L, computes x2 - x -> SEG_RUN (0x63b2,
+ *      the horizontal run) and x2 & 7 -> SEG_SUBTILE2 (0x63b0, the second point's
+ *      sub-tile x).
+ *   3. Converts (y2, x2) to a tile address via sub_2ff0 -> SEG_ADDR2 (0x63ad). DE
+ *      is saved across that call (sub_2ff0 clobbers D/E) as the ROM's push/pop did.
+ *   4. Dispatches on the record kind at SEG_KIND (0x63b3):
  *        - kind >= 2 (the `jp p` sign test on kind-2): hand off to the LADDER
  *          drawer loc_0e4f (kind 2) / strip drawer loc_0ee8 (kind 3+, via loc_0e4f).
  *        - otherwise (kind 0/1): finish the GIRDER setup -- fold the second point's
- *          sub-tile x into the run (0x63b2 = (x2-x-0x10) + 0x63af), stamp the
- *          segment's two endpoint-cap tiles at 0x63ab (codes 0x63af+0xf0 then that
- *          -0x30 in the next cell), zero the run for kind 1, then draw the span
+ *          sub-tile x into the run (SEG_RUN = (x2-x-0x10) + SEG_SUBTILE1), stamp the
+ *          segment's two endpoint-cap tiles at SEG_ADDR1 (codes SEG_SUBTILE1+0xf0 then
+ *          that -0x30 in the next cell), zero the run for kind 1, then draw the span
  *          with loc_0e19.
  *
  * `jp p` at 0x0df0 tests bit 7 of (kind - 2), NOT `kind >= 2` unsigned -- the two
@@ -34,44 +36,56 @@
  *           25m never produces. Teeth: drop-the-DE-restore (RAM-blind, caught on
  *           DE), a wrong endpoint-cap tile (caught in RAM), and an inverted
  *           dispatch that swaps the renderer (caught in RAM).
- * LIVE-OUT: memory (segment scratch 0x63b0-0x63b3 + 0x63ad, and the girder/ladder
+ * LIVE-OUT: memory (segment scratch SEG_SUBTILE2..SEG_KIND 0x63b0-0x63b3 + SEG_ADDR2
+ *           0x63ad, and the girder/ladder
  *           tiles the renderers stamp) + DE. DE is the record-walk pointer
  *           (= record+4); it is written to NO memory here, so the RAM gate is blind
  *           to it, but the renderer tails' `inc de` and sub_0da7's loop consume it,
  *           so the test asserts it directly. A/HL/BC are reloaded by the renderers
  *           or dead in the successor; SP/pc are the dropped stack model (the oracle's
  *           push/call/ret becomes the JS call stack).
- * NAMES:    none confirmed in ram.js for this segment scratch — kept hex with the
- *           roles below. Neutral loc_ name kept to match the sibling record
- *           routines (sub_0da7 / loc_0e19 / loc_0e4f / loc_0e2a), whose game-level
- *           "kind" semantics are documented but not at the routine-name evidence bar.
+ * NAMES:    the segment scratch is the SEG_* cluster in ram.js (SEG_ADDR1/SEG_ADDR2/
+ *           SEG_SUBTILE1/SEG_SUBTILE2/SEG_HEIGHT/SEG_RUN/SEG_KIND) — imported and used
+ *           below. Neutral loc_ name kept to match the sibling record routines
+ *           (sub_0da7 / loc_0e19 / loc_0e4f / loc_0e2a), whose game-level "kind"
+ *           semantics are documented but not at the routine-name evidence bar.
  */
 
 import { sub_2ff0 } from "../translated/sub_2ff0.js"; // ROM 0x2FF0 — (y,x) -> tile address; no idiomatic yet
 import { loc_0e4f } from "../translated/loc_0e4f.js"; // ROM 0x0E4F — ladder (kind 2) / strip (kind 3+) drawer
 import { loc_0e19 } from "../translated/loc_0e19.js"; // ROM 0x0E19 — girder-span fill + end cap
 
-const HEIGHT = 0x63b1; // |y2 - y| — the segment's height/length counter
-const RUN = 0x63b2; // x2 - x — the horizontal run (down-counted 8px/tile by loc_0e19)
-const SUBTILE2 = 0x63b0; // x2 & 7 — the second point's sub-tile x
-const ADDR2 = 0x63ad; // tile address of the second point (y2, x2)
-const SUBTILE1 = 0x63af; // x & 7 — the first point's sub-tile x (set by sub_0da7)
-const ADDR1 = 0x63ab; // tile address of the first point (set by sub_0da7)
-const KIND = 0x63b3; // record kind / dispatch selector (set by sub_0da7)
+// Board-render line-segment scratch, all named in ram.js (SEG_* cluster):
+//   SEG_HEIGHT   0x63b1  |y2 - y| — the segment's height/length counter
+//   SEG_RUN      0x63b2  x2 - x — the horizontal run (down-counted 8px/tile by loc_0e19)
+//   SEG_SUBTILE2 0x63b0  x2 & 7 — the second point's sub-tile x
+//   SEG_ADDR2    0x63ad  tile address of the second point (y2, x2)
+//   SEG_SUBTILE1 0x63af  x & 7 — the first point's sub-tile x (set by sub_0da7)
+//   SEG_ADDR1    0x63ab  tile address of the first point (set by sub_0da7)
+//   SEG_KIND     0x63b3  record kind / dispatch selector (set by sub_0da7)
+import {
+  SEG_HEIGHT,
+  SEG_RUN,
+  SEG_SUBTILE2,
+  SEG_ADDR2,
+  SEG_SUBTILE1,
+  SEG_ADDR1,
+  SEG_KIND,
+} from "./ram.js";
 
 export function loc_0dd3(m) {
   const { regs, mem } = m;
 
   // A arrives as |y2 - y| (sub_0da7's absolute Y-difference): the height counter.
-  mem.write8(HEIGHT, regs.a);
+  mem.write8(SEG_HEIGHT, regs.a);
 
   // Step DE from record+3 to record+4 and read the second point's x. L := x2
-  // (sub_2ff0 reads L as the x coordinate); RUN := x2 - x (first point x in C).
+  // (sub_2ff0 reads L as the x coordinate); SEG_RUN := x2 - x (first point x in C).
   regs.de = (regs.de + 1) & 0xffff;
   const x2 = mem.read8(regs.de);
   regs.l = x2;
-  mem.write8(RUN, (x2 - regs.c) & 0xff);
-  mem.write8(SUBTILE2, x2 & 0x07);
+  mem.write8(SEG_RUN, (x2 - regs.c) & 0xff);
+  mem.write8(SEG_SUBTILE2, x2 & 0x07);
 
   // Convert (H = y2, L = x2) -> tile address in HL. sub_2ff0 clobbers D/E, so save
   // and restore DE around it exactly as the ROM's `push de / call / pop de` did:
@@ -79,12 +93,12 @@ export function loc_0dd3(m) {
   const savedDe = regs.de;
   sub_2ff0(m);
   regs.de = savedDe;
-  mem.write16(ADDR2, regs.hl);
+  mem.write16(SEG_ADDR2, regs.hl);
 
   // Dispatch on the record kind. `jp p` = bit 7 of (kind - 2) clear — a SIGN test,
   // not unsigned `>= 2` (they only agree because real kinds are small). Kind >= 2
   // takes the ladder / strip drawer, which reloads HL and reads DE itself.
-  const kind = mem.read8(KIND);
+  const kind = mem.read8(SEG_KIND);
   if ((((kind - 0x02) & 0xff) & 0x80) === 0) {
     loc_0e4f(m); // ROM 0x0E4F
     return;
@@ -93,22 +107,22 @@ export function loc_0dd3(m) {
   // -- Girder arm (kind 0/1) --
 
   // Fold the second point's sub-tile x into the run before the span fill.
-  const step = (mem.read8(RUN) - 0x10) & 0xff;
-  mem.write8(RUN, (mem.read8(SUBTILE1) + step) & 0xff);
+  const step = (mem.read8(SEG_RUN) - 0x10) & 0xff;
+  mem.write8(SEG_RUN, (mem.read8(SEG_SUBTILE1) + step) & 0xff);
 
   // Stamp the segment's two endpoint-cap tiles at the first point's address: code
-  // (SUBTILE1 + 0xf0) in the base cell, then that - 0x30 in the next cell. `inc l`
+  // (SEG_SUBTILE1 + 0xf0) in the base cell, then that - 0x30 in the next cell. `inc l`
   // wraps within the page (NOT inc hl). HL is left at base+1 for loc_0e19.
-  const cap1 = (mem.read8(SUBTILE1) + 0xf0) & 0xff;
-  regs.hl = mem.read16(ADDR1);
+  const cap1 = (mem.read8(SEG_SUBTILE1) + 0xf0) & 0xff;
+  regs.hl = mem.read16(SEG_ADDR1);
   mem.write8(regs.hl, cap1);
   regs.l = (regs.l + 1) & 0xff;
   mem.write8(regs.hl, (cap1 - 0x30) & 0xff);
 
   // Kind 1 zeroes the run so loc_0e19 lays no span (a single-cell girder). A is
-  // dead here — loc_0e19 reloads it from RUN — so only the memory write survives.
-  if (mem.read8(KIND) === 0x01) {
-    mem.write8(RUN, 0x00);
+  // dead here — loc_0e19 reloads it from SEG_RUN — so only the memory write survives.
+  if (mem.read8(SEG_KIND) === 0x01) {
+    mem.write8(SEG_RUN, 0x00);
   }
 
   loc_0e19(m); // ROM 0x0E19 — walk the run stamping girder tile 0xC0, then the end cap

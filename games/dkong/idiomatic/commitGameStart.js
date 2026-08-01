@@ -34,11 +34,12 @@
  *           replaces the Z80 one); the oracle's callee-balanced push/call/ret plus its own
  *           final `ret` move SP/pc, but every stack byte sits in the dead STACK_SCRATCH.
  * NAMES:    P1_CONTEXT (0x6040), P2_CONTEXT (0x6048), DIP_LIVES (0x6020),
- *           GAME_STATE (0x6005), GAME_SUBSTATE (0x600A), TWO_PLAYER_GAME (0x600F) from
- *           ram.js. Hex-kept: CONTEXT_TEMPLATE (0x095E, the 7-byte ROM template, read
- *           twice — it is ROM data adjacent to this routine, not work RAM); 0x600E, the
- *           low byte of the retired 16-bit join store (always 0); the two start-task
- *           message words (opcode 0x01, arg = player index).
+ *           GAME_STATE (0x6005), GAME_SUBSTATE (0x600A), TWO_PLAYER_GAME (0x600F),
+ *           ACTIVE_PLAYER_INDEX (0x600E) from ram.js — the 16-bit `ld (0x600E),hl` at
+ *           game start writes ACTIVE_PLAYER_INDEX (low byte, 0 = player 1 up) and
+ *           TWO_PLAYER_GAME (high byte) in one store. Hex-kept: CONTEXT_TEMPLATE (0x095E,
+ *           the 7-byte ROM template, read twice — it is ROM data adjacent to this routine,
+ *           not work RAM); the two start-task message words (opcode 0x01, arg = player index).
  */
 
 import {
@@ -48,6 +49,7 @@ import {
   GAME_STATE,
   GAME_SUBSTATE,
   TWO_PLAYER_GAME,
+  ACTIVE_PLAYER_INDEX,
 } from "./ram.js";
 import { readStartButtonSelector } from "./readStartButtonSelector.js"; // ROM 0x08D5
 import { spendCredit } from "./spendCredit.js"; //                         ROM 0x0977
@@ -67,10 +69,6 @@ const CONTEXT_TEMPLATE_BYTES = 0x07;
 // arm additionally posts player 1 (P2). Kept hex: the opcode's handler is outside here.
 const START_TASK_P1 = 0x0100; // D = 0x01, E = 0x00
 const START_TASK_P2 = 0x0101; // D = 0x01, E = 0x01
-
-// The retired 16-bit `ld (0x600E),hl` wrote the join value's low byte here (always 0,
-// an unused scratch pad) and its high byte into TWO_PLAYER_GAME (0x600F).
-const JOIN_LOW = 0x600e;
 
 /**
  * Seed an 8-byte player context record at `base`: byte 0 = the DIP-configured starting
@@ -113,7 +111,9 @@ export function commitGameStart(m) {
   }
 
   // ---- shared start tail (ROM 0x0938): runs for both the 1P and 2P arms ----
-  mem.write8(JOIN_LOW, 0x00); // low byte of the retired join store — always 0
+  // The oracle's `ld (0x600E),hl` store: low byte -> ACTIVE_PLAYER_INDEX (0 = player 1 up),
+  // high byte -> TWO_PLAYER_GAME.
+  mem.write8(ACTIVE_PLAYER_INDEX, 0x00);
   mem.write8(TWO_PLAYER_GAME, twoPlayer ? 0x01 : 0x00);
   clearPlayfieldAndSprites(m); // ROM 0x0874 — wipe the screen for the new scene
   seedPlayerContext(m, P1_CONTEXT); // seed player 1's fresh context

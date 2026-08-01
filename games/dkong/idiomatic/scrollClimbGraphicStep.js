@@ -5,7 +5,7 @@
  *
  * The opening Kong-climb intro animates by sliding a strip of the playfield up the
  * screen one tilemap row at a time. This routine is ONE cell-pair of that slide. It
- * reads the scroll index at 0x638E and, using it as the offset into two fixed video-
+ * reads INTRO_SCROLL_INDEX (0x638E) and, using it as the offset into two fixed video-
  * RAM cell columns 0x7600 and 0x75C0 (0x40 = two rows apart), copies each indexed
  * cell to the cell 0x20 bytes lower — 0x20 is one 32-column tilemap row, so each copy
  * moves its cell up one row. It then decrements the index. Called repeatedly by the
@@ -13,8 +13,8 @@
  *
  *   - loc_0ae8 (ROM 0x0AE8, INTRO_STEP 2) fires it on every 16th tick — the periodic
  *     scroll while Kong climbs.
- *   - loc_0b06 (ROM 0x0B06) spins `do { this } while (0x638E != 0x0A)` — a synchronous
- *     run-down to a fixed index at the phase's end.
+ *   - loc_0b06 (ROM 0x0B06) spins `do { this } while (INTRO_SCROLL_INDEX != 0x0A)` — a
+ *     synchronous run-down to a fixed index at the phase's end.
  *
  * The two copies are delegated to the addressing primitive copyByteDisplaced (ROM
  * 0x3064): base HL, index BC (B = 0, C = the index), signed displacement DE = 0xFFE0
@@ -33,25 +33,26 @@
  *           return address) — plus a crafted index sweep across the range and extremes.
  *           Teeth: an index-not-decremented twin, a dropped-second-copy twin, and a
  *           wrong-direction (+0x20) twin, forced non-vacuous with sentinel bytes.
- * LIVE-OUT: memory-only — the two copied video-RAM bytes and the decremented index at
- *           0x638E. The oracle's `dec (hl)` also leaves flags, but BOTH callers re-read
- *           RAM (loc_0ae8 reads 0x690B; loc_0b06 reads 0x638E) and derive fresh flags
+ * LIVE-OUT: memory-only — the two copied video-RAM bytes and the decremented
+ *           INTRO_SCROLL_INDEX (0x638E). The oracle's `dec (hl)` also leaves flags, but BOTH
+ *           callers re-read RAM (loc_0ae8 reads 0x690B; loc_0b06 reads INTRO_SCROLL_INDEX)
+ *           and derive fresh flags
  *           with a `cp` before any branch, so those residual flags — and the register
  *           churn copyByteDisplaced leaves in HL/A/F — are dead ABI.
- * NAMES:    none in ram.js — 0x638E (scroll index), 0x7600 / 0x75C0 (video-RAM cell
- *           bases) and 0xFFE0 (−0x20 = one tilemap row) are kept as hex; unnamed there.
+ * NAMES:    INTRO_SCROLL_INDEX (0x638E) from ram.js. 0x7600 / 0x75C0 (video-RAM cell bases)
+ *           and 0xFFE0 (−0x20 = one tilemap row) are kept as hex; not in ram.js by design.
  */
 
 import { copyByteDisplaced } from "./copyByteDisplaced.js";
+import { INTRO_SCROLL_INDEX } from "./ram.js";
 
-const SCROLL_INDEX = 0x638e; // per-step scroll counter, walked down by the cutscene
 const ROW = 0xffe0; // DE = −0x20 = one 32-column tilemap row, upward
 
 export function scrollClimbGraphicStep(m) {
   const { regs, mem } = m;
 
   // ld a,(0x638e) / ld c,a / ld b,0 -> BC = the index (0..255, B forced to 0).
-  regs.bc = mem.read8(SCROLL_INDEX);
+  regs.bc = mem.read8(INTRO_SCROLL_INDEX);
   // ld de,0xffe0 -> displacement is −0x20; set once, reused across both copies.
   regs.de = ROW;
 
@@ -64,5 +65,5 @@ export function scrollClimbGraphicStep(m) {
 
   // ld hl,0x638e / dec (hl): step the scroll index down (8-bit wrap). The copies
   // never touch 0x638E, so this reads back the same index just loaded.
-  mem.write8(SCROLL_INDEX, (mem.read8(SCROLL_INDEX) - 1) & 0xff);
+  mem.write8(INTRO_SCROLL_INDEX, (mem.read8(INTRO_SCROLL_INDEX) - 1) & 0xff);
 }

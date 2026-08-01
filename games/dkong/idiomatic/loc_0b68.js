@@ -12,7 +12,8 @@
  *
  *   - Gate on even frames only: read FRAME (0x601A) and return if its bit 0 is set. The
  *     scroll advances every other frame (the oracle's `rrca / ret c`).
- *   - Read the next signed Y-delta from a ROM table via the walk cursor at 0x63C4. Then:
+ *   - Read the next signed Y-delta from a ROM table via the walk cursor INTRO_WALK_PTR_B
+ *     (0x63C4). Then:
  *       · byte != 0x7F (the common case): advance the cursor one byte and scroll all ten
  *         records of the sprite-object block (0x6908) one step — every record's Y (+3 column,
  *         0x690B) += the signed delta, every record's X (+0 column, 0x6908) -= 1 — via the
@@ -20,10 +21,10 @@
  *       · byte == 0x7F (the path wrapped): loop the cursor back to the table start (0x38CB),
  *         trigger a sound (SND_TRIGGER+2 = 0x6082 := 3), and draw the next board band. The
  *         band's ROM record address is BAND_TABLE(0x38DC) + ((count-1) nibble-swapped) — four
- *         `rlca`, which is *16 for the small band count (0x638D, seeded to 5 by step 4's
- *         loc_0B06) — handed to loc_0da7, which walks that segment table and draws its
- *         girders/ladders. Then decrement the band count (0x638D); while it is still non-zero,
- *         return (more bands to place on later wraps).
+ *         `rlca`, which is *16 for the small band count CUTSCENE_BAND_COUNT (0x638D, seeded
+ *         to 5 by step 4's loc_0B06) — handed to loc_0da7, which walks that segment table and
+ *         draws its girders/ladders. Then decrement CUTSCENE_BAND_COUNT (0x638D); while it is
+ *         still non-zero, return (more bands to place on later wraps).
  *   - When the band count reaches 0 the scene is complete: arm SUBSTATE_TIMER (0x6009) to
  *     0xB0 (a 176-frame metered hold) and inc INTRO_STEP (0x6385) 6 -> 7, so the next frame
  *     dispatches the final beat (loc_0BB3, the Kong roar).
@@ -62,17 +63,24 @@
  *           part of the memory contract (SP/pc are not compared against the oracle; the
  *           oracle's push/call/ret churn lands in the dead STACK_SCRATCH region).
  * NAMES:    FRAME (0x601A), SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), SND_TRIGGER (0x6080;
- *           +2 = 0x6082), SPRITE_OBJ_BLOCK (0x6908) from ram.js. Hex-kept: 0x63C4 scroll cursor
- *           and 0x638D band count (both unnamed in ram.js); 0x38CB / 0x38DC are ROM table bases.
+ *           +2 = 0x6082), SPRITE_OBJ_BLOCK (0x6908), INTRO_WALK_PTR_B (0x63C4, the scroll
+ *           cursor) and CUTSCENE_BAND_COUNT (0x638D, the band count) from ram.js; 0x38CB /
+ *           0x38DC are ROM table bases.
  */
 
 import { addStrided } from "./addStrided.js"; // ROM 0x003d — add C to B stride-DE bytes (rst 0x38 body)
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — walk a board-layout segment table and draw it
-import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK } from "./ram.js";
+import {
+  FRAME,
+  SUBSTATE_TIMER,
+  INTRO_STEP,
+  SND_TRIGGER,
+  SPRITE_OBJ_BLOCK,
+  INTRO_WALK_PTR_B,
+  CUTSCENE_BAND_COUNT,
+} from "./ram.js";
 
-const SCROLL_CURSOR = 0x63c4; // 16-bit walk cursor into the ROM Y-delta table (unnamed in ram.js)
 const SCROLL_TABLE = 0x38cb; // ROM base of the per-step signed-Y-delta table; 0x7F wraps it
-const BAND_COUNT = 0x638d; // board bands left to stamp this beat, seeded to 5 (unnamed in ram.js)
 const BAND_TABLE = 0x38dc; // ROM base of the 16-byte-strided band-record table
 const SENTINEL = 0x7f; // table byte meaning "path wrapped"
 
@@ -102,13 +110,13 @@ export function loc_0b68(m) {
   if (mem.read8(FRAME) & 0x01) return;
 
   // ld hl,(0x63c4) / ld a,(hl) / cp 0x7f — read the next Y-delta through the walk cursor.
-  const cursor = mem.read16(SCROLL_CURSOR);
+  const cursor = mem.read16(INTRO_WALK_PTR_B);
   const delta = mem.read8(cursor);
 
   if (delta !== SENTINEL) {
     // Diagonal scroll: advance the cursor, then nudge every record's Y by the signed delta
     // and its X left by one (0xFF = -1), each a stride-4 add over the ten-record block.
-    mem.write16(SCROLL_CURSOR, (cursor + 1) & 0xffff);
+    mem.write16(INTRO_WALK_PTR_B, (cursor + 1) & 0xffff);
     strideAddTen(m, OBJ_Y, delta);
     strideAddTen(m, OBJ_X, 0xff);
     return;
@@ -116,18 +124,18 @@ export function loc_0b68(m) {
 
   // 0x7f — the scroll path wrapped. Loop the cursor back to the table start and trigger the
   // stamp sound.
-  mem.write16(SCROLL_CURSOR, SCROLL_TABLE);
+  mem.write16(INTRO_WALK_PTR_B, SCROLL_TABLE);
   mem.write8(SND_TRIGGER + 2, 0x03); // 0x6082 := 3 (a 3-frame sound assert)
 
   // Draw the next board band. Its ROM record address = BAND_TABLE + ((count-1) nibble-swapped);
   // loc_0da7 reads DE as that record-table pointer.
-  const bandIdx = nibbleSwap((mem.read8(BAND_COUNT) - 1) & 0xff);
+  const bandIdx = nibbleSwap((mem.read8(CUTSCENE_BAND_COUNT) - 1) & 0xff);
   regs.de = (BAND_TABLE + bandIdx) & 0xffff;
   loc_0da7(m); // ROM 0x0da7
 
   // dec (0x638d) / ret nz — one band placed; stay in step 6 until the count drains.
-  const bandsLeft = (mem.read8(BAND_COUNT) - 1) & 0xff;
-  mem.write8(BAND_COUNT, bandsLeft);
+  const bandsLeft = (mem.read8(CUTSCENE_BAND_COUNT) - 1) & 0xff;
+  mem.write8(CUTSCENE_BAND_COUNT, bandsLeft);
   if (bandsLeft !== 0) return;
 
   // All bands placed: arm the metered hold and advance the cutscene to step 7 (the roar).

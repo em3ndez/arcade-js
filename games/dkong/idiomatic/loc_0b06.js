@@ -8,7 +8,7 @@
  *
  *   A — PARITY IDLE. `ld a,(FRAME) / rrca / ret c`: on odd frames it returns immediately,
  *       so the build advances at half rate (one table byte every other frame).
- *   B — WALK ONE TABLE BYTE. On even frames, follow the indirect walk pointer 0x63C2 into
+ *   B — WALK ONE TABLE BYTE. On even frames, follow the indirect walk pointer INTRO_WALK_PTR_A (0x63C2) into
  *       a ROM record table and read the next byte. If it is not the 0x7F terminator,
  *       advance the pointer and add that (signed) byte into the Y column of all ten
  *       sprite-object records via the rst-0x38 vector (addToSpriteObjectColumn), then
@@ -19,10 +19,10 @@
  *         - copy 8 more bytes from that end pointer into SPRITE_BUFFER (0x6900) — the
  *           oracle does NOT reload HL; the copy chains off the block copy's end,
  *         - reposition the fresh row: +0x50 on the X column, -4 on the Y column,
- *         - scroll the climb graphic up until its loop counter 0x638E reaches 0x0A,
- *         - assert the beat's sound (a 3-frame latch at 0x6082),
+ *         - scroll the climb graphic up until its loop counter INTRO_SCROLL_INDEX (0x638E) reaches 0x0A,
+ *         - assert the beat's sound (a 3-frame latch at SND_TRIGGER+2 = 0x6082),
  *         - draw the board-layout segment table at ROM 0x392C (loc_0da7),
- *         - stamp two video-RAM cells, set the next record index (0x638D <- 5),
+ *         - stamp two video-RAM cells, set the cutscene band count (CUTSCENE_BAND_COUNT 0x638D <- 5),
  *         - arm the 32-frame phase timer (SUBSTATE_TIMER <- 0x20),
  *         - advance the cutscene step (inc INTRO_STEP) and re-seed loc_3069's gated
  *           pointer SEQ_ADVANCE_PTR at INTRO_STEP.
@@ -43,17 +43,19 @@
  *           RAM - STACK_SCRATCH; + crafted entries that force the walk-boundary byte and the
  *           terminal arm deterministically. Reached only in a credited game at INTRO_STEP==4;
  *           never in plain attract (0 dispatches / 2500 attract frames). Teeth: two twins.
- * LIVE-OUT: memory-only — the walk pointer 0x63C2 (path B), the sprite-object block/Y-column
- *           (via the rst-0x38 vector), and on path C the SPRITE_BUFFER header, the scrolled
- *           climb graphic, 0x6082, the loc_0da7 playfield draw, 0x74AA/0x748A, 0x638D,
+ * LIVE-OUT: memory-only — the walk pointer INTRO_WALK_PTR_A (0x63C2, path B), the
+ *           sprite-object block/Y-column (via the rst-0x38 vector), and on path C the
+ *           SPRITE_BUFFER header, the scrolled climb graphic, SND_TRIGGER+2 (0x6082), the
+ *           loc_0da7 playfield draw, 0x74AA/0x748A, CUTSCENE_BAND_COUNT (0x638D),
  *           SUBSTATE_TIMER, INTRO_STEP (incremented) and SEQ_ADVANCE_PTR. No live registers
  *           or flags (the oracle's residual A/HL/F are dead ABI). SP/pc are NOT compared: the
  *           idiomatic layer drops the oracle's stack model (its final `ret` alone nets SP+2),
  *           and the JS call stack replaces it — the same convention as the sibling loc_0da7.
  * NAMES:    FRAME, SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK,
- *           SPRITE_BUFFER from ram.js. Kept hex (unnamed in ram.js): the walk pointer 0x63C2,
- *           the sound latch 0x6082, the next-record index 0x638D, the scroll-loop counter
- *           0x638E, video cells 0x74AA/0x748A, and the ROM tables 0x385C / 0x392C.
+ *           SPRITE_BUFFER, INTRO_WALK_PTR_A (0x63C2), CUTSCENE_BAND_COUNT (0x638D),
+ *           INTRO_SCROLL_INDEX (0x638E), and SND_TRIGGER (0x6080; the beat's sound is
+ *           SND_TRIGGER+2 = 0x6082) from ram.js. Kept hex: video cells 0x74AA/0x748A and
+ *           the ROM tables 0x385C / 0x392C.
  */
 
 import {
@@ -63,18 +65,19 @@ import {
   SEQ_ADVANCE_PTR,
   SPRITE_OBJ_BLOCK,
   SPRITE_BUFFER,
+  SND_TRIGGER,
+  INTRO_WALK_PTR_A,
+  CUTSCENE_BAND_COUNT,
+  INTRO_SCROLL_INDEX,
 } from "./ram.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js"; // ROM 0x304a
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7
 
-const WALK_PTR = 0x63c2; // indirect pointer that walks the ROM record table, byte per call
 const DISPLAY_Y_CELL = SPRITE_OBJ_BLOCK + 3; // 0x690b — the Y column of the sprite-object records
 const WALK_TERMINATOR = 0x7f; // sentinel byte that ends the walk -> terminal setup
-const SOUND_LATCH = 0x6082; // 3-frame audio-assert latch for the beat
-const NEXT_RECORD_INDEX = 0x638d; // record index armed for the next phase
-const SCROLL_LOOP_VAR = 0x638e; // scrollClimbGraphicStep walks this down; loop exits at 0x0a
+const SOUND_LATCH = SND_TRIGGER + 2; // 0x6082 — 3-frame audio-assert latch for the beat
 const PROP_TEMPLATE = 0x385c; // ROM: sprite-object template loaded on the terminal beat
 const LAYOUT_TABLE = 0x392c; // ROM: board-layout segment table handed to loc_0da7
 const VIDEO_CELL_A = 0x74aa; // video-RAM cell stamped on the terminal beat
@@ -88,13 +91,13 @@ export function loc_0b06(m) {
   if (mem.read8(FRAME) & 0x01) return;
 
   // Follow the indirect walk pointer into the ROM record table and read the next byte.
-  const ptr = mem.read16(WALK_PTR);
+  const ptr = mem.read16(INTRO_WALK_PTR_A);
   const byte = mem.read8(ptr);
 
   if (byte !== WALK_TERMINATOR) {
     // -- PATH B: walk one non-sentinel byte. Advance the pointer and add the (signed)
     // byte into the Y column of all ten sprite-object records via the rst-0x38 vector.
-    mem.write16(WALK_PTR, (ptr + 1) & 0xffff);
+    mem.write16(INTRO_WALK_PTR_A, (ptr + 1) & 0xffff);
     regs.hl = DISPLAY_Y_CELL; // rst-0x38 base: which field to add into
     regs.c = byte; // the signed delta
     addToSpriteObjectColumn(m);
@@ -129,21 +132,21 @@ export function loc_0b06(m) {
   addToSpriteObjectColumn(m);
 
   // Scroll the climb graphic up until its loop counter reaches 0x0A. scrollClimbGraphicStep
-  // decrements SCROLL_LOOP_VAR each pass, so this is a synchronous advance to a fixed target.
+  // decrements INTRO_SCROLL_INDEX each pass, so this is a synchronous advance to a fixed target.
   do {
     scrollClimbGraphicStep(m);
-  } while (mem.read8(SCROLL_LOOP_VAR) !== 0x0a);
+  } while (mem.read8(INTRO_SCROLL_INDEX) !== 0x0a);
 
   // Assert the beat's sound (a 3-frame latch), then draw the board-layout segment table.
   mem.write8(SOUND_LATCH, 0x03);
   regs.de = LAYOUT_TABLE; // 0x392c — loc_0da7 reads DE
   loc_0da7(m);
 
-  // Terminal-beat epilogue: stamp two video cells, set the next record index, arm the
+  // Terminal-beat epilogue: stamp two video cells, set the cutscene band count, arm the
   // 32-frame phase timer, advance the cutscene step, and re-seed loc_3069's gated pointer.
   mem.write8(VIDEO_CELL_A, 0x10);
   mem.write8(VIDEO_CELL_B, 0x10);
-  mem.write8(NEXT_RECORD_INDEX, 0x05);
+  mem.write8(CUTSCENE_BAND_COUNT, 0x05);
   mem.write8(SUBSTATE_TIMER, 0x20); // arm the 32-frame phase countdown
   mem.write8(INTRO_STEP, (mem.read8(INTRO_STEP) + 1) & 0xff); // inc (0x6385) — advance the step
   mem.write16(SEQ_ADVANCE_PTR, INTRO_STEP); // 0x63c0 <- 0x6385

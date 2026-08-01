@@ -17,7 +17,7 @@
  *   - Nudge the freshly-copied records into scene position with two strided add-passes
  *     (rst 0x38 = loc_0038: add C to 10 bytes, stride 4): +0x30 into field 0 of every
  *     record (from 0x6908) and +0x99 into field 3 of every record (from 0x690B).
- *   - Seed two bytes: an unnamed cutscene byte 0x638E <- 0x1F, and record-1 field 0
+ *   - Seed two bytes: INTRO_SCROLL_INDEX (0x638E) <- 0x1F, and record-1 field 0
  *     (SPRITE_OBJ_BLOCK+4) <- 0 (this overwrites what add-pass 1 just wrote there, so the
  *     WRITE ORDER matters — the copy and both add-passes must run BEFORE these seeds).
  *   - Queue the intro tune: SND_PRIORITY <- 1 for SND_PRIORITY_FRAMES = 3 frames.
@@ -46,17 +46,16 @@
  *           residual A/HL/flags are dead ABI, and its SP/pc are the Z80 caller-skip
  *           mechanism the boolean gate replaces (not part of the contract).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B),
- *           INTRO_STEP (0x6385) from ram.js. Hex-kept: ROM source 0x388C (an immediate) and
- *           0x638E (an unnamed cutscene byte).
+ *           INTRO_STEP (0x6385), INTRO_SCROLL_INDEX (0x638E) from ram.js. Hex-kept: ROM
+ *           source 0x388C (an immediate).
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { loc_0038 } from "../translated/loc_0038.js"; // rst 0x38 add-pass — not yet idiomatic
-import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP, INTRO_SCROLL_INDEX } from "./ram.js";
 
 const CLIMB_RECORDS_SRC = 0x388c; // ROM template of 10 sprite-object records for this phase
-const CUTSCENE_BYTE_638E = 0x638e; // unnamed cutscene byte, seeded to 0x1F here
 
 export function runIntroClimbStep(m) {
   const { regs, mem } = m;
@@ -81,7 +80,7 @@ export function runIntroClimbStep(m) {
 
   // Seed the two fixed bytes. These run AFTER the add-passes on purpose: 0x690C is one of
   // add-pass 1's targets (record 1, field 0), and this zero overwrites what it wrote.
-  mem.write8(CUTSCENE_BYTE_638E, 0x1f);
+  mem.write8(INTRO_SCROLL_INDEX, 0x1f); // 0x638E — intro Kong-climb scroll index
   mem.write8(SPRITE_OBJ_BLOCK + 4, 0x00); // 0x690c — record 1, field 0
 
   // Queue the intro tune: a 3-frame priority-sound pulse.

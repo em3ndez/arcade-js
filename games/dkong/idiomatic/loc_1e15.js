@@ -9,18 +9,18 @@
  *
  *   1. enqueueTask(D,E) — post the setter's message onto the task ring (fire-and-
  *      forget; its result is not read). B, D and E survive the call.
- *   2. Load a pointer from the indirect slot 0x6343 to a small parameter block.
+ *   2. Load a pointer from the indirect slot EFFECT_PARAM_PTR (0x6343) to a small parameter block.
  *   3. Read block[0] into A (the sprite's X) and CLEAR block[0] in place — a
  *      consume-once read. Then read block[3] into C (the sprite's Y). The `inc l`x3
  *      pointer walk is 8-bit (page fixed), matching the oracle.
  *   4. Tail into loc_1e36, which stamps the 4-byte hardware sprite record
- *      {A, B, 0x07, C} at 0x6A30 and cues a board-gated sound.
+ *      {A, B, 0x07, C} at POPUP_SPRITE (0x6A30) and cues a board-gated sound.
  *
- * Part of the sub_1dbd (0x6340) effect-sprite state machine (see loc_1e36).
+ * Part of the sub_1dbd effect state machine (EFFECT_STATE 0x6340; see loc_1e36).
  *
  * NAME: kept the neutral loc_ — the memory mechanics are understood, but the specific
- * effect this sprite is (and the identity of the 0x6343 parameter block) are not
- * confirmed to the routine-name evidence bar. Its own tail loc_1e36 stayed neutral for
+ * effect this sprite is (and the identity of the EFFECT_PARAM_PTR (0x6343) parameter
+ * block) are not confirmed to the routine-name evidence bar. Its own tail loc_1e36 stayed neutral for
  * the same reason; promoting the feeder past its tail would overclaim. Promote once
  * corroborated.
  *
@@ -32,19 +32,20 @@
  *           the byte-0 clear, and a full-ring DROP entry exercising enqueueTask's
  *           silent-drop path. Three teeth: wrong-C-offset, no-clear, and drop-the-task.
  * LIVE-OUT: memory-only — the task ring + TASK_TAIL (via enqueueTask), the block[0]
- *           clear at *(0x6343), and the sprite record 0x6A30..0x6A33 + gate-open 0x6085
- *           (via loc_1e36). A and C are set only as loc_1e36's live-in and are consumed
+ *           clear at *(EFFECT_PARAM_PTR), and the POPUP_SPRITE record 0x6A30..0x6A33 +
+ *           gate-open 0x6085 (a SND_TRIGGER latch) (via loc_1e36). A and C are set only as
+ *           loc_1e36's live-in and are consumed
  *           within this same dispatch; the caller (loc_1e00's caller) reads no register
  *           afterward, so A/C/HL and the `inc l` flags are all dead. SP/pc are the
  *           dropped stack model (the oracle's push/call/ret becomes the JS call stack).
  * NAMES:    enqueueTask (ROM 0x309F) and loc_1e36 (ROM 0x1E36) are the idiomatic
- *           callees, imported and called directly. 0x6343 (EFFECT_PARAM_PTR) kept hex —
- *           it is engine scratch holding the block pointer; its identity is unconfirmed.
+ *           callees, imported and called directly. EFFECT_PARAM_PTR (0x6343) from ram.js —
+ *           the effect param pointer (word); the block IDENTITY it derefs is unconfirmed,
+ *           but the cell is named.
  */
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { loc_1e36 } from "./loc_1e36.js";       // ROM 0x1E36
-
-const EFFECT_PARAM_PTR = 0x6343; // indirect word: HL = the parameter block's address
+import { EFFECT_PARAM_PTR } from "./ram.js";    // 0x6343 — indirect word: HL = the parameter block's address
 
 export function loc_1e15(m) {
   const { regs, mem } = m;
@@ -52,7 +53,7 @@ export function loc_1e15(m) {
   // Post the setter's deferred-task message (D=opcode, E=argument). B/D/E preserved.
   enqueueTask(m);
 
-  // HL = the parameter block's address, read INDIRECTLY from the word at 0x6343.
+  // HL = the parameter block's address, read INDIRECTLY from the word at EFFECT_PARAM_PTR.
   const block = mem.read16(EFFECT_PARAM_PTR);
 
   // block[0] -> A (the sprite X), then CLEAR it in place (read-then-consume).

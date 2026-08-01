@@ -5,9 +5,9 @@
  * A two-instruction shared helper: load the byte the caller points at, subtract
  * one (wrapping 0 back down to 255), and store it back. Nothing else.
  *
- * The one caller — the board-object spawn routine at ROM 0x27DA — tail-jumps here to
- * tick down a spawn-cooldown timer every time it runs, whether or not it spawned this
- * pass. In that use the pointer is a single board-object bookkeeping cell, but the
+ * The one caller — the board-object spawn routine sub_27da (ROM 0x27DA) — tail-jumps
+ * here to tick down SPAWN_TIMER (0x62A7) every time it runs, whether or not it spawned
+ * this pass. In that use the pointer is a single board-object bookkeeping cell, but the
  * routine itself is address-agnostic: it decrements whatever address it is handed, so
  * the target is a parameter rather than a fixed cell.
  *
@@ -23,9 +23,10 @@
  *           (zero / sign / half-carry / overflow) and its terminal return are dead:
  *           the sole caller tail-jumps in, and ITS caller (ROM 0x2722) resumes its own
  *           work — reloading registers — without reading the returned flags.
- * NAMES:    none — the target is a parameter (the pointer live-in), so this routine
- *           references no ram.js cell. In the observed use the caller passes 0x62A7,
- *           an as-yet-unnamed board-object spawn-cooldown cell.
+ * NAMES:    none imported — the target is a parameter (the pointer live-in), so this
+ *           routine references no ram.js cell in code. In the observed use the caller
+ *           passes SPAWN_TIMER (0x62A7), the board-object spawn-cadence cell (named in
+ *           ram.js); it stays a runtime argument here, not a hardcoded import.
  */
 
 /**

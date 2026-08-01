@@ -13,8 +13,8 @@
  *      recomputes the bonus fields from LEVEL, and — via its own rst-0x28 tail — runs
  *      the per-board setup (25m/50m/75m/100m) selected by BOARD. sub_0f56 has no `ret`
  *      of its own; the board-setup arm it dispatches to returns straight back here.
- *   2. Scatters this board's ROM object-init records into the two 0x63xx attribute
- *      arrays (loadBoardObjectRecords).
+ *   2. Scatters this board's ROM object-init records into the OBJ_PARAM_TABLE0 /
+ *      OBJ_PARAM_TABLE1 attribute arrays (0x6300/0x6310) via loadBoardObjectRecords.
  *   3. Arms the setup dwell: SUBSTATE_TIMER (0x6009) = 0x40 (64 frames), then
  *      inc GAME_SUBSTATE (0x600A) — the "wait 64 frames, then advance one sub-state"
  *      idiom that ends board setup.
@@ -65,7 +65,8 @@
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), BOARD (0x6227),
  *           SPRITE_OBJ_BLOCK (0x6908), SPRITE_BUFFER (0x6900) from ram.js. Hex-kept:
  *           OBJECT_TEMPLATE_SRC 0x385C (a ROM data address / immediate) and the two
- *           rivet-arm addStrided immediates (0x10, 0xF8 deltas at 0x6900/0x6903).
+ *           rivet-arm addStrided delta immediates (0x10, 0xF8 applied at SPRITE_BUFFER /
+ *           SPRITE_BUFFER+3).
  */
 
 import { sub_0f56 } from "../translated/sub_0f56.js"; // ROM 0x0f56 — not yet idiomatic; the frozen oracle
@@ -85,7 +86,8 @@ export function loc_0d5f(m) {
   // (1) Common per-board init + the per-board setup dispatch (still the oracle).
   sub_0f56(m);
 
-  // (2) Scatter this board's ROM object-init records into the 0x6300/0x6310 arrays.
+  // (2) Scatter this board's ROM object-init records into OBJ_PARAM_TABLE0 / OBJ_PARAM_TABLE1
+  //     (0x6300/0x6310).
   loadBoardObjectRecords(m);
 
   // (3) Arm the setup dwell timer, then advance the game sub-state by one.

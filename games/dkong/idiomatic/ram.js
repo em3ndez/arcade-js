@@ -191,8 +191,15 @@ export const HAMMER_TIMER_HI = 0x6395;
 /** Sprite shadow buffer: 96 hardware sprite records × 4 bytes at 0x6900-0x6A7F. The CPU fills it and
  *  the i8257 DMA blits it to sprite RAM 0x7000 on the rising DRQ edge every vblank (sub_0141, ROM
  *  0x0141: ch0 src 0x6900, ch1 dst 0x7000, count 0x180 = 96×4). Boot/board-setup clears the 384-byte
- *  span (sub_0874). MARIO_SPRITE_RECORD (0x694C) lives inside it. HOW WE KNOW: the DMA descriptor
- *  names 0x6900 as ch0 SOURCE and 0x7000 as ch1 DEST — an unambiguous ROM + i8257-hardware cite. */
+ *  span (sub_0874). MARIO_SPRITE_RECORD (0x694C) lives inside it.
+ *  RECORD LAYOUT (game frame): +0 X (SPRITE_X), +1 code (SPRITE_CODE, bit7 = flip), +2 attr
+ *  (SPRITE_ATTR), +3 Y (SPRITE_Y). [seen]: +0 == MARIO_X and +3 == MARIO_Y observed byte-exact on the
+ *  real ROM under MAME across 1819 attract frames. 90° NOTE: the video hardware reads each record
+ *  ROTATED (raster +0 = y, +3 = x) — the +0-X/+3-Y (game) vs +0-y/+3-x (raster) disagreement is the
+ *  portrait rotation, NOT a bug; do NOT "fix" the X/Y naming. Named sub-bases inside the buffer:
+ *  ACTOR_SPRITES, TOP_SPRITES, OBJECT_COLLISION_SPRITES, POPUP_SPRITE (below).
+ *  HOW WE KNOW: the DMA descriptor names 0x6900 as ch0 SOURCE and 0x7000 as ch1 DEST — an unambiguous
+ *  ROM + i8257-hardware cite. */
 export const SPRITE_BUFFER = 0x6900;
 
 /** A 10-record (40-byte) sprite-object group at SPRITE_BUFFER+8 (0x6908-0x692F). sub_004e (ROM 0x004E
@@ -207,6 +214,32 @@ export const SPRITE_OBJ_BLOCK = 0x6908;
  *  0x704C. Observed byte-identical to the source tuple; the hammer overrides +1 via loc_2f43.
  *  (Inside SPRITE_BUFFER, above.) */
 export const MARIO_SPRITE_RECORD = 0x694C;
+
+// Sprite-record field offsets (into any 4-byte record in SPRITE_BUFFER). Source: names-confirmed-DE.md;
+// video.js drawSprites transcribed from MAME 0.288 dkong_v.cpp. See SPRITE_BUFFER's 90° note.
+/** [seen] Sprite-record field: X (+0). Grounded byte-exact vs MAME (== MARIO_X, 1819 attract frames);
+ *  raster reads it rotated as the y-coord. */
+export const SPRITE_X = 0x00;
+/** [code] Sprite-record field: tile code (+1); bit7 = horizontal flip. */
+export const SPRITE_CODE = 0x01;
+/** [code] Sprite-record field: colour/attribute (+2). */
+export const SPRITE_ATTR = 0x02;
+/** [seen] Sprite-record field: Y (+3). Grounded byte-exact vs MAME (== MARIO_Y, 1819 attract frames);
+ *  raster reads it rotated as the x-coord. */
+export const SPRITE_Y = 0x03;
+
+/** [code] 10 sprite records (stride 4) inside SPRITE_BUFFER (0x6980-0x69A7); entry_2e04 mirrors the
+ *  0x6500 object array's X/Y here. */
+export const ACTOR_SPRITES = 0x6980;
+/** [code] 3 sprite records (stride 4) inside SPRITE_BUFFER; initBoardState seeds them on every board
+ *  except 100m. */
+export const TOP_SPRITES = 0x6a00;
+/** [code] 3 collision sprite records (stride 4) inside SPRITE_BUFFER; scanObjectsAtMarioX/confirmObjectHit
+ *  read +0 X / +3 Y / +1 flag vs Mario (cleared as a 5-record group by clearSpriteColumns). */
+export const OBJECT_COLLISION_SPRITES = 0x6a0c;
+/** [code] Score-popup sprite record inside SPRITE_BUFFER; awardScorePopup writes +0=MarioX, +1=glyph,
+ *  +2=attr 7, +3=MarioY+0x14. */
+export const POPUP_SPRITE = 0x6a30;
 
 // ── Game state & NMI dispatch ────────────────────────────────────────────────
 // Source: ram-verify-world.md.
@@ -248,6 +281,12 @@ export const GAME_SUBSTATE = 0x600A;
  *  cite. Mined from the optimization sweep + confirmed by a separate verifier. */
 export const CURRENT_PLAYER = 0x600D;
 
+/** [code] Active-player index; value-lockstep mirror of CURRENT_PLAYER (loc_141e/144f/13aa/13bb write
+ *  both in step). Distinct discriminating readers (cocktail P2-select, +0x12 substate, 2P double-inc)
+ *  are all unexercised in attract, so the solid basis is the lockstep with the grounded CURRENT_PLAYER —
+ *  ground on a 2P/cocktail run before a downstream decompile trusts the readers. */
+export const ACTIVE_PLAYER_INDEX = 0x600e;
+
 /** 1 = two-player game, 0 = one-player. Written EXACTLY ONCE at game start, as the high byte of
  *  loc_08f8's `ld (0x600E),hl` (ROM 0x0938; HL=0x0100 on the 2P-start arm, 0x0000 on 1P). Every
  *  reader branches on it as "2-player": loc_09ab arms the alternation screen, loc_12f2 takes the 2P
@@ -259,6 +298,11 @@ export const TWO_PLAYER_GAME = 0x600F;
  *  against the 8-entry table at 0x0A7A. Walks 1→7 over the cutscene (roar audio 0x608A=0x0F at
  *  step 7). Reached only while GAME_SUBSTATE (0x600A) == 7. */
 export const INTRO_STEP = 0x6385;
+
+/** [code] Player-slot records: base 0x611C, stride 0x22, 5 records; field[0] = owner tag (1 = P1,
+ *  3 = P2). loc_141e is ground-truth (compares field[0] vs 1 then 3); runBonusItemValueDisplay/sub_1486
+ *  key it with 2*(0x600E)+1. Base + stride + owner-tag solid; full per-record layout inferred. */
+export const PLAYER_SLOT_RECORDS = 0x611c;
 
 // ── Engine / object scratch (mined from the optimization sweep) ───────────────
 // Cross-routine consistency across the optimized set + ROM cites; confirmed by a separate verifier
@@ -322,8 +366,10 @@ export const PLAY_INTRO = 0x622C;
 
 /** Latch so the score-threshold extra life is granted once per player. sub_0350 (ROM 0x0350)
  *  early-outs on it (`ret nz`) and sets it to 1 (ROM 0x0375) immediately before `inc (LIVES)`.
- *  ROM-unambiguous but never observed set (score never crossed the threshold); 0 at each board
- *  start. (Player findings named it EXTRA_LIFE_AWARDED.) */
+ *  ROM-unambiguous, and the award path IS reached in attract: DIP_BONUS_LIFE (0x6021) is 0 at early
+ *  boot, so the threshold is 0 and sub_0350 awards immediately — the go-live oracle shows LIVES → 1 in
+ *  attract. Set to 1 once that award fires; 0 again at each new player's board start.
+ *  (Player findings named it EXTRA_LIFE_AWARDED.) */
 export const BONUS_LIFE_AWARDED = 0x622D;
 
 /** Height index for the "HOW HIGH CAN YOU GET?" interlude, clamped to 5. Stepped when BOARD_SEQ_PTR
@@ -523,14 +569,181 @@ export const SND_PRIORITY = 0x608A;
  *  (ROM 0x00FA). Observed writes are 3 then 2,1,0 on consecutive frames. */
 export const SND_PRIORITY_FRAMES = 0x608B;
 
+// ── Object-record arrays & shared fields ─────────────────────────────────────
+// Source: names-confirmed-DE.md (independent re-derivation of the seed/gather/mover chain).
+// Each array is base + stride + record-count; the per-record fields below are SHARED across all
+// arrays (gatherSpriteRecords maps them into SPRITE_BUFFER, which the i8257 DMAs to sprite RAM).
+// Individual field CELLS stay hex — reach them as base + offset. Load-bearing: a downstream
+// decompile indexes off these; ground one live sweep per stride vs MAME.
+
+/** [code] Object-record field: active flag (+0); bit0 = active (the 0x6700 array also uses bit1 = occupied). */
+export const OBJ_ACTIVE = 0x00;
+/** [code] Object-record field: X (+3). Grounded transitively via the [seen] sprite X
+ *  (gatherSpriteRecords obj+3 -> sprite+0 = X). */
+export const OBJ_X = 0x03;
+/** [code] Object-record field: Y (+5). Grounded transitively via the [seen] sprite Y
+ *  (gatherSpriteRecords obj+5 -> sprite+3 = Y). */
+export const OBJ_Y = 0x05;
+/** [code] Object-record field: sprite tile code (+7); gatherSpriteRecords copies to sprite +1. */
+export const OBJ_SPRITE_CODE = 0x07;
+/** [code] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. */
+export const OBJ_SPRITE_ATTR = 0x08;
+
+/** [code] Object array, stride 0x20, 5 records swept together (the page holds up to 7 on 100m);
+ *  sub_2880 / entry_31b1. */
+export const OBJ_ARRAY_64 = 0x6400;
+/** [code] Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F); entry_2e04, mirrored to
+ *  ACTOR_SPRITES. */
+export const OBJ_ARRAY_65 = 0x6500;
+/** [code] Object array, stride 0x10, 6 records; sub_2591. */
+export const OBJ_ARRAY_65A0 = 0x65a0;
+/** [code] Object array, stride 0x10, 6 records; sub_2797 (land/deactivate on +0d bit3). */
+export const OBJ_ARRAY_66 = 0x6600;
+/** [code] Object pair, stride 0x10, 2 records (0x6680 / 0x6690); seedSpriteObjectPair, gathered to 0x6A18. */
+export const OBJ_PAIR_6680 = 0x6680;
+/** [code] Single object record; sub_2880 sweep3 (count 1), loc_11fa scatters a ROM template into it. */
+export const OBJ_RECORD_66A0 = 0x66a0;
+/** [code] Object array, stride 0x20, 10 records spanning page 0x68 (0x6700-0x6840);
+ *  sub_2880 / entry_2c8f / sub_1f72. */
+export const OBJ_ARRAY_67 = 0x6700;
+
+/** [code] Saved iterator pointer (word) walking the 0x6400 stride-0x20 array; entry_31b1 seeds/advances
+ *  it, entry_3202 / sub_298c re-load it (pointer passed through memory). */
+export const OBJ_ITER_PTR = 0x63c8;
+
+// ── Effect subsystem ─────────────────────────────────────────────────────────
+// Source: names-confirmed-ABC.md. A small state machine that plays a transient "effect" (sprite
+// popup + sound) on a pickup/hit: EFFECT_STATE is a 4-way router, EFFECT_TIMER holds the display,
+// EFFECT_SELECT picks the setter, EFFECT_PARAM_PTR derefs the hit record. EFFECT_SEQ_* is a nested
+// countdown that steps a follow-on sequence and re-arms EFFECT_STATE on completion. State-machine
+// STRUCTURE is certain; the "effect-sprite" semantic is the interpretation to ground vs MAME (LB).
+
+/** [code] Effect state / 4-way rst-0x28 router (sub_1dbd); pickup/hit sites raise it to 1. */
+export const EFFECT_STATE = 0x6340;
+/** [code] Effect display-hold countdown; armed 0x40, decremented in place, blanks POPUP_SPRITE on expiry. */
+export const EFFECT_TIMER = 0x6341;
+/** [code] Effect select/mode byte; loc_1dc9 rra-walks its low bits to pick the setter (bit0/1/2). */
+export const EFFECT_SELECT = 0x6342;
+/** [code] Effect param pointer (word); indirect base of the hit record, deref'd by loc_1e15. */
+export const EFFECT_PARAM_PTR = 0x6343;
+/** [code] Effect-sequence state / 3-way rst-0x28 router (sub_1e96); re-arms EFFECT_STATE on completion. */
+export const EFFECT_SEQ_STATE = 0x6345;
+/** [code] Effect-sequence INNER countdown; decremented first each tick, steps the outer when it drains. */
+export const EFFECT_SEQ_INNER = 0x6346;
+/** [code] Effect-sequence OUTER countdown; decremented when the inner hits 0, advances EFFECT_SEQ_STATE on 0. */
+export const EFFECT_SEQ_OUTER = 0x6347;
+
+// ── Board render — line segments ─────────────────────────────────────────────
+// Source: names-confirmed-DE.md. Per-record working block of the playfield line-segment drawer
+// chain (loc_0da7 walks the 0xAA-terminated segment table; loc_0dd3/drawLadder/fillTileColumn
+// consume it). A single-instance scratch struct, NOT an indexed array. Load-bearing for board
+// render — one board-draw observation covers all nine cells vs MAME.
+
+/** [code] First endpoint tile address (word) = sub_2ff0(y,x); column start. */
+export const SEG_ADDR1 = 0x63ab;
+/** [code] Second endpoint tile address (word) = sub_2ff0(y2,x2); end-cap write ptr. */
+export const SEG_ADDR2 = 0x63ad;
+/** [code] First endpoint x&7 (sub-tile X). */
+export const SEG_SUBTILE1 = 0x63af;
+/** [code] Second endpoint x2&7 (sub-tile X). */
+export const SEG_SUBTILE2 = 0x63b0;
+/** [code] Segment height |y2-y|; paid down 8px/row by the column drawers. */
+export const SEG_HEIGHT = 0x63b1;
+/** [code] Segment run x2-x; its sign gives the ladder/girder slant. */
+export const SEG_RUN = 0x63b2;
+/** [code] Record kind / 0xAA terminator / girder-vs-ladder drawer selector. */
+export const SEG_KIND = 0x63b3;
+/** [code] First endpoint y&7 (sub-tile Y). */
+export const SEG_SUBTILE_Y1 = 0x63b4;
+/** [code] Current stamped tile code; drawLadder/fillTileColumn step it for slant/fill. */
+export const SEG_TILE = 0x63b5;
+
+// ── Object spawn, movement & init scratch ────────────────────────────────────
+// Source: names-confirmed-ABC.md. Per-board object lifecycle: init tables scattered at board
+// build, a spawn cadence, and (50m only) a signed-step cascade. The M50_* cascade is board-2
+// gated (rst-0x30 mask-0x02) and never runs in attract (25m) — ground on a 50m board.
+
+/** [code] Base of a heterogeneous board-object scratch region (0x6280+); initBoardState ldirs a
+ *  0x40-byte ROM template here per board and sub_2207 reads 8-byte records from it. A BASE, not a
+ *  uniform table — RIVETS_LEFT/BONUS and other cells are carved from the span. */
+export const BOARD_OBJ_SCRATCH = 0x6280;
+
+/** [code] 50m: object-1 reversal timer; loc_2602 decs on even frames, reloads 0x80 + reverses the step
+ *  on underflow. Board-2 only. */
+export const M50_OBJ1_REVERSE_TIMER = 0x62a0;
+/** [code] 50m: object-1 signed step-direction latch; only the SIGN is published (to 0x63A3). Board-2 only. */
+export const M50_OBJ1_STEP_DIR = 0x62a1;
+/** [code] 50m: object-2 signed step-direction latch (sub_262f); published to 0x63A5. Board-2 only. */
+export const M50_OBJ2_STEP_DIR = 0x62a3;
+/** [code] 50m: object-3 signed step-direction latch (sub_2679); published to 0x63A6. Board-2 only. */
+export const M50_OBJ3_STEP_DIR = 0x62a6;
+
+/** [code] Spawn-cadence timer; at 0 sub_27da claims a free 0x6600 slot, seeds it, reloads 0x34; always
+ *  decrements. */
+export const SPAWN_TIMER = 0x62a7;
+/** [code] Spawn request; sub_2fcb stores 3 each bonus period, loc_2ea7 tests bit0 -> activates the
+ *  object (+0:=1, position/appearance seeded) and clears it to 0. */
+export const SPAWN_REQUEST = 0x6396;
+/** [code] One-shot "Mario Y just repositioned" flag; sub_29af sets 1 right after writing MARIO_Y, read
+ *  as a gate by sub_2a85/sub_2745, cleared by the edge-reset routines. */
+export const EDGE_REPOSITION_FLAG = 0x6398;
+
+/** [code] Base of the per-board type-0 object-init table (stride 5); loadBoardObjectRecords de-interleaves
+ *  type-0 records here, sub_2441/sub_236e consume it. Exact record layout inferred. */
+export const OBJ_PARAM_TABLE0 = 0x6300;
+/** [code] Base of the per-board type-1 object-init table (parallel to TABLE0, IY-indexed). */
+export const OBJ_PARAM_TABLE1 = 0x6310;
+
+// ── String / object renderer ─────────────────────────────────────────────────
+// Source: names-confirmed-ABC.md. Working pointers of the loc_2d15 string/sprite renderer
+// (loc_2d54 walks source, object, and destination together each step).
+
+/** [code] Source char-string pointer (word); walked to a 0x7F terminator, stored back each step. */
+export const RENDER_STR_PTR = 0x62a8;
+/** [code] Object-record pointer (word) the renderer reads/writes (sprite fields +7/+8). */
+export const RENDER_OBJ_PTR = 0x62aa;
+/** [code] Destination pointer (word); the renderer writes the 4-byte record here (a slot inside
+ *  SPRITE_BUFFER, 0x6980+(10-B)*4). */
+export const RENDER_DST_PTR = 0x62ac;
+
+// ── Prize / item collection ──────────────────────────────────────────────────
+// Source: names-confirmed-ABC.md.
+
+/** [code] 1 = a prize/item was just collected; set at pickup (edge / airborne collision / rivet),
+ *  consumed at landing (entry_1c4f -> loc_1d95 clears it + queues the pickup tune off 25m). Lifecycle
+ *  solid; item IDENTITY inferred (alt PRIZE_COLLECTED). */
+export const ITEM_COLLECTED = 0x6225;
+
+// ── Intro cutscene & blink animation ─────────────────────────────────────────
+// Source: names-confirmed-ABC.md / names-confirmed-DE.md.
+
+/** [code] Intro cutscene band count; loc_0b06 seeds 5, loc_0b68 decs per band, (count-1)*16 indexes the
+ *  band table (0x38DC). Cutscene-only. */
+export const CUTSCENE_BAND_COUNT = 0x638d;
+/** [code] Intro Kong-climb scroll index; runIntroClimbStep seeds 0x1F, walked down as the displaced
+ *  video-copy offset (loop while != 0x0A). */
+export const INTRO_SCROLL_INDEX = 0x638e;
+/** [code] Intro walk pointer A (word); setupIntroCutsceneStep seeds 0x38B4, loc_0b06 advances it to a
+ *  0x7F terminator. */
+export const INTRO_WALK_PTR_A = 0x63c2;
+/** [code] Intro walk pointer B (word); setupIntroCutsceneStep seeds 0x38CB, loc_0b68 consumes it. */
+export const INTRO_WALK_PTR_B = 0x63c4;
+/** [code] Blink animation phase / 4-way rst-0x28 router (entry_127f); drives the blinkSpritePairOn/Off
+ *  toggle. WHAT blinks is inferential. */
+export const BLINK_ANIM_PHASE = 0x639d;
+/** [code] Blink repeat count; primed 0x0D, decremented each gate tick while toggling the pair, advances
+ *  BLINK_ANIM_PHASE at 0. */
+export const BLINK_COUNT = 0x639e;
+
 // ── Deliberately unnamed ─────────────────────────────────────────────────────
 // Addresses that appear in the findings files (ram-findings-*.md) but were
 // examined and left as hex — recorded here so the omissions are visible, not
 // silent. Each is a REJECT (evidence too thin / shared byte / no reader) or a
 // deferral to another owner. They stay hex in ../translated/.
 //
-// From ram-findings-player.md §Rejected (16 examined; 15 stay unnamed —
-// 0x622C was promoted to PLAY_INTRO by the world verifier and IS named above):
+// From ram-findings-player.md §Rejected (16 examined; 14 stay unnamed —
+// 0x622C was promoted to PLAY_INTRO by the world verifier, and 0x6225 to ITEM_COLLECTED by the
+// ABC naming pass — both named above):
 //   0x6201                      zero every frame, no absolute ROM site
 //   0x6209 0x620A               constant 4/8; the player's hit-box routine hard-codes
 //                               0x0407 instead of reading them (demonstrably unused copies)
@@ -540,7 +753,9 @@ export const SND_PRIORITY_FRAMES = 0x608B;
 //                               board can't settle it; rejection UPHELD (stays hex)
 //   0x620D 0x621D 0x6223 0x6226 zero throughout, no absolute sites
 //   0x6222                      climb-centring toggle; also written by loc_2259 (0x2295) — shared
-//   0x6225                      prize/score-domain collection flag, out of the player half
+//   0x6225                      PROMOTED to ITEM_COLLECTED above (ABC naming pass overturned the
+//                               "out of the player half" reject: the set-at-pickup -> consume-at-landing
+//                               lifecycle is now visible end to end)
 //   0x6081 0x6084 0x6085        sound latches — covered by the named SND_TRIGGER[8] span
 //                               (0x6080-0x6087); deferred to audio/README.md, not named individually
 //   0x6089                      sound latch — IS named above as SND_BGM (world verifier)
@@ -549,18 +764,27 @@ export const SND_PRIORITY_FRAMES = 0x608B;
 //   No ROM reference at all:    0x6004 0x6006 0x600B 0x600C
 //   Written once at boot:       0x6000
 //   Board/animation scratch:    0x6030 0x6031 0x6032 0x6034 0x6035 0x6036 0x6038 0x603A
-//                               0x6060 0x6100 0x611C 0x61A5 0x61B1 0x61C6 0x61C7
-//   0x63xx engine scratch:      0x6300 0x6310 0x6340 0x6341 0x6342 0x6343 0x6345 0x6346
-//                               0x6348 0x6350 0x6382 0x6388 0x638C 0x638F 0x6390
+//                               0x6060 0x6100 0x61A5 0x61B1 0x61C6 0x61C7
+//                               (0x611C was PROMOTED to PLAYER_SLOT_RECORDS above — DE naming pass:
+//                               base + stride 0x22, 5 records, owner-tag field[0] = 1/3 via loc_141e)
+//   0x63xx engine scratch:      0x6348 0x6350 0x6382 0x6388 0x638C 0x638F 0x6390
 //                               0x6392 0x6393 0x63A0
 //                               (0x6391 was PROMOTED to COLOUR_CYCLE_ACTIVE above — control-poke
 //                               confirmed it unshared; 0x6390 & 0x6393 rejection UPHELD as shared bytes.
 //                               0x6387 was PROMOTED to BONUS_EXPIRED_DELAY above — the
-//                               bonus-expired sequence's delay timer, ROM-cited unshared.)
-//   Board-object bookkeeping:   0x62AA 0x62AC 0x62AF 0x62B5 0x62B6 0x62B7 0x62B8 0x62B9
+//                               bonus-expired sequence's delay timer, ROM-cited unshared.
+//                               0x6300/0x6310 PROMOTED to OBJ_PARAM_TABLE0/1, and 0x6340-0x6343 /
+//                               0x6345 / 0x6346 to the EFFECT_* / EFFECT_SEQ_* cluster above — ABC
+//                               naming pass. 0x6348 & 0x6350 stay hex under DOWNGRADE: 0x6348 is a thin
+//                               one-shot velocity-mode latch, 0x6350 is SHARED across the effect-seq gate
+//                               (whole-byte) and sub_03a2 (bit0) — ground vs MAME before naming either.
+//                               0x638C stays hex: transient two-digit BCD display scratch.)
+//   Board-object bookkeeping:   0x62AF 0x62B5 0x62B6 0x62B7 0x62B8 0x62B9
 //                               0x62BA
 //                               (0x6291 was PROMOTED to EDGE_RIVET_ARMED above — the
-//                               rivet-removal edge one-shot; sits below the rivet array, NOT part of it)
+//                               rivet-removal edge one-shot; sits below the rivet array, NOT part of it.
+//                               0x62AA/0x62AC PROMOTED to RENDER_OBJ_PTR/RENDER_DST_PTR above — ABC
+//                               naming pass; dedicated loc_2d15-renderer pointers, not bookkeeping.)
 //
 // Deferred-not-rejected, and NOW named above from the OTHER half:
 //   0x6010 0x6011  world left them "for whoever owns input" — named here as
