@@ -19,14 +19,17 @@
 //
 // Faithful to translated/mainLoop_02bd.js — identical reads/writes/dispatches — with two changes
 // for the cycle-free coroutine engine: the per-instruction m.step cycle-accounting is dropped
-// (the engine runs cycle-free), and each busy-wait/loop-back to 0x02BD becomes `yield`. Callees are
-// dispatched through the routines table via m.call, so a wired idiomatic override is used wherever
-// one exists (today they are still translated). This is a transitional, faithful spine; it will be
-// idiomatised as the base expands.
+// (the engine runs cycle-free), and each busy-wait/loop-back to 0x02BD becomes `yield`. The four
+// per-frame callees (0x0315/0x0350/0x037F/0x03A2) are all idiomatic and DIRECT-called (no
+// push16/m.call), so the guest stack stays clean; only the task dispatch (dispatchTask) still walks
+// the routines table via m.call for the handlers that are not idiomatic yet. The base expands
+// under the go-live gate (idiomatic/test/golive.test.js) as those handlers are decompiled.
 
 import { dispatchTask } from "../translated/dispatchTask.js";
 import { rampDifficulty } from "./rampDifficulty.js";
 import { awardBonusLifeAtThreshold } from "./awardBonusLifeAtThreshold.js";
+import { loc_03a2 } from "./loc_03a2.js";
+import { redrawPlayerUpIndicator } from "./redrawPlayerUpIndicator.js";
 
 export function* mainLoop(m) {
   const { regs, mem } = m;
@@ -46,10 +49,9 @@ export function* mainLoop(m) {
       continue;
     }
 
-    // Bit 7 set: run the per-frame work. 0x0350 is idiomatic (awardBonusLifeAtThreshold) — call it
-    // DIRECTLY; 0x0315 is still translated and keeps the m.call bracket.
-    m.push16(0x02ca);
-    m.call(0x0315);
+    // Bit 7 set: run the per-frame work. Both callees are idiomatic now — call them DIRECTLY (no
+    // push16/m.call), so the guest stack stays clean.
+    redrawPlayerUpIndicator(m);
     awardBonusLifeAtThreshold(m);
 
     // inc (0x6019)
@@ -67,13 +69,11 @@ export function* mainLoop(m) {
       continue;
     }
 
-    // A new frame arrived: remember it, run the two per-new-frame tasks, then the tail `jr 0x02BD`.
-    // 0x037F is idiomatic (rampDifficulty) — call it DIRECTLY (no push16/m.call), so the guest stack
-    // stays clean; 0x03A2 is still translated and keeps the m.call bracket.
+    // A new frame arrived: remember it, run the two per-new-frame tasks (both idiomatic now — called
+    // DIRECTLY, no push16/m.call, so the guest stack stays clean), then the tail `jr 0x02BD`.
     mem.write8(regs.hl, regs.a);
     rampDifficulty(m);
-    m.push16(0x02e1);
-    m.call(0x03a2);
+    loc_03a2(m);
     yield;
   }
 }
