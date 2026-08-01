@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * loc_1615 — top dispatcher for the board-advance state, keyed on the board type.  ROM 0x1615.
+ *
+ * The GAME_SUBSTATE (0x600A) == 0x16 handler: reached once per frame from
+ * dispatchInGameSubstate while a board is being cleared / advanced. It first parks the moving
+ * sprite groups off-screen (clearSpriteColumns), then routes the board-render / how-high
+ * sequence to the handler for the CURRENT board type:
+ *
+ *   - Odd board (BOARD bit0 set: 25m or 75m) -> vector the sequence step through the 6-entry
+ *     ROM table at 0x1623 (steps 0..5).
+ *   - 50m board (BOARD bit1 set) -> vector through the 5-entry ROM table at 0x1637 (steps 0..4).
+ *   - 100m board (neither bit) -> fall through to loc_1641, which runs the effect-sprite state
+ *     machine and then dispatches the same sequence through its own table.
+ *
+ * In both table arms the step index is BOARD_ADVANCE_STEP (0x6388); the little-endian target
+ * word is read from ROM at table[step] and handed to the generic computed-jump dispatcher.
+ * Nothing at this level consumes a return value — the sub-state dispatcher that reached loc_1615
+ * discards it — so this is void.
+ *
+ * NAME: kept neutral loc_1615. The dispatch MECHANISM is fully understood and its selector
+ * BOARD_ADVANCE_STEP is named, but the board-render sequence's visual family (loc_1641, loc_1644,
+ * loc_1654, loc_1670, …) is kept address-named until grounded, so an English name here would
+ * over-assert past its own arms. Promote once that render family is confirmed.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-1615.test.js.
+ * GATE:     crafted-entry — not reached in plain attract (a board is never completed there), so a
+ *           real attract base is poked over the three board arms with the FULL oracle handlers run
+ *           on BOTH sides (RAM − STACK_SCRATCH + pc + SP), plus an EXHAUSTIVE selector sweep
+ *           (0..255) of BOTH tables (BOARD 1/3 -> 0x1623, BOARD 2 -> 0x1637) routing every computed
+ *           target to an identical catch-all stub, pinning the per-board table base + the
+ *           `base + (2*step & 0xff)` 8-bit-wrap math. Teeth: a dropped-clearSpriteColumns twin, a
+ *           wrong-table-base twin (ignores the bit1 arm), and a 16-bit-offset twin (no 8-bit wrap).
+ * LIVE-OUT: memory-only — clearSpriteColumns' zeroed sprite bytes plus the dispatched arm's RAM
+ *           writes. The oracle's board-read/rotate register+flag plumbing is dead (used only to
+ *           pick the arm here), and pc/SP net out identically: the oracle's push16 return-brackets
+ *           around the 0x30bd call and each rst-0x28 dispatch cancel, leaving the arm's own terminal
+ *           ret to pop loc_1615's caller return on both sides.
+ * NAMES:    BOARD (0x6227), BOARD_ADVANCE_STEP (0x6388) from ram.js. The two ROM table bases
+ *           0x1623 / 0x1637 stay hex (ROM data, not work RAM).
+ */
+
+import { BOARD, BOARD_ADVANCE_STEP } from "./ram.js";
+import { clearSpriteColumns } from "./clearSpriteColumns.js"; // ROM 0x30BD — park the moving sprites
+import { loc_1641 } from "./loc_1641.js";                     // ROM 0x1641 — 100m fall-through arm
+import { dispatchGameState } from "../translated/dispatchGameState.js";
+
+// The two rst-0x28 inline jump tables of board-render step targets in ROM, selected by board type:
+// 0x1623 (6 entries) for the odd boards 25m/75m, 0x1637 (5 entries) for 50m. ROM data, kept hex.
+const STEP_TABLE_ODD = 0x1623; // 25m / 75m
+const STEP_TABLE_50M = 0x1637; // 50m
+
+// Dispatch-site labels handed to dispatchGameState; they only surface inside a NotImplemented
+// throw, naming which inline table an out-of-range selector fell off of. Kept identical to the
+// oracle's two `m.call(0x0028, ...)` arguments.
+const DISPATCH_TABLE_1623 = "0x1623 (0x6388 board sub-dispatch)";
+const DISPATCH_TABLE_1637 = "0x1637 (0x6388 board sub-dispatch)";
+
+// Vector the board-render sequence step through a ROM table of little-endian targets. The step
+// index is doubled to a byte offset with the hardware's 8-bit wrap (offset wraps at 0x100), the
+// target word is read from ROM at table[step], and the generic dispatcher jumps to it.
+function dispatchBoardRenderStep(m, tableBase, site) {
+  const { mem } = m;
+  const step = mem.read8(BOARD_ADVANCE_STEP);
+  const entry = (tableBase + ((step * 2) & 0xff)) & 0xffff;
+  const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
+  dispatchGameState(m, target, site);
+}
+
+export function loc_1615(m) {
+  const { mem } = m;
+
+  // Park the moving sprite groups off-screen before the board-render sequence runs.
+  clearSpriteColumns(m);
+
+  // Route by board type. The odd boards (25m/75m) and 50m each own a step table; 100m has neither
+  // bit set and falls through to loc_1641.
+  const board = mem.read8(BOARD);
+  if ((board & 0x01) !== 0) {
+    dispatchBoardRenderStep(m, STEP_TABLE_ODD, DISPATCH_TABLE_1623); // 25m / 75m
+  } else if ((board & 0x02) !== 0) {
+    dispatchBoardRenderStep(m, STEP_TABLE_50M, DISPATCH_TABLE_1637); // 50m
+  } else {
+    loc_1641(m); // 100m
+  }
+}
