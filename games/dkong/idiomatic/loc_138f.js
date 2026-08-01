@@ -37,7 +37,7 @@
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
-import { SUBSTATE_TIMER, GAME_SUBSTATE, P2_CONTEXT } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, P2_CONTEXT } from "./ram.js";
 
 // The two follow-on sub-state indices this handler selects between. Kept hex: their
 // game-level meaning (past the documented gameplay/death/advance states) is unconfirmed.

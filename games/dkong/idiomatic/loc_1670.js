@@ -51,7 +51,7 @@ import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30)
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const ANIM_FRAME_SRC = 0x3932; // ROM base of the board-advance sprite-object animation table
 const STEP_SELECTOR = 0x6388; // 0x6388 — the board-advance render-sequence step index

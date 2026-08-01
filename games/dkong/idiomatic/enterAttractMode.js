@@ -38,7 +38,7 @@
  *           output, not work RAM, so it stays a local hex constant.
  */
 
-import { GAME_STATE, ATTRACT, GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_STATE, ATTRACT, GAME_SUBSTATE } from "./ram.js";
 
 // Flip-screen latch — a write-only board control output (video orientation), NOT
 // work RAM; driven to 1 as part of the attract-mode display setup.

@@ -50,7 +50,7 @@
  *           local hex constants — the same reason the optimized layer held them hex.
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { draw2UpLabel } from "./draw2UpLabel.js";
 

@@ -43,7 +43,7 @@ import {
   SND_BGM,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 // ---- Hardware sound latches (board control outputs, NOT work RAM) -----------
 // ls259.6h addressable latch — one address per bit at 0x7D00-0x7D07 (data on bit

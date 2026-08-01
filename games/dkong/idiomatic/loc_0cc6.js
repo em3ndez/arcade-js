@@ -43,7 +43,7 @@
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — walk + draw the layout table
 import { stampRivetBoardTiles } from "./stampRivetBoardTiles.js"; // ROM 0x0d00 — 100m rivet decoration
 import { loc_3fa0 } from "./loc_3fa0.js"; // ROM 0x3fa0 — board-setup prelude + continuation
-import { BOARD } from "../optimized/ram.js";
+import { BOARD } from "./ram.js";
 
 export function loc_0cc6(m) {
   // Walk the DE-selected layout table into VRAM / the render scratch.

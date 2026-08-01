@@ -43,7 +43,7 @@
  *           0x69E4 stay hex — unnamed engine/sprite scratch, named only in this prose.
  */
 
-import { FRAME } from "../optimized/ram.js";
+import { FRAME } from "./ram.js";
 import { reverseStepDirection } from "./reverseStepDirection.js";
 import { loc_26a6 } from "./loc_26a6.js";
 import { sub_26e9 } from "../translated/sub_26e9.js";

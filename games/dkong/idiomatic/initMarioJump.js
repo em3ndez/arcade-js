@@ -37,7 +37,7 @@
  * NAMES:    MARIO_AIRBORNE, P1_INPUT — ram.js. Velocity constants inline (they are the
  *           two velocity bytes launchMarioJump copies verbatim).
  */
-import { MARIO_AIRBORNE, P1_INPUT } from "../optimized/ram.js";
+import { MARIO_AIRBORNE, P1_INPUT } from "./ram.js";
 import { launchMarioJump } from "./launchMarioJump.js";
 
 /** P1_INPUT direction bits (ram.js: bit0 Right, bit1 Left, bit2 Up, bit3 Down). */

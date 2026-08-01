@@ -38,7 +38,7 @@
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
-import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE } from "../optimized/ram.js";
+import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE } from "./ram.js";
 
 const BOARD_ADVANCE_SUBSTEP = 0x6388; // loc_1615's board-advance sub-step index (no ram.js name)
 const SEQ_TABLE_WRAP = 0x3a73; // ROM board-order table: restart of the level-5+ group

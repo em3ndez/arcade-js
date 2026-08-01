@@ -44,7 +44,7 @@
  *           configureFlipScreenAndSelectSubstate (ROM 0x0986).
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
 
 // Low byte of the 16-bit join value loc_08f8 stored at game start; read here as the

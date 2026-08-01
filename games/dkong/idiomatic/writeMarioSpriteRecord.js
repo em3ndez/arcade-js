@@ -39,7 +39,7 @@
 
 import {
   MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_ATTR, MARIO_SPRITE_RECORD,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 export function writeMarioSpriteRecord(m) {
   const { mem } = m;

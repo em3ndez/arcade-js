@@ -51,7 +51,7 @@ import {
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
   SND_TRIGGER,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 const IN2_PORT = 0x7d00; //   coin/start input; reading it also re-kicks the watchdog
 const COIN1_BIT = 0x80; //    IN2 bit 7 = COIN1

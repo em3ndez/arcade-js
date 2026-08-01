@@ -44,7 +44,7 @@
  *           hex, matching loc_2602's unnamed treatment of the same object.
  */
 
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 import { loc_2602 } from "./loc_2602.js";
 import { addStrided } from "./addStrided.js";
 

@@ -49,7 +49,7 @@
  */
 
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const OBJECT_RECORDS_SRC = 0x388c; // ROM template of 10 sprite-object records (shared w/ the intro climb phase)
 const BOARD_OBJECT_SCRATCH = 0x62af; // unnamed board-object bookkeeping byte, cleared here

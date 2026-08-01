@@ -53,7 +53,7 @@
  *           state / countdown / select bytes — engine scratch that ram.js deliberately
  *           leaves unnamed (below the RAM-name evidence bar), so they stay raw hex.
  */
-import { LEVEL, SND_TRIGGER } from "../optimized/ram.js";
+import { LEVEL, SND_TRIGGER } from "./ram.js";
 import { loc_3e70 } from "./loc_3e70.js"; // ROM 0x3E70 — 0x6342 bit 0 arm (reads register A)
 import { loc_1e00 } from "./loc_1e00.js"; // ROM 0x1E00 — 0x6342 bit 1 arm; LEVEL == 1 arm
 import { loc_1df5 } from "./loc_1df5.js"; // ROM 0x1DF5 — 0x6342 bit 2 arm (RNG sub-dispatch)

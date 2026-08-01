@@ -45,7 +45,7 @@
  *           kept hex: ram.js left both unnamed (shared / dead — see role paragraph).
  */
 
-import { MARIO_Y, MARIO_CLIMB_LIMIT_B } from "../optimized/ram.js";
+import { MARIO_Y, MARIO_CLIMB_LIMIT_B } from "./ram.js";
 import { tickMoveStepTimer } from "./tickMoveStepTimer.js";
 
 // The gate flag (0x621A) and its mirror (0x6219). ram.js examined and did NOT name

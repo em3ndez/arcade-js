@@ -63,7 +63,7 @@ import {
   HOW_HIGH_INDEX,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { loc_3009 } from "./loc_3009.js"; // ROM 0x3009 — pure bit-field selector
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F — post a task on the ring
 

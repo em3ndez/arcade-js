@@ -41,7 +41,7 @@
  *           ram.js (shared with the how-high interlude animation stepper). The stride and the
  *           colour codes are immediates.
  */
-import { BOARD } from "../optimized/ram.js";
+import { BOARD } from "./ram.js";
 import { runRivetColorCycleBlink } from "./runRivetColorCycleBlink.js"; // ROM 0x04be
 import { paintColorColumnWithLowCode } from "./paintColorColumnWithLowCode.js"; // ROM 0x04a1
 import { paintColorColumnAndHoldBlink } from "./paintColorColumnAndHoldBlink.js"; // ROM 0x04a3

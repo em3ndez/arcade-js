@@ -47,7 +47,7 @@
  *           (0x20), and the sweep counter C (0x6390, SHARED with the how-high interlude)
  *           are all caller-supplied by loc_0486; 0x75C4 and 0x6390 stay hex, here only.
  */
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js";
 

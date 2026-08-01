@@ -30,7 +30,7 @@
  * NAMES:    BONUS_EXPIRED_DELAY (0x6387), BONUS_EXPIRED_STEP (0x6386) — from ram.js.
  */
 
-import { BONUS_EXPIRED_DELAY, BONUS_EXPIRED_STEP } from "../optimized/ram.js";
+import { BONUS_EXPIRED_DELAY, BONUS_EXPIRED_STEP } from "./ram.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

@@ -51,7 +51,7 @@ import {
   SND_BGM,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 // ---- Hardware output latches (board devices, NOT work RAM — see io.js) --------
 const SOUND_TRIGGER_LATCH = 0x7d00; // [8] ls259.6h addressable latch, data on bit 0

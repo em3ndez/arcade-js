@@ -44,7 +44,7 @@
  *           two writers, zero absolute readers), so no confirmed name to import.
  */
 
-import { MARIO_SPRITE_CODE, MARIO_ON_LADDER } from "../optimized/ram.js";
+import { MARIO_SPRITE_CODE, MARIO_ON_LADDER } from "./ram.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 /** Climb half-step toggle scratch (unnamed in ram.js; cleared on ladder-end dismount). */

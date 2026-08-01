@@ -60,7 +60,7 @@ import {
   EDGE_RIVET_ARMED,
   RIVET_PRESENT,
   RIVETS_LEFT,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 import { boardBitGate } from "./boardBitGate.js";           // ROM 0x0030 (rst 0x30) — board-apply gate
 import { armEdgeRivetPickup } from "./armEdgeRivetPickup.js"; // ROM 0x1A4B — EDGE_RIVET_ARMED := 1

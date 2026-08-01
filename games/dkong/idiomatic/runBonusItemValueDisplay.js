@@ -60,7 +60,7 @@
  *           table, the digit cells 0x7552/0x7572, and the video base 0x75E8 / sentinels
  *           0x7588/0x7608 are ROM / VRAM literals kept hex.
  */
-import { SUBSTATE_TIMER, P1_INPUT, GAME_SUBSTATE } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, P1_INPUT, GAME_SUBSTATE } from "./ram.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js";           // ROM 0x0616
 import { positionBonusItemSprite } from "./positionBonusItemSprite.js"; // ROM 0x15fa
 import { renderBcdColumn } from "./renderBcdColumn.js";               // ROM 0x057c

@@ -73,7 +73,7 @@ import { loadBoardObjectRecords } from "./loadBoardObjectRecords.js"; // ROM 0x2
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
-import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "./ram.js";
 
 // ROM template of sprite-object records copied into the sprite buffer (ROM data — kept hex).
 const OBJECT_TEMPLATE_SRC = 0x385c;

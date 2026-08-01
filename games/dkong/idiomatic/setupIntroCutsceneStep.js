@@ -49,7 +49,7 @@
  *           cutscene tiles (VRAM), 0x62AF, and 0x63C2/0x63C4 (cutscene walk pointers).
  */
 
-import { SUBSTATE_TIMER, INTRO_STEP } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, INTRO_STEP } from "./ram.js";
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0DA7 — walk 0x380D + draw the playfield
 
 // The two-bit palette-bank select latch (ls259.6h at 0x7D86/0x7D87) — a board control

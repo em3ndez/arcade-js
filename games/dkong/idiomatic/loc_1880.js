@@ -71,7 +71,7 @@ import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — draw the board segment layout
 import { sub_1826 } from "../translated/sub_1826.js"; // ROM 0x1826 — 70-tile VRAM fill (oracle; no idiomatic yet)
-import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER } from "./ram.js";
 
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field +3 (Y) of sprite-object record 0
 const DESCEND_STEP = 0x01; // +1 into the Y column each frame (slide the block down)

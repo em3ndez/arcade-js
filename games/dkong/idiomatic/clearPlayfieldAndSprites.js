@@ -36,7 +36,7 @@
  *           0x7522/0x7523 side columns) stay hex — video RAM, not named in ram.js.
  */
 
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 
 const PLAYFIELD_TOP = 0x7404; // VRAM tilemap: first playfield cell
 const PLAYFIELD_ROWS = 32;

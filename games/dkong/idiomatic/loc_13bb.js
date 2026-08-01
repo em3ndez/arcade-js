@@ -55,7 +55,7 @@
  *           high byte) and is NOT written here.
  */
 
-import { CURRENT_PLAYER, GAME_SUBSTATE } from "../optimized/ram.js";
+import { CURRENT_PLAYER, GAME_SUBSTATE } from "./ram.js";
 
 // Low byte of the 16-bit join value loc_08f8 stored at game start (0 = 1-player,
 // non-zero = 2-player). Not evidenced in ram.js, so it stays a local hex constant

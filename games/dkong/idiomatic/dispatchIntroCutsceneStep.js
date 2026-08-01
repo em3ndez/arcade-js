@@ -57,7 +57,7 @@
  * NAMES:    INTRO_STEP (0x6385) from ram.js; table base 0x0A7A kept hex (ROM data, not work RAM).
  */
 
-import { INTRO_STEP } from "../optimized/ram.js";
+import { INTRO_STEP } from "./ram.js";
 import { dispatchGameState } from "../translated/dispatchGameState.js";
 
 // The `rst 0x28` inline jump table: 8 little-endian target addresses in ROM starting at

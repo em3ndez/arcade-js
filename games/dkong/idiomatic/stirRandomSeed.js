@@ -29,7 +29,7 @@
  *           branching. (No pc/SP: the Z80 `ret` is modelled by the JS return.)
  * NAMES:    RANDOM (0x6018), FRAME (0x601A), SPIN_COUNT (0x6019) — ram.js.
  */
-import { RANDOM, FRAME, SPIN_COUNT } from "../optimized/ram.js";
+import { RANDOM, FRAME, SPIN_COUNT } from "./ram.js";
 
 export function stirRandomSeed(m) {
   const { regs, mem } = m;

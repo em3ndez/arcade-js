@@ -46,7 +46,7 @@
  *           bytes are the fixed message payloads, kept literal (not RAM addresses).
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { draw1UpLabel } from "./draw1UpLabel.js";
 

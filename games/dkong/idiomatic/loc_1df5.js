@@ -43,7 +43,7 @@
  *           callees, imported and called directly; each owns its own constants and the
  *           downstream RAM writes.
  */
-import { RANDOM } from "../optimized/ram.js";
+import { RANDOM } from "./ram.js";
 import { loc_1e00 } from "./loc_1e00.js"; // ROM 0x1E00 — both bits clear
 import { loc_1e08 } from "./loc_1e08.js"; // ROM 0x1E08 — bit0 set
 import { loc_1e10 } from "./loc_1e10.js"; // ROM 0x1E10 — bit0 clear, bit1 set

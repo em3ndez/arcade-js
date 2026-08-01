@@ -70,7 +70,7 @@ import {
   HOW_HIGH_LAST_SEQ,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { silenceSound } from "./silenceSound.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";

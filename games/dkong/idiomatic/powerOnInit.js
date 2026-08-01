@@ -61,7 +61,7 @@ import {
   BOARD,
   GAME_SUBSTATE,
   P1_SCORE,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js"; // ROM 0x06B8
 import { decodeDipSwitches } from "./decodeDipSwitches.js"; // ROM 0x0207

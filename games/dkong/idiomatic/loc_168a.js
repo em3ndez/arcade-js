@@ -51,7 +51,7 @@
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { loc_1662 } from "./loc_1662.js"; // ROM 0x1662 (jp — shared board-advance tail)
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const COPY_SOURCE = 0x388c; // ROM base of this step's 40-byte sprite-object template
 const STAMP_ADDR = SPRITE_OBJ_BLOCK + 0x04; // 0x690C — a copied byte forced back to 0x66

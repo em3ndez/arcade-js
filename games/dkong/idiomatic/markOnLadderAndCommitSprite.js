@@ -34,7 +34,7 @@
  *           already-idiomatic writeMarioSpriteRecord (ROM 0x1DA6).
  */
 
-import { MARIO_ON_LADDER } from "../optimized/ram.js";
+import { MARIO_ON_LADDER } from "./ram.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function markOnLadderAndCommitSprite(m) {

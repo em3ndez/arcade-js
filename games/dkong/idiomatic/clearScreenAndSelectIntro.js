@@ -40,7 +40,7 @@
  *           ram.js.
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, PLAY_INTRO } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, PLAY_INTRO } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 

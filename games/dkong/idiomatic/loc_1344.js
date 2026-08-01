@@ -66,7 +66,7 @@ import {
   GAME_SUBSTATE, //  0x600A
   SUBSTATE_TIMER, // 0x6009
   P2_SCORE, //       0x60B5
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 const CONTEXT_BYTES = 8; // the live context block is 0x6228..0x622F (LIVES first)
 const BLOCK_FILL_TOPLEFT = 0x76d3; // raw tilemap cell handed to fillTileBlock

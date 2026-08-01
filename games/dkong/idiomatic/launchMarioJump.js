@@ -46,7 +46,7 @@ import {
   MARIO_AIR_VX_HI, MARIO_AIR_VX_LO, MARIO_AIR_VY_HI, MARIO_AIR_VY_LO,
   MARIO_AIR_FRAMES, MARIO_X_FRAC, MARIO_Y_FRAC, MARIO_SPRITE_CODE, MARIO_Y,
   MARIO_AIR_START_Y, SND_TRIGGER,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 /** Low-bits sprite state code for the jump pose (the facing bit is preserved). */
 const SPRITE_STATE_JUMP = 0x0e;

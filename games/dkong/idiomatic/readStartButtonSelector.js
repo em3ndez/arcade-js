@@ -38,7 +38,7 @@
  *           it kicks the watchdog — so it stays a hex local, like FLIPSCREEN.
  */
 
-import { CREDITS, FRAME } from "../optimized/ram.js";
+import { CREDITS, FRAME } from "./ram.js";
 import { drawStringVertical } from "./drawStringVertical.js"; // ROM 0x05E9
 import { drawCreditDisplay } from "./drawCreditDisplay.js"; //   ROM 0x0616
 

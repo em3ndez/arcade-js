@@ -50,7 +50,7 @@
  *           work RAM).
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { dispatchGameState } from "../translated/dispatchGameState.js";
 
 // The `rst 0x28` inline jump table: 2 little-endian target addresses in ROM starting at

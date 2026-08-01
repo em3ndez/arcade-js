@@ -41,7 +41,7 @@ import {
   SND_PRIORITY_FRAMES,
   INTRO_STEP,
   GAME_SUBSTATE,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 // A cutscene sprite-object byte the roar cue nudges up (at 0x90) and back down (at 0x18).

@@ -37,7 +37,7 @@
  *           code byte to store) and C (the colour-cycle counter 0x6390); neither is a
  *           RAM reference within this routine.
  */
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 
 // Record #1's code byte inside the sprite shadow buffer: base + 4 (record 1) + 1 (code).
 const SPRITE1_CODE = SPRITE_BUFFER + 5; // 0x6905

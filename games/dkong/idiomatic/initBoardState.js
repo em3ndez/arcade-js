@@ -58,7 +58,7 @@ import {
   BONUS_EVENT_MARK,
   BONUS_PERIOD,
   BONUS_TICK,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 // The ROM 0x0FCD rst-0x28 jump table, as a table of function references (doc-06's
 // idiom for computed dispatch). Indexed by BOARD (0x6227): 1=25m, 2=50m, 3=75m,

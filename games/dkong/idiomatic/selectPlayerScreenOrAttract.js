@@ -43,7 +43,7 @@
  *           selectPlayer2AndComposeScreen, enterAttractMode).
  */
 
-import { CURRENT_PLAYER } from "../optimized/ram.js";
+import { CURRENT_PLAYER } from "./ram.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js"; // ROM 0x0616
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874

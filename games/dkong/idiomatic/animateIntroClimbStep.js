@@ -54,7 +54,7 @@
 
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js"; // ROM 0x304a
-import { SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const TICK_COUNTER = 0x62af; // private 1-in-16 cutscene tick counter (unnamed in ram.js)
 const CLIMBER_Y = SPRITE_OBJ_BLOCK + 3; // 0x690B — record 0's Y byte: the climbing figure

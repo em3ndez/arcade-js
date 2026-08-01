@@ -59,7 +59,7 @@ import {
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
   DIP_UPRIGHT,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 // DSW0 hardware dip-switch bank (a read-only, side-effect-free board port — NOT
 // work RAM), read once here where the oracle reads it twice with the same result.

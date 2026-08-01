@@ -68,7 +68,7 @@
 
 import { addStrided } from "./addStrided.js"; // ROM 0x003d — add C to B stride-DE bytes (rst 0x38 body)
 import { loc_0da7 } from "./loc_0da7.js"; // ROM 0x0da7 — walk a board-layout segment table and draw it
-import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const SCROLL_CURSOR = 0x63c4; // 16-bit walk cursor into the ROM Y-delta table (unnamed in ram.js)
 const SCROLL_TABLE = 0x38cb; // ROM base of the per-step signed-Y-delta table; 0x7F wraps it

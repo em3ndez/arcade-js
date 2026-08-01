@@ -30,7 +30,7 @@
  * NAMES:    MARIO_ACTIVE (0x6200).
  */
 
-import { MARIO_ACTIVE } from "../optimized/ram.js";
+import { MARIO_ACTIVE } from "./ram.js";
 
 export function marioActiveGuard(m) {
   // `ld a,(MARIO_ACTIVE) / rrca / ret c` — carry takes bit 0, and the guard proceeds

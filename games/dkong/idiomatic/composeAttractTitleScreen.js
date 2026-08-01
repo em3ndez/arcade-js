@@ -56,7 +56,7 @@ import {
   GAME_SUBSTATE,
   TWO_PLAYER_GAME,
   DIP_COINS_FOR_1P,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";

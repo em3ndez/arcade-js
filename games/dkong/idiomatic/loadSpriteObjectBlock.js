@@ -30,7 +30,7 @@
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908).
  */
 
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const OBJ_BLOCK_BYTES = 0x28; // 10 sprite records x 4 bytes
 

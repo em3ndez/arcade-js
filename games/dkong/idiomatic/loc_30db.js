@@ -34,7 +34,7 @@
  *           sprite-shadow records inside SPRITE_BUFFER (0x6900), passed to the callee as
  *           HL/B, not fixed game-state fields. Callee: clearStridedBytes (ROM 0x30e4).
  */
-import { MARIO_SPRITE_RECORD } from "../optimized/ram.js";
+import { MARIO_SPRITE_RECORD } from "./ram.js";
 import { clearStridedBytes } from "./clearStridedBytes.js";
 
 export function loc_30db(m) {

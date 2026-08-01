@@ -53,7 +53,7 @@
  *           fill table), 0x39cf (ROM sprite template), 0x031e/0x031f (task payloads).
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004E
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038

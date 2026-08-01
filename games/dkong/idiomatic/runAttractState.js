@@ -50,7 +50,7 @@
  *           the 0x0748 jump-table target addresses stay hex (ROM data, not work RAM).
  */
 
-import { CREDITS, GAME_STATE, GAME_SUBSTATE } from "../optimized/ram.js";
+import { CREDITS, GAME_STATE, GAME_SUBSTATE } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { handler_0779 } from "../translated/handler_0779.js";
 import { handler_0763 } from "../translated/handler_0763.js";

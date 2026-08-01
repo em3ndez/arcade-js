@@ -52,7 +52,7 @@
  *           tops (0x7623/0x7583) and the sprite code bytes (owned by the blink callees) stay
  *           hex; the sweep counter (0x6390) and the one-row stride are caller-supplied live-ins.
  */
-import { MARIO_X } from "../optimized/ram.js";
+import { MARIO_X } from "./ram.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 import { blinkSpritePairByX } from "./blinkSpritePairByX.js"; // ROM 0x0509
 import { paintColorColumnAndBlinkOff } from "./paintColorColumnAndBlinkOff.js"; // ROM 0x04f1

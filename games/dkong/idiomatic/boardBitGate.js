@@ -37,7 +37,7 @@
  *           idiom the boolean replaces and are never compared for this routine.
  * NAMES:    BOARD (0x6227) from ram.js — the rotate count / current board index.
  */
-import { BOARD } from "../optimized/ram.js";
+import { BOARD } from "./ram.js";
 
 export function boardBitGate(m) {
   const { regs, mem } = m;

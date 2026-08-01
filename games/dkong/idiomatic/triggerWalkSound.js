@@ -34,7 +34,7 @@
  *           index 0 = the "walk" effect). The 3-frame hold is a local const.
  */
 
-import { SND_TRIGGER } from "../optimized/ram.js"; // 0x6080 — SND_TRIGGER[0] = walk (ls259.6h bit 0)
+import { SND_TRIGGER } from "./ram.js"; // 0x6080 — SND_TRIGGER[0] = walk (ls259.6h bit 0)
 
 // Game code asserts a sound by storing a small frame count into its trigger shadow;
 // soundDriverTick (ROM 0x00E0) counts it down, so 3 holds the walk latch for 3 frames.

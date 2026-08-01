@@ -32,7 +32,7 @@
  * NAMES:    SUBSTATE_TIMER (0x6009) — from ram.js.
  */
 
-import { SUBSTATE_TIMER } from "../optimized/ram.js";
+import { SUBSTATE_TIMER } from "./ram.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

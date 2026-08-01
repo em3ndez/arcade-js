@@ -65,7 +65,7 @@
  */
 
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { ATTRACT } from "../optimized/ram.js";
+import { ATTRACT } from "./ram.js";
 import { blitSpritesViaDma } from "./blitSpritesViaDma.js";
 import { readControls } from "../translated/readControls.js";
 import { perFrame } from "../translated/perFrame.js";

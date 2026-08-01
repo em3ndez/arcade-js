@@ -46,7 +46,7 @@
  *           scratch (ram.js leaves them hex); +0/+0x15/+0x2a are record field strides.
  */
 
-import { BOARD } from "../optimized/ram.js";
+import { BOARD } from "./ram.js";
 
 // HEAD A — the ROM checksum that picks the IY group base.
 const CHECKSUM_SEED = 0x5e;

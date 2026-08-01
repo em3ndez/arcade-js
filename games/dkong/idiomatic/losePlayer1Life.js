@@ -58,7 +58,7 @@ import {
   P1_SCORE,
   GAME_SUBSTATE,
   SUBSTATE_TIMER,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 const CONTEXT_BYTES = 8; // the live player-context block 0x6228-0x622F saved to P1_CONTEXT
 

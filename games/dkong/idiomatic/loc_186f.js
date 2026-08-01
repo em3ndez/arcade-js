@@ -49,7 +49,7 @@
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { SUBSTATE_TIMER, SND_TRIGGER } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, SND_TRIGGER } from "./ram.js";
 
 const COPY_SOURCE = 0x3a1f; // ROM base of this step's 40-byte sprite-object frame
 const SND_LATCH = SND_TRIGGER + 4; // 0x6084 — SND_TRIGGER[4]

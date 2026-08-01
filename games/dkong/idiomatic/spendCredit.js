@@ -35,7 +35,7 @@
  */
 
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
-import { CREDITS } from "../optimized/ram.js";
+import { CREDITS } from "./ram.js";
 
 const CREDIT_TASK = 0x0400; // enqueueTask message: D = opcode 0x04, E = arg 0x00
 

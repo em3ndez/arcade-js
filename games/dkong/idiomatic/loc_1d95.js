@@ -45,7 +45,7 @@
  * NAMES:    BOARD (0x6227), SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B)
  *           from ram.js. 0x6225 kept hex — ram.js examined and left it unnamed.
  */
-import { BOARD, SND_PRIORITY, SND_PRIORITY_FRAMES } from "../optimized/ram.js";
+import { BOARD, SND_PRIORITY, SND_PRIORITY_FRAMES } from "./ram.js";
 
 const COLLECTION_FLAG = 0x6225; // hex-kept: ram.js declined to name it (evidence below the bar)
 

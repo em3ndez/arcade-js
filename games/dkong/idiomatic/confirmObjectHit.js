@@ -41,7 +41,7 @@
  * NAMES:    MARIO_Y (0x6205) from ram.js. 0x6340 / 0x6342 / 0x6343 kept hex — ram.js
  *           rejected them as shared 0x63xx engine scratch; 0x6A0C (object table) unnamed.
  */
-import { MARIO_Y } from "../optimized/ram.js";
+import { MARIO_Y } from "./ram.js";
 
 export function confirmObjectHit(m) {
   const { regs, mem } = m;

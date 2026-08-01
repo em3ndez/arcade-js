@@ -36,7 +36,7 @@
  *           markOnLadderAndCommitSprite (0x1D49).
  */
 
-import { MARIO_X, MARIO_CLIMB_SOUND_TOGGLE } from "../optimized/ram.js";
+import { MARIO_X, MARIO_CLIMB_SOUND_TOGGLE } from "./ram.js";
 import { triggerWalkSound } from "./triggerWalkSound.js";
 import { markOnLadderAndCommitSprite } from "./markOnLadderAndCommitSprite.js";
 

@@ -53,7 +53,7 @@
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { loc_0038 } from "../translated/loc_0038.js"; // rst 0x38 add-pass — not yet idiomatic
-import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP } from "./ram.js";
 
 const CLIMB_RECORDS_SRC = 0x388c; // ROM template of 10 sprite-object records for this phase
 const CUTSCENE_BYTE_638E = 0x638e; // unnamed cutscene byte, seeded to 0x1F here

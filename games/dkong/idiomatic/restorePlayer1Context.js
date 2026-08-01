@@ -45,7 +45,7 @@ import {
   TWO_PLAYER_GAME,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 export function restorePlayer1Context(m) {
   const { mem } = m;

@@ -3,9 +3,10 @@
 > **What this document is.** The *inside-out* companion to `gameplay.md`. Where that
 > file describes how Donkey Kong is *played* from public sources (day-zero, no ROM),
 > this one describes how the machine *works*, built only from the decompiled code in
-> this repo — the `idiomatic/` routines, the named work-RAM map in `optimized/ram.js`,
-> and the hardware/render layer in `boards/dkong/`. `gameplay.md` is the frame; every
-> claim below is reconciled against it and grounded in a routine or a RAM cell.
+> this repo — the `idiomatic/` routines, the named work-RAM map in `idiomatic/ram.js`
+> (moved 2026-07-31 off the retired `optimized/` layer; the idiomatic routines import it
+> directly), and the hardware/render layer in `boards/dkong/`. `gameplay.md` is the frame;
+> every claim below is reconciled against it and grounded in a routine or a RAM cell.
 >
 > **Confidence tags.** Each non-obvious claim carries one:
 > - `[seen]` — validated by *playing* the game: pixel-diffed vs MAME 0.288, or a

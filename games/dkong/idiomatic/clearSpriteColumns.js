@@ -42,7 +42,7 @@
  */
 
 import { clearStridedBytes } from "./clearStridedBytes.js";
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 
 export function clearSpriteColumns(m) {
   const { regs } = m;

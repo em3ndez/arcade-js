@@ -33,7 +33,7 @@
  *           to the already-idiomatic markOnLadderAndCommitSprite (ROM 0x1D49).
  */
 
-import { MARIO_SPRITE_CODE } from "../optimized/ram.js";
+import { MARIO_SPRITE_CODE } from "./ram.js";
 import { markOnLadderAndCommitSprite } from "./markOnLadderAndCommitSprite.js"; // ROM 0x1D49
 
 // Bit 7 of the sprite code is Mario's horizontal-mirror flag (set = facing right).

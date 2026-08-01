@@ -39,7 +39,7 @@
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), P1_CONTEXT (0x6040) — ram.js.
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, P1_CONTEXT } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, P1_CONTEXT } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018
 
 export function loc_13a1(m) {

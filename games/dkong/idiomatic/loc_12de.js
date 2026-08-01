@@ -44,7 +44,7 @@
  *           Callees: tickSubstateTimer (ROM 0x0018), loc_30db (ROM 0x30db).
  */
 
-import { GAME_SUBSTATE, SUBSTATE_TIMER } from "../optimized/ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { loc_30db } from "./loc_30db.js";
 

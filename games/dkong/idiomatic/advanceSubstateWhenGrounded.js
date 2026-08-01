@@ -45,7 +45,7 @@
  *           SUBSTATE_TIMER (0x6009) are written by the callee advanceSubstateAndArmTimer.
  */
 
-import { MARIO_AIRBORNE } from "../optimized/ram.js";
+import { MARIO_AIRBORNE } from "./ram.js";
 import { advanceSubstateAndArmTimer } from "./advanceSubstateAndArmTimer.js";
 
 export function advanceSubstateWhenGrounded(m) {

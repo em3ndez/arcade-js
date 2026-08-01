@@ -35,7 +35,7 @@
  *           stay literal — screen geometry, no RAM address.
  */
 
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const RECORD_COUNT = 10; // the block holds ten 4-byte sprite-object records
 const RECORD_STRIDE = 4; // +0 X, +1 code, +2 attr, +3 Y

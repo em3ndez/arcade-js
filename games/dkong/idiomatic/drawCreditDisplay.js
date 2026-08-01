@@ -39,7 +39,7 @@
  *           (5), the digit-cell VRAM cursor (0x74BF), and the row step (-0x20) are ROM
  *           literals, not work-RAM, so they stay as local hex constants.
  */
-import { CREDITS } from "../optimized/ram.js";
+import { CREDITS } from "./ram.js";
 import { drawStringVertical } from "./drawStringVertical.js"; // ROM 0x05E9
 import { expandBcdDigits } from "./expandBcdDigits.js"; //      ROM 0x0583
 

@@ -46,7 +46,7 @@ import {
   BOARD_SEQ_PTR,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "../optimized/ram.js";
+} from "./ram.js";
 
 // The live context block is 8 bytes, based at LIVES (0x6228) and running through
 // HOW_HIGH_LAST_SEQ (0x622F). P2_CONTEXT (0x6048) is P2's matching 8-byte save slot.

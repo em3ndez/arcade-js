@@ -37,7 +37,7 @@
  * NAMES:    SPRITE_BUFFER (0x6900) from ram.js; 0x360F kept hex (a ROM position
  *           table, not work RAM).
  */
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 
 const POSITION_GRID = 0x360f;         // ROM: 30 × (X,Y) cells, 10 cols × 3 rows
 const RECORD = SPRITE_BUFFER + 0x74;  // 0x6974 — hardware sprite record #29 (bonus item)

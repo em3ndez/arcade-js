@@ -37,7 +37,7 @@
  *           code that loc_1615 / advanceToNextBoard run.
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 
 export function enterBoardAdvanceAndUnwind(m) {
   // The board is won — enter the board-cleared/advance sub-state (0x16), which loc_1615

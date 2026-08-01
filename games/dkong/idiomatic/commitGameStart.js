@@ -48,7 +48,7 @@ import {
   GAME_STATE,
   GAME_SUBSTATE,
   TWO_PLAYER_GAME,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { readStartButtonSelector } from "./readStartButtonSelector.js"; // ROM 0x08D5
 import { spendCredit } from "./spendCredit.js"; //                         ROM 0x0977
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874

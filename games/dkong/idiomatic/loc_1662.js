@@ -39,7 +39,7 @@
 
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — the per-board skip gate
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const ANIM_SCRATCH = 0x6388; // per-board animation-scratch counter, unnamed in ram.js
 

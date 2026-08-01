@@ -54,7 +54,7 @@ import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM
 import { enqueueTask } from "./enqueueTask.js"; //                            ROM 0x309F
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js"; //                  ROM 0x0965
 import { readStartButtonSelector } from "./readStartButtonSelector.js"; //    ROM 0x08D5
-import { ATTRACT, GAME_SUBSTATE } from "../optimized/ram.js";
+import { ATTRACT, GAME_SUBSTATE } from "./ram.js";
 
 // enqueueTask message for the credit-screen text: D = opcode 0x03 (screen-text
 // handler), E = arg 0x0C (which string). The pair travels in the Z80 D/E register

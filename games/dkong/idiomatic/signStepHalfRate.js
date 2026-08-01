@@ -41,7 +41,7 @@
  * NAMES:    FRAME (0x601A) — from ram.js. HL is a register-relative pointer the
  *           caller supplies, so no fixed RAM address is imported for it.
  */
-import { FRAME } from "../optimized/ram.js";
+import { FRAME } from "./ram.js";
 
 export function signStepHalfRate(m) {
   const { regs, mem } = m;

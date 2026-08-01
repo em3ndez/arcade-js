@@ -63,7 +63,7 @@ import {
   SEQ_ADVANCE_PTR,
   SPRITE_OBJ_BLOCK,
   SPRITE_BUFFER,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js"; // ROM 0x304a

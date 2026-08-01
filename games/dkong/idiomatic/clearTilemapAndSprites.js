@@ -41,7 +41,7 @@
  *           it is not named in ram.js.
  */
 
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 
 const TILEMAP_BASE = 0x7400; // video-RAM tilemap: first cell
 const TILEMAP_BYTES = 0x400; // 1024 = every cell of the 32x32 tilemap

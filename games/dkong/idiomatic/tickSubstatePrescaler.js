@@ -40,7 +40,7 @@
  *           inside the tickSubstateTimer callee.
  */
 
-import { SUBSTATE_TIMER_LO } from "../optimized/ram.js";
+import { SUBSTATE_TIMER_LO } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 /**

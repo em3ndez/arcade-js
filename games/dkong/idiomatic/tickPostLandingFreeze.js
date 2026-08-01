@@ -47,7 +47,7 @@ import {
   MARIO_HAMMER_ACTIVE,
   MARIO_SPRITE_CODE,
   MARIO_WALK_ANIM,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function tickPostLandingFreeze(m) {

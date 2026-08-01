@@ -44,7 +44,7 @@
  *           stay local hex constants.
  */
 
-import { GAME_SUBSTATE, DIP_UPRIGHT } from "../optimized/ram.js";
+import { GAME_SUBSTATE, DIP_UPRIGHT } from "./ram.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 

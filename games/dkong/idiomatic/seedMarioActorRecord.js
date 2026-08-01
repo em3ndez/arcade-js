@@ -47,7 +47,7 @@ import {
   BOARD, GAME_SUBSTATE,
   MARIO_ACTIVE, MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_ATTR,
   MARIO_MOVE_STEP_TIMER, MARIO_SPRITE_RECORD,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
 

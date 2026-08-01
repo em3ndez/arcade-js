@@ -49,7 +49,7 @@
  *           store) stay hex.
  */
 
-import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER } from "../optimized/ram.js";
+import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER } from "./ram.js";
 
 // High byte of the player-context word, set to 1 alongside CURRENT_PLAYER by the
 // oracle's `ld (0x600d),hl`. Deliberately un-named scratch in ram.js — kept hex.

@@ -31,7 +31,7 @@
  *           owned by clearPlayfieldAndSprites (ROM 0x0874).
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 
 export function clearScreenAndAdvanceSubstate(m) {

@@ -48,7 +48,7 @@
  *           colour/attr byte; 3 = the SND_TRIGGER assert length in frames.
  */
 
-import { MARIO_X, MARIO_Y, SPRITE_BUFFER, SND_TRIGGER } from "../optimized/ram.js";
+import { MARIO_X, MARIO_Y, SPRITE_BUFFER, SND_TRIGGER } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { boardBitGate } from "./boardBitGate.js";
 

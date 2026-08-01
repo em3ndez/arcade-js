@@ -62,7 +62,7 @@
  *           imported handler functions, not hex literals.
  */
 
-import { FRAME, GAME_STATE } from "../optimized/ram.js";
+import { FRAME, GAME_STATE } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { stirRandomSeed } from "./stirRandomSeed.js"; //     ROM 0x0057
 import { serviceCoinInput } from "./serviceCoinInput.js"; // ROM 0x017B

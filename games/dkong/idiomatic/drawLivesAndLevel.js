@@ -47,7 +47,7 @@
  *           RAM (0x7400-0x77FF), outside ram.js's work-RAM map, so they stay hex.
  */
 
-import { LIVES, LEVEL } from "../optimized/ram.js";
+import { LIVES, LEVEL } from "./ram.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 
 // Reserve-lives marker column: six cells stepping one tilemap row (0x20) UP from

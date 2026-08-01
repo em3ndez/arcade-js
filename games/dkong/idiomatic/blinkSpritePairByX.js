@@ -40,7 +40,7 @@
  *           bytes 0x6901/0x6905 live inside the callees; register C is the colour-cycle
  *           sweep counter (0x6390), consumed only in the shared store tail.
  */
-import { MARIO_X } from "../optimized/ram.js";
+import { MARIO_X } from "./ram.js";
 import { blinkSpritePairOff } from "./blinkSpritePairOff.js"; // ROM 0x04f9
 import { blinkSpritePairOn } from "./blinkSpritePairOn.js"; // ROM 0x04e1
 

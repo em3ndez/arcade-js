@@ -34,7 +34,7 @@
  *           sub-step timer; control-poke confirmed there).
  */
 
-import { MARIO_MOVE_STEP_TIMER } from "../optimized/ram.js";
+import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

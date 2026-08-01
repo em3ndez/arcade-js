@@ -53,7 +53,7 @@
  *           phase counter lives inside animateSpriteObjectBlock, not here.
  */
 
-import { SUBSTATE_TIMER } from "../optimized/ram.js";
+import { SUBSTATE_TIMER } from "./ram.js";
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
 import { cullSpriteObjectsAtTop } from "./cullSpriteObjectsAtTop.js"; // ROM 0x176c
 import { allSlotsClear } from "./allSlotsClear.js"; // ROM 0x1783

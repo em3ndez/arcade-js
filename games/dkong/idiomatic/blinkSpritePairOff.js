@@ -37,7 +37,7 @@
  *           (0x6901), record 1's code byte = base + 5 (0x6905). Register input C is the
  *           colour-cycle sweep counter (0x6390), consumed only inside the store tail.
  */
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js"; // ROM 0x04ac
 
 // Code bytes of the two blinked decorative sprites inside the sprite shadow buffer:

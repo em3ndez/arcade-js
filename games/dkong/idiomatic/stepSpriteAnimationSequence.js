@@ -48,7 +48,7 @@
  *           sub-counter) and 0x6388 (the selector) stay hex: ram.js leaves both
  *           unnamed as shared engine-scratch bytes.
  */
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "./ram.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 

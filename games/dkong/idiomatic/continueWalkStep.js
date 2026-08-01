@@ -25,7 +25,7 @@
  *           called directly.
  */
 
-import { MARIO_MOVE_STEP_TIMER } from "../optimized/ram.js";
+import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function continueWalkStep(m) {

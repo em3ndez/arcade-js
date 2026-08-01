@@ -47,7 +47,7 @@
  *           column start 0x75C4 have no ram.js symbol and stay local hex constants.
  */
 
-import { SND_PRIORITY, SND_PRIORITY_FRAMES } from "../optimized/ram.js";
+import { SND_PRIORITY, SND_PRIORITY_FRAMES } from "./ram.js";
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 

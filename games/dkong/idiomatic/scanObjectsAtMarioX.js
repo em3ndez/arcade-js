@@ -39,7 +39,7 @@
  * NAMES:    MARIO_X (0x6203) from ram.js; confirmObjectHit (ROM 0x19ED) from the
  *           idiomatic layer. 0x6A0C object table kept hex — unnamed in ram.js.
  */
-import { MARIO_X } from "../optimized/ram.js";
+import { MARIO_X } from "./ram.js";
 import { confirmObjectHit } from "./confirmObjectHit.js";
 
 const OBJECT_TABLE = 0x6a0c; // 3 records, 4 bytes each; base X at +0

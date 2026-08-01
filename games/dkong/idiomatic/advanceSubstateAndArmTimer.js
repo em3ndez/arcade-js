@@ -30,7 +30,7 @@
  * NAMES:    GAME_SUBSTATE (0x600A), SUBSTATE_TIMER (0x6009) — from ram.js.
  */
 
-import { GAME_SUBSTATE, SUBSTATE_TIMER } from "../optimized/ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER } from "./ram.js";
 
 const SUBSTATE_WAIT_FRAMES = 0x40; // frames the new sub-state holds before it proceeds
 

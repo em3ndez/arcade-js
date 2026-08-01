@@ -43,7 +43,7 @@
  *           stay hex; the task opcode/argument bytes are literal message payloads.
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { sub_09ee } from "../translated/sub_09ee.js";
 

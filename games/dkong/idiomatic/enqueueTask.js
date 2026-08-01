@@ -38,7 +38,7 @@
  *           as the fixed high byte of every ring/tail address.
  */
 
-import { TASK_TAIL, TASK_RING } from "../optimized/ram.js";
+import { TASK_TAIL, TASK_RING } from "./ram.js";
 
 const PAGE = TASK_RING & 0xff00; // 0x6000 — the fixed high byte of every slot address
 const RING_BASE = TASK_RING & 0x00ff; // 0xC0 — low byte of the first slot / the wrap floor

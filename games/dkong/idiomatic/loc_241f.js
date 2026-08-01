@@ -45,7 +45,7 @@
  * @param {object} m  the machine (read-only use of m.mem here).
  * @returns {{d:number, e:number}} the (D,E) verdict, also mirrored into regs.d/regs.e.
  */
-import { MARIO_X, MARIO_Y, BOARD } from "../optimized/ram.js";
+import { MARIO_X, MARIO_Y, BOARD } from "./ram.js";
 
 export function loc_241f(m) {
   const { regs, mem } = m;

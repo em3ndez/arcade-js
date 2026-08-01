@@ -39,7 +39,7 @@
  *           0x6905 record #1's (+5). C is the colour-cycle sweep counter (0x6390), staged
  *           by loc_0486 and consumed by the store tail; not a RAM reference within here.
  */
-import { SPRITE_BUFFER } from "../optimized/ram.js";
+import { SPRITE_BUFFER } from "./ram.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js";
 
 // Record #0's code byte inside the sprite shadow buffer: base + 0 (record 0) + 1 (code).

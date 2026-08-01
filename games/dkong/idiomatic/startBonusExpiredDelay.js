@@ -42,7 +42,7 @@
  *           imported; no hex-kept addresses.
  */
 
-import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY } from "../optimized/ram.js";
+import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY } from "./ram.js";
 
 export function startBonusExpiredDelay(m) {
   const { mem } = m;

@@ -55,7 +55,7 @@
 import { loc_1708 } from "./loc_1708.js"; // ROM 0x1708 — intro/board spawn init
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { loc_1662 } from "./loc_1662.js"; // ROM 0x1662 — shared board-setup tail
-import { SUBSTATE_TIMER } from "../optimized/ram.js";
+import { SUBSTATE_TIMER } from "./ram.js";
 
 const ANIM_FRAME_SRC = 0x385c; // ROM base of this step's 40-byte sprite-object template
 const POSE_HOLD_FRAMES = 0x20; // frames to hold the staged pose before step 1 (loc_1670)

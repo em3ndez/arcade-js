@@ -63,7 +63,7 @@ import {
   SUBSTATE_TIMER,
   SPRITE_OBJ_BLOCK,
   SEQ_ADVANCE_PTR,
-} from "../optimized/ram.js";
+} from "./ram.js";
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 import { fillTileBlock } from "./fillTileBlock.js"; // ROM 0x1826

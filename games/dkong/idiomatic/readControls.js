@@ -39,7 +39,7 @@
  *           port addresses 0x7C00/0x7C80 (board I/O, not work RAM).
  */
 
-import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW } from "../optimized/ram.js";
+import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
 const IN0 = 0x7c00; // player-1 joystick port

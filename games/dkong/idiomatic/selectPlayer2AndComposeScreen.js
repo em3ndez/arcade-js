@@ -50,7 +50,7 @@
  *           is named), so it stays a local hex constant, not an invented name.
  */
 
-import { CURRENT_PLAYER } from "../optimized/ram.js";
+import { CURRENT_PLAYER } from "./ram.js";
 import { configureFlipScreenAndComposeScreen } from "./configureFlipScreenAndComposeScreen.js";
 
 // Companion byte to CURRENT_PLAYER (0x600D). loc_141E treats 0x600D:0x600E as one

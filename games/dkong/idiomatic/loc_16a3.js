@@ -57,7 +57,7 @@
  *           leaves it unnamed engine scratch) stay local hex constants.
  */
 
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 import { loc_1708 } from "./loc_1708.js"; // ROM 0x1708 — spawn init
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e — 40-byte template -> 0x6908
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38) — X column += C

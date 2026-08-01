@@ -32,7 +32,7 @@
  * NAMES:    EDGE_RIVET_ARMED (0x6291) — from ram.js.
  */
 
-import { EDGE_RIVET_ARMED } from "../optimized/ram.js";
+import { EDGE_RIVET_ARMED } from "./ram.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

@@ -47,7 +47,7 @@
  */
 
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
-import { SPRITE_BUFFER, SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_BUFFER, SPRITE_OBJ_BLOCK } from "./ram.js";
 
 const STEP_SELECTOR = 0x6388; // board-advance render-sequence step index (unnamed in ram.js)
 const SCROLL_PROBE = SPRITE_OBJ_BLOCK + 0x0b; // 0x6913 — sprite-object record 2's Y (field 3)

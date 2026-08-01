@@ -51,7 +51,7 @@
  *           in ram.js.
  */
 
-import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { sub_30bd } from "../translated/sub_30bd.js"; // ROM 0x30BD — no idiomatic yet; call the oracle
 

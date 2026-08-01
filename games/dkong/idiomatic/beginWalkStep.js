@@ -36,7 +36,7 @@
  *           triggerWalkSound (0x1d8f) and writeMarioSpriteRecord (0x1da6) called direct.
  */
 
-import { MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER } from "../optimized/ram.js";
+import { MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER } from "./ram.js";
 import { triggerWalkSound } from "./triggerWalkSound.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 

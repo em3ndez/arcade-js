@@ -45,7 +45,7 @@
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908) — ram.js. 0x62AF stays hex: a private phase
  *           counter with no other reader (ram.js leaves it unnamed).
  */
-import { SPRITE_OBJ_BLOCK } from "../optimized/ram.js";
+import { SPRITE_OBJ_BLOCK } from "./ram.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { xorMaskStridedPair } from "./xorMaskStridedPair.js"; // ROM 0x3096
 import { stirRandomSeed } from "./stirRandomSeed.js"; // ROM 0x0057

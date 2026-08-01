@@ -58,7 +58,7 @@
  *           the fixed message payloads, kept literal — not RAM addresses.
  */
 
-import { DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE } from "../optimized/ram.js";
+import { DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
 
 // Flip-screen control latch (ls259.6h) — board hardware, not work RAM, so a local hex

@@ -34,7 +34,7 @@
  *           inside the tickSubstatePrescaler callee.
  */
 
-import { GAME_SUBSTATE } from "../optimized/ram.js";
+import { GAME_SUBSTATE } from "./ram.js";
 import { tickSubstatePrescaler } from "./tickSubstatePrescaler.js";
 
 /**

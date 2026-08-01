@@ -50,7 +50,7 @@
  *           0x639D (phase) and 0x639E (blink repeat-count) kept hex, unconfirmed in ram.js.
  */
 
-import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD } from "../optimized/ram.js";
+import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 // Sequence-phase selector and the blink repeat-count. Unconfirmed in ram.js, kept hex.

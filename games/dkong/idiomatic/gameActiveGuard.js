@@ -34,7 +34,7 @@
  * NAMES:    ATTRACT (0x6007).
  */
 
-import { ATTRACT } from "../optimized/ram.js";
+import { ATTRACT } from "./ram.js";
 
 export function gameActiveGuard(m) {
   // `ld a,(ATTRACT) / rrca / ret nc` — carry takes bit 0, and the guard proceeds
