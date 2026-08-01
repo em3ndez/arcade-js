@@ -140,6 +140,24 @@ export default {
     ],
   },
 
+  // Cycle-free / coroutine convergence config (core/frame-stepped.js). The idiomatic layer is
+  // cycle-free (never calls m.step), so its frame boundary is the vblank WAIT — DK's task-scheduler
+  // main loop busy-waits at 0x02BD (`cp (0x6383); jr z,0x02BD`) until the NMI advances the frame
+  // counter 0x601A. That is the yield point for the coroutine go-live engine (runGeneratorGame) AND
+  // the poll PC where the translated oracle (runCycleFree) fires its once-per-frame NMI, so both
+  // runs cross the frame boundary at the same logical point and reproduce each other over the entire
+  // dumped state (work + sprite + video RAM). See idiomatic/test/golive.test.js.
+  convergence: {
+    pollPCs: [0x02bd],
+    // The coroutine spine reproduces the poll-PC oracle BYTE-IDENTICALLY over the ENTIRE dumped
+    // state (all 5120 bytes: work RAM 0x6000-0x6BFF incl. the stack scratch, sprite RAM
+    // 0x7000-0x73FF, video RAM 0x7400-0x77FF) across the attract run — no per-cell excludes needed.
+    // The yield sits at each main-loop path's pc==0x02BD arrival, matching the oracle's NMI firings
+    // 1:1, so nothing drifts. (If a future GAMEPLAY tape ever exposes a bounded free-running
+    // cycle-proxy offset — see core/frame-stepped.js — add a documented exclude here THEN.)
+    golive: { nmiReturnPC: 0x02bd },
+  },
+
   // Per-routine overrides: swap a translated/ routine for an optimized/ rewrite,
   // but only once it passes the equivalence gates (games/dkong/optimized/harness.js).
   //
