@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * snapYToGirder — nudge a coordinate one pixel along the 25m girder slope.
+ * snapYToGirder — nudge a coordinate one pixel along the 25m girder slope. ROM 0x2333.
  *
  * The 25m girders are not flat: each runs a shallow diagonal, so a body walking or
  * rolling across one has to shift its Y by one pixel every time its X crosses into a

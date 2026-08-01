@@ -3,7 +3,8 @@
 > **What this document is.** The *inside-out* companion to `gameplay.md`. Where that
 > file describes how Donkey Kong is *played* from public sources (day-zero, no ROM),
 > this one describes how the machine *works*, built only from the decompiled code in
-> this repo — the `idiomatic/` routines, the named work-RAM map in `idiomatic/ram.js`
+> this repo — the `idiomatic/` routines, the named work-RAM map and routine registry
+> (`ROUTINES`) in `idiomatic/ram.js`
 > (moved 2026-07-31 off the retired `optimized/` layer; the idiomatic routines import it
 > directly), and the hardware/render layer in `boards/dkong/`. `gameplay.md` is the frame;
 > every claim below is reconciled against it and grounded in a routine or a RAM cell.
@@ -15,8 +16,8 @@
 > - `[guess]` — inference not yet pinned to code (the routine is still oracle-only, or
 >   the exact ROM data table has not been lifted). Flagged so it is never mistaken for fact.
 >
-> **Honest floor.** 194 of the game's 423 routines are decompiled into readable
-> `idiomatic/` JavaScript; the other ~230 still exist only as the frozen `translated/`
+> **Honest floor.** 361 of the game's 423 routines are decompiled into readable
+> `idiomatic/` JavaScript; the other ~62 still exist only as the frozen `translated/`
 > oracle (+ `optimized/`). The biggest not-yet-lifted block is the **actor/enemy AI**
 > (barrels, fireballs, elevators, springs, cement pans). So the *boot → attract →
 > board-setup → Mario-movement → board-advance → level-loop* spine is described from
@@ -518,16 +519,16 @@ from the ROM. `[code]`
 
 | Metric | Count |
 |--------|------:|
-| Routines lifted to readable `idiomatic/` `.js` | **194** |
-| — English-named | 141 |
-| — still `loc_<addr>` (address-named, awaiting a name) | 53 |
+| Routines lifted to readable `idiomatic/` `.js` | **361** |
+| — English-named | 204 |
+| — still `loc_<addr>` (address-named, awaiting a name) | 157 |
 | Address-named routines in the frozen `translated/` oracle (denominator) | **423** |
-| Named work-RAM cells in `optimized/ram.js` (`export const`) | 95 |
+| Named work-RAM cells in `idiomatic/ram.js` (`export const`) | 175 |
 | `translated/` `.js` files total (423 routines + 11 scaffolding wrappers) | 434 |
 | `optimized/` `.js` files | 236 |
-| **Idiomatic coverage** | **194 / 423 ≈ 46%** |
+| **Idiomatic coverage** | **361 / 423 ≈ 85%** |
 
-The other ~230 routines run **live and pixel-correct** — they are the frozen `translated/`
+The other ~62 routines run **live and pixel-correct** — they are the frozen `translated/`
 oracle (with `optimized/` collapsed versions), just not yet rewritten into readable JS.
 By ROM region, the largest not-yet-lifted blocks are:
 
@@ -554,10 +555,12 @@ described here at lower confidence, tagged accordingly.
 
 ---
 
-## 12. Routine table (194 idiomatic routines, grouped)
+## 12. Routine table (curated excerpt, functionally grouped)
 
 One line each, from the routine's own doc comment. `loc_<addr>` entries are lifted but not
-yet English-named.
+yet English-named. This is a functionally-grouped *excerpt*; the **complete** registry of all
+361 routines (name, role, confidence) keyed by entry address is the `ROUTINES` map in
+`idiomatic/ram.js` — the single source per `docs/names-registry.md`.
 
 ### Machine spine — NMI, frame, dispatch, guards
 | Routine | What it does |
@@ -817,7 +820,7 @@ yet English-named.
 
 ---
 
-*Sources: `games/dkong/idiomatic/*.js` (194 routines), `games/dkong/optimized/ram.js`
-(95 named cells), `boards/dkong/{memory,video,io}.js` + `hardware.json`, framed against
+*Sources: `games/dkong/idiomatic/*.js` (361 routines), `games/dkong/idiomatic/ram.js`
+(175 named cells + the `ROUTINES` map), `boards/dkong/{memory,video,io}.js` + `hardware.json`, framed against
 `games/dkong/gameplay.md`. Counts measured this checkout. Not-yet-lifted routines
 characterized from the frozen `translated/` oracle by ROM region.*
