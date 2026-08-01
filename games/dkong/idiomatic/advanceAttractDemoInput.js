@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_21ee — advance the canned-input script that drives the attract-mode demo.  ROM 0x21EE.
+ * advanceAttractDemoInput — advance the canned-input script that drives the attract-mode
+ * demo.  ROM 0x21EE.
  *
  * Called once per demo frame from the attract cascade (handler_1977 `call 0x21ee`, right
  * before the shared per-frame update at 0x197A; the in-game path enters that cascade one
@@ -27,9 +28,11 @@
  * control word plus the countdown and index; calls nothing and returns nothing a caller
  * consumes.
  *
- * NAME: kept the neutral loc_ — the mechanism (a ROM-driven input-script player writing the
- * control word) is pinned to the oracle and strongly suggests a demo-playback name, but the
- * routine-name bar wants independent corroboration; promote once confirmed.
+ * GROUNDED (DK understanding pass 5, independent confirmer): sole reader/writer of the named
+ * P1_INPUT (0x6010), DEMO_SCRIPT_INDEX (0x63CC) and DEMO_SCRIPT_COUNTDOWN (0x63CD); ram.js names
+ * this the sole r/w of both script cells and notes each advance coincides with a fresh P1_INPUT
+ * ([seen], live). mechanisms.md documents it as the scripted-joystick attract-demo player, and
+ * its caller handler_1977 enters only on the attract path.
  *
  * Memory-equivalent to the frozen oracle — equivalence-21ee.test.js.
  * GATE:     exhaustive over the entire input space — all 256×256 (step index, countdown)
@@ -55,7 +58,7 @@ const rotl8 = (v) => ((v << 1) | (v >> 7)) & 0xff;
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_21ee(m) {
+export function advanceAttractDemoInput(m) {
   const { mem } = m;
 
   const index = mem.read8(SCRIPT_INDEX);

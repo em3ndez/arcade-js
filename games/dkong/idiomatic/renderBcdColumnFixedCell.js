@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0578 — draw a packed 3-byte BCD counter as six digits up a fixed video column.  ROM 0x0578.
+ * renderBcdColumnFixedCell — draw a packed 3-byte BCD counter as six digits up a fixed video
+ * column.  ROM 0x0578.
  *
  * The fixed-destination entry into the packed-BCD renderer. The caller hands a source
  * pointer (the three packed bytes, two BCD/hex digits each); this routine hard-wires the
@@ -30,6 +31,13 @@
  * entry with the source pointing into the 0x60b4/0x60ba counter area, and the sibling
  * renderers call 0x7641 "the score column". Purpose left to grounding; mechanism is firm.
  *
+ * GROUNDED (DK understanding pass 5, independent confirmer): this is the same ROM code as the
+ * already-English sibling renderBcdColumn (0x057C) entered one instruction earlier; the only
+ * difference is that this entry HARD-WIRES the destination cell (0x7641) rather than taking it
+ * from the caller — so the "…FixedCell" name is exactly the mechanism, parallel to the sibling.
+ * REJECT `drawScoreColumn`: the score-counter identity of 0x7641 is only a [guess] (unnamed
+ * video RAM), so that name would over-claim.
+ *
  * Reached by: tail_05da (default entry, fixed column) and draw_056b (enteredAt057C=true,
  * the caller's own column). Calls only expandBcdDigits (which owns the loop and store).
  *
@@ -55,7 +63,7 @@ import { expandBcdDigits } from "./expandBcdDigits.js"; // ROM 0x0583
 const ROW_STEP = 0xffe0; // -0x20: back one tilemap row per digit (draws up a column)
 const BYTE_COUNT = 0x0304; // count := 3 source bytes (6 digits); low byte 4 is a dead marker
 
-export function loc_0578(m, enteredAt057C = false) {
+export function renderBcdColumnFixedCell(m, enteredAt057C = false) {
   const { regs } = m;
 
   if (!enteredAt057C) {

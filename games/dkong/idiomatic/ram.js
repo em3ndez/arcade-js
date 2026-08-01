@@ -592,9 +592,13 @@ export const OBJ_ACTIVE = 0x00;
  *  meaningful small-enum values across 23 transitions over the object lifecycle in real MAME 25m attract
  *  (its own byte — a state field, not a coordinate/pointer/timer/count). Every site READS-and-dispatches
  *  or WRITES-a-next-state on it. Enums differ per array: 0x6500 array (obj_2e12: state 4 -> loc_2e84);
- *  0x6400 stride-0x20 array (entry_333d movement/collision state machine; entry_333d's code writes 0/4/8,
- *  but a live 25m-attract run observed rec-0's 0x640d taking only {0,1,2} — value-set unreconciled, kept
- *  [code]); 0x6600 array (sub_27da spawn -> 8, sub_2797 bit3 land -> 4, seed75mBoardObjects inits 8).
+ *  0x6400 stride-0x20 array (entry_333d movement/collision state machine; entry_333d's code writes 0/4/8.
+ *  RECONCILED (pass-5 50m real-ROM run, credited board 2): the 0x6400-array records take the FULL
+ *  {0,1,2,4,8} enum live, with substantial dwell — e.g. 0x6400+0d {0:1310,1:1513,2:587,4:267,8:317},
+ *  0x6420+0d {..4:372,8:1019}, and 2081 gameplay frames showed state {4,8} on some 0x6400 record. The
+ *  earlier 25m-attract {0,1,2} was just the demo never running the movement/collision arm that reaches
+ *  {4,8} — the entry_333d {0,4,8} write set is real; value-set now grounded [seen]);
+ *  0x6600 array (sub_27da spawn -> 8, sub_2797 bit3 land -> 4, seed75mBoardObjects inits 8).
  *  Offset < 0x10, so it stays IN-record for the stride-0x10 arrays too — no cross-record aliasing.
  *  Directly analogous to the shared OBJ_ACTIVE. */
 export const OBJ_STATE = 0x0d;
@@ -619,7 +623,10 @@ export const OBJ_ARRAY_64 = 0x6400;
 /** [code] Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F); entry_2e04, mirrored to
  *  ACTOR_SPRITES. */
 export const OBJ_ARRAY_65 = 0x6500;
-/** [code] Object array, stride 0x10, 6 records; sub_2591. */
+/** [seen] Object array, stride 0x10, 6 records; sub_2591. GROUNDED (pass-5 50m real-ROM run, credited
+ *  board 2): records 0-2 (0x65A0/B0/C0) live on 50m — active {0,1}, X sweeps the full 0..249 with 1704
+ *  frame-to-frame transitions (the horizontally-moving 50m objects the M50 step shadows drive), Y
+ *  row-fixed. Base exercised on the board it belongs to; honest — records 3-5 not separately checked. */
 export const OBJ_ARRAY_65A0 = 0x65a0;
 /** [code] Object array, stride 0x10, 6 records; sub_2797 (land/deactivate on +0d bit3). */
 export const OBJ_ARRAY_66 = 0x6600;
@@ -693,40 +700,51 @@ export const SEG_TILE = 0x63b5;
  *  uniform table — RIVETS_LEFT/BONUS and other cells are carved from the span. */
 export const BOARD_OBJ_SCRATCH = 0x6280;
 
-/** [code] 50m: object-1 reversal timer; loc_2602 decs on even frames, reloads 0x80 + reverses the step
- *  on underflow. Board-2 only. */
+/** [seen] 50m: object-1 reversal timer; loc_2602 decs on even frames, reloads 0x80 + reverses the step
+ *  on underflow. Board-2 only. GROUNDED (pass-5 50m real-ROM run, credited board 2, substate 0x0C):
+ *  live range 1..128, reload 0x80 (=128) and the dir1 sign-flip both proven on the underflow frame. */
 export const M50_OBJ1_REVERSE_TIMER = 0x62a0;
-/** [code] 50m: object-1 signed step-direction latch; only the SIGN is published (to M50_OBJ1_STEP). Board-2 only. */
+/** [seen] 50m: object-1 signed step-direction latch; only the SIGN is published (to M50_OBJ1_STEP). Board-2 only.
+ *  GROUNDED (pass-5 50m run): live signed values {1,2,254,255}; sign flips on the timer underflow. */
 export const M50_OBJ1_STEP_DIR = 0x62a1;
-/** [code] 50m: object-2 reversal timer (sub_262f); even-frame `dec`, reload 0xC0 + reverses
- *  M50_OBJ2_STEP_DIR on underflow. Structural sibling of M50_OBJ1_REVERSE_TIMER. Board-2 only. */
+/** [seen] 50m: object-2 reversal timer (sub_262f); even-frame `dec`, reload 0xC0 + reverses
+ *  M50_OBJ2_STEP_DIR on underflow. Structural sibling of M50_OBJ1_REVERSE_TIMER. Board-2 only.
+ *  GROUNDED (pass-5 50m run): live range 1..192, reload 0xC0 (=192) confirmed by the observed max. */
 export const M50_OBJ2_REVERSE_TIMER = 0x62a2;
-/** [code] 50m: object-2 signed step-direction latch (sub_262f); published to M50_OBJ2_STEP_POS. Board-2 only. */
+/** [seen] 50m: object-2 signed step-direction latch (sub_262f); published to M50_OBJ2_STEP_POS. Board-2 only.
+ *  GROUNDED (pass-5 50m run): live signed values {1,2,254,255}. */
 export const M50_OBJ2_STEP_DIR = 0x62a3;
-/** [code] 50m: object-3 reversal timer (sub_2679); even-frame `dec`, reload 0xFF + reverses
- *  M50_OBJ3_STEP_DIR on underflow. Board-2 only. */
+/** [seen] 50m: object-3 reversal timer (sub_2679); even-frame `dec`, reload 0xFF + reverses
+ *  M50_OBJ3_STEP_DIR on underflow. Board-2 only. GROUNDED (pass-5 50m run): live range 1..255,
+ *  reload 0xFF (=255) confirmed by the observed max. */
 export const M50_OBJ3_REVERSE_TIMER = 0x62a5;
-/** [code] 50m: object-3 signed step-direction latch (sub_2679); published to M50_OBJ3_STEP. Board-2 only. */
+/** [seen] 50m: object-3 signed step-direction latch (sub_2679); published to M50_OBJ3_STEP. Board-2 only.
+ *  GROUNDED (pass-5 50m run): live signed values {1,2,254,255}. */
 export const M50_OBJ3_STEP_DIR = 0x62a6;
 
 // 50m published per-object ±step shadows: each dir-latch above is reduced to a signed unit step by
 // sub_26e9 (odd frame ±1 / even frame 0) and stored here for the 50m platform/object mover to read.
-/** [code] 50m: object-1's published signed X-step, from sub_26e9 of M50_OBJ1_STEP_DIR (0x62A1). Board-2 only. */
+/** [seen] 50m: object-1's published signed X-step, from sub_26e9 of M50_OBJ1_STEP_DIR (0x62A1). Board-2 only.
+ *  GROUNDED (pass-5 50m run): live {0,1,255} — 0 on even frames, ±1 on odd frames (sign follows the dir latch). */
 export const M50_OBJ1_STEP = 0x63a3;
-/** [code] 50m: object-2's published +step shadow, from sub_26e9 of M50_OBJ2_STEP_DIR (0x62A3); the mover
- *  reads this arm when the field/Mario X >= 0x80. Board-2 only. */
+/** [seen] 50m: object-2's published +step shadow, from sub_26e9 of M50_OBJ2_STEP_DIR (0x62A3); the mover
+ *  reads this arm when the field/Mario X >= 0x80. Board-2 only. GROUNDED (pass-5 50m run): live {0,1,255},
+ *  EXACT byte-for-byte negation of M50_OBJ2_STEP_NEG (pos=255<->neg=1, pos=1<->neg=255, both 0 together). */
 export const M50_OBJ2_STEP_POS = 0x63a5;
-/** [code] 50m: object-2's published -step shadow (negation of M50_OBJ2_STEP_POS, same publisher 0x62A3);
- *  the mover reads this arm when the field/Mario X < 0x80. Board-2 only. */
+/** [seen] 50m: object-2's published -step shadow (negation of M50_OBJ2_STEP_POS, same publisher 0x62A3);
+ *  the mover reads this arm when the field/Mario X < 0x80. Board-2 only. GROUNDED (pass-5 50m run):
+ *  live {0,1,255}, proven the exact negation of M50_OBJ2_STEP_POS. */
 export const M50_OBJ2_STEP_NEG = 0x63a4;
-/** [code] 50m: object-3's published signed X-step, from sub_26e9 of M50_OBJ3_STEP_DIR (0x62A6). Board-2 only. */
+/** [seen] 50m: object-3's published signed X-step, from sub_26e9 of M50_OBJ3_STEP_DIR (0x62A6). Board-2 only.
+ *  GROUNDED (pass-5 50m run): live {0,1,255} — 0 even / ±1 odd. */
 export const M50_OBJ3_STEP = 0x63a6;
 
-/** [code] 50m sprite-object row X-shift delta. On the BOARD==2 arm, entry_03fb/entry_0400 compute
+/** [seen] 50m sprite-object row X-shift delta. On the BOARD==2 arm, entry_03fb/entry_0400 compute
  *  (0x6910)-0x3b (a sprite-object X byte less 0x3b) and store it here; shiftEvenBoardSpriteColumn
  *  (ROM 0x0478) then reads it on the 50m arm and adds it into the X column of the sprite-object block
  *  (SPRITE_OBJ_BLOCK base). An X-shift, NOT a colour delta (the colour repaint is a separate
- *  fall-through after). Board-2 only, so never observed live in the 25m attract — [code]. */
+ *  fall-through after). GROUNDED (pass-5 50m real-ROM run, credited board 2): live on the board-2 arm,
+ *  full 0..255 range with 1996 frame-to-frame transitions over the 3994-frame gameplay window. */
 export const M50_OBJ_ROW_SHIFT = 0x63b7;
 
 /** [code] Spawn-cadence timer; at 0 sub_27da claims a free 0x6600 slot, seeds it, reloads 0x34; always
@@ -788,13 +806,13 @@ export const BLINK_COUNT = 0x639e;
 
 // ── Attract-demo input player ────────────────────────────────────────────────
 // Source: DK understanding pass 4 (proposer + independent confirmer). The attract
-// mode replays a scripted joystick demo; loc_21ee (its SCRIPT_INDEX / SCRIPT_COUNTDOWN
+// mode replays a scripted joystick demo; advanceAttractDemoInput (its SCRIPT_INDEX / SCRIPT_COUNTDOWN
 // locals) is the SOLE reader/writer of both cells (grep-verified, no other refs).
 
-/** [seen] Attract-demo script step index — sole r/w loc_21ee. Walks 0 -> 18 then resets to 0 each demo
+/** [seen] Attract-demo script step index — sole r/w advanceAttractDemoInput. Walks 0 -> 18 then resets to 0 each demo
  *  cycle (observed 3 cycles live), and each advance coincides with a new P1_INPUT. */
 export const DEMO_SCRIPT_INDEX = 0x63cc;
-/** [seen] Attract-demo per-step countdown — sole r/w loc_21ee. Reloaded to a fresh duration at every
+/** [seen] Attract-demo per-step countdown — sole r/w advanceAttractDemoInput. Reloaded to a fresh duration at every
  *  DEMO_SCRIPT_INDEX advance, decremented ~every frame (wraps 0..255). */
 export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 

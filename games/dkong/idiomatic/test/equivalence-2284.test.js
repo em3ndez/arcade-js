@@ -46,8 +46,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { descend_2284 as oracle } from "../../translated/descend_2284.js";
-import { loc_2284 } from "../loc_2284.js";
-import { loc_3fc0 } from "../loc_3fc0.js";
+import { stepMarioDownInClimbPose as loc_2284 } from "../stepMarioDownInClimbPose.js";
+import { pinMarioClimbPose as loc_3fc0 } from "../pinMarioClimbPose.js";
 import { Machine } from "../../machine.js";
 import {
   MARIO_Y,

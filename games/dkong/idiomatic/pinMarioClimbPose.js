@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3fc0 — pin a fixed pose into Mario's hardware sprite record and hand back a
- * pointer to that record's Y field.  ROM 0x3FC0.
+ * pinMarioClimbPose — pin a fixed climb pose into Mario's hardware sprite record and hand
+ * back a pointer to that record's Y field.  ROM 0x3FC0.
  *
- * A tiny leaf used inside loc_2259's Y-descend (the still-translated caller at 0x2285):
+ * A tiny leaf used inside the Mario climb-descend step stepMarioDownInClimbPose (0x2284):
  * that caller nudges Mario down one pixel, calls this, then increments the byte this
  * routine points it at. What this routine itself does is two things:
  *
@@ -19,18 +19,18 @@
  *
  * The attribute byte in between is deliberately stepped over, never written.
  *
- * NAME: kept the neutral loc_ — the mechanism (pin the record's pose byte to 3, return
- * a pointer to its Y field) is pinned to the oracle, but which descend/climb animation
- * this serves, and the exact meaning of pose 3 here, are not grounded to the
- * routine-name bar. Its sole caller loc_2284 now EXISTS in the idiomatic layer, but is
- * itself still loc_ (deferred to pass 5), so the meaning-giving caller cannot yet
- * corroborate a game purpose. The proposed setMarioClimbDownPose was held back for
- * over-claiming DIRECTION ("down") — which rests on that still-loc_ caller — and a
- * pure-pose name also drops the Y pointer this returns. Promote WITH loc_2284 in pass 5.
+ * GROUNDED (DK understanding pass 5, independent confirmer): "climb" is grounded by ram.js's
+ * MARIO_SPRITE_CODE note — code 3 ∈ the 03-05 climb range, mirror flag clear — and the cells
+ * MARIO_SPRITE_RECORD / SPRITE_CODE / SPRITE_Y are all named. The DIRECTION "down" belongs to
+ * the CALLER stepMarioDownInClimbPose (0x2284), which increments MARIO_Y + sprite-Y; this
+ * routine ONLY forces the pose CODE byte to 3 and returns a Y pointer, so a "…Down…" name
+ * (REJECTED setMarioClimbDownPose) would mislocate direction into a routine that never moves
+ * Mario. "pin" names the primary effect; the returned Y pointer is a genuine live-out the
+ * caller consumes on its next step (see LIVE-OUT). Promoted WITH stepMarioDownInClimbPose.
  *
  * Memory-equivalent to the frozen oracle — equivalence-3fc0.test.js.
  * GATE:     crafted-entry — 0x3FC0 is never dispatched in attract (attract never reaches
- *           the descend path its caller loc_2284 drives), so there are no real captures. Instead the
+ *           the descend path its caller stepMarioDownInClimbPose drives), so there are no real captures. Instead the
  *           routine is provably input-independent — it reads no memory and no registers —
  *           and the gate proves that by running it against the oracle over many base
  *           states with the three target record bytes pre-poked to adversarial values
@@ -57,7 +57,7 @@ const POSE_CODE = 3;
  * @param {object} m  the machine (writes one work-RAM byte).
  * @returns {number} address of Mario's sprite-record Y field — the caller's next target.
  */
-export function loc_3fc0(m) {
+export function pinMarioClimbPose(m) {
   const { mem } = m;
 
   // Pin the record's code byte to the fixed pose.

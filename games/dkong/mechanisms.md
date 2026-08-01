@@ -117,7 +117,7 @@ that gate most per-frame work. `[code]`
   which is why so many gameplay routines can only be gated by crafted pokes, not captured
   attract frames (noted throughout the equivalence tests). `[code]`
 - **Attract-demo input player.** During attract the game replays a scripted joystick demo:
-  `loc_21ee` is the **sole** reader/writer of `DEMO_SCRIPT_INDEX (0x63CC)` — the script step index,
+  `advanceAttractDemoInput` (ROM 0x21EE) is the **sole** reader/writer of `DEMO_SCRIPT_INDEX (0x63CC)` — the script step index,
   which walks `0 → 18` and resets to 0 each demo cycle (3 cycles observed) — and
   `DEMO_SCRIPT_COUNTDOWN (0x63CD)`, the per-step dwell (reloaded at every `DEMO_SCRIPT_INDEX`
   advance, decremented ~each frame). Each advance coincides with a fresh `P1_INPUT`. `[seen]`
@@ -194,10 +194,13 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   movement/collision state machine on it. **Grounded (understanding pass 4):** a live 25m-attract
   run under MAME exercised the own bytes of `OBJ_ACTIVE`/`OBJ_X`/`OBJ_Y`/`OBJ_SPRITE_CODE` and
   `OBJ_STATE` (small-enum state values), and record-0 of both `OBJ_ARRAY_64`/`OBJ_ARRAY_67` — all
-  lifted to `[seen]`. **Reconciliation:** `entry_333d`'s code writes `OBJ_STATE` values `0/4/8` on
-  the `0x6400` array, but that same live run observed rec-0's `0x640d` taking only `{0,1,2}` — so
-  the byte is `[seen]` while the specific `0/4/8` value-set stays `[code]` (unreconciled). Only
-  `OBJ_SPRITE_ATTR (+8)` remains `[code]`.
+  lifted to `[seen]`. **Reconciled (understanding pass 5):** `entry_333d`'s code writes `OBJ_STATE`
+  values `0/4/8` on the `0x6400` array; the pass-4 25m-attract run had shown rec-0's `0x640d` taking
+  only `{0,1,2}`, leaving the `{4,8}` states unproven. A pass-5 real-ROM run on the credited **50m**
+  board now observes the `0x6400`-array records taking the full **`{0,1,2,4,8}`** enum with
+  substantial dwell (2081 gameplay frames showed `{4,8}` on some `0x6400` record) — the `{4,8}`
+  states the 25m demo never reaches because it never runs the full movement/collision arm. The
+  `0/4/8` value-set is now grounded `[seen]`; only `OBJ_SPRITE_ATTR (+8)` remains `[code]`.
 - **gather → sprite → DMA.** `gatherSpriteRecords` copies each active object's fields into a
   4-byte hardware record in `SPRITE_BUFFER (0x6900)` — object `+3 → sprite +0` (X),
   `+5 → +3` (Y), `+7 → +1` (code), `+8 → +2` (attr) — which `blitSpritesViaDma` then DMAs to
@@ -227,8 +230,17 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   (`signStepHalfRate`, 0 on even frames) and **published to a shadow byte** the group movers
   read: `M50_OBJ1_STEP (0x63A3)`, `M50_OBJ3_STEP (0x63A6)`, and — for object 2 — *both*
   polarities `M50_OBJ2_STEP_POS (0x63A5)` / `M50_OBJ2_STEP_NEG (0x63A4)`, the mover taking the
-  positive arm when the field/Mario X ≥ 0x80 else the negative. Drivers `loc_2602 / sub_262f /
-  sub_2679`, shared tails `loc_264c / loc_268d`. Never runs in attract (25m), so code-only. `[code]`
+  positive arm when the field/Mario X ≥ 0x80 else the negative. The Mario-carry mover is
+  `carryMarioOnConveyorRow` (ROM 0x2AD3): it dispatches on Mario's Y-row (`0x50 / 0x78 / 0xC8`) and
+  carries his X by that row's published step, with the object-2 row handled by
+  `selectConveyorStepAndMoveMario` (0x2AF6, X-selects the ± polarity). The 50m sprite-object **row
+  X-shift** `M50_OBJ_ROW_SHIFT (0x63B7)` shifts the object block's X column on the board-2 arm.
+  Drivers `loc_2602 / sub_262f / sub_2679`, shared tails `loc_264c / loc_268d`.
+  **Grounded (understanding pass 5):** a real-ROM run on the credited 50m board confirmed the whole
+  cascade live — reverse timers ranging `1..128 / 1..192 / 1..255` (reloads `0x80 / 0xC0 / 0xFF`)
+  with the reload-and-sign-flip proven on the underflow frame, the step shadows `0`-even / `±1`-odd
+  with `STEP_POS == −STEP_NEG` byte-for-byte, and `M50_OBJ_ROW_SHIFT` sweeping the full `0..255`.
+  All 11 cascade cells lifted to `[seen]`. `[seen]`
 
 ---
 
@@ -414,8 +426,9 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   tops out at `0x80` (the re-arm that starts the next sweep is `loc_0413`'s job). `runRivetColorCycleBlink`
   is the 100m branch. On the 50m arm the row X-shift delta is `M50_OBJ_ROW_SHIFT (0x63B7)` —
   `entry_03fb`/`entry_0400` compute `(0x6910) − 0x3b` and store it, and `shiftEvenBoardSpriteColumn`
-  adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; board-2 only, so
-  `[code]`). The blink is itself a short animation sequence: `BLINK_ANIM_PHASE (0x639D)` routes 4
+  adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; grounded live on
+  the credited 50m board (pass-5), sweeping `0..255`, so `[seen]`). The blink is itself a short
+  animation sequence: `BLINK_ANIM_PHASE (0x639D)` routes 4
   phases (`loc_127f`) and `BLINK_COUNT (0x639E)` (primed `0x0D`) times each toggle of the sprite
   pair. `[code]`
 

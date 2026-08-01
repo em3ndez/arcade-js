@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { sub_21ee as oracle } from "../../translated/sub_21ee.js";
-import { loc_21ee } from "../loc_21ee.js";
+import { advanceAttractDemoInput as loc_21ee } from "../advanceAttractDemoInput.js";
 import { P1_INPUT, DEMO_SCRIPT_INDEX as SCRIPT_INDEX, DEMO_SCRIPT_COUNTDOWN as SCRIPT_COUNTDOWN } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

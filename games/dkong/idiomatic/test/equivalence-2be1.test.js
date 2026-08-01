@@ -52,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { entry_2be1 as oracle } from "../../translated/entry_2be1.js";
-import { loc_2be1 } from "../loc_2be1.js";
+import { resolveAirborneTileLanding as loc_2be1 } from "../resolveAirborneTileLanding.js";
 import { MARIO_Y, MARIO_AIR_PREV_Y } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";

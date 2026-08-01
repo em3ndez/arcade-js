@@ -13,8 +13,8 @@
  *
  * GROUNDED (DK understanding pass 4, independent confirmer): reads the named M50_OBJ2_STEP_POS /
  * M50_OBJ2_STEP_NEG 50m step-shadows and hands to the named moveMarioX; 50m = conveyors
- * (mechanisms.md). NB its parent loc_2ad3 is still loc_ (deferred to pass 5) — the grounding here is
- * independent (named M50 cells), though the lead may prefer to hold for the conveyor cohort.
+ * (mechanisms.md). Its parent carryMarioOnConveyorRow (0x2AD3) was promoted alongside in DK
+ * understanding pass 5, joining this arm in the conveyor cohort.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2af6.test.js.
  * GATE:     crafted-entry — attract never rides the moving-platform rows (0 real 0x2AF6

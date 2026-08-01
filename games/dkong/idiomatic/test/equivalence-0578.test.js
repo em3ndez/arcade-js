@@ -48,7 +48,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { draw_0578 as oracle } from "../../translated/draw_0578.js";
 import { loop_0583 as loopOracle } from "../../translated/loop_0583.js";
-import { loc_0578 } from "../loc_0578.js";
+import { renderBcdColumnFixedCell as loc_0578 } from "../renderBcdColumnFixedCell.js";
 import { expandBcdDigits } from "../expandBcdDigits.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2be1 — resolve whether Mario's airborne descent has reached a tile surface;
- * on a hit, snap him onto it and abort the collision probe.  ROM 0x2BE1.
+ * resolveAirborneTileLanding — resolve whether Mario's airborne descent has reached a
+ * tile surface; on a hit, snap him onto it and abort the collision probe.  ROM 0x2BE1.
  *
  * The tail of the tile-classifier gate (entry_2b9b): it is entered by a tail-jump
  * once the classifier has built the tile-column boundary in C. It measures how far
@@ -24,6 +24,13 @@
  *     not just this classifier call. That unwind is expressed as returning `false`
  *     under the caller-skip convention (the classifier propagates it, and its caller
  *     completes it with `if (!callee) return`).
+ *
+ * GROUNDED (DK understanding pass 5, independent confirmer): reads the named MARIO_AIR_PREV_Y
+ * (0x620C) and MARIO_Y (0x6205); ram.js independently lists 0x2BE1 among the collision-code
+ * readers of MARIO_AIR_PREV_Y. On a hit it snaps MARIO_Y to boundary-7 and reports landed(1) /
+ * airborne(2), matching the landing/fatal-fall mechanism in mechanisms.md. Both captured
+ * attract arms are exercised by the gate. (Chosen over `snapLandingAtColumn`, which drops the
+ * airborne-probe half of the mechanism.)
  *
  * Register live-ins come from the still-translated caller: the boundary C, the row
  * offset (the accumulator the classifier leaves), and the object pointer. The result
@@ -51,7 +58,7 @@ import { MARIO_AIR_PREV_Y, MARIO_Y } from "./ram.js";
  * @returns {boolean} true = normal return (still airborne); false = the two-frame
  *   unwind of the caller-skip convention (landed — the collision walk aborts).
  */
-export function loc_2be1(m) {
+export function resolveAirborneTileLanding(m) {
   const { regs, mem } = m;
 
   const boundary = regs.c;

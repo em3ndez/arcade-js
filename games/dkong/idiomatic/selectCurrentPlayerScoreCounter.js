@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_055f — select the score-counter address for the player currently up.  ROM 0x055F.
+ * selectCurrentPlayerScoreCounter — select the score-counter address for the player
+ * currently up.  ROM 0x055F.
  *
  * Reads which player is up and hands back the base address of that player's
  * three-byte score counter: player 1's counter when the current-player flag is
@@ -9,6 +10,11 @@
  *
  * A LEAF: reads CURRENT_PLAYER only, writes no memory, and returns the chosen
  * address — nothing else it computes along the way survives the call.
+ *
+ * GROUNDED (DK understanding pass 5, independent confirmer): ram.js's CURRENT_PLAYER
+ * (0x600D) note independently cites this ROM routine (sub_055f) as the one that selects
+ * the score slot from that flag — `ret z` → P1_SCORE (0x60B2), else P2_SCORE (0x60B5) —
+ * and all three cells are named. The gate is exhaustive over the sole input byte.
  *
  * Memory-equivalent to the frozen oracle — equivalence-055f.test.js.
  * GATE:     exhaustive over the sole input byte — CURRENT_PLAYER across all 256
@@ -27,7 +33,7 @@ import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "./ram.js";
  * @param {object} m  the machine (reads m.mem only).
  * @returns {number}  base address of the current player's score counter.
  */
-export function loc_055f(m) {
+export function selectCurrentPlayerScoreCounter(m) {
   const { mem } = m;
   return mem.read8(CURRENT_PLAYER) === 0 ? P1_SCORE : P2_SCORE;
 }
