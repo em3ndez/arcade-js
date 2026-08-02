@@ -80,16 +80,18 @@ export class FramesComplete extends Error {
 }
 
 /**
- * Build the per-routine OVERRIDE MAP: dispatch-target address (a number) ->
- * optimized handler function. This is what lets an `optimized/` rewrite replace
- * its `translated/` counterpart WITHOUT editing the call site — `dispatchGameState`
- * consults it before the translated chain.
+ * Build the per-routine OVERRIDE MAP: dispatch/call target (a number) ->
+ * handler function. This is what lets an idiomatic rewrite (or the gate's capturing
+ * hook) replace its `translated/` counterpart WITHOUT editing the call site —
+ * m.call(addr) consults the layered registry, and `dispatchGameState` / `dispatchTask`
+ * consult this map before their translated chain.
  *
- * INPUT SHAPE (the manifest schema). `spec` is either `manifest.optimized` or a
- * caller-supplied object/Map with the same shape:
+ * INPUT SHAPE. `spec` is a caller-supplied object/Map. A value is either an
+ * ALREADY-RESOLVED function (what resolveAllIdiomatic and the memory-equivalence
+ * gate hand in) or the declarative `{ module, export }` form:
  *
  *   {
- *     "0x01c3": { module: "./optimized/handler_01c3.js", export: "handler_01c3" },
+ *     "0xADDR": { module: "./idiomatic/<name>.js", export: "<name>" },
  *   }
  *
  * The KEY is the rst-0x28 dispatch target — the exact address `dispatchGameState`
@@ -107,10 +109,10 @@ export class FramesComplete extends Error {
  * THE DEFAULT CONSTRUCTOR PATH NEEDS NONE OF THAT. It builds from `opts.overrides`
  * only; when that is omitted this produces an empty Map with no imports and no
  * async — every such player gets the exact translated behaviour, and the override
- * branch in `dispatchGameState` / `dispatchTask` is inert. The shipped
- * `manifest.optimized` is declarative, so it is resolved (by `resolveOverrides()`)
- * and passed in by the run paths that want those routines live, never consumed
- * here — buildOverrides would throw on its `{ module, export }` form.
+ * branch in `dispatchGameState` / `dispatchTask` is inert. No game currently ships a
+ * declarative `manifest.optimized` block; the resolver stays for when one is added,
+ * and buildOverrides throws on a raw `{ module, export }` value so a missing resolver
+ * is named loudly rather than silently ignored.
  *
  * @param {object|Map} [spec]
  * @returns {Map<number, function>}
@@ -140,16 +142,16 @@ function buildOverrides(spec) {
 }
 
 /**
- * Resolve a declarative `manifest.optimized` block to a `Map<number, function>`
- * ready to hand to `new Machine(rom, { overrides })`. Async because it
- * dynamic-imports each optimized module; dynamic import exists in Node and in the
- * browser worker alike, so one resolver serves both.
+ * Resolve a declarative `manifest.optimized` block ({ "hhhh": { module, export } })
+ * to a `Map<number, function>` ready to hand to `new Machine(rom, { overrides })`.
+ * Async because it dynamic-imports each module; dynamic import exists in Node and in
+ * the browser worker alike, so one resolver serves both.
  *
  * Module paths are resolved relative to `baseUrl`, which defaults to this file
- * (games/dkong/machine.js), so manifest entries like "./optimized/handler_01c3.js"
- * resolve against the game directory — the same base the audio paths use.
+ * (games/dkong/machine.js), so manifest entries like "./idiomatic/<name>.js" resolve
+ * against the game directory — the same base the audio paths use.
  *
- * @param {object} [spec]     manifest.optimized: { "0x01c3": { module, export } }
+ * @param {object} [spec]     manifest.optimized: { "0xADDR": { module, export } }
  * @param {string|URL} [baseUrl]
  * @returns {Promise<Map<number, function>>}
  */
@@ -526,7 +528,7 @@ export class Machine {
 
   /**
    * Invoke the routine at ROM address `addr` through the swap registry: the
-   * optimized rewrite if the manifest has one, else the translated oracle. Every
+   * idiomatic rewrite if one is registered, else the translated oracle. Every
    * inter-routine call is written this way -- `m.call(0x0874)` for `call 0x0874` --
    * which is what makes any routine independently swappable rather than only the two
    * dispatch targets. This dispatches WHICH implementation runs; the `push16`/`step`
@@ -693,11 +695,11 @@ export class Machine {
    * A clone rebuilds from `this.assets` (the source's constructor opts), so it
    * carries whatever `overrides` the source was built with — including the unit
    * gate's snapshot override. That is harmless here: the unit gate invokes the
-   * routine under test DIRECTLY (translatedFn/optimizedFn on the clone), so the
+   * routine under test DIRECTLY (translatedFn/idiomaticFn on the clone), so the
    * override map is consulted only for an m.call the target makes INTO itself,
    * where the snapshot delegates to the oracle — exactly the callee-is-oracle
    * isolation the unit gate wants. (Whole-machine equivalence backstops the one
-   * case this can't distinguish: an optimized routine that recurses into itself.)
+   * case this can't distinguish: an idiomatic routine that recurses into itself.)
    */
   clone() {
     const c = new Machine(this.rom, this.assets);

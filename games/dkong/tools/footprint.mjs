@@ -2,7 +2,7 @@
 //
 // On-demand REFERENCE DUMP of the read/write footprint + the STACK_SCRATCH region.
 // The footprint is the set of RAM addresses the game READS or WRITES over broad
-// coverage. NOTE: this output is NO LONGER pasted into optimized/ram.js — the giant
+// coverage. NOTE: this output is NO LONGER pasted into ram.js — the giant
 // per-address FOOTPRINT table was removed from ram.js because no gate ever read it.
 // The convergent gate (core/equivalence.js -> convergentEquivalence) compares ALL
 // work RAM minus STACK_SCRATCH, not a footprint-scoped list; ram.js keeps only the
@@ -23,7 +23,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Machine } from "../machine.js";
-import * as RAM from "../optimized/ram.js";
+import * as RAM from "../idiomatic/ram.js";
 
 const ROM_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "rom");
 const romPath = join(ROM_DIR, "maincpu.bin");

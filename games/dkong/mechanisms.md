@@ -18,7 +18,7 @@
 >
 > **Honest floor.** 361 of the game's 423 routines are decompiled into readable
 > `idiomatic/` JavaScript; the other ~62 still exist only as the frozen `translated/`
-> oracle (+ `optimized/`). The biggest not-yet-lifted block is the **actor/enemy AI**
+> oracle. The biggest not-yet-lifted block is the **actor/enemy AI**
 > (barrels, fireballs, elevators, springs, cement pans). So the *boot → attract →
 > board-setup → Mario-movement → board-advance → level-loop* spine is described from
 > code; the *moment-to-moment behaviour of the hazards* is described more thinly, and
@@ -524,12 +524,11 @@ from the ROM. `[code]`
 | — still `loc_<addr>` (address-named, awaiting a name) | 157 |
 | Address-named routines in the frozen `translated/` oracle (denominator) | **423** |
 | Named work-RAM cells in `idiomatic/ram.js` (`export const`) | 175 |
-| `translated/` `.js` files total (423 routines + 11 scaffolding wrappers) | 434 |
-| `optimized/` `.js` files | 236 |
+| `translated/` `.js` files total (423 routines + 8 scaffolding/generated files) | 431 |
 | **Idiomatic coverage** | **361 / 423 ≈ 85%** |
 
 The other ~62 routines run **live and pixel-correct** — they are the frozen `translated/`
-oracle (with `optimized/` collapsed versions), just not yet rewritten into readable JS.
+oracle, just not yet rewritten into readable JS.
 By ROM region, the largest not-yet-lifted blocks are:
 
 - **`0x1F00–0x2E00` — the actor/enemy/object AI (biggest gap).** This is the moment-to-

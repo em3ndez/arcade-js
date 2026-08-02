@@ -1,9 +1,9 @@
 # `idiomatic/` — the go-forward routine layer
 
 This directory holds the **idiomatic, cycle-free, memory-equivalent** rewrites of the translated
-routines. It supersedes `../optimized/` (see [docs/decompiler-pipeline](../../../docs/decompiler-pipeline.md) for
-the full method and the reasoning). New routine work is generated **here**; `../optimized/` is
-frozen and its files are deleted per-routine as their idiomatic replacements land.
+routines. It is the go-forward layer (see [docs/decompiler-pipeline](../../../docs/decompiler-pipeline.md)
+for the full method and the reasoning); the earlier `optimized/` layer it replaced has been deleted.
+New routine work is generated **here**.
 
 ## The contract (short form — full detail in docs/decompiler-pipeline)
 
@@ -35,7 +35,8 @@ frozen and its files are deleted per-routine as their idiomatic replacements lan
  */
 ```
 
-The manifest resolves each ROM address to *either* its `optimized/` or its `idiomatic/` module, so
-the two coexist during the migration. A routine moves here by: land `idiomatic/<name>.js` +
-`idiomatic/test/equivalence-<addr>.test.js`, re-point its manifest line from `./optimized/…` to
-`./idiomatic/…`, gate, then delete the old `optimized/<name>.js`.
+The swap engine (`resolveAllIdiomatic` in machine.js, reading the `ROUTINES` map in `ram.js`) lays
+each idiomatic routine over its `translated/` `loc_<addr>` oracle at its ROM address, so the game
+runs idiomatic where developed and translated everywhere else. A routine joins the layer by: land
+`idiomatic/<name>.js` + `idiomatic/test/equivalence-<addr>.test.js`, add its address→`{name}` entry
+to the `ROUTINES` map in `ram.js`, gate.
