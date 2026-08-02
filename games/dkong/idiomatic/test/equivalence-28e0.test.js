@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_28e0 (ROM 0x28E0) — the board-3 two-sweep bounding-box collision
+ * Equivalence test for search75mObjectOverlap (ROM 0x28E0) — the board-3 two-sweep bounding-box collision
  * search. It recovers the per-axis tolerances the dispatcher pushed, then runs the shared
  * collision search findCollidingObject over OBJ_ARRAY_64 (5 records, 0x20 stride) and — only if that
  * first sweep found nothing — over OBJ_ARRAY_65 (10 records, 0x10 stride), recording each
@@ -8,15 +8,15 @@
  *
  * Its whole observable effect is that memory store plus the search result findCollidingObject leaves in
  * the registers (the result byte in A and the count-minus-index residue in B). The defining
- * behaviour over the single-sweep sibling loc_2901 is the SHORT-CIRCUIT: a hit on sweep 1
+ * behaviour over the single-sweep sibling search100mObjectOverlap is the SHORT-CIRCUIT: a hit on sweep 1
  * takes findCollidingObject's caller-skip return, so sweep 2 never runs and OBJ_SEARCH_COUNT is left at
  * 5, not overwritten with 10.
  *
  * The oracle models the Z80 stack: it pops the pushed tolerances, brackets each search with a
  * call/return, and — because a hit takes a caller-skip return — every path (sweep-1 hit,
  * sweep-2 hit, both exhausted) lands back at the dispatch site with the same net pc + SP.
- * loc_28e0 models no call/return bracket (direct calls to findCollidingObject), so the harness lines the
- * two up: after loc_28e0 it performs the single terminal return the ROM nets on every path,
+ * search75mObjectOverlap models no call/return bracket (direct calls to findCollidingObject), so the harness lines the
+ * two up: after search75mObjectOverlap it performs the single terminal return the ROM nets on every path,
  * so pc + SP match and the bytes the oracle's dissolved bracket leaves behind sit in the dead
  * STACK_SCRATCH region, which the memory compare excludes.
  *
@@ -46,7 +46,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_28e0 as oracle } from "../../translated/loc_28e0.js";
 import { findCollidingObject } from "../findCollidingObject.js";
-import { loc_28e0 } from "../loc_28e0.js";
+import { search75mObjectOverlap } from "../search75mObjectOverlap.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65 } from "../ram.js";
 
@@ -241,7 +241,7 @@ test("EQUAL (crafted): every arm matches the oracle", () => {
     assert.equal(k.a, wantA, `${name}: expected result byte ${wantA}, oracle left ${k.a}`);
     assert.equal(k.b, wantB, `${name}: expected residue B=${wantB}, oracle left ${k.b}`);
     assert.equal(k.count, wantCount, `${name}: expected OBJ_SEARCH_COUNT=${wantCount}, oracle left ${k.count}`);
-    const diffs = contractDiffs(entry, loc_28e0);
+    const diffs = contractDiffs(entry, search75mObjectOverlap);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
 
@@ -274,7 +274,7 @@ test("EQUAL (crafted): the stack-passed tolerances flip sweep 1 and both match t
   assert.equal(kTight.count, SWEEP2_COUNT, "tight tolerance should miss sweep 1 and run sweep 2 (count 10)");
 
   for (const [label, entry] of [["loose tolerance", loose], ["tight tolerance", tight]]) {
-    const diffs = contractDiffs(entry, loc_28e0);
+    const diffs = contractDiffs(entry, search75mObjectOverlap);
     assert.equal(diffs.length, 0, `${label}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/tolerances: loose=hit(count ${kLoose.count}) tight=miss(count ${kTight.count}) — both identical to the oracle`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2e04 — the actor-object scan loop: on 75m, while Mario is alive, update all ten
+ * update75mActorObjects — the actor-object scan loop: on 75m, while Mario is alive, update all ten
  * records of the actor object array.  ROM 0x2E04.
  *
  * Two skip gates open the routine, then it walks the ten-record actor array
@@ -15,10 +15,18 @@
  * cursors and, in its shared advance tail, steps the object cursor by 16 and the sprite
  * cursor by 4 — so ten calls sweep the whole array, one object per pass.
  *
- * NAME: kept as loc_2e04, matching the sibling handlers loc_2e12 / loc_2e84 / loc_2e9c /
- * loc_2e4b it drives. The mechanism is clear (a board-and-alive-gated ten-record scan of
- * the actor array), but which actors this animates on 75m is not grounded here, so the
- * effect-level name is left for a clarify / grounding pass rather than guessed.
+ * NAME: PROMOTED in understanding pass 12, corroborated from outside the file on both halves of the
+ * name. The ARRAY half: ram.js names OBJ_ARRAY_65 (0x6500) the object ("actor") array and cites
+ * entry_2e04 as its updater, and ACTOR_SPRITES records that entry_2e04 mirrors that array's X/Y into
+ * it — two named cells naming this routine. The BOARD half: its boardBitGate mask is 0x04 = board 3,
+ * cross-checked against raisePeriodicObjectSpawnRequests's mask 0x0A (boards 2+4) and confirmed
+ * independently by search75mObjectOverlap (0x28E0), which sweeps that SAME ten-record array on board
+ * 3. Grounding then closed the old "not grounded here" caveat: on a live 75m run OBJ_ARRAY_65 record
+ * 0 was active 3711 frames with X sweeping 213 distinct values, and the array was entirely dormant on
+ * boards 1, 2 and 4. Naming family: update50mMovingObjects / update50mConveyorObjects.
+ * WHAT THIS NAME DOES NOT CLAIM: WHICH Donkey Kong actors these ten records are. Records 2-9 never
+ * activated in any run (OBJ_ARRAY_65 is an honest PARTIAL [seen], records 0-1 only), so the name says
+ * "actor objects" — the registry's own vocabulary — and does not identify them.
  *
  * The object and sprite cursors are carried in registers into loc_2e12 (its current honest
  * signature reads them there — a genuine callee boundary), so this routine seeds them the
@@ -55,7 +63,7 @@ import { loc_2e12 } from "./loc_2e12.js";                 // ROM 0x2E12
 const BOARD_MASK = 0x04; // rst-0x30 applicability mask: the current-board bit only on board 3 (75m)
 const ACTOR_COUNT = 10;  // records in the actor object array (OBJ_ARRAY_65, stride 16)
 
-export function loc_2e04(m) {
+export function update75mActorObjects(m) {
   const { regs } = m;
 
   // Gate 1 — rst 0x30 board test. boardBitGate reads the mask from regs.a; mask 0x04

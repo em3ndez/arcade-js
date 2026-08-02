@@ -4,9 +4,9 @@
  *
  * loc_2c41 stirs the once-per-vblank random seed (stirRandomSeed / ROM 0x0057) and reads its low
  * nibble as a 1-in-16 coin flip: a NONZERO nibble routes to the mode-3 entry loc_2c86 (which clears
- * the request flag 0x6382 up front), a ZERO nibble to the mode-1 entry loc_2c49. Both entries record
- * the mode byte into engine scratch and, only when BONUS_EVENT_MARK equals the caller's bonus value,
- * step that mark down by 8 and claim the first free OBJ_ARRAY_64 slot — raising the request flag to
+ * BARREL_CLAIM_MODE up front), a ZERO nibble to the mode-1 entry loc_2c49. Both entries record
+ * the mode value into BARREL_CLAIM_MODE and, only when BONUS_EVENT_MARK equals the caller's bonus value,
+ * step that mark down by 8 and claim the first free OBJ_ARRAY_64 slot — raising bit 7 to
  * 0x81 on the mode-1 arm (mode byte 1 | top bit) and 0x80 on the mode-3 arm (cleared, then | top bit).
  * The bonus value is a register live-in the callees read at the still-translated cluster boundary; the
  * head just selects the arm and touches no named work RAM itself. Live-out is memory-only.
@@ -19,7 +19,7 @@
  * inside STACK_SCRATCH; the crafted SAFE_SP=0x6bf8 keeps it there too.
  *
  *   1. EQUAL — loc_2c41 == oracle on RAM − STACK_SCRATCH across:
- *        SEED-SWEEP (exhaustive) — all 256 stirred-seed bytes with a pre-dirtied request flag and a
+ *        SEED-SWEEP (exhaustive) — all 256 stirred-seed bytes with a pre-dirtied BARREL_CLAIM_MODE and a
  *          fixed mark != bonus, so the gate is closed for every seed; isolates the low-nibble branch
  *          selection and the delegated scratch writes on both arms (mode-1 vs mode-3).
  *        SLOT-SWEEP (crafted) — the gate OPEN (mark == bonus) with the seed nibble forced to 0 and to
@@ -49,7 +49,7 @@ import { loc_2c41 } from "../loc_2c41.js";
 import { stirRandomSeed } from "../stirRandomSeed.js"; // ROM 0x0057
 import { loc_2c86 } from "../loc_2c86.js"; // ROM 0x2C86
 import { loc_2c49 } from "../loc_2c49.js"; // ROM 0x2C49
-import { RANDOM, FRAME, SPIN_COUNT, BONUS_EVENT_MARK, OBJ_ARRAY_64, STACK_SCRATCH } from "../ram.js";
+import { RANDOM, FRAME, SPIN_COUNT, BONUS_EVENT_MARK, OBJ_ARRAY_64, STACK_SCRATCH, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -60,13 +60,12 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2c41;
-const SCRATCH_REQ = 0x6382; // slot-claim request flag: mode byte, later OR'd with a top-bit request
 const SCRATCH_MODE = 0x638f; // the shared body stashes the (possibly +1'd) mode byte here
 const SCRATCH_FLAG = 0x6392; // the shared body raises this to 1 on every entry
 const STRIDE = 32; // OBJ_ARRAY_64 record stride
 const RECORDS = 5;
 const EVENT_STEP = 8;
-const DIRTY = 0x55; // a non-zero request flag seeded in, to expose the mode-3 arm's up-front clear
+const DIRTY = 0x55; // a non-zero BARREL_CLAIM_MODE seeded in, to expose the mode-3 arm's up-front clear
 // FRAME held NONZERO so the stir genuinely moves RANDOM (RANDOM_in = seed − FRAME, RANDOM_out = seed);
 // that is what lets the dropped-stir twin be caught at RANDOM rather than only via the wrong arm.
 const FRAME_FIX = 3;
@@ -110,7 +109,7 @@ function makeEntry(base, { seedByte, c, mark, records = OCCUPIED, req = DIRTY })
   e.regs.c = c; // the caller's bonus live-in
   e.mem.write8(BONUS_EVENT_MARK, mark);
   for (let i = 0; i < RECORDS; i++) e.mem.write8(OBJ_ARRAY_64 + i * STRIDE, records[i]);
-  e.mem.write8(SCRATCH_REQ, req);
+  e.mem.write8(BARREL_CLAIM_MODE, req);
   e.mem.write8(SCRATCH_MODE, 0xee); // noise: the shared body rewrites it
   e.mem.write8(SCRATCH_FLAG, 0xee); // noise: the shared body rewrites it
   e.regs.sp = SAFE_SP;
@@ -194,13 +193,13 @@ test("EQUAL: loc_2c41 == oracle across the seed-sweep and every gate-open slot c
     loc_2c41(b);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(RANDOM), 0x00, "seed must be stirred to 0x00");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 1, "mode-1 arm records mode byte 1 (no claim)");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 1, "mode-1 arm records mode byte 1 (no claim)");
       assert.equal(mm.mem.read8(SCRATCH_MODE), 2, "mode-1 arm stashes mode byte + 1 = 2");
       assert.equal(mm.mem.read8(SCRATCH_FLAG), 1, "entry flag must be raised");
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x80, "gate closed -> mark unchanged");
     }
   }
-  // (ii) nonzero-nibble seed, gate closed -> mode-3 arm: request flag cleared to 0, 0x638F=3.
+  // (ii) nonzero-nibble seed, gate closed -> mode-3 arm: BARREL_CLAIM_MODE cleared to 0, 0x638F=3.
   {
     const a = makeEntry(base, { seedByte: 0x01, c: 0x33, mark: 0x80, req: DIRTY });
     const b = makeEntry(base, { seedByte: 0x01, c: 0x33, mark: 0x80, req: DIRTY });
@@ -208,7 +207,7 @@ test("EQUAL: loc_2c41 == oracle across the seed-sweep and every gate-open slot c
     loc_2c41(b);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(RANDOM), 0x01, "seed must be stirred to 0x01");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 0x00, "mode-3 arm clears the request flag to 0");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x00, "mode-3 arm clears BARREL_CLAIM_MODE to 0");
       assert.equal(mm.mem.read8(SCRATCH_MODE), 3, "mode-3 arm stashes mode byte 3");
       assert.equal(mm.mem.read8(SCRATCH_FLAG), 1, "entry flag must be raised");
     }
@@ -220,7 +219,7 @@ test("EQUAL: loc_2c41 == oracle across the seed-sweep and every gate-open slot c
     oracle(a);
     loc_2c41(b);
     for (const mm of [a, b]) {
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 0x81, "mode-1 claim -> mode byte 1 | top bit = 0x81");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x81, "mode-1 claim -> mode byte 1 | top bit = 0x81");
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x40 - EVENT_STEP, "mark must step down by 8");
     }
   }
@@ -231,7 +230,7 @@ test("EQUAL: loc_2c41 == oracle across the seed-sweep and every gate-open slot c
     oracle(a);
     loc_2c41(b);
     for (const mm of [a, b]) {
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 0x80, "mode-3 claim -> cleared then top bit set = 0x80");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x80, "mode-3 claim -> cleared then top bit set = 0x80");
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x40 - EVENT_STEP, "mark must step down by 8");
     }
   }
@@ -268,7 +267,7 @@ test("TEETH: the inverted-branch twin is CAUGHT (0x6382 diverges)", () => {
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenInverted);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch an inverted branch — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the inverted-branch twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the inverted-branch twin must diverge on 0x6382");
   console.log(`  TEETH/inverted: caught — ${describe(mismatch)}`);
 });
 
@@ -284,7 +283,7 @@ test("TEETH: the dropped-nibble-mask twin is CAUGHT (0x6382 diverges)", () => {
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenNoMask);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a dropped nibble mask — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the dropped-mask twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the dropped-mask twin must diverge on 0x6382");
   console.log(`  TEETH/no-mask: caught — ${describe(mismatch)}`);
 });
 

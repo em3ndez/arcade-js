@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2901 — run one bounding-box collision sweep over the 0x6400 object array.  ROM 0x2901.
+ * search100mObjectOverlap — run one bounding-box collision sweep over the 0x6400 object array.  ROM 0x2901.
  *
- * A single-sweep sibling of the three-sweep loc_28b0. A dispatch table (base 0x3E8D)
+ * NAME PROVENANCE (why "100m"): BOARD index 4 of the rst-0x28 table at ROM 0x2874 vectors here (the
+ * parallel table at 0x3E8D is identical except board 1, which goes to 0x3E99). Cross-checked by its
+ * sweep count of 7, matching OBJ_ARRAY_64's documented "up to 7 on 100m", and by grounding, which saw
+ * OBJ_SEARCH_COUNT take the value 7 ONLY on 100m (4491 frames).
+ *
+ * A single-sweep sibling of the three-sweep search50mObjectOverlap. A dispatch table (base 0x3E8D)
  * jumps here having pushed the per-axis search tolerances on the stack; this routine
  * recovers them, records the sweep's object count where the found-handler reads it back,
  * points the shared collision search findCollidingObject at the OBJ_ARRAY_64 record array, and runs
@@ -43,7 +48,7 @@ import { findCollidingObject } from "./findCollidingObject.js";
 const SWEEP_COUNT = 7;   // records this sweep scans
 const RECORD_STRIDE = 32; // 0x20-byte record stride of OBJ_ARRAY_64
 
-export function loc_2901(m) {
+export function search100mObjectOverlap(m) {
   const { regs, mem } = m;
 
   // Recover the per-axis search tolerances the dispatcher pushed (the collision search

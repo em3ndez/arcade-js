@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28b0 — run three bounding-box collision sweeps over three object arrays in order.  ROM 0x28B0.
+ * search50mObjectOverlap — run three bounding-box collision sweeps over three object arrays in order.  ROM 0x28B0.
  *
- * The three-sweep sibling of the single-sweep loc_2901. A dispatch table jumps here having
+ * NAME PROVENANCE (why "50m"): BOARD index 2 of the rst-0x28 table at ROM 0x2874 vectors here.
+ * Cross-checked by the array it sweeps — the only arm touching OBJ_ARRAY_65A0, the 50m movers — and by
+ * grounding: 0 fetches across 18789 attract frames, 4766 on 50m, signature 5.6.1 x4593.
+ *
+ * The three-sweep sibling of the single-sweep search100mObjectOverlap. A dispatch table jumps here having
  * pushed the per-axis search tolerances on the stack; this routine recovers them and then runs
  * three back-to-back collision sweeps, each pointing the shared search findCollidingObject at a different
  * object array and staging that sweep's record count where the found-handler reads it back:
@@ -44,7 +48,7 @@
 import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_RECORD_66A0 } from "./ram.js";
 import { findCollidingObject } from "./findCollidingObject.js";
 
-export function loc_28b0(m) {
+export function search50mObjectOverlap(m) {
   const { regs, mem } = m;
 
   // Recover the per-axis search tolerances the dispatcher pushed (findCollidingObject reads the axis-1

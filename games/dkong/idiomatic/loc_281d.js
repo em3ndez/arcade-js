@@ -60,14 +60,20 @@ import { dispatchBoardCollision } from "./dispatchBoardCollision.js"; // ROM 0x2
 const RECORD_STRIDE = 0x10;
 
 // Return marker the board collision handler unwinds to. dispatchBoardCollision is
-// idiomatic in form but routes to the still-TRANSLATED per-board handlers, whose object
-// search returns by popping the stack — on a hit via an inc-sp/inc-sp/ret caller-skip,
-// on a miss via a normal ret. So this is a genuine oracle boundary: the handler needs a
-// return address on the stack, and this routine must supply it exactly as the oracle
-// call site does (its own push16). It is NOT a dissolvable call-return bracket — dropping
-// it makes the handler pop the wrong word and unwind two bytes off. It dissolves only once
-// those handlers (sub_2880/28b0/28e0/2901, entry_2913) are decompiled bottom-up. A ROM
-// code address, kept hex.
+// idiomatic in form but still RUNS the frozen translated per-board handlers: it routes
+// through loc_00ca, which reaches them by ROM address (m.call(0x2880/0x28B0/0x28E0/0x2901)).
+// Their object search returns by popping the stack — on a hit via an inc-sp/inc-sp/ret
+// caller-skip, on a miss via a normal ret. So this is a genuine oracle boundary: the handler
+// needs a return address on the stack, and this routine must supply it exactly as the oracle
+// call site does (its own push16). It is NOT a dissolvable call-return bracket — dropping it
+// makes the handler pop the wrong word and unwind two bytes off.
+//
+// All four handlers and their shared search ARE now decompiled and named —
+// search25mObjectOverlap (0x2880), search50mObjectOverlap (0x28B0), search75mObjectOverlap
+// (0x28E0), search100mObjectOverlap (0x2901) and findCollidingObject (0x2913) — so the
+// remaining dependency is not the decompile but the DISPATCH: this marker dissolves once
+// dispatchBoardCollision calls those idiomatic handlers directly instead of vectoring through
+// loc_00ca into the oracle. A ROM code address, kept hex.
 const HANDLER_RETURN = 0x283e;
 
 export function loc_281d(m) {

@@ -12,8 +12,18 @@
  * cursor is handed to it there — this is exactly the routine's own reload, not extra
  * marshalling; it dissolves to an honest parameter once loc_2d54 is promoted.
  *
- * NAME: kept loc_ — the mechanism (reload the cursor, render one character) is pinned to
- * the oracle, but the renderer's game role is not corroborated to the routine-name bar.
+ * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
+ * scratchpad/pass12-grounding.md): this renderer chain runs in ORDINARY 25m BARREL PLAY on
+ * board 1, not in a cutscene. All 46 captured dispatches of the chain's head (loc_2cf6) fell
+ * at gameplay substates — 17 in a credited in-board 25m game, 29 in the attract 25m demo — and
+ * ZERO at substate 7, the opening Kong-climb cutscene; the object being dressed is always an
+ * OBJ_ARRAY_67 barrel record, one per slot claim by the barrel-release routine (board 1,
+ * ROM 0x2CB8), 46 claims paired 1:1 with 46 dispatches.
+ *
+ * NAME: kept loc_ — the mechanism (reload the cursor, render one character) is pinned to the
+ * oracle, and grounding fixes the CONTEXT (25m barrel play). What is still open is the NAMED
+ * identity of the two barrel kinds the chain's head selects between, which the grounding run
+ * deliberately did not establish, so an English name would have to guess.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2d51.test.js.
  * GATE:     real captured 0x2D51 dispatches from attract (both the emit and terminator

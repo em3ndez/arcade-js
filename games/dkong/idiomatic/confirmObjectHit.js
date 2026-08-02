@@ -14,7 +14,7 @@
  *     has not already been consumed/disabled).
  *
  * If either check fails it returns having touched nothing. If both pass it registers
- * the hit into the shared effect-subsystem flags — the same trio loc_1f23 and
+ * the hit into the shared effect-subsystem flags — the same trio animateEffectSpriteThenRearmEffect and
  * sub_1a33's edge pickup write — which the interaction state machine (EFFECT_SELECT's
  * loc_1dc9 / EFFECT_PARAM_PTR's loc_1e15 …) then services on later frames:
  *   EFFECT_PARAM_PTR (0x6343) = record base pointer (the object the machine acts on)

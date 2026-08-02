@@ -12,15 +12,20 @@
  * step to 1 the moment BONUS hits 0, kicking the sequence off; until then the machine
  * sits in state 0 and this no-op runs, so the router does nothing that frame.
  *
- * NAME PROMOTED (vs a neutral loc_): unlike the structural twin loc_1e49 — whose
- * router byte 0x6340 = EFFECT_STATE carries only a [code]-level ram.js name whose
- * game-semantics are still to be grounded, so that twin kept a loc_ name — this arm's
- * router byte 0x6386 = BONUS_EXPIRED_STEP is a RAM name confirmed by both verifiers,
- * and the bonus-expired sequence's purpose is established, so the ROLE is earned, not
- * guessed. Both facts (the byte's identity and that step 0 is the pre-expiry idle) are
- * ROM-cited via entry_1a07's table. (A reviewer preferring
- * maximal conservatism can fall back to loc_1a1e — the mechanics are identical either
- * way; only the label's confidence differs.)
+ * NAME PROMOTED (vs a neutral loc_): this arm's router byte 0x6386 = BONUS_EXPIRED_STEP is
+ * a RAM name confirmed by both verifiers, and the bonus-expired sequence's purpose is
+ * established, so the ROLE is earned, not guessed. Both facts (the byte's identity and that
+ * step 0 is the pre-expiry idle) are ROM-cited via entry_1a07's table.
+ *
+ * Its structural twin at ROM 0x1E49 — the identical single-`ret` entry 0 of the EFFECT_STATE
+ * (0x6340) router — has since been promoted too, to effectStateIdle, on the same structural
+ * grounds (table entry 0 of a named router byte). What still differs is the strength of the
+ * evidence UNDER the two router bytes, not the naming convention: BONUS_EXPIRED_STEP is
+ * [seen]-rated and the sequence it drives is understood, whereas EFFECT_STATE is only
+ * [code]-rated and the effect-sprite semantics it selects between remain ungrounded — so
+ * effectStateIdle's role rests on its table position alone, while this one also rests on a
+ * grounded sequence. (A reviewer preferring maximal conservatism can fall back to loc_1a1e —
+ * the mechanics are identical either way; only the label's confidence differs.)
  *
  * In the idiomatic layer the Z80 `ret` IS the JS return, so the body is empty: there is
  * no stack to pop and no pc/SP to maintain — the caller, once decompiled, calls this

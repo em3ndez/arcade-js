@@ -12,7 +12,7 @@
  *   0 -> 0x0A8A  — seed the cutscene's walk/animation pointers.
  *   1 -> 0x0ABF  — advance Kong's climb.
  *   2 -> 0x0AE8  — advance Kong's climb (re-points SEQ_ADVANCE_PTR 0x63C0 at INTRO_STEP).
- *   3 -> 0x3069  — the shared gated tick (loc_3069): once the sub-state timer 0x6009
+ *   3 -> 0x3069  — the shared gated tick (advanceSequenceStepWhenTimerExpires): once the sub-state timer 0x6009
  *                  expires, `inc` the byte SEQ_ADVANCE_PTR points at (INTRO_STEP) — i.e.
  *                  a metered pause that bumps the step to the next frame's arm.
  *   4 -> 0x0B06  — next cutscene beat (re-points SEQ_ADVANCE_PTR at INTRO_STEP).

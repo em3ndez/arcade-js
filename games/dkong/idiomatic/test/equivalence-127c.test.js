@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_127c (ROM 0x127C) — attract sub-state 4: service the
- * effect-sprite state machine (loc_1dbd, EFFECT_STATE 0x6340) then fall through into the
+ * effect-sprite state machine (dispatchEffectState, EFFECT_STATE 0x6340) then fall through into the
  * blink-animation dispatch (loc_127f, BLINK_ANIM_PHASE 0x639D).
  *
  * The oracle brackets the first call in the Z80 stack (`call 0x1dbd`, then falls through
@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_127c as oracle } from "../../translated/loc_127c.js";
 import { loc_127c as idiomatic } from "../loc_127c.js";
-import { loc_1dbd } from "../loc_1dbd.js"; // idiomatic callee, for the teeth twins
+import { dispatchEffectState } from "../dispatchEffectState.js"; // idiomatic callee, for the teeth twins
 import { loc_127f } from "../loc_127f.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
 import {
@@ -244,7 +244,7 @@ test("CRAFTED (blink-phase sweep): loc_127c == oracle over BLINK_ANIM_PHASE {0,1
 // Twin (a): drops the effect-router call — only dispatches the blink half.
 const brokenNoEffectRouter = (m) => loc_127f(m);
 // Twin (b): drops the blink dispatch — only routes the effect half.
-const brokenNoBlinkDispatch = (m) => { loc_1dbd(m); };
+const brokenNoBlinkDispatch = (m) => { dispatchEffectState(m); };
 
 test("TEETH (drop effect-router): the missing effect service is CAUGHT and names EFFECT_TIMER (0x6341)", () => {
   const caps = captureDispatches(25, 9000);

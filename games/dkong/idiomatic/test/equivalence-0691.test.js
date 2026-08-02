@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_0691 (ROM 0x0691) — award two table-selected BCD score amounts from
- * the packed digit byte at 0x638c, one per nibble.
+ * Equivalence test for awardRemainingBonusToScore (ROM 0x0691) — award two table-selected BCD score amounts from
+ * the packed digit byte in BONUS_DISPLAY, one per nibble.
  *
- * loc_0691's only input is the byte at 0x638c: it runs the add-to-score task (addToScoreTask) with the
+ * awardRemainingBonusToScore's only input is the byte in BONUS_DISPLAY (0x638C): it runs the add-to-score task (addToScoreTask) with the
  * low nibble as payload, then with (high nibble + 0x0a) as payload. Everything downstream — the
  * BCD add, the repaint, the high-score promotion — is addToScoreTask's job and is covered by its own
- * gate (equivalence-051c). What THIS gate must prove is that loc_0691 feeds the correct two
+ * gate (equivalence-051c). What THIS gate must prove is that awardRemainingBonusToScore feeds the correct two
  * payloads, in order, for EVERY possible byte. Since the memory effect is a pure function of that
  * one byte (on a fixed base), an EXHAUSTIVE sweep of all 256 values is a proof, not a sample —
  * exactly loc_066a's shape (its twin).
@@ -20,8 +20,8 @@
  *
  *   1. REACHABILITY — probe how often 0x0691 is dispatched in boot/attract (loc_062a's task-10
  *      A==0 arm). It may be rare or zero; the exhaustive sweep is the proof either way.
- *   2. EQUAL (exhaustive, P1) — loc_0691 == oracle over RAM − STACK_SCRATCH for all 256 values of
- *      0x638c on a crafted P1 base (ATTRACT cleared; a score under a lower high score so adds and a
+ *   2. EQUAL (exhaustive, P1) — awardRemainingBonusToScore == oracle over RAM − STACK_SCRATCH for all 256 values of
+ *      BONUS_DISPLAY on a crafted P1 base (ATTRACT cleared; a score under a lower high score so adds and a
  *      promotion are observable), plus a non-vacuity check that byte 0x11 really added +100 then
  *      +1000 on both sides.
  *   3. EQUAL (exhaustive, P2) — the same sweep on a player-2 base, exercising addToScoreTask's P2 counter.
@@ -39,12 +39,13 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0691 as oracle } from "../../translated/loc_0691.js";
-import { loc_0691 } from "../loc_0691.js";
+import { awardRemainingBonusToScore } from "../awardRemainingBonusToScore.js";
 import { addToScoreTask } from "../addToScoreTask.js"; // direct callee, reused to build faithful broken twins
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
   ATTRACT,
+  BONUS_DISPLAY,
   CURRENT_PLAYER,
   P1_SCORE,
   P2_SCORE,
@@ -59,7 +60,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0691;
-const SCRATCH_638C = 0x638c; // the unnamed packed-BCD digit-pair scratch loc_0691 reads
 const RET_ADDR = 0x02bf; // a plausible caller return (lands in STACK_SCRATCH, excluded)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -87,8 +87,8 @@ function attractBase(frames = 300) {
   return m.clone(); // clone neutralises the frame machinery (nextNmi/nextBoundary = Infinity)
 }
 
-// Stamp a crafted loc_0691 base onto a clone: a stack with a plausible caller return, the guard /
-// player flags, and the three-byte score (little-endian [lo,mid,hi]) and high score. The 0x638c
+// Stamp a crafted awardRemainingBonusToScore base onto a clone: a stack with a plausible caller return, the guard /
+// player flags, and the three-byte score (little-endian [lo,mid,hi]) and high score. The BONUS_DISPLAY
 // input byte is written per sweep iteration, not here.
 function craftBase(base, { attract = 0x00, player = 0, score, high }) {
   const m = base.clone();
@@ -106,11 +106,11 @@ function craftBase(base, { attract = 0x00, player = 0, score, high }) {
   return m;
 }
 
-// One sweep entry: a clone of the crafted base with the 0x638c input byte set and frame machinery
+// One sweep entry: a clone of the crafted base with the BONUS_DISPLAY input byte set and frame machinery
 // neutralised (clone() already sets nextNmi/nextBoundary = Infinity; re-asserted for clarity).
 function makeEntry(craftedBase, byte) {
   const e = craftedBase.clone();
-  e.mem.write8(SCRATCH_638C, byte & 0xff);
+  e.mem.write8(BONUS_DISPLAY, byte & 0xff);
   e.nextNmi = Infinity;
   e.nextBoundary = Infinity;
   return e;
@@ -135,7 +135,7 @@ function fullSweep(craftedBase, candidate) {
 }
 
 const describe = (mm) =>
-  mm && `at 0x638c=${hb(mm.v)}: RAM diverges at ${hx(mm.ram.addr ?? 0)} (${mm.ram.a}->${mm.ram.b})`;
+  mm && `at BONUS_DISPLAY=${hb(mm.v)}: RAM diverges at ${hx(mm.ram.addr ?? 0)} (${mm.ram.a}->${mm.ram.b})`;
 
 // -- 0. reachability ----------------------------------------------------------
 
@@ -151,14 +151,14 @@ test("REACHABILITY: probe natural 0x0691 dispatches in boot/attract", () => {
 
 // -- 1. EQUAL (exhaustive, player 1) ------------------------------------------
 
-test("EQUAL (exhaustive, P1): loc_0691 == oracle over all 256 values of 0x638c", () => {
+test("EQUAL (exhaustive, P1): awardRemainingBonusToScore == oracle over all 256 values of BONUS_DISPLAY", () => {
   const base = craftBase(attractBase(), {
     attract: 0x00, player: 0,
     score: [0x00, 0x00, 0x10], // 100000 in packed BCD, [lo,mid,hi]
     high: [0x00, 0x00, 0x00],  // lower than the score -> promotions are observable
   });
 
-  const { mismatch, count } = fullSweep(base, loc_0691);
+  const { mismatch, count } = fullSweep(base, awardRemainingBonusToScore);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256, "must have compared the full 256-byte input space");
 
@@ -166,7 +166,7 @@ test("EQUAL (exhaustive, P1): loc_0691 == oracle over all 256 values of 0x638c",
   // sides must have actually moved the score by +1100 from the base's 100000.
   const before = base.mem.read8(P1_SCORE + 1); // mid byte before
   const o = makeEntry(base, 0x11); oracle(o);
-  const c = makeEntry(base, 0x11); loc_0691(c);
+  const c = makeEntry(base, 0x11); awardRemainingBonusToScore(c);
   assert.equal(o.mem.read8(P1_SCORE + 1), (before + 0x11) & 0xff, "oracle must have added +1100 (mid byte +0x11)");
   assert.equal(c.mem.read8(P1_SCORE + 1), o.mem.read8(P1_SCORE + 1), "candidate must match the oracle's added score");
   assert.notEqual(o.mem.read8(P1_SCORE + 1), before, "non-vacuity: the add must actually change the score");
@@ -176,13 +176,13 @@ test("EQUAL (exhaustive, P1): loc_0691 == oracle over all 256 values of 0x638c",
 
 // -- 2. EQUAL (exhaustive, player 2) ------------------------------------------
 
-test("EQUAL (exhaustive, P2): loc_0691 == oracle over all 256 values of 0x638c", () => {
+test("EQUAL (exhaustive, P2): awardRemainingBonusToScore == oracle over all 256 values of BONUS_DISPLAY", () => {
   const base = craftBase(attractBase(), {
     attract: 0x00, player: 1,
     score: [0x50, 0x25, 0x00],
     high: [0x00, 0x00, 0x00],
   });
-  const { mismatch, count } = fullSweep(base, loc_0691);
+  const { mismatch, count } = fullSweep(base, awardRemainingBonusToScore);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256, "must have compared the full 256-byte input space");
   console.log(`  EQUAL/exhaustive P2: ${count} input bytes — RAM identical to the oracle`);
@@ -190,11 +190,11 @@ test("EQUAL (exhaustive, P2): loc_0691 == oracle over all 256 values of 0x638c",
 
 // -- 3. TEETH (exhaustive) ----------------------------------------------------
 
-// A faithful re-implementation of loc_0691 with a single switchable bug, so each twin is the real
+// A faithful re-implementation of awardRemainingBonusToScore with a single switchable bug, so each twin is the real
 // routine minus one correct behaviour (it reuses the real, gated addToScoreTask).
 function brokenLoc0691(m, bug) {
   const { regs, mem } = m;
-  const packed = mem.read8(SCRATCH_638C);
+  const packed = mem.read8(BONUS_DISPLAY);
 
   // first digit
   regs.a = bug === "swap" ? ((packed >> 4) & 0x0f) : (packed & 0x0f); // BUG(swap): high nibble first
@@ -217,7 +217,7 @@ test("TEETH (exhaustive): no-offset and swapped-nibbles twins are CAUGHT", () =>
   });
 
   // Sanity: the correct routine passes the same sweep, so a caught twin is a real defect signal.
-  assert.equal(fullSweep(base, loc_0691).mismatch, null, "the correct routine must pass the sweep");
+  assert.equal(fullSweep(base, awardRemainingBonusToScore).mismatch, null, "the correct routine must pass the sweep");
 
   const noOffset = fullSweep(base, (mm) => brokenLoc0691(mm, "noOffset")).mismatch;
   assert.notEqual(noOffset, null, "the sweep FAILED to catch a dropped +0x0a offset — the offset is unproven");

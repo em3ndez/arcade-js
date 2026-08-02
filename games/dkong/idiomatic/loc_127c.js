@@ -7,7 +7,7 @@
  * (runAttractState / handler_073c). It does exactly two things, back to back, and nothing
  * of its own:
  *
- *   1. Service the effect-sprite state machine — loc_1dbd routes EFFECT_STATE (0x6340) to
+ *   1. Service the effect-sprite state machine — dispatchEffectState routes EFFECT_STATE (0x6340) to
  *      its per-state handler (idle / arm / countdown).
  *   2. Fall straight through into the blink-animation dispatch — loc_127f vectors
  *      BLINK_ANIM_PHASE (0x639D) through its ROM jump table to the current step's handler.
@@ -47,12 +47,12 @@
  *           are imported and used inside those routines and named in ram.js.
  */
 
-import { loc_1dbd } from "./loc_1dbd.js"; // ROM 0x1DBD — effect-sprite state-machine router
+import { dispatchEffectState } from "./dispatchEffectState.js"; // ROM 0x1DBD — effect-sprite state-machine router
 import { loc_127f } from "./loc_127f.js"; // ROM 0x127F — blink-animation phase dispatch
 
 export function loc_127c(m) {
   // call 0x1dbd — service the effect-sprite state machine for this frame.
-  loc_1dbd(m);
+  dispatchEffectState(m);
 
   // Fall through into the blink-animation dispatch. It is a tail dispatch, so its handler's
   // own return returns on this routine's behalf; propagate it unchanged.

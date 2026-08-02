@@ -8,7 +8,10 @@
  * for 3/4, and 0x3131 for 5. Every arm reads the low bits of the frame counter and returns
  * whether the caller should proceed this frame, so the family paces some per-frame action
  * to a duty cycle that widens as difficulty climbs — 1/2, then this arm's 5/8, then 3/4,
- * then 7/8. (The family is present but not yet wired into any live dispatch path.)
+ * then 7/8. (CORRECTION, understanding pass 12: this family IS live. An earlier note here said it
+ * was "present but not yet wired into any live dispatch path" — grounding against the real ROM in
+ * MAME refutes that, with loc_30ed executing 1220 times in PURE ATTRACT alone, zero pokes. The
+ * family paces loc_30ed's remainder, and loc_30fa picks among the four arms by DIFFICULTY.)
  *
  * In the raw Z80 this is the caller-skip trick: on the proceed decision the guard returns
  * normally so the caller keeps running; otherwise it discards its own return address so

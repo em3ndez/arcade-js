@@ -23,7 +23,7 @@
  * When that Y finally drops below 0x5D the climb has reached the top. Advance the cutscene:
  *   - arm SUBSTATE_TIMER (0x6009) to 0x20 — a 32-frame metered pause for the next phase;
  *   - inc INTRO_STEP (0x6385) 2 -> 3, so the next frame dispatches the following step;
- *   - point SEQ_ADVANCE_PTR (0x63C0) at INTRO_STEP, so the shared gated tick (loc_3069,
+ *   - point SEQ_ADVANCE_PTR (0x63C0) at INTRO_STEP, so the shared gated tick (advanceSequenceStepWhenTimerExpires,
  *     step 3) advances INTRO_STEP again once that timer expires.
  *
  * Callees animateSpriteObjectBlock (0x306F) and scrollClimbGraphicStep (0x304A) are the

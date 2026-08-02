@@ -20,12 +20,20 @@
  * (loc_29af reads the result from A, which findCollidingObject leaves set on either arm).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2a22.test.js.
- * GATE:     crafted-entry + fuzz + captured. The search parameters are fixed constants, so
- *           the gate crafts object pages at 0x6600 pinning each arm (hit at index 0, hit at a
- *           nonzero index for the B recovery, exhausted, inactive slots, both extra-span
- *           arms), fuzzes record layouts / reference coordinates, and replays every real
- *           0x2A22 dispatch captured from attract — each compares RAM − STACK_SCRATCH and the
- *           live register file against the oracle. Teeth pin all three bound constants.
+ * GATE:     crafted-entry + fuzz. The search parameters are fixed constants, so the gate
+ *           crafts object pages at 0x6600 pinning each arm (hit at index 0, hit at a nonzero
+ *           index for the B recovery, exhausted, inactive slots, both extra-span arms) and
+ *           fuzzes record layouts / reference coordinates; each compares RAM − STACK_SCRATCH
+ *           and the live register file against the oracle. There are NO captured dispatches
+ *           to replay: 0x2A22 is not on the attract path. The test hooks 0x2A22 in a real
+ *           attract run and asserts that the capture count is ZERO — that assertion is the
+ *           reachability record, and the crafted + fuzz entries carry the whole gate.
+ *           Grounding on the real dkong ROM under MAME 0.288 (understanding pass 12) agrees
+ *           and sharpens it: 0 dispatches over 18789 attract frames, and the only dispatches
+ *           observed anywhere are on BOARD 3 (146 fetches in a 75m run, its caller loc_29af
+ *           146; on boards 2 and 4 loc_29af ran 3700 / 2329× and this wrapper 0×, so the
+ *           caller gates it to the board whose 0x6600 array is live). Teeth pin all three
+ *           bound constants.
  * LIVE-OUT: registers A (1 hit / 0 exhausted) and B (count − matched index), per loc_29af,
  *           which reads A with `and a` and B with `ld a,0x06 / sub b`. No work RAM is written;
  *           the oracle's push/call/ret churn lands in STACK_SCRATCH and is excluded.

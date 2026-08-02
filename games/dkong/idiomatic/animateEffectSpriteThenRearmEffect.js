@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1f23 — effect-sequence step 2: a two-stage rate divider that steps the effect sprite's
+ * animateEffectSpriteThenRearmEffect — effect-sequence step 2: a two-stage rate divider that steps the effect sprite's
  * tile on most beats and, when it runs out, resets the sequence and re-arms the parent effect.
  * ROM 0x1F23.
  *
@@ -24,10 +24,15 @@
  * every call (the decremented value on a skipped call, back to 12 on a beat); the outer counter is
  * written on every beat (its decremented value — never reloaded here).
  *
- * NAME: kept the neutral loc_ — the divider mechanics are pinned exactly to the oracle, but the
- * effect-sprite semantic (which sprite the stepped tile belongs to, what the effect is) is the
- * load-bearing interpretation still to be grounded against MAME, so no earned name (matching the
- * sibling loc_1f09).
+ * NAME: PROMOTED in understanding pass 12. Corroboration is OUTSIDE this routine: it drives the same
+ * ram.js-named EFFECT_SPRITE (0x6A2C) code byte as its sibling, and that byte (0x6A2D) is [seen]-
+ * GROUNDED in ram.js (observed stepping live, 41 transitions, tied to EFFECT_SEQ_STATE). The name
+ * records the two things that distinguish it from flashEffectSpriteThenAdvanceSequence (0x1F09):
+ * this one `inc`s — MARCHING forward through consecutive tiles on a 12-frame beat, 3 steps, never
+ * reloading OUTER — and then TEARS THE EFFECT DOWN, clearing 0x6350, the byte loc_1e8c reads to
+ * caller-skip the whole per-frame cascade. So this is the arm that hands play back, hence "rearm".
+ * WHAT THIS NAME DOES NOT CLAIM: what the effect DEPICTS. That semantic is still ungrounded
+ * (mechanisms.md §6); the name describes the byte-level effect and the teardown, nothing more.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1f23.test.js.
  * GATE:     strict, exhaustive over the reachable input space by factorisation — every inner value
@@ -61,7 +66,7 @@ const EFFECT_SPRITE_CELL = EFFECT_SPRITE + SPRITE_CODE; // 0x6A2D
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1f23(m) {
+export function animateEffectSpriteThenRearmEffect(m) {
   const { mem } = m;
 
   // Inner divider: tick down on every dispatch and stop here until it drains to zero (the

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2d15 (ROM 0x2D15) — the frame-gated step of the intro
+ * Equivalence test for loc_2d15 (ROM 0x2D15) — the frame-gated step of the 0x2C-cluster
  * string/sprite renderer. A down-counter at FRAME_GATE (0x62AF) is decremented every
  * entry and the routine returns until it underflows; on the acting frame it reloads the
  * gate, then either renders the next character (tail into loc_2d51), or selects a 40-byte
- * record from the ROM animation table at 0x3932 (bit0 of BRANCH_PARITY 0x6382 picks the
+ * record from the ROM animation table at 0x3932 (bit0 of BARREL_CLAIM_MODE 0x6382 picks the
  * record index = sub-counter or sub-counter−1), copies it via loadSpriteObjectBlock,
  * steps the sub-counter at ANIM_COUNTER (0x638F), and tail-jumps into loc_2d51 or (on the
  * sub-counter underflow, parity bit set) loc_2d83.
@@ -51,7 +51,7 @@ import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { loc_2d51 } from "../loc_2d51.js";
 import { loc_2d83 } from "../loc_2d83.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, SPRITE_OBJ_BLOCK, BARREL_CLAIM_MODE } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -63,7 +63,6 @@ const test = ROM_PRESENT
 const TARGET = 0x2d15;
 const FRAME_GATE = 0x62af;    // per-tick down-counter (unnamed in ram.js)
 const ANIM_COUNTER = 0x638f;  // animation sub-counter (unnamed)
-const BRANCH_PARITY = 0x6382; // bit0 selects the ±1 record adjust and the branch (unnamed)
 const ANIM_TABLE = 0x3932;    // ROM base of the 40-byte-per-record table
 const RECORD_STRIDE = 40;
 const RET_ADDR = 0x2cf9;      // a plausible caller-return site (any valid addr; both sides pop it)
@@ -131,7 +130,7 @@ function classify(mm) {
   if (gate !== 0) return "gate-return";
   const counter = mm.mem.read8(ANIM_COUNTER);
   if (counter === 0) return "counter0";
-  const bit0 = mm.mem.read8(BRANCH_PARITY) & 1;
+  const bit0 = mm.mem.read8(BARREL_CLAIM_MODE) & 1;
   const stepped = (counter - 1) & 0xff;
   if (stepped !== 0) return "load->2d51";
   return bit0 ? "load->2d83" : "load-underflow->2d51";
@@ -169,7 +168,7 @@ function craft(base, { gate = 0x01, counter, parity }) {
   m.push16(RET_ADDR);
   m.mem.write8(FRAME_GATE, gate);
   m.mem.write8(ANIM_COUNTER, counter);
-  m.mem.write8(BRANCH_PARITY, parity);
+  m.mem.write8(BARREL_CLAIM_MODE, parity);
   m.mem.write16(RENDER_STR_PTR, SRC);
   m.mem.write16(RENDER_OBJ_PTR, OBJ);
   m.mem.write16(RENDER_DST_PTR, DST);
@@ -198,14 +197,14 @@ function brokenSkipGateReload(m) {
   const counter = mem.read8(ANIM_COUNTER);
   if (counter === 0) return loc_2d51(m);
   let index = counter;
-  if ((mem.read8(BRANCH_PARITY) & 0x01) === 0) index = (index - 1) & 0xff;
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x01) === 0) index = (index - 1) & 0xff;
   regs.hl = (ANIM_TABLE + ((index * RECORD_STRIDE) & 0xff)) & 0xffff;
   loadSpriteObjectBlock(m);
   const stepped = (mem.read8(ANIM_COUNTER) - 1) & 0xff;
   mem.write8(ANIM_COUNTER, stepped);
   if (stepped !== 0) return loc_2d51(m);
   mem.write8(FRAME_GATE, 0x01);
-  if ((mem.read8(BRANCH_PARITY) & 0x01) !== 0) return loc_2d83(m);
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x01) !== 0) return loc_2d83(m);
   return loc_2d51(m);
 }
 
@@ -225,7 +224,7 @@ function brokenDropRecordAdjust(m) {
   mem.write8(ANIM_COUNTER, stepped);
   if (stepped !== 0) return loc_2d51(m);
   mem.write8(FRAME_GATE, 0x01);
-  if ((mem.read8(BRANCH_PARITY) & 0x01) !== 0) return loc_2d83(m);
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x01) !== 0) return loc_2d83(m);
   return loc_2d51(m);
 }
 
@@ -236,7 +235,7 @@ test("REACHABILITY: 0x2D15 is dispatched during attract", () => {
   const snap = new Map([[TARGET, (mm) => { count++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });
   host.runFrames(3000);
-  assert.ok(count > 0, "0x2D15 should be dispatched — the intro renderer ticks through it");
+  assert.ok(count > 0, "0x2D15 should be dispatched — the 25m barrel renderer chain ticks through it");
   console.log(`  REACHABILITY: ${count} natural 0x2D15 dispatches in 3000 frames`);
 });
 

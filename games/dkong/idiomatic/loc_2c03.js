@@ -16,8 +16,8 @@
  * Then, with the live bonus in hand (a zero bonus ends the pass — nothing left to schedule):
  *   - If the starting bonus minus 2 has fallen below the live bonus, hand off immediately to
  *     the stepped-value entry (loc_2c7b), forwarding the stepped value and the bonus.
- *   - Else, if bit1 of the request-flag scratch (0x6382) is set, hand off to the clear-then-
- *     mode-3 entry (loc_2c86), forwarding the bonus.
+ *   - Else, if bit1 of BARREL_CLAIM_MODE is set, hand off to the clear-then-mode-3 entry
+ *     (loc_2c86), forwarding the bonus.
  *   - Else run a periodic phase test: match the low 5 bits of the frame counter against the
  *     difficulty countdown (difficulty, difficulty-1, .., 1). No match this frame ends the pass.
  *   - On a match, if half the starting bonus has fallen below the live bonus, dispatch the
@@ -27,6 +27,20 @@
  * This is the exact TWIN of loc_03a2 (same rst 0x30 / rst 0x10 prologue) but reads the 0x2C..
  * cluster's cells (bonus pacing) with mask 0x01, and its body is the scheduler, not a sprite
  * arm.
+ *
+ * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
+ * scratchpad/pass12-grounding.md). What this scheduler is ultimately scheduling is a 25m BARREL
+ * of the alternate KIND: the cluster's slot claim ends in loc_2c72 raising bit 7 of
+ * BARREL_CLAIM_MODE, and bit 7 is read one frame later by loc_2cf6, which stamps the barrel
+ * record accordingly — 46/46 agreement between the bit and the bytes stamped, no exceptions
+ * (38 bit-7-clear, 8 bit-7-set), and 0x2C72 fetched exactly 8 times, each EXACTLY ONE FRAME
+ * BEFORE a bit-7-set claim. Every one of those 46 claims was an ordinary 25m gameplay dispatch
+ * on board 1 (17 in a credited in-board game, 29 in the attract demo, ZERO in the opening
+ * Kong-climb cutscene at substate 7), paired 1:1 with the barrel-release routine (board 1,
+ * ROM 0x2CB8) claiming an OBJ_ARRAY_67 record. The two kinds behave differently on screen —
+ * the bit-7-SET (attr 0x0C) kind DROPS with its X pinned at 59, the bit-7-CLEAR (attr 0x0B)
+ * kind ROLLS along the girders — but grounding deliberately did NOT establish which NAMED
+ * Donkey Kong object either kind is, so neither is named here.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2c03.test.js.
  * GATE:     capture/clone/replay of real 25m attract dispatches + crafted entries driving
@@ -41,8 +55,11 @@
  * NAMES:    boardBitGate (ROM 0x0030), marioActiveGuard (ROM 0x0010), loc_2c7b (ROM 0x2C7B),
  *           loc_2c86 (ROM 0x2C86), loc_2c41 (ROM 0x2C41) — all direct-called. From ram.js:
  *           BONUS_START (0x62B0), BONUS (0x62B1), DIFFICULTY (0x6380), FRAME (0x601A),
- *           SPIN_COUNT (0x6019). The two 0x63xx scratch cells (0x6393 event gate, 0x6382
- *           request flag) are rejected-as-shared engine scratch in ram.js — kept hex here.
+ *           SPIN_COUNT (0x6019), and BARREL_CLAIM_MODE (0x6382) — the barrel slot-claim mode
+ *           byte, not a bare flag: its low bits carry the claim's mode value (observed 1, and
+ *           0x81 = mode 1 with bit 7 set) while its bit 7 selects the barrel kind downstream;
+ *           this routine tests its bit 1. The event-gate cell 0x6393 is rejected-as-shared
+ *           engine scratch in ram.js — kept hex here.
  *
  * REGISTER-ABI MARSHALLING (dissolves once the cluster entries take honest args): the cluster
  * entries still read their live-ins from registers, so this routine loads exactly what the
@@ -57,11 +74,10 @@ import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x1
 import { loc_2c7b } from "./loc_2c7b.js";               // ROM 0x2C7B — stepped-value entry
 import { loc_2c86 } from "./loc_2c86.js";               // ROM 0x2C86 — clear-then-mode-3 entry
 import { loc_2c41 } from "./loc_2c41.js";               // ROM 0x2C41 — slot-claim cluster head
-import { BONUS_START, BONUS, DIFFICULTY, FRAME, SPIN_COUNT } from "./ram.js";
+import { BONUS_START, BONUS, DIFFICULTY, FRAME, SPIN_COUNT, BARREL_CLAIM_MODE } from "./ram.js";
 
 const BOARD_MASK = 0x01;   // rst-0x30 applicability mask: bit0 = 25m only
 const EVENT_GATE = 0x6393; // bit0 SET -> skip this pass (unnamed, rejected-as-shared 0x63xx scratch)
-const REQUEST_FLAG = 0x6382; // bit1 SET -> take the loc_2c86 tail (unnamed 0x63xx slot-claim scratch)
 
 export function loc_2c03(m) {
   const { regs, mem } = m;
@@ -89,8 +105,8 @@ export function loc_2c03(m) {
     return loc_2c7b(m);
   }
 
-  // Request-flag bit1 selects the clear-then-mode-3 cluster entry. Forward the bonus.
-  if ((mem.read8(REQUEST_FLAG) & 0x02) !== 0) {
+  // Bit1 of the slot-claim mode byte selects the clear-then-mode-3 cluster entry. Forward the bonus.
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x02) !== 0) {
     regs.c = bonus;
     return loc_2c86(m);
   }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_28b0 (ROM 0x28B0) — run three bounding-box collision sweeps over
+ * Equivalence test for search50mObjectOverlap (ROM 0x28B0) — run three bounding-box collision sweeps over
  * three object arrays in order, stopping at the first hit.
  *
  * The routine recovers the per-axis tolerances the dispatcher pushed on the stack, then runs
@@ -15,8 +15,8 @@
  *
  * The oracle models the Z80 stack: it pops the pushed tolerances, brackets each search with a
  * call/return, and — because a hit search takes a caller-skip return — every outcome lands back
- * at the dispatch site with the same pc + SP. loc_28b0 models no call/return bracket (direct
- * calls to findCollidingObject), so the harness lines the two up: after loc_28b0 it performs the single
+ * at the dispatch site with the same pc + SP. search50mObjectOverlap models no call/return bracket (direct
+ * calls to findCollidingObject), so the harness lines the two up: after search50mObjectOverlap it performs the single
  * terminal return the ROM nets on either path, so pc + SP match and the bytes the oracle's
  * dissolved bracket leaves behind sit in the dead STACK_SCRATCH region, which the memory
  * compare excludes.
@@ -44,7 +44,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_28b0 as oracle } from "../../translated/loc_28b0.js";
 import { findCollidingObject } from "../findCollidingObject.js";
-import { loc_28b0 } from "../loc_28b0.js";
+import { search50mObjectOverlap } from "../search50mObjectOverlap.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -254,7 +254,7 @@ test("EQUAL (crafted): a hit terminating each sweep + full exhaustion match the 
     assert.equal(k.a, wantA, `${name}: expected result byte A=${wantA}, oracle left ${k.a}`);
     assert.equal(k.b, wantB, `${name}: expected residue B=${wantB}, oracle left ${k.b}`);
     assert.equal(k.count, wantCount, `${name}: expected terminal OBJ_SEARCH_COUNT=${wantCount}, oracle left ${k.count}`);
-    const diffs = contractDiffs(entry, loc_28b0);
+    const diffs = contractDiffs(entry, search50mObjectOverlap);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} arms (hit@1/2/3, exhausted, later-index) identical to the oracle`);
@@ -275,7 +275,7 @@ test("EQUAL (crafted): the stack-passed tolerances flip the decision and both ma
   assert.notEqual(kLoose.hit, kTight.hit, "the tolerance change did not flip the decision — case is not exercising the marshalling");
 
   for (const [label, entry] of [["loose tolerance", loose], ["tight tolerance", tight]]) {
-    const diffs = contractDiffs(entry, loc_28b0);
+    const diffs = contractDiffs(entry, search50mObjectOverlap);
     assert.equal(diffs.length, 0, `${label}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/tolerances: loose=${kLoose.hit ? "hit" : "miss"} tight=${kTight.hit ? "hit" : "miss"} — both identical to the oracle`);

@@ -1,11 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2cf6 (ROM 0x2CF6) — the setup head of the 0x2C-cluster cutscene
- * renderer. It stamps three fields of the renderer's object record (the caller's IX /
- * RENDER_OBJ_PTR): sprite-code (+0x07), sprite-attr (+0x08) and mode (+0x15), with one of
- * two presets chosen by bit 7 of the shared engine-scratch byte at 0x6382 — CLEAR writes the
- * default triple (0x15, 0x0B, 0x00), SET writes the alternate triple (0x19, 0x0C, 0x01) —
- * then FALLS THROUGH into loc_2d15, the frame-gated string/sprite renderer.
+ * Equivalence test for loc_2cf6 (ROM 0x2CF6) — the setup head of the 0x2C-cluster renderer
+ * chain. It stamps three fields of the object record (the caller's IX / RENDER_OBJ_PTR):
+ * sprite-code (+0x07), sprite-attr (+0x08) and mode (+0x15), with one of two presets chosen by
+ * bit 7 of BARREL_CLAIM_MODE — CLEAR writes the default triple (0x15, 0x0B, 0x00), SET writes
+ * the alternate triple (0x19, 0x0C, 0x01) — then FALLS THROUGH into loc_2d15, the frame-gated
+ * string/sprite renderer.
+ *
+ * CONTEXT, GROUNDED (live MAME 0.288 on the real dkong ROM, understanding pass 12,
+ * scratchpad/pass12-grounding.md): this chain is ORDINARY 25m BARREL PLAY, not a cutscene — an
+ * earlier version of this header called it "the 0x2C-cluster cutscene renderer" and that is
+ * REFUTED. All 46 observed dispatches fell at gameplay substates (17 in a credited in-board 25m
+ * game, 29 in the attract 25m demo) and ZERO at substate 7, the opening Kong-climb cutscene;
+ * board 1 only; IX was always an OBJ_ARRAY_67 barrel-record base, one per slot claim by the
+ * barrel-release routine (board 1, ROM 0x2CB8), 46 claims paired 1:1 with 46 dispatches. The two
+ * presets are two BARREL KINDS: the bit-7-SET (attr 0x0C) kind DROPS with its X pinned at 59,
+ * the bit-7-CLEAR (attr 0x0B) kind ROLLS along the girders. Grounding deliberately did NOT
+ * establish which NAMED Donkey Kong object either kind is, so neither is named here.
  *
  * loc_2cf6 WRITES MEMORY (the record fields, and — through the fall-through — everything
  * loc_2d15's chain touches), so it is gated on memory-equivalence, not a returned scalar,
@@ -25,14 +36,14 @@
  *      confirm identical RAM (minus STACK_SCRATCH) + pc + SP. Both preset arms occur
  *      naturally (bit-7 clear and bit-7 set).
  *
- *   2. EQUAL (crafted) — from a real attract base, poke IX, the 0x6382 parity byte and the
+ *   2. EQUAL (crafted) — from a real attract base, poke IX, the BARREL_CLAIM_MODE byte and the
  *      downstream renderer's control bytes identically on both sides to force each arm and
  *      drive loc_2d15 through both its clean gate-return path and its deeper table-load path
  *      (which churns STACK_SCRATCH). Non-vacuity: the selected preset really landed in the
  *      record on both sides.
  *
  *   3. TEETH — two broken twins, each MUST be caught:
- *      (a) wrong-parity-bit — selects the preset from bit 0 of 0x6382 instead of bit 7, so on
+ *      (a) wrong-parity-bit — selects the preset from bit 0 of BARREL_CLAIM_MODE instead of bit 7, so on
  *          a byte where the two bits disagree it stamps the wrong triple (diverges at +0x07).
  *      (b) drop-fall-through — does the (correct) preset writes but returns WITHOUT falling
  *          into loc_2d15, so the renderer's frame-gate decrement at 0x62AF is missing.
@@ -48,7 +59,7 @@ import { loc_2cf6 as oracle } from "../../translated/loc_2cf6.js";
 import { loc_2cf6 } from "../loc_2cf6.js";
 import { loc_2d15 } from "../loc_2d15.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "../ram.js";
+import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,17 +69,15 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2cf6;
-const BRANCH_PARITY = 0x6382; // bit 7 selects the preset (unnamed shared engine scratch)
 const FRAME_GATE = 0x62af;    // loc_2d15's per-tick down-counter (unnamed)
 const ANIM_COUNTER = 0x638f;  // loc_2d15's animation sub-counter (unnamed)
 const RET_ADDR = 0x2ce5;      // a plausible caller-return site (any valid addr; both sides pop it)
 
-// Field offsets stamped in the renderer object record (caller-provided base; no ram.js name).
-const F_CODE = 0x07; // sprite-code field
-const F_ATTR = 0x08; // sprite-attr field
-const F_MODE = 0x15; // mode field
-const PRESET_DEFAULT = { [F_CODE]: 0x15, [F_ATTR]: 0x0b, [F_MODE]: 0x00 }; // bit 7 clear
-const PRESET_ALT = { [F_CODE]: 0x19, [F_ATTR]: 0x0c, [F_MODE]: 0x01 };     // bit 7 set
+// Field offsets stamped in the renderer object record (caller-provided base). The sprite-code and
+// sprite-attr fields are named in ram.js and imported above; only the mode field is unnamed.
+const F_MODE = 0x15; // mode field (no ram.js name)
+const PRESET_DEFAULT = { [OBJ_SPRITE_CODE]: 0x15, [OBJ_SPRITE_ATTR]: 0x0b, [F_MODE]: 0x00 }; // bit 7 clear
+const PRESET_ALT = { [OBJ_SPRITE_CODE]: 0x19, [OBJ_SPRITE_ATTR]: 0x0c, [F_MODE]: 0x01 };     // bit 7 set
 
 // Crafted object regions (writable work RAM, disjoint so the readbacks are unambiguous).
 const OBJ = 0x6120;   // loc_2cf6's IX: the record it presets
@@ -128,7 +137,7 @@ function contractDiffs(entry, fn) {
 }
 
 /** Which preset arm the state will take (mirrors the routine's own bit-7 test). */
-const classify = (mm) => (mm.mem.read8(BRANCH_PARITY) & 0x80 ? "alt" : "default");
+const classify = (mm) => (mm.mem.read8(BARREL_CLAIM_MODE) & 0x80 ? "alt" : "default");
 
 // -- capture ------------------------------------------------------------------
 
@@ -153,7 +162,7 @@ function attractBase(frames = 220) {
 
 /**
  * Stamp a crafted 0x2CF6 dispatch onto a clone of the base: a stack with a plausible caller
- * return, IX at the preset record, the 0x6382 parity byte, and the downstream renderer's
+ * return, IX at the preset record, the BARREL_CLAIM_MODE byte, and the downstream renderer's
  * control bytes plus a clean non-terminator render source (so the fall-through into loc_2d15
  * runs deterministically without reloading the sprite block from a terminator).
  */
@@ -162,7 +171,7 @@ function craft(base, { parity, gate = 0x05, counter = 0x00 }) {
   m.regs.sp = 0x6c00;
   m.push16(RET_ADDR);
   m.regs.ix = OBJ;
-  m.mem.write8(BRANCH_PARITY, parity);
+  m.mem.write8(BARREL_CLAIM_MODE, parity);
   m.mem.write8(FRAME_GATE, gate);
   m.mem.write8(ANIM_COUNTER, counter);
   m.mem.write16(RENDER_STR_PTR, SRC);
@@ -177,17 +186,17 @@ const expectedPreset = (parity) => (parity & 0x80 ? PRESET_ALT : PRESET_DEFAULT)
 
 // -- broken twins -------------------------------------------------------------
 
-/** Twin (a): selects the preset from bit 0 of 0x6382 instead of bit 7. */
+/** Twin (a): selects the preset from bit 0 of BARREL_CLAIM_MODE instead of bit 7. */
 function brokenWrongParityBit(m) {
   const { regs, mem } = m;
   const obj = regs.ix;
-  if ((mem.read8(BRANCH_PARITY) & 0x01) === 0) { // BUG: 0x01, not 0x80
-    mem.write8((obj + F_CODE) & 0xffff, 0x15);
-    mem.write8((obj + F_ATTR) & 0xffff, 0x0b);
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x01) === 0) { // BUG: 0x01, not 0x80
+    mem.write8((obj + OBJ_SPRITE_CODE) & 0xffff, 0x15);
+    mem.write8((obj + OBJ_SPRITE_ATTR) & 0xffff, 0x0b);
     mem.write8((obj + F_MODE) & 0xffff, 0x00);
   } else {
-    mem.write8((obj + F_CODE) & 0xffff, 0x19);
-    mem.write8((obj + F_ATTR) & 0xffff, 0x0c);
+    mem.write8((obj + OBJ_SPRITE_CODE) & 0xffff, 0x19);
+    mem.write8((obj + OBJ_SPRITE_ATTR) & 0xffff, 0x0c);
     mem.write8((obj + F_MODE) & 0xffff, 0x01);
   }
   return loc_2d15(m);
@@ -197,13 +206,13 @@ function brokenWrongParityBit(m) {
 function brokenDropFallThrough(m) {
   const { regs, mem } = m;
   const obj = regs.ix;
-  if ((mem.read8(BRANCH_PARITY) & 0x80) === 0) {
-    mem.write8((obj + F_CODE) & 0xffff, 0x15);
-    mem.write8((obj + F_ATTR) & 0xffff, 0x0b);
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x80) === 0) {
+    mem.write8((obj + OBJ_SPRITE_CODE) & 0xffff, 0x15);
+    mem.write8((obj + OBJ_SPRITE_ATTR) & 0xffff, 0x0b);
     mem.write8((obj + F_MODE) & 0xffff, 0x00);
   } else {
-    mem.write8((obj + F_CODE) & 0xffff, 0x19);
-    mem.write8((obj + F_ATTR) & 0xffff, 0x0c);
+    mem.write8((obj + OBJ_SPRITE_CODE) & 0xffff, 0x19);
+    mem.write8((obj + OBJ_SPRITE_ATTR) & 0xffff, 0x0c);
     mem.write8((obj + F_MODE) & 0xffff, 0x01);
   }
   // BUG: missing `return loc_2d15(m);`
@@ -217,7 +226,7 @@ test("REACHABILITY: 0x2CF6 is dispatched during attract, both preset arms", () =
   const snap = new Map([[TARGET, (mm) => { count++; arms[classify(mm)]++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });
   host.runFrames(4000);
-  assert.ok(count > 0, "0x2CF6 should be dispatched — the cutscene renderer's setup head");
+  assert.ok(count > 0, "0x2CF6 should be dispatched — the 25m barrel renderer chain's setup head");
   assert.ok(arms.default > 0 && arms.alt > 0, `both arms should occur naturally, got ${JSON.stringify(arms)}`);
   console.log(`  REACHABILITY: ${count} natural 0x2CF6 dispatches in 4000 frames; arms ${JSON.stringify(arms)}`);
 });
@@ -263,7 +272,7 @@ test("EQUAL (crafted): both preset arms, over the gate-return and table-load ren
     const want = expectedPreset(opts.parity);
     const o = runOracle(entry);
     const c = runCandidate(entry, loc_2cf6);
-    for (const off of [F_CODE, F_ATTR, F_MODE]) {
+    for (const off of [OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR, F_MODE]) {
       assert.equal(o.mem.read8(OBJ + off), want[off], `${name}: oracle record +${off}`);
       assert.equal(c.mem.read8(OBJ + off), want[off], `${name}: loc_2cf6 record +${off}`);
     }
@@ -276,14 +285,14 @@ test("EQUAL (crafted): both preset arms, over the gate-return and table-load ren
 test("TEETH: the wrong-parity-bit twin and the drop-fall-through twin are CAUGHT", () => {
   const base = attractBase();
 
-  // (a) wrong-parity-bit: 0x6382 = 0x80 has bit 7 SET (correct = alt preset 0x19) but bit 0
+  // (a) wrong-parity-bit: BARREL_CLAIM_MODE = 0x80 has bit 7 SET (correct = alt preset 0x19) but bit 0
   // CLEAR, so the twin writes the default preset 0x15 -> diverges at the sprite-code field.
   const bitEntry = craft(base, { parity: 0x80, gate: 0x05 });
   const bitDiffs = contractDiffs(bitEntry, brokenWrongParityBit);
   assert.ok(bitDiffs.length > 0, "the wrong-parity-bit twin escaped — the RAM check is worthless");
   assert.ok(
-    bitDiffs[0].startsWith(`RAM@${hx(OBJ + F_CODE)}`),
-    `expected the diff at the sprite-code field ${hx(OBJ + F_CODE)}, got ${bitDiffs[0]}`,
+    bitDiffs[0].startsWith(`RAM@${hx(OBJ + OBJ_SPRITE_CODE)}`),
+    `expected the diff at the sprite-code field ${hx(OBJ + OBJ_SPRITE_CODE)}, got ${bitDiffs[0]}`,
   );
 
   // (b) drop-fall-through: presets are correct, but loc_2d15 never runs, so its frame-gate

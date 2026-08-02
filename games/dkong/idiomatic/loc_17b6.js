@@ -27,7 +27,7 @@
  *      how-high animation stepper 0x6390 = 0x80.
  *   8. Advance the sequence: inc the step counter 0x6388 (a read-modify-write of the ONE
  *      byte this routine consumes as an input), then point SEQ_ADVANCE_PTR (0x63C0) at
- *      0x6388 so the gated advancer loc_3069 steps this same counter once the gate expires.
+ *      0x6388 so the gated advancer advanceSequenceStepWhenTimerExpires steps this same counter once the gate expires.
  *
  * The ram.js SEQ_ADVANCE_PTR note (proposer!=confirmer) records "loc_17b6 seeds 0x6388
  * for the how-high render", so the mechanism and its how-high role are documented; the
@@ -137,7 +137,7 @@ export function loc_17b6(m) {
   mem.write8(HOW_HIGH_ANIM, 0x80); //  0x6390
 
   // 8. Advance the sequence: inc the step counter (the one input-dependent byte), then
-  //    point SEQ_ADVANCE_PTR at it so the gated advancer loc_3069 steps it next.
+  //    point SEQ_ADVANCE_PTR at it so the gated advancer advanceSequenceStepWhenTimerExpires steps it next.
   mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff); // inc (0x6388)
   mem.write16(SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP); // 0x63C0 = 0x6388 (little-endian)
 }

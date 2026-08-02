@@ -17,7 +17,11 @@
  *     (0x7486, 0x74A6) — the extra furniture that goes with a suppressed leading digit.
  *
  * A JOIN reached by fallthrough and by a jump from the task that builds the two-digit
- * board readout; the digit byte arrives in a register from that caller.
+ * board readout; the digit byte arrives in a register from that caller. On the fallthrough
+ * path that caller is loc_06a8, which has just stored the same byte into BONUS_DISPLAY
+ * (0x638C) — so this is the routine that puts the on-screen bonus readout on screen. The
+ * one-BCD-digit-per-nibble reading of that byte is CODE-DERIVED (the nibble split below),
+ * not an observed property of the cell.
  *
  * Memory-equivalent to the frozen oracle — equivalence-066a.test.js.
  * GATE:     exhaustive — the memory effect is a pure function of the incoming digit byte
@@ -30,8 +34,11 @@
  * LIVE-OUT: memory-only — SND_BGM plus the field's video cells. The digit byte arrives in a
  *           register (a still-translated caller marshals it — an oracle boundary), and no
  *           caller reads a register back, so the residual registers/flags are dead.
- * NAMES:    SND_BGM (0x6089) from ram.js. The field cells 0x7486/0x74A6 (and the tail's
- *           0x74E6/0x74C6) are video RAM, which ram.js does not name, so they stay hex.
+ * NAMES:    SND_BGM (0x6089) from ram.js; BONUS_DISPLAY (0x638C) is named in ram.js and is
+ *           the cell the incoming digit byte comes from, but this routine never touches it
+ *           (the byte arrives in a register), so nothing is imported for it. The field cells
+ *           0x7486/0x74A6 (and the tail's 0x74E6/0x74C6) are video RAM, which ram.js does not
+ *           name, so they stay hex.
  */
 
 import { SND_BGM } from "./ram.js";

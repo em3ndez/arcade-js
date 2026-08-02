@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2e04 (ROM 0x2E04) — the actor-object scan loop: on 75m, while
+ * Equivalence test for update75mActorObjects (ROM 0x2E04) — the actor-object scan loop: on 75m, while
  * Mario is alive, hand each of the ten actor-array records to the per-object updater once.
  *
- * loc_2e04 is called every frame by the per-frame cascade loc_197a. It has three paths:
+ * update75mActorObjects is called every frame by the per-frame cascade loc_197a. It has three paths:
  *   • rst 0x30 board gate (mask 0x04) CLOSED -> return at once (any board but 75m).
  *   • rst 0x10 alive gate CLOSED -> return (Mario dead).
  *   • both open -> seed the object cursor at OBJ_ARRAY_65 (0x6500, stride 16) and the sprite
@@ -23,7 +23,7 @@
  *   0. REACHABILITY — 0x2e04 is dispatched by the attract cascade (its board gate is shut on
  *      25m, so it returns immediately — attract never reaches the object loop).
  *   1. EQUAL (captured) — hook 0x2e04 in a real boot/attract run, clone at each dispatch, and
- *      confirm loc_2e04 == oracle on the real (rst-0x30-closed) skip path.
+ *      confirm update75mActorObjects == oracle on the real (rst-0x30-closed) skip path.
  *   2. EQUAL (crafted) — on a real attract base, drive: the full ten-object loop (board 3,
  *      Mario alive, objects seeded across all four loc_2e12 arms), the alive-gate skip (board
  *      3, Mario dead), and the board-gate skip at every non-75m board (1/2/4). Each matches
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e04 as oracle } from "../../translated/loc_2e04.js";
-import { loc_2e04 as candidate } from "../loc_2e04.js";
+import { update75mActorObjects as candidate } from "../update75mActorObjects.js";
 import { boardBitGate } from "../boardBitGate.js";        // ROM 0x0030 (twins)
 import { marioActiveGuard } from "../marioActiveGuard.js"; // ROM 0x0010 (twins)
 import { loc_2e12 } from "../loc_2e12.js";                 // ROM 0x2E12 (twins)
@@ -214,7 +214,7 @@ test("REACHABILITY: 0x2e04 is dispatched during boot/attract", () => {
 // Attract plays 25m, so every real dispatch takes the rst-0x30-closed skip (the board gate
 // is shut). Each must match the oracle bit-for-bit off the stack scratch.
 
-test("EQUAL (captured): loc_2e04 == oracle on every real dispatch", () => {
+test("EQUAL (captured): update75mActorObjects == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -269,7 +269,7 @@ test("EQUAL (crafted): the object loop, the alive-gate skip, and every board-mas
 
 // -- 3. TEETH -----------------------------------------------------------------
 //
-// Each twin is a faithful copy of loc_2e04 with ONE injected bug, calling the same idiomatic
+// Each twin is a faithful copy of update75mActorObjects with ONE injected bug, calling the same idiomatic
 // callees, so the ONLY difference is the mutation. The crafted cases must catch every one.
 
 /** (a) skips the alive gate: runs the loop even when Mario is dead. */

@@ -3,7 +3,7 @@
  * Equivalence test for loc_313c (ROM 0x313C) — the 0x6400 object-slot scan / INSERT / caller-skip.
  *
  * loc_313c scans the five OBJ_ARRAY_64 records (stride 0x20), tallies the live ones into the
- * scratch counter 0x63A1, flags each live record's +8 field (off while a hammer swings), services
+ * OBJ_LIVE_COUNT, flags each live record's OBJ_SPRITE_ATTR field (off while a hammer swings), services
  * at most one pending object-INSERT request (EVENT_REQ_313C) into a free slot, and finally decides
  * a CALLER-SKIP: a non-zero count returns normally (true); a zero count splices past the caller
  * (false). On 50m it can also return early-normal the instant DIFFICULTY equals the running count.
@@ -36,6 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
+import { OBJ_INSERT_REQUESTED, OBJ_LIVE_COUNT } from "../ram.js";
 import { loc_313c as oracle } from "../../translated/loc_313c.js";
 import { loc_313c } from "../loc_313c.js";
 import { Machine } from "../../machine.js";
@@ -51,12 +52,11 @@ const test = ROM_PRESENT
 // -- addresses ---------------------------------------------------------------
 const SLOT = [0x6400, 0x6420, 0x6440, 0x6460, 0x6480]; // the five stride-0x20 record bases
 const ATTR = SLOT.map((s) => s + 0x08); // per-record +8 field (OBJ_SPRITE_ATTR)
-const INS = SLOT.map((s) => s + 0x18); // per-record +0x18 field (set on insert)
+const INS = SLOT.map((s) => s + OBJ_INSERT_REQUESTED); // per-record OBJ_INSERT_REQUESTED field (set on insert)
 const BOARD = 0x6227;
 const DIFFICULTY = 0x6380;
 const EVENT_REQ = 0x63a0;
 const HAMMER = 0x6217;
-const COUNT = 0x63a1;
 const SENTINEL = 0xaa; // marks the +8/+0x18 fields so a write of the expected value is provable
 // The oracle's terminal `ret` (and the splice's inc-sp ×2 then ret) only READ the stack — never a
 // RAM write — so point SP at valid work RAM and the compared memory is unaffected.
@@ -68,7 +68,7 @@ function makeEntry(base, cfg) {
   for (let i = 0; i < 5; i++) {
     e.mem.write8(SLOT[i], cfg.slots[i] & 0xff);
     e.mem.write8(ATTR[i], SENTINEL); // known start so a real write to +8 is observable
-    e.mem.write8(INS[i], SENTINEL); // known start so a real write to +0x18 is observable
+    e.mem.write8(INS[i], SENTINEL); // known start so a real write to OBJ_INSERT_REQUESTED is observable
   }
   e.mem.write8(BOARD, cfg.board & 0xff);
   e.mem.write8(DIFFICULTY, cfg.diff & 0xff);
@@ -185,10 +185,10 @@ test("EQUAL (crafted): the arm-specific memory effects are the expected ones", (
   // insert lands in slot0 only (request consumed), later empties untouched
   let m = run({ slots: [0, 0, 0, 0, 0], board: 1, diff: 0, req: 1, hammer: 0 });
   assert.equal(m.mem.read8(SLOT[0]), 0x01, "insert must activate slot0 (+0=1)");
-  assert.equal(m.mem.read8(INS[0]), 0x01, "insert must set slot0 +0x18=1");
+  assert.equal(m.mem.read8(INS[0]), 0x01, "insert must set slot0 OBJ_INSERT_REQUESTED=1");
   assert.equal(m.mem.read8(EVENT_REQ), 0x00, "insert must consume the request");
   assert.equal(m.mem.read8(SLOT[1]), 0x00, "slot1 must stay empty (request already consumed)");
-  assert.equal(m.mem.read8(COUNT), 0x01, "count must be 1 after a single insert");
+  assert.equal(m.mem.read8(OBJ_LIVE_COUNT), 0x01, "count must be 1 after a single insert");
 
   // hammer held -> +8=0; hammer==2 -> +8=1
   m = run({ slots: [0x01, 0, 0, 0, 0], board: 1, diff: 5, req: 0, hammer: 1 });
@@ -199,7 +199,7 @@ test("EQUAL (crafted): the arm-specific memory effects are the expected ones", (
   // 50m early exit keeps the request (post-loop clear is skipped)
   m = run({ slots: [0, 0, 0, 0, 0], board: 2, diff: 0, req: 1, hammer: 0 });
   assert.equal(m.mem.read8(EVENT_REQ), 0x01, "50m early-normal exit must NOT clear the request");
-  assert.equal(m.mem.read8(COUNT), 0x00, "50m early exit at count 0 leaves counter 0");
+  assert.equal(m.mem.read8(OBJ_LIVE_COUNT), 0x00, "50m early exit at count 0 leaves counter 0");
 
   // all empty, no request -> request cleared by the post-loop clear, count 0
   m = run({ slots: [0, 0, 0, 0, 0], board: 1, diff: 0, req: 1, hammer: 0 });
@@ -241,12 +241,12 @@ function brokenNoConsume(m) {
   const { mem } = m;
   const OBJ_ARRAY_64 = 0x6400;
   let count = 0;
-  mem.write8(COUNT, count);
+  mem.write8(OBJ_LIVE_COUNT, count);
   let ix = OBJ_ARRAY_64;
   for (let i = 0; i < 5; i++, ix = (ix + 0x20) & 0xffff) {
     if (mem.read8(ix) !== 0) {
       count = (count + 1) & 0xff;
-      mem.write8(COUNT, count);
+      mem.write8(OBJ_LIVE_COUNT, count);
       mem.write8((ix + 0x08) & 0xffff, mem.read8(HAMMER) === 0x01 ? 0x00 : 0x01);
       continue;
     }
@@ -257,7 +257,7 @@ function brokenNoConsume(m) {
       mem.write8((ix + 0x18) & 0xffff, 0x01);
       // BUG: no `mem.write8(EVENT_REQ, 0)` — the request is never consumed.
       count = (count + 1) & 0xff;
-      mem.write8(COUNT, count);
+      mem.write8(OBJ_LIVE_COUNT, count);
     }
   }
   mem.write8(EVENT_REQ, 0x00);
@@ -268,12 +268,12 @@ function brokenNoConsume(m) {
 function brokenHammer(m) {
   const { mem } = m;
   let count = 0;
-  mem.write8(COUNT, count);
+  mem.write8(OBJ_LIVE_COUNT, count);
   let ix = 0x6400;
   for (let i = 0; i < 5; i++, ix = (ix + 0x20) & 0xffff) {
     if (mem.read8(ix) !== 0) {
       count = (count + 1) & 0xff;
-      mem.write8(COUNT, count);
+      mem.write8(OBJ_LIVE_COUNT, count);
       mem.write8((ix + 0x08) & 0xffff, 0x01); // BUG: ignores MARIO_HAMMER_ACTIVE
       continue;
     }
@@ -284,7 +284,7 @@ function brokenHammer(m) {
       mem.write8((ix + 0x18) & 0xffff, 0x01);
       mem.write8(EVENT_REQ, 0x00);
       count = (count + 1) & 0xff;
-      mem.write8(COUNT, count);
+      mem.write8(OBJ_LIVE_COUNT, count);
     }
   }
   mem.write8(EVENT_REQ, 0x00);
@@ -295,12 +295,12 @@ function brokenHammer(m) {
 function brokenBoard(m) {
   const { mem } = m;
   let count = 0;
-  mem.write8(COUNT, count);
+  mem.write8(OBJ_LIVE_COUNT, count);
   let ix = 0x6400;
   for (let i = 0; i < 5; i++, ix = (ix + 0x20) & 0xffff) {
     if (mem.read8(ix) !== 0) {
       count = (count + 1) & 0xff;
-      mem.write8(COUNT, count);
+      mem.write8(OBJ_LIVE_COUNT, count);
       mem.write8((ix + 0x08) & 0xffff, mem.read8(HAMMER) === 0x01 ? 0x00 : 0x01);
       continue;
     }
@@ -311,7 +311,7 @@ function brokenBoard(m) {
       mem.write8((ix + 0x18) & 0xffff, 0x01);
       mem.write8(EVENT_REQ, 0x00);
       count = (count + 1) & 0xff;
-      mem.write8(COUNT, count);
+      mem.write8(OBJ_LIVE_COUNT, count);
     }
   }
   mem.write8(EVENT_REQ, 0x00);

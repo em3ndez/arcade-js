@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2c03 as oracle } from "../../translated/loc_2c03.js";
 import { loc_2c03 } from "../loc_2c03.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, BONUS, BONUS_START, DIFFICULTY, FRAME, SPIN_COUNT, RANDOM } from "../ram.js";
+import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, BONUS, BONUS_START, DIFFICULTY, FRAME, SPIN_COUNT, RANDOM, BARREL_CLAIM_MODE } from "../ram.js";
 // The teeth twins reuse the real callees (their faithfulness is proven by their own gates, not
 // under test here) so only the loc_2c03-level logic error is what diverges.
 import { u8 } from "../../../../core/int.js";
@@ -59,7 +59,6 @@ const test = ROM_PRESENT
 const TARGET = 0x2c03;
 // Cells loc_2c03 touches directly that are UNNAMED in ram.js (rejected-as-shared 0x63xx scratch).
 const EVENT_GATE = 0x6393;   // gate 3: bit0 SET -> skip
-const REQUEST_FLAG = 0x6382; // bit1 SET -> the loc_2c86 tail; also the cluster's recorded mode byte
 // Cluster scratch the body writes when a tail fires (for the write-set / non-vacuity checks).
 const SCRATCH_MODE = 0x638f;
 const SCRATCH_FLAG = 0x6392;
@@ -114,7 +113,7 @@ function attractBase(frames = 180) {
 }
 
 // Stamp a crafted 0x2c03 dispatch onto a clone of the base: a safe stack, the three gate inputs,
-// the two bonus thresholds, the request flag, the difficulty/frame phase inputs, and the spin bit.
+// the two bonus thresholds, BARREL_CLAIM_MODE, the difficulty/frame phase inputs, and the spin bit.
 // Cluster scratch cells are pre-dirtied so a body write is visible and a mis-forward is exposed.
 function craft(base, {
   board = 1, alive = 1, gate = 0x00, bonus = 0x20, start = 0x10,
@@ -127,7 +126,7 @@ function craft(base, {
   m.mem.write8(EVENT_GATE, gate);
   m.mem.write8(BONUS, bonus);
   m.mem.write8(BONUS_START, start);
-  m.mem.write8(REQUEST_FLAG, req);
+  m.mem.write8(BARREL_CLAIM_MODE, req);
   m.mem.write8(DIFFICULTY, diff);
   m.mem.write8(FRAME, frame);
   m.mem.write8(SPIN_COUNT, spin);
@@ -188,7 +187,7 @@ test("EQUAL (crafted): every gate/threshold path matches the oracle", () => {
     { name: "zero-bonus early-out", opts: { bonus: 0x00 }, writes: [] },
     // (start-2) < bonus -> loc_2c7b tail (records a mode byte; gate closed here -> no slot claim)
     { name: "loc_2c7b tail", opts: { start: 0x10, bonus: 0x20 }, body: true },
-    // (start-2) >= bonus, request-flag bit1 set -> loc_2c86 tail
+    // (start-2) >= bonus, BARREL_CLAIM_MODE bit1 set -> loc_2c86 tail
     { name: "loc_2c86 tail", opts: { start: 0x50, bonus: 0x10, req: 0x02 }, body: true },
     // phase test with no match -> return, nothing written
     { name: "no phase match (return)", opts: { start: 0x50, bonus: 0x10, req: 0x00, diff: 3, frame: 10 }, writes: [] },
@@ -214,7 +213,7 @@ test("EQUAL (crafted): every gate/threshold path matches the oracle", () => {
         `${name}: unexpected non-stack write set`);
     } else if (body) {
       // A cluster entry fired: it stamped the mode byte and the entry flag (sentinels gone).
-      assert.notEqual(after.mem.read8(REQUEST_FLAG), 0xee, `${name}: request flag / mode byte not written`);
+      assert.notEqual(after.mem.read8(BARREL_CLAIM_MODE), 0xee, `${name}: BARREL_CLAIM_MODE not written`);
       assert.notEqual(after.mem.read8(SCRATCH_MODE), 0xee, `${name}: cluster mode scratch not written`);
       assert.notEqual(after.mem.read8(SCRATCH_FLAG), 0xee, `${name}: cluster entry flag not raised`);
       if (stirs) {
@@ -241,7 +240,7 @@ function brokenInvertedSpin(m) {
   if (bonus === 0) return;
   const stepped = u8(mem.read8(BONUS_START) - 2);
   if (stepped < bonus) { regs.a = stepped; regs.c = bonus; return loc_2c7bRef(m); }
-  if ((mem.read8(REQUEST_FLAG) & 0x02) !== 0) { regs.c = bonus; return loc_2c86Ref(m); }
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x02) !== 0) { regs.c = bonus; return loc_2c86Ref(m); }
   const framePhase = mem.read8(FRAME) & 0x1f;
   let countdown = mem.read8(DIFFICULTY);
   let matched = false;
@@ -266,7 +265,7 @@ function brokenStepForward(m) {
   if (bonus === 0) return;
   const stepped = u8(mem.read8(BONUS_START) - 2);
   if (stepped < bonus) { regs.a = mem.read8(BONUS_START); regs.c = bonus; return loc_2c7bRef(m); } // BUG: un-stepped
-  if ((mem.read8(REQUEST_FLAG) & 0x02) !== 0) { regs.c = bonus; return loc_2c86Ref(m); }
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x02) !== 0) { regs.c = bonus; return loc_2c86Ref(m); }
   const framePhase = mem.read8(FRAME) & 0x1f;
   let countdown = mem.read8(DIFFICULTY);
   let matched = false;
@@ -291,7 +290,7 @@ test("TEETH: the inverted-spin twin and the un-stepped-forward twin are CAUGHT",
   const stepEntry = craft(base, { start: 0x20, bonus: 0x20 });
   const stepDiff = ramDiff(stepEntry, brokenStepForward);
   assert.ok(stepDiff, "the un-stepped-forward twin escaped — the gate is worthless");
-  assert.equal(stepDiff.addr, REQUEST_FLAG, `expected the un-stepped diff at ${hx(REQUEST_FLAG)}, got ${hx(stepDiff.addr)}`);
+  assert.equal(stepDiff.addr, BARREL_CLAIM_MODE, `expected the un-stepped diff at ${hx(BARREL_CLAIM_MODE)}, got ${hx(stepDiff.addr)}`);
 
   console.log(`  TEETH: inverted-spin caught (RAM@${hx(spinDiff.addr)} ${spinDiff.a}->${spinDiff.b}); un-stepped caught (RAM@${hx(stepDiff.addr)} ${stepDiff.a}->${stepDiff.b})`);
 });

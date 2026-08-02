@@ -31,19 +31,19 @@
  * Jobs:
  *   1. EQUAL (build / expiry) — for every board 1..4, oracle vs buildBoardWhenTimerExpires on fresh clones of
  *      the real entry leave identical RAM (−STACK_SCRATCH) and identical palette bank. Both
- *      clones are pre-seeded with a sentinel palette bank + a sentinel board scratch so a
+ *      clones are pre-seeded with a sentinel palette bank + a sentinel BONUS_DISPLAY so a
  *      match proves the writes actually happened. Non-vacuous: the timer decremented into
- *      the builder, the board scratch was reset to 0, SND_BGM + palette bank hold the board's
+ *      the builder, BONUS_DISPLAY was reset to 0, SND_BGM + palette bank hold the board's
  *      values, and SUBSTATE_TIMER was reloaded by the setup arm (to 64). The dead stack
  *      traffic is proven load-bearing to the mask (stackDiffCount > 0).
  *   2. EQUAL (skip / still counting) — poke SUBSTATE_TIMER to 5, 2 (the just-above-expiry
  *      boundary), and 0 (wrap-past-zero: expiry is only the 1->0 tick, never 0->255)
  *      identically on both sides. oracle vs buildBoardWhenTimerExpires leave identical RAM (−STACK_SCRATCH):
  *      the timer counts down one and NOTHING else changes (the builder did not run — the
- *      sentinel board scratch survives).
+ *      sentinel BONUS_DISPLAY survives).
  *   3. TEETH — two broken twins, each MUST be caught on a skip-path entry:
  *      (a) inverted gate — builds the board while the timer is still counting; the builder's
- *          writes (board scratch reset, palette bank, tune) show up where the correct routine
+ *          writes (BONUS_DISPLAY reset, palette bank, tune) show up where the correct routine
  *          leaves them untouched.
  *      (b) dropped countdown tick — never decrements SUBSTATE_TIMER; caught at SUBSTATE_TIMER
  *          on the skip path (correct 4 vs twin 5), where the builder does not overwrite it.
@@ -65,6 +65,7 @@ import {
   STACK_SCRATCH,
   BOARD,
   SND_BGM,
+  BONUS_DISPLAY,
   GAME_STATE,
   GAME_SUBSTATE,
   SUBSTATE_TIMER,
@@ -78,9 +79,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0c91;
-const BOARD_SCRATCH = 0x638c;       // engine scratch the builder resets to 0
 const PALETTE_SENTINEL = 0x00;      // a distinct entry bank so a build's latch write shows up
-const SCRATCH_SENTINEL = 0xab;      // a distinct entry scratch so the reset write shows up
+const SCRATCH_SENTINEL = 0xab;      // a distinct entry value in BONUS_DISPLAY so the reset write shows up
 const TIMER_RELOAD = 64;            // the setup arm reloads SUBSTATE_TIMER on a build (0x40)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
@@ -170,7 +170,7 @@ test("EQUAL (build): buildBoardWhenTimerExpires == oracle in RAM (−stack) and 
     const c = cap.clone();
     // Pre-seed distinct entry state on BOTH sides so a match proves the writes happened.
     o.io.paletteBank = PALETTE_SENTINEL;  c.io.paletteBank = PALETTE_SENTINEL;
-    o.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);  c.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);
+    o.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);  c.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);
     oracle(o);
     idiomatic(c);
 
@@ -179,12 +179,12 @@ test("EQUAL (build): buildBoardWhenTimerExpires == oracle in RAM (−stack) and 
     assert.equal(o.io.paletteBank, c.io.paletteBank, `board ${board}: palette bank must match the oracle`);
 
     // Non-vacuous: the oracle side shows the tick-then-build chain executed...
-    assert.equal(o.mem.read8(BOARD_SCRATCH), 0, `board ${board}: oracle must reset the board scratch to 0 (build ran)`);
+    assert.equal(o.mem.read8(BONUS_DISPLAY), 0, `board ${board}: oracle must reset BONUS_DISPLAY to 0 (build ran)`);
     assert.equal(o.mem.read8(SND_BGM), bgm, `board ${board}: oracle must queue tune ${hx(bgm)}`);
     assert.equal(o.io.paletteBank, bank, `board ${board}: oracle must select palette bank ${bank}`);
     assert.equal(o.mem.read8(SUBSTATE_TIMER), TIMER_RELOAD, `board ${board}: the setup arm must reload the timer`);
     // ...and the idiomatic side genuinely reproduced them, not merely agreed on unchanged bytes.
-    assert.equal(c.mem.read8(BOARD_SCRATCH), 0, `board ${board}: idiomatic must reset the board scratch to 0`);
+    assert.equal(c.mem.read8(BONUS_DISPLAY), 0, `board ${board}: idiomatic must reset BONUS_DISPLAY to 0`);
     assert.equal(c.mem.read8(SND_BGM), bgm, `board ${board}: idiomatic must queue tune ${hx(bgm)}`);
     assert.equal(c.io.paletteBank, bank, `board ${board}: idiomatic must select palette bank ${bank}`);
     assert.equal(c.mem.read8(SUBSTATE_TIMER), TIMER_RELOAD, `board ${board}: idiomatic must reload the timer`);
@@ -209,7 +209,7 @@ test("EQUAL (skip): buildBoardWhenTimerExpires == oracle when the timer has not 
       const o = cap.clone();
       const c = cap.clone();
       o.mem.write8(SUBSTATE_TIMER, timer);  c.mem.write8(SUBSTATE_TIMER, timer);
-      o.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);  c.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);
+      o.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);  c.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);
       o.io.paletteBank = PALETTE_SENTINEL;  c.io.paletteBank = PALETTE_SENTINEL;
       oracle(o);
       idiomatic(c);
@@ -221,8 +221,8 @@ test("EQUAL (skip): buildBoardWhenTimerExpires == oracle when the timer has not 
       // Non-vacuous: the builder did NOT run — only the timer ticked down by one.
       assert.equal(o.mem.read8(SUBSTATE_TIMER), out, `board ${board} timer ${timer}: oracle must tick the timer to ${out}`);
       assert.equal(c.mem.read8(SUBSTATE_TIMER), out, `board ${board} timer ${timer}: idiomatic must tick the timer to ${out}`);
-      assert.equal(o.mem.read8(BOARD_SCRATCH), SCRATCH_SENTINEL, `board ${board} timer ${timer}: oracle must NOT build (scratch untouched)`);
-      assert.equal(c.mem.read8(BOARD_SCRATCH), SCRATCH_SENTINEL, `board ${board} timer ${timer}: idiomatic must NOT build (scratch untouched)`);
+      assert.equal(o.mem.read8(BONUS_DISPLAY), SCRATCH_SENTINEL, `board ${board} timer ${timer}: oracle must NOT build (BONUS_DISPLAY untouched)`);
+      assert.equal(c.mem.read8(BONUS_DISPLAY), SCRATCH_SENTINEL, `board ${board} timer ${timer}: idiomatic must NOT build (BONUS_DISPLAY untouched)`);
       assert.equal(o.io.paletteBank, PALETTE_SENTINEL, `board ${board} timer ${timer}: oracle must NOT touch the palette bank`);
     }
   }
@@ -253,7 +253,7 @@ test("TEETH: an inverted gate and a dropped countdown tick are CAUGHT", () => {
     const o = cap.clone();
     const c = cap.clone();
     o.mem.write8(SUBSTATE_TIMER, 5);  c.mem.write8(SUBSTATE_TIMER, 5);
-    o.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);  c.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);
+    o.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);  c.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);
     oracle(o);
     brokenInvertedGate(c);
     const d = ramDiffMinusStack(o, c);

@@ -17,12 +17,12 @@
  * harness performs one m.ret() on the candidate AFTER the call to line pc + SP up.
  *
  *   1. EQUAL (real captured dispatches) — hook 0x2D8C in a real attract run and clone the
- *      machine at each true dispatch (the renderer fires them from board/cutscene setup,
- *      IX at an object record 0x67xx, DE at a sprite slot 0x698x). Both (0x6382) bit0 arms
+ *      machine at each true dispatch (the renderer fires them from 25m barrel play,
+ *      IX at an object record 0x67xx, DE at a sprite slot 0x698x). Both BARREL_CLAIM_MODE bit0 arms
  *      occur naturally. Each captured entry: run the ORACLE on one clone and loc_2d8c on
  *      another, confirm identical RAM + pc + SP.
  *
- *   2. EQUAL (crafted) — seed from a real capture, then poke (0x6382) to force BOTH mode
+ *   2. EQUAL (crafted) — seed from a real capture, then poke BARREL_CLAIM_MODE to force BOTH mode
  *      arms explicitly (bit0 SET -> +1=1; bit0 CLEAR -> +1=0,+2=2) and poke distinctive
  *      source bytes at the destination pointer to prove they are copied into +3 and +5.
  *
@@ -43,7 +43,7 @@ import { loc_2d8c } from "../loc_2d8c.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, BARREL_CLAIM_MODE, OBJ_ACTIVE, OBJ_X, OBJ_Y, SPRITE_Y } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -53,7 +53,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2d8c;
-const MODE_SELECT = 0x6382; // bit0 selects the +1 mode arm (unnamed engine scratch)
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — the sprite block's Y column
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -134,19 +133,19 @@ function brokenWrongModeInit(m) {
   const obj = regs.ix;
   const renderPtr = regs.de;
   mem.write16(0x62a8, 0x39c3);
-  if ((mem.read8(MODE_SELECT) & 0x01) !== 0) {
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x01) !== 0) {
     mem.write8(obj + 0x01, 0x01);
   } else {
     mem.write8(obj + 0x01, 0x00);
     mem.write8(obj + 0x02, 0x03); // BUG: should be 0x02
   }
-  mem.write8(obj + 0x00, 0x01);
+  mem.write8(obj + OBJ_ACTIVE, 0x01);
   mem.write8(obj + 0x0f, 0x01);
   for (const off of [0x10, 0x11, 0x12, 0x13, 0x14]) mem.write8(obj + off, 0x00);
   mem.write8(0x6393, 0x00);
   mem.write8(0x6392, 0x00);
-  mem.write8(obj + 0x03, mem.read8(renderPtr));
-  mem.write8(obj + 0x05, mem.read8(renderPtr + 3));
+  mem.write8(obj + OBJ_X, mem.read8(renderPtr));
+  mem.write8(obj + OBJ_Y, mem.read8(renderPtr + SPRITE_Y));
   regs.hl = 0x385c;
   loadSpriteObjectBlock(m);
   regs.hl = Y_COLUMN;
@@ -160,19 +159,19 @@ function brokenDropColumnNudge(m) {
   const obj = regs.ix;
   const renderPtr = regs.de;
   mem.write16(0x62a8, 0x39c3);
-  if ((mem.read8(MODE_SELECT) & 0x01) !== 0) {
+  if ((mem.read8(BARREL_CLAIM_MODE) & 0x01) !== 0) {
     mem.write8(obj + 0x01, 0x01);
   } else {
     mem.write8(obj + 0x01, 0x00);
     mem.write8(obj + 0x02, 0x02);
   }
-  mem.write8(obj + 0x00, 0x01);
+  mem.write8(obj + OBJ_ACTIVE, 0x01);
   mem.write8(obj + 0x0f, 0x01);
   for (const off of [0x10, 0x11, 0x12, 0x13, 0x14]) mem.write8(obj + off, 0x00);
   mem.write8(0x6393, 0x00);
   mem.write8(0x6392, 0x00);
-  mem.write8(obj + 0x03, mem.read8(renderPtr));
-  mem.write8(obj + 0x05, mem.read8(renderPtr + 3));
+  mem.write8(obj + OBJ_X, mem.read8(renderPtr));
+  mem.write8(obj + OBJ_Y, mem.read8(renderPtr + SPRITE_Y));
   regs.hl = 0x385c;
   loadSpriteObjectBlock(m);
   // BUG: the addToSpriteObjectColumn nudge is dropped entirely.
@@ -187,11 +186,11 @@ test("EQUAL (real dispatches): loc_2d8c == oracle on every captured 0x2D8C entry
     const diffs = contractDiffs(cap, loc_2d8c); // FRESH clones inside — cap is untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
-  const arms = new Set(caps.map((c) => c.mem.read8(MODE_SELECT) & 0x01));
+  const arms = new Set(caps.map((c) => c.mem.read8(BARREL_CLAIM_MODE) & 0x01));
   const ixs = new Set(caps.map((c) => c.regs.ix));
   console.log(
     `  EQUAL/real: ${caps.length} captured dispatches identical to the oracle ` +
-      `((0x6382) bit0 arms seen { ${[...arms].sort().join(", ")} }, ` +
+      `(BARREL_CLAIM_MODE bit0 arms seen { ${[...arms].sort().join(", ")} }, ` +
       `${ixs.size} distinct object records)`,
   );
   assert.ok(caps.length >= 2, "expected several real dispatches for coverage");
@@ -199,7 +198,7 @@ test("EQUAL (real dispatches): loc_2d8c == oracle on every captured 0x2D8C entry
 
 // -- 2. EQUAL (crafted: both mode arms + source-byte copy) --------------------
 
-test("EQUAL (crafted): both (0x6382) mode arms and the +3/+5 source copy match the oracle", () => {
+test("EQUAL (crafted): both BARREL_CLAIM_MODE mode arms and the +3/+5 source copy match the oracle", () => {
   const caps = captureDispatches(1, 3000);
   assert.ok(caps.length >= 1, "need one real capture to seed crafted entries with real RAM");
   const seed = caps[0];
@@ -208,7 +207,7 @@ test("EQUAL (crafted): both (0x6382) mode arms and the +3/+5 source copy match t
   // source bytes at the renderer's destination pointer (DE) so the +3/+5 copy is observable.
   const craft = (modeBit, srcHere, srcThree) => {
     const e = seed.clone();
-    e.mem.write8(MODE_SELECT, modeBit); // bit0 SET (1) or CLEAR (0)
+    e.mem.write8(BARREL_CLAIM_MODE, modeBit); // bit0 SET (1) or CLEAR (0)
     e.mem.write8(e.regs.de, srcHere); // -> record +3
     e.mem.write8((e.regs.de + 3) & 0xffff, srcThree); // -> record +5
     return e;
@@ -218,7 +217,7 @@ test("EQUAL (crafted): both (0x6382) mode arms and the +3/+5 source copy match t
     { name: "mode bit SET (+1=1, +2 untouched)", e: craft(0x01, 0xa5, 0x5a), set: true },
     { name: "mode bit CLEAR (+1=0, +2=2)", e: craft(0x00, 0x3c, 0xc3), set: false },
     { name: "mode bit SET, odd source bytes", e: craft(0x01, 0x00, 0xff), set: true },
-    { name: "mode bit CLEAR, high MODE_SELECT byte (only bit0 matters)", e: craft(0xfe, 0x11, 0x22), set: false },
+    { name: "mode bit CLEAR, high BARREL_CLAIM_MODE byte (only bit0 matters)", e: craft(0xfe, 0x11, 0x22), set: false },
   ];
 
   for (const { name, e, set } of cases) {
@@ -230,8 +229,8 @@ test("EQUAL (crafted): both (0x6382) mode arms and the +3/+5 source copy match t
     const obj = e.regs.ix;
     assert.equal(after.mem.read8(obj + 0x01), set ? 0x01 : 0x00, `${name}: +1 mode byte`);
     if (!set) assert.equal(after.mem.read8(obj + 0x02), 0x02, `${name}: +2 not marked on CLEAR arm`);
-    assert.equal(after.mem.read8(obj + 0x03), e.mem.read8(e.regs.de), `${name}: +3 source copy`);
-    assert.equal(after.mem.read8(obj + 0x05), e.mem.read8((e.regs.de + 3) & 0xffff), `${name}: +5 source copy`);
+    assert.equal(after.mem.read8(obj + OBJ_X), e.mem.read8(e.regs.de), `${name}: OBJ_X source copy`);
+    assert.equal(after.mem.read8(obj + OBJ_Y), e.mem.read8((e.regs.de + SPRITE_Y) & 0xffff), `${name}: OBJ_Y source copy`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} arms (both mode selects, +3/+5 source copy) identical to the oracle`);
 });
@@ -244,7 +243,7 @@ test("TEETH: the wrong-mode-init twin and the dropped-Y-nudge twin are CAUGHT", 
 
   // (a) wrong +2 init — only visible on the CLEAR mode arm, so craft one.
   const clear = caps[0].clone();
-  clear.mem.write8(MODE_SELECT, 0x00);
+  clear.mem.write8(BARREL_CLAIM_MODE, 0x00);
   const modeDiffs = contractDiffs(clear, brokenWrongModeInit);
   assert.ok(modeDiffs.length > 0, "the wrong-mode-init twin escaped — the gate is worthless");
   const obj = clear.regs.ix;

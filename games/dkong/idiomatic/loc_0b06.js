@@ -24,7 +24,7 @@
  *         - draw the board-layout segment table at ROM 0x392C (drawBoardLayout),
  *         - stamp two video-RAM cells, set the cutscene band count (CUTSCENE_BAND_COUNT 0x638D <- 5),
  *         - arm the 32-frame phase timer (SUBSTATE_TIMER <- 0x20),
- *         - advance the cutscene step (inc INTRO_STEP) and re-seed loc_3069's gated
+ *         - advance the cutscene step (inc INTRO_STEP) and re-seed advanceSequenceStepWhenTimerExpires's gated
  *           pointer SEQ_ADVANCE_PTR at INTRO_STEP.
  *
  * MEMORY IN / MEMORY OUT. loc_0b06 reads no register as a live-in (it writes A/HL before
@@ -143,7 +143,7 @@ export function loc_0b06(m) {
   drawBoardLayout(m);
 
   // Terminal-beat epilogue: stamp two video cells, set the cutscene band count, arm the
-  // 32-frame phase timer, advance the cutscene step, and re-seed loc_3069's gated pointer.
+  // 32-frame phase timer, advance the cutscene step, and re-seed advanceSequenceStepWhenTimerExpires's gated pointer.
   mem.write8(VIDEO_CELL_A, 0x10);
   mem.write8(VIDEO_CELL_B, 0x10);
   mem.write8(CUTSCENE_BAND_COUNT, 0x05);

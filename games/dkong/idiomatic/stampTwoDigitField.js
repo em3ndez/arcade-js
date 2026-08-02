@@ -4,8 +4,10 @@
  * high-digit tile into one cell, the low-digit tile into the cell one column over.  ROM 0x0689.
  *
  * PURPOSE [guess]: the field is the two-digit board-derived readout that task entry 10 builds —
- * it divides 0x62B0 (= min(BOARD*10 + 0x28, 0x50)) by ten into a packed two-nibble BCD byte at
- * 0x638C, and its writer loc_066a splits that byte into a high-digit tile and a low-digit tile.
+ * it divides 0x62B0 (= min(BOARD*10 + 0x28, 0x50)) by ten into BONUS_DISPLAY, and its writer
+ * loc_066a splits that byte into a high-digit tile and a low-digit tile. (BONUS_DISPLAY is named
+ * and [seen] in ram.js as of pass 12; the two-nibble packed-BCD READING of it is code-derived, not
+ * observed, so this stamp's digit-pair interpretation inherits that caveat — hence still [guess].)
  * This is loc_066a's shared stamp tail: both its arms (the high-nibble-nonzero arm, and the
  * leading-zero-suppress arm that enters with the high tile forced to a blank 0x10) funnel here
  * to place the pair. Only the register VALUES the arms bring differ; the two writes are the same.

@@ -36,7 +36,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1641 as oracle } from "../../translated/loc_1641.js";
 import { loc_1dbd as oracleSub1dbd } from "../../translated/loc_1dbd.js";
 import { loc_1641 } from "../loc_1641.js";
-import { loc_1dbd } from "../loc_1dbd.js"; // drop-dispatch teeth twin
+import { dispatchEffectState } from "../dispatchEffectState.js"; // drop-dispatch teeth twin
 import { loc_1644 } from "../loc_1644.js"; // drop-effect teeth twin
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -81,7 +81,7 @@ function replay(entry, candidate) {
 /**
  * A real, self-consistent attract base captured AT a live 0x1dbd dispatch whose effect
  * param-block pointer (0x6343/0x6344) points into work RAM — so the crafted state-1 arm
- * (loc_1dbd -> loc_1dc9 -> loc_1e00 -> loc_1e15 dereferences it) is a faithful live-in, not
+ * (dispatchEffectState -> loc_1dc9 -> loc_1e00 -> loc_1e15 dereferences it) is a faithful live-in, not
  * a fault. loc_1641 is never dispatched in attract; we craft its entry by poking. Delegates
  * to the oracle sub_1dbd so the host run proceeds undisturbed.
  */
@@ -178,7 +178,7 @@ function brokenDropEffect(m) {
 // Twin (b): drop the render dispatch — only the effect machine runs. Misses the whole
 // board-render sequence step (the arm that paints/animates and steps the sequence).
 function brokenDropDispatch(m) {
-  loc_1dbd(m);
+  dispatchEffectState(m);
 }
 
 test("TEETH (drop effect machine): CAUGHT on the effect-active states {1,2}", () => {

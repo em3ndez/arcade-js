@@ -5,11 +5,11 @@
  *
  * loc_2c49 sets the mode byte to a hard constant 1 and tails into the shared slot-claim entry
  * (loc_2c4b) with the caller's bonus value (the register live-in). loc_2c4b stores the mode byte
- * into engine scratch 0x6382 and runs the shared body with it bumped by one — so this entry always
+ * into BARREL_CLAIM_MODE and runs the shared body with it bumped by one — so this entry always
  * leaves 0x6382 = 1 and 0x638F = 2, independent of anything the caller holds. The shared body then
  * runs the periodic-event gate against the bonus: ONLY when BONUS_EVENT_MARK equals it does it step
  * the mark down by 8 and scan the five OBJ_ARRAY_64 records (stride 32) for the first zero
- * active-byte — on a hit it raises the top-bit request flag on that same 0x6382 byte (via loc_2c72),
+ * active-byte — on a hit it raises bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via loc_2c72),
  * so a claimed slot leaves 0x6382 = 0x81; on a miss it does just the scratch writes. It returns
  * nothing a caller consumes (the oracle threads residual registers/flags out; its callers reload),
  * so the contract is memory-only.
@@ -26,7 +26,7 @@
  *          byte is the hard constant 1, not something forwarded from the caller.
  *        SLOT sweep (crafted) — the gate OPEN (mark == bonus) over every first-free-slot position
  *          (records 0..4) and the all-occupied case, at several marks including a low one whose -8
- *          step wraps, proving the request flag ORs the top bit onto the stored mode byte (1 -> 0x81).
+ *          step wraps, proving the claim ORs bit 7 onto the stored mode value (1 -> 0x81).
  *      Plus a non-vacuity block asserting the writes really happened on both sides.
  *
  *   2. TEETH — three deliberately-broken twins the same sweep MUST catch:
@@ -51,7 +51,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2c49 as oracle } from "../../translated/loc_2c49.js";
 import { loc_2c49 } from "../loc_2c49.js";
 import { loc_2c4b } from "../loc_2c4b.js";
-import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "../ram.js";
+import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -63,7 +63,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2c49;
-const SCRATCH_REQ = 0x6382; // the mode byte lands here; the slot-claim flag later ORs the top bit
 const SCRATCH_MODE = 0x638f; // the mode byte PLUS ONE lands here (inc between the two stores)
 const SCRATCH_FLAG = 0x6392; // raised to 1 on every entry
 const STRIDE = 32; // OBJ_ARRAY_64 record stride
@@ -174,13 +173,13 @@ test("EQUAL: loc_2c49 == oracle across the C-sweep and every gate-open slot case
     oracle(a);
     loc_2c49(b);
     for (const mm of [a, b]) {
-      assert.equal(mm.mem.read8(SCRATCH_REQ), MODE, "0x6382 must hold the constant mode byte 1");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), MODE, "0x6382 must hold the constant mode byte 1");
       assert.equal(mm.mem.read8(SCRATCH_MODE), MODE + 1, "0x638F must hold the mode byte + 1");
       assert.equal(mm.mem.read8(SCRATCH_FLAG), 1, "entry flag must be raised");
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x20, "gate closed -> mark unchanged");
     }
   }
-  // (ii) gate open, slot found -> mark stepped by 8 and the request flag ORed onto the mode byte.
+  // (ii) gate open, slot found -> mark stepped by 8 and bit 7 ORed onto the mode value.
   {
     const a = makeEntry(base, { c: 0x32, mark: 0x32, records: [1, 0, 1, 1, 1] });
     const b = makeEntry(base, { c: 0x32, mark: 0x32, records: [1, 0, 1, 1, 1] });
@@ -189,7 +188,7 @@ test("EQUAL: loc_2c49 == oracle across the C-sweep and every gate-open slot case
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x32 - EVENT_STEP, "mark must step down by 8");
       assert.equal(mm.mem.read8(SCRATCH_MODE), MODE + 1, "0x638F must hold the mode byte + 1");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), MODE | 0x80, "request flag must OR the top bit onto the mode byte (0x81)");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), MODE | 0x80, "the claim must OR bit 7 onto the mode value (0x81)");
     }
   }
   // (iii) gate open, all occupied -> mark stepped, mode byte kept at 1, no top-bit flag.
@@ -200,7 +199,7 @@ test("EQUAL: loc_2c49 == oracle across the C-sweep and every gate-open slot case
     loc_2c49(b);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x50 - EVENT_STEP, "mark must step down by 8");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), MODE, "no free slot -> mode byte kept at 1, no top bit");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), MODE, "no free slot -> mode byte kept at 1, no top bit");
     }
   }
   console.log(`  EQUAL: ${count} combos (256 C-sweep + gate-open slot cross-product) — RAM identical to the oracle`);
@@ -230,7 +229,7 @@ test("TEETH: the wrong-mode-byte twin is CAUGHT (0x6382 diverges)", () => {
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenWrongMode);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a wrong mode byte — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the wrong-mode twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the wrong-mode twin must diverge on 0x6382");
   console.log(`  TEETH/mode: caught — ${describe(mismatch)}`);
 });
 
@@ -238,7 +237,7 @@ test("TEETH: the mode-from-accumulator twin is CAUGHT (0x6382 diverges)", () => 
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenModeFromA);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a mode byte forwarded from the accumulator — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the mode-from-A twin must diverge on 0x6382, pinning the constant 1");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the mode-from-A twin must diverge on 0x6382, pinning the constant 1");
   console.log(`  TEETH/const: caught — ${describe(mismatch)}`);
 });
 
@@ -290,7 +289,7 @@ test("REALISM: real captured 0x2C49 dispatches — loc_2c49 matches oracle RAM",
           `at 0x${(ram.addr ?? 0).toString(16)} (${ram.a}->${ram.b})`,
     );
     // Classify the arm for reporting: the slot-claim path leaves 0x6382's top bit set.
-    if ((a.mem.read8(SCRATCH_REQ) & 0x80) !== 0) sawClaim++; else sawMiss++;
+    if ((a.mem.read8(BARREL_CLAIM_MODE) & 0x80) !== 0) sawClaim++; else sawMiss++;
   }
   console.log(`  REALISM: ${caps.length} real 0x2C49 dispatches — RAM == oracle (${sawClaim} slot-claim, ${sawMiss} gate-closed)`);
 });

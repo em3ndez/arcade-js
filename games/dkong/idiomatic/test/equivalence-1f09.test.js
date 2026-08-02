@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1f09 (ROM 0x1F09) — effect-sequence step 1, a two-stage rate
+ * Equivalence test for flashEffectSpriteThenAdvanceSequence (ROM 0x1F09) — effect-sequence step 1, a two-stage rate
  * divider that flips a sprite-shadow bit on most beats and advances the sequence state on
  * every fourth.
  *
- * loc_1f09 is a LEAF (no callees). Its entire memory-observable behaviour is a function of
+ * flashEffectSpriteThenAdvanceSequence is a LEAF (no callees). Its entire memory-observable behaviour is a function of
  * FOUR bytes and it writes only those same four cells:
  *
  *   EFFECT_SEQ_INNER  (0x6346)  the fast divider, ticked every dispatch
@@ -30,7 +30,7 @@
  *            over all 256 states (STATE sweep). The BEAT grid also visits this arm (at
  *            outer == 1) so the reloads are covered for every sprite value too.
  *
- *   1. EQUAL (exhaustive) — loc_1f09 == oracle on RAM across all three sweeps (256 + 256x256
+ *   1. EQUAL (exhaustive) — flashEffectSpriteThenAdvanceSequence == oracle on RAM across all three sweeps (256 + 256x256
  *      + 256 = 66048 combos). A proof by that factorisation, not a sample.
  *
  *   2. TEETH (exhaustive) — four deliberately-broken twins, one per written cell, each of
@@ -42,7 +42,7 @@
  *
  *   3. REALISM (captured dispatches) — hook 0x1F09 in a real attract run (the effect
  *      sequence runs during the demo and dispatches this step across all three arms), clone
- *      the machine at each true dispatch, and confirm loc_1f09 reproduces the oracle's RAM
+ *      the machine at each true dispatch, and confirm flashEffectSpriteThenAdvanceSequence reproduces the oracle's RAM
  *      on every real state the game actually produces.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1f09.test.js
@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f09 as oracle } from "../../translated/loc_1f09.js";
-import { loc_1f09 } from "../loc_1f09.js";
+import { flashEffectSpriteThenAdvanceSequence } from "../flashEffectSpriteThenAdvanceSequence.js";
 import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -160,9 +160,9 @@ test("REACHABILITY: 0x1F09 is dispatched during attract", () => {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_1f09 == oracle across all three arm sweeps", () => {
+test("EQUAL (exhaustive): flashEffectSpriteThenAdvanceSequence == oracle across all three arm sweeps", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, loc_1f09);
+  const { mismatch, count } = fullSweep(base, flashEffectSpriteThenAdvanceSequence);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256 + 256 * 256 + 256, "must have compared the full factored input space");
   console.log(`  EQUAL/exhaustive: ${count} (inner, outer, state, sprite) combos — RAM identical to the oracle`);
@@ -296,7 +296,7 @@ function classifyArm(entry) {
   return ((outer - 1) & 0xff) === 0 ? "advance" : "flash";
 }
 
-test("REALISM: real captured 0x1F09 dispatches — loc_1f09 matches oracle RAM", () => {
+test("REALISM: real captured 0x1F09 dispatches — flashEffectSpriteThenAdvanceSequence matches oracle RAM", () => {
   const caps = captureDispatches(256, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x1F09 dispatch during attract");
 
@@ -308,7 +308,7 @@ test("REALISM: real captured 0x1F09 dispatches — loc_1f09 matches oracle RAM",
     a.nextNmi = Infinity; a.nextBoundary = Infinity;
     b.nextNmi = Infinity; b.nextBoundary = Infinity;
     oracle(a);
-    loc_1f09(b);
+    flashEffectSpriteThenAdvanceSequence(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(
       ram,

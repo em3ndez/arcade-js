@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2ddb (ROM 0x2DDB) — on 50m/100m, while Mario is alive, raise two
+ * Equivalence test for raisePeriodicObjectSpawnRequests (ROM 0x2DDB) — on 50m/100m, while Mario is alive, raise two
  * periodic event-request latches (0x63A0, 0x639A) on a difficulty-scaled frame trigger.
  *
- * loc_2ddb is called every frame by the per-frame cascade loc_197a. It has three shapes:
+ * raisePeriodicObjectSpawnRequests is called every frame by the per-frame cascade loc_197a. It has three shapes:
  *   • rst 0x30 board gate (mask 0x0A) CLOSED -> return at once (any board but 50m/100m).
  *   • rst 0x10 alive gate CLOSED -> return (Mario dead).
  *   • both open -> build a frame mask from (DIFFICULTY, BOARD); if FRAME lands zero under it,
@@ -22,7 +22,7 @@
  *   0. REACHABILITY — 0x2ddb is dispatched by the attract cascade (board gate shut on 25m, so it
  *      returns immediately — attract never reaches the trigger body).
  *   1. EQUAL (captured) — hook 0x2ddb in a real boot/attract run, clone at each dispatch, and
- *      confirm loc_2ddb == oracle on the real (rst-0x30-closed) skip path.
+ *      confirm raisePeriodicObjectSpawnRequests == oracle on the real (rst-0x30-closed) skip path.
  *   2. EQUAL (crafted) — on a real attract base, drive boards 2 and 4 with Mario alive across a
  *      difficulty sweep AND the full 0..255 frame range (so the exact mask boundary is swept for
  *      every mask value 0xFF..0x00, incl. the difficulty-0 / difficulty-wrap edges), plus the
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2ddb as oracle } from "../../translated/loc_2ddb.js";
-import { loc_2ddb as candidate } from "../loc_2ddb.js";
+import { raisePeriodicObjectSpawnRequests as candidate } from "../raisePeriodicObjectSpawnRequests.js";
 import { boardBitGate } from "../boardBitGate.js";        // ROM 0x0030 (twins)
 import { marioActiveGuard } from "../marioActiveGuard.js"; // ROM 0x0010 (twins)
 import { Machine } from "../../machine.js";
@@ -183,7 +183,7 @@ test("REACHABILITY: 0x2ddb is dispatched during boot/attract", () => {
 // Attract plays 25m, so every real dispatch takes the rst-0x30-closed skip (the board gate is
 // shut). Each must match the oracle bit-for-bit off the stack scratch and write nothing.
 
-test("EQUAL (captured): loc_2ddb == oracle on every real dispatch", () => {
+test("EQUAL (captured): raisePeriodicObjectSpawnRequests == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -259,7 +259,7 @@ test("EQUAL (crafted): the difficulty/frame trigger sweep, alive-gate skip, and 
 
 // -- 3. TEETH -----------------------------------------------------------------
 //
-// Each twin is a faithful copy of loc_2ddb with ONE injected bug, calling the same idiomatic
+// Each twin is a faithful copy of raisePeriodicObjectSpawnRequests with ONE injected bug, calling the same idiomatic
 // callees, so the ONLY difference is the mutation. Crafted cases must catch every one.
 
 function buildMask(steps) {

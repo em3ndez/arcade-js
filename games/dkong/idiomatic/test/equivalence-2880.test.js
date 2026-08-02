@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2880 (ROM 0x2880) — run the current board's three bounding-box
+ * Equivalence test for search25mObjectOverlap (ROM 0x2880) — run the current board's three bounding-box
  * collision sweeps, stopping at the first overlap.
  *
  * The routine recovers the per-axis tolerances the board dispatcher pushed on the stack, then
@@ -15,8 +15,8 @@
  * The oracle models the Z80 stack: it pops the pushed tolerances, brackets each sweep's search
  * with a call/return, and — because dispatchBoardCollision is a pure trampoline — a hit's
  * two-level caller-skip and the all-miss normal return unwind to the SAME dispatch site with
- * the same pc + SP. loc_2880 models no call/return bracket (direct calls to findCollidingObject), so the
- * harness lines the two up: after loc_2880 it performs the single terminal return the ROM nets
+ * the same pc + SP. search25mObjectOverlap models no call/return bracket (direct calls to findCollidingObject), so the
+ * harness lines the two up: after search25mObjectOverlap it performs the single terminal return the ROM nets
  * on either path, so pc + SP match and the bytes the oracle's dissolved bracket leaves behind
  * sit in the dead STACK_SCRATCH region, which the memory compare excludes.
  *
@@ -25,7 +25,7 @@
  *      flips the decision (proving the `pop hl` marshalling is live). Every case: RAM (minus
  *      STACK_SCRATCH), pc, SP and the live register file identical to the oracle.
  *
- *   2. EQUAL (captured) — hook 0x2880 in a real 25m attract run and confirm loc_2880 == oracle
+ *   2. EQUAL (captured) — hook 0x2880 in a real 25m attract run and confirm search25mObjectOverlap == oracle
  *      on every real dispatch (both the exhausted and, occasionally, the hit outcome occur).
  *
  *   3. TEETH — three broken twins the same suite MUST catch: one that stores the wrong sweep-1
@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2880 as oracle } from "../../translated/loc_2880.js";
 import { findCollidingObject } from "../findCollidingObject.js";
-import { loc_2880 } from "../loc_2880.js";
+import { search25mObjectOverlap } from "../search25mObjectOverlap.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_SEARCH_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64, OBJ_RECORD_66A0 } from "../ram.js";
 
@@ -258,7 +258,7 @@ test("EQUAL (crafted): a hit in each sweep, the count-minus-B recovery, and the 
     assert.equal(k.hit, wantHit, `${name}: expected ${wantHit ? "hit" : "miss"}, oracle did the opposite`);
     assert.equal(k.b, wantB, `${name}: expected residue B=${wantB}, oracle left ${k.b}`);
     assert.equal(k.count, wantCount, `${name}: expected final OBJ_SEARCH_COUNT=${wantCount}, oracle stamped ${k.count}`);
-    const diffs = contractDiffs(entry, loc_2880);
+    const diffs = contractDiffs(entry, search25mObjectOverlap);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} arms (hit@sweep1/1-idx3/2/3, all-miss) identical to the oracle`);
@@ -279,7 +279,7 @@ test("EQUAL (crafted): the stack-passed tolerances flip the decision and both ma
   assert.notEqual(kLoose.hit, kTight.hit, "the tolerance change did not flip the decision — case is not exercising the marshalling");
 
   for (const [label, entry] of [["loose tolerance", loose], ["tight tolerance", tight]]) {
-    const diffs = contractDiffs(entry, loc_2880);
+    const diffs = contractDiffs(entry, search25mObjectOverlap);
     assert.equal(diffs.length, 0, `${label}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/tolerances: loose=${kLoose.hit ? "hit" : "miss"} tight=${kTight.hit ? "hit" : "miss"} — both identical to the oracle`);
@@ -287,7 +287,7 @@ test("EQUAL (crafted): the stack-passed tolerances flip the decision and both ma
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_2880 == oracle on every real 0x2880 dispatch", () => {
+test("EQUAL (captured): search25mObjectOverlap == oracle on every real 0x2880 dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 400) caps.push(mm.clone());
@@ -299,7 +299,7 @@ test("EQUAL (captured): loc_2880 == oracle on every real 0x2880 dispatch", () =>
 
   let hits = 0, exhausted = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_2880);
+    const diffs = contractDiffs(entry, search25mObjectOverlap);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (classify(entry).hit) hits++; else exhausted++;
   }

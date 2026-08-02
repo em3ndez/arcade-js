@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_28e0 — run two bounding-box collision sweeps, stopping at the first hit.  ROM 0x28E0.
+ * search75mObjectOverlap — run two bounding-box collision sweeps, stopping at the first hit.  ROM 0x28E0.
+ *
+ * NAME PROVENANCE (why "75m"): BOARD index 3 of the rst-0x28 table at ROM 0x2874 vectors here.
+ * Cross-checked by the array it sweeps — OBJ_ARRAY_65, which update75mActorObjects updates on board 3 —
+ * and by grounding: 3225 fetches on board 3 (signature 5.10 x3221) and 0 on boards 1, 2, 4 and attract.
  *
  * The board-3 (75m) arm of the board-overlap-search dispatch (dispatchBoardOverlapSearch,
  * ROM 0x3E88): that dispatcher reads BOARD and, for board 3, jumps here having pushed the
  * caller's per-axis search tolerances on the stack. A two-sweep sibling of the single-sweep
- * loc_2901 and the three-sweep loc_28b0 — same shape, different arrays and counts. It
+ * search100mObjectOverlap and the three-sweep search50mObjectOverlap — same shape, different arrays and counts. It
  * recovers the pushed tolerances, then points the shared collision search findCollidingObject at two
  * object arrays in turn:
  *
@@ -17,7 +21,7 @@
  * residual B). The reference coordinate and reference pointer (Mario's position) arrive from
  * the dispatcher in registers and pass through untouched.
  *
- * THE SHORT-CIRCUIT (what sets this apart from the single-sweep loc_2901). If sweep 1 finds
+ * THE SHORT-CIRCUIT (what sets this apart from the single-sweep search100mObjectOverlap). If sweep 1 finds
  * a hit, findCollidingObject takes its caller-skip return, which unwinds PAST this routine — so sweep 2
  * never runs and OBJ_SEARCH_COUNT is left holding the sweep-1 count (5), not the sweep-2
  * count (10). Only when sweep 1 is exhausted does control fall through to re-aim at the
@@ -54,7 +58,7 @@ const SWEEP1_STRIDE = 0x20; // 0x20-byte record stride of OBJ_ARRAY_64
 const SWEEP2_COUNT = 10;   // records the second sweep scans (OBJ_ARRAY_65)
 const SWEEP2_STRIDE = 0x10; // 0x10-byte record stride of OBJ_ARRAY_65
 
-export function loc_28e0(m) {
+export function search75mObjectOverlap(m) {
   const { regs, mem } = m;
 
   // Recover the per-axis search tolerances the dispatcher pushed (axis-1 in the low byte,

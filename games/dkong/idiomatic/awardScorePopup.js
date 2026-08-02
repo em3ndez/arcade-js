@@ -27,7 +27,7 @@
  * Callees are called directly (bottom-up): enqueueTask (ROM 0x309F) reads the live-in
  * D/E and needs no marshalling; boardBitGate (ROM 0x0030) reads its mask from A, so A
  * is set to 0x05 just before the call (the only register hand-off). loc_1e28's own
- * `ret` at 0x1E49 IS the shared loc_1e49 byte — modelled here as the plain function
+ * `ret` at 0x1E49 IS the shared effectStateIdle byte — modelled here as the plain function
  * return, not a call.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1e28.test.js.

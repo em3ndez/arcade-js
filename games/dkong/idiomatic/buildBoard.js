@@ -7,7 +7,8 @@
  * then a data-dependent dispatch:
  *
  *   1. Clear the tilemap playfield and the sprite shadow buffer for the fresh board.
- *   2. Reset the board bookkeeping scratch to 0.
+ *   2. Reset the on-screen bonus readout BONUS_DISPLAY (0x638C) to 0 — every board build
+ *      starts that counter's display cell from zero before the board's own setup seeds it.
  *   3. Post the opening deferred task (opcode 5, argument 1) onto the work queue.
  *   4. Select palette bank 2 for the build — clear bit0, set bit1 of the two-bit
  *      hardware palette-bank latch. The display reads that bank to pick its colour set.
@@ -31,14 +32,15 @@
  *           SUBSTATE_TIMER=1, BOARD=2/3/4) that forces the real dispatch. Compared on
  *           RAM − STACK_SCRATCH PLUS the palette-bank output latch. Teeth: a dropped
  *           palette-bank write, a mis-routed board arm, and the wrong rivet tune.
- * LIVE-OUT: memory-only for the RAM contract (BOARD_SCRATCH, the enqueued task, SND_BGM
+ * LIVE-OUT: memory-only for the RAM contract (BONUS_DISPLAY, the enqueued task, SND_BGM
  *           on the taken arm, and everything the arm + shared tail draw), PLUS the
  *           palette-bank output latch (an I/O device register the display reads, not part
  *           of the RAM dump). The caller reads no return value; DE is set only as a
  *           live-IN to enqueueTask and to the shared tail, not a live-out. SP/pc are the
  *           dropped stack model — the oracle's push16/call/ret becomes the JS call stack.
- * NAMES:    BOARD (0x6227), SND_BGM (0x6089) from ram.js. BOARD_SCRATCH (0x638C) is
- *           kept-hex engine scratch; the palette-bank latches (0x7D86/0x7D87) are the
+ * NAMES:    BOARD (0x6227), SND_BGM (0x6089), BONUS_DISPLAY (0x638C) from ram.js — the
+ *           per-board reset of that bonus readout cell is one of the corroborations behind
+ *           its name. The palette-bank latches (0x7D86/0x7D87) are the
  *           0x7Dxx hardware output region, not work RAM, so they keep their hex address;
  *           the opening-task pair (0x0501) and the rivet layout table (0x3C8B) are ROM
  *           immediates. Callees clearPlayfieldAndSprites, enqueueTask, setup25mGirderBoard,
@@ -46,7 +48,7 @@
  *           imported and called directly.
  */
 
-import { BOARD, SND_BGM } from "./ram.js";
+import { BOARD, SND_BGM, BONUS_DISPLAY } from "./ram.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { setup25mGirderBoard } from "./setup25mGirderBoard.js"; // ROM 0x0CD4
@@ -61,9 +63,6 @@ import { loc_0cc6 } from "./loc_0cc6.js"; // ROM 0x0CC6
 const PALETTE_BANK_BIT0 = 0x7d86;
 const PALETTE_BANK_BIT1 = 0x7d87;
 
-// Board bookkeeping scratch, reset to 0 at each board build (kept-hex engine scratch).
-const BOARD_SCRATCH = 0x638c;
-
 // The opening deferred task posted for every board build: opcode 0x05, argument 0x01,
 // packed as the message pair enqueueTask reads from the register image.
 const OPENING_TASK = 0x0501;
@@ -77,8 +76,8 @@ export function buildBoard(m) {
   // Wipe the playfield tilemap and the sprite shadow buffer for the fresh board.
   clearPlayfieldAndSprites(m);
 
-  // Reset board bookkeeping scratch.
-  mem.write8(BOARD_SCRATCH, 0);
+  // Reset the on-screen bonus readout for the fresh board.
+  mem.write8(BONUS_DISPLAY, 0);
 
   // Post the opening task onto the deferred-work queue.
   regs.de = OPENING_TASK; // enqueueTask reads the message pair from the register image

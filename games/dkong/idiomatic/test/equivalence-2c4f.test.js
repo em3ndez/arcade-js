@@ -6,7 +6,7 @@
  * its whole memory-observable behaviour is: always write the mode byte to 0x638F and 1 to 0x6392;
  * then, ONLY when BONUS_EVENT_MARK equals the bonus value, step that mark down by 8 and scan the
  * five OBJ_ARRAY_64 records (stride 32) for the first zero active-byte — on a hit raise the top-bit
- * request flag on 0x6382 (via loc_2c72), otherwise do nothing more. It returns nothing a caller
+ * bit 7 on BARREL_CLAIM_MODE (via loc_2c72), otherwise do nothing more. It returns nothing a caller
  * consumes (the oracle threads residual registers/flags out; its callers reload), so the contract
  * is memory-only.
  *
@@ -20,14 +20,14 @@
  *          0x638F store + the 0x6392 write + the early return.
  *        SLOT sweep (crafted) — the gate OPEN over every first-free-slot position (records 0..4),
  *          the all-occupied case, several mark/bonus values including a low mark that wraps the
- *          −8 step, and a non-zero starting 0x6382 to prove loc_2c72's read-modify-write.
+ *          −8 step, and a non-zero starting BARREL_CLAIM_MODE to prove loc_2c72's read-modify-write.
  *      Plus a non-vacuity block asserting the writes really happened on both sides.
  *
  *   2. TEETH — three deliberately-broken twins the same sweep MUST catch:
  *        (a) wrong mark step (−4 not −8) — caught at BONUS_EVENT_MARK on the gate-open path.
  *        (b) inverted gate (proceeds when mark != bonus) — caught on the gate-closed A-sweep,
  *            where the twin performs the RMW + scan the oracle skips.
- *        (c) dropped slot flag (skips loc_2c72) — caught at 0x6382 on a slot-found case.
+ *        (c) dropped slot flag (skips loc_2c72) — caught at BARREL_CLAIM_MODE on a slot-found case.
  *
  *   3. REALISM (captured dispatches) — hook 0x2C4F in a real attract run (it is reached through the
  *      bonus-event cluster's dispatch), clone at each true dispatch, and confirm loc_2c4f reproduces
@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2c4f as oracle } from "../../translated/loc_2c4f.js";
 import { loc_2c4f } from "../loc_2c4f.js";
 import { loc_2c72 } from "../loc_2c72.js";
-import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "../ram.js";
+import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -57,7 +57,6 @@ const test = ROM_PRESENT
 const TARGET = 0x2c4f;
 const SCRATCH_MODE = 0x638f; // the caller's mode byte lands here
 const SCRATCH_FLAG = 0x6392; // raised to 1 on every entry
-const SCRATCH_REQ = 0x6382; // the slot-claim request flag (top bit set by loc_2c72)
 const STRIDE = 32; // OBJ_ARRAY_64 record stride
 const RECORDS = 5;
 const EVENT_STEP = 8;
@@ -71,7 +70,7 @@ const OCCUPIED = [1, 2, 3, 4, 5]; // all non-zero -> no free slot
 
 /**
  * A synthetic entry: a clone of `base` with the two register live-ins, the event mark, the five
- * OBJ_ARRAY_64 active bytes, and (optionally) a starting 0x6382 set, plus a safe stack. Frame
+ * OBJ_ARRAY_64 active bytes, and (optionally) a starting BARREL_CLAIM_MODE set, plus a safe stack. Frame
  * machinery is neutralised so the oracle's `m.step`/`m.ret` can't fire an NMI or push a frame.
  */
 function makeEntry(base, { a, c, mark, records = OCCUPIED, req }) {
@@ -80,7 +79,7 @@ function makeEntry(base, { a, c, mark, records = OCCUPIED, req }) {
   e.regs.c = c;
   e.mem.write8(BONUS_EVENT_MARK, mark);
   for (let i = 0; i < RECORDS; i++) e.mem.write8(OBJ_ARRAY_64 + i * STRIDE, records[i]);
-  if (req !== undefined) e.mem.write8(SCRATCH_REQ, req);
+  if (req !== undefined) e.mem.write8(BARREL_CLAIM_MODE, req);
   e.regs.sp = SAFE_SP;
   e.nextNmi = Infinity;
   e.nextBoundary = Infinity;
@@ -101,7 +100,7 @@ function runPair(base, opts, candidate) {
 }
 
 // The gate-open slot scenarios: every first-free-slot position, plus all-occupied. Each is run at a
-// few (mode, mark=bonus) points, including a low mark whose −8 step wraps, and a non-zero 0x6382.
+// few (mode, mark=bonus) points, including a low mark whose −8 step wraps, and a non-zero BARREL_CLAIM_MODE.
 const SLOT_CASES = [
   { name: "slot@0", records: [0, 1, 1, 1, 1] },
   { name: "slot@1", records: [1, 0, 1, 1, 1] },
@@ -168,7 +167,7 @@ test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x20, "gate closed -> mark unchanged");
     }
   }
-  // (ii) gate open, slot found -> mark stepped by 8 and the request flag raised over the low bits.
+  // (ii) gate open, slot found -> mark stepped by 8 and bit 7 raised over the mode value.
   {
     const a = makeEntry(base, { a: 0x03, c: 0x08, mark: 0x08, records: [1, 0, 1, 1, 1], req: 0x03 });
     const b = makeEntry(base, { a: 0x03, c: 0x08, mark: 0x08, records: [1, 0, 1, 1, 1], req: 0x03 });
@@ -176,10 +175,10 @@ test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case
     loc_2c4f(b, b.regs.a, b.regs.c);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x08 - EVENT_STEP, "mark must step down by 8");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 0x03 | 0x80, "request flag must OR the top bit over the low bits");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x03 | 0x80, "the claim must OR bit 7 over the mode value");
     }
   }
-  // (iii) gate open, all occupied -> mark stepped, request flag untouched.
+  // (iii) gate open, all occupied -> mark stepped, BARREL_CLAIM_MODE untouched.
   {
     const a = makeEntry(base, { a: 0x03, c: 0x50, mark: 0x50, records: OCCUPIED, req: 0x11 });
     const b = makeEntry(base, { a: 0x03, c: 0x50, mark: 0x50, records: OCCUPIED, req: 0x11 });
@@ -187,7 +186,7 @@ test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case
     loc_2c4f(b, b.regs.a, b.regs.c);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x50 - EVENT_STEP, "mark must step down by 8");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 0x11, "no free slot -> request flag untouched");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x11, "no free slot -> BARREL_CLAIM_MODE untouched");
     }
   }
   console.log(`  EQUAL: ${count} combos (256 A-sweep + gate-open slot cross-product) — RAM identical to the oracle`);
@@ -222,7 +221,7 @@ function brokenInvertedGate(m, scratchValue, bonus) {
   }
 }
 
-/** BUG (c): finds the free slot but never raises the flag — caught at 0x6382 on a slot-found case. */
+/** BUG (c): finds the free slot but never raises bit 7 — caught at BARREL_CLAIM_MODE on a slot-found case. */
 function brokenDroppedFlag(m, scratchValue, bonus) {
   const { mem } = m;
   mem.write8(SCRATCH_MODE, scratchValue);
@@ -254,7 +253,7 @@ test("TEETH: the dropped-slot-flag twin is CAUGHT (0x6382 diverges)", () => {
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenDroppedFlag);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a dropped slot flag — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the dropped-flag twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the dropped-flag twin must diverge on 0x6382");
   console.log(`  TEETH/flag: caught — ${describe(mismatch)}`);
 });
 

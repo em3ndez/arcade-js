@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Memory-equivalence test for loc_0c92 (ROM 0x0C92) — the board builder: wipe the
- * playfield + sprite shadow buffer, reset the board scratch, post the opening deferred
+ * playfield + sprite shadow buffer, reset the bonus readout BONUS_DISPLAY, post the opening deferred
  * task (opcode 5, argument 1), select palette bank 2 (0x7d86 -> 0, 0x7d87 -> 1), then
  * dispatch on BOARD to the per-board setup arm (25m/50m/75m, or the inline 100m-rivet
  * fall-through which raises palette bit0 to bank 3 and queues SND_BGM = 0x0B).
@@ -34,9 +34,9 @@
  * Jobs:
  *   1. EQUAL — for every board 1..4, oracle vs loc_0c92 on fresh clones of the real entry
  *      leave identical RAM (−STACK_SCRATCH) and identical palette bank. Both clones are
- *      pre-seeded with a distinct sentinel palette bank AND a sentinel board scratch, so
+ *      pre-seeded with a distinct sentinel palette bank AND a sentinel BONUS_DISPLAY, so
  *      the match proves the writes actually happened (not unchanged bytes). Non-vacuous:
- *      the oracle side shows the whole chain ran (scratch cleared, SND_BGM + palette bank
+ *      the oracle side shows the whole chain ran (BONUS_DISPLAY cleared, SND_BGM + palette bank
  *      at the board's values), and the idiomatic side genuinely reproduced them. The dead
  *      stack traffic is proven load-bearing to the mask (stackDiffs > 0), and entry SP sits
  *      in STACK_SCRATCH so the exclusion is sound.
@@ -69,6 +69,7 @@ import {
   STACK_SCRATCH,
   BOARD,
   SND_BGM,
+  BONUS_DISPLAY,
   GAME_STATE,
   GAME_SUBSTATE,
   SUBSTATE_TIMER,
@@ -82,9 +83,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0c92;
-const BOARD_SCRATCH = 0x638c;       // engine scratch loc_0c92 resets to 0
 const PALETTE_SENTINEL = 0x00;      // a distinct entry bank so a dropped latch write shows up
-const SCRATCH_SENTINEL = 0xab;      // a distinct entry scratch so the reset write shows up
+const SCRATCH_SENTINEL = 0xab;      // a distinct entry value in BONUS_DISPLAY so the reset write shows up
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // What loc_0c92 leaves for each board: the final palette bank and the background tune.
@@ -184,7 +184,7 @@ test("EQUAL: loc_0c92 == oracle in RAM (−stack) and palette bank on every boar
       const c = cap.clone();
       // Pre-seed distinct entry state on BOTH sides so a match proves the writes happened.
       o.io.paletteBank = PALETTE_SENTINEL;  c.io.paletteBank = PALETTE_SENTINEL;
-      o.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);  c.mem.write8(BOARD_SCRATCH, SCRATCH_SENTINEL);
+      o.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);  c.mem.write8(BONUS_DISPLAY, SCRATCH_SENTINEL);
       oracle(o);
       idiomatic(c);
 
@@ -193,11 +193,11 @@ test("EQUAL: loc_0c92 == oracle in RAM (−stack) and palette bank on every boar
       assert.equal(o.io.paletteBank, c.io.paletteBank, `board ${board}: palette bank must match the oracle`);
 
       // Non-vacuous: the oracle side shows the whole prologue+arm chain executed...
-      assert.equal(o.mem.read8(BOARD_SCRATCH), 0, `board ${board}: oracle must reset the board scratch to 0`);
+      assert.equal(o.mem.read8(BONUS_DISPLAY), 0, `board ${board}: oracle must reset BONUS_DISPLAY to 0`);
       assert.equal(o.mem.read8(SND_BGM), bgm, `board ${board}: oracle must queue tune ${hx(bgm)}`);
       assert.equal(o.io.paletteBank, bank, `board ${board}: oracle must select palette bank ${bank}`);
       // ...and the idiomatic side genuinely reproduced them, not merely agreed on unchanged bytes.
-      assert.equal(c.mem.read8(BOARD_SCRATCH), 0, `board ${board}: idiomatic must reset the board scratch to 0`);
+      assert.equal(c.mem.read8(BONUS_DISPLAY), 0, `board ${board}: idiomatic must reset BONUS_DISPLAY to 0`);
       assert.equal(c.mem.read8(SND_BGM), bgm, `board ${board}: idiomatic must queue tune ${hx(bgm)}`);
       assert.equal(c.io.paletteBank, bank, `board ${board}: idiomatic must select palette bank ${bank}`);
       assert.ok(stackDiffCount(o, c) > 0, `board ${board}: the oracle's stack traffic must differ (so the STACK_SCRATCH mask is load-bearing)`);
@@ -213,7 +213,7 @@ test("EQUAL: loc_0c92 == oracle in RAM (−stack) and palette bank on every boar
 function brokenDropPalette(m) {
   const { regs, mem } = m;
   clearPlayfieldAndSprites(m);
-  mem.write8(BOARD_SCRATCH, 0);
+  mem.write8(BONUS_DISPLAY, 0);
   regs.de = 0x0501;
   enqueueTask(m);
   // BUG: no palette-bank latch writes
@@ -242,7 +242,7 @@ test("TEETH (palette): dropping the palette-bank writes is CAUGHT at the palette
 function brokenWrongArm(m) {
   const { regs, mem } = m;
   clearPlayfieldAndSprites(m);
-  mem.write8(BOARD_SCRATCH, 0);
+  mem.write8(BONUS_DISPLAY, 0);
   regs.de = 0x0501;
   enqueueTask(m);
   mem.write8(0x7d86, 0);
@@ -268,7 +268,7 @@ test("TEETH (dispatch): mis-routing the board-1 entry to the 50m arm is CAUGHT a
 function brokenRivetTune(m) {
   const { regs, mem } = m;
   clearPlayfieldAndSprites(m);
-  mem.write8(BOARD_SCRATCH, 0);
+  mem.write8(BONUS_DISPLAY, 0);
   regs.de = 0x0501;
   enqueueTask(m);
   mem.write8(0x7d86, 0);

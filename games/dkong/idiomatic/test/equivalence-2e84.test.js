@@ -35,7 +35,7 @@
  *      addresses to the two cursors and rule out a cross term.
  *   3. EQUAL (independence) — hold cursors + source bytes fixed and vary de, b, scratch
  *      registers, and an unrelated RAM byte: output unchanged.
- *   4. REALISM (captured) — steer loc_2e04 into its full 10-object pass with every object
+ *   4. REALISM (captured) — steer update75mActorObjects into its full 10-object pass with every object
  *      active + state 4 (five below the limit, five at it), let the game's OWN code (obj_2e12)
  *      dispatch 0x2e84, hook it to capture the 10 real dispatches, and replay oracle vs
  *      candidate on each — both retire and move arms, at the true in-game cursor sequence.
@@ -57,7 +57,7 @@ import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
-import { OBJ_ACTIVE, OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y, OBJ_ARRAY_65, ACTOR_SPRITES } from "../ram.js";
+import { OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y, OBJ_ARRAY_65, ACTOR_SPRITES } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -247,7 +247,7 @@ test("EQUAL (independence): output depends ONLY on the cursors + their fields, n
 
 // -- 4. REALISM (real captured dispatches) ------------------------------------
 
-// Attract never reaches loc_2e04's object loop. So nudge all 10 objects active + state 4
+// Attract never reaches update75mActorObjects's object loop. So nudge all 10 objects active + state 4
 // (ix+0d = 4) with distinct positions — the first five below the travel limit (move arm), the
 // last five at it (retire arm) — and let the game's OWN code (obj_2e12) dispatch loc_2e84.
 // Hook 0x2e84 to capture the real dispatch states (the true cursor sequence the scan produces)
@@ -257,13 +257,13 @@ function captureRealDispatches() {
   host.runFrames(700); // realistic work RAM (0x2e84 does not dispatch in attract, so no captures yet)
   const m = host.clone();
   m.regs.sp = 0x6c00;
-  m.push16(0x4d17); // sentinel caller-return for loc_2e04
+  m.push16(0x4d17); // sentinel caller-return for update75mActorObjects
   m.mem.write8(0x6227, 3); // board = 3   -> rst 0x30 (A=0x04) passes
   m.mem.write8(0x6200, 1); // enable bit0 -> rst 0x10 passes -> full 10-object loop
   for (let k = 0; k < 10; k++) {
     const ix = OBJ_BASE + 16 * k;
     m.mem.write8(ix + OBJ_ACTIVE, 0x01);      // active (bit0) -> processed, not the inactive path
-    m.mem.write8(ix + 0x0d, 0x04);            // state 4 -> obj_2e12 dispatches loc_2e84
+    m.mem.write8(ix + OBJ_STATE, 0x04);            // state 4 -> obj_2e12 dispatches loc_2e84
     m.mem.write8(ix + OBJ_X, (0x20 + k) & 0xff); // distinct object X
     // Objects 0..4 stay below the limit after +3 (move arm); 5..9 reach it (retire arm).
     m.mem.write8(ix + OBJ_Y, k < 5 ? (0x40 + k) & 0xff : (0xf5 + (k - 5)) & 0xff);
@@ -281,7 +281,7 @@ function captureRealDispatches() {
 
 test("REALISM: real captured 0x2e84 dispatches — loc_2e84 matches the oracle on both arms", () => {
   const caps = captureRealDispatches();
-  assert.equal(caps.length, 10, "the steered full-loop loc_2e04 should dispatch 0x2e84 once per object (10)");
+  assert.equal(caps.length, 10, "the steered full-loop update75mActorObjects should dispatch 0x2e84 once per object (10)");
 
   let retired = 0;
   caps.forEach((cap, i) => {

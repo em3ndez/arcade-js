@@ -7,7 +7,7 @@
  * 0x16), taken when BOARD is neither of the two bit-gated cases. It does two independent
  * things in order, one after the other:
  *
- *   1. Run the effect-sprite state machine one frame (loc_1dbd) — a four-way router on
+ *   1. Run the effect-sprite state machine one frame (dispatchEffectState) — a four-way router on
  *      EFFECT_STATE (0x6340) that either idles, arms/spawns the effect, or counts it down.
  *   2. Dispatch the board-render / how-high sequence to its current-step handler
  *      (loc_1644) — read the sequence step counter at 0x6388 and vector through the
@@ -19,7 +19,7 @@
  * so this is void.
  *
  * NAME: kept the neutral loc_ on purpose. This is a plain sequence of two routines that
- * are BOTH themselves kept neutral — the effect-sprite machine's semantics (loc_1dbd's
+ * are BOTH themselves kept neutral — the effect-sprite machine's semantics (dispatchEffectState's
  * cohort) and the board-render sequence (loc_1644's family) are not confirmed to the
  * routine-name bar — so an English name here would over-assert past its own parts. Promote
  * once both families are grounded.
@@ -38,12 +38,12 @@
  *           (0x6340) and the render step selector (0x6388) live inside the two callees.
  */
 
-import { loc_1dbd } from "./loc_1dbd.js"; // ROM 0x1DBD — effect-sprite state machine router
+import { dispatchEffectState } from "./dispatchEffectState.js"; // ROM 0x1DBD — effect-sprite state machine router
 import { loc_1644 } from "./loc_1644.js"; // ROM 0x1644 — board-render sequence step dispatch
 
 export function loc_1641(m) {
   // Run the effect-sprite state machine one frame.
-  loc_1dbd(m);
+  dispatchEffectState(m);
 
   // Dispatch the board-render sequence to its current-step handler.
   loc_1644(m);

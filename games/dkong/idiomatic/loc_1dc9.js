@@ -5,7 +5,7 @@
  * low bits (or, if none are set, by the current LEVEL).  ROM 0x1dc9.
  *
  * sub_1dbd is the rst-0x28 router on the effect-sprite state byte EFFECT_STATE (0x6340; 0 =
- * idle loc_1e49, 1 = here, 2 = the countdown loc_1e4a, 3 = reset). This is the one-shot that
+ * idle effectStateIdle, 1 = here, 2 = the countdown loc_1e4a, 3 = reset). This is the one-shot that
  * runs when the machine enters state 1: it stores EFFECT_TIMER (0x6341) := 0x40 (the value the
  * state-2 countdown loc_1e4a works down) and advances EFFECT_STATE (0x6340) := 2 unconditionally,
  * on every path, before doing anything else. Then it spawns exactly one effect sprite by

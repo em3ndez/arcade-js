@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1f23 (ROM 0x1F23) — effect-sequence step 2, a two-stage rate divider
+ * Equivalence test for animateEffectSpriteThenRearmEffect (ROM 0x1F23) — effect-sequence step 2, a two-stage rate divider
  * that steps the effect sprite's tile on most beats and, when the outer counter runs out, resets
  * the sequence and re-arms the parent effect state machine.
  *
- * loc_1f23 is a LEAF (no callees) and the sibling of loc_1f09; it shares the two-stage divider but
+ * animateEffectSpriteThenRearmEffect is a LEAF (no callees) and the sibling of flashEffectSpriteThenAdvanceSequence; it shares the two-stage divider but
  * differs in three ways this gate nails: the inner divider reloads to 12 (not 6), the ordinary beat
  * INCREMENTS the sprite code (not flips its low bit), and the final beat does NOT reload the outer
  * divider — instead it tears the sequence down. Its whole memory-observable behaviour is a function
@@ -21,7 +21,7 @@
  *
  * The oracle threads flags/registers through and returns via the router's dispatch tail, but no
  * caller consumes them (the router and its own caller take an independent skip decision), so the
- * contract is MEMORY-ONLY. There is NO stack-scratch exclusion: loc_1f23 makes no call and pushes
+ * contract is MEMORY-ONLY. There is NO stack-scratch exclusion: animateEffectSpriteThenRearmEffect makes no call and pushes
  * nothing — its bare `ret`s only READ the stack — so the whole RAM dump compares clean.
  *
  * The behaviour factors into three disjoint arms, and the union of the sweeps below is EXHAUSTIVE
@@ -41,15 +41,15 @@
  *            write is caught. The BEAT grid visits this arm (at outer == 1) for every sprite value,
  *            and the STATE sweep visits it over all 256 prior state values.
  *
- *   1. EQUAL (exhaustive) — loc_1f23 == oracle on RAM across all three sweeps (256 + 256x256 + 256
+ *   1. EQUAL (exhaustive) — animateEffectSpriteThenRearmEffect == oracle on RAM across all three sweeps (256 + 256x256 + 256
  *      = 66048 combos). A proof by that factorisation, not a sample.
  *
  *   2. TEETH (exhaustive) — seven deliberately-broken twins, one per written cell, each of which the
  *      same sweeps MUST catch (and at that exact cell):
  *        (a) no-step          — drops the sprite increment; caught at 0x6A2D on a step beat.
  *        (b) wrong inner reload — reloads the inner divider to 6 not 12; caught at 0x6346.
- *        (c) outer reloaded    — reloads the outer divider on the reset beat (the loc_1f09 behaviour
- *                                loc_1f23 drops); caught at 0x6347.
+ *        (c) outer reloaded    — reloads the outer divider on the reset beat (the flashEffectSpriteThenAdvanceSequence behaviour
+ *                                animateEffectSpriteThenRearmEffect drops); caught at 0x6347.
  *        (d) no state reset    — leaves EFFECT_SEQ_STATE instead of zeroing it; caught at 0x6345.
  *        (e) no re-arm         — leaves EFFECT_STATE instead of setting 1; caught at 0x6340.
  *        (f) wrong param ptr   — drops the EFFECT_PARAM_PTR reset; caught at 0x6343.
@@ -57,7 +57,7 @@
  *
  *   3. REALISM (captured dispatches) — hook 0x1F23 in a real attract run (the effect sequence
  *      reaches step 2 during the demo and dispatches it across all three arms), clone the machine at
- *      each true dispatch, and confirm loc_1f23 reproduces the oracle's RAM on every real state.
+ *      each true dispatch, and confirm animateEffectSpriteThenRearmEffect reproduces the oracle's RAM on every real state.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1f23.test.js
  */
@@ -67,7 +67,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f23 as oracle } from "../../translated/loc_1f23.js";
-import { loc_1f23 } from "../loc_1f23.js";
+import { animateEffectSpriteThenRearmEffect } from "../animateEffectSpriteThenRearmEffect.js";
 import {
   EFFECT_SEQ_INNER,
   EFFECT_SEQ_OUTER,
@@ -195,9 +195,9 @@ test("REACHABILITY: 0x1F23 is dispatched during attract", () => {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_1f23 == oracle across all three arm sweeps", () => {
+test("EQUAL (exhaustive): animateEffectSpriteThenRearmEffect == oracle across all three arm sweeps", () => {
   const base = makeBase();
-  const { mismatch, count } = fullSweep(base, loc_1f23);
+  const { mismatch, count } = fullSweep(base, animateEffectSpriteThenRearmEffect);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256 + 256 * 256 + 256, "must have compared the full factored input space");
   console.log(`  EQUAL/exhaustive: ${count} (inner, outer, state, sprite) combos — RAM identical to the oracle`);
@@ -246,7 +246,7 @@ function brokenInnerReload(m) {
   mem.write8(SPRITE_CELL, mem.read8(SPRITE_CELL) + 1);
 }
 
-/** BUG (c): reloads the outer divider on the reset beat (loc_1f09 does this; loc_1f23 must not). Caught at 0x6347. */
+/** BUG (c): reloads the outer divider on the reset beat (flashEffectSpriteThenAdvanceSequence does this; animateEffectSpriteThenRearmEffect must not). Caught at 0x6347. */
 function brokenOuterReloaded(m) {
   const { mem } = m;
   const inner = mem.read8(EFFECT_SEQ_INNER) - 1;
@@ -256,7 +256,7 @@ function brokenOuterReloaded(m) {
   const outer = mem.read8(EFFECT_SEQ_OUTER) - 1;
   mem.write8(EFFECT_SEQ_OUTER, outer);
   if (outer === 0) {
-    mem.write8(EFFECT_SEQ_OUTER, 4); // BUG: loc_1f23 leaves the outer divider at 0
+    mem.write8(EFFECT_SEQ_OUTER, 4); // BUG: animateEffectSpriteThenRearmEffect leaves the outer divider at 0
     mem.write8(EFFECT_SEQ_STATE, 0);
     mem.write8(SHARED_SCRATCH, 0);
     mem.write8(EFFECT_STATE, 1);
@@ -392,7 +392,7 @@ function classifyArm(entry) {
   return ((outer - 1) & 0xff) === 0 ? "reset" : "step";
 }
 
-test("REALISM: real captured 0x1F23 dispatches — loc_1f23 matches oracle RAM", () => {
+test("REALISM: real captured 0x1F23 dispatches — animateEffectSpriteThenRearmEffect matches oracle RAM", () => {
   const caps = captureDispatches(256, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x1F23 dispatch during attract");
 
@@ -404,7 +404,7 @@ test("REALISM: real captured 0x1F23 dispatches — loc_1f23 matches oracle RAM",
     a.nextNmi = Infinity; a.nextBoundary = Infinity;
     b.nextNmi = Infinity; b.nextBoundary = Infinity;
     oracle(a);
-    loc_1f23(b);
+    animateEffectSpriteThenRearmEffect(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(
       ram,

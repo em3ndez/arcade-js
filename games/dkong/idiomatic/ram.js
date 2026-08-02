@@ -81,8 +81,8 @@ export const TOP_SPRITES = 0x6a00;
 export const OBJECT_COLLISION_SPRITES = 0x6a0c;
 /** [code] Effect sprite record (4 bytes at 0x6A2C inside SPRITE_BUFFER, immediately before
  *  POPUP_SPRITE): +0 Y, +1 SPRITE_CODE, +2 SPRITE_ATTR, +3 X. entry_1ea0 builds it and stores its
- *  base into EFFECT_PARAM_PTR (0x6343); loc_1f09 flips bit0 of its code byte (0x60↔0x61) each effect
- *  beat, loc_1f23 steps it. Its +1 code field (0x6A2D) IS grounded [seen] live (flips 0x60↔0x61, 41
+ *  base into EFFECT_PARAM_PTR (0x6343); flashEffectSpriteThenAdvanceSequence flips bit0 of its code byte (0x60↔0x61) each effect
+ *  beat, animateEffectSpriteThenRearmEffect steps it. Its +1 code field (0x6A2D) IS grounded [seen] live (flips 0x60↔0x61, 41
  *  transitions, tied to EFFECT_SEQ_STATE) — reach 0x6A2D as EFFECT_SPRITE + SPRITE_CODE. [code] because
  *  grounding grounded the +1 field, not the base cell's own byte (same rating as sibling POPUP_SPRITE). */
 export const EFFECT_SPRITE = 0x6a2c;
@@ -106,8 +106,15 @@ export const OBJ_Y = 0x05;
 /** [seen] Object-record field: sprite tile code (+7); gatherSpriteRecords copies to sprite +1. Grounded
  *  live in real MAME 25m attract: 0x6407 cycled {61,62,189,190}, 0x6707 11 distinct animation frames. */
 export const OBJ_SPRITE_CODE = 0x07;
-/** [code] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. */
+/** [seen] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. Grounded
+ *  live in NATURAL attract (zero pokes, RUN-A2, probed at 0x6408): own byte {0,1}, 15 transitions, with
+ *  only two gameplay writers — pc 0x315D (2477x, writes 1) and pc 0x316A (768x, writes 0), both inside
+ *  loc_313c — plus 5 board-init writes at pc 0x0F69/0x1230. The hammer A/B is the causal control. */
 export const OBJ_SPRITE_ATTR = 0x08;
+/** [seen] Object-record field (+0x18): loc_313c's pending-insert marker. Grounded live: takes {0,1}, held
+ *  at 1 for 310 frames (natural attract) / 186 (credited 1P) / 70 (board 2), and set ONLY on frames whose
+ *  INSERT arm (ROM 0x319D) fired — identically 0 across all 6667 board-3 frames, where 0x319D never ran. */
+export const OBJ_INSERT_REQUESTED = 0x18;
 /** [code] Object-record field: per-object collision half-extent on the X axis (+0x09) — the extra span
  *  added to the caller's base tolerance in the bounding-box overlap test. findCollidingObject and
  *  countObjectOverlaps read it paired with OBJ_X (+3); writers (service50mObjectSpawnRequest,
@@ -149,19 +156,30 @@ export const OBJ_ITER_PTR = 0x63c8;
  *  sub_2880 / entry_31b1. Grounded live (record-0 only): record-0's fields all took live values in real
  *  MAME 25m attract (records 1,2 stayed 0) — the base is exercised; honest record-0-only [seen]. */
 export const OBJ_ARRAY_64 = 0x6400;
-/** [code] Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F); entry_2e04, mirrored to
- *  ACTOR_SPRITES. */
+/** [seen] PARTIAL — records 0-1 only. Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F);
+ *  update75mActorObjects, mirrored to ACTOR_SPRITES. Grounded live on 75m (RUN-B3): record 0 active for
+ *  3711 frames with X sweeping 213 distinct values over 1873 transitions, and record 1 also activates.
+ *  RECORDS 2-9 NEVER ACTIVATED in any run, and the array is entirely dormant on boards 1, 2 and 4 — so
+ *  this is an honest record-0/1-only [seen], the same convention as OBJ_ARRAY_64/67, not full coverage. */
 export const OBJ_ARRAY_65 = 0x6500;
 /** [seen] Object array, stride 0x10, 6 records; sub_2591. GROUNDED (pass-5 50m real-ROM run, credited
  *  board 2): records 0-2 (0x65A0/B0/C0) live on 50m — active {0,1}, X sweeps the full 0..249 with 1704
  *  frame-to-frame transitions (the horizontally-moving 50m objects the M50 step shadows drive), Y
  *  row-fixed. Base exercised on the board it belongs to; honest — records 3-5 not separately checked. */
 export const OBJ_ARRAY_65A0 = 0x65a0;
-/** [code] Object array, stride 0x10, 6 records; sub_2797 (land/deactivate on +0d bit3). */
+/** [seen] Object array, stride 0x10, 6 records; sub_2797 (land/deactivate on +0d bit3). Grounded live on
+ *  75m (RUN-B3), ALL SIX records: each active ~5180/6204 board-3 frames, each record's Y (+5) sweeping 154
+ *  distinct values over ~1550 frame-to-frame transitions, X in {55,119}, state (+0x0D) in {0,4,8}. Its two
+ *  writers ran only here — 0x27DA (spawn) and 0x2797 (animate), 1609x each, and 0x on boards 1/2/4, where
+ *  no record was ever active. */
 export const OBJ_ARRAY_66 = 0x6600;
 /** [code] Object pair, stride 0x10, 2 records (0x6680 / 0x6690); seedSpriteObjectPair, gathered to 0x6A18. */
 export const OBJ_PAIR_6680 = 0x6680;
-/** [code] Single object record; sub_2880 sweep3 (count 1), loc_11fa scatters a ROM template into it. */
+/** [seen] Single object record; search25mObjectOverlap sweep3 (count 1), loc_11fa scatters a ROM template
+ *  into it. Grounded live as per-board constants: board 1 active=1, X=39, Y=224, code=112 (3722 frames
+ *  attract / 5267 credited 1P); board 2 active=1, X=127, Y=120, code=64 (5271 frames); boards 3 and 4
+ *  all-zero. It is seeded (loc_11FA) exactly on the boards whose collision arm sweeps it and lies dormant
+ *  on the boards whose arms do not — the arms and the record agree. */
 export const OBJ_RECORD_66A0 = 0x66a0;
 /** [seen] Object array, stride 0x20, 10 records spanning page 0x68 (0x6700-0x6840);
  *  sub_2880 / entry_2c8f / sub_1f72. Grounded live (record-0 only): record-0's fields all took live
@@ -216,9 +234,13 @@ export const SUBSTATE_TIMER_LO = 0x6008;
  *  "wait N then go to sub-state M" idiom writes N here and M into 0x600A (the next byte). */
 export const SUBSTATE_TIMER = 0x6009;
 /** [seen] (own byte: 19 vals 0..23, 78 transitions, RUN-2P) Sub-state dispatch index WITHIN the current GAME_STATE. In-game (state 3) the handler at
- *  ROM 0x06FE does `ld a,(0x600a) / rst 0x28` through the 29-entry table at 0x0702:
- *  7=opening Kong-climb cutscene (NOT a rescue), 8=how-high, 10=board setup, 13=gameplay,
- *  14=P1 death, 0x16=board-cleared/advance. Board-complete writes 0x16 (ROM 0x1E80 rivet-zero;
+ *  ROM 0x06FE does `ld a,(0x600a) / rst 0x28` through the 29-entry table at 0x0702. Indices below are
+ *  HEX (an earlier note mixed decimal and hex in one list and mis-stated gameplay as "13"; the table was
+ *  re-dumped from the ROM to settle it):
+ *  0x07=opening Kong-climb cutscene (NOT a rescue), 0x08=how-high, 0x0A=board setup,
+ *  0x0C=gameplay (-> ROM 0x197A, the shared per-frame update cascade), 0x0D=the loc_127f router cluster
+ *  entered when Mario stops being active (-> ROM 0x127C), 0x0E=P1 death (-> ROM 0x12F2),
+ *  0x16=board-cleared/advance. Board-complete writes 0x16 (ROM 0x1E80 rivet-zero;
  *  girder/rescue boards likewise). NOTE: this is a corrected name — arcade2 commit 14da179 called
  *  this address a "rescue flag" after seeing 7 at a board transition; 7 is the NEXT board's intro.
  *  Board-to-board progression and the level loop are real and validated-by-play regardless of this
@@ -250,12 +272,15 @@ export const PLAYER_SLOT_RECORDS = 0x611c;
  *  against the 8-entry table at 0x0A7A. Walks 1→7 over the cutscene (roar audio 0x608A=0x0F at
  *  step 7). Reached only while GAME_SUBSTATE (0x600A) == 7. */
 export const INTRO_STEP = 0x6385;
-/** [code] Board-advance / "how high" render-sequence step index — the machine step for the
+/** [seen] Board-advance / "how high" render-sequence step index — the machine step for the
  *  GAME_SUBSTATE (0x600A) == 0x16 board-advance state. loc_1615/loc_1641/loc_1644 dispatch
  *  `ld a,(0x6388) / rst 0x28` through their board-parity tables on it; each step's routine renders
  *  one stage then `inc`s it to advance (a write of 0 resets/restarts the sequence). Step 0 is the
- *  how-high screen (loc_17b6). Pass-2 confirmer: a single step-index role across every reader+writer,
- *  both layers. */
+ *  how-high screen (loc_17b6). Grounded live (RUN-ADV): the own byte walked {0,1,2,3,4,5} (step 1 for
+ *  160 frames, 2 for 352, 3 for 192, 4 for 384, 5 for 704), and every writer was caught by PC —
+ *  0x1666, 0x1680, 0x1756, 0x176B, 0x17AD, 0x1822, 0x186E, 0x187F, 0x18C5, 0x1962 (the per-step render
+ *  routines, each `inc`ing it) PLUS pc 0x306E, which is advanceSequenceStepWhenTimerExpires's indirect
+ *  `inc (hl)` (2 writes) — direct confirmation of the SEQ_ADVANCE_PTR indirection. */
 export const BOARD_ADVANCE_STEP = 0x6388;
 /** [seen] (own byte {0,8}, RUN-attract) Saved copy of SND_BGM taken when a hammer is
  *  grabbed (buildPendingHammerSprite / ROM 0x2FB4), so updateActiveHammer can restore the
@@ -408,6 +433,17 @@ export const DIFFICULTY = 0x6380;
 /** [seen] (own byte: 17 vals 0..16, 23 transitions, RUN-B4) Increments every 256 frames; every 8th increment recomputes DIFFICULTY (ROM 0x0386). Reset at
  *  board start. Measured: 257-frame cadence, resets when the board is built. */
 export const DIFFICULTY_CLOCK = 0x6381;
+/** [seen] 25m barrel slot-claim mode byte, and the selector for WHICH of two barrel kinds gets stamped.
+ *  The 0x2C-cluster slot-claim entries record a mode value here (loc_2c49 leaves 1; a claimed slot leaves
+ *  0x81 — the low bits are the mode, BIT 7 is the kind). Grounded live in real MAME: own byte took
+ *  {0x00, 0x02, 0x80, 0x81} over 21 transitions in 14546 natural attract frames, and bit 7 selected the
+ *  sprite triple stamped into the barrel record with 46/46 agreement — bit7=0 -> code/attr/mode
+ *  0x15/0x0B/0x00 (38 observations), bit7=1 -> 0x19/0x0C/0x01 (8). It is set by ROM 0x2C72 exactly one
+ *  frame before each alternate-kind claim (8 events). The two kinds coexisted on screen for 372 frames
+ *  and behave differently: the attr-0x0C object DROPS with its X pinned at 59, the attr-0x0B object ROLLS
+ *  with X sweeping the girders. Which named Donkey Kong object each kind is was deliberately NOT
+ *  established — the behaviour is observed, the lore name is not. */
+export const BARREL_CLAIM_MODE = 0x6382;
 /** [seen] (own byte: 256 vals 0..255, 7866 transitions, RUN-1P) The main loop's latched copy of the last FRAME it serviced; the loop spins on
  *  `ld a,(0x601A) / cp (hl) / jr z` (ROM 0x02D1) — the wait-for-vblank. Byte-identical to FRAME at
  *  the frame boundary except on overrun frames. */
@@ -498,8 +534,8 @@ export const COLLIDED_OBJECT_STRIDE = 0x6353;
  *  writes it; entry_1ea0 reads it as the loop count that walks base+index*stride to the hit record
  *  ((0x6354)==0 → skip). Only these two touch it. */
 export const COLLIDED_OBJECT_INDEX = 0x6354;
-/** [seen] (own low byte observed = 0x85 -> points at 0x6385 INTRO_STEP during the cutscene, RUN-1P; single meaningful value) 16-bit INDIRECT pointer (lo,hi): the ADDRESS of the counter the gated tick helper loc_3069
- *  advances. loc_3069 (ROM 0x306A `ld hl,(0x63c0) / inc (hl)`) loads the WORD stored here and
+/** [seen] (TWO live values, both observed by write tap and both dereferences seen to move their target byte: 0x6385 INTRO_STEP for 619 frames of cutscene, and 0x6388 BOARD_ADVANCE_STEP for 1597 frames of board advance; 0x0000 when idle) 16-bit INDIRECT pointer (lo,hi): the ADDRESS of the counter the gated tick helper advanceSequenceStepWhenTimerExpires
+ *  advances. advanceSequenceStepWhenTimerExpires (ROM 0x306A `ld hl,(0x63c0) / inc (hl)`) loads the WORD stored here and
  *  increments the byte it points at, but only once the 0x6009 gate expires. Setup routines re-point
  *  it — loc_0ae8/loc_0b06 seed 0x6385 (INTRO_STEP) for the cutscene, loc_17b6 seeds 0x6388 for the
  *  how-high render. HOW WE KNOW: the `ld hl,(nn)` indirect load is an unambiguous ROM cite + three
@@ -569,6 +605,20 @@ export const BONUS_EXPIRED_STEP = 0x6386;
  *  (ROM 0x1A16); state 2 (loc_1a1f) counts it down `dec (hl) / ret nz` (ROM 0x1A22) and advances
  *  BONUS_EXPIRED_STEP to 3 on underflow. */
 export const BONUS_EXPIRED_DELAY = 0x6387;
+/** [seen] The on-screen BONUS counter's current value — the number the player watches count down, and the
+ *  amount awardRemainingBonusToScore pays out at board completion. Seeded from BONUS_START, stepped down in
+ *  lockstep with BONUS by both tick sites, rendered by loc_066a, and reset to 0 at each board build by
+ *  buildBoard. Grounded live: 18 distinct values over 66 transitions in a natural attract run (0x00,
+ *  0x34-0x39, 0x40-0x49, 0x50), and the values captured at the 6 observed awardRemainingBonusToScore
+ *  dispatches (0x47, 0x48, 0x57, 0x60, 0x54, 0x67) each produced exactly the two score payloads the
+ *  nibble split predicts. ★ The PACKED-BCD nibble-pair layout (low nibble = hundreds, high = thousands) is
+ *  CODE-DERIVED, not observed: every observed nibble was <= 9, which is consistent with BCD but does not
+ *  prove it on 6 samples. Treat the address and the payout role as grounded, the BCD encoding as inference. */
+export const BONUS_DISPLAY = 0x638c;
+/** [code] Latch recording that the bonus readout has bottomed out, suppressing re-seeding once the display
+ *  reaches zero. One writer, one reader; cleared per board by initBoardState's 0x6280-0x6AFF block clear.
+ *  Not separately observed live — its discriminating state needs a run that plays a board's bonus to zero. */
+export const BONUS_DISPLAY_ZEROED = 0x63b8;
 
 // ── Prize / item collection ──────────────────────────────────────────────────
 /** [code] 1 = a prize/item was just collected; set at pickup (edge / airborne collision / rivet),
@@ -616,12 +666,12 @@ export const SPAWN_REQUEST = 0x6396;
 /** [code] One-shot "Mario Y just repositioned" flag; sub_29af sets 1 right after writing MARIO_Y, read
  *  as a gate by sub_2a85/sub_2745, cleared by the edge-reset routines. */
 export const EDGE_REPOSITION_FLAG = 0x6398;
-// Periodic object event-request latches raised by loc_2ddb (board-gated, difficulty-scaled)
+// Periodic object event-request latches raised by raisePeriodicObjectSpawnRequests (board-gated, difficulty-scaled)
 // and consumed one-per-frame by their inserters. Two distinct request/consumer chains.
 /** [seen] ({0,1}, board-gated) Object-SPAWN request into OBJ_ARRAY_65A0 (the 50m moving
  *  objects), consumed by sub_2523: when 1 and OBJ_SPAWN_TIMER (0x639B) has drained, sub_2523
  *  scans OBJ_ARRAY_65A0 for a free slot, spawns an object, clears this, reloads the timer to
- *  0x7C. Producer: loc_2ddb. Grounded live vs MAME on 50m: {0,1}, 128-frame rise period,
+ *  0x7C. Producer: raisePeriodicObjectSpawnRequests. Grounded live vs MAME on 50m: {0,1}, 128-frame rise period,
  *  each rise coincident with the timer at 0. Single producer + single consumer. */
 export const OBJ_SPAWN_REQ = 0x639a;
 /** [seen] (free-runs 0x7C->0) Reload/cooldown timer gating OBJ_SPAWN_REQ: sub_2523 decrements
@@ -632,11 +682,18 @@ export const OBJ_SPAWN_TIMER = 0x639b;
 /** [seen] ({0,1}, board-gated) Object-INSERT event-request latch consumed by entry_313c:
  *  when 1 (and a free slot exists in OBJ_ARRAY_64 on 50m) entry_313c activates a slot and
  *  clears it (consume-and-clear); also cleared on board reset (handler_0763). TWO producers
- *  raise it := 1 — loc_2ddb's difficulty-scaled periodic trigger (50m/100m) and loc_03a2's
+ *  raise it := 1 — raisePeriodicObjectSpawnRequests's difficulty-scaled periodic trigger (50m/100m) and loc_03a2's
  *  ARM_COUNTER-underflow re-arm (loc_03a2 does not read it back — one reader only). Grounded
  *  live vs MAME: {0,1}, 100m 128-frame rise period, consumed within a frame or two. Reverses
  *  the earlier "0x63xx engine scratch" rejection — single reader, one coherent request role. */
 export const EVENT_REQ_313C = 0x63a0;
+/** [seen] Per-scan tally of the live (non-empty) records loc_313c counts while sweeping OBJ_ARRAY_64; the
+ *  scan returns a caller-skip when it lands on zero. Grounded live: the SOLE writer in the entire ROM is
+ *  loc_313c (verified by grep over the frozen translated/ oracle). The own byte took {0,1,2,3,4,5} across
+ *  runs and its per-frame write sequences are always contiguous from 0 — attract/1P `0` and `0.1`, board 3
+ *  `0.1.2` (2417x), board 2 up to `0.1.2.3.4`, board 4 up to `0.1.2.3.4.5` (946x) — exactly the shape of a
+ *  counter incremented once per live record. */
+export const OBJ_LIVE_COUNT = 0x63a1;
 // 50m published per-object ±step shadows: each dir-latch above is reduced to a signed unit step by
 // sub_26e9 (odd frame ±1 / even frame 0) and stored here for the 50m platform/object mover to read.
 /** [seen] 50m: object-1's published signed X-step, from sub_26e9 of M50_OBJ1_STEP_DIR (0x62A1). Board-2 only.
@@ -664,7 +721,9 @@ export const M50_OBJ_ROW_SHIFT = 0x63b7;
 // ── String / object renderer ─────────────────────────────────────────────────
 /** [code] Source char-string pointer (word); walked to a 0x7F terminator, stored back each step. */
 export const RENDER_STR_PTR = 0x62a8;
-/** [code] Object-record pointer (word) the renderer reads/writes (sprite fields +7/+8). */
+/** [seen] Object-record pointer (word) the renderer reads/writes (sprite fields +7/+8). Grounded live: the
+ *  word took 0x6700/0x6720/0x6740/0x6760/0x6780/0x67A0/0x67C0 — OBJ_ARRAY_67 record bases — plus 0x0000
+ *  when idle, and equalled the IX register at 46/46 observed loc_2cf6 dispatches. */
 export const RENDER_OBJ_PTR = 0x62aa;
 /** [code] Destination pointer (word); the renderer writes the 4-byte record here (a slot inside
  *  SPRITE_BUFFER, 0x6980+(10-B)*4). */
@@ -693,8 +752,16 @@ export const CUTSCENE_BAND_COUNT = 0x638d;
 /** [code] Intro Kong-climb scroll index; runIntroClimbStep seeds 0x1F, walked down as the displaced
  *  video-copy offset (loop while != 0x0A). */
 export const INTRO_SCROLL_INDEX = 0x638e;
-/** [code] Blink animation phase / 4-way rst-0x28 router (entry_127f); drives the blinkSpritePairOn/Off
- *  toggle. WHAT blinks is inferential. */
+/** [code] 4-way rst-0x28 router phase for the loc_127f cluster. NAME UNDER REVIEW — its old note claimed
+ *  this cell "drives the blinkSpritePairOn/Off toggle", and that is FALSE: a ROM scan shows 0x639D/0x639E
+ *  are touched only at 0x127F-0x12DD, while blinkSpritePairOn/Off act on 0x6901/0x6905 off the colour-cycle
+ *  counter 0x6390. The two subsystems are unrelated, so the "blink" in this name is not established.
+ *  Independent evidence points at a DEATH ANIMATION instead: substate 0x0D (which is `CALL 0x1dbd / LD A,
+ *  (0x639D) / RST 0x28`) is entered from the gameplay cascade exactly when MARIO_ACTIVE == 0; arm 2 exits
+ *  into the P1/P2 life-loss handlers, and arm 1 XORs sprite code+attr so Mario's sprite cycles two tiles x
+ *  flip-x/flip-y — a four-orientation spin, 13 times, settling on tile 0x7A. That reading is code-derived
+ *  and NOT yet grounded in MAME, so the cell keeps its current name pending a grounding run rather than
+ *  taking a second unverified one. Its router loc_127f is deliberately still loc_<addr> for the same reason. */
 export const BLINK_ANIM_PHASE = 0x639d;
 /** [code] Blink repeat count; primed 0x0D, decremented each gate tick while toggling the pair, advances
  *  BLINK_ANIM_PHASE at 0. */
@@ -736,11 +803,14 @@ export const SEG_SUBTILE_Y1 = 0x63b4;
 export const SEG_TILE = 0x63b5;
 
 // ── Engine / object scratch (mined from the optimization sweep) ───────────────
-/** [seen] (own byte {0,1,5,10}, 20 transitions, RUN-1P) Record count of the object-list sweep currently being searched, staged for the bounding-box
+/** [seen] (own byte {0,1,5,6,7,10}, union over 5 runs) Record count of the object-list sweep currently being searched, staged for the bounding-box
  *  search entry_2913. Every per-board collision handler stores its sweep length here just before the
- *  search (sub_2880/28b0/28e0/2901, e.g. ROM 0x2884 `ld (0x63b9),a`); on a hit the found-handler
+ *  search (search25m/50m/75m/100mObjectOverlap, e.g. ROM 0x2884 `ld (0x63b9),a`); on a hit the found-handler
  *  reads it back and recovers the matched record's index as count − B (loc_281d, ROM 0x2846). HOW WE
- *  KNOW: 9 writers all storing a sweep count + one index-recovery reader. */
+ *  KNOW: 9 writers all storing a sweep count + one index-recovery reader. The observed set is board-
+ *  dependent: 6 appears ONLY on 50m (search50mObjectOverlap sweep 2, 459 sampled frames) and 7 ONLY on
+ *  100m (search100mObjectOverlap, 4491 frames). An earlier note listed {0,1,5,10}; that was incomplete
+ *  because no run had yet credited boards 2/4 with this cell logged. */
 export const OBJ_SEARCH_COUNT = 0x63B9;
 
 // ── Attract-demo input player ────────────────────────────────────────────────
@@ -818,7 +888,7 @@ export const ROUTINES = {
   0x0616: { name: "drawCreditDisplay", role: "paint the 'CREDIT nn' line: the label plus the credit count", cert: "code" },
   0x066a: { name: "loc_066a", role: "render a packed two-digit BCD byte into its on-screen field, suppressing a leading zero", cert: "code" },
   0x0689: { name: "stampTwoDigitField", role: "stamp a two-digit number's tile pair into its on-screen field: the high-digit tile into one cell, the low-digit tile into the cell one column over", cert: "code" },
-  0x0691: { name: "loc_0691", role: "award two table-selected BCD score amounts from the packed digit byte 0x638C (loc_066a's twin: low nibble, then high nibble + 0x0A, as add-to-score payloads)", cert: "code" },
+  0x0691: { name: "awardRemainingBonusToScore", role: "award the on-screen bonus (BONUS_DISPLAY) to the score as two table-selected payloads. Grounded: reached from loc_062a's task-10 dispatch on its A==0 arm -- RUN-ADV showed A=0x00 x5 / A=0x01 x20 and exactly 5 dispatches here; attract 62/62 were A=0x01, so it never fires there. CAVEAT: those 5 dispatches needed a GAME_SUBSTATE:=0x16 poke to reach the board-advance state -- in UNPOKED play it was observed 0 times over 49,700 frames, so the payout path is grounded but only via a poked board advance", cert: "seen" },
   0x06a8: { name: "loc_06a8", role: "decrement the packed two-digit BCD counter by one, latch a 'reached zero' marker when it rolls from 01 to 00, store it back, and render it", cert: "code" },
   0x06b8: { name: "drawLivesAndLevel", role: "redraw the reserve-lives indicator and the level-number digits", cert: "code" },
   0x06fe: { name: "dispatchInGameSubstate", role: "vector the credited game to its current sub-state handler", cert: "code" },
@@ -965,7 +1035,7 @@ export const ROUTINES = {
   0x1d8f: { name: "triggerWalkSound", role: "request Mario's footstep ('walk') sound for 3 frames", cert: "code" },
   0x1d95: { name: "loc_1d95", role: "commit A into the 0x6225 collection flag, then (off 25m) queue a 3-frame priority sound", cert: "code" },
   0x1da6: { name: "writeMarioSpriteRecord", role: "refresh Mario's 4-byte hardware sprite record from his live position/sprite state", cert: "code" },
-  0x1dbd: { name: "loc_1dbd", role: "the router for the effect-sprite state machine held in EFFECT_STATE (0x6340)", cert: "code" },
+  0x1dbd: { name: "dispatchEffectState", role: "the router for the effect-sprite state machine held in EFFECT_STATE (0x6340)", cert: "code" },
   0x1dc9: { name: "loc_1dc9", role: "sub_1dbd's state-1 handler: arm the state-2 countdown, advance the state 1 -> 2, then dispatch to the effect-sprite setter selected by EFFECT_SELECT's (0x6342) low bits (", cert: "code" },
   0x1df5: { name: "loc_1df5", role: "pick one of three effect-sprite setters from two bits of RANDOM", cert: "code" },
   0x1e00: { name: "loc_1e00", role: "load this effect-sprite's (code, task-message) params and hand off to the shared continuation loc_1e15", cert: "code" },
@@ -974,7 +1044,7 @@ export const ROUTINES = {
   0x1e15: { name: "loc_1e15", role: "post the queued task, fetch the effect sprite's X/Y from an indirect parameter block, then hand off to the record-stamp tail", cert: "code" },
   0x1e28: { name: "awardScorePopup", role: "award points and stage the floating score glyph over Mario", cert: "code" },
   0x1e36: { name: "loc_1e36", role: "stamp a 4-byte sprite record, then cue a board-gated sound", cert: "code" },
-  0x1e49: { name: "loc_1e49", role: "the idle (do-nothing) arm of sub_1dbd's EFFECT_STATE (0x6340) router", cert: "code" },
+  0x1e49: { name: "effectStateIdle", role: "the idle (do-nothing) arm of sub_1dbd's EFFECT_STATE (0x6340) router", cert: "code" },
   0x1e4a: { name: "tickDispatcherCountdown", role: "tick sub_1dbd's state-2 hold timer; reset the dispatcher on expiry", cert: "code" },
   0x1e57: { name: "checkBoardWonByType", role: "Mario's per-frame board-won position check: decide whether the current board has been won, dispatched by board type, and hand off to the arm that completes it", cert: "code" },
   0x1e6d: { name: "loc_1e6d", role: "stamp Mario's sprite facing on the board-won path, then commit the board-advance and unwind out of the movement cascade", cert: "code" },
@@ -983,8 +1053,8 @@ export const ROUTINES = {
   0x1e85: { name: "enterBoardAdvanceAndUnwind", role: "commit 'this board is complete': set the board-advance sub-state, then unwind out of the movement cascade", cert: "code" },
   0x1e94: { name: "loc_1e94", role: "unconditional caller-skip: make the call return past its caller", cert: "code" },
   0x1ea0: { name: "buildEffectSprite", role: "effect-sequence step 0: spawn the hit effect sprite from the collided object's record, then arm the effect countdown and its priority sound", cert: "code" },
-  0x1f09: { name: "loc_1f09", role: "effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow bit on most beats and hands the sequence to its next step on every fourth", cert: "seen" },
-  0x1f23: { name: "loc_1f23", role: "effect-sequence step 2: a two-stage rate divider that steps the effect sprite's tile on most beats and, when it runs out, resets the sequence and re-arms the parent effec", cert: "seen" },
+  0x1f09: { name: "flashEffectSpriteThenAdvanceSequence", role: "effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow bit on most beats and hands the sequence to its next step on every fourth", cert: "seen" },
+  0x1f23: { name: "animateEffectSpriteThenRearmEffect", role: "effect-sequence step 2: a two-stage rate divider that steps the effect sprite's tile on most beats and, when it runs out, resets the sequence and re-arms the parent effec", cert: "seen" },
   0x1f46: { name: "beginMarioFall", role: "when the 'ground went away' trigger is armed, drop Mario into a fresh falling state and remember the height he fell from", cert: "code" },
   0x216d: { name: "loc_216d", role: "grade an object against difficulty/position/input and, on a pass, advance its record", cert: "code" },
   0x21ee: { name: "advanceAttractDemoInput", role: "advance the canned-input script that drives the attract-mode demo", cert: "seen" },
@@ -1038,14 +1108,14 @@ export const ROUTINES = {
   0x281d: { name: "loc_281d", role: "test the active special-object record against the board's hazards and, on an overlap, record where it was found", cert: "code" },
   0x2853: { name: "searchPlayerObjectOverlap", role: "run the current board's object-overlap search for the player and hand its severity code back to the caller", cert: "code" },
   0x286f: { name: "dispatchBoardCollision", role: "vector a collision test to the current board's handler", cert: "code" },
-  0x2880: { name: "loc_2880", role: "board-overlap search arm: sweep three object arrays (0x6700x10, 0x6400x5, 0x66A0x1) through the shared collision search, stopping at the first hit", cert: "code" },
-  0x28b0: { name: "loc_28b0", role: "board-overlap search arm: three collision sweeps (0x6400x5, 0x65A0x6, 0x66A0x1) through the shared search, stopping at the first hit", cert: "code" },
-  0x28e0: { name: "loc_28e0", role: "board-3 (75m) overlap search arm: two collision sweeps (0x6400x5, then 0x65A0x10 only if the first misses) with a sweep-1 short-circuit", cert: "code" },
-  0x2901: { name: "loc_2901", role: "run one bounding-box collision sweep over the 0x6400 object array", cert: "code" },
+  0x2880: { name: "search25mObjectOverlap", role: "the 25m arm of the per-board overlap search: three sweeps (OBJ_ARRAY_67 x10, OBJ_ARRAY_64 x5, OBJ_RECORD_66A0 x1), first hit wins. Grounded: OBJ_SEARCH_COUNT write signature 10.5.1 seen 1218x in attract and 2136x in a 1P game, board 1 only; on board 1 its fetch count equals the board-collision dispatch count exactly (1220/1220, 2140/2140)", cert: "seen" },
+  0x28b0: { name: "search50mObjectOverlap", role: "the 50m arm: three sweeps (OBJ_ARRAY_64 x5, OBJ_ARRAY_65A0 x6, OBJ_RECORD_66A0 x1), first hit wins. Grounded both ways: 0 fetches across 18789 attract frames, 4766 fetches on 50m with signature 5.6.1 x4593", cert: "seen" },
+  0x28e0: { name: "search75mObjectOverlap", role: "the 75m arm: sweep OBJ_ARRAY_64 x5, then OBJ_ARRAY_65 x10 only if the first misses. Grounded: 3225 fetches on board 3 with signature 5.10 x3221, and 0 fetches on boards 1, 2, 4 and in attract", cert: "seen" },
+  0x2901: { name: "search100mObjectOverlap", role: "run one bounding-box collision sweep over the 0x6400 object array", cert: "code" },
   0x2913: { name: "findCollidingObject", role: "scan an object list for the first record whose bounding box overlaps a reference point on both axes; stop and report a hit, or report the list exhausted", cert: "code" },
   0x2974: { name: "loc_2974", role: "test whether Mario overlaps either of the two objects in the 0x6680 pair, and report which one", cert: "code" },
   0x298c: { name: "loc_298c", role: "is the background tile just ahead of the current object outside the accepted tile band?", cert: "code" },
-  0x2a22: { name: "loc_2a22", role: "constant-binding shim: run the collision search over OBJ_ARRAY_66 (0x6600, 6 records) -- does Mario overlap any object there", cert: "code" },
+  0x2a22: { name: "loc_2a22", role: "constant-binding shim: run the collision search over OBJ_ARRAY_66 (6 records). Grounded board-3-only: 146 fetches on 75m while its caller loc_29af ran 146; on boards 2 and 4 loc_29af ran 3700/2329x and this shim 0x -- the wrapper is gated inside the caller, on the board whose 0x6600 array is live", cert: "seen" },
   0x2a2f: { name: "loc_2a2f", role: "probe the tile a moving object is standing on and, if it sits on a sloped girder, slide the object's X along the slope and report the contact", cert: "code" },
   0x2a85: { name: "loc_2a85", role: "while Mario is in plain grounded contact, look at the tile under his foot and, if the girder there is not level, defer to the slope-footing fall check", cert: "code" },
   0x2ab4: { name: "decideSlopeGirderFooting", role: "decide whether Mario keeps his footing on an angled girder or the ground has run out and he starts to fall", cert: "code" },
@@ -1075,8 +1145,8 @@ export const ROUTINES = {
   0x2d54: { name: "loc_2d54", role: "the string renderer's per-character body: emit one 4-byte sprite record for the next character of the string, or hand off to the terminator", cert: "code" },
   0x2d83: { name: "loc_2d83", role: "aim the string renderer at the fixed source string at 0x39CC and emit its first character", cert: "code" },
   0x2d8c: { name: "loc_2d8c", role: "the string renderer's 0x7F terminator: reinitialise the object record it was building and reload the ten-record sprite-object block", cert: "code" },
-  0x2ddb: { name: "loc_2ddb", role: "raise two periodic event requests, on 50m/100m, while Mario is alive", cert: "code" },
-  0x2e04: { name: "loc_2e04", role: "the actor-object scan loop: on 75m, while Mario is alive, update all ten records of the actor object array", cert: "code" },
+  0x2ddb: { name: "raisePeriodicObjectSpawnRequests", role: "raise two periodic event requests, on 50m/100m, while Mario is alive", cert: "code" },
+  0x2e04: { name: "update75mActorObjects", role: "the actor-object scan loop: on 75m, while Mario is alive, update all ten records of the actor object array", cert: "code" },
   0x2e12: { name: "loc_2e12", role: "per-object update entry: dispatch one object by its active flag and state, otherwise walk it one animation-string step", cert: "code" },
   0x2e4b: { name: "loc_2e4b", role: "object update convergence: store the animation-string pointer back into the object record and, at the walk's end boundary, hand the object to its next state", cert: "code" },
   0x2e6c: { name: "mirrorObjectPositionToSprite", role: "mirror the current object's position into its paired sprite record, then advance the per-object scan", cert: "code" },
@@ -1095,7 +1165,7 @@ export const ROUTINES = {
   0x3009: { name: "loc_3009", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "code" },
   0x304a: { name: "scrollClimbGraphicStep", role: "advance the opening-cutscene climb graphic up one row by one indexed cell-pair, then step the scroll index down", cert: "code" },
   0x3064: { name: "copyByteDisplaced", role: "copy one byte from an indexed cell to a displaced cell", cert: "code" },
-  0x3069: { name: "loc_3069", role: "gated indirect step-advance: tick SUBSTATE_TIMER, and on the expiry frame increment the render-sequence step the SEQ_ADVANCE_PTR word points at", cert: "code" },
+  0x3069: { name: "advanceSequenceStepWhenTimerExpires", role: "gated indirect step-advance: tick SUBSTATE_TIMER and, on the expiry frame, increment the render-sequence step SEQ_ADVANCE_PTR points at. Grounded: 0 dispatches across 14546 attract frames but 64-128 in EVERY credited game (first at frame 778), and its indirect `inc (hl)` was caught writing BOARD_ADVANCE_STEP at pc 0x306E", cert: "seen" },
   0x306f: { name: "animateSpriteObjectBlock", role: "advance one animation frame of the ten-record sprite-object block, once every eight calls", cert: "code" },
   0x3096: { name: "xorMaskStridedPair", role: "XOR the 8-bit mask C into two bytes at HL, stride DE", cert: "code" },
   0x309f: { name: "enqueueTask", role: "post a 2-byte [opcode, argument] message onto the task ring", cert: "code" },
@@ -1106,7 +1176,7 @@ export const ROUTINES = {
   0x311b: { name: "loc_311b", role: "frame-phase caller-skip guard: proceed on 5 of every 8 frames", cert: "code" },
   0x3126: { name: "loc_3126", role: "caller-skip frame-throttle: proceed on three of every four frames", cert: "code" },
   0x3131: { name: "loc_3131", role: "let the caller proceed on seven of every eight frames; skip it on the eighth", cert: "code" },
-  0x313c: { name: "loc_313c", role: "per-object slot scan: tally live records into 0x63A1, flag each live record's +8 field, service one pending object-insert request, then return a caller-skip boolean (splice on zero count)", cert: "code" },
+  0x313c: { name: "loc_313c", role: "per-object slot scan: tally live records into OBJ_LIVE_COUNT, flag each live record's OBJ_SPRITE_ATTR, service one pending object-insert request, then return a caller-skip boolean (splice on zero count). Grounded: a live per-frame gameplay routine on every board -- 610 dispatches in pure attract (its caller 0x30ED ran 1220x), 3189 over a longer attract run, and 1069-3214 per credited board", cert: "seen" },
   0x31dd: { name: "loc_31dd", role: "arm a field on two objects when the board is hard enough and a rare entropy draw comes up", cert: "code" },
   0x31f6: { name: "loc_31f6", role: "pick a byte from the two timing-entropy cells: the low two bits of the random accumulator, or the frame counter in the single case those bits are 1", cert: "code" },
   0x32bd: { name: "loc_32bd", role: "a three-way object-walker dispatch keyed on the current board", cert: "code" },

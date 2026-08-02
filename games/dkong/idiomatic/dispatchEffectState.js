@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1dbd — the router for the effect-sprite state machine held in EFFECT_STATE (0x6340).  ROM 0x1dbd.
+ * dispatchEffectState — the router for the effect-sprite state machine held in EFFECT_STATE (0x6340).  ROM 0x1dbd.
  *
  * Once per frame this reads EFFECT_STATE (0x6340) and hands the frame to the handler
  * for that state, writing nothing of its own — it is pure control flow, a four-way branch
  * on a small enum:
  *
- *   - state 0 -> loc_1e49: idle. The state machine is dormant; nothing happens this frame.
+ *   - state 0 -> effectStateIdle: idle. The state machine is dormant; nothing happens this frame.
  *   - state 1 -> loc_1dc9: the one-shot that arms the countdown and spawns the effect
  *     sprite, then advances the state to 2.
  *   - state 2 -> loc_1e4a: the countdown. Each frame it works the timer down and, on
@@ -22,13 +22,17 @@
  * direct call and the routine simply returns whatever the chosen handler returns (nothing
  * is consumed by the caller either way).
  *
- * NAME: kept the neutral loc_ — the mechanics are certain (a four-way router on
- * EFFECT_STATE 0x6340), but WHAT this effect-sprite state machine is remains
- * unestablished (ram.js names the cluster at [code] confidence, semantic still to
- * ground); its whole cohort
- * (loc_1dc9, loc_1e49, loc_1e4a and the setter family below them) deliberately stayed
- * neutral for that reason, and naming the router past them would overclaim. Promote the
- * family together once the effect it drives is corroborated.
+ * NAME: PROMOTED in understanding pass 12, and the name is taken STRAIGHT FROM THE CELL rather than
+ * from any reading of this routine: ram.js names 0x6340 EFFECT_STATE and documents it as "Effect
+ * state / 4-way rst-0x28 router (sub_1dbd)" — the cell names this routine as its router, which is
+ * corroboration from outside the file (R5). The name therefore asserts exactly what EFFECT_STATE
+ * already asserts, and nothing further. Its structural twin dispatchBonusExpiredStep (0x1A07) is
+ * named the same way, after its own selector cell.
+ * WHAT THIS NAME DOES NOT CLAIM: what the effect-sprite state machine DEPICTS. EFFECT_STATE is
+ * [code], not [seen], and the effect semantic is still ungrounded — so "dispatchEffectState" names
+ * the router and its selector, not the phenomenon. Its cohort (loc_1dc9, loc_1e4a and the setter
+ * family) stays loc_<addr>: those differ only in which constant pair they load, so naming them would
+ * require claiming WHICH effect each one is, which nothing yet establishes.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1dbd.test.js.
  * GATE:     crafted-entry — oracle-vs-idiomatic on real captured 0x1dbd dispatches
@@ -54,7 +58,7 @@
  */
 import { EFFECT_STATE } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { loc_1e49 } from "./loc_1e49.js"; // ROM 0x1E49 — state 0 (idle)
+import { effectStateIdle } from "./effectStateIdle.js"; // ROM 0x1E49 — state 0 (idle)
 import { loc_1dc9 } from "./loc_1dc9.js"; // ROM 0x1DC9 — state 1 (arm + advance)
 import { loc_1e4a } from "../translated/loc_1e4a.js"; // ROM 0x1E4A — state 2 (countdown); no idiomatic yet, call the oracle
 
@@ -62,12 +66,12 @@ import { loc_1e4a } from "../translated/loc_1e4a.js"; // ROM 0x1E4A — state 2 
 // (the reset vector, ROM 0x0000) is intentionally absent — no handler ever produces it, so
 // it and any out-of-range value fall through to the reset-vector error below.
 const HANDLERS = [
-  loc_1e49, // state 0 — idle
+  effectStateIdle, // state 0 — idle
   loc_1dc9, // state 1 — arm the countdown, spawn the effect sprite, advance to 2
   loc_1e4a, // state 2 — count the timer down, tear the effect down on expiry
 ];
 
-export function loc_1dbd(m) {
+export function dispatchEffectState(m) {
   const state = m.mem.read8(EFFECT_STATE);
   const handler = HANDLERS[state];
   if (handler) return handler(m);
@@ -75,7 +79,7 @@ export function loc_1dbd(m) {
   // State 3 targets the reset vector and no state beyond 2 is ever produced; surface it
   // loudly, matching the oracle, rather than restarting the machine silently.
   throw new NotImplemented(
-    `loc_1dbd: EFFECT_STATE (0x6340) state ${state} has no handler (state 3 is the ROM 0x0000 reset ` +
+    `dispatchEffectState: EFFECT_STATE (0x6340) state ${state} has no handler (state 3 is the ROM 0x0000 reset ` +
       `vector; states above 2 do not occur in play).`,
   );
 }

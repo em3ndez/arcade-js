@@ -226,7 +226,7 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   separate request (posted `=3` by the periodic bonus tick, consumed via bit0) that activates a
   waiting object. `EDGE_REPOSITION_FLAG (0x6398)` is a one-shot set the frame Mario's Y is
   repositioned at a board edge, read as a gate by the edge-reset code. `[code]`
-- **Periodic object event requests.** On 50m/100m while Mario is alive, `loc_2ddb` fires a
+- **Periodic object event requests.** On 50m/100m while Mario is alive, `raisePeriodicObjectSpawnRequests` fires a
   difficulty-scaled periodic trigger (every `2^(9−steps)` frames — 128 at difficulty 1) that
   raises two one-shot request latches. `OBJ_SPAWN_REQ (0x639A)` is consumed by `service50mObjectSpawnRequest`: once
   its reload/cooldown timer `OBJ_SPAWN_TIMER (0x639B)` has drained (free-runs `0x7C→0`), it scans
@@ -234,7 +234,16 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   Each frame `update50mMovingObjects` mirrors the six `OBJ_ARRAY_65A0` records into their hardware
   sprite group `OBJ_65A0_SPRITES` (0x69B8, 6×4 bytes in `SPRITE_BUFFER`) for the sprite DMA (`[code]`).
   `EVENT_REQ_313C (0x63A0)` is an object-INSERT request consumed by `entry_313c`, which activates
-  a free `OBJ_ARRAY_64` slot and clears it (also cleared on board reset). **Grounded (understanding
+  a free `OBJ_ARRAY_64` slot and clears it (also cleared on board reset). That same scan keeps
+  `OBJ_LIVE_COUNT (0x63A1)`, a per-scan tally of how many records are live — the scan returns a
+  caller-skip when it lands on zero — and marks the record it inserts with the record field
+  `OBJ_INSERT_REQUESTED (+0x18)`. **Grounded (pass 12):** the tally's sole writer in the whole ROM is
+  `loc_313c`, and its per-frame write sequences are always contiguous from 0 (attract `0`/`0.1`,
+  board 3 `0.1.2`, board 2 up to `0.1.2.3.4`, board 4 up to `0.1.2.3.4.5`) — the shape of a counter
+  incremented once per live record. `OBJ_INSERT_REQUESTED` took `{0,1}` and was set **only** on frames
+  whose insert arm (ROM `0x319D`) fired, staying identically 0 across all 6667 board-3 frames where
+  that arm never ran. Note the same run also **corrected this cluster's reachability**: `loc_313c` is
+  not "off the live dispatch path" as its header once claimed — it ran 610× in pure attract alone. **Grounded (understanding
   pass 10):** both latches cycle `{0,1}` board-gated on a 128-frame rise period live vs MAME,
   consumed within a frame or two. `[seen]`
 - **50m step cascade.** On the 50m board only (board-2 gate), a small three-object cascade
@@ -356,6 +365,30 @@ doubles as the tick. Reaching 0 sets `BONUS_EXPIRED_STEP (0x6386)`, whose small 
 machine (`dispatchBonusExpiredStep`, `bonusExpiredIdle`, `startBonusExpiredDelay`,
 `advanceBonusExpiredStepWhenDelayExpires`) runs the timeout death. `[code]`
 
+**The bonus display and its payout (pass 12).** `BONUS_DISPLAY (0x638C)` is the counter the player
+actually watches: seeded from `BONUS_START`, stepped down in lockstep with `BONUS` by both tick sites,
+rendered by `loc_066a`, and reset to 0 at each board build by `buildBoard`. When a board is completed,
+`awardRemainingBonusToScore` pays whatever is left into the score as two table-selected payloads — the
+"whatever remains when you finish is added to your score" rule from `gameplay.md` §6, located in code.
+`BONUS_DISPLAY_ZEROED (0x63B8)` suppresses re-seeding once the readout bottoms out. `[seen]` for the
+display cell (18 distinct values / 66 transitions in natural attract, and the values captured at the 6
+observed payout dispatches each produced exactly the payloads the nibble split predicts); the
+**packed-BCD nibble layout itself is code-derived, not observed** — every observed nibble was ≤ 9, which
+is consistent with BCD but not proof of it on 6 samples.
+
+**Two barrel kinds on 25m, and the byte that selects them (pass 12, grounded).** The `0x2C` routine
+cluster (`0x2CE6`/`0x2CF6`/`0x2D15`/`0x2D51`/`0x2D54`/`0x2D83`/`0x2D8C`) was previously documented here
+and in the file headers as a **cutscene renderer**. That was wrong. Live MAME shows all 46 observed
+dispatches occur at *gameplay* substates (17 in a credited in-board game, 29 in the attract demo), **zero**
+at substate 7, on **board 1 only**, always with IX pointing at an `OBJ_ARRAY_67` barrel record, and each
+paired 1:1 with a slot claim by the barrel-release routine at `0x2CB8`. It is ordinary 25m barrel play.
+`BARREL_CLAIM_MODE (0x6382)` is the slot-claim mode byte, and its **bit 7 selects which of two barrel
+kinds** is stamped — 46/46 agreement: bit7=0 → sprite code/attr/mode `0x15/0x0B/0x00` (38 observations),
+bit7=1 → `0x19/0x0C/0x01` (8). The two kinds coexisted for 372 frames and behave differently: the
+`attr-0x0C` object **drops with its X pinned at 59**, the `attr-0x0B` object **rolls with X sweeping** the
+girders. Which named DK object each kind is (rolling vs. the barrel that comes straight down) was
+deliberately **not** established — the behaviour is grounded, the lore name is not. `[seen]`
+
 **Per-level starting bonus — confirmed and refined.** `gameplay.md` reports L1=5000,
 L2=6000, L3=7000, L4+=8000 from public sources; the code computes exactly that:
 
@@ -397,7 +430,7 @@ model; the exact 300/500/800-by-level scaling is in ROM data, so `[guess]` on th
 
 **The effect-sprite subsystem.** A small state machine plays a transient "effect" — a popup
 sprite plus a sound — when an object is hit or a prize is collected. `EFFECT_STATE (0x6340)`
-is a 4-way router (`loc_1dbd`): a pickup/hit raises it to 1, `EFFECT_SELECT (0x6342)` picks
+is a 4-way router (`dispatchEffectState`): a pickup/hit raises it to 1, `EFFECT_SELECT (0x6342)` picks
 which setter runs from its low bits (`loc_1dc9`), `EFFECT_PARAM_PTR (0x6343)` points at the
 hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on screen (armed
 `0x40`) before blanking `POPUP_SPRITE (0x6A30)` and resetting the router. A nested follow-on
@@ -405,7 +438,7 @@ countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `loc_1e96`) with
 counters `EFFECT_SEQ_INNER (0x6346)` / `EFFECT_SEQ_OUTER (0x6347)` — steps a short sequence
 and re-arms `EFFECT_STATE` on completion. The effect's own hardware sprite is `EFFECT_SPRITE
 (0x6A2C)`, a 4-byte record inside `SPRITE_BUFFER` immediately before `POPUP_SPRITE`; `buildEffectSprite`
-builds it and points `EFFECT_PARAM_PTR` at it, and on each ordinary beat `loc_1f09` flips bit0 of
+builds it and points `EFFECT_PARAM_PTR` at it, and on each ordinary beat `flashEffectSpriteThenAdvanceSequence` flips bit0 of
 its `+1` code byte to flash the effect tile between `0x60` and `0x61`. That `+1` code field
 (`0x6A2D`, reached as `EFFECT_SPRITE + 1`) is grounded `[seen]` live vs MAME (pass 9, 41 flips tied
 to `EFFECT_SEQ_STATE`); the base cell is named `[code]` like its sibling `POPUP_SPRITE`. The
@@ -488,10 +521,17 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   is the 100m branch. On the 50m arm the row X-shift delta is `M50_OBJ_ROW_SHIFT (0x63B7)` —
   `entry_03fb`/`entry_0400` compute `(0x6910) − 0x3b` and store it, and `shiftEvenBoardSpriteColumn`
   adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; grounded live on
-  the credited 50m board (pass-5), sweeping `0..255`, so `[seen]`). The blink is itself a short
-  animation sequence: `BLINK_ANIM_PHASE (0x639D)` routes 4
-  phases (`loc_127f`) and `BLINK_COUNT (0x639E)` (primed `0x0D`) times each toggle of the sprite
-  pair. `[code]`
+  the credited 50m board (pass-5), sweeping `0..255`, so `[seen]`).
+
+  ★ **CORRECTION (pass 12).** This section used to close by saying the colour-cycle blink "is itself a
+  short animation sequence" routed by `BLINK_ANIM_PHASE (0x639D)` through `loc_127f`. That link is
+  **false and has been removed.** A ROM scan shows `0x639D`/`0x639E` are touched only at `0x127F–0x12DD`,
+  whereas `blinkSpritePairOn`/`Off` act on `0x6901`/`0x6905` off the colour-cycle counter `0x6390` — two
+  unrelated subsystems. The `0x639D` sequence belongs to the `loc_127f` cluster reached at
+  `GAME_SUBSTATE == 0x0D`, which the ROM enters from the gameplay cascade when Mario stops being active;
+  its arms exit into the P1/P2 life-loss handlers, so it is very likely the **death animation**. That
+  reading is code-derived and not yet grounded in MAME, so the cell keeps its provisional name and
+  `loc_127f` stays `loc_<addr>` until a grounding run settles it. See `ram.js`.
 
 ---
 
@@ -729,7 +769,7 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 | `loc_127f` | vector a short animation sequence to its step handler |
 | `loc_128b` | phase-0 (seed) arm of the 0x639D animation sequence |
 | `loc_12ac` | phase-1 arm of the 0x639D animation sequence |
-| `loc_1dbd` | router for the effect-sprite state machine (0x6340) |
+| `dispatchEffectState` | router for the effect-sprite state machine (0x6340) |
 | `loc_1dc9` | state-1 handler: arm the state-2 countdown, advance |
 | `loc_1df5` | pick one of three effect-sprite setters from RANDOM bits |
 | `loc_1e00` | load an effect-sprite's (code, task) params and hand off |
@@ -737,7 +777,7 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 | `loc_1e10` | effect-sprite setter: load (B, DE), hand off to the feeder |
 | `loc_1e15` | post the queued task, fetch the effect sprite's X/Y |
 | `loc_1e36` | stamp a 4-byte sprite record, cue a board-gated sound |
-| `loc_1e49` | the idle arm of the 0x6340 state router |
+| `effectStateIdle` | the idle arm of the 0x6340 state router |
 
 ### Board-advance & "how high" interlude
 | Routine | What it does |

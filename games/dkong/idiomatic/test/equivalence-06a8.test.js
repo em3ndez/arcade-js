@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_06a8 (ROM 0x06A8) — decrement the packed two-digit BCD counter by
- * one, latch a "reached zero" marker when it rolls to 00, store it back, and render it.
+ * Equivalence test for loc_06a8 (ROM 0x06A8) — decrement the packed two-digit BCD bonus
+ * readout BONUS_DISPLAY by one, latch a "reached zero" marker when it rolls to 00, store it
+ * back, and render it.
  *
  * loc_06a8's entire memory effect is a PURE FUNCTION of the counter byte it receives in a
  * register: it reads no work RAM, and its render tail (loc_066a -> stampTwoDigitField) reads
- * none either. Every cell it touches (the zero marker 0x63B8, the counter cell 0x638C, the
+ * none either. Every cell it touches (BONUS_DISPLAY_ZEROED, BONUS_DISPLAY, the
  * background-music command, and the field's video cells) derives only from that byte. So an
  * EXHAUSTIVE gate is available — sweeping all 256 byte values on a real captured base covers
  * the whole input space, a proof rather than a sample. The caller (entry_062a) only reaches
@@ -24,9 +25,10 @@
  *      dispatch (task-10's counter step), and confirm identical over real bases.
  *   3. TEETH (exhaustive) — three deliberately-broken twins, each of which the same sweep MUST
  *      catch, each on a genuine live-out cell:
- *        (a) dropped decimal-adjust — caught at the counter cell 0x638C.
- *        (b) dropped zero latch — caught at the zero marker 0x63B8 on input 0x01.
- *        (c) always-latch (drops the zero condition) — caught at 0x63B8 on a non-01 input.
+ *        (a) dropped decimal-adjust — caught at BONUS_DISPLAY.
+ *        (b) dropped zero latch — caught at BONUS_DISPLAY_ZEROED on input 0x01.
+ *        (c) always-latch (drops the zero condition) — caught at BONUS_DISPLAY_ZEROED on a
+ *            non-01 input.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-06a8.test.js
  */
@@ -35,6 +37,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
+import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "../ram.js";
 import { loc_06a8 as oracle } from "../../translated/loc_06a8.js";
 import { loc_06a8 } from "../loc_06a8.js";
 import { loc_066a } from "../loc_066a.js";
@@ -49,8 +52,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x06a8;
-const COUNTER_CELL = 0x638c; // the packed-BCD counter the routine steps and stores
-const ZERO_MARKER = 0x63b8;  // latched to 1 when the counter reaches 00
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const hb = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 
@@ -167,9 +168,9 @@ test("EQUAL (real dispatches): loc_06a8 == oracle on every captured 0x06A8 entry
 function brokenNoDaa(m) {
   const { regs, mem } = m;
   regs.sub(0x01);
-  if (regs.a === 0) mem.write8(ZERO_MARKER, 0x01);
+  if (regs.a === 0) mem.write8(BONUS_DISPLAY_ZEROED, 0x01);
   // BUG: the `regs.daa()` is missing.
-  mem.write8(COUNTER_CELL, regs.a);
+  mem.write8(BONUS_DISPLAY, regs.a);
   loc_066a(m);
 }
 
@@ -177,9 +178,9 @@ function brokenNoDaa(m) {
 function brokenNoLatch(m) {
   const { regs, mem } = m;
   regs.sub(0x01);
-  // BUG: the `if (regs.a === 0) mem.write8(ZERO_MARKER, 0x01)` is missing.
+  // BUG: the `if (regs.a === 0) mem.write8(BONUS_DISPLAY_ZEROED, 0x01)` is missing.
   regs.daa();
-  mem.write8(COUNTER_CELL, regs.a);
+  mem.write8(BONUS_DISPLAY, regs.a);
   loc_066a(m);
 }
 
@@ -187,9 +188,9 @@ function brokenNoLatch(m) {
 function brokenAlwaysLatch(m) {
   const { regs, mem } = m;
   regs.sub(0x01);
-  mem.write8(ZERO_MARKER, 0x01); // BUG: always latches, not only when the counter hit zero
+  mem.write8(BONUS_DISPLAY_ZEROED, 0x01); // BUG: always latches, not only when the counter hit zero
   regs.daa();
-  mem.write8(COUNTER_CELL, regs.a);
+  mem.write8(BONUS_DISPLAY, regs.a);
   loc_066a(m);
 }
 
@@ -199,20 +200,20 @@ test("TEETH (exhaustive): dropped-daa, dropped-latch, and always-latch twins are
   // Pin the zero marker to a non-1 sentinel so the latch twins are reliably observable
   // (identical on both sides — it is the shared base).
   const base = src.clone();
-  base.mem.write8(ZERO_MARKER, 0x00);
+  base.mem.write8(BONUS_DISPLAY_ZEROED, 0x00);
 
   const noDaa = fullSweep(base, brokenNoDaa).mismatch;
   assert.notEqual(noDaa, null, "the sweep FAILED to catch a dropped decimal adjust — worthless");
-  assert.equal(noDaa.ram.addr, COUNTER_CELL, `the dropped-daa twin must diverge on the counter cell, got ${hx(noDaa.ram.addr ?? 0)}`);
+  assert.equal(noDaa.ram.addr, BONUS_DISPLAY, `the dropped-daa twin must diverge on BONUS_DISPLAY, got ${hx(noDaa.ram.addr ?? 0)}`);
 
   const noLatch = fullSweep(base, brokenNoLatch).mismatch;
   assert.notEqual(noLatch, null, "the sweep FAILED to catch a dropped zero latch — worthless");
-  assert.equal(noLatch.ram.addr, ZERO_MARKER, `the dropped-latch twin must diverge on the zero marker, got ${hx(noLatch.ram.addr ?? 0)}`);
+  assert.equal(noLatch.ram.addr, BONUS_DISPLAY_ZEROED, `the dropped-latch twin must diverge on BONUS_DISPLAY_ZEROED, got ${hx(noLatch.ram.addr ?? 0)}`);
   assert.equal(noLatch.v, 0x01, `the dropped-latch twin should first diverge on input 0x01, got ${hb(noLatch.v)}`);
 
   const alwaysLatch = fullSweep(base, brokenAlwaysLatch).mismatch;
   assert.notEqual(alwaysLatch, null, "the sweep FAILED to catch an always-latch twin — worthless");
-  assert.equal(alwaysLatch.ram.addr, ZERO_MARKER, `the always-latch twin must diverge on the zero marker, got ${hx(alwaysLatch.ram.addr ?? 0)}`);
+  assert.equal(alwaysLatch.ram.addr, BONUS_DISPLAY_ZEROED, `the always-latch twin must diverge on BONUS_DISPLAY_ZEROED, got ${hx(alwaysLatch.ram.addr ?? 0)}`);
 
   console.log(`  TEETH: dropped-daa caught (${describe(noDaa)}); dropped-latch caught (${describe(noLatch)}); always-latch caught (${describe(alwaysLatch)})`);
 });

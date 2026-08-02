@@ -19,9 +19,19 @@
  * loc_2d54 still reads its string cursor from the cursor register, so this routine loads
  * exactly what the oracle's tail-jump site leaves there — the string start 0x39CC.
  *
- * NAME: kept loc_ — the cursor setup and hand-off are pinned to the oracle, but which
- * on-screen string 0x39CC is (and what loc_2d15's branch selects) is not corroborated to
- * the routine-name bar. Promote once grounded.
+ * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
+ * scratchpad/pass12-grounding.md): this renderer chain runs in ORDINARY 25m BARREL PLAY on
+ * board 1, not in a cutscene. All 46 captured dispatches of the chain's head (loc_2cf6) fell
+ * at gameplay substates — 17 in a credited in-board 25m game, 29 in the attract 25m demo — and
+ * ZERO at substate 7, the opening Kong-climb cutscene; the record being dressed is always an
+ * OBJ_ARRAY_67 barrel record, one per slot claim by the barrel-release routine (board 1,
+ * ROM 0x2CB8). loc_2d15's branch into here is taken on bit 0 of BARREL_CLAIM_MODE, the barrel
+ * slot-claim mode byte.
+ *
+ * NAME: kept loc_ — the cursor setup and hand-off are pinned to the oracle, and grounding
+ * fixes the CONTEXT (25m barrel play). What is still open is what on-screen string 0x39CC is;
+ * the grounding run read RAM, not pixels, and deliberately did not name the objects involved.
+ * Promote once that is corroborated.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2d83.test.js.
  * GATE:     the real captured 0x2D83 dispatch(es) from an attract run, plus crafted

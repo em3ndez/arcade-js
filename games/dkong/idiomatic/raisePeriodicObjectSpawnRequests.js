@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2ddb — raise two periodic event requests, on 50m/100m, while Mario is alive.  ROM 0x2DDB.
+ * raisePeriodicObjectSpawnRequests — raise two periodic event requests, on 50m/100m, while Mario is alive.  ROM 0x2DDB.
  *
  * Called every frame by the per-frame cascade loc_197a. Two skip gates open the routine,
  * then it fires a difficulty-scaled periodic trigger: when the trigger lands this frame it
@@ -23,10 +23,17 @@
  * (OBJ_SPAWN_REQ by sub_2523 as its pending "request", EVENT_REQ_313C by entry_313c) and this
  * routine only raises them, never clears them.
  *
- * NAME: kept as loc_2ddb. The mechanism is pinned to the oracle (a board-and-alive-gated,
- * difficulty-scaled periodic double-request), but which game event these two latches drive on
- * 50m / 100m is not grounded here, so the effect-level name is left for a clarify / grounding
- * pass rather than guessed — matching the sibling cascade handlers loc_2e04 / loc_197a drives.
+ * NAME: PROMOTED in understanding pass 12. The corroboration is that BOTH cells it writes are
+ * [seen]-GROUNDED in ram.js and BOTH name this routine as their producer: OBJ_SPAWN_REQ (0x639A) —
+ * "Object-SPAWN request into OBJ_ARRAY_65A0 (the 50m moving objects), consumed by
+ * service50mObjectSpawnRequest ... Producer: loc_2ddb" — and EVENT_REQ_313C (0x63A0), whose note
+ * records that two producers raise it, the first being "loc_2ddb's difficulty-scaled periodic
+ * trigger (50m/100m)". When this file was first written those cells were unrated engine scratch;
+ * they have since been grounded live vs MAME ({0,1}, 128-frame rise period on 100m, consumed within
+ * a frame or two), which is exactly what closes its old "not grounded here" caveat. The verb is
+ * chosen by EFFECT per the naming rules: what this routine CAUSES is objects being requested.
+ * WHAT THIS NAME DOES NOT CLAIM: which on-screen object eventually appears. That is the consumer's
+ * business (service50mObjectSpawnRequest / loc_313c), and it is not asserted here.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2ddb.test.js.
  * GATE:     captured + crafted. Real attract dispatches exercise the rst-0x30-closed skip
@@ -39,7 +46,7 @@
  *           modelling the single terminal caller-return that every path nets (one m.ret()).
  *           Teeth: twins that skip the alive gate, skip the board gate, use the wrong board
  *           mask, drop the 50m step bump, invert the trigger polarity, and raise only one latch.
- * LIVE-OUT: memory-only. loc_2ddb is called by the per-frame cascade loc_197a, which issues its
+ * LIVE-OUT: memory-only. raisePeriodicObjectSpawnRequests is called by the per-frame cascade loc_197a, which issues its
  *           next call without reading any register this routine leaves (the residual A / B and
  *           the flags are all dead). The two boolean-guard returns replace the rst-0x30 /
  *           rst-0x10 caller-skip stack idiom; the terminal ret pops the one caller-return every
@@ -57,7 +64,7 @@ import { u8 } from "../../../core/int.js";
 
 const BOARD_MASK = 0x0a; // rst-0x30 applicability mask: the current-board bit only on 50m/100m
 
-export function loc_2ddb(m) {
+export function raisePeriodicObjectSpawnRequests(m) {
   const { regs, mem } = m;
 
   // Gate 1 — rst 0x30 board test. boardBitGate reads the mask from regs.a; mask 0x0A

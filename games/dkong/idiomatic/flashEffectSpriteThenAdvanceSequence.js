@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1f09 — effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow
+ * flashEffectSpriteThenAdvanceSequence — effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow
  * bit on most beats and hands the sequence to its next step on every fourth.  ROM 0x1F09.
  *
  * This is index 1 of the effect-sequence dispatch keyed on EFFECT_SEQ_STATE (the router
@@ -21,9 +21,16 @@
  * call (to the decremented value on a skipped call, back to 6 on a beat); the outer counter
  * is written on every beat.
  *
- * NAME: kept the neutral loc_ — the divider mechanics are pinned exactly to the oracle, but
- * the effect-sprite semantic (which sprite the flashed bit belongs to, what the effect is)
- * is the load-bearing interpretation still to be grounded against MAME, so no earned name.
+ * NAME: PROMOTED in understanding pass 12. Corroboration is OUTSIDE this routine: the only bytes it
+ * writes are the ram.js-named EFFECT_SPRITE (0x6A2C) + SPRITE_CODE field (= 0x6A2D) and EFFECT_SEQ_INNER /
+ * OUTER / STATE — and that code field (0x6A2D) is [seen]-GROUNDED in ram.js, observed flipping
+ * 0x60<->0x61 over 41 live transitions in lockstep with EFFECT_SEQ_STATE. So the FLASH is observed
+ * behaviour, not inference, which is what earns the verb. What separates it from its sibling
+ * animateEffectSpriteThenRearmEffect (0x1F23) is the operation on that same byte: this one `xor 0x01`
+ * OSCILLATES between two tiles on a 6-frame beat (4 pulses) and then advances the sequence, priming
+ * OUTER = 4; the sibling `inc`s, marching forward through consecutive tiles.
+ * WHAT THIS NAME DOES NOT CLAIM: what the effect DEPICTS on screen. The effect-sprite semantic is
+ * still ungrounded (mechanisms.md §6), so the name describes the byte-level effect only.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1f09.test.js.
  * GATE:     strict, exhaustive over the reachable input space — every inner value (delay
@@ -35,21 +42,21 @@
  *           none of them — it takes an independent skip decision — so the residual is dead.
  * NAMES:    EFFECT_SEQ_INNER (0x6346), EFFECT_SEQ_OUTER (0x6347), EFFECT_SEQ_STATE (0x6345)
  *           and EFFECT_SPRITE (0x6A2C) from ram.js. The flashed cell 0x6A2D is the effect sprite
- *           record's +1 SPRITE_CODE field, reached as EFFECT_SPRITE + 1.
+ *           record's SPRITE_CODE field, reached as EFFECT_SPRITE + SPRITE_CODE per ram.js.
  */
 
-import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE } from "./ram.js";
+import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE, SPRITE_CODE } from "./ram.js";
 
 // The +1 SPRITE_CODE field of EFFECT_SPRITE (0x6A2C, named in ram.js) — a cell inside the sprite
 // shadow buffer (SPRITE_BUFFER, the block the DMA blits to sprite RAM each vblank). This routine
 // flips its low bit each beat, toggling the effect sprite's tile between 0x60 and 0x61.
-const EFFECT_SPRITE_CELL = EFFECT_SPRITE + 1; // 0x6A2D
+const EFFECT_SPRITE_CELL = EFFECT_SPRITE + SPRITE_CODE; // 0x6A2D — ram.js: reach it as EFFECT_SPRITE + SPRITE_CODE
 
 /**
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1f09(m) {
+export function flashEffectSpriteThenAdvanceSequence(m) {
   const { mem } = m;
 
   // Inner divider: tick down on every dispatch and stop here until it drains to zero (the

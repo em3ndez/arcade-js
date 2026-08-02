@@ -14,7 +14,7 @@
  * Both arms forward the bonus so the shared body (loc_2c4f) can run its periodic-event gate: ONLY
  * when BONUS_EVENT_MARK equals the forwarded bonus does it step the mark down by 8 and scan the five
  * OBJ_ARRAY_64 records (stride 32) for the first zero active-byte — on a hit it raises the top-bit
- * request flag on the same 0x6382 byte (via loc_2c72), so a claimed slot leaves 0x6382 as the mode
+ * bit 7 on the same BARREL_CLAIM_MODE byte (via loc_2c72), so a claimed slot leaves it as the mode
  * byte with its top bit set (0x81 in the match arm, 0x82 in the miss arm); on a miss it does just
  * the scratch writes. Nothing a caller consumes comes back (the oracle threads residual
  * registers/flags out; its callers reload), so the contract is memory-only.
@@ -61,7 +61,7 @@ import { loc_2c7b as oracle } from "../../translated/loc_2c7b.js";
 import { loc_2c7b } from "../loc_2c7b.js";
 import { loc_2c49 } from "../loc_2c49.js";
 import { loc_2c4b } from "../loc_2c4b.js";
-import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "../ram.js";
+import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
@@ -73,7 +73,6 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-const SCRATCH_REQ = 0x6382; // the mode byte lands here; a slot claim later ORs the top bit
 const SCRATCH_MODE = 0x638f; // the mode byte PLUS ONE lands here (inc between the two stores)
 const SCRATCH_FLAG = 0x6392; // raised to 1 on every entry into the shared body
 const STRIDE = 32; // OBJ_ARRAY_64 record stride
@@ -197,7 +196,7 @@ test("EQUAL: loc_2c7b == oracle across the branch sweep and every gate-open slot
     oracle(a);
     loc_2c7b(b);
     for (const mm of [a, b]) {
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 1, "taken arm: 0x6382 must hold mode byte 1");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 1, "taken arm: 0x6382 must hold mode byte 1");
       assert.equal(mm.mem.read8(SCRATCH_MODE), 2, "taken arm: 0x638F must hold mode byte + 1");
       assert.equal(mm.mem.read8(SCRATCH_FLAG), 1, "entry flag must be raised");
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x20, "gate closed -> mark unchanged");
@@ -211,7 +210,7 @@ test("EQUAL: loc_2c7b == oracle across the branch sweep and every gate-open slot
     oracle(a);
     loc_2c7b(b);
     for (const mm of [a, b]) {
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 2, "miss arm: 0x6382 must hold mode byte 2");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 2, "miss arm: 0x6382 must hold mode byte 2");
       assert.equal(mm.mem.read8(SCRATCH_MODE), 3, "miss arm: 0x638F must hold mode byte + 1");
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x20, "gate closed -> mark unchanged");
     }
@@ -225,7 +224,7 @@ test("EQUAL: loc_2c7b == oracle across the branch sweep and every gate-open slot
     loc_2c7b(b);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x32 - EVENT_STEP, "mark must step down by 8");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 1 | 0x80, "taken slot-claim -> 0x6382 = 0x81");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 1 | 0x80, "taken slot-claim -> 0x6382 = 0x81");
     }
   }
   // (iv) MISS arm, gate open, slot found -> mark steps, request bit ORed onto mode byte 2 -> 0x82.
@@ -237,7 +236,7 @@ test("EQUAL: loc_2c7b == oracle across the branch sweep and every gate-open slot
     loc_2c7b(b);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x50 - EVENT_STEP, "mark must step down by 8");
-      assert.equal(mm.mem.read8(SCRATCH_REQ), 2 | 0x80, "miss slot-claim -> 0x6382 = 0x82");
+      assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 2 | 0x80, "miss slot-claim -> 0x6382 = 0x82");
     }
   }
   console.log(`  EQUAL: ${count} combos (512 branch sweep + gate-open slot cross-product) — RAM identical to the oracle`);
@@ -274,7 +273,7 @@ test("TEETH: the no-wrap-compare twin is CAUGHT (0x6382 diverges on a wrapped st
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenNoWrap);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a compare that drops the byte-width wrap — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the no-wrap twin must diverge on 0x6382 (the mode byte from the wrong arm)");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the no-wrap twin must diverge on 0x6382 (the mode byte from the wrong arm)");
   console.log(`  TEETH/wrap: caught — ${describe(mismatch)}`);
 });
 
@@ -282,7 +281,7 @@ test("TEETH: the wrong-mode-byte twin is CAUGHT (0x6382 diverges)", () => {
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenWrongMode);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a wrong constant mode byte — worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH_REQ, "the wrong-mode twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the wrong-mode twin must diverge on 0x6382");
   console.log(`  TEETH/mode: caught — ${describe(mismatch)}`);
 });
 

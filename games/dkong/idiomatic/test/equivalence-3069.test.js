@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_3069 (ROM 0x3069) — the timed INDIRECT step-advance that
+ * Equivalence test for advanceSequenceStepWhenTimerExpires (ROM 0x3069) — the timed INDIRECT step-advance that
  * bumps the byte SEQ_ADVANCE_PTR points at once the sub-state timer expires.
  *
- * loc_3069's entire observable behaviour is a function of just two inputs: the gate byte
+ * advanceSequenceStepWhenTimerExpires's entire observable behaviour is a function of just two inputs: the gate byte
  * SUBSTATE_TIMER (0x6009), ticked down through the rst-0x18 helper, and the byte at
  * *(SEQ_ADVANCE_PTR) — the word stored at 0x63C0 names the target address, and the body
  * increments the byte THERE (never 0x63C0 itself) only on the frame the counter reaches
@@ -14,13 +14,13 @@
  * those pushes land in STACK_SCRATCH, which the contract excludes. That leaves the
  * strongest gate available:
  *
- *   1. EQUAL (exhaustive) — loc_3069 == oracle over ALL 256×256 combos of
+ *   1. EQUAL (exhaustive) — advanceSequenceStepWhenTimerExpires == oracle over ALL 256×256 combos of
  *      (SUBSTATE_TIMER, target byte) with the pointer aimed at a real step cell, compared
  *      on RAM (minus STACK_SCRATCH). 65,536 is the complete input space for that pointer —
  *      a proof of the gate polarity and the inc-with-wrap, not a sample.
  *
  *   2. INDIRECTION (crafted) — force expiry and sweep the pointer over several distinct
- *      work-RAM targets; loc_3069 == oracle each time, the increment lands at *(0x63C0),
+ *      work-RAM targets; advanceSequenceStepWhenTimerExpires == oracle each time, the increment lands at *(0x63C0),
  *      and 0x63C0/0x63C1 are left untouched — pinning the `ld hl,(nn)` indirect load.
  *
  *   3. TEETH (exhaustive) — three deliberately-broken twins the sweep MUST catch:
@@ -43,7 +43,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3069 as oracle } from "../../translated/loc_3069.js";
-import { loc_3069 } from "../loc_3069.js";
+import { advanceSequenceStepWhenTimerExpires } from "../advanceSequenceStepWhenTimerExpires.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { SUBSTATE_TIMER, SEQ_ADVANCE_PTR, STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";
@@ -90,7 +90,7 @@ function ramDiffNoStack(mA, mB) {
 
 /**
  * Run the oracle and the candidate on two FRESH clones of `entry` (the routine WRITES
- * memory, so a clone per side) and diff RAM minus STACK_SCRATCH. loc_3069 returns a
+ * memory, so a clone per side) and diff RAM minus STACK_SCRATCH. advanceSequenceStepWhenTimerExpires returns a
  * constant true nothing consumes, so RAM is the whole contract.
  */
 function runPair(entry, candidate) {
@@ -130,9 +130,9 @@ function sweep(base, candidate) {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_3069 == oracle over all 65,536 (0x6009, target-byte) combos", () => {
+test("EQUAL (exhaustive): advanceSequenceStepWhenTimerExpires == oracle over all 65,536 (0x6009, target-byte) combos", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = sweep(base, loc_3069);
+  const { mismatch, count } = sweep(base, advanceSequenceStepWhenTimerExpires);
   assert.equal(
     mismatch,
     null,
@@ -148,22 +148,22 @@ test("EQUAL (exhaustive): loc_3069 == oracle over all 65,536 (0x6009, target-byt
     const a = makeEntry(base, 1, tb); // oracle
     const b = makeEntry(base, 1, tb); // candidate
     oracle(a);
-    loc_3069(b);
+    advanceSequenceStepWhenTimerExpires(b);
     assert.equal(a.mem.read8(SUBSTATE_TIMER), 0, "oracle must tick 0x6009 to 0 on expiry");
-    assert.equal(b.mem.read8(SUBSTATE_TIMER), 0, "loc_3069 must tick 0x6009 to 0 on expiry");
+    assert.equal(b.mem.read8(SUBSTATE_TIMER), 0, "advanceSequenceStepWhenTimerExpires must tick 0x6009 to 0 on expiry");
     assert.equal(a.mem.read8(PTR_TARGET), (tb + 1) & 0xff, `oracle must inc target (tb ${hx(tb)})`);
-    assert.equal(b.mem.read8(PTR_TARGET), (tb + 1) & 0xff, `loc_3069 must inc target (tb ${hx(tb)})`);
+    assert.equal(b.mem.read8(PTR_TARGET), (tb + 1) & 0xff, `advanceSequenceStepWhenTimerExpires must inc target (tb ${hx(tb)})`);
   }
   // Not expired (timer==2): 0x6009 -> 1 and the target byte is left alone.
   {
     const a = makeEntry(base, 2, 0x33); // oracle
     const b = makeEntry(base, 2, 0x33); // candidate
     assert.equal(oracle(a), true, "oracle returns constant true (never skips its caller)");
-    assert.equal(loc_3069(b), true, "loc_3069 returns constant true (never skips its caller)");
+    assert.equal(advanceSequenceStepWhenTimerExpires(b), true, "advanceSequenceStepWhenTimerExpires returns constant true (never skips its caller)");
     assert.equal(a.mem.read8(SUBSTATE_TIMER), 1, "oracle must decrement 0x6009 while counting");
-    assert.equal(b.mem.read8(SUBSTATE_TIMER), 1, "loc_3069 must decrement 0x6009 while counting");
+    assert.equal(b.mem.read8(SUBSTATE_TIMER), 1, "advanceSequenceStepWhenTimerExpires must decrement 0x6009 while counting");
     assert.equal(a.mem.read8(PTR_TARGET), 0x33, "oracle must NOT inc target while counting");
-    assert.equal(b.mem.read8(PTR_TARGET), 0x33, "loc_3069 must NOT inc target while counting");
+    assert.equal(b.mem.read8(PTR_TARGET), 0x33, "advanceSequenceStepWhenTimerExpires must NOT inc target while counting");
   }
   console.log(`  EQUAL/exhaustive: ${count} (timer, target-byte) combos — RAM (minus stack) identical to the oracle`);
 });
@@ -177,7 +177,7 @@ test("INDIRECTION: the increment follows *(0x63C0) and leaves 0x63C0 untouched",
   const TB = 0x40;
   for (const ptr of targets) {
     const entry = makeEntry(base, 1, TB, ptr); // timer==1 -> expiry, so the inc fires
-    const ram = runPair(entry, loc_3069);
+    const ram = runPair(entry, advanceSequenceStepWhenTimerExpires);
     assert.equal(
       ram,
       null,
@@ -185,7 +185,7 @@ test("INDIRECTION: the increment follows *(0x63C0) and leaves 0x63C0 untouched",
     );
     // Prove the follow explicitly on the candidate.
     const b = entry.clone();
-    loc_3069(b);
+    advanceSequenceStepWhenTimerExpires(b);
     assert.equal(b.mem.read8(ptr), (TB + 1) & 0xff, `must inc the byte AT *(0x63C0)=0x${ptr.toString(16)}`);
     assert.equal(b.mem.read8(SEQ_ADVANCE_PTR), ptr & 0xff, "0x63C0 (pointer lo) must be untouched");
     assert.equal(b.mem.read8(SEQ_ADVANCE_PTR + 1), (ptr >> 8) & 0xff, "0x63C1 (pointer hi) must be untouched");
@@ -280,10 +280,10 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM (documented zero): loc_3069 is off the live dispatch path; any dispatch matches", () => {
+test("REALISM (documented zero): advanceSequenceStepWhenTimerExpires is off the live dispatch path; any dispatch matches", () => {
   const caps = captureDispatches(64, 5000);
   for (const cap of caps) {
-    const ram = runPair(cap, loc_3069);
+    const ram = runPair(cap, advanceSequenceStepWhenTimerExpires);
     assert.equal(ram, null, ram && `RAM diverges on real dispatch at 0x${(ram.addr ?? 0).toString(16)}`);
   }
   console.log(`  REALISM: ${caps.length} natural 0x3069 dispatches over 5000 attract frames (expected 0) — sweep is the proof`);

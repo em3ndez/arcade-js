@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e49 (ROM 0x1e49) — the idle (do-nothing) arm of
+ * Equivalence test for effectStateIdle (ROM 0x1e49) — the idle (do-nothing) arm of
  * sub_1dbd's rst-0x28 router on the state byte 0x6340. It is a single-byte `ret`:
  * it reads and writes NO memory and leaves NO live registers (sub_1dbd -> loc_197a
  * @0x197D reads nothing on return, it just proceeds to the next call), so live-out
@@ -11,7 +11,7 @@
  *      the machine at each true dispatch. Attract reaches it hundreds of times from
  *      sub_1dbd while 0x6340 == 0 (entry SP 0x6bea-0x6bee, all inside STACK_SCRATCH).
  *      For each capture: (a) confirm the ORACLE itself writes NO RAM (the "does
- *      nothing" claim, direct), and (b) confirm loc_1e49 == oracle on
+ *      nothing" claim, direct), and (b) confirm effectStateIdle == oracle on
  *      RAM-STACK_SCRATCH + pc + SP.
  *
  *   2. EQUAL (crafted entry) — the routine is branchless, so there are no unreached
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e49 as oracle } from "../../translated/loc_1e49.js";
-import { loc_1e49 } from "../loc_1e49.js";
+import { effectStateIdle } from "../effectStateIdle.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -154,17 +154,17 @@ function brokenExtraPop(m) {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): the oracle writes no RAM and loc_1e49 == oracle on every captured 0x1e49 entry", () => {
+test("EQUAL (real dispatches): the oracle writes no RAM and effectStateIdle == oracle on every captured 0x1e49 entry", () => {
   const caps = captureDispatches(64, 2000);
   assert.ok(caps.length >= 1, "expected at least one real 0x1e49 dispatch during attract");
   for (const cap of caps) {
     // (a) the "does nothing" claim, direct: the oracle mutates no RAM.
     assert.equal(
       oracleWroteRam(cap), null,
-      "oracle wrote RAM — loc_1e49 is not a memory no-op after all",
+      "oracle wrote RAM — effectStateIdle is not a memory no-op after all",
     );
     // (b) the idiomatic no-op reproduces it on RAM − STACK_SCRATCH + pc + SP.
-    const diffs = contractDiffs(cap, loc_1e49); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, effectStateIdle); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   const shapes = caps.map((c) => `SP=0x${c.regs.sp.toString(16)}`);
@@ -185,7 +185,7 @@ test("EQUAL (crafted): a ret whose popped bytes land in COMPARED work RAM matche
   craft.mem.write8(0x6101, 0x12);
   craft.regs.sp = 0x6100;
 
-  const diffs = contractDiffs(craft, loc_1e49);
+  const diffs = contractDiffs(craft, effectStateIdle);
   assert.equal(diffs.length, 0, `crafted non-stack-SP entry: ${diffs.join("; ")}`);
   const o = runOracle(craft);
   assert.equal(o.pc, 0x1234, "sanity: the oracle's ret popped the staged 0x1234 return address");

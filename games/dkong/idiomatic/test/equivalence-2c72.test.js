@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2c72 (ROM 0x2C72) — set the top bit of engine-scratch 0x6382.
+ * Equivalence test for loc_2c72 (ROM 0x2C72) — set bit 7 of BARREL_CLAIM_MODE.
  *
  * entry_2c72 is a LEAF whose entire memory-observable behaviour is a function of ONE byte,
- * the value at 0x6382, and it writes only that same byte back with its top bit forced on
+ * the value at BARREL_CLAIM_MODE, and it writes only that same byte back with its top bit forced on
  * (`value | 0x80`). It returns nothing a caller consumes: the oracle threads the value
  * through the accumulator and `ret`s, but its callers reload — so the contract is
  * memory-only. Because the input space is a single byte, an EXHAUSTIVE gate is a PROOF,
@@ -14,7 +14,7 @@
  * the compared memory identical to the oracle's — no stack-scratch exclusion is needed here.
  *
  *   1. EQUAL (exhaustive) — loc_2c72 == oracle on RAM (firstStateDiff over the whole dump, which
- *      neither side writes outside 0x6382) for every one of the 256 possible starting bytes, and
+ *      neither side writes outside BARREL_CLAIM_MODE) for every one of the 256 possible starting bytes, and
  *      a non-vacuity check that the byte really became value|0x80 on both sides.
  *
  *   2. TEETH (exhaustive) — two deliberately-broken twins the same sweep MUST catch:
@@ -36,6 +36,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c72 as oracle } from "../../translated/loc_2c72.js";
 import { loc_2c72 } from "../loc_2c72.js";
+import { BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -47,7 +48,6 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2c72;
-const SCRATCH = 0x6382; // the unnamed, shared engine-scratch byte this routine flags
 // The oracle's `ret` pops the stack; point SP at work RAM so that pop reads valid bytes
 // (never I/O). The oracle writes no RAM through the stack (a leaf: it only pops), so this
 // choice never affects the compared memory — it only keeps the oracle well-defined.
@@ -63,7 +63,7 @@ const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
  */
 function makeEntry(base, value) {
   const e = base.clone();
-  e.mem.write8(SCRATCH, value);
+  e.mem.write8(BARREL_CLAIM_MODE, value);
   e.regs.sp = SAFE_SP;
   e.nextNmi = Infinity;
   e.nextBoundary = Infinity;
@@ -109,8 +109,8 @@ test("EQUAL (exhaustive): loc_2c72 == oracle across all 256 starting bytes", () 
     const b = makeEntry(base, v); // candidate
     oracle(a);
     loc_2c72(b);
-    assert.equal(a.mem.read8(SCRATCH), v | 0x80, `oracle must set bit 7 (start ${hx(v)})`);
-    assert.equal(b.mem.read8(SCRATCH), v | 0x80, `loc_2c72 must set bit 7 (start ${hx(v)})`);
+    assert.equal(a.mem.read8(BARREL_CLAIM_MODE), v | 0x80, `oracle must set bit 7 (start ${hx(v)})`);
+    assert.equal(b.mem.read8(BARREL_CLAIM_MODE), v | 0x80, `loc_2c72 must set bit 7 (start ${hx(v)})`);
   }
   console.log(`  EQUAL/exhaustive: ${count} starting bytes — RAM identical to the oracle`);
 });
@@ -120,21 +120,21 @@ test("EQUAL (exhaustive): loc_2c72 == oracle across all 256 starting bytes", () 
 /** BUG (a): sets bit 6 instead of bit 7 — the wrong mask. Caught wherever they disagree. */
 function brokenWrongBit(m) {
   const { mem } = m;
-  mem.write8(SCRATCH, mem.read8(SCRATCH) | 0x40); // BUG: 0x40, not 0x80
+  mem.write8(BARREL_CLAIM_MODE, mem.read8(BARREL_CLAIM_MODE) | 0x40); // BUG: 0x40, not 0x80
 }
 
 /** BUG (b): stores a bare 0x80, clobbering the low bits instead of OR-ing them. Caught on
  *  any starting value that has a low bit set (proves the read-modify-write is load-bearing). */
 function brokenClobber(m) {
   const { mem } = m;
-  mem.write8(SCRATCH, 0x80); // BUG: destroys the low bits under the flag
+  mem.write8(BARREL_CLAIM_MODE, 0x80); // BUG: destroys the low bits under the flag
 }
 
 test("TEETH (exhaustive): the wrong-bit twin is CAUGHT (0x6382 diverges)", () => {
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenWrongBit);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch the wrong bit mask — the RAM check is worthless");
-  assert.equal(mismatch.ram.addr, SCRATCH, "the wrong-bit twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the wrong-bit twin must diverge on 0x6382");
   console.log(`  TEETH/wrong-bit: caught — ${describeMismatch(mismatch)}`);
 });
 
@@ -142,7 +142,7 @@ test("TEETH (exhaustive): the low-bit-clobbering twin is CAUGHT (0x6382 diverges
   const base = new Machine(ROM).clone();
   const { mismatch } = fullSweep(base, brokenClobber);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a low-bit clobber — the read-modify-write is unproven");
-  assert.equal(mismatch.ram.addr, SCRATCH, "the clobber twin must diverge on 0x6382");
+  assert.equal(mismatch.ram.addr, BARREL_CLAIM_MODE, "the clobber twin must diverge on 0x6382");
   console.log(`  TEETH/clobber: caught — ${describeMismatch(mismatch)}`);
 });
 
@@ -174,7 +174,7 @@ test("REALISM: real captured 0x2C72 dispatches — loc_2c72 matches oracle RAM",
     const b = cap.clone(); // candidate
     a.nextNmi = Infinity; a.nextBoundary = Infinity;
     b.nextNmi = Infinity; b.nextBoundary = Infinity;
-    const before = a.mem.read8(SCRATCH);
+    const before = a.mem.read8(BARREL_CLAIM_MODE);
     oracle(a);
     loc_2c72(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));

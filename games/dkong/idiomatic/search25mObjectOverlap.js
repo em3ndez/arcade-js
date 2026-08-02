@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2880 — run the current board's three bounding-box collision sweeps, stopping at the
+ * search25mObjectOverlap — run the current board's three bounding-box collision sweeps, stopping at the
  * first overlap.  ROM 0x2880.
  *
- * The three-sweep sibling of the single-sweep loc_2901. The board collision dispatcher
+ * NAME PROVENANCE (why "25m"): the rst-0x28 dispatch table at ROM 0x2874 reads
+ * `00 00 | 80 28 | b0 28 | e0 28 | 01 29 | 00 00`, so BOARD index 1 vectors here — 25m. Cross-checked
+ * against the array it sweeps: this is the only arm touching OBJ_ARRAY_67, and against grounding, which
+ * saw its OBJ_SEARCH_COUNT signature 10.5.1 on board 1 only (1218x attract / 2136x in a 1P game).
+ *
+ * The three-sweep sibling of the single-sweep search100mObjectOverlap. The board collision dispatcher
  * dispatchBoardCollision (0x286F) reaches it through its rst-0x28 board table, having pushed
  * the per-axis search tolerances (HL) on the stack first; this routine recovers that pair and
  * runs the shared collision search findCollidingObject over three object arrays in turn:
@@ -25,7 +30,7 @@
  * CALLER-SKIP / RETURN. dispatchBoardCollision is a pure dispatch trampoline with no tail, so a
  * hit's two-level caller-skip and the all-miss normal return both unwind to exactly the same
  * place with the same pc + SP — this routine always completes as a normal return to the
- * dispatch site (same reasoning as loc_2901). The idiomatic form therefore returns `true` on
+ * dispatch site (same reasoning as search100mObjectOverlap). The idiomatic form therefore returns `true` on
  * every path; the load-bearing effect of the caller-skip is the early STOP of the later
  * sweeps, expressed as the `if (!findCollidingObject(m)) return true;` early return. (The frozen oracle's
  * literal `return false` on a hit is a translation artifact of propagating findCollidingObject's boolean;
@@ -55,7 +60,7 @@ const SWEEP2_COUNT = 0x05;    // records the 0x6400 sweep scans
 const SWEEP3_COUNT = 0x01;    // the single 0x66a0 record
 const RECORD_STRIDE = 0x0020; // 0x20-byte stride of the stride-0x20 arrays (D=0x00, E=0x20)
 
-export function loc_2880(m) {
+export function search25mObjectOverlap(m) {
   const { regs, mem } = m;
 
   // Recover the per-axis search tolerances the board dispatcher pushed (findCollidingObject reads the

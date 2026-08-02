@@ -21,9 +21,19 @@
  *   +3  the NEXT source byte (the data byte that follows the character).
  * The advanced source cursor (start + 2) is stored back into RENDER_STR_PTR.
  *
- * NAME: kept loc_ — the record layout and the attribute-bit handling are pinned to the
- * oracle, but which renderer object this feeds (its game role) is not corroborated to
- * the routine-name bar. Promote once corroborated.
+ * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
+ * scratchpad/pass12-grounding.md): the object record this feeds is a 25m BARREL record, not a
+ * cutscene element. RENDER_OBJ_PTR held only OBJ_ARRAY_67 record bases (0x6700 / 0x6720 /
+ * 0x6740 / 0x6760 / 0x6780 / 0x67A0 / 0x67C0, stride 0x20 = the 25m barrel array) across the
+ * run, matching the index register at 46/46 dispatches of the chain's head loc_2cf6 — all 46 at
+ * gameplay substates (17 credited in-board 25m, 29 attract 25m demo), ZERO at substate 7, the
+ * opening Kong-climb cutscene, and each paired 1:1 in the same frame with a slot claim by the
+ * barrel-release routine (board 1, ROM 0x2CB8).
+ *
+ * NAME: kept loc_ — the record layout and the attribute-bit handling are pinned to the oracle,
+ * and grounding fixes the CONTEXT (it fills an OBJ_ARRAY_67 barrel record on 25m). What is
+ * still open is the NAMED identity of the two barrel kinds the chain's head selects between,
+ * which the grounding run deliberately did not establish. Promote once that is corroborated.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2d54.test.js.
  * GATE:     hook 0x2D54 in a real attract run and clone at each true dispatch (both the
@@ -35,12 +45,14 @@
  *           are dead ABI — the caller (a per-frame render call) reads none of them; the
  *           single terminal return is modelled in the gate, not here.
  * NAMES:    RENDER_STR_PTR (0x62A8), RENDER_OBJ_PTR (0x62AA), RENDER_DST_PTR (0x62AC),
- *           all from ram.js. The object record (+7/+8) and the destination slot (+0..+3)
- *           are reached through those runtime pointers and have no per-field ram.js name;
- *           the source string bytes live in ROM.
+ *           all from ram.js, as are the object record's sprite fields OBJ_SPRITE_CODE (+0x07)
+ *           and OBJ_SPRITE_ATTR (+0x08). The destination slot is a 4-byte hardware sprite record,
+ *           so its fields are the ram.js-named SPRITE_X (+0) / SPRITE_CODE (+1) / SPRITE_ATTR (+2)
+ *           / SPRITE_Y (+3) and are imported from there too. The source string bytes live in ROM.
  */
 
-import { RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "./ram.js";
+import { RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR,
+         SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y } from "./ram.js";
 import { loc_2d8c } from "./loc_2d8c.js"; // ROM 0x2D8C — the 0x7F terminator hand-off
 
 const TERMINATOR = 0x7f; // end-of-string sentinel; also the attribute-bit mask boundary
@@ -64,20 +76,20 @@ export function loc_2d54(m) {
   }
 
   // +0 — the character with its attribute (top) bit stripped.
-  mem.write8(dstPtr, ch & TERMINATOR);
+  mem.write8(dstPtr + SPRITE_X, ch & TERMINATOR);
 
-  // +1 — the object record's +7 field, its low two bits flipped when the character
+  // SPRITE_CODE — the object record's OBJ_SPRITE_CODE field, its low two bits flipped when the character
   // carried the attribute bit; the (possibly flipped) value is written back to +7 too.
-  let field = mem.read8(objPtr + 0x07);
+  let field = mem.read8(objPtr + OBJ_SPRITE_CODE);
   if ((ch & ATTRIBUTE_BIT) !== 0) field ^= FIELD_FLIP;
-  mem.write8(dstPtr + 1, field);
-  mem.write8(objPtr + 0x07, field);
+  mem.write8(dstPtr + SPRITE_CODE, field);
+  mem.write8(objPtr + OBJ_SPRITE_CODE, field);
 
-  // +2 — the object record's +8 field.
-  mem.write8(dstPtr + 2, mem.read8(objPtr + 0x08));
+  // SPRITE_ATTR — copied straight from the object record's OBJ_SPRITE_ATTR field.
+  mem.write8(dstPtr + SPRITE_ATTR, mem.read8(objPtr + OBJ_SPRITE_ATTR));
 
-  // +3 — the data byte that follows the character in the source string.
-  mem.write8(dstPtr + 3, mem.read8(src + 1));
+  // SPRITE_Y — the data byte that follows the character in the source string.
+  mem.write8(dstPtr + SPRITE_Y, mem.read8(src + 1));
 
   // Advance the string cursor past the character and its data byte.
   mem.write16(RENDER_STR_PTR, src + 2);

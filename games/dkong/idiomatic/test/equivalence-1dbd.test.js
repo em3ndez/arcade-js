@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1dbd (ROM 0x1DBD) — the router for the effect-sprite state
+ * Equivalence test for dispatchEffectState (ROM 0x1DBD) — the router for the effect-sprite state
  * machine held in 0x6340. It reads the state byte and hands the frame to one of three
- * handlers: state 0 -> loc_1e49 (idle no-op), state 1 -> loc_1dc9 (arm + advance), state 2
+ * handlers: state 0 -> effectStateIdle (idle no-op), state 1 -> loc_1dc9 (arm + advance), state 2
  * -> loc_1e4a (countdown). State 3 is the reset vector and is never produced in play.
  *
- * loc_1dbd writes no memory itself; every visible byte is the chosen handler's. Its state-1
+ * dispatchEffectState writes no memory itself; every visible byte is the chosen handler's. Its state-1
  * arm runs loc_1dc9's full effect chain (which the idiomatic side reaches through the
  * fully-idiomatic loc_1dc9, the oracle side through its return-modelling chain), so SP/pc
  * and the STACK_SCRATCH region diverge there and are dead (the caller reads no register).
@@ -15,7 +15,7 @@
  *
  *   1. REALISM — hook 0x1dbd in a real attract run and clone at each dispatch. Attract
  *      naturally exercises all three reachable states (idle/arm/countdown). For each real
- *      entry, run the ORACLE on one fresh clone and idiomatic loc_1dbd on another; every
+ *      entry, run the ORACLE on one fresh clone and idiomatic dispatchEffectState on another; every
  *      game-visible byte matches (residual confined to the dead STACK_SCRATCH). The
  *      oracle's deepest stack use is asserted to sit inside STACK_SCRATCH so excluding the
  *      region cannot mask a real diff.
@@ -25,7 +25,7 @@
  *      reachable arm deterministically even though attract already reaches them.
  *
  *   3. CRAFTED (reset vector) — poke 0x6340 to 3 (the reset-vector slot) identically on
- *      both sides and assert BOTH the oracle and idiomatic loc_1dbd throw, matching the
+ *      both sides and assert BOTH the oracle and idiomatic dispatchEffectState throw, matching the
  *      defensive behaviour for the untranslated target.
  *
  *   4. TEETH — two deliberately-broken routers, each caught by the state sweep:
@@ -41,8 +41,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1dbd as oracle } from "../../translated/loc_1dbd.js";
-import { loc_1dbd as idiomatic } from "../loc_1dbd.js";
-import { loc_1e49 } from "../loc_1e49.js"; // idiomatic handlers, for the teeth twins
+import { dispatchEffectState as idiomatic } from "../dispatchEffectState.js";
+import { effectStateIdle } from "../effectStateIdle.js"; // idiomatic handlers, for the teeth twins
 import { loc_1dc9 } from "../loc_1dc9.js";
 import { loc_1e4a } from "../../translated/loc_1e4a.js";
 import { Machine } from "../../machine.js";
@@ -175,7 +175,7 @@ function sweepState(base, candidate) {
   return { mismatch, armsSeen };
 }
 
-test("CRAFTED (state sweep): loc_1dbd == oracle over states {0,1,2} (all reachable arms)", () => {
+test("CRAFTED (state sweep): dispatchEffectState == oracle over states {0,1,2} (all reachable arms)", () => {
   const base = craftedBase(captureDispatches(20, 8000));
   const { mismatch, armsSeen } = sweepState(base, idiomatic);
   assert.equal(
@@ -190,7 +190,7 @@ test("CRAFTED (state sweep): loc_1dbd == oracle over states {0,1,2} (all reachab
 
 // -- 3. CRAFTED (reset vector — state 3 throws on both sides) ------------------
 
-test("CRAFTED (reset vector): state 3 makes BOTH the oracle and idiomatic loc_1dbd throw", () => {
+test("CRAFTED (reset vector): state 3 makes BOTH the oracle and idiomatic dispatchEffectState throw", () => {
   const caps = captureDispatches(1, 8000);
   const base = caps[0];
   assert.ok(base, "expected a real 0x1dbd entry to craft state 3 onto");
@@ -199,7 +199,7 @@ test("CRAFTED (reset vector): state 3 makes BOTH the oracle and idiomatic loc_1d
   a.mem.write8(STATE, 3);
   b.mem.write8(STATE, 3);
   assert.throws(() => oracle(a), "oracle must throw on the reset-vector state");
-  assert.throws(() => idiomatic(b), "idiomatic loc_1dbd must throw on the reset-vector state");
+  assert.throws(() => idiomatic(b), "idiomatic dispatchEffectState must throw on the reset-vector state");
   console.log(`  CRAFTED/reset: state 3 (ROM 0x0000 reset vector) throws on both sides`);
 });
 
@@ -216,9 +216,9 @@ function makeRouter(handlers) {
 }
 
 // Twin (a): the state-2 handler is a no-op — misses the countdown decrement.
-const brokenCountdown = makeRouter([loc_1e49, loc_1dc9, loc_1e49]);
+const brokenCountdown = makeRouter([effectStateIdle, loc_1dc9, effectStateIdle]);
 // Twin (b): the state-1 handler is a no-op — misses the effect one-shot (arm + advance + sound).
-const brokenArm = makeRouter([loc_1e49, loc_1e49, loc_1e4a]);
+const brokenArm = makeRouter([effectStateIdle, effectStateIdle, loc_1e4a]);
 
 test("TEETH (state-2 no-op): the dropped countdown is CAUGHT and names 0x6341", () => {
   const caps = captureDispatches(4, 8000);

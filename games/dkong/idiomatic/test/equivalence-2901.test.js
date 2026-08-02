@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2901 (ROM 0x2901) — configure and run one bounding-box
+ * Equivalence test for search100mObjectOverlap (ROM 0x2901) — configure and run one bounding-box
  * collision sweep over the OBJ_ARRAY_64 record array.
  *
  * The routine recovers the per-axis tolerances the dispatcher pushed on the stack, stamps
@@ -12,8 +12,8 @@
  *
  * The oracle models the Z80 stack: it pops the pushed tolerances, brackets the search with a
  * call/return, and — because the search takes a caller-skip return on a hit — both outcomes
- * land back at the dispatch site with the same pc + SP. loc_2901 models no call/return
- * bracket (a direct call to findCollidingObject), so the harness lines the two up: after loc_2901 it
+ * land back at the dispatch site with the same pc + SP. search100mObjectOverlap models no call/return
+ * bracket (a direct call to findCollidingObject), so the harness lines the two up: after search100mObjectOverlap it
  * performs the single terminal return the ROM nets on either path, so pc + SP match and the
  * bytes the oracle's dissolved bracket leaves behind sit in the dead STACK_SCRATCH region,
  * which the memory compare excludes.
@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2901 as oracle } from "../../translated/loc_2901.js";
 import { findCollidingObject } from "../findCollidingObject.js";
-import { loc_2901 } from "../loc_2901.js";
+import { search100mObjectOverlap } from "../search100mObjectOverlap.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_SEARCH_COUNT, OBJ_ARRAY_64 } from "../ram.js";
 
@@ -216,7 +216,7 @@ test("EQUAL (crafted): every arm matches the oracle", () => {
     const k = classify(entry);
     assert.equal(k.hit, wantHit, `${name}: expected ${wantHit ? "hit" : "exhausted"}, oracle did the opposite`);
     assert.equal(k.b, wantB, `${name}: expected residue B=${wantB}, oracle left ${k.b}`);
-    const diffs = contractDiffs(entry, loc_2901);
+    const diffs = contractDiffs(entry, search100mObjectOverlap);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
     // Non-vacuity: the object count is stamped, and the write is a genuine RAM effect.
     assert.equal(runOracle(entry).mem.read8(OBJ_SEARCH_COUNT), 7, `${name}: object count not stamped`);
@@ -239,7 +239,7 @@ test("EQUAL (crafted): the stack-passed tolerances flip the decision and both ma
   assert.notEqual(kLoose.hit, kTight.hit, "the tolerance change did not flip the decision — case is not exercising the marshalling");
 
   for (const [label, entry] of [["loose tolerance", loose], ["tight tolerance", tight]]) {
-    const diffs = contractDiffs(entry, loc_2901);
+    const diffs = contractDiffs(entry, search100mObjectOverlap);
     assert.equal(diffs.length, 0, `${label}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/tolerances: loose=${kLoose.hit ? "hit" : "miss"} tight=${kTight.hit ? "hit" : "miss"} — both identical to the oracle`);
