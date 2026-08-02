@@ -69,20 +69,27 @@ import { serviceCoinInput } from "./serviceCoinInput.js"; // ROM 0x017B
 import { soundDriverTick } from "./soundDriverTick.js"; //   ROM 0x00E0
 import { runAttractState } from "./runAttractState.js"; //   ROM 0x073C (GAME_STATE 1)
 import { dispatchInGameSubstate } from "./dispatchInGameSubstate.js"; // ROM 0x06FE (GAME_STATE 3)
-import { loc_01c3 } from "../translated/loc_01c3.js"; // ROM 0x01C3 (GAME_STATE 0) — still oracle
-import { loc_08b2 } from "../translated/loc_08b2.js"; //         ROM 0x08B2 (GAME_STATE 2) — still oracle
+import { powerOnInit } from "./powerOnInit.js"; //           ROM 0x01C3 (GAME_STATE 0)
+import { dispatchCreditedSubstate } from "./dispatchCreditedSubstate.js"; // ROM 0x08B2 (GAME_STATE 2)
 
 // Board I/O: the NMI-enable latch. Writing 1 re-arms the NMI (ROM 0x00DB). A control
 // port, not work RAM, so it never appears in the state dump.
 const NMI_ENABLE = 0x7d84;
 
 // The 4-entry `rst 0x28` game-state table at ROM 0x00CA, folded to function references.
-// Indexed by GAME_STATE (0x6005). Idiomatic handlers where they exist, else the frozen
-// oracle (bottom-up: states 0 and 2 have no idiomatic rewrite yet).
+// Indexed by GAME_STATE (0x6005). All four are now the IDIOMATIC handlers.
+//
+// States 0 and 2 called the oracle until their stack effect was measured here. In isolation
+// the two are NOT interchangeable with their twins — the oracles end in a Z80 `ret` (pc = the
+// popped continuation, SP +2) while the twins return in JS and leave pc/SP at entry. What makes
+// the swap safe is THIS routine's epilogue: it forces `sp = frameBase + 12` and then rets, so a
+// handler's SP delta is overwritten, never propagated. Measured through that epilogue over 44
+// real captured perFrame entries spanning GAME_STATE {0,1,2,3} (a plain attract run plus a
+// driven coin+start run): RAM −stack, SP and pc all identical to the oracle.
 const NMI_GAME_STATE = [
-  loc_01c3, //           0  ROM 0x01C3 — power-on
+  powerOnInit, //            0  ROM 0x01C3 — power-on
   runAttractState, //        1  ROM 0x073C — attract / demo
-  loc_08b2, //               2  ROM 0x08B2 — credited (pre-game)
+  dispatchCreditedSubstate, // 2  ROM 0x08B2 — credited (pre-game)
   dispatchInGameSubstate, // 3  ROM 0x06FE — in-game sub-state dispatch
 ];
 

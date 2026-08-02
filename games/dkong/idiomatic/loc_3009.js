@@ -120,7 +120,7 @@ export function loc_3009(a, b) {
  *     302b  cb 50      bit 2,b        ; B is the selector, live-in
  *     3031  ...        the ror-2 scan of C's four 2-bit fields for a match to B
  *     303b  79 0f 0f e6 03  ld a,c / rrca x2 / and 0x03   ; A = the field AFTER the match
- *     3040  fe 03      cp 0x03        ; -> the CARRY loc_23de reads
+ *     3040  fe 03      cp 0x03        ; -> the CARRY, reproduced for fidelity, NOT live (see OUT:)
  *     3042  c0         ret nz         ; A = that field
  *     3043  cb 92 15   res 2,d / dec d
  *     3046  c0         ret nz         ; A = 3

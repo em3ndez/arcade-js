@@ -52,7 +52,16 @@
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { loc_0038 } from "../translated/loc_0038.js"; // rst 0x38 add-pass — not yet idiomatic
+// ROM 0x0038 — the `rst 0x38` add-pass, the FROZEN ORACLE. An idiomatic twin
+// (addToSpriteObjectColumn.js) exists and 0x0038 is in ram.js's ROUTINES, so "not yet idiomatic"
+// is FALSE. ★ THIS ONE IS HONESTLY UNSETTLED, not shown unsafe. The oracle has no `ret` of its
+// own — it ends in a TAIL `m.call(0x003D)` into addStrided — so whether it consumes a guest-stack
+// word depends on the seam, which is exactly the case a direct-call probe cannot decide (a probe
+// on a Machine with no overrides installs no seam and measures the wrong configuration). No gate
+// settles it either: injecting the 2-byte delta at this call site was caught by neither this
+// routine's equivalence gate nor the full-flip gate. So it stays on the oracle — correct today,
+// with the reason stated — rather than being swapped on an argument no instrument can check.
+import { loc_0038 } from "../translated/loc_0038.js";
 import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP, INTRO_SCROLL_INDEX } from "./ram.js";
 
 const CLIMB_RECORDS_SRC = 0x388c; // ROM template of 10 sprite-object records for this phase

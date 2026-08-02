@@ -70,7 +70,14 @@
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
 import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — draw the board segment layout
-import { loc_1826 } from "../translated/loc_1826.js"; // ROM 0x1826 — 70-tile VRAM fill (oracle; no idiomatic yet)
+// ROM 0x1826 — 70-tile VRAM fill. The FROZEN ORACLE deliberately: an idiomatic twin
+// (fillTileBlock.js) exists and 0x1826 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE.
+// The oracle is a pure leaf ending in `ret` (zero m.call of its own) and so consumes one
+// guest-stack word the twin's JS return does not. Left because nothing can prove the swap safe:
+// no run reaches this call site (attract never builds this screen, and there is no tape-driven
+// convergence gate), and injecting the 2-byte delta here was caught by neither this routine's
+// equivalence gate nor the full-flip gate.
+import { loc_1826 } from "../translated/loc_1826.js";
 import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./ram.js";
 
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field +3 (Y) of sprite-object record 0

@@ -25,6 +25,27 @@
 //      is stack-neutral on its own, and that the flip still reproduces the oracle on every live
 //      cell. Also asserts the run REACHES its frame budget, which "green" did not previously imply:
 //      before the seam fix this run died at frame 237 and no test failed.
+//
+//      ★★ KNOWN COVERAGE BOUNDARY — this gate is SP-BLIND INSIDE THE NMI SUBTREE, and that limit is
+//      measured, not suspected. The SP assertion samples at the vblank YIELD, i.e. at frame
+//      boundaries. `perFrame`'s epilogue forces SP = frameBase + 12 before that point, so any stack
+//      delta introduced INSIDE the NMI subtree is absorbed before the gate ever looks.
+//      THE EVIDENCE, non-vacuous: idiomatic loc_07cb's FINISH arm returns before the oracle leaf
+//      loc_3f24 supplies a +2, so wiring it into runAttractState's slot 6 produces a REAL 2-byte
+//      delta in the SHIPPED configuration — and this gate reports spFaults=0. It was caught only by
+//      replaying equivalence-073c's own captures at STRIDE 1 (1 mismatch in 3990; the routine's
+//      stride-16 sampling steps over the single frame that differs).
+//      ★ AN EARLIER VERSION OF THIS PARAGRAPH cited a different injection (swapping
+//      dispatchEffectState's loc_1e4a import) as passing "THREE gates". That citation was itself
+//      vacuous and is withdrawn: under this test's config that routine takes state 2 ZERO times in
+//      20000 frames, and `swap_check --all` at the quoted 3000-frame budget never dispatches it
+//      either (it does at 6000, and is still TRANSPARENT). Only equivalence-1dbd genuinely drove the
+//      swapped code. A gate that never executes the change is not a gate that failed to catch it.
+//      So: "guest stack balanced every frame" means balanced AT THE FRAME BOUNDARY. Do not read a
+//      green run here as a stack proof for ANY subtree — including the main-loop/task subtree: the
+//      0x0F56 dissolve in this same commit was once described as "proven safe" that way, and that
+//      was false (all 3 of its invocations are inNmi=true; injecting a delta there passes 4/4).
+//      For a stack question, measure the call site in situ; this gate does not answer it.
 //      Its budget is 6000. That WAS a wall (the pure-signature wiring class, at frame 710); it is now
 //      a review decision — see FLIP_FRAMES for the measured headroom and why the number stands.
 //

@@ -47,6 +47,10 @@
 import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR, M50_OBJ1_STEP } from "./ram.js";
 import { reverseStepDirection } from "./reverseStepDirection.js";
 import { loc_26a6 } from "./loc_26a6.js";
+// ROM 0x26E9 — the FROZEN ORACLE, deliberately. An idiomatic twin (signStepHalfRate.js) exists
+// and 0x26E9 is in ram.js's ROUTINES; this is NOT a "no idiomatic yet" import. The oracle returns
+// through a Z80 `ret` (two of them, no m.call of its own) and the twin returns in JS, so the swap
+// drops a guest-stack word. MEASURED — swapping it fails this routine's own equivalence gate.
 import { loc_26e9 } from "../translated/loc_26e9.js";
 
 export function loc_2602(m) {

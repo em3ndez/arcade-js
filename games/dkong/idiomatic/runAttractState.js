@@ -56,30 +56,56 @@ import { loc_0779 } from "../translated/loc_0779.js";
 import { loc_0763 } from "../translated/loc_0763.js";
 import { loc_123c } from "../translated/loc_123c.js";
 import { loc_1977 } from "../translated/loc_1977.js";
-import { loc_127c } from "../translated/loc_127c.js";
+import { runDeathAnimationSubstate } from "./runDeathAnimationSubstate.js";
 import { loc_07c3 } from "../translated/loc_07c3.js";
+// ROM 0x07CB — the FROZEN ORACLE deliberately. An idiomatic loc_07cb exists and is registered,
+// so "no idiomatic yet" would be false. It stays because the swap is NOT stack-neutral, and
+// that was MEASURED, not assumed: in situ, slot 6's SP delta is oracle {+2 x97} vs twin
+// {+2 x96, 0 x1}. The idiomatic loc_07cb's FINISH arm returns before loc_3f24 — the
+// un-dissolved oracle leaf whose `ret` supplies that +2 — so on the single finish frame the
+// twin lands 2 bytes high. equivalence-073c missed it because captureDispatches samples
+// every 16th frame and steps over that one frame; at stride 1 it is 1 mismatch in 3990
+// captures (sub-state 6, ANIM_TIMER == 1, oracle SP 0x6BF0 vs idiomatic 0x6BEE).
+// ★ COUPLING: that +2 comes ONLY from the un-dissolved 0x3F24 leaf. Dissolving 0x3F24 later
+// flips this slot to delta 0 on every arm and changes slot 6 wholesale — do them together.
 import { loc_07cb } from "../translated/loc_07cb.js";
 import { loc_084b } from "../translated/loc_084b.js";
 
 // The ROM inline jump table at 0x0748 (GAME_SUBSTATE selects the attract sub-state).
 // Ten little-endian words: eight used handlers, then two unused 0x0000 slots. The
-// callees are still-oracle routines imported from translated/ (no idiomatic rewrite
-// exists yet), so they are called directly here.
-// ★ CORRECTION (pass 13): that blanket "no idiomatic rewrite exists yet" is NO LONGER TRUE for
-// every slot. Idiomatic rewrites DO exist for 0x0779, 0x0763, 0x123C, 0x127C, 0x07C3, 0x07CB
-// and 0x084B; this table still calls the ORACLE for them ON PURPOSE, because these slots are
-// entered by the attract dispatcher's call/fall-through stack model and the idiomatic twins
-// drop it, so swapping them here would move SP. Dissolving them is a separate reviewed unit —
-// see scratchpad/pass13-carryover.md §8 (26 stale oracle imports tree-wide).
+// callees below are a MIX: some idiomatic, some the frozen oracle — see the note that follows.
+// ★ WHICH SLOTS CALL THE ORACLE, AND WHY — settled by MEASUREMENT, slot by slot, not by a
+// blanket rule. Idiomatic twins exist for all seven of 0x0779, 0x0763, 0x123C, 0x127C, 0x07C3,
+// 0x07CB and 0x084B. Each was probed by running the frozen oracle and the twin on clones of the
+// SAME real captured attract entry and diffing the memory-equivalence contract (RAM − stack, pc,
+// SP):
+//   - 0x127C came out IDENTICAL on every capture (296 stride-1 captures, zero mismatches), so that
+//     slot now calls the twin. Its evidence has TEETH: injecting a deliberate 2-byte stack delta at
+//     that slot IS caught by this routine's own gate ("SP must match the oracle on the dispatch
+//     branch"), so the gate was sensitive at exactly the place it returned a pass.
+//   - 0x07CB was ALSO dissolved on that basis and has been REVERTED: at stride 1 it is not
+//     interchangeable (1 mismatch in 3990 captures). The stride-16 sampling that produced the
+//     original "identical on every capture" stepped over the only frame that differs. A sampling
+//     interval is part of a measurement's claim, and this one was quietly doing the work.
+//   - 0x0779, 0x0763, 0x123C and 0x084B are NOT interchangeable. This is a TAIL dispatch: the
+//     handler's own Z80 `ret` is what returns past this routine to the NMI continuation. Those
+//     oracles end in that `ret` (measured pc 0x00D2, SP +2); their twins return in JS and leave
+//     pc/SP at entry (measured pc 0x0028, SP +0). Swapping one FAILS this routine's gate on SP.
+//   - 0x07C3 (slot 5) stays too, but on WEAKER evidence, stated plainly rather than rounded up:
+//     the swap does not fail the gate — yet that pass is vacuous. Attract's real captures cover
+//     sub-states 0-4, 6 and 7 only, so slot 5 is never captured, and the crafted sweep that does
+//     force it compares RAM without asserting SP. Verified by injecting the 2-byte delta at slot
+//     5: nothing caught it. Its oracle ends in a `ret` like the other four, so the swap is
+//     presumed non-neutral for the same reason and is not worth making unprovably.
 const ATTRACT_SUBSTATE = [
-  loc_0779, // 0  ROM 0x0779 — draw the attract screen
-  loc_0763, // 1  ROM 0x0763 — timed advance (rst 0x20 gate)
-  loc_123c, // 2  ROM 0x123C — seed the demo sprite record
-  loc_1977, // 3  ROM 0x1977 — the demo-gameplay cascade
-  loc_127c,                 //     4  ROM 0x127C  — ORACLE, deliberately (see the ★ note above)
-  loc_07c3, //     5  ROM 0x07C3
-  loc_07cb, //     6  ROM 0x07CB — countdown animation
-  loc_084b, //     7  ROM 0x084B — rst 0x20 gate, clears GAME_SUBSTATE
+  loc_0779, // 0  ROM 0x0779 — draw the attract screen           (ORACLE: its `ret` is the tail return)
+  loc_0763, // 1  ROM 0x0763 — timed advance (rst 0x20 gate)     (ORACLE: same)
+  loc_123c, // 2  ROM 0x123C — seed the demo sprite record       (ORACLE: same)
+  loc_1977, // 3  ROM 0x1977 — the demo-gameplay cascade         (no idiomatic twin exists)
+  runDeathAnimationSubstate, // 4  ROM 0x127C — idiomatic (measured interchangeable)
+  loc_07c3, //     5  ROM 0x07C3                                 (ORACLE: its `ret` is the tail return)
+  loc_07cb, //     6  ROM 0x07CB — countdown animation (ORACLE: the swap moves SP; see the import)
+  loc_084b, //     7  ROM 0x084B — rst 0x20 gate, clears GAME_SUBSTATE (ORACLE: same)
   null, //         8  ROM 0x0000 — unused sub-state slot
   null, //         9  ROM 0x0000 — unused sub-state slot
 ];

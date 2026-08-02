@@ -60,7 +60,16 @@ import { EFFECT_STATE } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { effectStateIdle } from "./effectStateIdle.js"; // ROM 0x1E49 — state 0 (idle)
 import { loc_1dc9 } from "./loc_1dc9.js"; // ROM 0x1DC9 — state 1 (arm + advance)
-import { loc_1e4a } from "../translated/loc_1e4a.js"; // ROM 0x1E4A — state 2 (countdown); no idiomatic yet, call the oracle
+// ROM 0x1E4A — state 2 (countdown). The FROZEN ORACLE deliberately: an idiomatic twin
+// (tickDispatcherCountdown.js) exists and 0x1E4A is in ram.js's ROUTINES, so "no idiomatic yet"
+// is FALSE. It stays because the oracle is a pure leaf that returns through a Z80 `ret` (two
+// `ret`s, zero m.call of its own), so it consumes one guest-stack word that the twin's JS return
+// does not — the swap is NOT stack-neutral. Left rather than dissolved because NO gate here can
+// vouch for it either way: this routine's equivalence test and the full-flip gate were both
+// probed by injecting exactly that 2-byte delta at this call site and NEITHER caught it (the
+// site sits in the NMI subtree, whose stack delta perFrame's epilogue overwrites before the
+// frame boundary the flip gate samples). An unprovable swap is not worth making.
+import { loc_1e4a } from "../translated/loc_1e4a.js";
 
 // The effect-sprite state machine's handlers, indexed by EFFECT_STATE (0x6340). Slot 3
 // (the reset vector, ROM 0x0000) is intentionally absent — no handler ever produces it, so

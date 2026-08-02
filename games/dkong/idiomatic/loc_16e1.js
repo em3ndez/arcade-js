@@ -58,7 +58,12 @@
 
 import { loc_16d0 } from "./loc_16d0.js"; // ROM 0x16D0 — schedule a reversal, then slide
 import { loc_16d5 } from "./loc_16d5.js"; // ROM 0x16D5 — the shared group-slide motion tick
-import { loc_16ee } from "../translated/loc_16ee.js"; // ROM 0x16EE — reinit object block + advance the 0x6388 step counter (oracle)
+// ROM 0x16EE — reinit object block + advance the 0x6388 step counter. The FROZEN ORACLE on
+// purpose: an idiomatic twin (reloadObjectBlockAndAdvanceStep.js) exists and 0x16EE is in
+// ROUTINES, but the oracle ends in a plain `ret` (it makes no m.call of its own) while the twin
+// returns in JS, so the swap drops one guest-stack word. MEASURED — it fails this routine's own
+// equivalence gate on SP (oracle=0x6C00 vs candidate 2 lower).
+import { loc_16ee } from "../translated/loc_16ee.js";
 
 export function loc_16e1(m, recordX, stepByte) {
   // Short of the reinit mark: the group has arrived at the rail — recopy its object block and

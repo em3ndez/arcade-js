@@ -43,8 +43,10 @@ import { u8 } from "../../../core/int.js";
 import { loc_236e } from "./loc_236e.js";
 import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./ram.js";
 
-// Multiplexed engine-scratch gate (ram.js keeps it hex, DOWNGRADE): CLEAR here takes the
-// short advance path; SET routes through the difficulty/position/input grading below.
+// Multiplexed engine-scratch gate. ram.js does NOT name 0x6348 — verified, it has no export —
+// because the cell is read for DIFFERENT roles by different routines (a velocity-mode latch in
+// loc_22cb, this spawn/movement gate here), so no single name would be true of both. CLEAR here
+// takes the short advance path; SET routes through the difficulty/position/input grading below.
 const SPAWN_MODE_GATE = 0x6348;
 
 export function loc_216d(m) {

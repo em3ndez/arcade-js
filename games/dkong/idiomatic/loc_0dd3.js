@@ -54,9 +54,18 @@
  *           "kind" semantics are documented).
  */
 
-import { loc_2ff0 } from "../translated/loc_2ff0.js"; // ROM 0x2FF0 — (y,x) -> tile address; no idiomatic yet
-import { loc_0e4f } from "../translated/loc_0e4f.js"; // ROM 0x0E4F — ladder (kind 2) / strip (kind 3+) drawer
-import { loc_0e19 } from "../translated/loc_0e19.js"; // ROM 0x0E19 — girder-span fill + end cap
+// ROM 0x2FF0 — (y,x) -> tile address. The FROZEN ORACLE deliberately: an idiomatic twin exists
+// (tileAddrForPixel.js, machine-shaped entry tileAddrForPixelFromRegisters) and 0x2FF0 is in
+// ram.js's ROUTINES, so "no idiomatic yet" is FALSE. Unlike the two segment drawers below, this
+// one is NOT stack-neutral: 0x2FF0 is a pure leaf ending in `ret`, consuming a guest-stack word
+// the twin's JS return does not. Left because no gate here can prove the swap safe — the 2-byte
+// delta was injected at this call site and neither this routine's equivalence gate (RAM + DE
+// only) nor the full-flip gate caught it. If you dissolve it later, import the FromRegisters
+// wrapper: the bare tileAddrForPixel is a pure (y, x) function and passing it the Machine
+// corrupts SEG_ADDR2 silently.
+import { loc_2ff0 } from "../translated/loc_2ff0.js";
+import { drawLadder } from "./drawLadder.js"; //         ROM 0x0E4F — ladder (kind 2) / strip (kind 3+) drawer
+import { drawGirderSpan } from "./drawGirderSpan.js"; // ROM 0x0E19 — girder-span fill + end cap
 
 // Board-render line-segment scratch, all named in ram.js (SEG_* cluster):
 //   SEG_HEIGHT   0x63b1  |y2 - y| — the segment's height/length counter
@@ -103,7 +112,7 @@ export function loc_0dd3(m) {
   // takes the ladder / strip drawer, which reloads HL and reads DE itself.
   const kind = mem.read8(SEG_KIND);
   if ((((kind - 0x02) & 0xff) & 0x80) === 0) {
-    loc_0e4f(m); // ROM 0x0E4F
+    drawLadder(m); // ROM 0x0E4F
     return;
   }
 
@@ -128,5 +137,5 @@ export function loc_0dd3(m) {
     mem.write8(SEG_RUN, 0x00);
   }
 
-  loc_0e19(m); // ROM 0x0E19 — walk the run stamping girder tile 0xC0, then the end cap
+  drawGirderSpan(m); // ROM 0x0E19 — walk the run stamping girder tile 0xC0, then the end cap
 }

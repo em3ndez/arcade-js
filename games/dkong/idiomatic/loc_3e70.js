@@ -46,7 +46,12 @@
  *           (ROM 0x1E28) is the callee, imported from translated/ (the frozen oracle, not yet
  *           decompiled) and called directly; loc_1e28 owns all the RAM writes and ram.js names.
  */
-import { loc_1e28 } from "../translated/loc_1e28.js"; // ROM 0x1E28 — still the frozen oracle tail
+// ROM 0x1E28 — the FROZEN ORACLE tail, deliberately. An idiomatic twin (awardScorePopup.js)
+// exists and 0x1E28 is in ram.js's ROUTINES, so "no idiomatic yet" would be false. The oracle
+// ends in a `ret` that returns on this routine's behalf; the twin returns in JS and leaves SP at
+// entry. MEASURED — swapping it fails this routine's own equivalence gate with a contract diff
+// at SP (oracle 0x6BF0 vs idiomatic 0x6BEE) on the arm that reaches it.
+import { loc_1e28 } from "../translated/loc_1e28.js";
 
 export function loc_3e70(m) {
   const { regs } = m;

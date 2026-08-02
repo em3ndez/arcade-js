@@ -45,7 +45,17 @@
  *           partner loc_0dd3 (the per-segment second-endpoint + dispatch step) stays loc_.
  */
 
-import { loc_2ff0 } from "../translated/loc_2ff0.js"; // ROM 0x2FF0 — (H=y, L=x) -> HL = tile address; no idiomatic yet
+// ROM 0x2FF0 — (H=y, L=x) -> HL = tile address. The FROZEN ORACLE deliberately: an idiomatic
+// twin exists (tileAddrForPixel.js, whose machine-shaped entry is tileAddrForPixelFromRegisters)
+// and 0x2FF0 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
+// ending in `ret` — it consumes one guest-stack word the twin's JS return does not — so the swap
+// is not stack-neutral. Left rather than dissolved because nothing here can prove it safe: the
+// 2-byte delta was injected at this exact call site and neither this routine's equivalence gate
+// (its contract is RAM + DE; SP/pc are explicitly the dropped stack model) nor the full-flip gate
+// caught it. NOTE for anyone who does dissolve this later: import the FromRegisters wrapper, not
+// the bare tileAddrForPixel — that one is a pure (y, x) function and calling it with the Machine
+// silently corrupts the segment scratch.
+import { loc_2ff0 } from "../translated/loc_2ff0.js";
 import { loc_0dd3 } from "./loc_0dd3.js"; // ROM 0x0DD3 — convert the 2nd endpoint + draw the segment
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./ram.js"; // board-render segment scratch
 

@@ -35,8 +35,9 @@
  *      bit 1 of BOARD; `board & 0x02` reproduces that carry faithfully for all 256
  *      values, not only {1,2,3,4}.
  *
- * CALLEES. loc_0f56 (ROM 0x0F56) is not yet in idiomatic/, so it is called directly as
- * the frozen oracle; the four already-idiomatic leaves are imported and called directly.
+ * CALLEES. All five are idiomatic and called directly, including initBoardState (ROM 0x0F56),
+ * which this unit dissolved from a frozen-oracle import — see the note at that call site for the
+ * measurement it rests on, and for why no gate can vouch for it.
  * All five still take their inputs in the Z80 register file (they are the older
  * regs-passing idiomatic style, not honest-param), so at each call site this routine
  * still sets the registers they read (HL for the block load; HL/C for the column add;
@@ -69,7 +70,7 @@
  *           SPRITE_BUFFER+3).
  */
 
-import { loc_0f56 } from "../translated/loc_0f56.js"; // ROM 0x0f56 — not yet idiomatic; the frozen oracle
+import { initBoardState } from "./initBoardState.js"; // ROM 0x0f56
 import { loadBoardObjectRecords } from "./loadBoardObjectRecords.js"; // ROM 0x2441
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
@@ -83,8 +84,21 @@ const HEAD_COPY_BYTES = 8; // the 8 bytes (2 records) copied to SPRITE_BUFFER af
 export function loc_0d5f(m) {
   const { regs, mem } = m;
 
-  // (1) Common per-board init + the per-board setup dispatch (still the oracle).
-  loc_0f56(m);
+  // (1) Common per-board init + the per-board setup dispatch.
+  // Stack note, because this one is not obvious: the oracle at 0x0F56 ends in a `jp` TAIL into
+  // the per-board setup routine, so in ISOLATION it consumes a stack word this twin does not.
+  // It is safe here because the tail's target is itself an idiomatic override, and the seam
+  // (games/dkong/machine.js) closes that bracket either way. The swap itself is MEASURED neutral:
+  // in situ, oracle and twin both net a delta of 0 over all 3 invocations.
+  // ★ WHAT NO GATE CAN TELL YOU ABOUT IT. An earlier version of this comment claimed this call
+  // site "sits in the MAIN-LOOP/task subtree, not the NMI subtree", and that a deliberate 2-byte
+  // delta injected here IS caught. BOTH HALVES WERE FALSE. Instrumented with an in-NMI flag over
+  // 6000 flip frames, all 3 invocations report inNmi=true, SP 0x6BF0 — this is the NMI subtree,
+  // the blind region: perFrame's epilogue forces SP = frameBase + 12 before the frame boundary the
+  // gate samples, so the delta is absorbed. Injecting `m.regs.sp += 2` right after this call and
+  // re-running golive PASSES 4/4. So this dissolve rests on the direct in-situ measurement above
+  // and on nothing else; no gate vouches for it, exactly as for the ones left undissolved.
+  initBoardState(m);
 
   // (2) Scatter this board's ROM object-init records into OBJ_PARAM_TABLE0 / OBJ_PARAM_TABLE1
   //     (0x6300/0x6310).

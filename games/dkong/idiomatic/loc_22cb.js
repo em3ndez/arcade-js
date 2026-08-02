@@ -37,8 +37,10 @@
  * LIVE-OUT: memory-only (record +0x10 / +0x11, written by the dispatched arm). The oracle's
  *           rst-0x28 register/flag churn and its terminal return are dead — the caller
  *           discards the result.
- * NAMES:    DIFFICULTY (0x6380) from ram.js. The velocity-mode latch 0x6348 has no ram.js name
- *           (a thin one-shot latch, kept hex under DOWNGRADE) — reported for the lead. The two
+ * NAMES:    DIFFICULTY (0x6380) from ram.js. The velocity-mode latch 0x6348 has no ram.js name —
+ *           verified: it has no export there, because the cell is MULTIPLEXED across readers with
+ *           different roles (velocity mode here, a spawn/movement gate in loc_216d), so no single
+ *           name would be true of both. Kept hex for that reason, not by oversight. The two
  *           record fields +0x10 / +0x11 are written inside the arms and stay unnamed there.
  */
 
@@ -51,8 +53,9 @@ import { loc_231a } from "./loc_231a.js";
 
 // One-shot latch selecting the velocity source: clear -> the level-based arm, set -> the
 // difficulty-graded arms below. Own byte grounded {0,1} live vs MAME (pass-9), but no ram.js
-// name: it is MULTIPLEXED across readers (velocity-mode here, spawn/movement gate in sub_216d),
-// so it stays hex under DOWNGRADE — this file-local const names only its role here.
+// name: it is MULTIPLEXED across readers (velocity-mode here, spawn/movement gate in loc_216d),
+// so no single ram.js name would be true of both and it stays hex — this file-local const names
+// only its role HERE, which is why it is scoped to this file rather than promoted to ram.js.
 const VELOCITY_MODE_LATCH = 0x6348;
 
 export function loc_22cb(m) {

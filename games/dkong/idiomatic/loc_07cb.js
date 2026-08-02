@@ -57,7 +57,14 @@ import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004E
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038
-import { loc_3f24 } from "../translated/loc_3f24.js"; // ROM 0x3F24 — no idiomatic yet; call the oracle
+// ROM 0x3F24 — the FROZEN ORACLE deliberately. An idiomatic twin (stampFixedTilePair.js) exists
+// and 0x3F24 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
+// ending in `ret` (zero m.call of its own), so it consumes one guest-stack word the twin's JS
+// return does not — the swap is not stack-neutral. Left because no gate can vouch for it: the
+// 2-byte delta was injected here and neither this routine's equivalence gate nor the full-flip
+// gate caught it (this site is in the NMI subtree, where perFrame's epilogue overwrites SP
+// before the frame boundary the flip gate samples).
+import { loc_3f24 } from "../translated/loc_3f24.js";
 
 const ANIM_TIMER = 0x638a; // frames left in the current animation run (counts 0x60 -> 0)
 const ANIM_PATTERN = 0x638b; // 8-bit pattern streamed 2 bits/frame into the latches

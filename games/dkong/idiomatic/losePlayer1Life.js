@@ -49,7 +49,13 @@
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011C
 import { loc_13ca } from "./loc_13ca.js"; // ROM 0x13CA
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
-import { loc_1826 } from "../translated/loc_1826.js"; // ROM 0x1826 — no idiomatic yet; call the oracle
+// ROM 0x1826 — 70-tile VRAM fill. The FROZEN ORACLE deliberately: an idiomatic twin
+// (fillTileBlock.js) exists and 0x1826 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE.
+// The oracle is a pure leaf ending in `ret` and consumes one guest-stack word the twin's JS
+// return does not. Left because nothing can prove the swap safe: no run reaches this call site,
+// and the injected 2-byte delta was caught by neither this routine's equivalence gate nor the
+// full-flip gate. Same call, same reasoning, as the one in loc_1880.js.
+import { loc_1826 } from "../translated/loc_1826.js";
 import {
   PLAY_INTRO,
   LIVES,

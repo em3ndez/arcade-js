@@ -23,9 +23,14 @@
  *      task schedulers, dispatch on GAME_STATE (0x6005) through the 4-entry table at
  *      ROM 0x00CA, then restore the interrupted registers and re-enable the NMI.
  *
- * Callees: blitSpritesViaDma is the idiomatic sprite blit; loc_0087 (ROM 0x0087)
- * and loc_00b5 (ROM 0x00B5, the loc_00b5 tail + epilogue) are still the frozen oracle
- * and are called directly — loc_00b5 owns steps 5 and the register/NMI-mask restore.
+ * Callees: all three are idiomatic and called directly — blitSpritesViaDma (the sprite
+ * blit), readControls (ROM 0x0087) and perFrame (ROM 0x00B5, the tail + epilogue), the
+ * last of which owns step 5 and the register/NMI-mask restore. The 0x0087 and 0x00B5
+ * imports were dissolved from the frozen oracle in the same unit that wrote this note.
+ * ★ NOTE THIS ROUTINE IS DEAD AT RUNTIME: Machine.fireNmi calls the TRANSLATED loc_0066
+ * directly, so nothing here executes under the flip, swap_check, or the shipped player
+ * (0 calls measured). It is still gated by equivalence-0066. The dissolves above are
+ * therefore readability-only, with zero runtime effect — do not read them as behaviour.
  *
  * The oracle opens by pushing AF/BC/DE/HL/IX/IY (12 bytes) and loc_00b5's epilogue
  * pops them back: that save/restore is the interrupt ABI (it hands the interrupted
@@ -67,11 +72,11 @@
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { ATTRACT } from "./ram.js";
 import { blitSpritesViaDma } from "./blitSpritesViaDma.js";
-import { loc_0087 } from "../translated/loc_0087.js";
-import { loc_00b5 } from "../translated/loc_00b5.js";
+import { readControls } from "./readControls.js"; // ROM 0x0087
+import { perFrame } from "./perFrame.js"; //        ROM 0x00B5
 
 // Board control ports (io side, NOT work RAM — never appear in the state dump).
-const NMI_ENABLE = 0x7d84; // interrupt-enable latch; cleared to ack, re-enabled by loc_00b5
+const NMI_ENABLE = 0x7d84; // interrupt-enable latch; cleared to ack, re-enabled by perFrame
 const IN2_WATCHDOG = 0x7d00; // IN2 read (the read kicks the watchdog); bit 0 = SERVICE switch
 
 // ROM address of the 9-byte i8257 setup block the DMA blit programs from.
@@ -99,16 +104,17 @@ export function serviceVblankNmi(m) {
   // 4. Read + debounce the controls only while a credited game is in play; attract
   //    (ATTRACT != 0) leaves the input latch alone.
   if (mem.read8(ATTRACT) === 0) {
-    loc_0087(m);
+    readControls(m);
   }
 
   // 5. Frame counter, RNG, schedulers, GAME_STATE dispatch, and the restore epilogue.
-  //    loc_00b5 is the oracle: its epilogue pops the 12-byte register-save frame the
-  //    ROM prologue pushed, plus the return PC. We don't model the register save
-  //    (registers are dead here), so RESERVE that frame — advance SP by 12, exactly
-  //    where the six pushes would leave it — so loc_00b5's pops stay in mapped RAM and
-  //    its SP/`ret` arithmetic matches the oracle byte for byte. The reserved bytes are
-  //    inside STACK_SCRATCH and never read as live data.
+  //    perFrame's epilogue unwinds the 12-byte register-save frame the ROM prologue
+  //    pushed, plus the return PC. We don't model the register save (registers are dead
+  //    here), so RESERVE that frame — advance SP by 12, exactly where the six pushes would
+  //    leave it — so perFrame's `sp = frameBase + 12` lands on the return PC and its
+  //    `ret` matches the oracle byte for byte. The reserved bytes are inside STACK_SCRATCH
+  //    and never read as live data. The reservation is still required with the idiomatic
+  //    twin: it does the SAME frameBase arithmetic the oracle's pops did.
   regs.sp = (regs.sp - 12) & 0xffff;
-  loc_00b5(m);
+  perFrame(m);
 }

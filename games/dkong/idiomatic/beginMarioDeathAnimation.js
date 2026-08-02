@@ -82,9 +82,14 @@ import {
   DEATH_ANIM_TICKS_LEFT,
 } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
-// ROM 0x30BD — still the FROZEN ORACLE. An idiomatic twin (clearSpriteColumns.js) does exist
-// and 0x30BD is in ram.js's ROUTINES map; switching this import is a behaviour change (the
-// tail-jump return accounting), so it is left as a pending dissolve unit, not fixed here.
+// ROM 0x30BD — the FROZEN ORACLE, and it STAYS. An idiomatic twin (clearSpriteColumns.js) exists
+// and 0x30BD is in ram.js's ROUTINES map, so "no idiomatic yet" would be false. The swap is not
+// stack-neutral: loc_30bd's fourth clear is a `jp 0x30E4` TAIL JUMP, so sub_30e4's `ret` returns
+// on loc_30bd's behalf and consumes a word; clearSpriteColumns makes four plain JS calls and
+// consumes none. CONFIRMED BY MEASUREMENT (not by reading): swapping the import fails this
+// routine's own equivalence gate — pc oracle=0x12A6 vs candidate 0x30BD, SP 0x6BF0 vs 0x6BEE.
+// Dissolving it means moving that tail return into this routine, an ABI change rather than an
+// import swap, so it is out of scope for a call-target dissolve.
 import { loc_30bd } from "../translated/loc_30bd.js";
 
 // The sprite-code byte (+1) of Mario's hardware sprite record at 0x694C.

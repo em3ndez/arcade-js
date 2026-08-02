@@ -45,6 +45,13 @@
 
 import { GAME_SUBSTATE } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
+// ROM 0x09EE — the FROZEN ORACLE, deliberately. An idiomatic twin (draw2UpLabel.js) exists and
+// 0x09EE is in ram.js's ROUTINES, so this is NOT a "no idiomatic yet" import. It stays because
+// this is a tail FALL-THROUGH: loc_09ee's own Z80 `ret` is what returns from this routine, and
+// draw2UpLabel models that return as a JS `return` and leaves pc/SP at entry. MEASURED — swapping
+// it fails this routine's own equivalence gate: pc oracle=0x00D2 (the popped NMI continuation)
+// vs idiomatic=0x0028, SP 2 apart. Dissolving it needs the tail return moved into this routine,
+// which is an ABI change, not an import swap.
 import { loc_09ee } from "../translated/loc_09ee.js";
 
 // Two board control latches this arm clears to 0. They live in the 0x7D00-page board
