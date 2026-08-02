@@ -15,8 +15,9 @@
 import { AddressSpace } from "../../boards/dkong/memory.js";
 import { IO, Inputs, NotImplemented } from "../../boards/dkong/io.js";
 import { Regs } from "../../core/cpu/z80.js";
-import { bootOnly, loc_0000 as romReset } from "./translated/boot.js";
-import { loc_0066 } from "./translated/nmi.js";
+import { loc_0000 as romReset } from "./translated/loc_0000.js";
+import { bootOnly } from "./translated/bootOnly.js";
+import { loc_0066 } from "./translated/loc_0066.js";
 import { ORACLE_ROUTINES, buildRoutines } from "./routines.js";
 import {
   buildPalette, CYCLES_PER_LINE, decodeSprites, decodeTiles, drawSprites,
@@ -476,7 +477,7 @@ export class Machine {
     this.booted = true;
   }
 
-  /** Reset through the end of boot only. See bootOnly() in ./translated/boot.js. */
+  /** Reset through the end of boot only. See bootOnly() in ./translated/bootOnly.js. */
   runBoot() {
     bootOnly(this);
     this.booted = true;

@@ -14,42 +14,219 @@ import { existsSync, readFileSync } from "node:fs";
 import { CYCLES_PER_FRAME, Machine } from "../machine.js";
 import { AddressSpace, STATE_DUMP_SIZE, UnmappedAccess } from "../../../boards/dkong/memory.js";
 import { IO, Inputs } from "../../../boards/dkong/io.js";
-import {
-  loc_1dc9, loc_1dbd, loc_1e15, loc_1e00, loc_1e8c, loc_1e94, loc_1e96, loc_1ea0,
-  loc_1f09, loc_1f23, loc_2913, loc_2a22, loc_29af, loc_2b9b, loc_2333, loc_298c,
-  loc_28b0, loc_28e0, loc_2901, loc_22bd, loc_24b4, loc_2c72, loc_2c8f, loc_26a6, loc_2c03,
-  loc_2c41, loc_2c49, loc_2c4b, loc_2c4f, loc_2c7b, loc_2c86, loc_236e, loc_0514, loc_06fe,
-  loc_07c3, loc_084b, loc_08b2, loc_0852, loc_08ba, loc_08d5, loc_08f8, loc_0977, loc_09ab,
-  loc_0a37, loc_0a76, loc_0bb3, loc_0b06, loc_0a63, loc_0b68, loc_0a8a,
-  loc_127c, loc_127f, loc_12ac, loc_12de, loc_138f,
-  loc_0abf, loc_0ae8, loc_141e, loc_0f35, loc_239c,
-  loc_23de, loc_2974, loc_286f, loc_2ddb,
-  loc_2880, loc_2a2f, loc_2523, loc_0bda,
-  loc_0986, loc_2954, loc_2808, loc_281d, loc_1e57,
-  loc_128b, loc_21ee, loc_216d, loc_2591, loc_24ea, loc_2be1,
-  loc_2207, loc_25f2, loc_26fa, loc_2fcb,
-  loc_1826, loc_1a1e, loc_1d8a, loc_1d8f, loc_1da6, loc_1f46, loc_13ca, loc_1d03,
-  loc_22cb, loc_12f2, loc_2407, loc_241f, loc_1a07, loc_1a33, loc_03fb, loc_2a85, loc_2d15,
-  loc_2cb8, loc_2ce6, loc_2cf6, loc_2b1c, loc_2b29, loc_19da, loc_2e04, loc_2ed4,
-  loc_1644, loc_13aa, loc_13bb, loc_1186, loc_1131, loc_26de, loc_26e9,
-  loc_186f, loc_1839, loc_1344, loc_1d95, loc_1e49, loc_1e4a, loc_0f1b,
-  loc_17b6, loc_1880, loc_101f, loc_18c6, loc_0400, loc_07cb,
-  loc_1df5, loc_1e08, loc_1e10, loc_1e36, loc_1087,
-  loc_1641, loc_1670, loc_176c, loc_0d00, loc_15fa,
-  loc_1708, loc_1732, loc_1783, loc_178e, loc_2243, loc_2602,
-  loc_2797, loc_27da, loc_2722,
-  loc_1654, loc_168a, loc_1757, loc_0d27, loc_0d43, loc_2745,
-  loc_271e, loc_2679, loc_262f, loc_2ad3,
-  loc_2227, loc_2259, loc_2299, loc_22a2, loc_2303, loc_231a,
-  loc_09d6, loc_09fe, loc_0a1b, loc_16a3, loc_16bb,
-  loc_004e, loc_0f56, loc_11a6, loc_11d3, loc_11ec, loc_11fa, loc_122a, loc_2441,
-  loc_30e4,
-  loc_2ff0, loc_3064, loc_3096, loc_30db, loc_3f24, loc_3009, loc_304a, loc_30bd, loc_306f,
-  loc_31f6, loc_31dd, loc_3fc0, loc_34f3, loc_330f, loc_3409, loc_33e7, loc_32d6, loc_342c, loc_3478, loc_34b9, loc_32bd, loc_33a1, loc_3069, loc_3ec3, loc_30fa, loc_3e99, loc_3110, loc_311b, loc_3126, loc_3131,
-  loc_313c, loc_0ee8,
-} from "../translated/state0.js";
-import { loc_0da7, loc_0c91, loc_017b } from "../translated/nmi.js";
-import { loc_059b } from "../translated/mainloop.js";
+import { loc_004e } from "../translated/loc_004e.js";
+import { loc_017b } from "../translated/loc_017b.js";
+import { loc_03fb } from "../translated/loc_03fb.js";
+import { loc_0400 } from "../translated/loc_0400.js";
+import { loc_0514 } from "../translated/loc_0514.js";
+import { loc_059b } from "../translated/loc_059b.js";
+import { loc_06fe } from "../translated/loc_06fe.js";
+import { loc_07c3 } from "../translated/loc_07c3.js";
+import { loc_07cb } from "../translated/loc_07cb.js";
+import { loc_084b } from "../translated/loc_084b.js";
+import { loc_0852 } from "../translated/loc_0852.js";
+import { loc_08b2 } from "../translated/loc_08b2.js";
+import { loc_08ba } from "../translated/loc_08ba.js";
+import { loc_08d5 } from "../translated/loc_08d5.js";
+import { loc_08f8 } from "../translated/loc_08f8.js";
+import { loc_0977 } from "../translated/loc_0977.js";
+import { loc_0986 } from "../translated/loc_0986.js";
+import { loc_09ab } from "../translated/loc_09ab.js";
+import { loc_09d6 } from "../translated/loc_09d6.js";
+import { loc_09fe } from "../translated/loc_09fe.js";
+import { loc_0a1b } from "../translated/loc_0a1b.js";
+import { loc_0a37 } from "../translated/loc_0a37.js";
+import { loc_0a63 } from "../translated/loc_0a63.js";
+import { loc_0a76 } from "../translated/loc_0a76.js";
+import { loc_0a8a } from "../translated/loc_0a8a.js";
+import { loc_0abf } from "../translated/loc_0abf.js";
+import { loc_0ae8 } from "../translated/loc_0ae8.js";
+import { loc_0b06 } from "../translated/loc_0b06.js";
+import { loc_0b68 } from "../translated/loc_0b68.js";
+import { loc_0bb3 } from "../translated/loc_0bb3.js";
+import { loc_0bda } from "../translated/loc_0bda.js";
+import { loc_0c91 } from "../translated/loc_0c91.js";
+import { loc_0d00 } from "../translated/loc_0d00.js";
+import { loc_0d27 } from "../translated/loc_0d27.js";
+import { loc_0d43 } from "../translated/loc_0d43.js";
+import { loc_0da7 } from "../translated/loc_0da7.js";
+import { loc_0ee8 } from "../translated/loc_0ee8.js";
+import { loc_0f1b } from "../translated/loc_0f1b.js";
+import { loc_0f35 } from "../translated/loc_0f35.js";
+import { loc_0f56 } from "../translated/loc_0f56.js";
+import { loc_101f } from "../translated/loc_101f.js";
+import { loc_1087 } from "../translated/loc_1087.js";
+import { loc_1131 } from "../translated/loc_1131.js";
+import { loc_1186 } from "../translated/loc_1186.js";
+import { loc_11a6 } from "../translated/loc_11a6.js";
+import { loc_11d3 } from "../translated/loc_11d3.js";
+import { loc_11ec } from "../translated/loc_11ec.js";
+import { loc_11fa } from "../translated/loc_11fa.js";
+import { loc_122a } from "../translated/loc_122a.js";
+import { loc_127c } from "../translated/loc_127c.js";
+import { loc_127f } from "../translated/loc_127f.js";
+import { loc_128b } from "../translated/loc_128b.js";
+import { loc_12ac } from "../translated/loc_12ac.js";
+import { loc_12de } from "../translated/loc_12de.js";
+import { loc_12f2 } from "../translated/loc_12f2.js";
+import { loc_1344 } from "../translated/loc_1344.js";
+import { loc_138f } from "../translated/loc_138f.js";
+import { loc_13aa } from "../translated/loc_13aa.js";
+import { loc_13bb } from "../translated/loc_13bb.js";
+import { loc_13ca } from "../translated/loc_13ca.js";
+import { loc_141e } from "../translated/loc_141e.js";
+import { loc_15fa } from "../translated/loc_15fa.js";
+import { loc_1641 } from "../translated/loc_1641.js";
+import { loc_1644 } from "../translated/loc_1644.js";
+import { loc_1654 } from "../translated/loc_1654.js";
+import { loc_1670 } from "../translated/loc_1670.js";
+import { loc_168a } from "../translated/loc_168a.js";
+import { loc_16a3 } from "../translated/loc_16a3.js";
+import { loc_16bb } from "../translated/loc_16bb.js";
+import { loc_1708 } from "../translated/loc_1708.js";
+import { loc_1732 } from "../translated/loc_1732.js";
+import { loc_1757 } from "../translated/loc_1757.js";
+import { loc_176c } from "../translated/loc_176c.js";
+import { loc_1783 } from "../translated/loc_1783.js";
+import { loc_178e } from "../translated/loc_178e.js";
+import { loc_17b6 } from "../translated/loc_17b6.js";
+import { loc_1826 } from "../translated/loc_1826.js";
+import { loc_1839 } from "../translated/loc_1839.js";
+import { loc_186f } from "../translated/loc_186f.js";
+import { loc_1880 } from "../translated/loc_1880.js";
+import { loc_18c6 } from "../translated/loc_18c6.js";
+import { loc_19da } from "../translated/loc_19da.js";
+import { loc_1a07 } from "../translated/loc_1a07.js";
+import { loc_1a1e } from "../translated/loc_1a1e.js";
+import { loc_1a33 } from "../translated/loc_1a33.js";
+import { loc_1d03 } from "../translated/loc_1d03.js";
+import { loc_1d8a } from "../translated/loc_1d8a.js";
+import { loc_1d8f } from "../translated/loc_1d8f.js";
+import { loc_1d95 } from "../translated/loc_1d95.js";
+import { loc_1da6 } from "../translated/loc_1da6.js";
+import { loc_1dbd } from "../translated/loc_1dbd.js";
+import { loc_1dc9 } from "../translated/loc_1dc9.js";
+import { loc_1df5 } from "../translated/loc_1df5.js";
+import { loc_1e00 } from "../translated/loc_1e00.js";
+import { loc_1e08 } from "../translated/loc_1e08.js";
+import { loc_1e10 } from "../translated/loc_1e10.js";
+import { loc_1e15 } from "../translated/loc_1e15.js";
+import { loc_1e36 } from "../translated/loc_1e36.js";
+import { loc_1e49 } from "../translated/loc_1e49.js";
+import { loc_1e4a } from "../translated/loc_1e4a.js";
+import { loc_1e57 } from "../translated/loc_1e57.js";
+import { loc_1e8c } from "../translated/loc_1e8c.js";
+import { loc_1e94 } from "../translated/loc_1e94.js";
+import { loc_1e96 } from "../translated/loc_1e96.js";
+import { loc_1ea0 } from "../translated/loc_1ea0.js";
+import { loc_1f09 } from "../translated/loc_1f09.js";
+import { loc_1f23 } from "../translated/loc_1f23.js";
+import { loc_1f46 } from "../translated/loc_1f46.js";
+import { loc_216d } from "../translated/loc_216d.js";
+import { loc_21ee } from "../translated/loc_21ee.js";
+import { loc_2207 } from "../translated/loc_2207.js";
+import { loc_2227 } from "../translated/loc_2227.js";
+import { loc_2243 } from "../translated/loc_2243.js";
+import { loc_2259 } from "../translated/loc_2259.js";
+import { loc_2299 } from "../translated/loc_2299.js";
+import { loc_22a2 } from "../translated/loc_22a2.js";
+import { loc_22bd } from "../translated/loc_22bd.js";
+import { loc_22cb } from "../translated/loc_22cb.js";
+import { loc_2303 } from "../translated/loc_2303.js";
+import { loc_231a } from "../translated/loc_231a.js";
+import { loc_2333 } from "../translated/loc_2333.js";
+import { loc_236e } from "../translated/loc_236e.js";
+import { loc_239c } from "../translated/loc_239c.js";
+import { loc_23de } from "../translated/loc_23de.js";
+import { loc_2407 } from "../translated/loc_2407.js";
+import { loc_241f } from "../translated/loc_241f.js";
+import { loc_2441 } from "../translated/loc_2441.js";
+import { loc_24b4 } from "../translated/loc_24b4.js";
+import { loc_24ea } from "../translated/loc_24ea.js";
+import { loc_2523 } from "../translated/loc_2523.js";
+import { loc_2591 } from "../translated/loc_2591.js";
+import { loc_25f2 } from "../translated/loc_25f2.js";
+import { loc_2602 } from "../translated/loc_2602.js";
+import { loc_262f } from "../translated/loc_262f.js";
+import { loc_2679 } from "../translated/loc_2679.js";
+import { loc_26a6 } from "../translated/loc_26a6.js";
+import { loc_26de } from "../translated/loc_26de.js";
+import { loc_26e9 } from "../translated/loc_26e9.js";
+import { loc_26fa } from "../translated/loc_26fa.js";
+import { loc_271e } from "../translated/loc_271e.js";
+import { loc_2722 } from "../translated/loc_2722.js";
+import { loc_2745 } from "../translated/loc_2745.js";
+import { loc_2797 } from "../translated/loc_2797.js";
+import { loc_27da } from "../translated/loc_27da.js";
+import { loc_2808 } from "../translated/loc_2808.js";
+import { loc_281d } from "../translated/loc_281d.js";
+import { loc_286f } from "../translated/loc_286f.js";
+import { loc_2880 } from "../translated/loc_2880.js";
+import { loc_28b0 } from "../translated/loc_28b0.js";
+import { loc_28e0 } from "../translated/loc_28e0.js";
+import { loc_2901 } from "../translated/loc_2901.js";
+import { loc_2913 } from "../translated/loc_2913.js";
+import { loc_2954 } from "../translated/loc_2954.js";
+import { loc_2974 } from "../translated/loc_2974.js";
+import { loc_298c } from "../translated/loc_298c.js";
+import { loc_29af } from "../translated/loc_29af.js";
+import { loc_2a22 } from "../translated/loc_2a22.js";
+import { loc_2a2f } from "../translated/loc_2a2f.js";
+import { loc_2a85 } from "../translated/loc_2a85.js";
+import { loc_2ad3 } from "../translated/loc_2ad3.js";
+import { loc_2b1c } from "../translated/loc_2b1c.js";
+import { loc_2b29 } from "../translated/loc_2b29.js";
+import { loc_2b9b } from "../translated/loc_2b9b.js";
+import { loc_2be1 } from "../translated/loc_2be1.js";
+import { loc_2c03 } from "../translated/loc_2c03.js";
+import { loc_2c41 } from "../translated/loc_2c41.js";
+import { loc_2c49 } from "../translated/loc_2c49.js";
+import { loc_2c4b } from "../translated/loc_2c4b.js";
+import { loc_2c4f } from "../translated/loc_2c4f.js";
+import { loc_2c72 } from "../translated/loc_2c72.js";
+import { loc_2c7b } from "../translated/loc_2c7b.js";
+import { loc_2c86 } from "../translated/loc_2c86.js";
+import { loc_2c8f } from "../translated/loc_2c8f.js";
+import { loc_2cb8 } from "../translated/loc_2cb8.js";
+import { loc_2ce6 } from "../translated/loc_2ce6.js";
+import { loc_2cf6 } from "../translated/loc_2cf6.js";
+import { loc_2d15 } from "../translated/loc_2d15.js";
+import { loc_2ddb } from "../translated/loc_2ddb.js";
+import { loc_2e04 } from "../translated/loc_2e04.js";
+import { loc_2ed4 } from "../translated/loc_2ed4.js";
+import { loc_2fcb } from "../translated/loc_2fcb.js";
+import { loc_2ff0 } from "../translated/loc_2ff0.js";
+import { loc_3009 } from "../translated/loc_3009.js";
+import { loc_304a } from "../translated/loc_304a.js";
+import { loc_3064 } from "../translated/loc_3064.js";
+import { loc_3069 } from "../translated/loc_3069.js";
+import { loc_306f } from "../translated/loc_306f.js";
+import { loc_3096 } from "../translated/loc_3096.js";
+import { loc_30bd } from "../translated/loc_30bd.js";
+import { loc_30db } from "../translated/loc_30db.js";
+import { loc_30e4 } from "../translated/loc_30e4.js";
+import { loc_30fa } from "../translated/loc_30fa.js";
+import { loc_3110 } from "../translated/loc_3110.js";
+import { loc_311b } from "../translated/loc_311b.js";
+import { loc_3126 } from "../translated/loc_3126.js";
+import { loc_3131 } from "../translated/loc_3131.js";
+import { loc_313c } from "../translated/loc_313c.js";
+import { loc_31dd } from "../translated/loc_31dd.js";
+import { loc_31f6 } from "../translated/loc_31f6.js";
+import { loc_32bd } from "../translated/loc_32bd.js";
+import { loc_32d6 } from "../translated/loc_32d6.js";
+import { loc_330f } from "../translated/loc_330f.js";
+import { loc_33a1 } from "../translated/loc_33a1.js";
+import { loc_33e7 } from "../translated/loc_33e7.js";
+import { loc_3409 } from "../translated/loc_3409.js";
+import { loc_342c } from "../translated/loc_342c.js";
+import { loc_3478 } from "../translated/loc_3478.js";
+import { loc_34b9 } from "../translated/loc_34b9.js";
+import { loc_34f3 } from "../translated/loc_34f3.js";
+import { loc_3e99 } from "../translated/loc_3e99.js";
+import { loc_3ec3 } from "../translated/loc_3ec3.js";
+import { loc_3f24 } from "../translated/loc_3f24.js";
+import { loc_3fc0 } from "../translated/loc_3fc0.js";
 import {
   buildPalette, CYCLES_PER_LINE, decodeSprites, drawSprites, decodeTiles, SPRITE_COUNT, normalizeRange, renderFrameRGB,
   renderRowRGB, renderTilemapPens, SCREEN_H, splitProms, VBLANK_LINES,
@@ -6029,7 +6206,7 @@ test("loc_3069 increments THROUGH the 0x63C0 pointer, gated by the rst 0x18 coun
   assert.equal(b.mem.read8(0x6009), 0x04, "but the counter WAS decremented (5 -> 4)");
 
   // MUTATION-PATCH (applicable; for the mutation runner)
-  //   file:   games/dkong/translated/state0.js
+  //   file:   games/dkong/translated/loc_3069.js
   //   find:   regs.hl = mem.read16(0x63c0); // INDIRECT -- the word AT 0x63C0, not 0x63C0
   //   repl:   regs.hl = 0x63c0; // MUTANT: immediate instead of indirect
   //   expect: FAIL
@@ -6111,11 +6288,11 @@ test("loc_3ec3 counts two-axis overlaps over B objects, skipping inactive ones",
   loc_3ec3(f);
   assert.equal(f.mem.read8(0x6060), 0x01, "axis-2 neg fires ((iy+3) < (ix+3)) -> counted");
 
-  // MUTATION-PATCH  file: games/dkong/translated/state0.js
+  // MUTATION-PATCH  file: games/dkong/translated/loc_3ec3.js
   //   find: regs.bit(0, mem.read8(ea0), (ea0 >> 8) & 0xff); // INDEXED: F3/F5 from the EA high byte
   //   repl: regs.bit(1, mem.read8(ea0), (ea0 >> 8) & 0xff); // MUTANT: wrong bit
   //   expect: FAIL  (bit 1 of 0x01 is clear, so the active object reads inactive)
-  //   verified-anchor: count == 1 in games/dkong/translated/state0.js
+  //   verified-anchor: count == 1 in games/dkong/translated/loc_3ec3.js
 });
 
 test("loc_30fa clamps 0x6380 to [0,5] and rst-0x28-dispatches to the right guard, propagating the skip", () => {
@@ -6160,11 +6337,11 @@ test("loc_30fa clamps 0x6380 to [0,5] and rst-0x28-dispatches to the right guard
   assert.equal(run(0, 0x06).cont, false, "idx0 601a=6: 3110 skips (bit0 clear)");
   assert.equal(run(5, 0x06).cont, true, "idx5 601a=6: 3131 continues -- different guard, same input");
 
-  // MUTATION-PATCH  file: games/dkong/translated/state0.js
+  // MUTATION-PATCH  file: games/dkong/translated/loc_30fa.js
   //   find:   return sub_0028(m, "0x3104 (loc_30fa dispatch)");
   //   repl:   sub_0028(m, "0x3104 (loc_30fa dispatch)"); return true;
   //   expect: FAIL  (drops the propagated skip -- the SKIPS cases return true)
-  //   verified-anchor: count == 1 in games/dkong/translated/state0.js
+  //   verified-anchor: count == 1 in games/dkong/translated/loc_30fa.js
 });
 
 test("loc_3e99 pops 3e88's HL, counts overlaps via 3ec3 twice, maps count to a code", () => {
@@ -6210,9 +6387,9 @@ test("loc_3e99 pops 3e88's HL, counts overlaps via 3ec3 twice, maps count to a c
   // and it returns NORMALLY (not skip-capable): SP back to the return frame.
   assert.equal(run(0).sp, 0x6c00, "ordinary ret -- SP restored, no inc-sp skip");
 
-  // MUTATION-PATCH  file: games/dkong/translated/state0.js
+  // MUTATION-PATCH  file: games/dkong/translated/loc_3e99.js
   //   find:   regs.hl = m.pop16(); // pop hl -- recover loc_3e88's saved HL (sub_0028 clobbered it)
   //   repl:   regs.hl = 0x0000; // MUTANT: pop dropped, HL not recovered
   //   expect: FAIL  (SP left off by 2 -> the final ret takes the wrong frame; run(0).sp != 0x6c00)
-  //   verified-anchor: count == 1 in games/dkong/translated/state0.js
+  //   verified-anchor: count == 1 in games/dkong/translated/loc_3e99.js
 });

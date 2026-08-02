@@ -46,7 +46,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3064 as oracle } from "../../translated/loc_3064.js";
-import { loc_0fd7, loc_304a } from "../../translated/state0.js";
+import { loc_0fd7 } from "../../translated/loc_0fd7.js";
+import { loc_304a } from "../../translated/loc_304a.js";
 import { copyByteDisplaced } from "../copyByteDisplaced.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
