@@ -7,8 +7,9 @@
  * which points at one byte of an object record — the object's target X — and asks
  * whether Mario has arrived there. Three conditions must all hold for a HIT:
  *
- *   1. MARIO_Y is under REACH_Y — Mario is in the reach band low on the playfield;
- *      higher up the hit never registers.
+ *   1. MARIO_Y is numerically under REACH_Y — larger Y is LOWER on screen, so the reach
+ *      band is the rows ABOVE that one; at that row or anywhere lower down the screen the
+ *      hit never registers.
  *   2. MARIO_AIRBORNE is clear — the hit only counts with Mario grounded, not
  *      mid jump or fall.
  *   3. MARIO_X exactly equals the object's target X (the byte the caller points at).
@@ -49,8 +50,9 @@
 import { MARIO_X, MARIO_Y, MARIO_AIRBORNE } from "./ram.js";
 import { reportNoHitAndSkipCaller } from "./reportNoHitAndSkipCaller.js"; // ROM 0x2257 — the shared no-hit caller-skip tail
 
-// Mario must be under this Y for the hit to register; at or above it the object is
-// out of reach and the test always misses.
+// Mario's Y must be numerically under this for the hit to register. Larger Y is LOWER on
+// screen, so the reach band is the rows ABOVE this one; at this row or anywhere lower on
+// screen the object is out of reach and the test always misses.
 const REACH_Y = 122;
 
 /**
@@ -61,7 +63,8 @@ const REACH_Y = 122;
 export function marioReachedTargetColumn(m) {
   const { regs, mem } = m;
 
-  // Out of the reach band — too high on the playfield to count.
+  // Out of the reach band — at this row or lower on screen (larger Y is LOWER), so too far
+  // DOWN the playfield to count.
   if (mem.read8(MARIO_Y) >= REACH_Y) return reportNoHitAndSkipCaller(m);
 
   // Airborne — the hit only registers with Mario grounded.
