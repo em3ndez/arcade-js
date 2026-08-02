@@ -3,12 +3,22 @@
  * stampTwoDigitField — stamp a two-digit number's tile pair into its on-screen field: the
  * high-digit tile into one cell, the low-digit tile into the cell one column over.  ROM 0x0689.
  *
- * PURPOSE [guess]: the field is the two-digit board-derived readout that task entry 10 builds —
- * it divides 0x62B0 (= min(BOARD*10 + 0x28, 0x50)) by ten into BONUS_DISPLAY, and its writer
- * loc_066a splits that byte into a high-digit tile and a low-digit tile. (BONUS_DISPLAY is named
- * and [seen] in ram.js as of pass 12; the two-nibble packed-BCD READING of it is code-derived, not
- * observed, so this stamp's digit-pair interpretation inherits that caveat — hence still [guess].)
- * This is loc_066a's shared stamp tail: both its arms (the high-nibble-nonzero arm, and the
+ * PURPOSE [code]: the field is the two-digit board-derived readout that task entry 10 builds —
+ * it divides BONUS_START (= min(BOARD*10 + 0x28, 0x50)) by ten into BONUS_DISPLAY, and its writer
+ * renderBonusDisplay splits that byte into a high-digit tile and a low-digit tile.
+ * ★ THE INHERITED CAVEAT IS DISCHARGED (pass 13). Pass 12 rated this [guess] because the
+ * two-nibble packed-BCD READING of BONUS_DISPLAY was code-derived rather than observed. Pass 13
+ * observed it on the real dkong ROM under MAME 0.288 (scratchpad/pass13-grounding.md §3a): over
+ * 99,367 comparable frames spanning BONUS 0..80, BONUS_DISPLAY == BCD(BONUS) against the
+ * separately-[seen] binary counter BONUS (0x62B1) with ZERO mismatches, the low nibble never
+ * exceeded 9, and the BCD borrow is directly visible (0x50 -> 0x49, 0x40 -> 0x39 while the quantity
+ * drops by 1). So the digit-pair interpretation this stamp rests on is grounded, and the rating
+ * rises to [code] — the remaining gap is not the encoding but THIS routine's own field: which
+ * on-screen cells 0x74E6/0x74C6 are has never been checked against pixels (pass 13 ran -video
+ * none). HONEST FLOOR on the encoding: it is confirmed over the whole REACHABLE range, not over all
+ * 256 byte values — a nibble of 0xA-0xF is UNREACHABLE rather than merely unobserved, because the
+ * ROM clamps BONUS_START to 80 so the display can never exceed 0x80.
+ * This is renderBonusDisplay's shared stamp tail: both its arms (the high-nibble-nonzero arm, and the
  * leading-zero-suppress arm that enters with the high tile forced to a blank 0x10) funnel here
  * to place the pair. Only the register VALUES the arms bring differ; the two writes are the same.
  *
@@ -25,13 +35,13 @@
  *           SP. Teeth: a wrong-cell twin (writes the high tile one cell off) and a duplicate twin
  *           (writes the high tile into both cells instead of the low tile), each caught.
  * LIVE-OUT: memory-only — the two video-RAM cells 0x74E6 and 0x74C6. No live registers/flags:
- *           A ends = B (the tile move) but the caller (loc_066a's caller, the task loop) reads no
+ *           A ends = B (the tile move) but the caller (renderBonusDisplay's caller, the task loop) reads no
  *           register before overwriting it, and this routine sets no flag, so the oracle's residual
  *           registers/flags are dead ABI. SP/PC are the single net return the JS call stack
  *           replaces (the harness supplies one m.ret() to line them up).
  * NAMES:    none imported — the two cells are video-RAM tile addresses (0x7400–0x77FF), which
  *           ram.js does not name (it covers work RAM only), so they stay hex. The two tiles arrive
- *           in registers from loc_066a.
+ *           in registers from renderBonusDisplay.
  */
 
 // The two cells of the display field, one screen column apart on the rotated tilemap (0x20).

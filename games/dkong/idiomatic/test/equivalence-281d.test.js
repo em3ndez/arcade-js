@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_281d (ROM 0x281D) — scan the special-object pair for an
+ * Equivalence test for recordHammerHitOnObject (ROM 0x281D) — scan the special-object pair for an
  * active record, test it against the current board's hazards through the collision
  * handler, and on an overlap record where it was found.
  *
- * loc_281d is NOT a leaf: it dispatches the full board collision handler (through the
+ * recordHammerHitOnObject is NOT a leaf: it dispatches the full board collision handler (through the
  * idiomatic dispatchBoardCollision, ROM 0x286F, whose still-oracle handler sweeps object
  * records and does an inc-sp/inc-sp/ret caller-skip on a hit). So it is validated by
  * MEMORY-equivalence against the frozen oracle — RAM − STACK_SCRATCH, pc, SP — with a
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_281d as oracle } from "../../translated/loc_281d.js";
-import { loc_281d as candidate } from "../loc_281d.js";
+import { recordHammerHitOnObject as candidate } from "../recordHammerHitOnObject.js";
 import { dispatchBoardCollision } from "../dispatchBoardCollision.js";
 import { Machine } from "../../machine.js";
 import {
@@ -153,7 +153,7 @@ test("REACHABILITY: 0x281D is dispatched during attract", () => {
 
 // -- 2. EQUAL (captured, all three arms) --------------------------------------
 
-test("EQUAL (captured): loc_281d == oracle on every real attract dispatch (all arms)", () => {
+test("EQUAL (captured): recordHammerHitOnObject == oracle on every real attract dispatch (all arms)", () => {
   const { none, miss, hit } = captureBuckets({ frames: 3000, capNone: 40, capMiss: 40, capHit: 8 });
   assert.ok(none.length >= 1, "expected a no-active-record dispatch in attract");
   assert.ok(miss.length >= 1, "expected a found-but-no-overlap dispatch in attract");

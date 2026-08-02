@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2974 (ROM 0x2974) — run the object-list bounding-box search
+ * Equivalence test for findHammerOverlappingMario (ROM 0x2974) — run the object-list bounding-box search
  * over the two-record pair at 0x6680 against Mario's position, and report the outcome in
  * the register file (A = hit / no-hit, B = the count−index residue).
  *
- * loc_2974 writes NO work RAM: it only marshals the search parameters into registers and
+ * findHammerOverlappingMario writes NO work RAM: it only marshals the search parameters into registers and
  * direct-calls findCollidingObject, which reads the two records (through the base register) and
  * Mario's X/Y (through the reference pointer) and writes nothing. So the whole observable
  * effect is the register file plus control flow.
@@ -14,12 +14,12 @@
  * one- or two-level `ret`), and on the exhausted path performs its own terminal `ret`.
  * On BOTH outcomes the net stack effect toward this routine's caller is identical — a
  * single caller-return pop — because the caller-skip on a hit only elides this routine's
- * own `ret`. loc_2974 models no stack (a plain void call). So the harness lines the two
+ * own `ret`. findHammerOverlappingMario models no stack (a plain void call). So the harness lines the two
  * up by performing exactly ONE terminal `m.ret()` after the candidate, and the bytes the
  * oracle's push/call/ret churn leaves behind sit in the dead STACK_SCRATCH region, which
  * the memory compare excludes.
  *
- *   1. EQUAL (captured) — hook 0x2974 in a real attract run and confirm loc_2974 == oracle
+ *   1. EQUAL (captured) — hook 0x2974 in a real attract run and confirm findHammerOverlappingMario == oracle
  *      on every real dispatch (RAM − STACK_SCRATCH, pc, SP, and the live register file).
  *
  *   2. EQUAL (crafted) — poke the two records at 0x6680/0x6690 and Mario's X/Y identically
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2974 as oracle } from "../../translated/loc_2974.js";
-import { loc_2974 } from "../loc_2974.js";
+import { findHammerOverlappingMario } from "../findHammerOverlappingMario.js";
 import { findCollidingObject } from "../findCollidingObject.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_ACTIVE, MARIO_X, MARIO_Y, OBJ_PAIR_6680 } from "../ram.js";
@@ -94,7 +94,7 @@ function runOracle(entry) {
 
 /**
  * Run the candidate on a fresh clone, then model the SINGLE terminal caller-return the ROM
- * performs on both outcomes so pc + SP line up with the oracle. loc_2974 models no stack,
+ * performs on both outcomes so pc + SP line up with the oracle. findHammerOverlappingMario models no stack,
  * so it does not touch pc/SP itself.
  */
 function runCandidate(entry, fn) {
@@ -167,7 +167,7 @@ test("REACHABILITY: 0x2974 is dispatched during attract", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_2974 == oracle on every real 0x2974 dispatch", () => {
+test("EQUAL (captured): findHammerOverlappingMario == oracle on every real 0x2974 dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -179,7 +179,7 @@ test("EQUAL (captured): loc_2974 == oracle on every real 0x2974 dispatch", () =>
 
   let hits = 0, exhausted = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_2974);
+    const diffs = contractDiffs(entry, findHammerOverlappingMario);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (classify(entry).hit) hits++; else exhausted++;
   }
@@ -220,7 +220,7 @@ test("EQUAL (crafted): the hit and exhausted outcomes match the oracle", () => {
     const k = classify(entry);
     assert.equal(k.hit, wantHit, `${name}: expected ${wantHit ? "hit" : "exhausted"}, oracle did the opposite`);
     assert.equal(k.b, wantB, `${name}: expected B=${hx(wantB)} after the search, oracle had ${hx(k.b)}`);
-    const diffs = contractDiffs(entry, loc_2974);
+    const diffs = contractDiffs(entry, findHammerOverlappingMario);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} outcomes (hit@0, hit@1, exhausted x2) identical to the oracle`);

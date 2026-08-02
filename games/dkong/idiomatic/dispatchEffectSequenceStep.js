@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1e96 — the router for the effect-sequence step machine held in EFFECT_SEQ_STATE (0x6345).
+ * dispatchEffectSequenceStep — the router for the effect-sequence step machine held in EFFECT_SEQ_STATE (0x6345).
  * ROM 0x1E96.
  *
  * Reached once per frame from the still-oracle head loc_1e8c, which runs it only while the
@@ -71,7 +71,7 @@ const STEPS = [
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1e96(m) {
+export function dispatchEffectSequenceStep(m) {
   const state = m.mem.read8(EFFECT_SEQ_STATE);
 
   // Only the low seven bits reach the table — the slot arithmetic wraps at eight bits, so
@@ -80,7 +80,7 @@ export function loc_1e96(m) {
   if (step) return step(m);
 
   throw new NotImplemented(
-    `loc_1e96: EFFECT_SEQ_STATE (0x6345) step ${state} runs off the end of the three-entry step ` +
+    `dispatchEffectSequenceStep: EFFECT_SEQ_STATE (0x6345) step ${state} runs off the end of the three-entry step ` +
       `table and transfers to a garbage address; only steps 0-2 (and their +128 aliases) exist.`,
   );
 }

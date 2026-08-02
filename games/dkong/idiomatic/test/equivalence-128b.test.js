@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_128b (ROM 0x128b) — arm 0 (the seed) of the 0x639D
- * animation sequence: on the gate's expiry frame it turns the two-cell blinker on,
- * primes the blink repeat-count, clears its sprite runs, fires a sound, and advances
- * the phase.
+ * Equivalence test for beginMarioDeathAnimation (ROM 0x128b) — arm 0 (the seed) of Mario's
+ * DEATH ANIMATION (selector DEATH_ANIM_PHASE 0x639D): on the gate's expiry frame it points
+ * his sprite at tile 0x78, primes DEATH_ANIM_TICKS_LEFT to 13, clears sprite runs, fires the
+ * death sound line (SND_IRQ_TRIGGER 0x6088 — MAME's "dead" line 0x7D80, dkong.cpp:202, whose
+ * sole ROM writer is this routine's last instruction at 0x12A8), and advances the phase.
+ * Grounded in real MAME: 44 episodes, 136,367 logged frames — scratchpad/pass13-grounding.md §2.
  *
  * The routine WRITES MEMORY, calls the rst-0x18 gate, and its gate can skip the whole
  * body, so it is gated on MEMORY-equivalence — RAM (minus STACK_SCRATCH) + pc + SP —
@@ -52,9 +54,16 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_128b as oracle } from "../../translated/loc_128b.js";
-import { loc_128b } from "../loc_128b.js";
+import { beginMarioDeathAnimation } from "../beginMarioDeathAnimation.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "../ram.js";
+import {
+  STACK_SCRATCH,
+  SUBSTATE_TIMER,
+  MARIO_SPRITE_RECORD,
+  SND_IRQ_TRIGGER,
+  DEATH_ANIM_PHASE,
+  DEATH_ANIM_TICKS_LEFT,
+} from "../ram.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loc_30bd } from "../../translated/loc_30bd.js";
 
@@ -66,8 +75,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x128b;
-const PHASE = 0x639d; // sequence-phase selector (unconfirmed in ram.js)
-const BLINK_COUNT = 0x639e; // blink repeat-count
+// DEATH_ANIM_PHASE (0x639D) and DEATH_ANIM_TICKS_LEFT (0x639E) are imported from ram.js,
+// the single source of truth — both [seen], grounded on the pass-13 real-MAME death runs.
 const SPRITE_CODE = MARIO_SPRITE_RECORD + 1; // 0x694D
 
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
@@ -122,7 +131,7 @@ function runCandidate(entry, fn) {
 
 /**
  * Compare candidate vs oracle over the contract: RAM − STACK_SCRATCH, pc, SP. NO
- * registers — loc_128b's live-out is memory-only, and because it calls the idiomatic
+ * registers — beginMarioDeathAnimation's live-out is memory-only, and because it calls the idiomatic
  * callee (tickSubstateTimer) directly whereas the oracle calls the translated one, the two
  * leave different DEAD registers behind; comparing them would fail on values nothing reads.
  * Returns a list of human-readable mismatches (empty when equal).
@@ -143,7 +152,7 @@ function contractDiffs(entry, fn) {
 /**
  * Hook 0x128b in a real attract run and clone the machine at up to K real dispatches.
  * The wrapper snapshots the entry state, then runs the oracle so the host game proceeds
- * undisturbed. loc_127f routes arm 0 through m.call, which the override map overlays, so
+ * undisturbed. dispatchDeathAnimationPhase routes arm 0 through m.call, which the override map overlays, so
  * every dispatch is captured here.
  */
 function captureDispatches(K, maxFrames) {
@@ -184,8 +193,8 @@ function brokenSpriteStore(m) {
   if (!tickSubstateTimer(m)) return;
   const code = mem.read8(SPRITE_CODE);
   mem.write8(SPRITE_CODE, (code & 0x80) | 0x7a); // BUG: 0x7A should be 0x78
-  mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
-  mem.write8(BLINK_COUNT, 0x0d);
+  mem.write8(DEATH_ANIM_PHASE, (mem.read8(DEATH_ANIM_PHASE) + 1) & 0xff);
+  mem.write8(DEATH_ANIM_TICKS_LEFT, 0x0d);
   mem.write8(SUBSTATE_TIMER, 0x08);
   loc_30bd(m);
   mem.write8(SND_IRQ_TRIGGER, 0x03);
@@ -202,8 +211,8 @@ function brokenGatePolarity(m) {
   if (tickSubstateTimer(m)) return; // BUG: inverted — should be `if (!expired) return`
   const code = mem.read8(SPRITE_CODE);
   mem.write8(SPRITE_CODE, (code & 0x80) | 0x78);
-  mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
-  mem.write8(BLINK_COUNT, 0x0d);
+  mem.write8(DEATH_ANIM_PHASE, (mem.read8(DEATH_ANIM_PHASE) + 1) & 0xff);
+  mem.write8(DEATH_ANIM_TICKS_LEFT, 0x0d);
   mem.write8(SUBSTATE_TIMER, 0x08);
   loc_30bd(m);
   mem.write8(SND_IRQ_TRIGGER, 0x03);
@@ -211,11 +220,11 @@ function brokenGatePolarity(m) {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_128b == oracle on every captured 0x128b entry", () => {
+test("EQUAL (real dispatches): beginMarioDeathAnimation == oracle on every captured 0x128b entry", () => {
   const caps = captureDispatches(400, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x128b dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_128b); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, beginMarioDeathAnimation); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   const seed = caps.filter(gateExpires).length;
@@ -237,7 +246,7 @@ test("EQUAL (crafted): the seed and skip arms each match the oracle", () => {
   ];
 
   for (const { name, e } of cases) {
-    const diffs = contractDiffs(e, loc_128b);
+    const diffs = contractDiffs(e, beginMarioDeathAnimation);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} arms (seed, skip) identical to the oracle`);

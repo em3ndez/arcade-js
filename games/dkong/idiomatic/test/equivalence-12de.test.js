@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_12de (ROM 0x12de) — arm 2 of the 0x639D dispatch: on
- * sub-state-timer expiry, clear the finished sub-state's sprite scratch, advance
- * GAME_SUBSTATE, and re-arm SUBSTATE_TIMER to fire immediately.
+ * Equivalence test for loc_12de (ROM 0x12de) — arm 2 (the hand-off) of the DEATH_ANIM_PHASE
+ * (0x639D) dispatch, i.e. the last step of Mario's death animation: on sub-state-timer
+ * expiry, clear the finished sub-state's sprite scratch, advance GAME_SUBSTATE (to the P1
+ * life-loss handler 0x0E, or 0x0F for P2), and re-arm SUBSTATE_TIMER to fire immediately.
  *
  * loc_12de WRITES memory and gates on SUBSTATE_TIMER, so it is validated by
  * capture/clone/replay against the frozen oracle on the memory-equivalence contract:
@@ -25,10 +26,15 @@
  *      seven-byte sprite-clear footprint + the GAME_SUBSTATE inc + the SUBSTATE_TIMER
  *      re-arm are all pinned. Independently asserts exactly the seven addresses zero.
  *
- *   3. CRAFTED 2P expiry (the double-inc arm attract never reaches) — 0x600E is 0 for
- *      the whole attract run, so the extra `inc (hl)` is unreached by real data. Forced
- *      expiry with 0x600E != 0 over several values and GAME_SUBSTATE wrap edges
+ *   3. CRAFTED 2P expiry (the double-inc arm THIS capture set never reaches) — 0x600E is 0
+ *      for the whole attract run, so the extra `inc (hl)` is unreached by the captures used
+ *      here. Forced expiry with 0x600E != 0 over several values and GAME_SUBSTATE wrap edges
  *      (0xFF -> 0x01, 0xFE -> 0x00) confirms +2 mod 256 matches the oracle's two incs.
+ *      NOT a dead path in the game, though — that older claim is discharged: a natural
+ *      two-player MAME run (two coins, 2P start, no pokes) took this arm on all three P2
+ *      deaths, GAME_SUBSTATE stepping 0x0D -> 0x0F, with the P2 life-loss handler at ROM
+ *      0x1344 entered 3× (scratchpad/pass13-grounding.md §2). Honest scope (R17): that run
+ *      is NOT replayed here; this case remains crafted.
  *
  *   4. CRAFTED non-expiry — timer forced to a mid count: only SUBSTATE_TIMER is
  *      decremented, nothing else in non-stack RAM moves.

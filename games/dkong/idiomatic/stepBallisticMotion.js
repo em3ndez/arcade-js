@@ -42,7 +42,7 @@
  *           `ld a,h` immediately after the call; L is produced as its coherent low
  *           half and gated too. A/B/C and all flags are DEAD: the other three
  *           callers reload A/DE/HL from memory or a nested call before any read
- *           (loc_1bb2→sub_241f, loc_1bec→entry_1c05, branch_2053→sub_2a2f), and
+ *           (advanceMarioAirborneFrame→sub_241f, loc_1bec→entry_1c05, branch_2053→sub_2a2f), and
  *           branch_20ec's own `cp`/`sub` overwrite the flags first.
  * NAMES:    none imported — every access is IX-relative (the Mario field mapping
  *           lives in the prose above); record offsets stay hex.

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1bd8 — re-base Mario's vertical arc at the point he is standing on now, unless the
+ * reverseMarioVerticalArc — re-base Mario's vertical arc at the point he is standing on now, unless the
  * fall he is in has already been condemned as lethal.  ROM 0x1BD8.
  *
- * Reached only from the airborne handler's two screen-edge arms (loc_1bb2 and loc_1bf2): the
+ * Reached only from the airborne handler's two playfield-limit arms (advanceMarioAirborneFrame and loc_1bf2): the
  * horizontal position gate has just reported that Mario is airborne at the left or right
  * limit, and the arm that got here has already stamped a fresh horizontal velocity pushing
  * him back inside plus the matching facing bit. What is left is the vertical half of the
@@ -31,12 +31,12 @@
  * leaves both velocity and frame count untouched and he continues down.
  *
  * The record base: both entries reach here with the object pointer set to Mario's block
- * (loc_1bb2 loads it at ROM 0x1BB6 and loc_1bf2 is only entered from loc_1bb2 with it still
+ * (advanceMarioAirborneFrame loads it at ROM 0x1BB6 and loc_1bf2 is only entered from advanceMarioAirborneFrame with it still
  * loaded, and no other site in the ROM reaches 0x1BD8 — every captured dispatch confirms it),
  * so the three record fields this routine writes ARE the absolute cells MARIO_AIR_VY_HI/LO and
  * MARIO_AIR_FRAMES and are named as such. loc_2407 stays pointer-relative because its other
  * two callers work on different records; it reads the same three bytes through the pointer the
- * caller left set, which the idiomatic loc_1bb2 sets exactly as the oracle did.
+ * caller left set, which the idiomatic advanceMarioAirborneFrame sets exactly as the oracle did.
  *
  * The tail (loc_1bec) runs the ballistic step and the rest of the airborne cascade for this
  * frame, on both arms. It landed idiomatic in this same batch, so it is direct-called; the
@@ -76,7 +76,7 @@ import {
 import { loc_2407 } from "./loc_2407.js"; // ROM 0x2407
 import { loc_1bec } from "./loc_1bec.js"; // ROM 0x1BEC
 
-export function loc_1bd8(m) {
+export function reverseMarioVerticalArc(m) {
   const { mem } = m;
 
   // A fall already condemned as lethal keeps its arc — no re-basing, straight to the tail.

@@ -3,10 +3,10 @@
  * loc_1bf2 — the airborne handler's leftward-nudge arm: stamp the left drift and pose when
  * the position gate raises its left verdict, otherwise leave the jump untouched.  ROM 0x1BF2.
  *
- * Reached by a tail branch from the airborne handler loc_1bb2. By the time control arrives,
+ * Reached by a tail branch from the airborne handler advanceMarioAirborneFrame. By the time control arrives,
  * that handler has snapshotted Mario's pre-motion X/Y into MARIO_AIR_PREV_X / MARIO_AIR_PREV_Y,
  * run one ballistic integration step, and asked the position gate loc_241f for its verdict — a
- * two-flag pair of which at most one half is ever raised. loc_1bb2 consumed the RIGHT half
+ * two-flag pair of which at most one half is ever raised. advanceMarioAirborneFrame consumed the RIGHT half
  * itself (writing the mirror-image +0x0080 drift and setting the facing bit); it branches here
  * with the LEFT half still sitting in the register bank, which is the only thing this routine
  * decides on.
@@ -26,21 +26,21 @@
  *       * MARIO_SPRITE_CODE's facing bit (bit 7, the horizontal flip; 1 = facing right) is
  *         CLEARED, turning Mario to face the way he is now being pushed. The pose bits below
  *         it are read back and preserved — this is a bit clear, not a store.
- *     Control then continues into loc_1bd8, which re-bases the ballistic arc at Mario's
+ *     Control then continues into reverseMarioVerticalArc, which re-bases the ballistic arc at Mario's
  *     present position before rejoining the same 0x1C05 dispatch the other arm went to
  *     directly. So the two halves of the reflection are split across the two routines: the
- *     horizontal half here, the vertical half in loc_1bd8.
+ *     horizontal half here, the vertical half in reverseMarioVerticalArc.
  *
  * REGISTER BOUNDARY. The verdict is read out of the register bank rather than taken as a
  * parameter, because that is how BOTH callers hand it over: the frozen oracle at ROM 0x1BB2
- * leaves it there, and the idiomatic loc_1bb2 gets it from loc_241f, which mirrors its honest
+ * leaves it there, and the idiomatic advanceMarioAirborneFrame gets it from loc_241f, which mirrors its honest
  * {d, e} return into the same registers for exactly this reason. Promoting it to a parameter
  * is a two-file ABI change and belongs to a clarify pass, not here.
  *
  * The context-block base register is pinned to Mario's block (base MARIO_ACTIVE) by the sole
- * entry — loc_1bb2 loads it and nothing between there and here writes it — which is what lets
+ * entry — advanceMarioAirborneFrame loads it and nothing between there and here writes it — which is what lets
  * this routine's own three cells be named outright instead of reached as record offsets; all
- * 360 real attract dispatches confirm the pinned base, and loc_1bd8's fixed-point leaf still
+ * 360 real attract dispatches confirm the pinned base, and reverseMarioVerticalArc's fixed-point leaf still
  * reads Mario's record through it. The tail's return value is forwarded unchanged, because the
  * airborne cascade above uses it for the caller-skip convention.
  *
@@ -54,7 +54,7 @@
  *           and those real poked-run dispatches are captured and replayed as their own suite.
  *           On top of both, the verdict register is swept EXHAUSTIVELY over all 256 values from
  *           a real captured base, crossed with the facing bit set/clear and with
- *           MARIO_FATAL_FALL 0/1 so both of loc_1bd8's own arms run — 1024 cases. Every case
+ *           MARIO_FATAL_FALL 0/1 so both of reverseMarioVerticalArc's own arms run — 1024 cases. Every case
  *           compares RAM − STACK_SCRATCH, pc, SP and the forwarded return value, and the whole
  *           chain below runs on both sides. Teeth: five broken twins, two of which are
  *           deliberately INVISIBLE to the captured suites (a verdict test that accepts any
@@ -68,12 +68,12 @@
  *           register — everything this routine decides is written to RAM.
  * NAMES:    MARIO_AIR_VX_HI (0x6210), MARIO_AIR_VX_LO (0x6211), MARIO_SPRITE_CODE (0x6207)
  *           imported from ram.js; MARIO_ACTIVE, MARIO_X, MARIO_AIR_PREV_X/_Y and
- *           MARIO_FATAL_FALL named in the prose above. loc_1bd8 (ROM 0x1BD8) is direct-called;
+ *           MARIO_FATAL_FALL named in the prose above. reverseMarioVerticalArc (ROM 0x1BD8) is direct-called;
  *           0x1C05 has no idiomatic file yet, so that tail stays a registry call.
  */
 
 import { MARIO_AIR_VX_HI, MARIO_AIR_VX_LO, MARIO_SPRITE_CODE } from "./ram.js";
-import { loc_1bd8 } from "./loc_1bd8.js"; // ROM 0x1BD8
+import { reverseMarioVerticalArc } from "./reverseMarioVerticalArc.js"; // ROM 0x1BD8
 
 /** Horizontal-flip / facing bit of MARIO_SPRITE_CODE (1 = facing right). */
 const FACING_BIT = 0x80;
@@ -98,5 +98,5 @@ export function loc_1bf2(m) {
 
   // The vertical half of the same reflection: re-base the arc at Mario's present position,
   // then on into the shared airborne dispatch.
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }

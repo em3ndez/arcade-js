@@ -25,9 +25,20 @@
  * calls). So the compared memory (dumpState is RAM) is identical with NO stack exclusion, exactly as
  * for its callees 0x2C49 / 0x2C4B / 0x2C4F / 0x2C72.
  *
- * NO CAPTURED DISPATCHES. 0x2C7B is NOT reached during attract — it is one of the entries reached
- * only from the still-translated entry_2c03/entry_2c41 path — so there is nothing to capture. The
- * gate is therefore crafted-entry + exhaustive over the branch decision:
+ * ★ NO CAPTURED DISPATCHES ARE REPLAYED — AND THE OLD REASON GIVEN FOR THAT WAS FALSE. This header
+ * used to say "0x2C7B is NOT reached during attract ... so there is nothing to capture". Pass 13
+ * refuted it on the real dkong ROM under MAME 0.288: an opcode-fetch tap in PURE attract (zero
+ * coins, zero inputs, zero pokes, 24,243 frames) counted 18 dispatches of 0x2C7B — exactly two per
+ * 25m board, at BONUS = BONUS_START (50) and BONUS_START − 1 (49) — reproduced by a second rig, and
+ * 24 in a credited run (scratchpad/pass13-grounding.md §3). Real dispatches DO exist and could be
+ * captured.
+ *
+ * The honest reason this suite is crafted-only is different, and weaker: 18 dispatches all sit on
+ * the same two BONUS values, and the pass-13 tap was placed on the ENTRY address only — the two
+ * branch arms (targets 0x2C49 / 0x2C4B) were never separated — so a capture replay would pin one
+ * region of the input space and leave the arm split unmeasured. The crafted + exhaustive sweep
+ * below is what actually provides arm coverage. This suite therefore makes NO real-capture coverage
+ * claim; adding one is open work, not a closed hole. The gate:
  *
  *   1. EQUAL (branch sweep, gate CLOSED) — for all 256 stepped-value inputs, the TAKEN case
  *      (bonus = value+2) and the MISS case (bonus = value+3) both match the oracle on RAM, proving

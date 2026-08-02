@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1cab — drive one frame of Mario's LEFTWARD ground walk.  ROM 0x1CAB.
+ * walkMarioLeft — drive one frame of Mario's LEFTWARD ground walk.  ROM 0x1CAB.
  *
  * The movement cascade tail-jumps here (from loc_1af5, ROM 0x1AFB) on any frame the
  * cooked control word says "walk left". It is the mirror image of the rightward stepper at
@@ -80,7 +80,7 @@ const WALK_TILE_MASK = 0x03;
  * @param {import("../machine.js").Machine} m
  * @returns {void}
  */
-export function loc_1cab(m) {
+export function walkMarioLeft(m) {
   const { regs, mem } = m;
 
   // A step is already in progress: spend this frame shifting Mario one pixel left.

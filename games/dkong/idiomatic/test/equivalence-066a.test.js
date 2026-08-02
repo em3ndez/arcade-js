@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_066a (ROM 0x066A) — render a packed two-digit BCD byte into its
+ * Equivalence test for renderBonusDisplay (ROM 0x066A) — render a packed two-digit BCD byte into its
  * on-screen field, suppressing a leading zero.
  *
- * loc_066a's entire memory effect is a PURE FUNCTION of the digit byte it receives in a
+ * renderBonusDisplay's entire memory effect is a PURE FUNCTION of the digit byte it receives in a
  * register: it reads no work RAM, and writes a fixed set of cells (SND_BGM 0x6089 and the
  * field's video cells) whose values derive only from that byte. So an EXHAUSTIVE gate is
  * available — sweeping all 256 byte values on a real captured base covers the whole input
@@ -17,7 +17,7 @@
  * there is no dissolved push and NO STACK_SCRATCH to exclude: the contract is the whole RAM
  * dump. Live-out is memory-only, so pc/SP are not compared.
  *
- *   1. EQUAL (exhaustive) — loc_066a == oracle over the whole RAM dump for all 256 input
+ *   1. EQUAL (exhaustive) — renderBonusDisplay == oracle over the whole RAM dump for all 256 input
  *      bytes on a real captured base (both arms).
  *   2. EQUAL (real captured dispatches) — hook 0x066A in a real attract run, clone at each
  *      true dispatch (the task-10 field render), and confirm identical over real bases.
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_066a as oracle } from "../../translated/loc_066a.js";
-import { loc_066a } from "../loc_066a.js";
+import { renderBonusDisplay } from "../renderBonusDisplay.js";
 import { stampTwoDigitField } from "../stampTwoDigitField.js";
 import { SND_BGM } from "../ram.js";
 import { Machine } from "../../machine.js";
@@ -119,10 +119,10 @@ test("REACHABILITY: 0x066A is dispatched during attract", () => {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_066a == oracle over all 256 input bytes (both arms)", () => {
+test("EQUAL (exhaustive): renderBonusDisplay == oracle over all 256 input bytes (both arms)", () => {
   const [base] = captureDispatches(1, 1500);
   assert.ok(base, "need one real capture to sweep from");
-  const { mismatch, count } = fullSweep(base, loc_066a);
+  const { mismatch, count } = fullSweep(base, renderBonusDisplay);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256, "must have compared the full 256-byte input space");
   // 16 suppress-arm bytes (0x00..0x0F) + 240 tens-nonzero — the whole space, both arms.
@@ -131,7 +131,7 @@ test("EQUAL (exhaustive): loc_066a == oracle over all 256 input bytes (both arms
 
 // -- 2. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_066a == oracle on every captured 0x066A entry", () => {
+test("EQUAL (real dispatches): renderBonusDisplay == oracle on every captured 0x066A entry", () => {
   const caps = captureDispatches(256, 2500);
   assert.ok(caps.length >= 1, "expected at least one real 0x066A dispatch during attract");
   for (const cap of caps) {
@@ -139,7 +139,7 @@ test("EQUAL (real dispatches): loc_066a == oracle on every captured 0x066A entry
     const b = cap.clone(); b.nextNmi = Infinity; b.nextBoundary = Infinity;
     const inByte = a.regs.a & 0xff;
     oracle(a);
-    loc_066a(b);
+    renderBonusDisplay(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(ram, null, ram && `real dispatch input=${hb(inByte)}: RAM diverges at ${hx(ram.addr ?? 0)} (${ram.a}->${ram.b})`);
   }

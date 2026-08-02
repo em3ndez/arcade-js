@@ -104,7 +104,7 @@ function runOracle(entry) {
  * sub_2602's one net return — SP += 2, pc := the caller's return address — precisely
  * matching the oracle (which reaches the same SP/pc via its own tail/`ret nz`). So the
  * harness adds ZERO extra rets; a c.ret() here would double-pop into unmapped space. This
- * is the loc_128b run-arm reconciliation with a net-ret delta of 0.
+ * is the beginMarioDeathAnimation run-arm reconciliation with a net-ret delta of 0.
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();

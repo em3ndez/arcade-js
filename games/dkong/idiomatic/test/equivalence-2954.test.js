@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2954 (ROM 0x2954) — the hammer-touch latch: gate on the board, test
+ * Equivalence test for latchHammerTouch (ROM 0x2954) — the hammer-touch latch: gate on the board, test
  * Mario against the two-record hammer pair, store the overlap flag into MARIO_HAMMER_PENDING,
  * pulse the item/score sound trigger, and mark the touched record as the pair's selected one.
  *
@@ -29,7 +29,7 @@
  *   0. REACHABILITY — 0x2954 IS naturally reachable: the 25m attract demo jumps at hammers and
  *      dispatches it 4x in 2000 frames (14x in 12000).
  *
- *   1. EQUAL (captured) — hook 0x2954 in a real attract run and confirm loc_2954 == oracle on
+ *   1. EQUAL (captured) — hook 0x2954 in a real attract run and confirm latchHammerTouch == oracle on
  *      every real dispatch. Those four dispatches already span the no-overlap arm and one
  *      genuine record-1 hammer touch, but four is thin, hence case 2.
  *
@@ -51,8 +51,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2954 as oracle } from "../../translated/loc_2954.js";
-import { loc_2954 } from "../loc_2954.js";
-import { loc_2974 } from "../loc_2974.js";
+import { latchHammerTouch } from "../latchHammerTouch.js";
+import { findHammerOverlappingMario } from "../findHammerOverlappingMario.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { Machine } from "../../machine.js";
 import {
@@ -62,6 +62,7 @@ import {
   MARIO_HAMMER_PENDING,
   SND_TRIGGER,
   OBJ_PAIR_6680,
+  HAMMER_IN_PLAY,
   BOARD,
 } from "../ram.js";
 
@@ -78,8 +79,8 @@ const RET_ADDR = 0x1c37; // the real `call 0x2954` return site (in ROM 0x1C33)
 
 const REC0 = OBJ_PAIR_6680;                    // the pair's first record  (0x6680)
 const REC1 = (OBJ_PAIR_6680 + 0x10) & 0xffff;  // the pair's second record (0x6690)
-const SEL0 = REC0 + 1;                         // 0x6681 — first record's select flag
-const SEL1 = REC1 + 1;                         // 0x6691 — second record's select flag
+const SEL0 = REC0 + HAMMER_IN_PLAY;            // 0x6681 — first record's in-play flag
+const SEL1 = REC1 + HAMMER_IN_PLAY;            // 0x6691 — second record's in-play flag
 const PICKUP_SOUND = SND_TRIGGER + 5;          // 0x6085 — the item/score sound trigger
 
 const BOARD_25M = 0x01; // hammer board  — mask 0x0b bit0 set, gate OPEN
@@ -113,7 +114,7 @@ function runOracle(entry) {
 
 /**
  * Run the candidate on a fresh clone, then model the SINGLE terminal caller-return the ROM
- * performs on every arm so pc + SP line up with the oracle. loc_2954 models no stack.
+ * performs on every arm so pc + SP line up with the oracle. latchHammerTouch models no stack.
  */
 function runCandidate(entry, fn) {
   const c = entry.clone();
@@ -197,7 +198,7 @@ test("REACHABILITY: 0x2954 is dispatched during attract", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_2954 == oracle on every real 0x2954 dispatch", () => {
+test("EQUAL (captured): latchHammerTouch == oracle on every real 0x2954 dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -209,7 +210,7 @@ test("EQUAL (captured): loc_2954 == oracle on every real 0x2954 dispatch", () =>
 
   let touches = 0, misses = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_2954);
+    const diffs = contractDiffs(entry, latchHammerTouch);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (runOracle(entry).c.mem.read8(MARIO_HAMMER_PENDING) === 1) touches++; else misses++;
   }
@@ -282,7 +283,7 @@ test("EQUAL (crafted): every arm matches the oracle, at the expected absolute va
     const entry = craft(base, opts);
     const got = cells(runOracle(entry).c);
     assert.deepEqual(got, want, `${name}: the ORACLE did not do what this case claims (got ${JSON.stringify(got)})`);
-    const diffs = contractDiffs(entry, loc_2954);
+    const diffs = contractDiffs(entry, latchHammerTouch);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${CRAFTED.length} arms identical to the oracle at pinned values`);
@@ -293,20 +294,19 @@ test("EQUAL (crafted): every arm matches the oracle, at the expected absolute va
 const HAMMER_BOARDS = 0x0b;
 const PICKUP_SOUND_FRAMES = 64;
 const PAIR_STRIDE = 0x10;
-const OBJ_SELECT = 0x01;
 
 /** Broken twin (a): marks the OTHER record of the pair as the selected one. */
 function twinWrongRecord(m) {
   const { regs, mem } = m;
   regs.a = HAMMER_BOARDS;
   if (!boardBitGate(m)) return;
-  loc_2974(m);
+  findHammerOverlappingMario(m);
   const touching = regs.a, matched = regs.b;
   mem.write8(MARIO_HAMMER_PENDING, touching);
   mem.write8(PICKUP_SOUND, touching ? PICKUP_SOUND_FRAMES : 0);
   if (matched === 0) return;
   const touched = matched === 1 ? OBJ_PAIR_6680 : OBJ_PAIR_6680 + PAIR_STRIDE; // BUG: swapped
-  mem.write8(touched + OBJ_SELECT, 0x01);
+  mem.write8(touched + HAMMER_IN_PLAY, 0x01);
 }
 
 /** Broken twin (b): only writes the latch and sound on a TOUCH, so a miss never clears them. */
@@ -314,14 +314,14 @@ function twinNoClear(m) {
   const { regs, mem } = m;
   regs.a = HAMMER_BOARDS;
   if (!boardBitGate(m)) return;
-  loc_2974(m);
+  findHammerOverlappingMario(m);
   const touching = regs.a, matched = regs.b;
   if (!touching) return; // BUG: the oracle writes both cells unconditionally
   mem.write8(MARIO_HAMMER_PENDING, touching);
   mem.write8(PICKUP_SOUND, PICKUP_SOUND_FRAMES);
   if (matched === 0) return;
   const touched = matched === 1 ? OBJ_PAIR_6680 + PAIR_STRIDE : OBJ_PAIR_6680;
-  mem.write8(touched + OBJ_SELECT, 0x01);
+  mem.write8(touched + HAMMER_IN_PLAY, 0x01);
 }
 
 /** Broken twin (c): asserts the sound for the usual 3 frames instead of 64. */
@@ -329,25 +329,25 @@ function twinShortSound(m) {
   const { regs, mem } = m;
   regs.a = HAMMER_BOARDS;
   if (!boardBitGate(m)) return;
-  loc_2974(m);
+  findHammerOverlappingMario(m);
   const touching = regs.a, matched = regs.b;
   mem.write8(MARIO_HAMMER_PENDING, touching);
   mem.write8(PICKUP_SOUND, touching ? 3 : 0); // BUG: the hammer pickup holds it for 64
   if (matched === 0) return;
   const touched = matched === 1 ? OBJ_PAIR_6680 + PAIR_STRIDE : OBJ_PAIR_6680;
-  mem.write8(touched + OBJ_SELECT, 0x01);
+  mem.write8(touched + HAMMER_IN_PLAY, 0x01);
 }
 
 /** Broken twin (d): drops the board gate, so it latches on 75m too. */
 function twinNoGate(m) {
   const { regs, mem } = m;
-  loc_2974(m); // BUG: no boardBitGate
+  findHammerOverlappingMario(m); // BUG: no boardBitGate
   const touching = regs.a, matched = regs.b;
   mem.write8(MARIO_HAMMER_PENDING, touching);
   mem.write8(PICKUP_SOUND, touching ? PICKUP_SOUND_FRAMES : 0);
   if (matched === 0) return;
   const touched = matched === 1 ? OBJ_PAIR_6680 + PAIR_STRIDE : OBJ_PAIR_6680;
-  mem.write8(touched + OBJ_SELECT, 0x01);
+  mem.write8(touched + HAMMER_IN_PLAY, 0x01);
 }
 
 test("TEETH: all four broken twins are CAUGHT by the same crafted suite", () => {

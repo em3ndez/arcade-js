@@ -25,13 +25,13 @@
  * not grounded and is not claimed here; the structure (four records, one retired per remaining
  * count, count limit 4 == the group's record count) is what the code and the template establish.
  *
- * Both arms then continue into loc_2cf6, which presets the freshly-claimed barrel record's sprite
+ * Both arms then continue into stampReleasedBarrelKind, which presets the freshly-claimed barrel record's sprite
  * fields and falls on into the frame-gated renderer tick.
  *
  * GROUNDED CONTEXT — this cluster is ORDINARY 25m BARREL PLAY, not a cutscene (live MAME 0.288 on
  * the real dkong ROM, understanding pass 12, scratchpad/pass12-grounding.md). An earlier version of
  * these headers called the 0x2C cluster "the cutscene renderer" and that is REFUTED: all 46 observed
- * dispatches of the next link, loc_2cf6, fell at gameplay substates (17 in a credited in-board 25m
+ * dispatches of the next link, stampReleasedBarrelKind, fell at gameplay substates (17 in a credited in-board 25m
  * game, 29 in the attract 25m demo) and ZERO at substate 7, the opening Kong-climb cutscene; board 1
  * only; the index register held an OBJ_ARRAY_67 barrel-record base at 46/46, each paired 1:1 in the
  * same frame with a slot claim by the barrel-release routine (ROM 0x2CB8) that also decremented the
@@ -51,10 +51,10 @@
  *           The RAM diff excludes the dead STACK_SCRATCH the downstream chain's dissolved
  *           `call 0x004e` bracket churns; pc + SP are compared after one modelled terminal return.
  *           Teeth: a wrong-stride twin, an off-by-one boundary twin (which lands on the neighbouring
- *           OBJ_65A0_SPRITES group), and a twin that drops the continuation into loc_2cf6.
- * LIVE-OUT: memory-only. The chain loc_2ce6 -> loc_2cf6 -> loc_2d15 nets exactly one terminal
+ *           OBJ_65A0_SPRITES group), and a twin that drops the continuation into stampReleasedBarrelKind.
+ * LIVE-OUT: memory-only. The chain loc_2ce6 -> stampReleasedBarrelKind -> loc_2d15 nets exactly one terminal
  *           return, modelled in the gate rather than here. The oracle's residue — the counter in
- *           the accumulator, the scaled index, the computed record pointer — is dead: loc_2cf6
+ *           the accumulator, the scaled index, the computed record pointer — is dead: stampReleasedBarrelKind
  *           overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor loc_2d15 reads an
  *           incoming pointer register.
  * NAMES:    BONUS (0x62B1) is named in ram.js but is reached through the CALLER's pointer register,
@@ -67,7 +67,7 @@
  */
 
 import { SPRITE_X } from "./ram.js"; // sprite-record field offset (+0), NOT the object-record OBJ_ACTIVE
-import { loc_2cf6 } from "./loc_2cf6.js"; // ROM 0x2CF6 — preset the freshly-claimed barrel record
+import { stampReleasedBarrelKind } from "./stampReleasedBarrelKind.js"; // ROM 0x2CF6 — preset the freshly-claimed barrel record
 
 const COUNTDOWN_SPRITES = 0x69a8; // four-record sprite group seeded at 25m board build (no ram.js name)
 const COUNTDOWN_RECORDS = 4; // records in that group — and the count below which they start retiring
@@ -87,5 +87,5 @@ export function loc_2ce6(m) {
   }
 
   // Both arms continue into the barrel-record preset head.
-  return loc_2cf6(m);
+  return stampReleasedBarrelKind(m);
 }

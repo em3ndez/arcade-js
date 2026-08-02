@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2b29 (ROM 0x2b29) — the board split at the head of the
+ * Equivalence test for probeMarioDescentLanding (ROM 0x2b29) — the board split at the head of the
  * player-vs-tilemap descent probe.
  *
  * Off 25m (BOARD != 1) the whole probe is loc_2b53's two-point form and this routine just
@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { u8 } from "../../../../core/int.js";
 import { loc_2b29 as oracle } from "../../translated/loc_2b29.js";
-import { loc_2b29 } from "../loc_2b29.js";
+import { probeMarioDescentLanding } from "../probeMarioDescentLanding.js";
 import { loc_2b53 } from "../loc_2b53.js";
 import { probeTileForLanding } from "../probeTileForLanding.js";
 import { loc_2b51 } from "../loc_2b51.js";
@@ -80,7 +80,7 @@ const test = ROM_PRESENT
 const TARGET = 0x2b29;
 const SPRITE_X_ADDR = (MARIO_SPRITE_RECORD + SPRITE_X) & 0xffff; // 0x694c — Mario's sprite record +0 (X)
 const IX_BASE = 0x6200; // object pointer -> Mario's block, so ix+5 aliases MARIO_Y (0x6205)
-const RET_L0 = 0x2b23;  // loc_2b29's own return (entry_2b1c's continuation; the unwind discards it)
+const RET_L0 = 0x2b23;  // probeMarioDescentLanding's own return (entry_2b1c's continuation; the unwind discards it)
 const RET_L1 = 0x1c08;  // the grandparent the two-frame unwind lands on
 const SP_TOP = 0x6bf8;  // inside STACK_SCRATCH; RET_L0 at 0x6bf8, RET_L1 at 0x6bfa
 const POISON_A = 0xaa;  // entry accumulator; overwritten by the board load
@@ -138,7 +138,7 @@ function runCandidate(entry, fn) {
   const c = entry.clone();
   const ret = fn(c);
   if (ret === false) {
-    c.pop16(); // discard loc_2b29's own return (the unwind's first pop)
+    c.pop16(); // discard probeMarioDescentLanding's own return (the unwind's first pop)
     c.ret();   // net return two frames up
   } else {
     c.ret();   // the normal return
@@ -199,7 +199,7 @@ const cellOff2 = (y) => tileAddr(u8(X + 4), u8(y + 7));      // loc_2b53's secon
 /** A fresh crafted entry: real attract RAM; the board, Mario's X/Y, the previous-frame airborne Y,
  *  the airborne-velocity high byte and the object pointer poked; the tile under each of the three
  *  probe cells set; the sprite-record X pre-poked to a sentinel so an X commit shows; poisoned
- *  result bytes; and a controlled return stack — RET_L0 (loc_2b29's own return) then RET_L1 (the
+ *  result bytes; and a controlled return stack — RET_L0 (probeMarioDescentLanding's own return) then RET_L1 (the
  *  grandparent) in STACK_SCRATCH. */
 function craftEntry({ board, y, tile25m, tileOff1, tileOff2, prevY, vxHi = 0x01 }) {
   const e = base().clone();
@@ -232,7 +232,7 @@ function craftEntry({ board, y, tile25m, tileOff1, tileOff2, prevY, vxHi = 0x01 
   e.regs.b = POISON_B;
   e.regs.sp = 0x6bfc;
   e.push16(RET_L1); // -> 0x6bfa
-  e.push16(RET_L0); // -> 0x6bf8 (loc_2b29's own return; SP now SP_TOP)
+  e.push16(RET_L0); // -> 0x6bf8 (probeMarioDescentLanding's own return; SP now SP_TOP)
   assert.equal(e.regs.sp, SP_TOP, "staged SP must be SP_TOP");
   return e;
 }
@@ -318,7 +318,7 @@ function classify(entry) {
   return u8(c.regs.e - c.regs.c) >= 4 ? "too-far" : "snap";
 }
 
-test("CAPTURED: loc_2b29 == oracle on RAM+pc+SP+A+B across real attract dispatches", () => {
+test("CAPTURED: probeMarioDescentLanding == oracle on RAM+pc+SP+A+B across real attract dispatches", () => {
   const { caps, dispatches } = captureDispatches();
   assert.ok(dispatches > 0, "0x2b29 must be naturally dispatched in attract — reachability claim in the header");
 
@@ -326,7 +326,7 @@ test("CAPTURED: loc_2b29 == oracle on RAM+pc+SP+A+B across real attract dispatch
   for (const entry of caps) {
     entry.nextNmi = Infinity;
     entry.nextBoundary = Infinity;
-    const diffs = contractDiffs(entry, loc_2b29);
+    const diffs = contractDiffs(entry, probeMarioDescentLanding);
     assert.equal(diffs.length, 0, diffs.join("; "));
     const path = classify(entry);
     tally[path] = (tally[path] || 0) + 1;
@@ -346,7 +346,7 @@ test("CAPTURED: loc_2b29 == oracle on RAM+pc+SP+A+B across real attract dispatch
 
 // -- 2. CRAFTED (the arms attract never reaches + the reach threshold) ---------
 
-test("CRAFTED: loc_2b29 == oracle on RAM+pc+SP+A+B across all seven terminal paths", () => {
+test("CRAFTED: probeMarioDescentLanding == oracle on RAM+pc+SP+A+B across all seven terminal paths", () => {
   assert.notEqual(cellOff1(Y_SNAP), cellOff2(Y_SNAP), "loc_2b53's two probe cells must be distinct");
   assert.equal(cell25m(Y_SNAP), cell25m(Y_FAR), "both 25m cases must probe the same cell");
 
@@ -361,9 +361,9 @@ test("CRAFTED: loc_2b29 == oracle on RAM+pc+SP+A+B across all seven terminal pat
     assert.ok(check(o), `${name}: oracle did not take the expected path (post-condition failed)`);
 
     // Equivalence: candidate identical to the oracle over the contract, same boolean.
-    const diffs = contractDiffs(entry, loc_2b29);
+    const diffs = contractDiffs(entry, probeMarioDescentLanding);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
-    assert.equal(runCandidate(entry, loc_2b29).ret, ret, `${name}: idiomatic return should be ${ret}`);
+    assert.equal(runCandidate(entry, probeMarioDescentLanding).ret, ret, `${name}: idiomatic return should be ${ret}`);
 
     // The normal return writes NO non-stack RAM at all.
     if (ret === true) {

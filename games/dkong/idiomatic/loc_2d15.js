@@ -2,7 +2,7 @@
 /**
  * loc_2d15 — the frame-gated step of the 0x2C-cluster string/sprite renderer.  ROM 0x2D15.
  *
- * Reached by fall-through from the cluster's setup head (loc_2cf6) and by a couple of
+ * Reached by fall-through from the cluster's setup head (stampReleasedBarrelKind) and by a couple of
  * conditional tail-jumps from its neighbours. Runs once per renderer tick but only DOES
  * anything every 0x18 frames: a down-counter at FRAME_GATE (0x62AF) is decremented every
  * entry and the routine returns until it underflows.
@@ -11,7 +11,7 @@
  * scratchpad/pass12-grounding.md). This chain is ORDINARY 25m BARREL PLAY, not a cutscene:
  * an earlier version of this header called it "the intro string/sprite renderer" and cited
  * "the 0x2C-cluster cutscene setup", and BOTH are REFUTED. All 46 captured dispatches of the
- * head loc_2cf6 fell at gameplay substates (17 in a credited in-board 25m game, 29 in the
+ * head stampReleasedBarrelKind fell at gameplay substates (17 in a credited in-board 25m game, 29 in the
  * attract 25m demo) and ZERO at substate 7, the opening Kong-climb cutscene; the record being
  * dressed is always an OBJ_ARRAY_67 barrel record, one per slot claim by the barrel-release
  * routine (board 1, ROM 0x2CB8). This routine is likewise BOARD-1 ONLY and runs per tick:
@@ -57,7 +57,7 @@
  *           is modelled in the gate, not here.
  * NAMES:    BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte; its low
  *           bits carry the claim's mode value (observed 1, and 0x81 = mode 1 with bit 7 set),
- *           its bit 7 selects the barrel kind for loc_2cf6, and THIS routine reads its bit 0.
+ *           its bit 7 selects the barrel kind for stampReleasedBarrelKind, and THIS routine reads its bit 0.
  *           FRAME_GATE (0x62AF) and ANIM_COUNTER (0x638F) were each examined and left UNNAMED
  *           in ram.js (thin/shared engine scratch), so each stays a local hex const here;
  *           ANIM_TABLE (0x3932) is a ROM address (the table data), kept as a hex const.

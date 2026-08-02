@@ -57,8 +57,9 @@ import { selectPlayer1Context as idiomatic } from "../selectPlayer1Context.js";
 import { Machine } from "../../machine.js";
 import { CURRENT_PLAYER, GAME_SUBSTATE, STACK_SCRATCH } from "../ram.js";
 
-// 0x600E is the join-value low byte (NOT TWO_PLAYER_GAME, which is the high byte
-// 0x600F) — not in ram.js, so a local hex constant, matching the routine.
+// 0x600E is the join-value low byte (NOT TWO_PLAYER_GAME, which is the high byte 0x600F).
+// ram.js DOES name it ACTIVE_PLAYER_INDEX; it is written here as the low half of a 16-bit
+// store, so the local constant names the JOIN, not the cell's own role.
 const JOIN_VALUE_LO = 0x600e;
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

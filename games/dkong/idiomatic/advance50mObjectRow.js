@@ -15,7 +15,7 @@
  *     field +5 uses the plain mover, stepping X by the object-3 shadow (M50_OBJ3_STEP).
  *
  * Culling clears the record's active flag and X and blanks the object's sprite record
- * (four bytes from 0x69B8, indexed by the record's position in the row), so it vanishes
+ * (four bytes from OBJ_65A0_SPRITES, indexed by the record's position in the row), so it vanishes
  * from the display. Inactive records are skipped untouched.
  *
  * The step shadows are the signed ±1/0 unit steps the 50m reversal machinery publishes,
@@ -38,9 +38,9 @@
  *           live-out at this boundary — set and kept. Residual registers/flags and the
  *           terminal return are dead.
  * NAMES:    OBJ_ARRAY_65A0 (0x65A0), M50_OBJ2_STEP_POS (0x63A5), M50_OBJ2_STEP_NEG
- *           (0x63A4), M50_OBJ3_STEP (0x63A6) — all from ram.js. The per-record sprite
- *           block at 0x69B8 (inside SPRITE_BUFFER, stride 4) is unnamed in ram.js — kept
- *           as a local hex address.
+ *           (0x63A4), M50_OBJ3_STEP (0x63A6) — all from ram.js, as is the per-record
+ *           sprite block OBJ_65A0_SPRITES (0x69B8, inside SPRITE_BUFFER, stride 4), which
+ *           ram.js named and grounded [seen] in pass 11.
  */
 
 import { u8 } from "../../../core/int.js";

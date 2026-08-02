@@ -21,7 +21,7 @@
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md): what the chain below ultimately tags is a 25m BARREL. On a
- * claim, loc_2c72 raises bit 7 of BARREL_CLAIM_MODE, and one frame later loc_2cf6 reads that bit
+ * claim, loc_2c72 raises bit 7 of BARREL_CLAIM_MODE, and one frame later stampReleasedBarrelKind reads that bit
  * to choose which of two barrel kinds it stamps into the freshly-released OBJ_ARRAY_67 record —
  * bit 7 CLEAR -> sprite code/attr/mode 0x15 / 0x0B / 0x00, bit 7 SET -> 0x19 / 0x0C / 0x01,
  * agreeing 46/46 with no exceptions (38 clear, 8 set), every dispatch ordinary board-1 25m
@@ -29,14 +29,33 @@
  * its X pinned at 59; the bit-7-CLEAR (attr 0x0B) kind ROLLS along the girders. Grounding
  * deliberately did NOT establish which NAMED Donkey Kong object either kind is.
  *
+ * ★ REACHABILITY — A FALSE CLAIM IN THIS HEADER, CORRECTED (pass 13). An earlier version said "this
+ * entry is NOT reached during attract ... so there are no real captured dispatches". That was
+ * FALSE. On the real dkong ROM under MAME 0.288, in PURE attract (zero coins, zero inputs, zero
+ * pokes, 24,243 frames, positive control 24,212 NMI fetches), an opcode-fetch tap counted 0x2C03
+ * firing 9843 times and 0x2C7B firing 18 — reproduced independently by a second rig, and 24 times
+ * in a credited run. The dispatches are EXACTLY TWO PER 25m BOARD, at BONUS = BONUS_START (50) and
+ * BONUS_START − 1 (49), precisely what this routine's own guard predicts (loc_2c03 tail-jumps here
+ * while BONUS_START − 2 < BONUS, which with BONUS_START = 50 is true at 50 and 49 and false from 48
+ * down). See scratchpad/pass13-grounding.md §3.
+ * HONEST FLOOR from that run: only the ENTRY was tapped. The two BRANCH ARMS were not separated —
+ * targets 0x2C49 / 0x2C4B were not tapped this pass — so the reachability question is settled while
+ * the per-arm split is not. That is why the gate below stays crafted+exhaustive rather than
+ * capture-driven: the crafted sweep is what covers both arms, not a claim that captures are
+ * unavailable.
+ *
  * Memory-equivalent to the frozen oracle — equivalence-2c7b.test.js.
- * GATE:     crafted-entry — this entry is NOT reached during attract (only from the still-translated
- *           entry_2c03/entry_2c41 path), so there are no real captured dispatches. Instead: exhaustive
- *           over the branch decision (all 256 stepped-value inputs x taken/not-taken, incl. the +2
- *           wrap) with the event gate held closed to isolate the mode-byte writes, plus a gate-open
- *           slot cross-product in BOTH branches (every first-free-slot position and the all-occupied
- *           case, at several marks incl. a low one whose -8 step wraps). Teeth: a compare that drops
- *           the byte-width wrap, a wrong constant mode byte, and a mis-forwarded bonus.
+ * GATE:     crafted-entry + exhaustive. NOT because captures are unavailable — this entry IS
+ *           naturally dispatched (18x in 400 s of pure attract, 24x in a credited run; see the
+ *           reachability note above) — but because 18 dispatches all land on the same two BONUS
+ *           values and the entry tap did not separate the two branch arms. The crafted sweep is
+ *           therefore what provides arm coverage: exhaustive over the branch decision (all 256
+ *           stepped-value inputs x taken/not-taken, incl. the +2 wrap) with the event gate held
+ *           closed to isolate the mode-byte writes, plus a gate-open slot cross-product in BOTH
+ *           branches (every first-free-slot position and the all-occupied case, at several marks
+ *           incl. a low one whose -8 step wraps). No captured dispatch is replayed here, so the
+ *           gate makes no real-capture coverage claim. Teeth: a compare that drops the byte-width
+ *           wrap, a wrong constant mode byte, and a mis-forwarded bonus.
  * LIVE-OUT: memory-only — everything the chosen cluster entry writes (BARREL_CLAIM_MODE, 0x638F,
  *           0x6392, BONUS_EVENT_MARK, and a slot claim's bit 7 on BARREL_CLAIM_MODE). The
  *           still-oracle caller reloads its registers; nothing reads a register or flag this

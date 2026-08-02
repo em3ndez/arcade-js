@@ -6,7 +6,7 @@
  * walk delta, and on 25m only re-snaps his Y to the sloped girder now under his new X,
  * before falling through into the shared walk-step continuation.
  *
- * `delta` is the signed one-pixel step the walk stepper (loc_1c8f / loc_1cab) hands in:
+ * `delta` is the signed one-pixel step the walk stepper (walkMarioRight / walkMarioLeft) hands in:
  * 1 moving right, 255 (i.e. -1) moving left, 0 for a held frame. It is added to MARIO_X
  * as a byte, wrapping the way the hardware does.
  *

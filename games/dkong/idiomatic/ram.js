@@ -115,6 +115,16 @@ export const OBJ_SPRITE_ATTR = 0x08;
  *  at 1 for 310 frames (natural attract) / 186 (credited 1P) / 70 (board 2), and set ONLY on frames whose
  *  INSERT arm (ROM 0x319D) fired — identically 0 across all 6667 board-3 frames, where 0x319D never ran. */
 export const OBJ_INSERT_REQUESTED = 0x18;
+/** [code] The two-record hammer pair's IN-PLAY flag (+0x01 of OBJ_PAIR_6680 only — 0x6681 / 0x6691).
+ *  ★ SCOPED DELIBERATELY, NOT a shared object-record field: +0x01 carries unrelated roles elsewhere
+ *  (0x1F93, 0x212B, 0x2D92/0x2D9D, 0x2E21/0x2E26), so a generic OBJ_* name here would be a trap.
+ *  Marks which of the two hammers Mario grabbed. Set by latchHammerTouch (ROM 0x296A -> 0x6681,
+ *  0x296F -> 0x6691) and CLEARED by updateActiveHammer at ROM 0x2F61 at hammer expiry, alongside
+ *  MARIO_HAMMER_ACTIVE — a complete lifecycle, not a sticky-until-board-reset flag. Two independent
+ *  readers agree: recordHammerHitOnObject (0x2826) and driveHammerSprite (0x2EDF). [code] not [seen]:
+ *  no grounding record observes 0x6680/0x6690/0x6681/0x6691 — lifting it needs a run that grabs a
+ *  hammer and watches the flag rise, hold, and clear at expiry. */
+export const HAMMER_IN_PLAY = 0x01;
 /** [code] Object-record field: per-object collision half-extent on the X axis (+0x09) — the extra span
  *  added to the caller's base tolerance in the bounding-box overlap test. findCollidingObject and
  *  countObjectOverlaps read it paired with OBJ_X (+3); writers (service50mObjectSpawnRequest,
@@ -238,7 +248,7 @@ export const SUBSTATE_TIMER = 0x6009;
  *  HEX (an earlier note mixed decimal and hex in one list and mis-stated gameplay as "13"; the table was
  *  re-dumped from the ROM to settle it):
  *  0x07=opening Kong-climb cutscene (NOT a rescue), 0x08=how-high, 0x0A=board setup,
- *  0x0C=gameplay (-> ROM 0x197A, the shared per-frame update cascade), 0x0D=the loc_127f router cluster
+ *  0x0C=gameplay (-> ROM 0x197A, the shared per-frame update cascade), 0x0D=the dispatchDeathAnimationPhase router cluster
  *  entered when Mario stops being active (-> ROM 0x127C), 0x0E=P1 death (-> ROM 0x12F2),
  *  0x16=board-cleared/advance. Board-complete writes 0x16 (ROM 0x1E80 rivet-zero;
  *  girder/rescue boards likewise). NOTE: this is a corrected name — arcade2 commit 14da179 called
@@ -254,9 +264,11 @@ export const GAME_SUBSTATE = 0x600A;
  *  cite. Mined from the optimization sweep + confirmed by a separate verifier. */
 export const CURRENT_PLAYER = 0x600D;
 /** [code] Active-player index; value-lockstep mirror of CURRENT_PLAYER (loc_141e/144f/13aa/13bb write
- *  both in step). Distinct discriminating readers (cocktail P2-select, +0x12 substate, 2P double-inc)
- *  are all unexercised in attract, so the solid basis is the lockstep with the grounded CURRENT_PLAYER —
- *  ground on a 2P/cocktail run before a downstream decompile trusts the readers. */
+ *  both in step). GROUNDED FURTHER in pass 13: the 2P DOUBLE-INC reader is no longer an unexercised
+ *  path — a real 2-player MAME run (natural 2 coins + 2P start, zero pokes) observed it stepping
+ *  0x0D -> 0x0F three times, at ROM 0x1344 with the P2 life-loss decrement at ROM 0x134E. The other two
+ *  discriminating readers (cocktail P2-select, +0x12 substate) remain unexercised, so ground those on a
+ *  cocktail run before a downstream decompile trusts them. */
 export const ACTIVE_PLAYER_INDEX = 0x600e;
 /** [seen] (own byte set to 1 at 2-player start, {0,1}, RUN-2P) 1 = two-player game, 0 = one-player. Written EXACTLY ONCE at game start, as the high byte of
  *  loc_08f8's `ld (0x600E),hl` (ROM 0x0938; HL=0x0100 on the 2P-start arm, 0x0000 on 1P). Every
@@ -304,7 +316,7 @@ export const P1_INPUT_RAW = 0x6011;
  *  runs the death -> life-decrement -> respawn cycle, which restores it to 1. */
 export const MARIO_ACTIVE = 0x6200;
 /** [seen] (own byte {0,1,2,4}, 565 transitions, RUN-A attract) Walk-cycle animation index (values {0,1,2,4}); its low 2 bits feed the sprite code
- *  0x6207 every frame. Written ONLY by the two walk routines (loc_1c8f/loc_1cab, ROM
+ *  0x6207 every frame. Written ONLY by the two walk routines (walkMarioRight/walkMarioLeft, ROM
  *  0x1CA4/0x1CC0) and cleared on freeze-expiry (loc_1b55, 0x1B6B). NOT facing: Right and
  *  Left produce the same value set in reversed order. */
 export const MARIO_WALK_ANIM = 0x6202;
@@ -333,18 +345,18 @@ export const MARIO_SPRITE_CODE = 0x6207;
  *  observed frame -- named for the hardware field; LOW confidence (never varied, not pokeable). */
 export const MARIO_SPRITE_ATTR = 0x6208;
 /** [seen] (own byte: 79 vals 0..198, 1137 transitions, RUN-1P) Snapshot of X (0x6203) taken at the head of each airborne frame, before that frame's motion.
- *  Written by loc_1bb2 (ROM 0x1BBC `ld (ix+0x0b),a`); observed to lag 0x6203 by exactly one
+ *  Written by advanceMarioAirborneFrame (ROM 0x1BBC `ld (ix+0x0b),a`); observed to lag 0x6203 by exactly one
  *  frame through a jump, untouched while walking. */
 export const MARIO_AIR_PREV_X = 0x620B;
 /** [seen] (own byte: 49 vals 0..240, 260 transitions, RUN-A) Snapshot of Y (0x6205) taken at the head of each airborne frame, before gravity. Written by
- *  loc_1bb2 (ROM 0x1BC2); lags 0x6205 by one frame; read by collision code at 0x29D6/0x29EE/0x2BE1. */
+ *  advanceMarioAirborneFrame (ROM 0x1BC2); lags 0x6205 by one frame; read by collision code at 0x29D6/0x29EE/0x2BE1. */
 export const MARIO_AIR_PREV_Y = 0x620C;
 /** [seen] (own byte {0,204,208,210,213,240}, 12 transitions, RUN-A) Y at the instant Mario left the ground. The fall-height test computes (curY - 0x0F) cp this
  *  (entry_1c76, ROM 0x1C7F); not-below makes the fall fatal (sets 0x6220). Written at jump init
  *  (0x1BAC) and fall init (0x1F6E). */
 export const MARIO_AIR_START_Y = 0x620E;
 /** [seen] (own byte {0..4}, 1865 transitions, RUN-A) Ground walk/climb sub-step timer. While nonzero the move code shifts Mario 1px and decrements
- *  it (loc_1c8f/loc_1cab, ROM 0x1C94/0x1CB0); at zero it advances the walk animation and reloads
+ *  it (walkMarioRight/walkMarioLeft, ROM 0x1C94/0x1CB0); at zero it advances the walk animation and reloads
  *  (2 walk / 3-4 climb). Poking 20 gives 20 frames of 1px/frame. NOT "jump phase" -- a jump never
  *  touches it. */
 export const MARIO_MOVE_STEP_TIMER = 0x620F;
@@ -521,16 +533,16 @@ export const OVERLAP_COUNT = 0x6060;
 /** [seen] (16-bit WORD; recorded on every hit = 0x6700 or 0x6400 = OBJ_ARRAY_67/64 base exactly.
  *  The observable is the WORD: the low byte 0x6351 reads a constant page-aligned 0x00; the high
  *  byte 0x6352 is the array classifier — entry_1ea0 `cp 0x65` on it tells which array was hit.)
- *  Base address of the hazard-object array that contained the collision hit. loc_281d writes it
+ *  Base address of the hazard-object array that contained the collision hit. recordHammerHitOnObject writes it
  *  (write16 IX from dispatchBoardCollision); entry_1ea0 reads `ix,(0x6351)` to walk to the hit
- *  record. Only loc_281d/entry_1ea0 touch it. */
+ *  record. Only recordHammerHitOnObject/entry_1ea0 touch it. */
 export const COLLIDED_OBJECT_BASE = 0x6351; // 16-bit; 0x6352 is its high byte, do not name separately
 /** [seen] (= 0x20 on every hit = OBJ_ARRAY_67/64 record stride exactly) Low byte of the hit array's
- *  per-record stride. loc_281d writes E; entry_1ea0 reads it into E and uses DE=0x00:stride as the
+ *  per-record stride. recordHammerHitOnObject writes E; entry_1ea0 reads it into E and uses DE=0x00:stride as the
  *  per-record IX increment while walking to the hit record. Only these two touch it. */
 export const COLLIDED_OBJECT_STRIDE = 0x6353;
 /** [seen] (small index set {0,2,3,4,7} live — the record's position in the swept array) Index of
- *  the hit object within its array (= OBJ_SEARCH_COUNT − B, the records already scanned). loc_281d
+ *  the hit object within its array (= OBJ_SEARCH_COUNT − B, the records already scanned). recordHammerHitOnObject
  *  writes it; entry_1ea0 reads it as the loop count that walks base+index*stride to the hit record
  *  ((0x6354)==0 → skip). Only these two touch it. */
 export const COLLIDED_OBJECT_INDEX = 0x6354;
@@ -607,17 +619,24 @@ export const BONUS_EXPIRED_STEP = 0x6386;
 export const BONUS_EXPIRED_DELAY = 0x6387;
 /** [seen] The on-screen BONUS counter's current value — the number the player watches count down, and the
  *  amount awardRemainingBonusToScore pays out at board completion. Seeded from BONUS_START, stepped down in
- *  lockstep with BONUS by both tick sites, rendered by loc_066a, and reset to 0 at each board build by
+ *  lockstep with BONUS by both tick sites, rendered by renderBonusDisplay, and reset to 0 at each board build by
  *  buildBoard. Grounded live: 18 distinct values over 66 transitions in a natural attract run (0x00,
  *  0x34-0x39, 0x40-0x49, 0x50), and the values captured at the 6 observed awardRemainingBonusToScore
  *  dispatches (0x47, 0x48, 0x57, 0x60, 0x54, 0x67) each produced exactly the two score payloads the
- *  nibble split predicts. ★ The PACKED-BCD nibble-pair layout (low nibble = hundreds, high = thousands) is
- *  CODE-DERIVED, not observed: every observed nibble was <= 9, which is consistent with BCD but does not
- *  prove it on 6 samples. Treat the address and the payout role as grounded, the BCD encoding as inference. */
+ *  nibble split predicts. ★ The PACKED-BCD layout is now OBSERVED too (pass 13, caveat discharged): over
+ *  99,367 comparable frames spanning BONUS 0..80, BONUS_DISPLAY == BCD(BONUS) with ZERO mismatches, the low
+ *  nibble never exceeded 9, and the BCD BORROW is directly visible (0x50->0x49, 0x40->0x39 while the
+ *  quantity drops by 1). HONEST FLOOR: a nibble >= 0xA is UNREACHABLE rather than merely unobserved,
+ *  because the ROM clamps BONUS_START to 80 — so the encoding is confirmed over the whole reachable range,
+ *  not over all 256 byte values. */
 export const BONUS_DISPLAY = 0x638c;
-/** [code] Latch recording that the bonus readout has bottomed out, suppressing re-seeding once the display
- *  reaches zero. One writer, one reader; cleared per board by initBoardState's 0x6280-0x6AFF block clear.
- *  Not separately observed live — its discriminating state needs a run that plays a board's bonus to zero. */
+/** [seen] (POKED — a one-shot bonus accelerator was needed to REACH the state; the mechanism then ran
+ *  unaided) Latch recording that the bonus readout has bottomed out, suppressing re-seeding once the
+ *  display reaches zero. GROUNDED live: set once at ROM 0x06AF (pc 0x06B1) on the frame the display steps
+ *  0x01 -> 0x00, held 717 frames, and cleared by initBoardState's block clear (pc 0x0F69). ★ CONTROLLED A/B
+ *  on its ONLY reader, with the display at 0 in both arms: latch 0 -> the re-seed body ran 5/5; latch 1 ->
+ *  it ran 0/2. That difference is the finding. It sat at 0 across 87,880 frames of unaided play, which is
+ *  why the accelerator was needed to reach the state at all. */
 export const BONUS_DISPLAY_ZEROED = 0x63b8;
 
 // ── Prize / item collection ──────────────────────────────────────────────────
@@ -723,7 +742,7 @@ export const M50_OBJ_ROW_SHIFT = 0x63b7;
 export const RENDER_STR_PTR = 0x62a8;
 /** [seen] Object-record pointer (word) the renderer reads/writes (sprite fields +7/+8). Grounded live: the
  *  word took 0x6700/0x6720/0x6740/0x6760/0x6780/0x67A0/0x67C0 — OBJ_ARRAY_67 record bases — plus 0x0000
- *  when idle, and equalled the IX register at 46/46 observed loc_2cf6 dispatches. */
+ *  when idle, and equalled the IX register at 46/46 observed stampReleasedBarrelKind dispatches. */
 export const RENDER_OBJ_PTR = 0x62aa;
 /** [code] Destination pointer (word); the renderer writes the 4-byte record here (a slot inside
  *  SPRITE_BUFFER, 0x6980+(10-B)*4). */
@@ -752,20 +771,36 @@ export const CUTSCENE_BAND_COUNT = 0x638d;
 /** [code] Intro Kong-climb scroll index; runIntroClimbStep seeds 0x1F, walked down as the displaced
  *  video-copy offset (loop while != 0x0A). */
 export const INTRO_SCROLL_INDEX = 0x638e;
-/** [code] 4-way rst-0x28 router phase for the loc_127f cluster. NAME UNDER REVIEW — its old note claimed
- *  this cell "drives the blinkSpritePairOn/Off toggle", and that is FALSE: a ROM scan shows 0x639D/0x639E
- *  are touched only at 0x127F-0x12DD, while blinkSpritePairOn/Off act on 0x6901/0x6905 off the colour-cycle
- *  counter 0x6390. The two subsystems are unrelated, so the "blink" in this name is not established.
- *  Independent evidence points at a DEATH ANIMATION instead: substate 0x0D (which is `CALL 0x1dbd / LD A,
- *  (0x639D) / RST 0x28`) is entered from the gameplay cascade exactly when MARIO_ACTIVE == 0; arm 2 exits
- *  into the P1/P2 life-loss handlers, and arm 1 XORs sprite code+attr so Mario's sprite cycles two tiles x
- *  flip-x/flip-y — a four-orientation spin, 13 times, settling on tile 0x7A. That reading is code-derived
- *  and NOT yet grounded in MAME, so the cell keeps its current name pending a grounding run rather than
- *  taking a second unverified one. Its router loc_127f is deliberately still loc_<addr> for the same reason. */
-export const BLINK_ANIM_PHASE = 0x639d;
-/** [code] Blink repeat count; primed 0x0D, decremented each gate tick while toggling the pair, advances
- *  BLINK_ANIM_PHASE at 0. */
-export const BLINK_COUNT = 0x639e;
+/** [seen] Phase of Mario's DEATH ANIMATION — the rst-0x28 router index for the 0x127C cluster, reached at
+ *  GAME_SUBSTATE 0x0D. RENAMED from BLINK_ANIM_PHASE in pass 13; the old name was wrong twice over.
+ *  (1) It claimed the cell "drives the blinkSpritePairOn/Off toggle" — FALSE: 0x639D/0x639E have exactly
+ *  five operand references in the whole 16 KB ROM, all inside 0x127F-0x12D7, while blinkSpritePairOn/Off
+ *  act on 0x6901/0x6905 off the colour-cycle counter 0x6390. Unrelated subsystems. (2) The behaviour is
+ *  not a BLINK at all: all four observed (code, attr) pairs are VISIBLE sprites — tile 0x78 <-> 0x79 with
+ *  flipy-only <-> flipx-only, i.e. a 180-degree rotation. Nothing ever turns off.
+ *  GROUNDED live in real MAME (pass 13, 136,367 logged frames, positive control ~1/frame): own byte {0,1,2}
+ *  over 128 pooled transitions — 88 inside the cluster (2 per episode x 44 episodes) and 40 outside, every
+ *  one of them the 2->0 reset by initBoardState's block clear at pc 0x0F69. Writers by PC: 0x1299, 0x12D8,
+ *  0x0F69. Value 1 NEVER occurs outside the death substate. ★ NEGATIVE CONTROL: across 42,275 frames of
+ *  ordinary play with Mario alive it is 0 on EVERY frame. The animation runs 296 frames, Mario's sprite
+ *  cycling four orientations 13 times before settling on tile 0x7A, after which a life is lost (15 deaths,
+ *  15 LIVES decrements, none from elsewhere). Named for the EFFECT, not a cause: the bonus-timer-expiry
+ *  death reaches the same sequence with MARIO_ACTIVE still 1 (ROM 0x1A2A jumps into the middle of the same
+ *  three instructions at 0x19D2, stepping over the MARIO_ACTIVE test), so no cause-based name is true on
+ *  every reachable path. "Death" is MAME's own label for the hardware sound line this animation drives
+ *  (dkong.cpp:202 "dead"; ROM 0x12A8, the last instruction of beginMarioDeathAnimation, is its sole writer).
+ *  Router slot 3 is STRUCTURALLY unreachable — this cell has exactly three writers (inc@0x1298, inc@0x12D7,
+ *  block-clear@0x0F69) and none can produce 3 — so it is table padding, not an arm. */
+export const DEATH_ANIM_PHASE = 0x639d;
+/** [seen] Death-animation ticks remaining: primed to 0x0D (13) at pc 0x129E, decremented at pc 0x12B6 once
+ *  per 8-FRAME GATE TICK (not per frame — hence "TICKS"), and at 0 it advances DEATH_ANIM_PHASE. RENAMED
+ *  from BLINK_COUNT in pass 13 along with its phase cell. GROUNDED live in real MAME: own byte {0..13},
+ *  13 ticks / 14 transitions per episode, identical in 43/43 completed episodes; the 296-frame episode
+ *  length falls out of the ROM immediates (0x40 at 0x19D7, 0x08 at 0x12A0/0x12AF, 0x80 at 0x12DA) and
+ *  reproduces the measured per-arm fetch counts exactly (704=64x11, 1144=104x11, 1408=128x11).
+ *  ★ NEGATIVE CONTROL: identically 0 with ZERO transitions across all 87,142 non-cluster frames.
+ *  The seed 13 lives at one ROM byte and is deliberately NOT encoded in the name. */
+export const DEATH_ANIM_TICKS_LEFT = 0x639e;
 /** [code] Intro walk pointer A (word); setupIntroCutsceneStep seeds 0x38B4, loc_0b06 advances it to a
  *  0x7F terminator. */
 export const INTRO_WALK_PTR_A = 0x63c2;
@@ -806,7 +841,7 @@ export const SEG_TILE = 0x63b5;
 /** [seen] (own byte {0,1,5,6,7,10}, union over 5 runs) Record count of the object-list sweep currently being searched, staged for the bounding-box
  *  search entry_2913. Every per-board collision handler stores its sweep length here just before the
  *  search (search25m/50m/75m/100mObjectOverlap, e.g. ROM 0x2884 `ld (0x63b9),a`); on a hit the found-handler
- *  reads it back and recovers the matched record's index as count − B (loc_281d, ROM 0x2846). HOW WE
+ *  reads it back and recovers the matched record's index as count − B (recordHammerHitOnObject, ROM 0x2846). HOW WE
  *  KNOW: 9 writers all storing a sweep count + one index-recovery reader. The observed set is board-
  *  dependent: 6 appears ONLY on 50m (search50mObjectOverlap sweep 2, 459 sampled frames) and 7 ONLY on
  *  100m (search100mObjectOverlap, 4491 frames). An earlier note listed {0,1,5,10}; that was incomplete
@@ -886,10 +921,10 @@ export const ROUTINES = {
   0x05e9: { name: "drawStringVertical", role: "draw a doubly-indirected string down a tilemap column", cert: "code" },
   0x0611: { name: "drawCreditLineInAttract", role: "repaint the 'CREDIT nn' line, but only while no credited game is in progress (attract)", cert: "code" },
   0x0616: { name: "drawCreditDisplay", role: "paint the 'CREDIT nn' line: the label plus the credit count", cert: "code" },
-  0x066a: { name: "loc_066a", role: "render a packed two-digit BCD byte into its on-screen field, suppressing a leading zero", cert: "code" },
+  0x066a: { name: "renderBonusDisplay", role: "render a packed two-digit BCD byte into its on-screen field, suppressing a leading zero", cert: "code" },
   0x0689: { name: "stampTwoDigitField", role: "stamp a two-digit number's tile pair into its on-screen field: the high-digit tile into one cell, the low-digit tile into the cell one column over", cert: "code" },
   0x0691: { name: "awardRemainingBonusToScore", role: "award the on-screen bonus (BONUS_DISPLAY) to the score as two table-selected payloads. Grounded: reached from loc_062a's task-10 dispatch on its A==0 arm -- RUN-ADV showed A=0x00 x5 / A=0x01 x20 and exactly 5 dispatches here; attract 62/62 were A=0x01, so it never fires there. CAVEAT: those 5 dispatches needed a GAME_SUBSTATE:=0x16 poke to reach the board-advance state -- in UNPOKED play it was observed 0 times over 49,700 frames, so the payout path is grounded but only via a poked board advance", cert: "seen" },
-  0x06a8: { name: "loc_06a8", role: "decrement the packed two-digit BCD counter by one, latch a 'reached zero' marker when it rolls from 01 to 00, store it back, and render it", cert: "code" },
+  0x06a8: { name: "stepBonusDisplayDown", role: "decrement the packed two-digit BCD counter by one, latch a 'reached zero' marker when it rolls from 01 to 00, store it back, and render it", cert: "code" },
   0x06b8: { name: "drawLivesAndLevel", role: "redraw the reserve-lives indicator and the level-number digits", cert: "code" },
   0x06fe: { name: "dispatchInGameSubstate", role: "vector the credited game to its current sub-state handler", cert: "code" },
   0x073c: { name: "runAttractState", role: "service the attract game-state (GAME_STATE == 1) once per NMI", cert: "code" },
@@ -956,10 +991,10 @@ export const ROUTINES = {
   0x11fa: { name: "loc_11fa", role: "scatter a 6-byte source record into a fixed IX record + a 4-byte array", cert: "code" },
   0x122a: { name: "replicateGroupStrided", role: "copy ONE 4-byte source group into B strided destination slots", cert: "code" },
   0x123c: { name: "seedMarioActorRecord", role: "spawn Mario's actor record at a board-dependent start, advance the sub-state, and post the follow-up task", cert: "code" },
-  0x127c: { name: "loc_127c", role: "attract sub-state 4: service the effect-sprite state machine, then run the blink-animation dispatch", cert: "code" },
-  0x127f: { name: "loc_127f", role: "vector a short animation sequence to its current-step handler", cert: "code" },
-  0x128b: { name: "loc_128b", role: "phase-0 (seed) arm of the 0x639D animation sequence: turn the two-cell blinker on, prime the blink repeat-count, clear its sprite runs, fire a sound, then advance the pha", cert: "code" },
-  0x12ac: { name: "loc_12ac", role: "phase-1 arm of the BLINK_ANIM_PHASE (0x639D) animation sequence: on each gate tick toggle the two-cell blinker, and when its repeat-count runs out advance the phase", cert: "code" },
+  0x127c: { name: "runDeathAnimationSubstate", role: "the death-animation sub-state: service the effect-sprite state machine, then dispatch the death animation on DEATH_ANIM_PHASE. Reached BOTH as attract table 0x0748 entry 4 and as in-game table 0x0702 entry 0x0D", cert: "seen" },
+  0x127f: { name: "dispatchDeathAnimationPhase", role: "vector the death animation to its current phase handler (seed / step / hand-off). Grounded: fetched 1:1 with its caller (3256/3256 in a credited run) -- this router IS the whole body of 0x127C. Router slot 3 is structurally unreachable padding, not an arm", cert: "seen" },
+  0x128b: { name: "beginMarioDeathAnimation", role: "phase-0 (seed) arm of the death animation: blank the sprite columns, prime DEATH_ANIM_TICKS_LEFT to 13, advance DEATH_ANIM_PHASE and re-arm the gate. Its last instruction (ROM 0x12A8) is the SOLE writer of the death sound line MAME labels 'dead'", cert: "seen" },
+  0x12ac: { name: "stepMarioDeathAnimation", role: "phase-1 arm of the death animation: on each 8-frame gate tick, rotate Mario's sprite through four orientations (tile 0x78<->0x79 x flipy<->flipx) and decrement DEATH_ANIM_TICKS_LEFT; at 0, advance DEATH_ANIM_PHASE. Grounded: 13 ticks, 296-frame episode, 43/43 episodes identical", cert: "seen" },
   0x12de: { name: "loc_12de", role: "on sub-state-timer expiry, tear down the finished sub-state's sprite scratch, advance GAME_SUBSTATE, and re-arm the timer to fire immediately", cert: "code" },
   0x12f2: { name: "losePlayer1Life", role: "spend one of player 1's lives, snapshot their context, then route to the resume interlude or the game-over sequence", cert: "code" },
   0x1344: { name: "loc_1344", role: "idx-15 in-game sub-state handler: decrement the current player's lives, save the live context to player 2's slot, then branch on lives-left", cert: "code" },
@@ -1017,15 +1052,15 @@ export const ROUTINES = {
   0x1b55: { name: "tickPostLandingFreeze", role: "count down Mario's post-landing freeze; unfreeze on expiry", cert: "code" },
   0x1b6e: { name: "initMarioJump", role: "begin Mario's jump: flag him airborne and pick the horizontal launch velocity from the held direction, then commit the arc", cert: "code" },
   0x1b8a: { name: "launchMarioJump", role: "commit Mario's ballistic jump: write the airborne motion record, set the jump pose, snapshot the take-off height, fire the jump sound", cert: "code" },
-  0x1bb2: { name: "loc_1bb2", role: "airborne frame head: snapshot the pre-motion position, step the ballistic arc one frame, then steer on the horizontal position gate's two-flag verdict", cert: "code" },
-  0x1bd8: { name: "loc_1bd8", role: "airborne screen-edge reflection, VERTICAL half: re-base the ballistic arc in place (velocity := 16*frames - velocity, frame count restarted) so the same parabola continues with its vertical step negated; a fall already latched lethal skips the re-base and keeps falling", cert: "code" },
-  0x1bec: { name: "loc_1bec", role: "airborne join point: advance the actor one ballistic frame, then hand the stepped frame to the airborne handler; reached only from the screen-edge clamp block, not from ordinary airborne frames", cert: "code" },
-  0x1bf2: { name: "loc_1bf2", role: "airborne screen-edge reflection, HORIZONTAL half: on the right-limit verdict stamp a leftward half-pixel-per-frame drift and clear the sprite facing bit, then continue into the vertical re-base", cert: "code" },
+  0x1bb2: { name: "advanceMarioAirborneFrame", role: "airborne frame head: snapshot the pre-motion position, step the ballistic arc one frame, then steer on the horizontal position gate's two-flag verdict", cert: "code" },
+  0x1bd8: { name: "reverseMarioVerticalArc", role: "airborne PLAYFIELD-LIMIT reflection (NOT merely a screen edge -- loc_241f's left verdict also fires for an INTERIOR wall: odd BOARD, Y<0x58, X<0x6C, the left end of the top platform on 25m/75m), VERTICAL half: re-base the ballistic arc in place (velocity := 16*frames - velocity, frame count restarted) so the same parabola continues with its vertical step negated; a fall already latched lethal skips the re-base and keeps falling", cert: "code" },
+  0x1bec: { name: "loc_1bec", role: "airborne join point: advance the actor one ballistic frame, then hand the stepped frame to the airborne handler; reached only from the PLAYFIELD-LIMIT clamp block, not from ordinary airborne frames", cert: "code" },
+  0x1bf2: { name: "loc_1bf2", role: "airborne PLAYFIELD-LIMIT reflection, HORIZONTAL half: on the right-limit verdict stamp a leftward half-pixel-per-frame drift and clear the sprite facing bit, then continue into the vertical re-base", cert: "code" },
   0x1c3a: { name: "loc_1c3a", role: "tick the airborne object-counter; on the tick that reaches zero settle the landing, otherwise arm the land-check phase and reset the ballistic state", cert: "code" },
   0x1c4f: { name: "settleMarioOnLanding", role: "settle Mario's state the instant he lands from a jump or fall, commit any pending item pickup, then refresh his hardware sprite record", cert: "code" },
   0x1c76: { name: "markFatalFallByHeight", role: "condemn the current fall as lethal once Mario has dropped far enough below where he took off, then refresh his sprite record", cert: "code" },
-  0x1c8f: { name: "loc_1c8f", role: "one frame of Mario's RIGHTWARD ground walk: slide one pixel while the step pacer runs; on expiry advance the walk-cycle index through the packed table and begin a new step with the facing bit set", cert: "code" },
-  0x1cab: { name: "loc_1cab", role: "one frame of Mario's LEFTWARD ground walk: the mirror of the rightward arm, differing only in the step delta, the walk-cycle table key and the cleared facing bit", cert: "code" },
+  0x1c8f: { name: "walkMarioRight", role: "one frame of Mario's RIGHTWARD ground walk: slide one pixel while the step pacer runs; on expiry advance the walk-cycle index through the packed table and begin a new step with the facing bit set", cert: "code" },
+  0x1cab: { name: "walkMarioLeft", role: "one frame of Mario's LEFTWARD ground walk: the mirror of the rightward arm, differing only in the step delta, the walk-cycle table key and the cleared facing bit", cert: "code" },
   0x1cc2: { name: "beginWalkStep", role: "start a new walk-animation step for Mario", cert: "code" },
   0x1cd2: { name: "advanceMarioWalkX", role: "advance Mario one pixel along a horizontal walk step", cert: "code" },
   0x1ceb: { name: "continueWalkStep", role: "carry an in-progress walk step one frame further", cert: "code" },
@@ -1058,7 +1093,7 @@ export const ROUTINES = {
   0x1e80: { name: "completeRivetBoardWhenCleared", role: "on a rivet (100m) board, complete the board the frame its last rivet is gone", cert: "code" },
   0x1e85: { name: "enterBoardAdvanceAndUnwind", role: "commit 'this board is complete': set the board-advance sub-state, then unwind out of the movement cascade", cert: "code" },
   0x1e94: { name: "loc_1e94", role: "unconditional caller-skip: make the call return past its caller", cert: "code" },
-  0x1e96: { name: "loc_1e96", role: "effect-sequence router: hand the frame to one of three effect step handlers keyed on EFFECT_SEQ_STATE; the slot index doubles at 8 bits, so states 128/129/130 alias steps 0/1/2", cert: "code" },
+  0x1e96: { name: "dispatchEffectSequenceStep", role: "effect-sequence router: hand the frame to one of three effect step handlers keyed on EFFECT_SEQ_STATE; the slot index doubles at 8 bits, so states 128/129/130 alias steps 0/1/2", cert: "code" },
   0x1ea0: { name: "buildEffectSprite", role: "effect-sequence step 0: spawn the hit effect sprite from the collided object's record, then arm the effect countdown and its priority sound", cert: "code" },
   0x1f09: { name: "flashEffectSpriteThenAdvanceSequence", role: "effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow bit on most beats and hands the sequence to its next step on every fourth", cert: "seen" },
   0x1f23: { name: "animateEffectSpriteThenRearmEffect", role: "effect-sequence step 2: a two-stage rate divider that steps the effect sprite's tile on most beats and, when it runs out, resets the sequence and re-arms the parent effec", cert: "seen" },
@@ -1112,7 +1147,7 @@ export const ROUTINES = {
   0x27da: { name: "spawnBoardObject", role: "on the spawn cadence, claim a free object slot and seed a new board object; always tick the cadence timer down", cert: "code" },
   0x2806: { name: "decrementByteAt", role: "decrement the byte at the given address by one", cert: "code" },
   0x2808: { name: "killMarioOnObjectCollision", role: "kill Mario when a board object overlaps his hitbox", cert: "code" },
-  0x281d: { name: "loc_281d", role: "test the active special-object record against the board's hazards and, on an overlap, record where it was found", cert: "code" },
+  0x281d: { name: "recordHammerHitOnObject", role: "test the active special-object record against the board's hazards and, on an overlap, record where it was found", cert: "code" },
   0x2853: { name: "searchPlayerObjectOverlap", role: "run the current board's object-overlap search for the player and hand its severity code back to the caller", cert: "code" },
   0x286f: { name: "dispatchBoardCollision", role: "vector a collision test to the current board's handler", cert: "code" },
   0x2880: { name: "search25mObjectOverlap", role: "the 25m arm of the per-board overlap search: three sweeps (OBJ_ARRAY_67 x10, OBJ_ARRAY_64 x5, OBJ_RECORD_66A0 x1), first hit wins. Grounded: OBJ_SEARCH_COUNT write signature 10.5.1 seen 1218x in attract and 2136x in a 1P game, board 1 only; on board 1 its fetch count equals the board-collision dispatch count exactly (1220/1220, 2140/2140)", cert: "seen" },
@@ -1120,8 +1155,8 @@ export const ROUTINES = {
   0x28e0: { name: "search75mObjectOverlap", role: "the 75m arm: sweep OBJ_ARRAY_64 x5, then OBJ_ARRAY_65 x10 only if the first misses. Grounded: 3225 fetches on board 3 with signature 5.10 x3221, and 0 fetches on boards 1, 2, 4 and in attract", cert: "seen" },
   0x2901: { name: "search100mObjectOverlap", role: "run one bounding-box collision sweep over the 0x6400 object array", cert: "code" },
   0x2913: { name: "findCollidingObject", role: "scan an object list for the first record whose bounding box overlaps a reference point on both axes; stop and report a hit, or report the list exhausted", cert: "code" },
-  0x2954: { name: "loc_2954", role: "hammer-touch latch: test Mario against the two-record hammer pair, publish the overlap flag into MARIO_HAMMER_PENDING, drive the pickup sound (a miss clears what a touch set), and mark the matched hammer record", cert: "code" },
-  0x2974: { name: "loc_2974", role: "test whether Mario overlaps either of the two objects in the 0x6680 pair, and report which one", cert: "code" },
+  0x2954: { name: "latchHammerTouch", role: "hammer-touch latch: test Mario against the two-record hammer pair, publish the overlap flag into MARIO_HAMMER_PENDING, drive the pickup sound (a miss clears what a touch set), and mark the matched hammer record", cert: "code" },
+  0x2974: { name: "findHammerOverlappingMario", role: "test whether Mario overlaps either of the two objects in the 0x6680 pair, and report which one", cert: "code" },
   0x298c: { name: "loc_298c", role: "is the background tile just ahead of the current object outside the accepted tile band?", cert: "code" },
   0x2a22: { name: "loc_2a22", role: "constant-binding shim: run the collision search over OBJ_ARRAY_66 (6 records). Grounded board-3-only: 146 fetches on 75m while its caller loc_29af ran 146; on boards 2 and 4 loc_29af ran 3700/2329x and this shim 0x -- the wrapper is gated inside the caller, on the board whose 0x6600 array is live", cert: "seen" },
   0x2a2f: { name: "loc_2a2f", role: "probe the tile a moving object is standing on and, if it sits on a sloped girder, slide the object's X along the slope and report the contact", cert: "code" },
@@ -1131,7 +1166,7 @@ export const ROUTINES = {
   0x2ad3: { name: "carryMarioOnConveyorRow", role: "carry Mario along whichever 50m conveyor (moving-platform) row he is standing on", cert: "code" },
   0x2af6: { name: "selectConveyorStepAndMoveMario", role: "pick the drift step for this platform row by Mario's X, then move him", cert: "code" },
   0x2b02: { name: "moveMarioX", role: "advance Mario's X by the current velocity, then hold it inside the horizontal limits", cert: "code" },
-  0x2b29: { name: "loc_2b29", role: "board split at the head of the descent probe: off 25m delegate to the two-point form; on 25m probe a single point and, within three pixels of a surface, snap Mario onto it", cert: "code" },
+  0x2b29: { name: "probeMarioDescentLanding", role: "board split at the head of the descent probe: off 25m delegate to the two-point form; on 25m probe a single point and, within three pixels of a surface, snap Mario onto it", cert: "code" },
   0x2b51: { name: "loc_2b51", role: "a reject exit of the player-vs-tilemap probe cascade; forces the two-level caller-skip so control unwinds past entry_2b1c", cert: "code" },
   0x2b53: { name: "loc_2b53", role: "the non-25m arm of the player-vs-tilemap descent probe", cert: "code" },
   0x2b74: { name: "loc_2b74", role: "the reject arm of the tile-probe cascade: hand back a zeroed result and unwind out of the probe and its caller", cert: "code" },
@@ -1149,7 +1184,7 @@ export const ROUTINES = {
   0x2c7b: { name: "loc_2c7b", role: "pick a bonus-event slot-claim cluster entry by testing the caller's stepped value against the bonus", cert: "code" },
   0x2c86: { name: "loc_2c86", role: "one entry of the bonus-event slot-claim cluster (0x2C41): clear the slot-claim request flag, then hand off to the shared slot-claim entry with mode byte 3", cert: "code" },
   0x2ce6: { name: "loc_2ce6", role: "25m barrel-release entry: while four or more bonus steps remain do nothing; below four, blank the X field of the sprite-group record whose index equals the remaining count, then preset the freshly claimed barrel record", cert: "code" },
-  0x2cf6: { name: "loc_2cf6", role: "preset a renderer object record's sprite-code/attr/mode (default or alt triple, selected by bit 7 of 0x6382), then fall through into the frame-gated renderer loc_2d15", cert: "code" },
+  0x2cf6: { name: "stampReleasedBarrelKind", role: "preset a renderer object record's sprite-code/attr/mode (default or alt triple, selected by bit 7 of 0x6382), then fall through into the frame-gated renderer loc_2d15", cert: "code" },
   0x2d15: { name: "loc_2d15", role: "the frame-gated step of the intro string/sprite renderer", cert: "code" },
   0x2d51: { name: "loc_2d51", role: "reload the render string cursor from RAM, then render the next character", cert: "code" },
   0x2d54: { name: "loc_2d54", role: "the string renderer's per-character body: emit one 4-byte sprite record for the next character of the string, or hand off to the terminator", cert: "code" },

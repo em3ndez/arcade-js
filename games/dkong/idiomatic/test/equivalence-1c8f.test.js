@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1c8f (ROM 0x1C8F) — the RIGHTWARD arm of Mario's per-frame
+ * Memory-equivalence test for walkMarioRight (ROM 0x1C8F) — the RIGHTWARD arm of Mario's per-frame
  * horizontal walk. While the sub-step pacer MARIO_MOVE_STEP_TIMER is still running the frame is
  * a plain +1 pixel slide (advanceMarioWalkX); on the frame it has expired the walk-cycle index
  * MARIO_WALK_ANIM is stepped through loc_3009's packed table (key 5 = the rightward cycle),
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1c8f as oracle } from "../../translated/loc_1c8f.js";
-import { loc_1c8f } from "../loc_1c8f.js";
+import { walkMarioRight } from "../walkMarioRight.js";
 import { loc_3009 } from "../loc_3009.js";
 import { advanceMarioWalkX } from "../advanceMarioWalkX.js";
 import { beginWalkStep } from "../beginWalkStep.js";
@@ -235,12 +235,12 @@ function brokenLeftDelta(m) {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("REACHABILITY + EQUAL (real dispatches): loc_1c8f == oracle on every captured 0x1c8f entry", () => {
+test("REACHABILITY + EQUAL (real dispatches): walkMarioRight == oracle on every captured 0x1c8f entry", () => {
   const caps = captureDispatches(400, FRAMES);
   assert.ok(caps.length >= 1, "expected at least one real 0x1c8f dispatch during attract");
 
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_1c8f); // FRESH clones inside — entry untouched
+    const diffs = contractDiffs(entry, walkMarioRight); // FRESH clones inside — entry untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
 
@@ -290,7 +290,7 @@ test("EQUAL (crafted): off-cycle anim value, non-25m boards, and pacer edges mat
 
   for (const c of cases) {
     const entry = craft(base, c);
-    const diffs = contractDiffs(entry, loc_1c8f);
+    const diffs = contractDiffs(entry, walkMarioRight);
     assert.equal(diffs.length, 0, `${c.name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the oracle really did what the case claims.

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e96 (ROM 0x1E96) — the router for the effect-sequence step machine
+ * Equivalence test for dispatchEffectSequenceStep (ROM 0x1E96) — the router for the effect-sequence step machine
  * held in EFFECT_SEQ_STATE (0x6345). It reads that step byte and hands the frame to one of three
  * handlers: step 0 -> buildEffectSprite (build the sprite + cue the sound), step 1 ->
  * flashEffectSpriteThenAdvanceSequence (flash the tile), step 2 ->
  * animateEffectSpriteThenRearmEffect (march the tile, then tear down and re-arm).
  *
- * loc_1e96 writes no memory itself; every visible byte is the chosen handler's. Its return value
+ * dispatchEffectSequenceStep writes no memory itself; every visible byte is the chosen handler's. Its return value
  * is undefined on every path on both sides (all three handlers return nothing, and the caller
  * loc_1e8c discards the result and takes its own skip decision), so the return is asserted
  * directly and no register or flag is a live-out. SP/pc are the dropped stack model — the
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e96 as oracle } from "../../translated/loc_1e96.js";
-import { loc_1e96 as idiomatic } from "../loc_1e96.js";
+import { dispatchEffectSequenceStep as idiomatic } from "../dispatchEffectSequenceStep.js";
 import { buildEffectSprite } from "../buildEffectSprite.js"; // idiomatic handlers, for the teeth twins
 import { flashEffectSpriteThenAdvanceSequence } from "../flashEffectSpriteThenAdvanceSequence.js";
 import { animateEffectSpriteThenRearmEffect } from "../animateEffectSpriteThenRearmEffect.js";
@@ -222,7 +222,7 @@ function sweepAllStates(bases, candidate) {
   return { mismatch, dispatched };
 }
 
-test("EXHAUSTIVE (step sweep): loc_1e96 == oracle over all 256 EFFECT_SEQ_STATE values", () => {
+test("EXHAUSTIVE (step sweep): dispatchEffectSequenceStep == oracle over all 256 EFFECT_SEQ_STATE values", () => {
   const bases = sweepBases(captureDispatches());
   const { mismatch, dispatched } = sweepAllStates(bases, idiomatic);
   assert.equal(mismatch, null, mismatch && `mismatch at step ${mismatch.state} (${mismatch.label} base): ${mismatch.why}`);

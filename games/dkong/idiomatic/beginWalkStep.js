@@ -2,7 +2,7 @@
 /**
  * beginWalkStep — start a new walk-animation step for Mario.  ROM 0x1cc2.
  *
- * The horizontal-walk steppers (loc_1c8f walking right, loc_1cab walking left) reach
+ * The horizontal-walk steppers (walkMarioRight walking right, walkMarioLeft walking left) reach
  * here on the frame their sub-step timer has expired and it is time to advance the walk
  * to its NEXT animation frame. They hand over the sprite-code byte they just built — the
  * walk-cycle tile in the low bits, plus the facing-right flag in bit 7 (set by the

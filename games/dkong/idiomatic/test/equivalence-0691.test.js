@@ -9,7 +9,7 @@
  * gate (equivalence-051c). What THIS gate must prove is that awardRemainingBonusToScore feeds the correct two
  * payloads, in order, for EVERY possible byte. Since the memory effect is a pure function of that
  * one byte (on a fixed base), an EXHAUSTIVE sweep of all 256 values is a proof, not a sample —
- * exactly loc_066a's shape (its twin).
+ * exactly renderBonusDisplay's shape (its twin).
  *
  * The oracle pushes the packed byte and a call-return onto the stack and addToScoreTask nests further
  * pushes; on this crafted base all of that lands inside STACK_SCRATCH, which the memory-equivalence

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1bb2 — the airborne frame's head: snapshot Mario's pre-motion position, advance his
+ * advanceMarioAirborneFrame — the airborne frame's head: snapshot Mario's pre-motion position, advance his
  * jump/fall arc one frame, then let the horizontal position gate steer him.  ROM 0x1BB2.
  *
  * The movement state machine (loc_1ac3) vectors here whenever MARIO_AIRBORNE is 1, i.e. on
@@ -15,12 +15,12 @@
  *     and the flags pick which way Mario is pushed for the rest of the frame:
  *       - first flag raised -> handled here: horizontal velocity is forced to +0.5 px/frame
  *                              (drift right) and the sprite's facing bit is set to face right;
- *       - otherwise         -> loc_1bf2, which mirrors that for the far-right edge (velocity
+ *       - otherwise         -> loc_1bf2, which mirrors that for the far-right playfield limit (velocity
  *                              -0.5 px/frame, facing bit cleared) and otherwise leaves the
  *                              velocity alone.
- *     Both arms converge on loc_1bd8, the landing / fatal-fall tail.
+ *     Both arms converge on reverseMarioVerticalArc, the landing / fatal-fall tail.
  *
- * So the routine is the edge-steering half of the airborne frame: near the left boundary it
+ * So the routine is the edge-steering half of the airborne frame: near the left playfield limit (an interior wall on 25m/75m, not the screen edge) it
  * nudges Mario back inward, and it always leaves the pre-motion position where the collision
  * pass expects it.
  *
@@ -64,7 +64,7 @@
  *           MARIO_Y (0x6205), MARIO_SPRITE_CODE (0x6207), MARIO_AIR_PREV_X (0x620B),
  *           MARIO_AIR_PREV_Y (0x620C), MARIO_AIR_VX_HI (0x6210), MARIO_AIR_VX_LO (0x6211) —
  *           all imported from ram.js. stepBallisticMotion (ROM 0x239C), loc_241f (0x241F),
- *           loc_1bf2 (0x1BF2) and loc_1bd8 (0x1BD8) are all direct-called; no address literal
+ *           loc_1bf2 (0x1BF2) and reverseMarioVerticalArc (0x1BD8) are all direct-called; no address literal
  *           is left in the body.
  */
 
@@ -81,12 +81,12 @@ import {
 import { stepBallisticMotion } from "./stepBallisticMotion.js"; // ROM 0x239C
 import { loc_241f } from "./loc_241f.js"; // ROM 0x241F
 import { loc_1bf2 } from "./loc_1bf2.js"; // ROM 0x1BF2
-import { loc_1bd8 } from "./loc_1bd8.js"; // ROM 0x1BD8
+import { reverseMarioVerticalArc } from "./reverseMarioVerticalArc.js"; // ROM 0x1BD8
 
 // Bit 7 of MARIO_SPRITE_CODE is the sprite's horizontal-flip bit: set = facing right.
 const FACING_RIGHT = 0x80;
 
-export function loc_1bb2(m) {
+export function advanceMarioAirborneFrame(m) {
   const { regs, mem } = m;
 
   // Mario's context block is the record every step of this path works off; loc_1bf2 and the
@@ -111,5 +111,5 @@ export function loc_1bb2(m) {
   mem.write8(MARIO_AIR_VX_LO, 128);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) | FACING_RIGHT);
 
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }

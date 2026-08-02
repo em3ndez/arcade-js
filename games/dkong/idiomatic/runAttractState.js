@@ -65,12 +65,18 @@ import { loc_084b } from "../translated/loc_084b.js";
 // Ten little-endian words: eight used handlers, then two unused 0x0000 slots. The
 // callees are still-oracle routines imported from translated/ (no idiomatic rewrite
 // exists yet), so they are called directly here.
+// ★ CORRECTION (pass 13): that blanket "no idiomatic rewrite exists yet" is NO LONGER TRUE for
+// every slot. Idiomatic rewrites DO exist for 0x0779, 0x0763, 0x123C, 0x127C, 0x07C3, 0x07CB
+// and 0x084B; this table still calls the ORACLE for them ON PURPOSE, because these slots are
+// entered by the attract dispatcher's call/fall-through stack model and the idiomatic twins
+// drop it, so swapping them here would move SP. Dissolving them is a separate reviewed unit —
+// see scratchpad/pass13-carryover.md §8 (26 stale oracle imports tree-wide).
 const ATTRACT_SUBSTATE = [
   loc_0779, // 0  ROM 0x0779 — draw the attract screen
   loc_0763, // 1  ROM 0x0763 — timed advance (rst 0x20 gate)
   loc_123c, // 2  ROM 0x123C — seed the demo sprite record
   loc_1977, // 3  ROM 0x1977 — the demo-gameplay cascade
-  loc_127c, //     4  ROM 0x127C
+  loc_127c,                 //     4  ROM 0x127C  — ORACLE, deliberately (see the ★ note above)
   loc_07c3, //     5  ROM 0x07C3
   loc_07cb, //     6  ROM 0x07CB — countdown animation
   loc_084b, //     7  ROM 0x084B — rst 0x20 gate, clears GAME_SUBSTATE

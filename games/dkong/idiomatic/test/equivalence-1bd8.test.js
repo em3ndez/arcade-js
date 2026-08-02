@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1bd8 (ROM 0x1BD8) — the vertical half of the airborne screen-edge
+ * Equivalence test for reverseMarioVerticalArc (ROM 0x1BD8) — the vertical half of the airborne playfield-limit
  * reflection: fold the elapsed airborne frames into Mario's stored launch velocity
  * (velocity := 16·frames − velocity) and restart the frame count, unless the fall has already
  * been latched lethal, then run the shared airborne tail.
  *
- * REACHABILITY — STATED HONESTLY. loc_1bd8 is NOT reached in attract. Its two entries are the
- * screen-edge arms of the airborne handler, and the attract demo never jumps at the horizontal
+ * REACHABILITY — STATED HONESTLY. reverseMarioVerticalArc is NOT reached in attract. Its two entries are the
+ * playfield-limit arms of the airborne handler, and the attract demo never jumps at the horizontal
  * limit: over 6000 attract frames the handler (0x1BB2) dispatches 360× and 0x1BD8 exactly 0×.
  * So there are no attract captures to have, and this test says so instead of pretending. The
  * captures below come from a DRIVEN 1-PLAYER GAME — a real coin + start + held jump through
- * the machine's input tape, with MARIO_X poked to the screen edge, which is precisely how the
+ * the machine's input tape, with MARIO_X poked to the horizontal playfield limit, which is precisely how the
  * repo's gameplay tapes (tapes/test_b1_*.lua) drive a position-dependent path. Those are real
  * dispatches out of a live game: the ROM's own airborne handler decides to come here.
  *
@@ -58,7 +58,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1bd8 as oracle } from "../../translated/loc_1bd8.js";
-import { loc_1bd8 } from "../loc_1bd8.js";
+import { reverseMarioVerticalArc } from "../reverseMarioVerticalArc.js";
 import { loc_2407 } from "../loc_2407.js";
 import { loc_1bec } from "../loc_1bec.js";
 import { Machine } from "../../machine.js";
@@ -218,7 +218,7 @@ test("REALISM: real driven-game 0x1BD8 dispatches — left edge, re-base arm", (
 
   let moved = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_1bd8);
+    const diffs = contractDiffs(entry, reverseMarioVerticalArc);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (readVelocity(runOracle(entry).m) !== readVelocity(entry)) moved++;
   }
@@ -231,7 +231,7 @@ test("REALISM: real driven-game 0x1BD8 dispatches — right edge (the loc_1bf2 e
   const caps = driveCaptures(RIGHT_EDGE);
   assert.ok(caps.length >= 1, "expected real 0x1BD8 dispatches from the driven right-edge run");
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_1bd8);
+    const diffs = contractDiffs(entry, reverseMarioVerticalArc);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
   }
   console.log(`  REALISM/right: ${caps.length} real dispatches identical to the oracle`);
@@ -243,7 +243,7 @@ test("REALISM: real driven-game dispatches on the FATAL-FALL skip arm", () => {
   assert.ok(fatalCaps.length >= 1, "expected the driven run to reach 0x1BD8 with the fall already latched lethal");
 
   for (const entry of fatalCaps) {
-    const diffs = contractDiffs(entry, loc_1bd8);
+    const diffs = contractDiffs(entry, reverseMarioVerticalArc);
     assert.equal(diffs.length, 0, `captured fatal-arm dispatch: ${diffs.join("; ")}`);
     // Non-vacuous the other way: on this arm the oracle must leave the velocity ALONE.
     assert.equal(readVelocity(runOracle(entry).m), readVelocity(entry), "the skip arm must not re-base the velocity");
@@ -255,7 +255,7 @@ test("CONTRACT: on real dispatches even the STACK region matches (exclusion not 
   const caps = driveCaptures(LEFT_EDGE, 8);
   let stackOnly = 0;
   for (const entry of caps) {
-    const o = runOracle(entry).m, c = runCandidate(entry, loc_1bd8).m;
+    const o = runOracle(entry).m, c = runCandidate(entry, reverseMarioVerticalArc).m;
     const any = firstAnyRamDiff(o, c);
     if (any) {
       assert.ok(inStack(any.addr), `any difference must be inside STACK_SCRATCH, got ${hx(any.addr)}`);
@@ -284,7 +284,7 @@ test("EQUAL (crafted): branch byte x frame count x velocity, on a real dispatch"
     for (const frames of frameCounts) {
       for (const velocity of velocities) {
         const entry = craft(base, { fatal, frames, velocity });
-        const diffs = contractDiffs(entry, loc_1bd8);
+        const diffs = contractDiffs(entry, reverseMarioVerticalArc);
         assert.equal(diffs.length, 0, `fatal=${fatal} frames=${frames} vel=${hx(velocity)}: ${diffs.join("; ")}`);
         n++;
       }
@@ -314,7 +314,7 @@ test("FUZZ: 400 seeded-random (branch, frames, velocity) triples match the oracl
     const frames = rnd() & 0xff;
     const velocity = rnd() & 0xffff;
     const entry = craft(base, { fatal, frames, velocity });
-    const diffs = contractDiffs(entry, loc_1bd8);
+    const diffs = contractDiffs(entry, reverseMarioVerticalArc);
     assert.equal(diffs.length, 0, `fuzz#${i} fatal=${fatal} frames=${frames} vel=${hx(velocity)}: ${diffs.join("; ")}`);
     if (fatal === 0x01) skips++; else rebases++;
   }

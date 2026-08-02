@@ -13,8 +13,8 @@
  *      loc_16d0 arm overwrites it with 1 to make it underflow immediately and REVERSE — so
  *      pre-clearing here is what makes "did we choose loc_16d0?" the whole bounce decision.
  *
- *   2. Read record #2's X (recordX, 0x6910) and object #1's published signed per-frame step
- *      (stepByte, 0x63A3), and route:
+ *   2. Read record #2's X (recordX, 0x6910 — not named in ram.js) and object #1's published
+ *      signed per-frame step (stepByte, M50_OBJ1_STEP), and route:
  *        - recordX at/above the rail region (>= 90): the group has climbed to the rail — hand
  *          to loc_16e1, the second-stage dispatcher that decides reinit-vs-bounce at the 93
  *          threshold.
@@ -31,8 +31,9 @@
  * The M50_* names in ram.js place this family on the 50m board (board-2 object cascade), but
  * the VISUAL scene these sprites depict is still UNCONFIRMED: the motion tails loc_16d0 /
  * loc_16d5 and their meaning-bearing callee loc_2602 all declined an English name over the
- * sprite-record trap, and this routine's rail thresholds sit in still-unnamed engine scratch
- * (0x63A3 / 0x6910) — so it keeps the neutral loc_16bb name and states the mechanic in prose,
+ * sprite-record trap, and this routine's rail thresholds are raw magnitudes rather than named
+ * state (its step input IS named — M50_OBJ1_STEP — but 0x6910 is not) — so it keeps the neutral
+ * loc_16bb name and states the mechanic in prose,
  * matching its family. A reviewer who promotes loc_2602 can promote this whole family in the
  * same pass.
  *
@@ -49,13 +50,14 @@
  *           family is dispatched from the in-game substate table and returns through the NMI
  *           dispatcher, which reads no register or flag it leaves — the register file is dead
  *           ABI. RAM (+ SP/pc) backstops that.
- * NAMES:    M50_OBJ1_REVERSE_TIMER (0x62A0, object #1's even-frame countdown) from ram.js.
- *           0x63A3 (object #1's published signed step) and 0x6910 (a SPRITE_BUFFER record's
- *           X) are not individually named in ram.js — kept hex, described in prose to match
- *           loc_16d5 / loc_16e1. The 90 / 93 rail thresholds are kept in prose.
+ * NAMES:    M50_OBJ1_REVERSE_TIMER (0x62A0, object #1's even-frame countdown) and
+ *           M50_OBJ1_STEP (0x63A3, object #1's published signed per-frame step), both from
+ *           ram.js. 0x6910 (a SPRITE_BUFFER record's X) is NOT individually named in ram.js —
+ *           kept hex, described in prose to match loc_16d5 / loc_16e1. The 90 / 93 rail
+ *           thresholds are raw magnitudes and stay in prose.
  */
 
-import { M50_OBJ1_REVERSE_TIMER } from "./ram.js";
+import { M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP } from "./ram.js";
 import { loc_16d0 } from "./loc_16d0.js"; // ROM 0x16D0 — schedule a reversal, then slide (bounce)
 import { loc_16d5 } from "./loc_16d5.js"; // ROM 0x16D5 — the shared group-slide motion tick
 import { loc_16e1 } from "./loc_16e1.js"; // ROM 0x16E1 — the at-rail reinit/bounce dispatcher
@@ -69,7 +71,7 @@ export function loc_16bb(m) {
   mem.write8(M50_OBJ1_REVERSE_TIMER, 0x00);
 
   // The published signed per-frame step and record #2's X — the routing inputs.
-  const stepByte = mem.read8(0x63a3);
+  const stepByte = mem.read8(M50_OBJ1_STEP);
   const recordX = mem.read8(0x6910);
 
   // At/above the rail region: the group has climbed to the rail — hand to the second-stage

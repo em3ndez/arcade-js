@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_066a — render a packed two-digit BCD byte into its on-screen field, suppressing a
+ * renderBonusDisplay — render a packed two-digit BCD byte into its on-screen field, suppressing a
  * leading zero.  ROM 0x066A.
  *
  * The incoming byte holds two BCD digits, one per nibble: the low nibble is the units
@@ -18,10 +18,42 @@
  *
  * A JOIN reached by fallthrough and by a jump from the task that builds the two-digit
  * board readout; the digit byte arrives in a register from that caller. On the fallthrough
- * path that caller is loc_06a8, which has just stored the same byte into BONUS_DISPLAY
- * (0x638C) — so this is the routine that puts the on-screen bonus readout on screen. The
- * one-BCD-digit-per-nibble reading of that byte is CODE-DERIVED (the nibble split below),
- * not an observed property of the cell.
+ * path that caller is stepBonusDisplayDown, which has just stored the same byte into BONUS_DISPLAY
+ * (0x638C) — so this is the routine that puts the on-screen bonus readout on screen.
+ *
+ * ★ THE PACKED-BCD NIBBLE LAYOUT IS NOW OBSERVED — caveat discharged. Pass 12 could only call the
+ * one-BCD-digit-per-nibble reading of the incoming byte CODE-DERIVED (from the nibble split below).
+ * Pass 13 measured it on the real dkong ROM under MAME 0.288 (scratchpad/pass13-grounding.md §3a)
+ * by pairing BONUS_DISPLAY against the separately-[seen] BINARY counter BONUS (0x62B1) frame by
+ * frame: over 99,367 comparable frames spanning BONUS 0..80, BONUS_DISPLAY == BCD(BONUS) with ZERO
+ * mismatches, the low nibble never exceeded 9, and the BCD BORROW is directly visible in the
+ * natural transition log (0x50 -> 0x49 and 0x40 -> 0x39 while the quantity drops by exactly 1 — a
+ * raw byte falling by 7 for a decrement of one, which a binary counter cannot do). HONEST FLOOR:
+ * that confirms the encoding over the whole REACHABLE range, not over all 256 byte values. A nibble
+ * of 0xA-0xF is UNREACHABLE rather than merely unobserved, because the ROM clamps BONUS_START to 80
+ * so the display can never exceed 0x80 on any reachable path — an argument from the clamp, not an
+ * observation of every input. The exhaustive 256-value gate below is what pins this routine's
+ * behaviour on the unreachable values.
+ *
+ * NAME (promoted from loc_066a, DK understanding pass 13 — independent proposer ≠ confirmer,
+ * confidence HIGH). Corroboration from OUTSIDE this routine:
+ *   - BONUS_DISPLAY (0x638C, [seen]) says in its own registry entry that it is "rendered by
+ *     loc_066a", and mechanisms.md §6 says the same — two documents naming this address as the
+ *     bonus readout's renderer.
+ *   - The still-frozen caller pins the input: loc_062a reaches this address on exactly two paths
+ *     and BOTH load A from BONUS_DISPLAY first (the re-seed fall-through at ROM 0x0667, and
+ *     stepBonusDisplayDown's tail jump at ROM 0x06B5, which has just stored the byte). A raw-ROM
+ *     operand scan finds no third entry, so the byte rendered here is ALWAYS BONUS_DISPLAY.
+ *   - A genuinely independent subsystem corroborates the leading-zero arm: this routine writes
+ *     SND_BGM = 3 on, and only on, the arm where the high (thousands) digit is zero, and
+ *     audio/README.md — produced by the audio-hardware work — lists tune 0x03 as `out_of_time`,
+ *     "bonus timer's high digit hits 0". That row is tagged INFERRED there, so it is corroboration,
+ *     not proof.
+ *   - Its shared stamp tail stampTwoDigitField (ROM 0x0689) is already English-named.
+ * WHAT THE NAME DOES NOT CLAIM: not that this routine changes the bonus — it only SHOWS it, and
+ * writes no work RAM at all beyond the SND_BGM latch (the decrement is stepBonusDisplayDown's); and
+ * not a pixel-verified screen position for the field — pass 13 ran with -video none and makes no
+ * pixel claim, so "on-screen field" rests on the video-RAM addresses and the caller chain.
  *
  * Memory-equivalent to the frozen oracle — equivalence-066a.test.js.
  * GATE:     exhaustive — the memory effect is a pure function of the incoming digit byte
@@ -44,7 +76,7 @@
 import { SND_BGM } from "./ram.js";
 import { stampTwoDigitField } from "./stampTwoDigitField.js"; // ROM 0x0689 — the shared two-cell stamp tail
 
-export function loc_066a(m) {
+export function renderBonusDisplay(m) {
   const { regs, mem } = m;
 
   // Split the incoming packed byte into its two BCD digits.

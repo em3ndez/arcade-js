@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2cf6 — preset a freshly-claimed 25m barrel record's sprite fields, then fall into the
+ * stampReleasedBarrelKind — preset a freshly-claimed 25m barrel record's sprite fields, then fall into the
  * frame-gated string/sprite renderer.  ROM 0x2CF6.
  *
  * The setup head of the 0x2C-cluster renderer chain. It is entered with the object-record
@@ -53,12 +53,28 @@
  * only the mode field (+0x15) has no ram.js name and stays a raw offset — the same convention as the sibling closer
  * loc_2d8c, which stamps the same record.
  *
- * NAME: kept loc_ — the field layout and the BARREL_CLAIM_MODE bit-7 preset select are pinned
- * to the oracle, and grounding now fixes the CONTEXT (25m barrel play; one just-released
- * OBJ_ARRAY_67 record dressed per entry). What is still open is the NAMED identity of the two
- * barrel kinds, which the grounding run deliberately did not establish — so an English routine
- * name would have to guess at it. Promote once that is corroborated, like its siblings loc_2d15
- * / loc_2d8c.
+ * NAME (promoted from loc_2cf6, DK understanding pass 13 — independent proposer ≠ confirmer,
+ * confidence HIGH). Corroboration from OUTSIDE this routine:
+ *   - A named [seen] cell describes this routine's job in so many words: BARREL_CLAIM_MODE
+ *     (0x6382) is registered as "the 25m barrel slot-claim mode byte, AND the selector for WHICH
+ *     of two barrel kinds gets stamped", with the same 46/46 agreement and the same two triples
+ *     (0x15/0x0B/0x00 and 0x19/0x0C/0x01) this routine writes.
+ *   - A second named [seen] cell names this routine BY ADDRESS: RENDER_OBJ_PTR (0x62AA) records
+ *     that the word "equalled the IX register at 46/46 observed loc_2cf6 dispatches", holding an
+ *     OBJ_ARRAY_67 (25m barrel) record base every time.
+ *   - The record fields it stamps are the named OBJ_SPRITE_CODE (+0x07) and OBJ_SPRITE_ATTR
+ *     (+0x08), both [seen], the latter registered as what gatherSpriteRecords copies to sprite +2
+ *     — i.e. what the player actually sees.
+ *   - mechanisms.md §6 ("Two barrel kinds on 25m, and the byte that selects them") carries the
+ *     same figures, and the caller in the frozen oracle (ROM 0x2CB8, the 25m barrel-release slot
+ *     claim) sets RENDER_OBJ_PTR to the record it has just claimed and reaches here — one entry
+ *     per released barrel.
+ * WHAT THE NAME DOES NOT CLAIM — the honesty bound, kept deliberately: it says nothing about which
+ * NAMED Donkey Kong object either kind is. "The rolling kind" and "the dropping kind (X pinned at
+ * 59)" are behavioural descriptions from the trace; no lore term appears in the name or anywhere
+ * below. The name also does not claim this routine RELEASES a barrel (the caller does the slot
+ * claim) or renders it (that is the loc_2d15 tail it falls into) — only that it stamps the
+ * appearance of one already released, and that which appearance comes from BARREL_CLAIM_MODE bit 7.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2cf6.test.js.
  * GATE:     real captured 0x2CF6 dispatches from attract (both preset arms occur naturally —
@@ -71,7 +87,7 @@
  *           `call 0x004e` bracket churns; pc + SP are compared after one modelled terminal
  *           return. Teeth: a twin that reads the wrong parity bit and a twin that drops the
  *           fall-through into loc_2d15.
- * LIVE-OUT: memory-only. loc_2cf6 falls into loc_2d15 whose chain nets exactly one terminal
+ * LIVE-OUT: memory-only. stampReleasedBarrelKind falls into loc_2d15 whose chain nets exactly one terminal
  *           `ret`; the caller reads no register (the oracle's `rlca` residue in the
  *           accumulator is dead), so the single return is modelled in the gate, not here.
  * NAMES:    BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte the 0x2C41
@@ -87,7 +103,7 @@
 import { BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./ram.js"; // 0x6382 bit 7 selects the barrel kind; +7/+8 are the record's sprite fields
 import { loc_2d15 } from "./loc_2d15.js"; // ROM 0x2D15 — the frame-gated string/sprite renderer
 
-export function loc_2cf6(m) {
+export function stampReleasedBarrelKind(m) {
   const { regs, mem } = m;
 
   const obj = regs.ix; // barrel record base (the caller's RENDER_OBJ_PTR, an OBJ_ARRAY_67 record)

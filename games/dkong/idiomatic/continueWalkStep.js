@@ -3,7 +3,7 @@
  * continueWalkStep — carry an in-progress walk step one frame further.  ROM 0x1ceb.
  *
  * The continuation arm of the horizontal walk. While Mario's sub-step timer is still
- * running, the walk steppers (loc_1c8f / loc_1cab) route through advanceMarioWalkX — which shifts
+ * running, the walk steppers (walkMarioRight / walkMarioLeft) route through advanceMarioWalkX — which shifts
  * him one pixel along X and re-snaps his Y to the sloped girder on 25m — and fall
  * through here to spend one frame of the step: knock the sub-step timer
  * (MARIO_MOVE_STEP_TIMER) down by one, then refresh Mario's hardware sprite record. When

@@ -10,7 +10,7 @@
  *
  * WHAT BIT 7 DOES, GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding
  * pass 12, scratchpad/pass12-grounding.md): bit 7 of this byte selects which of two 25m barrel
- * KINDS the next barrel record gets stamped as, over in loc_2cf6 — bit 7 CLEAR stamps sprite
+ * KINDS the next barrel record gets stamped as, over in stampReleasedBarrelKind — bit 7 CLEAR stamps sprite
  * code/attr/mode 0x15 / 0x0B / 0x00, bit 7 SET stamps 0x19 / 0x0C / 0x01, with 46/46 agreement
  * over every dispatch captured (38 clear, 8 set) and no exceptions. This routine's writes are
  * what put bit 7 there: 0x2C72 fetched exactly 8 times in the long attract run, each one EXACTLY

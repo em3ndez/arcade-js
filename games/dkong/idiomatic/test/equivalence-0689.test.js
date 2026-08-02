@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for stampTwoDigitField (ROM 0x0689) — the shared two-cell stamp tail of the
- * BCD field writer loc_066a: the high-digit tile (incoming A) into 0x74E6 (written first), then
+ * BCD field writer renderBonusDisplay: the high-digit tile (incoming A) into 0x74E6 (written first), then
  * the low-digit tile (incoming B) into 0x74C6, one screen column earlier on the rotated tilemap.
  *
  * loc_0689 WRITES two video-RAM cells and reads its two tiles from registers live-in (A, B). It
@@ -18,7 +18,7 @@
  *      dispatch (task entry 10 renders the two-digit field), spanning distinct digit pairs.
  *      Oracle vs candidate on fresh clones, whole contract.
  *
- *   2. CRAFTED — reposed on a real capture: the leading-zero-suppress high tile A=0x10 (loc_066a's
+ *   2. CRAFTED — reposed on a real capture: the leading-zero-suppress high tile A=0x10 (renderBonusDisplay's
  *      suppress arm), and an arbitrary A != B sentinel pair, each on a sentinel-painted 0x74 page
  *      so the exact stored bytes and cells are pinned.
  *
@@ -166,7 +166,7 @@ test("CRAFTED: the suppress-arm A=0x10 tile and an A!=B sentinel pair match the 
   const [base] = captureDispatches(1, CAP_FRAMES);
   assert.ok(base, "need one real capture to derive crafted entries from");
 
-  // (a) leading-zero-suppress high tile (loc_066a enters here with A=0x10, a blank tile).
+  // (a) leading-zero-suppress high tile (renderBonusDisplay enters here with A=0x10, a blank tile).
   {
     const w = poseRegs(base, { a: 0x10, b: 0x07 });
     paintPage(w, 0x74, 0xaa);

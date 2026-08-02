@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1bb2 (ROM 0x1BB2) — the airborne frame's head: snapshot Mario's
+ * Equivalence test for advanceMarioAirborneFrame (ROM 0x1BB2) — the airborne frame's head: snapshot Mario's
  * pre-motion position, advance the ballistic arc, then let the horizontal position gate
  * steer him toward one of the two edge arms.
  *
- * loc_1bb2 is NOT a leaf. It direct-calls two already-idiomatic leaves (stepBallisticMotion
+ * advanceMarioAirborneFrame is NOT a leaf. It direct-calls two already-idiomatic leaves (stepBallisticMotion
  * 0x239C, loc_241f 0x241F) and then TAIL-CALLS the airborne arms loc_1bf2 (0x1BF2) and
- * loc_1bd8 (0x1BD8), which are idiomatic too and run on — through their own still-oracle
+ * reverseMarioVerticalArc (0x1BD8), which are idiomatic too and run on — through their own still-oracle
  * remainder — to the sprite commit. The REFERENCE side is the frozen oracle end to end, so
  * the whole downstream cascade is part of the comparison: a wrong hand-off — a missed
  * snapshot, a wrong velocity byte, a stale facing bit, a flipped branch, a context-block
@@ -52,11 +52,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1bb2 as oracle } from "../../translated/loc_1bb2.js";
-import { loc_1bb2 as candidate } from "../loc_1bb2.js";
+import { advanceMarioAirborneFrame as candidate } from "../advanceMarioAirborneFrame.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js";
 import { loc_241f } from "../loc_241f.js";
 import { loc_1bf2 } from "../loc_1bf2.js";
-import { loc_1bd8 } from "../loc_1bd8.js";
+import { reverseMarioVerticalArc } from "../reverseMarioVerticalArc.js";
 import { Machine } from "../../machine.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import {
@@ -237,7 +237,7 @@ test("REACHABILITY: 0x1BB2 is naturally dispatched during plain attract", () => 
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_1bb2 == oracle on every real attract dispatch", () => {
+test("EQUAL (captured): advanceMarioAirborneFrame == oracle on every real attract dispatch", () => {
   const caps = captureDispatches(ATTRACT_FRAMES);
   assert.ok(caps.length >= 1, "expected at least one real 0x1BB2 dispatch");
 
@@ -272,7 +272,7 @@ test("EQUAL (captured): loc_1bb2 == oracle on every real attract dispatch", () =
 
 // -- 3. CRAFTED (arms attract never reaches) ----------------------------------
 
-test("CRAFTED: every gate arm driven from a real state — loc_1bb2 == oracle", () => {
+test("CRAFTED: every gate arm driven from a real state — advanceMarioAirborneFrame == oracle", () => {
   const [base] = captureDispatches(ATTRACT_FRAMES, 1);
   assert.ok(base, "expected a real 0x1BB2 dispatch to seed the crafted states");
 
@@ -292,7 +292,7 @@ test("CRAFTED: every gate arm driven from a real state — loc_1bb2 == oracle", 
 // -- 4. TEETH -----------------------------------------------------------------
 
 /**
- * Broken twins. Each is a copy of loc_1bb2 with exactly one thing wrong; each must be caught
+ * Broken twins. Each is a copy of advanceMarioAirborneFrame with exactly one thing wrong; each must be caught
  * at a LIVE (non-stack) cell, never at a stack-scratch ghost.
  */
 
@@ -308,7 +308,7 @@ function brokenSnapshotAfterMotion(m) {
   mem.write8(MARIO_AIR_VX_HI, 0);
   mem.write8(MARIO_AIR_VX_LO, 128);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) | 0x80);
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** (b) Branch polarity inverted — the two arms swapped. */
@@ -323,7 +323,7 @@ function brokenArmsSwapped(m) {
   mem.write8(MARIO_AIR_VX_HI, 0);
   mem.write8(MARIO_AIR_VX_LO, 128);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) | 0x80);
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** (c) The push-right velocity written leftward (high byte 0xFF instead of 0). */
@@ -338,7 +338,7 @@ function brokenVelocityLeftward(m) {
   mem.write8(MARIO_AIR_VX_HI, 0xff); // BUG: drifts left instead of right
   mem.write8(MARIO_AIR_VX_LO, 128);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) | 0x80);
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** (d) The facing bit CLEARED instead of set. */
@@ -353,7 +353,7 @@ function brokenFacingCleared(m) {
   mem.write8(MARIO_AIR_VX_HI, 0);
   mem.write8(MARIO_AIR_VX_LO, 128);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) & 0x7f); // BUG: clears the facing bit
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /**

@@ -25,7 +25,7 @@
  * scratchpad/pass12-grounding.md): the object record this feeds is a 25m BARREL record, not a
  * cutscene element. RENDER_OBJ_PTR held only OBJ_ARRAY_67 record bases (0x6700 / 0x6720 /
  * 0x6740 / 0x6760 / 0x6780 / 0x67A0 / 0x67C0, stride 0x20 = the 25m barrel array) across the
- * run, matching the index register at 46/46 dispatches of the chain's head loc_2cf6 — all 46 at
+ * run, matching the index register at 46/46 dispatches of the chain's head stampReleasedBarrelKind — all 46 at
  * gameplay substates (17 credited in-board 25m, 29 attract 25m demo), ZERO at substate 7, the
  * opening Kong-climb cutscene, and each paired 1:1 in the same frame with a slot claim by the
  * barrel-release routine (board 1, ROM 0x2CB8).

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1cab (ROM 0x1CAB) — one frame of Mario's LEFTWARD
+ * Memory-equivalence test for walkMarioLeft (ROM 0x1CAB) — one frame of Mario's LEFTWARD
  * ground walk: while the sub-step timer MARIO_MOVE_STEP_TIMER is running, shift Mario one
  * pixel left (advanceMarioWalkX with a delta of −1); when it has expired, advance
  * MARIO_WALK_ANIM one place around its ring via loc_3009 and hand the ring index's low two
@@ -55,7 +55,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1cab as oracle } from "../../translated/loc_1cab.js";
-import { loc_1cab } from "../loc_1cab.js";
+import { walkMarioLeft } from "../walkMarioLeft.js";
 import { advanceMarioWalkX } from "../advanceMarioWalkX.js";
 import { loc_3009 } from "../loc_3009.js";
 import { beginWalkStep } from "../beginWalkStep.js";
@@ -221,11 +221,11 @@ function brokenRightwardRing(m) {
 
 // -- 1. REACHABILITY + EQUAL (real captured dispatches) -----------------------
 
-test("REACHABILITY + EQUAL (real dispatches): loc_1cab == oracle on every captured 0x1CAB entry", () => {
+test("REACHABILITY + EQUAL (real dispatches): walkMarioLeft == oracle on every captured 0x1CAB entry", () => {
   const caps = captureDispatches(256, FRAMES);
   assert.ok(caps.length >= 1, "expected at least one real 0x1CAB dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_1cab); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, walkMarioLeft); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
 
@@ -258,7 +258,7 @@ test("EQUAL (crafted): all 256 timer values on 25m and off it, plus every termin
     for (let timer = 0; timer <= 255; timer++) {
       const c = { timer, anim: 2, board, x: 0x60, y: 0x30, code: 0x11 };
       const entry = craft(seed, c);
-      const diffs = contractDiffs(entry, loc_1cab);
+      const diffs = contractDiffs(entry, walkMarioLeft);
       assert.equal(diffs.length, 0, `board ${board} timer ${timer}: ${diffs.join("; ")}`);
       timerCases++;
 
@@ -280,7 +280,7 @@ test("EQUAL (crafted): all 256 timer values on 25m and off it, plus every termin
     if (!terminates(anim)) continue; // the ROM would spin here; see the header
     ringCases.push(anim);
     const entry = craft(seed, { timer: 0, anim, board: 1, x: 0x60, y: 0x30, code: 0x11 });
-    const diffs = contractDiffs(entry, loc_1cab);
+    const diffs = contractDiffs(entry, walkMarioLeft);
     assert.equal(diffs.length, 0, `ring index ${anim}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the ring successor, the masked walk tile with bit 7 CLEAR, and the

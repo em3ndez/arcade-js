@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_12ac (ROM 0x12ac) — arm 1 of the 0x639D animation
- * sequence: a gated two-cell blinker with a repeat-count that advances the phase.
+ * Equivalence test for stepMarioDeathAnimation (ROM 0x12ac) — arm 1 of Mario's DEATH ANIMATION
+ * (selector DEATH_ANIM_PHASE 0x639D): on each 8-frame gate tick it steps his sprite record
+ * (0x694D/0x694E) to the next of four orientations, and when DEATH_ANIM_TICKS_LEFT runs out it
+ * settles the sprite on tile 0x7A and advances the phase. Grounded in real MAME: 43/43
+ * completed episodes identical — scratchpad/pass13-grounding.md §2.
+ * (Case labels below call the cycling arm the SPIN arm: the sprite rotates through four orientations.
+ * The pre-pass-13 word for it was "blink", which pass-13 grounding refuted — nothing here blinks
+ * anything on or off; all four observed (code, attr) pairs are visible sprites.)
  *
  * The routine WRITES MEMORY, calls the rst-0x18 gate, and has a gate that can skip its
  * whole body, so it is gated on MEMORY-equivalence — RAM (minus STACK_SCRATCH) + pc +
@@ -12,23 +18,23 @@
  * m.ret() on the candidate clone after the call to line pc + SP up with the oracle:
  *
  *   - All three arms collapse to that single net return. On EXPIRY the oracle threads
- *     push(0x12ad) -> sub_0018 `ret z` -> body (blink or the 0x12CB advance tail) ->
- *     the final `ret`; on the SKIP the oracle's sub_0018 does `inc sp/inc sp/ret` to
- *     drop its own frame and return to the caller's caller. Either way it ends
- *     SP = entry+2, pc = the caller's return — which one candidate m.ret() reproduces.
+ *     push(0x12ad) -> sub_0018 `ret z` -> body (the sprite step, or the 0x12CB settle-and-
+ *     advance tail) -> the final `ret`; on the SKIP the oracle's sub_0018 does
+ *     `inc sp/inc sp/ret` to drop its own frame and return to the caller's caller. Either
+ *     way it ends SP = entry+2, pc = the caller's return — one candidate m.ret() reproduces it.
  *     The oracle's transient push byte lands in STACK_SCRATCH, excluded by the contract.
  *
  *   1. EQUAL (real dispatches) — hook 0x12ac in a real attract run and clone the machine
- *      at each true dispatch (loc_12ac first fires ~frame 2619 skip, ~2626 blink, ~2722
+ *      at each true dispatch (stepMarioDeathAnimation first fires ~frame 2619 skip, ~2626 step, ~2722
  *      advance). oracle vs candidate must agree on RAM + pc + SP for every one.
  *
- *   2. EQUAL (crafted arms) — the exact blink/advance/skip arms, poked from a real
+ *   2. EQUAL (crafted arms) — the exact step/advance/skip arms, poked from a real
  *      captured state (SUBSTATE_TIMER + 0x639E) so all three are covered regardless of
  *      capture timing. Each compared identically both sides.
  *
  *   3. TEETH — two deliberately-broken twins, each MUST be caught:
- *      (a) a wrong blink store (the sprite-code write lands value ^ 0xFF) — caught on a
- *          blink arm;
+ *      (a) a wrong sprite store (the sprite-code write lands value ^ 0xFF) — caught on a
+ *          step (cycling) arm;
  *      (b) a gate-polarity inversion (runs the body while counting, skips on expiry) —
  *          caught on the skip arm and on real skip-arm dispatches.
  *
@@ -40,9 +46,15 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_12ac as oracle } from "../../translated/loc_12ac.js";
-import { loc_12ac } from "../loc_12ac.js";
+import { stepMarioDeathAnimation } from "../stepMarioDeathAnimation.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD } from "../ram.js";
+import {
+  STACK_SCRATCH,
+  SUBSTATE_TIMER,
+  MARIO_SPRITE_RECORD,
+  DEATH_ANIM_PHASE,
+  DEATH_ANIM_TICKS_LEFT,
+} from "../ram.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -53,8 +65,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x12ac;
-const PHASE = 0x639d; // sequence-phase selector (unconfirmed in ram.js)
-const BLINK_COUNT = 0x639e; // blink repeat-count
+// DEATH_ANIM_PHASE (0x639D) and DEATH_ANIM_TICKS_LEFT (0x639E) are imported from ram.js,
+// the single source of truth — both [seen], grounded on the pass-13 real-MAME death runs.
 const SPRITE_CODE = MARIO_SPRITE_RECORD + 1; // 0x694D
 const SPRITE_ATTR = MARIO_SPRITE_RECORD + 2; // 0x694E
 
@@ -103,7 +115,7 @@ function runCandidate(entry, fn) {
 
 /**
  * Compare candidate vs oracle over the contract: RAM − STACK_SCRATCH, pc, SP. NO
- * registers — loc_12ac's live-out is memory-only, and because it calls the idiomatic
+ * registers — stepMarioDeathAnimation's live-out is memory-only, and because it calls the idiomatic
  * callee directly (whereas the oracle calls the translated one) the two leave different
  * DEAD registers behind; comparing them would fail on values nothing reads. Returns a
  * list of human-readable mismatches (empty when equal).
@@ -124,8 +136,8 @@ function contractDiffs(entry, fn) {
 /** The gate expires this frame iff SUBSTATE_TIMER decrements to 0 (i.e. it is 1). */
 const gateExpires = (e) => ((e.mem.read8(SUBSTATE_TIMER) - 1) & 0xff) === 0;
 /** The advance tail runs iff the gate expires AND 0x639E decrements to 0 (i.e. it is 1). */
-const isAdvanceArm = (e) => gateExpires(e) && ((e.mem.read8(BLINK_COUNT) - 1) & 0xff) === 0;
-const isBlinkArm = (e) => gateExpires(e) && !isAdvanceArm(e);
+const isAdvanceArm = (e) => gateExpires(e) && ((e.mem.read8(DEATH_ANIM_TICKS_LEFT) - 1) & 0xff) === 0;
+const isDeathAnimArm = (e) => gateExpires(e) && !isAdvanceArm(e);
 const isSkipArm = (e) => !gateExpires(e);
 
 // -- capture ------------------------------------------------------------------
@@ -147,11 +159,11 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-/** A real captured state with surgical pokes: gate value, blink count, and a safe SP. */
+/** A real captured state with surgical pokes: gate value, tick count, and a safe SP. */
 function craft(seed, { timer, count }) {
   const e = seed.clone();
   e.mem.write8(SUBSTATE_TIMER, timer);
-  e.mem.write8(BLINK_COUNT, count);
+  e.mem.write8(DEATH_ANIM_TICKS_LEFT, count);
   e.regs.sp = 0x6bfe; // pushes land in STACK_SCRATCH, well clear of work RAM
   return e;
 }
@@ -159,20 +171,20 @@ function craft(seed, { timer, count }) {
 // -- teeth twins --------------------------------------------------------------
 
 /**
- * Broken twin (a): the wrong blink store. Blinks correctly EXCEPT the sprite-code write
- * lands value ^ 0xFF (guaranteed to differ). Agrees on the gate and on the advance/skip
- * arms, so only a blink arm exposes it.
+ * Broken twin (a): the wrong sprite store. Steps the animation correctly EXCEPT the
+ * sprite-code write lands value ^ 0xFF (guaranteed to differ). Agrees on the gate and on
+ * the advance/skip arms, so only a cycling (step) arm exposes it.
  */
-function brokenBlinkStore(m) {
+function brokenDeathAnimStore(m) {
   const { mem } = m;
   if (!tickSubstateTimer(m)) return;
   mem.write8(SUBSTATE_TIMER, 0x08);
-  const remaining = (mem.read8(BLINK_COUNT) - 1) & 0xff;
-  mem.write8(BLINK_COUNT, remaining);
+  const remaining = (mem.read8(DEATH_ANIM_TICKS_LEFT) - 1) & 0xff;
+  mem.write8(DEATH_ANIM_TICKS_LEFT, remaining);
   if (remaining === 0) {
     const code = mem.read8(SPRITE_CODE);
     mem.write8(SPRITE_CODE, (code & 0x80) | 0x7a);
-    mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
+    mem.write8(DEATH_ANIM_PHASE, (mem.read8(DEATH_ANIM_PHASE) + 1) & 0xff);
     mem.write8(SUBSTATE_TIMER, 0x80);
     return;
   }
@@ -193,12 +205,12 @@ function brokenGatePolarity(m) {
   const expired = tickSubstateTimer(m);
   if (expired) return; // BUG: inverted — should be `if (!expired) return`
   mem.write8(SUBSTATE_TIMER, 0x08);
-  const remaining = (mem.read8(BLINK_COUNT) - 1) & 0xff;
-  mem.write8(BLINK_COUNT, remaining);
+  const remaining = (mem.read8(DEATH_ANIM_TICKS_LEFT) - 1) & 0xff;
+  mem.write8(DEATH_ANIM_TICKS_LEFT, remaining);
   if (remaining === 0) {
     const code = mem.read8(SPRITE_CODE);
     mem.write8(SPRITE_CODE, (code & 0x80) | 0x7a);
-    mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
+    mem.write8(DEATH_ANIM_PHASE, (mem.read8(DEATH_ANIM_PHASE) + 1) & 0xff);
     mem.write8(SUBSTATE_TIMER, 0x80);
     return;
   }
@@ -210,53 +222,53 @@ function brokenGatePolarity(m) {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_12ac == oracle on every captured 0x12ac entry", () => {
+test("EQUAL (real dispatches): stepMarioDeathAnimation == oracle on every captured 0x12ac entry", () => {
   const caps = captureDispatches(400, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x12ac dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_12ac); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, stepMarioDeathAnimation); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   const skip = caps.filter(isSkipArm).length;
-  const blink = caps.filter(isBlinkArm).length;
+  const spinArm = caps.filter(isDeathAnimArm).length;
   const advance = caps.filter(isAdvanceArm).length;
   console.log(
     `  EQUAL/real: ${caps.length} captured dispatches identical ` +
-      `(${skip} skip-arm, ${blink} blink-arm, ${advance} advance-arm)`,
+      `(${skip} skip-arm, ${spinArm} spin-arm, ${advance} advance-arm)`,
   );
 });
 
 // -- 2. EQUAL (crafted arms) --------------------------------------------------
 
-test("EQUAL (crafted): the blink, advance and skip arms each match the oracle", () => {
+test("EQUAL (crafted): the death animation, advance and skip arms each match the oracle", () => {
   const caps = captureDispatches(1, 3000);
   assert.ok(caps.length >= 1, "need one real capture to seed crafted entries with real RAM");
   const seed = caps[0];
 
   const cases = [
-    { name: "blink arm (gate expires, 0x639E 13 -> 12)", e: craft(seed, { timer: 0x01, count: 0x0d }) },
+    { name: "spin arm (gate expires, DEATH_ANIM_TICKS_LEFT 13 -> 12)", e: craft(seed, { timer: 0x01, count: 0x0d }) },
     { name: "advance arm (gate expires, 0x639E 1 -> 0)", e: craft(seed, { timer: 0x01, count: 0x01 }) },
     { name: "skip arm (SUBSTATE_TIMER 5 -> 4, gate still counting)", e: craft(seed, { timer: 0x05, count: 0x0d }) },
   ];
 
   for (const { name, e } of cases) {
-    const diffs = contractDiffs(e, loc_12ac);
+    const diffs = contractDiffs(e, stepMarioDeathAnimation);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
-  console.log(`  EQUAL/crafted: ${cases.length} arms (blink, advance, skip) identical to the oracle`);
+  console.log(`  EQUAL/crafted: ${cases.length} arms (spin, advance, skip) identical to the oracle`);
 });
 
 // -- 3. TEETH -----------------------------------------------------------------
 
-test("TEETH: the wrong blink store and the gate-polarity inversion are CAUGHT", () => {
+test("TEETH: the wrong spin store and the gate-polarity inversion are CAUGHT", () => {
   const caps = captureDispatches(400, 3000);
   assert.ok(caps.length >= 1, "need real captures for the teeth check");
   const seed = caps[0];
 
-  // (a) wrong blink store: only shows on a blink arm, so craft one.
-  const blinkArm = craft(seed, { timer: 0x01, count: 0x0d });
-  const storeDiffs = contractDiffs(blinkArm, brokenBlinkStore);
-  assert.ok(storeDiffs.length > 0, "the wrong blink store escaped on the blink arm — the gate is worthless");
+  // (a) wrong sprite store: only shows on a cycling (step) arm, so craft one.
+  const deathAnimArm = craft(seed, { timer: 0x01, count: 0x0d });
+  const storeDiffs = contractDiffs(deathAnimArm, brokenDeathAnimStore);
+  assert.ok(storeDiffs.length > 0, "the wrong spin store escaped on the spin arm — the gate is worthless");
 
   // (b) gate-polarity inversion: diverges on every arm. Catch it on a crafted skip arm
   //     and confirm it is caught on the real skip-arm dispatches too.
@@ -275,7 +287,7 @@ test("TEETH: the wrong blink store and the gate-polarity inversion are CAUGHT", 
   );
 
   console.log(
-    `  TEETH: wrong blink store caught on the blink arm (${storeDiffs[0]}); ` +
+    `  TEETH: wrong spin store caught on the spin arm (${storeDiffs[0]}); ` +
       `gate-polarity caught on the crafted skip arm (${polSkip[0]}) and all ${realSkips.length} real skip dispatches`,
   );
 });

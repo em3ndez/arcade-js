@@ -5,7 +5,7 @@
  * sub_2407 is a pure arithmetic LEAF: it reads three bytes off the caller's object record
  * (the packed nibble-pair at +0x14 and the 16-bit operand at +0x12/+0x13), writes NO
  * memory, calls nothing, and leaves a single 16-bit result in the register pair the
- * callers read. Its live-out is exactly that number — loc_1bd8 stores its two halves back
+ * callers read. Its live-out is exactly that number — reverseMarioVerticalArc stores its two halves back
  * into the record, sub_20c3 halves it and stores it, loc_2146 uses it as a coordinate;
  * none of them read any other register or flag before overwriting it, and the Z80 return
  * is just the function returning (pc/SP not modelled or compared).
@@ -202,7 +202,7 @@ test("TEETH (exhaustive): the dropped-borrow-wrap twin is CAUGHT by the sweep", 
 
 /**
  * Hook 0x2407 in a real attract run and clone the machine at up to K real dispatches.
- * 0x2407 is reached by m.call from the object-physics cascade (loc_1bd8/sub_20c3/loc_2146);
+ * 0x2407 is reached by m.call from the object-physics cascade (reverseMarioVerticalArc/sub_20c3/loc_2146);
  * the construction-time override map intercepts the m.call, so each captured state is a
  * genuine mid-play entry with a valid stack and a real IX record. The wrapper clones the
  * entry state, then runs the oracle so the host game proceeds undisturbed to a clean stop.

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2cf6 (ROM 0x2CF6) — the setup head of the 0x2C-cluster renderer
+ * Equivalence test for stampReleasedBarrelKind (ROM 0x2CF6) — the setup head of the 0x2C-cluster renderer
  * chain. It stamps three fields of the object record (the caller's IX / RENDER_OBJ_PTR):
  * sprite-code (+0x07), sprite-attr (+0x08) and mode (+0x15), with one of two presets chosen by
  * bit 7 of BARREL_CLAIM_MODE — CLEAR writes the default triple (0x15, 0x0B, 0x00), SET writes
@@ -18,21 +18,21 @@
  * the bit-7-CLEAR (attr 0x0B) kind ROLLS along the girders. Grounding deliberately did NOT
  * establish which NAMED Donkey Kong object either kind is, so neither is named here.
  *
- * loc_2cf6 WRITES MEMORY (the record fields, and — through the fall-through — everything
+ * stampReleasedBarrelKind WRITES MEMORY (the record fields, and — through the fall-through — everything
  * loc_2d15's chain touches), so it is gated on memory-equivalence, not a returned scalar,
  * and every case runs on FRESH clones. The contract is RAM (minus STACK_SCRATCH) + pc + SP;
  * the live-out is memory-only.
  *
- * STACK: loc_2cf6 pushes nothing of its own — the transition into loc_2d15 is a fall-through /
- * jump — so the whole loc_2cf6 -> loc_2d15 -> ... chain nets exactly ONE caller-return pop
- * (loc_2d15's chain `ret`s once on loc_2cf6's behalf). The idiomatic routine models that as a
+ * STACK: stampReleasedBarrelKind pushes nothing of its own — the transition into loc_2d15 is a fall-through /
+ * jump — so the whole stampReleasedBarrelKind -> loc_2d15 -> ... chain nets exactly ONE caller-return pop
+ * (loc_2d15's chain `ret`s once on stampReleasedBarrelKind's behalf). The idiomatic routine models that as a
  * plain JS return, so the harness performs one m.ret() on the candidate AFTER the call to
  * line pc + SP up with the oracle. On the deeper table-load path the oracle's dissolved
  * `call 0x004e` bracket churns the dead STACK_SCRATCH region; the idiomatic chain calls
  * directly and touches no stack, so those bytes differ and are excluded by the contract.
  *
  *   1. EQUAL (real captured dispatches) — hook 0x2CF6 in a real attract run and clone the
- *      machine at each true dispatch. Run the ORACLE on one clone and loc_2cf6 on another;
+ *      machine at each true dispatch. Run the ORACLE on one clone and stampReleasedBarrelKind on another;
  *      confirm identical RAM (minus STACK_SCRATCH) + pc + SP. Both preset arms occur
  *      naturally (bit-7 clear and bit-7 set).
  *
@@ -56,7 +56,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2cf6 as oracle } from "../../translated/loc_2cf6.js";
-import { loc_2cf6 } from "../loc_2cf6.js";
+import { stampReleasedBarrelKind } from "../stampReleasedBarrelKind.js";
 import { loc_2d15 } from "../loc_2d15.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";
@@ -80,7 +80,7 @@ const PRESET_DEFAULT = { [OBJ_SPRITE_CODE]: 0x15, [OBJ_SPRITE_ATTR]: 0x0b, [F_MO
 const PRESET_ALT = { [OBJ_SPRITE_CODE]: 0x19, [OBJ_SPRITE_ATTR]: 0x0c, [F_MODE]: 0x01 };     // bit 7 set
 
 // Crafted object regions (writable work RAM, disjoint so the readbacks are unambiguous).
-const OBJ = 0x6120;   // loc_2cf6's IX: the record it presets
+const OBJ = 0x6120;   // stampReleasedBarrelKind's IX: the record it presets
 const R_OBJ = 0x6140; // loc_2d15's own record (RENDER_OBJ_PTR) on the table-load path
 const SRC = 0x6100;   // RENDER_STR_PTR target: a non-terminator char + a data byte
 const DST = 0x6a80;   // RENDER_DST_PTR: destination sprite record
@@ -233,12 +233,12 @@ test("REACHABILITY: 0x2CF6 is dispatched during attract, both preset arms", () =
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_2cf6 == oracle on every captured 0x2CF6 entry", () => {
+test("EQUAL (real dispatches): stampReleasedBarrelKind == oracle on every captured 0x2CF6 entry", () => {
   const caps = captureDispatches(400, 4000);
   assert.ok(caps.length >= 1, "expected at least one real 0x2CF6 dispatch during attract");
   const seen = {};
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2cf6); // FRESH clones inside — cap is untouched
+    const diffs = contractDiffs(cap, stampReleasedBarrelKind); // FRESH clones inside — cap is untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
     const p = classify(cap);
     seen[p] = (seen[p] || 0) + 1;
@@ -265,16 +265,16 @@ test("EQUAL (crafted): both preset arms, over the gate-return and table-load ren
 
   for (const { name, opts } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_2cf6);
+    const diffs = contractDiffs(entry, stampReleasedBarrelKind);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the selected preset really landed in the record on BOTH sides.
     const want = expectedPreset(opts.parity);
     const o = runOracle(entry);
-    const c = runCandidate(entry, loc_2cf6);
+    const c = runCandidate(entry, stampReleasedBarrelKind);
     for (const off of [OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR, F_MODE]) {
       assert.equal(o.mem.read8(OBJ + off), want[off], `${name}: oracle record +${off}`);
-      assert.equal(c.mem.read8(OBJ + off), want[off], `${name}: loc_2cf6 record +${off}`);
+      assert.equal(c.mem.read8(OBJ + off), want[off], `${name}: stampReleasedBarrelKind record +${off}`);
     }
   }
   console.log(`  EQUAL/crafted: ${cases.length} cases identical to the oracle; presets asserted on both sides`);

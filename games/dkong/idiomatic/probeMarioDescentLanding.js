@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b29 — the board split at the head of the player-vs-tilemap descent probe: off 25m hand
+ * probeMarioDescentLanding — the board split at the head of the player-vs-tilemap descent probe: off 25m hand
  * the whole probe to loc_2b53, on 25m run the single-point probe and, when Mario is within
  * three pixels of the tile surface under him, snap him onto it.  ROM 0x2B29.
  *
@@ -34,7 +34,30 @@
  * RETURN CONTRACT (caller-skip): true = the normal return, so entry_2b1c goes on to its follow-up;
  * false = the two-frame unwind that abandons the probe and returns past entry_2b1c to its own
  * caller. Only the off-25m arm can return true (loc_2b53's both-probes-clear path); every 25m
- * outcome unwinds. entry_2b1c consumes it as `if (!loc_2b29(m)) return;`.
+ * outcome unwinds. entry_2b1c consumes it as `if (!probeMarioDescentLanding(m)) return;`.
+ *
+ * NAME (promoted from loc_2b29, DK understanding pass 13 — independent proposer ≠ confirmer,
+ * confidence MEDIUM). Corroboration from OUTSIDE this routine:
+ *   - The cells it reads and writes are named and [seen]: BOARD (0x6227), MARIO_X (0x6203) and
+ *     MARIO_Y (0x6205) — the last one WRITTEN on the snap arm, and registered as "Mario's Y
+ *     position, in screen pixels (larger = lower on screen)".
+ *   - The caller fixes the ACTOR as Mario, in the frozen oracle: entry_2b1c opens with IX = 0x6200,
+ *     the live Mario context block (MARIO_ACTIVE / MARIO_X / MARIO_Y), before calling here. The
+ *     "object" probed is Mario, not a generic actor.
+ *   - The grandparent fixes the MOMENT as airborne and the result as "landed": entry_1c05 is the
+ *     airborne per-frame handler (it reads MARIO_AIR_LANDCHECK and MARIO_AIR_FRAMES), and right
+ *     after the call it does `dec a / jp z,0x1c3a` — an address ram.js registers as "tick the
+ *     airborne object-counter; on the tick that reaches zero settle the landing". A == 1 is exactly
+ *     what this routine's snap arm reports.
+ *   - Its English-named callees agree: probeTileForLanding (ROM 0x2B9B), "the tile gate at the head
+ *     of the airborne-descent collision probe", and downstream resolveAirborneTileLanding (0x2BE1).
+ * WHAT THE NAME DOES NOT CLAIM: "probe" rather than "land" is deliberate — off 25m this routine only
+ * DELEGATES, and the landing there is loc_2b53's, so the name must not assert that this routine
+ * lands Mario in general. It also does not claim the 25m snap is a player-visible behaviour: the
+ * three-pixel reach is read off the code and pinned by crafted gate cases, not observed on a
+ * playfield (attract never gets that close to a boundary). Confidence stays MEDIUM because the only
+ * NAMED corroborators are cells and callees — the immediate caller entry_2b1c and grandparent
+ * entry_1c05 are both still loc_-named, and mechanisms.md has no entry for this probe.
  *
  * REGISTER-ABI MARSHALLING (dissolves once the caller chain is decompiled): the callee chain still
  * passes coordinates and results in registers, so this routine loads the probe point into the
@@ -78,7 +101,7 @@ const SNAP_REACH = 4;   // land only while the probe point is under this far pas
  *   Live-out: MARIO_Y on the snap arm, the two result bytes, and the boolean.
  * @returns {boolean} true = normal return; false = the two-frame collision-walk unwind.
  */
-export function loc_2b29(m) {
+export function probeMarioDescentLanding(m) {
   const { regs, mem } = m;
 
   // Off 25m the descent probe is loc_2b53's two-point form; its result is ours.

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_06a8 (ROM 0x06A8) — decrement the packed two-digit BCD bonus
+ * Equivalence test for stepBonusDisplayDown (ROM 0x06A8) — decrement the packed two-digit BCD bonus
  * readout BONUS_DISPLAY by one, latch a "reached zero" marker when it rolls to 00, store it
  * back, and render it.
  *
- * loc_06a8's entire memory effect is a PURE FUNCTION of the counter byte it receives in a
- * register: it reads no work RAM, and its render tail (loc_066a -> stampTwoDigitField) reads
+ * stepBonusDisplayDown's entire memory effect is a PURE FUNCTION of the counter byte it receives in a
+ * register: it reads no work RAM, and its render tail (renderBonusDisplay -> stampTwoDigitField) reads
  * none either. Every cell it touches (BONUS_DISPLAY_ZEROED, BONUS_DISPLAY, the
  * background-music command, and the field's video cells) derives only from that byte. So an
  * EXHAUSTIVE gate is available — sweeping all 256 byte values on a real captured base covers
@@ -19,7 +19,7 @@
  * dissolved push and NO STACK_SCRATCH to exclude: the contract is the whole RAM dump. Live-out
  * is memory-only, so pc/SP are not compared.
  *
- *   1. EQUAL (exhaustive) — loc_06a8 == oracle over the whole RAM dump for all 256 input bytes
+ *   1. EQUAL (exhaustive) — stepBonusDisplayDown == oracle over the whole RAM dump for all 256 input bytes
  *      on a real captured base (both the zero-latch arm and the ordinary-decrement arm).
  *   2. EQUAL (real captured dispatches) — hook 0x06A8 in a real attract run, clone at each true
  *      dispatch (task-10's counter step), and confirm identical over real bases.
@@ -39,8 +39,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "../ram.js";
 import { loc_06a8 as oracle } from "../../translated/loc_06a8.js";
-import { loc_06a8 } from "../loc_06a8.js";
-import { loc_066a } from "../loc_066a.js";
+import { stepBonusDisplayDown } from "../stepBonusDisplayDown.js";
+import { renderBonusDisplay } from "../renderBonusDisplay.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -130,10 +130,10 @@ test("REACHABILITY: 0x06A8 is dispatched during boot/attract", () => {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_06a8 == oracle over all 256 counter bytes (both arms)", () => {
+test("EQUAL (exhaustive): stepBonusDisplayDown == oracle over all 256 counter bytes (both arms)", () => {
   const [cap] = captureDispatches(1, 2500);
   const base = cap ?? attractBase();
-  const { mismatch, count } = fullSweep(base, loc_06a8);
+  const { mismatch, count } = fullSweep(base, stepBonusDisplayDown);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256, "must have compared the full 256-byte input space");
   console.log(`  EQUAL/exhaustive: ${count} counter bytes — RAM identical to the oracle` +
@@ -142,7 +142,7 @@ test("EQUAL (exhaustive): loc_06a8 == oracle over all 256 counter bytes (both ar
 
 // -- 2. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_06a8 == oracle on every captured 0x06A8 entry", (t) => {
+test("EQUAL (real dispatches): stepBonusDisplayDown == oracle on every captured 0x06A8 entry", (t) => {
   const caps = captureDispatches(256, 2500);
   if (caps.length === 0) {
     // 0x06A8 fires only once the task-10 counter has been seeded and then stepped; a short
@@ -155,7 +155,7 @@ test("EQUAL (real dispatches): loc_06a8 == oracle on every captured 0x06A8 entry
     const b = cap.clone(); b.nextNmi = Infinity; b.nextBoundary = Infinity;
     const inByte = a.regs.a & 0xff;
     oracle(a);
-    loc_06a8(b);
+    stepBonusDisplayDown(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(ram, null, ram && `real dispatch input=${hb(inByte)}: RAM diverges at ${hx(ram.addr ?? 0)} (${ram.a}->${ram.b})`);
   }
@@ -171,7 +171,7 @@ function brokenNoDaa(m) {
   if (regs.a === 0) mem.write8(BONUS_DISPLAY_ZEROED, 0x01);
   // BUG: the `regs.daa()` is missing.
   mem.write8(BONUS_DISPLAY, regs.a);
-  loc_066a(m);
+  renderBonusDisplay(m);
 }
 
 /** BUG (b): never latches the zero marker. */
@@ -181,7 +181,7 @@ function brokenNoLatch(m) {
   // BUG: the `if (regs.a === 0) mem.write8(BONUS_DISPLAY_ZEROED, 0x01)` is missing.
   regs.daa();
   mem.write8(BONUS_DISPLAY, regs.a);
-  loc_066a(m);
+  renderBonusDisplay(m);
 }
 
 /** BUG (c): latches the zero marker unconditionally (drops the reached-zero test). */
@@ -191,7 +191,7 @@ function brokenAlwaysLatch(m) {
   mem.write8(BONUS_DISPLAY_ZEROED, 0x01); // BUG: always latches, not only when the counter hit zero
   regs.daa();
   mem.write8(BONUS_DISPLAY, regs.a);
-  loc_066a(m);
+  renderBonusDisplay(m);
 }
 
 test("TEETH (exhaustive): dropped-daa, dropped-latch, and always-latch twins are CAUGHT", () => {

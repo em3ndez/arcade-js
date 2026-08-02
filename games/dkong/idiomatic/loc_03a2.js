@@ -16,11 +16,11 @@
  * returns until it underflows, at which point it is reloaded to 4 and the body runs.
  *
  * The body reads (0x62B9): bit0 must be SET to continue (else return); bit1 then selects
- * one of two nearly identical arms. Both stamp object-flag byte +0x09 of the 0x66A0 block
+ * one of two nearly identical arms. Both stamp OBJ_HIT_EXTENT_X (+0x09) of the OBJ_RECORD_66A0 block
  * to 0x02 and store a sprite byte at 0x6A29 through loc_03f2 (which jitters it ±1 on the
  * spin low bit); they differ only in byte +0x0A (0x00 vs 0x02) and the stored sprite byte
  * (0x40 vs 0x42). The bit1-set arm additionally runs a second down-counter at 0x62BA and,
- * on its underflow, sets (0x62B9) and (0x63A0) to 1 — re-arming the bit0 gate. Both arms
+ * on its underflow, sets (0x62B9) and EVENT_REQ_313C to 1 — re-arming the bit0 gate. Both arms
  * converge on writing 0x10 into that second counter (0x62BA) before returning.
  *
  * REGISTER-ABI MARSHALLING (dissolves once the callees take honest args): the three
@@ -45,11 +45,12 @@
  * NAMES:    boardBitGate (ROM 0x0030, reads BOARD 0x6227 + regs.a), marioActiveGuard
  *           (ROM 0x0010, reads MARIO_ACTIVE 0x6200), loc_03f2 (ROM 0x03F2, reads SPIN_COUNT
  *           0x6019 + regs.hl/regs.b) — all direct-called. Every cell THIS routine touches
- *           directly (0x6350, 0x62B8, 0x62B9, 0x62BA, 0x66A0+9/+A, 0x63A0, 0x6A29) was
- *           examined and left UNNAMED in ram.js (thin/shared/no-reader), so each stays a
- *           local hex const here.
+ *           directly was examined against ram.js. NAMED there: OBJ_RECORD_66A0 (whose +9/+A
+ *           are OBJ_HIT_EXTENT_X/Y) and EVENT_REQ_313C (0x63A0). Genuinely UNNAMED and kept
+ *           as local hex consts: 0x6350, 0x62B8, 0x62B9, 0x62BA, 0x6A29 (thin/shared/no-reader).
  */
 
+import { OBJ_RECORD_66A0, EVENT_REQ_313C, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js";
 import { boardBitGate } from "./boardBitGate.js";       // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x10)
 import { loc_03f2 } from "./loc_03f2.js";               // ROM 0x03F2
@@ -59,8 +60,6 @@ const EVENT_GATE = 0x6350; // bit0 SET -> skip this pass (the oracle's `ret c`)
 const PRESCALER = 0x62b8;  // 4-frame prescaler; reloaded to 4 on underflow, else returns
 const PHASE_BITS = 0x62b9; // bit0 SET -> continue; bit1 selects the sprite arm
 const ARM_COUNTER = 0x62ba;// bit1-arm down-counter; on underflow re-arms PHASE_BITS
-const OBJ_FLAGS = 0x66a0;  // object block; +0x09 and +0x0A are two per-object flag bytes
-const PHASE_MIRROR = 0x63a0; // written 1 alongside PHASE_BITS on the ARM_COUNTER underflow
 const SPRITE_DEST = 0x6a29; // loc_03f2 destination (a cell inside SPRITE_BUFFER)
 const SPRITE_BYTE_A = 0x40; // loc_03f2 byte on the bit1-clear arm
 const SPRITE_BYTE_B = 0x42; // loc_03f2 byte on the bit1-set arm (0x40 + inc + inc)
@@ -94,15 +93,15 @@ export function loc_03a2(m) {
   // bit1 selects the arm (the third `rrca` then `jp nc`): CLEAR -> arm A, SET -> arm B.
   if ((phase & 0x02) === 0) {
     // Arm A (ROM 0x03E4): flags {+9:0x02, +A:0x00}, sprite byte 0x40.
-    mem.write8((OBJ_FLAGS + 0x09) & 0xffff, 0x02);
-    mem.write8((OBJ_FLAGS + 0x0a) & 0xffff, 0x00);
+    mem.write8((OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff, 0x02);
+    mem.write8((OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff, 0x00);
     regs.hl = SPRITE_DEST;
     regs.b = SPRITE_BYTE_A;
     loc_03f2(m);
   } else {
     // Arm B (ROM 0x03C4): flags {+9:0x02, +A:0x02}, sprite byte 0x42.
-    mem.write8((OBJ_FLAGS + 0x09) & 0xffff, 0x02);
-    mem.write8((OBJ_FLAGS + 0x0a) & 0xffff, 0x02);
+    mem.write8((OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_X) & 0xffff, 0x02);
+    mem.write8((OBJ_RECORD_66A0 + OBJ_HIT_EXTENT_Y) & 0xffff, 0x02);
     regs.hl = SPRITE_DEST;
     regs.b = SPRITE_BYTE_B;
     loc_03f2(m);
@@ -114,7 +113,7 @@ export function loc_03a2(m) {
 
     // On underflow, re-arm the bit0 gate and mirror it into (0x63A0).
     mem.write8(PHASE_BITS, 0x01);
-    mem.write8(PHASE_MIRROR, 0x01);
+    mem.write8(EVENT_REQ_313C, 0x01);
   }
 
   // loc_03de — both arms converge: reload the second counter to 0x10.

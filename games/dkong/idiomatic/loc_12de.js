@@ -3,7 +3,11 @@
  * loc_12de — on sub-state-timer expiry, tear down the finished sub-state's sprite
  *   scratch, advance GAME_SUBSTATE, and re-arm the timer to fire immediately.  ROM 0x12de.
  *
- * Reached as arm 2 of the BLINK_ANIM_PHASE (0x639D) rst-0x28 dispatch (entry_127f). It is polled every
+ * Reached as arm 2 — the hand-off arm — of the DEATH_ANIM_PHASE (0x639D) rst-0x28 dispatch
+ * (dispatchDeathAnimationPhase, ROM 0x127F), i.e. the last step of Mario's death animation:
+ * it fires once, after the 128-tick pause arm 1 arms, and passes control to the life-loss
+ * handler (GAME_SUBSTATE 0x0E -> ROM 0x12F2 for P1, 0x0F -> ROM 0x1344 for P2, where LIVES
+ * (0x6228) is decremented). It is polled every
  * frame, but gates itself on SUBSTATE_TIMER (0x6009) through the rst-0x18 helper
  * (tickSubstateTimer): while that counter is still counting down the dispatch is
  * abandoned this frame and nothing here runs. The one frame the counter EXPIRES it:
@@ -16,13 +20,18 @@
  *      once and control passes straight on to the freshly-selected sub-state (contrast
  *      the sibling advanceSubstateAndArmTimer, which arms 0x40 to hold the new state).
  *
- * NAME KEPT NEUTRAL: the mechanical effect is clear, but ACTIVE_PLAYER_INDEX (0x600E, the
- * byte that gates the double-inc) reads 0 for the whole attract run, so the two-inc arm is
- * a dead path in every state the game actually produces — ram.js names the cell only on its
- * lockstep with CURRENT_PLAYER and flags this very 2P double-inc reader as unexercised in
- * attract. With no confirmer and that arm unresolved, an English name for THIS ROUTINE is
- * not yet earned (docs/decompiler-pipeline: a wrong routine name misleads worse than a
- * neutral loc_ one); left as loc_12de.
+ * ★ THE OLD BLOCKER IS DISCHARGED — but the name is NOT promoted here. This header used to
+ * say the two-inc arm was "a dead path in every state the game actually produces", because
+ * ACTIVE_PLAYER_INDEX (0x600E) reads 0 for the whole attract run. Pass 13 OBSERVED it live:
+ * a natural two-player MAME run (two coins, 2P start, no stick input, no pokes) took the
+ * double-inc arm on all three P2 deaths, GAME_SUBSTATE stepping 0x0D -> 0x0F rather than
+ * 0x0D -> 0x0E, with the P2 life-loss twin at ROM 0x1344 fetched 3× and LIVES decremented
+ * 3× at ROM 0x134E — see scratchpad/pass13-grounding.md §2 (H1d). So the arm is real code on
+ * a reachable path, not speculation.
+ * NAME STILL KEPT NEUTRAL, for a different and narrower reason: promotion needs its own
+ * proposer/confirmer pair (reviewer-rules R4), and this routine has never had one — the
+ * death-animation promotions in this unit covered 0x127C/0x127F/0x128B/0x12AC, not 0x12DE.
+ * An English name is a separate, earned step; left as loc_12de.
  *
  * Bottom-up: both callees are already idiomatic and called directly —
  *   - tickSubstateTimer (rst 0x18, ROM 0x0018): the gate. Returns true on expiry (run
@@ -34,8 +43,10 @@
  * GATE:     crafted-entry — real captured 0x12de dispatches from an attract run cover
  *           both the non-expiry (timer decrement only) and the 1-player expiry arm;
  *           crafted entries force the timer, sentinel the sprite page to pin the clear
- *           footprint, and set 0x600E != 0 for the 2-player double-inc arm attract
- *           never reaches. Teeth: wrong-timer-arm, single-inc-ignores-2P, skip-clear.
+ *           footprint, and set 0x600E != 0 for the 2-player double-inc arm THIS ATTRACT
+ *           CAPTURE SET never reaches. Teeth: wrong-timer-arm, single-inc-ignores-2P,
+ *           skip-clear. Honest scope (R17): the 2P arm is crafted here, not captured —
+ *           a real 2P run does exercise it (see above), but this gate does not replay one.
  * LIVE-OUT: memory-only — SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), and the
  *           seven sprite-scratch bytes loc_30db zeros. The oracle's SP/pc churn is the
  *           dropped Z80 stack model (push16/rst/call/ret land only in STACK_SCRATCH,

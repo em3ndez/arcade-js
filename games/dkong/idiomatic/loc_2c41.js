@@ -18,7 +18,7 @@
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md). The "slot claim" this cluster performs is what tags the next
  * 25m BARREL as the alternate KIND: on a claim the chain ends in loc_2c72 raising bit 7 of
- * BARREL_CLAIM_MODE, and one frame later loc_2cf6 reads that bit to pick which of two barrel
+ * BARREL_CLAIM_MODE, and one frame later stampReleasedBarrelKind reads that bit to pick which of two barrel
  * kinds it stamps into the freshly-released OBJ_ARRAY_67 record — bit 7 CLEAR -> sprite
  * code/attr/mode 0x15 / 0x0B / 0x00, bit 7 SET -> 0x19 / 0x0C / 0x01, agreeing 46/46 with no
  * exceptions (38 clear, 8 set). All 46 were ordinary board-1 25m gameplay dispatches (17 in a

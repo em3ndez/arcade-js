@@ -22,7 +22,7 @@
  * not a cutscene element. RENDER_OBJ_PTR — the pointer the caller hands in as this routine's
  * index register — held only OBJ_ARRAY_67 record bases (0x6700 / 0x6720 / 0x6740 / 0x6760 /
  * 0x6780 / 0x67A0 / 0x67C0, stride 0x20 = the 25m barrel array) across the run, matching the
- * index register at 46/46 dispatches of the chain's head loc_2cf6; every one of those 46 fell
+ * index register at 46/46 dispatches of the chain's head stampReleasedBarrelKind; every one of those 46 fell
  * at a gameplay substate (17 credited in-board 25m, 29 attract 25m demo) and ZERO at substate 7,
  * the opening Kong-climb cutscene, and each was paired 1:1 in the same frame with a slot claim
  * by the barrel-release routine (board 1, ROM 0x2CB8). An earlier version of this header framed
@@ -44,7 +44,7 @@
  * NAMES:    RENDER_STR_PTR (0x62A8); SPRITE_OBJ_BLOCK (0x6908) + SPRITE_Y (+3) for the
  *           Y column; BARREL_CLAIM_MODE (0x6382) — the barrel slot-claim mode byte, not a bare
  *           flag: its low bits carry the claim's mode value (observed 1, and 0x81 = mode 1 with
- *           bit 7 set), its bit 7 selects the barrel kind for loc_2cf6, and this routine reads
+ *           bit 7 set), its bit 7 selects the barrel kind for stampReleasedBarrelKind, and this routine reads
  *           its bit 0. All from ram.js. The object-record base comes from the caller (RENDER_OBJ_PTR), and the
  *           fields this routine writes per-field are the ram.js-named OBJ_ACTIVE (+0, set to 1 to
  *           activate the record), OBJ_X (+3) and OBJ_Y (+5), copied from the destination sprite

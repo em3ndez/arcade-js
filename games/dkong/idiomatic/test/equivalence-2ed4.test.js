@@ -59,6 +59,9 @@ import {
   SND_BGM,
   HAMMER_SAVED_BGM,
   OBJ_PAIR_6680,
+  HAMMER_IN_PLAY,
+  OBJ_HIT_EXTENT_X,
+  OBJ_HIT_EXTENT_Y,
   FRAME,
 } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
@@ -84,11 +87,10 @@ const OBJ1_BASE = OBJ_PAIR_6680;        // 0x6680
 const OBJ2_BASE = OBJ_PAIR_6680 + 0x10; // 0x6690
 const OBJ1_RECORD = 0x6a18;
 const OBJ2_RECORD = 0x6a1c;
-const SELECTOR = OBJ_PAIR_6680 + 0x01;  // 0x6681 — bit0 picks the object
+const SELECTOR = OBJ_PAIR_6680 + HAMMER_IN_PLAY; // 0x6681 — bit0 picks the object
 
-// Object-record field offsets (no ram.js name).
-const OBJ_F09 = 0x09;
-const OBJ_F0A = 0x0a;
+// Object-record field offsets with no ram.js name (the two collision half-extents this routine
+// stamps DO have one — OBJ_HIT_EXTENT_X/Y, imported above).
 const OBJ_XDISP = 0x0e;
 const OBJ_YDISP = 0x0f;
 
@@ -198,7 +200,7 @@ function craft(base, {
   // Sentinels on the object displacement/state bytes of BOTH objects, so a mis-selected or
   // dropped store is visible and cannot hide behind a coincidentally-equal prior byte.
   for (const b of [OBJ1_BASE, OBJ2_BASE]) {
-    for (const off of [OBJ_F09, OBJ_F0A, OBJ_XDISP, OBJ_YDISP]) {
+    for (const off of [OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y, OBJ_XDISP, OBJ_YDISP]) {
       m.mem.write8((b + off) & 0xffff, SENTINEL);
     }
   }
@@ -334,8 +336,8 @@ function brokenLoc2ed4(m, bug) {
   if ((mem.read8(MARIO_HAMMER_ACTIVE) & 0x01) === 0) { buildPendingHammerSprite(m); return; }
   mem.write8(MARIO_HAMMER_PENDING, 0x00);
   mem.write8(SND_BGM, bug === "tune" ? 0x08 : HAMMER_TUNE); // BUG (b): wrong hammer tune
-  mem.write8((objBase + OBJ_F09) & 0xffff, 0x06);
-  mem.write8((objBase + OBJ_F0A) & 0xffff, 0x03);
+  mem.write8((objBase + OBJ_HIT_EXTENT_X) & 0xffff, 0x06);
+  mem.write8((objBase + OBJ_HIT_EXTENT_Y) & 0xffff, 0x03);
   const marioCode = mem.read8(MARIO_SPRITE_CODE);
   const facing = marioCode & 0x80;
   let objTile = (bug === "facing") ? HAMMER_TILE_BASE : (HAMMER_TILE_BASE | facing); // BUG (c): dropped facing
@@ -344,8 +346,8 @@ function brokenLoc2ed4(m, bug) {
     regs.b = objTile; regs.c = hammerCode; updateActiveHammer(m); return;
   }
   objTile |= 0x01; hammerCode |= 0x01;
-  mem.write8((objBase + OBJ_F09) & 0xffff, 0x05);
-  mem.write8((objBase + OBJ_F0A) & 0xffff, 0x06);
+  mem.write8((objBase + OBJ_HIT_EXTENT_X) & 0xffff, 0x05);
+  mem.write8((objBase + OBJ_HIT_EXTENT_Y) & 0xffff, 0x06);
   mem.write8((objBase + OBJ_YDISP) & 0xffff, 0x00);
   mem.write8((objBase + OBJ_XDISP) & 0xffff, 0xf0);
   if ((hammerCode & 0x80) !== 0) mem.write8((objBase + OBJ_XDISP) & 0xffff, 0x10);

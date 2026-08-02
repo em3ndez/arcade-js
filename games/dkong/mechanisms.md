@@ -267,7 +267,7 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   with the reload-and-sign-flip proven on the underflow frame, the step shadows `0`-even / `±1`-odd
   with `STEP_POS == −STEP_NEG` byte-for-byte, and `M50_OBJ_ROW_SHIFT` sweeping the full `0..255`.
   All 11 cascade cells lifted to `[seen]`. `[seen]`
-- **Per-frame object collision search.** Each frame `loc_281d` tests the active special-object
+- **Per-frame object collision search.** Each frame `recordHammerHitOnObject` tests the active special-object
   record against the board's hazard arrays through `dispatchBoardCollision (0x286F)` — a
   `BOARD`-selected `rst 0x28` inline-table dispatcher that runs the current board's collision arm.
   On a hit it records the collided hazard as a small **collision-hit record**:
@@ -367,7 +367,7 @@ machine (`dispatchBonusExpiredStep`, `bonusExpiredIdle`, `startBonusExpiredDelay
 
 **The bonus display and its payout (pass 12).** `BONUS_DISPLAY (0x638C)` is the counter the player
 actually watches: seeded from `BONUS_START`, stepped down in lockstep with `BONUS` by both tick sites,
-rendered by `loc_066a`, and reset to 0 at each board build by `buildBoard`. When a board is completed,
+rendered by `renderBonusDisplay`, and reset to 0 at each board build by `buildBoard`. When a board is completed,
 `awardRemainingBonusToScore` pays whatever is left into the score as two table-selected payloads — the
 "whatever remains when you finish is added to your score" rule from `gameplay.md` §6, located in code.
 `BONUS_DISPLAY_ZEROED (0x63B8)` suppresses re-seeding once the readout bottoms out. `[seen]` for the
@@ -434,7 +434,7 @@ is a 4-way router (`dispatchEffectState`): a pickup/hit raises it to 1, `EFFECT_
 which setter runs from its low bits (`loc_1dc9`), `EFFECT_PARAM_PTR (0x6343)` points at the
 hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on screen (armed
 `0x40`) before blanking `POPUP_SPRITE (0x6A30)` and resetting the router. A nested follow-on
-countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `loc_1e96`) with inner/outer
+countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `dispatchEffectSequenceStep`) with inner/outer
 counters `EFFECT_SEQ_INNER (0x6346)` / `EFFECT_SEQ_OUTER (0x6347)` — steps a short sequence
 and re-arms `EFFECT_STATE` on completion. The effect's own hardware sprite is `EFFECT_SPRITE
 (0x6A2C)`, a 4-byte record inside `SPRITE_BUFFER` immediately before `POPUP_SPRITE`; `buildEffectSprite`
@@ -523,15 +523,17 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; grounded live on
   the credited 50m board (pass-5), sweeping `0..255`, so `[seen]`).
 
-  ★ **CORRECTION (pass 12).** This section used to close by saying the colour-cycle blink "is itself a
-  short animation sequence" routed by `BLINK_ANIM_PHASE (0x639D)` through `loc_127f`. That link is
-  **false and has been removed.** A ROM scan shows `0x639D`/`0x639E` are touched only at `0x127F–0x12DD`,
-  whereas `blinkSpritePairOn`/`Off` act on `0x6901`/`0x6905` off the colour-cycle counter `0x6390` — two
-  unrelated subsystems. The `0x639D` sequence belongs to the `loc_127f` cluster reached at
-  `GAME_SUBSTATE == 0x0D`, which the ROM enters from the gameplay cascade when Mario stops being active;
-  its arms exit into the P1/P2 life-loss handlers, so it is very likely the **death animation**. That
-  reading is code-derived and not yet grounded in MAME, so the cell keeps its provisional name and
-  `loc_127f` stays `loc_<addr>` until a grounding run settles it. See `ram.js`.
+  ★ **CORRECTION (pass 12), now SETTLED BY OBSERVATION (pass 13).** This section used to close by saying
+  the colour-cycle blink "is itself a short animation sequence" routed by `0x639D` through the router
+  at ROM 0x127F.
+  That link was **false and has been removed** — `0x639D`/`0x639E` have exactly five operand references
+  in the whole 16 KB ROM, all inside `0x127F–0x12D7`, whereas `blinkSpritePairOn`/`Off` act on
+  `0x6901`/`0x6905` off the colour-cycle counter `0x6390`. Unrelated subsystems.
+  Pass 13 then grounded what that cluster actually is: **Mario's death animation** (see §"Death" below).
+  The cells are now `DEATH_ANIM_PHASE` / `DEATH_ANIM_TICKS_LEFT` and the routines are named.
+  ★ Everything else in this section — the colour-cycle blink itself, `blinkSpritePairOn/Off/ByX`, the
+  hammer blink pair, `redrawPlayerUpIndicator`, `loc_1708`'s `BLINK_SPRITE_CODE (0x6905)` — is a
+  genuinely different subsystem and is **not** affected by that correction.
 
 ---
 
@@ -747,7 +749,7 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 |---------|--------------|
 | `scanObjectsAtMarioX` | broad-phase X test of the per-frame object-collision scan |
 | `confirmObjectHit` | confirm an X-match is Y-aligned + eligible; register the hit |
-| `loc_281d` | test the active special-object record vs the board's hazards; on a hit record the collision-hit location (`COLLIDED_OBJECT_*`) |
+| `recordHammerHitOnObject` | test the active special-object record vs the board's hazards; on a hit record the collision-hit location (`COLLIDED_OBJECT_*`) |
 | `dispatchBoardCollision` | `BOARD`-selected `rst 0x28` dispatch to the current board's object-collision arm |
 | `dispatchBoardOverlapSearch` | twin dispatcher reached from the `0x286B` search; board 1 counts object overlaps (`OVERLAP_COUNT`) (0x3E88) |
 | `animateSpriteObjectBlock` | advance one animation frame of the ten-record block |
@@ -766,9 +768,6 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 | `loc_16d5` | drive object #1, slide its 10-sprite group along X |
 | `loc_16e1` | on reaching its rail, reinitialize the moving group |
 | `loc_1708` | board/intro spawn init: silence sound, seed a sprite |
-| `loc_127f` | vector a short animation sequence to its step handler |
-| `loc_128b` | phase-0 (seed) arm of the 0x639D animation sequence |
-| `loc_12ac` | phase-1 arm of the 0x639D animation sequence |
 | `dispatchEffectState` | router for the effect-sprite state machine (0x6340) |
 | `loc_1dc9` | state-1 handler: arm the state-2 countdown, advance |
 | `loc_1df5` | pick one of three effect-sprite setters from RANDOM bits |
@@ -868,3 +867,38 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 (175 named cells + the `ROUTINES` map), `boards/dkong/{memory,video,io}.js` + `hardware.json`, framed against
 `games/dkong/gameplay.md`. Counts measured this checkout. Not-yet-lifted routines
 characterized from the frozen `translated/` oracle by ROM region.*
+
+### Death (grounded, pass 13)
+
+When Mario dies the game does not simply reset him: it runs a **296-frame death animation** as its own
+in-game sub-state, and only then takes a life.
+
+`GAME_SUBSTATE (0x600A)` steps to **0x0D**, whose table entry `runDeathAnimationSubstate` (ROM 0x127C)
+services the effect-sprite machine and then dispatches on `DEATH_ANIM_PHASE (0x639D)` through
+`dispatchDeathAnimationPhase`. Phase 0 (`beginMarioDeathAnimation`) blanks the sprite columns, primes
+`DEATH_ANIM_TICKS_LEFT (0x639E)` to 13 and fires the death sound; phase 1 (`stepMarioDeathAnimation`)
+rotates Mario's sprite through **four orientations** — tile `0x78`↔`0x79` crossed with flipy↔flipx, a
+180° rotation — once per 8-frame gate tick, decrementing the tick counter; at 0 it advances the phase
+and the sub-state hands on to the life-loss handlers at 0x0E (P1) / 0x0F (P2), where `LIVES` is
+decremented. The sprite settles on tile `0x7A`.
+
+**How this was established** (real MAME 0.288, 136,367 logged frames, positive control ≈1 NMI fetch per
+frame): 44 episodes; the phase cell walks 0→1→2 with writers at pc 0x1299/0x12D8; the tick counter is
+primed to 13 at pc 0x129E and decremented at pc 0x12B6, giving 13 ticks and a 296-frame episode
+identical across 43/43 complete episodes; the four (code, attr) pairs appear in 44/44 episodes; LIVES
+decrements 15 times for 15 deaths and never from anywhere else. ★ **Negative control:** across 42,275
+frames of ordinary play both cells read 0 on *every* frame, and across all 87,142 non-cluster frames the
+tick counter has *zero* transitions.
+
+Two independent causes reach the same animation: an ordinary collision death (which enters with
+`MARIO_ACTIVE` already 0, and fires the "boom" first), and **bonus-timer expiry**, whose arm at ROM
+0x1A2A jumps into the middle of the same instruction run at 0x19D2 — skipping the boom and leaving
+`MARIO_ACTIVE` set. That is why the sequence is named for its **effect** and not for a cause: no
+cause-based name is true on every reachable path.
+
+The attract demo ends by killing its own Mario, so all of this is reachable with **zero coins, zero
+inputs and zero pokes** — which is also why the old "not reached in plain attract" claims on
+`dispatchDeathAnimationPhase` and its test were false, and have been corrected.
+
+Router slot 3 is **table padding, not an arm**: `DEATH_ANIM_PHASE` has exactly three writers
+(`inc`@0x1298, `inc`@0x12D7, and `initBoardState`'s block clear @0x0F69), none of which can produce 3.

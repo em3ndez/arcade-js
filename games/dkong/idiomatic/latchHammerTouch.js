@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2954 — latch whether Mario is touching one of the two hammer objects, select the one
+ * latchHammerTouch — latch whether Mario is touching one of the two hammer objects, select the one
  * he touched, and pulse the pickup sound.  ROM 0x2954.
  *
  * Reached from the movement machine's airborne tail (ROM 0x1C33) on the frames its counter
@@ -9,7 +9,7 @@
  *   1. A board gate first (boardBitGate with mask bit0/bit1/bit3 = 25m/50m/100m — exactly the
  *      boards a hammer can appear on, 75m excluded; the same mask driveHammerSprite uses).
  *      Closed and the whole latch is skipped, leaving every cell below untouched.
- *   2. loc_2974 tests Mario's position against the two-record hammer pair at OBJ_PAIR_6680 and
+ *   2. findHammerOverlappingMario tests Mario's position against the two-record hammer pair at OBJ_PAIR_6680 and
  *      leaves its outcome in the register file: an overlap flag, plus the count-minus-index
  *      residue naming the matched record (2 = the pair's first record, 1 = its second, 0 = no
  *      overlap).
@@ -20,18 +20,48 @@
  *      note records ("also clears it each time it runs"). Nothing here puts the hammer in
  *      Mario's hands: the movement machine transfers MARIO_HAMMER_PENDING into
  *      MARIO_HAMMER_ACTIVE once the post-landing freeze expires.
- *   4. On an overlap only, the touched record's +1 field is set to 1 — the pair's
- *      "this record is the selected/active one" flag. Two independent readers corroborate that
- *      meaning: loc_281d scans the pair for the first record whose +1 bit0 is set and treats
- *      that as the active special object, and driveHammerSprite reads bit0 of the FIRST
- *      record's +1 to choose which of the pair it animates (set -> record 0x6680, clear ->
- *      record 0x6690). Both readers therefore land on the record this routine marked. The
- *      flag is never cleared here, so a touch is sticky until the board re-initialises.
+ *   4. On an overlap only, the touched record's HAMMER_IN_PLAY field (+0x01) is set to 1 — "this
+ *      is the hammer Mario grabbed". Two independent readers corroborate that meaning:
+ *      recordHammerHitOnObject scans the pair for the record whose HAMMER_IN_PLAY bit0 is set and
+ *      tests THAT record's hitbox against the board's hazards (ROM 0x2826), and driveHammerSprite
+ *      reads bit0 of the FIRST record's HAMMER_IN_PLAY to choose which of the pair it animates
+ *      (ROM 0x2EDF: set -> record 0x6680, clear -> record 0x6690). Both readers therefore land on
+ *      the record this routine marked.
+ *
+ * ★ THE FLAG'S LIFECYCLE IS COMPLETE — corrected. An earlier version of this header called the
+ * flag "sticky until the board re-initialises". It is not: nothing here clears it, but
+ * updateActiveHammer — driveHammerSprite's owner — clears it at ROM 0x2F61 (`ld (ix+0x01),a` with
+ * A = 0) when the hammer's ~512-frame counter expires, in the same block that clears
+ * MARIO_HAMMER_ACTIVE, clears the record's OBJ_ACTIVE, parks the sprite and restores the saved
+ * background tune. So the flag is SET on the touch here and CLEARED at hammer expiry — a complete
+ * lifecycle. (The per-board block clear inside initBoardState also zeroes it, but that is the
+ * board build, not this flag's own end.)
  *
  * REGISTER-ABI MARSHALLING (dissolves once the callees take honest args): boardBitGate still
- * reads its board mask from the register file, and loc_2974 still returns nothing — it leaves
+ * reads its board mask from the register file, and findHammerOverlappingMario still returns nothing — it leaves
  * the search result in the registers findCollidingObject wrote. So this routine loads the mask
  * the way the oracle's call site does and reads the two result registers straight back.
+ *
+ * NAME (promoted from loc_2954, DK understanding pass 13 — independent proposer ≠ confirmer,
+ * confidence HIGH). Corroboration from OUTSIDE this routine:
+ *   - MARIO_HAMMER_PENDING (0x6218, [seen]) — the cell this routine writes — describes ITSELF as
+ *     "a touched-but-not-yet-held hammer" and names ROM 0x295A, inside this routine, as the site
+ *     that latches it; it also records that this routine clears it each time it runs.
+ *   - An independent real-MAME audio trace: audio/sounds.js latch bit 5 (0x6085, the trigger this
+ *     routine pulses) is `item_or_jump_score` at confidence CONFIRMED, evidenced by
+ *     test_hammer_25m_lower — the trigger rises once, 29 frames before the tune flips to the
+ *     hammer music — and its ROM-site list cites 0x295F, inside this routine.
+ *   - seedSpriteObjectPair, which activates the pair this routine searches, is called from
+ *     seed25mBoardObjects / seed50mBoardObjects / seed100mBoardObjects and from NO other board
+ *     setup — so the pair exists on exactly the boards with hammers and never on 75m, DK's one
+ *     hammer-free board. The board mask this routine gates on (0x0B) is that same set, reached a
+ *     completely different way.
+ * WHAT THE NAME DOES NOT CLAIM: not that Mario ends up HOLDING a hammer — this only latches the
+ * touch, and tickPostLandingFreeze transfers MARIO_HAMMER_PENDING into MARIO_HAMMER_ACTIVE once
+ * the post-landing freeze expires; not HOW MANY hammers a board shows (the pair is always two
+ * records, seeded from three different ROM position tables at 0x3E0C/0x3E10/0x3E14, and nobody has
+ * read those bytes); and not that the touch is a pickup the player sees — the sound and the latch
+ * are what is established, not the on-screen event.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2954.test.js.
  * GATE:     captured + crafted. 0x2954 IS naturally reachable — the 25m attract demo jumps at
@@ -57,19 +87,20 @@
  *           address instead — so both are compared too.
  * NAMES:    MARIO_HAMMER_PENDING (0x6218), SND_TRIGGER (0x6080, the 8-trigger span — this
  *           routine drives entry 5, 0x6085, the item/score trigger that awardScorePopup also
- *           asserts for a score award) and OBJ_PAIR_6680 (0x6680) from ram.js. The pair's
- *           16-byte record stride and its +1 select flag have no ram.js name yet and stay local
- *           consts (the +1 name matches driveHammerSprite's local for the same field); the
- *           board mask is an immediate bit-flag, not an address. NAMESPACE: the pointer here
- *           addresses an OBJECT record (the pair loc_2974 just searched), so +1 belongs to the
- *           object-record field set — which has no 0x01 entry — and is NOT ram.js's
- *           SPRITE_CODE (+1 of a SPRITE record, a different namespace that merely collides
- *           numerically). boardBitGate (ROM 0x0030) and loc_2974 (ROM 0x2974) are direct-called.
+ *           asserts for a score award), OBJ_PAIR_6680 (0x6680) and HAMMER_IN_PLAY (+0x01) from
+ *           ram.js. Only the pair's 16-byte record stride stays a local const; the board mask is
+ *           an immediate bit-flag, not an address. NAMESPACE: the pointer here addresses an OBJECT
+ *           record (the pair findHammerOverlappingMario just searched), so +0x01 belongs to the
+ *           object-record field set — and it is NOT ram.js's SPRITE_CODE (+1 of a SPRITE record, a
+ *           different namespace that merely collides numerically). HAMMER_IN_PLAY is deliberately
+ *           SCOPED to this pair rather than given a generic OBJ_* name, because +0x01 carries
+ *           unrelated roles on other records (see ram.js). boardBitGate (ROM 0x0030) and
+ *           findHammerOverlappingMario (ROM 0x2974) are direct-called.
  */
 
-import { MARIO_HAMMER_PENDING, SND_TRIGGER, OBJ_PAIR_6680 } from "./ram.js";
+import { MARIO_HAMMER_PENDING, SND_TRIGGER, OBJ_PAIR_6680, HAMMER_IN_PLAY } from "./ram.js";
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — per-board skip gate
-import { loc_2974 } from "./loc_2974.js";         // ROM 0x2974 — Mario vs. the hammer pair
+import { findHammerOverlappingMario } from "./findHammerOverlappingMario.js";         // ROM 0x2974 — Mario vs. the hammer pair
 
 // rst-0x30 board applicability mask: bit0 25m, bit1 50m, bit3 100m — the boards a hammer can
 // appear on (75m, bit2, is excluded). The same mask driveHammerSprite gates on.
@@ -80,11 +111,10 @@ const HAMMER_BOARDS = 0x0b;
 const PICKUP_SOUND = SND_TRIGGER + 5;
 const PICKUP_SOUND_FRAMES = 64;
 
-// Layout of the two-record hammer pair, for the fields with no ram.js name yet.
+// Stride between the two records of the hammer pair (the one field with no ram.js name).
 const PAIR_STRIDE = 0x10; // 0x6680 -> 0x6690
-const OBJ_SELECT = 0x01;  // +1 bit0 = "this is the pair's selected/active record"
 
-export function loc_2954(m) {
+export function latchHammerTouch(m) {
   const { regs, mem } = m;
 
   // Board gate — a hammer exists only on 25m/50m/100m. Closed, and nothing below happens.
@@ -92,7 +122,7 @@ export function loc_2954(m) {
   if (!boardBitGate(m)) return;
 
   // Does Mario overlap either hammer this frame, and which one?
-  loc_2974(m);
+  findHammerOverlappingMario(m);
   const touching = regs.a; // 1 = overlapping a hammer, 0 = neither
   const matched = regs.b;  // 2 = the pair's first record, 1 = its second, 0 = no overlap
 
@@ -104,8 +134,8 @@ export function loc_2954(m) {
   // No overlap -> there is no record to select.
   if (matched === 0) return;
 
-  // Mark the touched record as the pair's selected object, so the sprite driver animates that
-  // hammer and the special-object collision scan reads that record.
+  // Mark the touched record as the hammer now in play, so the sprite driver animates that hammer
+  // and the hammer-hit collision scan tests that record's hitbox.
   const touched = matched === 1 ? OBJ_PAIR_6680 + PAIR_STRIDE : OBJ_PAIR_6680;
-  mem.write8(touched + OBJ_SELECT, 0x01);
+  mem.write8(touched + HAMMER_IN_PLAY, 0x01);
 }

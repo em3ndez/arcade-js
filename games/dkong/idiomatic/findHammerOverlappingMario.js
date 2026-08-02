@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2974 — test whether Mario overlaps either of the two objects in the 0x6680
+ * findHammerOverlappingMario — test whether Mario overlaps either of the two objects in the 0x6680
  * pair, and report which one.  ROM 0x2974.
  *
  * A thin front end over the object-list bounding-box search findCollidingObject. It fixes the
@@ -30,6 +30,30 @@
  * site loads before it — the reference-point pointer, the axis-1 reference coordinate,
  * the two tolerances, the record count, the record stride, and the record base.
  *
+ * OFFSET NAMESPACE: every record offset in this query is an OBJECT-record field. Axis 1 compares
+ * against a record's +5 (OBJ_Y) with the extra span +0x0A (OBJ_HIT_EXTENT_Y); axis 2 against +3
+ * (OBJ_X) with +0x09 (OBJ_HIT_EXTENT_X). No sprite-record offset is involved — SPRITE_BUFFER does
+ * not begin until 0x6900.
+ *
+ * NAME (promoted from loc_2974, DK understanding pass 13 — independent proposer ≠ confirmer,
+ * confidence MEDIUM-HIGH). The mechanism is certain from the code; the word "hammer" rides on
+ * corroboration established entirely OUTSIDE this routine and its caller:
+ *   - MARIO_HAMMER_PENDING (0x6218, [seen]) calls itself "a touched-but-not-yet-held hammer" and
+ *     names ROM 0x295A — inside latchHammerTouch, this routine's sole caller, which consumes this
+ *     search's A and B directly.
+ *   - driveHammerSprite (promoted pass 10) drives this same pair as THE HAMMER, choosing between
+ *     0x6680 and 0x6690 on bit0 of the first record's HAMMER_IN_PLAY flag.
+ *   - seedSpriteObjectPair, which activates the pair, is called from seed25mBoardObjects,
+ *     seed50mBoardObjects and seed100mBoardObjects and from no other board setup — so the pair
+ *     exists on exactly the hammer boards and never on 75m, DK's one hammer-free board. The board
+ *     mask the caller gates on (0x0B) is that same three-board set, reached a different way.
+ *   - An independent real-MAME audio trace (audio/sounds.js latch bit 5, confidence CONFIRMED)
+ *     ties the caller's sound trigger to a hammer grab.
+ * WHAT THE NAME DOES NOT CLAIM: not that anything is picked up — this routine writes no RAM at all
+ * and only reports an overlap; not which of DK's hammers is which; and not how many hammers a
+ * board shows (the pair is always two records, seeded from three different ROM position tables
+ * that nobody has read).
+ *
  * Memory-equivalent to the frozen oracle — equivalence-2974.test.js.
  * GATE:     real captured 0x2974 dispatches from an attract run, plus crafted entries
  *           that pin every outcome by poking the two records at 0x6680/0x6690 and
@@ -50,7 +74,7 @@
 import { MARIO_ACTIVE, MARIO_Y, OBJ_PAIR_6680 } from "./ram.js";
 import { findCollidingObject } from "./findCollidingObject.js"; // ROM 0x2913 — object-list bounding-box search
 
-export function loc_2974(m) {
+export function findHammerOverlappingMario(m) {
   const { regs, mem } = m;
 
   // Reference-point pointer: Mario's live-block base, so its +3 byte (0x6203 = Mario's

@@ -7,29 +7,29 @@
  * this release. While four or more remain it does nothing; below four it zeroes the X field of the
  * record whose index EQUALS the remaining count, in the four-record sprite group at 0x69A8 (seeded
  * once per 25m board build from the ROM template at 0x3DDC and touched by no other ROM site).
- * Zeroing a sprite record's X blanks it. Both arms then continue into loc_2cf6, which presets the
+ * Zeroing a sprite record's X blanks it. Both arms then continue into stampReleasedBarrelKind, which presets the
  * freshly-claimed barrel record and falls on into the frame-gated renderer tick.
  *
  * CONTEXT, GROUNDED (live MAME 0.288 on the real dkong ROM, understanding pass 12,
  * scratchpad/pass12-grounding.md): this cluster is ORDINARY 25m BARREL PLAY, not a cutscene — the
  * older "0x2C-cluster cutscene renderer" framing is REFUTED. All 46 observed dispatches of the next
- * link, loc_2cf6, fell at gameplay substates (17 credited in-board 25m, 29 attract 25m demo) and
+ * link, stampReleasedBarrelKind, fell at gameplay substates (17 credited in-board 25m, 29 attract 25m demo) and
  * ZERO at substate 7, the opening Kong-climb cutscene; board 1 only; the index register held an
  * OBJ_ARRAY_67 barrel-record base at 46/46, each paired 1:1 with a slot claim at ROM 0x2CB8.
  * Grounding deliberately did NOT establish which NAMED Donkey Kong object either barrel kind is, so
  * no lore name is used here.
  *
  * loc_2ce6 WRITES MEMORY (its own record clear, and — through the continuation — everything the
- * loc_2cf6/loc_2d15 chain touches), so it is gated on memory-equivalence, not a returned scalar, and
+ * stampReleasedBarrelKind/loc_2d15 chain touches), so it is gated on memory-equivalence, not a returned scalar, and
  * every case runs on FRESH clones. The contract is RAM (minus STACK_SCRATCH) + pc + SP.
  *
  * LIVE-OUT: memory-only, plus the control-flow boundary. loc_2ce6 pushes nothing of its own — both
- * exits are a jump/fall-through into loc_2cf6 — so the whole chain nets exactly ONE caller-return
+ * exits are a jump/fall-through into stampReleasedBarrelKind — so the whole chain nets exactly ONE caller-return
  * pop, performed on loc_2ce6's behalf downstream. The idiomatic routine models that as a plain JS
  * return, so the harness performs one m.ret() on the candidate AFTER the call to line pc + SP up
  * with the oracle; the crafted cases additionally assert, non-vacuously, that both sides land on the
  * return address that was actually on the stack at entry with SP popped by exactly 2. No register is
- * asserted: loc_2cf6 overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor loc_2d15
+ * asserted: stampReleasedBarrelKind overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor loc_2d15
  * reads an incoming pointer register, so the oracle's counter/index/pointer residue is dead. On the
  * renderer's deeper table-load path the oracle's dissolved `call 0x004e` bracket churns the dead
  * STACK_SCRATCH region, which the contract excludes.
@@ -52,7 +52,7 @@
  *      (b) off-by-one boundary — clears at `remaining <= 4` instead of `< 4`, so at 4 it walks off
  *          the end of the group and blanks the first record of the neighbouring OBJ_65A0_SPRITES.
  *      (c) drop-continuation — does the (correct) record clear but returns WITHOUT continuing into
- *          loc_2cf6, so the barrel-record preset and the renderer's frame-gate decrement are missing.
+ *          stampReleasedBarrelKind, so the barrel-record preset and the renderer's frame-gate decrement are missing.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2ce6.test.js
  */
@@ -63,7 +63,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2ce6 as oracle } from "../../translated/loc_2ce6.js";
 import { loc_2ce6 } from "../loc_2ce6.js";
-import { loc_2cf6 } from "../loc_2cf6.js";
+import { stampReleasedBarrelKind } from "../stampReleasedBarrelKind.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH, BONUS, SPRITE_X, OBJ_65A0_SPRITES, BARREL_CLAIM_MODE,
@@ -182,7 +182,7 @@ function brokenWrongStride(m) {
   if (remaining < COUNTDOWN_RECORDS) {
     mem.write8(COUNTDOWN_SPRITES + remaining * 2 + SPRITE_X, 0); // BUG: stride 2
   }
-  return loc_2cf6(m);
+  return stampReleasedBarrelKind(m);
 }
 
 /** Twin (b): clears at `<= 4`, so at 4 it walks past the group into OBJ_65A0_SPRITES. */
@@ -192,17 +192,17 @@ function brokenBoundary(m) {
   if (remaining <= COUNTDOWN_RECORDS) { // BUG: <=, not <
     mem.write8(COUNTDOWN_SPRITES + remaining * SPRITE_RECORD_BYTES + SPRITE_X, 0);
   }
-  return loc_2cf6(m);
+  return stampReleasedBarrelKind(m);
 }
 
-/** Twin (c): correct clear, but returns without continuing into loc_2cf6. */
+/** Twin (c): correct clear, but returns without continuing into stampReleasedBarrelKind. */
 function brokenDropContinuation(m) {
   const { regs, mem } = m;
   const remaining = mem.read8(regs.hl);
   if (remaining < COUNTDOWN_RECORDS) {
     mem.write8(COUNTDOWN_SPRITES + remaining * SPRITE_RECORD_BYTES + SPRITE_X, 0);
   }
-  // BUG: missing `return loc_2cf6(m);`
+  // BUG: missing `return stampReleasedBarrelKind(m);`
 }
 
 // -- 0. reachability ----------------------------------------------------------
@@ -322,7 +322,7 @@ test("TEETH: the wrong-stride, boundary and drop-continuation twins are CAUGHT",
     `expected the diff at ${hx(OBJ_65A0_SPRITES + SPRITE_X)}, got ${boundaryDiffs[0]}`,
   );
 
-  // (c) drop-continuation: the clear is right, but loc_2cf6 never runs, so the renderer's
+  // (c) drop-continuation: the clear is right, but stampReleasedBarrelKind never runs, so the renderer's
   // frame-gate decrement at 0x62AF is missing (and so is the barrel-record preset above it).
   const dropEntry = craft(cap, { remaining: 2 });
   const dropDiffs = contractDiffs(dropEntry, brokenDropContinuation);

@@ -2,7 +2,7 @@
 /**
  * dispatchBoardCollision — vector a collision test to the current board's handler. ROM 0x286F.
  *
- * Called from the collision cascade (sub_2808, loc_281d) with a position already in HL:
+ * Called from the collision cascade (sub_2808, recordHammerHitOnObject) with a position already in HL:
  * it reads BOARD (0x6227) and vectors through the 6-entry inline jump table in ROM at
  * 0x2874 to the collision handler for that board type —
  *   1 -> 0x2880  (25m girders),  2 -> 0x28B0  (50m),
@@ -11,7 +11,7 @@
  * vectors off the table, which loc_00ca surfaces as a loud NotImplemented throw).
  * Each handler sweeps the board's object records — via the shared search entry_2913 —
  * for one overlapping with the caller's position and leaves the hit/miss result the
- * callers read back (A, and for loc_281d also IX). This routine only routes; the handler
+ * callers read back (A, and for recordHammerHitOnObject also IX). This routine only routes; the handler
  * does the work.
  *
  * The passed-in HL is genuine data, not call plumbing: this routine PUSHES it and every

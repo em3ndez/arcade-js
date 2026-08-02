@@ -5,7 +5,7 @@
  * sub_241f is a read-only leaf: it reads MARIO_X (0x6203), MARIO_Y (0x6205) and
  * BOARD (0x6227), writes NO memory, calls nothing, and leaves its verdict in the
  * (D,E) register pair. Its live-out is exactly that pair — every one of its three
- * callers (loc_1ae6, loc_1bb2, move_2b02) `dec`s and tests D and/or E and reloads
+ * callers (loc_1ae6, advanceMarioAirborneFrame, move_2b02) `dec`s and tests D and/or E and reloads
  * A / recomputes flags before reading them, so A and the flags are dead and the
  * Z80 `ret` is just the function returning (pc/SP not modelled or compared).
  *

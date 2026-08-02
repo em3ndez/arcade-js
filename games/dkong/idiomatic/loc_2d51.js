@@ -14,7 +14,7 @@
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md): this renderer chain runs in ORDINARY 25m BARREL PLAY on
- * board 1, not in a cutscene. All 46 captured dispatches of the chain's head (loc_2cf6) fell
+ * board 1, not in a cutscene. All 46 captured dispatches of the chain's head (stampReleasedBarrelKind) fell
  * at gameplay substates — 17 in a credited in-board 25m game, 29 in the attract 25m demo — and
  * ZERO at substate 7, the opening Kong-climb cutscene; the object being dressed is always an
  * OBJ_ARRAY_67 barrel record, one per slot claim by the barrel-release routine (board 1,

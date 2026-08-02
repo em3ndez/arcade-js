@@ -6,7 +6,7 @@
  * Reached from loc_062a's task-entry-10 dispatch on its A==0 arm (`jp z,0x0691`). The routine
  * reads BONUS_DISPLAY (0x638C), the on-screen bonus readout, as two digits one per nibble —
  * the packed-BCD reading is CODE-DERIVED (this routine's own `and 0x0f` / rrca-x4 nibble
- * split, plus the `daa` in loc_06a8 that maintains the cell), NOT an observed property of the
+ * split, plus the `daa` in stepBonusDisplayDown that maintains the cell), NOT an observed property of the
  * byte — and runs the add-to-score task (addToScoreTask) once per digit:
  *   - low nibble  -> addToScoreTask payload = (byte & 0x0f): indexes the "small" addend (table index
  *     = the digit itself; index 0 adds nothing).
@@ -15,7 +15,7 @@
  *     index 10 adds nothing). This is the rrca-x4 nibble swap in the oracle: rotating the byte
  *     right four places drops its high nibble into the low position, which `and 0x0f` then keeps.
  *
- * awardRemainingBonusToScore is the twin of loc_066a (39 bytes away) with INVERTED register roles — loc_066a keeps
+ * awardRemainingBonusToScore is the twin of renderBonusDisplay (39 bytes away) with INVERTED register roles — renderBonusDisplay keeps
  * the original byte in C and the low nibble in B; awardRemainingBonusToScore keeps the original in B and leaves the
  * low nibble in A. Here the nibbles are score-task payloads rather than tile digits, and the tail
  * `jp 0x051c` means the second add's return belongs to awardRemainingBonusToScore's own caller (loc_062a's caller).

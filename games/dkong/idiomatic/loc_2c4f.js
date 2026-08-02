@@ -17,14 +17,14 @@
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md): bit 7 of BARREL_CLAIM_MODE is the 25m BARREL-KIND select. One
- * frame after a bit-7-set claim, loc_2cf6 stamps the freshly-released OBJ_ARRAY_67 barrel record
+ * frame after a bit-7-set claim, stampReleasedBarrelKind stamps the freshly-released OBJ_ARRAY_67 barrel record
  * with sprite code/attr/mode 0x19 / 0x0C / 0x01 instead of the default 0x15 / 0x0B / 0x00 — 46/46
  * agreement over every captured dispatch, no exceptions (38 clear, 8 set), all of them ordinary
  * board-1 25m gameplay (ZERO in the opening Kong-climb cutscene). The bit-7-SET (attr 0x0C) kind
  * DROPS with its X pinned at 59; the bit-7-CLEAR (attr 0x0B) kind ROLLS along the girders.
  * Grounding deliberately did NOT establish which NAMED Donkey Kong object either kind is.
  * Note the two arrays are distinct: the free-slot scan here sweeps OBJ_ARRAY_64, while the
- * barrel record loc_2cf6 later stamps lives in OBJ_ARRAY_67.
+ * barrel record stampReleasedBarrelKind later stamps lives in OBJ_ARRAY_67.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2c4f.test.js.
  * GATE:     exhaustive over the stash byte (all 256 caller values, gate closed) + crafted

@@ -13,11 +13,19 @@
  *   SPRITE_BUFFER+0xb8 (0x69b8), 11 records  — records 46-56
  *   SPRITE_BUFFER+0x10c (0x6a0c), 5 records  — records 67-71   (via a TAIL JUMP)
  *
- * 28 records' X byte in all. Called during board/how-high setup by entry_128b (which
- * then arms the sound latch 0x6088) and by loc_1615 (the L2 board-advance dispatcher).
+ * 28 records' X byte in all. CALLERS — corrected (pass 13; the old header said "during
+ * board/how-high setup", which is wrong about the first caller):
+ *   - beginMarioDeathAnimation (ROM 0x128B, the oracle's entry_128b) — the SEED of Mario's
+ *     DEATH ANIMATION, not a board build. It calls this routine and then, at ROM 0x12A8,
+ *     stores 3 into SND_IRQ_TRIGGER (0x6088) — the I8035 interrupt line at 0x7D80, which is
+ *     MAME's "dead" line (dkong.cpp:202) and whose SOLE writer in the whole ROM is that one
+ *     instruction (games/dkong/audio/README.md: 3 rises in 90 s, one per life). So the
+ *     sprite groups are being cleared as Mario's death begins.
+ *   - loc_1615 (the L2 board-advance dispatcher) — the other caller, unchanged.
  * CONFIDENT: the mechanism (four fixed stride-4 zero-fills) and that every target lies
  * in SPRITE_BUFFER at a record's field +0. INFERRED: the visual intent (hiding those
- * sprite groups) — the record identities and scene are not separately pinned here.
+ * sprite groups) — the record identities and scene are not separately pinned here, and
+ * pass 13 ran `-video none`, so nothing on screen was observed.
  *
  * The fourth call corresponds to the oracle's `jp 0x30e4` TAIL JUMP: it pushes no
  * return, so the callee's `ret` returns to clearSpriteColumns' OWN caller. In the
@@ -26,9 +34,10 @@
  * net Z80 `ret` with a single m.ret().
  *
  * Memory-equivalent to the frozen oracle — equivalence-30bd.test.js.
- * GATE:     crafted-entry — real captured attract dispatches (reached via entry_128b),
- *           plus sentinel-page crafted entries that pin the exact 28-byte cleared set,
- *           plus a crafted return-address entry for the unreached loc_1615 caller arm.
+ * GATE:     crafted-entry — real captured attract dispatches (reached via entry_128b, i.e.
+ *           when the attract demo's own Mario dies), plus sentinel-page crafted entries
+ *           that pin the exact 28-byte cleared set, plus a crafted return-address entry
+ *           for the unreached loc_1615 caller arm.
  *           Not exhaustive (the input is the buffer's prior contents × the caller's
  *           stack). Teeth: a dropped-tail-run twin and a short-third-run twin.
  * LIVE-OUT: memory-only — the 28 zeroed sprite-buffer bytes. Both callers overwrite A

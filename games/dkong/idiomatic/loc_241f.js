@@ -22,7 +22,7 @@
  * pair — not a single English concept — is the honest contract, and why this keeps
  * its address name:
  *   - loc_1ae6 (walk/climb dir): `dec e` — E==1 (right edge) blocks a rightward step.
- *   - loc_1bb2 (airborne):       `dec d` — D==1 zeroes horizontal velocity + faces right.
+ *   - advanceMarioAirborneFrame (airborne):       `dec d` — D==1 zeroes horizontal velocity + faces right.
  *   - move_2b02 (X clamp):       `dec e` then `dec d` — E==1 pushes X left, D==1 pushes
  *                                X right, (0,0) leaves X as moved.
  *

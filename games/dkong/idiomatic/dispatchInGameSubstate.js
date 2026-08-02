@@ -7,7 +7,19 @@
  * reads the in-game sub-state index GAME_SUBSTATE (0x600A) and vectors through the
  * 29-entry inline jump table in ROM at 0x0702 to the handler for that sub-state —
  * 7 = opening Kong-climb cutscene, 8 = how-high interlude, 0x0A = board setup,
- * 0x0C/0x0D = gameplay, 0x0E = P1 death, 0x16 = board-cleared/advance, and so on.
+ * 0x0C = gameplay (0x197A), 0x16 = board-cleared/advance, and so on. The death sequence
+ * occupies the three slots after gameplay, corrected in pass 13 (the old header was one
+ * step off, calling 0x0C/0x0D both "gameplay" and 0x0E "P1 death"):
+ *   0x0D -> 0x127C  Mario's DEATH ANIMATION (runDeathAnimationSubstate) — entered the frame
+ *                   Mario dies and running a fixed 296 frames; 3 episodes per credited 1P
+ *                   game, 6 per 2P game (44 observed live in MAME across attract and
+ *                   credited play — scratchpad/pass13-grounding.md §2);
+ *   0x0E -> 0x12F2  the P1 LIFE-LOSS handler — LIVES (0x6228) is decremented here, at ROM
+ *                   0x12FC (12 of the 15 observed decrements);
+ *   0x0F -> 0x1344  the P2 LIFE-LOSS twin — its decrement is at ROM 0x134E (3 observed, all
+ *                   in a real 2-player run).
+ * Arm 2 of the death animation is what selects between them: it advances GAME_SUBSTATE by
+ * one for P1 (0x0D -> 0x0E) and by two for P2 (0x0D -> 0x0F).
  * Six table slots (index 9 and 24–28) are 0x0000 and the selector is NOT range-
  * checked, so a null/out-of-range sub-state vectors to 0x0000 / off the table; the
  * ROM has no guard, and loc_00ca surfaces such a target as a loud

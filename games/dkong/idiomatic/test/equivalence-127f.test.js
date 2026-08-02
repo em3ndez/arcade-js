@@ -1,26 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_127f (ROM 0x127F) — the animation-sequence phase dispatcher:
- * `ld a,(0x639d)` then vector through the 4-entry inline jump table at ROM 0x1283
- * (phase 0 -> 0x128B, 1 -> 0x12AC, 2 -> 0x12DE, 3 -> 0x0000 unused).
+ * Equivalence test for dispatchDeathAnimationPhase (ROM 0x127F) — the phase dispatcher of Mario's
+ * DEATH ANIMATION: `ld a,(0x639d)` then vector through the 4-entry inline jump table at ROM
+ * 0x1283 (phase 0 -> 0x128B seed, 1 -> 0x12AC step, 2 -> 0x12DE hand-off, 3 -> 0x0000 padding).
  *
- * loc_127f is NOT reached in plain attract — it is entry 4 of the game-state-1 sub-state
- * table (0x0748, via loc_127c), a deep sub-state the attract demo never drives (0 natural
- * dispatches over an attract run). And it is not a leaf: it dispatches a handler that
- * animates a two-cell sprite blinker (0x694D/0x694E) and eventually advances the game
- * sub-state. So it is validated by MEMORY-equivalence against the frozen oracle
- * (RAM − STACK_SCRATCH, pc, SP), never the full register file and never cycles, with a
- * FRESH clone per case, using CRAFTED entries (doc-06: a real state + a surgical poke):
+ * REACHABILITY — CORRECTED (pass 13). This header used to claim dispatchDeathAnimationPhase is
+ * "NOT reached in plain attract ... 0 natural dispatches over an attract run". That is FALSE:
+ * the attract demo ENDS BY KILLING ITS OWN MARIO, so pure attract (zero coins, zero inputs,
+ * zero pokes) runs the whole cluster 9 times in 400 s of real MAME, the 0x639D/0x639E write
+ * taps firing from frame 2719; and it is reached in every credited game as in-game sub-state
+ * 0x0D. It has no dispatch site of its own — 0x127C falls straight through into it, 1:1 — which
+ * is why nothing hooks it here, but that is a HOOKING detail, not unreachability.
+ *
+ * It is not a leaf either: it dispatches a handler that steps Mario's sprite record
+ * (0x694D/0x694E) through four orientations and eventually advances the game sub-state. So it
+ * is validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH, pc, SP),
+ * never the full register file and never cycles, with a FRESH clone per case, using CRAFTED
+ * entries (doc-06: a real state + a surgical poke). ★ HONEST SCOPE (R17): real dispatches DO
+ * exist and this gate does NOT replay them — every case below is a crafted selector on a real
+ * captured base. Adding a captured-episode case is open work, not something already covered:
  *
  *   1. FULL-HANDLER (crafted reachable arms) — take a real attract-run machine, poke the
  *      phase 0x639D to each reachable index (0, 1, 2) and open the 0x6009 tick gate so the
- *      arm's body actually runs, and run the ORACLE on one clone and loc_127f on another.
+ *      arm's body actually runs, and run the ORACLE on one clone and dispatchDeathAnimationPhase on another.
  *      The FULL oracle arm handler runs on BOTH sides, so a wrong target OR a live
  *      register/flag handoff the folded-away trampoline would have supplied surfaces as
  *      divergent RAM. Proven non-vacuous: each arm mutates RAM vs the untouched base.
  *
  *   2. CRAFTED (exhaustive selector sweep) — the off-table indices the game never reaches
- *      (the table has 3 real slots + one 0x0000, and the selector is NOT range-checked). On
+ *      (the table has 3 real slots + one 0x0000 PADDING slot: 0x639D has exactly three
+ *      writers in the ROM — inc @0x1298, inc @0x12D7, block-clear @0x0F69 — and none can
+ *      produce 3, so slot 3 is structurally unreachable, not an arm. The selector is NOT
+ *      range-checked, hence this sweep is about table MATH, not about a real state). On
  *      a real captured base, poke 0x639D to every byte 0..255 identically on both sides and
  *      route ANY computed target to an IDENTICAL catch-all stub (so the handler never runs),
  *      then compare the target the dispatcher handed the stub + SP. This exhaustively pins
@@ -38,10 +49,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_127f as oracle } from "../../translated/loc_127f.js";
-import { loc_127f } from "../loc_127f.js";
+import { dispatchDeathAnimationPhase } from "../dispatchDeathAnimationPhase.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH, DEATH_ANIM_PHASE, SUBSTATE_TIMER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -50,8 +61,8 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-const PHASE = 0x639d;         // the sequence-phase selector
-const GATE = 0x6009;          // rst 0x18 tick gate; = 1 makes the next tick expire
+// DEATH_ANIM_PHASE (0x639D, the phase selector) and SUBSTATE_TIMER (0x6009, the rst-0x18
+// tick gate; = 1 makes the next tick expire) come from ram.js — the single source of truth.
 const PHASE_TABLE = 0x1283;   // ROM inline jump table base
 const DISPATCH_TABLE_1283 = "0x1283 (0x639D dispatch)";
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -71,7 +82,7 @@ function firstRamDiffExStack(a, b, offToAddr) {
 
 // A real, self-consistent machine: boot + a stretch of attract so work RAM (the sprite
 // record 0x694D/0x694E, the player index 0x600E, the object scratch the arms touch) holds
-// realistic values. loc_127f is never dispatched here — we craft its entry by poking.
+// realistic values. dispatchDeathAnimationPhase is never dispatched here — we craft its entry by poking.
 function attractBase(frames = 180) {
   const m = new Machine(ROM);
   m.runFrames(frames);
@@ -84,14 +95,14 @@ function craftEntry(base, phase, gateOpen = true) {
   const m = base.clone();
   m.regs.sp = 0x6c00;
   m.push16(0x4d5e);              // caller return, exactly as boot.test.js frames it
-  m.mem.write8(PHASE, phase);
-  if (gateOpen) m.mem.write8(GATE, 0x01); // rst 0x18 will decrement 1 -> 0 and run the body
+  m.mem.write8(DEATH_ANIM_PHASE, phase);
+  if (gateOpen) m.mem.write8(SUBSTATE_TIMER, 0x01); // rst 0x18 will decrement 1 -> 0 and run the body
   return m;
 }
 
 // -- 1. FULL-HANDLER (crafted reachable arms) ---------------------------------
 
-test("FULL-HANDLER: loc_127f == oracle on real bases poked to each reachable phase (0,1,2)", () => {
+test("FULL-HANDLER: dispatchDeathAnimationPhase == oracle on real bases poked to each reachable phase (0,1,2)", () => {
   const base = attractBase();
   const REACHABLE = [0x00, 0x01, 0x02];
 
@@ -102,7 +113,7 @@ test("FULL-HANDLER: loc_127f == oracle on real bases poked to each reachable pha
     const before = a.dumpState();
 
     oracle(a);
-    loc_127f(b);
+    dispatchDeathAnimationPhase(b);
 
     const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
     assert.equal(
@@ -148,12 +159,12 @@ function runCraftedSelector(base, candidate, sel) {
   return { recA, recB };
 }
 
-test("CRAFTED: loc_127f == oracle over all 256 selectors (0x1283 table)", () => {
+test("CRAFTED: dispatchDeathAnimationPhase == oracle over all 256 selectors (0x1283 table)", () => {
   const base = attractBase();
   let count = 0;
   let mismatch = null;
   for (let sel = 0; sel < 256 && !mismatch; sel++) {
-    const { recA, recB } = runCraftedSelector(base, loc_127f, sel);
+    const { recA, recB } = runCraftedSelector(base, dispatchDeathAnimationPhase, sel);
     count++;
     if (recA.length !== 1 || recB.length !== 1) {
       mismatch = { sel, why: `dispatch fired ${recA.length}/${recB.length} times (want 1/1)` };
@@ -177,7 +188,7 @@ test("CRAFTED: loc_127f == oracle over all 256 selectors (0x1283 table)", () => 
  */
 function brokenDispatch(m) {
   const { mem } = m;
-  const sel = mem.read8(PHASE);
+  const sel = mem.read8(DEATH_ANIM_PHASE);
   const entry = (PHASE_TABLE + 2 * sel) & 0xffff; // BUG: no 8-bit wrap on the *2
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
   loc_00ca(m, target, DISPATCH_TABLE_1283);

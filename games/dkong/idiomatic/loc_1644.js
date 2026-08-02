@@ -3,7 +3,7 @@
  * loc_1644 — vector the board-advance render sequence to its current-step handler. ROM 0x1644.
  *
  * The exact `rst 0x28` inline-jump-table idiom of the sub-state dispatchers
- * (dispatchInGameSubstate 0x06FE, dispatchCreditedSubstate 0x08B2, loc_127f 0x127F):
+ * (dispatchInGameSubstate 0x06FE, dispatchCreditedSubstate 0x08B2, dispatchDeathAnimationPhase 0x127F):
  * read a one-byte step index and vector through a ROM table of little-endian target
  * addresses to the handler for that step. Here the selector is the board-render / how-high
  * sequence step counter at 0x6388 (the counter loc_17b6 seeds and loc_1839 advances), and

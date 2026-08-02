@@ -2,9 +2,9 @@
 /**
  * Equivalence test for loc_1bf2 (ROM 0x1BF2) — the airborne handler's leftward-nudge arm.
  *
- * loc_1bf2 is entered by a tail branch from the airborne handler loc_1bb2, carrying the
+ * loc_1bf2 is entered by a tail branch from the airborne handler advanceMarioAirborneFrame, carrying the
  * position gate's LEFT verdict in the register bank (both the frozen ROM 0x1BB2 oracle this
- * suite replays against and the idiomatic loc_1bb2 hand it over that way):
+ * suite replays against and the idiomatic advanceMarioAirborneFrame hand it over that way):
  *
  *   verdict not raised -> hand straight on to the airborne dispatch 0x1C05, changing nothing
  *   verdict raised     -> MARIO_AIR_VX := 0xFF80 (half a pixel per frame leftward),
@@ -17,7 +17,7 @@
  *
  * MEMORY-EQUIVALENCE CONTRACT. RAM − STACK_SCRATCH [0x6be0,0x6c00), plus pc, SP and the
  * forwarded return value (the airborne cascade above uses it for the caller-skip convention);
- * live-out is otherwise memory-only. The direct call to loc_1bd8 dissolves the oracle's
+ * live-out is otherwise memory-only. The direct call to reverseMarioVerticalArc dissolves the oracle's
  * push/pop bracket around its fixed-point leaf, which is what the exclusion is for — but in
  * fact the stack matches too, and that finding is asserted separately at the end of suite 3
  * rather than folded into the contract.
@@ -63,7 +63,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1bf2 as oracle } from "../../translated/loc_1bf2.js";
 import { loc_1bf2 } from "../loc_1bf2.js";
-import { loc_1bd8 } from "../loc_1bd8.js"; // ROM 0x1BD8 — the real routine's tail, so each twin differs in exactly one way
+import { reverseMarioVerticalArc } from "../reverseMarioVerticalArc.js"; // ROM 0x1BD8 — the real routine's tail, so each twin differs in exactly one way
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -248,7 +248,7 @@ test("EXHAUSTIVE: all 256 verdict values × facing bit × fatal-fall match the o
   assert.equal(skippedAfter.mem.read8(MARIO_AIR_VX_HI), 0x5a, "a not-raised verdict must leave the drift alone");
 
   // STACK RESIDUE — a finding, checked rather than claimed, and deliberately kept OUT of the
-  // per-case contract so it can never be mistaken for it. Direct-calling loc_1bd8 dissolves
+  // per-case contract so it can never be mistaken for it. Direct-calling reverseMarioVerticalArc dissolves
   // the oracle's push/pop bracket around the fixed-point leaf, so the STACK_SCRATCH exclusion
   // is available — yet it turns out not to be needed: the dissolved push lands in a slot the
   // chain's own later pushes overwrite identically on both sides, so even the stack region
@@ -275,7 +275,7 @@ function brokenInvertedVerdict(m) {
   mem.write8(MARIO_AIR_VX_HI, 0xff);
   mem.write8(MARIO_AIR_VX_LO, 0x80);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) & ~FACING_BIT);
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** Broken twin (b): treats ANY nonzero verdict as raised — invisible to attract (verdict 0). */
@@ -285,7 +285,7 @@ function brokenAnyNonzeroVerdict(m) {
   mem.write8(MARIO_AIR_VX_HI, 0xff);
   mem.write8(MARIO_AIR_VX_LO, 0x80);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) & ~FACING_BIT);
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** Broken twin (c): drift sign flipped — pushes RIGHT out of the screen instead of back in. */
@@ -295,7 +295,7 @@ function brokenDriftSign(m) {
   mem.write8(MARIO_AIR_VX_HI, 0x00); // BUG: +0x0080, not −0x0080
   mem.write8(MARIO_AIR_VX_LO, 0x80);
   mem.write8(MARIO_SPRITE_CODE, mem.read8(MARIO_SPRITE_CODE) & ~FACING_BIT);
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** Broken twin (d): drops the facing-bit clear — only visible when the bit was already set. */
@@ -305,7 +305,7 @@ function brokenDroppedFacingClear(m) {
   mem.write8(MARIO_AIR_VX_HI, 0xff);
   mem.write8(MARIO_AIR_VX_LO, 0x80);
   // BUG: MARIO_SPRITE_CODE left as it stands
-  return loc_1bd8(m);
+  return reverseMarioVerticalArc(m);
 }
 
 /** Broken twin (e): raised arm takes the wrong tail — skips the 0x1BD8 arc rebase. */

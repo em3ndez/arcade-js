@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1c8f — the RIGHTWARD arm of Mario's per-frame horizontal walk.  ROM 0x1C8F.
+ * walkMarioRight — the RIGHTWARD arm of Mario's per-frame horizontal walk.  ROM 0x1C8F.
  *
  * The movement cascade reaches here on a frame the player (or the attract demo) is holding
  * Right and Mario is walking on foot. A walk is paced in two tiers: a run of cheap 1px shift
@@ -12,14 +12,14 @@
  *     then one frame is spent off the pacer.
  *   - pacer expired -> step the walk-cycle animation. MARIO_WALK_ANIM is stepped through a
  *     packed permutation table by loc_3009, keyed by the byte 5 (the rightward cycle; the
- *     leftward twin loc_1cab keys the same lookup with 1). The result is stored back as the
+ *     leftward twin walkMarioLeft keys the same lookup with 1). The result is stored back as the
  *     new animation index, and its low two bits — the walk tile — are handed to beginWalkStep
  *     with bit 7 set, the sprite-code flag that flips Mario to face RIGHT. beginWalkStep then
  *     publishes the tile, rings the footstep on the odd tile, and re-arms the pacer.
  *
  * The rightward cycle this drives is 0 -> 2 -> 4 -> 1 -> 0 (a walk-anim value of 3, which the
  * cycle never produces, folds into it at 1), giving the repeating tile run 2, 0, 1, 0. The
- * facing bit is what distinguishes this arm from loc_1cab, which stores the same masked tile
+ * facing bit is what distinguishes this arm from walkMarioLeft, which stores the same masked tile
  * with bit 7 CLEAR and so faces Mario left.
  *
  * Both tiers converge on the mover's shared tail, which refreshes Mario's hardware sprite
@@ -57,7 +57,7 @@ const WALK_CYCLE_RIGHT_KEY = 0x05; // loc_3009 table key selecting the rightward
 const WALK_TILE_MASK = 0x03;      // low two bits of the animation index are the sprite tile
 const FACING_RIGHT = 0x80;        // sprite-code bit 7 — horizontal flip, Mario faces right
 
-export function loc_1c8f(m) {
+export function walkMarioRight(m) {
   const { regs, mem } = m;
 
   // Mid-step frame: the sub-step pacer has not run out, so this frame is just a 1px slide.
