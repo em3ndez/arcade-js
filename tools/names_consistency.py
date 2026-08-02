@@ -46,6 +46,23 @@ gate that cannot fail is not a gate. Adding a second magic range would have left
 game #3, so the range is derived instead.
 
 Subcommands:  check   exit 0 iff no staged clause contradicts ram.js (the hook calls this)
+
+KNOWN LIMITATIONS — a green from this gate means less than it looks like. Recorded here
+because "names gate clean" has been over-reported off this tool before:
+
+  * VACUOUS WHEN NO games/ FILE IS STAGED. games_touched() reads the staged name list; a
+    commit touching only tools/ or docs/ makes it empty and check() returns 0 having
+    inspected NOTHING. Running it against an unstaged working tree is likewise vacuous.
+    Green here is evidence only when a games/<game>/ file is in the index.
+  * TRAILING COMMENTS ESCAPE ENTIRELY. is_comment() matches only lines whose FIRST
+    non-space characters are '//', '*' or '/*', so `const v = m.read8(0x601a); // 0x601a
+    stays hex` is never scanned, while the identical sentence as a leading comment is
+    caught. Verified 2026-08-02.
+  * ADDR matches the first four hex digits of a LONGER literal, so a 5+ digit constant can
+    present as an in-window address.
+
+The first is a property of binding to the index and is intended; the last two are real
+holes, left for a change that can carry its own negative test rather than riding along here.
 """
 import re
 import subprocess
@@ -82,7 +99,18 @@ HEX_CLAIM = re.compile(
     re.I,
 )
 ADDR = re.compile(r"0x[0-9a-f]{4}", re.I)
-EXPORT = re.compile(r"^export const ([A-Z_0-9]+) = (0x[0-9a-f]{4});", re.M)
+# re.I is LOAD-BEARING, not tidiness: without it a cell declared with an uppercase hex
+# digit (`export const FRAME = 0x601A;`) does not match, so the gate treats it as UNNAMED
+# and every false "0x601a stays hex" about it passes. Measured 2026-08-02: 33 of Donkey
+# Kong's 168 registry cells (20%) were invisible this way, including FRAME. ADDR below
+# always had re.I, so the two regexes disagreed about what an address looks like — the
+# gate read a SMALLER registry than the one it was checking prose against.
+#
+# 168, not the 184 `export const NAME = 0x…;` lines in ram.js: 16 of those are FIELD OFFSETS
+# (SPRITE_X = 0x00, OBJ_ACTIVE = 0x00, OBJ_WALK_PTR_HI = 0x1b …), not addresses. They
+# fall outside the work-RAM window and neither regex ever matched them. Counting them
+# as cells is the offset-namespace confusion this codebase keeps re-committing.
+EXPORT = re.compile(r"^export const ([A-Z_0-9]+) = (0x[0-9a-f]{4});", re.M | re.I)
 
 BOARD = re.compile(r"^\s*board:\s*[\"']([A-Za-z0-9_]+)[\"']", re.M)
 RAM_BASE = re.compile(r"^export const WORK_RAM_BASE = (0x[0-9a-f]+);", re.M | re.I)
