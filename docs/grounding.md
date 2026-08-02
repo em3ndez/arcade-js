@@ -53,6 +53,61 @@ Every semantic claim is an **experiment**, not an assertion:
 Cross-check a frame reading against the **validated renderer's own computation** of the same sprite RAM —
 an independent second "yes" that the pixels mean what you think.
 
+## Triage the backlog FIRST: sweep reachability before deciding anything is blocked
+
+Before a naming pass decides which routines are "hard", **measure which ones the ROM actually
+executes.** Install a one-byte read tap at each unnamed routine's entry address (a Z80 opcode fetch
+is a read of the program space), drive the game through every board / level / difficulty you can
+poke to, and count hits — attributing each to the game state live at the time. It is one MAME run
+and it re-plans the whole pass.
+
+Do this because the intuition is wrong. On Donkey Kong, with 105 routines still unnamed, the
+standing assumption — written into the lead's own status reports — was that they stayed unnamed
+because nothing grounded what they depict. The sweep refuted it in 150 emulated seconds:
+
+- **84 of 105 executed.** One fired **9,548 times** in that single run and was still unnamed.
+  Reaching a routine is NECESSARY to ground it, not sufficient — `loc_16d0` below executes freely
+  and its blind confirmer still says keep the neutral name, because its effect is indistinguishable
+  from its sibling's in every observed frame. But a routine nobody has ever run is blocked for a
+  different reason than one nobody has looked at, and the sweep tells you which you have.
+- **38 fired on exactly one board** — reachable by poking to that board, in a coherent context
+  where the screen still means something. This is the bucket where poking pays. Read it as
+  sweep-relative too: that run drove levels 1-2 and difficulty 0-4 only, so "one board" means one
+  board *among the states it drove*.
+- **21 were not reached at all** — and a second sweep driving what the first skipped (sustained
+  difficulty 5, deliberate death, 2-player) reached **7 of those 21**, one of them 1464 times. The
+  real residue was 14. The first sweep's not-reached list overstated dead code by 50%.
+
+Three rules fall out:
+
+1. **"Unnamed" is not "unreachable".** Sort the backlog by hit count before planning; the
+   high-frequency entries already have observations AVAILABLE and should be attacked first;
+   whether those observations settle anything is a separate question. The ones nobody can reach
+   are a different problem entirely.
+2. **A not-reached list is an UPPER BOUND on dead code, never a measurement of it.** It is a
+   statement about the states *your sweep drove*, not about the ROM. The DK sweep never died
+   deliberately, never collected every prize, never ran two-player, and only brushed each
+   difficulty — and a difficulty-5 guard arm landed in the not-reached set purely because
+   difficulty 5 was never REACHED at all (that sweep's contexts top out at 4; its driver's phase
+   counter never got there in 150 seconds). Report it as "not reached by this sweep", and narrow it by
+   driving more states rather than by concluding.
+3. **Corroborate a dead-code claim — and check the two methods answer the SAME question.** DK's
+   `loc_16d0` appeared in the not-reached set, and a blind confirmer had independently derived
+   *from code* that its one write is dead. That was written up in the pass-15 sweep report, and
+   in an early draft of this section, as two unrelated methods agreeing. It was not: the
+   confirmer's claim was that a WRITE is unobservable, the sweep's was that the ROUTINE never
+   runs. A second sweep driving sustained difficulty 5, deliberate deaths
+   and a 2-player game found `loc_16d0` executing **107 times**. The routine is live; the
+   confirmer's narrower claim may still hold. Two results pointing the same direction are not
+   corroboration unless they are answering the same question.
+
+**Forcing PC to an entry is a different, weaker move.** Poking *state* makes the game dispatch the
+routine itself, with the rest of the machine coherent, so the screen is still evidence. Forcing the
+program counter runs the code in an incoherent machine: it yields the mechanism, which the code
+already told you, and renders garbage, which grounds nothing. Reach for it only to confirm a
+mechanism on a genuinely dead path — and note that a dead routine is still nameable, by its
+mechanism, marked unreached.
+
 ## Rounds: persistence + a completeness critic
 
 Run grounding in **rounds**, and keep going while each round still lands a *correction* (one game's first
