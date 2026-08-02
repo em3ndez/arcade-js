@@ -655,7 +655,7 @@ export const ITEM_COLLECTED = 0x6225;
  *  (0x6280 and 0x6288), which dispatch50mObjectState selects between by frame parity. Each record:
  *    +0  state (the 4-way selector)
  *    +1  PARK-dwell timer — counted down by the parked arm (0x2227), reloaded to 0x80 by the
- *        state-3 arm's reset (0x22B4 `ld b,0x80`)
+ *        state-3 arm's reset (`ld b,0x80` at 0x22B5, inside the reset block 0x22B4-0x22BC)
  *    +2  the object's column — the X that marioReachedTargetColumn (0x2243) compares against
  *    +3  position: a screen Y, larger is lower (grounded in raise50mObjectAndPark.js's
  *        VERTICAL CONVENTION block)
@@ -1138,13 +1138,13 @@ export const ROUTINES = {
   0x216d: { name: "loc_216d", role: "grade an object against difficulty/position/input and, on a pass, advance its record", cert: "code" },
   0x21ee: { name: "advanceAttractDemoInput", role: "advance the canned-input script that drives the attract-mode demo", cert: "seen" },
   0x2207: { name: "dispatch50mObjectState", role: "the 50m board-object state-machine dispatcher: gate on the 50m board, pick one of two object records by frame parity, and run the arm for its state", cert: "code" },
-  0x2227: { name: "hold50mObjectParked", role: "one arm of the dispatch50mObjectState board-object state machine: tick this object's dwell timer, advance its state when the timer elapses, and stamp a shared flag when Mario has reach", cert: "code" },
+  0x2227: { name: "hold50mObjectParked", role: "the parked (state 0) arm of the dispatch50mObjectState board-object state machine: hold the object still while its dwell timer counts down, advance its state when the timer elapses, and -- only when Mario is standing on the object's column -- stamp the shared flag 0x621a (1 if the dwell just expired, 0 while it is still running)", cert: "code" },
   0x2243: { name: "marioReachedTargetColumn", role: "has Mario reached the target position? a three-condition hit test", cert: "code" },
   0x2257: { name: "reportNoHitAndSkipCaller", role: "the 'no hit' tail of the sub_2243 hit test: abort the caller as well and unwind two levels, back to the grandparent", cert: "code" },
-  0x2259: { name: "slide50mObjectDown", role: "one arm of the dispatch50mObjectState board-object state machine: tick this object's timer, step its position counter UP and mirror it on-screen, advance its state at the top of travel", cert: "code" },
+  0x2259: { name: "slide50mObjectDown", role: "one arm of the dispatch50mObjectState board-object state machine: tick this object's timer, step its position counter UP and mirror it on-screen, advance its state at the bottom of travel (the counter's maximum; larger Y is lower on screen)", cert: "code" },
   0x2284: { name: "stepMarioDownInClimbPose", role: "step Mario down one pixel, held in the climb-down pose", cert: "code" },
   0x2299: { name: "advance50mObjectStateOnRandomGate", role: "advance a board object to its next state, on a randomised pacing gate", cert: "code" },
-  0x22a2: { name: "raise50mObjectAndPark", role: "one idle-then-descend tick for a BOARD_OBJ_SCRATCH object, resetting it to state 0 when it reaches the bottom of its travel", cert: "code" },
+  0x22a2: { name: "raise50mObjectAndPark", role: "one idle-then-raise tick for a BOARD_OBJ_SCRATCH object, resetting it to state 0 when it reaches the TOP of its travel (counter 0x68, its minimum)", cert: "code" },
   0x22bd: { name: "publish50mObjectYToSprite", role: "mirror the byte at a source pointer into one of two sprite slots, selected by bit 3 of the pointer", cert: "code" },
   0x22cb: { name: "loc_22cb", role: "seed one object's velocity fields, choosing the source by mode and difficulty", cert: "seen" },
   0x22e1: { name: "loc_22e1", role: "pick an object's velocity magnitude by level, then commit it", cert: "code" },
