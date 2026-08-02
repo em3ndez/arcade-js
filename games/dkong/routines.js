@@ -65,6 +65,17 @@ const built = build();
 export const ORACLE_ROUTINES = built.byAddr;
 
 /**
+ * Build the oracle registry: address → routine fn (a fresh copy, so each Machine gets
+ * its own Map to layer overrides onto without mutating the shared table). ASYNC to
+ * match the shared factory signature (machine.js makeMachineFactory awaits it).
+ *
+ * @returns {Promise<Map<number, function>>} addr → routine fn
+ */
+export async function buildRoutines() {
+  return new Map(ORACLE_ROUTINES);
+}
+
+/**
  * Canonical routine name → address, for the retrofit tool: it converts a call
  * `NAME(m…)` to `m.call(0xADDR…)` only when NAME is a key here, so helper splits
  * and tail fragments (absent from this map) are left as direct calls.

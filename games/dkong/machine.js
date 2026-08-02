@@ -17,7 +17,7 @@ import { IO, Inputs, NotImplemented } from "../../boards/dkong/io.js";
 import { Regs } from "../../core/cpu/z80.js";
 import { bootOnly, reset as romReset } from "./translated/boot.js";
 import { entry_0066 } from "./translated/nmi.js";
-import { ORACLE_ROUTINES } from "./routines.js";
+import { ORACLE_ROUTINES, buildRoutines } from "./routines.js";
 import {
   buildPalette, CYCLES_PER_LINE, decodeSprites, decodeTiles, drawSprites,
   renderFrameRGB, renderRowRGB,
@@ -194,27 +194,21 @@ export class Machine {
     this.frame = 0;
     this.booted = false;
 
-    // Per-routine override map: dispatch target -> optimized handler. Empty and
+    // Per-routine override map: dispatch/call target -> handler. Empty and
     // therefore INERT unless a caller supplies an already-resolved map/object via
-    // opts.overrides — the seam the equivalence harness and the run paths drive.
-    //
-    // The shipped manifest.optimized is now DECLARATIVE ({ module, export }), which
-    // buildOverrides cannot turn into functions synchronously (that needs an async
-    // import). So the constructor does NOT consume it here; a run path that wants
-    // those live routines resolves the block with resolveOverrides() first and
-    // passes the resulting Map in via opts.overrides (see emit.js, web/worker.js).
-    // A Machine built with no overrides therefore runs the exact translated
-    // behaviour. See buildOverrides / resolveOverrides above, and the prepend in
-    // dispatchGameState (nmi.js) / dispatchTask (mainloop.js) that consults it.
+    // opts.overrides — the seam the memory-equivalence harness drives (a live
+    // idiomatic routine, or a capturing hook at a target address). See buildOverrides.
     this.overrides = buildOverrides(overrides);
 
-    // The full routine registry the swap layer resolves through: the oracle table
-    // for every ROM address (routines.js), with the proven-equal optimized routines
-    // from opts.overrides laid over the top. m.call(addr) invokes routines.get(addr),
-    // so an optimized routine replaces its oracle at EVERY call site, not only the two
-    // dispatch points m.overrides reaches. With no overrides this is the oracle table,
-    // so behaviour is byte-identical to pure translated code.
-    this.routines = new Map(ORACLE_ROUTINES);
+    // The whole dispatch table the swap layer resolves through: the oracle registry
+    // (routines.js) with any overrides laid over the top. m.call(addr) invokes
+    // routines.get(addr), so an override replaces its oracle at EVERY call site, not
+    // just at a dispatch point. With no overrides this is the oracle table, so
+    // behaviour is byte-identical to pure translated code. A FRESH Map is taken so
+    // the passed-in registry (also held in this.assets) is never mutated — clone()
+    // rebuilds from it and re-layers.
+    const routines = opts.routines instanceof Map ? opts.routines : ORACLE_ROUTINES;
+    this.routines = new Map(routines);
     for (const [addr, fn] of this.overrides) this.routines.set(addr, fn);
 
     this.cycles = 0;
@@ -727,4 +721,18 @@ export class Machine {
     c.maxCycles = Infinity;
     return c;
   }
+}
+
+export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
+  const { ROUTINES } = await import(new URL("idiomatic/ram.js", baseUrl).href);
+  const spec = {};
+  for (const [addr, meta] of Object.entries(ROUTINES)) {
+    spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.name };
+  }
+  return resolveOverrides(spec, baseUrl);
+}
+
+export async function makeMachineFactory(rom, assets = {}) {
+  const routines = await buildRoutines();
+  return (overrides) => new Machine(rom, { ...assets, routines, overrides });
 }
