@@ -862,6 +862,23 @@ export const DEMO_SCRIPT_COUNTDOWN = 0x63cd;
 // `cert` is the evidence class (code = understood from code, seen = observed under MAME,
 // guess = unconfirmed). Metadata for tooling + the external disassembly — not imported by
 // the running code (routines call each other directly by name). See docs/names-registry.md.
+//
+// `entry` — OPTIONAL, and the reason it exists is a real defect, not tidiness. An address
+// in this map can be WIRED LIVE as an override (resolveAllIdiomatic, swap_check --all,
+// web/worker.js), and the seam dispatches an override as `fn(m)` — ONE argument, the
+// Machine. Most idiomatic routines are written machine-shaped and that is the whole story.
+// A handful are not: they are PURE functions of their Z80 register inputs
+// (`snapYToGirder(x, y, step)`, `tileAddrForPixel(y, x)`, …) because their idiomatic
+// callers pass proper arguments and their gates are exhaustive over that pure shape.
+// Registering a pure function at a ROM address is a silent corruption: `x` becomes the
+// Machine, the rest `undefined`, and the routine degrades to a no-op (or, for 0x3009, an
+// infinite loop). `entry` names a SECOND export in the SAME module — the ROM-level ABI
+// wrapper that marshals the Z80 registers into the pure function and writes the results
+// back — so the address gets a machine-shaped entry point while the pure function stays
+// exactly as it is for direct idiomatic callers. Resolvers take the MODULE from `name` and
+// the EXPORT from `entry ?? name` (games/dkong/machine.js resolveAllIdiomatic,
+// tools/swap_check.mjs). Five entries carry it; every other routine is machine-shaped
+// already and must NOT have one.
 export const ROUTINES = {
   0x0000: { name: "boot", role: "reset/cold-boot entry — runs boot init (0x0000-0x02BC) via bootOnly, then delegates to the mainLoop generator (the coroutine go-live spine)", cert: "code" },
   0x0008: { name: "gameActiveGuard", role: "caller-skip guard: proceed only while a credited game is in play", cert: "code" },
@@ -886,7 +903,7 @@ export const ROUTINES = {
   0x0266: { name: "clearRamAndInitHardware", role: "power-on setup: wipe all RAM, seed the task queue, set the display hardware bits, silence the sound, and hand the game its stack", cert: "code" },
   0x02bd: { name: "mainLoop", role: "the task-scheduler main loop — walk the page-0x60 task table (pointer at 0x60B1), dispatch each task, run the per-frame work, and advance the frame counter (the coroutine go-live spine)", cert: "code" },
   0x0315: { name: "redrawPlayerUpIndicator", role: "blink the on-screen 'player up' indicator column, every 16th frame", cert: "code" },
-  0x0347: { name: "selectPlayerIndicatorColumnBase", role: "pick one of two video-RAM column-base addresses from a player selector", cert: "code" },
+  0x0347: { name: "selectPlayerIndicatorColumnBase", entry: "selectPlayerIndicatorColumnBaseFromRegisters", role: "pick one of two video-RAM column-base addresses from a player selector", cert: "code" },
   0x0350: { name: "awardBonusLifeAtThreshold", role: "grant the once-per-player bonus life the first time the running score reaches the operator-set threshold, then refresh the HUD", cert: "code" },
   0x037f: { name: "rampDifficulty", role: "raise the difficulty value with level and time on the board", cert: "code" },
   0x03a2: { name: "loc_03a2", role: "a periodic event, serviced only when three gates in a row pass", cert: "code" },
@@ -1026,7 +1043,7 @@ export const ROUTINES = {
   0x1732: { name: "loc_1732", role: "one animation-gated step of the board-advance render sequence", cert: "code" },
   0x1757: { name: "advanceBoardStepWhenSpritesCleared", role: "one arm of the board-advance sequence: sweep the sprite-object block toward the top and, once it is fully empty, arm the wait timer and step to the next arm of the sequen", cert: "code" },
   0x176c: { name: "cullSpriteObjectsAtTop", role: "clear the X of any sprite-object that has risen to the top of the screen", cert: "code" },
-  0x1783: { name: "allSlotsClear", role: "is a strided table of ten object slots fully cleared?", cert: "code" },
+  0x1783: { name: "allSlotsClear", entry: "allSlotsClearFromRegisters", role: "is a strided table of ten object slots fully cleared?", cert: "code" },
   0x178e: { name: "advanceToNextBoard", role: "step the board-order pointer to the next board and enter the 'HOW HIGH CAN YOU GET?' interlude", cert: "code" },
   0x17b6: { name: "loc_17b6", role: "idx 0 of the 0x6388 render sequence: draw the initial how-high screen (four girder/ladder items + a sprite-object row), set the priority tune, then arm and repoint the au", cert: "code" },
   0x1826: { name: "fillTileBlock", role: "stamp a fixed 5-wide × 14-tall block of tile 0x10 into the tilemap at the caller's address", cert: "code" },
@@ -1120,7 +1137,7 @@ export const ROUTINES = {
   0x22f9: { name: "loc_22f9", role: "commit a value and its low-bit-derived sign into two object-record fields", cert: "code" },
   0x2303: { name: "loc_2303", role: "seed one object's step magnitude and its toward-player step direction (the difficulty-3/4 arm of object-velocity init)", cert: "code" },
   0x231a: { name: "loc_231a", role: "seed one object's toward-player step code and step delta from the horizontal offset to the player (the difficulty-5 arm of object-velocity init)", cert: "code" },
-  0x2333: { name: "snapYToGirder", role: "nudge a coordinate one pixel along the 25m girder slope", cert: "code" },
+  0x2333: { name: "snapYToGirder", entry: "snapYToGirderFromRegisters", role: "nudge a coordinate one pixel along the 25m girder slope", cert: "code" },
   0x236e: { name: "loc_236e", role: "find a key in the object-parameter table and return its paired slot", cert: "code" },
   0x239c: { name: "stepBallisticMotion", role: "advance an airborne actor one frame along its ballistic arc", cert: "code" },
   0x23de: { name: "loc_23de", role: "refresh a moving object's two sprite-orientation bits from a packed direction lookup, on a per-object countdown", cert: "code" },
@@ -1212,8 +1229,8 @@ export const ROUTINES = {
   0x2fb7: { name: "selectHammerSpriteBlinkByTimer", role: "pick which object-sprite build path lays down this frame's record, based on how far the hammer's duration counter has run", cert: "code" },
   0x2fbe: { name: "blinkHammerSpriteOnFramePhase", role: "choose the object sprite's attribute for this frame's blink phase, then commit the record", cert: "code" },
   0x2fcb: { name: "tickTimedBoardBonus", role: "pace the bonus countdown on the timed boards (50m / 75m / 100m)", cert: "code" },
-  0x2ff0: { name: "tileAddrForPixel", role: "map a screen pixel (y,x) to its tilemap cell address", cert: "code" },
-  0x3009: { name: "loc_3009", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "code" },
+  0x2ff0: { name: "tileAddrForPixel", entry: "tileAddrForPixelFromRegisters", role: "map a screen pixel (y,x) to its tilemap cell address", cert: "code" },
+  0x3009: { name: "loc_3009", entry: "loc_3009FromRegisters", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "code" },
   0x304a: { name: "scrollClimbGraphicStep", role: "advance the opening-cutscene climb graphic up one row by one indexed cell-pair, then step the scroll index down", cert: "code" },
   0x3064: { name: "copyByteDisplaced", role: "copy one byte from an indexed cell to a displaced cell", cert: "code" },
   0x3069: { name: "advanceSequenceStepWhenTimerExpires", role: "gated indirect step-advance: tick SUBSTATE_TIMER and, on the expiry frame, increment the render-sequence step SEQ_ADVANCE_PTR points at. Grounded: 0 dispatches across 14546 attract frames but 64-128 in EVERY credited game (first at frame 778), and its indirect `inc (hl)` was caught writing BOARD_ADVANCE_STEP at pc 0x306E", cert: "seen" },

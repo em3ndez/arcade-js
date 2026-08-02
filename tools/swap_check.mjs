@@ -23,6 +23,14 @@
  * function` at the first line of runOne, so DK had never once been through this gate despite
  * being listed as covered by it. Recorded here so the next game added is wired for it up front.
  *
+ * ★ PER-GAME COVERAGE IS NOT UNIFORM — do not read a green run for one game as a green tool.
+ * `--game thepit --all` currently reports DIVERGED with `test 0/720 (returned)`: The Pit's boot is a
+ * GENERATOR, so under runCycleFree the wired-everything run returns at frame 0 and never plays. That
+ * is pre-existing and unrelated to the `entry ?? name` export resolution this tool now uses (The Pit
+ * has no `entry` fields, so that is a no-op for it) — but it means this tool gates DK's full set and
+ * does NOT gate The Pit's. Fixing that is its own unit; stated here so this header cannot be read as
+ * a claim of coverage it does not have.
+ *
  * Usage:
  *   node tools/swap_check.mjs --game thepit [--frames 720] [--all | --routines 0x1234,0x5678]
  *   (default: whatever is in manifest.optimized)
@@ -69,6 +77,12 @@ async function main() {
   const rom = new Uint8Array(readFileSync(romPath));
 
   // Build the override spec: manifest.optimized, or the whole idiomatic layer, or a list.
+  // MODULE from meta.name (the filename), EXPORT from meta.entry ?? meta.name — the same
+  // rule machine.js's resolveAllIdiomatic uses, and it must stay the same rule or this gate
+  // tests a different wiring than the one that ships. `entry` exists for the routines whose
+  // idiomatic export is a PURE function of its Z80 register inputs rather than of the
+  // Machine; see the `entry` note in games/<game>/idiomatic/ram.js.
+  const exportOf = (meta) => meta.entry ?? meta.name;
   let spec;
   if (args.mode === "all" || args.mode === "leaves") {
     spec = {};
@@ -80,14 +94,14 @@ async function main() {
       // at worst it mis-reads the register ABI its translated caller passes, which the diff
       // catches. Non-leaves (routines that call others) can spin and go in later, bottom-up.
       if (args.mode === "leaves" && /\bm\.call\(/.test(readFileSync(file, "utf8"))) continue;
-      spec[a.toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.name };
+      spec[a.toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: exportOf(meta) };
     }
   } else if (args.mode === "list") {
     spec = {};
     for (const a of args.list) {
       const meta = ROUTINES[a];
       if (!meta) { console.error(`0x${a.toString(16)} not in ROUTINES`); process.exit(2); }
-      spec[a.toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.name };
+      spec[a.toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: exportOf(meta) };
     }
   } else {
     spec = manifest.optimized || {};

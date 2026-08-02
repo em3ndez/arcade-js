@@ -1062,11 +1062,29 @@ export class Machine {
   }
 }
 
+/**
+ * Resolve the WHOLE idiomatic layer to an override Map<addr, fn> — every routine in
+ * idiomatic/ram.js's ROUTINES. This is what web/worker.js ships and what the full-flip
+ * gate wires.
+ *
+ * MODULE FROM `name`, EXPORT FROM `entry ?? name`. The module is always
+ * `idiomatic/<name>.js` — `name` IS the filename, that stays one-to-one. The EXPORT is
+ * allowed to differ because a wired address is dispatched as `fn(m)`, one argument, and a
+ * few idiomatic routines are deliberately PURE functions of their Z80 register inputs
+ * (`snapYToGirder(x, y, step)`) so their idiomatic callers can pass proper arguments.
+ * Registering a pure function at a ROM address hands it the Machine as its first
+ * coordinate and it silently degrades to a no-op. `entry` names the ROM-level ABI wrapper
+ * beside it — same module, machine-shaped — so the address gets a correct entry point
+ * without disturbing the pure function. See the `entry` note in idiomatic/ram.js.
+ */
 export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
   const { ROUTINES } = await import(new URL("idiomatic/ram.js", baseUrl).href);
   const spec = {};
   for (const [addr, meta] of Object.entries(ROUTINES)) {
-    spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.name };
+    spec[Number(addr).toString(16)] = {
+      module: `./idiomatic/${meta.name}.js`,
+      export: meta.entry ?? meta.name,
+    };
   }
   return resolveOverrides(spec, baseUrl);
 }

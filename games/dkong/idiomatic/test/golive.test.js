@@ -25,7 +25,8 @@
 //      is stack-neutral on its own, and that the flip still reproduces the oracle on every live
 //      cell. Also asserts the run REACHES its frame budget, which "green" did not previously imply:
 //      before the seam fix this run died at frame 237 and no test failed.
-//      Its budget is 700, bounded by the pure-signature wiring class at frame 710 — see FLIP_FRAMES.
+//      Its budget is 6000. That WAS a wall (the pure-signature wiring class, at frame 710); it is now
+//      a review decision — see FLIP_FRAMES for the measured headroom and why the number stands.
 //
 //   3. "with no overrides the seam is not installed at all"
 //      A STRUCTURAL proof, not a numeric one: a Machine built with an empty override map carries no
@@ -87,16 +88,35 @@ const FRAMES = 600; // enough to boot and run the attract sequence
 //     A dropped register live-out at a translated-caller boundary — invisible to a per-routine gate
 //     that compares RAM and the oracle's residual A, but never checks the value lands where the
 //     caller looks.
-//   frame 710 — THE CURRENT WALL: `snapYToGirder` (0x2333) is a PURE function
+//   frame 710 — the PURE-SIGNATURE WIRING CLASS: `snapYToGirder` (0x2333) is a PURE function
 //     `(x, y, step)` registered at a ROM address. The seam dispatches it as `fn(m)`, so `x` is the
 //     Machine and the rest `undefined`; `x % 16` is NaN and it silently degrades to a no-op that
 //     happens to match the oracle's frequent early-out. Over a 1500-frame run the oracle moves L
 //     on 71 of 1301 dispatches; the wired idiomatic version moves it on 0 of 1146. (The zero is the
 //     load-bearing half; the dispatch counts differ between the two runs and are quoted with their
-//     budget so they can be re-derived.) It is a CLASS, not one routine: five ROUTINES entries export
-//     non-machine signatures, and 0x3009 hangs the process outright when dispatched that way.
-// Raise this to FRAMES the moment that class is fixed; do not raise it by loosening the assertions.
-const FLIP_FRAMES = 700;
+//     budget so they can be re-derived.) It was a CLASS, not one routine: five ROUTINES entries
+//     exported non-machine signatures, and 0x3009 hung the process outright when dispatched that way.
+//     FIXED by the `entry` field in idiomatic/ram.js: each of the five now names a machine-shaped ABI
+//     wrapper beside its pure function, and the resolvers take the export from `entry ?? name`
+//     (machine.js resolveAllIdiomatic, tools/swap_check.mjs). Gate:
+//     idiomatic/test/seam-entry-abi.test.js, which dispatches every one of them through
+//     `m.call(ADDR)` — the path that was broken — and carries the pure-wired registry as its teeth.
+//
+// ★ THIS BUDGET IS NOW A COVERAGE CHOICE, NOT A DEFECT. With that class fixed there is no known
+// wall at any budget. Raised to 6000 on measurement, by the lead, on review — not as a side effect
+// of the fix: the full flip under runGeneratorGame was compared live-cell against the oracle for
+// 6000 frames with ZERO divergences and SP pinned at 0x6C00 on every frame (distinct SP values
+// observed: exactly one), and `swap_check --all` is TRANSPARENT to 12000. 6000 costs ~0.6s against
+// ~0.26s at 700, so the coverage is nearly free; raise it further if a defect is ever suspected to
+// live deeper. If you ever LOWER it, say why in the same breath — and never lower it to make a
+// failure go away.
+//
+// ★ WHY THIS TEST EXISTS. All three blockers above were invisible to per-routine equivalence gates:
+// a leaked stack word, a register live-out dropped at the layer boundary, and an ABI mismatch at the
+// dispatch seam are properties of the SEAM, not of any routine in isolation. Every one of those
+// routines passed its own gate while the assembled game was wrong. This test, and swap_check, are
+// the only things that see them.
+const FLIP_FRAMES = 6000;
 
 const { pollPCs, stateExclude, golive } = manifest.convergence;
 const { nmiReturnPC } = golive;
