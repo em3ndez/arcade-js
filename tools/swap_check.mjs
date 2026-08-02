@@ -17,11 +17,19 @@
  * It also reports a DISPATCH COUNT per wired routine: a "match" that comes from a routine
  * that never ran in the scenario is vacuous, so a 0-count is flagged, not silently passed.
  *
+ * CONSTRUCTION CONTRACT — a game is only checkable here if its machine.js exports
+ * `static async Machine.create(rom, opts)`. This tool calls it, and a game without it does not
+ * fail a check, it fails to RUN: `--game dkong` died on `TypeError: Machine.create is not a
+ * function` at the first line of runOne, so DK had never once been through this gate despite
+ * being listed as covered by it. Recorded here so the next game added is wired for it up front.
+ *
  * Usage:
  *   node tools/swap_check.mjs --game thepit [--frames 720] [--all | --routines 0x1234,0x5678]
  *   (default: whatever is in manifest.optimized)
  *
  * Exit 0 = transparent (identical), 1 = a wired swap changed the assembled run, 2 = usage/IO.
+ * NOTE a length mismatch also reports as DIVERGED: read the "run coverage" line first — a test run
+ * that stopped early has a real error to fix before its RAM diff means anything.
  */
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

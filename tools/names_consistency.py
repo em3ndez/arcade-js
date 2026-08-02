@@ -33,6 +33,18 @@ Scope. Runs per game touched by the commit; reads the STAGED (index) content so 
 exactly what will be committed. Checks the game's mechanisms.md (all lines) and its idiomatic
 routine files (comment lines only). Fail-closed: any git error blocks the commit.
 
+WORK-RAM WINDOW: DERIVED PER GAME, NOT HARDCODED. The gate only cares about WORK-RAM cells, so it
+needs each game's work-RAM range. That range has exactly one source of truth already — the board's
+address map, `boards/<board>/memory.js`, which exports WORK_RAM_BASE and WORK_RAM_SIZE — and the
+game's manifest names its board. So the window is read from there (games/<game>/manifest.js
+`board:` -> boards/<board>/memory.js), and there is no second copy to drift.
+
+Why this is called out: the window was hardcoded `0x8000-0x87FF` with an address regex of
+`0x8[0-9a-f]{3}`, which is THE PIT's work RAM. Donkey Kong's is 0x6000-0x6BFF, so for DK this gate
+matched no addresses at all and had been exiting 0 on every DK commit while inspecting nothing — a
+gate that cannot fail is not a gate. Adding a second magic range would have left the same trap for
+game #3, so the range is derived instead.
+
 Subcommands:  check   exit 0 iff no staged clause contradicts ram.js (the hook calls this)
 """
 import re
@@ -69,16 +81,41 @@ HEX_CLAIM = re.compile(
     r"no ram\.?js name|not in ram\.?js|stays? hex|kept? hex|keep (?:it|them) hex|stays? local|unnamed",
     re.I,
 )
-ADDR = re.compile(r"0x8[0-9a-f]{3}", re.I)
-EXPORT = re.compile(r"^export const ([A-Z_0-9]+) = (0x8[0-9a-f]{3});", re.M)
+ADDR = re.compile(r"0x[0-9a-f]{4}", re.I)
+EXPORT = re.compile(r"^export const ([A-Z_0-9]+) = (0x[0-9a-f]{4});", re.M)
+
+BOARD = re.compile(r"^\s*board:\s*[\"']([A-Za-z0-9_]+)[\"']", re.M)
+RAM_BASE = re.compile(r"^export const WORK_RAM_BASE = (0x[0-9a-f]+);", re.M | re.I)
+RAM_SIZE = re.compile(r"^export const WORK_RAM_SIZE = (0x[0-9a-f]+);", re.M | re.I)
 
 
-def named_workram(ram_text):
-    """{addr_int: NAME} for every ram.js const in the work-RAM window 0x8000-0x87ff."""
+def workram_window(game):
+    """(lo, hi) inclusive work-RAM bounds for `game`, read from its board's address map.
+
+    games/<game>/manifest.js names the board; boards/<board>/memory.js is the single place the
+    address map lives (WORK_RAM_BASE / WORK_RAM_SIZE, which AddressSpace itself decodes with).
+    Returns None when either file cannot be read or does not declare the pair — the caller then
+    SKIPS that game rather than silently inspecting the wrong range, and says so.
+    """
+    manifest = blob(":0", f"games/{game}/manifest.js") or blob("HEAD", f"games/{game}/manifest.js")
+    m = BOARD.search(manifest or "")
+    if not m:
+        return None
+    mem = blob(":0", f"boards/{m.group(1)}/memory.js") or blob("HEAD", f"boards/{m.group(1)}/memory.js")
+    base, size = RAM_BASE.search(mem or ""), RAM_SIZE.search(mem or "")
+    if not (base and size):
+        return None
+    lo = int(base.group(1), 16)
+    return (lo, lo + int(size.group(1), 16) - 1)
+
+
+def named_workram(ram_text, window):
+    """{addr_int: NAME} for every ram.js const inside this game's work-RAM window."""
+    lo, hi = window
     out = {}
     for name, addr in EXPORT.findall(ram_text):
         a = int(addr, 16)
-        if 0x8000 <= a <= 0x87FF:
+        if lo <= a <= hi:
             out[a] = name
     return out
 
@@ -155,9 +192,16 @@ def check():
     if not games:
         return 0
     failures = []
+    unwindowed = []
     for game in sorted(games):
+        window = workram_window(game)
+        if window is None:
+            # Do NOT fall back to a guessed range: inspecting the wrong window is what made this
+            # gate vacuous for DK. Report it instead so the omission is visible.
+            unwindowed.append(game)
+            continue
         ram = blob(":0", f"games/{game}/idiomatic/ram.js") or blob("HEAD", f"games/{game}/idiomatic/ram.js")
-        named = named_workram(ram)
+        named = named_workram(ram, window)
         if not named:
             continue
         # mechanisms.md (all lines) + every idiomatic routine file (comment lines), from the index.
@@ -173,6 +217,15 @@ def check():
             for ln, addrs, clause in scan(text, named, comments_only):
                 names = ", ".join(f"{named[a]} (0x{a:04x})" for a in addrs)
                 failures.append(f"    {path}:{ln}  calls {names} hex/unnamed — but ram.js names it.\n        “{clause}”")
+    if unwindowed:
+        sys.stderr.write(
+            "COMMIT BLOCKED — names-consistency gate: could not derive the work-RAM window for "
+            + ", ".join(unwindowed)
+            + ".\n  Expected games/<game>/manifest.js to declare `board: \"<name>\"` and\n"
+            "  boards/<name>/memory.js to export WORK_RAM_BASE and WORK_RAM_SIZE.\n"
+            "  Failing closed rather than inspecting a guessed address range.\n"
+        )
+        return 1
     if failures:
         sys.stderr.write(
             "\nCOMMIT BLOCKED — names-consistency gate (tools/names_consistency.py):\n"

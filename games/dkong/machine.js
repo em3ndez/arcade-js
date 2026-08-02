@@ -80,6 +80,276 @@ export class FramesComplete extends Error {
 }
 
 /**
+ * SEAM_CALLER_SKIP — ROM addresses whose FROZEN ORACLE twin implements the Z80
+ * CALLER-SKIP idiom, so that a `false` return means the oracle consumed TWO stack
+ * words rather than one.
+ *
+ * The idiom (`inc sp / inc sp / ret` or `pop hl / ret`) discards the routine's own
+ * return address before returning, so control resumes in the CALLER'S CALLER — the
+ * caller is skipped. The idiomatic rewrite models that as a plain `return false`
+ * and touches no stack at all (its callers guard it with `if (!f(m)) return;`), so
+ * the seam owes TWO brackets on that path, not one. This is the second arm of the
+ * same defect the seam closes; without it the flip leaks 2 bytes per skip.
+ *
+ * DERIVED FROM `translated/`, NOT GUESSED. Every entry either (a) was MEASURED at
+ * +4 on its `false` path in an instrumented 600-frame pure-oracle attract run, or
+ * (b) has the two-word discard literally in its oracle body immediately before the
+ * `ret` that precedes `return false`. Membership is re-derived and asserted by
+ * `idiomatic/test/golive.test.js` ("the caller-skip table matches the frozen
+ * oracle"), so the table cannot drift away from the oracle silently.
+ *
+ * WHAT THIS TABLE CANNOT EXPRESS, stated plainly rather than left implicit: a few
+ * oracle routines return `false` from MORE THAN ONE path with DIFFERENT stack
+ * effects — 0x2B29 skips two words when it tails into 0x2B51, but only one when it
+ * propagates 0x2B9B's double-skip (which consumed its words inside 0x2BE1). A
+ * per-address table picks one. 0x2B29 is listed for the two-word path because that
+ * is the only one reachable in the measured runs; the one-word path needs
+ * 0x2BE1's `A <= C` arm, never observed. The exact fix for that class is to move
+ * the caller's `push16` into the seam when `translated/` is next regenerated, which
+ * makes the bracket explicit instead of inferred. (That analysis lives in a local
+ * scratchpad note, which is untracked and does NOT survive a clone — the reasoning
+ * is therefore restated here rather than referenced: emit the return address into
+ * the seam at the call site, so the callee's bracket is data rather than an
+ * inference from adjacency.)
+ *
+ * DELIBERATELY ABSENT (they return `false` but consume only ONE word, so listing
+ * them would make the seam over-pop): 0x2B53 / 0x2B9B / 0x2BE1 (the double-skip is
+ * performed inside 0x2BE1, which discards the word 0x2B53 itself pushed — net one
+ * bracket at the seam), 0x06B8 (its oracle notes the `false` is NOT a skip signal),
+ * and 0x2880 (its oracle's extra word is an ENTRY-side `pop hl` recovering a value
+ * its dispatcher pushed, not a skip; its idiomatic twin returns `true` on every
+ * path by design).
+ */
+const SEAM_CALLER_SKIP = new Set([
+  0x0008, // loc_0008 gameActiveGuard      inc sp x2 / ret   (measured false:+4)
+  0x0010, // loc_0010 marioActiveGuard     inc sp x2 / ret   (measured false:+4)
+  0x0018, // loc_0018 tickSubstateTimer    inc sp x2 / ret   (measured false:+4)
+  0x0020, // loc_0020 tickSubstatePrescaler pop hl / ret     (measured false:+4)
+  0x0030, // loc_0030 boardBitGate         pop hl / ret      (measured false:+4)
+  0x1783, // loc_1783 allSlotsClear        jp 0x0026 -> pop hl / ret
+  0x1a2a, // loc_1a2a advanceSubstateWhenGrounded  pop hl + tail 0x19d2 whose ret pops
+  0x1e85, // loc_1e85 enterBoardAdvanceAndUnwind   pop hl / ret
+  0x2257, // loc_2257                      pop hl / ret
+  0x236e, // loc_236e                      pop hl / ret
+  0x2913, // loc_2913 findCollidingObject  pop ix / inc sp x2 / ret
+  0x2b29, // loc_2b29                      tails into 0x2b51 (measured false:+4)
+  0x2b51, // loc_2b51                      pop hl / ret      (measured false:+4)
+  0x2b74, // loc_2b74                      pop hl / ret
+  0x2b91, // loc_2b91                      pop hl / ret
+  0x3110, // loc_3110                      inc sp x2 / ret   (measured false:+4)
+  0x311b, // loc_311b                      inc sp x2 / ret
+  0x3126, // loc_3126                      inc sp x2 / ret
+  0x3131, // loc_3131                      inc sp x2 / ret
+  0x313c, // loc_313c                      inc sp x2 / ret   (measured false:+4)
+]);
+
+/**
+ * SEAM_TAIL_NO_RET — ROM addresses reached by a translated `jp` TAIL whose frozen
+ * oracle twin does NOT return through a `ret`, so the seam must consume nothing.
+ *
+ * The emitter writes a `jp` tail as a bare `m.call(T)` with no push. Almost every
+ * such target ends in `ret` and so consumes the bracket the outermost `call` in the
+ * tail chain opened — measured +2 on every tail-entered address in an instrumented
+ * 900-frame pure-oracle attract run EXCEPT these four, which are the board-layout
+ * walk: 0x0DD3 and its three segment drawers all end by jumping BACK to the walk
+ * head at 0x0DA7, so the chain is a loop and its guest-stack delta is exactly 0.
+ * Consuming a bracket for them steals a word from the enclosing frame (it shows up
+ * immediately as `UnmappedAccess: unmapped read at 0x6c00` when the NMI epilogue
+ * then rets off the top of the stack).
+ *
+ * COVERAGE OF THIS CLAIM, stated rather than implied: the +2 default is measured
+ * over the ATTRACT sequence only (900 frames, every tail-entered dispatch). A
+ * gameplay-only tail chain that likewise never rets would not be in this set and
+ * would over-pop. It would not pass silently — the whole-flip gate in
+ * idiomatic/test/golive.test.js asserts SP is unchanged at every vblank yield, and
+ * an over-pop drives SP UP, which that assertion catches on the first frame.
+ */
+const SEAM_TAIL_NO_RET = new Set([
+  0x0dd3, // loc_0dd3            jp 0x0da7 -- back to the walk head
+  0x0e19, // drawGirderSpan      jp 0x0da7
+  0x0e2a, // drawSegmentEndCap   jp 0x0da7
+  0x0e4f, // drawLadder          jp 0x0da7
+]);
+
+/** Exported so the go-live gate can re-derive both tables from the frozen oracle. */
+export { SEAM_CALLER_SKIP, SEAM_TAIL_NO_RET };
+
+/**
+ * THE TRANSLATED->IDIOMATIC SEAM: close the Z80 call bracket that a frozen
+ * translated caller opened for an idiomatic callee.
+ *
+ * THE DEFECT THIS EXISTS TO FIX. A translated call site is emitted as
+ * `m.push16(RET); m.step(T, 17); m.call(T)` — the push lives in the CALLER and the
+ * matching pop lives in the CALLEE's `ret`. That is fine while both sides are
+ * translated, and fine while both sides are idiomatic (an idiomatic caller
+ * direct-calls its idiomatic callee and emits no push at all). It breaks at the
+ * SEAM: a frozen translated caller cannot drop its push, and an idiomatic callee
+ * models the `ret` as a plain JS `return` and never pops. Every such transition
+ * leaked exactly 2 bytes of guest stack. Under `resolveAllIdiomatic()` that is
+ * 12-14 bytes PER FRAME; SP walked from 0x6C00 down into the task ring at
+ * 0x60C0-0x60FF by frame 237 and the game died on dispatched stack garbage.
+ *
+ * WHY HERE AND NOT IN `Machine.call`. There are THREE dispatch paths into an
+ * override, not one: `this.routines` (built by copying `this.overrides`), and the
+ * two translated computed-`jp` dispatchers that bypass `Machine.call` entirely and
+ * invoke `m.overrides.get(target)(m)` directly (`translated/loc_02e3.js` and
+ * `translated/loc_00ca.js` — between them exactly the 2 bytes/frame that separated
+ * the measured -12 from the -14). Wrapping each override ONCE where it is
+ * registered covers all three with one implementation; a fix inside `Machine.call`
+ * would cover only two.
+ *
+ * WHY THE BRACKET IS NOT INFERRED FROM SP. "Is the word at SP an unpopped push?"
+ * has a false positive: at a tail-`jp` site emitted as a bare `m.call(T)` with NO
+ * push, the word at SP can be a REGISTER SAVE (the NMI prologue's `push hl`), which
+ * an SP-only test cannot tell from a call bracket, and popping it corrupts the
+ * frame. So the bracket is taken from the EMISSION SHAPE instead, which is exact:
+ * the emitter writes the push IMMEDIATELY before the dispatch for a `call` and
+ * writes no push at all for a `jp` tail. `lastPushSp === sp at dispatch` is
+ * therefore a precise test for "my caller opened a bracket for me", not a heuristic.
+ *
+ * ★ PRECONDITION, stated because it is load-bearing and easy to lose: adjacency is
+ * exact only while nothing can interleave between the emitter's `push16(RET)` and
+ * its `m.call(T)`. Both cycle-free engines suppress the scheduler NMI, so it holds
+ * everywhere the seam runs today. `runFrames`' `tick()` CAN fire mid-sequence,
+ * which would clear `lastPushSp` and under-pop; that path has no override users
+ * today (its only callers install delegating hooks), but wiring overrides into a
+ * scheduler-driven run would break this assumption and must re-derive the bracket.
+ *
+ * The computed-`jp` dispatchers are the one case where that adjacency is not
+ * visible (0x00CA's continuation is pushed, then `rst 0x28`'s own return address is
+ * pushed and popped by `loc_0028` before the target is reached). Those two sites
+ * are recognised structurally — they do not go through `Machine.call`, so the
+ * wrapper sees no matching dispatch frame — and a dispatched target ALWAYS returns
+ * through a continuation its dispatcher's caller pushed, so its bracket is open by
+ * construction.
+ *
+ * SAFETY PROPERTIES worth stating because they are what makes this cheap to trust:
+ *   - The consumption is guarded on SP being back where the wrapper entered. A
+ *     capturing hook that delegates to the oracle has already let the oracle's
+ *     `ret` move SP, so the wrapper declines — self-correcting, no special case.
+ *   - Nothing here runs unless at least one override is installed; see the
+ *     constructor. With an empty override map the Machine's own prototype methods
+ *     are untouched, so the pure-oracle path is unchanged BY CONSTRUCTION.
+ *
+ * @param {Machine} m
+ * @returns {{lastPushSp:number, frames:Array}} the seam's bookkeeping
+ */
+function installCallBracketSeam(m) {
+  const seam = {
+    lastPushSp: -1, // guest SP straight after the most recent push16; -1 once invalidated
+    frames: [], // one record per Machine.call dispatch: { spEntry, opened, taken }
+  };
+
+  const basePush = m.push16.bind(m);
+  const basePop = m.pop16.bind(m);
+  const baseCall = m.call.bind(m);
+
+  m.push16 = (value) => {
+    basePush(value);
+    seam.lastPushSp = m.regs.sp;
+  };
+  m.pop16 = () => {
+    seam.lastPushSp = -1; // any pop breaks push/dispatch adjacency
+    return basePop();
+  };
+  m.call = (addr, ...args) => {
+    // `opened` is decided HERE, at the dispatch, while the adjacency is still
+    // observable: the emitter's `push16(RET); step(...); call(T)` leaves lastPushSp
+    // equal to SP, and a bare `call(T)` (a `jp` tail) does not.
+    seam.frames.push({ spEntry: m.regs.sp, opened: seam.lastPushSp === m.regs.sp, taken: false });
+    try {
+      return baseCall(addr, ...args);
+    } finally {
+      seam.frames.pop();
+    }
+  };
+
+  return seam;
+}
+
+/**
+ * Consume ONE open call bracket sitting at the CURRENT SP, walking OUT through the
+ * live dispatch frames, and report whether one was found.
+ *
+ * It serves two of the three shapes the oracle's `ret` can take at the seam:
+ *
+ *  - a `jp` TAIL into an idiomatic routine. The emitter writes a bare `m.call(T)`
+ *    with no push, so the tail routine has no bracket OF ITS OWN — the oracle's
+ *    `ret` there returns on its caller's behalf, consuming the bracket the
+ *    OUTERMOST `call` in the tail chain opened. Several dispatch frames can share
+ *    one SP (a chain of tails), which is why this keeps walking outward past
+ *    unbracketed frames instead of stopping at the first one.
+ *  - the caller-skip's SECOND word: after the callee's own `ret`, SP has reached the
+ *    caller's frame and the oracle's skip pops the bracket the caller's own caller
+ *    opened.
+ *
+ * Finding nothing is a real answer, not a failure: when the chain was entered by a
+ * plain JS call from idiomatic code the bracket was dissolved at emission and there
+ * is correctly nothing to pop. That is also what keeps a routine whose oracle twin
+ * does NOT `ret` (a tail chain that jumps onward, e.g. the board-layout walk at
+ * 0x0DD3/0x0E19/0x0E2A/0x0E4F, measured net-zero on the guest stack) from being
+ * over-popped — no frame stands at its SP.
+ */
+function consumeBracketAtSp(m, seam) {
+  const sp = m.regs.sp;
+  for (let i = seam.frames.length - 1; i >= 0; i--) {
+    const f = seam.frames[i];
+    if (f.spEntry < sp) continue; // a deeper frame we have already unwound past
+    if (f.spEntry > sp) return false; // out past the matching level: nothing to consume
+    if (!f.opened) continue; // a `jp` tail in the same chain — its bracket is further out
+    f.opened = false;
+    m.ret(0); // cycle-free: the idiomatic layer does not model T-states
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Wrap ONE resolved override so it closes the call bracket its translated caller
+ * opened. See installCallBracketSeam for why this lives at registration time.
+ */
+function seamWrap(addr, fn, seam) {
+  // A generator is the engine-driven control spine (boot/mainLoop). It is entered by
+  // runGeneratorGame, never by a translated caller, and opens no bracket. Leave it be.
+  if (fn.constructor && fn.constructor.name === "GeneratorFunction") return fn;
+  const skips = SEAM_CALLER_SKIP.has(addr);
+  const tailRets = !SEAM_TAIL_NO_RET.has(addr);
+  return function seamed(mm, ...args) {
+    const spEntry = mm.regs.sp;
+    const top = seam.frames[seam.frames.length - 1];
+    const own = top !== undefined && !top.taken && top.spEntry === spEntry ? top : undefined;
+    if (own !== undefined) own.taken = true; // this dispatch frame is now accounted for
+
+    const r = fn(mm, ...args);
+
+    // Only if the body left SP where it found it. An override that delegates to the
+    // oracle (the memory-equivalence capturing hook) has already had its `ret` run,
+    // so SP has moved off the bracket and this correctly declines to touch it.
+    if (mm.regs.sp !== spEntry) return r;
+
+    if (own === undefined) {
+      // Reached WITHOUT a Machine.call dispatch frame of our own: one of the two
+      // translated computed-`jp` dispatchers invoked us as m.overrides.get(t)(m).
+      // A dispatched target always returns through a continuation its dispatcher's
+      // caller pushed (0x02BD for the task ring, 0x00D2 for the NMI state table),
+      // so its bracket is open by construction and is not a dispatch frame.
+      mm.ret(0);
+    } else if (own.opened) {
+      own.opened = false;
+      mm.ret(0); // the `ret` the idiomatic body replaced with a JS `return`
+    } else if (!tailRets || !consumeBracketAtSp(mm, seam)) {
+      // A `jp` tail: either the oracle's twin does not `ret` at all (SEAM_TAIL_NO_RET),
+      // or there is no bracket anywhere out the chain because it was entered from
+      // idiomatic code and dissolved at emission. Either way the oracle would not
+      // have consumed a word here — so neither do we, and there is no skip to apply.
+      return r;
+    }
+    if (r === false && skips) consumeBracketAtSp(mm, seam);
+    return r;
+  };
+}
+
+/**
  * Build the per-routine OVERRIDE MAP: dispatch/call target (a number) ->
  * handler function. This is what lets an idiomatic rewrite (or the gate's capturing
  * hook) replace its `translated/` counterpart WITHOUT editing the call site —
@@ -114,17 +384,39 @@ export class FramesComplete extends Error {
  * and buildOverrides throws on a raw `{ module, export }` value so a missing resolver
  * is named loudly rather than silently ignored.
  *
+ * THE CALL BRACKET IS CLOSED HERE. Each resolved override is wrapped ONCE, at
+ * registration, by seamWrap — see installCallBracketSeam for the whole argument.
+ * The wrapping is what makes the idiomatic layer safe to run whole: the wrapped
+ * function is the one value that lands in BOTH `this.overrides` (which the two
+ * translated computed-`jp` dispatchers read directly) and `this.routines` (which is
+ * built by copying it), so all three dispatch paths get one implementation.
+ *
+ * AN EMPTY SPEC PRODUCES AN EMPTY MAP AND NOTHING ELSE. Both the seam bookkeeping
+ * and the per-routine wrapper are created only after an override has actually been
+ * seen, so a Machine with no overrides — every oracle test, every convergence
+ * baseline, the shipped DK player — keeps the Machine's own prototype `push16` /
+ * `pop16` / `call` and runs the identical code it ran before. The pure-oracle path
+ * is unchanged BY CONSTRUCTION rather than by argument.
+ *
  * @param {object|Map} [spec]
+ * @param {Machine} [machine] the Machine these overrides are being built for
  * @returns {Map<number, function>}
  */
-function buildOverrides(spec) {
+function buildOverrides(spec, machine) {
   const map = new Map();
   if (!spec) return map;
   const entries = spec instanceof Map ? [...spec.entries()] : Object.entries(spec);
+  let seam = null;
   for (const [key, val] of entries) {
     const addr = typeof key === "number" ? key : parseInt(key, 16);
     if (typeof val === "function") {
-      map.set(addr, val); // already resolved (a test, or resolveOverrides' output)
+      // already resolved (a test, or resolveOverrides' output)
+      if (machine === undefined) {
+        map.set(addr, val); // no Machine to hang the seam on (a bare spec normalisation)
+      } else {
+        if (seam === null) seam = installCallBracketSeam(machine);
+        map.set(addr, seamWrap(addr, val, seam));
+      }
     } else if (val && typeof val === "object" && "module" in val) {
       throw new Error(
         `override for 0x${addr.toString(16).padStart(4, "0")} is the declarative ` +
@@ -201,7 +493,7 @@ export class Machine {
     // therefore INERT unless a caller supplies an already-resolved map/object via
     // opts.overrides — the seam the memory-equivalence harness drives (a live
     // idiomatic routine, or a capturing hook at a target address). See buildOverrides.
-    this.overrides = buildOverrides(overrides);
+    this.overrides = buildOverrides(overrides, this);
 
     // The whole dispatch table the swap layer resolves through: the oracle registry
     // (routines.js) with any overrides laid over the top. m.call(addr) invokes
@@ -483,6 +775,30 @@ export class Machine {
   runBoot() {
     bootOnly(this);
     this.booted = true;
+  }
+
+  /**
+   * Async factory: build the routine registry, then construct. Mirrors
+   * `games/thepit/machine.js`'s `Machine.create` so the SHARED cross-game tools have one
+   * construction interface to call.
+   *
+   * DK's registry is available synchronously (`buildRoutines()` copies ORACLE_ROUTINES,
+   * which is statically imported), so this adds no capability the constructor lacks — it
+   * adds the SHAPE the tools expect. `tools/swap_check.mjs` calls `Machine.create(rom, …)`;
+   * without this method it died with `TypeError: Machine.create is not a function` on its
+   * first line for DK, so the whole-game swap gate had never once run for this game. That
+   * was worth fixing in the Machine rather than in the tool: the tool is shared, The Pit
+   * already offers this exact entry point, and games/dkong's other factory
+   * (`makeMachineFactory`) is a different shape that would have needed a second code path
+   * in every shared tool forever.
+   *
+   * @param {Uint8Array} rom
+   * @param {object} [opts]  forwarded to the constructor (gfx/proms/overrides optional)
+   * @returns {Promise<Machine>}
+   */
+  static async create(rom, opts = {}) {
+    const routines = await buildRoutines();
+    return new Machine(rom, { ...opts, routines });
   }
 
   /**

@@ -65,7 +65,33 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 - **R9 [ALL]** No import from `optimized/` (retired layer). Imports resolve from `./ram.js` and other
   idiomatic files. Verify: `git diff --cached | grep optimized/`.
 - **R10 [ALL]** No idiomatic routine calls an already-idiomatic callee via `m.call(0xADDR…)`/push16
-  (stale oracle leak) — idiomatic callees are direct JS calls. Verify: grep the diff for `m.call(0x`.
+  (stale oracle leak) — idiomatic callees are direct JS calls.
+  THE DEFECT HAS TWO FORMS AND THE RECIPE MUST CHECK BOTH. The registry form is the obvious one; the
+  other is a direct ES import of the frozen oracle — `import { loc_30bd } from "../translated/loc_30bd.js";
+  // no idiomatic yet` — in a file where the idiomatic twin DOES exist and that address IS in
+  ROUTINES. Same leak, and the comment beside it is false as well.
+  Verify (both, per game touched):
+  1. `git diff --cached | grep 'm\.call(0x'` — any hit whose target address is a key of that game's
+     `games/<game>/idiomatic/ram.js` ROUTINES map FAILS.
+  2. Resolve every `from "../translated/loc_XXXX.js"` import in the staged idiomatic files against
+     the same ROUTINES map; any whose address is present FAILS. Game-agnostic one-liner:
+     ```sh
+     GAME=<game> node --input-type=module -e '
+     import { readdirSync, readFileSync } from "node:fs";
+     const d = `games/${process.env.GAME}/idiomatic`;
+     const { ROUTINES } = await import(`./${d}/ram.js`);
+     for (const f of readdirSync(d).filter((x) => x.endsWith(".js")))
+       for (const m of readFileSync(`${d}/${f}`, "utf8").matchAll(/from "\.\.\/translated\/loc_([0-9a-f]{4})\.js"/g))
+         if (ROUTINES[parseInt(m[1], 16)])
+           console.log(`${f}: imports translated/loc_${m[1]}.js but ${ROUTINES[parseInt(m[1], 16)].name} is idiomatic`);'
+     ```
+     It scans the whole tree, so judge only the files THIS commit stages; pre-existing hits are a
+     separate cleanup unit (26 stood in games/dkong/idiomatic as of 2026-08-02).
+  WHY A RULE AND NOT A GATE, and why this rule is load-bearing: a stale oracle reference is
+  invisible to the equivalence gate BY CONSTRUCTION — the oracle is correct, so calling it produces
+  correct RAM and every test stays green. Nothing else in the pipeline can see it. This rule is the
+  only thing standing between the codebase and silent readability rot, which is the same argument
+  R17 rests on.
 - **R11 [D]** Every UNNAMED idiomatic routine is named `loc_<addr>` — NEVER a cute prefix
   (`sub_`/`handler_`/`entry_`/`draw_`/`branch_`/`tail_`/`guard_`) or an English name, EVEN when the
   frozen `translated/` oracle carries such a name (DK's oracle does; do not mirror it into idiomatic).
@@ -81,6 +107,31 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   frozen oracle, (b) asserts the routine's REAL live-out (return value too, not just RAM), and
   (c) has ≥1 broken-twin "teeth" case the test actually CATCHES. Verify: read the test; teeth
   assertions present and non-vacuous; run it if unsure.
+- **R17 [ALL]** A `GATE:` / `NAMES:` header, and a test file's own header, must describe what the
+  gate ACTUALLY exercises — and a coverage claim that is VACUOUS must say so explicitly, in the
+  header, rather than reading as coverage. "Replays every captured dispatch" when zero dispatches
+  were captured, "all N routines live" in a file that wires one, "runs the whole game" in a tool
+  that cannot construct that game's Machine: each is a claim the reader will bank and none of them
+  is true. Stating the hole ("this covers attract only; gameplay is not covered", "no dispatch was
+  captured for this arm, so the real-capture case is vacuous here") is compliant — silently
+  overstating is not. This is the rule that catches the gate nobody has ever seen fail.
+  Verify, mechanically, for every gate/test the diff touches or relies on:
+  1. RUN it, and check the header's claim against what ran — `node --test <file>` prints each test
+     name; a header claiming a scenario with no corresponding assertion FAILS.
+  2. For each COUNT or SET the header names ("all 379", "every captured dispatch", "0x8000-0x87FF"),
+     find the line that produces it and confirm the number matches — `grep` the wiring call
+     (`resolveAllIdiomatic` vs `resolveOverrides({...})`), the fixture array's length, the literal
+     range. A header number with no producing line FAILS.
+  3. Confirm the gate has been OBSERVED FAILING for the thing it claims to catch: either the diff
+     shows a teeth case, or the author reports the exact failure message from breaking it.
+  4. For a shared cross-game tool, run it for EVERY game it names, not just the one you changed —
+     a tool that exits non-zero on argument parsing or a missing method has never run there.
+  *Why: five live instances found in one session — `games/dkong/idiomatic/test/golive.test.js`'s
+  header described a config it does not wire, `loc_2a22`'s `GATE:` header claimed attract captures
+  that do not exist, `loc_281d` carried a stale dependency note, `tools/swap_check.mjs` died on
+  `Machine.create is not a function` for DK so its "only running the whole game catches that" had
+  never once run there, and `tools/names_consistency.py` inspected The Pit's 0x8000-0x87FF window
+  on every DK commit and so matched nothing. All five were green; none was checking anything.*
 
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
@@ -102,3 +153,15 @@ only if ALL are PASS (plus the correctness review passes).
 gate; both were deleted in favour of these rules. A gate tests a proxy (e.g. "≥1 new `[seen]` line");
 a rule the review agent reads can require the real thing (grounding actually ran and was honestly
 recorded). Add new requirements here, as rules — not as new gates.*
+
+*R10's recipe was completed at the same time (2026-08-02): it had checked only the `m.call(0x…)`
+form and was blind to the direct `../translated/loc_XXXX.js` import form, which had accumulated 26
+stale references across exactly 16 DK idiomatic files (25 files import a translated loc at all; 16 of those have a stale one). Same species as R17 — a check that reads as
+complete, run for years, that could only ever have caught half of what its own statement forbids.*
+
+*R17 was added after a whole-game guest-stack leak survived 368 green per-routine gates plus the
+go-live gate: every gate that could have seen it was either scoped away from the seam or, in two
+cases, structurally incapable of running at all (`swap_check.mjs` for DK, `names_consistency.py`'s
+address window). The fix is deliberately NOT another gate script — a script cannot tell whether a
+header's claim is true. It is a rule, whose verification recipe ends in "has this gate ever been
+observed failing?", because that is the question none of the five instances could have answered.*
