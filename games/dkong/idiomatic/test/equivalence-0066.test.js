@@ -53,7 +53,7 @@ import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
 import { readControls } from "../../translated/readControls.js";
 import { perFrame } from "../../translated/perFrame.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, ATTRACT } from "../../optimized/ram.js";
+import { STACK_SCRATCH, ATTRACT } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

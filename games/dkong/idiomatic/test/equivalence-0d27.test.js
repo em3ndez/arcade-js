@@ -54,7 +54,7 @@ import { sub_0d27 as oracle } from "../../translated/sub_0d27.js";
 import { stamp75mBoardTiles } from "../stamp75mBoardTiles.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

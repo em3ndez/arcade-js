@@ -44,7 +44,7 @@ import { loc_0e2a as oracle } from "../../translated/loc_0e2a.js";
 import { drawSegmentEndCap } from "../drawSegmentEndCap.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

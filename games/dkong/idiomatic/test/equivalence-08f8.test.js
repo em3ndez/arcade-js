@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_08f8 as oracle } from "../../translated/loc_08f8.js";
 import { commitGameStart } from "../commitGameStart.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 import { readStartButtonSelector } from "../readStartButtonSelector.js";
 import { spendCredit } from "../spendCredit.js";
 import { clearPlayfieldAndSprites } from "../clearPlayfieldAndSprites.js";

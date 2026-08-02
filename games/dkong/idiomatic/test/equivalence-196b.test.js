@@ -46,7 +46,7 @@ import { clearScreenAndSelectSubstate as candidate } from "../clearScreenAndSele
 // The teeth twins reuse the real idiomatic callee so only the injected defect differs.
 import { clearTilemapAndSprites as clearTilemapAndSpritesLike } from "../clearTilemapAndSprites.js";
 import { Machine } from "../../machine.js";
-import { GAME_SUBSTATE, SPRITE_BUFFER, STACK_SCRATCH } from "../../optimized/ram.js";
+import { GAME_SUBSTATE, SPRITE_BUFFER, STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

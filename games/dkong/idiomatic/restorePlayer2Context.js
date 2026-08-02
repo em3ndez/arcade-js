@@ -36,7 +36,7 @@
  *           terminal `ret` (an SP+2 pop) is the modelled stack ABI the direct-call
  *           layer replaces with a JS return, so SP/pc are not live either.
  * NAMES:    P2_CONTEXT, LIVES (live-block base), BOARD, BOARD_SEQ_PTR,
- *           SUBSTATE_TIMER, GAME_SUBSTATE — all from optimized/ram.js.
+ *           SUBSTATE_TIMER, GAME_SUBSTATE — all from idiomatic/ram.js.
  */
 
 import {

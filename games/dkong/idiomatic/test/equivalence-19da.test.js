@@ -46,7 +46,7 @@ import { sub_19da as oracle } from "../../translated/sub_19da.js";
 import { scanObjectsAtMarioX as idiomatic } from "../scanObjectsAtMarioX.js";
 import { confirmObjectHit } from "../confirmObjectHit.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_X, MARIO_Y } from "../../optimized/ram.js";
+import { STACK_SCRATCH, MARIO_X, MARIO_Y } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

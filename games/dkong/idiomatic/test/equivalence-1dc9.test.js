@@ -56,7 +56,7 @@ import { loc_1df5 } from "../loc_1df5.js";
 import { loc_1e08 } from "../loc_1e08.js";
 import { loc_1e10 } from "../loc_1e10.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, LEVEL, SND_TRIGGER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, LEVEL, SND_TRIGGER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

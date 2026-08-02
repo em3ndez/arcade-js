@@ -52,7 +52,7 @@ import { loc_1e15 as idiomatic } from "../loc_1e15.js";
 import { enqueueTask } from "../enqueueTask.js"; // idiomatic callee, for the teeth twins
 import { loc_1e36 } from "../loc_1e36.js";       // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

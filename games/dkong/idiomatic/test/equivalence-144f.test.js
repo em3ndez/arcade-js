@@ -59,7 +59,7 @@ import { loc_141e as oracle141e } from "../../translated/loc_141e.js";
 import { selectPlayer2AndComposeScreen as candidate } from "../selectPlayer2AndComposeScreen.js";
 import { configureFlipScreenAndComposeScreen } from "../configureFlipScreenAndComposeScreen.js";
 import { Machine } from "../../machine.js";
-import { CURRENT_PLAYER, DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE, STACK_SCRATCH } from "../../optimized/ram.js";
+import { CURRENT_PLAYER, DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE, STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

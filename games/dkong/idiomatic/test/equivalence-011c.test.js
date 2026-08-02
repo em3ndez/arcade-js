@@ -40,7 +40,7 @@ import { sub_011c as oracle } from "../../translated/sub_011c.js";
 import { silenceSound } from "../silenceSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, SND_BGM } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SND_BGM } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

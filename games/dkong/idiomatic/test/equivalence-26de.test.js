@@ -53,7 +53,7 @@ import { sub_26de as oracle } from "../../translated/sub_26de.js";
 import { entry_2333 as oracle2333 } from "../../translated/entry_2333.js";
 import { reverseStepDirection } from "../reverseStepDirection.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -55,7 +55,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_13bb as oracle } from "../../translated/loc_13bb.js";
 import { selectPlayer1Context as idiomatic } from "../selectPlayer1Context.js";
 import { Machine } from "../../machine.js";
-import { CURRENT_PLAYER, GAME_SUBSTATE, STACK_SCRATCH } from "../../optimized/ram.js";
+import { CURRENT_PLAYER, GAME_SUBSTATE, STACK_SCRATCH } from "../ram.js";
 
 // 0x600E is the join-value low byte (NOT TWO_PLAYER_GAME, which is the high byte
 // 0x600F) — not in ram.js, so a local hex constant, matching the routine.

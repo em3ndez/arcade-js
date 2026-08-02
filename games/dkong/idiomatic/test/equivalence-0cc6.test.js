@@ -44,7 +44,7 @@ import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js";
 import { stampRivetBoardTiles } from "../stampRivetBoardTiles.js";
 import { loc_3fa0 } from "../loc_3fa0.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

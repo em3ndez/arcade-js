@@ -41,7 +41,7 @@ import { loc_08b2 as oracle } from "../../translated/loc_08b2.js";
 import { dispatchCreditedSubstate } from "../dispatchCreditedSubstate.js";
 import { dispatchGameState } from "../../translated/dispatchGameState.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_2441 as oracle } from "../../translated/sub_2441.js";
 import { loadBoardObjectRecords } from "../loadBoardObjectRecords.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, BOARD } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

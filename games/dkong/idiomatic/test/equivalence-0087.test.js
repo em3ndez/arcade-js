@@ -44,7 +44,7 @@ import { readControls as oracle } from "../../translated/readControls.js";
 import { readControls as candidate } from "../readControls.js";
 import { sub_0141 } from "../../translated/sub_0141.js";
 import { Machine } from "../../machine.js";
-import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW, ATTRACT, STACK_SCRATCH } from "../../optimized/ram.js";
+import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW, ATTRACT, STACK_SCRATCH } from "../ram.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

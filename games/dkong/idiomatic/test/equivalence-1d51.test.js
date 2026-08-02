@@ -44,7 +44,7 @@ import { markOnLadderAndCommitSprite } from "../markOnLadderAndCommitSprite.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH, MARIO_X, MARIO_CLIMB_SOUND_TOGGLE, MARIO_SPRITE_RECORD, SND_TRIGGER,
-} from "../../optimized/ram.js";
+} from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

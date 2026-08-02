@@ -42,7 +42,7 @@ import { sub_1d8f as oracle } from "../../translated/sub_1d8f.js";
 import { triggerWalkSound } from "../triggerWalkSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, SND_TRIGGER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SND_TRIGGER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

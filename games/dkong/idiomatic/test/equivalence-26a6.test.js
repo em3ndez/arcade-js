@@ -52,7 +52,7 @@ import { sub_262f } from "../../translated/sub_262f.js";
 import { sub_2679 } from "../../translated/sub_2679.js";
 import { loc_26a6 } from "../loc_26a6.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

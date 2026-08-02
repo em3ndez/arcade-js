@@ -60,7 +60,7 @@ import { sub_1732 as oracle } from "../../translated/sub_1732.js";
 import { loc_1732 as idiomatic } from "../loc_1732.js";
 import { animateSpriteObjectBlock } from "../animateSpriteObjectBlock.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_BUFFER, SPRITE_OBJ_BLOCK } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_BUFFER, SPRITE_OBJ_BLOCK } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -39,7 +39,7 @@ import { loc_1641 } from "../loc_1641.js";
 import { loc_1dbd } from "../loc_1dbd.js"; // drop-dispatch teeth twin
 import { loc_1644 } from "../loc_1644.js"; // drop-effect teeth twin
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

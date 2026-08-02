@@ -51,7 +51,7 @@ import { loc_1708 } from "../loc_1708.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SND_PRIORITY } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SND_PRIORITY } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

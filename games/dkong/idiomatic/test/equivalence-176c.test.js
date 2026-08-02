@@ -51,7 +51,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_176c as oracle } from "../../translated/sub_176c.js";
 import { cullSpriteObjectsAtTop } from "../cullSpriteObjectsAtTop.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

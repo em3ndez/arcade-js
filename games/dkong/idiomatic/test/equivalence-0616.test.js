@@ -47,9 +47,9 @@ import { sub_0616 as oracle } from "../../translated/sub_0616.js";
 import { drawCreditDisplay } from "../drawCreditDisplay.js";
 import { drawStringVertical } from "../drawStringVertical.js";
 import { expandBcdDigits } from "../expandBcdDigits.js";
-import { CREDITS } from "../../optimized/ram.js";
+import { CREDITS } from "../ram.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

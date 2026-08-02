@@ -56,7 +56,7 @@ import { sub_0141 as oracle } from "../../translated/sub_0141.js";
 import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, SPRITE_BUFFER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_BUFFER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

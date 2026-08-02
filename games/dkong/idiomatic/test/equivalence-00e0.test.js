@@ -63,7 +63,7 @@ import {
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
   STACK_SCRATCH,
-} from "../../optimized/ram.js";
+} from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

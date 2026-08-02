@@ -42,7 +42,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_12ac as oracle } from "../../translated/loc_12ac.js";
 import { loc_12ac } from "../loc_12ac.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD } from "../ram.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

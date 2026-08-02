@@ -57,7 +57,7 @@ import {
   MARIO_AIRBORNE, P1_INPUT, MARIO_SPRITE_CODE, MARIO_Y,
   MARIO_AIR_VX_HI, MARIO_AIR_VX_LO, MARIO_AIR_VY_HI, MARIO_AIR_VY_LO,
   MARIO_AIR_FRAMES, MARIO_X_FRAC, MARIO_Y_FRAC, MARIO_AIR_START_Y, SND_TRIGGER,
-} from "../../optimized/ram.js";
+} from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -4,7 +4,7 @@
  * Donkey Kong work-RAM constants for the idiomatic layer.
  *
  * Maps Donkey Kong work RAM (0x6000-0x6BFF) to meaningful names for the
- * optimized layer. Every constant here was proposed by a drafter and then
+ * idiomatic layer. Every constant here was proposed by a drafter and then
  * independently re-derived by a SEPARATE verifier — each holds on either a
  * reproduced control-poke or an unambiguous ROM cite, never on the drafter's
  * word alone.

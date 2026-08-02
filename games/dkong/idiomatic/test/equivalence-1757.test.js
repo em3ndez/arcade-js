@@ -61,7 +61,7 @@ import { cullSpriteObjectsAtTop } from "../cullSpriteObjectsAtTop.js";
 import { allSlotsClear } from "../allSlotsClear.js";
 import { Machine } from "../../machine.js";
 import { ORACLE_ROUTINES } from "../../routines.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SUBSTATE_TIMER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SUBSTATE_TIMER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

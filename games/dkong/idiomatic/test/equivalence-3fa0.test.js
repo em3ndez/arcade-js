@@ -44,7 +44,7 @@ import { loc_3fa0 as idiomatic } from "../loc_3fa0.js";
 import { stamp50mBoardTiles } from "../stamp50mBoardTiles.js";
 import { loc_0d5f } from "../loc_0d5f.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

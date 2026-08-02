@@ -47,7 +47,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_15fa as oracle } from "../../translated/sub_15fa.js";
 import { positionBonusItemSprite } from "../positionBonusItemSprite.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

@@ -52,7 +52,7 @@ import { loc_1662 as idiomatic } from "../loc_1662.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, BOARD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, BOARD } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

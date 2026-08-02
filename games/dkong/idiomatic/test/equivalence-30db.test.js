@@ -46,7 +46,7 @@ import { entry_30db as oracle } from "../../translated/entry_30db.js";
 import { loc_30db } from "../loc_30db.js";
 import { clearStridedBytes } from "../clearStridedBytes.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_SPRITE_RECORD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, MARIO_SPRITE_RECORD } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

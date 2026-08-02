@@ -57,7 +57,7 @@ import { sub_3fa6 as oracle } from "../../translated/sub_3fa6.js";
 import { stamp50mBoardTiles } from "../stamp50mBoardTiles.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD } from "../../optimized/ram.js";
+import { STACK_SCRATCH, BOARD } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

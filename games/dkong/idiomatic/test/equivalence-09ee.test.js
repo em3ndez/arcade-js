@@ -50,7 +50,7 @@ import { sub_09ee as oracle } from "../../translated/sub_09ee.js";
 import { handler_0779 } from "../../translated/handler_0779.js";
 import { draw2UpLabel } from "../draw2UpLabel.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, TWO_PLAYER_GAME } from "../../optimized/ram.js";
+import { STACK_SCRATCH, TWO_PLAYER_GAME } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

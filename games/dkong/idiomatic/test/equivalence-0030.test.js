@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0030 as oracle } from "../../translated/sub_0030.js";
 import { boardBitGate } from "../boardBitGate.js";
-import { BOARD } from "../../optimized/ram.js";
+import { BOARD } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

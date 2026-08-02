@@ -42,7 +42,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_0207 as oracle } from "../../translated/sub_0207.js";
 import { decodeDipSwitches } from "../decodeDipSwitches.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

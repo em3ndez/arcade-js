@@ -67,7 +67,7 @@ import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { xorMaskStridedPair } from "../xorMaskStridedPair.js";
 import { stirRandomSeed } from "../stirRandomSeed.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

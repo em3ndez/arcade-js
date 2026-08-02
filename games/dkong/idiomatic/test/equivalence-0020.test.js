@@ -44,7 +44,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { sub_0020 as oracle } from "../../translated/sub_0020.js";
 import { tickSubstatePrescaler } from "../tickSubstatePrescaler.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
-import { SUBSTATE_TIMER_LO, SUBSTATE_TIMER } from "../../optimized/ram.js";
+import { SUBSTATE_TIMER_LO, SUBSTATE_TIMER } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

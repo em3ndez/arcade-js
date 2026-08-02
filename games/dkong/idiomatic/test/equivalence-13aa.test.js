@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_13aa as oracle } from "../../translated/loc_13aa.js";
 import { loc_06fe as oracleDispatcher } from "../../translated/loc_06fe.js";
 import { loc_13aa } from "../loc_13aa.js";
-import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER, STACK_SCRATCH } from "../../optimized/ram.js";
+import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER, STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

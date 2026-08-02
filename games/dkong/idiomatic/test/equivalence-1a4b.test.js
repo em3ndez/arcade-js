@@ -52,7 +52,7 @@ import { arm_1a4b as oracle } from "../../translated/arm_1a4b.js";
 import { sub_1a33 as oracle1a33 } from "../../translated/sub_1a33.js";
 import { armEdgeRivetPickup } from "../armEdgeRivetPickup.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, EDGE_RIVET_ARMED } from "../../optimized/ram.js";
+import { STACK_SCRATCH, EDGE_RIVET_ARMED } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

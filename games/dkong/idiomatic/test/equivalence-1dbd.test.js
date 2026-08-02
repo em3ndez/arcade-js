@@ -46,7 +46,7 @@ import { loc_1e49 } from "../loc_1e49.js"; // idiomatic handlers, for the teeth 
 import { loc_1dc9 } from "../loc_1dc9.js";
 import { loc_1e4a } from "../../translated/loc_1e4a.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

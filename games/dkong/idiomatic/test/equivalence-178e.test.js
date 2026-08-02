@@ -44,7 +44,7 @@ import { advanceToNextBoard } from "../advanceToNextBoard.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, BOARD_SEQ_PTR, SUBSTATE_TIMER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, BOARD, BOARD_SEQ_PTR, SUBSTATE_TIMER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

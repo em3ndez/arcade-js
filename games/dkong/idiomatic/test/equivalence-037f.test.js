@@ -52,7 +52,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { sub_037f as oracle } from "../../translated/sub_037f.js";
 import { rampDifficulty } from "../rampDifficulty.js";
-import { DIFFICULTY_PRESCALER, DIFFICULTY_CLOCK, LEVEL, DIFFICULTY } from "../../optimized/ram.js";
+import { DIFFICULTY_PRESCALER, DIFFICULTY_CLOCK, LEVEL, DIFFICULTY } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

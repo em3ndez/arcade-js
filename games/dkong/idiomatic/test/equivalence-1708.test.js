@@ -54,7 +54,7 @@ import { loc_1708 as candidate } from "../loc_1708.js";
 import { silenceSound } from "../silenceSound.js";
 import { fillDescendingColumn } from "../fillDescendingColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SND_PRIORITY, SND_PRIORITY_FRAMES } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SND_PRIORITY, SND_PRIORITY_FRAMES } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -48,7 +48,7 @@ import { configureFlipScreenAndSelectSubstate as candidate } from "../configureF
 import { clearTilemapAndSprites as clearTilemapAndSpritesLike } from "../clearTilemapAndSprites.js";
 import { silenceSound as silenceSoundLike } from "../silenceSound.js";
 import { Machine } from "../../machine.js";
-import { GAME_SUBSTATE, DIP_UPRIGHT, SND_TRIGGER, STACK_SCRATCH } from "../../optimized/ram.js";
+import { GAME_SUBSTATE, DIP_UPRIGHT, SND_TRIGGER, STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

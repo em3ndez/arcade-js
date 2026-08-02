@@ -47,7 +47,7 @@ import { loc_1e00 } from "../loc_1e00.js"; // idiomatic arms, for the swap teeth
 import { loc_1e08 } from "../loc_1e08.js";
 import { loc_1e10 } from "../loc_1e10.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -52,7 +52,7 @@ import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
 import { readControls } from "../../translated/readControls.js";
 import { Machine } from "../../machine.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
-import { STACK_SCRATCH, ATTRACT, GAME_STATE, FRAME } from "../../optimized/ram.js";
+import { STACK_SCRATCH, ATTRACT, GAME_STATE, FRAME } from "../ram.js";
 
 // The four GAME_STATE handlers (same references perFrame folds the 0x00CA table into),
 // re-imported here so the teeth twins can reproduce perFrame's structure with one bug.

@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { handler_073c as oracle } from "../../translated/handler_073c.js";
 import { runAttractState } from "../runAttractState.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, CREDITS, GAME_STATE, GAME_SUBSTATE } from "../../optimized/ram.js";
+import { STACK_SCRATCH, CREDITS, GAME_STATE, GAME_SUBSTATE } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

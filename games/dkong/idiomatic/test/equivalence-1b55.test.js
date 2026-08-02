@@ -44,7 +44,7 @@ import {
   STACK_SCRATCH,
   MARIO_FREEZE_TIMER, MARIO_HAMMER_PENDING, MARIO_HAMMER_ACTIVE,
   MARIO_SPRITE_CODE, MARIO_WALK_ANIM,
-} from "../../optimized/ram.js";
+} from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

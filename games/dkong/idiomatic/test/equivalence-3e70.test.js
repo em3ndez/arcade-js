@@ -42,7 +42,7 @@ import { loc_3e70 as oracle } from "../../translated/loc_3e70.js";
 import { loc_3e70 as idiomatic } from "../loc_3e70.js";
 import { loc_1e28 } from "../../translated/loc_1e28.js"; // the frozen oracle tail, for the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../../optimized/ram.js";
+import { STACK_SCRATCH } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

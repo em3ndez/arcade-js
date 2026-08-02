@@ -51,7 +51,7 @@ import { loc_0b68 as idiomatic } from "../loc_0b68.js";
 import { addStrided } from "../addStrided.js"; // idiomatic leaf, for the teeth twins
 import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js"; // idiomatic leaf, for the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK } from "../../optimized/ram.js";
+import { STACK_SCRATCH, FRAME, SUBSTATE_TIMER, INTRO_STEP, SND_TRIGGER, SPRITE_OBJ_BLOCK } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

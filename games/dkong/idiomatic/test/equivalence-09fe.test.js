@@ -57,7 +57,7 @@ import {
   BOARD_SEQ_PTR,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "../../optimized/ram.js";
+} from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

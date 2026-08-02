@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { entry_128b as oracle } from "../../translated/entry_128b.js";
 import { loc_128b } from "../loc_128b.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "../ram.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { sub_30bd } from "../../translated/sub_30bd.js";
 

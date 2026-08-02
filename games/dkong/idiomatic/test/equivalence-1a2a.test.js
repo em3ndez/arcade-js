@@ -55,7 +55,7 @@ import {
   SUBSTATE_TIMER,
   BONUS_EXPIRED_STEP,
   STACK_SCRATCH,
-} from "../../optimized/ram.js";
+} from "../ram.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

@@ -49,7 +49,7 @@ import { loc_12de as oracle } from "../../translated/loc_12de.js";
 import { loc_12de } from "../loc_12de.js";
 import { tickSubstateTimer as tick } from "../tickSubstateTimer.js"; // reused inside the teeth twins
 import { loc_30db as clear } from "../loc_30db.js"; //                    "        "        "
-import { GAME_SUBSTATE, SUBSTATE_TIMER, STACK_SCRATCH } from "../../optimized/ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER, STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

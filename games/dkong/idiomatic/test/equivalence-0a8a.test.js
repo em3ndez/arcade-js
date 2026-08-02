@@ -49,7 +49,7 @@ import { loc_0a8a as oracle } from "../../translated/loc_0a8a.js";
 import { setupIntroCutsceneStep as idiomatic } from "../setupIntroCutsceneStep.js";
 import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, INTRO_STEP } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, INTRO_STEP } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

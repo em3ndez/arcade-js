@@ -60,7 +60,7 @@ import { addStrided } from "../addStrided.js";
 import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js";
 import { sub_1826 } from "../../translated/sub_1826.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER } from "../../optimized/ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER } from "../ram.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
