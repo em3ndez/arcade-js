@@ -452,9 +452,16 @@ export const DIFFICULTY_CLOCK = 0x6381;
  *  sprite triple stamped into the barrel record with 46/46 agreement — bit7=0 -> code/attr/mode
  *  0x15/0x0B/0x00 (38 observations), bit7=1 -> 0x19/0x0C/0x01 (8). It is set by ROM 0x2C72 exactly one
  *  frame before each alternate-kind claim (8 events). The two kinds coexisted on screen for 372 frames
- *  and behave differently: the attr-0x0C object DROPS with its X pinned at 59, the attr-0x0B object ROLLS
- *  with X sweeping the girders. Which named Donkey Kong object each kind is was deliberately NOT
- *  established — the behaviour is observed, the lore name is not. */
+ *  and carry different attribute bytes, hence different palettes.
+ *  ★ REFUTED BY CODE (pass 15): this note used to continue "the attr-0x0C object DROPS with its X
+ *  pinned at 59, the attr-0x0B object ROLLS". The X=59 pin comes from the ONE-waypoint table at
+ *  0x39CC, selected by BIT 0 (ROM 0x2D4A `ld a,(0x6382) / rrca / jp c,0x2D83`), NOT by bit 7. The
+ *  bits are independent — ROM 0x2C86 clears the mode, so 0x2C72's OR yields exactly 0x80, bit 7 set
+ *  and bit 0 clear, and that barrel walks the FOUR-waypoint table 0x39C3 to (89,78). The run did not
+ *  log this byte's VALUE at each of its 8 alt-kind stamps, so the likely (UNVERIFIED) reconciliation
+ *  is that all 8 were 0x81, both bits set. Bit 7's grounded effect is the sprite triple above, plus
+ *  the behaviour arms keyed off record +0x15 (ROM 0x20A2, 0x1ED3, 0x24C3). Which named Donkey Kong
+ *  object each kind is was deliberately NOT established. */
 export const BARREL_CLAIM_MODE = 0x6382;
 /** [seen] (own byte: 256 vals 0..255, 7866 transitions, RUN-1P) The main loop's latched copy of the last FRAME it serviced; the loop spins on
  *  `ld a,(0x601A) / cp (hl) / jr z` (ROM 0x02D1) — the wait-for-vblank. Byte-identical to FRAME at
@@ -1217,7 +1224,7 @@ export const ROUTINES = {
   0x2c49: { name: "loc_2c49", role: "one entry of the bonus-event slot-claim cluster (0x2C41): stash mode byte 1, then hand off to the shared slot-claim entry with the caller's bonus value", cert: "code" },
   0x2c4b: { name: "loc_2c4b", role: "one entry of the bonus-event slot-claim cluster (0x2C41): record the caller's mode byte, then hand off to the shared slot-claim body with that byte bumped by one", cert: "code" },
   0x2c4f: { name: "armBarrelRelease", role: "one entry of the bonus-event slot-claim cluster (0x2C41): stash the caller's mode byte, then, when the bonus counter has reached its scheduled mark, step the mark and cla", cert: "code" },
-  0x2c72: { name: "markNextBarrelAsDroppingKind", role: "set the top bit of engine-scratch byte 0x6382, preserving the low bits", cert: "code" },
+  0x2c72: { name: "markNextBarrelAsAltKind", role: "set the top bit of BARREL_CLAIM_MODE, preserving the low bits -- bit 7 is the barrel KIND select (sprite family plus the behaviour arms keyed off record +0x15); it does NOT select the drop path, which is bit 0", cert: "code" },
   0x2c7b: { name: "loc_2c7b", role: "pick a bonus-event slot-claim cluster entry by testing the caller's stepped value against the bonus", cert: "code" },
   0x2c86: { name: "loc_2c86", role: "one entry of the bonus-event slot-claim cluster (0x2C41): clear the slot-claim request flag, then hand off to the shared slot-claim entry with mode byte 3", cert: "code" },
   0x2cb8: { name: "releaseBarrelIntoFreeSlot", role: "the 25m barrel-release slot claim: mark the scanned-free OBJ_ARRAY_67 record occupied, publish it and its sprite destination, latch the cluster event gate, and charge the release against BONUS -- on 25m this routine IS the bonus clock", cert: "code" },

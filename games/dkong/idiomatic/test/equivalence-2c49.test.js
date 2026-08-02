@@ -9,13 +9,13 @@
  * leaves 0x6382 = 1 and 0x638F = 2, independent of anything the caller holds. The shared body then
  * runs the periodic-event gate against the bonus: ONLY when BONUS_EVENT_MARK equals it does it step
  * the mark down by 8 and scan the five OBJ_ARRAY_64 records (stride 32) for the first zero
- * active-byte — on a hit it raises bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via markNextBarrelAsDroppingKind),
+ * active-byte — on a hit it raises bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via markNextBarrelAsAltKind),
  * so a claimed slot leaves 0x6382 = 0x81; on a miss it does just the scratch writes. It returns
  * nothing a caller consumes (the oracle threads residual registers/flags out; its callers reload),
  * so the contract is memory-only.
  *
  * The oracle writes NO stack: loc_2c49 falls THROUGH the whole chain (loc_2c49 -> loc_2c4b ->
- * armBarrelRelease -> markNextBarrelAsDroppingKind) with jumps, no CALL and no push, and every exit only READS the stack (a pop
+ * armBarrelRelease -> markNextBarrelAsAltKind) with jumps, no CALL and no push, and every exit only READS the stack (a pop
  * is never a memory write). The candidate models no stack (plain JS calls), so the compared memory
  * (dumpState is RAM) is identical with NO stack-scratch exclusion — as for 0x2C4B / 0x2C4F / 0x2C72.
  *

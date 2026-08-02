@@ -13,7 +13,7 @@
  * scratch writes. When the mark is hit it schedules the next fire by stepping the mark down by
  * 8, then scans the five records of OBJ_ARRAY_64 (stride 32) for the first one whose active
  * byte is zero — a free slot. On finding one it raises bit 7 of BARREL_CLAIM_MODE (via
- * markNextBarrelAsDroppingKind); if all five are occupied it does nothing further.
+ * markNextBarrelAsAltKind); if all five are occupied it does nothing further.
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md): bit 7 of BARREL_CLAIM_MODE is the 25m BARREL-KIND select. One
@@ -35,15 +35,15 @@
  * LIVE-OUT: memory-only — 0x638F, 0x6392, BONUS_EVENT_MARK, and (slot-claim only)
  *           BARREL_CLAIM_MODE. The oracle threads residual registers/flags out and its callers
  *           reload; nothing reads a register the routine leaves behind.
- * NAMES:    BONUS_EVENT_MARK (0x62B2), OBJ_ARRAY_64 (0x6400) from ram.js; markNextBarrelAsDroppingKind (ROM 0x2C72)
+ * NAMES:    BONUS_EVENT_MARK (0x62B2), OBJ_ARRAY_64 (0x6400) from ram.js; markNextBarrelAsAltKind (ROM 0x2C72)
  *           direct-called. The scratch cells 0x638F/0x6392 are unnamed engine scratch (rejected
  *           in ram.js under "0x63xx engine scratch"), so they stay hex + comment;
- *           BARREL_CLAIM_MODE (0x6382) is named in ram.js and imported inside markNextBarrelAsDroppingKind, which is
+ *           BARREL_CLAIM_MODE (0x6382) is named in ram.js and imported inside markNextBarrelAsAltKind, which is
  *           where this routine's only write to it happens.
  */
 
 import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "./ram.js";
-import { markNextBarrelAsDroppingKind } from "./markNextBarrelAsDroppingKind.js"; // ROM 0x2C72 — raise bit 7 of BARREL_CLAIM_MODE
+import { markNextBarrelAsAltKind } from "./markNextBarrelAsAltKind.js"; // ROM 0x2C72 — raise bit 7 of BARREL_CLAIM_MODE
 
 const SCRATCH_MODE = 0x638f; // engine scratch: the caller's mode byte is recorded here
 const SCRATCH_FLAG = 0x6392; // engine scratch: raised to 1 on every entry
@@ -74,7 +74,7 @@ export function armBarrelRelease(m, scratchValue, bonus) {
   // Claim the first free (zero active-byte) slot; tag the claim on it.
   for (let i = 0; i < RECORDS; i++) {
     if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) {
-      markNextBarrelAsDroppingKind(m); // raise bit 7 (the barrel-kind select) on BARREL_CLAIM_MODE
+      markNextBarrelAsAltKind(m); // raise bit 7 (the barrel-kind select) on BARREL_CLAIM_MODE
       return;
     }
   }

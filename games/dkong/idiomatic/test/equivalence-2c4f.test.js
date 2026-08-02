@@ -6,13 +6,13 @@
  * its whole memory-observable behaviour is: always write the mode byte to 0x638F and 1 to 0x6392;
  * then, ONLY when BONUS_EVENT_MARK equals the bonus value, step that mark down by 8 and scan the
  * five OBJ_ARRAY_64 records (stride 32) for the first zero active-byte — on a hit raise the top-bit
- * bit 7 on BARREL_CLAIM_MODE (via markNextBarrelAsDroppingKind), otherwise do nothing more. It returns nothing a caller
+ * bit 7 on BARREL_CLAIM_MODE (via markNextBarrelAsAltKind), otherwise do nothing more. It returns nothing a caller
  * consumes (the oracle threads residual registers/flags out; its callers reload), so the contract
  * is memory-only.
  *
  * The oracle's exits only READ the stack (a pop is never a memory write) and its free-slot tail is
  * a plain call into 0x2C72 (which pushes nothing), so nothing the routine does writes the stack.
- * The candidate models no stack (plain JS return + a direct markNextBarrelAsDroppingKind call), so the compared memory
+ * The candidate models no stack (plain JS return + a direct markNextBarrelAsAltKind call), so the compared memory
  * (dumpState is RAM) is identical to the oracle's with NO stack-scratch exclusion — as for 0x2C72.
  *
  *   1. EQUAL — armBarrelRelease == oracle on RAM (firstStateDiff over the whole dump) across:
@@ -20,14 +20,14 @@
  *          0x638F store + the 0x6392 write + the early return.
  *        SLOT sweep (crafted) — the gate OPEN over every first-free-slot position (records 0..4),
  *          the all-occupied case, several mark/bonus values including a low mark that wraps the
- *          −8 step, and a non-zero starting BARREL_CLAIM_MODE to prove markNextBarrelAsDroppingKind's read-modify-write.
+ *          −8 step, and a non-zero starting BARREL_CLAIM_MODE to prove markNextBarrelAsAltKind's read-modify-write.
  *      Plus a non-vacuity block asserting the writes really happened on both sides.
  *
  *   2. TEETH — three deliberately-broken twins the same sweep MUST catch:
  *        (a) wrong mark step (−4 not −8) — caught at BONUS_EVENT_MARK on the gate-open path.
  *        (b) inverted gate (proceeds when mark != bonus) — caught on the gate-closed A-sweep,
  *            where the twin performs the RMW + scan the oracle skips.
- *        (c) dropped slot flag (skips markNextBarrelAsDroppingKind) — caught at BARREL_CLAIM_MODE on a slot-found case.
+ *        (c) dropped slot flag (skips markNextBarrelAsAltKind) — caught at BARREL_CLAIM_MODE on a slot-found case.
  *
  *   3. REALISM (captured dispatches) — hook 0x2C4F in a real attract run (it is reached through the
  *      bonus-event cluster's dispatch), clone at each true dispatch, and confirm armBarrelRelease reproduces
@@ -42,7 +42,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c4f as oracle } from "../../translated/loc_2c4f.js";
 import { armBarrelRelease } from "../armBarrelRelease.js";
-import { markNextBarrelAsDroppingKind } from "../markNextBarrelAsDroppingKind.js";
+import { markNextBarrelAsAltKind } from "../markNextBarrelAsAltKind.js";
 import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -203,7 +203,7 @@ function brokenWrongStep(m, scratchValue, bonus) {
   if (mark !== bonus) return;
   mem.write8(BONUS_EVENT_MARK, mark - 4); // BUG: −4, not −8
   for (let i = 0; i < RECORDS; i++) {
-    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { markNextBarrelAsDroppingKind(m); return; }
+    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { markNextBarrelAsAltKind(m); return; }
   }
 }
 
@@ -217,7 +217,7 @@ function brokenInvertedGate(m, scratchValue, bonus) {
   if (mark === bonus) return; // BUG: should be `mark !== bonus`
   mem.write8(BONUS_EVENT_MARK, mark - EVENT_STEP);
   for (let i = 0; i < RECORDS; i++) {
-    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { markNextBarrelAsDroppingKind(m); return; }
+    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { markNextBarrelAsAltKind(m); return; }
   }
 }
 
@@ -230,7 +230,7 @@ function brokenDroppedFlag(m, scratchValue, bonus) {
   if (mark !== bonus) return;
   mem.write8(BONUS_EVENT_MARK, mark - EVENT_STEP);
   for (let i = 0; i < RECORDS; i++) {
-    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) return; // BUG: dropped the markNextBarrelAsDroppingKind flag
+    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) return; // BUG: dropped the markNextBarrelAsAltKind flag
   }
 }
 

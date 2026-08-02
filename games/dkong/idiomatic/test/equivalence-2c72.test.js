@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for markNextBarrelAsDroppingKind (ROM 0x2C72) — set bit 7 of BARREL_CLAIM_MODE.
+ * Equivalence test for markNextBarrelAsAltKind (ROM 0x2C72) — set bit 7 of BARREL_CLAIM_MODE.
  *
- * markNextBarrelAsDroppingKind is a LEAF whose entire memory-observable behaviour is a function of ONE byte,
+ * markNextBarrelAsAltKind is a LEAF whose entire memory-observable behaviour is a function of ONE byte,
  * the value at BARREL_CLAIM_MODE, and it writes only that same byte back with its top bit forced on
  * (`value | 0x80`). It returns nothing a caller consumes: the oracle threads the value
  * through the accumulator and `ret`s, but its callers reload — so the contract is
@@ -13,7 +13,7 @@
  * compared state is memory only (dumpState is RAM), so the candidate's plain JS return leaves
  * the compared memory identical to the oracle's — no stack-scratch exclusion is needed here.
  *
- *   1. EQUAL (exhaustive) — markNextBarrelAsDroppingKind == oracle on RAM (firstStateDiff over the whole dump, which
+ *   1. EQUAL (exhaustive) — markNextBarrelAsAltKind == oracle on RAM (firstStateDiff over the whole dump, which
  *      neither side writes outside BARREL_CLAIM_MODE) for every one of the 256 possible starting bytes, and
  *      a non-vacuity check that the byte really became value|0x80 on both sides.
  *
@@ -24,7 +24,7 @@
  *            them; caught on any starting value with a low bit set (justifies the read-modify-write).
  *
  *   3. REALISM (captured dispatches) — hook 0x2C72 in a real attract run (reached via the object-slot
- *      allocator's dispatch), clone the machine at each true dispatch, and confirm markNextBarrelAsDroppingKind
+ *      allocator's dispatch), clone the machine at each true dispatch, and confirm markNextBarrelAsAltKind
  *      reproduces the oracle's RAM on every real state the game actually produces.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2c72.test.js
@@ -35,7 +35,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c72 as oracle } from "../../translated/loc_2c72.js";
-import { markNextBarrelAsDroppingKind } from "../markNextBarrelAsDroppingKind.js";
+import { markNextBarrelAsAltKind } from "../markNextBarrelAsAltKind.js";
 import { BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -97,9 +97,9 @@ const describeMismatch = (mm) =>
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): markNextBarrelAsDroppingKind == oracle across all 256 starting bytes", () => {
+test("EQUAL (exhaustive): markNextBarrelAsAltKind == oracle across all 256 starting bytes", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, markNextBarrelAsDroppingKind);
+  const { mismatch, count } = fullSweep(base, markNextBarrelAsAltKind);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256, "must have compared the full single-byte input space");
 
@@ -108,9 +108,9 @@ test("EQUAL (exhaustive): markNextBarrelAsDroppingKind == oracle across all 256 
     const a = makeEntry(base, v); // oracle
     const b = makeEntry(base, v); // candidate
     oracle(a);
-    markNextBarrelAsDroppingKind(b);
+    markNextBarrelAsAltKind(b);
     assert.equal(a.mem.read8(BARREL_CLAIM_MODE), v | 0x80, `oracle must set bit 7 (start ${hx(v)})`);
-    assert.equal(b.mem.read8(BARREL_CLAIM_MODE), v | 0x80, `markNextBarrelAsDroppingKind must set bit 7 (start ${hx(v)})`);
+    assert.equal(b.mem.read8(BARREL_CLAIM_MODE), v | 0x80, `markNextBarrelAsAltKind must set bit 7 (start ${hx(v)})`);
   }
   console.log(`  EQUAL/exhaustive: ${count} starting bytes — RAM identical to the oracle`);
 });
@@ -165,7 +165,7 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured 0x2C72 dispatches — markNextBarrelAsDroppingKind matches oracle RAM", () => {
+test("REALISM: real captured 0x2C72 dispatches — markNextBarrelAsAltKind matches oracle RAM", () => {
   const caps = captureDispatches(32, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x2C72 dispatch during attract");
 
@@ -176,7 +176,7 @@ test("REALISM: real captured 0x2C72 dispatches — markNextBarrelAsDroppingKind 
     b.nextNmi = Infinity; b.nextBoundary = Infinity;
     const before = a.mem.read8(BARREL_CLAIM_MODE);
     oracle(a);
-    markNextBarrelAsDroppingKind(b);
+    markNextBarrelAsAltKind(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(
       ram,

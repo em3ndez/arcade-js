@@ -15,13 +15,13 @@
  *   - otherwise           -> the shared entry with mode byte 2 (loc_2c4b): records
  *                            BARREL_CLAIM_MODE = 2, 0x638F = 3, again forwarding the bonus.
  *
- * Both arms tail into the same slot-claim chain (armBarrelRelease -> markNextBarrelAsDroppingKind); nothing here consumes a
+ * Both arms tail into the same slot-claim chain (armBarrelRelease -> markNextBarrelAsAltKind); nothing here consumes a
  * return value, so this is void. The comparison is taken at byte width because the step-up wraps
  * (a stepped value of 254/255 lands on 0/1), and that wrap flips the branch when the bonus is 0/1.
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md): what the chain below ultimately tags is a 25m BARREL. On a
- * claim, markNextBarrelAsDroppingKind raises bit 7 of BARREL_CLAIM_MODE, and one frame later stampReleasedBarrelKind reads that bit
+ * claim, markNextBarrelAsAltKind raises bit 7 of BARREL_CLAIM_MODE, and one frame later stampReleasedBarrelKind reads that bit
  * to choose which of two barrel kinds it stamps into the freshly-released OBJ_ARRAY_67 record —
  * bit 7 CLEAR -> sprite code/attr/mode 0x15 / 0x0B / 0x00, bit 7 SET -> 0x19 / 0x0C / 0x01,
  * agreeing 46/46 with no exceptions (38 clear, 8 set), every dispatch ordinary board-1 25m

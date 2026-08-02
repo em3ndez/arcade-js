@@ -9,7 +9,7 @@
  * entry's whole distinguishing move). The shared body then runs the periodic-event gate against the
  * bonus value: ONLY when BONUS_EVENT_MARK equals it does it step the mark down by 8 and scan the
  * five OBJ_ARRAY_64 records (stride 32) for the first zero active-byte — on a hit it raises the
- * bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via markNextBarrelAsDroppingKind), so a claimed slot leaves it as
+ * bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via markNextBarrelAsAltKind), so a claimed slot leaves it as
  * the mode byte with its top bit set; on a miss it does just the two scratch writes. It returns
  * nothing a caller consumes (the oracle threads residual registers/flags out; its callers reload),
  * so the contract is memory-only.

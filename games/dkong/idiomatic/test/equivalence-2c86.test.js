@@ -6,7 +6,7 @@
  * mode byte 3 and the caller's bonus value (a register live-in). armBarrelRelease always stashes the mode
  * byte at 0x638F and raises 1 at 0x6392; then, ONLY when BONUS_EVENT_MARK equals the bonus value,
  * it steps that mark down by 8 and scans the five OBJ_ARRAY_64 records (stride 32) for the first
- * free (zero) one — on a hit it raises bit 7 of BARREL_CLAIM_MODE (via markNextBarrelAsDroppingKind). So on
+ * free (zero) one — on a hit it raises bit 7 of BARREL_CLAIM_MODE (via markNextBarrelAsAltKind). So on
  * this entry the flag ends at 0 (no claim) or 0x80 (claimed), never carrying an older value. It
  * returns nothing a caller consumes (the oracle threads residual registers/flags out; its callers
  * reload), so the contract is memory-only.

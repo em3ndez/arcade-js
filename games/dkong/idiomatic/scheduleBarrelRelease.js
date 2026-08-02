@@ -30,7 +30,7 @@
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md). What this scheduler is ultimately scheduling is a 25m BARREL
- * of the alternate KIND: the cluster's slot claim ends in markNextBarrelAsDroppingKind raising bit 7 of
+ * of the alternate KIND: the cluster's slot claim ends in markNextBarrelAsAltKind raising bit 7 of
  * BARREL_CLAIM_MODE, and bit 7 is read one frame later by stampReleasedBarrelKind, which stamps the barrel
  * record accordingly — 46/46 agreement between the bit and the bytes stamped, no exceptions
  * (38 bit-7-clear, 8 bit-7-set), and 0x2C72 fetched exactly 8 times, each EXACTLY ONE FRAME
