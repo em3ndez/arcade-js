@@ -158,7 +158,14 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   that do not exist, `loc_281d` carried a stale dependency note, `tools/swap_check.mjs` died on
   `Machine.create is not a function` for DK so its "only running the whole game catches that" had
   never once run there, and `tools/names_consistency.py` inspected The Pit's 0x8000-0x87FF window
-  on every DK commit and so matched nothing. All five were green; none was checking anything.*
+  on every DK commit and so matched nothing. All five were green; none was checking anything.
+  (Those five are the HISTORICAL examples that produced this rule; all five were verified fixed in
+  2026-08. In particular names_consistency.py has derived its window per game from the board memory
+  map since a94ede3, and is live for DK's 0x6000-0x6BFF — do not cite THE WINDOW as a current blind
+  spot. Its docstring records the holes that DO remain, chiefly that a trailing comment escapes
+  scanning entirely. A reviewer cited the window from this footnote in 2026-08 and had to retract
+  after teeth-testing the tool; a second reviewer then caught this note citing the wrong commit for
+  the fix — ce6f6ea is a later, separate repair to the same tool, its uppercase-hex EXPORT regex.)*
 
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
