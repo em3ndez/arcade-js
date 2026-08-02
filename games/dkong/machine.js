@@ -914,13 +914,27 @@ export class Machine {
    */
   renderFrame() {
     if (!this.video) throw new Error("renderFrame needs gfx1 and proms");
-    return renderFrameRGB(
+    const rgb = renderFrameRGB(
       this.mem.videoRam,
       this.video.tiles,
       this.video.charColour,
       this.video.palette,
       { gfxBank: 0, paletteBank: this.io.paletteBank, flip: this.io.flipScreen },
     );
+    // SPRITE POST-PASS — renderFrameRGB paints the TILEMAP ONLY (its own docblock says so).
+    // Without this, everything that is a sprite — Mario, Kong, the barrels, Pauline, the
+    // hammers — is simply absent, and the frame still looks plausible because the girders,
+    // ladders and HUD are all tilemap. That is the failure mode this call exists to prevent.
+    // Identical pass, and identical opts, to the raster path's end-of-frame sprite layer in
+    // finishRasterFrame; the two render paths must agree or the runtime that uses this one
+    // (the idiomatic runtime — web/worker.js renders on demand here) draws a spriteless game.
+    if (this.video.sprites) {
+      drawSprites(
+        rgb, this.mem.spriteRam, this.video.sprites, this.video.palette,
+        { flip: this.io.flipScreen, paletteBank: this.io.paletteBank, spriteBank: this.io.spriteBank },
+      );
+    }
+    return rgb;
   }
 
   /**
