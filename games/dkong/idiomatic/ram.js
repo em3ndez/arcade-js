@@ -646,9 +646,24 @@ export const BONUS_DISPLAY_ZEROED = 0x63b8;
 export const ITEM_COLLECTED = 0x6225;
 
 // ── Object spawn, movement & init scratch ────────────────────────────────────
-/** [code] Base of a heterogeneous board-object scratch region (0x6280+); initBoardState ldirs a
- *  0x40-byte ROM template here per board and dispatch50mObjectState reads 8-byte records from it. A BASE, not a
- *  uniform table — RIVETS_LEFT/BONUS and other cells are carved from the span. */
+/** [code] Base of the 50m board-object records. initBoardState (ROM 0x0F56) copies the template
+ *  with `ld hl,0x3D9C / ld de,0x6280 / ld bc,0x0040 / ldir` at ROM 0x0F6F-0x0F79 (verified against
+ *  maincpu.bin; the `ldir` is `ed b0`, so the sequence ends at 0x0F79). That is a 64-byte copy, so
+ *  the template span is 0x6280-0x62BF and IS heterogeneous: RIVETS_LEFT (0x6290) and BONUS
+ *  (0x62B1) are genuinely carved from it. It is the span's only ldir writer.
+ *  ★ What is uniform is the FIRST 16 bytes only: 0x6280-0x628F is a stride-8 TWO-record array
+ *  (0x6280 and 0x6288), which dispatch50mObjectState selects between by frame parity. Each record:
+ *    +0  state (the 4-way selector)
+ *    +1  PARK-dwell timer — counted down by the parked arm (0x2227), reloaded to 0x80 by the
+ *        state-3 arm's reset (0x22B4 `ld b,0x80`)
+ *    +2  the object's column — the X that marioReachedTargetColumn (0x2243) compares against
+ *    +3  position: a screen Y, larger is lower (grounded in raise50mObjectAndPark.js's
+ *        VERTICAL CONVENTION block)
+ *    +4  PER-TICK countdown — decremented every pass by the moving arms, reloaded to 4 in state 1
+ *        (0x2260) and 2 in state 3 (0x22A9)
+ *  An earlier pass-15 draft called the "heterogeneous span" reading REFUTED; that was itself an
+ *  over-correction — the span is heterogeneous, the record pair at its head is not. A later draft
+ *  then swapped +1 and +4, which would have made this registry contradict all four arm files. */
 export const BOARD_OBJ_SCRATCH = 0x6280;
 /** [seen] 50m: object-1 reversal timer; loc_2602 decs on even frames, reloads 0x80 + reverses the step
  *  on underflow. Board-2 only. GROUNDED (pass-5 50m real-ROM run, credited board 2, substate 0x0C):
