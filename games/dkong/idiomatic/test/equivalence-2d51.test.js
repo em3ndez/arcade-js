@@ -2,25 +2,25 @@
 /**
  * Equivalence test for loc_2d51 (ROM 0x2D51) — the string renderer's per-character loop
  * entry: reload the source cursor from RENDER_STR_PTR (0x62A8) and fall into the
- * per-character body (loc_2d54). loc_2d51 IGNORES the register it is handed on entry and
+ * per-character body (stepBarrelAlongReleasePath). loc_2d51 IGNORES the register it is handed on entry and
  * always re-reads the cursor from RAM; proving that reload is the whole point of this gate.
  *
- * loc_2d51 WRITES MEMORY (through loc_2d54 / loc_2d8c downstream), so it is gated on
+ * loc_2d51 WRITES MEMORY (through stepBarrelAlongReleasePath / activateReleasedBarrel downstream), so it is gated on
  * memory-equivalence, not a returned scalar, and every case runs on FRESH clones. The
  * contract is RAM (minus STACK_SCRATCH) + pc + SP — the live-out is memory-only (a
  * per-frame render call; the caller reads none of the residual registers). The oracle nets
- * ONE terminal `ret` (handed up through loc_2d54's emit-path `ret`, or loc_2d8c's on the
+ * ONE terminal `ret` (handed up through stepBarrelAlongReleasePath's emit-path `ret`, or activateReleasedBarrel's on the
  * terminator path); the idiomatic routine models that as a JS return, so the harness
  * performs one m.ret() on the candidate AFTER the call to line pc + SP up.
  *
  * On the EMIT path the oracle touches no stack. On the TERMINATOR path (a 0x7F source byte)
- * loc_2d54 hands off to loc_2d8c, whose two dissolved internal call brackets (`call 0x004E`
+ * stepBarrelAlongReleasePath hands off to activateReleasedBarrel, whose two dissolved internal call brackets (`call 0x004E`
  * and `rst 0x38`) push their return addresses into the dead STACK_SCRATCH region; the
  * idiomatic chain calls directly and touches no stack, so those bytes differ and are
  * excluded by the memory-equivalence contract.
  *
  *   1. EQUAL (real captured dispatches) — hook 0x2D51 in a real attract run and clone the
- *      machine at each true dispatch (loc_2d15 tail-jumps here per character). Run the
+ *      machine at each true dispatch (advanceBarrelRelease tail-jumps here per character). Run the
  *      ORACLE on one clone and loc_2d51 on another; confirm identical RAM (minus
  *      STACK_SCRATCH) + pc + SP. Both the emit and terminator paths occur naturally.
  *
@@ -44,7 +44,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d51 as oracle } from "../../translated/loc_2d51.js";
 import { loc_2d51 } from "../loc_2d51.js";
-import { loc_2d54 } from "../loc_2d54.js";
+import { stepBarrelAlongReleasePath } from "../stepBarrelAlongReleasePath.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "../ram.js";
 
@@ -58,7 +58,7 @@ const test = ROM_PRESENT
 const TARGET = 0x2d51;
 const TERMINATOR = 0x7f;
 const RET_ADDR = 0x2d3e; // a plausible caller-return site (any valid ROM addr; both sides pop it)
-const STRING_RESTART = 0x39c3; // where loc_2d8c rewinds RENDER_STR_PTR on the terminator path
+const STRING_RESTART = 0x39c3; // where activateReleasedBarrel rewinds RENDER_STR_PTR on the terminator path
 
 // Crafted-entry RAM layout, all in writable work RAM clear of the named renderer pointers,
 // STACK_SCRATCH, and the sprite block.
@@ -169,14 +169,14 @@ function craft(base, { ch, dataByte = 0x00, field7 = 0x00, field8 = 0x00 }) {
 /** Twin (a): never reloads the cursor from RAM — renders from the stale incoming register. */
 function brokenSkipReload(m) {
   // BUG: missing `regs.hl = mem.read16(RENDER_STR_PTR)` — uses the decoy cursor as-is.
-  return loc_2d54(m);
+  return stepBarrelAlongReleasePath(m);
 }
 
 /** Twin (b): reloads the WRONG pointer (the object pointer, not the string cursor). */
 function brokenWrongPointer(m) {
   const { regs, mem } = m;
   regs.hl = mem.read16(RENDER_OBJ_PTR); // BUG: should be RENDER_STR_PTR
-  return loc_2d54(m);
+  return stepBarrelAlongReleasePath(m);
 }
 
 // -- 0. reachability ----------------------------------------------------------
@@ -227,8 +227,8 @@ test("EQUAL (crafted): the terminator and both attribute-bit arms match the orac
 
     const after = runOracle(entry);
     if (term) {
-      // The terminator hand-off ran loc_2d8c: it rewinds RENDER_STR_PTR to the string start.
-      assert.equal(after.mem.read16(RENDER_STR_PTR), STRING_RESTART, `${name}: terminator did not reach loc_2d8c`);
+      // The terminator hand-off ran activateReleasedBarrel: it rewinds RENDER_STR_PTR to the string start.
+      assert.equal(after.mem.read16(RENDER_STR_PTR), STRING_RESTART, `${name}: terminator did not reach activateReleasedBarrel`);
     } else {
       // The emit body ran on the RELOADED cursor: the record and the advanced cursor prove
       // the source was SRC (from RENDER_STR_PTR), not the decoy the register held on entry.

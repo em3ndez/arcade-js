@@ -3,7 +3,7 @@
  * initMarioJump — begin Mario's jump: flag him airborne and pick the horizontal
  * launch velocity from the held direction, then commit the arc.  ROM 0x1B6E.
  *
- * This is the front half of a jump. entry_1ac3's movement machine reaches it on its
+ * This is the front half of a jump. dispatchMarioMovement's movement machine reaches it on its
  * "start jump" arm (a `jp c` into here) the frame a jump press is accepted. It does
  * two things itself and then delegates the rest:
  *
@@ -28,7 +28,7 @@
  *           real captured entry) + real captured attract dispatches (Mario jumps
  *           naturally, hitting straight-up / left / right — inputs 0x80 / 0x82 / 0x81).
  *           Teeth: a twin that checks Left before Right (wrong precedence when both held).
- * LIVE-OUT: memory-only. entry_1ac3→here→launchMarioJump is a tail-jump chain; the
+ * LIVE-OUT: memory-only. dispatchMarioMovement→here→launchMarioJump is a tail-jump chain; the
  *           `ret` returns to loc_197a @0x1983, which `call`s the next cascade routine
  *           without reading A/HL/BC or flags (see launchMarioJump's header). The
  *           oracle's residual registers/flags are dead ABI; every value that matters

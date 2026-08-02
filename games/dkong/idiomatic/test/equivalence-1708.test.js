@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1708 (ROM 0x1708) — the board/intro spawn init:
+ * Memory-equivalence test for spawnInterludeHeart (ROM 0x1708) — the board/intro spawn init:
  * silence the sound (call 0x011c), seed a fixed 4-byte sprite record at 0x6A20 and
  * the blink-sprite code at 0x6905, paint a 3-cell descending colour column from
  * 0x75C4 (call 0x0514), then set the sound-priority pair 0x608A/0x608B.
  *
  * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
- * whole-machine one. loc_1708 WRITES RAM, so every case uses a FRESH clone per side
- * (never a reused machine). The oracle runs on one clone, loc_1708 on another, and
+ * whole-machine one. spawnInterludeHeart WRITES RAM, so every case uses a FRESH clone per side
+ * (never a reused machine). The oracle runs on one clone, spawnInterludeHeart on another, and
  * they are compared on the go-forward contract:
  *
  *     RAM (dumpState, minus STACK_SCRATCH)     [no live-out regs/flags]
@@ -15,11 +15,11 @@
  * SP/PC are deliberately NOT compared: the oracle's only SP/PC mutations are its
  * push16/step/ret stack + PC bookkeeping for the two `call`s and the terminal `ret`,
  * the modelled stack ABI the direct-call layer replaces with the JS call stack. Both
- * callers (loc_16a3 `ld a,(0x6910)`, sub_1654 `ld hl,0x385c`) reload their registers
+ * callers (begin50mKongRecaptureInterlude `ld a,(0x6910)`, beginKongRecaptureInterlude `ld hl,0x385c`) reload their registers
  * before use, so nothing consumes a register/flag this leaves — live-out is memory.
  *
- * REACHABILITY: loc_1708 is on the board-load (loc_16a3) / intro-cutscene spawn
- * (sub_1654) path; it is NOT dispatched by a 6000-frame attract run nor by the
+ * REACHABILITY: spawnInterludeHeart is on the board-load (begin50mKongRecaptureInterlude) / intro-cutscene spawn
+ * (beginKongRecaptureInterlude) path; it is NOT dispatched by a 6000-frame attract run nor by the
  * coin+start tape (measured — 0 dispatches). Because the routine reads no memory and
  * takes no arguments (its non-stack output values are identical from two wildly
  * different pre-dirtied entries — proven in INPUT-INDEPENDENCE below), a real captured
@@ -28,7 +28,7 @@
  *
  * Jobs:
  *   1. EQUAL (real attract states) — clone real attract machine states at several
- *      frames and, on each, oracle vs loc_1708 leave identical RAM (−STACK_SCRATCH).
+ *      frames and, on each, oracle vs spawnInterludeHeart leave identical RAM (−STACK_SCRATCH).
  *   2. INPUT-INDEPENDENCE — running the oracle from two entries dirtied with different
  *      fill bytes yields the SAME non-stack output values: it reads nothing, so a
  *      captured state is a valid entry and there are no unreached data-dependent arms.
@@ -36,7 +36,7 @@
  *      non-stack changes are those addresses, each landing its documented constant.
  *      Pins the exact memory footprint the gate covers.
  *   4. CRAFTED (overwrites dirt) — pre-dirty the whole target set to 0xAA identically
- *      on both sides; oracle and loc_1708 leave identical RAM AND both overwrite the
+ *      on both sides; oracle and spawnInterludeHeart leave identical RAM AND both overwrite the
  *      dirt with the correct constants (clear/seed semantics, not agreement-on-preset).
  *   5. TEETH — two broken twins MUST be caught: (a) a wrong sprite byte at 0x6A21,
  *      (b) a SKIPPED colour-column fill (0x75C4/0x75E4/0x7604 left dirty).
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1708 as oracle } from "../../translated/loc_1708.js";
-import { loc_1708 as candidate } from "../loc_1708.js";
+import { spawnInterludeHeart as candidate } from "../spawnInterludeHeart.js";
 // Teeth twins reuse the real idiomatic callees so only the injected defect differs.
 import { silenceSound } from "../silenceSound.js";
 import { fillDescendingColumn } from "../fillDescendingColumn.js";
@@ -65,12 +65,12 @@ const test = ROM_PRESENT
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// The complete non-stack write footprint of loc_1708: address -> final value.
+// The complete non-stack write footprint of spawnInterludeHeart: address -> final value.
 const EXPECTED = new Map([
   // silenceSound zeroes the sound-trigger shadow + control block 0x6080-0x6089...
   [0x6080, 0], [0x6081, 0], [0x6082, 0], [0x6083, 0], [0x6084, 0],
   [0x6085, 0], [0x6086, 0], [0x6087, 0], [0x6088, 0], [0x6089, 0],
-  // ...then loc_1708 sets the sound-priority pair.
+  // ...then spawnInterludeHeart sets the sound-priority pair.
   [SND_PRIORITY, 0x07], [SND_PRIORITY_FRAMES, 0x03], // 0x608A / 0x608B
   // the blink-sprite code.
   [0x6905, 0x13],
@@ -120,7 +120,7 @@ function dirtyTargets(m, val) {
 // -- realistic entries: real attract machine states at several frames --------
 
 /**
- * A real attract-mode machine state at frame ~N. loc_1708 is never dispatched in
+ * A real attract-mode machine state at frame ~N. spawnInterludeHeart is never dispatched in
  * attract, but it reads no memory, so any genuine state is a valid entry (job 2
  * proves this). Cloning gives a machine with neutralised frame machinery, so running
  * one routine on it in isolation cannot trip a boundary/NMI.
@@ -130,7 +130,7 @@ function attractState(nFrames) {
   m.runFrames(nFrames);
   const c = m.clone();
   // Seat SP one call-level into work RAM, as if entered via the CALL its real callers
-  // use (loc_16a3/sub_1654) — an attract idle sits at the empty-stack top (0x6C00), so
+  // use (begin50mKongRecaptureInterlude/beginKongRecaptureInterlude) — an attract idle sits at the empty-stack top (0x6C00), so
   // the oracle's terminal `ret` would pop unmapped. 0x6BFE lands the pop in dead
   // STACK_SCRATCH (excluded from the compare); the candidate never touches SP.
   c.regs.sp = 0x6bfe;
@@ -141,7 +141,7 @@ const ENTRIES = ROM_PRESENT ? [350, 2000, 4500].map(attractState) : [];
 
 // -- 1. EQUAL (real attract states) -------------------------------------------
 
-test("EQUAL: real attract states as entries — loc_1708 == oracle in RAM (−stack)", () => {
+test("EQUAL: real attract states as entries — spawnInterludeHeart == oracle in RAM (−stack)", () => {
   assert.ok(ENTRIES.length >= 1, "expected at least one attract entry state");
   for (const entry of ENTRIES) {
     const d = diffAgainstOracle(entry, candidate);
@@ -209,9 +209,9 @@ test("CRAFTED: pre-dirtied targets are overwritten identically by both sides", (
 
   const d = ramDiffMinusStack(o, c);
   assert.equal(d, null, d && `RAM diff at ${hx(d.addr ?? 0)}: oracle=${d.a} cand=${d.b}`);
-  // ...and loc_1708 genuinely overwrote the dirt with the right constants.
+  // ...and spawnInterludeHeart genuinely overwrote the dirt with the right constants.
   for (const [addr, val] of EXPECTED) {
-    assert.equal(c.mem.read8(addr), val, `loc_1708 left ${hx(addr)} = ${c.mem.read8(addr)} (expected ${val})`);
+    assert.equal(c.mem.read8(addr), val, `spawnInterludeHeart left ${hx(addr)} = ${c.mem.read8(addr)} (expected ${val})`);
   }
   console.log("  CRAFTED: whole target set dirtied to 0xAA -> both overwrite to the documented constants, RAM identical");
 });

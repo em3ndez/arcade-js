@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1654 (ROM 0x1654) — step 0 of the board-advance render
+ * Equivalence test for beginKongRecaptureInterlude (ROM 0x1654) — step 0 of the board-advance render
  * sequence (GAME_SUBSTATE 0x600A == 0x16, step selector 0x6388 == 0 on 25m/75m): run the
  * intro/board spawn init, stage the first sprite-object animation frame from ROM 0x385C,
- * arm the pose-hold timer, then fall through the shared tail (loc_1662).
+ * arm the pose-hold timer, then fall through the shared tail (advanceInterludeStepAndLiftKongFigure).
  *
- * loc_1654 WRITES memory and is NOT a leaf — it runs loc_1708 (the spawn init, ROM
- * 0x1708), a block copy (loadSpriteObjectBlock, ROM 0x004e) and the shared tail loc_1662
+ * beginKongRecaptureInterlude WRITES memory and is NOT a leaf — it runs spawnInterludeHeart (the spawn init, ROM
+ * 0x1708), a block copy (loadSpriteObjectBlock, ROM 0x004e) and the shared tail advanceInterludeStepAndLiftKongFigure
  * (ROM 0x1662, itself the rst-0x30 board gate + rst-0x38 Y-column subtract) — so it is
  * gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Every step is
- * deterministic given the ROM: loc_1708 is input-independent, the copy reads a fixed ROM
+ * deterministic given the ROM: spawnInterludeHeart is input-independent, the copy reads a fixed ROM
  * template, and SUBSTATE_TIMER := 0x20 is constant. The routine's ONLY input-dependent
  * branch is the tail's rst-0x30 board gate (A = 1 = bit0), which subtracts 4 from the ten
  * records' Y column on 25m only.
@@ -51,8 +51,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1654 as oracle } from "../../translated/loc_1654.js";
-import { loc_1654 as idiomatic } from "../loc_1654.js";
-import { loc_1708 } from "../loc_1708.js";
+import { beginKongRecaptureInterlude as idiomatic } from "../beginKongRecaptureInterlude.js";
+import { spawnInterludeHeart } from "../spawnInterludeHeart.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
@@ -73,7 +73,7 @@ const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field 3 (Y) of sprite-objec
 // The rst-0x38 targets: field 3 (+3) of each of the ten 4-byte sprite-object records.
 const STRIDED = Array.from({ length: 10 }, (_, k) => SPRITE_OBJ_BLOCK + 3 + 4 * k); // 0x690B..0x692F
 const POSE_HOLD_FRAMES = 0x20;
-// Spawn-init markers loc_1708 writes (constants) — used to prove the spawn init ran.
+// Spawn-init markers spawnInterludeHeart writes (constants) — used to prove the spawn init ran.
 const SPRITE_RECORD_6A20 = 0x6a20; // seeded to 0x80
 const BLINK_SPRITE_CODE = 0x6905; // seeded to 0x13
 const SP_CRAFT = 0x6bf8; // inside STACK_SCRATCH; headroom for the oracle's nested rst/call pushes
@@ -143,7 +143,7 @@ test("STRUCTURE: 25m — work RAM identical, salient outputs asserted, idiomatic
   assert.equal(bad, null, bad && `game-visible RAM diff at ${hx(bad.addr)} (oracle=${bad.a} idiomatic=${bad.b})`);
 
   // The oracle actually did the work — confirm salient outputs so EQUAL is not vacuous.
-  assert.equal(a.mem.read8(SPRITE_RECORD_6A20), 0x80, "spawn init (loc_1708) must seed 0x6A20 = 0x80");
+  assert.equal(a.mem.read8(SPRITE_RECORD_6A20), 0x80, "spawn init (spawnInterludeHeart) must seed 0x6A20 = 0x80");
   assert.equal(a.mem.read8(BLINK_SPRITE_CODE), 0x13, "spawn init must seed the blink code 0x6905 = 0x13");
   assert.equal(a.mem.read8(SND_PRIORITY), 0x07, "spawn init must set SND_PRIORITY (0x608A) = 0x07");
   assert.equal(a.mem.read8(SPRITE_OBJ_BLOCK), ROM[ANIM_FRAME_SRC],
@@ -157,8 +157,8 @@ test("STRUCTURE: 25m — work RAM identical, salient outputs asserted, idiomatic
     `oracle push / pop targets must stay inside STACK_SCRATCH (SP=${hx(SP_CRAFT)})`);
 
   // The idiomatic side makes only direct calls — it models no stack and no return.
-  assert.equal(b.regs.sp, sp0, "loc_1654 must leave SP unchanged (direct calls, no stack modelling)");
-  assert.equal(b.pc, pc0, "loc_1654 must leave pc unchanged");
+  assert.equal(b.regs.sp, sp0, "beginKongRecaptureInterlude must leave SP unchanged (direct calls, no stack modelling)");
+  assert.equal(b.pc, pc0, "beginKongRecaptureInterlude must leave pc unchanged");
 
   // Gate CLOSED (BOARD=2): the Y column is copied but NOT nudged; the step still advances.
   const [c, d] = craftPair(2, 0x40);
@@ -175,7 +175,7 @@ test("STRUCTURE: 25m — work RAM identical, salient outputs asserted, idiomatic
 
 // -- 2. BOARD (exhaustive) ----------------------------------------------------
 
-test("BOARD (exhaustive): loc_1654 == oracle through the rst-0x30 gate over all 256 boards", () => {
+test("BOARD (exhaustive): beginKongRecaptureInterlude == oracle through the rst-0x30 gate over all 256 boards", () => {
   let count = 0, opens = 0, closes = 0, mismatch = null, partition = null;
   const raw = ROM[ANIM_FRAME_SRC + 3];
   const nudgedVal = (raw - 4) & 0xff;
@@ -206,7 +206,7 @@ test("BOARD (exhaustive): loc_1654 == oracle through the rst-0x30 gate over all 
 
 // -- 3. STEP (wrap) -----------------------------------------------------------
 
-test("STEP (wrap): loc_1654 == oracle over seeded 0x6388 values incl. the 0xFF→0x00 wrap", () => {
+test("STEP (wrap): beginKongRecaptureInterlude == oracle over seeded 0x6388 values incl. the 0xFF→0x00 wrap", () => {
   let wraps = 0, mismatch = null;
   for (const s of [0x00, 0x01, 0x7f, 0x80, 0xfe, 0xff]) {
     const [a, b] = craftPair(1, s); // BOARD=1 so the full tail runs
@@ -232,7 +232,7 @@ test("STEP (wrap): loc_1654 == oracle over seeded 0x6388 values incl. the 0xFF�
  *  column (the strided block from 0x690b). */
 function brokenUnconditionalGate(m) {
   const { regs, mem } = m;
-  loc_1708(m);
+  spawnInterludeHeart(m);
   regs.hl = ANIM_FRAME_SRC; loadSpriteObjectBlock(m);
   mem.write8(SUBSTATE_TIMER, POSE_HOLD_FRAMES);
   // shared tail, but ignore the gate verdict.
@@ -246,7 +246,7 @@ function brokenUnconditionalGate(m) {
  *  where the oracle advances it. */
 function brokenNoInc(m) {
   const { regs, mem } = m;
-  loc_1708(m);
+  spawnInterludeHeart(m);
   regs.hl = ANIM_FRAME_SRC; loadSpriteObjectBlock(m);
   mem.write8(SUBSTATE_TIMER, POSE_HOLD_FRAMES);
   // BUG: no 0x6388 advance.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_2284 (ROM 0x2284) — step Mario down one pixel, held in the
- * climb-down pose (loc_2259's Y-descend tail).
+ * climb-down pose (slide50mObjectDown's Y-descend tail).
  *
  * descend_2284 does three things, all memory side-effects: increment MARIO_Y (0x6205),
  * call 0x3FC0 (which pins the sprite pose byte 0x694D to 3 and returns a pointer to the
@@ -11,13 +11,13 @@
  * STACK_SCRATCH region and nowhere else — the contract therefore excludes STACK_SCRATCH,
  * exactly the memory-equivalence contract for a dissolved call.
  *
- * LIVE-OUT is memory-only: 0x2284 is tail-reached from loc_2259 -> sub_2207's dispatcher,
+ * LIVE-OUT is memory-only: 0x2284 is tail-reached from slide50mObjectDown -> dispatch50mObjectState's dispatcher,
  * which returns into loc_197a at 0x199E, whose next statement issues a fresh `call`
  * without reading any register the descend leaves. So no register/flag is a live-out; the
  * gate compares RAM (minus STACK_SCRATCH) + pc + SP after modelling the terminal `ret`.
  *
  * 0x2284 is NOT dispatched during attract (its only caller is the still-translated,
- * unwired loc_2259), so capture yields nothing. That is fine here: the routine's effect
+ * unwired slide50mObjectDown), so capture yields nothing. That is fine here: the routine's effect
  * is input-independent, so the proof runs it against the oracle over many self-consistent
  * base states with MARIO_Y and the three sprite record bytes (code / attr / Y) pre-poked
  * to ADVERSARIAL values (including the 0xFF -> 0x00 wrap), and shows the two Y bytes step
@@ -237,7 +237,7 @@ test("REACHABILITY: 0x2284 is not naturally dispatched in attract (crafted entri
   const host = new Machine(ROM, { overrides: snap });
   host.runFrames(1500);
 
-  // Its only caller (loc_2259) is unwired, so we expect zero — but verify any that occur.
+  // Its only caller (slide50mObjectDown) is unwired, so we expect zero — but verify any that occur.
   for (const cap of caps) {
     const diffs = contractDiffs(cap, loc_2284);
     assert.equal(diffs.length, 0, `unexpected real 0x2284 dispatch diverged: ${diffs.join("; ")}`);

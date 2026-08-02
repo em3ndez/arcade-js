@@ -6,7 +6,7 @@
  * frame cadence.
  *
  * loc_26fa itself reads only the board/position/level/frame and writes NOTHING of its
- * own — every memory effect is the dispatched callee's (loc_277f, serviceBoardObjects,
+ * own — every memory effect is the dispatched callee's (killMarioAtEndOfLiftTravel, serviceBoardObjects,
  * loc_271e), each already idiomatic and memory-equivalent to its own oracle. So this
  * test proves loc_26fa's DISPATCH: that the same inputs route to the same callee.
  *
@@ -30,7 +30,7 @@
  *
  *   0. REACHABILITY — count natural 0x26FA dispatches; validate each against the oracle.
  *   1. EQUAL (crafted, all arms) — loc_26fa == oracle over RAM − STACK_SCRATCH + pc + SP
- *      across: gate closed (no write), edge reset (loc_277f), both cadence branches into
+ *      across: gate closed (no write), edge reset (killMarioAtEndOfLiftTravel), both cadence branches into
  *      serviceBoardObjects and loc_271e on level 1 and a later level, and the level-1
  *      idle phases — each with its callee's signature write asserted (non-vacuity), and
  *      the off-track boundary (Y 239 vs 240) proving the `>= 240` test.
@@ -51,7 +51,7 @@ import { loc_26fa } from "../loc_26fa.js";
 // The teeth twins reuse the real idiomatic callees (their own gates prove them faithful)
 // so only loc_26fa's dispatch logic is what can diverge.
 import { boardBitGate } from "../boardBitGate.js";
-import { loc_277f } from "../loc_277f.js";
+import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js";
 import { serviceBoardObjects } from "../serviceBoardObjects.js";
 import { loc_271e } from "../loc_271e.js";
 import { Machine } from "../../machine.js";
@@ -172,7 +172,7 @@ function attractBase(frames = 180) {
  * A crafted 0x26FA dispatch onto a clone of the base: a stack carrying a plausible
  * caller return (so the terminal pop is well-defined), the four dispatch inputs, and
  * observable priors so every callee's write shows:
- *   - MARIO_ACTIVE nonzero  -> the edge reset (loc_277f) clears it to 0.
+ *   - MARIO_ACTIVE nonzero  -> the edge reset (killMarioAtEndOfLiftTravel) clears it to 0.
  *   - EDGE flag set + grounded + MARIO_X in the down-mover band + MARIO_Y a step value
  *     -> loc_271e steps MARIO_Y and mirrors it to the sprite record.
  *   - six inactive board objects + an off-beat spawn timer -> serviceBoardObjects
@@ -189,7 +189,7 @@ function craft(base, { board, marioY, level = 2, frame = 0x00 }) {
   m.mem.write8(LEVEL, level);
   m.mem.write8(FRAME, frame);
 
-  // loc_277f observability.
+  // killMarioAtEndOfLiftTravel observability.
   m.mem.write8(MARIO_ACTIVE, MARIO_ACTIVE_PRIOR);
 
   // loc_271e (down-mover step) observability: flag set, grounded, X in band, sprite-Y clear.
@@ -328,7 +328,7 @@ function dispatchCadence(m) {
 function brokenNoGate(m) {
   const { mem } = m;
   // BUG: no `regs.a = 0x04; if (!boardBitGate(m)) return;`
-  if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) { loc_277f(m); return; }
+  if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) { killMarioAtEndOfLiftTravel(m); return; }
   dispatchCadence(m);
 }
 
@@ -337,7 +337,7 @@ function brokenNoEdge(m) {
   const { regs, mem } = m;
   regs.a = 0x04;
   if (!boardBitGate(m)) return;
-  // BUG: no `if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) { loc_277f(m); return; }`
+  // BUG: no `if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) { killMarioAtEndOfLiftTravel(m); return; }`
   dispatchCadence(m);
 }
 
@@ -346,7 +346,7 @@ function brokenSwapCadence(m) {
   const { regs, mem } = m;
   regs.a = 0x04;
   if (!boardBitGate(m)) return;
-  if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) { loc_277f(m); return; }
+  if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) { killMarioAtEndOfLiftTravel(m); return; }
   const level = mem.read8(LEVEL);
   const frame = mem.read8(FRAME);
   if (level !== 1) {

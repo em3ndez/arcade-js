@@ -4,7 +4,7 @@
  *
  * sub_1dbd (ROM 0x1DBD) is a 4-entry rst-0x28 router on EFFECT_STATE (0x6340):
  * 0 = idle, 1 = arm-timer, 2 = this countdown, 3 = reset. This is the
- * state-2 arm. State 1 (loc_1dc9) arms EFFECT_TIMER (0x6341) to 0x40 and advances
+ * state-2 arm. State 1 (armScorePopupAndSelectAward) arms EFFECT_TIMER (0x6341) to 0x40 and advances
  * the dispatcher 1 -> 2; state 2 then runs here once per frame:
  *
  *   - decrement EFFECT_TIMER (0x6341) in place, and

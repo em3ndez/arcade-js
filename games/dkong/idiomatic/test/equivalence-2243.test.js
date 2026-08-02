@@ -10,7 +10,7 @@
  *
  * where `target` is the byte the caller points at through HL. On a hit the oracle
  * returns to its caller (true); on any miss it tail-calls the shared caller-skip
- * 0x2257 (skip_2257 / idiomatic loc_2257), which returns false. Both exits only READ
+ * 0x2257 (skip_2257 / idiomatic reportNoHitAndSkipCaller), which returns false. Both exits only READ
  * the stack — neither writes RAM — so the memory-equivalence contract is exactly:
  * (1) neither side writes any RAM (whole 5120-byte dump, no STACK_SCRATCH exclusion
  * needed) and (2) both return the same hit/no-hit signal. pc/SP are dead (the oracle's
@@ -39,10 +39,10 @@
  *        (b) off-by-one Y boundary — uses `> REACH_Y` so it hits at exactly 0x7a.
  *        (c) inverted X test — hits when X != target.
  *
- *   3. REALISM (captured) — 0x2243 is a gameplay-only hit-test (its callers loc_2227 /
- *      loc_2259 are never reached in attract, so 0x2243 never dispatches there). Real
+ *   3. REALISM (captured) — 0x2243 is a gameplay-only hit-test (its callers hold50mObjectParked /
+ *      slide50mObjectDown are never reached in attract, so 0x2243 never dispatches there). Real
  *      in-play machine states are therefore captured at the nearest reachable ancestor,
- *      sub_2207 (ROM 0x2207), whose stack and Mario cells hold realistic values; on
+ *      dispatch50mObjectState (ROM 0x2207), whose stack and Mario cells hold realistic values; on
  *      each, loc_2243 must reproduce the oracle (no RAM, same signal).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2243.test.js
@@ -65,7 +65,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-const ANCESTOR = 0x2207; // sub_2207: the reachable same-subsystem ancestor of 0x2243
+const ANCESTOR = 0x2207; // dispatch50mObjectState: the reachable same-subsystem ancestor of 0x2243
 const REACH_Y = 0x7a;    // the oracle's `cp 0x7a`: hit needs MARIO_Y < 0x7a
 // A work-RAM cell used as the caller's target pointer (HL). Distinct from the Mario
 // cells and from the stack region, so writing the target never aliases either.
@@ -234,10 +234,10 @@ test("TEETH (exhaustive): the inverted-X-test twin is CAUGHT", () => {
 
 // -- 3. REALISM (captured) ----------------------------------------------------
 
-// Capture up to K real machine states at ANCESTOR (sub_2207) during an attract run,
+// Capture up to K real machine states at ANCESTOR (dispatch50mObjectState) during an attract run,
 // letting the original routine run afterwards so the game proceeds undisturbed.
 function captureAncestorStates(K, frames) {
-  const orig = new Machine(ROM).routines.get(ANCESTOR); // the translated sub_2207
+  const orig = new Machine(ROM).routines.get(ANCESTOR); // the translated dispatch50mObjectState
   const caps = [];
   const snap = new Map([[ANCESTOR, (mm) => {
     if (caps.length < K) caps.push(mm.clone());
@@ -248,9 +248,9 @@ function captureAncestorStates(K, frames) {
   return caps;
 }
 
-test("REALISM (captured): loc_2243 == oracle on real in-play states from sub_2207", () => {
+test("REALISM (captured): loc_2243 == oracle on real in-play states from dispatch50mObjectState", () => {
   const caps = captureAncestorStates(200, 2000);
-  assert.ok(caps.length >= 1, "expected sub_2207 (0x2207) to dispatch during attract");
+  assert.ok(caps.length >= 1, "expected dispatch50mObjectState (0x2207) to dispatch during attract");
   for (const cap of caps) {
     const { diffs } = contractDiffs(cap, loc_2243);
     assert.equal(diffs.length, 0, `real captured state: ${diffs.join("; ")}`);

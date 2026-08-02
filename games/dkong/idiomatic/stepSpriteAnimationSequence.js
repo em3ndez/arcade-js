@@ -4,7 +4,7 @@
  * animation sequence: a throttled two-frame flap whose 256-tick sub-counter, on
  * wrap, restamps the base figure and hands off to the next sequence step.  ROM 0x1839.
  *
- * This is index 2 of the six-entry rst-0x28 sequence dispatched by loc_1644 (ROM
+ * This is index 2 of the six-entry rst-0x28 sequence dispatched by dispatchRivetBoardInterludeStep (ROM
  * 0x1644: `ld a,(0x6388) / rst 0x28`, table 0x1648) — a small state machine keyed on
  * the selector byte at 0x6388, whose siblings each render one stage and then advance
  * 0x6388 to the next (loc_17b6 idx 0 seeds it, loc_186f idx 3 / loc_1880 idx 4 follow,
@@ -20,7 +20,7 @@
  *      between two templates — 0x39CF and 0x39F7 — so the figure alternates between two
  *      frames every eight ticks: a two-frame flap at 1/8 rate.
  *   3. On the counter's WRAP (0xFF -> 0x00, once per 256 calls) it instead stamps the
- *      base figure (template 0x385C — the same figure sub_1654 stamps at sequence
+ *      base figure (template 0x385C — the same figure beginKongRecaptureInterlude stamps at sequence
  *      start), re-arms the sub-state hold timer (SUBSTATE_TIMER = 0x20), and advances
  *      the sequence selector (0x6388++) so the NEXT frame dispatches the next step.
  *
@@ -57,7 +57,7 @@ const ANIM_COUNTER = 0x6390; // per-call sub-counter; wraps 0xFF->0x00 every 256
 // ROM sprite-object-block templates (each 40 bytes = ten 4-byte hardware sprite records).
 const FRAME_A = 0x39cf; // animation frame A — counter bit 3 SET
 const FRAME_B = 0x39f7; // animation frame B — counter bit 3 CLEAR
-const BASE_FIGURE = 0x385c; // the sequence-start / wrap figure (also stamped by sub_1654)
+const BASE_FIGURE = 0x385c; // the sequence-start / wrap figure (also stamped by beginKongRecaptureInterlude)
 
 const X_COLUMN_SHIFT = 0x44; // added into the X byte of all ten records after each stamp
 const HOLD_FRAMES = 0x20; // sub-state hold timer re-armed on wrap

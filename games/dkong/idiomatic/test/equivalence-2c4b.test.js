@@ -3,18 +3,18 @@
  * Equivalence test for loc_2c4b (ROM 0x2C4B) — one entry of the bonus-event slot-claim cluster.
  *
  * loc_2c4b takes two register live-ins (the caller's mode byte and the current bonus value). It
- * stores the mode byte into BARREL_CLAIM_MODE, then falls into the shared body (loc_2c4f) with
+ * stores the mode byte into BARREL_CLAIM_MODE, then falls into the shared body (armBarrelRelease) with
  * the mode byte incremented — so 0x638F records the mode byte PLUS ONE while 0x6382 keeps the
  * un-incremented value (the increment sits between the two stores; that offset-by-one is this
  * entry's whole distinguishing move). The shared body then runs the periodic-event gate against the
  * bonus value: ONLY when BONUS_EVENT_MARK equals it does it step the mark down by 8 and scan the
  * five OBJ_ARRAY_64 records (stride 32) for the first zero active-byte — on a hit it raises the
- * bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via loc_2c72), so a claimed slot leaves it as
+ * bit 7 (the barrel-kind select) on that same BARREL_CLAIM_MODE byte (via markNextBarrelAsDroppingKind), so a claimed slot leaves it as
  * the mode byte with its top bit set; on a miss it does just the two scratch writes. It returns
  * nothing a caller consumes (the oracle threads residual registers/flags out; its callers reload),
  * so the contract is memory-only.
  *
- * The oracle writes NO stack: loc_2c4b falls THROUGH into loc_2c4f (no CALL, no push), and every
+ * The oracle writes NO stack: loc_2c4b falls THROUGH into armBarrelRelease (no CALL, no push), and every
  * exit in the chain only READS the stack (a pop is never a memory write). The candidate models no
  * stack (plain JS calls), so the compared memory (dumpState is RAM) is identical with NO
  * stack-scratch exclusion — as for 0x2C4F / 0x2C72.
@@ -31,7 +31,7 @@
  *        (a) dropped increment (0x638F = mode, not mode+1) — caught at 0x638F on the A-sweep.
  *        (b) first store gets the incremented value (0x6382 = mode+1) — caught at 0x6382 on the
  *            A-sweep, pinning the store-BEFORE-increment order.
- *        (c) mis-forwarded bonus (hands loc_2c4f bonus+1) — caught at BONUS_EVENT_MARK on the
+ *        (c) mis-forwarded bonus (hands armBarrelRelease bonus+1) — caught at BONUS_EVENT_MARK on the
  *            gate-open path, pinning that the caller's bonus is forwarded faithfully.
  *
  *   3. REALISM (captured dispatches) — hook 0x2C4B in a real attract run (it is reached through the
@@ -48,7 +48,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c4b as oracle } from "../../translated/loc_2c4b.js";
 import { loc_2c4b } from "../loc_2c4b.js";
-import { loc_2c4f } from "../loc_2c4f.js";
+import { armBarrelRelease } from "../armBarrelRelease.js";
 import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -207,21 +207,21 @@ test("EQUAL: loc_2c4b == oracle across the A-sweep and every gate-open slot case
  *  instead of mode+1. Caught at 0x638F on the A-sweep. */
 function brokenDroppedInc(m, modeByte, bonus) {
   m.mem.write8(BARREL_CLAIM_MODE, modeByte);
-  loc_2c4f(m, modeByte, bonus); // BUG: no +1
+  armBarrelRelease(m, modeByte, bonus); // BUG: no +1
 }
 
 /** BUG (b): the FIRST store gets the incremented value — 0x6382 = mode+1 rather than mode, so the
  *  increment is applied before the first store. Caught at 0x6382 on the A-sweep. */
 function brokenFirstStoreValue(m, modeByte, bonus) {
   m.mem.write8(BARREL_CLAIM_MODE, modeByte + 1); // BUG: stores the incremented value
-  loc_2c4f(m, modeByte + 1, bonus); // 0x638F still correct
+  armBarrelRelease(m, modeByte + 1, bonus); // 0x638F still correct
 }
 
 /** BUG (c): forwards the WRONG bonus to the body, so the periodic-event gate opens/closes wrongly.
  *  Caught at BONUS_EVENT_MARK on the gate-open slot sweep. */
 function brokenBonusForward(m, modeByte, bonus) {
   m.mem.write8(BARREL_CLAIM_MODE, modeByte);
-  loc_2c4f(m, modeByte + 1, (bonus + 1) & 0xff); // BUG: bonus + 1
+  armBarrelRelease(m, modeByte + 1, (bonus + 1) & 0xff); // BUG: bonus + 1
 }
 
 test("TEETH: the dropped-increment twin is CAUGHT (0x638F diverges)", () => {

@@ -5,7 +5,7 @@
  * A single-byte `ret`. It takes no inputs, reads and writes no memory, and just
  * returns to its caller. sub_1dbd (ROM 0x1DBD) dispatches an rst-0x28 inline jump
  * table on the state byte EFFECT_STATE (0x6340) (values 0..3); THIS is table entry 0 —
- * the arm taken while EFFECT_STATE == 0. Entry 1 (loc_1dc9) advances that state, entry 2
+ * the arm taken while EFFECT_STATE == 0. Entry 1 (armScorePopupAndSelectAward) advances that state, entry 2
  * (loc_1e4a) runs a countdown, entry 3 is the reset vector; entry 0 does nothing, so the
  * router is a no-op that frame. 0x6340 is named EFFECT_STATE in ram.js (the effect
  * subsystem's 4-way router).

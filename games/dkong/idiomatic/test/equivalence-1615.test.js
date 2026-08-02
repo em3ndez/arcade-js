@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1615 (ROM 0x1615) — the board-advance state's top dispatcher:
+ * Equivalence test for dispatchBoardClearedInterlude (ROM 0x1615) — the board-advance state's top dispatcher:
  * park the moving sprites (clearSpriteColumns / 0x30BD), then vector the board-render sequence
  * step BOARD_ADVANCE_STEP (0x6388) to its handler by board type —
  *   BOARD bit0 (25m/75m) -> the 6-entry ROM table at 0x1623 [0x1654,0x1670,0x168a,0x1732,0x1757,0x178e]
  *   BOARD bit1 (50m)      -> the 5-entry ROM table at 0x1637 [0x16a3,0x16bb,0x1732,0x1757,0x178e]
- *   neither    (100m)     -> fall through to loc_1641.
+ *   neither    (100m)     -> fall through to runRivetBoardInterludeFrame.
  *
- * loc_1615 is NOT reached in plain attract — it is the GAME_SUBSTATE 0x600A == 0x16 handler, which
+ * dispatchBoardClearedInterlude is NOT reached in plain attract — it is the GAME_SUBSTATE 0x600A == 0x16 handler, which
  * the attract demo never drives (a board is never completed). And it is not a leaf: it clears sprite
  * columns and dispatches board-render handlers that paint/animate the interlude and step the
  * sequence. So it is validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH,
@@ -16,7 +16,7 @@
  *
  *   1. FULL-HANDLER (crafted reachable arms) — a real attract-run machine poked over the three board
  *      arms (BOARD 1/3 -> table 0x1623 steps 0..5; BOARD 2 -> table 0x1637 steps 0..4; BOARD 4 ->
- *      loc_1641), running the ORACLE on one clone and loc_1615 on another. The FULL oracle handler
+ *      runRivetBoardInterludeFrame), running the ORACLE on one clone and dispatchBoardClearedInterlude on another. The FULL oracle handler
  *      (clearSpriteColumns + the arm) runs on BOTH sides, so a wrong target, a dropped prefix call,
  *      or a live register/flag handoff the folded-away rst-0x28 trampoline would supply surfaces as
  *      divergent RAM. Non-vacuous: every case mutates RAM vs the untouched base.
@@ -44,8 +44,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1615 as oracle } from "../../translated/loc_1615.js";
-import { loc_1615 } from "../loc_1615.js";
-import { loc_1641 } from "../loc_1641.js";
+import { dispatchBoardClearedInterlude } from "../dispatchBoardClearedInterlude.js";
+import { runRivetBoardInterludeFrame } from "../runRivetBoardInterludeFrame.js";
 import { clearSpriteColumns } from "../clearSpriteColumns.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
@@ -60,7 +60,7 @@ const test = ROM_PRESENT
 
 const TABLE_ODD = 0x1623;   // 25m / 75m board-render step table (6 entries)
 const TABLE_50M = 0x1637;   // 50m board-render step table (5 entries)
-const CALLER_RET = 0x4d5e;  // a plausible loc_1615 caller return (arm's terminal ret target)
+const CALLER_RET = 0x4d5e;  // a plausible dispatchBoardClearedInterlude caller return (arm's terminal ret target)
 
 // Sprite-buffer X bytes clearSpriteColumns zeroes (record +0 of its four groups) — used to make
 // the prefix's effect observable when the dispatched arm is stubbed out.
@@ -82,7 +82,7 @@ function firstRamDiffExStack(a, b, offToAddr) {
 }
 
 // A real, self-consistent machine: boot + a stretch of attract so work RAM (the sprite-object
-// block, the render counters, the object scratch the arms touch) holds realistic values. loc_1615
+// block, the render counters, the object scratch the arms touch) holds realistic values. dispatchBoardClearedInterlude
 // is never dispatched here — its entry is crafted by poking.
 function attractBase(frames = 180) {
   const m = new Machine(ROM);
@@ -103,13 +103,13 @@ function craftEntry(base, board, step) {
 
 // -- 1. FULL-HANDLER (crafted reachable arms) ---------------------------------
 
-test("FULL-HANDLER: loc_1615 == oracle on real bases poked to each board arm + reachable step", () => {
+test("FULL-HANDLER: dispatchBoardClearedInterlude == oracle on real bases poked to each board arm + reachable step", () => {
   const base = attractBase();
   const cases = [
     ...[0, 1, 2, 3, 4, 5].map((s) => ({ board: 1, step: s })), // 25m -> table 0x1623
     ...[0, 1, 2, 3, 4, 5].map((s) => ({ board: 3, step: s })), // 75m -> table 0x1623 (odd)
     ...[0, 1, 2, 3, 4].map((s) => ({ board: 2, step: s })),    // 50m -> table 0x1637
-    { board: 4, step: 0 }, { board: 4, step: 1 }, { board: 4, step: 2 }, // 100m -> loc_1641
+    { board: 4, step: 0 }, { board: 4, step: 1 }, { board: 4, step: 2 }, // 100m -> runRivetBoardInterludeFrame
   ];
 
   let mutatedAll = true;
@@ -119,7 +119,7 @@ test("FULL-HANDLER: loc_1615 == oracle on real bases poked to each board arm + r
     const before = a.dumpState();
 
     oracle(a);
-    loc_1615(b);
+    dispatchBoardClearedInterlude(b);
 
     const tag = `BOARD=${hx(board)} step=${hx(step)}`;
     const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
@@ -135,7 +135,7 @@ test("FULL-HANDLER: loc_1615 == oracle on real bases poked to each board arm + r
     if (!firstRamDiffExStack(before, a.dumpState(), (o) => a.stateOffsetToAddr(o))) mutatedAll = false;
   }
   assert.ok(mutatedAll, "some case mutated no RAM — the replay is vacuous for it");
-  console.log(`  FULL-HANDLER: ${cases.length} arms (BOARD 1/3 table 0x1623, BOARD 2 table 0x1637, BOARD 4 -> loc_1641) — full oracle handler both sides, RAM(−stack)+pc+SP identical, all non-vacuous`);
+  console.log(`  FULL-HANDLER: ${cases.length} arms (BOARD 1/3 table 0x1623, BOARD 2 table 0x1637, BOARD 4 -> runRivetBoardInterludeFrame) — full oracle handler both sides, RAM(−stack)+pc+SP identical, all non-vacuous`);
 });
 
 // -- 2. CRAFTED (exhaustive selector sweep) -----------------------------------
@@ -181,10 +181,10 @@ function sweepBoard(base, candidate, board) {
   return { count, mismatch };
 }
 
-test("CRAFTED: loc_1615 == oracle over all 256 selectors on each dispatch arm (BOARD 1/3 -> 0x1623, 2 -> 0x1637)", () => {
+test("CRAFTED: dispatchBoardClearedInterlude == oracle over all 256 selectors on each dispatch arm (BOARD 1/3 -> 0x1623, 2 -> 0x1637)", () => {
   const base = attractBase();
   for (const board of [1, 3, 2]) {
-    const { count, mismatch } = sweepBoard(base, loc_1615, board);
+    const { count, mismatch } = sweepBoard(base, dispatchBoardClearedInterlude, board);
     assert.equal(mismatch, null, mismatch && `BOARD ${hx(board)} mismatch at sel=${hx(mismatch.sel)}: ${mismatch.why}`);
     assert.equal(count, 256, `BOARD ${hx(board)}: must have swept all 256 selectors`);
   }
@@ -195,7 +195,7 @@ test("CRAFTED: loc_1615 == oracle over all 256 selectors on each dispatch arm (B
     const rec = [];
     const m = craftEntry(base, board, 0);
     m.overrides = stubOverrides(rec);
-    loc_1615(m);
+    dispatchBoardClearedInterlude(m);
     return rec[0].target;
   };
   assert.equal(targetFor(1), 0x1654, "BOARD 1 step 0 should dispatch table 0x1623 head (0x1654)");
@@ -218,7 +218,7 @@ function brokenNoClear(m) {
   };
   if ((board & 0x01) !== 0) dispatch(TABLE_ODD);
   else if ((board & 0x02) !== 0) dispatch(TABLE_50M);
-  else loc_1641(m);
+  else runRivetBoardInterludeFrame(m);
 }
 
 /** Broken twin (b): always uses the odd-board table, ignoring the bit1 (50m) arm. */

@@ -8,7 +8,7 @@
  * routine's whole job is: recover that table base, read the word at table[A], and
  * jump to it. It is the shared computed-dispatch primitive behind every rst-0x28
  * site — the NMI game-state table (0x00CA), the in-game sub-state table (0x0702),
- * the opening-cutscene table (0x0A7A), the sub_30fa guard table (0x3104), and more —
+ * the opening-cutscene table (0x0A7A), the gateObjectUpdateByDifficulty guard table (0x3104), and more —
  * so it is generic, steered only by the selector in A and the table base on the stack.
  *
  *   - `add a,a` doubles the selector to a byte offset. This is an 8-bit result:

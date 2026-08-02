@@ -30,7 +30,7 @@
  *           arm; the full ring / occupied-slot / wrap-around arms are crafted.
  * LIVE-OUT: memory-only — TASK_TAIL and the two written ring slots. The oracle
  *           preserves HL (push/pop) and never touches D/E, and its residual A/F
- *           are dead ABI (checked successors entry_2cb8, handler_0779, loc_08ba
+ *           are dead ABI (checked successors releaseBarrelIntoFreeSlot, handler_0779, loc_08ba
  *           read neither). pc/SP are the dropped stack model — the oracle's `ret`
  *           becomes the JS return here — so the sole oracle-vs-idiomatic residue
  *           is the pushed-HL bytes in STACK_SCRATCH, excluded by the contract.

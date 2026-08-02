@@ -4,7 +4,7 @@
  * chain. It stamps three fields of the object record (the caller's IX / RENDER_OBJ_PTR):
  * sprite-code (+0x07), sprite-attr (+0x08) and mode (+0x15), with one of two presets chosen by
  * bit 7 of BARREL_CLAIM_MODE — CLEAR writes the default triple (0x15, 0x0B, 0x00), SET writes
- * the alternate triple (0x19, 0x0C, 0x01) — then FALLS THROUGH into loc_2d15, the frame-gated
+ * the alternate triple (0x19, 0x0C, 0x01) — then FALLS THROUGH into advanceBarrelRelease, the frame-gated
  * string/sprite renderer.
  *
  * CONTEXT, GROUNDED (live MAME 0.288 on the real dkong ROM, understanding pass 12,
@@ -19,13 +19,13 @@
  * establish which NAMED Donkey Kong object either kind is, so neither is named here.
  *
  * stampReleasedBarrelKind WRITES MEMORY (the record fields, and — through the fall-through — everything
- * loc_2d15's chain touches), so it is gated on memory-equivalence, not a returned scalar,
+ * advanceBarrelRelease's chain touches), so it is gated on memory-equivalence, not a returned scalar,
  * and every case runs on FRESH clones. The contract is RAM (minus STACK_SCRATCH) + pc + SP;
  * the live-out is memory-only.
  *
- * STACK: stampReleasedBarrelKind pushes nothing of its own — the transition into loc_2d15 is a fall-through /
- * jump — so the whole stampReleasedBarrelKind -> loc_2d15 -> ... chain nets exactly ONE caller-return pop
- * (loc_2d15's chain `ret`s once on stampReleasedBarrelKind's behalf). The idiomatic routine models that as a
+ * STACK: stampReleasedBarrelKind pushes nothing of its own — the transition into advanceBarrelRelease is a fall-through /
+ * jump — so the whole stampReleasedBarrelKind -> advanceBarrelRelease -> ... chain nets exactly ONE caller-return pop
+ * (advanceBarrelRelease's chain `ret`s once on stampReleasedBarrelKind's behalf). The idiomatic routine models that as a
  * plain JS return, so the harness performs one m.ret() on the candidate AFTER the call to
  * line pc + SP up with the oracle. On the deeper table-load path the oracle's dissolved
  * `call 0x004e` bracket churns the dead STACK_SCRATCH region; the idiomatic chain calls
@@ -38,7 +38,7 @@
  *
  *   2. EQUAL (crafted) — from a real attract base, poke IX, the BARREL_CLAIM_MODE byte and the
  *      downstream renderer's control bytes identically on both sides to force each arm and
- *      drive loc_2d15 through both its clean gate-return path and its deeper table-load path
+ *      drive advanceBarrelRelease through both its clean gate-return path and its deeper table-load path
  *      (which churns STACK_SCRATCH). Non-vacuity: the selected preset really landed in the
  *      record on both sides.
  *
@@ -46,7 +46,7 @@
  *      (a) wrong-parity-bit — selects the preset from bit 0 of BARREL_CLAIM_MODE instead of bit 7, so on
  *          a byte where the two bits disagree it stamps the wrong triple (diverges at +0x07).
  *      (b) drop-fall-through — does the (correct) preset writes but returns WITHOUT falling
- *          into loc_2d15, so the renderer's frame-gate decrement at 0x62AF is missing.
+ *          into advanceBarrelRelease, so the renderer's frame-gate decrement at 0x62AF is missing.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2cf6.test.js
  */
@@ -57,7 +57,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2cf6 as oracle } from "../../translated/loc_2cf6.js";
 import { stampReleasedBarrelKind } from "../stampReleasedBarrelKind.js";
-import { loc_2d15 } from "../loc_2d15.js";
+import { advanceBarrelRelease } from "../advanceBarrelRelease.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";
 
@@ -69,8 +69,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2cf6;
-const FRAME_GATE = 0x62af;    // loc_2d15's per-tick down-counter (unnamed)
-const ANIM_COUNTER = 0x638f;  // loc_2d15's animation sub-counter (unnamed)
+const FRAME_GATE = 0x62af;    // advanceBarrelRelease's per-tick down-counter (unnamed)
+const ANIM_COUNTER = 0x638f;  // advanceBarrelRelease's animation sub-counter (unnamed)
 const RET_ADDR = 0x2ce5;      // a plausible caller-return site (any valid addr; both sides pop it)
 
 // Field offsets stamped in the renderer object record (caller-provided base). The sprite-code and
@@ -81,7 +81,7 @@ const PRESET_ALT = { [OBJ_SPRITE_CODE]: 0x19, [OBJ_SPRITE_ATTR]: 0x0c, [F_MODE]:
 
 // Crafted object regions (writable work RAM, disjoint so the readbacks are unambiguous).
 const OBJ = 0x6120;   // stampReleasedBarrelKind's IX: the record it presets
-const R_OBJ = 0x6140; // loc_2d15's own record (RENDER_OBJ_PTR) on the table-load path
+const R_OBJ = 0x6140; // advanceBarrelRelease's own record (RENDER_OBJ_PTR) on the table-load path
 const SRC = 0x6100;   // RENDER_STR_PTR target: a non-terminator char + a data byte
 const DST = 0x6a80;   // RENDER_DST_PTR: destination sprite record
 const SRC_CH = 0x41;  // a non-terminator character
@@ -163,7 +163,7 @@ function attractBase(frames = 220) {
 /**
  * Stamp a crafted 0x2CF6 dispatch onto a clone of the base: a stack with a plausible caller
  * return, IX at the preset record, the BARREL_CLAIM_MODE byte, and the downstream renderer's
- * control bytes plus a clean non-terminator render source (so the fall-through into loc_2d15
+ * control bytes plus a clean non-terminator render source (so the fall-through into advanceBarrelRelease
  * runs deterministically without reloading the sprite block from a terminator).
  */
 function craft(base, { parity, gate = 0x05, counter = 0x00 }) {
@@ -199,10 +199,10 @@ function brokenWrongParityBit(m) {
     mem.write8((obj + OBJ_SPRITE_ATTR) & 0xffff, 0x0c);
     mem.write8((obj + F_MODE) & 0xffff, 0x01);
   }
-  return loc_2d15(m);
+  return advanceBarrelRelease(m);
 }
 
-/** Twin (b): correct presets but returns WITHOUT falling into loc_2d15. */
+/** Twin (b): correct presets but returns WITHOUT falling into advanceBarrelRelease. */
 function brokenDropFallThrough(m) {
   const { regs, mem } = m;
   const obj = regs.ix;
@@ -215,7 +215,7 @@ function brokenDropFallThrough(m) {
     mem.write8((obj + OBJ_SPRITE_ATTR) & 0xffff, 0x0c);
     mem.write8((obj + F_MODE) & 0xffff, 0x01);
   }
-  // BUG: missing `return loc_2d15(m);`
+  // BUG: missing `return advanceBarrelRelease(m);`
 }
 
 // -- 0. reachability ----------------------------------------------------------
@@ -252,13 +252,13 @@ test("EQUAL (crafted): both preset arms, over the gate-return and table-load ren
   const base = attractBase();
 
   const cases = [
-    // bit 7 clear -> default preset; loc_2d15 clean gate-return (gate > 1)
+    // bit 7 clear -> default preset; advanceBarrelRelease clean gate-return (gate > 1)
     { name: "default / gate-return", opts: { parity: 0x00, gate: 0x05 } },
-    // bit 7 set -> alt preset; loc_2d15 clean gate-return
+    // bit 7 set -> alt preset; advanceBarrelRelease clean gate-return
     { name: "alt / gate-return", opts: { parity: 0x80, gate: 0x05 } },
-    // bit 7 set (+ bit 0 set) -> alt preset; loc_2d15 acting frame, sub-counter zero
+    // bit 7 set (+ bit 0 set) -> alt preset; advanceBarrelRelease acting frame, sub-counter zero
     { name: "alt / counter-zero render", opts: { parity: 0x81, gate: 0x01, counter: 0x00 } },
-    // bit 7 clear (bit 0 clear) -> default preset; loc_2d15 acting frame, TABLE LOAD
+    // bit 7 clear (bit 0 clear) -> default preset; advanceBarrelRelease acting frame, TABLE LOAD
     // (exercises the dissolved call-0x004e bracket => STACK_SCRATCH churn, excluded)
     { name: "default / table-load", opts: { parity: 0x40, gate: 0x01, counter: 0x03 } },
   ];
@@ -295,7 +295,7 @@ test("TEETH: the wrong-parity-bit twin and the drop-fall-through twin are CAUGHT
     `expected the diff at the sprite-code field ${hx(OBJ + OBJ_SPRITE_CODE)}, got ${bitDiffs[0]}`,
   );
 
-  // (b) drop-fall-through: presets are correct, but loc_2d15 never runs, so its frame-gate
+  // (b) drop-fall-through: presets are correct, but advanceBarrelRelease never runs, so its frame-gate
   // decrement at 0x62AF is missing -> diverges there (and nowhere lower, since presets match).
   const ftEntry = craft(base, { parity: 0x80, gate: 0x05 });
   const ftDiffs = contractDiffs(ftEntry, brokenDropFallThrough);

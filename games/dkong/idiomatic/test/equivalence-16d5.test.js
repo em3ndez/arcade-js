@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_16d5 (ROM 0x16D5) — drive sub_25f2's object #1, then slide its
- * 10-sprite group one step along X. loc_16d5 calls loc_2602 (which republishes the object's
+ * Equivalence test for stepKongWalk (ROM 0x16D5) — drive sub_25f2's object #1, then slide its
+ * 10-sprite group one step along X. stepKongWalk calls loc_2602 (which republishes the object's
  * signed per-frame step into 0x63A3), reads that step into C, then via the rst-0x38 stride-4/
  * count-10 form of addStrided adds C to byte +0 (the X field) of each of the 10 records in
  * SPRITE_OBJ_BLOCK (0x6908 … 0x692C).
  *
- * loc_16d5 WRITES MEMORY and CALLS two sub-routines, so it is gated on memory-equivalence —
+ * stepKongWalk WRITES MEMORY and CALLS two sub-routines, so it is gated on memory-equivalence —
  * RAM (minus STACK_SCRATCH) + pc + SP — never the register file. LIVE-OUT is memory-only:
- * loc_16d5 is the tail of the loc_16bb substate family, dispatched from the in-game substate
+ * stepKongWalk is the tail of the dispatchKongWalkFrame substate family, dispatched from the in-game substate
  * table and tail-returning through the NMI dispatcher, which reads no register/flag it leaves
  * (A/B/C/DE/HL are dead ABI), so they are deliberately NOT compared. Every case runs on FRESH
  * clones (the routine writes memory).
@@ -18,27 +18,27 @@
  * consumes exactly the address the oracle just pushed — so those two cancel (net 0), and the
  * oracle's ONE net return is its final tail `ret`, which pops the caller's return address.
  * The idiomatic path pushes nothing, but the idiomatic loc_2602 calls the still-oracle
- * sub_26e9 exactly once per path and that callee ends in an `m.ret()` — supplying loc_16d5's
+ * sub_26e9 exactly once per path and that callee ends in an `m.ret()` — supplying stepKongWalk's
  * single net return, which pops that same caller address (addStrided is pure and touches no
  * stack). So both sides end SP += 2 with pc = the caller's return address, and the oracle's
  * transient stack pushes land inside STACK_SCRATCH, which the RAM diff excludes.
  *
  *   0. REACHABILITY — plain attract never dispatches 0x16d5 (0×/2500 frames, asserted): the
- *      sub_25f2 object cascade it drives runs only in real gameplay. (loc_16d5's own internal
+ *      sub_25f2 object cascade it drives runs only in real gameplay. (stepKongWalk's own internal
  *      `call 0x2602` would register on a 0x2602 dispatch hook; equivalence-2602 already shows
  *      0x2602 is 0× in attract, corroborating this.) So the gate is crafted-entry.
  *
- *   1. EQUAL (FRAME sweep) — for all 256 FRAME values × memory configs, loc_16d5 == oracle.
+ *   1. EQUAL (FRAME sweep) — for all 256 FRAME values × memory configs, stepKongWalk == oracle.
  *      Covers parity (even → publish 0 → no shift; odd → publish ±1 → ±1 shift), every
  *      FRAME & 0x1F residue (loc_2602's 32nd-frame sprite-anim arm), both step signs, and
  *      block-X bytes seeded at wrap edges (0x00 / 0xFF).
  *
  *   2. EQUAL (block-X wrap sweep) — at an ODD frame (publish nonzero) on both step signs,
  *      set every record's X byte to v and sweep v over 0..255, exercising addStrided's 8-bit
- *      +1 / −1 wrap on every byte value through the loc_16d5 glue.
+ *      +1 / −1 wrap on every byte value through the stepKongWalk glue.
  *
  *   3. EQUAL (countdown sweep) — at an EVEN frame, sweep 0x62A0 on both direction signs,
- *      driving loc_2602's dec / underflow-to-0 / reload-0x80 / reverse arm through loc_16d5.
+ *      driving loc_2602's dec / underflow-to-0 / reload-0x80 / reverse arm through stepKongWalk.
  *
  *   4. TEETH — two deliberately-broken twins, each MUST be caught by the RAM diff:
  *      (a) wrong-base twin — shifts SPRITE_BUFFER (0x6900) instead of the block (0x6908);
@@ -52,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_16d5 as oracle } from "../../translated/loc_16d5.js";
-import { loc_16d5 } from "../loc_16d5.js";
+import { stepKongWalk } from "../stepKongWalk.js";
 import { loc_2602 } from "../loc_2602.js";
 import { addStrided } from "../addStrided.js";
 import { Machine } from "../../machine.js";
@@ -69,7 +69,7 @@ const TARGET = 0x16d5;
 const FRAME_ADDR = 0x601a;
 const CD_ADDR = 0x62a0; // object #1 even-frame countdown
 const DIR_ADDR = 0x62a1; // object #1 signed step-direction (bit7 = sign)
-const PUB_ADDR = 0x63a3; // the publish cell loc_2602 writes and loc_16d5 reads as C
+const PUB_ADDR = 0x63a3; // the publish cell loc_2602 writes and stepKongWalk reads as C
 const BLOCK = 0x6908; // SPRITE_OBJ_BLOCK — 10 records × 4 bytes; byte +0 = X
 const PAIR_BASE = 0x69e4; // loc_2602's loc_26a6 sprite-pair base
 const P_ADDR = 0x69e5;
@@ -102,9 +102,9 @@ function runOracle(entry) {
 }
 
 /**
- * Run a candidate on a fresh clone. The idiomatic loc_16d5 models its own return implicitly:
+ * Run a candidate on a fresh clone. The idiomatic stepKongWalk models its own return implicitly:
  * its call to the idiomatic loc_2602 reaches the still-oracle sub_26e9, whose single `m.ret()`
- * supplies loc_16d5's one net return (SP += 2, pc := caller). addStrided is pure and adds no
+ * supplies stepKongWalk's one net return (SP += 2, pc := caller). addStrided is pure and adds no
  * ret, so the net matches the oracle exactly (see the file header). No extra ret is added here.
  */
 function runCandidate(entry, fn) {
@@ -191,7 +191,7 @@ test("REACHABILITY: attract never dispatches 0x16d5 (crafted-entry gate)", () =>
 
 // -- 1. EQUAL (FRAME sweep) ---------------------------------------------------
 
-test("EQUAL (FRAME sweep): loc_16d5 == oracle over all 256 FRAME values × memory configs", () => {
+test("EQUAL (FRAME sweep): stepKongWalk == oracle over all 256 FRAME values × memory configs", () => {
   const seed = bootedMachine(400).clone();
   // Configs: direction sign clear (+1) vs set (−1); block X seeded at both wrap edges so an
   // odd-frame shift crosses 0x00↔0xFF; countdown about-to-underflow vs mid; ring-valued
@@ -206,7 +206,7 @@ test("EQUAL (FRAME sweep): loc_16d5 == oracle over all 256 FRAME values × memor
   for (let frame = 0; frame < 256 && !mismatch; frame++) {
     for (const cfg of cfgs) {
       const e = craft(seed, { frame, ...cfg });
-      const diffs = contractDiffs(e, loc_16d5);
+      const diffs = contractDiffs(e, stepKongWalk);
       count++;
       if (diffs.length) { mismatch = { frame, cfg, diffs }; break; }
     }
@@ -235,7 +235,7 @@ test("EQUAL (block-X wrap sweep): all 256 X values on both step signs match the 
   for (const dir of [0x05, 0x85]) {
     for (let v = 0; v < 256 && !mismatch; v++) {
       const e = craft(seed, { frame: 0x03, dir, blockX: v, cd: 0x08, p: 0x51, p4: 0xd1 });
-      const diffs = contractDiffs(e, loc_16d5);
+      const diffs = contractDiffs(e, stepKongWalk);
       count++;
       if (diffs.length) { mismatch = { v, dir, diffs }; break; }
     }
@@ -262,7 +262,7 @@ test("EQUAL (countdown sweep): all 256 countdown values on both direction signs 
   for (const dir of [0x05, 0x85]) {
     for (let cd = 0; cd < 256 && !mismatch; cd++) {
       const e = craft(seed, { frame: 0x00, cd, dir, blockX: 0x40, p: 0x51, p4: 0xd1 }); // even → countdown runs
-      const diffs = contractDiffs(e, loc_16d5);
+      const diffs = contractDiffs(e, stepKongWalk);
       count++;
       if (diffs.length) { mismatch = { cd, dir, diffs }; break; }
     }
@@ -273,16 +273,16 @@ test("EQUAL (countdown sweep): all 256 countdown values on both direction signs 
     mismatch && `mismatch at countdown=${hx(mismatch.cd)} dir=${hx(mismatch.dir)}: ${mismatch.diffs.join("; ")}`,
   );
   assert.equal(count, 256 * 2, "must have swept all 256 countdown values on both signs");
-  // Prove the underflow arm was exercised through loc_16d5 (cd==1 on even → reload + reverse).
+  // Prove the underflow arm was exercised through stepKongWalk (cd==1 on even → reload + reverse).
   const under = runOracle(craft(seed, { frame: 0x00, cd: 0x01, dir: 0x05, blockX: 0x40 }));
   assert.equal(under.mem.read8(CD_ADDR), 0x80, "underflow entry must reload 0x62A0 to 0x80");
   assert.equal(under.mem.read8(DIR_ADDR), 0xfe, "underflow entry must reverse 0x62A1 (clear sign → −2)");
-  console.log(`  EQUAL/countdown-sweep: ${count} countdown values identical; underflow reload+reverse driven through loc_16d5`);
+  console.log(`  EQUAL/countdown-sweep: ${count} countdown values identical; underflow reload+reverse driven through stepKongWalk`);
 });
 
 // -- 4. TEETH -----------------------------------------------------------------
 
-test("TEETH: wrong-base and wrong-addend twins are CAUGHT (loc_16d5 passes the same entries)", () => {
+test("TEETH: wrong-base and wrong-addend twins are CAUGHT (stepKongWalk passes the same entries)", () => {
   const seed = bootedMachine(400).clone();
 
   // Wrong-base twin: caught wherever the shift is nonzero (odd frame → publish ±1). It writes
@@ -293,7 +293,7 @@ test("TEETH: wrong-base and wrong-addend twins are CAUGHT (loc_16d5 passes the s
       const e = craft(seed, { frame, dir, blockX: 0x40, cd: 0x08, p: 0x51, p4: 0xd1 });
       baseCases++;
       if (contractDiffs(e, brokenBase).length > 0) baseCaught++;
-      assert.equal(contractDiffs(e, loc_16d5).length, 0, `loc_16d5 must pass FRAME=${hx(frame)} dir=${hx(dir)}`);
+      assert.equal(contractDiffs(e, stepKongWalk).length, 0, `stepKongWalk must pass FRAME=${hx(frame)} dir=${hx(dir)}`);
     }
   }
   assert.equal(baseCaught, baseCases, `wrong-base twin escaped ${baseCases - baseCaught}/${baseCases} nonzero-shift entries`);
@@ -306,7 +306,7 @@ test("TEETH: wrong-base and wrong-addend twins are CAUGHT (loc_16d5 passes the s
       const e = craft(seed, { frame, dir, blockX: 0x40, cd: 0x08, p: 0x51, p4: 0xd1 });
       addCases++;
       if (contractDiffs(e, brokenAddend).length > 0) addCaught++;
-      assert.equal(contractDiffs(e, loc_16d5).length, 0, `loc_16d5 must pass FRAME=${hx(frame)} dir=${hx(dir)}`);
+      assert.equal(contractDiffs(e, stepKongWalk).length, 0, `stepKongWalk must pass FRAME=${hx(frame)} dir=${hx(dir)}`);
     }
   }
   assert.equal(addCaught, addCases, `wrong-addend twin escaped ${addCases - addCaught}/${addCases} entries`);

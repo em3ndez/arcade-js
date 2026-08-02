@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_22a2 (ROM 0x22A2) — one idle-then-descend tick for a
+ * Equivalence test for raise50mObjectAndPark (ROM 0x22A2) — one idle-then-descend tick for a
  * BOARD_OBJ_SCRATCH object, resetting it to state 0 at the bottom of its travel.
  *
- * loc_22a2 is an arm of the sub_2207 object state machine. It is entered with the object
+ * raise50mObjectAndPark is an arm of the dispatch50mObjectState object state machine. It is entered with the object
  * record base on the stack (the oracle's `pop hl`); the idiomatic routine takes that base
  * as a parameter. Its whole memory-observable effect factorises into two paths, each a
  * function of ONE record byte, so a crafted sweep is a PROOF, not a sample:
@@ -11,22 +11,22 @@
  *   IDLE PATH — the +4 countdown decrements to nonzero: writes only field +4, and the
  *               written byte depends ONLY on the +4 value.
  *   FIRE PATH — the +4 countdown underflows to zero: reloads +4, steps the +3 position
- *               DOWN, mirrors it to a sprite cell (loc_22bd), and — only when the new
+ *               DOWN, mirrors it to a sprite cell (publish50mObjectYToSprite), and — only when the new
  *               position equals 0x68 — resets field +1 to 0x80 and the state byte (+0) to
  *               0. Everything past the reload depends ONLY on the +3 position value.
  *
  * The two BOARD_OBJ_SCRATCH records the game actually uses (0x6280 / 0x6288) between them
- * exercise BOTH sprite slots loc_22bd can pick: +3 of 0x6280 is 0x6283 (bit 3 clear ->
+ * exercise BOTH sprite slots publish50mObjectYToSprite can pick: +3 of 0x6280 is 0x6283 (bit 3 clear ->
  * 0x6947), +3 of 0x6288 is 0x628b (bit 3 set -> 0x694b). So sweeping both records over all
  * 256 countdown values and all 256 position values covers the entire observable space.
  *
  * The oracle brackets its display-mirror call with a pushed return address; the idiomatic
- * routine direct-calls loc_22bd, dropping that push. Its dead scratch byte lands in
+ * routine direct-calls publish50mObjectYToSprite, dropping that push. Its dead scratch byte lands in
  * STACK_SCRATCH, which the memory-equivalence contract excludes (mirrors equivalence-0350).
  * The oracle's entry `pop hl` and terminal `ret` only READ the stack, so they never affect
  * compared memory; live-out is memory-only, so pc/SP are not compared.
  *
- *   1. EQUAL (crafted, exhaustive) — loc_22a2 == oracle on RAM − STACK_SCRATCH across both
+ *   1. EQUAL (crafted, exhaustive) — raise50mObjectAndPark == oracle on RAM − STACK_SCRATCH across both
  *      sweeps on both records (1024 combos), plus non-vacuity: the oracle really mirrors the
  *      byte to the record's selected sprite cell (leaving the other untouched) and really
  *      rewrites +1 and +0 on the reset.
@@ -37,7 +37,7 @@
  *        (c) dropped reset  — skips the field +1 = 0x80 write on the reset.
  *
  *   3. REALISM — hook 0x22A2 in a real attract run; document the (zero) natural dispatches
- *      (sub_2207's board gate is closed in attract) and verify any that DO occur match.
+ *      (dispatch50mObjectState's board gate is closed in attract) and verify any that DO occur match.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-22a2.test.js
  */
@@ -47,8 +47,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_22a2 as oracle } from "../../translated/loc_22a2.js";
-import { loc_22a2 } from "../loc_22a2.js";
-import { loc_22bd } from "../loc_22bd.js"; // the mirror the broken twins still call
+import { raise50mObjectAndPark } from "../raise50mObjectAndPark.js";
+import { publish50mObjectYToSprite } from "../publish50mObjectYToSprite.js"; // the mirror the broken twins still call
 import { STACK_SCRATCH, BOARD_OBJ_SCRATCH, SPRITE_BUFFER } from "../ram.js";
 import { Machine } from "../../machine.js";
 
@@ -61,11 +61,11 @@ const test = ROM_PRESENT
 
 const TARGET = 0x22a2;
 
-// The two records sub_2207 dispatches (odd/even frame parity). Between them their +3 field
-// selects both of loc_22bd's sprite slots.
+// The two records dispatch50mObjectState dispatches (odd/even frame parity). Between them their +3 field
+// selects both of publish50mObjectYToSprite's sprite slots.
 const RECORDS = [BOARD_OBJ_SCRATCH, BOARD_OBJ_SCRATCH + 8]; // 0x6280, 0x6288
 
-// loc_22bd's two destination cells (+3 field of sprite records 17/18 inside SPRITE_BUFFER).
+// publish50mObjectYToSprite's two destination cells (+3 field of sprite records 17/18 inside SPRITE_BUFFER).
 const DEST_BIT3_CLEAR = SPRITE_BUFFER + 17 * 4 + 3; // 0x6947 — chosen by 0x6280's +3 (0x6283)
 const DEST_BIT3_SET = SPRITE_BUFFER + 18 * 4 + 3; // 0x694b — chosen by 0x6288's +3 (0x628b)
 const spriteDest = (recordBase) => (((recordBase + 3) & 0x08) !== 0 ? DEST_BIT3_SET : DEST_BIT3_CLEAR);
@@ -178,10 +178,10 @@ const describeMismatch = (mm) =>
 
 // -- 1. EQUAL (crafted, exhaustive) -------------------------------------------
 
-test("EQUAL (exhaustive): loc_22a2 == oracle across both sweeps on both records", () => {
+test("EQUAL (exhaustive): raise50mObjectAndPark == oracle across both sweeps on both records", () => {
   const base = attractBase();
 
-  const { mismatch, count } = fullSweep(base, loc_22a2);
+  const { mismatch, count } = fullSweep(base, raise50mObjectAndPark);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, RECORDS.length * (256 + 256), "must have compared the full factored input space");
 
@@ -193,13 +193,13 @@ test("EQUAL (exhaustive): loc_22a2 == oracle across both sweeps on both records"
     const other = spriteOther(recordBase);
 
     // descend (position 0x40 -> 0x3f); no reset.
-    const { a: descend } = runPair(base, recordBase, 1, 0x40, loc_22a2);
+    const { a: descend } = runPair(base, recordBase, 1, 0x40, raise50mObjectAndPark);
     assert.equal(descend.mem.read8(dest), 0x3f, `oracle must mirror the stepped position to ${hx(dest)}`);
     assert.equal(descend.mem.read8(other), SPRITE_SENTINEL, `oracle must leave ${hx(other)} untouched`);
     assert.equal(descend.mem.read8((recordBase + 3) & 0xffff), 0x3f, "oracle must step the position DOWN");
 
     // reset (position 0x69 -> 0x68 == the bottom sentinel).
-    const { a: reset } = runPair(base, recordBase, 1, 0x69, loc_22a2);
+    const { a: reset } = runPair(base, recordBase, 1, 0x69, raise50mObjectAndPark);
     assert.equal(reset.mem.read8((recordBase + 1) & 0xffff), 0x80, "oracle must set field +1 to 0x80 on reset");
     assert.equal(reset.mem.read8(recordBase & 0xffff), 0x00, "oracle must clear the state byte on reset");
   }
@@ -219,7 +219,7 @@ function brokenWrongReload(m, recordBase) {
   mem.write8(field(4), 0x03); // BUG: should reload 0x02
   const position = (mem.read8(field(3)) - 1) & 0xff;
   mem.write8(field(3), position);
-  loc_22bd(m, field(3));
+  publish50mObjectYToSprite(m, field(3));
   if (position !== 0x68) return;
   mem.write8(field(1), 0x80);
   mem.write8(field(0), 0x00);
@@ -235,7 +235,7 @@ function brokenCounterUp(m, recordBase) {
   mem.write8(field(4), 0x02);
   const position = (mem.read8(field(3)) + 1) & 0xff; // BUG: +1 instead of -1
   mem.write8(field(3), position);
-  loc_22bd(m, field(3));
+  publish50mObjectYToSprite(m, field(3));
   if (position !== 0x68) return;
   mem.write8(field(1), 0x80);
   mem.write8(field(0), 0x00);
@@ -251,7 +251,7 @@ function brokenDroppedReset(m, recordBase) {
   mem.write8(field(4), 0x02);
   const position = (mem.read8(field(3)) - 1) & 0xff;
   mem.write8(field(3), position);
-  loc_22bd(m, field(3));
+  publish50mObjectYToSprite(m, field(3));
   if (position !== 0x68) return;
   // BUG: field(1) = 0x80 write dropped
   mem.write8(field(0), 0x00);
@@ -299,7 +299,7 @@ test("REALISM: 0x22A2 attract dispatches match the oracle (attract never reaches
     b.nextNmi = Infinity; b.nextBoundary = Infinity;
     const recordBase = b.mem.read8(b.regs.sp) | (b.mem.read8((b.regs.sp + 1) & 0xffff) << 8);
     oracle(a);
-    loc_22a2(b, recordBase);
+    raise50mObjectAndPark(b, recordBase);
     const ram = firstRamDiff(a, b);
     assert.equal(ram, null, ram && `real dispatch diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} cand=${ram.b})`);
   }
@@ -307,7 +307,7 @@ test("REALISM: 0x22A2 attract dispatches match the oracle (attract never reaches
   console.log(
     `  REALISM: ${count} natural 0x22A2 dispatches in 2000 attract frames` +
       (count === 0
-        ? " (none — sub_2207's board gate is closed in attract; the exhaustive crafted sweep covers the full observable space)"
+        ? " (none — dispatch50mObjectState's board gate is closed in attract; the exhaustive crafted sweep covers the full observable space)"
         : " (all matched the oracle)"),
   );
 });

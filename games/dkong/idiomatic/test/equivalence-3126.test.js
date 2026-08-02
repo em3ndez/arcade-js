@@ -22,7 +22,7 @@
  *        (b) polarity inversion — returns FRAME & 3 == 3 (proceed/skip flipped); caught at
  *            the very first value.
  *
- *   3. REALISM + PURITY (crafted entries) — the family is reached only through loc_30fa's
+ *   3. REALISM + PURITY (crafted entries) — the family is reached only through gateObjectUpdateByDifficulty's
  *      untranslated rst-0x28 difficulty table, so attract NEVER dispatches 0x3126 (the
  *      REACHABILITY probe below confirms 0 natural hits). In place of captured dispatches,
  *      take a real booted+attract machine and poke FRAME to representative values (both
@@ -78,7 +78,7 @@ function runOracleBool(m, frameVal) {
 // dispatch: attract runs it zero times. If this ever fails, the family got wired in and
 // the crafted-entry section below should be upgraded to real captured dispatches.
 
-test("REACHABILITY: 0x3126 is NOT dispatched during attract (family reached only via loc_30fa's untranslated table)", () => {
+test("REACHABILITY: 0x3126 is NOT dispatched during attract (family reached only via gateObjectUpdateByDifficulty's untranslated table)", () => {
   let count = 0;
   const snap = new Map([[TARGET, (mm) => { count++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });

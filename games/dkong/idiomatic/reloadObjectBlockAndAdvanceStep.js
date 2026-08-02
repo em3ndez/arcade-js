@@ -5,9 +5,9 @@
  * ROM 0x16ee.
  *
  * One phase of the board-advance sequence run while GAME_SUBSTATE (0x600A) == 0x16
- * (board cleared / advance). The dispatcher loc_1615 steps through the byte at 0x6388
+ * (board cleared / advance). The dispatcher dispatchBoardClearedInterlude steps through the byte at 0x6388
  * as its rst-0x28 index into the per-board sub-dispatch tables; this handler is reached
- * from it via loc_16bb -> loc_16e1 (a direct call). Its whole job is to (re)stage the
+ * from it via dispatchKongWalkFrame -> endKongWalkAndAdvanceInterlude (a direct call). Its whole job is to (re)stage the
  * scene's sprite-object records and then bump 0x6388 so the next frame dispatches the
  * following phase:
  *
@@ -21,14 +21,14 @@
  *   - Clear the board-object bookkeeping byte 0x62AF.
  *   - inc (0x6388) — advance to the next board-advance dispatch step.
  *
- * The sibling sub_168a does the identical reload + patch under a timer gate and a
+ * The sibling stageKongClimbPose does the identical reload + patch under a timer gate and a
  * different tail; this variant skips the gate and instead advances the step counter.
  * No hardware (0x7Dxx) writes — every store is work RAM. The only callee is the landed
  * idiomatic leaf loadSpriteObjectBlock, called directly (no register-ABI marshalling).
  *
  * Meaning confidence: the two observable actions — reload+patch the object block and
  * increment the step index — are read directly off the opcodes and named memory; the
- * surrounding "which board-advance phase" framing is inferred from the loc_1615 dispatch
+ * surrounding "which board-advance phase" framing is inferred from the dispatchBoardClearedInterlude dispatch
  * context. The name claims only the actions, not the phase.
  *
  * Memory-equivalent to the frozen oracle — equivalence-16ee.test.js.
@@ -40,11 +40,11 @@
  *           else is a constant copy+patch. Teeth: a write-order corruption of 0x690C and
  *           a dropped 0x6388 advance.
  * LIVE-OUT: memory-only. Reached through the rst-0x28 board-advance dispatch tail
- *           (loc_1615), which discards the handler's registers/flags — the oracle's
+ *           (dispatchBoardClearedInterlude), which discards the handler's registers/flags — the oracle's
  *           residual A/HL/DE/BC/flags are dead ABI, and its SP/pc are the Z80 call
  *           mechanism the JS call stack replaces (not part of the contract).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388 — the board-advance
- *           dispatch step index loc_1615 reads) from ram.js. Hex-kept: ROM template source
+ *           dispatch step index dispatchBoardClearedInterlude reads) from ram.js. Hex-kept: ROM template source
  *           0x388C (an immediate) and 0x62AF (an unnamed board-object bookkeeping byte).
  */
 

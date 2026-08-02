@@ -1,33 +1,33 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e15 (ROM 0x1E15) — post the queued task, read the effect
+ * Equivalence test for stageAwardPopupAtHitObject (ROM 0x1E15) — post the queued task, read the effect
  * sprite's X/Y from the indirect parameter block, then tail into the record-stamp
- * loc_1e36.
+ * stampScorePopupSprite.
  *
- * loc_1e15 WRITES memory (the task ring via enqueueTask, the block[0] clear at
- * *(0x6343), and — through its loc_1e36 tail — the sprite record 0x6A30..0x6A33 and the
+ * stageAwardPopupAtHitObject WRITES memory (the task ring via enqueueTask, the block[0] clear at
+ * *(0x6343), and — through its stampScorePopupSprite tail — the sprite record 0x6A30..0x6A33 and the
  * gated sound 0x6085) and is NOT a leaf, so it is gated by capture / clone / replay
  * (docs/decompiler-pipeline) with a FRESH clone per case. Its own body is straight-line; the only
- * branches live in its callees (enqueueTask's full-ring drop, loc_1e36's board gate).
+ * branches live in its callees (enqueueTask's full-ring drop, stampScorePopupSprite's board gate).
  * Attract only ever dispatches it on 25m (BOARD 1) with a free ring slot, so the closed
  * arms are reached with crafted entries:
  *
  *   1. REALISM (real captured dispatch) — attract dispatches 0x1e15 on 25m. Run the
- *      ORACLE on one clone and idiomatic loc_1e15 on another and confirm every
+ *      ORACLE on one clone and idiomatic stageAwardPopupAtHitObject on another and confirm every
  *      game-visible byte matches — the residual diff is confined to STACK_SCRATCH.
  *      That confinement is the whole point: the oracle models `call 0x309f … jp 0x1e36`
- *      (push/call/ret, so its SP/pc move); loc_1e15 uses the JS call stack and models
+ *      (push/call/ret, so its SP/pc move); stageAwardPopupAtHitObject uses the JS call stack and models
  *      neither, so the ONLY residual is stack-scratch bytes. Its deepest push lands at
  *      SP-4 (measured), which must sit inside STACK_SCRATCH for the exclusion to be
- *      sound; loc_1e15 must leave SP/pc unchanged.
+ *      sound; stageAwardPopupAtHitObject must leave SP/pc unchanged.
  *
- *   2. BOARD (exhaustive crafted) — loc_1e36's gate is the chain's only board-dependent
+ *   2. BOARD (exhaustive crafted) — stampScorePopupSprite's gate is the chain's only board-dependent
  *      logic and attract exercises only BOARD 1, so on a real entry poke BOARD to EVERY
  *      byte 0..255 identically on both sides and compare game-visible RAM. This pins the
  *      50m/100m CLOSED arms (no 0x6085 write) attract never reaches.
  *
  *   3. PARAM BLOCK (edge crafted) — poke the four block bytes at *(0x6343) to distinct
- *      edge tuples on both sides. This pins loc_1e15's own logic: block[0]->A (0x6A30),
+ *      edge tuples on both sides. This pins stageAwardPopupAtHitObject's own logic: block[0]->A (0x6A30),
  *      block[3]->C (0x6A33), and the byte-0 CLEAR (*(0x6343) -> 0). A wrong offset or a
  *      missing clear would show here.
  *
@@ -48,9 +48,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e15 as oracle } from "../../translated/loc_1e15.js";
-import { loc_1e15 as idiomatic } from "../loc_1e15.js";
+import { stageAwardPopupAtHitObject as idiomatic } from "../stageAwardPopupAtHitObject.js";
 import { enqueueTask } from "../enqueueTask.js"; // idiomatic callee, for the teeth twins
-import { loc_1e36 } from "../loc_1e36.js";       // idiomatic callee, for the teeth twins
+import { stampScorePopupSprite } from "../stampScorePopupSprite.js";       // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -64,8 +64,8 @@ const test = ROM_PRESENT
 const TARGET = 0x1e15;
 const BOARD = 0x6227;
 const PARAM_PTR = 0x6343; // indirect word: HL = the parameter block address
-const REC = 0x6a30;       // sprite-record slot (written by the loc_1e36 tail)
-const SND = 0x6085;       // sound latch (gate-open, written by loc_1e36)
+const REC = 0x6a30;       // sprite-record slot (written by the stampScorePopupSprite tail)
+const SND = 0x6085;       // sound latch (gate-open, written by stampScorePopupSprite)
 const TASK_TAIL = 0x60b0; // low byte of the task ring's next write slot
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -91,7 +91,7 @@ function ramDiffMinusStack(a, b) {
 
 /**
  * Replay one entry state through the oracle and a candidate on independent FRESH clones
- * (loc_1e15 writes RAM), and return the game-visible diff + both machines.
+ * (stageAwardPopupAtHitObject writes RAM), and return the game-visible diff + both machines.
  */
 function replay(entry, candidate) {
   const a = entry.clone(); // oracle
@@ -103,7 +103,7 @@ function replay(entry, candidate) {
 
 /**
  * Run attract and clone the machine at each real 0x1e15 dispatch (reached via the
- * loc_1e00/1e08/1e10 setters' `jp 0x1e15` while the 25m demo plays). The wrapper
+ * stageAward300Popup/1e08/1e10 setters' `jp 0x1e15` while the 25m demo plays). The wrapper
  * delegates to the oracle so the host run proceeds to a clean stop.
  */
 function captureDispatches(K, maxFrames) {
@@ -147,19 +147,19 @@ test("REALISM: real captured 25m 0x1e15 dispatch — game-visible RAM identical,
       (entry.regs.sp - 4) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
       `oracle's deepest push must sit inside STACK_SCRATCH (SP=${hx(entry.regs.sp)})`,
     );
-    // loc_1e15 must NOT model the stack: SP and pc unchanged from entry.
+    // stageAwardPopupAtHitObject must NOT model the stack: SP and pc unchanged from entry.
     const b = entry.clone();
     const sp0 = b.regs.sp, pc0 = b.pc;
     idiomatic(b);
-    assert.equal(b.regs.sp, sp0, "loc_1e15 must leave SP unchanged (no stack modelling)");
-    assert.equal(b.pc, pc0, "loc_1e15 must leave pc unchanged (no ret modelling)");
+    assert.equal(b.regs.sp, sp0, "stageAwardPopupAtHitObject must leave SP unchanged (no stack modelling)");
+    assert.equal(b.pc, pc0, "stageAwardPopupAtHitObject must leave pc unchanged (no ret modelling)");
   }
   console.log(`  REALISM: ${caps.length} real 25m dispatch(es) — game-visible RAM identical to the oracle`);
 });
 
 // -- 2. BOARD (exhaustive crafted) --------------------------------------------
 
-test("BOARD (exhaustive): loc_1e15 == oracle over all 256 BOARD values (open + closed gate arms)", () => {
+test("BOARD (exhaustive): stageAwardPopupAtHitObject == oracle over all 256 BOARD values (open + closed gate arms)", () => {
   const base = craftedBase();
   let count = 0, opened = 0, closed = 0, mismatch = null;
   for (let v = 0; v < 256 && !mismatch; v++) {
@@ -169,7 +169,7 @@ test("BOARD (exhaustive): loc_1e15 == oracle over all 256 BOARD values (open + c
     idiomatic(b);
     const { bad } = ramDiffMinusStack(a, b);
     count++;
-    if (a.mem.read8(SND) === 3) opened++; else closed++; // loc_1e36's gate fired or not
+    if (a.mem.read8(SND) === 3) opened++; else closed++; // stampScorePopupSprite's gate fired or not
     if (bad) mismatch = { v, bad };
   }
   assert.equal(
@@ -254,7 +254,7 @@ function brokenWrongCOffset(m) {
   regs.a = mem.read8(block);
   mem.write8(block, 0x00);
   regs.c = mem.read8((block & 0xff00) | ((block + 2) & 0xff)); // BUG: +2, should be +3
-  loc_1e36(m);
+  stampScorePopupSprite(m);
 }
 
 /** Twin (b): drops the byte-0 clear. The block byte stays non-zero. */
@@ -265,7 +265,7 @@ function brokenNoClear(m) {
   regs.a = mem.read8(block);
   // BUG: no `mem.write8(block, 0x00)` — block[0] never cleared
   regs.c = mem.read8((block & 0xff00) | ((block + 3) & 0xff));
-  loc_1e36(m);
+  stampScorePopupSprite(m);
 }
 
 /** Twin (c): drops the enqueueTask. The task ring + tail are left untouched. */
@@ -276,7 +276,7 @@ function brokenDropTask(m) {
   regs.a = mem.read8(block);
   mem.write8(block, 0x00);
   regs.c = mem.read8((block & 0xff00) | ((block + 3) & 0xff));
-  loc_1e36(m);
+  stampScorePopupSprite(m);
 }
 
 test("TEETH (wrong-C-offset): the +2 twin is CAUGHT by the PARAM sweep and names 0x6A33", () => {

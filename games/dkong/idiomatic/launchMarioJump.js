@@ -21,7 +21,7 @@
  *     later fall-fatality test measures the landing against;
  *   - the jump sound fires via SND_TRIGGER bit 1 (0x6081 = 3, a 3-frame assert).
  *
- * Reached once per jump, from loc_1b6e (itself entry_1ac3's jump arm). Writes eight
+ * Reached once per jump, from loc_1b6e (itself dispatchMarioMovement's jump arm). Writes eight
  * RAM bytes, reads two (the sprite code and Y), calls nothing. (Aside: ram.js notes
  * a fall "sets VY to 0" citing this address — that is a separate fall-init path; this
  * routine unconditionally writes the 0x0148 jump impulse, and its sole caller is the
@@ -32,7 +32,7 @@
  *           edges, oracle vs candidate on fresh clones) + real captured attract
  *           dispatches (all three arms occur naturally). Teeth: a twin that drops the
  *           facing bit when re-posing the sprite.
- * LIVE-OUT: memory-only. entry_1ac3→loc_1b6e→here is a tail-jump chain; the `ret`
+ * LIVE-OUT: memory-only. dispatchMarioMovement→loc_1b6e→here is a tail-jump chain; the `ret`
  *           returns to loc_197a @0x1983, which immediately `call`s the next cascade
  *           routine (0x1f72) without reading A/HL/BC or flags. The oracle's residual
  *           A (=take-off Y), HL (=0x6081) and BC (=velocity) are dead ABI — every

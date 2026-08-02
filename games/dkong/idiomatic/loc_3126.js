@@ -8,7 +8,7 @@
  * four where they are — so whatever the caller does behind this guard runs on three of
  * every four frames and pauses on the fourth.
  *
- * It is one arm of a difficulty-scaled throttle family (ROM 0x3110–0x313B). loc_30fa reads
+ * It is one arm of a difficulty-scaled throttle family (ROM 0x3110–0x313B). gateObjectUpdateByDifficulty reads
  * DIFFICULTY, clamps it to 0..5, and dispatches to one of four sibling guards that let the
  * gated action run on a rising fraction of frames as difficulty climbs (one-half, five-
  * eighths, three-quarters, seven-eighths). This is the three-quarters arm, selected at
@@ -27,7 +27,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-3126.test.js.
  * GATE:     exhaustive — the whole input is one byte, so all 256 FRAME values are swept vs
  *           the oracle's skip decision (a proof, not a sample), plus crafted entries on a
- *           real attract machine. The family is reached only through loc_30fa's untranslated
+ *           real attract machine. The family is reached only through gateObjectUpdateByDifficulty's untranslated
  *           rst-0x28 table, so attract never dispatches it (0 natural hits); the crafted
  *           entries stand in for real captured dispatches.
  * LIVE-OUT: memory-only (writes none) — the control-flow boolean is the whole output; the

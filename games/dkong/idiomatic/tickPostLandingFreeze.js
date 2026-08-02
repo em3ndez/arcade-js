@@ -3,7 +3,7 @@
  * tickPostLandingFreeze — count down Mario's post-landing freeze; unfreeze on expiry.
  * ROM 0x1B55.
  *
- * A branch of the movement machine (entry_1ac3 tail-jumps here — `jp nz 0x1b55` — on
+ * A branch of the movement machine (dispatchMarioMovement tail-jumps here — `jp nz 0x1b55` — on
  * the frame Mario's MARIO_FREEZE_TIMER is nonzero). Landing loads that timer to 4
  * (entry_1c4f, ROM 0x1C65) so Mario is unresponsive for four frames after a jump.
  * Each of those frames this routine does one thing: decrement the timer and, while it
@@ -32,7 +32,7 @@
  *           is post-landing frozen.
  * LIVE-OUT: memory-only — MARIO_FREEZE_TIMER, and on expiry MARIO_HAMMER_ACTIVE /
  *           MARIO_SPRITE_CODE / MARIO_WALK_ANIM plus the four sprite-record bytes
- *           (0x694C..0x694F, via the callee). entry_1ac3 reaches here by an
+ *           (0x694C..0x694F, via the callee). dispatchMarioMovement reaches here by an
  *           unconditional tail-jump and both arms exit through a single net `ret`, so no
  *           successor reads a flag this sets; the oracle's residual A/HL/flags are dead
  *           ABI (the whole-machine gate backstops that).

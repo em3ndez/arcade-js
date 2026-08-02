@@ -13,7 +13,7 @@
  * climbMarioDown and climbUpWhileHeld are already idiomatic and direct-called; the oracle
  * reaches them by `m.call`, so this gate also composes their own equivalence (and callees').
  *
- * The oracle is entered by a tail-call from entry_1ac3 / loc_1afe, takes no register
+ * The oracle is entered by a tail-call from dispatchMarioMovement / loc_1afe, takes no register
  * live-in it does not immediately overwrite, and every path nets exactly ONE `ret`: the
  * Down arm tail-jumps into 0x1CF2 whose chain ends in a single `ret`, the Up-fall-through
  * arm tail-jumps into 0x1B45 whose chain ends in a single `ret`, and the idle arm does its
@@ -144,7 +144,7 @@ function contractDiffs(entry, fn) {
 
 /** Hook 0x1B38 in a real attract run and clone the machine at up to K real dispatches. The
  *  wrapper snapshots the entry state, then runs the oracle so the host game proceeds
- *  undisturbed. entry_1ac3 reaches here by `m.call(0x1b38)`, resolved through the registry
+ *  undisturbed. dispatchMarioMovement reaches here by `m.call(0x1b38)`, resolved through the registry
  *  the override overlays, so every real input-dispatch entry is caught. */
 function captureDispatches(K, maxFrames) {
   const caps = [];

@@ -65,7 +65,7 @@
  *           forgets to skip — each caught, and each named at the cell or the return value it
  *           diverges on.
  * LIVE-OUT: the caller-skip boolean, plus whatever memory the effect beat writes through the
- *           router. No register or flag is live: the proceed arm's successor (loc_1ac3, ROM
+ *           router. No register or flag is live: the proceed arm's successor (dispatchMarioMovement, ROM
  *           0x1AC3) reloads the accumulator from memory as its first act, and the skip arm
  *           returns past the caller altogether. SP/pc are the dropped stack model — the oracle's
  *           skip arm discards the caller's return address and returns a level higher, all inside

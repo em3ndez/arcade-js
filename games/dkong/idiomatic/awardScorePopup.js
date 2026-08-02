@@ -2,7 +2,7 @@
 /**
  * awardScorePopup — award points and stage the floating score glyph over Mario.  ROM 0x1E28.
  *
- * The "you scored" effect. Reached from loc_3e70, which picks one of three tiers by
+ * The "you scored" effect. Reached from pickAwardTierByObjectCount, which picks one of three tiers by
  * the low bits of an animation-state byte and hands this routine a matched pair:
  * an award index E (1 / 3 / 5) and a glyph tile B (0x7B / 0x7D / 0x7F). The three
  * tiers move together — a bigger award selects a bigger number sprite — which is
@@ -37,7 +37,7 @@
  *           sound; BOARD 3 opens it), each poked identically on both sides.
  * LIVE-OUT: memory-only — the task ring + tail, the four POPUP_SPRITE bytes, and
  *           (sound arm only) SND_TRIGGER[5]. The exit is a tail-jump chain
- *           (loc_3e70 → the rst-0x28 state dispatcher at sub_1dbd) that reloads its
+ *           (pickAwardTierByObjectCount → the rst-0x28 state dispatcher at sub_1dbd) that reloads its
  *           own state and reads none of this routine's residual A/B/C/HL/flags — all
  *           dead ABI; SP/PC are the dropped stack model (the oracle's push/call/ret),
  *           so idiomatic leaves them at their entry values.
@@ -63,7 +63,7 @@ export function awardScorePopup(m) {
   const { regs, mem } = m;
 
   // (1) Post the score-award task. D = opcode (0 = add-to-score), E = award index —
-  // both live-in from loc_3e70; enqueueTask reads them, no marshalling needed.
+  // both live-in from pickAwardTierByObjectCount; enqueueTask reads them, no marshalling needed.
   enqueueTask(m);
 
   // (2) Stage the floating score glyph as a sprite record at Mario's column.

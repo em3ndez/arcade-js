@@ -11,7 +11,7 @@
  * throttling whatever the caller drives to a 7-in-8 duty cycle.
  *
  * It is the fastest member of a four-gate family (loc_3110 1/2, loc_311b 5/8,
- * loc_3126 3/4, loc_3131 7/8) that sub_30fa selects among by DIFFICULTY (0x6380),
+ * loc_3126 3/4, loc_3131 7/8) that gateObjectUpdateByDifficulty selects among by DIFFICULTY (0x6380),
  * so higher difficulty lets the gated action run on more frames.
  *
  * Expressed as the boolean early-return idiom: returns true to let the caller

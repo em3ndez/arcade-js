@@ -1,36 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2c4f (ROM 0x2C4F) — one entry of the bonus-event slot-claim cluster.
+ * Equivalence test for armBarrelRelease (ROM 0x2C4F) — one entry of the bonus-event slot-claim cluster.
  *
- * loc_2c4f takes two register live-ins (the caller's mode byte and the current bonus value) and
+ * armBarrelRelease takes two register live-ins (the caller's mode byte and the current bonus value) and
  * its whole memory-observable behaviour is: always write the mode byte to 0x638F and 1 to 0x6392;
  * then, ONLY when BONUS_EVENT_MARK equals the bonus value, step that mark down by 8 and scan the
  * five OBJ_ARRAY_64 records (stride 32) for the first zero active-byte — on a hit raise the top-bit
- * bit 7 on BARREL_CLAIM_MODE (via loc_2c72), otherwise do nothing more. It returns nothing a caller
+ * bit 7 on BARREL_CLAIM_MODE (via markNextBarrelAsDroppingKind), otherwise do nothing more. It returns nothing a caller
  * consumes (the oracle threads residual registers/flags out; its callers reload), so the contract
  * is memory-only.
  *
  * The oracle's exits only READ the stack (a pop is never a memory write) and its free-slot tail is
  * a plain call into 0x2C72 (which pushes nothing), so nothing the routine does writes the stack.
- * The candidate models no stack (plain JS return + a direct loc_2c72 call), so the compared memory
+ * The candidate models no stack (plain JS return + a direct markNextBarrelAsDroppingKind call), so the compared memory
  * (dumpState is RAM) is identical to the oracle's with NO stack-scratch exclusion — as for 0x2C72.
  *
- *   1. EQUAL — loc_2c4f == oracle on RAM (firstStateDiff over the whole dump) across:
+ *   1. EQUAL — armBarrelRelease == oracle on RAM (firstStateDiff over the whole dump) across:
  *        A-SWEEP (exhaustive) — all 256 caller mode bytes with the gate CLOSED, isolating the
  *          0x638F store + the 0x6392 write + the early return.
  *        SLOT sweep (crafted) — the gate OPEN over every first-free-slot position (records 0..4),
  *          the all-occupied case, several mark/bonus values including a low mark that wraps the
- *          −8 step, and a non-zero starting BARREL_CLAIM_MODE to prove loc_2c72's read-modify-write.
+ *          −8 step, and a non-zero starting BARREL_CLAIM_MODE to prove markNextBarrelAsDroppingKind's read-modify-write.
  *      Plus a non-vacuity block asserting the writes really happened on both sides.
  *
  *   2. TEETH — three deliberately-broken twins the same sweep MUST catch:
  *        (a) wrong mark step (−4 not −8) — caught at BONUS_EVENT_MARK on the gate-open path.
  *        (b) inverted gate (proceeds when mark != bonus) — caught on the gate-closed A-sweep,
  *            where the twin performs the RMW + scan the oracle skips.
- *        (c) dropped slot flag (skips loc_2c72) — caught at BARREL_CLAIM_MODE on a slot-found case.
+ *        (c) dropped slot flag (skips markNextBarrelAsDroppingKind) — caught at BARREL_CLAIM_MODE on a slot-found case.
  *
  *   3. REALISM (captured dispatches) — hook 0x2C4F in a real attract run (it is reached through the
- *      bonus-event cluster's dispatch), clone at each true dispatch, and confirm loc_2c4f reproduces
+ *      bonus-event cluster's dispatch), clone at each true dispatch, and confirm armBarrelRelease reproduces
  *      the oracle's RAM on every real state the game actually produces.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2c4f.test.js
@@ -41,8 +41,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c4f as oracle } from "../../translated/loc_2c4f.js";
-import { loc_2c4f } from "../loc_2c4f.js";
-import { loc_2c72 } from "../loc_2c72.js";
+import { armBarrelRelease } from "../armBarrelRelease.js";
+import { markNextBarrelAsDroppingKind } from "../markNextBarrelAsDroppingKind.js";
 import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -148,9 +148,9 @@ const describe = (mm) =>
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case", () => {
+test("EQUAL: armBarrelRelease == oracle across the A-sweep and every gate-open slot case", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, loc_2c4f);
+  const { mismatch, count } = fullSweep(base, armBarrelRelease);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256 + SLOT_POINTS.length * SLOT_CASES.length, "must have compared the full sweep");
 
@@ -160,7 +160,7 @@ test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case
     const a = makeEntry(base, { a: 0x2a, c: 0x40, mark: 0x20 });
     const b = makeEntry(base, { a: 0x2a, c: 0x40, mark: 0x20 });
     oracle(a);
-    loc_2c4f(b, b.regs.a, b.regs.c);
+    armBarrelRelease(b, b.regs.a, b.regs.c);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(SCRATCH_MODE), 0x2a, "mode byte must be stashed");
       assert.equal(mm.mem.read8(SCRATCH_FLAG), 1, "entry flag must be raised");
@@ -172,7 +172,7 @@ test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case
     const a = makeEntry(base, { a: 0x03, c: 0x08, mark: 0x08, records: [1, 0, 1, 1, 1], req: 0x03 });
     const b = makeEntry(base, { a: 0x03, c: 0x08, mark: 0x08, records: [1, 0, 1, 1, 1], req: 0x03 });
     oracle(a);
-    loc_2c4f(b, b.regs.a, b.regs.c);
+    armBarrelRelease(b, b.regs.a, b.regs.c);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x08 - EVENT_STEP, "mark must step down by 8");
       assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x03 | 0x80, "the claim must OR bit 7 over the mode value");
@@ -183,7 +183,7 @@ test("EQUAL: loc_2c4f == oracle across the A-sweep and every gate-open slot case
     const a = makeEntry(base, { a: 0x03, c: 0x50, mark: 0x50, records: OCCUPIED, req: 0x11 });
     const b = makeEntry(base, { a: 0x03, c: 0x50, mark: 0x50, records: OCCUPIED, req: 0x11 });
     oracle(a);
-    loc_2c4f(b, b.regs.a, b.regs.c);
+    armBarrelRelease(b, b.regs.a, b.regs.c);
     for (const mm of [a, b]) {
       assert.equal(mm.mem.read8(BONUS_EVENT_MARK), 0x50 - EVENT_STEP, "mark must step down by 8");
       assert.equal(mm.mem.read8(BARREL_CLAIM_MODE), 0x11, "no free slot -> BARREL_CLAIM_MODE untouched");
@@ -203,7 +203,7 @@ function brokenWrongStep(m, scratchValue, bonus) {
   if (mark !== bonus) return;
   mem.write8(BONUS_EVENT_MARK, mark - 4); // BUG: −4, not −8
   for (let i = 0; i < RECORDS; i++) {
-    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { loc_2c72(m); return; }
+    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { markNextBarrelAsDroppingKind(m); return; }
   }
 }
 
@@ -217,7 +217,7 @@ function brokenInvertedGate(m, scratchValue, bonus) {
   if (mark === bonus) return; // BUG: should be `mark !== bonus`
   mem.write8(BONUS_EVENT_MARK, mark - EVENT_STEP);
   for (let i = 0; i < RECORDS; i++) {
-    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { loc_2c72(m); return; }
+    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) { markNextBarrelAsDroppingKind(m); return; }
   }
 }
 
@@ -230,7 +230,7 @@ function brokenDroppedFlag(m, scratchValue, bonus) {
   if (mark !== bonus) return;
   mem.write8(BONUS_EVENT_MARK, mark - EVENT_STEP);
   for (let i = 0; i < RECORDS; i++) {
-    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) return; // BUG: dropped the loc_2c72 flag
+    if (mem.read8(OBJ_ARRAY_64 + i * STRIDE) === 0) return; // BUG: dropped the markNextBarrelAsDroppingKind flag
   }
 }
 
@@ -275,7 +275,7 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured 0x2C4F dispatches — loc_2c4f matches oracle RAM", () => {
+test("REALISM: real captured 0x2C4F dispatches — armBarrelRelease matches oracle RAM", () => {
   const caps = captureDispatches(64, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x2C4F dispatch during attract");
 
@@ -287,7 +287,7 @@ test("REALISM: real captured 0x2C4F dispatches — loc_2c4f matches oracle RAM",
     const modeIn = hx(a.regs.a);
     const bonusIn = hx(a.regs.c);
     oracle(a);
-    loc_2c4f(b, b.regs.a, b.regs.c);
+    armBarrelRelease(b, b.regs.a, b.regs.c);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(
       ram,

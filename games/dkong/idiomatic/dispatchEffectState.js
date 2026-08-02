@@ -7,7 +7,7 @@
  * on a small enum:
  *
  *   - state 0 -> effectStateIdle: idle. The state machine is dormant; nothing happens this frame.
- *   - state 1 -> loc_1dc9: the one-shot that arms the countdown and spawns the effect
+ *   - state 1 -> armScorePopupAndSelectAward: the one-shot that arms the countdown and spawns the effect
  *     sprite, then advances the state to 2.
  *   - state 2 -> loc_1e4a: the countdown. Each frame it works the timer down and, on
  *     expiry, tears the effect down and returns the machine to state 0.
@@ -30,7 +30,7 @@
  * named the same way, after its own selector cell.
  * WHAT THIS NAME DOES NOT CLAIM: what the effect-sprite state machine DEPICTS. EFFECT_STATE is
  * [code], not [seen], and the effect semantic is still ungrounded — so "dispatchEffectState" names
- * the router and its selector, not the phenomenon. Its cohort (loc_1dc9, loc_1e4a and the setter
+ * the router and its selector, not the phenomenon. Its cohort (armScorePopupAndSelectAward, loc_1e4a and the setter
  * family) stays loc_<addr>: those differ only in which constant pair they load, so naming them would
  * require claiming WHICH effect each one is, which nothing yet establishes.
  *
@@ -49,7 +49,7 @@
  *           the caller (loc_197a) reads
  *           none on return, and none of the three handlers needs a register set on entry.
  *           SP/pc are the dropped stack model — on the state-1 arm the fully-idiomatic
- *           loc_1dc9 leaves them at entry while the oracle's return chain moves them within
+ *           armScorePopupAndSelectAward leaves them at entry while the oracle's return chain moves them within
  *           STACK_SCRATCH; dead either way, so they are outside the compare.
  * NAMES:    EFFECT_STATE (0x6340), the router's state byte, from ram.js — a [code]-
  *           confidence name (the state-machine STRUCTURE is certain, the "effect-sprite"
@@ -59,7 +59,7 @@
 import { EFFECT_STATE } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { effectStateIdle } from "./effectStateIdle.js"; // ROM 0x1E49 — state 0 (idle)
-import { loc_1dc9 } from "./loc_1dc9.js"; // ROM 0x1DC9 — state 1 (arm + advance)
+import { armScorePopupAndSelectAward } from "./armScorePopupAndSelectAward.js"; // ROM 0x1DC9 — state 1 (arm + advance)
 // ROM 0x1E4A — state 2 (countdown). The FROZEN ORACLE deliberately: an idiomatic twin
 // (tickDispatcherCountdown.js) exists and 0x1E4A is in ram.js's ROUTINES, so "no idiomatic yet"
 // is FALSE. It stays because the oracle is a pure leaf that returns through a Z80 `ret` (two
@@ -76,7 +76,7 @@ import { loc_1e4a } from "../translated/loc_1e4a.js";
 // it and any out-of-range value fall through to the reset-vector error below.
 const HANDLERS = [
   effectStateIdle, // state 0 — idle
-  loc_1dc9, // state 1 — arm the countdown, spawn the effect sprite, advance to 2
+  armScorePopupAndSelectAward, // state 1 — arm the countdown, spawn the effect sprite, advance to 2
   loc_1e4a, // state 2 — count the timer down, tear the effect down on expiry
 ];
 

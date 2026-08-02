@@ -14,7 +14,7 @@
  *   1. EQUAL (real dispatches) — replay every captured entry: oracle vs candidate on
  *      RAM − STACK_SCRATCH + pc + SP.
  *
- *   2. R IS DEAD ABI — the oracle takes a second argument (loc_1ac3's IX-relative address
+ *   2. R IS DEAD ABI — the oracle takes a second argument (dispatchMarioMovement's IX-relative address
  *      helper) that the candidate drops. Run the oracle WITH and WITHOUT it on every captured
  *      entry and require the contract to be identical, which is what licenses the drop.
  *

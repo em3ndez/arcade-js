@@ -53,7 +53,7 @@
  *           Teeth: three broken twins, all caught — ignoring the E verdict, testing the Left
  *           control bit instead of Right (caught on 776 of the 1264 real dispatches), and
  *           omitting the accumulator staging below (caught on 293).
- * LIVE-OUT: memory-only, and no meaningful return value — loc_1ac3 tail-returns this routine's
+ * LIVE-OUT: memory-only, and no meaningful return value — dispatchMarioMovement tail-returns this routine's
  *           result and loc_197a discards it. The registers the oracle leaves are dead ABI: the
  *           decrement it applies to E is read by nothing in either arm's subtree (loc_236e, the
  *           only routine there that touches E at all, writes it before reading it), and the

@@ -3,7 +3,7 @@
  * marioReachedTargetColumn — has Mario reached the target position? a three-condition hit test.
  * ROM 0x2243.
  *
- * Called from the sub_2207 state machine (its loc_2227 / loc_2259 arms), each of
+ * Called from the dispatch50mObjectState state machine (its hold50mObjectParked / slide50mObjectDown arms), each of
  * which points at one byte of an object record — the object's target X — and asks
  * whether Mario has arrived there. Three conditions must all hold for a HIT:
  *
@@ -15,7 +15,7 @@
  *
  * On a HIT the routine reports true and the caller runs its own tail (which stamps
  * its follow-up state). On any miss it reports the "no hit" signal by returning
- * loc_2257 — the shared caller-skip tail — which is false, so the caller propagates
+ * reportNoHitAndSkipCaller — the shared caller-skip tail — which is false, so the caller propagates
  * the skip (`if (!loc_2243(m)) return;`) and its tail never runs. The false result
  * therefore unwinds two levels up, exactly as the oracle's stack drop does.
  *
@@ -23,7 +23,7 @@
  * memory, and hands off only to the no-hit tail. Its input is the target pointer the
  * caller leaves in place; that stays a register read because its callers are still
  * the frozen oracle (a genuine oracle boundary), to be promoted to a real parameter
- * once loc_2227 / loc_2259 are idiomatic.
+ * once hold50mObjectParked / slide50mObjectDown are idiomatic.
  *
  * GROUNDED (DK understanding pass 4, independent confirmer): a pure predicate over named MARIO_X /
  * MARIO_Y / MARIO_AIRBORNE — mechanism-descriptive, claiming no game-purpose its callers can't ground.
@@ -35,7 +35,7 @@
  *           each decision independently — the Y threshold at every value (both sides
  *           of the boundary), the airborne gate at every value, target-match against
  *           a fixed X, and equality across every X. Plus real captured in-play states
- *           from the reachable ancestor sub_2207 (0x2243 itself never dispatches in
+ *           from the reachable ancestor dispatch50mObjectState (0x2243 itself never dispatches in
  *           attract). Every case: no RAM written, same hit/no-hit signal. Teeth: a
  *           dropped airborne gate, an off-by-one Y boundary, and an inverted X test.
  * LIVE-OUT: the boolean hit signal (true = hit, false = no-hit skip); memory is
@@ -47,7 +47,7 @@
  */
 
 import { MARIO_X, MARIO_Y, MARIO_AIRBORNE } from "./ram.js";
-import { loc_2257 } from "./loc_2257.js"; // ROM 0x2257 — the shared no-hit caller-skip tail
+import { reportNoHitAndSkipCaller } from "./reportNoHitAndSkipCaller.js"; // ROM 0x2257 — the shared no-hit caller-skip tail
 
 // Mario must be under this Y for the hit to register; at or above it the object is
 // out of reach and the test always misses.
@@ -62,13 +62,13 @@ export function marioReachedTargetColumn(m) {
   const { regs, mem } = m;
 
   // Out of the reach band — too high on the playfield to count.
-  if (mem.read8(MARIO_Y) >= REACH_Y) return loc_2257(m);
+  if (mem.read8(MARIO_Y) >= REACH_Y) return reportNoHitAndSkipCaller(m);
 
   // Airborne — the hit only registers with Mario grounded.
-  if (mem.read8(MARIO_AIRBORNE) !== 0) return loc_2257(m);
+  if (mem.read8(MARIO_AIRBORNE) !== 0) return reportNoHitAndSkipCaller(m);
 
   // Horizontally aligned with the object's target X?
-  if (mem.read8(MARIO_X) !== mem.read8(regs.hl)) return loc_2257(m);
+  if (mem.read8(MARIO_X) !== mem.read8(regs.hl)) return reportNoHitAndSkipCaller(m);
 
   // All three conditions met — HIT: the caller runs its own tail.
   return true;

@@ -4,8 +4,8 @@
  * sprite-object frame, pulse a sound latch, advance the step.  ROM 0x186f.
  *
  * A step handler in the board-cleared / advance interlude (GAME_SUBSTATE 0x600A == 0x16),
- * the even-board (BOARD bit0 clear → 50m / 100m, table at 0x1648) sibling of loc_1670.
- * loc_1615 dispatches this family through the 0x6388 step selector; this is the step whose
+ * the even-board (BOARD bit0 clear → 50m / 100m, table at 0x1648) sibling of stageNextKongPoseWhenHoldExpires.
+ * dispatchBoardClearedInterlude dispatches this family through the 0x6388 step selector; this is the step whose
  * table entry is 0x186f. Every sibling has the same shape — hold a pose for a run of frames,
  * then on expiry swap in the next sprite-object animation frame and advance the step — and
  * this is the leanest of them: no per-board rst-0x30 / rst-0x38 tail, and it does not re-arm

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1670 (ROM 0x1670) — one timer-gated step of the board-advance
+ * Equivalence test for stageNextKongPoseWhenHoldExpires (ROM 0x1670) — one timer-gated step of the board-advance
  * render sequence (GAME_SUBSTATE 0x600A == 0x16, step selector 0x6388 == 1 on 25m/75m).
  *
- * loc_1670 WRITES memory and is NOT a leaf — it runs the rst-0x18 gate (tickSubstateTimer),
+ * stageNextKongPoseWhenHoldExpires WRITES memory and is NOT a leaf — it runs the rst-0x18 gate (tickSubstateTimer),
  * a block copy (loadSpriteObjectBlock), the rst-0x30 per-board gate (boardBitGate) and the
  * rst-0x38 Y-column nudge (addToSpriteObjectColumn) — so it is gated by capture / clone /
  * replay (docs/decompiler-pipeline) with a FRESH clone per case. Its logic has three inputs:
@@ -54,7 +54,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1670 as oracle } from "../../translated/loc_1670.js";
-import { loc_1670 as idiomatic } from "../loc_1670.js";
+import { stageNextKongPoseWhenHoldExpires as idiomatic } from "../stageNextKongPoseWhenHoldExpires.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { boardBitGate } from "../boardBitGate.js";
@@ -149,8 +149,8 @@ test("STRUCTURE: 75m expiry — work RAM identical, salient outputs asserted, id
     `oracle push / pop targets must stay inside STACK_SCRATCH (SP=${hx(SP_CRAFT)})`);
 
   // The idiomatic side makes only direct calls — it models no stack and no return.
-  assert.equal(b.regs.sp, sp0, "loc_1670 must leave SP unchanged (direct calls, no stack modelling)");
-  assert.equal(b.pc, pc0, "loc_1670 must leave pc unchanged");
+  assert.equal(b.regs.sp, sp0, "stageNextKongPoseWhenHoldExpires must leave SP unchanged (direct calls, no stack modelling)");
+  assert.equal(b.pc, pc0, "stageNextKongPoseWhenHoldExpires must leave pc unchanged");
 
   // WORK + gate CLOSED (25m): the Y column is copied but NOT nudged.
   const [c, d] = craftPair(1, 1, 1);
@@ -175,7 +175,7 @@ test("STRUCTURE: 75m expiry — work RAM identical, salient outputs asserted, id
 
 // -- 2. TIMER (exhaustive) ----------------------------------------------------
 
-test("TIMER (exhaustive): loc_1670 == oracle over all 256 SUBSTATE_TIMER values (75m)", () => {
+test("TIMER (exhaustive): stageNextKongPoseWhenHoldExpires == oracle over all 256 SUBSTATE_TIMER values (75m)", () => {
   let count = 0, expired = 0, counting = 0, mismatch = null;
   for (let t = 0; t < 256 && !mismatch; t++) {
     const [a, b] = craftPair(t, 3, 1);
@@ -198,7 +198,7 @@ test("TIMER (exhaustive): loc_1670 == oracle over all 256 SUBSTATE_TIMER values 
 
 // -- 3. STEP (exhaustive) -----------------------------------------------------
 
-test("STEP (exhaustive): at expiry, loc_1670 == oracle over all 256 step bytes", () => {
+test("STEP (exhaustive): at expiry, stageNextKongPoseWhenHoldExpires == oracle over all 256 step bytes", () => {
   let count = 0, wraps = 0, mismatch = null;
   for (let s = 0; s < 256 && !mismatch; s++) {
     const [a, b] = craftPair(1, 3, s); // timer 1 forces the `inc (0x6388)` path
@@ -221,7 +221,7 @@ test("STEP (exhaustive): at expiry, loc_1670 == oracle over all 256 step bytes",
 
 // -- 4. BOARD (exhaustive) ----------------------------------------------------
 
-test("BOARD (exhaustive): at expiry, loc_1670 == oracle through the rst-0x30 gate over all 256 boards", () => {
+test("BOARD (exhaustive): at expiry, stageNextKongPoseWhenHoldExpires == oracle through the rst-0x30 gate over all 256 boards", () => {
   let count = 0, opens = 0, closes = 0, mismatch = null, partition = null;
   for (let board = 0; board < 256 && !mismatch; board++) {
     const [a, b] = craftPair(1, board, 1);

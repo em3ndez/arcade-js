@@ -8,7 +8,7 @@
  * loc_1a15 (INIT: clear BONUS_EXPIRED_DELAY 0x6387, advance the step to 2), idx2 ->
  * loc_1a1f (DELAY: count that counter down, advance to step 3), idx3 -> 0x1A2A. THIS
  * is idx0 — the arm taken while the step is 0, i.e. every frame the on-screen BONUS
- * has not yet reached zero. Both bonus-decrement sites (entry_2cb8, sub_2fcb) set the
+ * has not yet reached zero. Both bonus-decrement sites (releaseBarrelIntoFreeSlot, sub_2fcb) set the
  * step to 1 the moment BONUS hits 0, kicking the sequence off; until then the machine
  * sits in state 0 and this no-op runs, so the router does nothing that frame.
  *

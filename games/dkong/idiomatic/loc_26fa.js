@@ -10,7 +10,7 @@
  * vertical position and a level-scaled cadence:
  *
  *   - If the tracked Y has run off the top of the track (>= 240) it hands to the
- *     edge reset (loc_277f), which switches the mover off.
+ *     edge reset (killMarioAtEndOfLiftTravel), which switches the mover off.
  *   - Otherwise it services on a cadence keyed to the frame counter, and the cadence
  *     doubles after the first level:
  *       - Level 1 (the slow cadence): on frame%4 == 0 advance and spawn the board
@@ -27,7 +27,7 @@
  * NAME: kept the neutral loc_. The dispatch is exact against the oracle and the
  * mechanism is clear (a board-gated per-frame service router), but which board and
  * which game objects this drives is not confirmed to the routine-name bar — the whole
- * loc_271e / loc_277f / loc_2745 arm family stays loc_ for the same reason. Promote
+ * loc_271e / killMarioAtEndOfLiftTravel / dispatchElevatorRideByColumn arm family stays loc_ for the same reason. Promote
  * once corroborated.
  *
  * Memory-equivalent to the frozen oracle — equivalence-26fa.test.js.
@@ -43,13 +43,13 @@
  *           equivalence test still lines pc + SP up to prove the dissolved gate and
  *           tail-call/return brackets match.
  * NAMES:    MARIO_Y (0x6205), LEVEL (0x6229), FRAME (0x601A) from ram.js; boardBitGate
- *           (ROM 0x0030, reads the mask from a register + BOARD), loc_277f (ROM 0x277F),
+ *           (ROM 0x0030, reads the mask from a register + BOARD), killMarioAtEndOfLiftTravel (ROM 0x277F),
  *           serviceBoardObjects (ROM 0x2722) and loc_271e (ROM 0x271E) all direct-called.
  */
 
 import { MARIO_Y, LEVEL, FRAME } from "./ram.js";
 import { boardBitGate } from "./boardBitGate.js";               // ROM 0x0030 (rst 0x30)
-import { loc_277f } from "./loc_277f.js";                       // ROM 0x277F — edge reset
+import { killMarioAtEndOfLiftTravel } from "./killMarioAtEndOfLiftTravel.js";                       // ROM 0x277F — edge reset
 import { serviceBoardObjects } from "./serviceBoardObjects.js"; // ROM 0x2722 — advance + spawn + publish
 import { loc_271e } from "./loc_271e.js";                       // ROM 0x271E — vertical-reposition machine
 
@@ -73,7 +73,7 @@ export function loc_26fa(m) {
   // The mover ran off the top of its track -> reset it (short-circuits before the
   // level and frame are read).
   if (mem.read8(MARIO_Y) >= OFF_TRACK_Y) {
-    loc_277f(m);
+    killMarioAtEndOfLiftTravel(m);
     return;
   }
 

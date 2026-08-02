@@ -42,7 +42,7 @@
  * NAMES:    loc_2c4b (ROM 0x2C4B) direct-called with honest args. BARREL_CLAIM_MODE (0x6382) is
  *           named in ram.js and imported there — this entry writes it only through loc_2c4b, so it
  *           needs no import of its own; the other cells the shared path touches (0x638F, 0x6392,
- *           BONUS_EVENT_MARK, OBJ_ARRAY_64) carry their names inside loc_2c4b / loc_2c4f.
+ *           BONUS_EVENT_MARK, OBJ_ARRAY_64) carry their names inside loc_2c4b / armBarrelRelease.
  */
 
 import { loc_2c4b } from "./loc_2c4b.js"; // ROM 0x2C4B — the shared slot-claim entry

@@ -3,7 +3,7 @@
  * advanceMarioAirborneFrame — the airborne frame's head: snapshot Mario's pre-motion position, advance his
  * jump/fall arc one frame, then let the horizontal position gate steer him.  ROM 0x1BB2.
  *
- * The movement state machine (loc_1ac3) vectors here whenever MARIO_AIRBORNE is 1, i.e. on
+ * The movement state machine (dispatchMarioMovement) vectors here whenever MARIO_AIRBORNE is 1, i.e. on
  * every frame of a jump or a fall. Three things happen, in order:
  *
  *  1. MARIO_X and MARIO_Y are copied into MARIO_AIR_PREV_X / MARIO_AIR_PREV_Y, so this

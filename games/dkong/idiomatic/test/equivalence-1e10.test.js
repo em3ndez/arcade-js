@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e10 (ROM 0x1E10) — the sub_1dbd effect-sprite setter that
- * loads the fixed pair (B=0x7F, DE=0x0008) and tail-jumps into the feeder loc_1e15.
+ * Equivalence test for stageAward800Popup (ROM 0x1E10) — the sub_1dbd effect-sprite setter that
+ * loads the fixed pair (B=0x7F, DE=0x0008) and tail-jumps into the feeder stageAwardPopupAtHitObject.
  *
- * loc_1e10 WRITES memory only through its loc_1e15 chain (the task ring via enqueueTask,
- * the block[0] clear at *(0x6343), and — via the loc_1e36 tail — the sprite record
+ * stageAward800Popup WRITES memory only through its stageAwardPopupAtHitObject chain (the task ring via enqueueTask,
+ * the block[0] clear at *(0x6343), and — via the stampScorePopupSprite tail — the sprite record
  * 0x6A30..0x6A33 + the gated sound 0x6085), so it is gated by capture / clone / replay
- * (docs/decompiler-pipeline) with a FRESH clone per case. Because the idiomatic loc_1e15 does NOT model
+ * (docs/decompiler-pipeline) with a FRESH clone per case. Because the idiomatic stageAwardPopupAtHitObject does NOT model
  * the Z80 stack while the oracle's `jp 0x1e15` chain does, the contract is RAM −
  * STACK_SCRATCH (never the full register file, never cycles), with the additional
- * requirement that idiomatic loc_1e10 leaves SP/pc UNCHANGED (it models no stack).
+ * requirement that idiomatic stageAward800Popup leaves SP/pc UNCHANGED (it models no stack).
  *
- * loc_1e10's own body is branchless — it just sets two constants — and reads NEITHER B
+ * stageAward800Popup's own body is branchless — it just sets two constants — and reads NEITHER B
  * NOR DE, so it depends on no entry register. The wrinkle is reachability: attract plays
- * level-1 25m only, and 0x1e10 is reached only when loc_1dc9 falls through at level >= 3
- * or loc_1df5 sees RNG 0x6018 bit1 set — neither happens in attract (measured: 0x1e10
+ * level-1 25m only, and 0x1e10 is reached only when armScorePopupAndSelectAward falls through at level >= 3
+ * or pickRandomAwardTier sees RNG 0x6018 bit1 set — neither happens in attract (measured: 0x1e10
  * dispatches 0x times over 8000 frames while its feeder 0x1e15 dispatches 6-8x). So the
  * gate is crafted-entry, built three ways:
  *
- *   1. REALISM / GENUINE ENTRY — force 0x1e10 down the real loc_1df5 path: at each real
- *      0x1df5 dispatch poke 0x6018 to 0x02 (bit0=0, bit1=1) identically, so loc_1df5's
+ *   1. REALISM / GENUINE ENTRY — force 0x1e10 down the real pickRandomAwardTier path: at each real
+ *      0x1df5 dispatch poke 0x6018 to 0x02 (bit0=0, bit1=1) identically, so pickRandomAwardTier's
  *      `jp c,0x1e10` fires and hands 0x1e10 a genuine, in-play machine state. Run the
- *      ORACLE on one clone and idiomatic loc_1e10 on another; every game-visible byte
+ *      ORACLE on one clone and idiomatic stageAward800Popup on another; every game-visible byte
  *      matches (residual confined to STACK_SCRATCH), and idiomatic leaves SP/pc put.
  *
  *   2. REALISM / BOUNDARY — real captured 0x1e15 dispatches (which attract DOES reach)
- *      are faithful loc_1e10 continuation states: loc_1e10 reads neither B nor DE, so
- *      the setter's identity that produced the capture is irrelevant — running loc_1e10
+ *      are faithful stageAward800Popup continuation states: stageAward800Popup reads neither B nor DE, so
+ *      the setter's identity that produced the capture is irrelevant — running stageAward800Popup
  *      on such a state is exactly "the level>=3 setter fired here." Same oracle-vs-
  *      idiomatic contract over many real states, breadth the single forced entry lacks.
  *
- *   3. BOARD (exhaustive crafted) — loc_1e36's sound gate is the chain's only board-
+ *   3. BOARD (exhaustive crafted) — stampScorePopupSprite's sound gate is the chain's only board-
  *      dependent logic and attract only reaches 25m, so on a real base poke BOARD 0..255
  *      identically on both sides and compare. This pins the 50m/100m CLOSED arms
  *      (no 0x6085 write) attract never reaches; both gate arms are exercised.
  *
- *   4. TEETH — two twins the sweeps MUST catch: (a) wrong-B (0x7E) — loc_1e36 stores B
+ *   4. TEETH — two twins the sweeps MUST catch: (a) wrong-B (0x7E) — stampScorePopupSprite stores B
  *      unconditionally at record byte 0x6A31, so it diverges there on ANY base; (b)
  *      wrong-E (DE=0x0009) — enqueueTask writes E as the task's argument byte, so it
  *      diverges at the ring slot on a write-arm base.
@@ -48,8 +48,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e10 as oracle } from "../../translated/loc_1e10.js";
-import { loc_1e10 as idiomatic } from "../loc_1e10.js";
-import { loc_1e15 } from "../loc_1e15.js"; // idiomatic feeder, for the teeth twins
+import { stageAward800Popup as idiomatic } from "../stageAward800Popup.js";
+import { stageAwardPopupAtHitObject } from "../stageAwardPopupAtHitObject.js"; // idiomatic feeder, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -62,11 +62,11 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1e10;
 const FEEDER = 0x1e15;
-const ROUTER = 0x1df5;    // loc_1df5: reads 0x6018, `jp c,0x1e10` on bit1
-const RNG = 0x6018;       // seed byte loc_1df5 dispatches on (poke bit1 to force 0x1e10)
+const ROUTER = 0x1df5;    // pickRandomAwardTier: reads 0x6018, `jp c,0x1e10` on bit1
+const RNG = 0x6018;       // seed byte pickRandomAwardTier dispatches on (poke bit1 to force 0x1e10)
 const BOARD = 0x6227;
-const REC = 0x6a30;       // sprite-record slot; REC+1 = B, written by the loc_1e36 tail
-const SND = 0x6085;       // gated sound latch (gate-open, written by loc_1e36)
+const REC = 0x6a30;       // sprite-record slot; REC+1 = B, written by the stampScorePopupSprite tail
+const SND = 0x6085;       // gated sound latch (gate-open, written by stampScorePopupSprite)
 const TASK_TAIL = 0x60b0; // low byte of the task ring's next write slot (page 0x60 fixed)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -100,7 +100,7 @@ function replay(entry, candidate) {
 }
 
 /**
- * Force a GENUINE 0x1e10 entry down the loc_1df5 RNG path. At each real 0x1df5 dispatch
+ * Force a GENUINE 0x1e10 entry down the pickRandomAwardTier RNG path. At each real 0x1df5 dispatch
  * poke 0x6018 = 0x02 (bit0=0, bit1=1) so `jp c,0x1e10` fires; the 0x1e10 hook then clones
  * the (real, in-play) entry state and delegates to the wired routine so the host proceeds.
  */
@@ -118,8 +118,8 @@ function captureForced(K, maxFrames) {
 }
 
 /**
- * Run attract and clone the machine at each real 0x1e15 dispatch — a faithful loc_1e10
- * continuation state (loc_1e10 reads neither B nor DE). The wrapper delegates to the
+ * Run attract and clone the machine at each real 0x1e15 dispatch — a faithful stageAward800Popup
+ * continuation state (stageAward800Popup reads neither B nor DE). The wrapper delegates to the
  * wired feeder so the host run proceeds to a clean stop.
  */
 function captureBoundary(K, maxFrames) {
@@ -141,20 +141,20 @@ function craftedBase() {
   return caps[0];
 }
 
-/** Assert idiomatic loc_1e10 models no stack: SP and pc unchanged from entry. */
+/** Assert idiomatic stageAward800Popup models no stack: SP and pc unchanged from entry. */
 function assertNoStackModel(entry) {
   const b = entry.clone();
   const sp0 = b.regs.sp, pc0 = b.pc;
   idiomatic(b);
-  assert.equal(b.regs.sp, sp0, "loc_1e10 must leave SP unchanged (no stack modelling)");
-  assert.equal(b.pc, pc0, "loc_1e10 must leave pc unchanged (no tail-jump/ret modelling)");
+  assert.equal(b.regs.sp, sp0, "stageAward800Popup must leave SP unchanged (no stack modelling)");
+  assert.equal(b.pc, pc0, "stageAward800Popup must leave pc unchanged (no tail-jump/ret modelling)");
 }
 
-// -- 1. REALISM / GENUINE ENTRY (forced loc_1df5 path) ------------------------
+// -- 1. REALISM / GENUINE ENTRY (forced pickRandomAwardTier path) ------------------------
 
-test("REALISM (genuine): a real 0x1e10 entry forced via loc_1df5 — RAM identical, SP/pc unmodelled", () => {
+test("REALISM (genuine): a real 0x1e10 entry forced via pickRandomAwardTier — RAM identical, SP/pc unmodelled", () => {
   const caps = captureForced(4, 8000);
-  assert.ok(caps.length >= 1, "expected at least one genuine 0x1e10 entry via the forced loc_1df5 path");
+  assert.ok(caps.length >= 1, "expected at least one genuine 0x1e10 entry via the forced pickRandomAwardTier path");
 
   for (const entry of caps) {
     assert.equal(entry.mem.read8(BOARD), 1, "the forced 25m attract dispatches 0x1e10 on BOARD==1");
@@ -165,7 +165,7 @@ test("REALISM (genuine): a real 0x1e10 entry forced via loc_1df5 — RAM identic
       bad && `game-visible RAM diff at ${hx(bad.addr)} (oracle=${bad.a} idiomatic=${bad.b}) ` +
         `on a genuine 0x1e10 entry (SP=${hx(entry.regs.sp)})`,
     );
-    // The oracle's chain pushes at most to SP-4 (loc_1e15's call-0x309f return + sub_309f's
+    // The oracle's chain pushes at most to SP-4 (stageAwardPopupAtHitObject's call-0x309f return + sub_309f's
     // push hl); that target must sit inside STACK_SCRATCH so the exclusion masks nothing.
     assert.ok(
       (entry.regs.sp - 4) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
@@ -190,9 +190,9 @@ test("REALISM (boundary): real 0x1e15-boundary states — RAM identical, sets B=
       null,
       bad && `game-visible RAM diff at ${hx(bad.addr)} (oracle=${bad.a} idiomatic=${bad.b})`,
     );
-    // Positive check that loc_1e10 actually installed its constant B: the loc_1e36 tail
+    // Positive check that stageAward800Popup actually installed its constant B: the stampScorePopupSprite tail
     // stamps B unconditionally into record byte 0x6A31, so the oracle's own output pins it.
-    assert.equal(a.mem.read8(REC + 1), 0x7f, "loc_1e10 must set B=0x7F (record byte 0x6A31)");
+    assert.equal(a.mem.read8(REC + 1), 0x7f, "stageAward800Popup must set B=0x7F (record byte 0x6A31)");
     assertNoStackModel(entry);
   }
   console.log(`  REALISM/boundary: ${caps.length} real 0x1e15-boundary state(s) — RAM identical, B=0x7F confirmed`);
@@ -200,7 +200,7 @@ test("REALISM (boundary): real 0x1e15-boundary states — RAM identical, sets B=
 
 // -- 3. BOARD (exhaustive crafted) --------------------------------------------
 
-test("BOARD (exhaustive): loc_1e10 == oracle over all 256 BOARD values (open + closed gate arms)", () => {
+test("BOARD (exhaustive): stageAward800Popup == oracle over all 256 BOARD values (open + closed gate arms)", () => {
   const base = craftedBase();
   let count = 0, opened = 0, closed = 0, mismatch = null;
   for (let v = 0; v < 256 && !mismatch; v++) {
@@ -209,7 +209,7 @@ test("BOARD (exhaustive): loc_1e10 == oracle over all 256 BOARD values (open + c
     oracle(a);
     idiomatic(b);
     count++;
-    if (a.mem.read8(SND) === 3) opened++; else closed++; // loc_1e36's gate fired or not
+    if (a.mem.read8(SND) === 3) opened++; else closed++; // stampScorePopupSprite's gate fired or not
     const { bad } = ramDiffMinusStack(a, b);
     if (bad) mismatch = { v, bad };
   }
@@ -226,18 +226,18 @@ test("BOARD (exhaustive): loc_1e10 == oracle over all 256 BOARD values (open + c
 
 // -- 4. TEETH -----------------------------------------------------------------
 
-/** Twin (a): wrong B constant (0x7E). loc_1e36 stamps it at record byte 0x6A31. */
+/** Twin (a): wrong B constant (0x7E). stampScorePopupSprite stamps it at record byte 0x6A31. */
 function brokenWrongB(m) {
   m.regs.b = 0x7e; // BUG: should be 0x7F
   m.regs.de = 0x0008;
-  loc_1e15(m);
+  stageAwardPopupAtHitObject(m);
 }
 
 /** Twin (b): wrong E constant (DE=0x0009). enqueueTask writes E as the task argument. */
 function brokenWrongE(m) {
   m.regs.b = 0x7f;
   m.regs.de = 0x0009; // BUG: should be 0x0008
-  loc_1e15(m);
+  stageAwardPopupAtHitObject(m);
 }
 
 test("TEETH (wrong-B): the B=0x7E twin is CAUGHT and names the record byte 0x6A31", () => {

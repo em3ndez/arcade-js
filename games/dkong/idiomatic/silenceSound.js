@@ -17,7 +17,7 @@
  * writes that 0, so its effect is a constant regardless of prior machine state.
  * A LEAF — calls nothing. Reached at boot (bootInit calls it at ROM 0x02B5 with
  * the vblank NMI still masked) and on the reset / game-over / new-life transitions
- * (loc_12f2, loc_197a, sub_1708, loc_17b6, sub_017b, loc_1344, loc_0986, loc_0bda).
+ * (loc_12f2, loc_197a, spawnInterludeHeart, loc_17b6, sub_017b, loc_1344, loc_0986, loc_0bda).
  *
  * Of these writes, only the work-RAM span 0x6080-0x608B lands in the diffed state
  * dump; the hardware latches are write-only board outputs (io side, not RAM), so

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1ac3 (ROM 0x1AC3) — the movement machine's router: five tests in a
+ * Equivalence test for dispatchMarioMovement (ROM 0x1AC3) — the movement machine's router: five tests in a
  * fixed priority order that pick which handler owns Mario's frame.
  *
- * loc_1ac3 writes nothing itself, so a gate that only diffed its own footprint would compare
+ * dispatchMarioMovement writes nothing itself, so a gate that only diffed its own footprint would compare
  * two empty sets and pass no matter which arm it picked. What is gated instead is the ROUTING:
  * both sides run the WHOLE downstream cascade of the arm they chose — the frozen oracle end to
  * end on the reference side, all five idiomatic handlers plus their still-oracle remainders on
@@ -68,7 +68,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1ac3 as oracle } from "../../translated/loc_1ac3.js";
-import { loc_1ac3 as candidate } from "../loc_1ac3.js";
+import { dispatchMarioMovement as candidate } from "../dispatchMarioMovement.js";
 import { advanceMarioAirborneFrame } from "../advanceMarioAirborneFrame.js"; // ROM 0x1BB2
 import { tickPostLandingFreeze } from "../tickPostLandingFreeze.js"; // ROM 0x1B55
 import { loc_1ae6 } from "../loc_1ae6.js"; // ROM 0x1AE6
@@ -220,7 +220,7 @@ test("REACHABILITY: plain attract dispatches 0x1AC3 and drives all six arms", ()
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_1ac3 == oracle on every real attract dispatch", () => {
+test("EQUAL (captured): dispatchMarioMovement == oracle on every real attract dispatch", () => {
   const caps = captureDispatches();
   const spByArm = new Map();
   const regsByArm = new Map();
@@ -336,7 +336,7 @@ const SWEEPS = [
   { label: "P1_INPUT", cell: P1_INPUT, expect: { jump: 128, ground: 128 } },
 ];
 
-test("EQUAL (sweeps): all 256 values of each selector cell — loc_1ac3 == oracle", () => {
+test("EQUAL (sweeps): all 256 values of each selector cell — dispatchMarioMovement == oracle", () => {
   const base = capturesByArm(captureDispatches()).get("ground");
   assert.ok(base, "expected a real grounded 0x1AC3 dispatch to sweep from");
 

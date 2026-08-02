@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1662 (ROM 0x1662) — the shared board-setup tail:
+ * Equivalence test for advanceInterludeStepAndLiftKongFigure (ROM 0x1662) — the shared board-setup tail:
  * bump the 0x6388 animation counter, then (only on the 25m board, via the rst-0x30
  * gate) subtract 4 from field 3 of every sprite-object record (rst 0x38).
  *
- * loc_1662 WRITES memory and is NOT a leaf — it runs the idiomatic leaves boardBitGate
+ * advanceInterludeStepAndLiftKongFigure WRITES memory and is NOT a leaf — it runs the idiomatic leaves boardBitGate
  * (rst 0x30 board gate, ROM 0x0030) and addToSpriteObjectColumn (rst 0x38 strided add,
  * ROM 0x0038) — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone
- * per case. boardBitGate is itself memory-equivalent to the oracle's gate, so loc_1662's
- * branch decision tracks the oracle; what this test pins is that loc_1662 (a) does the
+ * per case. boardBitGate is itself memory-equivalent to the oracle's gate, so advanceInterludeStepAndLiftKongFigure's
+ * branch decision tracks the oracle; what this test pins is that advanceInterludeStepAndLiftKongFigure (a) does the
  * inc, (b) gates the subtract on that decision, and (c) sets up and runs the subtract on
  * the taken arm — with the twins proving the sweep bites.
  *
  * A 6000-frame attract run dispatches 0x1662 ZERO times (it is a credited game's
- * board-setup tail, reached only through the 0x1644-index handlers sub_1654/sub_168a),
+ * board-setup tail, reached only through the 0x1644-index handlers beginKongRecaptureInterlude/stageKongClimbPose),
  * so — exactly as docs/decompiler-pipeline prescribes for arms attract never reaches — the gate is
  * CRAFTED: a real booted attract machine, cloned, with BOARD (0x6227) surgically
  * poked, then oracle-vs-idiomatic on independent fresh clones. The one input that
@@ -24,7 +24,7 @@
  *      STACK_SCRATCH (so excluding stack cannot mask a real diff). Skip arm (BOARD=2):
  *      RAM identical, the strided block is UNTOUCHED, only 0x6388 advanced.
  *
- *   2. BOARD (exhaustive) — sweep BOARD 0..255. loc_1662 == oracle on game-visible
+ *   2. BOARD (exhaustive) — sweep BOARD 0..255. advanceInterludeStepAndLiftKongFigure == oracle on game-visible
  *      RAM for every value; exactly the 32 values ≡ 1 (mod 8) take the subtract arm,
  *      the other 224 skip — pinning the gate branch across every possible board byte.
  *
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1662 as oracle } from "../../translated/loc_1662.js";
-import { loc_1662 as idiomatic } from "../loc_1662.js";
+import { advanceInterludeStepAndLiftKongFigure as idiomatic } from "../advanceInterludeStepAndLiftKongFigure.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
@@ -160,7 +160,7 @@ test("STRUCTURE: normal arm (BOARD=1) does the work; skip arm (BOARD=2) leaves t
 
 // -- 2. BOARD (exhaustive) ----------------------------------------------------
 
-test("BOARD (exhaustive): loc_1662 == oracle over all 256 BOARD values (gate branch pinned)", () => {
+test("BOARD (exhaustive): advanceInterludeStepAndLiftKongFigure == oracle over all 256 BOARD values (gate branch pinned)", () => {
   let count = 0, took = 0, skipped = 0, mismatch = null;
   for (let board = 0; board < 256 && !mismatch; board++) {
     const [a, b] = craftPair(board, WRAP_SEEDS);
@@ -279,7 +279,7 @@ test("REALISM: replay any real 0x1662 dispatch; else record that attract never r
     assert.equal(bad, null, bad && `real-dispatch RAM diff at ${hx(bad.addr)} (oracle=${bad.a} idiomatic=${bad.b})`);
   }
   if (caps.length === 0) {
-    console.log("  REALISM: 0 real 0x1662 dispatches in 6000 attract frames — it is a credited game's board-setup tail (via sub_1654/sub_168a); crafted sweeps are the gate");
+    console.log("  REALISM: 0 real 0x1662 dispatches in 6000 attract frames — it is a credited game's board-setup tail (via beginKongRecaptureInterlude/stageKongClimbPose); crafted sweeps are the gate");
   } else {
     console.log(`  REALISM: ${caps.length} real 0x1662 dispatch(es) — game-visible RAM identical to the oracle`);
   }

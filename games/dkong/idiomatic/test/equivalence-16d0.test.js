@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_16d0 (ROM 0x16D0) — the "hit the boundary" entry of the loc_16d5
+ * Equivalence test for loc_16d0 (ROM 0x16D0) — the "hit the boundary" entry of the stepKongWalk
  * group-slide family. loc_16d0 writes 1 to object #1's even-frame countdown (0x62A0) — which
  * schedules an immediate underflow on the next even frame, so loc_2602 reloads the period and
- * REVERSES the step-direction sign at 0x62A1 — then falls into loc_16d5 to run this frame's
+ * REVERSES the step-direction sign at 0x62A1 — then falls into stepKongWalk to run this frame's
  * motion tick (advance object #1, shift the 10-record sprite-object block one step along X).
  *
- * loc_16d0 WRITES MEMORY and CALLS a sub-routine (loc_16d5, and through it loc_2602 / addStrided),
+ * loc_16d0 WRITES MEMORY and CALLS a sub-routine (stepKongWalk, and through it loc_2602 / addStrided),
  * so it is gated on memory-equivalence — RAM (minus STACK_SCRATCH) + pc + SP — never the register
  * file. LIVE-OUT is memory-only: the family is dispatched from the in-game substate table and
  * tail-returns through the NMI dispatcher, which reads no register/flag it leaves (A/B/C/DE/HL are
  * dead ABI), so they are deliberately NOT compared. Every case runs on FRESH clones (writes memory).
  *
  * NET-RET bookkeeping (why pc/SP still match under pure direct calls): the oracle loc_16d0 tail
- * `call 0x16d5`s the oracle loc_16d5, whose own net `ret` pops the caller's return address (SP += 2,
- * pc := caller). The idiomatic path calls the idiomatic loc_16d5, whose single net return is
+ * `call 0x16d5`s the oracle stepKongWalk, whose own net `ret` pops the caller's return address (SP += 2,
+ * pc := caller). The idiomatic path calls the idiomatic stepKongWalk, whose single net return is
  * supplied by the still-oracle sub_26e9's `m.ret()` (documented in equivalence-16d5) — same SP += 2,
  * same popped pc. loc_16d0 itself pushes/pops nothing. So both sides end SP += 2 with pc = the
  * caller's return address, and every transient push lands inside STACK_SCRATCH, which the RAM diff
@@ -30,7 +30,7 @@
  *
  *   2. EQUAL (block-X wrap sweep) — at an ODD frame (publish nonzero) on both step signs, set
  *      every record's X byte to v and sweep v over 0..255, exercising addStrided's 8-bit wrap
- *      through the loc_16d0 → loc_16d5 glue.
+ *      through the loc_16d0 → stepKongWalk glue.
  *
  *   3. EQUAL (direction sweep) — at an EVEN frame (the write-1 countdown always underflows),
  *      sweep 0x62A1 over all 256 values, driving reverseStepDirection's both arms (+2 if the
@@ -39,7 +39,7 @@
  *   4. TEETH — two deliberately-broken twins, each MUST be caught by the RAM diff on entries
  *      loc_16d0 itself passes:
  *      (a) skip-the-write twin — omits the 0x62A0 := 1 store (i.e. behaves like the plain
- *          loc_16d5 arm); with 0x62A0 pre-seeded to a value != 1 the countdown/reverse diverges;
+ *          stepKongWalk arm); with 0x62A0 pre-seeded to a value != 1 the countdown/reverse diverges;
  *      (b) wrong-value twin — writes 0 to 0x62A0 instead of 1 (the dispatcher's cleared value),
  *          so the next even-frame decrement wraps to 0xFF instead of underflowing to reload.
  *
@@ -52,7 +52,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_16d0 as oracle } from "../../translated/loc_16d0.js";
 import { loc_16d0 } from "../loc_16d0.js";
-import { loc_16d5 } from "../loc_16d5.js";
+import { stepKongWalk } from "../stepKongWalk.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -90,14 +90,14 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-/** Run the ORACLE on a fresh clone. It tail-calls loc_16d5, which performs the net `ret`. */
+/** Run the ORACLE on a fresh clone. It tail-calls stepKongWalk, which performs the net `ret`. */
 function runOracle(entry) {
   const c = entry.clone();
   oracle(c);
   return c;
 }
 
-/** Run a candidate on a fresh clone. The idiomatic loc_16d5's net return is supplied by the
+/** Run a candidate on a fresh clone. The idiomatic stepKongWalk's net return is supplied by the
  *  still-oracle sub_26e9's `m.ret()` (see equivalence-16d5), so SP/pc land as the oracle's do. */
 function runCandidate(entry, fn) {
   const c = entry.clone();
@@ -149,15 +149,15 @@ function craft(seed, { frame, cd, dir, blockX, p, p4 }) {
 
 // -- broken twins -------------------------------------------------------------
 
-/** Broken twin (a): skips the 0x62A0 := 1 store — behaves exactly like the plain loc_16d5 arm. */
+/** Broken twin (a): skips the 0x62A0 := 1 store — behaves exactly like the plain stepKongWalk arm. */
 function brokenSkipWrite(m) {
-  loc_16d5(m); // BUG: never arms the countdown, so no direction reversal is scheduled
+  stepKongWalk(m); // BUG: never arms the countdown, so no direction reversal is scheduled
 }
 
 /** Broken twin (b): writes 0 to 0x62A0 instead of 1 (the dispatcher's cleared value). */
 function brokenWrongValue(m) {
   m.mem.write8(CD_ADDR, 0x00); // BUG: 0 wraps to 0xFF next even frame instead of underflowing
-  loc_16d5(m);
+  stepKongWalk(m);
 }
 
 // -- 0. REACHABILITY ----------------------------------------------------------

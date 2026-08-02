@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2d15 (ROM 0x2D15) — the frame-gated step of the 0x2C-cluster
+ * Equivalence test for advanceBarrelRelease (ROM 0x2D15) — the frame-gated step of the 0x2C-cluster
  * string/sprite renderer. A down-counter at FRAME_GATE (0x62AF) is decremented every
  * entry and the routine returns until it underflows; on the acting frame it reloads the
  * gate, then either renders the next character (tail into loc_2d51), or selects a 40-byte
@@ -9,13 +9,13 @@
  * steps the sub-counter at ANIM_COUNTER (0x638F), and tail-jumps into loc_2d51 or (on the
  * sub-counter underflow, parity bit set) loc_2d83.
  *
- * loc_2d15 WRITES MEMORY (its own gate/sub-counter cells and, through the callees, the
+ * advanceBarrelRelease WRITES MEMORY (its own gate/sub-counter cells and, through the callees, the
  * sprite-object block and the rendered record), so it is gated on memory-equivalence, not
  * a returned scalar, and every case runs on FRESH clones. The contract is RAM (minus
  * STACK_SCRATCH) + pc + SP — the live-out is memory-only.
  *
  * STACK: every path nets exactly ONE caller-return pop — the frame-gate path `ret`s; the
- * others tail-jump into a callee whose chain `ret`s once on loc_2d15's behalf. The
+ * others tail-jump into a callee whose chain `ret`s once on advanceBarrelRelease's behalf. The
  * idiomatic routine models that as a JS return, so the harness performs one m.ret() on the
  * candidate AFTER the call to line pc + SP up with the oracle. On the table-load paths the
  * oracle's dissolved `call 0x004e` bracket (push16 + the callee's ret) churns the dead
@@ -23,7 +23,7 @@
  * bytes differ and are excluded by the memory-equivalence contract.
  *
  *   1. EQUAL (real captured dispatches) — hook 0x2D15 in a real attract run and clone the
- *      machine at each true dispatch. Run the ORACLE on one clone and loc_2d15 on another;
+ *      machine at each true dispatch. Run the ORACLE on one clone and advanceBarrelRelease on another;
  *      confirm identical RAM (minus STACK_SCRATCH) + pc + SP. All five paths occur
  *      naturally (gate-return, sub-counter-zero, both table-load parity arms, and the
  *      sub-counter-underflow branch into loc_2d83 / loc_2d51).
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d15 as oracle } from "../../translated/loc_2d15.js";
-import { loc_2d15 } from "../loc_2d15.js";
+import { advanceBarrelRelease } from "../advanceBarrelRelease.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { loc_2d51 } from "../loc_2d51.js";
 import { loc_2d83 } from "../loc_2d83.js";
@@ -68,9 +68,9 @@ const RECORD_STRIDE = 40;
 const RET_ADDR = 0x2cf9;      // a plausible caller-return site (any valid addr; both sides pop it)
 
 // Crafted render source: writable RAM holding a NON-terminator char, so the downstream
-// render takes the clean emit path (never loc_2d8c, which would reload the sprite block).
+// render takes the clean emit path (never activateReleasedBarrel, which would reload the sprite block).
 const SRC = 0x6100;   // RENDER_STR_PTR target: char at SRC, data byte at SRC+1
-const OBJ = 0x6120;   // RENDER_OBJ_PTR: object record read by loc_2d54
+const OBJ = 0x6120;   // RENDER_OBJ_PTR: object record read by stepBarrelAlongReleasePath
 const DST = 0x6a80;   // RENDER_DST_PTR: destination sprite record
 const SRC_CH = 0x41;  // a non-terminator character
 const SRC_DATA = 0x9a;
@@ -241,12 +241,12 @@ test("REACHABILITY: 0x2D15 is dispatched during attract", () => {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_2d15 == oracle on every captured 0x2D15 entry", () => {
+test("EQUAL (real dispatches): advanceBarrelRelease == oracle on every captured 0x2D15 entry", () => {
   const caps = captureDispatches(400, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x2D15 dispatch during attract");
   const seen = {};
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2d15); // FRESH clones inside — cap is untouched
+    const diffs = contractDiffs(cap, advanceBarrelRelease); // FRESH clones inside — cap is untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
     const p = classify(cap);
     seen[p] = (seen[p] || 0) + 1;
@@ -276,7 +276,7 @@ test("EQUAL (crafted): the frame-gate / counter-zero / table-load / branch paths
 
   for (const { name, opts } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_2d15);
+    const diffs = contractDiffs(entry, advanceBarrelRelease);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     const after = runOracle(entry);

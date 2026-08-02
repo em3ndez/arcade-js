@@ -35,7 +35,7 @@
  *
  * WHY NOT pc/SP or registers: the idiomatic routine models the Z80 tail-jump chain's
  * `ret` as the JS return and drops the dead register ABI (doc-06). loc_1b6e's live-out
- * is memory-only (entry_1ac3→here→loc_1b8a returns to loc_197a @0x1983, which calls the
+ * is memory-only (dispatchMarioMovement→here→loc_1b8a returns to loc_197a @0x1983, which calls the
  * next cascade routine without reading A/HL/BC/flags). So RAM is the whole contract;
  * comparing pc/SP would measure the absent ret, not the routine's logic. A FRESH clone
  * per side is used everywhere — this routine writes memory, so snapshots are never
@@ -81,7 +81,7 @@ const FOOTPRINT_SET = new Set(FOOTPRINT);
 
 /**
  * Hook 0x1B6E in a real attract run and clone the machine at up to K real dispatches.
- * Attract plays 25m and the demo Mario jumps, so entry_1ac3 tail-jumps here with a real
+ * Attract plays 25m and the demo Mario jumps, so dispatchMarioMovement tail-jumps here with a real
  * P1_INPUT and live surrounding RAM. The wrapper clones the entry state, then runs the
  * oracle so the host game proceeds undisturbed.
  */

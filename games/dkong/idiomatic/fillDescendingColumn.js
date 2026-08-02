@@ -16,7 +16,7 @@
  * Every observed caller hands it a colour-RAM column: DE = 0x0020 (one tilemap row),
  * a start in the 0x74xx–0x77xx character/colour window, and a descending colour byte
  * — so in practice it paints a 3-tile vertical colour gradient during the attract /
- * intro colour cycle (loc_04a3, loc_04be, loc_04f1) and board init (sub_1708,
+ * intro colour cycle (loc_04a3, loc_04be, loc_04f1) and board init (spawnInterludeHeart,
  * loc_17b6). But the routine itself is generic: it is the 3-cell descending fill.
  *
  * A LEAF: it reads only HL/A/DE, writes three memory cells, and calls nothing.
@@ -25,7 +25,7 @@
  * GATE:     crafted-entry — real captured attract dispatches (the live board-1 shape
  *           HL=0x75C4 A=0x10 DE=0x20 via loc_04a3), plus crafted entries for the caller
  *           shapes attract does not reach (loc_04be A=0xDF@0x7623, loc_04f1 A=0xEF@0x7583,
- *           loc_17b6/sub_1708 A=0x10@0x7623), the A 8-bit dec-underflow edge (A=0x01 →
+ *           loc_17b6/spawnInterludeHeart A=0x10@0x7623), the A 8-bit dec-underflow edge (A=0x01 →
  *           0x01/0x00/0xFF), and a non-0x20 stride to pin that DE is honored. Not
  *           exhaustive (the input is target-memory × HL × A × DE). Teeth: an ascending
  *           twin (value goes UP not down) and a fixed-stride twin (ignores DE).
@@ -33,7 +33,7 @@
  *           (8-bit), HL = the start advanced by 3·DE (16-bit), B = 0. All three are DEAD
  *           at every traced return site — every caller reloads HL/A (and never re-reads B)
  *           before its next use (loc_04a3 `ld a,(0x6905)`; loc_04be/loc_04f1/loc_17b6/
- *           sub_1708 `ld hl,…`) — but they are reproduced faithfully rather than dropped,
+ *           spawnInterludeHeart `ld hl,…`) — but they are reproduced faithfully rather than dropped,
  *           matching the clearStridedBytes (0x30e4) sibling. DE is preserved (read-only).
  *           FLAGS are dropped as dead: the oracle's final `dec a` S/Z/H/PV/N and `add hl,de`
  *           C reach no traced conditional; each caller overwrites F before its next branch.

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_22bd (ROM 0x22BD) — the "display mirror" leaf.
+ * Equivalence test for publish50mObjectYToSprite (ROM 0x22BD) — the "display mirror" leaf.
  *
- * loc_22bd reads the byte at a source pointer and stores it into ONE of two fixed cells
+ * publish50mObjectYToSprite reads the byte at a source pointer and stores it into ONE of two fixed cells
  * in the sprite shadow buffer, chosen by bit 3 of the pointer's low byte: clear -> 0x6947
  * (record 17, +3), set -> 0x694b (record 18, +3). It is a LEAF: one read, one write, no
  * callees, and nothing a caller consumes (both callers overwrite the copied byte the
@@ -27,7 +27,7 @@
  *   SWEEP B (value)     — all 256 byte values on EACH arm (a bit-3-clear pointer and a
  *            bit-3-set pointer); covers the exact byte copy into both destination cells.
  *
- *   1. EQUAL (crafted, exhaustive) — loc_22bd == oracle on RAM across both sweeps (768
+ *   1. EQUAL (crafted, exhaustive) — publish50mObjectYToSprite == oracle on RAM across both sweeps (768
  *      combos), each run on a real attract-base state with a surgical poke of the source
  *      byte, identically on both sides.
  *
@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_22bd as oracle } from "../../translated/loc_22bd.js";
-import { loc_22bd } from "../loc_22bd.js";
+import { publish50mObjectYToSprite } from "../publish50mObjectYToSprite.js";
 import { SPRITE_BUFFER } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -154,10 +154,10 @@ function attractBase(frames = 180) {
 
 // -- 1. EQUAL (crafted, exhaustive) -------------------------------------------
 
-test("EQUAL (exhaustive): loc_22bd == oracle across both crafted sweeps", () => {
+test("EQUAL (exhaustive): publish50mObjectYToSprite == oracle across both crafted sweeps", () => {
   const base = attractBase();
 
-  const { mismatch, count } = fullSweep(base, loc_22bd);
+  const { mismatch, count } = fullSweep(base, publish50mObjectYToSprite);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256 + 2 * 256, "must have compared the full factored input space");
 
@@ -167,7 +167,7 @@ test("EQUAL (exhaustive): loc_22bd == oracle across both crafted sweeps", () => 
     [0x03, DEST_BIT3_CLEAR, DEST_BIT3_SET], // bit 3 clear
     [0x0b, DEST_BIT3_SET, DEST_BIT3_CLEAR], // bit 3 set
   ]) {
-    const { a } = runPair(base, SRC_BASE + lo, PROBE_VALUE, loc_22bd);
+    const { a } = runPair(base, SRC_BASE + lo, PROBE_VALUE, publish50mObjectYToSprite);
     assert.equal(a.mem.read8(dest), PROBE_VALUE, `oracle must mirror the byte to ${hx(dest)}`);
     assert.equal(a.mem.read8(other), SENTINEL, `oracle must leave ${hx(other)} untouched`);
   }
@@ -242,7 +242,7 @@ test("REALISM: 0x22BD attract dispatches match the oracle (attract never reaches
     b.nextNmi = Infinity; b.nextBoundary = Infinity;
     const srcAddr = b.regs.hl;
     oracle(a);
-    loc_22bd(b, srcAddr);
+    publish50mObjectYToSprite(b, srcAddr);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(ram, null, ram && `real dispatch diverged at ${hx(ram.addr ?? 0)} (oracle=${ram.a} cand=${ram.b})`);
   }

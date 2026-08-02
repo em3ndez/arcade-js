@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2745 (ROM 0x2745) — the vertical-reposition machine that
+ * Equivalence test for dispatchElevatorRideByColumn (ROM 0x2745) — the vertical-reposition machine that
  * gates on the reposition flag + airborne state, then dispatches by Mario's X into the
- * mover arms (loc_276f / loc_2787) or the edge reset (loc_2766).
+ * mover arms (carryMarioUpWithLift / carryMarioDownWithLift) or the edge reset (loc_2766).
  *
  * The routine's whole memory-observable behaviour is decided by four bytes:
  *   EDGE_REPOSITION_FLAG (0x6398) — clear -> return, nothing repositioned.
  *   MARIO_AIRBORNE       (0x6216) — set   -> return, busy in the air.
- *   MARIO_X              (0x6203) — five bands: reset [<44], loc_276f [44,67),
- *                                   reset [67,108), loc_2787 [108,131), reset [>=131].
+ *   MARIO_X              (0x6203) — five bands: reset [<44], carryMarioUpWithLift [44,67),
+ *                                   reset [67,108), carryMarioDownWithLift [108,131), reset [>=131].
  *   MARIO_Y              (0x6205) — read only inside the mover arms; decides each
  *                                   mover's step-vs-handoff sub-arm.
  * It writes NONE of its own cells — every effect is the dispatched arm's.
  *
  * The oracle nets exactly ONE caller-return pop on EVERY path — the two guard `ret`s,
  * and, on the dispatch paths, a tail-jump into a callee whose own single `ret` returns
- * on sub_2745's behalf (each callee only POPS, never pushes). The idiomatic routine
+ * on dispatchElevatorRideByColumn's behalf (each callee only POPS, never pushes). The idiomatic routine
  * models no stack (direct arm calls + a plain JS return), so runPair performs ONE
  * m.ret() after the candidate to line pc + SP up. Because neither side WRITES the
  * stack, the RAM diff is the whole dump with NO STACK_SCRATCH exclusion — it would
@@ -27,7 +27,7 @@
  *
  *   0. REACHABILITY — confirm 0x2745 stays unreached in attract, so crafted coverage
  *      carries the gate (if it ever fires, add captured coverage).
- *   1. EQUAL (crafted, exhaustive dispatch) — loc_2745 == oracle over RAM (whole dump)
+ *   1. EQUAL (crafted, exhaustive dispatch) — dispatchElevatorRideByColumn == oracle over RAM (whole dump)
  *      + pc + SP across ALL 256 MARIO_X values (every band boundary) crossed with a
  *      MARIO_Y set that drives both sub-arms of each mover, active path (flag set,
  *      grounded). PLUS the two guard early-outs (flag clear; airborne set) — each must
@@ -36,7 +36,7 @@
  *      mover step -> {MARIO_Y, sprite-Y}, mover handoff -> {MARIO_ACTIVE, EDGE}), so the
  *      sweep compares real overwrites, not no-ops.
  *   3. TEETH — three deliberately-broken twins the same sweep MUST catch:
- *        (a) wrong band boundary (44 -> 45) — steals X==44 from loc_276f; caught at X==44.
+ *        (a) wrong band boundary (44 -> 45) — steals X==44 from carryMarioUpWithLift; caught at X==44.
  *        (b) inverted reposition-flag guard — skips all work while active; caught.
  *        (c) inverted airborne guard — skips all work while grounded; caught.
  *
@@ -48,10 +48,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2745 as oracle } from "../../translated/loc_2745.js";
-import { loc_2745 } from "../loc_2745.js";
+import { dispatchElevatorRideByColumn } from "../dispatchElevatorRideByColumn.js";
 import { loc_2766 } from "../loc_2766.js"; // idiomatic arms, used by the broken twins
-import { loc_276f } from "../loc_276f.js";
-import { loc_2787 } from "../loc_2787.js";
+import { carryMarioUpWithLift } from "../carryMarioUpWithLift.js";
+import { carryMarioDownWithLift } from "../carryMarioDownWithLift.js";
 import {
   EDGE_REPOSITION_FLAG,
   MARIO_AIRBORNE,
@@ -79,8 +79,8 @@ const SPRITE_Y_CELL = MARIO_SPRITE_RECORD + SPRITE_Y; // 0x694F — Mario's spri
 // stack when 0x2745 runs is 0x2721.
 const RET_ADDR = 0x2721;
 
-// MARIO_Y priors that drive BOTH sub-arms of each mover: loc_276f steps for Y >= 0x71
-// (else hands off to loc_277f); loc_2787 steps for Y < 0xE8 (else hands off). This set
+// MARIO_Y priors that drive BOTH sub-arms of each mover: carryMarioUpWithLift steps for Y >= 0x71
+// (else hands off to killMarioAtEndOfLiftTravel); carryMarioDownWithLift steps for Y < 0xE8 (else hands off). This set
 // hits each mover's step AND handoff arm.
 const Y_SET = [0x00, 0x70, 0x71, 0x80, 0xe7, 0xe8, 0xff];
 
@@ -191,9 +191,9 @@ test("REACHABILITY: 0x2745 is NOT dispatched in attract — the gate rests on cr
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL (crafted): loc_2745 == oracle across all 256 MARIO_X x Y_SET (active), RAM + pc + SP", () => {
+test("EQUAL (crafted): dispatchElevatorRideByColumn == oracle across all 256 MARIO_X x Y_SET (active), RAM + pc + SP", () => {
   const base = attractBase();
-  const { mismatch, count } = fullSweep(base, loc_2745);
+  const { mismatch, count } = fullSweep(base, dispatchElevatorRideByColumn);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256 * Y_SET.length, "must have swept the full MARIO_X x Y_SET grid");
   console.log(`  EQUAL/dispatch: ${count} (MARIO_X, MARIO_Y) combos — RAM + pc + SP identical to the oracle`);
@@ -205,14 +205,14 @@ test("EQUAL (crafted): both guard early-outs match the oracle AND write nothing"
   // Flag clear -> the first guard returns; nothing is repositioned.
   for (const y of Y_SET) {
     for (const x of [0x00, 0x30, 0x50, 0x70, 0x90]) {
-      const diff = runPair(base, x, y, { flag: 0x00 }, loc_2745);
+      const diff = runPair(base, x, y, { flag: 0x00 }, dispatchElevatorRideByColumn);
       assert.equal(diff, null, `flag-clear guard diverged at MARIO_X=${hx(x)} MARIO_Y=${hx(y)}: ${diff && diff.msg}`);
     }
   }
   // Airborne set -> the second guard returns; the reposition waits for a grounded frame.
   for (const y of Y_SET) {
     for (const x of [0x00, 0x30, 0x50, 0x70, 0x90]) {
-      const diff = runPair(base, x, y, { flag: 0x01, airborne: 0x01 }, loc_2745);
+      const diff = runPair(base, x, y, { flag: 0x01, airborne: 0x01 }, dispatchElevatorRideByColumn);
       assert.equal(diff, null, `airborne guard diverged at MARIO_X=${hx(x)} MARIO_Y=${hx(y)}: ${diff && diff.msg}`);
     }
   }
@@ -242,7 +242,7 @@ test("NON-VACUITY: each band writes exactly its arm's cells (reset / mover-step 
   assert.deepEqual(changedAddrs(reset, resetPost), sortAddrs([EDGE_REPOSITION_FLAG, MARIO_START_FALL]),
     "reset band write set must be exactly {EDGE_REPOSITION_FLAG, MARIO_START_FALL}");
 
-  // MOVER-STEP band (X=0x30 -> loc_276f, Y=0x80 step): decrement MARIO_Y and mirror it.
+  // MOVER-STEP band (X=0x30 -> carryMarioUpWithLift, Y=0x80 step): decrement MARIO_Y and mirror it.
   const step = makeEntry(base, 0x30, 0x80);
   const stepPost = step.clone(); oracle(stepPost);
   assert.equal(stepPost.mem.read8(MARIO_Y), 0x7f, "mover step must decrement MARIO_Y");
@@ -251,7 +251,7 @@ test("NON-VACUITY: each band writes exactly its arm's cells (reset / mover-step 
     "mover-step write set must be exactly {MARIO_Y, sprite-Y}");
   for (const [addr, val] of NOISE) assert.equal(stepPost.mem.read8(addr), val, `step: neighbour ${hx(addr)} disturbed`);
 
-  // MOVER-HANDOFF band (X=0x30 -> loc_276f, Y=0x00 handoff to loc_277f): clear ACTIVE + EDGE.
+  // MOVER-HANDOFF band (X=0x30 -> carryMarioUpWithLift, Y=0x00 handoff to killMarioAtEndOfLiftTravel): clear ACTIVE + EDGE.
   const handoff = makeEntry(base, 0x30, 0x00);
   const handoffPost = handoff.clone(); oracle(handoffPost);
   assert.equal(handoffPost.mem.read8(MARIO_ACTIVE), 0, "mover handoff must clear MARIO_ACTIVE");
@@ -259,7 +259,7 @@ test("NON-VACUITY: each band writes exactly its arm's cells (reset / mover-step 
   assert.deepEqual(changedAddrs(handoff, handoffPost), sortAddrs([MARIO_ACTIVE, EDGE_REPOSITION_FLAG]),
     "mover-handoff write set must be exactly {MARIO_ACTIVE, EDGE_REPOSITION_FLAG}");
 
-  // The up-mover band routes to loc_2787 (X=0x70, Y=0x80 step): increment MARIO_Y and mirror.
+  // The up-mover band routes to carryMarioDownWithLift (X=0x70, Y=0x80 step): increment MARIO_Y and mirror.
   const upStep = makeEntry(base, 0x70, 0x80);
   const upStepPost = upStep.clone(); oracle(upStepPost);
   assert.equal(upStepPost.mem.read8(MARIO_Y), 0x81, "up-mover step must increment MARIO_Y");
@@ -271,16 +271,16 @@ test("NON-VACUITY: each band writes exactly its arm's cells (reset / mover-step 
 
 // -- 3. TEETH -----------------------------------------------------------------
 
-/** BUG (a): the first mover band starts at 45 not 44, stealing X==44 from loc_276f. */
+/** BUG (a): the first mover band starts at 45 not 44, stealing X==44 from carryMarioUpWithLift. */
 function brokenWrongBand(m) {
   const { mem } = m;
   if (mem.read8(EDGE_REPOSITION_FLAG) === 0) return;
   if (mem.read8(MARIO_AIRBORNE) !== 0) return;
   const x = mem.read8(MARIO_X);
   if (x < 45) { loc_2766(m); return; } // BUG: should be 44
-  if (x < 67) { loc_276f(m); return; }
+  if (x < 67) { carryMarioUpWithLift(m); return; }
   if (x < 108) { loc_2766(m); return; }
-  if (x < 131) { loc_2787(m); return; }
+  if (x < 131) { carryMarioDownWithLift(m); return; }
   loc_2766(m);
 }
 
@@ -291,9 +291,9 @@ function brokenInvertedFlagGuard(m) {
   if (mem.read8(MARIO_AIRBORNE) !== 0) return;
   const x = mem.read8(MARIO_X);
   if (x < 44) { loc_2766(m); return; }
-  if (x < 67) { loc_276f(m); return; }
+  if (x < 67) { carryMarioUpWithLift(m); return; }
   if (x < 108) { loc_2766(m); return; }
-  if (x < 131) { loc_2787(m); return; }
+  if (x < 131) { carryMarioDownWithLift(m); return; }
   loc_2766(m);
 }
 
@@ -304,9 +304,9 @@ function brokenInvertedAirborneGuard(m) {
   if (mem.read8(MARIO_AIRBORNE) === 0) return; // BUG: should be `!== 0`
   const x = mem.read8(MARIO_X);
   if (x < 44) { loc_2766(m); return; }
-  if (x < 67) { loc_276f(m); return; }
+  if (x < 67) { carryMarioUpWithLift(m); return; }
   if (x < 108) { loc_2766(m); return; }
-  if (x < 131) { loc_2787(m); return; }
+  if (x < 131) { carryMarioDownWithLift(m); return; }
   loc_2766(m);
 }
 
@@ -314,7 +314,7 @@ test("TEETH: the wrong-band twin is CAUGHT at MARIO_X == 44", () => {
   const base = attractBase();
   const { mismatch } = fullSweep(base, brokenWrongBand);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a wrong band boundary — the gate is worthless");
-  assert.equal(mismatch.x, 44, "the wrong-band twin must first diverge at MARIO_X == 44 (stolen from loc_276f)");
+  assert.equal(mismatch.x, 44, "the wrong-band twin must first diverge at MARIO_X == 44 (stolen from carryMarioUpWithLift)");
   console.log(`  TEETH/wrong-band: caught — ${describeMismatch(mismatch)}`);
 });
 

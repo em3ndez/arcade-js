@@ -13,7 +13,7 @@
  *
  * This is the sibling of climbUpWhileHeld (ROM 0x1B45): this routine owns the DOWN
  * direction and delegates the UP direction to it. It is reached by a tail-call from the
- * movement machine (entry_1ac3, only while the on-ladder flag is set) and from the climb
+ * movement machine (dispatchMarioMovement, only while the on-ladder flag is set) and from the climb
  * setup routine loc_1afe; it writes no memory of its own.
  *
  * Promoted from loc_1b38 (DK understanding pass 10, independent proposer≠confirmer, MODERATE):
@@ -23,7 +23,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-1b38.test.js.
  * GATE:     real captured 0x1B38 dispatches from an attract run (natural dispatches take
- *           the Up fall-through arm — attract only climbs up, and entry_1ac3 reaches here
+ *           the Up fall-through arm — attract only climbs up, and dispatchMarioMovement reaches here
  *           only on-ladder) + an exhaustive 256-value control-word sweep that pins the
  *           bit-3 Down test + an on-ladder sweep that pins the ladder guard on the Up arm
  *           + crafted Down-arm entries (attract never climbs down). climbMarioDown and

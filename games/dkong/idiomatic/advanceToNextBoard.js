@@ -4,7 +4,7 @@
  * "HOW HIGH CAN YOU GET?" interlude.  ROM 0x178E.
  *
  * The final sub-step of the board-cleared / board-advance sequence. It is dispatched
- * from loc_1615 (GAME_SUBSTATE == 0x16, "board-advance") as the last entry of that
+ * from dispatchBoardClearedInterlude (GAME_SUBSTATE == 0x16, "board-advance") as the last entry of that
  * dispatcher's rst-0x28 table, selected once its 0x6388 sub-step counter reaches this
  * step. It first ticks the shared rst-0x18 sub-state gate: while that timer is still
  * counting down the routine does nothing (the caller is skipped); only on the frame the
@@ -32,7 +32,7 @@
  *           return), so its residue lands only in STACK_SCRATCH, excluded by the contract.
  * NAMES:    BOARD_SEQ_PTR (0x622A), BOARD (0x6227), SUBSTATE_TIMER (0x6009),
  *           GAME_SUBSTATE (0x600A), BOARD_ADVANCE_STEP (0x6388 — the board-advance sub-step
- *           counter loc_1615 indexes) from ram.js. 0x3A73 = ROM table wrap target; 0x7F =
+ *           counter dispatchBoardClearedInterlude indexes) from ram.js. 0x3A73 = ROM table wrap target; 0x7F =
  *           end-of-table sentinel; 0x0500 = the posted task.
  */
 

@@ -5,7 +5,7 @@
  * the sprite shadow buffer.
  *
  * loc_2722 orchestrates two already-idiomatic callees and then does its own work:
- *   1. loc_2797 (ROM 0x2797)        — advance every active object one pixel.
+ *   1. advanceBoardObjectTravel (ROM 0x2797)        — advance every active object one pixel.
  *   2. spawnBoardObject (ROM 0x27DA) — spawn on the cadence, else tick the timer.
  *   3. PUBLISH — copy each of the six objects' X (record byte +3) and Y (record byte
  *      +5) into its own 4-byte sprite record, six records from SPRITE_BUFFER + 88.
@@ -44,7 +44,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2722 as oracle } from "../../translated/loc_2722.js";
 import { serviceBoardObjects as loc_2722 } from "../serviceBoardObjects.js";
-import { loc_2797 } from "../loc_2797.js";
+import { advanceBoardObjectTravel } from "../advanceBoardObjectTravel.js";
 import { spawnBoardObject } from "../spawnBoardObject.js";
 import { Machine } from "../../machine.js";
 import {
@@ -144,7 +144,7 @@ function diffPair(entry, candidate) {
 }
 
 // Rising objects (OBJ_STATE bit3 set) drift Y down and land at 96, snapping X to 119
-// with state 4; falling objects drift Y up and deactivate at 248 (from loc_2797).
+// with state 4; falling objects drift Y up and deactivate at 248 (from advanceBoardObjectTravel).
 const SCENARIOS = {
   // Mixed motion, off-beat timer: no spawn, the timer just ticks 5 -> 4.
   MIXED: {
@@ -239,7 +239,7 @@ test("EQUAL (crafted): loc_2722 == oracle across the mixed/spawn/all-busy scenar
 /** BUG (a): writes Y at sprite byte +1 instead of +3 — wrong publish stride. */
 function brokenPublishStride(m) {
   const { mem } = m;
-  loc_2797(m); spawnBoardObject(m);
+  advanceBoardObjectTravel(m); spawnBoardObject(m);
   let src = OBJ_ARRAY_66, dst = PUBLISH_BASE;
   for (let i = 0; i < 6; i++) {
     mem.write8(dst, mem.read8(src + OBJ_X));
@@ -251,7 +251,7 @@ function brokenPublishStride(m) {
 /** BUG (b): swaps the source fields — publishes Y as X and X as Y. */
 function brokenSwapFields(m) {
   const { mem } = m;
-  loc_2797(m); spawnBoardObject(m);
+  advanceBoardObjectTravel(m); spawnBoardObject(m);
   let src = OBJ_ARRAY_66, dst = PUBLISH_BASE;
   for (let i = 0; i < 6; i++) {
     mem.write8(dst, mem.read8(src + OBJ_Y));             // BUG: X <- Y
@@ -263,7 +263,7 @@ function brokenSwapFields(m) {
 /** BUG (c): publishes only five objects, leaving the sixth's sprite record stale. */
 function brokenShortCount(m) {
   const { mem } = m;
-  loc_2797(m); spawnBoardObject(m);
+  advanceBoardObjectTravel(m); spawnBoardObject(m);
   let src = OBJ_ARRAY_66, dst = PUBLISH_BASE;
   for (let i = 0; i < 5; i++) { // BUG: should be 6
     mem.write8(dst, mem.read8(src + OBJ_X));
@@ -281,13 +281,13 @@ function brokenPublishFirst(m) {
     mem.write8(dst + SPRITE_Y_OFF, mem.read8(src + OBJ_Y));
     dst += SPRITE_STRIDE; src += OBJ_STRIDE;
   }
-  loc_2797(m); spawnBoardObject(m); // BUG: motion after the publish
+  advanceBoardObjectTravel(m); spawnBoardObject(m); // BUG: motion after the publish
 }
 
 /** BUG (e): drops the spawn call — the timer is never ticked/reloaded. */
 function brokenNoSpawn(m) {
   const { mem } = m;
-  loc_2797(m); // BUG: spawnBoardObject(m) dropped
+  advanceBoardObjectTravel(m); // BUG: spawnBoardObject(m) dropped
   let src = OBJ_ARRAY_66, dst = PUBLISH_BASE;
   for (let i = 0; i < 6; i++) {
     mem.write8(dst, mem.read8(src + OBJ_X));

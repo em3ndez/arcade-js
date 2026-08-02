@@ -4,7 +4,7 @@
  * value against the bonus.  ROM 0x2C7B.
  *
  * One of the entry points that resolve into the bonus-event slot-claim cluster (0x2C41). The
- * caller — still the frozen oracle (entry_2c03, reached by a tail jump) — hands in two register
+ * caller — still the frozen oracle (scheduleBarrelRelease, reached by a tail jump) — hands in two register
  * live-ins: a small stepped value and the current bonus value. This routine steps that value up
  * by two and compares it with the bonus, and the outcome selects which cluster entry runs and
  * therefore which mode byte the cluster records:
@@ -15,13 +15,13 @@
  *   - otherwise           -> the shared entry with mode byte 2 (loc_2c4b): records
  *                            BARREL_CLAIM_MODE = 2, 0x638F = 3, again forwarding the bonus.
  *
- * Both arms tail into the same slot-claim chain (loc_2c4f -> loc_2c72); nothing here consumes a
+ * Both arms tail into the same slot-claim chain (armBarrelRelease -> markNextBarrelAsDroppingKind); nothing here consumes a
  * return value, so this is void. The comparison is taken at byte width because the step-up wraps
  * (a stepped value of 254/255 lands on 0/1), and that wrap flips the branch when the bonus is 0/1.
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md): what the chain below ultimately tags is a 25m BARREL. On a
- * claim, loc_2c72 raises bit 7 of BARREL_CLAIM_MODE, and one frame later stampReleasedBarrelKind reads that bit
+ * claim, markNextBarrelAsDroppingKind raises bit 7 of BARREL_CLAIM_MODE, and one frame later stampReleasedBarrelKind reads that bit
  * to choose which of two barrel kinds it stamps into the freshly-released OBJ_ARRAY_67 record —
  * bit 7 CLEAR -> sprite code/attr/mode 0x15 / 0x0B / 0x00, bit 7 SET -> 0x19 / 0x0C / 0x01,
  * agreeing 46/46 with no exceptions (38 clear, 8 set), every dispatch ordinary board-1 25m
@@ -35,7 +35,7 @@
  * pokes, 24,243 frames, positive control 24,212 NMI fetches), an opcode-fetch tap counted 0x2C03
  * firing 9843 times and 0x2C7B firing 18 — reproduced independently by a second rig, and 24 times
  * in a credited run. The dispatches are EXACTLY TWO PER 25m BOARD, at BONUS = BONUS_START (50) and
- * BONUS_START − 1 (49), precisely what this routine's own guard predicts (loc_2c03 tail-jumps here
+ * BONUS_START − 1 (49), precisely what this routine's own guard predicts (scheduleBarrelRelease tail-jumps here
  * while BONUS_START − 2 < BONUS, which with BONUS_START = 50 is true at 50 and 49 and false from 48
  * down). See scratchpad/pass13-grounding.md §3.
  * HONEST FLOOR from that run: only the ENTRY was tapped. The two BRANCH ARMS were not separated —

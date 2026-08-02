@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2257 (ROM 0x2257) — the "no hit" tail of the sub_2243
+ * Equivalence test for reportNoHitAndSkipCaller (ROM 0x2257) — the "no hit" tail of the sub_2243
  * hit test, a two-level caller-skip.
  *
  * skip_2257 is PURE CONTROL FLOW: in the oracle it drops the parent's return
@@ -16,17 +16,17 @@
  * behaviour. Two sources of states are used:
  *
  *   1. EQUAL (crafted) — a boot/attract base with the stack pointer moved to several
- *      work-RAM values; on each, loc_2257 must leave RAM byte-identical to the oracle
+ *      work-RAM values; on each, reportNoHitAndSkipCaller must leave RAM byte-identical to the oracle
  *      (whole 5120-byte dump, no exclusion — the oracle only READS the stack) and
  *      return the same false. A parallel oracle probe confirms the signal really is
  *      false, so the return check is not vacuous.
  *
  *   2. REALISM (captured) — 0x2257 is a gameplay-only hit-test tail: sub_2243,
- *      loc_2227 and loc_2259 are never reached in attract, so 0x2257 itself never
+ *      hold50mObjectParked and slide50mObjectDown are never reached in attract, so 0x2257 itself never
  *      dispatches there. Real in-play states are therefore captured at the nearest
- *      reachable same-subsystem ancestor, sub_2207 (ROM 0x2207, ~1200 dispatches per
+ *      reachable same-subsystem ancestor, dispatch50mObjectState (ROM 0x2207, ~1200 dispatches per
  *      attract run, stack pointer down in the 0x6bxx region where 0x2257 would really
- *      run). loc_2257 must reproduce the oracle on each — again no RAM, same false.
+ *      run). reportNoHitAndSkipCaller must reproduce the oracle on each — again no RAM, same false.
  *
  *   3. TEETH — two broken twins, each of which the SAME contract MUST catch, one per
  *      half of the gate:
@@ -43,7 +43,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2257 as oracle } from "../../translated/loc_2257.js";
-import { loc_2257 } from "../loc_2257.js";
+import { reportNoHitAndSkipCaller } from "../reportNoHitAndSkipCaller.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -54,7 +54,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-const ANCESTOR = 0x2207; // sub_2207: the reachable same-subsystem ancestor of 0x2257
+const ANCESTOR = 0x2207; // dispatch50mObjectState: the reachable same-subsystem ancestor of 0x2257
 const TEETH_ADDR = 0x6100; // a plain work-RAM cell (0x6000-0x6BFF) the oracle never writes
 
 /**
@@ -84,10 +84,10 @@ function attractBase(frames = 180) {
   return m.clone();
 }
 
-// Capture up to K real machine states at ANCESTOR (sub_2207) during an attract run,
+// Capture up to K real machine states at ANCESTOR (dispatch50mObjectState) during an attract run,
 // letting the original routine run afterwards so the game proceeds undisturbed.
 function captureAncestorStates(K, frames) {
-  const orig = new Machine(ROM).routines.get(ANCESTOR); // the translated sub_2207
+  const orig = new Machine(ROM).routines.get(ANCESTOR); // the translated dispatch50mObjectState
   const caps = [];
   const snap = new Map([[ANCESTOR, (mm) => {
     if (caps.length < K) caps.push(mm.clone());
@@ -100,13 +100,13 @@ function captureAncestorStates(K, frames) {
 
 // -- 1. EQUAL (crafted) -------------------------------------------------------
 
-test("EQUAL (crafted): loc_2257 == oracle across varied states — no RAM write, returns false", () => {
+test("EQUAL (crafted): reportNoHitAndSkipCaller == oracle across varied states — no RAM write, returns false", () => {
   const base = attractBase();
   const sps = [0x6bf8, 0x6be8, 0x6800, 0x6400, 0x6100];
   for (const sp of sps) {
     const entry = base.clone();
     entry.regs.sp = sp;
-    const diffs = contractDiffs(entry, loc_2257);
+    const diffs = contractDiffs(entry, reportNoHitAndSkipCaller);
     assert.equal(diffs.length, 0, `SP=0x${sp.toString(16)}: ${diffs.join("; ")}`);
     // Non-vacuity: the oracle's own signal really is the skip (false), so matching it
     // is a real assertion, not a comparison of two undefineds.
@@ -118,11 +118,11 @@ test("EQUAL (crafted): loc_2257 == oracle across varied states — no RAM write,
 
 // -- 2. REALISM (captured) ----------------------------------------------------
 
-test("REALISM (captured): loc_2257 == oracle on real in-play states from sub_2207", () => {
+test("REALISM (captured): reportNoHitAndSkipCaller == oracle on real in-play states from dispatch50mObjectState", () => {
   const caps = captureAncestorStates(200, 2000);
-  assert.ok(caps.length >= 1, "expected sub_2207 (0x2207) to dispatch during attract");
+  assert.ok(caps.length >= 1, "expected dispatch50mObjectState (0x2207) to dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2257);
+    const diffs = contractDiffs(cap, reportNoHitAndSkipCaller);
     assert.equal(diffs.length, 0, `real captured state: ${diffs.join("; ")}`);
   }
   console.log(`  REALISM: ${caps.length} real in-play states (from 0x2207) — RAM == oracle, return false`);

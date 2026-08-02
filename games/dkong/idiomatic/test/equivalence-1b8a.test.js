@@ -32,7 +32,7 @@
  *
  * WHY NOT pc/SP or registers: the idiomatic routine models the Z80 `ret` as the JS
  * return and drops the dead register ABI (doc-06). loc_1b8a's live-out is memory-only
- * (entry_1ac3→loc_1b6e→here is a tail-jump chain returning to loc_197a @0x1983, which
+ * (dispatchMarioMovement→loc_1b6e→here is a tail-jump chain returning to loc_197a @0x1983, which
  * calls the next cascade routine without reading A/HL/BC/flags). So RAM is the whole
  * contract; comparing pc/SP would measure the absent ret, not the routine's logic.
  *

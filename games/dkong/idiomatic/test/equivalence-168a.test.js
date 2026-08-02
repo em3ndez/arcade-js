@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_168a (ROM 0x168a) — one timer-gated step of the board-advance
+ * Equivalence test for stageKongClimbPose (ROM 0x168a) — one timer-gated step of the board-advance
  * render sequence: on the frame SUBSTATE_TIMER (0x6009) expires, copy a 40-byte sprite-object
  * template from ROM 0x388C into SPRITE_OBJ_BLOCK, re-stamp 0x690C to 0x66, clear 0x6924 /
- * 0x692C / 0x62AF, then tail into loc_1662 (advance the 0x6388 step selector, per-board gate,
+ * 0x692C / 0x62AF, then tail into advanceInterludeStepAndLiftKongFigure (advance the 0x6388 step selector, per-board gate,
  * strided subtract). The near-twin of loc_186f, so this test mirrors equivalence-186f.
  *
- * loc_168a WRITES memory and is NOT a leaf — it runs the idiomatic leaves tickSubstateTimer
+ * stageKongClimbPose WRITES memory and is NOT a leaf — it runs the idiomatic leaves tickSubstateTimer
  * (rst 0x18 gate, ROM 0x0018), loadSpriteObjectBlock (the fixed 0x28-byte copy, ROM 0x004e) and
- * the tail loc_1662 (ROM 0x1662) — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a
- * FRESH clone per case. Its callees are each memory-equivalent to their oracle, so loc_168a's
- * branch decisions track the oracle; what this test pins is that loc_168a (a) skips the whole
+ * the tail advanceInterludeStepAndLiftKongFigure (ROM 0x1662) — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a
+ * FRESH clone per case. Its callees are each memory-equivalent to their oracle, so stageKongClimbPose's
+ * branch decisions track the oracle; what this test pins is that stageKongClimbPose (a) skips the whole
  * body until the timer expires, (b) on the single expiry frame runs the copy + re-stamp + three
  * clears + tail, and (c) matches the oracle byte-for-byte in game-visible RAM either way — with
  * the twins proving the sweep bites.
@@ -27,12 +27,12 @@
  *      Skip arm (0x6009=5): RAM identical, the block / 0x62AF / selector UNTOUCHED, only 0x6009
  *      decremented.
  *
- *   2. TIMER (exhaustive) — sweep SUBSTATE_TIMER 0..255. loc_168a == oracle on game-visible RAM
+ *   2. TIMER (exhaustive) — sweep SUBSTATE_TIMER 0..255. stageKongClimbPose == oracle on game-visible RAM
  *      for every value; exactly the ONE value 0x01 takes the work arm (dec → 0), the other 255
  *      skip — pinning the gate branch (and its polarity) across every possible timer byte.
  *
- *   3. BOARD (exhaustive) — on the expiry arm, sweep BOARD 0..255. loc_168a == oracle for every
- *      board; both arms of loc_1662's per-board rst-0x30 gate are exercised (some boards run the
+ *   3. BOARD (exhaustive) — on the expiry arm, sweep BOARD 0..255. stageKongClimbPose == oracle for every
+ *      board; both arms of advanceInterludeStepAndLiftKongFigure's per-board rst-0x30 gate are exercised (some boards run the
  *      strided field-3 subtract, others do not), so the tail-jump is validated both ways.
  *
  *   4. TEETH — three twins the sweeps MUST catch: (a) drops the 0x690C re-stamp (leaves the
@@ -51,10 +51,10 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_168a as oracle } from "../../translated/loc_168a.js";
-import { loc_168a as idiomatic } from "../loc_168a.js";
+import { stageKongClimbPose as idiomatic } from "../stageKongClimbPose.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
-import { loc_1662 } from "../loc_1662.js";
+import { advanceInterludeStepAndLiftKongFigure } from "../advanceInterludeStepAndLiftKongFigure.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "../ram.js";
 
@@ -66,8 +66,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x168a;
-const SELECTOR = 0x6388; // the board-advance step selector loc_1662's tail advances
-const BOARD = 0x6227; // read by loc_1662's per-board rst-0x30 gate
+const SELECTOR = 0x6388; // the board-advance step selector advanceInterludeStepAndLiftKongFigure's tail advances
+const BOARD = 0x6227; // read by advanceInterludeStepAndLiftKongFigure's per-board rst-0x30 gate
 const COPY_SOURCE = 0x388c; // ROM base of the copied 40-byte sprite-object template
 // The 40-byte copy destination: 0x6908..0x692F (10 records x 4 bytes).
 const COPY_DEST = Array.from({ length: 0x28 }, (_, k) => SPRITE_OBJ_BLOCK + k);
@@ -75,11 +75,11 @@ const STAMP_ADDR = SPRITE_OBJ_BLOCK + 0x04; // 0x690C — copied byte re-stamped
 const CLEAR_A = SPRITE_OBJ_BLOCK + 0x1c; // 0x6924
 const CLEAR_B = SPRITE_OBJ_BLOCK + 0x24; // 0x692C
 const BOARD_BOOKKEEPING = 0x62af; // 0x62AF — board-object bookkeeping (unnamed in ram.js)
-const FIELD3_REC0 = SPRITE_OBJ_BLOCK + 0x03; // 0x690B — field 3 of record 0, loc_1662's first strided byte
+const FIELD3_REC0 = SPRITE_OBJ_BLOCK + 0x03; // 0x690B — field 3 of record 0, advanceInterludeStepAndLiftKongFigure's first strided byte
 const BK_SENTINEL = 0x77; // nonzero value planted at 0x62AF so a dropped clear is visible
 
 // SP inside STACK_SCRATCH with headroom for the oracle's rst/call pushes (down to SP-2) and
-// its tail_1662 final `ret` pop (up to SP+2); the idiomatic side touches the stack not at all.
+// its advanceInterludeStepAndLiftKongFigure final `ret` pop (up to SP+2); the idiomatic side touches the stack not at all.
 const SP_CRAFT = 0x6bf8;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -171,7 +171,7 @@ test("STRUCTURE: expiry arm (0x6009=1) does the work; skip arm (0x6009=5) leaves
 
 // -- 2. TIMER (exhaustive) ----------------------------------------------------
 
-test("TIMER (exhaustive): loc_168a == oracle over all 256 SUBSTATE_TIMER values (gate branch pinned)", () => {
+test("TIMER (exhaustive): stageKongClimbPose == oracle over all 256 SUBSTATE_TIMER values (gate branch pinned)", () => {
   let count = 0, worked = 0, skipped = 0, mismatch = null;
   for (let timer = 0; timer < 256 && !mismatch; timer++) {
     const [a, b] = craftPair(timer, 0x01);
@@ -195,7 +195,7 @@ test("TIMER (exhaustive): loc_168a == oracle over all 256 SUBSTATE_TIMER values 
 
 // -- 3. BOARD (exhaustive) ----------------------------------------------------
 
-test("BOARD (exhaustive): on the expiry arm loc_168a == oracle over all 256 boards, both tail arms hit", () => {
+test("BOARD (exhaustive): on the expiry arm stageKongClimbPose == oracle over all 256 boards, both tail arms hit", () => {
   let count = 0, ran = 0, notRan = 0, mismatch = null;
   for (let board = 0; board < 256 && !mismatch; board++) {
     const [a, b] = craftPair(1, board);
@@ -214,8 +214,8 @@ test("BOARD (exhaustive): on the expiry arm loc_168a == oracle over all 256 boar
     mismatch && `mismatch at BOARD=${hx(mismatch.board)}: RAM diff at ` +
       `${hx(mismatch.bad.addr)} (oracle=${mismatch.bad.a} idiomatic=${mismatch.bad.b})`);
   assert.equal(count, 256, "must have swept all 256 board values");
-  assert.ok(ran > 0, "some boards must take loc_1662's strided-subtract arm");
-  assert.ok(notRan > 0, "some boards must skip loc_1662's strided-subtract arm");
+  assert.ok(ran > 0, "some boards must take advanceInterludeStepAndLiftKongFigure's strided-subtract arm");
+  assert.ok(notRan > 0, "some boards must skip advanceInterludeStepAndLiftKongFigure's strided-subtract arm");
   console.log(`  BOARD/exhaustive: 256 boards — RAM identical (${ran} run the strided subtract, ${notRan} skip it)`);
 });
 
@@ -231,7 +231,7 @@ function brokenNoStamp(m) {
   mem.write8(CLEAR_A, 0);
   mem.write8(CLEAR_B, 0);
   mem.write8(BOARD_BOOKKEEPING, 0);
-  loc_1662(m);
+  advanceInterludeStepAndLiftKongFigure(m);
 }
 
 /** Twin (b): drops the 0x62AF clear (leaves the sentinel). Everything else faithful. */
@@ -244,7 +244,7 @@ function brokenNoClear(m) {
   mem.write8(CLEAR_A, 0);
   mem.write8(CLEAR_B, 0);
   // BUG: no `ld (0x62af),0`.
-  loc_1662(m);
+  advanceInterludeStepAndLiftKongFigure(m);
 }
 
 /** Twin (c): inverts the gate polarity — runs the body while the timer is still ticking and
@@ -258,7 +258,7 @@ function brokenGatePolarity(m) {
   mem.write8(CLEAR_A, 0);
   mem.write8(CLEAR_B, 0);
   mem.write8(BOARD_BOOKKEEPING, 0);
-  loc_1662(m);
+  advanceInterludeStepAndLiftKongFigure(m);
 }
 
 test("TEETH (no-stamp): dropping the 0x690C re-stamp is CAUGHT and names 0x690C", () => {

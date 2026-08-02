@@ -22,7 +22,7 @@
  *
  *   2. EQUAL (caller shapes) — the caller shapes attract does not exercise, reposed on a
  *      real captured base: loc_04be (A=0xDF@0x7623), loc_04f1 (A=0xEF@0x7583),
- *      loc_17b6/sub_1708 (A=0x10@0x7623) — each with the canonical DE=0x20 stride.
+ *      loc_17b6/spawnInterludeHeart (A=0x10@0x7623) — each with the canonical DE=0x20 stride.
  *
  *   3. EQUAL (crafted edges) — the arithmetic edges: the A 8-bit dec-underflow (A=0x01 ->
  *      writes 0x01/0x00/0xFF, HL advanced 3·DE), and a non-0x20 stride (DE=0x0080) that
@@ -203,7 +203,7 @@ test("EQUAL (caller shapes): the attract-unreached caller shapes match the oracl
 
   const shapes = [
     { name: "loc_04a3 (live board-1)", hl: 0x75c4, a: 0x10, de: 0x0020 },
-    { name: "loc_04be #1 / loc_17b6 / sub_1708", hl: 0x7623, a: 0x10, de: 0x0020 },
+    { name: "loc_04be #1 / loc_17b6 / spawnInterludeHeart", hl: 0x7623, a: 0x10, de: 0x0020 },
     { name: "loc_04be tail (A=0xDF)", hl: 0x7623, a: 0xdf, de: 0x0020 },
     { name: "loc_04f1 (A=0xEF)", hl: 0x7583, a: 0xef, de: 0x0020 },
   ];

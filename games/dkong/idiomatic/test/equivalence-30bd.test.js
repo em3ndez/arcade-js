@@ -6,7 +6,7 @@
  * sub_30bd WRITES memory (28 bytes of 0x00, in four disjoint stride-4 runs) and takes
  * NO live-in — HL and B are loaded internally before every callee run, so the entry
  * register file is irrelevant. Its declared LIVE-OUT is memory-only: both callers
- * overwrite A right after the call (entry_128b `ld a,0x03` @0x12a6, loc_1615
+ * overwrite A right after the call (entry_128b `ld a,0x03` @0x12a6, dispatchBoardClearedInterlude
  * `ld a,(0x6227)` @0x1618) and read neither HL nor B, so the tail callee's residual
  * A/HL/B are dead, as are flags. So it is validated on RAM (minus STACK_SCRATCH) + pc +
  * SP via capture/clone/replay — NEVER the full register file, NEVER cycles.
@@ -30,7 +30,7 @@
  *      at the sentinel. This pins the precise address list a wrong (HL,B) run would miss.
  *
  *   3. EQUAL (unreached caller arm) — attract only reaches the entry_128b caller (returns
- *      to 0x12a6). Craft the loc_1615 arm by writing its return address 0x1618 to the top
+ *      to 0x12a6). Craft the dispatchBoardClearedInterlude arm by writing its return address 0x1618 to the top
  *      of the captured stack, and confirm the tail `ret` pops it identically on both sides
  *      (pc = 0x1618). Exercises the second caller without needing the L2 board-advance path.
  *
@@ -202,23 +202,23 @@ test("EQUAL (sentinel pages): the exact 28-byte cleared set matches the oracle",
   console.log(`  EQUAL/sentinel: ${cleared.length} bytes cleared, exactly the expected record-column set`);
 });
 
-// -- 3. EQUAL (unreached caller arm: loc_1615 return) -------------------------
+// -- 3. EQUAL (unreached caller arm: dispatchBoardClearedInterlude return) -------------------------
 
-test("EQUAL (loc_1615 arm): the tail ret returns to 0x1618 identically on both sides", () => {
+test("EQUAL (dispatchBoardClearedInterlude arm): the tail ret returns to 0x1618 identically on both sides", () => {
   const [base] = captureDispatches(1, CAP_FRAMES);
   assert.ok(base, "need one real capture to derive crafted entries from");
 
   // Attract only reaches the entry_128b caller (returns to 0x12a6). Rewrite the top of
-  // the captured stack to loc_1615's return address so the tail jump `ret` pops 0x1618.
+  // the captured stack to dispatchBoardClearedInterlude's return address so the tail jump `ret` pops 0x1618.
   const w = base.clone();
   w.mem.write8(w.regs.sp, 0x18);
   w.mem.write8((w.regs.sp + 1) & 0xffff, 0x16);
 
   const diffs = contractDiffs(w, clearSpriteColumns);
-  assert.equal(diffs.length, 0, `loc_1615 arm: ${diffs.join("; ")}`);
+  assert.equal(diffs.length, 0, `dispatchBoardClearedInterlude arm: ${diffs.join("; ")}`);
   const o = runOracle(w);
-  assert.equal(o.pc, 0x1618, "the tail ret should return to loc_1615's 0x1618");
-  console.log("  EQUAL/loc_1615: tail ret pops 0x1618 — same RAM + pc + SP on both sides");
+  assert.equal(o.pc, 0x1618, "the tail ret should return to dispatchBoardClearedInterlude's 0x1618");
+  console.log("  EQUAL/dispatchBoardClearedInterlude: tail ret pops 0x1618 — same RAM + pc + SP on both sides");
 });
 
 // -- 4. TEETH -----------------------------------------------------------------

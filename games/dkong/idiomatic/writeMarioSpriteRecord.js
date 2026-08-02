@@ -3,7 +3,7 @@
  * writeMarioSpriteRecord — refresh Mario's 4-byte hardware sprite record from his
  * live position/sprite state.  ROM 0x1DA6.
  *
- * The convergence tail of the movement machine (entry_1ac3): every path through the
+ * The convergence tail of the movement machine (dispatchMarioMovement): every path through the
  * Z80 mover — grounded, airborne, climbing, hammer, landed — finishes by tail-jumping
  * here (11 `jp 0x1da6` / `call 0x1da6` sites), so this is the single spot that copies
  * Mario's just-computed state into the sprite shadow buffer the DMA blits to hardware

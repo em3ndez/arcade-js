@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2d54 (ROM 0x2D54) — the string renderer's per-character body:
+ * Equivalence test for stepBarrelAlongReleasePath (ROM 0x2D54) — the string renderer's per-character body:
  * emit one 4-byte sprite record for the next character (with the attribute-bit handling on
- * the record's +1 field), or, on the 0x7F terminator, hand off to loc_2d8c to close the
+ * the record's +1 field), or, on the 0x7F terminator, hand off to activateReleasedBarrel to close the
  * object out. Advances the source cursor (RENDER_STR_PTR) by two bytes per character.
  *
- * loc_2d54 WRITES MEMORY, so it is gated on memory-equivalence, not a returned scalar, and
+ * stepBarrelAlongReleasePath WRITES MEMORY, so it is gated on memory-equivalence, not a returned scalar, and
  * every case runs on FRESH clones. The contract is RAM (minus STACK_SCRATCH) + pc + SP —
  * the routine's live-out is memory-only (a per-frame render call; the caller reads none of
  * the residual registers). The oracle ends on ONE terminal `ret` that pops the caller's
@@ -13,14 +13,14 @@
  * m.ret() on the candidate AFTER the call to line pc + SP up.
  *
  * On the EMIT path the oracle touches no stack at all. On the TERMINATOR path it tail-jumps
- * (`jp z,0x2d8c`) into loc_2d8c, whose two dissolved internal call brackets (`call 0x004E`
+ * (`jp z,0x2d8c`) into activateReleasedBarrel, whose two dissolved internal call brackets (`call 0x004E`
  * and `rst 0x38`) push their return addresses into the dead STACK_SCRATCH region; the
- * idiomatic routine calls loc_2d8c directly and touches no stack, so those bytes differ and
+ * idiomatic routine calls activateReleasedBarrel directly and touches no stack, so those bytes differ and
  * are excluded by the memory-equivalence contract.
  *
  *   1. EQUAL (real captured dispatches) — hook 0x2D54 in a real attract run and clone the
  *      machine at each true dispatch. Each captured entry: run the ORACLE on one clone and
- *      loc_2d54 on another, confirm identical RAM (minus STACK_SCRATCH) + pc + SP. Both the
+ *      stepBarrelAlongReleasePath on another, confirm identical RAM (minus STACK_SCRATCH) + pc + SP. Both the
  *      emit and terminator paths occur naturally.
  *
  *   2. EQUAL (crafted) — build entries from a real attract base with RAM source/object/
@@ -41,8 +41,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d54 as oracle } from "../../translated/loc_2d54.js";
-import { loc_2d54 } from "../loc_2d54.js";
-import { loc_2d8c } from "../loc_2d8c.js";
+import { stepBarrelAlongReleasePath } from "../stepBarrelAlongReleasePath.js";
+import { activateReleasedBarrel } from "../activateReleasedBarrel.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "../ram.js";
 
@@ -162,7 +162,7 @@ function brokenNoFlip(m) {
   const objPtr = mem.read16(RENDER_OBJ_PTR);
   const dstPtr = mem.read16(RENDER_DST_PTR);
   const ch = mem.read8(src);
-  if (ch === TERMINATOR) { regs.ix = objPtr; regs.de = dstPtr; return loc_2d8c(m); }
+  if (ch === TERMINATOR) { regs.ix = objPtr; regs.de = dstPtr; return activateReleasedBarrel(m); }
   mem.write8(dstPtr, ch & 0x7f);
   const field = mem.read8(objPtr + 0x07); // BUG: no xor 0x03 on the attribute bit
   mem.write8(dstPtr + 1, field);
@@ -179,7 +179,7 @@ function brokenNoStrip(m) {
   const objPtr = mem.read16(RENDER_OBJ_PTR);
   const dstPtr = mem.read16(RENDER_DST_PTR);
   const ch = mem.read8(src);
-  if (ch === TERMINATOR) { regs.ix = objPtr; regs.de = dstPtr; return loc_2d8c(m); }
+  if (ch === TERMINATOR) { regs.ix = objPtr; regs.de = dstPtr; return activateReleasedBarrel(m); }
   mem.write8(dstPtr, ch); // BUG: attribute bit not stripped
   let field = mem.read8(objPtr + 0x07);
   if ((ch & 0x80) !== 0) field ^= 0x03;
@@ -203,12 +203,12 @@ test("REACHABILITY: 0x2D54 is dispatched during attract", () => {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_2d54 == oracle on every captured 0x2D54 entry", () => {
+test("EQUAL (real dispatches): stepBarrelAlongReleasePath == oracle on every captured 0x2D54 entry", () => {
   const caps = captureDispatches(64, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x2D54 dispatch during attract");
   let emit = 0, term = 0;
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2d54); // FRESH clones inside — cap is untouched
+    const diffs = contractDiffs(cap, stepBarrelAlongReleasePath); // FRESH clones inside — cap is untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
     if (cap.mem.read8(cap.regs.hl) === TERMINATOR) term++; else emit++;
   }
@@ -232,13 +232,13 @@ test("EQUAL (crafted): the terminator and both attribute-bit arms match the orac
 
   for (const { name, opts, term } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_2d54);
+    const diffs = contractDiffs(entry, stepBarrelAlongReleasePath);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     const after = runOracle(entry);
     if (term) {
-      // The terminator hand-off ran loc_2d8c: it rewinds RENDER_STR_PTR to the string start.
-      assert.equal(after.mem.read16(RENDER_STR_PTR), 0x39c3, `${name}: terminator did not reach loc_2d8c`);
+      // The terminator hand-off ran activateReleasedBarrel: it rewinds RENDER_STR_PTR to the string start.
+      assert.equal(after.mem.read16(RENDER_STR_PTR), 0x39c3, `${name}: terminator did not reach activateReleasedBarrel`);
     } else {
       // The emit body ran: the 4-byte record and the advanced cursor are observable.
       const expectField = ((opts.ch & 0x80) !== 0) ? (opts.field7 ^ 0x03) : opts.field7;

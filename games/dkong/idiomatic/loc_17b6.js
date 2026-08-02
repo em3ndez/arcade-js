@@ -4,7 +4,7 @@
  * (four girder/ladder items + a sprite-object row), set the priority tune, then arm
  * and repoint the auto-advance machinery for the rest of the sequence.  ROM 0x17b6.
  *
- * Dispatched as entry 0 of the rst-0x28 table at 0x1648 (loc_1644 / sub_1641), which
+ * Dispatched as entry 0 of the rst-0x28 table at 0x1648 (dispatchRivetBoardInterludeStep / runRivetBoardInterludeFrame), which
  * jumps on the sequence step counter 0x6388. This is the first step: it lays out the
  * static screen and hands the sequence to the frame-driven advancer. In order:
  *

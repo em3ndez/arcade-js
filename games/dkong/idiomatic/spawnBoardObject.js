@@ -55,7 +55,7 @@ const ACTIVE_BIT = 0x01;      // bit0 of the active flag: 1 = slot in use
 
 const SPAWN_X = 0x37;         // seeded X position of the new object
 const SPAWN_Y = 0xf8;         // seeded Y position (near the bottom of the screen)
-const SPAWN_STATE = 0x08;     // seeded OBJ_STATE (+0x0D) value: bit3 set (sub_2797 reads bit3)
+const SPAWN_STATE = 0x08;     // seeded OBJ_STATE (+0x0D) value: bit3 set (advanceBoardObjectTravel reads bit3)
 const COOLDOWN_RELOAD = 0x34; // cadence timer reload applied after a spawn
 
 /**

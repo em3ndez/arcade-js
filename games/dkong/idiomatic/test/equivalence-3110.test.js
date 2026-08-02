@@ -30,7 +30,7 @@
  *            what catches them — exactly this routine's live-out.
  *
  *   3. CAPTURED DISPATCH (realism) — unlike its higher-difficulty siblings, THIS arm is on a
- *      live path: handler_1977 → entry_30ed → sub_30fa clamps DIFFICULTY and, at the low
+ *      live path: handler_1977 → entry_30ed → gateObjectUpdateByDifficulty clamps DIFFICULTY and, at the low
  *      difficulty attract runs at, selects this arm. So a real attract run DOES dispatch it
  *      (~1197 times over 2000 frames). The test overrides 0x3110 on a live attract machine,
  *      replays every natural dispatch, and asserts loc_3110's boolean matches the oracle's on

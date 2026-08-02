@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2299 (ROM 0x2299) — advance a board object to its next state
+ * Equivalence test for advance50mObjectStateOnRandomGate (ROM 0x2299) — advance a board object to its next state
  * on a randomised pacing gate.
  *
- * loc_2299 is a LEAF and one of the four state-machine arms sub_2207 dispatches for a board
- * object. sub_2207's body picks the object's record base (0x6280 odd frames / 0x6288 even),
+ * advance50mObjectStateOnRandomGate is a LEAF and one of the four state-machine arms dispatch50mObjectState dispatches for a board
+ * object. dispatch50mObjectState's body picks the object's record base (0x6280 odd frames / 0x6288 even),
  * PUSHES it, and jumps into this arm; the arm's `pop hl` reads that record base back, so the
  * pointer arrives on the STACK, not in a register. The idiomatic routine models it honestly
- * as a PARAMETER — loc_2299(m, recordBase) — and returns plainly, dropping the oracle's
+ * as a PARAMETER — advance50mObjectStateOnRandomGate(m, recordBase) — and returns plainly, dropping the oracle's
  * `pop hl` + `ret` bracket. The whole memory-observable behaviour is a function of just two
  * bytes: RANDOM (0x6018) decides the gate, and the record's state byte is what gets stepped.
  *
@@ -32,7 +32,7 @@
  *      (c) wrong mask (0x1C) — drops gate bit 5, so it advances on RANDOM values the oracle
  *          holds on (e.g. 0x20); justifies the exact 0x3C mask.
  *
- *   4. REACHABILITY — 0x2299 is NOT naturally dispatched in attract (sub_2207 runs every
+ *   4. REACHABILITY — 0x2299 is NOT naturally dispatched in attract (dispatch50mObjectState runs every
  *      frame there but its object machine never reaches this arm), so there are no captured
  *      dispatches; the exhaustive gate sweep is the coverage. Any dispatch that DOES occur is
  *      verified against the oracle so the test stays correct if attract ever reaches it.
@@ -46,7 +46,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2299 as oracle } from "../../translated/loc_2299.js";
 import { loc_2207 as oracle2207 } from "../../translated/loc_2207.js";
-import { loc_2299 } from "../loc_2299.js";
+import { advance50mObjectStateOnRandomGate } from "../advance50mObjectStateOnRandomGate.js";
 import { Machine } from "../../machine.js";
 import { RANDOM, STACK_SCRATCH } from "../ram.js";
 
@@ -58,12 +58,12 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2299;
-// The caller-return the terminal `ret` pops. loc_2299 is a shared tail reached by `jp`, so the
-// real return goes all the way back to sub_2207's caller (~0x199e); the exact value is
+// The caller-return the terminal `ret` pops. advance50mObjectStateOnRandomGate is a shared tail reached by `jp`, so the
+// real return goes all the way back to dispatch50mObjectState's caller (~0x199e); the exact value is
 // immaterial — both sides pop the SAME one, so pc lines up regardless.
 const RET_ADDR = 0x199e;
 
-// The two record bases sub_2207's body actually supplies (BOARD_OBJ_SCRATCH and +8). Each is
+// The two record bases dispatch50mObjectState's body actually supplies (BOARD_OBJ_SCRATCH and +8). Each is
 // the object's own state byte — the cell this arm steps. Well outside STACK_SCRATCH.
 const REC_A = 0x6280;
 const REC_B = 0x6288;
@@ -131,7 +131,7 @@ function runOracle(entry) {
 
 /**
  * Run a candidate on a fresh clone. The stacked record base is popped and handed in as the
- * honest argument (mirroring how sub_2207 passes it), then one m.ret() models the terminal
+ * honest argument (mirroring how dispatch50mObjectState passes it), then one m.ret() models the terminal
  * `ret` so pc + SP match the oracle — the idiomatic routine touches no stack itself.
  */
 function runCandidate(entry, fn) {
@@ -180,9 +180,9 @@ const describe = (mm) =>
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_2299 == oracle across the full (base × startByte × RANDOM) space", () => {
+test("EQUAL (exhaustive): advance50mObjectStateOnRandomGate == oracle across the full (base × startByte × RANDOM) space", () => {
   const base = attractBase();
-  const { mismatch, count } = sweep(base, loc_2299);
+  const { mismatch, count } = sweep(base, advance50mObjectStateOnRandomGate);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 2 * START_BYTES.length * 256, "must have compared the whole product exhaustively");
   console.log(`  EQUAL/exhaustive: ${count} (base, startByte, RANDOM) combos — RAM+pc+SP identical to the oracle`);
@@ -199,7 +199,7 @@ test("EQUAL (crafted): gate-open steps the state byte, gate-closed writes nothin
   for (const recordBase of [REC_A, REC_B]) {
     for (const rnd of OPEN) {
       const entry = makeEntry(base, recordBase, rnd, 0x02);
-      assert.equal(contractDiffs(entry, loc_2299).length, 0, `open ${hx(rnd)} @ ${hx(recordBase)}`);
+      assert.equal(contractDiffs(entry, advance50mObjectStateOnRandomGate).length, 0, `open ${hx(rnd)} @ ${hx(recordBase)}`);
       const after = runOracle(entry);
       // Non-vacuity: the state byte really advanced by one.
       assert.equal(after.mem.read8(recordBase), 0x03, `open ${hx(rnd)}: state byte not stepped 0x02->0x03`);
@@ -207,7 +207,7 @@ test("EQUAL (crafted): gate-open steps the state byte, gate-closed writes nothin
     }
     for (const rnd of CLOSED) {
       const entry = makeEntry(base, recordBase, rnd, 0x02);
-      assert.equal(contractDiffs(entry, loc_2299).length, 0, `closed ${hx(rnd)} @ ${hx(recordBase)}`);
+      assert.equal(contractDiffs(entry, advance50mObjectStateOnRandomGate).length, 0, `closed ${hx(rnd)} @ ${hx(recordBase)}`);
       const after = runOracle(entry);
       // Nothing non-stack changed on the gate-closed path.
       assert.deepEqual(changedAddrs(entry, after), [], `closed ${hx(rnd)}: wrote non-stack RAM`);
@@ -259,7 +259,7 @@ test("TEETH: inverted-gate, dropped-advance, and wrong-mask twins are all CAUGHT
 
 // -- 4. REACHABILITY (crafted-coverage rationale) -----------------------------
 
-test("REACHABILITY: sub_2207 runs in attract but its 0x2299 arm is not reached", () => {
+test("REACHABILITY: dispatch50mObjectState runs in attract but its 0x2299 arm is not reached", () => {
   let n2207 = 0;
   const caps = [];
   const snap = new Map([
@@ -269,10 +269,10 @@ test("REACHABILITY: sub_2207 runs in attract but its 0x2299 arm is not reached",
   const host = new Machine(ROM, { overrides: snap });
   host.runFrames(3000);
 
-  assert.ok(n2207 > 0, "sub_2207 should be dispatched every frame in attract — harness sanity");
+  assert.ok(n2207 > 0, "dispatch50mObjectState should be dispatched every frame in attract — harness sanity");
   // If attract ever DOES reach the arm, every real dispatch must still match the oracle.
   for (const cap of caps) {
-    assert.equal(contractDiffs(cap, loc_2299).length, 0, "a real 0x2299 dispatch diverged from the oracle");
+    assert.equal(contractDiffs(cap, advance50mObjectStateOnRandomGate).length, 0, "a real 0x2299 dispatch diverged from the oracle");
   }
-  console.log(`  REACHABILITY: sub_2207 dispatched ${n2207}× / 3000 frames; 0x2299 arm reached ${caps.length}× — crafted entries are the coverage`);
+  console.log(`  REACHABILITY: dispatch50mObjectState dispatched ${n2207}× / 3000 frames; 0x2299 arm reached ${caps.length}× — crafted entries are the coverage`);
 });

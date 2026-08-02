@@ -1,26 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2787 (ROM 0x2787) — the vertical mover that advances
+ * Equivalence test for carryMarioDownWithLift (ROM 0x2787) — the vertical mover that advances
  * Mario's Y toward the 232 limit and, at the limit, hands off to the edge reset.
  *
  * The routine's entire memory-observable behaviour is a function of ONE byte —
  * MARIO_Y (0x6205). It reads that, and either:
  *   • below 232 — writes MARIO_Y+1, then mirrors it to the sprite-record Y field
  *     (MARIO_SPRITE_RECORD + SPRITE_Y = 0x694F); or
- *   • at/above 232 — runs loc_277f, which clears MARIO_ACTIVE (0x6200) and
+ *   • at/above 232 — runs killMarioAtEndOfLiftTravel, which clears MARIO_ACTIVE (0x6200) and
  *     EDGE_REPOSITION_FLAG (0x6398) to 0.
  * Nothing else is read; no other prior byte changes the branch or the writes, so
  * a sweep over all 256 MARIO_Y values is EXHAUSTIVE — a proof, not a sample.
  *
  * The oracle models its `jp nc,0x277F` tail-jump as a call and ends every path
  * with a `ret` that only POPS (reads) the stack — it never writes it. The
- * idiomatic routine drops that ret bracket and direct-calls loc_277f, so the
+ * idiomatic routine drops that ret bracket and direct-calls killMarioAtEndOfLiftTravel, so the
  * memory-equivalence contract excludes the dead STACK_SCRATCH and keeps every
  * live cell. 0x2787 is a gameplay-only mover — NOT dispatched during attract (0
  * in 3000 frames) — so there are no real captured dispatches; the exhaustive
  * sweep on a real attract base IS the gate.
  *
- *   1. EQUAL (exhaustive) — loc_2787 == oracle on RAM − STACK_SCRATCH across all
+ *   1. EQUAL (exhaustive) — carryMarioDownWithLift == oracle on RAM − STACK_SCRATCH across all
  *      256 MARIO_Y values (both the step arm and the edge-reset arm).
  *
  *   2. TEETH (exhaustive) — three deliberately-broken twins the same sweep MUST
@@ -28,7 +28,7 @@
  *        (a) wrong threshold (`>` not `>=`) — at MARIO_Y == 232 the twin steps
  *            where the oracle resets; proves the boundary is `>=`.
  *        (b) dropped sprite mirror — skips the 0x694F write on the step arm.
- *        (c) skipped edge reset — omits loc_277f on the reset arm, so
+ *        (c) skipped edge reset — omits killMarioAtEndOfLiftTravel on the reset arm, so
  *            MARIO_ACTIVE / EDGE_REPOSITION_FLAG stay uncleared.
  *      Sentinel values in the three written cells make every write observable.
  *
@@ -40,8 +40,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2787 as oracle } from "../../translated/loc_2787.js";
-import { loc_2787 } from "../loc_2787.js";
-import { loc_277f } from "../loc_277f.js"; // idiomatic edge reset, used by the twins
+import { carryMarioDownWithLift } from "../carryMarioDownWithLift.js";
+import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js"; // idiomatic edge reset, used by the twins
 import {
   STACK_SCRATCH,
   MARIO_Y,
@@ -136,9 +136,9 @@ const describe = (mm) =>
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_2787 == oracle across all 256 MARIO_Y values", () => {
+test("EQUAL (exhaustive): carryMarioDownWithLift == oracle across all 256 MARIO_Y values", () => {
   const base = attractBase();
-  const { mismatch, count } = fullSweep(base, loc_2787);
+  const { mismatch, count } = fullSweep(base, carryMarioDownWithLift);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256, "must have compared the whole MARIO_Y input space");
   console.log("  EQUAL/exhaustive: 256 MARIO_Y values — RAM identical to the oracle");
@@ -150,7 +150,7 @@ test("EQUAL (exhaustive): loc_2787 == oracle across all 256 MARIO_Y values", () 
 function brokenThreshold(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y > Y_LIMIT) { loc_277f(m); return; } // BUG: should be `>=`
+  if (y > Y_LIMIT) { killMarioAtEndOfLiftTravel(m); return; } // BUG: should be `>=`
   const next = y + 1;
   mem.write8(MARIO_Y, next);
   mem.write8(MARIO_SPRITE_Y, next);
@@ -160,7 +160,7 @@ function brokenThreshold(m) {
 function brokenNoMirror(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y >= Y_LIMIT) { loc_277f(m); return; }
+  if (y >= Y_LIMIT) { killMarioAtEndOfLiftTravel(m); return; }
   const next = y + 1;
   mem.write8(MARIO_Y, next);
   // BUG: no mem.write8(MARIO_SPRITE_Y, next)
@@ -170,7 +170,7 @@ function brokenNoMirror(m) {
 function brokenSkipReset(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y >= Y_LIMIT) return; // BUG: should run loc_277f
+  if (y >= Y_LIMIT) return; // BUG: should run killMarioAtEndOfLiftTravel
   const next = y + 1;
   mem.write8(MARIO_Y, next);
   mem.write8(MARIO_SPRITE_Y, next);

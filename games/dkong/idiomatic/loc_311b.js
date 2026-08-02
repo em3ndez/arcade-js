@@ -3,7 +3,7 @@
  * loc_311b — frame-phase caller-skip guard: proceed on 5 of every 8 frames.  ROM 0x311B.
  *
  * One arm of the four-guard family at ROM 0x3110-0x313B (siblings 0x3110, 0x3126, 0x3131),
- * selected by difficulty through the clamped jump table in sub_30fa: it reads DIFFICULTY
+ * selected by difficulty through the clamped jump table in gateObjectUpdateByDifficulty: it reads DIFFICULTY
  * (0x6380), clamps it to 0..5, and dispatches arm 0x3110 for 0/1, THIS arm for 2, 0x3126
  * for 3/4, and 0x3131 for 5. Every arm reads the low bits of the frame counter and returns
  * whether the caller should proceed this frame, so the family paces some per-frame action
@@ -11,7 +11,7 @@
  * then 7/8. (CORRECTION, understanding pass 12: this family IS live. An earlier note here said it
  * was "present but not yet wired into any live dispatch path" — grounding against the real ROM in
  * MAME refutes that, with loc_30ed executing 1220 times in PURE ATTRACT alone, zero pokes. The
- * family paces loc_30ed's remainder, and loc_30fa picks among the four arms by DIFFICULTY.)
+ * family paces loc_30ed's remainder, and gateObjectUpdateByDifficulty picks among the four arms by DIFFICULTY.)
  *
  * In the raw Z80 this is the caller-skip trick: on the proceed decision the guard returns
  * normally so the caller keeps running; otherwise it discards its own return address so
@@ -30,7 +30,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-311b.test.js.
  * GATE:     exhaustive — pure predicate over all 256 FRAME byte values vs the oracle's
  *           skip decision, cross-checked that neither side writes RAM. This arm is reached
- *           ONLY through sub_30fa's difficulty-selected table and never on the live
+ *           ONLY through gateObjectUpdateByDifficulty's difficulty-selected table and never on the live
  *           NMI/substate dispatches, so there are no natural dispatches to capture
  *           (measured: 0 over 2000 attract frames); the exhaustive sweep is the whole proof.
  * LIVE-OUT: memory-only (writes none) — the control-flow boolean is the whole output; the

@@ -9,7 +9,7 @@
  * caller-skip). It is gated on MEMORY-EQUIVALENCE — RAM (minus STACK_SCRATCH) + pc +
  * SP — against the frozen oracle, and every case runs on a FRESH clone (a reused
  * clone is only safe for a read-only leaf). LIVE-OUT is MEMORY-ONLY: the successor
- * (loc_1615's rst-0x28 tail, a plain `ret`) reads no register or flag, so the
+ * (dispatchBoardClearedInterlude's rst-0x28 tail, a plain `ret`) reads no register or flag, so the
  * oracle's residual A/HL/F are dead ABI and are NOT compared. Both oracle exit arms
  * land at SP+2 / pc = word@SP (the grandparent return); the candidate reaches the
  * same by replacing the Z80 stack with the JS call stack and letting the harness

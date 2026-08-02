@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2c03 (ROM 0x2C03) — the board-1 (25m) periodic bonus-event
+ * Equivalence test for scheduleBarrelRelease (ROM 0x2C03) — the board-1 (25m) periodic bonus-event
  * scheduler (rst 0x30 board gate, rst 0x10 alive gate, an event-gate bit, then a
  * bonus/difficulty/spin decision that tails into the bonus-event slot-claim cluster).
  *
- * The oracle (entry_2c03) `m.call`s five routines (0x0030, 0x0010, and — on its three tail
+ * The oracle (scheduleBarrelRelease) `m.call`s five routines (0x0030, 0x0010, and — on its three tail
  * jumps — 0x2c7b, 0x2c86, 0x2c41) through the machine's address registry, which resolves each
  * to its frozen translated copy; those subtrees `push16` their return brackets and thread
- * multi-way `ret`s. loc_2c03 DIRECT-calls the five idiomatic callees (each memory-equivalent
+ * multi-way `ret`s. scheduleBarrelRelease DIRECT-calls the five idiomatic callees (each memory-equivalent
  * to its oracle) and models no stack. Both sides reach identical work RAM; the only residual
  * difference is the dead STACK_SCRATCH the oracle's push16/ret churn writes, excluded by the
  * memory-equivalence contract (mirrors equivalence-2c41 / equivalence-0350).
@@ -18,7 +18,7 @@
  *
  *   0. REACHABILITY — 0x2c03 is dispatched during 25m attract.
  *   1. EQUAL (captured) — hook 0x2c03 in a real attract run, clone at each dispatch, and
- *      confirm loc_2c03 == oracle (RAM − STACK_SCRATCH) on every real state.
+ *      confirm scheduleBarrelRelease == oracle (RAM − STACK_SCRATCH) on every real state.
  *   2. EQUAL (crafted) — poke the gates/thresholds identically on both sides to drive every
  *      path: the three gate-closed skips, the zero-bonus early-out, the loc_2c7b tail, the
  *      loc_2c86 tail, the loc_2c41 tail by BOTH the phase-match jump and the odd-spin
@@ -37,11 +37,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c03 as oracle } from "../../translated/loc_2c03.js";
-import { loc_2c03 } from "../loc_2c03.js";
+import { scheduleBarrelRelease } from "../scheduleBarrelRelease.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, BONUS, BONUS_START, DIFFICULTY, FRAME, SPIN_COUNT, RANDOM, BARREL_CLAIM_MODE } from "../ram.js";
 // The teeth twins reuse the real callees (their faithfulness is proven by their own gates, not
-// under test here) so only the loc_2c03-level logic error is what diverges.
+// under test here) so only the scheduleBarrelRelease-level logic error is what diverges.
 import { u8 } from "../../../../core/int.js";
 import { boardBitGate as boardBitGateRef } from "../boardBitGate.js";
 import { marioActiveGuard as marioActiveGuardRef } from "../marioActiveGuard.js";
@@ -57,7 +57,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2c03;
-// Cells loc_2c03 touches directly that are UNNAMED in ram.js (rejected-as-shared 0x63xx scratch).
+// Cells scheduleBarrelRelease touches directly that are UNNAMED in ram.js (rejected-as-shared 0x63xx scratch).
 const EVENT_GATE = 0x6393;   // gate 3: bit0 SET -> skip
 // Cluster scratch the body writes when a tail fires (for the write-set / non-vacuity checks).
 const SCRATCH_MODE = 0x638f;
@@ -150,7 +150,7 @@ test("REACHABILITY: 0x2c03 is dispatched during 25m attract", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_2c03 == oracle on every real dispatch", () => {
+test("EQUAL (captured): scheduleBarrelRelease == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 128) caps.push(mm.clone());
@@ -164,7 +164,7 @@ test("EQUAL (captured): loc_2c03 == oracle on every real dispatch", () => {
   for (const entry of caps) {
     entry.nextNmi = Infinity;
     entry.nextBoundary = Infinity;
-    const diff = ramDiff(entry, loc_2c03);
+    const diff = ramDiff(entry, scheduleBarrelRelease);
     assert.equal(diff, null, diff && `captured dispatch: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     // Classify for reporting: body (any non-stack write) vs skip.
     const after = entry.clone(); oracle(after);
@@ -203,7 +203,7 @@ test("EQUAL (crafted): every gate/threshold path matches the oracle", () => {
 
   for (const { name, opts, writes, body, stirs } of cases) {
     const entry = craft(base, opts);
-    const diff = ramDiff(entry, loc_2c03);
+    const diff = ramDiff(entry, scheduleBarrelRelease);
     assert.equal(diff, null, diff && `${name}: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
 
     const after = entry.clone(); oracle(after);

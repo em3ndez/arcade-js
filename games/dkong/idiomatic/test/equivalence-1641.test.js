@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1641 (ROM 0x1641) — the fall-through arm of loc_1615's
+ * Equivalence test for runRivetBoardInterludeFrame (ROM 0x1641) — the fall-through arm of dispatchBoardClearedInterlude's
  * board-advance dispatcher (GAME_SUBSTATE 0x600A == 0x16). It runs the effect-sprite state
  * machine one frame (sub_1dbd, a router on EFFECT_STATE 0x6340) and then dispatches the
- * board-render sequence step (loc_1644: `ld a,(0x6388)` -> rst 0x28 @ ROM 0x1648).
+ * board-render sequence step (dispatchRivetBoardInterludeStep: `ld a,(0x6388)` -> rst 0x28 @ ROM 0x1648).
  *
- * loc_1641 is NOT reached in plain attract — a board is never completed there — so it is
+ * runRivetBoardInterludeFrame is NOT reached in plain attract — a board is never completed there — so it is
  * validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH; never
  * the full register file, never cycles, never SP/pc: the idiomatic effect-machine state-1
  * arm leaves SP/pc where the oracle's return chain does not, and no caller reads them),
@@ -14,8 +14,8 @@
  *   1. FULL-HANDLER (crafted cross-product) — take a real attract base captured at a live
  *      0x1dbd dispatch (so EFFECT_PARAM_PTR 0x6343 is a valid pointer the state-1 arm can
  *      deref), poke the effect state {0,1,2} and the render step {0..5} to every
- *      combination identically on both sides, and run the ORACLE sub_1641 on one clone and
- *      loc_1641 on another. The FULL oracle handlers — the effect machine AND the
+ *      combination identically on both sides, and run the ORACLE runRivetBoardInterludeFrame on one clone and
+ *      runRivetBoardInterludeFrame on another. The FULL oracle handlers — the effect machine AND the
  *      board-render arm — run on BOTH sides, so a wrong order, a dropped call, or a live
  *      register/flag handoff surfaces as divergent RAM. Proven non-vacuous: every
  *      combination mutates game-visible RAM vs the untouched base.
@@ -35,9 +35,9 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1641 as oracle } from "../../translated/loc_1641.js";
 import { loc_1dbd as oracleSub1dbd } from "../../translated/loc_1dbd.js";
-import { loc_1641 } from "../loc_1641.js";
+import { runRivetBoardInterludeFrame } from "../runRivetBoardInterludeFrame.js";
 import { dispatchEffectState } from "../dispatchEffectState.js"; // drop-dispatch teeth twin
-import { loc_1644 } from "../loc_1644.js"; // drop-effect teeth twin
+import { dispatchRivetBoardInterludeStep } from "../dispatchRivetBoardInterludeStep.js"; // drop-effect teeth twin
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -81,8 +81,8 @@ function replay(entry, candidate) {
 /**
  * A real, self-consistent attract base captured AT a live 0x1dbd dispatch whose effect
  * param-block pointer (0x6343/0x6344) points into work RAM — so the crafted state-1 arm
- * (dispatchEffectState -> loc_1dc9 -> loc_1e00 -> loc_1e15 dereferences it) is a faithful live-in, not
- * a fault. loc_1641 is never dispatched in attract; we craft its entry by poking. Delegates
+ * (dispatchEffectState -> armScorePopupAndSelectAward -> stageAward300Popup -> stageAwardPopupAtHitObject dereferences it) is a faithful live-in, not
+ * a fault. runRivetBoardInterludeFrame is never dispatched in attract; we craft its entry by poking. Delegates
  * to the oracle sub_1dbd so the host run proceeds undisturbed.
  */
 function captureBase(maxFrames = 8000) {
@@ -102,7 +102,7 @@ function captureBase(maxFrames = 8000) {
  * and lay a few plausible caller-return words, then poke the effect state and the render
  * step.
  *
- * Three return words, not one: the idiomatic loc_1641 reaches the effect handler and the
+ * Three return words, not one: the idiomatic runRivetBoardInterludeFrame reaches the effect handler and the
  * render arm as direct idiomatic→idiomatic calls, so it never pushes the intermediate
  * `call 0x1dbd` return the oracle does. Each of those callees still models its own `ret`
  * for its own equivalence test, so the idiomatic side pops up to TWO return words (the
@@ -124,7 +124,7 @@ function craftEntry(base, state, step) {
 
 // -- 1. FULL-HANDLER (crafted cross-product) ----------------------------------
 
-test("FULL-HANDLER: loc_1641 == oracle over effect-state {0,1,2} × render-step {0..5}", () => {
+test("FULL-HANDLER: runRivetBoardInterludeFrame == oracle over effect-state {0,1,2} × render-step {0..5}", () => {
   const base = captureBase();
   assert.ok(
     craftEntry(base, 0, 0).regs.sp >= STACK_SCRATCH.lo && craftEntry(base, 0, 0).regs.sp < STACK_SCRATCH.hi,
@@ -145,7 +145,7 @@ test("FULL-HANDLER: loc_1641 == oracle over effect-state {0,1,2} × render-step 
       const a = entry.clone();
       const b = entry.clone();
       oracle(a);
-      loc_1641(b);
+      runRivetBoardInterludeFrame(b);
 
       const bad = firstNonStackDiff(a.dumpState(), b.dumpState(), a);
       if (bad && !mismatch) mismatch = { state, step, bad };
@@ -172,7 +172,7 @@ test("FULL-HANDLER: loc_1641 == oracle over effect-state {0,1,2} × render-step 
 // Twin (a): drop the effect-machine call — only the render dispatch runs. Misses the
 // effect state machine's per-frame work (state advance / countdown / effect sound).
 function brokenDropEffect(m) {
-  loc_1644(m);
+  dispatchRivetBoardInterludeStep(m);
 }
 
 // Twin (b): drop the render dispatch — only the effect machine runs. Misses the whole

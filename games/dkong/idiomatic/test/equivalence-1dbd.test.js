@@ -2,12 +2,12 @@
 /**
  * Equivalence test for dispatchEffectState (ROM 0x1DBD) — the router for the effect-sprite state
  * machine held in 0x6340. It reads the state byte and hands the frame to one of three
- * handlers: state 0 -> effectStateIdle (idle no-op), state 1 -> loc_1dc9 (arm + advance), state 2
+ * handlers: state 0 -> effectStateIdle (idle no-op), state 1 -> armScorePopupAndSelectAward (arm + advance), state 2
  * -> loc_1e4a (countdown). State 3 is the reset vector and is never produced in play.
  *
  * dispatchEffectState writes no memory itself; every visible byte is the chosen handler's. Its state-1
- * arm runs loc_1dc9's full effect chain (which the idiomatic side reaches through the
- * fully-idiomatic loc_1dc9, the oracle side through its return-modelling chain), so SP/pc
+ * arm runs armScorePopupAndSelectAward's full effect chain (which the idiomatic side reaches through the
+ * fully-idiomatic armScorePopupAndSelectAward, the oracle side through its return-modelling chain), so SP/pc
  * and the STACK_SCRATCH region diverge there and are dead (the caller reads no register).
  * The gate is therefore memory-equivalence on RAM − STACK_SCRATCH (never the full register
  * file, never cycles, never SP/pc), a FRESH clone per case because the handlers write memory
@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1dbd as oracle } from "../../translated/loc_1dbd.js";
 import { dispatchEffectState as idiomatic } from "../dispatchEffectState.js";
 import { effectStateIdle } from "../effectStateIdle.js"; // idiomatic handlers, for the teeth twins
-import { loc_1dc9 } from "../loc_1dc9.js";
+import { armScorePopupAndSelectAward } from "../armScorePopupAndSelectAward.js";
 import { loc_1e4a } from "../../translated/loc_1e4a.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -143,8 +143,8 @@ test("REALISM: real captured 0x1dbd dispatches — game-visible RAM identical to
 
 /**
  * A real captured entry to craft the state sweep onto — one whose effect param-block
- * pointer at 0x6343 points into work RAM. The state-1 handler (loc_1dc9 -> loc_1e00 ->
- * loc_1e15) dereferences that pointer, so a base whose pointer is 0x0000 (e.g. a fresh
+ * pointer at 0x6343 points into work RAM. The state-1 handler (armScorePopupAndSelectAward -> stageAward300Popup ->
+ * stageAwardPopupAtHitObject) dereferences that pointer, so a base whose pointer is 0x0000 (e.g. a fresh
  * idle base that never armed an effect) would fault when the sweep forces state 1. Every
  * real state-1 dispatch has a live pointer; picking a base with one makes the crafted
  * state-1 arm a faithful live-in, and it is harmless to the state-0 (no-op) and state-2
@@ -216,7 +216,7 @@ function makeRouter(handlers) {
 }
 
 // Twin (a): the state-2 handler is a no-op — misses the countdown decrement.
-const brokenCountdown = makeRouter([effectStateIdle, loc_1dc9, effectStateIdle]);
+const brokenCountdown = makeRouter([effectStateIdle, armScorePopupAndSelectAward, effectStateIdle]);
 // Twin (b): the state-1 handler is a no-op — misses the effect one-shot (arm + advance + sound).
 const brokenArm = makeRouter([effectStateIdle, effectStateIdle, loc_1e4a]);
 

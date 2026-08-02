@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2cb8 (ROM 0x2CB8) — the 25m barrel-release slot claim.
+ * Equivalence test for releaseBarrelIntoFreeSlot (ROM 0x2CB8) — the 25m barrel-release slot claim.
  *
  * The scan above it (ROM 0x2C8F) walks the ten OBJ_ARRAY_67 barrel records counting down and
  * jumps here on the first record whose low two flag bits are clear. This routine turns that free
@@ -23,12 +23,12 @@
  * ~28 frames before flipping to 1 when it started moving. Grounding deliberately did NOT
  * establish which NAMED Donkey Kong object either barrel kind is, so no lore name is used here.
  *
- * loc_2cb8 WRITES MEMORY (its own claim, the task ring, the bonus, and — through the
- * continuation — everything the loc_2ce6 / stampReleasedBarrelKind / loc_2d15 chain touches), so
+ * releaseBarrelIntoFreeSlot WRITES MEMORY (its own claim, the task ring, the bonus, and — through the
+ * continuation — everything the loc_2ce6 / stampReleasedBarrelKind / advanceBarrelRelease chain touches), so
  * it is gated on memory-equivalence, not a returned scalar, and every case runs on FRESH clones.
  * The contract is RAM (minus STACK_SCRATCH) + pc + SP.
  *
- * LIVE-OUT: memory-only, plus the control-flow boundary. loc_2cb8 pushes nothing of its own that
+ * LIVE-OUT: memory-only, plus the control-flow boundary. releaseBarrelIntoFreeSlot pushes nothing of its own that
  * survives (its `call 0x309F` bracket balances; its exit is a jump into loc_2ce6), and the chain
  * nets exactly ONE caller-return pop, performed downstream on its behalf. The idiomatic routine
  * models that as a plain JS return, so the harness performs one m.ret() on the candidate AFTER
@@ -47,7 +47,7 @@
  *      the record index" an observation rather than a reading of the caller.
  *
  *   1. EQUAL (real captured dispatches) — clone the machine at each true dispatch, run the
- *      ORACLE on one clone and loc_2cb8 on another, confirm identical RAM (minus STACK_SCRATCH)
+ *      ORACLE on one clone and releaseBarrelIntoFreeSlot on another, confirm identical RAM (minus STACK_SCRATCH)
  *      + pc + SP. These cover 8 of the 10 slot indices and none of the expiry arm.
  *
  *   2. EQUAL (crafted) — from a real captured dispatch, poke ONE byte identically on both sides:
@@ -58,7 +58,7 @@
  *          never does (the counter never fell below 37 in 14000 frames);
  *      (c) one case that drives the continuation through the renderer's acting frame instead of
  *          its frame-gate return, so the RENDER_DST_PTR this routine computes is actually
- *          dereferenced by loc_2d54.
+ *          dereferenced by stepBarrelAlongReleasePath.
  *      Non-vacuity: the claim, the two pointers, the gate latch, the posted task message, the
  *      new counter and the expiry latch are each asserted on BOTH sides.
  *
@@ -80,7 +80,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2cb8 as oracle } from "../../translated/loc_2cb8.js";
-import { loc_2cb8 } from "../loc_2cb8.js";
+import { releaseBarrelIntoFreeSlot } from "../releaseBarrelIntoFreeSlot.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { loc_2ce6 } from "../loc_2ce6.js";
 import { Machine } from "../../machine.js";
@@ -111,8 +111,8 @@ const TASK_OPCODE = 5;
 const TASK_ARG = 1;
 
 // Downstream renderer control bytes, poked so each crafted case picks a deterministic path.
-const FRAME_GATE = 0x62af; // loc_2d15's per-tick down-counter (unnamed)
-const ANIM_COUNTER = 0x638f; // loc_2d15's animation sub-counter (unnamed)
+const FRAME_GATE = 0x62af; // advanceBarrelRelease's per-tick down-counter (unnamed)
+const ANIM_COUNTER = 0x638f; // advanceBarrelRelease's animation sub-counter (unnamed)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -289,13 +289,13 @@ test("REACHABILITY: 0x2CB8 is dispatched during attract, always on an OBJ_ARRAY_
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_2cb8 == oracle on every captured 0x2CB8 entry", () => {
+test("EQUAL (real dispatches): releaseBarrelIntoFreeSlot == oracle on every captured 0x2CB8 entry", () => {
   const { caps } = attractRun();
   assert.ok(caps.length >= 1, "expected at least one real 0x2CB8 dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2cb8); // FRESH clones inside — cap is untouched
+    const diffs = contractDiffs(cap, releaseBarrelIntoFreeSlot); // FRESH clones inside — cap is untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
-    assertClaim("real", cap, runCandidate(cap, loc_2cb8));
+    assertClaim("real", cap, runCandidate(cap, releaseBarrelIntoFreeSlot));
     assertClaim("real/oracle", cap, runOracle(cap));
   }
   console.log(`  EQUAL/real: ${caps.length} captured dispatches identical to the oracle`);
@@ -310,9 +310,9 @@ test("EQUAL (crafted): every slot index, the whole countdown byte range, and an 
   // (a) every slot index the scan can produce — attract only reaches 0..7.
   for (let count = 1; count <= BARREL_SLOTS; count++) {
     const entry = craft(cap, { count });
-    const diffs = contractDiffs(entry, loc_2cb8);
+    const diffs = contractDiffs(entry, releaseBarrelIntoFreeSlot);
     assert.equal(diffs.length, 0, `countdown ${count}: ${diffs.join("; ")}`);
-    const c = runCandidate(entry, loc_2cb8);
+    const c = runCandidate(entry, releaseBarrelIntoFreeSlot);
     assertClaim(`countdown ${count}`, entry, c);
     assertClaim(`countdown ${count}/oracle`, entry, runOracle(entry));
     assert.equal(
@@ -323,16 +323,16 @@ test("EQUAL (crafted): every slot index, the whole countdown byte range, and an 
 
   // (a') exhaustive over the countdown's whole byte range — pins the scaled index, wrap included.
   for (let count = 0; count < 256; count++) {
-    const diffs = contractDiffs(craft(cap, { count }), loc_2cb8);
+    const diffs = contractDiffs(craft(cap, { count }), releaseBarrelIntoFreeSlot);
     assert.equal(diffs.length, 0, `countdown sweep ${count}: ${diffs.join("; ")}`);
   }
 
   // (c) the continuation actually runs the renderer's acting frame, so the destination pointer
   //     this routine computes is dereferenced rather than merely stored.
   const acting = craft(cap, { count: 6, gate: 0x01, counter: 0x00 });
-  const actingDiffs = contractDiffs(acting, loc_2cb8);
+  const actingDiffs = contractDiffs(acting, releaseBarrelIntoFreeSlot);
   assert.equal(actingDiffs.length, 0, `acting renderer frame: ${actingDiffs.join("; ")}`);
-  const actingOut = runCandidate(acting, loc_2cb8);
+  const actingOut = runCandidate(acting, releaseBarrelIntoFreeSlot);
   assertClaim("acting renderer frame", acting, actingOut);
   // Non-vacuity: the renderer really took its acting frame (it reloads the gate) rather than
   // returning at the gate as every other crafted case does.
@@ -342,7 +342,7 @@ test("EQUAL (crafted): every slot index, the whole countdown byte range, and an 
   // Live-out: both sides return to the address that was on the stack at entry, SP popped by 2.
   const retAddr = acting.mem.read16(acting.regs.sp);
   assert.equal(runOracle(acting).pc, retAddr, `oracle should return to ${hx(retAddr)}`);
-  assert.equal(actingOut.pc, retAddr, `loc_2cb8 should return to ${hx(retAddr)}`);
+  assert.equal(actingOut.pc, retAddr, `releaseBarrelIntoFreeSlot should return to ${hx(retAddr)}`);
   assert.equal(actingOut.regs.sp, (acting.regs.sp + 2) & 0xffff, "SP should pop exactly one return address");
 
   console.log(
@@ -356,9 +356,9 @@ test("EQUAL (crafted): exhaustive BONUS sweep reaches the bonus-expiry arm attra
   let expiryCases = 0;
   for (let bonus = 0; bonus < 256; bonus++) {
     const entry = craft(cap, { bonus });
-    const diffs = contractDiffs(entry, loc_2cb8);
+    const diffs = contractDiffs(entry, releaseBarrelIntoFreeSlot);
     assert.equal(diffs.length, 0, `bonus ${bonus}: ${diffs.join("; ")}`);
-    const c = runCandidate(entry, loc_2cb8);
+    const c = runCandidate(entry, releaseBarrelIntoFreeSlot);
     assertClaim(`bonus ${bonus}`, entry, c);
     assertClaim(`bonus ${bonus}/oracle`, entry, runOracle(entry));
     if (u8(bonus - 1) === 0) expiryCases++;

@@ -1,42 +1,42 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e08 (ROM 0x1E08) — the middle of the three effect setters:
- * stage B = 0x7E, DE = 0x0005, then tail-jump into the shared handler loc_1e15.
+ * Equivalence test for stageAward500Popup (ROM 0x1E08) — the middle of the three effect setters:
+ * stage B = 0x7E, DE = 0x0005, then tail-jump into the shared handler stageAwardPopupAtHitObject.
  *
- * loc_1e08 WRITES memory (through loc_1e15: the task ring via enqueueTask, the block[0]
- * clear at *(0x6343), and — via loc_1e36 — the sprite record 0x6A30..0x6A33 + the gated
+ * stageAward500Popup WRITES memory (through stageAwardPopupAtHitObject: the task ring via enqueueTask, the block[0]
+ * clear at *(0x6343), and — via stampScorePopupSprite — the sprite record 0x6A30..0x6A33 + the gated
  * sound 0x6085) and is NOT a leaf, so it is gated by capture / clone / replay (docs/decompiler-pipeline)
  * with a FRESH clone per case. Its own body is two register loads and a delegate; every
- * branch lives in its callees (enqueueTask's full-ring drop, loc_1e36's board gate).
+ * branch lives in its callees (enqueueTask's full-ring drop, stampScorePopupSprite's board gate).
  *
- * Attract NEVER dispatches loc_1e08 — its callers loc_1dc9 / loc_1df5 are level-2+ paths
+ * Attract NEVER dispatches stageAward500Popup — its callers armScorePopupAndSelectAward / pickRandomAwardTier are level-2+ paths
  * the 25m demo doesn't take (confirmed: attract's only 0x1e15 dispatches arrive via the
- * sibling loc_1e00, B=0x7D). So there is no "real loc_1e08 dispatch" to capture. Instead
- * we capture REAL loc_1e15 entry states — the exact live-in a `jp 0x1e15` lands in — and
- * run the oracle vs idiomatic loc_1e08 on each. Because loc_1e08's ENTIRE contribution is
- * to overwrite B and DE with fixed constants (identically on both sides), a real loc_1e15
- * entry is a faithful crafted base for loc_1e08: both sides start the chain from the exact
+ * sibling stageAward300Popup, B=0x7D). So there is no "real stageAward500Popup dispatch" to capture. Instead
+ * we capture REAL stageAwardPopupAtHitObject entry states — the exact live-in a `jp 0x1e15` lands in — and
+ * run the oracle vs idiomatic stageAward500Popup on each. Because stageAward500Popup's ENTIRE contribution is
+ * to overwrite B and DE with fixed constants (identically on both sides), a real stageAwardPopupAtHitObject
+ * entry is a faithful crafted base for stageAward500Popup: both sides start the chain from the exact
  * same (B=0x7E, DE=0x0005) over a real ring / param block / board state.
  *
  *   1. REALISM (crafted base) — on each real captured 25m entry, oracle vs idiomatic
- *      loc_1e08 leave byte-identical game-visible RAM (residual confined to STACK_SCRATCH:
+ *      stageAward500Popup leave byte-identical game-visible RAM (residual confined to STACK_SCRATCH:
  *      the oracle models `jp`/`call`/`ret`, so its SP/pc move; idiomatic uses the JS call
  *      stack and models neither). The oracle's deepest push (SP-4) must sit inside
  *      STACK_SCRATCH for the exclusion to be sound; idiomatic must leave SP/pc unchanged.
  *
- *   2. BOARD (exhaustive crafted) — loc_1e36's gate is the chain's only board-dependent
+ *   2. BOARD (exhaustive crafted) — stampScorePopupSprite's gate is the chain's only board-dependent
  *      logic and attract exercises only BOARD 1, so poke BOARD to every byte 0..255
  *      identically on both sides. This pins the 50m/100m CLOSED arms (no 0x6085 write).
  *
  *   3. PARAM BLOCK (edge crafted) — poke the four block bytes at *(0x6343) to distinct
  *      edge tuples on both sides, pinning the inherited block[0]->A (0x6A30), block[3]->C
- *      (0x6A33), and the byte-0 CLEAR — none of which loc_1e08 changes, but all of which
+ *      (0x6A33), and the byte-0 CLEAR — none of which stageAward500Popup changes, but all of which
  *      it must faithfully carry through.
  *
  *   4. DROP arm (crafted) — occupy the ring slot at the tail so enqueueTask silently drops
  *      (bit7 clear), exercising the composition on the drop path; the tail must stay put.
  *
- *   5. TEETH — two twins on loc_1e08's OWN constants (what distinguishes it from its
+ *   5. TEETH — two twins on stageAward500Popup's OWN constants (what distinguishes it from its
  *      siblings), each on a real write-arm base the whole-RAM replay MUST catch:
  *        (a) wrong B constant (0x7D instead of 0x7E) — caught at record byte 0x6A31.
  *        (b) wrong DE constant (0x0003 instead of 0x0005) — caught at the ring argument
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e08 as oracle } from "../../translated/loc_1e08.js";
-import { loc_1e08 as idiomatic } from "../loc_1e08.js";
+import { stageAward500Popup as idiomatic } from "../stageAward500Popup.js";
 import { loc_1e15 as oracle15 } from "../../translated/loc_1e15.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -62,18 +62,18 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-// We capture at loc_1e15's entry (attract reaches it; loc_1e08 does not), then re-enter
-// through loc_1e08. loc_1e08 overwrites B/DE, so the captured base is faithful.
+// We capture at stageAwardPopupAtHitObject's entry (attract reaches it; stageAward500Popup does not), then re-enter
+// through stageAward500Popup. stageAward500Popup overwrites B/DE, so the captured base is faithful.
 const CAPTURE = 0x1e15;
 const BOARD = 0x6227;
 const PARAM_PTR = 0x6343; // indirect word: HL = the parameter block address
-const REC = 0x6a30;       // sprite-record slot (written by the loc_1e36 tail)
-const SND = 0x6085;       // sound latch (gate-open, written by loc_1e36)
+const REC = 0x6a30;       // sprite-record slot (written by the stampScorePopupSprite tail)
+const SND = 0x6085;       // sound latch (gate-open, written by stampScorePopupSprite)
 const TASK_TAIL = 0x60b0; // low byte of the task ring's next write slot
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
-// loc_1e08's fixed payload — the two constants that distinguish it from its siblings.
+// stageAward500Popup's fixed payload — the two constants that distinguish it from its siblings.
 const B_CONST = 0x7e;
 const DE_CONST = 0x0005;
 
@@ -98,10 +98,10 @@ function ramDiffMinusStack(a, b) {
 
 /**
  * Replay one entry state through the oracle and a candidate on independent FRESH clones
- * (loc_1e08 writes RAM), and return the game-visible diff + both machines.
+ * (stageAward500Popup writes RAM), and return the game-visible diff + both machines.
  */
 function replay(entry, candidate) {
-  const a = entry.clone(); // oracle loc_1e08
+  const a = entry.clone(); // oracle stageAward500Popup
   const b = entry.clone(); // candidate
   oracle(a);
   candidate(b);
@@ -110,9 +110,9 @@ function replay(entry, candidate) {
 
 /**
  * Run attract and clone the machine at each real 0x1e15 dispatch (reached via a sibling
- * setter's `jp 0x1e15` while the 25m demo plays). The wrapper delegates to the loc_1e15
+ * setter's `jp 0x1e15` while the 25m demo plays). The wrapper delegates to the stageAwardPopupAtHitObject
  * oracle so the host run proceeds to a clean stop. Each snapshot is a faithful crafted
- * base for loc_1e08, which re-stages B/DE before running the identical chain.
+ * base for stageAward500Popup, which re-stages B/DE before running the identical chain.
  */
 function captureBases(K, maxFrames) {
   const caps = [];
@@ -128,13 +128,13 @@ function captureBases(K, maxFrames) {
 /** A single real captured base (BOARD 1, free ring slot) to craft arms onto. */
 function craftedBase() {
   const caps = captureBases(1, 4000);
-  assert.ok(caps.length >= 1, "expected a real 0x1e15 entry to craft a loc_1e08 base from");
+  assert.ok(caps.length >= 1, "expected a real 0x1e15 entry to craft a stageAward500Popup base from");
   return caps[0];
 }
 
 // -- 1. REALISM (crafted base) ------------------------------------------------
 
-test("REALISM: oracle vs idiomatic loc_1e08 on real 25m bases — game-visible RAM identical, SP/pc unmodelled", () => {
+test("REALISM: oracle vs idiomatic stageAward500Popup on real 25m bases — game-visible RAM identical, SP/pc unmodelled", () => {
   const caps = captureBases(8, 4000);
   assert.ok(caps.length >= 1, "expected at least one real 0x1e15 base during 25m attract");
 
@@ -150,26 +150,26 @@ test("REALISM: oracle vs idiomatic loc_1e08 on real 25m bases — game-visible R
     );
     // The oracle's chain pushes down to SP-4 (its own call return addr + sub_309f's push
     // hl); that target must sit inside STACK_SCRATCH so excluding the region masks no real
-    // diff. loc_1e08 itself pushes nothing extra beyond loc_1e15's chain.
+    // diff. stageAward500Popup itself pushes nothing extra beyond stageAwardPopupAtHitObject's chain.
     assert.ok(
       (entry.regs.sp - 4) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
       `oracle's deepest push must sit inside STACK_SCRATCH (SP=${hx(entry.regs.sp)})`,
     );
-    // idiomatic loc_1e08 must NOT model the stack: SP and pc unchanged from entry.
+    // idiomatic stageAward500Popup must NOT model the stack: SP and pc unchanged from entry.
     const b = entry.clone();
     const sp0 = b.regs.sp, pc0 = b.pc;
     idiomatic(b);
-    assert.equal(b.regs.sp, sp0, "loc_1e08 must leave SP unchanged (no stack modelling)");
-    assert.equal(b.pc, pc0, "loc_1e08 must leave pc unchanged (no ret modelling)");
-    // Prove loc_1e08 actually stamped its OWN constant: record byte 0x6A31 == B (0x7E).
-    assert.equal(b.mem.read8(REC + 1), B_CONST, "loc_1e08 must stamp B=0x7E into record byte 0x6A31");
+    assert.equal(b.regs.sp, sp0, "stageAward500Popup must leave SP unchanged (no stack modelling)");
+    assert.equal(b.pc, pc0, "stageAward500Popup must leave pc unchanged (no ret modelling)");
+    // Prove stageAward500Popup actually stamped its OWN constant: record byte 0x6A31 == B (0x7E).
+    assert.equal(b.mem.read8(REC + 1), B_CONST, "stageAward500Popup must stamp B=0x7E into record byte 0x6A31");
   }
-  console.log(`  REALISM: ${caps.length} real 25m base(s) — oracle vs idiomatic loc_1e08 game-visible RAM identical`);
+  console.log(`  REALISM: ${caps.length} real 25m base(s) — oracle vs idiomatic stageAward500Popup game-visible RAM identical`);
 });
 
 // -- 2. BOARD (exhaustive crafted) --------------------------------------------
 
-test("BOARD (exhaustive): loc_1e08 == oracle over all 256 BOARD values (open + closed gate arms)", () => {
+test("BOARD (exhaustive): stageAward500Popup == oracle over all 256 BOARD values (open + closed gate arms)", () => {
   const base = craftedBase();
   let count = 0, opened = 0, closed = 0, mismatch = null;
   for (let v = 0; v < 256 && !mismatch; v++) {
@@ -179,7 +179,7 @@ test("BOARD (exhaustive): loc_1e08 == oracle over all 256 BOARD values (open + c
     idiomatic(b);
     const { bad } = ramDiffMinusStack(a, b);
     count++;
-    if (a.mem.read8(SND) === 3) opened++; else closed++; // loc_1e36's gate fired or not
+    if (a.mem.read8(SND) === 3) opened++; else closed++; // stampScorePopupSprite's gate fired or not
     if (bad) mismatch = { v, bad };
   }
   assert.equal(

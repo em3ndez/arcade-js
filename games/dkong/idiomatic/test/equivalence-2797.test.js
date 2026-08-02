@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2797 (ROM 0x2797) — the 0x6600 board-object animator.
+ * Equivalence test for advanceBoardObjectTravel (ROM 0x2797) — the 0x6600 board-object animator.
  *
- * sub_2797 walks six 16-byte object records at 0x6600 and, for each ACTIVE one,
+ * advanceBoardObjectTravel walks six 16-byte object records at 0x6600 and, for each ACTIVE one,
  * drifts its Y one pixel and lands/deactivates it at a limit. It is a LEAF whose
  * memory-observable effect on a record is a pure function of THREE bytes of that
  * record — OBJ_ACTIVE (+0, only bit0), OBJ_STATE (+0x0d, only bit3), and OBJ_Y
@@ -14,7 +14,7 @@
  * There is also ONE register live-out: the record stride (DE = 0x0010). The oracle
  * loads it as its walk stride and leaves it untouched; the caller (0x2722) forwards
  * it straight into the sibling spawn walk (sub_27da) as ITS stride without reloading.
- * loc_2797 RETURNS that stride, and every sweep asserts the return equals the DE the
+ * advanceBoardObjectTravel RETURNS that stride, and every sweep asserts the return equals the DE the
  * oracle leaves.
  *
  * Contract: RAM (whole dump — the oracle only READS the stack via its terminal `ret`,
@@ -27,7 +27,7 @@
  *
  *   2. LANDMARKS — prove the sweep is not vacuous: the oracle genuinely reaches the
  *      LAND transition, the DEACTIVATE transition, an inactive skip, and both
- *      non-terminal drifts, and loc_2797 reproduces each.
+ *      non-terminal drifts, and advanceBoardObjectTravel reproduces each.
  *
  *   3. EQUAL (all six) — one crafted entry with all six records active in varied
  *      states/Y (two at a terminal, at different indices), proving the loop walks all
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2797 as oracle } from "../../translated/loc_2797.js";
-import { loc_2797 } from "../loc_2797.js";
+import { advanceBoardObjectTravel } from "../advanceBoardObjectTravel.js";
 import { OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -148,9 +148,9 @@ const describeMismatch = (mm) => {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_2797 == oracle over the full one-record input space", () => {
+test("EQUAL (exhaustive): advanceBoardObjectTravel == oracle over the full one-record input space", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, loc_2797);
+  const { mismatch, count } = fullSweep(base, advanceBoardObjectTravel);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, ACTIVE_BYTES.length * STATE_BYTES.length * 256, "must have compared the full swept space");
   console.log(`  EQUAL/exhaustive: ${count} (active, state, Y) combos — RAM + stride live-out identical to the oracle`);
@@ -158,7 +158,7 @@ test("EQUAL (exhaustive): loc_2797 == oracle over the full one-record input spac
 
 // -- 2. LANDMARKS (non-vacuity) -----------------------------------------------
 
-test("LANDMARKS: the oracle genuinely reaches land / deactivate / skip / drift, and loc_2797 matches", () => {
+test("LANDMARKS: the oracle genuinely reaches land / deactivate / skip / drift, and advanceBoardObjectTravel matches", () => {
   const base = new Machine(ROM).clone();
 
   // (i) LAND: active, rising (bit3 set), Y one above the landing row.
@@ -189,9 +189,9 @@ test("LANDMARKS: the oracle genuinely reaches land / deactivate / skip / drift, 
     assert.equal(fall.mem.read8(objAddr(0) + OBJ_ACTIVE), 0x01, "no premature deactivate");
   }
 
-  // And loc_2797 reproduces each of those exact cases (RAM + live-out).
+  // And advanceBoardObjectTravel reproduces each of those exact cases (RAM + live-out).
   for (const [a, s, y] of [[0x01, 0x08, 0x61], [0x01, 0x00, 0xf7], [0x00, 0x08, 0x61], [0x01, 0x08, 0x90], [0x01, 0x00, 0x40]]) {
-    const { ram, oracleDe, candRet } = runPair(base, a, s, y, loc_2797);
+    const { ram, oracleDe, candRet } = runPair(base, a, s, y, advanceBoardObjectTravel);
     assert.equal(ram, null, `landmark ${hx(a)}/${hx(s)}/${hx(y)}: ${ram && `RAM@0x${(ram.addr ?? 0).toString(16)}`}`);
     assert.equal(candRet, oracleDe, "landmark live-out");
   }
@@ -237,9 +237,9 @@ function runAllSix(base, layout, candidate) {
   return { ram, oracleDe: a.regs.de, candRet: ret };
 }
 
-test("EQUAL (all six): loc_2797 == oracle when all six records are exercised at once", () => {
+test("EQUAL (all six): advanceBoardObjectTravel == oracle when all six records are exercised at once", () => {
   const base = new Machine(ROM).clone();
-  const { ram, oracleDe, candRet } = runAllSix(base, ALL_SIX, loc_2797);
+  const { ram, oracleDe, candRet } = runAllSix(base, ALL_SIX, advanceBoardObjectTravel);
   assert.equal(ram, null, ram && `RAM diverges at 0x${(ram.addr ?? 0).toString(16)} (${ram.a}->${ram.b})`);
   assert.equal(candRet, oracleDe, "stride live-out mismatch on the all-six entry");
   assert.equal(candRet, EXPECTED_STRIDE, "stride live-out should be 0x10");
@@ -341,7 +341,7 @@ function brokenShortLoop(m) {
 
 /** (f) returns the wrong stride (a correct-RAM twin with a broken live-out). */
 function brokenLiveOut(m) {
-  loc_2797(m);
+  advanceBoardObjectTravel(m);
   return 0x08; // BUG: not the stride the oracle leaves
 }
 

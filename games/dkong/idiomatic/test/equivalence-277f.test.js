@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_277f (ROM 0x277F) — the vertical-mover edge reset.
+ * Equivalence test for killMarioAtEndOfLiftTravel (ROM 0x277F) — the vertical-mover edge reset.
  *
- * loc_277f is a LEAF with NO inputs and no branches: it always clears the same two
+ * killMarioAtEndOfLiftTravel is a LEAF with NO inputs and no branches: it always clears the same two
  * cells — MARIO_ACTIVE (0x6200) and the edge flag (0x6398) — and returns. Its whole
  * memory-observable behaviour is therefore "overwrite those two cells with 0, touch
  * nothing else," independent of every register and every other byte of RAM. The
@@ -27,7 +27,7 @@
  * work RAM) rather than a bare reset, and the non-vacuity checks confirm the two cells
  * actually reach 0 and the noisy neighbours are left alone.
  *
- *   1. EQUAL (exhaustive) — loc_277f == oracle on RAM across both 256-value sweeps.
+ *   1. EQUAL (exhaustive) — killMarioAtEndOfLiftTravel == oracle on RAM across both 256-value sweeps.
  *
  *   2. NON-VACUITY — on a nonzero-prior entry, the oracle's write set is EXACTLY
  *      {MARIO_ACTIVE, edge flag}, both land at 0, and the noise neighbours are
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_277f as oracle } from "../../translated/loc_277f.js";
-import { loc_277f } from "../loc_277f.js";
+import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js";
 import { MARIO_ACTIVE } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -156,9 +156,9 @@ test("REACHABILITY: 0x277F is NOT dispatched in attract — the gate rests on cr
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_277f == oracle across both 256-value prior sweeps", () => {
+test("EQUAL (exhaustive): killMarioAtEndOfLiftTravel == oracle across both 256-value prior sweeps", () => {
   const base = attractBase();
-  const { mismatch, count } = fullSweep(base, loc_277f);
+  const { mismatch, count } = fullSweep(base, killMarioAtEndOfLiftTravel);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256 + 256, "must have compared both full prior sweeps");
   console.log(`  EQUAL/exhaustive: ${count} prior combos — RAM identical to the oracle`);

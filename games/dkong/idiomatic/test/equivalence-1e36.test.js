@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e36 (ROM 0x1E36) — stamp the 0x6A30 sprite record + cue
+ * Equivalence test for stampScorePopupSprite (ROM 0x1E36) — stamp the 0x6A30 sprite record + cue
  * the board-gated sound latch 0x6085.
  *
- * loc_1e36 WRITES memory (record 0x6A30..0x6A33 and, when the board gate is open,
+ * stampScorePopupSprite WRITES memory (record 0x6A30..0x6A33 and, when the board gate is open,
  * SND_TRIGGER[5] at 0x6085) and is NOT a leaf (it calls boardBitGate / the oracle's
  * `rst 0x30`), so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone
  * per case. Its only branch is the board gate; A, B, C are stored verbatim. The gate
  * depends solely on BOARD (0x6227) — mask A = 0x05 opens on 25m (1) and 75m (3):
  *
  *   1. REALISM (real captured dispatch) — attract dispatches 0x1e36 on 25m (BOARD 1,
- *      gate OPEN). Run the ORACLE on one clone and loc_1e36 on another and confirm
+ *      gate OPEN). Run the ORACLE on one clone and stampScorePopupSprite on another and confirm
  *      every game-visible byte matches — the diff is confined to STACK_SCRATCH. That
  *      confinement is the whole point: the oracle models `push … rst 0x30 … ret`
- *      (writing the stack + consuming a return address, so its SP/pc move); loc_1e36
+ *      (writing the stack + consuming a return address, so its SP/pc move); stampScorePopupSprite
  *      uses the JS call stack and models neither, so the ONLY residual difference is
  *      stack-scratch bytes. SP/pc must be unchanged for the idiomatic side.
  *
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e36 as oracle } from "../../translated/loc_1e36.js";
-import { loc_1e36 as idiomatic } from "../loc_1e36.js";
+import { stampScorePopupSprite as idiomatic } from "../stampScorePopupSprite.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -91,7 +91,7 @@ function replay(entry, candidate) {
 
 /**
  * Run attract and clone the machine at each real 0x1e36 dispatch (reached via
- * loc_1e15's `jp`/call while the 25m demo plays). The wrapper delegates to the oracle
+ * stageAwardPopupAtHitObject's `jp`/call while the 25m demo plays). The wrapper delegates to the oracle
  * so the host run proceeds to a clean stop.
  */
 function captureDispatches(K, maxFrames) {
@@ -127,12 +127,12 @@ test("REALISM: real captured 25m 0x1e36 dispatch — game-visible RAM identical,
       (entry.regs.sp - 2) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
       `oracle's push target must sit inside STACK_SCRATCH (SP=${hx(entry.regs.sp)})`,
     );
-    // loc_1e36 must NOT model the stack: SP and pc unchanged from entry.
+    // stampScorePopupSprite must NOT model the stack: SP and pc unchanged from entry.
     const b = entry.clone();
     const sp0 = b.regs.sp, pc0 = b.pc;
     idiomatic(b);
-    assert.equal(b.regs.sp, sp0, "loc_1e36 must leave SP unchanged (no stack modelling)");
-    assert.equal(b.pc, pc0, "loc_1e36 must leave pc unchanged (no ret modelling)");
+    assert.equal(b.regs.sp, sp0, "stampScorePopupSprite must leave SP unchanged (no stack modelling)");
+    assert.equal(b.pc, pc0, "stampScorePopupSprite must leave pc unchanged (no ret modelling)");
   }
   console.log(`  REALISM: ${caps.length} real 25m dispatch(es) — game-visible RAM identical to the oracle`);
 });
@@ -148,7 +148,7 @@ function craftedBase() {
   return caps[0];
 }
 
-test("BOARD (exhaustive): loc_1e36 == oracle over all 256 BOARD values (open + closed arms)", () => {
+test("BOARD (exhaustive): stampScorePopupSprite == oracle over all 256 BOARD values (open + closed arms)", () => {
   const base = craftedBase();
   let count = 0, opened = 0, closed = 0, mismatch = null;
   for (let v = 0; v < 256 && !mismatch; v++) {

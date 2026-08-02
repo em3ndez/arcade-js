@@ -5,7 +5,7 @@
  * ROM 0x2C4B.
  *
  * This entry stores the caller's mode byte into BARREL_CLAIM_MODE and then runs the shared body
- * (loc_2c4f) with the mode byte incremented — so the body records 0x638F as the mode byte PLUS
+ * (armBarrelRelease) with the mode byte incremented — so the body records 0x638F as the mode byte PLUS
  * ONE while BARREL_CLAIM_MODE keeps the un-incremented value. The two bytes therefore always
  * differ by one (the increment sits between the two stores), which is this entry's whole
  * distinguishing move versus its sibling entries.
@@ -37,13 +37,13 @@
  *           BONUS_EVENT_MARK, and bit 7 on BARREL_CLAIM_MODE. The oracle threads residual
  *           registers/flags out and its callers reload; nothing reads a register the routine
  *           leaves behind.
- * NAMES:    loc_2c4f (ROM 0x2C4F) direct-called; BONUS_EVENT_MARK / OBJ_ARRAY_64 live inside it.
+ * NAMES:    armBarrelRelease (ROM 0x2C4F) direct-called; BONUS_EVENT_MARK / OBJ_ARRAY_64 live inside it.
  *           BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte, whose low
  *           bits hold the mode value this routine stores and whose bit 7 is the barrel-kind select.
  */
 
 import { BARREL_CLAIM_MODE } from "./ram.js"; // ROM 0x6382 — the barrel slot-claim mode byte
-import { loc_2c4f } from "./loc_2c4f.js"; // ROM 0x2C4F — the shared slot-claim body
+import { armBarrelRelease } from "./armBarrelRelease.js"; // ROM 0x2C4F — the shared slot-claim body
 
 /**
  * @param {object} m         the machine (uses m.mem only).
@@ -58,5 +58,5 @@ export function loc_2c4b(m, modeByte, bonus) {
   // Record the mode byte, then run the shared body with it bumped by one — so 0x638F ends up one
   // above BARREL_CLAIM_MODE (the increment sits between the two stores).
   mem.write8(BARREL_CLAIM_MODE, modeByte);
-  loc_2c4f(m, modeByte + 1, bonus);
+  armBarrelRelease(m, modeByte + 1, bonus);
 }

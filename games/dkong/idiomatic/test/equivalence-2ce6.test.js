@@ -20,7 +20,7 @@
  * no lore name is used here.
  *
  * loc_2ce6 WRITES MEMORY (its own record clear, and — through the continuation — everything the
- * stampReleasedBarrelKind/loc_2d15 chain touches), so it is gated on memory-equivalence, not a returned scalar, and
+ * stampReleasedBarrelKind/advanceBarrelRelease chain touches), so it is gated on memory-equivalence, not a returned scalar, and
  * every case runs on FRESH clones. The contract is RAM (minus STACK_SCRATCH) + pc + SP.
  *
  * LIVE-OUT: memory-only, plus the control-flow boundary. loc_2ce6 pushes nothing of its own — both
@@ -29,7 +29,7 @@
  * return, so the harness performs one m.ret() on the candidate AFTER the call to line pc + SP up
  * with the oracle; the crafted cases additionally assert, non-vacuously, that both sides land on the
  * return address that was actually on the stack at entry with SP popped by exactly 2. No register is
- * asserted: stampReleasedBarrelKind overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor loc_2d15
+ * asserted: stampReleasedBarrelKind overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor advanceBarrelRelease
  * reads an incoming pointer register, so the oracle's counter/index/pointer residue is dead. On the
  * renderer's deeper table-load path the oracle's dissolved `call 0x004e` bracket churns the dead
  * STACK_SCRATCH region, which the contract excludes.
@@ -88,8 +88,8 @@ const SPRITE_RECORD_BYTES = 4;
 const SENTINEL_END = OBJ_65A0_SPRITES + SPRITE_RECORD_BYTES; // covers the group + the neighbour's first record
 
 // Downstream renderer control bytes, poked so each crafted case picks a deterministic path.
-const FRAME_GATE = 0x62af;   // loc_2d15's per-tick down-counter (unnamed)
-const ANIM_COUNTER = 0x638f; // loc_2d15's animation sub-counter (unnamed)
+const FRAME_GATE = 0x62af;   // advanceBarrelRelease's per-tick down-counter (unnamed)
+const ANIM_COUNTER = 0x638f; // advanceBarrelRelease's animation sub-counter (unnamed)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;

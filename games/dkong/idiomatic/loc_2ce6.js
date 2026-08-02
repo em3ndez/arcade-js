@@ -52,10 +52,10 @@
  *           `call 0x004e` bracket churns; pc + SP are compared after one modelled terminal return.
  *           Teeth: a wrong-stride twin, an off-by-one boundary twin (which lands on the neighbouring
  *           OBJ_65A0_SPRITES group), and a twin that drops the continuation into stampReleasedBarrelKind.
- * LIVE-OUT: memory-only. The chain loc_2ce6 -> stampReleasedBarrelKind -> loc_2d15 nets exactly one terminal
+ * LIVE-OUT: memory-only. The chain loc_2ce6 -> stampReleasedBarrelKind -> advanceBarrelRelease nets exactly one terminal
  *           return, modelled in the gate rather than here. The oracle's residue — the counter in
  *           the accumulator, the scaled index, the computed record pointer — is dead: stampReleasedBarrelKind
- *           overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor loc_2d15 reads an
+ *           overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor advanceBarrelRelease reads an
  *           incoming pointer register.
  * NAMES:    BONUS (0x62B1) is named in ram.js but is reached through the CALLER's pointer register,
  *           which is this routine's live-in, so it is read indirectly and named in the comment

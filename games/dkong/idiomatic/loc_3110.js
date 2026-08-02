@@ -3,7 +3,7 @@
  * loc_3110 — frame-phase caller-skip guard: proceed on the odd frames (one of every two).  ROM 0x3110.
  *
  * The head arm of the four-guard family at ROM 0x3110-0x313B (siblings 0x311b, 0x3126,
- * 0x3131), selected by difficulty through the clamped jump table in sub_30fa: it reads
+ * 0x3131), selected by difficulty through the clamped jump table in gateObjectUpdateByDifficulty: it reads
  * DIFFICULTY (0x6380), clamps it to 0..5, and dispatches THIS arm for difficulty 0 and 1,
  * 0x311b for 2, 0x3126 for 3/4, and 0x3131 for 5. Every arm reads the low bits of the frame
  * counter and returns whether the caller should proceed this frame, so the family paces some
@@ -12,7 +12,7 @@
  * action run on every other frame.
  *
  * This arm IS on a live path. The family is dispatched by handler_1977 → entry_30ed →
- * sub_30fa, which reads DIFFICULTY and clamps it before selecting an arm through its inline
+ * gateObjectUpdateByDifficulty, which reads DIFFICULTY and clamps it before selecting an arm through its inline
  * table. Attract runs at low difficulty, so index 0/1 both select THIS arm and it is
  * genuinely exercised there (measured ~1197 dispatches over 2000 attract frames); the
  * higher-difficulty siblings are never selected in attract and stay dark (0 dispatches) —

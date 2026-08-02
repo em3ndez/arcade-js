@@ -4,7 +4,7 @@
  * request flag, then hand off to the shared slot-claim entry with mode byte 3.  ROM 0x2C86.
  *
  * What sets this entry apart from its siblings is that it CLEARS BARREL_CLAIM_MODE to zero up
- * front, then tails into loc_2c4f with the mode byte 3 and the caller's bonus value. loc_2c4f
+ * front, then tails into armBarrelRelease with the mode byte 3 and the caller's bonus value. armBarrelRelease
  * always records the mode byte and, only when the bonus counter has reached its scheduled mark,
  * claims the first free object slot and raises bit 7 of that same byte. So on this entry the byte
  * ends up 0 (no claim this pass) or 0x80 (slot claimed) — never carrying an older value in,
@@ -20,30 +20,30 @@
  * Grounding deliberately did NOT establish which NAMED Donkey Kong object either kind is.
  *
  * The bonus value is the caller's live-in: this entry is still reached from the translated cluster
- * (entry_2c03 / entry_2c41, via `jp nz,0x2c86`), which pass it in a register, so it is read at that
+ * (scheduleBarrelRelease / entry_2c41, via `jp nz,0x2c86`), which pass it in a register, so it is read at that
  * oracle boundary and forwarded as an honest argument.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2c86.test.js.
  * GATE:     exhaustive over the bonus value with a pre-dirtied mode byte (isolating the up-front
- *           clear + the two scratch writes loc_2c4f always makes, gate mostly closed), plus crafted
+ *           clear + the two scratch writes armBarrelRelease always makes, gate mostly closed), plus crafted
  *           gate-open entries over every first-free-slot position (records 0..4) and the all-occupied
  *           case — proving the byte is cleared to 0 then re-raised to 0x80 only on a claim; + real
  *           captured 0x2C86 dispatches from an attract run (which span both gate arms). Teeth: a twin
  *           that skips the clear and a twin that passes the wrong mode byte.
- * LIVE-OUT: memory-only — BARREL_CLAIM_MODE plus everything loc_2c4f writes (0x638F, 0x6392,
+ * LIVE-OUT: memory-only — BARREL_CLAIM_MODE plus everything armBarrelRelease writes (0x638F, 0x6392,
  *           BONUS_EVENT_MARK). The oracle threads residual registers/flags out and its single
  *           terminal pop is dead; the translated callers reload before reading anything back.
  *           Nothing writes the stack, so the gate needs no STACK_SCRATCH exclusion.
- * NAMES:    loc_2c4f (ROM 0x2C4F) direct-called with honest args. BARREL_CLAIM_MODE (0x6382) from
+ * NAMES:    armBarrelRelease (ROM 0x2C4F) direct-called with honest args. BARREL_CLAIM_MODE (0x6382) from
  *           ram.js — the barrel slot-claim mode byte, whose low bits carry the claim's mode value
- *           and whose bit 7 selects the barrel kind; the cells loc_2c4f touches carry their names
+ *           and whose bit 7 selects the barrel kind; the cells armBarrelRelease touches carry their names
  *           inside that routine.
  */
 
 import { BARREL_CLAIM_MODE } from "./ram.js"; // ROM 0x6382 — the barrel slot-claim mode byte
-import { loc_2c4f } from "./loc_2c4f.js"; // ROM 0x2C4F — the shared slot-claim entry
+import { armBarrelRelease } from "./armBarrelRelease.js"; // ROM 0x2C4F — the shared slot-claim entry
 
-const MODE_BYTE = 0x03; // the mode byte this entry stashes via loc_2c4f
+const MODE_BYTE = 0x03; // the mode byte this entry stashes via armBarrelRelease
 
 /**
  * @param {object} m  the machine (reads the bonus live-in from registers, writes memory).
@@ -57,5 +57,5 @@ export function loc_2c86(m) {
 
   // Hand off to the shared entry: mode byte 3, and the caller's bonus value (the register live-in
   // from the still-translated cluster callers).
-  loc_2c4f(m, MODE_BYTE, regs.c);
+  armBarrelRelease(m, MODE_BYTE, regs.c);
 }

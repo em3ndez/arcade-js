@@ -21,7 +21,7 @@
  *     MAME's "dead" line (dkong.cpp:202) and whose SOLE writer in the whole ROM is that one
  *     instruction (games/dkong/audio/README.md: 3 rises in 90 s, one per life). So the
  *     sprite groups are being cleared as Mario's death begins.
- *   - loc_1615 (the L2 board-advance dispatcher) — the other caller, unchanged.
+ *   - dispatchBoardClearedInterlude (the L2 board-advance dispatcher) — the other caller, unchanged.
  * CONFIDENT: the mechanism (four fixed stride-4 zero-fills) and that every target lies
  * in SPRITE_BUFFER at a record's field +0. INFERRED: the visual intent (hiding those
  * sprite groups) — the record identities and scene are not separately pinned here, and
@@ -37,11 +37,11 @@
  * GATE:     crafted-entry — real captured attract dispatches (reached via entry_128b, i.e.
  *           when the attract demo's own Mario dies), plus sentinel-page crafted entries
  *           that pin the exact 28-byte cleared set, plus a crafted return-address entry
- *           for the unreached loc_1615 caller arm.
+ *           for the unreached dispatchBoardClearedInterlude caller arm.
  *           Not exhaustive (the input is the buffer's prior contents × the caller's
  *           stack). Teeth: a dropped-tail-run twin and a short-third-run twin.
  * LIVE-OUT: memory-only — the 28 zeroed sprite-buffer bytes. Both callers overwrite A
- *           immediately after the call (entry_128b `ld a,0x03` @0x12a6, loc_1615
+ *           immediately after the call (entry_128b `ld a,0x03` @0x12a6, dispatchBoardClearedInterlude
  *           `ld a,(0x6227)` @0x1618) and read neither HL nor B, so A/HL/B (which the
  *           tail callee leaves as 0x20 / 0x6a20 / 0x00) are dead, as are flags. The
  *           routine reproduces them anyway via clearStridedBytes, but they are outside

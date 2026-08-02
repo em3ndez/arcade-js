@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2d8c (ROM 0x2D8C) — the string renderer's 0x7F terminator:
+ * Equivalence test for activateReleasedBarrel (ROM 0x2D8C) — the string renderer's 0x7F terminator:
  * reinitialise the object record it was building (fields +0..+0x14), copy two bytes out
  * of the renderer's destination pointer into it, then reload the ten-record sprite-object
  * block from a ROM template and add -4 to its Y column.
  *
- * loc_2d8c WRITES MEMORY, so it is gated on memory-equivalence, not a returned scalar,
+ * activateReleasedBarrel WRITES MEMORY, so it is gated on memory-equivalence, not a returned scalar,
  * and every case runs on FRESH clones. The contract is RAM (minus STACK_SCRATCH) + pc +
  * SP — the routine's live-out is memory-only (it is a render-loop terminator; the caller
  * reads none of the residual registers). The oracle DISSOLVES two internal call brackets
@@ -19,7 +19,7 @@
  *   1. EQUAL (real captured dispatches) — hook 0x2D8C in a real attract run and clone the
  *      machine at each true dispatch (the renderer fires them from 25m barrel play,
  *      IX at an object record 0x67xx, DE at a sprite slot 0x698x). Both BARREL_CLAIM_MODE bit0 arms
- *      occur naturally. Each captured entry: run the ORACLE on one clone and loc_2d8c on
+ *      occur naturally. Each captured entry: run the ORACLE on one clone and activateReleasedBarrel on
  *      another, confirm identical RAM + pc + SP.
  *
  *   2. EQUAL (crafted) — seed from a real capture, then poke BARREL_CLAIM_MODE to force BOTH mode
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d8c as oracle } from "../../translated/loc_2d8c.js";
-import { loc_2d8c } from "../loc_2d8c.js";
+import { activateReleasedBarrel } from "../activateReleasedBarrel.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
@@ -179,11 +179,11 @@ function brokenDropColumnNudge(m) {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_2d8c == oracle on every captured 0x2D8C entry", () => {
+test("EQUAL (real dispatches): activateReleasedBarrel == oracle on every captured 0x2D8C entry", () => {
   const caps = captureDispatches(64, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x2D8C dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2d8c); // FRESH clones inside — cap is untouched
+    const diffs = contractDiffs(cap, activateReleasedBarrel); // FRESH clones inside — cap is untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   const arms = new Set(caps.map((c) => c.mem.read8(BARREL_CLAIM_MODE) & 0x01));
@@ -221,7 +221,7 @@ test("EQUAL (crafted): both BARREL_CLAIM_MODE mode arms and the +3/+5 source cop
   ];
 
   for (const { name, e, set } of cases) {
-    const diffs = contractDiffs(e, loc_2d8c);
+    const diffs = contractDiffs(e, activateReleasedBarrel);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     // Confirm the crafted path really exercised the intended arm + copy, via the oracle.

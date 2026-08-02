@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for stepSpriteAnimationSequence (ROM 0x1839) — index 2 of the
- * 0x6388-driven sprite animation sequence (loc_1644's rst-0x28 table).
+ * 0x6388-driven sprite animation sequence (dispatchRivetBoardInterludeStep's rst-0x28 table).
  *
  * loc_1839 WRITES memory (the 0x6390 sub-counter always; on a stamp the ten-record
  * SPRITE_OBJ_BLOCK; on the counter's wrap also SUBSTATE_TIMER and the 0x6388 selector)

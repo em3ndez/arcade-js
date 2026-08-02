@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_271e (ROM 0x271E) — the thin wrapper that delegates to
- * the vertical-reposition machine loc_2745 and returns.
+ * the vertical-reposition machine dispatchElevatorRideByColumn and returns.
  *
  * loc_271e reads and writes NOTHING of its own: its whole memory-observable
- * behaviour is loc_2745's, decided by the same four bytes loc_2745 reads
+ * behaviour is dispatchElevatorRideByColumn's, decided by the same four bytes dispatchElevatorRideByColumn reads
  * (EDGE_REPOSITION_FLAG, MARIO_AIRBORNE, MARIO_X, MARIO_Y) and produced by the
- * same dispatched arms (loc_2766 reset / loc_276f down-mover / loc_2787 up-mover).
+ * same dispatched arms (loc_2766 reset / carryMarioUpWithLift down-mover / carryMarioDownWithLift up-mover).
  *
  * The oracle brackets the delegation as `push16(0x2721); call 0x2745; ret`, so on
  * EVERY path it WRITES the pushed return address 0x2721 into the stack scratch
  * (0x6bfc/0x6bfd, inside STACK_SCRATCH) and nets exactly one caller-return pop. The
- * idiomatic routine models no stack (a direct loc_2745 call + a plain JS return),
+ * idiomatic routine models no stack (a direct dispatchElevatorRideByColumn call + a plain JS return),
  * so runPair performs ONE m.ret() after the candidate to line pc + SP up, and the
  * RAM diff EXCLUDES the dead STACK_SCRATCH the oracle's push churns (mirroring
  * equivalence-0350) — every live work-RAM cell is still compared.
@@ -76,8 +76,8 @@ const SPRITE_Y_CELL = MARIO_SPRITE_RECORD + SPRITE_Y; // 0x694F — Mario's spri
 // at ROM 0x19A7, so the return address on the stack when 0x271E runs is 0x19AA.
 const RET_ADDR = 0x19aa;
 
-// MARIO_Y priors that drive BOTH sub-arms of each mover (same set loc_2745 needs):
-// loc_276f steps for Y >= 0x71 (else hands off); loc_2787 steps for Y < 0xE8 (else
+// MARIO_Y priors that drive BOTH sub-arms of each mover (same set dispatchElevatorRideByColumn needs):
+// carryMarioUpWithLift steps for Y >= 0x71 (else hands off); carryMarioDownWithLift steps for Y < 0xE8 (else
 // hands off). This set hits each mover's step AND handoff arm.
 const Y_SET = [0x00, 0x70, 0x71, 0x80, 0xe7, 0xe8, 0xff];
 
@@ -218,14 +218,14 @@ test("EQUAL (crafted): loc_271e == oracle across all 256 MARIO_X x Y_SET (active
 test("EQUAL (crafted): both guard early-outs match the oracle AND write no live RAM", () => {
   const base = attractBase();
 
-  // Flag clear -> loc_2745's first guard returns; nothing is repositioned.
+  // Flag clear -> dispatchElevatorRideByColumn's first guard returns; nothing is repositioned.
   for (const y of Y_SET) {
     for (const x of [0x00, 0x30, 0x50, 0x70, 0x90]) {
       const diff = runPair(base, x, y, { flag: 0x00 }, loc_271e);
       assert.equal(diff, null, `flag-clear guard diverged at MARIO_X=${hx(x)} MARIO_Y=${hx(y)}: ${diff && diff.msg}`);
     }
   }
-  // Airborne set -> loc_2745's second guard returns; the reposition waits for a grounded frame.
+  // Airborne set -> dispatchElevatorRideByColumn's second guard returns; the reposition waits for a grounded frame.
   for (const y of Y_SET) {
     for (const x of [0x00, 0x30, 0x50, 0x70, 0x90]) {
       const diff = runPair(base, x, y, { flag: 0x01, airborne: 0x01 }, loc_271e);
@@ -258,7 +258,7 @@ test("NON-VACUITY: each band writes exactly its arm's live cells THROUGH the wra
   assert.deepEqual(changedAddrs(reset, resetPost), sortAddrs([EDGE_REPOSITION_FLAG, MARIO_START_FALL]),
     "reset band live-write set must be exactly {EDGE_REPOSITION_FLAG, MARIO_START_FALL}");
 
-  // MOVER-STEP band (X=0x30 -> loc_276f, Y=0x80 step): decrement MARIO_Y and mirror it.
+  // MOVER-STEP band (X=0x30 -> carryMarioUpWithLift, Y=0x80 step): decrement MARIO_Y and mirror it.
   const step = makeEntry(base, 0x30, 0x80);
   const stepPost = step.clone(); oracle(stepPost);
   assert.equal(stepPost.mem.read8(MARIO_Y), 0x7f, "mover step must decrement MARIO_Y");
@@ -267,7 +267,7 @@ test("NON-VACUITY: each band writes exactly its arm's live cells THROUGH the wra
     "mover-step live-write set must be exactly {MARIO_Y, sprite-Y}");
   for (const [addr, val] of NOISE) assert.equal(stepPost.mem.read8(addr), val, `step: neighbour ${hx(addr)} disturbed`);
 
-  // MOVER-HANDOFF band (X=0x30 -> loc_276f, Y=0x00 handoff): clear ACTIVE + EDGE.
+  // MOVER-HANDOFF band (X=0x30 -> carryMarioUpWithLift, Y=0x00 handoff): clear ACTIVE + EDGE.
   const handoff = makeEntry(base, 0x30, 0x00);
   const handoffPost = handoff.clone(); oracle(handoffPost);
   assert.equal(handoffPost.mem.read8(MARIO_ACTIVE), 0, "mover handoff must clear MARIO_ACTIVE");
@@ -275,7 +275,7 @@ test("NON-VACUITY: each band writes exactly its arm's live cells THROUGH the wra
   assert.deepEqual(changedAddrs(handoff, handoffPost), sortAddrs([MARIO_ACTIVE, EDGE_REPOSITION_FLAG]),
     "mover-handoff live-write set must be exactly {MARIO_ACTIVE, EDGE_REPOSITION_FLAG}");
 
-  // UP-MOVER band (X=0x70 -> loc_2787, Y=0x80 step): increment MARIO_Y and mirror.
+  // UP-MOVER band (X=0x70 -> carryMarioDownWithLift, Y=0x80 step): increment MARIO_Y and mirror.
   const upStep = makeEntry(base, 0x70, 0x80);
   const upStepPost = upStep.clone(); oracle(upStepPost);
   assert.equal(upStepPost.mem.read8(MARIO_Y), 0x81, "up-mover step must increment MARIO_Y");
@@ -288,7 +288,7 @@ test("NON-VACUITY: each band writes exactly its arm's live cells THROUGH the wra
 test("BOUNDED EXCLUSION: the ONLY whole-dump oracle-vs-candidate diff lands in STACK_SCRATCH", () => {
   const base = attractBase();
 
-  // An active mover-step entry (X=0x30 -> loc_276f, Y=0x80): the oracle writes live
+  // An active mover-step entry (X=0x30 -> carryMarioUpWithLift, Y=0x80): the oracle writes live
   // work RAM (MARIO_Y + sprite-Y) AND the pushed 0x2721 into the stack scratch.
   const a = makeEntry(base, 0x30, 0x80, {}); // oracle
   const b = makeEntry(base, 0x30, 0x80, {}); // candidate
@@ -314,7 +314,7 @@ test("BOUNDED EXCLUSION: the ONLY whole-dump oracle-vs-candidate diff lands in S
 /** BUG (a): drops the delegation entirely — the reposition machine never runs, so
  *  every arm's write goes missing on the active path. */
 function brokenNoDelegate(_m) {
-  // (intentionally empty — no loc_2745 call)
+  // (intentionally empty — no dispatchElevatorRideByColumn call)
 }
 
 /** BUG (b): delegates to the wrong arm — always the reset (loc_2766), ignoring the
@@ -335,6 +335,6 @@ test("TEETH: the wrong-delegation twin is CAUGHT at the first mover band (MARIO_
   const base = attractBase();
   const { mismatch } = fullSweep(base, brokenWrongDelegate);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a wrong delegation — the gate is worthless");
-  assert.equal(mismatch.x, 44, "the wrong-delegate twin must first diverge at MARIO_X == 44 (reset stole from loc_276f)");
+  assert.equal(mismatch.x, 44, "the wrong-delegate twin must first diverge at MARIO_X == 44 (reset stole from carryMarioUpWithLift)");
   console.log(`  TEETH/wrong-delegate: caught — ${describeMismatch(mismatch)}`);
 });

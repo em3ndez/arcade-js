@@ -18,7 +18,7 @@
  * the Z80 stack dance the idiomatic layer replaces with a plain JS call at loc_29af's call site,
  * not part of loc_2a22's own body.
  *
- * 0x2A22 is a gameplay-only collision check bound to the 0x6600 array (sub_2797's land/deactivate
+ * 0x2A22 is a gameplay-only collision check bound to the 0x6600 array (advanceBoardObjectTravel's land/deactivate
  * array), and is NOT dispatched during the attract demo (measured: 0 over 2000 frames). So there
  * are no natural dispatches to replay — the crafted + fuzz sweep on a real attract base IS the gate.
  *

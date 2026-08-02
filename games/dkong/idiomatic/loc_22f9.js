@@ -16,7 +16,7 @@
  * [guess] the pair reads as an object's per-frame velocity — magnitude at +0x11, direction sign
  * at +0x10 — matching sub_22cb's role. But the two record fields are unnamed engine scratch and
  * the velocity reading is not corroborated to the naming bar, so the neutral loc_ name is kept
- * (same call the sibling object-record dispatcher loc_16e1 made).
+ * (same call the sibling object-record dispatcher endKongWalkAndAdvanceInterlude made).
  *
  * A LEAF: writes the two fields and returns; calls nothing and returns nothing a caller consumes
  * — the sole caller (loc_2146) overwrites the returned value with a fresh record read before

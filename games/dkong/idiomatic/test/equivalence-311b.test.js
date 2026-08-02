@@ -26,7 +26,7 @@
  *            {5,6,7}). Because the twins write no RAM either, the BOOLEAN return is what
  *            catches them — exactly this routine's live-out.
  *
- *   3. REACHABILITY — this arm is reached ONLY through sub_30fa's difficulty-selected table
+ *   3. REACHABILITY — this arm is reached ONLY through gateObjectUpdateByDifficulty's difficulty-selected table
  *      and never on the live NMI/substate dispatches, so a real attract run dispatches it
  *      ZERO times. Asserted here (0 over 2000 frames) to document WHY there is no captured-
  *      dispatch section: the exhaustive sweep above is the complete proof, and if this arm

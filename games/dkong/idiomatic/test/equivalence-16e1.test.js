@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_16e1 (ROM 0x16E1) — the second-stage dispatcher of the loc_16bb /
- * loc_16e1 group-walk pair. Given record #2's X (recordX) and the object's published signed
- * per-frame step (stepByte), loc_16e1 routes to one of three handlers:
+ * Equivalence test for endKongWalkAndAdvanceInterlude (ROM 0x16E1) — the second-stage dispatcher of the dispatchKongWalkFrame /
+ * endKongWalkAndAdvanceInterlude group-walk pair. Given record #2's X (recordX) and the object's published signed
+ * per-frame step (stepByte), endKongWalkAndAdvanceInterlude routes to one of three handlers:
  *
  *   recordX < 93              → loc_16ee  (reinitialize the object block, advance 0x6388)
  *   recordX ≥ 93, step ≥ 0    → loc_16d0  (schedule a reversal, then slide — bounce)
- *   recordX ≥ 93, step < 0    → loc_16d5  (plain slide, no reversal)
+ *   recordX ≥ 93, step < 0    → stepKongWalk  (plain slide, no reversal)
  *
- * loc_16e1 writes no memory of its own; its callees do. It is gated on memory-equivalence —
+ * endKongWalkAndAdvanceInterlude writes no memory of its own; its callees do. It is gated on memory-equivalence —
  * RAM (minus STACK_SCRATCH) + pc + SP — never the register file. HONEST SIGNATURE: recordX and
  * stepByte are the two live inputs, lifted to parameters; the gate extracts them from each
  * crafted entry's captured registers and passes them, so the candidate is replayed against the
@@ -24,7 +24,7 @@
  * transient push the oracle handlers make lands in the dead region the RAM diff excludes. The
  * loc_16ee arm is stronger still: BOTH sides run the very same oracle loc_16ee (it is not yet
  * idiomatic), so that arm is byte-identical unless the dispatcher mis-routes. The loc_16d0 /
- * loc_16d5 arms rely on those routines' own already-proven memory-equivalence and net-ret
+ * stepKongWalk arms rely on those routines' own already-proven memory-equivalence and net-ret
  * bookkeeping (see equivalence-16d0 / equivalence-16d5).
  *
  *   0. REACHABILITY — plain attract never dispatches 0x16e1 (0×/2500 frames, asserted): the
@@ -32,17 +32,17 @@
  *
  *   1. EQUAL (routing sweep) — sweep recordX over all 256 values on both step signs, at an even
  *      frame where all three handlers write DISTINCT memory (loc_16ee reinit vs loc_16d0's
- *      reload-0x80 vs loc_16d5's plain decrement), and confirm loc_16e1 == oracle on every
+ *      reload-0x80 vs stepKongWalk's plain decrement), and confirm endKongWalkAndAdvanceInterlude == oracle on every
  *      entry. Pins the exact 93 reinit threshold, the 90..92 boundary, and the sign split, and
  *      asserts each of the three arms actually fired its distinguishing memory effect.
  *
  *   2. EQUAL (FRAME sweep on the bounce arms) — recordX = 93 (a bounce), sweep FRAME over all
  *      256 on both signs, driving loc_2602's parity / 32nd-frame arms and addStrided through the
- *      dispatcher into loc_16d0 / loc_16d5.
+ *      dispatcher into loc_16d0 / stepKongWalk.
  *
  *   3. TEETH — two deliberately-broken twins, each MUST be caught by the RAM diff on entries
- *      loc_16e1 itself passes:
- *      (a) swapped-sign twin — sends step ≥ 0 to loc_16d5 and step < 0 to loc_16d0 (the two
+ *      endKongWalkAndAdvanceInterlude itself passes:
+ *      (a) swapped-sign twin — sends step ≥ 0 to stepKongWalk and step < 0 to loc_16d0 (the two
  *          bounce arms exchanged), which diverges wherever the reversal matters;
  *      (b) dropped-reinit twin — never takes the reinit branch, running the bounce logic even
  *          for recordX < 93, so the reinitialized block never appears.
@@ -55,9 +55,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_16e1 as oracle } from "../../translated/loc_16e1.js";
-import { loc_16e1 } from "../loc_16e1.js";
+import { endKongWalkAndAdvanceInterlude } from "../endKongWalkAndAdvanceInterlude.js";
 import { loc_16d0 } from "../loc_16d0.js";
-import { loc_16d5 } from "../loc_16d5.js";
+import { stepKongWalk } from "../stepKongWalk.js";
 import { loc_16ee } from "../../translated/loc_16ee.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -168,13 +168,13 @@ function craft(seed, { recordX, stepByte, frame, cd, dir, blockX, p, p4 }) {
 function brokenSwapSign(m, recordX, stepByte) {
   if (recordX < REINIT_MARK) { loc_16ee(m); return; }
   const stepIsNegative = (stepByte & 0x80) !== 0;
-  if (stepIsNegative) loc_16d0(m); else loc_16d5(m); // BUG: sign test inverted
+  if (stepIsNegative) loc_16d0(m); else stepKongWalk(m); // BUG: sign test inverted
 }
 
 /** Broken twin (b): never reinitializes — runs the bounce logic even below the reinit mark. */
 function brokenDropReinit(m, recordX, stepByte) {
   const stepIsNegative = (stepByte & 0x80) !== 0; // BUG: reinit branch dropped entirely
-  if (!stepIsNegative) loc_16d0(m); else loc_16d5(m);
+  if (!stepIsNegative) loc_16d0(m); else stepKongWalk(m);
 }
 
 // -- 0. REACHABILITY ----------------------------------------------------------
@@ -190,17 +190,17 @@ test("REACHABILITY: attract never dispatches 0x16e1 (crafted-entry gate)", () =>
 
 // -- 1. EQUAL (routing sweep) -------------------------------------------------
 
-test("EQUAL (routing sweep): loc_16e1 == oracle over all 256 recordX × both step signs", () => {
+test("EQUAL (routing sweep): endKongWalkAndAdvanceInterlude == oracle over all 256 recordX × both step signs", () => {
   const seed = bootedMachine(400).clone();
   // Even frame, countdown seeded 0x08: the three handlers leave 0x62A0 distinct — loc_16ee
   // reinitializes the block (writes 0x690C=0x66), loc_16d0 arms→underflow→reload 0x62A0=0x80,
-  // loc_16d5 plain-decrements 0x62A0 to 0x07 — so a mis-route cannot hide.
+  // stepKongWalk plain-decrements 0x62A0 to 0x07 — so a mis-route cannot hide.
   const base = { frame: 0x00, cd: 0x08, blockX: 0x40, p: 0x51, p4: 0xd1 };
   let count = 0, mismatch = null;
   for (const [stepByte, dir] of [[0x05, 0x05], [0x85, 0x85]]) {
     for (let recordX = 0; recordX < 256 && !mismatch; recordX++) {
       const e = craft(seed, { recordX, stepByte, dir, ...base });
-      const diffs = contractDiffs(e, loc_16e1);
+      const diffs = contractDiffs(e, endKongWalkAndAdvanceInterlude);
       count++;
       if (diffs.length) { mismatch = { recordX, stepByte, diffs }; break; }
     }
@@ -221,7 +221,7 @@ test("EQUAL (routing sweep): loc_16e1 == oracle over all 256 recordX × both ste
   assert.equal(bouncePos.mem.read8(CD_ADDR), 0x80, "recordX 93, positive step must take loc_16d0 (even-frame reload 0x62A0=0x80)");
   assert.notEqual(bouncePos.mem.read8(REINIT_TAG), 0x66, "recordX 93 must NOT reinitialize (bounce arm, not loc_16ee)");
   const bounceNeg = runOracle(craft(seed, { recordX: 93, stepByte: 0x85, dir: 0x85, ...base }));
-  assert.equal(bounceNeg.mem.read8(CD_ADDR), 0x07, "recordX 93, negative step must take loc_16d5 (plain decrement 0x62A0=0x07)");
+  assert.equal(bounceNeg.mem.read8(CD_ADDR), 0x07, "recordX 93, negative step must take stepKongWalk (plain decrement 0x62A0=0x07)");
   console.log(`  EQUAL/routing-sweep: ${count} (recordX × sign) entries identical; all three arms + the 92/93 threshold confirmed`);
 });
 
@@ -233,7 +233,7 @@ test("EQUAL (FRAME sweep): recordX=93 bounce arms match the oracle over all 256 
   for (const [stepByte, dir] of [[0x05, 0x05], [0x85, 0x85]]) {
     for (let frame = 0; frame < 256 && !mismatch; frame++) {
       const e = craft(seed, { recordX: 93, stepByte, frame, cd: 0x08, dir, blockX: 0x40, p: 0x51, p4: 0xd1 });
-      const diffs = contractDiffs(e, loc_16e1);
+      const diffs = contractDiffs(e, endKongWalkAndAdvanceInterlude);
       count++;
       if (diffs.length) { mismatch = { frame, stepByte, diffs }; break; }
     }
@@ -252,19 +252,19 @@ test("EQUAL (FRAME sweep): recordX=93 bounce arms match the oracle over all 256 
 
 // -- 3. TEETH -----------------------------------------------------------------
 
-test("TEETH: swapped-sign and dropped-reinit twins are CAUGHT (loc_16e1 passes the same entries)", () => {
+test("TEETH: swapped-sign and dropped-reinit twins are CAUGHT (endKongWalkAndAdvanceInterlude passes the same entries)", () => {
   const seed = bootedMachine(400).clone();
   const base = { frame: 0x00, cd: 0x08, blockX: 0x40, p: 0x51, p4: 0xd1 };
 
   // Swapped-sign twin: on the bounce arms (recordX ≥ 93) it picks the wrong handler. loc_16d0
-  // and loc_16d5 leave 0x62A0 distinct on an even frame (0x80 vs 0x07), so every bounce entry diverges.
+  // and stepKongWalk leave 0x62A0 distinct on an even frame (0x80 vs 0x07), so every bounce entry diverges.
   let swapCases = 0, swapCaught = 0;
   for (const stepByte of [0x05, 0x85]) {
     for (const recordX of [93, 100, 0x80, 0xff]) {
       const e = craft(seed, { recordX, stepByte, dir: stepByte, ...base });
       swapCases++;
       if (contractDiffs(e, brokenSwapSign).length > 0) swapCaught++;
-      assert.equal(contractDiffs(e, loc_16e1).length, 0, `loc_16e1 must pass recordX=${hx(recordX)} stepByte=${hx(stepByte)}`);
+      assert.equal(contractDiffs(e, endKongWalkAndAdvanceInterlude).length, 0, `endKongWalkAndAdvanceInterlude must pass recordX=${hx(recordX)} stepByte=${hx(stepByte)}`);
     }
   }
   assert.equal(swapCaught, swapCases, `swapped-sign twin escaped ${swapCases - swapCaught}/${swapCases} bounce entries`);
@@ -277,7 +277,7 @@ test("TEETH: swapped-sign and dropped-reinit twins are CAUGHT (loc_16e1 passes t
       const e = craft(seed, { recordX, stepByte, dir: stepByte, ...base });
       dropCases++;
       if (contractDiffs(e, brokenDropReinit).length > 0) dropCaught++;
-      assert.equal(contractDiffs(e, loc_16e1).length, 0, `loc_16e1 must pass recordX=${hx(recordX)} stepByte=${hx(stepByte)}`);
+      assert.equal(contractDiffs(e, endKongWalkAndAdvanceInterlude).length, 0, `endKongWalkAndAdvanceInterlude must pass recordX=${hx(recordX)} stepByte=${hx(stepByte)}`);
     }
   }
   assert.equal(dropCaught, dropCases, `dropped-reinit twin escaped ${dropCases - dropCaught}/${dropCases} reinit entries`);

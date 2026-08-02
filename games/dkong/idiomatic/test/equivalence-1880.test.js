@@ -2,7 +2,7 @@
 /**
  * Equivalence test for loc_1880 (ROM 0x1880) — step 4 of the even-board board-advance /
  * "how high" interlude render sequence (GAME_SUBSTATE 0x600A == 0x16, dispatched through
- * the 0x6388 step selector by loc_1644's table at 0x1648).
+ * the 0x6388 step selector by dispatchRivetBoardInterludeStep's table at 0x1648).
  *
  * loc_1880 WRITES memory and is NOT a leaf — every frame it nudges the ten-record
  * sprite-object block down one pixel (rst 0x38, addToSpriteObjectColumn), then FORKS on

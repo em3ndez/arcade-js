@@ -23,7 +23,7 @@
  * Memory-equivalent to the frozen oracle — equivalence-0010.test.js.
  * GATE:     exhaustive — pure predicate over all 256 MARIO_ACTIVE byte values vs the
  *           oracle's skip decision, plus real captured dispatches. Reached only via
- *           m.call (entry_2c03/2ddb/2e04/2ed4, sub_03a2); both branches occur in play.
+ *           m.call (scheduleBarrelRelease/2ddb/2e04/2ed4, sub_03a2); both branches occur in play.
  * LIVE-OUT: memory-only (writes none) — the control-flow boolean is the whole output;
  *           the A/F/SP/PC the oracle leaves are dead ABI, every caller reloads A the
  *           instant the guard returns (e.g. entry_2ddb `ld a,(0x6380)`).

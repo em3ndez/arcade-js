@@ -8,7 +8,7 @@
  *   - a rivet board with RIVETS_LEFT == 0 (loc_1e80), or
  *   - a girder board where Mario has climbed to the rescue row near Pauline (loc_1e6d).
  * Both mean the board is won, so this writes GAME_SUBSTATE := 0x16 — the
- * "board-cleared / advance" sub-state that loc_1615's dispatcher then runs to play the
+ * "board-cleared / advance" sub-state that dispatchBoardClearedInterlude's dispatcher then runs to play the
  * board-advance interlude and step to the next board.
  *
  * It then UNWINDS: the oracle discards its own return address and returns one extra level
@@ -34,13 +34,13 @@
  *           unwind; the oracle's residual A (= 0x16) and the discarded return in HL are
  *           dead ABI.
  * NAMES:    GAME_SUBSTATE (0x600A) from ram.js. 0x16 is the board-cleared/advance sub-state
- *           code that loc_1615 / advanceToNextBoard run.
+ *           code that dispatchBoardClearedInterlude / advanceToNextBoard run.
  */
 
 import { GAME_SUBSTATE } from "./ram.js";
 
 export function enterBoardAdvanceAndUnwind(m) {
-  // The board is won — enter the board-cleared/advance sub-state (0x16), which loc_1615
+  // The board is won — enter the board-cleared/advance sub-state (0x16), which dispatchBoardClearedInterlude
   // runs to play the interlude and step to the next board.
   m.mem.write8(GAME_SUBSTATE, 0x16);
 

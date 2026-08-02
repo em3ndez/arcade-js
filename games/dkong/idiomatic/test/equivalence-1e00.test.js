@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e00 (ROM 0x1E00) — load this effect-sprite arm's constant
- * (B=0x7D code, DE=0x0003 task message) and delegate to the shared loc_1e15 tail.
+ * Equivalence test for stageAward300Popup (ROM 0x1E00) — load this effect-sprite arm's constant
+ * (B=0x7D code, DE=0x0003 task message) and delegate to the shared stageAwardPopupAtHitObject tail.
  *
- * loc_1e00's own body is a straight-line "set two constants, delegate" — no branches of
- * its own. But it WRITES memory (through loc_1e15 → enqueueTask + loc_1e36: the task ring,
+ * stageAward300Popup's own body is a straight-line "set two constants, delegate" — no branches of
+ * its own. But it WRITES memory (through stageAwardPopupAtHitObject → enqueueTask + stampScorePopupSprite: the task ring,
  * the block[0] clear at *(0x6343), the sprite record 0x6A30..0x6A33, and the gated sound
  * 0x6085), so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per
  * case — never a reused clone. The two things this setter alone can get wrong are the two
- * CONSTANTS it loads; the composition arms below inherit the loc_1e15/1e36/enqueueTask
+ * CONSTANTS it loads; the composition arms below inherit the stageAwardPopupAtHitObject/1e36/enqueueTask
  * branches. Attract dispatches this arm only on 25m (BOARD 1) with a free ring slot, so
  * the closed arms are reached with crafted entries:
  *
- *   1. REALISM (real captured dispatch) — loc_1df5 lands on loc_1e00 (RANDOM bits 0/1
- *      clear) while the 25m demo plays. Run the ORACLE on one clone and idiomatic loc_1e00
+ *   1. REALISM (real captured dispatch) — pickRandomAwardTier lands on stageAward300Popup (RANDOM bits 0/1
+ *      clear) while the 25m demo plays. Run the ORACLE on one clone and idiomatic stageAward300Popup
  *      on another and confirm every game-visible byte matches; the residual is confined to
- *      STACK_SCRATCH (the oracle models `jp 0x1e15 … call 0x309f`, pushing to SP-4; loc_1e00
+ *      STACK_SCRATCH (the oracle models `jp 0x1e15 … call 0x309f`, pushing to SP-4; stageAward300Popup
  *      uses the JS call stack and models neither SP nor pc). Also asserts the two constants
  *      actually landed: record[1] (0x6A31) == 0x7D and the posted task argument == 0x03.
  *
- *   2. BOARD (exhaustive crafted) — loc_1e36's sound gate is the chain's only
+ *   2. BOARD (exhaustive crafted) — stampScorePopupSprite's sound gate is the chain's only
  *      board-dependent logic and attract exercises only BOARD 1, so on a real entry poke
  *      BOARD to EVERY byte 0..255 identically on both sides and compare game-visible RAM.
  *      Pins the 50m/100m CLOSED arms (no 0x6085 write) attract never reaches.
@@ -40,8 +40,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e00 as oracle } from "../../translated/loc_1e00.js";
-import { loc_1e00 as idiomatic } from "../loc_1e00.js";
-import { loc_1e15 } from "../loc_1e15.js"; // idiomatic callee, for the teeth twins
+import { stageAward300Popup as idiomatic } from "../stageAward300Popup.js";
+import { stageAwardPopupAtHitObject } from "../stageAwardPopupAtHitObject.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -54,8 +54,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1e00;
 const BOARD = 0x6227;
-const REC = 0x6a30;       // sprite-record slot (record[1] = the B constant, via loc_1e36)
-const SND = 0x6085;       // sound latch (gate-open, written by loc_1e36)
+const REC = 0x6a30;       // sprite-record slot (record[1] = the B constant, via stampScorePopupSprite)
+const SND = 0x6085;       // sound latch (gate-open, written by stampScorePopupSprite)
 const TASK_TAIL = 0x60b0; // low byte of the task ring's next write slot
 const PAGE = 0x6000;      // fixed high byte of every task-ring slot address
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -82,7 +82,7 @@ function ramDiffMinusStack(a, b) {
 
 /**
  * Replay one entry state through the oracle and a candidate on independent FRESH clones
- * (loc_1e00 writes RAM), and return the game-visible diff + both machines.
+ * (stageAward300Popup writes RAM), and return the game-visible diff + both machines.
  */
 function replay(entry, candidate) {
   const a = entry.clone(); // oracle
@@ -93,7 +93,7 @@ function replay(entry, candidate) {
 }
 
 /**
- * Run attract and clone the machine at each real 0x1e00 dispatch (loc_1df5 reaches this
+ * Run attract and clone the machine at each real 0x1e00 dispatch (pickRandomAwardTier reaches this
  * arm when RANDOM's bits 0/1 are clear while the 25m demo plays). The wrapper delegates to
  * the oracle so the host run proceeds undisturbed to a clean stop.
  */
@@ -137,13 +137,13 @@ test("REALISM: real captured 25m 0x1e00 dispatch — game-visible RAM identical,
         `on entry B=${hx(entry.regs.b)} DE=${hx(entry.regs.de)}`,
     );
 
-    // The two constants this setter loads actually reached memory (via the loc_1e15 tail).
+    // The two constants this setter loads actually reached memory (via the stageAwardPopupAtHitObject tail).
     assert.equal(a.mem.read8(REC + 1), 0x7d, "record[1] (0x6A31) must be the loaded sprite code 0x7D");
     assert.equal(a.mem.read8(argSlot), 0x03, `posted task argument at ${hx(argSlot)} must be E=0x03`);
 
     // The oracle's chain pushes down to SP-4 (its call-0x309f return, then sub_309f's push
     // hl); that target must sit inside STACK_SCRATCH, so excluding the region can't mask a
-    // real diff. loc_1e00 itself must NOT model the stack: SP and pc unchanged from entry.
+    // real diff. stageAward300Popup itself must NOT model the stack: SP and pc unchanged from entry.
     assert.ok(
       (entry.regs.sp - 4) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
       `oracle's deepest push must sit inside STACK_SCRATCH (SP=${hx(entry.regs.sp)})`,
@@ -151,15 +151,15 @@ test("REALISM: real captured 25m 0x1e00 dispatch — game-visible RAM identical,
     const b = entry.clone();
     const sp0 = b.regs.sp, pc0 = b.pc;
     idiomatic(b);
-    assert.equal(b.regs.sp, sp0, "loc_1e00 must leave SP unchanged (no stack modelling)");
-    assert.equal(b.pc, pc0, "loc_1e00 must leave pc unchanged (no tail-jump/ret modelling)");
+    assert.equal(b.regs.sp, sp0, "stageAward300Popup must leave SP unchanged (no stack modelling)");
+    assert.equal(b.pc, pc0, "stageAward300Popup must leave pc unchanged (no tail-jump/ret modelling)");
   }
   console.log(`  REALISM: ${caps.length} real 25m dispatch(es) — game-visible RAM identical; B=0x7D, E=0x03 landed`);
 });
 
 // -- 2. BOARD (exhaustive crafted) --------------------------------------------
 
-test("BOARD (exhaustive): loc_1e00 == oracle over all 256 BOARD values (open + closed sound gate)", () => {
+test("BOARD (exhaustive): stageAward300Popup == oracle over all 256 BOARD values (open + closed sound gate)", () => {
   const base = craftedBase();
   let count = 0, opened = 0, closed = 0, mismatch = null;
   for (let v = 0; v < 256 && !mismatch; v++) {
@@ -169,7 +169,7 @@ test("BOARD (exhaustive): loc_1e00 == oracle over all 256 BOARD values (open + c
     idiomatic(b);
     const { bad } = ramDiffMinusStack(a, b);
     count++;
-    if (a.mem.read8(SND) === 3) opened++; else closed++; // loc_1e36's gate fired or not
+    if (a.mem.read8(SND) === 3) opened++; else closed++; // stampScorePopupSprite's gate fired or not
     if (bad) mismatch = { v, bad };
   }
   assert.equal(
@@ -208,7 +208,7 @@ function brokenWrongCode(m) {
   const { regs } = m;
   regs.b = 0x7e; // BUG: should be 0x7D
   regs.de = 0x0003;
-  loc_1e15(m);
+  stageAwardPopupAtHitObject(m);
 }
 
 /** Twin (b): loads the WRONG task-message constant (DE=0x0005). The posted argument diverges. */
@@ -216,7 +216,7 @@ function brokenWrongMessage(m) {
   const { regs } = m;
   regs.b = 0x7d;
   regs.de = 0x0005; // BUG: E should be 0x03
-  loc_1e15(m);
+  stageAwardPopupAtHitObject(m);
 }
 
 test("TEETH (wrong-code): the B=0x7E twin is CAUGHT on a real dispatch and names 0x6A31", () => {

@@ -415,7 +415,7 @@ captured run crossed the threshold). `[code]`
 
 **Awarding points.** `awardScorePopup` (ROM 0x1E28) is the "you scored" effect: it posts
 the add-to-score task, stages a floating number glyph as a sprite over Mario, and (on 25m
-and 75m only, via the board gate) pings the award sound. It is fed by `loc_3e70`, which
+and 75m only, via the board gate) pings the award sound. It is fed by `pickAwardTierByObjectCount`, which
 picks one of three tiers (award index 1/3/5 ↔ glyph 0x7B/0x7D/0x7F) — the multi-obstacle
 100/300/500 jump tiers from `gameplay.md`. `[code]` The concrete points-per-index table
 lives in ROM at `0x3529` and is **not yet decompiled**, so the exact tier→points mapping
@@ -431,7 +431,7 @@ model; the exact 300/500/800-by-level scaling is in ROM data, so `[guess]` on th
 **The effect-sprite subsystem.** A small state machine plays a transient "effect" — a popup
 sprite plus a sound — when an object is hit or a prize is collected. `EFFECT_STATE (0x6340)`
 is a 4-way router (`dispatchEffectState`): a pickup/hit raises it to 1, `EFFECT_SELECT (0x6342)` picks
-which setter runs from its low bits (`loc_1dc9`), `EFFECT_PARAM_PTR (0x6343)` points at the
+which setter runs from its low bits (`armScorePopupAndSelectAward`), `EFFECT_PARAM_PTR (0x6343)` points at the
 hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on screen (armed
 `0x40`) before blanking `POPUP_SPRITE (0x6A30)` and resetting the router. A nested follow-on
 countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `dispatchEffectSequenceStep`) with inner/outer
@@ -461,15 +461,15 @@ off 25m, queues the pickup tune). The item's identity is inferred, so `[code]`. 
   it *arms* when Mario stands on a screen-edge column (`MARIO_X == 0x4B` or `0xB3`) and,
   when he steps off, clears the correct `RIVET_PRESENT[slot] (0x6292+n)`, decrements
   `RIVETS_LEFT (0x6290)`, and blanks the rivet's tiles. Last rivet → board-complete. `[code]`
-- **Advance.** The `0x16` sub-state runs a render sequence (`loc_1644` and its timed
-  steps `loc_1654…loc_18c6`, plus `buildHowHighScreen`) and ends in **`advanceToNextBoard`**
+- **Advance.** The `0x16` sub-state runs a render sequence (`dispatchRivetBoardInterludeStep` and its timed
+  steps `beginKongRecaptureInterlude…loc_18c6`, plus `buildHowHighScreen`) and ends in **`advanceToNextBoard`**
   (ROM 0x178E): step `BOARD_SEQ_PTR` forward, read the next board, and on the `0x7F`
   terminator reload to `0x3A73` — **the wrap that makes the game loop**. `LEVEL` is
   incremented at the terminator, `HOW_HIGH_INDEX (0x622E)` is reset, and the "HOW HIGH CAN
   YOU GET?" interlude plays for the new board. **Validated end-to-end in play including
   100m→wrap→level++→25m.** `[seen]` `[code]`
 - **The advance machine's step index.** Everything under sub-state `0x16` is one small state
-  machine keyed on **`BOARD_ADVANCE_STEP (0x6388)`**: `loc_1615` / `loc_1641` / `loc_1644`
+  machine keyed on **`BOARD_ADVANCE_STEP (0x6388)`**: `dispatchBoardClearedInterlude` / `runRivetBoardInterludeFrame` / `dispatchRivetBoardInterludeStep`
   dispatch `rst 0x28` through board-parity tables on it, each step's handler renders one stage
   then `inc`s it to advance (step 0 is the how-high screen, `loc_17b6`); `advanceToNextBoard`
   resets it to 0 when the interlude ends. The how-high interlude is thus a *step* of this one
@@ -532,7 +532,7 @@ flag"; it is the *next* board's intro. Board progression is real regardless. `[s
   Pass 13 then grounded what that cluster actually is: **Mario's death animation** (see §"Death" below).
   The cells are now `DEATH_ANIM_PHASE` / `DEATH_ANIM_TICKS_LEFT` and the routines are named.
   ★ Everything else in this section — the colour-cycle blink itself, `blinkSpritePairOn/Off/ByX`, the
-  hammer blink pair, `redrawPlayerUpIndicator`, `loc_1708`'s `BLINK_SPRITE_CODE (0x6905)` — is a
+  hammer blink pair, `redrawPlayerUpIndicator`, `spawnInterludeHeart`'s `BLINK_SPRITE_CODE (0x6905)` — is a
   genuinely different subsystem and is **not** affected by that correction.
 
 ---
@@ -763,19 +763,19 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 | `signStepHalfRate` | collapse a direction byte to a ±1 step, every other frame |
 | `loc_26a6` | step a mirrored pair of animation counters, opposite ways |
 | `loc_2602` | per-frame driver for one of three timed sprite objects |
-| `loc_16bb` | clear object #1's reversal flag, route the moving group |
+| `dispatchKongWalkFrame` | clear object #1's reversal flag, route the moving group |
 | `loc_16d0` | arm object #1's countdown, slide the group |
-| `loc_16d5` | drive object #1, slide its 10-sprite group along X |
-| `loc_16e1` | on reaching its rail, reinitialize the moving group |
-| `loc_1708` | board/intro spawn init: silence sound, seed a sprite |
+| `stepKongWalk` | drive object #1, slide its 10-sprite group along X |
+| `endKongWalkAndAdvanceInterlude` | on reaching its rail, reinitialize the moving group |
+| `spawnInterludeHeart` | board/intro spawn init: silence sound, seed a sprite |
 | `dispatchEffectState` | router for the effect-sprite state machine (0x6340) |
-| `loc_1dc9` | state-1 handler: arm the state-2 countdown, advance |
-| `loc_1df5` | pick one of three effect-sprite setters from RANDOM bits |
-| `loc_1e00` | load an effect-sprite's (code, task) params and hand off |
-| `loc_1e08` | stage an effect's constants, then run the setter |
-| `loc_1e10` | effect-sprite setter: load (B, DE), hand off to the feeder |
-| `loc_1e15` | post the queued task, fetch the effect sprite's X/Y |
-| `loc_1e36` | stamp a 4-byte sprite record, cue a board-gated sound |
+| `armScorePopupAndSelectAward` | state-1 handler: arm the state-2 countdown, advance |
+| `pickRandomAwardTier` | pick one of three effect-sprite setters from RANDOM bits |
+| `stageAward300Popup` | load an effect-sprite's (code, task) params and hand off |
+| `stageAward500Popup` | stage an effect's constants, then run the setter |
+| `stageAward800Popup` | effect-sprite setter: load (B, DE), hand off to the feeder |
+| `stageAwardPopupAtHitObject` | post the queued task, fetch the effect sprite's X/Y |
+| `stampScorePopupSprite` | stamp a 4-byte sprite record, cue a board-gated sound |
 | `effectStateIdle` | the idle arm of the 0x6340 state router |
 
 ### Board-advance & "how high" interlude
@@ -785,13 +785,13 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 | `advanceToNextBoard` | step the board-order pointer; enter "HOW HIGH"; the loop wrap |
 | `advanceBoardStepWhenSpritesCleared` | one arm of the board-advance sequence |
 | `buildHowHighScreen` | build the "HOW HIGH CAN YOU GET?" interlude screen |
-| `loc_1644` | vector the board-advance render sequence to its step |
-| `loc_1654` | step 0: run the intro/board spawn |
-| `loc_1662` | bump an anim counter; on 25m only, extra work |
-| `loc_1670` | one timer-gated step of the board-advance sequence |
-| `loc_168a` | one timer-gated step: re-init the render |
-| `loc_16a3` | sequence step 0: spawn init, stamp the ten-record figure |
-| `loc_1732` | one animation-gated step of the board-advance sequence |
+| `dispatchRivetBoardInterludeStep` | vector the board-advance render sequence to its step |
+| `beginKongRecaptureInterlude` | step 0: run the intro/board spawn |
+| `advanceInterludeStepAndLiftKongFigure` | bump an anim counter; on 25m only, extra work |
+| `stageNextKongPoseWhenHoldExpires` | one timer-gated step of the board-advance sequence |
+| `stageKongClimbPose` | one timer-gated step: re-init the render |
+| `begin50mKongRecaptureInterlude` | sequence step 0: spawn init, stamp the ten-record figure |
+| `climbKongFigureAndBreakHeart` | one animation-gated step of the board-advance sequence |
 | `loc_17b6` | idx 0 of the 0x6388 render sequence: draw the how-high screen |
 | `loc_186f` | one timer-gated step of the board-advance sequence |
 | `loc_1880` | one step of the how-high interlude render sequence |
@@ -816,7 +816,7 @@ yet English-named. This is a functionally-grouped *excerpt*; the **complete** re
 | Routine | What it does |
 |---------|--------------|
 | `awardScorePopup` | award points, stage the floating score glyph over Mario |
-| `loc_3e70` | pick one of three effect/score tiers from the low bits of A |
+| `pickAwardTierByObjectCount` | pick one of three effect/score tiers from the low bits of A |
 | `runBonusItemValueDisplay` | drive the on-board bonus item (prize): position, sprite, value |
 | `positionBonusItemSprite` | place the bonus-item sprite at its current cell |
 | `dispatchBonusExpiredStep` | run the bonus-expired (timeout death) state machine |

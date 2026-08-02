@@ -24,7 +24,7 @@
  * naming pass promoted it: the set-at-pickup -> consume-at-landing lifecycle is visible end
  * to end, this very routine cited as the clearer), but the item IDENTITY stays inferred and
  * tune 0x0D is unconfirmed, so a meaningful English ROUTINE name would still over-assert. Its
- * subsystem siblings (loc_1e00/1e08/1e10/3e70) stayed neutral for the same reason; promoting
+ * subsystem siblings (stageAward300Popup/1e08/1e10/3e70) stayed neutral for the same reason; promoting
  * this one past them would overclaim. Promote once the item identity and tune 0x0D are pinned.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1d95.test.js.

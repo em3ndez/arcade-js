@@ -117,7 +117,7 @@ function contractDiffs(entry, fn) {
 /**
  * Hook 0x1b55 in a real attract run and clone the machine at up to K real dispatches.
  * The wrapper snapshots the entry state, then runs the oracle so the host game proceeds
- * undisturbed. entry_1ac3 reaches 0x1b55 by `m.call(0x1b55)` (a tail-jump), which resolves
+ * undisturbed. dispatchMarioMovement reaches 0x1b55 by `m.call(0x1b55)` (a tail-jump), which resolves
  * through the routine registry the override overlays, so every dispatch is captured here.
  */
 function captureDispatches(K, maxFrames) {

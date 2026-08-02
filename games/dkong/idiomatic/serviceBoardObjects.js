@@ -7,7 +7,7 @@
  * service pass (tail-called from ROM 0x26FA) this does three things in order:
  *
  *   1. ADVANCE — step every active object one pixel toward its limit, landing or
- *      deactivating it on arrival (loc_2797).
+ *      deactivating it on arrival (advanceBoardObjectTravel).
  *   2. SPAWN — on the spawn cadence, claim a free slot and seed a new object;
  *      otherwise just tick the cadence timer (spawnBoardObject).
  *   3. PUBLISH — walk all six records and copy each object's X and Y into its own
@@ -23,9 +23,9 @@
  * board-object service loop. The name describes the STRUCTURAL service pass (advance +
  * spawn + mirror positions to sprites) — oracle-pinned over the rated OBJ_ARRAY_66 /
  * OBJ_X / OBJ_Y / SPRITE_BUFFER cells, using the blessed "board object" vocabulary
- * already carried by spawnBoardObject and the loc_2797 header — and makes no claim about
+ * already carried by spawnBoardObject and the advanceBoardObjectTravel header — and makes no claim about
  * what the objects ARE in gameplay (that identity stays ungrounded, so the animate callee
- * stays loc_2797 and the spawn seed bytes stay ungrounded in spawnBoardObject).
+ * stays advanceBoardObjectTravel and the spawn seed bytes stay ungrounded in spawnBoardObject).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2722.test.js.
  * GATE:     crafted. 0x2722 is board-gated and never dispatches in 25m attract
@@ -43,13 +43,13 @@
  *           with a terminal pop; the idiomatic form direct-calls both, so the dead
  *           STACK_SCRATCH the pushes leave is excluded from the RAM diff.
  * NAMES:    OBJ_ARRAY_66 (0x6600), OBJ_X (+3), OBJ_Y (+5), SPRITE_BUFFER (0x6900) from
- *           ram.js; loc_2797 (ROM 0x2797) and spawnBoardObject (ROM 0x27DA) direct-called.
+ *           ram.js; advanceBoardObjectTravel (ROM 0x2797) and spawnBoardObject (ROM 0x27DA) direct-called.
  *           The six-record publish destination (SPRITE_BUFFER + 88) has no ram.js name of
  *           its own.
  */
 
 import { OBJ_ARRAY_66, OBJ_X, OBJ_Y, SPRITE_BUFFER } from "./ram.js";
-import { loc_2797 } from "./loc_2797.js";               // ROM 0x2797 — advance the objects
+import { advanceBoardObjectTravel } from "./advanceBoardObjectTravel.js";               // ROM 0x2797 — advance the objects
 import { spawnBoardObject } from "./spawnBoardObject.js"; // ROM 0x27DA — spawn on cadence
 
 const RECORD_COUNT = 6;      // six board objects
@@ -68,7 +68,7 @@ export function serviceBoardObjects(m) {
   // Advance the existing objects, then try to spawn a new one. (The oracle hands the
   // record stride from the animate walk to the spawn walk in a register; the idiomatic
   // spawn carries its own stride, so that hand-off is dead here.)
-  loc_2797(m);
+  advanceBoardObjectTravel(m);
   spawnBoardObject(m);
 
   // Publish: mirror each object's current X and Y into its sprite record.

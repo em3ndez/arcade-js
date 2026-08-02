@@ -4,13 +4,13 @@
  * frame-gated string/sprite renderer.  ROM 0x2CF6.
  *
  * The setup head of the 0x2C-cluster renderer chain. It is entered with the object-record
- * base in the index register (the caller's RENDER_OBJ_PTR, 0x62AA — the same record loc_2d15
+ * base in the index register (the caller's RENDER_OBJ_PTR, 0x62AA — the same record advanceBarrelRelease
  * reloads and writes) and stamps three of that record's fields with one of two presets,
  * chosen by bit 7 of BARREL_CLAIM_MODE:
  *   - bit 7 CLEAR -> the default triple: sprite-code field (+0x07) = 0x15, sprite-attr
  *     field (+0x08) = 0x0B, mode field (+0x15) = 0x00.
  *   - bit 7 SET   -> the alternate triple: (+0x07) = 0x19, (+0x08) = 0x0C, (+0x15) = 0x01.
- * Then it falls straight through into loc_2d15, the frame-gated renderer tick.
+ * Then it falls straight through into advanceBarrelRelease, the frame-gated renderer tick.
  *
  * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
  * scratchpad/pass12-grounding.md), 46 dispatches captured with a fetch tap at 0x2CF6:
@@ -51,7 +51,7 @@
  * The record base comes from the caller (RENDER_OBJ_PTR). Its sprite-code and sprite-attr fields
  * ARE named in ram.js (OBJ_SPRITE_CODE +0x07, OBJ_SPRITE_ATTR +0x08) and are imported from there;
  * only the mode field (+0x15) has no ram.js name and stays a raw offset — the same convention as the sibling closer
- * loc_2d8c, which stamps the same record.
+ * activateReleasedBarrel, which stamps the same record.
  *
  * NAME (promoted from loc_2cf6, DK understanding pass 13 — independent proposer ≠ confirmer,
  * confidence HIGH). Corroboration from OUTSIDE this routine:
@@ -73,7 +73,7 @@
  * NAMED Donkey Kong object either kind is. "The rolling kind" and "the dropping kind (X pinned at
  * 59)" are behavioural descriptions from the trace; no lore term appears in the name or anywhere
  * below. The name also does not claim this routine RELEASES a barrel (the caller does the slot
- * claim) or renders it (that is the loc_2d15 tail it falls into) — only that it stamps the
+ * claim) or renders it (that is the advanceBarrelRelease tail it falls into) — only that it stamps the
  * appearance of one already released, and that which appearance comes from BARREL_CLAIM_MODE bit 7.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2cf6.test.js.
@@ -83,17 +83,17 @@
  *           attract frames, 57 / 8 over 14546, 24 / 5 in a credited game) plus crafted entries,
  *           poked identically on both sides, that force each arm and drive the downstream renderer
  *           through its clean gate-return path and its deeper table-load path. The RAM diff
- *           excludes the dead STACK_SCRATCH the downstream loc_2d15 chain's dissolved
+ *           excludes the dead STACK_SCRATCH the downstream advanceBarrelRelease chain's dissolved
  *           `call 0x004e` bracket churns; pc + SP are compared after one modelled terminal
  *           return. Teeth: a twin that reads the wrong parity bit and a twin that drops the
- *           fall-through into loc_2d15.
- * LIVE-OUT: memory-only. stampReleasedBarrelKind falls into loc_2d15 whose chain nets exactly one terminal
+ *           fall-through into advanceBarrelRelease.
+ * LIVE-OUT: memory-only. stampReleasedBarrelKind falls into advanceBarrelRelease whose chain nets exactly one terminal
  *           `ret`; the caller reads no register (the oracle's `rlca` residue in the
  *           accumulator is dead), so the single return is modelled in the gate, not here.
  * NAMES:    BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte the 0x2C41
  *           cluster writes. It is not a bare flag: its low bits carry the claim's mode value
  *           (observed 1, and 0x81 = mode 1 with bit 7 set) while its BIT 7 selects which of the
- *           two barrel kinds this routine stamps. loc_2d15 / loc_2d8c read bit 0 of the same
+ *           two barrel kinds this routine stamps. advanceBarrelRelease / activateReleasedBarrel read bit 0 of the same
  *           byte. The object-record base comes from the caller (RENDER_OBJ_PTR); its sprite-code and
  *           sprite-attr fields are the ram.js-named OBJ_SPRITE_CODE (+0x07) / OBJ_SPRITE_ATTR
  *           (+0x08), imported from ram.js. Only the mode field (+0x15) is unnamed and stays hex.
@@ -101,7 +101,7 @@
  */
 
 import { BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./ram.js"; // 0x6382 bit 7 selects the barrel kind; +7/+8 are the record's sprite fields
-import { loc_2d15 } from "./loc_2d15.js"; // ROM 0x2D15 — the frame-gated string/sprite renderer
+import { advanceBarrelRelease } from "./advanceBarrelRelease.js"; // ROM 0x2D15 — the frame-gated string/sprite renderer
 
 export function stampReleasedBarrelKind(m) {
   const { regs, mem } = m;
@@ -123,5 +123,5 @@ export function stampReleasedBarrelKind(m) {
   }
 
   // Fall straight into the frame-gated renderer tick.
-  return loc_2d15(m);
+  return advanceBarrelRelease(m);
 }

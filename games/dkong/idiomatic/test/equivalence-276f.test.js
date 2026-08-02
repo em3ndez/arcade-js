@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_276f (ROM 0x276F) — the [0x2C,0x43) X-band arm of the
- * vertical-reposition machine sub_2745.
+ * Equivalence test for carryMarioUpWithLift (ROM 0x276F) — the [0x2C,0x43) X-band arm of the
+ * vertical-reposition machine dispatchElevatorRideByColumn.
  *
- * loc_276f's whole memory-observable behaviour is a function of ONE byte — the prior
+ * carryMarioUpWithLift's whole memory-observable behaviour is a function of ONE byte — the prior
  * MARIO_Y (0x6205) — so the gate is EXHAUSTIVE over MARIO_Y in 0..255, and that single
  * sweep covers both arms outright:
  *
- *   PATH RESET  (MARIO_Y  < 0x71, values 0x00..0x70) — hands off to loc_277f, which clears
+ *   PATH RESET  (MARIO_Y  < 0x71, values 0x00..0x70) — hands off to killMarioAtEndOfLiftTravel, which clears
  *               MARIO_ACTIVE (0x6200) and EDGE_REPOSITION_FLAG (0x6398) to 0.
  *   PATH STEP   (MARIO_Y >= 0x71, values 0x71..0xFF) — decrements MARIO_Y by one and mirrors
  *               the new value into Mario's sprite-record Y (0x694F).
  *
- * The oracle nets exactly ONE caller-return pop on EVERY path (loc_277f's `ret` on the reset
- * arm; loc_276f's own `ret` on the step arm) and only READS the stack — it never pushes. The
- * idiomatic routine models no stack (a direct loc_277f call + a plain JS return), so
+ * The oracle nets exactly ONE caller-return pop on EVERY path (killMarioAtEndOfLiftTravel's `ret` on the reset
+ * arm; carryMarioUpWithLift's own `ret` on the step arm) and only READS the stack — it never pushes. The
+ * idiomatic routine models no stack (a direct killMarioAtEndOfLiftTravel call + a plain JS return), so
  * runCandidate performs ONE m.ret() after it to line pc + SP up with the oracle. Because
  * neither side WRITES the stack, the RAM diff is the whole dump with NO STACK_SCRATCH
  * exclusion — the compare would catch a stray stack write if one existed.
@@ -29,7 +29,7 @@
  *
  *   0. REACHABILITY — confirm 0x276F stays unreached in attract, so crafted coverage carries
  *      the gate (if it ever fires, add captured coverage).
- *   1. EQUAL (exhaustive) — loc_276f == oracle over RAM (whole dump) + pc + SP across all 256
+ *   1. EQUAL (exhaustive) — carryMarioUpWithLift == oracle over RAM (whole dump) + pc + SP across all 256
  *      MARIO_Y priors.
  *   2. NON-VACUITY — a step-arm entry writes EXACTLY {MARIO_Y, 0x694F} and a reset-arm entry
  *      writes EXACTLY {MARIO_ACTIVE, 0x6398}, both to the expected values, neighbours
@@ -49,8 +49,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_276f as oracle } from "../../translated/loc_276f.js";
-import { loc_276f } from "../loc_276f.js";
-import { loc_277f } from "../loc_277f.js"; // idiomatic edge reset, used by the broken twins
+import { carryMarioUpWithLift } from "../carryMarioUpWithLift.js";
+import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js"; // idiomatic edge reset, used by the broken twins
 import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y, MARIO_ACTIVE, EDGE_REPOSITION_FLAG } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -66,7 +66,7 @@ const TARGET = 0x276f;
 const SPRITE_Y_CELL = MARIO_SPRITE_RECORD + SPRITE_Y; // 0x694F — Mario's sprite-record Y
 const TOP_LIMIT = 0x71; // MARIO_Y < this -> reset arm; >= this -> step arm
 
-// The caller sub_271e does `push16(0x2721); call 0x2745`, and sub_2745 tail-jumps into
+// The caller sub_271e does `push16(0x2721); call 0x2745`, and dispatchElevatorRideByColumn tail-jumps into
 // 0x276F, so the return address on the stack when 0x276F runs is 0x2721.
 const RET_ADDR = 0x2721;
 
@@ -129,7 +129,7 @@ function runPair(base, y, candidate) {
   const b = makeEntry(base, y); // candidate
   oracle(a);
   candidate(b);
-  b.ret(); // model the candidate's terminal return (the oracle's ret / loc_277f's ret)
+  b.ret(); // model the candidate's terminal return (the oracle's ret / killMarioAtEndOfLiftTravel's ret)
   return contractDiff(a, b);
 }
 
@@ -159,9 +159,9 @@ test("REACHABILITY: 0x276F is NOT dispatched in attract — the gate rests on cr
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_276f == oracle across all 256 MARIO_Y priors (RAM + pc + SP)", () => {
+test("EQUAL (exhaustive): carryMarioUpWithLift == oracle across all 256 MARIO_Y priors (RAM + pc + SP)", () => {
   const base = attractBase();
-  const { mismatch, count } = fullSweep(base, loc_276f);
+  const { mismatch, count } = fullSweep(base, carryMarioUpWithLift);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, 256, "must have swept the full MARIO_Y input space");
   console.log(`  EQUAL/exhaustive: ${count} MARIO_Y priors — RAM + pc + SP identical to the oracle`);
@@ -212,7 +212,7 @@ test("NON-VACUITY: the step arm writes {MARIO_Y, 0x694F} and the reset arm write
 function brokenWrongLimit(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y < 0x72) { loc_277f(m); return; } // BUG: should be 0x71
+  if (y < 0x72) { killMarioAtEndOfLiftTravel(m); return; } // BUG: should be 0x71
   const s = y - 1;
   mem.write8(MARIO_Y, s);
   mem.write8(SPRITE_Y_CELL, s);
@@ -222,7 +222,7 @@ function brokenWrongLimit(m) {
 function brokenDropMirror(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y < TOP_LIMIT) { loc_277f(m); return; }
+  if (y < TOP_LIMIT) { killMarioAtEndOfLiftTravel(m); return; }
   mem.write8(MARIO_Y, y - 1);
   // BUG: dropped mem.write8(SPRITE_Y_CELL, y - 1)
 }
@@ -231,7 +231,7 @@ function brokenDropMirror(m) {
 function brokenNoDecrement(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y < TOP_LIMIT) { loc_277f(m); return; }
+  if (y < TOP_LIMIT) { killMarioAtEndOfLiftTravel(m); return; }
   mem.write8(MARIO_Y, y); // BUG: should be y - 1
   mem.write8(SPRITE_Y_CELL, y);
 }
@@ -240,7 +240,7 @@ function brokenNoDecrement(m) {
 function brokenSkipEdgeReset(m) {
   const { mem } = m;
   const y = mem.read8(MARIO_Y);
-  if (y < TOP_LIMIT) { return; } // BUG: dropped loc_277f(m)
+  if (y < TOP_LIMIT) { return; } // BUG: dropped killMarioAtEndOfLiftTravel(m)
   const s = y - 1;
   mem.write8(MARIO_Y, s);
   mem.write8(SPRITE_Y_CELL, s);

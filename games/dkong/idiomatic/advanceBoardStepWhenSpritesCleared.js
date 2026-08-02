@@ -5,7 +5,7 @@
  * wait timer and step to the next arm of the sequence.  ROM 0x1757.
  *
  * Dispatched from inside the vblank NMI while a board is being torn down
- * (GAME_STATE == 3 -> GAME_SUBSTATE 0x16 board-advance -> loc_1615's rst-0x28 table
+ * (GAME_STATE == 3 -> GAME_SUBSTATE 0x16 board-advance -> dispatchBoardClearedInterlude's rst-0x28 table
  * on the 0x6388 sequence selector). Each frame it runs two sprite passes over the
  * ten-record SPRITE_OBJ_BLOCK and then decides whether the block has finished
  * clearing:
@@ -41,14 +41,14 @@
  *           increment, and dropped pointer-advance twins.
  * LIVE-OUT: memory-only — SUBSTATE_TIMER (0x6009) and the 0x6388 selector on the
  *           clear arm; the 0x62AF phase counter and the swept sprite block always.
- *           The successor (loc_1615's rst-0x28 tail, a plain `ret`) consumes no
+ *           The successor (dispatchBoardClearedInterlude's rst-0x28 tail, a plain `ret`) consumes no
  *           register or flag; the oracle's residual A/HL/F are dead ABI, backstopped
  *           by the whole-machine memory gate. The harness supplies the closing `ret`
  *           so pc/SP line up with the oracle (both exit paths land at SP+2, pc =
  *           word@SP — the grandparent return, reached via this routine's own `ret`
  *           on the clear arm and via allSlotsClear's caller-skip on the abort arm).
  * NAMES:    SUBSTATE_TIMER (0x6009), BOARD_ADVANCE_STEP (0x6388) — ram.js. 0x6388 is the
- *           board-advance SEQUENCE SELECTOR that loc_1615's rst-0x28 indexes and each
+ *           board-advance SEQUENCE SELECTOR that dispatchBoardClearedInterlude's rst-0x28 indexes and each
  *           advance arm increments. The 0x62AF phase counter lives inside
  *           animateSpriteObjectBlock, not here.
  */

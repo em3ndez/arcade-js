@@ -16,7 +16,7 @@
  * If either check fails it returns having touched nothing. If both pass it registers
  * the hit into the shared effect-subsystem flags — the same trio animateEffectSpriteThenRearmEffect and
  * sub_1a33's edge pickup write — which the interaction state machine (EFFECT_SELECT's
- * loc_1dc9 / EFFECT_PARAM_PTR's loc_1e15 …) then services on later frames:
+ * armScorePopupAndSelectAward / EFFECT_PARAM_PTR's stageAwardPopupAtHitObject …) then services on later frames:
  *   EFFECT_PARAM_PTR (0x6343) = record base pointer (the object the machine acts on)
  *   EFFECT_SELECT    (0x6342) = 0   (sub-flag byte reset)
  *   EFFECT_STATE     (0x6340) = 1   (state := 1 — hit registered / interaction armed)

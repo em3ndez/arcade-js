@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1dc9 (ROM 0x1DC9) — sub_1dbd's state-1 handler: it arms the
+ * Equivalence test for armScorePopupAndSelectAward (ROM 0x1DC9) — sub_1dbd's state-1 handler: it arms the
  * state-2 countdown (0x6341 := 0x40), advances the state (0x6340 := 2) unconditionally,
  * then spawns one effect sprite by tail-jumping to a setter chosen from 0x6342's low three
- * bits — bit0 -> loc_3e70, else bit1 -> loc_1e00, else bit2 -> loc_1df5 — or, if none is
- * set, it cues SND_TRIGGER[5] := 3 and picks by LEVEL (1 -> loc_1e00, 2 -> loc_1e08,
- * otherwise -> loc_1e10).
+ * bits — bit0 -> pickAwardTierByObjectCount, else bit1 -> stageAward300Popup, else bit2 -> pickRandomAwardTier — or, if none is
+ * set, it cues SND_TRIGGER[5] := 3 and picks by LEVEL (1 -> stageAward300Popup, 2 -> stageAward500Popup,
+ * otherwise -> stageAward800Popup).
  *
- * loc_1dc9 writes 0x6341, 0x6340 and (on the fall-through arm) 0x6085 itself; every other
+ * armScorePopupAndSelectAward writes 0x6341, 0x6340 and (on the fall-through arm) 0x6085 itself; every other
  * game-visible byte is written by the CHOSEN setter's chain (task ring via enqueueTask, the
  * sprite record 0x6A30.., the gated sound). Its arms are all TAIL jumps, so in the idiomatic
  * layer they are direct calls: the bit0 arm bottoms out in the still-oracle loc_1e28 (which
- * models the stack), while the other arms run the fully-idiomatic loc_1e15 chain (which does
+ * models the stack), while the other arms run the fully-idiomatic stageAwardPopupAtHitObject chain (which does
  * not). So SP/pc and the STACK_SCRATCH region diverge from the oracle on the non-bit0 arms
  * (dead — the rst-0x28 caller reads no register, and the Z80 stack has become the JS call
  * stack). The gate is therefore memory-equivalence on RAM − STACK_SCRATCH (never the full
@@ -20,25 +20,25 @@
  *
  *   1. REALISM — hook 0x1dc9 in a real attract run (sub_1dbd calls it whenever 0x6340 == 1
  *      while the 25m demo plays). For each real entry run the ORACLE on one fresh clone and
- *      idiomatic loc_1dc9 on another; every game-visible byte matches (residual confined to
+ *      idiomatic armScorePopupAndSelectAward on another; every game-visible byte matches (residual confined to
  *      the dead STACK_SCRATCH). The oracle's deepest push is asserted to sit inside
  *      STACK_SCRATCH so excluding the region cannot mask a real diff.
  *
  *   2. EXHAUSTIVE (0x6342 dispatch) — on a real captured base, poke 0x6342 to EVERY byte
  *      0..255 identically on both sides (freeing the task-ring slot so the setter's stamp is
  *      observable) and compare RAM − STACK_SCRATCH. This crafts every top-level arm attract
- *      does not naturally reach and is the whole of loc_1dc9's bit dispatch, proven against
+ *      does not naturally reach and is the whole of armScorePopupAndSelectAward's bit dispatch, proven against
  *      the oracle; all four arm classes (bit0 / bit1 / bit2 / fall-through) are exercised.
  *
  *   3. EXHAUSTIVE (LEVEL sub-dispatch) — force the fall-through arm (0x6342 := 0) and sweep
  *      LEVEL (0x6229) over 0..255, comparing RAM − STACK_SCRATCH. Crafts the 1 / 2 / >=3
- *      LEVEL sub-dispatch (loc_1e00 / loc_1e08 / loc_1e10) attract's single 25m level never
+ *      LEVEL sub-dispatch (stageAward300Popup / stageAward500Popup / stageAward800Popup) attract's single 25m level never
  *      reaches; all three arms are exercised.
  *
  *   4. TEETH — three deliberately-broken twins each caught by the sweep that targets it:
  *      (a) a wrong state-advance constant (0x6340 := 3) — caught at 0x6340 for every value;
  *      (b) a top-level bit-order swap (bit1 tested before bit0) — caught by the 0x6342 sweep;
- *      (c) a LEVEL-dispatch swap (level 1 -> loc_1e08) — caught by the LEVEL sweep, diverging
+ *      (c) a LEVEL-dispatch swap (level 1 -> stageAward500Popup) — caught by the LEVEL sweep, diverging
  *      both at the posted task argument E and at the stamped sprite code B (0x6A31: 0x7E for 0x7D).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1dc9.test.js
@@ -49,12 +49,12 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1dc9 as oracle } from "../../translated/loc_1dc9.js";
-import { loc_1dc9 as idiomatic } from "../loc_1dc9.js";
-import { loc_3e70 } from "../loc_3e70.js"; // idiomatic arms, for the teeth twins
-import { loc_1e00 } from "../loc_1e00.js";
-import { loc_1df5 } from "../loc_1df5.js";
-import { loc_1e08 } from "../loc_1e08.js";
-import { loc_1e10 } from "../loc_1e10.js";
+import { armScorePopupAndSelectAward as idiomatic } from "../armScorePopupAndSelectAward.js";
+import { pickAwardTierByObjectCount } from "../pickAwardTierByObjectCount.js"; // idiomatic arms, for the teeth twins
+import { stageAward300Popup } from "../stageAward300Popup.js";
+import { pickRandomAwardTier } from "../pickRandomAwardTier.js";
+import { stageAward500Popup } from "../stageAward500Popup.js";
+import { stageAward800Popup } from "../stageAward800Popup.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, LEVEL, SND_TRIGGER } from "../ram.js";
 
@@ -66,9 +66,9 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1dc9;
-const SELECT = 0x6342;      // effect-select bitmask loc_1dc9 dispatches on (low 3 bits)
-const STATE = 0x6340;       // sub_1dbd state byte (loc_1dc9 advances 1 -> 2)
-const STATE_TIMER = 0x6341; // countdown value loc_1dc9 arms to 0x40
+const SELECT = 0x6342;      // effect-select bitmask armScorePopupAndSelectAward dispatches on (low 3 bits)
+const STATE = 0x6340;       // sub_1dbd state byte (armScorePopupAndSelectAward advances 1 -> 2)
+const STATE_TIMER = 0x6341; // countdown value armScorePopupAndSelectAward arms to 0x40
 const SND = SND_TRIGGER + 5; // 0x6085 — the effect sound latch (fall-through arm only)
 const REC = 0x6a30;         // sprite-record slot; REC+1 = the setter's B (arm-distinguishing)
 const TASK_TAIL = 0x60b0;   // low byte of the task ring's next write slot (page 0x60 fixed)
@@ -121,8 +121,8 @@ function captureDispatches(K, maxFrames) {
 /**
  * A real captured 0x1dc9 entry to craft the sweeps onto — one whose word at 0x6343 is a
  * valid param-block pointer. That pointer is set up per effect and IS the live-in the
- * loc_1e15 arm (bit1 / bit2 / fall-through) dereferences (`ld hl,(0x6343)`); a bit0-only
- * entry leaves it 0x0000 (its loc_1e28 tail never reads it), so crafting the loc_1e15 arm
+ * stageAwardPopupAtHitObject arm (bit1 / bit2 / fall-through) dereferences (`ld hl,(0x6343)`); a bit0-only
+ * entry leaves it 0x0000 (its loc_1e28 tail never reads it), so crafting the stageAwardPopupAtHitObject arm
  * onto that base would fault the ORACLE at 0x0000. Picking a base with a live pointer makes
  * the crafted entry a faithful live-in for EVERY forced arm (loc_1e28 ignores 0x6343 anyway).
  */
@@ -194,7 +194,7 @@ function sweepSelect(base, candidate) {
   return { mismatch, arms, count };
 }
 
-test("EXHAUSTIVE (0x6342): loc_1dc9 == oracle over all 256 select values (all four arms)", () => {
+test("EXHAUSTIVE (0x6342): armScorePopupAndSelectAward == oracle over all 256 select values (all four arms)", () => {
   const base = craftedBase();
   const { mismatch, arms, count } = sweepSelect(base, idiomatic);
   assert.equal(
@@ -236,7 +236,7 @@ function sweepLevel(base, candidate) {
   return { mismatch, arms, count };
 }
 
-test("EXHAUSTIVE (LEVEL): fall-through loc_1dc9 == oracle over all 256 LEVEL values (three arms)", () => {
+test("EXHAUSTIVE (LEVEL): fall-through armScorePopupAndSelectAward == oracle over all 256 LEVEL values (three arms)", () => {
   const base = craftedBase();
   const { mismatch, arms, count } = sweepLevel(base, idiomatic);
   assert.equal(
@@ -267,14 +267,14 @@ function brokenState(m) {
   mem.write8(STATE_TIMER, 0x40);
   mem.write8(STATE, 0x03); // BUG: should be 0x02
   const sel = mem.read8(SELECT);
-  if (sel & 0x01) { regs.a = sel >> 1; return loc_3e70(m); }
-  if (sel & 0x02) return loc_1e00(m);
-  if (sel & 0x04) return loc_1df5(m);
+  if (sel & 0x01) { regs.a = sel >> 1; return pickAwardTierByObjectCount(m); }
+  if (sel & 0x02) return stageAward300Popup(m);
+  if (sel & 0x04) return pickRandomAwardTier(m);
   mem.write8(SND, 0x03);
   const lvl = mem.read8(LEVEL);
-  if (lvl === 1) return loc_1e00(m);
-  if (lvl === 2) return loc_1e08(m);
-  return loc_1e10(m);
+  if (lvl === 1) return stageAward300Popup(m);
+  if (lvl === 2) return stageAward500Popup(m);
+  return stageAward800Popup(m);
 }
 
 /** Twin (b): top-level bit-order swap — tests bit 1 before bit 0 (a wrong priority encoder). */
@@ -283,30 +283,30 @@ function brokenBitSwap(m) {
   mem.write8(STATE_TIMER, 0x40);
   mem.write8(STATE, 0x02);
   const sel = mem.read8(SELECT);
-  if (sel & 0x02) return loc_1e00(m);                 // BUG: bit 1 tested first
-  if (sel & 0x01) { regs.a = sel >> 1; return loc_3e70(m); }
-  if (sel & 0x04) return loc_1df5(m);
+  if (sel & 0x02) return stageAward300Popup(m);                 // BUG: bit 1 tested first
+  if (sel & 0x01) { regs.a = sel >> 1; return pickAwardTierByObjectCount(m); }
+  if (sel & 0x04) return pickRandomAwardTier(m);
   mem.write8(SND, 0x03);
   const lvl = mem.read8(LEVEL);
-  if (lvl === 1) return loc_1e00(m);
-  if (lvl === 2) return loc_1e08(m);
-  return loc_1e10(m);
+  if (lvl === 1) return stageAward300Popup(m);
+  if (lvl === 2) return stageAward500Popup(m);
+  return stageAward800Popup(m);
 }
 
-/** Twin (c): LEVEL-dispatch swap — level 1 routes to loc_1e08 instead of loc_1e00. */
+/** Twin (c): LEVEL-dispatch swap — level 1 routes to stageAward500Popup instead of stageAward300Popup. */
 function brokenLevelSwap(m) {
   const { regs, mem } = m;
   mem.write8(STATE_TIMER, 0x40);
   mem.write8(STATE, 0x02);
   const sel = mem.read8(SELECT);
-  if (sel & 0x01) { regs.a = sel >> 1; return loc_3e70(m); }
-  if (sel & 0x02) return loc_1e00(m);
-  if (sel & 0x04) return loc_1df5(m);
+  if (sel & 0x01) { regs.a = sel >> 1; return pickAwardTierByObjectCount(m); }
+  if (sel & 0x02) return stageAward300Popup(m);
+  if (sel & 0x04) return pickRandomAwardTier(m);
   mem.write8(SND, 0x03);
   const lvl = mem.read8(LEVEL);
-  if (lvl === 1) return loc_1e08(m); // BUG: should be loc_1e00
-  if (lvl === 2) return loc_1e08(m);
-  return loc_1e10(m);
+  if (lvl === 1) return stageAward500Popup(m); // BUG: should be stageAward300Popup
+  if (lvl === 2) return stageAward500Popup(m);
+  return stageAward800Popup(m);
 }
 
 test("TEETH (state-constant): the 0x6340 := 3 twin is CAUGHT and names 0x6340", () => {
@@ -325,11 +325,11 @@ test("TEETH (bit-swap): the wrong top-level priority encoder is CAUGHT by the 0x
     `oracle=${mismatch.bad.a} broken=${mismatch.bad.b})`);
 });
 
-test("TEETH (level-swap): the level-1 -> loc_1e08 twin is CAUGHT (wrong E and wrong B at 0x6A31)", () => {
+test("TEETH (level-swap): the level-1 -> stageAward500Popup twin is CAUGHT (wrong E and wrong B at 0x6A31)", () => {
   const base = craftedBase();
   const { mismatch } = sweepLevel(base, brokenLevelSwap);
   assert.notEqual(mismatch, null, "the LEVEL sweep FAILED to catch a wrong LEVEL dispatch — it is worthless");
-  // The swap routes level 1 to loc_1e08 (B=0x7E, DE=0x0005) instead of loc_1e00 (B=0x7D,
+  // The swap routes level 1 to stageAward500Popup (B=0x7E, DE=0x0005) instead of stageAward300Popup (B=0x7D,
   // DE=0x0003), so it diverges both at the posted task argument E (in the ring, the lower
   // address the linear scan reports first) AND at the stamped sprite code B (0x6A31). Pin
   // the record-byte divergence directly, re-running the caught LEVEL on fresh clones.

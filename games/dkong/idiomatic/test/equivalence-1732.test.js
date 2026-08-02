@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1732 (ROM 0x1732) — animation-gated step 3 of the board-advance
+ * Equivalence test for climbKongFigureAndBreakHeart (ROM 0x1732) — animation-gated step 3 of the board-advance
  * render sequence (GAME_SUBSTATE 0x600A == 0x16, step selector 0x6388 == 3 on 25m/75m).
  *
- * loc_1732 WRITES memory and is NOT a leaf — every frame it ticks animateSpriteObjectBlock
+ * climbKongFigureAndBreakHeart WRITES memory and is NOT a leaf — every frame it ticks animateSpriteObjectBlock
  * (ROM 0x306f, itself already idiomatic and memory-validated), then branches on the scrolled
  * result — so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case.
  * The oracle reaches 0x306f through `m.call`, which on a no-override machine resolves to the
- * frozen translated sub_306f, so the oracle side is (frozen sub_1732 ∘ frozen sub_306f) and
- * the candidate side is (loc_1732 ∘ idiomatic animateSpriteObjectBlock) — a faithful bottom-up
+ * frozen translated sub_306f, so the oracle side is (frozen climbKongFigureAndBreakHeart ∘ frozen sub_306f) and
+ * the candidate side is (climbKongFigureAndBreakHeart ∘ idiomatic animateSpriteObjectBlock) — a faithful bottom-up
  * composition. Its logic has two inputs:
  *   - 0x62AF — animateSpriteObjectBlock's private 1-in-8 phase counter. On the 32 values with
  *     (phase+1)&7 == 0 the animation body runs and scrolls the ten-record group up 4px (so the
@@ -57,7 +57,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1732 as oracle } from "../../translated/loc_1732.js";
-import { loc_1732 as idiomatic } from "../loc_1732.js";
+import { climbKongFigureAndBreakHeart as idiomatic } from "../climbKongFigureAndBreakHeart.js";
 import { animateSpriteObjectBlock } from "../animateSpriteObjectBlock.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, SPRITE_BUFFER, SPRITE_OBJ_BLOCK } from "../ram.js";
@@ -168,8 +168,8 @@ test("STRUCTURE: reset / hold / stepping — work RAM identical, salient outputs
     `oracle push/pop targets must stay inside STACK_SCRATCH (SP=${hx(SP_CRAFT)})`);
 
   // The idiomatic side makes only direct calls — it models no stack and no return.
-  assert.equal(b.regs.sp, sp0, "loc_1732 must leave SP unchanged (direct call, no stack modelling)");
-  assert.equal(b.pc, pc0, "loc_1732 must leave pc unchanged");
+  assert.equal(b.regs.sp, sp0, "climbKongFigureAndBreakHeart must leave SP unchanged (direct call, no stack modelling)");
+  assert.equal(b.pc, pc0, "climbKongFigureAndBreakHeart must leave pc unchanged");
 
   // HOLD (Y >= 0x2c, non-stepping phase): only the phase counter moves.
   const [c, d] = craftPair(0x40, PHASE_HOLD);
@@ -196,7 +196,7 @@ test("STRUCTURE: reset / hold / stepping — work RAM identical, salient outputs
 
 // -- 2. GATE (exhaustive) -----------------------------------------------------
 
-test("GATE (exhaustive): loc_1732 == oracle over all 256 gate bytes (non-stepping phase)", () => {
+test("GATE (exhaustive): climbKongFigureAndBreakHeart == oracle over all 256 gate bytes (non-stepping phase)", () => {
   let count = 0, resets = 0, holds = 0, mismatch = null, partition = null;
   for (let y = 0; y < 256 && !mismatch; y++) {
     const [a, b] = craftPair(y, PHASE_HOLD);
@@ -224,7 +224,7 @@ test("GATE (exhaustive): loc_1732 == oracle over all 256 gate bytes (non-steppin
 
 // -- 3. PHASE (exhaustive) ----------------------------------------------------
 
-test("PHASE (exhaustive): loc_1732 == oracle over all 256 phase bytes (Y=0x2e, animator composition)", () => {
+test("PHASE (exhaustive): climbKongFigureAndBreakHeart == oracle over all 256 phase bytes (Y=0x2e, animator composition)", () => {
   let count = 0, stepped = 0, dormant = 0, resets = 0, mismatch = null, partition = null;
   for (let phase = 0; phase < 256 && !mismatch; phase++) {
     const [a, b] = craftPair(0x2e, phase);

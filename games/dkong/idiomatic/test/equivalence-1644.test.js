@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1644 (ROM 0x1644) — the board-advance render-sequence step
+ * Equivalence test for dispatchRivetBoardInterludeStep (ROM 0x1644) — the board-advance render-sequence step
  * dispatcher: `ld a,(0x6388)` then vector through the 6-entry inline jump table at ROM 0x1648
  * (step 0 -> 0x17B6, 1 -> 0x3069, 2 -> 0x1839, 3 -> 0x186F, 4 -> 0x1880, 5 -> 0x18C6).
  *
- * loc_1644 is NOT reached in plain attract — it is the fall-through dispatch of sub_1641, an arm
- * of loc_1615's board-advance dispatcher (GAME_SUBSTATE 0x600A == 0x16), which the attract demo
+ * dispatchRivetBoardInterludeStep is NOT reached in plain attract — it is the fall-through dispatch of runRivetBoardInterludeFrame, an arm
+ * of dispatchBoardClearedInterlude's board-advance dispatcher (GAME_SUBSTATE 0x600A == 0x16), which the attract demo
  * never drives (a board is never completed). And it is not a leaf: it dispatches board-render
  * handlers that paint/animate the interlude and step the sequence. So it is validated by
  * MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH, pc, SP), never the full
@@ -14,7 +14,7 @@
  *
  *   1. FULL-HANDLER (crafted reachable arms) — take a real attract-run machine, poke the step
  *      0x6388 to each of the 6 reachable indices (0..5), and run the ORACLE on one clone and
- *      loc_1644 on another. The FULL oracle arm handler runs on BOTH sides, so a wrong target OR
+ *      dispatchRivetBoardInterludeStep on another. The FULL oracle arm handler runs on BOTH sides, so a wrong target OR
  *      a live register/flag handoff the folded-away trampoline would have supplied surfaces as
  *      divergent RAM. Proven non-vacuous: each of the 6 arms mutates RAM vs the untouched base.
  *
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1644 as oracle } from "../../translated/loc_1644.js";
-import { loc_1644 } from "../loc_1644.js";
+import { dispatchRivetBoardInterludeStep } from "../dispatchRivetBoardInterludeStep.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -68,7 +68,7 @@ function firstRamDiffExStack(a, b, offToAddr) {
 
 // A real, self-consistent machine: boot + a stretch of attract so work RAM (the sprite-object
 // block, the render counters 0x6388/0x6390, the object scratch the arms touch) holds realistic
-// values. loc_1644 is never dispatched here — we craft its entry by poking.
+// values. dispatchRivetBoardInterludeStep is never dispatched here — we craft its entry by poking.
 function attractBase(frames = 180) {
   const m = new Machine(ROM);
   m.runFrames(frames);
@@ -87,7 +87,7 @@ function craftEntry(base, step) {
 
 // -- 1. FULL-HANDLER (crafted reachable arms) ---------------------------------
 
-test("FULL-HANDLER: loc_1644 == oracle on real bases poked to each reachable step (0..5)", () => {
+test("FULL-HANDLER: dispatchRivetBoardInterludeStep == oracle on real bases poked to each reachable step (0..5)", () => {
   const base = attractBase();
   const REACHABLE = [0, 1, 2, 3, 4, 5];
 
@@ -98,7 +98,7 @@ test("FULL-HANDLER: loc_1644 == oracle on real bases poked to each reachable ste
     const before = a.dumpState();
 
     oracle(a);
-    loc_1644(b);
+    dispatchRivetBoardInterludeStep(b);
 
     const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
     assert.equal(
@@ -144,12 +144,12 @@ function runCraftedSelector(base, candidate, sel) {
   return { recA, recB };
 }
 
-test("CRAFTED: loc_1644 == oracle over all 256 selectors (0x1648 table)", () => {
+test("CRAFTED: dispatchRivetBoardInterludeStep == oracle over all 256 selectors (0x1648 table)", () => {
   const base = attractBase();
   let count = 0;
   let mismatch = null;
   for (let sel = 0; sel < 256 && !mismatch; sel++) {
-    const { recA, recB } = runCraftedSelector(base, loc_1644, sel);
+    const { recA, recB } = runCraftedSelector(base, dispatchRivetBoardInterludeStep, sel);
     count++;
     if (recA.length !== 1 || recB.length !== 1) {
       mismatch = { sel, why: `dispatch fired ${recA.length}/${recB.length} times (want 1/1)` };

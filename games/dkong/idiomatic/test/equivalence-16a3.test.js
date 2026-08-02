@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_16a3 (ROM 0x16a3) — sequence step 0 of loc_1615's
+ * Equivalence test for begin50mKongRecaptureInterlude (ROM 0x16a3) — sequence step 0 of dispatchBoardClearedInterlude's
  * rst-0x28 board-advance table (@0x1637), keyed on the 0x6388 step selector.
  *
- * loc_16a3 WRITES memory (everything loc_1708 seeds, then the ten-record
+ * begin50mKongRecaptureInterlude WRITES memory (everything spawnInterludeHeart seeds, then the ten-record
  * SPRITE_OBJ_BLOCK it stamps + re-anchors, then the 0x6388 step it increments) and it is
  * UNREACHED in attract (0 dispatches over 4000 frames — it is a board-cleared interlude
  * step), so it is validated by crafted-entry capture/clone/replay on a FRESH clone per
  * side, never the full register file, never cycles. The routine's ONLY data-dependent
  * input is record 2's entry X (0x6910), which sets the re-anchoring shift; sweeping it
  * over all 256 values is exhaustive over that surface. The contract compared is RAM
- * (minus STACK_SCRATCH); live-out is memory-only (the rst-0x28 return path in loc_1615
+ * (minus STACK_SCRATCH); live-out is memory-only (the rst-0x28 return path in dispatchBoardClearedInterlude
  * reads none of the residual regs).
  *
  *   1. EQUAL (exhaustive over 0x6910) — from a real attract RAM base, sweep the stored
@@ -26,7 +26,7 @@
  *      effects: the sprite-object block is actually stamped (differs from before); record
  *      2's X is re-anchored to its entry value (the 0x3b + (oldX - 0x3b) == oldX
  *      invariant, over several oldX); every one of the ten X bytes is shifted by
- *      oldX - 0x3b; 0x6388 is incremented; and loc_1708's spawn write landed
+ *      oldX - 0x3b; 0x6388 is incremented; and spawnInterludeHeart's spawn write landed
  *      (SND_PRIORITY 0x608A == 0x07). This is what the sweep and teeth bite on.
  *
  *   4. TEETH (exhaustive) — a twin that reads 0x6910 AFTER the block copy (so it measures
@@ -46,8 +46,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_16a3 as oracle } from "../../translated/loc_16a3.js";
-import { loc_16a3 as candidate } from "../loc_16a3.js";
-import { loc_1708 } from "../loc_1708.js";
+import { begin50mKongRecaptureInterlude as candidate } from "../begin50mKongRecaptureInterlude.js";
+import { spawnInterludeHeart } from "../spawnInterludeHeart.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
@@ -177,8 +177,8 @@ test("ARMS: stamp + re-anchor + step-advance + spawn all fire with distinctive e
     // The 0x6388 step advanced by exactly one.
     assert.equal(after.mem.read8(SEQ_STEP), (stepBefore + 1) & 0xff, `0x6388 must advance by 1 (oldX=${hx(oldX)})`);
 
-    // loc_1708 spawn ran: it re-writes SND_PRIORITY to 0x07 after silencing sound.
-    assert.equal(after.mem.read8(SND_PRIORITY), 0x07, `loc_1708 spawn must set SND_PRIORITY=0x07 (oldX=${hx(oldX)})`);
+    // spawnInterludeHeart spawn ran: it re-writes SND_PRIORITY to 0x07 after silencing sound.
+    assert.equal(after.mem.read8(SND_PRIORITY), 0x07, `spawnInterludeHeart spawn must set SND_PRIORITY=0x07 (oldX=${hx(oldX)})`);
   }
   console.log("  ARMS: stamp, re-anchor invariant, uniform X-column shift, step-advance, and spawn all exercised");
 });
@@ -192,7 +192,7 @@ test("ARMS: stamp + re-anchor + step-advance + spawn all fire with distinctive e
  */
 function brokenReadAfterCopy(m) {
   const { regs, mem } = m;
-  loc_1708(m);
+  spawnInterludeHeart(m);
   regs.hl = 0x385c;
   loadSpriteObjectBlock(m); // copy FIRST
   const shift = (mem.read8(RECORD2_X) - TEMPLATE_ANCHOR_X) & 0xff; // BUG: read AFTER copy -> always 0

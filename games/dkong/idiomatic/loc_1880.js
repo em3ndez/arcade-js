@@ -5,8 +5,8 @@
  * ROM 0x1880.
  *
  * Step index 4 of the EVEN-board (BOARD bit0 clear → 50m / 100m) board-advance
- * sequence. loc_1615 (the GAME_SUBSTATE 0x600A == 0x16 board-advance dispatcher)
- * routes the even-board arm through loc_1644, which rst-0x28-dispatches the 0x6388
+ * sequence. dispatchBoardClearedInterlude (the GAME_SUBSTATE 0x600A == 0x16 board-advance dispatcher)
+ * routes the even-board arm through dispatchRivetBoardInterludeStep, which rst-0x28-dispatches the 0x6388
  * step selector via the 6-entry table at 0x1648 = [17b6, 3069, 1839, 186f, 1880, 18c6];
  * this is the entry at index 4, the sibling of loc_186f / loc_18c6 in that family.
  *
@@ -33,7 +33,7 @@
  * so nothing downstream reads a register or flag it leaves.
  * NAME: kept as loc_1880 — the mechanics are understood precisely but the exact visual
  * the interlude depicts is not independently confirmed, and the whole sibling family
- * (loc_186f / loc_1670 / loc_18c6 …) stayed address-named for the same reason.
+ * (loc_186f / stageNextKongPoseWhenHoldExpires / loc_18c6 …) stayed address-named for the same reason.
  *
  * CALLEES (called directly — no stack modelling):
  *   addToSpriteObjectColumn (idiomatic, ROM 0x0038 → addStrided 0x003d) — the per-frame

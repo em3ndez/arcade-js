@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2227 (ROM 0x2227) — one arm of the sub_2207 board-object
+ * Equivalence test for hold50mObjectParked (ROM 0x2227) — one arm of the dispatch50mObjectState board-object
  * state machine: tick this object's dwell timer, advance its state when the timer
  * elapses, and stamp the shared flag 0x621a when Mario has reached the object's target X.
  *
- * loc_2227 is dispatched only in gameplay — sub_2207's board gate skips its whole body
+ * hold50mObjectParked is dispatched only in gameplay — dispatch50mObjectState's board gate skips its whole body
  * in attract, so 0x2227 (and its hit-test callee 0x2243) never fire there. Realistic
- * machine states are therefore captured at the reachable ancestor sub_2207 (ROM 0x2207)
+ * machine states are therefore captured at the reachable ancestor dispatch50mObjectState (ROM 0x2207)
  * and a valid record base + caller stack are laid over each; crafted entries then drive
  * every arm directly.
  *
- * STACK MODEL. The record base arrives on the Z80 stack (sub_2207 pushes it) and this arm
+ * STACK MODEL. The record base arrives on the Z80 stack (dispatch50mObjectState pushes it) and this arm
  * pops it — a genuine oracle boundary, kept as a stack pop. The oracle then brackets its
  * hit-test call with a pushed return that either the hit (0x2243's `ret`) or the miss
  * (0x2257's `pop hl`/`ret`) pops, and finishes with its own `ret`; on EVERY path it nets
@@ -29,8 +29,8 @@
  *      the elapse test is `== 0` on the decremented value, not `<= 0`). The dwell timer
  *      is decremented on every arm. RAM − STACK_SCRATCH + pc + SP identical to the oracle.
  *
- *   2. REALISM (captured) — capture real in-play states at sub_2207 (0x2207) during
- *      attract, overlay a valid record base + stack, and confirm loc_2227 == oracle on
+ *   2. REALISM (captured) — capture real in-play states at dispatch50mObjectState (0x2207) during
+ *      attract, overlay a valid record base + stack, and confirm hold50mObjectParked == oracle on
  *      each over several timer/target configs (real Mario cells decide hit vs miss).
  *
  *   3. TEETH — three broken twins, each MUST be caught:
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2227 as oracle } from "../../translated/loc_2227.js";
-import { loc_2227 } from "../loc_2227.js";
+import { hold50mObjectParked } from "../hold50mObjectParked.js";
 import { marioReachedTargetColumn as loc_2243 } from "../marioReachedTargetColumn.js";
 import { Machine } from "../../machine.js";
 import {
@@ -65,12 +65,12 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2227;
-const ANCESTOR = 0x2207;      // sub_2207: the reachable same-subsystem ancestor
+const ANCESTOR = 0x2207;      // dispatch50mObjectState: the reachable same-subsystem ancestor
 const RET_ADDR = 0x199e;      // the site right after `call 0x2207`; the arm returns here
 const FLAG = 0x621a;          // the shared object flag this arm stamps (kept hex in ram.js)
 const REACH_Y = 0x7a;         // loc_2243: a hit needs MARIO_Y < 0x7a
 const FLAG_INIT = 0x77;       // sentinel pre-value, so "no stamp" is visibly unchanged
-// The two record bases sub_2207 selects on frame parity (0x6280 odd / 0x6288 even).
+// The two record bases dispatch50mObjectState selects on frame parity (0x6280 odd / 0x6288 even).
 const BASES = [BOARD_OBJ_SCRATCH, BOARD_OBJ_SCRATCH + 8];
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -129,7 +129,7 @@ function attractBase(frames = 180) {
   return m.clone();
 }
 
-// Lay a valid loc_2227 entry over a base: a caller return then the record base on the
+// Lay a valid hold50mObjectParked entry over a base: a caller return then the record base on the
 // stack (the arm pops the base), the three record bytes, and the three Mario cells.
 function craft(base, { recordBase, state = 0x03, timer, targetX, marioX, marioY, marioAir, flag = FLAG_INIT }) {
   const m = base.clone();
@@ -153,16 +153,16 @@ function craft(base, { recordBase, state = 0x03, timer, targetX, marioX, marioY,
 test("REACHABILITY: 0x2227 never dispatches in attract, but its ancestor 0x2207 does", () => {
   let armCount = 0, ancCount = 0;
 
-  // Count target dispatches: none expected — sub_2207's body is gated off in attract.
+  // Count target dispatches: none expected — dispatch50mObjectState's body is gated off in attract.
   const host = new Machine(ROM, { overrides: new Map([[TARGET, (mm) => { armCount++; return oracle(mm); }]]) });
   host.runFrames(1200);
-  assert.equal(armCount, 0, "0x2227 should NOT dispatch in attract (sub_2207's body is gated off)");
+  assert.equal(armCount, 0, "0x2227 should NOT dispatch in attract (dispatch50mObjectState's body is gated off)");
 
   // Count ancestor dispatches: the override delegates to the un-overridden oracle copy.
   const orig = new Machine(ROM).routines.get(ANCESTOR);
   const host2 = new Machine(ROM, { overrides: new Map([[ANCESTOR, (mm) => { ancCount++; return orig(mm); }]]) });
   host2.runFrames(1200);
-  assert.ok(ancCount > 0, "the ancestor sub_2207 (0x2207) should dispatch in attract");
+  assert.ok(ancCount > 0, "the ancestor dispatch50mObjectState (0x2207) should dispatch in attract");
   console.log(`  REACHABILITY: 0x2227 dispatched ${armCount}x; ancestor 0x2207 ${ancCount}x in 1200 frames (target is crafted below)`);
 });
 
@@ -196,7 +196,7 @@ test("EQUAL (crafted): every timer/hit arm matches the oracle over both record b
 
     for (const c of cases) {
       const entry = craft(base, { recordBase, ...c });
-      const diffs = contractDiffs(entry, loc_2227);
+      const diffs = contractDiffs(entry, hold50mObjectParked);
       assert.equal(diffs.length, 0, `${c.name} @${hx(recordBase)}: ${diffs.join("; ")}`);
 
       // Non-vacuity: confirm the ORACLE actually took the arm this case intends.
@@ -225,9 +225,9 @@ function captureAncestorStates(K, frames) {
   return caps;
 }
 
-test("REALISM (captured): loc_2227 == oracle on real states from sub_2207", () => {
+test("REALISM (captured): hold50mObjectParked == oracle on real states from dispatch50mObjectState", () => {
   const caps = captureAncestorStates(120, 2000);
-  assert.ok(caps.length >= 1, "expected sub_2207 (0x2207) to dispatch during attract");
+  assert.ok(caps.length >= 1, "expected dispatch50mObjectState (0x2207) to dispatch during attract");
 
   let compared = 0, sawHit = 0, sawMiss = 0;
   for (const cap of caps) {
@@ -246,14 +246,14 @@ test("REALISM (captured): loc_2227 == oracle on real states from sub_2207", () =
     ];
     for (const v of variants) {
       const entry = craft(cap, v);
-      const diffs = contractDiffs(entry, loc_2227);
+      const diffs = contractDiffs(entry, hold50mObjectParked);
       assert.equal(diffs.length, 0, `real state: ${diffs.join("; ")}`);
       // Classify for reporting (did the oracle stamp the flag?).
       if (runOracle(entry).mem.read8(FLAG) !== FLAG_INIT) sawHit++; else sawMiss++;
       compared++;
     }
   }
-  console.log(`  REALISM: ${compared} overlays on ${caps.length} real sub_2207 states — RAM==oracle (${sawHit} hit, ${sawMiss} miss)`);
+  console.log(`  REALISM: ${compared} overlays on ${caps.length} real dispatch50mObjectState states — RAM==oracle (${sawHit} hit, ${sawMiss} miss)`);
 });
 
 // -- 3. TEETH -----------------------------------------------------------------

@@ -2,20 +2,20 @@
 /**
  * Equivalence test for loc_2d83 (ROM 0x2D83) — aim the string renderer at the fixed
  * source string at 0x39CC (stamp RENDER_STR_PTR and hand the cursor to the per-character
- * body in the cursor register), then tail into loc_2d54 to emit the first character's
+ * body in the cursor register), then tail into stepBarrelAlongReleasePath to emit the first character's
  * 4-byte record.
  *
- * loc_2d83 WRITES MEMORY (via the tail into loc_2d54), so it is gated on memory-
+ * loc_2d83 WRITES MEMORY (via the tail into stepBarrelAlongReleasePath), so it is gated on memory-
  * equivalence, not a returned scalar, and every case runs on FRESH clones. The contract
  * is RAM (minus STACK_SCRATCH) + pc + SP — the live-out is memory-only.
  *
- * The oracle tail-jumps (`jp 0x2d54`, no push) into loc_2d54, which ends on ONE terminal
- * `ret` that returns on loc_2d83's behalf. The idiomatic routine calls loc_2d54 directly
+ * The oracle tail-jumps (`jp 0x2d54`, no push) into stepBarrelAlongReleasePath, which ends on ONE terminal
+ * `ret` that returns on loc_2d83's behalf. The idiomatic routine calls stepBarrelAlongReleasePath directly
  * (a plain JS return), so the harness performs one m.ret() on the candidate AFTER the
  * call to line pc + SP up with the oracle — identical to the sibling equivalence-2d54.
  *
  * The 0x39CC string's first byte is 0xBB (attribute bit set, never the 0x7F terminator),
- * so loc_2d83 always drives loc_2d54's EMIT path — the terminator hand-off (loc_2d8c,
+ * so loc_2d83 always drives stepBarrelAlongReleasePath's EMIT path — the terminator hand-off (activateReleasedBarrel,
  * which is what pushes into STACK_SCRATCH) is unreachable from here. On the emit path
  * neither side writes STACK_SCRATCH, so the standard STACK_SCRATCH exclusion masks nothing
  * on this routine's reachable path; it is kept for the dissolved tail-call bracket and to
@@ -34,9 +34,9 @@
  *      by two.
  *
  *   3. TEETH — two broken twins, each MUST be caught:
- *      (a) wrong string cursor — hands loc_2d54 the string start 0x39C3 instead of 0x39CC,
+ *      (a) wrong string cursor — hands stepBarrelAlongReleasePath the string start 0x39C3 instead of 0x39CC,
  *          so a different character is rendered and RENDER_STR_PTR advances differently.
- *      (b) dropped render — does the setup writes but never tails into loc_2d54, so no
+ *      (b) dropped render — does the setup writes but never tails into stepBarrelAlongReleasePath, so no
  *          record is emitted and RENDER_STR_PTR is never advanced.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2d83.test.js
@@ -48,7 +48,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2d83 as oracle } from "../../translated/loc_2d83.js";
 import { loc_2d83 } from "../loc_2d83.js";
-import { loc_2d54 } from "../loc_2d54.js";
+import { stepBarrelAlongReleasePath } from "../stepBarrelAlongReleasePath.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "../ram.js";
 
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x2d83;
 const STRING_START = 0x39cc; // the source string loc_2d83 renders (ROM)
-const ADVANCED = STRING_START + 2; // where loc_2d54 leaves the cursor after one emit
+const ADVANCED = STRING_START + 2; // where stepBarrelAlongReleasePath leaves the cursor after one emit
 const RET_ADDR = 0x2d1a; // a plausible caller-return site (any valid ROM addr; both sides pop it)
 
 // Crafted-entry RAM layout: object record and destination slot in writable work RAM, clear
@@ -88,7 +88,7 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-/** Run the ORACLE on a fresh clone. loc_2d54's terminal `ret` runs on its behalf. */
+/** Run the ORACLE on a fresh clone. stepBarrelAlongReleasePath's terminal `ret` runs on its behalf. */
 function runOracle(entry) {
   const c = entry.clone();
   oracle(c);
@@ -173,19 +173,19 @@ function craft(base, { field7 = 0x00, field8 = 0x00 }) {
 
 // -- broken twins -------------------------------------------------------------
 
-/** Twin (a): hands loc_2d54 the WRONG string start (0x39C3), so a different char renders. */
+/** Twin (a): hands stepBarrelAlongReleasePath the WRONG string start (0x39C3), so a different char renders. */
 function brokenWrongCursor(m) {
   const { regs, mem } = m;
   regs.hl = 0x39c3; // BUG: wrong string cursor
   mem.write16(RENDER_STR_PTR, 0x39c3);
-  return loc_2d54(m);
+  return stepBarrelAlongReleasePath(m);
 }
 
-/** Twin (b): does the setup writes but never renders (drops the tail into loc_2d54). */
+/** Twin (b): does the setup writes but never renders (drops the tail into stepBarrelAlongReleasePath). */
 function brokenNoRender(m) {
   const { regs, mem } = m;
   regs.hl = STRING_START;
-  mem.write16(RENDER_STR_PTR, STRING_START); // BUG: no loc_2d54 emit, cursor never advances
+  mem.write16(RENDER_STR_PTR, STRING_START); // BUG: no stepBarrelAlongReleasePath emit, cursor never advances
 }
 
 // -- 0. reachability ----------------------------------------------------------
@@ -195,7 +195,7 @@ test("REACHABILITY: 0x2D83 is dispatched during attract", () => {
   const snap = new Map([[TARGET, (mm) => { count++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });
   host.runFrames(3000);
-  assert.ok(count > 0, "0x2D83 should be dispatched — loc_2d15 branches here to start the string render");
+  assert.ok(count > 0, "0x2D83 should be dispatched — advanceBarrelRelease branches here to start the string render");
   console.log(`  REACHABILITY: ${count} natural 0x2D83 dispatches in 3000 frames`);
 });
 

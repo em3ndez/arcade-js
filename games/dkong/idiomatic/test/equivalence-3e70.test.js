@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_3e70 (ROM 0x3E70) — the sub_1dbd effect-sprite setter that
+ * Equivalence test for pickAwardTierByObjectCount (ROM 0x3E70) — the sub_1dbd effect-sprite setter that
  * picks one of three (DE, B) parameter pairs from A's two low bits and tail-jumps into
  * the record-stamp loc_1e28.
  *
- * loc_3e70 WRITES memory (through its loc_1e28 tail: the task ring via sub_309f, the
+ * pickAwardTierByObjectCount WRITES memory (through its loc_1e28 tail: the task ring via sub_309f, the
  * sprite record 0x6A30..0x6A33, the gated sound 0x6085) and is NOT a leaf, so it is gated
  * by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its own body is a
  * pure priority encoder on A; every downstream branch lives in loc_1e28 and is IDENTICAL
@@ -15,7 +15,7 @@
  * covered with crafted A values:
  *
  *   1. REALISM (real captured dispatch) — attract dispatches 0x3e70 on 25m (BOARD 1) with
- *      A=0x00 (arm 1). Run the ORACLE on one clone and idiomatic loc_3e70 on another and
+ *      A=0x00 (arm 1). Run the ORACLE on one clone and idiomatic pickAwardTierByObjectCount on another and
  *      confirm every game-visible byte, SP and pc match. (STACK_SCRATCH is excluded from
  *      the RAM compare on principle, but here it too matches — the tail push/pop is shared.)
  *
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3e70 as oracle } from "../../translated/loc_3e70.js";
-import { loc_3e70 as idiomatic } from "../loc_3e70.js";
+import { pickAwardTierByObjectCount as idiomatic } from "../pickAwardTierByObjectCount.js";
 import { loc_1e28 } from "../../translated/loc_1e28.js"; // the frozen oracle tail, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -90,7 +90,7 @@ function replay(entry, candidate) {
 }
 
 /**
- * Run attract and clone the machine at each real 0x3e70 dispatch (reached via loc_1dc9's
+ * Run attract and clone the machine at each real 0x3e70 dispatch (reached via armScorePopupAndSelectAward's
  * `jp c,0x3e70` while the 25m demo plays). The wrapper delegates to the oracle so the host
  * run proceeds to a clean stop.
  */
@@ -161,7 +161,7 @@ test("REALISM: real captured 25m 0x3e70 dispatch — game-visible RAM + SP + pc 
 
 // -- 2. ARM SELECTION (exhaustive crafted) ------------------------------------
 
-test("ARM SELECTION (exhaustive): loc_3e70 == oracle over all 256 A values (all three arms)", () => {
+test("ARM SELECTION (exhaustive): pickAwardTierByObjectCount == oracle over all 256 A values (all three arms)", () => {
   const base = craftedBase();
   const { mismatch, arms, count } = sweepA(base, idiomatic);
   assert.equal(
