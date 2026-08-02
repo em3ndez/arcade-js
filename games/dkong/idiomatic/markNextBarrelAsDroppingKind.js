@@ -3,8 +3,14 @@
  * markNextBarrelAsDroppingKind — set bit 7 of BARREL_CLAIM_MODE, preserving the low bits.  ROM 0x2C72.
  *
  * A one-line leaf: read the barrel slot-claim mode byte, turn its top bit on, and store it
- * back. The bits underneath are left alone — the small mode value (0/1/2/3) the slot-claim
- * cluster at 0x2C41 / 0x2C4B / 0x2C4F writes to this same byte survives untouched, so this
+ * back. The bits underneath are left alone — the mode value the slot-claim cluster writes to
+ * this same byte survives untouched. The cluster writes it at TWO sites, not the three an
+ * earlier note listed: ROM 0x2C4B `32 82 63` sets the mode, and ROM 0x2C86 `af / 32 82 63`
+ * clears it to 0 (that second one is the target of the `c2 86 2c` branch at 0x2C46). Of the
+ * three the old note named, 0x2C41 is `cd 57 00 / e6 0f / c2 86 2c`, a call-mask-branch
+ * preamble that stores nothing, and 0x2C4F is `32 8f 63`, a write to the NEIGHBOURING cell
+ * 0x638F. (This routine's own store-back at 0x2C77 writes the cell too, by construction.)
+ * So this
  * only raises bit 7 without disturbing the mode value beneath it (a mode-1 claim with bit 7
  * raised reads back as 0x81).
  *
