@@ -96,10 +96,16 @@ Three rules fall out:
    *from code* that its one write is dead. That was written up in the pass-15 sweep report, and
    in an early draft of this section, as two unrelated methods agreeing. It was not: the
    confirmer's claim was that a WRITE is unobservable, the sweep's was that the ROUTINE never
-   runs. A second sweep driving sustained difficulty 5, deliberate deaths
-   and a 2-player game found `loc_16d0` executing **107 times**. The routine is live; the
-   confirmer's narrower claim may still hold. Two results pointing the same direction are not
-   corroboration unless they are answering the same question.
+   runs. A second sweep driving sustained difficulty 5, deliberate deaths and a 2-player game
+   found `loc_16d0` executing **107 times**, so the sweep's half was wrong. This section then
+   said "the confirmer's narrower claim may still hold" — and THAT was wrong too. Tracing it:
+   ROM 0x2602 decrements 0x62A0 and, on zero, reloads 0x80 and calls 0x26DE, which is
+   `bit 7,(hl) / jp z / ld (hl),2 / ret / ld (hl),0xFE / ret` — it writes +2 or −2 into 0x62A1,
+   a direction reversal. The write is not inert either. BOTH halves of the "corroboration" were
+   false, and the file the two of them were used to doubt had been right all along.
+   Two results pointing the same direction are not corroboration unless they are answering the
+   same question — and when a claim has been wrong twice, the next correction is the one to
+   distrust most.
 
 **Forcing PC to an entry is a different, weaker move.** Poking *state* makes the game dispatch the
 routine itself, with the rest of the machine coherent, so the screen is still evidence. Forcing the
