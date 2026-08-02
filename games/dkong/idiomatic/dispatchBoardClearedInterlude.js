@@ -4,8 +4,8 @@
  *
  * The GAME_SUBSTATE (0x600A) == 0x16 handler: reached once per frame from
  * dispatchInGameSubstate while a board is being cleared / advanced. It first parks the moving
- * sprite groups off-screen (clearSpriteColumns), then routes the board-render / how-high
- * sequence to the handler for the CURRENT board type:
+ * sprite groups off-screen (clearSpriteColumns), then routes the interlude's current step to
+ * the handler for the CURRENT board type:
  *
  *   - Odd board (BOARD bit0 set: 25m or 75m) -> vector the sequence step through the 6-entry
  *     ROM table at 0x1623 (steps 0..5).
@@ -18,10 +18,25 @@
  * Nothing at this level consumes a return value — the sub-state dispatcher that reached dispatchBoardClearedInterlude
  * discards it — so this is void.
  *
- * NAME: kept neutral dispatchBoardClearedInterlude. The dispatch MECHANISM is fully understood and its selector
- * BOARD_ADVANCE_STEP is named, but the board-render sequence's visual family (runRivetBoardInterludeFrame, dispatchRivetBoardInterludeStep,
- * beginKongRecaptureInterlude, stageNextKongPoseWhenHoldExpires, …) is kept address-named until grounded, so an English name here would
- * over-assert past its own arms. Promote once that render family is confirmed.
+ * NAME: promoted in understanding pass 15 by a proposer plus an independent blind confirmer
+ * (docs/reviewer-rules.md R4/R5). Corroboration from OUTSIDE this routine: both of its inputs are
+ * `[seen]` ram.js cells — BOARD (0x6227), "1=25m girders, 2=50m conveyors, 3=75m elevators,
+ * 4=100m rivets", picks the arm, and BOARD_ADVANCE_STEP (0x6388) picks the step — and the pass-14
+ * grounding measured that selector walking 0→1→2→3→4→5 (0→4 on 50m) exactly once per completion,
+ * 51 monotone step entries across nine completions, while it is identically 0 on all 7,466 in-play
+ * frames OUTSIDE sub-state 0x16; each of the three arms was observed driving its own table. The
+ * confirmer contributed a code-only corroboration of the scene itself: clearSpriteColumns parks 28
+ * sprite records (20-21, 32-41, 46-56, 67-71), which stops one record short of Mario (19) on one
+ * side and one short of the heart record (72) on the other and never touches SPRITE_OBJ_BLOCK
+ * (records 2-11) — the gameplay actors are cleared away, the interlude's cast is kept. Working
+ * blind it named this `dispatchInterludeStepByBoard`: different wording, same meaning (the
+ * once-per-frame entry of the board-cleared interlude, routed by board type), verdict PROMOTE.
+ *
+ * The name deliberately drops "how high" — the HOW HIGH screen was captured in GAME_SUBSTATE 0x0A
+ * on 9/9 board builds, and inside sub-state 0x16 the playfield tilemap changes on only six frames
+ * in a whole progression run, all of them on 100m. It also asserts nothing about what the arms
+ * DEPICT: the figure they animate is identified from MAME snapshots, not from bytes, and that
+ * caveat lives in each step handler's own header.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1615.test.js.
  * GATE:     crafted-entry — not reached in plain attract (a board is never completed there), so a

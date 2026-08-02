@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stageKongClimbPose — one timer-gated step of the board-advance render sequence: re-init the
+ * stageKongClimbPose — one timer-gated step of the board-cleared interlude: re-init the
  * sprite-object block from a ROM template, then tail into the shared advance tail.
  * ROM 0x168a.
  *
  * A step handler in the board-cleared / advance interlude (GAME_SUBSTATE 0x600A == 0x16),
- * the near-twin of loc_186f: same rst-0x18 pose gate and the same sub_004e block copy,
+ * the near-twin of loc_186f: same rst-0x18 pose gate and the same loadSpriteObjectBlock copy,
  * differing only in its body and its tail. dispatchBoardClearedInterlude dispatches this family through the
  * 0x6388 step selector; this is the step whose odd-board table entry (0x1623) is 0x168a.
  *
@@ -15,8 +15,9 @@
  *   - Copy a 40-byte (10-record × 4) sprite-object template from ROM 0x388C into
  *     SPRITE_OBJ_BLOCK (loadSpriteObjectBlock; HL = the copy source).
  *   - Re-stamp one just-copied byte — SPRITE_OBJ_BLOCK+4 (0x690C) — back to a fixed 0x66,
- *     then clear three bookkeeping bytes to 0: SPRITE_OBJ_BLOCK+0x1C (0x6924),
- *     SPRITE_OBJ_BLOCK+0x24 (0x692C), and the board-object byte 0x62AF.
+ *     then clear three bytes to 0: the X of records 7 and 9 (0x6924 / 0x692C, parking those
+ *     two sprites for the whole of the next step), and 0x62AF, which the next step uses as
+ *     the climb's animation phase counter.
  *   - jp 0x1662 — tail into the shared board-advance tail (advanceInterludeStepAndLiftKongFigure), which advances the
  *     0x6388 step selector, runs the per-board rst-0x30 gate, and (on 25m) subtracts 4 from
  *     field 3 of every sprite-object record. The Z80 `jp` reuses this frame, so advanceInterludeStepAndLiftKongFigure's
@@ -24,9 +25,31 @@
  *
  * Reached via dispatchGameState's rst-0x28 tail, which discards this handler's return, so
  * nothing downstream reads a register or flag it leaves.
- * NAME: kept as stageKongClimbPose — the mechanics are understood but the exact visual the animation
- * depicts is not independently confirmed, and the whole sibling family (beginKongRecaptureInterlude/advanceInterludeStepAndLiftKongFigure/
- * stageNextKongPoseWhenHoldExpires/loc_186f) stayed address-named.
+ *
+ * NAME: promoted in understanding pass 15 by a proposer plus an independent blind confirmer
+ * (docs/reviewer-rules.md R4/R5). Corroboration from OUTSIDE this routine, and the strongest link
+ * in this cluster, is the 0x62AF clear: the NEXT step (climbKongFigureAndBreakHeart) increments
+ * that byte once per call and the ten-record figure scrolls 4 px on every 8th — grounding observed
+ * it run 0 → 104 across one 25m interlude — so the byte this step zeroes IS the climb's phase
+ * counter, which corroborates "climb" without appealing to any image. The confirmer, blind, matched
+ * ROM against the grounding independently: template 0x388C's record X bytes are
+ * 80/0/83/99/0/83/99/107/0/106, and the grounding had reported the step-2 figure "re-anchored to
+ * X 80/102/83/99" — 80/83/99 are literally those template bytes, and the 102 is the 0x66 this
+ * routine forces into record 1. The template also decodes 43 px wide × 36 px tall, TALLER than
+ * either earlier pose. Independently again, the 50m arm reaches the same climb by loading this
+ * same 0x388C template in reloadObjectBlockAndAdvanceStep (ROM 0x16EE) with the identical
+ * 0x690C/0x6924/0x692C/0x62AF bookkeeping — so the two board groups provably converge on one climb.
+ * The confirmer's name was `stageKongClimbPoseWhenPoseHoldExpires`: the promoted name is that name
+ * minus the gate clause, and the two derivations agree word-for-word on the part that matters.
+ *
+ * What the name does NOT claim. The pose's appearance is still a reading — of a MAME snapshot and
+ * of the template's dimensions — even though its ROLE as the climb is measured. And the two sprites
+ * this step parks (records 7 and 9, restored by the next step on the frame the heart breaks) are
+ * NOT identified. What is measured about record 9 is only this: in template 0x388C its attribute
+ * byte is 0x0A (colour 10) where the other NINE records are all 0x08, and it carries that same
+ * 0x0A in the family's other two templates too (0x385C and 0x3932, where it is a parked blank —
+ * X = 0, sprite code 0x70). One record consistently drawn from a different colour is suggestive of
+ * a second character and is not evidence of one, so no record here may be called Pauline.
  *
  * CALLEES (all landed idiomatic leaves, called directly — no stack modelling):
  * tickSubstateTimer (0x0018), loadSpriteObjectBlock (0x004e), advanceInterludeStepAndLiftKongFigure (0x1662, the tail).
@@ -45,7 +68,9 @@
  *           caller-skip / tail-jump mechanism the boolean gate and direct call replace.
  * NAMES:    SUBSTATE_TIMER (0x6009, inside tickSubstateTimer) and SPRITE_OBJ_BLOCK (0x6908)
  *           from ram.js. Hex-kept: ROM template base 0x388C (an immediate); 0x62AF, which
- *           ram.js explicitly leaves unnamed as board-object bookkeeping.
+ *           pass 15 deliberately left unnamed because it is multiplexed — the 1-in-8 animation
+ *           phase animateSpriteObjectBlock drives during the climb, a 256-frame down-counter
+ *           in loc_18c6.
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
@@ -58,7 +83,7 @@ const STAMP_ADDR = SPRITE_OBJ_BLOCK + 0x04; // 0x690C — a copied byte forced b
 const STAMP_VALUE = 0x66;
 const CLEAR_A = SPRITE_OBJ_BLOCK + 0x1c; // 0x6924
 const CLEAR_B = SPRITE_OBJ_BLOCK + 0x24; // 0x692C
-const BOARD_BOOKKEEPING = 0x62af; // board-object bookkeeping, unnamed in ram.js
+const BOARD_BOOKKEEPING = 0x62af; // the next step's animation phase; multiplexed, unnamed in ram.js
 
 export function stageKongClimbPose(m) {
   const { regs, mem } = m;
@@ -72,7 +97,8 @@ export function stageKongClimbPose(m) {
   regs.hl = COPY_SOURCE;
   loadSpriteObjectBlock(m);
 
-  // Re-stamp one copied byte back to the fixed 0x66, then clear three bookkeeping bytes.
+  // Re-stamp one copied byte back to the fixed 0x66, then clear records 7 and 9's X (parking
+  // those two sprites) and the next step's animation phase counter.
   mem.write8(STAMP_ADDR, STAMP_VALUE);
   mem.write8(CLEAR_A, 0);
   mem.write8(CLEAR_B, 0);

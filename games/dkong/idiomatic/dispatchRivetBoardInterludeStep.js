@@ -5,11 +5,11 @@
  * The exact `rst 0x28` inline-jump-table idiom of the sub-state dispatchers
  * (dispatchInGameSubstate 0x06FE, dispatchCreditedSubstate 0x08B2, dispatchDeathAnimationPhase 0x127F):
  * read a one-byte step index and vector through a ROM table of little-endian target
- * addresses to the handler for that step. Here the selector is the board-render / how-high
- * sequence step counter at 0x6388 (the counter loc_17b6 seeds and loc_1839 advances), and
- * the 6-entry table lives at ROM 0x1648:
+ * addresses to the handler for that step. Here the selector is BOARD_ADVANCE_STEP (0x6388),
+ * the 100m interlude's step counter (the counter loc_17b6 seeds and stepSpriteAnimationSequence
+ * advances), and the 6-entry table lives at ROM 0x1648:
  *   0 -> 0x17B6  — seed the sequence: point the gated tick-advance pointer 0x63C0 at 0x6388,
- *                  paint the how-high render, arm the tick gate.
+ *                  redraw the playfield tilemap (grounded as the girder collapse), arm the gate.
  *   1 -> 0x3069  — the shared gated tick-advance: once the 0x6009 gate expires, bump the byte
  *                  0x63C0 points at (here 0x6388), stepping the sequence.
  *   2 -> 0x1839  — advance the 0x6390 render counter (wraps -> steps 0x6388), then draw.
@@ -17,13 +17,14 @@
  *   4 -> 0x1880  — slide the object block one column (rst-0x38 stride add-loop).
  *   5 -> 0x18C6  — gated wind-down: decrement 0x62AF and, on expiry, finish the interlude.
  *
- * Reached from runRivetBoardInterludeFrame (ROM 0x1641), the fall-through arm of dispatchBoardClearedInterlude's board-advance
- * dispatcher (GAME_SUBSTATE 0x600A == 0x16) taken when BOARD is neither of the two bit-gated
- * cases: runRivetBoardInterludeFrame calls sub_1dbd and falls straight through into this dispatch. Not reached in
- * plain attract (a board is never completed there), so it is gated by crafted entries.
+ * Reached from runRivetBoardInterludeFrame (ROM 0x1641), the fall-through arm of
+ * dispatchBoardClearedInterlude's board-advance dispatcher (GAME_SUBSTATE 0x600A == 0x16) taken
+ * when BOARD is neither of the two bit-gated cases: it calls dispatchEffectState and falls
+ * straight through into this dispatch. Not reached in plain attract (a board is never completed
+ * there), so it is gated by crafted entries.
  *
  * The oracle expresses the vector as `ld a,(0x6388)` then `rst 0x28`, whose shared trampoline
- * (sub_0028 / dispatchInlineJumpTable) recovers the inline table base off the stack, reads the
+ * (dispatchInlineJumpTable, ROM 0x0028) recovers the inline table base off the stack, reads the
  * little-endian word at table[selector], and `jp (hl)`s to it. Here that trampoline is folded
  * in directly: the table base is the compile-time constant 0x1648, so the whole mechanism is
  * `read table[step] from ROM, dispatch`. The dispatch itself is genuine computed control flow
@@ -35,11 +36,25 @@
  * it away is memory-equivalent. The oracle discards the arm's return value at this level, so
  * this routine returns nothing too.
  *
- * NAME: kept neutral dispatchRivetBoardInterludeStep on purpose. The dispatch MECHANISM is fully understood, and the
- * selector 0x6388 is now named BOARD_ADVANCE_STEP in ram.js, but the board-render animation's
- * exact visual is not settled — the whole render family (beginKongRecaptureInterlude, stageNextKongPoseWhenHoldExpires, loc_186f, loc_1880,
- * loc_18c6, …) is kept address-named for the same reason, so an English routine name here would
- * over-assert. Promote once the render sequence's visual is confirmed.
+ * NAME: promoted in understanding pass 15 by a proposer plus an independent blind confirmer
+ * (docs/reviewer-rules.md R4/R5). Corroboration from OUTSIDE this routine: the selector is the
+ * `[seen]` ram.js cell BOARD_ADVANCE_STEP (0x6388); two of the six table targets already carry
+ * earned English names — advanceSequenceStepWhenTimerExpires (0x3069, cert "seen") and
+ * stepSpriteAnimationSequence (0x1839) — and the step-0 target is grounded through the two named
+ * tile writers it drives, fillTileBlock (0x1826: 280 tile writes per completion, a 70-tile fill
+ * run four times) and fillColumnAndContinueWalk (0x0F35: 48 more). The "rivet board" qualifier is
+ * measured, not inferred from the arm names: every one of the six targets was tallied
+ * board-4-exclusive, and the only six frames on which the playfield tilemap changes inside
+ * sub-state 0x16 in a whole progression run are all on board 4 — "4=100m rivets" per ram.js's
+ * `[seen]` BOARD note. The blind confirmer named this `dispatch100mInterludeStep` and voted
+ * PROMOTE; "rivet board" and "100m" are the same board, and both derivations independently
+ * identified the same rst-0x28 inline-table idiom shared with dispatchInGameSubstate /
+ * dispatchCreditedSubstate / dispatchDeathAnimationPhase.
+ *
+ * The name claims only which sequence is being vectored, not what its arms draw. Four of the six
+ * targets (loc_17b6, loc_186f, loc_1880, loc_18c6) are still address-named, and the visual reading
+ * of the 100m steps (collapse → Kong falls → reunion) rests on grounding snapshots rather than on
+ * byte measurements.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1644.test.js.
  * GATE:     crafted-entry — a real attract-run machine with the step 0x6388 poked to each of
@@ -60,7 +75,7 @@
  */
 
 import { loc_00ca } from "../translated/loc_00ca.js";
-import { BOARD_ADVANCE_STEP } from "./ram.js"; // 0x6388 — board-render / how-high sequence step selector (0..5 in play)
+import { BOARD_ADVANCE_STEP } from "./ram.js"; // 0x6388 — interlude step selector (0..5 in play)
 
 // The `rst 0x28` inline jump table: 6 little-endian target addresses in ROM starting at 0x1648
 // (0x17B6, 0x3069, 0x1839, 0x186F, 0x1880, 0x18C6), indexed by the step. A ROM-data address, hex.
@@ -74,7 +89,7 @@ const DISPATCH_TABLE_1648 = "0x1648 (0x6388 sequence)";
 export function dispatchRivetBoardInterludeStep(m) {
   const { mem } = m;
 
-  // ld a,(0x6388) — the board-render sequence step index (0..5).
+  // ld a,(0x6388) — the 100m interlude sequence step index (0..5).
   const step = mem.read8(BOARD_ADVANCE_STEP);
 
   // rst 0x28: `add a,a` doubles the index to a 2-byte table offset, and it is an 8-bit result —

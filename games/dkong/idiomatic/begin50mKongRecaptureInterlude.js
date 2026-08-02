@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * begin50mKongRecaptureInterlude — sequence step 0: spawn init, stamp the fixed ten-record figure over the
- * sprite-object block re-anchored to its previous X, then advance the 0x6388 step. ROM 0x16a3.
+ * begin50mKongRecaptureInterlude — sequence step 0: spawn the heart, stamp the fixed ten-record
+ * figure over the sprite-object block re-anchored to its previous X, then advance the step.
+ * ROM 0x16a3.
  *
  * This is index 0 of the rst-0x28 table at ROM 0x1637, dispatched by dispatchBoardClearedInterlude (the L2
  * board-advance handler for game sub-state 0x600A == 0x16) on the step selector at
  * 0x6388. As the sequence's first step it sets the figure up, then bumps 0x6388 so the
- * next frame runs the next step (0x16bb). In order:
+ * next frame runs the next step (dispatchKongWalkFrame, ROM 0x16bb). In order:
  *
- *   1. spawnInterludeHeart (ROM 0x1708) — the "spawn" initializer: silence sound, seed a fixed
- *      4-byte sprite record + the blink-sprite code, paint a 3-cell colour column, set
- *      the sound-priority pair. Input-independent; touches none of the state below.
+ *   1. spawnInterludeHeart (ROM 0x1708) — the interlude's opening tableau: silence sound, seed
+ *      the whole-heart sprite record (code 0x76) + the blink-sprite code, blank three tilemap
+ *      cells, set the sound-priority pair. Input-independent; touches none of the state below.
  *
  *   2. Capture record 2's CURRENT on-screen X (0x6910, the +0 byte of the third record
  *      in SPRITE_OBJ_BLOCK) and turn it into a shift: `shift = oldX - 0x3b`. This read
@@ -28,13 +29,29 @@
  *
  *   5. Advance the sequence step: `inc (0x6388)`.
  *
- * NAME KEPT NEUTRAL. The mechanics above are confirmed, and 0x6388 is now the ram.js-confirmed
- * BOARD_ADVANCE_STEP (this routine advances it), but the routine's ROLE name is not promoted:
- * the directly-parallel sibling beginKongRecaptureInterlude (same spawnInterludeHeart spawn at the same table-index-0
- * position, for the other board-bit group) is likewise kept neutral in this codebase, and the
- * exact figure it spawns is not independently confirmed. Naming this "board-advance figure
- * spawn" would over-assert a role, so it stays begin50mKongRecaptureInterlude with the understood mechanics in this
- * header for a later promoter.
+ * NAME: promoted in understanding pass 15 by a proposer plus an independent blind confirmer
+ * (docs/reviewer-rules.md R4/R5). Corroboration from OUTSIDE this routine: BOARD (0x6227) is
+ * `[seen]` with "2=50m conveyors", and the pass-14 writer table attributes the step write at
+ * pc 0x1707 to board 2 only, exactly one per 50m completion — that is where the "50m" in the name
+ * comes from. The heart is the same PC-attributed spawn the odd-board opening uses (6 fires in the
+ * run: 3× board 1, 1× board 2, 2× board 3, ALL of them sub 0x16 step 0), and the confirmer
+ * independently established that sprite code 0x76 decodes to a heart in gfx2.bin. That this is the
+ * SAME figure as the odd-board opening is a code fact, not a snapshot reading: both load the
+ * identical ROM template 0x385C. The confirmer also traced the re-anchor arithmetic outside this
+ * file — ram.js's M50_OBJ_ROW_SHIFT (0x63B7) records `entry_03fb`/`entry_0400` computing the same
+ * `(0x6910) − 0x3B` expression on the BOARD==2 arm during play, with shiftEvenBoardSpriteColumn
+ * adding it into this same block's X column, which is precisely WHY the 50m arm must preserve X
+ * where the odd-board arm need not — and verified 0x3B as the template's own record-2 X byte in
+ * maincpu.bin. Grounding saw the figure re-stamped at X 182/168, 109 px from the template anchor.
+ * Blind, the confirmer named this `beginKongRecaptureInterludeAtCurrentX` and voted PROMOTE: it
+ * put the re-anchor in the name where the promoted name puts the board, so the wording differs;
+ * the meaning both derivations reached is the same — the 50m opening step, which re-stamps the
+ * figure at the X it already occupies.
+ *
+ * What the name does NOT claim. "Kong" rests on the pass-14 snapshot reading ("standing at the
+ * RIGHT end of the top girder on 50m") plus the shared-template argument above, not on a byte
+ * measurement. No record of the ten-record block is identified as Pauline — that separation was
+ * never made — so the name says who is re-stamped, not who is carried.
  *
  * Memory-equivalent to the frozen oracle — equivalence-16a3.test.js.
  * GATE:     exhaustive over the input surface — UNREACHED in attract (0 dispatches /
@@ -46,7 +63,7 @@
  *           reads 0x6910 AFTER the block copy (measuring the template, not the old X).
  * LIVE-OUT: memory-only — the sprite-object block (0x6908-0x692F), the 0x6388 step, and
  *           everything spawnInterludeHeart writes (sound RAM 0x6080-0x608B, sprite bytes 0x6905 /
- *           0x6A20-0x6A23, colour cells 0x75C4/0x75E4/0x7604). The successor is the
+ *           0x6A20-0x6A23, tilemap cells 0x75C4/0x75E4/0x7604). The successor is the
  *           rst-0x28 return path in dispatchBoardClearedInterlude, which reads none of the residual
  *           A/B/C/HL/DE/flags the oracle leaves (the next frame re-dispatches on 0x6388
  *           fresh from memory). SP/PC are not compared — the idiomatic layer drops the
@@ -57,7 +74,7 @@
  */
 
 import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
-import { spawnInterludeHeart } from "./spawnInterludeHeart.js"; // ROM 0x1708 — spawn init
+import { spawnInterludeHeart } from "./spawnInterludeHeart.js"; // ROM 0x1708 — opening tableau
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e — 40-byte template -> 0x6908
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38) — X column += C
 
@@ -71,7 +88,8 @@ const TEMPLATE_ANCHOR_X = 0x3b;
 export function begin50mKongRecaptureInterlude(m) {
   const { regs, mem } = m;
 
-  // 1. Spawn init (silence sound, seed sprite record + colour column + sound priority).
+  // 1. Opening tableau (silence sound, seed the heart record, blank three tilemap cells,
+  //    set the sound priority).
   spawnInterludeHeart(m); // ROM 0x1708
 
   // 2. Turn record 2's CURRENT X into the re-anchoring shift. Read BEFORE the copy in

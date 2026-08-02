@@ -27,29 +27,36 @@
  * the rail it has just reached. endKongWalkAndAdvanceInterlude reads no work RAM of its own and writes none — it
  * only tests its two inputs and tail-calls the chosen handler, which does all the memory work.
  *
- * The scene these sprites belong to is UNCONFIRMED: the motion tails loc_16d0 / stepKongWalk and
- * their meaning-bearing callee loc_2602 all declined an English name over the sprite-record
- * trap, and this routine's rail thresholds remain unnamed engine scratch (the 0x6388 counter
- * its loc_16ee callee advances is now BOARD_ADVANCE_STEP) — so it keeps the neutral endKongWalkAndAdvanceInterlude
- * name and states the mechanic in prose. A reviewer who promotes loc_2602 can promote this
- * whole family in the same pass.
+ * NAME: promoted from loc_16e1 in this pass, with the scene inherited from the sequence step
+ * that opens it — begin50mKongRecaptureInterlude (ROM 0x16A3) stamps the ten-record figure from
+ * the ROM 0x385C template into SPRITE_OBJ_BLOCK and bumps the 0x6388 selector into this family,
+ * so the group this routine reinitializes or bounces is that one figure, and the counter its
+ * loc_16ee callee advances is the same BOARD_ADVANCE_STEP (0x6388) selector.
+ * WHAT THIS NAME DOES NOT CLAIM: that the figure is Kong on measured bytes — "Kong" is the
+ * pass-14 snapshot reading both interlude openers flag as a reading, not a byte measurement.
+ * This routine's own rail thresholds remain unnamed engine scratch, stated in prose. loc_16d0
+ * and loc_2602 are still loc_-named.
  *
  * Inputs: recordX = record #2's X (0x6910); stepByte = the published step (0x63A3). Needs the
  * machine only to hand it to the chosen handler.
  *
  * Memory-equivalent to the frozen oracle — equivalence-16e1.test.js.
- * GATE:     crafted-entry; attract never dispatches 0x16e1 (0×/2500 frames, asserted — the
- *           group cascade this family drives runs only in real gameplay), so all three arms
+ * GATE:     crafted-entry; attract never dispatches 0x16e1 (0×/2500 frames, asserted — attract
+ *           never reaches GAME_SUBSTATE 0x16 at all, because it never completes a board, and this
+ *           family hangs off that sub-state's 50m step table at ROM 0x1637), so all three arms
  *           are reproduced by poking recordX / stepByte (and the object's motion state) on a
  *           booted machine and comparing RAM − STACK_SCRATCH + pc + SP against the oracle. A
  *           full recordX sweep pins the exact 93 reinit threshold and the sign split; a FRAME
  *           sweep drives the real motion through the bounce arms. Teeth: a swapped-sign twin
  *           (reverses on the wrong step sign) and a dropped-reinit twin (slides instead of
  *           reinitializing in the 90..92 band), both caught by the RAM diff.
- * LIVE-OUT: memory-only. endKongWalkAndAdvanceInterlude tail-returns through whichever handler it picks; the whole
- *           family is dispatched from the in-game substate table and returns through the NMI
- *           dispatcher, which reads no register or flag it leaves — the register file is dead
- *           ABI. RAM (+ SP/pc) backstops that.
+ * LIVE-OUT: memory-only. endKongWalkAndAdvanceInterlude tail-returns through whichever handler it
+ *           picks; the whole family sits TWO levels below the in-game sub-state table — 0x0702
+ *           idx 0x16 -> 0x1615 (dispatchBoardClearedInterlude), which vectors BOARD_ADVANCE_STEP
+ *           through the 50m step table at ROM 0x1637, whose idx 1 (the word at 0x1639) is 0x16BB;
+ *           0x16e1 is reached only from 0x16BB's `jp nc`. It returns through the NMI dispatcher,
+ *           which reads no register or flag it leaves — the register file is dead ABI. RAM
+ *           (+ SP/pc) backstops that.
  * NAMES:    none imported — recordX / stepByte are honest inputs (record #2's X and the
  *           object's published step, named in prose to match stepKongWalk). The 93 rail threshold
  *           is unnamed engine scratch, kept in prose; the 0x6388 counter its loc_16ee callee

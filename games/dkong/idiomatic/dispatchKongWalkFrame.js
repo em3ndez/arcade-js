@@ -8,10 +8,12 @@
  * shared stepKongWalk group-slide). It runs first every frame and does two things:
  *
  *   1. Clear object #1's even-frame countdown M50_OBJ1_REVERSE_TIMER (0x62A0) := 0. This is
- *      the "keep travelling" default: loc_2602 will let this wrap to 0xFF and hold the
- *      current direction. Only the
- *      loc_16d0 arm overwrites it with 1 to make it underflow immediately and REVERSE — so
- *      pre-clearing here is what makes "did we choose loc_16d0?" the whole bounce decision.
+ *      the "keep travelling" default: on an even frame loc_2602's `dec` takes it 0 -> 0xFF,
+ *      which is non-zero, so no reversal is taken and the current direction holds. Only the
+ *      loc_16d0 arm overwrites it with 1, so that the same `dec` lands on ZERO — the case that
+ *      reloads the period and REVERSES — in that very frame; that write survives only on an even
+ *      frame, because on an odd one loc_2602 skips the tick and this clear wipes it next frame.
+ *      Pre-clearing here is what makes "did we choose loc_16d0?" the whole bounce decision.
  *
  *   2. Read record #2's X (recordX, 0x6910 — not named in ram.js) and object #1's published
  *      signed per-frame step (stepByte, M50_OBJ1_STEP), and route:
@@ -28,28 +30,37 @@
  * still travelling INTO the edge nearest it. dispatchKongWalkFrame's only memory write of its own is the
  * M50_OBJ1_REVERSE_TIMER (0x62A0) clear; the chosen handler does all the motion work.
  *
- * The M50_* names in ram.js place this family on the 50m board (board-2 object cascade), but
- * the VISUAL scene these sprites depict is still UNCONFIRMED: the motion tails loc_16d0 /
- * stepKongWalk and their meaning-bearing callee loc_2602 all declined an English name over the
- * sprite-record trap, and this routine's rail thresholds are raw magnitudes rather than named
- * state (its step input IS named — M50_OBJ1_STEP — but 0x6910 is not) — so it keeps the neutral
- * dispatchKongWalkFrame name and states the mechanic in prose,
- * matching its family. A reviewer who promotes loc_2602 can promote this whole family in the
- * same pass.
+ * The M50_* names in ram.js place this family on the 50m board (board-2 object cascade), and the
+ * group it routes is the ten-record figure the previous sequence step stamps:
+ * begin50mKongRecaptureInterlude (ROM 0x16A3) copies the ROM 0x385C template into
+ * SPRITE_OBJ_BLOCK and bumps the 0x6388 selector to this routine, and record #2's X (0x6910)
+ * that this routine reads is a byte of that same block.
+ *
+ * NAME: promoted from loc_16bb in this pass, taking the scene from that opener rather than from
+ * anything measured in this routine.
+ * WHAT THIS NAME DOES NOT CLAIM: that the figure is Kong on measured bytes — "Kong" is the
+ * pass-14 snapshot reading both interlude openers flag as a reading, not a byte measurement. The
+ * rail thresholds here stay raw magnitudes rather than named state (the step input IS named —
+ * M50_OBJ1_STEP — but 0x6910 is not), so the mechanic is stated in prose. loc_16d0 and loc_2602
+ * are still loc_-named.
  *
  * Memory-equivalent to the frozen oracle — equivalence-16bb.test.js.
- * GATE:     crafted-entry; attract never dispatches 0x16bb (0×/2500 frames, asserted — the
- *           object cascade this family drives runs only in real gameplay), so all three routes
+ * GATE:     crafted-entry; attract never dispatches 0x16bb (0×/2500 frames, asserted — attract
+ *           never reaches GAME_SUBSTATE 0x16 at all, because it never completes a board, and
+ *           0x16bb's only ROM reference is that sub-state's 50m step table), so all three routes
  *           are reproduced by poking recordX / stepByte (and the object's motion state) on a
  *           booted machine and comparing RAM − STACK_SCRATCH + pc + SP against the oracle. A
  *           full recordX sweep pins the exact 90 hand-off threshold and the below-rail sign
  *           split; a FRAME sweep drives the real motion through the bounce arms. Teeth: a
  *           swapped-sign twin (bounces on the wrong step sign) and a dropped-clear twin (skips
  *           the M50_OBJ1_REVERSE_TIMER (0x62A0) := 0 pre-clear), both caught by the RAM diff.
- * LIVE-OUT: memory-only. dispatchKongWalkFrame tail-returns through whichever handler it picks; the whole
- *           family is dispatched from the in-game substate table and returns through the NMI
- *           dispatcher, which reads no register or flag it leaves — the register file is dead
- *           ABI. RAM (+ SP/pc) backstops that.
+ * LIVE-OUT: memory-only. dispatchKongWalkFrame tail-returns through whichever handler it picks;
+ *           the whole family sits TWO levels below the in-game sub-state table — 0x0702 idx 0x16
+ *           -> 0x1615 (dispatchBoardClearedInterlude), which vectors BOARD_ADVANCE_STEP through
+ *           the 50m step table at ROM 0x1637, whose idx 1 (the word at 0x1639) is 0x16BB. That
+ *           table entry is 0x16BB's ONLY reference anywhere in maincpu.bin (exhaustively
+ *           scanned). It returns through the NMI dispatcher, which reads no register or flag it
+ *           leaves — the register file is dead ABI. RAM (+ SP/pc) backstops that.
  * NAMES:    M50_OBJ1_REVERSE_TIMER (0x62A0, object #1's even-frame countdown) and
  *           M50_OBJ1_STEP (0x63A3, object #1's published signed per-frame step), both from
  *           ram.js. 0x6910 (a SPRITE_BUFFER record's X) is NOT individually named in ram.js —
