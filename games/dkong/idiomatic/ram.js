@@ -705,7 +705,8 @@ export const OBJ_PARAM_TABLE1 = 0x6310;
  *  object (+0:=1, position/appearance seeded) and clears it to 0. */
 export const SPAWN_REQUEST = 0x6396;
 /** [code] One-shot "Mario Y just repositioned" flag; sub_29af sets 1 right after writing MARIO_Y, read
- *  as a gate by sub_2a85/dispatchElevatorRideByColumn, cleared by the edge-reset routines. */
+ *  as a gate by sub_2a85/dispatchElevatorRideByColumn, cleared by killMarioAtEndOfLiftTravel
+ *  (0x277F) and by loc_2766. */
 export const EDGE_REPOSITION_FLAG = 0x6398;
 // Periodic object event-request latches raised by raisePeriodicObjectSpawnRequests (board-gated, difficulty-scaled)
 // and consumed one-per-frame by their inserters. Two distinct request/consumer chains.
@@ -1051,7 +1052,7 @@ export const ROUTINES = {
   0x1615: { name: "dispatchBoardClearedInterlude", role: "top dispatcher for the board-advance state, keyed on the board type", cert: "code" },
   0x1641: { name: "runRivetBoardInterludeFrame", role: "run the effect-sprite state machine, then dispatch the board-render sequence step", cert: "code" },
   0x1644: { name: "dispatchRivetBoardInterludeStep", role: "vector the board-advance render sequence to its current-step handler", cert: "code" },
-  0x1654: { name: "beginKongRecaptureInterlude", role: "step 0 of the board-advance render sequence: run the intro/board spawn init, stage the first sprite-object animation frame, arm the pose-hold timer, then the shared tail", cert: "code" },
+  0x1654: { name: "beginKongRecaptureInterlude", role: "step 0 of the board-advance render sequence: run the interlude's opening tableau (spawnInterludeHeart) -- NOT a board-load or intro-cutscene spawn, stage the first sprite-object animation frame, arm the pose-hold timer, then the shared tail", cert: "code" },
   0x1662: { name: "advanceInterludeStepAndLiftKongFigure", role: "bump the board-advance sequence step, then (only on the 25m board) subtract 4 from field 3 of every sprite-object record", cert: "code" },
   0x1670: { name: "stageNextKongPoseWhenHoldExpires", role: "one timer-gated step of the board-advance render sequence", cert: "code" },
   0x168a: { name: "stageKongClimbPose", role: "one timer-gated step of the board-advance render sequence: re-init the sprite-object block from a ROM template, then tail into the shared advance tail", cert: "code" },
@@ -1061,7 +1062,7 @@ export const ROUTINES = {
   0x16d5: { name: "stepKongWalk", role: "drive sub_25f2's object #1, then slide its 10-sprite group one step along X", cert: "code" },
   0x16e1: { name: "endKongWalkAndAdvanceInterlude", role: "once the moving sprite group reaches its rail region, either reinitialize it or bounce/slide it by its current step sign", cert: "code" },
   0x16ee: { name: "reloadObjectBlockAndAdvanceStep", role: "reload the board's sprite-object block from its ROM template, patch three record fields, and advance the board-advance step index", cert: "code" },
-  0x1708: { name: "spawnInterludeHeart", role: "board/intro spawn init: silence sound, seed a fixed 4-byte sprite record plus the blink-sprite code, paint a 3-cell descending colour column, then set the sound-priority ", cert: "code" },
+  0x1708: { name: "spawnInterludeHeart", role: "the board-cleared interlude's opening tableau, run by both step-0 openers (beginKongRecaptureInterlude on the odd boards, begin50mKongRecaptureInterlude on 50m): silence sound, seed the heart sprite record (code 0x76) plus the blink-sprite code, paint a 3-cell descending colour column, then set the sound-priority pair. NOT a board-load or intro-cutscene spawn -- all 6 fires in a progression run are sub-state 0x16 step 0, with 0 in the opening cutscene and 0 in attract", cert: "code" },
   0x1732: { name: "climbKongFigureAndBreakHeart", role: "one animation-gated step of the board-advance render sequence", cert: "code" },
   0x1757: { name: "advanceBoardStepWhenSpritesCleared", role: "one arm of the board-advance sequence: sweep the sprite-object block toward the top and, once it is fully empty, arm the wait timer and step to the next arm of the sequen", cert: "code" },
   0x176c: { name: "cullSpriteObjectsAtTop", role: "clear the X of any sprite-object that has risen to the top of the screen", cert: "code" },
@@ -1182,11 +1183,11 @@ export const ROUTINES = {
   0x26fa: { name: "loc_26fa", role: "per-pass service dispatcher for one board's moving objects", cert: "code" },
   0x271e: { name: "loc_271e", role: "thin wrapper: run the vertical-reposition machine, then return", cert: "code" },
   0x2722: { name: "serviceBoardObjects", role: "service the six board objects for one pass, then publish their positions to the sprite buffer", cert: "code" },
-  0x2745: { name: "dispatchElevatorRideByColumn", role: "the vertical-reposition machine: gate on the reposition flag, then dispatch by Mario's X into the mover arms or the edge reset", cert: "code" },
+  0x2745: { name: "dispatchElevatorRideByColumn", role: "the lift-ride machine: gate on the lift flag, then dispatch by Mario's X into the up-mover (band 44..66), the down-mover (108..130), or loc_2766 (start Mario falling, clear the lift flag) -- never observed executing, so what TAKING that arm means is unclaimed", cert: "code" },
   0x2766: { name: "loc_2766", role: "start Mario falling and clear the edge-reposition flag", cert: "code" },
-  0x276f: { name: "carryMarioUpWithLift", role: "step Mario's Y toward the top of its travel, or edge-reset once it arrives", cert: "code" },
-  0x277f: { name: "killMarioAtEndOfLiftTravel", role: "the edge reset reached when the vertical mover runs off its track", cert: "code" },
-  0x2787: { name: "carryMarioDownWithLift", role: "advance Mario's vertical position by one, or hand off to the edge reset once it reaches the bottom limit", cert: "code" },
+  0x276f: { name: "carryMarioUpWithLift", role: "carry Mario UP with the lift (MARIO_Y - 1; larger Y is lower on screen), or kill him if MARIO_Y is already below the 0x71 limit", cert: "code" },
+  0x277f: { name: "killMarioAtEndOfLiftTravel", role: "kill Mario: clear MARIO_ACTIVE and the lift flag 0x6398. All three callers trigger on MARIO_Y -- the two lift arms at their limits, and loc_26fa at MARIO_Y >= 0xF0 with no X-band test, so the caller need not be on a lift", cert: "code" },
+  0x2787: { name: "carryMarioDownWithLift", role: "carry Mario DOWN with the lift (MARIO_Y + 1), or kill him once MARIO_Y reaches the 0xE8 limit", cert: "code" },
   0x2797: { name: "advanceBoardObjectTravel", role: "advance the six board objects in the 0x6600 array: each active object drifts one pixel vertically toward its limit, then lands or deactivates on arrival", cert: "code" },
   0x27da: { name: "spawnBoardObject", role: "on the spawn cadence, claim a free object slot and seed a new board object; always tick the cadence timer down", cert: "code" },
   0x2806: { name: "decrementByteAt", role: "decrement the byte at the given address by one", cert: "code" },
