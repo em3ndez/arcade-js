@@ -33,9 +33,13 @@
  *           and the low-byte page wrap on the record fields. Teeth: a wrong tile
  *           threshold, a dropped low-nibble check, a dropped X probe offset, and a
  *           record read that does not confine the wrap to the page.
- * LIVE-OUT: the boolean return (the oracle's A ∈ {0,1}; the caller's `cp 0x01`
- *           consumes only that). The routine writes NO memory — it is read-only —
- *           and every other residual register/flag is dead ABI.
+ * LIVE-OUT: the verdict, returned BOTH as a boolean AND in register A (1 = out of
+ *           band, 0 = in band). A is load-bearing, not residual: the caller (ROM
+ *           0x3202, at 0x3241) is still translated and consumes the answer with
+ *           `cp 0x01`, so A is this routine's register boundary until that caller is
+ *           rewritten. The routine writes NO memory — it is read-only — and every
+ *           other residual register is dead ABI, as are the flags (the caller's
+ *           `cp 0x01` recomputes them from A).
  * NAMES:    OBJ_ITER_PTR (0x63c8) from ram.js. The record field offsets +0x0e/+0x0f
  *           and the 12px probe offset are object-record structure, not ram.js cells;
  *           the tile band (0xB0, low nibble < 8) is an irreducible value test. The
@@ -56,7 +60,7 @@ const NIBBLE_LIMIT = 0x08;   // in-band tiles keep their low nibble under this
  * @returns {boolean} true when the probed tile is OUTSIDE the accepted band.
  */
 export function loc_298c(m) {
-  const { mem } = m;
+  const { regs, mem } = m;
 
   // The object record being iterated. Field offsets advance the low byte only,
   // so they stay confined to the record's own 256-byte page.
@@ -71,7 +75,18 @@ export function loc_298c(m) {
   const tile = mem.read8(tileAddrForPixel(y, x));
 
   // Out of band below the floor, or once the low nibble reaches 8.
-  if (tile < TILE_FLOOR) return true;
-  if ((tile & 0x0f) >= NIBBLE_LIMIT) return true;
-  return false;
+  //
+  // The verdict is handed back BOTH ways. The JS boolean is what idiomatic callers
+  // read; A is what the still-translated caller at ROM 0x3241 reads (`cp 0x01`),
+  // exactly as the oracle leaves it (`ld a,0x01` / `xor a`). Returning the boolean
+  // alone leaves A holding whatever the preceding `call 0x33ad` left there, and the
+  // caller then mis-branches on it.
+  if (tile < TILE_FLOOR) return verdict(true);
+  if ((tile & 0x0f) >= NIBBLE_LIMIT) return verdict(true);
+  return verdict(false);
+
+  function verdict(outOfBand) {
+    regs.a = outOfBand ? 0x01 : 0x00;
+    return outOfBand;
+  }
 }

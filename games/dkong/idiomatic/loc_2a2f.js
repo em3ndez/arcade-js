@@ -35,9 +35,12 @@
  *           STACK_SCRATCH the oracle's push/pop bracket around the cell lookup writes. Teeth:
  *           an off-by-one passable threshold, a dropped 4 px nudge-undo, and a flipped slide
  *           direction.
- * LIVE-OUT: the object-record X byte (record offset 5, rewritten only on the slide arm) + a
- *           boolean return — contact/no-contact, which the caller consumes as `and a / jp nz`.
- *           The oracle's residual registers/flags and its terminal ret are otherwise dead.
+ * LIVE-OUT: the object-record X byte (record offset 5, rewritten only on the slide arm), plus
+ *           the contact flag returned BOTH as a boolean AND in register A (1 = contact,
+ *           0 = none). A is load-bearing, not residual: both callers (ROM 0x2053, 0x20EC) are
+ *           still translated and read the answer with `and a / jp nz`, so A is this routine's
+ *           register boundary until they are rewritten. The oracle's other residual registers,
+ *           its flags (both callers recompute them with `and a`) and its terminal ret are dead.
  * NAMES:    none from ram.js — the object-record fields (Y at +3, X at +5) are addressed
  *           relative to the caller's object pointer, and the probed cell is tilemap video RAM
  *           (0x7400 page); neither has a ram.js name. The cell address is computed by
@@ -62,9 +65,9 @@ export function loc_2a2f(m) {
 
   // Passable footing: below the girder range, a girder tile with a high low-nibble, or the
   // flat 0xC0 tile. Nothing to slide — no contact.
-  if (tile < 0xb0) return false;
-  if ((tile & 0x0f) >= 8) return false;
-  if (tile === 0xc0) return false;
+  if (tile < 0xb0) return noContact();
+  if ((tile & 0x0f) >= 8) return noContact();
+  if (tile === 0xc0) return noContact();
 
   // A slope tile: its class picks the horizontal offset applied at the snapped boundary.
   let slope;
@@ -85,7 +88,21 @@ export function loc_2a2f(m) {
   const slid = u8((probeX & 0xf8) + slope);
   if (slid < probeX) {
     mem.write8((objPtr + 5) & 0xffff, slid - 4); // undo the 4 px nudge; the store truncates
+    regs.a = 0x01; // contact, in A — see noContact() for why A is the live-out
     return true;
   }
-  return false;
+  return noContact();
+
+  // The contact flag is returned BOTH as a JS boolean and in A. A is not decoration: the two
+  // callers (ROM 0x2053 and 0x20EC) are still translated, and they read the answer out of the
+  // accumulator — `and a / jp nz` — exactly as the oracle leaves it (`ld a,0x01` on the slide
+  // arm, `xor a` here). A JS `return false` alone leaves A holding whatever the preceding
+  // gravity step left there, which is reliably NON-ZERO, so every probe would report contact
+  // and the caller would branch into its collision arm. A is this routine's register boundary
+  // until both callers are rewritten, the same way loc_2a85 hands D/HL to its still-translated
+  // callee. The flags A also carries are dead: both callers recompute them with `and a`.
+  function noContact() {
+    regs.a = 0x00;
+    return false;
+  }
 }

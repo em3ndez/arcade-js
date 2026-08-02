@@ -25,7 +25,7 @@
 //      is stack-neutral on its own, and that the flip still reproduces the oracle on every live
 //      cell. Also asserts the run REACHES its frame budget, which "green" did not previously imply:
 //      before the seam fix this run died at frame 237 and no test failed.
-//      Its budget is 600, bounded by a real divergence at frame 607, not a margin — see FLIP_FRAMES.
+//      Its budget is 700, bounded by the pure-signature wiring class at frame 710 — see FLIP_FRAMES.
 //
 //   3. "with no overrides the seam is not installed at all"
 //      A STRUCTURAL proof, not a numeric one: a Machine built with an empty override map carries no
@@ -73,17 +73,30 @@ const test = ROM_PRESENT
 
 const FRAMES = 600; // enough to boot and run the attract sequence
 
-// The full flip's budget is 600, and the reason it is not higher is a REAL DEFECT, not a safety
-// margin. The PREVIOUS blocker is gone: at frame 599 `translated/loc_3e99.js:66` used to invoke ROM
-// 0x3EC3 as `m.call(0x3ec3)` with no second argument while `idiomatic/countObjectOverlaps.js` takes
-// an options object, throwing `TypeError: Cannot destructure property 'objectBase' of 'undefined'`.
-// An idiomatic loc_3e99 that passes the options object now serves that address, so the flip runs
-// past 599 — and running past it exposed the NEXT wall, at frame 607: a live-cell divergence in one
-// OBJ_ARRAY_67 record and its mirrored sprite (0x6706/0x6707/0x670f/0x6711/0x6714/0x6719/0x6981),
-// reproduced on both engines. That divergence is NOT in the routines that opened the window — it is
-// in code wired long before, newly reachable because frames 600+ had never been compared.
-// Raise this to FRAMES the moment THAT is fixed; do not raise it by loosening the assertions.
-const FLIP_FRAMES = 600;
+// The full flip's budget is 700, and the reason it is not higher is a REAL DEFECT, not a safety
+// margin. Two blockers have fallen in turn, each one exposing the next:
+//   frame 599 — `translated/loc_3e99.js:66` invoked ROM 0x3EC3 as `m.call(0x3ec3)` with no second
+//     argument while `countObjectOverlaps` destructures one. FIXED by wiring an idiomatic loc_3e99.
+//   frame 607 — a live-cell divergence in one OBJ_ARRAY_67 record and its mirrored sprite. FIXED
+//     by 0x2A2F, which returned a JS boolean without writing `regs.a` while both its callers are
+//     still translated and read the verdict out of the accumulator (`and a / jp nz` at
+//     translated/loc_2053.js and loc_20ec.js). Bisected: 0x2A2F alone clears frame 607.
+//     0x298C had the SAME defect and was fixed alongside it — its single caller
+//     translated/loc_3202.js uses `cp 0x01` rather than `and a / jp nz` — but on its own it does
+//     NOT clear 607; it is a correctness fix, not the one that moved this wall.
+//     A dropped register live-out at a translated-caller boundary — invisible to a per-routine gate
+//     that compares RAM and the oracle's residual A, but never checks the value lands where the
+//     caller looks.
+//   frame 710 — THE CURRENT WALL: `snapYToGirder` (0x2333) is a PURE function
+//     `(x, y, step)` registered at a ROM address. The seam dispatches it as `fn(m)`, so `x` is the
+//     Machine and the rest `undefined`; `x % 16` is NaN and it silently degrades to a no-op that
+//     happens to match the oracle's frequent early-out. Over a 1500-frame run the oracle moves L
+//     on 71 of 1301 dispatches; the wired idiomatic version moves it on 0 of 1146. (The zero is the
+//     load-bearing half; the dispatch counts differ between the two runs and are quoted with their
+//     budget so they can be re-derived.) It is a CLASS, not one routine: five ROUTINES entries export
+//     non-machine signatures, and 0x3009 hangs the process outright when dispatched that way.
+// Raise this to FRAMES the moment that class is fixed; do not raise it by loosening the assertions.
+const FLIP_FRAMES = 700;
 
 const { pollPCs, stateExclude, golive } = manifest.convergence;
 const { nmiReturnPC } = golive;

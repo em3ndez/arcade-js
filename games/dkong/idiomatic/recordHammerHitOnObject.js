@@ -88,8 +88,11 @@
  *           ram.js names too: HAMMER_IN_PLAY (+0x01 — SCOPED to this pair, see ram.js: +0x01
  *           carries unrelated roles on other records, so there is deliberately no generic OBJ_*
  *           name at that offset), OBJ_Y (+0x05), OBJ_HIT_EXTENT_X (+0x09), OBJ_HIT_EXTENT_Y
- *           (+0x0A). The 0x6350 hit marker stays hex (SHARED with the effect-seq gate — see ram.js
- *           DOWNGRADE). The 0x283E return marker is a ROM code address, not work RAM, so hex.
+ *           (+0x0A). The 0x6350 hit marker stays hex because ram.js genuinely does not name it —
+ *           the named collision group starts one byte later at COLLIDED_OBJECT_BASE (0x6351). It is
+ *           SHARED with the effect-sequence gate: this routine is its only nonzero writer, loc_1e8c
+ *           and loc_03a2 read it, and animateEffectSpriteThenRearmEffect's teardown is the only
+ *           thing that clears it. The 0x283E return marker is a ROM code address, not work RAM.
  */
 
 import {
@@ -158,7 +161,12 @@ export function recordHammerHitOnObject(m) {
   // Record the collided hazard: the marker, the hit's index within its sweep array
   // (array count minus the count still left when it fired), the array's stride low byte,
   // and the array's base.
-  mem.write8(0x6350, overlap); // 0x6350: hit marker, kept hex (SHARED — see ram.js DOWNGRADE)
+  // 0x6350 — the hit-effect latch, genuinely unnamed in ram.js (the named collision group starts
+  // one byte later, at COLLIDED_OBJECT_BASE 0x6351). Whole-ROM scan: written ONLY here (always
+  // nonzero — the `and a / ret z` two instructions earlier guarantees it), read by loc_1e8c and
+  // loc_03a2, and cleared only by animateEffectSpriteThenRearmEffect's teardown. Setting it here
+  // suspends gameplay from the NEXT frame until that teardown reopens the gate.
+  mem.write8(0x6350, overlap);
   mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT) - regs.b);
   mem.write8(COLLIDED_OBJECT_STRIDE, regs.e);
   mem.write16(COLLIDED_OBJECT_BASE, regs.ix);
