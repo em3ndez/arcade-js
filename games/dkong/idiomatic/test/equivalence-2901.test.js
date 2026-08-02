@@ -5,15 +5,15 @@
  *
  * The routine recovers the per-axis tolerances the dispatcher pushed on the stack, stamps
  * the sweep's object count into OBJ_SEARCH_COUNT, points the shared collision search
- * loc_2913 at the object array (base OBJ_ARRAY_64, 0x20-byte stride, 7 records), runs one
+ * findCollidingObject at the object array (base OBJ_ARRAY_64, 0x20-byte stride, 7 records), runs one
  * scan, and always completes as a normal return. Its whole observable effect is that one
- * memory store plus the search result loc_2913 leaves in the registers (the result byte and
+ * memory store plus the search result findCollidingObject leaves in the registers (the result byte and
  * the count-minus-index residue the found-handler reads back).
  *
  * The oracle models the Z80 stack: it pops the pushed tolerances, brackets the search with a
  * call/return, and — because the search takes a caller-skip return on a hit — both outcomes
  * land back at the dispatch site with the same pc + SP. loc_2901 models no call/return
- * bracket (a direct call to loc_2913), so the harness lines the two up: after loc_2901 it
+ * bracket (a direct call to findCollidingObject), so the harness lines the two up: after loc_2901 it
  * performs the single terminal return the ROM nets on either path, so pc + SP match and the
  * bytes the oracle's dissolved bracket leaves behind sit in the dead STACK_SCRATCH region,
  * which the memory compare excludes.
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2901 as oracle } from "../../translated/loc_2901.js";
-import { loc_2913 } from "../loc_2913.js";
+import { findCollidingObject } from "../findCollidingObject.js";
 import { loc_2901 } from "../loc_2901.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_SEARCH_COUNT, OBJ_ARRAY_64 } from "../ram.js";
@@ -255,7 +255,7 @@ function brokenCount(m) {
   regs.b = 7;
   regs.de = RECORD_STRIDE;
   regs.ix = OBJ_ARRAY_64;
-  loc_2913(m);
+  findCollidingObject(m);
   return true;
 }
 
@@ -267,7 +267,7 @@ function brokenScanCount(m) {
   regs.b = 6; // BUG: scans 6 records -> count-minus-index residue is off
   regs.de = RECORD_STRIDE;
   regs.ix = OBJ_ARRAY_64;
-  loc_2913(m);
+  findCollidingObject(m);
   return true;
 }
 

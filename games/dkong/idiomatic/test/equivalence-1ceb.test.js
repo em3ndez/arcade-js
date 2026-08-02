@@ -17,7 +17,7 @@
  * the writeMarioSpriteRecord (0x1da6) test.
  *
  *   1. EQUAL (real dispatches) — hook 0x1ceb in a real attract run (the 25m demo walks
- *      Mario, so loc_1cd2's tail dispatches here each in-progress move frame) and clone at
+ *      Mario, so advanceMarioWalkX's tail dispatches here each in-progress move frame) and clone at
  *      each true dispatch; oracle vs candidate agree on RAM + pc + SP for every one. One
  *      straight-line arm, so real captures ARE its full behavioural coverage, varying the
  *      live 0x620F value the decrement acts on.

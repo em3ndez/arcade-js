@@ -173,7 +173,7 @@ test("TEETH (exhaustive): the wrong-bit twin is CAUGHT by the sweep", () => {
 
 /**
  * Hook 0x2333 in a real attract run and clone the machine at up to K real dispatches.
- * Attract plays 25m, so loc_1cd2 (and the object steppers) dispatch it while Mario
+ * Attract plays 25m, so advanceMarioWalkX (and the object steppers) dispatch it while Mario
  * walks. The wrapper clones the entry state, then runs the oracle so the host game
  * proceeds undisturbed to a clean stop.
  */

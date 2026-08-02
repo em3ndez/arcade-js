@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0266 — power-on setup: wipe all RAM, seed the task queue, set the display
+ * clearRamAndInitHardware — power-on setup: wipe all RAM, seed the task queue, set the display
  * hardware bits, silence the sound, and hand the game its stack.  ROM 0x0266.
  *
  * The reset vector falls straight into here with the vblank NMI still masked, and
@@ -61,7 +61,7 @@ const HW_NMI_MASK = 0x7d84;
 const HW_PALETTE_BANK0 = 0x7d86;
 const HW_PALETTE_BANK1 = 0x7d87;
 
-export function loc_0266(m) {
+export function clearRamAndInitHardware(m) {
   const { regs, mem } = m;
 
   // Wipe the whole work-RAM page (the top 1 KB over-runs into the discard window).

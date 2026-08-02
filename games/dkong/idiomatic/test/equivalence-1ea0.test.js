@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1ea0 (ROM 0x1EA0) — effect-sequence step 0: spawn the hit
+ * Equivalence test for buildEffectSprite (ROM 0x1EA0) — effect-sequence step 0: spawn the hit
  * effect sprite from the collided object's record, then arm the effect countdown + sound.
  *
- * loc_1ea0 is a LEAF whose whole memory effect is a function of the collision-search
+ * buildEffectSprite is a LEAF whose whole memory effect is a function of the collision-search
  * result cells (COLLIDED_OBJECT_BASE/STRIDE/INDEX), the object record's +0x15 field, and
  * two fields of a source sprite record picked by the base's page. It writes the hit
  * object's active flag, EFFECT_SELECT, four EFFECT_SPRITE bytes, the source record's +0,
@@ -14,7 +14,7 @@
  *   1. REACHABILITY — 0x1EA0 is dispatched during attract (via the effect-sequence router).
  *
  *   2. EQUAL (captured) — hook 0x1EA0 in a real boot/attract run, clone at each dispatch,
- *      and confirm loc_1ea0 == oracle on the whole RAM dump. Attract reaches the 0x6700
+ *      and confirm buildEffectSprite == oracle on the whole RAM dump. Attract reaches the 0x6700
  *      (page > 0x65) and 0x6400 (page < 0x65) arms with index 0 and index 2-5.
  *
  *   3. EQUAL (crafted) — a real attract base + surgical pokes to drive all three classifier
@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1ea0 as oracle } from "../../translated/loc_1ea0.js";
-import { loc_1ea0 } from "../loc_1ea0.js";
+import { buildEffectSprite } from "../buildEffectSprite.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -122,7 +122,7 @@ test("REACHABILITY: 0x1EA0 is dispatched during attract", () => {
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_1ea0 == oracle on every real dispatch", () => {
+test("EQUAL (captured): buildEffectSprite == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -134,7 +134,7 @@ test("EQUAL (captured): loc_1ea0 == oracle on every real dispatch", () => {
 
   const pages = new Set();
   for (const entry of caps) {
-    const diff = ramDiff(entry, loc_1ea0);
+    const diff = ramDiff(entry, buildEffectSprite);
     assert.equal(diff, null, diff && `captured dispatch diverges at ${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     pages.add(entry.mem.read8(COLLIDED_OBJECT_BASE + 1));
   }
@@ -160,7 +160,7 @@ test("EQUAL (crafted): the three classifier arms and both variants match the ora
 
   for (const { name, opts } of cases) {
     const entry = craft(base, opts);
-    const diff = ramDiff(entry, loc_1ea0);
+    const diff = ramDiff(entry, buildEffectSprite);
     assert.equal(diff, null, diff && `${name}: RAM diverges at ${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
 
     // Confirm the crafted variant actually landed the way we intended (non-vacuity).
@@ -227,7 +227,7 @@ function brokenClassifier(m) {
 
 /** Broken twin (c): reloads EFFECT_SEQ_INNER with 5 instead of 6. */
 function brokenSeqReload(m) {
-  loc_1ea0(m);
+  buildEffectSprite(m);
   m.mem.write8(EFFECT_SEQ_INNER, 5); // BUG: should be 6
 }
 

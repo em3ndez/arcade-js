@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0c91 (ROM 0x0C91) — the countdown-gated board (re)build:
+ * Memory-equivalence test for buildBoardWhenTimerExpires (ROM 0x0C91) — the countdown-gated board (re)build:
  * tick SUBSTATE_TIMER (0x6009) down by one and, ONLY on the frame it reaches zero, run the
  * board builder (buildBoard / ROM 0x0C92). While the timer is still above zero the routine
  * does nothing this frame.
@@ -18,18 +18,18 @@
  * The palette-bank latch is I/O device state (io.paletteBank), NOT part of dumpState — the
  * display reads it to pick its colour set — so it is checked directly alongside the RAM diff.
  *
- * REACHABILITY. loc_0c91 is the 0x0702 sub-state table's index-10 arm (game state 3, sub-
+ * REACHABILITY. buildBoardWhenTimerExpires is the 0x0702 sub-state table's index-10 arm (game state 3, sub-
  * state 0x0A), the in-PLAY entry into the builder; a plain attract run never reaches it
  * (attract's 25m build comes in through handler_0763's ungated tail jump instead). So each
  * board's real entry is FORCED with an identical-both-sides board poke at frame 100
- * (GAME_STATE=3, GAME_SUBSTATE=0x0A, SUBSTATE_TIMER=1, BOARD=1..4); loc_0c91 then dispatches
+ * (GAME_STATE=3, GAME_SUBSTATE=0x0A, SUBSTATE_TIMER=1, BOARD=1..4); buildBoardWhenTimerExpires then dispatches
  * once under the vblank service with the real board, giving a REAL captured entry (real
  * register file, real stack, entry SP in STACK_SCRATCH). timer==1 at entry makes those the
  * EXPIRY / build path; the SKIP path is crafted by poking a larger timer (and the timer==0
  * wrap-past-zero) identically on both sides of a captured entry.
  *
  * Jobs:
- *   1. EQUAL (build / expiry) — for every board 1..4, oracle vs loc_0c91 on fresh clones of
+ *   1. EQUAL (build / expiry) — for every board 1..4, oracle vs buildBoardWhenTimerExpires on fresh clones of
  *      the real entry leave identical RAM (−STACK_SCRATCH) and identical palette bank. Both
  *      clones are pre-seeded with a sentinel palette bank + a sentinel board scratch so a
  *      match proves the writes actually happened. Non-vacuous: the timer decremented into
@@ -38,7 +38,7 @@
  *      traffic is proven load-bearing to the mask (stackDiffCount > 0).
  *   2. EQUAL (skip / still counting) — poke SUBSTATE_TIMER to 5, 2 (the just-above-expiry
  *      boundary), and 0 (wrap-past-zero: expiry is only the 1->0 tick, never 0->255)
- *      identically on both sides. oracle vs loc_0c91 leave identical RAM (−STACK_SCRATCH):
+ *      identically on both sides. oracle vs buildBoardWhenTimerExpires leave identical RAM (−STACK_SCRATCH):
  *      the timer counts down one and NOTHING else changes (the builder did not run — the
  *      sentinel board scratch survives).
  *   3. TEETH — two broken twins, each MUST be caught on a skip-path entry:
@@ -56,7 +56,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0c91 as oracle } from "../../translated/loc_0c91.js";
-import { loc_0c91 as idiomatic } from "../loc_0c91.js";
+import { buildBoardWhenTimerExpires as idiomatic } from "../buildBoardWhenTimerExpires.js";
 import { buildBoard } from "../buildBoard.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { Machine } from "../../machine.js";
@@ -122,7 +122,7 @@ function stackDiffCount(ma, mb) {
 }
 
 /**
- * Force the real dispatch of loc_0c91 on a given board via an identical-both-sides poke and
+ * Force the real dispatch of buildBoardWhenTimerExpires on a given board via an identical-both-sides poke and
  * clone the machine at each true entry. The wrapper snapshots the entry, then runs the
  * oracle so the host proceeds. timer==1 at entry, so the natural forced entry is the build path.
  */
@@ -148,7 +148,7 @@ const CAPS = ROM_PRESENT
 
 // -- 0. REACHABILITY ----------------------------------------------------------
 
-test("REACHABILITY: loc_0c91 dispatches the in-play board rebuild for every board", () => {
+test("REACHABILITY: buildBoardWhenTimerExpires dispatches the in-play board rebuild for every board", () => {
   for (const board of [1, 2, 3, 4]) {
     assert.ok(CAPS[board].length >= 1, `expected a forced 0x0C91 dispatch for board ${board}; got ${CAPS[board].length}`);
     const cap = CAPS[board][0];
@@ -161,7 +161,7 @@ test("REACHABILITY: loc_0c91 dispatches the in-play board rebuild for every boar
 
 // -- 1. EQUAL (build / expiry, every board arm) -------------------------------
 
-test("EQUAL (build): loc_0c91 == oracle in RAM (−stack) and palette bank on every board", () => {
+test("EQUAL (build): buildBoardWhenTimerExpires == oracle in RAM (−stack) and palette bank on every board", () => {
   for (const board of [1, 2, 3, 4]) {
     const cap = CAPS[board][0];
     const { bank, bgm } = EXPECTED[board];
@@ -195,7 +195,7 @@ test("EQUAL (build): loc_0c91 == oracle in RAM (−stack) and palette bank on ev
 
 // -- 2. EQUAL (skip / still counting) -----------------------------------------
 
-test("EQUAL (skip): loc_0c91 == oracle when the timer has not expired — tick only, no build", () => {
+test("EQUAL (skip): buildBoardWhenTimerExpires == oracle when the timer has not expired — tick only, no build", () => {
   // timer 5,2 count down without expiring; timer 0 wraps to 255 and still does not build
   // (expiry is only the 1->0 tick). Each poked identically on both sides of a real entry.
   const cases = [

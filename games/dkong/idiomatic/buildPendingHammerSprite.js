@@ -49,13 +49,11 @@
  *           destination and object base pass through from the caller).
  */
 
-import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM, HAMMER_SAVED_BGM } from "./ram.js";
+import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM, HAMMER_SAVED_BGM, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js"; // ROM 0x2F7C — the shared object-sprite record write
 
 // Object-record field offsets with no ram.js name yet: two per-object state bytes
 // this arm stamps to fixed values before the record write.
-const OBJ_FIELD_09 = 0x09;
-const OBJ_FIELD_0A = 0x0a;
 
 // Sprite fields this arm produces for the record write.
 const SPRITE_TILE = 0x1e;  // base tile code; Mario's facing bit is OR'd on top
@@ -70,8 +68,8 @@ export function buildPendingHammerSprite(m) {
   if ((mem.read8(MARIO_HAMMER_PENDING) & 0x01) === 0) return;
 
   // Stamp the object's two state bytes to their fixed values.
-  mem.write8((objBase + OBJ_FIELD_09) & 0xffff, 0x06);
-  mem.write8((objBase + OBJ_FIELD_0A) & 0xffff, 0x03);
+  mem.write8((objBase + OBJ_HIT_EXTENT_X) & 0xffff, 0x06);
+  mem.write8((objBase + OBJ_HIT_EXTENT_Y) & 0xffff, 0x03);
 
   // The sprite faces the same way Mario does: the base tile with Mario's facing bit.
   const facing = mem.read8(MARIO_SPRITE_CODE) & FACING_BIT;

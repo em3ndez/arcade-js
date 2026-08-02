@@ -16,7 +16,7 @@
  *     single direction bit of y picks +1 vs -1, with two hard-coded band-seam rails —
  *     y == 240 and y == 76 — that instead flip on x (the seam between girder bands).
  *
- * Shared by every 25m (BOARD == 1) mover: Mario's Y-snap (loc_1cd2) and the object
+ * Shared by every 25m (BOARD == 1) mover: Mario's Y-snap (advanceMarioWalkX) and the object
  * coordinate steppers (entry_33c3, shared_1ff6) — barrels follow the same slope.
  * A PURE LEAF: reads only its three inputs, writes no memory, calls nothing.
  *

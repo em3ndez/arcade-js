@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2523 — service the 50m moving-object spawn request, paced by a cooldown timer.  ROM 0x2523.
+ * service50mObjectSpawnRequest — service the 50m moving-object spawn request, paced by a cooldown timer.  ROM 0x2523.
  *
  * Reached only on 50m (its caller sub_24ea is board-gated) and run each pass while a
  * spawn may be pending. It first gates on a cooldown timer (OBJ_SPAWN_TIMER): while the
@@ -64,17 +64,15 @@ import {
   M50_OBJ2_STEP_DIR,
   M50_OBJ3_STEP_DIR,
   SPIN_COUNT,
-} from "./ram.js";
+  OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y,} from "./ram.js";
 import { stirRandomSeed } from "./stirRandomSeed.js"; // ROM 0x0057
 
 const SLOT_STRIDE = 0x10; // OBJ_ARRAY_65A0 record stride
 const SLOT_COUNT = 6;     // records scanned for a free slot
 // Two spawned-record fields with no ram.js name yet, stamped to fixed constants; reached as
 // raw record offsets so their omission from ram.js stays visible (for the lead to name later).
-const FIELD_09 = 0x09;
-const FIELD_0A = 0x0a;
 
-export function loc_2523(m) {
+export function service50mObjectSpawnRequest(m) {
   const { regs, mem } = m;
 
   // Cooldown still running: tick it down and stop.
@@ -130,8 +128,8 @@ export function loc_2523(m) {
   // Bring the record to life.
   mem.write8((slot + OBJ_ACTIVE) & 0xffff, 0x01);
   mem.write8((slot + OBJ_SPRITE_CODE) & 0xffff, 0x4b);
-  mem.write8((slot + FIELD_09) & 0xffff, 0x08);
-  mem.write8((slot + FIELD_0A) & 0xffff, 0x03);
+  mem.write8((slot + OBJ_HIT_EXTENT_X) & 0xffff, 0x08);
+  mem.write8((slot + OBJ_HIT_EXTENT_Y) & 0xffff, 0x03);
 
   // Reload the cooldown timer and clear the consumed request.
   mem.write8(OBJ_SPAWN_TIMER, 0x7c);

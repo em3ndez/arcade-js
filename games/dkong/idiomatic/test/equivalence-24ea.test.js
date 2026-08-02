@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_24ea (ROM 0x24EA) — the 50m moving-object subsystem tick:
+ * Equivalence test for update50mMovingObjects (ROM 0x24EA) — the 50m moving-object subsystem tick:
  * board-gate on 50m, service the spawn request (0x2523), advance/edge-cull the object
  * row (0x2591), then refresh each active object's four-byte sprite record from the
  * object array.
@@ -38,9 +38,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_24ea as oracle } from "../../translated/loc_24ea.js";
-import { loc_24ea } from "../loc_24ea.js";
+import { update50mMovingObjects } from "../update50mMovingObjects.js";
 import { boardBitGate } from "../boardBitGate.js";
-import { loc_2523 } from "../loc_2523.js";
+import { service50mObjectSpawnRequest } from "../service50mObjectSpawnRequest.js";
 import { advance50mObjectRow } from "../advance50mObjectRow.js";
 import { Machine } from "../../machine.js";
 import {
@@ -169,7 +169,7 @@ test("REACHABILITY + captured: 0x24EA is dispatched and every real dispatch == o
 
   let closed = 0;
   for (const cap of caps) {
-    const diff = ramDiff(cap, loc_24ea);
+    const diff = ramDiff(cap, update50mMovingObjects);
     assert.equal(diff, null, diff && `captured dispatch: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     // attract is 25m, so the oracle must take the board-gate-closed skip: no non-stack write.
     const o = runOracleOn(cap);
@@ -188,7 +188,7 @@ test("EQUAL (crafted): the 50m body matches the oracle across all arms", () => {
   // all six records inactive: gate opens, callees run, the refresh copies nothing.
   {
     const entry = craft(base, { records: [] });
-    const diff = ramDiff(entry, loc_24ea);
+    const diff = ramDiff(entry, update50mMovingObjects);
     assert.equal(diff, null, diff && `all-inactive: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     const o = runOracleOn(entry);
     for (let i = 0; i < RECORD_COUNT; i++) {
@@ -199,7 +199,7 @@ test("EQUAL (crafted): the 50m body matches the oracle across all arms", () => {
   // one active record with four DISTINCT fields — pins the X/code/attr/Y copy order.
   {
     const entry = craft(base, { records: [{ i: 2, active: 0x01, x: 0x37, code: 0x4b, attr: 0x05, y: 0x62 }] });
-    const diff = ramDiff(entry, loc_24ea);
+    const diff = ramDiff(entry, update50mMovingObjects);
     assert.equal(diff, null, diff && `field-map: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     const o = runOracleOn(entry);
     const s = SPRITE_BASE + SPRITE_STRIDE * 2;
@@ -220,7 +220,7 @@ test("EQUAL (crafted): the 50m body matches the oracle across all arms", () => {
       { i: 5, active: 0x00 },                                            // inactive -> skip
     ];
     const entry = craft(base, { records });
-    const diff = ramDiff(entry, loc_24ea);
+    const diff = ramDiff(entry, update50mMovingObjects);
     assert.equal(diff, null, diff && `mixed: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     const o = runOracleOn(entry);
     assert.equal(o.mem.read8(SPRITE_BASE + SPRITE_STRIDE * 0), 0x40, "mixed: record 0 sprite not refreshed");
@@ -232,18 +232,18 @@ test("EQUAL (crafted): the 50m body matches the oracle across all arms", () => {
   // whole-byte activity test: +0 == 0x02 is active by byte (though bit0 is clear).
   {
     const entry = craft(base, { records: [{ i: 4, active: 0x02, x: 0x55, code: 0x43, attr: 0x02, y: 0x66 }] });
-    const diff = ramDiff(entry, loc_24ea);
+    const diff = ramDiff(entry, update50mMovingObjects);
     assert.equal(diff, null, diff && `whole-byte: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
     const o = runOracleOn(entry);
     assert.equal(o.mem.read8(SPRITE_BASE + SPRITE_STRIDE * 4), 0x55, "whole-byte: +0==0x02 record was not treated as active");
   }
 
-  // spawn arm: a request pending with the cooldown drained and free slots — loc_2523
+  // spawn arm: a request pending with the cooldown drained and free slots — service50mObjectSpawnRequest
   // rolls the RNG and brings a record to life; proves the whole 3-stage pipeline (and
   // the STACK_SCRATCH exclusion, since the oracle pushes for the RNG call) is equivalent.
   {
     const entry = craft(base, { records: [], spawnTimer: 0, spawnReq: 1 });
-    const diff = ramDiff(entry, loc_24ea);
+    const diff = ramDiff(entry, update50mMovingObjects);
     assert.equal(diff, null, diff && `spawn-arm: RAM@${hx(diff.addr)} oracle=${diff.a} cand=${diff.b}`);
   }
 
@@ -257,7 +257,7 @@ function brokenSwapXY(m) {
   const { regs, mem } = m;
   regs.a = 0x02;
   if (!boardBitGate(m)) return;
-  loc_2523(m);
+  service50mObjectSpawnRequest(m);
   advance50mObjectRow(m);
   for (let i = 0; i < RECORD_COUNT; i++) {
     const obj = OBJ_ARRAY_65A0 + SLOT_STRIDE * i;
@@ -275,7 +275,7 @@ function brokenBit0Active(m) {
   const { regs, mem } = m;
   regs.a = 0x02;
   if (!boardBitGate(m)) return;
-  loc_2523(m);
+  service50mObjectSpawnRequest(m);
   advance50mObjectRow(m);
   for (let i = 0; i < RECORD_COUNT; i++) {
     const obj = OBJ_ARRAY_65A0 + SLOT_STRIDE * i;

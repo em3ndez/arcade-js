@@ -4,7 +4,7 @@
  *
  * Reached from entry_2b29 when the board is NOT 25m ((0x6227) != 1). It probes the
  * tilemap under Mario at up to two offset points and lets the tile classifier
- * (loc_2b9b) decide, at each point, whether Mario is still clear of the surface,
+ * (probeTileForLanding) decide, at each point, whether Mario is still clear of the surface,
  * standing over a snap column, or has actually landed:
  *
  *   1. First probe at (X-3, Y+7). If the classifier reports "landed" it has already
@@ -39,17 +39,17 @@
  *           STACK_SCRATCH the dissolved push/pop churn writes) + pc + SP + result code
  *           identical to the oracle. Teeth: twins that drop the second-probe offset,
  *           drop the first landed-unwind propagation, and invert the snap-code test.
- * LIVE-OUT: memory (MARIO_Y snapped on a landing inside loc_2b9b; MARIO_X + the sprite
+ * LIVE-OUT: memory (MARIO_Y snapped on a landing inside probeTileForLanding; MARIO_X + the sprite
  *           record X committed inside loc_2b7a), the result code, and the caller-skip
  *           boolean (false = the two-frame unwind).
- * NAMES:    loc_2b9b (ROM 0x2B9B, the tile classifier) and loc_2b7a (ROM 0x2B7A, the
+ * NAMES:    probeTileForLanding (ROM 0x2B9B, the tile classifier) and loc_2b7a (ROM 0x2B7A, the
  *           X-snap tail), both direct-called. MARIO_X (0x6203) and MARIO_Y (0x6205) from
  *           ram.js supply the probe point; the tiles are read from tilemap VRAM inside
- *           loc_2b9b (no ram.js name).
+ *           probeTileForLanding (no ram.js name).
  */
 
 import { u8 } from "../../../core/int.js";
-import { loc_2b9b } from "./loc_2b9b.js"; // ROM 0x2B9B — tile classifier
+import { probeTileForLanding } from "./probeTileForLanding.js"; // ROM 0x2B9B — tile classifier
 import { loc_2b7a } from "./loc_2b7a.js"; // ROM 0x2B7A — horizontal X-snap tail
 import { MARIO_X, MARIO_Y } from "./ram.js";
 
@@ -63,7 +63,7 @@ export function loc_2b53(m) {
 
   // First probe point: high byte = Mario's X minus 3, low byte = Mario's Y plus 7.
   regs.hl = (u8(m.mem.read8(MARIO_X) - 3) << 8) | u8(m.mem.read8(MARIO_Y) + 7);
-  if (loc_2b9b(m) === false) return false; // classifier landed Mario -> propagate the unwind
+  if (probeTileForLanding(m) === false) return false; // classifier landed Mario -> propagate the unwind
 
   // Result code 2 -> Mario is over a snap column: hand off to the X-snap tail.
   if (regs.a === 2) return loc_2b7a(m);
@@ -72,7 +72,7 @@ export function loc_2b53(m) {
   // the first point in the coordinate pair (high = X-3, low = Y+7); the second point's
   // high byte is that high byte plus 7, its low byte unchanged.
   regs.hl = (u8(regs.d + 7) << 8) | u8(regs.e);
-  if (loc_2b9b(m) === false) return false; // landed on the second probe -> propagate
+  if (probeTileForLanding(m) === false) return false; // landed on the second probe -> propagate
 
   // Code 0 at both points: nothing underfoot, normal return. Code 2 -> the X-snap tail.
   if (regs.a === 0) return true;

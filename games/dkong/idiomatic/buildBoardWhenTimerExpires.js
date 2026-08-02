@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c91 — gated board (re)build: tick the sub-state countdown and build the board
+ * buildBoardWhenTimerExpires — gated board (re)build: tick the sub-state countdown and build the board
  * only on the frame the countdown expires.  ROM 0x0C91.
  *
  * The in-play entry to the board builder: the 0x0702 sub-state table's index-10 arm,
@@ -17,7 +17,7 @@
  * GATE:     crafted-entry — the in-play rebuild is not reached in a plain attract run, so
  *           each board's real entry is forced by an identical-both-sides board poke
  *           (GAME_STATE=3, GAME_SUBSTATE=0x0A, SUBSTATE_TIMER=1, BOARD=1..4) that dispatches
- *           loc_0c91 once under the vblank service; the skip path is a crafted timer>1 (and
+ *           buildBoardWhenTimerExpires once under the vblank service; the skip path is a crafted timer>1 (and
  *           the timer==0 wrap-past-zero) on those same entries. Compared on RAM −
  *           STACK_SCRATCH PLUS the palette-bank output latch buildBoard drives on expiry.
  *           Teeth: an inverted gate (builds while still counting) and a dropped countdown tick.
@@ -33,7 +33,7 @@
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { buildBoard } from "./buildBoard.js";               // ROM 0x0C92
 
-export function loc_0c91(m) {
+export function buildBoardWhenTimerExpires(m) {
   // Tick the sub-state countdown; build the board only on the frame it expires.
   if (!tickSubstateTimer(m)) return; // still counting down — nothing to do this frame
   buildBoard(m);

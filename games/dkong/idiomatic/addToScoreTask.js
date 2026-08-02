@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_051c — the "add to a score" task: bump the player-up's score by a table
+ * addToScoreTask — the "add to a score" task: bump the player-up's score by a table
  * amount, redraw it, and promote it to the high score if it now leads.  ROM 0x051C.
  *
  * Dispatched as task opcode 0 (add-to-score). The task payload chosen by the
@@ -60,7 +60,7 @@ import { drawHighScore } from "./drawHighScore.js";                         // R
 
 const SCORE_ADDEND_TABLE = 0x3529; // ROM: 3-byte packed-BCD addends, one per task payload
 
-export function loc_051c(m) {
+export function addToScoreTask(m) {
   const { regs, mem } = m;
 
   // The enqueuer left the task payload in the accumulator; it indexes the addend table.

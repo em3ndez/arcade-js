@@ -66,6 +66,13 @@ export const MARIO_SPRITE_RECORD = 0x694C;
 /** [code] 10 sprite records (stride 4) inside SPRITE_BUFFER (0x6980-0x69A7); entry_2e04 mirrors the
  *  0x6500 object array's X/Y here. */
 export const ACTOR_SPRITES = 0x6980;
+/** [seen] The OBJ_ARRAY_65A0 (50m moving-object) hardware sprite group: 6 records x 4 bytes inside
+ *  SPRITE_BUFFER (0x69B8-0x69CF). update50mMovingObjects refreshes it record-for-record from
+ *  OBJ_ARRAY_65A0; advance50mObjectRow blanks culled records; the sprite DMA blits it with the rest
+ *  of SPRITE_BUFFER. Grounded live vs MAME on poke-to-50m (pass 11): 1500/1500 active-record frames
+ *  mirror OBJ_ARRAY_65A0 X/code/attr/Y exactly (obj X swept 244 distinct values, genuinely moving),
+ *  and each sprite +0 blanks to 0 the instant its record is culled. */
+export const OBJ_65A0_SPRITES = 0x69b8;
 /** [code] 3 sprite records (stride 4) inside SPRITE_BUFFER; initBoardState seeds them on every board
  *  except 100m. */
 export const TOP_SPRITES = 0x6a00;
@@ -101,6 +108,17 @@ export const OBJ_Y = 0x05;
 export const OBJ_SPRITE_CODE = 0x07;
 /** [code] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. */
 export const OBJ_SPRITE_ATTR = 0x08;
+/** [code] Object-record field: per-object collision half-extent on the X axis (+0x09) — the extra span
+ *  added to the caller's base tolerance in the bounding-box overlap test. findCollidingObject and
+ *  countObjectOverlaps read it paired with OBJ_X (+3); writers (service50mObjectSpawnRequest,
+ *  driveHammerSprite, buildPendingHammerSprite, ...) stamp small span constants. Verified by the axis
+ *  pairing against the [seen]-grounded findCollidingObject; no non-collision reader. Live spot-check on
+ *  poke-to-50m (pass 11): +0x09 held 8 / +0x0a held 3 on active records — fixed span constants, so
+ *  [code] (grounded-by-reference), not a swept-byte [seen]. */
+export const OBJ_HIT_EXTENT_X = 0x09;
+/** [code] Object-record field: per-object collision half-extent on the Y axis (+0x0a), paired with
+ *  OBJ_Y (+5) in the bounding-box overlap test. Mirror of OBJ_HIT_EXTENT_X. */
+export const OBJ_HIT_EXTENT_Y = 0x0a;
 /** [seen] Object-record field: per-object state-machine selector (+0x0d). Grounded live: 0x640d took
  *  meaningful small-enum values across 23 transitions over the object lifecycle in real MAME 25m attract
  *  (its own byte — a state field, not a coordinate/pointer/timer/count). Every site READS-and-dispatches
@@ -266,7 +284,7 @@ export const MARIO_ACTIVE = 0x6200;
  *  Left produce the same value set in reversed order. */
 export const MARIO_WALK_ANIM = 0x6202;
 /** [seen] (own byte: 168 vals 0..227, 1240 transitions, RUN-A) Mario's X position, in screen pixels. The movement code read-modify-writes it
- *  (loc_1cd2, ROM 0x1CD5 `add a,b`); a poked value persists and later walking is relative
+ *  (advanceMarioWalkX, ROM 0x1CD5 `add a,b`); a poked value persists and later walking is relative
  *  to it, and prize collision compares it exactly against each item's stored X. */
 export const MARIO_X = 0x6203;
 /** [seen] (own byte {0,128}, 3184 transitions, RUN-B4) Low byte of the 16.8 fixed-point X (0x6203:0x6204, big-endian). Per airborne frame,
@@ -760,7 +778,7 @@ export const ROUTINES = {
   0x017b: { name: "serviceCoinInput", role: "debounce the coin line, tally pulses, and award BCD credits", cert: "code" },
   0x01c3: { name: "powerOnInit", role: "game state 0: the one-time power-on initialization", cert: "code" },
   0x0207: { name: "decodeDipSwitches", role: "unpack DSW0 into the settings block, then load the ROM option table", cert: "code" },
-  0x0266: { name: "loc_0266", role: "power-on setup: wipe all RAM, seed the task queue, set the display hardware bits, silence the sound, and hand the game its stack", cert: "code" },
+  0x0266: { name: "clearRamAndInitHardware", role: "power-on setup: wipe all RAM, seed the task queue, set the display hardware bits, silence the sound, and hand the game its stack", cert: "code" },
   0x02bd: { name: "mainLoop", role: "the task-scheduler main loop — walk the page-0x60 task table (pointer at 0x60B1), dispatch each task, run the per-frame work, and advance the frame counter (the coroutine go-live spine)", cert: "code" },
   0x0315: { name: "redrawPlayerUpIndicator", role: "blink the on-screen 'player up' indicator column, every 16th frame", cert: "code" },
   0x0347: { name: "selectPlayerIndicatorColumnBase", role: "pick one of two video-RAM column-base addresses from a player selector", cert: "code" },
@@ -785,7 +803,7 @@ export const ROUTINES = {
   0x04f9: { name: "blinkSpritePairOff", role: "the 'blink OFF' arm of the colour-cycle blink driver: force the blink bit off on the pair of decorative sprites", cert: "code" },
   0x0509: { name: "blinkSpritePairByX", role: "pick the decorative-sprite-pair blink phase by the player's X; the bit-6-clear arm of the rivet-board colour-cycle blink block", cert: "code" },
   0x0514: { name: "fillDescendingColumn", role: "write a 3-cell descending run into memory at a caller stride", cert: "code" },
-  0x051c: { name: "loc_051c", role: "the 'add to a score' task: bump the player-up's score by a table amount, redraw it, and promote it to the high score if it now leads", cert: "code" },
+  0x051c: { name: "addToScoreTask", role: "the 'add to a score' task: bump the player-up's score by a table amount, redraw it, and promote it to the high score if it now leads", cert: "code" },
   0x055f: { name: "selectCurrentPlayerScoreCounter", role: "select the score-counter address for the player currently up", cert: "code" },
   0x056b: { name: "loc_056b", role: "pick one of two destination columns from a zero/nonzero selector, then render a 3-byte packed-BCD counter up that column", cert: "code" },
   0x0578: { name: "renderBcdColumnFixedCell", role: "draw a packed 3-byte BCD counter as six digits up a fixed video column", cert: "code" },
@@ -835,7 +853,7 @@ export const ROUTINES = {
   0x0b68: { name: "loc_0b68", role: "step 6 of the opening Kong-climb cutscene: scroll the sprite-object block diagonally each frame and, every time the scroll path repeats, stamp the next board band; advanc", cert: "code" },
   0x0bb3: { name: "runIntroRoarStep", role: "the roar/finish step of the opening Kong-climb cutscene", cert: "code" },
   0x0bda: { name: "buildHowHighScreen", role: "build the 'HOW HIGH CAN YOU GET?' interlude screen, then step the in-game sub-state forward", cert: "code" },
-  0x0c91: { name: "loc_0c91", role: "gated board (re)build: tick the sub-state countdown and build the board only on the frame the countdown expires", cert: "code" },
+  0x0c91: { name: "buildBoardWhenTimerExpires", role: "gated board (re)build: tick the sub-state countdown and build the board only on the frame the countdown expires", cert: "code" },
   0x0c92: { name: "buildBoard", role: "build a board: wipe the playfield, arm the palette bank and the opening task, then dispatch to the per-board setup arm selected by BOARD", cert: "code" },
   0x0cc6: { name: "loc_0cc6", role: "the shared tail every board-setup dispatch arm converges on", cert: "code" },
   0x0cd4: { name: "setup25mGirderBoard", role: "the 25m (board 1) board-setup arm: select the 25m girder layout table, queue the 25m background tune, then hand off to the shared board-setup tail", cert: "code" },
@@ -932,7 +950,7 @@ export const ROUTINES = {
   0x1c4f: { name: "settleMarioOnLanding", role: "settle Mario's state the instant he lands from a jump or fall, commit any pending item pickup, then refresh his hardware sprite record", cert: "code" },
   0x1c76: { name: "markFatalFallByHeight", role: "condemn the current fall as lethal once Mario has dropped far enough below where he took off, then refresh his sprite record", cert: "code" },
   0x1cc2: { name: "beginWalkStep", role: "start a new walk-animation step for Mario", cert: "code" },
-  0x1cd2: { name: "loc_1cd2", role: "advance Mario one pixel along a horizontal walk step", cert: "code" },
+  0x1cd2: { name: "advanceMarioWalkX", role: "advance Mario one pixel along a horizontal walk step", cert: "code" },
   0x1ceb: { name: "continueWalkStep", role: "carry an in-progress walk step one frame further", cert: "code" },
   0x1cf2: { name: "climbMarioDown", role: "per-frame driver for Mario's DOWNWARD ladder climb", cert: "code" },
   0x1d03: { name: "climbMarioUp", role: "drive Mario's upward climb one animation step per frame, paced by the move-step timer", cert: "code" },
@@ -963,7 +981,7 @@ export const ROUTINES = {
   0x1e80: { name: "completeRivetBoardWhenCleared", role: "on a rivet (100m) board, complete the board the frame its last rivet is gone", cert: "code" },
   0x1e85: { name: "enterBoardAdvanceAndUnwind", role: "commit 'this board is complete': set the board-advance sub-state, then unwind out of the movement cascade", cert: "code" },
   0x1e94: { name: "loc_1e94", role: "unconditional caller-skip: make the call return past its caller", cert: "code" },
-  0x1ea0: { name: "loc_1ea0", role: "effect-sequence step 0: spawn the hit effect sprite from the collided object's record, then arm the effect countdown and its priority sound", cert: "code" },
+  0x1ea0: { name: "buildEffectSprite", role: "effect-sequence step 0: spawn the hit effect sprite from the collided object's record, then arm the effect countdown and its priority sound", cert: "code" },
   0x1f09: { name: "loc_1f09", role: "effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow bit on most beats and hands the sequence to its next step on every fourth", cert: "seen" },
   0x1f23: { name: "loc_1f23", role: "effect-sequence step 2: a two-stage rate divider that steps the effect sprite's tile on most beats and, when it runs out, resets the sequence and re-arms the parent effec", cert: "seen" },
   0x1f46: { name: "beginMarioFall", role: "when the 'ground went away' trigger is armed, drop Mario into a fresh falling state and remember the height he fell from", cert: "code" },
@@ -991,8 +1009,8 @@ export const ROUTINES = {
   0x2407: { name: "loc_2407", role: "spread a packed nibble-pair into a fixed-point value, then subtract a 16-bit operand; returns the difference", cert: "code" },
   0x241f: { name: "loc_241f", role: "horizontal position gate: classify Mario's X into a two-flag (D,E) verdict the movement code uses to clamp X and gate walk direction", cert: "code" },
   0x2441: { name: "loadBoardObjectRecords", role: "scatter this board's ROM object-init records into two parallel work-RAM attribute arrays", cert: "code" },
-  0x24ea: { name: "loc_24ea", role: "the 50m moving-object subsystem tick", cert: "code" },
-  0x2523: { name: "loc_2523", role: "service the 50m moving-object spawn request, paced by a cooldown timer", cert: "code" },
+  0x24ea: { name: "update50mMovingObjects", role: "the 50m moving-object subsystem tick", cert: "code" },
+  0x2523: { name: "service50mObjectSpawnRequest", role: "service the 50m moving-object spawn request, paced by a cooldown timer", cert: "code" },
   0x2591: { name: "advance50mObjectRow", role: "advance and edge-cull the 50m moving-object row", cert: "seen" },
   0x25f2: { name: "update50mConveyorObjects", role: "the 50m board's per-frame object update: gate on the 50m board, then run the three conveyor-object step drivers and carry Mario along his conveyor row", cert: "code" },
   0x2602: { name: "loc_2602", role: "per-frame driver for the first of sub_25f2's three timed sprite objects", cert: "code" },
@@ -1020,7 +1038,7 @@ export const ROUTINES = {
   0x2853: { name: "searchPlayerObjectOverlap", role: "run the current board's object-overlap search for the player and hand its severity code back to the caller", cert: "code" },
   0x286f: { name: "dispatchBoardCollision", role: "vector a collision test to the current board's handler", cert: "code" },
   0x2901: { name: "loc_2901", role: "run one bounding-box collision sweep over the 0x6400 object array", cert: "code" },
-  0x2913: { name: "loc_2913", role: "scan an object list for the first record whose bounding box overlaps a reference point on both axes; stop and report a hit, or report the list exhausted", cert: "code" },
+  0x2913: { name: "findCollidingObject", role: "scan an object list for the first record whose bounding box overlaps a reference point on both axes; stop and report a hit, or report the list exhausted", cert: "code" },
   0x2974: { name: "loc_2974", role: "test whether Mario overlaps either of the two objects in the 0x6680 pair, and report which one", cert: "code" },
   0x298c: { name: "loc_298c", role: "is the background tile just ahead of the current object outside the accepted tile band?", cert: "code" },
   0x2a2f: { name: "loc_2a2f", role: "probe the tile a moving object is standing on and, if it sits on a sloped girder, slide the object's X along the slope and report the contact", cert: "code" },
@@ -1036,7 +1054,7 @@ export const ROUTINES = {
   0x2b7a: { name: "loc_2b7a", role: "pick the tile-probe's horizontal X-snap arm on the airborne X-velocity, then snap Mario's X to its 8-pixel column and commit it", cert: "code" },
   0x2b8b: { name: "loc_2b8b", role: "snap the probe's candidate X to its 8-pixel column, then commit it as Mario's position", cert: "code" },
   0x2b91: { name: "loc_2b91", role: "commit Mario's adjusted X to both the game position and his sprite record", cert: "code" },
-  0x2b9b: { name: "loc_2b9b", role: "the tile gate at the head of the airborne-descent collision probe", cert: "code" },
+  0x2b9b: { name: "probeTileForLanding", role: "the tile gate at the head of the airborne-descent collision probe", cert: "code" },
   0x2be1: { name: "resolveAirborneTileLanding", role: "resolve whether Mario's airborne descent has reached a tile surface; on a hit, snap him onto it and abort the collision probe", cert: "code" },
   0x2c03: { name: "loc_2c03", role: "board-1 (25m) periodic bonus-event scheduler: decide, this pass, whether to dispatch into the bonus-event slot-claim cluster and by which route", cert: "code" },
   0x2c41: { name: "loc_2c41", role: "head of the bonus-event slot-claim cluster: stir the random seed, then route to one of two slot-claim mode entries on the seed's low nibble", cert: "code" },
@@ -1096,7 +1114,7 @@ export const ROUTINES = {
   0x34f3: { name: "loc_34f3", role: "gather five object records into five 4-byte sprite records", cert: "code" },
   0x3e70: { name: "loc_3e70", role: "pick one of three effect-sprite parameter pairs from the low bits of A, then hand off to the Mario-anchored record-stamp tail loc_1e28", cert: "code" },
   0x3e88: { name: "dispatchBoardOverlapSearch", role: "vector to the current board's collision-search arm, handing it the caller's bounds word across the dispatch", cert: "code" },
-  0x3ec3: { name: "loc_3ec3", role: "count how many objects in an array overlap a probe point, within a per-object rectangular window", cert: "code" },
+  0x3ec3: { name: "countObjectOverlaps", role: "count how many objects in an array overlap a probe point, within a per-object rectangular window", cert: "code" },
   0x3f24: { name: "stampFixedTilePair", role: "paint a fixed two-tile decoration into the tilemap", cert: "code" },
   0x3fa0: { name: "loc_3fa0", role: "board-setup prelude: stamp the 50m-only tiles, then run the board-setup continuation", cert: "code" },
   0x3fa6: { name: "stamp50mBoardTiles", role: "during board setup, stamp four tilemap cells, but only on the 50m conveyor board (board 2)", cert: "code" },

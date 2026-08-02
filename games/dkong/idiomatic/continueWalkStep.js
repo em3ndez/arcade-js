@@ -3,14 +3,14 @@
  * continueWalkStep — carry an in-progress walk step one frame further.  ROM 0x1ceb.
  *
  * The continuation arm of the horizontal walk. While Mario's sub-step timer is still
- * running, the walk steppers (loc_1c8f / loc_1cab) route through loc_1cd2 — which shifts
+ * running, the walk steppers (loc_1c8f / loc_1cab) route through advanceMarioWalkX — which shifts
  * him one pixel along X and re-snaps his Y to the sloped girder on 25m — and fall
  * through here to spend one frame of the step: knock the sub-step timer
  * (MARIO_MOVE_STEP_TIMER) down by one, then refresh Mario's hardware sprite record. When
  * the timer reaches 0 on a later frame, the steppers advance the walk animation and
  * re-arm it (see beginWalkStep).
  *
- * Reached only as loc_1cd2's tail, inside the interruptible per-frame movement cascade.
+ * Reached only as advanceMarioWalkX's tail, inside the interruptible per-frame movement cascade.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1ceb.test.js.
  * GATE:     crafted-entry — real captured 25m dispatches cover the single straight-line

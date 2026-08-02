@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2b9b (ROM 0x2B9B) — the tile gate at the head of the
+ * Equivalence test for probeTileForLanding (ROM 0x2B9B) — the tile gate at the head of the
  * airborne-descent collision probe. It maps a pixel to its tilemap cell, classifies the
  * tile under it, and on a hit builds a column boundary in C and tails into
  * resolveAirborneTileLanding (0x2BE1); on a miss it reports code 0 and returns.
@@ -28,12 +28,12 @@
  *   1. EQUAL (classification x descent) — a real attract base + crafted pokes of the tile
  *      byte (all 256) under the computed tilemap address across a representative pixel x,
  *      each run under TWO descent configs that force the landed arm (probe 0) and the
- *      airborne arm (probe 0xFF) on every HIT. Assert loc_2b9b == oracle on
+ *      airborne arm (probe 0xFF) on every HIT. Assert probeTileForLanding == oracle on
  *      RAM(-STACK_SCRATCH) + pc + SP + A + B over the whole grid; the sweep spans all three
  *      result codes.
  *
  *   2. REALISM (captured dispatches) — hook 0x2B9B in a real attract run (193/4000 frames),
- *      clone at each dispatch, and confirm loc_2b9b reproduces the oracle on every real state
+ *      clone at each dispatch, and confirm probeTileForLanding reproduces the oracle on every real state
  *      the game actually produces.
  *
  *   3. TEETH — five deliberately-broken twins, each of which the sweep MUST catch:
@@ -51,7 +51,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2b9b as oracle } from "../../translated/loc_2b9b.js";
-import { loc_2b9b } from "../loc_2b9b.js";
+import { probeTileForLanding } from "../probeTileForLanding.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { resolveAirborneTileLanding } from "../resolveAirborneTileLanding.js";
 import { STACK_SCRATCH, MARIO_Y, MARIO_AIR_PREV_Y } from "../ram.js";
@@ -189,7 +189,7 @@ function fullSweep(base, candidate) {
         const entry = craft(base, x, tile, config);
         const diffs = contractDiffs(entry, candidate);
         count++;
-        if (candidate === loc_2b9b) {
+        if (candidate === probeTileForLanding) {
           const a = runOracle(entry).regs.a;
           if (a === 0) arms.reject++; else if (a === 2) arms.airborne++; else arms.landed++;
         }
@@ -216,9 +216,9 @@ test("REACHABILITY: 0x2B9B is dispatched during attract", () => {
 
 // -- 1. EQUAL (classification x descent) --------------------------------------
 
-test("EQUAL: loc_2b9b == oracle over the tile x pixel-x x descent grid", () => {
+test("EQUAL: probeTileForLanding == oracle over the tile x pixel-x x descent grid", () => {
   const base = attractBase();
-  const { mismatch, count, arms } = fullSweep(base, loc_2b9b);
+  const { mismatch, count, arms } = fullSweep(base, probeTileForLanding);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, XSET.length * 256 * CONFIGS.length, "must have compared the full grid");
   assert.ok(arms.reject > 0 && arms.airborne > 0 && arms.landed > 0,
@@ -229,7 +229,7 @@ test("EQUAL: loc_2b9b == oracle over the tile x pixel-x x descent grid", () => {
 
 // -- 2. REALISM (captured dispatches) -----------------------------------------
 
-test("REALISM: real captured 0x2B9B dispatches — loc_2b9b matches the oracle", () => {
+test("REALISM: real captured 0x2B9B dispatches — probeTileForLanding matches the oracle", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 128) caps.push(mm.clone());
@@ -241,7 +241,7 @@ test("REALISM: real captured 0x2B9B dispatches — loc_2b9b matches the oracle",
 
   const arms = { reject: 0, airborne: 0, landed: 0 };
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2b9b);
+    const diffs = contractDiffs(cap, probeTileForLanding);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     const a = runOracle(cap).regs.a;
     if (a === 0) arms.reject++; else if (a === 2) arms.airborne++; else arms.landed++;

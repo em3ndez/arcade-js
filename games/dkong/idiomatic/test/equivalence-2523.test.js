@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2523 (ROM 0x2523) — the 50m moving-object spawn-request consumer.
+ * Equivalence test for service50mObjectSpawnRequest (ROM 0x2523) — the 50m moving-object spawn-request consumer.
  *
- * loc_2523 gates on a cooldown timer (OBJ_SPAWN_TIMER): while it is running it just ticks it down.
+ * service50mObjectSpawnRequest gates on a cooldown timer (OBJ_SPAWN_TIMER): while it is running it just ticks it down.
  * Once drained it services a spawn request (OBJ_SPAWN_REQ, whole-byte nonzero), scanning the
  * six-record OBJ_ARRAY_65A0 (stride 0x10) for a free slot (active bit0 clear) and, on finding one,
  * rolling stirRandomSeed (ROM 0x0057) to pick the spawned record's Y (0x7C / 0xCC) and X (0x07 /
@@ -23,7 +23,7 @@
  * inside STACK_SCRATCH and the oracle's terminal `ret` pops valid work RAM. The non-spawn paths do
  * no stack writes at all on either side.
  *
- *   1. EQUAL — loc_2523 == oracle on RAM − STACK_SCRATCH across:
+ *   1. EQUAL — service50mObjectSpawnRequest == oracle on RAM − STACK_SCRATCH across:
  *        - the timer-running tick (several timer values);
  *        - both no-op returns: no request, and a request with every slot busy;
  *        - every first-free-slot position (records 0..5);
@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2523 as oracle } from "../../translated/loc_2523.js";
-import { loc_2523 } from "../loc_2523.js";
+import { service50mObjectSpawnRequest } from "../service50mObjectSpawnRequest.js";
 import { stirRandomSeed } from "../stirRandomSeed.js"; // ROM 0x0057
 import { Machine } from "../../machine.js";
 import {
@@ -169,11 +169,11 @@ test("REACHABILITY: 0x2523 is NOT dispatched in attract (50m-gated) — crafted 
 
 // -- 1. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_2523 == oracle on the timer/no-op paths and every spawn arm", () => {
+test("EQUAL: service50mObjectSpawnRequest == oracle on the timer/no-op paths and every spawn arm", () => {
   const base = new Machine(ROM).clone();
   let count = 0;
   const check = (opts, where) => {
-    const d = runPair(base, opts, loc_2523);
+    const d = runPair(base, opts, service50mObjectSpawnRequest);
     count++;
     assert.equal(d, null, `${where}: ${describe(d)}`);
   };
@@ -219,7 +219,7 @@ test("EQUAL: loc_2523 == oracle on the timer/no-op paths and every spawn arm", (
   // -- non-vacuity: the produced record + tail for each distinct arm (both sides agree) --
   const expectSpawn = (opts, { y, x }, label) => {
     const a = craft(base, opts); oracle(a);
-    const b = craft(base, opts); loc_2523(b);
+    const b = craft(base, opts); service50mObjectSpawnRequest(b);
     for (const mm of [a, b]) {
       const s = slotBase(0);
       assert.equal(mm.mem.read8((s + OBJ_Y) & 0xffff), y, `${label}: OBJ_Y`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_051c (ROM 0x051C) — the "add to a score" task: add a
+ * Equivalence test for addToScoreTask (ROM 0x051C) — the "add to a score" task: add a
  * table-selected packed-BCD amount to the player-up's three-byte score, repaint it,
  * and (if it now leads) copy it over the high score and repaint that too.
  *
@@ -17,7 +17,7 @@
  * pc + SP up with the oracle. The oracle's internal push/return churn lands only inside
  * STACK_SCRATCH, excluded by the memory-equivalence contract.
  *
- *   1. EQUAL (captured) — hook 0x051C in a real boot/attract run and confirm loc_051c ==
+ *   1. EQUAL (captured) — hook 0x051C in a real boot/attract run and confirm addToScoreTask ==
  *      oracle over every real dispatch (RAM − STACK_SCRATCH, pc, SP).
  *   2. EQUAL (crafted) — drive every arm: attract skip; add-then-lower and add-then-equal
  *      no-promote exits; all three copy widths (top / middle / low byte first greater); a
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_051c as oracle } from "../../translated/loc_051c.js";
-import { loc_051c } from "../loc_051c.js";
+import { addToScoreTask } from "../addToScoreTask.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -179,7 +179,7 @@ test("REACHABILITY: 0x051C is dispatched during boot/attract", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_051c == oracle on every real dispatch", () => {
+test("EQUAL (captured): addToScoreTask == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -191,7 +191,7 @@ test("EQUAL (captured): loc_051c == oracle on every real dispatch", () => {
 
   let skips = 0, bodies = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_051c);
+    const diffs = contractDiffs(entry, addToScoreTask);
     assert.equal(diffs.length, 0, `captured dispatch (ATTRACT=${entry.mem.read8(ATTRACT)}): ${diffs.join("; ")}`);
     if (entry.mem.read8(ATTRACT) & 0x01) skips++; else bodies++;
   }
@@ -228,7 +228,7 @@ test("EQUAL (crafted): skip / no-promote / all copy widths / carry / both player
   const seen = { skip: 0, lower: 0, equal: 0, w1: 0, w2: 0, w3: 0 };
   for (const { name, opts, expect } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_051c);
+    const diffs = contractDiffs(entry, addToScoreTask);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     const cl = classify(entry);
@@ -250,7 +250,7 @@ test("EQUAL (crafted): skip / no-promote / all copy widths / carry / both player
 
 // -- 3. TEETH -----------------------------------------------------------------
 
-// A faithful re-implementation of loc_051c with a single switchable bug, so each twin is
+// A faithful re-implementation of addToScoreTask with a single switchable bug, so each twin is
 // the real routine minus one correct behaviour.
 function brokenLoc051c(m, bug) {
   const { regs, mem } = m;
@@ -306,13 +306,13 @@ test("TEETH: the no-guard twin and the stray-carry twin are CAUGHT", () => {
   //     the twin runs the body and adds +500 to the score. Caught at the changed score byte.
   const gEntry = craft(base, { attract: 0x01, player: 0, payload: 5, score: [0x00, 0x00, 0x10], high: [0x00, 0x00, 0x99] });
   assert.equal(classify(gEntry).scoreChanged, false, "guard-twin setup should be an attract SKIP for the oracle");
-  assert.equal(contractDiffs(gEntry, loc_051c).length, 0, "correct routine diverged on the guard-twin setup");
+  assert.equal(contractDiffs(gEntry, addToScoreTask).length, 0, "correct routine diverged on the guard-twin setup");
   const gDiffs = contractDiffs(gEntry, (mm) => brokenLoc051c(mm, "noguard"));
   assert.ok(gDiffs.length > 0, "the no-guard twin escaped — the attract skip is unguarded");
 
   // (b) stray carry into the low byte: an add whose low byte would be 0x00 becomes 0x01.
   const cEntry = craft(base, { attract: 0x00, player: 0, payload: 5, score: [0x00, 0x00, 0x10], high: [0x00, 0x00, 0x99] });
-  assert.equal(contractDiffs(cEntry, loc_051c).length, 0, "correct routine diverged on the carry-twin setup");
+  assert.equal(contractDiffs(cEntry, addToScoreTask).length, 0, "correct routine diverged on the carry-twin setup");
   const cDiffs = contractDiffs(cEntry, (mm) => brokenLoc051c(mm, "carry1"));
   assert.ok(cDiffs.length > 0, "the stray-carry twin escaped — the clear-carry start is unguarded");
 

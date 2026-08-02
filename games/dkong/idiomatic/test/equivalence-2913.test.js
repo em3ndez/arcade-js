@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2913 (ROM 0x2913) — the object-list bounding-box collision
+ * Equivalence test for findCollidingObject (ROM 0x2913) — the object-list bounding-box collision
  * search. It scans a record array for the first ACTIVE record whose box overlaps a
  * reference point on both axes, and reports either a hit (caller-skip return) or the list
  * exhausted (normal return).
@@ -10,7 +10,7 @@
  * the register file — the boolean return (which two-level return the ROM takes), the result
  * byte in A, and the count-minus-index residue in B that the found-handler reads back. The
  * oracle models the Z80 stack (it saves/restores IX and performs a one- or two-level
- * `ret`); loc_2913 models no stack (a boolean return, IX walked on a local copy). So the
+ * `ret`); findCollidingObject models no stack (a boolean return, IX walked on a local copy). So the
  * harness lines the two up: after the candidate it performs the SAME terminal return the
  * ROM would — one `ret` on the normal path, or discard-the-immediate-return-then-`ret` on
  * the caller-skip path — so pc and SP match, and the bytes the oracle's stack churn leaves
@@ -27,7 +27,7 @@
  *      count-minus-B index recovery on a hit at index 3, and the unguarded B==0 → 256-record
  *      scan.
  *
- *   3. EQUAL (captured) — hook 0x2913 in a real attract run and confirm loc_2913 == oracle
+ *   3. EQUAL (captured) — hook 0x2913 in a real attract run and confirm findCollidingObject == oracle
  *      on every real dispatch (both the exhausted and the hit outcomes occur naturally).
  *
  *   4. TEETH — two broken twins the same suite MUST catch: one that drops the axis-1 `+1`
@@ -42,7 +42,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2913 as oracle } from "../../translated/loc_2913.js";
-import { loc_2913 } from "../loc_2913.js";
+import { findCollidingObject } from "../findCollidingObject.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -218,7 +218,7 @@ test("REACHABILITY: 0x2913 is dispatched during attract", () => {
 
 // -- 1. EQUAL (fuzz) ----------------------------------------------------------
 
-test("EQUAL (fuzz): loc_2913 == oracle across a broad randomised sweep", () => {
+test("EQUAL (fuzz): findCollidingObject == oracle across a broad randomised sweep", () => {
   const base = attractBase();
   const rand = rng(0x2913abcd);
   const cov = { hit: 0, exhausted: 0, inactive: 0, hitAtIndex: 0 };
@@ -228,7 +228,7 @@ test("EQUAL (fuzz): loc_2913 == oracle across a broad randomised sweep", () => {
     const trial = genTrial(rand);
     const entry = craft(base, trial);
 
-    const diffs = contractDiffs(entry, loc_2913);
+    const diffs = contractDiffs(entry, findCollidingObject);
     assert.equal(diffs.length, 0, `fuzz trial ${t} (count=${trial.count}, de=${hx(trial.de)}): ${diffs.join("; ")}`);
 
     const k = classify(entry);
@@ -311,7 +311,7 @@ test("EQUAL (crafted): every arm matches the oracle", () => {
     const k = classify(entry);
     assert.equal(k.hit, wantHit, `${name}: expected ${wantHit ? "hit" : "exhausted"}, oracle did the opposite`);
     if (wantB !== undefined) assert.equal(k.b, wantB, `${name}: expected B=${wantB} after the hit`);
-    const diffs = contractDiffs(entry, loc_2913);
+    const diffs = contractDiffs(entry, findCollidingObject);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} arms identical to the oracle`);
@@ -319,7 +319,7 @@ test("EQUAL (crafted): every arm matches the oracle", () => {
 
 // -- 3. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_2913 == oracle on every real 0x2913 dispatch", () => {
+test("EQUAL (captured): findCollidingObject == oracle on every real 0x2913 dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 400) caps.push(mm.clone());
@@ -331,7 +331,7 @@ test("EQUAL (captured): loc_2913 == oracle on every real 0x2913 dispatch", () =>
 
   let hits = 0, exhausted = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_2913);
+    const diffs = contractDiffs(entry, findCollidingObject);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (classify(entry).hit) hits++; else exhausted++;
   }
@@ -380,7 +380,7 @@ function brokenDropInc(m) {
 
 /** Broken twin (b): correct decision, but corrupts the live-out B on the hit path. */
 function brokenHitB(m) {
-  const exhausted = loc_2913(m);
+  const exhausted = findCollidingObject(m);
   if (!exhausted) m.regs.b = (m.regs.b - 1) & 0xff; // BUG: index recovery reads count - B
   return exhausted;
 }

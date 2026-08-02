@@ -68,7 +68,7 @@ import {
   HAMMER_TIMER_LO,
   SND_BGM,
   OBJ_PAIR_6680,
-} from "./ram.js";
+  OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y,} from "./ram.js";
 import { boardBitGate } from "./boardBitGate.js";               // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js";       // ROM 0x0010 (rst 0x10)
 import { buildPendingHammerSprite } from "./buildPendingHammerSprite.js"; // ROM 0x2F97
@@ -87,8 +87,6 @@ const OBJ2_RECORD = 0x6a1c;             // object-2 sprite-record slot (SPRITE_B
 
 // Object-record field offsets with no ram.js name yet.
 const OBJ_SELECT = 0x01;         // +1 bit0 picks which object of the pair to drive
-const OBJ_FIELD_09 = 0x09;       // per-object state byte
-const OBJ_FIELD_0A = 0x0a;       // per-object state byte
 const OBJ_X_DISPLACEMENT = 0x0e; // horizontal offset added to Mario's X by the record write
 const OBJ_Y_DISPLACEMENT = 0x0f; // vertical offset added to Mario's Y by the record write
 
@@ -137,8 +135,8 @@ export function driveHammerSprite(m) {
   // stamp the object's two state bytes.
   mem.write8(MARIO_HAMMER_PENDING, 0x00);
   mem.write8(SND_BGM, HAMMER_TUNE);
-  mem.write8((objBase + OBJ_FIELD_09) & 0xffff, 0x06);
-  mem.write8((objBase + OBJ_FIELD_0A) & 0xffff, 0x03);
+  mem.write8((objBase + OBJ_HIT_EXTENT_X) & 0xffff, 0x06);
+  mem.write8((objBase + OBJ_HIT_EXTENT_Y) & 0xffff, 0x03);
 
   // Build the sprites from Mario's current pose: the object shows the hammer tile facing the
   // way Mario faces; the on-screen hammer-swing code is Mario's pose shifted up one, with the
@@ -160,8 +158,8 @@ export function driveHammerSprite(m) {
   // and displacement for this pose.
   objTile |= SWING_ALT_BIT;
   hammerCode |= SWING_ALT_BIT;
-  mem.write8((objBase + OBJ_FIELD_09) & 0xffff, 0x05);
-  mem.write8((objBase + OBJ_FIELD_0A) & 0xffff, 0x06);
+  mem.write8((objBase + OBJ_HIT_EXTENT_X) & 0xffff, 0x05);
+  mem.write8((objBase + OBJ_HIT_EXTENT_Y) & 0xffff, 0x06);
   mem.write8((objBase + OBJ_Y_DISPLACEMENT) & 0xffff, 0x00);
   mem.write8((objBase + OBJ_X_DISPLACEMENT) & 0xffff, 0xf0);
 

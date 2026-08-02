@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2913 — scan an object list for the first record whose bounding box overlaps a
+ * findCollidingObject — scan an object list for the first record whose bounding box overlaps a
  * reference point on both axes; stop and report a hit, or report the list exhausted.  ROM 0x2913.
  *
  * A collision primitive. The board collision handlers point it at one of their object
@@ -20,7 +20,7 @@
  * CALLER-SKIP RETURN (the shared rst-0x08 / m.call convention). On a hit the ROM discards
  * its own return address and returns one level FURTHER up — so the immediate caller's
  * post-call code is skipped and its caller resumes. That control effect is expressed here
- * as the boolean return the callers already branch on with `if (!loc_2913(m)) return...`:
+ * as the boolean return the callers already branch on with `if (!findCollidingObject(m)) return...`:
  *   • returns TRUE  — list exhausted, no hit (the ROM's normal return, result byte 0).
  *   • returns FALSE — a hit was found (the ROM's caller-skip return, result byte 1).
  *
@@ -58,7 +58,9 @@
  *           stay as literals with role comments.
  */
 
-export function loc_2913(m) {
+import { OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js";
+
+export function findCollidingObject(m) {
   const { regs, mem } = m;
 
   // Walk a LOCAL copy of the record base so the caller's IX is preserved.
@@ -85,7 +87,7 @@ export function loc_2913(m) {
       regs.sub(regs.l);
       if (!regs.fC) {
         // Beyond the base window: in range only if inside the record's own extra span.
-        regs.sub(mem.read8((rec + 0x0a) & 0xffff));
+        regs.sub(mem.read8((rec + OBJ_HIT_EXTENT_Y) & 0xffff));
         if (regs.fNC) break record; // out of range on axis 1 -> next record
       }
 
@@ -97,7 +99,7 @@ export function loc_2913(m) {
       regs.sub(regs.h);
       if (!regs.fC) {
         // Beyond the base window: in range only if inside the record's own extra span.
-        regs.sub(mem.read8((rec + 0x09) & 0xffff));
+        regs.sub(mem.read8((rec + OBJ_HIT_EXTENT_X) & 0xffff));
         if (regs.fNC) break record; // out of range on axis 2 -> next record
       }
 

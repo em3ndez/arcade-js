@@ -5,7 +5,7 @@
  * the register file (A = hit / no-hit, B = the count−index residue).
  *
  * loc_2974 writes NO work RAM: it only marshals the search parameters into registers and
- * direct-calls loc_2913, which reads the two records (through the base register) and
+ * direct-calls findCollidingObject, which reads the two records (through the base register) and
  * Mario's X/Y (through the reference pointer) and writes nothing. So the whole observable
  * effect is the register file plus control flow.
  *
@@ -40,7 +40,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2974 as oracle } from "../../translated/loc_2974.js";
 import { loc_2974 } from "../loc_2974.js";
-import { loc_2913 } from "../loc_2913.js";
+import { findCollidingObject } from "../findCollidingObject.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_ACTIVE, MARIO_X, MARIO_Y, OBJ_PAIR_6680 } from "../ram.js";
 
@@ -125,7 +125,7 @@ function attractBase(frames = 120) {
   return m.clone();
 }
 
-// Write the fields loc_2913 reads of one record: +0 flag (bit0 = active), +3 axis-2 coord,
+// Write the fields findCollidingObject reads of one record: +0 flag (bit0 = active), +3 axis-2 coord,
 // +5 axis-1 coord, +9 axis-2 extra span, +0x0A axis-1 extra span.
 function putRecord(m, base, { active, f3 = 0, f5 = 0, f9 = 0, fA = 0 }) {
   m.mem.write8((base + 0x00) & 0xffff, active ? 0x01 : 0x00);
@@ -238,7 +238,7 @@ function twinWrongRef(m) {
   regs.b = 0x02;
   regs.de = 0x0010;
   regs.ix = OBJ_PAIR_6680;
-  loc_2913(m);
+  findCollidingObject(m);
 }
 
 /** Broken twin (b): scans only one record instead of both. */
@@ -251,7 +251,7 @@ function twinShortScan(m) {
   regs.b = 0x01; // BUG: should be 0x02 (scan both records)
   regs.de = 0x0010;
   regs.ix = OBJ_PAIR_6680;
-  loc_2913(m);
+  findCollidingObject(m);
 }
 
 test("TEETH: the wrong-reference twin and the short-scan twin are CAUGHT", () => {

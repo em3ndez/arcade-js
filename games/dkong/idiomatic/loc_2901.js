@@ -5,10 +5,10 @@
  * A single-sweep sibling of the three-sweep loc_28b0. A dispatch table (base 0x3E8D)
  * jumps here having pushed the per-axis search tolerances on the stack; this routine
  * recovers them, records the sweep's object count where the found-handler reads it back,
- * points the shared collision search loc_2913 at the OBJ_ARRAY_64 record array, and runs
+ * points the shared collision search findCollidingObject at the OBJ_ARRAY_64 record array, and runs
  * one scan for the first record whose box overlaps the reference point.
  *
- * The scan reports its result in registers (loc_2913's ABI): a hit sets the result byte
+ * The scan reports its result in registers (findCollidingObject's ABI): a hit sets the result byte
  * to 1 and leaves the count-minus-index residue behind so the found-handler can recover
  * the matched record's index; an exhausted scan leaves the result byte 0. On a hit the
  * search takes its caller-skip return, which here only skips this routine's own trivial
@@ -19,7 +19,7 @@
  * arrive on the stack (the dispatcher pushed them) and the collision search still reads
  * its inputs from registers, so this routine recovers the pushed pair into the tolerance
  * registers and loads the record base / stride / count exactly as the oracle does before
- * handing off to loc_2913. The reference coordinate and reference pointer are set by the
+ * handing off to findCollidingObject. The reference coordinate and reference pointer are set by the
  * dispatcher and passed through untouched.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2901.test.js.
@@ -31,14 +31,14 @@
  *           dissolved call/return bracket writes; every live cell is kept. Teeth: a twin
  *           that stores the wrong object count and a twin that scans the wrong record count.
  * LIVE-OUT: OBJ_SEARCH_COUNT in memory, plus the search result the dispatch caller consumes
- *           — result byte in the accumulator and the count-minus-index residue (loc_2913's
+ *           — result byte in the accumulator and the count-minus-index residue (findCollidingObject's
  *           live-out registers). The oracle's dissolved push/return bracket is stack-only.
- * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_64 (0x6400) from ram.js; loc_2913 (ROM
+ * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_64 (0x6400) from ram.js; findCollidingObject (ROM
  *           0x2913) direct-called.
  */
 
 import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64 } from "./ram.js";
-import { loc_2913 } from "./loc_2913.js";
+import { findCollidingObject } from "./findCollidingObject.js";
 
 const SWEEP_COUNT = 7;   // records this sweep scans
 const RECORD_STRIDE = 32; // 0x20-byte record stride of OBJ_ARRAY_64
@@ -59,7 +59,7 @@ export function loc_2901(m) {
   regs.b = SWEEP_COUNT;
   regs.de = RECORD_STRIDE;
   regs.ix = OBJ_ARRAY_64;
-  loc_2913(m);
+  findCollidingObject(m);
 
   // A hit's caller-skip only skips this routine's own tail, so control returns to the
   // dispatch site the same way on both outcomes — always a normal return.

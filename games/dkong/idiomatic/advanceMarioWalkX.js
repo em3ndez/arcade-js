@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1cd2 — advance Mario one pixel along a horizontal walk step.  ROM 0x1CD2.
+ * advanceMarioWalkX — advance Mario one pixel along a horizontal walk step.  ROM 0x1CD2.
  *
  * The X arm of the per-frame walk mover. It shifts Mario's X position by the signed
  * walk delta, and on 25m only re-snaps his Y to the sloped girder now under his new X,
@@ -41,7 +41,7 @@ import { continueWalkStep } from "./continueWalkStep.js";
  * @param {import("../../machine.js").Machine} m
  * @param {number} delta  signed one-pixel walk step: 1 right, 255 left, 0 held.
  */
-export function loc_1cd2(m, delta) {
+export function advanceMarioWalkX(m, delta) {
   const { mem } = m;
 
   // Shift Mario one pixel along X by the signed walk delta (byte-wrapping).

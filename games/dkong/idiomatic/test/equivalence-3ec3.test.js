@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_3ec3 (ROM 0x3EC3) — count objects overlapping a probe point
+ * Equivalence test for countObjectOverlaps (ROM 0x3EC3) — count objects overlapping a probe point
  * within a per-object rectangular window, bumping OVERLAP_COUNT (0x6060) once per overlap.
  *
  * 0x3EC3 is a leaf reached from the (still-oracle) board overlap-search arm 0x3E99, which
@@ -29,7 +29,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3ec3 as oracle } from "../../translated/loc_3ec3.js";
-import { loc_3ec3 } from "../loc_3ec3.js";
+import { countObjectOverlaps } from "../countObjectOverlaps.js";
 import { Machine } from "../../machine.js";
 import { OVERLAP_COUNT } from "../ram.js";
 
@@ -47,7 +47,7 @@ const PROBE_BASE = 0x6100;     // probe point's record (its +3 is the second-axi
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// Marshal the oracle's register live-ins into loc_3ec3's honest params.
+// Marshal the oracle's register live-ins into countObjectOverlaps's honest params.
 const paramsFrom = (mm) => ({
   objectBase: mm.regs.ix,
   probeBase: mm.regs.iy,
@@ -147,7 +147,7 @@ test("REACHABILITY: 0x3EC3 is dispatched during the attract demo", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_3ec3 == oracle on every real dispatch", () => {
+test("EQUAL (captured): countObjectOverlaps == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 64) caps.push(mm.clone());
@@ -159,7 +159,7 @@ test("EQUAL (captured): loc_3ec3 == oracle on every real dispatch", () => {
 
   let sawCount = 0, sawNoCount = 0;
   for (const entry of caps) {
-    const diffs = contractDiffs(entry, loc_3ec3);
+    const diffs = contractDiffs(entry, countObjectOverlaps);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (delta(entry) !== 0) sawCount++; else sawNoCount++;
   }
@@ -206,7 +206,7 @@ test("EQUAL (crafted): every branch arm matches the oracle", () => {
 
   for (const { name, opts, exp } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_3ec3);
+    const diffs = contractDiffs(entry, countObjectOverlaps);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
     // Non-vacuity: the oracle really took the intended branch (counter delta as designed).
     assert.equal(delta(entry), exp, `${name}: oracle counter delta ${delta(entry)} != expected ${exp}`);

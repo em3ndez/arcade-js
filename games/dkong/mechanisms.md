@@ -228,9 +228,11 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   repositioned at a board edge, read as a gate by the edge-reset code. `[code]`
 - **Periodic object event requests.** On 50m/100m while Mario is alive, `loc_2ddb` fires a
   difficulty-scaled periodic trigger (every `2^(9−steps)` frames — 128 at difficulty 1) that
-  raises two one-shot request latches. `OBJ_SPAWN_REQ (0x639A)` is consumed by `sub_2523`: once
+  raises two one-shot request latches. `OBJ_SPAWN_REQ (0x639A)` is consumed by `service50mObjectSpawnRequest`: once
   its reload/cooldown timer `OBJ_SPAWN_TIMER (0x639B)` has drained (free-runs `0x7C→0`), it scans
   `OBJ_ARRAY_65A0` for a free slot, spawns an object, clears the request and reloads the timer.
+  Each frame `update50mMovingObjects` mirrors the six `OBJ_ARRAY_65A0` records into their hardware
+  sprite group `OBJ_65A0_SPRITES` (0x69B8, 6×4 bytes in `SPRITE_BUFFER`) for the sprite DMA (`[code]`).
   `EVENT_REQ_313C (0x63A0)` is an object-INSERT request consumed by `entry_313c`, which activates
   a free `OBJ_ARRAY_64` slot and clears it (also cleared on board reset). **Grounded (understanding
   pass 10):** both latches cycle `{0,1}` board-gated on a 128-frame rise period live vs MAME,
@@ -264,13 +266,16 @@ arrays**, seeded at board build and updated each frame by the (mostly oracle-onl
   `OBJ_ARRAY_67`/`OBJ_ARRAY_64` exactly; its low byte is a page-aligned `0x00`, the high byte
   `0x6352` is the array classifier), `COLLIDED_OBJECT_STRIDE (0x6353)` = the array's record stride
   (grounded `0x20`), and `COLLIDED_OBJECT_INDEX (0x6354)` = the hit record's index
-  (`= OBJ_SEARCH_COUNT − B`); `entry_1ea0` later walks `base + index*stride` back to the record.
+  (`= OBJ_SEARCH_COUNT − B`); `buildEffectSprite` later walks `base + index*stride` back to the record.
   A structural twin, `dispatchBoardOverlapSearch (0x3E88)` (reached only
   from the `0x286B` search caller), shares the boards-2/3/4 arms with the collision dispatcher but
   on board 1 runs an **overlap-count** arm: `entry_3e99` clears `OVERLAP_COUNT (0x6060)` and
-  `entry_3ec3` `inc`s it per overlapping object across both groups, then reads it back as a
+  `countObjectOverlaps` `inc`s it per overlapping object across both groups, then reads it back as a
   `0/1/3/7` severity code. `OVERLAP_COUNT`, the collision-hit record, and the recorded array
-  base/stride are all grounded `[seen]` live vs MAME (understanding pass 9). `[seen]`
+  base/stride are all grounded `[seen]` live vs MAME (understanding pass 9). Both searches
+  (`findCollidingObject`, `countObjectOverlaps`) size each object's collision box with per-object
+  half-extents `OBJ_HIT_EXTENT_X (+0x09)` / `OBJ_HIT_EXTENT_Y (+0x0a)`, added to the caller's base
+  tolerance on each axis (`[code]`). `[seen]`
 - **Velocity-mode latch (`0x6348`, kept hex).** A one-shot latch read differently by different
   consumers: object velocity-source select (`loc_22cb`: clear → level-based arm, set → difficulty
   arms), a spawn/movement difficulty gate (`sub_216d`: clear → success tail, set → difficulty
@@ -399,7 +404,7 @@ hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on scre
 countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `loc_1e96`) with inner/outer
 counters `EFFECT_SEQ_INNER (0x6346)` / `EFFECT_SEQ_OUTER (0x6347)` — steps a short sequence
 and re-arms `EFFECT_STATE` on completion. The effect's own hardware sprite is `EFFECT_SPRITE
-(0x6A2C)`, a 4-byte record inside `SPRITE_BUFFER` immediately before `POPUP_SPRITE`; `entry_1ea0`
+(0x6A2C)`, a 4-byte record inside `SPRITE_BUFFER` immediately before `POPUP_SPRITE`; `buildEffectSprite`
 builds it and points `EFFECT_PARAM_PTR` at it, and on each ordinary beat `loc_1f09` flips bit0 of
 its `+1` code byte to flash the effect tile between `0x60` and `0x61`. That `+1` code field
 (`0x6A2D`, reached as `EFFECT_SPRITE + 1`) is grounded `[seen]` live vs MAME (pass 9, 41 flips tied
@@ -535,7 +540,7 @@ By ROM region, the largest not-yet-lifted blocks are:
   moment behaviour of the hazards: barrel spawn & roll (Kong's throws, barrels tumbling
   girders and going "wild" down ladders), fireball / firefox AI, elevator and spring
   motion (75m), cement-pan / conveyor behaviour (50m), and the generic object engine —
-  the object-list collision search (`entry_2913`), object movement with edge-clamping
+  the object-list collision search (`findCollidingObject`), object movement with edge-clamping
   (`move_2b02` does `X += velocity` then clamps via `sub_241F`), slope-contact flags
   (`entry_2acd`), and the per-object update (`obj_2e12`). The Mario-side *collision consume*
   is lifted (`scanObjectsAtMarioX`, `confirmObjectHit`), but the hazards' *own* logic is

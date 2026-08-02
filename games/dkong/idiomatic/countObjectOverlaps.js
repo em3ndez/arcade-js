@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3ec3 — count how many objects in an array overlap a probe point, within a
+ * countObjectOverlaps — count how many objects in an array overlap a probe point, within a
  * per-object rectangular window.  ROM 0x3EC3.
  *
  * Walks `count` fixed-stride records starting at objectBase (stride bytes apart). Each
@@ -42,9 +42,9 @@
  * fixed-cell name in ram.js, so they stay as base+offset here.
  */
 
-import { OVERLAP_COUNT } from "./ram.js"; // 0x6060 — the shared overlap counter this routine bumps
+import { OVERLAP_COUNT, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js"; // 0x6060 — the shared overlap counter this routine bumps
 
-export function loc_3ec3(m, { objectBase, probeBase, count, probeA, stride, threshA, threshB }) {
+export function countObjectOverlaps(m, { objectBase, probeBase, count, probeA, stride, threshA, threshB }) {
   const { mem } = m;
 
   let base = objectBase & 0xffff;      // record cursor; advances by `stride` each pass
@@ -69,7 +69,7 @@ export function loc_3ec3(m, { objectBase, probeBase, count, probeA, stride, thre
         overlapsAxis1 = true;
       } else {
         const rem = (d - tA) & 0xff;
-        overlapsAxis1 = rem < mem.read8((base + 0x0a) & 0xffff);
+        overlapsAxis1 = rem < mem.read8((base + OBJ_HIT_EXTENT_Y) & 0xffff);
       }
 
       if (overlapsAxis1) {
@@ -85,7 +85,7 @@ export function loc_3ec3(m, { objectBase, probeBase, count, probeA, stride, thre
           overlapsAxis2 = true;
         } else {
           const rem2 = (e - tB) & 0xff;
-          overlapsAxis2 = rem2 < mem.read8((base + 0x09) & 0xffff);
+          overlapsAxis2 = rem2 < mem.read8((base + OBJ_HIT_EXTENT_X) & 0xffff);
         }
 
         if (overlapsAxis2) {

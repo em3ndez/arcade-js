@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b9b — the tile gate at the head of the airborne-descent collision probe.  ROM 0x2B9B.
+ * probeTileForLanding — the tile gate at the head of the airborne-descent collision probe.  ROM 0x2B9B.
  *
  * Given a pixel coordinate (y in the high byte, x in the low byte), it looks up the tile
  * under that pixel and decides whether the pixel sits on a landable tile surface. On a
@@ -24,7 +24,7 @@
  * RETURN CONTRACT (caller-skip): returns true on a normal return (the REJECT arm with result
  * code 0, and the "still airborne" arm that resolveAirborneTileLanding reports), and false to
  * signal the two-frame unwind that aborts the whole multi-probe collision walk once Mario has
- * landed. Callers propagate it as `if (loc_2b9b(m) === false) return false;`.
+ * landed. Callers propagate it as `if (probeTileForLanding(m) === false) return false;`.
  *
  * REGISTER-ABI MARSHALLING (dissolves once the callees take honest args): tileAddrForPixel is
  * a pure leaf called with the pixel's (y, x); resolveAirborneTileLanding still reads its inputs
@@ -62,7 +62,7 @@ function reject(regs) {
  *   Live-out: A/B result code, C boundary + E pixel-x handed to resolveAirborneTileLanding.
  * @returns {boolean} true = normal return; false = the two-frame collision-walk unwind.
  */
-export function loc_2b9b(m) {
+export function probeTileForLanding(m) {
   const { regs, mem } = m;
 
   // Map the pixel to its tilemap cell; keep the original pixel (its x is the column ref).

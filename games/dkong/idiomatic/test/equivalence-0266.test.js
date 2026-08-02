@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_0266 (ROM 0x0266) — power-on setup: wipe all RAM, seed
+ * Equivalence test for clearRamAndInitHardware (ROM 0x0266) — power-on setup: wipe all RAM, seed
  * the task queue, set the display-hardware bits, silence the sound, and hand the
  * game its stack.
  *
  * bootInit is INPUT-INDEPENDENT: it reads no work RAM and every store writes a
  * constant, so there is no data-dependent branch and no unreached arm. That makes a
- * crafted-entry gate a proof of behaviour: run the oracle and loc_0266 from the SAME
+ * crafted-entry gate a proof of behaviour: run the oracle and clearRamAndInitHardware from the SAME
  * entry and diff. Three entries span the input space that matters — a clean power-on,
  * a real mid-attract machine, and a pre-dirtied RAM/io machine — each proving every
  * span is overwritten regardless of prior contents.
@@ -14,7 +14,7 @@
  * The oracle sets SP to 0x6C00, `push16`es the 0x02B8 return address, then `call`s
  * 0x011C (silenceSound) whose `ret` pops it, so SP nets back to 0x6C00 and the pushed
  * bytes land at 0x6BFE/0x6BFF — inside the dead STACK_SCRATCH [0x6be0,0x6c00), which
- * the memory-equivalence contract excludes. loc_0266 dissolves that bracket into a
+ * the memory-equivalence contract excludes. clearRamAndInitHardware dissolves that bracket into a
  * direct silenceSound(m) call and sets SP itself, so SP matches with no ret modelling.
  *
  * The contract compared here is RAM − STACK_SCRATCH, pc, SP, the io device state (the
@@ -23,7 +23,7 @@
  *
  *   1. REACHABILITY — the real boot path (bootOnly) runs bootInit last and leaves its
  *      invariants (blank-tile VRAM, empty task queue, flip-screen + NMI enabled).
- *   2. EQUAL — loc_0266 == oracle over power-on / mid-attract / dirtied entries.
+ *   2. EQUAL — clearRamAndInitHardware == oracle over power-on / mid-attract / dirtied entries.
  *   3. TEETH — three broken twins the same contract MUST catch:
  *        (a) blank-tile twin (VRAM zeroed, not 0x10) — caught in RAM at 0x7400.
  *        (b) flip-screen twin (0x7D82 left off) — caught in io.flipScreen.
@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0266 as oracle } from "../../translated/loc_0266.js";
 import { bootOnly } from "../../translated/bootOnly.js";
-import { loc_0266 } from "../loc_0266.js";
+import { clearRamAndInitHardware } from "../clearRamAndInitHardware.js";
 import { silenceSound } from "../silenceSound.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, TASK_TAIL, TASK_HEAD, TASK_RING } from "../ram.js";
@@ -101,7 +101,7 @@ function runOracle(entry) {
   return c;
 }
 
-/** Run a candidate on a fresh clone. loc_0266 falls through (no ret), so pc/SP need no modelling. */
+/** Run a candidate on a fresh clone. clearRamAndInitHardware falls through (no ret), so pc/SP need no modelling. */
 function runCandidate(entry, fn) {
   const c = entry.clone();
   fn(c);
@@ -172,18 +172,18 @@ test("REACHABILITY: bootInit runs on the real boot path and leaves its invariant
 
 // -- 2. EQUAL -----------------------------------------------------------------
 
-test("EQUAL: loc_0266 == oracle over power-on / mid-attract / dirtied entries", () => {
+test("EQUAL: clearRamAndInitHardware == oracle over power-on / mid-attract / dirtied entries", () => {
   const entries = [
     ["power-on", powerOn()],
     ["mid-attract", attractBase()],
     ["dirtied", dirtied()],
   ];
   for (const [name, entry] of entries) {
-    const diffs = contractDiffs(entry, loc_0266);
+    const diffs = contractDiffs(entry, clearRamAndInitHardware);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the routine really performed its setup on this entry.
-    const c = runCandidate(entry, loc_0266);
+    const c = runCandidate(entry, clearRamAndInitHardware);
     assert.equal(c.mem.read8(0x7400), 0x10, `${name}: video RAM not filled`);
     assert.equal(c.mem.read8(TASK_RING), 0xff, `${name}: task ring not marked free`);
     assert.equal(c.regs.sp, 0x6c00, `${name}: SP not set to 0x6c00`);
@@ -196,13 +196,13 @@ test("EQUAL: loc_0266 == oracle over power-on / mid-attract / dirtied entries", 
 
 /** Broken twin (a): does the correct setup, then zeroes VRAM (should stay blank tile 0x10). */
 function twinBlankTile(m) {
-  loc_0266(m);
+  clearRamAndInitHardware(m);
   for (let a = 0x7400; a < 0x7800; a++) m.mem.write8(a, 0); // BUG
 }
 
 /** Broken twin (b): does the correct setup, then turns flip-screen back off. */
 function twinNoFlip(m) {
-  loc_0266(m);
+  clearRamAndInitHardware(m);
   m.io.flipScreen = 0; // BUG
 }
 
@@ -242,5 +242,5 @@ test("TEETH: the blank-tile, flip-screen, and missing-silence twins are CAUGHT",
 });
 
 // Reference the imported leaf so the direct-call dependency is explicit even if a
-// future edit stops exercising it through loc_0266.
+// future edit stops exercising it through clearRamAndInitHardware.
 void silenceSound;

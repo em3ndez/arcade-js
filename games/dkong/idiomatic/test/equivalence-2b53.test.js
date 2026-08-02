@@ -2,7 +2,7 @@
 /**
  * Equivalence test for loc_2b53 (ROM 0x2b53) — the non-25m arm of the player-vs-tilemap
  * descent probe (reached from entry_2b29 when (0x6227) != 1). It probes the tilemap under
- * Mario at up to two offset points via the tile classifier loc_2b9b:
+ * Mario at up to two offset points via the tile classifier probeTileForLanding:
  *
  *   probe 1 at (X-3, Y+7); probe 2 at (X+4, Y+7).
  *
@@ -14,7 +14,7 @@
  * caller-skip unwind (`if (loc_2b53(m) === false) return false;`).
  *
  * STACK MODEL. In the oracle, loc_2b53 pushes each `call 0x2b9b` return and either `ret`s
- * once on the normal path (0x2B70 ret z) or is unwound two frames up by loc_2b9b's own
+ * once on the normal path (0x2B70 ret z) or is unwound two frames up by probeTileForLanding's own
  * landed-double-skip (entry_2be1 pop x2 + ret) / loc_2b7a's pop hl + ret. The idiomatic
  * routine models no stack (a boolean return + direct calls), so runCandidate replays the
  * net stack op the oracle nets on each path: on the false (unwind) paths one discarded
@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { u8 } from "../../../../core/int.js";
 import { loc_2b53 as oracle } from "../../translated/loc_2b53.js";
 import { loc_2b53 } from "../loc_2b53.js";
-import { loc_2b9b } from "../loc_2b9b.js";
+import { probeTileForLanding } from "../probeTileForLanding.js";
 import { loc_2b7a } from "../loc_2b7a.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_X, MARIO_Y, MARIO_AIR_PREV_Y, MARIO_AIR_VX_HI, MARIO_SPRITE_RECORD, SPRITE_X } from "../ram.js";
@@ -242,10 +242,10 @@ test("EQUAL: loc_2b53 == oracle on RAM+pc+SP+A across all five terminal paths", 
 function brokenSecondProbeNoOffset(m) {
   const { regs } = m;
   regs.hl = (u8(m.mem.read8(MARIO_X) - 3) << 8) | u8(m.mem.read8(MARIO_Y) + 7);
-  if (loc_2b9b(m) === false) return false;
+  if (probeTileForLanding(m) === false) return false;
   if (regs.a === 2) return loc_2b7a(m);
   regs.hl = (u8(regs.d) << 8) | u8(regs.e); // BUG: no +7 on the high byte
-  if (loc_2b9b(m) === false) return false;
+  if (probeTileForLanding(m) === false) return false;
   if (regs.a === 0) return true;
   return loc_2b7a(m);
 }
@@ -254,10 +254,10 @@ function brokenSecondProbeNoOffset(m) {
 function brokenFirstNoPropagate(m) {
   const { regs } = m;
   regs.hl = (u8(m.mem.read8(MARIO_X) - 3) << 8) | u8(m.mem.read8(MARIO_Y) + 7);
-  loc_2b9b(m); // BUG: no `if (=== false) return false`
+  probeTileForLanding(m); // BUG: no `if (=== false) return false`
   if (regs.a === 2) return loc_2b7a(m);
   regs.hl = (u8(regs.d + 7) << 8) | u8(regs.e);
-  if (loc_2b9b(m) === false) return false;
+  if (probeTileForLanding(m) === false) return false;
   if (regs.a === 0) return true;
   return loc_2b7a(m);
 }
@@ -266,10 +266,10 @@ function brokenFirstNoPropagate(m) {
 function brokenInvertSnapTest(m) {
   const { regs } = m;
   regs.hl = (u8(m.mem.read8(MARIO_X) - 3) << 8) | u8(m.mem.read8(MARIO_Y) + 7);
-  if (loc_2b9b(m) === false) return false;
+  if (probeTileForLanding(m) === false) return false;
   if (regs.a === 0) return loc_2b7a(m); // BUG: should be === 2
   regs.hl = (u8(regs.d + 7) << 8) | u8(regs.e);
-  if (loc_2b9b(m) === false) return false;
+  if (probeTileForLanding(m) === false) return false;
   if (regs.a === 0) return true;
   return loc_2b7a(m);
 }

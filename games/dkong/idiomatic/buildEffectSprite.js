@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1ea0 — effect-sequence step 0: spawn the hit effect sprite from the collided
+ * buildEffectSprite — effect-sequence step 0: spawn the hit effect sprite from the collided
  * object's record, then arm the effect countdown and its priority sound.  ROM 0x1EA0.
  *
  * Reached as the index-0 arm of the effect-sequence router (dispatched while
@@ -60,7 +60,7 @@ import {
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_1ea0(m) {
+export function buildEffectSprite(m) {
   const { mem } = m;
 
   // Classify which hazard-object array the hit landed in by the base's high byte (its page),

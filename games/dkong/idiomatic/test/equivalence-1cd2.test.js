@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1cd2 (ROM 0x1CD2) — advance Mario one pixel along a
+ * Memory-equivalence test for advanceMarioWalkX (ROM 0x1CD2) — advance Mario one pixel along a
  * horizontal walk step: MARIO_X += the signed walk delta; on 25m (BOARD == 1) re-snap
  * MARIO_Y to the sloped girder under the new X via snapYToGirder; then tail into
  * continueWalkStep (which decrements the sub-step timer and refreshes the sprite record).
@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1cd2 as oracle } from "../../translated/loc_1cd2.js";
-import { loc_1cd2 } from "../loc_1cd2.js";
+import { advanceMarioWalkX } from "../advanceMarioWalkX.js";
 import { snapYToGirder } from "../snapYToGirder.js";
 import { continueWalkStep } from "../continueWalkStep.js";
 import { Machine } from "../../machine.js";
@@ -110,7 +110,7 @@ function contractDiffs(entry, fn) {
 }
 
 // The idiomatic routine takes the walk delta as a parameter; wrap it for the harness.
-const withDelta = (delta) => (c) => loc_1cd2(c, delta);
+const withDelta = (delta) => (c) => advanceMarioWalkX(c, delta);
 
 // -- capture + craft ----------------------------------------------------------
 
@@ -185,7 +185,7 @@ function brokenSwappedArgs(m, delta) {
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("REACHABILITY + EQUAL (real dispatches): loc_1cd2 == oracle on every captured 0x1cd2 entry", () => {
+test("REACHABILITY + EQUAL (real dispatches): advanceMarioWalkX == oracle on every captured 0x1cd2 entry", () => {
   const caps = captureDispatches(256, FRAMES);
   assert.ok(caps.length >= 1, "expected at least one real 0x1cd2 dispatch during attract");
   for (const { entry, delta } of caps) {
