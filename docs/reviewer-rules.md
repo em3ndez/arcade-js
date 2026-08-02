@@ -167,6 +167,49 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   after teeth-testing the tool; a second reviewer then caught this note citing the wrong commit for
   the fix — ce6f6ea is a later, separate repair to the same tool, its uppercase-hex EXPORT regex.)*
 
+## A commit's account of itself
+
+- **R19 [ALL]** Every statement a commit makes ABOUT ITS OWN DIFF must be verified against the diff,
+  not against the author's account of it. This is the defect that has most often cost a review
+  round recently — and because it is caught BEFORE commit, the committed history cannot show it, so
+  do not expect to find it there. On one 2-file comment-only commit (c880a82) it caused five
+  consecutive review failures — reported by the author, not recorded in `.reviews/` — while not one
+  of that commit's ROM findings ever moved.
+
+  The three forms it takes, each with the check that catches it:
+  1. **A number about the diff.** Counts of files, sites, roles, occurrences. DERIVE IT FROM THE
+     DIFF at the moment of writing — `git diff --cached --name-only | wc -l`,
+     `git diff --cached | grep -c ...`. A count carried from an earlier draft is stale the moment
+     the diff changes, and it always changes. (Observed in review drafts. None of these mistaken
+     statements was ever committed as an assertion — they survive only as the examples quoted here:
+     a draft claiming five role strings after a sixth was added, landing as 42c1f07's "six role
+     strings"; a draft claiming "both sites" where the file had three, landing as c880a82's "all
+     four sites".)
+  2. **A quotation.** Quoting text is a claim that those exact words exist in that exact file.
+     GREP EACH QUOTE against the parent revision before writing it — `git show HEAD:<path> |
+     grep -F "<quote>"` — and check the PROVENANCE: words
+     the author wrote in an earlier *staged draft* are not in the parent and never will be.
+     (Observed: two fabricated quotes; one real quote attributed to the header when it had only ever
+     existed in a draft.)
+  3. **A claim that a fix landed.** GREP THE STAGED BLOB FOR THE OLD WORDING before reporting a fix
+     done — `git show :path | grep -F "<old text>"` must return nothing. Editing the commit message
+     and believing the file changed is a real and repeated failure. (Observed: a reviewer found the
+     staged blob byte-identical to the previous round after the author reported the edit made.)
+
+  Two corollaries, both earned the same way:
+  * **A fix applied where a reviewer points leaves its siblings alive.** When told about an instance,
+    sweep for the CLASS. (Observed twice in one commit: three "edge reset" sites where two were
+    claimed; a fabricated quote corrected in one place and left standing in another.)
+  * **Re-read the WHOLE file each round, not the delta.** A fix can convert a merely-stale
+    neighbouring clause into a live contradiction. (Observed: deleting a disclaimer, then asserting
+    its opposite, refuted a clause three lines up that had been tolerable before.) Verify: read the
+    whole touched file AT THE STAGED REVISION, not the diff hunks, and confirm every clause
+    adjacent to a change is still true.
+
+  Verify: for each such statement in the message and in any touched header, run the producing
+  command. A statement about the diff with no producing command is unverified, and unverified
+  statements about the diff have been wrong more often than right here.
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/ram.js/mechanisms/retrofits. No
@@ -212,3 +255,16 @@ check whether a pass formed its belief by measuring or by guessing — a reviewe
 own report can. (The mechanical half, check 1 and the existence half of check 2, IS scriptable;
 gating only that would recreate the proxy failure this file's own history documents.) Prompted by
 qarl asking whether the method was written down where the next game would find it.*
+
+*R19 was added after a two-file, comment-only commit (c880a82) failed review five times running
+without a single one of its ROM findings moving. Every failure was the commit's account of itself:
+a cited hunk that was unstaged, a count left behind by the author's own edit, two fabricated
+quotations, a real quotation attributed to the parent when it had only ever existed in a draft, and
+finally a fix reported as landed that had been made only to the commit message. Two of the five were
+introduced by the fix for the previous one. The existing rules govern evidence for claims about the
+GAME, and R17 already governs what a gate's HEADER claims about itself — its check 2 is this rule's
+form 1 applied to headers. What had no rule was the commit MESSAGE, which is where those rounds
+were actually spent.
+Note the asymmetry this rule lives with: the defect is caught pre-commit, so `.reviews/` and the log
+record the corrected version and never the mistake — the evidence for R19 is review transcripts, not
+history.*
