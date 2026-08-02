@@ -25,7 +25,7 @@
 //      is stack-neutral on its own, and that the flip still reproduces the oracle on every live
 //      cell. Also asserts the run REACHES its frame budget, which "green" did not previously imply:
 //      before the seam fix this run died at frame 237 and no test failed.
-//      Its budget is 590, not 600, and NOT as a safety margin — see FLIP_FRAMES below.
+//      Its budget is 600, bounded by a real divergence at frame 607, not a margin — see FLIP_FRAMES.
 //
 //   3. "with no overrides the seam is not installed at all"
 //      A STRUCTURAL proof, not a numeric one: a Machine built with an empty override map carries no
@@ -73,14 +73,17 @@ const test = ROM_PRESENT
 
 const FRAMES = 600; // enough to boot and run the attract sequence
 
-// The full flip's budget is 590, not 600, and the reason is a REAL DEFECT, not a safety margin:
-// at attract frame 599 `translated/loc_3e99.js:66` invokes ROM 0x3EC3 as `m.call(0x3ec3)` with no
-// second argument while `idiomatic/countObjectOverlaps.js` takes an options object, so the flip
-// throws `TypeError: Cannot destructure property 'objectBase' of 'undefined'`. That is a signature
-// mismatch at an oracle-bridge call site — nothing to do with the stack seam — and it is the next
-// blocker for the flip. Raise this to FRAMES the moment it is fixed; do not raise it by loosening
-// the assertions.
-const FLIP_FRAMES = 590;
+// The full flip's budget is 600, and the reason it is not higher is a REAL DEFECT, not a safety
+// margin. The PREVIOUS blocker is gone: at frame 599 `translated/loc_3e99.js:66` used to invoke ROM
+// 0x3EC3 as `m.call(0x3ec3)` with no second argument while `idiomatic/countObjectOverlaps.js` takes
+// an options object, throwing `TypeError: Cannot destructure property 'objectBase' of 'undefined'`.
+// An idiomatic loc_3e99 that passes the options object now serves that address, so the flip runs
+// past 599 — and running past it exposed the NEXT wall, at frame 607: a live-cell divergence in one
+// OBJ_ARRAY_67 record and its mirrored sprite (0x6706/0x6707/0x670f/0x6711/0x6714/0x6719/0x6981),
+// reproduced on both engines. That divergence is NOT in the routines that opened the window — it is
+// in code wired long before, newly reachable because frames 600+ had never been compared.
+// Raise this to FRAMES the moment THAT is fixed; do not raise it by loosening the assertions.
+const FLIP_FRAMES = 600;
 
 const { pollPCs, stateExclude, golive } = manifest.convergence;
 const { nmiReturnPC } = golive;
@@ -324,7 +327,7 @@ test("the seam's stack-effect tables still match the frozen oracle", async () =>
   assert.equal(res.stopError, null, `instrumented oracle run errored: ${res.stop}`);
 
   // ONLY ROUTINES WITH AN IDIOMATIC TWIN CAN EVER BE WRAPPED, so only they are in scope. An
-  // address with no entry in ROUTINES (e.g. the skip-capable dispatcher 0x30FA) is never an
+  // address with no entry in ROUTINES (0x30FA was the example here until it was wired) is never an
   // override and the seam never sees it.
   const { ROUTINES } = await import("../ram.js");
   const overridable = (a) => Object.hasOwn(ROUTINES, String(a));
@@ -394,7 +397,8 @@ test("the seam's stack-effect tables still match the frozen oracle", async () =>
   );
   // Non-vacuous but PARTIAL, and the numbers say by how much. SEAM_CALLER_SKIP's unreached entries
   // are gameplay-only guards (0x1783/0x1A2A/0x1E85/0x2257/0x236E/0x2913/0x2B74/0x2B91/0x311B/
-  // 0x3126/0x3131); they are justified in machine.js from the frozen oracle's source, not here.
+  // 0x3126/0x3131/0x33A1 — twelve as of decompile batch 3, which added 0x33A1); they are
+  // justified in machine.js from the frozen oracle's source, not here.
   assert.equal(
     tailSeen.length, SEAM_TAIL_NO_RET.size,
     "every SEAM_TAIL_NO_RET entry is reached by attract, so a shortfall means the board-layout " +

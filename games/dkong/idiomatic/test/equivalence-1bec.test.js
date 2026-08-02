@@ -52,6 +52,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1bec as oracle } from "../../translated/loc_1bec.js";
 import { loc_1bec } from "../loc_1bec.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js"; // ROM 0x239C — used by the twins
+import { loc_1c33 } from "../loc_1c33.js"; // ROM 0x1C33 — idiomatic as of decompile batch 3
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -210,7 +211,7 @@ function brokenSwappedOrder(m) {
  *  the landing probe and both phase tests. */
 function brokenWrongTail(m) {
   stepBallisticMotion(m);
-  return m.call(0x1c33);
+  return loc_1c33(m);
 }
 
 // -- 0. reachability ----------------------------------------------------------

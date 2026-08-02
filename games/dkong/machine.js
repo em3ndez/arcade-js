@@ -121,6 +121,26 @@ export class FramesComplete extends Error {
  * path by design).
  */
 const SEAM_CALLER_SKIP = new Set([
+  // ── added when decompile batch 3 wired these into ROUTINES ──────────────────
+  0x1e8c, // loc_1e8c  effect-latch frame gate   pop hl / ret     (MEASURED false:+4 x146 of 1938)
+  0x30fa, // loc_30fa  difficulty->gate selector pop hl / ret     (MEASURED false:+4 x896 of 1792)
+  0x33a1, // loc_33a1  movement-path height gate inc sp x2 / ret  (SOURCE-JUSTIFIED, not measured:
+          //   ROM 0x33A1 = `3e 07 f7 dd 7e 0f fe 59 d0 33 33 c9`; the `33 33 c9` tail IS the idiom.
+          //   Attract reaches only the `ret nc` arm, so an oracle run CANNOT see this one. (Counts
+          //   vary sharply with engine and pin: 13 in a 4000-frame unpinned runCycleFree pass here,
+          //   0 in an 8000-frame PINNED run, 49 unpinned — so no single number is quoted. What is
+          //   invariant across all of them is that the skip arm is never taken.) —
+          //   it is here on the ROM bytes, like the 11 other unmeasured entries below.)
+  // ★ 0x3e99 is deliberately NOT here even though its oracle nets +4. That +4 is a consumed
+  //   ARGUMENT, not a discarded return address: the dispatcher pushes a bounds word and
+  //   idiomatic loc_3e99 pops it ITSELF (`const bounds = m.pop16()`), so the seam's ordinary
+  //   one-word bracket already balances the frame. (Listing it would in fact be INERT rather
+  //   than harmful — MEASURED: seamWrap applies the skip only under `r === false`, and
+  //   loc_3e99 returns a NUMBER (0/1/3/7); the `sp !== spEntry` guard also declines it, since
+  //   its own pop16 has already moved SP. It is omitted because it is not a caller-skip, not
+  //   because listing it would over-pop — an earlier version of this comment said the latter
+  //   and was wrong.)
+  //   ★ A +4 measurement alone does not mean caller-skip — check WHICH word was consumed.
   0x0008, // loc_0008 gameActiveGuard      inc sp x2 / ret   (measured false:+4)
   0x0010, // loc_0010 marioActiveGuard     inc sp x2 / ret   (measured false:+4)
   0x0018, // loc_0018 tickSubstateTimer    inc sp x2 / ret   (measured false:+4)
