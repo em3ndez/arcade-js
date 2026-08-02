@@ -19,7 +19,7 @@
  *       * set record 4's sprite code (0x6919) to 0x20;
  *       * stage a 4-byte object record 7F 39 01 D8 at 0x6a24;
  *       * fill a 5×14 = 70-tile block with tile 0x10, descending from VRAM 0x76c6
- *         (sub_1826);
+ *         (loc_1826);
  *       * draw the board's line-segment layout from the ROM segment table at 0x3a5f
  *         (drawBoardLayout — girders / ladders);
  *       * shift sprite-buffer records 0 and 1 down 0x28 px (add 0x28 into their Y
@@ -39,7 +39,7 @@
  *   addToSpriteObjectColumn (idiomatic, ROM 0x0038 → addStrided 0x003d) — the per-frame
  *     Y nudge; addStrided (idiomatic, ROM 0x003d) — the sprite-buffer Y shift;
  *   drawBoardLayout (idiomatic, ROM 0x0da7) — the segment-table board draw;
- *   sub_1826 (ORACLE, ROM 0x1826 — no idiomatic lift yet) — the 70-tile VRAM fill.
+ *   loc_1826 (ORACLE, ROM 0x1826 — no idiomatic lift yet) — the 70-tile VRAM fill.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1880.test.js.
  * GATE:     crafted-entry — attract never reaches GAME_SUBSTATE 0x16 (it does not
@@ -57,7 +57,7 @@
  *           dispatch tail reads no register/flag this leaves; the oracle's residual
  *           A/HL/DE/BC/flags are dead ABI. It models no stack of its own (direct calls);
  *           SP/pc are the Z80 caller-skip mechanism the plain return replaces. The
- *           oracle callees sub_1826 / drawBoardLayout do use the modeled stack, but every push
+ *           oracle callees loc_1826 / drawBoardLayout do use the modeled stack, but every push
  *           lands in STACK_SCRATCH and is excluded from the compare.
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), SPRITE_BUFFER (0x6900), SND_TRIGGER (0x6080 →
  *           +2 = latch bit 2), BOARD_ADVANCE_STEP (0x6388 — the render-sequence step
@@ -70,7 +70,7 @@
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
 import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — draw the board segment layout
-import { sub_1826 } from "../translated/sub_1826.js"; // ROM 0x1826 — 70-tile VRAM fill (oracle; no idiomatic yet)
+import { loc_1826 } from "../translated/loc_1826.js"; // ROM 0x1826 — 70-tile VRAM fill (oracle; no idiomatic yet)
 import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./ram.js";
 
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field +3 (Y) of sprite-object record 0
@@ -83,7 +83,7 @@ const REC4_CODE_VALUE = 0x20;
 
 const OBJ_RECORD = 0x6a24; // staged 4-byte object record: 7F 39 01 D8
 
-const TILE_FILL_DST = 0x76c6; // VRAM: start of the 5×14 descending 0x10-tile fill (sub_1826)
+const TILE_FILL_DST = 0x76c6; // VRAM: start of the 5×14 descending 0x10-tile fill (loc_1826)
 const SEGMENT_TABLE = 0x3a5f; // ROM: this scene's line-segment table (drawBoardLayout)
 
 const SPRITE_BUF_Y = SPRITE_BUFFER + 3; // 0x6903 — field +3 (Y) of sprite-buffer record 0
@@ -120,8 +120,8 @@ export function loc_1880(m) {
   mem.write8(OBJ_RECORD + 3, 0xd8);
 
   // Fill a 5×14 = 70-tile block with tile 0x10, descending from VRAM 0x76c6.
-  regs.hl = TILE_FILL_DST; // 0x76c6 — the fill start (sub_1826 reads HL live-in)
-  sub_1826(m); // ROM 0x1826
+  regs.hl = TILE_FILL_DST; // 0x76c6 — the fill start (loc_1826 reads HL live-in)
+  loc_1826(m); // ROM 0x1826
 
   // Draw the board's line-segment layout (girders / ladders) from the ROM table at 0x3a5f.
   regs.de = SEGMENT_TABLE; // 0x3a5f (drawBoardLayout reads DE live-in)

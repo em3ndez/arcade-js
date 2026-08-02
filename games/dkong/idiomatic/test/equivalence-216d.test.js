@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_216d as oracle } from "../../translated/sub_216d.js";
+import { loc_216d as oracle } from "../../translated/loc_216d.js";
 import { loc_216d } from "../loc_216d.js";
 import { loc_236e } from "../loc_236e.js";
 import { Machine } from "../../machine.js";

@@ -5,7 +5,7 @@
  * GAME_STATE (0x6005) == 2 is the "credited" state: a coin has been accepted but the
  * game has not yet started. It is a brief two-sub-state setup machine that hands off
  * to in-game (state 3). This routine is its per-frame dispatcher — the NMI game-state
- * table (dispatchGameState entry 2) reaches it once per frame while GAME_STATE == 2.
+ * table (loc_00ca entry 2) reaches it once per frame while GAME_STATE == 2.
  * It reads the sub-state index GAME_SUBSTATE (0x600A) and vectors through the 2-entry
  * inline jump table in ROM at 0x08B6 to the handler for that sub-state:
  *   0 -> 0x08BA  — clear the playfield, mark the credit accepted (ATTRACT 0x6007 = 0),
@@ -24,7 +24,7 @@
  * folded in directly: the table base is the compile-time constant 0x08B6, so the whole
  * mechanism is `read table[substate] from ROM, dispatch`. The dispatch itself is genuine
  * computed control flow into a ROM table of targets, so it routes through the still-oracle
- * generic dispatcher dispatchGameState — the one address registry doc-06 keeps — rather
+ * generic dispatcher loc_00ca — the one address registry doc-06 keeps — rather
  * than a local JS function table. The trampoline's register/flag handoff (A = 2*selector,
  * HL = target, DE, flags) is NOT reproduced: it is dead to both arms (0x08BA's first act is
  * a `call 0x0874` that never reads A/HL/DE and then `xor a`; 0x08F8's first act is a
@@ -42,7 +42,7 @@
  *           never in plain attract.
  * LIVE-OUT: memory-only — the sub-state handler's RAM writes. pc/SP are in the contract and
  *           identical by construction (this routine never touches SP; the oracle's push/pop
- *           of the table base nets to zero, and from dispatchGameState onward both sides run
+ *           of the table base nets to zero, and from loc_00ca onward both sides run
  *           the identical arm). The oracle discards the arm's return value at this level, so
  *           this routine returns nothing too; loc_08b2's own callers ignore any return.
  *           Residual A/HL/DE/flags are the trampoline's dead ABI handoff, read by neither arm.
@@ -51,13 +51,13 @@
  */
 
 import { GAME_SUBSTATE } from "./ram.js";
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 2 little-endian target addresses in ROM starting at
 // 0x08B6, indexed by GAME_SUBSTATE. A ROM-data address, so kept hex.
 const SUBSTATE_TABLE = 0x08b6;
 
-// The dispatch-site label handed to dispatchGameState; it only ever surfaces inside a
+// The dispatch-site label handed to loc_00ca; it only ever surfaces inside a
 // NotImplemented throw, naming which inline table an out-of-range selector fell off of.
 // Kept identical to the oracle's site string.
 const DISPATCH_TABLE_08B6 = "0x08B6 (0x600A, 2-entry)";
@@ -77,5 +77,5 @@ export function dispatchCreditedSubstate(m) {
 
   // jp (hl) — dispatch to the sub-state handler. The oracle discards the arm's return
   // value at this level, so this routine does too.
-  dispatchGameState(m, target, DISPATCH_TABLE_08B6);
+  loc_00ca(m, target, DISPATCH_TABLE_08B6);
 }

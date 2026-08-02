@@ -44,7 +44,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_1b4e as oracle } from "../../translated/entry_1b4e.js";
+import { loc_1b4e as oracle } from "../../translated/loc_1b4e.js";
 import { loc_1b4e } from "../loc_1b4e.js";
 import { climbUpWhileHeld } from "../climbUpWhileHeld.js"; // ROM 0x1B45 — used by the teeth twins
 import { Machine } from "../../machine.js";

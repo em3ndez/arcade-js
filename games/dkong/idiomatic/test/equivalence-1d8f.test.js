@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1d8f as oracle } from "../../translated/sub_1d8f.js";
+import { loc_1d8f as oracle } from "../../translated/loc_1d8f.js";
 import { triggerWalkSound } from "../triggerWalkSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

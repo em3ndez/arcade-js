@@ -47,8 +47,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_057c as oracle } from "../../translated/sub_057c.js";
-import { loop_0583 as loopOracle } from "../../translated/loop_0583.js";
+import { loc_057c as oracle } from "../../translated/loc_057c.js";
+import { loc_0583 as loopOracle } from "../../translated/loc_0583.js";
 import { renderBcdColumn } from "../renderBcdColumn.js";
 import { expandBcdDigits } from "../expandBcdDigits.js";
 import { Machine } from "../../machine.js";

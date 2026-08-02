@@ -45,7 +45,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2523 as oracle } from "../../translated/sub_2523.js";
+import { loc_2523 as oracle } from "../../translated/loc_2523.js";
 import { loc_2523 } from "../loc_2523.js";
 import { stirRandomSeed } from "../stirRandomSeed.js"; // ROM 0x0057
 import { Machine } from "../../machine.js";

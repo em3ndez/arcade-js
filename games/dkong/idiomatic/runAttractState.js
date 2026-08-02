@@ -17,7 +17,7 @@
  *     (the ten words at ROM 0x0748), the same `rst 0x28` idiom the NMI uses at 0x00CA.
  *     Over a full attract loop the demo plays a whole game, so all eight used slots
  *     are reached: the attract-screen draw, the timed-advance gates, and — via slot 3
- *     — the entire demo-gameplay cascade (handler_1977).
+ *     — the entire demo-gameplay cascade (loc_1977).
  *
  * doc-06 turns computed dispatch into a table of function references, so this SPECIFIC
  * site's fixed 10-word table becomes ATTRACT_SUBSTATE below and the selected handler is
@@ -52,10 +52,10 @@
 
 import { CREDITS, GAME_STATE, GAME_SUBSTATE } from "./ram.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { handler_0779 } from "../translated/handler_0779.js";
-import { handler_0763 } from "../translated/handler_0763.js";
-import { handler_123c } from "../translated/handler_123c.js";
-import { handler_1977 } from "../translated/handler_1977.js";
+import { loc_0779 } from "../translated/loc_0779.js";
+import { loc_0763 } from "../translated/loc_0763.js";
+import { loc_123c } from "../translated/loc_123c.js";
+import { loc_1977 } from "../translated/loc_1977.js";
 import { loc_127c } from "../translated/loc_127c.js";
 import { loc_07c3 } from "../translated/loc_07c3.js";
 import { loc_07cb } from "../translated/loc_07cb.js";
@@ -66,10 +66,10 @@ import { loc_084b } from "../translated/loc_084b.js";
 // callees are still-oracle routines imported from translated/ (no idiomatic rewrite
 // exists yet), so they are called directly here.
 const ATTRACT_SUBSTATE = [
-  handler_0779, // 0  ROM 0x0779 — draw the attract screen
-  handler_0763, // 1  ROM 0x0763 — timed advance (rst 0x20 gate)
-  handler_123c, // 2  ROM 0x123C — seed the demo sprite record
-  handler_1977, // 3  ROM 0x1977 — the demo-gameplay cascade
+  loc_0779, // 0  ROM 0x0779 — draw the attract screen
+  loc_0763, // 1  ROM 0x0763 — timed advance (rst 0x20 gate)
+  loc_123c, // 2  ROM 0x123C — seed the demo sprite record
+  loc_1977, // 3  ROM 0x1977 — the demo-gameplay cascade
   loc_127c, //     4  ROM 0x127C
   loc_07c3, //     5  ROM 0x07C3
   loc_07cb, //     6  ROM 0x07CB — countdown animation

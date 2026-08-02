@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_037f as oracle } from "../../translated/sub_037f.js";
+import { loc_037f as oracle } from "../../translated/loc_037f.js";
 import { rampDifficulty } from "../rampDifficulty.js";
 import { DIFFICULTY_PRESCALER, DIFFICULTY_CLOCK, LEVEL, DIFFICULTY } from "../ram.js";
 import { u8 } from "../../../../core/int.js";

@@ -28,7 +28,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_3ec3 as oracle } from "../../translated/entry_3ec3.js";
+import { loc_3ec3 as oracle } from "../../translated/loc_3ec3.js";
 import { loc_3ec3 } from "../loc_3ec3.js";
 import { Machine } from "../../machine.js";
 import { OVERLAP_COUNT } from "../ram.js";

@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_25f2 as oracle } from "../../translated/sub_25f2.js";
+import { loc_25f2 as oracle } from "../../translated/loc_25f2.js";
 import { update50mConveyorObjects as loc_25f2 } from "../update50mConveyorObjects.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { loc_2602 } from "../loc_2602.js";

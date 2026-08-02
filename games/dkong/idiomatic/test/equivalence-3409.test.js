@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_3409 as oracle } from "../../translated/sub_3409.js";
+import { loc_3409 as oracle } from "../../translated/loc_3409.js";
 import { stepObjectSpriteFrame as loc_3409 } from "../stepObjectSpriteFrame.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

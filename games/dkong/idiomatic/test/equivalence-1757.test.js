@@ -54,7 +54,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1757 as oracle } from "../../translated/sub_1757.js";
+import { loc_1757 as oracle } from "../../translated/loc_1757.js";
 import { advanceBoardStepWhenSpritesCleared } from "../advanceBoardStepWhenSpritesCleared.js";
 import { animateSpriteObjectBlock } from "../animateSpriteObjectBlock.js";
 import { cullSpriteObjectsAtTop } from "../cullSpriteObjectsAtTop.js";

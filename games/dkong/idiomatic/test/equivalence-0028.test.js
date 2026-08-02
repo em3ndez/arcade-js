@@ -34,9 +34,9 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0028 as oracle } from "../../translated/sub_0028.js";
+import { loc_0028 as oracle } from "../../translated/loc_0028.js";
 import { dispatchInlineJumpTable } from "../dispatchInlineJumpTable.js";
-import { dispatchGameState } from "../../translated/dispatchGameState.js";
+import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -207,7 +207,7 @@ function brokenDispatch(m, site = "0x00CA (NMI game state)") {
   regs.de = (entry + 1) & 0xffff;
   // Dispatch through the SAME seam the routine uses, so the catch-all stub sees the
   // (wrong) computed target.
-  return dispatchGameState(m, regs.hl, site);
+  return loc_00ca(m, regs.hl, site);
 }
 
 test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sweep", () => {

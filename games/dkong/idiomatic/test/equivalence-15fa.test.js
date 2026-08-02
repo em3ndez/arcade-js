@@ -45,7 +45,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_15fa as oracle } from "../../translated/sub_15fa.js";
+import { loc_15fa as oracle } from "../../translated/loc_15fa.js";
 import { positionBonusItemSprite } from "../positionBonusItemSprite.js";
 import { STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";

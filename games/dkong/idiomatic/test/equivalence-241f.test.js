@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_241f as oracle } from "../../translated/sub_241f.js";
+import { loc_241f as oracle } from "../../translated/loc_241f.js";
 import { loc_241f } from "../loc_241f.js";
 import { MARIO_X, MARIO_Y, BOARD } from "../ram.js";
 import { Machine } from "../../machine.js";

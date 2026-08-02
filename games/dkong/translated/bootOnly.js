@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import { bootInit } from "./bootInit.js";
+import { loc_0266 } from "./loc_0266.js";
 
 /**
  * bootOnly  (ROM 0x0000–0x02BC) — reset through the end of boot, stopping before the fall-through into the main loop.
@@ -15,5 +15,5 @@ export function bootOnly(m) {
   m.mem.write8(0x7d84, regs.a, 10); // ld (nn),a
   m.tick(13); // ld (0x7d84),a
   m.tick(10); // jp 0x0266
-  bootInit(m);
+  loc_0266(m);
 }

@@ -15,40 +15,40 @@ import { CYCLES_PER_FRAME, Machine } from "../machine.js";
 import { AddressSpace, STATE_DUMP_SIZE, UnmappedAccess } from "../../../boards/dkong/memory.js";
 import { IO, Inputs } from "../../../boards/dkong/io.js";
 import {
-  loc_1dc9, sub_1dbd, loc_1e15, loc_1e00, entry_1e8c, entry_1e94, sub_1e96, entry_1ea0,
-  loc_1f09, loc_1f23, entry_2913, sub_2a22, sub_29af, entry_2b9b, entry_2333, sub_298c,
-  sub_28b0, sub_28e0, sub_2901, sub_22bd, entry_24b4, entry_2c72, entry_2c8f, sub_26a6, entry_2c03,
-  entry_2c41, loc_2c49, loc_2c4b, loc_2c4f, entry_2c7b, loc_2c86, sub_236e, sub_0514, loc_06fe,
-  loc_07c3, loc_084b, loc_08b2, sub_0852, loc_08ba, loc_08d5, loc_08f8, sub_0977, loc_09ab,
+  loc_1dc9, loc_1dbd, loc_1e15, loc_1e00, loc_1e8c, loc_1e94, loc_1e96, loc_1ea0,
+  loc_1f09, loc_1f23, loc_2913, loc_2a22, loc_29af, loc_2b9b, loc_2333, loc_298c,
+  loc_28b0, loc_28e0, loc_2901, loc_22bd, loc_24b4, loc_2c72, loc_2c8f, loc_26a6, loc_2c03,
+  loc_2c41, loc_2c49, loc_2c4b, loc_2c4f, loc_2c7b, loc_2c86, loc_236e, loc_0514, loc_06fe,
+  loc_07c3, loc_084b, loc_08b2, loc_0852, loc_08ba, loc_08d5, loc_08f8, loc_0977, loc_09ab,
   loc_0a37, loc_0a76, loc_0bb3, loc_0b06, loc_0a63, loc_0b68, loc_0a8a,
-  loc_127c, entry_127f, loc_12ac, loc_12de, loc_138f,
-  loc_0abf, loc_0ae8, loc_141e, loc_0f35, sub_239c,
-  sub_23de, entry_2974, sub_286f, entry_2ddb,
-  sub_2880, sub_2a2f, sub_2523, loc_0bda,
-  loc_0986, entry_2954, sub_2808, loc_281d, sub_1e57,
-  entry_128b, sub_21ee, sub_216d, sub_2591, sub_24ea, entry_2be1,
-  sub_2207, sub_25f2, sub_26fa, sub_2fcb,
-  sub_1826, sub_1a1e, entry_1d8a, sub_1d8f, entry_1da6, sub_1f46, sub_13ca, entry_1d03,
-  sub_22cb, loc_12f2, sub_2407, sub_241f, entry_1a07, sub_1a33, entry_03fb, sub_2a85, loc_2d15,
-  entry_2cb8, entry_2ce6, entry_2cf6, entry_2b1c, entry_2b29, sub_19da, entry_2e04, entry_2ed4,
-  loc_1644, loc_13aa, loc_13bb, sub_1186, loc_1131, sub_26de, sub_26e9,
-  loc_186f, loc_1839, loc_1344, sub_1d95, loc_1e49, loc_1e4a, entry_0f1b,
-  loc_17b6, loc_1880, loc_101f, loc_18c6, entry_0400, loc_07cb,
+  loc_127c, loc_127f, loc_12ac, loc_12de, loc_138f,
+  loc_0abf, loc_0ae8, loc_141e, loc_0f35, loc_239c,
+  loc_23de, loc_2974, loc_286f, loc_2ddb,
+  loc_2880, loc_2a2f, loc_2523, loc_0bda,
+  loc_0986, loc_2954, loc_2808, loc_281d, loc_1e57,
+  loc_128b, loc_21ee, loc_216d, loc_2591, loc_24ea, loc_2be1,
+  loc_2207, loc_25f2, loc_26fa, loc_2fcb,
+  loc_1826, loc_1a1e, loc_1d8a, loc_1d8f, loc_1da6, loc_1f46, loc_13ca, loc_1d03,
+  loc_22cb, loc_12f2, loc_2407, loc_241f, loc_1a07, loc_1a33, loc_03fb, loc_2a85, loc_2d15,
+  loc_2cb8, loc_2ce6, loc_2cf6, loc_2b1c, loc_2b29, loc_19da, loc_2e04, loc_2ed4,
+  loc_1644, loc_13aa, loc_13bb, loc_1186, loc_1131, loc_26de, loc_26e9,
+  loc_186f, loc_1839, loc_1344, loc_1d95, loc_1e49, loc_1e4a, loc_0f1b,
+  loc_17b6, loc_1880, loc_101f, loc_18c6, loc_0400, loc_07cb,
   loc_1df5, loc_1e08, loc_1e10, loc_1e36, loc_1087,
-  sub_1641, sub_1670, sub_176c, sub_0d00, sub_15fa,
-  sub_1708, sub_1732, sub_1783, sub_178e, sub_2243, sub_2602,
-  sub_2797, sub_27da, sub_2722,
-  sub_1654, sub_168a, sub_1757, sub_0d27, sub_0d43, sub_2745,
-  sub_271e, sub_2679, sub_262f, sub_2ad3,
+  loc_1641, loc_1670, loc_176c, loc_0d00, loc_15fa,
+  loc_1708, loc_1732, loc_1783, loc_178e, loc_2243, loc_2602,
+  loc_2797, loc_27da, loc_2722,
+  loc_1654, loc_168a, loc_1757, loc_0d27, loc_0d43, loc_2745,
+  loc_271e, loc_2679, loc_262f, loc_2ad3,
   loc_2227, loc_2259, loc_2299, loc_22a2, loc_2303, loc_231a,
-  sub_09d6, sub_09fe, sub_0a1b, loc_16a3, loc_16bb,
-  sub_004e, sub_0f56, sub_11a6, sub_11d3, sub_11ec, sub_11fa, sub_122a, sub_2441,
-  sub_30e4,
-  sub_2ff0, sub_3064, sub_3096, entry_30db, sub_3f24, entry_3009, sub_304a, sub_30bd, sub_306f,
-  sub_31f6, sub_31dd, sub_3fc0, entry_34f3, entry_330f, sub_3409, entry_33e7, sub_32d6, sub_342c, sub_3478, sub_34b9, sub_32bd, sub_33a1, loc_3069, entry_3ec3, sub_30fa, entry_3e99, guard_3110, guard_311b, guard_3126, guard_3131,
-  entry_313c, loc_0ee8,
+  loc_09d6, loc_09fe, loc_0a1b, loc_16a3, loc_16bb,
+  loc_004e, loc_0f56, loc_11a6, loc_11d3, loc_11ec, loc_11fa, loc_122a, loc_2441,
+  loc_30e4,
+  loc_2ff0, loc_3064, loc_3096, loc_30db, loc_3f24, loc_3009, loc_304a, loc_30bd, loc_306f,
+  loc_31f6, loc_31dd, loc_3fc0, loc_34f3, loc_330f, loc_3409, loc_33e7, loc_32d6, loc_342c, loc_3478, loc_34b9, loc_32bd, loc_33a1, loc_3069, loc_3ec3, loc_30fa, loc_3e99, loc_3110, loc_311b, loc_3126, loc_3131,
+  loc_313c, loc_0ee8,
 } from "../translated/state0.js";
-import { sub_0da7, loc_0c91, sub_017b } from "../translated/nmi.js";
+import { loc_0da7, loc_0c91, loc_017b } from "../translated/nmi.js";
 import { loc_059b } from "../translated/mainloop.js";
 import {
   buildPalette, CYCLES_PER_LINE, decodeSprites, drawSprites, decodeTiles, SPRITE_COUNT, normalizeRange, renderFrameRGB,
@@ -587,7 +587,7 @@ test("the first visible scanline is 40 lines after the frame origin, not 16", ()
 
 
 
-test("sub_2ff0 maps (y,x) pixels to a video RAM address, vertically mirrored", () => {
+test("loc_2ff0 maps (y,x) pixels to a video RAM address, vertically mirrored", () => {
   // Checked against the FORMULA, derived from the listing independently of
   // the translation:
   //
@@ -606,8 +606,8 @@ test("sub_2ff0 maps (y,x) pixels to a video RAM address, vertically mirrored", (
     m.regs.h = y;
     m.regs.l = x;
     m.regs.sp = 0x6c00;
-    m.push16(0xbeef); // sub_2ff0 ends in `ret`
-    sub_2ff0(m);
+    m.push16(0xbeef); // loc_2ff0 ends in `ret`
+    loc_2ff0(m);
     assert.equal(
       m.regs.hl, expected(y, x),
       `(y=${y},x=${x}) -> 0x${m.regs.hl.toString(16)}, expected 0x${expected(y, x).toString(16)}`,
@@ -621,7 +621,7 @@ test("sub_2ff0 maps (y,x) pixels to a video RAM address, vertically mirrored", (
     for (let x = 0; x < 256; x += 5) {
       m.regs.h = y; m.regs.l = x; m.regs.sp = 0x6c00;
       m.push16(0x0000);
-      sub_2ff0(m);
+      loc_2ff0(m);
       assert.ok(
         m.regs.hl >= 0x7400 && m.regs.hl <= 0x77ff,
         `(y=${y},x=${x}) produced 0x${m.regs.hl.toString(16)}, outside video RAM`,
@@ -630,10 +630,10 @@ test("sub_2ff0 maps (y,x) pixels to a video RAM address, vertically mirrored", (
   }
 });
 
-test("sub_2ff0 charges the exact T-states of its 20 instructions", () => {
+test("loc_2ff0 charges the exact T-states of its 20 instructions", () => {
   // THE FORMULA TEST DOES NOT COVER TIMING. It reads only HL and the return
   // PC, so every T-state in the routine could be wrong and the suite would
-  // stay green -- and since nothing reaches sub_2ff0 yet, no gate covers it
+  // stay green -- and since nothing reaches loc_2ff0 yet, no gate covers it
   // either. That is precisely the "latent bug behind a passing test" this
   // routine was already caught by once (four rrca where the ROM has three).
   //
@@ -653,7 +653,7 @@ test("sub_2ff0 charges the exact T-states of its 20 instructions", () => {
   const steps = [];
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { steps.push([next, cyc]); return realStep(next, cyc); };
-  sub_2ff0(m);
+  loc_2ff0(m);
 
   assert.equal(m.cycles - before, EXPECTED, "total T-states");
   assert.equal(steps.length, 20, "one step per instruction");
@@ -669,7 +669,7 @@ test("sub_2ff0 charges the exact T-states of its 20 instructions", () => {
 
 
 
-test("sub_0da7 charges exact T-states on both the terminator and walk paths", () => {
+test("loc_0da7 charges exact T-states on both the terminator and walk paths", () => {
   // ITS ABSENCE IS WHY A DUPLICATED `jp` WENT UNSEEN. Review found a second
   // `m.step(0x0cc6, 10)` appended beside the throw it should have replaced --
   // 10 phantom T-states downstream, invisible to the pixel gate because that
@@ -692,22 +692,22 @@ test("sub_0da7 charges exact T-states on both the terminator and walk paths", ()
     m.regs.sp = 0x6c00;
     m.push16(0xcafe);
     const before = m.cycles;
-    sub_0da7(m);
+    loc_0da7(m);
     assert.equal(m.cycles - before, 38, "terminator path T-states");
     assert.equal(m.pc, 0xcafe, "ret z must return to the caller");
     assert.equal(m.mem.read8(0x63b3), 0xaa, "the byte is stashed before the test");
   }
 
-  // Walk path, measured to sub_0da7's OWN last instruction -- the `jp nc` at
+  // Walk path, measured to loc_0da7's OWN last instruction -- the `jp nc` at
   // 0x0DCE landing on 0x0DD3. Summed from the listing independently:
-  //   7+13+7+5 +6+7+4+4+6+7+4+4 +11 +17 +[sub_2ff0 110] +10
+  //   7+13+7+5 +6+7+4+4+6+7+4+4 +11 +17 +[loc_2ff0 110] +10
   //   +16+4+7+13+4+7+13 +6+7+4+4 +10   and +8 only when `neg` runs
   const BASE = 7 + 13 + 7 + 5 + 6 + 7 + 4 + 4 + 6 + 7 + 4 + 4 + 11 + 17 + 110 +
                10 + 16 + 4 + 7 + 13 + 4 + 7 + 13 + 6 + 7 + 4 + 4 + 10;
   for (const [plus3, expectNeg] of [[0x80, false], [0x10, true]]) {
     const m = new Machine(ROM, { gfx1, proms });
     // 0xAA at +5 terminates the walk: loc_0e4b now closes the loop back into
-    // sub_0da7, so without a terminator the record walk runs into garbage.
+    // loc_0da7, so without a terminator the record walk runs into garbage.
     for (const [i2, v] of [[0, 0x01], [1, 0x40], [2, 0x30], [3, plus3],
                            [4, 0x38], [5, 0xaa]]) {
       m.mem.write8(0x6100 + i2, v);
@@ -726,7 +726,7 @@ test("sub_0da7 charges exact T-states on both the terminator and walk paths", ()
     // turns the code it covers into code it merely runs.
     // The chain now CLOSES -- loc_0e4b jumps back to 0x0DA7 -- so the walk
     // runs to the 0xAA terminator and returns rather than stopping mid-chain.
-    sub_0da7(m);
+    loc_0da7(m);
     assert.equal(m.pc, 0xcafe, "walk must return to its caller at the terminator");
 
     const end = steps.findIndex(([a]) => a === 0x0dd3);
@@ -749,13 +749,13 @@ test("sub_0da7 charges exact T-states on both the terminator and walk paths", ()
 });
 
 test("loc_0dd3 charges exact T-states through to the loc_0e19 boundary", () => {
-  // The 150 lines of loc_0dd3 had NO effective coverage: the sub_0da7 test
+  // The 150 lines of loc_0dd3 had NO effective coverage: the loc_0da7 test
   // asserts only state written BEFORE 0x0DD3, and its catch swallowed
   // everything after. Verified by fault injection -- deleting the routine's
   // body outright left the suite green.
   //
   // Summed from the listing independently, 0x0DD3 to the step landing on
-  // 0x0E19, with sub_2ff0's 110 inlined at the call:
+  // 0x0E19, with loc_2ff0's 110 inlined at the call:
   //   13+6+7+4+4+13+7+7+13 +11+17+[110]+10+16 +13+7+10 +13+7+4+13+4+13
   //   +13+7+16+7+4+7+7 +13+7+10
   const BASE = 13 + 6 + 7 + 4 + 4 + 13 + 7 + 7 + 13 + 11 + 17 + 110 + 10 + 16 +
@@ -780,7 +780,7 @@ test("loc_0dd3 charges exact T-states through to the loc_0e19 boundary", () => {
     const steps = [];
     const realStep = m.step.bind(m);
     m.step = (next, cyc) => { steps.push([next, cyc]); return realStep(next, cyc); };
-    sub_0da7(m);
+    loc_0da7(m);
     assert.equal(m.pc, 0xcafe, `kind 0x${kind.toString(16)}: returns at terminator`);
 
     const from = steps.findIndex(([a]) => a === 0x0dd3);
@@ -804,7 +804,7 @@ test("loc_0dd3 charges exact T-states through to the loc_0e19 boundary", () => {
       "tile address of the SECOND point (y2=0x80, x2=0x38)",
     );
     // DE now ends at the TERMINATOR, not at +4: loc_0e4b's `inc de` steps
-    // past the record and the walk re-enters sub_0da7, which reads 0xAA at
+    // past the record and the walk re-enters loc_0da7, which reads 0xAA at
     // 0x6105 and returns. The old assertion measured a mid-chain state the
     // closed loop moves past.
     assert.equal(m.regs.de, 0x6105, "DE left at the 0xAA terminator");
@@ -828,7 +828,7 @@ test("loc_0dd3 charges exact T-states through to the loc_0e19 boundary", () => {
     m.regs.de = 0x6100;
     m.regs.sp = 0x6c00;
     m.push16(0xcafe);
-    sub_0da7(m);
+    loc_0da7(m);
 
     assert.equal(m.mem.read16(0x63ab), 0x77ff, "first point must land on 0x77FF");
     // A = (x&7) + 0xF0 = 0xF0 is written at 0x77FF, then A-0x30 = 0xC0 at the
@@ -839,7 +839,7 @@ test("loc_0dd3 charges exact T-states through to the loc_0e19 boundary", () => {
   }
 });
 
-test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () => {
+test("loc_0f56 clears, copies a ROM table, and seeds the computed values", () => {
   // Pins the four products the routine exists to
   // produce, with memory POISONED first so "cleared" means cleared rather
   // than never-written -- the distinction that made my first check of this
@@ -865,7 +865,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
   //
   // The stop address moved forward as each helper landed -- 0x122A, then
   // 0x11FA -- and loc_0fd7 IS NOW COMPLETE, so there is no stop left to pin.
-  // sub_11fa, sub_11a6, sub_11ec and sub_11d3 are all integrated and the
+  // loc_11fa, loc_11a6, loc_11ec and loc_11d3 are all integrated and the
   // routine runs to its `ret` at 0x101A.
   //
   // The assertion inverts rather than being deleted: it was measuring reach by
@@ -875,22 +875,22 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
   // is the return address pushed above, which makes this the
   // resolution stated positively: the rst 0x28 dispatch does not consume its
   // caller's return address, and the caller IS returned to.
-  assert.doesNotThrow(() => sub_0f56(m), "loc_0fd7 must now run to completion");
+  assert.doesNotThrow(() => loc_0f56(m), "loc_0fd7 must now run to completion");
   assert.strictEqual(
     m.pc,
     0x0d62,
-    "control must return to sub_0f56's caller, not to the dispatch table",
+    "control must return to loc_0f56's caller, not to the dispatch table",
   );
 
   // THE INTEGRATION POINT ITSELF. Review found that deleting the
-  // `sub_122a(m)` call from loc_0fd7 left the entire suite green: the reach
+  // `loc_122a(m)` call from loc_0fd7 left the entire suite green: the reach
   // assertion above sits DOWNSTREAM of the call and is unaffected by whether
   // it happens. The unit tests prove the routine works; nothing proved it was
-  // wired in. These five groups are what loc_0fd7's first call to sub_122a
+  // wired in. These five groups are what loc_0fd7's first call to loc_122a
   // writes, and they fail if the call is dropped or reordered.
   //
   // WHAT MAKES THIS CHECKABLE IS THE SOURCE, NOT A FILL. The 0xA5 fill above
-  // does NOT survive to here -- sub_0f56's own 17x0x80 clear covers
+  // does NOT survive to here -- loc_0f56's own 17x0x80 clear covers
   // 0x6280-0x6AFF, which includes this whole range, and runs before the
   // dispatch. (Review established this by mutation: dropping the call fails
   // with actual 0, not actual 165. My first version of this comment credited
@@ -910,7 +910,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
     for (let i = 0; i < 4; i++) {
       assert.equal(
         m.mem.read8(dst + i), ROM[0x3dec + i],
-        `sub_122a must be CALLED by loc_0fd7: pass ${pass} byte ${i}`,
+        `loc_122a must be CALLED by loc_0fd7: pass ${pass} byte ${i}`,
       );
     }
   }
@@ -949,7 +949,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
   );
 
   // 6. THE NEW INTEGRATION POINTS. Review previously found that deleting the
-  // sub_122a call from loc_0fd7 left the whole suite green, because the reach
+  // loc_122a call from loc_0fd7 left the whole suite green, because the reach
   // assertion sat downstream of it. Same exposure applies to each routine
   // landing now, so each gets memory that fails if its call is dropped.
   //
@@ -962,7 +962,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
     );
   }
 
-  // 6b. sub_11fa, called with HL = 0x3DF4 as a LIVE-IN. Its four (de) writes
+  // 6b. loc_11fa, called with HL = 0x3DF4 as a LIVE-IN. Its four (de) writes
   //     land consecutively at 0x6A28-0x6A2B, and its seven IX writes land at
   //     a PERMUTED set of offsets off 0x66A0 -- +00 literal, then +03, +07,
   //     +08, +05, +09, +0A taking source bytes 0..5 in order. Asserting the
@@ -972,34 +972,34 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
   for (let i = 0; i < 4; i++) {
     assert.equal(
       m.mem.read8(0x6a28 + i), ROM[0x3df4 + i],
-      `sub_11fa must be CALLED by loc_0fd7: (de) byte ${i}`,
+      `loc_11fa must be CALLED by loc_0fd7: (de) byte ${i}`,
     );
   }
-  assert.equal(m.mem.read8(0x66a0), 0x01, "sub_11fa writes the literal 0x01 at +00");
+  assert.equal(m.mem.read8(0x66a0), 0x01, "loc_11fa writes the literal 0x01 at +00");
   for (const [off, src] of [[0x03, 0], [0x07, 1], [0x08, 2], [0x05, 3], [0x09, 4], [0x0a, 5]]) {
     assert.equal(
       m.mem.read8(0x66a0 + off), ROM[0x3df4 + src],
-      `sub_11fa (ix+0x${off.toString(16)}) takes source byte ${src}`,
+      `loc_11fa (ix+0x${off.toString(16)}) takes source byte ${src}`,
     );
   }
 
-  // 6c. sub_11a6's own two marker writes, 0x10 apart off IX = 0x6680.
-  assert.equal(m.mem.read8(0x6680), 0x01, "sub_11a6 marker at +0x00");
-  assert.equal(m.mem.read8(0x6690), 0x01, "sub_11a6 marker at +0x10");
+  // 6c. loc_11a6's own two marker writes, 0x10 apart off IX = 0x6680.
+  assert.equal(m.mem.read8(0x6680), 0x01, "loc_11a6 marker at +0x00");
+  assert.equal(m.mem.read8(0x6690), 0x01, "loc_11a6 marker at +0x10");
 
-  // 6d. THE WHOLE sub_11a6 CHAIN IN ONE PLACE. sub_11d3 gathers (IX+3),
+  // 6d. THE WHOLE loc_11a6 CHAIN IN ONE PLACE. loc_11d3 gathers (IX+3),
   //     (IX+7), (IX+8), (IX+5) -- in that order, +4 and +6 never read -- into
   //     four consecutive bytes at HL = 0x6A18, twice, with IX advancing 0x10.
-  //     The source bytes it gathers were themselves written by sub_11ec
-  //     (offsets +3 and +5, stride 2, skipping +4) and sub_122a (offsets +7
+  //     The source bytes it gathers were themselves written by loc_11ec
+  //     (offsets +3 and +5, stride 2, skipping +4) and loc_122a (offsets +7
   //     and +8). So these eight bytes pin, simultaneously:
-  //       - sub_11a6's undocumented HL live-in, supplied as 0x3E0C here
+  //       - loc_11a6's undocumented HL live-in, supplied as 0x3E0C here
   //         (0x3E0C/0x3E0D reaching +3/+5 can only come from that parameter)
-  //       - sub_11ec storing at E and E+2 and never E+1
-  //       - sub_122a RESTORING its source pointer across passes, which is why
+  //       - loc_11ec storing at E and E+2 and never E+1
+  //       - loc_122a RESTORING its source pointer across passes, which is why
   //         pass 2 re-reads 0x3E08/0x3E09 rather than advancing
-  //       - sub_11d3's +3,+7,+8,+5 permutation
-  //     Sorting sub_11d3's offsets, or dropping sub_122a's push/pop, changes
+  //       - loc_11d3's +3,+7,+8,+5 permutation
+  //     Sorting loc_11d3's offsets, or dropping loc_122a's push/pop, changes
   //     this block.
   assert.deepEqual(
     [0, 1, 2, 3, 4, 5, 6, 7].map((i) => m.mem.read8(0x6a18 + i)),
@@ -1007,7 +1007,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
       ROM[0x3e0c], ROM[0x3e08], ROM[0x3e09], ROM[0x3e0d], // pass 1, IX = 0x6680
       ROM[0x3e0e], ROM[0x3e08], ROM[0x3e09], ROM[0x3e0f], // pass 2, IX = 0x6690
     ],
-    "sub_11a6 chain: 11ec stride-2, 122a source restore, 11d3 +3/+7/+8/+5",
+    "loc_11a6 chain: 11ec stride-2, 122a source restore, 11d3 +3/+7/+8/+5",
   );
 
   // The overflow case made concrete: an input that overflows the mod-256
@@ -1023,7 +1023,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
   // catch. Deliberately NOT re-pinned to a reach: the frontier belongs in
   // exactly ONE place (the dispatch test above), and pinning it here too
   // would mean every advance edits two sites and one drifts.
-  sub_0f56(w);
+  loc_0f56(w);
   assert.deepEqual(
     [0, 1, 2].map((i) => w.mem.read8(0x62b0 + i)),
     [0x50, 0x50, 0x50],
@@ -1037,7 +1037,7 @@ test("sub_0f56 clears, copies a ROM table, and seeds the computed values", () =>
   );
 });
 
-test("sub_2441 picks a table from 0x6227 across a flag-neutral load", () => {
+test("loc_2441 picks a table from 0x6227 across a flag-neutral load", () => {
   // The hazard: three
   // `jp z` instructions test a `dec a` from TWO instructions back, across an
   // intervening `ld hl,nn` that is flag-neutral. Reorder the load and the
@@ -1053,7 +1053,7 @@ test("sub_2441 picks a table from 0x6227 across a flag-neutral load", () => {
     m.regs.sp = 0x6c00;
     m.push16(0x0d65); // `call 0x2441` at 0x0D62 pushes this
     m.mem.write8(0x6227, kind);
-    sub_2441(m);
+    loc_2441(m);
     assert.equal(m.pc, 0x0d65, `kind ${kind}: must return via cp 0xa9 / ret z`);
     ends.set(kind, `${m.regs.ix.toString(16)}/${m.regs.iy.toString(16)}`);
   }
@@ -1072,14 +1072,14 @@ test("sub_2441 picks a table from 0x6227 across a flag-neutral load", () => {
   m2.regs.sp = 0x6c00;
   m2.push16(0x0d65);
   m2.mem.write8(0x6227, 0x03);
-  sub_2441(m2);
+  loc_2441(m2);
   assert.equal(sum, 0x00, "the ROM's own bytes make this sum zero");
   // sum == 0 so `jp z` is taken and IY is NOT incremented past its base.
   assert.ok(m2.regs.iy >= 0x6310, "IY base 0x6310 when the head-A sum is zero");
 });
 
 // ---- loc_1dc9 -----------------------------
-// UNGATED by execution: sub_1dbd (its only caller) is not translated, so no
+// UNGATED by execution: loc_1dbd (its only caller) is not translated, so no
 // gate reaches it. These tests exercise the hazards directly. Every
 // exit is a tail jump to an untranslated unit, so loc_1dc9 always ends in a
 // NotImplemented throw; m.pc after the throw is the tail-jump target, set by
@@ -1138,7 +1138,7 @@ test("loc_1dc9 dispatches on 0x6342 bits 0,1,2 in PRIORITY ORDER", () => {
 test("loc_1dc9's 0x6229 dispatch decs WITHOUT reloading A between the two dec a", () => {
   // When 0x6342 bits 0-2 are clear, dispatch on A = mem[0x6229]:
   // `dec a / jp z,0x1E00 / dec a / jp z,0x1E08 / jp 0x1E10`, NO reload between
-  // the decs (same idiom as sub_2441's 0x6227 dispatch). The 0x6229==2 case is
+  // the decs (same idiom as loc_2441's 0x6227 dispatch). The 0x6229==2 case is
   // discriminating: the SECOND dec must see 1 (from the first dec), not a
   // reloaded 2. MUTATION this catches: reload A = mem[0x6229] before the second
   // dec -- 0x6229==2 then falls to 0x1E10 instead of 0x1E08. Exits from the ROM
@@ -1171,10 +1171,10 @@ test("loc_1dc9's 0x6229 dispatch decs WITHOUT reloading A between the two dec a"
   assert.equal(m.mem.read8(0x6085), 0x03, "0x6085 set to 3 on the bits-clear path");
 });
 
-test("sub_1dbd routes on 0x6340 through the rst 0x28 table at 0x1DC1", () => {
+test("loc_1dbd routes on 0x6340 through the rst 0x28 table at 0x1DC1", () => {
   // rst 0x28 inline-jump-table dispatcher:
   // A = mem[0x6340] indexes the 4-entry table at 0x1DC1. Mechanism modelled per
-  // the sub_0f56 precedent (push table base, pop it in the handler, index 2*A,
+  // the loc_0f56 precedent (push table base, pop it in the handler, index 2*A,
   // read target FROM ROM). Targets come from the ROM table bytes, NOT the
   // skeleton. MUTATION this catches: dropping `add a,a` (index not
   // doubled) sends 0x6340==2 into 0x1DC9 (=loc_1dc9) instead of 0x1E4A, and
@@ -1190,7 +1190,7 @@ test("sub_1dbd routes on 0x6340 through the rst 0x28 table at 0x1DC1", () => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6340, 0);
-    sub_1dbd(m);
+    loc_1dbd(m);
     assert.equal(m.pc, 0x4d5e, "entry 0 -> loc_1e49 rets to the caller");
     assert.equal(m.mem.read8(0x6340), 0x00, "entry 0 (idle arm) leaves 0x6340 unchanged");
   }
@@ -1200,7 +1200,7 @@ test("sub_1dbd routes on 0x6340 through the rst 0x28 table at 0x1DC1", () => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6340, 2);
-    sub_1dbd(m);
+    loc_1dbd(m);
     assert.equal(m.pc, 0x4d5e, "entry 2 -> loc_1e4a rets (ret nz, counter not expired)");
     assert.equal(m.mem.read8(0x6341), 0xff, "entry 2 -> loc_1e4a dec'd the 0x6341 countdown (0 -> 0xFF)");
     assert.equal(m.mem.read8(0x6340), 0x02, "entry 2 stays in state 2");
@@ -1210,7 +1210,7 @@ test("sub_1dbd routes on 0x6340 through the rst 0x28 table at 0x1DC1", () => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00;
     m.mem.write8(0x6340, 3);
-    assert.throws(() => sub_1dbd(m), /not implemented/, "entry 3 (0x0000 reset vector) is not translated");
+    assert.throws(() => loc_1dbd(m), /not implemented/, "entry 3 (0x0000 reset vector) is not translated");
   }
   // Entry 1 dispatches INTO loc_1dc9, which advances 0x6340 -> 2 and sets 0x6341
   // = 0x40. (Clean-completion preconditions for loc_1dc9's now-translated tail:
@@ -1221,7 +1221,7 @@ test("sub_1dbd routes on 0x6340 through the rst 0x28 table at 0x1DC1", () => {
     m.mem.write8(0x6227, 0x01);
     m.mem.write8(0x6343, 0x00); m.mem.write8(0x6344, 0x6b);
     m.mem.write8(0x6340, 1);
-    sub_1dbd(m);
+    loc_1dbd(m);
     assert.equal(m.mem.read8(0x6340), 0x02, "entry 1 -> loc_1dc9 advanced 0x6340 to 2");
     assert.equal(m.mem.read8(0x6341), 0x40, "entry 1 -> loc_1dc9 set 0x6341 to 0x40");
     assert.equal(m.pc, 0x4d5e, "entry 1 -> loc_1dc9 runs its tail to completion and rets");
@@ -1315,9 +1315,9 @@ test("loc_1e00's jp 0x1e15 is a TAIL JUMP -- no return address pushed (SP balanc
   assert.equal(m.pc, 0x4d5e, "returns to the pushed caller");
 });
 
-// ---- entry_1e8c / entry_1e94 -- ----------
+// ---- loc_1e8c / loc_1e94 -- ----------
 
-test("entry_1e94 is a SINGLE caller-skip: pop hl drops one frame, ret -> caller's caller", () => {
+test("loc_1e94 is a SINGLE caller-skip: pop hl drops one frame, ret -> caller's caller", () => {
   // TEST 1 (SYNTHETIC stack). pop hl (ROM 0x1E94 = e1) discards the
   // caller's return, then ret returns to the caller's CALLER. MUTATION this
   // catches: modelling it as a plain ret (dropping the pop hl) -> returns to the
@@ -1328,12 +1328,12 @@ test("entry_1e94 is a SINGLE caller-skip: pop hl drops one frame, ret -> caller'
   m.push16(SENTINEL); // caller's caller return (deeper)
   m.push16(0x1980); // the 0x197D caller's return (0x197D + 3, from the ROM)
   const entrySP = m.regs.sp;
-  entry_1e94(m);
+  loc_1e94(m);
   assert.equal(m.regs.sp, entrySP + 4, "pop hl discards 0x1980, then ret pops SENTINEL: SP +4");
   assert.equal(m.pc, SENTINEL, "returned to the caller's CALLER, not the stale 0x1980");
 });
 
-test("entry_1e8c returns on (0x6350)==0 via ret z WITHOUT calling 0x1e96", () => {
+test("loc_1e8c returns on (0x6350)==0 via ret z WITHOUT calling 0x1e96", () => {
   // TEST 2. ret z (ROM 0x1E90 = c8) returns when (0x6350)==0 and falls
   // through to call 0x1e96 otherwise. MUTATION this catches: inverting to ret nz
   // -> on (0x6350)==0 it does NOT return, proceeds to `call 0x1e96` and throws
@@ -1344,16 +1344,16 @@ test("entry_1e8c returns on (0x6350)==0 via ret z WITHOUT calling 0x1e96", () =>
   m.regs.sp = 0x6c00;
   m.push16(RET);
   m.mem.write8(0x6350, 0x00); // Z path -- ret z must be TAKEN
-  entry_1e8c(m); // must NOT throw: 0x1e96 is not entered on the zero path
+  loc_1e8c(m); // must NOT throw: 0x1e96 is not entered on the zero path
   assert.equal(m.pc, RET, "ret z taken -> normal return to the caller; 0x1e96 not called");
 });
 
-// ---- sub_1e96 -- rst 0x28 dispatcher ------
+// ---- loc_1e96 -- rst 0x28 dispatcher ------
 // 3-entry table at 0x1E9A, indexed by (0x6345); all targets untranslated, so a
 // dispatch throws NotImplemented and m.pc is the resolved target. Targets read
 // from ROM table bytes, not the skeleton.
 
-test("sub_1e96 dispatches on the INDEX (0x6345), not a neighbouring address", () => {
+test("loc_1e96 dispatches on the INDEX (0x6345), not a neighbouring address", () => {
   // TEST 1. MUTATION this catches: reading (0x6346) as the index.
   const romTarget = (i) => ROM[0x1e9a + 2 * i] | (ROM[0x1e9a + 2 * i + 1] << 8);
   assert.equal(romTarget(1), 0x1f09, "ROM table[1] is 0x1F09");
@@ -1362,15 +1362,15 @@ test("sub_1e96 dispatches on the INDEX (0x6345), not a neighbouring address", ()
   m.regs.sp = 0x6c00;
   m.push16(0x4d5e); // caller return -- loc_1f09 ends in ret
   m.mem.write8(0x6345, 1); // index 1 -> table[1] = loc_1f09
-  m.mem.write8(0x6346, 0); // neighbour: if MISREAD as the index -> table[0] = entry_1ea0
-  sub_1e96(m);
+  m.mem.write8(0x6346, 0); // neighbour: if MISREAD as the index -> table[0] = loc_1ea0
+  loc_1e96(m);
   // loc_1f09 prologue: dec (0x6346) 0 -> 0xFF, NZ -> ret nz (immediate return).
   assert.equal(m.mem.read8(0x6346), 0xff, "loc_1f09 ran: dec'd (0x6346) 0 -> 0xFF then ret nz");
-  assert.equal(m.mem.read8(0x6345), 1, "0x6345 untouched -- a mis-dispatch to entry_1ea0 (idx0) would inc it / store 6 into 0x6346");
+  assert.equal(m.mem.read8(0x6345), 1, "0x6345 untouched -- a mis-dispatch to loc_1ea0 (idx0) would inc it / store 6 into 0x6346");
   assert.equal(m.pc, 0x4d5e, "loc_1f09 ret nz -> back to caller");
 });
 
-test("sub_1e96 scales the index by 2 (add a,a) before the table lookup", () => {
+test("loc_1e96 scales the index by 2 (add a,a) before the table lookup", () => {
   // TEST 2. target = word at (0x1E9A + 2*index). MUTATION this catches:
   // dropping the *2 (byte offset) -> 0x1E9A+1 = 0x1E9B, word (1e 09) = 0x091E,
   // nonsense. Index 1 chosen: at index 0 the *2 error is invisible.
@@ -1379,18 +1379,18 @@ test("sub_1e96 scales the index by 2 (add a,a) before the table lookup", () => {
   m.push16(0x4d5e); // caller return -- loc_1f09 ends in ret
   m.mem.write8(0x6345, 1); // index 1 * 2 -> table[1] = loc_1f09
   m.mem.write8(0x6346, 0x05); // loc_1f09: dec 0x05 -> 0x04, NZ -> ret nz
-  sub_1e96(m); // must NOT throw: 0x1F09 is translated (a dropped *2 -> 0x091E throws NotImplemented)
+  loc_1e96(m); // must NOT throw: 0x1F09 is translated (a dropped *2 -> 0x091E throws NotImplemented)
   assert.equal(m.mem.read8(0x6346), 0x04, "index 1 *2 -> loc_1f09 ran (dec'd its 0x6346 delay counter)");
   assert.equal(m.pc, 0x4d5e, "loc_1f09 ret nz -> caller");
 });
 
-// ---- entry_1ea0 -- runs to ret ----------
+// ---- loc_1ea0 -- runs to ret ----------
 // A complete routine (ret at 0x1F08). ld ix,(0x6351) reads mem[0x6351]|mem[0x6352]<<8,
 // and 0x6352 is ALSO the HL-select byte -- so setting 0x6352=0x65 both picks HL=0x69b8
 // and puts IX in safe work RAM (0x65xx). Each test pushes a return address and reads
 // memory after ret. Expected values are from the ROM bytes / controlled synthetic RAM.
 
-test("entry_1ea0 INCREMENTS 0x6345 (state advance via incMem8), not a hardcoded store", () => {
+test("loc_1ea0 INCREMENTS 0x6345 (state advance via incMem8), not a hardcoded store", () => {
   // TEST 1. inc (hl) @ 0x1EF9 advances the 1e96 dispatch index. Two
   // cases separate inc from a store-of-1: MUTATION mem.write8(0x6345,1) gives 1
   // from 0 (case A passes) but 1 from 2 (case B fails).
@@ -1402,14 +1402,14 @@ test("entry_1ea0 INCREMENTS 0x6345 (state advance via incMem8), not a hardcoded 
     m.mem.write8(0x6352, 0x65); // == -> HL 0x69b8; IX = 0x6500 (safe work RAM)
     m.mem.write8(0x6354, 0x00); // loop count 0 -> skip the loop
     m.mem.write8(0x6345, start6345);
-    entry_1ea0(m);
+    loc_1ea0(m);
     return m.mem.read8(0x6345);
   };
   assert.equal(run(0), 1, "0x6345: 0 -> 1 (inc)");
   assert.equal(run(2), 3, "0x6345: 2 -> 3 (inc, NOT a store-of-1)");
 });
 
-test("entry_1ea0 sets 0x6342 = 0x02 if (ix+0x15)==0, else 0x04", () => {
+test("loc_1ea0 sets 0x6342 = 0x02 if (ix+0x15)==0, else 0x04", () => {
   // TEST 2. MUTATION: jp nz polarity swaps the two. IX = 0x6500 (safe),
   // so (ix+0x15) = mem[0x6515].
   const run = (byteAt15) => {
@@ -1420,14 +1420,14 @@ test("entry_1ea0 sets 0x6342 = 0x02 if (ix+0x15)==0, else 0x04", () => {
     m.mem.write8(0x6352, 0x65); // HL 0x69b8; IX = 0x6500
     m.mem.write8(0x6354, 0x00); // skip loop -> IX stays 0x6500
     m.mem.write8(0x6515, byteAt15); // (ix+0x15)
-    entry_1ea0(m);
+    loc_1ea0(m);
     return m.mem.read8(0x6342);
   };
   assert.equal(run(0x00), 0x02, "(ix+0x15)==0 -> 0x6342 = 0x02");
   assert.equal(run(0x01), 0x04, "(ix+0x15)!=0 -> 0x6342 = 0x04");
 });
 
-test("entry_1ea0's loop advances HL by 4 each iteration (add hl,bc INSIDE the loop)", () => {
+test("loc_1ea0's loop advances HL by 4 each iteration (add hl,bc INSIDE the loop)", () => {
   // TEST 3. Loop (0x6354) times, HL += 4 each. MUTATION: hoist add hl,bc
   // (advance once) -> wrong copy source. (0x6354)=3, HL start 0x69b8 -> after loop
   // HL = 0x69b8 + 3*4 = 0x69c4; the byte there is copied to 0x6a2c. A hoist-once
@@ -1441,7 +1441,7 @@ test("entry_1ea0's loop advances HL by 4 each iteration (add hl,bc INSIDE the lo
   m.mem.write8(0x6354, 0x03); // 3 iterations
   m.mem.write8(0x69c4, 0xaa); // correct source: 0x69b8 + 3*4
   m.mem.write8(0x69bc, 0xbb); // hoist-once source: 0x69b8 + 4
-  entry_1ea0(m);
+  loc_1ea0(m);
   assert.equal(m.mem.read8(0x6a2c), 0xaa, "copied from HL=0x69c4 (3x add hl,bc), not the hoist 0x69bc");
 });
 
@@ -1499,7 +1499,7 @@ test("loc_1f09 uses ITS OWN constants (reload 0x06, xor 0x01), not the loc_1f23 
 
 test("loc_1f34 RESETS 0x6345 to 0 (closes the 0-1-2-0 cycle), not inc to 3", () => {
   // TEST 1. This test IS the bounds guarantee: MUTATION inc (copying
-  // loc_1f1d) -> 0x6345 = 3, the exact out-of-bounds index for sub_1e96's table.
+  // loc_1f1d) -> 0x6345 = 3, the exact out-of-bounds index for loc_1e96's table.
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6346, 0x01); // dec -> 0, body runs
@@ -1524,7 +1524,7 @@ test("loc_1f23 uses ITS OWN constants (reload 0x0c, inc 0x6a2d), not the loc_1f0
   assert.equal(m.mem.read8(0x6a2d), 0x04, "inc of 0x03 = 0x04 (loc_1f23), not xor's 0x02");
 });
 
-// ---- entry_2913 -----------------------------
+// ---- loc_2913 -----------------------------
 // Its two exits differ in STACK DEPTH, so every assertion pins SP delta AND
 // return PC AND A AND the boolean -- an SP-only test cannot separate them.
 //
@@ -1550,14 +1550,14 @@ const seed2913 = (m, { active }) => {
   return m.regs.sp; // entrySP: points at R
 };
 
-test("entry_2913 HIT exit returns A=1 to the caller's CALLER (inc sp x2 skip)", () => {
+test("loc_2913 HIT exit returns A=1 to the caller's CALLER (inc sp x2 skip)", () => {
   // The dual-stack-semantics hazard. MUTATION this catches: modelling
   // the HIT exit as a plain return (dropping the two inc sp) -> lands at R with
   // SP +2 and reports "returned normally". Asserts PC and A too, not just SP.
   const m = new Machine(ROM);
   const entrySP = seed2913(m, { active: true });
   m.regs.b = 0x02;
-  const returned = entry_2913(m);
+  const returned = loc_2913(m);
   assert.equal(returned, false, "HIT must report SKIPPED (sub_0008 convention)");
   assert.equal(m.regs.a, 0x01, "HIT sets A = 1");
   assert.equal(m.pc, 0x4dcc, "HIT returns to the caller's CALLER (CC), not R");
@@ -1565,7 +1565,7 @@ test("entry_2913 HIT exit returns A=1 to the caller's CALLER (inc sp x2 skip)", 
   assert.equal(m.regs.ix, 0x6b00, "IX restored by the pop that matches the entry push");
 });
 
-test("entry_2913 NORMAL exit returns A=0 to the caller, IX restored (push ix OUTSIDE the loop)", () => {
+test("loc_2913 NORMAL exit returns A=0 to the caller, IX restored (push ix OUTSIDE the loop)", () => {
   // Exhausts the list (all slots inactive). Also pins that `push ix` is
   // OUTSIDE the loop, so ONE push balances ONE pop and IX comes back as the ENTRY
   // value. MUTATION this catches: hoisting push ix INTO the loop -> the final pop
@@ -1573,7 +1573,7 @@ test("entry_2913 NORMAL exit returns A=0 to the caller, IX restored (push ix OUT
   const m = new Machine(ROM);
   const entrySP = seed2913(m, { active: false }); // bit 0 clear -> every slot skipped
   m.regs.b = 0x03; // three iterations, then exhaust
-  const returned = entry_2913(m);
+  const returned = loc_2913(m);
   assert.equal(returned, true, "exhausted list must report a NORMAL return");
   assert.equal(m.regs.a, 0x00, "NORMAL exit sets A = 0 (xor a)");
   assert.equal(m.pc, 0x4d5e, "NORMAL returns to the caller (R), not CC");
@@ -1581,7 +1581,7 @@ test("entry_2913 NORMAL exit returns A=0 to the caller, IX restored (push ix OUT
   assert.equal(m.regs.ix, 0x6b00, "IX is the ENTRY value -- one push outside the loop, one pop");
 });
 
-// The indexed-bit F3/F5 property is NOT observable end-to-end inside entry_2913
+// The indexed-bit F3/F5 property is NOT observable end-to-end inside loc_2913
 // (the flags are overwritten before anything reads them), so it is
 // pinned as a SPLIT: [i] the helper SEMANTICS and [ii] the call-site ARGUMENT,
 // which chain to the whole property without F3/F5 ever needing to escape.
@@ -1589,7 +1589,7 @@ test("entry_2913 NORMAL exit returns A=0 to the caller, IX restored (push ix OUT
 // source -- both pinned vs MAME" above covers it (verified: mutating bit() to
 // ignore yxFrom fails that test). So only [ii], below, was the real gap.
 
-test("entry_2913's bit n,(ix+d) FORWARDS the EA high byte as yxFrom", () => {
+test("loc_2913's bit n,(ix+d) FORWARDS the EA high byte as yxFrom", () => {
   // White-box on purpose: it couples to the call signature, which is the fair
   // price for pinning a translation detail that is otherwise unpinnable. It pins
   // the ARGUMENT; [i] above pins the SEMANTICS. MUTATION: revert to the 2-arg
@@ -1600,23 +1600,23 @@ test("entry_2913's bit n,(ix+d) FORWARDS the EA high byte as yxFrom", () => {
   m.regs.bit = (...args) => { calls.push(args); return realBit(...args); };
   seed2913(m, { active: false }); // IX = 0x6b00, slot inactive -> exactly one bit test
   m.regs.b = 0x01;
-  entry_2913(m);
+  loc_2913(m);
   assert.equal(calls.length, 1, "bit 0,(ix+0x00) executed exactly once");
   assert.equal(calls[0][0], 0, "tests bit 0");
   assert.equal(calls[0][2], 0x6b, "yxFrom = EA high byte (0x6B00 >> 8), NOT the operand value");
 });
 
-// ---- sub_2a22 -------------------------------
-// Drives the REAL entry_2913 (now integrated), not a stub. Stack models
-// `call 0x2a22` from 0x29BD: 0x29C0 on top (sub_2a22's return) with SENTINEL below
-// (the caller's caller frame, which must survive). sub_2a22 sets IX=0x6600, so the
+// ---- loc_2a22 -------------------------------
+// Drives the REAL loc_2913 (now integrated), not a stub. Stack models
+// `call 0x2a22` from 0x29BD: 0x29C0 on top (loc_2a22's return) with SENTINEL below
+// (the caller's caller frame, which must survive). loc_2a22 sets IX=0x6600, so the
 // record and the live-ins are seeded there.
 
 const seed2a22 = (m, { hit }) => {
   m.regs.sp = 0x6c00;
   m.push16(0x4dcc); // SENTINEL -- caller's-caller frame; must NOT be popped
-  m.push16(0x29c0); // sub_2a22's own return address
-  m.regs.hl = 0x0505; // H = L = 0x05 (entry_2913 live-ins)
+  m.push16(0x29c0); // loc_2a22's own return address
+  m.regs.hl = 0x0505; // H = L = 0x05 (loc_2913 live-ins)
   m.regs.c = 0x10;
   m.regs.iy = 0x6b40;
   m.mem.write8(0x6b43, 0x20); // (iy+3)
@@ -1628,34 +1628,34 @@ const seed2a22 = (m, { hit }) => {
   return m.regs.sp; // entrySP: points at 0x29C0
 };
 
-test("sub_2a22 HONOURS entry_2913's skip -- no double return (A=1 path)", () => {
-  // TEST 1. entry_2913's A=1 exit discards 0x2A2E and rets to 0x29C0,
-  // so sub_2a22 must NOT run its own ret. MUTATION this catches: ignoring the
+test("loc_2a22 HONOURS loc_2913's skip -- no double return (A=1 path)", () => {
+  // TEST 1. loc_2913's A=1 exit discards 0x2A2E and rets to 0x29C0,
+  // so loc_2a22 must NOT run its own ret. MUTATION this catches: ignoring the
   // boolean and running ret(m) anyway -> pops the SENTINEL that belongs to the
   // caller's caller (PC becomes SENTINEL, SP +4). Asserts PC and SP.
   const m = new Machine(ROM);
   const entrySP = seed2a22(m, { hit: true });
-  sub_2a22(m);
-  assert.equal(m.regs.a, 0x01, "entry_2913 reported a HIT (A=1)");
-  assert.equal(m.pc, 0x29c0, "skip landed at sub_2a22's caller (0x29C0), NOT the SENTINEL");
+  loc_2a22(m);
+  assert.equal(m.regs.a, 0x01, "loc_2913 reported a HIT (A=1)");
+  assert.equal(m.pc, 0x29c0, "skip landed at loc_2a22's caller (0x29C0), NOT the SENTINEL");
   assert.equal(m.regs.sp, entrySP + 2, "only the 0x29C0 frame consumed -- SENTINEL still on the stack");
   assert.equal(m.mem.read8(entrySP + 2) | (m.mem.read8(entrySP + 3) << 8), 0x4dcc, "SENTINEL intact");
 });
 
-test("sub_2a22 DOES run its own ret on entry_2913's normal (A=0) exit", () => {
-  // The other arm: list exhausted -> entry_2913 returns true -> the ret at 0x2A2E
+test("loc_2a22 DOES run its own ret on loc_2913's normal (A=0) exit", () => {
+  // The other arm: list exhausted -> loc_2913 returns true -> the ret at 0x2A2E
   // executes. Both arms land the caller at 0x29C0; A is what differs, so this
   // pins that the two paths converge correctly rather than by accident.
   const m = new Machine(ROM);
   const entrySP = seed2a22(m, { hit: false }); // bit 0 clear at 0x6600 -> every slot skipped
-  sub_2a22(m);
-  assert.equal(m.regs.a, 0x00, "entry_2913 exhausted the list (A=0)");
-  assert.equal(m.pc, 0x29c0, "normal path also returns to 0x29C0 (via sub_2a22's own ret)");
+  loc_2a22(m);
+  assert.equal(m.regs.a, 0x00, "loc_2913 exhausted the list (A=0)");
+  assert.equal(m.pc, 0x29c0, "normal path also returns to 0x29C0 (via loc_2a22's own ret)");
   assert.equal(m.regs.sp, entrySP + 2, "same net SP as the skip path -- one frame consumed");
 });
 
-// ---- sub_29af -------------------------------
-// Drives the REAL chain sub_29af -> sub_2a22 -> entry_2913 (all integrated).
+// ---- loc_29af -------------------------------
+// Drives the REAL chain loc_29af -> loc_2a22 -> loc_2913 (all integrated).
 // Seeds: 0x6227=3 so rst 0x30's rotate of A=0x04 lands carry-set (normal return);
 // records live at IX=0x6600 + n*0x10 with the hit record made to pass every range
 // test; 0x620c=0 so the cp at 0x29DC takes the C branch -> the 0x29ED skip exit.
@@ -1663,9 +1663,9 @@ test("sub_2a22 DOES run its own ret on entry_2913's normal (A=0) exit", () => {
 const seed29af = (m, { hitAt }) => {
   m.regs.sp = 0x6c00;
   m.push16(0x4dcc); // SENTINEL -- the caller's CALLER frame
-  m.push16(0x4d5e); // R -- sub_29af's own return address
+  m.push16(0x4d5e); // R -- loc_29af's own return address
   m.mem.write8(0x6227, 0x03); // rst 0x30: 3 rrca of 0x04 -> C set -> normal return
-  m.mem.write8(0x6205, 0x10); // -> C = 0x10 for entry_2913
+  m.mem.write8(0x6205, 0x10); // -> C = 0x10 for loc_2913
   m.mem.write8(0x6203, 0x20); // (iy+3), IY = 0x6200
   m.mem.write8(0x620c, 0x00); // A = 0+5 = 5 at the cp -> C -> the skip exit
   const rec = 0x6600 + hitAt * 0x10; // records before `hitAt` stay bit-0 clear
@@ -1675,13 +1675,13 @@ const seed29af = (m, { hitAt }) => {
   return m.regs.sp; // entrySP: points at R
 };
 
-test("sub_29af's 0x29ED exit SKIPS the caller (inc sp x2), reporting false", () => {
+test("loc_29af's 0x29ED exit SKIPS the caller (inc sp x2), reporting false", () => {
   // TEST 1, two-assertion form. MUTATION this catches: modelling the
   // 0x29ED exit as a plain ret -> lands at R with SP +2 and reports true.
   // Also pins the stores on that path, so "took this exit" is not inferred.
   const m = new Machine(ROM);
   const entrySP = seed29af(m, { hitAt: 0 }); // hit on record 0 -> B stays 6 -> loop skipped
-  const returned = sub_29af(m);
+  const returned = loc_29af(m);
   assert.equal(returned, false, "the inc-sp exit must report SKIPPED");
   assert.equal(m.pc, 0x4dcc, "returned to the caller's CALLER (SENTINEL), not R");
   assert.equal(m.regs.sp, entrySP + 4, "our return discarded (inc sp x2) AND SENTINEL popped");
@@ -1689,9 +1689,9 @@ test("sub_29af's 0x29ED exit SKIPS the caller (inc sp x2), reporting false", () 
   assert.equal(m.mem.read8(0x6398), 0x01, "0x6398 = 1 -- the 0x29E8 store ran");
 });
 
-test("sub_29af's rst 0x30 SKIP arm aborts the body and returns to our caller", () => {
+test("loc_29af's rst 0x30 SKIP arm aborts the body and returns to our caller", () => {
   // ROM-WIDE rst CALLER-SKIP DOCTRINE: rst 0x30 is one of five skip vectors, and
-  // this is an exit sub_29af's OWN BYTES NEVER SHOW. sub_0030 rotates A=0x04 right
+  // this is an exit loc_29af's OWN BYTES NEVER SHOW. sub_0030 rotates A=0x04 right
   // (0x6227) times and `ret c` -- so it SKIPS when the carry comes back CLEAR.
   // 0x6227 = 1 -> one rrca of 0x04 -> C=0 -> sub_0030 does pop hl / ret, discarding
   // ITS return (0x29B2) and landing at OUR caller: our body never runs.
@@ -1702,7 +1702,7 @@ test("sub_29af's rst 0x30 SKIP arm aborts the body and returns to our caller", (
   const m = new Machine(ROM);
   const entrySP = seed29af(m, { hitAt: 0 });
   m.mem.write8(0x6227, 0x01); // ONE rotate -> carry CLEAR -> sub_0030 skips us
-  const returned = sub_29af(m);
+  const returned = loc_29af(m);
   assert.equal(returned, true, "the rst-0x30 skip still reaches OUR caller -> true");
   assert.equal(m.pc, 0x4d5e, "landed at our caller (R), not the caller's caller");
   assert.equal(m.regs.sp, entrySP + 2, "only our own frame consumed");
@@ -1711,10 +1711,10 @@ test("sub_29af's rst 0x30 SKIP arm aborts the body and returns to our caller", (
   assert.equal(m.mem.read8(0x6398), 0x00, "0x6398 never written -- no exit path ran");
 });
 
-test("sub_29af's countdown advances IX by DE (6-B) times, add ix,de INSIDE the loop", () => {
-  // TEST 2. WHY THE LOOP EXISTS: entry_2913 ends with `pop ix`, so it
+test("loc_29af's countdown advances IX by DE (6-B) times, add ix,de INSIDE the loop", () => {
+  // TEST 2. WHY THE LOOP EXISTS: loc_2913 ends with `pop ix`, so it
   // RESTORES IX to the base (0x6600) on both exits -- it reports WHICH record hit
-  // only through B. sub_29af's countdown re-walks IX to that record: B = 6-hitAt,
+  // only through B. loc_29af's countdown re-walks IX to that record: B = 6-hitAt,
   // so A = 6-B = hitAt advances. Hit on record 2 -> B=4 -> A=2 -> IX must land on
   // 0x6620 and read (ix+5) = 0x6625. MUTATION this catches: hoisting add ix,de out
   // of the loop (one advance) -> IX lands on 0x6610 and reads 0x6615 instead.
@@ -1723,25 +1723,25 @@ test("sub_29af's countdown advances IX by DE (6-B) times, add ix,de INSIDE the l
   const m = new Machine(ROM);
   seed29af(m, { hitAt: 2 });
   m.mem.write8(0x6615, 0x30); // hoist-once landing (IX advanced only once)
-  sub_29af(m);
+  loc_29af(m);
   // 0x6205 = (mem[ix+5] - 4) - 8. Correct (0x6625 = 0x10): 0x04. Hoisted (0x6615 = 0x30): 0x24.
   assert.equal(m.mem.read8(0x6205), 0x04, "read (ix+5) at 0x6625 -- two in-loop add ix,de, not one");
 });
 
-// ---- entry_2b9b -----------------------------
-// Drives the REAL sub_2ff0, whose contract is HL = 0x7400 + ((255-y)>>3)*32 +
+// ---- loc_2b9b -----------------------------
+// Drives the REAL loc_2ff0, whose contract is HL = 0x7400 + ((255-y)>>3)*32 +
 // ((x>>3)&0x1f). With HL = 0x0040 (y=0, x=0x40) the tile lands at 0x77E8, and the
 // `pop de` recovers the ORIGINAL HL so E = 0x40. Plant the tile at 0x77E8.
 
 const seed2b9b = (m, tile) => {
   m.regs.sp = 0x6c00;
   m.push16(0x4d5e); // return address for the REJECT path's ret
-  m.regs.hl = 0x0040; // y = 0x00, x = 0x40 -> sub_2ff0 gives HL = 0x77E8
+  m.regs.hl = 0x0040; // y = 0x00, x = 0x40 -> loc_2ff0 gives HL = 0x77E8
   m.mem.write8(0x77e8, tile);
   return m.regs.sp;
 };
 
-test("entry_2b9b REJECTS on each of its three unsigned gates, and does NOT over-reject", () => {
+test("loc_2b9b REJECTS on each of its three unsigned gates, and does NOT over-reject", () => {
   // the jp c / jp nc polarity IS the gate. Three rejects:
   //   tile < 0xB0 ; (tile & 0x0F) >= 8 ; tile == 0xC0
   //
@@ -1754,35 +1754,35 @@ test("entry_2b9b REJECTS on each of its three unsigned gates, and does NOT over-
   for (const [tile, why] of [[0xaf, "tile < 0xB0"], [0xb8, "low nibble >= 8"], [0xc0, "tile == 0xC0"]]) {
     const m = new Machine(ROM);
     const entrySP = seed2b9b(m, tile);
-    entry_2b9b(m); // REJECT is a plain ret -- must NOT throw
+    loc_2b9b(m); // REJECT is a plain ret -- must NOT throw
     assert.equal(m.regs.a, 0x00, `tile 0x${tile.toString(16)} (${why}): A = 0`);
     assert.equal(m.regs.b, 0x00, `tile 0x${tile.toString(16)} (${why}): B = 0`);
     assert.equal(m.pc, 0x4d5e, `tile 0x${tile.toString(16)}: returned to the caller`);
     assert.equal(m.regs.sp, entrySP + 2, `tile 0x${tile.toString(16)}: one frame consumed`);
   }
   // CONTROL: 0xB0 passes every gate (>= 0xB0, low nibble 0 < 8, != 0xC0), so it
-  // must NOT take the reject ret -- it reaches a success exit -> entry_2be1 (now
+  // must NOT take the reject ret -- it reaches a success exit -> loc_2be1 (now
   // translated), which plain-returns A=2 (distinct from the reject's A=0).
   const pass = new Machine(ROM);
   seed2b9b(pass, 0xb0);
-  entry_2b9b(pass);
-  assert.equal(pass.regs.a, 0x02, "0xB0 PASSES all gates -> entry_2be1 plain return (A=2, not reject's 0)");
+  loc_2b9b(pass);
+  assert.equal(pass.regs.a, 0x02, "0xB0 PASSES all gates -> loc_2be1 plain return (A=2, not reject's 0)");
 });
 
-test("entry_2b9b's loc_2bdc FALLS THROUGH into entry_2be1 (now translated), computing C=0x3F", () => {
+test("loc_2b9b's loc_2bdc FALLS THROUGH into loc_2be1 (now translated), computing C=0x3F", () => {
   // tile in [0xB0,0xBF] with low nibble < 8 passes all three gates and
   // takes jp c,0x2bdc; loc_2bdc runs off its own end into 0x2BE1 (an exit no byte
-  // marks -- one only because 0x2BE1 begins entry_2be1). entry_2be1 is now
-  // integrated, so the success exit is `return entry_2be1(m)`, not a throw. C is
+  // marks -- one only because 0x2BE1 begins loc_2be1). loc_2be1 is now
+  // integrated, so the success exit is `return loc_2be1(m)`, not a throw. C is
   // pinned: ld a,e / and 0xf8 / dec a with E = 0x40 gives 0x3F.
   const m = new Machine(ROM);
   seed2b9b(m, 0xb0);
-  entry_2b9b(m); // falls through into entry_2be1 -> loc_2bf8 plain return
+  loc_2b9b(m); // falls through into loc_2be1 -> loc_2bf8 plain return
   assert.equal(m.regs.c, 0x3f, "loc_2bdc computed C = (E & 0xF8) - 1 = 0x3F");
-  assert.equal(m.regs.a, 0x02, "reaches entry_2be1's loc_2bf8 plain return (A=2)");
+  assert.equal(m.regs.a, 0x02, "reaches loc_2be1's loc_2bf8 plain return (A=2)");
 });
 
-// ---- entry_2333 -- pure register transform ---
+// ---- loc_2333 -- pure register transform ---
 // H, L, B live-in; result in L. All exits plain ret, so push a return address and
 // read L back. Expected L values derived from the ROM byte semantics, not the skeleton.
 
@@ -1790,11 +1790,11 @@ const run2333 = (h, l, b) => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.h = h; m.regs.l = l; m.regs.b = b;
-  entry_2333(m);
+  loc_2333(m);
   return m.regs.l;
 };
 
-test("entry_2333 derives the step from (H&0x0F) with the two early-exit clamps", () => {
+test("loc_2333 derives the step from (H&0x0F) with the two early-exit clamps", () => {
   // TEST 1. L bit5-clear (0x10) so the step path is add. MUTATION this
   // catches: a flipped clamp (ret c <-> ret nc) or a wrong +1/-1 assignment.
   // (a) dec-b nonzero arm, (H&F)=5 < 0x0F -> ret c -> L unchanged.
@@ -1805,7 +1805,7 @@ test("entry_2333 derives the step from (H&0x0F) with the two early-exit clamps",
   assert.equal(run2333(0x03, 0x10, 0x01), 0x10, "(H&F)=3 >= 1 -> ret nc, L unchanged");
 });
 
-test("entry_2333 special-cases L==0xF0 / 0x4C and splits sub/add on bit 5 of L", () => {
+test("loc_2333 special-cases L==0xF0 / 0x4C and splits sub/add on bit 5 of L", () => {
   // TEST 2. B forced to +1 via the dec-b-zero arm with (H&F)==0
   // (H low nibble 0, B_in=1). MUTATION this catches: dropping the 0xF0 case, or
   // swapping sub/add on the bit-5 split.
@@ -1819,7 +1819,7 @@ test("entry_2333 special-cases L==0xF0 / 0x4C and splits sub/add on bit 5 of L",
   assert.equal(run2333(0x80, 0x00, 0x01), 0x01, "L bit5 clear -> add -> 0x01");
 });
 
-// ---- sub_236e -- cross-partition table search -
+// ---- loc_236e -- cross-partition table search -
 // Searches 0x6300.. for A (BC entries) via cpir (cpu.js:561, FIRST executable use);
 // on a hit a secondary compare of D against two slots selects the return. cpir
 // leaves HL = M+1 (post-increment) and signals found via the Z flag, not its
@@ -1827,7 +1827,7 @@ test("entry_2333 special-cases L==0xF0 / 0x4C and splits sub/add on bit 5 of L",
 // cpir-MISS path UNWINDS a frame (returns false), modelled like sub_0030. All
 // expected values below are derived from the ROM bytes, not the skeleton.
 
-test("sub_236e miss path UNWINDS: false, HL = discarded own-return, ret to grandparent", () => {
+test("loc_236e miss path UNWINDS: false, HL = discarded own-return, ret to grandparent", () => {
   // TEST-1. `jp nz,0x239a` @0x2373 jumps PAST the push @0x2376, so
   // `pop hl` @0x239A takes THIS routine's return address and `ret` @0x239B pops a
   // SECOND frame -> control resumes at the caller's caller. MUTATION this catches
@@ -1836,11 +1836,11 @@ test("sub_236e miss path UNWINDS: false, HL = discarded own-return, ret to grand
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0x216a); // grandparent (the caller's caller return address) -- deeper
-  m.push16(0x2170); // sub_236e's OWN return address -- top of stack
+  m.push16(0x2170); // loc_236e's OWN return address -- top of stack
   const spEntry = m.regs.sp;
   m.regs.a = 0x42; // key absent from the all-zero 0x6300 region
   m.regs.bc = 0x0015; // scan 21 bytes, none match -> NZ (the miss)
-  const result = sub_236e(m);
+  const result = loc_236e(m);
   assert.equal(result, false, "miss must return false -- the boolean says 'unwound'");
   assert.equal(m.regs.hl, 0x2170, "`pop hl` @0x239A discarded THIS routine's own return address into HL");
   assert.equal(m.pc, 0x216a, "`ret` @0x239B unwound a second frame -- resumed at the caller's caller");
@@ -1850,7 +1850,7 @@ test("sub_236e miss path UNWINDS: false, HL = discarded own-return, ret to grand
   assert.equal(m.regs.sp, (spEntry + 4) & 0xffff, "two frames consumed on the unwind: SP = entry + 4");
 });
 
-test("sub_236e found path returns the OTHER slot's byte; A=1 first-slot, A=0 second-slot", () => {
+test("loc_236e found path returns the OTHER slot's byte; A=1 first-slot, A=0 second-slot", () => {
   // TEST-3 (the A/B contract, both variants). Key 0x42 planted at M=0x6300
   // (n=1). cpir leaves HL=0x6301; +0x14 -> first slot 0x6315 (M+0x15), inc c then
   // +0x15 -> second slot 0x632A (M+0x2A). EACH hit returns the OTHER slot's byte.
@@ -1868,7 +1868,7 @@ test("sub_236e found path returns the OTHER slot's byte; A=1 first-slot, A=0 sec
     m.mem.write8(0x6300, 0x42); // M -- cpir matches here (n=1)
     m.mem.write8(0x6315, firstSlot); // M+0x15
     m.mem.write8(0x632a, secondSlot); // M+0x2A
-    const result = sub_236e(m);
+    const result = loc_236e(m);
     assert.equal(result, true, "found path is a NORMAL return (true)");
     assert.equal(m.pc, 0x4d5e, "found path returns to its caller, not the caller's caller");
     assert.equal(m.regs.sp, (spEntry + 2) & 0xffff, "pushes balance; net one ret-pop: SP = entry + 2");
@@ -1882,14 +1882,14 @@ test("sub_236e found path returns the OTHER slot's byte; A=1 first-slot, A=0 sec
     "D matches M+0x2A -> A=0, B = the byte at M+0x15 (the OTHER slot)");
 });
 
-test("sub_236e second-slot path: `sbc hl,bc` back-steps HL by 0x15 (M+0x2A -> M+0x15)", () => {
+test("loc_236e second-slot path: `sbc hl,bc` back-steps HL by 0x15 (M+0x2A -> M+0x15)", () => {
   // TEST-2's path, but see the note below. Exercises loc_2395: `sbc hl,bc`
   // (cpu.js:488, FIRST executable use) steps HL back from M+0x2A to M+0x15 so
   // `ld b,(hl)` reads the first slot. Distinct neighbours pin the offset and guard
   // the `regs.hl = regs.sbcHl(...)` = undefined bug (sbcHl ASSIGNS this.hl, returns
   // nothing). M=0x6300; D=0x88 matches only the second slot (0x632A).
   //
-  // NOTE ON DRAFT M2 (the `xor a` carry-clear): within sub_236e that mutation
+  // NOTE ON DRAFT M2 (the `xor a` carry-clear): within loc_236e that mutation
   // (`regs.a = 0` instead of `regs.xor(regs.a)`) is BEHAVIORALLY EQUIVALENT and
   // this test does NOT and CANNOT discriminate it. loc_2395 is reachable only via
   // `jp z` gated by the EQUAL `cp (hl)` @0x2384, and an equal cp always leaves
@@ -1908,13 +1908,13 @@ test("sub_236e second-slot path: `sbc hl,bc` back-steps HL by 0x15 (M+0x2A -> M+
   m.mem.write8(0x6314, 0x99); // M+0x14: a -1 offset would read this
   m.mem.write8(0x6316, 0xaa); // M+0x16: a +1 offset would read this
   m.mem.write8(0x632a, 0x88); // M+0x2A: equals D -> loc_2395
-  const result = sub_236e(m);
+  const result = loc_236e(m);
   assert.equal(result, true);
   assert.equal(m.regs.a, 0x00, "loc_2395 -> A = 0");
   assert.equal(m.regs.b, 0x5c, "sbc hl,bc back-stepped HL to M+0x15 (0x6315) -- not 0x6314/0x6316/M+0x2A");
 });
 
-test("sub_236e charges cpir as 21*(n-1)+16, not a constant (differential on n)", () => {
+test("loc_236e charges cpir as 21*(n-1)+16, not a constant (differential on n)", () => {
   // TEST-4. Cannot isolate 0x2371's cycles from the single accumulator, so
   // run the SAME found path (loc_238f) with the match at position n=1 vs n=5 and
   // assert the cycle DELTA is exactly 21*(5-1) - 21*(1-1) = 84 -- the 21-T-per-
@@ -1934,7 +1934,7 @@ test("sub_236e charges cpir as 21*(n-1)+16, not a constant (differential on n)",
     m.mem.write8((M + 1 + 0x14) & 0xffff, 0x77); // first slot = D -> loc_238f (same path both runs)
     m.mem.write8((M + 1 + 0x14 + 0x15) & 0xffff, 0x22); // second slot (returned in B)
     const c0 = m.cycles;
-    sub_236e(m);
+    loc_236e(m);
     return m.cycles - c0;
   };
   const n1 = cyclesForMatchAt(0x6300); // match at byte 1 -> n=1 -> cpir 16 T
@@ -1942,7 +1942,7 @@ test("sub_236e charges cpir as 21*(n-1)+16, not a constant (differential on n)",
   assert.equal(n5 - n1, 84, "cpir scales 21 T per repeated iteration: 21*(5-1) = 84 T more for n=5");
 });
 
-test("sub_236e retry loop advances past the first occurrence (cpir POST-increments HL)", () => {
+test("loc_236e retry loop advances past the first occurrence (cpir POST-increments HL)", () => {
   // TEST-5. When D matches NEITHER slot, `jp 0x2371` re-searches from HL,
   // which cpir left at M+1 (post-increment). Key planted TWICE: at 0x6300 (D
   // matches neither slot -> retry) and 0x6303 (D matches the first slot -> return).
@@ -1963,22 +1963,22 @@ test("sub_236e retry loop advances past the first occurrence (cpir POST-incremen
   // second-occ slots: M2=0x6303 -> HL=0x6304 after cpir; +0x14 -> 0x6318, +0x15 -> 0x632D
   m.mem.write8(0x6318, 0x77); // = D -> loc_238f
   m.mem.write8(0x632d, 0x5a); // the OTHER slot -> returned in B
-  const result = sub_236e(m);
+  const result = loc_236e(m);
   assert.equal(result, true, "retry reached the second occurrence and returned normally");
   assert.equal(m.regs.a, 0x01, "loc_238f at the second occurrence -> A=1");
   assert.equal(m.regs.b, 0x5a, "B = M2+0x2A (0x632D) -- the retry advanced to M2, not stuck at M1");
 });
 
-// ---- sub_0514 -- descending 3-cell fill -------
+// ---- loc_0514 -- descending 3-cell fill -------
 // Stores A, A-1, A-2 at HL, HL+DE, HL+2DE. HL/A/DE live-in; B is set to 3 (a
 // run-once prologue -- the djnz targets 0x0516, the loop head, not the entry).
 // A is IN-OUT. Expected values derived from the ROM bytes, not the skeleton.
 
-test("sub_0514 fills 3 descending cells at HL, HL+DE, HL+2DE (A in-out, B->0, HL+=3DE)", () => {
+test("loc_0514 fills 3 descending cells at HL, HL+DE, HL+2DE (A in-out, B->0, HL+=3DE)", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.hl = 0x7623; m.regs.de = 0x0020; m.regs.a = 0x10;
-  sub_0514(m);
+  loc_0514(m);
   // MUTATION this catches: dropping `dec a` (all cells = 0x10), or a wrong count.
   assert.equal(m.mem.read8(0x7623), 0x10, "pass 1: (HL) = A");
   assert.equal(m.mem.read8(0x7643), 0x0f, "pass 2: (HL+DE) = A-1");
@@ -1990,7 +1990,7 @@ test("sub_0514 fills 3 descending cells at HL, HL+DE, HL+2DE (A in-out, B->0, HL
   assert.equal(m.pc, 0x4d5e, "returns normally to its caller");
 });
 
-test("sub_0514 A is IN-OUT: a second call (HL reloaded, A not) continues the descent", () => {
+test("loc_0514 A is IN-OUT: a second call (HL reloaded, A not) continues the descent", () => {
   // Mirrors the 0x04C3->0x04C9 caller: 0x10,0x0F,0x0E then 0x0D,0x0C,0x0B.
   // MUTATION this catches: treating A as input-only or restoring it -> both calls
   // would write 0x10,0x0F,0x0E and the second is wrong.
@@ -1998,10 +1998,10 @@ test("sub_0514 A is IN-OUT: a second call (HL reloaded, A not) continues the des
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.de = 0x0020;
   m.regs.hl = 0x7623; m.regs.a = 0x10;
-  sub_0514(m); // A exits 0x0D
+  loc_0514(m); // A exits 0x0D
   m.push16(0x4d5e);
   m.regs.hl = 0x7583; // HL reloaded; A deliberately NOT reloaded
-  sub_0514(m);
+  loc_0514(m);
   assert.equal(m.mem.read8(0x7583), 0x0d, "second call continues the sequence: 0x0D");
   assert.equal(m.mem.read8(0x75a3), 0x0c, "0x0C");
   assert.equal(m.mem.read8(0x75c3), 0x0b, "0x0B");
@@ -2023,7 +2023,7 @@ test("loc_06fe dispatches 0x600A through the ROM table based at 0x0702 (not 0x08
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x600a, sel);
-    m.mem.write16(0x622a, 0x3a73); // safe pointer for the sub_09fe/level-setup derefs
+    m.mem.write16(0x622a, 0x3a73); // safe pointer for the loc_09fe/level-setup derefs
     return m;
   };
   assert.doesNotThrow(() => loc_06fe(withSel(0x00)), "index 0 -> table[0]=0x0986 (base 0x0702)");
@@ -2112,9 +2112,9 @@ test("loc_0c91 runs loc_0c92 only when the rst 0x18 counter (0x6009) expires", (
   assert.equal(run(0x02).mem.read8(0x638c), 0x77, "counter ticking -> loc_0c92 skipped (sentinel intact)");
 });
 
-// ---- sub_0852 -- two nested fills ------------
+// ---- loc_0852 -- two nested fills ------------
 
-test("sub_0852 fills VRAM 0x7400..0x77FF with 0x10, then 0x6900..0x6A7F with 0x00", () => {
+test("loc_0852 fills VRAM 0x7400..0x77FF with 0x10, then 0x6900..0x6A7F with 0x00", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   // Work-RAM sentinels bracketing the 0x6900 clear -- prove the extent is EXACTLY
@@ -2122,7 +2122,7 @@ test("sub_0852 fills VRAM 0x7400..0x77FF with 0x10, then 0x6900..0x6A7F with 0x0
   m.mem.write8(0x68ff, 0xdd); // one before the clear
   m.mem.write8(0x6a80, 0xcc); // one after
   m.mem.write8(0x6900, 0x55); m.mem.write8(0x6a7f, 0x55); // pre-dirty so 0->0x00 is meaningful
-  sub_0852(m);
+  loc_0852(m);
   // first fill: 0x10 across the full 1024-byte tilemap.
   assert.equal(m.mem.read8(0x7400), 0x10, "first byte of the VRAM fill");
   assert.equal(m.mem.read8(0x77ff), 0x10, "last byte of the 1024-byte VRAM fill (C=4 reaches the end)");
@@ -2181,14 +2181,14 @@ test("loc_08ba runs its inits and FALLS THROUGH into loc_08d5 (one combined ret)
   assert.equal(m.pc, 0x4d5e, "fell through into loc_08d5 and returned via its single ret");
 });
 
-// ---- sub_0977 -- BCD-decrement 0x6001 --------
+// ---- loc_0977 -- BCD-decrement 0x6001 --------
 
-test("sub_0977 BCD-decrements 0x6001 (05->04, 10->09 borrow, 00->99 wrap)", () => {
+test("loc_0977 BCD-decrements 0x6001 (05->04, 10->09 borrow, 00->99 wrap)", () => {
   const run = (v) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6001, v);
-    sub_0977(m);
+    loc_0977(m);
     return m.mem.read8(0x6001);
   };
   // 10->09 is the discriminator: a raw `dec` would give 0x0F; daa gives BCD 09.
@@ -2298,7 +2298,7 @@ test("loc_0bb3 wraps 0x6385 + advances selectors iff the rst 0x18 countdown expi
 
 // ---- loc_0b06 -- walk-table / terminal setup --
 // Tests the two non-terminal paths; the 0x7F-sentinel terminal path runs a
-// `do { sub_304a } while (0x638E != 0x0A)` loop, left to the exec-tape.
+// `do { loc_304a } while (0x638E != 0x0A)` loop, left to the exec-tape.
 
 test("loc_0b06 returns early on 0x601A bit0, else advances the 0x63C2 walk pointer", () => {
   // Path 1: 0x601A bit 0 set -> rrca -> carry -> ret c, walk pointer untouched.
@@ -2372,32 +2372,32 @@ test("loc_0a8a seeds the two walk pointers (0x63C2=0x38B4, 0x63C4=0x38CB) and vi
   assert.equal(m.pc, 0x4d5e, "returns normally");
 });
 
-test("entry_127f dispatches 0x639D through the 0x1283 table (0->0x128B, 1->0x12AC)", () => {
+test("loc_127f dispatches 0x639D through the 0x1283 table (0->0x128B, 1->0x12AC)", () => {
   const withIdx = (i) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x639d, i);
     return m;
   };
-  // Now WIRED (batch): index 0 -> entry_128b, index 1 -> loc_12ac; dispatch runs.
-  assert.doesNotThrow(() => entry_127f(withIdx(0x00)), "index 0 -> table[0]=0x128B");
-  assert.doesNotThrow(() => entry_127f(withIdx(0x01)), "index 1 -> table[1]=0x12AC");
+  // Now WIRED (batch): index 0 -> loc_128b, index 1 -> loc_12ac; dispatch runs.
+  assert.doesNotThrow(() => loc_127f(withIdx(0x00)), "index 0 -> table[0]=0x128B");
+  assert.doesNotThrow(() => loc_127f(withIdx(0x01)), "index 1 -> table[1]=0x12AC");
 });
 
-test("loc_127c calls the REAL sub_1dbd (un-staled from the draft's 0x1DBD throw)", () => {
-  // This previously threw at `call 0x1dbd` (untranslated then). Now it calls sub_1dbd,
+test("loc_127c calls the REAL loc_1dbd (un-staled from the draft's 0x1DBD throw)", () => {
+  // This previously threw at `call 0x1dbd` (untranslated then). Now it calls loc_1dbd,
   // which is ITSELF a rst-28 dispatcher and throws at its own as-yet-untranslated
-  // target (0x1E49) -- so loc_127c doesn't reach entry_127f in this test, but the
-  // throw proves it's wired to the real sub_1dbd, not a stub.
+  // target (0x1E49) -- so loc_127c doesn't reach loc_127f in this test, but the
+  // throw proves it's wired to the real loc_1dbd, not a stub.
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x01);
   m.mem.write8(0x6343, 0x00); m.mem.write8(0x6344, 0x6b);
   m.mem.write8(0x6340, 0x01);
   loc_127c(m);
-  assert.equal(m.mem.read8(0x6340), 0x02, "real sub_1dbd -> table[1] -> loc_1dc9 advanced 0x6340 to 2");
-  assert.equal(m.mem.read8(0x6341), 0x40, "real sub_1dbd -> loc_1dc9 set 0x6341 to 0x40");
-  assert.equal(m.pc, 0x4d5e, "loc_127c falls through entry_127f and rets to the caller");
+  assert.equal(m.mem.read8(0x6340), 0x02, "real loc_1dbd -> table[1] -> loc_1dc9 advanced 0x6340 to 2");
+  assert.equal(m.mem.read8(0x6341), 0x40, "real loc_1dbd -> loc_1dc9 set 0x6341 to 0x40");
+  assert.equal(m.pc, 0x4d5e, "loc_127c falls through loc_127f and rets to the caller");
 });
 
 test("loc_12ac animates 0x694D, or advances the 0x639D state when 0x639E expires", () => {
@@ -2465,7 +2465,7 @@ test("loc_0ae8 arms 0x6009 + advances 0x6385 when 0x690B < 0x5D, else ret nc", (
   const run = (c690b, sel = 0x02) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
-    m.mem.write8(0x62af, 0x01); // (0x62AF & 0x0F) != 0 -> skip the sub_304a call
+    m.mem.write8(0x62af, 0x01); // (0x62AF & 0x0F) != 0 -> skip the loc_304a call
     m.mem.write8(0x690b, c690b);
     m.mem.write8(0x6385, sel);
     loc_0ae8(m);
@@ -2499,17 +2499,17 @@ test("loc_141e dispatches on the 0x611C[5] search: record 1/3 -> 0x7D82 write; n
   assert.equal(m3.mem.read8(0x600e), 0x01, "record 3 found -> loc_144f sets player index 1");
 });
 
-test("loc_0f35 drains 0x63B1 by 8 per iteration until borrow, then tail-jumps to sub_0da7", () => {
+test("loc_0f35 drains 0x63B1 by 8 per iteration until borrow, then tail-jumps to loc_0da7", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.hl = 0x6100; // a safe RAM destination for the computed writes
   m.regs.de = 0x0010;
   m.mem.write8(0x63b5, 0xaa); // fill byte
   m.mem.write8(0x63b1, 0x10); // 0x10 -> 8 -> 0 -> borrow: 3 iterations
-  // The loop runs, THEN tail-jumps to sub_0da7 (a record renderer) which reaches
-  // an untranslated record-kind and throws -- expected. sub_0da7 mutates 0x63B1/de,
+  // The loop runs, THEN tail-jumps to loc_0da7 (a record renderer) which reaches
+  // an untranslated record-kind and throws -- expected. loc_0da7 mutates 0x63B1/de,
   // so observe instead the loop's HL fills (0x6100/0x6120/0x6140, stride 0x20),
-  // which sub_0da7 doesn't touch: 0x10/8 = 3 iterations -> exactly 3 writes.
+  // which loc_0da7 doesn't touch: 0x10/8 = 3 iterations -> exactly 3 writes.
   // loc_0e4f's kind!=2 branch is now wired (loc_0ee8) -- the tail walk no longer throws here;
   // this test only pins loc_0f35's own 3 loop fills, done before the tail-jump.
   try { loc_0f35(m); } catch { /* downstream walk may reach an untranslated record */ }
@@ -2518,7 +2518,7 @@ test("loc_0f35 drains 0x63B1 by 8 per iteration until borrow, then tail-jumps to
   assert.equal(m.mem.read8(0x6160), 0x00, "no 4th write -- loop borrowed after 3 (0x10 -> 8 -> 0 -> -8)");
 });
 
-test("sub_239c IX transform: 16-bit add/sub and the B:A=(2n+1)*8 scale (FIRST-USE sla)", () => {
+test("loc_239c IX transform: 16-bit add/sub and the B:A=(2n+1)*8 scale (FIRST-USE sla)", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6200;
@@ -2529,7 +2529,7 @@ test("sub_239c IX transform: 16-bit add/sub and the B:A=(2n+1)*8 scale (FIRST-US
   m.mem.write8(0x6205, 0x05); m.mem.write8(0x6206, 0x00);
   m.mem.write8(0x6212, 0x01); m.mem.write8(0x6213, 0x00);
   m.mem.write8(0x6214, 0x02); // n=2 -> (2*2+1)*8 = 40 = 0x28
-  sub_239c(m);
+  loc_239c(m);
   assert.equal(m.mem.read8(0x6203), 0x04, "(ix+3) high of the 16-bit add = 0x04");
   assert.equal(m.mem.read8(0x6204), 0x06, "(ix+4) low of the 16-bit add = 0x06");
   // HL = (0x0500 - 0x0100) + (2n+1)*8 = 0x0400 + 0x28 = 0x0428, stored to (ix+5:6).
@@ -2538,36 +2538,36 @@ test("sub_239c IX transform: 16-bit add/sub and the B:A=(2n+1)*8 scale (FIRST-US
   assert.equal(m.mem.read8(0x6214), 0x03, "(ix+0x14) incremented 2 -> 3");
 });
 
-test("sub_23de decrements (ix+0x0F) on the != 1 path", () => {
+test("loc_23de decrements (ix+0x0F) on the != 1 path", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600;
   // 0x08 -> dec -> 0x07. NB: NOT a value whose dec == 0x04 -- the main (==1) path
   // ends `ld a,0x04` and also writes (ix+0x0F), so 0x04 wouldn't discriminate.
   m.mem.write8(0x660f, 0x08);
-  sub_23de(m);
+  loc_23de(m);
   assert.equal(m.mem.read8(0x660f), 0x07, "(ix+0x0F): 8 -> dec -> 7 written back (not 0x04, the main-path value)");
 });
 
-test("entry_2974 sets up the sweep registers and returns after entry_2913", () => {
+test("loc_2974 sets up the sweep registers and returns after loc_2913", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
-  entry_2974(m); // fresh machine: the 2 objects at 0x6680 are inactive -> 2913 true
+  loc_2974(m); // fresh machine: the 2 objects at 0x6680 are inactive -> 2913 true
   assert.equal(m.pc, 0x4d5e, "completed the sweep and returned normally");
 });
 
-test("sub_286f dispatches 0x6227 through the collision table at 0x2874 (index 1 -> 0x2880)", () => {
+test("loc_286f dispatches 0x6227 through the collision table at 0x2874 (index 1 -> 0x2880)", () => {
   const withSel = (sel) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6227, sel);
     return m;
   };
-  assert.throws(() => sub_286f(withSel(0x00)), /0x0000/, "index 0 -> table[0]=0x0000 (null, unwired)");
-  assert.doesNotThrow(() => sub_286f(withSel(0x01)), "index 1 -> table[1]=0x2880 (now wired)");
+  assert.throws(() => loc_286f(withSel(0x00)), /0x0000/, "index 0 -> table[0]=0x0000 (null, unwired)");
+  assert.doesNotThrow(() => loc_286f(withSel(0x01)), "index 1 -> table[1]=0x2880 (now wired)");
 });
 
-test("entry_2ddb triggers (0x63A0=1, 0x639A=1) when both rst gates pass and the mask is clear", () => {
+test("loc_2ddb triggers (0x63A0=1, 0x639A=1) when both rst gates pass and the mask is clear", () => {
   const setup = (c601a) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
@@ -2575,7 +2575,7 @@ test("entry_2ddb triggers (0x63A0=1, 0x639A=1) when both rst gates pass and the 
     m.mem.write8(0x6200, 0x01); // rst 0x10 passes (bit 0 set)
     m.mem.write8(0x6380, 0x00); // mask width = ((0+1)>>1)+1 = 1 bit -> mask 0xFF
     m.mem.write8(0x601a, c601a);
-    entry_2ddb(m);
+    loc_2ddb(m);
     return m;
   };
   // 0x601A == 0 -> mask clear -> trigger.
@@ -2586,23 +2586,23 @@ test("entry_2ddb triggers (0x63A0=1, 0x639A=1) when both rst gates pass and the 
   assert.equal(setup(0x01).mem.read8(0x63a0), 0x00, "masked bit set -> no trigger");
 });
 
-test("sub_2880 recovers the pushed HL and runs three entry_2913 sweeps", () => {
+test("loc_2880 recovers the pushed HL and runs three loc_2913 sweeps", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e); m.push16(0x1234); // return, then 286f's HL to pop
-  sub_2880(m);
+  loc_2880(m);
   assert.equal(m.mem.read8(0x63b9), 0x01, "last sweep's count written to 0x63B9");
   assert.equal(m.pc, 0x4d5e, "returned normally after the 3 sweeps");
 });
 
-test("sub_2a2f: passable tile -> A=0; a solid slope tile -> A=1 and X-adjusts (ix+5)", () => {
+test("loc_2a2f: passable tile -> A=0; a solid slope tile -> A=1 and X-adjusts (ix+5)", () => {
   const run = (tile) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.regs.ix = 0x6600;
     m.mem.write8(0x6603, 0x00); // Y = 0 (H)
-    m.mem.write8(0x6605, 0x3c); // X; +4 = 0x40 (L) -> sub_2ff0 cell 0x77E8
+    m.mem.write8(0x6605, 0x3c); // X; +4 = 0x40 (L) -> loc_2ff0 cell 0x77E8
     m.mem.write8(0x77e8, tile);
-    sub_2a2f(m);
+    loc_2a2f(m);
     return m;
   };
   assert.equal(run(0xa0).regs.a, 0x00, "tile < 0xB0 -> no collision (A=0)");
@@ -2611,18 +2611,18 @@ test("sub_2a2f: passable tile -> A=0; a solid slope tile -> A=1 and X-adjusts (i
   assert.equal(mC.mem.read8(0x6605), 0x3b, "(ix+5) X-adjusted to 0x3B");
 });
 
-test("sub_2523: timer gate / no-request / spawn paths", () => {
+test("loc_2523: timer gate / no-request / spawn paths", () => {
   const mk = () => { const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e); return m; };
   // timer running (0x639B != 0) -> just dec it.
-  const m1 = mk(); m1.mem.write8(0x639b, 0x05); sub_2523(m1);
+  const m1 = mk(); m1.mem.write8(0x639b, 0x05); loc_2523(m1);
   assert.equal(m1.mem.read8(0x639b), 0x04, "timer running -> dec (0x639B): 5 -> 4");
   // timer 0, no request -> ret z, no dec.
-  const m2 = mk(); m2.mem.write8(0x639b, 0x00); m2.mem.write8(0x639a, 0x00); sub_2523(m2);
+  const m2 = mk(); m2.mem.write8(0x639b, 0x00); m2.mem.write8(0x639a, 0x00); loc_2523(m2);
   assert.equal(m2.mem.read8(0x639b), 0x00, "no request -> ret z, timer untouched");
   // timer 0 + request + a free slot at 0x65A0 -> activate the object, reload the
   // timer. NB: 0x639B stays 0x7C (NOT dec'd) -- sub_0057 clobbers HL, so the final
   // dec (hl) hits sub_0057's leftover address, not 0x639B (an "HL live" reading was wrong).
-  const m3 = mk(); m3.mem.write8(0x639b, 0x00); m3.mem.write8(0x639a, 0x01); sub_2523(m3);
+  const m3 = mk(); m3.mem.write8(0x639b, 0x00); m3.mem.write8(0x639a, 0x01); loc_2523(m3);
   assert.equal(m3.mem.read8(0x65a0), 0x01, "spawn -> object at 0x65A0 activated (field0=1)");
   assert.equal(m3.mem.read8(0x639b), 0x7c, "spawn reloads 0x639B=0x7C (the dec (hl) does NOT hit it -- sub_0057 clobbered HL)");
   assert.equal(m3.mem.read8(0x639a), 0x00, "spawn clears the request 0x639A");
@@ -2658,13 +2658,13 @@ test("loc_0986: 0x600E==0 -> 0x600A=1; else 0x600A=3 with flipscreen per 0x6026"
   assert.equal(run(0x01, 0x00).io.flipScreen, 0, "0x6026!=1 -> flipscreen cleared");
 });
 
-test("entry_2954: rst 0x30 gate -- passes (writes 0x6218) or skips", () => {
+test("loc_2954: rst 0x30 gate -- passes (writes 0x6218) or skips", () => {
   const run = (c6227) => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.regs.ix = 0x6680;
     m.mem.write8(0x6227, c6227); // rotate count for sub_0030 (A=0x0B)
     m.mem.write8(0x6218, 0x99); // sentinel
-    entry_2954(m); return m;
+    loc_2954(m); return m;
   };
   // 1 rotation of 0x0B -> carry=bit0=1 -> gate passes -> 0x6218 = A (0 on fresh sweep).
   assert.equal(run(0x01).mem.read8(0x6218), 0x00, "gate pass -> 0x6218 written");
@@ -2672,32 +2672,32 @@ test("entry_2954: rst 0x30 gate -- passes (writes 0x6218) or skips", () => {
   assert.equal(run(0x00).mem.read8(0x6218), 0x99, "gate skip -> 0x6218 untouched");
 });
 
-test("sub_2808 dispatches via sub_286f (reaches the collision dispatch)", () => {
+test("loc_2808 dispatches via loc_286f (reaches the collision dispatch)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
-  m.mem.write8(0x6227, 0x01); // sub_286f table[1] = 0x2880 (now wired -> runs)
-  assert.doesNotThrow(() => sub_2808(m), "reaches sub_286f's dispatch (0x2880 wired)");
+  m.mem.write8(0x6227, 0x01); // loc_286f table[1] = 0x2880 (now wired -> runs)
+  assert.doesNotThrow(() => loc_2808(m), "reaches loc_286f's dispatch (0x2880 wired)");
 });
 
-test("loc_281d: addIy free-slot scan -- none found -> ret; found -> sub_286f dispatch", () => {
+test("loc_281d: addIy free-slot scan -- none found -> ret; found -> loc_286f dispatch", () => {
   // none found: bit0 of (iy+1) clear for both 0x6680/0x6690 -> scan exhausts (addIy) -> ret.
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   loc_281d(m);
   assert.equal(m.pc, 0x4d5e, "none found (addIy walked both) -> ret");
   // found at the SECOND object (0x6691) with the first (0x6681) clear -> requires
-  // addIy to walk 0x6680 -> 0x6690 correctly; then sub_286f dispatch (throws).
+  // addIy to walk 0x6680 -> 0x6690 correctly; then loc_286f dispatch (throws).
   const m2 = new Machine(ROM); m2.regs.sp = 0x6c00; m2.push16(0x4d5e);
   m2.mem.write8(0x6691, 0x01); m2.mem.write8(0x6227, 0x01);
   assert.doesNotThrow(() => loc_281d(m2), "addIy walked to the 2nd object -> found -> dispatch (0x2880 wired)");
 });
 
-test("sub_1e57: skip-capable -- normal return (true) or unwind (false, 0x600A=0x16)", () => {
+test("loc_1e57: skip-capable -- normal return (true) or unwind (false, 0x600A=0x16)", () => {
   const run = (c6290) => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00;
     m.push16(0x216a); // grandparent (caller's caller)
-    m.push16(0x1e00); // sub_1e57's own return
+    m.push16(0x1e00); // loc_1e57's own return
     m.mem.write8(0x6227, 0x04); // bit 2 set -> loc_1e80
     m.mem.write8(0x6290, c6290);
-    const r = sub_1e57(m);
+    const r = loc_1e57(m);
     return { m, r };
   };
   // 0x6290 != 0 -> loc_1e80 ret nz -> NORMAL return (true) to own-return 0x1E00.
@@ -2711,22 +2711,22 @@ test("sub_1e57: skip-capable -- normal return (true) or unwind (false, 0x600A=0x
   assert.equal(b.m.pc, 0x216a, "unwound to the caller's caller");
 });
 
-test("entry_128b: rst 0x18 gate -> advance 0x639D, set 0x639E/0x6088, re-arm 0x6009", () => {
+test("loc_128b: rst 0x18 gate -> advance 0x639D, set 0x639E/0x6088, re-arm 0x6009", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6009, 0x01); // rst 0x18 expires
   m.mem.write8(0x639d, 0x00);
-  entry_128b(m);
+  loc_128b(m);
   assert.equal(m.mem.read8(0x639d), 0x01, "0x639D state advanced");
   assert.equal(m.mem.read8(0x639e), 0x0d, "0x639E = 0x0D");
   assert.equal(m.mem.read8(0x6088), 0x03, "0x6088 = 3");
   assert.equal(m.mem.read8(0x6009), 0x08, "0x6009 re-armed to 8");
 });
 
-test("sub_21ee: decode script input to 0x6010, count down 0x63CD (or advance when 0)", () => {
+test("loc_21ee: decode script input to 0x6010, count down 0x63CD (or advance when 0)", () => {
   const run = (c63cd) => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x63cc, 0x00); m.mem.write8(0x63cd, c63cd);
-    sub_21ee(m); return m;
+    loc_21ee(m); return m;
   };
   // 0x63CD != 0 -> dec + ret; 0x6010 = the script byte at 0x21D1 (index 0).
   const m1 = run(0x03);
@@ -2736,13 +2736,13 @@ test("sub_21ee: decode script input to 0x6010, count down 0x63CD (or advance whe
   assert.equal(run(0x00).mem.read8(0x63cc), 0x01, "0x63CC index advanced 0 -> 1");
 });
 
-test("sub_216d: honors 236e miss-unwind, and on a hit reaches tail21b2 (set 0,(ix+2))", () => {
+test("loc_216d: honors 236e miss-unwind, and on a hit reaches tail21b2 (set 0,(ix+2))", () => {
   // MISS: key absent -> 236e unwinds -> 216d's body skipped, returns to its caller.
   const mM = new Machine(ROM); mM.regs.sp = 0x6c00;
   mM.push16(0x216a); mM.push16(0x4d5e); // grandparent, then 216d's own return
   mM.regs.a = 0x42; mM.regs.bc = 0x0015; // no 0x42 in the all-zero 0x6300 region -> miss
   mM.regs.ix = 0x6600; mM.mem.write8(0x6602, 0x00);
-  sub_216d(mM);
+  loc_216d(mM);
   assert.equal(mM.mem.read8(0x6602) & 0x01, 0x00, "236e miss -> tail21b2 never runs (bit0 clear)");
   // HIT reaching tail21b2: 236e matches at 0x6300 (D == M+0x15), A=1 -> continue,
   // 0x6348==0 -> straight to tail21b2 -> inc (ix+7), set 0,(ix+2).
@@ -2753,26 +2753,26 @@ test("sub_216d: honors 236e miss-unwind, and on a hit reaches tail21b2 (set 0,(i
   mH.mem.write8(0x6315, 0x77); // (M+0x15) == D -> loc_238f -> A=1
   mH.mem.write8(0x6348, 0x00); // -> jp z,0x21b2 straight to the success tail
   mH.mem.write8(0x6602, 0x00); mH.mem.write8(0x6607, 0x10);
-  sub_216d(mH);
+  loc_216d(mH);
   assert.equal(mH.mem.read8(0x6602) & 0x01, 0x01, "tail21b2: set 0,(ix+2) -- bit0 of 0x6602 set");
   assert.equal(mH.mem.read8(0x6607), 0x11, "tail21b2: inc (ix+7) -- 0x6607 0x10 -> 0x11");
 });
 
-test("sub_2591: active slot -- cull when field3+7 < 0x0E, else advance field3 by 0x63A6", () => {
+test("loc_2591: active slot -- cull when field3+7 < 0x0E, else advance field3 by 0x63A6", () => {
   // cull: field3=0x00 (+7=0x07 < 0x0E) -> clear field0/field3 + the 0x69B8[0] byte.
   const c = new Machine(ROM); c.regs.sp = 0x6c00; c.push16(0x4d5e);
   c.mem.write8(0x65a0, 0x01); c.mem.write8(0x65a3, 0x00); c.mem.write8(0x69b8, 0x55);
-  sub_2591(c);
+  loc_2591(c);
   assert.equal(c.mem.read8(0x65a0), 0x00, "field3+7 < 0x0E -> cull -> field0 cleared");
   assert.equal(c.mem.read8(0x69b8), 0x00, "cull clears the 0x69B8[0] record byte");
   // update: field3=0x20 (+7=0x27 >= 0x0E), field5 != 0x7C -> field3 += (0x63A6).
   const u = new Machine(ROM); u.regs.sp = 0x6c00; u.push16(0x4d5e);
   u.mem.write8(0x65a0, 0x01); u.mem.write8(0x65a3, 0x20); u.mem.write8(0x65a5, 0x00); u.mem.write8(0x63a6, 0x05);
-  sub_2591(u);
+  loc_2591(u);
   assert.equal(u.mem.read8(0x65a3), 0x25, "field3 0x20 += (0x63A6)=0x05 -> 0x25");
 });
 
-test("sub_24ea: rst 0x30 gate, then compact one active slot's fields into 0x69B8", () => {
+test("loc_24ea: rst 0x30 gate, then compact one active slot's fields into 0x69B8", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x02); // rotate 0x02 by 2 -> carry (bit1) -> gate passes
   m.mem.write8(0x65a0, 0x01); // slot 0 active
@@ -2780,8 +2780,8 @@ test("sub_24ea: rst 0x30 gate, then compact one active slot's fields into 0x69B8
   m.mem.write8(0x65a5, 0xcc); // field5 (!= 0x7C)
   m.mem.write8(0x65a7, 0xaa); // field7
   m.mem.write8(0x65a8, 0xbb); // field8
-  m.mem.write8(0x63a6, 0x00); // sub_2591 leaves field3 unchanged
-  sub_24ea(m);
+  m.mem.write8(0x63a6, 0x00); // loc_2591 leaves field3 unchanged
+  loc_24ea(m);
   // compact copies (ix+3,7,8,5) as 4 consecutive bytes at 0x69B8.
   assert.equal(m.mem.read8(0x69b8), 0x20, "compact copied field3");
   assert.equal(m.mem.read8(0x69b9), 0xaa, "compact copied field7");
@@ -2789,15 +2789,15 @@ test("sub_24ea: rst 0x30 gate, then compact one active slot's fields into 0x69B8
   assert.equal(m.mem.read8(0x69bb), 0xcc, "compact copied field5");
 });
 
-test("entry_2be1: A>C -> plain return (true); A<=C -> store 0x6205 + DOUBLE unwind (false)", () => {
+test("loc_2be1: A>C -> plain return (true); A<=C -> store 0x6205 + DOUBLE unwind (false)", () => {
   const run = (c620c, ix5, e, c) => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00;
     m.push16(0x3000); // R3 -- the double-skip target (great-grandparent)
     m.push16(0x2000); // R2 -- 2b9b's caller's return
-    m.push16(0x4d5e); // R1 -- entry_2be1's own return
+    m.push16(0x4d5e); // R1 -- loc_2be1's own return
     m.regs.ix = 0x6600; m.mem.write8(0x6605, ix5);
     m.mem.write8(0x620c, c620c); m.regs.e = e; m.regs.c = c;
-    const r = entry_2be1(m);
+    const r = loc_2be1(m);
     return { m, r };
   };
   // A = (0x620C) - (ix+5) + E = 0x1B > C=0x10 -> loc_2bf8 plain return.
@@ -2812,17 +2812,17 @@ test("entry_2be1: A>C -> plain return (true); A<=C -> store 0x6205 + DOUBLE unwi
   assert.equal(b.m.pc, 0x3000, "double-skip discarded R1+R2 -> pc = R3");
 });
 
-// ---- rst-0x30 gate-heads (197a cascade): sub_2207 / sub_25f2 / sub_26fa -----
+// ---- rst-0x30 gate-heads (197a cascade): loc_2207 / loc_25f2 / loc_26fa -----
 // Each is `ld a,N / rst 0x30`; the gate rotates A right mem[0x6227] times, carry -> body,
 // else pop+ret SKIP to the caller. On the coin_start tape it SKIPS (only the 3-byte head
 // runs; the body is a NON-EXECUTING frontier that throws NotImplemented). mem[0x6227]=1 ->
 // one rrca -> carry = bit0(A) = 0 for A in {0x02,0x04} -> SKIP. Bodies unwired dead code.
 // HAZARD: modelling rst 0x30 as a plain call (no skip) or inverting the gate runs the body.
 for (const [name, fn, addr, ret, bodyPc, openRot, stubbed] of [
-  ["sub_2207", sub_2207, 0x2207, 0x220a, "0x220A", 0x02, false], // body now translated (sub_2207_body)
-  ["sub_25f2", sub_25f2, 0x25f2, 0x25f5, "0x25F5", 0x02, false], // body now translated (sub_25f2_body)
-  ["sub_26fa", sub_26fa, 0x26fa, 0x26fd, "0x26FD", 0x03, false], // body @0x26FD now translated (tile/pos dispatch)
-  ["sub_2fcb", sub_2fcb, 0x2fcb, 0x2fce, "0x2FCE", 0x02, false], // body @0x2FCE now translated (two-level countdown)
+  ["loc_2207", loc_2207, 0x2207, 0x220a, "0x220A", 0x02, false], // body now translated (sub_2207_body)
+  ["loc_25f2", loc_25f2, 0x25f2, 0x25f5, "0x25F5", 0x02, false], // body now translated (sub_25f2_body)
+  ["loc_26fa", loc_26fa, 0x26fa, 0x26fd, "0x26FD", 0x03, false], // body @0x26FD now translated (tile/pos dispatch)
+  ["loc_2fcb", loc_2fcb, 0x2fcb, 0x2fce, "0x2FCE", 0x02, false], // body @0x2FCE now translated (two-level countdown)
 ]) {
   test(`${name}: rst-0x30 gate SKIPS on coin_start (mem[0x6227]=1) -> returns to caller, body not entered`, () => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00;
@@ -2841,20 +2841,20 @@ for (const [name, fn, addr, ret, bodyPc, openRot, stubbed] of [
     });
   }
 }
-test("sub_25f2: gate OPENS -> sub_25f2_body runs the 2602/262f/2679/2ad3 sub-cascade (no throw)", () => {
+test("loc_25f2: gate OPENS -> sub_25f2_body runs the 2602/262f/2679/2ad3 sub-cascade (no throw)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x199e);
   m.mem.write8(0x6227, 0x02); // opens
-  m.regs.de = 0x0010; // sub_27da-style live-in kept benign for sub_2602 path
-  assert.doesNotThrow(() => sub_25f2(m), "body translated -> sub-cascade, no 0x25F5 throw");
+  m.regs.de = 0x0010; // loc_27da-style live-in kept benign for loc_2602 path
+  assert.doesNotThrow(() => loc_25f2(m), "body translated -> sub-cascade, no 0x25F5 throw");
 });
-test("sub_2207: gate OPENS -> sub_2207_body dispatches the object update (no longer a frontier)", () => {
+test("loc_2207: gate OPENS -> sub_2207_body dispatches the object update (no longer a frontier)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x199e);
   m.mem.write8(0x6227, 0x02); // opens
   m.mem.write8(0x6280, 0x02); // odd-frame record, state 2 -> loc_2299 (simplest arm)
   m.mem.write8(0x601a, 0x01); // rra -> carry set (odd) -> keep 0x6280
-  assert.doesNotThrow(() => sub_2207(m), "body translated -> dispatches, no 0x220A throw");
+  assert.doesNotThrow(() => loc_2207(m), "body translated -> dispatches, no 0x220A throw");
 });
-test("sub_26fa: gate OPENS -> body @0x26FD runs the tile/pos dispatch (no longer a frontier)", () => {
+test("loc_26fa: gate OPENS -> body @0x26FD runs the tile/pos dispatch (no longer a frontier)", () => {
   // gate opens (A=0x04, 0x6227=3 -> 3 rrca brings bit2 into carry). Body reads
   // (0x6205); >= 0xf0 -> jp nc,0x277f (edge reset) which clears 0x6398 and 0x6200.
   // A pre-seeded 0x6398 sentinel proves the BODY executed vs the gate skipping it.
@@ -2862,31 +2862,31 @@ test("sub_26fa: gate OPENS -> body @0x26FD runs the tile/pos dispatch (no longer
   m.mem.write8(0x6227, 0x03); // opens
   m.mem.write8(0x6398, 0xaa); // sentinel -- loc_277f clears it iff the body ran
   m.mem.write8(0x6205, 0xf5); // >= 0xf0 -> jp nc,0x277f (edge-reset arm)
-  assert.doesNotThrow(() => sub_26fa(m), "body translated -> dispatches, no 0x26FD throw");
+  assert.doesNotThrow(() => loc_26fa(m), "body translated -> dispatches, no 0x26FD throw");
   assert.equal(m.mem.read8(0x6398), 0x00, "edge-reset arm ran: loc_277f cleared 0x6398");
   assert.equal(m.mem.read8(0x6200), 0x00, "loc_277f also cleared 0x6200");
   assert.equal(m.pc, 0x199e, "loc_277f ret -> back to caller");
 });
-test("sub_2fcb: gate OPENS -> body @0x2FCE decrements the 0x62b4 inner timer (no longer a frontier)", () => {
+test("loc_2fcb: gate OPENS -> body @0x2FCE decrements the 0x62b4 inner timer (no longer a frontier)", () => {
   // gate opens (A=0x0e, 0x6227=2 -> 2 rrca brings a set bit into carry). Body:
   // ld hl,0x62b4 / dec (hl) -- inner countdown; nonzero result -> ret nz (period
   // not elapsed). 0x62b4: 5 -> 4 proves the BODY ran vs the gate skipping it.
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x199e);
   m.mem.write8(0x6227, 0x02); // opens
   m.mem.write8(0x62b4, 0x05); // inner timer
-  assert.doesNotThrow(() => sub_2fcb(m), "body translated -> countdown, no 0x2FCE throw");
+  assert.doesNotThrow(() => loc_2fcb(m), "body translated -> countdown, no 0x2FCE throw");
   assert.equal(m.mem.read8(0x62b4), 0x04, "dec (hl) ran: 0x62b4 5 -> 4");
   assert.equal(m.pc, 0x199e, "period not elapsed -> ret nz -> back to caller");
 });
 
-// ---- Layer-0 batch: sub_1826 / sub_1a1e / entry_1d8a / sub_1d8f / entry_1da6 / sub_1f46 ----
+// ---- Layer-0 batch: loc_1826 / loc_1a1e / loc_1d8a / loc_1d8f / loc_1da6 / loc_1f46 ----
 // All unwired dead code (callers are the main dispatch spine entry_1ac3/1d03 region or the 0x1A0A
 // rst-0x28 table) ->. Tests pin the behaviour for.
 
-test("sub_1826: nested 5x14 fill of 0x10 walking backward by 0x25 per row (HL live-in)", () => {
+test("loc_1826: nested 5x14 fill of 0x10 walking backward by 0x25 per row (HL live-in)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   const start = 0x6400; m.regs.hl = start;
-  sub_1826(m);
+  loc_1826(m);
   // Row 0: 5 bytes at start..start+4. Row 1 starts at (start+5) - 0x25 = start - 0x20.
   for (let i = 0; i < 5; i++) assert.equal(m.mem.read8(start + i), 0x10, `row0 byte ${i}`);
   const row1 = (start + 5 - 0x25) & 0xffff;
@@ -2897,36 +2897,36 @@ test("sub_1826: nested 5x14 fill of 0x10 walking backward by 0x25 per row (HL li
   assert.equal(m.regs.hl, (start - 14 * 0x20) & 0xffff, "HL ends one full row-stride below");
 });
 
-test("sub_1a1e: no-op dispatch slot -- just ret to the 0x1A0A routine's caller", () => {
+test("loc_1a1e: no-op dispatch slot -- just ret to the 0x1A0A routine's caller", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x1234);
-  sub_1a1e(m);
+  loc_1a1e(m);
   assert.equal(m.pc, 0x1234, "ret pops the grandparent return (no frame of its own)");
   assert.equal(m.regs.sp, 0x6c00, "SP unwound by the single ret");
 });
 
-test("entry_1d8a: decrements the 4-frame animation timer at 0x620F (dec the byte, not HL)", () => {
+test("loc_1d8a: decrements the 4-frame animation timer at 0x620F (dec the byte, not HL)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x620f, 0x04);
-  entry_1d8a(m);
+  loc_1d8a(m);
   assert.equal(m.mem.read8(0x620f), 0x03, "0x620F: 4 -> 3");
   assert.equal(m.regs.hl, 0x620f, "HL points at the timer (dec (hl) is the byte)");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-test("sub_1d8f: sound trigger -- 0x6080 = 3 unconditionally", () => {
+test("loc_1d8f: sound trigger -- 0x6080 = 3 unconditionally", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6080, 0x00);
-  sub_1d8f(m);
+  loc_1d8f(m);
   assert.equal(m.mem.read8(0x6080), 0x03, "sound latch = 3");
   assert.equal(m.regs.a, 0x03);
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-test("entry_1da6: copies player(+3,+7,+8,+5) -> 0x694C..0x694F OUT OF ORDER (do not sort)", () => {
+test("loc_1da6: copies player(+3,+7,+8,+5) -> 0x694C..0x694F OUT OF ORDER (do not sort)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6203, 0xa3); m.mem.write8(0x6207, 0xa7);
   m.mem.write8(0x6208, 0xa8); m.mem.write8(0x6205, 0xa5);
-  entry_1da6(m);
+  loc_1da6(m);
   assert.equal(m.mem.read8(0x694c), 0xa3, "694C <- (0x6203)");
   assert.equal(m.mem.read8(0x694d), 0xa7, "694D <- (0x6207)");
   assert.equal(m.mem.read8(0x694e), 0xa8, "694E <- (0x6208)");
@@ -2934,18 +2934,18 @@ test("entry_1da6: copies player(+3,+7,+8,+5) -> 0x694C..0x694F OUT OF ORDER (do 
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-test("sub_1f46: 0x6221==0 -> no-op ret; else clear 8 + set 2 ones + snapshot Y", () => {
+test("loc_1f46: 0x6221==0 -> no-op ret; else clear 8 + set 2 ones + snapshot Y", () => {
   // gate closed: 0x6221 == 0 -> ret, nothing written.
   const g = new Machine(ROM); g.regs.sp = 0x6c00; g.push16(0x4d5e);
   g.mem.write8(0x6221, 0x00); g.mem.write8(0x6216, 0x55);
-  sub_1f46(g);
+  loc_1f46(g);
   assert.equal(g.mem.read8(0x6216), 0x55, "gate closed -> state untouched");
   assert.equal(g.pc, 0x4d5e, "ret z");
   // gate open: reset the player to state 1, snapshot Y.
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6221, 0x01); m.mem.write8(0x6205, 0x7a);
   m.mem.write8(0x6204, 0xff); m.mem.write8(0x6214, 0xff);
-  sub_1f46(m);
+  loc_1f46(m);
   assert.equal(m.mem.read8(0x6204), 0x00, "cleared (before the inc-a boundary)");
   assert.equal(m.mem.read8(0x6214), 0x00, "cleared (last zero before boundary)");
   assert.equal(m.mem.read8(0x6221), 0x00, "trigger cleared");
@@ -2955,22 +2955,22 @@ test("sub_1f46: 0x6221==0 -> no-op ret; else clear 8 + set 2 ones + snapshot Y",
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-// ---- sub_13ca: BCD unpack + fill + 3-byte-subtract sort (rst-0x08 caller-skip) ----
+// ---- loc_13ca: BCD unpack + fill + 3-byte-subtract sort (rst-0x08 caller-skip) ----
 // HL = 3-byte source, A = value -> 0x61C6. HAZARDS: (a) rst 0x08 SKIPS when bit0 of
 // 0x6007 set; (b) FOUR explicit rrca take the HIGH nibble (a loop miscount would swap
 // hi/lo); (c) sbc a,(hl) is a first-use of the memory form (the 3-byte borrow chain).
-test("sub_13ca: rst-0x08 caller-skip -- bit0 of 0x6007 set aborts to caller after storing 0x61C6", () => {
+test("loc_13ca: rst-0x08 caller-skip -- bit0 of 0x6007 set aborts to caller after storing 0x61C6", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6007, 0x01); // bit0 set -> sub_0008 skips (inc sp x2 / ret)
   m.mem.write8(0x61b1, 0x77); // BCD dest sentinel -- must stay untouched on abort
   m.regs.hl = 0x60b2; m.regs.a = 0x05;
-  sub_13ca(m);
+  loc_13ca(m);
   assert.equal(m.mem.read8(0x61c6), 0x05, "0x61C6 = A written BEFORE the rst 0x08");
   assert.equal(m.mem.read8(0x61b1), 0x77, "aborted before the BCD unpack -- dest untouched");
-  assert.equal(m.pc, 0x4d5e, "caller-skip returns to sub_13ca's caller");
+  assert.equal(m.pc, 0x4d5e, "caller-skip returns to loc_13ca's caller");
   assert.equal(m.regs.sp, 0x6c00, "SP unwound (rst frame discarded + ret)");
 });
-test("sub_13ca: main path -- ldir copy, BCD unpack (4 rrca = HIGH nibble), fill 0x10 + 0x3F term", () => {
+test("loc_13ca: main path -- ldir copy, BCD unpack (4 rrca = HIGH nibble), fill 0x10 + 0x3F term", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6007, 0x00); // bit0 clear -> rst 0x08 returns normally
   // distinct-nibble source so a hi/lo swap (wrong rrca count) is caught:
@@ -2978,7 +2978,7 @@ test("sub_13ca: main path -- ldir copy, BCD unpack (4 rrca = HIGH nibble), fill 
   // make the FIRST 3-byte subtract borrow (0x61A5[]=0xFFFFFF > copied) -> ret c after fill.
   m.mem.write8(0x61a5, 0xff); m.mem.write8(0x61a6, 0xff); m.mem.write8(0x61a7, 0xff);
   m.regs.hl = 0x60b2; m.regs.a = 0x01;
-  sub_13ca(m);
+  loc_13ca(m);
   assert.equal(m.mem.read8(0x61c6), 0x01, "A parameter -> 0x61C6");
   // ldir copied the 3 source bytes to 0x61C7..0x61C9:
   assert.equal(m.mem.read8(0x61c7), 0x9a, "ldir[0]");
@@ -2997,11 +2997,11 @@ test("sub_13ca: main path -- ldir copy, BCD unpack (4 rrca = HIGH nibble), fill 
   assert.equal(m.pc, 0x4d5e, "ret c (borrow) -> back to caller before the swap pass");
 });
 
-// ---- entry_1d03: player walk/climb animation stepper (shared body loc_1d11) ----
+// ---- loc_1d03: player walk/climb animation stepper (shared body loc_1d11) ----
 // timer 0x620F gates: !=0 -> loc_1d76; ==0 -> reset timer=4, delta=-2, loc_1d11.
 // loc_1d11 toggles phase 0x6222: phase-0 -> frame logic -> loc_1d3f/1d67; phase-1 -> loc_1d51.
-// All exits tail-jump to entry_1da6 (or entry_1d8a). Unwired dead code.
-test("entry_1d03: timer expired, phase-0 -> steps Y by -2, writes sprite-control, hands to 1da6", () => {
+// All exits tail-jump to loc_1da6 (or loc_1d8a). Unwired dead code.
+test("loc_1d03: timer expired, phase-0 -> steps Y by -2, writes sprite-control, hands to 1da6", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x620f, 0x00); // timer expired
   m.mem.write8(0x6205, 0x50); // player Y
@@ -3009,74 +3009,74 @@ test("entry_1d03: timer expired, phase-0 -> steps Y by -2, writes sprite-control
   m.mem.write8(0x621c, 0x00); m.mem.write8(0x621b, 0x00); // frame comparisons miss -> fall to loc_1d3f, B=3
   m.mem.write8(0x6207, 0x00); // sprite-control: and 0x80 -> 0, xor 0x80 -> 0x80, or 3 -> 0x83
   m.mem.write8(0x6203, 0xaa); m.mem.write8(0x6208, 0xbb);
-  entry_1d03(m);
+  loc_1d03(m);
   assert.equal(m.mem.read8(0x620f), 0x04, "timer reset to 4");
   assert.equal(m.mem.read8(0x6205), 0x4e, "Y += delta (-2): 0x50 -> 0x4E");
   assert.equal(m.mem.read8(0x6222), 0x00, "phase toggled 1 -> 0");
   assert.equal(m.mem.read8(0x6207), 0x83, "sprite-control = flip(bit7) | frame 3");
   assert.equal(m.mem.read8(0x6215), 0x01, "loc_1d49 marks dirty := 1");
-  assert.equal(m.mem.read8(0x694d), 0x83, "entry_1da6 copied 0x6207 -> 0x694D");
-  assert.equal(m.mem.read8(0x694f), 0x4e, "entry_1da6 copied 0x6205 -> 0x694F");
-  assert.equal(m.pc, 0x4d5e, "tail entry_1da6 rets to entry_1d03's caller");
+  assert.equal(m.mem.read8(0x694d), 0x83, "loc_1da6 copied 0x6207 -> 0x694D");
+  assert.equal(m.mem.read8(0x694f), 0x4e, "loc_1da6 copied 0x6205 -> 0x694F");
+  assert.equal(m.pc, 0x4d5e, "tail loc_1da6 rets to loc_1d03's caller");
 });
-test("entry_1d03: timer expired, phase-1 -> loc_1d51 (or 0x03 / res 2) + sound trigger", () => {
+test("loc_1d03: timer expired, phase-1 -> loc_1d51 (or 0x03 / res 2) + sound trigger", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x620f, 0x00);
   m.mem.write8(0x6205, 0x50);
   m.mem.write8(0x6222, 0x00); // xor 1 -> 1 -> phase-1 (loc_1d51)
   m.mem.write8(0x6203, 0x04); // or 0x03 -> 0x07, res 2,a -> 0x03
-  m.mem.write8(0x6224, 0x01); // xor 1 -> 0 -> call z sub_1d8f (sound)
+  m.mem.write8(0x6224, 0x01); // xor 1 -> 0 -> call z loc_1d8f (sound)
   m.mem.write8(0x6080, 0x00);
-  entry_1d03(m);
+  loc_1d03(m);
   assert.equal(m.mem.read8(0x6203), 0x03, "0x6203: (0x04|0x03) then res 2 -> 0x03");
   assert.equal(m.mem.read8(0x6224), 0x00, "0x6224 toggled 1 -> 0");
-  assert.equal(m.mem.read8(0x6080), 0x03, "sub_1d8f fired: sound latch 0x6080 = 3");
+  assert.equal(m.mem.read8(0x6080), 0x03, "loc_1d8f fired: sound latch 0x6080 = 3");
   assert.equal(m.mem.read8(0x6215), 0x01, "loc_1d49 marks dirty");
-  assert.equal(m.pc, 0x4d5e, "tail entry_1da6 rets to caller");
+  assert.equal(m.pc, 0x4d5e, "tail loc_1da6 rets to caller");
 });
-test("entry_1d03: timer running (0x620F!=0), 0x621A==0 -> loc_1d76 falls to entry_1d8a tail", () => {
+test("loc_1d03: timer running (0x620F!=0), 0x621A==0 -> loc_1d76 falls to loc_1d8a tail", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x620f, 0x03); // timer running
   m.mem.write8(0x621a, 0x00); // -> jp z 0x1d8a
-  entry_1d03(m);
-  assert.equal(m.mem.read8(0x620f), 0x02, "entry_1d8a decremented the timer 3 -> 2");
+  loc_1d03(m);
+  assert.equal(m.mem.read8(0x620f), 0x02, "loc_1d8a decremented the timer 3 -> 2");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-// ---- sub_22cb: object velocity init (mode/difficulty/RNG), faithful rst-0x28 dispatch ----
+// ---- loc_22cb: object velocity init (mode/difficulty/RNG), faithful rst-0x28 dispatch ----
 // mode (0x6348)==0 -> loc_22e1 picks A from (0x6229); else rst 0x28 indexes the INLINE table
 // at 0x22D7 by (0x6380)-1: diff 1/2 -> 0x22F6 (RNG, internal), diff 3/4 -> 0x2303, 5 -> 0x231a
 // (EXTERNAL frontier -> NotImplemented). Store: (ix+0x11)=A, (ix+0x10)=(A&1)-1. Unwired.
-test("sub_22cb: mode 0 -> loc_22e1 picks (0x6229)==1 -> A=0x01, stores odd-sign 0x00", () => {
+test("loc_22cb: mode 0 -> loc_22e1 picks (0x6229)==1 -> A=0x01, stores odd-sign 0x00", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600;
   m.mem.write8(0x6348, 0x00); // mode 0 -> loc_22e1
   m.mem.write8(0x6229, 0x01); // -> A = 0x01
-  sub_22cb(m);
+  loc_22cb(m);
   assert.equal(m.mem.read8(0x6611), 0x01, "(ix+0x11) = magnitude A = 0x01");
   assert.equal(m.mem.read8(0x6610), 0x00, "(ix+0x10) = (A&1)-1 = 0x00 (odd)");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
-test("sub_22cb: mode!=0, difficulty 1 -> rst-0x28 table[0]=0x22F6 (RNG), even-sign 0xFF", () => {
+test("loc_22cb: mode!=0, difficulty 1 -> rst-0x28 table[0]=0x22F6 (RNG), even-sign 0xFF", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600;
   m.mem.write8(0x6348, 0x01); // mode != 0
   m.mem.write8(0x6380, 0x01); // difficulty 1 -> index 0 -> 0x22F6
   m.mem.write8(0x6018, 0x04); // RNG value
-  sub_22cb(m);
+  loc_22cb(m);
   assert.equal(m.mem.read8(0x6611), 0x04, "(ix+0x11) = RNG (0x6018) = 0x04");
   assert.equal(m.mem.read8(0x6610), 0xff, "(ix+0x10) = (0x04&1)-1 = 0xFF (even)");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
-test("sub_22cb: difficulty 3/5 -> rst-0x28 dispatches to loc_2303/loc_231a (now integrated)", () => {
+test("loc_22cb: difficulty 3/5 -> rst-0x28 dispatches to loc_2303/loc_231a (now integrated)", () => {
   const d3 = new Machine(ROM); d3.regs.sp = 0x6c00; d3.push16(0x4d5e);
   d3.regs.ix = 0x6600; d3.mem.write8(0x6348, 0x01); d3.mem.write8(0x6380, 0x03); // index 2 -> 0x2303
   d3.mem.write8(0x6018, 0x55);
-  sub_22cb(d3);
+  loc_22cb(d3);
   assert.equal(d3.mem.read8(0x6611), 0x55, "diff 3 -> loc_2303 wrote (ix+0x11)=frame");
   const d5 = new Machine(ROM); d5.regs.sp = 0x6c00; d5.push16(0x4d5e);
   d5.regs.ix = 0x6600; d5.mem.write8(0x6348, 0x01); d5.mem.write8(0x6380, 0x05); // index 4 -> 0x231a
-  sub_22cb(d5);
+  loc_22cb(d5);
   assert.equal(d5.pc, 0x4d5e, "diff 5 -> loc_231a runs + rets");
 });
 
@@ -3104,30 +3104,30 @@ test("loc_12f2: counter == 0 -> render path ends with 0x6009=0xC0, 0x600A=0x10",
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6228, 0x01); // dec -> 0x00 -> render path
   m.mem.write8(0x600f, 0x00); // jr z -> skip the extra 309F enqueue
-  m.mem.write8(0x6007, 0x00); // sub_13ca rst-0x08 does not skip
+  m.mem.write8(0x6007, 0x00); // loc_13ca rst-0x08 does not skip
   loc_12f2(m);
   assert.equal(m.mem.read8(0x6009), 0xc0, "0x6009 armed to 0xC0");
   assert.equal(m.mem.read8(0x600a), 0x10, "0x600A = 0x10");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-// ---- sub_2407: fixed-point subtract -- spread packed nibbles then sbc hl,bc ----
-test("sub_2407: (ix+0x14)=0x35 -> HL=0x0350, minus BC=0x0010 -> 0x0340 (bare sbcHl)", () => {
+// ---- loc_2407: fixed-point subtract -- spread packed nibbles then sbc hl,bc ----
+test("loc_2407: (ix+0x14)=0x35 -> HL=0x0350, minus BC=0x0010 -> 0x0340 (bare sbcHl)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600;
   m.mem.write8(0x6614, 0x35); // packed 0xHL: H=3, L=5 -> HL = (3<<8)|(5<<4) = 0x0350
   m.mem.write8(0x6612, 0x00); // B
   m.mem.write8(0x6613, 0x10); // C -> BC = 0x0010
-  sub_2407(m);
+  loc_2407(m);
   assert.equal(m.regs.hl, 0x0340, "HL = 0x0350 - 0x0010 - carry(0) = 0x0340");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
-test("sub_2407: nibble spread is exact -- (ix+0x14)=0x9C -> H=9, L<<4=0xC0 -> HL=0x09C0", () => {
+test("loc_2407: nibble spread is exact -- (ix+0x14)=0x9C -> H=9, L<<4=0xC0 -> HL=0x09C0", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600;
   m.mem.write8(0x6614, 0x9c); // H=9, L=C -> HL = 0x0900 | 0x00C0 = 0x09C0
   m.mem.write8(0x6612, 0x00); m.mem.write8(0x6613, 0x00); // BC = 0
-  sub_2407(m);
+  loc_2407(m);
   assert.equal(m.regs.hl, 0x09c0, "distinct nibbles: H high-byte, L<<4 low-byte");
 });
 
@@ -3170,13 +3170,13 @@ test("loc_08f8: A==0x0C (neither arm) -> ret, changes NOTHING", () => {
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-// ---- sub_241f: position gate -- 5 fall-through conditional rets, (D,E) is the answer ----
-test("sub_241f: (D,E) pair by position -- default (1,0), far-right (0,1), blocked (0,0)", () => {
+// ---- loc_241f: position gate -- 5 fall-through conditional rets, (D,E) is the answer ----
+test("loc_241f: (D,E) pair by position -- default (1,0), far-right (0,1), blocked (0,0)", () => {
   const de = ({ x = 0x50, x2 = null, y = 0x40, p6227 = 0x01 } = {}) => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6203, x); m.mem.write8(0x6205, y); m.mem.write8(0x6227, p6227);
-    // sub_241f re-reads 0x6203 at 0x2439; if x2 given, the routine sees the same x
-    sub_241f(m);
+    // loc_241f re-reads 0x6203 at 0x2439; if x2 given, the routine sees the same x
+    loc_241f(m);
     return [m.regs.d, m.regs.e];
   };
   assert.deepEqual(de({ x: 0x10 }), [1, 0], "X < 0x16 -> (1,0) default (ret c)");
@@ -3187,31 +3187,31 @@ test("sub_241f: (D,E) pair by position -- default (1,0), far-right (0,1), blocke
   assert.deepEqual(de({ x: 0x50, y: 0x40 }), [1, 0], "in-band -> (1,0) (inc d at the end)");
 });
 
-// ---- entry_1a07: rst-0x28 state machine (faithful body); dispatches (0x6386) 0..3 ----
-test("entry_1a07: state 1 (INIT) -> clear 0x6387, advance 0x6386 to 2", () => {
+// ---- loc_1a07: rst-0x28 state machine (faithful body); dispatches (0x6386) 0..3 ----
+test("loc_1a07: state 1 (INIT) -> clear 0x6387, advance 0x6386 to 2", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6386, 0x01); m.mem.write8(0x6387, 0xaa);
-  entry_1a07(m);
+  loc_1a07(m);
   assert.equal(m.mem.read8(0x6387), 0x00, "counter cleared");
   assert.equal(m.mem.read8(0x6386), 0x02, "state advanced 1 -> 2");
   assert.equal(m.pc, 0x4d5e, "handler ret -> caller");
 });
-test("entry_1a07: state 2 (DELAY) -- countdown 0x6387; at 0 advance to 3, else stay", () => {
+test("loc_1a07: state 2 (DELAY) -- countdown 0x6387; at 0 advance to 3, else stay", () => {
   const at1 = new Machine(ROM); at1.regs.sp = 0x6c00; at1.push16(0x4d5e);
   at1.mem.write8(0x6386, 0x02); at1.mem.write8(0x6387, 0x01);
-  entry_1a07(at1);
+  loc_1a07(at1);
   assert.equal(at1.mem.read8(0x6387), 0x00, "counter 1 -> 0");
   assert.equal(at1.mem.read8(0x6386), 0x03, "state advanced 2 -> 3");
   const at5 = new Machine(ROM); at5.regs.sp = 0x6c00; at5.push16(0x4d5e);
   at5.mem.write8(0x6386, 0x02); at5.mem.write8(0x6387, 0x05);
-  entry_1a07(at5);
+  loc_1a07(at5);
   assert.equal(at5.mem.read8(0x6387), 0x04, "counter 5 -> 4");
   assert.equal(at5.mem.read8(0x6386), 0x02, "state stays 2 (ret nz)");
 });
-test("entry_1a07: state 3 (WAIT) -- (0x6216)!=0 stays; ==0 runs the 0x19D2 spine tail", () => {
+test("loc_1a07: state 3 (WAIT) -- (0x6216)!=0 stays; ==0 runs the 0x19D2 spine tail", () => {
   const stay = new Machine(ROM); stay.regs.sp = 0x6c00; stay.push16(0x4d5e);
   stay.mem.write8(0x6386, 0x03); stay.mem.write8(0x6216, 0x01);
-  entry_1a07(stay);
+  loc_1a07(stay);
   assert.equal(stay.mem.read8(0x6386), 0x03, "stays in state 3 while (0x6216) != 0");
   assert.equal(stay.pc, 0x4d5e, "ret nz -> back to caller (loc_197a)");
   // (0x6216)==0: loc_1a2a's hidden exit pops loc_197a's 0x19BF continuation and jumps
@@ -3223,41 +3223,41 @@ test("entry_1a07: state 3 (WAIT) -- (0x6216)!=0 stays; ==0 runs the 0x19D2 spine
   exit.push16(0x19bf); // loc_197a's 0x19BF continuation -- DISCARDED by the hidden exit
   exit.mem.write8(0x6386, 0x03); exit.mem.write8(0x6216, 0x00);
   exit.mem.write8(0x600a, 0x00);
-  entry_1a07(exit);
+  loc_1a07(exit);
   assert.equal(exit.mem.read8(0x600a), 0x01, "tail_19d2 re-armed: inc (0x600a) 0 -> 1");
   assert.equal(exit.mem.read8(0x6009), 0x40, "tail_19d2 re-armed the rst-0x18 counter (0x6009 = 0x40)");
   assert.equal(exit.pc, 0x4d5e, "hidden exit discarded 0x19BF; tail_19d2 ret -> loc_197a's caller");
 });
-test("entry_1a07: state 0 -> no-op (sub_1a1e ret); state >=4 -> wild jp 0x0000 frontier", () => {
+test("loc_1a07: state 0 -> no-op (loc_1a1e ret); state >=4 -> wild jp 0x0000 frontier", () => {
   const s0 = new Machine(ROM); s0.regs.sp = 0x6c00; s0.push16(0x4d5e);
   s0.mem.write8(0x6386, 0x00);
-  entry_1a07(s0);
+  loc_1a07(s0);
   assert.equal(s0.pc, 0x4d5e, "state 0 = no-op ret to caller");
   const s4 = new Machine(ROM); s4.regs.sp = 0x6c00; s4.push16(0x4d5e);
   s4.mem.write8(0x6386, 0x04);
-  assert.throws(() => entry_1a07(s4), /0x0000/, "state 4 -> table[4]=0x0000 wild frontier");
+  assert.throws(() => loc_1a07(s4), /0x0000/, "state 4 -> table[4]=0x0000 wild frontier");
 });
 
-// ---- sub_1a33: rst-0x30 position trigger; hit paths are external frontiers ----
-test("sub_1a33: rst-0x30 gate skips (mem[0x6227]=1) -> ret, no frontier hit", () => {
+// ---- loc_1a33: rst-0x30 position trigger; hit paths are external frontiers ----
+test("loc_1a33: rst-0x30 gate skips (mem[0x6227]=1) -> ret, no frontier hit", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x199e);
   m.mem.write8(0x6227, 0x01); // one rrca of 0x08 -> carry clear -> skip
-  assert.doesNotThrow(() => sub_1a33(m));
+  assert.doesNotThrow(() => loc_1a33(m));
   assert.equal(m.pc, 0x199e, "caller-skip returns to caller");
 });
-test("sub_1a33: gate open, no position hit -> plain ret", () => {
+test("loc_1a33: gate open, no position hit -> plain ret", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x04); // 4 rrca of 0x08 -> carry set -> body runs
   m.mem.write8(0x6203, 0x00); // X != 0x4B/0xB3
   m.mem.write8(0x6291, 0x05); // (0x6291)-1 != 0
-  assert.doesNotThrow(() => sub_1a33(m));
+  assert.doesNotThrow(() => loc_1a33(m));
   assert.equal(m.pc, 0x4d5e, "no hit -> ret to caller");
 });
-test("sub_1a33: gate open, X==0x4B -> arm the pickup ((0x6291)=1)", () => {
+test("loc_1a33: gate open, X==0x4B -> arm the pickup ((0x6291)=1)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x04); m.mem.write8(0x6203, 0x4b);
   m.mem.write8(0x6291, 0x00);
-  sub_1a33(m);
+  loc_1a33(m);
   assert.equal(m.mem.read8(0x6291), 0x01, "edge X -> arm (0x6291=1)");
 });
 test("loc_16a3 / loc_16bb: L2 board-load handlers -- advance 0x6388, run without error", () => {
@@ -3270,74 +3270,74 @@ test("loc_16a3 / loc_16bb: L2 board-load handlers -- advance 0x6388, run without
   loc_16bb(b);
   assert.equal(b.mem.read8(0x6388), 0x03, "16bb reinit path advances selector");
 });
-test("sub_09d6 / sub_09fe / sub_0a1b: level-setup routines run + set 0x600A", () => {
+test("loc_09d6 / loc_09fe / loc_0a1b: level-setup routines run + set 0x600A", () => {
   const a = new Machine(ROM); a.regs.sp = 0x6c00; a.push16(0x4d5e);
-  sub_09d6(a);
-  assert.equal(a.mem.read8(0x74e0), 0x02, "sub_09d6 -> shared sub_09ee tail (0x74E0=2)");
+  loc_09d6(a);
+  assert.equal(a.mem.read8(0x74e0), 0x02, "loc_09d6 -> shared sub_09ee tail (0x74E0=2)");
   const b = new Machine(ROM); b.regs.sp = 0x6c00; b.push16(0x4d5e);
   b.mem.write16(0x622a, 0x3a73);
-  sub_09fe(b);
+  loc_09fe(b);
   assert.equal(b.mem.read8(0x6009), 0x78);
   assert.equal(b.mem.read8(0x600a), 0x04);
   const c = new Machine(ROM); c.regs.sp = 0x6c00; c.push16(0x4d5e);
-  sub_0a1b(c);
+  loc_0a1b(c);
   assert.equal(c.mem.read8(0x600a), 0x05);
 });
 
-// ---- entry_03fb: attract/colour-cycle driver (flattened 15-block routine) ----
-// (6227)!=2/4 main path: frame counter 0x6390 ++, colour writes via sub_0514, 3 ret exits in
+// ---- loc_03fb: attract/colour-cycle driver (flattened 15-block routine) ----
+// (6227)!=2/4 main path: frame counter 0x6390 ++, colour writes via loc_0514, 3 ret exits in
 // loc_04ac gated by bit6/low3 of C (=counter). Unwired dead code (caller is held loc_197a).
-test("entry_03fb: main path advances frame counter 0x6390 and returns (EXIT-1 ret z)", () => {
+test("loc_03fb: main path advances frame counter 0x6390 and returns (EXIT-1 ret z)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x00); // != 2 (skip cold arm), != 4 (skip blink block)
   m.mem.write8(0x6391, 0x01); // frame flag set -> loc_0426
   m.mem.write8(0x6390, 0x00); // counter -> inc to 0x01 (bit6 clear -> ret z at 0x04B1)
   m.mem.write8(0x6393, 0x01); // != 0 -> loc_0486 (skips the 0x004E table copy)
-  entry_03fb(m);
+  loc_03fb(m);
   assert.equal(m.mem.read8(0x6390), 0x01, "frame counter 0x6390: 0 -> 1");
   assert.equal(m.pc, 0x4d5e, "reaches loc_04ac EXIT-1 (ret z, bit6(C=1) clear)");
 });
-test("entry_03fb: counter hits 0x80 -> loc_0464 resets 0x6390 and 0x6391 to 0", () => {
+test("loc_03fb: counter hits 0x80 -> loc_0464 resets 0x6390 and 0x6391 to 0", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x00);
   m.mem.write8(0x6391, 0x01);
   m.mem.write8(0x6390, 0x7f); // inc -> 0x80 -> jp z loc_0464 (reset)
   m.mem.write8(0x6393, 0x01); // != 0 -> skip the 0x004E copy in loc_0464
-  entry_03fb(m);
+  loc_03fb(m);
   assert.equal(m.mem.read8(0x6390), 0x00, "loc_0464 reset the counter to 0");
   assert.equal(m.mem.read8(0x6391), 0x00, "loc_0464 reset the frame flag to 0");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
-test("entry_03fb: EXIT-3 blink flip -- C bit6 set, low3==0 -> (0x6905) ^= 0x03", () => {
+test("loc_03fb: EXIT-3 blink flip -- C bit6 set, low3==0 -> (0x6905) ^= 0x03", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x00);
   m.mem.write8(0x6391, 0x01);
   m.mem.write8(0x6390, 0x3f); // inc -> 0x40 (bit6 set, low3==0) -> EXIT-3
   m.mem.write8(0x6393, 0x01);
   m.mem.write8(0x6905, 0x00); // flipped by xor 0x03 -> 0x03
-  entry_03fb(m);
+  loc_03fb(m);
   assert.equal(m.mem.read8(0x6390), 0x40, "counter 0x3F -> 0x40");
   assert.equal(m.mem.read8(0x6905), 0x03, "loc_04ac EXIT-3: 0x6905 ^= 0x03 (blink flip)");
   assert.equal(m.pc, 0x4d5e, "ret to caller");
 });
 
-// ---- sub_2a85: gated tile probe (0x198F cascade, sub_2a2f sibling) ----
+// ---- loc_2a85: gated tile probe (0x198F cascade, loc_2a2f sibling) ----
 // 3 gates (0x6215/0x6216 ret nz, 0x6398==1 ret z), then probe tilemap at (0x6203-3, 0x6205+0x0C)
-// via sub_2ff0. Executing exit = ret 0x2AB3 (tile>=0xB0 & low-nibble<8); else 0x2AB4 frontier.
-test("sub_2a85: gate 1 (0x6215 != 0) -> immediate ret nz", () => {
+// via loc_2ff0. Executing exit = ret 0x2AB3 (tile>=0xB0 & low-nibble<8); else 0x2AB4 frontier.
+test("loc_2a85: gate 1 (0x6215 != 0) -> immediate ret nz", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6215, 0x01);
-  sub_2a85(m);
+  loc_2a85(m);
   assert.equal(m.pc, 0x4d5e, "ret nz -- gate 1");
 });
-test("sub_2a85: gate 3 (0x6398 == 1) -> ret z", () => {
+test("loc_2a85: gate 3 (0x6398 == 1) -> ret z", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6215, 0x00); m.mem.write8(0x6216, 0x00); m.mem.write8(0x6398, 0x01);
-  sub_2a85(m);
+  loc_2a85(m);
   assert.equal(m.pc, 0x4d5e, "ret z -- gate 3");
 });
-test("sub_2a85: gates pass, tile probe -- solid tile -> ret; slope tile -> loc_2ab4 sets 0x6221", () => {
-  // position (0x6203=0x20 -> H=0x1D, 0x6205=0x30 -> L=0x3C); sub_2ff0 maps to cell 0x7787.
+test("loc_2a85: gates pass, tile probe -- solid tile -> ret; slope tile -> loc_2ab4 sets 0x6221", () => {
+  // position (0x6203=0x20 -> H=0x1D, 0x6205=0x30 -> L=0x3C); loc_2ff0 maps to cell 0x7787.
   // Saved-position high D=0x1D, so loc_2ab4's `and 0x07` != 0 -> it probes one row up
   // (0x7787-0x20=0x7767, empty=0x00 < 0xB0) -> entry_2acd sets slope flag 0x6221=1.
   const setup = (tile) => {
@@ -3348,15 +3348,15 @@ test("sub_2a85: gates pass, tile probe -- solid tile -> ret; slope tile -> loc_2
     return m;
   };
   const exec = setup(0xb0); // >= 0xB0, low nibble 0 < 8 -> solid: executing ret 0x2AB3
-  sub_2a85(exec);
+  loc_2a85(exec);
   assert.equal(exec.pc, 0x4d5e, "tile 0xB0 -> executing ret (solid ground)");
   assert.equal(exec.mem.read8(0x6221), 0x00, "solid tile -> loc_2ab4 not entered -> slope flag untouched");
   const slopeLow = setup(0x05); // tile < 0xB0 -> jp c -> loc_2ab4
-  sub_2a85(slopeLow);
+  loc_2a85(slopeLow);
   assert.equal(slopeLow.mem.read8(0x6221), 0x01, "tile < 0xB0 -> loc_2ab4 -> entry_2acd sets slope flag");
   assert.equal(slopeLow.pc, 0x4d5e, "loc_2ab4/entry_2acd ret -> caller");
   const slopeHigh = setup(0xb8); // >= 0xB0 but low nibble 8 -> jp nc -> loc_2ab4
-  sub_2a85(slopeHigh);
+  loc_2a85(slopeHigh);
   assert.equal(slopeHigh.mem.read8(0x6221), 0x01, "tile 0xB8 (low nibble 8) -> loc_2ab4 -> slope flag set");
   assert.equal(slopeHigh.pc, 0x4d5e, "loc_2ab4/entry_2acd ret -> caller");
 });
@@ -3409,66 +3409,66 @@ test("loc_2d15: 0x7F terminator -> loc_2d8c reinit (ptr:=0x39C3, ix+0:=1, ix+f:=
   assert.equal(m.pc, 0x4d5e, "ret (reinit exit 0x2DDA)");
 });
 
-// ---- 2c-cluster chain: entry_2cb8 -> entry_2ce6 -> entry_2cf6 -> loc_2d15 ----
-// entry_2cb8: free-slot claim, (0x62AC)=0x6980+(10-B)*4, (0x62AA)=IX, then flows down.
-// entry_2ce6: (hl)>=4 -> entry_2cf6 else clear 0x69A8+(hl)*4. entry_2cf6: ix+7/8/15 init by
-// (0x6382) bit7. All UNWIRED (entry_2c8f's jp nc,0x2CB8 is still a stub -> wiring).
-test("entry_2cb8: claims a free slot -- (0x62AA)=IX, (0x62AC)=0x6980+(10-B)*4, then chains", () => {
+// ---- 2c-cluster chain: loc_2cb8 -> loc_2ce6 -> loc_2cf6 -> loc_2d15 ----
+// loc_2cb8: free-slot claim, (0x62AC)=0x6980+(10-B)*4, (0x62AA)=IX, then flows down.
+// loc_2ce6: (hl)>=4 -> loc_2cf6 else clear 0x69A8+(hl)*4. loc_2cf6: ix+7/8/15 init by
+// (0x6382) bit7. All UNWIRED (loc_2c8f's jp nc,0x2CB8 is still a stub -> wiring).
+test("loc_2cb8: claims a free slot -- (0x62AA)=IX, (0x62AC)=0x6980+(10-B)*4, then chains", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600; m.regs.b = 0x02; m.regs.hl = 0x6a00;
-  m.mem.write8(0x62b1, 0x05); // dec -> 4 (!=0) -> jp nz entry_2ce6
-  m.mem.write8(0x6a00, 0x05); // entry_2ce6 sees (hl)>=4 -> entry_2cf6
-  m.mem.write8(0x6382, 0x00); // entry_2cf6: bit7 clear -> keep defaults
+  m.mem.write8(0x62b1, 0x05); // dec -> 4 (!=0) -> jp nz loc_2ce6
+  m.mem.write8(0x6a00, 0x05); // loc_2ce6 sees (hl)>=4 -> loc_2cf6
+  m.mem.write8(0x6382, 0x00); // loc_2cf6: bit7 clear -> keep defaults
   m.mem.write8(0x62af, 0x05); // loc_2d15 frame gate: dec -> 4, ret nz (stop the chain)
-  entry_2cb8(m);
+  loc_2cb8(m);
   assert.equal(m.mem.read16(0x62aa), 0x6600, "(0x62AA) = IX");
   assert.equal(m.mem.read16(0x62ac), 0x69a0, "(0x62AC) = 0x6980 + (10-2)*4 = 0x69A0");
   assert.equal(m.mem.read8(0x6600), 0x02, "(ix+0x00) = 2");
   assert.equal(m.mem.read8(0x6393), 0x01, "(0x6393) = 1");
   assert.equal(m.mem.read8(0x62b1), 0x04, "(0x62B1): 5 -> 4");
-  assert.equal(m.mem.read8(0x6607), 0x15, "entry_2cf6 default (ix+0x07) = 0x15 (bit7 clear)");
+  assert.equal(m.mem.read8(0x6607), 0x15, "loc_2cf6 default (ix+0x07) = 0x15 (bit7 clear)");
   assert.equal(m.mem.read8(0x62af), 0x04, "loc_2d15 frame gate stopped the chain");
   assert.equal(m.pc, 0x4d5e, "ret nz from loc_2d15");
 });
-test("entry_2ce6: (hl) < 4 clears 0x69A8+(hl)*4", () => {
+test("loc_2ce6: (hl) < 4 clears 0x69A8+(hl)*4", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600; m.regs.hl = 0x6a00;
   m.mem.write8(0x6a00, 0x02); // (hl)=2 < 4 -> clear 0x69A8 + 2*4 = 0x69B0
   m.mem.write8(0x69b0, 0xff); // sentinel to be cleared
   m.mem.write8(0x6382, 0x00);
   m.mem.write8(0x62af, 0x05); // stop at loc_2d15
-  entry_2ce6(m);
+  loc_2ce6(m);
   assert.equal(m.mem.read8(0x69b0), 0x00, "0x69A8 + (hl)*4 = 0x69B0 cleared");
   assert.equal(m.pc, 0x4d5e, "chain ret nz from loc_2d15");
 });
-test("entry_2cf6: (0x6382) bit7 set -> overwrite ix+7/8/15 with (0x19,0x0C,0x01)", () => {
+test("loc_2cf6: (0x6382) bit7 set -> overwrite ix+7/8/15 with (0x19,0x0C,0x01)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.ix = 0x6600;
   m.mem.write8(0x6382, 0x80); // bit7 set -> rlca carry -> the overwrite path
   m.mem.write8(0x62af, 0x05); // stop at loc_2d15
-  entry_2cf6(m);
+  loc_2cf6(m);
   assert.equal(m.mem.read8(0x6607), 0x19, "(ix+0x07) = 0x19 (bit7 set)");
   assert.equal(m.mem.read8(0x6608), 0x0c, "(ix+0x08) = 0x0C");
   assert.equal(m.mem.read8(0x6615), 0x01, "(ix+0x15) = 0x01");
   assert.equal(m.pc, 0x4d5e, "chain ret nz from loc_2d15");
 });
 
-// ---- entry_2b29 / entry_2b1c: player-vs-tilemap collision probe (caller-skip) ----
-// entry_2b29 calls entry_2b9b (tile classifier via sub_2ff0). tile < 0xB0 -> reject (A=0).
+// ---- loc_2b29 / loc_2b1c: player-vs-tilemap collision probe (caller-skip) ----
+// loc_2b29 calls loc_2b9b (tile classifier via loc_2ff0). tile < 0xB0 -> reject (A=0).
 // (0x6227)==1 arm: reject -> pop-hl/ret SKIP (return false). (0x6227)!=1 arm: two rejecting
-// probes -> 0x2B70 ret z NORMAL (return true). entry_2b1c: `if(!entry_2b29) return` mirrors it.
-test("entry_2b29: (0x6227)==1, entry_2b9b rejects -> pop-hl/ret caller-skip (returns false)", () => {
+// probes -> 0x2B70 ret z NORMAL (return true). loc_2b1c: `if(!loc_2b29) return` mirrors it.
+test("loc_2b29: (0x6227)==1, loc_2b9b rejects -> pop-hl/ret caller-skip (returns false)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00;
   m.push16(0x4d5e); // R2 -- 2b29's caller's caller (the skip target)
   m.push16(0x2b23); // R1 -- 2b29's own return (discarded by the skip's pop hl)
   m.mem.write8(0x6227, 0x01); // ==1 arm
   m.mem.write8(0x6203, 0x20); m.mem.write8(0x6205, 0x30); // probe (X=0x20, Y+7=0x37) -> cell 0x7766
-  m.mem.write8(0x7766, 0x50); // tile < 0xB0 -> entry_2b9b rejects (A=0)
-  const r = entry_2b29(m);
+  m.mem.write8(0x7766, 0x50); // tile < 0xB0 -> loc_2b9b rejects (A=0)
+  const r = loc_2b29(m);
   assert.equal(r, false, "reject -> jp z 0x2B51 -> pop hl/ret SKIP");
   assert.equal(m.pc, 0x4d5e, "skip unwound past 2b29's caller to R2");
 });
-test("entry_2b29: (0x6227)!=1, both probes reject -> 0x2B70 ret z NORMAL (returns true)", () => {
+test("loc_2b29: (0x6227)!=1, both probes reject -> 0x2B70 ret z NORMAL (returns true)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00;
   m.push16(0x4d5e); // R2
   m.push16(0x2b23); // R1 -- 2b29's return (popped by the normal ret z)
@@ -3476,32 +3476,32 @@ test("entry_2b29: (0x6227)!=1, both probes reject -> 0x2B70 ret z NORMAL (return
   m.mem.write8(0x6203, 0x20); m.mem.write8(0x6205, 0x30);
   m.mem.write8(0x7786, 0x50); // first probe (X-3=0x1D, 0x37) -> cell 0x7786: reject
   m.mem.write8(0x7766, 0x50); // second probe (X+4=0x24, 0x37) -> cell 0x7766: reject
-  const r = entry_2b29(m);
+  const r = loc_2b29(m);
   assert.equal(r, true, "second reject -> and a -> Z -> ret z (normal)");
   assert.equal(m.pc, 0x2b23, "normal ret pops R1 (2b29's return)");
 });
-test("entry_2b1c: normal entry_2b29 -> calls sub_29af, B:=0, ret to caller", () => {
+test("loc_2b1c: normal loc_2b29 -> calls loc_29af, B:=0, ret to caller", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00;
-  m.push16(0x4d5e); // entry_2b1c's caller
+  m.push16(0x4d5e); // loc_2b1c's caller
   m.mem.write8(0x6227, 0x02);
   m.mem.write8(0x6203, 0x20); m.mem.write8(0x6205, 0x30);
   m.mem.write8(0x7786, 0x50); m.mem.write8(0x7766, 0x50); // both probes reject -> 2b29 normal
-  entry_2b1c(m);
+  loc_2b1c(m);
   assert.equal(m.regs.b, 0x00, "xor a / ld b,a -> B = 0 (only reached on the normal path)");
-  assert.equal(m.pc, 0x4d5e, "ret to entry_2b1c's caller");
+  assert.equal(m.pc, 0x4d5e, "ret to loc_2b1c's caller");
   assert.equal(m.regs.ix, 0x6200, "IX was set to 0x6200");
 });
 
-// ---- sub_19da: 3-entry table search (stride 4) over 0x6A0C; match -> 0x19ED frontier ----
-test("sub_19da: no match -> ret after scanning 3 entries (stride 4)", () => {
+// ---- loc_19da: 3-entry table search (stride 4) over 0x6A0C; match -> 0x19ED frontier ----
+test("loc_19da: no match -> ret after scanning 3 entries (stride 4)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6203, 0x99); // X -- not in the table
   m.mem.write8(0x6a0c, 0x11); m.mem.write8(0x6a10, 0x22); m.mem.write8(0x6a14, 0x33);
-  sub_19da(m);
+  loc_19da(m);
   assert.equal(m.pc, 0x4d5e, "no match -> ret");
   assert.equal(m.regs.l, 0x0c + 0x0c, "HL walked 3*4 = 0x0C past 0x6A0C (L = 0x18)");
 });
-test("sub_19da: X matches table[1] -> entry_19ed registers the hit (0x19ED translated)", () => {
+test("loc_19da: X matches table[1] -> entry_19ed registers the hit (0x19ED translated)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6203, 0x22); // X = table[1] -> match on the 2nd entry, HL = slot 0x6A10
   m.mem.write8(0x6a0c, 0x11); m.mem.write8(0x6a10, 0x22); m.mem.write8(0x6a14, 0x33);
@@ -3509,25 +3509,25 @@ test("sub_19da: X matches table[1] -> entry_19ed registers the hit (0x19ED trans
   // (slot+1) at 0x6A11 clear -> eligible -> register the hit.
   m.mem.write8(0x6205, 0x55); m.mem.write8(0x6a13, 0x55); // Y == (slot+3)
   m.mem.write8(0x6a11, 0x00); // bit 3 clear -> eligible
-  sub_19da(m);
+  loc_19da(m);
   assert.equal(m.mem.read8(0x6340), 0x01, "hit registered: (0x6340) := 1");
   assert.equal(m.mem.read8(0x6342), 0x00, "(0x6342) := 0");
   assert.equal(m.mem.read8(0x6343), 0x10, "(0x6343) := matched slot ptr low byte (0x6A10)");
   assert.equal(m.mem.read8(0x6344), 0x6a, "(0x6343) := matched slot ptr high byte (0x6A10)");
-  assert.equal(m.pc, 0x4d5e, "entry_19ed ret -> sub_19da's caller (tail jp)");
+  assert.equal(m.pc, 0x4d5e, "entry_19ed ret -> loc_19da's caller (tail jp)");
 });
 
-// ---- entry_2e04: per-object actor/animation updater (10-object scan, rst-0x30/0x10 gated) ----
+// ---- loc_2e04: per-object actor/animation updater (10-object scan, rst-0x30/0x10 gated) ----
 // gates: sub_0030 (A=0x04 rotated mem[0x6227] times) + sub_0010 (bit0 of mem[0x6200]). Then scan
 // 10 objects IX=0x6500 stride 0x10 / IY=0x6980 stride 0x04. Active object: 16-frame toggle (iy+1)^=7,
 // position (ix+3)+=2, string walk, accumulate (ix+5), mirror to IY. Unwired dead code.
-test("entry_2e04: rst-0x30 gate closed -> ret immediately (no object scan)", () => {
+test("loc_2e04: rst-0x30 gate closed -> ret immediately (no object scan)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x01); // A=0x04, 1 rrca -> carry clear -> sub_0030 skips
-  entry_2e04(m);
+  loc_2e04(m);
   assert.equal(m.pc, 0x4d5e, "gate skip -> return to caller");
 });
-test("entry_2e04: active object 0 -- toggle, position+=2, accumulate, mirror to IY", () => {
+test("loc_2e04: active object 0 -- toggle, position+=2, accumulate, mirror to IY", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x03); // A=0x04, 3 rrca -> carry set -> sub_0030 opens
   m.mem.write8(0x6200, 0x01); // bit0 set -> sub_0010 opens
@@ -3540,7 +3540,7 @@ test("entry_2e04: active object 0 -- toggle, position+=2, accumulate, mirror to 
   m.mem.write8(0x6a00, 0x10); // char (not 0x7F) -> accumulate 0x10
   m.mem.write8(0x601a, 0x00); // (0x601A & 0x0F)==0 -> the 16-frame toggle fires
   m.mem.write8(0x6981, 0x00); // (iy+0x01) -> toggled ^= 0x07 = 0x07
-  entry_2e04(m);
+  loc_2e04(m);
   assert.equal(m.mem.read8(0x6981), 0x07, "16-frame toggle (iy+0x01) ^= 0x07");
   assert.equal(m.mem.read8(0x6503), 0x12, "(ix+0x03) position += 2");
   assert.equal(m.mem.read8(0x6505), 0x30, "(ix+0x05) += char: 0x20 + 0x10 = 0x30");
@@ -3550,27 +3550,27 @@ test("entry_2e04: active object 0 -- toggle, position+=2, accumulate, mirror to 
   assert.equal(m.pc, 0x4d5e, "ret after 10 objects");
 });
 
-// ---- entry_2ed4: two-object sprite-state updater; all paths converge on loc_2f7c record write ----
+// ---- loc_2ed4: two-object sprite-state updater; all paths converge on loc_2f7c record write ----
 // rst-0x30/0x10 gated (A=0x0b). Object select by (ix+1) bit0. (0x6217) bit0 -> build path or
 // loc_2f97. loc_2f7c writes 4-byte record x/B/C/y through DE->HL, mirrors x/y to (ix+3)/(ix+5).
-test("entry_2ed4: rst-0x30 gate closed -> ret immediately", () => {
+test("loc_2ed4: rst-0x30 gate closed -> ret immediately", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x03); // A=0x0b, 3 rrca -> carry clear -> sub_0030 skips
-  entry_2ed4(m);
+  loc_2ed4(m);
   assert.equal(m.pc, 0x4d5e, "gate skip -> return to caller");
 });
-test("entry_2ed4: (0x6217) bit0 clear, (0x6218) bit0 clear -> loc_2f97 ret nc (EXIT-2)", () => {
+test("loc_2ed4: (0x6217) bit0 clear, (0x6218) bit0 clear -> loc_2f97 ret nc (EXIT-2)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x01); m.mem.write8(0x6200, 0x01); // both gates open
   m.mem.write8(0x6681, 0x01); // (ix+1) bit0 set -> keep IX=0x6680
   m.mem.write8(0x6217, 0x00); // bit0 clear -> loc_2f97
   m.mem.write8(0x6218, 0x00); // bit0 clear -> ret nc
-  entry_2ed4(m);
+  loc_2ed4(m);
   assert.equal(m.mem.read8(0x668e), 0x00, "loc_2eed ran: (ix+0x0e)=0x00");
   assert.equal(m.mem.read8(0x668f), 0xf0, "loc_2eed ran: (ix+0x0f)=0xf0");
   assert.equal(m.pc, 0x4d5e, "loc_2f97 ret nc");
 });
-test("entry_2ed4: build path -> loc_2f7c writes record x/B/C/y to 0x6A18 + mirrors to IX", () => {
+test("loc_2ed4: build path -> loc_2f7c writes record x/B/C/y to 0x6A18 + mirrors to IX", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x01); m.mem.write8(0x6200, 0x01); // gates open
   m.mem.write8(0x6681, 0x01); // keep IX=0x6680, DE=0x6A18
@@ -3580,7 +3580,7 @@ test("entry_2ed4: build path -> loc_2f7c writes record x/B/C/y to 0x6A18 + mirro
   m.mem.write8(0x6395, 0x00); // loc_2fb7: (0x6395)==0 -> jp z loc_2f7c
   m.mem.write8(0x6203, 0x40); // X
   m.mem.write8(0x6205, 0x50); // Y
-  entry_2ed4(m);
+  loc_2ed4(m);
   // (ix+0x0e)=0x00, (ix+0x0f)=0xf0 (from loc_2eed); B=0x1E, C=0x07 (loc_2f43 ld c,0x07)
   assert.equal(m.mem.read8(0x6a18), 0x40, "record[0] = X + (ix+0x0e) = 0x40 + 0x00");
   assert.equal(m.mem.read8(0x6a19), 0x1e, "record[1] = B = 0x1E");
@@ -3592,27 +3592,27 @@ test("entry_2ed4: build path -> loc_2f7c writes record x/B/C/y to 0x6A18 + mirro
   assert.equal(m.pc, 0x4d5e, "loc_2f7c ret (EXIT-1)");
 });
 
-// ---- sub_017b coin-accepted path (0x018C-0x01B9): pulse count -> BCD credit ----
-test("sub_017b: coin accepted, pulse reaches coins-per-credit -> +1 BCD credit", () => {
+// ---- loc_017b coin-accepted path (0x018C-0x01B9): pulse count -> BCD credit ----
+test("loc_017b: coin accepted, pulse reaches coins-per-credit -> +1 BCD credit", () => {
   const inputs = new Inputs(); inputs._in2 = 0x80; // 0x7D00 bit7 = coin
   const m = new Machine(ROM, { inputs }); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6003, 0x01); // edge latch armed
   m.mem.write8(0x6005, 0x03); // state 3 -> skip the coin-sound call
   m.mem.write8(0x6024, 0x01); m.mem.write8(0x6002, 0x00); // coins-per-credit=1, pulse->1
   m.mem.write8(0x6025, 0x01); m.mem.write8(0x6001, 0x00); // credits-per-coin=1, credit->1
-  sub_017b(m);
+  loc_017b(m);
   assert.equal(m.mem.read8(0x6003), 0x00, "latch cleared");
   assert.equal(m.mem.read8(0x6002), 0x00, "pulse counter reset");
   assert.equal(m.mem.read8(0x6001), 0x01, "1 credit added (BCD)");
   assert.equal(m.pc, 0x4d5e, "ret");
 });
-test("sub_017b: coin accepted, pulse below threshold -> count, no credit (ret nz)", () => {
+test("loc_017b: coin accepted, pulse below threshold -> count, no credit (ret nz)", () => {
   const inputs = new Inputs(); inputs._in2 = 0x80;
   const m = new Machine(ROM, { inputs }); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6003, 0x01); m.mem.write8(0x6005, 0x03);
   m.mem.write8(0x6024, 0x02); m.mem.write8(0x6002, 0x00); // needs 2 pulses, only 1
   m.mem.write8(0x6001, 0x00);
-  sub_017b(m);
+  loc_017b(m);
   assert.equal(m.mem.read8(0x6002), 0x01, "pulse counted");
   assert.equal(m.mem.read8(0x6001), 0x00, "no credit yet");
 });
@@ -3636,30 +3636,30 @@ test("loc_13bb: state reset -- 0x600D/E/A=0, 0x7D82=1", () => {
   assert.equal(m.mem.read8(0x600a), 0x00);
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_26de: sign-reversing write -- bit7 set -> +2, clear -> -2 (0xFE)", () => {
+test("loc_26de: sign-reversing write -- bit7 set -> +2, clear -> -2 (0xFE)", () => {
   const neg = new Machine(ROM); neg.regs.sp = 0x6c00; neg.push16(0x4d5e);
   neg.regs.hl = 0x6a00; neg.mem.write8(0x6a00, 0x80); // bit7 set
-  sub_26de(neg);
+  loc_26de(neg);
   assert.equal(neg.mem.read8(0x6a00), 0x02, "negative -> +2");
   const pos = new Machine(ROM); pos.regs.sp = 0x6c00; pos.push16(0x4d5e);
   pos.regs.hl = 0x6a00; pos.mem.write8(0x6a00, 0x10); // bit7 clear
-  sub_26de(pos);
+  loc_26de(pos);
   assert.equal(pos.mem.read8(0x6a00), 0xfe, "non-negative -> -2");
 });
-test("sub_26e9: (0x601A)&1 gate; else (HL)=0xFF if bit7 set else 0x01", () => {
+test("loc_26e9: (0x601A)&1 gate; else (HL)=0xFF if bit7 set else 0x01", () => {
   const gated = new Machine(ROM); gated.regs.sp = 0x6c00; gated.push16(0x4d5e);
   gated.regs.hl = 0x6a00; gated.mem.write8(0x601a, 0x00); gated.mem.write8(0x6a00, 0x55);
-  sub_26e9(gated);
+  loc_26e9(gated);
   assert.equal(gated.regs.a, 0x00, "ret z -> A=0");
   assert.equal(gated.mem.read8(0x6a00), 0x55, "(HL) untouched on the gate");
   const run = new Machine(ROM); run.regs.sp = 0x6c00; run.push16(0x4d5e);
   run.regs.hl = 0x6a00; run.mem.write8(0x601a, 0x01); run.mem.write8(0x6a00, 0x80);
-  sub_26e9(run);
+  loc_26e9(run);
   assert.equal(run.mem.read8(0x6a00), 0xff, "bit7 set -> 0xFF");
 });
-test("sub_1186 / loc_1131 / loc_1644: chain routines run without error (filler routines)", () => {
+test("loc_1186 / loc_1131 / loc_1644: chain routines run without error (filler routines)", () => {
   const a = new Machine(ROM); a.regs.sp = 0x6c00; a.push16(0x4d5e);
-  assert.doesNotThrow(() => sub_1186(a));
+  assert.doesNotThrow(() => loc_1186(a));
   const b = new Machine(ROM); b.regs.sp = 0x6c00; b.push16(0x4d5e);
   assert.doesNotThrow(() => loc_1131(b));
   // loc_1644 tail-dispatches via sub_0028 to the 0x1648 ROM table (arms wired at).
@@ -3668,17 +3668,17 @@ test("sub_1186 / loc_1131 / loc_1644: chain routines run without error (filler r
 });
 
 // ---- <0x3000 fillers batch 2: 186f/1839/1344/1d95/1e49/1e4a/0f1b ----
-test("sub_1d95: 0x6225=A; 0x6227!=1 -> 0x608A=0x0D, 0x608B=0x03", () => {
+test("loc_1d95: 0x6225=A; 0x6227!=1 -> 0x608A=0x0D, 0x608B=0x03", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.a = 0x07; m.mem.write8(0x6227, 0x00);
-  sub_1d95(m);
+  loc_1d95(m);
   assert.equal(m.mem.read8(0x6225), 0x07);
   assert.equal(m.mem.read8(0x608a), 0x0d);
   assert.equal(m.mem.read8(0x608b), 0x03);
   // 0x6227==1 -> ret z, no 0x608A write
   const g = new Machine(ROM); g.regs.sp = 0x6c00; g.push16(0x4d5e);
   g.regs.a = 0x09; g.mem.write8(0x6227, 0x01); g.mem.write8(0x608a, 0x55);
-  sub_1d95(g);
+  loc_1d95(g);
   assert.equal(g.mem.read8(0x6225), 0x09);
   assert.equal(g.mem.read8(0x608a), 0x55, "ret z -> untouched");
 });
@@ -3698,13 +3698,13 @@ test("loc_1e49: no-op ret", () => {
   loc_1e49(m);
   assert.equal(m.pc, 0x4d5e);
 });
-test("entry_0f1b: strip fill by record kind (4->0xE0, 6->0xFE) at (0x63AB)", () => {
+test("loc_0f1b: strip fill by record kind (4->0xE0, 6->0xFE) at (0x63AB)", () => {
   const run = (kind) => {
     const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x63b3, kind);
     m.mem.write16(0x63ab, 0x7400); // dest tilemap
     m.mem.write8(0x63b1, 0x08); // one cell (8 - 8 = 0, no borrow -> loop once)
-    entry_0f1b(m);
+    loc_0f1b(m);
     return m.mem.read8(0x7400);
   };
   assert.equal(run(0x04), 0xe0, "kind 4 -> 0xE0");
@@ -3734,13 +3734,13 @@ test("loc_07cb: timer wrap-to-0 -> hands 0x6009=2, 0x600A++", () => {
   assert.equal(m.mem.read8(0x600a), 0x06, "0x600A incremented");
   assert.equal(m.mem.read8(0x638a), 0x00);
 });
-test("entry_0400: Z live-in dispatches into entry_03fb's loc_0413 chain (reuse, not dup)", () => {
+test("loc_0400: Z live-in dispatches into loc_03fb's loc_0413 chain (reuse, not dup)", () => {
   // Z clear (fNZ) -> jp nz 0x0413. Set up so loc_0413's frame path reaches EXIT-1 (ret z).
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.a = 0x01; m.regs.and(0x01); // set NZ (Z clear) as the live-in
   m.mem.write8(0x6227, 0x00);
   m.mem.write8(0x6391, 0x01); m.mem.write8(0x6390, 0x00); m.mem.write8(0x6393, 0x01);
-  entry_0400(m);
+  loc_0400(m);
   assert.equal(m.mem.read8(0x6390), 0x01, "frame counter advanced via loc_0413->loc_0426");
   assert.equal(m.pc, 0x4d5e);
 });
@@ -3765,183 +3765,183 @@ test("loc_2303 / loc_231a: object direction from playerX vs (ix+3)", () => {
   assert.equal(m.mem.read8(0x6611), 0x22, "(ix+0x11)=frame");
   assert.equal(m.mem.read8(0x6610), 0xff, "(ix+0x10)=-1 (player left of object)");
 });
-test("sub_2679: even frame, 0x62A5 wrap -> publishes 0x62A6 to 0x63A6 via 0x26e9", () => {
+test("loc_2679: even frame, 0x62A5 wrap -> publishes 0x62A6 to 0x63A6 via 0x26e9", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x601a, 0x00); // even; &0x1f=0 != 2 -> ret nz after publish
   m.mem.write8(0x62a5, 0x01); // dec -> 0 wrap
   m.mem.write8(0x62a6, 0x00);
-  sub_2679(m);
+  loc_2679(m);
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_262f: Y<0xC0, bit7(0x62A3) clear -> 0x62A3=0xFF then tail publishes 0x63A5/0x63A4", () => {
+test("loc_262f: Y<0xC0, bit7(0x62A3) clear -> 0x62A3=0xFF then tail publishes 0x63A5/0x63A4", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6205, 0x40); // < 0xC0 -> loc_266f
   m.mem.write8(0x62a3, 0x00); // bit7 clear -> set 0xFF
   m.mem.write8(0x601a, 0x03); // &0x1f=3 != 0 -> ret nz
-  sub_262f(m);
+  loc_262f(m);
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_2ad3: Y==0x50 -> X += (0x63A3) velocity, mirror to 0x694C", () => {
+test("loc_2ad3: Y==0x50 -> X += (0x63A3) velocity, mirror to 0x694C", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6203, 0x40); // X
   m.mem.write8(0x6205, 0x50); // platform row
   m.mem.write8(0x63a3, 0x02); // velocity
   m.mem.write8(0x6227, 0x00);
-  sub_2ad3(m);
+  loc_2ad3(m);
   assert.equal(m.mem.read8(0x694c), m.mem.read8(0x6203), "X mirrored to 0x694C");
 });
-test("sub_271e: thin wrapper -> sub_2745, ret", () => {
+test("loc_271e: thin wrapper -> loc_2745, ret", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
-  assert.doesNotThrow(() => sub_271e(m));
+  assert.doesNotThrow(() => loc_271e(m));
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_0d27 / sub_0d43: fill 0xFD/0xFC rows via the shared sub_0d30/sub_0d4c body", () => {
+test("loc_0d27 / loc_0d43: fill 0xFD/0xFC rows via the shared sub_0d30/sub_0d4c body", () => {
   const a = new Machine(ROM); a.regs.sp = 0x6c00; a.push16(0x4d5e);
-  sub_0d27(a);
+  loc_0d27(a);
   assert.equal(a.mem.read8(0x770d), 0xfd, "0d27 row1 @0x770D = 0xFD");
   assert.equal(a.mem.read8(0x760d), 0xfd, "0d27 row (HL=0x760D) filled");
   const b = new Machine(ROM); b.regs.sp = 0x6c00; b.push16(0x4d5e);
-  sub_0d43(b);
+  loc_0d43(b);
   assert.equal(b.mem.read8(0x7687), 0xfd, "0d43 @0x7687 = 0xFD");
 });
-test("sub_2745: (0x6203) band dispatch -- < 0x2C -> reset (0x6398=0, 0x6221=1)", () => {
+test("loc_2745: (0x6203) band dispatch -- < 0x2C -> reset (0x6398=0, 0x6221=1)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6398, 0x01); m.mem.write8(0x6216, 0x00); m.mem.write8(0x6203, 0x10);
-  sub_2745(m);
+  loc_2745(m);
   assert.equal(m.mem.read8(0x6398), 0x00, "reset");
   assert.equal(m.mem.read8(0x6221), 0x01);
 });
-test("sub_1654 / sub_168a / sub_1757: chain routines callable (share tail_1662)", () => {
-  for (const fn of [sub_1654, sub_168a, sub_1757]) {
+test("loc_1654 / loc_168a / loc_1757: chain routines callable (share tail_1662)", () => {
+  for (const fn of [loc_1654, loc_168a, loc_1757]) {
     const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6009, 0x01); // arm rst-0x18 gate (168a) to pass
     assert.doesNotThrow(() => fn(m));
   }
 });
-test("sub_2797: active obj, (ix+0d) bit3 set, (ix+5) hits 0x60 -> land ((ix+3)=0x77, (ix+0d)=0x04)", () => {
+test("loc_2797: active obj, (ix+0d) bit3 set, (ix+5) hits 0x60 -> land ((ix+3)=0x77, (ix+0d)=0x04)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6600, 0x01); // active
   m.mem.write8(0x660d, 0x08); // bit3 set -> decrement arm
   m.mem.write8(0x6605, 0x61); // -1 -> 0x60 -> land
-  sub_2797(m);
+  loc_2797(m);
   assert.equal(m.mem.read8(0x6603), 0x77, "landed (ix+3)=0x77");
   assert.equal(m.mem.read8(0x660d), 0x04, "(ix+0d)=0x04");
 });
-test("sub_27da: (0x62A7)==0 seeds a free slot then decrements the counter", () => {
+test("loc_27da: (0x62A7)==0 seeds a free slot then decrements the counter", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.de = 0x0010; // live-in stride
   m.mem.write8(0x62a7, 0x00); // spawn armed
   m.mem.write8(0x6600, 0x00); // slot 0 free
-  sub_27da(m);
+  loc_27da(m);
   assert.equal(m.mem.read8(0x6600), 0x01, "slot activated");
   assert.equal(m.mem.read8(0x6605), 0xf8, "(ix+5) seeded");
   assert.equal(m.mem.read8(0x62a7), 0x33, "0x62A7 set to 0x34 then dec -> 0x33");
 });
-test("sub_2722: mirrors (ix+3)/(ix+5) of 6 objects to 0x6958", () => {
+test("loc_2722: mirrors (ix+3)/(ix+5) of 6 objects to 0x6958", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6600, 0x00); // slot 0 inactive (2797/27da no-op-ish)
   m.mem.write8(0x6603, 0xaa); m.mem.write8(0x6605, 0xbb);
   m.mem.write8(0x62a7, 0x05); // 27da: nonzero -> just dec
-  sub_2722(m);
+  loc_2722(m);
   assert.equal(m.mem.read8(0x6958), 0xaa, "mirror (ix+3) -> 0x6958");
   assert.equal(m.mem.read8(0x695b), 0xbb, "mirror (ix+5) -> 0x695B");
 });
-test("sub_2243: (0x6205)<0x7A & (0x6216)==0 & (0x6203)==(HL) -> HIT ret to caller; else caller-skip", () => {
+test("loc_2243: (0x6205)<0x7A & (0x6216)==0 & (0x6203)==(HL) -> HIT ret to caller; else caller-skip", () => {
   const hit = new Machine(ROM); hit.regs.sp = 0x6c00;
   hit.push16(0x1111); hit.push16(0x2222); // grandparent, then 2243's return
   hit.regs.hl = 0x6a00; hit.mem.write8(0x6a00, 0x40);
   hit.mem.write8(0x6205, 0x10); hit.mem.write8(0x6216, 0x00); hit.mem.write8(0x6203, 0x40);
-  sub_2243(hit);
+  loc_2243(hit);
   assert.equal(hit.pc, 0x2222, "HIT -> ret to the call site (2243's own return)");
   const miss = new Machine(ROM); miss.regs.sp = 0x6c00;
   miss.push16(0x1111); miss.push16(0x2222);
   miss.regs.hl = 0x6a00; miss.mem.write8(0x6205, 0x7f); // >= 0x7A -> no hit
-  sub_2243(miss);
+  loc_2243(miss);
   assert.equal(miss.pc, 0x1111, "no-hit -> pop-hl/ret caller-skip to grandparent");
 });
-test("sub_2602: 32nd frame path updates 0x63A3 via 0x26e9 and rets", () => {
+test("loc_2602: 32nd frame path updates 0x63A3 via 0x26e9 and rets", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x601a, 0x03); // odd frame (skip the 0x62A0 countdown); &0x1f=3 != 1 -> ret nz
   m.mem.write8(0x62a1, 0x00);
-  sub_2602(m);
+  loc_2602(m);
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_1708: writes record 80 76 09 20 at 0x6A20 + 0x6905=0x13 + 0x608A/B=07/03", () => {
+test("loc_1708: writes record 80 76 09 20 at 0x6A20 + 0x6905=0x13 + 0x608A/B=07/03", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
-  sub_1708(m);
+  loc_1708(m);
   assert.equal(m.mem.read8(0x6a20), 0x80);
   assert.equal(m.mem.read8(0x6a23), 0x20);
   assert.equal(m.mem.read8(0x6905), 0x13);
   assert.equal(m.mem.read8(0x608a), 0x07);
 });
-test("sub_1732: (0x6913) >= 0x2C -> hold (ret nc); else reset + advance 0x6388", () => {
+test("loc_1732: (0x6913) >= 0x2C -> hold (ret nc); else reset + advance 0x6388", () => {
   const hold = new Machine(ROM); hold.regs.sp = 0x6c00; hold.push16(0x4d5e);
   hold.mem.write8(0x6913, 0x2c); hold.mem.write8(0x6388, 0x01);
-  sub_1732(hold);
+  loc_1732(hold);
   assert.equal(hold.mem.read8(0x6388), 0x01, "held -- no advance");
   const go = new Machine(ROM); go.regs.sp = 0x6c00; go.push16(0x4d5e);
   go.mem.write8(0x6913, 0x00); go.mem.write8(0x6388, 0x01);
-  sub_1732(go);
+  loc_1732(go);
   assert.equal(go.mem.read8(0x6924), 0x6b);
   assert.equal(go.mem.read8(0x6388), 0x02, "advanced");
 });
-test("sub_1783: first non-zero cell -> caller-skip (pop+ret to grandparent); all-zero -> ret", () => {
+test("loc_1783: first non-zero cell -> caller-skip (pop+ret to grandparent); all-zero -> ret", () => {
   const hit = new Machine(ROM); hit.regs.sp = 0x6c00;
-  hit.push16(0x1111); hit.push16(0x2222); // grandparent, then sub_1783's return
+  hit.push16(0x1111); hit.push16(0x2222); // grandparent, then loc_1783's return
   hit.regs.hl = 0x6a00; hit.regs.de = 0x0001; hit.mem.write8(0x6a00, 0x05);
-  sub_1783(hit);
+  loc_1783(hit);
   assert.equal(hit.pc, 0x1111, "caller-skip -> grandparent");
   const clear = new Machine(ROM); clear.regs.sp = 0x6c00; clear.push16(0x4d5e);
   clear.regs.hl = 0x6b00; clear.regs.de = 0x0001; // all zero
-  sub_1783(clear);
+  loc_1783(clear);
   assert.equal(clear.pc, 0x4d5e, "all clear -> normal ret");
 });
-test("sub_178e: rst-0x18 gate -> resets 0x6388=0 and hands 0x600A=8", () => {
+test("loc_178e: rst-0x18 gate -> resets 0x6388=0 and hands 0x600A=8", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6009, 0x01); // arm the rst-0x18 gate to pass
   m.mem.write16(0x622a, 0x3a73);
-  sub_178e(m);
+  loc_178e(m);
   assert.equal(m.mem.read8(0x6388), 0x00);
   assert.equal(m.mem.read8(0x600a), 0x08);
 });
-test("sub_0d00: fills 2 cells per record with a descending 0xB8 from the 0x0D17 table", () => {
+test("loc_0d00: fills 2 cells per record with a descending 0xB8 from the 0x0D17 table", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   // record 0 dest = word at 0x0D17 (ROM); read it, fill 2 cells 0xB8,0xB7
   const dest = ROM[0x0d17] | (ROM[0x0d18] << 8);
-  sub_0d00(m);
+  loc_0d00(m);
   assert.equal(m.mem.read8(dest), 0xb8);
   assert.equal(m.mem.read8((dest + 1) & 0xffff), 0xb7, "descending");
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_15fa: builds record 0x6974 = {tbl[0], 0x72, 0x0C, tbl[1]}; preserves DE/HL", () => {
+test("loc_15fa: builds record 0x6974 = {tbl[0], 0x72, 0x0C, tbl[1]}; preserves DE/HL", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.regs.bc = 0x0000; m.regs.de = 0x1234; m.regs.hl = 0x5678;
-  sub_15fa(m);
+  loc_15fa(m);
   assert.equal(m.mem.read8(0x6975), 0x72);
   assert.equal(m.mem.read8(0x6976), 0x0c);
   assert.equal(m.regs.de, 0x1234, "DE restored");
   assert.equal(m.regs.hl, 0x5678, "HL restored");
 });
-test("sub_176c: zeroes 0x692F-region cells whose (byte-3) < 0x19", () => {
+test("loc_176c: zeroes 0x692F-region cells whose (byte-3) < 0x19", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x692f, 0x10); // read value < 0x19 -> zero the cell at HL-3 = 0x692C
   m.mem.write8(0x692c, 0xff); // sentinel to be zeroed
-  sub_176c(m);
+  loc_176c(m);
   assert.equal(m.mem.read8(0x692c), 0x00, "(HL after sbc hl,de = 0x692C) zeroed");
   assert.equal(m.pc, 0x4d5e);
 });
-test("sub_1670: rst-0x18 gate passes -> arms 0x6009=0x20 and advances 0x6388", () => {
+test("loc_1670: rst-0x18 gate passes -> arms 0x6009=0x20 and advances 0x6388", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6009, 0x01); // arm the rst-0x18 counter to pass
   m.mem.write8(0x6388, 0x02);
   m.mem.write8(0x6227, 0x01); // rst 0x30 opens (or skips) -- either way 0x6009/0x6388 set first
-  sub_1670(m);
+  loc_1670(m);
   assert.equal(m.mem.read8(0x6009), 0x20);
   assert.equal(m.mem.read8(0x6388), 0x03, "selector advanced");
 });
-test("sub_1641 / sub_1670: chain routines are callable functions", () => {
-  assert.equal(typeof sub_1641, "function");
-  assert.equal(typeof sub_1670, "function");
+test("loc_1641 / loc_1670: chain routines are callable functions", () => {
+  assert.equal(typeof loc_1641, "function");
+  assert.equal(typeof loc_1670, "function");
 });
 test("loc_1e36: writes 0x6A30 block {A,B,0x07,C}, then 0x6085=3 if the rst-0x30 gate opens", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
@@ -4018,10 +4018,10 @@ test("loc_1880: 0x691B!=0xD0 -> ret nz; ==0xD0 -> spawn record 7F 39 01 D8 + adv
   assert.equal(go.mem.read8(0x6388), 0x06, "selector advanced");
 });
 
-// ---- sub_298c -- tile-in-range predicate -----
-// Drives the REAL sub_2ff0: HL = 0x7400 + ((255-y)>>3)*32 + ((x>>3)&0x1f), y=H, x=L.
+// ---- loc_298c -- tile-in-range predicate -----
+// Drives the REAL loc_2ff0: HL = 0x7400 + ((255-y)>>3)*32 + ((x>>3)&0x1f), y=H, x=L.
 // Table at (0x63c8); D = table[+0x0E] = y, E = table[+0x0F] + 0x0C = x. With y=0,
-// table[+0x0F]=0x34 -> x = 0x40 -> sub_2ff0 -> 0x77E8. Plant the tile there. Returns
+// table[+0x0F]=0x34 -> x = 0x40 -> loc_2ff0 -> 0x77E8. Plant the tile there. Returns
 // A=0 in range / A=1 out; both exits plain ret (a value return, not a caller-skip).
 
 const run298c = (tile, { rawX = 0x34, y = 0x00, addr = 0x77e8 } = {}) => {
@@ -4031,11 +4031,11 @@ const run298c = (tile, { rawX = 0x34, y = 0x00, addr = 0x77e8 } = {}) => {
   m.mem.write8(0x630e, y); // D = y
   m.mem.write8(0x630f, rawX); // E = rawX + 0x0C
   m.mem.write8(addr, tile);
-  sub_298c(m);
+  loc_298c(m);
   return m.regs.a;
 };
 
-test("sub_298c returns A=0 for an in-range tile, A=1 otherwise (the 3202 seam)", () => {
+test("loc_298c returns A=0 for an in-range tile, A=1 otherwise (the 3202 seam)", () => {
   // TEST 1. MUTATION this catches: swapped A constants, or a jp
   // polarity flip. Three tiles on the three sides of the two thresholds.
   assert.equal(run298c(0xb3), 0x00, "0xB3 (>=0xB0, low nibble 3) -> A=0 in range");
@@ -4043,7 +4043,7 @@ test("sub_298c returns A=0 for an in-range tile, A=1 otherwise (the 3202 seam)",
   assert.equal(run298c(0xb9), 0x01, "0xB9 (low nibble 9 >= 8) -> A=1 via jp nc");
 });
 
-test("sub_298c assembles x = table[+0x0F] + 0x0C before the sub_2ff0 conversion", () => {
+test("loc_298c assembles x = table[+0x0F] + 0x0C before the loc_2ff0 conversion", () => {
   // TEST 2. The +0x0C shifts x, so the tile is read at a DIFFERENT
   // VRAM column. Correct: rawX=0x34 -> x=0x40 -> 0x77E8 (in-range tile planted).
   // MUTATION (drop the +0x0C): x=0x34 -> col (0x34>>3)=6 -> 0x77E6 (out-of-range
@@ -4055,14 +4055,14 @@ test("sub_298c assembles x = table[+0x0F] + 0x0C before the sub_2ff0 conversion"
   m.mem.write8(0x630f, 0x34); // rawX; correct x = 0x40, dropped-+0x0C x = 0x34
   m.mem.write8(0x77e8, 0xb3); // in-range tile at the CORRECT (x=0x40) address
   m.mem.write8(0x77e6, 0xa0); // out-of-range tile at the dropped-+0x0C (x=0x34) address
-  sub_298c(m);
+  loc_298c(m);
   assert.equal(m.regs.a, 0x00, "read the tile at the +0x0C-adjusted column (0x77E8), not 0x77E6");
 });
 
-// ---- sub_28b0 family -- entry_2913 sweeps -----
+// ---- loc_28b0 family -- loc_2913 sweeps -----
 // TAIL dispatch targets: pop the dispatcher's HL, then N guarded calls to the REAL
-// entry_2913. The guard must be `if (!entry_2913(m)) return true` (a HIT skips the
-// rest of the routine to the dispatch's caller). Seed makes entry_2913 MISS (all
+// loc_2913. The guard must be `if (!loc_2913(m)) return true` (a HIT skips the
+// rest of the routine to the dispatch's caller). Seed makes loc_2913 MISS (all
 // slots inactive) so all groups run; a per-group active slot makes it HIT.
 
 const seed28 = (m, { hitGroup1 = false } = {}) => {
@@ -4080,49 +4080,49 @@ const seed28 = (m, { hitGroup1 = false } = {}) => {
   }
 };
 
-test("sub_28b0 pops the dispatcher's HL and feeds it (H,L) to entry_2913 (C1)", () => {
+test("loc_28b0 pops the dispatcher's HL and feeds it (H,L) to loc_2913 (C1)", () => {
   // C1: the popped HL is 2913's axis-2 bounds -- planted 0x0ABC must reach 2913's
   // H/L. With all slots inactive 2913 never HITs, so H/L survive to the final ret;
   // assert regs.h/regs.l == the planted HL. MUTATION: drop the pop hl -> H/L are
   // whatever the machine had, not 0x0ABC.
   const m = new Machine(ROM);
   seed28(m); // no hit -> all three groups sweep, 2913 preserves H/L (never writes them)
-  const returned = sub_28b0(m);
+  const returned = loc_28b0(m);
   assert.equal(returned, true, "all sweeps completed -> caller continues (true)");
   assert.equal(m.pc, 0x29c0, "returned to the dispatch's caller");
   assert.equal((m.regs.h << 8) | m.regs.l, 0x0abc, "HL popped from the stack reached 2913 unmodified");
 });
 
-test("sub_28b0's call 0x2913 CARRIES the skip guard -- a HIT skips groups 2 & 3 (Finding A)", () => {
-  // Group 1 HITs -> entry_2913 discards our return, rets to the dispatch's caller,
-  // and sub_28b0 must NOT run groups 2/3. Observable: 0x63b9 holds group 1's B (5),
+test("loc_28b0's call 0x2913 CARRIES the skip guard -- a HIT skips groups 2 & 3 (Finding A)", () => {
+  // Group 1 HITs -> loc_2913 discards our return, rets to the dispatch's caller,
+  // and loc_28b0 must NOT run groups 2/3. Observable: 0x63b9 holds group 1's B (5),
   // never group 2's (6) or group 3's (1). MUTATION (drop the guard): groups 2/3 run,
   // 0x63b9 ends at 1. Also pins the skip landed at the caller's caller (SP + PC).
   const m = new Machine(ROM);
   seed28(m, { hitGroup1: true });
-  const returned = sub_28b0(m);
+  const returned = loc_28b0(m);
   assert.equal(m.mem.read8(0x63b9), 0x05, "0x63b9 = group 1's B(5) -- groups 2/3 SKIPPED, not run");
   assert.equal(m.pc, 0x29c0, "the skip landed at the dispatch's caller (2913 discarded our frame)");
-  // FINDING C, and an earlier version of this test got it wrong: sub_28b0 returns
-  // TRUE even on a HIT. 2913's FALSE is about 2913's frame; sub_28b0's caller
+  // FINDING C, and an earlier version of this test got it wrong: loc_28b0 returns
+  // TRUE even on a HIT. 2913's FALSE is about 2913's frame; loc_28b0's caller
   // still continues (tail target). So the RETURN VALUE cannot detect the guard --
   // the SKIP does (0x63b9=5, pc=caller above). The entry_06b8 scope-error lesson,
   // which bit my test assertion until the mutation/real run flagged it.
   assert.equal(returned, true, "returns TRUE (caller continues) even on a HIT -- not 2913's false");
 });
 
-test("sub_28e0 (2 groups) and sub_2901 (1 group) sweep and return true when 2913 misses", () => {
+test("loc_28e0 (2 groups) and loc_2901 (1 group) sweep and return true when 2913 misses", () => {
   // Twin backstop: different group counts. With no HIT, each runs all its
   // groups and returns true; 0x63b9 holds the LAST group's B.
   const e = new Machine(ROM); seed28(e);
-  assert.equal(sub_28e0(e), true, "sub_28e0 completes -> true");
-  assert.equal(e.mem.read8(0x63b9), 0x0a, "sub_28e0's last group B = 0x0A");
+  assert.equal(loc_28e0(e), true, "loc_28e0 completes -> true");
+  assert.equal(e.mem.read8(0x63b9), 0x0a, "loc_28e0's last group B = 0x0A");
   const s = new Machine(ROM); seed28(s);
-  assert.equal(sub_2901(s), true, "sub_2901 completes -> true");
-  assert.equal(s.mem.read8(0x63b9), 0x07, "sub_2901's only group B = 0x07");
+  assert.equal(loc_2901(s), true, "loc_2901 completes -> true");
+  assert.equal(s.mem.read8(0x63b9), 0x07, "loc_2901's only group B = 0x07");
 });
 
-test("sub_22bd copies (HL) to 0x694B or 0x6947 selected by bit 3 of L", () => {
+test("loc_22bd copies (HL) to 0x694B or 0x6947 selected by bit 3 of L", () => {
   // bit 3 of L picks the destination; A = (HL) is stored there. MUTATION
   // this catches: wrong destination constant, or inverted jp polarity (the two
   // addresses swap). Two cases pin distinct addresses; the copied byte 0x5A != 0.
@@ -4131,7 +4131,7 @@ test("sub_22bd copies (HL) to 0x694B or 0x6947 selected by bit 3 of L", () => {
     m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.regs.hl = 0x6a00 | l; // L = low byte; source at 0x6A00|L
     m.mem.write8(m.regs.hl, 0x5a); // (HL) = 0x5A
-    sub_22bd(m);
+    loc_22bd(m);
     return { at694b: m.mem.read8(0x694b), at6947: m.mem.read8(0x6947), pc: m.pc };
   };
   const set = withL(0x08); // bit 3 SET -> 0x694B
@@ -4143,7 +4143,7 @@ test("sub_22bd copies (HL) to 0x694B or 0x6947 selected by bit 3 of L", () => {
   assert.equal(clr.pc, 0x4d5e, "returns to the caller");
 });
 
-// ---- entry_24b4 -- bounds gate + return splice
+// ---- loc_24b4 -- bounds gate + return splice
 // IX live-in. Three early ret cc (normal return -> true); the main path (in the
 // band (ix+5)>=0xE8 and 0x20<=(ix+3)<0x2A) pops the caller's return into HL and
 // tail-jumps to untranslated 0x21ba (NotImplemented).
@@ -4161,31 +4161,31 @@ const run24b4 = (ix5, ix3, { ix15 = 0x00, latch6348 = 0x00, retAddr = 0x4d5e } =
   return m;
 };
 
-test("entry_24b4 returns to the caller on each of its three bounds early-exits", () => {
+test("loc_24b4 returns to the caller on each of its three bounds early-exits", () => {
   // control returns on THREE paths (ret c / ret nc / ret c). MUTATION
   // this catches: a flipped clamp polarity, which changes which side returns.
   // (a) (ix+5) < 0xE8 -> ret c
   let m = run24b4(0x50, 0x25);
-  assert.equal(entry_24b4(m), true, "(ix+5)<0xE8 -> ret c returns true");
+  assert.equal(loc_24b4(m), true, "(ix+5)<0xE8 -> ret c returns true");
   assert.equal(m.pc, 0x4d5e, "returned to the caller");
   assert.equal(m.regs.sp, 0x6c00 - 2, "only the caller frame consumed (SENTINEL intact)");
   // (b) (ix+5)>=0xE8, (ix+3) >= 0x2A -> ret nc
   m = run24b4(0xf0, 0x30);
-  assert.equal(entry_24b4(m), true, "(ix+3)>=0x2A -> ret nc returns true");
+  assert.equal(loc_24b4(m), true, "(ix+3)>=0x2A -> ret nc returns true");
   assert.equal(m.pc, 0x4d5e, "returned to the caller");
   // (c) (ix+5)>=0xE8, (ix+3) < 0x20 -> ret c
   m = run24b4(0xf0, 0x10);
-  assert.equal(entry_24b4(m), true, "(ix+3)<0x20 -> ret c returns true");
+  assert.equal(loc_24b4(m), true, "(ix+3)<0x20 -> ret c returns true");
   assert.equal(m.pc, 0x4d5e, "returned to the caller");
 });
 
-test("entry_24b4 main path POPS the caller's return (forwarded to 0x21ba), resets IX, throws", () => {
+test("loc_24b4 main path POPS the caller's return (forwarded to 0x21ba), resets IX, throws", () => {
   // in the band the routine does NOT return -- it pops the
   // caller's return into HL (forwarded to 0x21ba's exx) and tail-jumps to
   // untranslated 0x21ba. MUTATION this catches: modelling it as a plain ret
   // (no pop / no splice), or dropping the (ix) reset.
   const m = run24b4(0xf0, 0x25, { ix15: 0x00, latch6348: 0x00 }); // in band: (ix+5)>=0xE8, 0x20<=(ix+3)<0x2A
-  assert.throws(() => entry_24b4(m), /unmapped write to ROM at 0x0000/i, "main path tail-jumps into 0x21ba (now translated), which faults on the minimal setup");
+  assert.throws(() => loc_24b4(m), /unmapped write to ROM at 0x0000/i, "main path tail-jumps into 0x21ba (now translated), which faults on the minimal setup");
   assert.ok(m.pc >= 0x21ba && m.pc < 0x2200, "PC forwarded into the 0x21ba block -- did NOT return to the caller (0x4d5e)");
   assert.equal(m.regs.sp, 0x6c00 - 4 + 2, "the caller's return frame was popped (SP +2 from the pop)");
   assert.equal(m.mem.read8(0x6b00), 0x00, "(ix+0) reset to 0");
@@ -4194,33 +4194,33 @@ test("entry_24b4 main path POPS the caller's return (forwarded to 0x21ba), reset
   assert.equal(m.mem.read8(0x6348), 0x01, "0x6348 one-shot latch bumped 0 -> 1");
 });
 
-test("entry_24b4 (ix+0x15) != 0 writes 0x62B9 = 3 before the reset", () => {
+test("loc_24b4 (ix+0x15) != 0 writes 0x62B9 = 3 before the reset", () => {
   // the conditional side effect. (ix+15)!=0 -> 0x62B9:= 3; ==0 -> skip.
   // MUTATION this catches: dropping the conditional, or the wrong constant.
   const on = run24b4(0xf0, 0x25, { ix15: 0x01 });
-  assert.throws(() => entry_24b4(on), /unmapped write to ROM at 0x0000/i);
+  assert.throws(() => loc_24b4(on), /unmapped write to ROM at 0x0000/i);
   assert.equal(on.mem.read8(0x62b9), 0x03, "(ix+15)!=0 -> 0x62B9 = 3");
   const off = run24b4(0xf0, 0x25, { ix15: 0x00 });
   off.mem.write8(0x62b9, 0x77); // sentinel -- must stay untouched
-  assert.throws(() => entry_24b4(off), /unmapped write to ROM at 0x0000/i);
+  assert.throws(() => loc_24b4(off), /unmapped write to ROM at 0x0000/i);
   assert.equal(off.mem.read8(0x62b9), 0x77, "(ix+15)==0 -> 0x62B9 untouched");
 });
 
-test("entry_2c72 sets bit 7 of 0x6382, preserving the low bits", () => {
+test("loc_2c72 sets bit 7 of 0x6382, preserving the low bits", () => {
   // TEST 1: or 0x80 forces bit 7, low bits unchanged. MUTATION this catches:
   // a wrong bit mask, or `and` instead of `or`. 0x0F -> 0x8F (not 0x80, not 0x0F).
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6382, 0x0f); // low bits set, bit 7 clear
-  entry_2c72(m);
+  loc_2c72(m);
   assert.equal(m.mem.read8(0x6382), 0x8f, "bit 7 set AND low bits (0x0F) preserved");
   assert.equal(m.pc, 0x4d5e, "returns to the caller");
 });
 
-// ---- entry_2c8f -- three-way twin of
-// entry_2c03/sub_03a2; scans 10 records at 0x6700 for a free slot. The rst
+// ---- loc_2c8f -- three-way twin of
+// loc_2c03/sub_03a2; scans 10 records at 0x6700 for a free slot. The rst
 // 0x30/0x10 prologue uses the REAL caller-skip gates (sub_0030/sub_0010); both
-// flow-outs (0x2d15, entry_2cb8) are untranslated -> NotImplemented. Both gates
+// flow-outs (0x2d15, loc_2cb8) are untranslated -> NotImplemented. Both gates
 // are seeded to CONTINUE: (0x6227)=1 makes sub_0030 rotate A=0x01 once -> carry
 // set -> normal return; (0x6200) bit0=1 makes sub_0010 return normally.
 const run2c8f = ({ v6393 = 0x00, v6392 = 0x01, rec = {} } = {}) => {
@@ -4235,44 +4235,44 @@ const run2c8f = ({ v6393 = 0x00, v6392 = 0x01, rec = {} } = {}) => {
   return m;
 };
 
-test("entry_2c8f 0x6393 bit0 set tail-jumps to 0x2d15, jp c not ret c", () => {
+test("loc_2c8f 0x6393 bit0 set tail-jumps to 0x2d15, jp c not ret c", () => {
   // TEST 1: the prologue is byte-identical to the translated twin
   // sub_03a2 for 5 instructions, then this does jp c,0x2d15 where the twin does
   // ret c. A translator copying the twin returns to the caller; the ROM jumps
   // to 0x2d15. MUTATION this catches: `if (regs.fC) { ret(m); return; }` (the
   // twin's ret c) -- that returns without throwing, so assert.throws fails.
   const m = run2c8f({ v6393: 0x01 }); // bit0 set -> rrca -> carry -> jp c taken
-  entry_2c8f(m);
+  loc_2c8f(m);
   assert.equal(m.mem.read8(0x62af), 0xff, "reached loc_2d15: dec (0x62af) ran (0x00 -> 0xFF); ret c would have skipped it");
   assert.equal(m.pc, 0x4d5e, "loc_2d15's frame-gate ret nz returned to the caller");
 });
 
-test("entry_2c8f advances IX by 0x20 per record, add ix,de inside the loop", () => {
+test("loc_2c8f advances IX by 0x20 per record, add ix,de inside the loop", () => {
   // TEST 2: the scan walks 0x6700 stride 0x20; add ix,de sits inside
   // loc_2ca8. record 0 has bit0 set (advance); record 1 is 0x00 (bit1 clear ->
-  // free slot -> entry_2cb8, untranslated). Correct reaches entry_2cb8 with
+  // free slot -> loc_2cb8, untranslated). Correct reaches loc_2cb8 with
   // IX=0x6720. MUTATION this catches: add ix,de removed from the loop body --
   // then IX never advances, the scan spins on record 0 and exhausts to a plain
   // ret, so it never throws.
   const m = run2c8f({ v6393: 0x00, v6392: 0x01, rec: { 0x00: 0x01, 0x20: 0x00 } });
-  entry_2c8f(m);
+  loc_2c8f(m);
   assert.equal(m.regs.ix, 0x6720, "IX advanced exactly one 0x20 stride to record 1");
-  assert.equal(m.mem.read16(0x62aa), 0x6720, "entry_2cb8 entered with IX=0x6720 (ld (0x62aa),ix)");
-  assert.equal(m.mem.read8(0x6720), 0x02, "entry_2cb8 claimed the free slot: (ix+0) := 0x02");
-  assert.equal(m.pc, 0x4d5e, "entry_2cb8 -> loc_2d15 frame gate returned to the caller");
+  assert.equal(m.mem.read16(0x62aa), 0x6720, "loc_2cb8 entered with IX=0x6720 (ld (0x62aa),ix)");
+  assert.equal(m.mem.read8(0x6720), 0x02, "loc_2cb8 claimed the free slot: (ix+0) := 0x02");
+  assert.equal(m.pc, 0x4d5e, "loc_2cb8 -> loc_2d15 frame gate returned to the caller");
 });
 
-test("entry_2c8f 0x6392 bit0 clear returns to the caller, ret nc", () => {
+test("loc_2c8f 0x6392 bit0 clear returns to the caller, ret nc", () => {
   // the (0x6392) gate. bit0 clear -> rrca -> carry clear -> ret nc
   // returns to the caller before the scan. MUTATION this catches: ret c instead
   // of ret nc (flipped polarity) -- that falls through to the scan (all records
   // 0x00 -> immediate free slot -> throws) instead of returning to the caller.
   const m = run2c8f({ v6393: 0x00, v6392: 0x00 }); // bit0 clear -> carry clear
-  entry_2c8f(m);
+  loc_2c8f(m);
   assert.equal(m.pc, 0x4d5e, "ret nc returned to the caller");
 });
 
-// ---- sub_26a6 -- two-arm RMW; bit 7 of mem[DE]
+// ---- loc_26a6 -- two-arm RMW; bit 7 of mem[DE]
 // selects the direction. Both HL and DE are live-in (callers do ld de,0x69Ex /
 // ex de,hl). Each arm bumps two cells at P=HL+1 and P+4 with an exact-value wrap.
 // The arms are MIRRORS (inc<->dec, constants inverted), so the tests check all
@@ -4289,49 +4289,49 @@ const run26a6 = ({ selByte = 0x00, p = 0x10, p4 = 0x20 } = {}) => {
   return m;
 };
 
-test("sub_26a6 carry-clear arm increments P and decrements P+4", () => {
+test("loc_26a6 carry-clear arm increments P and decrements P+4", () => {
   // bit7 of mem[DE] clear -> (P) += 1, (P+4) -= 1. MUTATION this
   // catches: an inc<->dec flip on EITHER counter (0x0F not 0x11, or 0x21 not
   // 0x1F), and a wrong 0x04 stride (P+4 would miss 0x69E9).
   const m = run26a6({ selByte: 0x00, p: 0x10, p4: 0x20 });
-  sub_26a6(m);
+  loc_26a6(m);
   assert.equal(m.mem.read8(0x69e5), 0x11, "(P) incremented 0x10 -> 0x11");
   assert.equal(m.mem.read8(0x69e9), 0x1f, "(P+4) decremented 0x20 -> 0x1F at stride 0x04");
   assert.equal(m.regs.a, 0x1f, "A live-out = the P+4 result");
   assert.equal(m.pc, 0x2668, "returns to the caller");
 });
 
-test("sub_26a6 carry-clear arm wraps P at 0x53 and P+4 at 0xCF", () => {
+test("loc_26a6 carry-clear arm wraps P at 0x53 and P+4 at 0xCF", () => {
   // exact-value wrap. (P) 0x52 -> inc 0x53 -> 0x50; (P+4) 0xD0 ->
   // dec 0xCF -> 0xD2. MUTATION this catches: a wrong wrap constant (0x50/0xD2)
   // or a wrong cp threshold (the wrap would not fire, storing 0x53 / 0xCF).
   const m = run26a6({ selByte: 0x00, p: 0x52, p4: 0xd0 });
-  sub_26a6(m);
+  loc_26a6(m);
   assert.equal(m.mem.read8(0x69e5), 0x50, "(P) inc hits 0x53 -> wraps to 0x50");
   assert.equal(m.mem.read8(0x69e9), 0xd2, "(P+4) dec hits 0xCF -> wraps to 0xD2");
 });
 
-test("sub_26a6 carry-set arm decrements P and increments P+4", () => {
+test("loc_26a6 carry-set arm decrements P and increments P+4", () => {
   // mirror: bit7 of mem[DE] set -> (P) -= 1, (P+4) += 1. MUTATION
   // this catches: the bit7 arm-select polarity (would run the clear arm), and an
   // inc<->dec flip on either set-arm counter (0x61 not 0x5F, or 0x3F not 0x41).
   const m = run26a6({ selByte: 0x80, p: 0x60, p4: 0x40 });
-  sub_26a6(m);
+  loc_26a6(m);
   assert.equal(m.mem.read8(0x69e5), 0x5f, "(P) decremented 0x60 -> 0x5F");
   assert.equal(m.mem.read8(0x69e9), 0x41, "(P+4) incremented 0x40 -> 0x41");
   assert.equal(m.regs.a, 0x41, "A live-out = the P+4 result");
 });
 
-test("sub_26a6 carry-set arm wraps P at 0x4F and P+4 at 0xD3", () => {
+test("loc_26a6 carry-set arm wraps P at 0x4F and P+4 at 0xD3", () => {
   // mirror. (P) 0x50 -> dec 0x4F -> 0x52; (P+4) 0xD2 -> inc 0xD3 ->
   // 0xD0. MUTATION this catches: a wrong wrap constant on the set arm (0x52/0xD0).
   const m = run26a6({ selByte: 0x80, p: 0x50, p4: 0xd2 });
-  sub_26a6(m);
+  loc_26a6(m);
   assert.equal(m.mem.read8(0x69e5), 0x52, "(P) dec hits 0x4F -> wraps to 0x52");
   assert.equal(m.mem.read8(0x69e9), 0xd0, "(P+4) inc hits 0xD3 -> wraps to 0xD0");
 });
 
-// ---- entry_2c03 -- head of the 0x2C.. cluster;
+// ---- loc_2c03 -- head of the 0x2C.. cluster;
 // twin of sub_03a2. The rst 0x30/0x10 gates are the real caller-skip pair; the
 // cluster flow-outs (0x2c7b/0x2c86/0x2c41) are untranslated -> NotImplemented.
 // The default fixture drives every gate so control reaches loc_2c33 and takes the
@@ -4361,19 +4361,19 @@ const run2c03 = (over = {}) => {
   return m;
 };
 
-test("entry_2c03 srl a is LOGICAL not sra -- 0x80 >> 1 = 0x40", () => {
+test("loc_2c03 srl a is LOGICAL not sra -- 0x80 >> 1 = 0x40", () => {
   // TEST 1: srl a @ 0x2C36. At loc_2c33 (0x62b0)=0x80 -> srl -> 0x40,
   // and 0x40 < C=0x50 -> jp c,0x2c41 (throws). MUTATION this catches: sra a
   // sign-extends 0x80 -> 0xC0 >= 0x50, so jp c is NOT taken, the routine falls to
   // ret nc and returns -- no throw, and A would be 0xC0 not 0x40.
   const m = run2c03();
-  assert.doesNotThrow(() => entry_2c03(m), "0x2c41 is translated now -- no frontier throw");
+  assert.doesNotThrow(() => loc_2c03(m), "0x2c41 is translated now -- no frontier throw");
   assert.equal(m.mem.read8(0x6392), 0x01, "jp c,0x2c41 taken -> loc_2c4f ran (srl gave 0x40 < C)");
   assert.equal(m.mem.read8(0x638f), 0x03, "2c41 cluster reached (sra 0xC0 would skip it, leaving 0x00)");
   assert.equal(m.pc, 0x198c, "loc_2c4f ret nz -> back to caller");
 });
 
-test("entry_2c03 reads 0x6393 not the twin sub_03a2 cell 0x6350", () => {
+test("loc_2c03 reads 0x6393 not the twin sub_03a2 cell 0x6350", () => {
   // TEST 2: the prologue is byte-identical to sub_03a2 except 0x01/0x6393
   // vs 0x03/0x6350. Set (0x6393)=0x01 (bit0 -> ret c early) and (0x6350)=0x00.
   // Correct returns at ret c BEFORE ld c,a, so C keeps its entry sentinel.
@@ -4381,42 +4381,42 @@ test("entry_2c03 reads 0x6393 not the twin sub_03a2 cell 0x6350", () => {
   // past ret z and writes C := (0x62b1).
   const m = run2c03({ v6393: 0x01, v6350: 0x00 });
   m.regs.c = 0xee; // sentinel: only ld c,a @ 0x2C11 (past ret c) would overwrite it
-  entry_2c03(m);
+  loc_2c03(m);
   assert.equal(m.pc, 0x198c, "ret c @ 0x2C0B returned to the caller");
   assert.equal(m.regs.c, 0xee, "returned at ret c BEFORE ld c,a -- never read (0x62b1) via 0x6350");
 });
 
-test("entry_2c03 djnz loop compares A against a DECREMENTING B", () => {
+test("loc_2c03 djnz loop compares A against a DECREMENTING B", () => {
   // TEST 3: cp b is inside the loop; B counts 5,4,3 and A=3 matches on
   // the 3rd pass -> loc_2c33 (throws at 0x2c41). MUTATION this catches: comparing
   // against the loop-invariant initial B (5) every pass -- A=3 never equals 5, so
   // the loop exhausts to ret @ 0x2C32 and returns (no throw).
   const m = run2c03({ v6380: 0x05, v601a: 0x03 });
-  assert.doesNotThrow(() => entry_2c03(m), "0x2c41 is translated now -- no frontier throw");
+  assert.doesNotThrow(() => loc_2c03(m), "0x2c41 is translated now -- no frontier throw");
   assert.equal(m.mem.read8(0x6392), 0x01, "match on 3rd pass -> loc_2c33 -> jp c,0x2c41 -> loc_2c4f ran");
   assert.equal(m.pc, 0x198c, "loc_2c4f ret nz -> back to caller");
 });
 
-test("entry_2c03 rst 0x10 skip aborts the routine, not run as a plain call", () => {
+test("loc_2c03 rst 0x10 skip aborts the routine, not run as a plain call", () => {
   // TEST 4: with (0x6200) bit0 CLEAR, sub_0010 does inc sp/inc sp/ret --
   // it SKIPS the caller (returns to 0x198c, SP balanced). MUTATION this catches:
   // modelling rst 0x10 as an ordinary call (dropping the skip guard) -- the body
   // at 0x2C07+ runs anyway on a corrupted stack and control does NOT land at 0x198c.
   const m = run2c03({ v6200: 0x00, v6393: 0x01 });
-  entry_2c03(m);
+  loc_2c03(m);
   assert.equal(m.pc, 0x198c, "rst 0x10 skip returned control to the caller");
   assert.equal(m.regs.sp, 0x6c00, "stack balanced by the skip's inc sp/inc sp");
 });
 
-// ---- entry_2c41 -- continuation of entry_2c03;
+// ---- loc_2c41 -- continuation of loc_2c03;
 // MULTI-ENTRY (0x2C41 + loc_2c49/loc_2c4b/loc_2c4f from the untranslated 2c7b).
 // call 0x0057 is the translated sub_0057 (A = (0x6018)+(0x601a)+(0x6019)). Flow-
-// outs: 0x2c86 (untranslated -> NotImplemented) and entry_2c72 (translated,
-// wired). C is a live-in (entry_2c03's ld c,a).
+// outs: 0x2c86 (untranslated -> NotImplemented) and loc_2c72 (translated,
+// wired). C is a live-in (loc_2c03's ld c,a).
 const run2c41 = (over = {}) => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
-  m.push16(0x198c); // caller (reached via entry_2c03's jump chain)
+  m.push16(0x198c); // caller (reached via loc_2c03's jump chain)
   const v = { v6018: 0x00, v601a: 0x00, v6019: 0x00, c: 0x30, v62b2: 0x30, ...over };
   m.mem.write8(0x6018, v.v6018);
   m.mem.write8(0x601a, v.v601a);
@@ -4426,19 +4426,19 @@ const run2c41 = (over = {}) => {
   return m;
 };
 
-test("entry_2c41 primary entry stores 0x6382=1 and 0x638f=2", () => {
+test("loc_2c41 primary entry stores 0x6382=1 and 0x638f=2", () => {
   // TEST 1: sub_0057 low nibble 0 -> loc_2c49 sets A=1; ld (0x6382),a;
   // inc a; ld (0x638f),a -> 0x638f = 0x6382+1. (0x62b2)!=C -> ret nz returns after
   // the stores. MUTATION this catches: dropping the inc a (0x638f would be 1).
   const m = run2c41({ v62b2: 0x99 }); // != C=0x30 -> ret nz returns
-  entry_2c41(m);
+  loc_2c41(m);
   assert.equal(m.mem.read8(0x6382), 0x01, "0x6382 := 1");
   assert.equal(m.mem.read8(0x638f), 0x02, "0x638f := 0x6382 + 1 = 2 (inc a between the stores)");
   assert.equal(m.pc, 0x198c, "ret nz returned to the caller");
 });
 
-test("entry_2c41 loc_2c4b external entry stores A and A+1", () => {
-  // entry_2c7b jumps to loc_2c4b with its OWN A -> 0x6382=A, 0x638f=A+1.
+test("loc_2c41 loc_2c4b external entry stores A and A+1", () => {
+  // loc_2c7b jumps to loc_2c4b with its OWN A -> 0x6382=A, 0x638f=A+1.
   // Validates the multi-entry model. MUTATION this catches: dropping inc a (== A).
   const m = run2c41({ v62b2: 0x99 }); // != C -> ret nz returns after the stores
   m.regs.a = 0x40;
@@ -4447,47 +4447,47 @@ test("entry_2c41 loc_2c4b external entry stores A and A+1", () => {
   assert.equal(m.mem.read8(0x638f), 0x41, "0x638f := A + 1 (inc a between the stores)");
 });
 
-test("entry_2c41 sub_0057 low nibble nonzero tail-jumps to 0x2c86", () => {
+test("loc_2c41 sub_0057 low nibble nonzero tail-jumps to 0x2c86", () => {
   // and 0x0f; jp nz,0x2c86. sub_0057 = (0x6018)+(0x601a)+(0x6019); set
   // it to 0x03 (low nibble != 0) -> jp nz taken -> untranslated tail (throws).
   // MUTATION this catches: jp z polarity (would fall through to loc_2c49).
   const m = run2c41({ v6018: 0x03, v62b2: 0x99 }); // sum = 3; gate returns clean
-  assert.doesNotThrow(() => entry_2c41(m), "0x2c86 is translated now -- no frontier throw");
+  assert.doesNotThrow(() => loc_2c41(m), "0x2c86 is translated now -- no frontier throw");
   assert.equal(m.mem.read8(0x638f), 0x03, "via 0x2c86 -> loc_2c4f: 0x638f = 3 (loc_2c49 path would give 2)");
   assert.equal(m.mem.read8(0x6382), 0x00, "loc_2c86 CLEARED 0x6382 (loc_2c49 path would leave 1)");
   assert.equal(m.pc, 0x198c, "ret nz -> back to caller");
 });
 
-test("entry_2c41 ret nz returns without decrementing 0x62b2 when not equal to C", () => {
+test("loc_2c41 ret nz returns without decrementing 0x62b2 when not equal to C", () => {
   // TEST 3: cp c / ret nz. (0x62b2) != C -> returns BEFORE sub 0x08.
   // MUTATION this catches: ret z polarity -- it would NOT return and would
   // decrement (0x62b2) by 8.
   const m = run2c41({ v62b2: 0x20, c: 0x10 }); // 0x20 != 0x10 -> ret nz taken
-  entry_2c41(m);
+  loc_2c41(m);
   assert.equal(m.mem.read8(0x62b2), 0x20, "(0x62b2) unchanged -- returned before sub 0x08");
   assert.equal(m.pc, 0x198c, "returned to the caller");
 });
 
-test("entry_2c41 free-slot loop jp z: 5 nonzero records fall through to ret", () => {
+test("loc_2c41 free-slot loop jp z: 5 nonzero records fall through to ret", () => {
   // TEST 2: loc_2c69 jp z finds an EMPTY (zero) record. With all 5
-  // records non-zero it never jumps -> ret @ 0x2C71 without reaching entry_2c72.
-  // MUTATION this catches: jp nz polarity -- it jumps to entry_2c72 on the FIRST
+  // records non-zero it never jumps -> ret @ 0x2C71 without reaching loc_2c72.
+  // MUTATION this catches: jp nz polarity -- it jumps to loc_2c72 on the FIRST
   // non-zero record, which sets bit 7 of 0x6382.
   const m = run2c41({ c: 0x30, v62b2: 0x30 }); // == C -> ret nz falls through to loop
   for (const off of [0x00, 0x20, 0x40, 0x60, 0x80]) m.mem.write8(0x6400 + off, 0x01);
-  entry_2c41(m);
+  loc_2c41(m);
   assert.equal(m.pc, 0x198c, "loop exhausted -> ret @ 0x2C71 -> caller");
-  assert.equal(m.mem.read8(0x6382) & 0x80, 0x00, "entry_2c72 NOT reached -- 0x6382 bit 7 stays clear");
+  assert.equal(m.mem.read8(0x6382) & 0x80, 0x00, "loc_2c72 NOT reached -- 0x6382 bit 7 stays clear");
 });
 
-// ---- entry_2c7b / loc_2c86 -- the multi-entry
-// SOURCES into entry_2c41 (resolves 2c41's). Both tail-jump into the
-// translated loc_2c49/loc_2c4b/loc_2c4f. A and C are entry_2c03 live-ins. The
+// ---- loc_2c7b / loc_2c86 -- the multi-entry
+// SOURCES into loc_2c41 (resolves 2c41's). Both tail-jump into the
+// translated loc_2c49/loc_2c4b/loc_2c4f. A and C are loc_2c03 live-ins. The
 // (0x62b2) gate downstream returns cleanly when (0x62b2) != C.
 const run2c7b = ({ a = 0x00, c = 0x00, v62b2 = 0x99, v6382 = 0x00 } = {}) => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
-  m.push16(0x198c); // final return target (up the entry_2c03 jump chain)
+  m.push16(0x198c); // final return target (up the loc_2c03 jump chain)
   m.regs.a = a;
   m.regs.c = c;
   m.mem.write8(0x62b2, v62b2); // != C by default -> loc_2c4f's ret nz returns
@@ -4495,31 +4495,31 @@ const run2c7b = ({ a = 0x00, c = 0x00, v62b2 = 0x99, v6382 = 0x00 } = {}) => {
   return m;
 };
 
-test("entry_2c7b A+2 == C jumps to loc_2c49 (A kept), else loc_2c4b with A=2", () => {
+test("loc_2c7b A+2 == C jumps to loc_2c49 (A kept), else loc_2c4b with A=2", () => {
   // TEST 1: add a,0x02 / cp c. (a) A=3,C=5 -> A+2==C -> loc_2c49 (sets
   // A=1) -> 0x6382=1, 0x638f=2. (b) A=3,C=9 -> A+2!=C -> loc_2c4b with A=0x02 ->
   // 0x6382=2, 0x638f=3. MUTATION this catches: dropping add a,0x02 -- case (a)
   // then compares 3 vs 5, misses loc_2c49, takes loc_2c4b (0x6382=2, not 1).
   const a = run2c7b({ a: 0x03, c: 0x05 }); // A+2 = 5 == C -> loc_2c49
-  entry_2c7b(a);
+  loc_2c7b(a);
   assert.equal(a.mem.read8(0x6382), 0x01, "loc_2c49 path: 0x6382 := 1");
   assert.equal(a.mem.read8(0x638f), 0x02, "loc_2c49 path: 0x638f := 2");
 
   const b = run2c7b({ a: 0x03, c: 0x09 }); // A+2 = 5 != C=9 -> loc_2c4b, A:=2
-  entry_2c7b(b);
+  loc_2c7b(b);
   assert.equal(b.mem.read8(0x6382), 0x02, "loc_2c4b path: 0x6382 := A = 2");
   assert.equal(b.mem.read8(0x638f), 0x03, "loc_2c4b path: 0x638f := A+1 = 3");
 });
 
-test("loc_2c86 CLEARS 0x6382 (xor a), not entry_2c72's set-bit-7", () => {
+test("loc_2c86 CLEARS 0x6382 (xor a), not loc_2c72's set-bit-7", () => {
   // TEST 2: loc_2c86 does xor a / ld (0x6382),a -> 0x6382 = 0. MUTATION
-  // this catches: confusing it with entry_2c72's `or 0x80` -- 0x40 | 0x80 = 0xC0.
+  // this catches: confusing it with loc_2c72's `or 0x80` -- 0x40 | 0x80 = 0xC0.
   const m = run2c7b({ a: 0x00, c: 0x10, v62b2: 0x20, v6382: 0x40 }); // (0x62b2) != C
   loc_2c86(m);
   assert.equal(m.mem.read8(0x6382), 0x00, "xor a cleared 0x6382 to 0 (not 0xC0)");
 });
 
-test("sub_3f24 subtracts via a wrapping add, and the carry escapes", () => {
+test("loc_3f24 subtracts via a wrapping add, and the carry escapes", () => {
   // The finding a memory diff cannot see: writing
   // this as `hl -= 0x20` gets the SAME ADDRESS and produces NO FLAGS, where
   // `add hl,de` with DE=0xFFE0 sets C, sets H and clears N. Both operands
@@ -4529,7 +4529,7 @@ test("sub_3f24 subtracts via a wrapping add, and the carry escapes", () => {
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
   m.regs.f = 0; // start with carry CLEAR so a set carry can only come from here
-  sub_3f24(m);
+  loc_3f24(m);
 
   assert.equal(m.pc, 0xbeef, "returns to its caller");
   assert.equal(m.regs.hl, 0x748f, "0x74AF + 0xFFE0 wraps to 0x748F");
@@ -4542,11 +4542,11 @@ test("sub_3f24 subtracts via a wrapping add, and the carry escapes", () => {
   assert.equal(0x74af - 0x748f, 0x20);
 });
 
-test("sub_122a replicates ONE 4-byte group down N slots at stride C+4", () => {
+test("loc_122a replicates ONE 4-byte group down N slots at stride C+4", () => {
   // Set up exactly as the ROM does it at
   // 0x1006-0x100F: source 0x101B, dest 0x6707, B=0x08, C=0x1C.
   //
-  // THE TWIN DISCRIMINATOR. sub_11ec (ROM 0x11EC) is this routine with the
+  // THE TWIN DISCRIMINATOR. loc_11ec (ROM 0x11EC) is this routine with the
   // source behaviour INVERTED -- no push/pop, so its HL advances cumulatively
   // and it walks 2*B0 CONSECUTIVE source bytes at stride C+2. Translating one
   // from the other is the failure mode to catch. These assertions are
@@ -4571,7 +4571,7 @@ test("sub_122a replicates ONE 4-byte group down N slots at stride C+4", () => {
   m.regs.bc = 0x081c; // B=8 passes, C=0x1C stride addend
   m.regs.f = 0;       // carry CLEAR, so a set carry can only come from here
   const before = m.cycles;
-  sub_122a(m);
+  loc_122a(m);
 
   assert.equal(m.pc, 0xbeef, "returns to its call site");
 
@@ -4613,7 +4613,7 @@ test("sub_122a replicates ONE 4-byte group down N slots at stride C+4", () => {
   assert.equal(m.cycles - before, 217 * 8 - 5 + 10, "217*8 - 5 + 10 == 1741");
 });
 
-test("sub_122a's `inc e` confines the destination to one page -- SYNTHETIC input", () => {
+test("loc_122a's `inc e` confines the destination to one page -- SYNTHETIC input", () => {
   // THIS INPUT IS NOT PRODUCED BY ANY KNOWN CALL SITE, and the test says so
   // rather than implying otherwise. It exists because the natural inputs
   // CANNOT tell the right translation from the wrong one.
@@ -4645,7 +4645,7 @@ test("sub_122a's `inc e` confines the destination to one page -- SYNTHETIC input
   m.regs.hl = 0x101b;
   m.regs.de = 0x67fe;
   m.regs.bc = 0x0100; // B=1 pass, C=0 -- isolate the inner loop's wrap
-  sub_122a(m);
+  loc_122a(m);
 
   const src = [0, 1, 2, 3].map((i) => ROM[0x101b + i]);
   assert.equal(m.mem.read8(0x67fe), src[0]);
@@ -4659,7 +4659,7 @@ test("sub_122a's `inc e` confines the destination to one page -- SYNTHETIC input
   assert.equal(m.mem.read8(0x6801), 0xaa, "page 0x68 MUST NOT be written");
 });
 
-test("sub_122a's outer djnz re-runs the pushes -- they are body, not setup", () => {
+test("loc_122a's outer djnz re-runs the pushes -- they are body, not setup", () => {
   // The sub_3fa6 trap, in its most convincing disguise: the two pushes and
   // `ld b,0x04` sit at the ROUTINE ENTRY, which is also the outer djnz target.
   // Hoisting them out of the loop would leave pass 2 popping the CALLER's
@@ -4672,14 +4672,14 @@ test("sub_122a's outer djnz re-runs the pushes -- they are body, not setup", () 
   m.regs.hl = 0x101b;
   m.regs.de = 0x6707;
   m.regs.bc = 0x081c;
-  sub_122a(m);
+  loc_122a(m);
 
   assert.equal(m.pc, 0xbeef, "eight passes and the ret still finds its address");
   assert.equal(m.regs.sp, spAfterPush + 2, "SP balanced: the ret consumed exactly one word");
   assert.equal(m.regs.b, 0, "B exhausted by the outer djnz");
 });
 
-test("sub_004e copies 40 bytes from caller-supplied HL, preserving carry", () => {
+test("loc_004e copies 40 bytes from caller-supplied HL, preserving carry", () => {
   // Two findings pinned:
   //
   // 1. HL IS AN IMPLICIT INPUT -- the routine sets DE and BC but never HL,
@@ -4689,14 +4689,14 @@ test("sub_004e copies 40 bytes from caller-supplied HL, preserving carry", () =>
   // 2. LDIR PRESERVES CARRY (it clears H, N and PV and leaves S, Z, C). A
   //    caller's carry survives the call, and `ret c` sits nine bytes away at
   //    0x004B. A translation clobbering flags is wrong in a way no memory
-  //    diff catches -- the same shape as sub_3f24's wrapping add.
+  //    diff catches -- the same shape as loc_3f24's wrapping add.
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
   m.regs.hl = 0x385c; // one of the twelve literal ROM sources
   m.regs.f = F_C;     // carry SET going in
   const before = m.cycles;
-  sub_004e(m);
+  loc_004e(m);
 
   assert.equal(m.pc, 0xbeef, "returns to its call site -- one unconditional ret");
   assert.ok(m.regs.fC, "LDIR MUST PRESERVE CARRY");
@@ -4715,17 +4715,17 @@ test("sub_004e copies 40 bytes from caller-supplied HL, preserving carry", () =>
   m2.regs.sp = 0x6c00;
   m2.push16(0xbeef);
   m2.regs.hl = 0x39f7;
-  sub_004e(m2);
+  loc_004e(m2);
   assert.equal(m2.mem.read8(0x6908), ROM[0x39f7], "source follows the caller's HL");
 });
 
-test("sub_11ec's `inc e` confines the destination to one page -- SYNTHETIC input", () => {
-  // SYNTHETIC, and stated as such. sub_11ec takes DE from its caller, and at
+test("loc_11ec's `inc e` confines the destination to one page -- SYNTHETIC input", () => {
+  // SYNTHETIC, and stated as such. loc_11ec takes DE from its caller, and at
   // all three ROM call sites E stays low (0x83 at 0x11AC), so `inc e` never
   // crosses 0xFF and a 16-bit `regs.de++` would be byte-identical on any real
   // tape.: the boundary has to be synthesised or it is never tested.
   //
-  // Distinct from the sub_122a case in a way that matters: sub_11ec does TWO
+  // Distinct from the loc_122a case in a way that matters: loc_11ec does TWO
   // `inc e` per pass and stores at E and E+2, so a wrap can land BETWEEN the
   // two stores of a single pass. With E = 0xFF the first store lands at
   // 0x66FF and the second at 0x6601 -- backwards by 254, inside page 0x66.
@@ -4737,7 +4737,7 @@ test("sub_11ec's `inc e` confines the destination to one page -- SYNTHETIC input
   m.regs.hl = 0x3e0c; // the live-in, as loc_0fd7 supplies it
   m.regs.de = 0x66ff; // SYNTHETIC: E at the boundary
   m.regs.bc = 0x010e; // ONE pass, so only the intra-pass wrap is under test
-  sub_11ec(m);
+  loc_11ec(m);
 
   assert.equal(m.mem.read8(0x66ff), ROM[0x3e0c], "first store lands at E");
   assert.equal(m.mem.read8(0x6601), ROM[0x3e0d], "second store WRAPS to E+2 in page");
@@ -4749,7 +4749,7 @@ test("sub_11ec's `inc e` confines the destination to one page -- SYNTHETIC input
   assert.equal(m.regs.d, 0x66, "D is never written, so the page cannot change");
 });
 
-test("sub_11d3's `inc l` wraps within the page, and add ix,de sets carry -- SYNTHETIC", () => {
+test("loc_11d3's `inc l` wraps within the page, and add ix,de sets carry -- SYNTHETIC", () => {
   // SYNTHETIC on both axes. At the ROM call sites L is low and IX+DE never
   // approaches 0xFFFF, so neither the `inc l` wrap nor the `add ix,de` carry
   // is exercised and both wrong forms pass on any real tape.
@@ -4770,7 +4770,7 @@ test("sub_11d3's `inc l` wraps within the page, and add ix,de sets carry -- SYNT
   m.regs.hl = 0x66fe; // SYNTHETIC: L at the boundary
   m.regs.de = 0x0010;
   m.regs.b = 0x01; // one pass
-  sub_11d3(m);
+  loc_11d3(m);
 
   assert.deepEqual(
     [0x66fe, 0x66ff, 0x6600, 0x6601].map((a) => m.mem.read8(a)),
@@ -4797,7 +4797,7 @@ test("sub_11d3's `inc l` wraps within the page, and add ix,de sets carry -- SYNT
   c.regs.hl = 0x6600;
   c.regs.b = 0x01;
   c.regs.f = 0; // carry clear going in, so a set carry can only come from the add
-  sub_11d3(c);
+  loc_11d3(c);
   assert.equal(c.regs.ix, 0x0000, "IX wraps modulo 0x10000");
   assert.ok(c.regs.f & F_C, "the 16-bit carry ESCAPES via the ret -- not dead");
   assert.ok(!(c.regs.f & F_N), "add clears N");
@@ -4810,7 +4810,7 @@ test("sub_11d3's `inc l` wraps within the page, and add ix,de sets carry -- SYNT
 
 
 
-test("sub_30e4 zeros B bytes at stride 4 walking L only -- SYNTHETIC wrap boundary", () => {
+test("loc_30e4 zeros B bytes at stride 4 walking L only -- SYNTHETIC wrap boundary", () => {
   // First unit of the 0x1977 closure drain. It does not execute on any current
   // tape (reached only via handler_1977, untranslated), so this UNIT test is
   // its gate -- there is no state/write diff to lean on.
@@ -4822,7 +4822,7 @@ test("sub_30e4 zeros B bytes at stride 4 walking L only -- SYNTHETIC wrap bounda
   for (let a = 0x6a00; a < 0x6b00; a++) m.mem.write8(a, 0xaa);
   m.regs.hl = 0x6a0c;
   m.regs.b = 0x05;
-  sub_30e4(m);
+  loc_30e4(m);
   for (const off of [0x00, 0x04, 0x08, 0x0c, 0x10]) {
     assert.equal(m.mem.read8(0x6a0c + off), 0x00, `zeroed 0x6a0c+${off}`);
   }
@@ -4840,7 +4840,7 @@ test("sub_30e4 zeros B bytes at stride 4 walking L only -- SYNTHETIC wrap bounda
   for (let a = 0x6a00; a < 0x6c00; a++) w.mem.write8(a, 0xaa);
   w.regs.hl = 0x6af8;
   w.regs.b = 0x03;
-  sub_30e4(w);
+  loc_30e4(w);
   assert.equal(w.mem.read8(0x6af8), 0x00, "write at 0xF8");
   assert.equal(w.mem.read8(0x6afc), 0x00, "write at 0xFC");
   assert.equal(w.mem.read8(0x6a00), 0x00, "third write WRAPS to 0x6A00 in-page");
@@ -4848,8 +4848,8 @@ test("sub_30e4 zeros B bytes at stride 4 walking L only -- SYNTHETIC wrap bounda
   assert.equal(w.regs.h, 0x6a, "H stays 0x6A across the wrap");
 });
 
-test("sub_3096 XORs C into two bytes at stride DE -- RMW, not a plain store", () => {
-  // 0x1977-closure drain unit, ungated by execution (reached only via sub_306f,
+test("loc_3096 XORs C into two bytes at stride DE -- RMW, not a plain store", () => {
+  // 0x1977-closure drain unit, ungated by execution (reached only via loc_306f,
   // untranslated), so this is its gate. B=2, stride DE, XOR of the EXISTING byte.
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
@@ -4860,7 +4860,7 @@ test("sub_3096 XORs C into two bytes at stride DE -- RMW, not a plain store", ()
   m.regs.hl = 0x6a00;
   m.regs.de = 0x0004;
   m.regs.c = 0x0f; // the mask
-  sub_3096(m);
+  loc_3096(m);
   // RMW: 0xFF ^ 0x0F = 0xF0 ; 0x0F ^ 0x0F = 0x00. A plain "store C" would give
   // 0x0F at both -- so these values catch a non-XOR translation.
   assert.equal(m.mem.read8(0x6a00), 0xf0, "0xFF ^ 0x0F");
@@ -4870,23 +4870,23 @@ test("sub_3096 XORs C into two bytes at stride DE -- RMW, not a plain store", ()
   assert.equal(m.regs.c, 0x0f, "C is preserved (the mask)");
 });
 
-test("entry_30db seeds sub_30e4 and falls through -- 0x694C + six at 0x6958 stride 4", () => {
-  // 0x1977-closure drain, ungated by execution. entry_30db writes 0x694C then
-  // enters sub_30e4 with HL=0x6958, B=6 (a fallthrough, not a call).
+test("loc_30db seeds loc_30e4 and falls through -- 0x694C + six at 0x6958 stride 4", () => {
+  // 0x1977-closure drain, ungated by execution. loc_30db writes 0x694C then
+  // enters loc_30e4 with HL=0x6958, B=6 (a fallthrough, not a call).
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
   for (let a = 0x6940; a < 0x6980; a++) m.mem.write8(a, 0xaa);
-  entry_30db(m);
+  loc_30db(m);
   assert.equal(m.mem.read8(0x694c), 0x00, "0x694C cleared before the fallthrough");
   for (const off of [0x00, 0x04, 0x08, 0x0c, 0x10, 0x14]) {
-    assert.equal(m.mem.read8(0x6958 + off), 0x00, `sub_30e4 zeroed 0x6958+${off}`);
+    assert.equal(m.mem.read8(0x6958 + off), 0x00, `loc_30e4 zeroed 0x6958+${off}`);
   }
   assert.equal(m.mem.read8(0x695a), 0xaa, "stride 4 gap not touched");
   assert.equal(m.mem.read8(0x694e), 0xaa, "0x694C write is a single byte");
 });
 
-test("sub_3064 copies (HL+BC) to (HL+BC+DE)", () => {
+test("loc_3064 copies (HL+BC) to (HL+BC+DE)", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
@@ -4895,14 +4895,14 @@ test("sub_3064 copies (HL+BC) to (HL+BC+DE)", () => {
   m.regs.hl = 0x6a00;
   m.regs.bc = 0x0010; // HL+BC = 0x6A10
   m.regs.de = 0x0008; // +DE = 0x6A18
-  sub_3064(m);
+  loc_3064(m);
   assert.equal(m.mem.read8(0x6a18), 0x5a, "byte copied to HL+BC+DE");
   assert.equal(m.mem.read8(0x6a10), 0x5a, "source unchanged");
   assert.equal(m.regs.hl, 0x6a18, "HL exits at HL+BC+DE");
 });
 
 // ---------------------------------------------------------------------------
-// entry_3009 -- ROM 0x3009-0x3049. 0x1977-closure drain, UNGATED BY EXECUTION
+// loc_3009 -- ROM 0x3009-0x3049. 0x1977-closure drain, UNGATED BY EXECUTION
 // (callers 0x1C9E/0x1CBA/0x23F4 are untranslated), so these HAND-TRACED unit
 // vectors are its only gate. Every expected value below is derived by stepping
 // the ROM bytes with Z80 semantics BY HAND, never by running
@@ -4916,7 +4916,7 @@ test("sub_3064 copies (HL+BC) to (HL+BC+DE)", () => {
 //   C=0x90 -> {0,1,2,0}
 // ---------------------------------------------------------------------------
 
-test("entry_3009: A=0x05,B=0x02 -> res 2,d/dec d exit returns A=0x04, D=0x00", () => {
+test("loc_3009: A=0x05,B=0x02 -> res 2,d/dec d exit returns A=0x04, D=0x00", () => {
   // HAND TRACE (0x3022 branch, since bit0(0x05)=1):
   //   D=0x05. rrca 0x05->0x82 C=1 -> jp c TAKEN. C=0xB4.
   //   rrca 0x82->0x41 C=0 ; rrca 0x41->0xA0 C=1 -> jp nc NOT taken. C=0x1E.
@@ -4931,7 +4931,7 @@ test("entry_3009: A=0x05,B=0x02 -> res 2,d/dec d exit returns A=0x04, D=0x00", (
   m.push16(0xbeef);
   m.regs.a = 0x05;
   m.regs.b = 0x02;
-  entry_3009(m);
+  loc_3009(m);
   assert.equal(m.regs.a, 0x04, "final exit returns A = 0x04");
   assert.equal(m.regs.d, 0x00, "D = res2(0x05)=0x01 then dec -> 0x00");
   // MUTATION this catches: `res 2,d` clearing the wrong bit or being skipped.
@@ -4940,7 +4940,7 @@ test("entry_3009: A=0x05,B=0x02 -> res 2,d/dec d exit returns A=0x04, D=0x00", (
   // `res 0,d` on 0x05 -> 0x04, dec -> 0x03 (nz), same early exit, A==0x03.
 });
 
-test("entry_3009: A=0x05,B=0x03 -> early `ret nz` returns A=0x01 with CARRY set", () => {
+test("loc_3009: A=0x05,B=0x03 -> early `ret nz` returns A=0x01 with CARRY set", () => {
   // Same input A as above; only B differs, proving B is live-in and steers the
   // loop's exit point. HAND TRACE (0x3022 branch):
   //   C reaches 0x1E, bit2(0x03)=0 -> jp z TAKEN, B stays 3.
@@ -4952,7 +4952,7 @@ test("entry_3009: A=0x05,B=0x03 -> early `ret nz` returns A=0x01 with CARRY set"
   m.push16(0xbeef);
   m.regs.a = 0x05;
   m.regs.b = 0x03;
-  entry_3009(m);
+  loc_3009(m);
   assert.equal(m.regs.a, 0x01, "early ret nz returns A = (C ror2)&3 = 0x01");
   assert.ok(m.regs.fC, "carry from `cp 0x03` (1<3) escapes to the caller (0x23F7 `rra`)");
   // MUTATION this catches: `cp 0x03` dropped or carry not modelled -- the
@@ -4960,7 +4960,7 @@ test("entry_3009: A=0x05,B=0x03 -> early `ret nz` returns A=0x01 with CARRY set"
   // vector also catches hard-coding the loop iteration count.
 });
 
-test("entry_3009: A=0x02,B=0x01 -> non-0x3022 path (rlca + and 0xF0), A=0x02 CARRY set", () => {
+test("loc_3009: A=0x02,B=0x01 -> non-0x3022 path (rlca + and 0xF0), A=0x02 CARRY set", () => {
   // Exercises the branch the other two skip: bit0(0x02)=0 so `jp c` NOT taken,
   // reaching rlca at 0x3017 and the `and 0xF0` join. HAND TRACE:
   //   D=0x02. rrca 0x02->0x01 C=0 -> jp c NOT taken. C=0x93.
@@ -4975,7 +4975,7 @@ test("entry_3009: A=0x02,B=0x01 -> non-0x3022 path (rlca + and 0xF0), A=0x02 CAR
   m.push16(0xbeef);
   m.regs.a = 0x02;
   m.regs.b = 0x01;
-  entry_3009(m);
+  loc_3009(m);
   assert.equal(m.regs.a, 0x02, "non-0x3022 path returns A = 0x02");
   assert.ok(m.regs.fC, "carry from `cp 0x03` (2<3)");
   // MUTATION this catches (VERIFIED by injection): `and 0xf0` -> `and 0x70` (a
@@ -4987,12 +4987,12 @@ test("entry_3009: A=0x02,B=0x01 -> non-0x3022 path (rlca + and 0xF0), A=0x02 CAR
   // a clean fail, and a hang is the ROM's own behaviour when no field matches.)
 });
 
-test("entry_3009 charges exact T-states and step SEQUENCE for A=0x05,B=0x02", () => {
+test("loc_3009 charges exact T-states and step SEQUENCE for A=0x05,B=0x02", () => {
   // Closes the gap flagged on the drain: the image gate cannot see a cycle-
   // VALUE error that does not move a write across a boundary, and
   // stepcheck's default mode audits step TARGETS not counts, while its --draft
   // sequence mode is unreliable on multi-block drafts (this routine has a loop).
-  // Since nothing executes entry_3009 yet, THIS is the only thing gating its
+  // Since nothing executes loc_3009 yet, THIS is the only thing gating its
   // timing. Expected total and sequence are summed from the LISTING by hand
   // for the fully-determined A=0x05,B=0x02 vector (loop runs 4 passes).
   //
@@ -5017,7 +5017,7 @@ test("entry_3009 charges exact T-states and step SEQUENCE for A=0x05,B=0x02", ()
   const steps = [];
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { steps.push(next); return realStep(next, cyc); };
-  entry_3009(m);
+  loc_3009(m);
 
   assert.equal(m.cycles - before, EXPECTED, "total T-states -- a mis-costed instruction fails here");
   const loop = [0x3032, 0x3033, 0x3034, 0x3035, 0x3037, 0x3038]; // one loop pass, cp b -> 0x3038 (the step fix)
@@ -5034,14 +5034,14 @@ test("entry_3009 charges exact T-states and step SEQUENCE for A=0x05,B=0x02", ()
 });
 
 // ---------------------------------------------------------------------------
-// sub_304a -- ROM 0x304A-0x3063. 0x1977-closure drain, UNGATED BY EXECUTION
+// loc_304a -- ROM 0x304A-0x3063. 0x1977-closure drain, UNGATED BY EXECUTION
 // (callers 0x0AF0/0x0B38 are in an untranslated routine; nothing in translated
 // src references 0x304A). Straight-line: loads the index at 0x638E into BC
-// (B=0), calls sub_3064 twice to copy a byte 0x20 lower, decrements the index.
+// (B=0), calls loc_3064 twice to copy a byte 0x20 lower, decrements the index.
 // Expected values derived from the ROM listing by hand.
 // ---------------------------------------------------------------------------
 
-test("sub_304a copies two bytes -0x20 (DE=0xFFE0 wrap) and decrements 0x638E", () => {
+test("loc_304a copies two bytes -0x20 (DE=0xFFE0 wrap) and decrements 0x638E", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
@@ -5049,7 +5049,7 @@ test("sub_304a copies two bytes -0x20 (DE=0xFFE0 wrap) and decrements 0x638E", (
   m.mem.write8(0x7605, 0xab); // source 1 at 0x7600 + 5
   m.mem.write8(0x75c5, 0xcd); // source 2 at 0x75C0 + 5
   // dests power on 0x00, and 0xAB/0xCD != 0x00, so the asserts are non-vacuous.
-  sub_304a(m);
+  loc_304a(m);
   // add hl,de wraps: 0x7605 + 0xFFE0 = 0x75E5 ; 0x75C5 + 0xFFE0 = 0x75A5.
   assert.equal(m.mem.read8(0x75e5), 0xab, "byte 1 copied 0x20 LOWER (0x7605 -> 0x75E5)");
   assert.equal(m.mem.read8(0x75a5), 0xcd, "byte 2 copied 0x20 LOWER (0x75C5 -> 0x75A5)");
@@ -5062,13 +5062,13 @@ test("sub_304a copies two bytes -0x20 (DE=0xFFE0 wrap) and decrements 0x638E", (
   // `dec (hl)` (0x638E would stay 0x05) or B not zeroed (BC != index).
 });
 
-test("sub_304a charges exact T-states and step SEQUENCE (incl. both sub_3064 calls)", () => {
+test("loc_304a charges exact T-states and step SEQUENCE (incl. both loc_3064 calls)", () => {
   // Closes on this vector: image/state gates and stepcheck-targets don't
   // check cycle VALUES; this does. Total and sequence hand-summed from the
   // listing, spanning both real `call 0x3064` expansions and their rets.
-  //   sub_304a own: ld de 10 | ld a,(nn) 13 | ld c,a 4 | ld b,n 7 | ld hl 10 |
+  //   loc_304a own: ld de 10 | ld a,(nn) 13 | ld c,a 4 | ld b,n 7 | ld hl 10 |
   //                 call 17 | ld hl 10 | call 17 | ld hl 10 | dec (hl) 11 | ret 10
-  //   sub_3064 x2 : add hl,bc 11 | ld a,(hl) 7 | add hl,de 11 | ld (hl),a 7 | ret 10
+  //   loc_3064 x2 : add hl,bc 11 | ld a,(hl) 7 | add hl,de 11 | ld (hl),a 7 | ret 10
   const OWN = 10 + 13 + 4 + 7 + 10 + 17 + 10 + 17 + 10 + 11 + 10; // 119
   const CALLEE = (11 + 7 + 11 + 7 + 10) * 2; // 46 * 2 = 92
   const EXPECTED = OWN + CALLEE;
@@ -5082,15 +5082,15 @@ test("sub_304a charges exact T-states and step SEQUENCE (incl. both sub_3064 cal
   const steps = [];
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { steps.push(next); return realStep(next, cyc); };
-  sub_304a(m);
+  loc_304a(m);
 
   assert.equal(m.cycles - before, EXPECTED, "total T-states across both calls");
   assert.deepEqual(steps, [
     0x304d, 0x3050, 0x3051, 0x3053, 0x3056,       // to the first call
-    0x3064, 0x3065, 0x3066, 0x3067, 0x3068,       // sub_3064 body
+    0x3064, 0x3065, 0x3066, 0x3067, 0x3068,       // loc_3064 body
     0x3059,                                        // ret -> return addr 0x3059
     0x305c,                                        // ld hl,0x75c0 -> to second call
-    0x3064, 0x3065, 0x3066, 0x3067, 0x3068,       // sub_3064 body again
+    0x3064, 0x3065, 0x3066, 0x3067, 0x3068,       // loc_3064 body again
     0x305f,                                        // ret -> return addr 0x305f
     0x3062, 0x3063,                                // ld hl,0x638e ; dec (hl)
     0xbeef,                                        // final ret -> pushed caller
@@ -5099,13 +5099,13 @@ test("sub_304a charges exact T-states and step SEQUENCE (incl. both sub_3064 cal
 });
 
 // ---------------------------------------------------------------------------
-// sub_30bd -- ROM 0x30BD-0x30DA. 0x1977-closure drain, UNGATED BY EXECUTION
-// (callers 0x12A3/0x1615 untranslated). Zeros four stride-4 runs via sub_30e4:
+// loc_30bd -- ROM 0x30BD-0x30DA. 0x1977-closure drain, UNGATED BY EXECUTION
+// (callers 0x12A3/0x1615 untranslated). Zeros four stride-4 runs via loc_30e4:
 // three real calls + one TAIL JUMP (jp 0x30e4). Expected values hand-derived
 // from the listing. The tail-jump/stack-splice is the judgement point.
 // ---------------------------------------------------------------------------
 
-test("sub_30bd zeros four stride-4 runs via sub_30e4 and TAIL-JUMPS to its caller", () => {
+test("loc_30bd zeros four stride-4 runs via loc_30e4 and TAIL-JUMPS to its caller", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef); // the caller's return address; the TAIL jump must return HERE
@@ -5114,7 +5114,7 @@ test("sub_30bd zeros four stride-4 runs via sub_30e4 and TAIL-JUMPS to its calle
   let lastTarget = null;
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { lastTarget = next; return realStep(next, cyc); };
-  sub_30bd(m);
+  loc_30bd(m);
 
   // Run 1: HL=0x6950 B=2  -> 0x6950,0x6954
   for (const a of [0x6950, 0x6954]) assert.equal(m.mem.read8(a), 0x00, `run1 zeroed 0x${a.toString(16)}`);
@@ -5128,21 +5128,21 @@ test("sub_30bd zeros four stride-4 runs via sub_30e4 and TAIL-JUMPS to its calle
   for (let k = 0; k < 5; k++) assert.equal(m.mem.read8(0x6a0c + 4 * k), 0x00, `run4 zeroed +${4 * k}`);
   assert.equal(m.mem.read8(0x6a20), 0xaa, "run4 stops after 5 (0x6A20 untouched)");
 
-  // H PRESERVATION: runs 2 and 3 landing in page 0x69 proves sub_30e4 kept H;
+  // H PRESERVATION: runs 2 and 3 landing in page 0x69 proves loc_30e4 kept H;
   // a corrupted H would scatter them elsewhere and 0x6980/0x69B8 would stay 0xAA.
   assert.equal(m.regs.hl, 0x6a20, "HL exits at 0x6A0C + 4*5 = 0x6A20 (last run ran via the tail jump)");
 
-  // THE STACK SPLICE: the tail jump pushed nothing, so sub_30e4's final ret pops
+  // THE STACK SPLICE: the tail jump pushed nothing, so loc_30e4's final ret pops
   // the CALLER's 0xbeef -- SP returns to its initial value and the last step
   // targets 0xbeef. An extra push/ret (tail-jump-as-call) breaks one of these.
   assert.equal(m.regs.sp, 0x6c00, "SP back to initial -- exactly one ret consumed the caller frame");
   assert.equal(lastTarget, 0xbeef, "control returns to the CALLER, not to a spliced 0x30xx frame");
 });
 
-test("sub_30bd charges exact T-states and step COUNT across all four sub_30e4 calls", () => {
+test("loc_30bd charges exact T-states and step COUNT across all four loc_30e4 calls", () => {
   // Closes on this vector (cycle VALUES + missing/extra steps, which
   // stepcheck-targets and the image gate cannot see). All counts from the
-  // listing. sub_30e4 with count B: prologue ld a,l 4 | body (ld(hl) 10 +
+  // listing. loc_30e4 with count B: prologue ld a,l 4 | body (ld(hl) 10 +
   // add 7 + ld l,a 4)=21 x B | djnz 13*(B-1)+8 | ret 10 = 34B+9 cycles, 4B+2 steps.
   const own = 10 + 7 + 17 + 7 + 7 + 17 + 7 + 7 + 17 + 10 + 7 + 10; // 123 (jp=10, calls=17)
   const call30e4Cyc = (b) => 34 * b + 9;
@@ -5160,21 +5160,21 @@ test("sub_30bd charges exact T-states and step COUNT across all four sub_30e4 ca
   let n = 0;
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { n++; return realStep(next, cyc); };
-  sub_30bd(m);
+  loc_30bd(m);
 
   assert.equal(m.cycles - before, EXPECTED, "total T-states -- a mis-costed instr or tail-jump-as-call (call 17 vs jp 10) fails here");
   assert.equal(n, STEPS, "step count -- a spurious ret from mis-modelling the tail jump adds a step here");
 });
 
 // ---------------------------------------------------------------------------
-// sub_306f -- ROM 0x306F-0x3095. 0x1977-closure drain, UNGATED BY EXECUTION
+// loc_306f -- ROM 0x306F-0x3095. 0x1977-closure drain, UNGATED BY EXECUTION
 // (callers 0x0AE8/0x1732/0x1757 untranslated). Every-8th-call gate at 0x62AF;
-// on the 8th, runs loc_0038 (via rst 0x38), two sub_3096, sub_0057, then toggles
+// on the 8th, runs loc_0038 (via rst 0x38), two loc_3096, sub_0057, then toggles
 // bit 7 of 0x692D. Expected values hand-derived from the ROM listing and
 // the (separately-tested) callee bodies.
 // ---------------------------------------------------------------------------
 
-test("sub_306f: 7-of-8 calls hit the ret nz gate and run NO body", () => {
+test("loc_306f: 7-of-8 calls hit the ret nz gate and run NO body", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
@@ -5185,11 +5185,11 @@ test("sub_306f: 7-of-8 calls hit the ret nz gate and run NO body", () => {
   let lastTarget = null;
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { lastTarget = next; return realStep(next, cyc); };
-  sub_306f(m);
+  loc_306f(m);
 
   assert.equal(m.mem.read8(0x62af), 0x06, "counter incremented (inc (hl) ran)");
   assert.equal(m.mem.read8(0x690b), 0xaa, "loc_0038 did NOT run (body gated off)");
-  assert.equal(m.mem.read8(0x6909), 0xaa, "sub_3096 did NOT run");
+  assert.equal(m.mem.read8(0x6909), 0xaa, "loc_3096 did NOT run");
   assert.equal(m.mem.read8(0x692d), 0xaa, "final toggle did NOT run");
   assert.equal(m.mem.read8(0x6018), 0x41, "sub_0057 did NOT run");
   assert.equal(m.regs.sp, 0x6c00, "ret nz popped the caller frame -- SP restored");
@@ -5198,14 +5198,14 @@ test("sub_306f: 7-of-8 calls hit the ret nz gate and run NO body", () => {
   // calls -- 0x690b/0x6909/0x692d would change and this fails.
 });
 
-test("sub_306f: 8th call runs the whole body -- loc_0038, DE-stride sub_3096, bit-7 toggle", () => {
+test("loc_306f: 8th call runs the whole body -- loc_0038, DE-stride loc_3096, bit-7 toggle", () => {
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00;
   m.push16(0xbeef);
   for (let a = 0x6900; a < 0x6940; a++) m.mem.write8(a, 0xaa);
   // loc_0038 subtracts 4 from ten bytes 0x690B stride 4 (0x20 -> 0x1C):
   for (let k = 0; k < 10; k++) m.mem.write8(0x690b + 4 * k, 0x20);
-  // sub_3096 XORs 0x81 into 0x6909/0x690D and 0x691D/0x6921 (0x00 -> 0x81):
+  // loc_3096 XORs 0x81 into 0x6909/0x690D and 0x691D/0x6921 (0x00 -> 0x81):
   for (const a of [0x6909, 0x690d, 0x691d, 0x6921]) m.mem.write8(a, 0x00);
   m.mem.write8(0x692d, 0x00); // final toggle target
   // sub_0057: A = 0x41 + 0x80 + 0x00 = 0xC1 (bit 7 set); `and 0x80` -> 0x80:
@@ -5217,18 +5217,18 @@ test("sub_306f: 8th call runs the whole body -- loc_0038, DE-stride sub_3096, bi
   let lastTarget = null;
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { lastTarget = next; return realStep(next, cyc); };
-  sub_306f(m);
+  loc_306f(m);
 
   assert.equal(m.mem.read8(0x62af), 0x08, "gate passed on the 8th (counter=8)");
   // loc_0038 ran (C=0xFC=-4), first and last of the 10-byte stride-4 run:
   assert.equal(m.mem.read8(0x690b), 0x1c, "loc_0038 subtracted 4 (0x20->0x1C), first byte");
   assert.equal(m.mem.read8(0x692f), 0x1c, "loc_0038 last byte (0x690B+4*9) -- confirms count 10, stride 4");
   assert.equal(m.mem.read8(0x690a), 0xaa, "loc_0038 stride gap untouched");
-  // sub_3096 ran with DE=0x0004 (the loc_0038 side effect):
-  assert.equal(m.mem.read8(0x6909), 0x81, "sub_3096 call 1, byte 0 (0x00^0x81)");
-  assert.equal(m.mem.read8(0x690d), 0x81, "sub_3096 call 1, byte 1 -- 0x6909+DE proves DE=0x0004 (OQ2)");
-  assert.equal(m.mem.read8(0x691d), 0x81, "sub_3096 call 2, byte 0");
-  assert.equal(m.mem.read8(0x6921), 0x81, "sub_3096 call 2, byte 1 -- DE=0x0004 again");
+  // loc_3096 ran with DE=0x0004 (the loc_0038 side effect):
+  assert.equal(m.mem.read8(0x6909), 0x81, "loc_3096 call 1, byte 0 (0x00^0x81)");
+  assert.equal(m.mem.read8(0x690d), 0x81, "loc_3096 call 1, byte 1 -- 0x6909+DE proves DE=0x0004 (OQ2)");
+  assert.equal(m.mem.read8(0x691d), 0x81, "loc_3096 call 2, byte 0");
+  assert.equal(m.mem.read8(0x6921), 0x81, "loc_3096 call 2, byte 1 -- DE=0x0004 again");
   // sub_0057 stored the full sum; the toggle keeps ONLY bit 7 (and 0x80):
   assert.equal(m.mem.read8(0x6018), 0xc1, "sub_0057 wrote the full sum 0x41+0x80+0x00=0xC1");
   assert.equal(m.mem.read8(0x692d), 0x80, "0x692D ^= (sum & 0x80) = 0x80 -- NOT 0xC1, so `and 0x80` held");
@@ -5236,16 +5236,16 @@ test("sub_306f: 8th call runs the whole body -- loc_0038, DE-stride sub_3096, bi
   // rst 0x38 + three calls are all balanced -- SP returns and we exit to caller:
   assert.equal(m.regs.sp, 0x6c00, "SP restored -- rst 0x38 push/pop and every call balanced");
   assert.equal(lastTarget, 0xbeef, "returns to the caller");
-  // MUTATIONS: DE side-effect broken -> sub_3096 XORs 0x6909 twice, 0x690d stays
+  // MUTATIONS: DE side-effect broken -> loc_3096 XORs 0x6909 twice, 0x690d stays
   // 0xAA (fails). `and 0x80` dropped -> 0x692d = 0xC1 (fails). rst-as-skip or
   // unbalanced push/pop -> SP wrong (fails).
 });
 
-test("sub_306f: 8th-call body charges exact T-states and step count", () => {
+test("loc_306f: 8th-call body charges exact T-states and step count", () => {
   // Closes on this vector (cycle VALUES + the rst 0x38 / call push-pop
   // balance, invisible to the image gate and stepcheck-targets). All counts from
-  // the listing, spanning loc_0038 (sub_003d x10), two sub_3096 (x2 each)
-  // and sub_0057. loc_0038=442, sub_3096=96 each, sub_0057=70, own=187.
+  // the listing, spanning loc_0038 (sub_003d x10), two loc_3096 (x2 each)
+  // and sub_0057. loc_0038=442, loc_3096=96 each, sub_0057=70, own=187.
   const own = 10 + 11 + 7 + 7 + 5 + 10 + 7 + 11 + 7 + 10 + 17 + 10 + 17 + 17 + 7 + 10 + 7 + 7 + 10; // 187
   const loc0038 = 10 + 7 + (29 * 10 + (13 * 9 + 8) + 10); // ld de+ld b + sub_003d(body*10 + djnz + ret) = 442
   const sub3096 = 7 + (29 * 2 + (13 + 8) + 10); // 96
@@ -5254,9 +5254,9 @@ test("sub_306f: 8th-call body charges exact T-states and step count", () => {
   // One m.step per executed instruction. The djnz loops emit 5 steps/iteration
   // (ld a,c / add|xor (hl) / ld (hl),a / add hl,de / djnz), which is where a
   // "4 body instrs" miscount goes wrong.
-  const STEPS = 19                     // sub_306f's own 19 instructions
+  const STEPS = 19                     // loc_306f's own 19 instructions
     + (1 + 1 + (5 * 10 + 1))           // loc_0038: ld de, ld b, sub_003d (5*10 + ret) = 53
-    + 2 * (1 + 5 * 2 + 1)              // two sub_3096: ld b, 5*2, ret = 12 each = 24
+    + 2 * (1 + 5 * 2 + 1)              // two loc_3096: ld b, 5*2, ret = 12 each = 24
     + 7;                               // sub_0057's 7 instructions
   assert.equal(loc0038, 442, "loc_0038 hand sum");
   assert.equal(EXPECTED, 891, "full-body hand sum, so a typo is visible");
@@ -5271,14 +5271,14 @@ test("sub_306f: 8th-call body charges exact T-states and step count", () => {
   let n = 0;
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { n++; return realStep(next, cyc); };
-  sub_306f(m);
+  loc_306f(m);
 
   assert.equal(m.cycles - before, EXPECTED, "total T-states across rst 0x38 + 2 calls + sub_0057");
   assert.equal(n, STEPS, "step count -- a mis-modelled rst/call push-pop changes this");
 });
 
-test("sub_31f6 returns two different values in A -- ret nz path returns 0x6018&3, not nothing", () => {
-  // 0x1977-closure drain leaf, UNGATED BY EXECUTION. A is LIVE-OUT (sub_31dd
+test("loc_31f6 returns two different values in A -- ret nz path returns 0x6018&3, not nothing", () => {
+  // 0x1977-closure drain leaf, UNGATED BY EXECUTION. A is LIVE-OUT (loc_31dd
   // does cp 0x01 on it), so the early `ret nz` returns a REAL value. Values
   // hand-derived from the ROM. Run A is the discriminating case.
   const m = new Machine(ROM);
@@ -5287,7 +5287,7 @@ test("sub_31f6 returns two different values in A -- ret nz path returns 0x6018&3
   // A) (0x6018 & 3) = 2 != 1 -> ret nz path returns A = 2 (NOT 0x601a):
   m.mem.write8(0x6018, 0x02);
   m.mem.write8(0x601a, 0x55);
-  sub_31f6(m);
+  loc_31f6(m);
   assert.equal(m.regs.a, 0x02, "ret nz path returns A = 0x6018&3 = 2 (a real value, not 0x601a)");
 
   // B) (0x6018 & 3) = 1 -> fall through returns A = mem[0x601a]:
@@ -5296,7 +5296,7 @@ test("sub_31f6 returns two different values in A -- ret nz path returns 0x6018&3
   w.push16(0xbeef);
   w.mem.write8(0x6018, 0x01);
   w.mem.write8(0x601a, 0x55);
-  sub_31f6(w);
+  loc_31f6(w);
   assert.equal(w.regs.a, 0x55, "fall-through returns A = mem[0x601a] = 0x55");
 
   // C) mask discriminator: 0x6018=0x06 -> &3 = 2 (not 6), != 1 -> returns 2:
@@ -5305,52 +5305,52 @@ test("sub_31f6 returns two different values in A -- ret nz path returns 0x6018&3
   x.push16(0xbeef);
   x.mem.write8(0x6018, 0x06);
   x.mem.write8(0x601a, 0x55);
-  sub_31f6(x);
+  loc_31f6(x);
   assert.equal(x.regs.a, 0x02, "and 0x03 masks 0x06 -> 2 (a missing `and` would give 6, != 1, return 6)");
   // MUTATION: ignore the ret nz (always fall through) -> run A returns
   // 0x55 not 0x02, failing. A missing `and 0x03` -> run C returns 0x06 not 0x02.
 });
 
-test("sub_31dd: `ret m` is SIGNED (not ret c), and the write gate is 3-part", () => {
+test("loc_31dd: `ret m` is SIGNED (not ret c), and the write gate is 3-part", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. Writes 2 to 0x6439/0x6479 only
-  // when 0x6380>=3 (signed) AND sub_31f6==1. Values hand-derived.
+  // when 0x6380>=3 (signed) AND loc_31f6==1. Values hand-derived.
   const mk = () => { const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0xbeef); return m; };
 
   // TEST 1 -- `ret m` SIGNED, SYNTHETIC + LATENT (0x6380 is clamped <6 on real
-  // tapes by sub_30fa; only this synthetic 0x83 exercises signed-vs-unsigned):
+  // tapes by loc_30fa; only this synthetic 0x83 exercises signed-vs-unsigned):
   //   A=0x83 -> cp 0x03 -> A-3=0x80, SIGN set (fM) -> ret m returns BEFORE writes.
   //   A `ret c` mutation would NOT return (carry clear) and would write.
   const t1 = mk();
   t1.mem.write8(0x6380, 0x83);
   t1.mem.write8(0x6018, 0x01); t1.mem.write8(0x601a, 0x01); // would satisfy the writes
   t1.mem.write8(0x6439, 0x00); t1.mem.write8(0x6479, 0x00);
-  sub_31dd(t1);
+  loc_31dd(t1);
   assert.equal(t1.mem.read8(0x6439), 0x00, "ret m (sign set) returns early -- NO write; ret c would write");
   assert.equal(t1.mem.read8(0x6479), 0x00, "0x6479 also unwritten on the signed early return");
 
-  // TEST 2 -- gate: 0x6380>=3 passes the first gate, but sub_31f6 returns != 1
+  // TEST 2 -- gate: 0x6380>=3 passes the first gate, but loc_31f6 returns != 1
   // (0x6018&3==0), so ret nz -> no write:
   const t2 = mk();
   t2.mem.write8(0x6380, 0x05); // >= 3, sign clear -> no early return
-  t2.mem.write8(0x6018, 0x00); // (0x6018&3)=0 -> sub_31f6 returns 0 != 1
+  t2.mem.write8(0x6018, 0x00); // (0x6018&3)=0 -> loc_31f6 returns 0 != 1
   t2.mem.write8(0x6439, 0x00); t2.mem.write8(0x6479, 0x00);
-  sub_31dd(t2);
-  assert.equal(t2.mem.read8(0x6439), 0x00, "sub_31f6 returned 0 != 1 -> ret nz -> no write");
+  loc_31dd(t2);
+  assert.equal(t2.mem.read8(0x6439), 0x00, "loc_31f6 returned 0 != 1 -> ret nz -> no write");
 
   // POSITIVE -- all three conditions met -> both writes happen:
   const t3 = mk();
   t3.mem.write8(0x6380, 0x05);            // >= 3, sign clear
   t3.mem.write8(0x6018, 0x01);            // (0x6018&3)=1
-  t3.mem.write8(0x601a, 0x01);            // 0x601a=1 -> sub_31f6 returns 1
+  t3.mem.write8(0x601a, 0x01);            // 0x601a=1 -> loc_31f6 returns 1
   t3.mem.write8(0x6439, 0x00); t3.mem.write8(0x6479, 0x00);
-  sub_31dd(t3);
+  loc_31dd(t3);
   assert.equal(t3.mem.read8(0x6439), 0x02, "all three conditions -> 0x6439 = 2");
   assert.equal(t3.mem.read8(0x6479), 0x02, "and 0x6479 = 2");
   // MUTATIONS: `ret c` instead of `ret m` -> TEST 1 writes (fails);
   // drop the `ret nz` -> TEST 2 writes (fails).
 });
 
-test("sub_3fc0 writes 3 to 0x694D and advances HL to 0x694F (live-out)", () => {
+test("loc_3fc0 writes 3 to 0x694D and advances HL to 0x694F (live-out)", () => {
   // 0x1977-closure drain leaf, UNGATED BY EXECUTION. Values hand-derived:
   // the 0x03 is the ROM immediate at 0x3FC4; 0x694F = 0x694D + 2 (two inc l).
   const m = new Machine(ROM);
@@ -5358,7 +5358,7 @@ test("sub_3fc0 writes 3 to 0x694D and advances HL to 0x694F (live-out)", () => {
   m.push16(0xbeef);
   m.mem.write8(0x694d, 0xff); // plant a distinguishable value (non-vacuous vs 0x03)
   m.mem.write8(0x694e, 0xaa); // must NOT be written (stride skips it)
-  sub_3fc0(m);
+  loc_3fc0(m);
   assert.equal(m.mem.read8(0x694d), 0x03, "wrote 0x03 (ROM 0x3FC4 immediate) to 0x694D");
   assert.equal(m.mem.read8(0x694e), 0xaa, "0x694E skipped -- not written");
   assert.equal(m.regs.hl, 0x694f, "HL advanced by 2 to 0x694F (live-out; two inc l)");
@@ -5367,7 +5367,7 @@ test("sub_3fc0 writes 3 to 0x694D and advances HL to 0x694F (live-out)", () => {
   // the two inc l leaves HL at 0x694D, failing the HL assert.
 });
 
-test("entry_34f3 scatter-gathers object bytes in order [+3,+7,+8,+5] into a record", () => {
+test("loc_34f3 scatter-gathers object bytes in order [+3,+7,+8,+5] into a record", () => {
   // MARQUEE (0x1977-closure drain, UNGATED). For each non-empty object at stride
   // 0x20 from 0x6400, gather mem[P+3],[P+7],[P+8],[P+5] into a 4-byte record at
   // 0x69D0. Offset 0 (the flag) is NOT copied. Offsets are the ROM's inc/dec l
@@ -5383,7 +5383,7 @@ test("entry_34f3 scatter-gathers object bytes in order [+3,+7,+8,+5] into a reco
   m.mem.write8(0x6408, 0xa8); // P+8
   m.mem.write8(0x6405, 0xa5); // P+5
   m.mem.write8(0x6404, 0x44); // P+4 -- a sequential copy would wrongly grab this
-  entry_34f3(m);
+  loc_34f3(m);
   assert.equal(m.mem.read8(0x69d0), 0xa3, "dest[0] = mem[P+3]");
   assert.equal(m.mem.read8(0x69d1), 0xa7, "dest[1] = mem[P+7] (NOT P+4=0x44)");
   assert.equal(m.mem.read8(0x69d2), 0xa8, "dest[2] = mem[P+8]");
@@ -5391,7 +5391,7 @@ test("entry_34f3 scatter-gathers object bytes in order [+3,+7,+8,+5] into a reco
   // MUTATION: sequential copy +3,+4,+5,+6 -> dest[1]=0x44 not 0xA7, fails.
 });
 
-test("entry_34f3: an EMPTY object still advances DE by 4, keeping records aligned", () => {
+test("loc_34f3: an EMPTY object still advances DE by 4, keeping records aligned", () => {
   // Object 0 empty, object 1 non-empty. Object 1's record must land at the SECOND
   // record slot (0x69D4), because object 0's empty pass advanced DE by 4.
   const m = new Machine(ROM);
@@ -5405,7 +5405,7 @@ test("entry_34f3: an EMPTY object still advances DE by 4, keeping records aligne
   m.mem.write8(0x6427, 0xb7);
   m.mem.write8(0x6428, 0xb8);
   m.mem.write8(0x6425, 0xb5);
-  entry_34f3(m);
+  loc_34f3(m);
   assert.equal(m.mem.read8(0x69d0), 0x00, "first record slot untouched (object 0 was empty)");
   assert.equal(m.mem.read8(0x69d4), 0xb3, "object 1's record lands at 0x69D4 -- empty pass advanced DE");
   assert.equal(m.mem.read8(0x69d5), 0xb7, "object 1 dest[1] at the second record");
@@ -5413,7 +5413,7 @@ test("entry_34f3: an EMPTY object still advances DE by 4, keeping records aligne
   // and 0x69D4 stays 0x00 -- fails.
 });
 
-test("entry_34f3 charges exact T-states and step count for 5 empty objects", () => {
+test("loc_34f3 charges exact T-states and step count for 5 empty objects", () => {
   // pin on the loop mechanics (the all-empty path is fully determinate).
   // Counts from the listing. Empty iteration (djnz taken) = 89 T / 14 steps;
   // the last (djnz not taken) = 84 T. Prologue 27 T / 3 steps; ret 10 T / 1 step.
@@ -5432,12 +5432,12 @@ test("entry_34f3 charges exact T-states and step count for 5 empty objects", () 
   let n = 0;
   const realStep = m.step.bind(m);
   m.step = (next, cyc) => { n++; return realStep(next, cyc); };
-  entry_34f3(m);
+  loc_34f3(m);
   assert.equal(m.cycles - before, EXPECTED, "total T-states, 5 empty objects");
   assert.equal(n, STEPS, "step count");
 });
 
-test("entry_330f: timer down-counts, reloads to 0x2B on expiry (dec -> 0x2A)", () => {
+test("loc_330f: timer down-counts, reloads to 0x2B on expiry (dec -> 0x2A)", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in (object pointer).
   // Every path falls through loc_3332's dec, so a reload yields 0x2B-1 = 0x2A.
   // Values ROM-sourced (0x2B is the 0x3319 immediate).
@@ -5447,7 +5447,7 @@ test("entry_330f: timer down-counts, reloads to 0x2B on expiry (dec -> 0x2A)", (
   const a = mk();
   a.mem.write8(0x6416, 0x05);
   a.mem.write8(0x640d, 0x07); // state must NOT be reset on this path
-  entry_330f(a);
+  loc_330f(a);
   assert.equal(a.mem.read8(0x6416), 0x04, "timer 5 -> 4 (dec only)");
   assert.equal(a.mem.read8(0x640d), 0x07, "state untouched while the timer runs");
 
@@ -5456,13 +5456,13 @@ test("entry_330f: timer down-counts, reloads to 0x2B on expiry (dec -> 0x2A)", (
   b.mem.write8(0x6416, 0x00);
   b.mem.write8(0x6018, 0x00); // bit 0 clear -> jp nc taken
   b.mem.write8(0x640d, 0x07);
-  entry_330f(b);
+  loc_330f(b);
   assert.equal(b.mem.read8(0x6416), 0x2a, "reload 0x2B then dec -> 0x2A");
   assert.equal(b.mem.read8(0x640d), 0x00, "state reset to 0 on reload");
   // MUTATION: reload 0x2C -> 0x2B here, fails.
 });
 
-test("entry_330f: state goes 0 -> 1 on 0x6018 bit 0; loc_3336 (state=2) never fires", () => {
+test("loc_330f: state goes 0 -> 1 on 0x6018 bit 0; loc_3336 (state=2) never fires", () => {
   // Pins the FINDING: 0x331B resets state to 0, so the `cp 0x01` at
   // 0x3329 never matches and loc_3336 (state := 2) is UNREACHABLE. state=2 must
   // not be producible by any input.
@@ -5473,7 +5473,7 @@ test("entry_330f: state goes 0 -> 1 on 0x6018 bit 0; loc_3336 (state=2) never fi
   m.mem.write8(0x6416, 0x00); // expired -> reload path
   m.mem.write8(0x6018, 0x01); // bit 0 SET -> jp nc NOT taken, reach 0x3326
   m.mem.write8(0x640d, 0x07); // a prior state -- must be RESET to 0, then set to 1
-  entry_330f(m);
+  loc_330f(m);
   assert.equal(m.mem.read8(0x640d), 0x01, "state := 1 (NOT 2 -- loc_3336 is unreachable)");
   assert.notEqual(m.mem.read8(0x640d), 0x02, "state=2 is not producible via this routine");
   assert.equal(m.mem.read8(0x6416), 0x2a, "and the timer still reloads+decs to 0x2A");
@@ -5483,11 +5483,11 @@ test("entry_330f: state goes 0 -> 1 on 0x6018 bit 0; loc_3336 (state=2) never fi
   w.regs.sp = 0x6c00; w.push16(0xbeef); w.regs.ix = 0x6400;
   w.mem.write8(0x6416, 0x00); w.mem.write8(0x6018, 0x01);
   w.mem.write8(0x640d, 0x01); // pre-set state = 1: still cannot reach loc_3336
-  entry_330f(w);
+  loc_330f(w);
   assert.equal(w.mem.read8(0x640d), 0x01, "pre-set state=1 still yields 1, not 2 (reset defeats the check)");
 });
 
-test("sub_3409 frame timer: reload 2, advance frame, and xor 0x02 TOGGLES at nibble 0x0F", () => {
+test("loc_3409 frame timer: reload 2, advance frame, and xor 0x02 TOGGLES at nibble 0x0F", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. Values ROM-sourced
   // (reload 0x02 at 0x3413; the 0x0F mask/compare; the 0x02 xor operand).
   const mk = () => { const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0xbeef); m.regs.ix = 0x6400; return m; };
@@ -5496,7 +5496,7 @@ test("sub_3409 frame timer: reload 2, advance frame, and xor 0x02 TOGGLES at nib
   const a = mk();
   a.mem.write8(0x6415, 0x02);
   a.mem.write8(0x6407, 0x30);
-  sub_3409(a);
+  loc_3409(a);
   assert.equal(a.mem.read8(0x6415), 0x01, "timer 2 -> 1 (dec only)");
   assert.equal(a.mem.read8(0x6407), 0x30, "frame untouched while the timer runs");
 
@@ -5504,7 +5504,7 @@ test("sub_3409 frame timer: reload 2, advance frame, and xor 0x02 TOGGLES at nib
   const b = mk();
   b.mem.write8(0x6415, 0x00);
   b.mem.write8(0x6407, 0x30); // inc -> 0x31, low nibble 1 != 0xF
-  sub_3409(b);
+  loc_3409(b);
   assert.equal(b.mem.read8(0x6415), 0x02, "timer reloaded to 2");
   assert.equal(b.mem.read8(0x6407), 0x31, "frame advanced 0x30 -> 0x31, no xor");
 
@@ -5513,7 +5513,7 @@ test("sub_3409 frame timer: reload 2, advance frame, and xor 0x02 TOGGLES at nib
   const c = mk();
   c.mem.write8(0x6415, 0x00);
   c.mem.write8(0x6407, 0x0e);
-  sub_3409(c);
+  loc_3409(c);
   assert.equal(c.mem.read8(0x6407), 0x0d, "0x0F ^ 0x02 = 0x0D -- xor TOGGLES (bit 1 was set, so it CLEARS)");
 
   // D) the toggle in the other direction: 0x1D + 1 = 0x1E? no -- use 0x2E -> 0x2F,
@@ -5522,20 +5522,20 @@ test("sub_3409 frame timer: reload 2, advance frame, and xor 0x02 TOGGLES at nib
   const d = mk();
   d.mem.write8(0x6415, 0x00);
   d.mem.write8(0x6407, 0x4e);
-  sub_3409(d);
+  loc_3409(d);
   assert.equal(d.mem.read8(0x6407), 0x4d, "0x4F ^ 0x02 = 0x4D");
   // MUTATION: `+2` gives 0x11/0x51; `|2` gives 0x0F/0x4F -- both fail run C/D.
 });
 
-test("entry_33e7 adjusts (ix+0x0f) by state (ix+0x0d) and the period-2 sub-timer", () => {
-  // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. Calls sub_3409 FIRST;
-  // (ix+0x15) is planted non-zero so sub_3409 just decs its own timer and leaves
+test("loc_33e7 adjusts (ix+0x0f) by state (ix+0x0d) and the period-2 sub-timer", () => {
+  // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. Calls loc_3409 FIRST;
+  // (ix+0x15) is planted non-zero so loc_3409 just decs its own timer and leaves
   // (ix+0x07) alone, isolating this routine's logic. Values ROM-sourced (cp 0x08,
   // the 0x02 reload).
   const mk = () => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0xbeef); m.regs.ix = 0x6400;
-    m.mem.write8(0x6415, 0x05); // sub_3409's timer: non-zero -> it only decs this
+    m.mem.write8(0x6415, 0x05); // loc_3409's timer: non-zero -> it only decs this
     m.mem.write8(0x6407, 0x30); // frame: must stay untouched on that path
     return m;
   };
@@ -5544,17 +5544,17 @@ test("entry_33e7 adjusts (ix+0x0f) by state (ix+0x0d) and the period-2 sub-timer
   const a = mk();
   a.mem.write8(0x640d, 0x03); // state 3 != 8
   a.mem.write8(0x640f, 0x10);
-  entry_33e7(a);
+  loc_33e7(a);
   assert.equal(a.mem.read8(0x640f), 0x11, "state != 8 -> inc (ix+0x0f)");
-  assert.equal(a.mem.read8(0x6415), 0x04, "sub_3409 ran first (its timer 5 -> 4)");
-  assert.equal(a.mem.read8(0x6407), 0x30, "sub_3409 did not advance the frame");
+  assert.equal(a.mem.read8(0x6415), 0x04, "loc_3409 ran first (its timer 5 -> 4)");
+  assert.equal(a.mem.read8(0x6407), 0x30, "loc_3409 did not advance the frame");
 
   // B) state == 8, sub-timer != 0 -> dec (ix+0x14), (ix+0x0f) untouched
   const b = mk();
   b.mem.write8(0x640d, 0x08);
   b.mem.write8(0x6414, 0x02);
   b.mem.write8(0x640f, 0x10);
-  entry_33e7(b);
+  loc_33e7(b);
   assert.equal(b.mem.read8(0x6414), 0x01, "sub-timer 2 -> 1");
   assert.equal(b.mem.read8(0x640f), 0x10, "(ix+0x0f) untouched while the sub-timer runs");
 
@@ -5563,14 +5563,14 @@ test("entry_33e7 adjusts (ix+0x0f) by state (ix+0x0d) and the period-2 sub-timer
   c.mem.write8(0x640d, 0x08);
   c.mem.write8(0x6414, 0x00);
   c.mem.write8(0x640f, 0x10);
-  entry_33e7(c);
+  loc_33e7(c);
   assert.equal(c.mem.read8(0x6414), 0x02, "sub-timer reloaded to 2");
   assert.equal(c.mem.read8(0x640f), 0x0f, "and (ix+0x0f) DECREMENTED (0x10 -> 0x0F)");
   // MUTATION: swapping inc/dec on (ix+0x0f) makes A give 0x0F and C give 0x11 --
   // the two paths move it in OPPOSITE directions, so a swap fails both.
 });
 
-test("sub_32d6 down-counter: the dec (ix+0x1c) Z flag drives the jp nz (the primitive's case)", () => {
+test("loc_32d6 down-counter: the dec (ix+0x1c) Z flag drives the jp nz (the primitive's case)", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. This is the routine
   // the incMem8/decMem8 primitive was built for: `dec (ix+0x1c)` at 0x32FD sets
   // the Z that `jp nz` at 0x3300 reads. Values ROM-sourced (cp 0x00/0x01, 0xFF
@@ -5578,32 +5578,32 @@ test("sub_32d6 down-counter: the dec (ix+0x1c) Z flag drives the jp nz (the prim
   const mk = () => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00; m.push16(0xbeef); m.regs.ix = 0x6400;
-    m.mem.write8(0x6416, 0x05); // entry_330f's timer, if it gets called
+    m.mem.write8(0x6416, 0x05); // loc_330f's timer, if it gets called
     return m;
   };
 
   // TEST 1 -- counter 3 -> 2, still non-zero: takes jp nz to loc_32f8, zeroes
-  // (ix+0x0d), and must NOT call entry_330f (which would touch 0x6416).
+  // (ix+0x0d), and must NOT call loc_330f (which would touch 0x6416).
   const a = mk();
   a.mem.write8(0x641c, 0x03);
   a.mem.write8(0x640d, 0x09);
   a.mem.write8(0x6419, 0x77);
-  sub_32d6(a);
+  loc_32d6(a);
   assert.equal(a.mem.read8(0x641c), 0x02, "counter decremented 3 -> 2");
   assert.equal(a.mem.read8(0x640d), 0x00, "loc_32f8 zeroed (ix+0x0d)");
   assert.equal(a.mem.read8(0x6419), 0x77, "(ix+0x19) untouched -- loc_3303 NOT taken");
-  assert.equal(a.mem.read8(0x6416), 0x05, "entry_330f NOT called on this path");
+  assert.equal(a.mem.read8(0x6416), 0x05, "loc_330f NOT called on this path");
 
   // TEST 2 -- counter 1 -> 0: the dec's Z is SET, so jp nz is NOT taken and it
-  // falls into loc_3303 (zero 0x19/0x1c) then calls entry_330f. THIS is the
+  // falls into loc_3303 (zero 0x19/0x1c) then calls loc_330f. THIS is the
   // branch a flag-dropping RMW would never reach.
   const b = mk();
   b.mem.write8(0x641c, 0x01);
   b.mem.write8(0x6419, 0x77);
-  sub_32d6(b);
+  loc_32d6(b);
   assert.equal(b.mem.read8(0x641c), 0x00, "counter hit zero, then loc_3303 zeroes it");
   assert.equal(b.mem.read8(0x6419), 0x00, "loc_3303 zeroed (ix+0x19) -- the hit-zero branch RAN");
-  assert.equal(b.mem.read8(0x6416), 0x04, "entry_330f WAS called (its timer 5 -> 4)");
+  assert.equal(b.mem.read8(0x6416), 0x04, "loc_330f WAS called (its timer 5 -> 4)");
 
   // TEST 3 -- the unsigned borrow: counter already 0 and armed ((ix+0x1d)==1).
   //   0x6205 - (ix+0x0f): borrow -> loc_3303 ; no borrow -> reload 0xFF.
@@ -5612,24 +5612,24 @@ test("sub_32d6 down-counter: the dec (ix+0x1c) Z flag drives the jp nz (the prim
   c.mem.write8(0x641d, 0x01);
   c.mem.write8(0x6205, 0x50);
   c.mem.write8(0x640f, 0x10);
-  sub_32d6(c);
+  loc_32d6(c);
   assert.equal(c.mem.read8(0x641c), 0xff, "no borrow -> (ix+0x1c) reloaded to 0xFF");
   assert.equal(c.mem.read8(0x641d), 0x00, "(ix+0x1d) disarmed");
 
-  const d = mk(); // borrow: 0x10 - 0x50 < 0, carry set -> loc_3303 + entry_330f
+  const d = mk(); // borrow: 0x10 - 0x50 < 0, carry set -> loc_3303 + loc_330f
   d.mem.write8(0x641c, 0x00);
   d.mem.write8(0x641d, 0x01);
   d.mem.write8(0x6205, 0x10);
   d.mem.write8(0x640f, 0x50);
   d.mem.write8(0x6419, 0x77);
-  sub_32d6(d);
+  loc_32d6(d);
   assert.equal(d.mem.read8(0x6419), 0x00, "borrow -> loc_3303 zeroed (ix+0x19)");
   assert.equal(d.mem.read8(0x641c), 0x00, "and (ix+0x1c) zeroed, NOT reloaded to 0xFF");
-  assert.equal(d.mem.read8(0x6416), 0x04, "entry_330f called on the borrow path");
+  assert.equal(d.mem.read8(0x6416), 0x04, "loc_330f called on the borrow path");
 });
 
 
-test("sub_342c walks the animation table; the adc-hl zero test gates re-initialisation", () => {
+test("loc_342c walks the animation table; the adc-hl zero test gates re-initialisation", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. The saved pointer is
   // (ix+0x1a):(ix+0x1b). Values ROM-sourced: the table base 0x3A8C, the 0x26 seed,
   // the 0xAA terminator, and ROM[0x3A8C] = 0xE8.
@@ -5638,7 +5638,7 @@ test("sub_342c walks the animation table; the adc-hl zero test gates re-initiali
   // A) FIRST CALL: saved pointer is 0 -> adc hl,bc sets Z -> initialise to 0x3A8C.
   const a = mk();
   a.mem.write8(0x641a, 0x00); a.mem.write8(0x641b, 0x00);
-  sub_342c(a);
+  loc_342c(a);
   assert.equal(a.mem.read8(0x6403), 0x27, "seeded 0x26 then inc -> 0x27");
   assert.equal(a.mem.read8(0x6405), 0xe8, "stored ROM[0x3A8C] = 0xE8");
   assert.equal(a.mem.read8(0x641a), 0x8d, "pointer advanced to 0x3A8D (low)");
@@ -5652,7 +5652,7 @@ test("sub_342c walks the animation table; the adc-hl zero test gates re-initiali
   b.mem.write8(0x641a, 0x00); b.mem.write8(0x641b, 0x62); // HL = 0x6200 (work RAM)
   b.mem.write8(0x6200, 0x55);
   b.mem.write8(0x6403, 0x10);
-  sub_342c(b);
+  loc_342c(b);
   assert.equal(b.mem.read8(0x6403), 0x11, "counter advanced 0x10 -> 0x11 -- NOT re-seeded to 0x27");
   assert.equal(b.mem.read8(0x6405), 0x55, "stored the entry at the saved pointer");
   assert.equal(b.mem.read8(0x641a), 0x01, "pointer advanced to 0x6201 (low)");
@@ -5666,7 +5666,7 @@ test("sub_342c walks the animation table; the adc-hl zero test gates re-initiali
   c.mem.write8(0x6403, 0x40);
   c.mem.write8(0x6405, 0x77);
   for (const off of [0x13, 0x18, 0x0d, 0x1c]) c.mem.write8(0x6400 + off, 0x99);
-  sub_342c(c);
+  loc_342c(c);
   for (const off of [0x13, 0x18, 0x0d, 0x1c]) {
     assert.equal(c.mem.read8(0x6400 + off), 0x00, `finalize zeroed (ix+0x${off.toString(16)})`);
   }
@@ -5677,9 +5677,9 @@ test("sub_342c walks the animation table; the adc-hl zero test gates re-initiali
   assert.equal(c.mem.read8(0x6405), 0x77, "(ix+0x05) NOT overwritten on the terminator path");
 });
 
-test("sub_3478 is sub_342c's TWIN: own table 0x3AAC, direction state machine, tail-jump exit", () => {
-  // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. sub_3478 has NO ret:
-  // both exits jp into sub_342c's loc_3445 with nothing pushed, so that tail's
+test("loc_3478 is loc_342c's TWIN: own table 0x3AAC, direction state machine, tail-jump exit", () => {
+  // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. loc_3478 has NO ret:
+  // both exits jp into loc_342c's loc_3445 with nothing pushed, so that tail's
   // ret returns to OUR caller. Values ROM-sourced (table 0x3AAC, bases 0x7E/0x80).
   const mk = () => { const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0xbeef); m.regs.ix = 0x6400; return m; };
   const ROM_3AAC = ROM[0x3aac];
@@ -5689,7 +5689,7 @@ test("sub_3478 is sub_342c's TWIN: own table 0x3AAC, direction state machine, ta
   const a = mk();
   a.mem.write8(0x641a, 0x00); a.mem.write8(0x641b, 0x00);
   a.mem.write8(0x6203, 0x80); // bit 7 set
-  sub_3478(a);
+  loc_3478(a);
   assert.equal(a.mem.read8(0x640d), 0x01, "forward direction state = 1");
   assert.equal(a.mem.read8(0x6403), 0x7f, "forward base 0x7E then INC -> 0x7F");
   assert.equal(a.mem.read8(0x6405), ROM_3AAC, "shared tail stored ROM[0x3AAC] -- this twin's OWN table");
@@ -5702,7 +5702,7 @@ test("sub_3478 is sub_342c's TWIN: own table 0x3AAC, direction state machine, ta
   const b = mk();
   b.mem.write8(0x641a, 0x00); b.mem.write8(0x641b, 0x00);
   b.mem.write8(0x6203, 0x00); // bit 7 clear
-  sub_3478(b);
+  loc_3478(b);
   assert.equal(b.mem.read8(0x640d), 0x02, "backward direction state = 2");
   assert.equal(b.mem.read8(0x6403), 0x7f, "backward base 0x80 then DEC -> 0x7F");
 
@@ -5712,7 +5712,7 @@ test("sub_3478 is sub_342c's TWIN: own table 0x3AAC, direction state machine, ta
   c.mem.write8(0x6200, 0x55);
   c.mem.write8(0x640d, 0x02); // backward
   c.mem.write8(0x6403, 0x40);
-  sub_3478(c);
+  loc_3478(c);
   assert.equal(c.mem.read8(0x6403), 0x3f, "resumed backward: 0x40 DEC -> 0x3F (no re-seed)");
   assert.equal(c.mem.read8(0x6405), 0x55, "shared tail stored the entry at the saved pointer");
 
@@ -5722,11 +5722,11 @@ test("sub_3478 is sub_342c's TWIN: own table 0x3AAC, direction state machine, ta
   d.mem.write8(0x6200, 0x55);
   d.mem.write8(0x640d, 0x01); // forward
   d.mem.write8(0x6403, 0x40);
-  sub_3478(d);
+  loc_3478(d);
   assert.equal(d.mem.read8(0x6403), 0x41, "resumed forward: 0x40 INC -> 0x41 -- opposite of C");
 });
 
-test("sub_34b9 selects table by 0x6203 bit 7, indexes by (0x6019 & 6), pairs the fields", () => {
+test("loc_34b9 selects table by 0x6203 bit 7, indexes by (0x6019 & 6), pairs the fields", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. Expected values are
   // the ROM tables themselves: 0x3AC4 = ee f0 db a0 e6 c8 d6 78,
   // 0x3AD4 = 1b c8 23 a0 2b 78 12 f0.
@@ -5736,7 +5736,7 @@ test("sub_34b9 selects table by 0x6203 bit 7, indexes by (0x6019 & 6), pairs the
   const a = mk();
   a.mem.write8(0x6227, 0x03);
   a.mem.write8(0x6403, 0x99); a.mem.write8(0x640d, 0x99);
-  sub_34b9(a);
+  loc_34b9(a);
   assert.equal(a.mem.read8(0x6403), 0x99, "ret z fired -- (ix+0x03) untouched");
   assert.equal(a.mem.read8(0x640d), 0x99, "and (ix+0x0d) not cleared");
 
@@ -5746,7 +5746,7 @@ test("sub_34b9 selects table by 0x6203 bit 7, indexes by (0x6019 & 6), pairs the
   b.mem.write8(0x6203, 0x00); // bit 7 clear
   b.mem.write8(0x6019, 0x00); // index 0
   for (const off of [0x0d, 0x18, 0x1c]) b.mem.write8(0x6400 + off, 0x99);
-  sub_34b9(b);
+  loc_34b9(b);
   assert.equal(b.mem.read8(0x6403), 0xee, "table 0x3AC4[0] = 0xEE -> (ix+0x03)");
   assert.equal(b.mem.read8(0x640e), 0xee, "SAME byte also into (ix+0x0e)");
   assert.equal(b.mem.read8(0x6405), 0xf0, "table 0x3AC4[1] = 0xF0 -> (ix+0x05)");
@@ -5761,7 +5761,7 @@ test("sub_34b9 selects table by 0x6203 bit 7, indexes by (0x6019 & 6), pairs the
   c.mem.write8(0x6227, 0x00);
   c.mem.write8(0x6203, 0x80); // bit 7 SET
   c.mem.write8(0x6019, 0x00);
-  sub_34b9(c);
+  loc_34b9(c);
   assert.equal(c.mem.read8(0x6403), 0x1b, "table 0x3AD4[0] = 0x1B (NOT 0xEE) -- bit 7 set picks 0x3AD4");
   assert.equal(c.mem.read8(0x6405), 0xc8, "table 0x3AD4[1] = 0xC8");
 
@@ -5771,58 +5771,58 @@ test("sub_34b9 selects table by 0x6203 bit 7, indexes by (0x6019 & 6), pairs the
   d.mem.write8(0x6227, 0x00);
   d.mem.write8(0x6203, 0x00);
   d.mem.write8(0x6019, 0x07); // & 6 -> 6 (even), NOT 7
-  sub_34b9(d);
+  loc_34b9(d);
   assert.equal(d.mem.read8(0x6403), 0xd6, "0x07 & 6 = 6 -> 0x3AC4[6] = 0xD6 (an &7 would give 0x78)");
   assert.equal(d.mem.read8(0x6405), 0x78, "0x3AC4[7] = 0x78");
 });
 
-test("sub_32bd dispatches 0x6227 to the right handler (tests the DISPATCH, not the handlers)", () => {
+test("loc_32bd dispatches 0x6227 to the right handler (tests the DISPATCH, not the handlers)", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. Deliberately keyed on a
   // DISTINCTIVE FINGERPRINT of each handler rather than on what the handler
-  // computes: sub_32bd's three callees are themselves drained-but-unexercised,
+  // computes: loc_32bd's three callees are themselves drained-but-unexercised,
   // so asserting their outputs here would let a wrong callee and a matching
   // dispatch agree (a compensating pair). These assertions ask only "which
   // handler ran".
   const mk = () => { const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0xbeef); m.regs.ix = 0x6400; return m; };
 
-  // 0x6227 == 1 -> sub_342c. Fingerprint: it walks the 0x3A8C table, so the
+  // 0x6227 == 1 -> loc_342c. Fingerprint: it walks the 0x3A8C table, so the
   // saved pointer lands at 0x3A8D.
   const a = mk();
   a.mem.write8(0x6227, 0x01);
   a.mem.write8(0x641a, 0x00); a.mem.write8(0x641b, 0x00);
-  sub_32bd(a);
-  assert.equal(a.mem.read8(0x641a), 0x8d, "0x6227==1 ran sub_342c (pointer -> 0x3A8D)");
+  loc_32bd(a);
+  assert.equal(a.mem.read8(0x641a), 0x8d, "0x6227==1 ran loc_342c (pointer -> 0x3A8D)");
   assert.equal(a.mem.read8(0x641b), 0x3a, "...high byte 0x3A");
 
-  // 0x6227 == 2 -> sub_3478. Fingerprint: its OWN table is 0x3AAC, so the saved
+  // 0x6227 == 2 -> loc_3478. Fingerprint: its OWN table is 0x3AAC, so the saved
   // pointer lands at 0x3AAD (low byte 0xAD, not 0x8D) and it sets a direction.
   const b = mk();
   b.mem.write8(0x6227, 0x02);
   b.mem.write8(0x6203, 0x80); // bit 7 set -> forward
   b.mem.write8(0x641a, 0x00); b.mem.write8(0x641b, 0x00);
-  sub_32bd(b);
-  assert.equal(b.mem.read8(0x641a), 0xad, "0x6227==2 ran sub_3478 (pointer -> 0x3AAD, NOT 0x3A8D)");
-  assert.equal(b.mem.read8(0x640d), 0x01, "...and set the direction state sub_342c never writes");
+  loc_32bd(b);
+  assert.equal(b.mem.read8(0x641a), 0xad, "0x6227==2 ran loc_3478 (pointer -> 0x3AAD, NOT 0x3A8D)");
+  assert.equal(b.mem.read8(0x640d), 0x01, "...and set the direction state loc_342c never writes");
 
-  // default arm (0x6227 == 0) -> sub_34b9. Fingerprint: it writes the SAME byte
+  // default arm (0x6227 == 0) -> loc_34b9. Fingerprint: it writes the SAME byte
   // into a field PAIR ((ix+0x03) == (ix+0x0e)), which neither twin does.
-  // NB 0x6227 == 3 would make sub_34b9 return immediately, so 0 is used to
+  // NB 0x6227 == 3 would make loc_34b9 return immediately, so 0 is used to
   // reach its body while still taking the default arm.
   const c = mk();
   c.mem.write8(0x6227, 0x00);
   c.mem.write8(0x6203, 0x00);
   c.mem.write8(0x6019, 0x00);
-  sub_32bd(c);
-  assert.equal(c.mem.read8(0x6403), c.mem.read8(0x640e), "default arm ran sub_34b9 (paired fields equal)");
+  loc_32bd(c);
+  assert.equal(c.mem.read8(0x6403), c.mem.read8(0x640e), "default arm ran loc_34b9 (paired fields equal)");
   assert.equal(c.mem.read8(0x6403), 0xee, "...loading 0x3AC4[0] = 0xEE");
   assert.equal(c.mem.read8(0x641a), 0x00, "...and no table pointer was saved (neither twin ran)");
 
-  // SP balance across all three arms, incl. the sub_3478 arm whose handler has
+  // SP balance across all three arms, incl. the loc_3478 arm whose handler has
   // no ret of its own (loc_3445's ret consumes the pushed 0x32D5).
   for (const m2 of [a, b, c]) assert.equal(m2.regs.sp, 0x6c00, "SP restored -- call/ret balanced on every arm");
 });
 
-test("sub_33a1: TWO different caller-skips -- rst 0x30 gate vs the inc-sp splice", () => {
+test("loc_33a1: TWO different caller-skips -- rst 0x30 gate vs the inc-sp splice", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. IX live-in. Twelve bytes with
   // two skips that MEAN different things, separated here by the BOOLEAN, by
   // where SP ends up, and by whether A was reloaded (which proves the gate did
@@ -5851,7 +5851,7 @@ test("sub_33a1: TWO different caller-skips -- rst 0x30 gate vs the inc-sp splice
   const a = mk();
   a.mem.write8(0x6227, 0x04);
   a.mem.write8(0x640f, 0x00); // would splice if we ever reached the cp
-  assert.equal(sub_33a1(a), true, "gate path returns TRUE -- entry_333d WAS returned to");
+  assert.equal(loc_33a1(a), true, "gate path returns TRUE -- entry_333d WAS returned to");
   // sub_0030 ROTATES A: 0x07 ror 4 = 0x83 -> 0xC1 -> 0xE0 -> 0x70. So A is 0x70,
   // and crucially NOT the planted field value 0x00 -- which proves
   // `ld a,(ix+0x0f)` never ran, i.e. the gate fired.
@@ -5863,7 +5863,7 @@ test("sub_33a1: TWO different caller-skips -- rst 0x30 gate vs the inc-sp splice
   const b = mk();
   b.mem.write8(0x6227, 0x01);
   b.mem.write8(0x640f, 0x59);
-  assert.equal(sub_33a1(b), true, "0x59 is not below 0x59 -- normal ret nc, TRUE");
+  assert.equal(loc_33a1(b), true, "0x59 is not below 0x59 -- normal ret nc, TRUE");
   assert.equal(b.regs.a, 0x59, "A reloaded from (ix+0x0f) -- proves we passed the gate");
   assert.equal(b.regs.sp, 0x6bfe, "normal return consumed entry_333d's frame only");
 
@@ -5872,7 +5872,7 @@ test("sub_33a1: TWO different caller-skips -- rst 0x30 gate vs the inc-sp splice
   const c = mk();
   c.mem.write8(0x6227, 0x01);
   c.mem.write8(0x640f, 0x58);
-  assert.equal(sub_33a1(c), false, "below 0x59 -> SPLICE -> FALSE, entry_333d is skipped");
+  assert.equal(loc_33a1(c), false, "below 0x59 -> SPLICE -> FALSE, entry_333d is skipped");
   assert.equal(c.regs.a, 0x58, "A reloaded -- proves the splice came from the cp, not the gate");
   assert.equal(c.regs.sp, 0x6c00, "splice consumed BOTH frames -- returned to the caller's CALLER");
   // 0x58 vs 0x59 is the boundary: an off-by-one or a signed compare moves which
@@ -5880,11 +5880,11 @@ test("sub_33a1: TWO different caller-skips -- rst 0x30 gate vs the inc-sp splice
   // boolean alone cannot (both A and B return true).
 });
 
-test("entry_313c scans 5 objects and SPLICES to the caller's caller when the count is zero", () => {
+test("loc_313c scans 5 objects and SPLICES to the caller's caller when the count is zero", () => {
   // 0x1977-closure drain, >= 0x3000, UNGATED BY EXECUTION (only caller entry_30ed
-  // is untranslated) --. The entry_24b4 caller's-caller-skip class: the
+  // is untranslated) --. The loc_24b4 caller's-caller-skip class: the
   // count of non-empty objects (0x63A1) gates a conditional stack splice at 0x3179.
-  // Skip-capable -> boolean return (cf. sub_33a1). Frame layout matches sub_33a1:
+  // Skip-capable -> boolean return (cf. loc_33a1). Frame layout matches loc_33a1:
   // caller's-caller pushed first, then entry_30ed's continuation (0x30F3) on top,
   // so a splice drops 0x30F3 and lands on the outer caller. Objects at 0x6400
   // stride 0x20; "non-empty" = (ix+0) != 0. Empty-slot inputs 0x6227/0x63a0 set to
@@ -5904,7 +5904,7 @@ test("entry_313c scans 5 objects and SPLICES to the caller's caller when the cou
   for (const k of [0, 1, 2, 3, 4]) s.mem.write8(0x6400 + k * 0x20, 0x00); // all empty
   s.mem.write8(0x6227, 0x00); // != 2 -> jp 0x3195
   s.mem.write8(0x63a0, 0x00); // != 1 -> jp 0x316a (no insert, no count bump)
-  assert.equal(entry_313c(s), false, "count 0 -> SPLICE -> false (entry_30ed is skipped)");
+  assert.equal(loc_313c(s), false, "count 0 -> SPLICE -> false (entry_30ed is skipped)");
   assert.equal(s.regs.sp, 0x6c00, "splice consumed BOTH frames: inc sp x2 drops 0x30F3, ret pops CC");
   assert.equal(s.pc, CC, "returned to the CALLER'S CALLER, not 0x30F3");
 
@@ -5915,7 +5915,7 @@ test("entry_313c scans 5 objects and SPLICES to the caller's caller when the cou
   n.mem.write8(0x6217, 0x00);
   n.mem.write8(0x6227, 0x00);
   n.mem.write8(0x63a0, 0x00);
-  assert.equal(entry_313c(n), true, "count != 0 -> ret nz -> true (normal return)");
+  assert.equal(loc_313c(n), true, "count != 0 -> ret nz -> true (normal return)");
   assert.equal(n.regs.sp, 0x6bfe, "normal ret consumed only entry_30ed's frame (0x30F3)");
   assert.equal(n.pc, RET, "returned to entry_30ed's continuation 0x30F3");
 
@@ -5925,21 +5925,21 @@ test("entry_313c scans 5 objects and SPLICES to the caller's caller when the cou
   a.mem.write8(0x6217, 0x01);
   a.mem.write8(0x6227, 0x00);
   a.mem.write8(0x63a0, 0x00);
-  entry_313c(a);
+  loc_313c(a);
   assert.equal(a.mem.read8(0x6408), 0x00, "0x6217==1 -> (ix+8) cleared to 0");
   const b = mk();
   b.mem.write8(0x6400, 0x01);
   b.mem.write8(0x6217, 0x00);
   b.mem.write8(0x6227, 0x00);
   b.mem.write8(0x63a0, 0x00);
-  entry_313c(b);
+  loc_313c(b);
   assert.equal(b.mem.read8(0x6408), 0x01, "0x6217!=1 -> (ix+8) stays 1");
 
   // TEST 4 -- the loop runs 5 iterations at stride 0x20 (all objects visited,).
   const l = mk();
   for (const k of [0, 1, 2, 3, 4]) l.mem.write8(0x6400 + k * 0x20, 0x01); // all non-empty
   l.mem.write8(0x6217, 0x00); // each gets (ix+8)=1
-  assert.equal(entry_313c(l), true, "5 non-empty -> counter 5 -> normal ret");
+  assert.equal(loc_313c(l), true, "5 non-empty -> counter 5 -> normal ret");
   for (const k of [0, 1, 2, 3, 4]) {
     assert.equal(l.mem.read8(0x6408 + k * 0x20), 0x01, `object ${k} visited -> (ix+8)=1`);
   }
@@ -5956,7 +5956,7 @@ test("the 0x3110 guard family: four DIFFERENT predicates on 0x601a, inverted at 
   //   311b  (v & 7) <  5   [ret m  -- SIGN]
   //   3126  (v & 3) <  3   [ret m]
   //   3131  (v & 7) <  7   [ret m]
-  const fns = { 3110: guard_3110, 311: guard_311b, 3126: guard_3126, 3131: guard_3131 };
+  const fns = { 3110: loc_3110, 311: loc_311b, 3126: loc_3126, 3131: loc_3131 };
   const expect = (v) => ({
     a: (v & 1) === 1,
     b: (v & 7) < 5,
@@ -5978,8 +5978,8 @@ test("the 0x3110 guard family: four DIFFERENT predicates on 0x601a, inverted at 
   for (let v = 0; v <= 0x0f; v++) {
     const e = expect(v);
     for (const [fn, want, name] of [
-      [guard_3110, e.a, "3110"], [guard_311b, e.b, "311b"],
-      [guard_3126, e.c, "3126"], [guard_3131, e.d, "3131"],
+      [loc_3110, e.a, "3110"], [loc_311b, e.b, "311b"],
+      [loc_3126, e.c, "3126"], [loc_3131, e.d, "3131"],
     ]) {
       const r = run(fn, v);
       assert.equal(r.normal, want, `${name} at 0x601a=0x${v.toString(16)}: normal-return should be ${want}`);
@@ -5992,10 +5992,10 @@ test("the 0x3110 guard family: four DIFFERENT predicates on 0x601a, inverted at 
   // The two values that prove the family is genuinely inverted, not a template:
   // at 0x00 ONLY 3110 splices; at 0x07 ONLY 3110 returns normally.
   assert.deepEqual(
-    [run(guard_3110, 0x00).normal, run(guard_311b, 0x00).normal, run(guard_3126, 0x00).normal, run(guard_3131, 0x00).normal],
+    [run(loc_3110, 0x00).normal, run(loc_311b, 0x00).normal, run(loc_3126, 0x00).normal, run(loc_3131, 0x00).normal],
     [false, true, true, true], "0x601a=0x00: only 3110 skips its caller");
   assert.deepEqual(
-    [run(guard_3110, 0x07).normal, run(guard_311b, 0x07).normal, run(guard_3126, 0x07).normal, run(guard_3131, 0x07).normal],
+    [run(loc_3110, 0x07).normal, run(loc_311b, 0x07).normal, run(loc_3126, 0x07).normal, run(loc_3131, 0x07).normal],
     [true, false, false, false], "0x601a=0x07: only 3110 returns normally");
 });
 
@@ -6040,7 +6040,7 @@ test("loc_3069 increments THROUGH the 0x63C0 pointer, gated by the rst 0x18 coun
 
 
 
-test("entry_3ec3 counts two-axis overlaps over B objects, skipping inactive ones", () => {
+test("loc_3ec3 counts two-axis overlaps over B objects, skipping inactive ones", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. LIVE-INS: IX, IY, B, C, DE, H, L.
   // Predicates read off the bytes: axis 1 passes when
   // (|C - (ix+5)| + 1) < L, or when subtracting (ix+0x0a) from that still borrows;
@@ -6067,21 +6067,21 @@ test("entry_3ec3 counts two-axis overlaps over B objects, skipping inactive ones
   // A) ACTIVE and both axes overlap -> counter increments.
   //    |0x10-0x10|+1 = 1 < L(5) -> axis 1 passes; |0x20-0x20| = 0 < H(5) -> axis 2.
   const a = mk(); a.regs.c = 0x10; obj(a, { active: true, x: 0x10, y: 0x20 });
-  entry_3ec3(a);
+  loc_3ec3(a);
   assert.equal(a.mem.read8(0x6060), 0x01, "both axes overlap -> 0x6060 incremented");
   assert.equal(a.regs.ix, 0x6a20, "IX advanced by DE");
   assert.equal(a.regs.b, 0x00, "djnz ran the loop to exhaustion");
 
   // B) INACTIVE (bit 0 clear) -> the whole body is skipped, but IX still advances.
   const b = mk(); b.regs.c = 0x10; obj(b, { active: false, x: 0x10, y: 0x20 });
-  entry_3ec3(b);
+  loc_3ec3(b);
   assert.equal(b.mem.read8(0x6060), 0x00, "inactive object is not counted");
   assert.equal(b.regs.ix, 0x6a20, "...but IX still advanced (jp z targets loc_3efa)");
 
   // C) ACTIVE but axis 1 too far: |0x50-0x10|+1 = 0x41; 0x41-L(5) = 0x3C, no
   //    borrow; 0x3C-(ix+0x0a)(0x10) = 0x2C, still no borrow -> no overlap.
   const c = mk(); c.regs.c = 0x50; obj(c, { active: true, x: 0x10, y: 0x20 });
-  entry_3ec3(c);
+  loc_3ec3(c);
   assert.equal(c.mem.read8(0x6060), 0x00, "axis 1 out of range -> not counted");
 
   // D) TWO objects, only the second active -> exactly one increment, IX += 2*DE.
@@ -6090,7 +6090,7 @@ test("entry_3ec3 counts two-axis overlaps over B objects, skipping inactive ones
   d.mem.write8(0x6a20, 0x01);                            // object 1 active
   d.mem.write8(0x6a25, 0x10); d.mem.write8(0x6a23, 0x20);
   d.mem.write8(0x6a2a, 0x10); d.mem.write8(0x6a29, 0x10);
-  entry_3ec3(d);
+  loc_3ec3(d);
   assert.equal(d.mem.read8(0x6060), 0x01, "only the active object counted");
   assert.equal(d.regs.ix, 0x6a40, "IX advanced twice");
 
@@ -6101,14 +6101,14 @@ test("entry_3ec3 counts two-axis overlaps over B objects, skipping inactive ones
   //    "drop the first neg" was NOT caught by cases A-D: none of them make the
   //    first sub borrow, so the neg never executed and deleting it was invisible.
   const e = mk(); e.regs.c = 0x08; obj(e, { active: true, x: 0x10, y: 0x20 });
-  entry_3ec3(e);
+  loc_3ec3(e);
   assert.equal(e.mem.read8(0x6060), 0x01, "axis-1 neg fires (C < (ix+5)) -> |diff| used, counted");
 
   // F) FORCES THE AXIS-2 `neg`: (iy+3)(0x18) < (ix+3)(0x20).
   const f = mk(); f.regs.c = 0x10;
   f.mem.write8(0x6b03, 0x18);            // (iy+0x03) below (ix+0x03)
   obj(f, { active: true, x: 0x10, y: 0x20 });
-  entry_3ec3(f);
+  loc_3ec3(f);
   assert.equal(f.mem.read8(0x6060), 0x01, "axis-2 neg fires ((iy+3) < (ix+3)) -> counted");
 
   // MUTATION-PATCH  file: games/dkong/translated/state0.js
@@ -6118,38 +6118,38 @@ test("entry_3ec3 counts two-axis overlaps over B objects, skipping inactive ones
   //   verified-anchor: count == 1 in games/dkong/translated/state0.js
 });
 
-test("sub_30fa clamps 0x6380 to [0,5] and rst-0x28-dispatches to the right guard, propagating the skip", () => {
+test("loc_30fa clamps 0x6380 to [0,5] and rst-0x28-dispatches to the right guard, propagating the skip", () => {
   // 0x1977-closure drain, UNGATED BY EXECUTION. First skip-capable rst 0x28
-  // caller under the ratified convention. The rst is sub_30fa's TAIL, so the
-  // guard rets to sub_30fa's caller and `return sub_0028(...)` passes the boolean
+  // caller under the ratified convention. The rst is loc_30fa's TAIL, so the
+  // guard rets to loc_30fa's caller and `return sub_0028(...)` passes the boolean
   // up transparently. Table (from ROM): 0->3110 1->3110 2->311b 3->3126 4->3126
   // 5->3131. Guard predicate on 0x601a decides the boolean and the SP outcome.
   const run = (idx, v601a) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00;
-    m.push16(0xcafe); // sub_30fa's caller's return (what a skip discards)
-    m.push16(0xbeef); // sub_30fa's own return
+    m.push16(0xcafe); // loc_30fa's caller's return (what a skip discards)
+    m.push16(0xbeef); // loc_30fa's own return
     m.mem.write8(0x6380, idx);
     m.mem.write8(0x601a, v601a);
-    const cont = sub_30fa(m);
+    const cont = loc_30fa(m);
     return { cont, sp: m.regs.sp };
   };
 
-  // idx 0 -> guard_3110: normal-return when (0x601a & 1) == 1.
-  //   0x601a=1 -> bit0 set -> guard rets normally -> sub_30fa returns TRUE, one
+  // idx 0 -> loc_3110: normal-return when (0x601a & 1) == 1.
+  //   0x601a=1 -> bit0 set -> guard rets normally -> loc_30fa returns TRUE, one
   //   frame consumed. 0x601a=0 -> guard SKIPS -> FALSE, both frames consumed.
   assert.deepEqual(run(0, 0x01), { cont: true, sp: 0x6bfe }, "idx0 601a=1: 3110 continues");
   assert.deepEqual(run(0, 0x00), { cont: false, sp: 0x6c00 }, "idx0 601a=0: 3110 SKIPS the caller");
 
-  // idx 2 -> guard_311b: normal-return when (0x601a & 7) < 5.
+  // idx 2 -> loc_311b: normal-return when (0x601a & 7) < 5.
   assert.deepEqual(run(2, 0x03), { cont: true, sp: 0x6bfe }, "idx2 601a=3<5: 311b continues");
   assert.deepEqual(run(2, 0x06), { cont: false, sp: 0x6c00 }, "idx2 601a=6>=5: 311b SKIPS");
 
-  // idx 5 -> guard_3131: normal-return when (0x601a & 7) < 7. Only 7 skips.
+  // idx 5 -> loc_3131: normal-return when (0x601a & 7) < 7. Only 7 skips.
   assert.deepEqual(run(5, 0x06), { cont: true, sp: 0x6bfe }, "idx5 601a=6<7: 3131 continues");
   assert.deepEqual(run(5, 0x07), { cont: false, sp: 0x6c00 }, "idx5 601a=7: 3131 SKIPS");
 
-  // THE CLAMP: 0x6380 = 9 (>= 6) is forced to 5, so it dispatches guard_3131 --
+  // THE CLAMP: 0x6380 = 9 (>= 6) is forced to 5, so it dispatches loc_3131 --
   // NOT out of the 6-entry table. Same result as idx 5.
   assert.deepEqual(run(9, 0x07), { cont: false, sp: 0x6c00 }, "0x6380=9 clamps to 5 -> 3131 SKIPS");
   assert.deepEqual(run(9, 0x06), { cont: true, sp: 0x6bfe }, "0x6380=9 clamps to 5 -> 3131 continues");
@@ -6161,25 +6161,25 @@ test("sub_30fa clamps 0x6380 to [0,5] and rst-0x28-dispatches to the right guard
   assert.equal(run(5, 0x06).cont, true, "idx5 601a=6: 3131 continues -- different guard, same input");
 
   // MUTATION-PATCH  file: games/dkong/translated/state0.js
-  //   find:   return sub_0028(m, "0x3104 (sub_30fa dispatch)");
-  //   repl:   sub_0028(m, "0x3104 (sub_30fa dispatch)"); return true;
+  //   find:   return sub_0028(m, "0x3104 (loc_30fa dispatch)");
+  //   repl:   sub_0028(m, "0x3104 (loc_30fa dispatch)"); return true;
   //   expect: FAIL  (drops the propagated skip -- the SKIPS cases return true)
   //   verified-anchor: count == 1 in games/dkong/translated/state0.js
 });
 
-test("entry_3e99 pops 3e88's HL, counts overlaps via 3ec3 twice, maps count to a code", () => {
-  // 0x1977-closure drain, UNGATED BY EXECUTION. Reached only via entry_3e88's
+test("loc_3e99 pops 3e88's HL, counts overlaps via 3ec3 twice, maps count to a code", () => {
+  // 0x1977-closure drain, UNGATED BY EXECUTION. Reached only via loc_3e88's
   // rst 0x28, so its first `pop hl` recovers the HL 3e88 saved (sub_0028 clobbers
-  // it). LIVE-INS IY, C, H, L flow through to entry_3ec3. Code map from the
+  // it). LIVE-INS IY, C, H, L flow through to loc_3ec3. Code map from the
   // bytes: count 0/1/2/>=3 -> 0/1/3/7.
   //
-  // Object recipe that entry_3ec3 counts (same as its own test): active
+  // Object recipe that loc_3ec3 counts (same as its own test): active
   // (bit 0 of ix+0), C == (ix+5) so axis-1 |diff|+1 = 1 < L, (iy+3) == (ix+3)
   // so axis-2 |diff| = 0 < H, large spans.
   const mk = (activeCount) => {
     const m = new Machine(ROM);
     m.regs.sp = 0x6c00;
-    m.push16(0xbeef);   // entry_3e99's own return
+    m.push16(0xbeef);   // loc_3e99's own return
     m.push16(0x9abc);   // the HL 3e88 pushed -- must be recovered by `pop hl`
     m.regs.iy = 0x6b00; m.regs.c = 0x10; m.regs.h = 0x05; m.regs.l = 0x05;
     m.mem.write8(0x6b03, 0x20);   // (iy+0x03)
@@ -6197,7 +6197,7 @@ test("entry_3e99 pops 3e88's HL, counts overlaps via 3ec3 twice, maps count to a
     }
     return m;
   };
-  const run = (n) => { const m = mk(n); entry_3e99(m); return { a: m.regs.a, hl: m.regs.hl, sp: m.regs.sp }; };
+  const run = (n) => { const m = mk(n); loc_3e99(m); return { a: m.regs.a, hl: m.regs.hl, sp: m.regs.sp }; };
 
   assert.equal(run(0).a, 0x00, "0 overlaps -> code 0");
   assert.equal(run(1).a, 0x01, "1 overlap  -> code 1");
@@ -6211,7 +6211,7 @@ test("entry_3e99 pops 3e88's HL, counts overlaps via 3ec3 twice, maps count to a
   assert.equal(run(0).sp, 0x6c00, "ordinary ret -- SP restored, no inc-sp skip");
 
   // MUTATION-PATCH  file: games/dkong/translated/state0.js
-  //   find:   regs.hl = m.pop16(); // pop hl -- recover entry_3e88's saved HL (sub_0028 clobbered it)
+  //   find:   regs.hl = m.pop16(); // pop hl -- recover loc_3e88's saved HL (sub_0028 clobbered it)
   //   repl:   regs.hl = 0x0000; // MUTANT: pop dropped, HL not recovered
   //   expect: FAIL  (SP left off by 2 -> the final ret takes the wrong frame; run(0).sp != 0x6c00)
   //   verified-anchor: count == 1 in games/dkong/translated/state0.js

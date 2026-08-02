@@ -41,7 +41,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_11a6 as oracle } from "../../translated/sub_11a6.js";
+import { loc_11a6 as oracle } from "../../translated/loc_11a6.js";
 import { seedSpriteObjectPair } from "../seedSpriteObjectPair.js";
 import { copyBytePairsStrided } from "../copyBytePairsStrided.js";
 import { replicateGroupStrided } from "../replicateGroupStrided.js";

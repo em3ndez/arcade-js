@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { guard_3131 as oracle } from "../../translated/guard_3131.js";
+import { loc_3131 as oracle } from "../../translated/loc_3131.js";
 import { loc_3131 } from "../loc_3131.js";
 import { FRAME } from "../ram.js";
 import { Machine } from "../../machine.js";

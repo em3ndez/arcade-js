@@ -46,7 +46,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_22bd as oracle } from "../../translated/sub_22bd.js";
+import { loc_22bd as oracle } from "../../translated/loc_22bd.js";
 import { loc_22bd } from "../loc_22bd.js";
 import { SPRITE_BUFFER } from "../ram.js";
 import { Machine } from "../../machine.js";

@@ -53,7 +53,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_236e as oracle } from "../../translated/sub_236e.js";
+import { loc_236e as oracle } from "../../translated/loc_236e.js";
 import { loc_236e } from "../loc_236e.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_PARAM_TABLE0 } from "../ram.js";

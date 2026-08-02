@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_266f (ROM 0x266F) — the "Y below 0xC0" arm of sub_262f: force
+ * Equivalence test for loc_266f (ROM 0x266F) — the "Y below 0xC0" arm of loc_262f: force
  * object-2's step-direction latch (M50_OBJ2_STEP_DIR, 0x62A3) negative unless its sign bit
  * is already set, then run the shared publish/animate tail (loc_264c).
  *
@@ -10,7 +10,7 @@
  * reloads the accumulator with Mario's X before reading it, so no register this routine
  * leaves is consumed downstream.
  *
- * The oracle is a tail-jump chain (sub_262f -> loc_266f -> the shared tail -> `ret`) that
+ * The oracle is a tail-jump chain (loc_262f -> loc_266f -> the shared tail -> `ret`) that
  * nets exactly ONE caller-return pop. The idiomatic routine models the whole chain with
  * direct JS calls and a plain return (no stack modelling), so the harness performs ONE
  * m.ret() on the candidate AFTER the call to line pc + SP up with the oracle. Every nested
@@ -19,16 +19,16 @@
  *
  * Plain attract never dispatches 0x266F (0×): the whole sub_25F2 object cascade is board-2
  * gated (`ld a,0x02 / rst 0x30`) and attract plays 25m. So real dispatch states are
- * reproduced by running the TRANSLATED caller sub_262f on clones of a booted machine with
- * object-2's Y forced below 0xC0 (so sub_262f branches here) and 0x266F hooked to snapshot
+ * reproduced by running the TRANSLATED caller loc_262f on clones of a booted machine with
+ * object-2's Y forced below 0xC0 (so loc_262f branches here) and 0x266F hooked to snapshot
  * each true entry — the same drive-the-caller technique the sibling 0x264C/0x268D tests use.
  * That capture also proves the sole caller enters with the latch pointer fixed at
  * M50_OBJ2_STEP_DIR, which is why this routine addresses that named cell directly.
  *
  *   1. REACHABILITY — 0x266F is dispatched 0× in a plain attract run (documents the
- *      non-executing board-2 frontier), yet driving sub_262f yields real entries for BOTH
+ *      non-executing board-2 frontier), yet driving loc_262f yields real entries for BOTH
  *      arms (latch sign clear and set).
- *   2. EQUAL (captured) — loc_266f == oracle on every real sub_262f dispatch, across both arms.
+ *   2. EQUAL (captured) — loc_266f == oracle on every real loc_262f dispatch, across both arms.
  *   3. EQUAL (crafted) — poke the latch sign (both arms, plus the 0x7F/0x80/0xC0 boundaries)
  *      and the frame counter (odd -> the tail's publish arm; even, low 5 bits != 0 -> the tail
  *      leaves the latch; even, low 5 bits == 0 -> the tail advances the sprite pair) on a real
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_266f as oracle } from "../../translated/loc_266f.js";
-import { sub_262f } from "../../translated/sub_262f.js";
+import { loc_262f } from "../../translated/loc_262f.js";
 import { loc_266f } from "../loc_266f.js";
 import { loc_264c } from "../loc_264c.js";
 import { Machine } from "../../machine.js";
@@ -63,7 +63,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x266f;
 const RET_ADDR = 0x25fb;        // sub_25F2_body's site right after `call 0x262f` — the real caller return
-const OBJ2_Y = 0x6205;          // object-2's Y; sub_262f branches here when it is below 0xC0
+const OBJ2_Y = 0x6205;          // object-2's Y; loc_262f branches here when it is below 0xC0
 const LATCH = M50_OBJ2_STEP_DIR; // 0x62A3 — object-2's step-direction latch (this routine's cell)
 const SHADOW_POS = 0x63a5;      // the tail's published +step shadow (no ram.js name)
 const SHADOW_NEG = 0x63a4;      // the tail's published −step shadow (no ram.js name)
@@ -127,9 +127,9 @@ function bootedMachine(frames) {
 }
 
 /**
- * Reproduce REAL 0x266F dispatches by running the translated sub_262f on clones of a booted
+ * Reproduce REAL 0x266F dispatches by running the translated loc_262f on clones of a booted
  * machine, with 0x266F hooked to snapshot each true entry. object-2's Y (0x6205) is forced
- * below 0xC0 so sub_262f branches here (it stays on the tail path at/above 0xC0), and the
+ * below 0xC0 so loc_262f branches here (it stays on the tail path at/above 0xC0), and the
  * latch is seeded to cover BOTH arms (sign bit clear and set). SP is set into the excluded
  * stack region so the tail's push/ret churn is dead scratch.
  */
@@ -138,11 +138,11 @@ function captureDispatches(booted) {
   const hook = (mm) => { caps.push(mm.clone()); return oracle(mm); };
   const drive = (latch) => {
     const e = booted.clone();
-    e.mem.write8(OBJ2_Y, 0x00);       // Y < 0xC0 -> sub_262f branches to loc_266f
+    e.mem.write8(OBJ2_Y, 0x00);       // Y < 0xC0 -> loc_262f branches to loc_266f
     e.mem.write8(LATCH, latch);       // seed the sign bit both ways across drives
     e.regs.sp = 0x6bfe;               // into STACK_SCRATCH -> the tail's ret target is excluded
     e.routines.set(TARGET, hook);
-    sub_262f(e);
+    loc_262f(e);
   };
   for (const v of [0x00, 0x40, 0x7f]) drive(v); // sign clear -> force-negative arm
   for (const v of [0x80, 0xc0, 0xff]) drive(v); // sign set   -> leave-alone arm
@@ -171,7 +171,7 @@ function craft(base, { frame, latch }) {
 
 // -- 1. reachability ----------------------------------------------------------
 
-test("REACHABILITY: 0x266F is a non-executing frontier in attract, reachable via sub_262f", () => {
+test("REACHABILITY: 0x266F is a non-executing frontier in attract, reachable via loc_262f", () => {
   let attractCount = 0;
   const snap = new Map([[TARGET, (mm) => { attractCount++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });
@@ -179,15 +179,15 @@ test("REACHABILITY: 0x266F is a non-executing frontier in attract, reachable via
   assert.equal(attractCount, 0, "0x266F should NOT dispatch in plain attract (the sub_25F2 cascade is board-2 gated)");
 
   const caps = captureDispatches(bootedMachine(500));
-  assert.ok(caps.length >= 6, "expected real 0x266F entries from driving sub_262f");
+  assert.ok(caps.length >= 6, "expected real 0x266F entries from driving loc_262f");
   const arms = new Set(caps.map((c) => (c.mem.read8(LATCH) & 0x80) !== 0));
   assert.equal(arms.size, 2, "captured entries must cover BOTH arms (sign bit clear and set)");
-  console.log(`  REACHABILITY: 0× in 1500 attract frames; ${caps.length} entries via sub_262f (both arms)`);
+  console.log(`  REACHABILITY: 0× in 1500 attract frames; ${caps.length} entries via loc_262f (both arms)`);
 });
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_266f == oracle on every real sub_262f dispatch", () => {
+test("EQUAL (captured): loc_266f == oracle on every real loc_262f dispatch", () => {
   const caps = captureDispatches(bootedMachine(500));
   let force = 0, leave = 0;
   for (const cap of caps) {

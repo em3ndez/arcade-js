@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_017b as oracle } from "../../translated/sub_017b.js";
+import { loc_017b as oracle } from "../../translated/loc_017b.js";
 import { serviceCoinInput } from "../serviceCoinInput.js";
 import { silenceSound } from "../silenceSound.js";
 import { enqueueTask } from "../enqueueTask.js";

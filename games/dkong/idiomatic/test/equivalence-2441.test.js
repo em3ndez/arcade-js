@@ -42,7 +42,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2441 as oracle } from "../../translated/sub_2441.js";
+import { loc_2441 as oracle } from "../../translated/loc_2441.js";
 import { loadBoardObjectRecords } from "../loadBoardObjectRecords.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD } from "../ram.js";

@@ -35,7 +35,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0010 as oracle } from "../../translated/sub_0010.js";
+import { loc_0010 as oracle } from "../../translated/loc_0010.js";
 import { marioActiveGuard } from "../marioActiveGuard.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

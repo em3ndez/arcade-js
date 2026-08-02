@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_176c as oracle } from "../../translated/sub_176c.js";
+import { loc_176c as oracle } from "../../translated/loc_176c.js";
 import { cullSpriteObjectsAtTop } from "../cullSpriteObjectsAtTop.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../ram.js";

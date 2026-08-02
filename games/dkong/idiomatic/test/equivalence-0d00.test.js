@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0d00 as oracle } from "../../translated/sub_0d00.js";
+import { loc_0d00 as oracle } from "../../translated/loc_0d00.js";
 import { stampRivetBoardTiles } from "../stampRivetBoardTiles.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

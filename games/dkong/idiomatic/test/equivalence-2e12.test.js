@@ -3,7 +3,7 @@
  * Equivalence test for loc_2e12 (ROM 0x2E12) — the per-object scan's update entry: a four-way
  * active/state dispatcher with an inline default-motion arm.
  *
- * loc_2e12 is dispatched once per object by entry_2e04. It routes the object four ways:
+ * loc_2e12 is dispatched once per object by loc_2e04. It routes the object four ways:
  *   • Inactive (active-flag bit0 clear) -> spawnObjectIntoInactiveSlot (0x2EA7).
  *   • Active, every 16 frames (FRAME&0x0f==0): flip the low 3 bits of the paired sprite's
  *     tile code (an animation flicker), THEN continue dispatching.
@@ -33,7 +33,7 @@
  *      toggle fires only on low-nibble 0). Each must match the oracle on the whole contract.
  *   2. EQUAL (grid) — the exact in-game cursor sequence, cross-producted, on the default arm.
  *   3. EQUAL (independence) — vary de/b/scratch regs and an unrelated RAM byte: output unchanged.
- *   4. REALISM (captured) — attract never reaches entry_2e04's loop; steer the game's own board/
+ *   4. REALISM (captured) — attract never reaches loc_2e04's loop; steer the game's own board/
  *      enable gates into the full 10-object pass with objects seeded across all four arms, hook
  *      0x2e12, capture the 10 real dispatches, and replay oracle vs candidate on each.
  *   5. TEETH — seven deliberately-broken twins (inverted active arm, wrong toggle bits, dropped
@@ -47,13 +47,13 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { obj_2e12 as oracle } from "../../translated/obj_2e12.js";
+import { loc_2e12 as oracle } from "../../translated/loc_2e12.js";
 import { loc_2e12 as candidate } from "../loc_2e12.js";
 import { spawnObjectIntoInactiveSlot } from "../spawnObjectIntoInactiveSlot.js"; // ROM 0x2EA7 (twins)
 import { loc_2e84 } from "../loc_2e84.js"; // ROM 0x2E84 (twins)
 import { loc_2e9c } from "../loc_2e9c.js"; // ROM 0x2E9C (twins)
 import { loc_2e4b } from "../loc_2e4b.js"; // ROM 0x2E4B (twins)
-import { entry_2e04 } from "../../translated/entry_2e04.js";
+import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -108,7 +108,7 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The register live-out contract (what entry_2e04 consumes after this dispatch) + de (conservative).
+// The register live-out contract (what loc_2e04 consumes after this dispatch) + de (conservative).
 function regLiveOutDiff(o, c) {
   if (o.regs.ix !== c.regs.ix) return `ix oracle=${hx16(o.regs.ix)} cand=${hx16(c.regs.ix)}`;
   if (o.regs.iy !== c.regs.iy) return `iy oracle=${hx16(o.regs.iy)} cand=${hx16(c.regs.iy)}`;
@@ -339,14 +339,14 @@ function armOf(cap) {
   return cap.mem.read8(ptr) === 0x7f ? "terminator" : "default";
 }
 
-// Steer entry_2e04's full 10-object loop with objects seeded across all four arms, then hook
+// Steer loc_2e04's full 10-object loop with objects seeded across all four arms, then hook
 // 0x2e12 to capture the real in-game dispatch states (attract never reaches the loop).
 function captureRealDispatches() {
   const host = new Machine(ROM);
   host.runFrames(700); // realistic work RAM (0x2e12 does not dispatch in attract)
   const m = host.clone();
   m.regs.sp = SP_TOP;
-  m.push16(0x4d17);          // sentinel caller-return for entry_2e04
+  m.push16(0x4d17);          // sentinel caller-return for loc_2e04
   m.mem.write8(0x6227, 3);   // board = 3   -> rst 0x30 (A=0x04) passes
   m.mem.write8(0x6200, 1);   // enable bit0 -> rst 0x10 passes -> full 10-object loop
   m.mem.write8(FRAME, 0x00); // toggle fires for the active objects this pass
@@ -384,13 +384,13 @@ function captureRealDispatches() {
   };
   m.overrides.set(TARGET, hook);
   m.routines.set(TARGET, hook);
-  entry_2e04(m);
+  loc_2e04(m);
   return caps;
 }
 
 test("REALISM: real captured 0x2e12 dispatches — loc_2e12 matches the oracle across all four arms", () => {
   const caps = captureRealDispatches();
-  assert.equal(caps.length, 10, "the steered full-loop entry_2e04 should dispatch 0x2e12 once per object (10)");
+  assert.equal(caps.length, 10, "the steered full-loop loc_2e04 should dispatch 0x2e12 once per object (10)");
 
   const seen = new Set();
   caps.forEach((cap, i) => {

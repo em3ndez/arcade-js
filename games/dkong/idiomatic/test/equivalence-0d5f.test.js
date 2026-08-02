@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_0d5f (ROM 0x0D5F) — the board-setup continuation: run the
- * common per-board init (sub_0f56), scatter the object records, arm the setup dwell
+ * common per-board init (loc_0f56), scatter the object records, arm the setup dwell
  * timer + advance the sub-state, stage the sprite-object block from the ROM template at
  * 0x385C, then apply a per-board sprite offset.
  *
- * The routine WRITES memory and is NOT a leaf — it drives sub_0f56 (the oracle, incl.
+ * The routine WRITES memory and is NOT a leaf — it drives loc_0f56 (the oracle, incl.
  * its rst-0x28 per-board setup dispatch), loadBoardObjectRecords, loadSpriteObjectBlock,
  * and the add-strided leaves — so it is gated by clone / replay (docs/decompiler-pipeline) with a FRESH
  * clone per case. The memory-equivalence contract is RAM − STACK_SCRATCH: the oracle's
@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0d5f as oracle } from "../../translated/loc_0d5f.js";
 import { loc_0d5f as idiomatic } from "../loc_0d5f.js";
-import { sub_0f56 } from "../../translated/sub_0f56.js";
+import { loc_0f56 } from "../../translated/loc_0f56.js";
 import { loadBoardObjectRecords } from "../loadBoardObjectRecords.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
@@ -167,7 +167,7 @@ test("BOARDS (crafted): loc_0d5f == oracle for BOARD 1/2/3/4, with the per-board
  *  divergence is 0x600A staying at its entry value where the oracle advances it. */
 function brokenNoAdvance(m) {
   const { regs, mem } = m;
-  sub_0f56(m);
+  loc_0f56(m);
   loadBoardObjectRecords(m);
   mem.write8(SUBSTATE_TIMER, 0x40);
   // BUG: no GAME_SUBSTATE advance
@@ -191,7 +191,7 @@ function brokenNoAdvance(m) {
  *  other write is faithful, so X reads (template − 4) where the oracle leaves it untouched. */
 function brokenWrongOffset(m) {
   const { regs, mem } = m;
-  sub_0f56(m);
+  loc_0f56(m);
   loadBoardObjectRecords(m);
   mem.write8(SUBSTATE_TIMER, 0x40);
   mem.write8(GAME_SUBSTATE, (mem.read8(GAME_SUBSTATE) + 1) & 0xff);

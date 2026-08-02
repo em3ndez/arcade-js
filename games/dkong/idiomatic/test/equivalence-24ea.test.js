@@ -37,7 +37,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_24ea as oracle } from "../../translated/sub_24ea.js";
+import { loc_24ea as oracle } from "../../translated/loc_24ea.js";
 import { loc_24ea } from "../loc_24ea.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { loc_2523 } from "../loc_2523.js";

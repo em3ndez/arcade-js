@@ -42,7 +42,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a1f as oracle } from "../../translated/loc_1a1f.js";
-import { entry_1a07 as dispatcherOracle } from "../../translated/entry_1a07.js";
+import { loc_1a07 as dispatcherOracle } from "../../translated/loc_1a07.js";
 import { advanceBonusExpiredStepWhenDelayExpires } from "../advanceBonusExpiredStepWhenDelayExpires.js";
 import { BONUS_EXPIRED_DELAY, BONUS_EXPIRED_STEP, STACK_SCRATCH } from "../ram.js";
 import { Machine } from "../../machine.js";

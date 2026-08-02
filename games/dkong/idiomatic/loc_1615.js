@@ -43,14 +43,14 @@
 import { BOARD, BOARD_ADVANCE_STEP } from "./ram.js";
 import { clearSpriteColumns } from "./clearSpriteColumns.js"; // ROM 0x30BD — park the moving sprites
 import { loc_1641 } from "./loc_1641.js";                     // ROM 0x1641 — 100m fall-through arm
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The two rst-0x28 inline jump tables of board-render step targets in ROM, selected by board type:
 // 0x1623 (6 entries) for the odd boards 25m/75m, 0x1637 (5 entries) for 50m. ROM data, kept hex.
 const STEP_TABLE_ODD = 0x1623; // 25m / 75m
 const STEP_TABLE_50M = 0x1637; // 50m
 
-// Dispatch-site labels handed to dispatchGameState; they only surface inside a NotImplemented
+// Dispatch-site labels handed to loc_00ca; they only surface inside a NotImplemented
 // throw, naming which inline table an out-of-range selector fell off of. Kept identical to the
 // oracle's two `m.call(0x0028, ...)` arguments.
 const DISPATCH_TABLE_1623 = "0x1623 (0x6388 board sub-dispatch)";
@@ -64,7 +64,7 @@ function dispatchBoardRenderStep(m, tableBase, site) {
   const step = mem.read8(BOARD_ADVANCE_STEP);
   const entry = (tableBase + ((step * 2) & 0xff)) & 0xffff;
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  dispatchGameState(m, target, site);
+  loc_00ca(m, target, site);
 }
 
 export function loc_1615(m) {

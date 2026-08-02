@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0852 as oracle } from "../../translated/sub_0852.js";
+import { loc_0852 as oracle } from "../../translated/loc_0852.js";
 import { clearTilemapAndSprites } from "../clearTilemapAndSprites.js";
 import { Machine } from "../../machine.js";
 import { SPRITE_BUFFER, STACK_SCRATCH } from "../ram.js";

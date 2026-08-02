@@ -54,7 +54,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_34b9 as oracle } from "../../translated/sub_34b9.js";
+import { loc_34b9 as oracle } from "../../translated/loc_34b9.js";
 import { loc_34b9 } from "../loc_34b9.js";
 import { BOARD, MARIO_X, SPIN_COUNT, OBJ_X, OBJ_Y, OBJ_STATE } from "../ram.js";
 import { Machine } from "../../machine.js";

@@ -44,7 +44,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_1d03 as oracle } from "../../translated/entry_1d03.js";
+import { loc_1d03 as oracle } from "../../translated/loc_1d03.js";
 import { climbMarioUp } from "../climbMarioUp.js";
 import { loc_1d76 } from "../loc_1d76.js";
 import { advanceClimbStep } from "../advanceClimbStep.js";

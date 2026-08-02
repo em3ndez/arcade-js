@@ -42,7 +42,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_19da as oracle } from "../../translated/sub_19da.js";
+import { loc_19da as oracle } from "../../translated/loc_19da.js";
 import { scanObjectsAtMarioX as idiomatic } from "../scanObjectsAtMarioX.js";
 import { confirmObjectHit } from "../confirmObjectHit.js";
 import { Machine } from "../../machine.js";

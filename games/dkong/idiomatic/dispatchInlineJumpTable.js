@@ -27,8 +27,8 @@
  *
  * The dispatch itself is genuine address-level computed control flow (a ROM table of
  * targets, some reached only here), so it stays routed through the still-oracle
- * generic dispatcher dispatchGameState rather than a JS function table — the one
- * place doc-06 keeps an address registry. dispatchGameState returns the arm's
+ * generic dispatcher loc_00ca rather than a JS function table — the one
+ * place doc-06 keeps an address registry. loc_00ca returns the arm's
  * skip-boolean for the skip-capable dispatch families (the 0x3110 guards); that
  * value is propagated to the caller unchanged.
  *
@@ -42,7 +42,7 @@
  * NAMES:    none — reads only the ROM jump table (ROM data addresses, kept hex) and
  *           the pushed table base off the stack; references no work-RAM name.
  */
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 
 export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)") {
   const { regs, mem } = m;
@@ -70,5 +70,5 @@ export function dispatchInlineJumpTable(m, site = "0x00CA (NMI game state)") {
   regs.exDeHl();
 
   // jp (hl) — dispatch the computed target and propagate the arm's skip-boolean.
-  return dispatchGameState(m, regs.hl, site);
+  return loc_00ca(m, regs.hl, site);
 }

@@ -47,7 +47,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2853 as oracle } from "../../translated/entry_2853.js";
+import { loc_2853 as oracle } from "../../translated/loc_2853.js";
 import { searchPlayerObjectOverlap as loc_2853 } from "../searchPlayerObjectOverlap.js";
 import { dispatchBoardOverlapSearch } from "../dispatchBoardOverlapSearch.js";
 import { Machine } from "../../machine.js";

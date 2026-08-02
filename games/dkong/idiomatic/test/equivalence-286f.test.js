@@ -48,9 +48,9 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_286f as oracle } from "../../translated/sub_286f.js";
+import { loc_286f as oracle } from "../../translated/loc_286f.js";
 import { dispatchBoardCollision } from "../dispatchBoardCollision.js";
-import { dispatchGameState } from "../../translated/dispatchGameState.js";
+import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD } from "../ram.js";
 
@@ -225,7 +225,7 @@ function brokenSixteenBitOffset(m) {
   m.push16(regs.hl);
   const entry = (COLLISION_TABLE + 2 * board) & 0xffff; // BUG: no 8-bit wrap on the *2
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  dispatchGameState(m, target, DISPATCH_TABLE_2874);
+  loc_00ca(m, target, DISPATCH_TABLE_2874);
 }
 
 /** Broken twin (b): DROPS the `push hl`, so the handler's `pop hl` lifts the wrong stack
@@ -236,7 +236,7 @@ function brokenDroppedPush(m) {
   // BUG: no `m.push16(regs.hl)`
   const entry = (COLLISION_TABLE + ((board * 2) & 0xff)) & 0xffff;
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  dispatchGameState(m, target, DISPATCH_TABLE_2874);
+  loc_00ca(m, target, DISPATCH_TABLE_2874);
 }
 
 test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sweep", () => {

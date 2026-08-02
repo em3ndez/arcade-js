@@ -3,8 +3,8 @@
  * Equivalence test for armTwoPlayerBoardSetup (ROM 0x09D6) — the 2-player board-setup arm.
  *
  * armTwoPlayerBoardSetup WRITES memory (two control latches, two posts through enqueueTask,
- * GAME_SUBSTATE, and a 3-cell VRAM column via the sub_09ee oracle) and ends by FALLING
- * THROUGH into sub_09ee, whose `ret` moves the stack — so unlike a pure leaf it is gated by
+ * GAME_SUBSTATE, and a 3-cell VRAM column via the loc_09ee oracle) and ends by FALLING
+ * THROUGH into loc_09ee, whose `ret` moves the stack — so unlike a pure leaf it is gated by
  * capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case, and the contract includes
  * pc + SP (not just RAM):
  *
@@ -15,7 +15,7 @@
  *      another and confirm IDENTICAL RAM everywhere game-visible + identical pc + SP. The only
  *      residual RAM difference is confined to STACK_SCRATCH: the oracle models the push/ret
  *      stack traffic of its two `call 0x309F` sites; the idiomatic version calls enqueueTask
- *      directly and only sub_09ee's tail `ret` touches the stack — which is why pc/SP still
+ *      directly and only loc_09ee's tail `ret` touches the stack — which is why pc/SP still
  *      MATCH (both pop the same caller return address) while the pushed bytes differ in-region.
  *
  *   2. EQUAL (crafted arms) — the single natural dispatch exercises only one ring state, so the
@@ -41,10 +41,10 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_09d6 as oracle } from "../../translated/sub_09d6.js";
+import { loc_09d6 as oracle } from "../../translated/loc_09d6.js";
 import { armTwoPlayerBoardSetup } from "../armTwoPlayerBoardSetup.js";
 import { enqueueTask } from "../enqueueTask.js";
-import { sub_09ee } from "../../translated/sub_09ee.js";
+import { loc_09ee } from "../../translated/loc_09ee.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -59,7 +59,7 @@ const TARGET = 0x09d6;
 const TASK_TAIL = 0x60b0;
 const RING_LO = 0x60c0, RING_HI = 0x60ff; // 32 slots x 2 bytes
 const GAME_SUBSTATE = 0x600a;
-const VRAM_CELLS = [0x74e0, 0x74c0, 0x74a0]; // the 3-cell column sub_09ee paints
+const VRAM_CELLS = [0x74e0, 0x74c0, 0x74a0]; // the 3-cell column loc_09ee paints
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
@@ -208,7 +208,7 @@ function brokenArmTwoPlayerBoardSetup(m) {
   regs.de = 0x0301; // BUG: opcode should be 0x02
   enqueueTask(m);
   mem.write8(GAME_SUBSTATE, 0x05);
-  return sub_09ee(m);
+  return loc_09ee(m);
 }
 
 test("TEETH: the wrong-second-opcode twin is CAUGHT (real free-ring dispatch + deterministic clean ring)", () => {

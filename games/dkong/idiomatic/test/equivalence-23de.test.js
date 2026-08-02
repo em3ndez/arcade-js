@@ -60,7 +60,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_23de as oracle } from "../../translated/sub_23de.js";
+import { loc_23de as oracle } from "../../translated/loc_23de.js";
 import { loc_23de } from "../loc_23de.js";
 import { loc_3009 } from "../loc_3009.js";
 import { STACK_SCRATCH, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";

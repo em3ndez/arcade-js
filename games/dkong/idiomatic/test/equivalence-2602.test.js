@@ -2,7 +2,7 @@
 /**
  * Equivalence test for loc_2602 (ROM 0x2602) — the first per-frame driver in sub_25f2's
  * timed-object cascade: even-frame 0x62A0 countdown (reload 0x80 + reverse 0x62A1's sign
- * on underflow), a per-frame sub_26e9(0x62A1) -> 0x63A3 publish, and an every-32nd-frame
+ * on underflow), a per-frame loc_26e9(0x62A1) -> 0x63A3 publish, and an every-32nd-frame
  * loc_26a6 advance of the sprite-anim pair at 0x69E4.
  *
  * loc_2602 WRITES MEMORY and CALLS three sub-routines, so it is gated on memory-equivalence
@@ -11,7 +11,7 @@
  * leaves (on the early-return arm the oracle even leaves A = FRAME & 0x1F, which nothing
  * reads), so A/HL/flags are deliberately NOT compared. Every case runs on FRESH clones (the
  * routine writes memory). loc_2602 uses direct calls (no stack modelling), but it calls the
- * still-oracle sub_26e9 exactly once per path and that callee ends in an `m.ret()` — which
+ * still-oracle loc_26e9 exactly once per path and that callee ends in an `m.ret()` — which
  * supplies sub_2602's single net return (SP+2, pc=caller), so the harness adds ZERO extra
  * rets to match the oracle (see runCandidate); the oracle's internal call pushes/pops land
  * within STACK_SCRATCH, which the RAM diff excludes.
@@ -22,7 +22,7 @@
  *
  *   1. EQUAL (FRAME sweep) — for all 256 FRAME values × a set of memory configs (countdown
  *      about-to-underflow vs not, direction sign set vs clear), confirm loc_2602 == oracle.
- *      This covers even/odd parity (the countdown gate + sub_26e9's parity), every FRAME &
+ *      This covers even/odd parity (the countdown gate + loc_26e9's parity), every FRAME &
  *      0x1F residue (the loc_26a6 32nd-frame gate), and both direction arms.
  *
  *   2. EQUAL (countdown sweep) — at a fixed EVEN frame, sweep all 256 countdown (0x62A0)
@@ -46,11 +46,11 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2602 as oracle } from "../../translated/sub_2602.js";
+import { loc_2602 as oracle } from "../../translated/loc_2602.js";
 import { loc_2602 } from "../loc_2602.js";
 import { reverseStepDirection } from "../reverseStepDirection.js";
 import { loc_26a6 } from "../loc_26a6.js";
-import { sub_26e9 } from "../../translated/sub_26e9.js";
+import { loc_26e9 } from "../../translated/loc_26e9.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -65,7 +65,7 @@ const TARGET = 0x2602;
 const FRAME_ADDR = 0x601a;
 const CD_ADDR = 0x62a0; // even-frame countdown
 const DIR_ADDR = 0x62a1; // signed step-direction / loc_26a6 arm-select
-const PUB_ADDR = 0x63a3; // sub_26e9 publish cell
+const PUB_ADDR = 0x63a3; // loc_26e9 publish cell
 const PAIR_BASE = 0x69e4; // loc_26a6 sprite-pair base -> counters at 0x69E5 / 0x69E9
 const P_ADDR = 0x69e5;
 const P4_ADDR = 0x69e9;
@@ -98,8 +98,8 @@ function runOracle(entry) {
 
 /**
  * Run a candidate on a fresh clone. The idiomatic routine models its own return as a JS
- * return (no stack modelling), but it calls the STILL-ORACLE sub_26e9 (0x26E9) directly,
- * and sub_26e9 ends in an `m.ret()`. Because loc_2602 calls sub_26e9 exactly once on every
+ * return (no stack modelling), but it calls the STILL-ORACLE loc_26e9 (0x26E9) directly,
+ * and loc_26e9 ends in an `m.ret()`. Because loc_2602 calls loc_26e9 exactly once on every
  * path (and its two idiomatic callees touch no stack), that single internal `ret` supplies
  * sub_2602's one net return — SP += 2, pc := the caller's return address — precisely
  * matching the oracle (which reaches the same SP/pc via its own tail/`ret nz`). So the
@@ -167,7 +167,7 @@ function brokenParity(m) {
     }
   }
   regs.hl = DIR_ADDR;
-  sub_26e9(m);
+  loc_26e9(m);
   mem.write8(PUB_ADDR, regs.a);
   if ((mem.read8(FRAME_ADDR) & 0x1f) !== 0x01) return;
   regs.de = DIR_ADDR;
@@ -188,7 +188,7 @@ function brokenGate(m) {
     }
   }
   regs.hl = DIR_ADDR;
-  sub_26e9(m);
+  loc_26e9(m);
   mem.write8(PUB_ADDR, regs.a);
   if ((mem.read8(FRAME_ADDR) & 0x1f) !== 0x00) return; // BUG: == 0 should be == 1
   regs.de = DIR_ADDR;

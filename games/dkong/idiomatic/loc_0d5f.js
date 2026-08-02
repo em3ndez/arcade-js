@@ -9,9 +9,9 @@
  * loc_3fa0, which tail-jumps here — so no caller consumes a register loc_0d5f leaves;
  * its work is entirely in memory. In order it:
  *
- *   1. Runs the big common per-board init (sub_0f56): clears the player/object RAM,
+ *   1. Runs the big common per-board init (loc_0f56): clears the player/object RAM,
  *      recomputes the bonus fields from LEVEL, and — via its own rst-0x28 tail — runs
- *      the per-board setup (25m/50m/75m/100m) selected by BOARD. sub_0f56 has no `ret`
+ *      the per-board setup (25m/50m/75m/100m) selected by BOARD. loc_0f56 has no `ret`
  *      of its own; the board-setup arm it dispatches to returns straight back here.
  *   2. Scatters this board's ROM object-init records into the OBJ_PARAM_TABLE0 /
  *      OBJ_PARAM_TABLE1 attribute arrays (0x6300/0x6310) via loadBoardObjectRecords.
@@ -35,13 +35,13 @@
  *      bit 1 of BOARD; `board & 0x02` reproduces that carry faithfully for all 256
  *      values, not only {1,2,3,4}.
  *
- * CALLEES. sub_0f56 (ROM 0x0F56) is not yet in idiomatic/, so it is called directly as
+ * CALLEES. loc_0f56 (ROM 0x0F56) is not yet in idiomatic/, so it is called directly as
  * the frozen oracle; the four already-idiomatic leaves are imported and called directly.
  * All five still take their inputs in the Z80 register file (they are the older
  * regs-passing idiomatic style, not honest-param), so at each call site this routine
  * still sets the registers they read (HL for the block load; HL/C for the column add;
  * HL/DE/B/C for addStrided) — the one place registers remain. loc_0d5f itself reads no
- * live-in register (sub_0f56 overwrites B/HL/A before reading anything), so it needs no
+ * live-in register (loc_0f56 overwrites B/HL/A before reading anything), so it needs no
  * parameters; the Z80 call stack becomes the JS call stack (no push16/m.call/ret).
  *
  * NAME. Kept as loc_0d5f, not promoted: it is a multi-responsibility glue node (delegate
@@ -54,7 +54,7 @@
  *           the only board attract sets up) validates the common path + the 25m arm;
  *           the 50m/75m/100m arms are reached by an identical-both-sides BOARD poke
  *           (2/3/4 — Karl-sanctioned board poke) on that real entry. Fresh clone per
- *           case (writes RAM, and sub_0f56 has state). Teeth: a dropped GAME_SUBSTATE
+ *           case (writes RAM, and loc_0f56 has state). Teeth: a dropped GAME_SUBSTATE
  *           advance and a wrong per-board offset (X shift instead of Y on 25m).
  * LIVE-OUT: memory-only. Reached through the board-setup dispatch tail (loc_0cc6 ->
  *           loc_3fa0, both tail jumps), which consumes no return register; the oracle's
@@ -69,7 +69,7 @@
  *           SPRITE_BUFFER+3).
  */
 
-import { sub_0f56 } from "../translated/sub_0f56.js"; // ROM 0x0f56 — not yet idiomatic; the frozen oracle
+import { loc_0f56 } from "../translated/loc_0f56.js"; // ROM 0x0f56 — not yet idiomatic; the frozen oracle
 import { loadBoardObjectRecords } from "./loadBoardObjectRecords.js"; // ROM 0x2441
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
@@ -84,7 +84,7 @@ export function loc_0d5f(m) {
   const { regs, mem } = m;
 
   // (1) Common per-board init + the per-board setup dispatch (still the oracle).
-  sub_0f56(m);
+  loc_0f56(m);
 
   // (2) Scatter this board's ROM object-init records into OBJ_PARAM_TABLE0 / OBJ_PARAM_TABLE1
   //     (0x6300/0x6310).

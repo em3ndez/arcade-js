@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { handler_05e9 as oracle } from "../../translated/handler_05e9.js";
+import { loc_05e9 as oracle } from "../../translated/loc_05e9.js";
 import { drawStringVertical } from "../drawStringVertical.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

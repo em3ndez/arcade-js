@@ -2,7 +2,7 @@
 /**
  * Memory-equivalence test for serviceVblankNmi (ROM 0x0066) — the vblank NMI handler:
  * ack the interrupt, kick the watchdog / reject SERVICE, DMA-blit the sprites, read the
- * controls when a game is in play, then run the per-frame work + epilogue (perFrame).
+ * controls when a game is in play, then run the per-frame work + epilogue (loc_00b5).
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. serviceVblankNmi WRITES RAM everywhere (frame counter, RNG, sound
@@ -13,7 +13,7 @@
  *
  * Unlike a leaf whose oracle ends in a modelled `ret`, this routine's SP and pc are
  * FAITHFUL to the oracle — serviceVblankNmi reserves the 12-byte register-save frame
- * that perFrame's epilogue pops (see the routine header), so perFrame's SP arithmetic
+ * that loc_00b5's epilogue pops (see the routine header), so loc_00b5's SP arithmetic
  * and its final `ret` land byte-identically. So SP and pc ARE part of the contract here
  * (which also makes the reserve testable — TEETH B). Only the register FILE is excluded:
  * the oracle's saved-register VALUES are the interrupt ABI the direct-call layer drops,
@@ -32,13 +32,13 @@
  *      sprites so the blit is non-trivial); on each, oracle vs serviceVblankNmi leave
  *      identical RAM(−stack) + SP + pc.
  *   2. CRAFTED (game-in-play arm) — attract keeps ATTRACT (0x6007) != 0, so the
- *      readControls arm is never taken naturally. Poke ATTRACT = 0 identically on both
- *      sides so both route through readControls, and confirm the arm is equivalent.
+ *      loc_0087 arm is never taken naturally. Poke ATTRACT = 0 identically on both
+ *      sides so both route through loc_0087, and confirm the arm is equivalent.
  *   3. TEETH A (the ATTRACT gate) — a twin that INVERTS the gate (reads input during
  *      attract) MUST be caught. On a capture where the oracle leaves the input-latch
  *      sentinel untouched, the inverted twin overwrites it — caught at 0x6010.
  *   4. TEETH B (the reserve is load-bearing) — a twin that OMITS the 12-byte SP reserve
- *      MUST break: perFrame's epilogue pops then overrun past 0x6C00. Caught as a throw.
+ *      MUST break: loc_00b5's epilogue pops then overrun past 0x6C00. Caught as a throw.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-0066.test.js
  */
@@ -47,11 +47,11 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_0066 as oracleNmi } from "../../translated/entry_0066.js";
+import { loc_0066 as oracleNmi } from "../../translated/loc_0066.js";
 import { serviceVblankNmi } from "../serviceVblankNmi.js";
 import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
-import { readControls } from "../../translated/readControls.js";
-import { perFrame } from "../../translated/perFrame.js";
+import { loc_0087 } from "../../translated/loc_0087.js";
+import { loc_00b5 } from "../../translated/loc_00b5.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, ATTRACT } from "../ram.js";
 
@@ -68,8 +68,8 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const NMI_ENABLE = 0x7d84;
 const IN2_WATCHDOG = 0x7d00;
 const DMA_SETUP_BLOCK = 0x0138;
-const P1_INPUT = 0x6010; // the byte readControls writes; low byte ∈ {0x00-0x0f, 0x80-0x8f}
-const SENTINEL = 0x5a; // a value readControls can NEVER leave at 0x6010 -> unambiguous "it ran"
+const P1_INPUT = 0x6010; // the byte loc_0087 writes; low byte ∈ {0x00-0x0f, 0x80-0x8f}
+const SENTINEL = 0x5a; // a value loc_0087 can NEVER leave at 0x6010 -> unambiguous "it ran"
 
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
@@ -170,14 +170,14 @@ test("EQUAL: real captured NMI entries — serviceVblankNmi == oracle (RAM −st
   );
 });
 
-// -- 2. CRAFTED (game-in-play arm: readControls) ------------------------------
+// -- 2. CRAFTED (game-in-play arm: loc_0087) ------------------------------
 
-test("CRAFTED: game-in-play arm — poke ATTRACT=0, both route through readControls, equal", () => {
+test("CRAFTED: game-in-play arm — poke ATTRACT=0, both route through loc_0087, equal", () => {
   const base = CAPS.find((c) => c.mem.read8(ATTRACT) !== 0) ?? CAPS[0];
   const o = base.clone();
   const c = base.clone();
-  // Identical surgical nudge: force a credited game so BOTH sides take the readControls
-  // arm attract never reaches. (No input asserted, so readControls' bit-6 soft-reset
+  // Identical surgical nudge: force a credited game so BOTH sides take the loc_0087
+  // arm attract never reaches. (No input asserted, so loc_0087' bit-6 soft-reset
   // path is not tripped.)
   o.mem.write8(ATTRACT, 0);
   c.mem.write8(ATTRACT, 0);
@@ -195,37 +195,37 @@ test("CRAFTED: game-in-play arm — poke ATTRACT=0, both route through readContr
   );
 
   // Non-vacuous: the arm choice is observable — the ATTRACT=0 result differs from the
-  // attract skip-path result on the same base (readControls ran, and/or the dispatch
+  // attract skip-path result on the same base (loc_0087 ran, and/or the dispatch
   // saw a different ATTRACT), so this exercised a genuinely different code path.
-  const skip = base.clone(); // ATTRACT left != 0 -> readControls skipped
+  const skip = base.clone(); // ATTRACT left != 0 -> loc_0087 skipped
   serviceVblankNmi(skip);
   assert.notEqual(
     contractDiff(c, skip),
     null,
     "poking ATTRACT=0 produced an identical machine to the skip path — the arm was not exercised",
   );
-  console.log("  CRAFTED: ATTRACT=0 -> both route through readControls; RAM/SP/pc identical; arm is observable");
+  console.log("  CRAFTED: ATTRACT=0 -> both route through loc_0087; RAM/SP/pc identical; arm is observable");
 });
 
 // -- 3. TEETH A (the ATTRACT gate) --------------------------------------------
 
 // Broken twin: the ATTRACT gate is INVERTED — it reads the controls DURING attract and
-// skips them in a credited game. Everything else (blit, reserve, perFrame) is faithful.
+// skips them in a credited game. Everything else (blit, reserve, loc_00b5) is faithful.
 function brokenInvertedGate(m) {
   const { regs, mem } = m;
   mem.write8(NMI_ENABLE, 0);
   if (mem.read8(IN2_WATCHDOG) & 0x01) throw new Error("service");
   regs.hl = DMA_SETUP_BLOCK;
   blitSpritesViaDma(m);
-  if (mem.read8(ATTRACT) !== 0) readControls(m); // BUG: should be === 0
+  if (mem.read8(ATTRACT) !== 0) loc_0087(m); // BUG: should be === 0
   regs.sp = (regs.sp - 12) & 0xffff;
-  perFrame(m);
+  loc_00b5(m);
 }
 
 test("TEETH A: an inverted ATTRACT gate (reads input during attract) is CAUGHT", () => {
   // Find a capture where the CORRECT handler (attract skip) leaves the input-latch
   // sentinel untouched — i.e. the dispatch does not overwrite 0x6010 that frame — so
-  // the inverted twin's readControls write is observable.
+  // the inverted twin's loc_0087 write is observable.
   let idx = -1;
   for (let i = 0; i < CAPS.length; i++) {
     const probe = CAPS[i].clone();
@@ -241,7 +241,7 @@ test("TEETH A: an inverted ATTRACT gate (reads input during attract) is CAUGHT",
   o.mem.write8(ATTRACT, 1); c.mem.write8(ATTRACT, 1); // force attract -> correct handler SKIPS input
   o.mem.write8(P1_INPUT, SENTINEL); c.mem.write8(P1_INPUT, SENTINEL);
 
-  oracleNmi(o); // correct: skips readControls, sentinel survives
+  oracleNmi(o); // correct: skips loc_0087, sentinel survives
   brokenInvertedGate(c); // wrong: reads input in attract, overwrites the sentinel
 
   const d = contractDiff(o, c);
@@ -253,7 +253,7 @@ test("TEETH A: an inverted ATTRACT gate (reads input during attract) is CAUGHT",
 
 // -- 4. TEETH B (the 12-byte SP reserve is load-bearing) ----------------------
 
-// Broken twin: identical to serviceVblankNmi but OMITS `regs.sp -= 12`. perFrame's
+// Broken twin: identical to serviceVblankNmi but OMITS `regs.sp -= 12`. loc_00b5's
 // epilogue then pops the register-save frame + return PC from too high a stack and
 // overruns past the top of work RAM (0x6C00) — an unmapped read.
 function brokenNoReserve(m) {
@@ -262,20 +262,20 @@ function brokenNoReserve(m) {
   if (mem.read8(IN2_WATCHDOG) & 0x01) throw new Error("service");
   regs.hl = DMA_SETUP_BLOCK;
   blitSpritesViaDma(m);
-  if (mem.read8(ATTRACT) === 0) readControls(m);
-  // BUG: no `regs.sp -= 12` — perFrame's epilogue pops will overrun.
-  perFrame(m);
+  if (mem.read8(ATTRACT) === 0) loc_0087(m);
+  // BUG: no `regs.sp -= 12` — loc_00b5's epilogue pops will overrun.
+  loc_00b5(m);
 }
 
 test("TEETH B: omitting the 12-byte SP reserve overruns the stack — CAUGHT (throws)", () => {
   const base = CAPS[0];
   // The correct routine runs clean on this same state...
   serviceVblankNmi(base.clone());
-  // ...and the reserve-less twin overruns perFrame's pops past 0x6C00.
+  // ...and the reserve-less twin overruns loc_00b5's pops past 0x6C00.
   assert.throws(
     () => brokenNoReserve(base.clone()),
     /unmapped read|0x6c00/i,
     "the reserve-less twin did NOT overrun — the 12-byte reserve is not actually load-bearing here",
   );
-  console.log("  TEETH B: dropping the SP reserve overruns perFrame's epilogue past 0x6C00 (throws) — reserve is load-bearing");
+  console.log("  TEETH B: dropping the SP reserve overruns loc_00b5's epilogue past 0x6C00 (throws) — reserve is load-bearing");
 });

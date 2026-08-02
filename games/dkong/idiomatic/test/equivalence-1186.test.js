@@ -56,7 +56,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1186 as oracle } from "../../translated/sub_1186.js";
+import { loc_1186 as oracle } from "../../translated/loc_1186.js";
 import { seedObjectBlockSprites } from "../seedObjectBlockSprites.js";
 import { replicateGroupStrided } from "../replicateGroupStrided.js";
 import { gatherSpriteRecords } from "../gatherSpriteRecords.js";

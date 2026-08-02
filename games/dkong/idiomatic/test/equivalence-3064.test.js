@@ -13,12 +13,12 @@
  * sides (neither implementation writes them), so they pass through identically.
  *
  *   1. EQUAL (real captured dispatches) — plain attract never reaches 0x3064 (0×): it
- *      runs only inside the game-state cascade that drives its sole caller sub_304a.
+ *      runs only inside the game-state cascade that drives its sole caller loc_304a.
  *      So the real dispatch states are reproduced by capturing a realistic booted
  *      machine at loc_0fd7 (reached in plain attract), then running the TRANSLATED
- *      sub_304a on clones with the effect index 0x638E seeded across values, hooking
+ *      loc_304a on clones with the effect index 0x638E seeded across values, hooking
  *      0x3064 to snapshot each true dispatch. That yields the exact (HL,BC,DE,SP,
- *      video-RAM) sub_304a feeds it in play (HL=0x7600/0x75C0, DE=0xFFE0, SP pointing
+ *      video-RAM) loc_304a feeds it in play (HL=0x7600/0x75C0, DE=0xFFE0, SP pointing
  *      at the pushed return address). For each, oracle vs copyByteDisplaced must leave
  *      identical RAM + pc + SP.
  *
@@ -45,8 +45,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_3064 as oracle } from "../../translated/sub_3064.js";
-import { loc_0fd7, sub_304a } from "../../translated/state0.js";
+import { loc_3064 as oracle } from "../../translated/loc_3064.js";
+import { loc_0fd7, loc_304a } from "../../translated/state0.js";
 import { copyByteDisplaced } from "../copyByteDisplaced.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -103,7 +103,7 @@ function runCandidate(entry, fn) {
 /**
  * Compare candidate vs oracle over the memory-only contract: RAM − STACK_SCRATCH, pc,
  * and SP. LIVE-OUT is memory-only, so HL/A/F are intentionally NOT compared (they are
- * dead at the sole caller sub_304a). Returns a list of human-readable mismatches
+ * dead at the sole caller loc_304a). Returns a list of human-readable mismatches
  * (empty when equal).
  */
 function contractDiffs(entry, fn) {
@@ -121,7 +121,7 @@ function contractDiffs(entry, fn) {
 
 /**
  * A realistic booted machine, captured at loc_0fd7 (reached in plain attract) — the
- * same seed the optimized sub_304a suite uses. Its clones drive sub_304a below.
+ * same seed the optimized loc_304a suite uses. Its clones drive loc_304a below.
  */
 function captureBooted(maxFrames) {
   let entry = null;
@@ -133,8 +133,8 @@ function captureBooted(maxFrames) {
 
 /**
  * Reproduce the REAL 0x3064 dispatch states: for each effect-index seed, clone the
- * booted machine, seed 0x638E, and run the TRANSLATED sub_304a with 0x3064 hooked to
- * snapshot each true dispatch. sub_304a m.call(0x3064)s twice (HL=0x7600 then 0x75C0),
+ * booted machine, seed 0x638E, and run the TRANSLATED loc_304a with 0x3064 hooked to
+ * snapshot each true dispatch. loc_304a m.call(0x3064)s twice (HL=0x7600 then 0x75C0),
  * with the caller's real BC/DE and a genuine pushed return address on the stack — so
  * each snapshot is the exact state the routine meets in play, not a fabrication.
  */
@@ -144,7 +144,7 @@ function captureRealDispatches(booted, seeds) {
     const c = booted.clone();
     c.mem.write8(0x638e, seed);
     c.routines.set(TARGET, (mm) => { caps.push(mm.clone()); return oracle(mm); });
-    sub_304a(c);
+    loc_304a(c);
   }
   return caps;
 }
@@ -163,7 +163,7 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => (1 + i * 11) & 0xff); // 24 s
 test("EQUAL (real dispatches): copyByteDisplaced == oracle on every captured 0x3064 entry", () => {
   const booted = captureBooted(600);
   const caps = captureRealDispatches(booted, SEEDS);
-  assert.ok(caps.length >= 2, "expected real 0x3064 dispatches from sub_304a");
+  assert.ok(caps.length >= 2, "expected real 0x3064 dispatches from loc_304a");
   for (const cap of caps) {
     const diffs = contractDiffs(cap, copyByteDisplaced); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));

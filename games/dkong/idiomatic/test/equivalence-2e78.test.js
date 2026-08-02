@@ -10,7 +10,7 @@
  *   • SP (unchanged — the routine touches no stack),
  *   • and the routine's declared REGISTER live-out.
  *
- * DECLARED LIVE-OUT — what the still-translated scan loop (entry_2e04) actually consumes
+ * DECLARED LIVE-OUT — what the still-translated scan loop (loc_2e04) actually consumes
  * after this tail: the two advanced cursors (ix, iy) it re-reads on the next object, the
  * remaining-object count (b) it feeds to its djnz, and — reproduced conservatively — the
  * leftover step (de). The oracle's residual arithmetic flags and its scratch a/c/h/l are
@@ -35,10 +35,10 @@
  *      out any cross term between the two arms.
  *   3. EQUAL (independence) — hold (ix, iy) fixed and vary the incoming de, b, a/c/h/l, and
  *      a RAM byte: the output is unchanged, proving the routine reads only the two cursors.
- *   4. REALISM (captured) — attract only ever takes entry_2e04's loop-SKIP arm (board 1;
+ *   4. REALISM (captured) — attract only ever takes loc_2e04's loop-SKIP arm (board 1;
  *      the loop needs board 3), so 0x2e78 never dispatches in plain attract. Steer the
  *      game's OWN board/enable gates into the full 10-object pass (the sanctioned
- *      identical-both-sides poke), run the REAL entry_2e04, and hook 0x2e78 to capture the
+ *      identical-both-sides poke), run the REAL loc_2e04, and hook 0x2e78 to capture the
  *      10 real dispatches — the true in-game cursor sequence — then replay oracle vs
  *      candidate on each.
  *   5. TEETH — six deliberately-broken twins (wrong IX stride, wrong IY stride, dropped IY
@@ -57,7 +57,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e78 as oracle } from "../../translated/loc_2e78.js";
 import { advanceToNextObject } from "../advanceToNextObject.js";
-import { entry_2e04 } from "../../translated/entry_2e04.js";
+import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -89,7 +89,7 @@ function setInput(m, ix, iy) {
   m.nextBoundary = Infinity;
 }
 
-// The register live-out contract (what entry_2e04 consumes) + de (conservative). null | string.
+// The register live-out contract (what loc_2e04 consumes) + de (conservative). null | string.
 function regLiveOutDiff(o, c) {
   if (o.regs.ix !== c.regs.ix) return `ix oracle=${hx16(o.regs.ix)} cand=${hx16(c.regs.ix)}`;
   if (o.regs.iy !== c.regs.iy) return `iy oracle=${hx16(o.regs.iy)} cand=${hx16(c.regs.iy)}`;
@@ -229,7 +229,7 @@ test("EQUAL (independence): output depends ONLY on the two cursors, not de/b/scr
 
 // -- 4. REALISM (real captured dispatches) ------------------------------------
 
-// Steer the game's own gates into entry_2e04's full 10-object loop and hook 0x2e78 to
+// Steer the game's own gates into loc_2e04's full 10-object loop and hook 0x2e78 to
 // capture the real in-game dispatch states (attract never reaches the loop). Returns the
 // captured entry clones — the true cursor sequence the scan produces in play.
 function captureRealDispatches() {
@@ -237,7 +237,7 @@ function captureRealDispatches() {
   host.runFrames(700); // realistic work RAM (0x2e78 does not dispatch in attract, so no captures yet)
   const m = host.clone();
   m.regs.sp = 0x6c00;
-  m.push16(0x4d17); // sentinel caller-return for entry_2e04
+  m.push16(0x4d17); // sentinel caller-return for loc_2e04
   m.mem.write8(0x6227, 3); // board = 3   -> rst 0x30 (A=0x04) passes
   m.mem.write8(0x6200, 1); // enable bit0 -> rst 0x10 passes -> full 10-object loop
   const caps = [];
@@ -247,13 +247,13 @@ function captureRealDispatches() {
   };
   m.overrides.set(0x2e78, hook);
   m.routines.set(0x2e78, hook);
-  entry_2e04(m);
+  loc_2e04(m);
   return caps;
 }
 
 test("REALISM: real captured 0x2e78 dispatches — advanceToNextObject matches the oracle", () => {
   const caps = captureRealDispatches();
-  assert.equal(caps.length, 10, "the full-loop entry_2e04 should dispatch 0x2e78 once per object (10)");
+  assert.equal(caps.length, 10, "the full-loop loc_2e04 should dispatch 0x2e78 once per object (10)");
 
   caps.forEach((cap, i) => {
     // The captured cursors are the exact in-game scan sequence.

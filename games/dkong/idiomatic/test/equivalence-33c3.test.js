@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_33c3 as oracle } from "../../translated/entry_33c3.js";
+import { loc_33c3 as oracle } from "../../translated/loc_33c3.js";
 import { loc_33c3 } from "../loc_33c3.js";
 import { snapYToGirder } from "../snapYToGirder.js";
 import { Machine } from "../../machine.js";

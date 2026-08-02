@@ -53,7 +53,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1670 as oracle } from "../../translated/sub_1670.js";
+import { loc_1670 as oracle } from "../../translated/loc_1670.js";
 import { loc_1670 as idiomatic } from "../loc_1670.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";

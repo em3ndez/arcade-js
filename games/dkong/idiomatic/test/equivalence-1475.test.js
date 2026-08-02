@@ -47,7 +47,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1475 as oracle } from "../../translated/loc_1475.js";
-import { sub_0018 as captureSiteOracle } from "../../translated/sub_0018.js";
+import { loc_0018 as captureSiteOracle } from "../../translated/loc_0018.js";
 import { enterAttractMode } from "../enterAttractMode.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

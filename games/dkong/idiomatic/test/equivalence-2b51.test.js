@@ -42,7 +42,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { skip_2b51 as oracle } from "../../translated/skip_2b51.js";
+import { loc_2b51 as oracle } from "../../translated/loc_2b51.js";
 import { loc_2b51 } from "../loc_2b51.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

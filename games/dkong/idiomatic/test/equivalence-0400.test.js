@@ -6,10 +6,10 @@
  *
  * WHY THIS TEST SYNTHESISES THE ENTRY INSTEAD OF DRIVING A LIVE DISPATCH.
  * 0x0400 is NEVER dispatched in the current build. It is the shared tail of its sibling
- * entry_03fb entered one instruction later (at the `jp nz` board branch); the ROM's
+ * loc_03fb entered one instruction later (at the `jp nz` board branch); the ROM's
  * scheduled-task table does not contain 0x0400, so nothing jumps to it (test 0 below confirms
  * 0 entries over a coin+start window, baseline healthy). So there are no natural captures. Per
- * the synthesis clause, the entry is reconstructed from the reachable sibling entry_03fb's REAL
+ * the synthesis clause, the entry is reconstructed from the reachable sibling loc_03fb's REAL
  * captured state (its caller loc_197a runs the in-game cascade), with the deciding board flag
  * forced each way — the exact context the loc_0413 colour tree is built to run in — plus crafted
  * attract-base entries that force the sub-0x3b row-shift over the byte wrap and each colour-cycle
@@ -23,7 +23,7 @@
  * candidate to line pc + SP up with the oracle.
  *
  *   0. NEVER-DISPATCHED — a counting override fires 0x over a coin+start window; baseline healthy.
- *   1. REALISM (synthesised) — capture real entry_03fb entries, force the board flag each way, and
+ *   1. REALISM (synthesised) — capture real loc_03fb entries, force the board flag each way, and
  *      confirm loc_0400 == oracle over the whole contract on both branches.
  *   2. EQUAL (crafted) — attract base + pokes: the 50m arm over the sub-0x3b byte wrap and the
  *      shift-then-read order, the not-50m arm (no row work), and each colour-cycle route under both.
@@ -37,8 +37,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_0400 as oracle } from "../../translated/entry_0400.js";
-import { entry_03fb } from "../../translated/entry_03fb.js";
+import { loc_0400 as oracle } from "../../translated/loc_0400.js";
+import { loc_03fb } from "../../translated/loc_03fb.js";
 import { loc_0400 } from "../loc_0400.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { serviceColorCycle } from "../serviceColorCycle.js";
@@ -62,7 +62,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0400;
-const SIBLING = 0x03fb;      // reachable capture point (0x0400 == entry_03fb entered later)
+const SIBLING = 0x03fb;      // reachable capture point (0x0400 == loc_03fb entered later)
 const F_Z = 0x40;            // Z flag bit in F
 const RET_ADDR = 0x19b3;     // a plausible caller-return for the one net pop (any value works)
 const THIRD_REC_X = 0x6910;  // SPRITE_OBJ_BLOCK + 8: X byte of the block's third record (no ram.js name)
@@ -71,7 +71,7 @@ const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed in ram.js �
 const OBJ_RELOAD_GATE = 0x6393; // advanceColorCycleSweep's reload gate (from the 0413 gate)
 
 // coin on IN2 bit7 @f10, start1 on IN2 bit2 @f30 — credits + starts a game so loc_197a's
-// per-frame cascade (and thus entry_03fb) begins dispatching (~frame 1033).
+// per-frame cascade (and thus loc_03fb) begins dispatching (~frame 1033).
 const COIN_START_TAPE = [
   { port: 0x7d00, bits: 0x80, frame: 10, dur: 6 },
   { port: 0x7d00, bits: 0x04, frame: 30, dur: 6 },
@@ -156,13 +156,13 @@ function attractBase(frames = 180) {
   return m.clone(); // clone neutralises the frame machinery (nextNmi/nextBoundary = Infinity)
 }
 
-// Capture the pristine machine state at the sibling entry_03fb's real entries (0x0400 is the
+// Capture the pristine machine state at the sibling loc_03fb's real entries (0x0400 is the
 // same body entered one instruction later, so this is the faithful entry context).
 function captureSiblingEntries(limit = 24) {
   const caps = [];
   const snap = new Map([[SIBLING, (mm) => {
     if (caps.length < limit) caps.push(mm.clone());
-    return entry_03fb(mm); // let the host run proceed normally
+    return loc_03fb(mm); // let the host run proceed normally
   }]]);
   const host = makeMachine(snap);
   host.runFrames(CAPTURE_FRAMES);

@@ -45,7 +45,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_298c as oracle } from "../../translated/sub_298c.js";
+import { loc_298c as oracle } from "../../translated/loc_298c.js";
 import { loc_298c } from "../loc_298c.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { Machine } from "../../machine.js";

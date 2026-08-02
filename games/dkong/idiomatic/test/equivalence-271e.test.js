@@ -45,7 +45,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_271e as oracle } from "../../translated/sub_271e.js";
+import { loc_271e as oracle } from "../../translated/loc_271e.js";
 import { loc_271e } from "../loc_271e.js";
 import { loc_2766 } from "../loc_2766.js"; // idiomatic reset arm, used by the wrong-delegate twin
 import {

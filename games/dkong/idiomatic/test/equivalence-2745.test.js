@@ -47,7 +47,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2745 as oracle } from "../../translated/sub_2745.js";
+import { loc_2745 as oracle } from "../../translated/loc_2745.js";
 import { loc_2745 } from "../loc_2745.js";
 import { loc_2766 } from "../loc_2766.js"; // idiomatic arms, used by the broken twins
 import { loc_276f } from "../loc_276f.js";

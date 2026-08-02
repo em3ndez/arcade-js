@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { handler_073c as oracle } from "../../translated/handler_073c.js";
+import { loc_073c as oracle } from "../../translated/loc_073c.js";
 import { runAttractState } from "../runAttractState.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, CREDITS, GAME_STATE, GAME_SUBSTATE } from "../ram.js";

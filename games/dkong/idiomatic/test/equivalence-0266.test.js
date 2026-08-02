@@ -37,7 +37,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { bootInit as oracle } from "../../translated/bootInit.js";
+import { loc_0266 as oracle } from "../../translated/loc_0266.js";
 import { bootOnly } from "../../translated/bootOnly.js";
 import { loc_0266 } from "../loc_0266.js";
 import { silenceSound } from "../silenceSound.js";

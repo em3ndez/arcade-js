@@ -39,7 +39,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_3e88 as oracle } from "../../translated/entry_3e88.js";
+import { loc_3e88 as oracle } from "../../translated/loc_3e88.js";
 import { dispatchBoardOverlapSearch } from "../dispatchBoardOverlapSearch.js"; // promoted from loc_3e88
 import { dispatchInlineJumpTable } from "../dispatchInlineJumpTable.js";
 import { Machine } from "../../machine.js";
@@ -53,7 +53,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TABLE_BASE = 0x3e8d;              // loc_3e88's inline rst-0x28 table base (ROM data)
-const SITE = "0x3E8D (entry_3e88 dispatch)"; // dispatch-site label (only surfaces in a throw)
+const SITE = "0x3E8D (loc_3e88 dispatch)"; // dispatch-site label (only surfaces in a throw)
 const RET = 0x286e;                     // a plausible caller return (the arm's ret lands here)
 const LIVES = 0x6228;                   // used only to build the wrong-selector twin
 // OVERLAP_COUNT (0x6060) imported from ram.js — the collision counter entry_3e99/entry_3ec3 write.

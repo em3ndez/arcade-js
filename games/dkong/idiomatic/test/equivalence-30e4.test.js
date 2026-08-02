@@ -46,7 +46,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_30e4 as oracle } from "../../translated/sub_30e4.js";
+import { loc_30e4 as oracle } from "../../translated/loc_30e4.js";
 import { clearStridedBytes } from "../clearStridedBytes.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

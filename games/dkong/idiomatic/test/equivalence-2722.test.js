@@ -42,7 +42,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2722 as oracle } from "../../translated/sub_2722.js";
+import { loc_2722 as oracle } from "../../translated/loc_2722.js";
 import { serviceBoardObjects as loc_2722 } from "../serviceBoardObjects.js";
 import { loc_2797 } from "../loc_2797.js";
 import { spawnBoardObject } from "../spawnBoardObject.js";

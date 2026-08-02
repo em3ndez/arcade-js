@@ -14,15 +14,15 @@
  *
  * Plain attract never dispatches 0x268D (0×): the whole sub_25F2 object cascade is
  * board-2 gated (`rst 0x30` mask 0x02) and attract plays 25m. So real dispatch states are
- * reproduced by running the TRANSLATED caller sub_2679 on clones of a booted machine with
- * 0x268D hooked to snapshot each true entry — exactly like 0x26A6/0x3064. sub_2679 reaches
+ * reproduced by running the TRANSLATED caller loc_2679 on clones of a booted machine with
+ * 0x268D hooked to snapshot each true entry — exactly like 0x26A6/0x3064. loc_2679 reaches
  * the tail on an EVEN frame via its 0x62A5 countdown (there the frame gate opens → the
  * sprite-pair-advance arm) and on an ODD frame by a direct tail-jump (there the gate is
  * shut → the publish-then-return arm).
  *
  *   1. REACHABILITY — 0x268D is dispatched 0× in a plain attract run (documents the
- *      non-executing frontier), yet driving sub_2679 yields real entries for BOTH arms.
- *   2. EQUAL (captured) — loc_268d == oracle on every captured sub_2679 dispatch, across
+ *      non-executing frontier), yet driving loc_2679 yields real entries for BOTH arms.
+ *   2. EQUAL (captured) — loc_268d == oracle on every captured loc_2679 dispatch, across
  *      both arms.
  *   3. EQUAL (crafted) — poke the frame counter, the direction latch's sign (both loc_26a6
  *      arms), the sprite-pair counters (ordinary steps + all four wrap seams), and the
@@ -41,8 +41,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { tail_268d as oracle } from "../../translated/tail_268d.js";
-import { sub_2679 } from "../../translated/sub_2679.js";
+import { loc_268d as oracle } from "../../translated/loc_268d.js";
+import { loc_2679 } from "../../translated/loc_2679.js";
 import { loc_268d } from "../loc_268d.js";
 import { signStepHalfRate } from "../signStepHalfRate.js";
 import { loc_26a6 } from "../loc_26a6.js";
@@ -122,7 +122,7 @@ function bootedMachine(frames) {
 }
 
 /**
- * Reproduce REAL 0x268D dispatches by running the translated sub_2679 on clones of a
+ * Reproduce REAL 0x268D dispatches by running the translated loc_2679 on clones of a
  * booted machine, with 0x268D hooked to snapshot each true entry. An EVEN frame whose low
  * 5 bits are 2 reaches the tail through the 0x62A5 countdown and opens the frame gate (the
  * sprite-pair-advance arm); an ODD frame tail-jumps straight in with the gate shut (the
@@ -137,7 +137,7 @@ function captureDispatches(booted) {
     e.mem.write8(FRAME, frame);
     e.regs.sp = 0x6bfe;
     e.routines.set(TARGET, hook);
-    sub_2679(e);
+    loc_2679(e);
   };
   for (const f of [0x02, 0x22, 0x42]) drive(f); // even, (FRAME & 0x1F)==2 -> advance arm
   for (const f of [0x01, 0x03, 0x21]) drive(f); // odd -> publish-then-return arm
@@ -163,7 +163,7 @@ function craft(base, { frame, latch, p = 0x40, p4 = 0x80, shadow = 0x00 }) {
 
 // -- 1. reachability ----------------------------------------------------------
 
-test("REACHABILITY: 0x268D is a non-executing frontier in attract, reachable via sub_2679", () => {
+test("REACHABILITY: 0x268D is a non-executing frontier in attract, reachable via loc_2679", () => {
   let attractCount = 0;
   const snap = new Map([[TARGET, (mm) => { attractCount++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });
@@ -171,15 +171,15 @@ test("REACHABILITY: 0x268D is a non-executing frontier in attract, reachable via
   assert.equal(attractCount, 0, "0x268D should NOT dispatch in plain attract (board-2 gated)");
 
   const caps = captureDispatches(bootedMachine(500));
-  assert.ok(caps.length >= 6, "expected real 0x268D entries from driving sub_2679");
+  assert.ok(caps.length >= 6, "expected real 0x268D entries from driving loc_2679");
   const arms = new Set(caps.map((c) => (c.mem.read8(FRAME) & 0x1f) === 0x02));
   assert.equal(arms.size, 2, "captured entries must cover BOTH arms (gate open and shut)");
-  console.log(`  REACHABILITY: 0× in 1500 attract frames; ${caps.length} entries via sub_2679 (both arms)`);
+  console.log(`  REACHABILITY: 0× in 1500 attract frames; ${caps.length} entries via loc_2679 (both arms)`);
 });
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_268d == oracle on every real sub_2679 dispatch", () => {
+test("EQUAL (captured): loc_268d == oracle on every real loc_2679 dispatch", () => {
   const caps = captureDispatches(bootedMachine(500));
   let advance = 0, publishOnly = 0;
   for (const cap of caps) {

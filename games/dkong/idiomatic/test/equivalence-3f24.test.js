@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_3f24 as oracle } from "../../translated/sub_3f24.js";
+import { loc_3f24 as oracle } from "../../translated/loc_3f24.js";
 import { stampFixedTilePair } from "../stampFixedTilePair.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

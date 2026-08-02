@@ -35,7 +35,7 @@
  *      addresses to the two cursors and rule out a cross term.
  *   3. EQUAL (independence) — hold cursors + source bytes fixed and vary de, b, scratch
  *      registers, and an unrelated RAM byte: output unchanged.
- *   4. REALISM (captured) — steer entry_2e04 into its full 10-object pass with every object
+ *   4. REALISM (captured) — steer loc_2e04 into its full 10-object pass with every object
  *      active + state 4 (five below the limit, five at it), let the game's OWN code (obj_2e12)
  *      dispatch 0x2e84, hook it to capture the 10 real dispatches, and replay oracle vs
  *      candidate on each — both retire and move arms, at the true in-game cursor sequence.
@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2e84 as oracle } from "../../translated/loc_2e84.js";
 import { loc_2e84 as candidate } from "../loc_2e84.js";
 import { mirrorObjectPositionToSprite } from "../mirrorObjectPositionToSprite.js"; // ROM 0x2E6C (for the twins)
-import { entry_2e04 } from "../../translated/entry_2e04.js";
+import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { u8 } from "../../../../core/int.js";
@@ -247,7 +247,7 @@ test("EQUAL (independence): output depends ONLY on the cursors + their fields, n
 
 // -- 4. REALISM (real captured dispatches) ------------------------------------
 
-// Attract never reaches entry_2e04's object loop. So nudge all 10 objects active + state 4
+// Attract never reaches loc_2e04's object loop. So nudge all 10 objects active + state 4
 // (ix+0d = 4) with distinct positions — the first five below the travel limit (move arm), the
 // last five at it (retire arm) — and let the game's OWN code (obj_2e12) dispatch loc_2e84.
 // Hook 0x2e84 to capture the real dispatch states (the true cursor sequence the scan produces)
@@ -257,7 +257,7 @@ function captureRealDispatches() {
   host.runFrames(700); // realistic work RAM (0x2e84 does not dispatch in attract, so no captures yet)
   const m = host.clone();
   m.regs.sp = 0x6c00;
-  m.push16(0x4d17); // sentinel caller-return for entry_2e04
+  m.push16(0x4d17); // sentinel caller-return for loc_2e04
   m.mem.write8(0x6227, 3); // board = 3   -> rst 0x30 (A=0x04) passes
   m.mem.write8(0x6200, 1); // enable bit0 -> rst 0x10 passes -> full 10-object loop
   for (let k = 0; k < 10; k++) {
@@ -275,13 +275,13 @@ function captureRealDispatches() {
   };
   m.overrides.set(0x2e84, hook);
   m.routines.set(0x2e84, hook);
-  entry_2e04(m);
+  loc_2e04(m);
   return caps;
 }
 
 test("REALISM: real captured 0x2e84 dispatches — loc_2e84 matches the oracle on both arms", () => {
   const caps = captureRealDispatches();
-  assert.equal(caps.length, 10, "the steered full-loop entry_2e04 should dispatch 0x2e84 once per object (10)");
+  assert.equal(caps.length, 10, "the steered full-loop loc_2e04 should dispatch 0x2e84 once per object (10)");
 
   let retired = 0;
   caps.forEach((cap, i) => {

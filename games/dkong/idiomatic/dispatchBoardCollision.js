@@ -8,7 +8,7 @@
  *   1 -> 0x2880  (25m girders),  2 -> 0x28B0  (50m),
  *   3 -> 0x28E0  (75m),          4 -> 0x2901  (100m rivets).
  * Entries 0 and 5 are 0x0000 guard slots (BOARD is never range-checked; a stray value
- * vectors off the table, which dispatchGameState surfaces as a loud NotImplemented throw).
+ * vectors off the table, which loc_00ca surfaces as a loud NotImplemented throw).
  * Each handler sweeps the board's object records — via the shared search entry_2913 —
  * for one overlapping with the caller's position and leaves the hit/miss result the
  * callers read back (A, and for loc_281d also IX). This routine only routes; the handler
@@ -28,7 +28,7 @@
  * that trampoline is folded in directly — the table base is the compile-time constant 0x2874
  * — leaving `push the caller's HL, read table[board] from ROM, dispatch`. The dispatch itself
  * is genuine computed control flow into a ROM table of targets, so it routes through the
- * still-oracle generic dispatcher dispatchGameState (the one address registry doc-06 keeps)
+ * still-oracle generic dispatcher loc_00ca (the one address registry doc-06 keeps)
  * rather than a local JS function table. The trampoline's register/flag handoff (A = 2*board,
  * HL = target, DE, flags) is NOT reproduced: it is dead into every handler (each opens with
  * `pop hl` then overwrites A/DE before reading them — verified statically, and the
@@ -52,13 +52,13 @@
  */
 
 import { BOARD } from "./ram.js";
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 6 little-endian target addresses in ROM starting at
 // 0x2874, indexed by BOARD. A ROM-data address, so kept hex.
 const BOARD_COLLISION_TABLE = 0x2874;
 
-// The dispatch-site label handed to dispatchGameState; it only ever surfaces inside a
+// The dispatch-site label handed to loc_00ca; it only ever surfaces inside a
 // NotImplemented throw, naming which inline table a stray BOARD fell off of. Kept identical
 // to the oracle's `m.call(0x0028, ...)` site string.
 const DISPATCH_TABLE_2874 = "0x2874 (0x6227 collision dispatch)";
@@ -82,5 +82,5 @@ export function dispatchBoardCollision(m) {
 
   // jp (hl) — dispatch to the board's collision handler. Its hit/miss result is left in
   // A/IX on the machine; the oracle discards the JS return value here, so this routine does too.
-  dispatchGameState(m, target, DISPATCH_TABLE_2874);
+  loc_00ca(m, target, DISPATCH_TABLE_2874);
 }

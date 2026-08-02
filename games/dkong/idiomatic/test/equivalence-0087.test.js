@@ -40,9 +40,9 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { readControls as oracle } from "../../translated/readControls.js";
+import { loc_0087 as oracle } from "../../translated/loc_0087.js";
 import { readControls as candidate } from "../readControls.js";
-import { sub_0141 } from "../../translated/sub_0141.js";
+import { loc_0141 } from "../../translated/loc_0141.js";
 import { Machine } from "../../machine.js";
 import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW, ATTRACT, STACK_SCRATCH } from "../ram.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
@@ -269,7 +269,7 @@ const MOVE_TAPE = [
 /**
  * Drive MOVE_TAPE and clone the machine at real in-game (ATTRACT==0) frames, sampling one of
  * every `stride` dispatches (spread over the run, capped at `cap`). Hooks the NMI's DMA blit
- * 0x0141 — the last m.call before readControls — and delegates to the oracle sub_0141 so the
+ * 0x0141 — the last m.call before readControls — and delegates to the oracle loc_0141 so the
  * host game proceeds undisturbed. Capturing is fenced off after the host run.
  */
 function captureInGameDispatches(stride, cap, maxFrames) {
@@ -281,7 +281,7 @@ function captureInGameDispatches(stride, cap, maxFrames) {
       if (seen % stride === 0 && caps.length < cap) caps.push(mm.clone());
       seen++;
     }
-    return sub_0141(mm);
+    return loc_0141(mm);
   }]]);
   const host = new Machine(ROM, { overrides: snap });
   host.inputTape = MOVE_TAPE.map((t) => ({ ...t }));

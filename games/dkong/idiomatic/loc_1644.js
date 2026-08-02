@@ -28,7 +28,7 @@
  * in directly: the table base is the compile-time constant 0x1648, so the whole mechanism is
  * `read table[step] from ROM, dispatch`. The dispatch itself is genuine computed control flow
  * into a ROM table of targets, so it routes through the still-oracle generic dispatcher
- * dispatchGameState — the one address registry doc-06 keeps — rather than a local JS function
+ * loc_00ca — the one address registry doc-06 keeps — rather than a local JS function
  * table. The trampoline's register/flag handoff (A = 2*step, HL = target, DE, flags) is NOT
  * reproduced: it is dead to every arm (each arm's first act loads HL or A itself, reading none
  * of it — verified statically, and the full-handler replay in the gate confirms it), so folding
@@ -59,14 +59,14 @@
  *           table base 0x1648 kept hex (ROM data, not work RAM).
  */
 
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 import { BOARD_ADVANCE_STEP } from "./ram.js"; // 0x6388 — board-render / how-high sequence step selector (0..5 in play)
 
 // The `rst 0x28` inline jump table: 6 little-endian target addresses in ROM starting at 0x1648
 // (0x17B6, 0x3069, 0x1839, 0x186F, 0x1880, 0x18C6), indexed by the step. A ROM-data address, hex.
 const STEP_TABLE = 0x1648;
 
-// The dispatch-site label handed to dispatchGameState; it only surfaces inside a NotImplemented
+// The dispatch-site label handed to loc_00ca; it only surfaces inside a NotImplemented
 // throw, naming which inline table an out-of-range selector fell off of. Kept identical to the
 // oracle's `m.call(0x0028, ...)` argument.
 const DISPATCH_TABLE_1648 = "0x1648 (0x6388 sequence)";
@@ -85,5 +85,5 @@ export function loc_1644(m) {
 
   // jp (hl) — dispatch to the step handler. The oracle discards the arm's return value at this
   // level, so this routine does too.
-  dispatchGameState(m, target, DISPATCH_TABLE_1648);
+  loc_00ca(m, target, DISPATCH_TABLE_1648);
 }

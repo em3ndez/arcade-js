@@ -49,8 +49,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_26de as oracle } from "../../translated/sub_26de.js";
-import { entry_2333 as oracle2333 } from "../../translated/entry_2333.js";
+import { loc_26de as oracle } from "../../translated/loc_26de.js";
+import { loc_2333 as oracle2333 } from "../../translated/loc_2333.js";
 import { reverseStepDirection } from "../reverseStepDirection.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

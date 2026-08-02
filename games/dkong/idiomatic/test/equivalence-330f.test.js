@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_330f as oracle } from "../../translated/entry_330f.js";
+import { loc_330f as oracle } from "../../translated/loc_330f.js";
 import { loc_330f } from "../loc_330f.js";
 import { RANDOM } from "../ram.js";
 import { Machine } from "../../machine.js";

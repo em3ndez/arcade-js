@@ -13,8 +13,8 @@
  *   +3  y2 (second point y)  -> H, then A = |y2 - y| (the segment's height/extent)
  *   +4  x2 (second point x)  -> read by loc_0dd3
  *
- * Per record this converts the FIRST point (y, x) to a tile address via sub_2ff0
- * (saving the sub-tile remainders y&7 / x&7 separately, since sub_2ff0 discards
+ * Per record this converts the FIRST point (y, x) to a tile address via loc_2ff0
+ * (saving the sub-tile remainders y&7 / x&7 separately, since loc_2ff0 discards
  * the low three bits), computes the segment height A = |y2 - y|, and hands off to
  * loc_0dd3 with H=y2, C=x, A=height, DE=record+3. loc_0dd3 converts the second
  * point and dispatches the girder or ladder drawer; its renderer tails step DE
@@ -36,7 +36,7 @@
  *           every caller reloads A/HL/DE right
  *           after the call (loc_0f35/loc_0b68/loc_0a8a/loc_0cc6 checked). SP/pc are
  *           the dropped stack model (the oracle's push/call/ret becomes the JS call
- *           stack); sub_2ff0's `ret` drifts SP but writes no game-visible RAM.
+ *           stack); loc_2ff0's `ret` drifts SP but writes no game-visible RAM.
  * NAMES:    SEG_ADDR1 (0x63ab), SEG_SUBTILE1 (0x63af), SEG_KIND (0x63b3),
  *           SEG_SUBTILE_Y1 (0x63b4) from ram.js — the board-render segment scratch.
  *           Promoted (understanding pass 6): this is the walk HEAD the board-setup arms call
@@ -45,14 +45,14 @@
  *           partner loc_0dd3 (the per-segment second-endpoint + dispatch step) stays loc_.
  */
 
-import { sub_2ff0 } from "../translated/sub_2ff0.js"; // ROM 0x2FF0 — (H=y, L=x) -> HL = tile address; no idiomatic yet
+import { loc_2ff0 } from "../translated/loc_2ff0.js"; // ROM 0x2FF0 — (H=y, L=x) -> HL = tile address; no idiomatic yet
 import { loc_0dd3 } from "./loc_0dd3.js"; // ROM 0x0DD3 — convert the 2nd endpoint + draw the segment
 import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./ram.js"; // board-render segment scratch
 
 export function drawBoardLayout(m) {
   const { regs, mem } = m;
 
-  // The frozen-oracle leaf sub_2ff0 ends in `ret`, which pops the JS-modeled Z80
+  // The frozen-oracle leaf loc_2ff0 ends in `ret`, which pops the JS-modeled Z80
   // stack (SP += 2) with no matching push on this direct-call path — and loc_0dd3
   // does the same internally. Over the walk's records that would drift SP clean out
   // of mapped RAM. The oracle keeps SP net-0 across each record (its push/pop
@@ -82,13 +82,13 @@ export function drawBoardLayout(m) {
     regs.c = x;
 
     // Convert (y, x) -> the first point's tile address in HL, preserving DE across
-    // sub_2ff0 (which clobbers D/E) exactly as the ROM's push de / call / pop de did.
+    // loc_2ff0 (which clobbers D/E) exactly as the ROM's push de / call / pop de did.
     const savedDe = regs.de; // = record+2
-    sub_2ff0(m); // ROM 0x2FF0
+    loc_2ff0(m); // ROM 0x2FF0
     regs.de = savedDe;
     mem.write16(SEG_ADDR1, regs.hl);
 
-    // Sub-tile remainders kept beside the tile address — sub_2ff0 divided each
+    // Sub-tile remainders kept beside the tile address — loc_2ff0 divided each
     // coordinate by 8 and dropped the low three bits, so save them here.
     mem.write8(SEG_SUBTILE_Y1, y & 0x07); // from B
     mem.write8(SEG_SUBTILE1, x & 0x07); // from C

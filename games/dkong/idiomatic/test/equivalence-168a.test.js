@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_168a as oracle } from "../../translated/sub_168a.js";
+import { loc_168a as oracle } from "../../translated/loc_168a.js";
 import { loc_168a as idiomatic } from "../loc_168a.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";

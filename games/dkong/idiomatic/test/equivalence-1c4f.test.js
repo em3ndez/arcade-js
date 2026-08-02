@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_1c4f as oracle } from "../../translated/entry_1c4f.js";
+import { loc_1c4f as oracle } from "../../translated/loc_1c4f.js";
 import { settleMarioOnLanding as loc_1c4f } from "../settleMarioOnLanding.js";
 import { loc_1d95 } from "../loc_1d95.js";
 import { writeMarioSpriteRecord } from "../writeMarioSpriteRecord.js";

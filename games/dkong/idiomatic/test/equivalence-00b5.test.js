@@ -46,10 +46,10 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { perFrame as oraclePerFrame } from "../../translated/perFrame.js";
+import { loc_00b5 as oraclePerFrame } from "../../translated/loc_00b5.js";
 import { perFrame } from "../perFrame.js";
 import { blitSpritesViaDma } from "../blitSpritesViaDma.js";
-import { readControls } from "../../translated/readControls.js";
+import { loc_0087 } from "../../translated/loc_0087.js";
 import { Machine } from "../../machine.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
 import { STACK_SCRATCH, ATTRACT, GAME_STATE, FRAME } from "../ram.js";
@@ -61,7 +61,7 @@ import { serviceCoinInput } from "../serviceCoinInput.js";
 import { soundDriverTick } from "../soundDriverTick.js";
 import { runAttractState } from "../runAttractState.js";
 import { dispatchInGameSubstate } from "../dispatchInGameSubstate.js";
-import { handler_01c3 } from "../../translated/handler_01c3.js";
+import { loc_01c3 } from "../../translated/loc_01c3.js";
 import { loc_08b2 } from "../../translated/loc_08b2.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -77,7 +77,7 @@ const NMI_ENABLE = 0x7d84; // NMI-enable latch (io); write 1 re-arms
 const IN2_WATCHDOG = 0x7d00; // IN2 read = watchdog kick; bit 0 = SERVICE
 const DMA_SETUP_BLOCK = 0x0138;
 
-const NMI_GAME_STATE = [handler_01c3, runAttractState, loc_08b2, dispatchInGameSubstate];
+const NMI_GAME_STATE = [loc_01c3, runAttractState, loc_08b2, dispatchInGameSubstate];
 
 // The 06fe test's coin+start tape: coin on IN2 bit7 @f10, start1 on IN2 bit2 @f30 — credits
 // and starts a game so GAME_STATE walks 0 -> 1 -> 2 -> 3.
@@ -144,7 +144,7 @@ function capturePerFrameEntries({ tape, perState, maxFrames }) {
     }
     this.regs.hl = DMA_SETUP_BLOCK;
     blitSpritesViaDma(this); // sprite DMA blit
-    if (this.mem.read8(ATTRACT) === 0) readControls(this); // credited game reads input
+    if (this.mem.read8(ATTRACT) === 0) loc_0087(this); // credited game reads input
     // -- perFrame entry (SP now sits below the 12-byte register frame + return PC) --
     const st = this.mem.read8(GAME_STATE);
     const c = perCount.get(st) || 0;

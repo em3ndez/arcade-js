@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0018 as oracle } from "../../translated/sub_0018.js";
+import { loc_0018 as oracle } from "../../translated/loc_0018.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { SUBSTATE_TIMER } from "../ram.js";
 import { Machine } from "../../machine.js";

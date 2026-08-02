@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_03f2 as oracle } from "../../translated/sub_03f2.js";
+import { loc_03f2 as oracle } from "../../translated/loc_03f2.js";
 import { loc_03f2 } from "../loc_03f2.js";
 import { SPIN_COUNT } from "../ram.js";
 import { u8 } from "../../../../core/int.js";

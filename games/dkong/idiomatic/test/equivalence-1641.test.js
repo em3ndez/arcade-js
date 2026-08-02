@@ -33,8 +33,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1641 as oracle } from "../../translated/sub_1641.js";
-import { sub_1dbd as oracleSub1dbd } from "../../translated/sub_1dbd.js";
+import { loc_1641 as oracle } from "../../translated/loc_1641.js";
+import { loc_1dbd as oracleSub1dbd } from "../../translated/loc_1dbd.js";
 import { loc_1641 } from "../loc_1641.js";
 import { loc_1dbd } from "../loc_1dbd.js"; // drop-dispatch teeth twin
 import { loc_1644 } from "../loc_1644.js"; // drop-effect teeth twin

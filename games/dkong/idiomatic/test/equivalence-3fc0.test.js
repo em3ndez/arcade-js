@@ -53,7 +53,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_3fc0 as oracle } from "../../translated/sub_3fc0.js";
+import { loc_3fc0 as oracle } from "../../translated/loc_3fc0.js";
 import { pinMarioClimbPose as loc_3fc0 } from "../pinMarioClimbPose.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

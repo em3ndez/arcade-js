@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1dbd as oracle } from "../../translated/sub_1dbd.js";
+import { loc_1dbd as oracle } from "../../translated/loc_1dbd.js";
 import { loc_1dbd as idiomatic } from "../loc_1dbd.js";
 import { loc_1e49 } from "../loc_1e49.js"; // idiomatic handlers, for the teeth twins
 import { loc_1dc9 } from "../loc_1dc9.js";

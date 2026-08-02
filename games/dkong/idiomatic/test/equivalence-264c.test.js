@@ -16,15 +16,15 @@
  *
  * Plain attract never dispatches 0x264C (0×): the whole sub_25F2 object cascade is board-2
  * gated (`rst 0x30` mask 0x02) and attract plays 25m. So real dispatch states are reproduced
- * by running the TRANSLATED caller sub_262f on clones of a booted machine with 0x264C hooked
- * to snapshot each true entry — exactly like 0x268D/0x26A6/0x3064. sub_262f reaches the tail
+ * by running the TRANSLATED caller loc_262f on clones of a booted machine with 0x264C hooked
+ * to snapshot each true entry — exactly like 0x268D/0x26A6/0x3064. loc_262f reaches the tail
  * on an ODD frame by a direct tail-jump (there the internal 32-frame gate is shut → the
  * publish-then-return arm) and on an EVEN frame whose low 5 bits are zero via its 0x62A2
  * countdown (there the gate opens → the sprite-pair-advance arm).
  *
  *   1. REACHABILITY — 0x264C is dispatched 0× in a plain attract run (documents the
- *      non-executing frontier), yet driving sub_262f yields real entries for BOTH arms.
- *   2. EQUAL (captured) — loc_264c == oracle on every captured sub_262f dispatch, across
+ *      non-executing frontier), yet driving loc_262f yields real entries for BOTH arms.
+ *   2. EQUAL (captured) — loc_264c == oracle on every captured loc_262f dispatch, across
  *      both arms.
  *   3. EQUAL (crafted) — poke the frame counter, the direction latch's sign (both shadows),
  *      the reverse-timer's direction bit (both loc_26a6 arms), the sprite-pair counters
@@ -48,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_264c as oracle } from "../../translated/loc_264c.js";
-import { sub_262f } from "../../translated/sub_262f.js";
+import { loc_262f } from "../../translated/loc_262f.js";
 import { loc_264c } from "../loc_264c.js";
 import { signStepHalfRate } from "../signStepHalfRate.js";
 import { loc_26a6 } from "../loc_26a6.js";
@@ -131,9 +131,9 @@ function bootedMachine(frames) {
 }
 
 /**
- * Reproduce REAL 0x264C dispatches by running the translated sub_262f on clones of a booted
+ * Reproduce REAL 0x264C dispatches by running the translated loc_262f on clones of a booted
  * machine, with 0x264C hooked to snapshot each true entry. Y (0x6205) is forced >= 0xC0 so
- * sub_262f stays on the tail path (it branches to loc_266f below 0xC0). An ODD frame
+ * loc_262f stays on the tail path (it branches to loc_266f below 0xC0). An ODD frame
  * tail-jumps straight in with the internal gate shut (the publish arm); an EVEN frame whose
  * low 5 bits are zero reaches the tail through the 0x62A2 countdown and opens the gate (the
  * advance arm) — the countdown is seeded so its post-decrement value is nonzero, taking the
@@ -150,7 +150,7 @@ function captureDispatches(booted) {
     e.mem.write8(SELECT, 0x10);   // even path decrements this to 0x0F (nonzero) -> tail-jump
     e.regs.sp = 0x6bfe;
     e.routines.set(TARGET, hook);
-    sub_262f(e);
+    loc_262f(e);
   };
   for (const f of [0x00, 0x20, 0x40]) drive(f); // even, (FRAME & 0x1F)==0 -> advance arm
   for (const f of [0x01, 0x03, 0x21]) drive(f); // odd -> publish-then-return arm
@@ -179,7 +179,7 @@ function craft(base, { frame, latch, timer = 0x00, p = 0x40, p4 = 0x80, sPos = 0
 
 // -- 1. reachability ----------------------------------------------------------
 
-test("REACHABILITY: 0x264C is a non-executing frontier in attract, reachable via sub_262f", () => {
+test("REACHABILITY: 0x264C is a non-executing frontier in attract, reachable via loc_262f", () => {
   let attractCount = 0;
   const snap = new Map([[TARGET, (mm) => { attractCount++; return oracle(mm); }]]);
   const host = new Machine(ROM, { overrides: snap });
@@ -187,15 +187,15 @@ test("REACHABILITY: 0x264C is a non-executing frontier in attract, reachable via
   assert.equal(attractCount, 0, "0x264C should NOT dispatch in plain attract (board-2 gated)");
 
   const caps = captureDispatches(bootedMachine(500));
-  assert.ok(caps.length >= 6, "expected real 0x264C entries from driving sub_262f");
+  assert.ok(caps.length >= 6, "expected real 0x264C entries from driving loc_262f");
   const arms = new Set(caps.map((c) => (c.mem.read8(FRAME) & 0x1f) === 0x00));
   assert.equal(arms.size, 2, "captured entries must cover BOTH arms (gate open and shut)");
-  console.log(`  REACHABILITY: 0× in 1500 attract frames; ${caps.length} entries via sub_262f (both arms)`);
+  console.log(`  REACHABILITY: 0× in 1500 attract frames; ${caps.length} entries via loc_262f (both arms)`);
 });
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_264c == oracle on every real sub_262f dispatch", () => {
+test("EQUAL (captured): loc_264c == oracle on every real loc_262f dispatch", () => {
   const caps = captureDispatches(bootedMachine(500));
   let advance = 0, publishOnly = 0;
   for (const cap of caps) {

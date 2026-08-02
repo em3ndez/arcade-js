@@ -46,7 +46,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_09fe as oracle } from "../../translated/sub_09fe.js";
+import { loc_09fe as oracle } from "../../translated/loc_09fe.js";
 import { restorePlayer2Context } from "../restorePlayer2Context.js";
 import { Machine } from "../../machine.js";
 import {

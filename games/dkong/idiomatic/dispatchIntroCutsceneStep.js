@@ -33,7 +33,7 @@
  * in directly: the table base is the compile-time constant 0x0A7A, so the whole mechanism is
  * `read table[step] from ROM, dispatch`. The dispatch itself is genuine computed control flow
  * into a ROM table of targets, so it routes through the still-oracle generic dispatcher
- * dispatchGameState — the one address registry doc-06 keeps — rather than a local JS function
+ * loc_00ca — the one address registry doc-06 keeps — rather than a local JS function
  * table. The trampoline's register/flag handoff (A = 2*step, HL = target, DE, flags) is NOT
  * reproduced: it is dead to every arm (the full-handler replay in the gate confirms it), so
  * folding it away is memory-equivalent.
@@ -50,7 +50,7 @@
  *           over 2000 attract frames).
  * LIVE-OUT: memory-only — the step handler's RAM writes. pc/SP are in the contract and
  *           identical by construction (this routine never touches SP; the oracle's push/pop of
- *           the table base nets to zero, and from dispatchGameState onward both sides run the
+ *           the table base nets to zero, and from loc_00ca onward both sides run the
  *           identical arm). The oracle discards the arm's return value at this level, so this
  *           routine returns nothing too; loc_0a76's own callers ignore any return. Residual
  *           A/HL/DE/flags are the trampoline's dead ABI handoff, read by no arm.
@@ -58,13 +58,13 @@
  */
 
 import { INTRO_STEP } from "./ram.js";
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 8 little-endian target addresses in ROM starting at
 // 0x0A7A, indexed by INTRO_STEP. A ROM-data address, so kept hex.
 const INTRO_STEP_TABLE = 0x0a7a;
 
-// The dispatch-site label handed to dispatchGameState; it only ever surfaces inside a
+// The dispatch-site label handed to loc_00ca; it only ever surfaces inside a
 // NotImplemented throw, naming which inline table an out-of-range selector fell off of.
 // Kept identical to the oracle's site string (loc_0a76's `m.call(0x0028, ...)` argument).
 const DISPATCH_TABLE_0A7A = "0x0A7A (0x6385 sequence)";
@@ -84,5 +84,5 @@ export function dispatchIntroCutsceneStep(m) {
 
   // jp (hl) — dispatch to the step handler. The oracle discards the arm's return value
   // at this level, so this routine does too.
-  dispatchGameState(m, target, DISPATCH_TABLE_0A7A);
+  loc_00ca(m, target, DISPATCH_TABLE_0A7A);
 }

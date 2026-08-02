@@ -9,10 +9,10 @@
 //
 // THE VBLANK POLL is 0x02BD, and the subtle part is WHERE that address is reached: the loop TOP
 // falls straight into `ld h,0x60` and never sits at 0x02BD; instead EVERY path RETURNS pc to
-// 0x02BD as its last act — the dispatched task's handler rets to the 0x02BD that dispatchTask
+// 0x02BD as its last act — the dispatched task's handler rets to the 0x02BD that loc_02e3
 // pushed, the frame-counter-unchanged branch spins `jr z,0x02BD`, and the new-frame tail does
 // `jr 0x02BD`. The translated oracle (runCycleFree) fires the vblank NMI exactly at those
-// pc==0x02BD arrivals, so the coroutine `yield` sits at the END of each path — after dispatchTask,
+// pc==0x02BD arrivals, so the coroutine `yield` sits at the END of each path — after loc_02e3,
 // in the fZ branch, and after the two per-new-frame tasks — a 1:1 match with the oracle's NMI
 // firings. (A yield at the loop top would fire the NMI one step too early — before the per-frame
 // work that sets LIVES/BONUS_LIFE — and sample frame 1 off by one.)
@@ -21,11 +21,11 @@
 // for the cycle-free coroutine engine: the per-instruction m.step cycle-accounting is dropped
 // (the engine runs cycle-free), and each busy-wait/loop-back to 0x02BD becomes `yield`. The four
 // per-frame callees (0x0315/0x0350/0x037F/0x03A2) are all idiomatic and DIRECT-called (no
-// push16/m.call), so the guest stack stays clean; only the task dispatch (dispatchTask) still walks
+// push16/m.call), so the guest stack stays clean; only the task dispatch (loc_02e3) still walks
 // the routines table via m.call for the handlers that are not idiomatic yet. The base expands
 // under the go-live gate (idiomatic/test/golive.test.js) as those handlers are decompiled.
 
-import { dispatchTask } from "../translated/dispatchTask.js";
+import { loc_02e3 } from "../translated/loc_02e3.js";
 import { rampDifficulty } from "./rampDifficulty.js";
 import { awardBonusLifeAtThreshold } from "./awardBonusLifeAtThreshold.js";
 import { loc_03a2 } from "./loc_03a2.js";
@@ -42,9 +42,9 @@ export function* mainLoop(m) {
     regs.a = mem.read8(regs.hl);
     regs.add(regs.a);
 
-    // Bit 7 clear: dispatch this task. dispatchTask pushed 0x02BD, so the handler rets to the poll.
+    // Bit 7 clear: dispatch this task. loc_02e3 pushed 0x02BD, so the handler rets to the poll.
     if (regs.fNC) {
-      dispatchTask(m);
+      loc_02e3(m);
       yield;
       continue;
     }

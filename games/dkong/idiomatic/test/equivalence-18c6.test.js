@@ -49,7 +49,7 @@ import { loc_18c6 as oracle } from "../../translated/loc_18c6.js";
 import { loc_18c6 } from "../loc_18c6.js";
 import { loc_3009 } from "../loc_3009.js";
 import { enqueueTask } from "../enqueueTask.js";
-import { entry_2333 } from "../../translated/entry_2333.js";
+import { loc_2333 } from "../../translated/loc_2333.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -115,7 +115,7 @@ function captureBaseAndCountTarget(maxFrames) {
   let base = null;
   let targetCount = 0;
   const overrides = new Map([
-    [CAP_HOOK, (mm) => { if (!base) base = mm.clone(); return entry_2333(mm); }],
+    [CAP_HOOK, (mm) => { if (!base) base = mm.clone(); return loc_2333(mm); }],
     [TARGET, (mm) => { targetCount++; return oracle(mm); }],
   ]);
   const host = new Machine(ROM, { overrides });

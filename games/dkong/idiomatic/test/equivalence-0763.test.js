@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { handler_0763 as oracle } from "../../translated/handler_0763.js";
+import { loc_0763 as oracle } from "../../translated/loc_0763.js";
 import { loc_0763 as idiomatic } from "../loc_0763.js";
 import { tickSubstatePrescaler } from "../tickSubstatePrescaler.js";
 import { buildBoard } from "../buildBoard.js";

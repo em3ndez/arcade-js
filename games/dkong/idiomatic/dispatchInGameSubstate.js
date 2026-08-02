@@ -3,14 +3,14 @@
  * dispatchInGameSubstate — vector the credited game to its current sub-state handler. ROM 0x06FE.
  *
  * This is game-state 3's per-frame dispatcher: reached from the NMI's game-state
- * table (dispatchGameState entry 3) once per frame while a credited game runs. It
+ * table (loc_00ca entry 3) once per frame while a credited game runs. It
  * reads the in-game sub-state index GAME_SUBSTATE (0x600A) and vectors through the
  * 29-entry inline jump table in ROM at 0x0702 to the handler for that sub-state —
  * 7 = opening Kong-climb cutscene, 8 = how-high interlude, 0x0A = board setup,
  * 0x0C/0x0D = gameplay, 0x0E = P1 death, 0x16 = board-cleared/advance, and so on.
  * Six table slots (index 9 and 24–28) are 0x0000 and the selector is NOT range-
  * checked, so a null/out-of-range sub-state vectors to 0x0000 / off the table; the
- * ROM has no guard, and dispatchGameState surfaces such a target as a loud
+ * ROM has no guard, and loc_00ca surfaces such a target as a loud
  * NotImplemented throw rather than a silent reset.
  *
  * The oracle expresses the vector as `ld a,(0x600a)` then `rst 0x28`, whose shared
@@ -19,7 +19,7 @@
  * Here that trampoline is folded in directly: the table base is the compile-time
  * constant 0x0702, so the whole mechanism is `read table[substate] from ROM, dispatch`.
  * The dispatch itself is genuine computed control flow into a ROM table of targets, so
- * it routes through the still-oracle generic dispatcher dispatchGameState — the one
+ * it routes through the still-oracle generic dispatcher loc_00ca — the one
  * address registry doc-06 keeps — rather than a local JS function table. The
  * trampoline's register/flag handoff (A = 2*selector, HL = target, DE, flags) is NOT
  * reproduced: it is dead to every 0x0702 arm (each handler's entry immediately
@@ -46,13 +46,13 @@
  */
 
 import { GAME_SUBSTATE } from "./ram.js";
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 29 little-endian target addresses in ROM starting
 // at 0x0702, indexed by GAME_SUBSTATE. A ROM-data address, so kept hex.
 const SUBSTATE_TABLE = 0x0702;
 
-// The dispatch-site label handed to dispatchGameState; it only ever surfaces inside a
+// The dispatch-site label handed to loc_00ca; it only ever surfaces inside a
 // NotImplemented throw, naming which inline table a null/out-of-range selector fell off
 // of. Kept identical to the oracle's DISPATCH_TABLE_0702.
 const DISPATCH_TABLE_0702 = "0x0702 (0x600A game sub-state)";
@@ -72,5 +72,5 @@ export function dispatchInGameSubstate(m) {
 
   // jp (hl) — dispatch to the sub-state handler. The oracle discards the arm's return
   // value at this level, so this routine does too.
-  dispatchGameState(m, target, DISPATCH_TABLE_0702);
+  loc_00ca(m, target, DISPATCH_TABLE_0702);
 }

@@ -13,8 +13,8 @@
  *      frames) and REVERSE the object's step-direction sign at M50_OBJ1_STEP_DIR (reverseStep-
  *      Direction: M50_OBJ1_STEP_DIR := +2 if it was negative, else -2).
  *
- *   2. EVERY frame, refresh M50_OBJ1_STEP (0x63A3) from the odd-frame sign helper (sub_26e9)
- *      applied to M50_OBJ1_STEP_DIR. On even frames sub_26e9 writes nothing and returns 0; on odd
+ *   2. EVERY frame, refresh M50_OBJ1_STEP (0x63A3) from the odd-frame sign helper (loc_26e9)
+ *      applied to M50_OBJ1_STEP_DIR. On even frames loc_26e9 writes nothing and returns 0; on odd
  *      frames it rewrites M50_OBJ1_STEP_DIR to 0xFF/0x01 by its current sign and returns that byte.
  *      Either way the returned byte is stored to M50_OBJ1_STEP.
  *
@@ -27,7 +27,7 @@
  * loc_26a6 declined an English name for the same reason — the sprite-record trap), and the
  * whole sub_25f2 cascade is a non-executing frontier in attract, so this routine keeps the
  * neutral `loc_2602` name; a reviewer with corroboration can promote it. Not a leaf — it
- * calls reverseStepDirection (0x26DE), sub_26e9 (0x26E9, still the oracle), and loc_26a6
+ * calls reverseStepDirection (0x26DE), loc_26e9 (0x26E9, still the oracle), and loc_26a6
  * (0x26A6).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2602.test.js.
@@ -47,7 +47,7 @@
 import { FRAME, M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP_DIR, M50_OBJ1_STEP } from "./ram.js";
 import { reverseStepDirection } from "./reverseStepDirection.js";
 import { loc_26a6 } from "./loc_26a6.js";
-import { sub_26e9 } from "../translated/sub_26e9.js";
+import { loc_26e9 } from "../translated/loc_26e9.js";
 
 export function loc_2602(m) {
   const { regs, mem } = m;
@@ -65,10 +65,10 @@ export function loc_2602(m) {
     }
   }
 
-  // Every frame: publish sub_26e9(0x62A1) into M50_OBJ1_STEP. (Even frame -> A=0, no write to
+  // Every frame: publish loc_26e9(0x62A1) into M50_OBJ1_STEP. (Even frame -> A=0, no write to
   // 0x62A1; odd frame -> 0x62A1 rewritten by its sign, A = that byte.)
   regs.hl = M50_OBJ1_STEP_DIR;
-  sub_26e9(m);
+  loc_26e9(m);
   mem.write8(M50_OBJ1_STEP, regs.a);
 
   // Every 32nd frame: advance the mirrored sprite-animation pair at 0x69E4.

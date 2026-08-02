@@ -34,7 +34,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_003d as oracle } from "../../translated/sub_003d.js";
+import { loc_003d as oracle } from "../../translated/loc_003d.js";
 import { addStrided } from "../addStrided.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

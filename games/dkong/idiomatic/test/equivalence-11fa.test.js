@@ -42,7 +42,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_11fa as oracle } from "../../translated/sub_11fa.js";
+import { loc_11fa as oracle } from "../../translated/loc_11fa.js";
 import { loc_11fa } from "../loc_11fa.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

@@ -42,7 +42,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_30db as oracle } from "../../translated/entry_30db.js";
+import { loc_30db as oracle } from "../../translated/loc_30db.js";
 import { loc_30db } from "../loc_30db.js";
 import { clearStridedBytes } from "../clearStridedBytes.js";
 import { Machine } from "../../machine.js";

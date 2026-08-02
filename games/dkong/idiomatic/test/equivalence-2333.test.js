@@ -32,7 +32,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2333 as oracle } from "../../translated/entry_2333.js";
+import { loc_2333 as oracle } from "../../translated/loc_2333.js";
 import { snapYToGirder } from "../snapYToGirder.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

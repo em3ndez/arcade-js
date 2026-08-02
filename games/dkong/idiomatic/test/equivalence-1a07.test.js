@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_1a07 as oracle } from "../../translated/entry_1a07.js";
+import { loc_1a07 as oracle } from "../../translated/loc_1a07.js";
 import { dispatchBonusExpiredStep } from "../dispatchBonusExpiredStep.js";
 import { bonusExpiredIdle } from "../bonusExpiredIdle.js";
 import { startBonusExpiredDelay } from "../startBonusExpiredDelay.js";

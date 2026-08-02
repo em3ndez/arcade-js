@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_03a2 as oracle } from "../../translated/sub_03a2.js";
+import { loc_03a2 as oracle } from "../../translated/loc_03a2.js";
 import { loc_03a2 } from "../loc_03a2.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, SPIN_COUNT } from "../ram.js";

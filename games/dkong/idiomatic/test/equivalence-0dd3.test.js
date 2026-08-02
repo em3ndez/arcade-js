@@ -7,7 +7,7 @@
  * its renderer tails loc_0e19 (girder) / loc_0e4f (ladder) — girder tile 0xC0 spans,
  * endpoint caps, and ladder columns in VRAM) and is NOT a leaf, so it is gated by
  * capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its callees are the
- * frozen oracles sub_2ff0 / loc_0e4f / loc_0e19 (no idiomatic yet), called directly;
+ * frozen oracles loc_2ff0 / loc_0e4f / loc_0e19 (no idiomatic yet), called directly;
  * those model the Z80 stack (push/call/ret), so the ONLY residual divergence between
  * oracle and idiomatic is confined to the dead STACK_SCRATCH region, which the diff
  * excludes. Attract's 25m board draw exercises all three arms naturally:
@@ -17,7 +17,7 @@
  *      (girder), kind 1 (girder + zero-run), and kind 2 (ladder). For each, run the
  *      ORACLE on one clone and idiomatic on another and confirm identical game-visible
  *      RAM AND identical DE. DE matters and RAM cannot see it: loc_0dd3 preserves DE
- *      (= record+4) across sub_2ff0 exactly as the ROM's push/pop did, and the renderer
+ *      (= record+4) across loc_2ff0 exactly as the ROM's push/pop did, and the renderer
  *      tails step it to the next record — but no memory write depends on it here, so a
  *      dropped preservation is invisible to the RAM gate and must be checked directly.
  *
@@ -26,7 +26,7 @@
  *      strip drawer loc_0ee8, reached via loc_0e4f) that attract's 25m never produces.
  *
  *   3. TEETH — three deliberately-broken twins MUST be caught:
- *      (a) DROP-DE — omits the DE restore after sub_2ff0. RAM-identical (no write
+ *      (a) DROP-DE — omits the DE restore after loc_2ff0. RAM-identical (no write
  *          depends on DE), so ONLY the DE assertion catches it. This is what proves the
  *          DE live-out channel has teeth.
  *      (b) WRONG-CAP — stamps the first endpoint cap with +0xf1 instead of +0xf0.
@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0dd3 as oracle } from "../../translated/loc_0dd3.js";
 import { loc_0dd3 as idiomatic } from "../loc_0dd3.js";
-import { sub_2ff0 } from "../../translated/sub_2ff0.js"; // oracle callees, for the teeth twins
+import { loc_2ff0 } from "../../translated/loc_2ff0.js"; // oracle callees, for the teeth twins
 import { loc_0e4f } from "../../translated/loc_0e4f.js";
 import { loc_0e19 } from "../../translated/loc_0e19.js";
 import { Machine } from "../../machine.js";
@@ -188,7 +188,7 @@ test("CRAFTED: kinds 0/1/2/3 poked on a real base — RAM + DE match the oracle"
 // -- 3. TEETH -----------------------------------------------------------------
 
 /**
- * Twin (a): omits the DE restore after sub_2ff0 (which clobbers D/E). No memory write
+ * Twin (a): omits the DE restore after loc_2ff0 (which clobbers D/E). No memory write
  * depends on DE, so the RAM image is untouched — only the DE live-out diverges.
  */
 function brokenDropDe(m) {
@@ -199,7 +199,7 @@ function brokenDropDe(m) {
   regs.l = x2;
   mem.write8(RUN, (x2 - regs.c) & 0xff);
   mem.write8(SUBTILE2, x2 & 0x07);
-  sub_2ff0(m); // BUG: no savedDe / restore — DE left clobbered
+  loc_2ff0(m); // BUG: no savedDe / restore — DE left clobbered
   mem.write16(ADDR2, regs.hl);
   if ((((mem.read8(KIND) - 0x02) & 0xff) & 0x80) === 0) { loc_0e4f(m); return; }
   const step = (mem.read8(RUN) - 0x10) & 0xff;
@@ -223,7 +223,7 @@ function brokenWrongCap(m) {
   mem.write8(RUN, (x2 - regs.c) & 0xff);
   mem.write8(SUBTILE2, x2 & 0x07);
   const savedDe = regs.de;
-  sub_2ff0(m);
+  loc_2ff0(m);
   regs.de = savedDe;
   mem.write16(ADDR2, regs.hl);
   if ((((mem.read8(KIND) - 0x02) & 0xff) & 0x80) === 0) { loc_0e4f(m); return; }
@@ -248,7 +248,7 @@ function brokenInvDispatch(m) {
   mem.write8(RUN, (x2 - regs.c) & 0xff);
   mem.write8(SUBTILE2, x2 & 0x07);
   const savedDe = regs.de;
-  sub_2ff0(m);
+  loc_2ff0(m);
   regs.de = savedDe;
   mem.write16(ADDR2, regs.hl);
   if ((((mem.read8(KIND) - 0x02) & 0xff) & 0x80) !== 0) { loc_0e4f(m); return; } // BUG: inverted

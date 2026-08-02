@@ -41,7 +41,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { handler_123c as oracle } from "../../translated/handler_123c.js";
+import { loc_123c as oracle } from "../../translated/loc_123c.js";
 import { seedMarioActorRecord } from "../seedMarioActorRecord.js";
 import { Machine } from "../../machine.js";
 import {

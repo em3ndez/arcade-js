@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_11ec as oracle } from "../../translated/sub_11ec.js";
+import { loc_11ec as oracle } from "../../translated/loc_11ec.js";
 import { copyBytePairsStrided } from "../copyBytePairsStrided.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

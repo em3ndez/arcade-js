@@ -41,7 +41,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1a1e as oracle } from "../../translated/sub_1a1e.js";
+import { loc_1a1e as oracle } from "../../translated/loc_1a1e.js";
 import { bonusExpiredIdle } from "../bonusExpiredIdle.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BONUS_EXPIRED_STEP } from "../ram.js";

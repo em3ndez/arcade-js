@@ -39,7 +39,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2e04 as oracle } from "../../translated/entry_2e04.js";
+import { loc_2e04 as oracle } from "../../translated/loc_2e04.js";
 import { loc_2e04 as candidate } from "../loc_2e04.js";
 import { boardBitGate } from "../boardBitGate.js";        // ROM 0x0030 (twins)
 import { marioActiveGuard } from "../marioActiveGuard.js"; // ROM 0x0010 (twins)

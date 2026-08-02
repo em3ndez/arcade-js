@@ -46,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1a2a as oracle } from "../../translated/loc_1a2a.js";
-import { entry_1a07 } from "../../translated/entry_1a07.js";
+import { loc_1a07 } from "../../translated/loc_1a07.js";
 import { advanceSubstateWhenGrounded } from "../advanceSubstateWhenGrounded.js";
 import { advanceSubstateAndArmTimer } from "../advanceSubstateAndArmTimer.js";
 import {
@@ -211,7 +211,7 @@ function captureParentDispatches(K, maxFrames) {
   const caps = [];
   const snapshot = new Map([[PARENT, (mm) => {
     if (caps.length < K) caps.push(mm.clone());
-    return entry_1a07(mm);
+    return loc_1a07(mm);
   }]]);
   const host = new Machine(ROM, { overrides: snapshot });
   host.runFrames(maxFrames);

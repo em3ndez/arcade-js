@@ -51,7 +51,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_19ed as oracle } from "../../translated/entry_19ed.js";
+import { loc_19ed as oracle } from "../../translated/loc_19ed.js";
 import { confirmObjectHit as idiomatic } from "../confirmObjectHit.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_Y } from "../ram.js";

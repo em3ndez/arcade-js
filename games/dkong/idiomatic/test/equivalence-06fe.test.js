@@ -38,7 +38,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_06fe as oracle } from "../../translated/loc_06fe.js";
 import { dispatchInGameSubstate } from "../dispatchInGameSubstate.js";
-import { dispatchGameState } from "../../translated/dispatchGameState.js";
+import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -205,7 +205,7 @@ function brokenDispatch(m) {
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
   // Dispatch the (wrong) target through the SAME seam the routine uses, so the catch-all
   // stub sees it.
-  dispatchGameState(m, target, DISPATCH_TABLE_0702);
+  loc_00ca(m, target, DISPATCH_TABLE_0702);
 }
 
 test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sweep", () => {

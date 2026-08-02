@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0a1b as oracle } from "../../translated/sub_0a1b.js";
+import { loc_0a1b as oracle } from "../../translated/loc_0a1b.js";
 import { loc_0a1b } from "../loc_0a1b.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, GAME_SUBSTATE, GAME_STATE, TWO_PLAYER_GAME, TASK_TAIL } from "../ram.js";

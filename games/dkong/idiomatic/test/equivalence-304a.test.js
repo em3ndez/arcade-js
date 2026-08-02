@@ -46,7 +46,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_304a as oracle, loc_0fd7 } from "../../translated/state0.js";
+import { loc_304a as oracle, loc_0fd7 } from "../../translated/state0.js";
 import { scrollClimbGraphicStep } from "../scrollClimbGraphicStep.js";
 import { copyByteDisplaced } from "../copyByteDisplaced.js";
 import { Machine } from "../../machine.js";

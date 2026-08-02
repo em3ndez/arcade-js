@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_11d3 as oracle } from "../../translated/sub_11d3.js";
+import { loc_11d3 as oracle } from "../../translated/loc_11d3.js";
 import { gatherSpriteRecords } from "../gatherSpriteRecords.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

@@ -14,8 +14,8 @@
  *   2. Reads the second x (record+4) into L, computes x2 - x -> SEG_RUN (0x63b2,
  *      the horizontal run) and x2 & 7 -> SEG_SUBTILE2 (0x63b0, the second point's
  *      sub-tile x).
- *   3. Converts (y2, x2) to a tile address via sub_2ff0 -> SEG_ADDR2 (0x63ad). DE
- *      is saved across that call (sub_2ff0 clobbers D/E) as the ROM's push/pop did.
+ *   3. Converts (y2, x2) to a tile address via loc_2ff0 -> SEG_ADDR2 (0x63ad). DE
+ *      is saved across that call (loc_2ff0 clobbers D/E) as the ROM's push/pop did.
  *   4. Dispatches on the record kind at SEG_KIND (0x63b3):
  *        - kind >= 2 (the `jp p` sign test on kind-2): hand off to the LADDER
  *          drawer loc_0e4f (kind 2) / strip drawer loc_0ee8 (kind 3+, via loc_0e4f).
@@ -54,7 +54,7 @@
  *           "kind" semantics are documented).
  */
 
-import { sub_2ff0 } from "../translated/sub_2ff0.js"; // ROM 0x2FF0 — (y,x) -> tile address; no idiomatic yet
+import { loc_2ff0 } from "../translated/loc_2ff0.js"; // ROM 0x2FF0 — (y,x) -> tile address; no idiomatic yet
 import { loc_0e4f } from "../translated/loc_0e4f.js"; // ROM 0x0E4F — ladder (kind 2) / strip (kind 3+) drawer
 import { loc_0e19 } from "../translated/loc_0e19.js"; // ROM 0x0E19 — girder-span fill + end cap
 
@@ -83,18 +83,18 @@ export function loc_0dd3(m) {
   mem.write8(SEG_HEIGHT, regs.a);
 
   // Step DE from record+3 to record+4 and read the second point's x. L := x2
-  // (sub_2ff0 reads L as the x coordinate); SEG_RUN := x2 - x (first point x in C).
+  // (loc_2ff0 reads L as the x coordinate); SEG_RUN := x2 - x (first point x in C).
   regs.de = (regs.de + 1) & 0xffff;
   const x2 = mem.read8(regs.de);
   regs.l = x2;
   mem.write8(SEG_RUN, (x2 - regs.c) & 0xff);
   mem.write8(SEG_SUBTILE2, x2 & 0x07);
 
-  // Convert (H = y2, L = x2) -> tile address in HL. sub_2ff0 clobbers D/E, so save
+  // Convert (H = y2, L = x2) -> tile address in HL. loc_2ff0 clobbers D/E, so save
   // and restore DE around it exactly as the ROM's `push de / call / pop de` did:
   // DE (= record+4) is live into the renderer tails, which step it to the next record.
   const savedDe = regs.de;
-  sub_2ff0(m);
+  loc_2ff0(m);
   regs.de = savedDe;
   mem.write16(SEG_ADDR2, regs.hl);
 

@@ -35,7 +35,7 @@
  *      to pin the record-relative write addresses.
  *   4. EQUAL (independence) — hold the arm/seed/cursor fixed and vary the ignored registers
  *      and an unrelated RAM byte: the output is unchanged.
- *   5. REALISM (captured) — attract never reaches entry_2e04's loop; steer the game's own
+ *   5. REALISM (captured) — attract never reaches loc_2e04's loop; steer the game's own
  *      board/enable gates into the full 10-object pass with all slots inactive and one spawn
  *      pending, hook 0x2ea7, capture the 10 real dispatches (slot 0 spawns, slots 1-9
  *      advance once the request is consumed), and replay oracle vs candidate on each.
@@ -54,7 +54,7 @@ import { loc_2ea7 as oracle } from "../../translated/loc_2ea7.js";
 import { spawnObjectIntoInactiveSlot as loc_2ea7 } from "../spawnObjectIntoInactiveSlot.js";
 import { stirRandomSeed } from "../stirRandomSeed.js";           // ROM 0x0057 (for the twins)
 import { advanceToNextObject } from "../advanceToNextObject.js"; // ROM 0x2E78 (for the twins)
-import { entry_2e04 } from "../../translated/entry_2e04.js";
+import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -104,7 +104,7 @@ function firstRamDiff(a, b) {
   return null;
 }
 
-// The register live-out contract (what entry_2e04 consumes after this arm) + de (conservative).
+// The register live-out contract (what loc_2e04 consumes after this arm) + de (conservative).
 function regLiveOutDiff(o, c) {
   if (o.regs.ix !== c.regs.ix) return `ix oracle=${hx16(o.regs.ix)} cand=${hx16(c.regs.ix)}`;
   if (o.regs.iy !== c.regs.iy) return `iy oracle=${hx16(o.regs.iy)} cand=${hx16(c.regs.iy)}`;
@@ -255,7 +255,7 @@ test("EQUAL (independence): output depends only on the request/seed/cursor, not 
 
 // -- 5. REALISM (real captured dispatches) ------------------------------------
 
-// Steer entry_2e04's full 10-object loop with every slot INACTIVE and one spawn pending, then
+// Steer loc_2e04's full 10-object loop with every slot INACTIVE and one spawn pending, then
 // hook 0x2ea7 to capture the real in-game dispatch states (attract never reaches the loop).
 // Slot 0 consumes the request and spawns; slots 1-9 see it cleared and just advance.
 function captureRealDispatches() {
@@ -263,7 +263,7 @@ function captureRealDispatches() {
   host.runFrames(700); // realistic work RAM (0x2ea7 does not dispatch in attract)
   const m = host.clone();
   m.regs.sp = SP_TOP;
-  m.push16(0x4d17);          // sentinel caller-return for entry_2e04
+  m.push16(0x4d17);          // sentinel caller-return for loc_2e04
   m.mem.write8(0x6227, 3);   // board = 3   -> rst 0x30 (A=0x04) passes
   m.mem.write8(0x6200, 1);   // enable bit0 -> rst 0x10 passes -> full 10-object loop
   m.mem.write8(SPAWN_REQUEST, 0x03); // a spawn pending (as sub_2fcb stores)
@@ -277,13 +277,13 @@ function captureRealDispatches() {
   };
   m.overrides.set(TARGET, hook);
   m.routines.set(TARGET, hook);
-  entry_2e04(m);
+  loc_2e04(m);
   return caps;
 }
 
 test("REALISM: real captured 0x2ea7 dispatches — loc_2ea7 matches the oracle over both arms", () => {
   const caps = captureRealDispatches();
-  assert.equal(caps.length, 10, "the steered full-loop entry_2e04 should dispatch 0x2ea7 once per inactive slot (10)");
+  assert.equal(caps.length, 10, "the steered full-loop loc_2e04 should dispatch 0x2ea7 once per inactive slot (10)");
 
   let sawSpawn = 0, sawAdvance = 0;
   caps.forEach((cap, i) => {

@@ -20,7 +20,7 @@
  *        1-player game, 0x17 in a 2-player game (the player-alternation screen).
  *      - none left   -> player 1's game is over: format the final score for display /
  *        ranking (loc_13ca with player 1's score slot), stamp the game-over banner
- *        across VRAM (sub_1826, 70 tiles), queue the render task(s), and arm the
+ *        across VRAM (loc_1826, 70 tiles), queue the render task(s), and arm the
  *        "wait 0xC0 frames then run sub-state 0x10" idiom (SUBSTATE_TIMER + the
  *        adjacent GAME_SUBSTATE). In a 2-player game the banner starts one column left
  *        and an extra render task is queued first.
@@ -38,7 +38,7 @@
  *           dispatchGameState), which consumes no register or flag this routine leaves;
  *           it sets the NEXT frame's GAME_SUBSTATE and the rest is RAM. pc/SP are the
  *           dropped stack model (the oracle's terminal `ret` becomes the JS return, and
- *           the raw sub_1826 callee's own `ret` is a harmless read-only stack pop).
+ *           the raw loc_1826 callee's own `ret` is a harmless read-only stack pop).
  * NAMES:    PLAY_INTRO (0x622C), LIVES (0x6228), P1_CONTEXT (0x6040), TWO_PLAYER_GAME
  *           (0x600F), P1_SCORE (0x60B2), GAME_SUBSTATE (0x600A), SUBSTATE_TIMER
  *           (0x6009) from ram.js. Kept hex: the game-over banner VRAM origin 0x76D4
@@ -49,7 +49,7 @@
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011C
 import { loc_13ca } from "./loc_13ca.js"; // ROM 0x13CA
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
-import { sub_1826 } from "../translated/sub_1826.js"; // ROM 0x1826 — no idiomatic yet; call the oracle
+import { loc_1826 } from "../translated/loc_1826.js"; // ROM 0x1826 — no idiomatic yet; call the oracle
 import {
   PLAY_INTRO,
   LIVES,
@@ -69,7 +69,7 @@ const GAMEOVER_SUBSTATE = 0x10; // no lives left -> the game-over display sequen
 const GAMEOVER_WAIT = 0xc0; //     SUBSTATE_TIMER hold (~192 frames) before that sequence runs
 
 const SCORE_FORMAT_P1 = 0x01; //   loc_13ca's A parameter selecting player 1's score slot
-const BANNER_VRAM_TOP = 0x76d4; // video-RAM origin sub_1826 fills the game-over banner from
+const BANNER_VRAM_TOP = 0x76d4; // video-RAM origin loc_1826 fills the game-over banner from
 
 export function losePlayer1Life(m) {
   const { regs, mem } = m;
@@ -113,7 +113,7 @@ export function losePlayer1Life(m) {
     bannerTop = (BANNER_VRAM_TOP - 1) & 0xffff;
   }
   regs.hl = bannerTop;
-  sub_1826(m); // ROM 0x1826 — fills 70 tiles of 0x10 from HL
+  loc_1826(m); // ROM 0x1826 — fills 70 tiles of 0x10 from HL
 
   // Queue the game-over render task, then arm the "wait GAMEOVER_WAIT frames, then run
   // sub-state 0x10" idiom across the adjacent SUBSTATE_TIMER / GAME_SUBSTATE pair.

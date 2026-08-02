@@ -17,7 +17,7 @@
  *     fixed tile code 0x78, preserving its old bit 7 (Mario's facing flag → 0xF8 if set).
  *   - Advances BLINK_ANIM_PHASE (0x639D) 0 → 1 and primes the blink repeat-count BLINK_COUNT
  *     (0x639E) = 0x0D, then re-arms the gate to 8 (the 8-frame blink cadence arm 1 runs on).
- *   - Clears the blinker's four disjoint sprite-record runs via sub_30bd, then fires the
+ *   - Clears the blinker's four disjoint sprite-record runs via loc_30bd, then fires the
  *     sequence's sound cue (SND_IRQ_TRIGGER 0x6088 = 3).
  *
  * NAME: kept neutral loc_128b on purpose, to match its dispatcher loc_127f and its sibling
@@ -29,9 +29,9 @@
  * Promote alongside loc_127f/loc_12ac only once the sequence's identity is confirmed.
  *
  * Callees: tickSubstateTimer (rst 0x18, 0x0018), the idiomatic version, called directly;
- * and sub_30bd (0x30BD), still the frozen oracle (no idiomatic yet), called directly. The
+ * and loc_30bd (0x30BD), still the frozen oracle (no idiomatic yet), called directly. The
  * Z80 `ret` is the caller-skip's net return, which the equivalence harness reconciles (this
- * routine models no stack). sub_30bd ends in a TAIL JUMP into sub_30e4, so when called
+ * routine models no stack). loc_30bd ends in a TAIL JUMP into sub_30e4, so when called
  * directly its final `ret` consumes this routine's own return slot — the harness accounts
  * for that per-arm (see equivalence-128b.test.js).
  *
@@ -42,10 +42,10 @@
  *           sprite-code store and a gate-polarity inversion, both caught. Compared vs the
  *           oracle over RAM (−STACK_SCRATCH) + pc + SP.
  * LIVE-OUT: memory-only — the sprite-code byte 0x694D, the phase 0x639D, the blink count
- *           0x639E, SUBSTATE_TIMER (0x6009), sub_30bd's cleared runs, and SND_IRQ_TRIGGER
+ *           0x639E, SUBSTATE_TIMER (0x6009), loc_30bd's cleared runs, and SND_IRQ_TRIGGER
  *           (0x6088). Dispatched from the rst-0x28 table inside the vblank NMI, whose tail
  *           reads none of its registers; the oracle's residual A/HL and flags are dead ABI
- *           (pc/SP model the caller-skip return + sub_30bd's tail-jump pop, both reconciled
+ *           (pc/SP model the caller-skip return + loc_30bd's tail-jump pop, both reconciled
  *           by the harness).
  * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C), SND_IRQ_TRIGGER (0x6088),
  *           BLINK_ANIM_PHASE (0x639D) and BLINK_COUNT (0x639E) from ram.js — the last two
@@ -60,7 +60,7 @@ import {
   BLINK_COUNT,
 } from "./ram.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
-import { sub_30bd } from "../translated/sub_30bd.js"; // ROM 0x30BD — no idiomatic yet; call the oracle
+import { loc_30bd } from "../translated/loc_30bd.js"; // ROM 0x30BD — no idiomatic yet; call the oracle
 
 // The blinker cell: sprite-code byte (+1) of Mario's hardware sprite record at 0x694C.
 const SPRITE_CODE = MARIO_SPRITE_RECORD + 1; // 0x694D
@@ -87,7 +87,7 @@ export function loc_128b(m) {
 
   // Clear the blinker's four disjoint sprite-record runs (0x6950/0x6980/0x69B8/0x6A0C,
   // stride 4). Still the frozen oracle — no idiomatic version yet.
-  sub_30bd(m); // ROM 0x30BD
+  loc_30bd(m); // ROM 0x30BD
 
   // Fire the sequence's sound cue.
   mem.write8(SND_IRQ_TRIGGER, 0x03);

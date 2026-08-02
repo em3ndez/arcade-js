@@ -52,7 +52,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2243 as oracle } from "../../translated/sub_2243.js";
+import { loc_2243 as oracle } from "../../translated/loc_2243.js";
 import { marioReachedTargetColumn as loc_2243 } from "../marioReachedTargetColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

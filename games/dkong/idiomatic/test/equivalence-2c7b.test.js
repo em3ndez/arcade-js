@@ -57,7 +57,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2c7b as oracle } from "../../translated/entry_2c7b.js";
+import { loc_2c7b as oracle } from "../../translated/loc_2c7b.js";
 import { loc_2c7b } from "../loc_2c7b.js";
 import { loc_2c49 } from "../loc_2c49.js";
 import { loc_2c4b } from "../loc_2c4b.js";

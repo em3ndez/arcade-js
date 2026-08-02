@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2a85 as oracle } from "../../translated/sub_2a85.js";
+import { loc_2a85 as oracle } from "../../translated/loc_2a85.js";
 import { loc_2a85 } from "../loc_2a85.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { decideSlopeGirderFooting } from "../decideSlopeGirderFooting.js";

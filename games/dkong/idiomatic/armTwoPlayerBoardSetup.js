@@ -17,11 +17,11 @@
  *   - posts two deferred draw tasks onto the task ring via enqueueTask — [opcode 3,
  *     argument 2] then [opcode 2, argument 1] (D = opcode, E = argument, enqueueTask's ABI),
  *   - advances GAME_SUBSTATE 2 -> 5, then
- *   - FALLS THROUGH into sub_09ee, which paints one tilemap column (three cells 0x20
- *     apart: 0x74E0 = 0x02, 0x74C0 = 0x25, 0x74A0 = 0x20). sub_09ee's own `ret` is what
- *     returns from here — a tail fall-through, so the JS return value is sub_09ee's.
+ *   - FALLS THROUGH into loc_09ee, which paints one tilemap column (three cells 0x20
+ *     apart: 0x74E0 = 0x02, 0x74C0 = 0x25, 0x74A0 = 0x20). loc_09ee's own `ret` is what
+ *     returns from here — a tail fall-through, so the JS return value is loc_09ee's.
  *
- * A LEAF over enqueueTask + sub_09ee: it reads no RAM itself (A is loaded, never read);
+ * A LEAF over enqueueTask + loc_09ee: it reads no RAM itself (A is loaded, never read);
  * all data-dependent behaviour lives in enqueueTask (ring full / wrap arms).
  *
  * Memory-equivalent to the frozen oracle — equivalence-09d6.test.js.
@@ -32,20 +32,20 @@
  *           4-byte payload + latches + sub-state + column pinned.
  * LIVE-OUT: memory-only — the two latches (0x7D86/0x7D87), the two posted ring slots +
  *           TASK_TAIL (0x60B0), GAME_SUBSTATE (0x600A) = 5, and the 3-cell VRAM column
- *           (0x74E0/0x74C0/0x74A0, via sub_09ee). The caller is the NMI's rst-0x28
+ *           (0x74E0/0x74C0/0x74A0, via loc_09ee). The caller is the NMI's rst-0x28
  *           game-state dispatch (a tail `jp (hl)` that reads no flag set here); the
  *           oracle's residual A(=0x20)/DE(=0x0201)/HL/flags are dead ABI. pc/SP are the
- *           dropped stack model — sub_09ee's `ret` becomes the JS return, so the sole
+ *           dropped stack model — loc_09ee's `ret` becomes the JS return, so the sole
  *           oracle-vs-idiomatic residue is the pushed bytes in STACK_SCRATCH (excluded).
  * NAMES:    GAME_SUBSTATE (0x600A) from ram.js; imports enqueueTask (idiomatic ROM 0x309F)
- *           and the sub_09ee oracle (ROM 0x09EE, not yet decompiled). The two latches live
+ *           and the loc_09ee oracle (ROM 0x09EE, not yet decompiled). The two latches live
  *           in the 0x7D00-page board control space (not work RAM, so not in ram.js) and
  *           stay hex; the task opcode/argument bytes are literal message payloads.
  */
 
 import { GAME_SUBSTATE } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js";
-import { sub_09ee } from "../translated/sub_09ee.js";
+import { loc_09ee } from "../translated/loc_09ee.js";
 
 // Two board control latches this arm clears to 0. They live in the 0x7D00-page board
 // control space (0x7D86, 0x7D87), NOT work RAM, so they are not in ram.js and stay hex.
@@ -71,5 +71,5 @@ export function armTwoPlayerBoardSetup(m) {
   mem.write8(GAME_SUBSTATE, 0x05);
 
   // Fall through into the shared 3-cell column painter; its `ret` returns from here.
-  return sub_09ee(m);
+  return loc_09ee(m);
 }

@@ -27,7 +27,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2ff0 as oracle } from "../../translated/sub_2ff0.js";
+import { loc_2ff0 as oracle } from "../../translated/loc_2ff0.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

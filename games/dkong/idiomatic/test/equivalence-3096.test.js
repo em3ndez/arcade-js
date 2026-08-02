@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_3096 as oracle } from "../../translated/sub_3096.js";
+import { loc_3096 as oracle } from "../../translated/loc_3096.js";
 import { xorMaskStridedPair } from "../xorMaskStridedPair.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

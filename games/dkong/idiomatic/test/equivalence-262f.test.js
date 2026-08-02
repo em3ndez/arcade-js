@@ -57,7 +57,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_262f as oracle } from "../../translated/sub_262f.js";
+import { loc_262f as oracle } from "../../translated/loc_262f.js";
 import { loc_262f } from "../loc_262f.js";
 import { loc_266f } from "../loc_266f.js";
 import { reverseStepDirection } from "../reverseStepDirection.js";

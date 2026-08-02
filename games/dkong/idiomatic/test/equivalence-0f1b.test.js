@@ -37,7 +37,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_0f1b as oracle } from "../../translated/entry_0f1b.js";
+import { loc_0f1b as oracle } from "../../translated/loc_0f1b.js";
 import { loc_0e4f } from "../../translated/loc_0e4f.js";
 import { fillTileColumn } from "../fillTileColumn.js";
 import { Machine } from "../../machine.js";

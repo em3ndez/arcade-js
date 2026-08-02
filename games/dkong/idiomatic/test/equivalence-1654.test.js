@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1654 as oracle } from "../../translated/sub_1654.js";
+import { loc_1654 as oracle } from "../../translated/loc_1654.js";
 import { loc_1654 as idiomatic } from "../loc_1654.js";
 import { loc_1708 } from "../loc_1708.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";

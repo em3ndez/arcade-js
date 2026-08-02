@@ -51,7 +51,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_27da as oracle } from "../../translated/sub_27da.js";
+import { loc_27da as oracle } from "../../translated/loc_27da.js";
 import { spawnBoardObject } from "../spawnBoardObject.js";
 import { decrementByteAt } from "../decrementByteAt.js";
 import { Machine } from "../../machine.js";

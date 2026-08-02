@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_32bd as oracle } from "../../translated/sub_32bd.js";
+import { loc_32bd as oracle } from "../../translated/loc_32bd.js";
 import { loc_32bd } from "../loc_32bd.js";
 import { loc_342c } from "../loc_342c.js";
 import { loc_3478 } from "../loc_3478.js";

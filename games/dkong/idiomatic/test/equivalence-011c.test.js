@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_011c as oracle } from "../../translated/sub_011c.js";
+import { loc_011c as oracle } from "../../translated/loc_011c.js";
 import { silenceSound } from "../silenceSound.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

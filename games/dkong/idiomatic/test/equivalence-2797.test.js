@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2797 as oracle } from "../../translated/sub_2797.js";
+import { loc_2797 as oracle } from "../../translated/loc_2797.js";
 import { loc_2797 } from "../loc_2797.js";
 import { OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y } from "../ram.js";
 import { Machine } from "../../machine.js";

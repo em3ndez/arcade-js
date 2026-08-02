@@ -57,11 +57,11 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_306f as oracle } from "../../translated/sub_306f.js";
+import { loc_306f as oracle } from "../../translated/loc_306f.js";
 import { loc_0038 } from "../../translated/loc_0038.js";
-import { sub_003d } from "../../translated/sub_003d.js";
-import { sub_3096 } from "../../translated/sub_3096.js";
-import { sub_0057 } from "../../translated/sub_0057.js";
+import { loc_003d } from "../../translated/loc_003d.js";
+import { loc_3096 } from "../../translated/loc_3096.js";
+import { loc_0057 } from "../../translated/loc_0057.js";
 import { animateSpriteObjectBlock } from "../animateSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { xorMaskStridedPair } from "../xorMaskStridedPair.js";
@@ -104,9 +104,9 @@ function firstRamDiff(a, b) {
  *  registry (which stubs 0x003d). The candidate never consults the registry. */
 function pinTranslatedCallees(m) {
   m.routines.set(0x0038, loc_0038);
-  m.routines.set(0x003d, sub_003d);
-  m.routines.set(0x3096, sub_3096);
-  m.routines.set(0x0057, sub_0057);
+  m.routines.set(0x003d, loc_003d);
+  m.routines.set(0x3096, loc_3096);
+  m.routines.set(0x0057, loc_0057);
   return m;
 }
 

@@ -33,7 +33,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_309f as oracle } from "../../translated/sub_309f.js";
+import { loc_309f as oracle } from "../../translated/loc_309f.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

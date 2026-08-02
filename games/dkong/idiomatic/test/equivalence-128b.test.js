@@ -11,7 +11,7 @@
  * every case runs on a FRESH clone (a reused clone is only safe for a read-only leaf).
  *
  * The idiomatic routine models the Z80 stack as the JS call stack: it calls its callees
- * (tickSubstateTimer, and the still-oracle sub_30bd) directly and never touches SP/pc
+ * (tickSubstateTimer, and the still-oracle loc_30bd) directly and never touches SP/pc
  * itself. The oracle does, so the harness reconciles pc + SP per arm — and the two arms
  * need DIFFERENT reconciliation, which is the one subtlety worth spelling out:
  *
@@ -19,8 +19,8 @@
  *     to drop its own frame and return to the caller's caller (the Z80 caller-skip). The
  *     candidate just returns without touching the stack, so ONE harness m.ret() supplies
  *     that single net return → SP = entry+2, pc = the caller's return.
- *   - SEED (expiry) arm: the candidate calls sub_30bd DIRECTLY, without the oracle's
- *     `push 0x12A6` in front of it. sub_30bd ends in a TAIL JUMP into sub_30e4, whose
+ *   - SEED (expiry) arm: the candidate calls loc_30bd DIRECTLY, without the oracle's
+ *     `push 0x12A6` in front of it. loc_30bd ends in a TAIL JUMP into sub_30e4, whose
  *     `ret` therefore pops the caller's OWN return slot instead of that 0x12A6 — i.e. the
  *     tail jump already performs the single net return. So the seed arm needs ZERO extra
  *     m.ret(); the oracle reaches the same SP = entry+2, pc = caller's return by pushing
@@ -51,12 +51,12 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_128b as oracle } from "../../translated/entry_128b.js";
+import { loc_128b as oracle } from "../../translated/loc_128b.js";
 import { loc_128b } from "../loc_128b.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, SUBSTATE_TIMER, MARIO_SPRITE_RECORD, SND_IRQ_TRIGGER } from "../ram.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
-import { sub_30bd } from "../../translated/sub_30bd.js";
+import { loc_30bd } from "../../translated/loc_30bd.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -109,7 +109,7 @@ function runOracle(entry) {
 /**
  * Run a candidate on a fresh clone, then reconcile pc + SP to the oracle's with the
  * per-arm number of net returns (see the header): the SKIP arm needs ONE m.ret() (the
- * caller-skip return the boolean gate replaces); the SEED arm needs NONE (sub_30bd's tail
+ * caller-skip return the boolean gate replaces); the SEED arm needs NONE (loc_30bd's tail
  * jump already returned through the caller's slot). The classifier reads the untouched
  * ENTRY state, so it agrees with the branch the routine actually took.
  */
@@ -160,7 +160,7 @@ function captureDispatches(K, maxFrames) {
 /**
  * A real captured state with surgical pokes: the gate value + a safe SP inside
  * STACK_SCRATCH. SP is set to 0x6BF0 (the natural attract dispatch SP) rather than the
- * region top, so there is headroom BOTH ways: sub_30bd pushes 4 deep (down to 0x6BEC, still
+ * region top, so there is headroom BOTH ways: loc_30bd pushes 4 deep (down to 0x6BEC, still
  * ≥ STACK_SCRATCH.lo) and the teeth twin's wrong branch can walk the reconciling pops up to
  * 0x6BF4 (still < STACK_SCRATCH.hi = 0x6C00) without an unmapped access. All of it is dead
  * stack scratch, excluded by the contract.
@@ -187,7 +187,7 @@ function brokenSpriteStore(m) {
   mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
   mem.write8(BLINK_COUNT, 0x0d);
   mem.write8(SUBSTATE_TIMER, 0x08);
-  sub_30bd(m);
+  loc_30bd(m);
   mem.write8(SND_IRQ_TRIGGER, 0x03);
 }
 
@@ -205,7 +205,7 @@ function brokenGatePolarity(m) {
   mem.write8(PHASE, (mem.read8(PHASE) + 1) & 0xff);
   mem.write8(BLINK_COUNT, 0x0d);
   mem.write8(SUBSTATE_TIMER, 0x08);
-  sub_30bd(m);
+  loc_30bd(m);
   mem.write8(SND_IRQ_TRIGGER, 0x03);
 }
 

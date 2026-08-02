@@ -65,7 +65,7 @@ const BOARD_DISPATCH_TABLE = 0x3e8d;
 // The dispatch-site label handed down to the generic dispatcher; it only ever surfaces
 // inside a NotImplemented throw (an out-of-range board hitting a 0x0000 guard). Kept
 // identical to the frozen oracle's site string so the throw text matches byte-for-byte.
-const DISPATCH_SITE = "0x3E8D (entry_3e88 dispatch)";
+const DISPATCH_SITE = "0x3E8D (loc_3e88 dispatch)";
 
 export function dispatchBoardOverlapSearch(m) {
   const { regs, mem } = m;

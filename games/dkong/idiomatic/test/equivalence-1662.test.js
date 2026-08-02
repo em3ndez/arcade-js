@@ -47,7 +47,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { tail_1662 as oracle } from "../../translated/tail_1662.js";
+import { loc_1662 as oracle } from "../../translated/loc_1662.js";
 import { loc_1662 as idiomatic } from "../loc_1662.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";

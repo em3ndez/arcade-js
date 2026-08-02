@@ -25,7 +25,7 @@
  *     (records of [count, dest_lo, dest_hi], terminated by a zero count).
  *   - Queues two follow-up tasks [0x03,0x1e] and [0x03,0x1f] (enqueueTask x2),
  *     reloads the 40-byte sprite-object block from ROM template 0x39cf
- *     (loadSpriteObjectBlock), runs sub_3f24 (two fixed VRAM bytes), and shifts the
+ *     (loadSpriteObjectBlock), runs loc_3f24 (two fixed VRAM bytes), and shifts the
  *     sprite-object X column by 0x44 and Y column by 0x78 (addToSpriteObjectColumn).
  *
  * The confirmed skeleton — timed countdown, per-frame repaint, sub-state advance on
@@ -43,7 +43,7 @@
  * LIVE-OUT: memory-only — the timer/pattern pair (0x638a/0x638b), the two latch
  *           cells (0x7d86/0x7d87), the tile-0xb0 fills, the two queued tasks, the
  *           reloaded sprite-object block (0x6908) + its two shifted columns,
- *           sub_3f24's two VRAM bytes, and on expiry SUBSTATE_TIMER=2 +
+ *           loc_3f24's two VRAM bytes, and on expiry SUBSTATE_TIMER=2 +
  *           GAME_SUBSTATE++. No live registers/flags (the sub-state dispatch returns
  *           up the NMI path and consumes none); pc/SP dropped — the oracle's `ret`
  *           becomes the JS return.
@@ -57,7 +57,7 @@ import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "./ram.js";
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004E
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038
-import { sub_3f24 } from "../translated/sub_3f24.js"; // ROM 0x3F24 — no idiomatic yet; call the oracle
+import { loc_3f24 } from "../translated/loc_3f24.js"; // ROM 0x3F24 — no idiomatic yet; call the oracle
 
 const ANIM_TIMER = 0x638a; // frames left in the current animation run (counts 0x60 -> 0)
 const ANIM_PATTERN = 0x638b; // 8-bit pattern streamed 2 bits/frame into the latches
@@ -129,11 +129,11 @@ export function loc_07cb(m) {
   regs.de = (regs.de + 1) & 0xffff;
   enqueueTask(m);
 
-  // Reload the sprite-object block from its ROM template, then sub_3f24's two
+  // Reload the sprite-object block from its ROM template, then loc_3f24's two
   // fixed VRAM bytes (0x74af=0x9f, 0x748f=0x9e).
   regs.hl = SPRITE_TEMPLATE;
   loadSpriteObjectBlock(m);
-  sub_3f24(m);
+  loc_3f24(m);
 
   // Shift the whole sprite-object row: X column (+0) by 0x44, Y column (+3) by 0x78.
   regs.hl = SPRITE_OBJ_BLOCK;

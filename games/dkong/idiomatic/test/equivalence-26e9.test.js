@@ -38,7 +38,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_26e9 as oracle } from "../../translated/sub_26e9.js";
+import { loc_26e9 as oracle } from "../../translated/loc_26e9.js";
 import { signStepHalfRate } from "../signStepHalfRate.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

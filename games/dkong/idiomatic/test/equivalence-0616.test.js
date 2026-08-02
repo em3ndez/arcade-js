@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0616 as oracle } from "../../translated/sub_0616.js";
+import { loc_0616 as oracle } from "../../translated/loc_0616.js";
 import { drawCreditDisplay } from "../drawCreditDisplay.js";
 import { drawStringVertical } from "../drawStringVertical.js";
 import { expandBcdDigits } from "../expandBcdDigits.js";

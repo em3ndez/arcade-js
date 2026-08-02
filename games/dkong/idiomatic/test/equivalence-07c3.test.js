@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_07c3 as oracle } from "../../translated/loc_07c3.js";
-import { sub_0874 as oracle0874 } from "../../translated/sub_0874.js";
+import { loc_0874 as oracle0874 } from "../../translated/loc_0874.js";
 import { clearScreenAndAdvanceSubstate } from "../clearScreenAndAdvanceSubstate.js";
 import { clearPlayfieldAndSprites } from "../clearPlayfieldAndSprites.js";
 import { Machine } from "../../machine.js";

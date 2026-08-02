@@ -46,7 +46,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_0611 as oracle } from "../../translated/entry_0611.js";
+import { loc_0611 as oracle } from "../../translated/loc_0611.js";
 import { drawCreditLineInAttract } from "../drawCreditLineInAttract.js";
 import { drawCreditDisplay } from "../drawCreditDisplay.js"; // ROM 0x0616 — used only by the teeth twins
 import { ATTRACT, CREDITS, STACK_SCRATCH } from "../ram.js";

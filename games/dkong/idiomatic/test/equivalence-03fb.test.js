@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_03fb as oracle } from "../../translated/entry_03fb.js";
+import { loc_03fb as oracle } from "../../translated/loc_03fb.js";
 import { loc_03fb } from "../loc_03fb.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { serviceColorCycle } from "../serviceColorCycle.js";

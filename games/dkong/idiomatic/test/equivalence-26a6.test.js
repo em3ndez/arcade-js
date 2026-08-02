@@ -22,11 +22,11 @@
  *
  *   2. EQUAL (real captured dispatches) — plain attract never reaches 0x26a6 (0×): it
  *      is a non-executing frontier under sub_25f2's object cascade. So real dispatch
- *      states are reproduced by running the TRANSLATED callers sub_2602 / sub_262f /
- *      sub_2679 on clones of a booted machine with 0x26a6 hooked to snapshot each true
+ *      states are reproduced by running the TRANSLATED callers loc_2602 / loc_262f /
+ *      loc_2679 on clones of a booted machine with 0x26a6 hooked to snapshot each true
  *      entry — yielding the exact (HL,DE,select-byte,counters,SP-with-pushed-return)
  *      the routine meets in play. These span all three HL bases (0x69E4/0x69EC/0x69F4)
- *      and BOTH arms (sub_262f's select byte has bit 7 set; the others clear).
+ *      and BOTH arms (loc_262f's select byte has bit 7 set; the others clear).
  *
  *   3. EQUAL (crafted addressing edges) — arms the value grid's single base does not
  *      cover: an L-wrap base (HL low byte 0xFF, so `inc l` wraps 0xFF→0x00 while H is
@@ -46,10 +46,10 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_26a6 as oracle } from "../../translated/sub_26a6.js";
-import { sub_2602 } from "../../translated/sub_2602.js";
-import { sub_262f } from "../../translated/sub_262f.js";
-import { sub_2679 } from "../../translated/sub_2679.js";
+import { loc_26a6 as oracle } from "../../translated/loc_26a6.js";
+import { loc_2602 } from "../../translated/loc_2602.js";
+import { loc_262f } from "../../translated/loc_262f.js";
+import { loc_2679 } from "../../translated/loc_2679.js";
 import { loc_26a6 } from "../loc_26a6.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -128,35 +128,35 @@ function bootedMachine(maxFrames) {
 /**
  * Reproduce REAL 0x26a6 dispatches by running each translated caller on a clone of the
  * booted machine, with the frame counter (0x601A) set to pass the caller's "every 32nd
- * frame" gate and 0x26a6 hooked to snapshot each true entry. sub_2602 fires at HL=0x69E4
- * (select bit7=0), sub_2679 at 0x69F4 (bit7=0), sub_262f at 0x69EC (select 0xFF, bit7=1);
+ * frame" gate and 0x26a6 hooked to snapshot each true entry. loc_2602 fires at HL=0x69E4
+ * (select bit7=0), loc_2679 at 0x69F4 (bit7=0), loc_262f at 0x69EC (select 0xFF, bit7=1);
  * each pushes a genuine return address, so the captured SP is real.
  */
 function captureRealDispatches(booted) {
   const caps = [];
   const hook = (mm) => { caps.push(mm.clone()); return oracle(mm); };
 
-  // sub_2602: gate is (0x601A) & 0x1F == 1.
+  // loc_2602: gate is (0x601A) & 0x1F == 1.
   const a = booted.clone();
   a.mem.write8(0x601a, 0x01);
   a.regs.sp = 0x6bfe;
   a.routines.set(TARGET, hook);
-  sub_2602(a);
+  loc_2602(a);
 
-  // sub_2679: gate is (0x601A) & 0x1F == 2.
+  // loc_2679: gate is (0x601A) & 0x1F == 2.
   const b = booted.clone();
   b.mem.write8(0x601a, 0x02);
   b.regs.sp = 0x6bfe;
   b.routines.set(TARGET, hook);
-  sub_2679(b);
+  loc_2679(b);
 
-  // sub_262f: needs Y (0x6205) >= 0xC0 to take the counting path, even frame, count==0.
+  // loc_262f: needs Y (0x6205) >= 0xC0 to take the counting path, even frame, count==0.
   const c = booted.clone();
   c.mem.write8(0x601a, 0x00);
   c.mem.write8(0x6205, 0xc0);
   c.regs.sp = 0x6bfe;
   c.routines.set(TARGET, hook);
-  sub_262f(c);
+  loc_262f(c);
 
   return caps;
 }
@@ -225,7 +225,7 @@ test("EQUAL (exhaustive): loc_26a6 == oracle over both arms × all 256×256 coun
 
 test("EQUAL (real dispatches): loc_26a6 == oracle on every captured 0x26a6 entry", () => {
   const caps = captureRealDispatches(bootedMachine(500));
-  assert.ok(caps.length >= 3, "expected real 0x26a6 dispatches from sub_2602/262f/2679");
+  assert.ok(caps.length >= 3, "expected real 0x26a6 dispatches from loc_2602/262f/2679");
 
   const arms = new Set();
   for (const cap of caps) {
@@ -304,7 +304,7 @@ test("TEETH: the inc↔dec-flip twin (count-up P+4) is CAUGHT", () => {
     assert.equal(contractDiffs(e, loc_26a6).length, 0, "loc_26a6 must still pass the same entry");
   }
 
-  // Corroboration on the real count-up dispatches (sub_2602/2679) — caught wherever the
+  // Corroboration on the real count-up dispatches (loc_2602/2679) — caught wherever the
   // captured counter makes the two directions differ (a subset, but must be non-empty).
   const caps = captureRealDispatches(bootedMachine(500)).filter(
     (c) => (c.mem.read8(c.regs.de) & 0x80) === 0,

@@ -12,10 +12,10 @@
  * cells to prove the stamp is unconditional.
  *
  * REACHABILITY NOTE. 0x09EE is the P2 marker, so it fires only in a two-player
- * game. handler_0779 (attract setup) guards it with
+ * game. loc_0779 (attract setup) guards it with
  * `ld a,(0x600F) / cp 0x01 / call z,0x09EE`, and plain attract is ONE-player
  * (0x600F == 0), so a stock attract run never dispatches it. The capture therefore
- * forces the REAL two-player condition — it wraps handler_0779 to set
+ * forces the REAL two-player condition — it wraps loc_0779 to set
  * TWO_PLAYER_GAME (0x600F) = 1 before delegating to the oracle handler, so the
  * ROM's OWN conditional `call z,0x09EE` then fires and dispatches 0x09EE for real
  * (frame 6). The only craft is the guard byte the routine genuinely requires; the
@@ -46,8 +46,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_09ee as oracle } from "../../translated/sub_09ee.js";
-import { handler_0779 } from "../../translated/handler_0779.js";
+import { loc_09ee as oracle } from "../../translated/loc_09ee.js";
+import { loc_0779 } from "../../translated/loc_0779.js";
 import { draw2UpLabel } from "../draw2UpLabel.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, TWO_PLAYER_GAME } from "../ram.js";
@@ -104,7 +104,7 @@ function replay(entry, candidate) {
 
 /**
  * Hook 0x09EE in a real attract run FORCED to two-player and clone the machine at
- * up to K true dispatches. handler_0779 is wrapped to set TWO_PLAYER_GAME = 1
+ * up to K true dispatches. loc_0779 is wrapped to set TWO_PLAYER_GAME = 1
  * before delegating to the oracle handler, so the ROM's own `call z,0x09EE` fires
  * and dispatches the target for real; the 0x09EE wrapper clones the entry state and
  * then delegates to the oracle so the host run proceeds to a clean stop.
@@ -114,7 +114,7 @@ function captureDispatches(K, maxFrames) {
   const snapshot = new Map([
     [HANDLER_0779, (mm) => {
       mm.mem.write8(TWO_PLAYER_GAME, 1); // the real two-player guard byte
-      return handler_0779(mm);
+      return loc_0779(mm);
     }],
     [TARGET, (mm) => {
       if (caps.length < K) caps.push(mm.clone());

@@ -15,8 +15,8 @@
 import { AddressSpace } from "../../boards/dkong/memory.js";
 import { IO, Inputs, NotImplemented } from "../../boards/dkong/io.js";
 import { Regs } from "../../core/cpu/z80.js";
-import { bootOnly, reset as romReset } from "./translated/boot.js";
-import { entry_0066 } from "./translated/nmi.js";
+import { bootOnly, loc_0000 as romReset } from "./translated/boot.js";
+import { loc_0066 } from "./translated/nmi.js";
 import { ORACLE_ROUTINES, buildRoutines } from "./routines.js";
 import {
   buildPalette, CYCLES_PER_LINE, decodeSprites, decodeTiles, drawSprites,
@@ -346,7 +346,7 @@ export class Machine {
     // handler is a missing fixed cost, not instruction-boundary alignment.
     this.push16(this.pc);
     this.cycles += 11;
-    entry_0066(this);
+    loc_0066(this);
   }
 
   /**

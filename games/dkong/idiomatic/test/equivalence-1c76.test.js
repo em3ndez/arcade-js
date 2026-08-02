@@ -36,7 +36,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_1c76 as oracle } from "../../translated/entry_1c76.js";
+import { loc_1c76 as oracle } from "../../translated/loc_1c76.js";
 import { markFatalFallByHeight } from "../markFatalFallByHeight.js";
 import { writeMarioSpriteRecord } from "../writeMarioSpriteRecord.js";
 import { Machine } from "../../machine.js";

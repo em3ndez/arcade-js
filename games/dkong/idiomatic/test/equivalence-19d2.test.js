@@ -39,7 +39,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { tail_19d2 as oracle } from "../../translated/tail_19d2.js";
+import { loc_19d2 as oracle } from "../../translated/loc_19d2.js";
 import { advanceSubstateAndArmTimer } from "../advanceSubstateAndArmTimer.js";
 import { GAME_SUBSTATE, SUBSTATE_TIMER } from "../ram.js";
 import { Machine } from "../../machine.js";

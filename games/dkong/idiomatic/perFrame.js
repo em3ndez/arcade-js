@@ -69,7 +69,7 @@ import { serviceCoinInput } from "./serviceCoinInput.js"; // ROM 0x017B
 import { soundDriverTick } from "./soundDriverTick.js"; //   ROM 0x00E0
 import { runAttractState } from "./runAttractState.js"; //   ROM 0x073C (GAME_STATE 1)
 import { dispatchInGameSubstate } from "./dispatchInGameSubstate.js"; // ROM 0x06FE (GAME_STATE 3)
-import { handler_01c3 } from "../translated/handler_01c3.js"; // ROM 0x01C3 (GAME_STATE 0) — still oracle
+import { loc_01c3 } from "../translated/loc_01c3.js"; // ROM 0x01C3 (GAME_STATE 0) — still oracle
 import { loc_08b2 } from "../translated/loc_08b2.js"; //         ROM 0x08B2 (GAME_STATE 2) — still oracle
 
 // Board I/O: the NMI-enable latch. Writing 1 re-arms the NMI (ROM 0x00DB). A control
@@ -80,7 +80,7 @@ const NMI_ENABLE = 0x7d84;
 // Indexed by GAME_STATE (0x6005). Idiomatic handlers where they exist, else the frozen
 // oracle (bottom-up: states 0 and 2 have no idiomatic rewrite yet).
 const NMI_GAME_STATE = [
-  handler_01c3, //           0  ROM 0x01C3 — power-on
+  loc_01c3, //           0  ROM 0x01C3 — power-on
   runAttractState, //        1  ROM 0x073C — attract / demo
   loc_08b2, //               2  ROM 0x08B2 — credited (pre-game)
   dispatchInGameSubstate, // 3  ROM 0x06FE — in-game sub-state dispatch

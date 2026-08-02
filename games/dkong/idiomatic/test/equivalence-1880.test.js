@@ -9,7 +9,7 @@
  * record 4's Y (0x691b):
  *   - DESCEND (0x691b != 0xD0 after the +1): return, having only slid the block.
  *   - LANDED  (0x691b == 0xD0): build the next scene — set record 4's code (0x6919),
- *     stage a 4-byte object record at 0x6a24, fill 70 VRAM tiles from 0x76c6 (sub_1826),
+ *     stage a 4-byte object record at 0x6a24, fill 70 VRAM tiles from 0x76c6 (loc_1826),
  *     draw the board segment layout from ROM 0x3a5f (loc_0da7), shift sprite-buffer
  *     records 0/1 down 0x28 (addStrided), reset the 0x62af pace counter, pulse sound
  *     latch 0x6082, and advance the 0x6388 step.
@@ -58,7 +58,7 @@ import { loc_1880 as idiomatic } from "../loc_1880.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { addStrided } from "../addStrided.js";
 import { drawBoardLayout as loc_0da7 } from "../drawBoardLayout.js";
-import { sub_1826 } from "../../translated/sub_1826.js";
+import { loc_1826 } from "../../translated/loc_1826.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER } from "../ram.js";
 
@@ -149,7 +149,7 @@ test("STRUCTURE: LANDED scene build — work RAM identical, salient outputs asse
     [0x7f, 0x39, 0x01, 0xd8],
     "the 4-byte object record 7F 39 01 D8 must be staged at 0x6a24",
   );
-  assert.equal(a.mem.read8(TILE_FILL_DST), 0x10, "sub_1826 must fill VRAM 0x76c6 with tile 0x10");
+  assert.equal(a.mem.read8(TILE_FILL_DST), 0x10, "loc_1826 must fill VRAM 0x76c6 with tile 0x10");
   assert.equal(a.mem.read8(SPRITE_BUF_Y), (baseStepY + 0x28) & 0xff,
     "sprite-buffer record 0's Y (0x6903) must be shifted down 0x28");
   assert.equal(a.mem.read8(PACE_COUNTER), 0x00, "the 0x62af pace counter must be reset to 0");
@@ -233,7 +233,7 @@ function brokenNoAdvance(m) {
   mem.write8(REC4_CODE, 0x20);
   mem.write8(OBJ_RECORD + 0, 0x7f); mem.write8(OBJ_RECORD + 1, 0x39);
   mem.write8(OBJ_RECORD + 2, 0x01); mem.write8(OBJ_RECORD + 3, 0xd8);
-  regs.hl = TILE_FILL_DST; sub_1826(m);
+  regs.hl = TILE_FILL_DST; loc_1826(m);
   regs.de = 0x3a5f; loc_0da7(m);
   regs.hl = SPRITE_BUF_Y; regs.de = 0x04; regs.b = 0x02; regs.c = 0x28; addStrided(m);
   mem.write8(PACE_COUNTER, 0x00);
@@ -249,7 +249,7 @@ function brokenNoSound(m) {
   mem.write8(REC4_CODE, 0x20);
   mem.write8(OBJ_RECORD + 0, 0x7f); mem.write8(OBJ_RECORD + 1, 0x39);
   mem.write8(OBJ_RECORD + 2, 0x01); mem.write8(OBJ_RECORD + 3, 0xd8);
-  regs.hl = TILE_FILL_DST; sub_1826(m);
+  regs.hl = TILE_FILL_DST; loc_1826(m);
   regs.de = 0x3a5f; loc_0da7(m);
   regs.hl = SPRITE_BUF_Y; regs.de = 0x04; regs.b = 0x02; regs.c = 0x28; addStrided(m);
   mem.write8(PACE_COUNTER, 0x00);

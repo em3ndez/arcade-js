@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2a2f as oracle } from "../../translated/sub_2a2f.js";
+import { loc_2a2f as oracle } from "../../translated/loc_2a2f.js";
 import { loc_2a2f } from "../loc_2a2f.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { STACK_SCRATCH } from "../ram.js";

@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1826 as oracle } from "../../translated/sub_1826.js";
+import { loc_1826 as oracle } from "../../translated/loc_1826.js";
 import { fillTileBlock } from "../fillTileBlock.js";
 import { Machine } from "../../machine.js";
 import { ORACLE_ROUTINES } from "../../routines.js";

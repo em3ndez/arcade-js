@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_239c as oracle } from "../../translated/sub_239c.js";
+import { loc_239c as oracle } from "../../translated/loc_239c.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

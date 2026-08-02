@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2299 as oracle } from "../../translated/loc_2299.js";
-import { sub_2207 as oracle2207 } from "../../translated/sub_2207.js";
+import { loc_2207 as oracle2207 } from "../../translated/loc_2207.js";
 import { loc_2299 } from "../loc_2299.js";
 import { Machine } from "../../machine.js";
 import { RANDOM, STACK_SCRATCH } from "../ram.js";

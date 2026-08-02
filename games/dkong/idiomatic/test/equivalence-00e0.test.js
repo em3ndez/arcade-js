@@ -52,7 +52,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_00e0 as oracle } from "../../translated/sub_00e0.js";
+import { loc_00e0 as oracle } from "../../translated/loc_00e0.js";
 import { soundDriverTick } from "../soundDriverTick.js";
 import { Machine } from "../../machine.js";
 import {

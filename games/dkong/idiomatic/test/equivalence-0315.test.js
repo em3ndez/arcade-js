@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0315 as oracle } from "../../translated/sub_0315.js";
+import { loc_0315 as oracle } from "../../translated/loc_0315.js";
 import { redrawPlayerUpIndicator } from "../redrawPlayerUpIndicator.js";
 import { gameActiveGuard } from "../gameActiveGuard.js";
 import { selectPlayerIndicatorColumnBase as loc_0347 } from "../selectPlayerIndicatorColumnBase.js";

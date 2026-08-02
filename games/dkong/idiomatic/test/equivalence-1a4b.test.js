@@ -48,8 +48,8 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { arm_1a4b as oracle } from "../../translated/arm_1a4b.js";
-import { sub_1a33 as oracle1a33 } from "../../translated/sub_1a33.js";
+import { loc_1a4b as oracle } from "../../translated/loc_1a4b.js";
+import { loc_1a33 as oracle1a33 } from "../../translated/loc_1a33.js";
 import { armEdgeRivetPickup } from "../armEdgeRivetPickup.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, EDGE_RIVET_ARMED } from "../ram.js";

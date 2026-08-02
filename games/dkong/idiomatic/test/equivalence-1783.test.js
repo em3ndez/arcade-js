@@ -35,7 +35,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1783 as oracle } from "../../translated/sub_1783.js";
+import { loc_1783 as oracle } from "../../translated/loc_1783.js";
 import { allSlotsClear } from "../allSlotsClear.js";
 import { Machine } from "../../machine.js";
 import { SPRITE_OBJ_BLOCK, STACK_SCRATCH } from "../ram.js";

@@ -39,7 +39,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_178e as oracle } from "../../translated/sub_178e.js";
+import { loc_178e as oracle } from "../../translated/loc_178e.js";
 import { advanceToNextBoard } from "../advanceToNextBoard.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { enqueueTask } from "../enqueueTask.js";

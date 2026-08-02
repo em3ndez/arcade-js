@@ -50,7 +50,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2b9b as oracle } from "../../translated/entry_2b9b.js";
+import { loc_2b9b as oracle } from "../../translated/loc_2b9b.js";
 import { loc_2b9b } from "../loc_2b9b.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { resolveAirborneTileLanding } from "../resolveAirborneTileLanding.js";

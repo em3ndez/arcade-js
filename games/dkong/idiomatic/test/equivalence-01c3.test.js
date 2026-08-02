@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { handler_01c3 as oracle } from "../../translated/handler_01c3.js";
+import { loc_01c3 as oracle } from "../../translated/loc_01c3.js";
 import { powerOnInit } from "../powerOnInit.js";
 import { clearPlayfieldAndSprites } from "../clearPlayfieldAndSprites.js";
 import { drawLivesAndLevel } from "../drawLivesAndLevel.js";

@@ -39,7 +39,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1a33 as oracle } from "../../translated/sub_1a33.js";
+import { loc_1a33 as oracle } from "../../translated/loc_1a33.js";
 import { collectEdgeRivet as idiomatic } from "../collectEdgeRivet.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { armEdgeRivetPickup } from "../armEdgeRivetPickup.js";

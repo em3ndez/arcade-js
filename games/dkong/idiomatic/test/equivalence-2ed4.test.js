@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2ed4 as oracle } from "../../translated/entry_2ed4.js";
+import { loc_2ed4 as oracle } from "../../translated/loc_2ed4.js";
 import { driveHammerSprite as loc_2ed4 } from "../driveHammerSprite.js";
 import { Machine } from "../../machine.js";
 import {

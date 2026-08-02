@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_08b2 as oracle } from "../../translated/loc_08b2.js";
 import { dispatchCreditedSubstate } from "../dispatchCreditedSubstate.js";
-import { dispatchGameState } from "../../translated/dispatchGameState.js";
+import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -138,7 +138,7 @@ test("REALISM: real captured credited-state 0x08b2 dispatches — RAM(−stack) 
 
 // A catch-all override object (duck-typed like the Machine's overrides Map) that routes
 // ANY computed target to `stub`, so the dispatched arm never runs and we can read the
-// target the dispatcher formed. dispatchGameState consults m.overrides first, and BOTH the
+// target the dispatcher formed. loc_00ca consults m.overrides first, and BOTH the
 // oracle (via the rst-0x28 trampoline) and the candidate reach the same target through it —
 // recording the get() key works for both.
 function stubOverrides(rec) {
@@ -205,7 +205,7 @@ function brokenDispatch(m) {
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
   // Dispatch the (wrong) target through the SAME seam the routine uses, so the catch-all
   // stub sees it.
-  dispatchGameState(m, target, DISPATCH_TABLE_08B6);
+  loc_00ca(m, target, DISPATCH_TABLE_08B6);
 }
 
 test("TEETH: the 16-bit-offset twin (no 8-bit wrap) is CAUGHT by the selector sweep", () => {

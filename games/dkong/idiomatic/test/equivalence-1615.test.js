@@ -47,7 +47,7 @@ import { loc_1615 as oracle } from "../../translated/loc_1615.js";
 import { loc_1615 } from "../loc_1615.js";
 import { loc_1641 } from "../loc_1641.js";
 import { clearSpriteColumns } from "../clearSpriteColumns.js";
-import { dispatchGameState } from "../../translated/dispatchGameState.js";
+import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD, BOARD_ADVANCE_STEP } from "../ram.js";
 
@@ -142,7 +142,7 @@ test("FULL-HANDLER: loc_1615 == oracle on real bases poked to each board arm + r
 
 // A catch-all override object (duck-typed like the Machine's overrides Map) that routes ANY computed
 // target to `rec`, so the dispatched arm never runs and we read the target + SP the dispatcher formed.
-// dispatchGameState consults m.overrides first, so BOTH the oracle (via the rst-0x28 trampoline) and
+// loc_00ca consults m.overrides first, so BOTH the oracle (via the rst-0x28 trampoline) and
 // the candidate reach the same target through it.
 function stubOverrides(rec) {
   const SENTINEL = 0x5a;
@@ -214,7 +214,7 @@ function brokenNoClear(m) {
     const step = mem.read8(BOARD_ADVANCE_STEP);
     const entry = (tableBase + ((step * 2) & 0xff)) & 0xffff;
     const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-    dispatchGameState(m, target, "teeth");
+    loc_00ca(m, target, "teeth");
   };
   if ((board & 0x01) !== 0) dispatch(TABLE_ODD);
   else if ((board & 0x02) !== 0) dispatch(TABLE_50M);
@@ -228,7 +228,7 @@ function brokenWrongBase(m) {
   const step = mem.read8(BOARD_ADVANCE_STEP);
   const entry = (TABLE_ODD + ((step * 2) & 0xff)) & 0xffff; // BUG: ignores the BOARD bit1 arm
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  dispatchGameState(m, target, "teeth");
+  loc_00ca(m, target, "teeth");
 }
 
 /** Broken twin (c): forms the offset as a full 16-bit 2*step (drops the 8-bit `add a,a` wrap). */
@@ -240,7 +240,7 @@ function brokenNoWrap(m) {
   const step = mem.read8(BOARD_ADVANCE_STEP);
   const entry = (tableBase + 2 * step) & 0xffff; // BUG: no 8-bit wrap on the *2
   const target = mem.read8(entry) | (mem.read8((entry + 1) & 0xffff) << 8);
-  dispatchGameState(m, target, "teeth");
+  loc_00ca(m, target, "teeth");
 }
 
 test("TEETH: the dropped-prefix, wrong-table-base, and 16-bit-offset twins are all CAUGHT", () => {

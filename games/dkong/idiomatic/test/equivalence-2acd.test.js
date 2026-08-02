@@ -34,7 +34,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2acd as oracle } from "../../translated/entry_2acd.js";
+import { loc_2acd as oracle } from "../../translated/loc_2acd.js";
 import { triggerMarioFall } from "../triggerMarioFall.js";
 import { MARIO_START_FALL } from "../ram.js";
 import { Machine } from "../../machine.js";

@@ -48,7 +48,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_1708 as oracle } from "../../translated/sub_1708.js";
+import { loc_1708 as oracle } from "../../translated/loc_1708.js";
 import { loc_1708 as candidate } from "../loc_1708.js";
 // Teeth twins reuse the real idiomatic callees so only the injected defect differs.
 import { silenceSound } from "../silenceSound.js";

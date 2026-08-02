@@ -41,7 +41,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_31f6 as oracle } from "../../translated/sub_31f6.js";
+import { loc_31f6 as oracle } from "../../translated/loc_31f6.js";
 import { loc_31f6 } from "../loc_31f6.js";
 import { RANDOM, FRAME } from "../ram.js";
 import { Machine } from "../../machine.js";

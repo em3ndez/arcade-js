@@ -46,7 +46,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_26fa as oracle } from "../../translated/sub_26fa.js";
+import { loc_26fa as oracle } from "../../translated/loc_26fa.js";
 import { loc_26fa } from "../loc_26fa.js";
 // The teeth twins reuse the real idiomatic callees (their own gates prove them faithful)
 // so only loc_26fa's dispatch logic is what can diverge.

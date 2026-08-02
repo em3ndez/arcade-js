@@ -6,9 +6,9 @@
  * loc_0da7 WRITES memory (the segment scratch 0x63ab/0x63af/0x63b3/0x63b4 and, via
  * loc_0dd3 and its girder/ladder renderers, tiles across VRAM) and is NOT a leaf, so
  * it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its
- * callees are idiomatic loc_0dd3 (already gated) and the frozen oracle sub_2ff0
+ * callees are idiomatic loc_0dd3 (already gated) and the frozen oracle loc_2ff0
  * (no idiomatic yet), called directly. Those model no stack on this path — the ONLY
- * stack traffic is sub_2ff0's `ret`, a read that drifts SP but writes nothing — so the
+ * stack traffic is loc_2ff0's `ret`, a read that drifts SP but writes nothing — so the
  * comparison is RAM minus the dead STACK_SCRATCH region (SP/pc are the dropped stack
  * model, not compared). The gate:
  *
@@ -38,9 +38,9 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_0da7 as oracle } from "../../translated/sub_0da7.js";
+import { loc_0da7 as oracle } from "../../translated/loc_0da7.js";
 import { drawBoardLayout as idiomatic } from "../drawBoardLayout.js";
-import { sub_2ff0 } from "../../translated/sub_2ff0.js"; // oracle callee, for the teeth twins
+import { loc_2ff0 } from "../../translated/loc_2ff0.js"; // oracle callee, for the teeth twins
 import { loc_0dd3 } from "../loc_0dd3.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
@@ -192,7 +192,7 @@ function brokenDroppedNeg(m) {
     regs.l = x;
     regs.c = x;
     const savedDe = regs.de;
-    sub_2ff0(m);
+    loc_2ff0(m);
     regs.de = savedDe;
     mem.write16(ADDR1, regs.hl);
     mem.write8(PHASE_Y1, y & 0x07);
@@ -223,7 +223,7 @@ function brokenWideMask(m) {
     regs.l = x;
     regs.c = x;
     const savedDe = regs.de;
-    sub_2ff0(m);
+    loc_2ff0(m);
     regs.de = savedDe;
     mem.write16(ADDR1, regs.hl);
     mem.write8(PHASE_Y1, y & 0x0f); // BUG: should be & 0x07

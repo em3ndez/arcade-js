@@ -39,7 +39,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { draw_056b as oracle } from "../../translated/draw_056b.js";
+import { loc_056b as oracle } from "../../translated/loc_056b.js";
 import { loc_056b } from "../loc_056b.js";
 import { renderBcdColumn } from "../renderBcdColumn.js";
 import { Machine } from "../../machine.js";

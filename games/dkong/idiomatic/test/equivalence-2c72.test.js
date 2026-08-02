@@ -34,7 +34,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { entry_2c72 as oracle } from "../../translated/entry_2c72.js";
+import { loc_2c72 as oracle } from "../../translated/loc_2c72.js";
 import { loc_2c72 } from "../loc_2c72.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

@@ -44,7 +44,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_2ad3 as oracle } from "../../translated/sub_2ad3.js";
+import { loc_2ad3 as oracle } from "../../translated/loc_2ad3.js";
 import { carryMarioOnConveyorRow as loc_2ad3 } from "../carryMarioOnConveyorRow.js";
 import { moveMarioX } from "../moveMarioX.js";
 import { selectConveyorStepAndMoveMario as loc_2af6 } from "../selectConveyorStepAndMoveMario.js";

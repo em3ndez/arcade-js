@@ -22,7 +22,7 @@
  *   3 -> 0x0000  — unused table slot; 0x639D only ever holds 0..2 in play, so this arm
  *                  is unreachable. The selector is NOT range-checked (as in the 0x0702 /
  *                  0x08B6 tables), so a null/out-of-range phase vectors to 0x0000 / off
- *                  the table, which the still-oracle dispatchGameState surfaces as a loud
+ *                  the table, which the still-oracle loc_00ca surfaces as a loud
  *                  NotImplemented throw rather than a silent reset — same as the oracle.
  *
  * Reached from loc_127c (0x127C), which is entry 4 of the game-state-1 sub-state table
@@ -36,7 +36,7 @@
  * trampoline is folded in directly: the table base is the compile-time constant 0x1283,
  * so the whole mechanism is `read table[phase] from ROM, dispatch`. The dispatch itself is
  * genuine computed control flow into a ROM table of targets, so it routes through the
- * still-oracle generic dispatcher dispatchGameState — the one address registry doc-06
+ * still-oracle generic dispatcher loc_00ca — the one address registry doc-06
  * keeps — rather than a local JS function table. The trampoline's register/flag handoff
  * (A = 2*phase, HL = target, DE, flags) is NOT reproduced: it is dead to every arm (each
  * arm's first act is a `rst 0x18` gate check that then reloads HL, reading none of it —
@@ -68,14 +68,14 @@
  *           repeat-count the arms step. Table base 0x1283 kept hex (ROM data, not work RAM).
  */
 
-import { dispatchGameState } from "../translated/dispatchGameState.js";
+import { loc_00ca } from "../translated/loc_00ca.js";
 import { BLINK_ANIM_PHASE } from "./ram.js";
 
 // The `rst 0x28` inline jump table: 4 little-endian target addresses in ROM starting at
 // 0x1283 (0x128B, 0x12AC, 0x12DE, 0x0000), indexed by the phase. A ROM-data address, hex.
 const PHASE_TABLE = 0x1283;
 
-// The dispatch-site label handed to dispatchGameState; it only surfaces inside a
+// The dispatch-site label handed to loc_00ca; it only surfaces inside a
 // NotImplemented throw, naming which inline table an out-of-range selector fell off of.
 // Kept identical to the oracle's `m.call(0x0028, ...)` argument.
 const DISPATCH_TABLE_1283 = "0x1283 (0x639D dispatch)";
@@ -95,5 +95,5 @@ export function loc_127f(m) {
 
   // jp (hl) — dispatch to the phase handler. The oracle discards the arm's return value
   // at this level, so this routine does too.
-  dispatchGameState(m, target, DISPATCH_TABLE_1283);
+  loc_00ca(m, target, DISPATCH_TABLE_1283);
 }

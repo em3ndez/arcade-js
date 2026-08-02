@@ -43,7 +43,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { skip_2b74 as oracle } from "../../translated/skip_2b74.js";
+import { loc_2b74 as oracle } from "../../translated/loc_2b74.js";
 import { loc_2b74 } from "../loc_2b74.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";

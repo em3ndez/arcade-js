@@ -53,7 +53,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_3fa6 as oracle } from "../../translated/sub_3fa6.js";
+import { loc_3fa6 as oracle } from "../../translated/loc_3fa6.js";
 import { stamp50mBoardTiles } from "../stamp50mBoardTiles.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { Machine } from "../../machine.js";

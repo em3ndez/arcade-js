@@ -51,7 +51,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { sub_31dd as oracle } from "../../translated/sub_31dd.js";
+import { loc_31dd as oracle } from "../../translated/loc_31dd.js";
 import { loc_31dd } from "../loc_31dd.js";
 import { DIFFICULTY, RANDOM, FRAME, OBJ_ARRAY_64, STACK_SCRATCH } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
