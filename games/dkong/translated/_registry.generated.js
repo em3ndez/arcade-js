@@ -284,7 +284,7 @@ import { loc_2227 } from "./loc_2227.js";
 import { loc_2243 } from "./loc_2243.js";
 import { loc_2257 } from "./loc_2257.js";
 import { loc_2259 } from "./loc_2259.js";
-import { loc_2284 } from "./loc_2284.js";
+import { loc_2281 } from "./loc_2281.js";
 import { loc_2299 } from "./loc_2299.js";
 import { loc_22a2 } from "./loc_22a2.js";
 import { loc_22bd } from "./loc_22bd.js";
@@ -715,7 +715,7 @@ export const ORACLE_ROUTINES = new Map([
   [0x2243, loc_2243],
   [0x2257, loc_2257],
   [0x2259, loc_2259],
-  [0x2284, loc_2284],
+  [0x2281, loc_2281],
   [0x2299, loc_2299],
   [0x22a2, loc_22a2],
   [0x22bd, loc_22bd],

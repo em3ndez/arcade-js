@@ -42,11 +42,11 @@ export function loc_2259(m) {
   m.step(0x227c, 13); // player Y
   regs.cp(0x68);
   m.step(0x227e, 7);
-  if (regs.fC) return m.call(0x2284); // Y < 0x68
+  if (regs.fC) return m.call(0x2281); // Y < 0x68
   m.step(0x228a, 10);
   regs.rra();
   m.step(0x228b, 4);
-  if (regs.fC) { m.step(0x2281, 10); return m.call(0x2284); } // Y odd
+  if (regs.fC) { m.step(0x2281, 10); return m.call(0x2281); } // Y odd
   m.step(0x228e, 10);
   regs.rra();
   m.step(0x228f, 4);

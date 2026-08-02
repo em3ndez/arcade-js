@@ -29,7 +29,7 @@
  * The oracle brackets each dissolved call (the mirror, the hit test, the descend) with a
  * pushed return address; the idiomatic routine direct-calls, dropping those pushes. Their
  * dead scratch lands in STACK_SCRATCH, which the memory-equivalence contract excludes
- * (mirrors equivalence-22a2 / -2284). The oracle's entry `pop hl`, its returns, and the
+ * (mirrors equivalence-22a2 / -2281). The oracle's entry `pop hl`, its returns, and the
  * two-level hit-test skip only READ the stack, so live-out is memory-only and pc/SP are not
  * compared.
  *

@@ -10,8 +10,8 @@
  * observable effect is a CONSTANT: mem[0x694D] := 3, nothing else written, and the
  * pointer 0x694F handed back.
  *
- * The pointer is a genuine LIVE-OUT — the sole caller (descend_2284, ROM 0x2285, still
- * translated) increments the byte at it right after the call — so the idiomatic routine
+ * The pointer is a genuine LIVE-OUT — the sole caller (descend_2281, whose `call 0x3FC0` sits at
+ * ROM 0x2285, still translated) increments the byte at it right after the call — so the idiomatic routine
  * RETURNS it and the gate compares that return against the oracle's residual pointer.
  * Everything else the oracle leaves (residual registers/flags) is dead ABI.
  *
@@ -67,7 +67,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x3fc0;
-const RET_ADDR = 0x2288; // the real return site inside descend_2284 (call at 0x2285 -> 0x2288)
+const RET_ADDR = 0x2288; // the real return site inside descend_2281 (call at 0x2285 -> 0x2288)
 
 const CODE_CELL = MARIO_SPRITE_RECORD + SPRITE_CODE; // 0x694D — the byte the routine stamps to 3
 const ATTR_CELL = MARIO_SPRITE_RECORD + SPRITE_ATTR; // 0x694E — stepped over, never written

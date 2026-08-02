@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2284 (ROM 0x2284) — step Mario down one pixel, held in the
+ * Equivalence test for loc_2281 (ROM 0x2281–0x2289) — step Mario down one pixel, held in the
  * climb-down pose (slide50mObjectDown's Y-descend tail).
  *
- * descend_2284 does three things, all memory side-effects: increment MARIO_Y (0x6205),
+ * descend_2281 does three things, all memory side-effects: increment MARIO_Y (0x6205),
  * call 0x3FC0 (which pins the sprite pose byte 0x694D to 3 and returns a pointer to the
  * sprite record's Y byte 0x694F), then increment that sprite-record Y. The idiomatic
  * routine DIRECT-CALLS loc_3fc0 instead of the oracle's push16/`call 0x3FC0`/internal
@@ -11,12 +11,12 @@
  * STACK_SCRATCH region and nowhere else — the contract therefore excludes STACK_SCRATCH,
  * exactly the memory-equivalence contract for a dissolved call.
  *
- * LIVE-OUT is memory-only: 0x2284 is tail-reached from slide50mObjectDown -> dispatch50mObjectState's dispatcher,
+ * LIVE-OUT is memory-only: 0x2281 is tail-reached from slide50mObjectDown -> dispatch50mObjectState's dispatcher,
  * which returns into loc_197a at 0x199E, whose next statement issues a fresh `call`
  * without reading any register the descend leaves. So no register/flag is a live-out; the
  * gate compares RAM (minus STACK_SCRATCH) + pc + SP after modelling the terminal `ret`.
  *
- * 0x2284 is NOT dispatched during attract (its only caller is the still-translated,
+ * 0x2281 is NOT dispatched during attract (its only caller is the still-translated,
  * unwired slide50mObjectDown), so capture yields nothing. That is fine here: the routine's effect
  * is input-independent, so the proof runs it against the oracle over many self-consistent
  * base states with MARIO_Y and the three sprite record bytes (code / attr / Y) pre-poked
@@ -24,7 +24,7 @@
  * by one, the pose byte is pinned to 3, the attribute neighbour is untouched, and nothing
  * else (outside stack scratch) moves.
  *
- *   1. EQUAL (adversarial grid) — loc_2284 == oracle across base states × pre-poked
+ *   1. EQUAL (adversarial grid) — loc_2281 == oracle across base states × pre-poked
  *      {marioY, code, attr, y}. RAM − STACK_SCRATCH, pc, SP identical; and the specific
  *      invariants pinned: 0x6205 stepped, 0x694D == 3, 0x694E untouched, 0x694F stepped.
  *
@@ -34,19 +34,19 @@
  *      (c) step the wrong sprite byte — increments the attribute byte (0x694E) instead of
  *          the Y byte; caught at 0x694E.
  *
- *   3. REACHABILITY (informational) — hook 0x2284 across a long attract run and confirm it
+ *   3. REACHABILITY (informational) — hook 0x2281 across a long attract run and confirm it
  *      is not naturally dispatched (documents why crafted entries stand in); any dispatch
  *      that DID occur is verified against the oracle too.
  *
- * Run: node --test games/dkong/idiomatic/test/equivalence-2284.test.js
+ * Run: node --test games/dkong/idiomatic/test/equivalence-2281.test.js
  */
 
 import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { loc_2284 as oracle } from "../../translated/loc_2284.js";
-import { stepMarioDownInClimbPose as loc_2284 } from "../stepMarioDownInClimbPose.js";
+import { loc_2281 as oracle } from "../../translated/loc_2281.js";
+import { stepMarioDownInClimbPose as loc_2281 } from "../stepMarioDownInClimbPose.js";
 import { pinMarioClimbPose as loc_3fc0 } from "../pinMarioClimbPose.js";
 import { Machine } from "../../machine.js";
 import {
@@ -65,7 +65,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-const TARGET = 0x2284;
+const TARGET = 0x2281;
 const RET_ADDR = 0x199e; // the real caller-return site (loc_197a, after its `call 0x2207`)
 
 const CODE_CELL = MARIO_SPRITE_RECORD + SPRITE_CODE; // 0x694D — pinned to 3 by loc_3fc0
@@ -90,7 +90,7 @@ function firstRamDiff(a, b) {
 }
 
 /**
- * A crafted 0x2284 entry: a clone of `base` with a controlled stack (so the oracle's
+ * A crafted 0x2281 entry: a clone of `base` with a controlled stack (so the oracle's
  * terminal `ret` is well-defined), and MARIO_Y plus the three sprite record bytes
  * pre-poked to chosen values so the two increments and the untouched neighbour are all
  * pinned by adversarial data.
@@ -142,7 +142,7 @@ function baseMachines() {
 
 // -- 1. EQUAL (adversarial grid) ----------------------------------------------
 
-test("EQUAL: loc_2284 == oracle across base states × adversarial MARIO_Y and sprite bytes", () => {
+test("EQUAL: loc_2281 == oracle across base states × adversarial MARIO_Y and sprite bytes", () => {
   const bases = baseMachines();
   const marioYs = [0x00, 0x40, 0x67, 0xff]; // logical Y, incl. the 0xFF -> 0x00 wrap
   const codes = [0x00, 0x03, 0x88, 0xff];   // prior pose byte, incl. one already == 3 and the hammer code
@@ -156,7 +156,7 @@ test("EQUAL: loc_2284 == oracle across base states × adversarial MARIO_Y and sp
         for (const attr of attrs) {
           for (const y of ys) {
             const entry = craft(base, { marioY, code, attr, y });
-            const diffs = contractDiffs(entry, loc_2284);
+            const diffs = contractDiffs(entry, loc_2281);
             count++;
             assert.equal(
               diffs.length,
@@ -228,7 +228,7 @@ test("TEETH: skip-logical-Y, skip-sprite-Y, and wrong-sprite-byte twins are all 
 
 // -- 3. REACHABILITY (informational) ------------------------------------------
 
-test("REACHABILITY: 0x2284 is not naturally dispatched in attract (crafted entries stand in)", () => {
+test("REACHABILITY: 0x2281 is not naturally dispatched in attract (crafted entries stand in)", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 16) caps.push(mm.clone());
@@ -239,8 +239,8 @@ test("REACHABILITY: 0x2284 is not naturally dispatched in attract (crafted entri
 
   // Its only caller (slide50mObjectDown) is unwired, so we expect zero — but verify any that occur.
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_2284);
-    assert.equal(diffs.length, 0, `unexpected real 0x2284 dispatch diverged: ${diffs.join("; ")}`);
+    const diffs = contractDiffs(cap, loc_2281);
+    assert.equal(diffs.length, 0, `unexpected real 0x2281 dispatch diverged: ${diffs.join("; ")}`);
   }
-  console.log(`  REACHABILITY: ${caps.length} natural 0x2284 dispatches in 1500 attract frames (expected 0)`);
+  console.log(`  REACHABILITY: ${caps.length} natural 0x2281 dispatches in 1500 attract frames (expected 0)`);
 });

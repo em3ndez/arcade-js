@@ -5,10 +5,11 @@
  *
  * ENTRY ADDRESS. The entry is 0x2281 — `ld hl,0x6205`, the MARIO_Y pointer load this routine's
  * first statement performs. 0x2284 is the `inc (hl)` in the MIDDLE of that span: a whole-ROM
- * scan for the operand byte pair `84 22` returns ZERO hits, so no instruction anywhere targets
- * 0x2284 and it is reachable only by falling through 0x2281. The frozen oracle file, the
- * ROUTINES key and this routine's test filename all still say 0x2284; those are the lead's to
- * change, and they name the same span.
+ * scan for the operand byte pair `84 22` returns ZERO hits, and no relative jump reaches it
+ * either, so no instruction anywhere targets 0x2284 — it is reachable only by falling through
+ * 0x2281. The frozen oracle file, the ROUTINES key and this routine's test all said 0x2284
+ * until they were renamed to the entry; the frozen oracle's own first `m.step` charge is still
+ * 0x2284 and correctly so, because `step` takes the address of the NEXT instruction.
  *
  * The Y-descend tail of slide50mObjectDown: when that routine finds Mario's screen Y numerically
  * below 0x68 — still ABOVE the centring line on screen, larger Y being lower — or on an odd row,
@@ -33,7 +34,7 @@
  * asserted facts (direction DOWN, CLIMB pose) rest on named cells. Promoted as a 2-member
  * family with pinMarioClimbPose (0x3FC0).
  *
- * Memory-equivalent to the frozen oracle — equivalence-2284.test.js.
+ * Memory-equivalent to the frozen oracle — equivalence-2281.test.js.
  * GATE:     crafted-entry — 0x2281 is reached only through slide50mObjectDown's still-translated
  *           descend arm (unwired in attract), so there are no real captures. The routine
  *           is provably input-independent in structure, so the gate runs it against the

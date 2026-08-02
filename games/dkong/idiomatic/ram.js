@@ -1150,7 +1150,7 @@ export const ROUTINES = {
   0x2243: { name: "marioReachedTargetColumn", role: "has Mario reached the target position? a three-condition hit test", cert: "code" },
   0x2257: { name: "reportNoHitAndSkipCaller", role: "the 'no hit' tail of the sub_2243 hit test: abort the caller as well and unwind two levels, back to the grandparent", cert: "code" },
   0x2259: { name: "slide50mObjectDown", role: "one arm of the dispatch50mObjectState board-object state machine: tick this object's timer, step its position counter UP and mirror it on-screen, advance its state at the bottom of travel (the counter's maximum; larger Y is lower on screen)", cert: "code" },
-  0x2284: { name: "stepMarioDownInClimbPose", role: "step Mario down one pixel, held in the climb-down pose", cert: "code" },
+  0x2281: { name: "stepMarioDownInClimbPose", role: "step Mario down one pixel, held in the climb-down pose", cert: "code" },
   0x2299: { name: "advance50mObjectStateOnRandomGate", role: "advance a board object to its next state, on a randomised pacing gate", cert: "code" },
   0x22a2: { name: "raise50mObjectAndPark", role: "one idle-then-raise tick for a BOARD_OBJ_SCRATCH object, resetting it to state 0 when it reaches the TOP of its travel (counter 0x68, its minimum)", cert: "code" },
   0x22bd: { name: "publish50mObjectYToSprite", role: "mirror the byte at a source pointer into one of two sprite slots, selected by bit 3 of the pointer", cert: "code" },
