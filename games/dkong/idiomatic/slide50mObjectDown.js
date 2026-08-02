@@ -57,7 +57,7 @@
  *           two-level hit-test skip are dead — the JS call stack and the boolean carry it.
  * NAMES:    MARIO_Y (0x6205), BOARD_OBJ_SCRATCH (0x6280 — the record base is one of its
  *           records) from ram.js. publish50mObjectYToSprite (ROM 0x22BD, mirror), marioReachedTargetColumn
- *           (ROM 0x2243, hit test), stepMarioDownInClimbPose (ROM 0x2284, descend) are all
+ *           (ROM 0x2243, hit test), stepMarioDownInClimbPose (ROM 0x2281, descend) are all
  *           direct-called. The +0/+2/+3/+4 fields are addressed relative to the passed-in
  *           record base (no fixed cell); 0x6222 is examined-and-unnamed in ram.js (a shared
  *           climb-centring toggle), so it stays a local hex const.
@@ -66,7 +66,7 @@
 import { MARIO_Y } from "./ram.js";
 import { publish50mObjectYToSprite } from "./publish50mObjectYToSprite.js"; // ROM 0x22BD — mirror the counter to the sprite cell
 import { marioReachedTargetColumn } from "./marioReachedTargetColumn.js"; // ROM 0x2243 — has Mario reached the target column?
-import { stepMarioDownInClimbPose } from "./stepMarioDownInClimbPose.js"; // ROM 0x2284 — step Mario down one pixel in the climb pose
+import { stepMarioDownInClimbPose } from "./stepMarioDownInClimbPose.js"; // ROM 0x2281 — step Mario down one pixel in the climb pose
 
 // The counter's top of travel: when the stepped position reaches it, the object advances
 // its state byte (mirror of raise50mObjectAndPark resetting at its bottom).

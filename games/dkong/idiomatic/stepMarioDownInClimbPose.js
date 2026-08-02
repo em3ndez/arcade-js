@@ -1,11 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * stepMarioDownInClimbPose — step Mario down one pixel, held in the climb-down pose.
- * ROM 0x2284.
+ * ROM 0x2281 (span 0x2281-0x2289).
  *
- * The Y-descend tail of slide50mObjectDown: when that routine finds Mario's screen Y below 0x68
- * (or odd), it jumps here (ROM 0x227E / 0x2281). Each call nudges Mario down one pixel
- * in two places and pins his drawn pose:
+ * ENTRY ADDRESS. The entry is 0x2281 — `ld hl,0x6205`, the MARIO_Y pointer load this routine's
+ * first statement performs. 0x2284 is the `inc (hl)` in the MIDDLE of that span: a whole-ROM
+ * scan for the operand byte pair `84 22` returns ZERO hits, so no instruction anywhere targets
+ * 0x2284 and it is reachable only by falling through 0x2281. The frozen oracle file, the
+ * ROUTINES key and this routine's test filename all still say 0x2284; those are the lead's to
+ * change, and they name the same span.
+ *
+ * The Y-descend tail of slide50mObjectDown: when that routine finds Mario's screen Y numerically
+ * below 0x68 — still ABOVE the centring line on screen, larger Y being lower — or on an odd row,
+ * control reaches 0x2281. There are two ways in, and 0x2281 is the TARGET of both, not a jump
+ * site: the `jp nc,0x228A` at ROM 0x227E falls through to it when NOT taken (Mario's Y below 0x68),
+ * and the `jp c,0x2281` at ROM 0x228B jumps to it (odd row). Each call nudges Mario down one
+ * pixel in two places and pins his drawn pose:
  *
  *   - Increment MARIO_Y, his logical screen position (larger is lower on screen), so the
  *     game-side position drops one pixel.
@@ -24,7 +34,7 @@
  * family with pinMarioClimbPose (0x3FC0).
  *
  * Memory-equivalent to the frozen oracle — equivalence-2284.test.js.
- * GATE:     crafted-entry — 0x2284 is reached only through slide50mObjectDown's still-translated
+ * GATE:     crafted-entry — 0x2281 is reached only through slide50mObjectDown's still-translated
  *           descend arm (unwired in attract), so there are no real captures. The routine
  *           is provably input-independent in structure, so the gate runs it against the
  *           oracle over many self-consistent base states with MARIO_Y and the three sprite
