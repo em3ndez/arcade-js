@@ -51,9 +51,11 @@
 //
 //   3. "with no overrides the seam is not installed at all"
 //      A STRUCTURAL proof, not a numeric one: a Machine built with an empty override map carries no
-//      own push16/pop16/call, so the pure-oracle path — every oracle suite, every convergence
-//      baseline, and the shipped DK player — runs the identical prototype methods it always did.
-//      Carries its own teeth case (the properties MUST appear once an override is wired).
+//      own push16/pop16/call, so the pure-oracle path — every oracle suite and every convergence
+//      baseline, including the `runOracle` side of tests 1 and 2 — runs the identical prototype
+//      methods it always did. It says NOTHING about the SHIPPED player, which is an
+//      overridden Machine (manifest.runtime === "idiomatic"); test 2 is that one. Carries its own
+//      teeth case (the properties MUST appear once an override is wired).
 //
 //   4. "the seam's stack-effect tables still match the frozen oracle"
 //      Re-derives machine.js's SEAM_CALLER_SKIP / SEAM_TAIL_NO_RET from an instrumented pure-oracle
@@ -312,11 +314,20 @@ test("the FULL FLIP: all idiomatic routines live, guest stack balanced every fra
 
 test("with no overrides the seam is not installed at all (the oracle path is untouched)", () => {
   // The seam's whole licence to exist is that it CANNOT affect a Machine with no overrides — every
-  // oracle suite, every convergence baseline and the shipped DK player (manifest has no
-  // `runtime: "idiomatic"` and no `optimized` block, so web/worker.js hands in an empty Map) are on
-  // that path. Asserting "the numbers still match" would prove it only for the cases we happen to
-  // run. This proves it STRUCTURALLY: with an empty override map the Machine carries no own
-  // push16/pop16/call at all, so those calls resolve to the same prototype methods they always did.
+  // oracle suite and every convergence baseline is on that path, including `runOracle` above
+  // (`new Machine(ROM, {})`), i.e. the reference side of every comparison in this file. Asserting
+  // "the numbers still match" would prove it only for the cases we happen to run. This proves it
+  // STRUCTURALLY: with an empty override map the Machine carries no own push16/pop16/call at all,
+  // so those calls resolve to the same prototype methods they always did.
+  //
+  // ★ WHAT THIS TEST DOES *NOT* COVER: THE SHIPPED PLAYER. It does not run on this path.
+  // games/dkong/manifest.js sets `runtime: "idiomatic"`, and web/worker.js branches on exactly that
+  // (`const idiomatic = manifest.runtime === "idiomatic"`), handing in
+  // `machineMod.resolveAllIdiomatic(...)` — the FULL override map, seam installed, every frame the
+  // player runs. The shipped configuration is therefore the one test 2 wires (the same
+  // `resolveAllIdiomatic()`), and test 2 is the only gate that covers it. Read this test for what
+  // it is: the guarantee that no-override Machines — the ORACLES the other gates measure against —
+  // stay the untouched prototype path, so the seam cannot quietly move the reference too.
   for (const opts of [{}, { overrides: {} }, { overrides: new Map() }]) {
     const m = new Machine(ROM, opts);
     assert.equal(m.overrides.size, 0, "expected an empty override map");

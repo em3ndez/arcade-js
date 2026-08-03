@@ -14,9 +14,11 @@
  * never be treated as the source of truth for behaviour.
  *
  * The full evidence trail — the drafters' proposals and the verifiers'
- * adversarial re-derivations — lives in `ram-findings-player.md`,
- * `ram-findings-world.md`, `ram-verify-player.md`, and `ram-verify-world.md`
- * beside this file.
+ * adversarial re-derivations — is `ram-findings-player.md`, `ram-findings-world.md`,
+ * `ram-verify-player.md` and `ram-verify-world.md`. They are NOT beside this file:
+ * they lived in the retired `games/dkong/optimized/` layer and were deleted with it
+ * in commit 080838f, so they are in git history only (`git show
+ * 080838f^:games/dkong/optimized/ram-findings-player.md`).
  *
  * TWO BYTES WERE NAMED BY BOTH VERIFIERS (their halves overlapped on the live
  * player-context block) — independent corroboration, not a conflict. Each keeps
@@ -27,8 +29,11 @@
  */
 
 // ── Sprite / display buffer ──────────────────────────────────────────────────
-// Sprite-record field offsets (into any 4-byte record in SPRITE_BUFFER). Source: names-confirmed-DE.md;
-// video.js drawSprites transcribed from MAME 0.288 dkong_v.cpp. See SPRITE_BUFFER's 90° note.
+// Sprite-record field offsets (into any 4-byte record in SPRITE_BUFFER). Grounded on
+// boards/dkong/video.js drawSprites, transcribed from MAME 0.288 dkong_v.cpp, which decodes each
+// 4-byte record as +0 y-select / +1 code (bit7 = raster flipy = the game frame's HORIZONTAL flip)
+// / +2 colour+bank (bit7 = raster flipx) / +3 x. SPRITE_X / SPRITE_Y carry their own live-MAME
+// grounding below. See SPRITE_BUFFER's 90° note for why the raster and game axes swap.
 /** [seen] Sprite-record field: X (+0). Grounded byte-exact vs MAME (== MARIO_X, 1819 attract frames);
  *  raster reads it rotated as the y-coord. */
 export const SPRITE_X = 0x00;

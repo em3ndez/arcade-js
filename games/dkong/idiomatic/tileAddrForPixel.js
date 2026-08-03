@@ -60,7 +60,7 @@ export function tileAddrForPixel(y, x) {
  * function above keeps its `(y, x)` shape for its direct idiomatic callers and its
  * exhaustive gate.
  *
- * ABI, read off the frozen oracle (translated/loc_2FF0.js, ROM 0x2FF0-0x3008):
+ * ABI, read off the frozen oracle (translated/loc_2ff0.js, ROM 0x2FF0-0x3008):
  *
  *     2ff0  7d 0f 0f 0f e6 1f 6f   ld a,l / rrca x3 / and 0x1f / ld l,a   ; L = col
  *     2ff7  7c 2f e6 f8 5f         ld a,h / cpl / and 0xf8 / ld e,a       ; E = row*8

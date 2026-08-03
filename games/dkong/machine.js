@@ -414,9 +414,12 @@ function seamWrap(addr, fn, seam) {
  * AN EMPTY SPEC PRODUCES AN EMPTY MAP AND NOTHING ELSE. Both the seam bookkeeping
  * and the per-routine wrapper are created only after an override has actually been
  * seen, so a Machine with no overrides — every oracle test, every convergence
- * baseline, the shipped DK player — keeps the Machine's own prototype `push16` /
- * `pop16` / `call` and runs the identical code it ran before. The pure-oracle path
- * is unchanged BY CONSTRUCTION rather than by argument.
+ * baseline — keeps the Machine's own prototype `push16` / `pop16` / `call` and runs
+ * the identical code it ran before. The pure-oracle path is unchanged BY
+ * CONSTRUCTION rather than by argument. (The shipped DK player is NOT on this path:
+ * manifest.js sets `runtime: "idiomatic"`,
+ * so web/worker.js hands the player `resolveAllIdiomatic(...)` — the full override
+ * map, seam installed. The player's cover is idiomatic/test/golive.test.js test 2.)
  *
  * @param {object|Map} [spec]
  * @param {Machine} [machine] the Machine these overrides are being built for

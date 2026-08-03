@@ -11,8 +11,9 @@
  * oracle leaves — so it is validated on RAM (minus STACK_SCRATCH) + pc + SP via capture/clone/
  * replay. NEVER the full register file, NEVER cycles.
  *
- * A bare `new Machine(ROM)` runs the exact TRANSLATED routines for every address (machine.js:
- * "A Machine built with no overrides runs the exact translated"), so on both sides the deeper
+ * A bare `new Machine(ROM)` runs the exact TRANSLATED routines for every address — machine.js on
+ * the default constructor path: "when that is omitted this produces an empty Map with no imports
+ * and no async — every such player gets the exact translated behaviour" — so on both sides the deeper
  * callees (0x04a3/0x0514/0x04ac) are the oracle; only the top-level routine differs. The oracle
  * loc_04a1 falls into loc_04a3, whose net stack effect is exactly ONE return (loc_04a3 push16s a
  * link, sub_0514 rets it, then loc_04ac rets the caller — push + two rets = one net pop); the

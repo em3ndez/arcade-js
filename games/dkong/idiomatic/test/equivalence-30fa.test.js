@@ -42,9 +42,10 @@
  *   4. CALLER-SKIP SHAPE (live-out) — the returned boolean IS the oracle's two-level stack
  *      splice: the oracle consumes one stack word when it returns true and TWO when it
  *      returns false (measured here, both arms). That is the fact the idiomatic boolean
- *      stands for, and the fact the translated↔idiomatic seam needs when 0x30fa is wired
- *      live (it belongs in machine.js's SEAM_CALLER_SKIP at that point; it is deliberately
- *      absent while no idiomatic twin is registered).
+ *      stands for, and the fact the translated↔idiomatic seam needs now that 0x30fa IS
+ *      wired live: ram.js registers 0x30fa -> gateObjectUpdateByDifficulty, so the seam
+ *      does dispatch this routine, and machine.js's SEAM_CALLER_SKIP LISTS 0x30fa (its
+ *      `MEASURED false:+4` entry is this arm's number).
  *
  *   5. TEETH — three broken twins, each caught by the exhaustive sweep, each a real way to
  *      get this dispatcher wrong: a clamp one short, a table without the ROM's duplicated
@@ -363,7 +364,7 @@ test("CALLER-SKIP SHAPE: the oracle consumes one stack word on true and TWO on f
   assert.deepEqual([...deltas.true], [2], "the oracle's proceed path must consume exactly one stack word");
   assert.deepEqual([...deltas.false], [4], "the oracle's skip path must consume TWO stack words (the caller-skip discard)");
   console.log(`  CALLER-SKIP SHAPE: ${cases} entries — oracle SP delta +2 on true, +4 on false; gateObjectUpdateByDifficulty leaves SP at ${hx16(SAFE_SP)}`);
-  console.log("    → when 0x30fa is wired into ROUTINES, machine.js's SEAM_CALLER_SKIP must gain it (its `false` owes two words at the seam).");
+  console.log("    → 0x30fa IS in ROUTINES and IS in machine.js's SEAM_CALLER_SKIP, which is what that `false` arm's two-word debt at the seam requires.");
 });
 
 // -- 5. TEETH -----------------------------------------------------------------
