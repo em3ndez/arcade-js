@@ -3,7 +3,8 @@
  * dispatchEffectSequenceStep — the router for the effect-sequence step machine held in EFFECT_SEQ_STATE (0x6345).
  * ROM 0x1E96.
  *
- * Reached once per frame from the still-oracle head loc_1e8c, which runs it only while the
+ * Reached once per frame from the idiomatic head runHitEffectInsteadOfPlay (ROM 0x1E8C, a
+ * ROUTINES key that direct-calls this routine), which runs it only while the
  * effect is armed. It reads EFFECT_SEQ_STATE and hands the frame to that step's handler,
  * writing nothing of its own — pure control flow over a three-step sequence that each handler
  * walks forward:
@@ -46,7 +47,7 @@
  *           EFFECT_SEQ_INNER / EFFECT_SEQ_OUTER, the effect sprite record, the effect sound,
  *           and on teardown EFFECT_STATE / EFFECT_PARAM_PTR); this routine writes none itself.
  *           The return value is undefined on every path on both sides — all three handlers
- *           return nothing and loc_1e8c discards the result, taking its own skip decision — and
+ *           return nothing and runHitEffectInsteadOfPlay discards the result, taking its own skip decision — and
  *           no register or flag is consumed either. SP/pc are the dropped stack model: the
  *           oracle's table walk and return chain move them inside STACK_SCRATCH, dead either way.
  * NAMES:    EFFECT_SEQ_STATE (0x6345) from ram.js — the step selector, whose ram.js note already

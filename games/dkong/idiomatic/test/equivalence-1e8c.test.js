@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e8c (ROM 0x1E8C) — the per-frame gate on the hit-effect latch
+ * Equivalence test for runHitEffectInsteadOfPlay (ROM 0x1E8C) — the per-frame gate on the hit-effect latch
  * (0x6350). Latch clear: return true and the caller runs its ordinary per-frame gameplay
  * cascade. Latch set: run one beat of the effect through dispatchEffectSequenceStep (ROM 0x1E96),
  * then answer false through the skip tail loc_1e94 (ROM 0x1E94), which makes the caller abandon
  * the rest of the frame's update.
  *
  * THE CONTRACT. The real live-out is the caller-skip BOOLEAN (loc_197a consumes it as
- * `if (!loc_1e8c(m)) return;`) plus whatever memory the effect beat writes through the router.
+ * `if (!runHitEffectInsteadOfPlay(m)) return;`) plus whatever memory the effect beat writes through the router.
  * SP/pc are the dropped stack model: the oracle's skip arm discards the caller's return address
  * and returns a level higher, all inside STACK_SCRATCH, while the rewrite carries that decision
  * in the boolean and touches no stack. So each case compares game-visible RAM (work + sprite +
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e8c as oracle } from "../../translated/loc_1e8c.js";
-import { loc_1e8c as idiomatic } from "../loc_1e8c.js";
+import { runHitEffectInsteadOfPlay as idiomatic } from "../runHitEffectInsteadOfPlay.js";
 import { dispatchEffectSequenceStep } from "../dispatchEffectSequenceStep.js";
 import { loc_1e94 } from "../loc_1e94.js";
 import { Machine } from "../../machine.js";
@@ -67,7 +67,7 @@ const TARGET = 0x1e8c;
 const ATTRACT_FRAMES = 4000;
 /**
  * The hit-effect latch. Deliberately unnamed in ram.js (shared engine scratch — the effect
- * sequence's gate and loc_03a2's bit0 gate read the same byte), so it is hex here too, exactly as
+ * sequence's gate and animateFixedHazardAndReleaseFire's bit0 gate read the same byte), so it is hex here too, exactly as
  * the routine and its siblings keep it.
  */
 const EFFECT_LATCH = 0x6350;
@@ -230,7 +230,7 @@ function sweepAllValues(bases, candidate) {
   return { mismatches, proceeding, shape };
 }
 
-test("EXHAUSTIVE (latch sweep): loc_1e8c == oracle over all 256 latch values on 3 bases, and only 0 proceeds", () => {
+test("EXHAUSTIVE (latch sweep): runHitEffectInsteadOfPlay == oracle over all 256 latch values on 3 bases, and only 0 proceeds", () => {
   const bases = sweepBases(captureDispatches());
   const { mismatches, proceeding, shape } = sweepAllValues(bases, idiomatic);
   assert.deepEqual(

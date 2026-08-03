@@ -5,17 +5,17 @@
  *
  * The object walk routes a slot here when the low three bits of the field that becomes the
  * search key are 3. This routine computes nothing of its own and touches no work RAM: it
- * stages the three values loc_216d grades with — that search key, a vertical discriminator
+ * stages the three values startBarrelDescentAtLadder grades with — that search key, a vertical discriminator
  * five greater than the row field, and one column's worth of table entries as the scan
  * count — runs the grader, and jumps into loc_21ba, the tail every branch of that walk
  * shares.
  *
  * WHAT THE ROLE LINE RESTS ON, AND WHERE IT STOPS. Reading the two live-ins as a position
- * is loc_216d's derivation, not a restatement of this body: the grader compares the key
+ * is startBarrelDescentAtLadder's derivation, not a restatement of this body: the grader compares the key
  * against MARIO_X and the discriminator against MARIO_Y − 4, so the pair is positional
  * rather than a pair of opaque tags. The scan count is the stride of the de-interleaved
  * object-parameter table, corroborated twice outside this routine — loadBoardObjectRecords
- * scatters each record's three fields to +0 / +0x15 / +0x2A, and loc_236e reads the two
+ * scatters each record's three fields to +0 / +0x15 / +0x2A, and findOppositeLadderEnd reads the two
  * paired slots at exactly one and two counts past a match — so it is the number of entries
  * per field column, not an arbitrary limit.
  *
@@ -51,12 +51,12 @@
  *           record fields, and two go straight into the position update at ROM 0x239C,
  *           which rewrites all four of B, C, H and L. E is re-derived by every routine
  *           that reads it.
- * NAMES:    none — this routine reads and writes no work RAM. loc_216d is in ROUTINES, so
+ * NAMES:    none — this routine reads and writes no work RAM. startBarrelDescentAtLadder is in ROUTINES, so
  *           it is direct-called; 0x21BA has no idiomatic twin in ROUTINES yet, so the tail is still
  *           m.call.
  */
 
-import { loc_216d } from "./loc_216d.js";
+import { startBarrelDescentAtLadder } from "./startBarrelDescentAtLadder.js";
 
 // Entries per field column in the de-interleaved object-parameter table: the grader's
 // lookup scans exactly one column, and the paired slots it returns sit one and two
@@ -73,13 +73,13 @@ export function loc_215f(
 ) {
   const { regs } = m;
 
-  // loc_216d and its own lookup callee take their inputs in registers — that callee is a
+  // startBarrelDescentAtLadder and its own lookup callee take their inputs in registers — that callee is a
   // genuine oracle boundary, so the ABI stays register-shaped until the walk above is
   // decompiled and the whole cluster's signatures are promoted together.
   regs.d = rowField + DISCRIMINATOR_OFFSET;
   regs.a = searchKey;
   regs.bc = PARAM_TABLE_COLUMN;
-  loc_216d(m);
+  startBarrelDescentAtLadder(m);
 
   return m.call(0x21ba);
 }

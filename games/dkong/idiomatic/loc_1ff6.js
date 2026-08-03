@@ -58,7 +58,7 @@
  * continuations (ROM 0x24B4, 0x202F, 0x2038) read that register directly, so a caller passing a
  * different record would be obeyed by the lines below and ignored one call later. It becomes an
  * honest parameter once those are decompiled, not before. The direction code is likewise never
- * touched here — loc_23de reads it off the machine itself.
+ * touched here — advanceBarrelSpriteOrientation reads it off the machine itself.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1ff6.test.js.
  * GATE:     real captures + one crafted arm. All 4742 dispatches in a 3000-frame attract run are
@@ -98,7 +98,7 @@
 import { u8 } from "../../../core/int.js";
 import { OBJ_X, OBJ_Y } from "./ram.js";
 import { snapYToGirder } from "./snapYToGirder.js";
-import { loc_23de } from "./loc_23de.js";
+import { advanceBarrelSpriteOrientation } from "./advanceBarrelSpriteOrientation.js";
 
 // The record's big-endian signed 16-bit per-frame horizontal step, high byte first. No ram.js
 // name: stepBallisticMotion, the routine that consumes the pair, reads it as bare record offsets
@@ -148,7 +148,7 @@ export function loc_1ff6(
 
   // Refresh the sprite's orientation bits for this object; it takes the record base and the
   // entry arm's direction code off the machine.
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
 
   // The bounds gate. On its own last arm it discards the return address pushed here and carries
   // the sweep on at ROM 0x21BA itself, so there is nothing further to do on this record.

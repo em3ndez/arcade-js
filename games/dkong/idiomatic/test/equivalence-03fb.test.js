@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_03fb (ROM 0x03FB) — the per-frame colour-cycle driver entry
+ * Equivalence test for slide50mSpriteRowAndServiceColorCycle (ROM 0x03FB) — the per-frame colour-cycle driver entry
  * with a 50m-only sprite-object row X-shift preamble in front of it.
  *
- * loc_03fb reads BOARD (0x6227) and routes two ways:
+ * slide50mSpriteRowAndServiceColorCycle reads BOARD (0x6227) and routes two ways:
  *
  *   - BOARD != 2 (any board but 50m) -> serviceColorCycle (ROM 0x0413) directly.
  *   - BOARD == 2 (50m) -> the preamble, THEN serviceColorCycle:
@@ -15,7 +15,7 @@
  * Its caller (loc_197a) `call`s it and the colour-cycle tail chain nets exactly ONE
  * caller-return pop down EVERY path — the rst-0x38 CALL on the BOARD == 2 arm pushes and
  * its callee pops (balanced), and both exits fall/jump into the loc_0413 colour chain
- * whose net `ret` returns on loc_03fb's behalf. The oracle only READS the stack past that
+ * whose net `ret` returns on slide50mSpriteRowAndServiceColorCycle's behalf. The oracle only READS the stack past that
  * (the pushed bytes land in STACK_SCRATCH, excluded by the memory-equivalence contract).
  * The idiomatic routine models the Z80 stack as the JS call stack (direct calls, no
  * push16/ret of its own), so the harness performs ONE m.ret() on the candidate to line
@@ -24,7 +24,7 @@
  * candidate side is the idiomatic cascade via direct imports. Every case runs on a FRESH
  * clone (the callees write memory).
  *
- *   1. REALISM (captured) — hook 0x03FB in a real attract run and confirm loc_03fb ==
+ *   1. REALISM (captured) — hook 0x03FB in a real attract run and confirm slide50mSpriteRowAndServiceColorCycle ==
  *      oracle over every natural dispatch. Attract plays 25m, so every real dispatch is
  *      BOARD == 1 (the colour-cycle hand-off); the BOARD == 2 preamble is COLD on tape.
  *
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03fb as oracle } from "../../translated/loc_03fb.js";
-import { loc_03fb } from "../loc_03fb.js";
+import { slide50mSpriteRowAndServiceColorCycle } from "../slide50mSpriteRowAndServiceColorCycle.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { serviceColorCycle } from "../serviceColorCycle.js";
 import { Machine } from "../../machine.js";
@@ -176,7 +176,7 @@ test("REALISM: real captured 0x03FB dispatches match the oracle", () => {
 
   let board1 = 0, board2 = 0;
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_03fb);
+    const diffs = contractDiffs(cap, slide50mSpriteRowAndServiceColorCycle);
     assert.equal(diffs.length, 0, `real dispatch (BOARD=${cap.mem.read8(BOARD)}): ${diffs.join("; ")}`);
     if (cap.mem.read8(BOARD) === 2) board2++; else board1++;
   }
@@ -206,7 +206,7 @@ test("EQUAL (crafted): the 50m preamble arm and the colour-cycle hand-off both m
 
   for (const c of cases) {
     const entry = craft(base, c);
-    const diffs = contractDiffs(entry, loc_03fb);
+    const diffs = contractDiffs(entry, slide50mSpriteRowAndServiceColorCycle);
     assert.equal(diffs.length, 0, `${c.name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the preamble writes M50_OBJ_ROW_SHIFT on 50m and leaves it at the sentinel otherwise.

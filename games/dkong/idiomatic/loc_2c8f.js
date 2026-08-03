@@ -26,7 +26,7 @@
  * NAME: kept loc_ — an English name is earned in a confirmed understanding pass, not here.
  * WHAT THIS FILE DOES NOT CLAIM: the two scratch bytes' roles above are read off the siblings
  * that write them (armBarrelRelease, releaseBarrelIntoFreeSlot, activateReleasedBarrel,
- * loc_0763), not from a grounding run of this routine; neither byte is named in ram.js.
+ * restartAttractDemoAt25m), not from a grounding run of this routine; neither byte is named in ram.js.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2c8f.test.js.
  * GATE:     ATTRACT ONLY (plus pokes on top of attract state) — no credited game, and the

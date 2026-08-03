@@ -33,7 +33,7 @@
  * a frame or two), which is exactly what closes its old "not grounded here" caveat. The verb is
  * chosen by EFFECT per the naming rules: what this routine CAUSES is objects being requested.
  * WHAT THIS NAME DOES NOT CLAIM: which on-screen object eventually appears. That is the consumer's
- * business (service50mObjectSpawnRequest / loc_313c), and it is not asserted here.
+ * business (service50mObjectSpawnRequest / spawnRequestedFireAndRecolorLiveFires), and it is not asserted here.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2ddb.test.js.
  * GATE:     captured + crafted. Real attract dispatches exercise the rst-0x30-closed skip

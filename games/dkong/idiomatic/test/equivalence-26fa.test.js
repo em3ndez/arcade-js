@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_26fa (ROM 0x26FA) — the board-gated per-pass service
+ * Equivalence test for service75mBoard (ROM 0x26FA) — the board-gated per-pass service
  * dispatcher: a board gate, then a route to the edge reset, the board-object service,
  * the vertical-reposition machine, or an idle, by the mover's Y and a level-scaled
  * frame cadence.
  *
- * loc_26fa itself reads only the board/position/level/frame and writes NOTHING of its
+ * service75mBoard itself reads only the board/position/level/frame and writes NOTHING of its
  * own — every memory effect is the dispatched callee's (killMarioAtEndOfLiftTravel, serviceBoardObjects,
  * loc_271e), each already idiomatic and memory-equivalent to its own oracle. So this
- * test proves loc_26fa's DISPATCH: that the same inputs route to the same callee.
+ * test proves service75mBoard's DISPATCH: that the same inputs route to the same callee.
  *
  * THE STACK NETS UNIFORMLY. Every oracle exit nets exactly ONE caller-return pop
  * (SP -> entry+2, pc -> the popped return): the board gate's closed arm double-pops
@@ -29,7 +29,7 @@
  * too.
  *
  *   0. REACHABILITY — count natural 0x26FA dispatches; validate each against the oracle.
- *   1. EQUAL (crafted, all arms) — loc_26fa == oracle over RAM − STACK_SCRATCH + pc + SP
+ *   1. EQUAL (crafted, all arms) — service75mBoard == oracle over RAM − STACK_SCRATCH + pc + SP
  *      across: gate closed (no write), edge reset (killMarioAtEndOfLiftTravel), both cadence branches into
  *      serviceBoardObjects and loc_271e on level 1 and a later level, and the level-1
  *      idle phases — each with its callee's signature write asserted (non-vacuity), and
@@ -47,9 +47,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_26fa as oracle } from "../../translated/loc_26fa.js";
-import { loc_26fa } from "../loc_26fa.js";
+import { service75mBoard } from "../service75mBoard.js";
 // The teeth twins reuse the real idiomatic callees (their own gates prove them faithful)
-// so only loc_26fa's dispatch logic is what can diverge.
+// so only service75mBoard's dispatch logic is what can diverge.
 import { boardBitGate } from "../boardBitGate.js";
 import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js";
 import { serviceBoardObjects } from "../serviceBoardObjects.js";
@@ -137,7 +137,7 @@ function runOracle(entry) {
 
 /**
  * Run a candidate on a fresh clone, then model its terminal `ret` with one m.ret() so
- * pc + SP match the oracle's — loc_26fa replaces the Z80 stack with the JS call stack,
+ * pc + SP match the oracle's — service75mBoard replaces the Z80 stack with the JS call stack,
  * so it does not touch pc/SP itself, and the oracle nets one caller-return pop on every
  * path.
  */
@@ -228,7 +228,7 @@ test("REACHABILITY: count natural 0x26FA dispatches and validate each against th
   for (const cap of caps) {
     cap.nextNmi = Infinity;
     cap.nextBoundary = Infinity;
-    const diffs = contractDiffs(cap, loc_26fa);
+    const diffs = contractDiffs(cap, service75mBoard);
     assert.equal(diffs.length, 0, `real dispatch diverged: ${diffs.join("; ")}`);
   }
   // The gate-open body is board-3-only and unreached in 25m attract; the crafted arms
@@ -261,7 +261,7 @@ test("EQUAL (crafted): every dispatch arm matches the oracle over RAM − stack 
 
   for (const { name, opts, arm } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_26fa);
+    const diffs = contractDiffs(entry, service75mBoard);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the oracle took the expected arm and left its signature.
@@ -292,7 +292,7 @@ test("BOUNDED EXCLUSION: the ONLY whole-dump oracle-vs-candidate diff lands in S
   // writes live work RAM (MARIO_Y + sprite-Y) AND pushes 0x2721 into the stack scratch.
   const entry = craft(base, { board: GATE_OPEN_BOARD, marioY: 0x80, level: 2, frame: 0x02 });
   const o = entry.clone(); oracle(o);
-  const c = entry.clone(); loc_26fa(c); c.ret();
+  const c = entry.clone(); service75mBoard(c); c.ret();
 
   // Stack excluded -> identical.
   assert.equal(firstRamDiff(o, c), null, "stack-excluded contract must be identical on a loc_271e body arm");

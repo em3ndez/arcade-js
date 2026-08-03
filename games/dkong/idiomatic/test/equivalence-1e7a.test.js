@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1e7a (ROM 0x1E7A) — the girder-board rescue-row test inside
- * Mario's per-frame position check (sub_1e57). It reads Mario's screen Y (a register live-in
- * from the still-translated caller), compares it against the rescue-row line 0x31, and:
+ * Equivalence test for completeBoardWhenMarioReachesRescueRow (ROM 0x1E7A) — the rescue-row test
+ * inside Mario's per-frame position check (sub_1e57). ROM 0x1E5F's `rra` rotates BOARD's bit 0
+ * into the carry, so `jp c,0x1E7A` selects the ODD boards — BOARD 1 (25m) AND BOARD 3 (75m) —
+ * not "the girder board" alone. It reads Mario's screen Y (a register live-in the caller
+ * leaves in the accumulator, an un-promoted register ABI), compares it against the
+ * rescue-row line 0x31, and:
  *   • Y value >= 0x31 (still down the board) -> a NORMAL return (true, writes nothing);
  *   • Y value <  0x31 (up on Pauline's row) -> the board is won: fall into loc_1e6d, which
  *     stamps Mario's sprite facing (0x694D) and tail-calls enterBoardAdvanceAndUnwind
  *     (0x1E85) to set GAME_SUBSTATE (0x600A) := 0x16 and UNWIND out of the movement cascade.
- *     In direct-call form that non-local exit is a boolean — loc_1e7a returns the callee's
+ *     In direct-call form that non-local exit is a boolean — completeBoardWhenMarioReachesRescueRow returns the callee's
  *     false (the caller-skip "abort" signal).
  *
- * The Y position is the ONLY input to loc_1e7a's whole subtree: the incoming flags are dead
+ * The Y position is the ONLY input to completeBoardWhenMarioReachesRescueRow's whole subtree: the incoming flags are dead
  * (the compare overwrites the carry it then feeds to loc_1e6d), and the callees read no other
  * register or RAM. So the gate is EXHAUSTIVE over all 256 Y values.
  *
@@ -50,8 +53,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1e7a as oracle } from "../../translated/loc_1e7a.js";
-import { loc_1e7a } from "../loc_1e7a.js";
-import { loc_1e6d } from "../loc_1e6d.js"; // the shared callee — the twins call it directly to isolate loc_1e7a's own logic
+import { completeBoardWhenMarioReachesRescueRow } from "../completeBoardWhenMarioReachesRescueRow.js";
+import { loc_1e6d } from "../loc_1e6d.js"; // the shared callee — the twins call it directly to isolate completeBoardWhenMarioReachesRescueRow's own logic
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_SPRITE_RECORD, SPRITE_CODE, GAME_SUBSTATE } from "../ram.js";
 
@@ -188,8 +191,8 @@ const describe = (mm) => mm && `at Y=${hx(mm.y)}: ${mm.why}`;
 
 // -- 1. EQUAL (crafted, exhaustive) -------------------------------------------
 
-test("EQUAL (exhaustive): loc_1e7a == oracle on RAM+pc+SP over all 256 Y values, and returns the right arm", () => {
-  const { mismatch, count } = fullSweep(loc_1e7a);
+test("EQUAL (exhaustive): completeBoardWhenMarioReachesRescueRow == oracle on RAM+pc+SP over all 256 Y values, and returns the right arm", () => {
+  const { mismatch, count } = fullSweep(completeBoardWhenMarioReachesRescueRow);
   assert.equal(mismatch, null, describe(mismatch));
   assert.equal(count, 256, "must have swept the full Y input space");
 
@@ -200,7 +203,7 @@ test("EQUAL (exhaustive): loc_1e7a == oracle on RAM+pc+SP over all 256 Y values,
   assert.equal(o1.mem.read8(GAME_SUBSTATE), BOARD_ADVANCE_SUBSTATE, "board-won: oracle must set GAME_SUBSTATE := 0x16");
   assert.equal(o1.regs.sp, SP_TOP, "board-won: oracle unwinds SP by 4 (0x1E85's pop hl + ret)");
   assert.equal(o1.pc, GRAND_RET, "board-won: oracle returns to the grandparent (two levels up)");
-  assert.equal(runCandidate(won, loc_1e7a).ret, false, "board-won: idiomatic must return false (the unwind signal)");
+  assert.equal(runCandidate(won, completeBoardWhenMarioReachesRescueRow).ret, false, "board-won: idiomatic must return false (the unwind signal)");
 
   // Boundary just below the line still wins.
   const edge = craftEntry(THRESHOLD - 1);
@@ -213,7 +216,7 @@ test("EQUAL (exhaustive): loc_1e7a == oracle on RAM+pc+SP over all 256 Y values,
   assert.equal(o2.mem.read8(SPRITE_FLAG), SENTINEL_SPRITE, "normal arm: sprite byte untouched");
   assert.equal(o2.regs.sp, SP_TOP - 2, "normal arm: oracle pops one level (SP+2)");
   assert.equal(o2.pc, OWN_RET, "normal arm: oracle rets to sub_1e57's own return");
-  assert.equal(runCandidate(normal, loc_1e7a).ret, true, "normal arm: idiomatic must return true (keep going)");
+  assert.equal(runCandidate(normal, completeBoardWhenMarioReachesRescueRow).ret, true, "normal arm: idiomatic must return true (keep going)");
 
   // The stack exclusion is load-bearing: the staged returns really sit in STACK_SCRATCH.
   assert.ok(inStack(SP_TOP - 2) && inStack(SP_TOP - 4), "the staged returns must sit in STACK_SCRATCH");
@@ -273,7 +276,7 @@ test("TEETH (exhaustive): the dropped-carry-marshal twin is CAUGHT at 0x694D", (
 
 // -- 3. REALISM (captured) ----------------------------------------------------
 
-test("REALISM: real captured 0x1E7A dispatches — loc_1e7a matches oracle (all the normal-return arm)", () => {
+test("REALISM: real captured 0x1E7A dispatches — completeBoardWhenMarioReachesRescueRow matches oracle (all the normal-return arm)", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 200) caps.push(mm.clone());
@@ -286,7 +289,7 @@ test("REALISM: real captured 0x1E7A dispatches — loc_1e7a matches oracle (all 
   let normalArm = 0, wonArm = 0;
   for (const cap of caps) {
     const y = cap.regs.a;
-    const diffs = contractDiffs(cap, loc_1e7a);
+    const diffs = contractDiffs(cap, completeBoardWhenMarioReachesRescueRow);
     assert.equal(diffs.length, 0, `real dispatch Y=${hx(y)}: ${diffs.join("; ")}`);
     if (y >= THRESHOLD) normalArm++; else wonArm++;
   }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3009 — bit-field lookup over a packed 4x2-bit table, keyed by an input
+ * nextAnimationStep — bit-field lookup over a packed 4x2-bit table, keyed by an input
  * byte and a 2-bit selector. ROM 0x3009.
  *
  * A leaf, PURE over its two register-byte inputs (a = A, b = B): it reads no
@@ -25,9 +25,18 @@
  *                      if still nonzero return A = 3, else return A = 0x04.
  *                      CARRY clear on both (the `cp 0x03` equal path; dec keeps C).
  *
- * The constants' game meaning (what 0x6c/0xb4/0x1e/0x90 encode, why the three
- * untranslated call sites 0x1C9E/0x1CBA/0x23F4 want it) is NOT established, so
- * the routine keeps its address name rather than a guessed English one.
+ * The constants' game meaning (what 0x6c/0xb4/0x1e/0x90 encode individually) is still
+ * NOT established, and the name does not claim it. What the name asserts is the role
+ * every call site puts the RESULT to: each one stores it into a byte that decides what is
+ * DRAWN. walkMarioRight (ROM 0x1CA4) and walkMarioLeft (ROM 0x1CC0) store it straight into
+ * MARIO_WALK_ANIM, whose low two bits become Mario's sprite tile code every frame; the
+ * object-orientation refresher takes bits 1 and 0 as an object's two sprite mirror bits;
+ * loc_18c6 ORs 0x20 in and stores it as a sprite-object byte. ram.js grounds
+ * MARIO_WALK_ANIM live and independently — value set {0,1,2,4}, which is exactly this
+ * function's reachable range minus the unreached 3, written ONLY by the two walk routines,
+ * at exactly the two instructions that store this function's A. That pins the result as an
+ * animation index rather than a direction or a flag word. The name stays a NOUN because
+ * the function is PURE — it writes nothing; the callers perform the mutation.
  *
  * Modelled as a pure function of (a, b) because it touches no memory: the test
  * compares its result against the oracle's resulting registers directly (as the
@@ -38,16 +47,21 @@
  * GATE:     exhaustive over the TERMINATING (a,b) domain (all 65,536 combos,
  *           the non-terminating ones skipped by an independent predicate) — a
  *           pure total function on its terminating inputs. The gate is
- *           exhaustive-crafted rather than capture-based.
+ *           exhaustive-crafted, and ALSO capture-backed (equivalence-3009.test.js
+ *           test #0 replays every real attract dispatch).
  *           ★ CORRECTION: this header used to say "UNWIRED: 0x3009 is not in the
  *           dispatch registry (its callers are the untranslated 1977 subtree), so
  *           attract never dispatches it." Both halves were stale. 0x3009 IS a
  *           ROUTINES key, and all three call sites now have translated twins
- *           (0x1C9E in loc_1c8f, 0x1CBA in loc_1cab, 0x23F4 in loc_23de — plus a
+ *           (0x1C9E in loc_1c8f, 0x1CBA in loc_1cab, 0x23F4 in advanceBarrelSpriteOrientation — plus a
  *           FOURTH the old note missed, 0x18DF in loc_18c6, whose `or 0x20` at
- *           0x18E2 consumes A). MEASURED on the pure oracle: 404
- *           dispatches over 1500 attract frames, 4805 over 12000. It is dispatched
- *           routinely, which is why its wired entry point had to be fixed.
+ *           0x18E2 consumes A). RE-DERIVED at write time against the pure translated
+ *           oracle under `new Machine(ROM, { overrides })`, a counting override at 0x3009,
+ *           `runFrames(N)` — 0 dispatches by frame 600, 23 by f700, 798 by f1500, 3850 by
+ *           f12000, stable across repeats. PROVENANCE: that is a HARNESS REPLAY, our engine
+ *           driving the ROM, so it is a [code] number and not a MAME observation. Quote it
+ *           only with the method attached; counts measured by any other rig do not compare.
+ *           It is dispatched routinely, which is why its wired entry point had to be fixed.
  * LIVE-OUT: memory-only (writes NO RAM) + register A. The CARRY flag and b/c/d are
  *           reproduced faithfully and checked by the test as free teeth, but NONE of
  *           them is a liveness claim — no translated successor is confirmed to read
@@ -63,7 +77,7 @@
  *   file at `ret`: a = result in A, carry = the carry flag, b/c/d as left by the
  *   routine. Does not return for a non-terminating (a,b) (it loops, like the ROM).
  */
-export function loc_3009(a, b) {
+export function nextAnimationStep(a, b) {
   const ror2 = (v) => ((v >> 2) | (v << 6)) & 0xff; // 8-bit rotate right by 2 (two `rrca`)
 
   const d = a; // `ld d,a` — the original input, kept for the exit test
@@ -107,7 +121,7 @@ export function loc_3009(a, b) {
  * function above keeps its `(a, b)` shape and its register-file return value for the
  * exhaustive gate.
  *
- * ★ THIS ONE DID NOT DEGRADE QUIETLY — IT HUNG. Wired directly, `loc_3009(m)` gave `a` =
+ * ★ THIS ONE DID NOT DEGRADE QUIETLY — IT HUNG. Wired directly, `nextAnimationStep(m)` gave `a` =
  * the Machine and `b` = undefined, so `(c & 0x03) === bEff` was never true and the scan
  * loop — which reproduces the ROM's own non-termination on purpose — spun forever with no
  * `m.step` budget to backstop it. With the register marshalling in place the inputs are
@@ -131,11 +145,11 @@ export function loc_3009(a, b) {
  *   OUT:  A = the result. A is LIVE: loc_1C8F (0x1CA4) and loc_1CAB (0x1CC0) store it
  *         straight into 0x6202, and loc_18C6 (0x18E4) does `or 0x20` on it.
  *         ★ THE CARRY IS REPRODUCED BUT IS **NOT** LIVE — an earlier version of this header
- *         claimed loc_23DE consumed it, and that was WRONG. 0x23F7's `rra` does read the
+ *         claimed advanceBarrelSpriteOrientation (ROM 0x23DE) consumed it, and that was WRONG. 0x23F7's `rra` does read the
  *         incoming carry, but into A BIT 7; what rotates onward into (ix+8) and (ix+7) is
  *         A's bit 0 and bit 1. The incoming carry ends up in A bit 6 and is then destroyed
  *         by `ld a,0x04` at 0x2401. Falsified by controlled measurement, not by re-reading:
- *         4000 randomized loc_23de runs forced onto the (ix+0x0f)==1 arm — the only arm that
+ *         4000 randomized advanceBarrelSpriteOrientation runs forced onto the (ix+0x0f)==1 arm — the only arm that
  *         reaches here — each run twice with this routine's exit carry FLIPPED, gave ZERO
  *         differences in any register, flag or RAM byte; the control, flipping exit A
  *         instead, changed RAM on 500 of 500. The other three call sites overwrite F
@@ -149,10 +163,10 @@ export function loc_3009(a, b) {
  * to be re-derived; F is rebuilt by REPLAYING the oracle's own terminal instructions
  * (`cp 0x03`, then `res 2,d` / `dec d`) rather than by assembling a flag byte by hand.
  */
-export function loc_3009FromRegisters(m) {
+export function nextAnimationStepFromRegisters(m) {
   const { regs } = m;
   const input = regs.a; // 0x3009 `ld d,a` — the saved input, read before A is rewritten
-  const r = loc_3009(input, regs.b);
+  const r = nextAnimationStep(input, regs.b);
 
   regs.b = r.b;
   regs.c = r.c;

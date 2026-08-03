@@ -114,9 +114,9 @@ export const OBJ_SPRITE_CODE = 0x07;
 /** [seen] Object-record field: sprite attribute (+8); gatherSpriteRecords copies to sprite +2. Grounded
  *  live in NATURAL attract (zero pokes, RUN-A2, probed at 0x6408): own byte {0,1}, 15 transitions, with
  *  only two gameplay writers — pc 0x315D (2477x, writes 1) and pc 0x316A (768x, writes 0), both inside
- *  loc_313c — plus 5 board-init writes at pc 0x0F69/0x1230. The hammer A/B is the causal control. */
+ *  spawnRequestedFireAndRecolorLiveFires — plus 5 board-init writes at pc 0x0F69/0x1230. The hammer A/B is the causal control. */
 export const OBJ_SPRITE_ATTR = 0x08;
-/** [seen] Object-record field (+0x18): loc_313c's pending-insert marker. Grounded live: takes {0,1}, held
+/** [seen] Object-record field (+0x18): spawnRequestedFireAndRecolorLiveFires's pending-insert marker. Grounded live: takes {0,1}, held
  *  at 1 for 310 frames (natural attract) / 186 (credited 1P) / 70 (board 2), and set ONLY on frames whose
  *  INSERT arm (ROM 0x319D) fired — identically 0 across all 6667 board-3 frames, where 0x319D never ran. */
 export const OBJ_INSERT_REQUESTED = 0x18;
@@ -167,9 +167,20 @@ export const OBJ_WALK_PTR_HI = 0x1b;
 /** [code] Saved iterator pointer (word) walking the 0x6400 stride-0x20 array; entry_31b1 seeds/advances
  *  it, entry_3202 / sub_298c re-load it (pointer passed through memory). */
 export const OBJ_ITER_PTR = 0x63c8;
-/** [seen] Object array, stride 0x20, 5 records swept together (the page holds up to 7 on 100m);
- *  sub_2880 / entry_31b1. Grounded live (record-0 only): record-0's fields all took live values in real
- *  MAME 25m attract (records 1,2 stayed 0) — the base is exercised; honest record-0-only [seen]. */
+/** [seen] THE FIRES. Object array, stride 0x20, 5 records swept together (the page holds up to 7 on
+ *  100m); sub_2880 / entry_31b1. Live on ALL FOUR boards. IDENTITY GROUNDED on the real ROM under
+ *  MAME 0.288, on a NATURAL zero-poke 25m run (scratchpad/grounding-object-arrays.md): forcing the
+ *  five records' +0 to 0 erases the fireball from the screen completely (0 of 40 sampled frames,
+ *  0 px) while leaving the barrels statistically untouched (616 px / motion 333 vs baseline
+ *  616 / 328); in the tight A/B the first frame that differs carries a single blob at cols 101..114,
+ *  rows 231..245 — this array's logged record position to the pixel; and boxes drawn at the logged
+ *  positions land on a fireball and nothing else on every board (2 records for all 2176 gameplay
+ *  frames on 75m, 5 on 100m spawned one per 128 frames). The record activates at (X=39, Y=232) every
+ *  time on 25m, which is OBJ_RECORD_66A0's board-1 X — the fire is born at the fixed hazard.
+ *  HONEST FLOOR: the X-pin POSITIVE control is a NO-OP here — the ROM recomputes +3 each frame from
+ *  state held elsewhere, so the identity rests on the kill control plus positional correlation, not
+ *  on a coordinate command. Records 0-4 grounded; record 4 activates only on 100m.
+ *  Field-level: record-0's fields all took live values in real MAME 25m attract. */
 export const OBJ_ARRAY_64 = 0x6400;
 /** [seen] PARTIAL — records 0-1 only. Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F);
  *  update75mActorObjects, mirrored to ACTOR_SPRITES. Grounded live on 75m (RUN-B3): record 0 active for
@@ -196,9 +207,17 @@ export const OBJ_PAIR_6680 = 0x6680;
  *  all-zero. It is seeded (loc_11FA) exactly on the boards whose collision arm sweeps it and lies dormant
  *  on the boards whose arms do not — the arms and the record agree. */
 export const OBJ_RECORD_66A0 = 0x66a0;
-/** [seen] Object array, stride 0x20, 10 records spanning page 0x68 (0x6700-0x6840);
- *  sub_2880 / entry_2c8f / sub_1f72. Grounded live (record-0 only): record-0's fields all took live
- *  values (full-playfield barrel) in real MAME 25m attract — honest record-0-only [seen]. */
+/** [seen] THE BARRELS. Object array, stride 0x20, 10 records spanning page 0x68 (0x6700-0x6840);
+ *  sub_2880 / entry_2c8f / sub_1f72. Board 1 only (ROM 0x1F72 returns unless BOARD == 1); during
+ *  gameplay it is identically zero on 50m, 75m and 100m. IDENTITY GROUNDED on the real ROM under
+ *  MAME 0.288, natural zero-poke 25m (scratchpad/grounding-object-arrays.md): forcing the ten
+ *  records' +0 to 0 collapses barrel motion 328 -> 29 and produces no new barrel, while the fireball
+ *  is untouched (34/40 frames vs baseline 35/40); pinning the records' +3 X every frame parks EVERY
+ *  barrel at the commanded column (baseline spans cols 0..173; pinned to X=0x28 it spans 0..62, to
+ *  X=0xA0 it clusters at ~145) and nothing else on screen moves — a working positive control, which
+ *  the fire array does not have. Live sprite codes are six barrel frames x the 0x80 flip bit.
+ *  Records 0-8 grounded; records 6..9 never activated together in any run.
+ *  Field-level: record-0's fields all took live values (full-playfield barrel) in 25m attract. */
 export const OBJ_ARRAY_67 = 0x6700;
 
 // ── Coins & DIPs ─────────────────────────────────────────────────────────────
@@ -729,14 +748,14 @@ export const OBJ_SPAWN_TIMER = 0x639b;
 /** [seen] ({0,1}, board-gated) Object-INSERT event-request latch consumed by entry_313c:
  *  when 1 (and a free slot exists in OBJ_ARRAY_64 on 50m) entry_313c activates a slot and
  *  clears it (consume-and-clear); also cleared on board reset (handler_0763). TWO producers
- *  raise it := 1 — raisePeriodicObjectSpawnRequests's difficulty-scaled periodic trigger (50m/100m) and loc_03a2's
- *  ARM_COUNTER-underflow re-arm (loc_03a2 does not read it back — one reader only). Grounded
+ *  raise it := 1 — raisePeriodicObjectSpawnRequests's difficulty-scaled periodic trigger (50m/100m) and animateFixedHazardAndReleaseFire's
+ *  ARM_COUNTER-underflow re-arm (animateFixedHazardAndReleaseFire does not read it back — one reader only). Grounded
  *  live vs MAME: {0,1}, 100m 128-frame rise period, consumed within a frame or two. Reverses
  *  the earlier "0x63xx engine scratch" rejection — single reader, one coherent request role. */
 export const EVENT_REQ_313C = 0x63a0;
-/** [seen] Per-scan tally of the live (non-empty) records loc_313c counts while sweeping OBJ_ARRAY_64; the
+/** [seen] Per-scan tally of the live (non-empty) records spawnRequestedFireAndRecolorLiveFires counts while sweeping OBJ_ARRAY_64; the
  *  scan returns a caller-skip when it lands on zero. Grounded live: the SOLE writer in the entire ROM is
- *  loc_313c (verified by grep over the frozen translated/ oracle). The own byte took {0,1,2,3,4,5} across
+ *  ROM 0x313C (verified by grep over the frozen translated/ oracle). The own byte took {0,1,2,3,4,5} across
  *  runs and its per-frame write sequences are always contiguous from 0 — attract/1P `0` and `0.1`, board 3
  *  `0.1.2` (2417x), board 2 up to `0.1.2.3.4`, board 4 up to `0.1.2.3.4.5` (946x) — exactly the shape of a
  *  counter incremented once per live record. */
@@ -934,9 +953,9 @@ export const ROUTINES = {
   0x0347: { name: "selectPlayerIndicatorColumnBase", entry: "selectPlayerIndicatorColumnBaseFromRegisters", role: "pick one of two video-RAM column-base addresses from a player selector", cert: "code" },
   0x0350: { name: "awardBonusLifeAtThreshold", role: "grant the once-per-player bonus life the first time the running score reaches the operator-set threshold, then refresh the HUD", cert: "code" },
   0x037f: { name: "rampDifficulty", role: "raise the difficulty value with level and time on the board", cert: "code" },
-  0x03a2: { name: "loc_03a2", role: "a periodic event, serviced only when three gates in a row pass", cert: "code" },
+  0x03a2: { name: "animateFixedHazardAndReleaseFire", role: "animate the board's fixed hazard object (a per-board CONSTANT position, boards 1 and 2 only) and, when the armed arm's countdown underflows, request the release of a new fire into OBJ_ARRAY_64", cert: "seen" },
   0x03f2: { name: "loc_03f2", role: "store a byte at a caller-given address, then bump-and-restore it on a spin coin-flip", cert: "code" },
-  0x03fb: { name: "loc_03fb", role: "the per-frame colour-cycle driver entry, with a 50m-only sprite-object row X-shift preamble in front of it", cert: "code" },
+  0x03fb: { name: "slide50mSpriteRowAndServiceColorCycle", role: "the per-frame colour-cycle driver entry, with a 50m-only preamble that slides the whole sprite-object row's X by the published step and publishes the resulting row shift", cert: "code" },
   0x0400: { name: "loc_0400", role: "the colour-cycle driver entered mid-body at 0x0400: on the 50m arm, stage the sprite-object row's X-shift, then hand off to the per-frame colour-cycle service", cert: "code" },
   0x0413: { name: "serviceColorCycle", role: "the per-frame entry to the state-0 colour cycle: advance a running sweep, or re-arm a fresh one at the frame-counter wrap, else just repaint", cert: "seen" },
   0x0426: { name: "advanceColorCycleSweep", role: "advance the colour-cycle sweep counter one step per frame and dispatch this frame's colour work", cert: "code" },
@@ -973,7 +992,7 @@ export const ROUTINES = {
   0x06b8: { name: "drawLivesAndLevel", role: "redraw the reserve-lives indicator and the level-number digits", cert: "code" },
   0x06fe: { name: "dispatchInGameSubstate", role: "vector the credited game to its current sub-state handler", cert: "code" },
   0x073c: { name: "runAttractState", role: "service the attract game-state (GAME_STATE == 1) once per NMI", cert: "code" },
-  0x0763: { name: "loc_0763", role: "on the timed sub-state advance, reset the live player context to a fresh 25m / level-1 / single-life start and (re)build the board", cert: "code" },
+  0x0763: { name: "restartAttractDemoAt25m", role: "on the timed sub-state advance, reset the live player context to a fresh 25m / level-1 / single-life start and (re)build the board -- the ATTRACT demo's own round, unreachable for a credited game (DIP_LIVES is 3..6 at every DSW setting)", cert: "code" },
   0x0779: { name: "composeAttractTitleScreen", role: "build the attract title/score screen (GAME_STATE 1, sub-state 0) and hand off to the next attract step", cert: "code" },
   0x07ad: { name: "writeDigitPairWithCarry", role: "stamp two digit tiles side by side, carrying a value of 10 into a fixed tens cell", cert: "code" },
   0x07c3: { name: "clearScreenAndAdvanceSubstate", role: "wipe the screen, then step to the next sub-state of the current game state", cert: "code" },
@@ -1017,10 +1036,10 @@ export const ROUTINES = {
   0x0d4c: { name: "stampTwoTileBands", role: "stamp two 4-cell tile bands (0xFD then 0xFC) into a video-RAM row, given the row-base pointer", cert: "code" },
   0x0d5f: { name: "loc_0d5f", role: "board-setup continuation: run the common per-board init, scatter the object records, arm the setup dwell timer (SUBSTATE_TIMER = 0x40) and advance GAME_SUBSTATE, stage the sprite-object block from the ROM template at 0x385C (plus the 8-byte continuation into SPRITE_BUFFER), then apply the per-board sprite offset selected by BOARD -- 100m an X-column shift of +0x44 and two rivet field nudges, 50m/75m none, 25m a Y-column shift of -4", cert: "code" },
   0x0da7: { name: "drawBoardLayout", role: "walk the board-layout segment table and draw each segment", cert: "code" },
-  0x0dd3: { name: "loc_0dd3", role: "convert a segment record's second endpoint, compute its run deltas, and draw the segment (girder span + end caps, or ladder)", cert: "code" },
-  0x0e19: { name: "drawGirderSpan", role: "fill a layout segment's body run with the girder tile 0xC0, then draw its end cap", cert: "code" },
+  0x0dd3: { name: "loc_0dd3", role: "convert a segment record's second endpoint, compute its run deltas, and dispatch by record kind to the two drawers. CALLEE NAMES INVERTED (rename pending): kind 0/1 stamps the endpoint caps and hands the body to ROM 0x0e19, which despite its name drawGirderSpan is the LADDER drawer; kind 2 hands off to ROM 0x0e4f, which despite its name drawLadder is the GIRDER drawer. Pixel-proven by tile suppression, see mechanisms.md section 5", cert: "code" },
+  0x0e19: { name: "drawGirderSpan", role: "NAME INVERTED (rename pending): despite the name this is the LADDER drawer -- fill a layout segment's body run with the uniform tile 0xC0, stepping HL by `inc l`, i.e. the raw tilemap COLUMN axis, which under the screen's ROT270 is the DISPLAYED VERTICAL. Proven by pixel suppression on the real ROM under MAME: blanking this routine's writes removes 616 px and they are the LADDERS (the two full-height ladders beside Kong plus eight shorter segments), with not one girder pixel changed", cert: "seen" },
   0x0e2a: { name: "drawSegmentEndCap", role: "stamp a layout segment's endpoint tiles, then advance the table cursor and re-enter the walk", cert: "code" },
-  0x0e4f: { name: "drawLadder", role: "stamp a kind-2 ladder run DOWN the tilemap for a board-layout record", cert: "code" },
+  0x0e4f: { name: "drawLadder", role: "NAME INVERTED (rename pending): despite the name this is the GIRDER drawer -- stamp a kind-2 run of 0xE0/0xF0 slope-band tiles for a board-layout record, stepping HL by +0x20, i.e. the raw tilemap ROW axis, which under the screen's ROT270 is the DISPLAYED HORIZONTAL. Proven by pixel suppression on the real ROM under MAME: blanking this routine's writes removes 6256 px and they are the GIRDERS (every sloped platform on the board), with not one ladder pixel changed", cert: "seen" },
   0x0ee8: { name: "drawCappedTileColumn", role: "stamp a capped vertical tile run (top cap, body, bottom cap) down the tilemap for a kind-3 board-layout record", cert: "code" },
   0x0f1b: { name: "fillTileColumn", role: "fill a tilemap column with a kind-selected tile (board records 4/5/6)", cert: "code" },
   0x0f35: { name: "fillColumnAndContinueWalk", role: "fill a tilemap column from the current cursor, then resume the board-layout walk", cert: "code" },
@@ -1090,9 +1109,9 @@ export const ROUTINES = {
   0x1a2a: { name: "advanceSubstateWhenGrounded", role: "hold this sub-state until Mario has landed, then advance to the next sub-state and abort the rest of the frame", cert: "code" },
   0x1a33: { name: "collectEdgeRivet", role: "the 100m edge-rivet pickup handler: arm at a rivet edge, then on a later frame remove the rivet the player just stepped off", cert: "code" },
   0x1a4b: { name: "armEdgeRivetPickup", role: "raise the edge-item pickup latch (EDGE_RIVET_ARMED := 1)", cert: "code" },
-  0x1ac3: { name: "dispatchMarioMovement", role: "the movement machine's router: five tests in a fixed priority order (airborne, freeze, hammer, ladder, jump-press, ground). The ORDER is the mechanic -- the hammer arm sits below both the ladder and jump tests, so a hammer-carrying Mario can only walk", cert: "code" },
-  0x1ae6: { name: "loc_1ae6", role: "the shared setup of the ground-movement dispatch plus its RIGHT arm: call the horizontal position gate, load P1_INPUT once, then walk right only when the right-limit verdict is clear AND the Right bit is held; everything else falls through to the Left arm", cert: "code" },
-  0x1af5: { name: "loc_1af5", role: "the LEFT arm of the ground-movement dispatch: walk Mario one frame left iff the left-limit verdict is clear and the Left bit is held, else fall through to the ladder/climb handler. Consumes the verdict and control word its Right twin loaded", cert: "code" },
+  0x1ac3: { name: "dispatchMarioMovement", role: "the movement machine's router: five tests in a fixed priority order (airborne, freeze, hammer, ladder, jump-press, ground). The ORDER is the mechanic -- the hammer arm sits ABOVE both the ladder and jump tests (ROM 0x1AD1 before 0x1AD8 and 0x1ADF) and routes to the ground walk, so those two are never reached and a hammer-carrying Mario can only walk", cert: "code" },
+  0x1ae6: { name: "walkRightWhileHeld", role: "the shared setup of the ground-movement dispatch plus its RIGHT arm: call the horizontal position gate, load P1_INPUT once, then walk right only when the right-limit verdict is clear AND the Right bit is held; everything else falls through to the Left arm", cert: "code" },
+  0x1af5: { name: "walkLeftWhileHeld", role: "the LEFT arm of the ground-movement dispatch: walk Mario one frame left iff the left-limit verdict is clear and the Left bit is held, else fall through to the ladder/climb handler. Consumes the verdict and control word its Right twin loaded", cert: "code" },
   0x1afe: { name: "loc_1afe", role: "hammer-climb collision: look Mario's grid cell up in the object-parameter table and, on a hit, commit this frame's climb-limit pair and drive the climb", cert: "code" },
   0x1b38: { name: "climbDownWhileHeld", role: "the Down half of the ladder-climb input dispatch: drive Mario's downward climb when Down is held, otherwise hand the frame to the up-climb path", cert: "code" },
   0x1b45: { name: "climbUpWhileHeld", role: "when the player is holding UP, drive Mario's upward climb this frame", cert: "code" },
@@ -1101,7 +1120,7 @@ export const ROUTINES = {
   0x1b6e: { name: "initMarioJump", role: "begin Mario's jump: flag him airborne and pick the horizontal launch velocity from the held direction, then commit the arc", cert: "code" },
   0x1b8a: { name: "launchMarioJump", role: "commit Mario's ballistic jump: write the airborne motion record, set the jump pose, snapshot the take-off height, fire the jump sound", cert: "code" },
   0x1bb2: { name: "advanceMarioAirborneFrame", role: "airborne frame head: snapshot the pre-motion position, step the ballistic arc one frame, then steer on the horizontal position gate's two-flag verdict", cert: "code" },
-  0x1bd8: { name: "reverseMarioVerticalArc", role: "airborne PLAYFIELD-LIMIT reflection (NOT merely a screen edge -- loc_241f's left verdict also fires for an INTERIOR wall: odd BOARD, Y<0x58, X<0x6C, the left end of the top platform on 25m/75m), VERTICAL half: re-base the ballistic arc in place (velocity := 16*frames - velocity, frame count restarted) so the same parabola continues with its vertical step negated; a fall already latched lethal skips the re-base and keeps falling", cert: "code" },
+  0x1bd8: { name: "reverseMarioVerticalArc", role: "airborne PLAYFIELD-LIMIT reflection (NOT merely a screen edge -- limitMarioHorizontalTravel's left verdict also fires for an INTERIOR wall: odd BOARD, Y<0x58, X<0x6C, the left end of the top platform on 25m/75m), VERTICAL half: re-base the ballistic arc in place (velocity := 16*frames - velocity, frame count restarted) so the same parabola continues with its vertical step negated; a fall already latched lethal skips the re-base and keeps falling", cert: "code" },
   0x1bec: { name: "loc_1bec", role: "airborne join point: advance the actor one ballistic frame, then hand the stepped frame to the airborne handler; reached only from the PLAYFIELD-LIMIT clamp block, not from ordinary airborne frames", cert: "code" },
   0x1bf2: { name: "loc_1bf2", role: "airborne PLAYFIELD-LIMIT reflection, HORIZONTAL half: on the right-limit verdict stamp a leftward half-pixel-per-frame drift and clear the sprite facing bit, then continue into the vertical re-base", cert: "code" },
   0x1c33: { name: "loc_1c33", role: "the airborne handler's exit tail: bump the arriving counter and, on the single value whose bump wraps to zero (MARIO_AIR_FRAMES == 19), run the hammer-touch latch -- which is why a hammer is grabbed once per jump, not once per frame -- then unconditionally refresh Mario's sprite record", cert: "code" },
@@ -1138,17 +1157,17 @@ export const ROUTINES = {
   0x1e4a: { name: "tickDispatcherCountdown", role: "tick sub_1dbd's state-2 hold timer; reset the dispatcher on expiry", cert: "code" },
   0x1e57: { name: "checkBoardWonByType", role: "Mario's per-frame board-won position check: decide whether the current board has been won, dispatched by board type, and hand off to the arm that completes it", cert: "code" },
   0x1e6d: { name: "loc_1e6d", role: "stamp Mario's sprite facing on the board-won path, then commit the board-advance and unwind out of the movement cascade", cert: "code" },
-  0x1e7a: { name: "loc_1e7a", role: "the girder-board rescue-row test inside Mario's per-frame position check (sub_1e57)", cert: "code" },
+  0x1e7a: { name: "completeBoardWhenMarioReachesRescueRow", role: "the rescue-row test inside Mario's per-frame position check (sub_1e57): on the ODD boards -- 25m AND 75m, selected by ROM 0x1E5F's `rra` on BOARD bit 0 -- a Mario Y above the rescue row completes the board", cert: "code" },
   0x1e80: { name: "completeRivetBoardWhenCleared", role: "on a rivet (100m) board, complete the board the frame its last rivet is gone", cert: "code" },
   0x1e85: { name: "enterBoardAdvanceAndUnwind", role: "commit 'this board is complete': set the board-advance sub-state, then unwind out of the movement cascade", cert: "code" },
-  0x1e8c: { name: "loc_1e8c", role: "the effect-latch frame gate: with 0x6350 clear, let the caller run its ordinary frame; with it set, run ONE effect beat and abandon the rest of the gameplay update. The latch suspends play for the duration of an effect", cert: "code" },
+  0x1e8c: { name: "runHitEffectInsteadOfPlay", role: "the effect-latch frame gate: with 0x6350 clear, let the caller run its ordinary frame; with it set, run ONE effect beat and abandon the rest of the gameplay update. The latch suspends play for the duration of an effect", cert: "code" },
   0x1e94: { name: "loc_1e94", role: "unconditional caller-skip: make the call return past its caller", cert: "code" },
   0x1e96: { name: "dispatchEffectSequenceStep", role: "effect-sequence router: hand the frame to one of three effect step handlers keyed on EFFECT_SEQ_STATE; the slot index doubles at 8 bits, so states 128/129/130 alias steps 0/1/2", cert: "code" },
   0x1ea0: { name: "buildEffectSprite", role: "effect-sequence step 0: spawn the hit effect sprite from the collided object's record, then arm the effect countdown and its priority sound", cert: "code" },
   0x1f09: { name: "flashEffectSpriteThenAdvanceSequence", role: "effect-sequence step 1: a two-stage rate divider that flips a sprite-shadow bit on most beats and hands the sequence to its next step on every fourth", cert: "seen" },
   0x1f23: { name: "animateEffectSpriteThenRearmEffect", role: "effect-sequence step 2: a two-stage rate divider -- EFFECT_SEQ_INNER ticks every dispatch and reloads to 12 on each beat, EFFECT_SEQ_OUTER ticks once per beat and is never reloaded here -- that increments the effect sprite's code byte on every beat but the last, and on the last resets EFFECT_SEQ_STATE to 0, clears the shared scratch byte and re-arms the parent effect state machine (EFFECT_STATE = 1, EFFECT_PARAM_PTR back at EFFECT_SPRITE)", cert: "seen" },
   0x1f46: { name: "beginMarioFall", role: "when the 'ground went away' trigger is armed, drop Mario into a fresh falling state and remember the height he fell from", cert: "code" },
-  0x216d: { name: "loc_216d", role: "grade an object against difficulty/position/input and, on a pass, advance its record", cert: "code" },
+  0x216d: { name: "startBarrelDescentAtLadder", role: "grade a barrel against difficulty, Mario's column and the ladder table and, on a pass, stamp its descent target and start it down the ladder", cert: "seen" },
   0x21ee: { name: "advanceAttractDemoInput", role: "advance the canned-input script that drives the attract-mode demo", cert: "seen" },
   0x2207: { name: "dispatch50mObjectState", role: "the 50m board-object state-machine dispatcher: gate on the 50m board, pick one of two object records by frame parity, and run the arm for its state", cert: "code" },
   0x2227: { name: "hold50mObjectParked", role: "the parked (state 0) arm of the dispatch50mObjectState board-object state machine: hold the object still while its dwell timer counts down, advance its state when the timer elapses, and -- only when Mario is standing on the object's column -- stamp the shared flag 0x621a (1 if the dwell just expired, 0 while it is still running)", cert: "code" },
@@ -1166,11 +1185,11 @@ export const ROUTINES = {
   0x2303: { name: "loc_2303", role: "seed one object's step magnitude and its toward-player step direction (the difficulty-3/4 arm of object-velocity init)", cert: "code" },
   0x231a: { name: "loc_231a", role: "seed one object's toward-player step code and step delta from the horizontal offset to the player (the difficulty-5 arm of object-velocity init)", cert: "code" },
   0x2333: { name: "snapYToGirder", entry: "snapYToGirderFromRegisters", role: "nudge a coordinate one pixel along the 25m girder slope", cert: "code" },
-  0x236e: { name: "loc_236e", role: "find a key in the object-parameter table and return its paired slot", cert: "code" },
+  0x236e: { name: "findOppositeLadderEnd", role: "find a key in the ladder (object-parameter) table and return the paired slot at the other end of that ladder, tagged with which end the caller started from", cert: "seen" },
   0x239c: { name: "stepBallisticMotion", role: "advance an airborne actor one frame along its ballistic arc", cert: "code" },
-  0x23de: { name: "loc_23de", role: "refresh a moving object's two sprite-orientation bits from a packed direction lookup, on a per-object countdown", cert: "code" },
+  0x23de: { name: "advanceBarrelSpriteOrientation", role: "refresh a barrel's two sprite MIRROR bits (bit 7 of OBJ_SPRITE_CODE and OBJ_SPRITE_ATTR) from a packed direction lookup, on a per-object countdown -- one call in four", cert: "seen" },
   0x2407: { name: "loc_2407", role: "spread a packed nibble-pair into a fixed-point value, then subtract a 16-bit operand; returns the difference", cert: "code" },
-  0x241f: { name: "loc_241f", role: "horizontal position gate: classify Mario's X into a two-flag (D,E) verdict the movement code uses to clamp X and gate walk direction", cert: "code" },
+  0x241f: { name: "limitMarioHorizontalTravel", role: "horizontal position gate: classify Mario's X into the two-flag (D,E) verdict all three consumers turn into a physical restraint on his X", cert: "code" },
   0x2441: { name: "loadBoardObjectRecords", role: "scatter this board's ROM object-init records into two parallel work-RAM attribute arrays", cert: "code" },
   0x24ea: { name: "update50mMovingObjects", role: "the 50m moving-object subsystem tick", cert: "code" },
   0x2523: { name: "service50mObjectSpawnRequest", role: "service the 50m moving-object spawn request, paced by a cooldown timer", cert: "code" },
@@ -1185,13 +1204,13 @@ export const ROUTINES = {
   0x26a6: { name: "loc_26a6", role: "step a mirrored pair of animation counters one frame, opposite ways", cert: "code" },
   0x26de: { name: "reverseStepDirection", role: "flip the sign of a signed direction-step byte at (HL)", cert: "code" },
   0x26e9: { name: "signStepHalfRate", role: "collapse a direction byte to a ±1 step, every other frame", cert: "code" },
-  0x26fa: { name: "loc_26fa", role: "per-pass service dispatcher for one board's moving objects", cert: "code" },
+  0x26fa: { name: "service75mBoard", role: "the 75m per-frame service router: the bottom-of-screen death, then a LEVEL-scaled cadence over the board's object service and its vertical-reposition machine", cert: "code" },
   0x271e: { name: "loc_271e", role: "thin wrapper: run the vertical-reposition machine, then return", cert: "code" },
   0x2722: { name: "serviceBoardObjects", role: "service the six board objects for one pass, then publish their positions to the sprite buffer", cert: "code" },
   0x2745: { name: "dispatchElevatorRideByColumn", role: "the lift-ride machine: gate on the lift flag, then dispatch by Mario's X into the up-mover (band 44..66), the down-mover (108..130), or loc_2766 (start Mario falling, clear the lift flag) -- never observed executing, so what TAKING that arm means is unclaimed", cert: "code" },
   0x2766: { name: "loc_2766", role: "start Mario falling and clear the edge-reposition flag", cert: "code" },
   0x276f: { name: "carryMarioUpWithLift", role: "carry Mario UP with the lift (MARIO_Y - 1; larger Y is lower on screen), or kill him if MARIO_Y is already below the 0x71 limit", cert: "code" },
-  0x277f: { name: "killMarioAtEndOfLiftTravel", role: "kill Mario: clear MARIO_ACTIVE and the lift flag 0x6398. All three callers trigger on MARIO_Y -- the two lift arms at their limits, and loc_26fa at MARIO_Y >= 0xF0 with no X-band test, so the caller need not be on a lift", cert: "code" },
+  0x277f: { name: "killMarioAtEndOfLiftTravel", role: "kill Mario: clear MARIO_ACTIVE and the lift flag 0x6398. All three callers trigger on MARIO_Y -- the two lift arms at their limits, and service75mBoard at MARIO_Y >= 0xF0 with no X-band test, so the caller need not be on a lift", cert: "code" },
   0x2787: { name: "carryMarioDownWithLift", role: "carry Mario DOWN with the lift (MARIO_Y + 1), or kill him once MARIO_Y reaches the 0xE8 limit", cert: "code" },
   0x2797: { name: "advanceBoardObjectTravel", role: "advance the six board objects in the 0x6600 array: each active object drifts one pixel vertically toward its limit, then lands or deactivates on arrival", cert: "code" },
   0x27da: { name: "spawnBoardObject", role: "on the spawn cadence, claim a free object slot and seed a new board object; always tick the cadence timer down", cert: "code" },
@@ -1209,8 +1228,8 @@ export const ROUTINES = {
   0x2974: { name: "findHammerOverlappingMario", role: "test whether Mario overlaps either of the two objects in the 0x6680 pair, and report which one", cert: "code" },
   0x298c: { name: "loc_298c", role: "is the background tile just ahead of the current object outside the accepted tile band?", cert: "code" },
   0x2a22: { name: "loc_2a22", role: "constant-binding shim: run the collision search over OBJ_ARRAY_66 (6 records). Grounded board-3-only: 146 fetches on 75m while its caller loc_29af ran 146; on boards 2 and 4 loc_29af ran 3700/2329x and this shim 0x -- the wrapper is gated inside the caller, on the board whose 0x6600 array is live", cert: "seen" },
-  0x2a2f: { name: "loc_2a2f", role: "probe the tile a moving object is standing on and, if it sits on a sloped girder, slide the object's X along the slope and report the contact", cert: "code" },
-  0x2a85: { name: "loc_2a85", role: "while Mario is in plain grounded contact, look at the tile under his foot and, if the girder there is not level, defer to the slope-footing fall check", cert: "code" },
+  0x2a2f: { name: "loc_2a2f", role: "probe the tile 4 px below a moving object and, if the object has reached the sloped girder there, snap its OBJ_Y UP onto the girder surface and report the contact", cert: "code" },
+  0x2a85: { name: "startMarioFallWhenGroundGivesWay", role: "while Mario is in plain grounded contact, look at the tile under his foot and, if the girder there is not level, defer to the slope-footing fall check", cert: "code" },
   0x2ab4: { name: "decideSlopeGirderFooting", role: "decide whether Mario keeps his footing on an angled girder or the ground has run out and he starts to fall", cert: "code" },
   0x2acd: { name: "triggerMarioFall", role: "request that Mario begin falling because the ground under him went away", cert: "code" },
   0x2ad3: { name: "carryMarioOnConveyorRow", role: "carry Mario along whichever 50m conveyor (moving-platform) row he is standing on", cert: "code" },
@@ -1258,7 +1277,7 @@ export const ROUTINES = {
   0x2fbe: { name: "blinkHammerSpriteOnFramePhase", role: "choose the object sprite's attribute for this frame's blink phase, then commit the record", cert: "code" },
   0x2fcb: { name: "tickTimedBoardBonus", role: "pace the bonus countdown on the timed boards (50m / 75m / 100m)", cert: "code" },
   0x2ff0: { name: "tileAddrForPixel", entry: "tileAddrForPixelFromRegisters", role: "map a screen pixel (y,x) to its tilemap cell address", cert: "code" },
-  0x3009: { name: "loc_3009", entry: "loc_3009FromRegisters", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "code" },
+  0x3009: { name: "nextAnimationStep", entry: "nextAnimationStepFromRegisters", role: "bit-field lookup over a packed 4x2-bit table, keyed by an input byte and a 2-bit selector", cert: "code" },
   0x304a: { name: "scrollClimbGraphicStep", role: "advance the opening-cutscene climb graphic up one row by one indexed cell-pair, then step the scroll index down", cert: "code" },
   0x3064: { name: "copyByteDisplaced", role: "copy one byte from an indexed cell to a displaced cell", cert: "code" },
   0x3069: { name: "advanceSequenceStepWhenTimerExpires", role: "gated indirect step-advance: tick SUBSTATE_TIMER and, on the expiry frame, increment the render-sequence step SEQ_ADVANCE_PTR points at. Grounded: 0 dispatches across 14546 attract frames but 64-128 in EVERY credited game (first at frame 778), and its indirect `inc (hl)` was caught writing BOARD_ADVANCE_STEP at pc 0x306E", cert: "seen" },
@@ -1273,12 +1292,12 @@ export const ROUTINES = {
   0x311b: { name: "loc_311b", role: "frame-phase caller-skip guard: proceed on 5 of every 8 frames", cert: "code" },
   0x3126: { name: "loc_3126", role: "caller-skip frame-throttle: proceed on three of every four frames", cert: "code" },
   0x3131: { name: "loc_3131", role: "let the caller proceed on seven of every eight frames; skip it on the eighth", cert: "code" },
-  0x313c: { name: "loc_313c", role: "per-object slot scan: tally live records into OBJ_LIVE_COUNT, flag each live record's OBJ_SPRITE_ATTR, service one pending object-insert request, then return a caller-skip boolean (splice on zero count). Grounded: a live per-frame gameplay routine on every board -- 610 dispatches in pure attract (its caller 0x30ED ran 1220x), 3189 over a longer attract run, and 1069-3214 per credited board", cert: "seen" },
-  0x31dd: { name: "loc_31dd", role: "arm a field on two objects when the board is hard enough and a rare entropy draw comes up", cert: "code" },
+  0x313c: { name: "spawnRequestedFireAndRecolorLiveFires", role: "sweep the five OBJ_ARRAY_64 fire records: tally the live ones into OBJ_LIVE_COUNT, set each live record's OBJ_SPRITE_ATTR (cleared while Mario's hammer is active), service one pending spawn request into a free slot, then return a caller-skip boolean (splice on zero count). It is the only routine that SPAWNS one of these objects during play -- records are also activated outright at board build (seed75mBoardObjects, ROM 0x1087, stamps records 0 and 1 active)", cert: "seen" },
+  0x31dd: { name: "armAlternateFireModeAtHighDifficulty", role: "arm mode 2 in field +0x19 of fire records 1 and 3 (0x6439 / 0x6479) when DIFFICULTY is 3 or more AND a rare entropy draw comes up; the mode itself is named by neither reader and is not asserted here", cert: "code" },
   0x31f6: { name: "loc_31f6", role: "pick a byte from the two timing-entropy cells: the low two bits of the random accumulator, or the frame counter in the single case those bits are 1", cert: "code" },
   0x32bd: { name: "loc_32bd", role: "a three-way object-walker dispatch keyed on the current board", cert: "code" },
   0x32d6: { name: "loc_32d6", role: "an object's interval down-counter with position-gated reload, then a periodic-timer tick", cert: "code" },
-  0x330f: { name: "loc_330f", role: "tick one object's periodic timer; on expiry reload it and, on a random beat, advance the object's state", cert: "code" },
+  0x330f: { name: "tickFireTimerAndRerollDirection", role: "tick one fire's periodic timer; on expiry reload it to 43 and re-roll the object's travel direction on a random bit", cert: "code" },
   0x33a1: { name: "loc_33a1", role: "the guard at the head of the movement path, with TWO different skips: a closed board gate returns ordinarily, while an object risen above the line (record +0x0f < 89) skips the caller entirely", cert: "code" },
   0x33ad: { name: "loc_33ad", role: "step one object's working X a single pixel in the direction OBJ_STATE selects, setting or clearing the sprite flip bit to match, advance its animation frame, then re-snap the working Y to the girder under the new X (25m only)", cert: "code" },
   0x33c3: { name: "loc_33c3", role: "on 25m only, advance one object-record coordinate by a single girder step", cert: "code" },
@@ -1288,7 +1307,7 @@ export const ROUTINES = {
   0x3445: { name: "loc_3445", role: "advance one object's table-driven position walk, or finalize it at the end of the table", cert: "code" },
   0x3478: { name: "loc_3478", role: "start-or-continue one object's table-driven position walk, marching the object's X in a chosen direction and deferring the per-frame Y to the shared tail", cert: "code" },
   0x34b9: { name: "loc_34b9", role: "seed an object record's paired position fields from one of two ROM template tables (skipped on board 3)", cert: "code" },
-  0x34f3: { name: "loc_34f3", role: "gather five object records into five 4-byte sprite records", cert: "code" },
+  0x34f3: { name: "publishFireSprites", role: "publish the five fire records (OBJ_ARRAY_64) into five 4-byte sprite records in the DMA shadow buffer at 0x69D0", cert: "seen" },
   0x3e70: { name: "pickAwardTierByObjectCount", role: "pick one of three effect-sprite parameter pairs from the low bits of A, then hand off to the Mario-anchored record-stamp tail loc_1e28", cert: "code" },
   0x3e88: { name: "dispatchBoardOverlapSearch", role: "vector to the current board's collision-search arm, handing it the caller's bounds word across the dispatch", cert: "code" },
   0x3e99: { name: "loc_3e99", role: "the board-1 arm of the overlap-search dispatch: pop the caller's bounds word, then count Mario overlaps across OBJ_ARRAY_67 x10 and OBJ_ARRAY_64 x5 into one counter, and grade the total into the thermometer mask 0/1/3/7 that EFFECT_SELECT walks bit by bit", cert: "code" },

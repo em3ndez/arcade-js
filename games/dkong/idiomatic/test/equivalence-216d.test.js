@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_216d (ROM 0x216D) — grade an object against
+ * Equivalence test for startBarrelDescentAtLadder (ROM 0x216D) — grade an object against
  * difficulty/position/input and, on a pass, advance its record.
  *
- * loc_216d looks the caller's key up in the type-0 object table (loc_236e). A table MISS
+ * startBarrelDescentAtLadder looks the caller's key up in the type-0 object table (findOppositeLadderEnd). A table MISS
  * unwinds on the caller's behalf; a hit tagged 0 (not 1) is rejected. A tag-1 hit always
  * stamps record field +0x17 with (paired-slot − 5), then runs a chain of gates deciding
  * whether the object ALSO advances (bump +0x07, set bit0 of +0x02). Its only work-RAM
  * effects are those three record fields (indexed off the object pointer); it leaves no
  * live register (the sole caller's tail swaps the bank and overwrites the accumulator),
  * so the contract is memory-only:
- *   - RAM identical minus STACK_SCRATCH. The oracle's `call 0x236e` push, loc_236e's
- *     internal push/pop, and loc_216d's `ret`/double-unwind all churn the stack; the
+ *   - RAM identical minus STACK_SCRATCH. The oracle's `call 0x236e` push, findOppositeLadderEnd's
+ *     internal push/pop, and startBarrelDescentAtLadder's `ret`/double-unwind all churn the stack; the
  *     idiomatic routine dissolves them (direct call + JS returns), so the dead stack
  *     region is the one exclusion this gate needs. No register or pc/SP is compared —
  *     they are all dead live-out.
@@ -20,7 +20,7 @@
  *      25m demo; ~600 dispatches / 4000 frames).
  *
  *   2. EQUAL (captured) — hook 0x216D in a real attract run, clone at each dispatch, and
- *      confirm loc_216d == oracle on RAM − STACK_SCRATCH over every real state. Real runs
+ *      confirm startBarrelDescentAtLadder == oracle on RAM − STACK_SCRATCH over every real state. Real runs
  *      span the clear/set spawn-gate arms and the advance path.
  *
  *   3. EQUAL (crafted) — plant a controlled table + pokes in a real attract base to hit
@@ -41,8 +41,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_216d as oracle } from "../../translated/loc_216d.js";
-import { loc_216d } from "../loc_216d.js";
-import { loc_236e } from "../loc_236e.js";
+import { startBarrelDescentAtLadder } from "../startBarrelDescentAtLadder.js";
+import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";
 import { Machine } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import {
@@ -189,7 +189,7 @@ test("REACHABILITY: 0x216D is dispatched during boot/attract", () => {
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_216d == oracle on every real dispatch", () => {
+test("EQUAL (captured): startBarrelDescentAtLadder == oracle on every real dispatch", () => {
   const orig = new Machine(ROM).routines.get(TARGET);
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
@@ -202,7 +202,7 @@ test("EQUAL (captured): loc_216d == oracle on every real dispatch", () => {
 
   let sawGateClear = 0, sawGateSet = 0, sawAdvance = 0;
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_216d);
+    const diffs = contractDiffs(cap, startBarrelDescentAtLadder);
     assert.equal(diffs.length, 0, `captured dispatch (A=${hx(cap.regs.a)} BC=${hx(cap.regs.bc)} D=${hx(cap.regs.d)} IX=${hx(cap.regs.ix)}): ${diffs.join("; ")}`);
     // Classify the oracle's arm for coverage evidence.
     if (cap.mem.read8(SPAWN_MODE_GATE) === 0) sawGateClear++; else sawGateSet++;
@@ -248,7 +248,7 @@ test("EQUAL (crafted): every miss/reject/advance arm matches the oracle", () => 
 
   for (const { name, expect, opts } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_216d);
+    const diffs = contractDiffs(entry, startBarrelDescentAtLadder);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: confirm the oracle really took the arm this case is meant to cover.
@@ -276,7 +276,7 @@ test("EQUAL (crafted): every miss/reject/advance arm matches the oracle", () => 
 function brokenWrongStamp(m) {
   const { regs, mem } = m;
   const r = (off) => (regs.ix + off) & 0xffff;
-  if (!loc_236e(m)) return;
+  if (!findOppositeLadderEnd(m)) return;
   if (regs.a !== 1) return;
   mem.write8(r(0x17), u8(regs.b - 4)); // BUG: -4
   if (mem.read8(SPAWN_MODE_GATE) === 0) { // clear-gate advance path (matches the test case)
@@ -289,7 +289,7 @@ function brokenWrongStamp(m) {
 function brokenSkipGates(m) {
   const { regs, mem } = m;
   const r = (off) => (regs.ix + off) & 0xffff;
-  if (!loc_236e(m)) return;
+  if (!findOppositeLadderEnd(m)) return;
   if (regs.a !== 1) return;
   mem.write8(r(0x17), u8(regs.b - 5)); // correct stamp
   // BUG: no vertical / throttle / input grading — always advance.

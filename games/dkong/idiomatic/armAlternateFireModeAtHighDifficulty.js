@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_31dd — arm a field on two objects when the board is hard enough and a rare
- * entropy draw comes up.  ROM 0x31DD.
+ * armAlternateFireModeAtHighDifficulty — arm mode 2 in field +0x19 of fire records 1 and 3 when the
+ * board is hard enough and a rare entropy draw comes up.  ROM 0x31DD.
  *
  * Reached from the object processor (its caller iterates the 0x6400 object array). It
  * stamps the value 2 into the same field (+0x19) of records 1 and 3 of that array, but
@@ -19,9 +19,26 @@
  *
  * When either gate is closed the routine does nothing this pass.
  *
- * Name kept neutral: the mechanism is pinned to the oracle, but what the armed field
- * ultimately drives (and its game meaning) is not confirmed — the only caller sits in the
- * still-untranslated object-processor chain. Promote once corroborated.
+ * NAME: promoted from loc_31dd this pass. The name commits only to the two GATES and to
+ * WHICH array is stamped — both of which are pinned (see "WHY 'FIRE'" below) — and stops
+ * there. What the armed field ultimately drives is still not confirmed, so the name says
+ * "alternate mode" and not what that mode does. The sole caller is ROM 0x31B1
+ * (`call 0x31DD` at 0x31B1), and it is translated and readable: `loc_31b1.js` imports this
+ * routine and direct-calls it.
+ *
+ * NAME — WHY "FIRE". OBJ_ARRAY_64 (0x6400) was grounded as the FIRES on the real ROM under
+ * MAME 0.288, on a NATURAL zero-poke 25m run (scratchpad/grounding-object-arrays.md): zeroing
+ * the five records' +0 erases the fireball from the screen completely (0 of 40 sampled frames)
+ * while the barrels are statistically untouched, the tight A/B's first differing frame is a
+ * single blob at this array's logged record position to the pixel, and boxes drawn at the
+ * logged positions land on a fireball and nothing else on all four boards. HONEST FLOOR: the
+ * X-pin POSITIVE control on this array is a NO-OP — the ROM recomputes +3 each frame — so the
+ * identity rests on the kill control plus positional correlation, not on a coordinate command.
+ * The name deliberately does NOT say what mode 2 IS. The "hold / wait on Mario's Y" reading is a
+ * two-hop trace through loc_3202 and loc_32d6 whose own inputs are untraced, and loc_32d6 does
+ * not even clear +0x19 on all four exits. Nothing here has ever been OBSERVED to fire either:
+ * 0x31DD is dispatched in attract (457x / 2000 frames), but difficulty stays at 1, so nothing
+ * past gate 1 has run. That is why this entry is cert "code", not "seen".
  *
  * Memory-equivalent to the frozen oracle — equivalence-31dd.test.js.
  * GATE:     effectively exhaustive — the difficulty gate is swept over all 256 difficulty
@@ -50,7 +67,7 @@ import { loc_31f6 } from "./loc_31f6.js"; // ROM 0x31F6 — the timing-entropy d
  * @param {object} m  the machine (reads m.mem, and reads through loc_31f6).
  * @returns {void}
  */
-export function loc_31dd(m) {
+export function armAlternateFireModeAtHighDifficulty(m) {
   const { mem } = m;
 
   // Gate 1 — difficulty must be at least 3, tested as the sign of the signed byte

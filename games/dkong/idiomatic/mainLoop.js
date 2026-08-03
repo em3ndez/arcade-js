@@ -29,7 +29,7 @@
 import { loc_02e3 } from "../translated/loc_02e3.js";
 import { rampDifficulty } from "./rampDifficulty.js";
 import { awardBonusLifeAtThreshold } from "./awardBonusLifeAtThreshold.js";
-import { loc_03a2 } from "./loc_03a2.js";
+import { animateFixedHazardAndReleaseFire } from "./animateFixedHazardAndReleaseFire.js";
 import { redrawPlayerUpIndicator } from "./redrawPlayerUpIndicator.js";
 
 export function* mainLoop(m) {
@@ -74,7 +74,7 @@ export function* mainLoop(m) {
     // DIRECTLY, no push16/m.call, so the guest stack stays clean), then the tail `jr 0x02BD`.
     mem.write8(regs.hl, regs.a);
     rampDifficulty(m);
-    loc_03a2(m);
+    animateFixedHazardAndReleaseFire(m);
     yield;
   }
 }

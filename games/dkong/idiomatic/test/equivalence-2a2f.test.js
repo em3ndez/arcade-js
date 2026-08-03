@@ -1,18 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2a2f (ROM 0x2A2F) — the moving-object slope-footing probe that
- * slides an object's X along a sloped girder and reports the contact.
+ * Equivalence test for loc_2a2f (ROM 0x2A2F) — the moving-object slope-footing probe that snaps
+ * an object UP onto a sloped girder it has reached and reports the contact.
  *
- * loc_2a2f reads the object record the caller's pointer selects (Y at offset 3, X at offset 5),
- * samples the tilemap cell under it, and classifies that tile: passable footing (tile < 0xB0,
- * a girder tile with low nibble >= 8, or exactly 0xC0) does nothing; a slope tile picks a
- * horizontal offset by class, snaps the object's forward X to its 8 px tile boundary, adds the
- * offset, and — only if that lands the object left of where it was — rewrites the object's X
- * record (undoing a 4 px forward nudge) and reports contact.
+ * ★ AXES. This header used to have the record's two coordinate fields SWAPPED (it called +3 "Y"
+ * and +5 "X", and described the routine as sliding the object sideways along the slope). ram.js
+ * grounds OBJ_X = record +3 and OBJ_Y = record +5, and the store at ROM 0x2A7D (`d6 04 / dd 77
+ * 05`) writes record +5 = OBJ_Y — see loc_2a2f.js's own AXIS CORRECTION note. The local names
+ * below follow the corrected axes so the error cannot be re-derived from this file.
  *
- * LIVE-OUT is the object-record X byte (rewritten only on the slide arm) plus a BOOLEAN return:
- * the caller consumes the result as `and a / jp nz`, so the test asserts the candidate's return
- * matches the oracle's residual accumulator (0 = no contact, 1 = contact) on every entry.
+ * loc_2a2f reads the object record the caller's pointer selects (OBJ_X at offset 3, OBJ_Y at
+ * offset 5), samples the tilemap cell 4 px BELOW the object, and classifies that tile: passable
+ * footing (tile < 0xB0, a girder tile with low nibble >= 8, or exactly 0xC0) does nothing; a
+ * slope tile picks a row offset by class, snaps the probe row back to its 8 px tile boundary,
+ * adds the offset to get the girder SURFACE row, and — only if that surface is ABOVE the probe
+ * point (a smaller Y, i.e. the object has fallen to or through it) — rewrites the object's
+ * OBJ_Y record (undoing the 4 px probe nudge) and reports contact.
+ *
+ * LIVE-OUT is the object-record OBJ_Y byte (rewritten only on the landing arm) plus a BOOLEAN
+ * return: the caller consumes the result as `and a / jp nz`, so the test asserts the candidate's
+ * return matches the oracle's residual accumulator (0 = no contact, 1 = contact) on every entry.
  *
  * The oracle brackets the cell lookup with `push hl` / `push (return)` / `pop de` around its
  * `call 0x2FF0`; the idiomatic routine dissolves that into a direct tileAddrForPixel call and
@@ -24,17 +31,17 @@
  *
  *   1. REACHABILITY / EQUAL (captured) — hook 0x2A2F in a real boot/attract run, clone at each
  *      dispatch, and confirm loc_2a2f == oracle (RAM − STACK_SCRATCH, return) on every real
- *      state the game produces. The attract demo reaches BOTH arms (the slide rewrite fires for
- *      rolling objects), so captures span passable and slide alike.
+ *      state the game produces. The attract demo reaches BOTH arms (the landing rewrite fires
+ *      for rolling objects), so captures span passable and landing alike.
  *   2. EQUAL (crafted) — poke the object record and the foot tile identically on both sides to
  *      drive each passable exit (tile < 0xB0, low nibble >= 8, exactly 0xC0), every slope class
- *      and its offset, and both slide arms (rewrites X / leaves it). Every case matches the
- *      oracle; write cases prove the slide is non-vacuous by observing the X record change.
+ *      and its offset, and both landing arms (rewrites OBJ_Y / leaves it). Every case matches
+ *      the oracle; write cases prove the landing is non-vacuous by observing the OBJ_Y change.
  *   3. TEETH — three broken twins, each of which the crafted cases MUST catch:
  *        (a) off-by-one passable threshold (`<= 0xB0`) — passes a 0xB0 slope where the oracle
- *            slides.
- *        (b) dropped 4 px nudge-undo (writes the snapped X, not X-4) — wrong slid position.
- *        (c) flipped slide direction (`slid > X`) — refuses a slide the oracle takes.
+ *            lands.
+ *        (b) dropped 4 px nudge-undo (writes the surface row, not surface-4) — wrong landing row.
+ *        (c) flipped landing comparison (`surface > probeY`) — refuses a landing the oracle takes.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2a2f.test.js
  */
@@ -71,9 +78,10 @@ const OBJ_PTR = 0x6700;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
-// The tilemap cell the routine probes for a given object Y/X, mirroring the oracle: Y feeds the
-// vertical axis, X + 4 the horizontal one (the 90-degree rotation). Used to plant the foot tile.
-const cellFor = (objY, objX) => tileAddrForPixel(objY, u8(objX + 4));
+// The tilemap cell the routine probes for a given object X/Y, mirroring the oracle: the object's
+// X feeds the tilemap's vertical axis and its Y + 4 (the 4 px probe nudge downward) the
+// horizontal one — the 90-degree display rotation. Used to plant the foot tile.
+const cellFor = (objX, objY) => tileAddrForPixel(objX, u8(objY + 4));
 
 // First RAM byte that differs between two machines, skipping the dead STACK_SCRATCH region
 // (the memory-equivalence contract is RAM − STACK_SCRATCH). { addr, a, b } | null.
@@ -90,7 +98,7 @@ function firstRamDiff(a, b) {
 }
 
 // All non-stack RAM addresses that changed between two machines (for the no-write non-vacuity
-// check on the passable / no-slide paths).
+// check on the passable / no-land paths).
 function changedAddrs(a, b) {
   const da = a.dumpState(), db = b.dumpState();
   const out = [];
@@ -111,14 +119,14 @@ function attractBase(frames = 180) {
   return m.clone(); // clone neutralises the frame machinery (nextNmi/nextBoundary = Infinity)
 }
 
-// A crafted dispatch: clone the base, aim the object pointer, place the object's Y/X, plant the
+// A crafted dispatch: clone the base, aim the object pointer, place the object's X/Y, plant the
 // foot tile in video RAM, and seat SP in scratch with a caller return.
-function makeEntry(base, { objX = 0x60, objY = 0x50, tile = 0xb0 }) {
+function makeEntry(base, { objX = 0x50, objY = 0x60, tile = 0xb0 }) {
   const e = base.clone();
   e.regs.ix = OBJ_PTR;
-  e.mem.write8((OBJ_PTR + 3) & 0xffff, objY);
-  e.mem.write8((OBJ_PTR + 5) & 0xffff, objX);
-  e.mem.write8(cellFor(objY, objX), tile);
+  e.mem.write8((OBJ_PTR + 3) & 0xffff, objX); // OBJ_X
+  e.mem.write8((OBJ_PTR + 5) & 0xffff, objY); // OBJ_Y
+  e.mem.write8(cellFor(objX, objY), tile);
   e.regs.sp = SAFE_SP;
   e.push16(RET_ADDR); // land the caller-return in mapped scratch; pushes/pops stay in STACK_SCRATCH
   e.nextNmi = Infinity;
@@ -172,22 +180,22 @@ test("EQUAL (captured): loc_2a2f == oracle on every real 0x2A2F dispatch", () =>
 
   assert.ok(count > 0, "0x2A2F should be dispatched during attract (moving-object slope probe)");
 
-  let sawSlide = 0, sawPassable = 0;
+  let sawLanding = 0, sawPassable = 0;
   for (const cap of caps) {
-    const before = cap.mem.read8((cap.regs.ix + 5) & 0xffff);
+    const before = cap.mem.read8((cap.regs.ix + 5) & 0xffff); // OBJ_Y
     const diffs = contractDiffs(cap, loc_2a2f);
     assert.equal(diffs.length, 0, `real dispatch: ${diffs.join("; ")}`);
-    if (runOracle(cap).mem.read8((cap.regs.ix + 5) & 0xffff) !== before) sawSlide++; else sawPassable++;
+    if (runOracle(cap).mem.read8((cap.regs.ix + 5) & 0xffff) !== before) sawLanding++; else sawPassable++;
   }
-  console.log(`  EQUAL/captured: ${count} real 0x2A2F dispatches in 2000 attract frames; ${caps.length} replayed identical (${sawSlide} slid X, ${sawPassable} passable)`);
+  console.log(`  EQUAL/captured: ${count} real 0x2A2F dispatches in 2000 attract frames; ${caps.length} replayed identical (${sawLanding} snapped OBJ_Y, ${sawPassable} passable)`);
 });
 
 // -- 2. EQUAL (crafted, all arms) ---------------------------------------------
 //
-// objX = 0x60 -> forward X 0x64 (100), snapped boundary 0x60 (96). Each slope class' offset
-// then decides whether the snapped-plus-offset lands left of 100 (slide) or not (no slide).
+// objY = 0x60 -> probe row 0x64 (100), snapped cell boundary 0x60 (96). Each slope class' offset
+// then decides whether the snapped-plus-offset surface sits above 100 (land) or not (no land).
 
-test("EQUAL (crafted): passable exits, every slope class, and both slide arms match the oracle", () => {
+test("EQUAL (crafted): passable exits, every slope class, and both landing arms match the oracle", () => {
   const base = attractBase();
 
   const cases = [
@@ -199,19 +207,19 @@ test("EQUAL (crafted): passable exits, every slope class, and both slide arms ma
     { name: "passable low-nibble F (0xCF)", opts: { tile: 0xcf }, write: false },
     // -- passable: exactly 0xC0 (the flat-tile early-out) --
     { name: "passable exactly 0xC0", opts: { tile: 0xc0 }, write: false },
-    // -- slope class 0xB0-0xB7: offset -1, slides --
-    { name: "slope 0xB0-0xB7 slides (0xB4)", opts: { tile: 0xb4 }, write: true },
-    { name: "slope 0xB0-0xB7 slides (0xB0)", opts: { tile: 0xb0 }, write: true },
-    // -- slope class 0xC0-0xC7 (low nibble - 9): slides --
-    { name: "slope 0xC0-0xC7 slides (0xC4)", opts: { tile: 0xc4 }, write: true },
-    // -- slope class 0xD0-0xD7 (low nibble - 1): slide and no-slide --
-    { name: "slope 0xD0-0xD7 slides (0xD1)", opts: { tile: 0xd1 }, write: true },
-    { name: "slope 0xD0-0xD7 no slide (0xD5)", opts: { tile: 0xd5 }, write: false },
-    // -- slope class 0xE0-0xE7 (low nibble - 9): slides --
-    { name: "slope 0xE0-0xE7 slides (0xE3)", opts: { tile: 0xe3 }, write: true },
-    // -- slope class 0xF0-0xF7 (low nibble - 1): slide and no-slide --
-    { name: "slope 0xF0-0xF7 slides (0xF1)", opts: { tile: 0xf1 }, write: true },
-    { name: "slope 0xF0-0xF7 no slide (0xF6)", opts: { tile: 0xf6 }, write: false },
+    // -- slope class 0xB0-0xB7: offset -1, lands --
+    { name: "slope 0xB0-0xB7 lands (0xB4)", opts: { tile: 0xb4 }, write: true },
+    { name: "slope 0xB0-0xB7 lands (0xB0)", opts: { tile: 0xb0 }, write: true },
+    // -- slope class 0xC0-0xC7 (low nibble - 9): lands --
+    { name: "slope 0xC0-0xC7 lands (0xC4)", opts: { tile: 0xc4 }, write: true },
+    // -- slope class 0xD0-0xD7 (low nibble - 1): land and no-land --
+    { name: "slope 0xD0-0xD7 lands (0xD1)", opts: { tile: 0xd1 }, write: true },
+    { name: "slope 0xD0-0xD7 no land (0xD5)", opts: { tile: 0xd5 }, write: false },
+    // -- slope class 0xE0-0xE7 (low nibble - 9): lands --
+    { name: "slope 0xE0-0xE7 lands (0xE3)", opts: { tile: 0xe3 }, write: true },
+    // -- slope class 0xF0-0xF7 (low nibble - 1): land and no-land --
+    { name: "slope 0xF0-0xF7 lands (0xF1)", opts: { tile: 0xf1 }, write: true },
+    { name: "slope 0xF0-0xF7 no land (0xF6)", opts: { tile: 0xf6 }, write: false },
   ];
 
   for (const { name, opts, write } of cases) {
@@ -222,68 +230,68 @@ test("EQUAL (crafted): passable exits, every slope class, and both slide arms ma
     const after = runOracle(entry);
     const before = entry.mem.read8((OBJ_PTR + 5) & 0xffff);
     if (write) {
-      // The slide arm ran: the X record moved and contact was reported.
-      assert.notEqual(after.mem.read8((OBJ_PTR + 5) & 0xffff), before, `${name}: X record not rewritten`);
+      // The landing arm ran: the OBJ_Y record moved and contact was reported.
+      assert.notEqual(after.mem.read8((OBJ_PTR + 5) & 0xffff), before, `${name}: OBJ_Y record not rewritten`);
       assert.equal(after.regs.a, 1, `${name}: oracle did not report contact`);
     } else {
-      // No slide: nothing non-stack was written and no contact reported.
-      assert.deepEqual(changedAddrs(entry, after), [], `${name}: passable/no-slide path wrote non-stack RAM`);
+      // No landing: nothing non-stack was written and no contact reported.
+      assert.deepEqual(changedAddrs(entry, after), [], `${name}: passable/no-land path wrote non-stack RAM`);
       assert.equal(after.regs.a, 0, `${name}: oracle reported contact on a passable path`);
     }
   }
-  console.log(`  EQUAL/crafted: ${cases.length} arms (3 passable exits, all 5 slope classes, slide + no-slide) identical`);
+  console.log(`  EQUAL/crafted: ${cases.length} arms (3 passable exits, all 5 slope classes, land + no-land) identical`);
 });
 
 // -- 3. TEETH -----------------------------------------------------------------
 //
-// Each twin is loc_2a2f with a single injected bug. A caught twin diverges on the X record
+// Each twin is loc_2a2f with a single injected bug. A caught twin diverges on the OBJ_Y record
 // and/or the returned contact flag.
 
 /** BUG (a): off-by-one passable threshold — treats a 0xB0 slope tile as passable. */
 function twinThreshold(m) {
   const { regs, mem } = m;
   const objPtr = regs.ix;
-  const objY = mem.read8((objPtr + 3) & 0xffff);
-  const probeX = u8(mem.read8((objPtr + 5) & 0xffff) + 4);
-  const tile = mem.read8(tileAddrForPixel(objY, probeX));
+  const objX = mem.read8((objPtr + 3) & 0xffff);
+  const probeY = u8(mem.read8((objPtr + 5) & 0xffff) + 4);
+  const tile = mem.read8(tileAddrForPixel(objX, probeY));
   if (tile <= 0xb0) return false; // BUG: `<=` should be `<`
   if ((tile & 0x0f) >= 8) return false;
   if (tile === 0xc0) return false;
   const slope = slopeOffset(tile);
-  const slid = u8((probeX & 0xf8) + slope);
-  if (slid < probeX) { mem.write8((objPtr + 5) & 0xffff, slid - 4); return true; }
+  const surface = u8((probeY & 0xf8) + slope);
+  if (surface < probeY) { mem.write8((objPtr + 5) & 0xffff, surface - 4); return true; }
   return false;
 }
 
-/** BUG (b): writes the snapped X without undoing the 4 px forward nudge. */
+/** BUG (b): writes the surface row without undoing the 4 px probe nudge. */
 function twinNoUndo(m) {
   const { regs, mem } = m;
   const objPtr = regs.ix;
-  const objY = mem.read8((objPtr + 3) & 0xffff);
-  const probeX = u8(mem.read8((objPtr + 5) & 0xffff) + 4);
-  const tile = mem.read8(tileAddrForPixel(objY, probeX));
+  const objX = mem.read8((objPtr + 3) & 0xffff);
+  const probeY = u8(mem.read8((objPtr + 5) & 0xffff) + 4);
+  const tile = mem.read8(tileAddrForPixel(objX, probeY));
   if (tile < 0xb0) return false;
   if ((tile & 0x0f) >= 8) return false;
   if (tile === 0xc0) return false;
   const slope = slopeOffset(tile);
-  const slid = u8((probeX & 0xf8) + slope);
-  if (slid < probeX) { mem.write8((objPtr + 5) & 0xffff, slid); return true; } // BUG: no - 4
+  const surface = u8((probeY & 0xf8) + slope);
+  if (surface < probeY) { mem.write8((objPtr + 5) & 0xffff, surface); return true; } // BUG: no - 4
   return false;
 }
 
-/** BUG (c): flipped slide direction — refuses a slide the oracle takes. */
+/** BUG (c): flipped landing comparison — refuses a landing the oracle takes. */
 function twinFlippedDir(m) {
   const { regs, mem } = m;
   const objPtr = regs.ix;
-  const objY = mem.read8((objPtr + 3) & 0xffff);
-  const probeX = u8(mem.read8((objPtr + 5) & 0xffff) + 4);
-  const tile = mem.read8(tileAddrForPixel(objY, probeX));
+  const objX = mem.read8((objPtr + 3) & 0xffff);
+  const probeY = u8(mem.read8((objPtr + 5) & 0xffff) + 4);
+  const tile = mem.read8(tileAddrForPixel(objX, probeY));
   if (tile < 0xb0) return false;
   if ((tile & 0x0f) >= 8) return false;
   if (tile === 0xc0) return false;
   const slope = slopeOffset(tile);
-  const slid = u8((probeX & 0xf8) + slope);
-  if (slid > probeX) { mem.write8((objPtr + 5) & 0xffff, slid - 4); return true; } // BUG: `>` should be `<`
+  const surface = u8((probeY & 0xf8) + slope);
+  if (surface > probeY) { mem.write8((objPtr + 5) & 0xffff, surface - 4); return true; } // BUG: `>` should be `<`
   return false;
 }
 
@@ -298,8 +306,8 @@ function slopeOffset(tile) {
 
 test("TEETH: the off-by-one-threshold twin is CAUGHT", () => {
   const base = attractBase();
-  // Tile exactly 0xB0 (a slope that slides): the oracle rewrites X and reports contact; the twin
-  // treats 0xB0 as passable and does nothing.
+  // Tile exactly 0xB0 (a slope the object lands on): the oracle rewrites OBJ_Y and reports
+  // contact; the twin treats 0xB0 as passable and does nothing.
   const diffs = contractDiffs(makeEntry(base, { tile: 0xb0 }), twinThreshold);
   assert.ok(diffs.length > 0, "the off-by-one-threshold twin escaped — the gate is worthless");
   console.log(`  TEETH/threshold: caught (${diffs.join("; ")})`);
@@ -307,17 +315,17 @@ test("TEETH: the off-by-one-threshold twin is CAUGHT", () => {
 
 test("TEETH: the dropped-nudge-undo twin is CAUGHT", () => {
   const base = attractBase();
-  // A slide case: correct X = snapped + offset - 4, twin writes snapped + offset — different byte.
+  // A landing case: correct OBJ_Y = surface - 4, twin writes the surface row — different byte.
   const diffs = contractDiffs(makeEntry(base, { tile: 0xb4 }), twinNoUndo);
   assert.ok(diffs.length > 0, "the dropped-nudge-undo twin escaped — the gate is worthless");
-  assert.ok(diffs[0].startsWith("RAM@"), `expected the X-record diff first, got ${diffs[0]}`);
+  assert.ok(diffs[0].startsWith("RAM@"), `expected the OBJ_Y-record diff first, got ${diffs[0]}`);
   console.log(`  TEETH/no-undo: caught (${diffs.join("; ")})`);
 });
 
-test("TEETH: the flipped-slide-direction twin is CAUGHT", () => {
+test("TEETH: the flipped-landing-comparison twin is CAUGHT", () => {
   const base = attractBase();
-  // A slide case: the oracle slides left (slid < X); the twin's flipped test refuses it.
+  // A landing case: the oracle lands (surface < probeY); the twin's flipped test refuses it.
   const diffs = contractDiffs(makeEntry(base, { tile: 0xb4 }), twinFlippedDir);
-  assert.ok(diffs.length > 0, "the flipped-slide-direction twin escaped — the gate is worthless");
-  console.log(`  TEETH/flipped-dir: caught (${diffs.join("; ")})`);
+  assert.ok(diffs.length > 0, "the flipped-landing-comparison twin escaped — the gate is worthless");
+  console.log(`  TEETH/flipped-compare: caught (${diffs.join("; ")})`);
 });

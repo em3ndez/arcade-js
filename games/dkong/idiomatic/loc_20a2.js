@@ -14,8 +14,8 @@
  *
  * WHERE IT SITS. The per-frame walk over the 25m OBJ_ARRAY_67 records (ROM 0x1F72) reaches an
  * object's movement branch at ROM 0x2053, which advances the object one frame along its arc
- * (stepBallisticMotion) and then asks loc_2a2f — "probe the tile a moving object is standing on
- * and … report the contact", per its ram.js entry — whether it is standing on something. On the
+ * (stepBallisticMotion) and then asks loc_2a2f — "probe the tile 4 px below a moving object and
+ * … report the contact", per its ram.js entry — whether it has reached a girder. On the
  * frames that says yes, ROM 0x2083 counts them into the record's +0x0E and routes the FIRST one
  * here; the second goes straight to the bounce tail and the rest go elsewhere.
  *

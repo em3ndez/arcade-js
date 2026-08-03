@@ -1,21 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_313c (ROM 0x313C) — the 0x6400 object-slot scan / INSERT / caller-skip.
+ * Equivalence test for spawnRequestedFireAndRecolorLiveFires (ROM 0x313C) — the 0x6400 object-slot scan / INSERT / caller-skip.
  *
- * loc_313c scans the five OBJ_ARRAY_64 records (stride 0x20), tallies the live ones into the
+ * spawnRequestedFireAndRecolorLiveFires scans the five OBJ_ARRAY_64 records (stride 0x20), tallies the live ones into the
  * OBJ_LIVE_COUNT, flags each live record's OBJ_SPRITE_ATTR field (off while a hammer swings), services
  * at most one pending object-INSERT request (EVENT_REQ_313C) into a free slot, and finally decides
  * a CALLER-SKIP: a non-zero count returns normally (true); a zero count splices past the caller
  * (false). On 50m it can also return early-normal the instant DIFFICULTY equals the running count.
  *
- * The routine is on NO live dispatch path (its only caller — the untranslated orchestrator 0x30ED —
- * is never reached), so there are no natural dispatches to capture; the proof is crafted entries
- * covering every reachable branch/arm plus a structured cross-product sweep. Both the memory
- * contract (RAM minus the isolated stack, which the routine never writes) AND the boolean return
- * are compared against the frozen oracle.
+ * The routine IS on a live dispatch path: its caller 0x30ED is idiomatic (loc_30ed) and calls
+ * spawnRequestedFireAndRecolorLiveFires directly, and REACHABILITY IS GROUNDED on the real ROM
+ * under MAME 0.288 — see the routine's own GATE record. (An earlier version of this header said
+ * it was "on NO live dispatch path" behind "the untranslated orchestrator 0x30ED"; that was
+ * stale.) The gate below is still CRAFTED rather than captured, and deliberately so: the input
+ * space (5 slot flags × BOARD × DIFFICULTY × request × hammer) is too large to sweep whole, so
+ * entries are crafted to cover every branch and arm — including arms no attract capture reaches.
+ * Both the memory contract (RAM minus the isolated stack, which the routine never writes) AND
+ * the boolean return are compared against the frozen oracle.
  *
  *   1. EQUAL — over crafted entries (each hitting a named arm) and a cross-product sweep of the
- *      relevant inputs, loc_313c leaves RAM byte-identical to the oracle (firstStateDiff == null)
+ *      relevant inputs, spawnRequestedFireAndRecolorLiveFires leaves RAM byte-identical to the oracle (firstStateDiff == null)
  *      AND returns the same boolean. Non-vacuity: the crafted entries assert the oracle really took
  *      the intended arm (specific memory effect + specific return value).
  *
@@ -38,7 +42,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { OBJ_INSERT_REQUESTED, OBJ_LIVE_COUNT } from "../ram.js";
 import { loc_313c as oracle } from "../../translated/loc_313c.js";
-import { loc_313c } from "../loc_313c.js";
+import { spawnRequestedFireAndRecolorLiveFires } from "../spawnRequestedFireAndRecolorLiveFires.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -162,16 +166,16 @@ const describe = (cfg) =>
 
 // -- 1. EQUAL ----------------------------------------------------------------
 
-test("EQUAL (crafted): loc_313c == oracle on RAM + return over every reachable arm", () => {
+test("EQUAL (crafted): spawnRequestedFireAndRecolorLiveFires == oracle on RAM + return over every reachable arm", () => {
   const base = new Machine(ROM).clone();
   for (const cfg of CRAFTED) {
-    const r = runPair(base, cfg, loc_313c);
+    const r = runPair(base, cfg, spawnRequestedFireAndRecolorLiveFires);
     assert.equal(
       r.ram,
       null,
       r.ram && `${cfg.name}: RAM diverges at 0x${(r.ram.addr ?? 0).toString(16)} (${r.ram.a}->${r.ram.b})`,
     );
-    assert.equal(r.retA, r.retB, `${cfg.name}: return disagrees (oracle ${r.retA}, loc_313c ${r.retB})`);
+    assert.equal(r.retA, r.retB, `${cfg.name}: return disagrees (oracle ${r.retA}, spawnRequestedFireAndRecolorLiveFires ${r.retB})`);
     // Non-vacuity: the oracle actually took the arm this entry targets.
     assert.equal(r.retA, cfg.expect, `${cfg.name}: oracle return ${r.retA} != documented ${cfg.expect}`);
   }
@@ -180,7 +184,7 @@ test("EQUAL (crafted): loc_313c == oracle on RAM + return over every reachable a
 
 test("EQUAL (crafted): the arm-specific memory effects are the expected ones", () => {
   const base = new Machine(ROM).clone();
-  const run = (cfg) => runPair(base, cfg, loc_313c).oracleMachine;
+  const run = (cfg) => runPair(base, cfg, spawnRequestedFireAndRecolorLiveFires).oracleMachine;
 
   // insert lands in slot0 only (request consumed), later empties untouched
   let m = run({ slots: [0, 0, 0, 0, 0], board: 1, diff: 0, req: 1, hammer: 0 });
@@ -207,19 +211,19 @@ test("EQUAL (crafted): the arm-specific memory effects are the expected ones", (
   console.log("  EQUAL/effects: insert / hammer / 50m-early-exit / post-clear all as expected");
 });
 
-test("EQUAL (sweep): loc_313c == oracle on RAM + return across the cross-product", () => {
+test("EQUAL (sweep): spawnRequestedFireAndRecolorLiveFires == oracle on RAM + return across the cross-product", () => {
   const base = new Machine(ROM).clone();
   let n = 0;
   let sawTrue = false;
   let sawFalse = false;
   for (const cfg of sweepEntries()) {
-    const r = runPair(base, cfg, loc_313c);
+    const r = runPair(base, cfg, spawnRequestedFireAndRecolorLiveFires);
     assert.equal(
       r.ram,
       null,
       r.ram && `${describe(cfg)}: RAM diverges at 0x${(r.ram.addr ?? 0).toString(16)} (${r.ram.a}->${r.ram.b})`,
     );
-    assert.equal(r.retA, r.retB, `${describe(cfg)}: return disagrees (oracle ${r.retA}, loc_313c ${r.retB})`);
+    assert.equal(r.retA, r.retB, `${describe(cfg)}: return disagrees (oracle ${r.retA}, spawnRequestedFireAndRecolorLiveFires ${r.retB})`);
     sawTrue ||= r.retA === true;
     sawFalse ||= r.retA === false;
     n++;
@@ -232,7 +236,7 @@ test("EQUAL (sweep): loc_313c == oracle on RAM + return across the cross-product
 
 /** BUG (a): inverted skip decision. RAM is identical; only the BOOLEAN diverges. */
 function brokenReturn(m) {
-  const r = loc_313c(m);
+  const r = spawnRequestedFireAndRecolorLiveFires(m);
   return !r; // invert the caller-skip decision
 }
 

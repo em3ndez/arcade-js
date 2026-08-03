@@ -55,8 +55,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_30ed as oracle } from "../../translated/loc_30ed.js";
 import { loc_30ed } from "../loc_30ed.js";
 import { gateObjectUpdateByDifficulty } from "../gateObjectUpdateByDifficulty.js";
-import { loc_313c } from "../loc_313c.js";
-import { loc_34f3 } from "../loc_34f3.js";
+import { spawnRequestedFireAndRecolorLiveFires } from "../spawnRequestedFireAndRecolorLiveFires.js";
+import { publishFireSprites } from "../publishFireSprites.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -284,27 +284,27 @@ test("LIVE-WIRE CONTROL: without the cycle restoration the same wiring DOES fork
 /** Broken twin (a): the difficulty gate's decision is ignored — the pass runs every frame. */
 function brokenNoGateGuard(m) {
   gateObjectUpdateByDifficulty(m);
-  if (!loc_313c(m)) return;
+  if (!spawnRequestedFireAndRecolorLiveFires(m)) return;
   m.push16(0x30f6);
   m.call(0x31b1);
-  loc_34f3(m);
+  publishFireSprites(m);
 }
 
 /** Broken twin (b): the census's empty-array decision is ignored. */
 function brokenNoCensusGuard(m) {
   if (!gateObjectUpdateByDifficulty(m)) return;
-  loc_313c(m);
+  spawnRequestedFireAndRecolorLiveFires(m);
   m.push16(0x30f6);
   m.call(0x31b1);
-  loc_34f3(m);
+  publishFireSprites(m);
 }
 
 /** Broken twin (c): the sprite gather runs BEFORE the state-machine walk, so it publishes last
  *  frame's object fields. */
 function brokenGatherBeforeUpdate(m) {
   if (!gateObjectUpdateByDifficulty(m)) return;
-  if (!loc_313c(m)) return;
-  loc_34f3(m);
+  if (!spawnRequestedFireAndRecolorLiveFires(m)) return;
+  publishFireSprites(m);
   m.push16(0x30f6);
   m.call(0x31b1);
 }
@@ -314,10 +314,10 @@ function brokenGatherBeforeUpdate(m) {
  *  does not owe. Only the return assertion can see it. */
 function brokenReturnsBoolean(m) {
   if (!gateObjectUpdateByDifficulty(m)) return false;
-  if (!loc_313c(m)) return false;
+  if (!spawnRequestedFireAndRecolorLiveFires(m)) return false;
   m.push16(0x30f6);
   m.call(0x31b1);
-  loc_34f3(m);
+  publishFireSprites(m);
   return true;
 }
 
@@ -327,9 +327,9 @@ function brokenReturnsBoolean(m) {
  *  it — only a whole-run trace does. */
 function brokenNoReturnBracket(m) {
   if (!gateObjectUpdateByDifficulty(m)) return;
-  if (!loc_313c(m)) return;
+  if (!spawnRequestedFireAndRecolorLiveFires(m)) return;
   m.call(0x31b1);
-  loc_34f3(m);
+  publishFireSprites(m);
 }
 
 test("TEETH: the captured-replay arm catches a dropped gate guard, a dropped census guard, and gather-before-update", () => {

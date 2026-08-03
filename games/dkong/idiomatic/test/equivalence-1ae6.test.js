@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1ae6 (ROM 0x1AE6) — the RIGHT arm of Mario's on-foot movement
+ * Equivalence test for walkRightWhileHeld (ROM 0x1AE6) — the RIGHT arm of Mario's on-foot movement
  * dispatch: ask the horizontal position gate for its (D,E) verdict, read the control word once,
  * and spend the frame on a rightward walk step only when E says the right-hand limit is clear
  * AND Right is held; otherwise hand the frame to the left/climb arm at 0x1AF5 (now idiomatic too).
@@ -29,7 +29,7 @@
  *        (a) ignores the right-limit verdict (walks whenever Right is held);
  *        (b) tests control bit 1 (Left) instead of bit 0 (Right);
  *        (c) omits staging the control word in the accumulator before the 0x1AF5 hand-off,
- *            which is the one register genuinely live across that hand-off (loc_1af5 still
+ *            which is the one register genuinely live across that hand-off (walkLeftWhileHeld still
  *            takes both inputs in the register file, so the ABI survives the dissolve).
  *
  * THE STACK CONTRACT. Both oracle arms net exactly one caller return. The candidate is now
@@ -50,9 +50,9 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1ae6 as oracle } from "../../translated/loc_1ae6.js";
-import { loc_1ae6 } from "../loc_1ae6.js";
-import { loc_1af5 } from "../loc_1af5.js";
-import { loc_241f } from "../loc_241f.js";             // ROM 0x241F — used by the teeth twins
+import { walkRightWhileHeld } from "../walkRightWhileHeld.js";
+import { walkLeftWhileHeld } from "../walkLeftWhileHeld.js";
+import { limitMarioHorizontalTravel } from "../limitMarioHorizontalTravel.js";             // ROM 0x241F — used by the teeth twins
 import { walkMarioRight } from "../walkMarioRight.js"; // ROM 0x1C8F — used by the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, P1_INPUT, MARIO_X } from "../ram.js";
@@ -144,7 +144,7 @@ function getCaps() {
  *  it runs on a throwaway clone). */
 function classify(entry) {
   const t = entry.clone();
-  t.call(0x241f); // translated loc_241f through the registry
+  t.call(0x241f); // translated sub_241f through the registry
   if (t.regs.e === 1) return "right-limit-blocked";
   return entry.mem.read8(P1_INPUT) & CONTROL_RIGHT ? "walk-right" : "hand-off";
 }
@@ -156,16 +156,16 @@ function craftAtX(base, x) {
   return e;
 }
 
-// -- teeth twins (the same shape as loc_1ae6, one thing broken) ---------------
+// -- teeth twins (the same shape as walkRightWhileHeld, one thing broken) ---------------
 
 function twinBody(m, { ignoreLimit, controlBit, stageAccumulator }) {
   const { regs, mem } = m;
-  const positionGate = loc_241f(m);
+  const positionGate = limitMarioHorizontalTravel(m);
   const control = mem.read8(P1_INPUT);
   const clear = ignoreLimit ? true : positionGate.e !== 1;
   if (clear && (control & controlBit) !== 0) return walkMarioRight(m);
   if (stageAccumulator) regs.a = control;
-  return loc_1af5(m);
+  return walkLeftWhileHeld(m);
 }
 // (a) walks right at the far-right edge — the position gate's E verdict is never consulted.
 const brokenIgnoresRightLimit = (m) =>
@@ -173,7 +173,7 @@ const brokenIgnoresRightLimit = (m) =>
 // (b) reads the Left bit where the Right bit belongs.
 const brokenWrongControlBit = (m) =>
   twinBody(m, { ignoreLimit: false, controlBit: CONTROL_LEFT, stageAccumulator: true });
-// (c) hands off without staging the control word loc_1af5 reads from the accumulator.
+// (c) hands off without staging the control word walkLeftWhileHeld reads from the accumulator.
 const brokenNoAccumulatorStaging = (m) =>
   twinBody(m, { ignoreLimit: false, controlBit: CONTROL_RIGHT, stageAccumulator: false });
 
@@ -209,11 +209,11 @@ test("REACHABILITY: 0x1AE6 dispatches in plain attract, covering both natural ar
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_1ae6 == oracle on every captured 0x1AE6 entry", () => {
+test("EQUAL (real dispatches): walkRightWhileHeld == oracle on every captured 0x1AE6 entry", () => {
   const caps = getCaps();
   assert.ok(caps.length >= 1, "expected at least one real 0x1AE6 dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_1ae6); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, walkRightWhileHeld); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   console.log(`  EQUAL/real: ${caps.length} captured dispatches identical on RAM+pc+SP`);
@@ -241,7 +241,7 @@ test("EQUAL (crafted): the right-limit block at MARIO_X >= 0xEA matches the orac
   for (const [x, expectArm] of [[RIGHT_EDGE_X - 1, "walk-right"], [RIGHT_EDGE_X, "right-limit-blocked"], [0xf0, "right-limit-blocked"]]) {
     const entry = craftAtX(rightHeld, x);
     assert.equal(classify(entry), expectArm, `MARIO_X ${hx(x)} should take the ${expectArm} arm`);
-    const diffs = contractDiffs(entry, loc_1ae6);
+    const diffs = contractDiffs(entry, walkRightWhileHeld);
     assert.equal(diffs.length, 0, `crafted MARIO_X=${hx(x)} diverged: ${diffs.join("; ")}`);
 
     // Non-vacuity: the ORACLE itself must move Mario below the edge and refuse to at/past it,

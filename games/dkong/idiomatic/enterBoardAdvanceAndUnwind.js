@@ -6,7 +6,9 @@
  * The shared completion tail of Mario's per-frame position check (sub_1e57). That check
  * reaches here from either board-clear condition:
  *   - a rivet board with RIVETS_LEFT == 0 (loc_1e80), or
- *   - a girder board where Mario has climbed to the rescue row near Pauline (loc_1e6d).
+ *   - any NON-rivet board where Mario has climbed to the rescue row near Pauline (loc_1e6d),
+ *     reached from completeBoardWhenMarioReachesRescueRow on the ODD boards (25m, 75m) and from
+ *     the dispatcher's own `cp 0x51` fall-through on 50m.
  * Both mean the board is won, so this writes GAME_SUBSTATE := 0x16 — the
  * "board-cleared / advance" sub-state that dispatchBoardClearedInterlude's dispatcher then runs to play the
  * board-advance interlude and step to the next board.

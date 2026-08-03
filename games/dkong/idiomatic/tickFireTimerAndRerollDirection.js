@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_330f — tick one object's periodic timer; on expiry reload it and, on a
- * random beat, advance the object's state.  ROM 0x330F.
+ * tickFireTimerAndRerollDirection — tick one fire's periodic timer; on expiry reload it and re-roll
+ * the object's travel direction on a random bit.  ROM 0x330F.
  *
  * Called against a single object record (the record pointer is the register
  * live-in). Every dispatch ends by ticking the object's countdown field (+0x16)
@@ -25,6 +25,21 @@
  *
  * The object pointer is not modified, and nothing consumes a return value, so
  * this is void.
+ *
+ * NAME — WHY "FIRE". OBJ_ARRAY_64 (0x6400) was grounded as the FIRES on the real ROM under
+ * MAME 0.288, on a NATURAL zero-poke 25m run (scratchpad/grounding-object-arrays.md): zeroing
+ * the five records' +0 erases the fireball from the screen completely (0 of 40 sampled frames)
+ * while the barrels are statistically untouched, the tight A/B's first differing frame is a
+ * single blob at this array's logged record position to the pixel, and boxes drawn at the
+ * logged positions land on a fireball and nothing else on all four boards. HONEST FLOOR: the
+ * X-pin POSITIVE control on this array is a NO-OP — the ROM recomputes +3 each frame — so the
+ * identity rests on the kill control plus positional correlation, not on a coordinate command.
+ * The direction reading comes from the movement side, in other files: loc_3202 describes the
+ * low-side step as "loc_33ad steps the working X one pixel the way OBJ_STATE points", with
+ * loc_298c reversing at the band edges. This routine supplies the RANDOM half of that — a coin
+ * flip once every 43 passes — which is the object's erratic wandering as opposed to the
+ * deterministic edge reversals. The reroll itself was not separated in the MAME capture, so the
+ * entry stays cert "code": the subject is grounded, the behaviour is understood from code.
  *
  * Memory-equivalent to the frozen oracle — equivalence-330f.test.js.
  * GATE:     crafted-exhaustive + captured. The whole memory effect is a function
@@ -52,7 +67,7 @@ const RELOAD = 43;  // timer reload on expiry; the shared decrement then leaves 
  * @param {object} m  the machine; the object record is the register live-in (uses m.mem).
  * @returns {void}
  */
-export function loc_330f(m) {
+export function tickFireTimerAndRerollDirection(m) {
   const { regs, mem } = m;
 
   // The object record to service — the register live-in from the still-oracle caller.

@@ -14,7 +14,7 @@
  *   1. ROUTING. An object whose OBJ_INSERT_REQUESTED is 1 goes straight to the board-keyed
  *      object walker (loc_32bd) and nothing else here runs. Otherwise, an object on the LOW
  *      side of the state split (isHighState below) gets one of two timer ticks first — loc_32d6
- *      when its +0x19 field holds 2, loc_330f otherwise — and only the loc_330f branch, and
+ *      when its +0x19 field holds 2, tickFireTimerAndRerollDirection otherwise — and only the tickFireTimerAndRerollDirection branch, and
  *      only on a pass that finds the low two bits of RANDOM clear, goes on to the
  *      movement/collision state machine at ROM 0x333D. A state that has come back to 0 skips
  *      straight to step 3.
@@ -68,7 +68,7 @@
  * NAMES:    OBJ_ITER_PTR (0x63C8), RANDOM (0x6018), OBJ_INSERT_REQUESTED (+0x18),
  *           OBJ_STATE (+0x0D), OBJ_X (+3), OBJ_Y (+5) — from ram.js. Record fields +0x0E, +0x0F,
  *           +0x13 and +0x19 have no ram.js name and stay local consts, as in loc_33ad/loc_33c3.
- *           Direct-called: loc_32bd (0x32BD), loc_32d6 (0x32D6), loc_330f (0x330F),
+ *           Direct-called: loc_32bd (0x32BD), loc_32d6 (0x32D6), tickFireTimerAndRerollDirection (0x330F),
  *           loc_33ad (0x33AD), loc_298c (0x298C), loc_33e7 (0x33E7), loc_33c3 (0x33C3).
  *           ORACLE BOUNDARY: the movement/collision state machine at ROM 0x333D has no
  *           idiomatic twin in ROUTINES yet, so it is still reached through the registry and the Z80 call
@@ -82,7 +82,7 @@ import {
 import { loc_298c } from "./loc_298c.js"; // ROM 0x298C — is the tile ahead outside the accepted band?
 import { loc_32bd } from "./loc_32bd.js"; // ROM 0x32BD — board-keyed object-walker dispatch
 import { loc_32d6 } from "./loc_32d6.js"; // ROM 0x32D6 — interval down-counter + periodic tick
-import { loc_330f } from "./loc_330f.js"; // ROM 0x330F — periodic timer tick
+import { tickFireTimerAndRerollDirection } from "./tickFireTimerAndRerollDirection.js"; // ROM 0x330F — periodic timer tick
 import { loc_33ad } from "./loc_33ad.js"; // ROM 0x33AD — one-pixel X step + sprite/animation work
 import { loc_33c3 } from "./loc_33c3.js"; // ROM 0x33C3 — 25m girder-slope re-snap
 import { loc_33e7 } from "./loc_33e7.js"; // ROM 0x33E7 — animation step + step-counter nudge
@@ -191,7 +191,7 @@ export function loc_3202(m) {
     if (mem8[field(OBJ_FIELD_19)] === 2) {
       loc_32d6(m);
     } else {
-      loc_330f(m);
+      tickFireTimerAndRerollDirection(m);
       // Only a pass that finds the low two bits of RANDOM clear may reach the state machine;
       // every other pass goes straight on to the movement update.
       if ((mem8[RANDOM] & 0x03) !== 0) {

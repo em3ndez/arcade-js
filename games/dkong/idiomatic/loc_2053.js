@@ -11,7 +11,7 @@
  *     machine at ROM 0x2083 and nothing below runs.
  *   • Otherwise retire the record if its X has come within 8 of zero — see below.
  *   • Otherwise run the bounds gate at ROM 0x24B4, refresh the sprite orientation
- *     (loc_23de), and hand off to the sweep's shared sprite tail at ROM 0x21BA.
+ *     (advanceBarrelSpriteOrientation), and hand off to the sweep's shared sprite tail at ROM 0x21BA.
  * THE ORDER IS LOAD-BEARING: the girder probe reads the position the arc step has ALREADY
  * written, and the retire test reads it after that again. That the probe's answer really does
  * route the record, rather than merely being consulted, is what the gate's ignored-contact twin
@@ -28,8 +28,8 @@
  * THE SELECTOR HANDED TO ROM 0x23DE is 0 or 4, taken from the low bit of the record's
  * horizontal-velocity high byte. Corroboration outside this body: the same callee's two other
  * branch entries in this sweep, ROM 0x1FE5 and ROM 0x1FEF, stage exactly those two values (0
- * and 4) for the same purpose, and loc_23de folds the value into the key of its packed
- * orientation lookup. What each of the two selects is not established here — loc_3009, which
+ * and 4) for the same purpose, and advanceBarrelSpriteOrientation folds the value into the key of its packed
+ * orientation lookup. What each of the two selects is not established here — nextAnimationStep, which
  * consumes the key, records the meaning of its own constants as not established either.
  *
  * THE REGISTER-SET SWAP IS A CONTRACT. Every branch of this sweep swaps to the shadow set on
@@ -93,7 +93,7 @@ import { u8 } from "../../../core/int.js";
 import { OBJ_X } from "./ram.js";
 import { stepBallisticMotion } from "./stepBallisticMotion.js"; // ROM 0x239C
 import { loc_2a2f } from "./loc_2a2f.js"; // ROM 0x2A2F
-import { loc_23de } from "./loc_23de.js"; // ROM 0x23DE
+import { advanceBarrelSpriteOrientation } from "./advanceBarrelSpriteOrientation.js"; // ROM 0x23DE
 
 /**
  * Record +0x10 — the high byte of the horizontal velocity stepBallisticMotion adds into OBJ_X
@@ -142,10 +142,10 @@ export function loc_2053(
   m.push16(0x206b);
   if (!m.call(0x24b4)) return;
 
-  // Refresh the sprite orientation. loc_23de still takes its selector off the machine, so stage
+  // Refresh the sprite orientation. advanceBarrelSpriteOrientation still takes its selector off the machine, so stage
   // it there: 0 or 4, from the low bit of the horizontal velocity's high byte.
   regs.c = (mem8[record + OBJ_VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
 
   // The sweep's shared sprite tail (ROM 0x21BA), entered by a jump — no bracket, and its return
   // is this routine's return.

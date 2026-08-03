@@ -3,7 +3,7 @@
  * Memory-equivalence test for walkMarioRight (ROM 0x1C8F) — the RIGHTWARD arm of Mario's per-frame
  * horizontal walk. While the sub-step pacer MARIO_MOVE_STEP_TIMER is still running the frame is
  * a plain +1 pixel slide (advanceMarioWalkX); on the frame it has expired the walk-cycle index
- * MARIO_WALK_ANIM is stepped through loc_3009's packed table (key 5 = the rightward cycle),
+ * MARIO_WALK_ANIM is stepped through nextAnimationStep's packed table (key 5 = the rightward cycle),
  * stored back, and its low two bits handed to beginWalkStep with the facing-right bit 7 set.
  *
  * The routine WRITES MEMORY and both arms end by tailing into the mover's shared sprite-record
@@ -29,7 +29,7 @@
  *      non-25m boards on the mid-step arm (attract only walks on 25m), and pacer values 1/2/255.
  *      Each is compared identically on both sides, with an independent expectation for the
  *      resulting MARIO_WALK_ANIM / MARIO_SPRITE_CODE / MARIO_X so the case cannot pass vacuously.
- *      Animation inputs >= 5 are NOT crafted: loc_3009 has no matching table field for them and
+ *      Animation inputs >= 5 are NOT crafted: nextAnimationStep has no matching table field for them and
  *      spins forever, faithfully to the ROM, on both sides.
  *   3. TEETH — five deliberately-broken twins, each MUST be caught. Every twin is checked twice:
  *      the whole contract must report a divergence, AND the specific cell the bug corrupts must
@@ -50,7 +50,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1c8f as oracle } from "../../translated/loc_1c8f.js";
 import { walkMarioRight } from "../walkMarioRight.js";
-import { loc_3009 } from "../loc_3009.js";
+import { nextAnimationStep } from "../nextAnimationStep.js";
 import { advanceMarioWalkX } from "../advanceMarioWalkX.js";
 import { beginWalkStep } from "../beginWalkStep.js";
 import { Machine } from "../../machine.js";
@@ -177,7 +177,7 @@ function craft(base, { pacer, anim, x, y, board }) {
 // Independent expectations: the animation arm steps the index and publishes the masked tile
 // with the facing bit; the mid-step arm slides X by +1 and leaves the index alone.
 const expectAnim = ({ pacer, anim }) =>
-  pacer === 0 ? loc_3009(WALK_CYCLE_RIGHT_KEY, anim).a : anim;
+  pacer === 0 ? nextAnimationStep(WALK_CYCLE_RIGHT_KEY, anim).a : anim;
 const expectSpriteCode = (c) => (expectAnim(c) & WALK_TILE_MASK) | FACING_RIGHT;
 const expectX = ({ pacer, x }) => (pacer === 0 ? x : (x + WALK_RIGHT_STEP) & 0xff);
 
@@ -187,7 +187,7 @@ const expectX = ({ pacer, x }) => (pacer === 0 ? x : (x + WALK_RIGHT_STEP) & 0xf
 function brokenNoFacing(m) {
   const { regs, mem } = m;
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) { advanceMarioWalkX(m, WALK_RIGHT_STEP); return; }
-  const nextAnim = loc_3009(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = nextAnim & WALK_TILE_MASK; // BUG: the facing-right bit is dropped
   beginWalkStep(m);
@@ -197,7 +197,7 @@ function brokenNoFacing(m) {
 function brokenNoTileMask(m) {
   const { regs, mem } = m;
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) { advanceMarioWalkX(m, WALK_RIGHT_STEP); return; }
-  const nextAnim = loc_3009(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = nextAnim | FACING_RIGHT; // BUG: no & 0x03
   beginWalkStep(m);
@@ -207,7 +207,7 @@ function brokenNoTileMask(m) {
 function brokenLeftKey(m) {
   const { regs, mem } = m;
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) { advanceMarioWalkX(m, WALK_RIGHT_STEP); return; }
-  const nextAnim = loc_3009(WALK_CYCLE_LEFT_KEY, mem.read8(MARIO_WALK_ANIM)).a; // BUG: key 1
+  const nextAnim = nextAnimationStep(WALK_CYCLE_LEFT_KEY, mem.read8(MARIO_WALK_ANIM)).a; // BUG: key 1
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = (nextAnim & WALK_TILE_MASK) | FACING_RIGHT;
   beginWalkStep(m);
@@ -217,7 +217,7 @@ function brokenLeftKey(m) {
 function brokenInvertedPacer(m) {
   const { regs, mem } = m;
   if (mem.read8(MARIO_MOVE_STEP_TIMER) === 0) { advanceMarioWalkX(m, WALK_RIGHT_STEP); return; } // BUG
-  const nextAnim = loc_3009(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = (nextAnim & WALK_TILE_MASK) | FACING_RIGHT;
   beginWalkStep(m);
@@ -227,7 +227,7 @@ function brokenInvertedPacer(m) {
 function brokenLeftDelta(m) {
   const { regs, mem } = m;
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) { advanceMarioWalkX(m, 0xff); return; } // BUG: -1
-  const nextAnim = loc_3009(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(WALK_CYCLE_RIGHT_KEY, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = (nextAnim & WALK_TILE_MASK) | FACING_RIGHT;
   beginWalkStep(m);
@@ -322,7 +322,7 @@ test("TEETH: no-facing, no-mask, left-key, inverted-pacer and left-delta twins a
   assert.notEqual(dFacing.cand, dFacing.oracle, "the dropped-facing twin must corrupt MARIO_SPRITE_CODE");
 
   // (b) dropped tile mask — needs an index whose low two bits differ from itself: 2 -> 4.
-  assert.equal(loc_3009(WALK_CYCLE_RIGHT_KEY, 2).a, 4, "sanity: anim 2 must step to 4 for the mask to matter");
+  assert.equal(nextAnimationStep(WALK_CYCLE_RIGHT_KEY, 2).a, 4, "sanity: anim 2 must step to 4 for the mask to matter");
   const maskEntry = craft(base, { pacer: 0, anim: 2, x: 0x40, y: 0x10, board: 1 });
   assert.ok(contractDiffs(maskEntry, brokenNoTileMask).length > 0,
     "the dropped-mask twin escaped — the gate is worthless");
@@ -330,7 +330,7 @@ test("TEETH: no-facing, no-mask, left-key, inverted-pacer and left-delta twins a
   assert.notEqual(dMask.cand, dMask.oracle, "the dropped-mask twin must corrupt MARIO_SPRITE_CODE");
 
   // (c) leftward table key — an index where the two cycles disagree.
-  assert.notEqual(loc_3009(WALK_CYCLE_RIGHT_KEY, 0).a, loc_3009(WALK_CYCLE_LEFT_KEY, 0).a,
+  assert.notEqual(nextAnimationStep(WALK_CYCLE_RIGHT_KEY, 0).a, nextAnimationStep(WALK_CYCLE_LEFT_KEY, 0).a,
     "sanity: the two walk cycles must differ at index 0 for this twin to diverge");
   const keyEntry = craft(base, { pacer: 0, anim: 0, x: 0x40, y: 0x10, board: 1 });
   assert.ok(contractDiffs(keyEntry, brokenLeftKey).length > 0,

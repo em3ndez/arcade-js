@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0763 — on the timed sub-state advance, reset the live player context to a fresh
+ * restartAttractDemoAt25m — on the timed sub-state advance, reset the live player context to a fresh
  * 25m / level-1 / single-life start and (re)build the board.  ROM 0x0763.
  *
  * One arm of the game-state-1 sub-state dispatch (the 0x0748 table). It is gated by the
@@ -19,9 +19,13 @@
  * board builder's 25m setup arm re-clears both bytes. The observable reseeds are the
  * level and life counts, which the builder does not touch.)
  *
- * Name kept neutral (loc_0763): the mechanism is pinned to the oracle, but which game
- * moment this reset serves (attract-demo restart vs. new-game seed) is a grounding
- * question for a later understanding pass — promote once corroborated.
+ * NAME: promoted from loc_0763 this pass, and the promotion turns on the LIFE COUNT. The
+ * fork an earlier header left open — attract-demo restart vs. new-game seed — is decided by
+ * the reseed itself: this routine seeds ONE life, and `decodeDipSwitches` unpacks DSW0 into
+ * DIP_LIVES = 3, 4, 5 or 6 at *every* DSW setting, with no encoding for 1. A credited game
+ * therefore can never enter a board through here, so the round this reset serves is the
+ * attract demo's own. `[code]` — the argument is a DIP-decode enumeration, not an
+ * observation; what is NOT claimed is anything about the demo's visible content.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0763.test.js.
  * GATE:     captured + crafted. 0x0763 is dispatched every game-state-1 sub-state pass
@@ -48,7 +52,7 @@ import { BOARD, LIVES, LEVEL, EVENT_REQ_313C } from "./ram.js";
 import { tickSubstatePrescaler } from "./tickSubstatePrescaler.js"; // ROM 0x0020 (rst 0x20)
 import { buildBoard } from "./buildBoard.js"; // ROM 0x0C92
 
-export function loc_0763(m) {
+export function restartAttractDemoAt25m(m) {
   const { mem } = m;
 
   // Timed gate: tick the sub-state timer and run the reset only on the pass where both

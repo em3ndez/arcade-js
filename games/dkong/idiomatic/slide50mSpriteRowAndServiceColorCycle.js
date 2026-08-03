@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_03fb — the per-frame colour-cycle driver entry, with a 50m-only sprite-object
+ * slide50mSpriteRowAndServiceColorCycle — the per-frame colour-cycle driver entry, with a 50m-only sprite-object
  * row X-shift preamble in front of it.  ROM 0x03FB.
  *
  * Called once per frame from the attract/colour driver (loc_197a @0x19B0). It first
@@ -30,9 +30,15 @@
  * SPRITE_OBJ_BLOCK and the signed delta from M50_OBJ1_STEP. serviceColorCycle reads
  * its inputs straight from RAM, so it is a bare direct call.
  *
- * NAME: kept the neutral loc_ per the task brief — the mechanism is pinned to the
- * oracle (a 50m sprite-row shift feeding the colour cycle), but the routine name is
- * not yet corroborated to the proposer≠confirmer bar. Promote once confirmed.
+ * NAME: promoted from loc_03fb. Both live-outs are measured, not read off this body:
+ * ram.js grounds M50_OBJ1_STEP live as {0,1,255} (0 on even frames, ±1 on odd, sign
+ * following the direction latch) and M50_OBJ_ROW_SHIFT live on the board-2 arm with
+ * 1996 frame-to-frame transitions over a 3994-frame gameplay window, explicitly "an
+ * X-shift, NOT a colour delta". The name deliberately does NOT say what the ten
+ * sprite-objects depict: the 0x385C template loc_0d5f stamps into 0x6908 is the same on
+ * every board, so it carries no per-board identity, and the repo's own "Kong on 50m"
+ * reading rests on a screenshot (begin50mKongRecaptureInterlude.js says so in plain
+ * text), which is below the routine-name bar.
  *
  * Memory-equivalent to the frozen oracle — equivalence-03fb.test.js.
  * GATE:     capture/clone/replay of real attract dispatches (all BOARD == 1, so the
@@ -63,7 +69,7 @@ import { serviceColorCycle } from "./serviceColorCycle.js"; // ROM 0x0413
 // (0x6908 + 2*4 = 0x6910). The same field begin50mKongRecaptureInterlude reaches as SPRITE_OBJ_BLOCK + 0x08.
 const SPRITE_OBJ_REC2_X = SPRITE_OBJ_BLOCK + 8;
 
-export function loc_03fb(m) {
+export function slide50mSpriteRowAndServiceColorCycle(m) {
   const { regs, mem } = m;
 
   // Not 50m: no preamble, just drive the colour cycle.

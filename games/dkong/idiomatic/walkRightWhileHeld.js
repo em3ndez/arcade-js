@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1ae6 — the RIGHT arm of Mario's on-foot movement dispatch: walk him right when Right is
+ * walkRightWhileHeld — the RIGHT arm of Mario's on-foot movement dispatch: walk him right when Right is
  * held and the position gate has not flagged the right-hand limit, otherwise hand the frame on
  * to the left/climb arm.  ROM 0x1AE6.
  *
@@ -9,7 +9,7 @@
  * ladder. This routine owns the setup the whole ground-movement dispatch shares, then makes the
  * first of its three direction decisions:
  *
- *   1. Ask the horizontal position gate (loc_241f) for its two-flag verdict. D flags the LEFT
+ *   1. Ask the horizontal position gate (limitMarioHorizontalTravel) for its two-flag verdict. D flags the LEFT
  *      limit, E the RIGHT limit; both are 0 when Mario is free to move either way.
  *   2. Read the cooked control word P1_INPUT once, for every arm downstream.
  *   3. Right is honoured only when E says the right-hand limit is clear. E == 1 — Mario at the
@@ -32,7 +32,7 @@
  *     the position gate and the one that loads P1_INPUT. 0x1AF5 recomputes neither — it reads
  *     the verdict and the control word this routine left behind. That makes 0x1AF5 a
  *     continuation of this routine rather than an independent entry, and it is why the hand-off
- *     below stages the control word in the accumulator: loc_1af5 takes that word in a register,
+ *     below stages the control word in the accumulator: walkLeftWhileHeld takes that word in a register,
  *     exactly as the ROM fall-through delivered it. (0x1AF5 landed in the same batch as this
  *     routine and is now DIRECT-CALLED; the hand-off was an m.call to the frozen oracle until
  *     0x1AF5 was wired into ROUTINES.)
@@ -55,19 +55,19 @@
  *           omitting the accumulator staging below (caught on 293).
  * LIVE-OUT: memory-only, and no meaningful return value — dispatchMarioMovement tail-returns this routine's
  *           result and loc_197a discards it. The registers the oracle leaves are dead ABI: the
- *           decrement it applies to E is read by nothing in either arm's subtree (loc_236e, the
+ *           decrement it applies to E is read by nothing in either arm's subtree (findOppositeLadderEnd, the
  *           only routine there that touches E at all, writes it before reading it), and the
  *           IX-relative address helper the oracle threads through as a second argument is
  *           declared by 0x1AF5 and 0x1AFE but used by neither, so it is dropped here. The one
  *           register that IS live across the hand-off is the accumulator, carrying the control
- *           word into loc_1af5. pc/SP model the single net return the whole
+ *           word into walkLeftWhileHeld. pc/SP model the single net return the whole
  *           cascade performs, supplied by the harness on the fully-idiomatic arm.
  * NAMES:    P1_INPUT (0x6010) from ram.js — bit 0 Right, bit 1 Left, both recorded there as
  *           observed. No object-record or sprite-record pointer is dereferenced here, so neither
- *           the OBJ_ nor the SPRITE_ offset namespace applies. loc_241f (ROM 0x241F) and
- *           walkMarioRight (ROM 0x1C8F) are direct-called, AS IS loc_1af5 (ROM 0x1AF5) — it
+ *           the OBJ_ nor the SPRITE_ offset namespace applies. limitMarioHorizontalTravel (ROM 0x241F) and
+ *           walkMarioRight (ROM 0x1C8F) are direct-called, AS IS walkLeftWhileHeld (ROM 0x1AF5) — it
  *           landed in the same batch and is registered, so there is NO oracle boundary left in
- *           this routine. The accumulator staging below survives the dissolve because loc_1af5
+ *           this routine. The accumulator staging below survives the dissolve because walkLeftWhileHeld
  *           still takes both inputs in the register file (this routine is the one that computed
  *           them); promoting them to honest parameters is a clarify-pass job for the pair.
  *           (An earlier version of this note called 0x1AF5 the one remaining oracle boundary and
@@ -77,18 +77,18 @@
  */
 
 import { P1_INPUT } from "./ram.js";
-import { loc_241f } from "./loc_241f.js";               // ROM 0x241F — horizontal position gate
+import { limitMarioHorizontalTravel } from "./limitMarioHorizontalTravel.js";               // ROM 0x241F — horizontal position gate
 import { walkMarioRight } from "./walkMarioRight.js";   // ROM 0x1C8F — one rightward walk step
-import { loc_1af5 } from "./loc_1af5.js";               // ROM 0x1AF5 — the LEFT arm this hands off to
+import { walkLeftWhileHeld } from "./walkLeftWhileHeld.js";               // ROM 0x1AF5 — the LEFT arm this hands off to
 
 const CONTROL_RIGHT = 0x01; // P1_INPUT bit 0 — the Right direction is held
 const AT_RIGHT_LIMIT = 1;   // the position gate's E verdict: Mario is at the right-hand limit
 
-export function loc_1ae6(m) {
+export function walkRightWhileHeld(m) {
   const { regs, mem } = m;
 
   // The verdict pair and the control word are read once here and serve every arm of the cascade.
-  const positionGate = loc_241f(m); // e is always 0 or 1, so testing it against 1 is exact
+  const positionGate = limitMarioHorizontalTravel(m); // e is always 0 or 1, so testing it against 1 is exact
   const control = mem.read8(P1_INPUT);
 
   // Right: allowed only away from the right-hand limit, and only while the direction is held.
@@ -98,9 +98,9 @@ export function loc_1ae6(m) {
 
   // No rightward step this frame — hand the frame to the leftward arm. It is still the frozen
   // oracle and takes the control word in the accumulator, where the ROM's fall-through left it.
-  // Stage the control word where the Left arm reads it: loc_1af5 takes both its inputs in the
+  // Stage the control word where the Left arm reads it: walkLeftWhileHeld takes both its inputs in the
   // register file (this routine is the one that computed them), so the hand-off is by register,
   // not by parameter. Promoting them to honest parameters is a clarify-pass job for the pair.
   regs.a = control;
-  return loc_1af5(m);
+  return walkLeftWhileHeld(m);
 }

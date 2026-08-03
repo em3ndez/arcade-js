@@ -18,13 +18,13 @@
  * TWO MODE FLAGS ARE ARMED HERE, and they are the reason this routine is more than a bounds
  * check. Both are latches other routines read, not values this one consumes:
  *   - only for a record whose kind field is non-zero, the phase byte at 0x62B9 is set to
- *     bit0|bit1 — the pair that loc_03a2 reads as "keep going" plus "take the second arm",
+ *     bit0|bit1 — the pair that animateFixedHazardAndReleaseFire reads as "keep going" plus "take the second arm",
  *     the arm which runs a countdown and eventually raises EVENT_REQ_313C, the object-insert
  *     request. So the retirement of one kind of object is what starts something else.
  *   - a ONE-SHOT latch at 0x6348 is set to 1 the first time this ever fires, and never touched
  *     again while it stays set. Its two readers both treat CLEAR as the simple early-game
  *     behaviour and SET as the difficulty-graded one (loc_22cb picks object velocity from the
- *     level while clear and from DIFFICULTY once set; loc_216d advances a spawn immediately
+ *     level while clear and from DIFFICULTY once set; startBarrelDescentAtLadder advances a spawn immediately
  *     while clear and runs the position/input/throttle grading once set).
  *
  * WHAT THIS RESTS ON, stated because the paragraph above is the whole reason to read this file.
@@ -101,7 +101,7 @@
  *           which RAM, SP and the returned value all miss (twin 9).
  * NAMES:    OBJ_ACTIVE (+0), OBJ_X (+3), OBJ_Y (+5) and SND_TRIGGER (0x6080, whose +2 is the
  *           latch asserted here) from ram.js. EVENT_REQ_313C is named above only to say what
- *           loc_03a2's second arm eventually raises; it is not touched here. Three of the things
+ *           animateFixedHazardAndReleaseFire's second arm eventually raises; it is not touched here. Three of the things
  *           this routine touches have no ram.js name and are kept as file-local consts with
  *           their reasons: the record's kind field (+0x15), the phase byte (0x62B9) and the
  *           one-shot latch (0x6348) — the last two are multiplexed across readers with
@@ -132,8 +132,8 @@ const IMPACT_SOUND = SND_TRIGGER + 2;
 const SOUND_FRAMES = 3;
 
 /**
- * The phase byte loc_03a2 dispatches on. No ram.js name: four unrelated routines write it and
- * loc_03a2 is its only reader, so sibling files scope it locally too. Bit 0 SET lets loc_03a2's
+ * The phase byte animateFixedHazardAndReleaseFire dispatches on. No ram.js name: four unrelated routines write it and
+ * animateFixedHazardAndReleaseFire is its only reader, so sibling files scope it locally too. Bit 0 SET lets animateFixedHazardAndReleaseFire's
  * body run at all, bit 1 selects its second arm — the one that runs a countdown and, on its
  * underflow, raises the object-insert request.
  */
@@ -143,7 +143,7 @@ const PHASE_SECOND_ARM = 2;
 
 /**
  * The one-shot mode latch; no ram.js name because it is multiplexed — loc_22cb reads it as the
- * object-velocity mode and loc_216d as a spawn gate. Both take CLEAR as the simple early-game
+ * object-velocity mode and startBarrelDescentAtLadder as a spawn gate. Both take CLEAR as the simple early-game
  * behaviour, so setting it here is a one-way switch into the graded behaviour.
  */
 const MODE_LATCH = 0x6348;

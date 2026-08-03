@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_216d — grade an object against difficulty/position/input and, on a pass, advance
- * its record.  ROM 0x216D.
+ * startBarrelDescentAtLadder — grade a barrel against difficulty, Mario's column and the ladder
+ * table and, on a pass, stamp its descent target and start it down the ladder.  ROM 0x216D.
  *
  * The caller (loc_215f) hands over a search key, a discriminator, and a scan count in
- * registers. loc_216d looks the key up in the type-0 object table (loc_236e); a table
+ * registers. startBarrelDescentAtLadder looks the key up in the type-0 object table (findOppositeLadderEnd); a table
  * miss unwinds on the caller's behalf, and a lookup that comes back tagged 0 (rather than
  * 1) is rejected without touching anything. A tag-1 hit always stamps the record's +0x17
  * field with (paired-slot − 5), then runs a chain of gates that decide whether the object
@@ -21,6 +21,19 @@
  * The record fields are indexed off the object pointer the caller set up, so their
  * absolute addresses are runtime-dependent and stay as computed offsets (no ram.js name).
  *
+ * NAME — WHY "BARREL" AND WHY "LADDER". Both were blocked as ungrounded until the MAME run in
+ * scratchpad/grounding-object-arrays.md, and both are now observed on the real ROM.
+ *   BARREL: this routine's one caller is an arm of the BOARD==1 ten-record OBJ_ARRAY_67 walk,
+ *   and zeroing that array's records collapses barrel motion 328 -> 29 while the fire is
+ *   untouched; pinning their X parks every barrel at the commanded column and moves nothing
+ *   else — a working positive control.
+ *   LADDER: the table this routine keys on through findOppositeLadderEnd holds the kind-0/1
+ *   records, and suppressing ROM 0x0E19 — the routine that draws exactly those records —
+ *   removes 616 px from the screen and they are the LADDERS (the two full-height ladders beside
+ *   Kong plus eight shorter segments); not one girder pixel changes.
+ * The name says START, not "steer": this routine stamps the destination and decides whether to
+ * begin the descent; loc_1fac does the walking, one row per frame, until OBJ_Y equals the stamp.
+ *
  * Memory-equivalent to the frozen oracle — equivalence-216d.test.js.
  * GATE:     capture/clone/replay of real attract dispatches (0x216D fires ~600×/4000
  *           frames, spanning the clear/set spawn-gate arms and the advance path) plus
@@ -33,14 +46,14 @@
  * LIVE-OUT: memory-only. The sole caller's tail (loc_21ba) swaps the register bank and
  *           overwrites the accumulator before reading anything, so every register/flag
  *           this routine leaves is dead; the oracle's `ret`/double-unwind stack effects
- *           are dead scratch. loc_236e's miss/hit is consumed here as the early return.
- * NAMES:    MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT from ram.js; loc_236e
+ *           are dead scratch. findOppositeLadderEnd's miss/hit is consumed here as the early return.
+ * NAMES:    MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT from ram.js; findOppositeLadderEnd
  *           direct-called. 0x6348 stays hex (ram.js keeps it unnamed — a multiplexed
  *           engine-scratch gate), kept as a local const here.
  */
 
 import { u8 } from "../../../core/int.js";
-import { loc_236e } from "./loc_236e.js";
+import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";
 import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./ram.js";
 
 // Multiplexed engine-scratch gate. ram.js does NOT name 0x6348 — verified, it has no export —
@@ -49,19 +62,19 @@ import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./ram.js";
 // takes the short advance path; SET routes through the difficulty/position/input grading below.
 const SPAWN_MODE_GATE = 0x6348;
 
-export function loc_216d(m) {
+export function startBarrelDescentAtLadder(m) {
   const { regs, mem } = m;
   const rec = (off) => (regs.ix + off) & 0xffff; // a field of the object record the caller pointed at
 
   // Look up the key in the type-0 table; a miss unwinds on the caller's behalf (the
   // oracle's double return), so bail the same way.
-  if (!loc_236e(m)) return;
+  if (!findOppositeLadderEnd(m)) return;
 
-  // loc_236e tags a hit 1 (discriminator matched the near slot) or 0 (the far slot). Only
+  // findOppositeLadderEnd tags a hit 1 (discriminator matched the near slot) or 0 (the far slot). Only
   // a tag-1 hit is processed; a tag-0 hit returns without touching the record.
   if (regs.a !== 1) return;
 
-  const slotByte = regs.b; // the paired slot byte loc_236e handed back
+  const slotByte = regs.b; // the paired slot byte findOppositeLadderEnd handed back
   const disc = regs.d;     // the discriminator, passed through unchanged
   const key = regs.e;      // the search key, echoed back
 

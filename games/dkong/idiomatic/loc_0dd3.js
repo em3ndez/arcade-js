@@ -3,6 +3,14 @@
  * loc_0dd3 — convert a segment record's second endpoint, compute its run deltas,
  * and draw the segment (girder span + end caps, or ladder).  ROM 0x0dd3.
  *
+ * ★ THE TWO CALLEE NAMES ARE INVERTED (rename pending). Grounding proved it on the real ROM
+ * under MAME by tile suppression: ROM 0x0e19 — shipped as `drawGirderSpan` — is the LADDER
+ * drawer (blanking its writes removes 616 px and they are the ladders), and ROM 0x0e4f —
+ * shipped as `drawLadder` — is the GIRDER drawer (blanking its writes removes 6256 px and they
+ * are every sloped platform). The names below are the shipped names, not the actors; read
+ * every `drawGirderSpan` here as *the ladder drawer* and every `drawLadder` as *the girder
+ * drawer* until the rename unit lands. See mechanisms.md §5.
+ *
  * The tail of sub_0da7's playfield-record walk. Each record is a LINE SEGMENT
  * between two points; sub_0da7 has already converted the first point (+1,+2 =
  * y,x) to a tile address at SEG_ADDR1 (0x63ab) and stashed its sub-tile x at
@@ -17,9 +25,11 @@
  *   3. Converts (y2, x2) to a tile address via loc_2ff0 -> SEG_ADDR2 (0x63ad). DE
  *      is saved across that call (loc_2ff0 clobbers D/E) as the ROM's push/pop did.
  *   4. Dispatches on the record kind at SEG_KIND (0x63b3):
- *        - kind >= 2 (the `jp p` sign test on kind-2): hand off to the LADDER
- *          drawer loc_0e4f (kind 2) / strip drawer loc_0ee8 (kind 3+, via loc_0e4f).
- *        - otherwise (kind 0/1): finish the GIRDER setup -- fold the second point's
+ *        - kind >= 2 (the `jp p` sign test on kind-2): hand off to loc_0e4f, the routine
+ *          shipped as `drawLadder` but proven to draw the GIRDERS (kind 2) / strip drawer
+ *          loc_0ee8 (kind 3+, via loc_0e4f).
+ *        - otherwise (kind 0/1): finish the setup for loc_0e19, the routine shipped as
+ *          `drawGirderSpan` but proven to draw the LADDERS -- fold the second point's
  *          sub-tile x into the run (SEG_RUN = (x2-x-0x10) + SEG_SUBTILE1), stamp the
  *          segment's two endpoint-cap tiles at SEG_ADDR1 (codes SEG_SUBTILE1+0xf0 then
  *          that -0x30 in the next cell), zero the run for kind 1, then draw the span

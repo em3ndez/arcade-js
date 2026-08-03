@@ -84,7 +84,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1bf2;
 const FACING_BIT = 0x80; // horizontal-flip bit of MARIO_SPRITE_CODE (1 = facing right)
-const OFF_SCREEN_RIGHT = 0xf0; // past loc_241f's 0xEA right-hand limit — forces the raised verdict
+const OFF_SCREEN_RIGHT = 0xf0; // past limitMarioHorizontalTravel's 0xEA right-hand limit — forces the raised verdict
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;

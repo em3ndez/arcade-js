@@ -3,7 +3,7 @@
  * Equivalence test for loc_31b1 (ROM 0x31B1) — the five-record sweep of the 0x6400
  * object array.
  *
- * The routine runs loc_31dd, then five times: advance OBJ_ITER_PTR by one stride, store
+ * The routine runs armAlternateFireModeAtHighDifficulty, then five times: advance OBJ_ITER_PTR by one stride, store
  * it back, and call ROM 0x3202 when the record's occupancy flag (+0) is non-zero. The
  * pointer and the sweep index (0x63A2) both live in MEMORY and are re-read every
  * iteration, so a callee that rewrites either one steers the rest of the sweep.
@@ -69,7 +69,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_31b1 as oracle } from "../../translated/loc_31b1.js";
 import { loc_31b1 } from "../loc_31b1.js";
-import { loc_31dd } from "../loc_31dd.js";
+import { armAlternateFireModeAtHighDifficulty } from "../armAlternateFireModeAtHighDifficulty.js";
 import { OBJ_ARRAY_64, OBJ_ACTIVE, OBJ_ITER_PTR, STACK_SCRATCH } from "../ram.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
@@ -372,7 +372,7 @@ test("LIVE-OUT: poisoning the registers the oracle leaves changes nothing over a
 /** BUG (a): the pointer is kept in a local and written back only once. */
 function brokenLocalPointer(m) {
   const { mem8, mem16 } = m;
-  loc_31dd(m);
+  armAlternateFireModeAtHighDifficulty(m);
   mem8[SWEEP_INDEX] = 0;
   let record = OBJ_ARRAY_64 - OBJECT_STRIDE;
   mem16[OBJ_ITER_PTR] = record;
@@ -391,7 +391,7 @@ function brokenLocalPointer(m) {
 /** BUG (b): the pointer is advanced AFTER the record is read. */
 function brokenPostIncrement(m) {
   const { mem8, mem16 } = m;
-  loc_31dd(m);
+  armAlternateFireModeAtHighDifficulty(m);
   mem8[SWEEP_INDEX] = 0;
   mem16[OBJ_ITER_PTR] = OBJ_ARRAY_64 - OBJECT_STRIDE;
   for (;;) {
@@ -410,7 +410,7 @@ function brokenPostIncrement(m) {
 /** BUG (c): the sweep index is kept in a local instead of re-read from memory. */
 function brokenLocalIndex(m) {
   const { mem8, mem16 } = m;
-  loc_31dd(m);
+  armAlternateFireModeAtHighDifficulty(m);
   let visited = 0;
   mem8[SWEEP_INDEX] = visited;
   mem16[OBJ_ITER_PTR] = OBJ_ARRAY_64 - OBJECT_STRIDE;
@@ -430,7 +430,7 @@ function brokenLocalIndex(m) {
 /** BUG (d): the object call is never made. */
 function brokenNoObjectCall(m) {
   const { mem8, mem16 } = m;
-  loc_31dd(m);
+  armAlternateFireModeAtHighDifficulty(m);
   mem8[SWEEP_INDEX] = 0;
   mem16[OBJ_ITER_PTR] = OBJ_ARRAY_64 - OBJECT_STRIDE;
   for (;;) {

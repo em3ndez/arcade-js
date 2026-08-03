@@ -11,7 +11,7 @@
  *     pair back to test the swept segment rather than only the new point.
  *  2. stepBallisticMotion integrates one frame of the arc: X drifts by the horizontal
  *     velocity, Y takes the vertical velocity plus the ramping gravity term.
- *  3. loc_241f classifies the NEW X (and Y, and the board parity) into its two-flag verdict,
+ *  3. limitMarioHorizontalTravel classifies the NEW X (and Y, and the board parity) into its two-flag verdict,
  *     and the flags pick which way Mario is pushed for the rest of the frame:
  *       - first flag raised -> handled here: horizontal velocity is forced to +0.5 px/frame
  *                              (drift right) and the sprite's facing bit is set to face right;
@@ -27,7 +27,7 @@
  * Mario's whole context block is addressed off its base (MARIO_ACTIVE, 0x6200), which this
  * routine loads and everything below it inherits. Both tails now have idiomatic files and are
  * called directly; the ABI they read from this routine is the block base and the position
- * gate's second verdict flag, which loc_241f leaves in the register bank.
+ * gate's second verdict flag, which limitMarioHorizontalTravel leaves in the register bank.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1bb2.test.js.
  * GATE:     captured + crafted. 0x1BB2 IS naturally reachable — a plain 2000-frame attract
@@ -63,7 +63,7 @@
  * NAMES:    MARIO_ACTIVE (0x6200, also the base of Mario's context block), MARIO_X (0x6203),
  *           MARIO_Y (0x6205), MARIO_SPRITE_CODE (0x6207), MARIO_AIR_PREV_X (0x620B),
  *           MARIO_AIR_PREV_Y (0x620C), MARIO_AIR_VX_HI (0x6210), MARIO_AIR_VX_LO (0x6211) —
- *           all imported from ram.js. stepBallisticMotion (ROM 0x239C), loc_241f (0x241F),
+ *           all imported from ram.js. stepBallisticMotion (ROM 0x239C), limitMarioHorizontalTravel (0x241F),
  *           loc_1bf2 (0x1BF2) and reverseMarioVerticalArc (0x1BD8) are all direct-called; no address literal
  *           is left in the body.
  */
@@ -79,7 +79,7 @@ import {
   MARIO_AIR_VX_LO,
 } from "./ram.js";
 import { stepBallisticMotion } from "./stepBallisticMotion.js"; // ROM 0x239C
-import { loc_241f } from "./loc_241f.js"; // ROM 0x241F
+import { limitMarioHorizontalTravel } from "./limitMarioHorizontalTravel.js"; // ROM 0x241F
 import { loc_1bf2 } from "./loc_1bf2.js"; // ROM 0x1BF2
 import { reverseMarioVerticalArc } from "./reverseMarioVerticalArc.js"; // ROM 0x1BD8
 
@@ -100,7 +100,7 @@ export function advanceMarioAirborneFrame(m) {
   // Advance one frame of the ballistic arc, then classify the position it landed on. The
   // gate's second flag stays in the register bank for loc_1bf2, which is the only consumer.
   stepBallisticMotion(m);
-  const { d: pushRight } = loc_241f(m);
+  const { d: pushRight } = limitMarioHorizontalTravel(m);
 
   // Not the push-right verdict: hand over to the far-right-edge arm, which decides between
   // the mirrored left push and leaving the horizontal velocity untouched.

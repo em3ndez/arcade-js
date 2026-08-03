@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_3009 (ROM 0x3009) — the packed 4x2-bit-field lookup.
+ * Equivalence test for nextAnimationStep (ROM 0x3009) — the packed 4x2-bit-field lookup.
  *
  * entry_3009 is a LEAF and a PURE function of its two register-byte inputs
  * (a = A, b = B): it reads no memory, WRITES NO MEMORY, and calls nothing.
@@ -9,13 +9,21 @@
  * gated the strongest way a leaf can be — EXHAUSTIVELY against the frozen oracle
  * — not by a whole-machine trace:
  *
- *   1. UNWIRED, so no captured dispatches. 0x3009 is absent from the dispatch
+ *   1. CAPTURED as well as crafted. ★ CORRECTION: this header used to say
+ *      "UNWIRED, so no captured dispatches — 0x3009 is absent from the dispatch
  *      registry (its three call sites 0x1C9E/0x1CBA/0x23F4 are the untranslated
- *      1977 subtree), so attract never dispatches it. Test #0 PROVES this by
- *      hooking 0x3009 over a real attract run and asserting zero entries — which
- *      is why the gate is exhaustive-crafted rather than capture-based.
+ *      1977 subtree), so attract never dispatches it", and test #0 asserted zero
+ *      entries over a 600-frame window. Every part of that was wrong except the
+ *      zero, and the zero was an artefact of the window: 0x3009 IS a ROUTINES key,
+ *      all three named call sites have translated twins (0x1C9E in loc_1c8f,
+ *      0x1CBA in loc_1cab, 0x23F4 in advanceBarrelSpriteOrientation), and there is
+ *      a FOURTH the old note missed — 0x18DF in loc_18c6. Re-derived here, against
+ *      the pure translated oracle under `new Machine(ROM, { overrides })`: 0
+ *      dispatches by frame 600, 23 by frame 700, 798 by frame 1500, 3850 by frame
+ *      12000. Test #0 now runs the longer window, asserts the dispatches are
+ *      NON-zero, and replays every captured (a, b) against nextAnimationStep.
  *
- *   2. EQUAL (exhaustive) — loc_3009 == oracle over the full 65,536 (a,b) grid,
+ *   2. EQUAL (exhaustive) — nextAnimationStep == oracle over the full 65,536 (a,b) grid,
  *      on {A, carry, b, c, d}. The routine has FAITHFUL NON-TERMINATION (the
  *      field-scan loop hangs when no 2-bit field of C equals the selector), so an
  *      INDEPENDENT predicate `willTerminate` skips the hanging inputs; the oracle
@@ -41,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3009 as oracle } from "../../translated/loc_3009.js";
-import { loc_3009 } from "../loc_3009.js";
+import { nextAnimationStep } from "../nextAnimationStep.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -77,7 +85,7 @@ function runOracle(m, a, b) {
 
 /**
  * INDEPENDENT termination predicate — deliberately NOT sharing code with
- * loc_3009, so a bug in loc_3009 cannot mask itself here. It reproduces only the
+ * nextAnimationStep, so a bug in nextAnimationStep cannot mask itself here. It reproduces only the
  * front-half (which C is selected and whether B is decremented) and checks
  * whether the selector appears among C's four 2-bit fields. The scan rotates C
  * by 2 with period 4, so it visits exactly those four fields; membership is the
@@ -97,15 +105,48 @@ function willTerminate(a, b) {
   return fields.includes(bEff);
 }
 
-// -- 0. UNWIRED: attract never dispatches 0x3009 ------------------------------
+// -- 0. CAPTURED: attract DOES dispatch 0x3009, and every real input matches ---
+//
+// ★ This test used to assert the opposite — ZERO dispatches over 600 frames — and pass,
+// because attract does not reach 0x3009 until around frame 690. The window was the whole
+// claim. Re-derived while fixing it: 0 by f600, 23 by f700, 798 by f1500, 3850 by f12000.
+// The window here is 1500 frames, and the assertion is now that the dispatches exist AND
+// that every captured (a, b) replays identically through nextAnimationStep.
 
-test("UNWIRED: hooking 0x3009 over a real attract run captures ZERO dispatches", () => {
-  let entries = 0;
-  const hook = new Map([[TARGET, (mm) => { entries++; return oracle(mm); }]]);
+test("CAPTURED: a real attract run dispatches 0x3009, and every captured input matches", () => {
+  const seen = [];
+  const hook = new Map([[TARGET, (mm) => {
+    seen.push([mm.regs.a & 0xff, mm.regs.b & 0xff]);
+    return oracle(mm);
+  }]]);
   const host = new Machine(ROM, { overrides: hook });
-  host.runFrames(600);
-  assert.equal(entries, 0, "0x3009 was dispatched during attract — it is no longer unwired; add real captures");
-  console.log("  UNWIRED: 0 dispatches of 0x3009 in 600 attract frames — exhaustive-crafted gate is the right one");
+  host.runFrames(1500);
+  assert.ok(
+    seen.length > 0,
+    "0x3009 was NOT dispatched in 1500 attract frames — the capture window or the wiring regressed",
+  );
+
+  // Replay each captured entry state through both sides. The oracle is re-run on a neutral
+  // clone (test #3 proves it writes no RAM, so reuse is safe).
+  const m = new Machine(ROM).clone();
+  const uniq = [...new Set(seen.map(([a, b]) => (a << 8) | b))];
+  let mismatch = null;
+  for (const key of uniq) {
+    const a = key >> 8, b = key & 0xff;
+    if (!willTerminate(a, b)) continue; // a captured non-terminating input would hang the oracle
+    const want = runOracle(m, a, b);
+    const got = nextAnimationStep(a, b);
+    if (got.a !== want.a || got.carry !== want.carry || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
+      mismatch = { a, b, want, got };
+      break;
+    }
+  }
+  assert.equal(
+    mismatch,
+    null,
+    mismatch && `captured entry a=${hx(mismatch.a)} b=${hx(mismatch.b)} mismatched: oracle=${JSON.stringify(mismatch.want)} loc=${JSON.stringify(mismatch.got)}`,
+  );
+  console.log(`  CAPTURED: ${seen.length} real dispatches of 0x3009 in 1500 attract frames (${uniq.length} distinct (a,b)), all replayed equal`);
 });
 
 // -- 1. sanity: the known hang is excluded ------------------------------------
@@ -119,7 +160,7 @@ test("SANITY: the known-hang input (a=0x00,b=0x03) is flagged non-terminating", 
 
 // -- 2. EQUAL (exhaustive over the terminating domain) ------------------------
 
-test("EQUAL (exhaustive): loc_3009 == oracle on {A,carry,b,c,d} over all terminating (a,b)", () => {
+test("EQUAL (exhaustive): nextAnimationStep == oracle on {A,carry,b,c,d} over all terminating (a,b)", () => {
   const m = new Machine(ROM).clone();
   let ran = 0, skipped = 0;
   let mismatch = null;
@@ -127,7 +168,7 @@ test("EQUAL (exhaustive): loc_3009 == oracle on {A,carry,b,c,d} over all termina
     for (let b = 0; b < 256; b++) {
       if (!willTerminate(a, b)) { skipped++; continue; }
       const want = runOracle(m, a, b);
-      const got = loc_3009(a, b);
+      const got = nextAnimationStep(a, b);
       ran++;
       if (got.a !== want.a || got.carry !== want.carry || got.b !== want.b || got.c !== want.c || got.d !== want.d) {
         mismatch = { a, b, want, got };
@@ -181,13 +222,13 @@ test("ARMS: each exit arm (next!=3, next==3 & d!=0, next==3 & d==0) is hit and m
   };
   for (const [label, [a, b]] of Object.entries(arms)) {
     const want = runOracle(m, a, b);
-    const got = loc_3009(a, b);
+    const got = nextAnimationStep(a, b);
     assert.deepEqual(got, { a: want.a, carry: want.carry, b: want.b, c: want.c, d: want.d }, `arm "${label}" mismatch`);
   }
   // Confirm the arms are actually distinct (guards against all three collapsing).
-  assert.equal(loc_3009(0x02, 0x00).carry, true, "early arm should set carry");
-  assert.equal(loc_3009(0x03, 0x01).a, 3, "deep d!=0 arm returns A=3");
-  assert.equal(loc_3009(0x01, 0x01).a, 0x04, "deep d==0 arm returns A=0x04");
+  assert.equal(nextAnimationStep(0x02, 0x00).carry, true, "early arm should set carry");
+  assert.equal(nextAnimationStep(0x03, 0x01).a, 3, "deep d!=0 arm returns A=3");
+  assert.equal(nextAnimationStep(0x01, 0x01).a, 0x04, "deep d==0 arm returns A=0x04");
   console.log("  ARMS: all three exit arms reached, distinct, and equal to the oracle");
 });
 

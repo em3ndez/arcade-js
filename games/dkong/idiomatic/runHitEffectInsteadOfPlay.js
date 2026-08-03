@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1e8c — the per-frame gate on the hit-effect latch: while an effect is playing, spend the
+ * runHitEffectInsteadOfPlay — the per-frame gate on the hit-effect latch: while an effect is playing, spend the
  * frame on one beat of that effect INSTEAD of the gameplay update, and tell the caller to
  * abandon the rest of its cascade.  ROM 0x1E8C.
  *
@@ -36,7 +36,7 @@
  *     effect sequence's step 2) — the same beat that resets the sequence to step 0 and re-arms
  *     the parent effect state machine. That clear is what hands play back, and it is the only
  *     way this gate ever reopens.
- *   - READ here, and at ROM 0x03A6 (loc_03a2), which gates on bit0 alone.
+ *   - READ here, and at ROM 0x03A6 (animateFixedHazardAndReleaseFire), which gates on bit0 alone.
  * Measured in play: over 4000 frames of plain attract this routine is dispatched 1970 times, the
  * latch holding 0 on 1532 of them and 1 on the other 438 — and those 438 are exactly the effect
  * router's own 438 recorded dispatches, i.e. every skip here is one effect beat and nothing else
@@ -72,7 +72,7 @@
  *           STACK_SCRATCH; the boolean carries that decision instead.
  * NAMES:    none imported. The only cell touched is the hit-effect latch at 0x6350, which is
  *           deliberately unnamed in ram.js (shared engine scratch: the effect sequence's gate and
- *           loc_03a2's bit0 gate read the same byte) and kept hex here, exactly as its two
+ *           animateFixedHazardAndReleaseFire's bit0 gate read the same byte) and kept hex here, exactly as its two
  *           sibling routines recordHammerHitOnObject and animateEffectSpriteThenRearmEffect keep
  *           it. Direct-called: dispatchEffectSequenceStep (ROM 0x1E96), loc_1e94 (ROM 0x1E94).
  */
@@ -85,7 +85,7 @@ import { loc_1e94 } from "./loc_1e94.js"; // ROM 0x1E94 — the unconditional ca
  * @returns {boolean} true = proceed (the caller runs the rest of its per-frame cascade);
  *   false = skip (the caller abandons the frame's remaining gameplay update).
  */
-export function loc_1e8c(m) {
+export function runHitEffectInsteadOfPlay(m) {
   // Nothing playing — the caller gets its ordinary frame.
   if (m.mem.read8(0x6350) === 0) return true; // hit-effect latch, unnamed shared engine scratch
 

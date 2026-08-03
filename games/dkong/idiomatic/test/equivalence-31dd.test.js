@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_31dd (ROM 0x31DD) — the difficulty+entropy gated object arm.
+ * Equivalence test for armAlternateFireModeAtHighDifficulty (ROM 0x31DD) — the difficulty+entropy gated object arm.
  *
  * sub_31dd stamps 2 into field +0x19 of records 1 and 3 of the 0x6400 object array
  * (0x6439 / 0x6479) only when TWO gates open: (1) difficulty (0x6380) passes a SIGNED
@@ -52,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_31dd as oracle } from "../../translated/loc_31dd.js";
-import { loc_31dd } from "../loc_31dd.js";
+import { armAlternateFireModeAtHighDifficulty } from "../armAlternateFireModeAtHighDifficulty.js";
 import { DIFFICULTY, RANDOM, FRAME, OBJ_ARRAY_64, STACK_SCRATCH } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
@@ -168,7 +168,7 @@ test("REALISM (captured): every real 0x31DD dispatch (if any) matches the oracle
 
   let wrote = 0;
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_31dd);
+    const diffs = contractDiffs(cap, armAlternateFireModeAtHighDifficulty);
     assert.equal(diffs.length, 0, `real dispatch: ${diffs.join("; ")}`);
     if (oracleWrote(cap)) wrote++;
   }
@@ -180,13 +180,13 @@ test("REALISM (captured): every real 0x31DD dispatch (if any) matches the oracle
 
 // -- 1. EQUAL (difficulty gate, exhaustive over all 256 difficulties) ---------
 
-test("EQUAL (difficulty gate): loc_31dd == oracle over all 256 difficulties, draw open and closed", () => {
+test("EQUAL (difficulty gate): armAlternateFireModeAtHighDifficulty == oracle over all 256 difficulties, draw open and closed", () => {
   const base = attractBase();
   let writes = 0;
   for (let d = 0; d < 256; d++) {
     // draw OPEN (random=1, frame=1 → entropy draw 1): write happens iff the signed gate passes.
     const open = makeEntry(base, d, 0x01, 0x01);
-    const openDiffs = contractDiffs(open, loc_31dd);
+    const openDiffs = contractDiffs(open, armAlternateFireModeAtHighDifficulty);
     assert.equal(openDiffs.length, 0, `difficulty=${hx(d)} (draw open): ${openDiffs.join("; ")}`);
     // Independent oracle sanity: the write path is taken exactly on the passing difficulties.
     assert.equal(
@@ -198,7 +198,7 @@ test("EQUAL (difficulty gate): loc_31dd == oracle over all 256 difficulties, dra
 
     // draw CLOSED (random=0, frame=0 → entropy draw 0): nothing writes at any difficulty.
     const closed = makeEntry(base, d, 0x00, 0x00);
-    const closedDiffs = contractDiffs(closed, loc_31dd);
+    const closedDiffs = contractDiffs(closed, armAlternateFireModeAtHighDifficulty);
     assert.equal(closedDiffs.length, 0, `difficulty=${hx(d)} (draw closed): ${closedDiffs.join("; ")}`);
     assert.equal(oracleWrote(closed), false, `difficulty=${hx(d)}: draw closed must not write`);
   }
@@ -209,14 +209,14 @@ test("EQUAL (difficulty gate): loc_31dd == oracle over all 256 difficulties, dra
 
 // -- 2. EQUAL (entropy gate, exhaustive over the whole random×frame space) -----
 
-test("EQUAL (entropy gate): loc_31dd == oracle over all 256×256 (random, frame) at a passing difficulty", () => {
+test("EQUAL (entropy gate): armAlternateFireModeAtHighDifficulty == oracle over all 256×256 (random, frame) at a passing difficulty", () => {
   const base = attractBase();
   const d = 3; // a passing difficulty, so the write happens iff the entropy draw is 1
   let combos = 0, writes = 0;
   for (let r = 0; r < 256; r++) {
     for (let f = 0; f < 256; f++) {
       const entry = makeEntry(base, d, r, f);
-      const diffs = contractDiffs(entry, loc_31dd);
+      const diffs = contractDiffs(entry, armAlternateFireModeAtHighDifficulty);
       assert.equal(diffs.length, 0, `random=${hx(r)} frame=${hx(f)}: ${diffs.join("; ")}`);
       // The draw is 1 exactly when (random&3)==1 and frame==1.
       const drawIsOne = (r & 0x03) === 1 && f === 1;

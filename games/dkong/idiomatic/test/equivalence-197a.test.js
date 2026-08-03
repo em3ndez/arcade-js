@@ -389,7 +389,7 @@ test("LIVE-WIRE: loc_197a drives a whole attract run identically to the shipping
 // Each twin is a copy of the real routine with ONE thing wrong. They call the same idiomatic
 // callees the real file does, so what is being tested is the sequencing and the guards.
 import { dispatchEffectState } from "../dispatchEffectState.js";
-import { loc_1e8c } from "../loc_1e8c.js";
+import { runHitEffectInsteadOfPlay } from "../runHitEffectInsteadOfPlay.js";
 import { dispatchMarioMovement } from "../dispatchMarioMovement.js";
 import { loc_2c8f } from "../loc_2c8f.js";
 import { scheduleBarrelRelease } from "../scheduleBarrelRelease.js";
@@ -400,12 +400,12 @@ import { raisePeriodicObjectSpawnRequests } from "../raisePeriodicObjectSpawnReq
 import { driveHammerSprite } from "../driveHammerSprite.js";
 import { dispatch50mObjectState } from "../dispatch50mObjectState.js";
 import { collectEdgeRivet } from "../collectEdgeRivet.js";
-import { loc_2a85 } from "../loc_2a85.js";
+import { startMarioFallWhenGroundGivesWay } from "../startMarioFallWhenGroundGivesWay.js";
 import { beginMarioFall } from "../beginMarioFall.js";
-import { loc_26fa } from "../loc_26fa.js";
+import { service75mBoard } from "../service75mBoard.js";
 import { update50mConveyorObjects } from "../update50mConveyorObjects.js";
 import { scanObjectsAtMarioX } from "../scanObjectsAtMarioX.js";
-import { loc_03fb } from "../loc_03fb.js";
+import { slide50mSpriteRowAndServiceColorCycle } from "../slide50mSpriteRowAndServiceColorCycle.js";
 import { killMarioOnObjectCollision } from "../killMarioOnObjectCollision.js";
 import { recordHammerHitOnObject } from "../recordHammerHitOnObject.js";
 import { checkBoardWonByType } from "../checkBoardWonByType.js";
@@ -428,12 +428,12 @@ function body(m, keepBracket = true) {
   driveHammerSprite(m);
   dispatch50mObjectState(m);
   collectEdgeRivet(m);
-  loc_2a85(m);
+  startMarioFallWhenGroundGivesWay(m);
   beginMarioFall(m);
-  loc_26fa(m);
+  service75mBoard(m);
   update50mConveyorObjects(m);
   scanObjectsAtMarioX(m);
-  loc_03fb(m);
+  slide50mSpriteRowAndServiceColorCycle(m);
   killMarioOnObjectCollision(m);
   recordHammerHitOnObject(m);
 }
@@ -441,7 +441,7 @@ function body(m, keepBracket = true) {
 /** Twin (a): the effect-latch gate's decision is ignored — the frame runs on top of the effect. */
 function brokenNoLatchGuard(m) {
   dispatchEffectState(m);
-  loc_1e8c(m);
+  runHitEffectInsteadOfPlay(m);
   body(m);
   if (!checkBoardWonByType(m)) return;
   if (!dispatchBonusExpiredStep(m)) return;
@@ -455,7 +455,7 @@ function brokenNoLatchGuard(m) {
 /** Twin (b): the board-won gate's decision is ignored — the frame keeps going after the win. */
 function brokenNoBoardWonGuard(m) {
   dispatchEffectState(m);
-  if (!loc_1e8c(m)) return;
+  if (!runHitEffectInsteadOfPlay(m)) return;
   body(m);
   checkBoardWonByType(m);
   if (!dispatchBonusExpiredStep(m)) return;
@@ -469,7 +469,7 @@ function brokenNoBoardWonGuard(m) {
 /** Twin (c): the death hand-off runs unconditionally, whether or not Mario is still active. */
 function brokenUnconditionalDeathTail(m) {
   dispatchEffectState(m);
-  if (!loc_1e8c(m)) return;
+  if (!runHitEffectInsteadOfPlay(m)) return;
   body(m);
   if (!checkBoardWonByType(m)) return;
   if (!dispatchBonusExpiredStep(m)) return;
@@ -484,7 +484,7 @@ function brokenUnconditionalDeathTail(m) {
  *  owe. Only the return assertion can see it. */
 function brokenReturnsBoolean(m) {
   dispatchEffectState(m);
-  if (!loc_1e8c(m)) return false;
+  if (!runHitEffectInsteadOfPlay(m)) return false;
   body(m);
   if (!checkBoardWonByType(m)) return false;
   if (!dispatchBonusExpiredStep(m)) return false;
@@ -502,7 +502,7 @@ function brokenReturnsBoolean(m) {
  *  assertion sees it. */
 function brokenNoReturnBracket(m) {
   dispatchEffectState(m);
-  if (!loc_1e8c(m)) return;
+  if (!runHitEffectInsteadOfPlay(m)) return;
   body(m, false);
   if (!checkBoardWonByType(m)) return;
   if (!dispatchBonusExpiredStep(m)) return;

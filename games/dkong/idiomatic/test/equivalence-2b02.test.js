@@ -2,7 +2,7 @@
 /**
  * Equivalence test for moveMarioX (ROM 0x2B02) — advance Mario's X by the current
  * velocity, mirror it into the sprite record, then clamp one pixel at the horizontal
- * limits via the position gate loc_241f.
+ * limits via the position gate limitMarioHorizontalTravel.
  *
  * move_2b02 is reached only on the moving-platform boards, through the platform-row
  * mover sub_2ad3 / arm_2af6 (Y == 0x50 / 0x78 / 0xC8). Attract never rides those rows,
@@ -10,7 +10,7 @@
  * coverage is therefore CRAFTED on a real attract base. The routine's whole
  * memory-observable behaviour is a total function of:
  *   - the new X it stamps: (velocity + prior X), truncated to 8 bits;
- *   - the position-gate verdict loc_241f returns for that new X, which depends on the
+ *   - the position-gate verdict limitMarioHorizontalTravel returns for that new X, which depends on the
  *     new X, MARIO_Y (>= 0x58 band) and BOARD parity;
  * so a sweep over all 256 new-X values x both board parities x both Y bands drives every
  * verdict — far-left/default (1,0) -> nudge X right, far-right (0,1) -> nudge X left,
@@ -19,7 +19,7 @@
  *
  * DISSOLVED CALL / STACK: the oracle brackets its clamp with `push16 0x2b0c ; call
  * 0x241f` (sub_241f `ret`s it back) and ends each path with `ret`. The idiomatic routine
- * models no stack (a direct loc_241f call + plain returns), so runCandidate performs ONE
+ * models no stack (a direct limitMarioHorizontalTravel call + plain returns), so runCandidate performs ONE
  * m.ret() after it to line pc + SP up with the oracle, and the RAM diff excludes the dead
  * STACK_SCRATCH [0x6be0,0x6c00) the oracle's push writes.
  *
@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2b02 as oracle } from "../../translated/loc_2b02.js";
 import { moveMarioX } from "../moveMarioX.js";
-import { loc_241f } from "../loc_241f.js";
+import { limitMarioHorizontalTravel } from "../limitMarioHorizontalTravel.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, MARIO_X, MARIO_Y, BOARD, MARIO_SPRITE_RECORD } from "../ram.js";
 
@@ -133,7 +133,7 @@ function craft(base, { velocity, priorX, y, board }) {
 
 // The crafted sweep: for every intended new X, split it as a fixed nonzero velocity plus
 // the prior X that makes velocity + priorX land on that new X (mod 256) — so the add is
-// real and wraps for new X < the velocity. Cross every board parity and Y band so loc_241f
+// real and wraps for new X < the velocity. Cross every board parity and Y band so limitMarioHorizontalTravel
 // yields each verdict (odd/even board, below/at-or-above the 0x58 band).
 const VELOCITY = 0x37; // fixed, nonzero, so a "dropped +velocity" twin is catchable
 const BOARDS = [0x01, 0x02]; // odd (25m/75m) and even (50m/100m) — only bit0 matters to the gate
@@ -189,7 +189,7 @@ function brokenNoVelocity(m) {
   const newX = regs.b; // BUG: should be regs.a + regs.b
   mem.write8(MARIO_X, newX);
   mem.write8(MARIO_SPRITE_RECORD, newX);
-  const { d, e } = loc_241f(m);
+  const { d, e } = limitMarioHorizontalTravel(m);
   if (e === 1) { mem.write8(MARIO_X, mem.read8(MARIO_X) - 1); return; }
   if (d === 1) { mem.write8(MARIO_X, mem.read8(MARIO_X) + 1); return; }
 }
@@ -200,7 +200,7 @@ function brokenMirrorNudge(m) {
   const newX = regs.a + regs.b;
   mem.write8(MARIO_X, newX);
   mem.write8(MARIO_SPRITE_RECORD, newX);
-  const { d, e } = loc_241f(m);
+  const { d, e } = limitMarioHorizontalTravel(m);
   if (e === 1) {
     mem.write8(MARIO_X, mem.read8(MARIO_X) - 1);
     mem.write8(MARIO_SPRITE_RECORD, mem.read8(MARIO_SPRITE_RECORD) - 1); // BUG: nudge the mirror
@@ -219,7 +219,7 @@ function brokenSwapEdges(m) {
   const newX = regs.a + regs.b;
   mem.write8(MARIO_X, newX);
   mem.write8(MARIO_SPRITE_RECORD, newX);
-  const { d, e } = loc_241f(m);
+  const { d, e } = limitMarioHorizontalTravel(m);
   if (e === 1) { mem.write8(MARIO_X, mem.read8(MARIO_X) + 1); return; } // BUG: should dec
   if (d === 1) { mem.write8(MARIO_X, mem.read8(MARIO_X) - 1); return; } // BUG: should inc
 }

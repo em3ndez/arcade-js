@@ -11,14 +11,16 @@
  *      jump cannot be steered onto a ladder or re-triggered in mid-air.
  *   2. MARIO_FREEZE_TIMER nonzero -> tickPostLandingFreeze. The few frames after a landing, in
  *      which Mario is unresponsive and the timer just counts down.
- *   3. MARIO_HAMMER_ACTIVE set -> loc_1ae6, the ground walk/climb direction pick. Note WHERE
- *      this enters: below the ladder test and below the jump test, so while a hammer is in
- *      Mario's hands he can only walk — the climb branch and the jump branch are both
- *      unreachable, and that is exactly the hammer's cost.
+ *   3. MARIO_HAMMER_ACTIVE set -> walkRightWhileHeld, the ground walk/climb direction pick. Note WHERE
+ *      this enters: ABOVE the ladder test and above the jump test (ROM 0x1AD1 reads
+ *      MARIO_HAMMER_ACTIVE, 0x1AD8 MARIO_ON_LADDER, 0x1ADF the input word), so a held hammer
+ *      claims the frame before either of those is reached — the climb branch and the jump
+ *      branch are both unreachable, and that is exactly the hammer's cost. (The gate's tooth
+ *      for this is a twin that moves the arm BELOW the jump test, which lets a hammer jump.)
  *   4. MARIO_ON_LADDER set -> climbDownWhileHeld, the Down/Up half of the climb dispatch.
  *   5. the jump press-edge bit of P1_INPUT -> initMarioJump, which flags Mario airborne and
  *      launches the arc — so from the NEXT frame test 1 takes over.
- *   6. otherwise fall through to loc_1ae6: ordinary grounded walking (and stepping onto a
+ *   6. otherwise fall through to walkRightWhileHeld: ordinary grounded walking (and stepping onto a
  *      ladder, which is what sets the flag test 4 reads on later frames).
  *
  * Every test is exact rather than a range: the three flag tests fire on the value 1 alone
@@ -71,7 +73,7 @@
  *           which forwards it two routines deep without any of them reading it, so it is dropped
  *           here. The block pointer itself is dead on every arm — the airborne handler sets its
  *           own.) All five handlers are direct-called — advanceMarioAirborneFrame (ROM 0x1BB2),
- *           tickPostLandingFreeze (0x1B55), loc_1ae6 (0x1AE6), climbDownWhileHeld (0x1B38) and
+ *           tickPostLandingFreeze (0x1B55), walkRightWhileHeld (0x1AE6), climbDownWhileHeld (0x1B38) and
  *           initMarioJump (0x1B6E) — so no address literal is left in the body.
  */
 
@@ -84,7 +86,7 @@ import {
 } from "./ram.js";
 import { advanceMarioAirborneFrame } from "./advanceMarioAirborneFrame.js"; // ROM 0x1BB2
 import { tickPostLandingFreeze } from "./tickPostLandingFreeze.js"; // ROM 0x1B55
-import { loc_1ae6 } from "./loc_1ae6.js"; // ROM 0x1AE6
+import { walkRightWhileHeld } from "./walkRightWhileHeld.js"; // ROM 0x1AE6
 import { climbDownWhileHeld } from "./climbDownWhileHeld.js"; // ROM 0x1B38
 import { initMarioJump } from "./initMarioJump.js"; // ROM 0x1B6E
 
@@ -106,7 +108,7 @@ export function dispatchMarioMovement(m) {
 
   // Hammer in hand: walking only. Entering the ground arm here skips both the ladder
   // branch and the jump branch below.
-  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return loc_1ae6(m);
+  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return walkRightWhileHeld(m);
 
   // On a ladder: the climb dispatch owns the frame.
   if (mem.read8(MARIO_ON_LADDER) === 1) return climbDownWhileHeld(m);
@@ -115,5 +117,5 @@ export function dispatchMarioMovement(m) {
   if (mem.read8(P1_INPUT) & JUMP_PRESS_EDGE) return initMarioJump(m);
 
   // Grounded and not jumping: ordinary walking / stepping onto a ladder.
-  return loc_1ae6(m);
+  return walkRightWhileHeld(m);
 }

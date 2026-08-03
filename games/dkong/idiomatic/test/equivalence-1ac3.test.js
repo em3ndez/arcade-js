@@ -71,7 +71,7 @@ import { loc_1ac3 as oracle } from "../../translated/loc_1ac3.js";
 import { dispatchMarioMovement as candidate } from "../dispatchMarioMovement.js";
 import { advanceMarioAirborneFrame } from "../advanceMarioAirborneFrame.js"; // ROM 0x1BB2
 import { tickPostLandingFreeze } from "../tickPostLandingFreeze.js"; // ROM 0x1B55
-import { loc_1ae6 } from "../loc_1ae6.js"; // ROM 0x1AE6
+import { walkRightWhileHeld } from "../walkRightWhileHeld.js"; // ROM 0x1AE6
 import { climbDownWhileHeld } from "../climbDownWhileHeld.js"; // ROM 0x1B38
 import { initMarioJump } from "../initMarioJump.js"; // ROM 0x1B6E
 import { Machine } from "../../machine.js";
@@ -395,10 +395,10 @@ function twinRelaxedAirborne(m) {
   const { mem } = m;
   if (mem.read8(MARIO_AIRBORNE) !== 0) return advanceMarioAirborneFrame(m); // BUG: was === 1
   if (mem.read8(MARIO_FREEZE_TIMER) !== 0) return tickPostLandingFreeze(m);
-  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return loc_1ae6(m);
+  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return walkRightWhileHeld(m);
   if (mem.read8(MARIO_ON_LADDER) === 1) return climbDownWhileHeld(m);
   if (mem.read8(P1_INPUT) & 0x80) return initMarioJump(m);
-  return loc_1ae6(m);
+  return walkRightWhileHeld(m);
 }
 
 /** (b) The jump edge read as bit 0 (Right) instead of bit 7. */
@@ -406,10 +406,10 @@ function twinJumpBit0(m) {
   const { mem } = m;
   if (mem.read8(MARIO_AIRBORNE) === 1) return advanceMarioAirborneFrame(m);
   if (mem.read8(MARIO_FREEZE_TIMER) !== 0) return tickPostLandingFreeze(m);
-  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return loc_1ae6(m);
+  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return walkRightWhileHeld(m);
   if (mem.read8(MARIO_ON_LADDER) === 1) return climbDownWhileHeld(m);
   if (mem.read8(P1_INPUT) & 0x01) return initMarioJump(m); // BUG: was the top bit
-  return loc_1ae6(m);
+  return walkRightWhileHeld(m);
 }
 
 /** (c) The ladder arm dropped — climbs fall through to ground movement. */
@@ -417,10 +417,10 @@ function twinNoLadder(m) {
   const { mem } = m;
   if (mem.read8(MARIO_AIRBORNE) === 1) return advanceMarioAirborneFrame(m);
   if (mem.read8(MARIO_FREEZE_TIMER) !== 0) return tickPostLandingFreeze(m);
-  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return loc_1ae6(m);
+  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return walkRightWhileHeld(m);
   // BUG: the MARIO_ON_LADDER test is gone
   if (mem.read8(P1_INPUT) & 0x80) return initMarioJump(m);
-  return loc_1ae6(m);
+  return walkRightWhileHeld(m);
 }
 
 /** (d) The hammer arm moved below the jump test — a hammer-carrying Mario could jump. */
@@ -431,7 +431,7 @@ function twinHammerBelowJump(m) {
   // BUG: the hammer test used to be here, above both of these
   if (mem.read8(MARIO_ON_LADDER) === 1) return climbDownWhileHeld(m);
   if (mem.read8(P1_INPUT) & 0x80) return initMarioJump(m);
-  return loc_1ae6(m);
+  return walkRightWhileHeld(m);
 }
 
 /** (e) Priority inverted — the post-landing freeze outranks the airborne test. */
@@ -439,10 +439,10 @@ function twinFreezeFirst(m) {
   const { mem } = m;
   if (mem.read8(MARIO_FREEZE_TIMER) !== 0) return tickPostLandingFreeze(m); // BUG: was second
   if (mem.read8(MARIO_AIRBORNE) === 1) return advanceMarioAirborneFrame(m);
-  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return loc_1ae6(m);
+  if (mem.read8(MARIO_HAMMER_ACTIVE) === 1) return walkRightWhileHeld(m);
   if (mem.read8(MARIO_ON_LADDER) === 1) return climbDownWhileHeld(m);
   if (mem.read8(P1_INPUT) & 0x80) return initMarioJump(m);
-  return loc_1ae6(m);
+  return walkRightWhileHeld(m);
 }
 
 /**

@@ -17,7 +17,7 @@
  *   - EVERY-8th GATE: most frames the post-dec counter is not a multiple of 8, so the
  *     routine just ticked and returns doing nothing else.
  *   - ON EACH 8th TICK: step the screen's two blink/animation flags — toggle bit 7 of
- *     0x6A25, and set bit 5 of 0x6919 to (a selector from loc_3009 fed A=0, B=0x6919
+ *     0x6A25, and set bit 5 of 0x6919 to (a selector from nextAnimationStep fed A=0, B=0x6919
  *     with bit 5 cleared) | 0x20. Then branch on the counter's exact value:
  *       * == 0xE0: STAGE the transition-screen sprite record (0x694C/0x694D/0x694F);
  *         its X/attr depend on MARIO_X vs 0x80.
@@ -26,7 +26,7 @@
  *         when MARIO_X < 0x80, patch that record's first byte to 0x6F.
  *       * otherwise: return.
  *
- * NOT a leaf: on the proceed arm it consults loc_3009 (idiomatic ROM 0x3009, a pure
+ * NOT a leaf: on the proceed arm it consults nextAnimationStep (idiomatic ROM 0x3009, a pure
  * bit-field selector — A in / A out, touches no memory) and on the wrap it posts via
  * enqueueTask (idiomatic ROM 0x309F). Address name kept (not promoted to English):
  * the routine is genuinely multi-purpose (pacer + cutscene staging + board advance)
@@ -49,8 +49,9 @@
  *           Hex-kept: 0x62AF (pace counter), 0x6A25 / 0x6919 (blink flags), 0x694C/
  *           0x694D/0x694F (transition-screen sprite record — 0x694C is ram.js's
  *           MARIO_SPRITE_RECORD, but here it stages a cutscene sprite, so asserting
- *           "Mario" would mislead), 0x6A20-0x6A23 (object record), 0x6388 (how-high
- *           sequence step, ram.js-rejected), 0x3A73 (ROM board table, L5+ group).
+ *           "Mario" would mislead), 0x6A20-0x6A23 (object record), 0x3A73 (ROM board
+ *           table, L5+ group). NOT hex-kept: 0x6388 is ram.js's BOARD_ADVANCE_STEP, [seen]
+ *           and grounded, and is imported and used by name below.
  */
 
 import {
@@ -63,8 +64,9 @@ import {
   HOW_HIGH_INDEX,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
+  BOARD_ADVANCE_STEP,
 } from "./ram.js";
-import { loc_3009 } from "./loc_3009.js"; // ROM 0x3009 — pure bit-field selector
+import { nextAnimationStep } from "./nextAnimationStep.js"; // ROM 0x3009 — pure bit-field selector
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F — post a task on the ring
 
 export function loc_18c6(m) {
@@ -84,7 +86,7 @@ export function loc_18c6(m) {
   // Proceed (once every 8 ticks): step the two blink/animation flags.
   mem.write8(0x6a25, mem.read8(0x6a25) ^ 0x80); // toggle bit 7 of the 0x6A25 flag
   const b6919 = mem.read8(0x6919) & 0xdf; // res 5,b — clear bit 5 for the selector input
-  const sel = loc_3009(0x00, b6919); // ROM 0x3009: A=0 in, selector out; touches no memory
+  const sel = nextAnimationStep(0x00, b6919); // ROM 0x3009: A=0 in, selector out; touches no memory
   mem.write8(0x6919, (sel.a | 0x20) & 0xff); // 0x6919 = selector | 0x20
 
   // Branch on the counter's exact value.
@@ -137,7 +139,7 @@ function advanceBoardSequence(m) {
 
   // Reset the how-high bookkeeping and hand off to sub-state 8.
   mem.write8(HOW_HIGH_INDEX, 0x00);
-  mem.write8(0x6388, 0x00); // reset the how-high sequence step
+  mem.write8(BOARD_ADVANCE_STEP, 0x00); // reset the board-advance / how-high sequence step
   mem.write8(SUBSTATE_TIMER, 0xe0); // wait 0xE0 frames…
   mem.write8(GAME_SUBSTATE, 0x08); // …then advance to sub-state 8
 }

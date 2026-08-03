@@ -27,7 +27,7 @@
  * belongs with a decrement. The twin arm at ROM 0x1FE5 is the confirmation: it is this
  * routine with the increment and the other pair of constants (1 and 0), and 1 is
  * exactly the selector snapYToGirder fires at offset 0. The second constant is a
- * direction code loc_23de (ROM 0x23DE) folds into its orientation-lookup selector as
+ * direction code advanceBarrelSpriteOrientation (ROM 0x23DE) folds into its orientation-lookup selector as
  * `3 | code`; this arm's 4 and the twin's 0 select different halves of that table.
  *
  * NOT CLAIMED: which way an object visibly moves under this arm. "Decrementing X" is
@@ -83,7 +83,7 @@ const SHARED_TAIL = 0x1ff6;
 // ROM 0x1FE5 passes 1.
 const SLOPE_STEP_SELECTOR = 255;
 
-// The direction code the tail hands to loc_23de, which uses it as `3 | code` to pick a
+// The direction code the tail hands to advanceBarrelSpriteOrientation, which uses it as `3 | code` to pick a
 // half of its orientation lookup. The twin arm passes 0.
 const ORIENTATION_DIRECTION = 4;
 

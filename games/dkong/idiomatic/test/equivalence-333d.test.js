@@ -5,7 +5,7 @@
  *
  * WHAT IS COMPARED. RAM − STACK_SCRATCH, plus the return value. The routine has ONE exit as far
  * as its caller is concerned: its own return and the two unwinds its callees perform (loc_33a1's
- * height skip, loc_236e's table miss) all land at the same continuation, ROM 0x3233, so the
+ * height skip, findOppositeLadderEnd's table miss) all land at the same continuation, ROM 0x3233, so the
  * idiomatic twin returns `undefined` on every path and the gate asserts that on both sides —
  * a stray `false` would make the seam eat a second stack word. pc/SP are NOT compared: they are
  * the Z80 stack idiom the plain JS return replaces.
@@ -51,7 +51,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_333d as oracle } from "../../translated/loc_333d.js";
 import { loc_333d } from "../loc_333d.js";
 import { loc_33a1 } from "../loc_33a1.js";
-import { loc_236e } from "../loc_236e.js";
+import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";
 import { Machine } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
 import { STACK_SCRATCH, BOARD, MARIO_Y, OBJ_STATE, OBJ_ARRAY_64, OBJ_PARAM_TABLE0 } from "../ram.js";
@@ -90,7 +90,7 @@ const GUARD_MIN_Y = 89; // at or below this the guard lets the routine run (loc_
 // double unwind's pops above.
 const SAFE_SP = 0x6bf2;
 
-// loc_236e's paired-slot offsets, and a table filler that matches no key used here.
+// findOppositeLadderEnd's paired-slot offsets, and a table filler that matches no key used here.
 const NEAR = 0x15;
 const FAR = 0x2a;
 const FILLER = 0xee;
@@ -154,7 +154,7 @@ function attractBase(frames = 300) {
 }
 
 /**
- * Plant a controlled type-0 object table so loc_236e's outcome is chosen rather than hoped for.
+ * Plant a controlled type-0 object table so findOppositeLadderEnd's outcome is chosen rather than hoped for.
  * `entries` is a list of { off, near, far }: a key byte at OBJ_PARAM_TABLE0+off whose two paired
  * slots hold `near` and `far`. Everything else in the scanned window is filler.
  */
@@ -305,7 +305,7 @@ test("EQUAL (captured): loc_333d == oracle on every real dispatch", () => {
 
 // -- 2. EQUAL (crafted): the arms attract never reaches -----------------------
 
-// A key/table pair that makes loc_236e report the FAR slot (tag 0 -> ascend): the discriminator
+// A key/table pair that makes findOppositeLadderEnd report the FAR slot (tag 0 -> ascend): the discriminator
 // is the object's biased Y base, planted in the far slot; the near slot is the byte handed back.
 const farSlotEntry = (y, back) => [{ off: 2, near: back, far: u8(y + Y_BASE_BIAS) }];
 // ... and the mirror, reporting the NEAR slot (tag 1 -> descend).
@@ -514,7 +514,7 @@ function lookup(m, at) {
   regs.d = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS);
   regs.a = mem8[at(RECORD_X)];
   regs.bc = TABLE_ENTRIES;
-  return loc_236e(m);
+  return findOppositeLadderEnd(m);
 }
 
 /** (a) the twin-merge trap: the descent gets the ascent's arrival mark. */
@@ -565,7 +565,7 @@ function brokenNoLookupBias(m) {
   regs.d = mem8[at(RECORD_Y_BASE)]; // BUG: no bias
   regs.a = mem8[at(RECORD_X)];
   regs.bc = TABLE_ENTRIES;
-  if (!loc_236e(m)) return;
+  if (!findOppositeLadderEnd(m)) return;
   mem8[at(RECORD_DESTINATION)] = regs.b;
   if (regs.a === 0) { mem8[at(OBJ_STATE)] = STATE_ASCEND; return; }
   if (mem8[at(RECORD_Y_BASE)] >= mem8[MARIO_Y]) return;

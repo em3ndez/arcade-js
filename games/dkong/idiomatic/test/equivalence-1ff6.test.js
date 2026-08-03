@@ -64,7 +64,7 @@ import { loc_202f as oracle202f } from "../../translated/loc_202f.js";
 import { loc_21ba as oracle21ba } from "../../translated/loc_21ba.js";
 import { loc_2038 as oracle2038 } from "../../translated/loc_2038.js";
 import { loc_1ff6 } from "../loc_1ff6.js";
-import { loc_23de } from "../loc_23de.js";
+import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
 import { snapYToGirder, snapYToGirderFromRegisters } from "../snapYToGirder.js";
 import { OBJ_X, OBJ_Y, STACK_SCRATCH } from "../ram.js";
 
@@ -90,7 +90,7 @@ const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 
 /** The two already-idiomatic callees, wired at their ROM addresses. Both runs of case 4 get these. */
-const IDIOMATIC_CALLEES = { "2333": snapYToGirderFromRegisters, "23de": loc_23de };
+const IDIOMATIC_CALLEES = { "2333": snapYToGirderFromRegisters, "23de": advanceBarrelSpriteOrientation };
 
 /**
  * Copy a machine's whole observable state into a FRESH machine carrying `overrides` and nothing
@@ -302,7 +302,7 @@ function twinNoSnapOffset(m, slopeStep = m.regs.b) {
     return m.call(0x215f);
   }
   mem8[record + OBJ_Y] = snapYToGirder(x, mem8[record + OBJ_Y], slopeStep);
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   m.push16(0x2017);
   if (!m.call(0x24b4)) return undefined;
   const xNow = mem8[record + OBJ_X];
@@ -328,7 +328,7 @@ function twinNoAccumulatorClear(m, slopeStep = m.regs.b) {
   const x = mem8[record + OBJ_X];
   if ((x & 7) === 3 || x < 228) return loc_1ff6(m, slopeStep);
   mem8[record + OBJ_Y] = u8(snapYToGirder(x, u8(mem8[record + OBJ_Y] - 3), slopeStep) + 3);
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   m.push16(0x2017);
   if (!m.call(0x24b4)) return undefined;
   const xNow = mem8[record + OBJ_X];
@@ -350,7 +350,7 @@ function twinNoGateBracket(m, slopeStep = m.regs.b) {
     return m.call(0x215f);
   }
   mem8[record + OBJ_Y] = u8(snapYToGirder(x, u8(mem8[record + OBJ_Y] - 3), slopeStep) + 3);
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   if (!m.call(0x24b4)) return undefined; // bracket dropped
   const xNow = mem8[record + OBJ_X];
   if (xNow < 28) return m.call(0x202f);
@@ -372,7 +372,7 @@ function twinIgnoreGateTakeover(m, slopeStep = m.regs.b) {
     return m.call(0x215f);
   }
   mem8[record + OBJ_Y] = u8(snapYToGirder(x, u8(mem8[record + OBJ_Y] - 3), slopeStep) + 3);
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   m.push16(0x2017);
   m.call(0x24b4); // verdict discarded
   const xNow = mem8[record + OBJ_X];

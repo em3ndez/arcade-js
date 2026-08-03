@@ -19,10 +19,10 @@
  * SETTING OFF (the on-foot half). loc_33a1 guards it, and the one thing that stops this routine is
  * its height line: on 25m, 50m and 75m an object that has risen above that line abandons loc_333d
  * outright, while on 100m the height test does not apply at all and the routine always proceeds.
- * Past the guard the object's X is looked up in the type-0 object table by loc_236e, whose entries
+ * Past the guard the object's X is looked up in the type-0 object table by findOppositeLadderEnd, whose entries
  * pair each key with TWO bytes; the discriminator handed to it is the object's own Y base, so the
  * pair is a pair of heights and
- * loc_236e returns whichever one the object is NOT standing on. That byte becomes the destination
+ * findOppositeLadderEnd returns whichever one the object is NOT standing on. That byte becomes the destination
  * (+0x1f) and the tag becomes the direction: from the far slot the object goes up, from the near
  * slot it goes down — which is what makes the near slot of a pair the higher of the two. The
  * descent is conditional where the ascent is not: it is taken only while the object's Y base is
@@ -68,14 +68,14 @@
  *           trace diverges at frame 1080, at 0x6019, on the NMI shift alone.
  * NAMES:    MARIO_Y and OBJ_STATE from ram.js. The record's other fields (+0x0e, +0x0f, +0x19,
  *           +0x1d, +0x1f) have no ram.js name and stay raw in-record offsets, as +0x0f does in
- *           loc_33a1. BOARD is read inside loc_33a1 and OBJ_PARAM_TABLE0 inside loc_236e; neither
+ *           loc_33a1. BOARD is read inside loc_33a1 and OBJ_PARAM_TABLE0 inside findOppositeLadderEnd; neither
  *           is touched here.
  */
 
 import { u8 } from "../../../core/int.js";
 import { MARIO_Y, OBJ_STATE } from "./ram.js";
 import { loc_33a1 } from "./loc_33a1.js"; // ROM 0x33A1 — the board gate + height guard
-import { loc_236e } from "./loc_236e.js"; // ROM 0x236E — the keyed lookup that returns the other of a pair
+import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js"; // ROM 0x236E — the keyed lookup that returns the other of a pair
 
 // Record fields ram.js does not name. +0x0e and +0x0f are the object's two axes (loc_33ad steps
 // +0x0e as its working X; loc_33a1 tests +0x0f as its Y base).
@@ -101,7 +101,7 @@ const TABLE_ENTRIES = 21;
  * @param {object} m  the machine.
  * @param {number} recordBase  the object record to run, which arrives in the machine's record
  *   pointer. It must equal that pointer: loc_33a1 re-reads the pointer from the machine to run
- *   its own height test on the same record, and loc_236e takes its inputs in registers.
+ *   its own height test on the same record, and findOppositeLadderEnd takes its inputs in registers.
  */
 export function loc_333d(m, recordBase = m.regs.ix /* oracle-boundary default: caller 0x3202 still frozen */) {
   const { regs, mem8 } = m;
@@ -124,7 +124,7 @@ export function loc_333d(m, recordBase = m.regs.ix /* oracle-boundary default: c
   regs.d = u8(mem8[at(RECORD_Y_BASE)] + Y_BASE_BIAS); // the height the object is standing at
   regs.a = mem8[at(RECORD_X)]; // which pair of heights to look up
   regs.bc = TABLE_ENTRIES;
-  if (!loc_236e(m)) return; // this X is paired with no heights — nothing to set off for
+  if (!findOppositeLadderEnd(m)) return; // this X is paired with no heights — nothing to set off for
 
   const standingOnFarSlot = regs.a === 0; // the tag: which of the pair the object was on
   mem8[at(RECORD_DESTINATION)] = regs.b; // and the byte handed back is always the other one

@@ -69,7 +69,7 @@
 import { MARIO_ACTIVE, SND_TRIGGER } from "./ram.js";
 
 import { dispatchEffectState } from "./dispatchEffectState.js"; // ROM 0x1DBD
-import { loc_1e8c } from "./loc_1e8c.js"; // ROM 0x1E8C
+import { runHitEffectInsteadOfPlay } from "./runHitEffectInsteadOfPlay.js"; // ROM 0x1E8C
 import { dispatchMarioMovement } from "./dispatchMarioMovement.js"; // ROM 0x1AC3
 import { loc_2c8f } from "./loc_2c8f.js"; // ROM 0x2C8F
 import { scheduleBarrelRelease } from "./scheduleBarrelRelease.js"; // ROM 0x2C03
@@ -80,12 +80,12 @@ import { raisePeriodicObjectSpawnRequests } from "./raisePeriodicObjectSpawnRequ
 import { driveHammerSprite } from "./driveHammerSprite.js"; // ROM 0x2ED4
 import { dispatch50mObjectState } from "./dispatch50mObjectState.js"; // ROM 0x2207
 import { collectEdgeRivet } from "./collectEdgeRivet.js"; // ROM 0x1A33
-import { loc_2a85 } from "./loc_2a85.js"; // ROM 0x2A85
+import { startMarioFallWhenGroundGivesWay } from "./startMarioFallWhenGroundGivesWay.js"; // ROM 0x2A85
 import { beginMarioFall } from "./beginMarioFall.js"; // ROM 0x1F46
-import { loc_26fa } from "./loc_26fa.js"; // ROM 0x26FA
+import { service75mBoard } from "./service75mBoard.js"; // ROM 0x26FA
 import { update50mConveyorObjects } from "./update50mConveyorObjects.js"; // ROM 0x25F2
 import { scanObjectsAtMarioX } from "./scanObjectsAtMarioX.js"; // ROM 0x19DA
-import { loc_03fb } from "./loc_03fb.js"; // ROM 0x03FB
+import { slide50mSpriteRowAndServiceColorCycle } from "./slide50mSpriteRowAndServiceColorCycle.js"; // ROM 0x03FB
 import { killMarioOnObjectCollision } from "./killMarioOnObjectCollision.js"; // ROM 0x2808
 import { recordHammerHitOnObject } from "./recordHammerHitOnObject.js"; // ROM 0x281D
 import { checkBoardWonByType } from "./checkBoardWonByType.js"; // ROM 0x1E57
@@ -113,7 +113,7 @@ export function loc_197a(m) {
   dispatchEffectState(m);
 
   // An effect is playing: this frame belongs to it and the rest of the update is off.
-  if (!loc_1e8c(m)) return;
+  if (!runHitEffectInsteadOfPlay(m)) return;
 
   dispatchMarioMovement(m);
 
@@ -132,12 +132,12 @@ export function loc_197a(m) {
   driveHammerSprite(m);
   dispatch50mObjectState(m);
   collectEdgeRivet(m);
-  loc_2a85(m);
+  startMarioFallWhenGroundGivesWay(m);
   beginMarioFall(m);
-  loc_26fa(m);
+  service75mBoard(m);
   update50mConveyorObjects(m);
   scanObjectsAtMarioX(m);
-  loc_03fb(m);
+  slide50mSpriteRowAndServiceColorCycle(m);
   killMarioOnObjectCollision(m);
   recordHammerHitOnObject(m);
 

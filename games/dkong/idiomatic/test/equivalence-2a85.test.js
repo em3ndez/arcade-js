@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2a85 (ROM 0x2A85) — the grounded foot-contact tile check that
+ * Equivalence test for startMarioFallWhenGroundGivesWay (ROM 0x2A85) — the grounded foot-contact tile check that
  * hands off to the slope-footing fall decision.
  *
- * loc_2a85 runs while Mario is in plain grounded contact: it early-outs on three gates
+ * startMarioFallWhenGroundGivesWay runs while Mario is in plain grounded contact: it early-outs on three gates
  * (on-ladder, airborne, edge-reposition), then samples the tilemap cell under his foot and,
  * if that tile is not a solid flat girder, defers to decideSlopeGirderFooting. Its only
  * memory-observable effect on any path is the one-shot MARIO_START_FALL (0x6221) trigger the
@@ -26,7 +26,7 @@
  *           unconditionally; otherwise the tile one row up decides.
  *
  *   1. REACHABILITY / EQUAL (captured) — hook 0x2A85 in a real boot/attract run, clone at
- *      each dispatch, and confirm loc_2a85 == oracle (RAM − STACK_SCRATCH) on every real state
+ *      each dispatch, and confirm startMarioFallWhenGroundGivesWay == oracle (RAM − STACK_SCRATCH) on every real state
  *      the game produces. The attract tape reaches the keeps-footing / gate exits; the
  *      slope hand-off is a frontier the crafted entries carry.
  *   2. EQUAL (crafted) — poke gate cells, Mario X/Y, and the foot/upper tiles identically on
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2a85 as oracle } from "../../translated/loc_2a85.js";
-import { loc_2a85 } from "../loc_2a85.js";
+import { startMarioFallWhenGroundGivesWay } from "../startMarioFallWhenGroundGivesWay.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { decideSlopeGirderFooting } from "../decideSlopeGirderFooting.js";
 import {
@@ -164,7 +164,7 @@ function runPair(base, opts, candidate) {
 
 // -- 1. REACHABILITY / EQUAL (captured) ---------------------------------------
 
-test("EQUAL (captured): loc_2a85 == oracle on every real 0x2A85 dispatch", () => {
+test("EQUAL (captured): startMarioFallWhenGroundGivesWay == oracle on every real 0x2A85 dispatch", () => {
   const caps = [];
   let count = 0;
   const orig = new Machine(ROM).routines.get(TARGET);
@@ -183,7 +183,7 @@ test("EQUAL (captured): loc_2a85 == oracle on every real 0x2A85 dispatch", () =>
     const a = cap.clone(); a.nextNmi = Infinity; a.nextBoundary = Infinity;
     const b = cap.clone(); b.nextNmi = Infinity; b.nextBoundary = Infinity;
     oracle(a);
-    loc_2a85(b);
+    startMarioFallWhenGroundGivesWay(b);
     const diff = firstRamDiff(a, b);
     assert.equal(diff, null, diff && `real dispatch diverges at ${hx(diff.addr)} (oracle=${diff.a} cand=${diff.b})`);
     if (a.mem.read8(MARIO_START_FALL) !== cap.mem.read8(MARIO_START_FALL)) sawFall++; else sawQuiet++;
@@ -224,7 +224,7 @@ test("EQUAL (crafted): gate returns, keeps-footing, and both slope arms all matc
   ];
 
   for (const { name, opts, write } of cases) {
-    const { diff, oracleAfter, entry } = runPair(base, opts, loc_2a85);
+    const { diff, oracleAfter, entry } = runPair(base, opts, startMarioFallWhenGroundGivesWay);
     assert.equal(diff, null, `${name}: RAM diverges at ${diff ? hx(diff.addr) : "?"} (oracle=${diff?.a} cand=${diff?.b})`);
     if (write) {
       // The slope hand-off genuinely reached triggerMarioFall.
@@ -239,7 +239,7 @@ test("EQUAL (crafted): gate returns, keeps-footing, and both slope arms all matc
 
 // -- 3. TEETH -----------------------------------------------------------------
 //
-// Each twin is loc_2a85 with a single injected bug; it reaches the SAME idiomatic slope check
+// Each twin is startMarioFallWhenGroundGivesWay with a single injected bug; it reaches the SAME idiomatic slope check
 // on its fall branches, so a caught twin diverges on MARIO_START_FALL — never a spurious cell.
 
 function probeOf(m) {

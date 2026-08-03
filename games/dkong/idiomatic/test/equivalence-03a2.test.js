@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_03a2 (ROM 0x03A2) — the three-deep-gated periodic event
+ * Equivalence test for animateFixedHazardAndReleaseFire (ROM 0x03A2) — the three-deep-gated periodic event
  * servicer (rst 0x30 board gate, rst 0x10 alive gate, a bit gate + two down-counters,
  * two sprite arms).
  *
  * sub_03a2 is CALLED EVERY main-loop pass (mainLoop_02bd `call 0x03a2`) and it dispatches
  * loc_03f2 many times per attract, so it runs constantly — but attract only ever exercises
  * a slice of its arms. The oracle `m.call`s three routines (0x0030, 0x0010, 0x03f2) with
- * `push16` brackets and threads its own multi-way `ret`s; loc_03a2 DIRECT-calls the three
+ * `push16` brackets and threads its own multi-way `ret`s; animateFixedHazardAndReleaseFire DIRECT-calls the three
  * idiomatic callees (each memory-equivalent to its oracle) and models no stack. Both sides
  * therefore reach identical work RAM, and the ONLY residual difference is the dead
  * STACK_SCRATCH the oracle's push16/ret churn writes — excluded by the memory-equivalence
@@ -21,7 +21,7 @@
  *
  *   0. REACHABILITY — 0x03a2 is dispatched during boot/attract.
  *   1. EQUAL (captured) — hook 0x03a2 in a real attract run, clone at each dispatch, and
- *      confirm loc_03a2 == oracle (RAM − STACK_SCRATCH, pc, SP) on every real state.
+ *      confirm animateFixedHazardAndReleaseFire == oracle (RAM − STACK_SCRATCH, pc, SP) on every real state.
  *   2. EQUAL (crafted) — poke the gates/counters identically on both sides to drive every
  *      path: the three gate-closed skips (board, alive, event-bit), the prescaler ret-nz,
  *      the phase-bit0 ret-nc, arm A (bit1 clear), arm B ret-nz, and arm B full (the
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03a2 as oracle } from "../../translated/loc_03a2.js";
-import { loc_03a2 } from "../loc_03a2.js";
+import { animateFixedHazardAndReleaseFire } from "../animateFixedHazardAndReleaseFire.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, SPIN_COUNT } from "../ram.js";
 // The teeth twins reuse the real callees (their faithfulness is proven by their own gates,
@@ -58,7 +58,7 @@ const test = ROM_PRESENT
 const TARGET = 0x03a2;
 const RET_ADDR = 0x02e1; // the main-loop site right after `call 0x03a2` (02de, 3 bytes)
 
-// Cells loc_03a2 touches directly — all examined-and-UNNAMED in ram.js, so kept hex here.
+// Cells animateFixedHazardAndReleaseFire touches directly — all examined-and-UNNAMED in ram.js, so kept hex here.
 const EVENT_GATE = 0x6350;   // bit0 SET -> skip
 const PRESCALER = 0x62b8;    // 4-frame prescaler
 const PHASE_BITS = 0x62b9;   // bit0 continue, bit1 arm select
@@ -108,7 +108,7 @@ function runOracle(entry) {
 
 /**
  * Run a candidate on a fresh clone, then model its terminal `ret` with one m.ret() so pc +
- * SP match the oracle's (loc_03a2 replaces the Z80 stack with the JS call stack, so it does
+ * SP match the oracle's (animateFixedHazardAndReleaseFire replaces the Z80 stack with the JS call stack, so it does
  * not touch pc/SP itself). The oracle nets exactly one caller-return pop on every path.
  */
 function runCandidate(entry, fn) {
@@ -177,7 +177,7 @@ test("REACHABILITY: 0x03a2 is dispatched during boot/attract", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_03a2 == oracle on every real dispatch", () => {
+test("EQUAL (captured): animateFixedHazardAndReleaseFire == oracle on every real dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 96) caps.push(mm.clone());
@@ -195,7 +195,7 @@ test("EQUAL (captured): loc_03a2 == oracle on every real dispatch", () => {
       (entry.regs.sp - 2) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
       `oracle's push target must sit inside STACK_SCRATCH (SP=${hx(entry.regs.sp)})`,
     );
-    const diffs = contractDiffs(entry, loc_03a2);
+    const diffs = contractDiffs(entry, animateFixedHazardAndReleaseFire);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     // Classify for reporting: did the body run (any non-stack write) or was it a skip?
     if (changedAddrs(entry, runOracle(entry)).length > 0) bodyRuns++; else skips++;
@@ -230,7 +230,7 @@ test("EQUAL (crafted): every gate/arm path matches the oracle", () => {
 
   for (const { name, opts, writes, body } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_03a2);
+    const diffs = contractDiffs(entry, animateFixedHazardAndReleaseFire);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     const after = runOracle(entry);

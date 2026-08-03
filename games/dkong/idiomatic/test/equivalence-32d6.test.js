@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for sub_32d6 (ROM 0x32D6) — an object's interval down-counter
- * with a position-gated reload, tailing into the periodic-timer tick loc_330f.
+ * with a position-gated reload, tailing into the periodic-timer tick tickFireTimerAndRerollDirection.
  *
- * 0x32D6 sits on the (still-untranslated) entry_3202 chain and is NEVER dispatched
- * during attract (0 in 2500 frames — see REACHABILITY below), so there are no real
- * captured dispatches to replay. The gate is therefore CRAFTED: a real boot/attract
+ * 0x32D6 hangs off the entry_3202 chain and is NEVER dispatched during attract
+ * (re-derived: 0 in 2500 frames — see REACHABILITY below), so there are no real
+ * captured dispatches to replay. ★ CORRECTION: this header used to call that chain
+ * "(still-untranslated)". It is not — ROM 0x3202 has a frozen oracle AND a readable
+ * twin, and is itself dispatched 481x in the same 2500 frames; what is true is only
+ * that no attract path reaches 0x32D6 through it. The gate is therefore CRAFTED: a real boot/attract
  * base machine, cloned per case, with a surgical poke of the object record and
- * MARIO_Y that forces each of the five exit paths, crossed with loc_330f's own
+ * MARIO_Y that forces each of the five exit paths, crossed with tickFireTimerAndRerollDirection's own
  * timer/random arms so the tail is exercised both ways. Every case is compared
  * oracle-vs-candidate on the memory-equivalence contract (RAM − STACK_SCRATCH).
  *
@@ -21,7 +24,7 @@
  *   2. EQUAL (crafted) — all five exit paths (still-counting, step-to-zero tick,
  *      counter-zero-not-armed tick, armed+borrow tick, armed+no-borrow reload), the
  *      MARIO_Y == limit boundary (proves `<` not `<=`), the arm != 1 check (arm==2),
- *      loc_330f's timer-expiry random bit both ways, and a second record base — each
+ *      tickFireTimerAndRerollDirection's timer-expiry random bit both ways, and a second record base — each
  *      identical to the oracle, with a coverage assertion that the intended path ran.
  *   3. TEETH — a twin that reads a STALE zero-test (the exact bug the oracle warns
  *      about): it decrements the counter but never takes the hit-zero branch. The
@@ -36,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_32d6 as oracle } from "../../translated/loc_32d6.js";
 import { loc_32d6 as candidate } from "../loc_32d6.js";
-import { loc_330f } from "../loc_330f.js";
+import { tickFireTimerAndRerollDirection } from "../tickFireTimerAndRerollDirection.js";
 import { Machine } from "../../machine.js";
 import { MARIO_Y, RANDOM, STACK_SCRATCH } from "../ram.js";
 
@@ -56,7 +59,7 @@ const SAFE_SP = 0x6bf8;
 // Object-record field offsets (relative to the record pointer / IX live-in).
 const F_STATE = 0x0d;
 const F_LIMIT = 0x0f;
-const F_TIMER = 0x16; // loc_330f's periodic timer
+const F_TIMER = 0x16; // tickFireTimerAndRerollDirection's periodic timer
 const F_EXIT19 = 0x19;
 const F_COUNTER = 0x1c;
 const F_ARM = 0x1d;
@@ -99,7 +102,7 @@ function attractBase(frames = 180) {
 }
 
 // Craft one dispatch: clone the base, aim IX at a record, set a safe stack, and poke
-// the record fields + MARIO_Y + RANDOM the routine (and its loc_330f tail) read.
+// the record fields + MARIO_Y + RANDOM the routine (and its tickFireTimerAndRerollDirection tail) read.
 function craft(base, o) {
   const m = base.clone();
   m.regs.sp = SAFE_SP;
@@ -110,7 +113,7 @@ function craft(base, o) {
   m.mem.write8(at(F_LIMIT), o.limit ?? 0);
   m.mem.write8(at(F_STATE), o.state ?? 0x07);   // sentinel: any 0/1 seen was WRITTEN
   m.mem.write8(at(F_EXIT19), o.exit19 ?? 0x55); // nonzero: clearing to 0 is observable
-  m.mem.write8(at(F_TIMER), o.timer ?? 0x05);   // loc_330f timer (nonzero => plain dec)
+  m.mem.write8(at(F_TIMER), o.timer ?? 0x05);   // tickFireTimerAndRerollDirection timer (nonzero => plain dec)
   m.mem.write8(MARIO_Y, o.marioY ?? 0);
   m.mem.write8(RANDOM, o.random ?? 0);
   return m;
@@ -145,7 +148,7 @@ const CASES = [
       assert.equal(m.mem.read8(at(F_COUNTER)), 0x04, "counter should step 5 -> 4");
       assert.equal(m.mem.read8(at(F_STATE)), 0x00, "state should reset to 0");
       assert.equal(m.mem.read8(at(F_EXIT19)), 0x55, "exit field must NOT be cleared (no tick)");
-      assert.equal(m.mem.read8(at(F_TIMER)), 0x05, "timer untouched — loc_330f did not run");
+      assert.equal(m.mem.read8(at(F_TIMER)), 0x05, "timer untouched — tickFireTimerAndRerollDirection did not run");
     },
   },
   {
@@ -154,15 +157,15 @@ const CASES = [
     expect: (m, at) => {
       assert.equal(m.mem.read8(at(F_COUNTER)), 0x00, "counter cleared on the tick-out branch");
       assert.equal(m.mem.read8(at(F_EXIT19)), 0x00, "exit field cleared");
-      assert.equal(m.mem.read8(at(F_TIMER)), 42, "loc_330f reloaded (43) then decremented to 42");
-      assert.equal(m.mem.read8(at(F_STATE)), 0x01, "loc_330f advanced state on the set random bit");
+      assert.equal(m.mem.read8(at(F_TIMER)), 42, "tickFireTimerAndRerollDirection reloaded (43) then decremented to 42");
+      assert.equal(m.mem.read8(at(F_STATE)), 0x01, "tickFireTimerAndRerollDirection advanced state on the set random bit");
     },
   },
   {
     name: "counter zero, not armed (arm=0) -> tick only",
     opts: { ix: IX_A, counter: 0x00, arm: 0x00, timer: 0x09, exit19: 0x44 },
     expect: (m, at) => {
-      assert.equal(m.mem.read8(at(F_TIMER)), 0x08, "loc_330f decremented the timer");
+      assert.equal(m.mem.read8(at(F_TIMER)), 0x08, "tickFireTimerAndRerollDirection decremented the timer");
       assert.equal(m.mem.read8(at(F_ARM)), 0x00, "arm untouched on the not-armed path");
       assert.equal(m.mem.read8(at(F_EXIT19)), 0x44, "exit field NOT cleared on the not-armed path");
       assert.equal(m.mem.read8(at(F_COUNTER)), 0x00, "counter stays zero");
@@ -172,7 +175,7 @@ const CASES = [
     name: "counter zero, arm=2 (not 1) -> tick only",
     opts: { ix: IX_A, counter: 0x00, arm: 0x02, timer: 0x03, exit19: 0x44 },
     expect: (m, at) => {
-      assert.equal(m.mem.read8(at(F_TIMER)), 0x02, "loc_330f ran (arm != 1 takes the tick path)");
+      assert.equal(m.mem.read8(at(F_TIMER)), 0x02, "tickFireTimerAndRerollDirection ran (arm != 1 takes the tick path)");
       assert.equal(m.mem.read8(at(F_ARM)), 0x02, "arm untouched (only the armed==1 path disarms)");
     },
   },
@@ -182,7 +185,7 @@ const CASES = [
     expect: (m, at) => {
       assert.equal(m.mem.read8(at(F_ARM)), 0x00, "armed path disarms");
       assert.equal(m.mem.read8(at(F_EXIT19)), 0x00, "exit field cleared on the borrow tick-out");
-      assert.equal(m.mem.read8(at(F_TIMER)), 42, "loc_330f reloaded then decremented to 42");
+      assert.equal(m.mem.read8(at(F_TIMER)), 42, "tickFireTimerAndRerollDirection reloaded then decremented to 42");
       assert.equal(m.mem.read8(at(F_STATE)), 0x00, "state stays 0 on the clear random bit");
     },
   },
@@ -194,7 +197,7 @@ const CASES = [
       assert.equal(m.mem.read8(at(F_COUNTER)), 0xff, "counter reloaded to 0xFF");
       assert.equal(m.mem.read8(at(F_STATE)), 0x00, "state reset to 0");
       assert.equal(m.mem.read8(at(F_EXIT19)), 0x66, "exit field NOT cleared on the reload path");
-      assert.equal(m.mem.read8(at(F_TIMER)), 0x05, "timer untouched — loc_330f did not run");
+      assert.equal(m.mem.read8(at(F_TIMER)), 0x05, "timer untouched — tickFireTimerAndRerollDirection did not run");
     },
   },
   {
@@ -211,7 +214,7 @@ const CASES = [
     expect: (m, at) => {
       assert.equal(m.mem.read8(at(F_ARM)), 0x00, "armed path disarms at the second base too");
       assert.equal(m.mem.read8(at(F_EXIT19)), 0x00, "exit field cleared at the second base");
-      assert.equal(m.mem.read8(at(F_TIMER)), 42, "loc_330f ran at the second base");
+      assert.equal(m.mem.read8(at(F_TIMER)), 42, "tickFireTimerAndRerollDirection ran at the second base");
       assert.equal(m.mem.read8(at(F_STATE)), 0x01, "state advanced on the set random bit");
     },
   },
@@ -249,7 +252,7 @@ function brokenStaleZeroTest(m) {
   const clearExitAndTick = () => {
     mem.write8(at(F_EXIT19), 0);
     mem.write8(at(F_COUNTER), 0);
-    loc_330f(m);
+    tickFireTimerAndRerollDirection(m);
   };
   const counter = mem.read8(at(F_COUNTER));
   if (counter !== 0) {
@@ -258,7 +261,7 @@ function brokenStaleZeroTest(m) {
     return;
   }
   if (mem.read8(at(F_ARM)) !== 1) {
-    loc_330f(m);
+    tickFireTimerAndRerollDirection(m);
     return;
   }
   mem.write8(at(F_ARM), 0);

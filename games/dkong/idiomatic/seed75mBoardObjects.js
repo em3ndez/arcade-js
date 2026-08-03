@@ -42,10 +42,18 @@
  *  10. Block-copy the 16-byte inline ROM data table at 0x1121 (immediately after this
  *      routine's code) to 0x6970 (an unnamed slot inside SPRITE_BUFFER).
  *
- * The precise identity of the three object blocks (which 75m actors they are —
- * elevators/springs/fireballs) is not independently established; OBJ_ARRAY_64 / OBJ_ARRAY_65 /
- * OBJ_ARRAY_66 (0x6400/0x6500/0x6600) are address-keyed structural names in ram.js, NOT actor
- * identities. The name describes the MECHANISM and the board, exactly at the
+ * ★ CORRECTION: an earlier version of this header said all three seeded blocks were of
+ * unestablished identity — "OBJ_ARRAY_64 / OBJ_ARRAY_65 / OBJ_ARRAY_66 are address-keyed
+ * structural names in ram.js, NOT actor identities". That is no longer true of the FIRST of
+ * them. **OBJ_ARRAY_64 (0x6400) IS the FIRES**, grounded on the real ROM under MAME 0.288 on a
+ * natural zero-poke run (scratchpad/grounding-object-arrays.md): zeroing the records' +0
+ * erases the fireball from the screen entirely while the barrels are statistically untouched,
+ * and boxes drawn at the logged positions land on a fireball and nothing else on all four
+ * boards. So step 9 above seeds TWO FIRES, live for every one of 75m's gameplay frames — which
+ * is exactly what the census measured (0x6400 max live = 2 across 2176 gameplay frames on this
+ * board). OBJ_ARRAY_65 (0x6500) and OBJ_ARRAY_66 (0x6600) are still address-keyed structural
+ * names and NOT actor identities; the "springs"/"elevators" readings for them are [code].
+ * The name describes the MECHANISM and the board, exactly at the
  * evidence bar of its callee seedObjectBlockSprites — object-record blocks (they feed
  * the same gather/seed helpers with the same +3/+7/+8/+5 field layout) plus their
  * sprite mirror in SPRITE_BUFFER. 75m == board 3 is corroborated by the sibling board

@@ -90,8 +90,8 @@
  *           name at that offset), OBJ_Y (+0x05), OBJ_HIT_EXTENT_X (+0x09), OBJ_HIT_EXTENT_Y
  *           (+0x0A). The 0x6350 hit marker stays hex because ram.js genuinely does not name it —
  *           the named collision group starts one byte later at COLLIDED_OBJECT_BASE (0x6351). It is
- *           SHARED with the effect-sequence gate: this routine is its only nonzero writer, loc_1e8c
- *           and loc_03a2 read it, and animateEffectSpriteThenRearmEffect's teardown is the only
+ *           SHARED with the effect-sequence gate: this routine is its only nonzero writer, runHitEffectInsteadOfPlay
+ *           and animateFixedHazardAndReleaseFire read it, and animateEffectSpriteThenRearmEffect's teardown is the only
  *           thing that clears it. The 0x283E return marker is a ROM code address, not work RAM.
  */
 
@@ -163,8 +163,8 @@ export function recordHammerHitOnObject(m) {
   // and the array's base.
   // 0x6350 — the hit-effect latch, genuinely unnamed in ram.js (the named collision group starts
   // one byte later, at COLLIDED_OBJECT_BASE 0x6351). Whole-ROM scan: written ONLY here (always
-  // nonzero — the `and a / ret z` two instructions earlier guarantees it), read by loc_1e8c and
-  // loc_03a2, and cleared only by animateEffectSpriteThenRearmEffect's teardown. Setting it here
+  // nonzero — the `and a / ret z` two instructions earlier guarantees it), read by runHitEffectInsteadOfPlay and
+  // animateFixedHazardAndReleaseFire, and cleared only by animateEffectSpriteThenRearmEffect's teardown. Setting it here
   // suspends gameplay from the NEXT frame until that teardown reopens the gate.
   mem.write8(0x6350, overlap);
   mem.write8(COLLIDED_OBJECT_INDEX, mem.read8(OBJ_SEARCH_COUNT) - regs.b);

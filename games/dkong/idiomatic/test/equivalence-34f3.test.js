@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_34f3 (ROM 0x34F3) — the five-object -> five-sprite-record
+ * Equivalence test for publishFireSprites (ROM 0x34F3) — the five-object -> five-sprite-record
  * gather.
  *
- * loc_34f3 walks the five-record object array OBJ_ARRAY_64 (stride 0x20) and, for each
+ * publishFireSprites walks the five-record object array OBJ_ARRAY_64 (stride 0x20) and, for each
  * record whose occupancy flag (+0) is non-zero, copies fields +3/+7/+8/+5 into a 4-byte
  * destination record at 0x69D0 (bytes +0/+1/+2/+3). Empty objects are skipped but still
  * consume a destination record so records stay object-aligned. It calls nothing and its
  * observable effect is memory (the 0x69D0 region); the oracle's terminal return is dead
  * ABI, so the contract is memory-only (RAM over the whole dump).
  *
- * The oracle is NOT wired into the live dispatcher (its sole caller, ROM 0x30F6, is not
- * translated), so there are NO real captured dispatches. The gate is therefore built
- * from CRAFTED entries on a realistic attract base:
+ * The routine IS reached in a live run: ROM 0x30F6 is not a routine, it is the `call 0x34f3`
+ * INSIDE loc_30ed, and loc_30ed calls publishFireSprites directly today. (An earlier version of
+ * this header said its "sole caller, ROM 0x30F6, is not translated" and that the routine was
+ * unwired; both halves were stale.) Its natural traffic is sourced from loc_30ed's own GATE —
+ * 1532 natural loc_30ed dispatches over 4000 attract frames, 481 of them on the full arm that
+ * reaches here. The gate below is nonetheless CRAFTED rather than captured, because the crafted
+ * set is what proves the equivalence: it drives occupancy patterns no attract run produces.
+ * Built from CRAFTED entries on a realistic attract base:
  *
  *   1. EQUAL (occupancy patterns) — the FULL 32 combinations of "each of the five
  *      objects empty or occupied". Occupied objects carry per-object, per-field distinct
@@ -41,7 +46,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_34f3 as oracle } from "../../translated/loc_34f3.js";
-import { loc_34f3 } from "../loc_34f3.js";
+import { publishFireSprites } from "../publishFireSprites.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import {
@@ -65,7 +70,7 @@ const OBJECT_STRIDE = 0x20;
 const GATHER_DEST = 0x69d0;
 // The oracle ends with a return that only READS the stack; point SP at work RAM so that
 // read is well-defined. It writes no RAM through the stack, so this never affects the
-// compared memory (loc_34f3 models no stack at all).
+// compared memory (publishFireSprites models no stack at all).
 const SAFE_SP = 0x6bf8;
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
@@ -117,13 +122,13 @@ const empty = () => ({ flag: 0x00 });
 
 // -- 1. EQUAL (all 32 occupancy patterns) -------------------------------------
 
-test("EQUAL: loc_34f3 == oracle across all 32 empty/occupied patterns", () => {
+test("EQUAL: publishFireSprites == oracle across all 32 empty/occupied patterns", () => {
   const base = attractBase();
   let count = 0;
   for (let pattern = 0; pattern < (1 << OBJECT_COUNT); pattern++) {
     const objects = [];
     for (let i = 0; i < OBJECT_COUNT; i++) objects.push((pattern >> i) & 1 ? occ(i) : empty());
-    const d = ramDiff(craft(base, objects), loc_34f3);
+    const d = ramDiff(craft(base, objects), publishFireSprites);
     assert.equal(d, null, d && `pattern ${pattern.toString(2).padStart(5, "0")}: RAM@${hx(d.addr)} oracle=${d.a} cand=${d.b}`);
     count++;
   }
@@ -138,7 +143,7 @@ test("EQUAL: non-zero-but-even flags (0x80/0xFF/0x02) are treated as occupied", 
   for (const flag of [0x80, 0xff, 0x02]) {
     const objects = [];
     for (let i = 0; i < OBJECT_COUNT; i++) objects.push({ flag, x: 0x10 + i, code: 0x20 + i, attr: 0x30 + i, y: 0x40 + i });
-    const d = ramDiff(craft(base, objects), loc_34f3);
+    const d = ramDiff(craft(base, objects), publishFireSprites);
     assert.equal(d, null, d && `flag ${hx(flag)}: RAM@${hx(d.addr)} oracle=${d.a} cand=${d.b}`);
     // sanity: the oracle really did gather (record +0 of object 0 == its X 0x10).
     const a = craft(base, objects); a.nextNmi = Infinity; a.nextBoundary = Infinity; oracle(a);

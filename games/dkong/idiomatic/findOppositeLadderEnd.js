@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_236e — find a key in the object-parameter table and return its paired slot.  ROM 0x236E.
+ * findOppositeLadderEnd — find a key in the ladder (object-parameter) table and return the paired
+ * slot at the other end of that ladder.  ROM 0x236E.
  *
  * Scans the type-0 object table for the first entry whose byte equals the search
  * key, then uses a discriminator to pick which of two slots tied to that entry to
@@ -15,13 +16,25 @@
  *
  * The miss is a double unwind in the oracle — it drops its own return address and
  * returns on the caller's behalf. Here that is a `false` return; each caller mirrors
- * it with `if (!loc_236e(m)) return;`, so the caller unwinds too.
+ * it with `if (!findOppositeLadderEnd(m)) return;`, so the caller unwinds too.
  *
- * This is a genuine oracle boundary: its three callers are still the frozen lift and
- * reach it by register ABI, so the interface stays register-shaped — the key, the
- * entry count, and the discriminator arrive in registers, and the found result (the
- * tag, the returned slot byte, the residual count, and the key echo) leaves in
- * registers, exactly as those callers consume it.
+ * The interface stays REGISTER-SHAPED — the key, the entry count and the discriminator
+ * arrive in registers, and the found result (the tag, the returned slot byte, the residual
+ * count, and the key echo) leaves in registers. ★ CORRECTION: an earlier version of this
+ * header justified that by saying "its three callers are still the frozen lift and reach it
+ * by register ABI". That is no longer true — all three ROM call sites (0x1B13 in loc_1afe,
+ * 0x216D in startBarrelDescentAtLadder, 0x3359 in loc_333d) now have readable twins, and
+ * every one of them imports this module and direct-calls it. The shape survives because it
+ * is the ROM's own ABI and the callers still marshal into it, not because anything upstream
+ * is untranslated; dissolving the marshalling is a later unit.
+ *
+ * NAME — WHY "LADDER". The table's records are the DRAWN LADDERS, observed on the real ROM under
+ * MAME 0.288 (scratchpad/grounding-object-arrays.md): the object-parameter table and the
+ * board-layout table are the same four ROM tables, this routine's type-0/1 records are the ones
+ * ROM 0x0E19 draws, and suppressing 0x0E19 removes 616 px from the screen — the two full-height
+ * ladders beside Kong plus eight shorter segments, with not one girder pixel changed. That
+ * closes a reading which had until then rested on structure alone (every type-0/1 record is a
+ * fixed-column run, and a play-validated tape lands on one specific record at ladder-X 0x92).
  *
  * Memory-equivalent to the frozen oracle — equivalence-236e.test.js.
  * GATE:     crafted-entry (a controlled table planted in a real attract base) covering
@@ -50,7 +63,7 @@ const FAR_SLOT = 0x2a;
  * @returns {boolean} true on a hit (registers hold the result); false on a miss, on
  *   which the caller must also return (the oracle's double unwind).
  */
-export function loc_236e(m) {
+export function findOppositeLadderEnd(m) {
   const { regs, mem } = m;
 
   const key = regs.a;      // the byte to find in the table

@@ -6,12 +6,12 @@
  *
  *   1. gateObjectUpdateByDifficulty (ROM 0x30FA) — the difficulty-paced frame gate. False means
  *      this is not one of the frames the object pass runs on.
- *   2. loc_313c (ROM 0x313C) — sweep the five OBJ_ARRAY_64 records, tally the live ones into
+ *   2. spawnRequestedFireAndRecolorLiveFires (ROM 0x313C) — sweep the five OBJ_ARRAY_64 records, tally the live ones into
  *      OBJ_LIVE_COUNT and service one pending insert. False means the array came out empty, so
  *      there is nothing to advance and nothing to draw.
  *   3. ROM 0x31B1 (still frozen) — walk the same five records and run the per-object state
  *      machine on each occupied one.
- *   4. loc_34f3 (ROM 0x34F3) — gather the five records into five 4-byte sprite records.
+ *   4. publishFireSprites (ROM 0x34F3) — gather the five records into five 4-byte sprite records.
  *
  * ALL THREE ARMS RESUME AT THE SAME PLACE, which is why this routine returns nothing on any of
  * them. Both early exits are the Z80 caller-skip idiom in the oracle: the callee discards
@@ -54,8 +54,8 @@
  */
 
 import { gateObjectUpdateByDifficulty } from "./gateObjectUpdateByDifficulty.js"; // ROM 0x30FA
-import { loc_313c } from "./loc_313c.js"; // ROM 0x313C
-import { loc_34f3 } from "./loc_34f3.js"; // ROM 0x34F3
+import { spawnRequestedFireAndRecolorLiveFires } from "./spawnRequestedFireAndRecolorLiveFires.js"; // ROM 0x313C
+import { publishFireSprites } from "./publishFireSprites.js"; // ROM 0x34F3
 
 /** The address ROM 0x31B1's frozen oracle returns to — the return bracket its own `ret` consumes. */
 const RESUME_AFTER_OBJECT_UPDATE = 0x30f6;
@@ -69,7 +69,7 @@ export function loc_30ed(m) {
   if (!gateObjectUpdateByDifficulty(m)) return;
 
   // Nothing live in the array: no state to advance and no sprites to gather.
-  if (!loc_313c(m)) return;
+  if (!spawnRequestedFireAndRecolorLiveFires(m)) return;
 
   // oracle-boundary call: ROM 0x31B1 (the per-object state-machine walk) is still frozen, so it
   // is dispatched by address and still needs the return bracket its `ret` pops. Delete both
@@ -77,5 +77,5 @@ export function loc_30ed(m) {
   m.push16(RESUME_AFTER_OBJECT_UPDATE);
   m.call(0x31b1);
 
-  loc_34f3(m);
+  publishFireSprites(m);
 }

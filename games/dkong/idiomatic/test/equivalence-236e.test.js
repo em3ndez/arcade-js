@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_236e (ROM 0x236E) — find a key in the type-0 object
+ * Equivalence test for findOppositeLadderEnd (ROM 0x236E) — find a key in the type-0 object
  * table and return its paired slot.
  *
  * sub_236e scans OBJ_PARAM_TABLE0 (0x6300) for the first byte equal to the search key,
@@ -14,7 +14,7 @@
  *     locals; the miss path only READS the stack). Genuine dissolved pushes -> the one
  *     exclusion this gate needs.
  *   - the boolean return (found vs miss), which the idiomatic callers turn back into the
- *     double unwind via `if (!loc_236e(m)) return;`.
+ *     double unwind via `if (!findOppositeLadderEnd(m)) return;`.
  *   - on a FOUND return, the register live-outs the three callers actually consume:
  *     A (the tag — sub_216d/entry_333d/loc_1afe all read it), B (the returned slot byte
  *     — sub_216d, entry_333d), C (the residual scan count — loc_1afe `cp c`), D (the
@@ -29,7 +29,7 @@
  *      driven from the climb/collision path, which the 25m demo exercises).
  *
  *   2. EQUAL (captured) — hook 0x236E in a real attract run, clone at each dispatch, and
- *      confirm loc_236e == oracle on the full contract over every real state. Real runs
+ *      confirm findOppositeLadderEnd == oracle on the full contract over every real state. Real runs
  *      span BOTH the found and the miss arms.
  *
  *   3. EQUAL (crafted) — plant a controlled table in a real attract base to hit the
@@ -54,7 +54,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_236e as oracle } from "../../translated/loc_236e.js";
-import { loc_236e } from "../loc_236e.js";
+import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_PARAM_TABLE0 } from "../ram.js";
 
@@ -163,7 +163,7 @@ test("REACHABILITY: 0x236E is dispatched during boot/attract", () => {
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_236e == oracle on every real dispatch (found + miss)", () => {
+test("EQUAL (captured): findOppositeLadderEnd == oracle on every real dispatch (found + miss)", () => {
   const orig = new Machine(ROM).routines.get(TARGET);
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
@@ -176,7 +176,7 @@ test("EQUAL (captured): loc_236e == oracle on every real dispatch (found + miss)
 
   let sawFound = 0, sawMiss = 0;
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_236e);
+    const diffs = contractDiffs(cap, findOppositeLadderEnd);
     assert.equal(diffs.length, 0, `captured dispatch (A=${hx(cap.regs.a)} BC=${hx(cap.regs.bc)} D=${hx(cap.regs.d)}): ${diffs.join("; ")}`);
     // Classify the oracle's arm for reporting / coverage evidence.
     const probe = cap.clone(); probe.nextNmi = Infinity; probe.nextBoundary = Infinity;
@@ -209,7 +209,7 @@ test("EQUAL (crafted): both found tags, the rescan, and both miss shapes match t
 
   for (const { name, opts, found, wantA, wantB } of cases) {
     const entry = craft(base, opts);
-    const diffs = contractDiffs(entry, loc_236e);
+    const diffs = contractDiffs(entry, findOppositeLadderEnd);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
 
     // Non-vacuity: confirm the oracle really took the arm this case is meant to cover.

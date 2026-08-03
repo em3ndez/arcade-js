@@ -29,7 +29,7 @@
  * GROUNDED in ram.js (observed stepping live, 41 transitions, tied to EFFECT_SEQ_STATE). The name
  * records the two things that distinguish it from flashEffectSpriteThenAdvanceSequence (0x1F09):
  * this one `inc`s — MARCHING forward through consecutive tiles on a 12-frame beat, 3 steps, never
- * reloading OUTER — and then TEARS THE EFFECT DOWN, clearing 0x6350, the byte loc_1e8c reads to
+ * reloading OUTER — and then TEARS THE EFFECT DOWN, clearing 0x6350, the byte runHitEffectInsteadOfPlay reads to
  * caller-skip the whole per-frame cascade. So this is the arm that hands play back, hence "rearm".
  * WHAT THIS NAME DOES NOT CLAIM: what the effect DEPICTS. That semantic is still ungrounded
  * (mechanisms.md §6); the name describes the byte-level effect and the teardown, nothing more.

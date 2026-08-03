@@ -3,16 +3,16 @@
  * loc_1afe — hammer-climb collision: look Mario's grid cell up in the object-parameter
  * table and, on a hit, commit this frame's climb-limit pair and drive the climb.  ROM 0x1AFE.
  *
- * The Up/Down half of the ladder-collision handler (fallen into from loc_1af5). It first
+ * The Up/Down half of the ladder-collision handler (fallen into from walkLeftWhileHeld). It first
  * gates on the hammer state: unless MARIO_HAMMER_ACTIVE differs from 1 it does nothing.
  *
  * Then it derives two probes from Mario's position — a grid-aligned X (low two bits forced
  * set, the 0x04 bit forced clear) as the search key, and (Y + 8) as the discriminator /
- * climb-limit value — and looks the key up in the type-0 object-parameter table via loc_236e
- * (up to 21 entries). If the key is not found, loc_236e double-unwinds and this routine
- * returns with it (the `if (!loc_236e(m)) return;` idiom), doing nothing further.
+ * climb-limit value — and looks the key up in the type-0 object-parameter table via findOppositeLadderEnd
+ * (up to 21 entries). If the key is not found, findOppositeLadderEnd double-unwinds and this routine
+ * returns with it (the `if (!findOppositeLadderEnd(m)) return;` idiom), doing nothing further.
  *
- * On a hit, loc_236e hands back a tag (which of the entry's two paired slots the discriminator
+ * On a hit, findOppositeLadderEnd hands back a tag (which of the entry's two paired slots the discriminator
  * matched), the OTHER slot's byte, and the residual scan count. This routine then always:
  *   • stamps the climb sprite code into MARIO_SPRITE_CODE — low bits 0x06, facing bit (0x80)
  *     preserved; and
@@ -38,14 +38,14 @@
  *           call/push-af/tail-call churn writes is excluded. Every path nets exactly one caller
  *           return, modelled with a single m.ret() on the candidate. Teeth: a wrong sprite-code
  *           twin and a swapped climb-limit-order twin.
- * LIVE-OUT: memory-only — the caller (loc_1af5) tail-returns this routine's result and consumes
+ * LIVE-OUT: memory-only — the caller (walkLeftWhileHeld) tail-returns this routine's result and consumes
  *           no register it leaves; the oracle's residual registers/flags, its push-af/pop-af
  *           bracket, and its terminal returns are dead ABI.
  * NAMES:    MARIO_HAMMER_ACTIVE (0x6217), MARIO_X (0x6203), MARIO_Y (0x6205),
  *           MARIO_SPRITE_CODE (0x6207), MARIO_CLIMB_LIMIT_A (0x621B), MARIO_CLIMB_LIMIT_B
  *           (0x621C) from ram.js. 0x621A carries no ram.js name (a shared board flag,
  *           deliberately left hex there) — kept as a hex literal + comment. The lookup key,
- *           discriminator, and entry count are marshalled into registers for loc_236e, which is
+ *           discriminator, and entry count are marshalled into registers for findOppositeLadderEnd, which is
  *           a genuine oracle boundary (register-shaped interface); loc_1b4e likewise reads the
  *           two limits from registers B and D.
  */
@@ -58,7 +58,7 @@ import {
   MARIO_CLIMB_LIMIT_A,
   MARIO_CLIMB_LIMIT_B,
 } from "./ram.js";
-import { loc_236e } from "./loc_236e.js";                 // ROM 0x236E — object-table lookup (oracle boundary)
+import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";                 // ROM 0x236E — object-table lookup (oracle boundary)
 import { loc_1b4e } from "./loc_1b4e.js";                 // ROM 0x1B4E — commit limit pair, climb up
 import { climbDownWhileHeld } from "./climbDownWhileHeld.js"; // ROM 0x1B38 — Down/Up climb dispatch
 
@@ -66,7 +66,7 @@ import { climbDownWhileHeld } from "./climbDownWhileHeld.js"; // ROM 0x1B38 — 
 // (two unrelated writers, no single board settles it) — kept hex per that decision.
 const CLIMB_FLAG = 0x621a;
 
-// How many object-parameter-table entries loc_236e may scan before giving up.
+// How many object-parameter-table entries findOppositeLadderEnd may scan before giving up.
 const TABLE_SCAN_COUNT = 21;
 
 export function loc_1afe(m) {
@@ -80,15 +80,15 @@ export function loc_1afe(m) {
   const yLimit = (mem.read8(MARIO_Y) + 8) & 0xff;
   const searchKey = (mem.read8(MARIO_X) | 0x03) & 0xfb;
 
-  // Look the key up in the type-0 object-parameter table. loc_236e reads the key, the
+  // Look the key up in the type-0 object-parameter table. findOppositeLadderEnd reads the key, the
   // discriminator, and the entry count from registers (oracle boundary); on a miss it
   // double-unwinds, so this routine returns with it.
   regs.a = searchKey;
   regs.d = yLimit;
   regs.bc = TABLE_SCAN_COUNT;
-  if (!loc_236e(m)) return; // key not in the table — unwound to the caller's caller
+  if (!findOppositeLadderEnd(m)) return; // key not in the table — unwound to the caller's caller
 
-  // Hit: loc_236e leaves the tag, the paired-slot byte, and the residual scan count.
+  // Hit: findOppositeLadderEnd leaves the tag, the paired-slot byte, and the residual scan count.
   const tag = regs.a;
   const slotByte = regs.b;
   const residualCount = regs.c;

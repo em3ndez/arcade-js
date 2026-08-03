@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_330f (ROM 0x330F) — the per-object periodic timer.
+ * Equivalence test for tickFireTimerAndRerollDirection (ROM 0x330F) — the per-object periodic timer.
  *
  * entry_330f services ONE object record (the record pointer is the register live-in)
  * and its entire memory effect is a function of just two things:
@@ -24,7 +24,7 @@
  * dump, exactly as for the 0x037F leaf.
  *
  *   1. REACHABILITY — 0x330F is dispatched during attract.
- *   2. EQUAL (captured) — loc_330f == oracle on every real dispatch (RAM whole-dump).
+ *   2. EQUAL (captured) — tickFireTimerAndRerollDirection == oracle on every real dispatch (RAM whole-dump).
  *   3. EQUAL (crafted-exhaustive) — every timer value 0..255 crossed with random bytes
  *      of both parities, at two record bases, with a sentinel state input; RAM identical
  *      AND the oracle never writes state 2 (the dead ROM arm is unreachable).
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_330f as oracle } from "../../translated/loc_330f.js";
-import { loc_330f } from "../loc_330f.js";
+import { tickFireTimerAndRerollDirection } from "../tickFireTimerAndRerollDirection.js";
 import { RANDOM } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -139,7 +139,7 @@ test("REACHABILITY: 0x330F is dispatched during attract", () => {
 
 // -- 2. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_330f == oracle on every real 0x330F dispatch", () => {
+test("EQUAL (captured): tickFireTimerAndRerollDirection == oracle on every real 0x330F dispatch", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 300) caps.push(mm.clone());
@@ -156,7 +156,7 @@ test("EQUAL (captured): loc_330f == oracle on every real 0x330F dispatch", () =>
     const timer = a.mem.read8((a.regs.ix + TIMER) & 0xffff);
     if (timer === 0) sawExpiry++; else sawCountdown++;
     oracle(a);
-    loc_330f(b);
+    tickFireTimerAndRerollDirection(b);
     const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
     assert.equal(
       ram,
@@ -170,12 +170,12 @@ test("EQUAL (captured): loc_330f == oracle on every real 0x330F dispatch", () =>
 
 // -- 3. EQUAL (crafted-exhaustive) --------------------------------------------
 
-test("EQUAL (crafted-exhaustive): loc_330f == oracle over timer × random × base", () => {
+test("EQUAL (crafted-exhaustive): tickFireTimerAndRerollDirection == oracle over timer × random × base", () => {
   const base = new Machine(ROM);
   base.runFrames(180);
   const attract = base.clone();
 
-  const { mismatch, count, sawState2, sawExpiryAdvance } = fullSweep(attract, loc_330f);
+  const { mismatch, count, sawState2, sawExpiryAdvance } = fullSweep(attract, tickFireTimerAndRerollDirection);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   assert.equal(count, BASES.length * 256 * RAND_SET.length, "must have compared the full factored space");
   // The dead-arm property: the oracle never writes state 2 (the state==1 test can never

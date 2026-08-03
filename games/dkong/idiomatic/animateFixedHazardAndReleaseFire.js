@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_03a2 — a periodic event, serviced only when three gates in a row pass.  ROM 0x03A2.
+ * animateFixedHazardAndReleaseFire — animate the board's fixed hazard object and, on the armed
+ * arm's underflow, request the release of a new fire.  ROM 0x03A2.
  *
  * Called every main-loop pass (mainLoop_02bd `call 0x03a2`). It does nothing at all
  * unless THREE guards open, one after another, and only then runs a small state machine
@@ -29,9 +30,24 @@
  * before marioActiveGuard (it reads only RAM), and regs.hl = 0x6A29 / regs.b = 0x40 (arm A)
  * or 0x42 (arm B) before loc_03f2 (its destination pointer and byte).
  *
- * NAME: kept the neutral loc_ — the mechanics are pinned to the oracle, but which game
- * event this services (and what its cells mean semantically) is not confirmed to the
- * routine-name bar. Promote once corroborated.
+ * NAME: promoted from loc_03a2. Two halves, evidenced separately.
+ *   FIXED HAZARD. ram.js grounds OBJ_RECORD_66A0 live as per-board CONSTANTS — board 1
+ *   active=1, X=39, Y=224, code=112 over 3722 attract / 5267 credited frames; board 2
+ *   active=1, X=127, Y=120, code=64 over 5271 frames; boards 3 and 4 all-zero. The record
+ *   is alive on exactly the two boards this routine's rst-0x30 mask 0x03 admits and dead
+ *   on the two it rejects. "Fixed" is that measurement; "hazard" is the stamped
+ *   OBJ_HIT_EXTENT_X/Y entering Mario's own overlap search. The name stays board-neutral
+ *   on purpose — board 2's object is at screen centre, so this is NOT a 25m-only oil drum,
+ *   and the routine must not be named for one board's decor.
+ *   RELEASE FIRE. Grounded on the real ROM under MAME (scratchpad/grounding-object-arrays.md):
+ *   OBJ_ARRAY_64 (0x6400) holds the FIRES — killing its five records erases the fireball
+ *   from the screen completely while leaving the barrels statistically untouched, and the
+ *   tight A/B's first differing frame is a blob at the fire record's logged position to the
+ *   pixel. The same run watched the single 0x6400 record activate at (X=39, Y=232) every
+ *   time, and X=39 is this routine's own board-1 fixed object. The release itself is
+ *   indirect — this routine raises EVENT_REQ_313C and spawnRequestedFireAndRecolorLiveFires turns it into a live slot —
+ *   which is why the name says "release", not "spawn".
+ *   NOT claimed: that the released object behaves any particular way after insertion.
  *
  * Memory-equivalent to the frozen oracle — equivalence-03a2.test.js.
  * GATE:     capture/clone/replay of real attract dispatches plus crafted entries that
@@ -64,7 +80,7 @@ const SPRITE_DEST = 0x6a29; // loc_03f2 destination (a cell inside SPRITE_BUFFER
 const SPRITE_BYTE_A = 0x40; // loc_03f2 byte on the bit1-clear arm
 const SPRITE_BYTE_B = 0x42; // loc_03f2 byte on the bit1-set arm (0x40 + inc + inc)
 
-export function loc_03a2(m) {
+export function animateFixedHazardAndReleaseFire(m) {
   const { regs, mem } = m;
 
   // Gate 1 — rst 0x30 board test. boardBitGate reads the mask from regs.a.

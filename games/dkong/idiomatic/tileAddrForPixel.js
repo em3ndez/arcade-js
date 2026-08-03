@@ -78,7 +78,7 @@ export function tileAddrForPixel(y, x) {
  *
  * REGISTER-EXACT, flags included, and deliberately so. FIVE of the six oracle call sites
  * overwrite DE immediately after the call — `push de` / `pop de` at 0x0DB7 (loc_0da7) and
- * 0x0DE4 (loc_0dd3), `push hl` / `pop de` at 0x2A3A (loc_2a2f), 0x2AA2 (loc_2a85) and
+ * 0x0DE4 (loc_0dd3), `push hl` / `pop de` at 0x2A3A (loc_2a2f), 0x2AA2 (startMarioFallWhenGroundGivesWay) and
  * 0x2B9C (loc_2b9b) — which would make D/E dead there. THE SIXTH DOES NOT: loc_298c calls
  * it at 0x299A with no push/pop bracket at all, and its own DE then flows on to its caller.
  * So the wrapper reproduces DE rather than resting on an argument about who reads what.

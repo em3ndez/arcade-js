@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1af5 — the LEFT arm of Mario's ground-movement direction dispatch.  ROM 0x1AF5.
+ * walkLeftWhileHeld — the LEFT arm of Mario's ground-movement direction dispatch.  ROM 0x1AF5.
  *
  * The movement machine reaches here every frame it has decided Mario is on his feet and
  * has already declined the rightward step. Two things are handed over from the arm above:
@@ -71,7 +71,7 @@ const LEFT_BLOCKED = 1;
  * @param {import("../machine.js").Machine} m
  * @returns {void}
  */
-export function loc_1af5(m) {
+export function walkLeftWhileHeld(m) {
   const { regs } = m;
 
   // Handed over by the arm above: the left-limit verdict and this frame's control word.

@@ -108,7 +108,7 @@
  *           walk runs; this routine holds no address of its own and reaches its record
  *           through the walk's index register. The two fields it reads have NO registry
  *           name on purpose — see the HAMMER_IN_PLAY note quoted above — so they are
- *           file-local constants here, the same convention as GATHER_DEST in loc_34f3.js.
+ *           file-local constants here, the same convention as GATHER_DEST in publishFireSprites.js.
  *           All five branch targets are still frozen: they belong to the same
  *           mutually-recursive object-walk cluster and are being decompiled alongside this
  *           routine, so dissolving those into direct calls is a later coordinated step.

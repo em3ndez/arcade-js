@@ -8,7 +8,7 @@
  *
  * dispatchEffectSequenceStep writes no memory itself; every visible byte is the chosen handler's. Its return value
  * is undefined on every path on both sides (all three handlers return nothing, and the caller
- * loc_1e8c discards the result and takes its own skip decision), so the return is asserted
+ * runHitEffectInsteadOfPlay discards the result and takes its own skip decision), so the return is asserted
  * directly and no register or flag is a live-out. SP/pc are the dropped stack model — the
  * oracle walks the jump table through the stack and returns through its own chain, all inside
  * STACK_SCRATCH. The contract is therefore memory-equivalence on RAM - STACK_SCRATCH plus the
@@ -101,7 +101,7 @@ function replay(entry, candidate) {
 }
 
 /**
- * Run plain attract and clone the machine at each real 0x1E96 dispatch (loc_1e8c calls it once
+ * Run plain attract and clone the machine at each real 0x1E96 dispatch (runHitEffectInsteadOfPlay calls it once
  * per frame while an effect is armed). Delegates to the oracle so the host run proceeds
  * undisturbed. No pokes and no coin: this is the routine occurring naturally.
  */

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_241f (ROM 0x241f) — the horizontal position gate.
+ * Equivalence test for limitMarioHorizontalTravel (ROM 0x241f) — the horizontal position gate.
  *
  * sub_241f is a read-only leaf: it reads MARIO_X (0x6203), MARIO_Y (0x6205) and
  * BOARD (0x6227), writes NO memory, calls nothing, and leaves its verdict in the
  * (D,E) register pair. Its live-out is exactly that pair — every one of its three
- * callers (loc_1ae6, advanceMarioAirborneFrame, move_2b02) `dec`s and tests D and/or E and reloads
+ * callers (walkRightWhileHeld, advanceMarioAirborneFrame, move_2b02) `dec`s and tests D and/or E and reloads
  * A / recomputes flags before reading them, so A and the flags are dead and the
  * Z80 `ret` is just the function returning (pc/SP not modelled or compared).
  *
@@ -13,7 +13,7 @@
  * through its bit 0 (`rrca`), so it is validated the strongest way — EXHAUSTIVELY
  * against the frozen oracle — not by a whole-machine trace:
  *
- *   1. EQUAL (exhaustive) — loc_241f's (D,E) == oracle's over the full 256x256
+ *   1. EQUAL (exhaustive) — limitMarioHorizontalTravel's (D,E) == oracle's over the full 256x256
  *      (X,Y) grid for BOTH board parities (BOARD=1 bit0-set, BOARD=2 bit0-clear):
  *      131,072 combos. That covers every (X,Y) the gate can see on either parity.
  *
@@ -31,13 +31,13 @@
  *      and capture the true states the game feeds it. Attract plays 25m with Mario
  *      low on the girders (Y always >= 0x58), so every real dispatch reaches the
  *      (0,0) arm; for each confirm (a) the oracle writes NO memory (licensing the
- *      writes-nothing / register-only contract), (b) loc_241f reproduces the oracle's
+ *      writes-nothing / register-only contract), (b) limitMarioHorizontalTravel reproduces the oracle's
  *      returned (D,E), and (c) it mirrors that pair into regs.d/regs.e (the boundary
  *      ABI the still-oracle callers read).
  *
  *   5. CRAFTED (arms attract never reaches) — attract only reaches (0,0), so take a
  *      REAL captured state (real SP / stack / register file) and poke (X,Y,BOARD)
- *      identically into the oracle and loc_241f to drive EACH exit arm — (1,0) far
+ *      identically into the oracle and limitMarioHorizontalTravel to drive EACH exit arm — (1,0) far
  *      left, (0,1) far right, and (0,0) via even board / Y-band / mid-column — and
  *      confirm the returned pair and the regs.d/regs.e mirror both match the oracle.
  *
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_241f as oracle } from "../../translated/loc_241f.js";
-import { loc_241f } from "../loc_241f.js";
+import { limitMarioHorizontalTravel } from "../limitMarioHorizontalTravel.js";
 import { MARIO_X, MARIO_Y, BOARD } from "../ram.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -117,8 +117,8 @@ function sweepXY(candidate, boards) {
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_241f == oracle over all 131,072 (X,Y) x {odd,even board} combos", () => {
-  const { mismatch, count } = sweepXY(loc_241f, [1, 2]);
+test("EQUAL (exhaustive): limitMarioHorizontalTravel == oracle over all 131,072 (X,Y) x {odd,even board} combos", () => {
+  const { mismatch, count } = sweepXY(limitMarioHorizontalTravel, [1, 2]);
   assert.equal(
     mismatch,
     null,
@@ -146,7 +146,7 @@ test("EQUAL (board breadth): all 256 BOARD values match the oracle on curated (X
       for (const y of YS) {
         const want = runOraclePair(m, x, y, board);
         seed(m, x, y, board);
-        const got = loc_241f(m);
+        const got = limitMarioHorizontalTravel(m);
         count++;
         if (!eqPair(got, want)) { mismatch = { x, y, board, want, got }; break; }
       }
@@ -202,7 +202,7 @@ test("TEETH (exhaustive): the Y-threshold off-by-one twin is CAUGHT by the sweep
 
 /**
  * Hook 0x241f in a real attract run and clone the machine at up to K real dispatches.
- * 0x241f is reached by m.call from loc_1ae6/1bb2/2b02; the construction-time override
+ * 0x241f is reached by m.call from walkRightWhileHeld/1bb2/2b02; the construction-time override
  * map intercepts the m.call, so each captured state is a genuine mid-play entry with a
  * valid stack. The wrapper clones the entry state, then runs the oracle so the host
  * game proceeds undisturbed to a clean stop.
@@ -237,10 +237,10 @@ test("REALISM + PURITY: real captured dispatches — oracle writes no memory, lo
     );
     const want = { d: oc.regs.d & 0xff, e: oc.regs.e & 0xff };
 
-    // REALISM: loc_241f reproduces the oracle's (D,E) — both as its return value and
+    // REALISM: limitMarioHorizontalTravel reproduces the oracle's (D,E) — both as its return value and
     // as the regs.d/regs.e mirror the still-oracle callers read.
     const cc = cap.clone();
-    const got = loc_241f(cc);
+    const got = limitMarioHorizontalTravel(cc);
     assert.ok(
       eqPair(got, want),
       `returned-pair mismatch on real dispatch X=${hx(cap.mem.read8(MARIO_X))} Y=${hx(cap.mem.read8(MARIO_Y))} ` +
@@ -284,7 +284,7 @@ test("CRAFTED: real captured state poked to EACH exit arm — pair + regs == ora
 
     const cc = base.clone();
     cc.mem.write8(MARIO_X, c.x); cc.mem.write8(MARIO_Y, c.y); cc.mem.write8(BOARD, c.board);
-    const got = loc_241f(cc);
+    const got = limitMarioHorizontalTravel(cc);
     assert.ok(
       eqPair(got, want) && cc.regs.d === want.d && cc.regs.e === want.e,
       `crafted mismatch (${c.label}) X=${hx(c.x)} Y=${hx(c.y)} board=${hx(c.board)}: ` +

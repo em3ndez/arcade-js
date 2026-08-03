@@ -5,7 +5,7 @@
  *
  * Reached by a tail branch from the airborne handler advanceMarioAirborneFrame. By the time control arrives,
  * that handler has snapshotted Mario's pre-motion X/Y into MARIO_AIR_PREV_X / MARIO_AIR_PREV_Y,
- * run one ballistic integration step, and asked the position gate loc_241f for its verdict — a
+ * run one ballistic integration step, and asked the position gate limitMarioHorizontalTravel for its verdict — a
  * two-flag pair of which at most one half is ever raised. advanceMarioAirborneFrame consumed the RIGHT half
  * itself (writing the mirror-image +0x0080 drift and setting the facing bit); it branches here
  * with the LEFT half still sitting in the register bank, which is the only thing this routine
@@ -16,7 +16,7 @@
  *     velocity, the pose AND the current ballistic arc exactly as they were. This is the arm
  *     plain attract always takes — all 360 of its real dispatches.
  *
- *   - Verdict raised — loc_241f raises it on exactly one exit, Mario's X at or past the
+ *   - Verdict raised — limitMarioHorizontalTravel raises it on exactly one exit, Mario's X at or past the
  *     right-hand screen limit (0xEA), so this is the "he has run out of screen on the right"
  *     case. Two cells are stamped, and nothing else:
  *       * MARIO_AIR_VX_HI:MARIO_AIR_VX_LO := 0xFF80 — the signed 16-bit −0x0080, half a pixel
@@ -33,7 +33,7 @@
  *
  * REGISTER BOUNDARY. The verdict is read out of the register bank rather than taken as a
  * parameter, because that is how BOTH callers hand it over: the frozen oracle at ROM 0x1BB2
- * leaves it there, and the idiomatic advanceMarioAirborneFrame gets it from loc_241f, which mirrors its honest
+ * leaves it there, and the idiomatic advanceMarioAirborneFrame gets it from limitMarioHorizontalTravel, which mirrors its honest
  * {d, e} return into the same registers for exactly this reason. Promoting it to a parameter
  * is a two-file ABI change and belongs to a clarify pass, not here.
  *

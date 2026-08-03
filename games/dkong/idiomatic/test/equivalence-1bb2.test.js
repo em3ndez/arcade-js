@@ -5,7 +5,7 @@
  * steer him toward one of the two edge arms.
  *
  * advanceMarioAirborneFrame is NOT a leaf. It direct-calls two already-idiomatic leaves (stepBallisticMotion
- * 0x239C, loc_241f 0x241F) and then TAIL-CALLS the airborne arms loc_1bf2 (0x1BF2) and
+ * 0x239C, limitMarioHorizontalTravel 0x241F) and then TAIL-CALLS the airborne arms loc_1bf2 (0x1BF2) and
  * reverseMarioVerticalArc (0x1BD8), which are idiomatic too and run on — through their own still-oracle
  * remainder — to the sprite commit. The REFERENCE side is the frozen oracle end to end, so
  * the whole downstream cascade is part of the comparison: a wrong hand-off — a missed
@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1bb2 as oracle } from "../../translated/loc_1bb2.js";
 import { advanceMarioAirborneFrame as candidate } from "../advanceMarioAirborneFrame.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js";
-import { loc_241f } from "../loc_241f.js";
+import { limitMarioHorizontalTravel } from "../limitMarioHorizontalTravel.js";
 import { loc_1bf2 } from "../loc_1bf2.js";
 import { reverseMarioVerticalArc } from "../reverseMarioVerticalArc.js";
 import { Machine } from "../../machine.js";
@@ -303,7 +303,7 @@ function brokenSnapshotAfterMotion(m) {
   stepBallisticMotion(m);
   mem.write8(MARIO_AIR_PREV_X, mem.read8(MARIO_X)); // BUG: after the motion, not before
   mem.write8(MARIO_AIR_PREV_Y, mem.read8(MARIO_Y));
-  const { d } = loc_241f(m);
+  const { d } = limitMarioHorizontalTravel(m);
   if (d !== 1) return loc_1bf2(m);
   mem.write8(MARIO_AIR_VX_HI, 0);
   mem.write8(MARIO_AIR_VX_LO, 128);
@@ -318,7 +318,7 @@ function brokenArmsSwapped(m) {
   mem.write8(MARIO_AIR_PREV_X, mem.read8(MARIO_X));
   mem.write8(MARIO_AIR_PREV_Y, mem.read8(MARIO_Y));
   stepBallisticMotion(m);
-  const { d } = loc_241f(m);
+  const { d } = limitMarioHorizontalTravel(m);
   if (d === 1) return loc_1bf2(m); // BUG: polarity inverted
   mem.write8(MARIO_AIR_VX_HI, 0);
   mem.write8(MARIO_AIR_VX_LO, 128);
@@ -333,7 +333,7 @@ function brokenVelocityLeftward(m) {
   mem.write8(MARIO_AIR_PREV_X, mem.read8(MARIO_X));
   mem.write8(MARIO_AIR_PREV_Y, mem.read8(MARIO_Y));
   stepBallisticMotion(m);
-  const { d } = loc_241f(m);
+  const { d } = limitMarioHorizontalTravel(m);
   if (d !== 1) return loc_1bf2(m);
   mem.write8(MARIO_AIR_VX_HI, 0xff); // BUG: drifts left instead of right
   mem.write8(MARIO_AIR_VX_LO, 128);
@@ -348,7 +348,7 @@ function brokenFacingCleared(m) {
   mem.write8(MARIO_AIR_PREV_X, mem.read8(MARIO_X));
   mem.write8(MARIO_AIR_PREV_Y, mem.read8(MARIO_Y));
   stepBallisticMotion(m);
-  const { d } = loc_241f(m);
+  const { d } = limitMarioHorizontalTravel(m);
   if (d !== 1) return loc_1bf2(m);
   mem.write8(MARIO_AIR_VX_HI, 0);
   mem.write8(MARIO_AIR_VX_LO, 128);

@@ -4,8 +4,11 @@
  * It reads BOARD (0x6227) and dispatches by board type:
  *   • bit 2 set (rivet / 100m board)  -> completeRivetBoardWhenCleared (0x1E80): won iff no
  *     rivets remain. Mario's position is not read on this arm.
- *   • bit 2 clear, bit 0 set (girder / 25m board) -> loc_1e7a (0x1E7A): won iff Mario's screen
- *     Y is above the rescue-row line 0x31. Mario's Y is handed over in the accumulator.
+ *   • bit 2 clear, bit 0 set (the ODD boards — 25m AND 75m; ROM 0x1E5F's `rra` puts BOARD's bit 0
+ *     in the carry, so this arm is NOT "the girder board" alone) -> completeBoardWhenMarioReachesRescueRow
+ *     (0x1E7A): won iff Mario's screen Y is above the rescue-row line 0x31. Mario's Y is handed
+ *     over in the accumulator. (The crafted cases below label this arm "girder" because they
+ *     drive it with BOARD == 1; the routing itself takes BOARD 3 too.)
  *   • bit 2 clear, bit 0 clear (remaining boards) -> won iff Mario's Y is above the climb line
  *     0x51 (screen Y decreases as he climbs). At/below the line -> a NORMAL return (keep going).
  *     Above it -> loc_1e6d (0x1E6D), with Mario's X high bit rotated into the carry (his facing
@@ -38,7 +41,7 @@
  *      (a) wrong bit2 mask (0x08)     — mis-dispatches the rivet arm.
  *      (b) wrong bit0 mask (0x02)     — mis-dispatches the girder arm.
  *      (c) shifted climb line (0x50)  — disagrees at Y == 0x50 on the climb arm.
- *      (d) dropped Y marshal          — loc_1e7a reads the stale accumulator; proves the
+ *      (d) dropped Y marshal          — completeBoardWhenMarioReachesRescueRow reads the stale accumulator; proves the
  *                                       Mario-Y hand-off to the girder arm is load-bearing.
  *      (e) dropped carry marshal      — loc_1e6d reads the stale carry and writes the wrong
  *                                       facing (0x80 not 0x00); proves the X-high-bit -> carry
@@ -58,7 +61,7 @@ import { loc_1e57 as oracle } from "../../translated/loc_1e57.js";
 import { checkBoardWonByType as loc_1e57 } from "../checkBoardWonByType.js";
 // The real idiomatic arms — the twins call them directly to isolate loc_1e57's own logic.
 import { completeRivetBoardWhenCleared } from "../completeRivetBoardWhenCleared.js"; // ROM 0x1E80
-import { loc_1e7a } from "../loc_1e7a.js"; // ROM 0x1E7A
+import { completeBoardWhenMarioReachesRescueRow } from "../completeBoardWhenMarioReachesRescueRow.js"; // ROM 0x1E7A
 import { loc_1e6d } from "../loc_1e6d.js"; // ROM 0x1E6D
 import { Machine } from "../../machine.js";
 import {
@@ -80,7 +83,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1e57;
-const RESCUE_ROW = 0x31;                                // loc_1e7a's girder rescue-row line
+const RESCUE_ROW = 0x31;                                // completeBoardWhenMarioReachesRescueRow's girder rescue-row line
 const CLIMB_LINE = 0x51;                                // loc_1e57's own climb threshold
 const SPRITE_FLAG = MARIO_SPRITE_RECORD + SPRITE_CODE;  // 0x694D — Mario's sprite-code / facing byte
 const BOARD_ADVANCE_SUBSTATE = 0x16;                    // GAME_SUBSTATE value the board-won arms set
@@ -303,7 +306,7 @@ function brokenBit2Mask(m) {
   if ((board & 0x08) !== 0) return completeRivetBoardWhenCleared(m); // BUG: 0x08 not 0x04
   const marioY = mem.read8(MARIO_Y);
   regs.a = marioY;
-  if ((board & 0x01) !== 0) return loc_1e7a(m);
+  if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m);
   if (marioY >= CLIMB_LINE) return true;
   regs.a = mem.read8(MARIO_X);
   regs.rla();
@@ -317,7 +320,7 @@ function brokenBit0Mask(m) {
   if ((board & 0x04) !== 0) return completeRivetBoardWhenCleared(m);
   const marioY = mem.read8(MARIO_Y);
   regs.a = marioY;
-  if ((board & 0x02) !== 0) return loc_1e7a(m); // BUG: 0x02 not 0x01
+  if ((board & 0x02) !== 0) return completeBoardWhenMarioReachesRescueRow(m); // BUG: 0x02 not 0x01
   if (marioY >= CLIMB_LINE) return true;
   regs.a = mem.read8(MARIO_X);
   regs.rla();
@@ -331,14 +334,14 @@ function brokenClimbLine(m) {
   if ((board & 0x04) !== 0) return completeRivetBoardWhenCleared(m);
   const marioY = mem.read8(MARIO_Y);
   regs.a = marioY;
-  if ((board & 0x01) !== 0) return loc_1e7a(m);
+  if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m);
   if (marioY >= CLIMB_LINE - 1) return true; // BUG: 0x50 not 0x51
   regs.a = mem.read8(MARIO_X);
   regs.rla();
   return loc_1e6d(m);
 }
 
-/** (d) dropped Y marshal — never loads Mario's Y into the accumulator, so loc_1e7a reads the
+/** (d) dropped Y marshal — never loads Mario's Y into the accumulator, so completeBoardWhenMarioReachesRescueRow reads the
  *  stale INCOMING_A and mis-decides the girder arm. */
 function brokenDropYMarshal(m) {
   const { regs, mem } = m;
@@ -346,7 +349,7 @@ function brokenDropYMarshal(m) {
   if ((board & 0x04) !== 0) return completeRivetBoardWhenCleared(m);
   const marioY = mem.read8(MARIO_Y);
   // BUG: regs.a = marioY  is missing
-  if ((board & 0x01) !== 0) return loc_1e7a(m);
+  if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m);
   if (marioY >= CLIMB_LINE) return true;
   regs.a = mem.read8(MARIO_X);
   regs.rla();
@@ -361,7 +364,7 @@ function brokenDropCarryMarshal(m) {
   if ((board & 0x04) !== 0) return completeRivetBoardWhenCleared(m);
   const marioY = mem.read8(MARIO_Y);
   regs.a = marioY;
-  if ((board & 0x01) !== 0) return loc_1e7a(m);
+  if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m);
   if (marioY >= CLIMB_LINE) return true;
   // BUG: regs.a = MARIO_X; regs.rla()  is missing -> carry stays clear
   return loc_1e6d(m);
@@ -390,7 +393,7 @@ test("TEETH: the shifted-climb-line twin is CAUGHT at Y=0x50", () => {
 test("TEETH: the dropped-Y-marshal twin is CAUGHT on the girder arm", () => {
   const { mismatch } = sweep(brokenDropYMarshal);
   assert.notEqual(mismatch, null, "the sweep FAILED to catch a dropped Mario-Y marshal — worthless");
-  assert.equal(mismatch.arm, "girder", "the dropped-Y twin must diverge on the girder arm (loc_1e7a's input)");
+  assert.equal(mismatch.arm, "girder", "the dropped-Y twin must diverge on the girder arm (completeBoardWhenMarioReachesRescueRow's input)");
   console.log(`  TEETH/drop-Y: caught — ${describe(mismatch)}`);
 });
 

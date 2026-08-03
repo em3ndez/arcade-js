@@ -89,7 +89,7 @@ import { loc_2053 as oracle } from "../../translated/loc_2053.js";
 import { loc_2053 } from "../loc_2053.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js";
 import { loc_2a2f } from "../loc_2a2f.js";
-import { loc_23de } from "../loc_23de.js";
+import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
 import { OBJ_ARRAY_67, OBJ_X, OBJ_Y, STACK_SCRATCH } from "../ram.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
@@ -427,7 +427,7 @@ function poisonedTwin(m, record = m.regs.ix) {
   if (!m.call(BOUNDS_GATE)) return;
   poison(regs);
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   const selector = regs.c; // staged for the refresh above, not a drop
   poison(regs);
   regs.c = selector;
@@ -456,7 +456,7 @@ function brokenNoSwap(m, record = m.regs.ix) {
   m.push16(GATE_RETURN);
   if (!m.call(BOUNDS_GATE)) return;
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 
@@ -471,7 +471,7 @@ function brokenIgnoreContact(m, record = m.regs.ix) {
   m.push16(GATE_RETURN);
   if (!m.call(BOUNDS_GATE)) return;
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 
@@ -486,7 +486,7 @@ function brokenUnwrappedRetire(m, record = m.regs.ix) {
   m.push16(GATE_RETURN);
   if (!m.call(BOUNDS_GATE)) return;
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 
@@ -501,7 +501,7 @@ function brokenRetireOnY(m, record = m.regs.ix) {
   m.push16(GATE_RETURN);
   if (!m.call(BOUNDS_GATE)) return;
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 
@@ -516,7 +516,7 @@ function brokenSelectorScale(m, record = m.regs.ix) {
   m.push16(GATE_RETURN);
   if (!m.call(BOUNDS_GATE)) return;
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 2;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 
@@ -530,7 +530,7 @@ function brokenNoBracket(m, record = m.regs.ix) {
   if (u8(mem8[record + OBJ_X] + RETIRE_MARGIN) < 2 * RETIRE_MARGIN) return m.call(RETIRE_ARM);
   if (!m.call(BOUNDS_GATE)) return;
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 
@@ -545,7 +545,7 @@ function brokenIgnoreSplice(m, record = m.regs.ix) {
   m.push16(GATE_RETURN);
   m.call(BOUNDS_GATE);
   regs.c = (mem8[record + VELOCITY_X_HI] & 1) * 4;
-  loc_23de(m);
+  advanceBarrelSpriteOrientation(m);
   return m.call(SHARED_TAIL);
 }
 

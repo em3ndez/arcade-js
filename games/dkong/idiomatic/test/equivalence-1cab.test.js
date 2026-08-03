@@ -3,7 +3,7 @@
  * Memory-equivalence test for walkMarioLeft (ROM 0x1CAB) — one frame of Mario's LEFTWARD
  * ground walk: while the sub-step timer MARIO_MOVE_STEP_TIMER is running, shift Mario one
  * pixel left (advanceMarioWalkX with a delta of −1); when it has expired, advance
- * MARIO_WALK_ANIM one place around its ring via loc_3009 and hand the ring index's low two
+ * MARIO_WALK_ANIM one place around its ring via nextAnimationStep and hand the ring index's low two
  * bits — with the facing-right bit LEFT CLEAR — to beginWalkStep.
  *
  * The routine WRITES MEMORY and both arms end by tailing into a callee's `ret`, so it is
@@ -19,11 +19,11 @@
  * candidate to line pc + SP up with the oracle — the same pattern as equivalence-1cd2 and
  * equivalence-1cc2.
  *
- * LIVE-OUT beyond RAM: the RETURN VALUE. loc_1af5 tail-returns whatever this yields and the
+ * LIVE-OUT beyond RAM: the RETURN VALUE. walkLeftWhileHeld tail-returns whatever this yields and the
  * cascade propagates it upward, where a truthy value would read as a caller-skip signal, so
  * every case asserts oracle and candidate both return `undefined`.
  *
- * OFF-RING INPUTS ARE SKIPPED, NOT GUARDED. loc_3009 spins forever when no field of its
+ * OFF-RING INPUTS ARE SKIPPED, NOT GUARDED. nextAnimationStep spins forever when no field of its
  * packed table matches the selector, so a MARIO_WALK_ANIM outside {0,1,2,3,4} hangs the
  * real ROM. The sweep below skips exactly those values using an independent predicate
  * (the same treatment equivalence-3009 gives its non-terminating domain).
@@ -35,7 +35,7 @@
  *   2. EQUAL (crafted, exhaustive over the decision surface) — seeded from a real capture:
  *      all 256 MARIO_MOVE_STEP_TIMER values on 25m (pinning the timer branch exhaustively),
  *      the same sweep on a non-25m board (so advanceMarioWalkX's girder-snap skip arm is
- *      exercised too), and every MARIO_WALK_ANIM value on which loc_3009 terminates. Each
+ *      exercised too), and every MARIO_WALK_ANIM value on which nextAnimationStep terminates. Each
  *      case additionally checks the concrete effects against literal expectations — the
  *      leftward X step, the ring successor, the masked walk tile with bit 7 clear, and the
  *      timer reload — so a green EQUAL cannot be vacuous.
@@ -57,7 +57,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1cab as oracle } from "../../translated/loc_1cab.js";
 import { walkMarioLeft } from "../walkMarioLeft.js";
 import { advanceMarioWalkX } from "../advanceMarioWalkX.js";
-import { loc_3009 } from "../loc_3009.js";
+import { nextAnimationStep } from "../nextAnimationStep.js";
 import { beginWalkStep } from "../beginWalkStep.js";
 import { Machine } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
@@ -79,14 +79,14 @@ const RET_ADDR = 0x1afe;  // a plausible caller-return; only pc-equality matters
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
-/** MARIO_WALK_ANIM values loc_3009 terminates on, derived independently of loc_3009: its
+/** MARIO_WALK_ANIM values nextAnimationStep terminates on, derived independently of nextAnimationStep: its
  *  selector is the walk-anim byte, decremented first when bit 2 is set, and the leftward
  *  table 0xB4 holds a permutation of {0,1,2,3}, so any selector past 3 matches no field and
  *  the ROM spins. Off-ring values are skipped by the sweeps, never guarded in the routine. */
 const terminates = (anim) => (((anim & 0x04) ? u8(anim - 1) : anim)) <= 3;
 
 /** The leftward ring's successor for every terminating index, written out as literals so the
- *  non-vacuity checks do not just re-run loc_3009. The four on-ring values cycle
+ *  non-vacuity checks do not just re-run nextAnimationStep. The four on-ring values cycle
  *  0 -> 1 -> 4 -> 2 -> 0; 3 is off-cycle and lands back on the ring at 2. The EQUAL
  *  comparison against the frozen oracle remains the actual gate. */
 const LEFT_RING_NEXT = { 0: 1, 1: 4, 2: 0, 3: 2, 4: 2 };
@@ -177,7 +177,7 @@ function brokenInvertedBranch(m) {
   if (mem.read8(MARIO_MOVE_STEP_TIMER) === 0) { // BUG: inverted
     return advanceMarioWalkX(m, 255);
   }
-  const nextAnim = loc_3009(0x01, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(0x01, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = nextAnim & 0x03;
   return beginWalkStep(m);
@@ -189,7 +189,7 @@ function brokenRightwardDelta(m) {
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) {
     return advanceMarioWalkX(m, 1); // BUG: should be 255 (one pixel left)
   }
-  const nextAnim = loc_3009(0x01, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(0x01, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = nextAnim & 0x03;
   return beginWalkStep(m);
@@ -201,7 +201,7 @@ function brokenFacingBit(m) {
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) {
     return advanceMarioWalkX(m, 255);
   }
-  const nextAnim = loc_3009(0x01, mem.read8(MARIO_WALK_ANIM)).a;
+  const nextAnim = nextAnimationStep(0x01, mem.read8(MARIO_WALK_ANIM)).a;
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = (nextAnim & 0x03) | 0x80; // BUG: facing-right bit belongs to the twin
   return beginWalkStep(m);
@@ -213,7 +213,7 @@ function brokenRightwardRing(m) {
   if (mem.read8(MARIO_MOVE_STEP_TIMER) !== 0) {
     return advanceMarioWalkX(m, 255);
   }
-  const nextAnim = loc_3009(0x05, mem.read8(MARIO_WALK_ANIM)).a; // BUG: should be 0x01
+  const nextAnim = nextAnimationStep(0x05, mem.read8(MARIO_WALK_ANIM)).a; // BUG: should be 0x01
   mem.write8(MARIO_WALK_ANIM, nextAnim);
   regs.a = nextAnim & 0x03;
   return beginWalkStep(m);
@@ -274,7 +274,7 @@ test("EQUAL (crafted): all 256 timer values on 25m and off it, plus every termin
     }
   }
 
-  // -- the new-step arm, swept over every MARIO_WALK_ANIM loc_3009 terminates on --
+  // -- the new-step arm, swept over every MARIO_WALK_ANIM nextAnimationStep terminates on --
   const ringCases = [];
   for (let anim = 0; anim <= 255; anim++) {
     if (!terminates(anim)) continue; // the ROM would spin here; see the header

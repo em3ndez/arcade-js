@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_34f3 — gather five object records into five 4-byte sprite records.  ROM 0x34F3.
+ * publishFireSprites — publish the five fire records into five 4-byte sprite records in the DMA
+ * shadow buffer.  ROM 0x34F3.
  *
  * Walks the five-record object array OBJ_ARRAY_64 (stride 0x20) and, for each record
  * whose occupancy flag (field +0, OBJ_ACTIVE) is non-zero, copies four of its fields
@@ -27,18 +28,33 @@
  * ever changed. The source pointer likewise advances on its low byte within page 0x64.
  *
  * A LEAF over memory: reads OBJ_ARRAY_64 fields, writes the sprite-record region at
- * 0x69D0; calls nothing and returns nothing. (Its only caller, ROM 0x30F6, is not yet
- * translated, so this is not currently reached in a live run.)
+ * 0x69D0; calls nothing and returns nothing. It IS reached in a live run: ROM 0x30F6 is
+ * not a routine, it is the `call 0x34f3` INSIDE loc_30ed (ROM 0x30ED = `cd fa 30 / cd 3c
+ * 31 / cd b1 31 / cd f3 34 / c9`), and loc_30ed calls this routine directly today. Its
+ * GATE record measures 1532 natural dispatches of loc_30ed over 4000 attract frames, of
+ * which 481 take the full arm — i.e. 481 dispatches of this routine. (An earlier header
+ * here said "not currently reached in a live run"; that was stale.)
  *
- * NAME: kept the neutral loc_ — the field mapping matches the object-to-sprite gather
- * family, but promoting the name is a separate understanding-pass step.
+ * NAME — WHY "FIRE". OBJ_ARRAY_64 (0x6400) was grounded as the FIRES on the real ROM under
+ * MAME 0.288, on a NATURAL zero-poke 25m run (scratchpad/grounding-object-arrays.md): zeroing
+ * the five records' +0 erases the fireball from the screen completely (0 of 40 sampled frames)
+ * while the barrels are statistically untouched, the tight A/B's first differing frame is a
+ * single blob at this array's logged record position to the pixel, and boxes drawn at the
+ * logged positions land on a fireball and nothing else on all four boards. HONEST FLOOR: the
+ * X-pin POSITIVE control on this array is a NO-OP — the ROM recomputes +3 each frame — so the
+ * identity rests on the kill control plus positional correlation, not on a coordinate command.
+ * PUBLISH, not "gather": 0x69D0 is inside SPRITE_BUFFER, the block the i8257 DMAs to sprite RAM
+ * every vblank, so these twenty bytes are what the video hardware reads. The grounding watched
+ * exactly this output — every box drawn at a record's logged position contained a fireball.
  *
  * Memory-equivalent to the frozen oracle — equivalence-34f3.test.js.
  * GATE:     crafted entries on a real attract base — the full 32 occupancy patterns
  *           (each source object empty or occupied) with distinct per-field values, plus
  *           non-zero-but-not-bit0 flags; the destination region is pre-patterned so both
- *           a spurious write and a missing write show. There are no captured dispatches
- *           (the sole caller is untranslated). Teeth: a swapped-field-order twin, a
+ *           a spurious write and a missing write show. The crafted set is what proves the
+ *           equivalence; the routine's natural reachability is separately sourced from
+ *           loc_30ed's GATE (481 full-arm dispatches in 4000 attract frames). Teeth: a
+ *           swapped-field-order twin, a
  *           bit0-only occupancy twin, and an empty-does-not-advance twin.
  * LIVE-OUT: memory-only (the 0x69D0 sprite-record region). The oracle's residual
  *           registers/flags and its terminal return are dead ABI — the contract is the
@@ -66,7 +82,7 @@ const GATHER_DEST = 0x69d0;  // 4-byte destination records inside SPRITE_BUFFER 
  * @param {object} m  the machine (uses m.mem only).
  * @returns {void}
  */
-export function loc_34f3(m) {
+export function publishFireSprites(m) {
   const { mem } = m;
 
   const srcPage = OBJ_ARRAY_64 & 0xff00; // source stays in this page (0x6400)

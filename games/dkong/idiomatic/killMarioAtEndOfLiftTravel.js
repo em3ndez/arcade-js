@@ -39,7 +39,7 @@
  * here.
  *
  * WHAT THE NAME DOES NOT CLAIM, and one place it stretches: the routine has a THIRD call site
- * — loc_26fa, on MARIO_Y >= 0xF0, i.e. Mario off the bottom of a 75m board — which has never
+ * — service75mBoard, on MARIO_Y >= 0xF0, i.e. Mario off the bottom of a 75m board — which has never
  * been observed. That path is not "the end of lift travel". The name survives because it is a
  * statement about the WRITE, which is byte-identical on all three paths; the qualifier
  * describes the two call sites that were measured. Nothing here claims the fall is what kills
@@ -54,7 +54,7 @@
  *           two written cells (and noise in neighbours) — since the routine takes no
  *           input and always writes the same zeros. ★ The real-capture half of this
  *           gate is VACUOUS and always was: 0x277F is reachable only from 0x276F,
- *           0x2787 and loc_26fa, all board-3 paths, and the whole 75m family measured
+ *           0x2787 and service75mBoard, all board-3 paths, and the whole 75m family measured
  *           0 dispatches across 24,243 attract frames — so attract never reaches it
  *           and the crafted entries carry the gate alone. RAM diff is the whole dump
  *           (the oracle writes no stack — its terminal return only pops), so no

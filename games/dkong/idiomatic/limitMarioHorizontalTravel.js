@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_241f — horizontal position gate: classify Mario's X into a two-flag (D,E)
+ * limitMarioHorizontalTravel — horizontal position gate: classify Mario's X into a two-flag (D,E)
  * verdict the movement code uses to clamp X and gate walk direction.  ROM 0x241f.
  *
  * A read-only leaf. It reads MARIO_X, MARIO_Y and BOARD, writes NO memory, calls
@@ -18,13 +18,18 @@
  * (The `rrca` on BOARD is a bit-0 test; BOARD is 1/3 = odd on 25m/75m, 2/4 = even
  * on 50m/100m, so the third arm blocks the gate on the even boards.)
  *
- * Each of the three callers consumes the pair a DIFFERENT way, which is why the
- * pair — not a single English concept — is the honest contract, and why this keeps
- * its address name:
- *   - loc_1ae6 (walk/climb dir): `dec e` — E==1 (right edge) blocks a rightward step.
- *   - advanceMarioAirborneFrame (airborne):       `dec d` — D==1 zeroes horizontal velocity + faces right.
+ * Each of the three callers consumes the pair a DIFFERENT way, but all three turn it
+ * into the same physical thing — a restraint on Mario's X — which is what the name
+ * asserts and all it asserts:
+ *   - walkRightWhileHeld (walk/climb dir): `dec e` — E==1 (right edge) blocks a rightward step.
+ *   - advanceMarioAirborneFrame (airborne):       `dec d` — D==1 writes MARIO_AIR_VX_HI/LO
+ *                                = 0/128, i.e. +0.5 px/frame drift RIGHTWARD, and faces
+ *                                right. It is a push back inward, NOT a stop: the velocity
+ *                                is not zeroed. (An earlier header here said "zeroes
+ *                                horizontal velocity"; that was wrong.)
  *   - move_2b02 (X clamp):       `dec e` then `dec d` — E==1 pushes X left, D==1 pushes
  *                                X right, (0,0) leaves X as moved.
+ * So TWO of the three consumers move Mario; only walkRightWhileHeld merely refuses.
  *
  * Memory-equivalent to the frozen oracle — equivalence-241f.test.js.
  * GATE:     exhaustive — total function of (X, Y, bit0(BOARD)): (D,E) == oracle over
@@ -32,7 +37,7 @@
  *           plus an all-256 BOARD-value breadth sweep proving only bit 0 matters,
  *           plus real captured 25m attract dispatches (which only reach the (0,0)
  *           arm — Y is always >= 0x58 there) and crafted real states for the arms
- *           attract never reaches. Reached via m.call from loc_1ae6/1bb2/2b02.
+ *           attract never reaches. Reached via m.call from walkRightWhileHeld/1bb2/2b02.
  * LIVE-OUT: registers D and E (the (D,E) pair; every caller `dec`s and tests them).
  *           Returned as {d, e} AND written to regs.d/regs.e because all three
  *           callers are still the frozen oracle and read regs.d/regs.e directly —
@@ -47,7 +52,7 @@
  */
 import { MARIO_X, MARIO_Y, BOARD } from "./ram.js";
 
-export function loc_241f(m) {
+export function limitMarioHorizontalTravel(m) {
   const { regs, mem } = m;
   const x = mem.read8(MARIO_X);
 

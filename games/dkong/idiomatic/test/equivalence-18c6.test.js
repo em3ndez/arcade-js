@@ -6,7 +6,7 @@
  * loc_18c6 WRITES memory (0x62AF and, per arm, the blink flags 0x6A25/0x6919, the
  * sprite/object records 0x694C-0x694F / 0x6A20-0x6A23, the sound cue, and on the
  * counter wrap BOARD/LEVEL/BOARD_SEQ_PTR/HOW_HIGH_INDEX/SUBSTATE_TIMER/GAME_SUBSTATE
- * + the task ring) and is NOT a leaf (it calls loc_3009 and, on the wrap, enqueueTask).
+ * + the task ring) and is NOT a leaf (it calls nextAnimationStep and, on the wrap, enqueueTask).
  * So it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case:
  *
  *   REACHABILITY. 0x18C6 is NOT dispatched in plain attract — it runs only during the
@@ -24,7 +24,7 @@
  *      (0x01), the every-8th gate + proceed (multiples of 8), STAGE (0xE1->0xE0) and
  *      RECORD (0xC1->0xC0). The base fixes the sub-branch selectors (MARIO_X < 0x80,
  *      LEVEL odd, a valid non-terminator BOARD_SEQ_PTR, 0x6919 low bits safe so the
- *      loc_3009 selector terminates), which the targeted crafts below then flip.
+ *      nextAnimationStep selector terminates), which the targeted crafts below then flip.
  *
  *   2. STAGE arms (crafted) — at counter 0xE0, force MARIO_X < 0x80 and >= 0x80.
  *   3. RECORD arms (crafted) — at counter 0xC0, the four LEVEL-parity x MARIO_X combos.
@@ -47,7 +47,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_18c6 as oracle } from "../../translated/loc_18c6.js";
 import { loc_18c6 } from "../loc_18c6.js";
-import { loc_3009 } from "../loc_3009.js";
+import { nextAnimationStep } from "../nextAnimationStep.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { loc_2333 } from "../../translated/loc_2333.js";
 import { Machine } from "../../machine.js";
@@ -149,7 +149,7 @@ function craftBase({ counter, x6919, seqptr, marioX, level } = {}) {
 }
 
 // The safe canonical base for the counter sweep: MARIO_X on the left, LEVEL odd, a
-// valid non-terminator board pointer, and 0x6919 low bits clear so the loc_3009
+// valid non-terminator board pointer, and 0x6919 low bits clear so the nextAnimationStep
 // selector on the proceed arm terminates (a value with low 2 bits == 3 would hang,
 // faithfully, both sides — an invalid live-in the real game never produces here).
 const SWEEP_BASE = { x6919: 0x00, seqptr: 0x3a65, marioX: 0x40, level: 0x01 };
@@ -303,7 +303,7 @@ function brokenLoc18c6(m) {
   }
   if ((counter & 0x0f) !== 0) return; // BUG: 0x0F should be 0x07
   mem.write8(0x6a25, mem.read8(0x6a25) ^ 0x80);
-  const sel = loc_3009(0x00, mem.read8(BLINK_6919) & 0xdf);
+  const sel = nextAnimationStep(0x00, mem.read8(BLINK_6919) & 0xdf);
   mem.write8(BLINK_6919, (sel.a | 0x20) & 0xff);
   if (counter === 0xe0) {
     mem.write8(0x694f, 0x50);

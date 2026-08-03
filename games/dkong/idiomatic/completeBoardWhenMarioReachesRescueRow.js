@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1e7a — the girder-board rescue-row test inside Mario's per-frame position check
- * (sub_1e57).  ROM 0x1E7A.
+ * completeBoardWhenMarioReachesRescueRow — the rescue-row test inside Mario's per-frame position check (sub_1e57).
+ * ROM 0x1E7A.
  *
- * Reached on a girder board once sub_1e57's earlier column/row checks have narrowed Mario
- * to the situation near Pauline; the caller hands Mario's screen Y position in. This
+ * WHICH BOARDS. This arm serves **25m AND 75m**, not the girder board alone. The dispatcher
+ * at ROM 0x1E57 first sends BOARD 4 to the rivet arm (`bit 2,a`), then executes `rra` at
+ * ROM 0x1E5F — which rotates BOARD's **bit 0** into the carry — and `jp c,0x1E7A` at 0x1E63
+ * therefore selects the ODD boards, BOARD 1 (25m) and BOARD 3 (75m). BOARD 2 falls through
+ * to the `cp 0x51` threshold instead. (An earlier header here called this "the girder-board
+ * rescue-row test … Reached on a girder board"; that was wrong.)
+ *
+ * Reached once sub_1e57's earlier column/row checks have narrowed Mario to the situation
+ * near Pauline; the caller hands Mario's screen Y position in. This
  * routine decides whether he has climbed high enough to win the board — Y is a screen
  * coordinate that DECREASES as Mario climbs, and 0x31 is the rescue-row line:
  *
@@ -19,7 +26,10 @@
  * read from the machine register at this oracle boundary rather than taken as a parameter;
  * it promotes to a parameter once that caller is idiomatic. The threshold comparison also
  * leaves the carry that loc_1e6d reads to pick Mario's facing, so it is done as a real
- * compare (carry set on the board-won arm) rather than a bare value test.
+ * compare (carry set on the board-won arm) rather than a bare value test. On THIS path the
+ * facing byte is therefore always 0x00: the board-won arm is the carry-SET arm by
+ * construction, and loc_1e6d writes 0x00 for carry set. The other facing value is reachable
+ * only through the dispatcher's own fall-through at ROM 0x1E6C, which this jump skips.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1e7a.test.js.
  * GATE:     crafted-entry + captured. An attract run dispatches 0x1E7A thousands of times
@@ -41,7 +51,7 @@
 
 import { loc_1e6d } from "./loc_1e6d.js"; // ROM 0x1E6D
 
-export function loc_1e7a(m) {
+export function completeBoardWhenMarioReachesRescueRow(m) {
   const { regs } = m;
 
   // Compare Mario's screen Y against the rescue-row line. The compare also leaves the carry

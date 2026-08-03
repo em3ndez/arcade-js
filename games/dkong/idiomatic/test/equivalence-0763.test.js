@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_0763 (ROM 0x0763) — the timed game-state-1
+ * Memory-equivalence test for restartAttractDemoAt25m (ROM 0x0763) — the timed game-state-1
  * sub-state reset: on the pass where both halves of the sub-state timer expire, clear the
  * object-insert request (0x63A0) + a paired engine-scratch byte (0x6392), reseed the live
  * context to board 1 / level 1 / one life (0x6227/0x6229/0x6228), then tail into the board
@@ -30,7 +30,7 @@
  *
  * Jobs:
  *   1. REACHABILITY — a plain attract run dispatches 0x0763, capturing skip and run entries.
- *   2. EQUAL (captured) — loc_0763 == oracle over RAM − STACK_SCRATCH on every real
+ *   2. EQUAL (captured) — restartAttractDemoAt25m == oracle over RAM − STACK_SCRATCH on every real
  *      dispatch; non-vacuous (the run entries genuinely build a board; the mask is load-bearing).
  *   3. EQUAL (crafted) — a run entry with the object-insert request + level preset nonzero
  *      matches the oracle (proving the reseed reproduces), plus a forced skip and a forced run.
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0763 as oracle } from "../../translated/loc_0763.js";
-import { loc_0763 as idiomatic } from "../loc_0763.js";
+import { restartAttractDemoAt25m as idiomatic } from "../restartAttractDemoAt25m.js";
 import { tickSubstatePrescaler } from "../tickSubstatePrescaler.js";
 import { buildBoard } from "../buildBoard.js";
 import { Machine } from "../../machine.js";
@@ -133,7 +133,7 @@ test("REACHABILITY: 0x0763 is dispatched during attract, spanning skip and run p
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_0763 == oracle over RAM − STACK_SCRATCH on every real dispatch", () => {
+test("EQUAL (captured): restartAttractDemoAt25m == oracle over RAM − STACK_SCRATCH on every real dispatch", () => {
   assert.ok(CAPS.length >= 1, "expected at least one real 0x0763 dispatch");
   let sawRun = 0, sawSkip = 0;
   for (const cap of CAPS) {

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_23de (ROM 0x23DE) — refresh a moving object's two
+ * Equivalence test for advanceBarrelSpriteOrientation (ROM 0x23DE) — refresh a moving object's two
  * sprite-orientation bits from a packed direction lookup, on a per-object countdown.
  *
- * loc_23de reads the object record IX points at and the direction code in C (both
+ * advanceBarrelSpriteOrientation reads the object record IX points at and the direction code in C (both
  * still supplied in registers by the frozen translated callers). Its whole
  * memory-observable behaviour is a function of four bytes — the record's countdown
  * (+0x0F), its sprite code (+0x07), its sprite attribute (+0x08), and C — and it
@@ -18,9 +18,9 @@
  *     0 exercises the 0 -> 0xFF wrap and counter 1 crosses into the refresh path.
  *   REFRESH path (+0x0F == 1) — reloads +0x0F to 4 and rewrites the top bit of +0x07
  *     and +0x08, preserving their low seven bits. The two new top bits are bit 1 and
- *     bit 0 of loc_3009(0x03|C, selector), where selector packs the two OLD top bits
+ *     bit 0 of nextAnimationStep(0x03|C, selector), where selector packs the two OLD top bits
  *     (code's bit 7 high, attribute's bit 7 low). Because C's low bit is forced set,
- *     loc_3009's family constant is always a full {0,1,2,3} permutation, so the lookup
+ *     nextAnimationStep's family constant is always a full {0,1,2,3} permutation, so the lookup
  *     always terminates for the 2-bit selector — no hang. This path factors as:
  *       • the two output top bits = a function of (C, selector) ONLY. Swept over the
  *         COMPLETE 256×4 (C, selector) grid (SEL sweep) with the low bits fixed.
@@ -32,10 +32,10 @@
  * Together these sweeps cover the full (counter, code, attr, C) input space by that
  * factorisation, so this is a proof, not a sample.
  *
- *   1. EQUAL (exhaustive) — loc_23de == oracle on RAM − STACK_SCRATCH across all four
- *      sweeps. The oracle's refresh beat brackets its loc_3009 call with a push16, so
+ *   1. EQUAL (exhaustive) — advanceBarrelSpriteOrientation == oracle on RAM − STACK_SCRATCH across all four
+ *      sweeps. The oracle's refresh beat brackets its nextAnimationStep call with a push16, so
  *      the compared RAM excludes the dead stack scratch that dissolved push writes;
- *      loc_23de calls loc_3009 directly and touches no stack.
+ *      advanceBarrelSpriteOrientation calls nextAnimationStep directly and touches no stack.
  *
  *   2. TEETH (exhaustive) — four deliberately-broken twins, each of which the same
  *      sweeps MUST catch:
@@ -49,7 +49,7 @@
  *            the LO7A / SEL sweeps (the fixed low bits are non-zero).
  *
  *   3. REALISM (captured dispatches) — 0x23DE runs continuously in the attract demo,
- *      so hook it, clone at each true dispatch, and confirm loc_23de reproduces the
+ *      so hook it, clone at each true dispatch, and confirm advanceBarrelSpriteOrientation reproduces the
  *      oracle's RAM on every real state the game actually produces (spanning both the
  *      decrement path and the refresh beat).
  *
@@ -61,8 +61,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_23de as oracle } from "../../translated/loc_23de.js";
-import { loc_23de } from "../loc_23de.js";
-import { loc_3009 } from "../loc_3009.js";
+import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
+import { nextAnimationStep } from "../nextAnimationStep.js";
 import { STACK_SCRATCH, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";
 import { Machine } from "../../machine.js";
 
@@ -84,7 +84,7 @@ const CODE_CELL = (IX_BASE + OBJ_SPRITE_CODE) & 0xffff; // 0x6407
 const ATTR_CELL = (IX_BASE + OBJ_SPRITE_ATTR) & 0xffff; // 0x6408
 const CTR_CELL = (IX_BASE + OBJ_COUNTDOWN) & 0xffff;    // 0x640f
 
-// On the refresh beat the oracle brackets its loc_3009 call with a push16; point SP
+// On the refresh beat the oracle brackets its nextAnimationStep call with a push16; point SP
 // into STACK_SCRATCH so that dissolved push (and the terminal ret's pop) stay in the
 // dead region the memory-equivalence contract excludes.
 const SAFE_SP = 0x6bf8;
@@ -169,7 +169,7 @@ function fullSweep(base, candidate) {
   }
 
   // SEL sweep — the refresh top-bit lookup over the COMPLETE 256×4 (C, selector) grid,
-  // low bits fixed. Exhaustive over everything loc_3009's output can depend on here.
+  // low bits fixed. Exhaustive over everything nextAnimationStep's output can depend on here.
   for (let c = 0; c < 256; c++) {
     for (let sel = 0; sel < 4; sel++) {
       const hit = step({ counter: 1, code: codeForSel(sel), attr: attrForSel(sel), c });
@@ -200,9 +200,9 @@ const describeMismatch = (mm) =>
 
 // -- 1. EQUAL (exhaustive) ----------------------------------------------------
 
-test("EQUAL (exhaustive): loc_23de == oracle across all four factored sweeps", () => {
+test("EQUAL (exhaustive): advanceBarrelSpriteOrientation == oracle across all four factored sweeps", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, loc_23de);
+  const { mismatch, count } = fullSweep(base, advanceBarrelSpriteOrientation);
   assert.equal(mismatch, null, describeMismatch(mismatch));
   // 256 counter + 256*4 (C, selector) + 256 code + 256 attr
   assert.equal(count, 256 + 256 * 4 + 256 + 256, "must have compared the full factored input space");
@@ -211,8 +211,8 @@ test("EQUAL (exhaustive): loc_23de == oracle across all four factored sweeps", (
 
 // -- 2. TEETH (exhaustive) ----------------------------------------------------
 
-// The twins reimplement loc_23de with one surgical bug each (they must call the real
-// loc_3009 to reproduce the lookup so only the injected bug diverges).
+// The twins reimplement advanceBarrelSpriteOrientation with one surgical bug each (they must call the real
+// nextAnimationStep to reproduce the lookup so only the injected bug diverges).
 
 /** BUG (a): routes bit 0 of the lookup to +0x07 and bit 1 to +0x08 (top bits swapped). */
 function brokenSwappedOutputs(m) {
@@ -224,7 +224,7 @@ function brokenSwappedOutputs(m) {
   const cA = (objBase + 0x07) & 0xffff, aA = (objBase + 0x08) & 0xffff;
   const code = mem.read8(cA), attr = mem.read8(aA);
   const sel = (((code >> 7) & 1) << 1) | ((attr >> 7) & 1);
-  const next = loc_3009(0x03 | regs.c, sel).a;
+  const next = nextAnimationStep(0x03 | regs.c, sel).a;
   mem.write8(aA, (((next >> 1) & 1) << 7) | (attr & 0x7f)); // BUG: bit 1 to +0x08
   mem.write8(cA, ((next & 1) << 7) | (code & 0x7f));        // BUG: bit 0 to +0x07
   mem.write8(ctr, 0x04);
@@ -240,7 +240,7 @@ function brokenSwappedSelector(m) {
   const cA = (objBase + 0x07) & 0xffff, aA = (objBase + 0x08) & 0xffff;
   const code = mem.read8(cA), attr = mem.read8(aA);
   const sel = (((attr >> 7) & 1) << 1) | ((code >> 7) & 1); // BUG: sources swapped
-  const next = loc_3009(0x03 | regs.c, sel).a;
+  const next = nextAnimationStep(0x03 | regs.c, sel).a;
   mem.write8(aA, ((next & 1) << 7) | (attr & 0x7f));
   mem.write8(cA, (((next >> 1) & 1) << 7) | (code & 0x7f));
   mem.write8(ctr, 0x04);
@@ -256,7 +256,7 @@ function brokenReload(m) {
   const cA = (objBase + 0x07) & 0xffff, aA = (objBase + 0x08) & 0xffff;
   const code = mem.read8(cA), attr = mem.read8(aA);
   const sel = (((code >> 7) & 1) << 1) | ((attr >> 7) & 1);
-  const next = loc_3009(0x03 | regs.c, sel).a;
+  const next = nextAnimationStep(0x03 | regs.c, sel).a;
   mem.write8(aA, ((next & 1) << 7) | (attr & 0x7f));
   mem.write8(cA, (((next >> 1) & 1) << 7) | (code & 0x7f));
   mem.write8(ctr, 0x05); // BUG: should reload to 4
@@ -272,7 +272,7 @@ function brokenDroppedPassthrough(m) {
   const cA = (objBase + 0x07) & 0xffff, aA = (objBase + 0x08) & 0xffff;
   const code = mem.read8(cA), attr = mem.read8(aA);
   const sel = (((code >> 7) & 1) << 1) | ((attr >> 7) & 1);
-  const next = loc_3009(0x03 | regs.c, sel).a;
+  const next = nextAnimationStep(0x03 | regs.c, sel).a;
   mem.write8(aA, ((next & 1) << 7) | (attr & 0x7f));
   mem.write8(cA, ((next >> 1) & 1) << 7); // BUG: no | (code & 0x7f)
   mem.write8(ctr, 0x04);
@@ -326,7 +326,7 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured 0x23DE dispatches — loc_23de matches oracle RAM", () => {
+test("REALISM: real captured 0x23DE dispatches — advanceBarrelSpriteOrientation matches oracle RAM", () => {
   const caps = captureDispatches(300, 2000);
   assert.ok(caps.length >= 1, "expected at least one real 0x23DE dispatch during attract");
 
@@ -336,7 +336,7 @@ test("REALISM: real captured 0x23DE dispatches — loc_23de matches oracle RAM",
     const b = cap.clone(); b.nextNmi = Infinity; b.nextBoundary = Infinity;
     const counterBefore = a.mem.read8((a.regs.ix + OBJ_COUNTDOWN) & 0xffff);
     oracle(a);
-    loc_23de(b);
+    advanceBarrelSpriteOrientation(b);
     const ram = firstRamDiff(a, b);
     assert.equal(
       ram,

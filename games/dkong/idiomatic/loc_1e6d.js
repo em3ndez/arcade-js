@@ -4,7 +4,10 @@
  * board-advance and unwind out of the movement cascade.  ROM 0x1E6D.
  *
  * A shared interior of Mario's per-frame position check (sub_1e57), reached on the
- * girder-board win condition (Mario has climbed to the rescue row near Pauline). The
+ * rescue win condition (Mario has climbed to the rescue row near Pauline) of every
+ * non-rivet board: ROM 0x1E5F's `rra` on BOARD routes the ODD boards (25m, 75m) here via
+ * completeBoardWhenMarioReachesRescueRow with the carry SET, and BOARD 2 arrives through the dispatcher's own
+ * fall-through at ROM 0x1E6C. (BOARD 4 was diverted to the rivet arm earlier.) The
  * caller hands it a single selector — the carry flag — and it sets Mario's sprite-record
  * code byte (MARIO_SPRITE_RECORD + SPRITE_CODE) to a bare facing value:
  *   • carry SET   -> 0x00  (horizontal-flip bit clear)
@@ -17,9 +20,11 @@
  * callee's boolean unwind signal unchanged — false, the caller-skip meaning "abort: do
  * not continue".
  *
- * The carry is a genuine live-in set by the STILL-TRANSLATED caller (sub_1e57 / loc_1e7a),
- * so it is read from the machine flag at this oracle boundary rather than taken as a
- * parameter; it promotes to a boolean argument once those callers are idiomatic.
+ * The carry is a genuine REGISTER-ABI live-in. Both callers — checkBoardWonByType (sub_1e57)
+ * and completeBoardWhenMarioReachesRescueRow — are idiomatic, but neither has an honest
+ * signature yet, so each still hands the selector over in the machine flag exactly where the
+ * oracle's jump sites leave it; this routine reads it from there rather than taking a
+ * parameter. It promotes to a boolean argument once those callers take honest args.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1e6d.test.js.
  * GATE:     crafted-entry — a long attract run dispatches 0x1E6D ZERO times (attract never

@@ -1,15 +1,30 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * drawLadder — stamp a kind-2 ladder run DOWN the tilemap for a board-layout record.  ROM 0x0E4F.
+ * drawLadder — stamp a kind-2 slope-band run across the tilemap for a board-layout record.  ROM 0x0E4F.
+ *
+ * ★ NAME INVERTED (rename pending): despite the name, THIS IS THE GIRDER DRAWER. Proven on the
+ * real ROM under MAME by tile suppression — blanking this routine's writes removes 6256 px and
+ * they are the GIRDERS (every sloped platform on the board); not one ladder pixel changes. Its
+ * sibling ROM 0x0e19, shipped as `drawGirderSpan`, is the one that draws the ladders. That also
+ * explains why the footing test reads the tiles this kind-2 arm stamps. The rename is a separate
+ * landable unit; until it lands the name below is the shipped name, not the actor. See
+ * mechanisms.md §5.
  *
  * The kind-2 arm of the board-layout drawer chain (sub_0da7 walks a table of
  * segment records; each record's kind byte is stashed at SEG_KIND (0x63B3) and
  * dispatched — kind 1 -> drawGirderSpan, kind 2 -> here, kind 3+ -> drawCappedTileColumn).
- * Where the girder fill walks ACROSS laying one tile, this walks DOWN: HL steps a
- * whole tilemap row per row (+0x20, the map is 0x20 cells wide) and the height
+ * HL steps a whole tilemap row per step (+0x20, the map is 0x20 cells wide) and the height
  * counter SEG_HEIGHT (0x63B1) is paid down 8 px — one tile — at a time until it borrows.
  *
- * The run is up to two cells wide. On each row it stamps the ladder tile (SEG_TILE, 0x63B5,
+ * ★ AND THE AXIS WORDING WAS WRONG ON A SECOND, INDEPENDENT COUNT. Stepping +0x20 walks the
+ * RAW TILEMAP ROW axis (index = row*32 + col), which reads as "walks DOWN" only if you forget
+ * the rotation. The screen is ROT270, so the raw row axis is the DISPLAYED HORIZONTAL and the
+ * raw column axis (+1, what loc_0e19 steps) the displayed vertical. On screen this routine lays
+ * LONG SLOPED HORIZONTAL runs — measured at 25 cells long and 2..4 cells thick, exactly a
+ * sloped girder — and loc_0e19 lays the short vertical ones. True regardless of what the two
+ * routines end up being named.
+ *
+ * The run is up to two cells wide. On each row it stamps the slope-band tile (SEG_TILE, 0x63B5,
  * seeded from the record's tile byte SEG_SUBTILE1 (0x63AF) biased by -0x10) and, alongside it, the
  * paired half-tile (tile - 0x10) — skipping that paired write when the cell wrapped
  * off the right edge of a 32-cell row ((L & 0x1F) == 0), or, on the leading row, when
@@ -31,7 +46,7 @@
  * that callee advances DE itself, so this routine adds nothing on that arm.
  *
  * Memory-equivalent to the frozen oracle — equivalence-0e4f.test.js.
- * GATE:     crafted + captured. Attract renders this for real on every 25m ladder
+ * GATE:     crafted + captured. Attract renders this for real on every 25m kind-2 segment
  *           (kind 2), exercising the stamp/descend loop; the kind != 2 delegation and
  *           any slant arm attract does not reach are crafted identically on both sides.
  * LIVE-OUT: memory-only + DE — the record cursor. The successor sub_0da7 (0x0DA7) does
@@ -54,20 +69,20 @@ import { drawCappedTileColumn } from "./drawCappedTileColumn.js"; // ROM 0x0EE8
 export function drawLadder(m) {
   const { regs, mem } = m;
 
-  // sub_0da7 stashes the record kind here. Only kind 2 is a ladder; hand anything
+  // sub_0da7 stashes the record kind here. Only kind 2 belongs to this drawer; hand anything
   // else to the capped-column drawer (it handles kind 3 and forwards kind 4+, and
   // advances DE itself). This is the oracle's `jp nz,0x0EE8`.
   if (mem.read8(SEG_KIND) !== 0x02) {
     return drawCappedTileColumn(m);
   }
 
-  // Seed the ladder tile code from the record's tile byte, biased by -0x10 (add 0xF0).
+  // Seed the slope-band tile code from the record's tile byte, biased by -0x10 (add 0xF0).
   mem.write8(SEG_TILE, (mem.read8(SEG_SUBTILE1) + 0xf0) & 0xff);
 
   // Walk pointer: the tilemap cell the record's corner fell in (converted VRAM addr).
   let hl = mem.read16(SEG_ADDR1);
 
-  // Stamp the ladder tile at HL, then advance HL and stamp the paired half-tile
+  // Stamp the slope-band tile at HL, then advance HL and stamp the paired half-tile
   // (tile - 0x10) beside it — unless HL wrapped past a 32-cell row boundary, or (only
   // on the leading row) the tile is the 0xF0 sentinel. Re-reads SEG_TILE each call, as
   // the oracle does, so the tile code lives only in memory.
@@ -82,7 +97,7 @@ export function drawLadder(m) {
 
   // Step one full tilemap row down (+0x20 total: the +1 a stamp already did, +0x1F
   // here) and pay 8 px of height. Returns false when the `sub 0x08` borrows — the
-  // height is spent and the ladder ends (nothing is stored on the borrowing row).
+  // height is spent and the run ends (nothing is stored on the borrowing row).
   function descend() {
     hl = (hl + 0x1f) & 0xffff;
     const h = mem.read8(SEG_HEIGHT);
@@ -104,7 +119,7 @@ export function drawLadder(m) {
     }
 
     if (phase === "DESCEND_A") {
-      // 0x0E78 — drop a row, pay height. Straight ladders loop back here every row;
+      // 0x0E78 — drop a row, pay height. Straight (unslanted) runs loop back here every row;
       // a nonzero x-delta lays a second row before the slant adjustment.
       if (!descend()) break;
       if (mem.read8(SEG_RUN) === 0x00) {

@@ -5,7 +5,7 @@
  *
  * Three parts:
  *
- *   1. loc_31dd runs first — the difficulty+entropy gated arm that stamps a field on
+ *   1. armAlternateFireModeAtHighDifficulty runs first — the difficulty+entropy gated arm that stamps a field on
  *      records 1 and 3 of this same array.
  *   2. The sweep index is zeroed and OBJ_ITER_PTR is seeded one stride BELOW the array
  *      base. The pointer is advanced BEFORE each record is read, so the first record
@@ -45,7 +45,7 @@
  *           oracle's `ret` carries none, and its one caller tests nothing). The registers
  *           the oracle defines and this rewrite drops are A, F, B, C, H and L. DERIVED:
  *           the sole caller — ROM 0x30ED, whose `call 0x31B1` at 0x30F3 is the only one
- *           in the translated layer — goes straight on to `call 0x34F3` (loc_34f3), which
+ *           in the translated layer — goes straight on to `call 0x34F3` (publishFireSprites), which
  *           loads its own source/destination pointers and record count and re-sets the
  *           flags before it reads anything, so A/F/B/H/L are dead within one instruction
  *           of the return; C survives that callee, and was followed out through the next
@@ -53,7 +53,7 @@
  *           without being read. MEASURED: the gate's LIVE-OUT case scrambles all six
  *           after every oracle dispatch and a 3000-frame attract run stays byte-identical.
  * NAMES:    OBJ_ITER_PTR (0x63C8), OBJ_ARRAY_64 (0x6400), OBJ_ACTIVE (+0) from ram.js;
- *           loc_31dd direct-called. The sweep index at 0x63A2 has no ram.js name — it is
+ *           armAlternateFireModeAtHighDifficulty direct-called. The sweep index at 0x63A2 has no ram.js name — it is
  *           referenced by no other routine in the translated layer — so it stays a local
  *           const. ROM 0x3202 is not in the ROUTINES registry, so it is still reached
  *           through m.call; the push beside it is the return address its frozen oracle's
@@ -63,7 +63,7 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { OBJ_ITER_PTR, OBJ_ARRAY_64, OBJ_ACTIVE } from "./ram.js";
-import { loc_31dd } from "./loc_31dd.js"; // ROM 0x31DD — the difficulty+entropy gated object arm
+import { armAlternateFireModeAtHighDifficulty } from "./armAlternateFireModeAtHighDifficulty.js"; // ROM 0x31DD — the difficulty+entropy gated object arm
 
 // Loop counter cell: reset to 0, incremented once per record, compared against the
 // record count. No ram.js name — nothing else in the translated layer references it.
@@ -83,7 +83,7 @@ const AFTER_OBJECT_CALL = 0x31d0;
 export function loc_31b1(m) {
   const { mem8, mem16 } = m;
 
-  loc_31dd(m);
+  armAlternateFireModeAtHighDifficulty(m);
 
   mem8[SWEEP_INDEX] = 0;
   // One stride below the array base: the pointer is advanced before the first read, so

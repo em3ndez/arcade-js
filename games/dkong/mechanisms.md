@@ -1,904 +1,1172 @@
 # Donkey Kong (Nintendo, 1981) — How It Works Inside
 
-> **What this document is.** The *inside-out* companion to `gameplay.md`. Where that
-> file describes how Donkey Kong is *played* from public sources (day-zero, no ROM),
-> this one describes how the machine *works*, built only from the decompiled code in
-> this repo — the `idiomatic/` routines, the named work-RAM map and routine registry
-> (`ROUTINES`) in `idiomatic/ram.js`
-> (moved 2026-07-31 off the retired `optimized/` layer; the idiomatic routines import it
-> directly), and the hardware/render layer in `boards/dkong/`. `gameplay.md` is the frame;
-> every claim below is reconciled against it and grounded in a routine or a RAM cell.
+> **What this document is.** The *inside-out* companion to [`gameplay.md`](gameplay.md).
+> That file is the day-zero, outside-in view — how Donkey Kong is *played*, from public
+> sources, with no ROM opened. This one is how the machine *works*, re-derived from the code
+> that is in this checkout right now: the readable routines in `idiomatic/`, the work-RAM and
+> routine registries in [`idiomatic/ram.js`](idiomatic/ram.js), the frozen per-instruction
+> oracle in `translated/`, the hardware layer in [`boards/dkong/`](../../boards/dkong/), and
+> the grounding runs recorded in `scratchpad/`.
 >
-> **Confidence tags.** Each non-obvious claim carries one:
-> - `[seen]` — validated by *playing* the game: pixel-diffed vs MAME 0.288, or a
->   reproduced control-poke. The strongest evidence we have.
-> - `[code]` — read directly out of a decompiled routine or a re-derived RAM name.
-> - `[guess]` — inference not yet pinned to code (the routine is still oracle-only, or
->   the exact ROM data table has not been lifted). Flagged so it is never mistaken for fact.
+> **`gameplay.md` is the frame.** Every section below is reconciled against it — agreeing,
+> sharpening, or (twice) contradicting it. Where the two disagree the disagreement is stated,
+> not smoothed over.
 >
-> **Honest floor.** 361 of the game's 423 routines are decompiled into readable
-> `idiomatic/` JavaScript; the other ~62 still exist only as the frozen `translated/`
-> oracle. The biggest not-yet-lifted block is the **actor/enemy AI**
-> (barrels, fireballs, elevators, springs, cement pans). So the *boot → attract →
-> board-setup → Mario-movement → board-advance → level-loop* spine is described from
-> code; the *moment-to-moment behaviour of the hazards* is described more thinly, and
-> those entries are tagged accordingly. See §Decompile coverage.
+> **This file is rewritten from scratch after every understanding pass** — never patched. See
+> [`docs/decompiler-pipeline.md`](../../docs/decompiler-pipeline.md) ("RULE — every
+> understanding pass REWRITES `mechanisms.md`") and [`docs/understanding.md`](../../docs/understanding.md)
+> step 7. Every number in §1 was measured against this working tree while writing, with the
+> command that produced it; none was carried forward from the previous map.
+>
+> **Confidence tags are on CLAIMS, not on cells.** Each non-obvious mechanism claim carries:
+> - **`[seen]`** — observed on the real ROM under MAME (a control-poke, an A/B with a negative
+>   control, or a pixel diff). The strongest evidence here.
+> - **`[code]`** — read out of the decompiled routine, the frozen oracle, or the ROM's own data
+>   tables. The *mechanics* are exact; the *role* is inference from them. **A number our own
+>   harness produced lives here too**: a dispatch count from `new Machine(ROM).runFrames(...)`, or
+>   any idiomatic-vs-oracle equality, is this port replaying the ROM — good evidence about the
+>   port, and circular as evidence about the arcade machine. Those are written "**harness
+>   replay**", never "attract run", so the provenance cannot be misread.
+> - **`[guess]`** — plausible, unverified. Never to be relied on.
+>
+> **What this file does NOT own.** A work-RAM cell's name, role and confidence live in exactly
+> one place — `idiomatic/ram.js` — and a routine's one-line role lives in that file's `ROUTINES`
+> map. This document describes *mechanisms* and cites cells by their registry names; it never
+> restates a cell's registry status. That boundary is enforced by
+> `tools/names_consistency.py` (see [`docs/names-registry.md`](../../docs/names-registry.md),
+> "One source per fact").
 
 ---
 
-## 1. The game model
+## 1. Measured state of the port
 
-Jumpman/Mario climbs a construction site to rescue Pauline from Donkey Kong across
-**four single-screen boards**, then the whole thing loops harder. That outer shape
-(from `gameplay.md`) is confirmed by the code, which represents it as two nested
-counters plus a small ROM order-table.
+Everything in this section was produced by running the command beside it against this working
+tree. Re-run them before quoting any of it.
 
-- **Objective.** Reach Pauline (girder/conveyor/elevator boards) or pull every rivet
-  (rivet board). Each clear advances a **board pointer**; wrapping the pointer bumps a
-  **level counter** and the difficulty with it. `[seen]` `[code]`
-- **The cast, as the engine sees it.** *Mario* is a privileged actor with his own
-  8-byte-plus motion block at `0x6200–0x6220` and his own hardware sprite record
-  (`MARIO_SPRITE_RECORD 0x694C`). Everything else — barrels, fireballs, the elevators,
-  springs, cement pans, Pauline's dropped prizes, Kong himself, even the floating score
-  glyph — is a **4-byte object/sprite record** in the shared sprite shadow buffer
-  (`SPRITE_BUFFER 0x6900`, 96 records) fed to the screen by DMA. `[code]`
-- **Win, per board.** A single byte, `GAME_SUBSTATE (0x600A)`, is forced to **0x16**
-  ("board-cleared / advance"). Two conditions reach that write, both in
-  `enterBoardAdvanceAndUnwind`: a **rivet board with `RIVETS_LEFT (0x6290) == 0`**, or a
-  **girder/rescue board where Mario has climbed to the rescue row near Pauline**. `[code]`
-- **Lose.** A life is spent (`LIVES (0x6228)` `dec`) on a fatal fall, a hazard hit, or
-  the **bonus timer reaching 0**. The bonus-expired path is its own little state machine
-  (`BONUS_EXPIRED_STEP 0x6386`). Game over when `LIVES` hits 0. `[code]`
-- **Scoring.** Three little-endian packed-BCD bytes per player (`P1_SCORE 0x60B2`,
-  `P2_SCORE 0x60B5`), plus `HIGH_SCORE 0x60B8`. Points are never added inline — a
-  **task message** `[opcode 0, award-index]` is posted to a ring buffer and the main
-  loop credits it later (see §9). `[code]`
-- **Progression + loop.** A 16-bit ROM pointer `BOARD_SEQ_PTR (0x622A)` walks a
-  board-order table (init `0x3A65`); each entry is copied to `BOARD (0x6227) ∈ {1,2,3,4}`.
-  A `0x7F` terminator reloads the pointer to `0x3A73` (the level-5+ group) and increments
-  `LEVEL (0x6229)`, so the game loops forever with rising difficulty. **Validated by
-  playing 25m→50m→75m→100m→wrap→level++, frame-for-frame vs MAME.** `[seen]` `[code]`
+| Metric | Count |
+|---|---:|
+| ROM routines in the frozen `translated/` oracle (`loc_XXXX.js`) | **429** |
+| — of which have a readable `idiomatic/` module | **429 (100%)** |
+| Addresses registered in `ROUTINES` (`idiomatic/ram.js`) and wired live | **389** |
+| — carrying an earned English name | 302 |
+| — still address-named `loc_XXXX` | 87 |
+| Idiomatic modules written but **not** registered in `ROUTINES` | **40** |
+| `ROUTINES` confidence split | 362 `code` / 27 `seen` / 0 `guess` |
+| `export const` entries in `ram.js` | **184** |
+| — work-RAM cells (inside 0x6000–0x6BFF) | 168 |
+| — object/sprite **record field offsets** (not addresses) | 16 |
+| `ram.js` confidence split | 134 `[seen]` / 50 `[code]` / 0 `[guess]` |
+| Per-routine memory-equivalence tests | 427 |
 
-### The four boards
+```sh
+# routine coverage + registry split
+node --input-type=module -e '
+const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/ram.js");
+const T=fs.readdirSync("games/dkong/translated").filter(f=>/^loc_[0-9a-f]{4}\.js$/.test(f));
+const I=new Set(fs.readdirSync("games/dkong/idiomatic").filter(f=>f.endsWith(".js")));
+const have=T.filter(f=>{const a=parseInt(f.slice(4,8),16);return I.has(f)||(ROUTINES[a]&&I.has(ROUTINES[a].name+".js"));});
+const cert={}; for(const r of Object.values(ROUTINES)) cert[r.cert]=(cert[r.cert]||0)+1;
+console.log("translated",T.length,"with idiomatic",have.length,"ROUTINES",Object.keys(ROUTINES).length,
+ "english",Object.values(ROUTINES).filter(r=>!/^loc_/.test(r.name)).length,"cert",JSON.stringify(cert));'
+# named work-RAM cells, using the names-consistency gate's own definition of "named"
+python3 -c 'import sys;sys.path.insert(0,"tools");import names_consistency as n;
+print(len(n.named_workram(open("games/dkong/idiomatic/ram.js").read(), n.workram_window("dkong"))))'
+```
 
-`BOARD (0x6227)` selects one of four setup routines and thereafter gates per-board
-behaviour (often via the `rst 0x30` "board bit" gate, `boardBitGate`). `[code]`
+### The honest floor
 
-| `BOARD` | Name | Setup routine | Hazard cast (mostly still oracle-only) |
-|--------:|------|---------------|----------------------------------------|
-| 1 | **25m** girders & barrels | `seed25mBoardObjects` | rolling barrels, fireballs, oil drum, 2 hammers |
-| 2 | **50m** conveyors / "pie factory" | `seed50mBoardObjects` | cement pans on belts, fireballs, retracting ladders, prizes + hammers |
-| 3 | **75m** elevators & springs | `seed75mBoardObjects` | moving elevator platforms, bouncing springs, flames, prizes |
-| 4 | **100m** rivets (finale) | `seed100mBoardObjects` | flames, 8 rivets to pull; pull the last → Kong falls |
+Three separate things are true at once, and only the first is "done":
 
-The canonical arcade order **25→50→75→100** from `gameplay.md` is exactly what the
-sequence table produces for level 1 `[seen]`. The bonus-item prizes (parasol / hat /
-purse) are driven by `runBonusItemValueDisplay` and appear on the non-25m boards `[code]`,
-matching `gameplay.md`.
+1. **Lifting is complete.** Every one of the 429 ROM routines the disassembler emits has a
+   readable module and (for 427 of them) its own memory-equivalence gate against the frozen
+   oracle. The two without a per-routine gate are `boot` (ROM 0x0000) and `mainLoop`
+   (ROM 0x02BD) — the coroutine spine, gated whole by `idiomatic/test/golive.test.js`
+   instead. **There is no "biggest not-yet-lifted block" any more**; the previous map named
+   `0x1F00–0x2E00`, the actor/object AI, and that block is lifted. `[code]`
 
----
+2. **Wiring is not.** `resolveAllIdiomatic()` — what the shipping player uses
+   (`manifest.js` declares `runtime: "idiomatic"`, and `web/worker.js` runs it under
+   `runGeneratorGame`) — builds its override map **from `ROUTINES` alone**. The 40 modules
+   that are not in `ROUTINES` are therefore *not executed*: at those addresses the live
+   machine still runs the frozen oracle. They are written, reviewed and gated; they are not
+   yet live. `[code]`
 
-## 2. The machine spine: NMI, main loop, game-state dispatch
+   They are not scattered — they are six coherent clusters (2 + 27 + 3 + 3 + 3 + 2 = 40), each
+   blocked on the same registration step:
 
-One vblank NMI per frame drives everything. `[code]`
+   | cluster | addresses |
+   |---|---|
+   | the per-frame gameplay cascade + its attract entry | `0x1977`, `0x197A` |
+   | the 25m barrel object walk (ten `OBJ_ARRAY_67` slots and every branch of it) | `0x1F72`, `0x1F83`, `0x1F8D`, `0x1F93`, `0x1FAC`, `0x1FCE`, `0x1FE5`, `0x1FEF`, `0x1FF6`, `0x202F`, `0x2038`, `0x2053`, `0x2079`, `0x2083`, `0x20A2`, `0x20B5`, `0x20C3`, `0x20E1`, `0x20EC`, `0x2101`, `0x2104`, `0x2118`, `0x2146`, `0x2153`, `0x215F`, `0x21BA`, `0x24B4` |
+   | the five-slot fire pass below `loc_30ed` | `0x31B1`, `0x3202`, `0x333D` |
+   | the airborne-frame resolver and its object-collision follow-up | `0x1C05`, `0x2B1C`, `0x29AF` |
+   | the task dispatcher, its inline-jump trampoline, and task 5 | `0x00CA`, `0x02E3`, `0x062A` |
+   | the 25m barrel-release entry and the fire pass head | `0x2C8F`, `0x30ED` |
 
-- **`serviceVblankNmi` (ROM 0x0066)** — one frame of interrupt service: reads controls,
-  stirs the PRNG, blits sprites via DMA, ticks the sound driver, then falls into `perFrame`.
-- **`perFrame` (ROM 0x00B5)** — decrements the `FRAME (0x601A)` counter (everything
-  periodic keys off it) and dispatches on `GAME_STATE (0x6005)`: **0** power-on,
-  **1** attract, **2** credited (start select), **3** in-game. The dispatch itself still
-  routes through the generic oracle `dispatchGameState` (the one address-registry the
-  decompiler keeps for genuine computed control flow).
-- **PRNG.** `stirRandomSeed` (ROM 0x0057) does `RANDOM (0x6018) += FRAME + SPIN_COUNT`
-  every vblank. `SPIN_COUNT (0x6019)` is bumped ~140×/frame by the main loop; its jitter
-  with per-frame workload is the entropy source. For JS↔MAME determinism the fleet pins
-  this to a fixed value (see the entropy-pinning note in `docs/06`). `[code]`
-- **In-game sub-dispatch.** `dispatchInGameSubstate` (ROM 0x06FE) reads
-  `GAME_SUBSTATE (0x600A)` and vectors through a **29-entry ROM jump table at 0x0702**:
-  7 = opening Kong-climb cutscene, 8 = "how high" interlude, 0x0A = board setup,
-  0x0C/0x0D = gameplay, 0x0E = P1 death, **0x16 = board-cleared/advance**, 0x15 = the
-  bonus-item display. Six slots are null and the selector is **not** range-checked — a bad
-  sub-state vectors off the table (surfaced as a loud throw, never a silent reset). `[code]`
+   ```sh
+   node --input-type=module -e '
+   const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/ram.js");
+   const reg=new Set(Object.values(ROUTINES).map(r=>r.name));
+   console.log(fs.readdirSync("games/dkong/idiomatic")
+     .filter(f=>/^loc_[0-9a-f]{4}\.js$/.test(f)&&!reg.has(f.slice(0,-3))).join(" "));'
+   ```
 
-The two `rst`-vector guards `gameActiveGuard` (proceed only in a credited game) and
-`marioActiveGuard` (proceed only while Mario is alive) are the caller-skip primitives
-that gate most per-frame work. `[code]`
+3. **The readable layer is not yet self-contained.** Eighteen call sites inside `idiomatic/`
+   still reach the callee by importing the frozen oracle (`from "../translated/loc_XXXX.js"`)
+   even though that address *is* registered and has a readable twin. Behaviour is unaffected
+   (the oracle is what the twin is gated against) but a reader following the call lands in
+   per-instruction code. `docs/reviewer-rules.md` carries this as a standing review rule; the
+   count is re-derived here rather than remembered:
 
----
+   ```sh
+   node --input-type=module -e '
+   const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/ram.js");
+   let n=0; for(const f of fs.readdirSync("games/dkong/idiomatic").filter(f=>f.endsWith(".js")))
+     for(const m of fs.readFileSync(`games/dkong/idiomatic/${f}`,"utf8")
+        .matchAll(/^import .*from "\.\.\/translated\/loc_([0-9a-f]{4})\.js";/gm))
+       if(ROUTINES[parseInt(m[1],16)]) { n++; console.log(f,"->",m[1],ROUTINES[parseInt(m[1],16)].name); }
+   console.log("stale:",n);'
+   ```
 
-## 3. Boot, attract, coins, and starting a game
+And one measurement about *understanding* rather than code. Net (a) of the enumeration in
+`docs/understanding.md` is written for `mem8[0x…]` bracket syntax, which this port does not use
+— run as written it finds nothing, which is a fact about the regex and not about the code. Run
+in this port's own accessor form (`mem.read8/write8/read16/write16(0x6xxx)`, comments stripped,
+registry cells excluded) it finds **15 unnamed work-RAM addresses still read or written as bare
+hex** — `0x6209`, `0x620A`, `0x62AF`, `0x62B9`, `0x6350`, `0x6392`, `0x6910`, `0x6919`, `0x694D`,
+`0x694F`, `0x6A20`–`0x6A23`, `0x6A25` — concentrated in `loc_18c6`, `initBoardState` and the
+hit-effect latch. Net (b) finds **47 more addresses aliased to file-local `const`s that were
+never centralized** into `ram.js`, **9 of them carrying conflicting local names across files**
+(`0x62AF` alone has seven), which is exactly the "one routine's local view" the registry exists
+to reconcile. Those 15 + 47 are the to-do list for the next naming pass; the sharpest are named
+in §15.
 
-- **`powerOnInit` (ROM 0x01C3)** — `GAME_STATE == 0`, one-time init.
-- **`decodeDipSwitches` (ROM ~0x020E)** — unpacks DSW0 into the settings block:
-  `DIP_LIVES (0x6020)` = 3–6 lives, `DIP_BONUS_LIFE (0x6021)` = extra-life threshold
-  (default **7000**, matching `gameplay.md`), coin ratios, and `DIP_UPRIGHT (0x6026)`
-  (upright vs cocktail → flip-screen). `[code]`
-- **Attract.** `runAttractState` (ROM 0x073C) services `GAME_STATE == 1`;
-  `composeAttractTitleScreen` builds the title/score screen. Attract plays **25m only**,
-  which is why so many gameplay routines can only be gated by crafted pokes, not captured
-  attract frames (noted throughout the equivalence tests). `[code]`
-- **Attract-demo input player.** During attract the game replays a scripted joystick demo:
-  `advanceAttractDemoInput` (ROM 0x21EE) is the **sole** reader/writer of `DEMO_SCRIPT_INDEX (0x63CC)` — the script step index,
-  which walks `0 → 18` and resets to 0 each demo cycle (3 cycles observed) — and
-  `DEMO_SCRIPT_COUNTDOWN (0x63CD)`, the per-step dwell (reloaded at every `DEMO_SCRIPT_INDEX`
-  advance, decremented ~each frame). Each advance coincides with a fresh `P1_INPUT`. `[seen]`
-- **Coins.** `serviceCoinInput` (ROM 0x017B) debounces the coin line via a `COIN_EDGE
-  (0x6003)` latch (so holding the coin line never repeat-credits), tallies
-  `COINS_PARTIAL (0x6002)` against the DIP ratio, and awards BCD `CREDITS (0x6001)`.
-  Proven by a coin test: each pulse counted exactly once. `[seen]`
-- **Start.** `enterCreditScreen` → `readStartButtonSelector` → `commitGameStart` spend the
-  credit(s) (`spendCredit`), seed the player context, and move `GAME_STATE` to 3.
-  `restorePlayer1Context` / `restorePlayer2Context` `ldir` an 8-byte saved context
-  (`P1_CONTEXT 0x6040` / `P2_CONTEXT 0x6048`) into the live block `0x6228` and re-derive
-  `BOARD` from the sequence pointer. Two-player alternation is armed off
-  `TWO_PLAYER_GAME (0x600F)`. `[code]`
-
----
-
-## 4. Building a board
-
-`initBoardState` (ROM 0x0F56) is the heart of board setup, and it is fully decompiled. `[code]`
-
-1. **Clear** the player/motion block `0x6200–0x6226` and the big object+sprite span
-   `0x6280–0x6AFF`, then overlay the 0x40-byte board-object header template from ROM
-   `0x3D9C`.
-2. **Compute the bonus** (see §6): `BONUS_START/BONUS/BONUS_EVENT_MARK` = `min(LEVEL*10 +
-   0x28, 0x50)` in byte arithmetic; the tick period = `max(0xDC − 2*bonus, 0x28)`.
-3. On every board **except** the 100m rivet board, seed three fixed decorative sprite
-   records at `0x6A00`.
-4. **Dispatch on `BOARD`** to `seed25m/50m/75m/100mBoardObjects`.
-
-The per-board setup then lays down the playfield. The tilemap is stamped by a family of
-drawing primitives — `drawGirderSpan` (fills a segment body with the girder tile 0xC0),
-`drawLadder` (a kind-2 ladder run down a column), `drawSegmentEndCap`, `fillTileColumn`,
-`fillTileBlock`, `fillTileRowPair`, `fillDescendingColumn`, plus board-specific stampers
-(`stamp50mBoardTiles`, `stamp75mBoardTiles`, `stampRivetBoardBands/Tiles`,
-`stampFixedTilePair`, `stampTwoTileBands`). `drawBoardLayout`/`loc_0dd3` walk the board-layout
-**segment table** (`0xAA`-terminated) and draw each segment through a shared per-record
-working block `SEG_* (0x63AB–0x63B5)`: the two endpoint tile addresses `SEG_ADDR1`/`SEG_ADDR2`,
-their sub-tile offsets (`SEG_SUBTILE1`/`SEG_SUBTILE2`/`SEG_SUBTILE_Y1`), the height
-`SEG_HEIGHT = |y2−y|`, the run `SEG_RUN = x2−x` (its sign gives the slant), and a `SEG_KIND`
-selector that dispatches girder-span vs `drawLadder` vs `fillTileColumn` while `SEG_TILE`
-holds the tile being stamped (endpoints → run deltas → body fill). `[code]`
-
-**The board-build dispatch and the tune family.** A separate arm-dispatch (`buildBoard` (0x0C92),
-on `BOARD`) makes each board's three fixed choices before the shared draw tail `loc_0cc6`:
-`setUp75mBoard` (75m) first stamps the elevator tile motif (`stamp75mBoardTiles`),
-`setup50mConveyorBoard` is the 50m arm (`SND_BGM = 0x09`, `DE = 0x3B5D` conveyor layout),
-`setup25mGirderBoard` is the 25m arm (board 1; `SND_BGM = 0x08`, `DE = 0x3AE4` girder layout),
-and the 100m arm sits alongside. Each arm selects its background music
-from a **consecutive `SND_BGM (0x6089)` tune family** — `0x08` 25m, `0x09` 50m, `0x0A` 75m,
-`0x0B` 100m — then points `DE` at its board's ROM layout table (75m = `0x3BE5` elevators,
-between the 50m `0x3B5D` and 100m `0x3C8B` tables in board order) for `loc_0cc6` to walk into
-VRAM. `[code]`
-
-Objects for the board are scattered into records by `loadBoardObjectRecords`,
-`loadSpriteObjectBlock`, `seedObjectBlockSprites`, `seedSpriteObjectPair`,
-`replicateGroupStrided`, and Mario himself is spawned by `seedMarioActorRecord` at a
-board-dependent start. `[code]`
-
-### Object records: the arrays, the shared fields, and the gather → sprite → DMA path
-
-Every non-Mario actor lives as a fixed-stride record in one of a handful of **object-record
-arrays**, seeded at board build and updated each frame by the (mostly oracle-only) actor AI:
-`OBJ_ARRAY_64 (0x6400)` (stride 0x20), `OBJ_ARRAY_65 (0x6500)` (stride 0x10, 10 records),
-`OBJ_ARRAY_65A0 (0x65A0)` (0x10, 6), `OBJ_ARRAY_66 (0x6600)` (0x10, 6),
-`OBJ_PAIR_6680 (0x6680)` (a 2-record pair), `OBJ_RECORD_66A0 (0x66A0)` (single), and
-`OBJ_ARRAY_67 (0x6700)` (stride 0x20, 10 records, spanning page 0x68). `BOARD_OBJ_SCRATCH
-(0x6280)` is the heterogeneous base cleared+templated at each board build. `[code]`
-
-- **Shared field layout** — the same offsets hold across every array (the individual field
-  cells stay hex, reached as base+offset): `OBJ_ACTIVE (+0)` bit0 = slot active, `OBJ_X (+3)`,
-  `OBJ_Y (+5)`, `OBJ_SPRITE_CODE (+7)`, `OBJ_SPRITE_ATTR (+8)`, and `OBJ_STATE (+0x0d)` — the
-  per-object **state-machine selector**, read-and-dispatched or written-as-next-state at every
-  site (never a coordinate/timer/count). The `0x6400` animation walker also saves a 16-bit
-  ROM-path-table pointer in `OBJ_WALK_PTR_LO (+0x1a)` / `OBJ_WALK_PTR_HI (+0x1b)` — grounded
-  (understanding pass 10) as a contiguous pointer stepping `+1`/frame with high byte constant
-  `0x3A`; offset ≥ 0x10, so it is in-record only for the stride-0x20 arrays. Its enum differs per array (as a state field does):
-  e.g. the `0x6600` spawn objects use `8` = spawned / `4` = landed; the `0x6400` records run a
-  movement/collision state machine on it. **Grounded (understanding pass 4):** a live 25m-attract
-  run under MAME exercised the own bytes of `OBJ_ACTIVE`/`OBJ_X`/`OBJ_Y`/`OBJ_SPRITE_CODE` and
-  `OBJ_STATE` (small-enum state values), and record-0 of both `OBJ_ARRAY_64`/`OBJ_ARRAY_67` — all
-  lifted to `[seen]`. **Reconciled (understanding pass 5):** `entry_333d`'s code writes `OBJ_STATE`
-  values `0/4/8` on the `0x6400` array; the pass-4 25m-attract run had shown rec-0's `0x640d` taking
-  only `{0,1,2}`, leaving the `{4,8}` states unproven. A pass-5 real-ROM run on the credited **50m**
-  board now observes the `0x6400`-array records taking the full **`{0,1,2,4,8}`** enum with
-  substantial dwell (2081 gameplay frames showed `{4,8}` on some `0x6400` record) — the `{4,8}`
-  states the 25m demo never reaches because it never runs the full movement/collision arm. The
-  `0/4/8` value-set is now grounded `[seen]`; only `OBJ_SPRITE_ATTR (+8)` remains `[code]`.
-- **gather → sprite → DMA.** `gatherSpriteRecords` copies each active object's fields into a
-  4-byte hardware record in `SPRITE_BUFFER (0x6900)` — object `+3 → sprite +0` (X),
-  `+5 → +3` (Y), `+7 → +1` (code), `+8 → +2` (attr) — which `blitSpritesViaDma` then DMAs to
-  sprite RAM `0x7000` every vblank (§9). Named windows inside the buffer:
-  `ACTOR_SPRITES (0x6980)` (10×4, mirrors the `0x6500` array), `TOP_SPRITES (0x6A00)` (the 3
-  decorative records), `OBJECT_COLLISION_SPRITES (0x6A0C)` (the 3 records
-  `scanObjectsAtMarioX`/`confirmObjectHit` test against Mario), and `POPUP_SPRITE (0x6A30)`
-  (the floating score glyph). **Grounded:** sprite `+0 == MARIO_X` and `+3 == MARIO_Y`
-  byte-exact on the real ROM under MAME across 1819 attract frames — which fixes the record's
-  X/Y field positions and, transitively, object `+3`/`+5`. The video hardware reads each record
-  **rotated 90°** for the portrait screen (raster `+0 = y`, `+3 = x`), so the game-frame
-  "X at +0 / Y at +3" is correct, not a naming bug. `[seen]` `[code]`
-- **Per-board init tables.** `loadBoardObjectRecords` de-interleaves each board's ROM
-  object-init records into two parallel tables, `OBJ_PARAM_TABLE0 (0x6300)` (type 0, stride 5)
-  and `OBJ_PARAM_TABLE1 (0x6310)` (type 1), which the per-object setup then reads. `[code]`
-- **Spawn cadence & edge reposition.** `SPAWN_TIMER (0x62A7)` paces spawns: at 0, `sub_27da`
-  claims a free `0x6600` slot, seeds it, and reloads `0x34`. `SPAWN_REQUEST (0x6396)` is a
-  separate request (posted `=3` by the periodic bonus tick, consumed via bit0) that activates a
-  waiting object. `EDGE_REPOSITION_FLAG (0x6398)` is a one-shot set the frame Mario's Y is
-  repositioned at a board edge, read as a gate by the edge-reset code. `[code]`
-- **Periodic object event requests.** On 50m/100m while Mario is alive, `raisePeriodicObjectSpawnRequests` fires a
-  difficulty-scaled periodic trigger (every `2^(9−steps)` frames — 128 at difficulty 1) that
-  raises two one-shot request latches. `OBJ_SPAWN_REQ (0x639A)` is consumed by `service50mObjectSpawnRequest`: once
-  its reload/cooldown timer `OBJ_SPAWN_TIMER (0x639B)` has drained (free-runs `0x7C→0`), it scans
-  `OBJ_ARRAY_65A0` for a free slot, spawns an object, clears the request and reloads the timer.
-  Each frame `update50mMovingObjects` mirrors the six `OBJ_ARRAY_65A0` records into their hardware
-  sprite group `OBJ_65A0_SPRITES` (0x69B8, 6×4 bytes in `SPRITE_BUFFER`) for the sprite DMA (`[code]`).
-  `EVENT_REQ_313C (0x63A0)` is an object-INSERT request consumed by `entry_313c`, which activates
-  a free `OBJ_ARRAY_64` slot and clears it (also cleared on board reset). That same scan keeps
-  `OBJ_LIVE_COUNT (0x63A1)`, a per-scan tally of how many records are live — the scan returns a
-  caller-skip when it lands on zero — and marks the record it inserts with the record field
-  `OBJ_INSERT_REQUESTED (+0x18)`. **Grounded (pass 12):** the tally's sole writer in the whole ROM is
-  `loc_313c`, and its per-frame write sequences are always contiguous from 0 (attract `0`/`0.1`,
-  board 3 `0.1.2`, board 2 up to `0.1.2.3.4`, board 4 up to `0.1.2.3.4.5`) — the shape of a counter
-  incremented once per live record. `OBJ_INSERT_REQUESTED` took `{0,1}` and was set **only** on frames
-  whose insert arm (ROM `0x319D`) fired, staying identically 0 across all 6667 board-3 frames where
-  that arm never ran. Note the same run also **corrected this cluster's reachability**: `loc_313c` is
-  not "off the live dispatch path" as its header once claimed — it ran 610× in pure attract alone. **Grounded (understanding
-  pass 10):** both latches cycle `{0,1}` board-gated on a 128-frame rise period live vs MAME,
-  consumed within a frame or two. `[seen]`
-- **50m step cascade.** On the 50m board only (board-2 gate), a small three-object cascade
-  drives the horizontal step of three moving objects. Each object *i* owns a **signed
-  step-direction latch** `M50_OBJi_STEP_DIR` (`0x62A1 / 0x62A3 / 0x62A6`) and a paired
-  **reversal timer** `M50_OBJi_REVERSE_TIMER` (`0x62A0 / 0x62A2 / 0x62A5`) that decrements on
-  even frames and, on underflow, reloads a per-object period (`0x80 / 0xC0 / 0xFF`) and flips
-  the latch's sign (`reverseStepDirection`). Each frame the latch is reduced to a ±1 unit step
-  (`signStepHalfRate`, 0 on even frames) and **published to a shadow byte** the group movers
-  read: `M50_OBJ1_STEP (0x63A3)`, `M50_OBJ3_STEP (0x63A6)`, and — for object 2 — *both*
-  polarities `M50_OBJ2_STEP_POS (0x63A5)` / `M50_OBJ2_STEP_NEG (0x63A4)`, the mover taking the
-  positive arm when the field/Mario X ≥ 0x80 else the negative. The Mario-carry mover is
-  `carryMarioOnConveyorRow` (ROM 0x2AD3): it dispatches on Mario's Y-row (`0x50 / 0x78 / 0xC8`) and
-  carries his X by that row's published step, with the object-2 row handled by
-  `selectConveyorStepAndMoveMario` (0x2AF6, X-selects the ± polarity). The 50m sprite-object **row
-  X-shift** `M50_OBJ_ROW_SHIFT (0x63B7)` shifts the object block's X column on the board-2 arm.
-  The board-2 per-frame orchestrator `update50mConveyorObjects` (ROM 0x25F2) sequences the three
-  drivers `loc_2602 / sub_262f / sub_2679` (shared tails `loc_264c / loc_268d`) then the Mario-carry.
-  **Grounded (understanding pass 5):** a real-ROM run on the credited 50m board confirmed the whole
-  cascade live — reverse timers ranging `1..128 / 1..192 / 1..255` (reloads `0x80 / 0xC0 / 0xFF`)
-  with the reload-and-sign-flip proven on the underflow frame, the step shadows `0`-even / `±1`-odd
-  with `STEP_POS == −STEP_NEG` byte-for-byte, and `M50_OBJ_ROW_SHIFT` sweeping the full `0..255`.
-  All 11 cascade cells lifted to `[seen]`. `[seen]`
-- **Per-frame object collision search.** Each frame `recordHammerHitOnObject` tests the active special-object
-  record against the board's hazard arrays through `dispatchBoardCollision (0x286F)` — a
-  `BOARD`-selected `rst 0x28` inline-table dispatcher that runs the current board's collision arm.
-  On a hit it records the collided hazard as a small **collision-hit record**:
-  `COLLIDED_OBJECT_BASE (0x6351, 16-bit)` = the hit array's base (grounded `0x6700`/`0x6400` =
-  `OBJ_ARRAY_67`/`OBJ_ARRAY_64` exactly; its low byte is a page-aligned `0x00`, the high byte
-  `0x6352` is the array classifier), `COLLIDED_OBJECT_STRIDE (0x6353)` = the array's record stride
-  (grounded `0x20`), and `COLLIDED_OBJECT_INDEX (0x6354)` = the hit record's index
-  (`= OBJ_SEARCH_COUNT − B`); `buildEffectSprite` later walks `base + index*stride` back to the record.
-  A structural twin, `dispatchBoardOverlapSearch (0x3E88)` (reached only
-  from the `0x286B` search caller), shares the boards-2/3/4 arms with the collision dispatcher but
-  on board 1 runs an **overlap-count** arm: `entry_3e99` clears `OVERLAP_COUNT (0x6060)` and
-  `countObjectOverlaps` `inc`s it per overlapping object across both groups, then reads it back as a
-  `0/1/3/7` severity code. `OVERLAP_COUNT`, the collision-hit record, and the recorded array
-  base/stride are all grounded `[seen]` live vs MAME (understanding pass 9). Both searches
-  (`findCollidingObject`, `countObjectOverlaps`) size each object's collision box with per-object
-  half-extents `OBJ_HIT_EXTENT_X (+0x09)` / `OBJ_HIT_EXTENT_Y (+0x0a)`, added to the caller's base
-  tolerance on each axis (`[code]`). `[seen]`
-- **Velocity-mode latch (`0x6348`, kept hex).** A one-shot latch read differently by different
-  consumers: object velocity-source select (`loc_22cb`: clear → level-based arm, set → difficulty
-  arms), a spawn/movement difficulty gate (`sub_216d`: clear → success tail, set → difficulty
-  gating), one-shot set to 1 by `entry_24b4` and cleared at board init. **Grounded (pass 9):** its
-  own byte takes `{0,1}` live vs MAME in a clean set-in-play / clear-at-board-init cycle — which
-  answers the earlier "does its own byte take {0,nonzero}?" ask (= yes). It nonetheless stays hex:
-  the readers agree only on the branch *shape* (clear = base path, set = difficulty-graded path),
-  not one subsystem meaning, so no single grounded name fits. `[seen]`
+```sh
+# net (a) and net (b), in this port's accessor syntax, against the gate's own idea of "named"
+python3 - <<'PY'
+import re, os, sys; sys.path.insert(0, "tools"); import names_consistency as n
+win = n.workram_window("dkong")
+named = n.named_workram(open("games/dkong/idiomatic/ram.js").read(), win)
+bare, alias = {}, {}
+for f in sorted(os.listdir("games/dkong/idiomatic")):
+    if not f.endswith(".js") or f == "ram.js": continue
+    src = open(f"games/dkong/idiomatic/{f}").read()
+    code = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", src, flags=re.S))
+    for m in re.finditer(r"\bmem\.(?:read|write)(?:8|16)\(\s*(0x6[0-9a-fA-F]{3})\b", code):
+        a = int(m.group(1), 16)
+        if win[0] <= a <= win[1] and a not in named: bare.setdefault(a, set()).add(f)
+    for m in re.finditer(r"\bconst\s+([A-Z_0-9]+)\s*=\s*(0x6[0-9a-fA-F]{3})\s*;", code):
+        a = int(m.group(2), 16)
+        if win[0] <= a <= win[1] and a not in named: alias.setdefault(a, set()).add(m.group(1))
+print("net(a) bare hex:", len(bare), "| net(b) aliased:", len(alias),
+      "| conflicting:", sum(1 for v in alias.values() if len(v) > 1))
+PY
+```
 
 ---
 
-## 5. Mario: walk, climb, jump, fall
+## 2. The machine underneath
 
-This subsystem is well decompiled and **pixel-validated in play** (the 25m completion
-tape climbs a ladder and rescues Pauline frame-for-frame vs MAME). `[seen]` `[code]`
+**Address space** (`boards/dkong/memory.js`, transcribed from MAME's `dkong.cpp`, not
+re-derived from observation): ROM `0x0000–0x3FFF`; work RAM `0x6000–0x6BFF` (note the bound —
+`0x6C00–0x6FFF` is *not* RAM and a touch there throws); sprite RAM `0x7000–0x73FF`; tilemap RAM
+`0x7400–0x77FF`; the i8257 DMA at `0x7800–0x780F`; and the I/O strip `0x7C00–0x7D87`. Three
+modelling rules that layer exists to enforce: a read and a write at the same address are
+*different devices* (`0x7C00` reads IN0 and writes the sound-tune latch); a read is not
+necessarily pure (reading `0x7D00` kicks the watchdog, which is how the dog is fed — once per
+vblank, as an interrupt side effect); and unmapped access throws loudly. `[code]`
 
-**State lives in RAM, not registers.** `MARIO_X (0x6203)` / `MARIO_Y (0x6205)` with
-16.8 fixed-point fractions, `MARIO_AIRBORNE (0x6216)` (0 grounded / 1 airborne),
-`MARIO_ON_LADDER (0x6215)`, the sprite/pose byte `MARIO_SPRITE_CODE (0x6207)` (low bits =
-state code, **bit 7 = facing**), and a cluster of airborne registers. `[code]`
+**The frame beat.** Everything time-critical hangs off the **vblank NMI**, not IM1 — the bytes
+at 0x0038 are an ordinary subroutine (`addToSpriteObjectColumn`, the `rst 0x38` vector;
+`addStrided` is the generic loop it falls into at ROM 0x003D). Once per frame `serviceVblankNmi`
+(ROM 0x0066) acknowledges the interrupt by clearing the enable latch (which also blocks
+re-entry), kicks the watchdog, blits the sprite shadow buffer through the DMA, reads the
+joystick *only while a credited game is in play*, and tails into `perFrame` (ROM 0x00B5).
+`perFrame` **decrements** `FRAME`, stirs the PRNG, services coins and the sound countdowns, and
+dispatches `GAME_STATE` through a four-entry table. `[code]`
 
-- **Walk.** `beginWalkStep` / `continueWalkStep` shift Mario 1px per frame while a
-  sub-step timer `MARIO_MOVE_STEP_TIMER (0x620F)` runs (`tickMoveStepTimer` decrements
-  it), advancing `MARIO_WALK_ANIM (0x6202)` at each reload; `triggerWalkSound` fires the
-  3-frame footstep. `loc_1d76` is the "timer still running" branch. On 25m the girder
-  slopes, so `snapYToGirder` nudges Y one pixel along the slope as Mario walks. `[code]`
-  **Trap confirmed by play:** to climb you must first *walk* horizontally onto the ladder
-  X; posing on the ladder and pressing Up never latches. `[seen]`
-- **Climb.** With `MARIO_ON_LADDER` set, `advanceClimbStep` (ROM 0x1D11) is the shared
-  climb-step body both steppers — `climbMarioUp` (ROM 0x1D03, −2) and `climbMarioDown`
-  (ROM 0x1CF2, +2) — fall into: it
-  nudges Mario's Y, then either finalizes through the centering path
-  (`centerMarioAndCommitClimbStep` snaps Mario to the ladder centre) or, off-beat, picks the
-  climb pose. `setClimbSpriteFrame` cycles that pose, `markOnLadderAndCommitSprite` flags the
-  ladder state, and `endClimbAtLadderLimit` stops the climb when `(Y+8)` hits either
-  ladder-extent limit (`MARIO_CLIMB_LIMIT_A/B 0x621B/0x621C`). `[code]`
-- **Jump.** `initMarioJump` flags airborne and picks a horizontal launch velocity from
-  the held direction (**+0x0080** Right / **0xFF80** Left / **0** straight up);
-  `launchMarioJump` (ROM 0x1B8A) commits the arc: fixed upward impulse **VY = 0x0148**,
-  jump pose code 0x0E, snapshots the take-off height `MARIO_AIR_START_Y (0x620E)`, fires
-  the jump sound. Hammer in hand ⇒ the jump button is skipped entirely (you cannot jump
-  while carrying it), matching `gameplay.md`. `[code]`
-- **Ballistic motion + gravity.** `stepBallisticMotion` (ROM 0x239C) advances an airborne
-  actor one frame. Gravity is *derived*, not stored: `ΔY16 = −(V + 8 − 16n)` where `V` is
-  the initial VY and `n = MARIO_AIR_FRAMES (0x6214)` — verified 0 mismatches over 142
-  airborne frames. `[code]`
-- **Fatal-fall test.** At airborne-frame 0x14 (near apex) the handler arms a landing
-  check; on landing, if Mario is more than 0x0F px below his take-off Y, `MARIO_FATAL_FALL
-  (0x6220)` is set and the landing kills him (`MARIO_ACTIVE = fatal XOR 1`). Falling off a
-  ledge sets `MARIO_START_FALL (0x6221)` with zero initial velocity. `[code]`
-- **Landing freeze.** The instant Mario touches down, `settleMarioOnLanding` marks him
-  grounded, sets him alive-unless-fatal (`MARIO_ACTIVE = MARIO_FATAL_FALL XOR 1`), snaps the
-  standing pose, commits any pending item pickup, and arms a 4-frame `MARIO_FREEZE_TIMER
-  (0x621E)` during which Mario is unresponsive; on expiry it applies any pending hammer pickup
-  and clears the walk animation (`tickPostLandingFreeze`). `[code]`
-- **Sprite commit.** `writeMarioSpriteRecord` refreshes Mario's 4-byte hardware record
-  (X, code, attr, Y) each frame from his state. `[code]`
+**The main loop is a task scheduler, and it is where the game actually runs.** `mainLoop`
+(ROM 0x02BD) walks a task table in page 0x60, dispatches any queued task, does the per-frame
+work, then spins comparing `FRAME` against its own latched copy `FRAME_SEEN` — the wait-for-vblank.
+The NMI's decrement of `FRAME` is what releases it. `SPIN_COUNT` is bumped once per loop pass
+(~140×/frame, and its *jitter* with workload is the point — it feeds the PRNG). In this port
+`mainLoop` is a **generator**: it `yield`s at exactly the points where the oracle's
+cycle-driven engine fires the NMI, which is what makes the readable layer runnable without a
+cycle model. `[code]` (the frame-by-frame equality is what `golive.test.js` asserts — but note
+what that gate compares: **the idiomatic spine against the frozen translated oracle**, our JS
+against our JS, over 600 attract frames. It is a fact about this port's internal consistency,
+not an observation of the arcade machine, so it earns `[code]` and not `[seen]`.)
 
-**The hammer** (`gameplay.md` §5) is code-confirmed: `MARIO_HAMMER_ACTIVE (0x6217)` swaps
-in the hammer sprite + BGM and a duration counter `HAMMER_TIMER (0x6394)`. `updateActiveHammer`
-(ROM 0x2F43) ticks that counter each active frame and lays down the hammer sprite; the hammer
-ends when the counter's high byte reaches 2 (~512 frames), at which point it clears
-`MARIO_HAMMER_ACTIVE`, parks the sprite, and restores the pre-hammer background tune from
-`HAMMER_SAVED_BGM (0x6389)` — the copy of `SND_BGM` that `buildPendingHammerSprite` saved when
-the hammer was grabbed (grounded `[seen]` at 0x08 = 25m theme across the whole hammer arc). A
-touched-but-not-held hammer is latched in `MARIO_HAMMER_PENDING (0x6218)` and transferred on the
-post-landing freeze. The swing animation is driven by bit 3 of the low timer byte. `[code]`
+**Four dispatch layers, all `rst 0x28` inline jump tables**, and it is worth knowing which is
+which because almost every "how does control get there" question resolves to one of them:
+
+| level | selector | table | arms |
+|---|---|---|---|
+| top | `GAME_STATE` | ROM 0x00CA | 0 power-on, 1 attract, 2 credited, 3 in-game |
+| in-game | `GAME_SUBSTATE` | ROM 0x0702 | 23 live handlers across indices 0x00–0x17 — 24 words, of which index 0x09 is `0x0000`; the table is padded to 29 words |
+| attract | `GAME_SUBSTATE` | ROM 0x0748 | 8 live handlers, indices 0–7 |
+| within a state | a per-machine step byte | various | e.g. `INTRO_STEP` → ROM 0x0A7A, `BOARD_ADVANCE_STEP` → ROM 0x1623 / 0x1637 / 0x1648 |
+
+`[code]` (tables read directly out of `rom/maincpu.bin`)
+
+**The task ring** decouples "something happened" from "redraw it". `enqueueTask` posts a
+two-byte `[opcode, argument]` message into a 32-slot ring at `TASK_RING`, with `TASK_TAIL` /
+`TASK_HEAD` as the pointers and `0xFF` marking a free slot; the main loop consumes one per pass
+and frees both bytes. Seven opcodes exist (handler table at ROM 0x0307): 0 add-to-score,
+1 reset a score counter, 2 draw a score, 3 draw a vertical string, 4 draw the credit line
+(attract only), 5 the bonus-readout step, 6 draw lives and level. A full ring silently drops
+the request. **Points are never added inline** — a hit posts `[0, index]` and the main loop
+credits it later, which is why scoring is decoupled from collision. `[code]`
 
 ---
 
-## 6. The bonus timer, scoring, prizes — and the level-22 kill screen
+## 3. From power-on to a played board
 
-**Bonus timer.** `initBoardState` sets the starting bonus (§4). It is held in
-`BONUS (0x62B1)`, units of 100 (on-screen = `BONUS*100`). It ticks down two different
-ways: on **boards 2/3/4** a metronomic decrementer `tickTimedBoardBonus` (ROM 0x2FCB; period
-`BONUS_PERIOD 0x62B3`, measured L2→100, L3→80, L4→60 frames), and on **board 1** the barrel-release routine
-doubles as the tick. Reaching 0 sets `BONUS_EXPIRED_STEP (0x6386)`, whose small state
-machine (`dispatchBonusExpiredStep`, `bonusExpiredIdle`, `startBonusExpiredDelay`,
-`advanceBonusExpiredStepWhenDelayExpires`) runs the timeout death. `[code]`
+`GAME_STATE` walks 0 → 1 → 2 → 3 and the whole start-up is that walk. `[seen]` (the cell's
+own transitions were observed live)
 
-**The bonus display and its payout (pass 12).** `BONUS_DISPLAY (0x638C)` is the counter the player
-actually watches: seeded from `BONUS_START`, stepped down in lockstep with `BONUS` by both tick sites,
-rendered by `renderBonusDisplay`, and reset to 0 at each board build by `buildBoard`. When a board is completed,
-`awardRemainingBonusToScore` pays whatever is left into the score as two table-selected payloads — the
-"whatever remains when you finish is added to your score" rule from `gameplay.md` §6, located in code.
-`BONUS_DISPLAY_ZEROED (0x63B8)` suppresses re-seeding once the readout bottoms out. `[seen]` for the
-display cell (18 distinct values / 66 transitions in natural attract, and the values captured at the 6
-observed payout dispatches each produced exactly the payloads the nibble split predicts); the
-**packed-BCD nibble layout itself is code-derived, not observed** — every observed nibble was ≤ 9, which
-is consistent with BCD but not proof of it on 6 samples.
+- **0 — power-on.** `powerOnInit` / `clearRamAndInitHardware`: wipe all RAM, fill the task ring
+  with `0xFF`, set the display latches, silence the sound, hand the game its stack.
+  `decodeDipSwitches` unpacks DSW0 into `DIP_LIVES` (3–6), `DIP_BONUS_LIFE` (7000/10000/15000/20000),
+  the coinage cells and `DIP_UPRIGHT`. `[code]`
+- **1 — attract.** `runAttractState` has exactly two jobs: if `CREDITS` is non-zero, reset the
+  sub-state and step to state 2; otherwise run the current attract sub-state (§13). `[code]`
+- **2 — credited.** `enterCreditScreen` puts up the start-select screen; `readStartButtonSelector`
+  watches for 1P/2P; `commitGameStart` spends the credit(s), seeds the player context records,
+  wipes the screen and moves to state 3. `TWO_PLAYER_GAME` is written **exactly once**, here, as
+  the high byte of one 16-bit store. `[code]`
+- **3 — in-game.** `dispatchInGameSubstate` vectors `GAME_SUBSTATE` through ROM 0x0702. The
+  indices that matter: `0x07` opening Kong-climb cutscene, `0x08` "HOW HIGH CAN YOU GET?",
+  `0x0A` board build, `0x0B` spawn Mario, `0x0C` **gameplay**, `0x0D` the death-animation
+  router, `0x0E` player-1 life loss, `0x14` player-screen / fall-back-to-attract, `0x16`
+  **board cleared / advance**. `[code]`
 
-**Two barrel kinds on 25m, and the byte that selects them (pass 12, grounded).** The `0x2C` routine
-cluster (`0x2CE6`/`0x2CF6`/`0x2D15`/`0x2D51`/`0x2D54`/`0x2D83`/`0x2D8C`) was previously documented here
-and in the file headers as a **cutscene renderer**. That was wrong. Live MAME shows all 46 observed
-dispatches occur at *gameplay* substates (17 in a credited in-board game, 29 in the attract demo), **zero**
-at substate 7, on **board 1 only**, always with IX pointing at an `OBJ_ARRAY_67` barrel record, and each
-paired 1:1 with a slot claim by the barrel-release routine at `0x2CB8`. It is ordinary 25m barrel play.
-`BARREL_CLAIM_MODE (0x6382)` is the slot-claim mode byte, and its **bit 7 selects which of two barrel
-kinds** is stamped — 46/46 agreement: bit7=0 → sprite code/attr/mode `0x15/0x0B/0x00` (38 observations),
-bit7=1 → `0x19/0x0C/0x01` (8). The two kinds coexisted for 372 frames and behave differently: the
-`attr-0x0C` object **drops with its X pinned at 59**, the `attr-0x0B` object **rolls with X sweeping** the
-girders. Which named DK object each kind is (rolling vs. the barrel that comes straight down) was
-deliberately **not** established — the behaviour is grounded, the lore name is not. `[seen]`
+Coins are their own little machine: `serviceCoinInput` debounces IN2 bit 7 against the
+`COIN_EDGE` latch (so holding the coin line cannot repeat-credit), accumulates `COINS_PARTIAL`
+until it reaches `DIP_COINS_PER_CREDIT`, and awards `DIP_CREDITS_PER_COIN` BCD credits capped
+at 0x90. `[seen]`
 
-**Per-level starting bonus — confirmed and refined.** `gameplay.md` reports L1=5000,
-L2=6000, L3=7000, L4+=8000 from public sources; the code computes exactly that:
+---
 
-| `LEVEL` | `10*LEVEL+40` | after byte-wrap + `min(·,0x50)` | on-screen |
-|--------:|--------------:|--------------------------------:|----------:|
-| 1  | 0x032 | 0x32 (50) | 5000 |
-| 2  | 0x03C | 0x3C (60) | 6000 |
-| 3  | 0x046 | 0x46 (70) | 7000 |
-| 4…21 | 0x050…0x0FA | clamped 0x50 (80) | 8000 |
+## 4. The world: boards, the order table, and the level loop
+
+`BOARD` is 1 = 25m girders, 2 = 50m conveyors, 3 = 75m elevators, 4 = 100m rivets. `[seen]`
+
+**The board order is a ROM table, and it disagrees with the outside-in view.** `BOARD_SEQ_PTR`
+is a 16-bit pointer initialised to ROM 0x3A65 and stepped one byte per completed board; the
+byte it lands on is copied straight into `BOARD`. Read out of `rom/maincpu.bin`, the table is:
+
+```
+0x3A65: 01 04                  L1   25m, 100m
+0x3A67: 01 03 04               L2   25m, 75m, 100m
+0x3A6A: 01 02 03 04            L3   25m, 50m, 75m, 100m
+0x3A6E: 01 02 01 03 04         L4   25m, 50m, 25m, 75m, 100m
+0x3A73: 01 02 01 03 01 04      L5+  25m, 50m, 25m, 75m, 25m, 100m   <- the wrap target
+0x3A79: 7F                     terminator
+```
+
+`[code]` **`gameplay.md` §4 says it in two sentences — *One full "level" is four distinct
+single-screen stages, labelled by height.* and *The canonical arcade order is 25 m → 50 m →
+75 m → 100 m.* The code says the *type order* is right but the *set* is not:
+a level is 2 boards at L1, 3 at L2, 4 at L3, 5 at L4, and 6 from L5 on** — 25m is revisited
+inside the later levels, and 50m does not appear at all until level 3. Only level 3 is the
+"four stages in order" the public sources describe. This is an inside-out correction to the
+public record, not a disagreement between sources.
+
+**The loop.** Hitting the `0x7F` terminator reloads the pointer to **0x3A73**, the head of the
+L5+ group — so from level 5 on the same six-board group repeats forever. `[code]` `[seen]`
+(a played run reached 100m → wrap → 25m with `LEVEL` incrementing, frame-for-frame against
+MAME)
+
+**`LEVEL` increments exactly once per 100m clear — and that is a structural fact, not a
+counter.** There are two places that walk `BOARD_SEQ_PTR` forward, and only one of them
+touches `LEVEL`:
+
+- `advanceToNextBoard` (ROM 0x178E) is the last entry of the **25m/75m** table (ROM 0x1623)
+  and of the **50m** table (ROM 0x1637). It walks the pointer, publishes `BOARD`, and arms the
+  how-high interlude. It does **not** touch `LEVEL`.
+- `loc_18c6` (ROM 0x18C6) is the last entry of the **100m** table (ROM 0x1648). Its wrap arm
+  walks the pointer *and* does `LEVEL := LEVEL + 1`, resets `HOW_HIGH_INDEX`, and clears
+  `BOARD_ADVANCE_STEP`.
+
+Since every level group in the table ends with `04` (100m), the level counter advances once per
+group and never otherwise. `[code]`
+
+**Difficulty** is a separate, faster knob: `DIFFICULTY = min(LEVEL + (DIFFICULTY_CLOCK >> 3), 5)`,
+recomputed every 8th tick of a 256-frame prescaler and reset at each board build. So the same
+board gets meaner the longer you dawdle *on it*, and each loop starts meaner — `gameplay.md`'s
+qualitative "faster, sometimes diagonal" as a clamped 1–5 value that the hazard code reads
+directly. `[seen]` (the cell's values and cadence were measured live)
+
+---
+
+## 5. Building and drawing a board
+
+`buildBoard` (ROM 0x0C92) wipes the playfield, arms the palette bank, queues the opening task
+and dispatches to the per-board setup arm; each arm selects its layout table and background
+tune and converges on a shared tail that runs `initBoardState` and the layout renderer.
+`[code]`
+
+`initBoardState` (ROM 0x0F56) is the common reset: zero the player/motion block and the whole
+object + sprite span, copy a 0x40-byte board-object template from ROM 0x3D9C over the head of
+it, compute the bonus values (§10), stamp two constant hit-box bytes, seed three decorative top
+sprites on every board except 100m, and dispatch to the per-board object seeding
+(`seed25mBoardObjects` … `seed100mBoardObjects`). `[code]`
+
+**The layout renderer** walks a ROM segment table: `drawBoardLayout` → `loc_0dd3` converts each
+record's endpoints to tilemap addresses through `tileAddrForPixel`, computes the run deltas into
+the `SEG_*` scratch cells, and dispatches by record kind — kind 0/1, kind 2, kind 3, kinds 4/5/6.
+`[code]`
+
+> ### ★ `drawGirderSpan` and `drawLadder` are exactly inverted — proven, deliberately not renamed
+>
+> A held write-tap on tilemap VRAM, with a mode that replaces each routine's written tile with
+> the blank `0x10`, was run on the real ROM under MAME 0.288 (`scratchpad/grounding-object-arrays.md`
+> §4). Suppressing **ROM 0x0E19 — the routine currently named `drawGirderSpan` — removes 616 px,
+> and they are the LADDERS** (the two full-height ladders beside Kong plus eight shorter
+> segments; not one girder pixel changes). Suppressing **ROM 0x0E4F — currently named
+> `drawLadder` — removes 6256 px, and they are the GIRDERS** (every sloped platform on the
+> board; not one ladder pixel changes). The write signatures agree: 0x0E19 lays 22 writes of the
+> uniform tile 0xC0 in short `+1` runs with zero VRAM-row spread; 0x0E4F lays 304 writes from the
+> 0xE0/0xF0 slope-tile band with `+31/+32` steps and a row spread up to 25. Under ROT270 the
+> `+1` axis is the *displayed vertical* and the `+0x20` axis the *displayed horizontal*, so
+> 0x0E19 draws short vertical runs and 0x0E4F draws long sloped horizontal ones. **`[seen]`**
+>
+> **The two names were deliberately left as they are.** Swapping them is its own landable unit —
+> it touches both routines, their callers, their gate names and the prose around them — and it
+> was not folded into the naming pass that found it. Until that unit lands, read every
+> occurrence of `drawGirderSpan` as *the ladder drawer* and every occurrence of `drawLadder` as
+> *the girder drawer*. This paragraph exists so the next reader is not misled by the file names.
+>
+> **But no role anywhere asserts the refuted mechanism.** Leaving the names alone is not the
+> same as leaving a falsehood in the registry, so both `ROUTINES` entries — and `loc_0dd3`'s,
+> and the three file headers — now open with `NAME INVERTED (rename pending):` and then state
+> what the routine actually draws, with the pixel evidence, at `cert: "seen"`. The rename unit
+> deletes that prefix and swaps the two `name:` fields; no half-corrected state survives it.
+
+A useful downstream consequence: the ladder/girder *table* is the same one `findOppositeLadderEnd`
+scans — `loadBoardObjectRecords` de-interleaves the very ROM tables the layout renderer walks
+(25m 0x3AE4, 50m 0x3B5D, 75m 0x3BE5, 100m 0x3C8B) into the work-RAM object-parameter arrays that
+lookup reads. So the *word* "ladder" in `startBarrelDescentAtLadder` and in the fire excursion
+machine (§8) is **`[seen]`** rather than structural inference — the drawer of exactly the kind-0/1
+records those routines key on was pixel-confirmed to draw ladders. The surrounding gating chains
+in §8 remain `[code]`; only the actor word is promoted.
+
+---
+
+## 6. The cast: object records, the arrays, and who is who
+
+**Mario is privileged; everything else is a record in an array.** Mario has his own motion block
+at 0x6200–0x6226 and his own 4-byte hardware sprite record (`MARIO_SPRITE_RECORD`). Every other
+moving thing — barrels, fires, springs, elevator platforms, cement pans, the hammers, the
+floating score glyph, the interlude cast — is a fixed-stride record in one of a handful of
+work-RAM arrays, mirrored each frame into the **sprite shadow buffer** (`SPRITE_BUFFER`, 96
+records × 4 bytes) and blitted to sprite RAM by the i8257 on the vblank DRQ edge. `[code]`
+
+The shared record fields are registry-named (`OBJ_ACTIVE`, `OBJ_X`, `OBJ_Y`, `OBJ_SPRITE_CODE`,
+`OBJ_SPRITE_ATTR`, `OBJ_STATE`, `OBJ_HIT_EXTENT_X/Y`, `OBJ_INSERT_REQUESTED`,
+`OBJ_WALK_PTR_LO/HI`) and are the reason the arrays can share collision, gather and animation
+code. Note the trap the registry is careful about: offsets ≥ 0x10 are in-record only for the
+stride-0x20 arrays and alias the *next* record on the stride-0x10 ones.
+
+### Which array is which actor
+
+| array | stride × records | live on | what it holds | evidence |
+|---|---|---|---|---|
+| `OBJ_ARRAY_67` (0x6700) | 0x20 × 10 | 25m only | **the BARRELS** | `[seen]` |
+| `OBJ_ARRAY_64` (0x6400) | 0x20 × 5, **7 on 100m** | all four boards | **the FIRES** (a two-frame sprite pair ×flip; a *different* pair on 100m — see below) | `[seen]` identity / `[code]` the 100m extent |
+| `OBJ_ARRAY_65` (0x6500) | 0x10 × 10 | 75m (records 0–1) | the springs — horizontally bounding, X sweeps 213 distinct values | `[code]` |
+| `OBJ_ARRAY_66` (0x6600) | 0x10 × 6 | 75m (all six) | the elevator platforms — X pinned to `{55, 119}`, Y sweeping | `[code]` |
+| `OBJ_ARRAY_65A0` (0x65A0) | 0x10 × 6 | 50m (records 0–2) | the cement pans — X sweeps the full width, Y row-fixed, culled at the edge | `[code]` |
+| `OBJ_PAIR_6680` (0x6680) | 0x10 × 2 | 25m/50m/100m | the two hammers | `[code]` |
+| `OBJ_RECORD_66A0` (0x66A0) | single | 25m, 50m | the board's fixed hazard; on 25m its constants are X=39, Y=224 and the 25m fire activates at (39, **232**) every time — same X, 8 px lower | `[seen]` the constants and the spawn point / `[code]` that the two are the same object, and "oil drum" |
+| `BOARD_OBJ_SCRATCH` (0x6280) | 0x08 × 2 | 50m | the two vertically-travelling 50m objects — **what they ARE is still open** (§8, §15) | `[seen]` the machine + geometry / `[guess]` identity |
+
+> ### ★ The fires and the barrels: what was and was not observed
+>
+> `OBJ_ARRAY_64 = the FIRES` and `OBJ_ARRAY_67 = the BARRELS` were established on the real ROM
+> under MAME 0.288, on a **zero-poke, naturally-played 25m run**, with A/B in both directions
+> (`scratchpad/grounding-object-arrays.md`). What was observed:
+>
+> - **Kill `OBJ_ARRAY_64`** (force all five records' `+0` to 0): the fireball is gone from the
+>   screen entirely — 0 of 40 sampled frames, 0 px — while the barrels are statistically
+>   untouched (616 barrel px / 333 motion, against a baseline of 616 / 328).
+> - **Kill `OBJ_ARRAY_67`**: barrel motion collapses 328 → 29 and no new barrel is produced,
+>   while the fireball is untouched (34/40 frames vs 35/40 baseline). The 489 px that remain
+>   are stale records frozen in the DMA shadow buffer.
+> - **Tight A/B** (intervene at f1200, capture from f1195): frames f1195–f1204 are bit-identical
+>   between arms; `kill64`'s first differing frame carries a blob at cols 101–114, rows
+>   231–245 — the fire record's logged position to the pixel; `kill67`'s carries four blobs, all
+>   at logged barrel positions and none at the fire's. **`kill64`'s frame carries a *second*
+>   blob**, at the oil drum (cols 17–31, rows 217–231), which the report reads as an
+>   animation-phase difference in the drum's own flame rather than a fire sprite — and it says
+>   in as many words *"I did not chase which counter drives it."* That residue is unexplained
+>   and is carried here rather than dropped.
+> - **Positional correlation on all four boards** — 25m from the natural credited game, while
+>   the 50m/75m/100m long-dwell frames come from a `docs/POKE-TO-ADVANCE.md` board pre-set (the
+>   same boards were also reached by real completion in the progression tape and give the same
+>   answer): boxes drawn at the logged record positions land on a fireball (red) or a barrel
+>   (cyan) and nothing else — 75m shows exactly 2 fire
+>   records for all 2176 gameplay frames, 100m spawns up to 5, one every 128 frames. Sprite
+>   codes differ per board: `{0x3D,0x3E}`×flip on 25m/50m/75m, `{0x4D,0x4E}`×flip on 100m,
+>   **and that is all that was measured — nothing measured SIZE.** `gameplay.md` §7 (public
+>   sources only) calls the 100m actor "a larger fireball variant on the rivet stage"; equating
+>   that with the different sprite pair is `[guess]`, not part of this `[seen]`.
+> - **The fire is born at the oil drum**: the single 25m record activates at (X=39, Y=232) every
+>   time, and `OBJ_RECORD_66A0`'s board-1 constant X is 39.
+>
+> **The honest floor, stated because it is load-bearing.** The *positive* control on
+> `OBJ_ARRAY_64` — pinning the records' `OBJ_X` every frame — is a **no-op**: 359 of 360 frames
+> stayed pixel-identical to baseline, because the ROM recomputes that byte each frame from state
+> held elsewhere. So the fire identity rests on the **kill** control plus per-frame positional
+> correlation, **not** on a coordinate command. (`OBJ_ARRAY_67` *does* have a working positive
+> control: pinning its X parks every barrel at the commanded column and moves nothing else.)
+> The kill is a spawn-suppressor and a freeze, not an eraser. Records not exercised:
+> `OBJ_ARRAY_67` records 6–9 were never active **together** in any run — the census tops out at
+> **9 simultaneously live**, so records 0–8 all fired at some point and only record 9 was never
+> seen active; `OBJ_ARRAY_64` record 4 only on 100m. So the per-record grounding covers
+> `OBJ_ARRAY_64` 0–4 and `OBJ_ARRAY_67` 0–8 — and note that the 0–4 bound is a property of the
+> **logger**, which sampled five `OBJ_ARRAY_64` records: the ROM seeds records **5 and 6** on
+> 100m (§9), and those two were never observed at all. Not tested at all: 2-player, difficulty 5, levels
+> above 4, the cocktail/flip path. **And the per-board fire counts are level-dependent**: the
+> 50m maximum differed between runs (2 live at L2, 3 at L3), so "exactly 2 on 75m" and "up to 5
+> on 100m" are as observed at the levels driven, not a ceiling.
+
+**The gather path.** Each subsystem mirrors its records into the shadow buffer in its own way —
+`publishFireSprites` gathers the five fire records into 0x69D0; `update50mMovingObjects`
+refreshes the six 50m sprites at `OBJ_65A0_SPRITES`; `update75mActorObjects` mirrors into
+`ACTOR_SPRITES`; `writeMarioSpriteRecord` refreshes Mario's. `blitSpritesViaDma` then programs
+the i8257 (ch0 src 0x6900, ch1 dst 0x7000, count 0x180) once per vblank. `[code]` `[seen]`
+(the sprite-record ↔ source-cell identities were checked byte-exact against MAME)
+
+---
+
+## 7. Mario
+
+**One router, five tests, and the ORDER is the mechanic.** `dispatchMarioMovement`
+(ROM 0x1AC3) writes nothing itself; it picks who owns the frame, first match wins:
+
+1. `MARIO_AIRBORNE` → the airborne handler. A jump or fall owns the *whole* frame, input
+   included — which is why a jump cannot be steered onto a ladder or re-triggered in mid-air.
+2. `MARIO_FREEZE_TIMER` non-zero → tick it down and nothing else (the few unresponsive frames
+   after a landing).
+3. `MARIO_HAMMER_ACTIVE` → the **ground walk** arm. Note *where* this sits: **above** the ladder
+   test and above the jump test (ROM 0x1AD1 reads `MARIO_HAMMER_ACTIVE`, 0x1AD8 reads
+   `MARIO_ON_LADDER`, 0x1ADF reads the input word), so while the hammer is held the frame is
+   claimed before the climb and jump tests are ever reached, and a hammer-carrying Mario can only
+   walk. **That single ordering is the entire cost of the hammer** — `gameplay.md` §5's "cannot
+   jump, cannot climb, cannot drop it" is one branch position, not three separate rules. `[code]`
+   (The equivalence gate's own tooth for this is a twin that moves the hammer arm *below* the
+   jump test, which lets a hammer-carrying Mario jump — below is the broken twin, not the ROM.)
+4. `MARIO_ON_LADDER` → the climb dispatch (Down arm first, then Up).
+5. the jump press-edge bit of `P1_INPUT` → launch the arc.
+6. otherwise → ordinary grounded walking (which is also how he steps onto a ladder).
+
+Every test is exact rather than a range, and the equivalence gate drives all 256 values through
+each selector to pin that. `[code]` (a plain 2000-frame **harness replay** — `new Machine(ROM)`
+run forward under our own engine, not MAME — dispatches this 1197× and reaches all six arms)
+
+**Walking** is paced by `MARIO_MOVE_STEP_TIMER`: while it is non-zero Mario slides one pixel per
+frame; at zero the walk-cycle index `MARIO_WALK_ANIM` advances and a new step begins with the
+facing bit set or cleared. On 25m the girders are sloped, so `snapYToGirder` nudges his Y one
+pixel along the slope as he walks. `[seen]`
+
+**Climbing** runs `advanceClimbStep` with `MARIO_CLIMB_LIMIT_A/B` as the pair of ladder extents:
+the step stops and clears `MARIO_ON_LADDER` when (newY + 8) equals either limit.
+`centerMarioAndCommitClimbStep` snaps him onto the ladder column and ticks the alternating
+footstep. **A pose is not enough — to climb, Mario must actually walk to the ladder's X**; the
+centering snap is applied *during* a climb step, not as a way to enter one. `[seen]`
+
+**Jumping and falling** share one ballistic integrator. `initMarioJump` picks the horizontal
+launch velocity from the held direction; `launchMarioJump` writes the airborne record, sets the
+jump pose, snapshots `MARIO_AIR_START_Y` and fires the jump sound. Per airborne frame,
+`stepBallisticMotion` applies `ΔY16 = −(V + 8 − 16n)` with `V = MARIO_AIR_VY_HI/LO` constant
+across the arc and `n = MARIO_AIR_FRAMES` — verified exact, including after poking `V`, over 142
+airborne frames. At `MARIO_AIR_FRAMES == 0x14` the fall-height check arms
+(`MARIO_AIR_LANDCHECK`); `markFatalFallByHeight` latches `MARIO_FATAL_FALL` once he is more than
+0x0F px below where he took off, and the landing consumes it as
+`MARIO_ACTIVE = MARIO_FATAL_FALL XOR 1`. **"Falling too far kills you" is that one XOR.**
+`[seen]`
+
+**The horizontal gate is not a screen edge.** `limitMarioHorizontalTravel` classifies Mario's X
+into a two-flag verdict that all three consumers turn into a restraint. Its left verdict also
+fires for an *interior* wall — odd `BOARD`, Y < 0x58, X < 0x6C, the left end of the top platform
+on 25m and 75m — and the airborne reflection (`reverseMarioVerticalArc` plus its horizontal
+half) re-bases the parabola in place rather than clamping. A fall already latched lethal skips
+the re-base and keeps falling. `[code]`
+
+**Losing your footing.** `startMarioFallWhenGroundGivesWay` probes the tile under Mario's foot
+while he is in plain grounded contact; if the girder there is not level it defers to
+`decideSlopeGirderFooting`, which either keeps his footing or calls `triggerMarioFall` to raise
+`MARIO_START_FALL`. `beginMarioFall` consumes that one-shot next frame and drops him with zero
+initial velocity. `[seen]` (the trigger was caught firing on 75m only, never on 25m, whose
+girders are continuous)
+
+---
+
+## 8. The four boards, subsystem by subsystem
+
+Every hazard subsystem is board-gated by the same `rst 0x30` mask idiom, which is why the whole
+cascade can be dispatched on every board and only the right parts run.
+
+### 25m — girders, barrels, the oil drum, and the fires
+
+**Kong's throws are scheduled against the bonus, not a clock.** `scheduleBarrelRelease`
+(ROM 0x2C03) runs only on 25m, only while Mario is alive, and only while the cluster's event
+gate is clear. It then weighs the live `BONUS` against `BONUS_START` and matches the low five
+bits of `FRAME` against a `DIFFICULTY`-length countdown — so the throw *rate* rises with
+difficulty — before dispatching into the slot-claim cluster at ROM 0x2C41.
+`releaseBarrelIntoFreeSlot` (ROM 0x2CB8) claims the free `OBJ_ARRAY_67` record the scan stopped
+on, marks it occupied, aims the release renderer at it, latches the one-shot event gate, **and
+charges the release against `BONUS`**. `[code]`
+
+> ★ **On 25m the barrel release IS the bonus clock.** `BONUS` ticks down by the timed decrementer
+> on boards 2/3/4; on board 1 it is charged by this routine instead. So on the
+> girder board the timer falls per barrel thrown, not per unit of time — a mechanic
+> `gameplay.md` §6 has no way to see from the outside, and one that makes "bank bonus time" and
+> "dodge more barrels" the same quantity. `[code]`
+
+**Two barrel kinds.** `BARREL_CLAIM_MODE` bit 7 selects which of two sprite/behaviour triples is
+stamped into the claimed record — bit7=0 → code/attr/mode `0x15/0x0B/0x00`, bit7=1 →
+`0x19/0x0C/0x01`, with 46/46 agreement live, and the two kinds coexisted on screen for 372
+frames carrying different palettes. `markNextBarrelAsAltKind` sets that bit exactly one frame
+before each alternate-kind claim. **Bit 0 is a different, independent selector** — the
+waypoint-table choice (one-waypoint table at ROM 0x39CC vs the four-waypoint table at 0x39C3),
+not the kind. Which named Donkey Kong object each kind is was deliberately not established.
+`[seen]` for the bit-7 → sprite-triple mapping; `[code]` for the bit-0 split.
+
+**The per-frame barrel walk** is the ten-slot sweep at ROM 0x1F72 (25m only). Its per-slot gate
+hands every active record to `loc_1f93`, which picks one of five behaviours from **two record
+bytes, the first outranking the second**: the select byte (`+1`) is tested for equality with 1,
+and only if that fails are the low three bits of the mode byte (`+2`) walked lowest-first. The
+five arms are the horizontal step (forward and backward), the arc/ballistic travel, the scripted
+travel, and the airborne step; all rejoin a shared tail that re-glues the record to the girder
+slope, refreshes its sprite orientation and steps the walk on. `[code]`
+
+**Wild barrels.** `startBarrelDescentAtLadder` (ROM 0x216D) is the "sometimes it comes down the
+ladder" decision. It looks the barrel's column up in the ladder (type-0 object) table through
+`findOppositeLadderEnd`, always stamps the descent target, then runs a chain of gates to decide
+whether the barrel *also* starts down: a difficulty-weighted random throttle, whether Mario has
+descended far enough, and then a comparison of Mario's column against the ladder's — exactly on
+it always goes, past it goes if Left is held, before it goes if Right is held, and a final
+random gate decides otherwise. **The barrel's choice of ladder is a function of where Mario is
+and which way he is pushing.** `[code]` for the gating chain; **`[seen]` for the word "ladder"** —
+the records this routine keys on through `findOppositeLadderEnd` are the same ROM kind-0/1 records
+ROM 0x0E19 draws, and suppressing 0x0E19 removes exactly the ladders (§5). This is `gameplay.md`
+§7's "wild/crazy barrels", and the inside view says they are not random — they are aimed.
+
+**The fires.** `animateFixedHazardAndReleaseFire` (ROM 0x03A2) runs off the main loop on boards
+1 and 2, animates the fixed hazard record, and on its inner counter's underflow raises
+`EVENT_REQ_313C` — a request for a *new* fire. `spawnRequestedFireAndRecolorLiveFires`
+(ROM 0x313C) is the only routine that *spawns* one of these objects during play: it sweeps the
+five records, tallies the live ones into `OBJ_LIVE_COUNT`, sets each live record's sprite
+attribute (**cleared while Mario's hammer is active** — the hammer visibly recolours every live
+fire), services one pending request into a free slot, and returns a caller-skip when the array
+came out empty. `[seen]`
+
+**Spawning is not the only way a fire comes to exist**, and the distinction matters when reading
+a board's fire census. `seed75mBoardObjects` (ROM 0x1087, the board-3 arm of the ROM 0x0FCD
+`rst 0x28` table) *activates two `OBJ_ARRAY_64` records outright at board build* —
+`ld ix,0x6400` then `ld (ix+0),1` and `ld (ix+0x20),1`, with their X/Y pairs stamped alongside.
+That is why 75m shows exactly two fires for every one of its gameplay frames and never a third:
+those two were seeded, not spawned, and ROM 0x313C never runs a request on that board. `[code]`
+(raw ROM bytes at 0x10E9 / 0x1101; a grep of `rom/maincpu.bin` finds `ld ix,0x6400` at exactly
+one board-build site)
+
+The per-fire state machine is `loc_30ed` → `loc_31b1` → `loc_3202`, and the interesting arm is
+`loc_333d`: while a fire is on foot it looks its X up in the ladder table and takes the *other*
+of the two heights that X is keyed to as its destination; while it is travelling it watches for
+arrival — and "ladder" there is **`[seen]`** for the same reason as the barrel's (§5): it is the
+same table, whose kind-0/1 records were pixel-confirmed to be the ladders. `OBJ_STATE` 0/1/2 = walking (`loc_33ad` steps the working X one pixel and flips the
+sprite to match), 4 = descending, 8 = ascending. **The descent is conditional where the ascent
+is not** — a fire only sets off downward while its row is above Mario's, so a fire level with or
+below Mario never comes down. That asymmetry is what makes fires feel like they hunt upward.
+`[code]` `tickFireTimerAndRerollDirection` reloads a 43-tick timer and re-rolls the travel
+direction on a random bit; `armAlternateFireModeAtHighDifficulty` arms a second mode in records
+1 and 3 once `DIFFICULTY ≥ 3` and a rare entropy draw comes up (that mode is deliberately not
+named — nothing past its first gate has ever been observed firing). `[code]`
+
+### 50m — conveyors, cement pans, and the two travelling objects
+
+Three subsystems run here, and they are genuinely three:
+
+1. **The conveyor rows themselves.** `update50mConveyorObjects` runs three reversal drivers
+   (`M50_OBJ{1,2,3}_REVERSE_TIMER` / `_STEP_DIR`), each of which publishes a signed ±1/0 step
+   shadow, and then `carryMarioOnConveyorRow` reads which row Mario stands on **by exact Y**
+   (0x50, 0x78, 0xC8) and carries his X by that row's freshly-published step. The drivers must
+   run before the carry; the row-2 case publishes a ± pair and picks the arm by Mario's X.
+   **His walk step and the belt step are added independently in the same frame** — the per-frame
+   cascade calls the movement router at ROM 0x1983 and the conveyor update at 0x19AD, and each
+   writes `MARIO_X` — so walking against a belt should be slower than walking with it. `[seen]`
+   for the drivers' cell values and cadence; `[code]` for the independent add, and the felt
+   asymmetry itself has **not** been measured under MAME.
+2. **The cement pans.** `update50mMovingObjects` services the spawn request
+   (`OBJ_SPAWN_REQ` / `OBJ_SPAWN_TIMER`, a 0x7C-frame cooldown), then `advance50mObjectRow`
+   steps each of the six `OBJ_ARRAY_65A0` records horizontally and culls it the moment it runs
+   off the play area — either within seven pixels of the left edge, or, for the centre-split
+   mover, at dead centre (X == 0x80). Culling clears the record and blanks its sprite. `[seen]`
+3. **The two travelling objects.** `dispatch50mObjectState` picks one of the two 8-byte
+   `BOARD_OBJ_SCRATCH` records by frame parity and runs a four-state machine on it: parked at
+   the top of travel (counter 0x68) for a 256-frame dwell → sliding down to 0x78 → a randomised
+   dwell at the bottom → rising back and re-parking. The vertical convention was grounded by
+   forcing the record's published sprite byte to 40/104/120/200 and reading the resulting image
+   rows: **larger is lower**, so 0x68 is the object's highest point. Each record carries a
+   *column*, and the parked arm hit-tests Mario against that column, stamping a shared flag
+   with 1 if the dwell just expired and 0 while it is still running. `[seen]` for the machine
+   and its geometry.
+
+   **What those two objects ARE is an open question** (§15). The shape — a column, a 16-pixel
+   vertical travel, dwells at both ends, and a flag stamped only while Mario stands on that
+   column, which the *climb* stepper then reads as a gate — reads as `gameplay.md` §4.2's
+   retracting/extending ladders. That is `[guess]`, and the falsifiable prediction is stated in
+   §15.
+
+### 75m — elevators and springs
+
+`service75mBoard` (ROM 0x26FA) is the board's router, and it is the clearest difficulty ramp in
+the game. It first tests `MARIO_Y ≥ 0xF0` — the very bottom of the screen — and if so kills him
+outright, **with no X-band test, so he need not be on a lift at all**. Otherwise it services on
+a frame-counter cadence that *doubles after level 1*: at `LEVEL == 1` it advances the board
+objects on `frame%4 == 0`, runs the vertical-reposition machine on `frame%4 == 1`, and idles the
+other two frames; at every other level it alternates every frame with no idle. (The oracle's
+test is `dec a / jp nz`, i.e. `LEVEL != 1` — `LEVEL 0` takes the *fast* cadence too.) `[code]`
+
+`serviceBoardObjects` → `advanceBoardObjectTravel` drifts each of the six `OBJ_ARRAY_66`
+elevator records one pixel vertically toward its limit and then lands or deactivates it;
+`spawnBoardObject` claims a free slot on the `SPAWN_TIMER` cadence. Mario rides them through
+`dispatchElevatorRideByColumn`, which gates on the lift flag and dispatches **by Mario's X**:
+band 44–66 → `carryMarioUpWithLift` (`MARIO_Y − 1` each frame, or death once he passes the 0x71
+limit), band 108–130 → `carryMarioDownWithLift` (`MARIO_Y + 1`, death at 0xE8). The elevator
+records' observed X values are `{55, 119}` — one inside each band. `[code]` for the elevator
+identification; the record liveness itself is `[seen]`. The third arm of that dispatch — neither
+band — starts Mario falling and clears the flag, and has **never been observed executing**, so
+what taking it means is unclaimed. `[code]`
+
+The springs are `OBJ_ARRAY_65`, walked by `update75mActorObjects` (10 records, 75m only, while
+Mario is alive): each object walks an animation string, and the terminator handler rewinds the
+walk pointer to the string base and fires the wrap sound. Records 0–1 were live for 3711 frames
+with X sweeping 213 distinct values; records 2–9 never activated in any run. `[code]` for
+"springs"; the liveness and the sweep are `[seen]`.
+
+### 100m — rivets
+
+`RIVETS_LEFT` is initialised to **8** from the board template, and `RIVET_PRESENT` is the
+8-flag array beside it — `gameplay.md` §4.4's eight rivets, exactly. `[code]`
+
+`collectEdgeRivet` (ROM 0x1A33) is the pickup, and it is a **two-frame edge**, not a contact
+test: if Mario stands on a screen-edge column (`MARIO_X == 0x4B` or `0xB3`) it only *arms*
+`EDGE_RIVET_ARMED` and stops — nothing is collected on the edge frame. On a later frame, once
+he has stepped off, it disarms the latch and builds a 3-bit slot index out of position bits
+(row from `MARIO_Y−1`, side from `MARIO_X` bit 7), clears that `RIVET_PRESENT` slot, decrements
+`RIVETS_LEFT`, blanks the rivet's three tilemap cells, and raises the collection flags
+(`EFFECT_STATE`, `EFFECT_SELECT`, `ITEM_COLLECTED`). `[seen]` for the latch (154 toggles on 100m
+against 5 elsewhere); `[code]` for the slot arithmetic.
+
+The last rivet is what ends the board: `completeRivetBoardWhenCleared` wins the frame
+`RIVETS_LEFT` reaches 0. `[code]`
+
+### The hammer (25m, 50m, 100m — not 75m)
+
+`driveHammerSprite` is board-gated to masks bit0/bit1/bit3 — **25m, 50m and 100m, and not
+75m**, which is `gameplay.md` §5's "no hammer to rely on the same way on 75m" as a three-bit
+constant. `[code]`
+
+`latchHammerTouch` tests Mario against the two-record hammer pair and publishes the overlap into
+`MARIO_HAMMER_PENDING`; a *miss clears what a touch set*, so the flag is not sticky. The pending
+flag is transferred into `MARIO_HAMMER_ACTIVE` only when the post-landing freeze expires — and
+the touch latch itself runs from the airborne handler's exit tail on the single frame whose
+counter bump wraps to zero (`MARIO_AIR_FRAMES == 19`), **which is why a hammer is tested for
+roughly once per airborne arc rather than once per frame**. (The other path into that tail, a
+collision fall-through, arrives with a value that cannot wrap, so a collision frame never tests
+for a hammer touch.) `[code]` — 77 dispatches over a 2000-frame **harness replay**
+(`new Machine(ROM)` under our own engine, not MAME), the 4 latching ones all at
+`MARIO_AIR_FRAMES == 19`.
+
+While held, `updateActiveHammer` ticks `HAMMER_TIMER_LO/HI` and ends the hammer when the high
+byte reaches 2 — **512 TICKS OF THIS UPDATER, which is not 512 frames**: the counter only
+advances on frames the updater actually runs, and the one attract hammer measured ran the counter
+1 → 511 across **876** held frames, the other 365 spent in five stalls of exactly 73 frames each.
+Expiry restores the pre-hammer tune from `HAMMER_SAVED_BGM`. Bit 3 of
+the low byte drives the 8-frame swing animation. The swing's *hitbox* is real: the two poses
+stamp `OBJ_HIT_EXTENT_X/Y` as `0x06/0x03` and `0x05/0x06`, and `recordHammerHitOnObject` hands
+exactly those two bytes to the board's collision handler as the per-axis tolerances — so the
+hammer's reach changes with the swing phase. `[seen]` (the 876-frame active hammer, its 511
+counter increments and the BGM save/restore were observed live)
+
+---
+
+## 9. Collision, hits, effects, and points
+
+**Two different searches, for two different questions.**
+
+- *"Did something hit Mario?"* — `dispatchBoardCollision` vectors to the current board's arm,
+  each of which is a fixed sequence of sweeps, first hit wins:
+  25m `OBJ_ARRAY_67`×10, `OBJ_ARRAY_64`×5, `OBJ_RECORD_66A0`×1 ·
+  50m `OBJ_ARRAY_64`×5, `OBJ_ARRAY_65A0`×6, `OBJ_RECORD_66A0`×1 ·
+  75m `OBJ_ARRAY_64`×5 then `OBJ_ARRAY_65`×10 only if the first misses ·
+  100m one sweep over `OBJ_ARRAY_64`×**7**. That seven is not a typo for the five everywhere
+  else: `seed100mBoardObjects` activates records **5 and 6** (0x64A0 / 0x64C0) at board build
+  (ROM 0x116A, the same outright-activation idiom the 75m arm uses at 0x10E9), so the rivet
+  board's array runs seven deep while every *spawn/service* path still walks only five.
+  Decoded from `rom/maincpu.bin`: the four arms at ROM 0x2880 / 0x28B0 / 0x28E0 / 0x2901 open
+  `ld b,0x0a` / `ld b,0x05` / `ld b,0x05` / `ld b,0x07`. `[code]` Each arm stores its sweep
+  length in `OBJ_SEARCH_COUNT` first, and on a hit `recordHammerHitOnObject` writes
+  `COLLIDED_OBJECT_BASE` (the array base), `COLLIDED_OBJECT_STRIDE` and
+  `COLLIDED_OBJECT_INDEX` — recovering the index as `count − remaining`. **The arms and the
+  arrays agree per board** — but read the evidence exactly: the *dispatch-count equality*
+  (each arm's fetch count matching the board-collision dispatch count) was measured on **25m**
+  (1220/1220 attract, 2140/2140 on a credited 1P game). For 50m, 75m and 100m what was
+  measured is the weaker pair — the arm is present on its own board and dispatches 0 on the
+  others. `[seen]` for those controls; the count-equality claim is 25m-only.
+- *"How many things did he just jump over?"* — `dispatchBoardOverlapSearch` → `loc_3e99` clears
+  `OVERLAP_COUNT`, counts overlaps over both hazard arrays into it against a probe point that is
+  **twelve pixels below Mario, not on him**, and grades the total into `0 / 1 / 3 / 7`. Those
+  are not a scale — they are a **unary thermometer**: zero / one / two / three bits set, because
+  the consumer walks `EFFECT_SELECT`'s low bits one at a time. `[code]`
+
+**The effect machine** is what turns a hit or a pickup into a visible beat. `EFFECT_STATE` is a
+4-way router; state 1 (`armScorePopupAndSelectAward`) unconditionally arms `EFFECT_TIMER` to
+0x40, advances to state 2, and then tail-jumps to one of the award setters chosen by the
+*first set bit* of `EFFECT_SELECT`. A nested three-step sequence (`EFFECT_SEQ_STATE` with
+inner/outer counters) flashes and animates the effect sprite and re-arms the parent machine when
+it finishes. While `runHitEffectInsteadOfPlay`'s latch is set, the whole gameplay update is
+replaced by one effect beat — **an effect literally suspends play**. `[code]`
+
+**The points come out of a ROM table, and it reconciles with `gameplay.md` exactly.** Task
+opcode 0 selects a 3-byte packed-BCD addend from ROM 0x3529 by payload index. Read directly out
+of `rom/maincpu.bin`: payload *n* for 1–9 is *n*×100, payload 0 and 10 are zero, and payloads
+11–15 are 1000/2000/3000/4000/5000. `[code]` With that table in hand the award setters decode:
+
+| setter | task payload | points | matches `gameplay.md` |
+|---|---:|---:|---|
+| `pickAwardTierByObjectCount` (thermometer 0/1/3/7) | 1, 3, 5 | 100, 300, 500 | §6 "jump over 1 / 2 / 3 at once = 100 / 300 / 500" |
+| `stageAward300Popup` / `stageAward500Popup` / `stageAward800Popup` | 3, 5, 8 | 300, 500, 800 | §6 hammer smashes "300, then 500, then 800" |
+| the no-bits-set arm, dispatched on `LEVEL` (1 → 300, 2 → 500, else → 800) | 3, 5, 8 | 300, 500, 800 | §6 prizes "300 / 500 / 800 by level" |
+
+So the three separate scoring rules a player learns from the outside are **one dispatcher with
+three entry conditions**, and the level-scaled arm is the prize award. `[code]` — the table and
+the dispatch are exact; the *attribution* of the level-scaled arm to Pauline's dropped items is
+inference from the scaling matching, not from watching a pickup.
+
+`awardScorePopup` posts the task, stamps the floating glyph as a 4-byte sprite record at
+`POPUP_SPRITE` (`{MARIO_X, glyph, attr 7, MARIO_Y + 0x14}`), and cues a **board-gated** sound —
+the award ping plays on 25m and 75m only. `[code]`
+
+---
+
+## 10. The bonus timer, the payout, and the kill screen
+
+`initBoardState` computes, in 8-bit arithmetic:
+
+```
+BONUS_START = BONUS = BONUS_EVENT_MARK = min((LEVEL*10 + 0x28) & 0xff, 0x50)
+BONUS_PERIOD = BONUS_TICK          = max(0xDC - 2*bonus, 0x28)
+```
+
+`BONUS` is in units of 100, so the on-screen number is `BONUS × 100`. It falls two different
+ways: the metronomic `tickTimedBoardBonus` on boards 2/3/4 (period `BONUS_PERIOD`, measured
+L2→100, L3→80, L4→60 frames) and the barrel release on board 1 (§8). `BONUS_DISPLAY` is the
+packed-BCD number the player watches, stepped in lockstep by both sites; that BCD encoding was
+confirmed over 99,367 comparable frames with zero mismatches and the borrow directly visible
+(0x50→0x49). `[seen]`
+
+Reaching zero sets `BONUS_EXPIRED_STEP`, whose four-step machine (`dispatchBonusExpiredStep`,
+`startBonusExpiredDelay`, `bonusExpiredIdle`, `advanceBonusExpiredStepWhenDelayExpires`,
+`advanceSubstateWhenGrounded`) holds until Mario is grounded and then takes the death exit.
+`[seen]` (the machine was walked 0→1→2→3 under a write tap on boards 2 and 4)
+
+**The payout.** On completion `awardRemainingBonusToScore` splits `BONUS_DISPLAY`'s nibbles into
+two table-selected payloads and posts both — `gameplay.md` §6's "whatever remains is added to
+your score", located. `[seen]` with a stated caveat: the five observed dispatches needed a
+`GAME_SUBSTATE := 0x16` poke to reach the board-advance state; in unpoked play it was observed
+zero times over 49,700 frames.
+
+**The level-22 kill screen falls straight out of the first line.** At `LEVEL == 22`,
+`22*10 + 40 = 260 = 0x104`, which byte-wraps to `0x04`. Four is below the `0x50` clamp, so the
+board opens with a **400-point timer** that expires in seconds no matter how well you play.
+`[code]`
+
+| `LEVEL` | `LEVEL*10+40` | after the byte wrap and the clamp | on screen |
+|---:|---:|---:|---:|
+| 1 | 0x032 | 0x32 (50) | 5000 |
+| 2 | 0x03C | 0x3C (60) | 6000 |
+| 3 | 0x046 | 0x46 (70) | 7000 |
+| 4 … 21 | 0x050 … 0x0FA | clamped to 0x50 (80) | 8000 |
 | **22** | **0x104** | **wraps to 0x04 (4)** | **400** |
 | 23 | 0x10E | 0x0E (14) | 1400 |
 
-**The level-22 kill screen falls straight out of this code.** `[code]` The starting-bonus
-computation is 8-bit: at `LEVEL == 22`, `10*22+40 = 260 = 0x104`, which byte-wraps to
-`0x04`. Since `4` is below the `0x50` clamp, the board opens with a **400-point timer**
-that expires in seconds no matter how well you play. `gameplay.md` §4.5/§9 flagged the
-exact overflow arithmetic as a "community reconstruction"; here it is exact, in
-`initBoardState`, refining that from *widely-reported* to *confirmed*.
+`gameplay.md` §4.5 and §9 flag the exact arithmetic as "a community reconstruction"; here it is
+the literal expression in `initBoardState`, and the L1–L4+ column matches the published table
+row for row. That promotes the public claim from *widely reported* to *confirmed*, and pins the
+mechanism to one 8-bit multiply that was never widened.
 
-**Extra life.** `sub_0350` grants one score-threshold extra life per player (latch
-`BONUS_LIFE_AWARDED 0x622D`), comparing the score against `DIP_BONUS_LIFE` (default 7000)
-— matching `gameplay.md`'s "bonus life at 7,000". Code-cited but never observed firing (no
-captured run crossed the threshold). `[code]`
-
-**Awarding points.** `awardScorePopup` (ROM 0x1E28) is the "you scored" effect: it posts
-the add-to-score task, stages a floating number glyph as a sprite over Mario, and (on 25m
-and 75m only, via the board gate) pings the award sound. It is fed by `pickAwardTierByObjectCount`, which
-picks one of three tiers (award index 1/3/5 ↔ glyph 0x7B/0x7D/0x7F) — the multi-obstacle
-100/300/500 jump tiers from `gameplay.md`. `[code]` The concrete points-per-index table
-lives in ROM at `0x3529` and is **not yet decompiled**, so the exact tier→points mapping
-is `[guess]` on the code side (though `[seen]` in play).
-
-**Prizes (parasol / hat / purse).** `runBonusItemValueDisplay` (ROM 0x1486, sub-state
-0x15) drives the collectible bonus item on the non-25m boards: it advances the item's grid
-position, animates its sprite, and paints a **decrementing value (starts at 30)** in the
-on-screen digits — collect it sooner for more. `positionBonusItemSprite` places it.
-This matches `gameplay.md`'s prizes-on-50m/75m/100m and the "walk over it to collect"
-model; the exact 300/500/800-by-level scaling is in ROM data, so `[guess]` on the code side.
-
-**The effect-sprite subsystem.** A small state machine plays a transient "effect" — a popup
-sprite plus a sound — when an object is hit or a prize is collected. `EFFECT_STATE (0x6340)`
-is a 4-way router (`dispatchEffectState`): a pickup/hit raises it to 1, `EFFECT_SELECT (0x6342)` picks
-which setter runs from its low bits (`armScorePopupAndSelectAward`), `EFFECT_PARAM_PTR (0x6343)` points at the
-hit record the setter reads, and `EFFECT_TIMER (0x6341)` holds the popup on screen (armed
-`0x40`) before blanking `POPUP_SPRITE (0x6A30)` and resetting the router. A nested follow-on
-countdown — `EFFECT_SEQ_STATE (0x6345)` (its own 3-way router `dispatchEffectSequenceStep`) with inner/outer
-counters `EFFECT_SEQ_INNER (0x6346)` / `EFFECT_SEQ_OUTER (0x6347)` — steps a short sequence
-and re-arms `EFFECT_STATE` on completion. The effect's own hardware sprite is `EFFECT_SPRITE
-(0x6A2C)`, a 4-byte record inside `SPRITE_BUFFER` immediately before `POPUP_SPRITE`; `buildEffectSprite`
-builds it and points `EFFECT_PARAM_PTR` at it, and on each ordinary beat `flashEffectSpriteThenAdvanceSequence` flips bit0 of
-its `+1` code byte to flash the effect tile between `0x60` and `0x61`. That `+1` code field
-(`0x6A2D`, reached as `EFFECT_SPRITE + 1`) is grounded `[seen]` live vs MAME (pass 9, 41 flips tied
-to `EFFECT_SEQ_STATE`); the base cell is named `[code]` like its sibling `POPUP_SPRITE`. The
-state-machine *structure* is code-certain; the "effect sprite" *semantic* is still `[code]`
-inference, flagged to ground vs MAME (watch these cells while an object is hit / a prize is
-collected). `[code]`
-
-**The pickup flag.** `ITEM_COLLECTED (0x6225)` latches when a prize/item is collected (edge
-pickup, airborne collision, or rivet) and is consumed at landing (`loc_1d95` clears it and,
-off 25m, queues the pickup tune). The item's identity is inferred, so `[code]`. `[code]`
+**The extra life.** `awardBonusLifeAtThreshold` grants one score-threshold life per player,
+latched by `BONUS_LIFE_AWARDED`, against `DIP_BONUS_LIFE` (default 7000) — `gameplay.md` §6's
+"bonus life at 7,000". A quirk worth knowing when reading traces: `DIP_BONUS_LIFE` is 0 at early
+boot, so the threshold is momentarily 0 and the award fires immediately in attract. `[seen]`
 
 ---
 
-## 7. Board completion, advance, and the level loop
+## 11. Winning a board, and the interlude that advances it
 
-- **Completion.** `enterBoardAdvanceAndUnwind` (ROM 0x1E85) writes `GAME_SUBSTATE = 0x16`
-  and unwinds out of the movement cascade (no more movement that frame). Reached from a
-  zero rivet count (`loc_1e80`) or Mario climbing to the rescue row (`loc_1e6d`). `[code]`
-- **Rivets.** `collectEdgeRivet` (ROM 0x1A33) is the 100m pickup: board-gated to `BOARD==4`,
-  it *arms* when Mario stands on a screen-edge column (`MARIO_X == 0x4B` or `0xB3`) and,
-  when he steps off, clears the correct `RIVET_PRESENT[slot] (0x6292+n)`, decrements
-  `RIVETS_LEFT (0x6290)`, and blanks the rivet's tiles. Last rivet → board-complete. `[code]`
-- **Advance.** The `0x16` sub-state runs a render sequence (`dispatchRivetBoardInterludeStep` and its timed
-  steps `beginKongRecaptureInterlude…loc_18c6`, plus `buildHowHighScreen`) and ends in **`advanceToNextBoard`**
-  (ROM 0x178E): step `BOARD_SEQ_PTR` forward, read the next board, and on the `0x7F`
-  terminator reload to `0x3A73` — **the wrap that makes the game loop**. `LEVEL` is
-  incremented at the terminator, `HOW_HIGH_INDEX (0x622E)` is reset, and the "HOW HIGH CAN
-  YOU GET?" interlude plays for the new board. **Validated end-to-end in play including
-  100m→wrap→level++→25m.** `[seen]` `[code]`
-- **The advance machine's step index.** Everything under sub-state `0x16` is one small state
-  machine keyed on **`BOARD_ADVANCE_STEP (0x6388)`**: `dispatchBoardClearedInterlude` / `runRivetBoardInterludeFrame` / `dispatchRivetBoardInterludeStep`
-  dispatch `rst 0x28` through board-parity tables on it, each step's handler renders one stage
-  then `inc`s it to advance (step 0 is the how-high screen, `loc_17b6`); `advanceToNextBoard`
-  resets it to 0 when the interlude ends. The how-high interlude is thus a *step* of this one
-  sequence, not a separate machine. `[code]`
-- **Difficulty ramp.** `DIFFICULTY (0x6380) = min(LEVEL + (DIFFICULTY_CLOCK>>3), 5)` rises
-  with both level and time-on-board; it feeds barrel/enemy behaviour, so the same board
-  gets meaner the longer you dawdle and each loop is harder — the qualitative "faster,
-  sometimes diagonal" of `gameplay.md`, as a clamped 1–5 knob. `[code]`
+**Winning is one write.** `enterBoardAdvanceAndUnwind` sets `GAME_SUBSTATE = 0x16` and unwinds
+out of the movement cascade so nothing else runs that frame. `checkBoardWonByType` decides,
+per board type, whether to reach it — and the routing is a bit test that is easy to get wrong:
 
----
+- **100m** — position is never read; the board is won the frame `RIVETS_LEFT` hits 0.
+- **The ODD boards — 25m *and* 75m.** ROM 0x1E5F is `rra` on `BOARD`, rotating **bit 0** into
+  carry, so `jp c` takes `BOARD` 1 **and** 3. Both are won positionally, by Mario's Y reaching
+  the rescue row near Pauline. This is not "the girder board". `[code]`
+- **50m** — won once Mario climbs above the 0x51 line (Y decreases as he climbs).
 
-## 8. The opening Kong-climb cutscene
+`[seen]` for the rescue itself: a played run reached Pauline on 25m by walking to the ladder X
+and climbing, producing the advance 25m → 100m.
 
-Sub-state 7 (reached only when `PLAY_INTRO 0x622C` is set — post-death boards skip it):
-Kong climbs the girders carrying Pauline. Driven by `INTRO_STEP (0x6385)` through an
-8-entry table: `dispatchIntroCutsceneStep`, `setupIntroCutsceneStep`,
-`animateIntroClimbStep`, `runIntroClimbStep`, `scrollClimbGraphicStep` (scrolls the climb
-graphic up a row), `runIntroRoarStep` (the chest-pound roar audio at step 7). `[code]`
-This is the "intro", **not** the rescue — a correction the RAM map is explicit about
-(`GAME_SUBSTATE` doc note): an earlier pass misread a 7 at a board transition as a "rescue
-flag"; it is the *next* board's intro. Board progression is real regardless. `[seen]`
+**The interlude** is one state machine, `BOARD_ADVANCE_STEP`, read through **three** board-parity
+tables, but only two of them belong to one routine. `dispatchBoardClearedInterlude` owns the odd
+boards (6 steps, table at ROM 0x1623) and 50m (5 steps, 0x1637); when neither board bit matches it
+**falls through** (`jp nc,0x1641`) into the 100m path, where `runRivetBoardInterludeFrame` runs the
+effect machine first and `dispatchRivetBoardInterludeStep` then dispatches the third table
+(6 steps, 0x1648). Its first act each frame is
+`clearSpriteColumns`, which parks 28 sprite records — stopping one short of Mario's on one side
+and one short of the interlude heart on the other, so the gameplay actors are cleared away and
+the interlude's cast is kept. The steps run the Kong-recapture tableau (`spawnInterludeHeart`
+seeds the heart sprite, code 0x76), sweep the sprite-object block toward the top, wait until
+every slot is clear, and end at the board-order walk. `[seen]` (the step byte was watched
+walking 0→5 exactly once per completion, 51 monotone entries across nine completions, and is
+identically 0 on every in-play frame outside sub-state 0x16)
 
----
+The "HOW HIGH CAN YOU GET?" screen is **step 0 of this same sequence**, not a separate machine;
+`HOW_HIGH_INDEX` (clamped to 5) is stepped when `BOARD_SEQ_PTR` differs from its saved copy and
+reset on the level increment. `[code]`
 
-## 9. Cross-cutting engines: tasks, sound, DMA, colour-cycle
-
-- **Task ring.** A 32-slot ring at `TASK_RING (0x60C0)` with head/tail pointers
-  (`TASK_HEAD/TASK_TAIL 0x60B1/0x60B0`). `enqueueTask` posts `[opcode, arg]`;
-  `enqueueTaskBatch` posts a fixed batch. Opcode 0 = add-to-score (proven by injecting
-  `(0,5)` → score `000500`). This is how scoring, credit-display refreshes, and deferred
-  effects are decoupled from the frame that triggers them. `[seen]` `[code]`
-- **Sound.** `soundDriverTick` pushes queued state to the audio hardware each NMI; the
-  8 per-bit triggers `SND_TRIGGER[8] (0x6080)` are 3-frame asserts; `SND_BGM (0x6089)` /
-  `SND_PRIORITY (0x608A)` select the looping tune vs a priority override. `silenceSound`
-  zeroes it all. Per-bit sound *meanings* are the audio layer's, not re-derived here. `[code]`
-- **Sprite DMA.** `gatherSpriteRecords` first assembles each active object's 4-byte record
-  into `SPRITE_BUFFER (0x6900)` (§4), then `blitSpritesViaDma` (ROM 0x0141) programs the i8257
-  to copy the 384-byte shadow buffer `0x6900 → 0x7000` every vblank. Sprite `+0 == MARIO_X` /
-  `+3 == MARIO_Y` are grounded byte-exact vs MAME (1819 attract frames); the hardware reads
-  each record rotated 90° for the portrait screen. `[seen]` `[code]`
-- **Colour-cycle & blink.** Each frame `serviceColorCycle` (gated on `COLOUR_CYCLE_ACTIVE (0x6391)` + the
-  frame counter) falls into `advanceColorCycleSweep` (ROM 0x0426), which bumps the sweep counter
-  `0x6390` and routes this frame's colour work — top-of-sweep reset, repaint-only, or (on a 32-frame
-  boundary) a sprite-object reload plus the full cascade. The cascade is headed by `dispatchColorCascadeByBoard`
-  (routes on `BOARD`): the even-board arm `shiftEvenBoardSpriteColumn` first shifts the sprite-object
-  row's X column, then both arms fall into the repaint `dispatchColorCyclePaint`;
-  `resetColorCycleSweep` clears the sweep counter and `COLOUR_CYCLE_ACTIVE (0x6391)` when the sweep
-  tops out at `0x80` (the re-arm that starts the next sweep is `serviceColorCycle`'s job). `runRivetColorCycleBlink`
-  is the 100m branch. On the 50m arm the row X-shift delta is `M50_OBJ_ROW_SHIFT (0x63B7)` —
-  `entry_03fb`/`entry_0400` compute `(0x6910) − 0x3b` and store it, and `shiftEvenBoardSpriteColumn`
-  adds it into the `SPRITE_OBJ_BLOCK` X column (an X-shift, **not** a colour delta; grounded live on
-  the credited 50m board (pass-5), sweeping `0..255`, so `[seen]`).
-
-  ★ **CORRECTION (pass 12), now SETTLED BY OBSERVATION (pass 13).** This section used to close by saying
-  the colour-cycle blink "is itself a short animation sequence" routed by `0x639D` through the router
-  at ROM 0x127F.
-  That link was **false and has been removed** — `0x639D`/`0x639E` have exactly five operand references
-  in the whole 16 KB ROM, all inside `0x127F–0x12D7`, whereas `blinkSpritePairOn`/`Off` act on
-  `0x6901`/`0x6905` off the colour-cycle counter `0x6390`. Unrelated subsystems.
-  Pass 13 then grounded what that cluster actually is: **Mario's death animation** (see §"Death" below).
-  The cells are now `DEATH_ANIM_PHASE` / `DEATH_ANIM_TICKS_LEFT` and the routines are named.
-  ★ Everything else in this section — the colour-cycle blink itself, `blinkSpritePairOn/Off/ByX`, the
-  hammer blink pair, `redrawPlayerUpIndicator`, `spawnInterludeHeart`'s `BLINK_SPRITE_CODE (0x6905)` — is a
-  genuinely different subsystem and is **not** affected by that correction.
+`SEQ_ADVANCE_PTR` is the small indirection that makes several of these steps share one timer:
+`advanceSequenceStepWhenTimerExpires` loads the *address* stored there and increments the byte it
+points at, but only on the frame `SUBSTATE_TIMER` expires. Setup routines re-point it —
+`INTRO_STEP` during the cutscene, `BOARD_ADVANCE_STEP` during the interlude — and its indirect
+`inc (hl)` was caught writing `BOARD_ADVANCE_STEP` by PC. `[seen]`
 
 ---
 
-## 10. The hardware / render layer (`boards/dkong/`)
+## 12. Death, lives, players, game over
 
-This layer is hand-transcribed from MAME's `dkong.cpp` (it has no equivalence gate — it is
-the one ungated surface, validated by pixel-diff), so it is `[code]` from the driver, not
-from the ROM. `[code]`
+`MARIO_ACTIVE` going to 0 during the per-frame cascade is what ends a life: the cascade's tail
+reads it, and on zero it silences every sound output, fires sound trigger 2, and steps the
+sub-state — and the next index in *both* dispatch tables (in-game 0x0C→0x0D, attract 3→4) is the
+death-animation router. `[code]`
 
-- **`memory.js`** — the Z80 address space: ROM `0x0000–0x3FFF`, work RAM
-  `0x6000–0x6BFF` (note the `0x6BFF` bound, and `0x6C00–0x6FFF` is **not** RAM), sprite RAM
-  `0x7000–0x73FF`, video/tilemap RAM `0x7400–0x77FF`, i8257 DMA `0x7800–0x780F`, and the
-  I/O strip `0x7C00–0x7D87`. Three modelling rules it exists to enforce: read≠write at the
-  same address (0x7C00 reads IN0 / writes the sound latch), reads aren't pure (reading
-  0x7D00 kicks the watchdog), and unmapped access throws loudly. `[code]`
-- **`video.js`** — deterministic ROM decode: 8×8×2 planar tiles (256 of them), 16×16 2bpp
-  sprites (128), and the colour PROMs. Plane order is a real decision (getting it backwards
-  swaps colour indices), transcribed from the driver, not guessed. `[code]`
-- **`io.js`** — inputs, DIP reads, the ls259 control latch (flipscreen / sprite bank / NMI
-  mask / DRQ), sound latch/trigger writes. `[code]`
-- **`hardware.json`** — the tool-facing declaration (screen 256×224, CPU 3.072 MHz,
-  50688 cycles/frame, the RAM/sprite/video state regions, reset register values, boot
-  landmark cycles). Single source of truth for the shared Python tools. `[code]`
+The animation itself is grounded end to end. `DEATH_ANIM_PHASE` is a three-arm router (slot 3 is
+structurally unreachable padding — the cell has three writers and none can produce 3);
+`beginMarioDeathAnimation` blanks the sprite columns, primes `DEATH_ANIM_TICKS_LEFT` to 13, and
+its last instruction is the **sole writer of the sound line MAME labels "dead"**;
+`stepMarioDeathAnimation` rotates Mario's sprite through four orientations (tile 0x78↔0x79,
+flipy↔flipx) on an 8-frame gate. Under MAME's sprite-record layout that pair is a 180° rotation
+and the record never takes a blanking value, so the old "blink" reading is refuted — but note the
+evidence line: pass 13 ran `-video none`, so the four `(code, attr)` pairs, the gate and the
+episode length are `[seen]` while the *rendering* reading is inferred from those bytes plus
+MAME's `draw_sprites`, not from pixels. The episode is 296
+frames and was identical in 43 of 43 completed episodes, with a negative control of 0 on every
+one of 42,275 ordinary play frames. `[seen]`
 
----
+**The bonus-timer death reaches the same sequence with `MARIO_ACTIVE` still 1** — ROM 0x1A2A
+jumps into the middle of the same three instructions, stepping over the alive test. That is why
+a live `MARIO_ACTIVE` is not evidence the death sequence is not running: two different causes
+reach the identical animation. `[seen]`
 
-## 11. Decompile coverage — what is and isn't lifted
-
-**Measured (this checkout):**
-
-| Metric | Count |
-|--------|------:|
-| Routines lifted to readable `idiomatic/` `.js` | **361** |
-| — English-named | 204 |
-| — still `loc_<addr>` (address-named, awaiting a name) | 157 |
-| Address-named routines in the frozen `translated/` oracle (denominator) | **423** |
-| Named work-RAM cells in `idiomatic/ram.js` (`export const`) | 175 |
-| `translated/` `.js` files total (423 routines + 8 scaffolding/generated files) | 431 |
-| **Idiomatic coverage** | **361 / 423 ≈ 85%** |
-
-The other ~62 routines run **live and pixel-correct** — they are the frozen `translated/`
-oracle, just not yet rewritten into readable JS.
-By ROM region, the largest not-yet-lifted blocks are:
-
-- **`0x1F00–0x2E00` — the actor/enemy/object AI (biggest gap).** This is the moment-to-
-  moment behaviour of the hazards: barrel spawn & roll (Kong's throws, barrels tumbling
-  girders and going "wild" down ladders), fireball / firefox AI, elevator and spring
-  motion (75m), cement-pan / conveyor behaviour (50m), and the generic object engine —
-  the object-list collision search (`findCollidingObject`), object movement with edge-clamping
-  (`move_2b02` does `X += velocity` then clamps via `sub_241F`), slope-contact flags
-  (`entry_2acd`), and the per-object update (`obj_2e12`). The Mario-side *collision consume*
-  is lifted (`scanObjectsAtMarioX`, `confirmObjectHit`), but the hazards' *own* logic is
-  not. So anything in this doc about how a barrel decides to roll wild, how a fireball
-  chases, or how a spring bounces is `[guess]` / `[seen]`, not `[code]`. `[guess]`
-- **`0x0300–0x0600`** — remaining BCD/score/high-score compare and math helpers
-  (e.g. the high-score update at `0x0540`, the extra-life grant `sub_0350`). `[code]` partial.
-- **`0x3100–0x3400`** — remaining engine/scheduler/sprite utility helpers.
-
-**Bottom line:** the *skeleton* of the game — power-on → attract → coin/start →
-board-setup → Mario movement → board-complete → advance → level-loop, plus the timer,
-scoring plumbing, prizes, rivets, cutscene, and the hardware/render layer — is decompiled
-and, for the load-bearing path, **validated by play against MAME**. The *flesh* — the
-enemy behaviours that make each board distinct in motion — is still oracle-only and is
-described here at lower confidence, tagged accordingly.
+`losePlayer1Life` decrements `LIVES`, snapshots the player context, and routes to the resume
+interlude or the game-over sequence. Each player's 8-byte context
+(`P1_CONTEXT` / `P2_CONTEXT` = lives, level, sequence pointer, play-intro flag, bonus-life
+latch, how-high bookkeeping) is `ldir`'d to and from the live block at 0x6228 on every switch,
+which is what makes alternating two-player play work. `PLAY_INTRO` being zeroed by both death
+handlers is why a board resumed after a death **skips the opening cutscene**. `[seen]`
 
 ---
 
-## 12. Routine table (curated excerpt, functionally grouped)
+## 13. Attract mode and the demo
 
-One line each, from the routine's own doc comment. `loc_<addr>` entries are lifted but not
-yet English-named. This is a functionally-grouped *excerpt*; the **complete** registry of all
-361 routines (name, role, confidence) keyed by entry address is the `ROUTINES` map in
-`idiomatic/ram.js` — the single source per `docs/names-registry.md`.
+Attract is a real game played by a canned script. `runAttractState` dispatches eight sub-states
+through ROM 0x0748: the title/score composition, the timed-advance gates, a fresh 25m/level-1/
+one-life reseed (`restartAttractDemoAt25m` — unreachable for a credited game, since `DIP_LIVES`
+is 3–6 at every DSW setting), Mario's spawn, the death router, and — slot 3 — the demo cascade.
+`[code]`
 
-### Machine spine — NMI, frame, dispatch, guards
-| Routine | What it does |
-|---------|--------------|
-| `serviceVblankNmi` | the vblank NMI handler: one frame of interrupt service |
-| `perFrame` | per-frame service + game-state dispatch tail of the vblank NMI |
-| `dispatchInGameSubstate` | vector the in-game state to its current sub-state handler (ROM 0x0702 table) |
-| `dispatchCreditedSubstate` | vector the credited game (state 2) to its sub-state handler |
-| `dispatchInlineJumpTable` | the `rst 0x28` inline-jump-table trampoline |
-| `gameActiveGuard` | caller-skip guard: proceed only while a credited game is in play |
-| `marioActiveGuard` | caller-skip guard: proceed only while Mario is alive |
-| `boardBitGate` | the `rst 0x30` vector: a per-board skip gate |
-| `readControls` | select the active joystick port, edge-debounce into the cooked input word |
-| `stirRandomSeed` | mix the pseudo-random seed once per vblank |
-| `tickSubstateTimer` | tick the sub-state countdown, report expiry |
-| `tickSubstatePrescaler` | tick the low half of the sub-state timer |
-| `tickDispatcherCountdown` | tick a state hold timer; reset the dispatcher on expiry |
+The demo cascade is `loc_1977`: `advanceAttractDemoInput` writes this frame's scripted control
+word **over the same cooked input cell the joystick would fill** (`P1_INPUT`), and then the
+*identical* per-frame update runs. The script is a ROM table of `(input, duration)` pairs walked
+by `DEMO_SCRIPT_INDEX` / `DEMO_SCRIPT_COUNTDOWN`; a duration of N holds its input for N+1 frames,
+and the input is re-issued every held frame. The in-game path enters the same cascade one
+instruction later, skipping only the script step. **That is why attract is such good ground
+truth: it is the game, driven by a tape.** `[code]` (1416 dispatches at `GAME_STATE` 1 /
+`GAME_SUBSTATE` 3 over a 2000-frame **harness replay** under our own engine, and zero on a
+coin+start tape)
 
-### Boot, attract, coins, start, player context
-| Routine | What it does |
-|---------|--------------|
-| `powerOnInit` | game state 0: the one-time power-on initialization |
-| `decodeDipSwitches` | unpack DSW0 into the settings block; load ROM defaults |
-| `runAttractState` | service the attract game-state once per NMI |
-| `composeAttractTitleScreen` | build the attract title/score screen |
-| `enterAttractMode` | reset the machine into attract mode |
-| `enterCreditScreen` | accept the inserted credit; set up credit / start-select |
-| `serviceCoinInput` | debounce the coin line, tally pulses, award BCD credits |
-| `readStartButtonSelector` | read which allowed start button is pressed |
-| `commitGameStart` | commit a credited game start: spend credit(s), seed context |
-| `spendCredit` | deduct one credit; post the credit-display refresh task |
-| `drawCreditDisplay` | paint the "CREDIT nn" line |
-| `restorePlayer1Context` | restore player 1's saved context, re-derive the board |
-| `restorePlayer2Context` | reinstate player 2's saved game context |
-| `selectPlayer2AndComposeScreen` | make player 2 current, then compose the screen |
-| `selectPlayerScreenOrAttract` | sub-state-0x14 handler: hold game-over, else attract |
-| `armTwoPlayerBoardSetup` | the 2-player arm of the board-setup sub-state step |
-| `configureFlipScreenAndComposeScreen` | orient the display for the player who is up |
-| `configureFlipScreenAndSelectSubstate` | first in-game NMI's start-up step |
-| `composeScreenAndAdvanceSubstate` | post an intro step's draw tasks and "1UP" |
-| `draw1UpLabel` / `draw2UpLabel` | stamp the fixed "1UP"/"2UP" score-label cells |
-| `loc_0a1b` | one step of the two-player board-setup chain |
-| `loc_13aa` | small reset: mirror the cabinet DIP into flip-screen |
-| `selectPlayer1Context` | reset the live player/display context to player 1 |
-| `loc_138f` | timed sub-state transition, branched on P2's saved context |
-| `loc_1344` | idx-15 in-game handler: decrement the current player's timer |
-| `loc_13ca` | format a packed-BCD score into display digits |
-
-### Sub-state timer plumbing & screen transitions
-| Routine | What it does |
-|---------|--------------|
-| `advanceSubstateAndArmTimer` | step to the next sub-state and hold it for N frames |
-| `advanceSubstateWhenGrounded` | hold this sub-state until Mario has landed, then step |
-| `clearSubstateWhenTimerExpires` | park on a timed sub-state, then clear it |
-| `clearScreenAndAdvanceSubstate` | wipe the screen, then step to the next sub-state |
-| `clearScreenAndSelectSubstate` | wipe the display, then jump the in-game sub-state |
-| `clearScreenAndSelectIntro` | clear the screen; route board-start to the intro |
-| `loc_12de` | on timer expiry, tear down the finished sub-state's sprites |
-| `loc_13a1` | a timer-gated 0x0702 sub-state handler (table idx 0x17) |
-
-### Opening Kong-climb cutscene
-| Routine | What it does |
-|---------|--------------|
-| `dispatchIntroCutsceneStep` | vector the opening cutscene to its current step |
-| `setupIntroCutsceneStep` | step 0: draw the cutscene |
-| `animateIntroClimbStep` | step 2: animate Kong's climb |
-| `runIntroClimbStep` | stage one climb phase of the cutscene |
-| `runIntroRoarStep` | the roar/finish step (chest-pound audio) |
-| `scrollClimbGraphicStep` | advance the climb graphic up one row |
-| `loc_0b06` | one step of the cutscene's display-list build |
-| `loc_0b68` | step 6: scroll the sprite-object block |
-| `loc_07cb` | a timed animation sub-state step |
-
-### Board setup: layout, tiles, object seeding
-| Routine | What it does |
-|---------|--------------|
-| `initBoardState` | reset per-board RAM, compute bonus/timer, dispatch to board setup |
-| `seed25mBoardObjects` | build the 25m board's initial object records |
-| `seed50mBoardObjects` | build the 50m board's object + sprite records |
-| `seed75mBoardObjects` | build the 75m board's object records |
-| `seed100mBoardObjects` | build the 100m (rivet) board's object records |
-| `seedMarioActorRecord` | spawn Mario's actor record at a board-dependent start |
-| `loadBoardObjectRecords` | scatter this board's ROM object-init records |
-| `loadSpriteObjectBlock` | copy the 40-byte sprite-object block from the caller |
-| `seedObjectBlockSprites` | seed a 10-record block's shared sprite field |
-| `seedSpriteObjectPair` | place a pair of sprite objects at two given cells |
-| `reloadObjectBlockAndAdvanceStep` | reload the board's sprite-object block |
-| `replicateGroupStrided` | copy one 4-byte group into B strided destinations |
-| `loc_0d5f` | board-setup continuation: common per-board init + scatter |
-| `loc_0cc6` | the shared tail every board-setup dispatch arm converges on |
-| `drawBoardLayout` | walk the board-layout segment table and draw each segment |
-| `loc_0dd3` | convert a segment endpoint, compute run deltas |
-| `loc_3fa0` | board-setup prelude: stamp the 50m-only tiles |
-| `loc_11fa` | scatter a 6-byte source record into an IX record + array |
-| `drawGirderSpan` | fill a segment body with the girder tile 0xC0 |
-| `drawLadder` | stamp a kind-2 ladder run down the tilemap |
-| `drawSegmentEndCap` | stamp a segment's endpoint tiles, advance the cursor |
-| `drawCappedTileColumn` | stamp a capped vertical tile run |
-| `fillTileBlock` | stamp a fixed 5×14 block of tile 0x10 |
-| `fillTileColumn` | fill a tilemap column with a kind-selected tile |
-| `fillTileRowPair` | stamp a fixed two-row motif |
-| `fillDescendingColumn` | write a 3-cell descending run |
-| `fillColumnAndContinueWalk` | fill a tilemap column from the cursor, then continue |
-| `stamp50mBoardTiles` | stamp four 50m-only tilemap cells |
-| `stamp75mBoardTiles` | stamp two fixed 75m (elevator) cells |
-| `stampRivetBoardBands` | stamp the two-band motif into two rows |
-| `stampRivetBoardTiles` | stamp a 2-tile motif into eight cells |
-| `stampFixedTilePair` | paint a fixed two-tile decoration |
-| `stampTwoTileBands` | stamp two 4-cell tile bands |
-
-### Mario movement: walk, climb, jump, fall
-| Routine | What it does |
-|---------|--------------|
-| `beginWalkStep` | start a new walk-animation step for Mario |
-| `continueWalkStep` | carry an in-progress walk step one frame further |
-| `tickMoveStepTimer` | decrement the player's walk/climb sub-step timer |
-| `triggerWalkSound` | request Mario's footstep sound for 3 frames |
-| `loc_1d76` | the "sub-step timer still running" walk/climb branch |
-| `snapYToGirder` | nudge a coordinate one pixel along the 25m girder slope |
-| `markOnLadderAndCommitSprite` | flag Mario on a ladder, refresh his sprite |
-| `advanceClimbStep` | the shared climb-step body (step Y ±2, center or pick the climb frame) |
-| `climbMarioUp` | drive Mario's upward ladder climb one step per frame (feeds the shared body a −2 step) |
-| `climbMarioDown` | drive Mario's downward ladder climb one step per frame (feeds the shared body a +2 step) |
-| `climbUpWhileHeld` | while the player holds Up (control bit 2) drive Mario's climb up — the "Up" half of the ladder-input dispatch (0x1B45) |
-| `centerMarioAndCommitClimbStep` | the ladder-centering phase of a climb step |
-| `endClimbAtLadderLimit` | finish a ladder climb that reached a ladder end |
-| `setClimbSpriteFrame` | stamp Mario's climb-animation sprite for one step |
-| `initMarioJump` | begin a jump: flag airborne, pick horizontal velocity |
-| `launchMarioJump` | commit the ballistic jump; snapshot take-off Y; jump sound |
-| `stepBallisticMotion` | advance an airborne actor one frame along its arc |
-| `settleMarioOnLanding` | settle Mario on touchdown: grounded/alive/pose, arm the freeze, commit a pending pickup |
-| `tickPostLandingFreeze` | count down the post-landing freeze; unfreeze on expiry |
-| `updateActiveHammer` | tick the active hammer's duration counter; on expiry end it + restore the tune |
-| `writeMarioSpriteRecord` | refresh Mario's 4-byte hardware sprite record |
-| `loc_241f` | classify Mario's X into a two-flag position gate |
-| `loc_1d95` | commit the 0x6225 collection flag; off-25m pickup sound |
-
-### Objects, collision, effect sprites (partial)
-| Routine | What it does |
-|---------|--------------|
-| `scanObjectsAtMarioX` | broad-phase X test of the per-frame object-collision scan |
-| `confirmObjectHit` | confirm an X-match is Y-aligned + eligible; register the hit |
-| `recordHammerHitOnObject` | test the active special-object record vs the board's hazards; on a hit record the collision-hit location (`COLLIDED_OBJECT_*`) |
-| `dispatchBoardCollision` | `BOARD`-selected `rst 0x28` dispatch to the current board's object-collision arm |
-| `dispatchBoardOverlapSearch` | twin dispatcher reached from the `0x286B` search; board 1 counts object overlaps (`OVERLAP_COUNT`) (0x3E88) |
-| `animateSpriteObjectBlock` | advance one animation frame of the ten-record block |
-| `stepSpriteAnimationSequence` | advance one step of the 0x6388-driven sprite anim |
-| `addToSpriteObjectColumn` | the `rst 0x38` vector: add a delta into one record field |
-| `cullSpriteObjectsAtTop` | clear the X of any sprite-object risen to the top |
-| `serviceBoardObjects` | service the six board objects (advance + spawn), publish X/Y to the sprite buffer |
-| `gatherSpriteRecords` | build a run of hardware sprite records |
-| `allSlotsClear` | is a strided table of ten object slots fully cleared? |
-| `reverseStepDirection` | flip the sign of a signed direction-step byte |
-| `signStepHalfRate` | collapse a direction byte to a ±1 step, every other frame |
-| `loc_26a6` | step a mirrored pair of animation counters, opposite ways |
-| `loc_2602` | per-frame driver for one of three timed sprite objects |
-| `dispatchKongWalkFrame` | clear object #1's reversal flag, route the moving group |
-| `loc_16d0` | arm object #1's countdown, slide the group |
-| `stepKongWalk` | drive object #1, slide its 10-sprite group along X |
-| `endKongWalkAndAdvanceInterlude` | on reaching its rail, reinitialize the moving group |
-| `spawnInterludeHeart` | board/intro spawn init: silence sound, seed a sprite |
-| `dispatchEffectState` | router for the effect-sprite state machine (0x6340) |
-| `armScorePopupAndSelectAward` | state-1 handler: arm the state-2 countdown, advance |
-| `pickRandomAwardTier` | pick one of three effect-sprite setters from RANDOM bits |
-| `stageAward300Popup` | load an effect-sprite's (code, task) params and hand off |
-| `stageAward500Popup` | stage an effect's constants, then run the setter |
-| `stageAward800Popup` | effect-sprite setter: load (B, DE), hand off to the feeder |
-| `stageAwardPopupAtHitObject` | post the queued task, fetch the effect sprite's X/Y |
-| `stampScorePopupSprite` | stamp a 4-byte sprite record, cue a board-gated sound |
-| `effectStateIdle` | the idle arm of the 0x6340 state router |
-
-### Board-advance & "how high" interlude
-| Routine | What it does |
-|---------|--------------|
-| `enterBoardAdvanceAndUnwind` | commit "board complete" (GAME_SUBSTATE 0x16), unwind |
-| `advanceToNextBoard` | step the board-order pointer; enter "HOW HIGH"; the loop wrap |
-| `advanceBoardStepWhenSpritesCleared` | one arm of the board-advance sequence |
-| `buildHowHighScreen` | build the "HOW HIGH CAN YOU GET?" interlude screen |
-| `dispatchRivetBoardInterludeStep` | vector the board-advance render sequence to its step |
-| `beginKongRecaptureInterlude` | step 0: run the intro/board spawn |
-| `advanceInterludeStepAndLiftKongFigure` | bump an anim counter; on 25m only, extra work |
-| `stageNextKongPoseWhenHoldExpires` | one timer-gated step of the board-advance sequence |
-| `stageKongClimbPose` | one timer-gated step: re-init the render |
-| `begin50mKongRecaptureInterlude` | sequence step 0: spawn init, stamp the ten-record figure |
-| `climbKongFigureAndBreakHeart` | one animation-gated step of the board-advance sequence |
-| `loc_17b6` | idx 0 of the 0x6388 render sequence: draw the how-high screen |
-| `loc_186f` | one timer-gated step of the board-advance sequence |
-| `loc_1880` | one step of the how-high interlude render sequence |
-| `loc_18c6` | per-frame pacer for the board-advance / how-high transition |
-
-### Rivets (100m) & colour-cycle blink
-| Routine | What it does |
-|---------|--------------|
-| `collectEdgeRivet` | the 100m edge-rivet pickup handler |
-| `armEdgeRivetPickup` | raise the edge-item pickup latch |
-| `serviceColorCycle` | per-frame colour-cycle entry: advance the running sweep or re-arm at the frame wrap |
-| `runRivetColorCycleBlink` | the 100m rivet-board branch of the colour-cycle |
-| `dispatchColorCyclePaint` | per-frame colour-cycle repaint router |
-| `blinkSpritePairByX` | pick the blink phase by the player's X |
-| `blinkSpritePairOn` / `blinkSpritePairOff` | the blink driver's ON / OFF arms |
-| `storeBlinkSpriteCode` | commit sprite record #1's tile-code byte |
-| `paintColorColumnAndBlinkOff` | rivet-board colour arm: preset fill code, blink off |
-| `paintColorColumnAndHoldBlink` | the colour-cycle "leave-as-is" arm |
-| `paintColorColumnWithLowCode` | the colour-cycle LOW-CODE arm |
-
-### Scoring, bonus timer, prizes, death
-| Routine | What it does |
-|---------|--------------|
-| `awardScorePopup` | award points, stage the floating score glyph over Mario |
-| `pickAwardTierByObjectCount` | pick one of three effect/score tiers from the low bits of A |
-| `runBonusItemValueDisplay` | drive the on-board bonus item (prize): position, sprite, value |
-| `positionBonusItemSprite` | place the bonus-item sprite at its current cell |
-| `dispatchBonusExpiredStep` | run the bonus-expired (timeout death) state machine |
-| `bonusExpiredIdle` | the idle arm of the bonus-expired machine |
-| `startBonusExpiredDelay` | arm the DELAY phase of the bonus-expired sequence |
-| `advanceBonusExpiredStepWhenDelayExpires` | the DELAY step of the bonus-expired sequence |
-| `losePlayer1Life` | spend one of P1's lives, snapshot context, route on |
-| `drawLivesAndLevel` | redraw the reserve-lives indicator and level number |
-
-### Task ring & sound
-| Routine | What it does |
-|---------|--------------|
-| `enqueueTask` | post a 2-byte [opcode, argument] message onto the task ring |
-| `enqueueTaskBatch` | post a fixed batch of messages onto the task ring |
-| `soundDriverTick` | push queued sound state to the audio hardware, once per NMI |
-| `silenceSound` | zero every sound output and its work-RAM shadow |
-
-### Rendering & DMA
-| Routine | What it does |
-|---------|--------------|
-| `blitSpritesViaDma` | program the i8257, blit the sprite shadow buffer to sprite RAM |
-| `clearPlayfieldAndSprites` | blank the tilemap playfield, zero the sprites |
-| `clearTilemapAndSprites` | blank the ENTIRE tilemap and zero the sprite shadow |
-| `clearSpriteColumns` | zero the X byte of four fixed groups of sprite records |
-| `tileAddrForPixel` | map a screen pixel (y,x) to its tilemap cell address |
-| `drawScoreTask` | the score-counter draw task: repaint P1 / P2 / high score by task payload |
-| `renderBcdColumn` | draw a packed 3-byte BCD value as six digits up a column |
-| `expandBcdDigits` | unpack packed BCD/hex bytes into two digit cells each |
-| `drawStringVertical` | draw a doubly-indirected string down a tilemap column |
-| `writeDigitPairWithCarry` | stamp two digit tiles side by side, carrying a value |
-| `storeDigitAndAdvance` | write one BCD/hex digit to the destination cell, step cursor |
-| `stampTwoDigitField` | stamp a two-digit number's tile pair into its field |
-| `loc_30db` | zero Mario's sprite X, then a stride-4 run of six |
-
-### Low-level memory / bit / math primitives (`rst` vectors & helpers)
-| Routine | What it does |
-|---------|--------------|
-| `addStrided` | add a constant to each of B bytes at HL, stride DE |
-| `xorMaskStridedPair` | XOR a mask into two bytes at HL, stride DE |
-| `copyByteDisplaced` | copy one byte from an indexed cell to a displaced cell |
-| `copyBytePairsStrided` | scatter B source byte-pairs into strided records |
-| `clearStridedBytes` | zero B bytes at stride 4, walking the low address byte |
-| `loc_3009` | bit-field lookup over a packed 4×2-bit table |
+Attract also skips the joystick read entirely (the NMI gates it on `ATTRACT`), so the demo cannot
+be disturbed by the cabinet controls.
 
 ---
 
-*Sources: `games/dkong/idiomatic/*.js` (361 routines), `games/dkong/idiomatic/ram.js`
-(175 named cells + the `ROUTINES` map), `boards/dkong/{memory,video,io}.js` + `hardware.json`, framed against
-`games/dkong/gameplay.md`. Counts measured this checkout. Not-yet-lifted routines
-characterized from the frozen `translated/` oracle by ROM region.*
+## 14. Sound
 
-### Death (grounded, pass 13)
+Audio here is a layer *above* emulation: the I8035 sound CPU and the discrete analog circuits are
+not simulated. The engine watches the Z80's writes and plays a named sample. `[code]`
 
-When Mario dies the game does not simply reset him: it runs a **296-frame death animation** as its own
-in-game sub-state, and only then takes a life.
+Three write surfaces: `0x7C00` (ls175.3d) selects one of 16 **tunes**; `0x7D00–0x7D07`
+(ls259.6h) sets eight individual latch bits; `0x7D80` asserts the sound CPU's interrupt. The
+structural fact that is not visible from the address map is that **the eight ls259 bits do not
+all go to the same place** — bits 0–2 drive discrete analog circuits ("walk", "jump",
+"boom"/stomp), bits 3–5 are input pins the sound CPU polls, and bits 6–7 are wired to discrete
+nodes that do not exist in this driver's sound configuration.
 
-`GAME_SUBSTATE (0x600A)` steps to **0x0D**, whose table entry `runDeathAnimationSubstate` (ROM 0x127C)
-services the effect-sprite machine and then dispatches on `DEATH_ANIM_PHASE (0x639D)` through
-`dispatchDeathAnimationPhase`. Phase 0 (`beginMarioDeathAnimation`) blanks the sprite columns, primes
-`DEATH_ANIM_TICKS_LEFT (0x639E)` to 13 and fires the death sound; phase 1 (`stepMarioDeathAnimation`)
-rotates Mario's sprite through **four orientations** — tile `0x78`↔`0x79` crossed with flipy↔flipx, a
-180° rotation — once per 8-frame gate tick, decrementing the tick counter; at 0 it advances the phase
-and the sub-state hands on to the life-loss handlers at 0x0E (P1) / 0x0F (P2), where `LIVES` is
-decremented. The sprite settles on tile `0x7A`.
+In work RAM this is a scheduler, not direct writes: `SND_TRIGGER` is eight per-bit countdown
+counters that `soundDriverTick` walks once per NMI (non-zero → decrement and assert, zero →
+deassert), so game code "plays a sound" by storing 3 — a three-frame assert. `SND_BGM` is the
+looping background tune, overridden by `SND_PRIORITY` while `SND_PRIORITY_FRAMES` is non-zero.
+The full provenance, and which sounds have sample bytes at all, is
+[`audio/README.md`](audio/README.md) — not restated here. `[seen]`
 
-**How this was established** (real MAME 0.288, 136,367 logged frames, positive control ≈1 NMI fetch per
-frame): 44 episodes; the phase cell walks 0→1→2 with writers at pc 0x1299/0x12D8; the tick counter is
-primed to 13 at pc 0x129E and decremented at pc 0x12B6, giving 13 ticks and a 296-frame episode
-identical across 43/43 complete episodes; the four (code, attr) pairs appear in 44/44 episodes; LIVES
-decrements 15 times for 15 deaths and never from anywhere else. ★ **Negative control:** across 42,275
-frames of ordinary play both cells read 0 on *every* frame, and across all 87,142 non-cluster frames the
-tick counter has *zero* transitions.
+---
 
-Two independent causes reach the same animation: an ordinary collision death (which enters with
-`MARIO_ACTIVE` already 0, and fires the "boom" first), and **bonus-timer expiry**, whose arm at ROM
-0x1A2A jumps into the middle of the same instruction run at 0x19D2 — skipping the boom and leaving
-`MARIO_ACTIVE` set. That is why the sequence is named for its **effect** and not for a cause: no
-cause-based name is true on every reachable path.
+## 15. Where the model is thin — open questions
 
-The attract demo ends by killing its own Mario, so all of this is reachable with **zero coins, zero
-inputs and zero pokes** — which is also why the old "not reached in plain attract" claims on
-`dispatchDeathAnimationPhase` and its test were false, and have been corrected.
+Ordered by how much downstream work they block. This is a *highlighted subset*: the exhaustive
+to-do is the enumeration in §1 (the 15 bare-hex reads plus the 47 uncentralized local aliases)
+and every `[code]` claim in this file.
 
-Router slot 3 is **table padding, not an arm**: `DEATH_ANIM_PHASE` has exactly three writers
-(`inc`@0x1298, `inc`@0x12D7, and `initBoardState`'s block clear @0x0F69), none of which can produce 3.
+1. **What are the two 50m travelling objects?** The `BOARD_OBJ_SCRATCH` pair's machine, geometry
+   and Mario-column hit test are `[seen]`; their *identity* is `[guess]`. The retracting-ladder
+   reading has a falsifiable prediction: on a credited 50m board, force one record's position
+   counter to 0x78 (its lowest) and hold it, and a ladder segment should be missing from the
+   screen at that record's column; force it to 0x68 and the segment should be present. Do it
+   with the pixel diff, not by eye. **Blocking**: it is the last unidentified actor on any board.
+2. **`0x621A` — the flag the 50m parked arm stamps and the climb stepper reads.** It has *three*
+   writers across two subsystems (the 50m parked arm on a Mario-column hit, and the climb-limit
+   commit) and is read by the walk/climb animation stepper as a gate. Three idiomatic files give
+   it two different local names — `OBJECT_FLAG` in `hold50mObjectParked`, `CLIMB_FLAG` in both
+   `loc_1afe` and `loc_1d76` — the exact conflict the registry exists to reconcile. If question 1 resolves as "retracting ladders", this is the cell that
+   couples them to the climb, and the two should be named together.
+3. **What is ROM 0x1486 (`runBonusItemValueDisplay`, sub-state 0x15) really?** Its mechanics are
+   pinned — a three-way mode latch on `SUBSTATE_TIMER`, a value seeded to 30 that counts down
+   into two on-screen digit cells, a position walk driven by `P1_INPUT` bit 7, a scan of
+   `PLAYER_SLOT_RECORDS`. But the reconciliation with `gameplay.md` §6 is **not** made: the
+   prizes there are collected by walking over them during play, and §9's level-scaled 300/500/800
+   award arm already accounts for their scoring. A whole in-game *sub-state* devoted to a
+   countdown display is a different thing. Ground what is on screen while `GAME_SUBSTATE == 0x15`
+   before trusting the "bonus item" reading. `[guess]`
+4. **`loc_2a2f` — deliberately left address-named.** Both blind proposers had its axes backwards
+   and both filed the resulting nonsense as an "unexplained mystery" — the converged-wrong
+   failure the third review exists to catch. Corrected, it probes the tile 4 px below a moving
+   object, computes the girder surface row inside that cell, and, if the object has reached or
+   passed it, **snaps the object's `OBJ_Y` UP onto the surface** and reports contact. There is no
+   leftward asymmetry; it is an ordinary landing test. `landObjectOnSlopedGirder` is the obvious
+   name and it must be re-derived in a fresh proposer ≠ confirmer round before promotion.
+   That same round owes a second item: **ROM 0x2083 publishes its 2-or-4 arm-select into record
+   `+2` only from its THIRD step onward** — its first two steps write nothing there — so any
+   reading of the select byte that assumes it is live from step 1 is wrong.
+5. **`armAlternateFireModeAtHighDifficulty`'s mode 2.** The routine writes 2 into field `+0x19`
+   of fire records 1 and 3 when `DIFFICULTY ≥ 3` and a rare draw comes up. 457 dispatches were
+   measured over 2000 attract frames and **nothing past its first gate has ever fired**, so the
+   write is unobserved and the mode is unnamed on purpose. Needs a run at difficulty ≥ 3.
+6. **The third arm of `dispatchElevatorRideByColumn`** — the neither-band case that starts Mario
+   falling and clears the lift flag — has never been observed executing. What *taking* it means
+   is unclaimed.
+7. **Two dispatch arms with no observed traffic**, both noted in their own headers: the
+   in-game entry path into the per-frame cascade (attract reaches ROM 0x197A only through the
+   demo tail) and the 25m barrel walk's continuations that a level-1 demo never selects.
+8. **Cocktail / two-player coverage.** `ACTIVE_PLAYER_INDEX`'s cocktail P2-select reader and its
+   `+0x12` sub-state reader are still unexercised; the whole flip-screen path is untested. Ground
+   these on a cocktail run before a downstream decompile trusts them.
+9. **The 25m/75m rescue row vs. Pauline's actual position.** The win test is a Y comparison; that
+   the Y in question is *Pauline's platform* is inference from where the rescue happens in play,
+   not from anything the routine reads. It has never been separated from "Mario reached the top".
+10. **A residual pixel difference during Kong's climb** (98 px, 0.17% of the frame) is a known
+    DMA-timing artefact of the render path, not a game-logic divergence. Recorded so nobody
+    re-opens it.
+11. **Four names deliberately held at `loc_`, each for a stated reason.** Recorded here because a
+    hold that lives only in one file header is a hold nobody else can see:
+    - **`loc_3110` and its three siblings `loc_311b` / `loc_3126` / `loc_3131`.** A naming round
+      ruled `paceObjectUpdateEveryOtherFrame` a sound promotion for 0x3110, and it was
+      *deliberately not taken*: the four are one family behind one dispatcher
+      (`gateObjectUpdateByDifficulty`), and renaming one of four leaves the family reading as
+      three anonymous throttles beside one named one. **Rename the family or none** — the
+      conservative call, made explicitly, not an oversight.
+    - **`loc_18c6`.** Genuinely multi-purpose — a pacer, cutscene sprite staging, *and* the
+      board-advance/`LEVEL` wrap — and understood from a single source, so any one English verb
+      would over-claim one of the three. §4 and §16 both lean on this routine; this is where the
+      hold is recorded.
+    - **`loc_271e`**, `service75mBoard`'s delegate, held for the reason its parent's name refuses
+      "Lift": 75m's cast is lifts *and* springs *and* prizes, so naming the delegate after any
+      one of them narrows it wrongly.
+    - **`loc_1e6d`**, the 50m board-won arm under `checkBoardWonByType`. The *dispatcher* above it
+      is grounded; this arm's internals are not, so the hold marks an evidence gap in the arm,
+      not in the routing.
+12. **The eight "dropping" barrels are still unreconciled.** §16 records the bit-7-vs-bit-0
+    refutation as settled, and it is — but the grounding run behind the *old* note is not. That
+    run logged 8 alternate-kind stamps without recording `BARREL_CLAIM_MODE`'s value at each, so
+    all 8 may have been 0x81 (both bits set). **Owed: a re-grounding that logs the byte's value
+    per stamp.** Until then nothing may claim bit 7 makes a barrel drop.
+
+---
+
+## 16. Resolved since the previous map
+
+Recorded so the same questions are not re-asked. Each moved because of work that is *in this
+checkout*, not because the wording changed.
+
+- **"The biggest not-yet-lifted block is the actor/enemy AI, `0x1F00–0x2E00`."** Resolved: that
+  block is lifted. Every one of the 429 translated routines has a readable module. The frontier
+  moved from *lifting* to *registration and wiring* (§1, item 2) — a different and much smaller
+  job.
+- **"~62 routines are oracle-only."** Retired as a measurement. The number of addresses at which
+  the live machine runs the oracle is now 40, and it is a wiring fact, not a decompile fact.
+- **The score tier → points mapping.** Was `[guess]` on the code side because "the table at ROM
+  0x3529 is not yet decompiled". Resolved by reading it (§9): payload *n* ∈ 1–9 is *n*×100,
+  11–15 are 1000–5000, 0 and 10 are zero. All three published scoring rules now decode.
+- **`OBJ_ARRAY_64` and `OBJ_ARRAY_67`.** Were object arrays of unstated content. Now the fires
+  and the barrels, grounded with A/B in both directions on a zero-poke run (§6) — with the
+  positive-control gap stated rather than hidden.
+- **`drawLadder` / `drawGirderSpan`.** Were assumed correct. Proven exactly inverted by tile
+  suppression (§5). The finding is recorded; the rename is a separate unit.
+- **"The girder-board rescue test."** Was described as 25m only. ROM 0x1E5F's `rra` selects the
+  **odd** boards — 25m *and* 75m (§11).
+- **The level increment.** Was described as happening at the board table's `0x7F` terminator.
+  Sharpened: `LEVEL` is incremented by `loc_18c6`, which is only ever reached as the last step of
+  the **100m** interlude table — so it advances once per 100m clear, and the terminator is merely
+  where the pointer wraps (§4).
+- **The board set per level.** Was carried as `gameplay.md` §4's "four distinct single-screen
+  stages" per level. The ROM table says 2/3/4/5/6 boards for levels 1/2/3/4/5+ (§4).
+- **The 25m bonus clock.** Was described as a timer on all boards. On 25m the bonus is charged
+  per barrel released; only boards 2/3/4 use the metronomic decrementer (§8, §10).
+- **The 0x2C routine cluster.** Was documented as a cutscene renderer. It is ordinary 25m barrel
+  play — 46/46 observed dispatches at gameplay sub-states, board 1 only, each paired 1:1 with a
+  barrel slot claim.
+- **`BARREL_CLAIM_MODE` bit 7 vs bit 0.** An earlier note had bit 7 selecting the *drop path*
+  ("X pinned at 59"). Refuted by code: the pinned-X behaviour comes from the one-waypoint table
+  selected by **bit 0**; bit 7 selects the sprite/behaviour kind, and the two bits are
+  independent (§8). *The grounding run behind the old note is still unreconciled — see §15
+  item 12.*
+- **`DEATH_ANIM_PHASE` / `DEATH_ANIM_TICKS_LEFT`.** Were named for a blink animation and claimed
+  to drive the colour-cycle blink sprites. Both wrong: unrelated subsystems, and the animation is
+  a 180° rotation of visible sprites, not a blink (§12).
+- **`GAME_SUBSTATE == 7`.** Was once read as a "rescue flag" after a 7 was seen at a board
+  transition. It is the *next* board's opening cutscene.
+
+---
+
+## Appendix A — work-RAM orientation
+
+Regions, not a registry. Every cell's name, role and confidence is in `idiomatic/ram.js`; this is
+only a map of where to look.
+
+| span | what lives there |
+|---|---|
+| `0x6000–0x600F` | credits, coin latches, top-level `GAME_STATE` / `GAME_SUBSTATE` / sub-state timers, current player |
+| `0x6010–0x601A` | cooked and raw input, PRNG accumulator, spin counter, frame counter |
+| `0x6020–0x6026` | decoded DIP settings |
+| `0x6040–0x604F` | the two saved 8-byte player contexts |
+| `0x6060`, `0x6080–0x608B` | overlap counter; the sound scheduler (8 trigger counters, IRQ, BGM, priority) |
+| `0x60B0–0x60B1` | the task ring's enqueue/dequeue pointers (`TASK_TAIL`, `TASK_HEAD`) |
+| `0x60B2–0x60BA` | the three packed-BCD score counters |
+| `0x60C0–0x60FF` | the task ring itself: 32 two-byte `[opcode, argument]` slots |
+| `0x611C–…` | player-slot records, stride 0x22 |
+| `0x6200–0x6226` | Mario: position, fixed-point fractions, velocities, sprite state, and every movement flag |
+| `0x6227–0x622F` | the live player context — board, lives, level, sequence pointer, how-high bookkeeping |
+| `0x6280–0x62BF` | the per-board object template span: the 50m object pair, rivet state, the bonus block |
+| `0x62A0–0x62AC` | the 50m reversal timers / direction latches, and the release-renderer pointers |
+| `0x6300–0x631F` | the two per-board object-parameter tables (the ladder table) |
+| `0x6340–0x6354` | the effect machine and the collision-hit result cells |
+| `0x6380–0x63CD` | difficulty, barrel-claim mode, board-advance and intro step bytes, spawn requests, the segment-drawing scratch, the attract script cursor |
+| `0x6400–0x67FF` | the object-record arrays (§6) |
+| `0x6900–0x6A7F` | the sprite shadow buffer and its named sub-bases |
+| `0x6BE0–0x6C00` | dead stack scratch, excluded from the memory-equivalence compare |
+
+---
+
+## Appendix B — subsystem entry points
+
+Names as they exist in `idiomatic/` right now; roles are in `ROUTINES`, not repeated here.
+`loc_XXXX` entries are lifted and gated but not yet English-named; the six clusters listed in
+§1 are lifted but not yet wired.
+
+- **Machine spine** — `boot` · `serviceVblankNmi` · `perFrame` · `mainLoop` · `loc_02e3` ·
+  `loc_00ca` · `dispatchInlineJumpTable` · `boardBitGate` · `gameActiveGuard` · `marioActiveGuard` ·
+  `tickSubstateTimer` · `tickSubstatePrescaler` · `stirRandomSeed` · `blitSpritesViaDma`
+- **Tasks** — `enqueueTask` · `enqueueTaskBatch` · `addToScoreTask` · `resetScoreCounter` ·
+  `drawScoreTask` · `drawStringVertical` · `drawCreditLineInAttract` · `loc_062a` · `drawLivesAndLevel`
+- **Boot / coins / start** — `powerOnInit` · `clearRamAndInitHardware` · `decodeDipSwitches` ·
+  `serviceCoinInput` · `dispatchCreditedSubstate` · `enterCreditScreen` · `readStartButtonSelector` ·
+  `commitGameStart` · `spendCredit`
+- **Attract** — `runAttractState` · `composeAttractTitleScreen` · `restartAttractDemoAt25m` ·
+  `loc_1977` · `advanceAttractDemoInput` · `enterAttractMode`
+- **Per-frame gameplay** — `loc_197a` (the cascade) · `dispatchInGameSubstate` ·
+  `runHitEffectInsteadOfPlay` · `advanceSubstateAndArmTimer` · `clearScreenAndSelectSubstate`
+- **Board build & layout** — `buildBoardWhenTimerExpires` · `buildBoard` · `setup25mGirderBoard` ·
+  `setup50mConveyorBoard` · `setUp75mBoard` · `initBoardState` · `seed25mBoardObjects` ·
+  `seed50mBoardObjects` · `seed75mBoardObjects` · `seed100mBoardObjects` · `loadBoardObjectRecords` ·
+  `seedMarioActorRecord` · `drawBoardLayout` · `drawGirderSpan` *(draws ladders — §5)* ·
+  `drawLadder` *(draws girders — §5)* · `drawSegmentEndCap` · `drawCappedTileColumn` ·
+  `fillTileColumn` · `tileAddrForPixel`
+- **Mario** — `dispatchMarioMovement` · `walkRightWhileHeld` · `walkLeftWhileHeld` ·
+  `walkMarioRight` · `walkMarioLeft` · `advanceMarioWalkX` · `climbUpWhileHeld` ·
+  `climbDownWhileHeld` · `climbMarioUp` · `climbMarioDown` · `advanceClimbStep` ·
+  `centerMarioAndCommitClimbStep` · `endClimbAtLadderLimit` · `initMarioJump` · `launchMarioJump` ·
+  `advanceMarioAirborneFrame` · `stepBallisticMotion` · `reverseMarioVerticalArc` ·
+  `settleMarioOnLanding` · `markFatalFallByHeight` · `tickPostLandingFreeze` ·
+  `limitMarioHorizontalTravel` · `moveMarioX` · `startMarioFallWhenGroundGivesWay` ·
+  `decideSlopeGirderFooting` · `triggerMarioFall` · `beginMarioFall` · `probeMarioDescentLanding` ·
+  `resolveAirborneTileLanding` · `snapYToGirder` · `writeMarioSpriteRecord`
+- **25m barrels** — `scheduleBarrelRelease` · `armBarrelRelease` · `markNextBarrelAsAltKind` ·
+  `releaseBarrelIntoFreeSlot` · `stampReleasedBarrelKind` · `advanceBarrelRelease` ·
+  `stepBarrelAlongReleasePath` · `activateReleasedBarrel` · `startBarrelDescentAtLadder` ·
+  `findOppositeLadderEnd` · `advanceBarrelSpriteOrientation` · `loc_2a2f` · the `loc_1f72` walk
+- **Fires** — `animateFixedHazardAndReleaseFire` · `loc_30ed` · `gateObjectUpdateByDifficulty` ·
+  `spawnRequestedFireAndRecolorLiveFires` · `armAlternateFireModeAtHighDifficulty` ·
+  `tickFireTimerAndRerollDirection` · `stepObjectSpriteFrame` · `publishFireSprites` ·
+  `loc_31b1` · `loc_3202` · `loc_333d`
+- **50m** — `update50mConveyorObjects` · `carryMarioOnConveyorRow` · `selectConveyorStepAndMoveMario` ·
+  `reverseStepDirection` · `signStepHalfRate` · `update50mMovingObjects` ·
+  `service50mObjectSpawnRequest` · `advance50mObjectRow` · `dispatch50mObjectState` ·
+  `hold50mObjectParked` · `slide50mObjectDown` · `advance50mObjectStateOnRandomGate` ·
+  `raise50mObjectAndPark` · `publish50mObjectYToSprite` · `marioReachedTargetColumn` ·
+  `slide50mSpriteRowAndServiceColorCycle`
+- **75m** — `service75mBoard` · `serviceBoardObjects` · `advanceBoardObjectTravel` ·
+  `spawnBoardObject` · `dispatchElevatorRideByColumn` · `carryMarioUpWithLift` ·
+  `carryMarioDownWithLift` · `killMarioAtEndOfLiftTravel` · `update75mActorObjects` ·
+  `spawnObjectIntoInactiveSlot` · `mirrorObjectPositionToSprite` · `advanceToNextObject`
+- **100m rivets** — `collectEdgeRivet` · `armEdgeRivetPickup` · `completeRivetBoardWhenCleared`
+- **Hammer** — `driveHammerSprite` · `updateActiveHammer` · `latchHammerTouch` ·
+  `findHammerOverlappingMario` · `buildPendingHammerSprite` · `selectHammerSpriteBlinkByTimer` ·
+  `blinkHammerSpriteOnFramePhase` · `commitSpriteRecordAtMarioOffset`
+- **Collision & effects** — `scanObjectsAtMarioX` · `confirmObjectHit` · `killMarioOnObjectCollision` ·
+  `recordHammerHitOnObject` · `searchPlayerObjectOverlap` · `dispatchBoardCollision` ·
+  `search25mObjectOverlap` · `search50mObjectOverlap` · `search75mObjectOverlap` ·
+  `search100mObjectOverlap` · `findCollidingObject` · `dispatchBoardOverlapSearch` · `loc_3e99` ·
+  `countObjectOverlaps` · `dispatchEffectState` · `armScorePopupAndSelectAward` ·
+  `pickAwardTierByObjectCount` · `pickRandomAwardTier` · `stageAward300Popup` ·
+  `stageAward500Popup` · `stageAward800Popup` · `stageAwardPopupAtHitObject` · `awardScorePopup` ·
+  `stampScorePopupSprite` · `dispatchEffectSequenceStep` · `buildEffectSprite` ·
+  `flashEffectSpriteThenAdvanceSequence` · `animateEffectSpriteThenRearmEffect`
+- **Bonus, score, lives** — `tickTimedBoardBonus` · `stepBonusDisplayDown` · `renderBonusDisplay` ·
+  `awardRemainingBonusToScore` · `dispatchBonusExpiredStep` · `startBonusExpiredDelay` ·
+  `advanceBonusExpiredStepWhenDelayExpires` · `advanceSubstateWhenGrounded` ·
+  `awardBonusLifeAtThreshold` · `rampDifficulty` · `renderBcdColumn` · `expandBcdDigits` ·
+  `drawHighScore` · `runBonusItemValueDisplay` · `positionBonusItemSprite`
+- **Board won & interlude** — `checkBoardWonByType` · `completeBoardWhenMarioReachesRescueRow` ·
+  `completeRivetBoardWhenCleared` · `enterBoardAdvanceAndUnwind` · `dispatchBoardClearedInterlude` ·
+  `runRivetBoardInterludeFrame` · `dispatchRivetBoardInterludeStep` · `beginKongRecaptureInterlude` ·
+  `begin50mKongRecaptureInterlude` · `spawnInterludeHeart` · `stageKongClimbPose` ·
+  `stageNextKongPoseWhenHoldExpires` · `climbKongFigureAndBreakHeart` · `dispatchKongWalkFrame` ·
+  `stepKongWalk` · `endKongWalkAndAdvanceInterlude` · `advanceBoardStepWhenSpritesCleared` ·
+  `cullSpriteObjectsAtTop` · `allSlotsClear` · `advanceToNextBoard` · `loc_17b6` ·
+  `stepSpriteAnimationSequence` · `loc_1880` · `loc_18c6` · `advanceSequenceStepWhenTimerExpires` ·
+  `buildHowHighScreen`
+- **Opening cutscene** — `clearScreenAndSelectIntro` · `dispatchIntroCutsceneStep` ·
+  `setupIntroCutsceneStep` · `runIntroClimbStep` · `animateIntroClimbStep` · `loc_0b06` ·
+  `loc_0b68` · `runIntroRoarStep` · `scrollClimbGraphicStep`
+- **Death & player switching** — `runDeathAnimationSubstate` · `dispatchDeathAnimationPhase` ·
+  `beginMarioDeathAnimation` · `stepMarioDeathAnimation` · `losePlayer1Life` ·
+  `restorePlayer1Context` · `restorePlayer2Context` · `selectPlayer1Context` ·
+  `selectPlayer2AndComposeScreen` · `selectPlayerScreenOrAttract` · `armTwoPlayerBoardSetup`
+- **Sound** — `soundDriverTick` · `silenceSound` · `triggerWalkSound`
+- **Colour cycle** — `serviceColorCycle` · `advanceColorCycleSweep` · `dispatchColorCascadeByBoard` ·
+  `resetColorCycleSweep` · `dispatchColorCyclePaint` · `runRivetColorCycleBlink` ·
+  `blinkSpritePairOn` · `blinkSpritePairOff` · `blinkSpritePairByX`

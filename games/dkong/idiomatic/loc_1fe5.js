@@ -37,7 +37,7 @@
  *     the packed-table lookup at ROM 0x3009, whose result rotates through the record's
  *     sprite bytes. Leaving THIS one unstaged first diverges at the record's sprite
  *     code, so the value demonstrably steers sprite selection. WHICH FRAME IT SELECTS IS
- *     NOT ESTABLISHED HERE — loc_3009's own header records the table's meaning as
+ *     NOT ESTABLISHED HERE — nextAnimationStep's own header records the table's meaning as
  *     unknown; all that was derived is that this branch passes 0 where its mirror
  *     passes 4.
  *

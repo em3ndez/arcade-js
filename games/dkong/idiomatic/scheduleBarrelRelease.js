@@ -24,7 +24,7 @@
  *     cluster head (loc_2c41). Otherwise fire only on odd spin-counter frames — on an even one
  *     nothing happens; on an odd one, fall through to that same cluster head.
  *
- * This is the exact TWIN of loc_03a2 (same rst 0x30 / rst 0x10 prologue) but reads the 0x2C..
+ * This is the exact TWIN of animateFixedHazardAndReleaseFire (same rst 0x30 / rst 0x10 prologue) but reads the 0x2C..
  * cluster's cells (bonus pacing) with mask 0x01, and its body is the scheduler, not a sprite
  * arm.
  *

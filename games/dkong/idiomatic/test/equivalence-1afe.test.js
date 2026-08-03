@@ -7,7 +7,7 @@
  *
  * The oracle's control flow has FIVE exits and each nets exactly ONE caller return:
  *   • hammer gate (MARIO_HAMMER_ACTIVE == 1) — `ret z`, one ret;
- *   • object-table MISS (loc_236e not found) — loc_236e double-unwinds, one net ret;
+ *   • object-table MISS (findOppositeLadderEnd not found) — findOppositeLadderEnd double-unwinds, one net ret;
  *   • found tag 0 — tail-call loc_1b4e (commit pair the ordinary way, climb up); one net ret;
  *   • found tag 1, flag != 0 — `ret nz`, one ret;
  *   • found tag 1, flag == 0 — write the pair SWAPPED, tail-call climbDownWhileHeld; one net ret.
@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1afe as oracle } from "../../translated/loc_1afe.js";
 import { loc_1afe } from "../loc_1afe.js";
-import { loc_236e } from "../loc_236e.js";                 // ROM 0x236E — used by the teeth twins
+import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";                 // ROM 0x236E — used by the teeth twins
 import { loc_1b4e } from "../loc_1b4e.js";                 // ROM 0x1B4E — used by the teeth twins
 import { climbDownWhileHeld } from "../climbDownWhileHeld.js"; // ROM 0x1B38 — used by the teeth twins
 import { Machine } from "../../machine.js";
@@ -71,8 +71,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1afe;
 const CLIMB_FLAG = 0x621a; // the shared board flag this routine writes (unnamed in ram.js)
-const NEAR = 0x15;         // near paired-slot offset past a matched table byte (loc_236e stride)
-const FAR = 0x2a;          // far paired-slot offset past a matched table byte (loc_236e stride)
+const NEAR = 0x15;         // near paired-slot offset past a matched table byte (findOppositeLadderEnd stride)
+const FAR = 0x2a;          // far paired-slot offset past a matched table byte (findOppositeLadderEnd stride)
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 
@@ -82,7 +82,7 @@ const FIXED_X = 0x80;
 const FIXED_Y = 0x40;
 const SEARCH_KEY = (FIXED_X | 0x03) & 0xfb; // 0x83
 const Y_LIMIT = (FIXED_Y + 8) & 0xff;       // 0x48
-const FAR_BYTE = 0x55;                      // the paired far-slot byte loc_236e returns in B
+const FAR_BYTE = 0x55;                      // the paired far-slot byte findOppositeLadderEnd returns in B
 const FILLER = 0xff;                        // table filler; (FILLER & 7) != (SEARCH_KEY & 7)
 
 // -- the memory-equivalence contract ------------------------------------------
@@ -189,7 +189,7 @@ function craftMiss(base) {
 }
 
 /** Plant a table with the key at `matchOffset` and the discriminator on the NEAR slot, so
- *  loc_236e returns tag 1. The residual count (21 − (matchOffset+1)) then decides the flag:
+ *  findOppositeLadderEnd returns tag 1. The residual count (21 − (matchOffset+1)) then decides the flag:
  *  matchOffset 0 -> residual 20 -> flag 0; matchOffset 16 -> residual 4 -> flag 1. */
 function craftTag1(base, { matchOffset, input, onLadder } = {}) {
   const e = base.clone();
@@ -219,7 +219,7 @@ function twinBody(m, { spriteOr, swapLimits }) {
   const yLimit = (mem.read8(MARIO_Y) + 8) & 0xff;
   const searchKey = (mem.read8(MARIO_X) | 0x03) & 0xfb;
   regs.a = searchKey; regs.d = yLimit; regs.bc = 21;
-  if (!loc_236e(m)) return;
+  if (!findOppositeLadderEnd(m)) return;
   const tag = regs.a, slotByte = regs.b, residualCount = regs.c;
   mem.write8(MARIO_SPRITE_CODE, (mem.read8(MARIO_SPRITE_CODE) & 0x80) | spriteOr);
   const nearEndOfScan = residualCount <= 4 ? 1 : 0;

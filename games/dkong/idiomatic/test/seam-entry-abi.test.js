@@ -12,7 +12,7 @@
  *     0x1783  allSlotsClear(mem, base, stride)
  *     0x2333  snapYToGirder(x, y, step)
  *     0x2FF0  tileAddrForPixel(y, x)
- *     0x3009  loc_3009(a, b)
+ *     0x3009  nextAnimationStep(a, b)
  *
  * Registering one of those at a ROM address hands it the MACHINE as its first coordinate
  * and the rest `undefined`. `snapYToGirder` then computed `x % 16` = NaN, failed both
@@ -530,8 +530,8 @@ test("0x3009 via m.call: TERMINATES (the hang regression) and is register-EXACT"
     }
   }
   assert.ok(n > 500, `expected a broad terminating sample, got ${n}`);
-  // The CARRY is NOT known to be live — no call site is confirmed to read it (see loc_3009.js
-  // OUT:, where the earlier "loc_23de consumes it" claim is falsified by measurement). It is
+  // The CARRY is NOT known to be live — no call site is confirmed to read it (see nextAnimationStep.js
+  // OUT:, where the earlier "advanceBarrelSpriteOrientation consumes it" claim is falsified by measurement). It is
   // reproduced because replaying the oracle's `cp 0x03` is free and exact, so the sample must
   // still contain BOTH settings or that FIDELITY claim would be untested.
   assert.ok(carrySet > 0 && carrySet < n, `both carry outcomes must appear (set on ${carrySet} of ${n})`);
@@ -539,9 +539,9 @@ test("0x3009 via m.call: TERMINATES (the hang regression) and is register-EXACT"
 });
 
 test("0x3009/TEETH: a wrapper that drops the CARRY replay is CAUGHT", async () => {
-  const { loc_3009 } = await import("../loc_3009.js");
+  const { nextAnimationStep } = await import("../nextAnimationStep.js");
   const twin = new Map([[0x3009, (m) => {
-    const r = loc_3009(m.regs.a, m.regs.b);
+    const r = nextAnimationStep(m.regs.a, m.regs.b);
     m.regs.a = r.a; m.regs.b = r.b; m.regs.c = r.c; m.regs.d = r.d; // no `cp 0x03`: F never rebuilt
   }]]);
   const workRam = new Uint8Array(WORK_RAM_SIZE);

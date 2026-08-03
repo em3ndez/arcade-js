@@ -3,7 +3,7 @@
  * Equivalence test for loc_215f (ROM 0x215F) — hand one object's position to the grader,
  * then fall into the shared object-sprite tail.
  *
- * loc_215f writes no work RAM itself. It stages three register values for loc_216d (the
+ * loc_215f writes no work RAM itself. It stages three register values for startBarrelDescentAtLadder (the
  * search key, the second field plus five as the vertical discriminator, and 21 as the
  * scan count) and then jumps to loc_21ba, which is still the frozen oracle. So the oracle
  * and the candidate BOTH run the whole shared tail and everything downstream of it — the
@@ -26,7 +26,7 @@
  * makes each replay a unit test of ONE dispatch.
  *
  *   1. REACHABILITY — 0x215F is dispatched 605 times in a 4000-frame attract run (it is
- *      the only caller of loc_216d, whose own gate measures the same traffic).
+ *      the only caller of startBarrelDescentAtLadder, whose own gate measures the same traffic).
  *
  *   2. EQUAL (captured) — EVERY one of those 605 captures is replayed, not a sample. The
  *      test records which lookup arm each capture drives and asserts all three (table
@@ -74,8 +74,8 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_215f as oracle } from "../../translated/loc_215f.js";
 import { loc_215f } from "../loc_215f.js";
-import { loc_216d } from "../loc_216d.js"; // the direct callee, reused to build faithful broken twins
-import { loc_236e } from "../loc_236e.js"; // classifies each capture's lookup arm for coverage evidence
+import { startBarrelDescentAtLadder } from "../startBarrelDescentAtLadder.js"; // the direct callee, reused to build faithful broken twins
+import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js"; // classifies each capture's lookup arm for coverage evidence
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH } from "../ram.js";
 
@@ -164,7 +164,7 @@ function lookupArm(entry) {
   probe.regs.d = probe.regs.l + DISCRIMINATOR_OFFSET;
   probe.regs.a = probe.regs.h;
   probe.regs.bc = PARAM_TABLE_COLUMN;
-  if (!loc_236e(probe)) return "miss";
+  if (!findOppositeLadderEnd(probe)) return "miss";
   return probe.regs.a === 1 ? "tag1" : "tag0";
 }
 
@@ -372,7 +372,7 @@ const SHORT_SCAN = 10; // the wrong scan count the third twin stages (see the he
 
 /**
  * A faithful re-implementation of loc_215f with a single switchable bug, so each twin is
- * the real routine minus one correct behaviour (it reuses the real, gated loc_216d).
+ * the real routine minus one correct behaviour (it reuses the real, gated startBarrelDescentAtLadder).
  */
 function brokenLoc215f(m, bug) {
   const { regs } = m;
@@ -381,7 +381,7 @@ function brokenLoc215f(m, bug) {
   regs.d = row + (bug === "noOffset" ? 0 : DISCRIMINATOR_OFFSET);
   regs.a = key;
   regs.bc = bug === "shortScan" ? SHORT_SCAN : PARAM_TABLE_COLUMN;
-  loc_216d(m);
+  startBarrelDescentAtLadder(m);
   return m.call(0x21ba);
 }
 

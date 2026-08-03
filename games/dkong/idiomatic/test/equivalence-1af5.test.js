@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for loc_1af5 (ROM 0x1AF5) — the LEFT arm of Mario's ground-movement
+ * Memory-equivalence test for walkLeftWhileHeld (ROM 0x1AF5) — the LEFT arm of Mario's ground-movement
  * direction dispatch: walk him one frame left when the control word says Left is held AND the
  * horizontal position gate's left verdict is not blocking, otherwise fall through to the
  * ladder/climb collision handler.
@@ -45,7 +45,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1af5 as oracle } from "../../translated/loc_1af5.js";
-import { loc_1af5 } from "../loc_1af5.js";
+import { walkLeftWhileHeld } from "../walkLeftWhileHeld.js";
 import { walkMarioLeft } from "../walkMarioLeft.js";   // ROM 0x1CAB — used by the teeth twins
 import { walkMarioRight } from "../walkMarioRight.js"; // ROM 0x1C8F — the mirror arm's stepper
 import { loc_1afe } from "../loc_1afe.js";             // ROM 0x1AFE — used by the teeth twins
@@ -146,7 +146,7 @@ function craft(seed, { control, leftLimit }) {
   return m;
 }
 
-// -- teeth twins (same shape as loc_1af5, one thing broken) -------------------
+// -- teeth twins (same shape as walkLeftWhileHeld, one thing broken) -------------------
 
 /** (a) the left-limit gate is gone: walks left whenever Left is held. */
 function brokenNoLimitGate(m) {
@@ -200,11 +200,11 @@ test("REACHABILITY: 0x1AF5 dispatches all through attract, but NEVER on the bloc
 
 // -- 2. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_1af5 == oracle on every cloned 0x1AF5 entry", () => {
+test("EQUAL (real dispatches): walkLeftWhileHeld == oracle on every cloned 0x1AF5 entry", () => {
   const { caps } = getRun();
   assert.ok(caps.length >= 1, "expected at least one cloned 0x1AF5 dispatch");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_1af5); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, walkLeftWhileHeld); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   console.log(`  EQUAL/real: ${caps.length} captured dispatches identical on RAM+pc+SP+return`);
@@ -222,7 +222,7 @@ test("EQUAL (crafted): all 256 control words x four left-verdict values, incl. t
   for (const leftLimit of [0, 1, 2, 255]) {
     for (let control = 0; control <= 255; control++) {
       const entry = craft(seed, { control, leftLimit });
-      const diffs = contractDiffs(entry, loc_1af5);
+      const diffs = contractDiffs(entry, walkLeftWhileHeld);
       assert.equal(diffs.length, 0, `control ${hx(control)} leftLimit ${leftLimit}: ${diffs.join("; ")}`);
       seen[armOf(control, leftLimit)]++;
       cases++;

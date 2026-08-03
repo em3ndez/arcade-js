@@ -45,7 +45,7 @@
  *           oracle's only stores are the gate's return address and its own splice, both inside
  *           the dead STACK_SCRATCH), and no register or flag survives: loc_333d reloads the
  *           accumulator at 0x334D before touching it, sets BC itself, and its next callee
- *           loc_236e loads its own pointer — while the splice arm returns into loc_3202, which
+ *           findOppositeLadderEnd loads its own pointer — while the splice arm returns into loc_3202, which
  *           reloads the accumulator too. pc/SP are the Z80 stack idiom the boolean REPLACES, so
  *           they are deliberately not compared; the gate instead pins the boolean's meaning by
  *           asserting where the ORACLE's own return lands on each arm.

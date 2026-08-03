@@ -33,10 +33,15 @@
  *      (base IX = 0x64A0, stride 0x20, count 2) into two 4-byte hardware sprite records at
  *      0x6950 — X <- +3, code <- +7, attr <- +8, Y <- +5.
  *
- * The precise identity of the seeded objects (which 100m actors — the rivet board's
- * firefoxes/hammers/decor) is not independently established: 0x6680/0x6690 is OBJ_PAIR_6680
- * in ram.js but 0x6407 and 0x64A0/0x64C0 are only reachable as fields/records of OBJ_ARRAY_64
- * (0x6400, "up to 7 records on 100m"), whose per-record identities stay hex. The name
+ * ★ CORRECTION: an earlier version of this header said the seeded objects' identity was "not
+ * independently established". For the OBJ_ARRAY_64 half that is no longer true. **OBJ_ARRAY_64
+ * (0x6400) IS the FIRES**, grounded on the real ROM under MAME 0.288 (scratchpad/
+ * grounding-object-arrays.md): zeroing the records' +0 erases the fireball entirely while the
+ * barrels are untouched, and on 100m every box drawn at a logged record position lands on a
+ * fireball. So step 6 above marks TWO FIRES active at board build (0x64A0 = record 5 and
+ * 0x64C0 = record 6), which is why 100m's collision arm sweeps SEVEN records and not five.
+ * What is still NOT established is per-record identity within the array, and 0x6680/0x6690 is
+ * OBJ_PAIR_6680 in ram.js whose "hammers" reading remains [code]. The name
  * describes the MECHANISM and the board, exactly at the evidence
  * bar of its callee seedObjectBlockSprites — object-record blocks (they feed the same
  * gather/seed helpers with the same +3/+7/+8/+5 field layout) plus their sprite mirror in

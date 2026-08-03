@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2a85 — while Mario is in plain grounded contact, look at the tile under his foot and,
+ * startMarioFallWhenGroundGivesWay — while Mario is in plain grounded contact, look at the tile under his foot and,
  * if the girder there is not level, defer to the slope-footing fall check.  ROM 0x2A85.
  *
  * Runs only in ordinary standing/walking contact: it early-outs if Mario is on a ladder, if
@@ -17,9 +17,18 @@
  * feeding the tilemap's vertical axis and his Y coordinate feeding the horizontal one — see
  * tileAddrForPixel, which the ROM's own address arithmetic assumes.
  *
- * NAME: kept the neutral loc_ — the gates and the tile dispatch are pinned to the oracle, but
- * exactly which grounded-contact event this services (versus its sibling sub_2a2f) is not
- * confirmed to the routine-name bar. Promote once corroborated.
+ * NAME: promoted from loc_2a85. The whole cascade below this routine has exactly ONE memory
+ * effect — decideSlopeGirderFooting's two fall branches raise MARIO_START_FALL; the
+ * keeps-footing branch writes nothing — and MARIO_START_FALL is consumed by the player-state
+ * reset (sub_1f46), which clears it and puts Mario AIRBORNE. So the only thing this routine
+ * can cause is Mario STARTING to fall; everything else about it is the "when". The name says
+ * "start" rather than "drop" for that reason: nothing in this cascade writes MARIO_Y.
+ * CAVEAT ON THE CORROBORATION, recorded because it was overstated: ram.js attributes
+ * MARIO_START_FALL's setter to entry_2acd (ROM 0x2ACF), but a raw ROM scan for `32 21 62`
+ * finds a SECOND setter at 0x276B, inside loc_2766 — the third arm of
+ * dispatchElevatorRideByColumn, i.e. on 75m. The "fires on 75m only, never on 25m" write-tap
+ * therefore cannot be attributed to this routine's path as quoted. The name rests on the code
+ * path; that particular falsifiable argument does not survive.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2a85.test.js.
  * GATE:     capture/clone/replay of real attract dispatches (the keeps-footing exit and the
@@ -37,7 +46,9 @@
  *           MARIO_X (0x6203), MARIO_Y (0x6205) — from ram.js. The foot-cell address is computed
  *           by tileAddrForPixel (ROM 0x2FF0) and lands in tilemap video RAM (no ram.js name).
  *           decideSlopeGirderFooting (ROM 0x2AB4) reads its probe-X and foot-cell inputs from
- *           registers because this still-translated routine is its register boundary.
+ *           registers because this routine's hand-off to it is still a REGISTER-ABI boundary:
+ *           both sides are idiomatic, neither signature is promoted yet, so the two values are
+ *           left exactly where the oracle's tail jump leaves them.
  */
 
 import { tileAddrForPixel } from "./tileAddrForPixel.js";                // ROM 0x2FF0
@@ -50,7 +61,7 @@ import {
   MARIO_Y,
 } from "./ram.js";
 
-export function loc_2a85(m) {
+export function startMarioFallWhenGroundGivesWay(m) {
   const { regs, mem } = m;
 
   // Grounded-contact gates: do nothing while Mario is on a ladder, airborne, or an

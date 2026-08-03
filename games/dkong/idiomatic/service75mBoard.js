@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_26fa — per-pass service dispatcher for one board's moving objects.  ROM 0x26FA.
+ * service75mBoard — the 75m per-frame service router: the bottom-of-screen death, then a
+ * LEVEL-scaled cadence over the board's object service and its vertical-reposition machine.
+ * ROM 0x26FA.
  *
  * Called from the board cascade (ROM 0x197A). A board gate opens the whole routine
  * only when the current board's bit is set in the mask 0x04 (bit2 -> board 3); on
@@ -19,24 +21,30 @@
  *         objects (serviceBoardObjects); on frame%4 == 1 run the vertical-reposition
  *         machine (loc_271e); on the other two frames it idles — that idle is a bare
  *         `ret` at ROM 0x2719, the fourth outcome.
- *       - Later levels (the fast cadence): every odd frame advance/spawn the objects,
+ *       - Every OTHER level (the fast cadence): every odd frame advance/spawn the objects,
  *         every even frame run the reposition machine, so there is no idle phase.
  *   So the objects and the reposition step run twice as often from level 2 on — the
- *   difficulty ramp for this board.
+ *   difficulty ramp for this board. The oracle's test is `dec a / jp nz`, i.e. LEVEL != 1,
+ *   NOT "LEVEL >= 2": LEVEL 0 takes the fast cadence too. Nothing in this routine bounds
+ *   LEVEL from below.
  *
  * The reads happen in order — MARIO_Y first (its bottom-of-screen test can short-circuit
  * before the level and frame are ever read), then the level, then the frame.
  *
- * NAME: kept the neutral loc_. The dispatch is exact against the oracle and the
- * mechanism is clear (a board-gated per-frame service router), but which game objects
- * this drives is not confirmed to the routine-name bar — its
+ * NAME: promoted from loc_26fa, and the name says which BOARD's per-frame service this
+ * is — not what the board contains. The board is external: ram.js grounds BOARD by
+ * control ("poking 1..4 selects the four boards") with 3 = 75m, and ram.js's OBJ_ARRAY_66
+ * is measured live on 75m only (all six records active ~5180 of 6204 board-3 frames; its
+ * two writers ran 0x on boards 1/2/4), which matches this routine's mask-0x04 gate
+ * exactly. What the name refuses is "Lift": this router also runs the board's
+ * spawn/animate pass and the fall-off-the-bottom death, on a board whose cast is lifts
+ * AND springs AND prizes, so naming it after one of them would narrow it wrongly. Its
  * delegate loc_271e stays loc_ for the same reason. Two of the arms below it WERE
- * promoted in this pass — dispatchElevatorRideByColumn (ROM 0x2745) and
- * killMarioAtEndOfLiftTravel (ROM 0x277F) — on evidence about the movers they drive. What
- * remains unnamed here is the service this gate drives, NOT the board: 0x2745 is
- * reachable only through this router (its single referent is the `call` at 0x271E, itself
- * reached only from 0x2713/0x271B), so that routine's board=3 corroboration is evidence about
- * this gate too. Promote once that service is corroborated.
+ * promoted earlier — dispatchElevatorRideByColumn (ROM 0x2745) and
+ * killMarioAtEndOfLiftTravel (ROM 0x277F) — on evidence about the movers they drive;
+ * 0x2745 is reachable only through this router (its single referent is the `call` at
+ * 0x271E, itself reached only from 0x2713/0x271B), so that routine's board=3
+ * corroboration is evidence about this gate too.
  *
  * Memory-equivalent to the frozen oracle — equivalence-26fa.test.js.
  * GATE:     crafted-entry. 0x26FA rides the gameplay cascade the 25m attract demo
@@ -74,7 +82,7 @@ const OFF_TRACK_Y = 240;
  * @param {object} m  the machine (uses m.mem; the gate mask is marshalled in a register).
  * @returns {void}
  */
-export function loc_26fa(m) {
+export function service75mBoard(m) {
   const { regs, mem } = m;
 
   // Board gate: run this service only on the board whose bit is set in the mask.
@@ -93,7 +101,8 @@ export function loc_26fa(m) {
   const frame = mem.read8(FRAME);
 
   if (level !== 1) {
-    // Fast cadence (level 2 on): objects on odd frames, reposition on even frames.
+    // Fast cadence (any LEVEL != 1, so level 0 as well as 2+): objects on odd frames,
+    // reposition on even frames.
     if ((frame & 1) !== 0) {
       serviceBoardObjects(m);
       return;

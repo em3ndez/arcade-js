@@ -9,7 +9,7 @@
  * arms or the third arm, loc_2766 (never observed executing, so no claim is made about
  * what taking it means) — and returns whatever that leaves behind.
  *
- * It is one of the two bodies loc_26fa selects, and the SELECTION is loc_26fa's level/frame
+ * It is one of the two bodies service75mBoard selects, and the SELECTION is service75mBoard's level/frame
  * cadence at ROM 0x2705-0x271B, not its position test: the MARIO_Y compare at ROM 0x2700
  * routes only to the kill at ROM 0x277F. On the level-1 cadence this body is reached by
  * `jp z,0x271e` at ROM 0x2713; on the faster cadence by falling through 0x271B.
@@ -22,7 +22,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-271e.test.js.
  * GATE:     crafted-entry. 0x271E is NEVER dispatched in attract (0 over 6000
- *           frames — it rides loc_26fa's 0x197A gameplay cascade the 25m demo
+ *           frames — it rides service75mBoard's 0x197A gameplay cascade the 25m demo
  *           never drives), so crafted entries on a real booted attract base carry
  *           the gate: an EXHAUSTIVE MARIO_X sweep (all 256 band boundaries)
  *           crossed with a MARIO_Y set that drives both sub-arms of each mover,
@@ -31,7 +31,7 @@
  *           live work-RAM cell is kept. Teeth: a twin that drops the delegation
  *           and a twin that delegates to the wrong arm.
  * LIVE-OUT: memory-only — whatever dispatchElevatorRideByColumn's dispatched arm writes. This routine
- *           reads and writes nothing itself; the caller (loc_26fa's discarded
+ *           reads and writes nothing itself; the caller (service75mBoard's discarded
  *           tail) consumes no register/flag, and the terminal return is dead ABI.
  *           The equivalence test still lines pc + SP up to prove the dissolved
  *           call/return bracket matches.
