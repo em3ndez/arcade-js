@@ -1278,11 +1278,11 @@ test("loc_1dc9 advances state 0x6340 -> 2 UNCONDITIONALLY, before any dispatch",
   const m = new Machine(ROM);
   m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x6227, 0x01);
-  m.mem.write8(0x6342, 0x01); // bit 0 set -> earliest exit -> pickAwardTierByObjectCount
+  m.mem.write8(0x6342, 0x01); // bit 0 set -> earliest exit -> loc_3e70
   loc_1dc9(m);
   assert.equal(m.mem.read8(0x6340), 0x02, "0x6340 advances to 2 even on the earliest exit");
   assert.equal(m.mem.read8(0x6341), 0x40, "0x6341 set to 0x40 unconditionally");
-  assert.equal(m.mem.read8(0x6a31), 0x7b, "bit 0 routed via pickAwardTierByObjectCount: param block B=0x7B");
+  assert.equal(m.mem.read8(0x6a31), 0x7b, "bit 0 routed via loc_3e70: param block B=0x7B");
   assert.equal(m.pc, 0x4d5e, "runs past the old 0x3E70 frontier and returns to the caller");
 });
 
@@ -1293,7 +1293,7 @@ test("loc_1dc9 dispatches on 0x6342 bits 0,1,2 in PRIORITY ORDER", () => {
   // (0x1DF5). MUTATION this catches: a wrong/swapped jp target, e.g. the bit-1
   // exit copied as 0x1DF5 -- the 0x02 and 0x06 cases would then miss 0x1E00.
   const cases = [
-    [0x01, 0x7b], // bit 0 (lowest) wins -> pickAwardTierByObjectCount
+    [0x01, 0x7b], // bit 0 (lowest) wins -> loc_3e70
     [0x02, 0x7d], // bit 1, bit 0 clear -> loc_1e00
     [0x04, 0x7e], // bit 2, bits 0-1 clear -> loc_1df5 -> loc_1e08 (0x6018 bit0 set)
     [0x06, 0x7d], // bits 1 AND 2 -> bit 1 wins by priority (loc_1e00 = 0x7D), not bit 2 (0x7E)
@@ -3037,12 +3037,12 @@ test("loc_26fa: gate OPENS -> body @0x26FD runs the tile/pos dispatch (no longer
   // A pre-seeded 0x6398 sentinel proves the BODY executed vs the gate skipping it.
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x199e);
   m.mem.write8(0x6227, 0x03); // opens
-  m.mem.write8(0x6398, 0xaa); // sentinel -- killMarioAtEndOfLiftTravel clears it iff the body ran
+  m.mem.write8(0x6398, 0xaa); // sentinel -- loc_277f clears it iff the body ran
   m.mem.write8(0x6205, 0xf5); // >= 0xf0 -> jp nc,0x277f (edge-reset arm)
   assert.doesNotThrow(() => loc_26fa(m), "body translated -> dispatches, no 0x26FD throw");
-  assert.equal(m.mem.read8(0x6398), 0x00, "edge-reset arm ran: killMarioAtEndOfLiftTravel cleared 0x6398");
-  assert.equal(m.mem.read8(0x6200), 0x00, "killMarioAtEndOfLiftTravel also cleared 0x6200");
-  assert.equal(m.pc, 0x199e, "killMarioAtEndOfLiftTravel ret -> back to caller");
+  assert.equal(m.mem.read8(0x6398), 0x00, "edge-reset arm ran: loc_277f cleared 0x6398");
+  assert.equal(m.mem.read8(0x6200), 0x00, "loc_277f also cleared 0x6200");
+  assert.equal(m.pc, 0x199e, "loc_277f ret -> back to caller");
 });
 test("loc_2fcb: gate OPENS -> body @0x2FCE decrements the 0x62b4 inner timer (no longer a frontier)", () => {
   // gate opens (A=0x0e, 0x6227=2 -> 2 rrca brings a set bit into carry). Body:
@@ -3057,7 +3057,7 @@ test("loc_2fcb: gate OPENS -> body @0x2FCE decrements the 0x62b4 inner timer (no
 });
 
 // ---- Layer-0 batch: loc_1826 / loc_1a1e / loc_1d8a / loc_1d8f / loc_1da6 / loc_1f46 ----
-// All unwired dead code (callers are the main dispatch spine dispatchMarioMovement/1d03 region or the 0x1A0A
+// All unwired dead code (callers are the main dispatch spine entry_1ac3/1d03 region or the 0x1A0A
 // rst-0x28 table) ->. Tests pin the behaviour for.
 
 test("loc_1826: nested 5x14 fill of 0x10 walking backward by 0x25 per row (HL live-in)", () => {
@@ -3539,8 +3539,8 @@ test("loc_2a85: gates pass, tile probe -- solid tile -> ret; slope tile -> loc_2
 });
 
 // ---- loc_2d15: frame-gated string/sprite renderer (2c-cluster convergence) ----
-// frame gate (0x62AF); (0x638F)==0 -> char loop stepBarrelAlongReleasePath (write 4-byte record via DE=(0x62AC),
-// fields from IX=(0x62AA), advance ptr (0x62A8)); 0x7F terminator -> activateReleasedBarrel reinit. Unwired.
+// frame gate (0x62AF); (0x638F)==0 -> char loop loc_2d54 (write 4-byte record via DE=(0x62AC),
+// fields from IX=(0x62AA), advance ptr (0x62A8)); 0x7F terminator -> loc_2d8c reinit. Unwired.
 test("loc_2d15: frame gate -- (0x62AF) decrements, ret nz until it hits 0", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x62af, 0x05); // dec -> 0x04 != 0 -> ret nz
@@ -3567,14 +3567,14 @@ test("loc_2d15: char loop writes a 4-byte record and advances the string pointer
   assert.equal(m.mem.read16(0x62a8), 0x6a02, "string pointer advanced by 2");
   assert.equal(m.pc, 0x4d5e, "ret (per-char exit 0x2D82)");
 });
-test("loc_2d15: 0x7F terminator -> activateReleasedBarrel reinit (ptr:=0x39C3, ix+0:=1, ix+f:=1)", () => {
+test("loc_2d15: 0x7F terminator -> loc_2d8c reinit (ptr:=0x39C3, ix+0:=1, ix+f:=1)", () => {
   const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
   m.mem.write8(0x62af, 0x01);
   m.mem.write8(0x638f, 0x00);
   m.mem.write16(0x62a8, 0x6a00);
   m.mem.write16(0x62aa, 0x6600); // IX
   m.mem.write16(0x62ac, 0x6b00); // DE
-  m.mem.write8(0x6a00, 0x7f); // terminator -> activateReleasedBarrel
+  m.mem.write8(0x6a00, 0x7f); // terminator -> loc_2d8c
   m.mem.write8(0x6382, 0x01); // bit0 set -> jp c 0x2da5 (keep ix+1 = 1)
   m.mem.write8(0x6600, 0x00); m.mem.write8(0x660f, 0x00); // sentinels
   loc_2d15(m);
@@ -3988,7 +3988,7 @@ test("loc_2745: (0x6203) band dispatch -- < 0x2C -> reset (0x6398=0, 0x6221=1)",
   assert.equal(m.mem.read8(0x6398), 0x00, "reset");
   assert.equal(m.mem.read8(0x6221), 0x01);
 });
-test("loc_1654 / loc_168a / loc_1757: chain routines callable (share advanceInterludeStepAndLiftKongFigure)", () => {
+test("loc_1654 / loc_168a / loc_1757: chain routines callable (share tail_1662)", () => {
   for (const fn of [loc_1654, loc_168a, loc_1757]) {
     const m = new Machine(ROM); m.regs.sp = 0x6c00; m.push16(0x4d5e);
     m.mem.write8(0x6009, 0x01); // arm rst-0x18 gate (168a) to pass

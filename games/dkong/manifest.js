@@ -24,16 +24,18 @@ export default {
   board: "dkong",              // boards/dkong/
   mameDriver: "dkong.cpp",     // the board is named after its MAME driver
 
-  // Live runtime: "idiomatic" runs the whole game on the readable idiomatic layer under the
-  // COROUTINE engine (web/worker.js: runGeneratorGame + machine.js resolveAllIdiomatic), instead
-  // of the faithful translated layer on the cycle-driven engine.
+  // Live runtime. "translated" runs the faithful translated layer on the cycle-driven engine.
+  // "idiomatic" runs the whole game on the readable idiomatic layer under the COROUTINE engine
+  // (web/worker.js: runGeneratorGame + machine.js resolveAllIdiomatic). DK is on "translated"
+  // while its idiomatic layer is rebuilt from the oracle: only ram.js survives, so
+  // resolveAllIdiomatic cannot resolve a single routine and the idiomatic runtime would not boot.
   // ★ NOTE FOR ANYONE FLIPPING A GAME TO THIS RUNTIME: the two runtimes RENDER DIFFERENTLY. The
   // cycle-driven one captures per scanline and adds a sprite post-pass; this one calls
   // machine.renderFrame() on demand. renderFrame() painted the TILEMAP ONLY until the sprite
   // post-pass was added to it, so switching a game here without that fix yields a game whose
   // girders, ladders and HUD are perfect and whose Mario, Kong, barrels and Pauline are simply
   // absent — a picture plausible enough to pass a careless glance.
-  runtime: "idiomatic",
+  runtime: "translated",
 
   // The declarative input contract the game-agnostic web layer reads: it builds
   // its keyboard map, coin/start buttons, and worker port list from here, so no
