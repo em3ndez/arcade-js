@@ -9,7 +9,9 @@
  *   - state 0 -> effectStateIdle: idle. The state machine is dormant; nothing happens this frame.
  *   - state 1 -> armScorePopupAndSelectAward: the one-shot that arms the countdown and spawns the effect
  *     sprite, then advances the state to 2.
- *   - state 2 -> loc_1e4a: the countdown. Each frame it works the timer down and, on
+ *   - state 2 -> loc_1e4a — the frozen oracle for ROM 0x1E4A, whose promoted name in ram.js is
+ *     tickDispatcherCountdown; this site keeps the oracle for the stack reason in the import
+ *     note below. The countdown. Each frame it works the timer down and, on
  *     expiry, tears the effect down and returns the machine to state 0.
  *   - state 3 -> the reset vector. This entry points at the machine's cold-start address
  *     and is a defensive slot only: no handler ever writes state 3, so normal play never
@@ -30,9 +32,17 @@
  * named the same way, after its own selector cell.
  * WHAT THIS NAME DOES NOT CLAIM: what the effect-sprite state machine DEPICTS. EFFECT_STATE is
  * [code], not [seen], and the effect semantic is still ungrounded — so "dispatchEffectState" names
- * the router and its selector, not the phenomenon. Its cohort (armScorePopupAndSelectAward, loc_1e4a and the setter
- * family) stays loc_<addr>: those differ only in which constant pair they load, so naming them would
- * require claiming WHICH effect each one is, which nothing yet establishes.
+ * the router and its selector, not the phenomenon. Its state-2 handler is NOT unnamed — ram.js
+ * names ROM 0x1E4A `tickDispatcherCountdown` and the idiomatic file exists — but this CALL SITE
+ * deliberately keeps the frozen oracle `loc_1e4a`, because the swap is not stack-neutral and no
+ * gate here can vouch for it. The import note below states the reason in full.
+ * The rest of the cohort WAS promoted in this pass, on evidence from outside these files rather
+ * than from the router: armScorePopupAndSelectAward (ROM 0x1DC9) and the three award setters
+ * stageAward300Popup / stageAward500Popup / stageAward800Popup (ROM 0x1E00 / 0x1E08 / 0x1E10),
+ * whose sprite codes 0x7D / 0x7E / 0x7F decode out of the sprite graphics ROM as the digit
+ * strings "300" / "500" / "800" and whose task arguments index the BCD score table at ROM 0x3529
+ * to the same amounts. So WHICH award each setter stages is settled; what the effect DEPICTS
+ * still is not, which is why this router's name stops at the selector.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1dbd.test.js.
  * GATE:     crafted-entry — oracle-vs-idiomatic on real captured 0x1dbd dispatches

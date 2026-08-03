@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * reportNoHitAndSkipCaller — the "no hit" tail of the sub_2243 hit test: abort the caller as well
- * and unwind two levels, back to the grandparent.  ROM 0x2257.
+ * reportNoHitAndSkipCaller — the "no hit" tail of the marioReachedTargetColumn hit test: abort
+ * the caller as well and unwind two levels, back to the grandparent.  ROM 0x2257.
  *
- * sub_2243 (ROM 0x2243) decides whether the tracked object has reached a hit
- * position. On a HIT it returns normally, so its caller — a dispatch50mObjectState state arm
+ * marioReachedTargetColumn (ROM 0x2243) decides whether Mario is on the target column: it
+ * requires MARIO_Y below 0x7A, MARIO_AIRBORNE clear, and MARIO_X equal to the byte at the
+ * caller-supplied pointer. On a HIT it returns normally, so its caller — a dispatch50mObjectState state arm
  * (hold50mObjectParked / slide50mObjectDown) — runs its own tail. On NO HIT it falls into (or jumps to)
  * this tail, which discards the parent's return address and returns past it, so the
  * caller's tail never runs and control resumes two frames up.
@@ -24,7 +25,7 @@
  *           stack pointers, plus real captured in-play states from the nearest
  *           reachable same-subsystem ancestor (dispatch50mObjectState at ROM 0x2207), all confirm
  *           it writes no RAM and returns false. The 0x2257 dispatch itself is a
- *           gameplay-only hit-test tail (sub_2243/hold50mObjectParked/slide50mObjectDown are never
+ *           gameplay-only hit-test tail (marioReachedTargetColumn/hold50mObjectParked/slide50mObjectDown are never
  *           reached in attract), which is why the realistic states come from 0x2207.
  *           Teeth: a twin that returns true (wrong skip signal) and a twin that
  *           stamps a byte the oracle never writes.

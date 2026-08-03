@@ -8,8 +8,8 @@
  * the block[0] clear at *(0x6343), the sprite record 0x6A30..0x6A33, and the gated sound
  * 0x6085), so it is gated by capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per
  * case — never a reused clone. The two things this setter alone can get wrong are the two
- * CONSTANTS it loads; the composition arms below inherit the stageAwardPopupAtHitObject/1e36/enqueueTask
- * branches. Attract dispatches this arm only on 25m (BOARD 1) with a free ring slot, so
+ * CONSTANTS it loads; the composition arms below inherit the stageAwardPopupAtHitObject /
+ * stampScorePopupSprite / enqueueTask branches. Attract dispatches this arm only on 25m (BOARD 1) with a free ring slot, so
  * the closed arms are reached with crafted entries:
  *
  *   1. REALISM (real captured dispatch) — pickRandomAwardTier lands on stageAward300Popup (RANDOM bits 0/1
