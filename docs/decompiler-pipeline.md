@@ -351,7 +351,7 @@ so that bulk (and most of the format drift) is absent. The idiomatic rewrite car
 
 **Understanding runs across all of this, it is not a step in it.** Start it on day one — you need
 only the ROM and MAME to watch attract mode — and keep the living `games/<game>/mechanisms.md`
-growing through every step below ([the mechanisms doc](mechanisms.md)). The observation
+growing through every step below ([the understanding doc](understanding.md)). The observation
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 
@@ -399,8 +399,10 @@ the map and can't be done well without it. It is required reading for anyone nam
      is dead weight — the routines still read `mem.read8(0x8055)`, so nothing got more legible. Every
      naming batch ends by **retrofitting the referencing routines**: swap the hex literal for the
      imported constant. It is a pure rename, so each routine's memory-equivalence test stays green and
-     is the safety net. So the full loop is: derive → review → commit `ram.js` → **retrofit the
-     routines that use the address** → commit. Skipping the retrofit means the pass only *looks* done.
+     is the safety net. So the full loop is: derive → review → land `ram.js` AND **the retrofit of every
+     routine that uses the address** in ONE commit. Skipping the retrofit means the pass only *looks*
+     done; splitting it across two commits means the reviewer cannot confirm the second half happened
+     (see the formula's step 9 in [understanding](understanding.md)).
    - **proposer≠confirmer convergence is necessary, not sufficient — keep the third adversarial
      review.** Two independent derivations can converge on the *same wrong detail* when they read the
      same misleading evidence: on The Pit both derived `0x8076` as latching tile `0x27` (the goal

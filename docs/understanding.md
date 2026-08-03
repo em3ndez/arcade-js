@@ -24,6 +24,62 @@ confidence tag**, and nothing recalled is ever written as fact.
 A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — it is the
 [sprite-record trap](decompiler-pipeline.md) at the level of the whole game. Tag honestly.
 
+## The formula — how to run an understanding pass
+
+Run one after every decompile batch. Never two decompile batches in a row.
+
+**1. Sweep reachability.**
+Count dispatches per unnamed routine. Work highest-first.
+Unreached means "not reached by this sweep" — not dead.
+
+**2. Two proposers, blind.**
+Same routines, separate files, forbidden to read each other's.
+Each entry: NAME / MECHANISM / EFFECT / CORROBORATION / NOT CLAIMED. Append per routine.
+Name by effect, not method. `loc_` only when the mechanism itself is unreadable.
+
+**3. Diff them.**
+Every fresh name is a `[code]` proposal and goes on the grounding list (see "A naming pass produces
+`[code]` proposals" below). The diff sets the ORDER, not the membership:
+**diverged → the code can't settle it → ground it FIRST**, together with anything load-bearing that
+downstream work will trust. Converged names are candidates, not confirmed — two blind agents can
+converge on the same wrong reading.
+All named / none kept is a flag, not a win.
+
+**4. Ground the top of that list — before promotion.**
+The diverged and load-bearing picks get grounded BEFORE they are promoted; the rest are lifted by the
+grounding pass that follows this one. Never promote a load-bearing, code-undecidable pick unground.
+MAME on the real ROM. Never our own engine.
+A/B with a negative control, or it's an anecdote.
+Say played vs poked. Hold Lua tokens in globals.
+Verify a control actually moved pixels — a positive control can silently be a no-op.
+"Still open, and here's why" is a result.
+
+**5. Third review: try to break it.**
+Two blind agents can converge on the same wrong reading, so convergence is not a pass.
+If both proposers report the same unexplained oddity, suspect their shared premise before the ROM.
+
+**6. Lead edits ram.js.**
+Proposers never do. Rename every importer. Equivalence suite stays green.
+
+**7. Rewrite mechanisms.md whole.**
+From gameplay.md, blind to the old map. Never patch it. Recount by measuring.
+
+**8. Sweep the prose the renames just falsified.**
+Each claim family separately, over the whole tree: existence, instructions, counts, "only/sole".
+Flatten files before matching — wrapped lines hide hits.
+Enumerate the phrasings actually present; guessing them is the failure mode.
+Re-derive every count a reworded predicate touches.
+
+**9. One commit. Independent review confirms these steps were followed.**
+The whole pass lands as ONE unit — renames, `ram.js`, `mechanisms.md`, the prose sweep — because a
+reviewer cannot confirm steps that have not happened yet. Commit half and there is nothing to check.
+The reviewer reads the scratch artefacts from steps 1-5 live. Those stay scratch and may be deleted:
+they are REPRODUCIBLE — if they are gone, start again at step 1. That is why the evidence never needs
+committing, and why the committed prose carries the finding rather than a path to it.
+
+The sections below are the reasoning behind those steps — read them when a step needs justifying,
+not before running one.
+
 ## How to build it
 
 1. **Watch the game — attract mode is free ground truth.** Every arcade game of this era runs an

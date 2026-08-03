@@ -209,7 +209,7 @@ Gotchas that cost real time:
 
 Grounding's `[seen]` facts flow into two places: the **names** (an earned name is a mechanism/role that
 reached confidence — schedule an adversarial name-revisit once grounding is in) and the game's own
-`mechanisms.md`, its [inside-out model](mechanisms.md). It also **extends the pixel gate** into deep
+`mechanisms.md`, its [inside-out model](understanding.md). It also **extends the pixel gate** into deep
 gameplay: the same pokes drive the engine to states attract mode never reaches, which can then be
 pixel-validated too.
 

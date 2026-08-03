@@ -28,7 +28,7 @@ export const PLAYER_X = 0x806b;
 ```
 
 The tag is the **same evidence class used for routines** (`[seen]`/`[code]`/`[guess]`, defined in
-[mechanisms](mechanisms.md)) — how we know what the byte is (legend also at the top of ram.js):
+[understanding](understanding.md)) — how we know what the byte is (legend also at the top of ram.js):
 
 - **`[seen]`** — the cell's role was observed under MAME (a grounding capture / control-poke watched the
   address and confirmed what it does).
@@ -84,7 +84,7 @@ know a name is the more meaningful confidence signal, and made it the single sys
 routines, and `mechanisms.md`. Breadth is not lost — it stays in the cell's prose ("used across N
 routines") — it is just no longer a separate grade. A routine's/cell's `[guess]` is the exact analogue of
 keep-hex: an open work-list item, resolved by grounding, never asked of a human. **Every name here is
-still a *proposal* until it clears proposer≠confirmer** — see [mechanisms](mechanisms.md) "Maintain it as
+still a *proposal* until it clears proposer≠confirmer** — see [understanding](understanding.md) "Maintain it as
 understanding grows".
 
 ## One source per fact — prose must not contradict the registry

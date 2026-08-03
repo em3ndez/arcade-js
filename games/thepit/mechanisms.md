@@ -590,7 +590,7 @@ of both the chamber creature and the Pit sliding-floor reveal. Only these remain
    position the hardware decode predicts (`y=240−spr[+0]`, `x=spr[+3]+1`; the poked `HAZARD_Y` drives
    raster-x = screen-vertical under ROT90). **But the same agent proposed AND observed this, and its
    review only checked the write-up (could not re-run MAME) — so it does not clear proposer≠confirmer**
-   (docs/mechanisms.md "Maintain it as understanding grows"). Until a SEPARATE agent independently
+   (docs/understanding.md "Maintain it as understanding grows"). Until a SEPARATE agent independently
    re-derives it, treat the render+descent as an observed proposal, not a confirmed `[seen]`. Caveats
    also unresolved: the sprite is small/dirt-occluded so the exact glyph isn't crisply legible, and
    this was a poked hazard, not a naturally-triggered rain in the bottom chamber (that spawn stays `[code]`).
