@@ -7,9 +7,9 @@
  * Twenty-four updates run in sequence with no data passed between them — every one of them
  * reads and writes work RAM and returns nothing this routine looks at. What loc_197a itself
  * contributes is the ORDER, three gates that can abandon the rest of the frame, and the death
- * hand-off at the end (which adds two more callees, on that arm only). Twenty-five of the
- * twenty-six are already idiomatic and are direct calls; ROM 0x1F72 is the one that is not.
- *
+ * hand-off at the end (which adds two more callees, on that arm only). Of the
+ * twenty-six callees, twenty-three are in ROUTINES and direct-called; 0x2C8F and 0x30ED are
+ * direct-called but not yet in ROUTINES, and ROM 0x1F72 is still reached through the registry.
  * The three gates, each a callee whose `false` means "this frame's remaining gameplay update is
  * off": the effect-latch gate (an effect is playing, so the frame belongs to it), the board-won
  * check (the board was won and the win path already committed the advance), and the
@@ -61,8 +61,9 @@
  *           brackets no longer write their return words — so that region is excluded from the
  *           byte comparison and covered by the SP assertion instead.
  * NAMES:    MARIO_ACTIVE (0x6200) and SND_TRIGGER (0x6080, an 8-entry array — this writes
- *           entry 2) from ram.js. ROM 0x1F72 is the one callee with no idiomatic file yet, so it
- *           stays an addressed call with the return bracket its oracle's `ret` pops.
+ *           entry 2) from ram.js. ROM 0x1F72 is the one callee reached through the registry
+ *           (0x2C8F and 0x30ED are direct-called but likewise not yet in ROUTINES); it stays an
+ *           addressed call with the return bracket its oracle's `ret` pops.
  */
 
 import { MARIO_ACTIVE, SND_TRIGGER } from "./ram.js";
@@ -118,7 +119,7 @@ export function loc_197a(m) {
 
   // oracle-boundary call: ROM 0x1F72 (the object-slot dispatch and its shared sprite tail) is
   // still frozen, so it is dispatched by address and still needs the return bracket its `ret`
-  // pops. Delete both lines for a direct call once 0x1F72 has an idiomatic twin.
+  // pops. Delete both lines for a direct call once 0x1F72 has an idiomatic twin in ROUTINES.
   m.push16(RESUME_AFTER_OBJECT_DISPATCH);
   m.call(0x1f72);
 

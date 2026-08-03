@@ -100,8 +100,8 @@
  *           MARIO_AIR_VY_LO, MARIO_AIR_FRAMES, MARIO_AIR_START_Y, MARIO_START_FALL,
  *           MARIO_AIRBORNE, OBJ_ARRAY_67, OBJ_X, BOARD — and this routine touches none of them:
  *           it reaches its record through the index register, writes no field the registry names,
- *           and never reads the board. The shared sprite tail at ROM 0x21BA has no idiomatic file
- *           yet, so it stays a registry call; this routine JUMPS into it rather than calling it,
+ *           and never reads the board. The shared sprite tail at ROM 0x21BA has no idiomatic twin
+ *           in ROUTINES yet, so it stays a registry call; this routine JUMPS into it rather than calling it,
  *           so there is no return address to push beside it.
  */
 

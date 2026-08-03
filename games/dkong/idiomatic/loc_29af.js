@@ -55,6 +55,14 @@
  *           (closed gate, no overlap, on-top, kill, side-on, a touch accepted only through a
  *           record's own extra spans, the decision's three 8-bit wraps, and a touch at each of
  *           the six record indices), plus the exhaustive 1024-entry sweep pinning the collapse.
+ *           Four further entries straddle the vertical decision band one pixel either side of
+ *           BOTH edges (derived by sweeping the oracle: it lands at 90 and goes side-on at 91;
+ *           it goes side-on at 109 and kills at 110), each pair asserted to take DIFFERENT arms
+ *           so the straddle cannot go vacuous. These exist because a one-pixel change to the
+ *           lower clearance — which decides whether Mario lives or dies — passed every other
+ *           block in this gate; the upper edge was already pinned incidentally by two of the
+ *           wrap entries, and the gate now asserts which CLASS of entry catches each of the four
+ *           one-pixel twins rather than stating it in prose.
  * LIVE-OUT: memory (see NAMES) plus the boolean skip-flag return, and — on the two skipping
  *           returns only — registers A and B, which are a genuine oracle boundary: the frozen
  *           airborne handler resumes at ROM 0x1C08 and reads A (`dec a`), then loc_1c3a reads B

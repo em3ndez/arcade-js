@@ -55,7 +55,7 @@
  *           (0x2853) and writeMarioSpriteRecord (0x1DA6), all already idiomatic. loc_1c3a and
  *           loc_1c33 still take their live-ins in registers, so this routine marshals into
  *           them; that dissolves when their signatures are promoted. The one remaining m.call
- *           is ROM 0x2B1C, which has no idiomatic file yet.
+ *           is ROM 0x2B1C, which has no idiomatic twin in ROUTINES yet.
  */
 
 import { u8 } from "../../../core/int.js";

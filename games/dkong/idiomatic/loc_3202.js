@@ -71,7 +71,7 @@
  *           Direct-called: loc_32bd (0x32BD), loc_32d6 (0x32D6), loc_330f (0x330F),
  *           loc_33ad (0x33AD), loc_298c (0x298C), loc_33e7 (0x33E7), loc_33c3 (0x33C3).
  *           ORACLE BOUNDARY: the movement/collision state machine at ROM 0x333D has no
- *           idiomatic file yet, so it is still reached with `m.call(0x333d)` and the Z80 call
+ *           idiomatic twin in ROUTINES yet, so it is still reached through the registry and the Z80 call
  *           bracket its two skip-capable callees unwind through is still pushed by hand.
  */
 

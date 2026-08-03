@@ -34,14 +34,27 @@
  *      no overlap, land-on-top, kill, snap-sideways, a touch accepted only through a record's own
  *      extra spans, three entries that drive the decision's 8-bit wraps, and a touch at each of
  *      the six record indices so the record-recovery walk is exercised at every offset.
+ *      PLUS the two CLEARANCE BOUNDARIES, straddled a pixel either side. The three-way decision
+ *      is a band around the object's contact line, and no entry in the list above comes within
+ *      ten of the band's LOWER edge, so a one-pixel error there — the difference between Mario
+ *      dying and Mario being nudged sideways — was invisible to every one of them. With the
+ *      object at Y 100 the line is at 96 and the arms change between pre-motion Y 90/91 (land ->
+ *      side-on) and 109/110 (side-on -> kill); all four entries are replayed against the oracle.
+ *      The UPPER edge was already covered, but incidentally rather than by design: two of the
+ *      wrap entries happen to land within a pixel of it in wrapped arithmetic. TEETH below
+ *      measures both of those facts instead of leaving them as prose.
  *   4. EQUAL (exhaustive, the collapsed branch) — the ROM picks the sideways X through a test on
  *      MARIO_AIR_VX_HI whose two arms are the same function of MARIO_X; the idiomatic routine
  *      keeps one expression. This sweeps all 256 MARIO_X values on both sides of that test
  *      (1024 entries) and pins the collapse against the oracle instead of asserting it.
- *   5. TEETH — four broken twins the crafted/exhaustive cases MUST catch: the contact decision
- *      read from MARIO_Y instead of the pre-motion snapshot, the board gate dropped, the record
- *      index taken as the search residue rather than count-minus-residue, and the sideways snap
- *      off by one.
+ *   5. TEETH — eight broken twins the crafted/exhaustive cases MUST catch. Four structural ones:
+ *      the contact decision read from MARIO_Y instead of the pre-motion snapshot, the board gate
+ *      dropped, the record index taken as the search residue rather than count-minus-residue, and
+ *      the sideways snap off by one. Then four one-pixel twins, each moving one edge of the
+ *      decision band by one — and for these the test asserts BOTH halves: which of the crafted
+ *      entries catch each twin, and which escape it. Measured here: both lower-edge twins escape
+ *      every crafted entry that is not a boundary entry, which is the hole the boundary entries
+ *      close; both upper-edge twins are caught by a wrap entry as well.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-29af.test.js
  */
@@ -151,18 +164,15 @@ function contractDiffs(entry, fn) {
  *  expectations are keyed on. Derived by watching the oracle, never by re-deriving the decision. */
 function classify(entry) {
   const o = entry.clone();
-  const before = {
-    active: o.mem.read8(MARIO_ACTIVE), y: o.mem.read8(MARIO_Y),
-    x: o.mem.read8(MARIO_X), flag: o.mem.read8(EDGE_REPOSITION_FLAG),
-  };
+  const activeBefore = o.mem.read8(MARIO_ACTIVE);
   const r = oracle(o);
-  if (r === false) {
-    // The two skipping arms: land-on-top raises the reposition flag, sideways does not.
-    return o.mem.read8(EDGE_REPOSITION_FLAG) === 1 && o.mem.read8(MARIO_Y) !== before.y ? "on-top"
-      : o.mem.read8(EDGE_REPOSITION_FLAG) === 1 && before.flag === 1 && o.regs.b === 1 ? "on-top"
-        : "sideways";
-  }
-  if (before.active !== 0 && o.mem.read8(MARIO_ACTIVE) === 0) return "kill";
+  // The two SKIPPING arms are told apart by the byte the frozen handler two levels up reads to
+  // choose between them — 1 lands Mario, 0 keeps him airborne — taken from the ORACLE's own
+  // register file rather than re-derived from the decision. It is also the only reliable tell:
+  // the on-top arm can legitimately write MARIO_Y back to the value it already held, which the
+  // extra-spans entry below does, so a "did MARIO_Y move" test calls that entry side-on.
+  if (r === false) return o.regs.b === 1 ? "on-top" : "sideways";
+  if (activeBefore !== 0 && o.mem.read8(MARIO_ACTIVE) === 0) return "kill";
   return gateOpens(entry.mem.read8(BOARD)) ? "no-overlap" : "gate-closed";
 }
 
@@ -216,6 +226,96 @@ function craft(base, { board = 3, records = [], marioX = 0x60, marioY = 100, pre
 
 /** A record placed exactly on Mario, so the search's base windows accept it on both axes. */
 const touching = (marioX, marioY) => row({ x: marioX, y: marioY });
+
+// Where the crafted entries put Mario and the object. With both at CASE_Y the object's contact
+// line is CASE_Y - 4 = 96, which is what makes the boundary pre-motion Y values below arithmetic
+// a reader can check rather than magic numbers.
+const CASE_X = 0x60;
+const CASE_Y = 100;
+
+/**
+ * The crafted arm entries, minus the boundary ones. Hoisted out of the test so TEETH can measure
+ * which twins these entries catch and which they let through.
+ */
+function armCases() {
+  const X = CASE_X, Y = CASE_Y;
+  return [
+    { name: "gate closed (board 1)", opts: { board: 1, records: [touching(X, Y)] }, arm: "gate-closed" },
+    { name: "gate closed (board 4)", opts: { board: 4, records: [touching(X, Y)] }, arm: "gate-closed" },
+    { name: "gate open, no record active", opts: { board: 3, records: [] }, arm: "no-overlap" },
+    {
+      name: "gate open, records active but out of range on both axes",
+      opts: { board: 3, records: [row({ x: 0x00, y: 0x00 }), row({ x: 0xf0, y: 0xf0 })] },
+      arm: "no-overlap",
+    },
+    {
+      name: "touch from clearly ABOVE -> land on top",
+      opts: { board: 3, records: [touching(X, Y)], prevY: 50 },
+      arm: "on-top",
+    },
+    {
+      name: "touch from clearly BELOW -> kill",
+      opts: { board: 3, records: [touching(X, Y)], prevY: 120 },
+      arm: "kill",
+    },
+    {
+      name: "touch from neither -> snap sideways",
+      opts: { board: 3, records: [touching(X, Y)], prevY: 100 },
+      arm: "sideways",
+    },
+    // The 8-bit wraps. The first and third are TEETH — dropping the wrap makes the routine pick a
+    // different arm on that exact entry, verified by breaking it. The second is coverage rather
+    // than a tooth: it drives the landing Y negative before its store, where truncation is the
+    // memory model's and not this routine's to get wrong.
+    {
+      name: "wrap: the contact line itself wraps (object Y below 4)",
+      // line = 2 - 4 wraps to 254; unwrapped it would be -2 and select the kill arm instead.
+      opts: { board: 3, records: [touching(X, 2)], marioY: 2, prevY: 100 },
+      arm: "on-top",
+    },
+    {
+      name: "wrap: the landing Y itself wraps (contact line below 8)",
+      // line = 6 - 4 = 2, and Mario is placed 8 above it: 2 - 8 wraps to 250 in the store.
+      opts: { board: 3, records: [touching(X, 6)], marioY: 6, prevY: 252 },
+      arm: "on-top",
+    },
+    {
+      name: "wrap: the below-clearance test wraps (pre-motion Y under 14)",
+      // 5 - 14 wraps to 247, which clears the line at 10 -> kill; unwrapped it would be -9 and
+      // fall through to the sideways arm.
+      opts: { board: 3, records: [touching(X, 14)], marioY: 14, prevY: 5 },
+      arm: "kill",
+    },
+    {
+      name: "touch accepted through the record's own extra spans",
+      // 12 away vertically (past the span of 8) and 9 away horizontally (past the span of 4),
+      // both brought back in range by the record's own extents. It lands on the record it
+      // reached: the contact line is 12 - 4 = 8 below Mario, so the landing Y is the Y he
+      // already had, which is why the arm is read from the hand-off byte and not from MARIO_Y.
+      opts: { board: 3, prevY: 100, records: [row({ x: X + 9, y: Y + 12, spanX: 0x20, spanY: 0x20 })] },
+      arm: "on-top",
+    },
+  ];
+}
+
+/**
+ * The two edges of the three-way decision band, straddled a pixel either side. Mario and the
+ * object sit together at CASE_Y, so the contact line is 96, and the ROM's own arithmetic puts the
+ * edges here: he lands while pre-motion Y + 5 < 96 (so 90 lands, 91 does not) and dies once
+ * pre-motion Y - 14 >= 96 (so 110 dies, 109 does not). Nothing in armCases() comes within ten of
+ * the lower edge; two of its wrap entries DO sit on the upper edge, in wrapped arithmetic. TEETH
+ * asserts both halves of that.
+ */
+function boundaryCases() {
+  const X = CASE_X, Y = CASE_Y;
+  const at = (prevY) => ({ board: 3, records: [touching(X, Y)], marioX: X, marioY: Y, prevY });
+  return [
+    { name: "upper edge, inside (pre-motion Y 90) -> land on top", opts: at(90), arm: "on-top" },
+    { name: "upper edge, outside (pre-motion Y 91) -> snap sideways", opts: at(91), arm: "sideways" },
+    { name: "lower edge, outside (pre-motion Y 109) -> snap sideways", opts: at(109), arm: "sideways" },
+    { name: "lower edge, inside (pre-motion Y 110) -> kill", opts: at(110), arm: "kill" },
+  ];
+}
 
 // -- 1. REACHABILITY -----------------------------------------------------------
 
@@ -278,69 +378,25 @@ test("EQUAL (captured): every sampled real dispatch on boards 2/3/4 matches the 
 
 test("EQUAL (crafted): every arm matches the oracle", () => {
   const base = attractBase();
-  const X = 0x60, Y = 100; // the object sits on Mario, so its contact line is Y - 4 = 96
+  const X = CASE_X, Y = CASE_Y; // the object sits on Mario, so its contact line is Y - 4 = 96
 
-  const cases = [
-    { name: "gate closed (board 1)", opts: { board: 1, records: [touching(X, Y)] }, arm: "gate-closed" },
-    { name: "gate closed (board 4)", opts: { board: 4, records: [touching(X, Y)] }, arm: "gate-closed" },
-    { name: "gate open, no record active", opts: { board: 3, records: [] }, arm: "no-overlap" },
-    {
-      name: "gate open, records active but out of range on both axes",
-      opts: { board: 3, records: [row({ x: 0x00, y: 0x00 }), row({ x: 0xf0, y: 0xf0 })] },
-      arm: "no-overlap",
-    },
-    {
-      name: "touch from clearly ABOVE -> land on top",
-      opts: { board: 3, records: [touching(X, Y)], prevY: 50 },
-      arm: "on-top",
-    },
-    {
-      name: "touch from clearly BELOW -> kill",
-      opts: { board: 3, records: [touching(X, Y)], prevY: 120 },
-      arm: "kill",
-    },
-    {
-      name: "touch from neither -> snap sideways",
-      opts: { board: 3, records: [touching(X, Y)], prevY: 100 },
-      arm: "sideways",
-    },
-    // The 8-bit wraps. The first and third are TEETH — dropping the wrap makes the routine pick a
-    // different arm on that exact entry, verified by breaking it. The second is coverage rather
-    // than a tooth: it drives the landing Y negative before its store, where truncation is the
-    // memory model's and not this routine's to get wrong.
-    {
-      name: "wrap: the contact line itself wraps (object Y below 4)",
-      // line = 2 - 4 wraps to 254; unwrapped it would be -2 and select the kill arm instead.
-      opts: { board: 3, records: [touching(X, 2)], marioY: 2, prevY: 100 },
-      arm: "on-top",
-    },
-    {
-      name: "wrap: the landing Y itself wraps (contact line below 8)",
-      // line = 6 - 4 = 2, and Mario is placed 8 above it: 2 - 8 wraps to 250 in the store.
-      opts: { board: 3, records: [touching(X, 6)], marioY: 6, prevY: 252 },
-      arm: "on-top",
-    },
-    {
-      name: "wrap: the below-clearance test wraps (pre-motion Y under 14)",
-      // 5 - 14 wraps to 247, which clears the line at 10 -> kill; unwrapped it would be -9 and
-      // fall through to the sideways arm.
-      opts: { board: 3, records: [touching(X, 14)], marioY: 14, prevY: 5 },
-      arm: "kill",
-    },
-    {
-      name: "touch accepted through the record's own extra spans",
-      // 12 away vertically (past the span of 8) and 9 away horizontally (past the span of 4),
-      // both brought back in range by the record's own extents.
-      opts: { board: 3, prevY: 100, records: [row({ x: X + 9, y: Y + 12, spanX: 0x20, spanY: 0x20 })] },
-      arm: "sideways",
-    },
-  ];
+  const cases = armCases();
+  const boundaries = boundaryCases();
 
-  for (const { name, opts, arm } of cases) {
+  for (const { name, opts, arm } of [...cases, ...boundaries]) {
     const entry = craft(base, opts);
     assert.equal(classify(entry), arm, `${name}: the oracle took a different arm than the case claims`);
     const diffs = contractDiffs(entry, loc_29af);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
+  }
+
+  // Non-vacuity of the STRADDLE: each boundary pair must actually sit either side of an edge. If
+  // a later edit slides both members of a pair onto the same arm the pair stops being a boundary
+  // while still passing everything above, so the crossing is asserted, not just described.
+  const armAt = (prevY) => classify(craft(base, { board: 3, records: [touching(X, Y)], marioX: X, marioY: Y, prevY }));
+  for (const [lo, hi] of [[90, 91], [109, 110]]) {
+    assert.notEqual(armAt(lo), armAt(hi),
+      `pre-motion Y ${lo} and ${hi} must take DIFFERENT arms — the pair no longer straddles an edge`);
   }
 
   // The record-recovery walk, at every index: only record `k` can match, so the routine must
@@ -356,7 +412,8 @@ test("EQUAL (crafted): every arm matches the oracle", () => {
     const diffs = contractDiffs(entry, loc_29af);
     assert.equal(diffs.length, 0, `record index ${k}: ${diffs.join("; ")}`);
   }
-  console.log(`  EQUAL/crafted: ${cases.length} arms + ${RECORD_COUNT} record indices identical to the oracle`);
+  console.log(`  EQUAL/crafted: ${cases.length} arms + ${boundaries.length} decision-band edge entries ` +
+    `+ ${RECORD_COUNT} record indices identical to the oracle`);
 });
 
 // -- 4. EQUAL (exhaustive over the collapsed branch) ---------------------------
@@ -471,9 +528,34 @@ function brokenSidewaysSnap(m) {
   mem8[MARIO_X] = x; mem8[MARIO_SPRITE_RECORD + SPRITE_X] = x; regs.a = 1; regs.b = 0; return false;
 }
 
-test("TEETH: four broken twins are all CAUGHT", () => {
+/**
+ * Twins (e)-(h): the real routine with ONE EDGE OF THE DECISION BAND moved a pixel — `above` is
+ * the 5 the landing test adds to the pre-motion Y, `below` the 14 the kill test subtracts. These
+ * are the twins the decision-band entries exist for; both are life-or-death, since the lower edge
+ * is exactly the line between Mario dying and Mario being nudged sideways.
+ */
+const brokenClearance = (above, below) => (m) => {
+  const { regs, mem8 } = m;
+  regs.a = BOARD_MASK;
+  if (!boardBitGate(m)) return true;
+  regs.iy = MARIO_ACTIVE; regs.c = mem8[MARIO_Y]; regs.l = 8; regs.h = 4;
+  loc_2a22(m);
+  if (regs.a === 0) return true;
+  const record = OBJ_ARRAY_66 + (RECORD_COUNT - regs.b) * RECORD_STRIDE;
+  regs.ix = record;
+  const line = u8(mem8[record + OBJ_Y] - 4);
+  const prev = mem8[MARIO_AIR_PREV_Y];
+  if (u8(prev + above) < line) { // BUG when above !== 5
+    mem8[MARIO_Y] = line - 8; mem8[EDGE_REPOSITION_FLAG] = 1; regs.a = 1; regs.b = 1; return false;
+  }
+  if (u8(prev - below) >= line) { mem8[MARIO_ACTIVE] = 0; regs.a = 0; return true; } // BUG when below !== 14
+  const x = (mem8[MARIO_X] | 7) - 4;
+  mem8[MARIO_X] = x; mem8[MARIO_SPRITE_RECORD + SPRITE_X] = x; regs.a = 1; regs.b = 0; return false;
+};
+
+test("TEETH: eight broken twins are all CAUGHT", () => {
   const base = attractBase();
-  const X = 0x60, Y = 100;
+  const X = CASE_X, Y = CASE_Y;
 
   // (a) the pre-motion snapshot: an entry whose CURRENT Y and PREVIOUS Y select different arms.
   const wrongY = craft(base, { board: 3, records: [touching(X, Y)], marioY: Y, prevY: 50 });
@@ -503,5 +585,39 @@ test("TEETH: four broken twins are all CAUGHT", () => {
   assert.ok(contractDiffs(sideways, brokenSidewaysSnap).length > 0,
     "the off-by-one snap twin escaped — the collapsed expression is unproven");
 
-  console.log("  TEETH: all four broken twins caught");
+  // (e)-(h) the two edges of the decision band, each moved a pixel either way. BOTH HALVES are
+  // asserted: how many entries catch each twin, and — for the lower edge — that none of the
+  // non-boundary entries do, which is the hole the boundary entries were added to close.
+  const caughtBy = (cases, twin) =>
+    cases.filter(({ opts }) => contractDiffs(craft(base, opts), twin).length > 0).length;
+  const arms = armCases();
+  const edges = boundaryCases();
+
+  const summary = [];
+  for (const [name, twin] of [
+    ["upper 5->4", brokenClearance(4, 14)],
+    ["upper 5->6", brokenClearance(6, 14)],
+    ["lower 14->13", brokenClearance(5, 13)],
+    ["lower 14->15", brokenClearance(5, 15)],
+  ]) {
+    const byEdge = caughtBy(edges, twin);
+    assert.ok(byEdge > 0, `the ${name} twin escaped every decision-band entry — that edge is unproven`);
+    summary.push(`${name} caught by ${byEdge}/${edges.length} edge, ${caughtBy(arms, twin)}/${arms.length} other`);
+  }
+
+  // The LOWER edge was pinned by nothing at all before the boundary entries: every other crafted
+  // entry sits ten or more pixels off it. Recorded as an assertion so the hole is a measured fact
+  // — if some later entry starts catching these, this line says so and the claim can be updated.
+  for (const below of [13, 15]) {
+    assert.equal(caughtBy(arms, brokenClearance(5, below)), 0,
+      `a lower edge of ${below} is now caught by a non-boundary crafted entry — it caught NONE when the edge entries were added`);
+  }
+  // The UPPER edge, by contrast, was already pinned incidentally — the two wrap entries sit on it.
+  for (const above of [4, 6]) {
+    assert.ok(caughtBy(arms, brokenClearance(above, 14)) > 0,
+      `an upper edge of ${above} is no longer caught by any non-boundary crafted entry`);
+  }
+
+  console.log("  TEETH: all four structural twins caught");
+  for (const line of summary) console.log(`    ${line}`);
 });

@@ -52,7 +52,7 @@
  *           all-oracle baseline, the per-frame trace is byte-identical outside STACK_SCRATCH.
  * NAMES:    none imported. The record's +0x10/+0x11 have no ram.js name of their own — the named
  *           cells are Mario's copies of them — so they stay in-record offsets, as they do in
- *           stepBallisticMotion. One m.call remains: ROM 0x20C3, which has no idiomatic file yet
+ *           stepBallisticMotion. One m.call remains: ROM 0x20C3, which has no idiomatic twin in ROUTINES yet
  *           and is being decompiled alongside this routine.
  */
 

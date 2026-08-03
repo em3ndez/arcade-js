@@ -80,7 +80,7 @@
  * NAMES:    none imported. The record's +16/+17 have no ram.js name of their own — the named cells
  *           are Mario's copies of them — so they stay in-record offsets here, as they do in
  *           stepBallisticMotion and in the mirror arm. Both continuations, ROM 0x20E1 and ROM
- *           0x20C3, have no idiomatic file yet and are reached through the registry; they belong to
+ *           0x20C3, have no idiomatic twin in ROUTINES yet and are reached through the registry; they belong to
  *           the same mutually-recursive object-walk cluster as this routine and are being
  *           decompiled alongside it, so dissolving those two into direct calls is a later
  *           coordinated step.

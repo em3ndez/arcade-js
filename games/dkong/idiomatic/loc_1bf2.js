@@ -69,7 +69,7 @@
  * NAMES:    MARIO_AIR_VX_HI (0x6210), MARIO_AIR_VX_LO (0x6211), MARIO_SPRITE_CODE (0x6207)
  *           imported from ram.js; MARIO_ACTIVE, MARIO_X, MARIO_AIR_PREV_X/_Y and
  *           MARIO_FATAL_FALL named in the prose above. reverseMarioVerticalArc (ROM 0x1BD8) is direct-called;
- *           0x1C05 has no idiomatic file yet, so that tail stays a registry call.
+ *           0x1C05 has no idiomatic twin in ROUTINES yet, so that tail stays a registry call.
  */
 
 import { MARIO_AIR_VX_HI, MARIO_AIR_VX_LO, MARIO_SPRITE_CODE } from "./ram.js";

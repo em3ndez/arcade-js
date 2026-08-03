@@ -29,8 +29,8 @@
  * exactly what the STACK_SCRATCH exclusion covers, and test 4 proves that exclusion is not
  * hiding a live cell.
  *
- * ORACLE BOUNDARY: the movement/collision state machine at ROM 0x333D has no idiomatic file,
- * so both sides reach it through `m.call(0x333d)` and both sides run the identical subtree.
+ * ORACLE BOUNDARY: the movement/collision state machine at ROM 0x333D has no idiomatic twin in
+ * ROUTINES yet, so both sides reach it through the registry and run the identical subtree.
  *
  *   1. REACHABILITY + EQUAL (captured) — hook 0x3202 in a real attract run, clone at the
  *      sampled dispatches, and confirm loc_3202 == oracle on every one.

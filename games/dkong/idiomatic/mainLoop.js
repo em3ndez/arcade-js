@@ -22,8 +22,9 @@
 // (the engine runs cycle-free), and each busy-wait/loop-back to 0x02BD becomes `yield`. The four
 // per-frame callees (0x0315/0x0350/0x037F/0x03A2) are all idiomatic and DIRECT-called (no
 // push16/m.call), so the guest stack stays clean; only the task dispatch (loc_02e3) still walks
-// the routines table via m.call for the handlers that are not idiomatic yet. The base expands
-// under the go-live gate (idiomatic/test/golive.test.js) as those handlers are decompiled.
+// the routines table via m.call for the handlers with no idiomatic twin in ROUTINES yet. All
+// seven of the 0x0307 table's handlers now have idiomatic files and six are already wired;
+// only 0x062A is pending, and the base expands under the go-live gate as it is wired.
 
 import { loc_02e3 } from "../translated/loc_02e3.js";
 import { rampDifficulty } from "./rampDifficulty.js";

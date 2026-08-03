@@ -84,7 +84,7 @@
  *           pc and SP ALONE — RAM and the return value both miss it.
  * NAMES:    OBJ_X (record +3) from ram.js. The horizontal-velocity high byte at record +0x10 has
  *           no ram.js name and stays a file-local const. ROM 0x2083, 0x2079, 0x24B4 and 0x21BA
- *           have no idiomatic file yet — they are the rest of this sweep's cluster, decompiled
+ *           have no idiomatic twin in ROUTINES yet — they are the rest of this sweep's cluster, decompiled
  *           in the same batch — so they are still reached through the registry, with the
  *           oracle's push bracket kept around the one of them that is entered by a call.
  */

@@ -109,9 +109,9 @@ export function loc_02e3(
   if (handler !== undefined) return handler(m);
 
   if (target === 0x062a) {
-    // ROM 0x062A has no idiomatic twin yet, so it is dispatched through the registry and
+    // ROM 0x062A has no idiomatic twin in ROUTINES yet, so it is dispatched through the registry and
     // its own `ret` consumes the main-loop return address pushed for it here. Dissolve
-    // this into a direct call when that routine is decompiled.
+    // this into a direct call once 0x062A is wired into ROUTINES.
     m.push16(MAIN_LOOP);
     return m.call(0x062a);
   }

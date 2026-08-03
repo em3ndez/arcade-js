@@ -52,7 +52,7 @@
  *           which rewrites all four of B, C, H and L. E is re-derived by every routine
  *           that reads it.
  * NAMES:    none — this routine reads and writes no work RAM. loc_216d is in ROUTINES, so
- *           it is direct-called; 0x21BA has no idiomatic file yet, so the tail is still
+ *           it is direct-called; 0x21BA has no idiomatic twin in ROUTINES yet, so the tail is still
  *           m.call.
  */
 

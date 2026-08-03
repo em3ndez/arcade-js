@@ -111,7 +111,7 @@
  *           selector, also written at ROM 0x2038 and ROM 0x2118 and read at ROM 0x1F93) and +14.
  *           +16 is the field loc_20b5 and stepBallisticMotion already carry as a bare offset, and
  *           it stays one here for the same reason. All three continuations — ROM 0x20A2, 0x20C3 and
- *           0x21BA — have no idiomatic file yet and are reached through the registry; they belong
+ *           0x21BA — have no idiomatic twin in ROUTINES yet and are reached through the registry; they belong
  *           to the same mutually-recursive object-walk cluster as this routine and are being
  *           decompiled alongside it, so dissolving those three is a later coordinated step.
  */

@@ -42,9 +42,10 @@
  *           entries and says which is which. Its own reachability test measures that: over
  *           9000 frames it sees the tick and re-seed arms only, never the payload-0 payout arm
  *           and never the latch-set arm, and it fails if that ever changes. The tick and
- *           re-seed arms are replayed from real captured dispatches, sampled every 20th plus
- *           the first of each distinct entry shape, with an assertion that the sample covers
- *           every shape the run produced (the test prints how many of how many). The other two
+ *           re-seed arms are replayed from real captured dispatches — ALL of them, inline, with
+ *           no sampling, and the gate pins the exact counts (15 captures; 39 dispatches over the
+ *           longer run, 35 tick and 4 re-seed) so an empty or half-firing capture hook fails
+ *           loudly instead of skipping. The other two
  *           arms are crafted — a real attract base with the bytes that select the arm nudged,
  *           identically on both sides. Three sweeps on that base pin the arms individually:
  *           all 128 EVEN BONUS_START values through the re-seed (the odd half is excluded

@@ -77,7 +77,7 @@
  *           and the rest of the register file — survives unchanged, because the frozen
  *           tail runs the whole rest of the sweep and returns through the same `ret`;
  *           the gate compares those too, as extras beyond the required contract.
- * NAMES:    OBJ_X (record +3) from ram.js. ROM 0x1FF6 has no idiomatic file yet, so it
+ * NAMES:    OBJ_X (record +3) from ram.js. ROM 0x1FF6 has no idiomatic twin in ROUTINES yet, so it
  *           is still reached through m.call; it is entered by a jump, not a call, so
  *           there is no return address to push beside it.
  */

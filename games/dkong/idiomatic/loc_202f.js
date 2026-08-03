@@ -67,7 +67,7 @@
  * NAMES:    none imported — every access is relative to the record base the loop maintains, and
  *           the record's field offsets have no registry entries of their own. OBJ_ARRAY_67, OBJ_X,
  *           BOARD, MARIO_AIR_VX_HI and MARIO_AIR_VX_LO are named in the prose above. The tail at
- *           ROM 0x2038 has no idiomatic file yet, so it stays a registry call.
+ *           ROM 0x2038 has no idiomatic twin in ROUTINES yet, so it stays a registry call.
  */
 
 /**

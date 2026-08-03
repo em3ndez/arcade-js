@@ -10,6 +10,12 @@
  * is. A crafted entry is a real attract machine (boot + 600 frames, with the task dispatcher's
  * return address pushed) with the bytes that select the arm nudged — identically on both sides.
  *
+ * EVERY ONE OF THOSE COUNTS IS ASSERTED, NOT JUST PRINTED, and that is deliberate: a capture
+ * hook that silently stops catching dispatches (the classic form: a stub that does not survive
+ * clone()) leaves an EMPTY corpus, and an empty corpus satisfies both a "the unreachable arms
+ * stay unreached" check and a replay loop with nothing in it. This gate used to go fully green
+ * in that state — it skipped its replay block and reported a pass. It now fails instead.
+ *
  * THE CONTRACT IS RAM − STACK_SCRATCH plus the return value; pc and SP are NOT compared. The
  * oracle pushes IX once per column of the tile-block copy and its payout arm nests further
  * pushes and rets, all of which land in the dead STACK_SCRATCH region; the idiomatic rewrite
@@ -18,12 +24,14 @@
  * a RAM diff cannot see it.
  *
  *   1. REACHABILITY — report the natural dispatches and which arms they take, over 2500 and
- *      9000 frames, and FAIL if attract ever starts reaching the two crafted arms (which would
- *      mean captures should replace the crafted entries).
- *   2. EQUAL (real captured dispatches) — replay a sample of real 0x062A entries. Sampling
- *      policy: every 20th capture PLUS the first capture at each distinct entry shape
- *      (arm + payload byte), with an in-test assertion that the sample covers every shape the
- *      run produced. The test prints how many of how many it replayed.
+ *      9000 frames; assert both runs caught something and that the 9000-frame run's per-arm
+ *      tally is the 35 / 4 quoted above; and FAIL if attract ever starts reaching the two
+ *      crafted arms (which would mean captures should replace the crafted entries).
+ *   2. EQUAL (real captured dispatches) — replay EVERY real 0x062A entry the 2500-frame run
+ *      produces, inline, all 15 of them: at this size sampling buys nothing, so there is no
+ *      sampling policy to state and no sampled/total gap to reason about. The corpus is asserted
+ *      non-empty and asserted to be exactly the 15 captures expected, so a hook that stops
+ *      catching fails here rather than silently replaying nothing.
  *   3. EQUAL (exhaustive, re-seed arm) — sweep all 128 EVEN values of BONUS_START through the
  *      re-seed. THE ODD HALF IS EXCLUDED, and not because it passes: the ROM's divide loop
  *      steps by ten modulo 256 with no iteration guard, so an odd seed never reaches zero and
@@ -89,6 +97,10 @@ const test = ROM_PRESENT
 const TARGET = 0x062a;
 const CAPTURE_FRAMES = 2500;
 const REACH_FRAMES = 9000;
+// What the two attract runs must catch. Pinned rather than merely printed: these counts are the
+// only thing standing between a capture hook that has stopped firing and a green gate.
+const EXPECTED_CAPTURES = 15; // real dispatches in CAPTURE_FRAMES
+const EXPECTED_REACH = { total: 39, tick: 35, reseed: 4 }; // ...and in REACH_FRAMES, by arm
 const LIVE_FRAMES = 4000;
 const BLOCK_FIRST_CELL = 0x7465; // first video-RAM cell of the tile block the re-seed lays down
 const RET_ADDR = 0x02bd; // what the task dispatcher pushes before jumping to a handler
@@ -144,21 +156,6 @@ function captureDispatches(maxFrames = CAPTURE_FRAMES) {
   const host = new Machine(ROM, { overrides: snapshot });
   host.runFrames(maxFrames);
   return caps;
-}
-
-/**
- * The recipe's sampling policy: every 20th capture PLUS the first capture at each distinct
- * entry shape. Returns the chosen indices in order.
- */
-function sampleIndices(caps) {
-  const chosen = new Set();
-  const seen = new Set();
-  caps.forEach((c, i) => {
-    if (i % 20 === 0) chosen.add(i);
-    const s = shapeOf(c);
-    if (!seen.has(s)) { seen.add(s); chosen.add(i); }
-  });
-  return [...chosen].sort((x, y) => x - y);
 }
 
 // A real, self-consistent machine (boot + a stretch of attract) so work RAM holds realistic
@@ -254,38 +251,44 @@ test("REACHABILITY: which 0x062A arms attract actually dispatches", () => {
     const total = [...arms.values()].reduce((a, b) => a + b, 0);
     const summary = [...arms.entries()].sort().map(([k, v]) => `${k}x${v}`).join(", ");
     console.log(`  REACHABILITY: ${total} natural 0x062A dispatches in ${frames} frames — ${summary || "none"}`);
-    return arms;
+    // THE GUARD THAT MAKES THE REST OF THIS TEST MEAN ANYTHING. Everything below is a claim about
+    // what attract does NOT reach, and an empty tally satisfies every such claim vacuously.
+    assert.ok(total > 0, `the hook caught NOTHING in ${frames} frames — the capture is broken, not the game`);
+    return { arms, total };
   };
   tally(CAPTURE_FRAMES);
   // The longer run is what backs the routine header's claim that the other two arms are not
-  // reachable by attract at all, rather than merely rare — so it is measured here, not asserted.
-  const long = tally(REACH_FRAMES);
+  // reachable by attract at all, rather than merely rare.
+  const { arms: long, total } = tally(REACH_FRAMES);
   assert.ok(!long.has("payout") && !long.has("latched"),
     "the crafted-entry tests below exist because attract reaches neither arm — if it now does, replace them with captures");
+  // Pin the two arms attract DOES reach, so the header's 39 / 35 / 4 cannot go stale and a
+  // half-firing hook cannot pass the non-zero guard above on one arm's worth of dispatches.
+  assert.deepEqual(
+    { total, tick: long.get("tick") ?? 0, reseed: long.get("reseed") ?? 0 }, EXPECTED_REACH,
+    `attract's 0x062A dispatch tally over ${REACH_FRAMES} frames moved`);
   console.log(`  NOT reached in ${REACH_FRAMES} frames: payout (payload 0) and latched — both covered by crafted entries below.`);
 });
 
 // -- 2. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_062a == oracle on a sample of real 0x062A entries", (t) => {
+test("EQUAL (real dispatches): loc_062a == oracle on EVERY real 0x062A entry", () => {
   const caps = captureDispatches();
-  if (caps.length === 0) {
-    t.skip(`no natural 0x062A dispatch in ${CAPTURE_FRAMES} frames — the sweeps below are the proof`);
-    return;
-  }
-  const idx = sampleIndices(caps);
-  const allShapes = new Set(caps.map(shapeOf));
-  const sampleShapes = new Set(idx.map((i) => shapeOf(caps[i])));
-  assert.deepEqual([...sampleShapes].sort(), [...allShapes].sort(),
-    "the sample must cover every entry shape the run produced");
+  // A missing corpus is a broken instrument, never a pass: replaying nothing must FAIL here, not
+  // skip. The exact count goes with it — a hook that catches one dispatch out of fifteen would
+  // clear a bare non-empty check while replaying almost nothing.
+  assert.ok(caps.length > 0, `no natural 0x062A dispatch in ${CAPTURE_FRAMES} frames — the capture is broken`);
+  assert.equal(caps.length, EXPECTED_CAPTURES,
+    `expected ${EXPECTED_CAPTURES} real 0x062A dispatches in ${CAPTURE_FRAMES} frames, caught ${caps.length}`);
 
-  for (const i of idx) {
+  const allShapes = new Set(caps.map(shapeOf));
+  for (let i = 0; i < caps.length; i++) {
     const cap = caps[i];
     const { ram, ret } = runPair(cap, () => {}, loc_062a);
     assert.equal(ram, null, ram && `capture #${i} (${shapeOf(cap)}): RAM diverges at ${hx(ram.addr ?? 0)} (${ram.a}->${ram.b})`);
     assert.equal(ret, null, ret && `capture #${i}: return value diverges (${ret.a} vs ${ret.b})`);
   }
-  console.log(`  EQUAL/real: replayed ${idx.length} of ${caps.length} captures, covering all ${allShapes.size} entry shapes (${[...allShapes].sort().join(", ")})`);
+  console.log(`  EQUAL/real: replayed all ${caps.length} of ${caps.length} captures inline (no sampling), covering all ${allShapes.size} entry shapes (${[...allShapes].sort().join(", ")})`);
 });
 
 // -- 3. EQUAL (exhaustive, re-seed arm) ---------------------------------------

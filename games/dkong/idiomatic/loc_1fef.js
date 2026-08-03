@@ -70,7 +70,7 @@
  *           forms the array base or reads the active flag itself. ROM 0x1FF6 is still
  *           the frozen oracle and is reached through m.call — this routine falls INTO it
  *           rather than calling it, so there is no return address to push beside it, and
- *           the m.call dissolves into a direct call once 0x1FF6 is decompiled.
+ *           the m.call dissolves into a direct call once 0x1FF6 is wired into ROUTINES.
  */
 
 import { OBJ_X } from "./ram.js";

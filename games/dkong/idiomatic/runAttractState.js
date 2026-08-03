@@ -101,7 +101,7 @@ const ATTRACT_SUBSTATE = [
   loc_0779, // 0  ROM 0x0779 — draw the attract screen           (ORACLE: its `ret` is the tail return)
   loc_0763, // 1  ROM 0x0763 — timed advance (rst 0x20 gate)     (ORACLE: same)
   loc_123c, // 2  ROM 0x123C — seed the demo sprite record       (ORACLE: same)
-  loc_1977, // 3  ROM 0x1977 — the demo-gameplay cascade         (no idiomatic twin exists)
+  loc_1977, // 3  ROM 0x1977 — the demo-gameplay cascade  (no idiomatic twin in ROUTINES yet)
   runDeathAnimationSubstate, // 4  ROM 0x127C — idiomatic (measured interchangeable)
   loc_07c3, //     5  ROM 0x07C3                                 (ORACLE: its `ret` is the tail return)
   loc_07cb, //     6  ROM 0x07CB — countdown animation (ORACLE: the swap moves SP; see the import)
