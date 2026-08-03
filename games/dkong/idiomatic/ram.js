@@ -167,8 +167,9 @@ export const OBJ_WALK_PTR_HI = 0x1b;
 /** [code] Saved iterator pointer (word) walking the 0x6400 stride-0x20 array; entry_31b1 seeds/advances
  *  it, entry_3202 / sub_298c re-load it (pointer passed through memory). */
 export const OBJ_ITER_PTR = 0x63c8;
-/** [seen] THE FIRES. Object array, stride 0x20, 5 records swept together (the page holds up to 7 on
- *  100m); sub_2880 / entry_31b1. Live on ALL FOUR boards. IDENTITY GROUNDED on the real ROM under
+/** [seen] THE FIRES. Object array, stride 0x20. The per-frame driver walks 5 on every board; the
+ *  collision arm is per-board and sweeps 5 on boards 1-3, 7 on 100m; sub_2880 / entry_31b1.
+ *  Live on ALL FOUR boards. IDENTITY GROUNDED on the real ROM under
  *  MAME 0.288, on a NATURAL zero-poke 25m run (scratchpad/grounding-object-arrays.md): forcing the
  *  five records' +0 to 0 erases the fireball from the screen completely (0 of 40 sampled frames,
  *  0 px) while leaving the barrels statistically untouched (616 px / motion 333 vs baseline
@@ -179,7 +180,14 @@ export const OBJ_ITER_PTR = 0x63c8;
  *  time on 25m, which is OBJ_RECORD_66A0's board-1 X — the fire is born at the fixed hazard.
  *  HONEST FLOOR: the X-pin POSITIVE control is a NO-OP here — the ROM recomputes +3 each frame from
  *  state held elsewhere, so the identity rests on the kill control plus positional correlation, not
- *  on a coordinate command. Records 0-4 grounded; record 4 activates only on 100m.
+ *  on a coordinate command. "Records 0-4 grounded" is a property of the LOGGER, which sampled five —
+ *  its probes read records 0..4 and nothing above. [code] from the lift, not from MAME: the board-4
+ *  arm of the 0x0FCD table (seed100mBoardObjects) activates records 5 and 6 off IX=0x64A0 at stride
+ *  0x20, and board 4's collision arm (the sweep entered at 0x2901) runs B=7 over this array, where
+ *  boards 1-3 run B=5. So on 100m the page carries SEVEN live records and the two above the probe
+ *  window were never observed at all. The identity is unaffected — it rests on the 25m kill A/B, and
+ *  on 25m five records are everything live (the per-frame driver walks 5, the board-1 collision arm
+ *  sweeps 5). But the observed five is a FLOOR on 100m, not a total.
  *  Field-level: record-0's fields all took live values in real MAME 25m attract. */
 export const OBJ_ARRAY_64 = 0x6400;
 /** [seen] PARTIAL — records 0-1 only. Object ("actor") array, stride 0x10, 10 records (0x6500-0x659F);
