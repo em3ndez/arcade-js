@@ -8,8 +8,10 @@ names how to verify it so the check is mechanical, not a matter of opinion.
 
 Enforcement lives HERE — in the rules an independent review agent checks — not in bespoke gate
 scripts. A gate can only test a proxy; the review agent can judge the actual requirement. (The
-only always-on git hooks are the pre-existing `review_gate` / `names_consistency` / `understanding_gate`;
-do not add more — express a new requirement as a rule below.)
+always-on git hooks are `review_gate` / `names_consistency` / `understanding_gate` /
+`idiomatic_comments`; do not add more — express a new requirement as a rule below. The last of those
+is the one exception and R21's History note argues it: its test is REFERENCE, not truth, so it is
+not a proxy for the requirement — it IS the requirement.)
 
 First, classify this commit from its subject line:
   DECOMPILE  = "decompile batch N"      UNDERSTANDING = "understanding pass N"
@@ -85,20 +87,33 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 - **R4 [ALL]** Every routine promoted loc_<addr>→English this commit appears in BOTH a scratchpad
   proposals file AND a separate `pass<N>-confirmed.md` (distinct agents). Verify: grep both files
   for the new name.
-- **R5 [ALL]** Every promoted name is corroborated by evidence OUTSIDE the routine itself (a named
-  cell it touches, an idiomatic caller/callee, mechanisms.md, or a sibling), and the file header
-  states that corroboration. Verify: read the renamed file's header — then locate what CHECKED the
-  prediction and confirm the header cites it somewhere YOU can open right now: a write-set/RAM
+- **R5 [ALL]** Every name promoted loc_<addr>→English **in the commit under review** is corroborated
+  by evidence OUTSIDE the routine itself (a named cell it touches, an idiomatic caller/callee,
+  mechanisms.md, or a sibling), and **that routine's `ROUTINES` entry in `ram.js` states the
+  corroboration in its `why` field** (defined in names-registry.md, "Routines — the `ROUTINES` map").
+  Scoped to this commit's promotions, exactly like R4: entries promoted before the field existed do
+  not have one, and a missing `why` on an untouched entry is NOT a violation. Do not fail a commit
+  for the backlog, and do not backfill it by re-deriving old evidence from memory.
+
+  It is the registry entry and NOT the file header because R21 forbids an idiomatic header from
+  naming a caller, a sibling, `mechanisms.md` or the oracle — which is every form of corroboration
+  this rule requires. The registry is exempt precisely because cross-file facts are its job, so
+  that is where a name's evidence belongs; it also puts the name and its justification in one
+  place instead of two. A header may still state what the routine does and why its own body reads
+  that way — it just cannot be where the outside evidence is cited.
+
+  Verify: read the renamed routine's registry entry — then locate what CHECKED the
+  prediction and confirm the entry cites it somewhere YOU can open right now: a write-set/RAM
   diff, a `reach_sweep` row, a per-cell verdict in this pass's grounding report, or a derivation
   from a DIFFERENT body of code (the caller, a sibling, mechanisms.md) that COULD HAVE COME OUT THE
   OTHER WAY. The test is falsifiability, not instrumentation — reading the caller and finding it
   uses the result as a table index would refute "this classifies", so that derivation counts, while
-  a restatement of the routine's own body does not. "Read the header" alone cannot catch this: a
-  header restating its own code-reading passes it. A corroboration clause with nothing behind it
-  that you can open FAILS. **The evidence itself may be ephemeral — a session scratchpad is a fine
-  home for it, and we do not commit everything.** You are the one who checks it exists and says what
-  it says; a later reader re-derives from the ROM, not from our session. Do not require the artifact
-  to outlive the review, and do not make a header carry a path to it.
+  a restatement of the routine's own body does not. "Read the entry" alone cannot catch this: an
+  entry restating the routine's own code-reading passes it. A corroboration clause with nothing
+  behind it that you can open FAILS. **The evidence itself may be ephemeral — a session scratchpad
+  is a fine home for it, and we do not commit everything.** You are the one who checks it exists and
+  says what it says; a later reader re-derives from the ROM, not from our session. Do not require
+  the artifact to outlive the review, and do not make anything carry a path to it.
 
   **The corroboration must be a PREDICTION the name makes, that was then checked** — not a
   restatement of the same code-reading in other words. Ask of each promotion: what would be
@@ -110,10 +125,12 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   states it fires in, and what its caller does with the result.
 
   Corollary — **the header may claim only what its writer derived.** Prose beyond the name's
-  justification, the ROM tag, and the cells read/written is unverifiable in bulk and propagates by
-  imitation into sibling files. The budget is the fixed header template (role, ROM tag, the
-  `Memory-equivalent`/`GATE:`/`LIVE-OUT:`/`NAMES:` blocks R17 governs) PLUS the name's derivation —
-  it never licenses trimming those blocks. Where the evidence stops, the header must say so rather than round
+  justification and the cells read/written is unverifiable in bulk and propagates by imitation into
+  sibling files. The budget is the fixed header template (role, what the routine does, `LIVE-OUT:`)
+  PLUS the name's derivation — it never licenses trimming those. The ROM tag and the
+  `Memory-equivalent`/`GATE:`/`NAMES:` blocks are NOT part of an idiomatic header since R21; they
+  name things outside the file and now live in the registry, the test header (where R17 governs
+  them) and the import list. Where the evidence stops, the header must say so rather than round
   up to a confident reading; a named open question is a PASS, a plausible guess stated as fact is a
   FAIL. See `decompiler-pipeline.md`, "A claim budget per header".
 - **R6 [ALL]** Where purpose is not corroborated, the routine STAYS loc_<addr>. A confidently-wrong
@@ -176,9 +193,12 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   frozen oracle, (b) asserts the routine's REAL live-out (return value too, not just RAM), and
   (c) has ≥1 broken-twin "teeth" case the test actually CATCHES. Verify: read the test; teeth
   assertions present and non-vacuous; run it if unsure.
-- **R17 [ALL]** A `GATE:` / `NAMES:` header, and a test file's own header, must describe what the
+- **R17 [ALL]** A `GATE:` header, and a test file's own header, must describe what the
   gate ACTUALLY exercises — and a coverage claim that is VACUOUS must say so explicitly, in the
-  header, rather than reading as coverage. "Replays every captured dispatch" when zero dispatches
+  header, rather than reading as coverage. (Since R21 a `GATE:` block lives only in a test file's
+  header — an idiomatic routine header may not cite a test at all — and `NAMES:` is gone entirely,
+  since the import list already states which `ram.js` cells a routine uses. R17 is unchanged in
+  substance; only the files it applies to moved.) "Replays every captured dispatch" when zero dispatches
   were captured, "all N routines live" in a file that wires one, "runs the whole game" in a tool
   that cannot construct that game's Machine: each is a claim the reader will bank and none of them
   is true. Stating the hole ("this covers attract only; gameplay is not covered", "no dispatch was
@@ -285,6 +305,31 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   (`git show HEAD:<path> | grep -F`) AND a reader of the current code would otherwise re-introduce
   the error. Both conditions, not either.
 
+## What a file is allowed to say about other files
+
+- **R21 [ALL]** A comment in `games/<game>/idiomatic/` describes THAT FILE and nothing else. No ROM,
+  no MAME, no frozen oracle, no sibling module, no test, no doc, no to-do. A count of what is in the
+  file is fine; a count of anything outside it is not. Exempt, because their job *is* the cross-file
+  map: `translated/**` (it comes from the disassembly — the address is its identity),
+  `idiomatic/ram.js` (the registry), and `idiomatic/**/test/**` (a test must name its subject).
+
+  The mechanical half is a gate — `tools/idiomatic_comments.py check`, wired into `hooks/pre-commit`
+  — because unlike every other rule here it tests REFERENCE rather than truth, and that is
+  decidable by a script. **What the reviewer adds is the part a script cannot do: whether the
+  displaced content landed somewhere, or was simply deleted.** A header stripped of its
+  `Memory-equivalent to …` line without the equivalent claim appearing in the test file's own
+  header, or a grounding finding removed without reaching `mechanisms.md`, passes the gate and
+  fails this rule. Deleting the evidence is not complying with the rule; relocating it is.
+
+  Verify: `python3 tools/idiomatic_comments.py check` exits 0 (the hook runs it, so a landed commit
+  has already passed it — the reviewer's job is the second paragraph). For a commit that strips
+  headers, diff what left against what arrived: `git diff --cached -- '*/idiomatic/*.js'` (note this
+  pathspec also matches the exempt `idiomatic/test/**`, which you want anyway — that is where the
+  gate claims land) and confirm each surviving CLAIM is present in the test header, the registry, or
+  `mechanisms.md`. A removal with no destination FAILS unless the claim was false or vacuous, which
+  the commit message must then say.
+
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/ram.js/mechanisms/retrofits. No
@@ -343,3 +388,31 @@ were actually spent.
 Note the asymmetry this rule lives with: the defect is caught pre-commit, so `.reviews/` and the log
 record the corrected version and never the mistake — the evidence for R19 is review transcripts, not
 history.*
+
+*R21 is deliberately a GATE, against this file's own closing instruction to add requirements as
+rules and not gates. That instruction's reason is that a gate tests a PROXY; R21's mechanical half
+tests none — the forbidden thing IS the reference, and "does this comment name something outside
+this file" is what a regex decides. The half that would be a proxy, whether the displaced claim
+landed anywhere, is left as the rule in R21's second paragraph. The seam is truth vs reference.
+
+It was added after step 8 of the understanding formula was run twice on Donkey Kong and done by
+token substitution both times — the second time after a reviewer had written down, in the defect
+list the fixer was working from, that a token sweep cannot work. It cannot, because only claims
+naming a RENAMED THING are findable that way, and most stale cross-file claims never name it. The
+root cause was not the sweep: `idiomatic/`'s comment rule existed only in the lead's memory and had
+never been written into `docs/`, so every agent that generated the layer worked without it — which
+is why the whole layer violated it uniformly rather than by drift. A procedure changed in someone's
+head is not a procedure.
+
+Three things its own review established, each a defect a reader of the code would not have
+predicted. A comment scanner cannot find comments by blanking string literals first: comments are
+English, English has apostrophes, and one opens a string that swallows the following lines. A
+`loc_<addr>` must be caught as a sibling citation but exempted when a file names ITSELF, or the
+gate refuses the exact header R11 mandates for every unnamed routine. And the tool counts nothing
+on purpose: a count of the tree is a derived fact, true once and false after the next file is
+cleaned, so `scan` prints one line per violation and the exit code carries zero-or-not — with a
+root that matches no in-scope file an ERROR rather than a pass, since a green scan is what licenses
+skipping the tree-wide half of step 8.
+
+Prompted by qarl, who asked what step 8 actually was and then observed that the fix was to stop
+putting the material in the files at all.*

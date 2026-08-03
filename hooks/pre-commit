@@ -5,10 +5,13 @@
 #   2. names_consistency  — ram.js is the single source of truth for whether a cell is named;
 #        no staged prose (mechanisms.md / routine comment) may call a named cell "hex/unnamed".
 #        tools/names_consistency.py
-#   3. review_gate        — every commit's staged changes carry an independent PASS review token
+#   3. idiomatic_comments — a comment in the idiomatic layer describes ITS OWN FILE: no ROM, no
+#        MAME, no oracle, no sibling module/test/doc, no to-do.  tools/idiomatic_comments.py
+#   4. review_gate        — every commit's staged changes carry an independent PASS review token
 #        bound to their exact content.  tools/review_gate.py
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 python3 "$root/tools/understanding_gate.py" check
 python3 "$root/tools/names_consistency.py" check
+python3 "$root/tools/idiomatic_comments.py" check
 exec python3 "$root/tools/review_gate.py" check

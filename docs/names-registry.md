@@ -52,7 +52,8 @@ Every named ROM routine is one entry in a single exported map, keyed by its entr
 export const ROUTINES = {
   0x0066: { name: "serviceVblankNmi",
             role: "vblank NMI — the per-frame service (input debounce, sound-ring drain, sprite DMA, coin/credit watchdog, /60 timers)",
-            cert: "code" },
+            cert: "code",
+            why: "its caller is the main loop's vblank-poll yield, and suppressing it stops sprite DMA — a service name predicts that, a compute name does not" },
   // ...169 entries
 };
 ```
@@ -64,6 +65,26 @@ export const ROUTINES = {
   (observed executing UNDER MAME — a grounding run or tape drove it on the real ROM and it did
   this; a count from our own harness is **code**, see reviewer-rules R3a), **guess** (a hypothesis not
   yet confirmed — the one still-open item).
+- **why** — required on a routine whose name was PROMOTED from `loc_<addr>` to English: one line
+  naming the evidence outside the routine that could have refuted the name and did not (the caller's
+  use of the result, a write-set diff, a sibling, a `mechanisms.md` mechanism). Absent on entries
+  still named `loc_<addr>`, since there is no promotion to justify.
+
+  **Required on each promotion FROM the commit that introduced this field onward, not
+  retroactively.** Names promoted before it exist without a `why`, and that is not a defect to be
+  swept: their corroboration was checked at the time under the older rule. Re-deriving it wholesale
+  would mean re-doing every past naming pass from memory, which is how invented evidence gets
+  written down. A later pass that re-derives a name adds the field then. Do not read a missing
+  `why` on an old entry as a rule violation — see reviewer-rules R5, which is scoped to the
+  promotions in the commit under review.
+
+  It never leaves the port: the clean-room generator reads `name` and `role` only (see below).
+
+  It lives here and not in the routine's file header because reviewer-rules **R21** forbids an
+  idiomatic header from naming a caller, a sibling, `mechanisms.md` or the oracle — which is every
+  form this evidence takes. The registry is the one place cross-file facts belong, so a promoted
+  name and its justification sit together instead of in two files. Reviewer-rules **R5** is what
+  requires it; `role` stays one line about the mechanism and does not absorb this.
 
 Unlike the RAM consts, `ROUTINES` is **metadata, not imported by the running code** — the routines call
 each other directly by function name. It is a lookup table for tooling and for the two uses below.
@@ -122,6 +143,8 @@ sometimes used raw for a genuinely different role, where the registry name would
    earlier `[guess]` instead of starting cold. Names are *proposed* by the namer/optimizer and
    *gated by a separate reviewer* (proposer ≠ confirmer); the lead edits `ram.js` — proposers never do.
 2. **Clean-room external generation.** When we contribute a disassembly to an outside archive, the
-   generator may read the raw disassembly, `mechanisms.md`, and **this file's names — and nothing else**
-   (never `translated/` or any `idiomatic/*.js`), so no port internals can leak into the public artifact.
+   generator may read the raw disassembly, `mechanisms.md`, and from this file **the names and roles
+   only — never `why` or `cert`** (and never `translated/` or any `idiomatic/*.js`), so no port
+   internals can leak into the public artifact. `why` and `cert` are about how WE earned a name;
+   they describe the port, not the machine, and an outside archive must not receive them.
    See [contributing a disassembly](contributing-disassembly.md).

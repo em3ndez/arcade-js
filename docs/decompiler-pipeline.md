@@ -243,15 +243,22 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   keeps its own name (imported under that name). "we don't give cute names to our routines" (Karl).**
   **Promote** to an English
   name only where the meaning is genuinely earned, and **keep the identifier clean**
-  — the address lives in a `// ROM 0x<addr>` header tag and the manifest key, **never in the identifier**. Routine names get
+  — the address lives in the `ROUTINES` registry key, **never in the identifier and no longer in a
+  header tag** (a header may not cite an address at all; see the file-local comment rule below). Routine names get
   the same evidence bar as RAM names (corroborated, proposer≠confirmer) — a *wrong* English name
   misleads worse than a neutral `loc_<addr>`; it is the routine-level sprite-record trap. The name
   encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit` =
   "understood and confirmed."
 - **A claim budget per header, and open questions stay open.** A header's default shape is: what the
-  routine does, its `ROM 0x<addr>` tag, the cells it reads and writes, the fixed template below
-  (`Memory-equivalent to …` / `GATE:` / `LIVE-OUT:` / `NAMES:`, which reviewer-rules R17 makes
-  load-bearing), and **the one derivation that justifies its name**. Everything beyond THAT has to
+  routine does, the cells it reads and writes, its `LIVE-OUT:` (the routine's own signature), and
+  **the one derivation that justifies its name, drawn from this file's own body**. Evidence from
+  OUTSIDE the routine — a caller's use of the result, a sibling, a write-set diff — goes in the
+  `ROUTINES` entry's `why` field instead; reviewer-rules R5 requires it there. The `ROM 0x<addr>` tag, `Memory-equivalent to …`,
+  `GATE:` and `NAMES:` are **no longer part of an idiomatic header** — they name things outside the file.
+  The address moved to the registry key, `Memory-equivalent`/`GATE:` to the test header, and
+  `NAMES:` was dropped as a restatement of the import list (see the file-local comment rule below). `GATE:` remains load-bearing under reviewer-rules R17 where it now
+  lives, in the test header; `NAMES:` is gone entirely, since the import list already states which
+  `ram.js` cells a routine uses. Everything beyond THAT has to
   earn its verification cost, because prose is the most expensive thing in the repo to check (see
   `grounding.md`, "Naming an unknown address") — there is no oracle for it, only a human
   re-deriving the claim from the ROM. Elaboration written to
@@ -301,6 +308,50 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   goal and are worth writing; low-level narration is the noise. And **name methods directly** —
   "the entropy pin", "capture/clone/replay", "the caller-skip idiom" — never a doc number or `.md`
   path (citations rot; the shipped code should read on its own).
+- **A comment in `idiomatic/` describes THIS FILE, and nothing else. Ever.** Not the ROM, not MAME,
+  not the frozen oracle, not a sibling module, not a test, not a doc, not a to-do. A count of what is
+  *in* this file is fine; a count of anything outside it is not. Enforced by
+  `tools/idiomatic_comments.py`, which the pre-commit hook runs. It is a gate rather than a reviewer
+  rule because it tests REFERENCE, not truth — "does this sentence name something outside this file"
+  is decidable by a script, which is not true of almost anything else we ask a reviewer for.
+
+  Three paths are exempt, and they share one reason — their job *is* the cross-file map.
+  `translated/**` comes from the disassembly, so a faithful translation of a ROM routine has to cite
+  it; the address is that file's identity, not an outside reference. `idiomatic/ram.js` is the
+  registry, the one place addresses, names and modules are meant to meet. `idiomatic/**/test/**`
+  cannot describe itself without naming its subject (what a test may claim about its own coverage is
+  reviewer-rules R17, which stays a rule because it is about truth).
+
+  Why it is absolute rather than a matter of taste: **a cross-file claim in a routine header is a
+  cache.** The fact lives somewhere else, nothing updates the copy, and it goes stale the moment
+  understanding improves anywhere else in the tree — across hundreds of files, once per pass,
+  forever. That is precisely what the understanding formula's step 8 was: hand-run cache
+  invalidation over the whole layer. Delete the cache and the step disappears. Measured on Donkey
+  Kong the day the rule landed: **every single file in the layer** broke it, and most of the layer
+  was comment rather than code. Not drift — the convention had never been written down, so the
+  whole layer was generated without it.
+
+  **Neither game's layer is migrated yet.** The rule and its gate landed before the cleanup, so the
+  hook enforces it on anything newly staged while the existing bulk is still to be swept as its own
+  unit. Until `python3 tools/idiomatic_comments.py scan games/<game>` is green, do not read an
+  existing header in that game as an example of this rule, and keep the routine layer inside step
+  8's scope for it.
+
+  Note what this section does NOT do: quote a count. `scan` prints violations and no totals, and
+  nothing here reports how many there are. A tally of the tree is a derived fact — true when
+  written, false after the next file is cleaned, and unfalsifiable to a later reader. It is the same
+  disease one level up: **do not write a count of the tree into prose.** If you need the number,
+  run the tool; it expires the moment you paste it.
+
+  None of the content is lost — each piece has a home that a machine can keep honest:
+
+  | displaced from the header | goes to |
+  |---|---|
+  | `ROM 0x<addr>` tag | the `ROUTINES` registry key — always its source of truth |
+  | `GATE:` / `Memory-equivalent to …` | the test file's own header, where it is file-local |
+  | `NAMES:` (which `ram.js` cells are used) | the import list, which already states it |
+  | the evidence that justifies a PROMOTED name | the `ROUTINES` entry's `why` field (names-registry.md) — every form that evidence takes names a caller, a sibling or a doc |
+  | a grounding finding | `mechanisms.md` — the one document whose job is cross-file facts, and which step 7 rewrites WHOLE every pass. That is cache invalidation done correctly, in exactly one place. |
 - **Numbers are base-10.** Write decimal like normal JS. Reserve hex for an *irreducible* bit
   operation the behaviour genuinely depends on (a real mask or bit-flag). Most `& 0xff` / `& 0x0f` /
   `& 0x80` is a Z80 8-bit-width artifact, not behaviour: the register/memory model already truncates
@@ -317,7 +368,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
 
 The pipeline's validated output lives in **`games/dkong/idiomatic/`**, one module per routine,
 resolved by address through the manifest. The frozen oracle lives in **`games/dkong/translated/`**,
-one file per routine. The RAM names live in `games/dkong/optimized/ram.js`.
+one file per routine. The RAM names live in `games/dkong/idiomatic/ram.js`.
 
 Two canonical file templates keep the format consistent:
 
@@ -328,20 +379,38 @@ Two canonical file templates keep the format consistent:
 Range always present; em-dash; behaviour body stays faithful (one statement per Z80 instruction,
 `// <mnemonic>` per line, per [the translation doc](translation.md)).
 
-**`idiomatic/` — fixed header, fixed section order (memory-equivalent, cycle-free):**
+**`idiomatic/` — fixed header, and it names nothing outside its own file:**
 ```js
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * <name> — <one-line role>.  ROM 0x<addr>.
+ * <name> — <one-line role>.
  *
- * Memory-equivalent to the frozen oracle — equivalence-<addr>.test.js.
- * GATE:     <strict | convergent | crafted-entry>; <reachability one-liner>.
- * LIVE-OUT: <memory-only | + which regs/flags>.
- * NAMES:    <imported ram.js names | hex-kept addrs + one-word why>.
+ * <what the routine does, in terms a reader of THIS file can check>
+ * LIVE-OUT: <memory-only | + what it returns>.
  */
 ```
-No `CYCLES`/`COLLAPSE` sections and no inline disassembly dumps — there is no cycle model to record,
-so that bulk (and most of the format drift) is absent. The idiomatic rewrite carries the final form.
+No `ROM 0x<addr>` tag, no `Memory-equivalent to …`, no `GATE:`, no `NAMES:` — every one of those
+names something outside the file, and they moved to the registry, the test header and the import
+list (see "Output conventions", the file-local comment rule). `tools/idiomatic_comments.py` refuses
+a commit that puts them back. No `CYCLES`/`COLLAPSE` sections and no inline disassembly dumps
+either — there is no cycle model to record, so that bulk (and most of the format drift) is absent.
+
+**How a routine joins the layer.** The swap engine (`resolveAllIdiomatic` in `machine.js`, reading
+the `ROUTINES` map in `ram.js`) lays each idiomatic routine over its `translated/` oracle at that
+routine's ROM address, so the game runs idiomatic where developed and translated everywhere else.
+A routine joins by: land `idiomatic/<name>.js`; land `idiomatic/test/equivalence-<addr>.test.js`;
+add its address→`{name}` entry to `ROUTINES`; gate. All four, or it is not in the layer — a module
+with no registry entry is written and never executed, which is how Donkey Kong accumulated a whole
+batch of them without anyone noticing.
+
+**`idiomatic/**/test/` — the header that carries the gate**, because a test cannot describe itself
+without naming its subject, and because R17 needs somewhere to bite:
+```js
+/**
+ * <subject> — memory-equivalent to the frozen oracle at ROM 0x<addr>.
+ * GATE:  <strict | convergent | crafted-entry>; <what it actually exercises, holes stated>.
+ */
+```
 
 ## Running the spiral: Structure & Meaning in detail
 

@@ -38,7 +38,8 @@ Generate the external listing from **game-fact sources only**, and forbid the re
    This is the actual ROM. (Its header comment may carry a stale template label — the bytes are
    what matter.)
 2. **The names registry** — `games/<game>/idiomatic/ram.js` (see below): the RAM-cell names *and*
-   the routine labels. Read the `export const` names and the `ROUTINES` map — nothing else in it.
+   the routine labels. Read the `export const` names, and from the `ROUTINES` map ONLY each entry's
+   `name` and `role` — never its `why` or `cert`, which record how OUR port earned the name.
 3. **The game model** — `games/<game>/mechanisms.md`, for the behaviour comments — with its
    method-language stripped (drop the evidence tags, `§` refs, and MAME/grounding/poke citations;
    keep the game fact, write it plainly).
@@ -53,7 +54,9 @@ The names in rule 2 come from `games/<game>/idiomatic/ram.js`: the `export const
 **and** the `ROUTINES` map of every named ROM routine, in one file, so an address resolves to a name
 without touching the JavaScript. Its full format — the two sections, the confidence grades and certs,
 and how names carry across understanding laps — is documented in [the names registry](names-registry.md).
-For clean-room generation the constraint is narrow: read the `export const` names and the `ROUTINES`
+For clean-room generation the constraint is narrow: read the `export const` names and, from `ROUTINES`,
+each entry's `name` and `role` only — its `why` cites our callers, our write-set diffs and our
+mechanisms.md, and its `cert` grades our evidence; both are port internals. The rest of the
 map, **nothing else in the file**, and no other port source at all.
 
 ## Comment rule

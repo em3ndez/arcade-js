@@ -75,10 +75,30 @@ Proposers never do. Rename every importer. Equivalence suite stays green.
 From gameplay.md, blind to the old map. Never patch it. Recount by measuring.
 
 **8. Sweep the prose the renames just falsified.**
-Each claim family separately, over the whole tree: existence, instructions, counts, "only/sole".
+Sweep by **claim family** — existence, counts, "only/sole", status words — **never by token.**
+A token sweep finds only claims that name the renamed thing, and most stale claims never name it:
+to-dos that have since fired, counts of other files, whole-ROM "only" assertions, and status words
+the port's own progress falsifies. This is the step's recorded failure mode, twice.
 Flatten files before matching — wrapped lines hide hits.
 Enumerate the phrasings actually present; guessing them is the failure mode.
 Re-derive every count a reworded predicate touches.
+
+**How big this step is depends on whether the game's routine layer has been migrated to R21.**
+Reviewer-rules R21 forbids an idiomatic routine header from referencing anything outside its own
+file. Once a game's layer complies, the only prose that can go stale on a rename is `mechanisms.md`
+(already covered — step 7 rewrites it WHOLE, which is why it is a rewrite and never a patch),
+`ram.js` roles, `ram.js` `why` fields — which cite callers and siblings BY NAME and are therefore
+the most rename-fragile prose in the registry — and test headers. That is a small, bounded surface.
+
+Until then the routine layer is still in scope for that game, and this step is still tree-wide.
+The test is per game and it is `scan`, not `check`:
+
+    python3 tools/idiomatic_comments.py scan games/<game>
+
+`check` only inspects files that are STAGED, so it goes green on a pass that stages no routine file
+and proves nothing about the layer. **As of R21 landing, neither game is migrated** — every file in
+both layers still carries a forbidden reference. Treat a green `scan` as the licence to run the
+short version of this step, and nothing else as that licence.
 
 **9. One commit. Independent review confirms these steps were followed.**
 The whole pass lands as ONE unit — renames, `ram.js`, `mechanisms.md`, the prose sweep — because a
