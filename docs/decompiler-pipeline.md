@@ -209,11 +209,11 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   wrap and diff identically — and because the byte store already truncates, no mask is ever needed
   *before* one. A helper that only touches memory takes `m` and destructures the views it needs, not a
   bare `mem`. Emit this form at decompile time; a still-hex address is fine (`mem8[0x8079]`) — the
-  clarify pass swaps the literal for a `ram.js` name later and leaves the access form untouched.
+  understanding pass swaps the literal for a `ram.js` name later and leaves the access form untouched.
 - **Name locals by meaning, never by register.** A local that survives from a Z80 register keeps the
   register's *value*, not its name: `const b = OBJ_X + 3` is `probeX`, not `b`. A single-letter or
   register-letter local (`a`, `b`, `c`, `hl`) in idiomatic code is the variable-level version of the
-  assembly-comment smell. The decompile pass must name it for what it does; and the clarify pass's
+  assembly-comment smell. The decompile pass must name it for what it does; and the understanding pass's
   variable-naming covers **locals too**, not only `ram.js` addresses — leaving `b`/`c` unrenamed
   (they were the Z80 `B`/`C`) was a real two-pass miss on The Pit's `classifyWallCollision`.
 - **Bottom-up.** Decompile callees before callers. A caller decompiled while its callee is still a
@@ -283,7 +283,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   position before/after, the sound queued, the tile written), then confirm the name matches what you
   SEE. A `classify`-named routine whose output visibly *moves* something is misnamed. The trace is ~30
   lines the agent writes itself, so naming is checkable at scale — no hand-verifying each routine.
-- **Disprove the existing name; ignore rename cost.** In a clarify pass, re-derive the name as if the
+- **Disprove the existing name; ignore rename cost.** In an understanding pass, re-derive the name as if the
   routine were an unnamed `loc_` — the current name is a hypothesis to BREAK, not a default to defend
   (the confirm agent that blessed `classifyWallCollision` anchored on it and kept it to avoid churn).
   Rename cost — test imports, every caller — is NEVER a reason to keep a name; the rename is mechanical
@@ -355,10 +355,10 @@ growing through every step below ([the mechanisms doc](mechanisms.md)). The obse
 comes before the lift; the deepest understanding lands during the decompile; steps 3 and 4 consume
 the map and can't be done well without it. It is required reading for anyone naming or decompiling.
 
-> **RULE — every clarify pass REWRITES `mechanisms.md` from scratch, in the same landable unit as the
+> **RULE — every understanding pass REWRITES `mechanisms.md` from scratch, in the same landable unit as the
 > renames — do not incrementally edit it.** The **first step of a rewrite is to read `gameplay.md`** —
 > the outside-in, public-research view of how the game plays — as the frame, then re-derive the
-> inside-out model from the *current* code and grounding (blind to the prior MECHANISMS). A clarify
+> inside-out model from the *current* code and grounding (blind to the prior MECHANISMS). An understanding
 > pass exists to convert *correct* code into
 > *understood* code, and the earned names and resolved questions ARE that understanding — so the map
 > must reflect them, and finishing the pass means re-deriving the whole map, not patching it. **Rewrite
@@ -366,11 +366,11 @@ the map and can't be done well without it. It is required reading for anyone nam
 > lags, `loc_` references that outlive their rename, stale "kept loc_" phrasings, rows that name old
 > callees, an internally-inconsistent structure. A from-scratch rewrite each pass forces re-reading the
 > *current* code state and producing a fresh, coherent, self-consistent map — it is the same discipline
-> as the clarify pass itself (re-derive across the whole set, never defend the prior state). Regenerate
+> as the understanding pass itself (re-derive across the whole set, never defend the prior state). Regenerate
 > the routine/RAM tables from what the idiomatic layer + `ram.js` actually contain *now*, re-synthesize
 > the subsystem prose, move newly-answered questions to a "resolved" note and sharpen the still-open
 > ones, and recount (decompiled / named / RAM-named) by measuring, not by adjusting the old numbers. A
-> map that lags the code — or reads as a patchwork of edits — is the tell that a clarify pass was left
+> map that lags the code — or reads as a patchwork of edits — is the tell that an understanding pass was left
 > half-done: the names shipped but the understanding was never re-written where the next agent reads it.
 >
 > **Enforced, not just advised:** `tools/clarify_gate.py` runs in the pre-commit hook and blocks any
@@ -408,12 +408,12 @@ the map and can't be done well without it. It is required reading for anyone nam
      only a separate adversarial reviewer, re-deriving from scratch, caught that `0x8076` is the `0x26`
      latch. Promote on convergence, but still review the promoted names before they land — a
      confidently-wrong name is the sprite-record trap that all future work will trust.
-4. **Alternate DECOMPILE passes with CLARIFY passes.** Decompilation recovers correct,
+4. **Alternate DECOMPILE passes with UNDERSTANDING passes.** Decompilation recovers correct,
    memory-equivalent routines (leaves first, drop cycles + dead registers/flags, gated against the
-   `loc_XXXX` lift with pinned PRNG + teeth). A **clarify pass** then makes the accumulated routines
-   *read* like the game. Keep the two separate — decompile is about correctness, clarify is about
-   meaning — and clarify must run *after* and *across the whole set*, because a callee decompiled in a
-   later batch is what makes an earlier caller's `m.call` dissolvable. A clarify pass is **two
+   `loc_XXXX` lift with pinned PRNG + teeth). An **understanding pass** then makes the accumulated routines
+   *read* like the game. Keep the two separate — decompile is about correctness, understanding is about
+   meaning — and understanding must run *after* and *across the whole set*, because a callee decompiled in a
+   later batch is what makes an earlier caller's `m.call` dissolvable. An understanding pass is **two
    fan-outs, keyed differently**:
    - **Dissolve + promote the ABI (per-routine)** — (i) replace every `m.call` to an already-decompiled
      callee with a genuine function call (the dissolve invariant + lint above); (ii) **promote register
@@ -452,10 +452,10 @@ the map and can't be done well without it. It is required reading for anyone nam
    the third pass). Routine naming keeps `loc_` only when the **mechanism** is genuinely unresolved
    (don't invent a name for code you can't read) — a confident mechanism with an open *purpose* is
    **named, not held** — and still runs the full three looks. Every output stays gated
-   (equivalence tests, the `no-stale-mcall` lint, the third review). Loop decompile ⇄ clarify to 100%;
+   (equivalence tests, the `no-stale-mcall` lint, the third review). Loop decompile ⇄ understanding to 100%;
    seed the obvious routine names (RST vectors, leaf sound triggers, the NMI handler) early, but expect
    most names to fall out *of* this loop, not before it.
-   - **Finish every clarify pass by updating `mechanisms.md` in the same commit** (the rule above). The
+   - **Finish every understanding pass by updating `mechanisms.md` in the same commit** (the rule above). The
      earned names + resolved questions are the pass's actual product; a pass that ships the names but
      not the map update is half-done.
 5. **Capstone: pixel-exact vs pinned MAME** — the ground-truth falsifiable check. DMA raster is
