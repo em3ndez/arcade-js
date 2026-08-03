@@ -73,7 +73,32 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   for the new name.
 - **R5 [ALL]** Every promoted name is corroborated by evidence OUTSIDE the routine itself (a named
   cell it touches, an idiomatic caller/callee, mechanisms.md, or a sibling), and the file header
-  states that corroboration. Verify: read the renamed file's header.
+  states that corroboration. Verify: read the renamed file's header — then locate what CHECKED the
+  prediction and confirm the header cites it somewhere a later reader can reach: a write-set/RAM
+  diff, a `reach_sweep` row, a per-cell verdict in this pass's grounding report, or a derivation
+  from a DIFFERENT body of code (the caller, a sibling, mechanisms.md) that COULD HAVE COME OUT THE
+  OTHER WAY. The test is falsifiability, not instrumentation — reading the caller and finding it
+  uses the result as a table index would refute "this classifies", so that derivation counts, while
+  a restatement of the routine's own body does not. "Read the header" alone cannot catch this: a
+  header restating its own code-reading passes it. A corroboration clause with nothing reachable
+  behind it FAILS.
+
+  **The corroboration must be a PREDICTION the name makes, that was then checked** — not a
+  restatement of the same code-reading in other words. Ask of each promotion: what would be
+  observably different if this name were wrong, and did anyone look? "String renderer" predicts
+  writes to VRAM `0x7400+`; the routine writes 4-byte sprite records into `SPRITE_BUFFER` at 0x6900
+  and never touches 0x7400+ at all, so one write-set diff would have killed the name before it
+  spread through the cluster and its gates. A header whose corroboration cannot fail is not
+  corroboration. Cheapest checks, all theory-free: the routine's write-set, its reachability and the
+  states it fires in, and what its caller does with the result.
+
+  Corollary — **the header may claim only what its writer derived.** Prose beyond the name's
+  justification, the ROM tag, and the cells read/written is unverifiable in bulk and propagates by
+  imitation into sibling files. The budget is the fixed header template (role, ROM tag, the
+  `Memory-equivalent`/`GATE:`/`LIVE-OUT:`/`NAMES:` blocks R17 governs) PLUS the name's derivation —
+  it never licenses trimming those blocks. Where the evidence stops, the header must say so rather than round
+  up to a confident reading; a named open question is a PASS, a plausible guess stated as fact is a
+  FAIL. See `decompiler-pipeline.md`, "A claim budget per header".
 - **R6 [ALL]** Where purpose is not corroborated, the routine STAYS loc_<addr>. A confidently-wrong
   English name is a violation. Verify: spot-check promoted names aren't guesses.
 
@@ -209,6 +234,39 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   Verify: for each such statement in the message and in any touched header, run the producing
   command. A statement about the diff with no producing command is unverified, and unverified
   statements about the diff have been wrong more often than right here.
+
+## What a file is allowed to say about the past
+
+- **R20 [ALL]** A source file states what is TRUE NOW. It does not narrate the drafting that got it
+  there. Out of any committed comment, header, doc or commit message: "an earlier version of this
+  header said X", "that citation is withdrawn", "the reason this file previously gave", "★ CORRECTION",
+  and every "three candidates, not two" construction that only parses against text the same diff
+  deletes. The diff records what changed; the file records the code.
+
+  Two reasons, and the second is the sharp one:
+  1. The reader has the file, not the session. Prose that only makes sense beside its own predecessor
+     is unreadable the moment the predecessor is gone — which is immediately, since the same commit
+     removes it.
+  2. **Most of what these notes cite was never committed.** Measured on one 19-file unit: 10 such
+     passages, all of them pointing at wording that had existed only in the author's working tree,
+     that same session, for about an hour. There is no revision a reader can check them against.
+     Worse, two entries in the same unit's commit message announced the WITHDRAWAL of absolutes
+     that appear nowhere in the repository at any revision — retractions of the author's own
+     private drafts, presented as repairs to the codebase.
+
+  What survives the rule: a warning against a reading a future reader could plausibly re-derive
+  ("NOT A STRING RENDERER — the tables at 0x39C3 are (x,y) waypoint pairs") is a statement about the
+  code, and stays. So does a PROVENANCE note separating what was measured from what was inferred.
+  What goes is the before/after framing wrapped around them.
+
+  The same rule governs the commit message: it says what the commit DOES. "Corrects X to Y" IS the
+  change and belongs; the history of the author's drafts does not.
+
+  Verify: `git diff --cached -- . ':(exclude)docs/reviewer-rules.md' | grep -Ein '^\+.*(earlier (draft|version|header)|previously (said|gave)|used to say|the old text|is withdrawn|has been removed|★ CORRECTION)'`
+  returns nothing. (The exclusion is not a loophole — it keeps this rule's own quoted EXAMPLES
+  from matching it.) A hit FAILS unless the cited past wording is quotable from the parent revision
+  (`git show HEAD:<path> | grep -F`) AND a reader of the current code would otherwise re-introduce
+  the error. Both conditions, not either.
 
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages

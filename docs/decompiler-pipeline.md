@@ -248,6 +248,23 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   misleads worse than a neutral `loc_<addr>`; it is the routine-level sprite-record trap. The name
   encodes confidence: `loc_1cd2` = "correct but not yet understood," `walkStepCommit` =
   "understood and confirmed."
+- **A claim budget per header, and open questions stay open.** A header's default shape is: what the
+  routine does, its `ROM 0x<addr>` tag, the cells it reads and writes, the fixed template below
+  (`Memory-equivalent to …` / `GATE:` / `LIVE-OUT:` / `NAMES:`, which reviewer-rules R17 makes
+  load-bearing), and **the one derivation that justifies its name**. Everything beyond THAT has to
+  earn its verification cost, because prose is the most expensive thing in the repo to check (see
+  `grounding.md`, "Naming an unknown address") — there is no oracle for it, only a human
+  re-deriving the claim from the ROM. Elaboration written to
+  make a file feel thorough is a liability: it reads as established fact to the next agent, who
+  copies its framing into the neighbouring files.
+  What a header must NOT do is state as settled anything the writer did not derive while writing it.
+  Where the evidence stops, **say so in the file**. The model is one sentence, not one file:
+  `spawnInterludeHeart`'s *WHAT THIS NAME DOES NOT CLAIM* clause, which grants that the routine's
+  three blanked tilemap cells belong to the same opening tableau as the heart, then states flatly
+  that what removing those cells clears off the screen was not separately grounded. Nine files
+  carry a clause of that shape. It is the cheapest thing in a header to write and the only part
+  guaranteed not to need redoing. A named
+  open question is worth more than a confident guess and costs nothing to verify.
 - **Name by EFFECT, not internal mechanism — the verb is what the output *causes*.** The "body =
   mechanism, callers = purpose" split is not enough on its own: an agent can fully understand a routine
   and still name it after its computation. Make it a hard rule — trace every value the routine writes to

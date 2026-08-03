@@ -53,6 +53,53 @@ Every semantic claim is an **experiment**, not an assertion:
 Cross-check a frame reading against the **validated renderer's own computation** of the same sprite RAM —
 an independent second "yes" that the pixels mean what you think.
 
+## Naming an unknown address: theory → prediction → measurement
+
+"Ground it before you name it" is impossible as stated — you cannot instrument a routine without
+some idea of what to look at. Reading the code and forming a theory is unavoidable and fine. The
+rule is what happens next: **the theory must yield a prediction about something observable, and
+you check the prediction before the name goes in the file.** A theory that cannot state a
+prediction is not ready to be a name, and the routine stays `loc_`.
+
+This is the discipline that was missing when DK's `0x2C` cluster was named. "A routine walking a
+byte table to a `0x7F` terminator is a string renderer" is a reasonable *first* theory. It also
+makes a sharp prediction: text in this ROM goes to VRAM at `0x7400+`, because that is where
+`drawStringVertical` and `renderBcdColumn` put it. The routine writes 4-byte sprite records into
+`SPRITE_BUFFER` at 0x6900 and touches nothing at 0x7400+ at all. One measurement kills the theory,
+and that measurement was available from the first day. Instead the
+theory became the name, the name became the neighbouring files' framing by imitation, and it
+spread through the cluster's routines, their equivalence gates, and the `ram.js` roles those gates
+cite back. Retiring it is a multi-commit job long after the fact, and a `ram.js` section banner
+still carries it.
+
+**What you can measure before you have any theory at all.** None of this requires knowing what
+the routine is, and all of it narrows the hypothesis space:
+
+- **Does it execute, and where?** A read tap at the entry (`tools/reach_sweep.lua`), attributed to
+  board / level / substate. Separates "runs constantly on 25m" from "never runs in attract".
+- **What is its write-set?** Clone the machine at each dispatch, run the routine, diff RAM. The set
+  of addresses a routine touches is a fingerprint, and it is theory-free — but read it against the
+  board's memory map, because a bare region name misleads. The example above writes only 0x69xx,
+  0x67xx and 0x62A8, every one inside WORK RAM (0x6000-0x6BFF); DK's sprite RAM is 0x7000-0x73FF and
+  it never touches it. Under a naive "sprite RAM vs tilemap RAM vs work RAM" reading that says "not
+  a renderer", and it is one: 0x6900 is the DMA shadow buffer the i8257 blits to sprite RAM. The
+  write-set is the evidence; the memory map is what lets it mean anything.
+- **Who calls it, and what does the caller do with the result?**
+- **What changes on screen in the frames after it runs?**
+
+Do these first and the theory you form afterwards is already constrained by evidence, rather than
+being a guess that evidence must later be found to fit.
+
+The cost asymmetry is what makes this worth the trouble. Idiomatic **code** has an oracle: a
+routine is checked against the frozen translation mechanically and for free, on every PUSH
+(`hooks/pre-push` runs the suite; the pre-commit hook does not). That cover is not total — DK's 387
+equivalence gates against its 389 registry entries, each comparing game-visible RAM minus that
+gate's own declared scratch exclusions rather than the whole address space — but it is
+automatic. Idiomatic **prose** has none — "this arm can never emit `0x1B`" is checkable only by a
+human or agent disassembling the ROM, per claim. DK's idiomatic layer is roughly **3 lines of
+prose per line of code**. Producing the expensive-to-verify kind at the speed of the cheap kind is
+how the repair backlog got made.
+
 ## Triage the backlog FIRST: sweep reachability before deciding anything is blocked
 
 Before a naming pass decides which routines are "hard", **measure which ones the ROM actually
