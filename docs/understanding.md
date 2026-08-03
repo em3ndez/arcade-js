@@ -16,10 +16,20 @@ We deliberately port games with **no public reverse-engineering** (The Pit is th
 from watching the real machine. Keep that discipline: **every claim in the mechanism map carries a
 confidence tag**, and nothing recalled is ever written as fact.
 
-- **[seen]** — observed directly in a captured MAME frame.
+- **[seen]** — observed on the real ROM under MAME: a captured frame, a pixel diff, a
+  control-poke, or a read-tap log. Our engine may be in the chain; the reference must be MAME.
 - **[code]** — derived from a translated routine's behaviour. The *mechanics* are exact (the lift
   is faithful); the *role* is your inference from them.
 - **[guess]** — plausible, unverified. Explicitly not to be relied on.
+
+**A number is `[seen]` only if its evidence chain TERMINATES in a MAME observation.** Our engine
+may be in the chain — a pixel diff runs our renderer against a MAME golden and stays `[seen]`,
+because the reference is the real machine. A chain that ends in our own output does not: a dispatch
+count from `new Machine(ROM).runFrames(...)` is our engine replaying the ROM however long the
+window, and an idiomatic-vs-oracle equality is our JS against our JS. Both are good evidence *about
+the port*, and both are `[code]`. When the number is ours, write **"harness replay"** rather than
+"attract run" — but note that phrasing is an authoring habit, not a review test: every tag this rule
+was written to catch already said "attract run".
 
 A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — it is the
 [sprite-record trap](decompiler-pipeline.md) at the level of the whole game. Tag honestly.

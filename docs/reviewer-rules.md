@@ -39,6 +39,19 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   says it could not ground.
 - **R3 [ALL]** Every `[seen]` tag added/changed is backed by a REAL-ROM MAME observation, never the JS
   engine (that would be circular). Verify: the adjacent note cites a MAME/attract run.
+  - **R3a — a NUMBER is `[seen]` only if its evidence chain TERMINATES in a MAME observation.**
+    Our engine may be IN the chain: a pixel diff runs our renderer against a MAME golden and stays
+    `[seen]`, because the reference side is the real machine. What is forbidden is a chain that
+    terminates in our OWN output — a `Machine`/`runFrames` dispatch count, an override-map replay,
+    or an idiomatic-vs-oracle equality (`golive.test.js` compares our JS against our JS). Those are
+    sound facts about the PORT, and they are `[code]`.
+    Verify: for every `[seen]` whose evidence is a number, follow the chain to its far end and ask
+    what produced the REFERENCE. Do not classify by which tool ran — `prize_suite.py` emits both
+    kinds from one script (its pixel diff is against a MAME golden and is `[seen]`; its pickup
+    assertion is read out of our own state dump and is `[code]`).
+    **Burden of proof: a `[seen]` number whose MAME artifact you cannot open right now is `[code]`.**
+    That is the same posture as R18 check 2, and it is what makes the check workable at review time
+    given the evidence is ephemeral by design.
 
 - **R18 [U]** An understanding/naming pass must state HOW MANY routines remain unnamed
   and WHY — and "why" must rest on a REACHABILITY MEASUREMENT, not on an impression. Before a pass

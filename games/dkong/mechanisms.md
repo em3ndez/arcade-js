@@ -22,11 +22,13 @@
 > - **`[seen]`** — observed on the real ROM under MAME (a control-poke, an A/B with a negative
 >   control, or a pixel diff). The strongest evidence here.
 > - **`[code]`** — read out of the decompiled routine, the frozen oracle, or the ROM's own data
->   tables. The *mechanics* are exact; the *role* is inference from them. **A number our own
->   harness produced lives here too**: a dispatch count from `new Machine(ROM).runFrames(...)`, or
->   any idiomatic-vs-oracle equality, is this port replaying the ROM — good evidence about the
->   port, and circular as evidence about the arcade machine. Those are written "**harness
->   replay**", never "attract run", so the provenance cannot be misread.
+>   tables. The *mechanics* are exact; the *role* is inference from them. **A number whose evidence
+>   chain ends in our OWN output lives here too**: a dispatch count from
+>   `new Machine(ROM).runFrames(...)`, or any idiomatic-vs-oracle equality, is this port replaying
+>   the ROM — good evidence about the port, and circular as evidence about the arcade machine. Our
+>   engine may be IN a `[seen]` chain (a pixel diff runs this renderer against a MAME golden and
+>   stays `[seen]`); what matters is what produced the REFERENCE. Numbers that end with us are
+>   written "**harness replay**", never "attract run", so the provenance cannot be misread.
 > - **`[guess]`** — plausible, unverified. Never to be relied on.
 >
 > **What this file does NOT own.** A work-RAM cell's name, role and confidence live in exactly

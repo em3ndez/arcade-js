@@ -61,7 +61,8 @@ export const ROUTINES = {
   source of truth for the name; regenerate the map entry whenever a routine is renamed.
 - **role** — one line on what the routine does (its *mechanism*, not its implementation).
 - **cert** — the evidence class for that role: **code** (understood by reading the routine), **seen**
-  (observed executing — attract or a grounding tape drove it and it did this), **guess** (a hypothesis not
+  (observed executing UNDER MAME — a grounding run or tape drove it on the real ROM and it did
+  this; a count from our own harness is **code**, see reviewer-rules R3a), **guess** (a hypothesis not
   yet confirmed — the one still-open item).
 
 Unlike the RAM consts, `ROUTINES` is **metadata, not imported by the running code** — the routines call
