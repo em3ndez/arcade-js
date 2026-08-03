@@ -163,14 +163,6 @@ export const OBJ_STATE = 0x0d;
  *  OFFSET >= 0x10 -> in-record ONLY for the stride-0x20 arrays (OBJ_ARRAY_64 / OBJ_ARRAY_67);
  *  aliases the next record on the stride-0x10 arrays. */
 export const OBJ_WALK_PTR_LO = 0x1a;
-/** [seen] Object-record field: the HIGH byte (+0x1b) of the same saved 16-bit table-walk pointer as
- *  OBJ_WALK_PTR_LO — see that entry for the walker chain and the offset caveat. Rated from the SAME
- *  live MAME observation, which read the pair as a 16-bit value: the high byte held constant 0x3A
- *  (the ROM page the 0x3A70 path table lives on) while the low byte stepped +1/frame, and it goes to
- *  0 with the low byte when the walk rewinds. Every writer writes both bytes together (loc_3445
- *  stores the advanced pointer's high half, and zeroes it on the 0xAA terminator); every reader
- *  recombines them (loc_342c, loc_3478). Constant across the observation is still an observation —
- *  hence [seen], the same rating as its twin, and no stronger claim than the twin makes. */
 export const OBJ_WALK_PTR_HI = 0x1b;
 /** [code] Saved iterator pointer (word) walking the 0x6400 stride-0x20 array; entry_31b1 seeds/advances
  *  it, entry_3202 / sub_298c re-load it (pointer passed through memory). */
@@ -774,11 +766,7 @@ export const M50_OBJ3_STEP = 0x63a6;
 export const M50_OBJ_ROW_SHIFT = 0x63b7;
 
 // ── String / object renderer ─────────────────────────────────────────────────
-/** [code] Waypoint-table pointer (word); walked to a 0x7F terminator, stored back each step.
- *  ★ NOT a character string. The "char-string" reading here was WRONG and is retired (pass 15): the
- *  table it walks is the barrel-release path at ROM 0x39C3 / 0x39CC, whose bytes decode as (x, y)
- *  waypoint pairs -- 0x39C3 = (30,78)(59,76)(88,78)(89,78), 0x39CC = (59,77) -- verified against
- *  maincpu.bin. The 0x7F terminator is real; what precedes it is coordinates, not glyphs. */
+/** [code] Source char-string pointer (word); walked to a 0x7F terminator, stored back each step. */
 export const RENDER_STR_PTR = 0x62a8;
 /** [seen] Object-record pointer (word) the renderer reads/writes (sprite fields +7/+8). Grounded live: the
  *  word took 0x6700/0x6720/0x6740/0x6760/0x6780/0x67A0/0x67C0 — OBJ_ARRAY_67 record bases — plus 0x0000
@@ -1247,12 +1235,12 @@ export const ROUTINES = {
   0x2c86: { name: "loc_2c86", role: "one entry of the bonus-event slot-claim cluster (0x2C41): clear the slot-claim request flag, then hand off to the shared slot-claim entry with mode byte 3", cert: "code" },
   0x2cb8: { name: "releaseBarrelIntoFreeSlot", role: "the 25m barrel-release slot claim: mark the scanned-free OBJ_ARRAY_67 record occupied, publish it and its sprite destination, latch the cluster event gate, and charge the release against BONUS -- on 25m this routine IS the bonus clock", cert: "code" },
   0x2ce6: { name: "loc_2ce6", role: "25m barrel-release entry: while four or more bonus steps remain do nothing; below four, blank the X field of the sprite-group record whose index equals the remaining count, then preset the freshly claimed barrel record", cert: "code" },
-  0x2cf6: { name: "stampReleasedBarrelKind", role: "preset the barrel's object-record sprite-code/attr/mode (default or alt triple, selected by bit 7 of BARREL_CLAIM_MODE), then fall through into the frame-gated release step advanceBarrelRelease", cert: "code" },
-  0x2d15: { name: "advanceBarrelRelease", role: "one frame-gated beat of an in-progress barrel release", cert: "code" },
-  0x2d51: { name: "loc_2d51", role: "reload the waypoint cursor from RAM, then step to the next waypoint", cert: "code" },
-  0x2d54: { name: "stepBarrelAlongReleasePath", role: "step the barrel one waypoint along its release path: emit one 4-byte sprite record for the next waypoint, or hand off to the terminator", cert: "code" },
-  0x2d83: { name: "loc_2d83", role: "aim the walker at the fixed waypoint table at 0x39CC and emit its first waypoint", cert: "code" },
-  0x2d8c: { name: "activateReleasedBarrel", role: "the release path's 0x7F terminator: activate the released barrel (OBJ_ACTIVE := 1 at ROM 0x2DA5) and reload the ten-record sprite-object block", cert: "code" },
+  0x2cf6: { name: "stampReleasedBarrelKind", role: "preset a renderer object record's sprite-code/attr/mode (default or alt triple, selected by bit 7 of 0x6382), then fall through into the frame-gated renderer advanceBarrelRelease", cert: "code" },
+  0x2d15: { name: "advanceBarrelRelease", role: "the frame-gated step of the intro string/sprite renderer", cert: "code" },
+  0x2d51: { name: "loc_2d51", role: "reload the render string cursor from RAM, then render the next character", cert: "code" },
+  0x2d54: { name: "stepBarrelAlongReleasePath", role: "the string renderer's per-character body: emit one 4-byte sprite record for the next character of the string, or hand off to the terminator", cert: "code" },
+  0x2d83: { name: "loc_2d83", role: "aim the string renderer at the fixed source string at 0x39CC and emit its first character", cert: "code" },
+  0x2d8c: { name: "activateReleasedBarrel", role: "the string renderer's 0x7F terminator: reinitialise the object record it was building and reload the ten-record sprite-object block", cert: "code" },
   0x2ddb: { name: "raisePeriodicObjectSpawnRequests", role: "raise two periodic event requests, on 50m/100m, while Mario is alive", cert: "code" },
   0x2e04: { name: "update75mActorObjects", role: "the actor-object scan loop: on 75m, while Mario is alive, update all ten records of the actor object array", cert: "code" },
   0x2e12: { name: "loc_2e12", role: "per-object update entry: dispatch one object by its active flag and state, otherwise walk it one animation-string step", cert: "code" },
