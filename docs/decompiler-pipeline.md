@@ -373,7 +373,7 @@ the map and can't be done well without it. It is required reading for anyone nam
 > map that lags the code — or reads as a patchwork of edits — is the tell that an understanding pass was left
 > half-done: the names shipped but the understanding was never re-written where the next agent reads it.
 >
-> **Enforced, not just advised:** `tools/clarify_gate.py` runs in the pre-commit hook and blocks any
+> **Enforced, not just advised:** `tools/understanding_gate.py` runs in the pre-commit hook and blocks any
 > commit that renames routines / changes `ram.js` exports without staging `mechanisms.md`, or that
 > leaves a retired name anywhere in the map. A recipe step that matters gets a gate — ungated prose
 > loses to task momentum (this rule was nearly skipped once before it had teeth).

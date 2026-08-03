@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Clarify-completeness gate — make the MECHANISMS-with-renames rule MECHANICAL.
+"""Understanding-completeness gate — make the MECHANISMS-with-renames rule MECHANICAL.
 
-The recipe rule (docs/decompiler-pipeline.md, the mechanisms doc): a clarify pass
+The recipe rule (docs/decompiler-pipeline.md, the mechanisms doc): an understanding pass
 rewrites the game's mechanisms.md in the SAME landable unit as the renames, and the
 map must reference only names that exist in the code. Prose can't enforce that — an
 agent (or a lead) under a "correctness gates are green -> commit" reflex ships the
@@ -14,7 +14,7 @@ they bind to exactly what will be committed:
 
   A. same-landable-unit — if the commit renames idiomatic routine files OR changes the
      ram.js export set for game G, then games/G/mechanisms.md must ALSO be staged. A
-     clarify pass that renames without touching the map is half-done.
+     understanding pass that renames without touching the map is half-done.
 
   B. no-retired-names — games/G/mechanisms.md must contain NONE of the names this commit
      retired: idiomatic routine files removed, or ram.js exports removed, between HEAD
@@ -154,13 +154,13 @@ def check():
         retired_exports = head_exports - index_exports
         retired = retired_routines | retired_exports
 
-        clarify_change = renamed_routines or exports_changed
+        understanding_change = renamed_routines or exports_changed
 
         # CHECK A — same landable unit
-        if clarify_change and mech_exists and not mech_staged:
+        if understanding_change and mech_exists and not mech_staged:
             failures.append(
                 f"[{game}] this commit renames routines / changes ram.js exports but does NOT "
-                f"stage {mech}. A clarify pass rewrites the map in the same commit."
+                f"stage {mech}. An understanding pass rewrites the map in the same commit."
             )
 
         # CHECK B — no retired names left in the (staged) map
@@ -179,7 +179,7 @@ def check():
 
     if failures:
         sys.stderr.write(
-            "\nCOMMIT BLOCKED — clarify-completeness gate (tools/clarify_gate.py):\n"
+            "\nCOMMIT BLOCKED — understanding-completeness gate (tools/understanding_gate.py):\n"
             "  the renames landed but the game map (mechanisms.md) is out of sync.\n\n"
             + "\n".join("  " + f for f in failures)
             + "\n\n  Rewrite the game's mechanisms.md from the current code, in THIS commit "
@@ -191,15 +191,15 @@ def check():
 
 def main():
     if REPO is None:
-        sys.stderr.write("COMMIT BLOCKED — clarify gate: not inside a git work tree (failing closed).\n")
+        sys.stderr.write("COMMIT BLOCKED — understanding gate: not inside a git work tree (failing closed).\n")
         return 1
     if len(sys.argv) < 2 or sys.argv[1] != "check":
-        sys.stderr.write("usage: clarify_gate.py check\n")
+        sys.stderr.write("usage: understanding_gate.py check\n")
         return 2
     try:
         return check()
     except GitError as e:
-        sys.stderr.write(f"COMMIT BLOCKED — clarify gate git error (failing closed): {e}\n")
+        sys.stderr.write(f"COMMIT BLOCKED — understanding gate git error (failing closed): {e}\n")
         return 1
 
 

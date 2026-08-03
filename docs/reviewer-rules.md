@@ -8,7 +8,7 @@ names how to verify it so the check is mechanical, not a matter of opinion.
 
 Enforcement lives HERE — in the rules an independent review agent checks — not in bespoke gate
 scripts. A gate can only test a proxy; the review agent can judge the actual requirement. (The
-only always-on git hooks are the pre-existing `review_gate` / `names_consistency` / `clarify_gate`;
+only always-on git hooks are the pre-existing `review_gate` / `names_consistency` / `understanding_gate`;
 do not add more — express a new requirement as a rule below.)
 
 First, classify this commit from its subject line:
