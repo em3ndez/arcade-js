@@ -3,19 +3,19 @@
  * drawLadder — stamp a kind-2 ladder run DOWN the tilemap for a board-layout record.  ROM 0x0E4F.
  *
  * The kind-2 arm of the board-layout drawer chain (sub_0da7 walks a table of
- * segment records; each record's kind byte is stashed at 0x63B3 and dispatched —
- * kind 1 -> drawGirderSpan, kind 2 -> here, kind 3+ -> drawCappedTileColumn).
+ * segment records; each record's kind byte is stashed at SEG_KIND (0x63B3) and
+ * dispatched — kind 1 -> drawGirderSpan, kind 2 -> here, kind 3+ -> drawCappedTileColumn).
  * Where the girder fill walks ACROSS laying one tile, this walks DOWN: HL steps a
  * whole tilemap row per row (+0x20, the map is 0x20 cells wide) and the height
- * counter at 0x63B1 is paid down 8 px — one tile — at a time until it borrows.
+ * counter SEG_HEIGHT (0x63B1) is paid down 8 px — one tile — at a time until it borrows.
  *
- * The run is up to two cells wide. On each row it stamps the ladder tile (0x63B5,
- * seeded from the record's tile byte 0x63AF biased by -0x10) and, alongside it, the
+ * The run is up to two cells wide. On each row it stamps the ladder tile (SEG_TILE, 0x63B5,
+ * seeded from the record's tile byte SEG_SUBTILE1 (0x63AF) biased by -0x10) and, alongside it, the
  * paired half-tile (tile - 0x10) — skipping that paired write when the cell wrapped
  * off the right edge of a 32-cell row ((L & 0x1F) == 0), or, on the leading row, when
  * the tile is the 0xF0 sentinel.
  *
- * The run can SLANT to track a sloped girder. The x-delta at 0x63B2 selects it:
+ * The run can SLANT to track a sloped girder. The x-delta SEG_RUN (0x63B2) selects it:
  *   - 0        -> straight down (redraw the same column every row).
  *   - positive -> slant right: bump the tile code +1 each slant step; when it steps
  *                 past the band (0xF8) wrap the code back to 0xF0 and shift a column right.
@@ -37,11 +37,18 @@
  * LIVE-OUT: memory-only + DE — the record cursor. The successor sub_0da7 (0x0DA7) does
  *           `ld a,(de)` first thing, so the advanced DE must match; A/HL/BC are dead
  *           (the walk and its dispatch overwrite them before any read).
- * NAMES:    none from ram.js — 0x63AB/0x63AF/0x63B1/0x63B2/0x63B3/0x63B5 are the
- *           per-record board-draw scratch, left hex in ram.js (its 0x63xx reject list).
- *           Callee: drawCappedTileColumn (ROM 0x0EE8).
+ * NAMES:    SEG_ADDR1 (0x63AB tilemap ptr), SEG_SUBTILE1 (0x63AF first-endpoint sub-tile
+ *           x, this record's tile seed), SEG_HEIGHT (0x63B1 column extent), SEG_RUN
+ *           (0x63B2 segment run, whose sign gives the slant), SEG_KIND (0x63B3 record
+ *           kind), SEG_TILE (0x63B5 current stamped tile code) from ram.js — the
+ *           line-segment board-render scratch struct, the same block the sibling drawers
+ *           (drawGirderSpan / drawCappedTileColumn / fillTileColumn / drawBoardLayout)
+ *           import. Callee: drawCappedTileColumn (ROM 0x0EE8).
  */
 
+import {
+  SEG_ADDR1, SEG_SUBTILE1, SEG_HEIGHT, SEG_RUN, SEG_KIND, SEG_TILE,
+} from "./ram.js";
 import { drawCappedTileColumn } from "./drawCappedTileColumn.js"; // ROM 0x0EE8
 
 export function drawLadder(m) {
@@ -50,22 +57,22 @@ export function drawLadder(m) {
   // sub_0da7 stashes the record kind here. Only kind 2 is a ladder; hand anything
   // else to the capped-column drawer (it handles kind 3 and forwards kind 4+, and
   // advances DE itself). This is the oracle's `jp nz,0x0EE8`.
-  if (mem.read8(0x63b3) !== 0x02) {
+  if (mem.read8(SEG_KIND) !== 0x02) {
     return drawCappedTileColumn(m);
   }
 
   // Seed the ladder tile code from the record's tile byte, biased by -0x10 (add 0xF0).
-  mem.write8(0x63b5, (mem.read8(0x63af) + 0xf0) & 0xff);
+  mem.write8(SEG_TILE, (mem.read8(SEG_SUBTILE1) + 0xf0) & 0xff);
 
   // Walk pointer: the tilemap cell the record's corner fell in (converted VRAM addr).
-  let hl = mem.read16(0x63ab);
+  let hl = mem.read16(SEG_ADDR1);
 
   // Stamp the ladder tile at HL, then advance HL and stamp the paired half-tile
   // (tile - 0x10) beside it — unless HL wrapped past a 32-cell row boundary, or (only
-  // on the leading row) the tile is the 0xF0 sentinel. Re-reads 0x63B5 each call, as
+  // on the leading row) the tile is the 0xF0 sentinel. Re-reads SEG_TILE each call, as
   // the oracle does, so the tile code lives only in memory.
   function stamp(skipOnSentinel) {
-    const t = mem.read8(0x63b5);
+    const t = mem.read8(SEG_TILE);
     mem.write8(hl, t);
     hl = (hl + 1) & 0xffff;
     if ((hl & 0x1f) === 0) return; // ran off the right edge of the row
@@ -78,9 +85,9 @@ export function drawLadder(m) {
   // height is spent and the ladder ends (nothing is stored on the borrowing row).
   function descend() {
     hl = (hl + 0x1f) & 0xffff;
-    const h = mem.read8(0x63b1);
+    const h = mem.read8(SEG_HEIGHT);
     if (h < 0x08) return false;
-    mem.write8(0x63b1, (h - 0x08) & 0xff);
+    mem.write8(SEG_HEIGHT, (h - 0x08) & 0xff);
     return true;
   }
 
@@ -100,7 +107,7 @@ export function drawLadder(m) {
       // 0x0E78 — drop a row, pay height. Straight ladders loop back here every row;
       // a nonzero x-delta lays a second row before the slant adjustment.
       if (!descend()) break;
-      if (mem.read8(0x63b2) === 0x00) {
+      if (mem.read8(SEG_RUN) === 0x00) {
         phase = "STAMP_ROW"; // straight down
         continue;
       }
@@ -112,17 +119,17 @@ export function drawLadder(m) {
     if (phase === "DESCEND_B") {
       // 0x0EA0 — drop the second row, pay height, then adjust the tile code to slant.
       if (!descend()) break;
-      if (mem.read8(0x63b2) & 0x80) {
+      if (mem.read8(SEG_RUN) & 0x80) {
         phase = "SLANT_LEFT"; // x-delta negative
         continue;
       }
       // Slant right: bump the tile code up; a step past the band (0xF8) wraps it back
       // to 0xF0 and shifts the write pointer one column right.
-      const t = (mem.read8(0x63b5) + 1) & 0xff;
-      mem.write8(0x63b5, t);
+      const t = (mem.read8(SEG_TILE) + 1) & 0xff;
+      mem.write8(SEG_TILE, t);
       if (t === 0xf8) {
         hl = (hl + 1) & 0xffff;
-        mem.write8(0x63b5, 0xf0);
+        mem.write8(SEG_TILE, 0xf0);
       }
       phase = "ROW_CHECK";
       continue;
@@ -141,11 +148,11 @@ export function drawLadder(m) {
     // SLANT_LEFT — 0x0ED3. Drop the tile code by one; when it falls below the band
     // (`cp 0xF0` sign set: bit 7 of (tile - 0xF0)), re-seat it to 0xF7 and shift a
     // column left. Then loop straight back to the next row (no row-boundary check).
-    const t = (mem.read8(0x63b5) - 1) & 0xff;
-    mem.write8(0x63b5, t);
+    const t = (mem.read8(SEG_TILE) - 1) & 0xff;
+    mem.write8(SEG_TILE, t);
     if (((t - 0xf0) & 0x80) !== 0) {
       hl = (hl - 1) & 0xffff;
-      mem.write8(0x63b5, 0xf7);
+      mem.write8(SEG_TILE, 0xf7);
     }
     phase = "STAMP_ROW"; // via 0x0EE5 `jp 0x0E62`
   }
