@@ -48,10 +48,11 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   The pass must name at least one blocked cluster its run actually attacked.
   Verify:
   1. The pass reports an unnamed COUNT, and it matches the registry — re-derive it.
-  2. A reachability sweep exists for this pass, with its script and run parameters cited AND
-     REACHABLE by the reviewer — an artifact in a session scratchpad that no later reader can
-     open is not a citation. An assertion that routines are "not reachable" or "nothing grounds
-     them", with no sweep behind it, FAILS. This is the whole point of the rule.
+  2. A reachability sweep exists for this pass, with its script and run parameters cited, and YOU
+     OPEN IT. A session scratchpad is a fine home for it — the evidence does not have to outlive
+     this review, and the committed prose should carry the FINDING, not a path. An assertion that
+     routines are "not reachable" or "nothing grounds them", with no sweep you could open, FAILS.
+     This is the whole point of the rule.
   3. Any not-reached set is stated as "not reached by THIS sweep", with the states the sweep did
      NOT drive named (deliberate death, full prize collection, two-player, each difficulty tier
      ACTUALLY reached rather than merely nominally set). A not-reached set presented as a dead-code
@@ -74,14 +75,17 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 - **R5 [ALL]** Every promoted name is corroborated by evidence OUTSIDE the routine itself (a named
   cell it touches, an idiomatic caller/callee, mechanisms.md, or a sibling), and the file header
   states that corroboration. Verify: read the renamed file's header — then locate what CHECKED the
-  prediction and confirm the header cites it somewhere a later reader can reach: a write-set/RAM
+  prediction and confirm the header cites it somewhere YOU can open right now: a write-set/RAM
   diff, a `reach_sweep` row, a per-cell verdict in this pass's grounding report, or a derivation
   from a DIFFERENT body of code (the caller, a sibling, mechanisms.md) that COULD HAVE COME OUT THE
   OTHER WAY. The test is falsifiability, not instrumentation — reading the caller and finding it
   uses the result as a table index would refute "this classifies", so that derivation counts, while
   a restatement of the routine's own body does not. "Read the header" alone cannot catch this: a
-  header restating its own code-reading passes it. A corroboration clause with nothing reachable
-  behind it FAILS.
+  header restating its own code-reading passes it. A corroboration clause with nothing behind it
+  that you can open FAILS. **The evidence itself may be ephemeral — a session scratchpad is a fine
+  home for it, and we do not commit everything.** You are the one who checks it exists and says what
+  it says; a later reader re-derives from the ROM, not from our session. Do not require the artifact
+  to outlive the review, and do not make a header carry a path to it.
 
   **The corroboration must be a PREDICTION the name makes, that was then checked** — not a
   restatement of the same code-reading in other words. Ask of each promotion: what would be
