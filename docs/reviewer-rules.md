@@ -138,7 +138,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
            console.log(`${f}: imports translated/loc_${m[1]}.js but ${ROUTINES[parseInt(m[1], 16)].name} is idiomatic`);'
      ```
      It scans the whole tree, so judge only the files THIS commit stages; pre-existing hits are a
-     separate cleanup unit (26 stood in games/dkong/idiomatic as of 2026-08-02).
+     separate cleanup unit. Run it to see whether any stand — do not carry a count from this doc.
   WHY A RULE AND NOT A GATE, and why this rule is load-bearing: a stale oracle reference is
   invisible to the equivalence gate BY CONSTRUCTION — the oracle is correct, so calling it produces
   correct RAM and every test stays green. Nothing else in the pipeline can see it. This rule is the
@@ -291,7 +291,7 @@ recorded). Add new requirements here, as rules — not as new gates.*
 
 *R10's recipe was completed at the same time (2026-08-02): it had checked only the `m.call(0x…)`
 form and was blind to the direct `../translated/loc_XXXX.js` import form, which had accumulated 26
-stale references across exactly 16 DK idiomatic files (25 files import a translated loc at all; 16 of those have a stale one). Same species as R17 — a check that reads as
+stale references across 16 DK idiomatic files that day. Same species as R17 — a check that reads as
 complete, run for years, that could only ever have caught half of what its own statement forbids.*
 
 *R17 was added after a whole-game guest-stack leak survived 368 green per-routine gates plus the
