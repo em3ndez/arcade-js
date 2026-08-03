@@ -15,6 +15,7 @@
 import { AddressSpace } from "../../boards/dkong/memory.js";
 import { IO, Inputs, NotImplemented } from "../../boards/dkong/io.js";
 import { Regs } from "../../core/cpu/z80.js";
+import { makeIndexedView } from "../../core/mem-views.js";
 import { loc_0000 as romReset } from "./translated/loc_0000.js";
 import { bootOnly } from "./translated/bootOnly.js";
 import { loc_0066 } from "./translated/loc_0066.js";
@@ -123,7 +124,7 @@ export class FramesComplete extends Error {
 const SEAM_CALLER_SKIP = new Set([
   // ── added when decompile batch 3 wired these into ROUTINES ──────────────────
   0x1e8c, // loc_1e8c  effect-latch frame gate   pop hl / ret     (MEASURED false:+4 x146 of 1938)
-  0x30fa, // gateObjectUpdateByDifficulty  difficulty->gate selector pop hl / ret     (MEASURED false:+4 x896 of 1792)
+  0x30fa, // loc_30fa  difficulty->gate selector pop hl / ret     (MEASURED false:+4 x896 of 1792)
   0x33a1, // loc_33a1  movement-path height gate inc sp x2 / ret  (SOURCE-JUSTIFIED, not measured:
           //   ROM 0x33A1 = `3e 07 f7 dd 7e 0f fe 59 d0 33 33 c9`; the `33 33 c9` tail IS the idiom.
           //   Attract reaches only the `ret nc` arm, so an oracle run CANNOT see this one. (Counts
@@ -149,7 +150,7 @@ const SEAM_CALLER_SKIP = new Set([
   0x1783, // loc_1783 allSlotsClear        jp 0x0026 -> pop hl / ret
   0x1a2a, // loc_1a2a advanceSubstateWhenGrounded  pop hl + tail 0x19d2 whose ret pops
   0x1e85, // loc_1e85 enterBoardAdvanceAndUnwind   pop hl / ret
-  0x2257, // reportNoHitAndSkipCaller                      pop hl / ret
+  0x2257, // loc_2257                      pop hl / ret
   0x236e, // loc_236e                      pop hl / ret
   0x2913, // loc_2913 findCollidingObject  pop ix / inc sp x2 / ret
   0x2b29, // loc_2b29                      tails into 0x2b51 (measured false:+4)
@@ -509,6 +510,15 @@ export class Machine {
     this.mem = new AddressSpace(rom, this.io);
     this.regs = new Regs();
     this.mem.clock = () => this.cycles;
+
+    // Indexable views over memory for the idiomatic layer's readability: mem8[ADDR]
+    // and mem16[ADDR] forward to this.mem's read8/write8 and read16/write16. Pure
+    // sugar — the oracle and the live engine keep calling this.mem directly. Rebuilt
+    // per instance, so clone() (which reruns this constructor) gets views bound to its
+    // own memory. See core/mem-views.js.
+    this.mem8 = makeIndexedView(this.mem, 8);
+    this.mem16 = makeIndexedView(this.mem, 16);
+
     this.frame = 0;
     this.booted = false;
 
