@@ -1,51 +1,32 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1e6d — stamp Mario's sprite facing on the board-won path, then commit the
- * board-advance and unwind out of the movement cascade.  ROM 0x1E6D.
+ * loc_1e6d — stamp Mario's sprite facing on the board-won path, then commit the board
+ * advance and unwind out of the movement cascade.
  *
- * A shared interior of Mario's per-frame position check (sub_1e57), reached on the
- * rescue win condition (Mario has climbed to the rescue row near Pauline) of every
- * non-rivet board: ROM 0x1E5F's `rra` on BOARD routes the ODD boards (25m, 75m) here via
- * completeBoardWhenMarioReachesRescueRow with the carry SET, and BOARD 2 arrives through the dispatcher's own
- * fall-through at ROM 0x1E6C. (BOARD 4 was diverted to the rivet arm earlier.) The
- * caller hands it a single selector — the carry flag — and it sets Mario's sprite-record
- * code byte (MARIO_SPRITE_RECORD + SPRITE_CODE) to a bare facing value:
+ * A shared interior of Mario's per-frame position check, reached on the rescue win condition
+ * — Mario has climbed to the rescue row near Pauline — of every non-rivet board. The odd
+ * boards (25m, 75m) arrive with the carry SET; board 2 arrives with it clear. (Board 4 is
+ * diverted to the rivet arm earlier and never reaches here.) The caller hands over that
+ * single selector, the carry flag, and this routine sets Mario's sprite-record code byte to
+ * a bare facing value:
  *   • carry SET   -> 0x00  (horizontal-flip bit clear)
  *   • carry CLEAR -> 0x80  (horizontal-flip / facing bit set)
- * so the whole tile-code byte becomes just that flip bit — the "sprite mirror flag".
+ * so the whole tile-code byte becomes just that flip bit — the sprite mirror flag.
  *
- * It then commits the win: enterBoardAdvanceAndUnwind (ROM 0x1E85) stamps GAME_SUBSTATE
- * := 0x16 (the board-cleared / advance sub-state) and UNWINDS out of the movement cascade,
- * aborting any further movement on the frame the board is won. This routine returns that
- * callee's boolean unwind signal unchanged — false, the caller-skip meaning "abort: do
- * not continue".
+ * It then commits the win: the board-advance step stamps the board-cleared / advance
+ * sub-state into GAME_SUBSTATE and UNWINDS out of the movement cascade, aborting any further
+ * movement on the frame the board is won. This routine returns that step's unwind signal
+ * unchanged — false, the caller-skip value meaning "abort: do not continue".
  *
- * The carry is a genuine REGISTER-ABI live-in. Both callers — checkBoardWonByType (sub_1e57)
- * and completeBoardWhenMarioReachesRescueRow — are idiomatic, but neither has an honest
- * signature yet, so each still hands the selector over in the machine flag exactly where the
- * oracle's jump sites leave it; this routine reads it from there rather than taking a
- * parameter. It promotes to a boolean argument once those callers take honest args.
+ * The carry is a genuine register live-in: the callers leave the selector in the machine
+ * flag, so this routine reads it from there rather than taking a parameter.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1e6d.test.js.
- * GATE:     crafted-entry — a long attract run dispatches 0x1E6D ZERO times (attract never
- *           completes a board / rescues Pauline), so the gate is crafted from real booted
- *           attract RAM with a controlled return stack and a sprite/sub-state sentinel,
- *           driving BOTH carry arms, then oracle-vs-idiomatic on fresh clones. The oracle's
- *           tail-call into 0x1E85's two-level unwind (discard own return, then ret to the
- *           grandparent) is modeled on the candidate as one discarded pop + one net return
- *           so pc + SP line up. Teeth: an inverted-flip twin, a dropped-sprite-write twin, a
- *           dropped-board-advance twin, and a no-unwind twin, each caught.
- * LIVE-OUT: MARIO_SPRITE_RECORD + SPRITE_CODE (the flip byte) and GAME_SUBSTATE (:= 0x16,
- *           written by the callee) in memory, plus the boolean unwind signal (false). No
- *           live registers/flags out — the oracle's residual A/flags and the discarded
- *           return are dead ABI.
- * NAMES:    MARIO_SPRITE_RECORD (0x694C) + SPRITE_CODE (0x01) -> 0x694D from names.js;
- *           enterBoardAdvanceAndUnwind (ROM 0x1E85) direct-called (writes GAME_SUBSTATE).
- *           0x80 is the sprite code's horizontal-flip / facing bit.
+ * LIVE-OUT: Mario's sprite-record code byte, and GAME_SUBSTATE (written by the board-advance
+ * step), plus the unwind signal — always false.
  */
 
 import { MARIO_SPRITE_RECORD, SPRITE_CODE } from "./names.js";
-import { enterBoardAdvanceAndUnwind } from "./enterBoardAdvanceAndUnwind.js"; // ROM 0x1E85
+import { enterBoardAdvanceAndUnwind } from "./enterBoardAdvanceAndUnwind.js";
 
 export function loc_1e6d(m) {
   const { regs, mem } = m;

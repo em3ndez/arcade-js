@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_298c (ROM 0x298C) — the "tile ahead of the object is
- * outside the accepted band" predicate.
+ * Equivalence test for turnFireAtGroundEdge (ROM 0x298C) — the "the tile 12 px BELOW the object is
+ * outside the accepted band" predicate, which is how the caller sees a ground edge.
  *
  * sub_298c is READ-ONLY: it reads the iterated object record (OBJ_ITER_PTR), takes
- * that object's Y and X fields, carries X 12 pixels along, maps the pixel to its
+ * that object's two working coordinates, carries the Y one 12 pixels DOWN (the X is
+ * left alone — 0x2993-0x2998 loads +0x0E into D and +0x0F PLUS 0x0C into E, and the
+ * `ex de,hl` puts them in H,L in that order), maps the pixel to its
  * tilemap cell (via 0x2FF0 / tileAddrForPixel), reads the tile there, and returns
  * A = 1 when the tile is out of band (below 0xB0, or low nibble >= 8) and A = 0
  * when it is in band. It writes NO memory. Its only live-out is that A — the caller
@@ -20,7 +22,7 @@
  * can differ in memory, since the routine itself stores nothing.
  *
  *   1. REALISM (captured) — hook 0x298C in a real attract run (~285 dispatches per
- *      2000 frames), clone the machine at each real dispatch, and confirm loc_298c
+ *      2000 frames), clone the machine at each real dispatch, and confirm turnFireAtGroundEdge
  *      reproduces the oracle's RAM (− STACK_SCRATCH), pc, SP, and A on every state
  *      the game actually produces.
  *
@@ -28,7 +30,7 @@
  *      to pin every tile-band edge: below the 0xB0 floor, the 0xB0/0xB7 in-band
  *      edges, the low-nibble-8 out edge, a high in-band tile (0xF7), an all-ones
  *      tile, and zero — plus the low-byte page wrap on the record fields, and the
- *      12px X probe offset. Each asserts loc_298c == oracle AND that the oracle's A
+ *      12px X probe offset. Each asserts turnFireAtGroundEdge == oracle AND that the oracle's A
  *      matches the hand-computed predicate (so the fixtures themselves are checked).
  *
  *   3. TEETH — four broken twins, each of which the SAME suite MUST catch:
@@ -46,7 +48,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_298c as oracle } from "../../translated/loc_298c.js";
-import { loc_298c } from "../loc_298c.js";
+import { turnFireAtGroundEdge } from "../turnFireAtGroundEdge.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, OBJ_ITER_PTR } from "../names.js";
@@ -159,7 +161,7 @@ test("REACHABILITY: 0x298C is dispatched during attract", () => {
 
 // -- 1. REALISM (captured) ----------------------------------------------------
 
-test("REALISM: real captured 0x298C dispatches — loc_298c matches oracle (RAM/pc/SP/A)", () => {
+test("REALISM: real captured 0x298C dispatches — turnFireAtGroundEdge matches oracle (RAM/pc/SP/A)", () => {
   const caps = [];
   const snap = new Map([[TARGET, (mm) => {
     if (caps.length < 200) caps.push(mm.clone());
@@ -174,7 +176,7 @@ test("REALISM: real captured 0x298C dispatches — loc_298c matches oracle (RAM/
     // Skip the (unobserved) deep-stack case where the oracle's dead push would land
     // below STACK_SCRATCH — it would masquerade as a real RAM diff.
     if ((entry.regs.sp - 2) < STACK_SCRATCH.lo) continue;
-    const diffs = contractDiffs(entry, loc_298c);
+    const diffs = contractDiffs(entry, turnFireAtGroundEdge);
     assert.equal(diffs.length, 0, `captured dispatch: ${diffs.join("; ")}`);
     if (runOracle(entry).regs.a === 1) sawOut++; else sawIn++;
     compared++;
@@ -205,7 +207,7 @@ test("EQUAL (crafted): every tile-band edge and the page wrap match the oracle",
     const entry = craftProbe(base, opts);
     // The fixture is self-checking: the oracle's A must equal the hand predicate.
     assert.equal(runOracle(entry).regs.a, expectedA(opts.tile), `${name}: fixture — oracle A != predicted`);
-    const diffs = contractDiffs(entry, loc_298c);
+    const diffs = contractDiffs(entry, turnFireAtGroundEdge);
     assert.equal(diffs.length, 0, `${name}: ${diffs.join("; ")}`);
   }
   console.log(`  EQUAL/crafted: ${cases.length} band edges + page wrap identical to the oracle`);

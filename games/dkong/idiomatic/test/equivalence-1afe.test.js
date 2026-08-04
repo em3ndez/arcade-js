@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1afe (ROM 0x1AFE) — the hammer-climb collision handler: look
+ * Equivalence test for armMarioClimbAtLadderEnd (ROM 0x1AFE) — the hammer-climb collision handler: look
  * Mario's grid cell up in the type-0 object-parameter table and, on a hit, stamp the climb
  * sprite code, write the near-end-of-scan flag at 0x621A, and commit this frame's climb-limit
  * pair before driving the climb.
@@ -36,6 +36,11 @@
  *        (b) swapped limits — writes the tag-1/flag-0 pair in loc_1b4e's order instead of the
  *            opposite order; caught on the crafted flag-0 arm at MARIO_CLIMB_LIMIT_A.
  *
+ * LIVE-OUT, cross-file and therefore recorded here rather than in the routine: memory-only. The
+ * caller (walkLeftWhileHeld) tail-returns this routine's result and consumes no register it leaves;
+ * the oracle's residual registers and flags, its push-af/pop-af bracket, and its terminal returns
+ * are dead ABI.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1afe.test.js
  */
 
@@ -44,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1afe as oracle } from "../../translated/loc_1afe.js";
-import { loc_1afe } from "../loc_1afe.js";
+import { armMarioClimbAtLadderEnd } from "../armMarioClimbAtLadderEnd.js";
 import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";                 // ROM 0x236E — used by the teeth twins
 import { loc_1b4e } from "../loc_1b4e.js";                 // ROM 0x1B4E — used by the teeth twins
 import { climbDownWhileHeld } from "../climbDownWhileHeld.js"; // ROM 0x1B38 — used by the teeth twins
@@ -210,7 +215,7 @@ function craftTag1(base, { matchOffset, input, onLadder } = {}) {
   return e;
 }
 
-// -- teeth twins (same shape as loc_1afe, one thing broken) -------------------
+// -- teeth twins (same shape as armMarioClimbAtLadderEnd, one thing broken) -------------------
 
 /** Shared body: run the real setup + lookup, then apply a per-twin break at the writes. */
 function twinBody(m, { spriteOr, swapLimits }) {
@@ -256,11 +261,11 @@ test("REACHABILITY: 0x1AFE dispatches during attract, spanning the hammer gate +
 
 // -- 1. EQUAL (real captured dispatches) --------------------------------------
 
-test("EQUAL (real dispatches): loc_1afe == oracle on every captured 0x1AFE entry", () => {
+test("EQUAL (real dispatches): armMarioClimbAtLadderEnd == oracle on every captured 0x1AFE entry", () => {
   const caps = getCaps();
   assert.ok(caps.length >= 1, "expected at least one real 0x1AFE dispatch during attract");
   for (const cap of caps) {
-    const diffs = contractDiffs(cap, loc_1afe); // FRESH clones inside — cap untouched
+    const diffs = contractDiffs(cap, armMarioClimbAtLadderEnd); // FRESH clones inside — cap untouched
     assert.equal(diffs.length, 0, diffs.join("; "));
   }
   console.log(`  EQUAL/real: ${caps.length} captured dispatches identical on RAM+pc+SP`);
@@ -275,14 +280,14 @@ test("EQUAL (crafted): MISS, tag1/flag1 (ret), tag1/flag0 (swapped pair) all mat
   // MISS — the object key is not in the table: the routine writes NO live RAM.
   const miss = craftMiss(seed);
   assert.equal(classify(miss), "miss", "craftMiss must actually miss");
-  assert.equal(contractDiffs(miss, loc_1afe).length, 0, "MISS arm diverged");
+  assert.equal(contractDiffs(miss, armMarioClimbAtLadderEnd).length, 0, "MISS arm diverged");
   assert.equal(changedAddrs(miss, runOracle(miss)).length, 0, "MISS arm wrote live RAM (should be inert)");
 
   // tag 1, flag 1 — match near the end of the scan: stamp sprite code + flag, then return; no
   // limit writes.
   const flag1 = craftTag1(seed, { matchOffset: 16 });
   assert.equal(classify(flag1), "tag1flag1", "craftTag1(offset 16) must be tag1/flag1");
-  assert.equal(contractDiffs(flag1, loc_1afe).length, 0, "tag1/flag1 arm diverged");
+  assert.equal(contractDiffs(flag1, armMarioClimbAtLadderEnd).length, 0, "tag1/flag1 arm diverged");
   const f1 = runOracle(flag1);
   assert.equal(f1.mem.read8(MARIO_SPRITE_CODE), 0x06, "tag1/flag1: sprite code stamped 0x06");
   assert.equal(f1.mem.read8(CLIMB_FLAG), 1, "tag1/flag1: near-end flag set to 1");
@@ -293,7 +298,7 @@ test("EQUAL (crafted): MISS, tag1/flag1 (ret), tag1/flag0 (swapped pair) all mat
   // dispatch (a no-op here: Down clear + off-ladder). Distinct A/B so order is observable.
   const flag0 = craftTag1(seed, { matchOffset: 0, input: 0x00, onLadder: 0x00 });
   assert.equal(classify(flag0), "tag1flag0", "craftTag1(offset 0) must be tag1/flag0");
-  assert.equal(contractDiffs(flag0, loc_1afe).length, 0, "tag1/flag0 arm diverged");
+  assert.equal(contractDiffs(flag0, armMarioClimbAtLadderEnd).length, 0, "tag1/flag0 arm diverged");
   const f0 = runOracle(flag0);
   assert.equal(f0.mem.read8(CLIMB_FLAG), 0, "tag1/flag0: near-end flag cleared to 0");
   assert.equal(f0.mem.read8(MARIO_CLIMB_LIMIT_A), Y_LIMIT, "tag1/flag0: limit A <- (Y+8)");

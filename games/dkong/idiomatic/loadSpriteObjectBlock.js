@@ -1,33 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loadSpriteObjectBlock — copy the 40-byte sprite-object block from the caller's
- * source pointer into 0x6908.  ROM 0x004e.
+ * loadSpriteObjectBlock — copy the 40-byte sprite-object block from the caller's source
+ * pointer into SPRITE_OBJ_BLOCK.
  *
- * A fixed-destination block copy. sub_004e hard-wires the DESTINATION (0x6908 =
- * SPRITE_OBJ_BLOCK, the 10-record / 40-byte sprite-object group that lives inside
- * the sprite shadow buffer) and the LENGTH (0x28 = 40 = 10 records x 4 bytes), but
- * NOT the source: it sets DE and BC and does an `ldir` without touching HL, so HL is
- * an implicit input supplied by each of its thirteen callers. The routine therefore
- * loads the block from wherever the caller points — a scene-dependent ROM template of
- * sprite records (board decor, cutscene props); the STRUCTURE it fills is fixed even
- * though the CONTENT is not.
+ * A fixed-destination block copy. The DESTINATION (SPRITE_OBJ_BLOCK, the 10-record /
+ * 40-byte sprite-object group inside the sprite shadow buffer) and the LENGTH (40 = 10
+ * records x 4 bytes) are hard-wired; the SOURCE is not. The source pointer arrives in HL as
+ * an implicit input, so the routine loads the block from wherever the caller points — a
+ * scene-dependent template of sprite records (board decor, cutscene props). The STRUCTURE it
+ * fills is fixed even though the CONTENT is not.
  *
- * The copy is a forward byte-by-byte `ldir`, so it is faithful even when source and
- * destination overlap (a forward memmove, not memcpy). After it, the routine leaves
- * the LDIR's terminal register state: HL advanced past the source, DE past the
- * destination, BC drained to zero.
+ * The copy is forward and byte-by-byte, so it stays faithful even when source and destination
+ * overlap: a forward memmove, not a memcpy. Afterwards it leaves the block-move's terminal
+ * register state — HL advanced past the source, DE past the destination, BC drained to zero.
  *
- * Memory-equivalent to the frozen oracle — equivalence-004e.test.js.
- * GATE:     crafted-entry; reached in attract (48 real dispatches / 2000 frames, 5
- *           ROM-template sources) + crafted HL/source-pattern entries (incl. an
- *           overlap case) poked identically on both sides. Teeth = off-by-one length.
- * LIVE-OUT: memory (the 40 bytes at SPRITE_OBJ_BLOCK) + HL/DE/BC, set to the LDIR
- *           terminal state (HL = source+0x28, DE = 0x6930, BC = 0) so any of the 13
- *           callers that consumes a register is safe. Flags and A are untouched by
- *           BOTH sides (the oracle's ldirAt models no flags), so they match trivially;
- *           SP/PC are not compared — the idiomatic layer drops the `ret`'s stack/PC
- *           bookkeeping (the JS call stack replaces it).
- * NAMES:    SPRITE_OBJ_BLOCK (0x6908).
+ * LIVE-OUT: memory (the 40 bytes at SPRITE_OBJ_BLOCK) + HL/DE/BC in that terminal state
+ * (HL = source + 40, DE = one past the destination, BC = 0), so any caller that consumes a
+ * register is safe. Flags and A are untouched.
  */
 
 import { SPRITE_OBJ_BLOCK } from "./names.js";
@@ -38,15 +27,15 @@ export function loadSpriteObjectBlock(m) {
   const { regs, mem } = m;
 
   let src = regs.hl; // caller-supplied source (HL is an implicit input)
-  let dst = SPRITE_OBJ_BLOCK; // 0x6908, the fixed destination
+  let dst = SPRITE_OBJ_BLOCK; // the fixed destination
   for (let i = 0; i < OBJ_BLOCK_BYTES; i++) {
     mem.write8(dst, mem.read8(src));
     src = (src + 1) & 0xffff;
     dst = (dst + 1) & 0xffff;
   }
 
-  // LDIR's terminal register state, reproduced so any caller that reads it is safe.
-  regs.hl = src; // HL_in + 0x28
-  regs.de = dst; // 0x6930
+  // The block move's terminal register state, so any caller that reads it is safe.
+  regs.hl = src; // source + 40
+  regs.de = dst; // one past the destination
   regs.bc = 0; // drained
 }

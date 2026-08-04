@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * resolveAirborneTileLanding — resolve whether Mario's airborne descent has reached a
- * tile surface; on a hit, snap him onto it and abort the collision probe.  ROM 0x2BE1.
+ * tile surface; on a hit, snap him onto it and abort the collision probe.
  *
- * The tail of the tile-classifier gate (entry_2b9b): it is entered by a tail-jump
- * once the classifier has built the tile-column boundary in C. It measures how far
- * Mario has descended by comparing a probe value against that boundary:
+ * The tail of the tile classifier: it is entered once the classifier has built the
+ * tile-column surface boundary. It measures how far Mario has descended by comparing a
+ * probe value against that boundary:
  *
  *     probe = MARIO_AIR_PREV_Y - (object Y field) + rowOffset
  *
@@ -14,39 +14,22 @@
  * collision case that pointer is the Mario block, so +5 aliases MARIO_Y), and
  * rowOffset is the tile-row adjustment the classifier passes in.
  *
- *   - probe ABOVE the boundary (probe > C): Mario is still clear of this tile.
- *     Report the "still airborne, keep probing" code (2) and return normally so
- *     the classifier's caller continues its collision walk.
+ *   - probe ABOVE the boundary: Mario is still clear of this tile. Report the "still
+ *     airborne, keep probing" code (2) and return normally, so the collision walk continues.
  *
- *   - probe AT OR BELOW the boundary (probe <= C): Mario has reached the surface.
- *     Snap MARIO_Y to just above the boundary (C - 7), report the "landed" code (1),
- *     and take the two-frame unwind — the landing aborts the whole multi-probe walk,
- *     not just this classifier call. That unwind is expressed as returning `false`
- *     under the caller-skip convention (the classifier propagates it, and its caller
- *     completes it with `if (!callee) return`).
+ *   - probe AT OR BELOW the boundary: Mario has reached the surface. Snap MARIO_Y to just
+ *     above the boundary (boundary − 7), report the "landed" code (1), and take the
+ *     two-frame unwind — the landing aborts the whole multi-probe walk, not just this
+ *     classifier call. That unwind is expressed as returning `false` under the caller-skip
+ *     convention, which the classifier propagates and its own caller completes.
  *
- * GROUNDED (DK understanding pass 5, independent confirmer): reads the named MARIO_AIR_PREV_Y
- * (0x620C) and MARIO_Y (0x6205); names.js independently lists 0x2BE1 among the collision-code
- * readers of MARIO_AIR_PREV_Y. On a hit it snaps MARIO_Y to boundary-7 and reports landed(1) /
- * airborne(2), matching the landing/fatal-fall mechanism in mechanisms.md. Both captured
- * attract arms are exercised by the gate. (Chosen over `snapLandingAtColumn`, which drops the
- * airborne-probe half of the mechanism.)
+ * Register live-ins come from the caller: the boundary, the row offset, and the object
+ * pointer. The result code is left where the caller reads it, with its twin in the secondary
+ * result byte, on both arms.
  *
- * Register live-ins come from the still-translated caller: the boundary C, the row
- * offset (the accumulator the classifier leaves), and the object pointer. The result
- * code is left where the caller reads it (its `and a` reject test), with its twin in
- * the secondary result byte, exactly as the oracle leaves them on each arm.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2be1.test.js.
- * GATE:     exhaustive over the (probe, C) decision space (256x256), a boundary-set
- *           cross-product over the three summands to pin the arithmetic wrap, and real
- *           captured 0x2BE1 dispatches from an attract run (both arms occur).
- * LIVE-OUT: MARIO_Y on the at-or-below arm; the result code A (2 = airborne, 1 = landed)
- *           and its twin B; and the caller-skip control flow — the boolean return, where
- *           false is the two-frame unwind. No stack is written (the oracle only pops), so
- *           the memory-equivalence RAM diff needs no stack-scratch exclusion.
- * NAMES:    MARIO_AIR_PREV_Y (0x620C), MARIO_Y (0x6205) from names.js. The object Y field is
- *           addressed relative to the caller's object pointer, so it carries no names.js name.
+ * LIVE-OUT: MARIO_Y on the at-or-below arm; the result code (2 = airborne, 1 = landed) and
+ * its twin; and the caller-skip boolean, where false is the two-frame unwind. No stack is
+ * written.
  */
 
 import { u8 } from "../../../core/int.js";

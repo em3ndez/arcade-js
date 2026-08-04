@@ -7,13 +7,13 @@
  *   • rst 0x30 board gate (mask 0x04) CLOSED -> return at once (any board but 75m).
  *   • rst 0x10 alive gate CLOSED -> return (Mario dead).
  *   • both open -> seed the object cursor at OBJ_ARRAY_65 (0x6500, stride 16) and the sprite
- *     cursor at ACTOR_SPRITES (0x6980, stride 4), then call loc_2e12 ten times; loc_2e12
+ *     cursor at ACTOR_SPRITES (0x6980, stride 4), then call advanceSpring ten times; advanceSpring
  *     advances both cursors itself, so ten calls sweep the whole array.
  * The idiomatic routine dissolves the oracle's rst-0x30 / rst-0x10 caller-skip stack idiom
- * into two boolean-guard returns and its djnz object loop into a direct loc_2e12 call loop.
+ * into two boolean-guard returns and its djnz object loop into a direct advanceSpring call loop.
  *
  * CONTRACT (memory-equivalence): RAM − STACK_SCRATCH (the oracle's rst push16/ret churn and
- * loc_2e12's spawn-arm push/ret return-bracket write dead stack the direct-call candidate
+ * advanceSpring's spawn-arm push/ret return-bracket write dead stack the direct-call candidate
  * never touches), plus pc + SP. The routine's register live-out is DEAD — loc_197a issues
  * its next call without reading A / IX / IY / B / DE — so registers are not compared; pc + SP
  * are lined up by modelling the ONE terminal caller-return every path nets (runCandidate does
@@ -25,7 +25,7 @@
  *   1. EQUAL (captured) — hook 0x2e04 in a real boot/attract run, clone at each dispatch, and
  *      confirm update75mActorObjects == oracle on the real (rst-0x30-closed) skip path.
  *   2. EQUAL (crafted) — on a real attract base, drive: the full ten-object loop (board 3,
- *      Mario alive, objects seeded across all four loc_2e12 arms), the alive-gate skip (board
+ *      Mario alive, objects seeded across all four advanceSpring arms), the alive-gate skip (board
  *      3, Mario dead), and the board-gate skip at every non-75m board (1/2/4). Each matches
  *      the oracle on the whole contract; the skip cases are proven to write nothing non-stack
  *      and the loop case to actually update the array.
@@ -43,7 +43,7 @@ import { loc_2e04 as oracle } from "../../translated/loc_2e04.js";
 import { update75mActorObjects as candidate } from "../update75mActorObjects.js";
 import { boardBitGate } from "../boardBitGate.js";        // ROM 0x0030 (twins)
 import { marioActiveGuard } from "../marioActiveGuard.js"; // ROM 0x0010 (twins)
-import { loc_2e12 } from "../loc_2e12.js";                 // ROM 0x2E12 (twins)
+import { advanceSpring } from "../advanceSpring.js";                 // ROM 0x2E12 (twins)
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
@@ -149,9 +149,9 @@ function attractBase(frames = 700) {
   return m.clone(); // clone neutralises the frame machinery (nextNmi/nextBoundary = Infinity)
 }
 
-// Seed the ten actor objects across all four loc_2e12 arms (mirrors the object mix the game
+// Seed the ten actor objects across all four advanceSpring arms (mirrors the object mix the game
 // itself produces): 2 inactive -> spawn/advance, 2 state-4 -> loc_2e84, 2 terminator -> loc_2e9c
-// (one above / one below the loc_2e4b boundary), 4 default-motion -> loc_2e4b. Position-dependent
+// (one above / one below the advanceSpringArcAndDropAtTravelEnd boundary), 4 default-motion -> advanceSpringArcAndDropAtTravelEnd. Position-dependent
 // source bytes so a wrong field offset or a wrong cursor shows.
 function seedActorObjects(m) {
   m.mem.write8(FRAME, 0x00);          // toggle fires this pass for the active objects
@@ -172,7 +172,7 @@ function seedActorObjects(m) {
       m.mem.write8(ix + OBJ_STATE, 0x00);
       m.mem.write8(ix + 0x0e, TERM_SCRATCH & 0xff);        // walk pointer low -> terminator
       m.mem.write8(ix + 0x0f, (TERM_SCRATCH >> 8) & 0xff); // walk pointer high
-      m.mem.write8(ix + OBJ_X, k === 4 ? 0xc0 : 0x40);     // one above / one below the loc_2e4b boundary
+      m.mem.write8(ix + OBJ_X, k === 4 ? 0xc0 : 0x40);     // one above / one below the advanceSpringArcAndDropAtTravelEnd boundary
     } else {
       m.mem.write8(ix + OBJ_ACTIVE, 0x01);
       m.mem.write8(ix + OBJ_STATE, 0x00);
@@ -280,7 +280,7 @@ function brokenNoAliveGate(m) {
   // BUG: no marioActiveGuard check
   regs.ix = OBJ_ARRAY_65;
   regs.iy = ACTOR_SPRITES;
-  for (let i = 0; i < ACTOR_COUNT; i++) loc_2e12(m);
+  for (let i = 0; i < ACTOR_COUNT; i++) advanceSpring(m);
 }
 /** (b) skips the board gate: runs on any board. */
 function brokenNoBoardGate(m) {
@@ -289,7 +289,7 @@ function brokenNoBoardGate(m) {
   if (!marioActiveGuard(m)) return;
   regs.ix = OBJ_ARRAY_65;
   regs.iy = ACTOR_SPRITES;
-  for (let i = 0; i < ACTOR_COUNT; i++) loc_2e12(m);
+  for (let i = 0; i < ACTOR_COUNT; i++) advanceSpring(m);
 }
 /** (c) wrong board mask (0x08 = board 4 instead of 0x04 = board 3). */
 function brokenWrongMask(m) {
@@ -299,7 +299,7 @@ function brokenWrongMask(m) {
   if (!marioActiveGuard(m)) return;
   regs.ix = OBJ_ARRAY_65;
   regs.iy = ACTOR_SPRITES;
-  for (let i = 0; i < ACTOR_COUNT; i++) loc_2e12(m);
+  for (let i = 0; i < ACTOR_COUNT; i++) advanceSpring(m);
 }
 /** (d) wrong object count (9, not 10) — the last record is left un-updated. */
 function brokenWrongCount(m) {
@@ -309,7 +309,7 @@ function brokenWrongCount(m) {
   if (!marioActiveGuard(m)) return;
   regs.ix = OBJ_ARRAY_65;
   regs.iy = ACTOR_SPRITES;
-  for (let i = 0; i < ACTOR_COUNT - 1; i++) loc_2e12(m); // BUG: 9 passes
+  for (let i = 0; i < ACTOR_COUNT - 1; i++) advanceSpring(m); // BUG: 9 passes
 }
 /** (e) wrong array base (starts at record 1) — the first record is skipped. */
 function brokenWrongBase(m) {
@@ -319,7 +319,7 @@ function brokenWrongBase(m) {
   if (!marioActiveGuard(m)) return;
   regs.ix = OBJ_ARRAY_65 + 16; // BUG: skips record 0
   regs.iy = ACTOR_SPRITES + 4;
-  for (let i = 0; i < ACTOR_COUNT; i++) loc_2e12(m);
+  for (let i = 0; i < ACTOR_COUNT; i++) advanceSpring(m);
 }
 
 test("TEETH: the crafted cases CATCH every broken twin", () => {

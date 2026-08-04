@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for spawnInterludeHeart (ROM 0x1708) — the board/intro spawn init:
- * silence the sound (call 0x011c), seed a fixed 4-byte sprite record at 0x6A20 and
- * the blink-sprite code at 0x6905, paint a 3-cell descending colour column from
- * 0x75C4 (call 0x0514), then set the sound-priority pair 0x608A/0x608B.
+ * Memory-equivalence test for spawnInterludeHeart (ROM 0x1708) — the board-cleared interlude's
+ * opening tableau: silence the sound (call 0x011c), seed a fixed 4-byte sprite record at 0x6A20
+ * and the blink-sprite code at 0x6905, run the 3-cell descending fill from 0x75C4 (call 0x0514),
+ * then set the sound-priority pair 0x608A/0x608B.
+ *
+ * THE 3-CELL FILL BLANKS, IT DOES NOT COLOUR. (An earlier version of this header called it a
+ * "colour column"; the identifiers below still carry that word.) 0x7400-0x77FF is the tilemap's
+ * CHARACTER RAM and dkong has no colour RAM at all — a cell's colour comes from the v-5e PROM,
+ * indexed by column and four-row band, which cannot be written. The three codes written here,
+ * 0x10 / 0x0F / 0x0E, all decode to entirely BLANK tiles in gfx1.bin. So the fill CLEARS three
+ * cells of one column; teeth (b) below catches its omission either way.
  *
  * This is the cycle-free / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
  * whole-machine one. spawnInterludeHeart WRITES RAM, so every case uses a FRESH clone per side
@@ -18,9 +25,13 @@
  * callers (begin50mKongRecaptureInterlude `ld a,(0x6910)`, beginKongRecaptureInterlude `ld hl,0x385c`) reload their registers
  * before use, so nothing consumes a register/flag this leaves — live-out is memory.
  *
- * REACHABILITY: spawnInterludeHeart is on the board-load (begin50mKongRecaptureInterlude) / intro-cutscene spawn
- * (beginKongRecaptureInterlude) path; it is NOT dispatched by a 6000-frame attract run nor by the
- * coin+start tape (measured — 0 dispatches). Because the routine reads no memory and
+ * REACHABILITY: spawnInterludeHeart is on the board-cleared INTERLUDE path — its only callers are
+ * the two step-0 openers, beginKongRecaptureInterlude (odd boards) and
+ * begin50mKongRecaptureInterlude (50m). PC-attributed grounding puts all 6 of its firings in a
+ * whole progression run at sub-state 0x16 step 0, with 0 in the 769-frame opening cutscene and 0
+ * in 24,243 attract frames — so the older "board load / intro cutscene" reading of this routine is
+ * REFUTED, not merely unproven. It is NOT dispatched by a 6000-frame attract run nor by the
+ * coin+start tape (measured here — 0 dispatches). Because the routine reads no memory and
  * takes no arguments (its non-stack output values are identical from two wildly
  * different pre-dirtied entries — proven in INPUT-INDEPENDENCE below), a real captured
  * ATTRACT state is a fully valid entry: there are no input arms to miss. So the gate

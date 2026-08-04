@@ -117,7 +117,7 @@ test("REALISM: real captured 0x0028 dispatches — RAM(−stack) + pc + SP + ret
 // -- 2. CRAFTED (exhaustive selector sweep) -----------------------------------
 
 // Representative table bases: NMI game-state (0x00CA), in-game sub-state (0x0702),
-// opening-cutscene (0x0A7A), gateObjectUpdateByDifficulty guard (0x3104), state-1 sub (0x08B6).
+// opening-cutscene (0x0A7A), gateFireUpdateByDifficulty guard (0x3104), state-1 sub (0x08B6).
 const TABLE_BASES = [0x00ca, 0x0702, 0x0a7a, 0x3104, 0x08b6];
 
 // A catch-all override object (duck-typed like the Machine's overrides Map) that

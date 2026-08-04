@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1977 (ROM 0x1977) — the attract demo's per-frame entry: issue the
- * scripted input, then run the shared per-frame update cascade at 0x197A.
+ * runAttractDemoFrame — memory-equivalent to the frozen oracle at ROM 0x1977: the attract demo's
+ * per-frame entry, which issues the scripted input and then runs the shared per-frame update
+ * cascade at ROM 0x197A.
+ * GATE:  real captures + live-wire. EVERY dispatch a 2000-frame attract run produces is replayed
+ *        oracle-against-rewrite with no sampling; the rewrite is then wired live for a
+ *        1200-frame run whose whole frame trace must match the all-oracle baseline on
+ *        RAM − STACK_SCRATCH. THERE IS NO CRAFTED ARM, and the reason is not an omission: the
+ *        routine is branch-free, so it has no unreached arm to craft. Teeth: dropping the
+ *        demo-input step, taking it twice, and taking it after the cascade instead of before.
  *
  * The rewrite replaces exactly one thing — the oracle's bracketed `call` to ROM 0x21EE — with a
  * direct JS call to the already-idiomatic advanceAttractDemoInput, and keeps the tail into the
@@ -24,7 +31,10 @@
  *      dispatches took the demo script's advance branch as opposed to holding a step.
  *
  *   2. REACH — the same probe under a coin+start tape that really starts a game. This is what
- *      backs the routine header's "attract demo" reading: it could have come out the other way.
+ *      backs the "attract demo" reading: it could have come out the other way. Every dispatch
+ *      seen is at GAME_STATE 1 / GAME_SUBSTATE 3, and the credited tape produces none. WHAT IS
+ *      NOT ESTABLISHED is whether GAME_STATE 1 / GAME_SUBSTATE 3 can be entered outside attract
+ *      at all — a continue or two-player path, say. Only attract and that one tape were driven.
  *
  *   3. LIVE-WIRE — wire the rewrite live for a 1200-frame run and require the per-frame trace to
  *      equal the all-oracle baseline on RAM − STACK_SCRATCH. Cycle-free idiomatic code
@@ -47,6 +57,14 @@
  * SP is compared only because it happens to be preserved exactly (the frozen 0x197A tail performs
  * the same single `ret` on both sides).
  *
+ * WHY THE REGISTER LIVE-OUT IS EMPTY, derived as well as measured. The only call site of ROM
+ * 0x1977 in the frozen layer is the shared rst-0x28 dispatcher, and the one table carrying that
+ * address is the game-state-1 sub-state table at ROM 0x0748, whose dispatch is a tail — it drops
+ * the returned value. That table is itself reached as a tail from the NMI game-state dispatch,
+ * whose epilogue at ROM 0x00D2 pops AF, BC, DE, HL, IX and IY straight back off the stack. So
+ * nothing reads a register or flag the routine leaves, which is why test 1 can compare the whole
+ * register file as free teeth rather than as the contract.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1977.test.js
  */
 
@@ -55,7 +73,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1977 as oracle } from "../../translated/loc_1977.js";
-import { loc_1977 } from "../loc_1977.js";
+import { runAttractDemoFrame } from "../runAttractDemoFrame.js";
 import { advanceAttractDemoInput } from "../advanceAttractDemoInput.js"; // reused to build faithful twins
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -182,7 +200,7 @@ test("REAL CAPTURES: every 0x1977 dispatch in a 2000-frame attract run == oracle
       const a = mm.clone();
       const b = mm.clone();
       const oracleReturn = oracle(a);
-      const candidateReturn = loc_1977(b);
+      const candidateReturn = runAttractDemoFrame(b);
       replayed++;
       if (a.mem8[P1_INPUT] !== before) inputChanges++;
 
@@ -263,7 +281,7 @@ test("LIVE-WIRE: the rewrite wired live for 1200 frames reproduces the all-oracl
   const mapper = new Machine(ROM);
   const baseline = oracleBaseline();
 
-  const wired = liveTrace(cycleRestored(loc_1977));
+  const wired = liveTrace(cycleRestored(runAttractDemoFrame));
   const diff = traceDiff(baseline, wired, (off) => mapper.stateOffsetToAddr(off));
   assert.equal(
     diff, null,
@@ -273,7 +291,7 @@ test("LIVE-WIRE: the rewrite wired live for 1200 frames reproduces the all-oracl
 
   // The trace is only worth anything if it can fail. Dropping the fragment's cycle charge is the
   // known way to make cycle-free code fork a timing-seeded run; it must be caught.
-  const uncharged = traceDiff(baseline, liveTrace(loc_1977), (off) => mapper.stateOffsetToAddr(off));
+  const uncharged = traceDiff(baseline, liveTrace(runAttractDemoFrame), (off) => mapper.stateOffsetToAddr(off));
   assert.notEqual(uncharged, null, "the live trace FAILED to notice the missing cycle charge — it is blind");
 
   console.log(
@@ -333,7 +351,7 @@ test("TEETH: the unit replay catches a dropped and a doubled demo-input step", (
   assert.ok(caps.length >= 100, `expected plenty of captured entries, got ${caps.length}`);
 
   // Sanity: the real routine passes the same replay, so a caught twin is a real signal.
-  assert.equal(unitCatches(caps, loc_1977).caught, 0, "the correct routine must pass the unit replay");
+  assert.equal(unitCatches(caps, runAttractDemoFrame).caught, 0, "the correct routine must pass the unit replay");
 
   const dropped = unitCatches(caps, noDemoInput);
   assert.equal(

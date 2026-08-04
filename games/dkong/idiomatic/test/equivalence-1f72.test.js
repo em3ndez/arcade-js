@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1f72 (ROM 0x1F72) — the board gate in front of the per-frame
+ * Memory-equivalence gate for update25mBarrels (ROM 0x1F72) — the board gate in front of the per-frame
  * object walk.
  *
  * COVERAGE — ATTRACT, PLUS POKES ON TOP OF ATTRACT STATE. Stated plainly because the two arms are
@@ -19,6 +19,27 @@
  *
  * Nothing here enters a credited game or a second player, and no board other than 25m is reached
  * any way except by poking the very byte under test.
+ *
+ * MEASURED (these numbers are produced and printed by the two REACHABILITY tests; they used to sit
+ * in the routine's own header, which R21 no longer allows to state them):
+ *   • 616 natural dispatches in 1200 attract frames, 1532 in 4000 — every one of them at
+ *     BOARD == 1, so the early-return arm is never taken naturally.
+ *   • All 616 are replayed inline, with no sampling and no stride.
+ *   • The oracle returns `undefined` on every one of the 616, and nets exactly ONE caller-return
+ *     pop on BOTH arms — SP +2 on all 616, always landing at ROM 0x1986.
+ *   • The oracle's cycle cost is path-dependent: 275 DISTINCT per-dispatch costs across the 616,
+ *     which is why the live-wire arm prices it per dispatch instead of assuming a constant.
+ *   • Holding BOARD at 2 from frame 400 turns all 616 dispatches into early returns.
+ *
+ * THE LIVE-OUT DERIVATION, which is cross-file and therefore belongs here rather than in the
+ * routine: 0x1F72 has ONE caller, the shared per-frame update cascade at ROM 0x197A, which
+ * discards the result. Its continuation at ROM 0x1986 calls 0x2C8F, whose first act is to load the
+ * accumulator with a constant and whose second is a gate that takes the accumulator as its
+ * argument — so neither the accumulator the board compare leaves behind nor the flags it sets are
+ * read anywhere downstream. On the 25m arm the question does not arise: the frozen walk overwrites
+ * both before its own first branch. On the early return the oracle performs the caller-return pop
+ * itself and the rewrite models it as a plain JS return, so the SEAM closes that bracket at
+ * go-live; this gate models the same thing with one m.ret() on the candidate.
  *
  * CONTRACT — the FULL state dump, INCLUDING STACK_SCRATCH, plus pc, SP, the return value, and the
  * CPU register file. Including the stack region is the deliberate choice the recipe asks to be
@@ -42,8 +63,8 @@
  * The 14 tests, in the order they run (referenced by NAME, so this list cannot drift out of step
  * with the file):
  *   REACHABILITY (x2) — measured before anything is replayed: the dispatch count, that every
- *      natural dispatch is 25m, and the oracle's exit contract. Every count and address the
- *      routine's own header states is produced and printed by these two.
+ *      natural dispatch is 25m, and the oracle's exit contract. Every count and address in the
+ *      MEASURED block above is produced and printed by these two.
  *   EQUAL — every real dispatch, replayed inline, no sampling.
  *   EQUAL (crafted) — the early-return arm, BOARD poked to 0, 2, 3 and 4 on real captures.
  *   the early-return arm differs … and NOTHING else — the {a, f} exclusion, asserted exact.
@@ -74,7 +95,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { loc_1f72 as oracle } from "../../translated/loc_1f72.js";
-import { loc_1f72 } from "../loc_1f72.js";
+import { update25mBarrels } from "../update25mBarrels.js";
 import { BOARD, OBJ_ARRAY_67, ACTOR_SPRITES } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -230,7 +251,7 @@ function sweepAttract(candidate, frames = ATTRACT_FRAMES) {
   return { dispatches, boards, arms, costs, spDeltas, endPcs, returns, captures, breaches };
 }
 
-const SWEEP = ROM_PRESENT ? sweepAttract(loc_1f72) : null;
+const SWEEP = ROM_PRESENT ? sweepAttract(update25mBarrels) : null;
 const LONG_FRAMES = 4000;
 const LONG_SWEEP = ROM_PRESENT ? sweepAttract(null, LONG_FRAMES) : null;
 
@@ -276,7 +297,7 @@ test("REACHABILITY: the oracle's exit contract — one caller-return pop, one co
 
 // -- 1. EQUAL over every real dispatch ---------------------------------------
 
-test("EQUAL: loc_1f72 matches the oracle on EVERY real attract dispatch", () => {
+test("EQUAL: update25mBarrels matches the oracle on EVERY real attract dispatch", () => {
   assert.equal(
     SWEEP.breaches.length,
     0,
@@ -315,7 +336,7 @@ test("EQUAL (crafted): the early return matches the oracle for every non-25m BOA
         false,
         `BOARD=${board} did not put the oracle on the early-return arm`,
       );
-      const breach = contractBreach(entry, loc_1f72);
+      const breach = contractBreach(entry, update25mBarrels);
       assert.equal(
         breach,
         null,
@@ -336,7 +357,7 @@ test("the early-return arm differs from the oracle in the accumulator and the fl
   const a = entry.clone();
   const b = entry.clone();
   runOracle(a);
-  loc_1f72(b);
+  update25mBarrels(b);
   b.ret();
   const differing = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -374,7 +395,7 @@ function handOff(entry, run) {
 test("HAND-OFF: the rewrite hands the frozen walk exactly the values the oracle does", () => {
   const entry = SWEEP.captures[0];
   const o = handOff(entry, oracle);
-  const c = handOff(entry, loc_1f72);
+  const c = handOff(entry, update25mBarrels);
 
   assert.equal(o.seen.length, 1, "the stub never fired on the oracle side — it proves nothing");
   assert.equal(c.seen.length, 1, "the stub never fired on the rewrite side — it proves nothing");
@@ -521,7 +542,7 @@ for (const { name, twin, caughtBy } of TEETH) {
  * accumulated deficit moves the vblank interrupt and the run forks on state that has nothing to do
  * with this routine.
  */
-function liveRun(label, pokes, routine = loc_1f72) {
+function liveRun(label, pokes, routine = update25mBarrels) {
   const makePokes = () => (pokes ? pokes.map((p) => ({ ...p })) : null);
 
   const base = new Machine(ROM);

@@ -1,68 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * update50mMovingObjects — the 50m moving-object subsystem tick.  ROM 0x24EA.
+ * update50mMovingObjects — the 50m moving-object subsystem tick.
  *
- * Called every main-loop pass from the per-frame update cascade. Its first act is a
- * per-board skip test with the mask 0x02 (bit1 = 50m), so on any other board the whole
- * routine is skipped and nothing happens. On 50m it runs three stages in order:
+ * Runs every pass of the per-frame update cascade. Its first act is a per-board skip test on the
+ * 50m bit, so on any other board the whole routine does nothing at all. On 50m it runs three
+ * stages in order:
  *
- *   1. service the moving-object spawn request (service50mObjectSpawnRequest);
- *   2. advance and edge-cull the six-record object row (advance50mObjectRow);
- *   3. refresh each object's hardware sprite record from the object array, so the
- *      vblank DMA blits this frame's object positions.
+ *   1. service the moving-object spawn request;
+ *   2. advance and edge-cull the six-record object row;
+ *   3. refresh each object's hardware sprite record from the object array, so the display picks
+ *      up this frame's object positions.
  *
- * The refresh walks the six records of OBJ_ARRAY_65A0 (stride 0x10) alongside the six
- * matching four-byte sprite records that begin at 0x69B8 (stride 4, inside the sprite
- * shadow buffer — the same block advance50mObjectRow blanks when it culls). For an
- * ACTIVE record (its whole activity byte nonzero) it copies four object fields into the
- * sprite record in sprite-record order:
+ * The refresh walks the six object records alongside their six matching four-byte sprite records.
+ * For an ACTIVE record — activity byte non-zero, tested as a whole byte, not a single bit — it
+ * copies four fields across in sprite-record order: X, sprite code, attribute, Y.
  *
- *     sprite X    <- object X            (+3)
- *     sprite code <- object sprite code  (+7)
- *     sprite attr <- object attribute    (+8)
- *     sprite Y    <- object Y            (+5)
+ * An INACTIVE record is left untouched: only the sprite write cursor steps past its four bytes, so
+ * that slot keeps whatever the advance stage last left there, which is a blanked record when the
+ * object was just culled. Both cursors advance a fixed stride per record on every path, so record
+ * i always pairs the i'th object with the i'th sprite slot.
  *
- * An INACTIVE record (activity byte zero) is left untouched; only the sprite write
- * cursor steps past its four bytes, so that sprite slot keeps whatever the advance
- * stage last left there (a blanked record when the object was just culled). Both the
- * object cursor and the sprite cursor advance a fixed stride per record on every path,
- * so record i always pairs object 0x65A0+0x10*i with sprite 0x69B8+4*i.
- *
- * REGISTER-ABI MARSHALLING: the board test reads its applicability mask from the
- * accumulator, so the mask 0x02 is loaded exactly where the oracle's call site loads it
- * (regs.a before boardBitGate). service50mObjectSpawnRequest and advance50mObjectRow take no register
- * inputs. advance50mObjectRow publishes the record stride 0x10 (the oracle reuses it as
- * the object-cursor increment); the idiomatic form uses the constant stride directly, so
- * that register hand-off dissolves.
- *
- * NAME: kept the neutral loc_ — this is one of the per-array sprite-record refreshers
- * (the object fields it copies are documented as feeding the sprite buffer), but its
- * confirmed English name is a job for the understanding pass, not the decompile.
- *
- * Memory-equivalent to the frozen oracle — equivalence-24ea.test.js.
- * GATE:     captured + crafted. 0x24EA is dispatched every frame, but attract only plays
- *           25m, so real captured dispatches all take the board-gate-closed skip (verified
- *           == oracle, and that they write no non-stack RAM). Crafted 50m entries (BOARD 2
- *           on a real attract base, object records + spawn/step state poked) then drive the
- *           full body: all-inactive, active field-mapping, mixed active/inactive, the
- *           whole-byte activity test, and the spawn arm (which runs the RNG). The RAM diff
- *           excludes the dead STACK_SCRATCH the oracle's push/call/ret brackets churn.
- *           Teeth: a twin that swaps the X/Y copy order and a twin that tests only bit0 of
- *           the activity byte instead of the whole byte.
- * LIVE-OUT: memory-only. The oracle's residual registers/flags and its terminal return are
- *           dead ABI — the caller resumes its per-frame cascade without reading them; the
- *           boolean board-gate return replaces the rst-0x30 stack-skip idiom.
- * NAMES:    boardBitGate (ROM 0x0030), service50mObjectSpawnRequest (ROM 0x2523), advance50mObjectRow
- *           (ROM 0x2591) — all direct-called. OBJ_ARRAY_65A0 (0x65A0) with its shared
- *           record fields OBJ_ACTIVE/OBJ_X/OBJ_Y/OBJ_SPRITE_CODE/OBJ_SPRITE_ATTR, and the
- *           sprite-record fields SPRITE_X/SPRITE_CODE/SPRITE_ATTR/SPRITE_Y — all from
- *           names.js. The 50m sprite block base 0x69B8 (inside SPRITE_BUFFER) has no names.js
- *           name and stays a local hex const, matching advance50mObjectRow.
+ * LIVE-OUT: memory-only.
  */
 
-import { boardBitGate } from "./boardBitGate.js";              // ROM 0x0030 (rst 0x30)
-import { service50mObjectSpawnRequest } from "./service50mObjectSpawnRequest.js";                      // ROM 0x2523
-import { advance50mObjectRow } from "./advance50mObjectRow.js"; // ROM 0x2591
+import { boardBitGate } from "./boardBitGate.js";
+import { service50mObjectSpawnRequest } from "./service50mObjectSpawnRequest.js";
+import { advance50mObjectRow } from "./advance50mObjectRow.js";
 import {
   OBJ_ARRAY_65A0,
   OBJ_ACTIVE,
@@ -77,8 +40,8 @@ import {
   OBJ_65A0_SPRITES,} from "./names.js";
 
 const BOARD_MASK_50M = 0x02; // per-board applicability mask: bit1 = 50m (this subsystem's board)
-const RECORD_COUNT = 6;      // records in OBJ_ARRAY_65A0
-const OBJ_STRIDE = 0x10;     // object-record stride (advance50mObjectRow publishes it; used directly here)
+const RECORD_COUNT = 6;      // objects this subsystem tracks
+const OBJ_STRIDE = 0x10;     // object-record stride
 const SPRITE_STRIDE = 0x04;  // four-byte hardware sprite record
 
 export function update50mMovingObjects(m) {

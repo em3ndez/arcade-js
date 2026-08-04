@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * stepObjectSpriteFrame — advance an object's animation sprite tile on a period-2 timer,
- * flipping a bit at every sixteenth step.  ROM 0x3409.
+ * flipping a bit at every sixteenth step.
  *
- * Called during the object update for one record of the 0x6400 object array (the record is
- * addressed relative to a base pointer, so that base is the parameter). It runs a small
+ * Called during the object update for one record of a board-object array; the record is
+ * addressed relative to a base pointer, so that base is the parameter. It runs a small
  * two-part animation clock over just two bytes of the record:
  *
  *   - A per-object down-counter (record byte +0x15) counts every call. While it is still
@@ -17,30 +17,22 @@
  * steps) bit 1 of the code is TOGGLED. Because the low nibble is all-ones at that point bit 1
  * is set, so the toggle clears it — a flip, not a blind set or clear.
  *
- * Promoted from loc_3409 (DK understanding pass 10, independent proposer≠confirmer, MODERATE):
- * it advances the grounded OBJ_SPRITE_CODE (+0x07) on a period-2 down-counter (+0x15, grounded
- * live vs MAME as a period-2 anim timer). The name is mechanism-descriptive and asserts no object
- * identity; WHICH object it services is ungrounded but the name does not claim it.
+ * The name is mechanism-descriptive and asserts no object identity: WHICH object this
+ * services is not claimed here.
  *
  * A LEAF: reads and writes only the two record bytes of the object it is handed; calls
  * nothing and returns nothing.
  *
- * Memory-equivalent to the frozen oracle — equivalence-3409.test.js.
- * GATE:     exhaustive over the whole two-byte input space — all 256×256 (timer, sprite-code)
- *           combinations at a real 0x6400 object record — plus real captured 0x3409 dispatches
- *           from an attract run. Teeth: an OR-instead-of-toggle twin, a wrong reload value, and
- *           an inverted timer gate.
- * LIVE-OUT: memory-only. Both callers (0x33E7, and the 0x33AD→0x33C3 fall-through) reload the
- *           accumulator and its flags on the instruction right after the call, so the oracle's
- *           residual registers/flags and its terminal return are dead.
- * NAMES:    OBJ_SPRITE_CODE (+0x07 object-record field, from names.js). The +0x15 down-counter
- *           has no names.js name — kept as a local field-offset const.
+ * LIVE-OUT: memory-only — the record's animation down-counter and its sprite tile code.
+ * Both callers reload the accumulator and its flags immediately, so nothing this routine
+ * leaves in a register is live.
  */
 
 import { OBJ_SPRITE_CODE } from "./names.js";
 
 // Object-record field: a per-object animation down-counter, reloaded to 2 on expiry so the
-// sprite advances every other call. No names.js name yet — it is object-relative, not a fixed cell.
+// sprite advances every other call. It is object-relative rather than a fixed cell, so it
+// carries no shared name.
 const OBJ_ANIM_TIMER = 0x15;
 
 /**

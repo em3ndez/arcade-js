@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * countObjectOverlaps — count how many objects in an array overlap a probe point, within a
- * per-object rectangular window.  ROM 0x3EC3.
+ * per-object rectangular window.
  *
  * Walks `count` fixed-stride records starting at objectBase (stride bytes apart). Each
  * record whose field +0 has bit0 clear is INACTIVE and skipped. For an active record it
@@ -17,32 +17,27 @@
  *     The record overlaps on this axis when that distance is under threshB, or (past
  *     threshB) still under the record's field +9 window.
  *
- * When BOTH axes overlap it bumps the shared overlap counter OVERLAP_COUNT (0x6060) by one.
- * The caller clears that counter first and reads it back afterwards as an overlap-severity
- * code, so this routine's only observable effect is the counter — it writes nothing else.
+ * When BOTH axes overlap it bumps the shared overlap counter OVERLAP_COUNT by one. The caller
+ * clears that counter first and reads it back afterwards as an overlap-severity code, so this
+ * routine's only observable effect is the counter — it writes nothing else.
  *
- * Both "absolute distance" steps are the subtract-then-negate-on-borrow idiom: subtract,
- * and only when that borrowed, negate — yielding the unsigned distance without a signed
- * compare. Each subtraction is a byte operation and its borrow drives the branch exactly as
- * the frozen oracle's carry flag does.
+ * Both "absolute distance" steps are the subtract-then-negate-on-borrow idiom: subtract, and
+ * only when that borrowed, negate — yielding the unsigned distance without a signed compare.
+ * Each subtraction is a byte operation, and its borrow is what drives the branch.
  *
- * Inputs (register live-ins the oracle consumes): objectBase = the record-array base;
- * probeBase = the other point's record (its field +3 is the second-axis coordinate);
- * count = number of records to scan (0 scans 256, matching the loop's decrement-then-test);
- * probeA = the probe point's first-axis coordinate; stride = per-record byte stride;
- * threshA / threshB = the first- / second-axis window half-widths.
+ * Inputs, all register live-ins: objectBase = the record-array base; probeBase = the other
+ * point's record (its field +3 is the second-axis coordinate); count = number of records to
+ * scan (0 scans 256, matching the loop's decrement-then-test); probeA = the probe point's
+ * first-axis coordinate; stride = per-record byte stride; threshA / threshB = the first- and
+ * second-axis window half-widths.
  *
- * Memory-equivalent to the frozen oracle (translated/entry_3ec3.js) — equivalence-3ec3.test.js.
- * LIVE-OUT: memory-only (OVERLAP_COUNT). The oracle's residual registers/flags and its
- * advanced record cursor are dead — the caller reads the counter from RAM, not registers —
- * and its terminal return is the ordinary subroutine return.
- * NAMES: OVERLAP_COUNT (0x6060) from names.js. The record-array bases and the probe base arrive
- * as inputs (the live caller passes 0x6700 ×10 then 0x6400 ×5), and the per-record field
- * offsets (+0/+3/+5/+9/+0x0A) and the probe's +3 field are record-relative — none has a
- * fixed-cell name in names.js, so they stay as base+offset here.
+ * The per-record field offsets are record-relative, so they stay as base+offset here.
+ *
+ * LIVE-OUT: memory-only — the shared overlap counter. The caller reads it from RAM, so the
+ * residual registers and the advanced record cursor are dead.
  */
 
-import { OVERLAP_COUNT, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js"; // 0x6060 — the shared overlap counter this routine bumps
+import { OVERLAP_COUNT, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js"; // the shared overlap counter this routine bumps
 
 export function countObjectOverlaps(m, { objectBase, probeBase, count, probeA, stride, threshA, threshB }) {
   const { mem } = m;

@@ -1,56 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * boardBitGate — the `rst 0x30` vector: a per-board skip gate.  ROM 0x0030.
+ * boardBitGate — the game's compact "does THIS board want this?" test.
  *
- * `rst 0x30` (a single 0xF7 opcode) is Donkey Kong's compact "does THIS board want
- * this?" test. The byte in A is a per-board applicability mask — one bit per board
- * (bit0 = 25m, bit1 = 50m, bit2 = 75m, bit3 = 100m) — and this routine selects the
- * bit belonging to the current board and reports it:
+ * The caller supplies a per-board applicability mask in a register: one bit per board, bit 0 for
+ * 25m through bit 3 for 100m. This routine picks out the bit belonging to the board currently being
+ * played and reports it.
  *
- *   - It reads BOARD (1..4) and rotates A right that many times (`rrca` × BOARD).
- *     `rrca` walked B times lands A's bit ((B-1) mod 8) in the carry, so with BOARD
- *     in 1..4 the carry ends up holding bit (BOARD-1) of A — the current board's
- *     mask bit. (BOARD == 0 rotates a full 256 turns via the oracle's `djnz`
- *     underflow, leaving bit 7 in the carry; boards are 1..4 in play.)
- *   - Carry SET  -> the gate is OPEN: the oracle returns normally (this fn -> true)
- *                   and the caller proceeds.
- *   - Carry CLEAR -> the gate is CLOSED: the oracle drops the caller's return
- *                   address (`pop hl` / `ret`) so the caller's next action is
- *                   skipped. Every caller spells that `if (!m.call(0x0030)) return;`;
- *                   this fn returns false.
+ *   - It reads the board number, 1 to 4, and selects bit (board - 1) of the mask.
+ *   - Set   -> the gate is OPEN and the caller carries on. This returns true.
+ *   - Clear -> the gate is CLOSED and the caller's NEXT action is skipped. This returns false, and
+ *              every caller spells that as an early return.
  *
- * The Z80 stack manipulation that performs the skip (the `pop hl` on the closed arm)
- * IS the caller-skip idiom the idiomatic layer models as a BOOLEAN return (Z80 stack
- * -> JS call stack), so this routine touches no memory and mutates no register a
- * caller reads: the single boolean is its whole contract. A near-pure leaf — it
- * reads A and (BOARD), writes nothing, and calls nothing.
+ * Selecting the bit is a rotate rather than a shift, so a board number of 0 would rotate a full 256
+ * turns and land on bit 7. Boards are 1 to 4 in play.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0030.test.js.
- * GATE:     exhaustive — pure total function of (A, BOARD): boolean == oracle over
- *           all 65,536 (A, BOARD) combos, plus real 25m attract dispatches and
- *           crafted boards 2/3/4/0 on genuine captured state. Reached from 20 sites.
- * LIVE-OUT: memory-only (writes nothing) — the boolean skip-flag return is the sole
- *           live value. A (rotated), B (0), HL, and the carry flag are all
- *           overwritten or never read by every one of the 20 callers (verified: each
- *           either reloads A immediately, sets HL/B/IY, or chains rst 0x10 which
- *           itself reloads A from 0x6200), so they are dead; SP/PC are the stack
- *           idiom the boolean replaces and are never compared for this routine.
- * NAMES:    BOARD (0x6227) from names.js — the rotate count / current board index.
+ * The skip is the routine's whole point, and here it IS the boolean: nothing is written, nothing is
+ * left in a register a caller reads. A near-pure leaf.
+ *
+ * LIVE-OUT: the boolean. It writes no memory.
  */
 import { BOARD } from "./names.js";
 
 export function boardBitGate(m) {
   const { regs, mem } = m;
 
-  // Rotate count = the current board (1..4). A 0 there means a full 256 turns via
-  // the oracle's `djnz` underflow — the same carry as selecting bit 7.
+  // The board being played, 1..4. A 0 means a full 256 rotations, the same as selecting bit 7.
   const count = mem.read8(BOARD) || 256;
 
-  // `rrca` count times leaves A's bit ((count-1) mod 8) in the carry: bit (BOARD-1)
-  // for a board in 1..8. That bit is the current board's flag in the mask A.
+  // Rotating that many times leaves bit ((count - 1) mod 8) of the mask under the test — bit
+  // (board - 1) for a board in 1..8, which is this board's flag.
   const boardBit = (regs.a >> ((count - 1) & 7)) & 1;
 
-  // Carry SET -> gate open, caller proceeds (true). Carry CLEAR -> gate closed, the
-  // caller's next action is skipped (false).
+  // Set -> gate open, the caller proceeds. Clear -> gate closed, the caller's next action is
+  // skipped.
   return boardBit === 1;
 }

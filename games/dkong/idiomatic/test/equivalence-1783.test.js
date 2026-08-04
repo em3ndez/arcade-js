@@ -28,6 +28,14 @@
  *      caught: it agrees everywhere except when only the tenth slot is occupied, which
  *      the last-slot arm exercises.
  *
+ * COVERAGE HOLE, stated plainly. This file gates the PREDICATE only. The seam entry
+ * `allSlotsClearFromRegisters` — which unpacks HL/DE, REPLAYS the oracle's exit register file
+ * on the all-clear arm, and deliberately DROPS the residuals on the occupied (caller-skip)
+ * arm — is not exercised here at all; its live coverage is the two-level test in
+ * seam-entry-abi.test.js. And because 0x1783 is not dispatched in a plain attract run (job 1
+ * above), no whole-machine gate exercises the occupied arm either, so the decision to drop
+ * those residuals rests on source reading rather than on a measurement.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1783.test.js
  */
 

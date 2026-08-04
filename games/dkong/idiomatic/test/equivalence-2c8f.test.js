@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2c8f (ROM 0x2C8F) — the 25m barrel-release entry: a board gate, an
+ * Equivalence test for driveBarrelRelease (ROM 0x2C8F) — the 25m barrel-release entry: a board gate, an
  * alive gate, two scratch-bit gates, and a ten-record scan of OBJ_ARRAY_67 for a free barrel
  * slot, ending in one of two tail hand-offs (advanceBarrelRelease / releaseBarrelIntoFreeSlot).
  *
  * The oracle reaches its callees through the machine's address registry (`m.call`), which
  * resolves each to its frozen translated copy; those subtrees push return brackets and thread
- * multi-way `ret`s. loc_2c8f DIRECT-calls the four idiomatic callees (each memory-equivalent to
+ * multi-way `ret`s. driveBarrelRelease DIRECT-calls the four idiomatic callees (each memory-equivalent to
  * its own oracle, gated separately) and models no stack. Both sides reach identical work RAM;
  * the only residual difference is the dead STACK_SCRATCH the oracle's push/ret churn writes,
  * excluded by the memory-equivalence contract.
@@ -22,7 +22,7 @@
  *      stated sampling policy: EVERY 20th dispatch PLUS the first at each distinct entry shape
  *      (board / alive / the two gate bits / the arm the scan takes). The test asserts in-run
  *      that the replayed sample covers every shape the run saw. Each sample is replayed oracle
- *      vs loc_2c8f on byte-identical fresh clones.
+ *      vs driveBarrelRelease on byte-identical fresh clones.
  *   2. EQUAL (crafted) — the arms a 25m attract run cannot reach, poked identically on both
  *      sides onto a REAL captured entry: the board gate closed on 50m/75m/100m, a full
  *      ten-record scan that finds nothing free, claims at slots 8 and 9 (attract reached only
@@ -36,6 +36,31 @@
  * game, no 50m/75m/100m play (those boards are reached only by poking BOARD, which closes the
  * routine's own gate — which is exactly the arm being tested).
  *
+ * MEASURED (these numbers used to sit in the routine's own header, which R21 no longer allows to
+ * state them):
+ *   • 2614 real 0x2C8F dispatches in 6000 attract frames, across 11 DISTINCT entry shapes.
+ *   • 141 of them replayed — every 20th dispatch plus the first of each shape — with the test
+ *     asserting in-run that the sample covers every shape the run saw.
+ *   • Attract reaches the renderer hand-off, the not-armed return, the Mario-dead skip, and claims
+ *     at slots 0..7 ONLY; slots 8 and 9, the nothing-free scan and the already-claimed skip are
+ *     crafted on real captures.
+ *
+ * OBSERVED FAILING AGAINST THIS FILE, not only against the twins — recorded because a gate nobody
+ * has watched fail is not known to work:
+ *   • dropping the bit-1 (already claimed) test fails the crafted occupied-record arm
+ *     (`skip an occupied record (bit 1 only): RAM@0x62aa oracle=32 cand=0`). The captured replay
+ *     does NOT catch that one: attract never parked an occupied record in front of a free one.
+ *   • handing the claim `remaining + 1` fails the captured replay (`captured dispatch
+ *     [board=1 alive=1 gate=0 armed=1 claim@0]: RAM@0x62ac oracle=128 cand=124`).
+ *
+ * THE LIVE-OUT DERIVATION, cross-file and therefore here rather than in the routine: ROM 0x197A is
+ * the only call site of 0x2C8F anywhere in the tree, and it discards the return value; its next
+ * act is scheduleBarrelRelease, which loads the accumulator before its first read, so no register
+ * or flag this routine leaves is read back. The record base and the countdown handed to
+ * releaseBarrelIntoFreeSlot are internal to that direct call and land in RAM anyway (the record
+ * base in RENDER_OBJ_PTR, the count-derived sprite slot in RENDER_DST_PTR), which is where this
+ * gate pins them. The live-out is DERIVED; there is no live-wire arm in this file.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2c8f.test.js
  */
 
@@ -44,14 +69,14 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2c8f as oracle } from "../../translated/loc_2c8f.js";
-import { loc_2c8f } from "../loc_2c8f.js";
+import { driveBarrelRelease } from "../driveBarrelRelease.js";
 import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH, BOARD, MARIO_ACTIVE, OBJ_ARRAY_67, OBJ_ACTIVE, RENDER_OBJ_PTR, RENDER_DST_PTR,
   ACTOR_SPRITES,
 } from "../names.js";
 // The twins reuse the real callees — their faithfulness is proven by their own gates, not here —
-// so only the loc_2c8f-level logic error is what diverges.
+// so only the driveBarrelRelease-level logic error is what diverges.
 import { boardBitGate } from "../boardBitGate.js";
 import { marioActiveGuard } from "../marioActiveGuard.js";
 import { advanceBarrelRelease } from "../advanceBarrelRelease.js";
@@ -260,7 +285,7 @@ test("REACHABILITY: 0x2c8f is dispatched during 25m attract", () => {
 
 // -- 1. EQUAL (captured) ------------------------------------------------------
 
-test("EQUAL (captured): loc_2c8f == oracle on every sampled real dispatch", () => {
+test("EQUAL (captured): driveBarrelRelease == oracle on every sampled real dispatch", () => {
   const { caps, seen, captured, total } = attractRun();
   assert.ok(caps.length >= 1, "expected at least one real 0x2c8f dispatch during attract");
 
@@ -271,7 +296,7 @@ test("EQUAL (captured): loc_2c8f == oracle on every sampled real dispatch", () =
 
   let claims = 0;
   for (const { entry, shape } of caps) {
-    const { diffs, b } = contractDiffs(entry, loc_2c8f);
+    const { diffs, b } = contractDiffs(entry, driveBarrelRelease);
     assert.deepEqual(diffs, [], `captured dispatch [${shape}]: ${diffs.join("; ")}`);
 
     // On a claim, pin the hand-off itself, not just its equality with the oracle.
@@ -324,7 +349,7 @@ test("EQUAL (crafted): the arms 25m attract never reaches match the oracle", () 
 
   for (const { name, opts, writes, claim } of cases) {
     const entry = craft(base, opts);
-    const { diffs, a } = contractDiffs(entry, loc_2c8f);
+    const { diffs, a } = contractDiffs(entry, driveBarrelRelease);
     assert.deepEqual(diffs, [], `${name}: ${diffs.join("; ")}`);
 
     if (writes) {

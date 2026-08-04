@@ -1,57 +1,46 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * readStartButtonSelector — read which allowed start button is pressed on the
- * credit screen, and once every 8 frames redraw the start prompt.  ROM 0x08D5.
+ * credit screen, and once every 8 frames redraw the start prompt.
  *
- * Dispatched every frame while a game is CREDITED (from the vblank NMI's game-state
- * handler, by both sub-state arms — loc_08ba falls through into it, loc_08f8 calls
- * it). It does three things:
+ * Runs every frame while a game is CREDITED — coins are in, nobody has started yet.
+ * It does three things:
  *
- *   (1) Builds a start-button MASK in B and a prompt-string index in E from the
- *       credit count: exactly one credit -> B = 0x04 (START1 only), E = 0x09; any
- *       other count -> B = 0x0C (START1|START2), E = 0x0A. So a lone credit only
- *       honours the 1-player start, and the prompt string differs.
- *   (2) Once every 8 frames ((FRAME & 7) == 0) redraws the prompt: the prompt
- *       string (index E) via drawStringVertical, then the CREDIT line via
- *       drawCreditDisplay. The other 7 frames skip straight to the read.
- *   (3) Returns A = IN2 & B — the pressed start button(s), masked to the ones this
- *       credit count allows. The caller loc_08f8 tests A: 0x04 -> 1-player start,
- *       0x08 -> 2-player start, else (0x00 / 0x0C) -> wait.
+ *   (1) Builds a start-button MASK and a prompt-string index from the credit count:
+ *       exactly one credit -> mask 0x04 (START1 only), prompt string 9; any other
+ *       count -> mask 0x0C (START1|START2), prompt string 10. So a lone credit only
+ *       honours the 1-player start, and the prompt on screen differs.
+ *   (2) Once every 8 frames ((FRAME & 7) == 0) redraws the prompt: the prompt string
+ *       first, then the CREDIT line. The other 7 frames skip straight to the read.
+ *   (3) Returns the input port's start bits masked to the ones this credit count
+ *       allows. The credit-screen state machine reads that byte: 0x04 starts a
+ *       1-player game, 0x08 a 2-player game, anything else (0x00 or 0x0C) means keep
+ *       waiting.
  *
- * Writes no work RAM of its own; the only stores are the two draw callees' VRAM
- * writes on the 1-in-8 draw frames. On those frames the callees CLOBBER B before
- * the final `and b`, so the returned A is IN2 & the-callee-left-B (observed 0) —
- * a faithful oracle quirk preserved by masking with the LIVE regs.b, never the
- * 0x04/0x0C built at the top. loc_08f8 tolerates it: it acts only on a clean
- * 0x04 / 0x08, which land on the 7-in-8 skip frames.
+ * Writes no work RAM of its own; the only stores are the two draws' video writes on
+ * the 1-in-8 draw frames. A QUIRK worth knowing: on those frames the draws CLOBBER
+ * the mask register before it is used, so the byte returned on a draw frame is the
+ * port masked with whatever the draw left behind (0 in practice), not with the
+ * 0x04/0x0C built at the top. That is reproduced deliberately by masking with the
+ * LIVE register rather than with the built value. It is harmless because the state
+ * machine acts only on a clean 0x04 / 0x08, which land on the 7-in-8 skip frames.
  *
- * Memory-equivalent to the frozen oracle — equivalence-08d5.test.js.
- * GATE:     strict (memory-equivalence). Two driven coins reach BOTH the 1-credit
- *           (B=0x04) and >1-credit (B=0x0C) arms and both the draw and skip frames;
- *           + crafted start-pressed arms make the built mask observable in A; + teeth.
- * LIVE-OUT: memory + A (the returned selector byte IN2 & B). Flags are dead —
- *           loc_08f8 overwrites F with `cp 0x04` before reading, and the fall-through
- *           path returns A to the NMI dispatch, which branches on no flag it set.
- *           B/E are internal (E feeds the draw; B feeds the final mask).
- * NAMES:    CREDITS (0x6001), FRAME (0x601a) from names.js. IN2 (0x7D00) is the
- *           coin/start input port — a board input latch, not work RAM, and reading
- *           it kicks the watchdog — so it stays a hex local, like FLIPSCREEN.
+ * LIVE-OUT: memory, plus the returned selector byte.
  */
 
 import { CREDITS, FRAME } from "./names.js";
-import { drawStringVertical } from "./drawStringVertical.js"; // ROM 0x05E9
-import { drawCreditDisplay } from "./drawCreditDisplay.js"; //   ROM 0x0616
+import { drawStringVertical } from "./drawStringVertical.js";
+import { drawCreditDisplay } from "./drawCreditDisplay.js";
 
-// IN2 (0x7D00): the coin/start input port. bit2 = START1 (0x04), bit3 = START2
-// (0x08). READING it kicks the watchdog (boards/dkong/io.js readIn2). A board
-// input latch, not work RAM, so it stays hex/local like FLIPSCREEN.
+// The coin/start input port: bit2 = START1 (0x04), bit3 = START2 (0x08). READING it
+// kicks the watchdog. A board input latch rather than work RAM, so it is a local.
 const IN2 = 0x7d00;
 
 export function readStartButtonSelector(m) {
   const { regs, mem } = m;
 
-  // Build the start-button mask (B) and prompt-string index (E) from the credit
-  // count. Exactly one credit -> only START1 is honoured; otherwise both.
+  // Build the start-button mask and the prompt-string index from the credit count.
+  // Exactly one credit -> only START1 is honoured; otherwise both.
   if (mem.read8(CREDITS) === 0x01) {
     regs.b = 0x04; // START1 only
     regs.e = 0x09; // 1-player prompt string
@@ -60,15 +49,15 @@ export function readStartButtonSelector(m) {
     regs.e = 0x0a; // 2-player prompt string
   }
 
-  // Once every 8 frames, redraw the prompt string (index E) then the CREDIT line.
+  // Once every 8 frames, redraw the prompt string then the CREDIT line.
   if ((mem.read8(FRAME) & 0x07) === 0) {
-    regs.a = regs.e; // the draw callee takes the string index in A
+    regs.a = regs.e; // the draw takes the string index in the accumulator
     drawStringVertical(m); // draw the prompt string
-    drawCreditDisplay(m); // redraw the CREDIT line (also clobbers B)
+    drawCreditDisplay(m); // redraw the CREDIT line (also clobbers the mask register)
   }
 
-  // Return A = IN2 & B — the pressed start button(s), masked to the allowed set.
-  // The IN2 read kicks the watchdog. B is the live value: the built mask on skip
-  // frames, the callee-left value on draw frames.
+  // Return the pressed start button(s), masked to the allowed set. The port read kicks
+  // the watchdog. The mask is the LIVE register value: the built mask on skip frames,
+  // whatever the draws left behind on draw frames.
   regs.a = mem.read8(IN2) & regs.b;
 }

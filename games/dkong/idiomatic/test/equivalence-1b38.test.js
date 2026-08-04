@@ -13,7 +13,7 @@
  * climbMarioDown and climbUpWhileHeld are already idiomatic and direct-called; the oracle
  * reaches them by `m.call`, so this gate also composes their own equivalence (and callees').
  *
- * The oracle is entered by a tail-call from dispatchMarioMovement / loc_1afe, takes no register
+ * The oracle is entered by a tail-call from dispatchMarioMovement / armMarioClimbAtLadderEnd, takes no register
  * live-in it does not immediately overwrite, and every path nets exactly ONE `ret`: the
  * Down arm tail-jumps into 0x1CF2 whose chain ends in a single `ret`, the Up-fall-through
  * arm tail-jumps into 0x1B45 whose chain ends in a single `ret`, and the idle arm does its

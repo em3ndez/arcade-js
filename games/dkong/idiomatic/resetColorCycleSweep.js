@@ -1,61 +1,47 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * resetColorCycleSweep — reset (end) the colour-cycle sweep when its counter tops out, then
- * continue the frame's colour work.  ROM 0x0464.
+ * resetColorCycleSweep — end the colour-cycle sweep when its counter tops out, then continue the
+ * frame's colour work.
  *
- * The colour-cycle sweep counter climbs one step per frame and reaches its top of 0x80 once
- * per sweep; its driver (advanceColorCycleSweep, which does the increment) jumps here on the frame it wraps.
- * This routine ends the sweep — clear the counter back to 0 and lower the colour-cycle active
- * flag — and then continues into the SAME per-frame colour work the non-wrap path runs, selected
- * by the sprite-object reload gate. (It is the reset/end half only: the re-arm that STARTS the
- * next sweep is loc_0413's job at the next FRAME wrap, not this routine's — hence "reset", not
- * "restart".)
+ * The colour-cycle sweep counter climbs one step per frame and reaches its top of 0x80 once per
+ * sweep; the driver that does the increment jumps here on the frame it wraps. This routine ENDS
+ * the sweep — clear the counter back to 0 and lower the colour-cycle active flag — and then
+ * continues into the SAME per-frame colour work the non-wrap path runs, selected by the
+ * sprite-object reload gate. It is the reset/end half only: what STARTS the next sweep is a
+ * re-arm at the next FRAME wrap, elsewhere — hence "reset", not "restart".
  *
  *   - reload gate NONZERO -> straight into the colour-cycle repaint, skipping both the
  *     sprite-object block reload and the cascade's per-board sprite-column shift.
- *   - reload gate ZERO    -> reload the 40-byte sprite-object block from its ROM template,
- *     then run the full colour-cascade dispatch (dispatchColorCascadeByBoard), which additionally
- *     shifts the sprite-object column by board before the repaint.
+ *   - reload gate ZERO    -> reload the 40-byte sprite-object block from its template, then run
+ *     the full colour-cascade dispatch, which additionally shifts the sprite-object column by
+ *     board before the repaint.
  *
- * So the top-of-sweep frame both resets the counter and re-seeds the sprite-object block
- * from ROM, unless the gate suppresses the reload. This routine's own writes are just the two
- * counter clears; the block reload and every colour/sprite write happen in the callees.
+ * So the top-of-sweep frame both resets the counter and re-seeds the sprite-object block, unless
+ * the gate suppresses the reload. This routine's own writes are just the two counter clears; the
+ * block reload and every colour/sprite write happen in the callees.
  *
- * GROUNDED (DK understanding pass 4, independent confirmer): names.js COLOUR_CYCLE_ACTIVE (0x6391)
- * explicitly cites this routine — "loc_0464 clears it to 0 when the counter finishes its sweep at
- * 0x80 (ROM 0x0468)" — pinning the reset/end role on a named cell.
+ * The block loader takes its copy SOURCE in a register rather than as an argument, so on the
+ * reload arm this routine loads the template address into that register before calling it. The
+ * repaint and cascade calls need no such setup: both read their inputs (the board and the sweep
+ * counter) straight out of RAM.
  *
- * REGISTER-ABI MARSHALLING (dissolves once loadSpriteObjectBlock takes an honest source
- * param): that callee still reads its copy SOURCE from a register, so on the reload arm this
- * routine loads the ROM template address exactly as the oracle's `call` site does.
- * dispatchColorCyclePaint and dispatchColorCascadeByBoard read their inputs (the board and the
- * sweep counter) from RAM, so both are bare calls.
- *
- * Memory-equivalent to the frozen oracle — equivalence-0464.test.js.
- * GATE:     strict/whole-contract over real captured dispatches — 0x0464 fires in attract every
- *           time the sweep tops out, and BOTH arms occur naturally (the gate-nonzero repaint arm
- *           and the gate-zero reload arm) — plus crafted entries forcing each arm, a non-1
- *           nonzero gate, and the rivet/even-board callee routes. Whole contract each time:
- *           RAM − STACK_SCRATCH + pc + SP; the candidate models its one net return with a single
- *           m.ret(). Teeth: dropped active-flag clear, dropped counter clear, inverted reload
- *           gate, and a wrong template source.
- * LIVE-OUT: memory-only — the two counter clears plus whatever the callees paint/reload. The
- *           cascade returns up to a caller that reads no register before overwriting it, so the
- *           oracle's residual registers/flags are dead ABI. SP/PC are the single net return the
- *           JS call stack replaces (the harness supplies one m.ret()).
- * NAMES:    COLOUR_CYCLE_ACTIVE (0x6391) from names.js. The sweep counter 0x6390 and the reload
- *           gate 0x6393 are UNNAMED in names.js (both shared bytes left hex) — kept local hex
- *           consts. The ROM template address 0x385c is an immediate.
+ * LIVE-OUT: memory-only — the two counter clears plus whatever the callees paint or reload.
+ * Control returns to a caller that reads no register before overwriting it.
  */
 
 import { COLOUR_CYCLE_ACTIVE } from "./names.js";
-import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
-import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js"; // ROM 0x0450
+import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
+import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js";
+import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js";
 
-const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed/shared in names.js — kept hex)
-const OBJ_RELOAD_GATE = 0x6393; // 0 -> reload the block + full cascade; nonzero -> repaint only (shared — hex)
-const OBJ_TEMPLATE = 0x385c; //   ROM sprite-object template copied into the block on the reload arm
+// The colour-cycle sweep counter. It has no shared name because it is also the how-high
+// interlude's animation stepper, so a colour-specific name would be wrong half the time.
+const SWEEP_COUNTER = 0x6390;
+// 0 -> reload the sprite-object block + run the full cascade; nonzero -> repaint only. Shared
+// with other subsystems, so it too is file-local.
+const OBJ_RELOAD_GATE = 0x6393;
+// The sprite-object template copied into the block on the reload arm.
+const OBJ_TEMPLATE = 0x385c;
 
 export function resetColorCycleSweep(m) {
   const { regs, mem } = m;
@@ -70,8 +56,8 @@ export function resetColorCycleSweep(m) {
     return;
   }
 
-  // Gate clear: reload the sprite-object block from its ROM template, then run the full cascade.
-  regs.hl = OBJ_TEMPLATE; // loadSpriteObjectBlock reads its source pointer from a register
+  // Gate clear: reload the sprite-object block from its template, then run the full cascade.
+  regs.hl = OBJ_TEMPLATE; // the block loader reads its source pointer from a register
   loadSpriteObjectBlock(m);
   dispatchColorCascadeByBoard(m);
 }

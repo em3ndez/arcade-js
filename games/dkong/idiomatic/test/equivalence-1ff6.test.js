@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_1ff6 (ROM 0x1FF6) — the shared tail of the 25m object sweep's
- * two horizontal-step arms.
+ * advanceRollingBarrel — memory-equivalent to the frozen oracle at ROM 0x1FF6: the shared tail of
+ * the 25m object sweep's two horizontal-step arms.
+ * GATE:  captured + one crafted arm + live, ATTRACT ONLY. Every real dispatch in a 3000-frame
+ *        attract run is replayed with every frozen continuation running for real on both
+ *        sides; that covers four of the five arms. The fifth — the bottom-of-playfield gate
+ *        taking the walk over — is never taken in attract and is reached by a crafted entry
+ *        built on a real capture. Attract is 25m only, but so is this cluster.
  *
  * WHAT EACH CASE ACTUALLY COVERS. Read this before trusting a green run.
  *
@@ -63,7 +68,7 @@ import { loc_215f as oracle215f } from "../../translated/loc_215f.js";
 import { loc_202f as oracle202f } from "../../translated/loc_202f.js";
 import { loc_21ba as oracle21ba } from "../../translated/loc_21ba.js";
 import { loc_2038 as oracle2038 } from "../../translated/loc_2038.js";
-import { loc_1ff6 } from "../loc_1ff6.js";
+import { advanceRollingBarrel } from "../advanceRollingBarrel.js";
 import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
 import { snapYToGirder, snapYToGirderFromRegisters } from "../snapYToGirder.js";
 import { OBJ_X, OBJ_Y, STACK_SCRATCH } from "../names.js";
@@ -205,7 +210,7 @@ function replayEveryDispatch(candidate, frames = CAPTURE_FRAMES) {
 }
 
 test("CAPTURED: every real 0x1FF6 dispatch in a 3000-frame attract run matches the oracle", () => {
-  const { breaches, dispatches, arms, bases } = replayEveryDispatch(loc_1ff6);
+  const { breaches, dispatches, arms, bases } = replayEveryDispatch(advanceRollingBarrel);
   assert.ok(dispatches > 0, "no dispatch of 0x1FF6 was captured — this case would prove nothing");
   assert.equal(breaches.length, 0, breaches.join(" | "));
 
@@ -272,7 +277,7 @@ test("CRAFTED: the bounds gate's take-over arm — never reached in attract — 
   const breaches = [];
   const { taken, total } = craftedSweep(base, (src, tookOver, observe, x, y) => {
     if (breaches.length >= 4) return;
-    const diffs = contractDiffs(src, loc_1ff6, observe);
+    const diffs = contractDiffs(src, advanceRollingBarrel, observe);
     if (diffs.length) breaches.push(`x=${x} y=${y} takeover=${tookOver}: ${diffs.join("; ")}`);
   });
   assert.ok(
@@ -318,7 +323,7 @@ function twinNoSnapOffset(m, slopeStep = m.regs.b) {
 function twinNo215fHandoff(m, slopeStep = m.regs.b) {
   const { mem8, regs } = m;
   if ((mem8[regs.ix + OBJ_X] & 7) === 3) return m.call(0x215f);
-  return loc_1ff6(m, slopeStep);
+  return advanceRollingBarrel(m, slopeStep);
 }
 
 /** BUG: the accumulator is not cleared before ROM 0x2038, which stores it into four fields. */
@@ -326,7 +331,7 @@ function twinNoAccumulatorClear(m, slopeStep = m.regs.b) {
   const { mem8, regs } = m;
   const record = regs.ix;
   const x = mem8[record + OBJ_X];
-  if ((x & 7) === 3 || x < 228) return loc_1ff6(m, slopeStep);
+  if ((x & 7) === 3 || x < 228) return advanceRollingBarrel(m, slopeStep);
   mem8[record + OBJ_Y] = u8(snapYToGirder(x, u8(mem8[record + OBJ_Y] - 3), slopeStep) + 3);
   advanceBarrelSpriteOrientation(m);
   m.push16(0x2017);
@@ -493,7 +498,7 @@ test("LIVE: wired at 0x1FF6 for a whole attract run, the rewrite leaves the same
     [TARGET.toString(16)]: (mm) => {
       dispatches++;
       arms.set(armOf(mm), (arms.get(armOf(mm)) ?? 0) + 1);
-      return loc_1ff6(mm);
+      return advanceRollingBarrel(mm);
     },
   });
 

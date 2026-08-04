@@ -1,51 +1,34 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3445 — advance one object's table-driven position walk, or finalize it at the
- * end of the table.  ROM 0x3445.
+ * loc_3445 — advance one object's table-driven position walk, or finalize it at the end of
+ * the table.
  *
- * The shared tail of two object-animation walkers (sub_342c and sub_3478, both still
- * the frozen oracle): sub_342c falls through into it, and sub_3478 tail-jumps to it
- * from two sites — so this block's return is those routines' return. Both hand over an
- * object-record pointer and a saved table pointer, then this tail reads the next table
- * entry and does one of two things:
+ * The shared tail of two object-animation walkers. Each hands over an object-record pointer
+ * and a saved table pointer, and this tail reads the next table entry and does one of two
+ * things:
  *
- *   • ORDINARY entry — the entry byte becomes the object's Y for this frame, then the
- *     saved table pointer is stepped one byte forward and written back (low then high)
- *     so the next pass resumes where this one left off. The caller separately advances
- *     the object's X, so the object tracks the table's Y values as its X marches on.
+ *   • ORDINARY entry — the entry byte becomes the object's Y for this frame, then the saved
+ *     table pointer is stepped one byte forward and written back, low byte then high, so the
+ *     next pass resumes where this one left off. The caller separately advances the object's
+ *     X, so the object tracks the table's Y values as its X marches on.
  *
- *   • TERMINATOR (the entry is 0xAA) — the table is exhausted, so the walk is finished:
- *     four per-object animation-state bytes are cleared, the object's final X and Y are
- *     latched into two record fields, and the saved table pointer is rewound to zero so
- *     the caller treats the next pass as a fresh start of the walk.
+ *   • TERMINATOR — the table is exhausted and the walk is finished: four per-object
+ *     animation-state bytes are cleared, the object's final X and Y are latched into two
+ *     record fields, and the saved table pointer is rewound to zero, which is what makes the
+ *     caller read the next pass as a fresh start.
  *
- * The record pointer arrives in a register because the callers are still the oracle
- * (an oracle boundary), so this reads it from the machine rather than as a promoted
- * parameter; that dissolves once the callers are decompiled. The observed record is
- * object #0 of OBJ_ARRAY_64, so +0x03/+0x05/+0x0d are the named OBJ_X/OBJ_Y/OBJ_STATE.
+ * The record pointer arrives in a register because the callers hand it over that way.
  *
- * NAME: kept the neutral loc_ — the mechanism (a table-driven position walk with an
- * end-of-table finalize) is pinned to the oracle, but which object/cutscene this
- * animates, and the roles of the walk's own bookkeeping fields, are not yet corroborated
- * to the naming bar. Promote once grounded.
+ * NOT CLAIMED: which object or cutscene this animates, and what the walk's own bookkeeping
+ * fields are for beyond their role here.
  *
- * Memory-equivalent to the frozen oracle — equivalence-3445.test.js.
- * GATE:     strict memory-equivalence; factored-exhaustive — the terminator arm over the
- *           full OBJ_X×OBJ_Y grid (both latched copies + the constant clears), the
- *           ordinary arm's entry copy over every non-terminator byte, and the pointer
- *           step over every low-byte value including the carry into the high byte — plus
- *           the 32 real captured 0x3445 attract dispatches (31 ordinary, 1 terminator).
- *           Teeth: a wrong entry-store offset, a dropped pointer advance, swapped
- *           finalize copies, and a never-terminate twin.
- * LIVE-OUT: memory-only — the callers drive control flow through this tail and read the
- *           object back through its record on the next pass (the saved pointer is
- *           reloaded from OBJ_WALK_PTR_LO/HI); the oracle's residual registers/flags and its
- *           terminal return are dead.
- * NAMES:    OBJ_X (record +0x03), OBJ_Y (record +0x05), OBJ_STATE (record +0x0d),
- *           OBJ_WALK_PTR_LO (+0x1a), OBJ_WALK_PTR_HI (+0x1b) — all from names.js (the
- *           OBJ_ARRAY_64 record). The walk's own remaining fields — the two latch targets
- *           (+0x0e/+0x0f) and the three other cleared state bytes (+0x13/+0x18/+0x1c) —
- *           have no names.js offset name yet and stay local consts here.
+ * Reads: the table entry at the saved walk pointer; on the terminator arm, the object's
+ * current X and Y. Writes: on an ordinary entry, the object's Y and the two saved-pointer
+ * bytes; on the terminator, four state bytes, the two final-position latches, and the rewound
+ * pointer.
+ *
+ * LIVE-OUT: memory-only. The callers drive control flow through this tail and read the object
+ * back through its record on the next pass.
  */
 
 import { u16 } from "../../../core/int.js";
@@ -54,13 +37,12 @@ import { OBJ_X, OBJ_Y, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./nam
 // End-of-table marker in the path table the walk reads.
 const TABLE_TERMINATOR = 0xaa;
 
-// Object-record fields addressed off the record pointer that have no names.js offset name
-// yet (OBJ_X/OBJ_Y/OBJ_STATE and the saved walk-pointer bytes OBJ_WALK_PTR_LO/HI are
-// imported from names.js). Named here for their role in this walk.
+// Object-record fields that carry no shared name, scoped here and named for the role they
+// play in this walk.
 const FINAL_X = 0x0e; // object's final X, latched when the walk completes
 const FINAL_Y = 0x0f; // object's final Y, latched when the walk completes
-const WALK_FLAG_A = 0x13; // per-object animation-state bytes cleared on completion
-const WALK_FLAG_B = 0x18; //   (their specific roles are not yet named in names.js)
+const WALK_FLAG_A = 0x13; // per-object animation-state bytes cleared on completion —
+const WALK_FLAG_B = 0x18; //   what each one separately controls is not established
 const WALK_FLAG_C = 0x1c;
 
 /**
@@ -70,7 +52,7 @@ const WALK_FLAG_C = 0x1c;
 export function loc_3445(m) {
   const { regs, mem } = m;
 
-  // The object record the caller points at (oracle boundary: the caller supplies it).
+  // The object record the caller points at.
   const base = regs.ix;
   const field = (off) => (base + off) & 0xffff;
 

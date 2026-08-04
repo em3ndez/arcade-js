@@ -1,46 +1,37 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchInlineJumpTable — the `rst 0x28` inline-jump-table trampoline. ROM 0x0028.
+ * dispatchInlineJumpTable — the inline-jump-table trampoline: dispatch on a selector byte to one of
+ * a list of target addresses laid down immediately after the call site.
  *
- * A caller does `rst 0x28` with the target index already in A, and lays a table of
- * 2-byte little-endian target addresses in ROM immediately AFTER the rst opcode.
- * The `rst`'s pushed return address therefore points AT that inline table, and this
- * routine's whole job is: recover that table base, read the word at table[A], and
- * jump to it. It is the shared computed-dispatch primitive behind every rst-0x28
- * site — the NMI game-state table (0x00CA), the in-game sub-state table (0x0702),
- * the opening-cutscene table (0x0A7A), the gateObjectUpdateByDifficulty guard table (0x3104), and more —
- * so it is generic, steered only by the selector in A and the table base on the stack.
+ * A caller reaches here through a one-byte restart instruction with the target index already in the
+ * accumulator, and lays a table of 2-byte little-endian target addresses immediately AFTER that
+ * opcode. The pushed return address therefore points AT the table, and this routine's whole job is:
+ * recover that table base, read the word at table[selector], and jump to it. It is the shared
+ * computed-dispatch primitive behind every such site in the game — the per-frame game-state table,
+ * the in-game sub-state table, the opening-cutscene table, the difficulty-selected guard table and
+ * more — so it is generic, steered only by the selector and by the table base on the stack.
  *
- *   - `add a,a` doubles the selector to a byte offset. This is an 8-bit result:
- *     selector 0x80 wraps the offset to 0, so the address math is `base + (2*A & 0xff)`,
- *     NOT `base + 2*A`. Reproduced exactly here.
- *   - `pop hl` lifts the table base off the stack — this ONE stack read is the
- *     routine's genuine INPUT (the rst pushed the base as data), not call/return
- *     plumbing, and it advances SP past the consumed base.
- *   - the little-endian word at table[selector] is the target; `jp (hl)` dispatches.
+ *   - Doubling the selector into a byte offset is an 8-BIT result: a selector of 0x80 wraps the
+ *     offset back to 0, so the address math is `base + (2*selector & 0xff)`, NOT
+ *     `base + 2*selector`. Reproduced exactly.
+ *   - Lifting the table base off the stack is this routine's genuine INPUT — the caller pushed it
+ *     as DATA, not as return plumbing — and consuming it is what advances the stack pointer past it.
+ *   - The little-endian word at table[selector] is the target, and control transfers there.
  *
- * The register/flag state the hardware leaves at the `jp (hl)` (A = 2*selector,
- * HL = target, DE = &table[selector].hi, flags from `add a,a` / `add hl,de`) is the
- * handoff the dispatched arm may read, so it is reproduced byte-for-byte before the
- * dispatch. Those registers are live only INTO the arm (consumed within this call);
- * they are dead to this routine's own callers.
+ * The register and flag state left at the transfer — accumulator = 2*selector, the target address,
+ * the address of the selected entry's high byte, and the flags the two adds set — is the hand-off
+ * the dispatched arm may read, so it is reproduced byte-for-byte before the transfer. All of it is
+ * live only INTO the arm, and dead to this routine's own callers.
  *
- * The dispatch itself is genuine address-level computed control flow (a ROM table of
- * targets, some reached only here), so it stays routed through the still-oracle
- * generic dispatcher loc_00ca rather than a JS function table — the one
- * place doc-06 keeps an address registry. loc_00ca returns the arm's
- * skip-boolean for the skip-capable dispatch families (the 0x3110 guards); that
- * value is propagated to the caller unchanged.
+ * The dispatch itself is genuine address-level computed control flow — a table of targets, some
+ * reached only from here — so it stays routed through the generic address dispatcher rather than
+ * being flattened into a JS function table. That dispatcher hands back the arm's skip-boolean for
+ * the skip-capable dispatch families, and this routine propagates it to its caller unchanged.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0028.test.js.
- * GATE:     crafted-entry — real captured NMI/sub-state dispatches over attract
- *           (fresh clone each, oracle handler run in full) + an EXHAUSTIVE sweep of
- *           the selector byte 0..255 over five representative table bases for the
- *           arms/indices attract never reaches; teeth = the 16-bit-offset bug.
- * LIVE-OUT: memory + SP + the dispatch return boolean (the rst skip flag). The
- *           A/HL/DE/flag handoff is internal to the dispatched arm, not caller-live.
- * NAMES:    none — reads only the ROM jump table (ROM data addresses, kept hex) and
- *           the pushed table base off the stack; references no work-RAM name.
+ * Reads: the table base off the stack, and the two target bytes at the selected entry. Writes:
+ * nothing of its own — everything observable is written by the dispatched arm.
+ * LIVE-OUT: the stack pointer past the consumed base, the arm's memory writes, and the arm's skip
+ * boolean.
  */
 import { loc_00ca } from "../translated/loc_00ca.js";
 

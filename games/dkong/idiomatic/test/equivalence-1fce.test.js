@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1fce (ROM 0x1FCE) — step an object record's animation prescaler (+0x0f)
+ * Equivalence test for advanceBarrelTileAnimation (ROM 0x1FCE) — step an object record's animation prescaler (+0x0f)
  * and, on the visit it expires, flip the lowest bit of the record's OBJ_SPRITE_CODE and reload the
  * prescaler to 4; then jump into the shared object-sprite tail at ROM 0x21BA.
  *
@@ -63,6 +63,14 @@
  * the between-slots step's own fall-through. So the return comparison discriminates nothing on the
  * captured arms; twin (e) exists to prove that half of the contract is nonetheless wired.
  *
+ * LIVE-OUT, DERIVED — cross-file, and therefore recorded here rather than in the routine. The
+ * routine's only exit is a jump into ROM 0x21BA, so its whole continuation is that chain. ROM
+ * 0x21BB overwrites the accumulator one instruction in, before anything reads it. The flags last a
+ * little longer — ROM 0x21BF rewrites all but the carry, ROM 0x1F8E's index add rewrites the carry
+ * — and the first conditional anywhere on the path is the walk's slot counter at ROM 0x1F90, which
+ * reads a counter and not a flag. So neither is ever read, and both are dropped rather than
+ * modelled; arm 3 above is the measurement that backs the derivation.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1fce.test.js
  */
 
@@ -72,7 +80,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { loc_1fce as oracle } from "../../translated/loc_1fce.js";
-import { loc_1fce } from "../loc_1fce.js";
+import { advanceBarrelTileAnimation } from "../advanceBarrelTileAnimation.js";
 import { OBJ_SPRITE_CODE, OBJ_ARRAY_67 } from "../names.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";
@@ -85,7 +93,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1fce;
-const PRESCALER = 0x0f; // the record's animation prescaler — no names.js name (see loc_1fce.js)
+const PRESCALER = 0x0f; // the record's animation prescaler — no names.js name (see advanceBarrelTileAnimation.js)
 const RELOAD = 4; // visits per animation step
 const SLOT_STRIDE = 32; // OBJ_ARRAY_67 record stride
 const SLOTS = 10; // records the walk visits
@@ -223,11 +231,11 @@ const describe = (b) =>
 
 // The one sweep the first tests share. Node's test runner evaluates the module top to bottom, so
 // this runs once at load rather than once per test.
-const NATURAL = ROM_PRESENT ? sweepAttract(loc_1fce) : null;
+const NATURAL = ROM_PRESENT ? sweepAttract(advanceBarrelTileAnimation) : null;
 
 // -- 1. EQUAL, on every real attract dispatch ----------------------------------
 
-test("EQUAL: loc_1fce matches the oracle on every one of the real attract dispatches", () => {
+test("EQUAL: advanceBarrelTileAnimation matches the oracle on every one of the real attract dispatches", () => {
   assert.ok(NATURAL.dispatches > 0, "no dispatch of 0x1FCE was captured — the harness never engaged");
   assert.equal(
     NATURAL.dispatches,
@@ -290,7 +298,7 @@ test("EQUAL: loc_1fce matches the oracle on every one of the real attract dispat
 /** Real capture, one surgical poke: the prescaler arrives at 0, so stepping it wraps to 255. */
 const craftPrescalerZero = (m) => { m.mem8[(m.regs.ix + PRESCALER) & 0xffff] = CRAFTED_PRESCALER; };
 
-const CRAFTED = ROM_PRESENT ? sweepAttract(loc_1fce, { prep: craftPrescalerZero }) : null;
+const CRAFTED = ROM_PRESENT ? sweepAttract(advanceBarrelTileAnimation, { prep: craftPrescalerZero }) : null;
 
 test("EQUAL (crafted): a prescaler of 0 — a value attract never delivers — matches the oracle", () => {
   assert.ok(CRAFTED.prepChangedOracle > 0,
@@ -357,7 +365,7 @@ function brokenReloadThree(m) {
 
 /** (e) correct in RAM, wrong at the boundary: hands its caller a value it never had. */
 function brokenSpuriousReturn(m) {
-  loc_1fce(m);
+  advanceBarrelTileAnimation(m);
   return false;
 }
 
@@ -428,7 +436,7 @@ function runFramesCycleFree(overrides) {
 test("LIVE-OUT: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
   const baseline = runFramesCycleFree(null);
   let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return loc_1fce(m); }]]));
+  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return advanceBarrelTileAnimation(m); }]]));
 
   // Without this the run can be byte-identical because the routine never executed. Measured on a
   // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose

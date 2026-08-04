@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2e4b (ROM 0x2E4B) — the per-object scan's animation-string
+ * Equivalence test for advanceSpringArcAndDropAtTravelEnd (ROM 0x2E4B) — the per-object scan's animation-string
  * store + end-of-walk transition.
  *
- * loc_2e4b stores the animation-string pointer back into the object record (low +0x0e,
+ * advanceSpringArcAndDropAtTravelEnd stores the animation-string pointer back into the object record (low +0x0e,
  * high +0x0f), then — only when the object has reached the far X limit (>= 0xB7) AND the
  * last string byte read was the terminator (0x7F) — switches the object to state 4 (+0x0d)
  * and fires a transition sound (SND_TRIGGER+3 := 0, SND_TRIGGER+4 := 3). Every path falls
@@ -23,7 +23,7 @@
  *
  * The effect factorises: the two pointer stores depend only on l/h; the transition depends
  * only on object X (>= 0xB7) and c (== 0x7F); the sprite writes + cursor advance are the
- * already-proven mirror tail. loc_2e4b dereferences the object/sprite cursors, so a naive
+ * already-proven mirror tail. advanceSpringArcAndDropAtTravelEnd dereferences the object/sprite cursors, so a naive
  * 0..65535 sweep would fault on unmapped addresses; coverage instead comes from:
  *
  *   1. EQUAL (byte sweeps) — at a real (object, sprite) record pair:
@@ -59,7 +59,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e4b as oracle } from "../../translated/loc_2e4b.js";
-import { loc_2e4b } from "../loc_2e4b.js";
+import { advanceSpringArcAndDropAtTravelEnd } from "../advanceSpringArcAndDropAtTravelEnd.js";
 import { mirrorObjectPositionToSprite } from "../mirrorObjectPositionToSprite.js"; // ROM 0x2E6C (for the twins)
 import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
@@ -190,9 +190,9 @@ function fullSweep(base, candidate) {
 
 // -- 1. EQUAL (byte sweeps) ---------------------------------------------------
 
-test("EQUAL (byte sweeps): loc_2e4b == oracle over the X / terminator / pointer-low / pointer-high sweeps", () => {
+test("EQUAL (byte sweeps): advanceSpringArcAndDropAtTravelEnd == oracle over the X / terminator / pointer-low / pointer-high sweeps", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, loc_2e4b);
+  const { mismatch, count } = fullSweep(base, advanceSpringArcAndDropAtTravelEnd);
   assert.equal(mismatch, null, mismatch || "");
   assert.equal(count, 4 * 256, "must have swept all four factored fields over their full 256-value range");
 
@@ -227,7 +227,7 @@ test("EQUAL (grid): the exact in-game cursor sequence, cross-producted, matches 
       // Distinct, position-dependent source/pointer bytes so a wrong offset would diverge.
       // Mix transition and no-transition arms across the grid via the X value.
       const p = { X: (0x40 + 0x18 * k) & 0xff, C: TERMINATOR, L: (0x10 + k) & 0xff, H: (0x39 + j) & 0xff, Y: (0xc0 + k) & 0xff };
-      const d = runOne(base, ix, iy, p, loc_2e4b);
+      const d = runOne(base, ix, iy, p, advanceSpringArcAndDropAtTravelEnd);
       assert.equal(d, null, d ? `grid k=${k} j=${j} (ix=${hx16(ix)} iy=${hx16(iy)}): ${d}` : "");
       count++;
     }
@@ -254,7 +254,7 @@ test("EQUAL (independence): output depends ONLY on the cursors, l/h/c, and objec
         mm.mem.write8(0x6100, 0xa5); // a work-RAM byte the routine must not read or write
       }
       oracle(om);
-      loc_2e4b(cm);
+      advanceSpringArcAndDropAtTravelEnd(cm);
       const d = contractDiff(om, cm);
       assert.equal(d, null, d ? `de=${hx16(de)} b=${hx(b)}: ${d}` : "");
       // And the transition + mirror land as expected regardless of the ignored inputs.
@@ -307,7 +307,7 @@ function captureRealDispatches() {
   return caps;
 }
 
-test("REALISM: real captured 0x2e4b dispatches — loc_2e4b matches the oracle", () => {
+test("REALISM: real captured 0x2e4b dispatches — advanceSpringArcAndDropAtTravelEnd matches the oracle", () => {
   const caps = captureRealDispatches();
   assert.equal(caps.length, 10, "the steered full-loop update75mActorObjects should dispatch 0x2e4b once per object (10)");
 
@@ -320,7 +320,7 @@ test("REALISM: real captured 0x2e4b dispatches — loc_2e4b matches the oracle",
     o.nextNmi = Infinity; o.nextBoundary = Infinity;
     c.nextNmi = Infinity; c.nextBoundary = Infinity;
     oracle(o);
-    loc_2e4b(c);
+    advanceSpringArcAndDropAtTravelEnd(c);
     const d = contractDiff(o, c);
     assert.equal(d, null, d ? `real dispatch ${i} (ix=${hx16(cap.regs.ix)} c=${hx(cap.regs.c)}): ${d}` : "");
   });

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * beginMarioFall — when the "ground went away" trigger is armed, drop Mario into a
- * fresh falling state and remember the height he fell from.  ROM 0x1F46.
+ * beginMarioFall — when the "ground went away" trigger is armed, drop Mario into a fresh
+ * falling state and remember the height he fell from.
  *
  * Called once per pass from the shared per-frame update cascade. It does nothing at all
  * unless the start-fall trigger is set — the slope/ledge contact check raises that
@@ -25,19 +25,11 @@
  * A LEAF: reads the trigger and Mario's height, writes the motion-state cells; calls
  * nothing and returns nothing.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1f46.test.js.
- * GATE:     exhaustive over the two inputs that decide the behaviour — the trigger
- *           (path select; every nonzero value launches the identical reset) and Mario's
- *           height (the only value the reset copies out) — each swept over all 256 bytes
- *           on a clean base and a sentinel-noised base, plus a cross grid and the real
- *           captured 0x1F46 dispatches an attract run produces (both the early-out and
- *           the one reset the demo's fall reaches).
- * LIVE-OUT: memory-only. The oracle's residual registers/flags and its two `ret` exits
- *           are dead — the per-frame cascade issues its next call without reading them,
- *           and this routine simply does or skips its reset.
- * NAMES:    MARIO_START_FALL (0x6221, the trigger), MARIO_X_FRAC/MARIO_Y_FRAC,
- *           MARIO_AIR_VX_HI/LO, MARIO_AIR_VY_HI/LO, MARIO_AIR_FRAMES, MARIO_AIRBORNE,
- *           MARIO_AIR_LANDCHECK, MARIO_Y, MARIO_AIR_START_Y — all from names.js.
+ * Only two values decide everything it does: the trigger, which selects the path, and
+ * Mario's height, which is the one input the reset copies out. Every other cell it touches
+ * takes a fixed constant — eight cleared to 0, two set to 1.
+ *
+ * LIVE-OUT: memory-only.
  */
 
 import {

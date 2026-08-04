@@ -1,9 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_24b4 (ROM 0x24B4) — the object-retirement gate: an object whose
- * OBJ_Y has reached 232 with its OBJ_X inside the 32..41 band is retired (slot freed, column
- * blanked, impact sound asserted, two mode latches armed) and handed to the shared
- * object-sprite tail WITHOUT returning to the caller; anything else returns untouched.
+ * retireBarrelIntoOilDrum — memory-equivalent to the frozen oracle at ROM 0x24B4 — the
+ * object-retirement gate: an object whose OBJ_Y has reached 232 with its OBJ_X inside the 32..41
+ * band is retired (slot freed, column blanked, impact sound asserted, two mode latches armed) and
+ * handed to the shared object-sprite tail WITHOUT returning to the caller; anything else returns
+ * untouched.
+ * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 1200-frame attract
+ *        run is replayed inline — no sampling, which is load-bearing here because the band's
+ *        high edge and the retirement arm get one natural dispatch each. Five crafted arms
+ *        cover what attract never produces. Credited play and boards 2-4 are NOT covered: the
+ *        walk this belongs to runs only on 25m.
  *
  * WHAT THIS GATE ACTUALLY COVERS, stated plainly:
  *
@@ -84,7 +90,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { loc_24b4 as oracle } from "../../translated/loc_24b4.js";
-import { loc_24b4 } from "../loc_24b4.js";
+import { retireBarrelIntoOilDrum } from "../retireBarrelIntoOilDrum.js";
 import { OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_ARRAY_67, SND_TRIGGER, STACK_SCRATCH } from "../names.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";
@@ -301,14 +307,14 @@ const CRAFT_ARM = {
 };
 
 // Node's test runner evaluates the module top to bottom, so these run once at load.
-const NATURAL = ROM_PRESENT ? sweepAttract(loc_24b4) : null;
+const NATURAL = ROM_PRESENT ? sweepAttract(retireBarrelIntoOilDrum) : null;
 const CRAFTED = ROM_PRESENT
-  ? Object.fromEntries(Object.entries(CRAFTS).map(([k, prep]) => [k, sweepAttract(loc_24b4, { prep })]))
+  ? Object.fromEntries(Object.entries(CRAFTS).map(([k, prep]) => [k, sweepAttract(retireBarrelIntoOilDrum, { prep })]))
   : null;
 
 // -- 1. EQUAL, on every real attract dispatch ----------------------------------
 
-test("EQUAL: loc_24b4 matches the oracle on every one of the real attract dispatches", () => {
+test("EQUAL: retireBarrelIntoOilDrum matches the oracle on every one of the real attract dispatches", () => {
   assert.ok(NATURAL.dispatches > 0, "no dispatch of 0x24B4 was captured — the harness never engaged");
   assert.equal(
     NATURAL.dispatches, CAPTURED_DISPATCHES,
@@ -416,7 +422,7 @@ for (const name of Object.keys(CRAFTS)) {
 
 /**
  * One parameterised twin body, so every twin differs from the real routine in EXACTLY the one
- * thing it names. It is written out longhand rather than wrapping loc_24b4 because most of these
+ * thing it names. It is written out longhand rather than wrapping retireBarrelIntoOilDrum because most of these
  * defects are in the gate conditions, which a wrapper cannot reach.
  */
 function twinBody(m, { bottom = BOTTOM_ROW, high = (x) => x >= BAND_HI, low = (x) => x < BAND_LO,
@@ -470,10 +476,10 @@ for (const [name, twin, craft, kind] of CRAFTED_ONLY_TWINS) {
 const NATURAL_TWINS = [
   ["band high edge off by one", (m) => twinBody(m, { high: (x) => x > BAND_HI }), "RAM", 1],
   ["column blank dropped", (m) => twinBody(m, { blankColumn: false }), "RAM", 1],
-  ["wrong protocol value", (m) => { loc_24b4(m); return true; }, "return", 1],
+  ["wrong protocol value", (m) => { retireBarrelIntoOilDrum(m); return true; }, "return", 1],
   // An extra pop on the return arms: RAM, SP and the return value all still agree, so pc is the
   // only thing in the contract that can see it.
-  ["leaked return bracket", (m) => { const r = loc_24b4(m); if (r === true) m.pop16(); return r; }, "pc", 1153],
+  ["leaked return bracket", (m) => { const r = retireBarrelIntoOilDrum(m); if (r === true) m.pop16(); return r; }, "pc", 1153],
 ];
 
 for (const [name, twin, kind, expected] of NATURAL_TWINS) {
@@ -512,7 +518,7 @@ function runFramesCycleFree(overrides) {
 test("LIVE: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
   const baseline = runFramesCycleFree(null);
   let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return loc_24b4(m); }]]));
+  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return retireBarrelIntoOilDrum(m); }]]));
 
   // Without this the run can be byte-identical because the routine never executed. Measured on a
   // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose

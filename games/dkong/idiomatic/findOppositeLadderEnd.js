@@ -1,53 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * findOppositeLadderEnd — find a key in the ladder (object-parameter) table and return the paired
- * slot at the other end of that ladder.  ROM 0x236E.
+ * findOppositeLadderEnd — find a key in the ladder (object-parameter) table and hand back the paired
+ * slot at the other end of that ladder, tagged with which end the caller started from.
  *
- * Scans the type-0 object table for the first entry whose byte equals the search
- * key, then uses a discriminator to pick which of two slots tied to that entry to
- * hand back. The two slots sit a fixed 0x15 and 0x2A past the matched byte, and the
- * routine returns whichever slot the discriminator did NOT match — the *other* member
- * of the pair — tagged by which one that was:
+ * Scans OBJ_PARAM_TABLE0 for the first entry whose byte equals the search key, then uses a
+ * discriminator to pick which of two slots tied to that entry to hand back. The two slots sit a
+ * fixed +0x15 and +0x2A past the matched byte, and the routine returns whichever slot the
+ * discriminator did NOT match — the OTHER member of the pair — tagged by which one it was:
  *
- *   discriminator == byte at (match + 0x15)  ->  tag 1, return byte at (match + 0x2A)
- *   discriminator == byte at (match + 0x2A)  ->  tag 0, return byte at (match + 0x15)
- *   neither slot matched                     ->  keep scanning past this entry
- *   key not found before the count runs out  ->  MISS: unwind (return false)
+ *   discriminator == the byte at match+0x15   ->  tag 1, return the byte at match+0x2A
+ *   discriminator == the byte at match+0x2A   ->  tag 0, return the byte at match+0x15
+ *   neither slot matched                      ->  keep scanning past this entry
+ *   key never found before the count runs out ->  MISS
  *
- * The miss is a double unwind in the oracle — it drops its own return address and
- * returns on the caller's behalf. Here that is a `false` return; each caller mirrors
- * it with `if (!findOppositeLadderEnd(m)) return;`, so the caller unwinds too.
+ * A MISS is a double unwind — the caller must return too. Here that is a `false` return, which each
+ * caller mirrors with `if (!findOppositeLadderEnd(m)) return;`.
  *
- * The interface stays REGISTER-SHAPED — the key, the entry count and the discriminator
- * arrive in registers, and the found result (the tag, the returned slot byte, the residual
- * count, and the key echo) leaves in registers. ★ CORRECTION: an earlier version of this
- * header justified that by saying "its three callers are still the frozen lift and reach it
- * by register ABI". That is no longer true — all three ROM call sites (0x1B13 in loc_1afe,
- * 0x216D in startBarrelDescentAtLadder, 0x3359 in loc_333d) now have readable twins, and
- * every one of them imports this module and direct-calls it. The shape survives because it
- * is the ROM's own ABI and the callers still marshal into it, not because anything upstream
- * is untranslated; dissolving the marshalling is a later unit.
+ * The interface stays REGISTER-SHAPED: the key, the entry count and the discriminator arrive in
+ * registers, and the tag, the returned slot byte, the residual count and the key echo leave in
+ * registers. That is the hardware's own calling convention and every caller still marshals into it;
+ * dissolving the marshalling is one job for the whole group, not for this file alone.
  *
- * NAME — WHY "LADDER". The table's records are the DRAWN LADDERS, observed on the real ROM under
- * MAME 0.288 (scratchpad/grounding-object-arrays.md): the object-parameter table and the
- * board-layout table are the same four ROM tables, this routine's type-0/1 records are the ones
- * ROM 0x0E19 draws, and suppressing 0x0E19 removes 616 px from the screen — the two full-height
- * ladders beside Kong plus eight shorter segments, with not one girder pixel changed. That
- * closes a reading which had until then rested on structure alone (every type-0/1 record is a
- * fixed-column run, and a play-validated tape lands on one specific record at ladder-X 0x92).
+ * WHAT THE NAME CLAIMS, AND WHAT IT CANNOT. What this body derives is the SHAPE: a keyed lookup into
+ * a table of records, each carrying a pair of slots at a fixed stride, returning the far one and
+ * saying which end it came from. That the records are LADDERS, and that the pair is one ladder's two
+ * ends, is NOT derivable here — it rests on evidence from outside this file, and the name carries it
+ * rather than proving it.
  *
- * Memory-equivalent to the frozen oracle — equivalence-236e.test.js.
- * GATE:     crafted-entry (a controlled table planted in a real attract base) covering
- *           both found tags, the multi-entry rescan, and the not-found miss, plus real
- *           captured dispatches; 0x236E is a gameplay object-lookup driven from
- *           climb/collision code and runs during the attract demo.
- * LIVE-OUT: registers, found path only — the tag, the paired slot byte, the low byte of
- *           the residual scan count, and the echoed key; the discriminator passes through
- *           unchanged. (The address past the match is left in a register by the oracle but
- *           no caller reads it — dead, so it is dropped.) The boolean return is the
- *           miss/found signal. Writes no work RAM (the oracle's stack churn is dead).
- * NAMES:    OBJ_PARAM_TABLE0 (0x6300) from names.js — the scan base. The +0x15 / +0x2A slot
- *           offsets are structural strides within a table record and stay literal.
+ * Reads: OBJ_PARAM_TABLE0, and the two paired slots past each match. Writes: no work RAM at all.
+ * LIVE-OUT: on a hit, the four register results above, with the discriminator passing through
+ * unchanged; on a miss, the false return. The address just past the match is left in a register but
+ * no caller reads it, so it is dropped.
  */
 
 import { OBJ_PARAM_TABLE0 } from "./names.js";
@@ -60,8 +43,8 @@ const FAR_SLOT = 0x2a;
  * @param {object} m  the machine. Live-in registers: the search key, the entry count,
  *   and the discriminator. Live-out registers on a hit: the tag, the paired slot byte,
  *   the residual-count low byte, and the key echo.
- * @returns {boolean} true on a hit (registers hold the result); false on a miss, on
- *   which the caller must also return (the oracle's double unwind).
+ * @returns {boolean} true on a hit, with the results in registers; false on a miss, on
+ *   which the caller must also return — the double unwind.
  */
 export function findOppositeLadderEnd(m) {
   const { regs, mem } = m;

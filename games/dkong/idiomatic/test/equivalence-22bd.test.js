@@ -11,10 +11,14 @@
  * the whole dump is the whole contract. The oracle's terminal `ret` only POPS the stack
  * (reads, never writes), so no STACK_SCRATCH exclusion is needed.
  *
- * The main loop never dispatches 0x22BD in attract (0 in 3000 frames — it is an arm of the
- * 0x2207 object state machine, not exercised by the attract demo), so real captured
- * dispatches are unavailable. But the observable space is tiny and factorises, so the
- * crafted sweep is a PROOF, not a sample:
+ * COVERAGE HOLE, STATED PLAINLY: this suite replays NO captured dispatch. The attract demo
+ * never dispatches 0x22BD (0 in 3000 frames — it is an arm of the 0x2207 object state
+ * machine, which the demo does not drive), but real dispatches DO exist: on a live 50m board
+ * the mirror runs on every frame the object machine moves, and a grounding run watched it do
+ * so for thousands of consecutive board-2 frames. Replaying those is open work, not an
+ * impossibility, and part 3 below documents only the zero-dispatch attract case. What the
+ * crafted sweep DOES prove is that the observable space is tiny and factorises, so over that
+ * space the sweep is a PROOF and not a sample:
  *
  *   The write is  mem[dest] = mem[srcAddr]  with  dest = bit3(srcAddr) ? 0x694b : 0x6947.
  *   The destination depends ONLY on the source pointer's low byte; the value copied is the

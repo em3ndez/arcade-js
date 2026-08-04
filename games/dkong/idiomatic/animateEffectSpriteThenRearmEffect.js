@@ -1,51 +1,39 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * animateEffectSpriteThenRearmEffect — effect-sequence step 2: a two-stage rate divider that steps the effect sprite's
- * tile on most beats and, when it runs out, resets the sequence and re-arms the parent effect.
- * ROM 0x1F23.
+ * animateEffectSpriteThenRearmEffect — step 2 of the effect sequence: a two-stage rate divider
+ * that steps the effect sprite's tile on most beats and, when it runs out, resets the sequence
+ * and re-arms the parent effect.
  *
- * This is index 2 of the effect-sequence dispatch keyed on EFFECT_SEQ_STATE (the router runs it
- * while that state holds 2). Like its sibling step 1 it runs once per dispatch and does nothing on
- * most of them: EFFECT_SEQ_INNER counts down every call and the routine returns until it drains
- * from 1 to 0. On that beat — once every twelve calls — it reloads the inner counter to 12 and
- * ticks EFFECT_SEQ_OUTER down:
+ * The effect-sequence router runs this while the sequence state holds its index. Like the step
+ * before it, it runs once per dispatch and does nothing on most of them: an inner counter ticks
+ * down every call and the routine returns until that counter drains to zero. On that beat —
+ * once every twelve calls — it reloads the inner counter and ticks an outer counter down:
  *
  *   - while the outer counter is still running, it increments the effect sprite's code byte, so
- *     the sprite's tile marches forward one step per beat (an animation, as opposed to step 1's
- *     two-tile flash);
- *   - once the outer counter drains, it does NOT reload it; instead it tears the sequence down —
- *     resets EFFECT_SEQ_STATE back to 0, re-arms the parent effect state machine (EFFECT_STATE = 1
- *     with its param pointer aimed back at the effect sprite record base), and clears a shared
- *     scratch cell. That re-arm hands the whole transient effect back to its state machine to run
- *     again from the top.
+ *     the sprite's tile MARCHES forward one step per beat. That is what distinguishes this step
+ *     from its sibling, which flashes between two tiles instead;
+ *   - once the outer counter drains it does NOT reload it. Instead it tears the sequence down:
+ *     resets the sequence state to the start, re-arms the parent effect state machine with its
+ *     parameter pointer aimed back at the effect sprite record, and clears a shared engine
+ *     scratch cell. Clearing that cell is what hands the per-frame cascade back to ordinary
+ *     play, since a routine upstream reads it to skip the whole cascade while an effect runs.
  *
  * So across a run of dispatches the sprite tile advances at one-twelfth the dispatch rate, and
- * after the outer counter's worth of steps the effect restarts. The inner counter is written on
- * every call (the decremented value on a skipped call, back to 12 on a beat); the outer counter is
- * written on every beat (its decremented value — never reloaded here).
+ * after the outer counter's worth of steps the effect restarts from the top. The inner counter
+ * is written on every call — the decremented value on a skipped call, the full reload on a beat
+ * — and the outer counter on every beat, always its decremented value.
  *
- * NAME: PROMOTED in understanding pass 12. Corroboration is OUTSIDE this routine: it drives the same
- * names.js-named EFFECT_SPRITE (0x6A2C) code byte as its sibling, and that byte (0x6A2D) is [seen]-
- * GROUNDED in names.js (observed stepping live, 41 transitions, tied to EFFECT_SEQ_STATE). The name
- * records the two things that distinguish it from flashEffectSpriteThenAdvanceSequence (0x1F09):
- * this one `inc`s — MARCHING forward through consecutive tiles on a 12-frame beat, 3 steps, never
- * reloading OUTER — and then TEARS THE EFFECT DOWN, clearing 0x6350, the byte runHitEffectInsteadOfPlay reads to
- * caller-skip the whole per-frame cascade. So this is the arm that hands play back, hence "rearm".
- * WHAT THIS NAME DOES NOT CLAIM: what the effect DEPICTS. That semantic is still ungrounded
- * (mechanisms.md §6); the name describes the byte-level effect and the teardown, nothing more.
+ * WHAT THIS DOES NOT CLAIM: what the effect DEPICTS on screen. What is established is the
+ * byte-level animation and the teardown, and nothing above that.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1f23.test.js.
- * GATE:     strict, exhaustive over the reachable input space by factorisation — every inner value
- *           (delay vs beat), every outer value on the beat (step vs reset), and every sprite-code
- *           value on the step beat — plus real captured attract dispatches (all three arms fire
- *           naturally in attract). A leaf: no callees.
- * LIVE-OUT: memory-only. The oracle threads flags/registers through and returns via the dispatch
- *           tail, but the caller chain (the router, then its own caller) consumes none of them — it
- *           takes an independent skip decision — so the residual is dead.
- * NAMES:    EFFECT_SEQ_INNER (0x6346), EFFECT_SEQ_OUTER (0x6347), EFFECT_SEQ_STATE (0x6345),
- *           EFFECT_STATE (0x6340), EFFECT_PARAM_PTR (0x6343), EFFECT_SPRITE (0x6A2C) and its +1
- *           SPRITE_CODE field (0x6A2D) — all from names.js. 0x6350 is genuinely-unnamed shared engine
- *           scratch (shared across subsystems, no grounded name fits) — kept hex.
+ * A LEAF: no callees.
+ *
+ * Reads: the two counters and the effect sprite's code byte. Writes: the two counters, the
+ * sprite's code byte on an ordinary beat, and on the final beat the sequence state, the parent
+ * effect state, its parameter pointer and the shared scratch cell.
+ *
+ * LIVE-OUT: memory-only. The router takes its own skip decision and consumes nothing this
+ * routine leaves in a register.
  */
 
 import {
@@ -58,9 +46,9 @@ import {
   SPRITE_CODE,
 } from "./names.js";
 
-// The +1 code field of the effect sprite record (0x6A2D), inside the sprite shadow buffer the DMA
-// blits to sprite RAM each vblank. This routine increments it each beat, stepping the sprite's tile.
-const EFFECT_SPRITE_CELL = EFFECT_SPRITE + SPRITE_CODE; // 0x6A2D
+// The code field of the effect sprite's record, in the shadow buffer that is blitted to sprite
+// memory each vblank. This routine increments it each beat, stepping the sprite's tile.
+const EFFECT_SPRITE_CELL = EFFECT_SPRITE + SPRITE_CODE;
 
 /**
  * @param {object} m  the machine (uses m.mem only).
@@ -83,9 +71,9 @@ export function animateEffectSpriteThenRearmEffect(m) {
   if (outer === 0) {
     // Final beat: tear the sequence down and re-arm the parent effect to run from the top.
     mem.write8(EFFECT_SEQ_STATE, 0); // back to the start of the effect-sequence dispatch
-    mem.write8(0x6350, 0); // shared engine scratch (unnamed) cleared alongside the reset
+    mem.write8(0x6350, 0); // the shared engine scratch that gates the per-frame cascade
     mem.write8(EFFECT_STATE, 1); // re-arm the parent effect state machine
-    mem.write16(EFFECT_PARAM_PTR, EFFECT_SPRITE); // param pointer back to the effect sprite record base
+    mem.write16(EFFECT_PARAM_PTR, EFFECT_SPRITE); // param pointer back to the sprite record base
     return;
   }
 

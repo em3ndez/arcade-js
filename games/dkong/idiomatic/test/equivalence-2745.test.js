@@ -25,8 +25,15 @@
  * flag it gates on is only raised by a gameplay mover the 25m demo never drives), so
  * crafted entries on a REAL booted attract base carry the gate.
  *
+ * COVERAGE HOLE, stated plainly (R17). Attract-0 does NOT mean this code never runs: it is
+ * dispatched hundreds of times during real 75m gameplay, on both the guard-closed idle path
+ * and both carry arms, and THIS GATE REPLAYS NONE OF THOSE. What it proves is that the
+ * routine matches the oracle over its whole decision space on crafted entries; what it does
+ * not prove is that a real ride reproduces frame for frame.
+ *
  *   0. REACHABILITY — confirm 0x2745 stays unreached in attract, so crafted coverage
- *      carries the gate (if it ever fires, add captured coverage).
+ *      carries the gate (if it ever fires, add captured coverage). This asserts only the
+ *      attract number; it says nothing about gameplay, which is the hole above.
  *   1. EQUAL (crafted, exhaustive dispatch) — dispatchElevatorRideByColumn == oracle over RAM (whole dump)
  *      + pc + SP across ALL 256 MARIO_X values (every band boundary) crossed with a
  *      MARIO_Y set that drives both sub-arms of each mover, active path (flag set,

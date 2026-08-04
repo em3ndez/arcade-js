@@ -36,6 +36,16 @@
  *      (c) LATCH-BIT twin (0x7d87 fed bit 7 instead of bit 6) — caught by the write-trace
  *          on a pattern where bit7 != bit6; the RAM diff alone is blind to it.
  *
+ * COVERAGE HOLE, stated plainly. This gate compares RAM ex-stack ONLY — it never compares pc
+ * or SP — so it is structurally blind to a guest-stack delta. That matters at exactly one
+ * site: loc_07cb reaches the fixed tilemap-pair stamp (0x3F24) through the frozen oracle
+ * rather than the idiomatic twin stampFixedTilePair, because the oracle is a pure leaf ending
+ * in `ret` and so consumes one guest-stack word the twin's JS return does not. That 2-byte
+ * delta was INJECTED at this site and this gate did not catch it; neither did the full-flip
+ * gate, because the site is in the NMI subtree where perFrame's epilogue overwrites SP before
+ * the frame boundary the flip gate samples. So the choice of callee at that call site is
+ * covered by no gate, and must not be "tidied" on the strength of a green run here.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-07cb.test.js
  */
 

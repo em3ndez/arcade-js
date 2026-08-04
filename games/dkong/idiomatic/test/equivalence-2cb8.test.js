@@ -72,6 +72,14 @@
  *      (e) dropped continuation — does the whole claim but returns without continuing into
  *          loc_2ce6, so the downstream preset and renderer tick are missing.
  *
+ * OBSERVED FAILING against the real candidate, not only against the twins. Injecting an
+ * off-by-one into releaseBarrelIntoFreeSlot's slot index fails three separate cases here —
+ * the captured-dispatch job (`RAM@0x62ac oracle=128 cand=124`), the exhaustive countdown
+ * sweep (`countdown 1: RAM@0x62ac oracle=164 cand=160`) and the BONUS sweep (`bonus 0:
+ * RAM@0x62ac oracle=128 cand=124`) — and the teeth job independently reports each of the five
+ * twins' first divergence, including the dropped expiry latch at `RAM@0x6386 oracle=1 cand=0`,
+ * which only the crafted BONUS sweep reaches because attract never drives the counter to zero.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2cb8.test.js
  */
 

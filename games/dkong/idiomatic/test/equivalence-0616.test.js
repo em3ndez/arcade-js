@@ -11,6 +11,13 @@
  * Every case runs on a FRESH clone (this routine writes memory; only a read-only leaf may
  * reuse one).
  *
+ * That register set is STRICTLY STRONGER than the routine's real live-out, deliberately and
+ * at no cost: of the five, only B is genuinely consumed downstream (loc_08d5's `and b` reads
+ * the B=0 the digit loop leaves). A/HL/IX/DE are dead ABI residue, reproduced and compared
+ * anyway because the tail-call contract makes them free. Flags are dropped as dead. The
+ * memory output is the "CREDIT" glyph cells 0x74FF..0x759F plus the two digit cells
+ * 0x74BF (high) and 0x749F (low, one row up).
+ *
  *   1. EQUAL (real captured dispatches) — hook 0x0616 in a real attract run and clone the
  *      machine at each true dispatch (it reaches here through the task queue). For each,
  *      run the ORACLE on one clone and drawCreditDisplay on another and confirm identical

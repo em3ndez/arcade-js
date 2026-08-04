@@ -17,7 +17,12 @@
  *
  * MEMORY-EQUIVALENCE CONTRACT. RAM − STACK_SCRATCH [0x6be0,0x6c00), plus pc, SP and the
  * forwarded return value (the airborne cascade above uses it for the caller-skip convention);
- * live-out is otherwise memory-only. The direct call to reverseMarioVerticalArc dissolves the oracle's
+ * live-out is otherwise memory-only. WHY no register or flag is compared: the verdict register
+ * and the flags of the oracle's decrement are dead past the branch — on BOTH tails the next
+ * routine to look at that register pair is the tile classifier at 0x2B9B, whose `pop de`
+ * overwrites the pair outright, and every flag consumer downstream (0x1BDC, 0x2B2D) sets the
+ * flags itself first. No pose or velocity value survives in a register either; everything the
+ * routine decides is written to RAM. The direct call to reverseMarioVerticalArc dissolves the oracle's
  * push/pop bracket around its fixed-point leaf, which is what the exclusion is for — but in
  * fact the stack matches too, and that finding is asserted separately at the end of suite 3
  * rather than folded into the contract.

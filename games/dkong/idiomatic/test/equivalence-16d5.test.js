@@ -23,10 +23,13 @@
  * stack). So both sides end SP += 2 with pc = the caller's return address, and the oracle's
  * transient stack pushes land inside STACK_SCRATCH, which the RAM diff excludes.
  *
- *   0. REACHABILITY — plain attract never dispatches 0x16d5 (0×/2500 frames, asserted): the
- *      sub_25f2 object cascade it drives runs only in real gameplay. (stepKongWalk's own internal
- *      `call 0x2602` would register on a 0x2602 dispatch hook; equivalence-2602 already shows
- *      0x2602 is 0× in attract, corroborating this.) So the gate is crafted-entry.
+ *   0. REACHABILITY — plain attract never dispatches 0x16d5 (0×/2500 frames, asserted). The
+ *      operative reason is the sub-state, not the object cascade: this family hangs off the
+ *      board-cleared sub-state 0x16 (its 50m step table at ROM 0x1637), and attract never
+ *      reaches that sub-state at all because it never completes a board. (stepKongWalk's own
+ *      internal `call 0x2602` would register on a 0x2602 dispatch hook; equivalence-2602
+ *      already shows 0x2602 is 0× in attract, corroborating this.) So the gate is
+ *      crafted-entry, and real interlude dispatches are a coverage hole it does not replay.
  *
  *   1. EQUAL (FRAME sweep) — for all 256 FRAME values × memory configs, stepKongWalk == oracle.
  *      Covers parity (even → publish 0 → no shift; odd → publish ±1 → ±1 shift), every

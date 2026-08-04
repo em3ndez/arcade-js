@@ -12,7 +12,13 @@
  * columns and dispatches board-render handlers that paint/animate the interlude and step the
  * sequence. So it is validated by MEMORY-equivalence against the frozen oracle (RAM − STACK_SCRATCH,
  * pc, SP), never the full register file and never cycles, with a FRESH clone per case, using CRAFTED
- * entries (a real attract state + a surgical poke):
+ * entries (a real attract state + a surgical poke).
+ *
+ * Registers and flags are NOT compared because the oracle's board-read/rotate plumbing is used
+ * only to pick the arm here and is dead afterwards. pc and SP ARE compared and net out
+ * identically: the oracle's push16 return-brackets around the 0x30BD call and around each
+ * rst-0x28 dispatch cancel, leaving the arm's own terminal `ret` to pop the caller return on
+ * both sides.
  *
  *   1. FULL-HANDLER (crafted reachable arms) — a real attract-run machine poked over the three board
  *      arms (BOARD 1/3 -> table 0x1623 steps 0..5; BOARD 2 -> table 0x1637 steps 0..4; BOARD 4 ->

@@ -8,9 +8,9 @@
  * it is an input-free, straight-line constant memory transform. It is validated by
  * capture/clone/replay on a FRESH clone per case — never by reusing one machine,
  * never on the full register file, never on cycles. The contract compared is RAM
- * (minus STACK_SCRATCH); there are no live-out registers (see the routine header:
- * every one of the nine callers overwrites A/flags or does a flag-neutral load
- * before reading anything, so A/BC/DE/HL/F are dead ABI). SP and PC are likewise not
+ * (minus STACK_SCRATCH); there are no live-out registers — every one of the nine
+ * callers overwrites A/flags or does a flag-neutral load before reading anything,
+ * so A/BC/DE/HL/F are dead ABI. SP and PC are likewise not
  * compared — the oracle's terminal `ret` pops the stack (SP += 2) and vectors PC;
  * the idiomatic layer drops that bookkeeping (the JS call stack replaces it).
  *

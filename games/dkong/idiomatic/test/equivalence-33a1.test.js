@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_33a1 (ROM 0x33A1) — the board gate + height test that guards
- * loc_333d's movement path, and returns the caller-skip boolean.
+ * driveFireLadderClimb's movement path, and returns the caller-skip boolean.
  *
  * The routine reads exactly two bytes (BOARD, through boardBitGate, and the object record's
  * +0x0f Y base) and writes none, so its whole product is the boolean. The gate is therefore
@@ -10,14 +10,14 @@
  *
  * NOT RECURSIVE. 0x33A1 is twelve ROM bytes whose only transfer out is the one-byte board gate
  * at 0x0030, and a scan of the whole 16K ROM finds exactly ONE reference to 0x33A1 — the call at
- * 0x334A inside loc_333d. There is no self-recursive arm, so none is covered here; the test that
+ * 0x334A inside driveFireLadderClimb. There is no self-recursive arm, so none is covered here; the test that
  * would exercise it does not exist because the code path does not.
  *
  * WHAT IS COMPARED. RAM − STACK_SCRATCH plus the boolean. pc/SP are NOT compared: they are the
  * Z80 stack idiom the boolean replaces (the oracle's board-gate skip, its splice and its plain
  * return all move pc/SP; the idiomatic routine touches neither). Instead of dropping that
  * meaning, test 2 pins it directly — it asserts WHERE THE ORACLE'S OWN RETURN LANDS on each arm,
- * against distinct sentinel return addresses, which is what makes "true = loc_333d was returned
+ * against distinct sentinel return addresses, which is what makes "true = driveFireLadderClimb was returned
  * to normally" a measured claim rather than a reading of the disassembly.
  *
  *   0. REACHABILITY — 0x33A1 is dispatched naturally: 114 times in an 8000-frame attract run.
@@ -74,8 +74,8 @@ const RECORD_1 = OBJ_ARRAY_64 + 0x20; // its neighbour, for the IX-relative chec
 // The stack the crafted entries hand the oracle: entry SP inside STACK_SCRATCH with room for the
 // gate's push below it (SP-2) and the splice's two pops above it (SP+4).
 const SAFE_SP = 0x6bf4;
-const CALLER_RET = 0x334d; // loc_333d, the instruction after its call — where a NORMAL return lands
-const SKIP_RET = 0x3233; // loc_3202, where the splice lands when loc_333d is skipped
+const CALLER_RET = 0x334d; // driveFireLadderClimb, the instruction after its call — where a NORMAL return lands
+const SKIP_RET = 0x3233; // advanceFire, where the splice lands when driveFireLadderClimb is skipped
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
@@ -129,7 +129,7 @@ function attractBase(frames = 300) {
 function craft(base, { board, y, ix = RECORD }) {
   const e = base.clone();
   e.regs.sp = SAFE_SP + 4;
-  e.push16(SKIP_RET); // what loc_333d would return to
+  e.push16(SKIP_RET); // what driveFireLadderClimb would return to
   e.push16(CALLER_RET); // what THIS routine returns to
   e.regs.ix = ix;
   e.mem.write8(BOARD, board);
@@ -173,7 +173,7 @@ const captured = () => (CAPTURED ??= captureDispatches(128, 8000));
 
 test("REACHABILITY: 0x33a1 is dispatched naturally, and every dispatch lands on ONE arm", () => {
   const { caps, total } = captured();
-  assert.ok(total > 0, "0x33a1 should be dispatched during attract (loc_3202 -> loc_333d -> here)");
+  assert.ok(total > 0, "0x33a1 should be dispatched during attract (advanceFire -> driveFireLadderClimb -> here)");
 
   const arms = { "gate-closed": 0, "at-or-below-line": 0, "above-line(skip)": 0 };
   const ixs = new Set();
@@ -209,7 +209,7 @@ test("EQUAL (captured): loc_33a1 == oracle on every real dispatch", () => {
 
 // -- 2. what the boolean MEANS (measured on the oracle's own stack) -----------
 
-test("ORACLE STACK SEMANTICS: true = loc_333d was returned to, false = loc_333d is skipped", () => {
+test("ORACLE STACK SEMANTICS: true = driveFireLadderClimb was returned to, false = driveFireLadderClimb is skipped", () => {
   const base = attractBase();
   const cases = [
     { name: "100m: board gate closed", board: 4, y: 240, ret: true, pc: CALLER_RET, sp: SAFE_SP + 2 },
@@ -225,7 +225,7 @@ test("ORACLE STACK SEMANTICS: true = loc_333d was returned to, false = loc_333d 
     assert.equal(o.regs.sp, c.sp, `${c.name}: oracle SP ${hx(o.regs.sp)}, expected ${hx(c.sp)}`);
     assert.equal(loc_33a1(entry.clone()), c.ret, `${c.name}: loc_33a1 disagrees with the oracle's own return`);
   }
-  console.log("  SEMANTICS: the board-gate skip returns INTO loc_333d (true); only the below-89 " +
+  console.log("  SEMANTICS: the board-gate skip returns INTO driveFireLadderClimb (true); only the below-89 " +
     "splice returns past it (false) — measured on the oracle, both boolean and landing address");
 });
 
@@ -331,7 +331,7 @@ test("IX-RELATIVE: the height test reads the pointed-at record, not a fixed addr
 /** (a) conflates the two skips: reports the board gate's early return as a caller-skip. */
 function brokenGateConflated(m) {
   m.regs.a = 0x07;
-  if (!boardBitGate(m)) return false; // BUG: the gate's skip returns INTO loc_333d, so this is true
+  if (!boardBitGate(m)) return false; // BUG: the gate's skip returns INTO driveFireLadderClimb, so this is true
   return m.mem.read8(m.regs.ix + RECORD_Y_BASE) >= THRESHOLD;
 }
 

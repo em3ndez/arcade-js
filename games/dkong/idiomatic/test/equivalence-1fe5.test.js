@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1fe5 (ROM 0x1FE5) — the forward horizontal step of the
- * OBJ_ARRAY_67 object sweep.
+ * stepBarrelRight — memory-equivalent to the frozen oracle at ROM 0x1FE5: the forward horizontal
+ * step of the OBJ_ARRAY_67 object sweep.
+ * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 3000-frame attract
+ *        run is replayed — no sampling — and three crafted arms cover the X values attract
+ *        never presents. Attract is 25m only and fills only record slots 0-6, so slots 7-9,
+ *        the other boards and credited gameplay are NOT covered.
  *
  * The routine has four acts: swap to the shadow register set, stage two values the
  * still-frozen shared tail at ROM 0x1FF6 consumes (a step selector and a selector-bit
@@ -79,7 +83,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1fe5 as oracle } from "../../translated/loc_1fe5.js";
-import { loc_1fe5 } from "../loc_1fe5.js";
+import { stepBarrelRight } from "../stepBarrelRight.js";
 import { OBJ_ARRAY_67, OBJ_X, OBJ_Y, OBJ_SPRITE_CODE, STACK_SCRATCH } from "../names.js";
 import { firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
@@ -251,7 +255,7 @@ test("CAPTURED: every real 0x1FE5 dispatch matches the oracle", () => {
   caps.forEach((c) => shapes.set(shapeOf(c), (shapes.get(shapeOf(c)) ?? 0) + 1));
 
   for (let i = 0; i < caps.length; i++) {
-    const diffs = contractDiffs(caps[i], loc_1fe5);
+    const diffs = contractDiffs(caps[i], stepBarrelRight);
     assert.equal(diffs.length, 0, `capture ${i} (${shapeOf(caps[i])}): ${diffs.join("; ")}`);
   }
   const slots = [...new Set([...shapes.keys()].map((s) => s.split("/")[0].replace("slot", "")))].sort();
@@ -294,7 +298,7 @@ test("CRAFTED: the X values attract never presents match the oracle", () => {
   const report = [];
   for (const arm of arms) {
     const entry = withX(arm.x);
-    const diffs = contractDiffs(entry, loc_1fe5);
+    const diffs = contractDiffs(entry, stepBarrelRight);
     assert.equal(diffs.length, 0, `crafted ${arm.label}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the poke must really have moved the step AND reached the intended arm.
@@ -309,7 +313,7 @@ test("CRAFTED: the X values attract never presents match the oracle", () => {
 // -- 3. LIVE (whole-machine attract) ------------------------------------------
 
 test("LIVE: the rewrite wired at 0x1FE5 reproduces the oracle over a whole attract run", () => {
-  const r = liveRun(loc_1fe5);
+  const r = liveRun(stepBarrelRight);
   assert.equal(r.firstBad, null, String(r.firstBad));
   assert.equal(r.sp, r.baseSp, "guest SP drifted over the live run");
   assert.deepEqual(r.deltas, [DROPPED_CYCLES], `the restored cycle delta must be the constant ${DROPPED_CYCLES}`);

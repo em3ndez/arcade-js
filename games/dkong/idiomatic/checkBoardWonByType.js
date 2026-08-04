@@ -1,71 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * checkBoardWonByType — Mario's per-frame board-won position check: decide whether the current
- * board has been won, dispatched by board type, and hand off to the arm that completes
- * it.  ROM 0x1E57.
+ * checkBoardWonByType — Mario's per-frame board-won check: decide whether the current board has
+ * been won, routed by board type, and hand off to the arm that completes it.
  *
- * Called each frame while Mario is on a board. It routes on the board type and, on the
- * frame the win condition is met, defers to the arm that stamps the win, commits the
- * board-advance sub-state, and unwinds the movement cascade. The three arms:
+ * Called each frame while Mario is on a board. It reads the board type and, on the frame the win
+ * condition is met, defers to the arm that stamps the win, commits the board-advance sub-state and
+ * unwinds the movement cascade. Three arms:
  *
- *   • Rivet (100m) board — the win is the rivet count, not Mario's position, so this
- *     defers ENTIRELY to completeRivetBoardWhenCleared (wins the frame the last rivet is
- *     gone). Mario's coordinates are never read on this arm.
- *   • The ODD boards, 25m AND 75m — the win is positional at the rescue row near Pauline,
- *     tested by completeBoardWhenMarioReachesRescueRow against Mario's screen Y. The
- *     selector is ROM 0x1E5F's `rra`, which rotates BOARD's bit 0 into the carry, so
- *     `jp c,0x1E7A` takes BOARD 1 and BOARD 3 — this is not "the girder board" alone.
- *   • The remaining board (50m) — won once Mario has climbed above the 0x51 line (screen Y
- *     DECREASES as he climbs, so "above" means Y strictly below 0x51). At or below the
- *     line nothing changes this frame — keep going. Above it the board is won: loc_1e6d
- *     stamps his sprite facing (chosen from his X high bit), commits the advance, and
- *     unwinds.
+ *   • The RIVET board (100m) — the win is the rivet count, not Mario's position, so this arm
+ *     defers entirely and Mario's coordinates are never even read on it.
+ *   • The ODD boards — 25m AND 75m together. The selector is board bit 0, so both take this arm;
+ *     it is not the 25m board alone. The win is positional, at the rescue row near Pauline, tested
+ *     against Mario's screen Y.
+ *   • The remaining board (50m) — won once Mario has climbed above a fixed line. Screen Y
+ *     DECREASES as he climbs, so "above" means a Y strictly below that line. At or below it,
+ *     nothing changes this frame and the cascade keeps going; above it the board is won.
  *
- * The return is the caller-skip signal threaded through this whole check, passed straight
- * out of whichever arm ran:
- *   true  — normal: the board is not won, so the movement cascade continues this frame.
- *   false — the board was won and the cascade unwound, so the caller must NOT continue.
+ * On the won arm of the last case, Mario's X high bit picks the sprite facing he is left standing
+ * in — that is the one value this routine derives itself before handing off.
  *
- * REGISTER-ABI MARSHALLING (dissolves once the arms take honest args): completeBoardWhenMarioReachesRescueRow and
- * loc_1e6d are idiomatic but still take their inputs in registers, so this routine loads
- * exactly what the oracle's jump sites load — Mario's screen Y before completeBoardWhenMarioReachesRescueRow (it reads
- * the Y from the accumulator), and Mario's X rotated so its high bit lands in the carry
- * before loc_1e6d (the facing selector it reads). completeRivetBoardWhenCleared reads only
- * RAM, so its arm needs no marshalling.
+ * THE RETURN IS A PROTOCOL, threaded straight out of whichever arm ran:
+ *   true  — the board is not won, so the movement cascade continues this frame;
+ *   false — the board was won and the cascade has already unwound, so the caller must NOT continue.
  *
- * GROUNDED (DK understanding pass 4, independent confirmer): promoted as the DISPATCHER — its
- * board-type routing role is corroborated by two English-named board-completion callees
- * (completeRivetBoardWhenCleared on the rivet arm; enterBoardAdvanceAndUnwind via loc_1e6d) and it
- * reads named BOARD / MARIO_X / MARIO_Y. Of its two positional-test arms,
- * completeBoardWhenMarioReachesRescueRow was promoted in the naming pass that also corrected
- * this dispatcher's board routing (ROM 0x1E5F's `rra` selects the ODD boards — 25m AND 75m,
- * not "the girder board"); loc_1e6d still stays loc_, which reflects ungrounded arm
- * INTERNALS, not a gap in the dispatcher's grounded role.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1e57.test.js.
- * GATE:     crafted-entry + captured. Attract only plays the girder board and never wins
- *           it, so real captured 0x1E57 dispatches cover ONLY the girder normal-return arm;
- *           crafted entries drive every arm — rivet (won / not-won), girder (Y swept over
- *           all 256 values across the rescue-row boundary), and the climb arm (Y swept ×
- *           both X-high-bit facings across the 0x51 line). The oracle's normal `ret` and its
- *           two-level board-won unwind are modeled on the candidate from its boolean return
- *           so pc + SP line up; the popped return bytes sit in STACK_SCRATCH (excluded by
- *           contract). Teeth: wrong board-type masks, a shifted climb line, and dropped
- *           Y / carry marshals (proving both register hand-offs are load-bearing), each caught.
- * LIVE-OUT: memory-only + the boolean caller-skip return. The routine writes no RAM itself;
- *           the won arms write inside their callees (Mario's facing byte and GAME_SUBSTATE).
- *           The oracle's residual registers/flags and its return-stack churn are dead ABI.
- * NAMES:    BOARD (0x6227), MARIO_Y (0x6205), MARIO_X (0x6203) from names.js. RIVETS_LEFT and
- *           the won-path writes (0x694D facing, GAME_SUBSTATE) live inside the callees. The
- *           board-type bits 0x04 (rivet) / 0x01 (girder) are bit flags and the climb line
- *           0x51 is a screen-Y threshold with no names.js name (mirroring completeBoardWhenMarioReachesRescueRow's 0x31), so
- *           all three stay as literals.
+ * LIVE-OUT: the protocol return. This routine writes no memory of its own; every write on a won
+ * arm happens further down.
  */
 
 import { BOARD, MARIO_Y, MARIO_X } from "./names.js";
-import { completeRivetBoardWhenCleared } from "./completeRivetBoardWhenCleared.js"; // ROM 0x1E80
-import { completeBoardWhenMarioReachesRescueRow } from "./completeBoardWhenMarioReachesRescueRow.js"; // ROM 0x1E7A
-import { loc_1e6d } from "./loc_1e6d.js"; // ROM 0x1E6D
+import { completeRivetBoardWhenCleared } from "./completeRivetBoardWhenCleared.js";
+import { completeBoardWhenMarioReachesRescueRow } from "./completeBoardWhenMarioReachesRescueRow.js";
+import { loc_1e6d } from "./loc_1e6d.js";
 
 export function checkBoardWonByType(m) {
   const { regs, mem } = m;
@@ -75,22 +40,21 @@ export function checkBoardWonByType(m) {
   // Rivet (100m) board: the win is the rivet count, not position — defer entirely.
   if ((board & 0x04) !== 0) return completeRivetBoardWhenCleared(m);
 
-  // The other boards test Mario's position. Load his screen Y — completeBoardWhenMarioReachesRescueRow reads it as a
-  // register live-in (its ABI is not yet promoted), and the climb test below uses it too.
+  // The other boards test Mario's position. His screen Y goes into the accumulator, where the
+  // rescue-row test reads it, and the climb test below uses it too.
   const marioY = mem.read8(MARIO_Y);
   regs.a = marioY;
 
-  // The ODD boards (BOARD 1 = 25m, BOARD 3 = 75m — the oracle's `rra` puts bit 0 in the carry):
-  // the rescue-row test near Pauline decides the win.
+  // The ODD boards (25m and 75m, selected by board bit 0): the rescue-row test near Pauline
+  // decides the win.
   if ((board & 0x01) !== 0) return completeBoardWhenMarioReachesRescueRow(m);
 
-  // Remaining boards: won once Mario has climbed above the 0x51 line (screen Y decreases
-  // as he climbs). At or below it, nothing changes this frame — keep going.
+  // Remaining board: won once Mario has climbed above the line (screen Y decreases as he
+  // climbs). At or below it, nothing changes this frame — keep going.
   if (marioY >= 0x51) return true;
 
-  // Above the line — the board is won. Mario's X high bit picks his facing; leave it in
-  // the carry loc_1e6d reads, then hand off (it stamps the facing, commits the board-
-  // advance sub-state, and unwinds the movement cascade).
+  // Above the line — the board is won. Mario's X high bit picks the facing he is left in;
+  // rotate it into the carry, which is where the completion arm reads it.
   regs.a = mem.read8(MARIO_X);
   regs.rla();
   return loc_1e6d(m);

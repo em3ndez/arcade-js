@@ -1,54 +1,31 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * composeAttractTitleScreen — build the attract title/score screen (GAME_STATE 1,
- * sub-state 0) and hand off to the next attract step.  ROM 0x0779.
+ * composeAttractTitleScreen — build the attract title/score screen and hand off to the next
+ * attract step.
  *
- * The attract-state dispatcher (runAttractState, ROM 0x073C) routes here while
- * GAME_STATE (0x6005) == 1 and GAME_SUBSTATE (0x600A) == 0 — the first attract
- * sub-state, the title screen showing the "1UP / HIGH SCORE / 2UP" score row and the
- * coins-per-credit readout. It composes that screen once, then arms a 2-frame timer
- * and steps the sub-state so the next NMI moves attract along. In order:
+ * This is the first attract sub-state: the title screen showing the "1UP / HIGH SCORE / 2UP" score
+ * row and the coins-per-credit readout. It composes that screen once, then arms a 2-frame timer
+ * and steps the sub-state on, so the next frame moves attract along. In order:
  *
- *   1. Clear both palette-bank select latches (0x7D86/0x7D87) → palette bank 0.
- *   2. Post the two attract title strings directly onto the task ring (draw-string
- *      opcode 0x03, args 0x1B then 0x1C), then post the fixed title-screen task batch
- *      (enqueueTaskBatch: one #4/0 message + six #3 messages, args 0x14..0x19).
- *   3. Arm SUBSTATE_TIMER = 2 and advance GAME_SUBSTATE (++), the "wait 2 frames then
+ *   1. Clear both palette-bank select latches, which selects palette bank 0.
+ *   2. Post the two attract title strings straight onto the task ring — the draw-string opcode
+ *      with one string id and then the other — followed by the fixed title-screen task batch.
+ *   3. Arm SUBSTATE_TIMER to 2 and advance GAME_SUBSTATE by one: the "wait two frames then
  *      proceed" idiom that walks attract to its next sub-state.
- *   4. Blank the playfield + sprite buffer (clearPlayfieldAndSprites), then draw the
- *      "1UP" score label — and the "2UP" label only in a two-player game.
- *   5. Draw the coins-per-credit digits from DIP_COINS_FOR_1P/2P (0x6022/0x6023).
+ *   4. Blank the playfield and the sprite buffer, then draw the "1UP" score label — and the "2UP"
+ *      label only in a two-player game.
+ *   5. Draw the coins-per-credit readout from the two coinage settings.
  *
- * The digit writer runs TWICE. The oracle `call`s writeDigitPairWithCarry at 0x07AA and
- * then FALLS THROUGH into the very same bytes — a two-iteration loop with no counter —
- * and the routine hands the second pass its own inputs via its tail (DE=0x0201,
- * HL=0x768C). So this calls it twice: pass 1 stamps the coinage digits at HL=0x756C from
- * DE=(0x6022); pass 2 stamps the literal "1 2" at HL=0x768C.
+ * THE DIGIT WRITER RUNS TWICE, and the second run is not a copy-paste. The first pass stamps the
+ * coinage digits from the settings at the coinage cell; that pass's own tail then leaves the
+ * inputs the second pass consumes, which stamp the literal "1 2" further down the screen. There is
+ * no counter: it is a two-iteration loop written as a call that falls through into itself.
  *
- * Direct function calls replace the oracle's m.call/push16/ret stack model; the Z80
- * stack becomes the JS call stack. The callee ABI is register-passed exactly as the
- * oracle marshals it (D/E for enqueueTask, DE/HL for the digit writer).
+ * The task post and the digit writer both take their inputs in registers, so those are staged
+ * before each call.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0779.test.js.
- * GATE:     crafted-entry — real captured attract dispatches (fires ~4×/9000 frames as
- *           the title screen is composed; fresh clone each, oracle run in full) prove
- *           the 1-player path; crafted entries poked IDENTICALLY on both sides force the
- *           arms attract never reaches — TWO-PLAYER (0x600F=1 → the 2UP label),
- *           TENS-CARRY (0x6023=10 → the digit writer's carry cell 0x758E), and a
- *           FULL-RING drop (all task posts dropped). Teeth = a twin that drops the second
- *           title-string post (caught on captured + a deterministic clean-ring entry).
- * LIVE-OUT: memory-only — the task ring (0x60C0-0x60FF) + TASK_TAIL (0x60B0),
- *           SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), the blanked playfield +
- *           sprite buffer, the 1UP/2UP label cells, and the coinage digit cells. No live
- *           registers/flags: the successor chain (runAttractState → the NMI game-state
- *           dispatch) reads none of the handler's residual A/DE/HL/F before overwriting
- *           them. SP/pc are the dropped stack model — the oracle's per-call push/ret
- *           residue lands in STACK_SCRATCH, excluded by the contract.
- * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), TWO_PLAYER_GAME (0x600F),
- *           DIP_COINS_FOR_1P (0x6022; +1 = DIP_COINS_FOR_2P) from names.js. The palette-bank
- *           latches (0x7D86/0x7D87) and the VRAM coinage cell (0x756C) stay hex — I/O and
- *           video RAM, not named in names.js. The draw-string opcode/args are literal task
- *           payloads, not addresses.
+ * LIVE-OUT: memory-only — the task ring and its tail, SUBSTATE_TIMER, GAME_SUBSTATE, the blanked
+ * playfield and sprite buffer, the 1UP/2UP label cells, and the coinage digit cells.
  */
 
 import {
@@ -64,18 +41,18 @@ import { draw1UpLabel } from "./draw1UpLabel.js";
 import { draw2UpLabel } from "./draw2UpLabel.js";
 import { writeDigitPairWithCarry } from "./writeDigitPairWithCarry.js";
 
-// Write-only palette-bank select latches (i8259 outputs), cleared to select bank 0.
+// Write-only palette-bank select latches, cleared to select bank 0.
 const PALETTE_BANK_LATCH_LO = 0x7d86;
 const PALETTE_BANK_LATCH_HI = 0x7d87;
 
-// Task-ring message payloads: opcode 0x03 = the draw-string handler; 0x1B/0x1C are the
-// two attract title-string ids this handler posts before enqueueTaskBatch's #4/#3 batch.
+// Task-ring message payloads: the draw-string opcode, and the two attract title-string ids this
+// handler posts ahead of the fixed batch.
 const DRAW_STRING = 0x03;
 const TITLE_STRING_A = 0x1b;
 const TITLE_STRING_B = 0x1c;
 
-// VRAM tilemap cell for the 1P coins-per-credit digit; the digit writer places the 2P
-// digit two columns along (HL+2) and, on a value of 10, a tens digit in cell 0x758E.
+// The tilemap cell holding the 1-player coins-per-credit digit. The digit writer places the
+// 2-player digit two columns along, and on a value of ten it also writes a tens digit.
 const COINAGE_DIGIT_CELL = 0x756c;
 
 export function composeAttractTitleScreen(m) {
@@ -85,9 +62,9 @@ export function composeAttractTitleScreen(m) {
   mem.write8(PALETTE_BANK_LATCH_LO, 0x00);
   mem.write8(PALETTE_BANK_LATCH_HI, 0x00);
 
-  // 2. Post the two title strings directly, then the fixed title-screen task batch.
-  //    enqueueTask reads D=opcode / E=argument and never writes them, so holding D
-  //    while stepping E is safe.
+  // 2. Post the two title strings directly, then the fixed title-screen task batch. The post
+  //    reads the opcode and the argument out of a register pair and never writes them back, so
+  //    holding the opcode while stepping the argument is safe.
   regs.d = DRAW_STRING;
   regs.e = TITLE_STRING_A;
   enqueueTask(m);
@@ -104,10 +81,10 @@ export function composeAttractTitleScreen(m) {
   draw1UpLabel(m);
   if (mem.read8(TWO_PLAYER_GAME) === 0x01) draw2UpLabel(m);
 
-  // 5. Draw the coins-per-credit readout. Pass 1: the coinage digits from
-  //    DIP_COINS_FOR_1P/2P at HL=0x756C. The writer's tail reloads DE=0x0201, HL=0x768C,
-  //    which the SECOND pass consumes to stamp the literal "1 2".
-  regs.de = mem.read16(DIP_COINS_FOR_1P); // E = 1P coins (0x6022), D = 2P coins (0x6023)
+  // 5. Draw the coins-per-credit readout. Pass 1 stamps the coinage digits from the two settings
+  //    at the coinage cell; its own tail then leaves the inputs the SECOND pass consumes to stamp
+  //    the literal "1 2" further down.
+  regs.de = mem.read16(DIP_COINS_FOR_1P); // the 1-player setting and, beside it, the 2-player one
   regs.hl = COINAGE_DIGIT_CELL;
   writeDigitPairWithCarry(m);
   writeDigitPairWithCarry(m);

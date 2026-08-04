@@ -1,67 +1,43 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d83 — aim the string renderer at the fixed source string at 0x39CC and emit its
- * first character.  ROM 0x2D83.
+ * loc_2d83 — restart the per-entry emitter at the head of a fixed source sequence and emit that
+ * sequence's first entry.
  *
- * Reached from advanceBarrelRelease (a conditional branch) to (re)start the per-character string
- * renderer on the source string that begins at 0x39CC. It points the renderer's cursor
- * at that string — both the RENDER_STR_PTR cell and the cursor register the per-character
- * body reads — then tails into stepBarrelAlongReleasePath to emit the first character's 4-byte record.
+ * The emitter it restarts walks a sequence of bytes in program memory, turning each one into a
+ * 4-byte sprite record, and it keeps its place in RENDER_STR_PTR. This routine is the branch
+ * that puts the walk back at the beginning: it hands the head of the sequence to the emitter as
+ * a cursor and stamps the same address into RENDER_STR_PTR, then lets the emitter run once.
  *
- * The live hand-off is the cursor REGISTER: stepBarrelAlongReleasePath reads the string cursor from it. The
- * RENDER_STR_PTR cell this routine also stamps is only a starting value — on this string
- * the first character (0xBB) is never the 0x7F terminator, so stepBarrelAlongReleasePath always takes the
- * emit path and immediately re-advances RENDER_STR_PTR past the character (to 0x39CE),
- * overwriting the stamp before anything reads it. The stamp is kept because the oracle
- * writes it; it carries no state forward on the reachable path.
+ * The cursor is the live hand-off; the stamp into RENDER_STR_PTR is only a starting value. The
+ * first entry of this sequence is never the terminator, so the emitter always takes its emit
+ * path and immediately advances RENDER_STR_PTR past the entry it just consumed — overwriting the
+ * stamp before anything can read it. The stamp carries no state forward on the reachable path.
  *
- * REGISTER-ABI MARSHALLING (dissolves once stepBarrelAlongReleasePath takes an honest cursor param):
- * stepBarrelAlongReleasePath still reads its string cursor from the cursor register, so this routine loads
- * exactly what the oracle's tail-jump site leaves there — the string start 0x39CC.
+ * The branch here is taken while the object being dressed is a barrel that has just claimed a
+ * release slot, in ordinary 25m play rather than in any cutscene.
  *
- * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
- * scratchpad/pass12-grounding.md): this renderer chain runs in ORDINARY 25m BARREL PLAY on
- * board 1, not in a cutscene. All 46 captured dispatches of the chain's head (stampReleasedBarrelKind) fell
- * at gameplay substates — 17 in a credited in-board 25m game, 29 in the attract 25m demo — and
- * ZERO at substate 7, the opening Kong-climb cutscene; the record being dressed is always an
- * OBJ_ARRAY_67 barrel record, one per slot claim by the barrel-release routine (board 1,
- * ROM 0x2CB8). advanceBarrelRelease's branch into here is taken on bit 0 of BARREL_CLAIM_MODE, the barrel
- * slot-claim mode byte.
+ * NOT CLAIMED: what the source sequence draws. Its entries have never been matched to anything
+ * on screen, so nothing here says what the emitted records look like — only how the walk is
+ * restarted and that its first entry is always emitted.
  *
- * NAME: kept loc_ — the cursor setup and hand-off are pinned to the oracle, and grounding
- * fixes the CONTEXT (25m barrel play). What is still open is what on-screen string 0x39CC is;
- * the grounding run read RAM, not pixels, and deliberately did not name the objects involved.
- * Promote once that is corroborated.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2d83.test.js.
- * GATE:     the real captured 0x2D83 dispatch(es) from an attract run, plus crafted
- *           entries that place the renderer's object/destination pointers in writable RAM
- *           so the emitted record is observable. The RAM diff uses the standard
- *           memory-equivalence contract (excludes the dead STACK_SCRATCH); on this
- *           routine's only reachable path (always emit, never terminator) neither side
- *           writes that region, so the exclusion masks nothing here. Teeth: a twin that
- *           hands stepBarrelAlongReleasePath the wrong string cursor and a twin that drops the render.
- * LIVE-OUT: memory-only. The oracle's residual registers/flags and the single net `ret`
- *           (stepBarrelAlongReleasePath returns on this routine's behalf via the tail jump) are dead ABI —
- *           the caller consumes none of them; the net return is modelled in the gate.
- * NAMES:    RENDER_STR_PTR (0x62A8) from names.js. STRING_START (0x39CC) is a ROM address —
- *           the source-string data — kept as a hex const (no names.js name; it is ROM).
+ * LIVE-OUT: memory-only — the restarted RENDER_STR_PTR (immediately re-advanced) and the sprite
+ * record the emitter lays down for the first entry.
  */
 
 import { RENDER_STR_PTR } from "./names.js";
-import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js"; // ROM 0x2D54 — the per-character render body
+import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js";
 
-const STRING_START = 0x39cc; // ROM address of the source string this renderer draws
+/** Head of the source sequence this restart aims the emitter at; it lives in program memory. */
+const STRING_START = 0x39cc;
 
 export function loc_2d83(m) {
   const { regs, mem } = m;
 
-  // Aim the renderer at the string: hand the cursor to the per-character body in the
-  // cursor register it reads, and stamp the starting cursor cell (which stepBarrelAlongReleasePath then
-  // overwrites as it advances).
+  // Put the walk back at the head of the sequence: hand the emitter its cursor, and stamp
+  // the same address into the kept-place cell (which the emitter then advances past).
   regs.hl = STRING_START;
   mem.write16(RENDER_STR_PTR, STRING_START);
 
-  // Emit the first character's record (and, on this string, advance past it).
+  // Emit the first entry's record — on this sequence that path is always taken.
   return stepBarrelAlongReleasePath(m);
 }

@@ -38,9 +38,11 @@
  *        (b) dropped second write — writes 0x6439 but not 0x6479.
  *        (c) inverted entropy gate — writes when the draw is NOT 1.
  *
- *   4. REALISM — the caller DOES dispatch 0x31DD every attract pass, but difficulty stays 1
- *      in attract, so every real dispatch takes the gate-1 (difficulty) skip; those no-write
- *      captures must still match the oracle, and they do. The write/entropy arms are never
+ *   4. REALISM — the caller DOES dispatch 0x31DD every attract pass (457 natural dispatches over
+ *      the 2000 frames this test runs, when last measured; the test prints the live count rather
+ *      than asserting the number), but difficulty stays 1 in attract, so every real dispatch takes
+ *      the gate-1 (difficulty) skip — asserted here as zero writes. Those no-write captures must
+ *      still match the oracle, and they do. The write/entropy arms are never
  *      reached live, so the sweeps carry them. The sweeps also run atop a real boot+attract
  *      base, so realistic surrounding RAM would expose any hidden dependence.
  *

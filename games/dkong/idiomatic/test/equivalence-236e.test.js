@@ -16,14 +16,18 @@
  *   - the boolean return (found vs miss), which the idiomatic callers turn back into the
  *     double unwind via `if (!findOppositeLadderEnd(m)) return;`.
  *   - on a FOUND return, the register live-outs the three callers actually consume:
- *     A (the tag — sub_216d/entry_333d/loc_1afe all read it), B (the returned slot byte
- *     — sub_216d, entry_333d), C (the residual scan count — loc_1afe `cp c`), D (the
+ *     A (the tag — sub_216d/entry_333d/armMarioClimbAtLadderEnd all read it), B (the returned slot byte
+ *     — sub_216d, entry_333d), C (the residual scan count — armMarioClimbAtLadderEnd `cp c`), D (the
  *     discriminator, passed through — sub_216d `cp d`), and E (the key echo — sub_216d
  *     `cp e`). HL (the post-match address) is left in a register by the oracle but no
  *     caller reads it, so it is NOT a live-out and is not compared.
  *
- * The routine's three callers are still the frozen lift and reach it by register ABI,
- * so this stays a register-shaped oracle boundary.
+ * The register shape is the ROM's own ABI, not a lift artefact: all three call sites (0x1B13 in
+ * armMarioClimbAtLadderEnd, 0x216D in startBarrelDescentAtLadder, 0x3359 in driveFireLadderClimb)
+ * now have readable twins that import and DIRECT-CALL this routine, and they still marshal into
+ * the register convention. So the gate stays register-shaped. (An earlier version of this header
+ * said the three callers were still the frozen lift; that has not been true since those twins
+ * landed.)
  *
  *   1. REACHABILITY — 0x236E dispatches during boot/attract (it is object-lookup code
  *      driven from the climb/collision path, which the 25m demo exercises).
@@ -73,7 +77,7 @@ const FAR = 0x2a;  // far paired-slot offset past the matched byte
 // pushes land in the excluded region, a plausible caller return (pc is never compared),
 // and distinct key/discriminator/filler so cleared cells can never alias a real match.
 const SAFE_SP = 0x6bf8;
-const RET_ADDR = 0x1b16; // loc_1afe's return site; only needs to be a sane target
+const RET_ADDR = 0x1b16; // armMarioClimbAtLadderEnd's return site; only needs to be a sane target
 const KEY = 0x42;
 const DISC = 0x99;
 const FILLER = 0x00; // != KEY and != DISC, so a cleared slot never fakes a hit

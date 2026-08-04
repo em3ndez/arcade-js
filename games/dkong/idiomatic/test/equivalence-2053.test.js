@@ -40,7 +40,9 @@
  *   1. CAPTURED (real dispatches). 3000 attract frames dispatch 0x2053 1246 times and ALL 1246
  *      are replayed — no sampling, so there is no sampling policy to be wrong about. That is not
  *      tidiness here: two of the six arms attract reaches occur ONCE each in those 1246, so any
- *      fixed stride would have missed them. Attract is 25m only and fills record slots 0-6, so
+ *      fixed stride would have missed them. The per-arm split is bounds-gate-inline x1172,
+ *      bounds-gate-splice x1, girder-contact x72 (covering all three of the girder sub-state
+ *      machine's own paths), retire x1. Attract is 25m only and fills record slots 0-6, so
  *      the captures say nothing about slots 7-9, the other boards, or gameplay.
  *
  *   2. ARM AGREEMENT. For every one of those captures, the arm the oracle leaves through equals
@@ -68,8 +70,11 @@
  *      byte-identical, so nothing downstream reads those registers back.
  *
  *   6. TEETH — seven deliberately-broken twins the cases above MUST catch:
- *        (a) the register-set swap dropped;
- *        (b) the girder probe run but its answer ignored;
+ *        (a) the register-set swap dropped — faults on the very FIRST captured dispatch, on an
+ *            unmapped read, which is what shows the swap is load-bearing rather than ceremonial;
+ *        (b) the girder probe run but its answer ignored — diverges the record's own bytes at
+ *            capture 62 of 1246, which is what shows the probe's answer really routes the record
+ *            rather than merely being consulted;
  *        (c) the retire window tested without its wrap, so only the low side fires;
  *        (d) the retire test read off the record's Y instead of its X;
  *        (e) the orientation selector scaled to 0/2 instead of 0/4;

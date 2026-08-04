@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_2e12 (ROM 0x2E12) — the per-object scan's update entry: a four-way
+ * Equivalence test for advanceSpring (ROM 0x2E12) — the per-object scan's update entry: a four-way
  * active/state dispatcher with an inline default-motion arm.
  *
- * loc_2e12 is dispatched once per object by update75mActorObjects. It routes the object four ways:
+ * advanceSpring is dispatched once per object by update75mActorObjects. It routes the object four ways:
  *   • Inactive (active-flag bit0 clear) -> spawnObjectIntoInactiveSlot (0x2EA7).
  *   • Active, every 16 frames (FRAME&0x0f==0): flip the low 3 bits of the paired sprite's
  *     tile code (an animation flicker), THEN continue dispatching.
  *   • State 4 -> loc_2e84 (0x2E84): step Y / deactivate.
  *   • Otherwise: advance X by 2, read the next animation-string byte through the walk pointer —
  *     terminator (0x7f) -> loc_2e9c (0x2E9C, rewind) ; normal byte -> accumulate it into Y —
- *     both converging at loc_2e4b (0x2E4B). Every arm ends in the shared cursor advance.
+ *     both converging at advanceSpringArcAndDropAtTravelEnd (0x2E4B). Every arm ends in the shared cursor advance.
  * The idiomatic routine dissolves the oracle's four `jp` tails into direct calls to the
  * already-idiomatic callees, handing the shared tails the last string byte and the advanced
  * walk pointer through registers (the still-translated scan loop's register ABI).
@@ -28,7 +28,7 @@
  * byte) and the toggle by FRAME&0x0f — so:
  *   1. EQUAL (sweeps) — active flag over 256 (only bit0 selects the inactive arm), state over
  *      256 (only 4 selects loc_2e84), string byte over 256 at a below- and an above-boundary X
- *      (only 0x7f selects the terminator rewind; the above-X sweep fires loc_2e4b's transition),
+ *      (only 0x7f selects the terminator rewind; the above-X sweep fires advanceSpringArcAndDropAtTravelEnd's transition),
  *      the sprite tile code over 256 with the toggle firing, and the frame phase over 16 (the
  *      toggle fires only on low-nibble 0). Each must match the oracle on the whole contract.
  *   2. EQUAL (grid) — the exact in-game cursor sequence, cross-producted, on the default arm.
@@ -48,11 +48,11 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e12 as oracle } from "../../translated/loc_2e12.js";
-import { loc_2e12 as candidate } from "../loc_2e12.js";
+import { advanceSpring as candidate } from "../advanceSpring.js";
 import { spawnObjectIntoInactiveSlot } from "../spawnObjectIntoInactiveSlot.js"; // ROM 0x2EA7 (twins)
 import { loc_2e84 } from "../loc_2e84.js"; // ROM 0x2E84 (twins)
 import { loc_2e9c } from "../loc_2e9c.js"; // ROM 0x2E9C (twins)
-import { loc_2e4b } from "../loc_2e4b.js"; // ROM 0x2E4B (twins)
+import { advanceSpringArcAndDropAtTravelEnd } from "../advanceSpringArcAndDropAtTravelEnd.js"; // ROM 0x2E4B (twins)
 import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import {
@@ -191,14 +191,14 @@ function fullSweep(base, impl) {
     count++;
     if (d) return { mismatch: `state=${hx(s)}: ${d}`, count };
   }
-  // String byte below the loc_2e4b boundary (X=0x40): 0x7f rewinds (no transition); every other
+  // String byte below the advanceSpringArcAndDropAtTravelEnd boundary (X=0x40): 0x7f rewinds (no transition); every other
   // byte takes default motion (X+=2, Y+=byte).
   for (let b = 0; b < 256; b++) {
     const d = compareOne(base, ix, iy, { active: 1, state: 0, strByte: b, objX: 0x40, frame: 0x05 }, impl);
     count++;
     if (d) return { mismatch: `strByte(lowX)=${hx(b)}: ${d}`, count };
   }
-  // String byte above the boundary (X=0xc0 -> 0xc2 after +2): at 0x7f loc_2e4b's transition arm
+  // String byte above the boundary (X=0xc0 -> 0xc2 after +2): at 0x7f advanceSpringArcAndDropAtTravelEnd's transition arm
   // fires (state->4, sound), pinning the boundary + terminator conjunction through the tail.
   for (let b = 0; b < 256; b++) {
     const d = compareOne(base, ix, iy, { active: 1, state: 0, strByte: b, objX: 0xc0, frame: 0x05 }, impl);
@@ -226,7 +226,7 @@ const SWEEP_COUNT = 256 * 5 + 16;
 
 // -- 1. EQUAL (sweeps) --------------------------------------------------------
 
-test("EQUAL (sweeps): loc_2e12 == oracle over all four arms + the sprite-code toggle", () => {
+test("EQUAL (sweeps): advanceSpring == oracle over all four arms + the sprite-code toggle", () => {
   const base = new Machine(ROM).clone();
   const { mismatch, count } = fullSweep(base, candidate);
   assert.equal(mismatch, null, mismatch || "");
@@ -366,7 +366,7 @@ function captureRealDispatches() {
       m.mem.write8(ix + OBJ_STATE, 0x00);
       m.mem.write8(ix + OBJ_STR_PTR, TERM_SCRATCH & 0xff);       // walk -> terminator
       m.mem.write8(ix + OBJ_STR_PTR + 1, (TERM_SCRATCH >> 8) & 0xff);
-      m.mem.write8(ix + OBJ_X, k === 4 ? 0xc0 : 0x40); // one above / one below the loc_2e4b boundary
+      m.mem.write8(ix + OBJ_X, k === 4 ? 0xc0 : 0x40); // one above / one below the advanceSpringArcAndDropAtTravelEnd boundary
     } else {
       m.mem.write8(ix + OBJ_ACTIVE, 0x01);
       m.mem.write8(ix + OBJ_STATE, 0x00);
@@ -388,7 +388,7 @@ function captureRealDispatches() {
   return caps;
 }
 
-test("REALISM: real captured 0x2e12 dispatches — loc_2e12 matches the oracle across all four arms", () => {
+test("REALISM: real captured 0x2e12 dispatches — advanceSpring matches the oracle across all four arms", () => {
   const caps = captureRealDispatches();
   assert.equal(caps.length, 10, "the steered full-loop update75mActorObjects should dispatch 0x2e12 once per object (10)");
 
@@ -415,7 +415,7 @@ test("REALISM: real captured 0x2e12 dispatches — loc_2e12 matches the oracle a
 
 // -- 5. TEETH -----------------------------------------------------------------
 //
-// Each twin is a faithful copy of loc_2e12 with ONE injected bug, calling the same idiomatic
+// Each twin is a faithful copy of advanceSpring with ONE injected bug, calling the same idiomatic
 // callees, so the ONLY difference is the mutation. The same fullSweep must catch every one.
 
 /** (a) inverts the active arm: spawns when active, default when inactive. */
@@ -429,7 +429,7 @@ function brokenInvertedActive(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7f) { loc_2e9c(m); return; }
-  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (b) toggles the wrong bits (flips the low 4, not the low 3). */
 function brokenToggleBits(m) {
@@ -442,7 +442,7 @@ function brokenToggleBits(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7f) { loc_2e9c(m); return; }
-  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (c) drops the toggle entirely. */
 function brokenDroppedToggle(m) {
@@ -455,7 +455,7 @@ function brokenDroppedToggle(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7f) { loc_2e9c(m); return; }
-  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (d) dispatches loc_2e84 on the wrong state (5, not 4). */
 function brokenWrongState(m) {
@@ -468,7 +468,7 @@ function brokenWrongState(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7f) { loc_2e9c(m); return; }
-  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (e) advances X by the wrong step (1, not 2). */
 function brokenXStep(m) {
@@ -481,7 +481,7 @@ function brokenXStep(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7f) { loc_2e9c(m); return; }
-  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (f) uses the wrong terminator value (0x7e, not 0x7f). */
 function brokenTerminator(m) {
@@ -494,7 +494,7 @@ function brokenTerminator(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7e) { loc_2e9c(m); return; } // BUG: should be 0x7f
-  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; mem.write8(ix + OBJ_Y, strByte + mem.read8(ix + OBJ_Y)); advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (g) drops the Y accumulation on the default arm. */
 function brokenNoYAccum(m) {
@@ -507,7 +507,7 @@ function brokenNoYAccum(m) {
   const ptr = mem.read8(ix + OBJ_STR_PTR) | (mem.read8(ix + OBJ_STR_PTR + 1) << 8);
   const strByte = mem.read8(ptr); regs.c = strByte;
   if (strByte === 0x7f) { loc_2e9c(m); return; }
-  regs.hl = (ptr + 1) & 0xffff; /* BUG: dropped mem.write8(ix + OBJ_Y, ...) */ loc_2e4b(m);
+  regs.hl = (ptr + 1) & 0xffff; /* BUG: dropped mem.write8(ix + OBJ_Y, ...) */ advanceSpringArcAndDropAtTravelEnd(m);
 }
 
 test("TEETH: the same sweeps CATCH every broken twin", () => {

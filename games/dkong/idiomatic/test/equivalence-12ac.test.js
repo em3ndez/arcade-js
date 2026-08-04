@@ -27,6 +27,9 @@
  *   1. EQUAL (real dispatches) — hook 0x12ac in a real attract run and clone the machine
  *      at each true dispatch (stepMarioDeathAnimation first fires ~frame 2619 skip, ~2626 step, ~2722
  *      advance). oracle vs candidate must agree on RAM + pc + SP for every one.
+ *      COVERAGE HOLE, stated plainly (R17): these captures come from an ATTRACT run ONLY.
+ *      The same arm runs during a credited game's death sub-state, and those episodes —
+ *      byte-identical in grounding, but never replayed here — are not covered by this gate.
  *
  *   2. EQUAL (crafted arms) — the exact step/advance/skip arms, poked from a real
  *      captured state (SUBSTATE_TIMER + 0x639E) so all three are covered regardless of

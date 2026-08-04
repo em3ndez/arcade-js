@@ -1,69 +1,50 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * stageAwardPopupAtHitObject — post the queued task, fetch the effect sprite's X/Y from an indirect
- * parameter block, then hand off to the record-stamp tail.  ROM 0x1e15.
+ * stageAwardPopupAtHitObject — post the caller's deferred message, take the score popup's screen
+ * position out of a parameter block, and hand both on to the sprite stamp.
  *
- * The shared convergence of the three setters stageAward300Popup / stageAward500Popup / stageAward800Popup, each of
- * which loads its own (B, DE) and tail-jumps here. B is the sprite's code byte and DE
- * is a deferred-task message; both are the setters' parameters. This routine:
+ * This is where the fixed-value award setters converge: each one loads its own popup sprite code
+ * and its own deferred-task message and jumps here, so everything below happens the same way
+ * whichever award was chosen. In order:
  *
- *   1. enqueueTask(D,E) — post the setter's message onto the task ring (fire-and-
- *      forget; its result is not read). B, D and E survive the call.
- *   2. Load a pointer from the indirect slot EFFECT_PARAM_PTR (0x6343) to a small parameter block.
- *   3. Read block[0] into A (the sprite's X) and CLEAR block[0] in place — a
- *      consume-once read. Then read block[3] into C (the sprite's Y). The `inc l`x3
- *      pointer walk is 8-bit (page fixed), matching the oracle.
- *   4. Tail into stampScorePopupSprite, which stamps the 4-byte hardware sprite record
- *      {A, B, 0x07, C} at POPUP_SPRITE (0x6A30) and cues a board-gated sound.
+ *   1. the message is posted onto the task ring, fire-and-forget — the result is not read, and
+ *      both the sprite code and the message survive the post untouched;
+ *   2. a pointer is loaded from EFFECT_PARAM_PTR, which addresses a small parameter block;
+ *   3. the popup's X is read out of the block's first byte and that byte is then CLEARED in
+ *      place — a consume-once read, so the same block cannot place a second popup. The popup's
+ *      Y is read out of the block's fourth byte; that three-byte walk is 8-bit, so it stays
+ *      inside the block's own page rather than crossing into the next one;
+ *   4. control goes to the sprite stamp, which turns the position and the sprite code into the
+ *      popup's hardware sprite record and cues the accompanying sound.
  *
- * Part of the sub_1dbd effect state machine (EFFECT_STATE 0x6340; see stampScorePopupSprite).
+ * NOT CLAIMED: what the parameter block describes. All this routine establishes about it is that
+ * its first and fourth bytes are the popup's X and Y, and that reading the X consumes it.
  *
- * NAME: kept the neutral loc_ — the memory mechanics are understood, but the specific
- * effect this sprite is (and the identity of the EFFECT_PARAM_PTR (0x6343) parameter
- * block) are not confirmed to the routine-name evidence bar. Its own tail stampScorePopupSprite stayed neutral for
- * the same reason; promoting the feeder past its tail would overclaim. Promote once
- * corroborated.
- *
- * Memory-equivalent to the frozen oracle — equivalence-1e15.test.js.
- * GATE:     crafted-entry — oracle-vs-idiomatic on real captured 25m dispatches
- *           (BOARD 1, sound gate open), plus crafted arms attract never reaches: a
- *           BOARD-exhaustive sweep (0..255) covering stampScorePopupSprite's closed 50m/100m gate,
- *           a parameter-block content sweep pinning the block[0]/block[3] offsets and
- *           the byte-0 clear, and a full-ring DROP entry exercising enqueueTask's
- *           silent-drop path. Three teeth: wrong-C-offset, no-clear, and drop-the-task.
- * LIVE-OUT: memory-only — the task ring + TASK_TAIL (via enqueueTask), the block[0]
- *           clear at *(EFFECT_PARAM_PTR), and the POPUP_SPRITE record 0x6A30..0x6A33 +
- *           gate-open 0x6085 (a SND_TRIGGER latch) (via stampScorePopupSprite). A and C are set only as
- *           stampScorePopupSprite's live-in and are consumed
- *           within this same dispatch; the caller (stageAward300Popup's caller) reads no register
- *           afterward, so A/C/HL and the `inc l` flags are all dead. SP/pc are the
- *           dropped stack model (the oracle's push/call/ret becomes the JS call stack).
- * NAMES:    enqueueTask (ROM 0x309F) and stampScorePopupSprite (ROM 0x1E36) are the idiomatic
- *           callees, imported and called directly. EFFECT_PARAM_PTR (0x6343) from names.js —
- *           the effect param pointer (word); the block IDENTITY it derefs is unconfirmed,
- *           but the cell is named.
+ * LIVE-OUT: memory-only — the task ring, the cleared first byte of the parameter block, and
+ * whatever the sprite stamp writes. The position and sprite code are consumed inside this same
+ * hand-off and are not left for a caller.
  */
-import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
-import { stampScorePopupSprite } from "./stampScorePopupSprite.js";       // ROM 0x1E36
-import { EFFECT_PARAM_PTR } from "./names.js";    // 0x6343 — indirect word: HL = the parameter block's address
+import { enqueueTask } from "./enqueueTask.js";
+import { stampScorePopupSprite } from "./stampScorePopupSprite.js";
+import { EFFECT_PARAM_PTR } from "./names.js";
 
 export function stageAwardPopupAtHitObject(m) {
   const { regs, mem } = m;
 
-  // Post the setter's deferred-task message (D=opcode, E=argument). B/D/E preserved.
+  // Post the caller's deferred message. The sprite code and the message survive the post.
   enqueueTask(m);
 
-  // HL = the parameter block's address, read INDIRECTLY from the word at EFFECT_PARAM_PTR.
+  // The parameter block's address is held indirectly, as a word.
   const block = mem.read16(EFFECT_PARAM_PTR);
 
-  // block[0] -> A (the sprite X), then CLEAR it in place (read-then-consume).
+  // The popup's X is the block's first byte, and reading it consumes it.
   regs.a = mem.read8(block);
   mem.write8(block, 0x00);
 
-  // block[3] -> C (the sprite Y). `inc l` x3 is 8-bit: the high byte of the pointer
-  // is fixed, so the read address wraps within the page exactly as the oracle's does.
+  // The popup's Y is the block's fourth byte. The walk is 8-bit, so the high half of the
+  // address is fixed and the read stays inside the block's own page.
   regs.c = mem.read8((block & 0xff00) | ((block + 3) & 0xff));
 
-  // Tail into the shared record-stamp + board-gated sound. A, B, C are its live-in.
+  // Stamp the popup's sprite record and cue its sound.
   stampScorePopupSprite(m);
 }

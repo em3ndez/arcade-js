@@ -1,75 +1,42 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * driveHammerSprite — per-frame hammer sprite / background-tune dispatcher.  ROM 0x2ED4.
+ * driveHammerSprite — per-frame hammer sprite / background-tune dispatcher.
  *
- * Called once every serviced frame (from loc_197a). It drives one of the two hammer
- * objects and routes on whether Mario currently holds a hammer:
+ * Called once every serviced frame. It drives one of the two hammer objects and routes on
+ * whether Mario currently holds a hammer:
  *
- *   1. Two skip gates first: the rst 0x30 board gate (the hammer exists only on
- *      25m/50m/100m — mask bit0/bit1/bit3, NOT 75m) and the rst 0x10 alive gate. Either
- *      closed and the whole routine is skipped.
- *   2. It selects which object of the pair to drive from bit0 of the first object's
- *      HAMMER_IN_PLAY field (+0x01): bit set keeps object 1 (record 0x6A18); bit clear picks
- *      object 2 (record 0x6A1C). It seeds that object's sprite displacement (+0x0E = 0,
- *      +0x0F = 0xF0).
- *   3. Hammer NOT in hand (MARIO_HAMMER_ACTIVE bit0 clear): hand off to the pending-hammer
- *      build arm (buildPendingHammerSprite), which itself checks whether a hammer is merely
- *      pending, and stop.
+ *   1. Two skip gates first: the board gate — a hammer exists only on 25m, 50m and 100m
+ *      (mask bits 0, 1 and 3), never on 75m — and the Mario-alive gate. Either closed and
+ *      the whole routine is skipped.
+ *   2. It selects which object of the pair to drive from bit 0 of the FIRST object's
+ *      HAMMER_IN_PLAY field: bit set keeps object 1, bit clear picks object 2. It seeds that
+ *      object's sprite displacement.
+ *   3. Hammer NOT in hand (MARIO_HAMMER_ACTIVE bit 0 clear): hand off to the pending-hammer
+ *      build arm, which itself checks whether a hammer is merely pending, and stop.
  *   4. Hammer in hand: clear the pending flag, switch the background tune to the hammer
- *      theme, stamp the object's COLLISION HALF-EXTENTS (OBJ_HIT_EXTENT_X/Y), and build the
- *      sprites from Mario's current pose — the object shows the hammer tile facing the way
- *      Mario faces, and an on-screen hammer-swing code is derived from Mario's pose. The
- *      swing-animation phase (HAMMER_TIMER_LO bit3) selects between two poses; the alternate
- *      phase re-stamps the extents/displacement and, when the swing code's high bit is set,
- *      nudges the horizontal displacement. All hammer-in-hand paths converge on
- *      updateActiveHammer, which ticks the duration counter, lays down this frame's record, and
- *      ends the hammer at expiry.
+ *      theme, stamp the object's COLLISION HALF-EXTENTS, and build the sprites from Mario's
+ *      current pose — the object shows the hammer tile facing the way Mario faces, and an
+ *      on-screen hammer-swing code is derived from Mario's pose. The swing-animation phase
+ *      (HAMMER_TIMER_LO bit 3) selects between two poses; the alternate phase re-stamps the
+ *      extents and displacement and, when the swing code's high bit is set, nudges the
+ *      horizontal displacement. All hammer-in-hand paths converge on the active-hammer
+ *      update, which ticks the duration counter, lays down this frame's record, and ends the
+ *      hammer at expiry.
  *
- * ★ THE TWO EXTENT BYTES ARE THE SWINGING HAMMER'S HITBOX. +0x09/+0x0A are the names.js-named
- * OBJ_HIT_EXTENT_X / OBJ_HIT_EXTENT_Y — the per-axis collision half-extents, not opaque "state"
- * bytes. This routine stamps 0x06/0x03 on the main swing pose and 0x05/0x06 on the alternate pose,
- * and recordHammerHitOnObject then hands exactly those two bytes to the board's collision handler
- * as the per-axis base tolerances (H = axis-2/X from +0x09, L = axis-1/Y from +0x0A). So the box
- * the hammer smashes with changes shape frame to frame with the swing, and this routine is what
- * changes it.
+ * THE TWO EXTENT BYTES ARE THE SWINGING HAMMER'S HITBOX. OBJ_HIT_EXTENT_X and
+ * OBJ_HIT_EXTENT_Y are the per-axis collision HALF-EXTENTS, not opaque state bytes. This
+ * routine stamps 0x06 / 0x03 on the main swing pose and 0x05 / 0x06 on the alternate pose,
+ * and the board's hit check takes exactly those two bytes as its per-axis base tolerances.
+ * So the box the hammer smashes with changes shape frame to frame with the swing, and this
+ * routine is what changes it.
  *
- * REGISTER-ABI MARSHALLING (dissolves once the callees take honest args): the callees still
- * read their inputs from registers, so this routine loads exactly what the oracle's call
- * sites load — the board mask before boardBitGate, the object base and sprite-record
- * destination before both build arms, and the object tile code + on-screen hammer code
- * before updateActiveHammer.
+ * The callees still read their inputs from registers, so this routine loads the board mask
+ * before the board gate, the object base and sprite-record destination before both build
+ * arms, and the object tile code plus the on-screen hammer code before the active-hammer
+ * update.
  *
- * Promoted from loc_2ed4 (DK understanding pass 10, independent proposer≠confirmer, MODERATE-HIGH):
- * MARIO_HAMMER_ACTIVE's registry note names this routine the hammer sprite/BGM swap; it touches
- * only rated cells (MARIO_HAMMER_ACTIVE / _PENDING, MARIO_SPRITE_CODE, HAMMER_TIMER_LO, SND_BGM,
- * OBJ_PAIR_6680) and both build arms are English-named (buildPendingHammerSprite / updateActiveHammer).
- * The board mask 0x0b (25m/50m/100m) is exactly the hammer boards.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2ed4.test.js.
- * GATE:     captured + crafted. 0x2ED4 is dispatched every serviced attract frame (1478
- *           real dispatches / 2500 frames), and attract naturally exercises BOTH arms —
- *           the hammer-inactive build hand-off (966) and the active update (512). Crafted
- *           entries then pin BOTH object selections, the two board/alive skips, the
- *           inactive early-return and build (both facings), and the active swing-phase
- *           clear/set sub-branches with the high-bit displacement nudge. The RAM diff
- *           excludes the dead STACK_SCRATCH the oracle's dissolved rst-0x30/rst-0x10
- *           push16/ret churn writes (the only stack writes, all inside the region). Teeth:
- *           an inverted object selection, a wrong hammer tune, and a dropped facing bit.
- * LIVE-OUT: memory-only. Every path tail-calls a build arm and the per-frame caller
- *           discards the result; the oracle's residual registers/flags and the terminal
- *           return reach no consumer. The boolean-guard returns replace the rst-0x30/rst-
- *           0x10 stack skip idiom.
- * NAMES:    MARIO_HAMMER_ACTIVE (0x6217), MARIO_HAMMER_PENDING (0x6218), MARIO_SPRITE_CODE
- *           (0x6207), HAMMER_TIMER_LO (0x6394), SND_BGM (0x6089), OBJ_PAIR_6680 (0x6680),
- *           HAMMER_IN_PLAY (+0x01) and OBJ_HIT_EXTENT_X / OBJ_HIT_EXTENT_Y (+0x09/+0x0A) —
- *           all from names.js. boardBitGate (ROM 0x0030), marioActiveGuard (ROM 0x0010),
- *           buildPendingHammerSprite (ROM 0x2F97), updateActiveHammer (ROM 0x2F43) —
- *           direct-called. What still has no names.js name and stays a local hex const here:
- *           the pair's second object base (0x6690, derived from OBJ_PAIR_6680), its two
- *           sprite-record slots (0x6A18 / 0x6A1C, inside SPRITE_BUFFER) and the object-record
- *           displacement fields (+0x0E/+0x0F). HAMMER_IN_PLAY is deliberately SCOPED to this
- *           pair rather than given a generic OBJ_* name — +0x01 carries unrelated roles on
- *           other records (see names.js).
+ * LIVE-OUT: memory-only. Every path tails into a build arm, and the per-frame caller
+ * discards whatever comes back.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -84,23 +51,22 @@ import {
   OBJ_HIT_EXTENT_X,
   OBJ_HIT_EXTENT_Y,
 } from "./names.js";
-import { boardBitGate } from "./boardBitGate.js";               // ROM 0x0030 (rst 0x30)
-import { marioActiveGuard } from "./marioActiveGuard.js";       // ROM 0x0010 (rst 0x10)
-import { buildPendingHammerSprite } from "./buildPendingHammerSprite.js"; // ROM 0x2F97
-import { updateActiveHammer } from "./updateActiveHammer.js";   // ROM 0x2F43
+import { boardBitGate } from "./boardBitGate.js";
+import { marioActiveGuard } from "./marioActiveGuard.js";
+import { buildPendingHammerSprite } from "./buildPendingHammerSprite.js";
+import { updateActiveHammer } from "./updateActiveHammer.js";
 
-// rst-0x30 board applicability mask: bit0 25m, bit1 50m, bit3 100m — the boards a hammer
-// can appear on (75m, bit2, is excluded).
+// Board applicability mask: bit0 25m, bit1 50m, bit3 100m — the boards a hammer can appear
+// on. 75m, bit 2, is excluded.
 const HAMMER_BOARDS = 0x0b;
 
 // The two hammer objects this dispatcher drives. Each pairs an object-record base with its
-// sprite-record slot in the sprite buffer (both slots live inside SPRITE_BUFFER and have no
-// names.js name, so they stay hex).
-const OBJ2_BASE = OBJ_PAIR_6680 + 0x10; // 0x6690 — the pair's second object record
-const OBJ1_RECORD = 0x6a18;             // object-1 sprite-record slot (SPRITE_BUFFER)
-const OBJ2_RECORD = 0x6a1c;             // object-2 sprite-record slot (SPRITE_BUFFER)
+// own sprite-record slot inside the sprite buffer; neither slot carries a shared name.
+const OBJ2_BASE = OBJ_PAIR_6680 + 0x10; // the pair's second object record
+const OBJ1_RECORD = 0x6a18;             // object-1 sprite-record slot
+const OBJ2_RECORD = 0x6a1c;             // object-2 sprite-record slot
 
-// Object-record field offsets with no names.js name yet.
+// Object-record field offsets carrying no shared name.
 const OBJ_X_DISPLACEMENT = 0x0e; // horizontal offset added to Mario's X by the record write
 const OBJ_Y_DISPLACEMENT = 0x0f; // vertical offset added to Mario's Y by the record write
 
@@ -114,21 +80,21 @@ const SWING_ALT_BIT = 0x01;      // low bit set on both codes during the alterna
 export function driveHammerSprite(m) {
   const { regs, mem } = m;
 
-  // rst 0x30 — the hammer only exists on 25m/50m/100m; skip the whole routine otherwise.
+  // The hammer only exists on 25m/50m/100m; skip the whole routine otherwise.
   regs.a = HAMMER_BOARDS;
   if (!boardBitGate(m)) return;
 
-  // rst 0x10 — do nothing while Mario is dead.
+  // Do nothing while Mario is dead.
   if (!marioActiveGuard(m)) return;
 
   // Pick which object of the pair to drive from bit0 of the first object's HAMMER_IN_PLAY field.
   let objBase, recordDest;
   if ((mem.read8((OBJ_PAIR_6680 + HAMMER_IN_PLAY) & 0xffff) & 0x01) !== 0) {
-    objBase = OBJ_PAIR_6680;  // 0x6680
-    recordDest = OBJ1_RECORD; // 0x6a18
+    objBase = OBJ_PAIR_6680;
+    recordDest = OBJ1_RECORD;
   } else {
-    objBase = OBJ2_BASE;      // 0x6690
-    recordDest = OBJ2_RECORD; // 0x6a1c
+    objBase = OBJ2_BASE;
+    recordDest = OBJ2_RECORD;
   }
   // The callees read the object base and the record destination from the register file.
   regs.ix = objBase;
@@ -145,8 +111,8 @@ export function driveHammerSprite(m) {
     return;
   }
 
-  // A hammer is in hand this frame. Clear the pending flag, switch to the hammer tune, and stamp
-  // this swing pose's collision half-extents (the box recordHammerHitOnObject smashes with).
+  // A hammer is in hand this frame. Clear the pending flag, switch to the hammer tune, and
+  // stamp this swing pose's collision half-extents — the box the hammer smashes with.
   mem.write8(MARIO_HAMMER_PENDING, 0x00);
   mem.write8(SND_BGM, HAMMER_TUNE);
   mem.write8((objBase + OBJ_HIT_EXTENT_X) & 0xffff, 0x06);

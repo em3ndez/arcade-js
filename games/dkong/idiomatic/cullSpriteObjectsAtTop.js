@@ -1,38 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * cullSpriteObjectsAtTop — clear the X of any sprite-object that has risen to the
- * top of the screen.  ROM 0x176c.
+ * cullSpriteObjectsAtTop — clear the X of any sprite-object that has risen to the top of the
+ * screen.
  *
- * Runs over the ten-record sprite-object block (SPRITE_OBJ_BLOCK, 0x6908–0x692f,
- * four bytes per record: +0 X, +1 code, +2 attr, +3 Y). For each record it reads
- * the Y byte and, if Y is above the top line (Y < 0x19 — smaller Y is higher on
- * screen), zeroes that record's X byte, parking the sprite at the left edge. Y and
- * X of every other record are left untouched; each record is decided independently.
+ * Runs over the ten records of the sprite-object block, four bytes each: X, sprite code,
+ * attribute, Y. For each record it reads the Y byte and, if that record has risen above the top
+ * line — smaller Y is higher on this screen — zeroes the record's X, parking the sprite at the
+ * left edge. Nothing else in any record is touched and each record is decided on its own, so the
+ * pass is order-independent and reads the block low-to-high.
  *
- * This is the cull pass of the board-advance sprite-clear sequence (sub_1757): the
- * animation step animateSpriteObjectBlock (0x306f) scrolls the block's Y upward each
- * frame, this pass zeroes the X of every record that has scrolled off the top, and
- * the sibling scan sub_1783 (0x1783) then checks whether ALL ten Xs are now zero to
- * decide the sprites are fully swept and the sub-state may advance. sub_1757 bridges
- * the two: it takes the HL/DE this routine leaves, `inc hl`/`inc de`, and hands
- * sub_1783 the block-scan pointer 0x6908 and record stride 4 — which is why HL/DE
- * are live-out here (HL = block start − 1 = 0x6907, DE = 3 = stride − 1).
+ * It also leaves behind a scan pointer and a record stride, each ONE SHORT of the value that will
+ * be used: the caller bumps both by one before handing them to the follow-up scan that decides
+ * whether every sprite has now been swept off.
  *
- * A LEAF: reads/writes only the sprite-object block, calls nothing. In the oracle the
- * loop walks HL from the last record's Y downward (sbc hl,de then dec hl, −4/record),
- * but the memory effect is order-independent, so this reads records low-to-high.
+ * A leaf: it reads and writes only the sprite-object block.
  *
- * Memory-equivalent to the frozen oracle — equivalence-176c.test.js.
- * GATE:     crafted-entry — 0x176c is unreached in attract (0 dispatches / 3000
- *           frames; its board-advance caller never runs there). Seeded from real
- *           captured RAM with the block populated, then the ten Y bytes are swept
- *           across the 0x19 threshold (uniform + per-record mixed) vs the oracle on
- *           RAM − STACK_SCRATCH + pc + SP + HL + DE.
- * LIVE-OUT: memory + HL + DE — the zeroed X bytes, plus the scan pointer/stride the
- *           sibling sub_1783 consumes (via sub_1757's inc hl / inc de). A/B/F are
- *           dead: sub_1783 reloads B and A and overwrites F before reading them.
- * NAMES:    SPRITE_OBJ_BLOCK (names.js). 0x19 top-line and the 4-byte record layout
- *           stay literal — screen geometry, no RAM address.
+ * LIVE-OUT: memory (the zeroed X bytes) plus that pointer/stride pair.
  */
 
 import { SPRITE_OBJ_BLOCK } from "./names.js";
@@ -51,8 +34,8 @@ export function cullSpriteObjectsAtTop(m) {
     }
   }
 
-  // Live-out for the sibling scan: sub_1757 does inc hl / inc de on these to get
-  // sub_1783's block-scan pointer (0x6908) and record stride (4).
-  regs.hl = (SPRITE_OBJ_BLOCK - 1) & 0xffff; // 0x6907
-  regs.de = RECORD_STRIDE - 1; // 0x0003
+  // The scan pointer and stride the follow-up sweep needs, each one short: the caller bumps
+  // both by one before using them.
+  regs.hl = (SPRITE_OBJ_BLOCK - 1) & 0xffff;
+  regs.de = RECORD_STRIDE - 1;
 }

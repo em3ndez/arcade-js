@@ -4,7 +4,7 @@
  * climbing" tail of the hammer-climb collision handler.
  *
  * loc_1b4e stores two ladder-extent limits, handed in by its still-translated caller
- * (loc_1afe), into MARIO_CLIMB_LIMIT_A (0x621B) and MARIO_CLIMB_LIMIT_B (0x621C), then falls
+ * (armMarioClimbAtLadderEnd), into MARIO_CLIMB_LIMIT_A (0x621B) and MARIO_CLIMB_LIMIT_B (0x621C), then falls
  * straight into the Up-climb input guard climbUpWhileHeld (ROM 0x1B45). The caller always
  * points at the block base just below the pair (0x621A), so the two stores resolve to the two
  * named cells; the two limit VALUES arrive in registers (a genuine oracle boundary), so they
@@ -132,7 +132,7 @@ function contractDiffs(entry, fn) {
 
 /** Hook 0x1B4E in a real attract run and clone the machine at up to K real dispatches. The
  *  wrapper snapshots the entry state, then runs the oracle so the host game proceeds
- *  undisturbed. loc_1afe reaches here by `m.call(0x1b4e)`, resolved through the registry the
+ *  undisturbed. armMarioClimbAtLadderEnd reaches here by `m.call(0x1b4e)`, resolved through the registry the
  *  override overlays, so every real hammer-climb dispatch is caught. */
 function captureDispatches(K, maxFrames) {
   const caps = [];

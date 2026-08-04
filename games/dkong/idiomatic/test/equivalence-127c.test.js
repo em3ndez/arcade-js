@@ -41,6 +41,12 @@
  *      (b) drops the animation-phase dispatch (only routes the effect) — caught on a phase-0
  *          gate-open entry at SUBSTATE_TIMER (0x6009).
  *
+ * COVERAGE HOLE, stated plainly. Every capture here comes from an ATTRACT run — this file
+ * drives no coin+start run — so the IN-GAME dispatches of this sub-state (GAME_SUBSTATE 0x0D,
+ * where the hand-off arm picks between the two life-loss handlers) are never replayed. The
+ * code path is the same one attract takes, and live MAME shows the same phase walk in both,
+ * but that is an argument, not something this gate measures.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-127c.test.js
  */
 

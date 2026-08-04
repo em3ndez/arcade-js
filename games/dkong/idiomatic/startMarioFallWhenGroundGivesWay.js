@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * startMarioFallWhenGroundGivesWay — while Mario is in plain grounded contact, look at the tile under his foot and,
- * if the girder there is not level, defer to the slope-footing fall check.  ROM 0x2A85.
+ * startMarioFallWhenGroundGivesWay — while Mario is in plain grounded contact, look at the
+ * tile under his foot and, if the girder there is not level, defer to the slope-footing fall
+ * check.
  *
  * Runs only in ordinary standing/walking contact: it early-outs if Mario is on a ladder, if
  * he is airborne, or while an edge-reposition is in progress. Past those three gates it
@@ -10,49 +11,27 @@
  *   - A solid flat girder there — a tile code at or above 0xB0 whose low nibble is under 8 —
  *     means level footing, and there is nothing to do.
  *   - Anything else (a slope tile, or a girder tile whose low nibble is 8 or more) means the
- *     ground may be angled or gone under him, so it hands off to decideSlopeGirderFooting,
+ *     ground may be angled or gone under him, so it hands off to the slope-footing decision,
  *     which chooses between keeping his footing on the slope and starting a fall.
  *
  * The 90-degree display rotation is why the foot cell is addressed with Mario's X coordinate
- * feeding the tilemap's vertical axis and his Y coordinate feeding the horizontal one — see
- * tileAddrForPixel, which the ROM's own address arithmetic assumes.
+ * feeding the tilemap's VERTICAL axis and his Y coordinate feeding the HORIZONTAL one; the
+ * shared pixel-to-tile helper assumes exactly that.
  *
- * NAME: promoted from loc_2a85. The whole cascade below this routine has exactly ONE memory
- * effect — decideSlopeGirderFooting's two fall branches raise MARIO_START_FALL; the
- * keeps-footing branch writes nothing — and MARIO_START_FALL is consumed by the player-state
- * reset (sub_1f46), which clears it and puts Mario AIRBORNE. So the only thing this routine
- * can cause is Mario STARTING to fall; everything else about it is the "when". The name says
- * "start" rather than "drop" for that reason: nothing in this cascade writes MARIO_Y.
- * CAVEAT ON THE CORROBORATION, recorded because it was overstated: names.js attributes
- * MARIO_START_FALL's setter to entry_2acd (ROM 0x2ACF), but a raw ROM scan for `32 21 62`
- * finds a SECOND setter at 0x276B, inside loc_2766 — the third arm of
- * dispatchElevatorRideByColumn, i.e. on 75m. The "fires on 75m only, never on 25m" write-tap
- * therefore cannot be attributed to this routine's path as quoted. The name rests on the code
- * path; that particular falsifiable argument does not survive.
+ * WHY THE NAME SAYS "START A FALL": the whole cascade below this routine has exactly ONE
+ * memory effect — the slope decision's two fall branches raise MARIO_START_FALL, and its
+ * keeps-footing branch writes nothing at all. MARIO_START_FALL is consumed by the
+ * player-state reset, which clears it and puts Mario AIRBORNE. So the only thing this routine
+ * can cause is Mario STARTING to fall; everything else about it is the "when". Nothing in the
+ * cascade writes MARIO_Y, which is why the verb is "start" and not "drop".
  *
- * Memory-equivalent to the frozen oracle — equivalence-2a85.test.js.
- * GATE:     capture/clone/replay of real attract dispatches (the keeps-footing exit and the
- *           gate returns) + crafted entries driving each of the three gate returns and both
- *           slope-cascade arms (tile < 0xB0, and low-nibble >= 8). The
- *           slope->decideSlopeGirderFooting hand-off is a non-attract frontier. The RAM diff
- *           excludes the dead STACK_SCRATCH the oracle's push/pop bracket around the foot-cell
- *           lookup writes. Teeth: drop the on-ladder gate, drop the edge-reposition gate, and
- *           an off-by-one solid-tile threshold.
- * LIVE-OUT: memory-only (MARIO_START_FALL, raised inside decideSlopeGirderFooting on its fall
- *           branches; every other path writes nothing). The oracle's residual registers/flags
- *           and its terminal ret / tail jump into the slope check are dead — the caller
- *           tail-invokes this and consumes no value.
- * NAMES:    MARIO_ON_LADDER (0x6215), MARIO_AIRBORNE (0x6216), EDGE_REPOSITION_FLAG (0x6398),
- *           MARIO_X (0x6203), MARIO_Y (0x6205) — from names.js. The foot-cell address is computed
- *           by tileAddrForPixel (ROM 0x2FF0) and lands in tilemap video RAM (no names.js name).
- *           decideSlopeGirderFooting (ROM 0x2AB4) reads its probe-X and foot-cell inputs from
- *           registers because this routine's hand-off to it is still a REGISTER-ABI boundary:
- *           both sides are idiomatic, neither signature is promoted yet, so the two values are
- *           left exactly where the oracle's tail jump leaves them.
+ * LIVE-OUT: memory-only — MARIO_START_FALL, raised inside the slope decision on its fall
+ * branches. Every other path writes nothing. The caller tail-invokes this and consumes no
+ * value.
  */
 
-import { tileAddrForPixel } from "./tileAddrForPixel.js";                // ROM 0x2FF0
-import { decideSlopeGirderFooting } from "./decideSlopeGirderFooting.js"; // ROM 0x2AB4
+import { tileAddrForPixel } from "./tileAddrForPixel.js";
+import { decideSlopeGirderFooting } from "./decideSlopeGirderFooting.js";
 import {
   MARIO_ON_LADDER,
   MARIO_AIRBORNE,

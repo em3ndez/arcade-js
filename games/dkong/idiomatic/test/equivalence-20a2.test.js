@@ -47,8 +47,16 @@
  *      is a REAL captured state with one surgical poke applied identically to both sides.
  *   5. OBSERVED EFFECT (oracle only, not an equivalence check) — runs the ORACLE in plain attract
  *      and watches what happens to each record's horizontal step and launch speed across the
- *      dispatch. This is the producing line for the routine header's role line, its per-path
- *      numbers, and its statement about where in the playfield the no-turn arm fires.
+ *      dispatch. This is what the routine's role line rests on: three reads and a jump can say
+ *      which tail runs, never what a tail does. Over 12000 frames, all 68 dispatches:
+ *        the two turn paths (64) — the horizontal step goes -96 -> +256, or +96 -> -256, in
+ *                                  1/256 px per frame: reversed, and set to exactly one whole pixel.
+ *        the no-turn path (4)    — the step is left exactly as it was, +96 -> +96.
+ *      The launch speed is replaced on all 68. A turn path that had left the step alone, or a
+ *      no-turn path that had changed it, would have killed the role line.
+ *      WHERE THE NO-TURN ARM FIRES: all 4 of its dispatches land on the lowest object rows the
+ *      routine is reached at (235 and 236, against 104/137/170/203 for the rest), with Mario above
+ *      the object every time — so what that arm is FOR is observed, not explained.
  *   6. TEETH — seven broken twins, plus a live-wired twin proving the LIVE arm is not inert. The
  *      test reports which twins the captured replay catches and which only a crafted entry reaches.
  *

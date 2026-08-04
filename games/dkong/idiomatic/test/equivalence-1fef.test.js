@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1fef (ROM 0x1FEF) — the object-sweep arm that decrements one
- * object's X and hands the shared tail at ROM 0x1FF6 its two direction constants.
+ * stepBarrelLeft — memory-equivalent to the frozen oracle at ROM 0x1FEF: the object-sweep arm
+ * that decrements one object's X and hands the shared tail at ROM 0x1FF6 its two direction
+ * constants.
+ * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 3000-frame attract
+ *        run is replayed with the real tail in place — no sampling — plus an exhaustive
+ *        crafted sweep of all 256 X values against a recording stub with both register banks
+ *        poisoned. Credited gameplay is NOT covered by any case here.
  *
  * The routine is four steps with no branches: swap the register file to its alternate
  * bank, load the slope-step selector, load the orientation direction code, decrement the
@@ -71,7 +76,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1fef as oracle } from "../../translated/loc_1fef.js";
 import { loc_1ff6 as tailOracle } from "../../translated/loc_1ff6.js";
-import { loc_1fef } from "../loc_1fef.js";
+import { stepBarrelLeft } from "../stepBarrelLeft.js";
 import { OBJ_X, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
@@ -177,7 +182,7 @@ test("CAPTURED: every real 0x1FEF dispatch matches the oracle", () => {
   const shapes = new Set();
   for (let i = 0; i < caps.length; i++) {
     shapes.add(shapeOf(caps[i]));
-    const diffs = contractDiffs(caps[i], loc_1fef);
+    const diffs = contractDiffs(caps[i], stepBarrelLeft);
     assert.equal(diffs.length, 0, `capture ${i} (shape ${shapeOf(caps[i])}): ${diffs.join("; ")}`);
   }
   const records = new Set([...shapes].map((s) => s.split("/")[0]));
@@ -274,7 +279,7 @@ test("CRAFTED (exhaustive): the ROM 0x1FF6 handoff matches the oracle for all 25
   const base = captureDispatches(CRAFT_BASE_FRAMES)[0];
   assert.ok(base, "no capture to build the crafted base from");
 
-  const mismatch = handoffSweep(base, loc_1fef);
+  const mismatch = handoffSweep(base, stepBarrelLeft);
   assert.equal(mismatch, null, mismatch && `X=${mismatch.x}: ${mismatch.why}`);
 
   // Non-vacuity: the handoff really carries the swap, both constants and the decrement.
@@ -295,7 +300,7 @@ test("CRAFTED (exhaustive): the ROM 0x1FF6 handoff matches the oracle for all 25
     const o = seedEntry(withTailStub(base, () => {}), x);
     const so = o.cycles; oracle(o); oracleCost.add(o.cycles - so);
     const c = seedEntry(withTailStub(base, () => {}), x);
-    const sc = c.cycles; loc_1fef(c); candCost.add(c.cycles - sc);
+    const sc = c.cycles; stepBarrelLeft(c); candCost.add(c.cycles - sc);
   }
   assert.deepEqual([...oracleCost], [OWN_CYCLES], `the oracle's own cost must be the constant ${OWN_CYCLES}`);
   assert.deepEqual([...candCost], [0], "the candidate must be cycle-free");
@@ -304,7 +309,7 @@ test("CRAFTED (exhaustive): the ROM 0x1FF6 handoff matches the oracle for all 25
   // separately in test 5. Assert the difference exists so the exclusion is not silent.
   const oSink = [], cSink = [];
   oracle(seedEntry(withTailStub(base, makeRecorder(oSink)), 0x40));
-  loc_1fef(seedEntry(withTailStub(base, makeRecorder(cSink)), 0x40));
+  stepBarrelLeft(seedEntry(withTailStub(base, makeRecorder(cSink)), 0x40));
   assert.notEqual(oSink[0].f, cSink[0].f, "the flags are expected to differ at the handoff");
 
   console.log(
@@ -363,7 +368,7 @@ for (const [label, twin] of [
   test(`TEETH: the ${label} twin is CAUGHT`, () => {
     const base = captureDispatches(CRAFT_BASE_FRAMES)[0];
     // Sanity: the real routine passes the same sweep, so a caught twin is a real signal.
-    assert.equal(handoffSweep(base, loc_1fef), null, "the correct routine must pass the sweep");
+    assert.equal(handoffSweep(base, stepBarrelLeft), null, "the correct routine must pass the sweep");
     const mm = handoffSweep(base, twin);
     assert.notEqual(mm, null, `the crafted sweep FAILED to catch the ${label} twin — it is worthless`);
     console.log(`  TEETH/${label}: caught at X=${mm.x} — ${mm.why}`);
@@ -380,7 +385,7 @@ test("LIVE: the candidate wired at 0x1FEF reproduces the oracle over a whole att
   let fired = 0;
   let owed = 0;
   const live = new Map([
-    [TARGET, (mm) => { fired++; owed = OWN_CYCLES; return loc_1fef(mm); }],
+    [TARGET, (mm) => { fired++; owed = OWN_CYCLES; return stepBarrelLeft(mm); }],
     // Restore the oracle's cycle cost AT THE HANDOFF — where the oracle finishes charging
     // it, after the X write. Cycle-free code under-charges, which shifts the vblank NMI
     // and diverges for reasons unrelated to this rewrite. pc is restored with it because

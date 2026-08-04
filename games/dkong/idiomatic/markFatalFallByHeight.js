@@ -1,35 +1,28 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * markFatalFallByHeight — condemn the current fall as lethal once Mario has dropped
- * far enough below where he took off, then refresh his sprite record.  ROM 0x1C76.
+ * markFatalFallByHeight — condemn the fall in progress as lethal once Mario has dropped far
+ * enough below the height he left the ground at, then refresh his sprite record.
  *
- * Reached each airborne frame the fall-height check is armed (MARIO_AIR_LANDCHECK). It
- * measures how far Mario has fallen by comparing his take-off height (MARIO_AIR_START_Y)
- * against his current height with a 15-pixel survivable slack removed. Height grows
- * downward, so once (currentY - 15) has reached the take-off height he is 15 or more
- * pixels below it and the fall is deadly. On that beat it latches MARIO_FATAL_FALL —
- * which the landing code turns into Mario's death, clearing MARIO_ACTIVE — and queues
- * the fall's sound cue. A shallower drop leaves both untouched, so the landing survives.
+ * It runs on each airborne frame while the fall-height check is armed. How far Mario has fallen
+ * is measured by comparing where he took off against where he is now, with 15 pixels of
+ * survivable slack taken off the current reading. Height grows downward on this screen, so once
+ * his current height less that slack has reached the take-off height he is 15 or more pixels
+ * below where he started and the drop is deadly.
  *
- * Either way it finishes through the movement machine's shared tail, refreshing Mario's
- * hardware sprite record from his live position and sprite state.
+ * On the frame that happens, MARIO_FATAL_FALL is latched — the landing turns that into Mario's
+ * death — and the fall's sound is cued. A shallower drop leaves both alone, and Mario survives
+ * the landing.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1c76.test.js.
- * GATE:     exhaustive — the fatal-vs-survivable decision is a function of just two bytes
- *           (current height, take-off height), so the gate sweeps ALL 65536 pairs; plus
- *           real captured attract dispatches, whose 25m demo fires both arms. Teeth: an
- *           inverted decision, a dropped byte-width wrap, and a dropped sprite refresh.
- * LIVE-OUT: memory-only — MARIO_FATAL_FALL and the fall sound latch (both conditional),
- *           and Mario's 4-byte sprite record. The shared tail's single return is modelled
- *           by one caller-return in the gate; no successor reads a register or flag left
- *           behind here.
- * NAMES:    MARIO_Y (0x6205), MARIO_AIR_START_Y (0x620E), MARIO_FATAL_FALL (0x6220),
- *           SND_TRIGGER (0x6080; +4 is the sound latch this fires) — all from names.js.
+ * Either way the routine finishes through the movement machine's shared tail, which refreshes
+ * Mario's hardware sprite record from his live position and pose.
+ *
+ * LIVE-OUT: memory-only — the fatal-fall latch and the fall sound, both only on the lethal
+ * frame, plus Mario's sprite record every frame.
  */
 
 import { u8 } from "../../../core/int.js";
 import { MARIO_Y, MARIO_AIR_START_Y, MARIO_FATAL_FALL, SND_TRIGGER } from "./names.js";
-import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js"; // ROM 0x1DA6
+import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function markFatalFallByHeight(m) {
   const { mem } = m;

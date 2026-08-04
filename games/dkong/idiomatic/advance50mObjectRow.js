@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advance50mObjectRow — advance and edge-cull the 50m moving-object row.  ROM 0x2591.
+ * advance50mObjectRow — advance and edge-cull the 50m moving-object row.
  *
  * Walks the six records of the 50m object array (OBJ_ARRAY_65A0, stride 0x10). Each
  * active record (field +0 bit0 set) has its X position (field +3) stepped horizontally,
@@ -15,32 +15,15 @@
  *     field +5 uses the plain mover, stepping X by the object-3 shadow (M50_OBJ3_STEP).
  *
  * Culling clears the record's active flag and X and blanks the object's sprite record
- * (four bytes from OBJ_65A0_SPRITES, indexed by the record's position in the row), so it vanishes
- * from the display. Inactive records are skipped untouched.
+ * (four bytes from OBJ_65A0_SPRITES, indexed by the record's position in the row), so it
+ * vanishes from the display. Inactive records are skipped untouched.
  *
- * The step shadows are the signed ±1/0 unit steps the 50m reversal machinery publishes,
- * so this routine is the consumer that actually moves the 50m objects across the screen.
+ * The step shadows are the signed ±1/0 unit steps the 50m reversal machinery publishes, so
+ * this routine is the consumer that actually moves the 50m objects across the screen.
  *
- * Promoted from loc_2591 (DK understanding pass 10, independent proposer≠confirmer, MODERATE-HIGH):
- * it walks OBJ_ARRAY_65A0 (rated, grounded live vs MAME as the 50m horizontally-moving objects)
- * and steps X by the named-and-grounded M50_OBJ2_STEP_POS/NEG and M50_OBJ3_STEP shadows, culling
- * at the edges/center. The object family is grounded and the advance-and-cull role is exactly the name.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2591.test.js.
- * GATE:     crafted-entry — a real boot/attract base with the six records + step shadows
- *           poked, since sub_24ea gates this on 50m (board 2) and attract only plays 25m,
- *           so it takes no natural dispatch there. Single-record sweep over all 256 X
- *           values × both movers × representative signed steps covers every arm (left-edge
- *           cull, center cull, right/left step, plain step); a multi-record pass proves the
- *           per-slot sprite-clear index.
- * LIVE-OUT: memory + DE. The stride 0x0010 the oracle leaves in DE is reused as its own IX
- *           increment by the still-oracle caller sub_24ea, so it is a genuine register
- *           live-out at this boundary — set and kept. Residual registers/flags and the
- *           terminal return are dead.
- * NAMES:    OBJ_ARRAY_65A0 (0x65A0), M50_OBJ2_STEP_POS (0x63A5), M50_OBJ2_STEP_NEG
- *           (0x63A4), M50_OBJ3_STEP (0x63A6) — all from names.js, as is the per-record
- *           sprite block OBJ_65A0_SPRITES (0x69B8, inside SPRITE_BUFFER, stride 4), which
- *           names.js named and grounded [seen] in pass 11.
+ * LIVE-OUT: memory + DE. The record stride is left in DE because the caller reuses it as its
+ * own pointer increment, so it is a genuine register live-out at this boundary. Every other
+ * residual register and flag is dead.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -52,7 +35,7 @@ import {
   OBJ_65A0_SPRITES,} from "./names.js";
 
 const SLOT_COUNT = 6;
-const SLOT_STRIDE = 0x10;      // object-record stride; also the DE live-out value (0x0010)
+const SLOT_STRIDE = 0x10;      // object-record stride; also the DE live-out value
 const FIELD_ACTIVE = 0x00;     // +0: activity flags
 const ACTIVE_BIT = 0x01;       // +0 bit0: record is live
 const FIELD_X = 0x03;          // +3: object X position (the coordinate this routine steps)
@@ -68,9 +51,9 @@ const CULL_SPRITE_STRIDE = 0x04; // four bytes per sprite record
 export function advance50mObjectRow(m) {
   const { regs, mem } = m;
 
-  // The record stride. The oracle leaves it in DE and the still-oracle caller reuses it
-  // as its own pointer increment, so publish it as a live-out at this boundary.
-  regs.de = SLOT_STRIDE; // 0x0010 — LIVE-OUT
+  // The record stride, published in DE because the caller reuses it as its own pointer
+  // increment.
+  regs.de = SLOT_STRIDE; // LIVE-OUT
 
   for (let i = 0; i < SLOT_COUNT; i++) {
     const slot = OBJ_ARRAY_65A0 + SLOT_STRIDE * i;

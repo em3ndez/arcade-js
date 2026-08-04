@@ -17,7 +17,8 @@
  *
  * The input is a single byte, so the gate is EXHAUSTIVE over all 256 FRAME values — a
  * proof, not a sample. There is no realism arm: 0x3131 is never dispatched during
- * attract (it is reached only through the untranslated entry_30ed rst-0x28 table), so
+ * attract (it is reached only through the difficulty-selected rst-0x28 table under entry_30ed,
+ * which never selects THIS arm at attract's difficulty), so
  * there are no real captures to replay; the exhaustive sweep stands on its own.
  *
  *   1. EQUAL (exhaustive) — loc_3131 == oracle on pc + SP + RAM across all 256 FRAME

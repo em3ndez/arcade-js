@@ -1,63 +1,44 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * configureFlipScreenAndSelectSubstate — the first in-game NMI's start-up step:
- * wipe the display and sound, set the flip-screen latch for the cabinet, and pick
- * the sub-state the game runs next.  ROM 0x0986.
+ * configureFlipScreenAndSelectSubstate — the first in-game frame's start-up step: wipe the display
+ * and the sound, set the flip-screen latch for the cabinet, and pick the sub-state the game runs
+ * next.
  *
- * Arm 0 of the in-game sub-state table (ROM 0x0702), dispatched by
- * dispatchInGameSubstate (ROM 0x06fe) the first time GAME_STATE(0x6005)==3 with
- * GAME_SUBSTATE(0x600A)==0 — i.e. the frame right after loc_08f8 commits a coin +
- * start and hands control to the in-game state. It does four things, in order:
+ * It is the sub-state-0 arm of the in-game state, so it runs on the frame right after a coin and
+ * start commit and hand control over to that state. Three things happen, in order:
  *
- *   1. CLEAR. clearTilemapAndSprites (ROM 0x0852) blanks every tilemap cell and
- *      zeroes the sprite shadow buffer; silenceSound (ROM 0x011c) zeroes every
- *      sound output and its work-RAM shadow. A blank slate for the board build.
- *   2. FLIP ON. Turn the flip-screen latch (0x7D82) ON unconditionally here; the
- *      cocktail 2-player arm below is the only path that turns it back off.
- *   3. SELECT SUB-STATE from ACTIVE_PLAYER_INDEX (0x600E), the join value's low byte
- *      (written by loc_08f8: zero for a 1-player start, non-zero for a 2-player start):
- *        - == 0  (1-player start): GAME_SUBSTATE = 1, flip-screen left ON. Return.
- *        - != 0  (2-player start): GAME_SUBSTATE = 3, and the cabinet decides the
- *          flip-screen latch — DIP_UPRIGHT(0x6026) == 1 keeps it ON (upright);
- *          anything else (cocktail) clears it to 0, so player 2 sees the mirror.
+ *   1. CLEAR. Blank every tilemap cell and zero the sprite shadow buffer, then zero every sound
+ *      output and its work-RAM shadow. A blank slate for the board build.
+ *   2. FLIP ON. Turn the flip-screen latch ON unconditionally; the cocktail two-player arm below
+ *      is the only path that turns it back off.
+ *   3. SELECT THE SUB-STATE from ACTIVE_PLAYER_INDEX, which the coin-and-start step leaves at zero
+ *      for a 1-player start and non-zero for a 2-player one:
+ *        - zero (1-player start): sub-state 1, flip-screen left ON, return.
+ *        - non-zero (2-player start): sub-state 3, and the cabinet decides the flip-screen latch —
+ *          an upright cabinet keeps it ON, while a cocktail one clears it to 0 so player 2 sees
+ *          the mirrored screen.
  *
- * Reads only the two selector bytes (0x600E join-low, 0x6026 DIP_UPRIGHT); every
- * other effect is on fixed memory / the flip-screen board latch.
+ * It reads only those two selector bytes; every other effect lands on fixed memory or on the
+ * flip-screen latch.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0986.test.js.
- * GATE:     crafted-entry; dispatched ONCE in a coin+start run (frame ~152, the
- *           1-player arm) as a real entry, plus crafted arms that force the two
- *           2-player paths (upright / cocktail) by poking 0x600E/0x6026 identically
- *           on both sides. The 0x7D82 flip-screen latch is NOT in the RAM dump, so
- *           the gate compares io.flipScreen too — that is what distinguishes the
- *           cocktail arm (flip OFF) from the upright arm (flip ON). Teeth = wrong
- *           GAME_SUBSTATE, a skipped cocktail flip-clear, and a skipped sound-clear.
- * LIVE-OUT: memory + the 0x7D82 flip-screen latch. Memory: GAME_SUBSTATE(0x600A)
- *           and the two callees' tilemap/sprite/sound-shadow writes. The flip latch
- *           is an io board output (outside the RAM dump), pinned via io.flipScreen.
- *           No live registers/flags — the rst-0x28 sub-state dispatch returns up the
- *           NMI path and consumes none of them; SP/PC are not compared (the
- *           direct-call layer replaces the oracle's `ret` stack/PC bookkeeping with
- *           the JS call stack).
- * NAMES:    GAME_SUBSTATE (0x600A), DIP_UPRIGHT (0x6026), ACTIVE_PLAYER_INDEX (0x600E)
- *           from names.js. 0x7D82 (flip-screen board latch) is not in names.js and stays a
- *           local hex constant.
+ * LIVE-OUT: memory — GAME_SUBSTATE plus the tilemap, sprite and sound-shadow writes of the clear —
+ * and the flip-screen latch, which is a board output rather than memory.
  */
 
 import { GAME_SUBSTATE, DIP_UPRIGHT, ACTIVE_PLAYER_INDEX } from "./names.js";
-import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
-import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
+import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js";
+import { silenceSound } from "./silenceSound.js";
 
-// Flip-screen control latch (ls259.6h bit 2) — a board hardware register, not work
-// RAM, so it lives outside names.js as a local constant (as in handler_01c3).
+// The flip-screen control latch — a board hardware register rather than work RAM, so it carries
+// no shared name and is a local constant here.
 const FLIPSCREEN = 0x7d82;
 
 export function configureFlipScreenAndSelectSubstate(m) {
   const { mem } = m;
 
   // 1. Blank the whole display, then silence every sound output.
-  clearTilemapAndSprites(m); // ROM 0x0852
-  silenceSound(m); // ROM 0x011c
+  clearTilemapAndSprites(m);
+  silenceSound(m);
 
   // 2. Flip-screen ON (the default; only the cocktail arm turns it back off).
   mem.write8(FLIPSCREEN, 1);

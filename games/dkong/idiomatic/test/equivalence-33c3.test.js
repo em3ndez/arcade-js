@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_33c3 (ROM 0x33C3) — on 25m, re-step one object-record
+ * Equivalence test for settleFireOnGirderSlope (ROM 0x33C3) — on 25m, re-step one object-record
  * coordinate through the girder-slope single-step (snapYToGirder) and store it back into
  * record field +0x0F; on any other board, do nothing.
  *
@@ -29,6 +29,10 @@
  *      (b) swapped snapYToGirder coordinates (companion<->coord) — caught on a 25m case where
  *          the two argument orders give different results.
  *
+ * LIVE-OUT, cross-file and therefore recorded here rather than in the routine: memory-only — the
+ * single stored coordinate at record +0x0F. The oracle's residual registers and flags and its
+ * terminal return are dead ABI; the board-guard early-out replaces its `ret nz`.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-33c3.test.js
  */
 
@@ -37,7 +41,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_33c3 as oracle } from "../../translated/loc_33c3.js";
-import { loc_33c3 } from "../loc_33c3.js";
+import { settleFireOnGirderSlope } from "../settleFireOnGirderSlope.js";
 import { snapYToGirder } from "../snapYToGirder.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD, OBJ_STATE } from "../names.js";
@@ -153,7 +157,7 @@ test("EQUAL (board guard): every non-25m board early-outs with no RAM write", ()
 
   for (const board of [0x00, 0x02, 0x03, 0x04, 0x05, 0xff]) {
     const entry = craft(base, { board, ...wouldStep });
-    const diffs = contractDiffs(entry, loc_33c3);
+    const diffs = contractDiffs(entry, settleFireOnGirderSlope);
     assert.equal(diffs.length, 0, `board ${hx(board)}: ${diffs.join("; ")}`);
     // Genuinely the no-write path: the oracle wrote no non-stack RAM.
     assert.deepEqual(changedAddrs(entry, runOracle(entry)), [], `board ${hx(board)}: guard path wrote non-stack RAM`);
@@ -163,7 +167,7 @@ test("EQUAL (board guard): every non-25m board early-outs with no RAM write", ()
 
 // -- 2. EQUAL (25m step sweep) ------------------------------------------------
 
-test("EQUAL (25m step): loc_33c3 == oracle across snapYToGirder's arms, storing back the step", () => {
+test("EQUAL (25m step): settleFireOnGirderSlope == oracle across snapYToGirder's arms, storing back the step", () => {
   const base = attractBase();
 
   // companion (x) values touch: sub-cell 0 and 15 (the two travel boundaries), off-boundary
@@ -180,7 +184,7 @@ test("EQUAL (25m step): loc_33c3 == oracle across snapYToGirder's arms, storing 
     for (const companion of companions) {
       for (const coord of coords) {
         const entry = craft(base, { board: 0x01, companion, coord, state });
-        const diffs = contractDiffs(entry, loc_33c3);
+        const diffs = contractDiffs(entry, settleFireOnGirderSlope);
         assert.equal(diffs.length, 0,
           `state=${hx(state)} companion=${hx(companion)} coord=${hx(coord)}: ${diffs.join("; ")}`);
 

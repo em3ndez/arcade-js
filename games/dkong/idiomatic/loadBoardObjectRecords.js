@@ -1,90 +1,66 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loadBoardObjectRecords — scatter this board's ROM object-init records into two
- * parallel work-RAM attribute arrays.  ROM 0x2441.
+ * loadBoardObjectRecords — scatter this board's object-init records into two parallel work-RAM
+ * attribute arrays.
  *
- * Board-setup helper, reached once per board from loc_0d5f (`call 0x2441` at ROM
- * 0x0D62). It selects a per-board table of fixed 5-byte records in ROM, walks it,
- * and de-interleaves each record into one of two structure-of-arrays destination
- * groups, routed by the record's leading TYPE byte:
+ * A board-setup helper, run once per board. It selects a per-board table of fixed 5-byte records
+ * in program memory, walks it, and de-interleaves each record into one of two destination groups,
+ * routed by the record's leading TYPE byte:
  *
- *   - Record layout (5 bytes): [type, fieldA, fieldB, (unused +3), fieldC].
- *   - TYPE 0  -> the IX group OBJ_PARAM_TABLE0 (0x6300): fieldA -> +0, fieldB -> +0x15,
- *               fieldC -> +0x2a, then the group index advances by one (three parallel
- *               arrays, stride 0x15).
- *   - TYPE 1  -> the IY group OBJ_PARAM_TABLE1 (0x6310), same +0/+0x15/+0x2a de-interleave
- *               and advance.
- *   - TYPE 0xAA -> terminator: return. THE ONLY EXIT.
- *   - Any other TYPE -> skip this record (advance 5 bytes) and continue.
+ *   - Record layout, 5 bytes: [type, fieldA, fieldB, (byte +3, never read), fieldC].
+ *   - TYPE 0 goes to the first group, TYPE 1 to the second. In both cases the three fields land in
+ *     three parallel arrays a fixed stride apart, and that group's index advances by one.
+ *   - The terminator type ends the walk. IT IS THE ONLY EXIT.
+ *   - Any other type is skipped whole and the walk continues.
  *
  * Two small heads run before the walk:
- *   - HEAD A picks the IY group's base. It forms an 8-bit modular checksum, seeded
- *     with 0x5E, over the six ROM bytes at 0x3F0C; base is OBJ_PARAM_TABLE1 (0x6310)
- *     when the checksum is 0, else 0x6311. On the shipped ROM those bytes sum the
- *     checksum to exactly 0, so the base is always 0x6310 and the 0x6311 arm is dead
- *     in practice — but it is modelled faithfully (a data-integrity guard whose result
- *     is a constant here).
- *   - HEAD B picks the ROM record table from BOARD (0x6227): 1->0x3AE4, 2->0x3B5D,
- *     3->0x3BE5, and everything else (4, 0, 5+) -> the default table 0x3C8B.
+ *   - HEAD A picks the second group's base. It forms an 8-bit modular checksum, seeded with a
+ *     fixed value, over six bytes of program data; a checksum of zero selects the base, anything
+ *     else selects one byte past it. In the shipped program image those six bytes sum the checksum
+ *     to exactly zero, so the alternate base never happens in practice — it is a data-integrity
+ *     guard, reproduced here rather than folded away.
+ *   - HEAD B picks the record table from BOARD: 25m, 50m and 75m each have their own, and every
+ *     other value takes the default.
  *
- * The oracle's walk is a JUMP cycle with no call/push/pop/rst in its 115 bytes, so it
- * is a flat loop, not recursion. This routine calls nothing.
+ * A flat loop that calls nothing.
  *
- * Memory-equivalent to the frozen oracle — equivalence-2441.test.js.
- * GATE:     crafted-entry — the real board-1 dispatch (attract only ever sets up 25m)
- *           validates the 0x3AE4 table + both type routers; the 0x3B5D/0x3BE5/0x3C8B
- *           table arms and the default arm are reached by identical-both-sides BOARD
- *           pokes (2/3/4/0 — Karl-sanctioned board poke). Fresh clone per case (writes
- *           RAM). Two teeth: a field-offset twin and a HEAD-A mis-seed twin, both caught
- *           on the real dispatch (board 1 has 11 type-0 and 4 type-1 records).
- * LIVE-OUT: memory-only — the de-interleaved bytes in the two 0x63xx arrays. The sole
- *           caller (loc_0d5f) reloads HL/A/DE/BC and never reads IX/IY or any flag this
- *           leaves before overwriting it, so every register/flag is dead. pc and SP are
- *           not live either: the oracle's terminal `ret` (pc<-return addr, SP+2) is the
- *           modelled stack ABI the direct-call layer replaces with a JS return, and the
- *           harness supplies one m.ret() on the candidate to line them up.
- * NAMES:    BOARD (0x6227), OBJ_PARAM_TABLE0 (0x6300), OBJ_PARAM_TABLE1 (0x6310) from
- *           names.js — the board selector and the two destination group bases (the ABC
- *           naming pass named them: this routine is cited as the de-interleaver). The
- *           rest stays hex: the checksum/record ROM addresses (0x3F0C,
- *           0x3AE4/0x3B5D/0x3BE5/0x3C8B) are ROM data; +0/+0x15/+0x2a are record field
- *           strides.
+ * LIVE-OUT: memory-only — the de-interleaved bytes in the two destination arrays.
  */
 
 import { BOARD, OBJ_PARAM_TABLE0, OBJ_PARAM_TABLE1 } from "./names.js";
 
-// HEAD A — the ROM checksum that picks the IY group base.
+// HEAD A — the checksum that picks the second group's base.
 const CHECKSUM_SEED = 0x5e;
-const CHECKSUM_ROM = 0x3f0c; // six ROM data bytes, summed mod 256
+const CHECKSUM_ROM = 0x3f0c; // six bytes of program data, summed mod 256
 const CHECKSUM_LEN = 6;
 
-// Per-board ROM record tables (ROM data addresses — kept hex).
+// Per-board record tables (program-data addresses).
 const TABLE_BOARD_1 = 0x3ae4;
 const TABLE_BOARD_2 = 0x3b5d;
 const TABLE_BOARD_3 = 0x3be5;
-const TABLE_DEFAULT = 0x3c8b; // board 4, board 0, and levels 5+
+const TABLE_DEFAULT = 0x3c8b; // 100m, board 0, and anything past the four
 
 // Record shape.
-const RECORD_STRIDE = 5; // bytes per record (`ld de,0x0005` skip step)
+const RECORD_STRIDE = 5; // bytes per record
 const FIELD_A = 0x00; // destination offsets within a group
 const FIELD_B = 0x15;
 const FIELD_C = 0x2a;
-const TYPE_IX = 0x00; // route to the IX group
-const TYPE_IY = 0x01; // route to the IY group
+const TYPE_IX = 0x00; // route to the first group
+const TYPE_IY = 0x01; // route to the second group
 const TYPE_END = 0xaa; // terminator
 
 export function loadBoardObjectRecords(m) {
   const { mem } = m;
 
-  // -- HEAD A: 8-bit modular checksum picks the IY group base -------------
+  // -- HEAD A: 8-bit modular checksum picks the second group's base -------
   let checksum = CHECKSUM_SEED;
   for (let i = 0; i < CHECKSUM_LEN; i++) {
     checksum = (checksum + mem.read8((CHECKSUM_ROM + i) & 0xffff)) & 0xff;
   }
-  // 0 -> 0x6310, non-zero -> 0x6311 (the ROM sums this to 0, so 0x6310 in practice).
+  // Zero selects the base, non-zero the byte after it (the data sums to zero, so always the base).
   let iy = checksum === 0 ? OBJ_PARAM_TABLE1 : (OBJ_PARAM_TABLE1 + 1) & 0xffff;
 
-  // -- HEAD B: BOARD picks the ROM record table --------------------------
+  // -- HEAD B: BOARD picks the record table ------------------------------
   const board = mem.read8(BOARD);
   let hl =
     board === 1 ? TABLE_BOARD_1 :

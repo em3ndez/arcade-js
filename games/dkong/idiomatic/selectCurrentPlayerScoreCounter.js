@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * selectCurrentPlayerScoreCounter — select the score-counter address for the player
- * currently up.  ROM 0x055F.
+ * currently up.
  *
  * Reads which player is up and hands back the base address of that player's
  * three-byte score counter: player 1's counter when the current-player flag is
@@ -11,20 +11,8 @@
  * A LEAF: reads CURRENT_PLAYER only, writes no memory, and returns the chosen
  * address — nothing else it computes along the way survives the call.
  *
- * GROUNDED (DK understanding pass 5, independent confirmer): names.js's CURRENT_PLAYER
- * (0x600D) note independently cites this ROM routine (sub_055f) as the one that selects
- * the score slot from that flag — `ret z` → P1_SCORE (0x60B2), else P2_SCORE (0x60B5) —
- * and all three cells are named. The gate is exhaustive over the sole input byte.
- *
- * Memory-equivalent to the frozen oracle — equivalence-055f.test.js.
- * GATE:     exhaustive over the sole input byte — CURRENT_PLAYER across all 256
- *           values on a real base machine — which is a complete proof for a
- *           one-byte input the routine reads nothing else beside. Not dispatched
- *           during attract (0 in 2000 frames), so there is no captured arm to add.
- * LIVE-OUT: the selected score-slot address (the oracle returns it in a register;
- *           here it is the plain return value). No memory is written, and the
- *           residual flags the oracle leaves behind are dead — no caller reads them.
- * NAMES:    CURRENT_PLAYER (0x600D), P1_SCORE (0x60B2), P2_SCORE (0x60B5) — all from names.js.
+ * LIVE-OUT: the selected score-slot address. No memory is written, and the flags
+ * left behind reach no caller.
  */
 
 import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "./names.js";

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_18c6 (ROM 0x18C6) — the board-advance / "how high"
+ * Equivalence test for runRivetBoardFinaleThenAdvanceLevel (ROM 0x18C6) — the board-advance / "how high"
  * transition pacer, driven by the 0x62AF down-counter.
  *
- * loc_18c6 WRITES memory (0x62AF and, per arm, the blink flags 0x6A25/0x6919, the
+ * runRivetBoardFinaleThenAdvanceLevel WRITES memory (0x62AF and, per arm, the blink flags 0x6A25/0x6919, the
  * sprite/object records 0x694C-0x694F / 0x6A20-0x6A23, the sound cue, and on the
  * counter wrap BOARD/LEVEL/BOARD_SEQ_PTR/HOW_HIGH_INDEX/SUBSTATE_TIMER/GAME_SUBSTATE
  * + the task ring) and is NOT a leaf (it calls nextAnimationStep and, on the wrap, enqueueTask).
@@ -30,13 +30,19 @@
  *   3. RECORD arms (crafted) — at counter 0xC0, the four LEVEL-parity x MARIO_X combos.
  *   4. WRAP arms (crafted) — at counter 0x01, the normal advance and the 0x7F-terminator
  *      restart (BOARD_SEQ_PTR -> 0x3A73). The oracle's wrap models the stack (push/call/
- *      ret into STACK_SCRATCH); loc_18c6 delegates the enqueue to idiomatic enqueueTask
+ *      ret into STACK_SCRATCH); runRivetBoardFinaleThenAdvanceLevel delegates the enqueue to idiomatic enqueueTask
  *      and models no stack, so the ONLY residual diff is the excluded stack scratch.
- *   5. NO STACK MODELLING — loc_18c6 must leave SP and pc at their entry values on every
+ *   5. NO STACK MODELLING — runRivetBoardFinaleThenAdvanceLevel must leave SP and pc at their entry values on every
  *      arm (the oracle's push/call/ret became direct JS calls).
  *   6. TEETH — a twin whose every-8th gate masks 0x0F instead of 0x07 (a plausible
  *      misread that agrees on 240/256 counter values, diverging only on the multiples
  *      of 8 that are not multiples of 16) MUST be caught by the counter sweep.
+ *
+ * LIVE-OUT, cross-file and therefore recorded here rather than in the routine: memory-only. The
+ * routine is a dispatch-table entry, and its caller (dispatchGameState's rst-0x28 tail) reads no
+ * register or flag it leaves, so the oracle's residual A/B/C/HL/F are dead ABI. It models no stack
+ * (the oracle's push/call/ret become direct JS calls), so pc and SP stay at entry — which is what
+ * arm 5 asserts.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-18c6.test.js
  */
@@ -46,7 +52,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_18c6 as oracle } from "../../translated/loc_18c6.js";
-import { loc_18c6 } from "../loc_18c6.js";
+import { runRivetBoardFinaleThenAdvanceLevel } from "../runRivetBoardFinaleThenAdvanceLevel.js";
 import { nextAnimationStep } from "../nextAnimationStep.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { loc_2333 } from "../../translated/loc_2333.js";
@@ -164,7 +170,7 @@ test("REACHABILITY: 0x18C6 is not dispatched in plain attract (entries are craft
 
 // -- 1. COUNTER SWEEP (exhaustive crafted) ------------------------------------
 
-test("COUNTER SWEEP (exhaustive): loc_18c6 == oracle over all 256 0x62AF values", () => {
+test("COUNTER SWEEP (exhaustive): runRivetBoardFinaleThenAdvanceLevel == oracle over all 256 0x62AF values", () => {
   const sbase = craftBase(SWEEP_BASE);
   let count = 0;
   let mismatch = null;
@@ -173,7 +179,7 @@ test("COUNTER SWEEP (exhaustive): loc_18c6 == oracle over all 256 0x62AF values"
     a.mem.write8(PACE_COUNTER, v);
     b.mem.write8(PACE_COUNTER, v);
     oracle(a);
-    loc_18c6(b);
+    runRivetBoardFinaleThenAdvanceLevel(b);
     const { bad } = ramDiffMinusStack(a, b);
     count++;
     if (bad) mismatch = { v, bad };
@@ -193,7 +199,7 @@ test("COUNTER SWEEP (exhaustive): loc_18c6 == oracle over all 256 0x62AF values"
 test("STAGE @0xE0: both MARIO_X halves seed the sprite record identically to the oracle", () => {
   for (const marioX of [0x40, 0x90]) {
     const entry = craftBase({ counter: 0xe1, x6919: 0x00, marioX }); // dec 0xE1 -> 0xE0
-    const { bad } = replay(entry, loc_18c6);
+    const { bad } = replay(entry, runRivetBoardFinaleThenAdvanceLevel);
     assert.equal(
       bad,
       null,
@@ -209,7 +215,7 @@ test("RECORD @0xC0: all LEVEL-parity x MARIO_X combos match the oracle", () => {
   for (const level of [0x01, 0x02]) {
     for (const marioX of [0x40, 0x90]) {
       const entry = craftBase({ counter: 0xc1, x6919: 0x00, level, marioX }); // dec 0xC1 -> 0xC0
-      const { bad } = replay(entry, loc_18c6);
+      const { bad } = replay(entry, runRivetBoardFinaleThenAdvanceLevel);
       assert.equal(
         bad,
         null,
@@ -236,7 +242,7 @@ test("WRAP @0-crossing: normal advance and 0x7F-terminator restart match the ora
       (entry.regs.sp - 8) >= STACK_SCRATCH.lo && entry.regs.sp <= STACK_SCRATCH.hi,
       `oracle's wrap push targets must sit inside STACK_SCRATCH (SP=${hx(entry.regs.sp)})`,
     );
-    const { bad, stackDiffs } = replay(entry, loc_18c6);
+    const { bad, stackDiffs } = replay(entry, runRivetBoardFinaleThenAdvanceLevel);
     assert.equal(
       bad,
       null,
@@ -245,7 +251,7 @@ test("WRAP @0-crossing: normal advance and 0x7F-terminator restart match the ora
     // The oracle really used the stack; the idiomatic delegate did not, so the diff
     // must be confined to the excluded stack scratch (proving the exclusion earns its keep).
     assert.ok(stackDiffs > 0, `${label}: expected the oracle's push to differ inside STACK_SCRATCH`);
-    const post = replay(entry, loc_18c6).b;
+    const post = replay(entry, runRivetBoardFinaleThenAdvanceLevel).b;
     console.log(
       `  WRAP ${label}: BOARD=${hx(post.mem.read8(BOARD))} SEQPTR=${hx(post.mem.read16(BOARD_SEQ_PTR))} ` +
         `LEVEL=${hx(post.mem.read8(LEVEL))} SUBSTATE=${hx(post.mem.read8(GAME_SUBSTATE))} (${stackDiffs} stack bytes excluded)`,
@@ -255,7 +261,7 @@ test("WRAP @0-crossing: normal advance and 0x7F-terminator restart match the ora
 
 // -- 5. NO STACK MODELLING ----------------------------------------------------
 
-test("NO STACK MODELLING: loc_18c6 leaves SP and pc at entry on every arm", () => {
+test("NO STACK MODELLING: runRivetBoardFinaleThenAdvanceLevel leaves SP and pc at entry on every arm", () => {
   const entries = [
     ["gate-ret", craftBase({ ...SWEEP_BASE, counter: 0x00 })],
     ["proceed", craftBase({ ...SWEEP_BASE, counter: 0x09 })],
@@ -266,9 +272,9 @@ test("NO STACK MODELLING: loc_18c6 leaves SP and pc at entry on every arm", () =
   for (const [label, entry] of entries) {
     const b = entry.clone();
     const sp0 = b.regs.sp, pc0 = b.pc;
-    loc_18c6(b);
-    assert.equal(b.regs.sp, sp0, `${label}: loc_18c6 must leave SP unchanged (no stack modelling)`);
-    assert.equal(b.pc, pc0, `${label}: loc_18c6 must leave pc unchanged (no ret modelling)`);
+    runRivetBoardFinaleThenAdvanceLevel(b);
+    assert.equal(b.regs.sp, sp0, `${label}: runRivetBoardFinaleThenAdvanceLevel must leave SP unchanged (no stack modelling)`);
+    assert.equal(b.pc, pc0, `${label}: runRivetBoardFinaleThenAdvanceLevel must leave pc unchanged (no ret modelling)`);
   }
   console.log("  NO STACK MODELLING: SP/pc unchanged on gate-ret / proceed / stage / record / wrap");
 });
@@ -279,7 +285,7 @@ test("NO STACK MODELLING: loc_18c6 leaves SP and pc at entry on every arm", () =
  * Broken twin: the every-8th gate masks 0x0F instead of 0x07. It agrees with the
  * oracle on 240/256 counter values, diverging only on multiples of 8 that are not
  * multiples of 16 (the routine then wrongly skips the proceed step), so only a real
- * counter sweep catches it. Everything else mirrors loc_18c6 exactly, so the sole
+ * counter sweep catches it. Everything else mirrors runRivetBoardFinaleThenAdvanceLevel exactly, so the sole
  * divergence is the gate.
  */
 function brokenLoc18c6(m) {

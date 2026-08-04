@@ -5,18 +5,18 @@
  *
  * loc_2e9c is reached from obj_2e12 the moment an object's animation-string walk reads the
  * 0x7F terminator. It rewinds the string pointer to the base of the string (0x39AA), fires a
- * wrap sound (SND_TRIGGER+3 := 3), and falls straight into loc_2e4b (0x2E4B), the object-update
+ * wrap sound (SND_TRIGGER+3 := 3), and falls straight into advanceSpringArcAndDropAtTravelEnd (0x2E4B), the object-update
  * convergence point — which stores the (rewound) pointer back into the object record (+0x0e/+0x0f),
  * runs the end-of-walk transition test (object X >= 0xB7 AND last-string-byte == 0x7F -> state 4 +
  * transition sound, which re-clears SND_TRIGGER+3 to 0 and sets SND_TRIGGER+4 := 3), and mirrors the
  * object's position to the paired sprite while advancing both scan cursors (object +16, sprite +4).
  *
- * The idiomatic routine forces the pointer to 0x39AA in registers and calls loc_2e4b DIRECTLY (both
- * loc_2e4b and its own mirror tail are already idiomatic and separately proven memory-equivalent), so
+ * The idiomatic routine forces the pointer to 0x39AA in registers and calls advanceSpringArcAndDropAtTravelEnd DIRECTLY (both
+ * advanceSpringArcAndDropAtTravelEnd and its own mirror tail are already idiomatic and separately proven memory-equivalent), so
  * the oracle's fall-through `jp 0x2e4b` dissolves into a direct call.
  *
- * The distinguishing behaviour of loc_2e9c vs loc_2e4b is: (a) the STORED pointer is ALWAYS 0x39AA —
- * the incoming pointer is dead; and (b) SND_TRIGGER+3 is written to 3 BEFORE loc_2e4b runs, so it
+ * The distinguishing behaviour of loc_2e9c vs advanceSpringArcAndDropAtTravelEnd is: (a) the STORED pointer is ALWAYS 0x39AA —
+ * the incoming pointer is dead; and (b) SND_TRIGGER+3 is written to 3 BEFORE advanceSpringArcAndDropAtTravelEnd runs, so it
  * survives on the non-transition path and is overwritten to 0 on the transition path.
  *
  * CONTRACT (memory-equivalence): RAM (whole dump — the oracle chain performs NO push/pop/ret, so
@@ -33,7 +33,7 @@
  *        X-sweep:  object X over 0..255 with c = 0x7F (crosses the 0xB7 boundary; exercises BOTH the
  *                  transition arm — SND_TRIGGER+3 ends 0 — and the non-transition arm — the wrap
  *                  sound survives at 3).
- *        C-sweep:  c over 0..255 with X = 0xC0 (>= boundary; pins the 0x7F terminator test loc_2e4b
+ *        C-sweep:  c over 0..255 with X = 0xC0 (>= boundary; pins the 0x7F terminator test advanceSpringArcAndDropAtTravelEnd
  *                  makes with the pointer forced).
  *        L-sweep / H-sweep: incoming pointer low / high over 0..255 with a no-transition X — proving
  *                  the stored pointer is ALWAYS 0x39AA regardless of the incoming pointer.
@@ -61,7 +61,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2e9c as oracle } from "../../translated/loc_2e9c.js";
 import { loc_2e9c } from "../loc_2e9c.js";
-import { loc_2e4b } from "../loc_2e4b.js"; // ROM 0x2E4B (for the twins)
+import { advanceSpringArcAndDropAtTravelEnd } from "../advanceSpringArcAndDropAtTravelEnd.js"; // ROM 0x2E4B (for the twins)
 import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -81,10 +81,10 @@ const OBJ_STR_LO = 0x0e;  // string pointer: low at +0x0e, high at +0x0f
 const STRING_BASE = 0x39aa;    // the base the walk pointer is ALWAYS rewound to (low 0xAA, high 0x39)
 const STRING_BASE_LO = 0xaa;
 const STRING_BASE_HI = 0x39;
-const X_BOUNDARY = 0xb7;       // object X at/past which the walk can finish (in loc_2e4b)
+const X_BOUNDARY = 0xb7;       // object X at/past which the walk can finish (in advanceSpringArcAndDropAtTravelEnd)
 const TERMINATOR = 0x7f;       // last-string-byte value that arms the transition
 const WRAP_SOUND = 0x03;       // value loc_2e9c writes to SND_TRIGGER+3 (survives off the transition)
-const NEXT_STATE = 4;          // state written on the transition path (by loc_2e4b)
+const NEXT_STATE = 4;          // state written on the transition path (by advanceSpringArcAndDropAtTravelEnd)
 
 const OBJ_BASE = OBJ_ARRAY_65;  // 0x6500 — object-record scan base (object cursor / IX)
 const SPR_BASE = ACTOR_SPRITES; // 0x6980 — paired sprite-record scan base (sprite cursor / IY)
@@ -124,7 +124,7 @@ function prep(m, ix, iy, p) {
   setInput(m, ix, iy);
   m.regs.l = p.L;   // incoming pointer low — IGNORED (rewound to 0xAA)
   m.regs.h = p.H;   // incoming pointer high — IGNORED (rewound to 0x39)
-  m.regs.c = p.C;   // last-read string byte (terminator test in loc_2e4b)
+  m.regs.c = p.C;   // last-read string byte (terminator test in advanceSpringArcAndDropAtTravelEnd)
   m.mem.write8(ix + OBJ_X, p.X);
   m.mem.write8(ix + OBJ_Y, p.Y);
   // dest / effect cells pre-stamped so a wrong write is visible in the RAM diff
@@ -156,7 +156,7 @@ function contractDiff(o, c) {
 
 // Run oracle vs candidate on two fresh, byte-identical entries at (ix, iy) with inputs `p`
 // and return the contract diff (or null). The oracle's `jp 0x2e4b` resolves through the default
-// ORACLE_ROUTINES registry to the frozen translated loc_2e4b chain.
+// ORACLE_ROUTINES registry to the frozen translated advanceSpringArcAndDropAtTravelEnd chain.
 function runOne(base, ix, iy, p, candidate) {
   const om = base.clone();
   const cm = base.clone();
@@ -174,7 +174,7 @@ function fullSweep(base, candidate) {
   const ix = OBJ_BASE, iy = SPR_BASE;
   let count = 0;
 
-  // X-sweep: object X over 0..255, terminator held (c = 0x7F) so loc_2e4b's transition tracks X.
+  // X-sweep: object X over 0..255, terminator held (c = 0x7F) so advanceSpringArcAndDropAtTravelEnd's transition tracks X.
   for (let X = 0; X < 256; X++) {
     const d = runOne(base, ix, iy, { X, C: TERMINATOR, L: INCOMING_L, H: INCOMING_H, Y: 0x40 }, candidate);
     count++;
@@ -221,7 +221,7 @@ test("EQUAL (byte sweeps): loc_2e9c == oracle over the X / terminator / incoming
   assert.equal(off.mem.read8(SND_TRIGGER + 3), WRAP_SOUND, "oracle must fire the wrap sound (SND_TRIGGER+3 = 3) off the transition");
   assert.equal(off.mem.read8(OBJ_BASE + OBJ_STATE), STATE_SENTINEL, "below the boundary must NOT transition");
 
-  const on = base.clone(); // transition arm (X past boundary): loc_2e4b re-clears the wrap sound
+  const on = base.clone(); // transition arm (X past boundary): advanceSpringArcAndDropAtTravelEnd re-clears the wrap sound
   prep(on, OBJ_BASE, SPR_BASE, { X: 0xc0, C: TERMINATOR, L: INCOMING_L, H: INCOMING_H, Y: 0x40 });
   oracle(on);
   assert.equal(on.mem.read8(OBJ_BASE + OBJ_STATE), NEXT_STATE, "oracle must set state 4 at the boundary+terminator");
@@ -350,40 +350,40 @@ test("REALISM: real captured 0x2e9c dispatches — loc_2e9c matches the oracle",
 function brokenNoRewind(m) {
   const { mem } = m;
   mem.write8(SND_TRIGGER + 3, WRAP_SOUND);
-  loc_2e4b(m); // incoming l/h left as-is -> loc_2e4b stores the incoming pointer
+  advanceSpringArcAndDropAtTravelEnd(m); // incoming l/h left as-is -> advanceSpringArcAndDropAtTravelEnd stores the incoming pointer
 }
 /** (b) wrong base: rewinds to 0x39AB (off by one) instead of 0x39AA. */
 function brokenWrongBase(m) {
   const { regs, mem } = m;
   regs.hl = 0x39ab; // BUG: base + 1
   mem.write8(SND_TRIGGER + 3, WRAP_SOUND);
-  loc_2e4b(m);
+  advanceSpringArcAndDropAtTravelEnd(m);
 }
 /** (c) dropped sound: never writes the wrap sound. */
 function brokenDropSound(m) {
   const { regs } = m;
   regs.hl = STRING_BASE;
-  loc_2e4b(m); // BUG: SND_TRIGGER+3 write dropped
+  advanceSpringArcAndDropAtTravelEnd(m); // BUG: SND_TRIGGER+3 write dropped
 }
 /** (d) wrong sound value: writes 2 instead of 3. */
 function brokenWrongSound(m) {
   const { regs, mem } = m;
   regs.hl = STRING_BASE;
   mem.write8(SND_TRIGGER + 3, 0x02); // BUG: wrong value
-  loc_2e4b(m);
+  advanceSpringArcAndDropAtTravelEnd(m);
 }
-/** (e) dropped convergence: skips loc_2e4b entirely (no pointer store, no mirror, no advance). */
+/** (e) dropped convergence: skips advanceSpringArcAndDropAtTravelEnd entirely (no pointer store, no mirror, no advance). */
 function brokenDropConvergence(m) {
   const { regs, mem } = m;
   regs.hl = STRING_BASE;
-  mem.write8(SND_TRIGGER + 3, WRAP_SOUND); // BUG: loc_2e4b never called
+  mem.write8(SND_TRIGGER + 3, WRAP_SOUND); // BUG: advanceSpringArcAndDropAtTravelEnd never called
 }
 /** (f) swapped rewind: loads the base with the bytes swapped (0x39 low, 0xAA high). */
 function brokenSwappedBase(m) {
   const { regs, mem } = m;
   regs.hl = 0xaa39; // BUG: low 0x39, high 0xAA
   mem.write8(SND_TRIGGER + 3, WRAP_SOUND);
-  loc_2e4b(m);
+  advanceSpringArcAndDropAtTravelEnd(m);
 }
 
 test("TEETH: the same byte sweeps CATCH every broken twin", () => {

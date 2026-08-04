@@ -1,64 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * buildHowHighScreen — build the "HOW HIGH CAN YOU GET?" interlude screen, then step
- * the in-game sub-state forward.  ROM 0x0bda.
+ * buildHowHighScreen — draw the "HOW HIGH CAN YOU GET?" screen that plays before a board starts,
+ * then move the game on to the next sub-state.
  *
- * Sub-state 8 of the credited game (GAME_STATE 3), dispatched by dispatchInGameSubstate
- * on GAME_SUBSTATE (0x600A) through the 0x0702 table — the last build step of the
- * pre-gameplay "how high can you get?" intro. It draws a diagonal stack of girders whose
- * height grows as the player climbs from board to board, with a little climbing figure on
- * each girder, then hands off to the next sub-state. It runs once per intro and does, in
- * order:
+ * The screen is a diagonal stack of girders with a small climbing figure on each one, and the
+ * stack gets one girder taller each time the player advances a board — that is what makes it read
+ * as a height. It is built in a single frame, and the whole build happens in this order:
  *
- *   1. SILENCE the sound channels (silenceSound, ROM 0x011C) — unconditional, before the
- *      frame gate.
- *   2. FRAME GATE (tickSubstateTimer, the rst-0x18 helper): decrement SUBSTATE_TIMER and
- *      run the rest only on the frame it hits 0; while it is still counting, return early
- *      (the whole build is skipped this frame). Everything below is behind this gate.
- *   3. CLEAR the playfield + sprite shadow buffer (clearPlayfieldAndSprites, ROM 0x0874).
- *   4. POST a task to redraw the lives/marker (enqueueTask with opcode 6, argument =
- *      MARIO_ACTIVE) — the shared deferred-work primitive; opcode/arg ride in D/E.
- *   5. SEED the screen's fixed state: palette bank 1 (0x7D86=1, 0x7D87=0), the level-start
- *      tune (SND_PRIORITY=2, held SND_PRIORITY_FRAMES=3), and the climb-figure bookkeeping
- *      (record index 0x63A7 = 0, VRAM walk pointer 0x63A8 = 0x76DC).
- *   6. HEIGHT INDEX: clamp HOW_HIGH_INDEX to at most 5, then bump it by one when the
- *      board-sequence pointer's low byte (BOARD_SEQ_PTR) differs from its saved copy
- *      (HOW_HIGH_LAST_SEQ) — i.e. the player advanced a board — and save the new copy.
- *      HOW_HIGH_INDEX is the height reached, so the girder stack is that many rows tall.
- *   7. PAINT HOW_HIGH_INDEX rows (a do-while, so a count of 0 wraps to 256). Each row:
- *        - fills six 4-tile groups of the girder into VRAM at 0x75BC, tile codes 0x50..0x67
- *          written descending with a +0x23 stride between groups, and
- *        - copies one 3-byte climb-figure record from ROM 0x3CF0 (indexed by the 0x63A7
- *          counter × 4) into the next VRAM sprite slot (0x63A8, which walks down 4 per row),
- *          writing the fixed tile 0x8B just below it.
- *   8. POST the composition task (enqueueTask with DE = 0x0307), then re-arm SUBSTATE_TIMER
- *      to 0xA0 and advance GAME_SUBSTATE by 2 so the next NMI dispatches onward.
+ *   1. The sound channels are silenced. This happens unconditionally, ahead of the frame gate.
+ *   2. The sub-state countdown is ticked, and everything below runs only on the frame it
+ *      expires. While it is still counting, the build is skipped for that frame.
+ *   3. The playfield and the sprite shadow buffer are cleared for a fresh screen.
+ *   4. A task is posted to redraw the lives marker.
+ *   5. The screen's fixed state is seeded: palette bank 1, the level-start tune held for 3
+ *      frames, and the climb-figure bookkeeping — the record index reset to 0 and the sprite-slot
+ *      walk pointer put at its first slot.
+ *   6. HEIGHT: HOW_HIGH_INDEX is clamped to at most 5, then raised by one if the board-order
+ *      pointer has moved since the last time this screen was built, which is exactly the case
+ *      where the player advanced a board. The new pointer value is saved for the next comparison.
+ *      The height index IS the number of girders drawn.
+ *   7. That many rows are painted. Each row lays six 4-tile groups of girder, walking backwards
+ *      through video memory with a fixed step between groups, and then copies a 3-byte
+ *      climb-figure record into the next sprite slot with a fixed tile written just below it. The
+ *      row loop tests at the bottom, so a height of 0 paints 256 rows rather than none.
+ *   8. The composition task is posted, the sub-state countdown is re-armed, and the sub-state is
+ *      advanced by two so the next frame dispatches onward.
  *
- * Reads no input byte; every effect is on fixed RAM/VRAM. The only register marshalling
- * left is loading D/E for enqueueTask, whose ABI takes the message pair there.
+ * It reads no input of its own beyond the height bookkeeping; everything else it writes is fixed.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0bda.test.js.
- * GATE:     crafted-entry — the one real captured dispatch from a driven coin+start game
- *           (sub-state 8 fires once per intro: gate-expired / clamp-keep / step-take / 1
- *           row), fresh clone per case, PLUS crafted entries the run never reaches, poked
- *           identically on both sides: the gate-skip early return, the clamp-set-5 arm, the
- *           step-skip arm, several row counts, and the 256-row do-while wrap. Compared on
- *           RAM − STACK_SCRATCH against the oracle. Teeth = a wrong HOW_HIGH_LAST_SEQ store.
- * LIVE-OUT: memory-only — the cleared playfield + sprite buffer, the two task-ring posts,
- *           the seeded sound/palette/climb-figure bytes, HOW_HIGH_INDEX / HOW_HIGH_LAST_SEQ,
- *           the girder + sprite VRAM, SUBSTATE_TIMER, and GAME_SUBSTATE. No live registers
- *           or flags: this is an rst-0x28 sub-state handler whose `ret` returns up the NMI
- *           service path, which consumes none of them. SP/pc are the dropped stack model —
- *           the oracle's `call`s and terminal `ret` leave only push residue in STACK_SCRATCH
- *           (measured 0x6bec–0x6bef at the real dispatch), excluded by the contract; the
- *           direct-call layer replaces the `ret` with a JS return, so SP/pc are untouched.
- * NAMES:    MARIO_ACTIVE, SND_PRIORITY, SND_PRIORITY_FRAMES, HOW_HIGH_INDEX, BOARD_SEQ_PTR,
- *           HOW_HIGH_LAST_SEQ, SUBSTATE_TIMER, GAME_SUBSTATE (names.js); imports silenceSound
- *           (0x011C), tickSubstateTimer (0x0018), clearPlayfieldAndSprites (0x0874),
- *           enqueueTask (0x309F) — the four decompiled callees. The palette-bank latches,
- *           the climb-figure index/walk-pointer scratch, the girder VRAM base, and the ROM
- *           record table stay hex (board control / engine scratch / video RAM / ROM, none in
- *           names.js).
+ * LIVE-OUT: memory-only — the cleared playfield and sprite buffer, the two posted tasks, the
+ * seeded sound, palette and climb-figure bytes, the height index and its saved pointer, the
+ * girder and sprite video memory, the re-armed countdown and the advanced sub-state.
  */
 
 import {
@@ -76,29 +48,29 @@ import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 import { enqueueTask } from "./enqueueTask.js";
 
-// ls259.6h palette-bank latch — 0x7D86 = bit 0, 0x7D87 = bit 1 (board control outputs,
-// not work RAM). buildHowHighScreen selects bank 1: bit0 = 1, bit1 = 0.
+// The two palette-bank latch outputs. They are board control lines rather than work memory,
+// and this screen selects bank 1 by setting the first and clearing the second.
 const PALETTE_BANK_BIT0 = 0x7d86;
 const PALETTE_BANK_BIT1 = 0x7d87;
 
-// Climb-figure bookkeeping (engine scratch, not in names.js): 0x63A7 = record index into the
-// ROM table below (stepped once per row); 0x63A8 = 16-bit VRAM walk pointer for the sprite
-// slots (walks down 4 per row). Seeded here to 0 and 0x76DC.
+// Climb-figure bookkeeping, engine scratch with no shared names: an index into the figure
+// record table, stepped once per row, and a 16-bit walk pointer for the sprite slots, which
+// steps 4 back per row. Both are seeded below.
 const CLIMB_FIGURE_INDEX = 0x63a7;
 const CLIMB_FIGURE_WALK_PTR = 0x63a8;
 const CLIMB_FIGURE_WALK_START = 0x76dc;
-const CLIMB_FIGURE_ROM_TABLE = 0x3cf0; // ROM: 4-byte climb-figure records (3 read + 1 skipped)
+const CLIMB_FIGURE_ROM_TABLE = 0x3cf0; // 4-byte figure records; 3 bytes read, 1 skipped
 const CLIMB_FIGURE_FOOT_TILE = 0x8b; // fixed tile written just below each figure
 
-// Girder tile fill: 6 groups × 4 tiles, codes 0x50..0x67, written into VRAM descending from
-// 0x75BC with a +0x23 stride between groups; the next row steps by -0xA1.
+// Girder tile fill: six groups of 4 tiles, whose codes run in one ascending sequence, written
+// backwards through video memory with a fixed step between groups and a bigger step per row.
 const GIRDER_VRAM_BASE = 0x75bc;
 const GIRDER_TILE_FIRST = 0x50;
 const GIRDER_TILE_LAST = 0x67;
 const GIRDER_GROUP_STRIDE = 0x23;
-const GIRDER_ROW_STEP = -0xa1 & 0xffff; // 0xFF5F: down one girder row
+const GIRDER_ROW_STEP = -0xa1 & 0xffff; // back one girder row
 
-const HEIGHT_MAX = 5; // HOW_HIGH_INDEX is clamped to at most this
+const HEIGHT_MAX = 5; // the height index is clamped to at most this
 const SUBSTATE_TIMER_RELOAD = 0xa0; // re-armed before handing off
 
 export function buildHowHighScreen(m) {
@@ -107,15 +79,13 @@ export function buildHowHighScreen(m) {
   // 1. Silence sound — unconditional, ahead of the frame gate.
   silenceSound(m);
 
-  // 2. Frame gate: run the build only on the frame SUBSTATE_TIMER expires; otherwise the
-  //    rst-0x18 helper returns us straight to our caller.
+  // 2. Run the build only on the frame the sub-state countdown expires.
   if (!tickSubstateTimer(m)) return;
 
   // 3. Blank the playfield + sprite shadow buffer for the fresh screen.
   clearPlayfieldAndSprites(m);
 
-  // 4. Post the lives/marker redraw task (opcode 6, argument = MARIO_ACTIVE); enqueueTask
-  //    reads the pair from D/E.
+  // 4. Post the lives-marker redraw task: opcode 6, with Mario's active flag as its argument.
   regs.d = 0x06;
   regs.e = mem.read8(MARIO_ACTIVE);
   enqueueTask(m);
@@ -126,10 +96,10 @@ export function buildHowHighScreen(m) {
   mem.write8(SND_PRIORITY, 0x02); //               level-start tune
   mem.write8(SND_PRIORITY_FRAMES, 0x03); //        held 3 frames
   mem.write8(CLIMB_FIGURE_INDEX, 0x00); //         record index reset
-  mem.write16(CLIMB_FIGURE_WALK_PTR, CLIMB_FIGURE_WALK_START); // VRAM walk pointer
+  mem.write16(CLIMB_FIGURE_WALK_PTR, CLIMB_FIGURE_WALK_START); // sprite-slot walk pointer
 
-  // 6. Height index: clamp to <= 5, then bump when the board advanced (BOARD_SEQ_PTR moved
-  //    off HOW_HIGH_LAST_SEQ), and save the new copy.
+  // 6. Height: clamp it, raise it if the board-order pointer has moved since last time (the
+  //    player advanced a board), and save the pointer for the next comparison.
   if (mem.read8(HOW_HIGH_INDEX) >= HEIGHT_MAX + 1) mem.write8(HOW_HIGH_INDEX, HEIGHT_MAX);
   const seqLo = mem.read8(BOARD_SEQ_PTR);
   if (seqLo !== mem.read8(HOW_HIGH_LAST_SEQ)) {
@@ -137,14 +107,14 @@ export function buildHowHighScreen(m) {
   }
   mem.write8(HOW_HIGH_LAST_SEQ, seqLo);
 
-  // 7. Paint HOW_HIGH_INDEX rows of the girder + one climb figure each. do-while, so a row
-  //    count of 0 wraps to 256 (matching the oracle's `dec b / jp nz`).
+  // 7. Paint one girder row and one climb figure per unit of height. The count is tested at
+  //    the bottom, so a height of 0 wraps to 256 rows rather than painting none.
   let rows = mem.read8(HOW_HIGH_INDEX);
   let fillPtr = GIRDER_VRAM_BASE;
   do {
-    // Girder fill: six groups of 4 tiles, codes 0x50..0x67, descending; the group's first
-    // three writes each step VRAM down one, then a +0x23 stride to the next group. The loop
-    // exits the instant the 4th tile of a group is 0x67.
+    // Girder fill: six groups of 4 tiles whose codes run in one ascending sequence. Within a
+    // group each of the first three writes steps back one cell, then a fixed stride reaches the
+    // next group. The loop stops the instant a group's 4th tile is the last code.
     let tile = GIRDER_TILE_FIRST;
     for (;;) {
       mem.write8(fillPtr, tile); tile = (tile + 1) & 0xff; fillPtr = (fillPtr - 1) & 0xffff;
@@ -156,28 +126,28 @@ export function buildHowHighScreen(m) {
       fillPtr = (fillPtr + GIRDER_GROUP_STRIDE) & 0xffff;
     }
 
-    // Climb figure: copy 3 ROM bytes from record (index × 4) into the next sprite slot.
+    // Climb figure: copy 3 bytes of the indexed record into the next sprite slot.
     const idx = mem.read8(CLIMB_FIGURE_INDEX);
     mem.write8(CLIMB_FIGURE_INDEX, (idx + 1) & 0xff); // step the index for the next row
     let recPtr = (CLIMB_FIGURE_ROM_TABLE + ((idx << 2) & 0xff)) & 0xffff;
-    const ix = mem.read16(CLIMB_FIGURE_WALK_PTR); // current VRAM walk pointer
+    const ix = mem.read16(CLIMB_FIGURE_WALK_PTR); // current sprite-slot walk pointer
 
     mem.write8((ix + 0x60) & 0xffff, mem.read8(recPtr)); recPtr = (recPtr + 1) & 0xffff;
     mem.write8((ix + 0x40) & 0xffff, mem.read8(recPtr)); recPtr = (recPtr + 1) & 0xffff;
     mem.write8((ix + 0x20) & 0xffff, mem.read8(recPtr));
     mem.write8((ix - 0x20) & 0xffff, CLIMB_FIGURE_FOOT_TILE); // negative displacement
 
-    mem.write16(CLIMB_FIGURE_WALK_PTR, (ix - 4) & 0xffff); // next sprite slot, 4 down
+    mem.write16(CLIMB_FIGURE_WALK_PTR, (ix - 4) & 0xffff); // next sprite slot, 4 back
     fillPtr = (fillPtr + GIRDER_ROW_STEP) & 0xffff; //        next girder row
 
     rows = (rows - 1) & 0xff;
   } while (rows !== 0);
 
-  // 8. Post the composition task (DE = 0x0307), re-arm the timer, advance the sub-state by 2.
+  // 8. Post the composition task, re-arm the countdown, advance the sub-state by two.
   regs.d = 0x03;
   regs.e = 0x07;
   enqueueTask(m);
 
   mem.write8(SUBSTATE_TIMER, SUBSTATE_TIMER_RELOAD);
-  mem.write8(GAME_SUBSTATE, (mem.read8(GAME_SUBSTATE) + 2) & 0xff); // two `inc (hl)`
+  mem.write8(GAME_SUBSTATE, (mem.read8(GAME_SUBSTATE) + 2) & 0xff);
 }

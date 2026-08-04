@@ -15,10 +15,13 @@
  * STACK_SCRATCH.
  *
  *   1. REACHABILITY — hook 0x1AF5 in a real attract run and classify EVERY dispatch (not just
- *      the cloned ones). The walk-left and fall-through arms both occur in quantity; the
- *      BLOCKED arm (left verdict == 1) occurs ZERO times, because attract keeps Mario where
- *      the position gate answers 0. The test asserts that zero explicitly rather than leaving
- *      it implied: crafted entries are the only thing covering that arm.
+ *      the cloned ones). The walk-left and fall-through arms both occur in quantity — 1422
+ *      dispatches over the 9000 frames this test runs, split 745 walk-left / 677 fall-through when
+ *      last measured; the test classifies and prints them rather than asserting those numbers. The
+ *      BLOCKED arm (left verdict == 1) occurs ZERO times, because attract keeps Mario where the
+ *      position gate answers 0 — the left-limit flag is 0 on every single one of those dispatches.
+ *      The test asserts that zero explicitly rather than leaving it implied: crafted entries are
+ *      the only thing covering that arm.
  *
  *   2. EQUAL (real dispatches) — replay every cloned attract dispatch, oracle vs candidate.
  *
@@ -48,7 +51,7 @@ import { loc_1af5 as oracle } from "../../translated/loc_1af5.js";
 import { walkLeftWhileHeld } from "../walkLeftWhileHeld.js";
 import { walkMarioLeft } from "../walkMarioLeft.js";   // ROM 0x1CAB — used by the teeth twins
 import { walkMarioRight } from "../walkMarioRight.js"; // ROM 0x1C8F — the mirror arm's stepper
-import { loc_1afe } from "../loc_1afe.js";             // ROM 0x1AFE — used by the teeth twins
+import { armMarioClimbAtLadderEnd } from "../armMarioClimbAtLadderEnd.js";             // ROM 0x1AFE — used by the teeth twins
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, P1_INPUT, MARIO_X, MARIO_WALK_ANIM, MARIO_SPRITE_CODE } from "../names.js";
 
@@ -152,28 +155,28 @@ function craft(seed, { control, leftLimit }) {
 function brokenNoLimitGate(m) {
   const { regs } = m;
   if ((regs.a & LEFT_HELD) !== 0) return walkMarioLeft(m); // BUG: ignores the left verdict
-  return loc_1afe(m);
+  return armMarioClimbAtLadderEnd(m);
 }
 
 /** (b) the left-limit gate is inverted: walks left ONLY when the gate says blocked. */
 function brokenInvertedLimitGate(m) {
   const { regs } = m;
   if (regs.d === LEFT_BLOCKED && (regs.a & LEFT_HELD) !== 0) return walkMarioLeft(m); // BUG
-  return loc_1afe(m);
+  return armMarioClimbAtLadderEnd(m);
 }
 
 /** (c) the mirror arm's input bit: tests Right (bit 0) instead of Left (bit 1). */
 function brokenRightInputBit(m) {
   const { regs } = m;
   if (regs.d !== LEFT_BLOCKED && (regs.a & 0x01) !== 0) return walkMarioLeft(m); // BUG: bit 0
-  return loc_1afe(m);
+  return armMarioClimbAtLadderEnd(m);
 }
 
 /** (d) the mirror arm's stepper: walks Mario RIGHT on the left-held branch. */
 function brokenRightwardStepper(m) {
   const { regs } = m;
   if (regs.d !== LEFT_BLOCKED && (regs.a & LEFT_HELD) !== 0) return walkMarioRight(m); // BUG
-  return loc_1afe(m);
+  return armMarioClimbAtLadderEnd(m);
 }
 
 // -- 1. REACHABILITY ----------------------------------------------------------

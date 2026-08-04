@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1f83 (ROM 0x1F83) — the object walk's per-slot gate: send a record
- * whose OBJ_ACTIVE holds exactly 1 to the active-slot dispatch at ROM 0x1F93, otherwise step the
- * staging cursor three bytes over the record this slot leaves alone and fall into the
- * between-slots step at ROM 0x1F8D.
+ * serviceBarrelSlotIfLive — memory-equivalent to the frozen oracle at ROM 0x1F83 — the object
+ * walk's per-slot gate: send a record whose OBJ_ACTIVE holds exactly 1 to the active-slot
+ * dispatch at ROM 0x1F93, otherwise step the staging cursor three bytes over the record this slot
+ * leaves alone and fall into the between-slots step at ROM 0x1F8D.
+ * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 1200-frame attract
+ *        run is replayed inline — no sampling — and two crafted arms cover what attract cannot
+ *        produce: a flag value of 3, and a staging cursor whose step wraps its page. Credited
+ *        gameplay, boards 2-4 and two-player are NOT covered: the walk runs only while BOARD
+ *        is 1.
  *
  * WHAT THIS GATE ACTUALLY COVERS, stated plainly:
  *
@@ -88,7 +93,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { loc_1f83 as oracle } from "../../translated/loc_1f83.js";
-import { loc_1f83 } from "../loc_1f83.js";
+import { serviceBarrelSlotIfLive } from "../serviceBarrelSlotIfLive.js";
 import { OBJ_ACTIVE, OBJ_ARRAY_67, ACTOR_SPRITES } from "../names.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";
@@ -251,11 +256,11 @@ const describe = (b) =>
 
 // The one sweep the first three tests share. Node's test runner evaluates the module top to
 // bottom, so this runs once at load rather than once per test.
-const NATURAL = ROM_PRESENT ? sweepAttract(loc_1f83) : null;
+const NATURAL = ROM_PRESENT ? sweepAttract(serviceBarrelSlotIfLive) : null;
 
 // -- 1. EQUAL, on every real attract dispatch ----------------------------------
 
-test("EQUAL: loc_1f83 matches the oracle on every one of the real attract dispatches", () => {
+test("EQUAL: serviceBarrelSlotIfLive matches the oracle on every one of the real attract dispatches", () => {
   assert.ok(NATURAL.dispatches > 0, "no dispatch of 0x1F83 was captured — the harness never engaged");
   assert.equal(
     NATURAL.dispatches,
@@ -322,8 +327,8 @@ const craftPageWrap = (m) => { m.regs.l = PAGE_WRAP_L; };
 
 const CRAFTED = ROM_PRESENT
   ? {
-      flag3: sweepAttract(loc_1f83, { prep: craftFlag3 }),
-      wrap: sweepAttract(loc_1f83, { prep: craftPageWrap }),
+      flag3: sweepAttract(serviceBarrelSlotIfLive, { prep: craftFlag3 }),
+      wrap: sweepAttract(serviceBarrelSlotIfLive, { prep: craftPageWrap }),
     }
   : null;
 
@@ -389,7 +394,7 @@ function brokenInvertedGate(m) {
 
 /** (e) correct in RAM, wrong at the boundary: hands its caller a value it never had. */
 function brokenSpuriousReturn(m) {
-  loc_1f83(m);
+  serviceBarrelSlotIfLive(m);
   return false;
 }
 
@@ -471,7 +476,7 @@ function runFramesCycleFree(overrides) {
 test("LIVE-OUT: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
   const baseline = runFramesCycleFree(null);
   let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return loc_1f83(m); }]]));
+  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return serviceBarrelSlotIfLive(m); }]]));
 
   // Without this the run can be byte-identical because the routine never executed. Measured on a
   // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose

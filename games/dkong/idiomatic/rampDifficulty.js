@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * rampDifficulty — raise the difficulty value with level and time on the board.  ROM 0x037F.
+ * rampDifficulty — raise the difficulty value with level and time on the board.
  *
  * Called once per serviced frame. Two nested rate dividers gate the real work so the
  * difficulty value is only recomputed occasionally:
@@ -23,15 +23,8 @@
  * A LEAF: reads and steps DIFFICULTY_PRESCALER and DIFFICULTY_CLOCK, reads LEVEL, writes
  * DIFFICULTY; calls nothing and returns nothing.
  *
- * Memory-equivalent to the frozen oracle — equivalence-037f.test.js.
- * GATE:     exhaustive over the recompute inputs — the (prescaler, clock, level) space
- *           that decides both dividers and the clamped result — plus real captured 0x037F
- *           dispatches from an attract run.
- * LIVE-OUT: memory-only (DIFFICULTY_PRESCALER, DIFFICULTY_CLOCK, DIFFICULTY). The oracle's
- *           residual registers/flags and its two early returns are dead: no caller consumes
- *           a value, the routine simply does or skips its per-frame work.
- * NAMES:    DIFFICULTY_PRESCALER (0x6384), DIFFICULTY_CLOCK (0x6381), LEVEL (0x6229),
- *           DIFFICULTY (0x6380) — all from names.js.
+ * LIVE-OUT: memory-only — the two counters and DIFFICULTY. The two early returns just mean
+ * "skip this frame's work"; no value is handed back on any path.
  */
 
 import { u8 } from "../../../core/int.js";

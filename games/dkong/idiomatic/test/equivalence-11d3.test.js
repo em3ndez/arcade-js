@@ -31,7 +31,10 @@
  * stack/PC bookkeeping (the JS call stack replaces it), so those are dead ABI here.
  * Cycles and the full register file are likewise never compared (docs/decompiler-pipeline). FLAGS are
  * dropped as dead — the final add-ix carry the oracle preserves propagates up through
- * the rets but is overwritten before any reader (see the routine header).
+ * the rets but is overwritten (at a later `add a,c`) before any reader consumes it.
+ * A/B/HL/IX are compared even though all five call sites overwrite HL or `ret` without
+ * reading any of them: they are cheap plain arithmetic, three sites tail-return into
+ * callers not exhaustively traced, and comparing them gives this gate more teeth.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-11d3.test.js
  */

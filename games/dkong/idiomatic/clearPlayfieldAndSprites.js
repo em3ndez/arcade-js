@@ -1,44 +1,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * clearPlayfieldAndSprites — blank the tilemap playfield and zero the sprite
- * shadow buffer for board / power-on setup.  ROM 0x0874.
+ * clearPlayfieldAndSprites — blank the tilemap playfield and zero the sprite shadow buffer, so a
+ * board or power-on setup starts from an empty screen.
  *
- * Takes no inputs and calls nothing — a straight-line, constant memory transform
- * (every operand is an immediate; it reads no register and no RAM). It is invoked
- * by every board / game-state SETUP handler (loc_08ba, loc_08f8, loc_0bda,
- * loc_141e, loc_0c92, loc_0a63, loc_07c3, handler_0779, handler_01c3) to wipe the
- * screen before the new scene is drawn. Three fixed fills, then return:
+ * Takes no inputs and calls nothing: every value it writes is a constant, so the same three fills
+ * happen on every invocation regardless of game state.
  *
- *   1. PLAYFIELD. Writes the blank tile 0x10 across the central 28 columns of all
- *      32 rows of the video-RAM tilemap, from VRAM 0x7404. The tilemap is 32 cells
- *      wide but the playfield is the middle 28, so each row advances by a 0x20
- *      stride (28 written + 4 skipped). 896 cells.
- *   2. SIDE COLUMNS. Writes the blank tile 0x10 down two 14-cell vertical columns
- *      at VRAM 0x7522 and 0x7523, stepping one whole tilemap row (0x20) per cell.
- *   3. SPRITE BUFFER. Zeroes the 384-byte sprite shadow buffer SPRITE_BUFFER
- *      (0x6900-0x6A7F) = 96 hardware sprite records x 4 bytes — the i8257
- *      channel-0 DMA source blitted to sprite RAM 0x7000 each vblank. The oracle
- *      does it as two djnz runs (256 + 128, `ld b,0` == 256); one span here.
+ *   1. PLAYFIELD. Writes the blank tile across the central 28 columns of all 32 tilemap rows —
+ *      896 cells. The tilemap is 32 cells wide and the playfield is the middle 28, so each row
+ *      advances by a whole-row stride (28 written, 4 skipped).
+ *   2. SIDE COLUMNS. Writes the blank tile down two 14-cell vertical runs beside the playfield,
+ *      stepping one whole tilemap row per cell.
+ *   3. SPRITE BUFFER. Zeroes all 384 bytes of the sprite shadow buffer — 96 hardware sprite
+ *      records of 4 bytes each — which is the block the sprite hardware is fed from each vblank,
+ *      so zeroing it takes every sprite off the screen.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0874.test.js.
- * GATE:     crafted-entry; reached in attract via the setup handlers (real
- *           dispatches) + crafted entries with the three target regions pre-poked
- *           to a sentinel on BOTH sides, which pins the exact write footprint
- *           against the oracle (the routine reads nothing, so one such pair proves
- *           equivalence for every start state). Teeth = a one-column-short fill.
- * LIVE-OUT: memory-only — the tilemap + sprite-buffer bytes. No live registers or
- *           flags: every one of the nine callers overwrites A/flags (`xor a`) or
- *           does a flag-neutral load (`ld hl,..` / `ld a,..`) or an unconditional
- *           `call` before reading anything, so the oracle's terminal A/BC/DE/HL/F
- *           are dead ABI. SP/PC are not compared — the idiomatic layer drops the
- *           `ret`'s stack/PC bookkeeping (the JS call stack replaces it).
- * NAMES:    SPRITE_BUFFER (0x6900). The VRAM tilemap bases (0x7404 playfield,
- *           0x7522/0x7523 side columns) stay hex — video RAM, not named in names.js.
+ * LIVE-OUT: memory-only — the tilemap cells and the sprite-buffer bytes.
  */
 
 import { SPRITE_BUFFER } from "./names.js";
 
-const PLAYFIELD_TOP = 0x7404; // VRAM tilemap: first playfield cell
+const PLAYFIELD_TOP = 0x7404; // first playfield cell of the video-RAM tilemap
 const PLAYFIELD_ROWS = 32;
 const PLAYFIELD_COLS = 28; // central columns; the tilemap is ROW_STRIDE (32) wide
 const ROW_STRIDE = 0x20; // one whole tilemap row
@@ -72,7 +54,7 @@ export function clearPlayfieldAndSprites(m) {
     }
   }
 
-  // 3. Sprite buffer: zero the 384-byte shadow buffer (DMA source for 0x7000).
+  // 3. Sprite buffer: zero the 384-byte shadow buffer the sprite hardware reads each vblank.
   for (let i = 0; i < SPRITE_BUFFER_BYTES; i++) {
     mem.write8((SPRITE_BUFFER + i) & 0xffff, 0x00);
   }

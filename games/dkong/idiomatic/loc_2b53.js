@@ -1,56 +1,42 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b53 — the non-25m arm of the player-vs-tilemap descent probe.  ROM 0x2B53.
+ * loc_2b53 — the non-25m arm of the player-vs-tilemap descent probe.
  *
- * Reached from entry_2b29 when the board is NOT 25m ((0x6227) != 1). It probes the
- * tilemap under Mario at up to two offset points and lets the tile classifier
- * (probeTileForLanding) decide, at each point, whether Mario is still clear of the surface,
- * standing over a snap column, or has actually landed:
+ * Reached when the board is NOT 25m. It probes the tilemap under Mario at up to two
+ * offset points and lets the tile classifier decide, at each point, whether Mario is
+ * still clear of the surface, standing over a snap column, or has actually landed:
  *
  *   1. First probe at (X-3, Y+7). If the classifier reports "landed" it has already
  *      snapped Mario and unwound the whole collision walk (its false return); this
  *      routine just propagates that. If it reports the "over a snap column" code (2),
- *      hand off to the horizontal X-snap tail (loc_2b7a). Otherwise (code 0, no
- *      surface here) fall through to the second probe.
+ *      hand off to the horizontal X-snap tail. Otherwise (code 0, no surface here)
+ *      fall through to the second probe.
  *
- *   2. Second probe at (X+4, Y+7) — the classifier left the first probe's point behind
- *      (its high byte is X-3, its low byte Y+7), and this probe's high byte is that
- *      plus 7. Same three outcomes: landed -> propagate; code 2 -> X-snap tail; code 0
- *      -> nothing under either probe, so return normally and let the caller continue.
+ *   2. Second probe at (X+4, Y+7) — the classifier leaves the first probe's point
+ *      behind in the coordinate register pair (high byte X-3, low byte Y+7), and this
+ *      probe's high byte is that one plus 7. Same three outcomes: landed -> propagate;
+ *      code 2 -> X-snap tail; code 0 -> nothing under either probe, so return normally
+ *      and let the caller continue.
  *
  * RETURN CONTRACT (caller-skip): returns true on the normal return (both probes found
  * no surface), and false to signal the two-frame unwind that aborts the collision walk
  * — raised either by the classifier's own landed-unwind or by the X-snap tail. The
- * caller propagates it as `if (loc_2b53(m) === false) return false;`.
+ * caller propagates the false straight up.
  *
- * REGISTER-ABI MARSHALLING (dissolves once the callee chain takes honest args): the
- * classifier reads its probe point from the coordinate register pair, so this routine
- * loads exactly what the oracle's `call` sites load — the first probe's (X-3, Y+7) and
- * the second probe's (that-point's-high-byte + 7, that-point's-low-byte) — and reads
- * the classifier's result code back from the accumulator between calls, exactly where
- * the oracle's `cp`/`and a` read it. The object pointer is a live-in passed straight
- * through. loc_2b7a takes no register input (it reads its inputs from memory).
+ * REGISTER-ABI MARSHALLING: the classifier reads its probe point out of the coordinate
+ * register pair, so this routine loads each probe point there and reads the
+ * classifier's result code back from the accumulator between calls. The object pointer
+ * is a live-in passed straight through. The X-snap tail takes no register input — it
+ * reads its inputs from memory.
  *
- * Memory-equivalent to the frozen oracle (loc_2b53) — equivalence-2b53.test.js.
- * GATE:     crafted entries on a real attract base that poke the tilemap tile under
- *           each probe point (reject / surface) and the descent inputs, driving all
- *           five terminal paths (first-probe landed, first-probe snap, both-reject
- *           normal return, second-probe landed, second-probe snap); RAM (minus the dead
- *           STACK_SCRATCH the dissolved push/pop churn writes) + pc + SP + result code
- *           identical to the oracle. Teeth: twins that drop the second-probe offset,
- *           drop the first landed-unwind propagation, and invert the snap-code test.
- * LIVE-OUT: memory (MARIO_Y snapped on a landing inside probeTileForLanding; MARIO_X + the sprite
- *           record X committed inside loc_2b7a), the result code, and the caller-skip
- *           boolean (false = the two-frame unwind).
- * NAMES:    probeTileForLanding (ROM 0x2B9B, the tile classifier) and loc_2b7a (ROM 0x2B7A, the
- *           X-snap tail), both direct-called. MARIO_X (0x6203) and MARIO_Y (0x6205) from
- *           names.js supply the probe point; the tiles are read from tilemap VRAM inside
- *           probeTileForLanding (no names.js name).
+ * LIVE-OUT: memory (Mario's Y snapped on a landing inside the classifier; Mario's X
+ * and the sprite record's X committed inside the X-snap tail), the result code, and
+ * the caller-skip boolean (false = the two-frame unwind).
  */
 
 import { u8 } from "../../../core/int.js";
-import { probeTileForLanding } from "./probeTileForLanding.js"; // ROM 0x2B9B — tile classifier
-import { loc_2b7a } from "./loc_2b7a.js"; // ROM 0x2B7A — horizontal X-snap tail
+import { probeTileForLanding } from "./probeTileForLanding.js"; // the tile classifier
+import { loc_2b7a } from "./loc_2b7a.js"; // horizontal X-snap tail
 import { MARIO_X, MARIO_Y } from "./names.js";
 
 /**

@@ -1,51 +1,39 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * initMarioJump — begin Mario's jump: flag him airborne and pick the horizontal
- * launch velocity from the held direction, then commit the arc.  ROM 0x1B6E.
+ * initMarioJump — begin Mario's jump: flag him airborne and pick the horizontal launch
+ * velocity from the held direction, then commit the arc.
  *
- * This is the front half of a jump. dispatchMarioMovement's movement machine reaches it on its
- * "start jump" arm (a `jp c` into here) the frame a jump press is accepted. It does
- * two things itself and then delegates the rest:
+ * This is the front half of a jump. The movement machine reaches it on its "start
+ * jump" arm, the frame a jump press is accepted. It does two things itself and then
+ * delegates the rest:
  *
  *   - MARIO_AIRBORNE := 1 — the movement machine's first per-frame test now routes
  *     Mario through the ballistic handler instead of the ground handler.
  *   - Horizontal launch velocity chosen from P1_INPUT: bit 0 = Right, bit 1 = Left,
- *     with Right winning if both are held (the oracle tests Right first). Right gives
- *     +0x0080, Left 0xFF80 (i.e. -0x0080), neither 0x0000 (a straight-up jump). This
- *     is the big-endian 16-bit velocity (vxHi, vxLo) the integrator later reads.
+ *     with Right winning if both are held (Right is tested first). Right gives +128,
+ *     Left -128, and holding neither gives zero — a straight-up jump. It is a
+ *     big-endian 16-bit value (vxHi, vxLo) the integrator later reads: high byte 0x00
+ *     for Right and 0xFF for Left (the sign extension), low byte 0x80 in both, and
+ *     both bytes zero when no direction is held.
  *
- * It then tail-calls launchMarioJump (ROM 0x1B8A) with that velocity, which writes
- * the full airborne motion record (velocities, cleared fractions/frame-count, jump
- * pose, take-off-Y snapshot, jump sound). The oracle reaches launchMarioJump as a
- * `jp c` / fall-through tail-jump; here it is a direct call and the passed (vxHi, vxLo)
- * replace the oracle's BC hand-off.
+ * It then hands that velocity to the launch tail, which writes the full airborne
+ * motion record: velocities, cleared fractions and frame count, jump pose, take-off-Y
+ * snapshot, jump sound.
  *
  * Reads P1_INPUT, writes MARIO_AIRBORNE, then delegates. Reached once per jump.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1b6e.test.js.
- * GATE:     crafted-entry sweep (all three velocity arms incl. Right+Left-both-held,
- *           × facing-bit × take-off-Y edges, oracle vs candidate on fresh clones of a
- *           real captured entry) + real captured attract dispatches (Mario jumps
- *           naturally, hitting straight-up / left / right — inputs 0x80 / 0x82 / 0x81).
- *           Teeth: a twin that checks Left before Right (wrong precedence when both held).
- * LIVE-OUT: memory-only. dispatchMarioMovement→here→launchMarioJump is a tail-jump chain; the
- *           `ret` returns to loc_197a @0x1983, which `call`s the next cascade routine
- *           without reading A/HL/BC or flags (see launchMarioJump's header). The
- *           oracle's residual registers/flags are dead ABI; every value that matters
- *           was written to RAM. (No pc/SP: the Z80 tail-jump chain's `ret` is the JS
- *           return; dumpState excludes pc/SP.)
- * NAMES:    MARIO_AIRBORNE, P1_INPUT — names.js. Velocity constants inline (they are the
- *           two velocity bytes launchMarioJump copies verbatim).
+ * LIVE-OUT: memory-only — every value that matters is written to RAM by the launch
+ * tail; nothing is returned.
  */
 import { MARIO_AIRBORNE, P1_INPUT } from "./names.js";
 import { launchMarioJump } from "./launchMarioJump.js";
 
-/** P1_INPUT direction bits (names.js: bit0 Right, bit1 Left, bit2 Up, bit3 Down). */
+/** P1_INPUT direction bits: bit0 Right, bit1 Left, bit2 Up, bit3 Down. */
 const INPUT_RIGHT = 0x01;
 const INPUT_LEFT = 0x02;
 
 /**
- * @param {import("../../machine.js").Machine} m
+ * @param {object} m  the machine.
  */
 export function initMarioJump(m) {
   const { mem } = m;
@@ -54,8 +42,8 @@ export function initMarioJump(m) {
   mem.write8(MARIO_AIRBORNE, 1);
 
   // Choose the horizontal launch velocity from the held direction. Big-endian
-  // 16-bit: Right -> +0x0080, Left -> 0xFF80 (= -0x0080), neither -> 0x0000.
-  // Right takes precedence when both are held (the oracle's first `rra` tests it).
+  // 16-bit: Right -> +128, Left -> -128 (high byte 0xFF, low byte 0x80), neither
+  // -> zero. Right takes precedence when both are held.
   const input = mem.read8(P1_INPUT);
   let vxHi, vxLo;
   if (input & INPUT_RIGHT) {

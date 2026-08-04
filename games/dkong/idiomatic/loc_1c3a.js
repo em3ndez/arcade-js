@@ -1,42 +1,27 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1c3a — tick the airborne object-counter; on the tick that reaches zero settle the
- * landing, otherwise arm the land-check phase and reset the ballistic state.  ROM 0x1C3A.
+ * loc_1c3a — tick the airborne counter; on the tick that reaches zero settle Mario's landing,
+ * otherwise arm the land-check phase and reset his ballistic state.
  *
- * Entered from the airborne handler (entry_1c05) by a tail branch, with the mover's
- * object-counter in one register and a landing flag in another. It ticks the counter
- * down one:
+ * Entered from the airborne handler with the mover's own counter in one register and a landing
+ * flag in another. It ticks that counter down one:
  *
- *   - When the tick reaches zero, Mario has just landed: hand off to the landing-settle
- *     routine settleMarioOnLanding, which reads the landing flag from the register bank the mover set
- *     up (0 in normal play). That routine tail-refreshes the sprite record itself.
- *   - Otherwise he is still airborne: arm the land-check phase (the landing-register value
- *     plus one — in play that register is 0 here, so this stores 1) and zero the whole
- *     ballistic block — horizontal velocity hi/lo, vertical velocity hi/lo, and the
- *     airborne-frame count — then refresh Mario's hardware sprite record.
+ *   - When the tick reaches zero Mario has just landed: hand off to the landing-settle routine,
+ *     which reads the landing flag from the register bank the mover set up — zero in normal
+ *     play — and refreshes the sprite record on its own tail.
+ *   - Otherwise he is still airborne: arm the land-check phase, storing the landing-flag
+ *     register plus one (that register is zero in play, so this stores 1), and zero the whole
+ *     ballistic block — horizontal velocity high and low, vertical velocity high and low, and
+ *     the airborne-frame count — then refresh Mario's hardware sprite record.
  *
- * Register boundary: the counter and landing flag are still passed in registers because
- * the sole caller (entry_1c05) is the frozen translated oracle; this reads them from the
- * register bank exactly as that caller loads them. Both tail branches reach an idiomatic
- * callee directly (no address dispatch, no stack model).
+ * The counter and landing flag arrive in registers because the caller hands them over that way.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1c3a.test.js.
- * GATE:     captured + crafted. Real attract dispatches (the airborne handler runs while
- *           the 25m demo jumps) cover the still-airborne arm and the counter-zero landing
- *           arm; crafted entries pin the landing-flag+1 store for nonzero flags, the
- *           counter=0 non-landing case (register wrap, not b<=1), and the landing arm's
- *           pending-pickup path (settleMarioOnLanding -> loc_1d95), whose dissolved push16/ret makes
- *           the STACK_SCRATCH exclusion load-bearing. Teeth: a dropped land-check +1, a
- *           skipped ballistic-block clear, and an inverted counter branch.
- * LIVE-OUT: memory-only — MARIO_AIR_LANDCHECK, the five ballistic cells, and everything
- *           the two tail callees write (Mario's landed/active/sprite state, the sprite
- *           record). Every path reaches the convergence tail by an unconditional branch
- *           and returns through its single terminal `ret`, so no successor reads a leftover
- *           register or flag; the counter and landing register are dead past the branch.
- * NAMES:    MARIO_AIR_LANDCHECK (0x621F), MARIO_AIR_VX_HI/LO (0x6210/0x6211),
- *           MARIO_AIR_VY_HI/LO (0x6212/0x6213), MARIO_AIR_FRAMES (0x6214) — all from
- *           names.js. The two direct-called callees (settleMarioOnLanding, writeMarioSpriteRecord) own
- *           the rest.
+ * Reads: the two caller-supplied registers. Writes: the land-check phase byte and the five
+ * ballistic cells on the airborne arm, plus everything the two tails write — Mario's landed and
+ * active state and his sprite record.
+ *
+ * LIVE-OUT: memory-only. Both arms converge on a sprite refresh and nothing downstream reads a
+ * register this routine leaves.
  */
 
 import {
@@ -47,8 +32,8 @@ import {
   MARIO_AIR_VY_LO,
   MARIO_AIR_FRAMES,
 } from "./names.js";
-import { settleMarioOnLanding } from "./settleMarioOnLanding.js"; // ROM 0x1C4F
-import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js"; // ROM 0x1DA6
+import { settleMarioOnLanding } from "./settleMarioOnLanding.js";
+import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function loc_1c3a(m) {
   const { regs, mem } = m;

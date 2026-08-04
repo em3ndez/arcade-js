@@ -8,8 +8,8 @@
  * WHAT THIS FILE ACTUALLY RUNS (five tests, in order):
  *
  *   0. REACHABILITY — hook 0x1AE6 in a plain 3000-frame attract run (no coin, no pokes) and
- *      count the real dispatches and the arm each one takes. This is the number the routine
- *      header quotes; it is produced here, not asserted from memory.
+ *      count the real dispatches and the arm each one takes. The numbers quoted in this header
+ *      are produced by THIS test, not asserted from memory.
  *
  *   1. EQUAL (real dispatches) — replay every captured entry: oracle vs candidate on
  *      RAM − STACK_SCRATCH + pc + SP.

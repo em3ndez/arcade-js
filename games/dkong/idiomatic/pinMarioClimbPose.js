@@ -1,50 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * pinMarioClimbPose — pin a fixed climb pose into Mario's hardware sprite record and hand
- * back a pointer to that record's Y field.  ROM 0x3FC0.
+ * pinMarioClimbPose — pin a fixed climb pose into Mario's hardware sprite record and hand back a
+ * pointer to that record's Y field.
  *
- * A tiny leaf used inside the Mario climb-descend step stepMarioDownInClimbPose (ROM 0x2281):
- * that caller nudges Mario down one pixel, calls this, then increments the byte this
- * routine points it at. What this routine itself does is two things:
+ * A tiny leaf that reads nothing — no memory, no register — and does exactly two things:
  *
- *   - Force the CODE byte of Mario's hardware sprite record to a fixed value of 3.
- *     Mario's sprite code packs a horizontal-mirror flag in the top bit and an
- *     animation code in the low bits; a bare 3 is one of the climb-frame codes (3,4,5)
- *     with the mirror flag cleared, so this pins one specific descend/climb pose no
- *     matter what the record's code byte held before.
- *   - Advance past the record's attribute byte to its Y field and return that address,
- *     so the caller can go straight on to move the sprite's Y without recomputing the
- *     pointer. That returned pointer is the routine's real product besides the pose
- *     write — the caller consumes it on the very next step.
+ *   - Force the CODE byte of Mario's hardware sprite record to a fixed value of 3. His sprite
+ *     code packs a horizontal-mirror flag in the top bit and an animation code in the low bits; a
+ *     bare 3 is one of the climb-frame codes with the mirror flag cleared, so this pins one
+ *     specific climb pose whatever the byte held before.
+ *   - Step past the record's attribute byte to its Y field and return that address, so whoever
+ *     called can move the sprite's Y without recomputing the pointer. That pointer is a genuine
+ *     product of the routine, consumed on the very next step.
  *
  * The attribute byte in between is deliberately stepped over, never written.
  *
- * GROUNDED (DK understanding pass 5, independent confirmer): "climb" is grounded by names.js's
- * MARIO_SPRITE_CODE note — code 3 ∈ the 03-05 climb range, mirror flag clear — and the cells
- * MARIO_SPRITE_RECORD / SPRITE_CODE / SPRITE_Y are all named. The DIRECTION "down" belongs to
- * the CALLER stepMarioDownInClimbPose (ROM 0x2281), which increments MARIO_Y + sprite-Y; this
- * routine ONLY forces the pose CODE byte to 3 and returns a Y pointer, so a "…Down…" name
- * (REJECTED setMarioClimbDownPose) would mislocate direction into a routine that never moves
- * Mario. "pin" names the primary effect; the returned Y pointer is a genuine live-out the
- * caller consumes on its next step (see LIVE-OUT). Promoted WITH stepMarioDownInClimbPose.
+ * WHAT THIS NAME DOES NOT CLAIM: a direction. Nothing here moves Mario. The pose code is forced
+ * and a pointer is returned; whether the climb is up or down is decided before the call.
  *
- * Memory-equivalent to the frozen oracle — equivalence-3fc0.test.js.
- * GATE:     crafted-entry — 0x3FC0 is never dispatched in attract (attract never reaches
- *           the descend path its caller stepMarioDownInClimbPose drives), so there are no real captures. Instead the
- *           routine is provably input-independent — it reads no memory and no registers —
- *           and the gate proves that by running it against the oracle over many base
- *           states with the three target record bytes pre-poked to adversarial values
- *           and the entry pointer varied: the write, the untouched neighbours, and the
- *           returned pointer come out invariant every time. Teeth: a wrong-address
- *           write, a spurious neighbour write, and a wrong returned pointer, all caught.
- * LIVE-OUT: the returned pointer (the oracle's HL live-out, 0x694F) plus memory. The
- *           sole caller reads that pointer straight after the call (it increments the
- *           byte at it), so it is a genuine live-out and this routine returns it. The
- *           oracle's residual registers/flags are dead — the caller overwrites them
- *           before any read.
- * NAMES:    MARIO_SPRITE_RECORD (0x694C), SPRITE_CODE (+1), SPRITE_Y (+3) — all from
- *           names.js; the two target cells are MARIO_SPRITE_RECORD+SPRITE_CODE (0x694D)
- *           and MARIO_SPRITE_RECORD+SPRITE_Y (0x694F).
+ * LIVE-OUT: memory (the record's code byte) plus the returned pointer.
  */
 
 import { MARIO_SPRITE_RECORD, SPRITE_CODE, SPRITE_Y } from "./names.js";

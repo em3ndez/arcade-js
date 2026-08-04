@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * beginWalkStep — start a new walk-animation step for Mario.  ROM 0x1cc2.
+ * beginWalkStep — start a new walk-animation step for Mario.
  *
- * The horizontal-walk steppers (walkMarioRight walking right, walkMarioLeft walking left) reach
- * here on the frame their sub-step timer has expired and it is time to advance the walk
- * to its NEXT animation frame. They hand over the sprite-code byte they just built — the
- * walk-cycle tile in the low bits, plus the facing-right flag in bit 7 (set by the
- * rightward stepper) — and this routine commits the step:
+ * The two horizontal-walk steppers, one per direction, reach here on the frame their
+ * sub-step timer has expired and it is time to advance the walk to its NEXT animation
+ * frame. They hand over the sprite-code byte they just built — the walk-cycle tile in the
+ * low bits, plus the facing-right flag in bit 7 (set by the rightward stepper) — and this
+ * routine commits the step:
  *
  *   1. Publish that byte as this frame's Mario tile (MARIO_SPRITE_CODE).
  *   2. Ring the footstep sound on alternate steps only: the low bit of the walk-cycle
@@ -17,23 +17,12 @@
  *   4. Refresh Mario's hardware sprite record from his live fields — the shared tail of
  *      the whole mover — then return to the movement cascade.
  *
- * Reached on 25m during the attract walk; both arms (footstep / no footstep) occur. The
- * sprite-code byte arrives in a register from the still-oracle steppers, so it is read
- * at that boundary rather than taken as a parameter.
+ * The sprite-code byte arrives in a register from the steppers, so it is read at that
+ * boundary rather than taken as a parameter.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1cc2.test.js.
- * GATE:     crafted-entry — real captured 25m dispatches cover both the footstep and
- *           no-footstep arms; crafted entries force each arm and pin the sprite-code
- *           store, the footstep routing, and the timer reload. Teeth: an inverted
- *           footstep phase, a dropped timer reload, and a skipped sprite refresh, each
- *           caught.
- * LIVE-OUT: memory-only — MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER, SND_TRIGGER[0] (on
- *           the footstep phase) and the four sprite-record bytes. The callers reach here
- *           by an unconditional tail-jump and consume no register/flag this leaves; the
- *           oracle's residual A/HL/flags are dead ABI (pc/SP model the single tail
- *           return, supplied by the harness).
- * NAMES:    MARIO_SPRITE_CODE (0x6207), MARIO_MOVE_STEP_TIMER (0x620F) — from names.js.
- *           triggerWalkSound (0x1d8f) and writeMarioSpriteRecord (0x1da6) called direct.
+ * LIVE-OUT: memory-only — MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER, the footstep sound
+ * latch (on the footstep phase) and the four sprite-record bytes. The callers reach here
+ * by an unconditional hand-off and consume nothing this routine leaves behind.
  */
 
 import { MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER } from "./names.js";

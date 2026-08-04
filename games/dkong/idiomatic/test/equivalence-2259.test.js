@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for slide50mObjectDown (ROM 0x2259) — the UP-mirror arm of the dispatch50mObjectState board-
- * object state machine: tick the object's timer, step its position counter UP and mirror
- * it on-screen, advance its state at the top of travel, then (once Mario has reached the
- * object's target column) settle his climb one pixel at a time.
+ * Equivalence test for slide50mObjectDown (ROM 0x2259) — the descend arm of the dispatch50mObjectState
+ * board-object state machine: tick the object's timer, step its position counter UP — which
+ * moves the object DOWN the screen, since larger Y is lower — and mirror it on-screen, advance
+ * its state at the BOTTOM of travel (the counter's maximum, 120, its lowest point on screen),
+ * then (once Mario has reached the object's target column) settle his climb one pixel at a time.
  *
  * slide50mObjectDown is entered with the object record base on the stack (the oracle's `pop hl`); the
  * idiomatic routine takes that base as a parameter. Its observable effect factors cleanly
@@ -47,6 +48,12 @@
  *      threshold, dropped Mario descend, and wrong toggle bit.
  *   5. REALISM — hook 0x2259 in a real attract run; document the (zero) natural dispatches
  *      (dispatch50mObjectState's board gate is closed in attract) and verify any that DO occur.
+ *
+ * COVERAGE HOLE, stated plainly (R17). Attract-zero is NOT "this arm never runs". Grounding on
+ * a real 50m board has since driven this arm through hundreds of body passes and steered all
+ * three of its write sites, and THIS GATE REPLAYS NONE OF THAT. What it proves is agreement
+ * with the oracle over the arm's whole factored decision space on crafted entries; what it
+ * does not prove is that a real 50m board reproduces frame for frame.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2259.test.js
  */
@@ -97,7 +104,9 @@ const POSE_CELL = MARIO_SPRITE_RECORD + SPRITE_CODE; // 0x694d — pinned to 3 b
 const SPRITE_Y_CELL = MARIO_SPRITE_RECORD + SPRITE_Y; // 0x694f — stepped down by the descend
 const CLIMB_CENTRING_TOGGLE = 0x6222; // examined-and-unnamed in names.js (shared toggle)
 
-// The counter's top of travel (state advance) and Mario's centring band, in slide50mObjectDown.
+// The counter's maximum — the BOTTOM of travel, lowest on screen, where the state advances —
+// and Mario's centring band, in slide50mObjectDown. (COUNTER_TOP names the top of the counter's
+// numeric range, not the top of the screen.)
 const COUNTER_TOP = 120; // 0x78
 const CENTRING_BAND = 104; // 0x68
 const REACH_TOP = 122; // 0x7a — marioReachedTargetColumn's Y cutoff; at/above it, always a miss

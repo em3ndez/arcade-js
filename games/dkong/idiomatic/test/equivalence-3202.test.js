@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_3202 (ROM 0x3202) — service one record of the 0x6400 object array:
+ * Equivalence test for advanceFire (ROM 0x3202) — service one record of the 0x6400 object array:
  * route it through the state machine its state selects, then publish its working position into
  * the drawn OBJ_X/OBJ_Y.
  *
@@ -16,7 +16,7 @@
  *     sample covers every shape the run saw, and prints how many of how many were replayed.
  *   • Attract NEVER reaches three arms, measured across 3000 attract frames by counting callee
  *     dispatches inside 0x3202: the +0x19 timer branch (loc_32d6, 0 of 481 dispatches), the
- *     out-of-band reverse at ROM 0x3297 (0 of 481 — loc_33c3 fires exactly as often as loc_33ad,
+ *     out-of-band reverse at ROM 0x3297 (0 of 481 — settleFireOnGirderSlope fires exactly as often as walkFireOneStep,
  *     i.e. only as its fall-through tail), and the HIGH working-X edge (0 of 481; the LOW edge
  *     does fire, on 2). Those, plus the OBJ_STATE values attract never shows (2, 3, 4, 131, 132,
  *     255), are CRAFTED on a real captured dispatch and poked identically on both sides. The
@@ -32,8 +32,15 @@
  * ORACLE BOUNDARY: the movement/collision state machine at ROM 0x333D has no idiomatic twin in
  * ROUTINES yet, so both sides reach it through the registry and run the identical subtree.
  *
+ * THE LIVE-OUT DERIVATION, cross-file and therefore here rather than in the routine: 0x3202 has
+ * exactly ONE caller in the whole frozen layer — ROM 0x31CD inside advanceLiveFires — and its very next
+ * instruction reloads the accumulator from its loop counter and recomputes the flags from it, so
+ * the oracle's residual registers and the flags live at its 0x3279 exit are dead ABI. The record
+ * register is dead too: the loop re-reads its pointer from OBJ_ITER_PTR. This live-out is DERIVED;
+ * there is no live-wire arm in this file to corroborate it.
+ *
  *   1. REACHABILITY + EQUAL (captured) — hook 0x3202 in a real attract run, clone at the
- *      sampled dispatches, and confirm loc_3202 == oracle on every one.
+ *      sampled dispatches, and confirm advanceFire == oracle on every one.
  *   2. EQUAL (crafted) — the arms attract cannot supply, on a real captured base.
  *   3. ARM COVERAGE — assert, by counting callee dispatches on the oracle side, that the
  *      captured + crafted corpus together fire every arm this routine has.
@@ -48,7 +55,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3202 as oracle } from "../../translated/loc_3202.js";
-import { loc_3202 } from "../loc_3202.js";
+import { advanceFire } from "../advanceFire.js";
 import { Machine } from "../../machine.js";
 import { ORACLE_ROUTINES } from "../../routines.js";
 import { STACK_SCRATCH } from "../names.js";
@@ -264,7 +271,7 @@ function craftedCases(base) {
   return cases;
 }
 
-/** Does loc_298c accept the tile the given working position probes? Uses the frozen 0x298C. */
+/** Does turnFireAtGroundEdge accept the tile the given working position probes? Uses the frozen 0x298C. */
 function probeInBand(base, row, x) {
   const frozen298c = ORACLE_ROUTINES.get(0x298c);
   const rec = base.mem.read16(ITER_PTR);
@@ -277,7 +284,7 @@ function probeInBand(base, row, x) {
 
 /**
  * Pick the working-Y row the crafted sweeps run on: one where BOTH working-X edges probe inside
- * loc_298c's accepted band (so the edge arms are reachable at all) and which still carries
+ * turnFireAtGroundEdge's accepted band (so the edge arms are reachable at all) and which still carries
  * out-of-band positions (so the reverse arm is reachable too). Searched, not assumed — the band
  * is a property of the tilemap the captured base happens to hold.
  */
@@ -303,7 +310,7 @@ function captured() {
   return capturedOnce;
 }
 
-test("EQUAL (captured): loc_3202 == oracle on the sampled real attract dispatches", () => {
+test("EQUAL (captured): advanceFire == oracle on the sampled real attract dispatches", () => {
   const { kept, seen, total } = captured();
   assert.ok(total > 0, "0x3202 was never dispatched — the capture is vacuous");
   assert.ok(kept.length > 0, "no dispatch was sampled");
@@ -315,7 +322,7 @@ test("EQUAL (captured): loc_3202 == oracle on the sampled real attract dispatche
   }
 
   for (const { shape, m } of kept) {
-    const diffs = contractDiffs(m, loc_3202);
+    const diffs = contractDiffs(m, advanceFire);
     assert.equal(diffs.length, 0, `captured dispatch ${shape}: ${diffs.join("; ")}`);
   }
   console.log(
@@ -335,12 +342,12 @@ function craftedCorpus() {
   return craftedOnce;
 }
 
-test("EQUAL (crafted): loc_3202 == oracle on the arms attract never reaches", () => {
+test("EQUAL (crafted): advanceFire == oracle on the arms attract never reaches", () => {
   const { base, cases } = craftedCorpus();
   let ran = 0;
   for (const { why, patch } of cases) {
     const entry = craft(base, patch);
-    const diffs = contractDiffs(entry, loc_3202);
+    const diffs = contractDiffs(entry, advanceFire);
     assert.equal(diffs.length, 0, `crafted ${why}: ${diffs.join("; ")}`);
     ran++;
   }
@@ -360,7 +367,7 @@ test("ARM COVERAGE: the corpus fires every arm 0x3202 has", () => {
     const o = runOracle(entry);
     for (const [addr, n] of o.arms) totals.set(addr, (totals.get(addr) ?? 0) + n);
     // The reverse arm at ROM 0x3297 is the ONLY site that dispatches 0x33C3 on its own; every
-    // other 0x33C3 dispatch is loc_33ad's fall-through tail. So the excess is the reverse count.
+    // other 0x33C3 dispatch is walkFireOneStep's fall-through tail. So the excess is the reverse count.
     const reversed = Math.max(0, (o.arms.get(0x33c3) ?? 0) - (o.arms.get(0x33ad) ?? 0));
     reverseArm += reversed;
     // The published fields tell the rest: what the index did, and where the working X ended.
@@ -404,7 +411,7 @@ test("EXCLUSION: the only un-excluded diffs are the dissolved call brackets, ins
   const { kept } = captured();
   const entry = kept[kept.length - 1].m;
   const o = runOracle(entry);
-  const c = runCandidate(entry, loc_3202);
+  const c = runCandidate(entry, advanceFire);
 
   assert.equal(firstRamDiff(o.m, c.m), null, "a live (non-stack) cell diverged");
   const withStack = firstRamDiff(o.m, c.m, { includeStack: true });

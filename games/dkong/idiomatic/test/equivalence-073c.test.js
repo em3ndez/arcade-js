@@ -29,6 +29,21 @@
  *      bug, MUST be caught by the captured sweep. A gate a real misdispatch slips
  *      through is worthless.
  *
+ * TWO HOLES, both about the SP assertion that decides whether a sub-state handler may be
+ * swapped for an idiomatic twin. They are stated because runAttractState's table deliberately
+ * routes most slots to the frozen translated handler, and this gate is the instrument that
+ * decision rests on:
+ *
+ *   * THE CAPTURED SWEEP SAMPLES. `captureDispatches(300, 4000, 16)` keeps every 16th real
+ *     dispatch, so a divergence confined to a SINGLE frame is stepped over. That is not
+ *     hypothetical: slot 6's idiomatic twin is stack-neutral on all but one frame of a full
+ *     attract loop, and the stride-16 sample missed exactly that frame. Any future
+ *     interchangeability claim decided by this sweep must be re-run at stride 1.
+ *   * SLOT 5's SP IS ASSERTED NOWHERE. Attract's real captures cover sub-states 0-4, 6 and 7,
+ *     so slot 5 is never captured. Job 2's crafted sub-state loop forces 0-7 but compares RAM
+ *     only — the SP/pc assertions in job 2 are on the CREDIT arm alone. A two-byte stack delta
+ *     injected at slot 5 therefore passes this whole file.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-073c.test.js
  */
 

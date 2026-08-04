@@ -1,87 +1,68 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * drawBoardLayout — walk the board-layout segment table and draw each segment.  ROM 0x0da7.
+ * drawBoardLayout — walk the board-layout segment table and draw each segment.
  *
- * The head of the playfield-record walk. DE points at a table of LINE-SEGMENT
- * records (girders and ladders) that make up the static board; each record is at
- * least five bytes and the table ends with a leading 0xAA. Record layout as the
- * code uses it:
+ * The head of the playfield walk: it is what the board-setup arms call to draw the whole static
+ * board. A pointer register aims at a table of LINE-SEGMENT records — the girders and ladders
+ * the board is made of. Each record is at least five bytes, and the table ends with a
+ * terminator in the kind field. The record layout, as this code uses it:
  *
- *   +0  kind / terminator   -> stashed at SEG_KIND (0x63b3); 0xAA ends the walk
- *   +1  y  (first point)     -> H/B
- *   +2  x  (first point)     -> L/C
- *   +3  y2 (second point y)  -> H, then A = |y2 - y| (the segment's height/extent)
- *   +4  x2 (second point x)  -> read by loc_0dd3
+ *   +0  kind, or the terminator that ends the walk
+ *   +1  y of the segment's first point
+ *   +2  x of the segment's first point
+ *   +3  y of the segment's second point
+ *   +4  x of the segment's second point, read by the per-segment step
  *
- * Per record this converts the FIRST point (y, x) to a tile address via loc_2ff0
- * (saving the sub-tile remainders y&7 / x&7 separately, since loc_2ff0 discards
- * the low three bits), computes the segment height A = |y2 - y|, and hands off to
- * loc_0dd3 with H=y2, C=x, A=height, DE=record+3. loc_0dd3 converts the second
- * point and dispatches the girder or ladder drawer; its renderer tails step DE
- * past the record and return here (the ROM's `jp 0x0da7` loop-back is the for-loop),
- * so the walk continues to the next record until the 0xAA terminator.
+ * Per record it converts the FIRST point to a tile address, saving the sub-tile remainders of
+ * each coordinate separately because the conversion discards the low three bits, computes the
+ * segment's height as the ABSOLUTE difference of the two y values, and hands the second point
+ * plus that height to the per-segment step. That step converts the second point and dispatches
+ * the girder or ladder drawer; its renderer tails advance the table pointer past the record and
+ * come back here, so the walk continues until the terminator.
  *
- * `sub b / jp nc / neg` is an ABSOLUTE DIFFERENCE — the `neg` runs only on the
- * borrow path, so A = |y2 - y| unsigned either way (an extent, not a signed delta).
+ * The height is an unsigned EXTENT, not a signed delta: the difference is negated only on the
+ * borrow path, so either ordering of the two y values gives the same magnitude.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0da7.test.js.
- * GATE:     crafted-entry — attract's 25m board draw dispatches it (once per board
- *           setup); its record walk covers every segment naturally. Crafted synthetic
- *           tables pin both abs-diff arms (y2>=y non-borrow, y2<y neg) and the
- *           empty-table terminator. Teeth: a dropped-neg abs-diff (caught in RAM at
- *           the height byte) and a widened sub-tile mask (caught at 0x63b4).
- * LIVE-OUT: memory-only — the drawn playfield (VRAM tiles) plus the segment scratch
- *           SEG_ADDR1/SEG_SUBTILE1/SEG_KIND/SEG_SUBTILE_Y1 this routine writes and
- *           SEG_ADDR2/SEG_SUBTILE2/SEG_HEIGHT/SEG_RUN loc_0dd3 writes. No live registers:
- *           every caller reloads A/HL/DE right
- *           after the call (loc_0f35/loc_0b68/loc_0a8a/loc_0cc6 checked). SP/pc are
- *           the dropped stack model (the oracle's push/call/ret becomes the JS call
- *           stack); loc_2ff0's `ret` drifts SP but writes no game-visible RAM.
- * NAMES:    SEG_ADDR1 (0x63ab), SEG_SUBTILE1 (0x63af), SEG_KIND (0x63b3),
- *           SEG_SUBTILE_Y1 (0x63b4) from names.js — the board-render segment scratch.
- *           Promoted (understanding pass 6): this is the walk HEAD the board-setup arms call
- *           to draw the whole static board; its per-segment leaf drawers are the already-named
- *           drawGirderSpan (0x0e19) / drawLadder (0x0e4f) / drawSegmentEndCap (0x0e2a). Its
- *           partner loc_0dd3 (the per-segment second-endpoint + dispatch step) stays loc_.
+ * Reads: the segment table. Writes: the drawn playfield tiles, plus the board-render segment
+ * scratch — the first point's tile address and sub-tile remainders and the segment kind here,
+ * and the second point's equivalents in the per-segment step.
+ *
+ * LIVE-OUT: memory-only. Every caller reloads its own registers straight after the call.
  */
 
-// ROM 0x2FF0 — (H=y, L=x) -> HL = tile address. The FROZEN ORACLE deliberately: an idiomatic
-// twin exists (tileAddrForPixel.js, whose machine-shaped entry is tileAddrForPixelFromRegisters)
-// and 0x2FF0 is in names.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
-// ending in `ret` — it consumes one guest-stack word the twin's JS return does not — so the swap
-// is not stack-neutral. Left rather than dissolved because nothing here can prove it safe: the
-// 2-byte delta was injected at this exact call site and neither this routine's equivalence gate
-// (its contract is RAM + DE; SP/pc are explicitly the dropped stack model) nor the full-flip gate
-// caught it. NOTE for anyone who does dissolve this later: import the FromRegisters wrapper, not
-// the bare tileAddrForPixel — that one is a pure (y, x) function and calling it with the Machine
-// silently corrupts the segment scratch.
+// The pixel-to-tile-address conversion, kept as the faithful lift rather than the idiomatic
+// twin. It is a pure leaf that consumes one guest-stack word the twin's plain return does not,
+// so swapping it in is not stack-neutral, and nothing here can prove the swap safe: a two-byte
+// stack delta injected at this exact call site was caught by neither this routine's own gate nor
+// the whole-game one. NOTE for anyone who does swap it later: use the machine-shaped entry, not
+// the bare pure function — that one takes (y, x) and handing it the machine instead silently
+// corrupts the segment scratch.
 import { loc_2ff0 } from "../translated/loc_2ff0.js";
-import { loc_0dd3 } from "./loc_0dd3.js"; // ROM 0x0DD3 — convert the 2nd endpoint + draw the segment
-import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js"; // board-render segment scratch
+import { loc_0dd3 } from "./loc_0dd3.js";
+import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js";
 
 export function drawBoardLayout(m) {
   const { regs, mem } = m;
 
-  // The frozen-oracle leaf loc_2ff0 ends in `ret`, which pops the JS-modeled Z80
-  // stack (SP += 2) with no matching push on this direct-call path — and loc_0dd3
-  // does the same internally. Over the walk's records that would drift SP clean out
-  // of mapped RAM. The oracle keeps SP net-0 across each record (its push/pop
-  // balance), so we pin SP to that per-record invariant at the top of every
-  // iteration: the exact SP the oracle also holds at each record boundary. SP is
-  // vestigial here (we make direct calls, not stack transfers), carries no
-  // game-visible state, and is not a live-out — this is a stack seam, not logic.
+  // The point-conversion leaf pops the guest stack on the way out with no matching push on
+  // this call path, and the per-segment step does the same internally. Over a whole table of
+  // records that would drift the stack pointer clean out of mapped memory. The hardware
+  // sequence balances out to no net movement across each record, so the pointer is pinned back
+  // to that per-record invariant at the top of every iteration. It is vestigial here — these
+  // are direct calls, not stack transfers — carries no game-visible state, and is not a
+  // live-out. A stack seam, not logic.
   const spBase = regs.sp;
 
   for (;;) {
     regs.sp = spBase;
 
-    // record[+0] = kind -> SEG_KIND scratch; 0xAA terminates the walk.
+    // The record's kind byte goes to the segment scratch; the terminator ends the walk.
     const kind = mem.read8(regs.de);
     mem.write8(SEG_KIND, kind);
-    if (kind === 0xaa) return; // cp 0xaa / ret z
+    if (kind === 0xaa) return;
 
-    // First point: record[+1] = y, record[+2] = x. Held in H/B and L/C for the
-    // conversion; C (= first x) is also read by loc_0dd3.
+    // First point: its y, then its x. Each is held in two registers — one pair for the
+    // conversion below, one that the per-segment step reads afterwards.
     regs.de = (regs.de + 1) & 0xffff;
     const y = mem.read8(regs.de);
     regs.h = y;
@@ -91,29 +72,29 @@ export function drawBoardLayout(m) {
     regs.l = x;
     regs.c = x;
 
-    // Convert (y, x) -> the first point's tile address in HL, preserving DE across
-    // loc_2ff0 (which clobbers D/E) exactly as the ROM's push de / call / pop de did.
-    const savedDe = regs.de; // = record+2
-    loc_2ff0(m); // ROM 0x2FF0
+    // Convert the first point to a tile address. The conversion clobbers the table pointer,
+    // so it is saved across the call and put back.
+    const savedDe = regs.de;
+    loc_2ff0(m);
     regs.de = savedDe;
     mem.write16(SEG_ADDR1, regs.hl);
 
-    // Sub-tile remainders kept beside the tile address — loc_2ff0 divided each
-    // coordinate by 8 and dropped the low three bits, so save them here.
-    mem.write8(SEG_SUBTILE_Y1, y & 0x07); // from B
-    mem.write8(SEG_SUBTILE1, x & 0x07); // from C
+    // Sub-tile remainders kept beside the tile address: the conversion divided each coordinate
+    // by 8 and dropped the low three bits, so the remainders are saved here.
+    mem.write8(SEG_SUBTILE_Y1, y & 0x07);
+    mem.write8(SEG_SUBTILE1, x & 0x07);
 
-    // Second point's y: record[+3]. A := |y2 - y| — the segment's height/extent
-    // (the ROM's `sub b / jp nc / neg`; the neg runs only on the borrow path, so the
-    // result is unsigned either way). H := y2, DE := record+3, C := x, A := height
-    // are the register image loc_0dd3 consumes next.
+    // Second point's y, and from it the segment's height — the ABSOLUTE difference of the two
+    // y values, negated only on the borrow path so it is unsigned either way. The second point,
+    // the first point's x, the height and the table pointer are the register image the
+    // per-segment step consumes next.
     regs.de = (regs.de + 1) & 0xffff;
     const y2 = mem.read8(regs.de);
     regs.h = y2;
     regs.a = Math.abs(y2 - y) & 0xff;
 
-    // Draw this segment (girder span + endpoint caps, or ladder). Its renderer tail
-    // steps DE to the next record and returns, so the loop continues.
-    loc_0dd3(m); // ROM 0x0DD3
+    // Draw this segment — a girder span with its endpoint caps, or a ladder. Its renderer tail
+    // advances the table pointer to the next record and returns, so the loop continues.
+    loc_0dd3(m);
   }
 }

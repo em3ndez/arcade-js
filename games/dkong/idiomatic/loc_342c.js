@@ -1,52 +1,45 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_342c — start or resume one object's scripted position walk, advance its X one step,
- * then hand to the shared table-walk tail.  ROM 0x342C.
+ * loc_342c — start or resume one object's scripted position walk, advance its X one step, then
+ * hand to the shared table-walk tail.
  *
- * The head of one of the two object-animation walkers (its twin at 0x3478 shares the same
- * tail). Each call drives one object whose record the caller points at through one step of
- * a scripted path: THIS routine owns the object's horizontal march and the walk's start/resume
- * decision, while the tail (loc_3445) reads the next table entry into the object's Y and
- * bookkeeps the saved pointer.
+ * The head of one of the two object-animation walkers; its twin shares the same tail. Each call
+ * drives the object whose record the caller points at through one step of a scripted path. THIS
+ * routine owns the object's horizontal march and the walk's start-or-resume decision, while the
+ * tail reads the next table entry into the object's Y and keeps the saved pointer.
  *
- *   • The saved 16-bit table pointer is reloaded from the object record. If it is zero the
- *     walk has not started (or was just finished and rewound), so this is a FRESH start: aim
- *     at the path table's beginning and stamp the object's starting X. If it is non-zero the
- *     walk is already in progress, so keep the saved position.
+ *   • The saved 16-bit table pointer is reloaded from the object record. Zero means the walk
+ *     has not started — or has just finished and been rewound — so this is a FRESH start: aim
+ *     at the path table's beginning and stamp the object's starting X. Non-zero means the walk
+ *     is already in progress, so the saved position is kept.
  *
- *   • Either way the object's X is then advanced one step this frame — so on a fresh start the
- *     first frame's X is the seed plus one, and every later frame adds one more, marching the
+ *   • Either way the object's X is then advanced one step this frame, so on a fresh start the
+ *     first frame's X is the seed plus one and every later frame adds one more, marching the
  *     object sideways while the tail supplies its Y from the table.
  *
- *   • The resolved table pointer and the object record are handed to loc_3445, which reads the
- *     next entry: an ordinary entry becomes the object's Y and advances the saved pointer; the
- *     end-of-table marker finalizes the walk (latches the final X/Y and rewinds the pointer to
- *     zero, which is what makes the next call read as a fresh start here).
+ *   • The resolved table pointer and the object record go to the shared tail, which reads the
+ *     next entry: an ordinary entry becomes the object's Y and advances the saved pointer, and
+ *     the end-of-table marker finalizes the walk — latching the final position and rewinding
+ *     the pointer to zero, which is what makes the next call read as a fresh start here.
  *
- * REGISTER-ABI MARSHALLING (dissolves once loc_3445 takes honest args): loc_3445 is still an
- * oracle boundary that reads the object record and the walk pointer from registers, so this
- * routine leaves the record pointer in place (unchanged live-in) and loads the resolved table
- * pointer exactly where loc_3445 expects it before calling.
+ * The tail reads the object record and the walk pointer from registers, so the record pointer
+ * is left in place and the resolved table pointer is loaded where the tail expects it.
  *
- * NAME: kept the neutral loc_ baseline — the mechanism (start/resume a scripted walk and march
- * the X) is pinned to the oracle, but which object/cutscene this animates is not yet
- * corroborated to the routine-name bar. Promote once grounded.
+ * NOT CLAIMED: which object or cutscene this animates. The mechanism — start or resume a
+ * scripted walk and march the X — is what is pinned.
  *
- * Memory-equivalent to the frozen oracle — equivalence-342c.test.js.
- * GATE:     strict memory-equivalence; factored-exhaustive over the fresh/resume split, the X
- *           advance (incl. the 8-bit wrap), the 16-bit pointer reload+step, and both tail arms
- *           (ordinary entry / end-of-table), plus real captured 0x342C attract dispatches.
- * LIVE-OUT: memory-only — the caller drives control flow and reads the object back through its
- *           record next pass; the oracle's residual registers/flags and its terminal return are
- *           dead.
- * NAMES:    OBJ_X (record +0x03), OBJ_WALK_PTR_LO (+0x1a), OBJ_WALK_PTR_HI (+0x1b) — object-record
- *           offsets from names.js. TABLE_START (0x3A8C) is a ROM address, kept hex.
+ * Reads: the object's saved walk pointer and its X. Writes: the object's X, and on a fresh
+ * start the starting-X seed.
+ *
+ * LIVE-OUT: memory-only. The caller drives control flow and reads the object back through its
+ * record on the next pass.
  */
 
 import { OBJ_X, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./names.js";
-import { loc_3445 } from "./loc_3445.js"; // ROM 0x3445 — the shared table-walk + finalize tail
+import { loc_3445 } from "./loc_3445.js";
 
-// ROM address of the object's scripted Y-path table (the walk's starting point).
+// Address of the object's scripted Y-path table — the walk's starting point. It lives in
+// program memory rather than work RAM, so it stays a bare constant.
 const TABLE_START = 0x3a8c;
 // The object's starting X, stamped on the first pass of a fresh walk.
 const X_SEED = 38;
@@ -58,8 +51,7 @@ const X_SEED = 38;
 export function loc_342c(m) {
   const { regs, mem } = m;
 
-  // The object record the caller points at (oracle boundary: the caller supplies it, and the
-  // tail reads it from the same place).
+  // The object record the caller points at; the tail reads it from the same place.
   const base = regs.ix;
   const field = (off) => (base + off) & 0xffff;
 

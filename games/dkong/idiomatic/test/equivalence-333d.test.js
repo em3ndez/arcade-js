@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_333d (ROM 0x333D) — the switch between a 0x6400-array object's two
+ * Equivalence test for driveFireLadderClimb (ROM 0x333D) — the switch between a 0x6400-array object's two
  * travel states and its on-foot state.
  *
  * WHAT IS COMPARED. RAM − STACK_SCRATCH, plus the return value. The routine has ONE exit as far
@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_333d as oracle } from "../../translated/loc_333d.js";
-import { loc_333d } from "../loc_333d.js";
+import { driveFireLadderClimb } from "../driveFireLadderClimb.js";
 import { loc_33a1 } from "../loc_33a1.js";
 import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";
 import { Machine } from "../../machine.js";
@@ -178,7 +178,7 @@ function craft(base, cfg) {
   } = cfg;
   const e = base.clone();
   e.regs.sp = SAFE_SP;
-  e.push16(0x3233); // the continuation loc_3202 pushes — what the oracle's return consumes
+  e.push16(0x3233); // the continuation advanceFire pushes — what the oracle's return consumes
   e.regs.ix = ix;
   e.mem.write8(BOARD, board);
   e.mem.write8(MARIO_Y, marioY);
@@ -260,7 +260,7 @@ const ARMS_ATTRACT_MISSES = [
 
 test("REACHABILITY: 0x333d is dispatched naturally, and attract reaches four of its arms", () => {
   const { caps, total } = captured();
-  assert.ok(total > 0, "0x333d should be dispatched during attract (loc_3202 at ROM 0x3230)");
+  assert.ok(total > 0, "0x333d should be dispatched during attract (advanceFire at ROM 0x3230)");
   assert.equal(caps.length, total, "every dispatch must be captured — this gate replays all of them");
 
   const arms = {};
@@ -287,14 +287,14 @@ test("REACHABILITY: 0x333d is dispatched naturally, and attract reaches four of 
     `arms ${JSON.stringify(arms)}; entry shapes (record/state) ${[...shapes].join(",")}`);
 });
 
-test("EQUAL (captured): loc_333d == oracle on every real dispatch", () => {
+test("EQUAL (captured): driveFireLadderClimb == oracle on every real dispatch", () => {
   const { caps, total } = captured();
   assert.ok(caps.length >= 1, "expected at least one real 0x333d dispatch during attract");
 
   const shapes = new Set();
   for (const entry of caps) {
     shapes.add(`${hx(entry.regs.ix)}/${entry.mem.read8((entry.regs.ix + OBJ_STATE) & 0xffff)}`);
-    const r = comparePair(entry, loc_333d);
+    const r = comparePair(entry, driveFireLadderClimb);
     assert.ok(!mismatched(r), `captured dispatch: ${describeMismatch(r)}`);
     assert.equal(r.strayWrite, undefined,
       r.strayWrite && `the oracle wrote ${hx(r.strayWrite)} — outside both the record bytes and STACK_SCRATCH`);
@@ -369,7 +369,7 @@ test("EQUAL (crafted): every arm attract never reaches matches the oracle", () =
   const base = attractBase();
   for (const c of CRAFTED) {
     const entry = craft(base, c.cfg);
-    const r = comparePair(entry, loc_333d);
+    const r = comparePair(entry, driveFireLadderClimb);
     assert.ok(!mismatched(r), `${c.name}: ${describeMismatch(r)}`);
     assert.equal(r.strayWrite, undefined,
       r.strayWrite && `${c.name}: the oracle wrote ${hx(r.strayWrite)} outside the record bytes and STACK_SCRATCH`);
@@ -398,7 +398,7 @@ test("RECORD-RELATIVE: the fields follow the record pointer, not a fixed address
   assert.equal(readRecord(comparePair(at1, () => {}).oracleMachine, RECORD_1).state, STATE_ASCEND,
     "record 1 must still be travelling");
   for (const [name, e] of [["record 0", at0], ["record 1", at1]]) {
-    const r = comparePair(e, loc_333d);
+    const r = comparePair(e, driveFireLadderClimb);
     assert.ok(!mismatched(r), `${name}: ${describeMismatch(r)}`);
   }
   console.log("  RECORD-RELATIVE: the same RAM gives opposite outcomes for the two record pointers, both matched");
@@ -470,7 +470,7 @@ test("LIVE: wired at 0x333d for a whole attract run, the trace is identical to t
   const base = baselineFrames();
   const addrOf = addressTable();
 
-  const live = liveRun(loc_333d);
+  const live = liveRun(driveFireLadderClimb);
   assert.ok(live.calls > 0, "the wired routine must actually be dispatched");
   const diff = firstTraceDiff(base, live.frames, addrOf);
   assert.equal(diff, null,
@@ -478,7 +478,7 @@ test("LIVE: wired at 0x333d for a whole attract run, the trace is identical to t
   assert.equal(live.frames.length, base.length, "the wired run must reach the same frame budget");
 
   // The live-out claim, measured: nothing downstream reads a register this routine leaves behind.
-  const scrambled = liveRun(loc_333d, {
+  const scrambled = liveRun(driveFireLadderClimb, {
     after: (mm) => {
       const r = mm.regs;
       r.a = 0x5a; r.b = 0xa5; r.c = 0x3c; r.d = 0xc3; r.e = 0x69; r.h = 0x96; r.l = 0x0f; r.f = 0xff;
@@ -497,7 +497,7 @@ test("LIVE TEETH: dropping the oracle's cycle cost DOES move the trace (so the c
   const base = baselineFrames();
   const addrOf = addressTable();
 
-  const uncharged = liveRun(loc_333d, { charge: false });
+  const uncharged = liveRun(driveFireLadderClimb, { charge: false });
   const diff = firstTraceDiff(base, uncharged.frames, addrOf);
   assert.notEqual(diff, null,
     "an uncharged cycle-free run was expected to shift the NMI and diverge; it did not, which means " +

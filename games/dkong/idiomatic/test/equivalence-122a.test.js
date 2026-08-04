@@ -32,6 +32,10 @@
  * deepest push reaches 0x6be6 ≥ STACK_SCRATCH.lo), so the dead stack scratch the
  * idiomatic side never writes is excluded by the contract, exactly as intended.
  *
+ * FLAGS are not compared, and that hole is deliberate: the carry out of the final `add a,c`
+ * escapes through the `ret`, but every one of the 11 call sites overwrites HL/IX or returns
+ * immediately, so none of them branches on it.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-122a.test.js
  */
 

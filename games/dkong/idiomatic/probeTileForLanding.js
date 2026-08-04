@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * probeTileForLanding — the tile gate at the head of the airborne-descent collision probe.  ROM 0x2B9B.
+ * probeTileForLanding — the tile gate at the head of the airborne-descent collision probe.
  *
  * Given a pixel coordinate (y in the high byte, x in the low byte), it looks up the tile
  * under that pixel and decides whether the pixel sits on a landable tile surface. On a
- * miss it REJECTS (result code 0). On a hit it builds a tile-column boundary in C and tails
- * into resolveAirborneTileLanding (ROM 0x2BE1), which measures Mario's descent against that
- * boundary and either keeps him airborne or snaps him onto the surface.
+ * miss it REJECTS (result code 0). On a hit it builds a tile-column boundary in C and hands
+ * off to the descent resolver, which measures Mario's fall against that boundary and either
+ * keeps him airborne or snaps him onto the surface.
  *
- * The lookup: map the pixel to its tilemap cell (tileAddrForPixel), keeping the original
- * pixel so its x survives as the column reference. Then read the tile byte and filter it:
+ * The lookup: map the pixel to its tilemap cell, keeping the original pixel so its x survives
+ * as the column reference. Then read the tile byte and filter it:
  *   - tile below 0xB0                 -> REJECT (not a surface tile)
  *   - low nibble 8..0xF               -> REJECT (right half of the tile pair)
  *   - tile exactly 0xC0               -> REJECT (the excluded tile)
@@ -22,33 +22,21 @@
  * only when that boundary lands strictly left of x; otherwise REJECT.
  *
  * RETURN CONTRACT (caller-skip): returns true on a normal return (the REJECT arm with result
- * code 0, and the "still airborne" arm that resolveAirborneTileLanding reports), and false to
+ * code 0, and the "still airborne" verdict the descent resolver reports), and false to
  * signal the two-frame unwind that aborts the whole multi-probe collision walk once Mario has
  * landed. Callers propagate it as `if (probeTileForLanding(m) === false) return false;`.
  *
- * REGISTER-ABI MARSHALLING (dissolves once the callees take honest args): tileAddrForPixel is
- * a pure leaf called with the pixel's (y, x); resolveAirborneTileLanding still reads its inputs
- * from registers, so this routine leaves exactly what the oracle's fall-through leaves before
- * it — the column boundary in C and the pixel x in E (untouched since the DE copy). The object
- * pointer IX is a live-in passed straight through.
+ * The tile byte comes from the hardware tilemap, which is video memory rather than game RAM,
+ * so the address arithmetic here produces a raw pointer and not a named cell.
  *
- * Memory-equivalent to the frozen oracle (entry_2b9b) — equivalence-2b9b.test.js.
- * GATE:     crafted entries poking the tile byte (all 256 values) under a computed tilemap
- *           address across representative pixel x, each run with the descent inputs set to
- *           reach both resolveAirborneTileLanding arms, plus real captured 0x2B9B dispatches
- *           from an attract run. The RAM diff excludes the dead STACK_SCRATCH the oracle's
- *           push hl / call 0x2ff0 bracket churns (this routine models no stack).
- * LIVE-OUT: the result code A (0 reject / 1 landed / 2 airborne) and its twin B; MARIO_Y on
- *           the landed arm (written inside resolveAirborneTileLanding); and the caller-skip
- *           control flow (the boolean, false = the two-frame unwind).
- * NAMES:    tileAddrForPixel (ROM 0x2FF0) and resolveAirborneTileLanding (ROM 0x2BE1), both
- *           direct-called. The tile is read from the hardware tilemap VRAM the address
- *           computation lands in (0x7400-0x77FF), which has no names.js name.
+ * LIVE-OUT: the result code A (0 reject / 1 landed / 2 airborne) and its twin B; Mario's Y on
+ * the landed arm (written inside the descent resolver); the column boundary in C and the
+ * pixel x in E, which the resolver reads; and the caller-skip boolean.
  */
 
 import { u8 } from "../../../core/int.js";
-import { tileAddrForPixel } from "./tileAddrForPixel.js";           // ROM 0x2FF0
-import { resolveAirborneTileLanding } from "./resolveAirborneTileLanding.js"; // ROM 0x2BE1
+import { tileAddrForPixel } from "./tileAddrForPixel.js";
+import { resolveAirborneTileLanding } from "./resolveAirborneTileLanding.js";
 
 /** The REJECT tail: report code 0 in A and its twin 0 in B, normal return. */
 function reject(regs) {
@@ -72,7 +60,7 @@ export function probeTileForLanding(m) {
   regs.hl = tileAddrForPixel(y, x); // the tilemap address the tile is read from
   regs.de = pixel;                  // DE = original pixel; E = x survives to the tail call
 
-  // Read the tile byte under the pixel (video RAM 0x7400-0x77FF, no names.js name).
+  // Read the tile byte under the pixel (tilemap video memory, not game RAM).
   let tile = mem.read8(regs.hl);
 
   // Reject filters.

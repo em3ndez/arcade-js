@@ -34,6 +34,13 @@
  *      real free-ring dispatch and on the deterministic CLEAN-ring arm. A gate a real
  *      corruption slips through is worthless.
  *
+ * THIS GATE IS ALSO WHAT PINS THE TAIL FALL-THROUGH. armTwoPlayerBoardSetup imports the FROZEN
+ * loc_09ee (ROM 0x09EE) even though an idiomatic twin (draw2UpLabel) exists and 0x09EE is in
+ * names.js's ROUTINES — so it is deliberate, not a "no idiomatic yet" leak. MEASURED: swapping in
+ * the twin FAILS this test, pc oracle=0x00D2 (the popped NMI continuation) vs idiomatic=0x0028,
+ * SP 2 apart, because the twin models the tail `ret` as a JS return and leaves pc/SP at entry.
+ * Dissolving the import needs the tail return moved into the caller — an ABI change.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-09d6.test.js
  */
 

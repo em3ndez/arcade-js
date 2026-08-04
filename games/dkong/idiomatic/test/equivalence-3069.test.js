@@ -30,10 +30,18 @@
  *            at; caught at 0x63C0 (the twin touches the pointer cell the oracle leaves alone).
  *        (c) double-increment — adds 2 instead of 1; caught at the target byte on expiry.
  *
- *   4. REALISM (documented zero) — 0x3069 is not on any live dispatch path (reached only
- *      through an untranslated dw jump table); measured 0 natural dispatches over attract,
- *      so the exhaustive sweep is the whole proof. The capture is kept and any dispatch
- *      that DID appear would be verified, but none is required.
+ *   4. REALISM (VACUOUS in attract, and it says so) — an attract run produces ZERO natural
+ *      0x3069 dispatches, so this check asserts nothing about real entry states; the
+ *      exhaustive sweep above is the whole proof. The capture is kept and any dispatch that
+ *      DID appear would be verified, but none is required.
+ *
+ *      DO NOT read that zero as "dead code". 0x3069 is on a LIVE dispatch path in credited
+ *      play — it is reached through a jump table off the substate dispatch, and fires tens of
+ *      times per credited game, first during the opening cutscene and again in the
+ *      board-advance state. That is the HOLE in this gate: real gameplay entry states are not
+ *      captured or replayed here. The exhaustive sweep covers the routine's whole input space
+ *      (the timer byte and the pointed-at byte), so the hole costs coverage of the
+ *      surrounding machine state, not of the routine's own behaviour.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-3069.test.js
  */
@@ -262,12 +270,13 @@ test("TEETH (exhaustive): the double-increment twin is CAUGHT (wrong amount)", (
   console.log(`  TEETH/amount: caught — twin advanced by 2 at the target byte (${mismatch.ram.a}->${mismatch.ram.b})`);
 });
 
-// -- 4. REALISM (documented zero) ---------------------------------------------
+// -- 4. REALISM (vacuous in attract) ------------------------------------------
 
 /**
- * Hook 0x3069 in a real attract run. It is reached only through an untranslated dw jump
- * table (not the live NMI/substate dispatch), so it fires 0 times in attract; any that
- * DID appear are verified, but none is required — the exhaustive sweep is the whole proof.
+ * Hook 0x3069 in a real attract run. It fires 0 times there, so this check is VACUOUS as
+ * written: any dispatch that did appear is verified, but none is required, and the exhaustive
+ * sweep is the whole proof. It is NOT dead code — 0x3069 is dispatched in credited play, and
+ * those entry states are the coverage this gate does not have.
  */
 function captureDispatches(K, maxFrames) {
   const caps = [];
@@ -280,7 +289,7 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM (documented zero): advanceSequenceStepWhenTimerExpires is off the live dispatch path; any dispatch matches", () => {
+test("REALISM (vacuous in attract): zero natural dispatches to replay; any that appear match", () => {
   const caps = captureDispatches(64, 5000);
   for (const cap of caps) {
     const ram = runPair(cap, advanceSequenceStepWhenTimerExpires);

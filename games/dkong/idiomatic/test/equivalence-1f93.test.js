@@ -1,7 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_1f93 (ROM 0x1F93) — the active-slot branch pick of the
- * OBJ_ARRAY_67 object walk.
+ * advanceBarrelMotion — memory-equivalent to the frozen oracle at ROM 0x1F93: the active-slot
+ * branch pick of the OBJ_ARRAY_67 object walk.
+ * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 6000-frame attract
+ *        run is replayed inline — no sampling — with the branch the rewrite picks compared
+ *        against the branch the ORACLE picks. Three crafted arms cover the field values
+ *        attract never presents. Record slots 8-9, credited gameplay, two-player and boards
+ *        2-4 are NOT covered.
  *
  * The routine reads two record bytes and jumps to one of five still-frozen branches. It
  * writes nothing, so almost everything observable about it is WHICH branch it picked —
@@ -84,7 +89,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f93 as oracle } from "../../translated/loc_1f93.js";
-import { loc_1f93 } from "../loc_1f93.js";
+import { advanceBarrelMotion } from "../advanceBarrelMotion.js";
 import { OBJ_ARRAY_67, STACK_SCRATCH } from "../names.js";
 import { firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
@@ -336,14 +341,14 @@ test("CAPTURED: every real 0x1F93 dispatch matches the oracle", () => {
   const slots = new Set();
   let selectOverMode = 0; // real dispatches where select==1 AND the mode byte is non-zero
   for (let i = 0; i < caps.length; i++) {
-    const diffs = contractDiffs(caps[i], loc_1f93);
+    const diffs = contractDiffs(caps[i], advanceBarrelMotion);
     assert.equal(diffs.length, 0, `capture ${i} (${shapeOf(caps[i])}): ${diffs.join("; ")}`);
 
     // The one observable that IS this routine's job: which branch it hands the record to.
     const head = oracleHead(caps[i]);
     assert.equal(head.fired, 1, `capture ${i}: the arm stubs fired ${head.fired} times, expected 1`);
     assert.equal(
-      candidateArm(caps[i], loc_1f93),
+      candidateArm(caps[i], advanceBarrelMotion),
       head.arm,
       `capture ${i} (${shapeOf(caps[i])}): rewrite picked a different branch from the oracle`,
     );
@@ -427,7 +432,7 @@ test("CRAFTED: the record values attract never presents match the oracle", () =>
       `${arm.label}: the poke reached ${hx(head.arm ?? 0)}, not ${hx(arm.expect)} — the arm is not covered`,
     );
 
-    const diffs = contractDiffs(entry, loc_1f93);
+    const diffs = contractDiffs(entry, advanceBarrelMotion);
     assert.equal(diffs.length, 0, `${arm.label}: ${diffs.join("; ")}`);
     seen.push(`${arm.label} -> ${hx(head.arm)} (${head.cost}T)`);
   }
@@ -605,7 +610,7 @@ test("LIVE-OUT: scrambling the accumulator and flags at the branch seam changes 
 // -- 5. LIVE: the rewrite itself, wired for a whole attract run ----------------
 
 test("LIVE: the rewrite wired at 0x1F93 leaves the same trace as the oracle", () => {
-  const r = liveRun(loc_1f93);
+  const r = liveRun(advanceBarrelMotion);
   assert.ok(r.fired > 0, "the rewrite never ran");
   assert.equal(r.firstBad, null, `the live run diverged: ${r.firstBad}`);
   console.log(

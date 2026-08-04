@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence gate for loc_20ec (ROM 0x20EC) — swap to the shadow register set, step one airborne
+ * Equivalence gate for advanceFallingBarrel (ROM 0x20EC) — swap to the shadow register set, step one airborne
  * object along its arc, and pick one of three continuations from the object's OBJ_Y against the
  * snapshot in record byte +25. The two callees it invokes (ROM 0x239C the ballistic step, ROM
  * 0x2A2F the girder probe) are already idiomatic and are wired on BOTH sides of every comparison
@@ -79,6 +79,23 @@
  * credited game, no board past 25m, and one record base only (0x6700) — attract activates no other
  * slot through this branch.
  *
+ * LIVE-OUT, DERIVED — cross-file, and therefore recorded here rather than in the routine. The
+ * oracle leaves the accumulator holding the gate's difference and the shadow B holding the +25
+ * snapshot; both are dead. Every continuation overwrites the accumulator with its first instruction
+ * (ROM 0x2104 and 0x2118 load it from the record, ROM 0x2101 reaches ROM 0x24B4 which does the
+ * same), and every routine reachable before ROM 0x21BA swaps the banks back either never touches B
+ * or writes B/BC before reading it (ROM 0x1FE5, 0x1FEF, 0x215F, 0x2407) — the one genuine read, the
+ * loop's own slot counter at ROM 0x1F8D, runs after that swap and so reads the main-set copy, not
+ * this one. The flags are dead for the same reason as the accumulator. Arm 4 is the measurement:
+ * the live-wire run reproduces the baseline byte-for-byte over its 1400 frames with the shadow-B
+ * write dropped.
+ *
+ * ALSO CROSS-FILE, so it lives here: ROM 0x32D6 zeroes a +25 as well, but on the record family
+ * reached through 0x63C8, not through the slot array this branch walks. And record byte +25 has
+ * exactly one writer in this object cascade — ROM 0x2146, on the arm the CONTACT continuation leads
+ * to — which stores a copy of the record's own OBJ_Y there. That is what makes +25 a snapshot of
+ * the last registered contact, and the comparison a re-arm distance.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-20ec.test.js
  */
 
@@ -88,7 +105,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_20ec as oracle } from "../../translated/loc_20ec.js";
 import { loc_239c as gravityOracle } from "../../translated/loc_239c.js";
-import { loc_20ec } from "../loc_20ec.js";
+import { advanceFallingBarrel } from "../advanceFallingBarrel.js";
 import { loc_2a2f } from "../loc_2a2f.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js";
 import { Machine } from "../../machine.js";
@@ -113,7 +130,7 @@ const TAILS = [REARM_TAIL, CONTACT_TAIL, CLEAR_TAIL];
 const CAPTURE_FRAMES = 1200; // the attract run arms 1-3 replay
 const LIVE_FRAMES = 1400; //   the live-wire run and its baseline
 
-// The census this file's header and the routine's GATE: line both quote. Asserted, not merely
+// The census this file's header quotes. Asserted, not merely
 // printed, so neither header can go stale without a test failure naming the new numbers.
 const EXPECTED_DISPATCHES = 177;
 const EXPECTED_SHAPES = 136;
@@ -295,7 +312,7 @@ function attractRun() {
         shapes.set(shape, (shapes.get(shape) ?? 0) + 1);
         arms.set(hx(arm), (arms.get(hx(arm)) ?? 0) + 1);
 
-        const b = breach(entry, loc_20ec); // the inline EQUAL replay, at the dispatch
+        const b = breach(entry, advanceFallingBarrel); // the inline EQUAL replay, at the dispatch
         replayed++;
         if (b.fail) inlineBreaches.push(`[${shape}] ${b.fail}`);
         if (b.stack) stackOnly++;
@@ -321,7 +338,7 @@ test("REACHABILITY: 0x20EC is dispatched during 25m attract, and attract reaches
   assert.equal(
     dispatches,
     EXPECTED_DISPATCHES,
-    `the dispatch count changed (${dispatches}); loc_20ec.js's GATE: line and this file quote ${EXPECTED_DISPATCHES}`,
+    `the dispatch count changed (${dispatches}); this file quotes ${EXPECTED_DISPATCHES}`,
   );
   assert.equal(
     shapes.size,
@@ -355,7 +372,7 @@ test("REACHABILITY: 0x20EC is dispatched during 25m attract, and attract reaches
 
 // -- 1. EQUAL (captured, replayed inline at the dispatch) ----------------------
 
-test("EQUAL (captured): loc_20ec == oracle on EVERY real dispatch, replayed inline", () => {
+test("EQUAL (captured): advanceFallingBarrel == oracle on EVERY real dispatch, replayed inline", () => {
   const { dispatches, replayed, inlineBreaches, stackOnly } = attractRun();
   assert.ok(replayed > 0, "no dispatch was replayed — this arm would prove nothing");
   assert.equal(
@@ -438,7 +455,7 @@ test("EQUAL (crafted): the re-arm boundary and the 8-bit wrap match the oracle o
           `[${shape}] ${label}: expected the oracle to reach ${hx(want)}, it reached ${hx(arm)}`,
         );
       }
-      const b = breach(e, loc_20ec);
+      const b = breach(e, advanceFallingBarrel);
       assert.equal(b.fail, null, `[${shape}] ${label}: ${b.fail}`);
       compared++;
     }
@@ -507,7 +524,7 @@ test("PROTOCOL: the continuation entered and the value handed back match the ora
 
   for (const { entry, shape } of caps) {
     const want = protocol(entry, oracle); // expectation from the ORACLE, not from us
-    const got = protocol(entry, loc_20ec);
+    const got = protocol(entry, advanceFallingBarrel);
     const d = protocolDiff(want, got);
     assert.equal(d, null, `[${shape}] ${d}`);
     seen.set(want.log, (seen.get(want.log) ?? 0) + 1);
@@ -589,12 +606,12 @@ function baseline() {
   return BASELINE;
 }
 
-test("LIVE-WIRE: loc_20ec drives a whole attract run identical to the one-thing-different baseline", () => {
+test("LIVE-WIRE: advanceFallingBarrel drives a whole attract run identical to the one-thing-different baseline", () => {
   const base = baseline();
   assert.equal(base.run.stopError, null, `baseline run errored: ${base.run.stop}`);
   assert.equal(base.run.frames, LIVE_FRAMES, `baseline reached only ${base.run.frames} frames`);
 
-  const live = cycleFreeRun(loc_20ec);
+  const live = cycleFreeRun(advanceFallingBarrel);
   assert.equal(live.run.stopError, null, `live-wire run errored: ${live.run.stop}`);
   assert.equal(live.run.frames, LIVE_FRAMES, `live-wire run reached only ${live.run.frames} frames`);
 
@@ -687,7 +704,7 @@ function twinSignedCompare(m) {
 
 /** Twin (d): correct control flow, but swallows the continuation's result. */
 function twinSwallowResult(m) {
-  loc_20ec(m);
+  advanceFallingBarrel(m);
 }
 
 /** Replay every real capture against `twin`; report how many breached and the first breach. */
@@ -727,9 +744,9 @@ function overProtocol(twin) {
 
 test("TEETH: four broken twins are CAUGHT, each by the arm that must catch it", () => {
   // Sanity: the real routine passes every arm, so a caught twin is a real defect signal.
-  assert.equal(overCaptures(loc_20ec).caught, 0, "the correct routine must pass the captured arm");
-  assert.equal(overWrapCrafted(loc_20ec).caught, 0, "the correct routine must pass the crafted wrap arm");
-  assert.equal(overProtocol(loc_20ec).caught, 0, "the correct routine must pass the stubbed protocol arm");
+  assert.equal(overCaptures(advanceFallingBarrel).caught, 0, "the correct routine must pass the captured arm");
+  assert.equal(overWrapCrafted(advanceFallingBarrel).caught, 0, "the correct routine must pass the crafted wrap arm");
+  assert.equal(overProtocol(advanceFallingBarrel).caught, 0, "the correct routine must pass the stubbed protocol arm");
 
   // (a) no bank swap — the captures see it, mostly as a fault rather than a diff.
   const a = overCaptures(twinNoBankSwap);

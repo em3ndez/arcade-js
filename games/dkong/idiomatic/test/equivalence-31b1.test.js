@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_31b1 (ROM 0x31B1) — the five-record sweep of the 0x6400
+ * Equivalence test for advanceLiveFires (ROM 0x31B1) — the five-record sweep of the 0x6400
  * object array.
  *
  * The routine runs armAlternateFireModeAtHighDifficulty, then five times: advance OBJ_ITER_PTR by one stride, store
@@ -30,7 +30,7 @@
  *      replaced by a STUB that bumps a marker byte in the record whose pointer it finds
  *      in OBJ_ITER_PTR and then returns through the guest stack exactly as the frozen
  *      0x3202 does. The stub makes every call observable in RAM, so a missing, extra, or
- *      wrong-record call shows as a diff. This covers loc_31b1's own iteration; it says
+ *      wrong-record call shows as a diff. This covers advanceLiveFires's own iteration; it says
  *      NOTHING about 0x3202's behaviour (test 1 and test 4 run the real one).
  *
  *   3. CRAFTED (callee steering). The same harness with a stub that, when handed record
@@ -60,6 +60,14 @@
  *        (c) the sweep index kept in a local instead of re-read from memory;
  *        (d) the 0x3202 call skipped.
  *
+ * LIVE-OUT, DERIVED — cross-file, and therefore recorded here rather than in the routine. The sole
+ * caller — ROM 0x30ED, whose `call 0x31B1` at 0x30F3 is the only one in the translated layer — goes
+ * straight on to `call 0x34F3` (publishFireSprites), which loads its own source/destination
+ * pointers and record count and re-sets the flags before it reads anything, so A/F/B/H/L are dead
+ * within one instruction of the return; C survives that callee, and was followed out through the
+ * next two call levels (ROM 0x2E04's prologue and the two rst targets it enters) without being
+ * read. Arm 5 is the measurement.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-31b1.test.js
  */
 
@@ -68,7 +76,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_31b1 as oracle } from "../../translated/loc_31b1.js";
-import { loc_31b1 } from "../loc_31b1.js";
+import { advanceLiveFires } from "../advanceLiveFires.js";
 import { armAlternateFireModeAtHighDifficulty } from "../armAlternateFireModeAtHighDifficulty.js";
 import { OBJ_ARRAY_64, OBJ_ACTIVE, OBJ_ITER_PTR, STACK_SCRATCH } from "../names.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -147,7 +155,7 @@ function attractBase(frames = 180) {
 
 /**
  * A machine carrying `base`'s state but with ROM 0x3202 replaced by `stub`, so the
- * crafted sweeps observe loc_31b1's iteration without depending on the real object state
+ * crafted sweeps observe advanceLiveFires's iteration without depending on the real object state
  * machine. Built by construction (not clone) because the override map is a constructor
  * option; clone() reruns the constructor, so clones keep the stub.
  */
@@ -234,7 +242,7 @@ test("CAPTURED: sampled real 0x31B1 dispatches match the oracle", () => {
   assert.deepEqual([...covered].sort(), [...allShapes].sort(), "the sample must cover every entry shape seen");
 
   for (const i of sample) {
-    const diffs = contractDiffs(caps[i], loc_31b1);
+    const diffs = contractDiffs(caps[i], advanceLiveFires);
     assert.equal(diffs.length, 0, `capture ${i} (shape ${shapeOf(caps[i])}): ${diffs.join("; ")}`);
   }
   console.log(
@@ -250,7 +258,7 @@ test("CRAFTED (occupancy): all 32 occupancy patterns match the oracle", () => {
   let calls = 0;
   for (let pattern = 0; pattern < 32; pattern++) {
     const entry = seedEntry(withObjectStub(base, markerStub), pattern);
-    const diffs = contractDiffs(entry, loc_31b1);
+    const diffs = contractDiffs(entry, advanceLiveFires);
     assert.equal(diffs.length, 0, `pattern ${pattern}: ${diffs.join("; ")}`);
 
     // Non-vacuity: the stub fired exactly once per occupied record, in place.
@@ -270,7 +278,7 @@ test("CRAFTED (occupancy): all 32 occupancy patterns match the oracle", () => {
 test("CRAFTED (steering): a callee that rewrites the pointer and the index steers the sweep identically", () => {
   const base = attractBase();
   const entry = seedEntry(withObjectStub(base, steeringStub), 0x1f); // every record occupied
-  const diffs = contractDiffs(entry, loc_31b1);
+  const diffs = contractDiffs(entry, advanceLiveFires);
   assert.equal(diffs.length, 0, `steering: ${diffs.join("; ")}`);
 
   // Non-vacuity: the steer must have actually skipped a record and cut the pass short.
@@ -298,7 +306,7 @@ test("LIVE: the candidate wired at 0x31B1 reproduces the oracle over a whole att
     const cost = probe.cycles - probeStart;
 
     const start = mm.cycles;
-    const r = loc_31b1(mm);
+    const r = advanceLiveFires(mm);
     mm.tick(cost - (mm.cycles - start));
     return r;
   }]]);

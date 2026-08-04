@@ -8,9 +8,17 @@
  * a CALLER-SKIP: a non-zero count returns normally (true); a zero count splices past the caller
  * (false). On 50m it can also return early-normal the instant DIFFICULTY equals the running count.
  *
- * The routine IS on a live dispatch path: its caller 0x30ED is idiomatic (loc_30ed) and calls
+ * The routine IS on a live dispatch path: its caller 0x30ED is idiomatic (updateFires) and calls
  * spawnRequestedFireAndRecolorLiveFires directly, and REACHABILITY IS GROUNDED on the real ROM
- * under MAME 0.288 — see the routine's own GATE record. (An earlier version of this header said
+ * under MAME 0.288 (understanding pass 12). In PURE ATTRACT with zero pokes and no coin, caller
+ * 0x30ED executed 1220x and this routine 610x over 4243 frames (6329x / 3189x over a 14546-frame
+ * attract run), and it ran 1069 / 3214 / 2417 / 2291x in the credited 1P / 50m / 75m / 100m runs.
+ * Every arm fires naturally there: the live-record store (0x315A) wrote OBJ_SPRITE_ATTR := 1
+ * 2477x; the HAMMER store (0x3167) wrote OBJ_SPRITE_ATTR := 0 768x, every one with
+ * MARIO_HAMMER_ACTIVE == 1 during a hammer grab the attract demo performs unaided; the INSERT arm
+ * (0x319D) fetched 2-13x per run and left OBJ_INSERT_REQUESTED at 1 for 310 / 186 / 70 frames;
+ * and the zero-count SPLICE (0x3179) fetched 126-707x per run. Those numbers are from that MAME
+ * grounding run, NOT produced by this file. (An earlier version of this header said
  * it was "on NO live dispatch path" behind "the untranslated orchestrator 0x30ED"; that was
  * stale.) The gate below is still CRAFTED rather than captured, and deliberately so: the input
  * space (5 slot flags × BOARD × DIFFICULTY × request × hammer) is too large to sweep whole, so

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for gateObjectUpdateByDifficulty (ROM 0x30FA) — the selector that picks one of the four
+ * Equivalence test for gateFireUpdateByDifficulty (ROM 0x30FA) — the selector that picks one of the four
  * frame gates at ROM 0x3110-0x313B by DIFFICULTY and passes its proceed/skip decision up.
  *
- * gateObjectUpdateByDifficulty reads exactly one byte of its own (DIFFICULTY, 0x6380), clamps it to the six
+ * gateFireUpdateByDifficulty reads exactly one byte of its own (DIFFICULTY, 0x6380), clamps it to the six
  * entries of its ROM table, and runs the gate that entry names; the gate reads FRAME
  * (0x601A) and answers proceed or skip. Nothing on that path writes RAM, so the live-out is
  * the returned decision plus "no memory moved outside the dead stack scratch". Both sides
@@ -26,8 +26,8 @@
  *      first 24 real entry states, and each is re-run with DIFFICULTY poked identically on
  *      both sides over all six table slots and past the clamp — real states with a surgical
  *      nudge, since attract only ever presents difficulty 1 and would otherwise cover just
- *      one gate. Each replay compares RAM − STACK_SCRATCH and the returned decision on
- *      fresh clones.
+ *      one gate. That is 240 replays. Each compares RAM − STACK_SCRATCH and the returned
+ *      decision on fresh clones.
  *
  *   2. EXHAUSTIVE — all 65536 (DIFFICULTY, FRAME) byte pairs against the oracle. The two
  *      bytes are the routine's entire input, so this is a proof rather than a sample.
@@ -43,7 +43,7 @@
  *      splice: the oracle consumes one stack word when it returns true and TWO when it
  *      returns false (measured here, both arms). That is the fact the idiomatic boolean
  *      stands for, and the fact the translated↔idiomatic seam needs now that 0x30fa IS
- *      wired live: names.js registers 0x30fa -> gateObjectUpdateByDifficulty, so the seam
+ *      wired live: names.js registers 0x30fa -> gateFireUpdateByDifficulty, so the seam
  *      does dispatch this routine, and machine.js's SEAM_CALLER_SKIP LISTS 0x30fa (its
  *      `MEASURED false:+4` entry is this arm's number).
  *
@@ -51,6 +51,13 @@
  *      get this dispatcher wrong: a clamp one short, a table without the ROM's duplicated
  *      slots, and a wrap instead of a clamp. The third is invisible to attract (it only
  *      differs at difficulty ≥6) — that is the point of sweeping all 256.
+ *
+ * WHAT THE TWO SIDES DO DIFFERENTLY, stated because it is the whole content of this equivalence:
+ * the oracle reaches its gate INDIRECTLY, through the shared inline-table dispatcher at ROM 0x0028
+ * — it lays its six-entry table in ROM right behind itself and lets that dispatcher index it. The
+ * dispatcher's index arithmetic wraps at a byte, which cannot matter here because the clamp keeps
+ * the index at 5 or below, so the whole of it reduces to the direct table of gate functions the
+ * candidate uses. The EXHAUSTIVE and MAPPING arms are what turn "cannot matter" into a measurement.
  *
  * Isolated runs use clone() (frame machinery neutralised: nextNmi/nextBoundary = Infinity)
  * so an m.step inside the oracle cannot trip a live NMI whose handler would write RAM and
@@ -69,7 +76,7 @@ import { loc_3110 as oracleGate3110 } from "../../translated/loc_3110.js";
 import { loc_311b as oracleGate311b } from "../../translated/loc_311b.js";
 import { loc_3126 as oracleGate3126 } from "../../translated/loc_3126.js";
 import { loc_3131 as oracleGate3131 } from "../../translated/loc_3131.js";
-import { gateObjectUpdateByDifficulty } from "../gateObjectUpdateByDifficulty.js";
+import { gateFireUpdateByDifficulty } from "../gateFireUpdateByDifficulty.js";
 import { Machine } from "../../machine.js";
 import { DIFFICULTY, FRAME, STACK_SCRATCH } from "../names.js";
 
@@ -170,7 +177,7 @@ function fingerprint(base, fn, d = 0) {
 
 // -- 1. REACHABILITY + REAL CAPTURES + CRAFTED --------------------------------
 
-test("REACHABILITY + CAPTURED DISPATCH: gateObjectUpdateByDifficulty matches the oracle on every live dispatch (2000 attract frames)", () => {
+test("REACHABILITY + CAPTURED DISPATCH: gateFireUpdateByDifficulty matches the oracle on every live dispatch (2000 attract frames)", () => {
   let count = 0;
   let mismatches = 0;
   let proceed = 0;
@@ -185,7 +192,7 @@ test("REACHABILITY + CAPTURED DISPATCH: gateObjectUpdateByDifficulty matches the
     count++;
     const d = mm.mem.read8(DIFFICULTY) & 0xff;
     difficulties.set(d, (difficulties.get(d) ?? 0) + 1);
-    const got = gateObjectUpdateByDifficulty(mm);
+    const got = gateFireUpdateByDifficulty(mm);
     const want = oracle(mm);
     if (got !== want) {
       mismatches++;
@@ -201,7 +208,7 @@ test("REACHABILITY + CAPTURED DISPATCH: gateObjectUpdateByDifficulty matches the
   assert.equal(
     mismatches,
     0,
-    firstBad && `gateObjectUpdateByDifficulty disagreed with the oracle at a live DIFFICULTY=${hx(firstBad.d)} FRAME=${hx(firstBad.f)} (oracle=${firstBad.want} gateObjectUpdateByDifficulty=${firstBad.got})`,
+    firstBad && `gateFireUpdateByDifficulty disagreed with the oracle at a live DIFFICULTY=${hx(firstBad.d)} FRAME=${hx(firstBad.f)} (oracle=${firstBad.want} gateFireUpdateByDifficulty=${firstBad.got})`,
   );
   assert.ok(proceed > 0 && skip > 0, `both decisions must occur across live dispatches (got ${proceed} proceed, ${skip} skip)`);
   // Attract plays level 1 at difficulty 1 throughout, so this arm alone exercises ONE table
@@ -242,8 +249,8 @@ test("CRAFTED on REAL captures: RAM(−stack) + decision match at every difficul
       const a = prepare(cap.clone(), d, cap.mem.read8(FRAME)); // oracle
       const b = prepare(cap.clone(), d, cap.mem.read8(FRAME)); // candidate
       const want = oracle(a);
-      const got = gateObjectUpdateByDifficulty(b);
-      assert.equal(got, want, `decision diverged at DIFFICULTY=${hx(d)} FRAME=${hx(cap.mem.read8(FRAME))}: oracle=${want} gateObjectUpdateByDifficulty=${got}`);
+      const got = gateFireUpdateByDifficulty(b);
+      assert.equal(got, want, `decision diverged at DIFFICULTY=${hx(d)} FRAME=${hx(cap.mem.read8(FRAME))}: oracle=${want} gateFireUpdateByDifficulty=${got}`);
       const ramDiff = firstRamDiffExStack(a.dumpState(), b.dumpState(), (o) => a.stateOffsetToAddr(o));
       assert.equal(
         ramDiff,
@@ -275,9 +282,9 @@ test("PURITY: neither side writes RAM outside the dead stack scratch, at every t
 
       const b = makeEntry(base, d, f);
       const beforeB = b.dumpState();
-      gateObjectUpdateByDifficulty(b);
+      gateFireUpdateByDifficulty(b);
       const candWrote = firstRamDiffExStack(beforeB, b.dumpState(), (o) => b.stateOffsetToAddr(o));
-      assert.equal(candWrote, null, candWrote && `gateObjectUpdateByDifficulty wrote RAM at ${hx16(candWrote.addr)}`);
+      assert.equal(candWrote, null, candWrote && `gateFireUpdateByDifficulty wrote RAM at ${hx16(candWrote.addr)}`);
       checked++;
     }
   }
@@ -286,13 +293,13 @@ test("PURITY: neither side writes RAM outside the dead stack scratch, at every t
 
 // -- 2. EXHAUSTIVE ------------------------------------------------------------
 
-test("EXHAUSTIVE: gateObjectUpdateByDifficulty == oracle over all 65536 (DIFFICULTY, FRAME) byte pairs", () => {
+test("EXHAUSTIVE: gateFireUpdateByDifficulty == oracle over all 65536 (DIFFICULTY, FRAME) byte pairs", () => {
   const base = new Machine(ROM).clone();
-  const { mismatch, count } = fullSweep(base, gateObjectUpdateByDifficulty);
+  const { mismatch, count } = fullSweep(base, gateFireUpdateByDifficulty);
   assert.equal(
     mismatch,
     null,
-    mismatch && `decision diverged at DIFFICULTY=${hx(mismatch.d)} FRAME=${hx(mismatch.f)}: oracle=${mismatch.want} gateObjectUpdateByDifficulty=${mismatch.got}`,
+    mismatch && `decision diverged at DIFFICULTY=${hx(mismatch.d)} FRAME=${hx(mismatch.f)}: oracle=${mismatch.want} gateFireUpdateByDifficulty=${mismatch.got}`,
   );
   assert.equal(count, 65536, "must have compared every difficulty × frame byte pair");
   console.log(`  EXHAUSTIVE: ${count} (difficulty, frame) pairs identical to the oracle`);
@@ -300,7 +307,7 @@ test("EXHAUSTIVE: gateObjectUpdateByDifficulty == oracle over all 65536 (DIFFICU
 
 // -- 3. MAPPING (the difficulty→gate table, re-derived from the oracle) --------
 
-test("MAPPING: the oracle's gate at every one of the 256 difficulty bytes is the one gateObjectUpdateByDifficulty's table names", () => {
+test("MAPPING: the oracle's gate at every one of the 256 difficulty bytes is the one gateFireUpdateByDifficulty's table names", () => {
   const base = new Machine(ROM).clone();
 
   // The fingerprints must be pairwise distinct or the identification below proves nothing.
@@ -323,10 +330,10 @@ test("MAPPING: the oracle's gate at every one of the 256 difficulty bytes is the
     assert.equal(
       gate,
       EXPECTED_GATE(d),
-      `at DIFFICULTY=${hx(d)} the oracle dispatched ${hx16(gate)} but gateObjectUpdateByDifficulty's table names ${hx16(EXPECTED_GATE(d))}`,
+      `at DIFFICULTY=${hx(d)} the oracle dispatched ${hx16(gate)} but gateFireUpdateByDifficulty's table names ${hx16(EXPECTED_GATE(d))}`,
     );
     // And the candidate must reach the same gate, not merely agree on the decisions.
-    assert.equal(fingerprint(base, gateObjectUpdateByDifficulty, d), bits, `gateObjectUpdateByDifficulty's gate at DIFFICULTY=${hx(d)} differs from the oracle's ${hx16(gate)}`);
+    assert.equal(fingerprint(base, gateFireUpdateByDifficulty, d), bits, `gateFireUpdateByDifficulty's gate at DIFFICULTY=${hx(d)} differs from the oracle's ${hx16(gate)}`);
   }
 
   // Report the derived mapping as ranges, and assert every gate was actually reached.
@@ -344,7 +351,7 @@ test("MAPPING: the oracle's gate at every one of the 256 difficulty bytes is the
 
 // -- 4. CALLER-SKIP SHAPE (the live-out the boolean stands for) ----------------
 
-test("CALLER-SKIP SHAPE: the oracle consumes one stack word on true and TWO on false; gateObjectUpdateByDifficulty moves no stack", () => {
+test("CALLER-SKIP SHAPE: the oracle consumes one stack word on true and TWO on false; gateFireUpdateByDifficulty moves no stack", () => {
   const base = new Machine(ROM).clone();
   const deltas = { true: new Set(), false: new Set() };
   let cases = 0;
@@ -355,15 +362,15 @@ test("CALLER-SKIP SHAPE: the oracle consumes one stack word on true and TWO on f
       deltas[r ? "true" : "false"].add(((a.regs.sp - SAFE_SP) << 16) >> 16);
 
       const b = makeEntry(base, d, f);
-      const rb = gateObjectUpdateByDifficulty(b);
+      const rb = gateFireUpdateByDifficulty(b);
       assert.equal(rb, r, `decision diverged at DIFFICULTY=${hx(d)} FRAME=${hx(f)}`);
-      assert.equal(b.regs.sp, SAFE_SP, "gateObjectUpdateByDifficulty must not touch the guest stack — the boolean replaces it");
+      assert.equal(b.regs.sp, SAFE_SP, "gateFireUpdateByDifficulty must not touch the guest stack — the boolean replaces it");
       cases++;
     }
   }
   assert.deepEqual([...deltas.true], [2], "the oracle's proceed path must consume exactly one stack word");
   assert.deepEqual([...deltas.false], [4], "the oracle's skip path must consume TWO stack words (the caller-skip discard)");
-  console.log(`  CALLER-SKIP SHAPE: ${cases} entries — oracle SP delta +2 on true, +4 on false; gateObjectUpdateByDifficulty leaves SP at ${hx16(SAFE_SP)}`);
+  console.log(`  CALLER-SKIP SHAPE: ${cases} entries — oracle SP delta +2 on true, +4 on false; gateFireUpdateByDifficulty leaves SP at ${hx16(SAFE_SP)}`);
   console.log("    → 0x30fa IS in ROUTINES and IS in machine.js's SEAM_CALLER_SKIP, which is what that `false` arm's two-word debt at the seam requires.");
 });
 

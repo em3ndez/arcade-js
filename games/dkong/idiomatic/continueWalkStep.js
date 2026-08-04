@@ -1,28 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * continueWalkStep — carry an in-progress walk step one frame further.  ROM 0x1ceb.
+ * continueWalkStep — carry an in-progress walk step one frame further.
  *
  * The continuation arm of the horizontal walk. While Mario's sub-step timer is still
- * running, the walk steppers (walkMarioRight / walkMarioLeft) route through advanceMarioWalkX — which shifts
- * him one pixel along X and re-snaps his Y to the sloped girder on 25m — and fall
- * through here to spend one frame of the step: knock the sub-step timer
- * (MARIO_MOVE_STEP_TIMER) down by one, then refresh Mario's hardware sprite record. When
- * the timer reaches 0 on a later frame, the steppers advance the walk animation and
- * re-arm it (see beginWalkStep).
+ * running, each walk direction routes through the shared X advance — which shifts him one
+ * pixel along X and re-snaps his Y to the sloped girder on 25m — and falls through here to
+ * spend one frame of the step: knock the sub-step timer (MARIO_MOVE_STEP_TIMER) down by
+ * one, then refresh Mario's hardware sprite record. When the timer reaches 0 on a later
+ * frame the walk advances to its next animation frame and re-arms the timer instead of
+ * coming here.
  *
- * Reached only as advanceMarioWalkX's tail, inside the interruptible per-frame movement cascade.
+ * Reached only as the tail of that shared X advance, inside the interruptible per-frame
+ * movement cascade.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1ceb.test.js.
- * GATE:     crafted-entry — real captured 25m dispatches cover the single straight-line
- *           arm; crafted timer values (incl. 0, which wraps to 255) pin the decrement and
- *           the record refresh. Teeth: a wrong timer store and a skipped sprite refresh,
- *           each caught.
  * LIVE-OUT: memory-only — MARIO_MOVE_STEP_TIMER and the four sprite-record bytes. The
- *           successor consumes no register/flag this leaves; the oracle's residual
- *           A/HL/flags are dead ABI (pc/SP model the single tail return, supplied by the
- *           harness).
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from names.js. writeMarioSpriteRecord (0x1da6)
- *           called directly.
+ * successor consumes nothing this routine leaves behind.
  */
 
 import { MARIO_MOVE_STEP_TIMER } from "./names.js";

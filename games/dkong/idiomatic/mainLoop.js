@@ -1,30 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 //
-// mainLoop (ROM 0x02BD) as a GENERATOR for the coroutine go-live engine (core/frame-stepped.js
-// runGeneratorGame). Donkey Kong's task-scheduler main loop: it walks a task table in page 0x60
-// (the task pointer at 0x60B1); a task byte with bit 7 CLEAR is dispatched, bit 7 SET runs the
-// per-frame work (call 0x0315, call 0x0350, bump the 0x6019 counter), then compares the frame
-// counter 0x601A against the last-handled frame 0x6383, records a new frame, and runs the two
-// per-new-frame tasks (0x037F, 0x03A2).
+// mainLoop — Donkey Kong's task-scheduler main loop, written as a GENERATOR so a host can drive it
+// one vblank at a time.
 //
-// THE VBLANK POLL is 0x02BD, and the subtle part is WHERE that address is reached: the loop TOP
-// falls straight into `ld h,0x60` and never sits at 0x02BD; instead EVERY path RETURNS pc to
-// 0x02BD as its last act — the dispatched task's handler rets to the 0x02BD that loc_02e3
-// pushed, the frame-counter-unchanged branch spins `jr z,0x02BD`, and the new-frame tail does
-// `jr 0x02BD`. The translated oracle (runCycleFree) fires the vblank NMI exactly at those
-// pc==0x02BD arrivals, so the coroutine `yield` sits at the END of each path — after loc_02e3,
-// in the fZ branch, and after the two per-new-frame tasks — a 1:1 match with the oracle's NMI
-// firings. (A yield at the loop top would fire the NMI one step too early — before the per-frame
-// work that sets LIVES/BONUS_LIFE — and sample frame 1 off by one.)
+// Each pass reads the current task byte out of a small table in the work-RAM page the scheduler
+// keeps its state in, indexed by a pointer byte the table itself supplies, and tests its top bit:
 //
-// Faithful to translated/mainLoop_02bd.js — identical reads/writes/dispatches — with two changes
-// for the cycle-free coroutine engine: the per-instruction m.step cycle-accounting is dropped
-// (the engine runs cycle-free), and each busy-wait/loop-back to 0x02BD becomes `yield`. The four
-// per-frame callees (0x0315/0x0350/0x037F/0x03A2) are all idiomatic and DIRECT-called (no
-// push16/m.call), so the guest stack stays clean; only the task dispatch (loc_02e3) still walks
-// the routines table via m.call for the handlers with no idiomatic twin in ROUTINES yet. All
-// seven of the 0x0307 table's handlers now have idiomatic files and six are already wired;
-// only 0x062A is pending, and the base expands under the go-live gate as it is wired.
+//   - bit 7 CLEAR — dispatch that task, then wait for vblank.
+//   - bit 7 SET   — run the per-frame work: repaint the player-up indicator, award a bonus life if
+//                   the score has crossed the threshold, and bump a frame-work counter. Then
+//                   compare the frame counter against the last frame this loop handled. Unchanged
+//                   means the frame has not turned over yet, so wait. Changed means a new frame
+//                   arrived: record it, ramp the difficulty, step the fixed-hazard animation and
+//                   its fire release, and wait.
+//
+// EVERY `yield` IS THE VBLANK WAIT, and each one sits at the END of its path rather than at the
+// top of the loop: after a dispatched task returns, inside the frame-unchanged spin, and after the
+// two per-new-frame tasks. That placement is load-bearing. Yielding at the loop top would let the
+// vblank interrupt land one step early — before the per-frame work that updates lives and the
+// bonus-life award has run — and the very first frame would come out one step behind.
 
 import { loc_02e3 } from "../translated/loc_02e3.js";
 import { rampDifficulty } from "./rampDifficulty.js";
@@ -36,42 +30,40 @@ export function* mainLoop(m) {
   const { regs, mem } = m;
 
   for (;;) {
-    // Read the current task byte: H = 0x60, L = (0x60B1); `add a,a` tests bit 7 into carry.
+    // Read the current task byte, indexed by the scheduler's pointer byte, and test its bit 7.
     regs.h = 0x60;
     regs.a = mem.read8(0x60b1);
     regs.l = regs.a;
     regs.a = mem.read8(regs.hl);
     regs.add(regs.a);
 
-    // Bit 7 clear: dispatch this task. loc_02e3 pushed 0x02BD, so the handler rets to the poll.
+    // Bit 7 clear: dispatch this task, then wait for vblank.
     if (regs.fNC) {
       loc_02e3(m);
       yield;
       continue;
     }
 
-    // Bit 7 set: run the per-frame work. Both callees are idiomatic now — call them DIRECTLY (no
-    // push16/m.call), so the guest stack stays clean.
+    // Bit 7 set: run the per-frame work.
     redrawPlayerUpIndicator(m);
     awardBonusLifeAtThreshold(m);
 
-    // inc (0x6019)
+    // Bump the frame-work counter.
     regs.hl = 0x6019;
     mem.write8(regs.hl, regs.inc8(mem.read8(regs.hl)));
 
-    // Compare the frame counter 0x601A against the last-handled frame (0x6383).
+    // Has the frame counter moved since the last frame this loop handled?
     regs.hl = 0x6383;
     regs.a = mem.read8(0x601a);
     regs.cp(mem.read8(regs.hl));
     if (regs.fZ) {
-      // Frame counter unchanged — the `jr z,0x02BD` spin IS the vblank wait. The NMI fires here
-      // (decrementing 0x601A), so the next pass takes the new-frame path.
+      // Frame counter unchanged — this spin IS the vblank wait. The interrupt fires here and
+      // moves the frame counter on, so the next pass takes the new-frame path.
       yield;
       continue;
     }
 
-    // A new frame arrived: remember it, run the two per-new-frame tasks (both idiomatic now — called
-    // DIRECTLY, no push16/m.call, so the guest stack stays clean), then the tail `jr 0x02BD`.
+    // A new frame arrived: remember it, run the two per-new-frame tasks, then wait again.
     mem.write8(regs.hl, regs.a);
     rampDifficulty(m);
     animateFixedHazardAndReleaseFire(m);

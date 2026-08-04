@@ -1,69 +1,51 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_186f — one timer-gated step of the board-advance render sequence: stage a
- * sprite-object frame, pulse a sound latch, advance the step.  ROM 0x186f.
+ * loc_186f — one timer-gated step of the board-advance animation: hold a pose, then swap in
+ * the next frame, pulse a sound and move the sequence on.
  *
- * A step handler in the board-cleared / advance interlude (GAME_SUBSTATE 0x600A == 0x16),
- * the even-board (BOARD bit0 clear → 50m / 100m, table at 0x1648) sibling of stageNextKongPoseWhenHoldExpires.
- * dispatchBoardClearedInterlude dispatches this family through the 0x6388 step selector; this is the step whose
- * table entry is 0x186f. Every sibling has the same shape — hold a pose for a run of frames,
- * then on expiry swap in the next sprite-object animation frame and advance the step — and
- * this is the leanest of them: no per-board rst-0x30 / rst-0x38 tail, and it does not re-arm
- * the pose timer, so the `inc` of the step selector is what carries the sequence onward.
+ * A step handler in the board-cleared interlude that plays between boards, on the even
+ * boards. The interlude runs as a numbered sequence and a step selector says which step this
+ * frame belongs to; this handler owns one of them. Every step in the family has the same
+ * shape — hold a pose for a run of frames, then on expiry swap in the next animation frame
+ * and move the sequence on — and this is the leanest of them: it re-arms nothing, so
+ * advancing the step selector is the only thing carrying the sequence forward.
  *
  * On each frame:
- *   - rst 0x18 (tickSubstateTimer) ticks SUBSTATE_TIMER (0x6009). While it counts down the
- *     routine only decrements and returns — the pose is held. On the single expiry frame:
- *   - Copy this step's 40-byte (10-record × 4) sprite-object frame from the ROM table at
- *     0x3A1F into SPRITE_OBJ_BLOCK (loadSpriteObjectBlock; HL = the copy source).
- *   - Arm sound latch SND_TRIGGER[4] (0x6084) to 3 — the standard 3-frame assert that
- *     sub_00e0 walks down over the next three vblanks.
- *   - Advance the render-sequence step selector 0x6388 (`inc (hl)`), so the next NMI
- *     dispatches the following step.
+ *   - Tick the interlude's frame timer, SUBSTATE_TIMER. While it counts down that is all
+ *     that happens and the pose is held. On the single expiry frame:
+ *   - Copy this step's ten-record sprite-object frame — forty bytes, four per record — over
+ *     SPRITE_OBJ_BLOCK, which is what puts the next pose on screen.
+ *   - Assert one of the sound latches for three frames, the standard pulse the sound service
+ *     counts back down over the following vblanks.
+ *   - Advance the step selector, so the next frame dispatches the following step.
  *
- * Reached via dispatchGameState's rst-0x28 tail, which discards this handler's return, so
- * nothing downstream reads a register or flag it leaves.
- * NAME: kept as loc_186f — the mechanics are understood but the exact visual the animation
- * depicts is not independently confirmed, and the whole sibling family stayed address-named.
+ * Nothing downstream reads a value back from this handler.
  *
- * CALLEES (both landed idiomatic leaves, called directly — no stack modelling):
- * tickSubstateTimer (0x0018), loadSpriteObjectBlock (0x004e).
+ * NOT CLAIMED: what the animation depicts. The mechanics are what is established here.
  *
- * Memory-equivalent to the frozen oracle — equivalence-186f.test.js.
- * GATE:     crafted-entry — attract never reaches GAME_SUBSTATE 0x16 (it does not complete a
- *           board), so 0x186f dispatches 0 times; validated on real booted-attract state with
- *           surgical pokes: EXHAUSTIVE sweep of SUBSTATE_TIMER 0..255 (only 0x01 expires; the
- *           copy overwrites its own targets from ROM so the work branch is otherwise constant)
- *           and EXHAUSTIVE sweep of the 0x6388 step byte at expiry (the `inc`, incl. 0xFF→0x00
- *           wrap). Teeth: a dropped step `inc`, a dropped sound latch, and an inverted gate.
- * LIVE-OUT: memory-only. Every write lands in work RAM (SUBSTATE_TIMER, the 40-byte
- *           SPRITE_OBJ_BLOCK, the 0x6084 sound latch, the 0x6388 selector) — no 0x7Dxx
- *           hardware latch, so there is no bus-positioned write to preserve. The rst-0x28
- *           dispatch tail reads no register/flag this leaves; the oracle's residual A/HL/DE/
- *           BC/flags are dead ABI, and its SP/pc are the Z80 caller-skip mechanism the boolean
- *           gate replaces.
- * NAMES:    SUBSTATE_TIMER (0x6009), SND_TRIGGER (0x6080 → +4 = latch bit 4), BOARD_ADVANCE_STEP
- *           (0x6388 — the board-advance render-sequence step) from names.js. Hex-kept: ROM table
- *           base 0x3A1F (an immediate).
+ * LIVE-OUT: memory-only, and every write lands in work RAM — the interlude timer, the
+ * sprite-object block, the sound latch and the step selector. No hardware latch is touched,
+ * so there is no bus-positioned write to preserve.
  */
 
-import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
-import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
+import { tickSubstateTimer } from "./tickSubstateTimer.js";
+import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
 import { SUBSTATE_TIMER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./names.js";
 
-const COPY_SOURCE = 0x3a1f; // ROM base of this step's 40-byte sprite-object frame
-const SND_LATCH = SND_TRIGGER + 4; // 0x6084 — SND_TRIGGER[4]
-const SND_ASSERT_FRAMES = 0x03; // 3-frame sound-latch assert (sub_00e0 counts it down)
+const COPY_SOURCE = 0x3a1f; // this step's ten-record sprite-object frame
+const SND_LATCH = SND_TRIGGER + 4; // the sound latch this step pulses
+const SND_ASSERT_FRAMES = 0x03; // frames it stays asserted; the sound service counts it down
 
 export function loc_186f(m) {
   const { regs, mem } = m;
 
-  // rst 0x18 — hold this pose until the frame timer expires. While it counts down,
-  // decrement and abort to the dispatcher (the oracle's inc-sp caller-skip).
+  // Hold this pose until the frame timer expires. While it counts down, tick it and
+  // abort back to the dispatcher.
   if (!tickSubstateTimer(m)) return;
 
-  // Timer expired — swap in this step's sprite-object frame: copy the 40-byte
-  // (10-record × 4) template from ROM 0x3A1F into SPRITE_OBJ_BLOCK (HL = the copy source).
+  // Timer expired — swap in this step's sprite-object frame: copy the forty-byte
+  // ten-record template over SPRITE_OBJ_BLOCK. The copy reads its source from the
+  // register image.
   regs.hl = COPY_SOURCE;
   loadSpriteObjectBlock(m);
 

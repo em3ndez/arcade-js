@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_197a (ROM 0x197A) — the per-frame gameplay update cascade.
+ * runGameplayFrame — memory-equivalent to the frozen oracle at ROM 0x197A: one frame of play,
+ * the fixed-order subsystem update with its three abandon gates and its death hand-off.
+ * GATE:  real captures + crafted arms on top of real captures + live-wire, ATTRACT ONLY for the
+ *        real dispatches. Every natural dispatch in an 8000-frame attract run is replayed
+ *        inline, oracle against rewrite on byte-identical clones, compared on RAM −
+ *        STACK_SCRATCH and the return value. ALL of them enter through the attract task at ROM
+ *        0x1977; none enters through the in-game dispatch (ROM 0x00CA's game-state-3 arm),
+ *        because attract never enters that state — THE IN-GAME ENTRY PATH IS THEREFORE NOT
+ *        COVERED, and both counts are asserted in the gate rather than only stated here.
+ *        Attract reaches three of the five arms; the board-won and bonus-expired abandons it
+ *        never reaches are driven by poking one or two bytes onto REAL captured entries.
  *
  * The routine's own contribution is a fixed call ORDER, three gates that can abandon the rest of
  * the frame, and a death hand-off at the end; the arithmetic all belongs to the twenty-six
@@ -9,7 +19,7 @@
  *
  *   1. CAPTURE + INLINE REPLAY — an 8000-frame attract run with 0x197A hooked. EVERY dispatch is
  *      replayed, not a sample: at each one the entry state is cloned twice, the oracle runs on one
- *      clone and loc_197a on the other, they are compared, and the clones are dropped before the
+ *      clone and runGameplayFrame on the other, they are compared, and the clones are dropped before the
  *      host continues on the oracle. Each dispatch is labelled by which addresses the ORACLE goes
  *      on to call, so the arm labels come from the oracle's behaviour and never from the
  *      candidate's. Compared on RAM − STACK_SCRATCH and on the return value.
@@ -28,11 +38,13 @@
  *      the ORACLE's call sequence that the poke really did land the intended arm — a crafted arm
  *      that silently failed to arm would otherwise read as coverage.
  *
- *   3. LIVE-WIRE — loc_197a drives a whole attract run under the coroutine engine, against a
+ *   3. LIVE-WIRE — runGameplayFrame drives a whole attract run under the coroutine engine, against a
  *      REFERENCE that differs in exactly one thing. The reference is NOT an all-oracle machine:
  *      this routine direct-calls twenty-four idiomatic callees, so the honest control is the
- *      shipping configuration (resolveAllIdiomatic — every routine in ROUTINES wired, 0x197A not
- *      among them) with 0x197A left frozen. A second control hooks the same seam with the ORACLE
+ *      shipping configuration (resolveAllIdiomatic — every routine in ROUTINES wired) with 0x197A
+ *      REMOVED from that map, so it alone runs the frozen oracle. The removal is asserted to have
+ *      removed something, so the control cannot silently become a second copy of the candidate.
+ *      A second control hooks the same seam with the ORACLE
  *      to show the hook itself moves nothing. Both sides cross vblank at the same logical point
  *      under runGeneratorGame, so there is no NMI to shift and no cycle cost to restore.
  *
@@ -54,7 +66,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_197a as oracle } from "../../translated/loc_197a.js";
 import { loc_1977 as oracle1977 } from "../../translated/loc_1977.js";
-import { loc_197a } from "../loc_197a.js";
+import { runGameplayFrame } from "../runGameplayFrame.js";
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { installEntropyPin } from "../../../../core/entropy-pin.js";
@@ -241,12 +253,12 @@ function replayCrafted(entries, craft, candidate) {
 
 // -- 1. CAPTURE + INLINE REPLAY -----------------------------------------------
 
-test("CAPTURED DISPATCHES: loc_197a matches the oracle on every natural dispatch (RAM − STACK_SCRATCH + return)", () => {
-  const r = captureAndReplay(loc_197a);
+test("CAPTURED DISPATCHES: runGameplayFrame matches the oracle on every natural dispatch (RAM − STACK_SCRATCH + return)", () => {
+  const r = captureAndReplay(runGameplayFrame);
 
   assert.equal(r.stoppedBy, null, `capture run stopped early: ${r.stoppedBy}`);
   assert.ok(r.total > 0, "0x197A is dispatched every gameplay frame; zero means the attract chain regressed");
-  assert.equal(r.failure, null, "loc_197a diverged from the oracle on a real captured dispatch");
+  assert.equal(r.failure, null, "runGameplayFrame diverged from the oracle on a real captured dispatch");
 
   // What attract actually reaches, asserted rather than described — if the demo ever stops
   // producing one of these the header's coverage claim must change with it.
@@ -284,19 +296,33 @@ test("CRAFTED ARMS: the two abandons attract never reaches, and the death hand-o
   assert.equal(entries.length, CRAFT_ENTRIES, "did not capture the intended number of real entry states");
 
   for (const craft of CRAFTS) {
-    const { failure, armed } = replayCrafted(entries, craft, loc_197a);
+    const { failure, armed } = replayCrafted(entries, craft, runGameplayFrame);
     // A poke that failed to arm the intended branch would leave this case replaying the SAME arm
     // the natural captures already cover, while reading as new coverage.
     assert.ok(armed > 0, `"${craft.name}" never produced the ${craft.arm} arm — the crafted entry is not arming anything`);
     if (craft.everyEntry) {
       assert.equal(armed, entries.length, `"${craft.name}" was expected to arm on every entry; armed ${armed}/${entries.length}`);
     }
-    assert.equal(failure, null, `loc_197a diverged from the oracle on the crafted "${craft.name}" arm`);
+    assert.equal(failure, null, `runGameplayFrame diverged from the oracle on the crafted "${craft.name}" arm`);
     console.log(`  CRAFTED/${craft.name}: ${armed} of ${entries.length} real entries took the ${craft.arm} arm, all identical`);
   }
 });
 
 // -- 3. LIVE-WIRE -------------------------------------------------------------
+
+/**
+ * The shipping override map with 0x197A TAKEN OUT, so the address alone runs the frozen oracle
+ * while every other routine in ROUTINES stays wired. 0x197A is itself in ROUTINES now, so the
+ * removal is what makes `liveRun(overrides, null)` a real control rather than a second copy of
+ * the candidate; the assertion is there so a future map that no longer carries the address turns
+ * this into a failure instead of a silent no-op.
+ */
+async function shippingWithTargetFrozen() {
+  const overrides = await resolveAllIdiomatic();
+  assert.equal(overrides.has(TARGET), true, "0x197A should be in ROUTINES — the control removes it");
+  overrides.delete(TARGET);
+  return overrides;
+}
 
 /**
  * One attract run under the coroutine engine, with `candidate` wired at 0x197A on top of the FULL
@@ -337,10 +363,9 @@ function firstTraceDiff(base, other, offToAddr) {
   return { full, live: null };
 }
 
-test("LIVE-WIRE: loc_197a drives a whole attract run identically to the shipping configuration", async () => {
-  const overrides = await resolveAllIdiomatic();
+test("LIVE-WIRE: runGameplayFrame drives a whole attract run identically to the shipping configuration", async () => {
+  const overrides = await shippingWithTargetFrozen();
   assert.ok(overrides.size > 300, `expected the whole idiomatic layer wired, got ${overrides.size}`);
-  assert.equal(overrides.has(TARGET), false, "0x197A must NOT already be in ROUTINES — the reference has to leave it frozen");
 
   const ref = liveRun(overrides, null);
   assert.equal(ref.run.stopError, null, `reference run errored: ${ref.run.stop}`);
@@ -355,7 +380,7 @@ test("LIVE-WIRE: loc_197a drives a whole attract run identically to the shipping
     ctlDiff.full && `hooking the oracle through the seam already changed the trace at frame ${ctlDiff.full.frame}, ${hx(ctlDiff.full.addr)}`,
   );
 
-  const cand = liveRun(overrides, loc_197a);
+  const cand = liveRun(overrides, runGameplayFrame);
   assert.equal(cand.run.stopError, null, `live-wire run errored: ${cand.run.stop}`);
   assert.ok(cand.run.frames >= LIVE_FRAMES, `live-wire run covered only ${cand.run.frames}/${LIVE_FRAMES} frames`);
   // Without this the arm can pass while the routine never runs at all.
@@ -391,9 +416,9 @@ test("LIVE-WIRE: loc_197a drives a whole attract run identically to the shipping
 import { dispatchEffectState } from "../dispatchEffectState.js";
 import { runHitEffectInsteadOfPlay } from "../runHitEffectInsteadOfPlay.js";
 import { dispatchMarioMovement } from "../dispatchMarioMovement.js";
-import { loc_2c8f } from "../loc_2c8f.js";
+import { driveBarrelRelease } from "../driveBarrelRelease.js";
 import { scheduleBarrelRelease } from "../scheduleBarrelRelease.js";
-import { loc_30ed } from "../loc_30ed.js";
+import { updateFires } from "../updateFires.js";
 import { update75mActorObjects } from "../update75mActorObjects.js";
 import { update50mMovingObjects } from "../update50mMovingObjects.js";
 import { raisePeriodicObjectSpawnRequests } from "../raisePeriodicObjectSpawnRequests.js";
@@ -419,9 +444,9 @@ function body(m, keepBracket = true) {
   dispatchMarioMovement(m);
   if (keepBracket) m.push16(0x1986);
   m.call(0x1f72);
-  loc_2c8f(m);
+  driveBarrelRelease(m);
   scheduleBarrelRelease(m);
-  loc_30ed(m);
+  updateFires(m);
   update75mActorObjects(m);
   update50mMovingObjects(m);
   raisePeriodicObjectSpawnRequests(m);
@@ -562,7 +587,7 @@ test("TEETH: a dropped oracle-boundary bracket is invisible to the replay and ca
   assert.equal(natural.failure, null, `the replay was expected NOT to see this twin (${natural.failure})`);
 
   // Caught by arm 3, as a guest stack that no longer balances at the vblank yield.
-  const overrides = await resolveAllIdiomatic();
+  const overrides = await shippingWithTargetFrozen();
   const ref = liveRun(overrides, null);
   let broken;
   try {

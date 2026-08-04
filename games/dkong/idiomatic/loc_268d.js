@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_268d — publish object-3's step and, every 32nd frame, advance its sprite pair.  ROM 0x268D.
+ * loc_268d — publish object-3's step and, every 32nd frame, advance its sprite pair.
  *
- * The shared tail of sub_2679 (object-3's per-frame update inside the 50m object
- * cascade, so it only runs on BOARD 2 and never in attract). Each pass it does two
- * things:
+ * The shared tail of object-3's per-frame update inside the 50m object cascade, so it runs
+ * on the 50m board only. Each pass it does two things:
  *
  *   1. Reduce object-3's direction latch (M50_OBJ3_STEP_DIR) to a ±1 unit step and
  *      publish that step to the shadow byte the 50m platform mover reads. The
@@ -17,48 +16,31 @@
  *      publish. (Note the 32-frame gate only opens on EVEN frames, so the animation
  *      always advances on a frame where the latch was NOT rewritten.)
  *
- * REGISTER-ABI MARSHALLING (dissolves once the callees take honest args): both callees
- * still read their inputs from registers, so this routine loads exactly what the
- * oracle's call sites load — the latch address before signStepHalfRate (it reads the
- * pointer and returns the step), and the sprite-pair base plus the latch address (as
- * the arm-select pointer) before loc_26a6.
+ * Both callees still read their inputs from registers, so this routine stages exactly what
+ * each reads: the latch address before the reduce-to-sign step (which reads through that
+ * pointer and hands back the step), and the sprite-pair base plus the latch address — used
+ * as the arm-select pointer — before the sprite-pair step.
  *
- * NAME: kept the neutral loc_ — the mechanics are pinned to the oracle, but the
- * on-screen object this animates is unconfirmed (the same sprite-record trap that keeps
- * its loc_26a6 callee neutral); its published step is named M50_OBJ3_STEP (0x63A6) while
- * the animated sprite-pair cell (0x69F4) stays unnamed. Promote once corroborated.
+ * NOT CLAIMED: which on-screen object this animates. Its published step carries a shared
+ * name; the animated sprite-pair cell does not.
  *
- * Memory-equivalent to the frozen oracle — equivalence-268d.test.js.
- * GATE:     crafted-entry + captured — plain attract never dispatches 0x268D (the whole
- *           sub_25F2 object cascade is board-2 gated and attract plays 25m), so real
- *           states are reproduced by driving the translated caller sub_2679 with the
- *           frame counter set to each branch (even -> the sprite-pair-advance arm, odd
- *           -> the publish-then-return arm), plus crafted entries that poke the latch
- *           sign (both loc_26a6 arms), the counter values (ordinary steps + wrap seams),
- *           and the shadow seed. Teeth: a dropped-publish twin and a dropped-frame-gate
- *           twin.
- * LIVE-OUT: memory-only. The step left behind is dead — the only exit successor
- *           (sub_2AD3) reloads the accumulator with Mario's X on its first instruction
- *           before reading it, and likewise recomputes flags — so nothing downstream
- *           consumes a register this routine leaves. The oracle's terminal `ret` is
- *           modelled by the JS return.
- * NAMES:    M50_OBJ3_STEP_DIR (0x62A6), M50_OBJ3_STEP (0x63A6, the published step), FRAME
- *           (0x601A) — from names.js. The sprite-pair base (0x69F4) has no names.js name yet and
- *           stays hex here (a SPRITE_BUFFER code byte, addressed relatively per loc_26a6's note).
+ * LIVE-OUT: memory-only — the published step shadow every pass, and object-3's sprite-pair
+ * counters on the 32nd-frame arm.
  */
 
 import { M50_OBJ3_STEP_DIR, M50_OBJ3_STEP, FRAME } from "./names.js";
-import { signStepHalfRate } from "./signStepHalfRate.js"; // ROM 0x26E9
-import { loc_26a6 } from "./loc_26a6.js"; // ROM 0x26A6
+import { signStepHalfRate } from "./signStepHalfRate.js";
+import { loc_26a6 } from "./loc_26a6.js";
 
-// Base of object-3's mirrored sprite-code pair in SPRITE_BUFFER (kept hex per loc_26a6's note).
+// Base of object-3's mirrored sprite-code pair inside the sprite shadow buffer. It carries no
+// shared name, so it is file-local here.
 const OBJ3_SPRITE_PAIR = 0x69f4;
 
 export function loc_268d(m) {
   const { regs, mem } = m;
 
   // Reduce object-3's direction latch to a ±1 unit step (rewritten only on odd frames)
-  // and publish that step to the shadow the mover reads. signStepHalfRate reads the
+  // and publish that step to the shadow the mover reads. The reduce-to-sign step reads the
   // latch address from the pointer register and leaves the step in the accumulator.
   regs.hl = M50_OBJ3_STEP_DIR;
   signStepHalfRate(m);
@@ -68,8 +50,8 @@ export function loc_268d(m) {
   if ((mem.read8(FRAME) & 0x1f) !== 0x02) return;
 
   // Step object-3's mirrored sprite-code pair, taking its direction from the sign latch
-  // just published. loc_26a6 reads the pair base from the pointer register and the
-  // arm-select byte through the second pointer (which addresses the same latch).
+  // just published. The sprite-pair step reads the pair base from the pointer register and
+  // the arm-select byte through the second pointer, which addresses the same latch.
   regs.hl = OBJ3_SPRITE_PAIR;
   regs.de = M50_OBJ3_STEP_DIR;
   loc_26a6(m);

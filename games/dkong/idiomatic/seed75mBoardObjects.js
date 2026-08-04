@@ -1,92 +1,40 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * seed75mBoardObjects — build the 75m board's object records and their hardware
- * sprite mirror from ROM templates.  ROM 0x1087.
+ * seed75mBoardObjects — lay down the 75m board's object records and their hardware sprite mirror
+ * from fixed templates.
  *
- * The board-3 (75m, the elevator board) arm of the per-board setup dispatcher
- * sub_0f56, reached through its rst-0x28 jump table at 0x0FCD indexed by BOARD
- * (0x6227 == 3); it is tail-dispatched via `jp (hl)`, so its `ret` returns to the
- * board-setup caller, not to sub_0f56. It takes NO inputs: every pointer, count and
- * constant below is a fixed immediate baked into this board's setup, so it always
- * lays down the same 75m object/sprite state. It seeds three object-record blocks in
- * work RAM (OBJ_ARRAY_64 / OBJ_ARRAY_65 / OBJ_ARRAY_66 = 0x6400 / 0x6500 / 0x6600),
- * builds their hardware sprite records inside SPRITE_BUFFER, and copies two fixed
- * sprite/data templates from ROM. All work is memory writes; nothing it computes is
- * read back as a register.
+ * This is the setup the elevator board starts from. It takes NO inputs: every source pointer,
+ * count and constant is a fixed immediate, so it always writes the same 75m object and sprite
+ * state. It seeds three object-record arrays in work RAM — the fires, the actors, and the board's
+ * own six-record array — builds their hardware sprite records inside the sprite buffer, and copies
+ * two fixed templates in. All of its work is memory writes; nothing it computes is read back.
  *
- * Steps, in ROM order, over the four already-decompiled setup helpers (called
- * directly) plus in-line fills and ROM->RAM block copies:
+ * The ten steps, over four shared setup helpers plus in-line fills and block copies:
  *
- *   1. replicateGroupStrided (0x122a): broadcast the 4-byte ROM group at 0x3DEC into
- *      the +7 field of 5 records in the OBJ_ARRAY_64 block (dest 0x6407, B=5, C=0x1C so the
- *      record stride is C+4 = 0x20): 0x6407/0x6427/0x6447/0x6467/0x6487.
- *   2. seedObjectBlockSprites (0x1186): seed the OBJ_ARRAY_65 (0x6500) block's shared sprite
- *      field from the ROM template at 0x11A2 and build its 10 sprite records at ACTOR_SPRITES (0x6980).
- *   3. Fill 6 cells of the OBJ_ARRAY_66 (0x6600) block, stride 0x10, with 0x01
- *      (0x6600/0x6610/.../0x6650) — an object-active/flag column.
- *   4. Fill 3 cells at OBJ_ARRAY_66 + 0x0D (0x660D), stride 0x10, with 0x08 (0x660D/0x661D/0x662D).
- *      The ROM runs this inner fill twice (outer C=2) over the SAME three cells with HL reset
- *      each pass, so the second pass is a redundant re-write; the result is identical
- *      to writing the three cells once.
- *   5. copyBytePairsStrided (0x11ec): scatter 6 source byte-pairs from the contiguous
- *      ROM table at 0x3E64 into records at OBJ_ARRAY_66 + 0x03 (0x6603), stride C+2 = 0x10 (offsets +0/+2).
- *   6. replicateGroupStrided (0x122a): broadcast the 4-byte ROM group at 0x3E60 into 6
- *      records at OBJ_ARRAY_66 + 0x07 (0x6607), stride C+4 = 0x10.
- *   7. gatherSpriteRecords (0x11d3): build 6 hardware sprite records at 0x6958 (an unnamed slot
- *      inside SPRITE_BUFFER) by gathering fields +3/+7/+8/+5 from the OBJ_ARRAY_66 block (stride 0x10).
- *   8. Block-copy 12 bytes of the ROM sprite template at 0x3E48 to OBJECT_COLLISION_SPRITES
- *      (0x6A0C, inside SPRITE_BUFFER) — a fixed sprite record.
- *   9. Write the OBJ_ARRAY_64 block's two lead records (base 0x6400 and 0x6420, stride 0x20)
- *      field-by-field: +0=0x01 (active), +3/+0E = X pair, +5/+0F = Y pair
- *      (rec0: 0x58/0x58/0x80/0x80; rec1: 0xEB/0xEB/0x60/0x60).
- *  10. Block-copy the 16-byte inline ROM data table at 0x1121 (immediately after this
- *      routine's code) to 0x6970 (an unnamed slot inside SPRITE_BUFFER).
+ *   1. Broadcast a 4-byte template group into the +7 field of 5 records of the fire array
+ *      (stride 0x20).
+ *   2. Seed the actor array's shared sprite field from a fixed template and build its 10 sprite
+ *      records in the sprite buffer.
+ *   3. Fill the +0 active flag of 6 records of the board array (stride 0x10) with 1.
+ *   4. Fill the state field of the first 3 of those records with 8, the spawn state. Repeating
+ *      this fill over the same three cells would change nothing, so it is written once.
+ *   5. Scatter 6 byte-pairs from a contiguous table into the +3 and +5 fields (the X and Y pair)
+ *      of those 6 records.
+ *   6. Broadcast a 4-byte template group into the +7 field of the same 6 records.
+ *   7. Build 6 hardware sprite records in the sprite buffer by gathering each board record's
+ *      +3/+7/+8/+5 into a sprite's X / code / attribute / Y.
+ *   8. Copy a fixed 12-byte sprite template into the object-collision sprite slot.
+ *   9. Seed the board's TWO FIRES: write the fire array's two lead records field-by-field —
+ *      +0 active, the X pair at +3/+0E, the Y pair at +5/+0F, both to fixed start coordinates.
+ *  10. Copy a 16-byte data table, which sits immediately after this routine's own code, into an
+ *      unnamed sprite-buffer slot.
  *
- * ★ CORRECTION: an earlier version of this header said all three seeded blocks were of
- * unestablished identity — "OBJ_ARRAY_64 / OBJ_ARRAY_65 / OBJ_ARRAY_66 are address-keyed
- * structural names in names.js, NOT actor identities". That is no longer true of the FIRST of
- * them. **OBJ_ARRAY_64 (0x6400) IS the FIRES**, grounded on the real ROM under MAME 0.288 on a
- * natural zero-poke run (scratchpad/grounding-object-arrays.md): zeroing the records' +0
- * erases the fireball from the screen entirely while the barrels are statistically untouched,
- * and boxes drawn at the logged positions land on a fireball and nothing else on all four
- * boards. So step 9 above seeds TWO FIRES, live for every one of 75m's gameplay frames — which
- * is exactly what the census measured (0x6400 max live = 2 across 2176 gameplay frames on this
- * board). OBJ_ARRAY_65 (0x6500) and OBJ_ARRAY_66 (0x6600) are still address-keyed structural
- * names and NOT actor identities; the "springs"/"elevators" readings for them are [code].
- * The name describes the MECHANISM and the board, exactly at the
- * evidence bar of its callee seedObjectBlockSprites — object-record blocks (they feed
- * the same gather/seed helpers with the same +3/+7/+8/+5 field layout) plus their
- * sprite mirror in SPRITE_BUFFER. 75m == board 3 is corroborated by the sibling board
- * arms seed25mBoardObjects (0x0FD7, idx 1) / seed50mBoardObjects (0x101f, idx 2 — its
- * header fixes the 1/2/3/4 = 25/50/75/100m mapping and names 0x1087 the 75m arm),
- * seedObjectBlockSprites ("75m (loc_1087)"), and stamp75mBoardTiles.
+ * NOT CLAIMED: what the actor array and the board array draw as on this board. They are seeded
+ * here by structure — the same record layout the shared gather and seed helpers consume — and
+ * nothing in this file identifies the objects.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1087.test.js.
- * GATE:     crafted-entry — real dispatches forced by an identical-both-sides board
- *           poke (BOARD=3 -> sub_0f56 table idx 3 -> loc_1087), the same poke the
- *           sibling 0x1186 gate uses; attract only plays 25m so it never dispatches in
- *           a plain run. Not exhaustive — the routine has no input variety of its own
- *           (all immediates), so the real captured entries plus a distinctive-content
- *           craft (poked identically both sides so the gather/copy operate on non-zero
- *           inputs) fully exercise it. Teeth: a skipped fill and a wrong sprite
- *           destination, both caught on RAM.
- * LIVE-OUT: memory-only — the object-record blocks OBJ_ARRAY_64/OBJ_ARRAY_65/OBJ_ARRAY_66
- *           (0x6400/0x6500/0x6600) and their sprite records / template copies inside
- *           SPRITE_BUFFER (0x6958.., ACTOR_SPRITES 0x6980.., 0x69A0.., 0x6970..,
- *           OBJECT_COLLISION_SPRITES 0x6A0C..). The board-setup caller reads game RAM next
- *           frame, not registers, and the terminal `ret` returns into a caller that
- *           reads no register/flag this routine leaves. Registers are DEAD and, unlike
- *           the 0x1186 sibling, are NOT byte-faithful here (the helpers and block
- *           copies leave HL/DE/BC/IX/A in helper-specific states, never re-loaded), so
- *           the gate compares RAM (minus STACK_SCRATCH) + pc + SP only — never the
- *           register file, never cycles.
- * NAMES:    OBJ_ARRAY_64 (0x6400), OBJ_ARRAY_66 (0x6600) and OBJECT_COLLISION_SPRITES (0x6A0C)
- *           imported from names.js and used in code; OBJ_ARRAY_65 (0x6500) and ACTOR_SPRITES
- *           (0x6980) are named in names.js too but appear only in this file's prose (their writes
- *           happen inside the callees). SPRITE_BUFFER (0x6900) is the parent every sprite
- *           destination lands in. OBJ_STATE (+0x0d) is imported from names.js for the state fill;
- *           the remaining per-record field offsets and the intra-SPRITE_BUFFER slots 0x6958 /
- *           0x69A0 / 0x6970 stay hex (unnamed in names.js).
+ * LIVE-OUT: memory-only — the three object-record arrays and the sprite records and template
+ * copies they produce inside the sprite buffer.
  */
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
@@ -95,7 +43,7 @@ import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
 import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES, OBJ_STATE } from "./names.js";
 
-/** Forward block-copy `count` bytes ROM/RAM[src..] -> RAM[dst..] — an `ldir`, cycle-free. */
+/** Forward block-copy of `count` bytes from `src` to `dst`. */
 function blockCopy(mem, dst, src, count) {
   for (let i = 0; i < count; i++) {
     mem.write8((dst + i) & 0xffff, mem.read8((src + i) & 0xffff));
@@ -105,49 +53,47 @@ function blockCopy(mem, dst, src, count) {
 export function seed75mBoardObjects(m) {
   const { regs, mem } = m;
 
-  // 1. Seed field +7 of the 5 records in the OBJ_ARRAY_64 block from the ROM group at 0x3DEC.
-  regs.hl = 0x3dec; // 4-byte source group (re-read every record — a broadcast)
-  regs.de = OBJ_ARRAY_64 + 0x07; // dest: +7 of the first OBJ_ARRAY_64 record (0x6407)
-  regs.bc = 0x051c; // B=5 records, C=0x1C -> record stride C+4 = 0x20
+  // 1. Seed field +7 of the fire array's 5 records from a fixed 4-byte template group.
+  regs.hl = 0x3dec; // 4-byte source group, re-read for every record — a broadcast
+  regs.de = OBJ_ARRAY_64 + 0x07; // dest: +7 of the first fire record
+  regs.bc = 0x051c; // 5 records, record stride 0x20
   replicateGroupStrided(m);
 
-  // 2. Seed the OBJ_ARRAY_65 (0x6500) object block's sprite field and build its 10 sprite
-  //    records at ACTOR_SPRITES (0x6980) (fixed immediates — this coordinator takes no register inputs).
+  // 2. Seed the actor array's sprite field and build its 10 sprite records in the sprite buffer.
+  //    All fixed immediates — this step takes no inputs of its own.
   seedObjectBlockSprites(m);
 
-  // 3. Fill 6 cells of the OBJ_ARRAY_66 block, stride 0x10, with 0x01.
+  // 3. Mark 6 records of the board array active (stride 0x10).
   for (let i = 0; i < 6; i++) mem.write8((OBJ_ARRAY_66 + i * 0x10) & 0xffff, 0x01);
 
-  // 4. Fill the 3 cells at OBJ_ARRAY_66 + OBJ_STATE (+0x0d), stride 0x10, with 0x08 (spawn state).
-  //    The ROM's outer C=2 loop re-runs this over the SAME cells with HL reset, so one pass is
-  //    memory-identical.
+  // 4. Put the first 3 of those records into the spawn state. Repeating this fill over the same
+  //    three cells would change nothing, so it is written once.
   for (let i = 0; i < 3; i++) mem.write8((OBJ_ARRAY_66 + OBJ_STATE + i * 0x10) & 0xffff, 0x08);
 
-  // 5. Scatter 6 source byte-pairs from the ROM table at 0x3E64 into OBJ_ARRAY_66 + 0x03, stride 0x10.
-  regs.hl = 0x3e64; // contiguous source (walks 2*B = 12 bytes)
-  regs.de = OBJ_ARRAY_66 + 0x03; // dest base (offsets +0/+2 of each record) = 0x6603
-  regs.bc = 0x060e; // B=6 pairs, C=0x0E -> record stride C+2 = 0x10
+  // 5. Scatter 6 byte-pairs from a contiguous table into the board records' +3/+5 (X and Y).
+  regs.hl = 0x3e64; // contiguous source, 12 bytes
+  regs.de = OBJ_ARRAY_66 + 0x03; // dest base — each pair lands at +0 and +2 from here
+  regs.bc = 0x060e; // 6 pairs, record stride 0x10
   copyBytePairsStrided(m);
 
-  // 6. Broadcast the 4-byte ROM group at 0x3E60 into 6 records at OBJ_ARRAY_66 + 0x07, stride 0x10.
+  // 6. Broadcast a fixed 4-byte template group into +7 of the same 6 board records.
   regs.hl = 0x3e60;
-  regs.de = OBJ_ARRAY_66 + 0x07; // = 0x6607
-  regs.bc = 0x060c; // B=6 records, C=0x0C -> record stride C+4 = 0x10
+  regs.de = OBJ_ARRAY_66 + 0x07;
+  regs.bc = 0x060c; // 6 records, record stride 0x10
   replicateGroupStrided(m);
 
-  // 7. Build 6 hardware sprite records at 0x6958 (an unnamed slot in SPRITE_BUFFER) from the
-  //    OBJ_ARRAY_66 block, gathering fields +3/+7/+8/+5 (X<-+3, code<-+7, attr<-+8, Y<-+5).
+  // 7. Build 6 hardware sprite records from the board array, gathering each record's
+  //    +3/+7/+8/+5 into the sprite's X / code / attribute / Y.
   regs.ix = OBJ_ARRAY_66; // object-record base
-  regs.hl = 0x6958; // dest inside SPRITE_BUFFER (unnamed slot)
+  regs.hl = 0x6958; // dest — an unnamed slot in the sprite buffer
   regs.b = 0x06; // record count
   regs.de = 0x0010; // per-record source stride
   gatherSpriteRecords(m);
 
-  // 8. Copy the fixed 12-byte ROM sprite template at 0x3E48 to OBJECT_COLLISION_SPRITES
-  //    (0x6A0C, in SPRITE_BUFFER).
+  // 8. Copy the fixed 12-byte sprite template into the object-collision sprite slot.
   blockCopy(mem, OBJECT_COLLISION_SPRITES, 0x3e48, 0x0c);
 
-  // 9. Write the OBJ_ARRAY_64 block's two lead records field-by-field (base 0x6400, stride 0x20).
+  // 9. Seed the two fires: write the fire array's two lead records field-by-field (stride 0x20).
   //    +0 = active; +3/+0E = the X pair; +5/+0F = the Y pair.
   const IX = OBJ_ARRAY_64;
   mem.write8((IX + 0x00) & 0xffff, 0x01);
@@ -161,6 +107,6 @@ export function seed75mBoardObjects(m) {
   mem.write8((IX + 0x25) & 0xffff, 0x60);
   mem.write8((IX + 0x2f) & 0xffff, 0x60);
 
-  // 10. Copy the 16-byte inline ROM data table at 0x1121 (right after this code) to 0x6970.
+  // 10. Copy the 16-byte data table that sits right after this code into the sprite buffer.
   blockCopy(mem, 0x6970, 0x1121, 0x10);
 }

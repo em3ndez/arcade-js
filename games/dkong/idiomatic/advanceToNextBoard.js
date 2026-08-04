@@ -1,56 +1,43 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * advanceToNextBoard — step the board-order pointer to the next board and enter the
- * "HOW HIGH CAN YOU GET?" interlude.  ROM 0x178E.
+ * advanceToNextBoard — move the board order on to the next board and go into the
+ * "HOW HIGH CAN YOU GET?" interlude that introduces it.
  *
- * The final sub-step of the board-cleared / board-advance sequence. It is dispatched
- * from dispatchBoardClearedInterlude (GAME_SUBSTATE == 0x16, "board-advance") as the last entry of that
- * dispatcher's rst-0x28 table, selected once its 0x6388 sub-step counter reaches this
- * step. It first ticks the shared rst-0x18 sub-state gate: while that timer is still
- * counting down the routine does nothing (the caller is skipped); only on the frame the
- * timer EXPIRES does the advance commit.
+ * The last step of the sequence that runs after a board is cleared. It first ticks the shared
+ * sub-state countdown, and while that is still running the routine does nothing at all; only on
+ * the frame the countdown expires does the advance actually happen.
  *
- * On commit it walks BOARD_SEQ_PTR forward one entry in the ROM board-order table and
- * reads the next board index. The table ends in a 0x7F terminator; hitting it reloads
- * the pointer to 0x3A73 — the start of the level-5+ group — so the board order repeats
- * forever (this is the level loop's wrap). The new index is published to BOARD. It then
- * posts deferred task [opcode 0x05, argument 0x00], clears the 0x6388 board-advance
- * sub-step counter, and arms the next sub-state: a 0x30-frame SUBSTATE_TIMER wait into
- * GAME_SUBSTATE 8 (the how-high interlude for the new board).
+ * On that frame it walks BOARD_SEQ_PTR one entry forward through the board-order table and reads
+ * the board waiting there. The table ends in a terminator byte; reaching it puts the pointer back
+ * to the start of the repeating group rather than stopping, which is how the game keeps handing
+ * out boards forever once a player is past the fixed opening order. Whichever board comes out is
+ * published to BOARD.
  *
- * Callees, direct (bottom-up): tickSubstateTimer (the rst-0x18 gate; boolean = expired)
- * and enqueueTask (the task-ring post primitive; reads D = opcode, E = argument).
+ * It then posts a deferred task, clears the sequence step counter so the next board-cleared run
+ * starts from its own first step, and arms the following sub-state: a 48-frame wait, and then the
+ * how-high interlude for the board just selected.
  *
- * Memory-equivalent to the frozen oracle — equivalence-178e.test.js.
- * GATE:     crafted-entry — poke-forced board-advance dispatches (attract never reaches
- *           sub-state 0x16) + crafted skip / walk / 0x7F-terminator-wrap arms; teeth =
- *           pointer advanced by 2 instead of 1.
- * LIVE-OUT: memory-only — BOARD_SEQ_PTR (16-bit), BOARD, the task ring (TASK_TAIL + two
- *           slots), 0x6388, SUBSTATE_TIMER, GAME_SUBSTATE. Registers/flags (A/HL/DE/F)
- *           are dead ABI: the rst-0x28 dispatch chain that returns here reads none.
- *           SP/pc are the dropped stack model (the oracle's push/ret becomes the JS
- *           return), so its residue lands only in STACK_SCRATCH, excluded by the contract.
- * NAMES:    BOARD_SEQ_PTR (0x622A), BOARD (0x6227), SUBSTATE_TIMER (0x6009),
- *           GAME_SUBSTATE (0x600A), BOARD_ADVANCE_STEP (0x6388 — the board-advance sub-step
- *           counter dispatchBoardClearedInterlude indexes) from names.js. 0x3A73 = ROM table wrap target; 0x7F =
- *           end-of-table sentinel; 0x0500 = the posted task.
+ * LIVE-OUT: memory-only — the board-order pointer, the current board, the posted task, the
+ * cleared sequence step, the armed countdown and the next sub-state.
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP } from "./names.js";
 
-const SEQ_TABLE_WRAP = 0x3a73; // ROM board-order table: restart of the level-5+ group
-const SEQ_TERMINATOR = 0x7f; // end-of-table sentinel
+/** Where the board order restarts when it runs off the end of the table. */
+const SEQ_TABLE_WRAP = 0x3a73;
+/** The byte that marks the end of the board-order table. */
+const SEQ_TERMINATOR = 0x7f;
 
 export function advanceToNextBoard(m) {
   const { regs, mem } = m;
 
-  // rst 0x18 gate: tick the sub-state timer; run the advance only the frame it expires.
+  // Tick the sub-state countdown; the advance runs only on the frame it expires.
   if (!tickSubstateTimer(m)) return;
 
-  // Walk the board-order pointer to the next entry and read that board's index; on the
-  // 0x7F terminator reload the pointer to 0x3A73 so the board order loops forever.
+  // Walk the board-order pointer on one entry and read the board there; at the terminator
+  // put the pointer back to the start of the repeating group so the order never runs out.
   let ptr = (mem.read16(BOARD_SEQ_PTR) + 1) & 0xffff;
   let board = mem.read8(ptr);
   if (board === SEQ_TERMINATOR) {
@@ -60,13 +47,13 @@ export function advanceToNextBoard(m) {
   mem.write16(BOARD_SEQ_PTR, ptr);
   mem.write8(BOARD, board);
 
-  // Post the deferred task [opcode 0x05, argument 0x00] (DE = 0x0500).
+  // Post the deferred task: opcode 5, no argument.
   regs.d = 0x05;
   regs.e = 0x00;
   enqueueTask(m);
 
-  // Reset the board-advance sub-step counter, then arm the next sub-state: wait 0x30
-  // frames (SUBSTATE_TIMER) into GAME_SUBSTATE 8, the how-high interlude for the new board.
+  // Clear the sequence step counter, then arm the next sub-state: wait 48 frames, then
+  // the how-high interlude for the board just selected.
   mem.write8(BOARD_ADVANCE_STEP, 0x00);
   mem.write8(SUBSTATE_TIMER, 0x30);
   mem.write8(GAME_SUBSTATE, 0x08);

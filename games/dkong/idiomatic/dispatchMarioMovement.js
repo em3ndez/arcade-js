@@ -1,80 +1,33 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * dispatchMarioMovement — the movement machine's router: pick which handler owns Mario's frame.  ROM 0x1AC3.
+ * dispatchMarioMovement — the movement machine's router: pick which handler owns Mario's frame.
  *
- * Run once per frame from the shared per-frame update cascade (ROM 0x197A). It writes no
- * memory of its own — it is five tests in a fixed priority order, and the order IS the
- * mechanic. The first test that fires takes the frame; nothing below it is consulted:
+ * Run once per frame from the shared per-frame update cascade. It writes no memory of its
+ * own — it is five tests in a fixed priority order, and the ORDER IS THE MECHANIC. The
+ * first test that fires takes the frame; nothing below it is consulted:
  *
- *   1. MARIO_AIRBORNE set  -> advanceMarioAirborneFrame. A jump or a fall owns the whole frame:
- *      the arc is integrated and steered, and no input below is looked at, which is why a
- *      jump cannot be steered onto a ladder or re-triggered in mid-air.
- *   2. MARIO_FREEZE_TIMER nonzero -> tickPostLandingFreeze. The few frames after a landing, in
- *      which Mario is unresponsive and the timer just counts down.
- *   3. MARIO_HAMMER_ACTIVE set -> walkRightWhileHeld, the ground walk/climb direction pick. Note WHERE
- *      this enters: ABOVE the ladder test and above the jump test (ROM 0x1AD1 reads
- *      MARIO_HAMMER_ACTIVE, 0x1AD8 MARIO_ON_LADDER, 0x1ADF the input word), so a held hammer
- *      claims the frame before either of those is reached — the climb branch and the jump
- *      branch are both unreachable, and that is exactly the hammer's cost. (The gate's tooth
- *      for this is a twin that moves the arm BELOW the jump test, which lets a hammer jump.)
- *   4. MARIO_ON_LADDER set -> climbDownWhileHeld, the Down/Up half of the climb dispatch.
- *   5. the jump press-edge bit of P1_INPUT -> initMarioJump, which flags Mario airborne and
- *      launches the arc — so from the NEXT frame test 1 takes over.
- *   6. otherwise fall through to walkRightWhileHeld: ordinary grounded walking (and stepping onto a
- *      ladder, which is what sets the flag test 4 reads on later frames).
+ *   1. MARIO_AIRBORNE set -> the airborne-frame handler. A jump or a fall owns the whole
+ *      frame: the arc is integrated and steered, and no input below is looked at, which is
+ *      why a jump cannot be steered onto a ladder or re-triggered in mid-air.
+ *   2. MARIO_FREEZE_TIMER nonzero -> the post-landing freeze tick. The few frames after a
+ *      landing, in which Mario is unresponsive and the timer just counts down.
+ *   3. MARIO_HAMMER_ACTIVE set -> the ground walk handler. Note WHERE this enters: ABOVE
+ *      the ladder test and above the jump test, so a held hammer claims the frame before
+ *      either of those is reached — the climb branch and the jump branch are both
+ *      unreachable while the hammer is up, and that is exactly the hammer's cost.
+ *   4. MARIO_ON_LADDER set -> the climb dispatch, the Down/Up half of the movement machine.
+ *   5. the jump press-edge bit of P1_INPUT -> the jump launcher, which flags Mario airborne
+ *      and starts the arc — so from the NEXT frame test 1 takes over.
+ *   6. otherwise fall through to the ground walk handler: ordinary grounded walking, and
+ *      stepping onto a ladder, which is what sets the flag test 4 reads on later frames.
  *
  * Every test is exact rather than a range: the three flag tests fire on the value 1 alone
  * (2 or 128 in MARIO_AIRBORNE would fall through to the freeze test), the freeze test fires
- * on any nonzero, and the jump test looks at the input word's top bit only. The equivalence
- * sweep drives all 256 values through each cell, so those are measured, not assumed.
+ * on any nonzero, and the jump test looks at the input word's top bit only.
  *
- * Memory-equivalent to the frozen oracle — equivalence-1ac3.test.js.
- * GATE:     captured + sweeps + crafted overlaps. NO crafting is needed for arm COVERAGE — a
- *           plain 2000-frame attract run (no coin, no pokes, no tape) dispatches 0x1AC3 1197x
- *           and those real dispatches hit ALL SIX arms (ground 670, hammer 285, airborne 167,
- *           ladder 55, freeze 16, jump 4), every one replayed oracle-vs-candidate. On top of
- *           that, five 256-value sweeps drive each selector cell over its whole range from a
- *           real grounded capture, pinning the exact predicates (the flag tests fire on 1
- *           alone, the jump test on the top bit alone) by asserting the arm histogram; and
- *           five crafted states turn two selectors on at once to pin the priority order,
- *           which the demo never exercises. Compared on RAM - STACK_SCRATCH and the return
- *           value, with each arm's whole downstream cascade running on both sides — the frozen
- *           oracle on the reference side, the idiomatic handlers plus their still-oracle
- *           remainders on this one — so a mis-routed frame shows up as divergent RAM in the
- *           handler, not here. Registers and pc/SP are NOT in the contract, and the gate
- *           MEASURES that rather than assuming it: it continues the caller's own cascade (the
- *           next four routines ROM 0x197A runs) on both machines after every one of the 1197
- *           dispatches and requires RAM to still agree, which a live register or flag would
- *           break; and it prints the measured per-arm SP residue (0 or -2 bytes, depending on
- *           whether that arm's chain ended in still-oracle code that executed the Z80 `ret` or
- *           in an idiomatic routine that returned in JS instead) while asserting the one thing
- *           the dropped stack model does claim — that both stack pointers stay inside the dead
- *           scratch region.
- *           Teeth: five broken twins — priority inverted so the freeze test outranks airborne,
- *           the hammer arm moved BELOW the jump test (so a hammer could jump), the ladder arm
- *           dropped, the jump bit read as bit 0, and the airborne test relaxed to "nonzero" —
- *           each required to be caught at a named live cell. The last of those is invisible on
- *           every real dispatch (the flag is only ever 0 or 1 in play) and is caught only by
- *           the sweep, which is the concrete reason the sweep is in the gate.
  * LIVE-OUT: memory-only. This routine writes nothing itself; every visible byte belongs to
- *           the handler it picked. The return value is compared as well and matches on every
- *           case, but it is dead too: the caller ROM 0x197A discards the result and calls the
- *           next cascade routine without reading a register or a flag. The registers that do
- *           differ are a/f/b/c/d/e/h/l, varying by arm — the airborne arm's C alone is the
- *           residue advanceMarioAirborneFrame's own gate already declares dead — and the
- *           caller-cascade continuation above is what shows none of them is read. pc/SP are
- *           the dropped stack model (see GATE).
- * NAMES:    MARIO_AIRBORNE (0x6216), MARIO_FREEZE_TIMER (0x621E), MARIO_HAMMER_ACTIVE (0x6217),
- *           MARIO_ON_LADDER (0x6215) and P1_INPUT (0x6010), all imported from names.js. No
- *           record-offset ambiguity arises here: all five are absolute loads in the oracle, not
- *           reads through an object/sprite record pointer, so each names a fixed cell and not
- *           an offset into a block. (The oracle defines a record-offset helper off the caller's
- *           block pointer, but never uses it in this span; it hands the helper to the ground arm,
- *           which forwards it two routines deep without any of them reading it, so it is dropped
- *           here. The block pointer itself is dead on every arm — the airborne handler sets its
- *           own.) All five handlers are direct-called — advanceMarioAirborneFrame (ROM 0x1BB2),
- *           tickPostLandingFreeze (0x1B55), walkRightWhileHeld (0x1AE6), climbDownWhileHeld (0x1B38) and
- *           initMarioJump (0x1B6E) — so no address literal is left in the body.
+ * the handler it picked. Whatever the handler returns is passed along and then discarded —
+ * the per-frame cascade calls its next routine without reading anything back.
  */
 
 import {
@@ -84,11 +37,11 @@ import {
   MARIO_ON_LADDER,
   P1_INPUT,
 } from "./names.js";
-import { advanceMarioAirborneFrame } from "./advanceMarioAirborneFrame.js"; // ROM 0x1BB2
-import { tickPostLandingFreeze } from "./tickPostLandingFreeze.js"; // ROM 0x1B55
-import { walkRightWhileHeld } from "./walkRightWhileHeld.js"; // ROM 0x1AE6
-import { climbDownWhileHeld } from "./climbDownWhileHeld.js"; // ROM 0x1B38
-import { initMarioJump } from "./initMarioJump.js"; // ROM 0x1B6E
+import { advanceMarioAirborneFrame } from "./advanceMarioAirborneFrame.js";
+import { tickPostLandingFreeze } from "./tickPostLandingFreeze.js";
+import { walkRightWhileHeld } from "./walkRightWhileHeld.js";
+import { climbDownWhileHeld } from "./climbDownWhileHeld.js";
+import { initMarioJump } from "./initMarioJump.js";
 
 // Top bit of the cooked control word: set for exactly one frame per fresh jump-button press.
 const JUMP_PRESS_EDGE = 0x80;

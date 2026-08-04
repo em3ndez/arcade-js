@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_33ad (ROM 0x33AD) — step an object's working X one pixel in the
+ * Equivalence test for walkFireOneStep (ROM 0x33AD) — step an object's working X one pixel in the
  * direction its OBJ_STATE selects, set/clear the sprite tile code's flip bit to match, advance
- * the object's animation clock over that same code byte, and fall through into loc_33c3 (the
+ * the object's animation clock over that same code byte, and fall through into settleFireOnGirderSlope (the
  * 25m-only working-Y re-snap).
  *
  * 0x33AD IS naturally dispatched: the per-object state machine at 0x3202 calls it, and this
@@ -15,7 +15,7 @@
  * What attract does NOT produce is crafted on a real attract base, poked identically on both
  * sides: the byte wraps at either end of the X step and of the sprite code, the animation
  * clock's expiry and its every-sixteenth-step bit toggle landing on top of the flip bit, the
- * travel states attract never showed here (2, 3, 0xFF), and both sides of loc_33c3's 25m gate.
+ * travel states attract never showed here (2, 3, 0xFF), and both sides of settleFireOnGirderSlope's 25m gate.
  *
  * CONTRACT. The idiomatic routine replaces the Z80 stack with the JS call stack, so it models
  * no stack at all; runCandidate performs ONE m.ret() after it to line pc + SP up with the
@@ -37,7 +37,28 @@
  *      (a) the X step runs the wrong way (inc/dec swapped),
  *      (b) the flip bit is ORed on both arms, so it never clears,
  *      (c) the animation step runs BEFORE the flip write instead of after (ordering),
- *      (d) the loc_33c3 fall-through tail is dropped.
+ *      (d) the settleFireOnGirderSlope fall-through tail is dropped.
+ *
+ * LIVE-OUT, DERIVED — cross-file, and therefore recorded here rather than in the routine:
+ * memory-only — the object's working X (+0x0E), its sprite tile code (+0x07), the animation
+ * down-counter (+0x15) and, on 25m, the working Y (+0x0F). The caller consumes no register or flag
+ * this leaves behind: its next action is a call to turnFireAtGroundEdge, which re-loads the object
+ * pointer from OBJ_ITER_PTR itself and takes no register live-in, and 0x3202 re-loads the pointer
+ * register from the same cell before its own next field access.
+ *
+ * WHICH FIELDS THESE ARE, corroborated from outside the routine and therefore recorded here: +0x0E
+ * and +0x0F are the object's WORKING position, one stage upstream of the grounded OBJ_X/OBJ_Y. The
+ * frozen 0x3202 copies +0x0E straight into OBJ_X (ROM 0x326F-0x3272) and stores +0x0F plus a 0x3A7A
+ * table term into OBJ_Y (ROM 0x3275-0x3279), and +0x0E equalled OBJ_X on every one of the real
+ * dispatches test 0 measures. turnFireAtGroundEdge independently reads the same pair as a position.
+ * The bit-7 flip reading is corroborated by the SPRITE_BUFFER registry entry (record +1 code, bit 7
+ * = flip) plus OBJ_SPRITE_CODE's note that the object's +0x07 is copied into that sprite byte.
+ *
+ * NOT ESTABLISHED: which object this services — the record pointer is loaded from OBJ_ITER_PTR by
+ * the caller, so the identity is whatever that iterator points at. Nor is the sense of state 1
+ * called "left" or "right": only that it is the direction 0x3202's edge tests re-arm at the low-X
+ * boundary (0x324D: X < 0x10 -> state 1, X >= 0xF0 -> state 2) and undo when the move is rejected
+ * (0x3297: state 1 -> step X back down, state 2 -> step it back up).
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-33ad.test.js
  */
@@ -47,8 +68,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_33ad as oracle } from "../../translated/loc_33ad.js";
-import { loc_33ad } from "../loc_33ad.js";
-import { loc_33c3 } from "../loc_33c3.js";
+import { walkFireOneStep } from "../walkFireOneStep.js";
+import { settleFireOnGirderSlope } from "../settleFireOnGirderSlope.js";
 import { stepObjectSpriteFrame } from "../stepObjectSpriteFrame.js";
 import { Machine } from "../../machine.js";
 import { STACK_SCRATCH, BOARD, OBJ_STATE, OBJ_SPRITE_CODE, OBJ_ARRAY_64 } from "../names.js";
@@ -188,7 +209,7 @@ const XS = [0x00, 0x01, 0xf0, 0xff];     // both ends of the byte, so the step w
 const YS = [0x00, 0x4c, 0xf0];           // ordinary + snapYToGirder's two band-seam rails
 const BOARDS = [0x01, 0x02];             // 25m (tail runs) and 50m (tail early-outs)
 
-test("EQUAL (crafted matrix): loc_33ad == oracle across the whole field matrix", () => {
+test("EQUAL (crafted matrix): walkFireOneStep == oracle across the whole field matrix", () => {
   const base = attractBase();
   let cases = 0, flipSet = 0, flipCleared = 0, xWrapped = 0, animStepped = 0, animToggled = 0;
   let tailMovedY = 0, tailHeldY = 0;
@@ -200,7 +221,7 @@ test("EQUAL (crafted matrix): loc_33ad == oracle across the whole field matrix",
           for (const y of YS) {
             for (const board of BOARDS) {
               const entry = craft(base, { state, code, timer, x, y, board });
-              const diffs = contractDiffs(entry, loc_33ad);
+              const diffs = contractDiffs(entry, walkFireOneStep);
               assert.equal(
                 diffs.length, 0,
                 `state=${hx(state)} code=${hx(code)} timer=${timer} x=${hx(x)} y=${hx(y)} ` +
@@ -250,7 +271,7 @@ test("EQUAL (crafted matrix): loc_33ad == oracle across the whole field matrix",
 
 // -- 2. PINNED VALUES ---------------------------------------------------------
 
-test("PINNED: hand-computed absolute results, oracle and loc_33ad both", () => {
+test("PINNED: hand-computed absolute results, oracle and walkFireOneStep both", () => {
   const base = attractBase();
   const pinned = [
     {
@@ -277,7 +298,7 @@ test("PINNED: hand-computed absolute results, oracle and loc_33ad both", () => {
 
   for (const { what, entry: fields, want } of pinned) {
     const entry = craft(base, fields);
-    for (const [label, run] of [["oracle", runOracle(entry)], ["loc_33ad", runCandidate(entry, loc_33ad)]]) {
+    for (const [label, run] of [["oracle", runOracle(entry)], ["walkFireOneStep", runCandidate(entry, walkFireOneStep)]]) {
       assert.equal(run.mem.read8(CODE_ADDR), want.code, `${what} [${label}]: sprite code`);
       assert.equal(run.mem.read8(X_ADDR), want.x, `${what} [${label}]: working X`);
       assert.equal(run.mem.read8(Y_ADDR), want.y, `${what} [${label}]: working Y`);
@@ -304,7 +325,7 @@ function captureDispatches(K, maxFrames) {
   return caps;
 }
 
-test("REALISM: real captured 0x33AD dispatches — loc_33ad matches the oracle contract", () => {
+test("REALISM: real captured 0x33AD dispatches — walkFireOneStep matches the oracle contract", () => {
   const caps = captureDispatches(200, 3000);
   assert.ok(caps.length >= 1, "expected at least one real 0x33AD dispatch during attract");
 
@@ -315,7 +336,7 @@ test("REALISM: real captured 0x33AD dispatches — loc_33ad matches the oracle c
     // The oracle's bracket reaches two bytes below the entry SP; record the deepest it goes so
     // the STACK_SCRATCH exclusion is measured rather than assumed.
     deepestPush = Math.min(deepestPush, (cap.regs.sp - 2) & 0xffff);
-    const diffs = contractDiffs(cap, loc_33ad);
+    const diffs = contractDiffs(cap, walkFireOneStep);
     assert.equal(
       diffs.length, 0,
       `real dispatch (ix=${hx(cap.regs.ix)}, sp=${hx(cap.regs.sp)}): ${diffs.join("; ")}`,
@@ -349,7 +370,7 @@ function brokenXDirection(m) {
     mem.write8(xAddr, mem.read8(xAddr) + 1); // BUG: should step down
   }
   stepObjectSpriteFrame(m, objBase);
-  loc_33c3(m);
+  settleFireOnGirderSlope(m);
 }
 
 /** BUG (b): the flip bit is ORed on both arms, so it never clears. */
@@ -367,7 +388,7 @@ function brokenFlipNeverCleared(m) {
     mem.write8(xAddr, mem.read8(xAddr) - 1);
   }
   stepObjectSpriteFrame(m, objBase);
-  loc_33c3(m);
+  settleFireOnGirderSlope(m);
 }
 
 /** BUG (c): the animation step runs BEFORE the flip write instead of after. */
@@ -385,10 +406,10 @@ function brokenAnimBeforeFlip(m) {
     mem.write8(codeAddr, code & ~0x80);
     mem.write8(xAddr, mem.read8(xAddr) - 1);
   }
-  loc_33c3(m);
+  settleFireOnGirderSlope(m);
 }
 
-/** BUG (d): the loc_33c3 fall-through tail is dropped, so the 25m Y re-snap never happens. */
+/** BUG (d): the settleFireOnGirderSlope fall-through tail is dropped, so the 25m Y re-snap never happens. */
 function brokenNoTail(m) {
   const { regs, mem } = m;
   const objBase = regs.ix;
@@ -403,7 +424,7 @@ function brokenNoTail(m) {
     mem.write8(xAddr, mem.read8(xAddr) - 1);
   }
   stepObjectSpriteFrame(m, objBase);
-  // BUG: no loc_33c3(m)
+  // BUG: no settleFireOnGirderSlope(m)
 }
 
 test("TEETH: all four broken twins are CAUGHT, each at the byte it corrupts", () => {
@@ -431,7 +452,7 @@ test("TEETH: all four broken twins are CAUGHT, each at the byte it corrupts", ()
       at: CODE_ADDR,
     },
     {
-      name: "loc_33c3 tail dropped",
+      name: "settleFireOnGirderSlope tail dropped",
       fn: brokenNoTail,
       // 25m, X stepping onto a girder-cell boundary: the tail moves the working Y 0x50 -> 0x51.
       fields: { state: 0x01, code: 0x00, timer: 0x02, x: 0x0f, y: 0x50, board: 0x01 },
@@ -443,7 +464,7 @@ test("TEETH: all four broken twins are CAUGHT, each at the byte it corrupts", ()
   for (const twin of twins) {
     const entry = craft(base, twin.fields);
     // Sanity: the CORRECT routine passes on this very entry, so the twin's failure is the bug.
-    assert.equal(contractDiffs(entry, loc_33ad).length, 0, `${twin.name}: the correct routine must pass here`);
+    assert.equal(contractDiffs(entry, walkFireOneStep).length, 0, `${twin.name}: the correct routine must pass here`);
     const diffs = contractDiffs(entry, twin.fn);
     assert.ok(diffs.length > 0, `the "${twin.name}" twin ESCAPED — the gate is worthless`);
     assert.ok(

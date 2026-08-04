@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2766 — start Mario falling and clear the edge-reposition flag.  ROM 0x2766.
+ * loc_2766 — start Mario falling and clear the edge-reposition flag.
  *
- * A leaf reached from a vertical-mover edge case: it raises the one-shot MARIO_START_FALL trigger
- * (the player-state reset launches Mario's fall next frame) and clears EDGE_REPOSITION_FLAG so the
- * just-finished reposition is not re-processed. Takes no inputs, writes exactly those two cells.
+ * A leaf reached from an edge case of the vertical movers: it raises the one-shot
+ * MARIO_START_FALL trigger, so the player-state reset launches Mario's fall on the next frame,
+ * and clears EDGE_REPOSITION_FLAG so the reposition that has just finished is not worked through
+ * a second time. It takes no inputs and writes exactly those two cells.
  *
- * Faithful to translated/loc_2766.js.
- *
- * Memory-equivalent to the frozen oracle — equivalence-2766.test.js.
+ * LIVE-OUT: memory-only — MARIO_START_FALL and EDGE_REPOSITION_FLAG.
  */
 import { EDGE_REPOSITION_FLAG, MARIO_START_FALL } from "./names.js";
 

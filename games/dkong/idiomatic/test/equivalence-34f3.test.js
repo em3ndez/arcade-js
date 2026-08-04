@@ -11,11 +11,11 @@
  * ABI, so the contract is memory-only (RAM over the whole dump).
  *
  * The routine IS reached in a live run: ROM 0x30F6 is not a routine, it is the `call 0x34f3`
- * INSIDE loc_30ed, and loc_30ed calls publishFireSprites directly today. (An earlier version of
+ * INSIDE updateFires, and updateFires calls publishFireSprites directly today. (An earlier version of
  * this header said its "sole caller, ROM 0x30F6, is not translated" and that the routine was
- * unwired; both halves were stale.) Its natural traffic is sourced from loc_30ed's own GATE —
- * 1532 natural loc_30ed dispatches over 4000 attract frames, 481 of them on the full arm that
- * reaches here. The gate below is nonetheless CRAFTED rather than captured, because the crafted
+ * unwired; both halves were stale.) Its natural traffic is a measurement of the CALLER, not of
+ * this file: 1532 natural updateFires dispatches over 4000 attract frames, 481 of them on the
+ * full arm that reaches here — i.e. 481 dispatches of publishFireSprites. The gate below is nonetheless CRAFTED rather than captured, because the crafted
  * set is what proves the equivalence: it drives occupancy patterns no attract run produces.
  * Built from CRAFTED entries on a realistic attract base:
  *

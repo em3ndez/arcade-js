@@ -46,6 +46,16 @@
  *   5. REALISM — hook 0x1880 over a long attract run; replay any real dispatch, else
  *      record that attract never reaches this interlude (why crafted is the gate).
  *
+ * HOLE — the 0x1826 tile fill is BLIND on both sides. The idiomatic routine deliberately
+ * calls the frozen oracle at 0x1826 and not its idiomatic twin (fillTileBlock, which exists
+ * and is in ROUTINES): the oracle is a pure leaf ending in `ret`, so it consumes one
+ * guest-stack word the twin's JS return does not. This gate cannot adjudicate that choice,
+ * because BOTH sides call the same oracle for the fill — an injected 2-byte delta at that
+ * call site was caught by neither this test nor the full-flip gate, and no run reaches the
+ * call site (attract never builds this screen and there is no tape-driven convergence gate
+ * for the interlude). So "the tile fill is equivalent" is NOT a claim this test supports;
+ * what it checks is that the fill was invoked with the same HL on both sides.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-1880.test.js
  */
 

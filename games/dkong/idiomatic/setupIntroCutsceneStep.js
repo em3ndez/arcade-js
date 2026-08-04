@@ -1,72 +1,53 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * setupIntroCutsceneStep — step 0 of the opening Kong-climb cutscene: draw the
- * cutscene playfield and seed its animation state.  ROM 0x0a8a.
+ * cutscene playfield and seed its animation state.
  *
- * The opening cutscene (Kong hauling Pauline up the girders, at the head of every
- * credited game) is driven by INTRO_STEP (0x6385), which loc_0a76
- * (dispatchIntroCutsceneStep) walks 0 -> 7 through the rst-0x28 table at ROM 0x0A7A,
- * one handler per step. This is entry 0 — the one-time SETUP, run while
- * GAME_SUBSTATE (0x600A) == 7 and INTRO_STEP == 0. Straight-line, no data-dependent
- * branch, no work-RAM inputs (every value is an immediate or a ROM table):
+ * The opening cutscene — Kong hauling Pauline up the girders, at the head of every
+ * credited game — is driven by INTRO_STEP, which a dispatcher walks 0 -> 7, one
+ * handler per step. This is entry 0, the one-time SETUP, run while the game sub-state
+ * is the cutscene value and INTRO_STEP is still 0. Straight-line, no data-dependent
+ * branch, no work-RAM inputs — every value stored is an immediate or comes out of a
+ * fixed program-memory table:
  *
  *   - Select palette bank %01 (PALETTE_BANK_LO <- 0, PALETTE_BANK_HI <- 1).
- *   - Draw the cutscene's static playfield: call drawBoardLayout, which walks the
- *     0xAA-terminated line-segment table at ROM 0x380D (girders + ladders) and
- *     stamps each segment into VRAM, leaving its per-record scratch in 0x63AB..
- *   - Stamp three fixed cutscene tiles: 0x76A3 <- 0x10, 0x7663 <- 0x10, 0x75AA <- 0xD4.
- *   - Clear the work-RAM cutscene bookkeeping byte 0x62AF to 0.
- *   - Seed the two cutscene walk pointers the later steps consume:
- *       INTRO_WALK_PTR_A (0x63C2) <- 0x38B4 (loc_0b06's) and INTRO_WALK_PTR_B (0x63C4)
- *       <- 0x38CB (loc_0b68's).
- *   - Arm SUBSTATE_TIMER (0x6009) to 0x40 — a 64-frame countdown for step 1
- *     (runIntroClimbStep gates on this expiring).
- *   - `inc (INTRO_STEP)` — advance 0 -> 1 so the NEXT dispatch runs the following
- *     phase instead of re-running this setup.
+ *   - Draw the cutscene's static playfield: walk the terminated line-segment record
+ *     table (girders + ladders) and stamp each segment into video RAM, leaving the
+ *     walk's per-record scratch behind.
+ *   - Stamp three fixed cutscene tiles.
+ *   - Clear the cutscene bookkeeping byte.
+ *   - Seed the two cutscene walk pointers the later steps consume, INTRO_WALK_PTR_A
+ *     and INTRO_WALK_PTR_B.
+ *   - Arm SUBSTATE_TIMER to 0x40 — a 64-frame countdown the following step gates on.
+ *   - Advance INTRO_STEP 0 -> 1, so the NEXT dispatch runs the following phase instead
+ *     of re-running this setup.
  *
- * CALLEE. drawBoardLayout is already idiomatic but still reads its table pointer from the
- * Z80 register file (regs.de) and pins the vestigial SP internally — so this routine
- * sets regs.de = 0x380D before the direct call (the boundary where registers remain),
- * exactly as the oracle's `ld de,0x380D` did. SP is inherited from the caller and left
- * alone; drawBoardLayout pins it per record and returns it unchanged.
+ * THE PLAYFIELD DRAW STILL TAKES ITS TABLE POINTER IN A REGISTER, so this routine
+ * loads the record-table address into the register pair before calling it. The stack
+ * pointer is inherited from the caller and left alone; the draw pins it per record and
+ * returns it unchanged.
  *
- * Memory-equivalent to the frozen oracle — equivalence-0a8a.test.js.
- * GATE:     crafted-entry — attract (6000 frames) dispatches 0x0a8a ZERO times (the
- *           intro cutscene is a credited game's per-board head, GAME_SUBSTATE 7), so
- *           the gate is a real booted attract base, cloned, oracle-vs-idiomatic on
- *           fresh clones. The only work-RAM-dependent output is `inc (INTRO_STEP)`, so
- *           INTRO_STEP is swept EXHAUSTIVELY (0..255, incl. the 0xFF->0x00 wrap); every
- *           other output is an immediate / the deterministic 0x380D record walk. Teeth:
- *           a swapped walk-pointer seed (0x63C2) and a dropped INTRO_STEP advance.
- * LIVE-OUT: memory-only — the palette latch, VRAM (0x76A3/0x7663/0x75AA + drawBoardLayout's
- *           girder/ladder tiles), the SEG_* segment scratch (0x63AB..), 0x62AF,
- *           INTRO_WALK_PTR_A/B, SUBSTATE_TIMER, and INTRO_STEP. No live registers/flags: the caller
- *           (dispatchIntroCutsceneStep's rst-0x28 tail) makes no `ret cc` and reloads
- *           A/HL/DE before reading them (oracle's residual A=0x40, HL=0x6385, DE/BC =
- *           drawBoardLayout's leavings are all dead ABI). SP/pc are the dropped stack model.
- * NAMES:    SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), INTRO_WALK_PTR_A (0x63C2) and
- *           INTRO_WALK_PTR_B (0x63C4, the cutscene walk pointers) from names.js. Hex-kept
- *           (no names.js name): PALETTE_BANK_LO/HI (ls259 board latch, not work RAM), the
- *           0x380D record table + 0x38B4/0x38CB pointer seeds (ROM data), the three
- *           cutscene tiles (VRAM), and 0x62AF (board bookkeeping, rejected in names.js).
+ * LIVE-OUT: memory-only — the palette latch, the drawn tilemap, the layout walk's
+ * per-record scratch, the three cutscene tiles, the bookkeeping byte, the two walk
+ * pointers, SUBSTATE_TIMER and INTRO_STEP.
  */
 
 import { SUBSTATE_TIMER, INTRO_STEP, INTRO_WALK_PTR_A, INTRO_WALK_PTR_B } from "./names.js";
-import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0DA7 — walk 0x380D + draw the playfield
+import { drawBoardLayout } from "./drawBoardLayout.js"; // walk the record table + draw the playfield
 
-// The two-bit palette-bank select latch (ls259.6h at 0x7D86/0x7D87) — a board control
-// output, NOT work RAM, so it has no names.js name. Setting %01: LO <- 0, HI <- 1.
+// The two-bit palette-bank select latch (ls259.6h) — a board control output, NOT work
+// RAM. Setting %01: LO <- 0, HI <- 1.
 const PALETTE_BANK_LO = 0x7d86;
 const PALETTE_BANK_HI = 0x7d87;
 
-const RECORD_TABLE = 0x380d; // ROM line-segment table drawBoardLayout walks (girders + ladders)
+const RECORD_TABLE = 0x380d; // line-segment record table for the playfield (girders + ladders)
 
-// Three fixed cutscene tiles stamped into VRAM (ROM-data addresses, no names.js name).
+// Three fixed cutscene tiles stamped into video RAM.
 const CUTSCENE_TILE_A = 0x76a3;
 const CUTSCENE_TILE_B = 0x7663;
 const CUTSCENE_TILE_C = 0x75aa;
 
-const CUTSCENE_BOOKKEEPING = 0x62af; // work-RAM byte cleared each setup (unnamed in names.js)
+const CUTSCENE_BOOKKEEPING = 0x62af; // work-RAM byte cleared on each setup
 
 export function setupIntroCutsceneStep(m) {
   const { regs, mem } = m;
@@ -75,8 +56,8 @@ export function setupIntroCutsceneStep(m) {
   mem.write8(PALETTE_BANK_LO, 0x00);
   mem.write8(PALETTE_BANK_HI, 0x01);
 
-  // Draw the cutscene playfield from the 0x380D segment table. drawBoardLayout reads its
-  // table pointer from regs.de (still-register boundary), so set it as `ld de,0x380D`.
+  // Draw the cutscene playfield from the segment table. The draw reads its table
+  // pointer out of the register pair, so aim it there first.
   regs.de = RECORD_TABLE;
   drawBoardLayout(m);
 
@@ -95,5 +76,5 @@ export function setupIntroCutsceneStep(m) {
   // Arm the 64-frame phase countdown, then advance INTRO_STEP 0 -> 1 so the next
   // dispatch runs step 1 instead of re-running this setup.
   mem.write8(SUBSTATE_TIMER, 0x40);
-  mem.write8(INTRO_STEP, (mem.read8(INTRO_STEP) + 1) & 0xff); // inc (0x6385)
+  mem.write8(INTRO_STEP, (mem.read8(INTRO_STEP) + 1) & 0xff);
 }

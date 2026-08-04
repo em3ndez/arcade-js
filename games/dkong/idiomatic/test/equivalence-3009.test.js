@@ -4,8 +4,16 @@
  *
  * entry_3009 is a LEAF and a PURE function of its two register-byte inputs
  * (a = A, b = B): it reads no memory, WRITES NO MEMORY, and calls nothing.
- * Register A and the CARRY flag are the live-out (0x23F7 consumes carry via
- * `rra`); b/c/d are reproduced faithfully and checked as free teeth. So it is
+ * Register A is the live-out. THE CARRY IS **NOT** — an earlier version of this header said
+ * 0x23F7 consumes it via `rra`, and that is wrong: that `rra` reads the incoming carry into A
+ * bit 7, while what rotates onward into (ix+8) and (ix+7) is A's bit 0 and bit 1, and the
+ * incoming carry lands in A bit 6 and is destroyed by `ld a,0x04` at 0x2401. Falsified by
+ * measurement, not by re-reading: 4000 randomized advanceBarrelSpriteOrientation runs forced
+ * onto the (ix+0x0f)==1 arm — the only arm reaching here — each run twice with this routine's
+ * exit carry FLIPPED, gave ZERO differences in any register, flag or RAM byte, while the control
+ * (flipping exit A instead) changed RAM on 500 of 500. The other three call sites overwrite F
+ * immediately. The carry, and b/c/d, are reproduced faithfully and checked as free teeth — for
+ * fidelity, not because a consumer needs them. So it is
  * gated the strongest way a leaf can be — EXHAUSTIVELY against the frozen oracle
  * — not by a whole-machine trace:
  *
@@ -17,7 +25,7 @@
  *      zero, and the zero was an artefact of the window: 0x3009 IS a ROUTINES key,
  *      all three named call sites have translated twins (0x1C9E in loc_1c8f,
  *      0x1CBA in loc_1cab, 0x23F4 in advanceBarrelSpriteOrientation), and there is
- *      a FOURTH the old note missed — 0x18DF in loc_18c6. Re-derived here, against
+ *      a FOURTH the old note missed — 0x18DF in runRivetBoardFinaleThenAdvanceLevel. Re-derived here, against
  *      the pure translated oracle under `new Machine(ROM, { overrides })`: 0
  *      dispatches by frame 600, 23 by frame 700, 798 by frame 1500, 3850 by frame
  *      12000. Test #0 now runs the longer window, asserts the dispatches are

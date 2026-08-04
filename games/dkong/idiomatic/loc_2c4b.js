@@ -1,62 +1,50 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2c4b — one entry of the bonus-event slot-claim cluster (0x2C41): record the caller's
- * mode byte, then hand off to the shared slot-claim body with that byte bumped by one.
- * ROM 0x2C4B.
+ * loc_2c4b — one entry of the barrel slot-claim cluster: record the caller's mode byte, then
+ * run the shared slot-claim body with that byte bumped by one.
  *
- * This entry stores the caller's mode byte into BARREL_CLAIM_MODE and then runs the shared body
- * (armBarrelRelease) with the mode byte incremented — so the body records 0x638F as the mode byte PLUS
- * ONE while BARREL_CLAIM_MODE keeps the un-incremented value. The two bytes therefore always
- * differ by one (the increment sits between the two stores), which is this entry's whole
- * distinguishing move versus its sibling entries.
+ * This entry stores the caller's mode byte into the barrel claim-mode cell and then runs the
+ * shared body with the mode byte INCREMENTED — so the body's own scratch copy always sits one
+ * above the claim-mode cell, because the increment happens between the two stores. That
+ * offset-by-one is this entry's whole distinguishing move; the sibling entries of the cluster
+ * differ only in which mode value they stamp and whether the request flag is pre-cleared.
  *
- * The shared body then runs the periodic-event gate against the bonus value passed through from
- * the caller: on a hit it steps the event mark down and claims the first free object slot,
- * raising bit 7 on that same BARREL_CLAIM_MODE byte (so a claimed slot leaves it as the mode
- * value with bit 7 set); on a miss it does just the two writes.
+ * The shared body then runs the periodic-event gate against the bonus value passed through
+ * from the caller. On a hit it steps the event mark down and claims the first free object
+ * slot, raising bit 7 of that same claim-mode byte; on a miss it does only the two scratch
+ * writes.
  *
- * GROUNDED — observed live in MAME 0.288 on the real dkong ROM (understanding pass 12,
- * scratchpad/pass12-grounding.md): bit 7 of BARREL_CLAIM_MODE is the 25m BARREL-KIND select. One
- * frame after a bit-7-set claim, stampReleasedBarrelKind stamps the freshly-released OBJ_ARRAY_67 barrel record
- * with sprite code/attr/mode 0x19 / 0x0C / 0x01 instead of the default 0x15 / 0x0B / 0x00 — 46/46
- * agreement over every captured dispatch, no exceptions (38 clear, 8 set), all of them ordinary
- * board-1 25m gameplay (ZERO in the opening Kong-climb cutscene). The bit-7-SET (attr 0x0C) kind
- * DROPS with its X pinned at 59; the bit-7-CLEAR (attr 0x0B) kind ROLLS along the girders.
- * Grounding deliberately did NOT establish which NAMED Donkey Kong object either kind is. So the
- * "mode byte" this entry stores is genuinely a mode VALUE in the low bits (observed 1, and 0x81
- * after a claim), not a bare flag.
+ * BIT 7 IS THE BARREL-KIND SELECT. A claim leaves the claim-mode byte as the mode value with
+ * its top bit set, and the barrel released one frame later reads that bit to choose between
+ * two kinds of barrel: the bit-7-CLEAR kind ROLLS along the girders, while the bit-7-SET kind
+ * DROPS with its X pinned. The two coexist on screen. So the byte this entry writes is a mode
+ * VALUE in its low bits, not a bare flag.
  *
- * Memory-equivalent to the frozen oracle — equivalence-2c4b.test.js.
- * GATE:     exhaustive over the mode byte (all 256 values, gate closed) isolating the two stores
- *           and the +1 between them; + crafted gate-open entries across every first-free
- *           slot position and the all-occupied case, incl. a low mark whose step wraps and the
- *           slot-claim bit landing on the mode byte; + real captured 0x2C4B dispatches from
- *           attract (which span both the slot-claim and gate-closed arms). Teeth: a dropped
- *           increment, a first-store using the incremented value, and a mis-forwarded bonus.
- * LIVE-OUT: memory-only — BARREL_CLAIM_MODE, and through the shared body 0x638F, 0x6392,
- *           BONUS_EVENT_MARK, and bit 7 on BARREL_CLAIM_MODE. The oracle threads residual
- *           registers/flags out and its callers reload; nothing reads a register the routine
- *           leaves behind.
- * NAMES:    armBarrelRelease (ROM 0x2C4F) direct-called; BONUS_EVENT_MARK / OBJ_ARRAY_64 live inside it.
- *           BARREL_CLAIM_MODE (0x6382) from names.js — the barrel slot-claim mode byte, whose low
- *           bits hold the mode value this routine stores and whose bit 7 is the barrel-kind select.
+ * NOT CLAIMED: which named object either barrel kind is. What is established is that the two
+ * kinds differ in sprite code, attribute and mode byte, and in whether they roll or drop.
+ *
+ * Reads: nothing of its own — the mode byte and the bonus value are the caller's.
+ * Writes: the barrel claim-mode cell; and through the shared body, that same cell's bit 7 on
+ * a claim, the body's two scratch cells, and the bonus event mark.
+ *
+ * LIVE-OUT: memory-only.
  */
 
-import { BARREL_CLAIM_MODE } from "./names.js"; // ROM 0x6382 — the barrel slot-claim mode byte
-import { armBarrelRelease } from "./armBarrelRelease.js"; // ROM 0x2C4F — the shared slot-claim body
+import { BARREL_CLAIM_MODE } from "./names.js";
+import { armBarrelRelease } from "./armBarrelRelease.js";
 
 /**
  * @param {object} m         the machine (uses m.mem only).
- * @param {number} modeByte  the caller's mode byte: stored at BARREL_CLAIM_MODE, then handed on
- *                           incremented.
+ * @param {number} modeByte  the caller's mode byte: stored in the claim-mode cell, then handed
+ *                           on incremented.
  * @param {number} bonus     the current bonus value the shared body's event gate tests against.
  * @returns {void}
  */
 export function loc_2c4b(m, modeByte, bonus) {
   const { mem } = m;
 
-  // Record the mode byte, then run the shared body with it bumped by one — so 0x638F ends up one
-  // above BARREL_CLAIM_MODE (the increment sits between the two stores).
+  // Record the mode byte, then run the shared body with it bumped by one — so the body's
+  // scratch copy ends up one above the claim-mode cell.
   mem.write8(BARREL_CLAIM_MODE, modeByte);
   armBarrelRelease(m, modeByte + 1, bonus);
 }

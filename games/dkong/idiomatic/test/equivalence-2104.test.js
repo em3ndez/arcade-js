@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence gate for loc_2104 (ROM 0x2104) — the object-record X limit: retire the
+ * Memory-equivalence gate for retireBarrelAtEndOfRange (ROM 0x2104) — the object-record X limit: retire the
  * record (zero OBJ_ACTIVE and OBJ_X) when its X has run down into the bottom of the range,
  * otherwise hand it on untouched. Both arms leave for good through a still-frozen hand-off
  * target (ROM 0x1FCE above the limit, ROM 0x21BA at it), so the rewrite keeps the oracle's
@@ -47,6 +47,19 @@
  * NOT COVERED: attract only, plus pokes on top of attract state. No credited game, no board
  * other than 25m, and no record base other than the two attract drives.
  *
+ * LIVE-OUT, DERIVED — cross-file, and therefore recorded here rather than in the routine. Exactly
+ * two sites reach 0x2104, both frozen (the branch at ROM 0x20F7, and the fall-through at the end of
+ * ROM 0x2101); both are tail hand-offs, so neither reads a register back — and the two hand-off
+ * targets overwrite the accumulator before reading it and set their own flags before testing any,
+ * which is why the residual registers and flags are dropped.
+ *
+ * THE GAME READING, corroborated across files and therefore recorded here: the sibling gate at ROM
+ * 0x24B4, which the caller at ROM 0x2101 runs immediately before falling in here, makes the SAME
+ * two writes (+0 and +3, both zero) once the record's position lands in the window it watches, and
+ * then joins the same shared tail. Two independent bodies agree on the idiom. NOT CLAIMED: the
+ * identity of the objects that reach here — attract only ever dispatches this on OBJ_ARRAY_67
+ * records 0 and 1.
+ *
  * Run: node --test games/dkong/idiomatic/test/equivalence-2104.test.js
  */
 
@@ -56,7 +69,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { loc_2104 as oracle } from "../../translated/loc_2104.js";
-import { loc_2104 } from "../loc_2104.js";
+import { retireBarrelAtEndOfRange } from "../retireBarrelAtEndOfRange.js";
 import { STACK_SCRATCH, OBJ_ACTIVE, OBJ_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -178,7 +191,7 @@ function breaches(ref, cand, { skipStack = true, comparePcSp = true } = {}) {
 
 // -- the broken twins ---------------------------------------------------------
 // Each is a copy of the rewrite with ONE defect. They call the same frozen hand-off targets,
-// so only the loc_2104-level error is what diverges.
+// so only the retireBarrelAtEndOfRange-level error is what diverges.
 
 const u8 = (x) => x & 0xff;
 
@@ -194,7 +207,7 @@ function twinInvertedLimit(m) {
 
 /** Twin (b): hands off correctly but swallows the hand-off's return value. */
 function twinSwallowsReturn(m) {
-  loc_2104(m);
+  retireBarrelAtEndOfRange(m);
 }
 
 /** Twin (c): compares X directly against the limit, dropping the margin. */
@@ -271,7 +284,7 @@ function attractRun() {
     // (1) the sweep left live
     const refLive = replayLive(mm, oracle);
     returnValues.add(String(refLive.value));
-    for (const [key, fn] of [["real", loc_2104], ...CAPTURED_TWINS.filter((t) => !t.isolatedOnly).map((t) => [t.name, t.fn])]) {
+    for (const [key, fn] of [["real", retireBarrelAtEndOfRange], ...CAPTURED_TWINS.filter((t) => !t.isolatedOnly).map((t) => [t.name, t.fn])]) {
       const b = breaches(refLive, replayLive(mm, fn));
       if (b.length) live[key].push(`${where}: ${b.join("; ")}`);
     }
@@ -280,7 +293,7 @@ function attractRun() {
     const refIso = replayIsolated(mm, oracle);
     isolatedReplays += 1;
     handOffCounts.set(refIso.log.length, (handOffCounts.get(refIso.log.length) ?? 0) + 1);
-    for (const [key, fn] of [["real", loc_2104], ...CAPTURED_TWINS.map((t) => [t.name, t.fn])]) {
+    for (const [key, fn] of [["real", retireBarrelAtEndOfRange], ...CAPTURED_TWINS.map((t) => [t.name, t.fn])]) {
       const b = breaches(refIso, replayIsolated(mm, fn), { comparePcSp: false });
       if (b.length) iso[key].push(`${where}: ${b.join("; ")}`);
     }
@@ -340,10 +353,10 @@ test("REACHABILITY: how often attract dispatches 0x2104, and on which arm", () =
 
 // -- 1. EQUAL (captured, sweep live) ------------------------------------------
 
-test("EQUAL (captured): loc_2104 matches the oracle on every real attract dispatch", () => {
+test("EQUAL (captured): retireBarrelAtEndOfRange matches the oracle on every real attract dispatch", () => {
   const { census, live } = attractRun();
   assert.ok(census.total > 0, "no dispatch was replayed — this arm would be vacuous");
-  assert.deepEqual(live.real.slice(0, 3), [], `loc_2104 diverged on ${live.real.length} of ${census.total} dispatches`);
+  assert.deepEqual(live.real.slice(0, 3), [], `retireBarrelAtEndOfRange diverged on ${live.real.length} of ${census.total} dispatches`);
   console.log(
     `  EQUAL/captured: all ${census.total} of ${census.total} real dispatches replayed identical ` +
       "(RAM − STACK_SCRATCH, forwarded return, pc and SP), each carrying the rest of the caller's sweep",
@@ -361,7 +374,7 @@ test("ISOLATED (captured): the same dispatches, with this routine's own effect c
     `every dispatch must log exactly one hand-off; saw ${[...handOffCounts].map(([n, c]) => `${n}x${c}`).join(" ")}` +
       " — a stub that never fires would show as 0 here",
   );
-  assert.deepEqual(iso.real.slice(0, 3), [], `loc_2104 diverged on ${iso.real.length} of ${census.total} dispatches`);
+  assert.deepEqual(iso.real.slice(0, 3), [], `retireBarrelAtEndOfRange diverged on ${iso.real.length} of ${census.total} dispatches`);
   console.log(
     `  ISOLATED/captured: ${isolatedReplays} replays with both hand-off targets stubbed — same target, ` +
       "same write set, same forwarded sentinel as the oracle on every one",
@@ -380,12 +393,12 @@ test("EQUAL (crafted): the retire arm, both sides of the limit, and the wrap", (
 
     // (a) the whole sweep, as the game would run it
     const ref = replayLive(entry, oracle);
-    const cand = replayLive(entry, loc_2104);
+    const cand = replayLive(entry, retireBarrelAtEndOfRange);
     assert.deepEqual(breaches(ref, cand), [], `crafted X=${x}: `);
 
     // (b) cut off after this routine: which target, and exactly which bytes moved
     const refIso = replayIsolated(entry, oracle);
-    const candIso = replayIsolated(entry, loc_2104);
+    const candIso = replayIsolated(entry, retireBarrelAtEndOfRange);
     assert.deepEqual(breaches(refIso, candIso, { comparePcSp: false }), [], `crafted X=${x} (isolated): `);
 
     assert.deepEqual(refIso.log, [arm === "retire" ? "21BA" : "1FCE"],
@@ -507,7 +520,7 @@ test("LIVE-WIRE: wired live for a whole attract run, the rewrite leaves the orac
   assert.equal(base.stoppedBy ?? null, null, `baseline run stopped early: ${base.stoppedBy}`);
   assert.equal(baseFrames.length, LIVE_FRAMES, "baseline did not reach every frame");
 
-  const { m, frameDumps, dispatches } = liveWire(LIVE_FRAMES, loc_2104, true);
+  const { m, frameDumps, dispatches } = liveWire(LIVE_FRAMES, retireBarrelAtEndOfRange, true);
   assert.equal(m.stoppedBy ?? null, null, `live-wire run stopped early: ${m.stoppedBy}`);
   assert.equal(frameDumps.length, LIVE_FRAMES, "live-wire run did not reach every frame");
   // Without this the arm can go green having never executed the routine at all.
@@ -526,7 +539,7 @@ test("LIVE-WIRE: wired live for a whole attract run, the rewrite leaves the orac
 test("LIVE-WIRE CONTROL: without the timing replay the same wiring DOES fork", () => {
   const base = new Machine(ROM);
   const baseFrames = base.runFrames(LIVE_FRAMES);
-  const { frameDumps } = liveWire(LIVE_FRAMES, loc_2104, false);
+  const { frameDumps } = liveWire(LIVE_FRAMES, retireBarrelAtEndOfRange, false);
   const d = firstTraceDiff(baseFrames, frameDumps, (o) => base.stateOffsetToAddr(o));
   assert.notEqual(d, null, "the un-restored run matched the baseline, so the live-wire arm distinguishes nothing");
   // The first fork lands on the guest stack, which only the FULL dump sees. Demand a LIVE-cell

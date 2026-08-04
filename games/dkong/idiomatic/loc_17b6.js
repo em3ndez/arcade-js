@@ -1,61 +1,36 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_17b6 — idx 0 of the 0x6388 render sequence: draw the initial how-high screen
- * (four girder/ladder items + a sprite-object row), set the priority tune, then arm
- * and repoint the auto-advance machinery for the rest of the sequence.  ROM 0x17b6.
+ * loc_17b6 — step 0 of the board-render sequence: draw the initial how-high screen (four
+ * girder/ladder items plus a sprite-object row), set the priority tune, then arm and repoint the
+ * auto-advance machinery for the rest of the sequence.
  *
- * Dispatched as entry 0 of the rst-0x28 table at 0x1648 (dispatchRivetBoardInterludeStep / runRivetBoardInterludeFrame), which
- * jumps on the sequence step counter 0x6388. This is the first step: it lays out the
+ * The sequence runs one step per frame off a step counter; this is the FIRST step. It lays out the
  * static screen and hands the sequence to the frame-driven advancer. In order:
  *
- *   1. silenceSound (ROM 0x011c) — zero every sound output + its work-RAM shadow.
- *   2. Set the sound-priority pair SND_PRIORITY / SND_PRIORITY_FRAMES (0x608A/0x608B)
- *      to 0x0E / 0x03 — a 3-frame priority-tune pulse (re-set after silenceSound).
- *   3. Paint two 3-cell descending colour columns via fillDescendingColumn (ROM 0x0514),
- *      stride 0x20 (one tilemap row). The A value CHAINS across the pair: the first
- *      column starts at 0x10 (0x7623 -> 0x10/0x0F/0x0E) and the second reuses the A the
- *      first left (0x0D), so 0x7583 -> 0x0D/0x0C/0x0B — a continuous six-step gradient.
- *   4. Render four items, each a 5x14 backing block of tile 0x10 (fillTileBlock, ROM
- *      0x1826) at a tilemap cell plus the girder/ladder segments walked from a ROM
- *      segment table (drawBoardLayout, ROM 0x0da7). The four dests step left by 5 cells
- *      (0x76DA/D5/D0/CB) over the four ROM tables (0x3A47/4D/53/59).
- *   5. Load the 40-byte sprite-object block from ROM template 0x385C into SPRITE_OBJ_BLOCK
- *      (loadSpriteObjectBlock, ROM 0x004e), then shift its X column right by 0x44 across
- *      all ten records (addToSpriteObjectColumn, the rst-0x38 shim, ROM 0x0038).
- *   6. Seed the blink-sprite code 0x6905 = 0x13 (the byte the colour cycle toggles).
- *   7. Arm the sub-state gate SUBSTATE_TIMER (0x6009) = 0x20 (32 frames) and seed the
- *      how-high animation stepper 0x6390 = 0x80.
- *   8. Advance the sequence: inc the step counter 0x6388 (a read-modify-write of the ONE
- *      byte this routine consumes as an input), then point SEQ_ADVANCE_PTR (0x63C0) at
- *      0x6388 so the gated advancer advanceSequenceStepWhenTimerExpires steps this same counter once the gate expires.
+ *   1. Silence every sound output and its work-RAM shadow.
+ *   2. Set the sound-priority pair SND_PRIORITY / SND_PRIORITY_FRAMES to 0x0E / 0x03 — a 3-frame
+ *      priority-tune pulse, re-set after the silence.
+ *   3. Paint two 3-cell descending colour columns, one tilemap row apart. The colour value CHAINS
+ *      across the pair: the first column runs 0x10 / 0x0F / 0x0E and the second picks up where it
+ *      left off at 0x0D / 0x0C / 0x0B — one continuous six-step gradient.
+ *   4. Render four items, each a 5x14 backing block of the blank tile at a tilemap cell, plus the
+ *      girder/ladder segments walked from that item's segment table. The four destinations step
+ *      left by 5 cells.
+ *   5. Load the 40-byte sprite-object block from its template into SPRITE_OBJ_BLOCK, then shift its
+ *      X column right by 0x44 across all ten records.
+ *   6. Seed the blink-sprite code — the byte the colour cycle toggles.
+ *   7. Arm the sub-state gate SUBSTATE_TIMER to 32 frames and seed the how-high animation stepper.
+ *   8. Advance the sequence: increment BOARD_ADVANCE_STEP — a read-modify-write of the one byte
+ *      this routine consumes as an input — then point SEQ_ADVANCE_PTR at that same counter, so the
+ *      gated advancer steps it once the timer expires.
  *
- * The names.js SEQ_ADVANCE_PTR note (proposer!=confirmer) records "loc_17b6 seeds 0x6388
- * for the how-high render", so the mechanism and its how-high role are documented; the
- * neutral loc_ name is kept because the division of labour with buildHowHighScreen
- * (0x0bda, the sub-state-8 how-high builder) is not resolved at the routine-name bar —
- * same convention the drawBoardLayout record-drawing family follows.
+ * NAME: kept the neutral loc_ because the division of labour with the other how-high builder is
+ * unresolved; what the routine DOES is pinned, what part of the how-high screen is properly whose
+ * is not.
  *
- * Memory-equivalent to the frozen oracle — equivalence-17b6.test.js.
- * GATE:     crafted-entry — NOT dispatched in attract (measured: 0 over 6000 frames; its
- *           only entry is the 0x6388 sequence during a credited game's interlude), so it
- *           is validated against the oracle on real captured ATTRACT states used as
- *           entries (fresh clone per side — it writes RAM) PLUS crafted entries whose work
- *           + video RAM is pre-dirtied identically on both sides. The only input-dependent
- *           output is 0x6388 (an `inc (hl)`); a dedicated wrap-edge entry (0x6388 = 0xFF ->
- *           0x00) pins it. Teeth: a wrong gate value at 0x6009 and a dropped render item.
- * LIVE-OUT: memory-only — the dispatch tail-returns up the rst-0x28 chain and no successor
- *           consumes a register or flag this leaves (the whole 0x6388-sequence family runs
- *           per-frame for effect, reloading its own registers). SP/PC are NOT compared: the
- *           direct-call layer replaces the oracle's push16/call/ret stack + PC bookkeeping
- *           with the JS call stack. The three sound-hardware latches silenceSound issues
- *           (0x7D00-07, 0x7D80, 0x7C00) are write-only io outputs, not in the RAM dump.
- * NAMES:    SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B), SUBSTATE_TIMER (0x6009),
- *           SPRITE_OBJ_BLOCK (0x6908), SEQ_ADVANCE_PTR (0x63C0), BOARD_ADVANCE_STEP (0x6388 —
- *           the step counter this arm increments and repoints SEQ_ADVANCE_PTR at) from names.js.
- *           The how-high animation stepper 0x6390 (rejected as a shared byte in names.js) and the
- *           blink code 0x6905 have no names.js symbol and stay local hex consts; the VRAM/colour
- *           dests, ROM segment tables and the 0x385C sprite template are caller-fixed addresses
- *           kept hex.
+ * LIVE-OUT: memory-only — no successor consumes a register or flag this leaves behind; the whole
+ * sequence family runs per frame for effect and reloads its own registers. Three of the sound
+ * latches the silence step issues are write-only hardware outputs and never appear in RAM.
  */
 
 import {
@@ -66,25 +41,26 @@ import {
   SEQ_ADVANCE_PTR,
   BOARD_ADVANCE_STEP,
 } from "./names.js";
-import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
-import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
-import { fillTileBlock } from "./fillTileBlock.js"; // ROM 0x1826
-import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7
-import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
+import { silenceSound } from "./silenceSound.js";
+import { fillDescendingColumn } from "./fillDescendingColumn.js";
+import { fillTileBlock } from "./fillTileBlock.js";
+import { drawBoardLayout } from "./drawBoardLayout.js";
+import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";
+import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js";
 
-// How-high interlude animation stepper (shared byte in names.js), seeded to 0x80 here.
+// The how-high interlude's animation stepper, seeded to 0x80 here. It is shared with another
+// subsystem, so it carries no registry name.
 const HOW_HIGH_ANIM = 0x6390;
-// Sprite-buffer record 1, +1 byte — the blink-sprite code the colour cycle toggles.
+// Sprite-buffer record 1, sprite-code byte — the blink sprite the colour cycle toggles.
 const BLINK_SPRITE_CODE = 0x6905;
 
-// ROM sprite-object template block copied into SPRITE_OBJ_BLOCK.
+// The sprite-object template block copied into SPRITE_OBJ_BLOCK.
 const SPRITE_TEMPLATE = 0x385c;
 // X-column shift applied to all ten sprite-object records after the load.
 const SPRITE_X_SHIFT = 0x44;
 
-// The four render items: [tilemap dest for the 5x14 tile-0x10 backing block, ROM
-// segment-table pointer for the girder/ladder draw]. Dests step left by 5 cells.
+// The four render items: [tilemap destination for the 5x14 blank-tile backing block, pointer to
+// that item's girder/ladder segment table]. The destinations step left by 5 cells.
 const RENDER_ITEMS = [
   [0x76da, 0x3a47],
   [0x76d5, 0x3a4d],
@@ -95,49 +71,49 @@ const RENDER_ITEMS = [
 export function loc_17b6(m) {
   const { regs, mem } = m;
 
-  // 1. Silence every sound output (and its work-RAM shadow 0x6080-0x608B).
-  silenceSound(m); // ROM 0x011c
+  // 1. Silence every sound output, and its work-RAM shadow with it.
+  silenceSound(m);
 
-  // 2. Set the sound-priority pair (silenceSound just zeroed both).
-  mem.write8(SND_PRIORITY, 0x0e); //        0x608A
-  mem.write8(SND_PRIORITY_FRAMES, 0x03); // 0x608B
+  // 2. Set the sound-priority pair, which the silence just zeroed.
+  mem.write8(SND_PRIORITY, 0x0e);
+  mem.write8(SND_PRIORITY_FRAMES, 0x03);
 
-  // 3. Two chained 3-cell descending colour columns, stride 0x20. A CHAINS across the
-  //    pair: the second call deliberately reuses the A (0x0D) and DE the first left, so
-  //    the six cells descend 0x10..0x0B continuously. fillDescendingColumn takes HL/A/DE
-  //    as register live-in.
-  regs.a = 0x10; //         ld a,0x10
-  regs.de = 0x0020; //      ld de,0x0020
-  regs.hl = 0x7623; //      ld hl,0x7623
-  fillDescendingColumn(m); // ROM 0x0514 -> 0x7623/0x7643/0x7663 = 0x10/0x0F/0x0E
-  regs.hl = 0x7583; //      ld hl,0x7583 (A=0x0D and DE=0x20 carried from the first call)
-  fillDescendingColumn(m); // ROM 0x0514 -> 0x7583/0x75A3/0x75C3 = 0x0D/0x0C/0x0B
+  // 3. Two chained 3-cell descending colour columns, one tilemap row apart. The colour and the
+  //    step CHAIN across the pair: the second call deliberately reuses what the first left, so
+  //    the six cells descend continuously. The column fill takes its cell, colour and step in
+  //    registers.
+  regs.a = 0x10;
+  regs.de = 0x0020;
+  regs.hl = 0x7623;
+  fillDescendingColumn(m);
+  regs.hl = 0x7583; // colour and step carried over from the first call
+  fillDescendingColumn(m);
 
-  // 4. Render the four items: a 5x14 tile-0x10 backing block then the girder/ladder
-  //    segments walked from the item's ROM segment table.
+  // 4. Render the four items: a 5x14 blank-tile backing block, then the girder/ladder segments
+  //    walked from the item's own segment table.
   for (const [tileDest, segTable] of RENDER_ITEMS) {
-    regs.hl = tileDest; // ld hl,vhl
-    fillTileBlock(m); //    ROM 0x1826 — 5x14 block of tile 0x10
-    regs.de = segTable; //  ld de,rde
-    drawBoardLayout(m); //         ROM 0x0da7 — walk the segment table and draw
+    regs.hl = tileDest;
+    fillTileBlock(m);
+    regs.de = segTable;
+    drawBoardLayout(m);
   }
 
-  // 5. Load the sprite-object block from ROM 0x385C, then shift its X column by 0x44.
-  regs.hl = SPRITE_TEMPLATE; // ld hl,0x385c
-  loadSpriteObjectBlock(m); //  ROM 0x004e — copy 40 bytes into SPRITE_OBJ_BLOCK (0x6908)
-  regs.hl = SPRITE_OBJ_BLOCK; // ld hl,0x6908
-  regs.c = SPRITE_X_SHIFT; //    ld c,0x44
-  addToSpriteObjectColumn(m); // ROM 0x0038 (rst 0x38) — +0x44 into each record's X byte
+  // 5. Load the sprite-object block from its template, then shift each record's X byte.
+  regs.hl = SPRITE_TEMPLATE;
+  loadSpriteObjectBlock(m);
+  regs.hl = SPRITE_OBJ_BLOCK;
+  regs.c = SPRITE_X_SHIFT;
+  addToSpriteObjectColumn(m);
 
   // 6. Seed the blink-sprite code.
-  mem.write8(BLINK_SPRITE_CODE, 0x13); // 0x6905
+  mem.write8(BLINK_SPRITE_CODE, 0x13);
 
-  // 7. Arm the sub-state gate and seed the how-high animation stepper.
-  mem.write8(SUBSTATE_TIMER, 0x20); // 0x6009 = 32 frames
-  mem.write8(HOW_HIGH_ANIM, 0x80); //  0x6390
+  // 7. Arm the sub-state gate to 32 frames and seed the how-high animation stepper.
+  mem.write8(SUBSTATE_TIMER, 0x20);
+  mem.write8(HOW_HIGH_ANIM, 0x80);
 
-  // 8. Advance the sequence: inc the step counter (the one input-dependent byte), then
-  //    point SEQ_ADVANCE_PTR at it so the gated advancer advanceSequenceStepWhenTimerExpires steps it next.
-  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff); // inc (0x6388)
-  mem.write16(SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP); // 0x63C0 = 0x6388 (little-endian)
+  // 8. Advance the sequence: bump the step counter (the one input-dependent byte), then point
+  //    the advance pointer at it so the gated advancer steps it next.
+  mem.write8(BOARD_ADVANCE_STEP, (mem.read8(BOARD_ADVANCE_STEP) + 1) & 0xff);
+  mem.write16(SEQ_ADVANCE_PTR, BOARD_ADVANCE_STEP);
 }

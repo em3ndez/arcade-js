@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for loc_21ba (ROM 0x21BA) — the object walk's shared sprite tail: swap the
- * walk's registers back in, gather OBJ_X / OBJ_SPRITE_CODE / OBJ_SPRITE_ATTR / OBJ_Y out of the
- * record into four consecutive staging bytes, step the cursor three of the four, and jump on to
- * the between-slots step at ROM 0x1F8D.
+ * publishBarrelSprite — memory-equivalent to the frozen oracle at ROM 0x21BA — the object walk's
+ * shared sprite tail: swap the walk's registers back in, gather OBJ_X / OBJ_SPRITE_CODE /
+ * OBJ_SPRITE_ATTR / OBJ_Y out of the record into four consecutive staging bytes, step the cursor
+ * three of the four, and jump on to the between-slots step at ROM 0x1F8D.
+ * GATE:  captured + crafted + live, ATTRACT ONLY. Every real dispatch in a 1200-frame
+ *        cycle-free attract run is replayed inline — no sampling — and two crafted arms cover
+ *        what attract cannot produce: a staging cursor whose four writes wrap its page, and a
+ *        source payload swept across all 256 values in each of the four fields. Records 5-9 of
+ *        the walk, credited gameplay, boards 2-4 and two-player are NOT covered.
  *
  * WHAT THIS GATE ACTUALLY COVERS, stated plainly:
  *
@@ -88,7 +93,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine } from "../../machine.js";
 import { loc_21ba as oracle } from "../../translated/loc_21ba.js";
-import { loc_21ba } from "../loc_21ba.js";
+import { publishBarrelSprite } from "../publishBarrelSprite.js";
 import {
   ACTOR_SPRITES, OBJ_ARRAY_67, OBJ_SPRITE_ATTR, OBJ_SPRITE_CODE, OBJ_X, OBJ_Y,
   SPRITE_ATTR, SPRITE_CODE, SPRITE_X, SPRITE_Y,
@@ -260,11 +265,11 @@ const describe = (b) =>
 
 // The one sweep the first two tests share. Node's test runner evaluates the module top to bottom,
 // so this runs once at load rather than once per test.
-const NATURAL = ROM_PRESENT ? sweepAttract(loc_21ba) : null;
+const NATURAL = ROM_PRESENT ? sweepAttract(publishBarrelSprite) : null;
 
 // -- 1. EQUAL, on every real attract dispatch ----------------------------------
 
-test("EQUAL: loc_21ba matches the oracle on every one of the real attract dispatches", () => {
+test("EQUAL: publishBarrelSprite matches the oracle on every one of the real attract dispatches", () => {
   assert.ok(NATURAL.dispatches > 0, "no dispatch of 0x21BA was captured — the harness never engaged");
   assert.equal(NATURAL.stop, "reached maxFrames", `the capture run stopped early: ${NATURAL.stop}`);
   assert.equal(
@@ -346,8 +351,8 @@ const craftPayload = (m, i) => {
 
 const CRAFTED = ROM_PRESENT
   ? {
-      wrap: sweepAttract(loc_21ba, { prep: craftPageWrap }),
-      payload: sweepAttract(loc_21ba, { prep: craftPayload }),
+      wrap: sweepAttract(publishBarrelSprite, { prep: craftPageWrap }),
+      payload: sweepAttract(publishBarrelSprite, { prep: craftPayload }),
     }
   : null;
 
@@ -464,7 +469,7 @@ function brokenSkipBlankCode(m) {
 
 /** (f) correct in RAM, wrong at the boundary: hands its caller a value it never had. */
 function brokenSpuriousReturn(m) {
-  loc_21ba(m);
+  publishBarrelSprite(m);
   return false;
 }
 
@@ -545,7 +550,7 @@ function runFramesCycleFree(overrides) {
 test("LIVE-OUT: wired live for a whole attract run, the rewrite leaves the same trace as the oracle", () => {
   const baseline = runFramesCycleFree(null);
   let dispatches = 0;
-  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return loc_21ba(m); }]]));
+  const live = runFramesCycleFree(new Map([[TARGET, (m) => { dispatches++; return publishBarrelSprite(m); }]]));
 
   // Without this the run can be byte-identical because the routine never executed. Measured on a
   // sibling routine: 800 frames of attract went green against a deliberately broken rewrite whose

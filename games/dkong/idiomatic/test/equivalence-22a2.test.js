@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Equivalence test for raise50mObjectAndPark (ROM 0x22A2) — one idle-then-descend tick for a
- * BOARD_OBJ_SCRATCH object, resetting it to state 0 at the bottom of its travel.
+ * Equivalence test for raise50mObjectAndPark (ROM 0x22A2) — one idle-then-retract tick for a
+ * BOARD_OBJ_SCRATCH object, parking it back in state 0 at the TOP of its travel. The position
+ * counter is a screen Y and larger Y is LOWER on screen, so the counter's minimum (0x68) is the
+ * object's highest point and stepping the counter down moves the object UP.
  *
  * raise50mObjectAndPark is an arm of the dispatch50mObjectState object state machine. It is entered with the object
  * record base on the stack (the oracle's `pop hl`); the idiomatic routine takes that base
@@ -38,6 +40,13 @@
  *
  *   3. REALISM — hook 0x22A2 in a real attract run; document the (zero) natural dispatches
  *      (dispatch50mObjectState's board gate is closed in attract) and verify any that DO occur match.
+ *
+ * HOLE — NO REAL DISPATCH IS EVER REPLAYED. Job 3 runs a plain ATTRACT session (2000 frames),
+ * where the board gate is shut, so it can only ever record zero. Real dispatches DO occur, and
+ * freely, on a credited 50m board: the four-state cycle has been traced live on one. This gate
+ * replays NONE of them. The crafted sweep is exhaustive over the routine's own input surface
+ * and is sound as far as it goes, but "exhaustive by factorisation" is not the same claim as
+ * "replayed against real entries", and only the first is made here.
  *
  * Run: node --test games/dkong/idiomatic/test/equivalence-22a2.test.js
  */
