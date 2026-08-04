@@ -258,7 +258,8 @@ class Tracer:
         monotonic per application, not across the phase-2 fixpoint."""
         return frozenset((self.call_targets | self.jump_targets) & set(self.instrs))
 
-    def _parse_inline_table(self, work, site_end: int, dispatcher: int, cont: int | None):
+    def _parse_inline_table(self, work, site_end: int, dispatcher: int,
+                            cont: int | None, rt: int | None, depth: int):
         """Read the table of 16-bit targets stored inline after a dispatch.
 
         BOUNDING THE TABLE is the whole difficulty -- read one entry too many
@@ -309,19 +310,43 @@ class Tracer:
                 "targets": targets,
             }
         )
+        # WHOSE FRAME the handlers run in decides whether the dispatching
+        # routine is seen to return, and getting it wrong CASCADES.
+        #
+        # With no pushed continuation the dispatch is a TAIL dispatch -- the
+        # table sits immediately after the `rst`, so there is nothing to fall
+        # through to, and the handler's `ret` goes to the DISPATCHER'S caller.
+        # Those returns are therefore the dispatching routine's own, exactly as
+        # for a tail `jp`. Giving each handler its own frame instead leaves the
+        # dispatcher with no depth-0 `ret`, marks it never-returning, and then
+        # truncates ITS callers at their call sites -- which buries their
+        # fallthrough as unreached bytes, and so on up the chain.
+        tail_dispatch = cont is None
         for t in targets:
             # A 0x0000 entry is an unused dispatch slot, not a handler --
             # following it would just re-walk the reset vector.
             if t == 0:
                 continue
             self.jump_targets.add(t)
-            work.append((t, t, 0))  # each handler is its own frame
+            if tail_dispatch:
+                work.append((t, rt, depth))  # returns on the dispatcher's behalf
+            else:
+                work.append((t, t, 0))  # its `ret` lands on `cont`, not here
 
         # The continuation is where the dispatched handler's `ret` lands, so
-        # it is code too -- and it is code nothing else jumps to.
+        # it is code too -- and it is code nothing else jumps to. It resumes
+        # the DISPATCHING routine, so a `ret` there is that routine's own.
+        #
+        # MINUS 2, and the sign is easy to get backwards. `depth` is the depth at
+        # the dispatch, which still counts the `push` that put this continuation on
+        # the stack. Reaching `cont` means the handler's `ret` POPPED it, so the
+        # routine resumes two bytes shallower. Walking it at `depth` instead files
+        # the routine's own epilogue `ret` at depth 2, `returns_normally` comes back
+        # false, and the routine is marked never-returning -- reintroducing, in this
+        # branch, exactly the cascade the tail-dispatch branch above exists to fix.
         if cont is not None and 0 <= cont < ROM_SIZE:
             self.jump_targets.add(cont)
-            work.append((cont, cont, 0))
+            work.append((cont, rt, depth - 2))
 
     def _trace_once(self):
         self._reset_pass()
@@ -370,6 +395,18 @@ class Tracer:
 
                 # `ld rr,NNNN` then `push rr` pushes a literal return address:
                 # the handler that eventually `ret`s will land on NNNN.
+                #
+                # KNOWN LATENT HAZARD, stated because it is not guarded. This is only a
+                # continuation if the next dispatch on this path is the one it was pushed
+                # for. Nothing here proves that: a `ld rr,NNNN / push rr` done for some
+                # other reason, followed later on the same path by a tail `rst 0x28`,
+                # would be read as that dispatch's continuation -- which bounds the table
+                # by the wrong address AND walks the handlers in their own frames instead
+                # of the dispatcher's. DK does not trip it (four pushed continuations, all
+                # of them real: 0x02BD x3, 0x00D2 x1), so it is latent, not live. Guarding
+                # it needs a rule for when a pushed literal expires, which no evidence here
+                # settles. Do not "fix" this by clearing the value after a dispatch: the
+                # walk breaks at a dispatch, so nothing on this path would ever read it.
                 cont = _pushed_literal(prev, ins)
                 if cont is not None:
                     pending_cont = cont
@@ -420,7 +457,14 @@ class Tracer:
                     # so the conditional form does not arise here.
                     if k in (CALL, RST) and t is not None and t in self.noreturn:
                         if t in self.table_dispatchers:
-                            self._parse_inline_table(work, ins.end, t, pending_cont)
+                            # `depth` is the handler's depth as-is: the dispatcher's
+                            # `pop hl` consumes exactly what the `rst` pushed, and
+                            # _apply_depth models neither (it only sees push/pop/sp
+                            # forms), so the two omissions cancel and nothing has
+                            # been added for this instruction.
+                            self._parse_inline_table(
+                                work, ins.end, t, pending_cont, rt, depth
+                            )
                         break
                     pc = ins.end
                     continue
@@ -694,12 +738,121 @@ def write_unreached(tr: Tracer, path: str):
         f.write("\n".join(lines) + "\n")
 
 
+# The rst-0x28 dispatcher, as a SYNTHETIC FIXTURE. It is byte-equal to DK's 0x28..0x37,
+# but it is written out here rather than read from the ROM under analysis: the selftest
+# checks THIS FILE'S depth accounting, which is game-independent, so sourcing a fixture
+# from whichever ROM happens to be on the command line would make the test's meaning
+# depend on the argument. It also breaks: a ROM with no dispatcher at 0x28 fails every
+# assertion below and blames the depth accounting for it.
+#
+#   add a,a / pop hl / ld e,a / ld d,0 / jp 0x0032 ; ... ; add hl,de / ld e,(hl)
+#   inc hl / ld d,(hl) / ex de,hl / jp (hl)
+_SELFTEST_DISPATCHER = bytes([0x87, 0xE1, 0x5F, 0x16, 0x00, 0xC3, 0x32, 0x00,
+                              0x18, 0x12, 0x19, 0x5E, 0x23, 0x56, 0xEB, 0xE9])
+
+
+def _selftest() -> int:
+    """Prove BOTH arms of the inline-table dispatch accounting can fail.
+
+    Neither arm is falsifiable against DK, for different reasons, so a check that only
+    ever ran on the real ROM would be silent on both:
+
+      * TAIL arm (no pushed continuation) -- getting it wrong does not crash, it just
+        buries code. DK loses 5 percentage points of coverage, and nothing in the build
+        asserts a coverage number.
+      * CONTINUATION arm -- DK contains exactly one, in the NMI vector, which is never
+        CALLed. The mis-depthed `ret` is therefore attributed to no routine and dropped,
+        and `dk.asm` comes out byte-identical either way.
+
+    So both cases are constructed here.
+
+    CASE 1, the tail arm. The handler returns on the DISPATCHER'S behalf:
+
+        0x0200  call 0x0300 / halt      <- the fallthrough at stake
+        0x0300  ld a,0 / rst 0x28
+                dw 0x0308               <- inline table, no pushed continuation
+        0x0308  ret                     <- this `ret` is 0x0300's own
+
+    Walk the handler in its own frame and 0x0300 never sees a depth-0 `ret`.
+
+    CASE 2, the continuation arm. The handler's `ret` lands on the continuation:
+
+        0x0000  call 0x0100 / halt
+        0x0100  ld hl,0x0110 / push hl  <- the continuation
+                ld a,0 / rst 0x28
+                dw 0x010A
+        0x010A  ret                     <- the handler
+        0x0110  ret                     <- back in 0x0100's frame, at depth 0
+
+    Walk the continuation at the dispatch depth rather than two shallower and 0x0100's
+    `ret` files at depth 2.
+
+    Either way the symptom is the same and it CASCADES: the routine reads as
+    never-returning, so its caller is truncated at the call site and the caller's `halt`
+    is never decoded.
+    """
+    global ROM_SIZE
+    saved = ROM_SIZE
+    cases = [
+        ("continuation arm", 0x0100, 0x0003, {
+            0x0000: bytes([0xCD, 0x00, 0x01, 0x76]),
+            0x0100: bytes([0x21, 0x10, 0x01, 0xE5, 0x3E, 0x00, 0xEF, 0x0A, 0x01]),
+            0x010A: bytes([0xC9]),
+            0x0110: bytes([0xC9]),
+        }),
+        ("tail arm", 0x0300, 0x0203, {
+            0x0200: bytes([0xCD, 0x00, 0x03, 0x76]),
+            0x0300: bytes([0x3E, 0x00, 0xEF, 0x08, 0x03]),
+            0x0308: bytes([0xC9]),
+        }),
+    ]
+    try:
+        ROM_SIZE = 0x4000
+        bad = []
+        for label, routine, fallthrough, chunks in cases:
+            rom = bytearray(ROM_SIZE)
+            rom[0x28:0x28 + len(_SELFTEST_DISPATCHER)] = _SELFTEST_DISPATCHER
+            for at, data in chunks.items():
+                rom[at:at + len(data)] = data
+            entry = min(chunks)
+
+            tr = Tracer(bytes(rom))
+            tr.add_entry(entry, f"selftest {label}")
+            tr.run()
+
+            if routine in tr.noreturn:
+                r = tr.routines.get(routine)
+                bad.append(f"{label}: 0x{routine:04x} marked never-returning "
+                           f"(ret_depths={sorted(r.ret_depths) if r else '?'}) "
+                           f"-- want a depth-0 ret")
+            if tr.kind[fallthrough] not in (CODE_START, CODE_OPERAND):
+                bad.append(f"{label}: the caller's `halt` at 0x{fallthrough:04x} was not "
+                           f"decoded -- the fallthrough was truncated")
+        if bad:
+            for b in bad:
+                print(f"selftest FAIL: {b}")
+            return 1
+        print(f"selftest: {len(cases)} dispatch arms -- a CALLed routine that dispatches "
+              f"through an inline table returns normally, and its caller's fallthrough "
+              f"survives")
+        return 0
+    finally:
+        ROM_SIZE = saved
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rom", default="games/dkong/rom/maincpu.bin")
     ap.add_argument("--out", default="games/dkong/out")
     ap.add_argument("--entrypoints", default="games/dkong/entrypoints.json")
+    ap.add_argument("--selftest", action="store_true",
+                    help="prove the dispatch depth accounting can fail, then exit")
     args = ap.parse_args()
+
+    if args.selftest:
+        # Deliberately does not open args.rom: the fixture is synthetic and the
+        # accounting under test is game-independent.
+        sys.exit(_selftest())
 
     with open(args.rom, "rb") as f:
         mem = f.read()

@@ -45,6 +45,7 @@ samples:
 	python3 games/$(GAME)/tools/record_samples.py --rompath "$(ROMPATH)" $(SAMPLEFLAGS)
 
 trace: $(ROM)
+	python3 tools/trace.py --selftest
 	python3 tools/trace.py --rom $(ROM) --out $(OUT) --entrypoints games/$(GAME)/entrypoints.json
 
 verify: $(ROM)
