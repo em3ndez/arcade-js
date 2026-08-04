@@ -93,7 +93,7 @@ export function drawBoardLayout(m) {
     regs.h = y2;
     regs.a = Math.abs(y2 - y) & 0xff;
 
-    // Draw this segment — a girder span with its endpoint caps, or a ladder. Its renderer tail
+    // Draw this segment — a ladder run with its endpoint caps, or a girder span. Its renderer tail
     // advances the table pointer to the next record and returns, so the loop continues.
     loc_0dd3(m);
   }

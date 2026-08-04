@@ -23,7 +23,7 @@
  *      table in scratch RAM (identical on both sides). This pins both arms of the
  *      `sub b / jp nc / neg` absolute difference — a non-borrow record (y2 >= y) and a
  *      borrow record (y2 < y, which takes the neg) — plus the empty-table terminator
- *      and a kind-2 ladder record, each compared to the oracle.
+ *      and a kind-2 girder record, each compared to the oracle.
  *
  *   3. TEETH — two deliberately-broken twins MUST be caught by the RAM diff:
  *      (a) DROPPED-NEG — computes (y2 - y) & 0xff without the abs, so the borrow arm
@@ -154,13 +154,13 @@ test("REALISM: real captured 0x0da7 board draws — game-visible RAM + DE match 
 
 // -- 2. CRAFTED (synthetic tables) --------------------------------------------
 
-test("CRAFTED: synthetic tables pin both abs-diff arms + empty + ladder — RAM + DE match", () => {
+test("CRAFTED: synthetic tables pin both abs-diff arms + empty + girder — RAM + DE match", () => {
   const base = realCaptures()[0];
   const cases = {
     "non-borrow (y2>=y)": [0x00, 0x50, 0x48, 0x70, 0x60, 0xaa], // y=0x50 y2=0x70 -> A=0x20, jp nc
     "borrow (y2<y, neg)": [0x00, 0x70, 0x48, 0x50, 0x60, 0xaa], // y=0x70 y2=0x50 -> A=0x20 via neg
     "empty (terminator)": [0xaa],
-    "ladder (kind 2)": [0x02, 0x50, 0x48, 0x80, 0x48, 0xaa],
+    "girder (kind 2)": [0x02, 0x50, 0x48, 0x80, 0x48, 0xaa],
   };
   let n = 0;
   for (const [name, bytes] of Object.entries(cases)) {
@@ -169,7 +169,7 @@ test("CRAFTED: synthetic tables pin both abs-diff arms + empty + ladder — RAM 
     assert.equal(deCand, deOracle, `${name}: DE mismatch oracle=${hx(deOracle)} idiomatic=${hx(deCand)}`);
     n++;
   }
-  console.log(`  CRAFTED: ${n} synthetic tables (both abs-diff arms + empty + ladder) — RAM (ex-stack) + DE identical`);
+  console.log(`  CRAFTED: ${n} synthetic tables (both abs-diff arms + empty + girder) — RAM (ex-stack) + DE identical`);
 });
 
 // -- 3. TEETH -----------------------------------------------------------------

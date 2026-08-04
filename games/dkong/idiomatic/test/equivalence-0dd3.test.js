@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * Equivalence test for loc_0dd3 (ROM 0x0DD3) — convert a segment record's second
- * endpoint, compute its run deltas, and draw the segment (girder + caps, or ladder).
+ * endpoint, compute its run deltas, and draw the segment (ladder + caps, or girder).
  *
  * loc_0dd3 WRITES memory (the segment scratch 0x63b0-0x63b3 / 0x63ad, and — through
- * its renderer tails loc_0e19 (girder) / loc_0e4f (ladder) — girder tile 0xC0 spans,
- * endpoint caps, and ladder columns in VRAM) and is NOT a leaf, so it is gated by
+ * its renderer tails loc_0e19 (ladder) / loc_0e4f (girder) — ladder tile 0xC0 runs,
+ * endpoint caps, and girder spans in VRAM) and is NOT a leaf, so it is gated by
  * capture / clone / replay (docs/decompiler-pipeline) with a FRESH clone per case. Its callees are the
  * frozen oracles loc_2ff0 / loc_0e4f / loc_0e19 (no idiomatic yet), called directly;
  * those model the Z80 stack (push/call/ret), so the ONLY residual divergence between
@@ -14,7 +14,7 @@
  *
  *   1. REALISM (real captured dispatches) — hook 0x0dd3 during attract. sub_0da7's
  *      record walk dispatches it once per segment; the captured kinds span kind 0
- *      (girder), kind 1 (girder + zero-run), and kind 2 (ladder). For each, run the
+ *      (ladder), kind 1 (ladder + zero-run), and kind 2 (girder). For each, run the
  *      ORACLE on one clone and idiomatic on another and confirm identical game-visible
  *      RAM AND identical DE. DE matters and RAM cannot see it: loc_0dd3 preserves DE
  *      (= record+4) across loc_2ff0 exactly as the ROM's push/pop did, and the renderer
@@ -160,12 +160,12 @@ test("REALISM: real captured 0x0dd3 dispatches — game-visible RAM + DE match t
     assert.equal(deCand, deOracle, `DE live-out mismatch on kind=${kind}: oracle=${hx(deOracle)} idiomatic=${hx(deCand)}`);
   }
   // The three real arms must all be present, or the natural coverage claim is hollow.
-  assert.ok(kinds[0] > 0, "expected kind-0 (girder) captures");
-  assert.ok(kinds[1] > 0, "expected kind-1 (girder + zero-run) captures");
-  assert.ok(kinds[2] > 0, "expected kind-2 (ladder) captures");
+  assert.ok(kinds[0] > 0, "expected kind-0 (ladder) captures");
+  assert.ok(kinds[1] > 0, "expected kind-1 (ladder + zero-run) captures");
+  assert.ok(kinds[2] > 0, "expected kind-2 (girder) captures");
   console.log(
     `  REALISM: ${caps.length} real 0x0dd3 dispatches — RAM (ex-stack) + DE identical; ` +
-      `kinds seen: 0(girder)=${kinds[0]} 1(girder+0)=${kinds[1]} 2(ladder)=${kinds[2]}`,
+      `kinds seen: 0(ladder)=${kinds[0]} 1(ladder+0)=${kinds[1]} 2(girder)=${kinds[2]}`,
   );
 });
 
@@ -264,7 +264,7 @@ function brokenInvDispatch(m) {
 }
 
 test("TEETH (drop-DE): the missing DE restore is RAM-invisible but CAUGHT on the DE channel", () => {
-  const base = baseOfKind(0); // girder path: DE is write-invisible, so RAM stays clean
+  const base = baseOfKind(0); // ladder path: DE is write-invisible, so RAM stays clean
   const { ram, deOracle, deCand } = replay(base, brokenDropDe);
   assert.equal(ram, null, "the drop-DE twin must be RAM-identical — the bug lives only in the DE live-out");
   assert.notEqual(deCand, deOracle, "the DE assertion FAILED to catch a dropped DE restore — it is worthless");
@@ -280,7 +280,7 @@ test("TEETH (wrong-cap): the +0xf1 endpoint cap is CAUGHT by the RAM diff", () =
 });
 
 test("TEETH (inv-dispatch): the swapped girder/ladder dispatch is CAUGHT by the RAM diff", () => {
-  const base = baseOfKind(2); // real ladder record -> the twin runs the girder renderer instead
+  const base = baseOfKind(2); // real girder record -> the twin runs the ladder renderer instead
   const { ram } = replay(base, brokenInvDispatch);
   assert.notEqual(ram, null, "the RAM gate FAILED to catch an inverted dispatch — it is worthless");
   console.log(`  TEETH/inv-dispatch: caught at ${hx(ram.addr)} (oracle=${ram.a} broken=${ram.b})`);

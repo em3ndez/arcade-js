@@ -2201,7 +2201,7 @@ loc_0dd3:
 0DE8: 22 AD 63        LD      ($63AD),HL          ; {ram.segAddr2}
 0DEB: 3A B3 63        LD      A,($63B3)           ; {ram.segKind}
 0DEE: FE 02           CP      $02                 
-0DF0: F2 4F 0E        JP      P,$0E4F             ; {code.drawLadder}
+0DF0: F2 4F 0E        JP      P,$0E4F             ; {code.drawGirderSpan}
 0DF3: 3A B2 63        LD      A,($63B2)           ; {ram.segRun}
 0DF6: D6 10           SUB     $10                 
 0DF8: 47              LD      B,A                 
@@ -2217,18 +2217,18 @@ loc_0dd3:
 0E0C: 77              LD      (HL),A              
 0E0D: 3A B3 63        LD      A,($63B3)           ; {ram.segKind}
 0E10: FE 01           CP      $01                 
-0E12: C2 19 0E        JP      NZ,$0E19            ; {code.drawGirderSpan}
+0E12: C2 19 0E        JP      NZ,$0E19            ; {code.drawLadder}
 0E15: AF              XOR     A                   
 0E16: 32 B2 63        LD      ($63B2),A           ; {ram.segRun}
 
-drawGirderSpan:
+drawLadder:
 0E19: 3A B2 63        LD      A,($63B2)           ; {ram.segRun}
 0E1C: D6 08           SUB     $08                 
 0E1E: 32 B2 63        LD      ($63B2),A           ; {ram.segRun}
 0E21: DA 2A 0E        JP      C,$0E2A             ; {code.drawSegmentEndCap}
 0E24: 2C              INC     L                   
 0E25: 36 C0           LD      (HL),$C0            
-0E27: C3 19 0E        JP      $0E19               ; {code.drawGirderSpan}
+0E27: C3 19 0E        JP      $0E19               ; {code.drawLadder}
 
 drawSegmentEndCap:
 0E2A: 3A B0 63        LD      A,($63B0)           ; {ram.segSubtile2}
@@ -2254,7 +2254,7 @@ loc_0e4b:
 0E4B: 13              INC     DE                  
 0E4C: C3 A7 0D        JP      $0DA7               ; {code.drawBoardLayout}
 
-drawLadder:
+drawGirderSpan:
 0E4F: 3A B3 63        LD      A,($63B3)           ; {ram.segKind}
 0E52: FE 02           CP      $02                 
 0E54: C2 E8 0E        JP      NZ,$0EE8            ; {code.drawCappedTileColumn}

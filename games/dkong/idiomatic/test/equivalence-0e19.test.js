@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for drawGirderSpan (ROM 0x0e19) — the board-layout
- * renderer's segment BODY FILL: stamps the girder body tile 0xC0 across a segment's
+ * Memory-equivalence test for drawLadder (ROM 0x0e19) — the board-layout
+ * renderer's segment BODY FILL: stamps the ladder body tile 0xC0 across a segment's
  * run (span counter 0x63B2, write pointer HL), then draws the end cap (its ROM tail
  * into loc_0e2a) which advances the table cursor DE.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
- * whole-machine one. drawGirderSpan WRITES memory and calls a subroutine, so every case
+ * whole-machine one. drawLadder WRITES memory and calls a subroutine, so every case
  * uses a FRESH clone per side (never a reused machine). The oracle (translated loc_0e19,
  * whose own tail `m.call(0x0e2a)` runs the wired end cap) is run on one clone, and
- * drawGirderSpan (whose tail is a direct call to drawSegmentEndCap, loc_0e2a's twin) on
+ * drawLadder (whose tail is a direct call to drawSegmentEndCap, loc_0e2a's twin) on
  * another, then compared on the go-forward contract:
  *
  *     RAM (dumpState, minus STACK_SCRATCH) + SP + declared live-out DE.
@@ -24,7 +24,7 @@
  *
  * Jobs:
  *   1. EQUAL (captured dispatches) — hook 0x0e19 in a real attract run; on each true
- *      dispatch, oracle vs drawGirderSpan leave identical RAM (−stack) + SP + DE. Reports
+ *      dispatch, oracle vs drawLadder leave identical RAM (−stack) + SP + DE. Reports
  *      the span-length distribution actually exercised.
  *   2. WRITE-SET (captured) — the oracle's only work/sprite/video writes are the 0x63B2
  *      counter (work RAM) and VIDEO-RAM tile cells; documents the exact footprint.
@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0e19 as oracle } from "../../translated/loc_0e19.js";
-import { drawGirderSpan } from "../drawGirderSpan.js";
+import { drawLadder } from "../drawLadder.js";
 import { drawSegmentEndCap } from "../drawSegmentEndCap.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -111,7 +111,7 @@ const CAPS = ROM_PRESENT ? captureDispatches(48, 4000) : [];
 
 // -- 1. EQUAL (captured dispatches) -------------------------------------------
 
-test("EQUAL: real captured dispatches — drawGirderSpan == oracle in RAM (−stack) + SP + DE", () => {
+test("EQUAL: real captured dispatches — drawLadder == oracle in RAM (−stack) + SP + DE", () => {
   assert.ok(CAPS.length >= 1, "expected at least one real 0x0e19 dispatch in the run window");
 
   const lengths = new Set();
@@ -121,7 +121,7 @@ test("EQUAL: real captured dispatches — drawGirderSpan == oracle in RAM (−st
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    drawGirderSpan(c);
+    drawLadder(c);
 
     const diff = contractDiff(o, c);
     assert.equal(diff, null, diff);
@@ -191,7 +191,7 @@ test("CRAFTED: forced span lengths — oracle==candidate + exactly floor(span/8)
     }
 
     oracle(o);
-    drawGirderSpan(c);
+    drawLadder(c);
 
     const diff = contractDiff(o, c);
     assert.equal(diff, null, `span=${hx(span)}: ${diff}`);
@@ -217,9 +217,9 @@ test("CRAFTED: forced span lengths — oracle==candidate + exactly floor(span/8)
 
 // -- 4. TEETH -----------------------------------------------------------------
 
-/** Broken twin: stamps 0xC1 instead of the girder body tile 0xC0 — a plausible
- *  constant off-by-one bug. Identical to drawGirderSpan otherwise (same end cap). */
-function brokenDrawGirderSpan(m) {
+/** Broken twin: stamps 0xC1 instead of the ladder body tile 0xC0 — a plausible
+ *  constant off-by-one bug. Identical to drawLadder otherwise (same end cap). */
+function brokenDrawLadder(m) {
   const { regs, mem } = m;
   for (;;) {
     const span = mem.read8(SPAN);
@@ -238,7 +238,7 @@ test("TEETH: a wrong body tile (0xC1) is CAUGHT on a captured dispatch and the c
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    brokenDrawGirderSpan(c);
+    brokenDrawLadder(c);
     const d = ramDiffMinusStack(o, c);
     if (d) { caught = d; break; }
   }
@@ -249,7 +249,7 @@ test("TEETH: a wrong body tile (0xC1) is CAUGHT on a captured dispatch and the c
   const c = CAPS[0].clone();
   o.mem.write8(SPAN, 0x40); c.mem.write8(SPAN, 0x40);
   oracle(o);
-  brokenDrawGirderSpan(c);
+  brokenDrawLadder(c);
   assert.notEqual(ramDiffMinusStack(o, c), null, "teeth NOT caught on the crafted multi-tile arm");
 
   console.log(`  TEETH: wrong body tile caught at ${hx(caught.addr ?? 0)} (oracle=${caught.a} broken=${caught.b}) + crafted multi-tile arm`);

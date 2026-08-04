@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Memory-equivalence test for drawLadder (ROM 0x0E4F) — the board-layout renderer's
- * kind-2 LADDER drawer: walks DOWN the tilemap laying a (up to two-wide, optionally
- * slanting) ladder run, paying the height counter 0x63B1 down 8 px per row, then steps
+ * Memory-equivalence test for drawGirderSpan (ROM 0x0E4F) — the board-layout renderer's
+ * kind-2 GIRDER drawer: walks DOWN the tilemap laying a (up to two-wide, optionally
+ * slanting) girder run, paying the height counter 0x63B1 down 8 px per row, then steps
  * the record cursor DE past the record.
  *
  * This is the CYCLE-FREE / memory-equivalence gate (docs/decompiler-pipeline), not the retired strict
- * whole-machine one. drawLadder WRITES memory (0x63B5 tile code, 0x63B1 height, and the
+ * whole-machine one. drawGirderSpan WRITES memory (0x63B5 tile code, 0x63B1 height, and the
  * tilemap VRAM cells) and, on the kind != 2 arm, calls a subroutine, so every case uses
  * a FRESH clone per side (never a reused machine). The oracle (translated loc_0e4f) is
- * run on one clone and drawLadder on another, then compared on the go-forward contract:
+ * run on one clone and drawGirderSpan on another, then compared on the go-forward contract:
  *
  *     RAM (dumpState, minus STACK_SCRATCH) + SP + declared live-out DE.
  *
@@ -22,7 +22,7 @@
  * dead at the tail (the walk and its dispatch overwrite them) so they are neither
  * reproduced nor compared.
  *
- * Attract renders this for real on every 25m ladder — all captured dispatches are kind 2,
+ * Attract renders this for real on every 25m girder — all captured dispatches are kind 2,
  * and they naturally span straight (x-delta 0), slant-right (0x07/0x0C) and slant-left
  * (0xF4/0xFD) runs over real heights, so the stamp loop, both descend blocks, and both
  * slant arms are exercised by real states. The kind != 2 DELEGATION (to drawCappedTileColumn)
@@ -31,19 +31,19 @@
  *
  * Jobs:
  *   1. EQUAL (captured dispatches) — hook 0x0E4F in a real attract run; on each true
- *      dispatch, oracle vs drawLadder leave identical RAM (−stack) + SP + DE. Reports the
+ *      dispatch, oracle vs drawGirderSpan leave identical RAM (−stack) + SP + DE. Reports the
  *      x-delta and height distribution actually exercised.
  *   2. WRITE-SET (captured) — the oracle's only writes are 0x63B1, 0x63B5, and VIDEO-RAM
  *      tile cells; documents the exact footprint.
  *   3. CRAFTED (kind != 2 delegation) — poke the record kind to 3/4/5/6/7 identically on
  *      both sides so the routine hands off to drawCappedTileColumn (kind 3 = capped column;
- *      4/5/6 = uniform fill; 7 = bail); confirm oracle == drawLadder including the DE the
+ *      4/5/6 = uniform fill; 7 = bail); confirm oracle == drawGirderSpan including the DE the
  *      callee advances.
  *   4. CRAFTED (row-boundary early exit) — the slant-right path ends the run early when a
  *      shift lands the write pointer on a 32-cell row boundary (block 0x0EC9's `and 0x1f`
- *      exit). Attract never hits it — real ladders always exit by exhausting the height —
+ *      exit). Attract never hits it — real girders always exit by exhausting the height —
  *      so it is crafted: a slant-right run started on a row-aligned column, identically on
- *      both sides. Confirms oracle == drawLadder AND that the run really stopped on the
+ *      both sides. Confirms oracle == drawGirderSpan AND that the run really stopped on the
  *      boundary (height left unspent) rather than running to exhaustion.
  *
  *      The band-edge column shifts (0xF8 wrap / 0xF0 re-seat) need no crafting: the real
@@ -61,7 +61,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0e4f as oracle } from "../../translated/loc_0e4f.js";
-import { drawLadder } from "../drawLadder.js";
+import { drawGirderSpan } from "../drawGirderSpan.js";
 import { drawCappedTileColumn } from "../drawCappedTileColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -75,11 +75,11 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0e4f;
-const KIND = 0x63b3; // record kind (2 = ladder; anything else delegates)
-const TILE_SEED = 0x63af; // record tile byte; ladder tile code = this + 0xF0
-const HEIGHT = 0x63b1; // ladder height, in px, paid down 8 at a time
+const KIND = 0x63b3; // record kind (2 = girder; anything else delegates)
+const TILE_SEED = 0x63af; // record tile byte; girder tile code = this + 0xF0
+const HEIGHT = 0x63b1; // girder run length, in px, paid down 8 at a time
 const XDELTA = 0x63b2; // 0 = straight; sign of nonzero picks the slant direction
-const TILECODE = 0x63b5; // live ladder tile code (seeded then nudged as it descends)
+const TILECODE = 0x63b5; // live girder tile code (seeded then nudged as it descends)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inDeadStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
@@ -131,20 +131,20 @@ const CAPS = ROM_PRESENT ? captureDispatches(64, 4000) : [];
 
 // -- 1. EQUAL (captured dispatches) -------------------------------------------
 
-test("EQUAL: real captured dispatches — drawLadder == oracle in RAM (−stack) + SP + DE", () => {
+test("EQUAL: real captured dispatches — drawGirderSpan == oracle in RAM (−stack) + SP + DE", () => {
   assert.ok(CAPS.length >= 1, "expected at least one real 0x0E4F dispatch in the run window");
 
   const xdeltas = new Set();
   const heights = new Set();
   for (const cap of CAPS) {
-    assert.equal(cap.mem.read8(KIND), 0x02, "attract dispatches should all be kind-2 ladders");
+    assert.equal(cap.mem.read8(KIND), 0x02, "attract dispatches should all be kind-2 girders");
     xdeltas.add(cap.mem.read8(XDELTA));
     heights.add(cap.mem.read8(HEIGHT));
 
     const o = cap.clone();
     const c = cap.clone();
     oracle(o);
-    drawLadder(c);
+    drawGirderSpan(c);
 
     const diff = contractDiff(o, c);
     assert.equal(diff, null, diff);
@@ -186,7 +186,7 @@ test("WRITE-SET: the oracle writes only 0x63B1, 0x63B5 and VIDEO-RAM tile cells"
 
 // -- 3. CRAFTED (kind != 2 delegation) ----------------------------------------
 
-test("CRAFTED: kind != 2 hands off to drawCappedTileColumn — oracle == drawLadder (incl. DE)", () => {
+test("CRAFTED: kind != 2 hands off to drawCappedTileColumn — oracle == drawGirderSpan (incl. DE)", () => {
   const base = CAPS[0];
   for (const kind of [0x03, 0x04, 0x05, 0x06, 0x07]) {
     const o = base.clone();
@@ -195,7 +195,7 @@ test("CRAFTED: kind != 2 hands off to drawCappedTileColumn — oracle == drawLad
     c.mem.write8(KIND, kind);
 
     oracle(o); // translated loc_0e4f -> m.call(0x0EE8) -> translated loc_0ee8
-    drawLadder(c); // -> drawCappedTileColumn directly
+    drawGirderSpan(c); // -> drawCappedTileColumn directly
 
     const diff = contractDiff(o, c);
     assert.equal(diff, null, `kind=${hx(kind)}: ${diff}`);
@@ -208,8 +208,8 @@ test("CRAFTED: kind != 2 hands off to drawCappedTileColumn — oracle == drawLad
 
 // -- 4. CRAFTED (row-boundary early exit) -------------------------------------
 
-test("CRAFTED: slant-right row-boundary early exit — oracle == drawLadder, run stops on the boundary", () => {
-  // Surgical nudges on a real capture: keep it a kind-2 ladder, start the run on a
+test("CRAFTED: slant-right row-boundary early exit — oracle == drawGirderSpan, run stops on the boundary", () => {
+  // Surgical nudges on a real capture: keep it a kind-2 girder, start the run on a
   // row-aligned VRAM column (0x7420, low 5 bits 0) with a positive x-delta and a small
   // tile seed (tile 0xF0 -> +1 = 0xF1, no 0xF8 wrap that cycle). After two descents the
   // slant-right shift leaves HL on the next row boundary, so block 0x0EC9 exits with the
@@ -221,12 +221,12 @@ test("CRAFTED: slant-right row-boundary early exit — oracle == drawLadder, run
   for (const mm of [o, c]) {
     mm.mem.write8(KIND, 0x02);
     mm.mem.write16(0x63ab, START); // converted VRAM corner address
-    mm.mem.write8(TILE_SEED, 0x00); // ladder tile code 0xF0
+    mm.mem.write8(TILE_SEED, 0x00); // girder tile code 0xF0
     mm.mem.write8(XDELTA, 0x01); // positive -> slant right
     mm.mem.write8(HEIGHT, HEIGHT_IN);
   }
   oracle(o);
-  drawLadder(c);
+  drawGirderSpan(c);
 
   const diff = contractDiff(o, c);
   assert.equal(diff, null, diff);
@@ -239,7 +239,7 @@ test("CRAFTED: slant-right row-boundary early exit — oracle == drawLadder, run
     "expected the run to stop on the row boundary after two descents (0x30 height left), " +
       `not run to exhaustion — got 0x63B1 = ${hx(c.mem.read8(HEIGHT))}`,
   );
-  console.log("  CRAFTED/row-exit: slant-right run stopped on the row boundary (0x63B1 left at 0x30), oracle == drawLadder");
+  console.log("  CRAFTED/row-exit: slant-right run stopped on the row boundary (0x63B1 left at 0x30), oracle == drawGirderSpan");
 });
 
 // -- 5. TEETH (paired tile) ---------------------------------------------------
@@ -247,7 +247,7 @@ test("CRAFTED: slant-right row-boundary early exit — oracle == drawLadder, run
 /**
  * Broken twin: lays the paired half-tile as (tile − 0x08) instead of the real
  * (tile − 0x10) — a plausible confusion of the pair offset with the per-row step.
- * Identical to drawLadder in every other respect (same descend, slant, DE advance).
+ * Identical to drawGirderSpan in every other respect (same descend, slant, DE advance).
  */
 function brokenPairedTile(m) {
   const { regs, mem } = m;
@@ -310,11 +310,11 @@ test("TEETH: a wrong paired tile (−0x08) is CAUGHT in the tilemap on a capture
 
 // -- 6. TEETH (live-out DE) ---------------------------------------------------
 
-/** Broken twin: runs the real drawLadder but never advances DE. The RAM is identical;
+/** Broken twin: runs the real drawGirderSpan but never advances DE. The RAM is identical;
  *  only the DE live-out diverges, so a gate blind to DE would pass it. */
 function brokenNoDeAdvance(m) {
   const saved = m.regs.de;
-  drawLadder(m);
+  drawGirderSpan(m);
   m.regs.de = saved; // undo the advance -> DE never moves
 }
 

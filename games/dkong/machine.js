@@ -187,9 +187,9 @@ const SEAM_CALLER_SKIP = new Set([
  */
 const SEAM_TAIL_NO_RET = new Set([
   0x0dd3, // loc_0dd3            jp 0x0da7 -- back to the walk head
-  0x0e19, // drawGirderSpan      jp 0x0da7
+  0x0e19, // drawLadder          jp 0x0da7
   0x0e2a, // drawSegmentEndCap   jp 0x0da7
-  0x0e4f, // drawLadder          jp 0x0da7
+  0x0e4f, // drawGirderSpan      jp 0x0da7
 ]);
 
 /** Exported so the go-live gate can re-derive both tables from the frozen oracle. */

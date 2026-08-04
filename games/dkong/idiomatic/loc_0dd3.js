@@ -34,8 +34,8 @@
 // forms are not interchangeable here, because the address-layer one consumes a guest-stack word
 // that a direct call does not, and nothing available to this file can tell the difference.
 import { loc_2ff0 } from "../translated/loc_2ff0.js";
-import { drawLadder } from "./drawLadder.js";
 import { drawGirderSpan } from "./drawGirderSpan.js";
+import { drawLadder } from "./drawLadder.js";
 
 // Board-render line-segment scratch:
 //   SEG_HEIGHT    the segment's height/length counter
@@ -82,7 +82,7 @@ export function loc_0dd3(m) {
   // what it needs and reads the record pointer itself.
   const kind = mem.read8(SEG_KIND);
   if ((((kind - 0x02) & 0xff) & 0x80) === 0) {
-    drawLadder(m);
+    drawGirderSpan(m);
     return;
   }
 
@@ -106,5 +106,5 @@ export function loc_0dd3(m) {
     mem.write8(SEG_RUN, 0x00);
   }
 
-  drawGirderSpan(m);
+  drawLadder(m);
 }

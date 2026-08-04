@@ -6,7 +6,7 @@
  * loc_0ee8 WRITES memory (0x63B1 column extent + the tilemap VRAM cells) and advances
  * DE, so it is gated by capture / clone / replay (docs/decompiler-pipeline), NOT the exhaustive-leaf
  * pattern. It is also UNREACHED in attract: the attract board's segment records are
- * all kind 2, which loc_0e4f (the ladder drawer) handles itself and never tails here
+ * all kind 2, which loc_0e4f (the girder drawer) handles itself and never tails here
  * (loc_0e4f only `jp`s to 0x0EE8 for kind != 2). Every case is therefore a CRAFTED
  * ENTRY (docs/decompiler-pipeline): a real render-walk state with a surgical nudge. States are captured
  * at the live sibling loc_0e4f, which shares the exact render-scratch loc_0ee8 consumes

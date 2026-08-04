@@ -305,14 +305,15 @@ record's endpoints to tilemap addresses through `tileAddrForPixel`, computes the
 the `SEG_*` scratch cells, and dispatches by record kind — kind 0/1, kind 2, kind 3, kinds 4/5/6.
 `[code]`
 
-> ### ★ `drawGirderSpan` draws the LADDERS and `drawLadder` draws the GIRDERS
+> ### Which drawer lays which, measured
 >
-> The two names are exactly inverted, and the inversion is proven rather than suspected. A held
+> The board-layout walk has two drawers, and which is which was settled by measurement, not by
+> reading. A held
 > write-tap on tilemap VRAM, in a mode that replaces each routine's written tile with the blank
 > `0x10`, was run on the real ROM under MAME 0.288 (`scratchpad/grounding-object-arrays.md` §4).
-> Suppressing **ROM 0x0E19 — the routine named `drawGirderSpan` — removes 616 px, and they are the
-> LADDERS** (the two full-height ladders beside Kong plus eight shorter segments; not one girder
-> pixel changes). Suppressing **ROM 0x0E4F — named `drawLadder` — removes 6256 px, and they are the
+> Suppressing **ROM 0x0E19 — `drawLadder` — removes 616 px, and they are the LADDERS** (the two
+> full-height ladders beside Kong plus eight shorter segments; not one girder
+> pixel changes). Suppressing **ROM 0x0E4F — `drawGirderSpan` — removes 6256 px, and they are the
 > GIRDERS** (every sloped platform; not one ladder pixel changes). The write signatures agree:
 > 0x0E19 lays 22 writes of the uniform tile 0xC0 in short `+1` runs with zero VRAM-row spread;
 > 0x0E4F lays 304 writes from the 0xE0/0xF0 slope-tile band with `+31/+32` steps and a row spread
@@ -320,12 +321,13 @@ the `SEG_*` scratch cells, and dispatches by record kind — kind 0/1, kind 2, k
 > *displayed horizontal*, so 0x0E19 draws short vertical runs and 0x0E4F long sloped horizontal
 > ones. **`[seen]`**
 >
-> Swapping the two names is its own landable unit — it touches both routines, their callers, their
-> gate names and the prose around them — so until it lands, read every occurrence of
-> `drawGirderSpan` as *the ladder drawer* and every occurrence of `drawLadder` as *the girder
-> drawer*. No role anywhere asserts the refuted mechanism: both `ROUTINES` entries, `loc_0dd3`'s,
-> and the three file headers open with `NAME INVERTED (rename pending):` and then state what the
-> routine actually draws. The rename unit deletes that prefix and swaps the two `name:` fields.
+> The idiomatic names were swapped once this measurement settled which drawer is which, so
+> `drawGirderSpan` names the routine that draws girders and `drawLadder` the one that draws ladders.
+> Both read the way they measure. The FROZEN LIFT still carries the old reading in its own prose —
+> `translated/loc_0e19.js` calls itself the girder span and `translated/loc_0e4f.js` the ladder
+> drawer — and it is frozen, so it stays wrong there. Read those two headers against this section,
+> not the other way round. **`[code]`** — those three are facts about this repository, not
+> observations of the machine.
 
 A useful downstream consequence: the ladder/girder *table* is the same one `findOppositeLadderEnd`
 scans — `loadBoardObjectRecords` de-interleaves the very ROM tables the layout renderer walks (25m
@@ -1377,8 +1379,7 @@ are lifted but not yet wired.
 - **Board build & layout** — `buildBoardWhenTimerExpires` · `buildBoard` · `setup25mGirderBoard` ·
   `setup50mConveyorBoard` · `setUp75mBoard` · `initBoardState` · `seed25mBoardObjects` ·
   `seed50mBoardObjects` · `seed75mBoardObjects` · `seed100mBoardObjects` · `loadBoardObjectRecords` ·
-  `seedMarioActorRecord` · `drawBoardLayout` · `loc_0dd3` · `drawGirderSpan` *(draws ladders — §5)* ·
-  `drawLadder` *(draws girders — §5)* · `drawSegmentEndCap` · `drawCappedTileColumn` ·
+  `seedMarioActorRecord` · `drawBoardLayout` · `loc_0dd3` · `drawGirderSpan` · `drawLadder` · `drawSegmentEndCap` · `drawCappedTileColumn` ·
   `fillTileColumn` · `tileAddrForPixel`
 - **Mario** — `dispatchMarioMovement` · `walkRightWhileHeld` · `walkLeftWhileHeld` ·
   `walkMarioRight` · `walkMarioLeft` · `advanceMarioWalkX` · `climbUpWhileHeld` ·

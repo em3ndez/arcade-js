@@ -5,7 +5,7 @@
  *
  * The kind-3 arm of the board-layout drawer chain. The layout is a table of segment records;
  * each record's kind byte is stashed in SEG_KIND and dispatched down the chain — kind 2 to
- * the ladder drawer, kind 3 to here, kind 4 and up to the uniform column fill. The ladder
+ * the girder drawer, kind 3 to here, kind 4 and up to the uniform column fill. The girder
  * drawer tails to this routine for every record that is not kind 2; this routine handles kind
  * exactly 3 and hands kind 4 and up straight on to the uniform fill.
  *
