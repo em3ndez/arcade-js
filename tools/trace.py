@@ -769,20 +769,22 @@ def _selftest() -> int:
     CASE 1, the tail arm. The handler returns on the DISPATCHER'S behalf:
 
         0x0200  call 0x0300 / halt      <- the fallthrough at stake
-        0x0300  ld a,0 / rst 0x28
-                dw 0x0308               <- inline table, no pushed continuation
-        0x0308  ret                     <- this `ret` is 0x0300's own
+        0x0300  push bc                 <- so the correct handler depth is 2, not 0
+                ld a,0 / rst 0x28
+                dw 0x0306               <- inline table, no pushed continuation
+        0x0306  pop bc / ret            <- this `ret` is 0x0300's own, at depth 0
 
     Walk the handler in its own frame and 0x0300 never sees a depth-0 `ret`.
 
     CASE 2, the continuation arm. The handler's `ret` lands on the continuation:
 
         0x0000  call 0x0100 / halt
-        0x0100  ld hl,0x0110 / push hl  <- the continuation
+        0x0100  push bc                 <- so the dispatch depth is 4, not 2
+                ld hl,0x010A / push hl  <- the continuation
                 ld a,0 / rst 0x28
-                dw 0x010A
-        0x010A  ret                     <- the handler
-        0x0110  ret                     <- back in 0x0100's frame, at depth 0
+                dw 0x0120
+        0x0120  ret                     <- the handler
+        0x010A  pop bc / ret            <- back in 0x0100's frame, at depth 0
 
     Walk the continuation at the dispatch depth rather than two shallower and 0x0100's
     `ret` files at depth 2.
@@ -793,17 +795,23 @@ def _selftest() -> int:
     """
     global ROM_SIZE
     saved = ROM_SIZE
+    # Each fixture brackets the dispatch in `push bc` / `pop bc`, so the correct
+    # handler depth is NOT zero. Without that the depth argument is untestable:
+    # both arms would sit at a true depth of 0, and passing a literal 0 instead of
+    # the live depth would keep the selftest green while DK quietly lost coverage.
     cases = [
         ("continuation arm", 0x0100, 0x0003, {
-            0x0000: bytes([0xCD, 0x00, 0x01, 0x76]),
-            0x0100: bytes([0x21, 0x10, 0x01, 0xE5, 0x3E, 0x00, 0xEF, 0x0A, 0x01]),
-            0x010A: bytes([0xC9]),
-            0x0110: bytes([0xC9]),
+            0x0000: bytes([0xCD, 0x00, 0x01, 0x76]),          # call 0x0100 / halt
+            #        push bc | ld hl,0x010A | push hl | ld a,0 | rst 0x28 | dw 0x0120
+            0x0100: bytes([0xC5, 0x21, 0x0A, 0x01, 0xE5, 0x3E, 0x00, 0xEF, 0x20, 0x01]),
+            0x010A: bytes([0xC1, 0xC9]),                      # continuation: pop bc / ret
+            0x0120: bytes([0xC9]),                            # handler: ret -> 0x010A
         }),
         ("tail arm", 0x0300, 0x0203, {
-            0x0200: bytes([0xCD, 0x00, 0x03, 0x76]),
-            0x0300: bytes([0x3E, 0x00, 0xEF, 0x08, 0x03]),
-            0x0308: bytes([0xC9]),
+            0x0200: bytes([0xCD, 0x00, 0x03, 0x76]),          # call 0x0300 / halt
+            #        push bc | ld a,0 | rst 0x28 | dw 0x0306
+            0x0300: bytes([0xC5, 0x3E, 0x00, 0xEF, 0x06, 0x03]),
+            0x0306: bytes([0xC1, 0xC9]),                      # handler: pop bc / ret
         }),
     ]
     try:
