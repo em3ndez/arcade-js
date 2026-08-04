@@ -88,11 +88,12 @@ at 2× speed; over this 35-second run the largest single-frame difference is 0.1
   poke the board state to start on a given board, which keeps each one short and deterministic
   — that's a property of the fixtures, not a limit of the game, which progresses on its own.
 - **Decoder cross-check.** Our Z80 decoder is checked against `z80dasm` over the whole ROM:
-  6051 instruction boundaries, zero disagreements in either direction (`make verify`).
+  6411 instruction boundaries, zero disagreements in either direction (`make verify`).
 - **Step audit.** Every `m.step()` target in the translation is verified to land on a real
-  instruction boundary (`make stepcheck`). The static tracer reaches ~77% of the ROM; targets
-  in the spans it hasn't reached are reported as **coverage gaps rather than quietly counted
-  as passes** — a green gate says what it actually covered.
+  instruction boundary (`make stepcheck`). The static tracer reaches ~82% of the ROM, and a
+  target it never decoded is reported as **unresolved rather than excused** — either the step is
+  wrong, or the tracer is missing an entry point and the map is simply incomplete. Both are work;
+  neither is a pass. Treating them as gaps hid 836 bytes of live code for two weeks.
 - **Several thousand unit tests** (`npm test`), with mutation patches recorded next to the
   assertions they justify, so a test that cannot fail is visible as such. Each idiomatic rewrite
   additionally carries a memory-equivalence test against the frozen oracle, with deliberately-broken

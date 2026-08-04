@@ -33,9 +33,9 @@ WHAT IT CHECKS, and what it deliberately does not:
   default   every literal m.step(0xADDR, ...) in games/<id>/translated/ targets the START of
             a decoded instruction. Stepping into the middle of an instruction
             is always wrong. Finds MISAIMED steps; blind to missing ones.
-            A target inside a known-unreached span (out/unreached.txt) is
-            reported as a COVERAGE GAP, not a defect -- the tracer simply never
-            decoded that byte, so there is no instruction-start record to hit.
+            A target inside a known-unreached span (out/unreached.txt) is a
+            DEFECT too; the span is reported as diagnosis, never as an excuse.
+            See the note above the span load in main().
   --draft   the stronger check, on one draft: the step sequence must match the
             listing's instruction sequence one for one, so a missing or extra
             step is caught. Works because a draft's listing order is known and
@@ -82,9 +82,10 @@ def steps_in(path):
 def unreached_spans(text):
     """[(lo, hi)] inclusive byte ranges the tracer never proved reachable.
 
-    Parsed from out/unreached.txt (written by `make trace`). A step target that
-    lands inside one of these has no decoded instruction start simply because
-    that byte was never reached -- a static-coverage gap, not a bad target.
+    Parsed from out/unreached.txt (written by `make trace`). Used only to make a
+    bad target's message more useful -- landing in one of these does not excuse
+    it, because a step target is read off the instruction stream while an
+    unreached span only records where the tracer failed to arrive.
     """
     spans = []
     for line in text.split("\n"):
@@ -242,43 +243,47 @@ def main():
               f"the check has teeth")
         return 0
 
-    # Coverage gaps vs. real defects. The recursive-descent tracer only proves
-    # ~77% of the ROM reachable; a step whose target lands inside a known-unreached
-    # span (out/unreached.txt) has no instruction-start record simply because that
-    # byte was never decoded. That is a static-coverage gap, NOT a mistranslated
-    # target, and it must not fail the audit. A target that misses a start OUTSIDE
-    # every unreached span IS a real defect.
+    # An "unreached" span is DIAGNOSTIC here, never an excuse -- 8c19586 made it one to turn
+    # this gate green, and that clause then hid 836 bytes of live code (313 targets) behind a
+    # CLEAN verdict for the two weeks it existed. The reasoning for it was that a byte the
+    # tracer never decoded has no instruction-start record through no fault of the lift. But
+    # the lift only writes an m.step where it READ an instruction boundary, while "unreached"
+    # records only that the static descent never ARRIVED -- a positive observation against an
+    # absence. So the two sources disagree and the span is the weaker claim.
+    #
+    # The honest reading is not "somebody is wrong": the tracer may simply not know an entry
+    # point yet, in which case the code is real and the map is incomplete. Either way it is
+    # unresolved and the gate must say so. Resolve it the way out/unreached.txt already
+    # documents -- register the entry in games/<id>/entrypoints.json and re-trace -- or fix
+    # the step. Loading the spans lets the message name which case a target is.
     unreached_path = a.unreached or os.path.join(os.path.dirname(a.asm), "unreached.txt")
     if os.path.exists(unreached_path):
         spans = unreached_spans(open(unreached_path).read())
     else:
         spans = []
-        print(f"  NOTE: {unreached_path} not found -- run `make trace` first so "
-              f"coverage gaps can be told apart from real defects")
+        print(f"  NOTE: {unreached_path} not found -- run `make trace` first so a "
+              f"bad target can say whether the tracer also missed that span")
 
     def in_unreached(addr):
         return any(lo <= addr <= hi for lo, hi in spans)
 
     bad = 0
-    gaps = 0
     files = sorted(glob.glob(a.src))
     total = 0
     for path in files:
         for line_no, addr in steps_in(path):
             total += 1
             if addr not in starts:
-                if in_unreached(addr):
-                    gaps += 1
-                else:
-                    print(f"  {path}:{line_no}: m.step(0x{addr:04x}) is NOT an "
-                          f"instruction start")
-                    bad += 1
+                # Every miss is a defect; an unreached span only names the case. Why that
+                # is not an excuse is argued above the span load in main().
+                where = (" (inside a span the tracer calls unreached -- register its entry "
+                         "point and re-trace, or fix this step)") if in_unreached(addr) else ""
+                print(f"  {path}:{line_no}: m.step(0x{addr:04x}) is NOT an "
+                      f"instruction start{where}")
+                bad += 1
 
     print(f"CHECK 1 -- targets: {total} m.step targets across {len(files)} "
           f"file(s), {len(starts)} decoded instruction starts")
-    if gaps:
-        print(f"  {gaps} target(s) inside known-unreached spans "
-              f"(coverage gaps, not defects)")
     print("  CLEAN" if bad == 0 else f"  {bad} BAD TARGET(S)")
 
     # ---- CHECK 2 (COVERAGE) WAS ATTEMPTED AND IS NOT SHIPPED -------------
@@ -313,11 +318,7 @@ def main():
 
     total_bad = bad
     if total_bad == 0:
-        if gaps:
-            print(f"STEP AUDIT CLEAN ({gaps} target(s) in known-unreached spans -- "
-                  f"coverage gaps, not defects)")
-        else:
-            print("STEP AUDIT CLEAN")
+        print("STEP AUDIT CLEAN")
     else:
         print(f"{total_bad} DEFECT(S)")
     return 0 if total_bad == 0 else 1
