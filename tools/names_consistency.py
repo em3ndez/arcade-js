@@ -95,7 +95,7 @@ def blob(ref, path):
 
 
 HEX_CLAIM = re.compile(
-    r"no ram\.?js name|not in ram\.?js|stays? hex|kept? hex|keep (?:it|them) hex|stays? local|unnamed",
+    r"no names\.?js name|not in names\.?js|stays? hex|kept? hex|keep (?:it|them) hex|stays? local|unnamed",
     re.I,
 )
 ADDR = re.compile(r"0x[0-9a-f]{4}", re.I)
