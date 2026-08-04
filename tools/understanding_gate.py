@@ -66,7 +66,7 @@ def is_routine(path):
     if not m:
         return None
     name = m.group(2)
-    if name == "ram" or "/" in path[len(f"games/{m.group(1)}/idiomatic/"):]:
+    if name == "names" or "/" in path[len(f"games/{m.group(1)}/idiomatic/"):]:
         return None
     return m.group(1), name  # (game, routine-name)
 
