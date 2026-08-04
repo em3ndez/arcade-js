@@ -38,10 +38,10 @@
  *           step — every caller consumes it immediately, storing it to a 0x63Ax
  *           shadow; loc_264c also negates it). Flags are DEAD (no caller reads them);
  *           HL is preserved; no pc/SP (the JS return models the Z80 `ret`).
- * NAMES:    FRAME (0x601A) — from ram.js. HL is a register-relative pointer the
+ * NAMES:    FRAME (0x601A) — from names.js. HL is a register-relative pointer the
  *           caller supplies, so no fixed RAM address is imported for it.
  */
-import { FRAME } from "./ram.js";
+import { FRAME } from "./names.js";
 
 export function signStepHalfRate(m) {
   const { regs, mem } = m;

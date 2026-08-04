@@ -7,7 +7,7 @@
  * loc_12f2 (idx 14) and loc_1344 (idx 15) decrement LIVES, and on the zero
  * branch call this with HL = the finished player's 3-byte packed-BCD score
  * (P1_SCORE 0x60B2 with A=0x01, P2_SCORE 0x60B5 with A=0x03). It does three things
- * into the 0x61A5..0x61CA work-RAM staging area (deliberately unnamed in ram.js —
+ * into the 0x61A5..0x61CA work-RAM staging area (deliberately unnamed in names.js —
  * NOT the live HIGH_SCORE at 0x60B8):
  *
  *   1. Stash the A parameter at 0x61C6, then a `rst 0x08` caller-skip guard: in
@@ -28,10 +28,10 @@
  * borrow chain is a 24-bit unsigned compare, faithfully rendered as `keyDe < keyHl`.
  *
  * NAME kept neutral loc_13ca on purpose: the MECHANISM is fully understood, but the
- * 0x61A5..0x61CA staging table is deliberately unnamed scratch in ram.js and is not
+ * 0x61A5..0x61CA staging table is deliberately unnamed scratch in names.js and is not
  * the live HIGH_SCORE, so an English name (e.g. "rankScoreEntry") would over-assert
  * the destination's game-semantic identity past the proposer!=confirmer bar. Promote
- * only once that region is confirmed in ram.js.
+ * only once that region is confirmed in names.js.
  *
  * Memory-equivalent to the frozen oracle — equivalence-13ca.test.js.
  * GATE:     crafted-entry — 0x13ca is never dispatched in attract or a brief
@@ -47,12 +47,12 @@
  *           on every exit — normal, guard-skip, and `ret c`), so pc/SP carry no residue
  *           and the harness supplies the single matching ret.
  * NAMES:    ATTRACT (0x6007) via gameActiveGuard; the 0x61xx staging addresses are
- *           deliberately unnamed scratch in ram.js and stay hex.
+ *           deliberately unnamed scratch in names.js and stay hex.
  */
 
 import { gameActiveGuard } from "./gameActiveGuard.js";
 
-// Score-format / sort staging area — all deliberately unnamed in ram.js, kept hex.
+// Score-format / sort staging area — all deliberately unnamed in names.js, kept hex.
 const PARAM_SLOT = 0x61c6; // the A parameter is stored here (`ld (de),a`)
 const RAW_SCORE = 0x61c7;  // 3 packed-BCD score bytes copied here; also the sort's first "new" key
 const DIGITS = 0x61b1;     // 6 unpacked digit nibbles written forward from here

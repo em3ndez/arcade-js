@@ -13,11 +13,11 @@ Two checks, per game with staged changes, computed on the STAGED (index) content
 they bind to exactly what will be committed:
 
   A. same-landable-unit — if the commit renames idiomatic routine files OR changes the
-     ram.js export set for game G, then games/G/mechanisms.md must ALSO be staged. A
+     names.js export set for game G, then games/G/mechanisms.md must ALSO be staged. A
      understanding pass that renames without touching the map is half-done.
 
   B. no-retired-names — games/G/mechanisms.md must contain NONE of the names this commit
-     retired: idiomatic routine files removed, or ram.js exports removed, between HEAD
+     retired: idiomatic routine files removed, or names.js exports removed, between HEAD
      and the index. A retired name still in the map is a dangling reference the renames
      left behind (this is what caught the stale CLIMB_GATE / ANIM_RAND).
 
@@ -61,7 +61,7 @@ EXPORT_RE = re.compile(r"export\s+const\s+([A-Za-z_][A-Za-z0-9_]*)\s*=")
 
 
 def is_routine(path):
-    """games/<G>/idiomatic/<name>.js — a top-level routine file (not ram.js, not test/)."""
+    """games/<G>/idiomatic/<name>.js — a top-level routine file (not names.js, not test/)."""
     m = ROUTINE_RE.match(path)
     if not m:
         return None
@@ -146,8 +146,8 @@ def check():
                 (is_routine(o) or ("",))[0], (is_routine(n) or ("",))[0])
             for s, o, n in rows
         )
-        head_exports = exports_of(blob("HEAD", f"games/{game}/idiomatic/ram.js"))
-        index_exports = exports_of(blob(":", f"games/{game}/idiomatic/ram.js"))
+        head_exports = exports_of(blob("HEAD", f"games/{game}/idiomatic/names.js"))
+        index_exports = exports_of(blob(":", f"games/{game}/idiomatic/names.js"))
         exports_changed = head_exports != index_exports
 
         retired_routines = routine_names("HEAD", game) - routine_names(":", game)
@@ -159,7 +159,7 @@ def check():
         # CHECK A — same landable unit
         if understanding_change and mech_exists and not mech_staged:
             failures.append(
-                f"[{game}] this commit renames routines / changes ram.js exports but does NOT "
+                f"[{game}] this commit renames routines / changes names.js exports but does NOT "
                 f"stage {mech}. An understanding pass rewrites the map in the same commit."
             )
 

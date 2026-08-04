@@ -95,7 +95,7 @@ Each links to the doc that details it.
 
 **Meaning**
 - confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [understanding](understanding.md)
-- **one source per fact**: `ram.js` owns a cell's name/role/tag; `mechanisms.md` tags *mechanisms* not cells, comments never restate registry status — a fail-closed gate (`tools/names_consistency.py`) blocks prose that calls a named cell "hex/unnamed" — [the names registry](names-registry.md)
+- **one source per fact**: `names.js` owns a cell's name/role/tag; `mechanisms.md` tags *mechanisms* not cells, comments never restate registry status — a fail-closed gate (`tools/names_consistency.py`) blocks prose that calls a named cell "hex/unnamed" — [the names registry](names-registry.md)
 - proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [understanding](understanding.md), [decompiler pipeline](decompiler-pipeline.md)
 - grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
   find where to poke; persistence + completeness-critic rounds — [grounding](grounding.md)
@@ -108,7 +108,7 @@ Each links to the doc that details it.
 1. **Meaning rides on structure** — pokes need the map, so poke-assisted grounding lives inside the
    spiral, not before it. Front-load only the *watch-only* half of grounding at day zero.
 2. **The spiral lifts understanding each lap** — early names, chosen at partial understanding, get
-   re-derived later (that's why a game's `ram.js` grows 4→85→140 across laps, not in one sitting).
+   re-derived later (that's why a game's `names.js` grows 4→85→140 across laps, not in one sitting).
    Schedule one adversarial **name-revisit** once grounding is complete; if you front-loaded
    watch-only grounding, it shrinks from a re-derivation to a confirmation.
 3. **Load-bearing picks ride on grounding** — the converse of (1). When the code alone can't settle
@@ -128,7 +128,7 @@ Each details one cluster inside a move (read in any order):
 
 - [disassembly](disassembly.md) · [translation](translation.md) · [testing & mutation](testing-and-mutation.md) · [integration testing](integration-testing.md) · [pixel gate](pixel-gate.md) — **Structure & the gate face**
 - [understanding](understanding.md) — **Meaning** (cross-cutting; starts day one)
-- [the names registry](names-registry.md) — **Meaning**: `ram.js`, the one file mapping every address (RAM cell and routine) to its name
+- [the names registry](names-registry.md) — **Meaning**: `names.js`, the one file mapping every address (RAM cell and routine) to its name
 - [decompiler pipeline](decompiler-pipeline.md) — **Structure**, the idiomatic rewrite in depth
 - [porting a new game](porting.md) — **Ship** + CPU / board / game layering
 - [how the agents worked](how-the-agents-worked.md) — the experiment (the agents, not the method)

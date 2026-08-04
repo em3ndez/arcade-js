@@ -40,18 +40,18 @@
  *           no attract path reaches THIS routine through it.
  * LIVE-OUT: memory-only. The oracle's residual registers/flags and its terminal
  *           return are dead ABI; the record pointer is unchanged.
- * NAMES:    MARIO_Y (0x6205) from ram.js. The touched record fields at pointer+0x0D,
- *           +0x0F, +0x19, +0x1C, +0x1D are object-record offsets with no ram.js name
+ * NAMES:    MARIO_Y (0x6205) from names.js. The touched record fields at pointer+0x0D,
+ *           +0x0F, +0x19, +0x1C, +0x1D are object-record offsets with no names.js name
  *           (the record layout is not yet named) — reported for the lead. tickFireTimerAndRerollDirection
  *           (ROM 0x330F) is direct-called; it reads the same record pointer, so no
  *           register marshalling is needed.
  */
 
-import { MARIO_Y, OBJ_STATE } from "./ram.js";
+import { MARIO_Y, OBJ_STATE } from "./names.js";
 import { tickFireTimerAndRerollDirection } from "./tickFireTimerAndRerollDirection.js"; // ROM 0x330F — tick the object's periodic timer
 
 // Object-record field offsets (relative to the live-in record pointer). Unnamed in
-// ram.js; kept as local offsets, mirroring tickFireTimerAndRerollDirection's TIMER/STATE.
+// names.js; kept as local offsets, mirroring tickFireTimerAndRerollDirection's TIMER/STATE.
 const DWELL_COUNTER = 0x1c; // interval down-counter; reloads to 0xFF on the pass gate
 const ARM_FLAG = 0x1d;      // == 1 arms the position-compare branch; then disarmed
 const LIMIT_FIELD = 0x0f;   // compared against MARIO_Y (borrow => below)

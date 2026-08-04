@@ -33,16 +33,16 @@
  * LIVE-OUT: memory-only — the single stored coordinate at record +0x0F. The oracle's
  *           residual registers/flags and its terminal return are dead ABI; the board-guard
  *           early-out replaces its `ret nz`.
- * NAMES:    BOARD (0x6227), OBJ_STATE (record +0x0D) — from ram.js; snapYToGirder (ROM 0x2333),
+ * NAMES:    BOARD (0x6227), OBJ_STATE (record +0x0D) — from names.js; snapYToGirder (ROM 0x2333),
  *           direct-called with the two coordinates + the state byte. Record fields +0x0E and
- *           +0x0F have no ram.js offset name yet and stay local consts here.
+ *           +0x0F have no names.js offset name yet and stay local consts here.
  */
 
-import { BOARD, OBJ_STATE } from "./ram.js";
+import { BOARD, OBJ_STATE } from "./names.js";
 import { snapYToGirder } from "./snapYToGirder.js"; // ROM 0x2333 — girder-slope single-step (pure)
 
 // Object-record fields addressed off the record pointer; neither has a shared OBJ_* offset
-// name in ram.js. Per snapYToGirder's contract, +0x0E is the companion coordinate (its low nibble
+// name in names.js. Per snapYToGirder's contract, +0x0E is the companion coordinate (its low nibble
 // is the sub-cell position) and +0x0F is the coordinate stepped, then stored back.
 const OBJ_COMPANION_COORD = 0x0e;
 const OBJ_STEPPED_COORD = 0x0f;

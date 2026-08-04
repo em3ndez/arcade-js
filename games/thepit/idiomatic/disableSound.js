@@ -19,7 +19,7 @@
  *           drives the line high instead is caught on the sound-on entry.
  * LIVE-OUT: the sound-enable control line only — no work RAM is read or written,
  *           and the value registers the oracle leaves behind are dead scratch.
- * NAMES:    none from ram.js — the target is a fixed hardware control-latch address
+ * NAMES:    none from names.js — the target is a fixed hardware control-latch address
  *           (0xb003 selects control-latch bit 3, the sound-enable line), not work RAM.
  */
 export function disableSound(m) {

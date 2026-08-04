@@ -30,7 +30,7 @@
  * to 0 (the mover is switched off)" — was actively misleading. It reads as "the lift stops",
  * which is the opposite of what happens: the lift carries on and the player is
  * dead). Corroboration from OUTSIDE the routine (R5): MARIO_ACTIVE (0x6200) is `[seen]` in
- * ram.js and its grounded note states the consequence itself — "Poking 0 mid-play freezes
+ * names.js and its grounded note states the consequence itself — "Poking 0 mid-play freezes
  * Mario and runs the death -> life-decrement -> respawn cycle". Zeroing it is the game's kill
  * primitive, the same write the fall-damage landing makes. It was then measured end to end on
  * BOTH arms, in two independent runs: MARIO_ACTIVE := 0 here, then GAME_SUBSTATE 0x0C -> 0x0D
@@ -62,15 +62,15 @@
  * LIVE-OUT: memory-only (MARIO_ACTIVE, EDGE_REPOSITION_FLAG 0x6398). The oracle's
  *           cleared accumulator/flags and its terminal return are dead ABI — the
  *           per-frame chain that tail-calls this discards them.
- * NAMES:    MARIO_ACTIVE (0x6200) `[seen]`, EDGE_REPOSITION_FLAG (0x6398) from ram.js.
+ * NAMES:    MARIO_ACTIVE (0x6200) `[seen]`, EDGE_REPOSITION_FLAG (0x6398) from names.js.
  *           The latter is still rated `[code]` there and described as a "Mario Y just
  *           repositioned" one-shot; this pass established its meaning more sharply from
  *           outside — it has exactly one setter in the ROM (0x29E8, in the land-on-a-lift
  *           arm), so it reads as "Mario is standing on a 75m lift". Lifting that rating
- *           is a ram.js edit, not this file's.
+ *           is a names.js edit, not this file's.
  */
 
-import { MARIO_ACTIVE, EDGE_REPOSITION_FLAG } from "./ram.js";
+import { MARIO_ACTIVE, EDGE_REPOSITION_FLAG } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

@@ -38,12 +38,12 @@
  * LIVE-OUT: memory-only — the dispatch's whole effect is what the chosen callee writes to the
  *           object record; the oracle's residual registers/flags and its per-arm terminal ret
  *           are dead ABI (the three direct calls replace the push16/ret call brackets).
- * NAMES:    BOARD (0x6227) from ram.js — the only cell this routine reads. loc_342c (ROM
+ * NAMES:    BOARD (0x6227) from names.js — the only cell this routine reads. loc_342c (ROM
  *           0x342C), loc_3478 (ROM 0x3478), loc_34b9 (ROM 0x34B9) — all already idiomatic and
  *           direct-called.
  */
 
-import { BOARD } from "./ram.js";
+import { BOARD } from "./names.js";
 import { loc_342c } from "./loc_342c.js"; // ROM 0x342C — flat-table object walker
 import { loc_3478 } from "./loc_3478.js"; // ROM 0x3478 — direction-selected twin walker
 import { loc_34b9 } from "./loc_34b9.js"; // ROM 0x34B9 — two-table record seeder

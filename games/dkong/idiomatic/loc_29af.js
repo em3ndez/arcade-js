@@ -35,10 +35,10 @@
  * on both sides of that test, rather than leaving it as an assertion.
  *
  * NAME: kept the neutral loc_. Which objects the 0x6600 array holds on this board is not
- * established to the routine-naming bar here — OBJ_ARRAY_66's ram.js entry grounds the array as
+ * established to the routine-naming bar here — OBJ_ARRAY_66's names.js entry grounds the array as
  * six live records on board 3 with Y sweeping and X pinned to two columns, but naming this
  * routine for them would import an identity this file did not derive. What IS corroborated from
- * outside the routine: MARIO_AIR_PREV_Y's ram.js entry independently names ROM 0x29D6/0x29EE —
+ * outside the routine: MARIO_AIR_PREV_Y's names.js entry independently names ROM 0x29D6/0x29EE —
  * the two reads below — as its collision readers, and EDGE_REPOSITION_FLAG's entry independently
  * names ROM 0x29AF as the writer that sets it right after writing MARIO_Y, which is exactly the
  * on-top arm here. Both would have come out otherwise if the arms were read wrong.
@@ -99,7 +99,7 @@ import {
   OBJ_ARRAY_66,
   OBJ_Y,
   SPRITE_X,
-} from "./ram.js";
+} from "./names.js";
 
 // Board applicability mask: bit2 selects board 3, so the contact check runs only there.
 const BOARD_MASK = 0x04;

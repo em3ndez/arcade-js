@@ -42,17 +42,17 @@
  *           tile-code / attribute it computes are consumed by commitSpriteRecordAtMarioOffset, not a caller,
  *           and the oracle's residual registers/flags and its returns reach no one.
  * NAMES:    MARIO_HAMMER_PENDING (0x6218), MARIO_SPRITE_CODE (0x6207), SND_BGM
- *           (0x6089), HAMMER_SAVED_BGM (0x6389 — the saved-tune scratch) — from ram.js.
- *           The two object-record state offsets +0x09/+0x0A have no ram.js name yet and
+ *           (0x6089), HAMMER_SAVED_BGM (0x6389 — the saved-tune scratch) — from names.js.
+ *           The two object-record state offsets +0x09/+0x0A have no names.js name yet and
  *           stay local hex here. commitSpriteRecordAtMarioOffset is direct-called with the tile code and
  *           attribute marshalled into the register slots it reads (the record
  *           destination and object base pass through from the caller).
  */
 
-import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM, HAMMER_SAVED_BGM, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js";
+import { MARIO_HAMMER_PENDING, MARIO_SPRITE_CODE, SND_BGM, HAMMER_SAVED_BGM, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js"; // ROM 0x2F7C — the shared object-sprite record write
 
-// Object-record field offsets with no ram.js name yet: two per-object state bytes
+// Object-record field offsets with no names.js name yet: two per-object state bytes
 // this arm stamps to fixed values before the record write.
 
 // Sprite fields this arm produces for the record write.

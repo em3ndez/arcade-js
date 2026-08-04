@@ -46,7 +46,7 @@
  *           its returns are dead ABI.
  * NAMES:    reads Mario's Y from the caller's register; loc_1e6d (ROM 0x1E6D) direct-called
  *           on the board-won arm. 0x31 is the rescue-row Y threshold — an immediate compared
- *           against the sprite Y, with no ram.js name, so it stays hex.
+ *           against the sprite Y, with no names.js name, so it stays hex.
  */
 
 import { loc_1e6d } from "./loc_1e6d.js"; // ROM 0x1E6D

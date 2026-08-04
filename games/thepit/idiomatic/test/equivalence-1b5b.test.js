@@ -43,7 +43,7 @@ import { loc_1b5b as oracle } from "../../translated/loc_1b5b.js";
 import { stageObjectSpriteRecord as idiomatic } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAYER_Y, PLAYER_FACING, PLAYER_X } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING, PLAYER_X } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

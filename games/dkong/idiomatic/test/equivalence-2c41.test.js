@@ -49,7 +49,7 @@ import { loc_2c41 } from "../loc_2c41.js";
 import { stirRandomSeed } from "../stirRandomSeed.js"; // ROM 0x0057
 import { loc_2c86 } from "../loc_2c86.js"; // ROM 0x2C86
 import { loc_2c49 } from "../loc_2c49.js"; // ROM 0x2C49
-import { RANDOM, FRAME, SPIN_COUNT, BONUS_EVENT_MARK, OBJ_ARRAY_64, STACK_SCRATCH, BARREL_CLAIM_MODE } from "../ram.js";
+import { RANDOM, FRAME, SPIN_COUNT, BONUS_EVENT_MARK, OBJ_ARRAY_64, STACK_SCRATCH, BARREL_CLAIM_MODE } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

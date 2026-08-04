@@ -21,11 +21,11 @@
  *           successor consumes no register/flag this leaves; the oracle's residual
  *           A/HL/flags are dead ABI (pc/SP model the single tail return, supplied by the
  *           harness).
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from ram.js. writeMarioSpriteRecord (0x1da6)
+ * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from names.js. writeMarioSpriteRecord (0x1da6)
  *           called directly.
  */
 
-import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
+import { MARIO_MOVE_STEP_TIMER } from "./names.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function continueWalkStep(m) {

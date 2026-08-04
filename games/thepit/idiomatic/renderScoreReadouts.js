@@ -38,13 +38,13 @@
  * LIVE-OUT: memory-only — the three readouts' label cells + digit cells and the
  *           shared value-staging slot. No register or flag is live out (the oracle's
  *           residual pointer/counter are dead scratch every caller reloads).
- * NAMES:    SCORE_DISPLAY_LOW (0x8037) from ram.js — low byte of the 16-bit value
+ * NAMES:    SCORE_DISPLAY_LOW (0x8037) from names.js — low byte of the 16-bit value
  *           staging slot the digit unpacker reads. The source records (0x8039) are
  *           HIGH_SCORE_TABLE; the readout display cells are SCORE_READOUT_DEST (0x8283).
  */
 
 import { unpackScoreDigits } from "./unpackScoreDigits.js";
-import { SCORE_DISPLAY_LOW, SCORE_READOUT_DEST } from "./ram.js";
+import { SCORE_DISPLAY_LOW, SCORE_READOUT_DEST } from "./names.js";
 
 const READOUT_COUNT = 3;
 

@@ -49,7 +49,7 @@ import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { addStrided } from "../addStrided.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "../ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

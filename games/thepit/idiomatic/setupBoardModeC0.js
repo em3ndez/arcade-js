@@ -31,7 +31,7 @@
  *           tilemap and colour RAM, the wiped work block); SP/pc land where its return
  *           goes. No register or flag is live out — the shared body's residual
  *           byte/flags are dead scratch the body and callers reload before reading.
- * NAMES:    BOARD_MODE (0x8057) from ram.js — the byte this door stows and the setup
+ * NAMES:    BOARD_MODE (0x8057) from names.js — the byte this door stows and the setup
  *           consumes as the colour fill. The 0xC0 selector stays hex: it is a
  *           colour / attribute byte, so its bit layout is the point.
  *

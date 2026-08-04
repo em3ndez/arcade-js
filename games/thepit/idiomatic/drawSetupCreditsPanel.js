@@ -46,20 +46,20 @@
  *           final ret is no longer modelled here, so the gate does one ret on the
  *           candidate to line pc + SP up with the oracle before comparing them.
  * NAMES:    TILE_COL, TILE_ROW, PLOT_RUN_LENGTH and CREDIT_COUNT (0x8000, the live
- *           top-cell value source) from ram.js. 0x8057 kept local (FILL_ATTR) —
- *           ram.js proposes BOARD_MODE for that address, but here it is unambiguously the
+ *           top-cell value source) from names.js. 0x8057 kept local (FILL_ATTR) —
+ *           names.js proposes BOARD_MODE for that address, but here it is unambiguously the
  *           panel's colour byte, so a local role name is used instead of a misfit
- *           import. The ROM label source 0x496d is not named in ram.js.
+ *           import. The ROM label source 0x496d is not named in names.js.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, CREDIT_COUNT } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, CREDIT_COUNT } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 import { copyCappedTileColumn } from "./copyCappedTileColumn.js";
 
-// The colour attribute every cell of the panel is painted in. ram.js proposes
+// The colour attribute every cell of the panel is painted in. names.js proposes
 // BOARD_MODE for 0x8057, but in this routine the byte is the fill colour, not a mode.
 const FILL_ATTR = 0x8057;
 

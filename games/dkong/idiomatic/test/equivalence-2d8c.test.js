@@ -43,7 +43,7 @@ import { activateReleasedBarrel } from "../activateReleasedBarrel.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, BARREL_CLAIM_MODE, OBJ_ACTIVE, OBJ_X, OBJ_Y, SPRITE_Y } from "../ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK, BARREL_CLAIM_MODE, OBJ_ACTIVE, OBJ_X, OBJ_Y, SPRITE_Y } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

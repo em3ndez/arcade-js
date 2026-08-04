@@ -48,10 +48,10 @@
  *           flags are dead ABI. The oracle's single net caller-return `ret` is modelled by
  *           the JS return (the harness does one m.ret() to line pc + SP up with the oracle).
  * NAMES:    MARIO_Y (0x6205), FRAME (0x601A), M50_OBJ2_REVERSE_TIMER (0x62A2),
- *           M50_OBJ2_STEP_DIR (0x62A3) — all from ram.js.
+ *           M50_OBJ2_STEP_DIR (0x62A3) — all from names.js.
  */
 
-import { MARIO_Y, FRAME, M50_OBJ2_REVERSE_TIMER, M50_OBJ2_STEP_DIR } from "./ram.js";
+import { MARIO_Y, FRAME, M50_OBJ2_REVERSE_TIMER, M50_OBJ2_STEP_DIR } from "./names.js";
 import { loc_266f } from "./loc_266f.js"; // ROM 0x266F — force the latch negative, then the tail
 import { reverseStepDirection } from "./reverseStepDirection.js"; // ROM 0x26DE — flip the latch sign
 import { loc_264c } from "./loc_264c.js"; // ROM 0x264C — the shared publish/animate tail

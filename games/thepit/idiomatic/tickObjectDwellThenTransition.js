@@ -37,7 +37,7 @@
  * PURPOSE [guess]: which game event the expiry gates (lost life vs other).
  */
 
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, PLAYER_FACING } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, PLAYER_FACING } from "./names.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 
 export function tickObjectDwellThenTransition(m) {

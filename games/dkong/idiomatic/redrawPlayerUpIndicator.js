@@ -42,12 +42,12 @@
  *           return are dead ABI (the whole-machine gate backstops that). The three
  *           writes land in video RAM (the two indicator columns), not work RAM.
  * NAMES:    FRAME (0x601A), CURRENT_PLAYER (0x600D), TWO_PLAYER_GAME (0x600F),
- *           ATTRACT (0x6007 via gameActiveGuard) — all from ram.js. The two column
+ *           ATTRACT (0x6007 via gameActiveGuard) — all from names.js. The two column
  *           bases 0x7740/0x74e0 are VIDEO RAM (returned by selectPlayerIndicatorColumnBase), not work RAM,
- *           so they carry no ram.js name and stay hex.
+ *           so they carry no names.js name and stay hex.
  */
 
-import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./ram.js";
+import { FRAME, CURRENT_PLAYER, TWO_PLAYER_GAME } from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js"; // ROM 0x0008
 import { selectPlayerIndicatorColumnBase } from "./selectPlayerIndicatorColumnBase.js"; // ROM 0x0347 — column-base selector
 

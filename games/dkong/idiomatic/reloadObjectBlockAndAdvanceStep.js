@@ -44,12 +44,12 @@
  *           residual A/HL/DE/BC/flags are dead ABI, and its SP/pc are the Z80 call
  *           mechanism the JS call stack replaces (not part of the contract).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388 — the board-advance
- *           dispatch step index dispatchBoardClearedInterlude reads) from ram.js. Hex-kept: ROM template source
+ *           dispatch step index dispatchBoardClearedInterlude reads) from names.js. Hex-kept: ROM template source
  *           0x388C (an immediate) and 0x62AF (an unnamed board-object bookkeeping byte).
  */
 
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 
 const OBJECT_RECORDS_SRC = 0x388c; // ROM template of 10 sprite-object records (shared w/ the intro climb phase)
 const BOARD_OBJECT_SCRATCH = 0x62af; // unnamed board-object bookkeeping byte, cleared here

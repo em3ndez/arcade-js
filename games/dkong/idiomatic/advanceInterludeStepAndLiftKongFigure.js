@@ -33,13 +33,13 @@
  *           with no result convention). SP/pc are not compared: the oracle models the
  *           rst push/pop in STACK_SCRATCH, this routine needs no stack at all.
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908; the strided target 0x690B is field 3 = +3) and
- *           BOARD_ADVANCE_STEP (0x6388, the board-advance sequence step) from ram.js.
+ *           BOARD_ADVANCE_STEP (0x6388, the board-advance sequence step) from names.js.
  *           BOARD (0x6227) is read by boardBitGate, not here.
  */
 
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — the per-board skip gate
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
-import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 
 export function advanceInterludeStepAndLiftKongFigure(m) {
   const { regs, mem } = m;

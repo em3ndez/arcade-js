@@ -63,7 +63,7 @@ import { loc_3dae as proxyOracle } from "../../translated/loc_3dae.js";
 import { setUpRoundAndHoldIntro } from "../setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "../submitHighScoresAndReset.js";
 import { makeMachineFactory } from "../../machine.js";
-import { ACTIVE_PLAYER } from "../ram.js";
+import { ACTIVE_PLAYER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

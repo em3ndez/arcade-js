@@ -49,8 +49,8 @@
  *           columnBias parameter (defaulting to the register, so a no-arg call matches the oracle).
  * NAMES:    MOVE_BLOCK_FLAG, PLAYER_FACING, PLAYER_Y, PLAYER_TILE_ROW, PLAYER_X, PLAYER_TILE_COL, BOARD_END_PHASE,
  *           GOAL_TILE_LATCH, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE, REACTION_STATE, REACTION_TIMER
- *           from ram.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
- *           (ram.js TREASURE_COLLECTED), and
+ *           from names.js. The two loot tallies 0x8081/0x8082, the second-loot latch 0x8078
+ *           (names.js TREASURE_COLLECTED), and
  *           the blank tile match the horizontal collector; the carve-reaction scratch is
  *           REACTION_PERIOD (0x80a3) and AHEAD_TILE_RAW (0x80a6); its companion 0x80a7 is
  *           EXPECTED_TILE and the step delta 0x806d is PLAYER_STEP_X; the video-RAM base and
@@ -74,7 +74,7 @@ import {
   REACTION_TIMER,
   REACTION_PERIOD,
   AHEAD_TILE_RAW,
-} from "./ram.js";
+} from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { awardTenPoints } from "./awardTenPoints.js";
@@ -131,7 +131,7 @@ export function stepObjectAndResolveTile(m, columnBias = m.regs.d) {
   const objY = mem8[PLAYER_X];
 
   // Top-rung column (PLAYER_X == 0x23, the object surfacing UP): nothing to resolve. If a +20 diamond
-  // was already collected (SECOND_LOOT_LATCH 0x8078 = ram.js TREASURE_COLLECTED), set the top-rung
+  // was already collected (SECOND_LOOT_LATCH 0x8078 = names.js TREASURE_COLLECTED), set the top-rung
   // spawn flag BOARD_END_PHASE = 1 — the observed LEVEL-COMPLETE trigger. Either way defer this frame.
   if (objY === TOP_RUNG_COLUMN) {
     if (mem8[SECOND_LOOT_LATCH] !== 0) mem8[BOARD_END_PHASE] = 1;

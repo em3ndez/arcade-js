@@ -42,13 +42,13 @@
  *           the board builder are the dropped stack model, so pc/SP are not part of the
  *           contract.
  * NAMES:    BOARD (0x6227), LIVES (0x6228), LEVEL (0x6229), EVENT_REQ_313C (0x63a0) —
- *           from ram.js. 0x6392 is unnamed engine scratch (ram.js rejects the 0x63xx
+ *           from names.js. 0x6392 is unnamed engine scratch (names.js rejects the 0x63xx
  *           scratch band) cleared alongside the object-insert request; kept hex.
  *           tickSubstatePrescaler (ROM 0x0020) and buildBoard (ROM 0x0C92) are imported
  *           and called directly.
  */
 
-import { BOARD, LIVES, LEVEL, EVENT_REQ_313C } from "./ram.js";
+import { BOARD, LIVES, LEVEL, EVENT_REQ_313C } from "./names.js";
 import { tickSubstatePrescaler } from "./tickSubstatePrescaler.js"; // ROM 0x0020 (rst 0x20)
 import { buildBoard } from "./buildBoard.js"; // ROM 0x0C92
 
@@ -60,7 +60,7 @@ export function restartAttractDemoAt25m(m) {
   if (!tickSubstatePrescaler(m)) return;
 
   // Clear the object-insert request and the paired engine-scratch byte.
-  mem.write8(0x6392, 0); // unnamed engine scratch (no ram.js name yet)
+  mem.write8(0x6392, 0); // unnamed engine scratch (no names.js name yet)
   mem.write8(EVENT_REQ_313C, 0);
 
   // Reseed the live context: 25m girders, level 1, one life.

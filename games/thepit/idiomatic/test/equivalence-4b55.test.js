@@ -46,7 +46,7 @@ import { loc_4b55 as oracle } from "../../translated/loc_4b55.js";
 import { applyDipSwitches as idiomatic } from "../applyDipSwitches.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
-import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, ACTIVE_PLAYER } from "../ram.js";
+import { STEP_TIMER_BASE, SPRITE_COORD_BIAS, ACTIVE_PLAYER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

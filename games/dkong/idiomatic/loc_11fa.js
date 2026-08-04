@@ -35,7 +35,7 @@
  *           oracle's residual registers are dead ABI; the whole-machine gate backstops
  *           that. The oracle touches the stack only via its final `ret` (a pop, no
  *           write), so pc/SP carry no residue — the harness supplies the matching ret.
- * NAMES:    none from ram.js — 0x66A0 (scattered-field record base, IX) and 0x6A28
+ * NAMES:    none from names.js — 0x66A0 (scattered-field record base, IX) and 0x6A28
  *           (4-byte array base, DE) are ROM-hardcoded engine scratch, not named
  *           memory; kept hex. 0x6A28 lies within SPRITE_BUFFER (noted, not asserted).
  */

@@ -36,14 +36,14 @@
  *           consumes no return value; all three callees are themselves memory-only, so
  *           nothing register/flag-shaped is live out. SP/pc are the dropped stack model
  *           (the oracle's push/call/ret becomes the JS call stack).
- * NAMES:    BOARD (0x6227) from ram.js — the rivet-gate selector. The layout table
+ * NAMES:    BOARD (0x6227) from names.js — the rivet-gate selector. The layout table
  *           (DE, live-in), the rivet cells, and all continuation state are named inside
  *           the callees this delegates to.
  */
 import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — walk + draw the layout table
 import { stampRivetBoardTiles } from "./stampRivetBoardTiles.js"; // ROM 0x0d00 — 100m rivet decoration
 import { loc_3fa0 } from "./loc_3fa0.js"; // ROM 0x3fa0 — board-setup prelude + continuation
-import { BOARD } from "./ram.js";
+import { BOARD } from "./names.js";
 
 export function loc_0cc6(m) {
   // Walk the DE-selected layout table into VRAM / the render scratch.

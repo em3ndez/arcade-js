@@ -60,7 +60,7 @@ import {
   MARIO_X,
   MARIO_Y,
   MARIO_START_FALL,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

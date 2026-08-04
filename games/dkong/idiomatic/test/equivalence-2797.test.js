@@ -50,7 +50,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2797 as oracle } from "../../translated/loc_2797.js";
 import { advanceBoardObjectTravel } from "../advanceBoardObjectTravel.js";
-import { OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y } from "../ram.js";
+import { OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

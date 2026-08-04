@@ -26,7 +26,7 @@
  *     completes it with `if (!callee) return`).
  *
  * GROUNDED (DK understanding pass 5, independent confirmer): reads the named MARIO_AIR_PREV_Y
- * (0x620C) and MARIO_Y (0x6205); ram.js independently lists 0x2BE1 among the collision-code
+ * (0x620C) and MARIO_Y (0x6205); names.js independently lists 0x2BE1 among the collision-code
  * readers of MARIO_AIR_PREV_Y. On a hit it snaps MARIO_Y to boundary-7 and reports landed(1) /
  * airborne(2), matching the landing/fatal-fall mechanism in mechanisms.md. Both captured
  * attract arms are exercised by the gate. (Chosen over `snapLandingAtColumn`, which drops the
@@ -45,12 +45,12 @@
  *           and its twin B; and the caller-skip control flow — the boolean return, where
  *           false is the two-frame unwind. No stack is written (the oracle only pops), so
  *           the memory-equivalence RAM diff needs no stack-scratch exclusion.
- * NAMES:    MARIO_AIR_PREV_Y (0x620C), MARIO_Y (0x6205) from ram.js. The object Y field is
- *           addressed relative to the caller's object pointer, so it carries no ram.js name.
+ * NAMES:    MARIO_AIR_PREV_Y (0x620C), MARIO_Y (0x6205) from names.js. The object Y field is
+ *           addressed relative to the caller's object pointer, so it carries no names.js name.
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_AIR_PREV_Y, MARIO_Y } from "./ram.js";
+import { MARIO_AIR_PREV_Y, MARIO_Y } from "./names.js";
 
 /**
  * @param {object} m  the machine. Live-in registers: the object pointer, the column

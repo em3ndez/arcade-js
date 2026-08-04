@@ -57,7 +57,7 @@ import { dockManAndDispatchRoundBoundary } from "../dockManAndDispatchRoundBound
 import { loc_3dae as captureLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, PLAYER_FACING } from "../ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE, PLAYER_FACING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

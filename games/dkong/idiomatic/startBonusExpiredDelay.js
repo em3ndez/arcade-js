@@ -38,11 +38,11 @@
  *           next act after the 0x1A07 call is another `call` (0x2FCB) that overwrites A and
  *           the flags — so the oracle's residual A=2 / `xor a` flags are dead ABI. SP/pc are
  *           the Z80 `ret` the direct-call return replaces and are not modelled.
- * NAMES:    BONUS_EXPIRED_STEP (0x6386), BONUS_EXPIRED_DELAY (0x6387) from ram.js — both
+ * NAMES:    BONUS_EXPIRED_STEP (0x6386), BONUS_EXPIRED_DELAY (0x6387) from names.js — both
  *           imported; no hex-kept addresses.
  */
 
-import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY } from "./ram.js";
+import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY } from "./names.js";
 
 export function startBonusExpiredDelay(m) {
   const { mem } = m;

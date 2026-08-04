@@ -36,7 +36,7 @@
  * LIVE-OUT: the two result registers A (:= 0) and B (:= 0), plus the boolean unwind signal
  *           (false). Memory-only otherwise — it writes none. The residual HL (the discarded
  *           return address) and the flags are dead ABI; no consumer reads them.
- * NAMES:    none — touches no work RAM, so no ram.js cell to import.
+ * NAMES:    none — touches no work RAM, so no names.js cell to import.
  */
 
 export function loc_2b74(m) {

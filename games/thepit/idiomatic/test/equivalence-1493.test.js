@@ -59,7 +59,7 @@ import { loc_1493 as oracle } from "../../translated/loc_1493.js";
 import { stepObjectRowFlipped as idiomatic } from "../stepObjectRowFlipped.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
-import { PLAYER_Y, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE } from "../ram.js";
+import { PLAYER_Y, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

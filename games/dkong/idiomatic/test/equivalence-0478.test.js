@@ -48,7 +48,7 @@ import { shiftEvenBoardSpriteColumn as loc_0478 } from "../shiftEvenBoardSpriteC
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, BOARD, SPRITE_OBJ_BLOCK } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -59,7 +59,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x0478;
 const RET_ADDR = 0x0450;            // a plausible caller-return for the one net pop (any value works)
-const SHIFT_DELTA_SOURCE = 0x63b7;  // 50m's staged X-shift delta (unnamed in ram.js)
+const SHIFT_DELTA_SOURCE = 0x63b7;  // 50m's staged X-shift delta (unnamed in names.js)
 const DEFAULT_SHIFT = 0x44;         // the fixed X-shift on the other even board
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

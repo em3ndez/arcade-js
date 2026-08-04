@@ -15,7 +15,7 @@
  *   1. Select the 50m colour/palette bank = 1: set the two hardware palette-bank
  *      output latches to bits 01 (bit0 = 1, bit1 = 0). The display reads the 2-bit
  *      bank to pick its colour set for the board. These are output latches in the
- *      0x7Dxx hardware region, not work RAM, so they carry no ram.js name.
+ *      0x7Dxx hardware region, not work RAM, so they carry no names.js name.
  *   2. Select the 50m background tune. The three arms write consecutive tune slots to
  *      SND_BGM: 0x08 (25m), 0x09 here (50m), 0x0A (75m).
  *   3. Point at the 50m conveyor layout table (ROM 0x3B5D) and run the shared tail
@@ -43,7 +43,7 @@
  *           tail, not a live-out of this arm; A/HL and all flags are dead (loc_0c92 reads
  *           no return). SP/pc are the dropped stack model — the oracle's push16/call/ret
  *           becomes the JS call stack.
- * NAMES:    SND_BGM (0x6089) from ram.js — the background-tune slot. Callee loc_0cc6
+ * NAMES:    SND_BGM (0x6089) from names.js — the background-tune slot. Callee loc_0cc6
  *           (ROM 0x0CC6) is imported and called directly. 0x7d86/0x7d87 are hardware
  *           palette-bank latches (0x7Dxx output region, not work RAM) and 0x3B5D is a
  *           ROM layout-table pointer — both kept hex. (The SEG_* board-render scratch is
@@ -51,11 +51,11 @@
  */
 
 import { loc_0cc6 } from "./loc_0cc6.js"; // ROM 0x0CC6 — shared draw + setup tail
-import { SND_BGM } from "./ram.js"; // 0x6089 — background-tune slot
+import { SND_BGM } from "./names.js"; // 0x6089 — background-tune slot
 
 // Hardware palette-bank output latches (0x7Dxx region, ls259.6h): 0x7d86 is bank bit0,
 // 0x7d87 is bank bit1. The display reads the 2-bit bank to pick its colour set. Not
-// work RAM, so no ram.js name.
+// work RAM, so no names.js name.
 const PALETTE_BANK_BIT0 = 0x7d86;
 const PALETTE_BANK_BIT1 = 0x7d87;
 

@@ -35,7 +35,7 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG } from "./ram.js";
+import { PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG } from "./names.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 
 export function flagObjectTargetOverlap(m) {

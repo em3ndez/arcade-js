@@ -44,11 +44,11 @@
  *           jump rather than a call) hand their own return straight through it, so the value has
  *           to travel; the gate asserts it on every replay.
  * NAMES:    none imported — every access is relative to the caller's record pointer. The three
- *           offsets have no shared OBJ_* name in ram.js and stay local consts here.
+ *           offsets have no shared OBJ_* name in names.js and stay local consts here.
  */
 
 // Object-record fields, addressed off the record pointer. None of the three carries a shared
-// OBJ_* offset name in ram.js, so they stay local consts here; the names are stepBallisticMotion's
+// OBJ_* offset name in names.js, so they stay local consts here; the names are stepBallisticMotion's
 // reading of them, since that is what reads all three back.
 const AIRBORNE_FRAMES = 20; // elapsed airborne frames; scales the gravity term
 const X_FRAC = 4; //          fractional low half of the coordinate whose high byte is OBJ_X

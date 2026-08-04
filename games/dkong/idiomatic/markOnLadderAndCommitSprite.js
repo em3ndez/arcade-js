@@ -30,11 +30,11 @@
  *           every caller tail-jumps here and the `ret` is unconditional, so the oracle's
  *           residual A (= MARIO_Y) / HL (= 0x694F) / flags are dead ABI — the pc + SP the
  *           gate compares model the single net return.
- * NAMES:    MARIO_ON_LADDER (0x6215) from ram.js; the record copy delegates to the
+ * NAMES:    MARIO_ON_LADDER (0x6215) from names.js; the record copy delegates to the
  *           already-idiomatic writeMarioSpriteRecord (ROM 0x1DA6).
  */
 
-import { MARIO_ON_LADDER } from "./ram.js";
+import { MARIO_ON_LADDER } from "./names.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function markOnLadderAndCommitSprite(m) {

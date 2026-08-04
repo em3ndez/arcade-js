@@ -11,7 +11,7 @@
  *
  *   1. Classify the array by the base's high byte (its memory page) and pick the matching
  *      source sprite-record group: page 0x65 -> OBJ_65A0_SPRITES, a lower page -> 0x69D0
- *      (which ram.js does not name), a higher page (the barrel array) -> ACTOR_SPRITES.
+ *      (which names.js does not name), a higher page (the barrel array) -> ACTOR_SPRITES.
  *   2. Walk both the object record (by its own stride) and the source sprite record (by the
  *      fixed 4-byte stride) to the hit index; an index of 0 leaves each at its base.
  *   3. Deactivate the hit object (clear its active flag), then read its +0x15 field to pick
@@ -35,7 +35,7 @@
  *           ACTOR_SPRITES (0x6980), EFFECT_SELECT (0x6342), EFFECT_SPRITE (0x6A2C) with
  *           SPRITE_CODE/SPRITE_ATTR field offsets, EFFECT_SEQ_STATE/INNER/OUTER
  *           (0x6345/0x6346/0x6347), SND_PRIORITY/SND_PRIORITY_FRAMES (0x608A/0x608B) — all
- *           from ram.js, as is OBJ_65A0_SPRITES (0x69B8), the page-0x65 source-record group.
+ *           from names.js, as is OBJ_65A0_SPRITES (0x69B8), the page-0x65 source-record group.
  *           Kept hex: its genuinely-unnamed peer group 0x69D0, the classifier page byte 0x65,
  *           and the object's +0x15 field.
  */
@@ -56,7 +56,7 @@ import {
   EFFECT_SEQ_OUTER,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-} from "./ram.js";
+} from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

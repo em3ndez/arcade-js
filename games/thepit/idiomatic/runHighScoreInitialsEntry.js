@@ -49,7 +49,7 @@
  *           to the readout painter). The idiomatic layer does not preserve the Z80 pc/SP.
  * NAMES:    PLAY_PHASE_COUNTER, VARIANT (the rank selector), TILE_COL / TILE_ROW, PLOT_RUN_LENGTH,
  *           HIGH_SCORE_TABLE, INITIALS_REMAINING (0x804b, the initials-remaining counter, the
- *           same cell the per-frame handler counts down) from ram.js. The ROM label strips, the
+ *           same cell the per-frame handler counts down) from names.js. The ROM label strips, the
  *           on-screen cell addresses, and the finish colour byte are hex.
  */
 
@@ -61,7 +61,7 @@ import {
   PLOT_RUN_LENGTH,
   HIGH_SCORE_TABLE,
   INITIALS_REMAINING,
-} from "./ram.js";
+} from "./names.js";
 import { applyDipSwitches } from "./applyDipSwitches.js";
 import { blankScreen } from "./blankScreen.js";
 import { drawSharedPanel } from "./drawSharedPanel.js";

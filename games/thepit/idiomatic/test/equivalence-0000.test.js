@@ -61,7 +61,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0000 as oracle } from "../../translated/loc_0000.js";
 import { resetVector as idiomatic } from "../resetVector.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE, ACTIVE_PLAYER, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

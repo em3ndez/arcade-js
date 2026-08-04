@@ -50,12 +50,12 @@
  * NAMES:    M50_OBJ2_STEP_DIR (0x62A3), the two published shadows M50_OBJ2_STEP_POS (0x63A5) /
  *           M50_OBJ2_STEP_NEG (0x63A4), object-2's reverse-timer M50_OBJ2_REVERSE_TIMER (0x62A2,
  *           one below the latch, sibling of M50_OBJ1_REVERSE_TIMER), and FRAME (0x601A) — all
- *           from ram.js. The sprite-pair cells (the 0x69EC block, SPRITE_BUFFER code bytes
- *           addressed relatively per loc_26a6's note) have no ram.js name yet and stay hex here.
+ *           from names.js. The sprite-pair cells (the 0x69EC block, SPRITE_BUFFER code bytes
+ *           addressed relatively per loc_26a6's note) have no names.js name yet and stay hex here.
  */
 
 import { u8 } from "../../../core/int.js";
-import { M50_OBJ2_STEP_DIR, M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG, M50_OBJ2_REVERSE_TIMER, FRAME } from "./ram.js";
+import { M50_OBJ2_STEP_DIR, M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG, M50_OBJ2_REVERSE_TIMER, FRAME } from "./names.js";
 import { signStepHalfRate } from "./signStepHalfRate.js"; // ROM 0x26E9
 import { loc_26a6 } from "./loc_26a6.js"; // ROM 0x26A6
 

@@ -43,7 +43,7 @@
  *      splice: the oracle consumes one stack word when it returns true and TWO when it
  *      returns false (measured here, both arms). That is the fact the idiomatic boolean
  *      stands for, and the fact the translated↔idiomatic seam needs now that 0x30fa IS
- *      wired live: ram.js registers 0x30fa -> gateObjectUpdateByDifficulty, so the seam
+ *      wired live: names.js registers 0x30fa -> gateObjectUpdateByDifficulty, so the seam
  *      does dispatch this routine, and machine.js's SEAM_CALLER_SKIP LISTS 0x30fa (its
  *      `MEASURED false:+4` entry is this arm's number).
  *
@@ -71,7 +71,7 @@ import { loc_3126 as oracleGate3126 } from "../../translated/loc_3126.js";
 import { loc_3131 as oracleGate3131 } from "../../translated/loc_3131.js";
 import { gateObjectUpdateByDifficulty } from "../gateObjectUpdateByDifficulty.js";
 import { Machine } from "../../machine.js";
-import { DIFFICULTY, FRAME, STACK_SCRATCH } from "../ram.js";
+import { DIFFICULTY, FRAME, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

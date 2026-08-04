@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2c03 as oracle } from "../../translated/loc_2c03.js";
 import { scheduleBarrelRelease } from "../scheduleBarrelRelease.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, BONUS, BONUS_START, DIFFICULTY, FRAME, SPIN_COUNT, RANDOM, BARREL_CLAIM_MODE } from "../ram.js";
+import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, BONUS, BONUS_START, DIFFICULTY, FRAME, SPIN_COUNT, RANDOM, BARREL_CLAIM_MODE } from "../names.js";
 // The teeth twins reuse the real callees (their faithfulness is proven by their own gates, not
 // under test here) so only the scheduleBarrelRelease-level logic error is what diverges.
 import { u8 } from "../../../../core/int.js";
@@ -57,7 +57,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2c03;
-// Cells scheduleBarrelRelease touches directly that are UNNAMED in ram.js (rejected-as-shared 0x63xx scratch).
+// Cells scheduleBarrelRelease touches directly that are UNNAMED in names.js (rejected-as-shared 0x63xx scratch).
 const EVENT_GATE = 0x6393;   // gate 3: bit0 SET -> skip
 // Cluster scratch the body writes when a tail fires (for the write-set / non-vacuity checks).
 const SCRATCH_MODE = 0x638f;

@@ -11,7 +11,7 @@
  * A LEAF: reads CURRENT_PLAYER only, writes no memory, and returns the chosen
  * address — nothing else it computes along the way survives the call.
  *
- * GROUNDED (DK understanding pass 5, independent confirmer): ram.js's CURRENT_PLAYER
+ * GROUNDED (DK understanding pass 5, independent confirmer): names.js's CURRENT_PLAYER
  * (0x600D) note independently cites this ROM routine (sub_055f) as the one that selects
  * the score slot from that flag — `ret z` → P1_SCORE (0x60B2), else P2_SCORE (0x60B5) —
  * and all three cells are named. The gate is exhaustive over the sole input byte.
@@ -24,10 +24,10 @@
  * LIVE-OUT: the selected score-slot address (the oracle returns it in a register;
  *           here it is the plain return value). No memory is written, and the
  *           residual flags the oracle leaves behind are dead — no caller reads them.
- * NAMES:    CURRENT_PLAYER (0x600D), P1_SCORE (0x60B2), P2_SCORE (0x60B5) — all from ram.js.
+ * NAMES:    CURRENT_PLAYER (0x600D), P1_SCORE (0x60B2), P2_SCORE (0x60B5) — all from names.js.
  */
 
-import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "./ram.js";
+import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "./names.js";
 
 /**
  * @param {object} m  the machine (reads m.mem only).

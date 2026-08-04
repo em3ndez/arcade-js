@@ -33,14 +33,14 @@
  * LIVE-OUT: memory-only. Both callers (0x33E7, and the 0x33AD→0x33C3 fall-through) reload the
  *           accumulator and its flags on the instruction right after the call, so the oracle's
  *           residual registers/flags and its terminal return are dead.
- * NAMES:    OBJ_SPRITE_CODE (+0x07 object-record field, from ram.js). The +0x15 down-counter
- *           has no ram.js name — kept as a local field-offset const.
+ * NAMES:    OBJ_SPRITE_CODE (+0x07 object-record field, from names.js). The +0x15 down-counter
+ *           has no names.js name — kept as a local field-offset const.
  */
 
-import { OBJ_SPRITE_CODE } from "./ram.js";
+import { OBJ_SPRITE_CODE } from "./names.js";
 
 // Object-record field: a per-object animation down-counter, reloaded to 2 on expiry so the
-// sprite advances every other call. No ram.js name yet — it is object-relative, not a fixed cell.
+// sprite advances every other call. No names.js name yet — it is object-relative, not a fixed cell.
 const OBJ_ANIM_TIMER = 0x15;
 
 /**

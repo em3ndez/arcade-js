@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_3069 as oracle } from "../../translated/loc_3069.js";
 import { advanceSequenceStepWhenTimerExpires } from "../advanceSequenceStepWhenTimerExpires.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
-import { SUBSTATE_TIMER, SEQ_ADVANCE_PTR, STACK_SCRATCH } from "../ram.js";
+import { SUBSTATE_TIMER, SEQ_ADVANCE_PTR, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

@@ -62,7 +62,7 @@ import {
   ENEMY3_TWIN_X,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -72,7 +72,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x2f2f;
-const LEVEL_COUNTER = 0x8028; // the routine's one genuine input (still unnamed in ram.js)
+const LEVEL_COUNTER = 0x8028; // the routine's one genuine input (still unnamed in names.js)
 const RELOAD = 0x80e4; // the derived animation reload byte
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 

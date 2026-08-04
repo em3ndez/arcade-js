@@ -27,12 +27,12 @@
  *           register live-IN handed to the shared tail (the tail's record walk reads
  *           it from the register image), not a live-out of this routine. SP/pc are the
  *           dropped stack model (the oracle's tail jump becomes a direct JS call).
- * NAMES:    SND_BGM (0x6089) from ram.js — the background-tune latch source. The ROM
+ * NAMES:    SND_BGM (0x6089) from names.js — the background-tune latch source. The ROM
  *           layout-table address stays hex (a ROM data pointer, not work RAM).
  */
 
 import { loc_0cc6 } from "./loc_0cc6.js"; // ROM 0x0CC6 — the shared board-setup tail
-import { SND_BGM } from "./ram.js";
+import { SND_BGM } from "./names.js";
 
 // The 25m girder layout table in ROM; the shared tail (drawBoardLayout, reached through
 // loc_0cc6) walks it as a 0xAA-terminated list of girder/ladder segment records.

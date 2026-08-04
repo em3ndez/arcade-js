@@ -38,7 +38,7 @@ import { loc_0028 as oracle } from "../../translated/loc_0028.js";
 import { dispatchInlineJumpTable } from "../dispatchInlineJumpTable.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

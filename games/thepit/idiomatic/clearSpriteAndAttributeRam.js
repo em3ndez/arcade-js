@@ -29,7 +29,7 @@
  *           loop counter and walk pointer the oracle leaves behind are dead: every
  *           caller's next act is another setup call that reloads them before use. No
  *           flags are read end to end.
- * NAMES:    none from ram.js — that file names the work RAM (0x8000-0x87FF); this
+ * NAMES:    none from names.js — that file names the work RAM (0x8000-0x87FF); this
  *           clears display-side RAM. The region roles come from the board memory map
  *           and are corroborated by the pixel-exact renderer: attribute/column-scroll
  *           (0x9800-0x983F), sprite RAM (0x9840-0x985F), spare (0x9860-0x98FF).

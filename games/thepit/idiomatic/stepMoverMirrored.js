@@ -42,7 +42,7 @@
  * PURPOSE [guess]: "Mirrored"=0x80 bit; screen sign of the step / "direction 1" rotation-ambiguous. (optional: stepMoverXMirrored to future-proof vs the Y-axis pair.)
  */
 
-import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_X } from "./ram.js";
+import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_X } from "./names.js";
 
 // The four walk-frame sprite codes, cycled as the object steps; the stored code is
 // always mirrored (high bit set) for this direction.

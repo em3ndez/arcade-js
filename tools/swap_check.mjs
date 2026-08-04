@@ -69,7 +69,7 @@ async function main() {
   const cfg = manifest.convergence;
   if (!cfg?.pollPCs) { console.error(`games/${args.game}/manifest.js has no convergence.pollPCs`); process.exit(2); }
   const { Machine, resolveOverrides } = await import(join(gameDir, "machine.js"));
-  const { ROUTINES } = await import(join(gameDir, "idiomatic", "ram.js"));
+  const { ROUTINES } = await import(join(gameDir, "idiomatic", "names.js"));
 
   const romDir = join(gameDir, "rom");
   const romPath = join(romDir, "maincpu.bin");
@@ -81,7 +81,7 @@ async function main() {
   // rule machine.js's resolveAllIdiomatic uses, and it must stay the same rule or this gate
   // tests a different wiring than the one that ships. `entry` exists for the routines whose
   // idiomatic export is a PURE function of its Z80 register inputs rather than of the
-  // Machine; see the `entry` note in games/<game>/idiomatic/ram.js.
+  // Machine; see the `entry` note in games/<game>/idiomatic/names.js.
   const exportOf = (meta) => meta.entry ?? meta.name;
   let spec;
   if (args.mode === "all" || args.mode === "leaves") {

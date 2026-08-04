@@ -42,19 +42,19 @@
  *           scratch below the stack pointer, the stack pointer, and the exit address
  *           legitimately differ from the oracle and are excluded from the gate.
  * NAMES:    TILE_COL, TILE_ROW, PLOT_RUN_LENGTH and MEN_LEFT (0x802b, the live
- *           decision/display byte) from ram.js. 0x8057 kept local (FILL_ATTR) — ram.js
+ *           decision/display byte) from names.js. 0x8057 kept local (FILL_ATTR) — names.js
  *           proposes BOARD_MODE for it, but here the byte is unambiguously the panel's
  *           colour, so a local role name fits better than a misfit import. The ROM label
- *           sources 0x49ba / 0x49c2 are not in ram.js and stay local.
+ *           sources 0x49ba / 0x49c2 are not in names.js and stay local.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, MEN_LEFT } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, MEN_LEFT } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 
-// The colour attribute the panel is painted in. ram.js proposes BOARD_MODE for
+// The colour attribute the panel is painted in. names.js proposes BOARD_MODE for
 // 0x8057, but in this routine the byte is the fill colour, not a mode.
 const FILL_ATTR = 0x8057;
 

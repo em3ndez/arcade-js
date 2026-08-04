@@ -45,10 +45,10 @@
  *           whole-RAM gate. SP/PC are not compared (the idiomatic layer drops the
  *           `ret`'s stack/PC bookkeeping; the JS call stack replaces it).
  * NAMES:    SUBSTATE_TIMER (0x6009), SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388,
- *           the sequence selector) — ram.js. 0x6390 (the sub-counter) stays hex: ram.js
+ *           the sequence selector) — names.js. 0x6390 (the sub-counter) stays hex: names.js
  *           leaves it unnamed as a shared engine-scratch byte.
  */
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 

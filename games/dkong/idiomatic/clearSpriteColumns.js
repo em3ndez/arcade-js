@@ -46,12 +46,12 @@
  *           tail callee leaves as 0x20 / 0x6a20 / 0x00) are dead, as are flags. The
  *           routine reproduces them anyway via clearStridedBytes, but they are outside
  *           the gated contract, which is RAM + pc + SP.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js — every target is an offset into it.
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js — every target is an offset into it.
  *           0x30bd/0x30e4 stay hex, in this header only.
  */
 
 import { clearStridedBytes } from "./clearStridedBytes.js";
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 
 export function clearSpriteColumns(m) {
   const { regs } = m;

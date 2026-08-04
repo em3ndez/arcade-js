@@ -32,7 +32,7 @@
  * LIVE-OUT: memory-only — the landed-rank result byte, the high-score table (scores +
  *           initials), the refreshed shared player block, and the readout display cells.
  *           The caller reads the result from RAM; no register or flag is live out.
- * NAMES:    LANDED_RANK (0x8048) is a local, NOT ram.js's tentative (weak) VARIANT —
+ * NAMES:    LANDED_RANK (0x8048) is a local, NOT names.js's tentative (weak) VARIANT —
  *           that name is a different, round-setup role, and a wrong role name would
  *           mislead worse than a plain address (same call the insert makes). The player
  *           block, high-score table, and readout cells are named inside the callees.

@@ -19,7 +19,7 @@
  *     read any of them as a timer or a table index, the role line would have died there.
  *   - MARIO SHARES THIS RECORD SHAPE, and his copy of it is grounded live against MAME. His base
  *     is 0x6200 and every offset lines up: MARIO_X_FRAC is +4, MARIO_Y_FRAC is +6,
- *     MARIO_AIR_VY_HI:MARIO_AIR_VY_LO is +18:+19, MARIO_AIR_FRAMES is +20. ram.js rates all four
+ *     MARIO_AIR_VY_HI:MARIO_AIR_VY_LO is +18:+19, MARIO_AIR_FRAMES is +20. names.js rates all four
  *     [seen] and records what they mean — the two fractions "cleared at jump init", the velocity
  *     pair the "INITIAL vertical velocity of the current jump/fall, constant across the whole
  *     arc", the counter "frames elapsed since Mario became airborne". So this seven-store block
@@ -29,7 +29,7 @@
  *     MARIO_Y_FRAC, the horizontal velocity pair, the vertical velocity pair and the frame
  *     counter, then raises MARIO_AIRBORNE. That is exactly the field set this routine and its two
  *     callers write for an object record — the callers supply the horizontal velocity, this
- *     routine the rest. WHICH WAY it launches is where the two differ, and ram.js grounds the
+ *     routine the rest. WHICH WAY it launches is where the two differ, and names.js grounds the
  *     scale: a jump loads +0x0148 into the velocity pair and Mario's fall loads 0. This routine
  *     loads the signed −16 — past the fall end, nowhere near the jump end — and under 0x239C's
  *     law a negative value there makes the gravity slice and the velocity term push the position
@@ -93,7 +93,7 @@
  *           T-states are restored inside the wiring; without them the run forks on the spin
  *           counter, which is a property of cycle-free code and not of this routine.
  * NAMES:    none imported, and that is not an oversight. Every access is relative to the record
- *           base the sweep supplies, and none of the seven field offsets has a ram.js entry of
+ *           base the sweep supplies, and none of the seven field offsets has a names.js entry of
  *           its own — they are declared below as file-local constants, in the GATHER_DEST style.
  *           The registry names the prose above leans on are all cells of MARIO's copy of this
  *           record shape or of the sweep's gate — MARIO_X_FRAC, MARIO_Y_FRAC, MARIO_AIR_VY_HI,
@@ -105,7 +105,7 @@
  *           so there is no return address to push beside it.
  */
 
-// Record fields written here. None is registered in ram.js — the registry names the shared object
+// Record fields written here. None is registered in names.js — the registry names the shared object
 // fields (+0, +3, +5, +7, +8, +9, +10, +13, +24, +26, +27) and these seven are not among them.
 // Offsets >= 16 are in-record only for the stride-32 arrays, which is what OBJ_ARRAY_67 is.
 const ARM_SELECT = 2; // the sweep dispatcher (ROM 0x1F93) tests bits 0,1,2 of this byte

@@ -51,7 +51,7 @@ import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { loc_2d51 } from "../loc_2d51.js";
 import { loc_2d83 } from "../loc_2d83.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, SPRITE_OBJ_BLOCK, BARREL_CLAIM_MODE } from "../ram.js";
+import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, SPRITE_OBJ_BLOCK, BARREL_CLAIM_MODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x2d15;
-const FRAME_GATE = 0x62af;    // per-tick down-counter (unnamed in ram.js)
+const FRAME_GATE = 0x62af;    // per-tick down-counter (unnamed in names.js)
 const ANIM_COUNTER = 0x638f;  // animation sub-counter (unnamed)
 const ANIM_TABLE = 0x3932;    // ROM base of the 40-byte-per-record table
 const RECORD_STRIDE = 40;

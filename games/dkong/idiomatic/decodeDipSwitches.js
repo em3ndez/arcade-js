@@ -46,9 +46,9 @@
  *           SP/PC are dead ABI the direct-call model drops (the caller overwrites
  *           A before reading anything).
  * NAMES:    DIP_LIVES, DIP_BONUS_LIFE, DIP_COINS_FOR_1P, DIP_COINS_FOR_2P,
- *           DIP_COINS_PER_CREDIT, DIP_CREDITS_PER_COIN, DIP_UPRIGHT — from ram.js.
+ *           DIP_COINS_PER_CREDIT, DIP_CREDITS_PER_COIN, DIP_UPRIGHT — from names.js.
  *           0x7D80 (DSW0 port), 0x3565 (ROM data table), 0x6100 (dest, examined +
- *           left hex in ram.js) stay hex.
+ *           left hex in names.js) stay hex.
  */
 
 import {
@@ -59,7 +59,7 @@ import {
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
   DIP_UPRIGHT,
-} from "./ram.js";
+} from "./names.js";
 
 // DSW0 hardware dip-switch bank (a read-only, side-effect-free board port — NOT
 // work RAM), read once here where the oracle reads it twice with the same result.

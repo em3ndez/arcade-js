@@ -22,10 +22,10 @@
  * LIVE-OUT: memory-only — the 16-bit tilemap offset TILEMAP_OFFSET at 0x805a. The leftover value
  *           registers are dead: every caller's next act reads the offset back from
  *           memory, never from a register.
- * NAMES:    TILE_ROW / TILE_COL, TILEMAP_OFFSET from ram.js; TILEMAP_OFFSET (0x805a) is the
+ * NAMES:    TILE_ROW / TILE_COL, TILEMAP_OFFSET from names.js; TILEMAP_OFFSET (0x805a) is the
  *           tilemap-offset output cell the cursor-derivation step reads next.
  */
-import { TILEMAP_OFFSET, TILE_COL, TILE_ROW } from "./ram.js";
+import { TILEMAP_OFFSET, TILE_COL, TILE_ROW } from "./names.js";
 
 export function rowColToTileOffset(m) {
   const { mem8, mem16 } = m;

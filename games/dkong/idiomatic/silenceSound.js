@@ -33,7 +33,7 @@
  *           oracle's terminal `ret` (an SP+2 pop) is the modelled stack ABI the
  *           direct-call layer replaces with a JS return, so SP is not live either.
  * NAMES:    SND_TRIGGER[8], SND_IRQ_TRIGGER, SND_BGM, SND_PRIORITY,
- *           SND_PRIORITY_FRAMES (ram.js). The three hardware latch addresses are
+ *           SND_PRIORITY_FRAMES (names.js). The three hardware latch addresses are
  *           board control outputs, not work RAM, so they stay local hex constants.
  */
 
@@ -43,7 +43,7 @@ import {
   SND_BGM,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-} from "./ram.js";
+} from "./names.js";
 
 // ---- Hardware sound latches (board control outputs, NOT work RAM) -----------
 // ls259.6h addressable latch — one address per bit at 0x7D00-0x7D07 (data on bit

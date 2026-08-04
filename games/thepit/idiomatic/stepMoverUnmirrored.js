@@ -44,7 +44,7 @@
  * PURPOSE [guess]: "Unmirrored"=0x80 clear; "direction 3"; rotation-ambiguous.
  */
 
-import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_X } from "./ram.js";
+import { ENEMY_WORK_SPRITE, ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_X } from "./names.js";
 
 // The four walk-frame sprite codes, cycled as the object steps; this direction stores
 // the code un-mirrored (no high-bit flip).

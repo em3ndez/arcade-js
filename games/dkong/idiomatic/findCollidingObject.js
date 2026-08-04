@@ -53,12 +53,12 @@
  * LIVE-OUT: registers A and B (see ABI) plus the boolean return; no work RAM is written.
  *           The oracle's IX save/restore and its one- or two-level return are stack-only,
  *           so their bytes land in STACK_SCRATCH and are excluded from the memory compare.
- * NAMES:    none from ram.js — every memory read is indexed through the caller-supplied
+ * NAMES:    none from names.js — every memory read is indexed through the caller-supplied
  *           base/reference registers (no fixed named cell), so the record field offsets
  *           stay as literals with role comments.
  */
 
-import { OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js";
+import { OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 
 export function findCollidingObject(m) {
   const { regs, mem } = m;

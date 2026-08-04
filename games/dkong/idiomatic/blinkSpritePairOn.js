@@ -35,11 +35,11 @@
  *           and the whole tail-call chain (…loc_197a, the top) calls the next routine
  *           without reading A/B/C/F, so the oracle's residual registers are dead ABI; SP/PC
  *           are the `ret` bookkeeping the JS call stack replaces.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js — 0x6901 is record #0's code byte (+1),
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js — 0x6901 is record #0's code byte (+1),
  *           0x6905 record #1's (+5). C is the colour-cycle sweep counter (0x6390), staged
  *           by loc_0486 and consumed by the store tail; not a RAM reference within here.
  */
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js";
 
 // Record #0's code byte inside the sprite shadow buffer: base + 0 (record 0) + 1 (code).

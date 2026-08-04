@@ -25,8 +25,8 @@
  * written on every beat (its decremented value — never reloaded here).
  *
  * NAME: PROMOTED in understanding pass 12. Corroboration is OUTSIDE this routine: it drives the same
- * ram.js-named EFFECT_SPRITE (0x6A2C) code byte as its sibling, and that byte (0x6A2D) is [seen]-
- * GROUNDED in ram.js (observed stepping live, 41 transitions, tied to EFFECT_SEQ_STATE). The name
+ * names.js-named EFFECT_SPRITE (0x6A2C) code byte as its sibling, and that byte (0x6A2D) is [seen]-
+ * GROUNDED in names.js (observed stepping live, 41 transitions, tied to EFFECT_SEQ_STATE). The name
  * records the two things that distinguish it from flashEffectSpriteThenAdvanceSequence (0x1F09):
  * this one `inc`s — MARCHING forward through consecutive tiles on a 12-frame beat, 3 steps, never
  * reloading OUTER — and then TEARS THE EFFECT DOWN, clearing 0x6350, the byte runHitEffectInsteadOfPlay reads to
@@ -44,7 +44,7 @@
  *           takes an independent skip decision — so the residual is dead.
  * NAMES:    EFFECT_SEQ_INNER (0x6346), EFFECT_SEQ_OUTER (0x6347), EFFECT_SEQ_STATE (0x6345),
  *           EFFECT_STATE (0x6340), EFFECT_PARAM_PTR (0x6343), EFFECT_SPRITE (0x6A2C) and its +1
- *           SPRITE_CODE field (0x6A2D) — all from ram.js. 0x6350 is genuinely-unnamed shared engine
+ *           SPRITE_CODE field (0x6A2D) — all from names.js. 0x6350 is genuinely-unnamed shared engine
  *           scratch (shared across subsystems, no grounded name fits) — kept hex.
  */
 
@@ -56,7 +56,7 @@ import {
   EFFECT_PARAM_PTR,
   EFFECT_SPRITE,
   SPRITE_CODE,
-} from "./ram.js";
+} from "./names.js";
 
 // The +1 code field of the effect sprite record (0x6A2D), inside the sprite shadow buffer the DMA
 // blits to sprite RAM each vblank. This routine increments it each beat, stepping the sprite's tile.

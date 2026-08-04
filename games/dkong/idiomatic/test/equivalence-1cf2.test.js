@@ -64,7 +64,7 @@ import {
   MARIO_CLIMB_LIMIT_B,
   MARIO_ON_LADDER,
   MARIO_SPRITE_CODE,
-} from "../ram.js";
+} from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -76,7 +76,7 @@ const test = ROM_PRESENT
 
 const TARGET_1CF2 = 0x1cf2;
 const TARGET_1D11 = 0x1d11;
-const CENTERING_PHASE = 0x6222; // shared climb-centering toggle (unnamed in ram.js)
+const CENTERING_PHASE = 0x6222; // shared climb-centering toggle (unnamed in names.js)
 const CLIMB_PACE = 3;           // the reload value loc_1cf2 writes on expiry
 const DOWN_STEP = 2;            // the +2 step loc_1cf2 feeds the shared stepper
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");

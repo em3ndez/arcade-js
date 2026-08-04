@@ -27,10 +27,10 @@
  * LIVE-OUT: the boolean proceed/skip decision — the oracle carries it as normal-ret
  *           vs caller-skip (a +2 vs +4 SP delta and a different return address). It
  *           writes no memory; the residual registers/flags are dead.
- * NAMES:    FRAME (0x601A) from ram.js.
+ * NAMES:    FRAME (0x601A) from names.js.
  */
 
-import { FRAME } from "./ram.js";
+import { FRAME } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

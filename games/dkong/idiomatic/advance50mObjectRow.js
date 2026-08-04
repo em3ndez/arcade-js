@@ -38,9 +38,9 @@
  *           live-out at this boundary — set and kept. Residual registers/flags and the
  *           terminal return are dead.
  * NAMES:    OBJ_ARRAY_65A0 (0x65A0), M50_OBJ2_STEP_POS (0x63A5), M50_OBJ2_STEP_NEG
- *           (0x63A4), M50_OBJ3_STEP (0x63A6) — all from ram.js, as is the per-record
+ *           (0x63A4), M50_OBJ3_STEP (0x63A6) — all from names.js, as is the per-record
  *           sprite block OBJ_65A0_SPRITES (0x69B8, inside SPRITE_BUFFER, stride 4), which
- *           ram.js named and grounded [seen] in pass 11.
+ *           names.js named and grounded [seen] in pass 11.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -49,7 +49,7 @@ import {
   M50_OBJ2_STEP_POS,
   M50_OBJ2_STEP_NEG,
   M50_OBJ3_STEP,
-  OBJ_65A0_SPRITES,} from "./ram.js";
+  OBJ_65A0_SPRITES,} from "./names.js";
 
 const SLOT_COUNT = 6;
 const SLOT_STRIDE = 0x10;      // object-record stride; also the DE live-out value (0x0010)

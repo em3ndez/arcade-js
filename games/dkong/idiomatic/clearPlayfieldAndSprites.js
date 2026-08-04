@@ -33,10 +33,10 @@
  *           are dead ABI. SP/PC are not compared — the idiomatic layer drops the
  *           `ret`'s stack/PC bookkeeping (the JS call stack replaces it).
  * NAMES:    SPRITE_BUFFER (0x6900). The VRAM tilemap bases (0x7404 playfield,
- *           0x7522/0x7523 side columns) stay hex — video RAM, not named in ram.js.
+ *           0x7522/0x7523 side columns) stay hex — video RAM, not named in names.js.
  */
 
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 
 const PLAYFIELD_TOP = 0x7404; // VRAM tilemap: first playfield cell
 const PLAYFIELD_ROWS = 32;

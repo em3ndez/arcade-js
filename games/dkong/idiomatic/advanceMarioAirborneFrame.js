@@ -63,7 +63,7 @@
  * NAMES:    MARIO_ACTIVE (0x6200, also the base of Mario's context block), MARIO_X (0x6203),
  *           MARIO_Y (0x6205), MARIO_SPRITE_CODE (0x6207), MARIO_AIR_PREV_X (0x620B),
  *           MARIO_AIR_PREV_Y (0x620C), MARIO_AIR_VX_HI (0x6210), MARIO_AIR_VX_LO (0x6211) —
- *           all imported from ram.js. stepBallisticMotion (ROM 0x239C), limitMarioHorizontalTravel (0x241F),
+ *           all imported from names.js. stepBallisticMotion (ROM 0x239C), limitMarioHorizontalTravel (0x241F),
  *           loc_1bf2 (0x1BF2) and reverseMarioVerticalArc (0x1BD8) are all direct-called; no address literal
  *           is left in the body.
  */
@@ -77,7 +77,7 @@ import {
   MARIO_AIR_PREV_Y,
   MARIO_AIR_VX_HI,
   MARIO_AIR_VX_LO,
-} from "./ram.js";
+} from "./names.js";
 import { stepBallisticMotion } from "./stepBallisticMotion.js"; // ROM 0x239C
 import { limitMarioHorizontalTravel } from "./limitMarioHorizontalTravel.js"; // ROM 0x241F
 import { loc_1bf2 } from "./loc_1bf2.js"; // ROM 0x1BF2

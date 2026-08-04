@@ -41,14 +41,14 @@
  *           reads a value register back (dead ABI).
  * NAMES:    PLAY_PHASE_COUNTER (0x8010), ENEMY1_X (0x80e8, base of object 1's record),
  *           SPRITE_COORD_BIAS (0x8051), GAME_STATE (0x8001), SPRITE_STAGING_BASE (0x8220)
- *           from ram.js. ENEMY_WORK_X 0x8083 is the driver's shared working block.
+ *           from names.js. ENEMY_WORK_X 0x8083 is the driver's shared working block.
  *           updateEnemy2 / advanceTwoSpriteActor are decompiled and called directly.
  */
 
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { advanceTwoSpriteActor } from "./advanceTwoSpriteActor.js";
 import { updateEnemy2 } from "./updateEnemy2.js";
-import { PLAY_PHASE_COUNTER, ENEMY1_X, SPRITE_COORD_BIAS, GAME_STATE, SPRITE_STAGING_BASE, ENEMY_WORK_X } from "./ram.js";
+import { PLAY_PHASE_COUNTER, ENEMY1_X, SPRITE_COORD_BIAS, GAME_STATE, SPRITE_STAGING_BASE, ENEMY_WORK_X } from "./names.js";
 
 // Object 1's 4-byte record in the sprite-staging buffer (0x8230).
 const OBJ1_SPRITE_RECORD = SPRITE_STAGING_BASE + 16;

@@ -37,7 +37,7 @@
  *           ENEMY2_SPRITE (0x80fa) and ENEMY2_ATTR (0x80fb), plus the LEVEL difficulty counter
  *           (0x8028), and ENEMY1_TIMER (0x80f0), ENEMY1_STATE (0x80f5), ENEMY2_TIMER (0x8101),
  *           ENEMY2_STATE (0x8106), ENEMY2_MOVE_PERIOD (0x8107), ENEMY2_TARGET_COL (0x8109), from
- *           ram.js; the rest of the parameter block is ENEMY1_Y (0x80eb).
+ *           names.js; the rest of the parameter block is ENEMY1_Y (0x80eb).
  *           The tail is the decompiled seedActorSpawnState (ROM 0x36fe).
  */
 
@@ -60,7 +60,7 @@ import {
   ENEMY2_SPRITE,
   ENEMY2_TIMER,
   ENEMY2_X,
-} from "./ram.js";
+} from "./names.js";
 export function seedEnemyRecords(m) {
   const { mem8 } = m;
 

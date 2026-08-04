@@ -159,7 +159,7 @@ export default {
     // 151 leaf/near-leaf routines validated as TRANSPARENT swaps by tools/swap_check.mjs — the
     // assembled game runs byte-identical to pure translated below the stack region
     // (assembled-swap.test.js gates the set; dead stack scratch is excluded — see stateExclude).
-    // Addresses only; names are in ROUTINES (idiomatic/ram.js). Still TRANSLATED (not here):
+    // Addresses only; names are in ROUTINES (idiomatic/names.js). Still TRANSLATED (not here):
     // the 2 poll routines 0x0348/0x4bff; 6 structural (0x0000/0x0066/0x01a4/0x0673/0x3a6f/0x3b81);
     // the non-leaf routines (bottom-up, next). Grown by classify + gate, never by hand-assertion.
     0x021c, 0x022d, 0x0278, 0x02a1, 0x03e8, 0x06ac, 0x1362, 0x13c9, 0x13de, 0x1420,

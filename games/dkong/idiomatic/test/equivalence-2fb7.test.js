@@ -55,7 +55,7 @@ import { blinkHammerSpriteOnFramePhase as loc_2fbe } from "../blinkHammerSpriteO
 import {
   HAMMER_TIMER_HI, FRAME, MARIO_X, MARIO_Y,
   SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

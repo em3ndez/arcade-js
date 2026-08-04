@@ -31,12 +31,12 @@
  * LIVE-OUT: memory-only — MARIO_MOVE_STEP_TIMER here, plus whatever the chosen callee
  *           writes. The single caller (loc_1b45) tail-jumps into this and consumes no
  *           register it leaves. The chain nets exactly one caller-return.
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) from ram.js. Delegates to the already-idiomatic
+ * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) from names.js. Delegates to the already-idiomatic
  *           loc_1d76 (ROM 0x1D76) and advanceClimbStep (ROM 0x1D11); the unnamed cells
  *           those touch are documented in their own headers, not touched here.
  */
 
-import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
+import { MARIO_MOVE_STEP_TIMER } from "./names.js";
 import { loc_1d76 } from "./loc_1d76.js";                 // ROM 0x1D76
 import { advanceClimbStep } from "./advanceClimbStep.js"; // ROM 0x1D11
 

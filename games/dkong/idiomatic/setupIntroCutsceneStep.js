@@ -45,28 +45,28 @@
  *           A/HL/DE before reading them (oracle's residual A=0x40, HL=0x6385, DE/BC =
  *           drawBoardLayout's leavings are all dead ABI). SP/pc are the dropped stack model.
  * NAMES:    SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), INTRO_WALK_PTR_A (0x63C2) and
- *           INTRO_WALK_PTR_B (0x63C4, the cutscene walk pointers) from ram.js. Hex-kept
- *           (no ram.js name): PALETTE_BANK_LO/HI (ls259 board latch, not work RAM), the
+ *           INTRO_WALK_PTR_B (0x63C4, the cutscene walk pointers) from names.js. Hex-kept
+ *           (no names.js name): PALETTE_BANK_LO/HI (ls259 board latch, not work RAM), the
  *           0x380D record table + 0x38B4/0x38CB pointer seeds (ROM data), the three
- *           cutscene tiles (VRAM), and 0x62AF (board bookkeeping, rejected in ram.js).
+ *           cutscene tiles (VRAM), and 0x62AF (board bookkeeping, rejected in names.js).
  */
 
-import { SUBSTATE_TIMER, INTRO_STEP, INTRO_WALK_PTR_A, INTRO_WALK_PTR_B } from "./ram.js";
+import { SUBSTATE_TIMER, INTRO_STEP, INTRO_WALK_PTR_A, INTRO_WALK_PTR_B } from "./names.js";
 import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0DA7 — walk 0x380D + draw the playfield
 
 // The two-bit palette-bank select latch (ls259.6h at 0x7D86/0x7D87) — a board control
-// output, NOT work RAM, so it has no ram.js name. Setting %01: LO <- 0, HI <- 1.
+// output, NOT work RAM, so it has no names.js name. Setting %01: LO <- 0, HI <- 1.
 const PALETTE_BANK_LO = 0x7d86;
 const PALETTE_BANK_HI = 0x7d87;
 
 const RECORD_TABLE = 0x380d; // ROM line-segment table drawBoardLayout walks (girders + ladders)
 
-// Three fixed cutscene tiles stamped into VRAM (ROM-data addresses, no ram.js name).
+// Three fixed cutscene tiles stamped into VRAM (ROM-data addresses, no names.js name).
 const CUTSCENE_TILE_A = 0x76a3;
 const CUTSCENE_TILE_B = 0x7663;
 const CUTSCENE_TILE_C = 0x75aa;
 
-const CUTSCENE_BOOKKEEPING = 0x62af; // work-RAM byte cleared each setup (unnamed in ram.js)
+const CUTSCENE_BOOKKEEPING = 0x62af; // work-RAM byte cleared each setup (unnamed in names.js)
 
 export function setupIntroCutsceneStep(m) {
   const { regs, mem } = m;

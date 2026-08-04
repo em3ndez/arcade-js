@@ -26,7 +26,7 @@
  * NAME: kept loc_ — an English name is earned in a confirmed understanding pass, not here.
  * WHAT THIS FILE DOES NOT CLAIM: the two scratch bytes' roles above are read off the siblings
  * that write them (armBarrelRelease, releaseBarrelIntoFreeSlot, activateReleasedBarrel,
- * restartAttractDemoAt25m), not from a grounding run of this routine; neither byte is named in ram.js.
+ * restartAttractDemoAt25m), not from a grounding run of this routine; neither byte is named in names.js.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2c8f.test.js.
  * GATE:     ATTRACT ONLY (plus pokes on top of attract state) — no credited game, and the
@@ -57,11 +57,11 @@
  *           (the record base in RENDER_OBJ_PTR, the count-derived sprite slot in
  *           RENDER_DST_PTR), so the gate pins them there. This live-out is DERIVED, and the
  *           derivation is what the gate checks; there is no committed live-wire arm here.
- * NAMES:    OBJ_ARRAY_67 (0x6700) and the record field OBJ_ACTIVE (+0) from ram.js — ram.js's
+ * NAMES:    OBJ_ARRAY_67 (0x6700) and the record field OBJ_ACTIVE (+0) from names.js — names.js's
  *           own entry for that array names this routine as one of its three walkers.
  *           boardBitGate (ROM 0x0030), marioActiveGuard (ROM 0x0010), advanceBarrelRelease
  *           (ROM 0x2D15) and releaseBarrelIntoFreeSlot (ROM 0x2CB8) are all direct-called.
- *           0x6393 and 0x6392 are UNNAMED in ram.js, so both stay local hex consts here — the
+ *           0x6393 and 0x6392 are UNNAMED in names.js, so both stay local hex consts here — the
  *           same convention as the siblings scheduleBarrelRelease, armBarrelRelease and
  *           activateReleasedBarrel, which read and write the same two bytes.
  *
@@ -75,7 +75,7 @@ import { boardBitGate } from "./boardBitGate.js";                         // ROM
 import { marioActiveGuard } from "./marioActiveGuard.js";                 // ROM 0x0010 (rst 0x10)
 import { advanceBarrelRelease } from "./advanceBarrelRelease.js";         // ROM 0x2D15
 import { releaseBarrelIntoFreeSlot } from "./releaseBarrelIntoFreeSlot.js"; // ROM 0x2CB8
-import { OBJ_ARRAY_67, OBJ_ACTIVE } from "./ram.js";
+import { OBJ_ARRAY_67, OBJ_ACTIVE } from "./names.js";
 
 const BOARD_MASK = 1;          // rst-0x30 applicability mask: bit0 = 25m only
 const EVENT_GATE = 0x6393;     // bit0 SET -> a barrel already went out this pass (unnamed scratch)

@@ -40,7 +40,7 @@
  *           file it leaves is dead (the caller reloads before reading). Its exit pc/SP
  *           balance back to the caller but are excluded from the gate per the contract.
  * NAMES:    GLITTER_COUNTDOWN (0x805c) is the cell-animation counter and LEVEL (0x8028)
- *           the display-mode byte, both from ram.js. The tilemap (0x9000) and colour map
+ *           the display-mode byte, both from names.js. The tilemap (0x9000) and colour map
  *           (0x8800) are hardware RAM and the tile/colour images are ROM tables, all hex.
  */
 import { waitFrames } from "./waitFrames.js";
@@ -48,7 +48,7 @@ import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
-import { GLITTER_COUNTDOWN, LEVEL } from "./ram.js";
+import { GLITTER_COUNTDOWN, LEVEL } from "./names.js";
 const VIDEO_RAM_BASE = 0x9000; // start of the 32x32 tilemap the display reads
 const COLOR_RAM_BASE = 0x8800; // start of the matching per-cell colour map
 const TILE_IMAGE_A = 0x0762; // ROM tile image chosen when the display-mode bit is set

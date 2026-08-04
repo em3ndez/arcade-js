@@ -58,18 +58,18 @@
  *           control-flow model; the JS call stack replaces it and the test performs one
  *           modelled `ret` to line pc + SP up.
  * NAMES:    OBJ_ARRAY_64 (0x6400), OBJ_ARRAY_65A0 (0x65A0) and OBJECT_COLLISION_SPRITES
- *           (0x6A0C) from ram.js — the object-array bases this arm seeds ([code]
- *           confidence). Other object-array bases named in ram.js are cited in the step
+ *           (0x6A0C) from names.js — the object-array bases this arm seeds ([code]
+ *           confidence). Other object-array bases named in names.js are cited in the step
  *           comments: OBJ_ARRAY_65 (0x6500), OBJ_RECORD_66A0 (0x66A0), OBJ_PAIR_6680
  *           (0x6680/0x6690), ACTOR_SPRITES (0x6980). 0x62B9 is board-object bookkeeping
- *           (ram.js groups but does not name it individually), kept hex. The remaining
+ *           (names.js groups but does not name it individually), kept hex. The remaining
  *           operands stay hex as faithful ROM immediates matching the callees: the
  *           base+field stamp destinations (0x6407 = OBJ_ARRAY_64+7, 0x65A7 =
  *           OBJ_ARRAY_65A0+7), the SPRITE_BUFFER-interior gather/copy destinations
  *           (0x6900-0x6A7F), and the ROM template pointers.
  */
 
-import { OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJECT_COLLISION_SPRITES } from "./ram.js";
+import { OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJECT_COLLISION_SPRITES } from "./names.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
@@ -125,5 +125,5 @@ export function seed50mBoardObjects(m) {
 
   // 10. Copy the last ROM table into the collision-sprite records, then mark the board set up.
   copyBlock(mem, 0x3e3c, OBJECT_COLLISION_SPRITES, 0x000c); // 0x6A0C — 3 collision records (stride 4)
-  mem.write8(0x62b9, 0x01); // board-object bookkeeping (unnamed in ram.js): this board is set up
+  mem.write8(0x62b9, 0x01); // board-object bookkeeping (unnamed in names.js): this board is set up
 }

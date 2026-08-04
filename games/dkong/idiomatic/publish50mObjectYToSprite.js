@@ -32,7 +32,7 @@
  * both sprite records are all-zero on boards 1 and 4 and seeded-but-frozen on board 3.
  * A sprite-blanking A/B then isolated a single clean 10x16 box at screen (15,96)-(25,112)
  * and (199,96)-(209,112), tile 0x46 / attr 0x03: two sprites, one per record, at the far
- * left and far right of the playfield. SPRITE_BUFFER (0x6900) is a named cell in ram.js and
+ * left and far right of the playfield. SPRITE_BUFFER (0x6900) is a named cell in names.js and
  * both call sites are English-named routines.
  *
  * WHAT THE NAME DOES NOT CLAIM: the name says "Y", not what the sprite depicts. The sprite
@@ -63,21 +63,21 @@
  *           the destination address it computes, and reuse the source pointer, which this
  *           routine leaves untouched; the oracle's residual registers/flags and its terminal
  *           `ret` are dead ABI.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js. The two destination cells (0x6947, 0x694b)
- *           are the +3 (Y) field of records 17/18 inside it and have no individual ram.js
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js. The two destination cells (0x6947, 0x694b)
+ *           are the +3 (Y) field of records 17/18 inside it and have no individual names.js
  *           name — kept as local consts for the lead to name later. The record bases
  *           0x6944/0x6948 are the two 50m-object sprite records (measured tracking the
  *           object records' X/Y on 6810/6810 board-2 frames of RUN-P2 — the lagged identity
- *           above, not a same-frame one); ram.js does not name them yet.
+ *           above, not a same-frame one); names.js does not name them yet.
  */
 
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 
 // The two candidate destinations: the +3 (Y) field of two adjacent 4-byte sprite records
 // inside SPRITE_BUFFER — records 17 and 18, at addresses just below Mario's record at
 // 0x694C. Bit 3 of the source pointer's low byte picks which one is refreshed (the two
 // object records' bases differ by 8, so that bit is the record index). Neither cell has its
-// own name in ram.js.
+// own name in names.js.
 const DEST_BIT3_CLEAR = SPRITE_BUFFER + 17 * 4 + 3; // 0x6947
 const DEST_BIT3_SET = SPRITE_BUFFER + 18 * 4 + 3; // 0x694b
 

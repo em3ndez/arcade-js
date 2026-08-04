@@ -40,7 +40,7 @@
  *           handler_1977's cascade, so A/HL/B are kept faithful to the oracle rather
  *           than dropped. FLAGS are dropped as dead: `djnz` sets none, and the final
  *           `add a,4` carry/zero is consumed by no traced caller.
- * NAMES:    none from ram.js — HL and B are caller-supplied. The targets fall inside
+ * NAMES:    none from names.js — HL and B are caller-supplied. The targets fall inside
  *           SPRITE_BUFFER (0x6900), noted for context, but the routine references no
  *           fixed game RAM address. 0x30e4/0x30e5 stay hex, in this header only.
  */

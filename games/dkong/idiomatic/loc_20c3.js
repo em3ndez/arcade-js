@@ -71,7 +71,7 @@
  *           of 49 dispatches) that holds it, not a known consumer. Said plainly rather than dressed
  *           up as a live-out.
  * NAMES:    none imported — every access is relative to the caller's record pointer, and none of
- *           the five offsets carries a shared OBJ_* offset name in ram.js, so they stay local
+ *           the five offsets carries a shared OBJ_* offset name in names.js, so they stay local
  *           consts here as they do in loc_2153 and stepBallisticMotion. The record pointer is NOT a
  *           parameter: the tail at ROM 0x21BA is still frozen and re-reads the index register
  *           itself, so a caller passing anything else would be obeyed here and ignored one call
@@ -83,7 +83,7 @@
 import { loc_2407 } from "./loc_2407.js"; // ROM 0x2407
 
 // Object-record fields, addressed off the record pointer the caller left set. None carries a
-// shared OBJ_* offset name in ram.js, so they stay local consts; the readings are
+// shared OBJ_* offset name in names.js, so they stay local consts; the readings are
 // stepBallisticMotion's, since that is the routine that reads all five back.
 const LAUNCH_VY_HI = 0x12; //     upper half of the speed the vertical arc started with
 const LAUNCH_VY_LO = 0x13; //     lower half of it

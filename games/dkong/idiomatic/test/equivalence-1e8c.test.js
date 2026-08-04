@@ -54,7 +54,7 @@ import { runHitEffectInsteadOfPlay as idiomatic } from "../runHitEffectInsteadOf
 import { dispatchEffectSequenceStep } from "../dispatchEffectSequenceStep.js";
 import { loc_1e94 } from "../loc_1e94.js";
 import { Machine } from "../../machine.js";
-import { EFFECT_SEQ_STATE, EFFECT_SEQ_INNER, STACK_SCRATCH } from "../ram.js";
+import { EFFECT_SEQ_STATE, EFFECT_SEQ_INNER, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -66,7 +66,7 @@ const test = ROM_PRESENT
 const TARGET = 0x1e8c;
 const ATTRACT_FRAMES = 4000;
 /**
- * The hit-effect latch. Deliberately unnamed in ram.js (shared engine scratch — the effect
+ * The hit-effect latch. Deliberately unnamed in names.js (shared engine scratch — the effect
  * sequence's gate and animateFixedHazardAndReleaseFire's bit0 gate read the same byte), so it is hex here too, exactly as
  * the routine and its siblings keep it.
  */

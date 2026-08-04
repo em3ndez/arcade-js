@@ -21,7 +21,7 @@
  * this routine just wrote.
  *
  * WHAT THIS DOES IN THE GAME, and what that rests on: OBJ_ACTIVE is the object-record
- * array's own "is this slot live" flag (ram.js grounds it live on OBJ_ARRAY_67), so
+ * array's own "is this slot live" flag (names.js grounds it live on OBJ_ARRAY_67), so
  * zeroing it frees the slot; the accompanying zero of OBJ_X is what stops the freed slot
  * from being drawn where it died. The pairing is not read off this body alone — the
  * sibling gate at ROM 0x24B4, which the caller at ROM 0x2101 runs immediately before
@@ -62,13 +62,13 @@
  *           attract frames (171 dispatches) leaves the state dump byte-identical to the
  *           all-oracle baseline on every frame, stack scratch INCLUDED — this routine
  *           keeps the oracle's hand-off calls, so the guest stack must match too.
- * NAMES:    OBJ_ACTIVE (+0) and OBJ_X (+3) from ram.js. The record base is not a fixed
+ * NAMES:    OBJ_ACTIVE (+0) and OBJ_X (+3) from names.js. The record base is not a fixed
  *           cell — it is whatever record the caller's sweep is on (attract drives
  *           OBJ_ARRAY_67 records 0 and 1), so it stays a register read.
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_ACTIVE, OBJ_X } from "./ram.js";
+import { OBJ_ACTIVE, OBJ_X } from "./names.js";
 
 /** X strictly below this, after the wrap-tolerant shift, retires the record. */
 const X_LIMIT = 16;

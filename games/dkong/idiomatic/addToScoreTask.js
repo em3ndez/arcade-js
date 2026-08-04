@@ -44,15 +44,15 @@
  *           residual registers/flags and its two-level guard return are dead ABI (the
  *           task dispatcher issues its next task without reading them); the terminal
  *           return the harness supplies lines pc + SP up with the oracle.
- * NAMES:    CURRENT_PLAYER (0x600D) and HIGH_SCORE (0x60B8) from ram.js. The addend
+ * NAMES:    CURRENT_PLAYER (0x600D) and HIGH_SCORE (0x60B8) from names.js. The addend
  *           table at 0x3529 is ROM, the score counters arrive from
  *           selectCurrentPlayerScoreCounter, and the readout cells are video RAM
- *           owned by the renderers — none carry a ram.js name. gameActiveGuard
+ *           owned by the renderers — none carry a names.js name. gameActiveGuard
  *           (0x0008), selectCurrentPlayerScoreCounter (0x055F), loc_056b (0x056B) and
  *           drawHighScore (0x05DA) are all direct-called.
  */
 
-import { CURRENT_PLAYER, HIGH_SCORE } from "./ram.js";
+import { CURRENT_PLAYER, HIGH_SCORE } from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";                     // ROM 0x0008 (rst 0x08)
 import { selectCurrentPlayerScoreCounter } from "./selectCurrentPlayerScoreCounter.js"; // ROM 0x055F
 import { loc_056b } from "./loc_056b.js";                                   // ROM 0x056B

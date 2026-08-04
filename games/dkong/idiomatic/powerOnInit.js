@@ -47,7 +47,7 @@
  *           calls + final `ret` leave only push residue inside STACK_SCRATCH; the
  *           direct-call layer leaves SP/pc untouched.
  * NAMES:    ATTRACT (0x6007), LEVEL (0x6229), LIVES (0x6228), GAME_STATE (0x6005),
- *           BOARD (0x6227), GAME_SUBSTATE (0x600A), P1_SCORE (0x60B2) from ram.js.
+ *           BOARD (0x6227), GAME_SUBSTATE (0x600A), P1_SCORE (0x60B2) from names.js.
  *           FLIPSCREEN (0x7D82) is a board control latch, not work RAM — kept hex.
  *           The score template source (ROM 0x01BA) and the three task [opcode,arg]
  *           payloads are ROM data / literal messages, kept literal.
@@ -61,7 +61,7 @@ import {
   BOARD,
   GAME_SUBSTATE,
   P1_SCORE,
-} from "./ram.js";
+} from "./names.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js"; // ROM 0x06B8
 import { decodeDipSwitches } from "./decodeDipSwitches.js"; // ROM 0x0207
@@ -69,7 +69,7 @@ import { draw1UpLabel } from "./draw1UpLabel.js"; // ROM 0x0A53
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 
 // Flip-screen control latch — board hardware (0x7D80 bank), not work RAM, so it is
-// not in ram.js. Write-only: readable back only by the board, never by the CPU.
+// not in names.js. Write-only: readable back only by the board, never by the CPU.
 const FLIPSCREEN = 0x7d82;
 
 // The 9-byte score-slot template in ROM: P1 (3) + P2 (3) + HIGH (3), copied into

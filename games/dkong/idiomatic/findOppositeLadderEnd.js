@@ -46,11 +46,11 @@
  *           unchanged. (The address past the match is left in a register by the oracle but
  *           no caller reads it — dead, so it is dropped.) The boolean return is the
  *           miss/found signal. Writes no work RAM (the oracle's stack churn is dead).
- * NAMES:    OBJ_PARAM_TABLE0 (0x6300) from ram.js — the scan base. The +0x15 / +0x2A slot
+ * NAMES:    OBJ_PARAM_TABLE0 (0x6300) from names.js — the scan base. The +0x15 / +0x2A slot
  *           offsets are structural strides within a table record and stay literal.
  */
 
-import { OBJ_PARAM_TABLE0 } from "./ram.js";
+import { OBJ_PARAM_TABLE0 } from "./names.js";
 
 // A matched entry carries two paired slots at these fixed offsets past its key byte.
 const NEAR_SLOT = 0x15;

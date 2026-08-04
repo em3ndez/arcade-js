@@ -43,7 +43,7 @@
  *           bracket, and its terminal returns are dead ABI.
  * NAMES:    MARIO_HAMMER_ACTIVE (0x6217), MARIO_X (0x6203), MARIO_Y (0x6205),
  *           MARIO_SPRITE_CODE (0x6207), MARIO_CLIMB_LIMIT_A (0x621B), MARIO_CLIMB_LIMIT_B
- *           (0x621C) from ram.js. 0x621A carries no ram.js name (a shared board flag,
+ *           (0x621C) from names.js. 0x621A carries no names.js name (a shared board flag,
  *           deliberately left hex there) — kept as a hex literal + comment. The lookup key,
  *           discriminator, and entry count are marshalled into registers for findOppositeLadderEnd, which is
  *           a genuine oracle boundary (register-shaped interface); loc_1b4e likewise reads the
@@ -57,12 +57,12 @@ import {
   MARIO_SPRITE_CODE,
   MARIO_CLIMB_LIMIT_A,
   MARIO_CLIMB_LIMIT_B,
-} from "./ram.js";
+} from "./names.js";
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";                 // ROM 0x236E — object-table lookup (oracle boundary)
 import { loc_1b4e } from "./loc_1b4e.js";                 // ROM 0x1B4E — commit limit pair, climb up
 import { climbDownWhileHeld } from "./climbDownWhileHeld.js"; // ROM 0x1B38 — Down/Up climb dispatch
 
-// A shared board flag one cell below the climb-limit pair; deliberately unnamed in ram.js
+// A shared board flag one cell below the climb-limit pair; deliberately unnamed in names.js
 // (two unrelated writers, no single board settles it) — kept hex per that decision.
 const CLIMB_FLAG = 0x621a;
 

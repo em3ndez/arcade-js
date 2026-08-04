@@ -51,7 +51,7 @@ import { fillColorRam } from "../fillColorRam.js";
 import { clearSpriteStagingBuffer } from "../clearSpriteStagingBuffer.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { BOARD_MODE } from "../ram.js";
+import { BOARD_MODE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

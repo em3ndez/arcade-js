@@ -43,7 +43,7 @@
  *           columns (colour RAM), the two count records and the singular patch, and the
  *           hold counter 0x800a drained to 0. Nothing reads a register back afterward.
  * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH, COINS_PER_CREDIT_A / COINS_PER_CREDIT_B
- *           (the two DSW-derived HUD counts, 0x804c / 0x804d) from ram.js. The video/record
+ *           (the two DSW-derived HUD counts, 0x804c / 0x804d) from names.js. The video/record
  *           cells (0x928c, 0x928e, 0x9292, 0x9294, 0x918e) are kept hex.
  */
 
@@ -61,7 +61,7 @@ import { copyTileColumn } from "./copyTileColumn.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { blankScreen } from "./blankScreen.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, COINS_PER_CREDIT_A, COINS_PER_CREDIT_B } from "./names.js";
 
 const HOLD_PASSES = 30; // how many colour-cycle + frame-wait passes the intro holds
 const HOLD_FRAMES = 15; // video frames each hold pass waits

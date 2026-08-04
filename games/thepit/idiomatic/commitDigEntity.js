@@ -32,7 +32,7 @@
  *           cells. It reads all its inputs from RAM and returns nothing; the oracle's
  *           residual registers/flags are dead ABI.
  * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_OBJ_SUBTYPE, HAZARD_X,
- *           HAZARD_Y from ram.js. The staging scratch is STAGED_TARGET_X (0x80b6),
+ *           HAZARD_Y from names.js. The staging scratch is STAGED_TARGET_X (0x80b6),
  *           STAGED_TARGET_Y (0x80b9), STAGED_DIG_TIMER (0x80bc) and STAGED_DIG_SPRITE_ID
  *           (0x80bf), and the saved carve cell pointer is STAGED_CELL_PTR (0x80ba); the
  *           target-column mirror (0x80be) has no confirmed name yet and stays hex; the
@@ -53,7 +53,7 @@ import {
   HAZARD_X,
   HAZARD_Y,
   CARVE_CELL_PTR,
-} from "./ram.js";
+} from "./names.js";
 
 const CARVING_STATE = 48; // dig-object state code for the carving phase
 const FILL_TILE = 112; // marker tile stamped into a committed cell

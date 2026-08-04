@@ -57,7 +57,7 @@
 
 import { u8 } from "../../../core/int.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { TASK_HEAD, TASK_RING } from "./ram.js";
+import { TASK_HEAD, TASK_RING } from "./names.js";
 import { addToScoreTask } from "./addToScoreTask.js"; //                 ROM 0x051C
 import { resetScoreCounter } from "./resetScoreCounter.js"; //           ROM 0x059B
 import { drawScoreTask } from "./drawScoreTask.js"; //                   ROM 0x05C6

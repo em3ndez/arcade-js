@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_22e1 as oracle } from "../../translated/loc_22e1.js";
 import { loc_22e1 } from "../loc_22e1.js";
 import { loc_22f9 } from "../loc_22f9.js";
-import { LEVEL } from "../ram.js";
+import { LEVEL } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

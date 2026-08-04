@@ -64,7 +64,7 @@ import {
   REACTION_OBJ_X,
   REACTION_OBJ_Y,
   DIG_COLLISION_STATE,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -75,7 +75,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x319d;
 
-// The mover's own working-block bytes with no ram.js name yet.
+// The mover's own working-block bytes with no names.js name yet.
 const TARGET_COLUMN = 0x8093;
 const CURRENT_COLUMN = 0x807a;
 const MOVER_X = 0x8083;

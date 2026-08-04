@@ -43,7 +43,7 @@ import { loc_2af6 as oracle } from "../../translated/loc_2af6.js";
 import { selectConveyorStepAndMoveMario as loc_2af6 } from "../selectConveyorStepAndMoveMario.js";
 import { moveMarioX } from "../moveMarioX.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_X, MARIO_Y, BOARD, M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG } from "../ram.js";
+import { STACK_SCRATCH, MARIO_X, MARIO_Y, BOARD, M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,7 +58,7 @@ const TARGET = 0x2af6;
 // the two sides to agree, which they do by construction.
 const RET_ADDR = 0x2ad9;
 
-// The two published step-shadow arms this routine selects between (from ram.js).
+// The two published step-shadow arms this routine selects between (from names.js).
 const STEP_SHADOW_HI = M50_OBJ2_STEP_POS; // 0x63A5 — used when prior X >= 0x80 (far-right half)
 const STEP_SHADOW_LO = M50_OBJ2_STEP_NEG; // 0x63A4 — used when prior X <  0x80 (left half)
 

@@ -60,7 +60,7 @@ import { Machine } from "../../machine.js";
 import { bootOnly } from "../../translated/bootOnly.js";
 import { loc_02e3 as oracle } from "../../translated/loc_02e3.js";
 import { loc_02e3 as rewrite } from "../loc_02e3.js";
-import { FRAME, FRAME_SEEN, SPIN_COUNT, STACK_SCRATCH, TASK_HEAD, TASK_RING } from "../ram.js";
+import { FRAME, FRAME_SEEN, SPIN_COUNT, STACK_SCRATCH, TASK_HEAD, TASK_RING } from "../names.js";
 import { addToScoreTask } from "../addToScoreTask.js";
 import { resetScoreCounter } from "../resetScoreCounter.js";
 import { drawScoreTask } from "../drawScoreTask.js";
@@ -341,7 +341,7 @@ for (const { name, twin, cell } of TEETH) {
 
 /**
  * `translated/loc_02bd.js`, copied instruction for instruction — four work-RAM addresses
- * written as their ram.js names — with the one dispatch this gate is about injected. The copy
+ * written as their names.js names — with the one dispatch this gate is about injected. The copy
  * exists because the main loop calls 0x02E3 as a direct ES import, so there is no seam to
  * wire the rewrite into; test 3a is what proves the copy is faithful rather than assumed so.
  */

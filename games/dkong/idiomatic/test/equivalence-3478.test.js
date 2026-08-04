@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_3478 as oracle } from "../../translated/loc_3478.js";
 import { loc_3478 as candidate } from "../loc_3478.js";
 import { loc_3445 } from "../loc_3445.js";
-import { OBJ_X, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI, MARIO_X } from "../ram.js";
+import { OBJ_X, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI, MARIO_X } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

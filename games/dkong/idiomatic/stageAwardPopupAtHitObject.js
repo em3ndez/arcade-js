@@ -39,13 +39,13 @@
  *           afterward, so A/C/HL and the `inc l` flags are all dead. SP/pc are the
  *           dropped stack model (the oracle's push/call/ret becomes the JS call stack).
  * NAMES:    enqueueTask (ROM 0x309F) and stampScorePopupSprite (ROM 0x1E36) are the idiomatic
- *           callees, imported and called directly. EFFECT_PARAM_PTR (0x6343) from ram.js —
+ *           callees, imported and called directly. EFFECT_PARAM_PTR (0x6343) from names.js —
  *           the effect param pointer (word); the block IDENTITY it derefs is unconfirmed,
  *           but the cell is named.
  */
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { stampScorePopupSprite } from "./stampScorePopupSprite.js";       // ROM 0x1E36
-import { EFFECT_PARAM_PTR } from "./ram.js";    // 0x6343 — indirect word: HL = the parameter block's address
+import { EFFECT_PARAM_PTR } from "./names.js";    // 0x6343 — indirect word: HL = the parameter block's address
 
 export function stageAwardPopupAtHitObject(m) {
   const { regs, mem } = m;

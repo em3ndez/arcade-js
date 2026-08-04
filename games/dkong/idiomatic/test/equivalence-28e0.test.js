@@ -48,7 +48,7 @@ import { loc_28e0 as oracle } from "../../translated/loc_28e0.js";
 import { findCollidingObject } from "../findCollidingObject.js";
 import { search75mObjectOverlap } from "../search75mObjectOverlap.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65 } from "../ram.js";
+import { STACK_SCRATCH, OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

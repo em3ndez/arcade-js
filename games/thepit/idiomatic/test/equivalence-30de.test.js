@@ -58,7 +58,7 @@ import {
   ENEMY3_TWIN_X,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -68,7 +68,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x30de;
-const LEVEL_COUNTER = 0x8028; // the routine's one genuine input (still unnamed in ram.js)
+const LEVEL_COUNTER = 0x8028; // the routine's one genuine input (still unnamed in names.js)
 const DERIVED_LO = 0x80f6; // first mirrored slot for the difficulty-scaled pair
 const DERIVED_HI = 0x8107; // second mirrored slot (same value)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

@@ -63,7 +63,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_23de as oracle } from "../../translated/loc_23de.js";
 import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
 import { nextAnimationStep } from "../nextAnimationStep.js";
-import { STACK_SCRATCH, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";
+import { STACK_SCRATCH, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

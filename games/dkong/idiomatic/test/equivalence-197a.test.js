@@ -61,7 +61,7 @@ import { installEntropyPin } from "../../../../core/entropy-pin.js";
 import { runGeneratorGame } from "../../../../core/frame-stepped.js";
 import {
   BONUS_EXPIRED_STEP, MARIO_ACTIVE, MARIO_AIRBORNE, MARIO_Y, SND_TRIGGER, STACK_SCRATCH,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

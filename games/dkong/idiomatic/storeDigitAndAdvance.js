@@ -38,7 +38,7 @@
  *           digit's `and 0x0f`, or the loop-back `rrca`); the sole survivor is the
  *           final iteration's carry via the loop-exit `ret`, which the oracle itself
  *           left "unresolved" and which the pixel capstone backstops.
- * NAMES:    none from ram.js — A/IX/DE and the destination cell are all
+ * NAMES:    none from names.js — A/IX/DE and the destination cell are all
  *           caller-supplied; the routine references no fixed game RAM address.
  */
 export function storeDigitAndAdvance(m) {

@@ -16,7 +16,7 @@
  *     (return without decrementing); otherwise fall into the shared tail and decrement.
  *
  * The two flag bytes it touches — 0x621A (read) and 0x6219 (written) — are left as hex
- * on purpose: ram.js examined both and did NOT name them (0x621A is a "broken-ladder"-
+ * on purpose: names.js examined both and did NOT name them (0x621A is a "broken-ladder"-
  * looking flag that is ALSO written by an unrelated object arm at 0x2236/0x223F — a
  * shared byte one board can't settle; 0x6219 is a climb toggle with two writers and
  * ZERO absolute reads, so this store is dead as far as any reader is concerned, but is
@@ -41,14 +41,14 @@
  *           stepper's caller cascade (loc_197a @ 0x1983 → call 0x1f72, same exit the tail
  *           tickMoveStepTimer documents) overwrites them before any read. SP/PC are the
  *           oracle's ret mechanism, replaced by the JS return, so not in the contract.
- * NAMES:    MARIO_Y (0x6205), MARIO_CLIMB_LIMIT_B (0x621C) — from ram.js. 0x621A / 0x6219
- *           kept hex: ram.js left both unnamed (shared / dead — see role paragraph).
+ * NAMES:    MARIO_Y (0x6205), MARIO_CLIMB_LIMIT_B (0x621C) — from names.js. 0x621A / 0x6219
+ *           kept hex: names.js left both unnamed (shared / dead — see role paragraph).
  */
 
-import { MARIO_Y, MARIO_CLIMB_LIMIT_B } from "./ram.js";
+import { MARIO_Y, MARIO_CLIMB_LIMIT_B } from "./names.js";
 import { tickMoveStepTimer } from "./tickMoveStepTimer.js";
 
-// The gate flag (0x621A) and its mirror (0x6219). ram.js examined and did NOT name
+// The gate flag (0x621A) and its mirror (0x6219). names.js examined and did NOT name
 // either — 0x621A is a shared byte (also written at 0x2236/0x223F); 0x6219 is
 // write-only with zero absolute readers. Kept hex so the code doesn't imply a meaning
 // the evidence doesn't support.

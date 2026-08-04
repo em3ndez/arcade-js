@@ -63,7 +63,7 @@ import { loc_2146 } from "../loc_2146.js";
 import { loc_2407 } from "../loc_2407.js"; // direct callee, reused to build faithful broken twins
 import { loc_22cb } from "../loc_22cb.js"; // direct callee, reused to build faithful broken twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, OBJ_Y, DIFFICULTY, LEVEL } from "../ram.js";
+import { STACK_SCRATCH, OBJ_Y, DIFFICULTY, LEVEL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -76,13 +76,13 @@ const TARGET = 0x2146;
 const ATTRACT_FRAMES = 12000;
 
 // The record byte this routine writes, and the two the velocity seed writes. None is named in
-// ram.js; they are addressed off the object-record pointer.
+// names.js; they are addressed off the object-record pointer.
 const OBJ_Y_SNAPSHOT = 0x19;
 const OBJ_STEP_DIR = 0x10;
 const OBJ_STEP_MAG = 0x11;
 
 // The velocity-source mode latch loc_22cb dispatches on. Multiplexed across readers, so it has
-// no ram.js name and stays hex here, exactly as it does in loc_22cb.js.
+// no names.js name and stays hex here, exactly as it does in loc_22cb.js.
 const VELOCITY_MODE_LATCH = 0x6348;
 
 // The four velocity-source arms loc_22cb can dispatch to, by ROM address.

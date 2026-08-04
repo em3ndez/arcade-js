@@ -75,7 +75,7 @@ import manifest from "../../manifest.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { MARIO_Y, OBJ_X, OBJ_Y, STACK_SCRATCH } from "../ram.js";
+import { MARIO_Y, OBJ_X, OBJ_Y, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

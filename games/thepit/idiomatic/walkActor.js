@@ -26,13 +26,13 @@
  *           walk-frame PLAYER_FACING, and the four record bytes stageObjectSpriteRecord writes. Unlike
  *           advanceObjectWalkFrame, this stepper stashes nothing in a register for its caller; the step
  *           value left behind is incidental scratch that nothing downstream reads.
- * NAMES:    PLAYER_Y, PLAYER_FACING from ram.js. The per-frame step is PLAYER_STEP_Y (0x806c);
+ * NAMES:    PLAYER_Y, PLAYER_FACING from names.js. The per-frame step is PLAYER_STEP_Y (0x806c);
  *           the sub-tile phase byte is OBJECT_MOTION_MODE (0x8075),
  *           though the sibling writes it as a 0/moving marker instead, so its cross-routine
  *           meaning is still open.
  */
 
-import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING, OBJECT_MOTION_MODE } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 const STEP = 0x806c; // per-frame amount added onto the position accumulator

@@ -36,13 +36,13 @@
  *           flags, so every register the oracle leaves (rotated A, B=0, HL) is dead;
  *           SP/pc are the stack idiom the boolean gate replaces and are not compared.
  * NAMES:    POPUP_SPRITE (0x6A30) — the score-popup sprite-record slot inside SPRITE_BUFFER
- *           (0x6900) — from ram.js; boardBitGate (ROM 0x0030) reads BOARD (0x6227)
+ *           (0x6900) — from names.js; boardBitGate (ROM 0x0030) reads BOARD (0x6227)
  *           internally. 0x6085 (SND_TRIGGER[5], sound latch) stays a local hex const —
- *           ram.js deliberately leaves individual sound latches unnamed (the SND_TRIGGER[8]
+ *           names.js deliberately leaves individual sound latches unnamed (the SND_TRIGGER[8]
  *           span is deferred to audio/README.md).
  */
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030
-import { POPUP_SPRITE } from "./ram.js"; // 0x6A30 — score-popup sprite record inside SPRITE_BUFFER
+import { POPUP_SPRITE } from "./names.js"; // 0x6A30 — score-popup sprite record inside SPRITE_BUFFER
 
 const SPRITE_ATTR = 0x07;     // record byte +2, hard-coded
 const BOARD_MASK = 0x05;      // rst-0x30 applicability mask: bit0 25m, bit2 75m

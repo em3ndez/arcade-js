@@ -52,7 +52,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_03f2 as oracle } from "../../translated/loc_03f2.js";
 import { loc_03f2 } from "../loc_03f2.js";
-import { SPIN_COUNT } from "../ram.js";
+import { SPIN_COUNT } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";

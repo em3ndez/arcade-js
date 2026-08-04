@@ -37,13 +37,13 @@
  *           everything the positioning front or the record builders write downstream. No
  *           register live-out (every exit tail-calls a memory-only routine).
  * NAMES:    PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE,
- *           CARVE_SEAM_LEFT (0x807e, the busy/defer flag this arm reads) from ram.js;
+ *           CARVE_SEAM_LEFT (0x807e, the busy/defer flag this arm reads) from names.js;
  *           the sprite code and map geometry are literals.
  *
  * PURPOSE [guess]: "Flipped"=sprite 0x80 bit, NOT a screen axis (X-vs-Y contested under rotation).
  */
 
-import { PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE, CARVE_SEAM_LEFT } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE, CARVE_SEAM_LEFT } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { locateObjectCellCheckGoal } from "./locateObjectCellCheckGoal.js";

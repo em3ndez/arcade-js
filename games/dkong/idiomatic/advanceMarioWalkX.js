@@ -28,12 +28,12 @@
  * LIVE-OUT: memory-only — MARIO_X, MARIO_Y (25m only), and everything continueWalkStep
  *           touches. The oracle's residual registers/flags are dead ABI (pc/SP model the
  *           single tail return, supplied by the harness).
- * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), BOARD (0x6227) — from ram.js.
+ * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), BOARD (0x6227) — from names.js.
  *           snapYToGirder (0x2333) and continueWalkStep (0x1ceb) called directly.
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_X, MARIO_Y, BOARD } from "./ram.js";
+import { MARIO_X, MARIO_Y, BOARD } from "./names.js";
 import { snapYToGirder } from "./snapYToGirder.js";
 import { continueWalkStep } from "./continueWalkStep.js";
 

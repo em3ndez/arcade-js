@@ -70,7 +70,7 @@ import {
   MARIO_AIR_LANDCHECK,
   MARIO_Y,
   MARIO_AIR_START_Y,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

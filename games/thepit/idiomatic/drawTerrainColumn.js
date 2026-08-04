@@ -39,7 +39,7 @@
  * LIVE-OUT: memory-only — the tile-map cells written plus the phase-clock memory the
  *           tail updates. The run pointers and count left in registers are dead: the
  *           phase clock overwrites the working registers and never reads them.
- * NAMES:    none from ram.js — the inputs are registers and the writes land in the
+ * NAMES:    none from names.js — the inputs are registers and the writes land in the
  *           tile-map (video RAM), neither a named work-RAM field; the phase-clock tail
  *           is the decompiled advanceChamberCreatureAnimation.
  */

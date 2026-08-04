@@ -32,7 +32,7 @@
  * the 0x17/0x08 selection's meaning) is inference from a single proposer, below the
  * proposer!=confirmer bar — and the whole idx family (loc_11fa/127f/12ac/12f2/138f/
  * 13a1) plus the sibling loc_13ca are kept neutral for the same reason. Promote only
- * once the family's semantics are confirmed in ram.js.
+ * once the family's semantics are confirmed in names.js.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1344.test.js.
  * GATE:     crafted-entry — 0x1344 is UNREACHED in attract (0 dispatches over a
@@ -50,7 +50,7 @@
  *           replaces with a JS return, so this routine leaves SP/pc untouched.
  * NAMES:    LIVES (0x6228), PLAY_INTRO (0x622C), P1_CONTEXT (0x6040),
  *           P2_CONTEXT (0x6048), GAME_SUBSTATE (0x600A), SUBSTATE_TIMER (0x6009),
- *           P2_SCORE (0x60B5) from ram.js. 0x76D3 is a raw tilemap address (the
+ *           P2_SCORE (0x60B5) from names.js. 0x76D3 is a raw tilemap address (the
  *           block-fill top-left), kept hex. Imports the four decompiled callees.
  */
 
@@ -66,7 +66,7 @@ import {
   GAME_SUBSTATE, //  0x600A
   SUBSTATE_TIMER, // 0x6009
   P2_SCORE, //       0x60B5
-} from "./ram.js";
+} from "./names.js";
 
 const CONTEXT_BYTES = 8; // the live context block is 0x6228..0x622F (LIVES first)
 const BLOCK_FILL_TOPLEFT = 0x76d3; // raw tilemap cell handed to fillTileBlock

@@ -49,7 +49,7 @@
  * NAMES:    OBJ_SPAWN_TIMER (0x639B), OBJ_SPAWN_REQ (0x639A), OBJ_ARRAY_65A0 (0x65A0),
  *           OBJ_ACTIVE (+0), OBJ_X (+3), OBJ_Y (+5), OBJ_SPRITE_CODE (+7),
  *           M50_OBJ2_STEP_DIR (0x62A3), M50_OBJ3_STEP_DIR (0x62A6), SPIN_COUNT (0x6019) —
- *           all from ram.js. The spawned record's +9 and +0x0A fields have no ram.js name;
+ *           all from names.js. The spawned record's +9 and +0x0A fields have no names.js name;
  *           they are stamped to fixed constants and reached as raw offsets (flagged below).
  */
 
@@ -64,13 +64,13 @@ import {
   M50_OBJ2_STEP_DIR,
   M50_OBJ3_STEP_DIR,
   SPIN_COUNT,
-  OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y,} from "./ram.js";
+  OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y,} from "./names.js";
 import { stirRandomSeed } from "./stirRandomSeed.js"; // ROM 0x0057
 
 const SLOT_STRIDE = 0x10; // OBJ_ARRAY_65A0 record stride
 const SLOT_COUNT = 6;     // records scanned for a free slot
-// Two spawned-record fields with no ram.js name yet, stamped to fixed constants; reached as
-// raw record offsets so their omission from ram.js stays visible (for the lead to name later).
+// Two spawned-record fields with no names.js name yet, stamped to fixed constants; reached as
+// raw record offsets so their omission from names.js stays visible (for the lead to name later).
 
 export function service50mObjectSpawnRequest(m) {
   const { regs, mem } = m;

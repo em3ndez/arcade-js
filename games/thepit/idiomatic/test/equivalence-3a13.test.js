@@ -53,7 +53,7 @@ import { stepEnemyMover } from "../stepEnemyMover.js";
 import { stageActorSpriteRecords } from "../stageActorSpriteRecords.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ENEMY3_X, ENEMY3_TWIN_X } from "../ram.js";
+import { ENEMY3_X, ENEMY3_TWIN_X } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

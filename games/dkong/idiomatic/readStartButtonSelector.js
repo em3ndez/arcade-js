@@ -33,12 +33,12 @@
  *           loc_08f8 overwrites F with `cp 0x04` before reading, and the fall-through
  *           path returns A to the NMI dispatch, which branches on no flag it set.
  *           B/E are internal (E feeds the draw; B feeds the final mask).
- * NAMES:    CREDITS (0x6001), FRAME (0x601a) from ram.js. IN2 (0x7D00) is the
+ * NAMES:    CREDITS (0x6001), FRAME (0x601a) from names.js. IN2 (0x7D00) is the
  *           coin/start input port — a board input latch, not work RAM, and reading
  *           it kicks the watchdog — so it stays a hex local, like FLIPSCREEN.
  */
 
-import { CREDITS, FRAME } from "./ram.js";
+import { CREDITS, FRAME } from "./names.js";
 import { drawStringVertical } from "./drawStringVertical.js"; // ROM 0x05E9
 import { drawCreditDisplay } from "./drawCreditDisplay.js"; //   ROM 0x0616
 

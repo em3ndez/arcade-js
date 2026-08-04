@@ -56,7 +56,7 @@
  *           (ROM 0x2591) — all direct-called. OBJ_ARRAY_65A0 (0x65A0) with its shared
  *           record fields OBJ_ACTIVE/OBJ_X/OBJ_Y/OBJ_SPRITE_CODE/OBJ_SPRITE_ATTR, and the
  *           sprite-record fields SPRITE_X/SPRITE_CODE/SPRITE_ATTR/SPRITE_Y — all from
- *           ram.js. The 50m sprite block base 0x69B8 (inside SPRITE_BUFFER) has no ram.js
+ *           names.js. The 50m sprite block base 0x69B8 (inside SPRITE_BUFFER) has no names.js
  *           name and stays a local hex const, matching advance50mObjectRow.
  */
 
@@ -74,7 +74,7 @@ import {
   SPRITE_CODE,
   SPRITE_ATTR,
   SPRITE_Y,
-  OBJ_65A0_SPRITES,} from "./ram.js";
+  OBJ_65A0_SPRITES,} from "./names.js";
 
 const BOARD_MASK_50M = 0x02; // per-board applicability mask: bit1 = 50m (this subsystem's board)
 const RECORD_COUNT = 6;      // records in OBJ_ARRAY_65A0

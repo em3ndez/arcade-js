@@ -18,7 +18,7 @@
 //      have caught, and did not catch, the seam's return-address leak; test 2 is what covers that.
 //
 //   2. "the FULL FLIP: all idiomatic routines live, guest stack balanced every frame"
-//      Wires resolveAllIdiomatic() — every routine in idiomatic/ram.js ROUTINES — which is the
+//      Wires resolveAllIdiomatic() — every routine in idiomatic/names.js ROUTINES — which is the
 //      configuration web/worker.js ships and the only one that exercises the translated->idiomatic
 //      SEAM. Asserts, per vblank yield: SP equals the previous yield's, and SP never falls below
 //      the STACK_SCRATCH floor the state-diff exclusion assumes; plus that the vblank NMI subtree
@@ -119,7 +119,7 @@ const FRAMES = 600; // enough to boot and run the attract sequence
 //     load-bearing half; the dispatch counts differ between the two runs and are quoted with their
 //     budget so they can be re-derived.) It was a CLASS, not one routine: five ROUTINES entries
 //     exported non-machine signatures, and 0x3009 hung the process outright when dispatched that way.
-//     FIXED by the `entry` field in idiomatic/ram.js: each of the five now names a machine-shaped ABI
+//     FIXED by the `entry` field in idiomatic/names.js: each of the five now names a machine-shaped ABI
 //     wrapper beside its pure function, and the resolvers take the export from `entry ?? name`
 //     (machine.js resolveAllIdiomatic, tools/swap_check.mjs). Gate:
 //     idiomatic/test/seam-entry-abi.test.js, which dispatches every one of them through
@@ -394,7 +394,7 @@ test("the seam's stack-effect tables still match the frozen oracle", async () =>
   // ONLY ROUTINES WITH AN IDIOMATIC TWIN CAN EVER BE WRAPPED, so only they are in scope. An
   // address with no entry in ROUTINES (0x30FA was the example here until it was wired) is never an
   // override and the seam never sees it.
-  const { ROUTINES } = await import("../ram.js");
+  const { ROUTINES } = await import("../names.js");
   const overridable = (a) => Object.hasOwn(ROUTINES, String(a));
 
   // AND only routines whose ordinary return consumes exactly ONE bracket, which is the shape the

@@ -23,7 +23,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2766 as oracle } from "../../translated/loc_2766.js";
 import { loc_2766 } from "../loc_2766.js";
-import { EDGE_REPOSITION_FLAG, MARIO_START_FALL } from "../ram.js";
+import { EDGE_REPOSITION_FLAG, MARIO_START_FALL } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

@@ -27,7 +27,7 @@
  *
  * GROUNDED (DK understanding pass 4, independent confirmer): reads HAMMER_TIMER_HI (named 0x6395);
  * its sole caller loc_2f43 is the active-hammer chain of entry_2ed4 (the MARIO_HAMMER_ACTIVE
- * dispatch), and the blink threshold (high byte nonzero) matches ram.js's hammer expiry (~512
+ * dispatch), and the blink threshold (high byte nonzero) matches names.js's hammer expiry (~512
  * frames). The [guess] expiry-warning purpose is carried from the caller chain, not asserted here.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fb7.test.js.
@@ -43,11 +43,11 @@
  * LIVE-OUT: memory-only. This arm tail-calls the chosen record write and its own
  *           caller discards the result; the oracle's residual registers/flags and the
  *           tails' terminal return reach no consumer. pc/SP are not compared.
- * NAMES:    HAMMER_TIMER_HI (0x6395) from ram.js. The chosen tail owns every
+ * NAMES:    HAMMER_TIMER_HI (0x6395) from names.js. The chosen tail owns every
  *           record/object cell; commitSpriteRecordAtMarioOffset / blinkHammerSpriteOnFramePhase are direct-called.
  */
 
-import { HAMMER_TIMER_HI } from "./ram.js";
+import { HAMMER_TIMER_HI } from "./names.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js"; // ROM 0x2F7C — the shared object-sprite record write
 import { blinkHammerSpriteOnFramePhase } from "./blinkHammerSpriteOnFramePhase.js"; // ROM 0x2FBE — the blink-phase build arm (tails into commitSpriteRecordAtMarioOffset)
 

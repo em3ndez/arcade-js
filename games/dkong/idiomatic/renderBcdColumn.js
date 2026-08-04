@@ -51,7 +51,7 @@
  *           B (0)/C (4), IX (start-0xC0) and A (last masked nibble) are all dead to
  *           it; they are reproduced identically to the oracle and compared for free.
  *           FLAGS are dead too (the caller's `ld a,0x10` sets none that survive).
- * NAMES:    none from ram.js — the source pointer, destination cell and stride are
+ * NAMES:    none from names.js — the source pointer, destination cell and stride are
  *           all caller-supplied; this routine references no fixed game RAM address.
  *           The literals are ROM constants: 0xffe0 = the -0x20 row stride, 0x0304 =
  *           B (3 bytes) : C (4, dead).

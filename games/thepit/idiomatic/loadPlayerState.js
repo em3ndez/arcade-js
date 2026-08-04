@@ -26,7 +26,7 @@
  *           (0x8002, the selected-player index).
  */
 
-import { LEVEL, ACTIVE_PLAYER } from "./ram.js";
+import { LEVEL, ACTIVE_PLAYER } from "./names.js";
 
 export function loadPlayerState(m) {
   const { mem8 } = m;

@@ -46,7 +46,7 @@ import { requestSound10 } from "../requestSound10.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

@@ -44,7 +44,7 @@ const FOREVER_LOOP_BOUNDARIES = new Map([
 ]);
 
 test("no idiomatic routine m.call()s an already-decompiled callee (dissolve invariant)", () => {
-  const files = readdirSync(IDIR).filter((f) => f.endsWith(".js") && f !== "ram.js");
+  const files = readdirSync(IDIR).filter((f) => f.endsWith(".js") && f !== "names.js");
   // A routine is "decompiled" IFF it has an equivalence-<addr>.test.js -- the one
   // unambiguous signal. Scanning source for "ROM 0x...." false-positives on a prose
   // mention of an oracle-boundary callee (e.g. a comment "kept m.call(0x3dea)"), which

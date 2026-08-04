@@ -37,7 +37,7 @@
  * write with no register plumbing. Not a leaf: it tail-calls stepKongWalk (0x16d5, already
  * idiomatic), which drives loc_2602 + addStrided. Nothing in THIS routine's own state settles
  * what is on screen — the 50m-object cells 0x62A0/0x62A1 are named M50_OBJ1_REVERSE_TIMER /
- * M50_OBJ1_STEP_DIR in ram.js at [code] confidence, but WHAT they animate is not settled here,
+ * M50_OBJ1_STEP_DIR in names.js at [code] confidence, but WHAT they animate is not settled here,
  * and this routine adds only a one-byte reversal arming write to the shared tail — so it keeps the
  * neutral loc_16d0 name and describes the mechanic in prose. Its tail stepKongWalk (ROM 0x16D5)
  * WAS promoted in this pass, inheriting its scene from the interlude opener that stamps the
@@ -61,12 +61,12 @@
  *           NMI dispatcher, which reads no register or flag it leaves — A/B/C/DE/HL are dead ABI.
  *           The RAM diff (+ SP/pc) backstops that.
  * NAMES:    M50_OBJ1_REVERSE_TIMER (0x62A0) — object #1's even-frame reversal countdown — and
- *           M50_OBJ1_STEP_DIR (0x62A1) from ram.js (matching loc_2602). SPRITE_OBJ_BLOCK and
+ *           M50_OBJ1_STEP_DIR (0x62A1) from names.js (matching loc_2602). SPRITE_OBJ_BLOCK and
  *           the rest live inside stepKongWalk.
  */
 
 import { stepKongWalk } from "./stepKongWalk.js"; // ROM 0x16D5 — the shared group-slide motion tick
-import { M50_OBJ1_REVERSE_TIMER } from "./ram.js";
+import { M50_OBJ1_REVERSE_TIMER } from "./names.js";
 
 export function loc_16d0(m) {
   const { mem } = m;

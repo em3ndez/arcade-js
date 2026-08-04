@@ -42,7 +42,7 @@
  *           reloads A (`ld a,d`) and recomputes flags (`sub 0x0a`) before reading
  *           either, and handler_0779's own return consumes neither.
  * NAMES:    none imported — HL and DE are caller-supplied registers, not RAM names;
- *           0x758E is kept hex (the fixed VRAM tens-carry tile cell, not in ram.js).
+ *           0x758E is kept hex (the fixed VRAM tens-carry tile cell, not in names.js).
  *           DIP_COINS_FOR_1P/2P (0x6022/0x6023) are named in prose only, as the
  *           caller's source of DE — this routine never touches them directly.
  */

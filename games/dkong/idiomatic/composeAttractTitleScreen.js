@@ -45,9 +45,9 @@
  *           them. SP/pc are the dropped stack model — the oracle's per-call push/ret
  *           residue lands in STACK_SCRATCH, excluded by the contract.
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), TWO_PLAYER_GAME (0x600F),
- *           DIP_COINS_FOR_1P (0x6022; +1 = DIP_COINS_FOR_2P) from ram.js. The palette-bank
+ *           DIP_COINS_FOR_1P (0x6022; +1 = DIP_COINS_FOR_2P) from names.js. The palette-bank
  *           latches (0x7D86/0x7D87) and the VRAM coinage cell (0x756C) stay hex — I/O and
- *           video RAM, not named in ram.js. The draw-string opcode/args are literal task
+ *           video RAM, not named in names.js. The draw-string opcode/args are literal task
  *           payloads, not addresses.
  */
 
@@ -56,7 +56,7 @@ import {
   GAME_SUBSTATE,
   TWO_PLAYER_GAME,
   DIP_COINS_FOR_1P,
-} from "./ram.js";
+} from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";

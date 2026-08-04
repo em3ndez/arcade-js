@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1a15 as oracle } from "../../translated/loc_1a15.js";
 import { loc_1a07 as oracleDispatcher } from "../../translated/loc_1a07.js";
 import { startBonusExpiredDelay } from "../startBonusExpiredDelay.js";
-import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY, STACK_SCRATCH } from "../ram.js";
+import { BONUS_EXPIRED_STEP, BONUS_EXPIRED_DELAY, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

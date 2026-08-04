@@ -8,7 +8,7 @@
  * keys everything off SUBSTATE_TIMER (0x6009), the phase countdown, read at entry:
  *
  *   - at 0x90 remaining: fire the ROAR cue — SND_PRIORITY (0x608A) = 0x0F (the roar
- *     tune, per ram.js) for SND_PRIORITY_FRAMES (0x608B) = 3 frames — and bump the
+ *     tune, per names.js) for SND_PRIORITY_FRAMES (0x608B) = 3 frames — and bump the
  *     cutscene sprite byte at 0x6919 up by one.
  *   - at 0x18 remaining: bump that same sprite byte back down by one.
  *   - anywhere else: leave the cues alone.
@@ -31,8 +31,8 @@
  *           churn is the rst/ret caller-skip mechanism (now a boolean from tickSubstateTimer)
  *           and its residual A/F are dead ABI, so neither is in the contract.
  * NAMES:    SUBSTATE_TIMER, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP, GAME_SUBSTATE
- *           (ram.js). 0x6919 kept hex — a cutscene sprite-object byte inside SPRITE_OBJ_BLOCK
- *           (0x6908..0x692F) with no confirmed ram.js name.
+ *           (names.js). 0x6919 kept hex — a cutscene sprite-object byte inside SPRITE_OBJ_BLOCK
+ *           (0x6908..0x692F) with no confirmed names.js name.
  */
 
 import {
@@ -41,7 +41,7 @@ import {
   SND_PRIORITY_FRAMES,
   INTRO_STEP,
   GAME_SUBSTATE,
-} from "./ram.js";
+} from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 // A cutscene sprite-object byte the roar cue nudges up (at 0x90) and back down (at 0x18).

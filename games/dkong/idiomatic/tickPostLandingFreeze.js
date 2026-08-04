@@ -38,7 +38,7 @@
  *           ABI (the whole-machine gate backstops that).
  * NAMES:    MARIO_FREEZE_TIMER (0x621E), MARIO_HAMMER_PENDING (0x6218),
  *           MARIO_HAMMER_ACTIVE (0x6217), MARIO_SPRITE_CODE (0x6207),
- *           MARIO_WALK_ANIM (0x6202) — all from ram.js.
+ *           MARIO_WALK_ANIM (0x6202) — all from names.js.
  */
 
 import {
@@ -47,7 +47,7 @@ import {
   MARIO_HAMMER_ACTIVE,
   MARIO_SPRITE_CODE,
   MARIO_WALK_ANIM,
-} from "./ram.js";
+} from "./names.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
 export function tickPostLandingFreeze(m) {

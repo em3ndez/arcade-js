@@ -34,10 +34,10 @@
  * LIVE-OUT: memory-only — the four sprite-record bytes. Both call sites overwrite
  *           HL immediately after (with 0x6034 / 0x6032) and read none of the
  *           clobbered A/C/flags; the oracle's push/pop of DE/HL is dead caller-ABI.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js; 0x360F kept hex (a ROM position
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js; 0x360F kept hex (a ROM position
  *           table, not work RAM).
  */
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 
 const POSITION_GRID = 0x360f;         // ROM: 30 × (X,Y) cells, 10 cols × 3 rows
 const RECORD = SPRITE_BUFFER + 0x74;  // 0x6974 — hardware sprite record #29 (bonus item)

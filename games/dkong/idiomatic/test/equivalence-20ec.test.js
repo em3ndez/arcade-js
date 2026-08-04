@@ -94,7 +94,7 @@ import { stepBallisticMotion } from "../stepBallisticMotion.js";
 import { Machine } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

@@ -54,7 +54,7 @@
  * NAMES:    FRAME, SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK,
  *           SPRITE_BUFFER, INTRO_WALK_PTR_A (0x63C2), CUTSCENE_BAND_COUNT (0x638D),
  *           INTRO_SCROLL_INDEX (0x638E), and SND_TRIGGER (0x6080; the beat's sound is
- *           SND_TRIGGER+2 = 0x6082) from ram.js. Kept hex: video cells 0x74AA/0x748A and
+ *           SND_TRIGGER+2 = 0x6082) from names.js. Kept hex: video cells 0x74AA/0x748A and
  *           the ROM tables 0x385C / 0x392C.
  */
 
@@ -69,7 +69,7 @@ import {
   INTRO_WALK_PTR_A,
   CUTSCENE_BAND_COUNT,
   INTRO_SCROLL_INDEX,
-} from "./ram.js";
+} from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js"; // ROM 0x304a

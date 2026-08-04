@@ -29,14 +29,14 @@
  *           state-block bytes (everything the shared downstream tail writes is identical
  *           on both sides). The tail return just propagates the downstream result; no
  *           register or flag is a live-out.
- * NAMES:    HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT from ram.js. The stamped
+ * NAMES:    HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT from names.js. The stamped
  *           tile code and the two seed values stay literal; the record builder at 0x2bd3
  *           has no idiomatic form yet, so the tail hands off to the frozen oracle.
  */
 
 import { requestSound17 } from "./requestSound17.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
-import { HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT } from "./ram.js";
+import { HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT } from "./names.js";
 
 export function landDigTarget(m, targetCell = m.regs.ix) {
   const { mem8 } = m;

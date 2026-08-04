@@ -88,7 +88,7 @@ import { u8 } from "../../../../core/int.js";
 import {
   STACK_SCRATCH, RENDER_OBJ_PTR, RENDER_DST_PTR, ACTOR_SPRITES, OBJ_ACTIVE, OBJ_ARRAY_67,
   BONUS, BONUS_EXPIRED_STEP, TASK_TAIL, TASK_RING,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -102,7 +102,7 @@ const FRAMES = 14000; // the attract window the reachability numbers in the rout
 
 // Constants the routine is built on, restated here rather than imported from it, so the test
 // asserts against an independent statement of the contract.
-const EVENT_GATE = 0x6393; // the cluster's one-shot "a barrel went out" latch (unnamed in ram.js)
+const EVENT_GATE = 0x6393; // the cluster's one-shot "a barrel went out" latch (unnamed in names.js)
 const SLOT_CLAIMED = 2; // OBJ_ACTIVE bit 1 = occupied
 const BARREL_SLOTS = 10;
 const OBJ_RECORD_STRIDE = 0x20; // stride of an OBJ_ARRAY_67 record

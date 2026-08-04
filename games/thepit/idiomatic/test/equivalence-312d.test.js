@@ -51,7 +51,7 @@ import { loc_312d as oracle } from "../../translated/loc_312d.js";
 import { updateEnemy1 as idiomatic } from "../updateEnemy1.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAY_PHASE_COUNTER, GAME_STATE, ENEMY1_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
+import { PLAY_PHASE_COUNTER, GAME_STATE, ENEMY1_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

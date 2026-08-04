@@ -21,12 +21,12 @@
  *           (reads a neighbour cell, not LEVEL), and a fixed-address twin.
  * LIVE-OUT: memory-only (record +0x10 and +0x11, written by loc_22f9). The oracle's residual
  *           register state and its tail return are dead — the caller discards the result.
- * NAMES:    LEVEL (0x6229) from ram.js. The three magnitude bytes are opaque ROM data (kept
+ * NAMES:    LEVEL (0x6229) from names.js. The three magnitude bytes are opaque ROM data (kept
  *           hex, named locally). record +0x10 / +0x11 are unnamed object-record field offsets
- *           written inside loc_22f9 (no ram.js name — reported for the lead to name later).
+ *           written inside loc_22f9 (no names.js name — reported for the lead to name later).
  */
 
-import { LEVEL } from "./ram.js";
+import { LEVEL } from "./names.js";
 import { loc_22f9 } from "./loc_22f9.js";
 
 // The object-velocity magnitude this arm feeds to loc_22f9, chosen by level. Kept hex — these

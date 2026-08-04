@@ -57,8 +57,8 @@
  *           its caller consumes no register and the object-record pass owns everything
  *           after the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    GOAL_TILE_LATCH, PIT_CROSS_ACTIVE, PLAYER_X, PIT_FLOOR_REVEAL_GATE/PERIOD/CURSOR,
- *           CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from ram.js.
- *           Also from ram.js: PATTERN_SOURCE_PTR (0x80e1, the pattern-table scratch pointer),
+ *           CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_X/FRAME/ATTR/Y, SPRITE_COORD_BIAS from names.js.
+ *           Also from names.js: PATTERN_SOURCE_PTR (0x80e1, the pattern-table scratch pointer),
  *           CHAMBER_CREATURE_X_VELOCITY (0x80df, the bounce velocity), CHAMBER_CREATURE_FALL_STEP
  *           (0x80e0, the fall step), and CHAMBER_CREATURE_SPRITE (0x822c, the sprite-staging slot).
  *           Delegates to the decompiled requestSound11,
@@ -86,7 +86,7 @@ import {
   CHAMBER_CREATURE_FALL_STEP,
   PATTERN_SOURCE_PTR,
   CHAMBER_CREATURE_SPRITE,
-} from "./ram.js";
+} from "./names.js";
 
 // The terrain pattern table: each column is 6 consecutive tile codes.
 const PATTERN_TABLE = 0x3048;

@@ -51,7 +51,7 @@ import { loc_19d0 as oracle19d0 } from "../../translated/loc_19d0.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "../ram.js";
+import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

@@ -22,7 +22,7 @@
  * (docs/reviewer-rules.md R4/R5). This routine's own body is two calls, so ALL of the naming
  * evidence is necessarily outside it. Which board: dispatchBoardClearedInterlude reaches this arm
  * only when BOARD has neither bit0 nor bit1 set, which among the four boards in play leaves only
- * BOARD 4 — "4=100m rivets" in ram.js's `[seen]` BOARD note — and the pass-14 grounding saw the
+ * BOARD 4 — "4=100m rivets" in names.js's `[seen]` BOARD note — and the pass-14 grounding saw the
  * 0x1648 table's six targets used on board 4 and nowhere else, plus the only six frames on which
  * the playfield tilemap changes inside sub-state 0x16, all on board 4. Which frame: its first
  * callee dispatchEffectState is an already-promoted English name whose selector EFFECT_STATE

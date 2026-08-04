@@ -26,7 +26,7 @@
  * which is why each delegation IS an exit.
  *
  * This is the phase clock for the chamber creature's sprite-flip animation (§2.8): the phase counter is
- * CHAMBER_CREATURE_ANIM_PHASE (0x80e3) and the flip-tile cell CHAMBER_CREATURE_FRAME (0x80dc), both named in ram.js.
+ * CHAMBER_CREATURE_ANIM_PHASE (0x80e3) and the flip-tile cell CHAMBER_CREATURE_FRAME (0x80dc), both named in names.js.
  *
  * Memory-equivalent to the frozen oracle — equivalence-2fc0.test.js.
  * GATE:     crafted-entry — this subsystem never enters through this address in
@@ -43,12 +43,12 @@
  *           continuation owns everything after the hand-off, identically both sides.
  *           The registers/flags it leaves behind are dead.
  * NAMES:    CHAMBER_CREATURE_ANIM_PHASE (0x80e3, the animation phase counter) and CHAMBER_CREATURE_FRAME
- *           (0x80dc, the two-state flip tile) from ram.js. The commit tail is the decompiled
+ *           (0x80dc, the two-state flip tile) from names.js. The commit tail is the decompiled
  *           setChamberCreatureFrame; the position-step body (0x2fe3) and publish tail (0x3029) are oracle.
  */
 
 import { setChamberCreatureFrame } from "./setChamberCreatureFrame.js";
-import { CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_FRAME } from "./ram.js";
+import { CHAMBER_CREATURE_ANIM_PHASE, CHAMBER_CREATURE_FRAME } from "./names.js";
 
 
 // The two tile codes the creature's frame toggles between.

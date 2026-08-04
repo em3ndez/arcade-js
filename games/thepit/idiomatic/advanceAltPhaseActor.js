@@ -43,14 +43,14 @@
  *           gate.
  * NAMES:    ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y, ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
  *           PLAYER_Y, and PLAYER_ACTIVE (arrival flag), TRANSITION_TIMER (floor hold-timer),
- *           POST_TRANSITION_MODE (arrival latch) — all from ram.js.
+ *           POST_TRANSITION_MODE (arrival latch) — all from names.js.
  */
 
 import {
   ENEMY3_TIMER, ENEMY3_TILE, ENEMY3_X, ENEMY3_Y,
   ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, PLAYER_Y,
   PLAYER_ACTIVE, TRANSITION_TIMER, POST_TRANSITION_MODE,
-} from "./ram.js";
+} from "./names.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 

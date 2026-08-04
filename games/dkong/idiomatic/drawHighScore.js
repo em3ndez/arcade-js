@@ -43,10 +43,10 @@
  * LIVE-OUT: memory-only — the six digit cells painted into video RAM. The caller
  *           reads none of the output registers; they are reproduced identically to
  *           the oracle and compared for free.
- * NAMES:    HIGH_SCORE (0x60B8) from ram.js. The destination column 0x7641 is video
+ * NAMES:    HIGH_SCORE (0x60B8) from names.js. The destination column 0x7641 is video
  *           RAM (0x7400-0x77FF), owned by the renderer and kept hex there.
  */
-import { HIGH_SCORE } from "./ram.js";
+import { HIGH_SCORE } from "./names.js";
 import { renderBcdColumnFixedCell } from "./renderBcdColumnFixedCell.js"; // ROM 0x0578
 
 export function drawHighScore(m) {

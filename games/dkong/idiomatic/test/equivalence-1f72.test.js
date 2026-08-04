@@ -75,7 +75,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_1f72 as oracle } from "../../translated/loc_1f72.js";
 import { loc_1f72 } from "../loc_1f72.js";
-import { BOARD, OBJ_ARRAY_67, ACTOR_SPRITES } from "../ram.js";
+import { BOARD, OBJ_ARRAY_67, ACTOR_SPRITES } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);

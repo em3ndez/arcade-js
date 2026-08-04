@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0611 as oracle } from "../../translated/loc_0611.js";
 import { drawCreditLineInAttract } from "../drawCreditLineInAttract.js";
 import { drawCreditDisplay } from "../drawCreditDisplay.js"; // ROM 0x0616 — used only by the teeth twins
-import { ATTRACT, CREDITS, STACK_SCRATCH } from "../ram.js";
+import { ATTRACT, CREDITS, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

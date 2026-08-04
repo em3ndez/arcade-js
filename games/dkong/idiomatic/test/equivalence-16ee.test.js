@@ -47,7 +47,7 @@ import { loc_16ee as oracle } from "../../translated/loc_16ee.js";
 import { reloadObjectBlockAndAdvanceStep as idiomatic } from "../reloadObjectBlockAndAdvanceStep.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, SPRITE_OBJ_BLOCK } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

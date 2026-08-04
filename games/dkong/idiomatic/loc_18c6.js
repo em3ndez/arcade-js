@@ -45,12 +45,12 @@
  *           oracle's push/call/ret become direct JS calls), so pc/SP stay at entry.
  * NAMES:    BOARD_SEQ_PTR (0x622A), BOARD (0x6227), LEVEL (0x6229), HOW_HIGH_INDEX
  *           (0x622E), SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), MARIO_X
- *           (0x6203), SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B) from ram.js.
+ *           (0x6203), SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B) from names.js.
  *           Hex-kept: 0x62AF (pace counter), 0x6A25 / 0x6919 (blink flags), 0x694C/
- *           0x694D/0x694F (transition-screen sprite record — 0x694C is ram.js's
+ *           0x694D/0x694F (transition-screen sprite record — 0x694C is names.js's
  *           MARIO_SPRITE_RECORD, but here it stages a cutscene sprite, so asserting
  *           "Mario" would mislead), 0x6A20-0x6A23 (object record), 0x3A73 (ROM board
- *           table, L5+ group). NOT hex-kept: 0x6388 is ram.js's BOARD_ADVANCE_STEP, [seen]
+ *           table, L5+ group). NOT hex-kept: 0x6388 is names.js's BOARD_ADVANCE_STEP, [seen]
  *           and grounded, and is imported and used by name below.
  */
 
@@ -65,7 +65,7 @@ import {
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
   BOARD_ADVANCE_STEP,
-} from "./ram.js";
+} from "./names.js";
 import { nextAnimationStep } from "./nextAnimationStep.js"; // ROM 0x3009 — pure bit-field selector
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F — post a task on the ring
 

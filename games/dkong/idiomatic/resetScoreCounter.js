@@ -50,12 +50,12 @@
  *           renderer paints into video RAM. The task returns to the top of the main loop,
  *           which reloads its registers, so the oracle's residual registers/flags (and its
  *           balanced payload push/pop) are dead.
- * NAMES:    P1_SCORE (0x60B2), P2_SCORE (0x60B5), HIGH_SCORE (0x60B8) from ram.js — the
+ * NAMES:    P1_SCORE (0x60B2), P2_SCORE (0x60B5), HIGH_SCORE (0x60B8) from names.js — the
  *           three 3-byte counters, selected by payload 0 / other / 2. drawScoreTask
  *           (ROM 0x05C6) is direct-called; the destination columns are owned by it.
  */
 
-import { P1_SCORE, P2_SCORE, HIGH_SCORE } from "./ram.js";
+import { P1_SCORE, P2_SCORE, HIGH_SCORE } from "./names.js";
 import { drawScoreTask } from "./drawScoreTask.js"; // ROM 0x05C6 — select-a-score-and-render task
 import { NotImplemented } from "../../../boards/dkong/io.js";
 

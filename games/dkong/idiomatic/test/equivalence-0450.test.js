@@ -52,7 +52,7 @@ import { shiftEvenBoardSpriteColumn as loc_0478 } from "../shiftEvenBoardSpriteC
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, SPRITE_OBJ_BLOCK, SPRITE_Y } from "../ram.js";
+import { STACK_SCRATCH, BOARD, SPRITE_OBJ_BLOCK, SPRITE_Y } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
 const TARGET = 0x0450;
 const RET_ADDR = 0x0429;            // a plausible caller-return for the one net pop (any value works)
 const Y_SHIFT = 0xfc;              // the 25m arm's signed −4 nudge of the sprite-object Y column
-const SPRITE_X_FIELD = 0x00;       // the sprite-object X-field offset (+0); SPRITE_Y (+3) from ram.js
+const SPRITE_X_FIELD = 0x00;       // the sprite-object X-field offset (+0); SPRITE_Y (+3) from names.js
 const SHIFT_DELTA_SOURCE = 0x63b7; // loc_0478's 50m X-shift delta source (0 in the attract base)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

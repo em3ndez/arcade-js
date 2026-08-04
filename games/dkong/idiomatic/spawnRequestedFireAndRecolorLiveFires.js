@@ -72,7 +72,7 @@
  *           DIFFICULTY (0x6380), MARIO_HAMMER_ACTIVE (0x6217), EVENT_REQ_313C (0x63A0),
  *           OBJ_LIVE_COUNT (0x63A1) — the per-scan live-record tally, whose sole writer in the
  *           entire ROM is this routine — and the record field OBJ_INSERT_REQUESTED (+0x18), all
- *           imported from ram.js.
+ *           imported from names.js.
  */
 
 import {
@@ -85,7 +85,7 @@ import {
   DIFFICULTY,
   MARIO_HAMMER_ACTIVE,
   EVENT_REQ_313C,
-} from "./ram.js";
+} from "./names.js";
 
 export function spawnRequestedFireAndRecolorLiveFires(m) {
   const { mem } = m;

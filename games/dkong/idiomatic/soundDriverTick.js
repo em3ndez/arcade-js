@@ -40,7 +40,7 @@
  *           and restores B/DE/etc. from the stack before reading any of them, and
  *           the Z80 `ret` becomes the JS return.
  * NAMES:    ATTRACT, SND_TRIGGER[8], SND_PRIORITY_FRAMES, SND_PRIORITY, SND_BGM,
- *           SND_IRQ_TRIGGER (ram.js). The three latch bases stay hex — they are
+ *           SND_IRQ_TRIGGER (names.js). The three latch bases stay hex — they are
  *           board output devices routed by memory.js/io.js, not work RAM.
  */
 
@@ -51,7 +51,7 @@ import {
   SND_BGM,
   SND_PRIORITY,
   SND_PRIORITY_FRAMES,
-} from "./ram.js";
+} from "./names.js";
 
 // ---- Hardware output latches (board devices, NOT work RAM — see io.js) --------
 const SOUND_TRIGGER_LATCH = 0x7d00; // [8] ls259.6h addressable latch, data on bit 0

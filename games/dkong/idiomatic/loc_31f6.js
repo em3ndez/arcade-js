@@ -28,10 +28,10 @@
  * LIVE-OUT: the returned byte — the value the oracle leaves in the accumulator, which
  *           its caller consumes immediately. No RAM is written; the oracle's residual
  *           flags and its `ret` pop are dead.
- * NAMES:    RANDOM (0x6018), FRAME (0x601A) — both from ram.js.
+ * NAMES:    RANDOM (0x6018), FRAME (0x601A) — both from names.js.
  */
 
-import { RANDOM, FRAME } from "./ram.js";
+import { RANDOM, FRAME } from "./names.js";
 
 /**
  * @param {object} m  the machine (reads m.mem only).

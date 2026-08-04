@@ -56,7 +56,7 @@ import { spawnBoardObject } from "../spawnBoardObject.js";
 import { decrementByteAt } from "../decrementByteAt.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { SPAWN_TIMER, OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_X, OBJ_Y } from "../ram.js";
+import { SPAWN_TIMER, OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_X, OBJ_Y } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

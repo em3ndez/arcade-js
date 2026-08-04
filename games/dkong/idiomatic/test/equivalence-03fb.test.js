@@ -61,7 +61,7 @@ import {
   M50_OBJ_ROW_SHIFT,
   COLOUR_CYCLE_ACTIVE,
   FRAME,
-} from "../ram.js";
+} from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -74,7 +74,7 @@ const test = ROM_PRESENT
 const TARGET = 0x03fb;
 const RET_ADDR = 0x19b3;          // loc_197a's return site after `call 0x03fb` (any value works)
 const SPRITE_OBJ_REC2_X = 0x6910; // third sprite-object record's X byte (read back after the shift)
-const SWEEP_COUNTER = 0x6390;     // colour-cycle sweep counter (unnamed in ram.js — kept hex)
+const SWEEP_COUNTER = 0x6390;     // colour-cycle sweep counter (unnamed in names.js — kept hex)
 const OBJ_RELOAD_GATE = 0x6393;   // advanceColorCycleSweep's reload gate
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

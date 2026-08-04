@@ -7,7 +7,7 @@
  * table on the state byte EFFECT_STATE (0x6340) (values 0..3); THIS is table entry 0 —
  * the arm taken while EFFECT_STATE == 0. Entry 1 (armScorePopupAndSelectAward) advances that state, entry 2
  * (loc_1e4a) runs a countdown, entry 3 is the reset vector; entry 0 does nothing, so the
- * router is a no-op that frame. 0x6340 is named EFFECT_STATE in ram.js (the effect
+ * router is a no-op that frame. 0x6340 is named EFFECT_STATE in names.js (the effect
  * subsystem's 4-way router).
  *
  * PROMOTED in understanding pass 12, and the name claims only what the table position
@@ -36,7 +36,7 @@
  *           (it proceeds straight to the next call in the cascade), so there is no
  *           live register or flag out. The oracle's residual A/flags are dead ABI.
  * NAMES:    none imported — this routine references no RAM address (a pure ret). Its
- *           dispatcher's state byte is EFFECT_STATE (0x6340) in ram.js, but this no-op
+ *           dispatcher's state byte is EFFECT_STATE (0x6340) in names.js, but this no-op
  *           arm neither reads nor writes it.
  */
 export function effectStateIdle(_m) {

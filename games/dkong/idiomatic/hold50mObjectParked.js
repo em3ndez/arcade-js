@@ -71,8 +71,8 @@
  *           the test lines pc/SP up with one modeled return, mirroring the dissolved call.
  * NAMES:    marioReachedTargetColumn (ROM 0x2243) — the hit test, direct-called; it is still
  *           imported here under its pre-promotion `loc_2243` alias. The record base and its +0/+1/+2 fields arrive through the
- *           caller's pushed pointer, so like the hit test's target they carry no fixed ram.js
- *           name. 0x621a is a shared object flag examined and left hex in ram.js — its two
+ *           caller's pushed pointer, so like the hit test's target they carry no fixed names.js
+ *           name. 0x621a is a shared object flag examined and left hex in names.js — its two
  *           writers are unrelated subsystems (this arm, and the climb collision at ROM 0x1AFE),
  *           neither reader has been A/B'd, and the second writer has never been observed at
  *           all, so no cell name can be true for both. It stays a hex literal here.
@@ -80,7 +80,7 @@
 
 import { marioReachedTargetColumn as loc_2243 } from "./marioReachedTargetColumn.js"; // ROM 0x2243 — the column hit test
 
-const OBJECT_FLAG = 0x621a; // shared object flag; kept hex in ram.js (unsettled, shared byte)
+const OBJECT_FLAG = 0x621a; // shared object flag; kept hex in names.js (unsettled, shared byte)
 
 export function hold50mObjectParked(m) {
   const { regs, mem } = m;

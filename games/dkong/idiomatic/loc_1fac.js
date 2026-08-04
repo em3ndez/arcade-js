@@ -72,16 +72,16 @@
  *           parameter: both tails are still frozen and read it off the machine, so a caller
  *           passing anything else would be obeyed here and ignored one call later. It becomes an
  *           honest parameter once ROM 0x1FCE and 0x21BA are decompiled.
- * NAMES:    OBJ_Y (+5) and OBJ_SPRITE_CODE (+7) from ram.js. The other three record fields this
- *           routine touches (+0x17, +0x15, +2) have no ram.js name and stay file-local consts
+ * NAMES:    OBJ_Y (+5) and OBJ_SPRITE_CODE (+7) from names.js. The other three record fields this
+ *           routine touches (+0x17, +0x15, +2) have no names.js name and stay file-local consts
  *           below. The two calls out are ROM 0x1FCE and ROM 0x21BA, both still frozen: they are
  *           in the same mutually-recursive cluster and are being decompiled concurrently.
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_Y, OBJ_SPRITE_CODE } from "./ram.js";
+import { OBJ_Y, OBJ_SPRITE_CODE } from "./names.js";
 
-// Record-field offsets with no ram.js name, kept in hex to read alongside the ram.js OBJ_*
+// Record-field offsets with no names.js name, kept in hex to read alongside the names.js OBJ_*
 // offsets they sit next to. Listed for the lead: none of the three is registered, and each is
 // scoped to what THIS routine can show, not proposed as a shared object-record field.
 
@@ -92,7 +92,7 @@ const TRAVEL_TARGET_Y = 0x17;
  *  it only; the sibling arm at ROM 0x20A2 reads the same byte as a zero/non-zero gate. */
 const ARRIVAL_CODE_SOURCE = 0x15;
 /** +2 — the byte the per-slot dispatch at ROM 0x1F93 tests bit by bit to pick an arm (bit 0 ->
- *  here, bit 1 -> ROM 0x1FE5, bit 2 -> ROM 0x1FEF, none -> ROM 0x2053). ram.js deliberately
+ *  here, bit 1 -> ROM 0x1FE5, bit 2 -> ROM 0x1FEF, none -> ROM 0x2053). names.js deliberately
  *  scopes the neighbouring +1 rather than naming it globally, because these low record bytes
  *  carry unrelated roles in other arrays; the same caution applies here. */
 const ARM_SELECT = 0x02;

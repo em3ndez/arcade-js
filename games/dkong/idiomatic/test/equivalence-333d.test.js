@@ -54,7 +54,7 @@ import { loc_33a1 } from "../loc_33a1.js";
 import { findOppositeLadderEnd } from "../findOppositeLadderEnd.js";
 import { Machine } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
-import { STACK_SCRATCH, BOARD, MARIO_Y, OBJ_STATE, OBJ_ARRAY_64, OBJ_PARAM_TABLE0 } from "../ram.js";
+import { STACK_SCRATCH, BOARD, MARIO_Y, OBJ_STATE, OBJ_ARRAY_64, OBJ_PARAM_TABLE0 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

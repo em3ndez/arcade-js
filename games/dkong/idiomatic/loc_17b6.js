@@ -29,7 +29,7 @@
  *      byte this routine consumes as an input), then point SEQ_ADVANCE_PTR (0x63C0) at
  *      0x6388 so the gated advancer advanceSequenceStepWhenTimerExpires steps this same counter once the gate expires.
  *
- * The ram.js SEQ_ADVANCE_PTR note (proposer!=confirmer) records "loc_17b6 seeds 0x6388
+ * The names.js SEQ_ADVANCE_PTR note (proposer!=confirmer) records "loc_17b6 seeds 0x6388
  * for the how-high render", so the mechanism and its how-high role are documented; the
  * neutral loc_ name is kept because the division of labour with buildHowHighScreen
  * (0x0bda, the sub-state-8 how-high builder) is not resolved at the routine-name bar —
@@ -51,9 +51,9 @@
  *           (0x7D00-07, 0x7D80, 0x7C00) are write-only io outputs, not in the RAM dump.
  * NAMES:    SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B), SUBSTATE_TIMER (0x6009),
  *           SPRITE_OBJ_BLOCK (0x6908), SEQ_ADVANCE_PTR (0x63C0), BOARD_ADVANCE_STEP (0x6388 —
- *           the step counter this arm increments and repoints SEQ_ADVANCE_PTR at) from ram.js.
- *           The how-high animation stepper 0x6390 (rejected as a shared byte in ram.js) and the
- *           blink code 0x6905 have no ram.js symbol and stay local hex consts; the VRAM/colour
+ *           the step counter this arm increments and repoints SEQ_ADVANCE_PTR at) from names.js.
+ *           The how-high animation stepper 0x6390 (rejected as a shared byte in names.js) and the
+ *           blink code 0x6905 have no names.js symbol and stay local hex consts; the VRAM/colour
  *           dests, ROM segment tables and the 0x385C sprite template are caller-fixed addresses
  *           kept hex.
  */
@@ -65,7 +65,7 @@ import {
   SPRITE_OBJ_BLOCK,
   SEQ_ADVANCE_PTR,
   BOARD_ADVANCE_STEP,
-} from "./ram.js";
+} from "./names.js";
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 import { fillTileBlock } from "./fillTileBlock.js"; // ROM 0x1826
@@ -73,7 +73,7 @@ import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 
-// How-high interlude animation stepper (shared byte in ram.js), seeded to 0x80 here.
+// How-high interlude animation stepper (shared byte in names.js), seeded to 0x80 here.
 const HOW_HIGH_ANIM = 0x6390;
 // Sprite-buffer record 1, +1 byte — the blink-sprite code the colour cycle toggles.
 const BLINK_SPRITE_CODE = 0x6905;

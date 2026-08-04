@@ -51,14 +51,14 @@
  *           reach no consumer. The register live-ins are inputs, not outputs.
  * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), the sprite-record field offsets
  *           SPRITE_X/SPRITE_CODE/SPRITE_ATTR/SPRITE_Y, and the object-record field
- *           offsets OBJ_X/OBJ_Y — all from ram.js. The two per-object displacement
- *           fields at object offsets +0x0E/+0x0F have no ram.js name yet and stay
+ *           offsets OBJ_X/OBJ_Y — all from names.js. The two per-object displacement
+ *           fields at object offsets +0x0E/+0x0F have no names.js name yet and stay
  *           local hex consts here.
  */
 
-import { MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y } from "./ram.js";
+import { MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y } from "./names.js";
 
-// Object-record field offsets not yet named in ram.js: the per-object horizontal
+// Object-record field offsets not yet named in names.js: the per-object horizontal
 // and vertical displacements added to Mario's position to place this sprite.
 const OBJ_X_DISPLACEMENT = 0x0e;
 const OBJ_Y_DISPLACEMENT = 0x0f;

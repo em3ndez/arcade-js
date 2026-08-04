@@ -55,7 +55,7 @@
  * NAMES:    SEG_ADDR1 (0x63AB tilemap ptr), SEG_SUBTILE1 (0x63AF first-endpoint sub-tile
  *           x, this record's tile seed), SEG_HEIGHT (0x63B1 column extent), SEG_RUN
  *           (0x63B2 segment run, whose sign gives the slant), SEG_KIND (0x63B3 record
- *           kind), SEG_TILE (0x63B5 current stamped tile code) from ram.js — the
+ *           kind), SEG_TILE (0x63B5 current stamped tile code) from names.js — the
  *           line-segment board-render scratch struct, the same block the sibling drawers
  *           (drawGirderSpan / drawCappedTileColumn / fillTileColumn / drawBoardLayout)
  *           import. Callee: drawCappedTileColumn (ROM 0x0EE8).
@@ -63,7 +63,7 @@
 
 import {
   SEG_ADDR1, SEG_SUBTILE1, SEG_HEIGHT, SEG_RUN, SEG_KIND, SEG_TILE,
-} from "./ram.js";
+} from "./names.js";
 import { drawCappedTileColumn } from "./drawCappedTileColumn.js"; // ROM 0x0EE8
 
 export function drawLadder(m) {

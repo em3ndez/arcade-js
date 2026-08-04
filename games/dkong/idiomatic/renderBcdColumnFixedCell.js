@@ -54,7 +54,7 @@
  *           caller reads none of the output registers, so the reproduced registers
  *           (source-3, stride, count, destination cursor, last masked nibble) are dead to
  *           it; they are reproduced identically to the oracle and compared for free.
- * NAMES:    none from ram.js — the source pointer and destination cell are not fixed game
+ * NAMES:    none from names.js — the source pointer and destination cell are not fixed game
  *           RAM this routine names; 0x7641 is a video-RAM tile cell (0x7400-0x77FF, kept
  *           hex, deliberately unnamed) and the stride/count are ROM constants.
  */
@@ -67,7 +67,7 @@ export function renderBcdColumnFixedCell(m, enteredAt057C = false) {
   const { regs } = m;
 
   if (!enteredAt057C) {
-    regs.ix = 0x7641; // fixed destination column (video RAM 0x7400-0x77FF; no ram.js name)
+    regs.ix = 0x7641; // fixed destination column (video RAM 0x7400-0x77FF; no names.js name)
   }
   regs.exDeHl(); // source pointer arrives as the live-in; move it into place, discard the displaced value
   regs.de = ROW_STEP; // per-digit stride -0x20 (up one tilemap row)

@@ -37,7 +37,7 @@
  *           and this routine simply does or skips its reset.
  * NAMES:    MARIO_START_FALL (0x6221, the trigger), MARIO_X_FRAC/MARIO_Y_FRAC,
  *           MARIO_AIR_VX_HI/LO, MARIO_AIR_VY_HI/LO, MARIO_AIR_FRAMES, MARIO_AIRBORNE,
- *           MARIO_AIR_LANDCHECK, MARIO_Y, MARIO_AIR_START_Y — all from ram.js.
+ *           MARIO_AIR_LANDCHECK, MARIO_Y, MARIO_AIR_START_Y — all from names.js.
  */
 
 import {
@@ -53,7 +53,7 @@ import {
   MARIO_AIR_LANDCHECK,
   MARIO_Y,
   MARIO_AIR_START_Y,
-} from "./ram.js";
+} from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

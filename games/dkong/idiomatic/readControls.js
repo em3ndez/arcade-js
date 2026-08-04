@@ -35,11 +35,11 @@
  *           the register file nor the SP this routine leaves (it uses only m.tick — no
  *           push/step — so it moves neither PC nor SP).
  * NAMES:    DIP_UPRIGHT (0x6026), P1_INPUT (0x6010), P1_INPUT_RAW (0x6011). Hex-kept:
- *           0x600E (cocktail active-player select — unconfirmed in ram.js) and the IN0/IN1
+ *           0x600E (cocktail active-player select — unconfirmed in names.js) and the IN0/IN1
  *           port addresses 0x7C00/0x7C80 (board I/O, not work RAM).
  */
 
-import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW } from "./ram.js";
+import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 
 const IN0 = 0x7c00; // player-1 joystick port

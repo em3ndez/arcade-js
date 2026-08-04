@@ -57,7 +57,7 @@ import { loc_3fc0 as oracle } from "../../translated/loc_3fc0.js";
 import { pinMarioClimbPose as loc_3fc0 } from "../pinMarioClimbPose.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { MARIO_SPRITE_RECORD, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y } from "../ram.js";
+import { MARIO_SPRITE_RECORD, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -45,7 +45,7 @@
  *           captured dispatch and every crafted one). The decremented limit flag and the
  *           flags the oracle leaves behind are dead: neither callee reads them, and the
  *           cascade above discards everything but memory.
- * NAMES:    no ram.js cell is read here — both inputs arrive in the register file from the
+ * NAMES:    no names.js cell is read here — both inputs arrive in the register file from the
  *           caller at ROM 0x1AE6, which is now idiomatic too (it landed in the same batch and
  *           direct-calls this routine). The register hand-off is therefore a live ABI between
  *           two idiomatic routines, not an oracle boundary; promoting it to parameters is a

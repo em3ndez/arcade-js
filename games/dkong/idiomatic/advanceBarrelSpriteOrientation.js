@@ -61,14 +61,14 @@
  *           the accumulator from the record first thing), so the oracle's residual
  *           registers/flags and its terminal return are dead ABI.
  * NAMES:    OBJ_SPRITE_CODE (record +0x07), OBJ_SPRITE_ATTR (record +0x08) — from
- *           ram.js. The countdown at record +0x0F has no ram.js offset name yet and
+ *           names.js. The countdown at record +0x0F has no names.js offset name yet and
  *           stays a local const here.
  */
 
-import { OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./ram.js";
+import { OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./names.js";
 import { nextAnimationStep } from "./nextAnimationStep.js"; // ROM 0x3009 — packed 4×2-bit direction lookup
 
-// Per-object down-counter that gates the refresh (record +0x0F). Not named in ram.js
+// Per-object down-counter that gates the refresh (record +0x0F). Not named in names.js
 // yet; it fires the orientation refresh when it reaches 1 and is reloaded to 4, so the
 // refresh runs once per four calls for this object.
 const OBJ_ORIENT_COUNTDOWN = 0x0f;

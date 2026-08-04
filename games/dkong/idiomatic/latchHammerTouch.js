@@ -88,17 +88,17 @@
  * NAMES:    MARIO_HAMMER_PENDING (0x6218), SND_TRIGGER (0x6080, the 8-trigger span — this
  *           routine drives entry 5, 0x6085, the item/score trigger that awardScorePopup also
  *           asserts for a score award), OBJ_PAIR_6680 (0x6680) and HAMMER_IN_PLAY (+0x01) from
- *           ram.js. Only the pair's 16-byte record stride stays a local const; the board mask is
+ *           names.js. Only the pair's 16-byte record stride stays a local const; the board mask is
  *           an immediate bit-flag, not an address. NAMESPACE: the pointer here addresses an OBJECT
  *           record (the pair findHammerOverlappingMario just searched), so +0x01 belongs to the
- *           object-record field set — and it is NOT ram.js's SPRITE_CODE (+1 of a SPRITE record, a
+ *           object-record field set — and it is NOT names.js's SPRITE_CODE (+1 of a SPRITE record, a
  *           different namespace that merely collides numerically). HAMMER_IN_PLAY is deliberately
  *           SCOPED to this pair rather than given a generic OBJ_* name, because +0x01 carries
- *           unrelated roles on other records (see ram.js). boardBitGate (ROM 0x0030) and
+ *           unrelated roles on other records (see names.js). boardBitGate (ROM 0x0030) and
  *           findHammerOverlappingMario (ROM 0x2974) are direct-called.
  */
 
-import { MARIO_HAMMER_PENDING, SND_TRIGGER, OBJ_PAIR_6680, HAMMER_IN_PLAY } from "./ram.js";
+import { MARIO_HAMMER_PENDING, SND_TRIGGER, OBJ_PAIR_6680, HAMMER_IN_PLAY } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — per-board skip gate
 import { findHammerOverlappingMario } from "./findHammerOverlappingMario.js";         // ROM 0x2974 — Mario vs. the hammer pair
 
@@ -111,7 +111,7 @@ const HAMMER_BOARDS = 0x0b;
 const PICKUP_SOUND = SND_TRIGGER + 5;
 const PICKUP_SOUND_FRAMES = 64;
 
-// Stride between the two records of the hammer pair (the one field with no ram.js name).
+// Stride between the two records of the hammer pair (the one field with no names.js name).
 const PAIR_STRIDE = 0x10; // 0x6680 -> 0x6690
 
 export function latchHammerTouch(m) {

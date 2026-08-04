@@ -67,7 +67,7 @@ import { loc_4f47 as oracle } from "../../translated/loc_4f47.js";
 import { showColourTestScreen as idiomatic } from "../showColourTestScreen.js";
 import { loc_4b55 as oracleDipDecode } from "../../translated/loc_4b55.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE, IN0_DEBOUNCED } from "../ram.js";
+import { GAME_STATE, IN0_DEBOUNCED } from "../names.js";
 
 // Idiomatic callees for the faithful teeth twins.
 import { blankScreen } from "../blankScreen.js";

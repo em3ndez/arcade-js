@@ -36,7 +36,7 @@
  *           no returned register.
  * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/
  *           ENEMY3_TWIN_Y, ENEMY3_ATTR/ENEMY3_TWIN_ATTR (the paired-display byte on each record)
- *           from ram.js. Kept hex: the video/colour anchor cells
+ *           from names.js. Kept hex: the video/colour anchor cells
  *           0x93a3/0x8ba3 (hardware display addresses).
  */
 
@@ -44,7 +44,7 @@ import {
   BOARD_END_PHASE, ENEMY3_X, ENEMY3_Y, ENEMY3_TILE, ENEMY3_TIMER,
   ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
   ENEMY3_ATTR, ENEMY3_TWIN_ATTR,
-} from "./ram.js";
+} from "./names.js";
 import { advanceAltPhaseActor } from "./advanceAltPhaseActor.js";
 import { requestSound7 } from "./requestSound7.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";

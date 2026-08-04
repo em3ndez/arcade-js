@@ -41,13 +41,13 @@
  *           reaches here by an unconditional tail-jump and consumes nothing this leaves, so
  *           the oracle's residual registers and flags are dead ABI; pc/SP model the single net
  *           return, supplied by the harness.
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F), MARIO_WALK_ANIM (0x6202) — both from ram.js, which
+ * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F), MARIO_WALK_ANIM (0x6202) — both from names.js, which
  *           already records this routine as one of the only two writers of MARIO_WALK_ANIM.
  *           nextAnimationStep (ROM 0x3009), advanceMarioWalkX (ROM 0x1CD2) and beginWalkStep
  *           (ROM 0x1CC2) are all direct-called; nothing is left on m.call.
  */
 
-import { MARIO_MOVE_STEP_TIMER, MARIO_WALK_ANIM } from "./ram.js";
+import { MARIO_MOVE_STEP_TIMER, MARIO_WALK_ANIM } from "./names.js";
 import { nextAnimationStep } from "./nextAnimationStep.js";
 import { advanceMarioWalkX } from "./advanceMarioWalkX.js";
 import { beginWalkStep } from "./beginWalkStep.js";

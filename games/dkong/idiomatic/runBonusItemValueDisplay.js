@@ -55,21 +55,21 @@
  * NAMES:    SUBSTATE_TIMER (0x6009, re-used as the mode latch), P1_INPUT (0x6010),
  *           GAME_SUBSTATE (0x600A), PLAYER_SLOT_RECORDS (0x611C, the item-slot table:
  *           stride-0x22 rows keyed by 2*ACTIVE_PLAYER_INDEX+1) and ACTIVE_PLAYER_INDEX
- *           (0x600E) from ram.js. The item-state block (0x6030-0x6036, 0x6038, 0x603A) is
- *           ram.js "board/animation scratch" — deliberately UNNAMED there because it is
+ *           (0x600E) from names.js. The item-state block (0x6030-0x6036, 0x6038, 0x603A) is
+ *           names.js "board/animation scratch" — deliberately UNNAMED there because it is
  *           shared across the game — so it is labelled with LOCAL role constants (valid
  *           only inside this routine), not promoted to global names. The palette-bank latches
  *           0x7D86/0x7D87 are hardware outputs (ls259.6h), not work RAM. The digit cells
  *           0x7552/0x7572 and the video base 0x75E8 / sentinels 0x7588/0x7608 are ROM / VRAM
  *           literals kept hex.
  */
-import { SUBSTATE_TIMER, P1_INPUT, GAME_SUBSTATE, PLAYER_SLOT_RECORDS, ACTIVE_PLAYER_INDEX } from "./ram.js";
+import { SUBSTATE_TIMER, P1_INPUT, GAME_SUBSTATE, PLAYER_SLOT_RECORDS, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js";           // ROM 0x0616
 import { positionBonusItemSprite } from "./positionBonusItemSprite.js"; // ROM 0x15fa
 import { renderBcdColumn } from "./renderBcdColumn.js";               // ROM 0x057c
 import { enqueueTask } from "./enqueueTask.js";                       // ROM 0x309f
 
-// -- Item-state block: LOCAL role labels for ram.js-unnamed board/animation scratch. --
+// -- Item-state block: LOCAL role labels for names.js-unnamed board/animation scratch. --
 const POS_RELOAD = 0x6030;    // frame divider between position steps (reload 0x0A)
 const SPRITE_TOGGLE = 0x6031; // alternates the 6-digit sprite's source each anim tick
 const ANIM_TIMER = 0x6032;    // frames until the next sprite animate (reload 0x10)
@@ -80,7 +80,7 @@ const VIDEO_PTR = 0x6036;     // 16-bit VRAM cursor for the value's column walk
 const SLOT_PTR = 0x6038;      // 16-bit ptr to the item's row in the 0x611C table
 const SLOT_COL_PTR = 0x603a;  // 16-bit ptr = SLOT_PTR - 0x0D, the exit-copy destination
 
-// -- ROM / VRAM / hardware literals (not work RAM, so none are ram.js names). --
+// -- ROM / VRAM / hardware literals (not work RAM, so none are names.js names). --
 const PALETTE_BANK_LO = 0x7d86; // ls259.6h palette-bank latch bit 0 (hardware output)
 const PALETTE_BANK_HI = 0x7d87; // ls259.6h palette-bank latch bit 1 (hardware output)
 const VALUE_ONES_CELL = 0x7552; // VRAM cell for the value's ones digit

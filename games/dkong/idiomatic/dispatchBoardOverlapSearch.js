@@ -51,11 +51,11 @@
  *           sibling dispatchBoardCollision declares). The arm's own ret sets pc/SP on both
  *           sides identically; the trampoline's own register/flag handoff into the arm is dead
  *           to this routine's caller.
- * NAMES:    BOARD (0x6227) from ram.js; the inline table base 0x3E8D kept hex (ROM data,
+ * NAMES:    BOARD (0x6227) from names.js; the inline table base 0x3E8D kept hex (ROM data,
  *           not work RAM).
  */
 
-import { BOARD } from "./ram.js";
+import { BOARD } from "./names.js";
 import { dispatchInlineJumpTable } from "./dispatchInlineJumpTable.js";
 
 // This routine's own `rst 0x28` inline jump table: 6 little-endian target words in ROM

@@ -9,7 +9,7 @@
  * two other routines, and their bodies are what make the reading falsifiable:
  *
  *   0, 1, 2  -> loc_33ad, which steps the record's +0x0e one pixel and flips the sprite to match
- *               (ram.js's role for 0x33AD calls +0x0e the object's working X)
+ *               (names.js's role for 0x33AD calls +0x0e the object's working X)
  *   4, 8     -> loc_33e7, which instead moves the record's +0x0f Y base: one pixel DOWN the
  *               screen per frame in state 4, one pixel UP every third frame in state 8
  *
@@ -66,18 +66,18 @@
  *           what makes the "no register live-out" half a measurement. Both runs restore the
  *           oracle's measured cycle cost — its own teeth case shows that without the charge the
  *           trace diverges at frame 1080, at 0x6019, on the NMI shift alone.
- * NAMES:    MARIO_Y and OBJ_STATE from ram.js. The record's other fields (+0x0e, +0x0f, +0x19,
- *           +0x1d, +0x1f) have no ram.js name and stay raw in-record offsets, as +0x0f does in
+ * NAMES:    MARIO_Y and OBJ_STATE from names.js. The record's other fields (+0x0e, +0x0f, +0x19,
+ *           +0x1d, +0x1f) have no names.js name and stay raw in-record offsets, as +0x0f does in
  *           loc_33a1. BOARD is read inside loc_33a1 and OBJ_PARAM_TABLE0 inside findOppositeLadderEnd; neither
  *           is touched here.
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_Y, OBJ_STATE } from "./ram.js";
+import { MARIO_Y, OBJ_STATE } from "./names.js";
 import { loc_33a1 } from "./loc_33a1.js"; // ROM 0x33A1 — the board gate + height guard
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js"; // ROM 0x236E — the keyed lookup that returns the other of a pair
 
-// Record fields ram.js does not name. +0x0e and +0x0f are the object's two axes (loc_33ad steps
+// Record fields names.js does not name. +0x0e and +0x0f are the object's two axes (loc_33ad steps
 // +0x0e as its working X; loc_33a1 tests +0x0f as its Y base).
 const RECORD_X = 0x0e;
 const RECORD_Y_BASE = 0x0f;

@@ -50,7 +50,7 @@ import { loc_2a22 as oracle } from "../../translated/loc_2a22.js";
 import { loc_2a22 } from "../loc_2a22.js";
 import { findCollidingObject } from "../findCollidingObject.js"; // idiomatic callee — used to build the teeth
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, OBJ_ARRAY_66 } from "../ram.js";
+import { STACK_SCRATCH, OBJ_ARRAY_66 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

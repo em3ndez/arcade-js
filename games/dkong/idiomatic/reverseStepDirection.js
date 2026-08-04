@@ -34,7 +34,7 @@
  * NAMES:    none used in code — HL is a live-in pointer supplied by the caller, so the
  *           routine references no fixed RAM address. (The real callers point HL at the 50m
  *           step-direction latches M50_OBJ1_STEP_DIR / M50_OBJ2_STEP_DIR / M50_OBJ3_STEP_DIR
- *           = 0x62A1/0x62A3/0x62A6, now named in ram.js; referenced here in prose only.)
+ *           = 0x62A1/0x62A3/0x62A6, now named in names.js; referenced here in prose only.)
  */
 export function reverseStepDirection(m) {
   const { regs, mem } = m;

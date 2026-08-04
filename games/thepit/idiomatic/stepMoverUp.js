@@ -42,7 +42,7 @@
  *           ENEMY_WORK_Y (0x8086, screen-vertical).
  */
 
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_Y } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_Y } from "./names.js";
 
 export function stepMoverUp(m) {
   const { mem8 } = m;

@@ -25,7 +25,7 @@
  * a Karl-sanctioned board poke.
  *
  * The object identity of the OBJ_ARRAY_65 block is not independently established
- * (OBJ_ARRAY_65 (0x6500) is a structurally [code]-named array in ram.js, not a grounded
+ * (OBJ_ARRAY_65 (0x6500) is a structurally [code]-named array in names.js, not a grounded
  * object identity); the name describes the MECHANISM — seed a common field, build the
  * sprite mirror — not what the ten objects are. Same evidence bar as gatherSpriteRecords.
  *
@@ -44,12 +44,12 @@
  *           free safety margin (the routine's own terminal `ret` is modelled by the test).
  * NAMES:    OBJ_ARRAY_65 (0x6500, the object block), ACTOR_SPRITES (0x6980, its sprite
  *           mirror inside SPRITE_BUFFER) and the OBJ_SPRITE_CODE (+7) field offset from
- *           ram.js; every count/stride and the ROM template (0x11A2) stay fixed immediates.
+ *           names.js; every count/stride and the ROM template (0x11A2) stay fixed immediates.
  */
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_ARRAY_65, ACTOR_SPRITES, OBJ_SPRITE_CODE } from "./ram.js";
+import { OBJ_ARRAY_65, ACTOR_SPRITES, OBJ_SPRITE_CODE } from "./names.js";
 
 export function seedObjectBlockSprites(m) {
   const { regs } = m;

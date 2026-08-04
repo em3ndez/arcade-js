@@ -4,7 +4,7 @@
 > That file is the day-zero, outside-in view — how Donkey Kong is *played*, from public
 > sources, with no ROM opened. This one is how the machine *works*, re-derived from the code
 > that is in this checkout right now: the readable routines in `idiomatic/`, the work-RAM and
-> routine registries in [`idiomatic/ram.js`](idiomatic/ram.js), the frozen per-instruction
+> routine registries in [`idiomatic/names.js`](idiomatic/names.js), the frozen per-instruction
 > oracle in `translated/`, the hardware layer in [`boards/dkong/`](../../boards/dkong/), and
 > the grounding runs recorded in `scratchpad/`.
 >
@@ -32,7 +32,7 @@
 > - **`[guess]`** — plausible, unverified. Never to be relied on.
 >
 > **What this file does NOT own.** A work-RAM cell's name, role and confidence live in exactly
-> one place — `idiomatic/ram.js` — and a routine's one-line role lives in that file's `ROUTINES`
+> one place — `idiomatic/names.js` — and a routine's one-line role lives in that file's `ROUTINES`
 > map. This document describes *mechanisms* and cites cells by their registry names; it never
 > restates a cell's registry status. That boundary is enforced by
 > `tools/names_consistency.py` (see [`docs/names-registry.md`](../../docs/names-registry.md),
@@ -49,21 +49,21 @@ tree. Re-run them before quoting any of it.
 |---|---:|
 | ROM routines in the frozen `translated/` oracle (`loc_XXXX.js`) | **429** |
 | — of which have a readable `idiomatic/` module | **429 (100%)** |
-| Addresses registered in `ROUTINES` (`idiomatic/ram.js`) and wired live | **389** |
+| Addresses registered in `ROUTINES` (`idiomatic/names.js`) and wired live | **389** |
 | — carrying an earned English name | 302 |
 | — still address-named `loc_XXXX` | 87 |
 | Idiomatic modules written but **not** registered in `ROUTINES` | **40** |
 | `ROUTINES` confidence split | 362 `code` / 27 `seen` / 0 `guess` |
-| `export const` entries in `ram.js` | **184** |
+| `export const` entries in `names.js` | **184** |
 | — work-RAM cells (inside 0x6000–0x6BFF) | 168 |
 | — object/sprite **record field offsets** (not addresses) | 16 |
-| `ram.js` confidence split | 134 `[seen]` / 50 `[code]` / 0 `[guess]` |
+| `names.js` confidence split | 134 `[seen]` / 50 `[code]` / 0 `[guess]` |
 | Per-routine memory-equivalence tests | 427 |
 
 ```sh
 # routine coverage + registry split
 node --input-type=module -e '
-const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/ram.js");
+const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/names.js");
 const T=fs.readdirSync("games/dkong/translated").filter(f=>/^loc_[0-9a-f]{4}\.js$/.test(f));
 const I=new Set(fs.readdirSync("games/dkong/idiomatic").filter(f=>f.endsWith(".js")));
 const have=T.filter(f=>{const a=parseInt(f.slice(4,8),16);return I.has(f)||(ROUTINES[a]&&I.has(ROUTINES[a].name+".js"));});
@@ -72,7 +72,7 @@ console.log("translated",T.length,"with idiomatic",have.length,"ROUTINES",Object
  "english",Object.values(ROUTINES).filter(r=>!/^loc_/.test(r.name)).length,"cert",JSON.stringify(cert));'
 # named work-RAM cells, using the names-consistency gate's own definition of "named"
 python3 -c 'import sys;sys.path.insert(0,"tools");import names_consistency as n;
-print(len(n.named_workram(open("games/dkong/idiomatic/ram.js").read(), n.workram_window("dkong"))))'
+print(len(n.named_workram(open("games/dkong/idiomatic/names.js").read(), n.workram_window("dkong"))))'
 ```
 
 ### The honest floor
@@ -107,7 +107,7 @@ Three separate things are true at once, and only the first is "done":
 
    ```sh
    node --input-type=module -e '
-   const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/ram.js");
+   const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/names.js");
    const reg=new Set(Object.values(ROUTINES).map(r=>r.name));
    console.log(fs.readdirSync("games/dkong/idiomatic")
      .filter(f=>/^loc_[0-9a-f]{4}\.js$/.test(f)&&!reg.has(f.slice(0,-3))).join(" "));'
@@ -122,7 +122,7 @@ Three separate things are true at once, and only the first is "done":
 
    ```sh
    node --input-type=module -e '
-   const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/ram.js");
+   const fs=await import("node:fs"); const {ROUTINES}=await import("./games/dkong/idiomatic/names.js");
    let n=0; for(const f of fs.readdirSync("games/dkong/idiomatic").filter(f=>f.endsWith(".js")))
      for(const m of fs.readFileSync(`games/dkong/idiomatic/${f}`,"utf8")
         .matchAll(/^import .*from "\.\.\/translated\/loc_([0-9a-f]{4})\.js";/gm))
@@ -138,7 +138,7 @@ registry cells excluded) it finds **15 unnamed work-RAM addresses still read or 
 hex** — `0x6209`, `0x620A`, `0x62AF`, `0x62B9`, `0x6350`, `0x6392`, `0x6910`, `0x6919`, `0x694D`,
 `0x694F`, `0x6A20`–`0x6A23`, `0x6A25` — concentrated in `loc_18c6`, `initBoardState` and the
 hit-effect latch. Net (b) finds **47 more addresses aliased to file-local `const`s that were
-never centralized** into `ram.js`, **9 of them carrying conflicting local names across files**
+never centralized** into `names.js`, **9 of them carrying conflicting local names across files**
 (`0x62AF` alone has seven), which is exactly the "one routine's local view" the registry exists
 to reconcile. Those 15 + 47 are the to-do list for the next naming pass; the sharpest are named
 in §15.
@@ -148,10 +148,10 @@ in §15.
 python3 - <<'PY'
 import re, os, sys; sys.path.insert(0, "tools"); import names_consistency as n
 win = n.workram_window("dkong")
-named = n.named_workram(open("games/dkong/idiomatic/ram.js").read(), win)
+named = n.named_workram(open("games/dkong/idiomatic/names.js").read(), win)
 bare, alias = {}, {}
 for f in sorted(os.listdir("games/dkong/idiomatic")):
-    if not f.endswith(".js") or f == "ram.js": continue
+    if not f.endswith(".js") or f == "names.js": continue
     src = open(f"games/dkong/idiomatic/{f}").read()
     code = re.sub(r"//[^\n]*", "", re.sub(r"/\*.*?\*/", "", src, flags=re.S))
     for m in re.finditer(r"\bmem\.(?:read|write)(?:8|16)\(\s*(0x6[0-9a-fA-F]{3})\b", code):
@@ -1056,7 +1056,7 @@ checkout*, not because the wording changed.
 
 ## Appendix A — work-RAM orientation
 
-Regions, not a registry. Every cell's name, role and confidence is in `idiomatic/ram.js`; this is
+Regions, not a registry. Every cell's name, role and confidence is in `idiomatic/names.js`; this is
 only a map of where to look.
 
 | span | what lives there |

@@ -44,11 +44,11 @@
  *           task dispatcher returns to the main loop, which reloads). SP/pc are the
  *           dropped stack model — the oracle's `pop hl / ret` moves them; this JS
  *           return leaves them at entry (asserted, not compared to the oracle).
- * NAMES:    none from ram.js — every operand is a ROM literal (pointer table 0x364B,
+ * NAMES:    none from names.js — every operand is a ROM literal (pointer table 0x364B,
  *           row step -0x20, terminator 0x3F, blank tile 0x10), not work-RAM.
  */
 
-// -- ROM literals (constants baked into the code, NOT work-RAM, so none are in ram.js) --
+// -- ROM literals (constants baked into the code, NOT work-RAM, so none are in names.js) --
 const STRING_PTR_TABLE = 0x364b; // base of the pointer table, indexed by payload*2
 const VRAM_ROW_STEP = 0xffe0; //    -0x20: step back one tilemap row per char (vertical draw)
 const STRING_TERMINATOR = 0x3f; //  sentinel byte ending the character run

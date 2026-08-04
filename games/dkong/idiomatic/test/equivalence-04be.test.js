@@ -58,7 +58,7 @@ import { blinkSpritePairByX } from "../blinkSpritePairByX.js";
 import { paintColorColumnAndBlinkOff } from "../paintColorColumnAndBlinkOff.js";
 import { blinkSpritePairOn } from "../blinkSpritePairOn.js";
 import { Machine } from "../../machine.js";
-import { SPRITE_BUFFER, STACK_SCRATCH, MARIO_X } from "../ram.js";
+import { SPRITE_BUFFER, STACK_SCRATCH, MARIO_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -55,7 +55,7 @@ import { walkLeftWhileHeld } from "../walkLeftWhileHeld.js";
 import { limitMarioHorizontalTravel } from "../limitMarioHorizontalTravel.js";             // ROM 0x241F — used by the teeth twins
 import { walkMarioRight } from "../walkMarioRight.js"; // ROM 0x1C8F — used by the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, P1_INPUT, MARIO_X } from "../ram.js";
+import { STACK_SCRATCH, P1_INPUT, MARIO_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

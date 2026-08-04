@@ -18,10 +18,10 @@
  * overtakes it, and it falls back. Coordinate A just drifts at constant velocity.
  * The counter t is bumped every frame so the gravity term grows linearly.
  *
- * For Mario the record is at 0x6200 and the fields are exactly the ram.js names:
+ * For Mario the record is at 0x6200 and the fields are exactly the names.js names:
  * A = MARIO_X:MARIO_X_FRAC (0x6203:0x6204), velocity A = MARIO_AIR_VX (0x6210:0x6211),
  * B = MARIO_Y:MARIO_Y_FRAC (0x6205:0x6206), velocity B = MARIO_AIR_VY (0x6212:0x6213),
- * t = MARIO_AIR_FRAMES (0x6214). ram.js records the resulting per-frame ΔY as
+ * t = MARIO_AIR_FRAMES (0x6214). names.js records the resulting per-frame ΔY as
  * -(V + 8 - 16n) with n the POST-increment counter — algebraically identical to
  * (-V + 16·t + 8) with t = n-1, the pre-increment value this routine reads.
  * Confirmed on real attract dispatches: a vertical jump (VX=0, VY=0x0148, t=0,1,2,…)

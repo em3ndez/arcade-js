@@ -45,7 +45,7 @@ import { drawScoreTask as loc_05c6 } from "../drawScoreTask.js";
 import { loc_056b } from "../loc_056b.js";
 import { drawHighScore } from "../drawHighScore.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, P1_SCORE, P2_SCORE, HIGH_SCORE } from "../ram.js";
+import { STACK_SCRATCH, P1_SCORE, P2_SCORE, HIGH_SCORE } from "../names.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

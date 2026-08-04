@@ -26,7 +26,7 @@
  * LIVE-OUT: memory-only — the seeded work-RAM bytes. The round-init caller consumes
  *           no register.
  * NAMES:    PLAYER_Y, PLAYER_X, PLAYER_FACING, BOARD_END_PHASE, MOVE_BLOCK_FLAG, NEXT_TILE, CARVE_SEAM_LEFT,
- *           CARVE_SEAM_RIGHT from ram.js. The remaining counters and status/scratch bytes
+ *           CARVE_SEAM_RIGHT from names.js. The remaining counters and status/scratch bytes
  *           in the same block are not yet named, so their addresses stay hex.
  */
 
@@ -46,7 +46,7 @@ import {
   PLAYER_X,
   BOARD_END_PHASE,
   PLAYER_FACING,
-} from "./ram.js";
+} from "./names.js";
 
 export function seedObjectStartState(m) {
   const { mem8 } = m;

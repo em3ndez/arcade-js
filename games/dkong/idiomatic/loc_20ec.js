@@ -71,7 +71,7 @@
  *           shadow-B write dropped. The flags are dead for the same reason as the accumulator.
  *           The tail's own return value is forwarded rather than swallowed, and the stubbed protocol
  *           arm is what proves that.
- * NAMES:    none imported. Record byte +25 has no ram.js entry (see the constant below); OBJ_Y is
+ * NAMES:    none imported. Record byte +25 has no names.js entry (see the constant below); OBJ_Y is
  *           named there and is what the ballistic step advances, but this routine never addresses
  *           it — it takes the stepped value from the callee.
  */
@@ -80,7 +80,7 @@ import { u8 } from "../../../core/int.js";
 import { loc_2a2f } from "./loc_2a2f.js"; // ROM 0x2A2F — the girder/slope probe
 import { stepBallisticMotion } from "./stepBallisticMotion.js"; // ROM 0x239C
 
-/** Object-record byte +25: the OBJ_Y the object had at its last registered contact (no ram.js
+/** Object-record byte +25: the OBJ_Y the object had at its last registered contact (no names.js
  *  name — the only writer is the still-frozen ROM 0x2146, so the field is not yet grounded well
  *  enough to earn a registry entry; the lead may decide it is). */
 const OBJ_CONTACT_Y = 25;

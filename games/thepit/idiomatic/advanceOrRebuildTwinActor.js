@@ -36,7 +36,7 @@
  * NAMES:    ENEMY3_X/ENEMY3_Y/ENEMY3_TILE/ENEMY3_TIMER, ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y,
  *           ENEMY3_STEP_X/ENEMY3_STEP_Y (the two primary-only record fields 0x810e/0x810f) and
  *           ENEMY3_ATTR/ENEMY3_TWIN_ATTR (the paired-display byte on each record, 0x810c/0x811d)
- *           from ram.js. Kept hex: the video/colour anchors 0x93a3/0x8ba3 (hardware
+ *           from names.js. Kept hex: the video/colour anchors 0x93a3/0x8ba3 (hardware
  *           display addresses).
  *
  * PURPOSE [guess]: which specific game actor the twin figure is (twin RECORD structure IS grounded).
@@ -54,7 +54,7 @@ import {
   ENEMY3_TWIN_X,
   ENEMY3_ATTR,
   ENEMY3_TWIN_ATTR,
-} from "./ram.js";
+} from "./names.js";
 import { paceActorCadence } from "./paceActorCadence.js";
 
 const PAIRED_DISPLAY = 147; // value stamped on both paired-display bytes

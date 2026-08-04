@@ -10,7 +10,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2766.test.js.
  */
-import { EDGE_REPOSITION_FLAG, MARIO_START_FALL } from "./ram.js";
+import { EDGE_REPOSITION_FLAG, MARIO_START_FALL } from "./names.js";
 
 /** @param {object} m  the machine (uses m.mem only). @returns {void} */
 export function loc_2766(m) {

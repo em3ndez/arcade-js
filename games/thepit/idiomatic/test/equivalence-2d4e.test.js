@@ -49,7 +49,7 @@ import { landDigTarget as idiomatic } from "../landDigTarget.js";
 import { loc_3dae as reachedLeaf } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_ACTIVE_COUNT, SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

@@ -24,7 +24,7 @@
  * LIVE-OUT: the hardware sound-enable line, driven high. No work RAM is touched and
  *           no register or flag is live out — every caller's next act is another
  *           call that reloads before it reads, so the value the pair leaves is dead.
- * NAMES:    none from ram.js — 0xb003 is the sound-enable control-latch address
+ * NAMES:    none from names.js — 0xb003 is the sound-enable control-latch address
  *           (I/O, one line per address), not work RAM; kept hex like the other latch
  *           addresses.
  */

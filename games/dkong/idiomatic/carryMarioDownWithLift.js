@@ -38,7 +38,7 @@
  * derivations independently said "one pixel DOWN the screen"). ★ This settles the
  * direction question the pre-promotion header left open — whether it reads as up or down
  * on screen was "not confirmed to the routine-name bar" — and it is settled from OUTSIDE
- * the routine (R5), twice over. MARIO_Y (0x6205) is `[seen]` in ram.js as "larger = lower
+ * the routine (R5), twice over. MARIO_Y (0x6205) is `[seen]` in names.js as "larger = lower
  * on screen", so this arm's `inc` is down; and the descending column was measured on a
  * live 75m board, where OBJ_ARRAY_66 (0x6600) `[seen]` records sit at X = 119 and have
  * their Y INCREASE 96 -> 248, travelling down. The lockstep is measured too: 62
@@ -77,12 +77,12 @@
  *           terminal return are dead ABI — the per-frame chain that runs this
  *           discards them.
  * NAMES:    MARIO_Y (0x6205), MARIO_SPRITE_RECORD (0x694C) + SPRITE_Y (0x03) from
- *           ram.js; killMarioAtEndOfLiftTravel (ROM 0x277F) direct-called with no
+ *           names.js; killMarioAtEndOfLiftTravel (ROM 0x277F) direct-called with no
  *           register inputs. The 232 limit is a plain position threshold, not a
  *           named cell.
  */
 
-import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y } from "./ram.js";
+import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y } from "./names.js";
 import { killMarioAtEndOfLiftTravel } from "./killMarioAtEndOfLiftTravel.js"; // ROM 0x277F — the kill at this arm's limit
 
 // Mario's sprite-record Y field: the position byte the display reads for him.

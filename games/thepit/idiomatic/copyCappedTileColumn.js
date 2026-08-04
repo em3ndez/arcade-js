@@ -41,12 +41,12 @@
  *           registers/flags are dead: every caller reloads the source pointer before its
  *           next call and reads the painted memory back, never a leftover register.
  * NAMES:    PLOT_RUN_LENGTH (0x8055 — the shared column-plotter run length). The video-RAM
- *           write cursor 0x8060 has no ram.js name — its sibling routines
+ *           write cursor 0x8060 has no names.js name — its sibling routines
  *           copyTileColumn / deriveTileWriteCursors keep it hex too — so it stays hex.
  *           0x4b0f is the ROM address of the fixed cap tile, kept hex.
  */
 
-import { PLOT_RUN_LENGTH } from "./ram.js";
+import { PLOT_RUN_LENGTH } from "./names.js";
 
 // ROM address of the fixed tile that caps the top of the column.
 const CAP_TILE = 0x4b0f;

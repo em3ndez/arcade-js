@@ -46,7 +46,7 @@ import { loc_3484 as oracle } from "../../translated/loc_3484.js";
 import { stepMoverDown as idiomatic } from "../stepMoverDown.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ENEMY_ACTION_TIMER } from "../ram.js";
+import { ENEMY_ACTION_TIMER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

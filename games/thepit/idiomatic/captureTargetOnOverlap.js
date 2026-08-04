@@ -46,7 +46,7 @@ import {
   PLAYER_X,
   HAZARD_X,
   HAZARD_Y,
-} from "./ram.js";
+} from "./names.js";
 import { requestSound20 } from "./requestSound20.js";
 import { flagObjectTargetOverlap } from "./flagObjectTargetOverlap.js";
 import { advanceDigTarget } from "./advanceDigTarget.js";

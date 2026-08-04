@@ -18,7 +18,7 @@
  * this frame only while Up is held — this routine writes no further memory of its own.
  *
  * Name: kept the neutral loc_ — the mechanism (store the limit pair, then climb) is pinned to
- * the oracle, but the pair's top/bottom roles are deliberately unsettled in ram.js, so the
+ * the oracle, but the pair's top/bottom roles are deliberately unsettled in names.js, so the
  * routine is not promoted past its confirmed mechanism.
  *
  * Memory-equivalent to the frozen oracle — equivalence-1b4e.test.js.
@@ -31,14 +31,14 @@
  * LIVE-OUT: memory-only — the two climb-limit cells here, plus whatever the climb chain writes
  *           on the Up arm. The caller consumes no register this leaves, and the whole chain
  *           nets exactly one caller-return.
- * NAMES:    MARIO_CLIMB_LIMIT_A (0x621B), MARIO_CLIMB_LIMIT_B (0x621C) from ram.js. The two
+ * NAMES:    MARIO_CLIMB_LIMIT_A (0x621B), MARIO_CLIMB_LIMIT_B (0x621C) from names.js. The two
  *           limit values arrive in registers from the still-translated caller (a genuine
  *           oracle boundary), so they are read from there directly; the caller's pointer at
  *           the block base just below the pair is invariantly 0x621A, so the two stores resolve
  *           to the named cells.
  */
 
-import { MARIO_CLIMB_LIMIT_A, MARIO_CLIMB_LIMIT_B } from "./ram.js";
+import { MARIO_CLIMB_LIMIT_A, MARIO_CLIMB_LIMIT_B } from "./names.js";
 import { climbUpWhileHeld } from "./climbUpWhileHeld.js"; // ROM 0x1B45
 
 /**

@@ -31,7 +31,7 @@
  * marker bytes (0x24 / 0x30 / 0x31 / 0x2d / 0xae / 0xfe / 0xfd / 0x33 / 0x32) are opaque
  * graphics-ROM indices, kept hex like the other marker bytes in this layer; the tilemap addresses
  * (the 0x9400 bottom-row boundary, the 0x92a4 trigger cell) stay hex too. The write cursor is
- * MOUNTAIN_ERODE_PTR and the step timer MOUNTAIN_ERODE_TIMER (both from ram.js).
+ * MOUNTAIN_ERODE_PTR and the step timer MOUNTAIN_ERODE_TIMER (both from names.js).
  *
  * Memory-equivalent to the frozen oracle — equivalence-241c.test.js.
  * GATE:     real captured dispatches (attract dispatches it ~2400× / 3000 frames — both
@@ -47,7 +47,7 @@
  *           ENEMY3_TWIN_Y) and the sound ring on the finalise arm. The oracle's exit registers,
  *           flags and Z80 return path are dead scratch a plain JS call replaces.
  * NAMES:    PLAY_PHASE_COUNTER, BOARD_END_PHASE, ENEMY3_Y, ENEMY3_TWIN_Y, MOUNTAIN_ERODE_TIMER (the step
- *           timer) and MOUNTAIN_ERODE_PTR (the write cursor) from ram.js. Delegates the sound cues to
+ *           timer) and MOUNTAIN_ERODE_PTR (the write cursor) from names.js. Delegates the sound cues to
  *           requestSound15 / requestSound7 and the window reseed to seedMountainErosion.
  */
 import {
@@ -57,7 +57,7 @@ import {
   ENEMY3_TWIN_Y,
   MOUNTAIN_ERODE_TIMER,
   MOUNTAIN_ERODE_PTR,
-} from "./ram.js";
+} from "./names.js";
 import { requestSound15 } from "./requestSound15.js";
 import { requestSound7 } from "./requestSound7.js";
 import { seedMountainErosion } from "./seedMountainErosion.js";

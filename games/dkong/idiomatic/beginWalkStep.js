@@ -32,11 +32,11 @@
  *           by an unconditional tail-jump and consume no register/flag this leaves; the
  *           oracle's residual A/HL/flags are dead ABI (pc/SP model the single tail
  *           return, supplied by the harness).
- * NAMES:    MARIO_SPRITE_CODE (0x6207), MARIO_MOVE_STEP_TIMER (0x620F) — from ram.js.
+ * NAMES:    MARIO_SPRITE_CODE (0x6207), MARIO_MOVE_STEP_TIMER (0x620F) — from names.js.
  *           triggerWalkSound (0x1d8f) and writeMarioSpriteRecord (0x1da6) called direct.
  */
 
-import { MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER } from "./ram.js";
+import { MARIO_SPRITE_CODE, MARIO_MOVE_STEP_TIMER } from "./names.js";
 import { triggerWalkSound } from "./triggerWalkSound.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 

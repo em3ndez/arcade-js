@@ -27,10 +27,10 @@
  * LIVE-OUT: memory-only — every effect is produced by the delegated handler (the per-frame
  *           update dispatcher or the deferral-record staging); this routine writes no RAM
  *           of its own, and its caller tail-jumps here and reads no register back.
- * NAMES:    REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED from ram.js.
+ * NAMES:    REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED from names.js.
  */
 
-import { REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "./ram.js";
+import { REACTION_STATE, GAME_STATE, DEMO_STEER_DIR, IN0_DEBOUNCED } from "./names.js";
 import { advanceObjectFrame } from "./advanceObjectFrame.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 

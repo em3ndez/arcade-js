@@ -38,14 +38,14 @@
  *
  * NAME: promoted in understanding pass 15 by a proposer plus an independent blind confirmer
  * (docs/reviewer-rules.md R4/R5). Corroboration from OUTSIDE this routine: the selector is the
- * `[seen]` ram.js cell BOARD_ADVANCE_STEP (0x6388); two of the six table targets already carry
+ * `[seen]` names.js cell BOARD_ADVANCE_STEP (0x6388); two of the six table targets already carry
  * earned English names — advanceSequenceStepWhenTimerExpires (0x3069, cert "seen") and
  * stepSpriteAnimationSequence (0x1839) — and the step-0 target is grounded through the two named
  * tile writers it drives, fillTileBlock (0x1826: 280 tile writes per completion, a 70-tile fill
  * run four times) and fillColumnAndContinueWalk (0x0F35: 48 more). The "rivet board" qualifier is
  * measured, not inferred from the arm names: every one of the six targets was tallied
  * board-4-exclusive, and the only six frames on which the playfield tilemap changes inside
- * sub-state 0x16 in a whole progression run are all on board 4 — "4=100m rivets" per ram.js's
+ * sub-state 0x16 in a whole progression run are all on board 4 — "4=100m rivets" per names.js's
  * `[seen]` BOARD note. The blind confirmer named this `dispatch100mInterludeStep` and voted
  * PROMOTE; "rivet board" and "100m" are the same board, and both derivations independently
  * identified the same rst-0x28 inline-table idiom shared with dispatchInGameSubstate /
@@ -70,12 +70,12 @@
  *           slot before it is read). The oracle discards the arm's return value at this level,
  *           so this routine returns nothing; dispatchRivetBoardInterludeStep's callers ignore any return. Residual
  *           A/HL/DE/flags are the trampoline's dead ABI handoff, read by no arm.
- * NAMES:    BOARD_ADVANCE_STEP (0x6388) from ram.js — the board-advance sequence step selector;
+ * NAMES:    BOARD_ADVANCE_STEP (0x6388) from names.js — the board-advance sequence step selector;
  *           table base 0x1648 kept hex (ROM data, not work RAM).
  */
 
 import { loc_00ca } from "../translated/loc_00ca.js";
-import { BOARD_ADVANCE_STEP } from "./ram.js"; // 0x6388 — interlude step selector (0..5 in play)
+import { BOARD_ADVANCE_STEP } from "./names.js"; // 0x6388 — interlude step selector (0..5 in play)
 
 // The `rst 0x28` inline jump table: 6 little-endian target addresses in ROM starting at 0x1648
 // (0x17B6, 0x3069, 0x1839, 0x186F, 0x1880, 0x18C6), indexed by the step. A ROM-data address, hex.

@@ -52,10 +52,10 @@
  * NAMES:    LEVEL (0x6229), SND_TRIGGER (0x6080; the effect sound is SND_TRIGGER[5] = 0x6085),
  *           and the sub_1dbd effect-sprite cluster EFFECT_STATE (0x6340) / EFFECT_TIMER (0x6341) /
  *           EFFECT_SELECT (0x6342) — the state / countdown / select bytes — all imported from
- *           ram.js. (ram.js tags the EFFECT_* names "[code]": the state-machine STRUCTURE is
+ *           names.js. (names.js tags the EFFECT_* names "[code]": the state-machine STRUCTURE is
  *           certain, the "effect-sprite" semantic is the interpretation still to ground vs MAME.)
  */
-import { LEVEL, SND_TRIGGER, EFFECT_STATE, EFFECT_TIMER, EFFECT_SELECT } from "./ram.js";
+import { LEVEL, SND_TRIGGER, EFFECT_STATE, EFFECT_TIMER, EFFECT_SELECT } from "./names.js";
 import { pickAwardTierByObjectCount } from "./pickAwardTierByObjectCount.js"; // ROM 0x3E70 — EFFECT_SELECT bit 0 arm (reads register A)
 import { stageAward300Popup } from "./stageAward300Popup.js"; // ROM 0x1E00 — EFFECT_SELECT bit 1 arm; LEVEL == 1 arm
 import { pickRandomAwardTier } from "./pickRandomAwardTier.js"; // ROM 0x1DF5 — EFFECT_SELECT bit 2 arm (RNG sub-dispatch)

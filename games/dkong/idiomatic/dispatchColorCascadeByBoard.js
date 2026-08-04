@@ -45,10 +45,10 @@
  *           SP/PC are the single net return the JS call stack replaces (the harness supplies one
  *           m.ret()).
  * NAMES:    BOARD (0x6227), SPRITE_OBJ_BLOCK (0x6908) with the SPRITE_Y field offset — all from
- *           ram.js. The −4 shift delta is an immediate. This routine touches no unnamed RAM.
+ *           names.js. The −4 shift delta is an immediate. This routine touches no unnamed RAM.
  */
 
-import { BOARD, SPRITE_OBJ_BLOCK, SPRITE_Y } from "./ram.js";
+import { BOARD, SPRITE_OBJ_BLOCK, SPRITE_Y } from "./names.js";
 import { shiftEvenBoardSpriteColumn } from "./shiftEvenBoardSpriteColumn.js"; // ROM 0x0478 — the even-board arm
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486

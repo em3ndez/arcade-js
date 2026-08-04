@@ -70,7 +70,7 @@ import { initRoundAndEnterMainLoop as idiomatic } from "../initRoundAndEnterMain
 import { loc_0348 as oracleMainLoop } from "../../translated/loc_0348.js";
 import { drawPlayerLabel } from "../drawPlayerLabel.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER } from "../ram.js";
+import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

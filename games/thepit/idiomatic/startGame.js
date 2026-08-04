@@ -34,10 +34,10 @@
  * NAMES:    VARIANT 0x8048, LEVEL 0x8028, GAME_STATE 0x8001, ACTIVE_PLAYER 0x8002 (the 1/2
  *           player selector the record save/load reads), the dip-derived source bytes
  *           LOOP_DELAY_BASE 0x804e / STARTING_MEN 0x8053 and the round-state bytes they
- *           feed (MAIN_LOOP_DELAY 0x8011, MEN_LEFT 0x802b) from ram.js.
+ *           feed (MAIN_LOOP_DELAY 0x8011, MEN_LEFT 0x802b) from names.js.
  */
 
-import { VARIANT, LEVEL, GAME_STATE, ACTIVE_PLAYER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE, MEN_LEFT, STARTING_MEN } from "./ram.js";
+import { VARIANT, LEVEL, GAME_STATE, ACTIVE_PLAYER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE, MEN_LEFT, STARTING_MEN } from "./names.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 import { enableNmi } from "./enableNmi.js";
 import { enableSound } from "./enableSound.js";

@@ -1,26 +1,26 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Names-consistency gate — ram.js is the SINGLE source of truth for whether a work-RAM
+"""Names-consistency gate — names.js is the SINGLE source of truth for whether a work-RAM
 cell is named; no prose may contradict it.
 
 The boundary (see docs/names-registry.md "One source per fact"): a cell's name, role, and
-confidence live in ONE place — games/<game>/idiomatic/ram.js. games/<game>/mechanisms.md
+confidence live in ONE place — games/<game>/idiomatic/names.js. games/<game>/mechanisms.md
 describes MECHANISMS (and tags mechanism *claims*), and routine-file comments describe the
 routine — NEITHER re-states a cell's registry status. The specific, drift-prone violation
-this gate forbids: prose that calls a ram.js-NAMED work-RAM address "unnamed / no ram.js
-name / not in ram.js / stays hex / kept hex / stays local". Such a claim must be TRUE — the
-address it is about must genuinely be ABSENT from ram.js.
+this gate forbids: prose that calls a names.js-NAMED work-RAM address "unnamed / no names.js
+name / not in names.js / stays hex / kept hex / stays local". Such a claim must be TRUE — the
+address it is about must genuinely be ABSENT from names.js.
 
-Why a gate: 2026-07-31, after 31 cells were promoted into ram.js, dozens of routine comments
-still read "0x8083 … has no ram.js name yet / stays hex" — a stale second copy of a fact
-ram.js already owns. THREE separate sync bugs this session traced to the same duplicated-fact
-root (a mechanisms.md tag contradicting ram.js, a stale "backups stay hex" note, the comment
+Why a gate: 2026-07-31, after 31 cells were promoted into names.js, dozens of routine comments
+still read "0x8083 … has no names.js name yet / stays hex" — a stale second copy of a fact
+names.js already owns. THREE separate sync bugs this session traced to the same duplicated-fact
+root (a mechanisms.md tag contradicting names.js, a stale "backups stay hex" note, the comment
 drift). Memory and docs can't enforce single-source; a fail-closed hook can.
 
 Precision (block- then clause-scoped, name-acknowledged carve-out). Comment/prose wraps constantly,
 so a per-LINE scan misses a claim split across a wrap ("... 0x8055 is\n the count (unnamed)"). The
 gate first JOINS each run of consecutive relevant lines — a comment block, or a blank-line-delimited
-paragraph — into one string, then splits THAT into clauses on ';' or a sentence end ('. '); 'ram.js'
+paragraph — into one string, then splits THAT into clauses on ';' or a sentence end ('. '); 'names.js'
 survives the split (no space after its dot). Within a hex-claim clause, a NAMED address is a violation
 only if that clause does NOT also spell the address's registry name. Three consequences: (1) a claim
 wrapped across a line-break is caught; (2) a hex-claim about a genuinely-unnamed cell riding beside a
@@ -45,7 +45,7 @@ matched no addresses at all and had been exiting 0 on every DK commit while insp
 gate that cannot fail is not a gate. Adding a second magic range would have left the same trap for
 game #3, so the range is derived instead.
 
-Subcommands:  check   exit 0 iff no staged clause contradicts ram.js (the hook calls this)
+Subcommands:  check   exit 0 iff no staged clause contradicts names.js (the hook calls this)
 
 KNOWN LIMITATIONS — a green from this gate means less than it looks like. Recorded here
 because "names gate clean" has been over-reported off this tool before:
@@ -106,7 +106,7 @@ ADDR = re.compile(r"0x[0-9a-f]{4}", re.I)
 # always had re.I, so the two regexes disagreed about what an address looks like — the
 # gate read a SMALLER registry than the one it was checking prose against.
 #
-# 168, not the 184 `export const NAME = 0x…;` lines in ram.js: 16 of those are FIELD OFFSETS
+# 168, not the 184 `export const NAME = 0x…;` lines in names.js: 16 of those are FIELD OFFSETS
 # (SPRITE_X = 0x00, OBJ_ACTIVE = 0x00, OBJ_WALK_PTR_HI = 0x1b …), not addresses. They
 # fall outside the work-RAM window and neither regex ever matched them. Counting them
 # as cells is the offset-namespace confusion this codebase keeps re-committing.
@@ -138,7 +138,7 @@ def workram_window(game):
 
 
 def named_workram(ram_text, window):
-    """{addr_int: NAME} for every ram.js const inside this game's work-RAM window."""
+    """{addr_int: NAME} for every names.js const inside this game's work-RAM window."""
     lo, hi = window
     out = {}
     for name, addr in EXPORT.findall(ram_text):
@@ -161,18 +161,18 @@ COMMENT_MARK = re.compile(r"^\s*(?:/\*+|\*/|\*|//)\s?")
 
 
 def scan(text, named, comments_only):
-    """Violations: a hex-claim clause that calls a ram.js-NAMED address hex/unnamed WITHOUT
+    """Violations: a hex-claim clause that calls a names.js-NAMED address hex/unnamed WITHOUT
     spelling that address's registry name in the same clause.
 
     Acknowledging the name is allowed ("BOARD_MODE (0x8057) is used raw here, kept hex") — the
     address is honestly labelled. What is forbidden is the bare "0x8057 stays hex", which reads
-    as "0x8057 is unnamed" and contradicts ram.js.
+    as "0x8057 is unnamed" and contradicts names.js.
 
     BLOCK-scoped, then clause-scoped. Comment/prose wraps constantly ("... 0x8055 is\n the count
     (unnamed)"), so a per-LINE scan misses a claim split across a wrap. So we first join each run
     of consecutive relevant lines (a comment block, or a blank-line-delimited paragraph) into one
     string — stripping comment markers — then split it into clauses on ';' or a sentence end ('. ';
-    'ram.js' survives, no space after its dot). A named address is flagged only if its clause does
+    'names.js' survives, no space after its dot). A named address is flagged only if its clause does
     NOT also spell its registry name — so a hex-claim about a genuinely-unnamed sibling, or an
     honest name-acknowledged raw use, both pass."""
     hits = []
@@ -228,7 +228,7 @@ def check():
             # gate vacuous for DK. Report it instead so the omission is visible.
             unwindowed.append(game)
             continue
-        ram = blob(":0", f"games/{game}/idiomatic/ram.js") or blob("HEAD", f"games/{game}/idiomatic/ram.js")
+        ram = blob(":0", f"games/{game}/idiomatic/names.js") or blob("HEAD", f"games/{game}/idiomatic/names.js")
         named = named_workram(ram, window)
         if not named:
             continue
@@ -236,7 +236,7 @@ def check():
         targets = [(f"games/{game}/mechanisms.md", False)]
         listing = git(["ls-files", "--", f"games/{game}/idiomatic/"]).splitlines()
         for p in listing:
-            if p.endswith(".js") and not p.endswith("/ram.js"):
+            if p.endswith(".js") and not p.endswith("/names.js"):
                 targets.append((p, True))
         for path, comments_only in targets:
             text = blob(":0", path) or blob("HEAD", path)
@@ -244,7 +244,7 @@ def check():
                 continue
             for ln, addrs, clause in scan(text, named, comments_only):
                 names = ", ".join(f"{named[a]} (0x{a:04x})" for a in addrs)
-                failures.append(f"    {path}:{ln}  calls {names} hex/unnamed — but ram.js names it.\n        “{clause}”")
+                failures.append(f"    {path}:{ln}  calls {names} hex/unnamed — but names.js names it.\n        “{clause}”")
     if unwindowed:
         sys.stderr.write(
             "COMMIT BLOCKED — names-consistency gate: could not derive the work-RAM window for "
@@ -257,10 +257,10 @@ def check():
     if failures:
         sys.stderr.write(
             "\nCOMMIT BLOCKED — names-consistency gate (tools/names_consistency.py):\n"
-            "  ram.js is the single source of truth for whether a cell is named; prose must not\n"
-            "  contradict it. These clauses call a ram.js-NAMED address unnamed/hex:\n\n"
+            "  names.js is the single source of truth for whether a cell is named; prose must not\n"
+            "  contradict it. These clauses call a names.js-NAMED address unnamed/hex:\n\n"
             + "\n".join(failures)
-            + "\n\n  Fix the prose to name the cell (or, if it is really unnamed, name it in ram.js).\n"
+            + "\n\n  Fix the prose to name the cell (or, if it is really unnamed, name it in names.js).\n"
             "  Do NOT --no-verify around this.\n\n"
         )
         return 1

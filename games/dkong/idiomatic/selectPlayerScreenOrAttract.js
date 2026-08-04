@@ -22,7 +22,7 @@
  * never read the scan pointer. Confidence note: the ROLE (scan records -> compose the
  * active player's screen, else attract) is well-corroborated by the three dispatch-tail
  * callees; the exact meaning of the record VALUES 1/3 is inferred from those outcomes,
- * and the record array is PLAYER_SLOT_RECORDS (0x611C) in ram.js, which cites loc_141e
+ * and the record array is PLAYER_SLOT_RECORDS (0x611C) in names.js, which cites loc_141e
  * (this routine) as its ground-truth reader for the owner-tag values 1/3.
  *
  * Memory-equivalent to the frozen oracle — equivalence-141e.test.js.
@@ -38,13 +38,13 @@
  *           dispatch — consume no register or flag; the oracle's residual A/B/DE/HL/F and
  *           SP/pc (the dropped stack model) are dead ABI.
  * NAMES:    CURRENT_PLAYER (0x600D), its player-index companion ACTIVE_PLAYER_INDEX (0x600E),
- *           and the scanned record array PLAYER_SLOT_RECORDS (0x611C) from ram.js.
+ *           and the scanned record array PLAYER_SLOT_RECORDS (0x611C) from names.js.
  *           Imports the six idiomatic callees (drawCreditDisplay, tickSubstateTimer,
  *           clearPlayfieldAndSprites, configureFlipScreenAndComposeScreen,
  *           selectPlayer2AndComposeScreen, enterAttractMode).
  */
 
-import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, PLAYER_SLOT_RECORDS } from "./ram.js";
+import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, PLAYER_SLOT_RECORDS } from "./names.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js"; // ROM 0x0616
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874

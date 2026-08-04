@@ -40,7 +40,7 @@
  *           registers/flags are dead ABI. SP/PC are the single net return the JS call stack
  *           replaces (the harness supplies one m.ret() to line them up).
  * NAMES:    none imported — the two cells are video-RAM tile addresses (0x7400–0x77FF), which
- *           ram.js does not name (it covers work RAM only), so they stay hex. The two tiles arrive
+ *           names.js does not name (it covers work RAM only), so they stay hex. The two tiles arrive
  *           in registers from renderBonusDisplay.
  */
 

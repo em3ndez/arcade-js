@@ -59,7 +59,7 @@ import { loc_2cf6 as oracle } from "../../translated/loc_2cf6.js";
 import { stampReleasedBarrelKind } from "../stampReleasedBarrelKind.js";
 import { advanceBarrelRelease } from "../advanceBarrelRelease.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../ram.js";
+import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -74,8 +74,8 @@ const ANIM_COUNTER = 0x638f;  // advanceBarrelRelease's animation sub-counter (u
 const RET_ADDR = 0x2ce5;      // a plausible caller-return site (any valid addr; both sides pop it)
 
 // Field offsets stamped in the renderer object record (caller-provided base). The sprite-code and
-// sprite-attr fields are named in ram.js and imported above; only the mode field is unnamed.
-const F_MODE = 0x15; // mode field (no ram.js name)
+// sprite-attr fields are named in names.js and imported above; only the mode field is unnamed.
+const F_MODE = 0x15; // mode field (no names.js name)
 const PRESET_DEFAULT = { [OBJ_SPRITE_CODE]: 0x15, [OBJ_SPRITE_ATTR]: 0x0b, [F_MODE]: 0x00 }; // bit 7 clear
 const PRESET_ALT = { [OBJ_SPRITE_CODE]: 0x19, [OBJ_SPRITE_ATTR]: 0x0c, [F_MODE]: 0x01 };     // bit 7 set
 

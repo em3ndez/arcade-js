@@ -32,7 +32,7 @@
  *           on both sides so the Z80 return path lines up for free.
  * NAMES:    HAZARD_ACTIVE_COUNT, HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, HAZARD_X, HAZARD_Y,
  *           PLAYER_Y, PLAYER_X, MOVE_BLOCK_FLAG (the byte this routine writes the overlap flag to),
- *           and DROP_QUEUE (the 24-slot queue base) from ram.js. Its reload byte is
+ *           and DROP_QUEUE (the 24-slot queue base) from names.js. Its reload byte is
  *           DIG_OBJ_TIMER_RELOAD (0x80c2).
  */
 
@@ -51,7 +51,7 @@ import {
   PLAYER_X,
   MOVE_BLOCK_FLAG,
   DROP_QUEUE,
-} from "./ram.js";
+} from "./names.js";
 import { u8 } from "../../../core/int.js";
 
 // The tile code painted into the spawned cell.

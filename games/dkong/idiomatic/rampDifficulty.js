@@ -31,11 +31,11 @@
  *           residual registers/flags and its two early returns are dead: no caller consumes
  *           a value, the routine simply does or skips its per-frame work.
  * NAMES:    DIFFICULTY_PRESCALER (0x6384), DIFFICULTY_CLOCK (0x6381), LEVEL (0x6229),
- *           DIFFICULTY (0x6380) — all from ram.js.
+ *           DIFFICULTY (0x6380) — all from names.js.
  */
 
 import { u8 } from "../../../core/int.js";
-import { DIFFICULTY_PRESCALER, DIFFICULTY_CLOCK, LEVEL, DIFFICULTY } from "./ram.js";
+import { DIFFICULTY_PRESCALER, DIFFICULTY_CLOCK, LEVEL, DIFFICULTY } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

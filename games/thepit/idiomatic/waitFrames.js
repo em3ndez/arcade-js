@@ -30,12 +30,12 @@
  * LIVE-OUT: memory-only — the countdown cell FRAME_WAIT_COUNTDOWN (0x8009) left at 0,
  *           plus the return to the caller (pc/SP). The working registers and flags the loop leaves
  *           behind are dead — no caller reads them back.
- * NAMES:    FRAME_WAIT_COUNTDOWN (0x8009), the per-frame countdown cell, from ram.js.
+ * NAMES:    FRAME_WAIT_COUNTDOWN (0x8009), the per-frame countdown cell, from names.js.
  *           0xb000 (interrupt-enable latch) and 0xb800 (watchdog kick) are I/O
  *           addresses, not work RAM.
  */
 
-import { FRAME_WAIT_COUNTDOWN } from "./ram.js";
+import { FRAME_WAIT_COUNTDOWN } from "./names.js";
 export function* waitFrames(m, count) {
   const { mem8 } = m;
 

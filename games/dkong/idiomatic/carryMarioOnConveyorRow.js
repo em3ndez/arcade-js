@@ -23,9 +23,9 @@
  * into the velocity register before each direct moveMarioX call the same way.
  *
  * GROUNDED (DK understanding pass 5, independent confirmer): reads the named MARIO_X / MARIO_Y
- * and the M50_OBJ{1,2,3}_STEP 50m step shadows — whose own ram.js comments name their reader
+ * and the M50_OBJ{1,2,3}_STEP 50m step shadows — whose own names.js comments name their reader
  * "the 50m platform/object mover" — and dispatches Mario's horizontal carry by the exact
- * conveyor row his Y sits on. 50m = conveyors (ram.js "2=50m conveyors"; mechanisms.md "cement
+ * conveyor row his Y sits on. 50m = conveyors (names.js "2=50m conveyors"; mechanisms.md "cement
  * pans on belts"); the object-2 arm is the already-English sibling selectConveyorStepAndMoveMario
  * (0x2AF6), which commits the family to the conveyor vocabulary. This is the Mario-CARRY mover
  * (reads MARIO_X/Y + named step shadows), not the step-DRIVER trio, so the M50 "which on-screen
@@ -47,12 +47,12 @@
  *           prior X is marshalled into a register for the still-register-ABI movers; nothing
  *           downstream reads a register or flag this routine leaves — it tail-returns.
  * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), M50_OBJ1_STEP (0x63A3), M50_OBJ3_STEP (0x63A6)
- *           — from ram.js. Object-2's two step shadows (M50_OBJ2_STEP_POS/NEG) are read inside
+ *           — from names.js. Object-2's two step shadows (M50_OBJ2_STEP_POS/NEG) are read inside
  *           the selectConveyorStepAndMoveMario arm; MARIO_SPRITE_RECORD is written by the
  *           moveMarioX callee.
  */
 
-import { MARIO_X, MARIO_Y, M50_OBJ1_STEP, M50_OBJ3_STEP } from "./ram.js";
+import { MARIO_X, MARIO_Y, M50_OBJ1_STEP, M50_OBJ3_STEP } from "./names.js";
 import { moveMarioX } from "./moveMarioX.js"; // ROM 0x2B02 — advance X by velocity + clamp
 import { selectConveyorStepAndMoveMario } from "./selectConveyorStepAndMoveMario.js";     // ROM 0x2AF6 — object-2 row: X-select the step, then move
 

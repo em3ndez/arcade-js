@@ -51,7 +51,7 @@ import { loc_2853 as oracle } from "../../translated/loc_2853.js";
 import { searchPlayerObjectOverlap as loc_2853 } from "../searchPlayerObjectOverlap.js";
 import { dispatchBoardOverlapSearch } from "../dispatchBoardOverlapSearch.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_ACTIVE, MARIO_Y, P1_INPUT, BOARD, OVERLAP_COUNT } from "../ram.js";
+import { STACK_SCRATCH, MARIO_ACTIVE, MARIO_Y, P1_INPUT, BOARD, OVERLAP_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

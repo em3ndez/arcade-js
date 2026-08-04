@@ -59,7 +59,7 @@ import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8 } from "../../../../core/int.js";
 import { loc_1fac as oracle } from "../../translated/loc_1fac.js";
 import { loc_1fac } from "../loc_1fac.js";
-import { OBJ_Y, OBJ_SPRITE_CODE, STACK_SCRATCH } from "../ram.js";
+import { OBJ_Y, OBJ_SPRITE_CODE, STACK_SCRATCH } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -71,7 +71,7 @@ const test = ROM_PRESENT
 const ATTRACT_FRAMES = 3000;
 const LIVE_FRAMES = 3000;
 
-// Record-field offsets the routine touches that ram.js does not name; the same three the
+// Record-field offsets the routine touches that names.js does not name; the same three the
 // rewrite keeps as file-local consts. Repeated here rather than exported, so breaking the
 // rewrite cannot silently move the test's idea of where the fields are.
 const TRAVEL_TARGET_Y = 0x17;

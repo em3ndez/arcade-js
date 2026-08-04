@@ -40,13 +40,13 @@
  *           rewritten. The routine writes NO memory — it is read-only — and every
  *           other residual register is dead ABI, as are the flags (the caller's
  *           `cp 0x01` recomputes them from A).
- * NAMES:    OBJ_ITER_PTR (0x63c8) from ram.js. The record field offsets +0x0e/+0x0f
- *           and the 12px probe offset are object-record structure, not ram.js cells;
+ * NAMES:    OBJ_ITER_PTR (0x63c8) from names.js. The record field offsets +0x0e/+0x0f
+ *           and the 12px probe offset are object-record structure, not names.js cells;
  *           the tile band (0xB0, low nibble < 8) is an irreducible value test. The
  *           tilemap VRAM base lives inside tileAddrForPixel, not here.
  */
 
-import { OBJ_ITER_PTR } from "./ram.js";
+import { OBJ_ITER_PTR } from "./names.js";
 import { tileAddrForPixel } from "./tileAddrForPixel.js"; // ROM 0x2FF0 — pixel -> tilemap cell
 
 const REC_Y = 0x0e;          // object-record field: Y coordinate

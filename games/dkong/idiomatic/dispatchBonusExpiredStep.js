@@ -43,12 +43,12 @@
  *           registers/flags out — loc_197a's very next act is another call (0x2FCB)
  *           that overwrites A/flags, so the oracle's residual regs are dead ABI; SP/pc
  *           are the dropped Z80 stack model.
- * NAMES:    BONUS_EXPIRED_STEP (0x6386) from ram.js — the dispatcher's state byte. The
+ * NAMES:    BONUS_EXPIRED_STEP (0x6386) from names.js — the dispatcher's state byte. The
  *           four handlers own the RAM they touch (delay counter, sub-state, timer, …).
  */
 
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { BONUS_EXPIRED_STEP } from "./ram.js";
+import { BONUS_EXPIRED_STEP } from "./names.js";
 import { bonusExpiredIdle } from "./bonusExpiredIdle.js"; // ROM 0x1A1E — idx0 no-op
 import { startBonusExpiredDelay } from "./startBonusExpiredDelay.js"; // ROM 0x1A15 — idx1 INIT
 import { advanceBonusExpiredStepWhenDelayExpires } from "./advanceBonusExpiredStepWhenDelayExpires.js"; // ROM 0x1A1F — idx2 DELAY

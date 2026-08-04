@@ -49,10 +49,10 @@
  *           residue in B (findCollidingObject's live-out registers). The oracle's dissolved
  *           pop/push/return bracket is stack-only.
  * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_67 (0x6700), OBJ_ARRAY_64 (0x6400),
- *           OBJ_RECORD_66A0 (0x66A0) from ram.js; findCollidingObject (ROM 0x2913) direct-called.
+ *           OBJ_RECORD_66A0 (0x66A0) from names.js; findCollidingObject (ROM 0x2913) direct-called.
  */
 
-import { OBJ_SEARCH_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64, OBJ_RECORD_66A0 } from "./ram.js";
+import { OBJ_SEARCH_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64, OBJ_RECORD_66A0 } from "./names.js";
 import { findCollidingObject } from "./findCollidingObject.js";
 
 const SWEEP1_COUNT = 0x0a;    // records the 0x6700 sweep scans

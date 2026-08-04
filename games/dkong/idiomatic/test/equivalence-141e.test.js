@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_141e as oracle } from "../../translated/loc_141e.js";
 import { selectPlayerScreenOrAttract as candidate } from "../selectPlayerScreenOrAttract.js";
 import { Machine } from "../../machine.js";
-import { CURRENT_PLAYER, SUBSTATE_TIMER, GAME_STATE, GAME_SUBSTATE, ATTRACT, STACK_SCRATCH } from "../ram.js";
+import { CURRENT_PLAYER, SUBSTATE_TIMER, GAME_STATE, GAME_SUBSTATE, ATTRACT, STACK_SCRATCH } from "../names.js";
 
 // the idiomatic callees the twins reuse (so a twin differs from the candidate by exactly
 // its one injected bug, nothing else)

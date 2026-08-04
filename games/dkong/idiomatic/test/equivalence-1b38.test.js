@@ -60,7 +60,7 @@ import { climbDownWhileHeld as candidate } from "../climbDownWhileHeld.js";
 import { climbMarioDown } from "../climbMarioDown.js";     // ROM 0x1CF2
 import { climbUpWhileHeld } from "../climbUpWhileHeld.js"; // ROM 0x1B45
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, P1_INPUT, MARIO_ON_LADDER, MARIO_MOVE_STEP_TIMER } from "../ram.js";
+import { STACK_SCRATCH, P1_INPUT, MARIO_ON_LADDER, MARIO_MOVE_STEP_TIMER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

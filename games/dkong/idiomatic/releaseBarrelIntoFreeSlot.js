@@ -23,7 +23,7 @@
  *      (activateReleasedBarrel) clears it again — so it is a one-shot "a barrel went out this pass" latch.
  *   5. Charges the release: posts the deferred task that takes one notch off the on-screen
  *      bonus readout, then decrements the BONUS counter itself. ★ ON 25m THIS ROUTINE IS THE
- *      BONUS CLOCK — ram.js records BONUS as ticking down either by the timed decrementer
+ *      BONUS CLOCK — names.js records BONUS as ticking down either by the timed decrementer
  *      (boards 2/3/4, ROM 0x2FCB) or "by the barrel-release routine (board 1, ROM 0x2CB8)",
  *      i.e. here. So on 25m the bonus falls per barrel released, not per unit of time.
  *      When that decrement reaches zero it raises BONUS_EXPIRED_STEP, starting the
@@ -81,7 +81,7 @@
  *           overwritten downstream before it is read.
  * NAMES:    RENDER_OBJ_PTR (0x62AA), RENDER_DST_PTR (0x62AC), ACTOR_SPRITES (0x6980),
  *           BONUS (0x62B1), BONUS_EXPIRED_STEP (0x6386) and the record field OBJ_ACTIVE (+0),
- *           all imported from ram.js.
+ *           all imported from names.js.
  *           ★ OFFSET NAMESPACE: the index register points at an OBJECT record (an OBJ_ARRAY_67
  *           barrel record, grounded 46/46), so its +0 is the object-record OBJ_ACTIVE — NOT the
  *           sprite-record SPRITE_X that shares the numeric offset 0, and not the OBJ_PAIR_6680-
@@ -89,7 +89,7 @@
  *           namespace: ACTOR_SPRITES is a group of hardware sprite records inside SPRITE_BUFFER,
  *           so the stride that scales the index is the 4-byte sprite-record stride, not the
  *           0x20-byte object-record stride the scan above uses.
- *           The event gate 0x6393 is UNNAMED in ram.js — examined and rejected as shared 0x63xx
+ *           The event gate 0x6393 is UNNAMED in names.js — examined and rejected as shared 0x63xx
  *           engine scratch — so it stays a local hex const, the same convention as the siblings
  *           scheduleBarrelRelease and activateReleasedBarrel that read and clear it.
  */
@@ -97,7 +97,7 @@
 import { u8 } from "../../../core/int.js";
 import {
   RENDER_OBJ_PTR, RENDER_DST_PTR, ACTOR_SPRITES, OBJ_ACTIVE, BONUS, BONUS_EXPIRED_STEP,
-} from "./ram.js";
+} from "./names.js";
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F — post a deferred [opcode, argument]
 import { loc_2ce6 } from "./loc_2ce6.js"; // ROM 0x2CE6 — the rest of the cluster chain
 

@@ -37,21 +37,21 @@
  *           is handed its source pointer as an argument, the rest read the shared scratch
  *           block — so the leftover register file is irrelevant to the compare. The exit pc
  *           and stack pointer are emulation artifacts, not live-out, and are excluded.
- * NAMES:    TILE_COL, TILE_ROW from ram.js. 0x8057 kept local (FILL_COLOUR) — ram.js
+ * NAMES:    TILE_COL, TILE_ROW from names.js. 0x8057 kept local (FILL_COLOUR) — names.js
  *           proposes BOARD_MODE for that address, but here it is unambiguously the strip's
  *           fill colour, not a mode, so a local role name is used rather than a misfit
  *           import (the sibling drawSetupCreditsPanel and the tail filler fillColourColumn keep it hex
  *           for the same reason). 0x8055 (PLOT_RUN_LENGTH, the per-strip cell count) and the
- *           ROM glyph table (0x49a5) are not named in ram.js.
+ *           ROM glyph table (0x49a5) are not named in names.js.
  */
 
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 
-// The flat colour every cell of the strip is painted in. ram.js proposes BOARD_MODE for
+// The flat colour every cell of the strip is painted in. names.js proposes BOARD_MODE for
 // 0x8057, but in this routine the byte is the fill colour, not a mode.
 const FILL_COLOUR = 0x8057;
 

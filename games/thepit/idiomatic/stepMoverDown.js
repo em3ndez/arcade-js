@@ -38,7 +38,7 @@
  *           only thing that would distinguish an English name from its siblings.
  */
 
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_Y } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_DIR, ENEMY_WORK_MOVE_PERIOD, ENEMY_WORK_Y } from "./names.js";
 
 export function stepMoverDown(m) {
   const { mem8 } = m;

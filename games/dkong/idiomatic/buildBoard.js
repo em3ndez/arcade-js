@@ -38,7 +38,7 @@
  *           of the RAM dump). The caller reads no return value; DE is set only as a
  *           live-IN to enqueueTask and to the shared tail, not a live-out. SP/pc are the
  *           dropped stack model — the oracle's push16/call/ret becomes the JS call stack.
- * NAMES:    BOARD (0x6227), SND_BGM (0x6089), BONUS_DISPLAY (0x638C) from ram.js — the
+ * NAMES:    BOARD (0x6227), SND_BGM (0x6089), BONUS_DISPLAY (0x638C) from names.js — the
  *           per-board reset of that bonus readout cell is one of the corroborations behind
  *           its name. The palette-bank latches (0x7D86/0x7D87) are the
  *           0x7Dxx hardware output region, not work RAM, so they keep their hex address;
@@ -48,7 +48,7 @@
  *           imported and called directly.
  */
 
-import { BOARD, SND_BGM, BONUS_DISPLAY } from "./ram.js";
+import { BOARD, SND_BGM, BONUS_DISPLAY } from "./names.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { setup25mGirderBoard } from "./setup25mGirderBoard.js"; // ROM 0x0CD4

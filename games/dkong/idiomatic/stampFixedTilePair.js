@@ -28,7 +28,7 @@
  *           dropped stack model — the oracle's `ret` is the JS return here — and
  *           this routine pushes nothing, so oracle and idiomatic leave RAM byte-
  *           identical with no stack residue at all.
- * NAMES:    none in ram.js — 0x74AF/0x748F are raw video-RAM tilemap cells (the
+ * NAMES:    none in names.js — 0x74AF/0x748F are raw video-RAM tilemap cells (the
  *           0x7400-0x77FF tilemap), kept as hex literals; 0x9E/0x9F are tile codes.
  */
 export function stampFixedTilePair(m) {

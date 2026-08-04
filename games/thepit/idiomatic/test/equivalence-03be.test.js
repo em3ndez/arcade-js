@@ -58,7 +58,7 @@ import { loc_03be as oracle } from "../../translated/loc_03be.js";
 import { enterPlayMode as idiomatic } from "../enterPlayMode.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { GAME_STATE, DEMO_STEER_DIR, ACTIVE_PLAYER } from "../ram.js";
+import { GAME_STATE, DEMO_STEER_DIR, ACTIVE_PLAYER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

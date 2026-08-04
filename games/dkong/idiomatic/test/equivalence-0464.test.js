@@ -56,7 +56,7 @@ import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { dispatchColorCascadeByBoard as loc_0450 } from "../dispatchColorCascadeByBoard.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, COLOUR_CYCLE_ACTIVE, BOARD, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, COLOUR_CYCLE_ACTIVE, BOARD, SPRITE_OBJ_BLOCK } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -67,8 +67,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x0464;
 const RET_ADDR = 0x0429;      // a plausible caller-return for the one net pop (any value works)
-const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed in ram.js)
-const OBJ_RELOAD_GATE = 0x6393; // 0 -> reload arm, nonzero -> repaint arm (unnamed in ram.js)
+const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed in names.js)
+const OBJ_RELOAD_GATE = 0x6393; // 0 -> reload arm, nonzero -> repaint arm (unnamed in names.js)
 const OBJ_TEMPLATE = 0x385c;  // ROM sprite-object template the reload arm copies from
 const OBJ_BLOCK_LEN = 0x28;   // 40 bytes = 10 sprite records x 4 bytes
 

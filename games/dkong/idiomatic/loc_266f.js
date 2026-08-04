@@ -36,11 +36,11 @@
  *           consumes a register this routine leaves; the oracle is a tail-jump chain
  *           (sub_262f -> here -> the tail -> ret) that nets exactly one caller-return pop,
  *           modelled by the JS return.
- * NAMES:    M50_OBJ2_STEP_DIR (0x62A3) — from ram.js. The tail's published shadows (0x63A4/
+ * NAMES:    M50_OBJ2_STEP_DIR (0x62A3) — from names.js. The tail's published shadows (0x63A4/
  *           0x63A5) and its mirrored sprite pair (the 0x69EC block) live inside loc_264c.
  */
 
-import { M50_OBJ2_STEP_DIR } from "./ram.js";
+import { M50_OBJ2_STEP_DIR } from "./names.js";
 import { loc_264c } from "./loc_264c.js"; // ROM 0x264C — the shared publish/animate tail
 
 export function loc_266f(m) {

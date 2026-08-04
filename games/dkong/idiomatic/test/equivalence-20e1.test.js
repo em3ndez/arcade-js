@@ -65,7 +65,7 @@ import { loc_20e1 as oracle } from "../../translated/loc_20e1.js";
 import { loc_20e1 } from "../loc_20e1.js";
 import { Machine } from "../../machine.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { STACK_SCRATCH, OBJ_X } from "../ram.js";
+import { STACK_SCRATCH, OBJ_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

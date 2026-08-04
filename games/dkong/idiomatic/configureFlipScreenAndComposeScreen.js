@@ -52,13 +52,13 @@
  *           dead ABI. SP/pc are the dropped stack model — the oracle's per-post push/ret
  *           residue lands only in STACK_SCRATCH, excluded by the contract.
  * NAMES:    DIP_UPRIGHT (0x6026), SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A) from
- *           ram.js; imports enqueueTask (the idiomatic ROM 0x309F callee). 0x7D82 (the
+ *           names.js; imports enqueueTask (the idiomatic ROM 0x309F callee). 0x7D82 (the
  *           flip-screen board latch) is not work RAM, so it stays a local hex constant
  *           (as in configureFlipScreenAndSelectSubstate). The opcode/argument bytes are
  *           the fixed message payloads, kept literal — not RAM addresses.
  */
 
-import { DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE } from "./ram.js";
+import { DIP_UPRIGHT, SUBSTATE_TIMER, GAME_SUBSTATE } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 
 // Flip-screen control latch (ls259.6h) — board hardware, not work RAM, so a local hex

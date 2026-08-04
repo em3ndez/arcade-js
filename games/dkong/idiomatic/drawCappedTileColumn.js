@@ -46,11 +46,11 @@
  *           this JS return), asserted unchanged on the candidate rather than compared
  *           against the oracle's m.step-threaded pc.
  * NAMES:    SEG_ADDR1 (0x63AB, first-endpoint tile address), SEG_HEIGHT (0x63B1, column
- *           extent), SEG_KIND (0x63B3, record kind) from ram.js — the line-segment
+ *           extent), SEG_KIND (0x63B3, record kind) from names.js — the line-segment
  *           render-scratch block.
  */
 
-import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND } from "./ram.js";
+import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND } from "./names.js";
 import { fillTileColumn } from "./fillTileColumn.js";
 
 export function drawCappedTileColumn(m) {

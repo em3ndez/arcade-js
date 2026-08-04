@@ -33,7 +33,7 @@
  *           The oracle's residual registers/flags are dead ABI; every caller overwrites
  *           the accumulator or jumps away without reading them.
  * NAMES:    PLAYER_CELL_PTR, REACTION_OBJ_X, PLAYER_X, REACTION_STATE, DIG_OBJ_SUBTYPE,
- *           HAZARD_ACTIVE_COUNT, DIG_OBJ_TIMER from ram.js. The staging scratch (0x80b6/0x80b9/
+ *           HAZARD_ACTIVE_COUNT, DIG_OBJ_TIMER from names.js. The staging scratch (0x80b6/0x80b9/
  *           0x80bc/0x80bf) and the saved cell pointer (0x80ba) have no confirmed name yet and stay
  *           hex; the reaction period byte is REACTION_PERIOD (0x80a3). The commit is delegated to
  *           the already-decompiled commitDigEntity.
@@ -49,7 +49,7 @@ import {
   HAZARD_ACTIVE_COUNT,
   DIG_OBJ_TIMER,
   REACTION_PERIOD,
-} from "./ram.js";
+} from "./names.js";
 
 // Scratch cells written here, then read back by the commit tail commitDigEntity.
 const STAGED_SPRITE_ID = 0x80bf;

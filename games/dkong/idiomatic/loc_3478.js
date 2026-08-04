@@ -45,13 +45,13 @@
  *           oracle's residual registers/flags and its (loc_3445-borrowed) terminal return
  *           are dead ABI. The one live register hand-off is the table pointer loc_3445 reads.
  * NAMES:    OBJ_X (record +0x03), OBJ_STATE (+0x0d), OBJ_WALK_PTR_LO (+0x1a),
- *           OBJ_WALK_PTR_HI (+0x1b) — from ram.js (the OBJ_ARRAY_64 record) — and MARIO_X
+ *           OBJ_WALK_PTR_HI (+0x1b) — from names.js (the OBJ_ARRAY_64 record) — and MARIO_X
  *           (0x6203), read only for its bit 7 as the direction selector. The path-table base
  *           (0x3AAC) is in ROM, not work RAM, so it stays a local const.
  */
 
 import { loc_3445 } from "./loc_3445.js"; // ROM 0x3445 — the shared table-walk + finalize tail
-import { OBJ_X, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI, MARIO_X } from "./ram.js";
+import { OBJ_X, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI, MARIO_X } from "./names.js";
 
 // This twin's own path table in ROM (sub_342c uses 0x3A8C). Not work RAM -> stays a const.
 const PATH_TABLE = 0x3aac;

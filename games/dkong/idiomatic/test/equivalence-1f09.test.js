@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f09 as oracle } from "../../translated/loc_1f09.js";
 import { flashEffectSpriteThenAdvanceSequence } from "../flashEffectSpriteThenAdvanceSequence.js";
-import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE } from "../ram.js";
+import { EFFECT_SEQ_INNER, EFFECT_SEQ_OUTER, EFFECT_SEQ_STATE, EFFECT_SPRITE } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

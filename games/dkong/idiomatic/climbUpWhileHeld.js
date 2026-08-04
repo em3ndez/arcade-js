@@ -25,11 +25,11 @@
  * LIVE-OUT: memory-only — this routine writes nothing itself; on the Up arm the climb driver
  *           writes. The tail-calling caller (loc_1b38) consumes no register it leaves, and
  *           the chain nets exactly one caller-return.
- * NAMES:    P1_INPUT (0x6010) from ram.js. Delegates to the already-idiomatic climbMarioUp
+ * NAMES:    P1_INPUT (0x6010) from names.js. Delegates to the already-idiomatic climbMarioUp
  *           (ROM 0x1D03); the cells that chain touches are documented in its own header.
  */
 
-import { P1_INPUT } from "./ram.js";
+import { P1_INPUT } from "./names.js";
 import { climbMarioUp } from "./climbMarioUp.js"; // ROM 0x1D03
 
 // Bit 2 of the cooked control word = the UP direction (bit0 Right, bit1 Left, bit2 Up,

@@ -43,7 +43,7 @@
  *           flag is read back (both exits spin forever and the caller's frame was
  *           discarded by the stack reset).
  * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002), and the credit count CREDIT_COUNT
- *           (0x8000) from ram.js. enableNmi / applyDipSwitches / disableSound /
+ *           (0x8000) from names.js. enableNmi / applyDipSwitches / disableSound /
  *           showFixedScreen / enterPlayMode are called directly; the credit
  *           screen (showCreditScreen, 0x021c) is kept as an m.call boundary — it holds a
  *           screen forever, so it stays a stubbable/boundable registry boundary.
@@ -56,7 +56,7 @@ import { applyDipSwitches } from "./applyDipSwitches.js";
 import { disableSound } from "./disableSound.js";
 import { showFixedScreen } from "./showFixedScreen.js";
 import { enterPlayMode } from "./enterPlayMode.js";
-import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT, STACK_TOP } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, CREDIT_COUNT, STACK_TOP } from "./names.js";
 
 export function* rearmMachineAndBranchOnCredits(m) {
   const { mem8, regs } = m;

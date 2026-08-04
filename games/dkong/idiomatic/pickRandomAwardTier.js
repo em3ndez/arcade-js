@@ -38,12 +38,12 @@
  *           and the sprite record 0x6A30..0x6A33 + the board-gated sound 0x6085 (stampScorePopupSprite).
  *           The rotated A, and B/C/DE/HL/flags, are all dead; SP/pc are the dropped stack
  *           model (the oracle's tail jumps become direct calls).
- * NAMES:    RANDOM (0x6018, ram.js) is the PRNG accumulator dispatched on. The three arms
+ * NAMES:    RANDOM (0x6018, names.js) is the PRNG accumulator dispatched on. The three arms
  *           stageAward300Popup / stageAward500Popup / stageAward800Popup (ROM 0x1E00 / 0x1E08 / 0x1E10) are the idiomatic
  *           callees, imported and called directly; each owns its own constants and the
  *           downstream RAM writes.
  */
-import { RANDOM } from "./ram.js";
+import { RANDOM } from "./names.js";
 import { stageAward300Popup } from "./stageAward300Popup.js"; // ROM 0x1E00 — both bits clear
 import { stageAward500Popup } from "./stageAward500Popup.js"; // ROM 0x1E08 — bit0 set
 import { stageAward800Popup } from "./stageAward800Popup.js"; // ROM 0x1E10 — bit0 clear, bit1 set

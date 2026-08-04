@@ -9,7 +9,7 @@
  *   - state 0 -> effectStateIdle: idle. The state machine is dormant; nothing happens this frame.
  *   - state 1 -> armScorePopupAndSelectAward: the one-shot that arms the countdown and spawns the effect
  *     sprite, then advances the state to 2.
- *   - state 2 -> loc_1e4a — the frozen oracle for ROM 0x1E4A, whose promoted name in ram.js is
+ *   - state 2 -> loc_1e4a — the frozen oracle for ROM 0x1E4A, whose promoted name in names.js is
  *     tickDispatcherCountdown; this site keeps the oracle for the stack reason in the import
  *     note below. The countdown. Each frame it works the timer down and, on
  *     expiry, tears the effect down and returns the machine to state 0.
@@ -25,14 +25,14 @@
  * is consumed by the caller either way).
  *
  * NAME: PROMOTED in understanding pass 12, and the name is taken STRAIGHT FROM THE CELL rather than
- * from any reading of this routine: ram.js names 0x6340 EFFECT_STATE and documents it as "Effect
+ * from any reading of this routine: names.js names 0x6340 EFFECT_STATE and documents it as "Effect
  * state / 4-way rst-0x28 router (sub_1dbd)" — the cell names this routine as its router, which is
  * corroboration from outside the file (R5). The name therefore asserts exactly what EFFECT_STATE
  * already asserts, and nothing further. Its structural twin dispatchBonusExpiredStep (0x1A07) is
  * named the same way, after its own selector cell.
  * WHAT THIS NAME DOES NOT CLAIM: what the effect-sprite state machine DEPICTS. EFFECT_STATE is
  * [code], not [seen], and the effect semantic is still ungrounded — so "dispatchEffectState" names
- * the router and its selector, not the phenomenon. Its state-2 handler is NOT unnamed — ram.js
+ * the router and its selector, not the phenomenon. Its state-2 handler is NOT unnamed — names.js
  * names ROM 0x1E4A `tickDispatcherCountdown` and the idiomatic file exists — but this CALL SITE
  * deliberately keeps the frozen oracle `loc_1e4a`, because the swap is not stack-neutral and no
  * gate here can vouch for it. The import note below states the reason in full.
@@ -61,17 +61,17 @@
  *           SP/pc are the dropped stack model — on the state-1 arm the fully-idiomatic
  *           armScorePopupAndSelectAward leaves them at entry while the oracle's return chain moves them within
  *           STACK_SCRATCH; dead either way, so they are outside the compare.
- * NAMES:    EFFECT_STATE (0x6340), the router's state byte, from ram.js — a [code]-
+ * NAMES:    EFFECT_STATE (0x6340), the router's state byte, from names.js — a [code]-
  *           confidence name (the state-machine STRUCTURE is certain, the "effect-sprite"
- *           semantic still to ground vs MAME). EFFECT_TIMER (0x6341) is named in ram.js
+ *           semantic still to ground vs MAME). EFFECT_TIMER (0x6341) is named in names.js
  *           too and referenced above. 0x0000 is the ROM reset vector, kept hex.
  */
-import { EFFECT_STATE } from "./ram.js";
+import { EFFECT_STATE } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { effectStateIdle } from "./effectStateIdle.js"; // ROM 0x1E49 — state 0 (idle)
 import { armScorePopupAndSelectAward } from "./armScorePopupAndSelectAward.js"; // ROM 0x1DC9 — state 1 (arm + advance)
 // ROM 0x1E4A — state 2 (countdown). The FROZEN ORACLE deliberately: an idiomatic twin
-// (tickDispatcherCountdown.js) exists and 0x1E4A is in ram.js's ROUTINES, so "no idiomatic yet"
+// (tickDispatcherCountdown.js) exists and 0x1E4A is in names.js's ROUTINES, so "no idiomatic yet"
 // is FALSE. It stays because the oracle is a pure leaf that returns through a Z80 `ret` (two
 // `ret`s, zero m.call of its own), so it consumes one guest-stack word that the twin's JS return
 // does not — the swap is NOT stack-neutral. Left rather than dissolved because NO gate here can

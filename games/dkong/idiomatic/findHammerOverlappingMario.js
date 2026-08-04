@@ -66,12 +66,12 @@
  *           twin that scans only one record instead of both.
  * NAMES:    MARIO_ACTIVE (0x6200, used here as Mario's live-block base — its +3 byte is
  *           MARIO_X, the axis-2 reference), MARIO_Y (0x6205), OBJ_PAIR_6680 (0x6680) —
- *           all from ram.js. The tolerances (0x0408), record count (2) and stride
+ *           all from names.js. The tolerances (0x0408), record count (2) and stride
  *           (0x10) are immediates, not addresses, so they stay literal with role
  *           comments. findCollidingObject is direct-called.
  */
 
-import { MARIO_ACTIVE, MARIO_Y, OBJ_PAIR_6680 } from "./ram.js";
+import { MARIO_ACTIVE, MARIO_Y, OBJ_PAIR_6680 } from "./names.js";
 import { findCollidingObject } from "./findCollidingObject.js"; // ROM 0x2913 — object-list bounding-box search
 
 export function findHammerOverlappingMario(m) {

@@ -1,6 +1,6 @@
-# The names registry — `ram.js`
+# The names registry — `names.js`
 
-*One file per game, `games/<game>/idiomatic/ram.js`. It maps an address to a name — for both the
+*One file per game, `games/<game>/idiomatic/names.js`. It maps an address to a name — for both the
 work-RAM cells **and** the ROM routines — and it is the single place either name lives. Nothing else
 in the port has to be read to resolve an address to its established label.*
 
@@ -28,7 +28,7 @@ export const PLAYER_X = 0x806b;
 ```
 
 The tag is the **same evidence class used for routines** (`[seen]`/`[code]`/`[guess]`, defined in
-[understanding](understanding.md)) — how we know what the byte is (legend also at the top of ram.js):
+[understanding](understanding.md)) — how we know what the byte is (legend also at the top of names.js):
 
 - **`[seen]`** — the cell's role was observed under MAME (a grounding capture / control-poke watched the
   address and confirmed what it does).
@@ -38,7 +38,7 @@ The tag is the **same evidence class used for routines** (`[seen]`/`[code]`/`[gu
 - **keep-hex** — no confident name yet, so *no const is created*: the address stays a bare literal in the
   code rather than wearing a misleading label. (The absence of an entry is itself the signal.)
 
-These consts are **live**: the idiomatic routines `import { PLAYER_X } from "./ram.js"`, so the name is
+These consts are **live**: the idiomatic routines `import { PLAYER_X } from "./names.js"`, so the name is
 the actual symbol the code runs on, not a comment. The tag reflects the **consensus across every routine
 that touches the address** — never one routine's local view (one routine sees `0x8055` as "a loop count";
 the ~18 that stage it reveal `PLOT_RUN_LENGTH`). How broadly a name is corroborated is stated in the
@@ -111,26 +111,26 @@ understanding grows".
 
 ## One source per fact — prose must not contradict the registry
 
-`ram.js` is the **single source of truth** for a cell's three facts: its **name**, its **role**, and its
+`names.js` is the **single source of truth** for a cell's three facts: its **name**, its **role**, and its
 **confidence tag**. Everything else that mentions a cell *cites* it and must not restate or contradict
 those facts:
 
 - **`mechanisms.md`** describes the game's *mechanisms* — how cells interact to produce play — and tags
   **mechanism claims** ("the laser fires on press `[seen]`"), NOT individual cells. It refers to a cell
-  by its `ram.js` name and carries no per-cell tag that could drift from the registry. (A *behaviour*
+  by its `names.js` name and carries no per-cell tag that could drift from the registry. (A *behaviour*
   can be `[seen]` while a *cell* it touches is `[code]` — different subjects, so the two tags
   legitimately differ; that is exactly why `mechanisms.md` tags **claims**, not cells.)
 - **Routine comments** describe the *routine*. They refer to cells by their imported name and never
-  restate registry status — never "0x8083 has no ram.js name / stays hex" for an address `ram.js` names.
+  restate registry status — never "0x8083 has no names.js name / stays hex" for an address `names.js` names.
 
 This prevents the drift where a fact copied into two independently-edited places goes stale. Three
-separate sync bugs on 2026-07-31 traced to exactly it — a `mechanisms.md` tag contradicting `ram.js`, a
-stale "backups stay hex" note in `ram.js`, and dozens of routine comments still calling promoted cells
+separate sync bugs on 2026-07-31 traced to exactly it — a `mechanisms.md` tag contradicting `names.js`, a
+stale "backups stay hex" note in `names.js`, and dozens of routine comments still calling promoted cells
 "hex" after they were named.
 
 **Enforced.** `tools/names_consistency.py` is a fail-closed pre-commit gate: it blocks any commit whose
-staged prose — in `mechanisms.md` or a routine comment — calls a `ram.js`-named work-RAM address
-"unnamed / no ram.js name / stays hex", *unless the same clause also spells the cell's registry name*.
+staged prose — in `mechanisms.md` or a routine comment — calls a `names.js`-named work-RAM address
+"unnamed / no names.js name / stays hex", *unless the same clause also spells the cell's registry name*.
 Acknowledging a deliberate raw / different-role use is allowed ("0x8057 is `BOARD_MODE`, reused here as
 the plotter fill byte"); a bare false "0x8057 stays hex" is not. The registry wins; the prose follows.
 (The gate deliberately does NOT force every reference to a named cell through its const — an address is
@@ -141,7 +141,7 @@ sometimes used raw for a genuinely different role, where the registry name would
 1. **The understanding phase.** A namer resolves any address's established label from this one file
    instead of grepping the port, and the tags **carry between laps** — a later lap sharpens an
    earlier `[guess]` instead of starting cold. Names are *proposed* by the namer/optimizer and
-   *gated by a separate reviewer* (proposer ≠ confirmer); the lead edits `ram.js` — proposers never do.
+   *gated by a separate reviewer* (proposer ≠ confirmer); the lead edits `names.js` — proposers never do.
 2. **Clean-room external generation.** When we contribute a disassembly to an outside archive, the
    generator may read the raw disassembly, `mechanisms.md`, and from this file **the names and roles
    only — never `why` or `cert`** (and never `translated/` or any `idiomatic/*.js`), so no port

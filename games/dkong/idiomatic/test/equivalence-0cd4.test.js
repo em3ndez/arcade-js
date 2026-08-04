@@ -37,7 +37,7 @@ import { loc_0cd4 as oracle } from "../../translated/loc_0cd4.js";
 import { setup25mGirderBoard as idiomatic } from "../setup25mGirderBoard.js";
 import { loc_0cc6 } from "../loc_0cc6.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SND_BGM, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE } from "../ram.js";
+import { STACK_SCRATCH, SND_BGM, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -30,17 +30,17 @@
  *           (the actor is reached by tail-jump; dead ABI).
  * NAMES:    ENEMY3_X (0x810a, primary record base), ENEMY3_TWIN_X (0x811b, second record base),
  *           TREASURE_COLLECTED (0x8078, read here as the second-record gate — the shared byte
- *           whose twin-advance coupling vs reuse is unproven, see ram.js) from ram.js.
+ *           whose twin-advance coupling vs reuse is unproven, see names.js) from names.js.
  *           ENEMY_WORK_X 0x8083 is the driver's shared working block.
  */
 
-import { ENEMY3_X, ENEMY3_TWIN_X, TREASURE_COLLECTED, ENEMY_WORK_X } from "./ram.js";
+import { ENEMY3_X, ENEMY3_TWIN_X, TREASURE_COLLECTED, ENEMY_WORK_X } from "./names.js";
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // Second-record gate: nonzero means also advance the twin record this frame. This is the
 // same physical byte as TREASURE_COLLECTED (0x8078); whether the twin-advance couples to the
-// diamond-collect flag or merely reuses the byte is UNPROVEN (see ram.js caveat).
+// diamond-collect flag or merely reuses the byte is UNPROVEN (see names.js caveat).
 // Object records are 17 bytes each; the primary and twin sit back to back.
 const RECORD_SIZE = 17;
 

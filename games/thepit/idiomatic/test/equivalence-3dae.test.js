@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3dae as oracle } from "../../translated/loc_3dae.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
-import { TILE_ROW, TILE_COL } from "../ram.js";
+import { TILE_ROW, TILE_COL } from "../names.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
 

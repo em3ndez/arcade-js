@@ -58,7 +58,7 @@
  * real dkong ROM (scratchpad/pass13-grounding.md §2): 136,367 logged frames, positive control
  * ≈1 NMI fetch per frame, 44 episodes. Every completed episode is byte-identical — phase run
  * [0, 1, 2], count run [13 … 0], 13 gate ticks of 8 frames, 296 frames end to end. The outside
- * evidence for calling it DEATH: ram.js carries both cells at [seen] (DEATH_ANIM_PHASE 0x639D,
+ * evidence for calling it DEATH: names.js carries both cells at [seen] (DEATH_ANIM_PHASE 0x639D,
  * DEATH_ANIM_TICKS_LEFT 0x639E); the 0x0702 table places the caller at sub-state 0x0D, between
  * gameplay (0x0C) and the life-loss handlers (0x0E / 0x0F), where 15 observed deaths produced
  * 15 LIVES (0x6228) decrements and none came from elsewhere; and the sound line arm 0 fires
@@ -93,13 +93,13 @@
  *           this level, so this routine returns nothing too; dispatchDeathAnimationPhase's callers ignore any
  *           return. Residual A/HL/DE/flags are the trampoline's dead ABI handoff, read by
  *           no arm.
- * NAMES:    DEATH_ANIM_PHASE (0x639D) from ram.js is the selector; DEATH_ANIM_TICKS_LEFT (0x639E) the
- *           ticks-remaining counter the arms step (both [seen] in ram.js). Table base 0x1283
+ * NAMES:    DEATH_ANIM_PHASE (0x639D) from names.js is the selector; DEATH_ANIM_TICKS_LEFT (0x639E) the
+ *           ticks-remaining counter the arms step (both [seen] in names.js). Table base 0x1283
  *           kept hex (ROM data, not work RAM).
  */
 
 import { loc_00ca } from "../translated/loc_00ca.js";
-import { DEATH_ANIM_PHASE } from "./ram.js";
+import { DEATH_ANIM_PHASE } from "./names.js";
 
 // The `rst 0x28` inline jump table: 4 little-endian target addresses in ROM starting at
 // 0x1283 (0x128B, 0x12AC, 0x12DE, 0x0000), indexed by the phase. A ROM-data address, hex.

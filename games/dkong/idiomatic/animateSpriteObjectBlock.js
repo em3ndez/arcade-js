@@ -42,15 +42,15 @@
  *           are dead ABI — the untranslated callers were not traced, so they are
  *           treated as dead and backstopped by the whole-machine memory gate; the
  *           harness supplies the `ret` to line pc/SP up with the oracle.
- * NAMES:    SPRITE_OBJ_BLOCK (0x6908) — ram.js. 0x62AF stays hex: a private phase
- *           counter with no other reader (ram.js leaves it unnamed).
+ * NAMES:    SPRITE_OBJ_BLOCK (0x6908) — names.js. 0x62AF stays hex: a private phase
+ *           counter with no other reader (names.js leaves it unnamed).
  */
-import { SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SPRITE_OBJ_BLOCK } from "./names.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { xorMaskStridedPair } from "./xorMaskStridedPair.js"; // ROM 0x3096
 import { stirRandomSeed } from "./stirRandomSeed.js"; // ROM 0x0057
 
-const PHASE_COUNTER = 0x62af; // private 1-in-8 animation phase counter (unnamed in ram.js)
+const PHASE_COUNTER = 0x62af; // private 1-in-8 animation phase counter (unnamed in names.js)
 const B = SPRITE_OBJ_BLOCK; // 0x6908 — base of the ten 4-byte sprite records
 
 export function animateSpriteObjectBlock(m) {

@@ -34,7 +34,7 @@
  *           stageActorSpriteRecords overwrites the working registers and the whole-machine attract
  *           gate backstops the rest.
  * NAMES:    ENEMY3_Y / ENEMY3_TWIN_Y (the request byte + its mirror), ENEMY3_X /
- *           ENEMY3_TILE / ENEMY3_TIMER and ENEMY3_TWIN_X / ENEMY3_TWIN_TILE from ram.js. The twin
+ *           ENEMY3_TILE / ENEMY3_TIMER and ENEMY3_TWIN_X / ENEMY3_TWIN_TILE from names.js. The twin
  *           timer and the twin-mirror state/phase fields have no confirmed name yet and stay
  *           hex; the phase source is LEVEL (0x8028), whose low bits derive the twin start-phase.
  */
@@ -57,7 +57,7 @@ import {
   ENEMY3_TWIN_STATE,
   ENEMY3_TWIN_MOVE_PERIOD,
   ENEMY3_TWIN_TARGET_COL,
-} from "./ram.js";
+} from "./names.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 // The eight-cell figure: a 4-row x 2-col tile block. The anchor is its bottom-left

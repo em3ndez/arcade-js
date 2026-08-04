@@ -47,7 +47,7 @@ import { loc_059b as oracle } from "../../translated/loc_059b.js";
 import { resetScoreCounter as candidate } from "../resetScoreCounter.js";
 import { drawScoreTask } from "../drawScoreTask.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, P1_SCORE, P2_SCORE, HIGH_SCORE } from "../ram.js";
+import { STACK_SCRATCH, P1_SCORE, P2_SCORE, HIGH_SCORE } from "../names.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

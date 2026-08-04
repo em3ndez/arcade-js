@@ -32,12 +32,12 @@
  *           next routine (0x2808) without reading A/B/C/F, so the oracle's residual
  *           registers are dead ABI; SP/PC are the `ret` bookkeeping the JS call stack
  *           replaces.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js — 0x6905 is record #1's code byte
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js — 0x6905 is record #1's code byte
  *           (+4 for record 1, +1 for the code field). The register inputs are A (the
  *           code byte to store) and C (the colour-cycle counter 0x6390); neither is a
  *           RAM reference within this routine.
  */
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 
 // Record #1's code byte inside the sprite shadow buffer: base + 4 (record 1) + 1 (code).
 const SPRITE1_CODE = SPRITE_BUFFER + 5; // 0x6905

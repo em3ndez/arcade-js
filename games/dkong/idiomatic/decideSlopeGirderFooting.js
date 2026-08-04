@@ -32,7 +32,7 @@
  *           registers/flags and its terminal return / tail into the fall trigger are
  *           dead — the still-translated caller tail-invokes this and consumes no value.
  * NAMES:    touches no named work-RAM cell directly. The tile read is a computed
- *           video-RAM pointer (foot cell − one row; no ram.js name), and the fall write
+ *           video-RAM pointer (foot cell − one row; no names.js name), and the fall write
  *           is MARIO_START_FALL (0x6221) inside the direct-called triggerMarioFall
  *           (ROM 0x2ACD). Its two live-ins — the probe X and the foot-cell pointer — are
  *           read from registers at the still-translated sub_2a85 (ROM 0x2A85) boundary.

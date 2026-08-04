@@ -16,10 +16,10 @@
  * cursor's start address meaningful rather than incidental: across the ten iterations the frozen
  * walk advances the record pointer by 32 (ROM 0x1F8E) and the cursor by 4 (four single-byte
  * increments at ROM 0x1F8A-0x1F8D), so the cursor sweeps exactly 0x6980-0x69A7 — the ten stride-4
- * records ram.js names ACTOR_SPRITES. Only the low byte is incremented, so the sweep cannot leave
+ * records names.js names ACTOR_SPRITES. Only the low byte is incremented, so the sweep cannot leave
  * that page: the gate measures the cursor ending at 0xA8 low, one past the tenth record.
  *
- * OPEN QUESTION, deliberately left open: ram.js's ACTOR_SPRITES entry names one routine (ROM
+ * OPEN QUESTION, deliberately left open: names.js's ACTOR_SPRITES entry names one routine (ROM
  * 0x2E04) against that block, and this routine also starts its cursor there. Which of them owns
  * which bytes, and whether they write disjoint records, the same records, or in some order that
  * matters, was NOT determined here — nothing in this file should be read as settling it.
@@ -64,20 +64,20 @@
  *           that wrongly ran it there would leave the trace byte-identical too — the gate asserts
  *           that blindness rather than implying coverage, and the crafted entries are what catch a
  *           missing board gate.
- * NAMES:    BOARD (0x6227), OBJ_ARRAY_67 (0x6700) and ACTOR_SPRITES (0x6980) from ram.js. The walk
- *           this falls into (ROM 0x1F83) is not wired into ram.js's ROUTINES, so it resolves to the
+ * NAMES:    BOARD (0x6227), OBJ_ARRAY_67 (0x6700) and ACTOR_SPRITES (0x6980) from names.js. The walk
+ *           this falls into (ROM 0x1F83) is not wired into names.js's ROUTINES, so it resolves to the
  *           frozen oracle and is reached through the registry; the register loads above exist only
  *           to feed it and dissolve into arguments once it is. The board number 1, the ten records
- *           and the 32-byte stride are file-local constants: ram.js documents the meaning of
+ *           and the 32-byte stride are file-local constants: names.js documents the meaning of
  *           BOARD's values and OBJ_ARRAY_67's extent in those entries' own comments, so nothing
  *           here re-registers them.
  *
  * NAME: kept loc_ — an English name is earned in a confirmed understanding pass, not here.
  */
 
-import { BOARD, OBJ_ARRAY_67, ACTOR_SPRITES } from "./ram.js";
+import { BOARD, OBJ_ARRAY_67, ACTOR_SPRITES } from "./names.js";
 
-const GIRDER_BOARD = 1; // the BOARD value that runs the walk (25m); ram.js's BOARD entry has the rest
+const GIRDER_BOARD = 1; // the BOARD value that runs the walk (25m); names.js's BOARD entry has the rest
 const OBJECT_SLOTS = 10; // records in OBJ_ARRAY_67
 const RECORD_STRIDE = 32; // bytes from one OBJ_ARRAY_67 record to the next
 

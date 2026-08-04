@@ -33,7 +33,7 @@
  *           whatever the handoff handler writes. No live registers of its own; the horizontal
  *           bias is a genuine register live-in surfaced as the columnBias parameter.
  * NAMES:    PLAYER_Y, PLAYER_X, PLAYER_TILE_ROW, PLAYER_TILE_COL, PLAYER_CELL_PTR, NEXT_TILE, CUR_TILE,
- *           GOAL_TILE_LATCH, PIT_CROSS_ACTIVE from ram.js; 0x80a7 is EXPECTED_TILE (used
+ *           GOAL_TILE_LATCH, PIT_CROSS_ACTIVE from names.js; 0x80a7 is EXPECTED_TILE (used
  *           here as the second under-tile copy); 0x9000 (video-RAM base) stays hex.
  */
 
@@ -48,7 +48,7 @@ import {
   PLAYER_TILE_ROW,
   PLAYER_Y,
   PLAYER_X,
-} from "./ram.js";
+} from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { collectLootTile } from "./collectLootTile.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";

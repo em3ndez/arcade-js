@@ -47,12 +47,12 @@
  *           unchanged (no stack use) and IS compared. A/HL are dead at the tail (the end
  *           cap and then 0x0DA7 overwrite them) so they are neither reproduced nor
  *           compared; pc is the structural tail into the end cap and is not compared.
- * NAMES:    SEG_RUN (0x63B2) from ram.js — the segment run/span counter (line-segment
+ * NAMES:    SEG_RUN (0x63B2) from names.js — the segment run/span counter (line-segment
  *           render scratch); 0xC0 is the uniform body tile code (the LADDER body -- see the header).
  */
 
 import { drawSegmentEndCap } from "./drawSegmentEndCap.js";
-import { SEG_RUN } from "./ram.js";
+import { SEG_RUN } from "./names.js";
 
 export function drawGirderSpan(m) {
   const { regs, mem } = m;

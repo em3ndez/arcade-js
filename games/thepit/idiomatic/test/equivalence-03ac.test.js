@@ -69,7 +69,7 @@ import { resetStateAndShowSetup as idiomatic } from "../resetStateAndShowSetup.j
 import { applyDipSwitches } from "../applyDipSwitches.js";
 import { showSetupScreen } from "../showSetupScreen.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE, ACTIVE_PLAYER, STEP_TIMER_BASE } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, STEP_TIMER_BASE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

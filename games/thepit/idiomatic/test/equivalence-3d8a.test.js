@@ -42,7 +42,7 @@ import { drawGameOverText as idiomatic } from "../drawGameOverText.js";
 import { rowColToTileOffset } from "../rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
-import { TILE_COL, TILE_ROW } from "../ram.js";
+import { TILE_COL, TILE_ROW } from "../names.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 

@@ -18,7 +18,7 @@
  *
  * Its sibling selectPlayer1Context (idx 19) is the mirror image — it clears CURRENT_PLAYER (0x600D) /
  * ACTIVE_PLAYER_INDEX (0x600E) / GAME_SUBSTATE (0x600A) to 0 and forces the flip-screen
- * latch to 1. ram.js reads the pair as the two-player "player switch" (CURRENT_PLAYER's
+ * latch to 1. names.js reads the pair as the two-player "player switch" (CURRENT_PLAYER's
  * note: "loc_13aa sets 1, loc_13bb clears 0").
  *
  * NAME kept neutral loc_13aa on purpose. The memory mechanics above are certain, but
@@ -26,7 +26,7 @@
  * and what ACTIVE_PLAYER_INDEX (0x600E) == 1 signifies next to CURRENT_PLAYER — is a
  * single-proposer hypothesis, not corroborated to the routine-name evidence bar (the
  * same call its three decompiled siblings loc_138f / loc_13a1 / loc_13ca each made).
- * ram.js itself flags ACTIVE_PLAYER_INDEX's discriminating readers as unexercised in
+ * names.js itself flags ACTIVE_PLAYER_INDEX's discriminating readers as unexercised in
  * attract, so its lockstep value here is trusted but its game-level role is not. The
  * "set flip = DIP but current-player = P2" reading is not even internally clean, so a
  * confident English name here would over-assert (the routine-level sprite-record trap).
@@ -48,10 +48,10 @@
  *           Z80 `ret` the direct-call return replaces and are not modelled.
  * NAMES:    DIP_UPRIGHT (0x6026), GAME_SUBSTATE (0x600A), CURRENT_PLAYER (0x600D),
  *           ACTIVE_PLAYER_INDEX (0x600E, the high byte of the oracle's 0x600D word store)
- *           from ram.js. 0x7D82 (flip-screen latch — an I/O port, not work RAM) stays hex.
+ *           from names.js. 0x7D82 (flip-screen latch — an I/O port, not work RAM) stays hex.
  */
 
-import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER, ACTIVE_PLAYER_INDEX } from "./ram.js";
+import { DIP_UPRIGHT, GAME_SUBSTATE, CURRENT_PLAYER, ACTIVE_PLAYER_INDEX } from "./names.js";
 
 // Flip-screen latch (ls259 output, mirrored from the cabinet-orientation DIP). An I/O
 // port, not work RAM — the seam decodes 0x7D82 to io.writeFlipScreen(value & 1).

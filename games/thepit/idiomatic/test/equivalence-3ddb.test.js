@@ -46,7 +46,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_3ddb as oracle } from "../../translated/loc_3ddb.js";
 import { copyCappedTileColumn as idiomatic } from "../copyCappedTileColumn.js";
-import { PLOT_RUN_LENGTH } from "../ram.js";
+import { PLOT_RUN_LENGTH } from "../names.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence, firstStateDiff } from "../../../../core/equivalence.js";
 

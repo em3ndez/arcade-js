@@ -45,12 +45,12 @@
  *           Writes NO RAM; A and all flags are dead (every caller reloads/recomputes
  *           before reading them); the Z80 `ret` is just this function returning, so
  *           pc/SP are not modelled or compared.
- * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), BOARD (0x6227) — from ram.js.
+ * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), BOARD (0x6227) — from names.js.
  *
  * @param {object} m  the machine (read-only use of m.mem here).
  * @returns {{d:number, e:number}} the (D,E) verdict, also mirrored into regs.d/regs.e.
  */
-import { MARIO_X, MARIO_Y, BOARD } from "./ram.js";
+import { MARIO_X, MARIO_Y, BOARD } from "./names.js";
 
 export function limitMarioHorizontalTravel(m) {
   const { regs, mem } = m;

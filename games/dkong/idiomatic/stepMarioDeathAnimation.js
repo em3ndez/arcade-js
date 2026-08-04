@@ -32,10 +32,10 @@
  * settles at 0x12CB — no strays), and Mario's record takes exactly four (code, attr) pairs —
  * 0xF8/0x02, 0xF9/0x02, 0x78/0x82, 0x79/0x82 — each held 8 frames and cycled 3 times, before
  * the settle write lands 0x7A (or 0xFA when the facing bit was set) on 43/43. The outside
- * evidence: MARIO_SPRITE_RECORD (0x694C) is a [seen] cell in ram.js and the sprite-record
+ * evidence: MARIO_SPRITE_RECORD (0x694C) is a [seen] cell in names.js and the sprite-record
  * layout comes from MAME's own dkong_v.cpp draw_sprites (byte +1 = flipy|code, byte +2 =
  * flipx|…, transcribed at boards/dkong/video.js:657), which is what makes the two flip bits a
- * ROTATION rather than an arbitrary pair; both animation cells are [seen] in ram.js; and the
+ * ROTATION rather than an arbitrary pair; both animation cells are [seen] in names.js; and the
  * 296-frame episode length this arm dominates ends with a life lost (15 deaths, 15 LIVES
  * decrements in the following sub-state). ★ NEGATIVE CONTROL: 42,275 frames of ordinary play
  * with 0x639D and 0x639E both 0 on every frame, and zero 0x639E transitions in all 87,142
@@ -68,11 +68,11 @@
  *           oracle's residual A/B/HL and flags are dead ABI (pc/SP model the single
  *           caller-skip return the harness reconciles).
  * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C), DEATH_ANIM_PHASE
- *           (0x639D), DEATH_ANIM_TICKS_LEFT (0x639E) — from ram.js (the last two now [seen],
+ *           (0x639D), DEATH_ANIM_TICKS_LEFT (0x639E) — from names.js (the last two now [seen],
  *           grounded on the pass-13 MAME runs). 0x694D/0x694E are MARIO_SPRITE_RECORD +1/+2.
  */
 
-import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD, DEATH_ANIM_PHASE, DEATH_ANIM_TICKS_LEFT } from "./ram.js";
+import { SUBSTATE_TIMER, MARIO_SPRITE_RECORD, DEATH_ANIM_PHASE, DEATH_ANIM_TICKS_LEFT } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 // The two animated cells: sprite-code byte (+1, bit 7 = flipy) and attribute byte

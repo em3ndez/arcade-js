@@ -60,7 +60,7 @@ import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD } from "../ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -71,7 +71,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1670;
 const ANIM_FRAME_SRC = 0x3932; // ROM base of the copied 40-byte animation frame
-const STEP_SELECTOR = 0x6388; // the board-advance step index (unnamed in ram.js)
+const STEP_SELECTOR = 0x6388; // the board-advance step index (unnamed in names.js)
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field 3 (Y) of sprite-object record 0
 const POSE_HOLD_FRAMES = 0x20;
 const SP_CRAFT = 0x6bf8; // inside STACK_SCRATCH; headroom for the oracle's nested rst pushes/pops

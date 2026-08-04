@@ -51,7 +51,7 @@
  *           EFFECT_SELECT. So A is unambiguously live, the flags are dead (immediately
  *           overwritten by that re-test), and B/DE/IX/HL — which the oracle leaves as loop residue
  *           — are never read on the way out.
- * NAMES:    OVERLAP_COUNT (0x6060), OBJ_ARRAY_67 (0x6700), OBJ_ARRAY_64 (0x6400) from ram.js;
+ * NAMES:    OVERLAP_COUNT (0x6060), OBJ_ARRAY_67 (0x6700), OBJ_ARRAY_64 (0x6400) from names.js;
  *           countObjectOverlaps (ROM 0x3EC3) direct-called. This routine passes only array BASES
  *           and window widths — every record-relative field offset (OBJ_ACTIVE/OBJ_X/OBJ_Y and the
  *           two OBJ_HIT_EXTENT windows) lives inside countObjectOverlaps, so none appears here,
@@ -61,7 +61,7 @@
  *           values they produced, so it imports none of them.
  */
 
-import { OVERLAP_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64 } from "./ram.js";
+import { OVERLAP_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64 } from "./names.js";
 import { countObjectOverlaps } from "./countObjectOverlaps.js";
 
 const GROUP1_RECORDS = 10; // records scanned in OBJ_ARRAY_67

@@ -29,11 +29,11 @@
  *           sprite bytes. The routine is reached by tail-jump and continues by
  *           tail-jump, so no caller reads a value register back (dead ABI).
  * NAMES:    ENEMY2_X (0x80f9, the object-2 record base), SPRITE_COORD_BIAS (0x8051),
- *           SPRITE_STAGING_BASE (0x8220) from ram.js; the shared mover scratch block
+ *           SPRITE_STAGING_BASE (0x8220) from names.js; the shared mover scratch block
  *           base is ENEMY_WORK_X (0x8083).
  */
 
-import { ENEMY2_X, ENEMY_WORK_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "./ram.js";
+import { ENEMY2_X, ENEMY_WORK_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "./names.js";
 import { stepEnemyMover } from "./stepEnemyMover.js";
 import { advanceTwoSpriteActor } from "./advanceTwoSpriteActor.js";
 

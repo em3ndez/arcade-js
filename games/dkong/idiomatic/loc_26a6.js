@@ -45,7 +45,7 @@
  *           every successor overwrites A's siblings before reading (loc_264c reloads HL;
  *           the other two arms `ret` into callees that clobber A/flags first).
  * NAMES:    none imported — HL/DE and both counters are caller-supplied; the routine
- *           references no fixed ram.js address (the targets are SPRITE_BUFFER code bytes,
+ *           references no fixed names.js address (the targets are SPRITE_BUFFER code bytes,
  *           addressed relatively, kept hex per the note above).
  */
 export function loc_26a6(m) {

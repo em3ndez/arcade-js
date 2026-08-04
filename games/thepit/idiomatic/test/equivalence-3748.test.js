@@ -52,7 +52,7 @@ import { advanceTwoSpriteActor } from "../advanceTwoSpriteActor.js";
 import { makeMachineFactory } from "../../machine.js";
 import {
   ENEMY3_STEP_X, ENEMY3_X, PLAY_PHASE_COUNTER, PLAYER_Y, PLAYER_ACTIVE, BOARD_END_PHASE, ENEMY3_TWIN_X,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

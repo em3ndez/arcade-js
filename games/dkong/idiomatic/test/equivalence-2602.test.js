@@ -52,7 +52,7 @@ import { reverseStepDirection } from "../reverseStepDirection.js";
 import { loc_26a6 } from "../loc_26a6.js";
 import { loc_26e9 } from "../../translated/loc_26e9.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

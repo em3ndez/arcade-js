@@ -35,7 +35,7 @@
  *           `ret` (a pop, no write), so pc/SP carry no residue — the harness supplies the
  *           matching ret.
  * NAMES:    P1_CONTEXT, LIVES (base of the live context block), BOARD_SEQ_PTR, BOARD,
- *           TWO_PLAYER_GAME, SUBSTATE_TIMER, GAME_SUBSTATE — all from ram.js.
+ *           TWO_PLAYER_GAME, SUBSTATE_TIMER, GAME_SUBSTATE — all from names.js.
  */
 import {
   P1_CONTEXT,
@@ -45,7 +45,7 @@ import {
   TWO_PLAYER_GAME,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "./ram.js";
+} from "./names.js";
 
 export function restorePlayer1Context(m) {
   const { mem } = m;

@@ -71,7 +71,7 @@ import {
   MARIO_SPRITE_RECORD,
   SPRITE_CODE,
   SPRITE_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -95,7 +95,7 @@ const spriteOther = (recordBase) => (spriteDest(recordBase) === DEST_BIT3_SET ? 
 // Mario sprite record cells stepMarioDownInClimbPose touches on the descend.
 const POSE_CELL = MARIO_SPRITE_RECORD + SPRITE_CODE; // 0x694d — pinned to 3 by the descend
 const SPRITE_Y_CELL = MARIO_SPRITE_RECORD + SPRITE_Y; // 0x694f — stepped down by the descend
-const CLIMB_CENTRING_TOGGLE = 0x6222; // examined-and-unnamed in ram.js (shared toggle)
+const CLIMB_CENTRING_TOGGLE = 0x6222; // examined-and-unnamed in names.js (shared toggle)
 
 // The counter's top of travel (state advance) and Mario's centring band, in slide50mObjectDown.
 const COUNTER_TOP = 120; // 0x78

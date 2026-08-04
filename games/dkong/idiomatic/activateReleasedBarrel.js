@@ -45,16 +45,16 @@
  *           Y column; BARREL_CLAIM_MODE (0x6382) — the barrel slot-claim mode byte, not a bare
  *           flag: its low bits carry the claim's mode value (observed 1, and 0x81 = mode 1 with
  *           bit 7 set), its bit 7 selects the barrel kind for stampReleasedBarrelKind, and this routine reads
- *           its bit 0. All from ram.js. The object-record base comes from the caller (RENDER_OBJ_PTR), and the
- *           fields this routine writes per-field are the ram.js-named OBJ_ACTIVE (+0, set to 1 to
+ *           its bit 0. All from names.js. The object-record base comes from the caller (RENDER_OBJ_PTR), and the
+ *           fields this routine writes per-field are the names.js-named OBJ_ACTIVE (+0, set to 1 to
  *           activate the record), OBJ_X (+3) and OBJ_Y (+5), copied from the destination sprite
- *           record's SPRITE_X / SPRITE_Y — all imported from ram.js. The remaining fixed control
- *           bytes it stamps (+0x0F, +0x10) have no ram.js name and stay hex; the
+ *           record's SPRITE_X / SPRITE_Y — all imported from names.js. The remaining fixed control
+ *           bytes it stamps (+0x0F, +0x10) have no names.js name and stay hex; the
  *           (0x6392/0x6393) scratch bytes are unnamed engine scratch, kept hex.
  */
 
 import { RENDER_STR_PTR, SPRITE_OBJ_BLOCK, SPRITE_Y, BARREL_CLAIM_MODE,
-         OBJ_ACTIVE, OBJ_X, OBJ_Y } from "./ram.js";
+         OBJ_ACTIVE, OBJ_X, OBJ_Y } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004E
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 

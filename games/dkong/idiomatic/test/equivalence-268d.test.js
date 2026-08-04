@@ -47,7 +47,7 @@ import { loc_268d } from "../loc_268d.js";
 import { signStepHalfRate } from "../signStepHalfRate.js";
 import { loc_26a6 } from "../loc_26a6.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, M50_OBJ3_STEP_DIR, FRAME } from "../ram.js";
+import { STACK_SCRATCH, M50_OBJ3_STEP_DIR, FRAME } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -58,7 +58,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x268d;
 const RET_ADDR = 0x25fe;       // sub_25F2_body's `call 0x2AD3` — the real successor
-const SHADOW = 0x63a6;         // object-3's published step shadow (no ram.js name)
+const SHADOW = 0x63a6;         // object-3's published step shadow (no names.js name)
 const PAIR_BASE = 0x69f4;      // sprite-pair base; P = +1, P+4 = +5
 const PAIR_P = 0x69f5;
 const PAIR_P4 = 0x69f9;

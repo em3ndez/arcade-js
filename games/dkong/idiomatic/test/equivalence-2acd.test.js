@@ -36,7 +36,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2acd as oracle } from "../../translated/loc_2acd.js";
 import { triggerMarioFall } from "../triggerMarioFall.js";
-import { MARIO_START_FALL } from "../ram.js";
+import { MARIO_START_FALL } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

@@ -33,10 +33,10 @@
  *           step value 4. The scratch byte the oracle leaves in the accumulator is dead: the
  *           loop reloads it before its next test, and no exit successor reads it.
  * NAMES:    OBJ_X (+3), OBJ_Y (+5), SPRITE_X (+0), SPRITE_Y (+3) — record-field offsets from
- *           ram.js, indexed off the object and sprite scan cursors.
+ *           names.js, indexed off the object and sprite scan cursors.
  */
 
-import { OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y } from "./ram.js";
+import { OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y } from "./names.js";
 import { advanceToNextObject } from "./advanceToNextObject.js"; // ROM 0x2E78
 
 /**

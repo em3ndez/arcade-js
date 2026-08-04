@@ -43,11 +43,11 @@
  *           consumes a register this routine leaves. The oracle's terminal `ret` is
  *           modelled by the JS return.
  * NAMES:    M50_OBJ3_STEP_DIR (0x62A6), M50_OBJ3_STEP (0x63A6, the published step), FRAME
- *           (0x601A) — from ram.js. The sprite-pair base (0x69F4) has no ram.js name yet and
+ *           (0x601A) — from names.js. The sprite-pair base (0x69F4) has no names.js name yet and
  *           stays hex here (a SPRITE_BUFFER code byte, addressed relatively per loc_26a6's note).
  */
 
-import { M50_OBJ3_STEP_DIR, M50_OBJ3_STEP, FRAME } from "./ram.js";
+import { M50_OBJ3_STEP_DIR, M50_OBJ3_STEP, FRAME } from "./names.js";
 import { signStepHalfRate } from "./signStepHalfRate.js"; // ROM 0x26E9
 import { loc_26a6 } from "./loc_26a6.js"; // ROM 0x26A6
 

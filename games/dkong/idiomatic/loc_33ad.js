@@ -17,24 +17,24 @@
  *      code byte (and a per-object down-counter), so the ORDER matters: the flip bit is
  *      written first and the animation step lands on top of it. That is visible in the codes
  *      the record actually takes — 0x3D/0x3E while the flip bit is clear and 0xBD/0xBE while
- *      it is set, which is exactly the {61,62,189,190} set ram.js records for OBJ_SPRITE_CODE.
+ *      it is set, which is exactly the {61,62,189,190} set names.js records for OBJ_SPRITE_CODE.
  *   3. Control falls into loc_33c3, which on 25m only re-snaps the working Y to the sloped
  *      girder under the object's new X. Off 25m that tail does nothing, so on other boards
  *      this routine is just the X step + the sprite work.
  *
  * WHICH FIELDS THESE ARE. The two stepped coordinates are record fields +0x0E and +0x0F, and
- * neither has a ram.js name; they are the object's WORKING position, one stage upstream of the
+ * neither has a names.js name; they are the object's WORKING position, one stage upstream of the
  * grounded OBJ_X/OBJ_Y. Corroborated twice from outside this routine, both in the frozen
  * oracle at 0x3202: it copies +0x0E straight into OBJ_X (ROM 0x326F-0x3272) and stores
  * +0x0F plus a 0x3A7A table term into OBJ_Y (ROM 0x3275-0x3279) — and measured, +0x0E equalled
  * OBJ_X on all 309 real dispatches. Its sibling loc_298c independently reads the same pair as a
  * position, building its tile probe from +0x0E and +0x0F. The bit-7 flip reading is corroborated
- * by ram.js's SPRITE_BUFFER entry (record +1 code, bit 7 = flip) plus OBJ_SPRITE_CODE's note
+ * by names.js's SPRITE_BUFFER entry (record +1 code, bit 7 = flip) plus OBJ_SPRITE_CODE's note
  * that the object's +0x07 is copied into that sprite byte.
  *
  * WHAT IS NOT ESTABLISHED: which object this services. IX is loaded from OBJ_ITER_PTR by the
  * caller, so the record identity is whatever that iterator is pointing at; nothing here or in
- * ram.js names it, and the header claims nothing about it. Nor is the sense of state 1 called
+ * names.js names it, and the header claims nothing about it. Nor is the sense of state 1 called
  * "left" or "right" — only that it is the direction 0x3202's edge tests re-arm at the low-X
  * boundary (0x324D: X < 0x10 -> state 1, X >= 0xF0 -> state 2) and undo when the move is
  * rejected (0x3297: state 1 -> step X back down, state 2 -> step it back up).
@@ -69,19 +69,19 @@
  *           register live-in, and 0x3202 re-loads the pointer register from the same cell
  *           before its own next field access. pc and SP net to a single caller-return on every
  *           arm (the oracle's own return is the fall-through tail's), so both are compared too.
- * NAMES:    OBJ_STATE (+0x0D) and OBJ_SPRITE_CODE (+0x07) from ram.js. Record fields +0x0E and
- *           +0x0F have no ram.js offset name and stay local consts, as in loc_33c3.
+ * NAMES:    OBJ_STATE (+0x0D) and OBJ_SPRITE_CODE (+0x07) from names.js. Record fields +0x0E and
+ *           +0x0F have no names.js offset name and stay local consts, as in loc_33c3.
  *           NAMESPACE: the pointer addresses an OBJECT record (0x6400 array, measured), so
- *           +0x07 is OBJ_SPRITE_CODE, the object-record field — NOT ram.js's SPRITE_CODE (+1
+ *           +0x07 is OBJ_SPRITE_CODE, the object-record field — NOT names.js's SPRITE_CODE (+1
  *           of a 4-byte hardware SPRITE record inside SPRITE_BUFFER, a different namespace).
  *           Direct-called: stepObjectSpriteFrame (ROM 0x3409) and loc_33c3 (ROM 0x33C3).
  */
 
-import { OBJ_STATE, OBJ_SPRITE_CODE } from "./ram.js";
+import { OBJ_STATE, OBJ_SPRITE_CODE } from "./names.js";
 import { stepObjectSpriteFrame } from "./stepObjectSpriteFrame.js"; // ROM 0x3409 — the animation clock
 import { loc_33c3 } from "./loc_33c3.js"; // ROM 0x33C3 — the 25m girder-slope Y re-snap (fall-through tail)
 
-// Object-record field: the object's working X, one stage upstream of OBJ_X. No ram.js name yet.
+// Object-record field: the object's working X, one stage upstream of OBJ_X. No names.js name yet.
 // (loc_33c3 reaches the same field as the cross-axis input of its girder-slope step.)
 const OBJ_WORKING_X = 0x0e;
 

@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_2118 as oracle } from "../../translated/loc_2118.js";
 import { loc_2118 } from "../loc_2118.js";
-import { OBJ_SPRITE_CODE, OBJ_Y, STACK_SCRATCH } from "../ram.js";
+import { OBJ_SPRITE_CODE, OBJ_Y, STACK_SCRATCH } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

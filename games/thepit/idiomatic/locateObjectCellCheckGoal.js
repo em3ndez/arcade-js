@@ -37,7 +37,7 @@
  *           resolver or walk step leaves. No register live-out (the walk path's phase is set inside
  *           advanceObjectWalkFrame, covered by its own gate).
  * NAMES:    PLAYER_X, PLAYER_Y, PLAYER_TILE_COL, PLAYER_CELL_PTR, NEXT_TILE, GOAL_TILE_LATCH,
- *           PIT_CROSS_ACTIVE from ram.js. The tile classification and its ROM tables live in the
+ *           PIT_CROSS_ACTIVE from names.js. The tile classification and its ROM tables live in the
  *           resolver collectAlignedLootElseResolveTile.
  *
  * PURPOSE [guess]: "Object"=downstream vocab; same-entity caveat (writes PLAYER_CELL_PTR).
@@ -52,7 +52,7 @@ import {
   NEXT_TILE,
   GOAL_TILE_LATCH,
   PIT_CROSS_ACTIVE,
-} from "./ram.js";
+} from "./names.js";
 import { collectAlignedLootElseResolveTile } from "./collectAlignedLootElseResolveTile.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 

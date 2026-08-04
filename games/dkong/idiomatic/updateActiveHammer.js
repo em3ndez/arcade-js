@@ -53,10 +53,10 @@
  *           tails' terminal return reach no consumer. pc/SP are not compared.
  * NAMES:    HAMMER_TIMER_LO/HI (0x6394/0x6395), MARIO_HAMMER_ACTIVE (0x6217), MARIO_X
  *           (0x6203), MARIO_SPRITE_CODE (0x6207), MARIO_SPRITE_RECORD (0x694C) with the
- *           SPRITE_CODE field offset, OBJ_ACTIVE, SND_BGM (0x6089) — all from ram.js.
+ *           SPRITE_CODE field offset, OBJ_ACTIVE, SND_BGM (0x6089) — all from names.js.
  *           The object-record field +0x01 (cleared on expiry) and the object X-displacement
- *           field +0x0E have no ram.js name yet and stay local hex consts here; the saved-tune
- *           scratch cell is HAMMER_SAVED_BGM (0x6389, from ram.js). The three tails are
+ *           field +0x0E have no names.js name yet and stay local hex consts here; the saved-tune
+ *           scratch cell is HAMMER_SAVED_BGM (0x6389, from names.js). The three tails are
  *           direct-called; the shared record attribute is marshalled into the tail's register.
  */
 
@@ -71,13 +71,13 @@ import {
   OBJ_ACTIVE,
   SND_BGM,
   HAMMER_SAVED_BGM,
-} from "./ram.js";
+} from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { selectHammerSpriteBlinkByTimer } from "./selectHammerSpriteBlinkByTimer.js"; // ROM 0x2FB7 — low-byte-no-wrap build arm
 import { blinkHammerSpriteOnFramePhase } from "./blinkHammerSpriteOnFramePhase.js"; // ROM 0x2FBE — later-stretch blink arm
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js"; // ROM 0x2F7C — shared record write
 
-// Object-record field offsets with no ram.js name yet.
+// Object-record field offsets with no names.js name yet.
 const OBJ_FIELD_01 = 0x01;       // cleared to 0 when the hammer ends
 const OBJ_X_DISPLACEMENT = 0x0e; // horizontal offset added to Mario's X by the record write
 

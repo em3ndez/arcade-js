@@ -40,7 +40,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_330f as oracle } from "../../translated/loc_330f.js";
 import { tickFireTimerAndRerollDirection } from "../tickFireTimerAndRerollDirection.js";
-import { RANDOM } from "../ram.js";
+import { RANDOM } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

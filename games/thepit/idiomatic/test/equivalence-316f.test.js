@@ -49,7 +49,7 @@ import { loc_316f as oracle } from "../../translated/loc_316f.js";
 import { updateEnemy2 as idiomatic } from "../updateEnemy2.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ENEMY2_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../ram.js";
+import { ENEMY2_X, SPRITE_COORD_BIAS, SPRITE_STAGING_BASE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

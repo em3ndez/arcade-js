@@ -56,7 +56,7 @@ import { loc_2243 as oracle } from "../../translated/loc_2243.js";
 import { marioReachedTargetColumn as loc_2243 } from "../marioReachedTargetColumn.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { MARIO_X, MARIO_Y, MARIO_AIRBORNE } from "../ram.js";
+import { MARIO_X, MARIO_Y, MARIO_AIRBORNE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

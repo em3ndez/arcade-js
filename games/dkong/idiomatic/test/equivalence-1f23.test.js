@@ -76,7 +76,7 @@ import {
   EFFECT_PARAM_PTR,
   EFFECT_SPRITE,
   SPRITE_CODE,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

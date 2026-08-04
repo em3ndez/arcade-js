@@ -34,13 +34,13 @@
  *           sub-phase value and a wrong continuation.
  * LIVE-OUT: memory-only — the sub-phase byte ACTIVE_PLAYER and everything the chosen
  *           continuation leaves in RAM. No registers/flags.
- * NAMES:    ACTIVE_PLAYER (0x8002) from ram.js. PLAYER1_MEN_BACKUP (0x802c) / PLAYER2_MEN_BACKUP (0x802d) are the
+ * NAMES:    ACTIVE_PLAYER (0x8002) from names.js. PLAYER1_MEN_BACKUP (0x802c) / PLAYER2_MEN_BACKUP (0x802d) are the
  *           two continuation-select flags here (roles not pinned).
  *
  * PURPOSE [guess]: the two continuation-select flags' game meaning.
  */
 
-import { ACTIVE_PLAYER, PLAYER1_MEN_BACKUP, PLAYER2_MEN_BACKUP } from "./ram.js";
+import { ACTIVE_PLAYER, PLAYER1_MEN_BACKUP, PLAYER2_MEN_BACKUP } from "./names.js";
 import { setUpRoundAndHoldIntro } from "./setUpRoundAndHoldIntro.js";
 import { submitHighScoresAndReset } from "./submitHighScoresAndReset.js";
 

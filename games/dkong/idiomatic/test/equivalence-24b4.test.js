@@ -85,7 +85,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_24b4 as oracle } from "../../translated/loc_24b4.js";
 import { loc_24b4 } from "../loc_24b4.js";
-import { OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_ARRAY_67, SND_TRIGGER, STACK_SCRATCH } from "../ram.js";
+import { OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_ARRAY_67, SND_TRIGGER, STACK_SCRATCH } from "../names.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";
 

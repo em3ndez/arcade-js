@@ -33,7 +33,7 @@
  *           ENEMY3_TWIN_X (0x811b, the shadow twin) — all fair-confidence.
  */
 
-import { ENEMY3_TIMER, ENEMY3_X, ENEMY3_TWIN_X } from "./ram.js";
+import { ENEMY3_TIMER, ENEMY3_X, ENEMY3_TWIN_X } from "./names.js";
 import { stageActorSpriteRecords } from "./stageActorSpriteRecords.js";
 
 export function easeActorToRest(m) {

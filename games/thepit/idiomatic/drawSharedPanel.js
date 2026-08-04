@@ -43,12 +43,12 @@
  * LIVE-OUT: memory-only — the edge/HUD/playfield columns and the three labelled runs
  *           in video + colour RAM, plus the plotter cursor/staging cells. No live
  *           registers/flags; the oracle's tail-jump return is modelled by the gate.
- * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH / ACTIVE_PLAYER from ram.js. 0x8057 is
- *           kept local (FILL_ATTR): ram.js proposes BOARD_MODE for it, a mode-index
+ * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH / ACTIVE_PLAYER from names.js. 0x8057 is
+ *           kept local (FILL_ATTR): names.js proposes BOARD_MODE for it, a mode-index
  *           role that does not describe the colour attribute staged here (matches
  *           drawGameOverLabel / fillColourColumn). The ROM label strips are hex.
  */
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "./names.js";
 import { drawLeftEdgeColumn } from "./drawLeftEdgeColumn.js";
 import { redrawScoreHud } from "./redrawScoreHud.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
@@ -60,7 +60,7 @@ import { fillColourColumnAt } from "./fillColourColumnAt.js";
 import { drawBestScoresTodayLabel } from "./drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "./drawRightEdgeColumn.js";
 
-// The colour attribute the colour fills stamp. ram.js proposes BOARD_MODE for 0x8057,
+// The colour attribute the colour fills stamp. names.js proposes BOARD_MODE for 0x8057,
 // but here the byte is the panel's colour attribute, not a mode.
 const FILL_ATTR = 0x8057;
 

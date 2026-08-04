@@ -26,10 +26,10 @@
  * LIVE-OUT: memory-only — the committed sprite frame, the armed state timer and cleared leading
  *           coordinate on the far-edge path, and the record stageObjectSpriteRecord rebuilds. The registers/flags
  *           the oracle leaves behind (from its tail into stageObjectSpriteRecord) are dead ABI no caller reads.
- * NAMES:    PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y from ram.js.
+ * NAMES:    PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y from names.js.
  */
 
-import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "./ram.js";
+import { PLAYER_FACING, PIT_CROSS_ACTIVE, PLAYER_X, TRANSITION_TIMER, PLAYER_Y } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 
 // The row the actor must reach before the crossing's far-edge one-shot fires.

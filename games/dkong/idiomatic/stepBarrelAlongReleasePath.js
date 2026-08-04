@@ -45,14 +45,14 @@
  *           are dead ABI — the caller (a per-frame render call) reads none of them; the
  *           single terminal return is modelled in the gate, not here.
  * NAMES:    RENDER_STR_PTR (0x62A8), RENDER_OBJ_PTR (0x62AA), RENDER_DST_PTR (0x62AC),
- *           all from ram.js, as are the object record's sprite fields OBJ_SPRITE_CODE (+0x07)
+ *           all from names.js, as are the object record's sprite fields OBJ_SPRITE_CODE (+0x07)
  *           and OBJ_SPRITE_ATTR (+0x08). The destination slot is a 4-byte hardware sprite record,
- *           so its fields are the ram.js-named SPRITE_X (+0) / SPRITE_CODE (+1) / SPRITE_ATTR (+2)
+ *           so its fields are the names.js-named SPRITE_X (+0) / SPRITE_CODE (+1) / SPRITE_ATTR (+2)
  *           / SPRITE_Y (+3) and are imported from there too. The source string bytes live in ROM.
  */
 
 import { RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR,
-         SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y } from "./ram.js";
+         SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y } from "./names.js";
 import { activateReleasedBarrel } from "./activateReleasedBarrel.js"; // ROM 0x2D8C — the 0x7F terminator hand-off
 
 const TERMINATOR = 0x7f; // end-of-string sentinel; also the attribute-bit mask boundary

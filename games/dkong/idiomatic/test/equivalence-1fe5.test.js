@@ -80,7 +80,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1fe5 as oracle } from "../../translated/loc_1fe5.js";
 import { loc_1fe5 } from "../loc_1fe5.js";
-import { OBJ_ARRAY_67, OBJ_X, OBJ_Y, OBJ_SPRITE_CODE, STACK_SCRATCH } from "../ram.js";
+import { OBJ_ARRAY_67, OBJ_X, OBJ_Y, OBJ_SPRITE_CODE, STACK_SCRATCH } from "../names.js";
 import { firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
 

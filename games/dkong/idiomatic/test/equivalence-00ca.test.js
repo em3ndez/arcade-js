@@ -54,7 +54,7 @@ import { NotImplemented } from "../../../../boards/dkong/io.js";
 import { firstRegDiff } from "../../../../core/equivalence.js";
 import { loc_00ca as oracle } from "../../translated/loc_00ca.js";
 import { loc_00ca } from "../loc_00ca.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

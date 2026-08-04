@@ -52,7 +52,7 @@ import { loc_127f as oracle } from "../../translated/loc_127f.js";
 import { dispatchDeathAnimationPhase } from "../dispatchDeathAnimationPhase.js";
 import { loc_00ca } from "../../translated/loc_00ca.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, DEATH_ANIM_PHASE, SUBSTATE_TIMER } from "../ram.js";
+import { STACK_SCRATCH, DEATH_ANIM_PHASE, SUBSTATE_TIMER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -62,7 +62,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 // DEATH_ANIM_PHASE (0x639D, the phase selector) and SUBSTATE_TIMER (0x6009, the rst-0x18
-// tick gate; = 1 makes the next tick expire) come from ram.js — the single source of truth.
+// tick gate; = 1 makes the next tick expire) come from names.js — the single source of truth.
 const PHASE_TABLE = 0x1283;   // ROM inline jump table base
 const DISPATCH_TABLE_1283 = "0x1283 (0x639D dispatch)";
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

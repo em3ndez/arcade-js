@@ -33,11 +33,11 @@
  *           its own), so dropping the oracle's call/ret bracket leaves only dead stack
  *           scratch, excluded by the memory-equivalence contract.
  * NAMES:    MARIO_ACTIVE (0x6200, also the block base fed to the handler), MARIO_Y
- *           (0x6205) — from ram.js. MARIO_X (0x6203 = base + 3) is read by the handler,
+ *           (0x6205) — from names.js. MARIO_X (0x6203 = base + 3) is read by the handler,
  *           not here. The 0x0407 hitbox is a packed ROM immediate, kept as a local const.
  */
 
-import { MARIO_ACTIVE, MARIO_Y } from "./ram.js";
+import { MARIO_ACTIVE, MARIO_Y } from "./names.js";
 import { dispatchBoardCollision } from "./dispatchBoardCollision.js"; // ROM 0x286F
 
 // Mario's collision box, packed as the handler wants it: high byte = 4 (half-width, the

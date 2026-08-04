@@ -27,7 +27,7 @@ WHICH FILES ARE EXEMPT, AND WHY. Three, and they share one reason — their JOB 
 
   * translated/**            comes from the disassembly; a faithful translation of ROM 0x23DE must
                              say so. The address is that file's identity, not an outside citation.
-  * idiomatic/ram.js         the registry. It is the single source of truth mapping addresses to
+  * idiomatic/names.js         the registry. It is the single source of truth mapping addresses to
                              names and to modules, so it is where cross-file facts are SUPPOSED to
                              live (docs/names-registry.md, "One source per fact").
   * idiomatic/**/test/**     a test exists to exercise another module; it cannot describe itself
@@ -160,9 +160,9 @@ FORBIDDEN = [
     ("cites the port's state", re.compile(r"(?<![A-Za-z])UNWIRED(?![A-Za-z])")),
 ]
 
-# Exempt by exact position, not by basename: the registry is games/<game>/idiomatic/ram.js and
-# nothing else. A basename test would silently exempt a future idiomatic/sub/ram.js.
-EXEMPT_LEAF = "ram.js"
+# Exempt by exact position, not by basename: the registry is games/<game>/idiomatic/names.js and
+# nothing else. A basename test would silently exempt a future idiomatic/sub/names.js.
+EXEMPT_LEAF = "names.js"
 
 
 def in_scope(path):
@@ -470,8 +470,8 @@ SCOPE_CASES = [
     ("games/dkong/idiomatic/walkMarioLeft.js", True),
     ("games/dkong/idiomatic/loc_2a2f.js", True),
     ("games/dkong/idiomatic/sub/deep.js", True),
-    ("games/dkong/idiomatic/ram.js", False),
-    ("games/dkong/idiomatic/sub/ram.js", True),
+    ("games/dkong/idiomatic/names.js", False),
+    ("games/dkong/idiomatic/sub/names.js", True),
     ("games/dkong/idiomatic/test/equivalence-3009.test.js", False),
     ("games/dkong/translated/loc_23de.js", False),
     ("games/dkong/idiomatic/notes.md", False),

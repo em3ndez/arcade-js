@@ -39,11 +39,11 @@
  *           never touches the stack, so pc/SP carry no residue (pc is the dropped
  *           control-flow model — the `jp 0x0DA7` becomes the JS return).
  * NAMES:    SEG_ADDR1 (0x63AB tilemap ptr), SEG_HEIGHT (0x63B1 column extent),
- *           SEG_KIND (0x63B3 record kind), SEG_TILE (0x63B5 fill tile) from ram.js —
+ *           SEG_KIND (0x63B3 record kind), SEG_TILE (0x63B5 fill tile) from names.js —
  *           the line-segment board-render scratch struct.
  */
 
-import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND, SEG_TILE } from "./ram.js";
+import { SEG_ADDR1, SEG_HEIGHT, SEG_KIND, SEG_TILE } from "./names.js";
 
 export function fillTileColumn(m) {
   const { regs, mem } = m;

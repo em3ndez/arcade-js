@@ -3,12 +3,12 @@
  * loc_2a2f — probe the tile below a moving object and, if it has reached the sloped girder
  * there, snap the object UP onto the girder surface and report the contact. ROM 0x2A2F.
  *
- * ★ AXIS CORRECTION (2026-08-03). An earlier version of this header — and of ram.js's role
+ * ★ AXIS CORRECTION (2026-08-03). An earlier version of this header — and of names.js's role
  * line — had the record's two coordinate fields SWAPPED, and therefore described the routine
  * as sliding the object's X sideways along the slope, with a mysterious "only a LEFTWARD
  * slide counts as contact" asymmetry. There is no asymmetry; the mystery was manufactured by
  * the error. Three independent facts fix the axes:
- *   • ram.js grounds OBJ_X = record +3 and OBJ_Y = record +5, each live in real MAME on its
+ *   • names.js grounds OBJ_X = record +3 and OBJ_Y = record +5, each live in real MAME on its
  *     own byte (0x6403/0x6703 swept 227/223 distinct values; 0x6405/0x6705 22/158).
  *   • startMarioFallWhenGroundGivesWay fills the SAME two tileAddrForPixel slots this routine fills — it calls
  *     tileAddrForPixel(MARIO_X - 3, MARIO_Y + 12) — so the FIRST slot takes the X-role byte
@@ -58,15 +58,15 @@
  *           still translated and read the answer with `and a / jp nz`, so A is this routine's
  *           register boundary until they are rewritten. The oracle's other residual registers,
  *           its flags (both callers recompute them with `and a`) and its terminal ret are dead.
- * NAMES:    OBJ_X (record +3) and OBJ_Y (record +5) from ram.js, addressed relative to the
+ * NAMES:    OBJ_X (record +3) and OBJ_Y (record +5) from names.js, addressed relative to the
  *           caller's object pointer — imported rather than written as bare +3/+5, so the axis
  *           error corrected above cannot be reintroduced by reading the offsets off this file.
- *           The probed cell is tilemap video RAM (0x7400 page), which has no ram.js name; its
+ *           The probed cell is tilemap video RAM (0x7400 page), which has no names.js name; its
  *           address is computed by tileAddrForPixel (ROM 0x2FF0).
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_X, OBJ_Y } from "./ram.js";
+import { OBJ_X, OBJ_Y } from "./names.js";
 import { tileAddrForPixel } from "./tileAddrForPixel.js"; // ROM 0x2FF0
 
 /**

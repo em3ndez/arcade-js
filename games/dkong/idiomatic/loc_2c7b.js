@@ -65,7 +65,7 @@
  *           mode argument). This routine writes no RAM itself. The bonus live-in it forwards is the
  *           value BONUS (0x62B1) holds, read here from a register at the still-translated caller
  *           boundary. BARREL_CLAIM_MODE (0x6382) — the barrel slot-claim mode byte whose low bits
- *           carry the mode value and whose bit 7 selects the barrel kind — is named in ram.js and
+ *           carry the mode value and whose bit 7 selects the barrel kind — is named in names.js and
  *           imported inside the callees; 0x638F/0x6392 stay unnamed 0x63xx engine scratch and carry
  *           their comments there too.
  */

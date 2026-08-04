@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_19d2 as oracle } from "../../translated/loc_19d2.js";
 import { advanceSubstateAndArmTimer } from "../advanceSubstateAndArmTimer.js";
-import { GAME_SUBSTATE, SUBSTATE_TIMER } from "../ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

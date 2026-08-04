@@ -60,7 +60,7 @@ import {
   MARIO_CLIMB_LIMIT_A,
   MARIO_CLIMB_LIMIT_B,
   OBJ_PARAM_TABLE0,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -70,7 +70,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1afe;
-const CLIMB_FLAG = 0x621a; // the shared board flag this routine writes (unnamed in ram.js)
+const CLIMB_FLAG = 0x621a; // the shared board flag this routine writes (unnamed in names.js)
 const NEAR = 0x15;         // near paired-slot offset past a matched table byte (findOppositeLadderEnd stride)
 const FAR = 0x2a;          // far paired-slot offset past a matched table byte (findOppositeLadderEnd stride)
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");

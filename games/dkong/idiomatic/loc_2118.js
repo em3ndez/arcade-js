@@ -26,7 +26,7 @@
  * as the launch vertical speed, each signed with the high byte first — and it runs on THIS
  * record: ROM 0x20EC, the only caller of ROM 0x2118 in the frozen tree, calls it with the
  * same index register a few instructions before reaching here. What +1, +2 and +14 hold was
- * NOT derived. ram.js records that +1 carries different roles in different records and
+ * NOT derived. names.js records that +1 carries different roles in different records and
  * names this routine's write to it as one of them, so those three stay bare offsets.
  *
  * SIGNATURE — the record base stays in the index register rather than becoming a parameter.
@@ -64,13 +64,13 @@
  *           accumulator into ROM 0x2153, the one value claimed live — diverges at frame 622,
  *           the frame of the first dispatch. The gate re-runs the whole-attract check with this
  *           routine wired live and asserts its dispatch count against an independent count.
- * NAMES:    OBJ_Y (+5) and OBJ_SPRITE_CODE (+7) from ram.js. The record base is OBJ_ARRAY_67
+ * NAMES:    OBJ_Y (+5) and OBJ_SPRITE_CODE (+7) from names.js. The record base is OBJ_ARRAY_67
  *           in every dispatch attract produces (records 0, 1 and 3), but the base arrives in a
  *           register and this routine does not name it. The remaining offsets have no
- *           record-relative name in ram.js and stay bare, as in stepBallisticMotion.
+ *           record-relative name in names.js and stay bare, as in stepBallisticMotion.
  */
 
-import { OBJ_SPRITE_CODE, OBJ_Y } from "./ram.js";
+import { OBJ_SPRITE_CODE, OBJ_Y } from "./names.js";
 
 /** The vertical position that divides the two arms. */
 const Y_SPLIT = 224;

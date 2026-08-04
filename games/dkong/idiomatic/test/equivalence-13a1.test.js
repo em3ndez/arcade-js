@@ -48,7 +48,7 @@ import { loc_13a1 as oracle } from "../../translated/loc_13a1.js";
 import { loc_06fe as oracleDispatcher } from "../../translated/loc_06fe.js";
 import { loc_13a1 } from "../loc_13a1.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
-import { SUBSTATE_TIMER, GAME_SUBSTATE, P1_CONTEXT, STACK_SCRATCH } from "../ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, P1_CONTEXT, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

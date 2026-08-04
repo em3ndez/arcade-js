@@ -46,7 +46,7 @@ import { clearPlayfieldAndSprites } from "../clearPlayfieldAndSprites.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { enqueueTaskBatch } from "../enqueueTaskBatch.js";
 import { readStartButtonSelector } from "../readStartButtonSelector.js";
-import { ATTRACT, GAME_SUBSTATE, CREDITS, FRAME, TASK_TAIL, TASK_RING, STACK_SCRATCH } from "../ram.js";
+import { ATTRACT, GAME_SUBSTATE, CREDITS, FRAME, TASK_TAIL, TASK_RING, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

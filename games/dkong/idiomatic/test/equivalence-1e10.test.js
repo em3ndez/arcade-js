@@ -51,7 +51,7 @@ import { loc_1e10 as oracle } from "../../translated/loc_1e10.js";
 import { stageAward800Popup as idiomatic } from "../stageAward800Popup.js";
 import { stageAwardPopupAtHitObject } from "../stageAwardPopupAtHitObject.js"; // idiomatic feeder, for the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

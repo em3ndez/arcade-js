@@ -33,11 +33,11 @@
  *           storeBlinkSpriteCode's `ret`) to loc_197a, which reads no A/B/C/F before
  *           overwriting them, so the oracle's residual registers/flags are dead ABI;
  *           SP/PC are `ret` bookkeeping the JS call stack replaces.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js — record 0's code byte = base + 1
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js — record 0's code byte = base + 1
  *           (0x6901), record 1's code byte = base + 5 (0x6905). Register input C is the
  *           colour-cycle sweep counter (0x6390), consumed only inside the store tail.
  */
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js"; // ROM 0x04ac
 
 // Code bytes of the two blinked decorative sprites inside the sprite shadow buffer:

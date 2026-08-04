@@ -49,8 +49,8 @@
  * leaves the identical final byte.)
  *
  * The record base comes from the caller (RENDER_OBJ_PTR). Its sprite-code and sprite-attr fields
- * ARE named in ram.js (OBJ_SPRITE_CODE +0x07, OBJ_SPRITE_ATTR +0x08) and are imported from there;
- * only the mode field (+0x15) has no ram.js name and stays a raw offset — the same convention as the sibling closer
+ * ARE named in names.js (OBJ_SPRITE_CODE +0x07, OBJ_SPRITE_ATTR +0x08) and are imported from there;
+ * only the mode field (+0x15) has no names.js name and stays a raw offset — the same convention as the sibling closer
  * activateReleasedBarrel, which stamps the same record.
  *
  * NAME (promoted from loc_2cf6, DK understanding pass 13 — independent proposer ≠ confirmer,
@@ -90,17 +90,17 @@
  * LIVE-OUT: memory-only. stampReleasedBarrelKind falls into advanceBarrelRelease whose chain nets exactly one terminal
  *           `ret`; the caller reads no register (the oracle's `rlca` residue in the
  *           accumulator is dead), so the single return is modelled in the gate, not here.
- * NAMES:    BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte the 0x2C41
+ * NAMES:    BARREL_CLAIM_MODE (0x6382) from names.js — the barrel slot-claim mode byte the 0x2C41
  *           cluster writes. It is not a bare flag: its low bits carry the claim's mode value
  *           (observed 1, and 0x81 = mode 1 with bit 7 set) while its BIT 7 selects which of the
  *           two barrel kinds this routine stamps. advanceBarrelRelease / activateReleasedBarrel read bit 0 of the same
  *           byte. The object-record base comes from the caller (RENDER_OBJ_PTR); its sprite-code and
- *           sprite-attr fields are the ram.js-named OBJ_SPRITE_CODE (+0x07) / OBJ_SPRITE_ATTR
- *           (+0x08), imported from ram.js. Only the mode field (+0x15) is unnamed and stays hex.
+ *           sprite-attr fields are the names.js-named OBJ_SPRITE_CODE (+0x07) / OBJ_SPRITE_ATTR
+ *           (+0x08), imported from names.js. Only the mode field (+0x15) is unnamed and stays hex.
  *           The base is an OBJ_ARRAY_67 (barrel) record — grounded, IX at 46/46 dispatches.
  */
 
-import { BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./ram.js"; // 0x6382 bit 7 selects the barrel kind; +7/+8 are the record's sprite fields
+import { BARREL_CLAIM_MODE, OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR } from "./names.js"; // 0x6382 bit 7 selects the barrel kind; +7/+8 are the record's sprite fields
 import { advanceBarrelRelease } from "./advanceBarrelRelease.js"; // ROM 0x2D15 — the frame-gated string/sprite renderer
 
 export function stampReleasedBarrelKind(m) {

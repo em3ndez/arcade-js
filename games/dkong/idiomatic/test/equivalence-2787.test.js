@@ -49,7 +49,7 @@ import {
   EDGE_REPOSITION_FLAG,
   MARIO_SPRITE_RECORD,
   SPRITE_Y,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

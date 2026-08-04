@@ -92,7 +92,7 @@ import { loc_21ba } from "../loc_21ba.js";
 import {
   ACTOR_SPRITES, OBJ_ARRAY_67, OBJ_SPRITE_ATTR, OBJ_SPRITE_CODE, OBJ_X, OBJ_Y,
   SPRITE_ATTR, SPRITE_CODE, SPRITE_X, SPRITE_Y,
-} from "../ram.js";
+} from "../names.js";
 import { u8 } from "../../../../core/int.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";

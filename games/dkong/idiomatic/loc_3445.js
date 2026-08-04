@@ -42,25 +42,25 @@
  *           reloaded from OBJ_WALK_PTR_LO/HI); the oracle's residual registers/flags and its
  *           terminal return are dead.
  * NAMES:    OBJ_X (record +0x03), OBJ_Y (record +0x05), OBJ_STATE (record +0x0d),
- *           OBJ_WALK_PTR_LO (+0x1a), OBJ_WALK_PTR_HI (+0x1b) — all from ram.js (the
+ *           OBJ_WALK_PTR_LO (+0x1a), OBJ_WALK_PTR_HI (+0x1b) — all from names.js (the
  *           OBJ_ARRAY_64 record). The walk's own remaining fields — the two latch targets
  *           (+0x0e/+0x0f) and the three other cleared state bytes (+0x13/+0x18/+0x1c) —
- *           have no ram.js offset name yet and stay local consts here.
+ *           have no names.js offset name yet and stay local consts here.
  */
 
 import { u16 } from "../../../core/int.js";
-import { OBJ_X, OBJ_Y, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./ram.js";
+import { OBJ_X, OBJ_Y, OBJ_STATE, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./names.js";
 
 // End-of-table marker in the path table the walk reads.
 const TABLE_TERMINATOR = 0xaa;
 
-// Object-record fields addressed off the record pointer that have no ram.js offset name
+// Object-record fields addressed off the record pointer that have no names.js offset name
 // yet (OBJ_X/OBJ_Y/OBJ_STATE and the saved walk-pointer bytes OBJ_WALK_PTR_LO/HI are
-// imported from ram.js). Named here for their role in this walk.
+// imported from names.js). Named here for their role in this walk.
 const FINAL_X = 0x0e; // object's final X, latched when the walk completes
 const FINAL_Y = 0x0f; // object's final Y, latched when the walk completes
 const WALK_FLAG_A = 0x13; // per-object animation-state bytes cleared on completion
-const WALK_FLAG_B = 0x18; //   (their specific roles are not yet named in ram.js)
+const WALK_FLAG_B = 0x18; //   (their specific roles are not yet named in names.js)
 const WALK_FLAG_C = 0x1c;
 
 /**

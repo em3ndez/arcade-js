@@ -73,15 +73,15 @@
  *           dispatch tail reads no register or flag this leaves; the oracle just `ret`s with
  *           no result convention. SP/pc are not compared — direct calls replace the oracle's
  *           push16/ret stack + PC bookkeeping with the JS call stack.
- * NAMES:    SUBSTATE_TIMER (0x6009) from ram.js. Hex-kept: the ROM template source 0x385C
- *           (an immediate, no ram.js symbol); the callees carry their own named memory
+ * NAMES:    SUBSTATE_TIMER (0x6009) from names.js. Hex-kept: the ROM template source 0x385C
+ *           (an immediate, no names.js symbol); the callees carry their own named memory
  *           (SPRITE_OBJ_BLOCK, BOARD, BOARD_ADVANCE_STEP at 0x6388).
  */
 
 import { spawnInterludeHeart } from "./spawnInterludeHeart.js"; // ROM 0x1708 — opening tableau
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { advanceInterludeStepAndLiftKongFigure } from "./advanceInterludeStepAndLiftKongFigure.js"; // ROM 0x1662 — shared board-setup tail
-import { SUBSTATE_TIMER } from "./ram.js";
+import { SUBSTATE_TIMER } from "./names.js";
 
 const ANIM_FRAME_SRC = 0x385c; // ROM base of this step's 40-byte sprite-object template
 const POSE_HOLD_FRAMES = 0x20; // frames to hold the staged pose before step 1 (stageNextKongPoseWhenHoldExpires)

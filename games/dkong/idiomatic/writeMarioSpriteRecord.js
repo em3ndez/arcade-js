@@ -34,12 +34,12 @@
  *           so no successor reads a flag it sets; the oracle's residual A (= MARIO_Y),
  *           HL (= 0x694F) and flags are dead ABI (pc/SP model the single return).
  * NAMES:    MARIO_X (0x6203), MARIO_SPRITE_CODE (0x6207), MARIO_SPRITE_ATTR (0x6208),
- *           MARIO_Y (0x6205), MARIO_SPRITE_RECORD (0x694C) — all from ram.js.
+ *           MARIO_Y (0x6205), MARIO_SPRITE_RECORD (0x694C) — all from names.js.
  */
 
 import {
   MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_ATTR, MARIO_SPRITE_RECORD,
-} from "./ram.js";
+} from "./names.js";
 
 export function writeMarioSpriteRecord(m) {
   const { mem } = m;

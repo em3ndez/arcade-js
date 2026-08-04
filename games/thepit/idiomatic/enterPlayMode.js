@@ -30,7 +30,7 @@
  *           flip-screen control lines are driven for the live game but sit outside the
  *           RAM diff. No register or flag is read by the round init it hands off to.
  * NAMES:    GAME_STATE (0x8001), DEMO_STEER_DIR (0x801b), ACTIVE_PLAYER (0x8002), and the
- *           idle-delay base LOOP_DELAY_BASE (0x804e) from ram.js; the gameplay-tick phase
+ *           idle-delay base LOOP_DELAY_BASE (0x804e) from names.js; the gameplay-tick phase
  *           countdown DEMO_STEER_SERVICE_TIMER (0x800b) / index DEMO_STEER_BAND_HINT (0x800c), and
  *           PLAYER1_LEVEL_BACKUP (0x8029) is the demo's saved Player-1 LEVEL backup — a player-record backup.
  *           disableSound / applyDipSwitches are called directly; the round-init
@@ -48,7 +48,7 @@ import {
   DEMO_STEER_SERVICE_TIMER,
   DEMO_STEER_BAND_HINT,
   PLAYER1_LEVEL_BACKUP,
-} from "./ram.js";
+} from "./names.js";
 
 export function* enterPlayMode(m) {
   const { mem8 } = m;

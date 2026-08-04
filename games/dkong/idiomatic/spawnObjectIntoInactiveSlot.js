@@ -20,7 +20,7 @@
  * still-translated scan loop (a genuine oracle boundary); the paired sprite cursor is
  * passed straight through, untouched, to the advance tail.
  *
- * GROUNDED (DK understanding pass 4, independent confirmer): ram.js SPAWN_REQUEST (0x6396) cites it
+ * GROUNDED (DK understanding pass 4, independent confirmer): names.js SPAWN_REQUEST (0x6396) cites it
  * explicitly — "loc_2ea7 tests bit0 -> activates the object (+0:=1, position/appearance seeded) and
  * clears it to 0"; it sets named OBJ_ACTIVE / X / Y / STATE. The name claims only the spawn ACTION;
  * which object this spawns and its game role stay ungrounded (sibling state handlers loc_2e84 /
@@ -46,17 +46,17 @@
  *           and its residual pointer register are dead: the loop reloads them for the next
  *           object before any test, and no exit successor reads them (nor the landing pc).
  * NAMES:    SPAWN_REQUEST (0x6396), OBJ_ACTIVE (+0), OBJ_X (+3), OBJ_Y (+5), OBJ_STATE
- *           (+0x0d) — from ram.js, the object-record fields indexed off the scan cursor.
- *           The animation-string pointer field (+0x0e/+0x0f) has no ram.js name and stays a
+ *           (+0x0d) — from names.js, the object-record fields indexed off the scan cursor.
+ *           The animation-string pointer field (+0x0e/+0x0f) has no names.js name and stays a
  *           local const; its value, the animation-string base 0x39AA, is a ROM address (not
  *           work RAM), so it stays hex.
  */
 
-import { SPAWN_REQUEST, OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_STATE } from "./ram.js";
+import { SPAWN_REQUEST, OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_STATE } from "./names.js";
 import { stirRandomSeed } from "./stirRandomSeed.js";           // ROM 0x0057
 import { advanceToNextObject } from "./advanceToNextObject.js"; // ROM 0x2E78
 
-// Object-record animation-string pointer field (+0x0e low, +0x0f high). No ram.js name yet.
+// Object-record animation-string pointer field (+0x0e low, +0x0f high). No names.js name yet.
 const OBJ_ANIM_PTR = 0x0e;
 // ROM base of the object's animation string (a ROM address, so hex).
 const ANIMATION_STRING_BASE = 0x39aa;

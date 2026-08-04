@@ -67,7 +67,7 @@ import {
   RANDOM,
   FRAME,
   SPIN_COUNT,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -83,7 +83,7 @@ const LOOP_COUNT = 0x0a;       // remaining-object count the loop holds while th
 const JUNK_DE = 0x1234;        // nonzero incoming step; the advance tail overwrites it to 4
 const SP_TOP = 0x6c00;         // stack top: the oracle's push16 return-bracket lands in STACK_SCRATCH
 
-// The record fields the spawn body writes, and the animation-pointer offset (no ram.js name).
+// The record fields the spawn body writes, and the animation-pointer offset (no names.js name).
 const OBJ_ANIM_PTR = 0x0e;
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

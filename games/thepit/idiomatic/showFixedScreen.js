@@ -38,7 +38,7 @@
  *           frame-countdown left at 0, plus the balanced work stack and the return to the
  *           caller (pc/SP). The register file the paint leaves is dead: the routine exits
  *           through the frame-wait tail call and the caller chain reads no returned register.
- * NAMES:    none from ram.js apply — video RAM (0x9000..0x93ff), colour RAM (0x8800..0x8bff)
+ * NAMES:    none from names.js apply — video RAM (0x9000..0x93ff), colour RAM (0x8800..0x8bff)
  *           and the ROM image source (0x3e32) are fixed hardware/ROM addresses, not work RAM.
  */
 import { waitFrames } from "./waitFrames.js";

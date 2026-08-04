@@ -48,7 +48,7 @@ import { saveActivePlayerRecord as idiomatic } from "../saveActivePlayerRecord.j
 import { loc_4644 as siblingRestore } from "../../translated/loc_4644.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { LEVEL, ACTIVE_PLAYER } from "../ram.js";
+import { LEVEL, ACTIVE_PLAYER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

@@ -46,7 +46,7 @@ import { loc_1b45 as oracle } from "../../translated/loc_1b45.js";
 import { climbUpWhileHeld } from "../climbUpWhileHeld.js"; // promoted from loc_1b45
 import { climbMarioUp } from "../climbMarioUp.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, P1_INPUT, MARIO_MOVE_STEP_TIMER, MARIO_Y } from "../ram.js";
+import { STACK_SCRATCH, P1_INPUT, MARIO_MOVE_STEP_TIMER, MARIO_Y } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

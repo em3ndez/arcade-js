@@ -27,7 +27,7 @@
  *           SCORE_HI 0x8034); ACTIVE_PLAYER 0x8002 = the 1/2 player-index selector.
  */
 
-import { LEVEL, ACTIVE_PLAYER } from "./ram.js";
+import { LEVEL, ACTIVE_PLAYER } from "./names.js";
 
 export function saveActivePlayerRecord(m) {
   const { mem8 } = m;

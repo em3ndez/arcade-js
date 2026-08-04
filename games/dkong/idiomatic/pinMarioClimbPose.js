@@ -19,7 +19,7 @@
  *
  * The attribute byte in between is deliberately stepped over, never written.
  *
- * GROUNDED (DK understanding pass 5, independent confirmer): "climb" is grounded by ram.js's
+ * GROUNDED (DK understanding pass 5, independent confirmer): "climb" is grounded by names.js's
  * MARIO_SPRITE_CODE note — code 3 ∈ the 03-05 climb range, mirror flag clear — and the cells
  * MARIO_SPRITE_RECORD / SPRITE_CODE / SPRITE_Y are all named. The DIRECTION "down" belongs to
  * the CALLER stepMarioDownInClimbPose (ROM 0x2281), which increments MARIO_Y + sprite-Y; this
@@ -43,11 +43,11 @@
  *           oracle's residual registers/flags are dead — the caller overwrites them
  *           before any read.
  * NAMES:    MARIO_SPRITE_RECORD (0x694C), SPRITE_CODE (+1), SPRITE_Y (+3) — all from
- *           ram.js; the two target cells are MARIO_SPRITE_RECORD+SPRITE_CODE (0x694D)
+ *           names.js; the two target cells are MARIO_SPRITE_RECORD+SPRITE_CODE (0x694D)
  *           and MARIO_SPRITE_RECORD+SPRITE_Y (0x694F).
  */
 
-import { MARIO_SPRITE_RECORD, SPRITE_CODE, SPRITE_Y } from "./ram.js";
+import { MARIO_SPRITE_RECORD, SPRITE_CODE, SPRITE_Y } from "./names.js";
 
 // The pose stamped into the record's code byte: one of Mario's climb-frame codes
 // (3,4,5), here pinned to 3 with the mirror flag clear.

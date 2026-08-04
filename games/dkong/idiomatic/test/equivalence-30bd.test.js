@@ -51,7 +51,7 @@ import { loc_30bd as oracle } from "../../translated/loc_30bd.js";
 import { clearSpriteColumns } from "../clearSpriteColumns.js";
 import { clearStridedBytes } from "../clearStridedBytes.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

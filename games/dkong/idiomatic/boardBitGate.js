@@ -35,9 +35,9 @@
  *           either reloads A immediately, sets HL/B/IY, or chains rst 0x10 which
  *           itself reloads A from 0x6200), so they are dead; SP/PC are the stack
  *           idiom the boolean replaces and are never compared for this routine.
- * NAMES:    BOARD (0x6227) from ram.js — the rotate count / current board index.
+ * NAMES:    BOARD (0x6227) from names.js — the rotate count / current board index.
  */
-import { BOARD } from "./ram.js";
+import { BOARD } from "./names.js";
 
 export function boardBitGate(m) {
   const { regs, mem } = m;

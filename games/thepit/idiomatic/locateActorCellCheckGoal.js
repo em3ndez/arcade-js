@@ -46,14 +46,14 @@
  *           live-out (both handoffs tail into the record builder, whose whole result
  *           is RAM).
  * NAMES:    PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE
- *           from ram.js. The goal terminator tile (39) and the already-at-terminator
+ *           from names.js. The goal terminator tile (39) and the already-at-terminator
  *           sprite/state code (0x17, kept hex like the sibling sprite-code family) are
  *           literals; so are the tilemap base/row-stride and the column rounding bias.
  *
  * PURPOSE [guess]: "Actor"=downstream vocab; same shared-entity caveat.
  */
 
-import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "./ram.js";
+import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { resolveActorTerrainStep } from "./resolveActorTerrainStep.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";

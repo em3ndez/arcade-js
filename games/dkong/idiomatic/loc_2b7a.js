@@ -36,13 +36,13 @@
  *           result register (A=1, consumed by the grandparent's `dec a`), and the boolean
  *           caller-skip signal. HL and the flags are dead ABI.
  * NAMES:    MARIO_AIR_VX_HI (0x6210, the arm selector) and MARIO_X (0x6203, the X snapped
- *           and committed) — from ram.js. The sprite-record cells are written inside
+ *           and committed) — from names.js. The sprite-record cells are written inside
  *           loc_2b91, not here.
  */
 
 import { loc_2b8b } from "./loc_2b8b.js"; // ROM 0x2B8B — snap + commit (velocity-high-byte-zero arm)
 import { loc_2b91 } from "./loc_2b91.js"; // ROM 0x2B91 — commit the snapped X + caller-skip unwind
-import { MARIO_AIR_VX_HI, MARIO_X } from "./ram.js";
+import { MARIO_AIR_VX_HI, MARIO_X } from "./names.js";
 
 /**
  * @param {object} m  the machine.

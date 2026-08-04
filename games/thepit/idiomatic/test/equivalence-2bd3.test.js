@@ -53,7 +53,7 @@ import {
   HAZARD_Y,
   SPRITE_COORD_BIAS,
   SPRITE_STAGING_BASE,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

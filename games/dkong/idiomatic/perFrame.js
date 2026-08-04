@@ -56,13 +56,13 @@
  *           too (the epilogue restores them from frameBase) and ARE in the contract, but
  *           no register/flag is live: the interrupted main loop reloads from memory. Every
  *           push/pop lands in the excluded STACK_SCRATCH region.
- * NAMES:    FRAME (0x601A), GAME_STATE (0x6005) from ram.js. The NMI-enable latch 0x7D84
+ * NAMES:    FRAME (0x601A), GAME_STATE (0x6005) from names.js. The NMI-enable latch 0x7D84
  *           is a board I/O control port (not work RAM), kept hex as in serviceVblankNmi.
  *           The 0x00CA jump-table target addresses are ROM data — expressed as the four
  *           imported handler functions, not hex literals.
  */
 
-import { FRAME, GAME_STATE } from "./ram.js";
+import { FRAME, GAME_STATE } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { stirRandomSeed } from "./stirRandomSeed.js"; //     ROM 0x0057
 import { serviceCoinInput } from "./serviceCoinInput.js"; // ROM 0x017B

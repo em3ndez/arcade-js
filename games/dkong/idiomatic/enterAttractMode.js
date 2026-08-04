@@ -34,11 +34,11 @@
  *           BOTH dead here: the oracle's terminal `m.ret` pops the stack (SP+2) AND
  *           sets pc to the popped return address — the modelled stack ABI the
  *           direct-call layer replaces with a JS return — so neither is compared.
- * NAMES:    GAME_STATE, ATTRACT, GAME_SUBSTATE (ram.js). 0x7D82 is a board control
+ * NAMES:    GAME_STATE, ATTRACT, GAME_SUBSTATE (names.js). 0x7D82 is a board control
  *           output, not work RAM, so it stays a local hex constant.
  */
 
-import { GAME_STATE, ATTRACT, GAME_SUBSTATE } from "./ram.js";
+import { GAME_STATE, ATTRACT, GAME_SUBSTATE } from "./names.js";
 
 // Flip-screen latch — a write-only board control output (video orientation), NOT
 // work RAM; driven to 1 as part of the attract-mode display setup.

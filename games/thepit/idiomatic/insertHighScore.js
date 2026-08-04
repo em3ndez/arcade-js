@@ -28,14 +28,14 @@
  *           byte. It takes no register inputs and the caller reads its result from RAM;
  *           the residual registers/flags are dead ABI (the RAM gate backstops that). It
  *           models no stack, so SP and the return address are left untouched.
- * NAMES:    the candidate score bytes 0x8031/0x8034 are SCORE_LO/SCORE_HI from ram.js;
- *           the ranked table slots keep local names — no ram.js name exists for them. The
- *           landed-rank byte 0x8048 is what ram.js tentatively (weak) calls VARIANT for
+ * NAMES:    the candidate score bytes 0x8031/0x8034 are SCORE_LO/SCORE_HI from names.js;
+ *           the ranked table slots keep local names — no names.js name exists for them. The
+ *           landed-rank byte 0x8048 is what names.js tentatively (weak) calls VARIANT for
  *           a different, round-setup role, so it is NOT imported here — using a wrong
  *           role name would mislead worse than a plain address.
  */
 
-import { SCORE_HI, SCORE_LO } from "./ram.js";
+import { SCORE_HI, SCORE_LO } from "./names.js";
 
 // The ranked table: rank 1 (top) at TABLE_TOP, then rank 2, rank 3, each a 5-byte
 // record of [initial, initial, initial, score-low, score-high].

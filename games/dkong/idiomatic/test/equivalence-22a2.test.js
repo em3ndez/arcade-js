@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_22a2 as oracle } from "../../translated/loc_22a2.js";
 import { raise50mObjectAndPark } from "../raise50mObjectAndPark.js";
 import { publish50mObjectYToSprite } from "../publish50mObjectYToSprite.js"; // the mirror the broken twins still call
-import { STACK_SCRATCH, BOARD_OBJ_SCRATCH, SPRITE_BUFFER } from "../ram.js";
+import { STACK_SCRATCH, BOARD_OBJ_SCRATCH, SPRITE_BUFFER } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

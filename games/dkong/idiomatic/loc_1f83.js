@@ -15,7 +15,7 @@
  * exactly that: at all 6160 captured entries it sits at ACTOR_SPRITES + 4*(10 - slots remaining).
  *
  * THE TEST IS EQUALITY WITH 1, NOT A BIT TEST, and the difference is real rather than pedantic.
- * ram.js records this array's flag byte as taking {0,1,2} live under MAME, bit0 = active and bit1 =
+ * names.js records this array's flag byte as taking {0,1,2} live under MAME, bit0 = active and bit1 =
  * occupied, so 2 is a slot that is spoken for but not yet running — and this gate skips it exactly
  * as it skips 0. The corroboration is outside this body, in the PRODUCER of that value:
  * releaseBarrelIntoFreeSlot claims a record by stamping OBJ_ACTIVE with 2, watched directly under
@@ -70,7 +70,7 @@
  *           contract. The live arm then wires the rewrite at 0x1F83 for a 1200-frame cycle-free
  *           attract run and diffs every frame against the all-oracle baseline; it counts its own
  *           dispatches and asserts the count, so it cannot pass by never running.
- * NAMES:    OBJ_ACTIVE (+0) imported from ram.js. OBJ_ARRAY_67 and ACTOR_SPRITES name the arrays
+ * NAMES:    OBJ_ACTIVE (+0) imported from names.js. OBJ_ARRAY_67 and ACTOR_SPRITES name the arrays
  *           the walk runs over and are used by the gate rather than here — this routine reaches
  *           its record only through the walk's pointer and holds no address of its own. Both
  *           m.call targets are still frozen: they belong to the same mutually-recursive
@@ -78,7 +78,7 @@
  *           those calls into direct calls is a later coordinated step.
  */
 
-import { OBJ_ACTIVE } from "./ram.js";
+import { OBJ_ACTIVE } from "./names.js";
 
 export function loc_1f83(m) {
   const { regs, mem8 } = m;

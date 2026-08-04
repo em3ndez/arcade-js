@@ -31,12 +31,12 @@
  *           flag. The oracle reaches this body by a jump with the record base already on
  *           the stack (its `pop hl`) and returns with `ret`; modelled honestly as a
  *           record-base PARAMETER and an ordinary function return, so no stack is touched.
- * NAMES:    RANDOM (0x6018) from ram.js. recordBase is the caller's record-base pointer
+ * NAMES:    RANDOM (0x6018) from names.js. recordBase is the caller's record-base pointer
  *           (0x6280/0x6288 = BOARD_OBJ_SCRATCH and +8 in play), a parameter, not a cell.
  *           The 0x3C bit-mask stays hex — it selects specific bits of the accumulator.
  */
 
-import { RANDOM } from "./ram.js";
+import { RANDOM } from "./names.js";
 
 /**
  * @param {object} m           the machine (uses m.mem only).

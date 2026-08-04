@@ -24,9 +24,9 @@
  *           the sole caller tail-jumps in, and ITS caller (ROM 0x2722) resumes its own
  *           work — reloading registers — without reading the returned flags.
  * NAMES:    none imported — the target is a parameter (the pointer live-in), so this
- *           routine references no ram.js cell in code. In the observed use the caller
+ *           routine references no names.js cell in code. In the observed use the caller
  *           passes SPAWN_TIMER (0x62A7), the board-object spawn-cadence cell (named in
- *           ram.js); it stays a runtime argument here, not a hardcoded import.
+ *           names.js); it stays a runtime argument here, not a hardcoded import.
  */
 
 /**

@@ -27,7 +27,7 @@
  * NAMES:    BOARD_MODE (0x8057).
  */
 
-import { BOARD_MODE } from "./ram.js";
+import { BOARD_MODE } from "./names.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 
 export function cycleStagedColumnColour(m) {

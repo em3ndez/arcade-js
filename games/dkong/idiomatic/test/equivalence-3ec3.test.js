@@ -31,7 +31,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_3ec3 as oracle } from "../../translated/loc_3ec3.js";
 import { countObjectOverlaps } from "../countObjectOverlaps.js";
 import { Machine } from "../../machine.js";
-import { OVERLAP_COUNT } from "../ram.js";
+import { OVERLAP_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

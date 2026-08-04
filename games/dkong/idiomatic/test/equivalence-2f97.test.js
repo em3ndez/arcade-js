@@ -60,7 +60,7 @@ import {
   OBJ_X,
   OBJ_Y,
   HAMMER_SAVED_BGM as SAVED_BGM,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

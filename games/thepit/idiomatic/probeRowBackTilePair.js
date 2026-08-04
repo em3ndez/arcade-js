@@ -38,13 +38,13 @@
  * LIVE-OUT: the zero flag (match found) + the 0x8134 write. The leftover value registers (the
  *           search pointers and keys) are dead — the caller reads only the zero flag.
  * NAMES:    PROBE_CELL_PTR (0x8089, probe-cell tilemap pointer), SUBTILE_PHASE (0x808d, object
- *           sub-tile phase) and SAVED_CELL_PTR (0x8134, saved one-row-back cell) from ram.js;
+ *           sub-tile phase) and SAVED_CELL_PTR (0x8134, saved one-row-back cell) from names.js;
  *           F_Z is the CPU's zero-flag bit.
  *
  * PURPOSE [guess]: "Back"=the −32 MEMORY-row offset, NOT a screen direction; ROM tables' meaning unpinned.
  */
 import { F_Z } from "../../../core/cpu/z80.js";
-import { SUBTILE_PHASE, PROBE_CELL_PTR, SAVED_CELL_PTR } from "./ram.js";
+import { SUBTILE_PHASE, PROBE_CELL_PTR, SAVED_CELL_PTR } from "./names.js";
 
 const TABLE_A = 0x34fe;       // base of the first phase-keyed ROM probe table's rows
 const TABLE_B = 0x35fe;       // base of the second phase-keyed ROM probe table's rows

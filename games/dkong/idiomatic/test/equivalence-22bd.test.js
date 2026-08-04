@@ -48,7 +48,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_22bd as oracle } from "../../translated/loc_22bd.js";
 import { publish50mObjectYToSprite } from "../publish50mObjectYToSprite.js";
-import { SPRITE_BUFFER } from "../ram.js";
+import { SPRITE_BUFFER } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

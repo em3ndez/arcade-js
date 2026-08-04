@@ -46,7 +46,7 @@ properties fix where the live boundary is:
      the NMI at an arbitrary point.
 
 - **The lift plus the RAM names carry the decompile on their own.** A routine can be
-  hand-decompiled from *only* `translated/state0.js` + `ram.js` — no purpose-prose — and its
+  hand-decompiled from *only* `translated/state0.js` + `names.js` — no purpose-prose — and its
   meaning recovered from opcodes and named memory: `loc_1cd2` reads out as "commit one horizontal
   walk step; on 25m re-snap Y to the sloped girder under the new X" from the lift and names alone.
   Named memory is what makes routines legible on sight — it does the heavy lifting. That is the
@@ -209,12 +209,12 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   wrap and diff identically — and because the byte store already truncates, no mask is ever needed
   *before* one. A helper that only touches memory takes `m` and destructures the views it needs, not a
   bare `mem`. Emit this form at decompile time; a still-hex address is fine (`mem8[0x8079]`) — the
-  understanding pass swaps the literal for a `ram.js` name later and leaves the access form untouched.
+  understanding pass swaps the literal for a `names.js` name later and leaves the access form untouched.
 - **Name locals by meaning, never by register.** A local that survives from a Z80 register keeps the
   register's *value*, not its name: `const b = OBJ_X + 3` is `probeX`, not `b`. A single-letter or
   register-letter local (`a`, `b`, `c`, `hl`) in idiomatic code is the variable-level version of the
   assembly-comment smell. The decompile pass must name it for what it does; and the understanding pass's
-  variable-naming covers **locals too**, not only `ram.js` addresses — leaving `b`/`c` unrenamed
+  variable-naming covers **locals too**, not only `names.js` addresses — leaving `b`/`c` unrenamed
   (they were the Z80 `B`/`C`) was a real two-pass miss on The Pit's `classifyWallCollision`.
 - **Bottom-up.** Decompile callees before callers. A caller decompiled while its callee is still a
   raw ROM routine has to marshal the callee's register ABI by hand (`regs.h = x; push16; m.call;
@@ -258,7 +258,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   The address moved to the registry key, `Memory-equivalent`/`GATE:` to the test header, and
   `NAMES:` was dropped as a restatement of the import list (see the file-local comment rule below). `GATE:` remains load-bearing under reviewer-rules R17 where it now
   lives, in the test header; `NAMES:` is gone entirely, since the import list already states which
-  `ram.js` cells a routine uses. Everything beyond THAT has to
+  `names.js` cells a routine uses. Everything beyond THAT has to
   earn its verification cost, because prose is the most expensive thing in the repo to check (see
   `grounding.md`, "Naming an unknown address") — there is no oracle for it, only a human
   re-deriving the claim from the ROM. Elaboration written to
@@ -317,7 +317,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
 
   Three paths are exempt, and they share one reason — their job *is* the cross-file map.
   `translated/**` comes from the disassembly, so a faithful translation of a ROM routine has to cite
-  it; the address is that file's identity, not an outside reference. `idiomatic/ram.js` is the
+  it; the address is that file's identity, not an outside reference. `idiomatic/names.js` is the
   registry, the one place addresses, names and modules are meant to meet. `idiomatic/**/test/**`
   cannot describe itself without naming its subject (what a test may claim about its own coverage is
   reviewer-rules R17, which stays a rule because it is about truth).
@@ -349,7 +349,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   |---|---|
   | `ROM 0x<addr>` tag | the `ROUTINES` registry key — always its source of truth |
   | `GATE:` / `Memory-equivalent to …` | the test file's own header, where it is file-local |
-  | `NAMES:` (which `ram.js` cells are used) | the import list, which already states it |
+  | `NAMES:` (which `names.js` cells are used) | the import list, which already states it |
   | the evidence that justifies a PROMOTED name | the `ROUTINES` entry's `why` field (names-registry.md) — every form that evidence takes names a caller, a sibling or a doc |
   | a grounding finding | `mechanisms.md` — the one document whose job is cross-file facts, and which step 7 rewrites WHOLE every pass. That is cache invalidation done correctly, in exactly one place. |
 - **Numbers are base-10.** Write decimal like normal JS. Reserve hex for an *irreducible* bit
@@ -368,7 +368,7 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
 
 The pipeline's validated output lives in **`games/dkong/idiomatic/`**, one module per routine,
 resolved by address through the manifest. The frozen oracle lives in **`games/dkong/translated/`**,
-one file per routine. The RAM names live in `games/dkong/idiomatic/ram.js`.
+one file per routine. The RAM names live in `games/dkong/idiomatic/names.js`.
 
 Two canonical file templates keep the format consistent:
 
@@ -396,7 +396,7 @@ a commit that puts them back. No `CYCLES`/`COLLAPSE` sections and no inline disa
 either — there is no cycle model to record, so that bulk (and most of the format drift) is absent.
 
 **How a routine joins the layer.** The swap engine (`resolveAllIdiomatic` in `machine.js`, reading
-the `ROUTINES` map in `ram.js`) lays each idiomatic routine over its `translated/` oracle at that
+the `ROUTINES` map in `names.js`) lays each idiomatic routine over its `translated/` oracle at that
 routine's ROM address, so the game runs idiomatic where developed and translated everywhere else.
 A routine joins by: land `idiomatic/<name>.js`; land `idiomatic/test/equivalence-<addr>.test.js`;
 add its address→`{name}` entry to `ROUTINES`; gate. All four, or it is not in the layer — a module
@@ -436,14 +436,14 @@ the map and can't be done well without it. It is required reading for anyone nam
 > callees, an internally-inconsistent structure. A from-scratch rewrite each pass forces re-reading the
 > *current* code state and producing a fresh, coherent, self-consistent map — it is the same discipline
 > as the understanding pass itself (re-derive across the whole set, never defend the prior state). Regenerate
-> the routine/RAM tables from what the idiomatic layer + `ram.js` actually contain *now*, re-synthesize
+> the routine/RAM tables from what the idiomatic layer + `names.js` actually contain *now*, re-synthesize
 > the subsystem prose, move newly-answered questions to a "resolved" note and sharpen the still-open
 > ones, and recount (decompiled / named / RAM-named) by measuring, not by adjusting the old numbers. A
 > map that lags the code — or reads as a patchwork of edits — is the tell that an understanding pass was left
 > half-done: the names shipped but the understanding was never re-written where the next agent reads it.
 >
 > **Enforced, not just advised:** `tools/understanding_gate.py` runs in the pre-commit hook and blocks any
-> commit that renames routines / changes `ram.js` exports without staging `mechanisms.md`, or that
+> commit that renames routines / changes `names.js` exports without staging `mechanisms.md`, or that
 > leaves a retired name anywhere in the map. A recipe step that matters gets a gate — ungated prose
 > loses to task momentum (this rule was nearly skipped once before it had teeth).
 
@@ -464,11 +464,11 @@ the map and can't be done well without it. It is required reading for anyone nam
    proposer≠confirmer, the sprite-record trap), and driven by the mechanism map above. Front-loaded,
    because named memory is the single biggest legibility lever; iterative, because some names only
    resolve during the decompile.
-   - **A name is not done until the code USES it.** A name promoted to `ram.js` but left unreferenced
+   - **A name is not done until the code USES it.** A name promoted to `names.js` but left unreferenced
      is dead weight — the routines still read `mem.read8(0x8055)`, so nothing got more legible. Every
      naming batch ends by **retrofitting the referencing routines**: swap the hex literal for the
      imported constant. It is a pure rename, so each routine's memory-equivalence test stays green and
-     is the safety net. So the full loop is: derive → review → land `ram.js` AND **the retrofit of every
+     is the safety net. So the full loop is: derive → review → land `names.js` AND **the retrofit of every
      routine that uses the address** in ONE commit. Skipping the retrofit means the pass only *looks*
      done; splitting it across two commits means the reviewer cannot confirm the second half happened
      (see the formula's step 9 in [understanding](understanding.md)).

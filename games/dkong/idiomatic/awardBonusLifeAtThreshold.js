@@ -35,7 +35,7 @@
  *           and overwrites the registers before reading them.
  * NAMES:    BONUS_LIFE_AWARDED (0x622D), CURRENT_PLAYER (0x600D), P1_SCORE (0x60B2),
  *           P2_SCORE (0x60B5), DIP_BONUS_LIFE (0x6021), LIVES (0x6228) — all from
- *           ram.js. The HUD video cells are inside the drawLivesAndLevel callee.
+ *           names.js. The HUD video cells are inside the drawLivesAndLevel callee.
  */
 
 import {
@@ -45,7 +45,7 @@ import {
   P2_SCORE,
   DIP_BONUS_LIFE,
   LIVES,
-} from "./ram.js";
+} from "./names.js";
 import { drawLivesAndLevel } from "./drawLivesAndLevel.js"; // ROM 0x06B8
 
 export function awardBonusLifeAtThreshold(m) {

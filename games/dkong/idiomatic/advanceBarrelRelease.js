@@ -55,16 +55,16 @@
  *           `ret` (each path either `ret`s or tail-jumps into a callee that `ret`s on this
  *           routine's behalf) are dead ABI — the caller reads none of them; that one return
  *           is modelled in the gate, not here.
- * NAMES:    BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte; its low
+ * NAMES:    BARREL_CLAIM_MODE (0x6382) from names.js — the barrel slot-claim mode byte; its low
  *           bits carry the claim's mode value (observed 1, and 0x81 = mode 1 with bit 7 set),
  *           its bit 7 selects the barrel kind for stampReleasedBarrelKind, and THIS routine reads its bit 0.
  *           FRAME_GATE (0x62AF) and ANIM_COUNTER (0x638F) were each examined and left UNNAMED
- *           in ram.js (thin/shared engine scratch), so each stays a local hex const here;
+ *           in names.js (thin/shared engine scratch), so each stays a local hex const here;
  *           ANIM_TABLE (0x3932) is a ROM address (the table data), kept as a hex const.
  *           loadSpriteObjectBlock fills SPRITE_OBJ_BLOCK (0x6908).
  */
 
-import { BARREL_CLAIM_MODE } from "./ram.js"; // ROM 0x6382 — bit 0 read here; bit 7 is the kind select
+import { BARREL_CLAIM_MODE } from "./names.js"; // ROM 0x6382 — bit 0 read here; bit 7 is the kind select
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004E
 import { loc_2d51 } from "./loc_2d51.js"; // ROM 0x2D51 — render the next character
 import { loc_2d83 } from "./loc_2d83.js"; // ROM 0x2D83 — (re)start the fixed source string

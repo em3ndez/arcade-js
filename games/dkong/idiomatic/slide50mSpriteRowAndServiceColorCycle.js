@@ -31,7 +31,7 @@
  * its inputs straight from RAM, so it is a bare direct call.
  *
  * NAME: promoted from loc_03fb. Both live-outs are measured, not read off this body:
- * ram.js grounds M50_OBJ1_STEP live as {0,1,255} (0 on even frames, ±1 on odd, sign
+ * names.js grounds M50_OBJ1_STEP live as {0,1,255} (0 on even frames, ±1 on odd, sign
  * following the direction latch) and M50_OBJ_ROW_SHIFT live on the board-2 arm with
  * 1996 frame-to-frame transitions over a 3994-frame gameplay window, explicitly "an
  * X-shift, NOT a colour delta". The name deliberately does NOT say what the ten
@@ -55,13 +55,13 @@
  *           SP/PC are the single net return the JS call stack replaces (the harness
  *           supplies one m.ret()).
  * NAMES:    BOARD (0x6227), SPRITE_OBJ_BLOCK (0x6908), M50_OBJ1_STEP (0x63A3),
- *           M50_OBJ_ROW_SHIFT (0x63B7) — all from ram.js. The third sprite-object X
+ *           M50_OBJ_ROW_SHIFT (0x63B7) — all from names.js. The third sprite-object X
  *           byte (0x6910) is record 2's X field inside the named SPRITE_OBJ_BLOCK span,
  *           reached as SPRITE_OBJ_BLOCK + 8 (the same field begin50mKongRecaptureInterlude reaches as
  *           SPRITE_OBJ_BLOCK + 0x08); no distinct cross-reader role, so no dedicated cell.
  */
 
-import { BOARD, SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./ram.js";
+import { BOARD, SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./names.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { serviceColorCycle } from "./serviceColorCycle.js"; // ROM 0x0413
 

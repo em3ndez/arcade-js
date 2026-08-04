@@ -32,11 +32,11 @@
  *           routine leaves in registers/flags, and the oracle's terminal return / the
  *           fall-through call's stack churn are dead ABI. The real output is the credit
  *           line's video cells, written inside drawCreditDisplay.
- * NAMES:    ATTRACT (0x6007) — from ram.js. The credit-line video cells live inside
+ * NAMES:    ATTRACT (0x6007) — from names.js. The credit-line video cells live inside
  *           drawCreditDisplay.
  */
 
-import { ATTRACT } from "./ram.js";
+import { ATTRACT } from "./names.js";
 import { drawCreditDisplay } from "./drawCreditDisplay.js"; // ROM 0x0616
 
 export function drawCreditLineInAttract(m) {

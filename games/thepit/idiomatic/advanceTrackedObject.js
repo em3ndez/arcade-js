@@ -41,7 +41,7 @@
  *           position-bias pair loaded into D and E, which the tile-cell tail and the still-oracle
  *           position handlers read.
  * NAMES:    PLAYER_ACTIVE, BOARD_END_PHASE, DIG_COLLISION_STATE, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE,
- *           PIT_FLOOR_REVEAL_CURSOR, PLAYER_STEP_Y, PLAYER_STEP_X (0x806d, the pair's high byte) from ram.js;
+ *           PIT_FLOOR_REVEAL_CURSOR, PLAYER_STEP_Y, PLAYER_STEP_X (0x806d, the pair's high byte) from names.js;
  *           LOCKED_COLUMN 0x807a (busy-this-frame flag), OBJECT_MOTION_MODE 0x8075 (motion marker).
  */
 
@@ -56,7 +56,7 @@ import {
   PLAYER_STEP_Y,
   OBJECT_MOTION_MODE,
   LOCKED_COLUMN,
-} from "./ram.js";
+} from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { stampFixedFrameAndResolveTile } from "./stampFixedFrameAndResolveTile.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";

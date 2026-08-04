@@ -19,7 +19,7 @@
  * NAMES:    BOARD_MODE (0x8057 — the byte used here as the screen-wide fill colour).
  *           Colour RAM 0x8800..0x8bff is a fixed hardware region, kept as an address.
  */
-import { BOARD_MODE } from "./ram.js";
+import { BOARD_MODE } from "./names.js";
 
 const COLOR_RAM_BASE = 0x8800;
 const COLOR_RAM_CELLS = 1024; // the whole per-tile colour RAM, 0x8800..0x8bff

@@ -57,7 +57,7 @@ import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { addToSpriteObjectColumn } from "../addToSpriteObjectColumn.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD, SND_PRIORITY } from "../ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD, SND_PRIORITY } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -68,7 +68,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1654;
 const ANIM_FRAME_SRC = 0x385c; // ROM base of the copied 40-byte animation frame
-const STEP_SELECTOR = 0x6388; // the board-advance step index (unnamed in ram.js)
+const STEP_SELECTOR = 0x6388; // the board-advance step index (unnamed in names.js)
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field 3 (Y) of sprite-object record 0
 // The rst-0x38 targets: field 3 (+3) of each of the ten 4-byte sprite-object records.
 const STRIDED = Array.from({ length: 10 }, (_, k) => SPRITE_OBJ_BLOCK + 3 + 4 * k); // 0x690B..0x692F

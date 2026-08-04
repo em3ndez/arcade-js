@@ -68,7 +68,7 @@ import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH, BONUS, SPRITE_X, OBJ_65A0_SPRITES, BARREL_CLAIM_MODE,
   OBJ_SPRITE_CODE, OBJ_SPRITE_ATTR,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -79,7 +79,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x2ce6;
 
-// The four-record sprite group loc_2ce6 empties (no ram.js name — an unnamed sub-block of
+// The four-record sprite group loc_2ce6 empties (no names.js name — an unnamed sub-block of
 // SPRITE_BUFFER). Its 16 bytes end exactly where the named OBJ_65A0_SPRITES group begins, which is
 // what makes the off-by-one boundary twin detectable.
 const COUNTDOWN_SPRITES = 0x69a8;

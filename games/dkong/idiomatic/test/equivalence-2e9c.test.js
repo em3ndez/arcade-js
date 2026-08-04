@@ -65,7 +65,7 @@ import { loc_2e4b } from "../loc_2e4b.js"; // ROM 0x2E4B (for the twins)
 import { loc_2e04 } from "../../translated/loc_2e04.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { OBJ_ACTIVE, OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y, SND_TRIGGER, OBJ_ARRAY_65, ACTOR_SPRITES } from "../ram.js";
+import { OBJ_ACTIVE, OBJ_X, OBJ_Y, SPRITE_X, SPRITE_Y, SND_TRIGGER, OBJ_ARRAY_65, ACTOR_SPRITES } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -74,7 +74,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
-// Object-record field offsets without a ram.js name.
+// Object-record field offsets without a names.js name.
 const OBJ_STATE = 0x0d;   // object state field
 const OBJ_STR_LO = 0x0e;  // string pointer: low at +0x0e, high at +0x0f
 

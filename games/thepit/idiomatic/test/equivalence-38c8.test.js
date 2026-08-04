@@ -48,7 +48,7 @@ import { loc_38c8 as oracle } from "../../translated/loc_38c8.js";
 import { advanceOrRebuildTwinActor } from "../advanceOrRebuildTwinActor.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ENEMY3_X, ENEMY3_TIMER } from "../ram.js";
+import { ENEMY3_X, ENEMY3_TIMER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

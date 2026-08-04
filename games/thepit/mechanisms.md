@@ -1,23 +1,23 @@
 # The Pit — mechanisms (inside-out model)
 
 A GAMEPLAY-FIRST model of *The Pit* (Zilec/Centuri/Taito, 1982; MAME `thepit`/`thepitu1`),
-re-derived from the faithful `translated/*.js` oracle, the idiomatic layer + `idiomatic/ram.js`,
+re-derived from the faithful `translated/*.js` oracle, the idiomatic layer + `idiomatic/names.js`,
 the board layer (`boards/thepit/video.js`), and **three rounds of live MAME grounding** (two prior
 rounds plus a nine-agent completeness pass, 2026-07-29). This edition is a wholesale rewrite: every
 claim was re-checked against the current code, several prior *identities* were overturned, and a
 batch of newly-grounded facts (the completion gate, the level-10 slow-motion cliff, the high-score
 subsystem, the cocktail-flip value, the falling-hazard render split) were folded in.
 
-**Naming note.** The names here are the earned, gameplay-first vocabulary; `idiomatic/ram.js` carries
+**Naming note.** The names here are the earned, gameplay-first vocabulary; `idiomatic/names.js` carries
 matching `SCREAMING_SNAKE` exports and the idiomatic routine files carry matching camelCase names.
 The hex anchors (`0x80..`, `loc_XXXX`) are the stable identity — match on the address when
 cross-referencing. **The slot-3 sprite driven by `loc_2f71` off `0x80db-0x80de` is the
-left-CHAMBER creature** (§2.8), *not* the "Zonker tank" — and the code now matches: `ram.js` and the
+left-CHAMBER creature** (§2.8), *not* the "Zonker tank" — and the code now matches: `names.js` and the
 idiomatic routines carry the `CHAMBER_CREATURE_*` cell names (`0x80db-0x80de`, `0x80e3`) and the
 `PIT_FLOOR_REVEAL_*` cell names (`0x80e4-0x80e6`), plus the routines `advanceChamberCreature`,
 `seedChamberCreature`, `advanceChamberCreatureAnimation`, and `setChamberCreatureFrame`. **The word
 "Zonker" is reserved here for the baked top-right tank scenery** (§2.9). Current layer sizes:
-`translated/` = 169 routines, `idiomatic/` = 169 routine files + `ram.js`. `ram.js` names **174**
+`translated/` = 169 routines, `idiomatic/` = 169 routine files + `names.js`. `names.js` names **174**
 work-RAM cells (measured 2026-07-31): the 2026-07-31 centralization pass added 31 — cells that had
 been referenced by raw hex or by a file-LOCAL `const` inside one routine (the enemy-3 record fields,
 the enemy-work scratch slot, the per-player level/men backups, the attract demo-steer state, the
@@ -369,7 +369,7 @@ dramatize, but with no countdown clock and no ship-kill it exerts no life penalt
 unchanged. So this object is the **left-CHAMBER creature**, NOT the "Zonker tank." Its canonical
 identity (caged specimen / decorative monster) is `[guess]`; its mechanism is `[seen]`/`[code]`. This
 doc names `0x80db`–`0x80de` **`CHAMBER_CREATURE_*`** and `loc_2f71` **`advanceChamberCreature`**
-(`ram.js` and the idiomatic routines now carry these names — the rename is complete).
+(`names.js` and the idiomatic routines now carry these names — the rename is complete).
 
 `loc_2f71` has a **dual role**, both now `[seen]`:
 
@@ -598,7 +598,7 @@ of both the chamber creature and the Pit sliding-floor reveal. Only these remain
    slot's rebuild-at-edge routine (`0x38c8`, §2.9) has exact record mechanics, but WHICH specific figure
    its redraw serves is not determinable from code. The slot's three observed roles (§2.9) are `[seen]`;
    only this internal attribution stays `[guess]` — it is the sole routine still tagged `[guess]` in the
-   `ram.js` routine map.
+   `names.js` routine map.
 
 Everything else previously tagged `[guess]` or mis-identified has been promoted (`[seen]`/`[code]`) or
 overturned above.

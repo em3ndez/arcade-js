@@ -42,7 +42,7 @@ import { loc_2974 as oracle } from "../../translated/loc_2974.js";
 import { findHammerOverlappingMario } from "../findHammerOverlappingMario.js";
 import { findCollidingObject } from "../findCollidingObject.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_ACTIVE, MARIO_X, MARIO_Y, OBJ_PAIR_6680 } from "../ram.js";
+import { STACK_SCRATCH, MARIO_ACTIVE, MARIO_X, MARIO_Y, OBJ_PAIR_6680 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

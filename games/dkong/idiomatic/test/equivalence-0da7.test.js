@@ -43,7 +43,7 @@ import { drawBoardLayout as idiomatic } from "../drawBoardLayout.js";
 import { loc_2ff0 } from "../../translated/loc_2ff0.js"; // oracle callee, for the teeth twins
 import { loc_0dd3 } from "../loc_0dd3.js"; // idiomatic callee, for the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

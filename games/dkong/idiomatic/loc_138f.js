@@ -33,11 +33,11 @@
  *           read after it, so the oracle's residual A/C/HL/flags are dead ABI; SP/pc are
  *           the Z80 caller-skip idiom the boolean gate replaces and are not modelled.
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), P2_CONTEXT (0x6048) from
- *           ram.js. Sub-state codes 0x14/0x17 kept hex — unconfirmed ROM sub-state indices.
+ *           names.js. Sub-state codes 0x14/0x17 kept hex — unconfirmed ROM sub-state indices.
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
-import { SUBSTATE_TIMER, GAME_SUBSTATE, P2_CONTEXT } from "./ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, P2_CONTEXT } from "./names.js";
 
 // The two follow-on sub-state indices this handler selects between. Kept hex: their
 // game-level meaning (past the documented gameplay/death/advance states) is unconfirmed.

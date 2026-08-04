@@ -34,7 +34,7 @@
  *           not any register; the tail owns everything after the hand-off.
  * NAMES:    HAZARD_STATE, HAZARD_TYPE, DIG_OBJ_TIMER, DIG_COLLISION_STATE,
  *           DIG_OBJ_SUBTYPE, HAZARD_X, HAZARD_Y, HAZARD_ACTIVE_COUNT, DROP_QUEUE (the table
- *           destination 0x80c3) from ram.js. The companion byte is DIG_OBJ_TIMER_RELOAD (0x80c2).
+ *           destination 0x80c3) from names.js. The companion byte is DIG_OBJ_TIMER_RELOAD (0x80c2).
  *           The tail is the decompiled seedChamberCreature (ROM 0x2f2f).
  */
 
@@ -50,7 +50,7 @@ import {
   HAZARD_ACTIVE_COUNT,
   HAZARD_X,
   HAZARD_Y,
-} from "./ram.js";
+} from "./names.js";
 
 export function seedDigObjectBlock(m) {
   const { mem8 } = m;

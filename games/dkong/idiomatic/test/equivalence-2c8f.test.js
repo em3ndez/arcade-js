@@ -49,7 +49,7 @@ import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH, BOARD, MARIO_ACTIVE, OBJ_ARRAY_67, OBJ_ACTIVE, RENDER_OBJ_PTR, RENDER_DST_PTR,
   ACTOR_SPRITES,
-} from "../ram.js";
+} from "../names.js";
 // The twins reuse the real callees — their faithfulness is proven by their own gates, not here —
 // so only the loc_2c8f-level logic error is what diverges.
 import { boardBitGate } from "../boardBitGate.js";

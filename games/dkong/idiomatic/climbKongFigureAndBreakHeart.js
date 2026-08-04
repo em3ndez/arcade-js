@@ -69,13 +69,13 @@
  *           models the call's push/pop in STACK_SCRATCH, this routine needs no stack at all.
  * NAMES:    SPRITE_BUFFER (0x6900), SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388 — the
  *           board-cleared interlude's step, the same one advanceInterludeStepAndLiftKongFigure
- *           and stageNextKongPoseWhenHoldExpires advance) from ram.js — records are 4 bytes
+ *           and stageNextKongPoseWhenHoldExpires advance) from names.js — records are 4 bytes
  *           (+0 X, +1 code, +2 attr, +3 Y). Hex-kept: the scroll probe 0x6913 (= record 2's
  *           Y = SPRITE_OBJ_BLOCK + 0x0B).
  */
 
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
-import { SPRITE_BUFFER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SPRITE_BUFFER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 
 const SCROLL_PROBE = SPRITE_OBJ_BLOCK + 0x0b; // 0x6913 — sprite-object record 2's Y (field 3)
 const SCROLL_TOP = 0x2c; // reset once the probed record's Y has scrolled ABOVE this (Y < 0x2c)

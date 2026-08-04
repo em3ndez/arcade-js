@@ -57,19 +57,19 @@
  *           the accumulator, the scaled index, the computed record pointer — is dead: stampReleasedBarrelKind
  *           overwrites the accumulator from BARREL_CLAIM_MODE and neither it nor advanceBarrelRelease reads an
  *           incoming pointer register.
- * NAMES:    BONUS (0x62B1) is named in ram.js but is reached through the CALLER's pointer register,
+ * NAMES:    BONUS (0x62B1) is named in names.js but is reached through the CALLER's pointer register,
  *           which is this routine's live-in, so it is read indirectly and named in the comment
- *           rather than imported. SPRITE_X (+0) from ram.js is the field cleared — the group at
+ *           rather than imported. SPRITE_X (+0) from names.js is the field cleared — the group at
  *           0x69A8 lies inside SPRITE_BUFFER, so this is the SPRITE-record namespace, NOT the
  *           object-record OBJ_ACTIVE that shares the numeric offset 0. The group base 0x69A8 has no
- *           ram.js name (one of several unnamed sub-blocks of SPRITE_BUFFER, like the 0x69FC record
+ *           names.js name (one of several unnamed sub-blocks of SPRITE_BUFFER, like the 0x69FC record
  *           its board-build sibling seeds) and stays a local hex const.
  */
 
-import { SPRITE_X } from "./ram.js"; // sprite-record field offset (+0), NOT the object-record OBJ_ACTIVE
+import { SPRITE_X } from "./names.js"; // sprite-record field offset (+0), NOT the object-record OBJ_ACTIVE
 import { stampReleasedBarrelKind } from "./stampReleasedBarrelKind.js"; // ROM 0x2CF6 — preset the freshly-claimed barrel record
 
-const COUNTDOWN_SPRITES = 0x69a8; // four-record sprite group seeded at 25m board build (no ram.js name)
+const COUNTDOWN_SPRITES = 0x69a8; // four-record sprite group seeded at 25m board build (no names.js name)
 const COUNTDOWN_RECORDS = 4; // records in that group — and the count below which they start retiring
 const SPRITE_RECORD_BYTES = 4; // stride of a sprite record
 

@@ -50,7 +50,7 @@ import { animateIntroClimbStep as idiomatic } from "../animateIntroClimbStep.js"
 import { animateSpriteObjectBlock } from "../animateSpriteObjectBlock.js";
 import { scrollClimbGraphicStep } from "../scrollClimbGraphicStep.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

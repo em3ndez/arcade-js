@@ -38,7 +38,7 @@
  *
  * NAME (promoted from loc_06a8, DK understanding pass 13 — independent proposer ≠ confirmer,
  * confidence HIGH). Corroboration from OUTSIDE this routine:
- *   - Both cells it writes are named and rated in ram.js: BONUS_DISPLAY (0x638C, [seen]) — "the
+ *   - Both cells it writes are named and rated in names.js: BONUS_DISPLAY (0x638C, [seen]) — "the
  *     number the player watches count down" — and BONUS_DISPLAY_ZEROED (0x63B8, [seen], POKED) —
  *     "latch recording that the bonus readout has bottomed out". A raw-ROM operand scan finds
  *     0x63B8 referenced exactly twice in the image: written at ROM 0x06AC (here) and read at
@@ -47,7 +47,7 @@
  *     here only on the NON-ZERO arm, taking the zero arm to the latch check and re-seed instead.
  *     This is unambiguously the "there is bonus left, take one notch off it" arm.
  *   - One BCD notch = 100 points, corroborated arithmetically rather than assumed: loc_062a seeds
- *     the display as (BONUS_START/10) << 4, ram.js gives BONUS_START = 50 at level 1, and
+ *     the display as (BONUS_START/10) << 4, names.js gives BONUS_START = 50 at level 1, and
  *     mechanisms.md §6 gives level 1 = 5000 on screen — 50/10 = 5 -> 0x50 -> "5000", so one
  *     decrement of the packed byte is one hundred points.
  * WHAT THE NAME DOES NOT CLAIM: not that this routine awards or deducts score — it steps the
@@ -70,11 +70,11 @@
  *           register back after this returns, so the residual registers/flags are dead.
  * NAMES:    BONUS_DISPLAY (0x638C) — the on-screen bonus readout this routine steps and
  *           stores — and BONUS_DISPLAY_ZEROED (0x63B8) — the latch recording that the readout
- *           has bottomed out — both from ram.js.
+ *           has bottomed out — both from names.js.
  *           renderBonusDisplay (ROM 0x066A) is direct-called; it reads its digit byte from the register.
  */
 
-import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "./ram.js";
+import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "./names.js";
 import { renderBonusDisplay } from "./renderBonusDisplay.js"; // ROM 0x066A — packed-BCD field renderer (the tail join)
 
 export function stepBonusDisplayDown(m) {

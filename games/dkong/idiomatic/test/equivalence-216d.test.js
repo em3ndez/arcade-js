@@ -53,7 +53,7 @@ import {
   DIFFICULTY,
   RANDOM,
   P1_INPUT,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -63,7 +63,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x216d;
-const SPAWN_MODE_GATE = 0x6348; // ram.js keeps it hex (multiplexed engine scratch)
+const SPAWN_MODE_GATE = 0x6348; // names.js keeps it hex (multiplexed engine scratch)
 const NEAR = 0x15;              // near paired-slot offset past the matched byte
 const FAR = 0x2a;               // far paired-slot offset past the matched byte
 

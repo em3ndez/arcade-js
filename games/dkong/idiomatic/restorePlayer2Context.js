@@ -36,7 +36,7 @@
  *           terminal `ret` (an SP+2 pop) is the modelled stack ABI the direct-call
  *           layer replaces with a JS return, so SP/pc are not live either.
  * NAMES:    P2_CONTEXT, LIVES (live-block base), BOARD, BOARD_SEQ_PTR,
- *           SUBSTATE_TIMER, GAME_SUBSTATE — all from idiomatic/ram.js.
+ *           SUBSTATE_TIMER, GAME_SUBSTATE — all from idiomatic/names.js.
  */
 
 import {
@@ -46,7 +46,7 @@ import {
   BOARD_SEQ_PTR,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "./ram.js";
+} from "./names.js";
 
 // The live context block is 8 bytes, based at LIVES (0x6228) and running through
 // HOW_HIGH_LAST_SEQ (0x622F). P2_CONTEXT (0x6048) is P2's matching 8-byte save slot.

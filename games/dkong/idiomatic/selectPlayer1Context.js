@@ -9,7 +9,7 @@
  * constant function of no inputs:
  *
  *   - CURRENT_PLAYER (0x600D) = 0  -> player 1 is up
- *   - ACTIVE_PLAYER_INDEX (0x600E) = 0 -> player 1 is the active player. ram.js names
+ *   - ACTIVE_PLAYER_INDEX (0x600E) = 0 -> player 1 is the active player. names.js names
  *                                     0x600E the active-player index (low byte, lockstep
  *                                     mirror of CURRENT_PLAYER); it is ALSO the
  *                                     1-player-start marker configureFlipScreenAndSelectSubstate
@@ -23,11 +23,11 @@
  * ACTIVE_PLAYER_INDEX byte loc_08f8 wrote at game start; this routine clears both. It is the
  * player-1 half of a mirror pair with loc_13aa (idx 18), which instead sets that pair to
  * (1, 1) — selecting player 2 — and sets the flip latch from the cabinet DIP
- * (DIP_UPRIGHT 0x6026), so a cocktail player 2 gets the mirrored view. ram.js
+ * (DIP_UPRIGHT 0x6026), so a cocktail player 2 gets the mirrored view. names.js
  * corroborates the player-select half: CURRENT_PLAYER is "toggled on the player
  * switch (loc_13aa sets 1, loc_13bb clears 0)".
  *
- * GROUNDED (DK understanding pass 4, independent confirmer): ram.js CURRENT_PLAYER (0x600D)
+ * GROUNDED (DK understanding pass 4, independent confirmer): names.js CURRENT_PLAYER (0x600D)
  * cites it explicitly — "toggled on the player switch (loc_13aa sets 1, loc_13bb clears 0)".
  * It writes CURRENT_PLAYER / ACTIVE_PLAYER_INDEX / GAME_SUBSTATE = 0 plus the flip latch = 1,
  * the player-1 mirror of loc_13aa. The immediate siblings loc_138f / loc_13a1 stay loc_.
@@ -51,16 +51,16 @@
  *           dead ABI. SP/PC are not compared (the direct-call layer replaces the
  *           oracle's `ret` stack/PC bookkeeping with the JS call stack).
  * NAMES:    CURRENT_PLAYER (0x600D), ACTIVE_PLAYER_INDEX (0x600E), GAME_SUBSTATE
- *           (0x600A) from ram.js. 0x7D82 (flip-screen board latch) is not work RAM, so
+ *           (0x600A) from names.js. 0x7D82 (flip-screen board latch) is not work RAM, so
  *           it stays a local hex constant (same convention as
  *           configureFlipScreenAndSelectSubstate). NB TWO_PLAYER_GAME is 0x600F (the
  *           high byte) and is NOT written here.
  */
 
-import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, GAME_SUBSTATE } from "./ram.js";
+import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX, GAME_SUBSTATE } from "./names.js";
 
 // Flip-screen control latch (ls259.6h bit 2) — a board hardware register, not work
-// RAM, so it lives outside ram.js as a local constant.
+// RAM, so it lives outside names.js as a local constant.
 const FLIPSCREEN = 0x7d82;
 
 export function selectPlayer1Context(m) {

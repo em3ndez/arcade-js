@@ -30,7 +30,7 @@
  * that dissolves once the caller is decompiled.
  *
  * NAME: kept the neutral loc_ — the mechanism is pinned to the oracle, but the two
- * record fields it writes (+0x10 / +0x11) are not yet named in ram.js and their "object
+ * record fields it writes (+0x10 / +0x11) are not yet named in names.js and their "object
  * velocity" reading rests on the still-oracle caller's header alone, below the
  * routine-name evidence bar. Promote once those offsets are corroborated. (Mirrors the
  * sibling loc_2303, which writes the same two fields on the easier difficulties.)
@@ -46,16 +46,16 @@
  * LIVE-OUT: memory-only — the caller tail-calls this (its own return is this routine's
  *           return) and consumes only the two record fields written here; the oracle's
  *           residual registers/flags and its terminal return are dead.
- * NAMES:    MARIO_X (0x6203), OBJ_X (record +0x03) — from ram.js. The two written fields
- *           (record +0x10 step code, +0x11 step delta) have no ram.js offset name yet and
+ * NAMES:    MARIO_X (0x6203), OBJ_X (record +0x03) — from names.js. The two written fields
+ *           (record +0x10 step code, +0x11 step delta) have no names.js offset name yet and
  *           stay local consts here (same offsets the sibling loc_2303 leaves unnamed).
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_X, OBJ_X } from "./ram.js";
+import { MARIO_X, OBJ_X } from "./names.js";
 
 // Object-record fields written here, addressed off the record pointer. Neither has a
-// shared OBJ_* offset name in ram.js yet (only +0/+3/+5/+7/+8 are named there); the
+// shared OBJ_* offset name in names.js yet (only +0/+3/+5/+7/+8 are named there); the
 // sibling loc_2303 writes the same two fields on the easier difficulties.
 const OBJ_STEP_DIR = 0x10; // toward-player step code
 const OBJ_STEP_MAG = 0x11; // step delta

@@ -32,7 +32,7 @@
  *           the standing-still path this clears the phase byte. No register live-out: the
  *           register deltas are consumed by the still-oracle handlers (they pass through
  *           here), and the caller reads no register back from this routine.
- * NAMES:    GOAL_TILE_LATCH and PLAYER_ANIM_PHASE (the animation-phase byte 0x801a) from ram.js;
+ * NAMES:    GOAL_TILE_LATCH and PLAYER_ANIM_PHASE (the animation-phase byte 0x801a) from names.js;
  *           the direction/phase handlers (stepObjectRowFlipped, stepObjectRowUnflipped,
  *           windUpObjectMove) and the goal handler resolveObjectTile are decompiled and called
  *           directly.
@@ -40,7 +40,7 @@
  * PURPOSE [guess]: the object-entity identity (see caveat 2).
  */
 
-import { GOAL_TILE_LATCH, PLAYER_ANIM_PHASE } from "./ram.js";
+import { GOAL_TILE_LATCH, PLAYER_ANIM_PHASE } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 import { windUpObjectMove } from "./windUpObjectMove.js";

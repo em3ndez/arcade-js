@@ -44,12 +44,12 @@
  *           (loc_141E does `return m.call(0x144F)`), which consumes none; the oracle's
  *           residual A and the callee's DE/B/HL/F are dead ABI. SP/pc are the dropped stack
  *           model — the oracle's per-post push/ret residue lands only in STACK_SCRATCH.
- * NAMES:    CURRENT_PLAYER (0x600D) and ACTIVE_PLAYER_INDEX (0x600E) from ram.js — the
+ * NAMES:    CURRENT_PLAYER (0x600D) and ACTIVE_PLAYER_INDEX (0x600E) from names.js — the
  *           two bytes of loc_141E's player-index pair; imports
  *           configureFlipScreenAndComposeScreen (the idiomatic ROM 0x1459 callee).
  */
 
-import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX } from "./ram.js";
+import { CURRENT_PLAYER, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { configureFlipScreenAndComposeScreen } from "./configureFlipScreenAndComposeScreen.js";
 
 export function selectPlayer2AndComposeScreen(m) {

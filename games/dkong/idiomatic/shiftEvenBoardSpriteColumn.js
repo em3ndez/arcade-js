@@ -40,12 +40,12 @@
  *           dead ABI. SP/PC are the single net return the JS call stack replaces (the
  *           harness supplies one m.ret()).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), BOARD (0x6227), and the 50m shift-delta source
- *           M50_OBJ_ROW_SHIFT (0x63b7) — all from ram.js (0x63b7 named this pass; it is the 50m
+ *           M50_OBJ_ROW_SHIFT (0x63b7) — all from names.js (0x63b7 named this pass; it is the 50m
  *           sprite-object row X-shift delta, staged by entry_03fb/entry_0400). The default shift
  *           and the board-bit mask are immediates.
  */
 
-import { SPRITE_OBJ_BLOCK, BOARD, M50_OBJ_ROW_SHIFT } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, BOARD, M50_OBJ_ROW_SHIFT } from "./names.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
 

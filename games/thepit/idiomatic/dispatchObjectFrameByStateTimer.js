@@ -30,12 +30,12 @@
  * LIVE-OUT: memory-only — the decremented countdown (TRANSITION_TIMER) plus whatever the chosen handler
  *           writes. No caller reads a register or flag back; every exit is a tail hand-off or a bare
  *           stop.
- * NAMES:    TRANSITION_TIMER, POST_TRANSITION_MODE (ram.js).
+ * NAMES:    TRANSITION_TIMER, POST_TRANSITION_MODE (names.js).
  *
  * PURPOSE [guess]: POST_TRANSITION_MODE — what each expiry gates.
  */
 
-import { TRANSITION_TIMER, POST_TRANSITION_MODE } from "./ram.js";
+import { TRANSITION_TIMER, POST_TRANSITION_MODE } from "./names.js";
 import { advanceTrackedObject } from "./advanceTrackedObject.js";
 import { dockManAndDispatchRoundBoundary } from "./dockManAndDispatchRoundBoundary.js";
 import { advanceToNextLevel } from "./advanceToNextLevel.js";

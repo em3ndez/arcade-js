@@ -63,7 +63,7 @@ import {
   OBJ_HIT_EXTENT_X,
   OBJ_HIT_EXTENT_Y,
   FRAME,
-} from "../ram.js";
+} from "../names.js";
 import { u8 } from "../../../../core/int.js";
 // The teeth twins reuse the real callees (their faithfulness is proven by their own gates,
 // not under test here) so only the loc_2ed4-level logic error is what diverges.
@@ -82,14 +82,14 @@ const test = ROM_PRESENT
 const TARGET = 0x2ed4;
 const RET_ADDR = 0x199b; // the loc_197a site right after `call 0x2ed4`
 
-// The pair's object bases + their sprite-record slots (no ram.js name — kept hex).
+// The pair's object bases + their sprite-record slots (no names.js name — kept hex).
 const OBJ1_BASE = OBJ_PAIR_6680;        // 0x6680
 const OBJ2_BASE = OBJ_PAIR_6680 + 0x10; // 0x6690
 const OBJ1_RECORD = 0x6a18;
 const OBJ2_RECORD = 0x6a1c;
 const SELECTOR = OBJ_PAIR_6680 + HAMMER_IN_PLAY; // 0x6681 — bit0 picks the object
 
-// Object-record field offsets with no ram.js name (the two collision half-extents this routine
+// Object-record field offsets with no names.js name (the two collision half-extents this routine
 // stamps DO have one — OBJ_HIT_EXTENT_X/Y, imported above).
 const OBJ_XDISP = 0x0e;
 const OBJ_YDISP = 0x0f;

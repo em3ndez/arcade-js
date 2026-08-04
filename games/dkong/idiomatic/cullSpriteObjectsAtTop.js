@@ -31,11 +31,11 @@
  * LIVE-OUT: memory + HL + DE — the zeroed X bytes, plus the scan pointer/stride the
  *           sibling sub_1783 consumes (via sub_1757's inc hl / inc de). A/B/F are
  *           dead: sub_1783 reloads B and A and overwrites F before reading them.
- * NAMES:    SPRITE_OBJ_BLOCK (ram.js). 0x19 top-line and the 4-byte record layout
+ * NAMES:    SPRITE_OBJ_BLOCK (names.js). 0x19 top-line and the 4-byte record layout
  *           stay literal — screen geometry, no RAM address.
  */
 
-import { SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SPRITE_OBJ_BLOCK } from "./names.js";
 
 const RECORD_COUNT = 10; // the block holds ten 4-byte sprite-object records
 const RECORD_STRIDE = 4; // +0 X, +1 code, +2 attr, +3 Y

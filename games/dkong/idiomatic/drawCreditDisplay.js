@@ -35,15 +35,15 @@
  *           stronger tail-call contract, at no cost. Flags are dropped as dead. SP/pc are
  *           the dropped stack model: the JS return leaves them at entry, and the harness
  *           applies one m.ret() to line them up with the oracle's internal `ret`.
- * NAMES:    CREDITS (0x6001, ram.js) — the credit-count source byte. The string index
+ * NAMES:    CREDITS (0x6001, names.js) — the credit-count source byte. The string index
  *           (5), the digit-cell VRAM cursor (0x74BF), and the row step (-0x20) are ROM
  *           literals, not work-RAM, so they stay as local hex constants.
  */
-import { CREDITS } from "./ram.js";
+import { CREDITS } from "./names.js";
 import { drawStringVertical } from "./drawStringVertical.js"; // ROM 0x05E9
 import { expandBcdDigits } from "./expandBcdDigits.js"; //      ROM 0x0583
 
-// -- ROM literals (baked into the code, NOT work-RAM, so none are in ram.js) --
+// -- ROM literals (baked into the code, NOT work-RAM, so none are in names.js) --
 const CREDIT_STRING_INDEX = 0x05; // "CREDIT" in the string table drawStringVertical reads
 const CREDIT_DIGITS_VRAM = 0x74bf; //  VRAM cursor: high digit here, low digit one row up
 const DIGIT_ROW_STEP = 0xffe0; //      -0x20: step one tilemap row up between the two digits

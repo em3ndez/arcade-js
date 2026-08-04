@@ -44,10 +44,10 @@
  *           tail-chains into a callee whose own caller reads no register before overwriting it, so
  *           the oracle's residual registers/flags are dead ABI. SP/PC are the single net return the
  *           JS call stack replaces (the harness supplies one m.ret()).
- * NAMES:    SND_TRIGGER (0x6080) from ram.js — the boundary arm asserts SND_TRIGGER+2 (0x6082),
+ * NAMES:    SND_TRIGGER (0x6080) from names.js — the boundary arm asserts SND_TRIGGER+2 (0x6082),
  *           a 3-frame sound beat (the same latch the soundDriverTick counts down, matched by the
  *           other writers loc_0b06/0b68/1880). The sweep counter 0x6390 and reload gate 0x6393 are
- *           deliberately kept hex (both SHARED bytes; ram.js rejected a colour-specific name). The
+ *           deliberately kept hex (both SHARED bytes; names.js rejected a colour-specific name). The
  *           two ROM template addresses are immediates.
  *
  * REGISTER-ABI MARSHALLING (dissolves once loadSpriteObjectBlock takes an honest source param):
@@ -62,9 +62,9 @@ import { resetColorCycleSweep } from "./resetColorCycleSweep.js";       // ROM 0
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js";     // ROM 0x004e
 import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js"; // ROM 0x0450
-import { SND_TRIGGER } from "./ram.js"; // 0x6080 [8] — the sound-trigger latch span
+import { SND_TRIGGER } from "./names.js"; // 0x6080 [8] — the sound-trigger latch span
 
-const SWEEP_COUNTER = 0x6390;   // colour-cycle sweep counter (unnamed/shared in ram.js — kept hex)
+const SWEEP_COUNTER = 0x6390;   // colour-cycle sweep counter (unnamed/shared in names.js — kept hex)
 const OBJ_RELOAD_GATE = 0x6393; // 0 -> reload the block + full cascade; nonzero -> repaint only (shared — hex)
 const SWEEP_TOP = 0x80;         // top of the counter's range; reaching it ends the sweep
 const BOUNDARY_MASK = 0x1f;     // low 5 bits zero -> a 32-frame boundary

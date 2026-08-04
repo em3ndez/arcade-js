@@ -29,12 +29,12 @@
  *           prior X arrives in a register at the still-translated caller (sub_2ad3) boundary;
  *           nothing downstream reads a register or flag this routine leaves — it tail-returns.
  * NAMES:    M50_OBJ2_STEP_POS (0x63A5), M50_OBJ2_STEP_NEG (0x63A4) — the two published
- *           step-shadow arms this routine selects between — from ram.js. MARIO_X (0x6203) and
+ *           step-shadow arms this routine selects between — from names.js. MARIO_X (0x6203) and
  *           MARIO_SPRITE_RECORD (0x694C) are written by the moveMarioX callee (ROM 0x2B02,
  *           direct-called; marshals the selected step in as its velocity).
  */
 
-import { M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG } from "./ram.js";
+import { M50_OBJ2_STEP_POS, M50_OBJ2_STEP_NEG } from "./names.js";
 import { moveMarioX } from "./moveMarioX.js"; // ROM 0x2B02 — advance X by velocity + clamp
 
 export function selectConveyorStepAndMoveMario(m) {

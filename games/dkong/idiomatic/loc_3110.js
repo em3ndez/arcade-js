@@ -47,10 +47,10 @@
  * LIVE-OUT: memory-only (writes none) — the control-flow boolean is the whole output; the
  *           residual registers/flags and the two-level Z80 return the oracle leaves are the
  *           dead return mechanism, replaced by a plain JS return the caller reloads past.
- * NAMES:    FRAME (0x601A) from ram.js.
+ * NAMES:    FRAME (0x601A) from names.js.
  */
 
-import { FRAME } from "./ram.js";
+import { FRAME } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

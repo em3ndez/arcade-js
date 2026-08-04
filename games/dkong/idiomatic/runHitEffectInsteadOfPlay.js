@@ -71,7 +71,7 @@
  *           skip arm discards the caller's return address and returns a level higher, all inside
  *           STACK_SCRATCH; the boolean carries that decision instead.
  * NAMES:    none imported. The only cell touched is the hit-effect latch at 0x6350, which is
- *           deliberately unnamed in ram.js (shared engine scratch: the effect sequence's gate and
+ *           deliberately unnamed in names.js (shared engine scratch: the effect sequence's gate and
  *           animateFixedHazardAndReleaseFire's bit0 gate read the same byte) and kept hex here, exactly as its two
  *           sibling routines recordHammerHitOnObject and animateEffectSpriteThenRearmEffect keep
  *           it. Direct-called: dispatchEffectSequenceStep (ROM 0x1E96), loc_1e94 (ROM 0x1E94).

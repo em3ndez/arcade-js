@@ -42,7 +42,7 @@ import { bootOnly } from "../../translated/bootOnly.js";
 import { clearRamAndInitHardware } from "../clearRamAndInitHardware.js";
 import { silenceSound } from "../silenceSound.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, TASK_TAIL, TASK_HEAD, TASK_RING } from "../ram.js";
+import { STACK_SCRATCH, TASK_TAIL, TASK_HEAD, TASK_RING } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

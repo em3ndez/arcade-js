@@ -31,13 +31,13 @@
  *           one past the matched byte — is reproduced to match the oracle, but no
  *           caller reads it: all six call sites branch on the flag alone.
  * NAMES:    SUBTILE_PHASE (0x808d, row index) and PROBE_CELL_PTR (0x8089, display-cell
- *           pointer) from ram.js. The 0x35fe ROM table base is still hex (unnamed).
+ *           pointer) from names.js. The 0x35fe ROM table base is still hex (unnamed).
  *
  * PURPOSE [guess]: table/meaning inferred (a "can-step-this-way" gate).
  */
 
 import { F_Z } from "../../../core/cpu/z80.js";
-import { PROBE_CELL_PTR, SUBTILE_PHASE } from "./ram.js";
+import { PROBE_CELL_PTR, SUBTILE_PHASE } from "./names.js";
 
 
 export function nextTileInProbeRow(m) {

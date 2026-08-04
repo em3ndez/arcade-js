@@ -39,7 +39,7 @@
  * NAMES:    FRAME (0x601A).
  */
 
-import { FRAME } from "./ram.js";
+import { FRAME } from "./names.js";
 
 export function loc_311b(m) {
   // Proceed on the first five of the frame counter's eight repeating phases; on the last

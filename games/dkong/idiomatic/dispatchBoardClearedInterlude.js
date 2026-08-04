@@ -20,7 +20,7 @@
  *
  * NAME: promoted in understanding pass 15 by a proposer plus an independent blind confirmer
  * (docs/reviewer-rules.md R4/R5). Corroboration from OUTSIDE this routine: both of its inputs are
- * `[seen]` ram.js cells — BOARD (0x6227), "1=25m girders, 2=50m conveyors, 3=75m elevators,
+ * `[seen]` names.js cells — BOARD (0x6227), "1=25m girders, 2=50m conveyors, 3=75m elevators,
  * 4=100m rivets", picks the arm, and BOARD_ADVANCE_STEP (0x6388) picks the step — and the pass-14
  * grounding measured that selector walking 0→1→2→3→4→5 (0→4 on 50m) exactly once per completion,
  * 51 monotone step entries across nine completions, while it is identically 0 on all 7,466 in-play
@@ -51,11 +51,11 @@
  *           pick the arm here), and pc/SP net out identically: the oracle's push16 return-brackets
  *           around the 0x30bd call and each rst-0x28 dispatch cancel, leaving the arm's own terminal
  *           ret to pop dispatchBoardClearedInterlude's caller return on both sides.
- * NAMES:    BOARD (0x6227), BOARD_ADVANCE_STEP (0x6388) from ram.js. The two ROM table bases
+ * NAMES:    BOARD (0x6227), BOARD_ADVANCE_STEP (0x6388) from names.js. The two ROM table bases
  *           0x1623 / 0x1637 stay hex (ROM data, not work RAM).
  */
 
-import { BOARD, BOARD_ADVANCE_STEP } from "./ram.js";
+import { BOARD, BOARD_ADVANCE_STEP } from "./names.js";
 import { clearSpriteColumns } from "./clearSpriteColumns.js"; // ROM 0x30BD — park the moving sprites
 import { runRivetBoardInterludeFrame } from "./runRivetBoardInterludeFrame.js";                     // ROM 0x1641 — 100m fall-through arm
 import { loc_00ca } from "../translated/loc_00ca.js";

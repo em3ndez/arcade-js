@@ -61,7 +61,7 @@
  *           lands in STACK_SCRATCH and is excluded from the compare.
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), SPRITE_BUFFER (0x6900), SND_TRIGGER (0x6080 →
  *           +2 = latch bit 2), BOARD_ADVANCE_STEP (0x6388 — the render-sequence step
- *           selector) from ram.js. Hex-kept: 0x62AF (pace counter — ram.js's rejected
+ *           selector) from names.js. Hex-kept: 0x62AF (pace counter — names.js's rejected
  *           board-object bookkeeping, the byte loc_18c6 consumes), 0x6A24 (a 4-byte
  *           object record), 0x76C6 (VRAM tile-fill target), 0x3A5F (ROM segment-table
  *           base, an immediate).
@@ -71,14 +71,14 @@ import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
 import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — draw the board segment layout
 // ROM 0x1826 — 70-tile VRAM fill. The FROZEN ORACLE deliberately: an idiomatic twin
-// (fillTileBlock.js) exists and 0x1826 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE.
+// (fillTileBlock.js) exists and 0x1826 is in names.js's ROUTINES, so "no idiomatic yet" is FALSE.
 // The oracle is a pure leaf ending in `ret` (zero m.call of its own) and so consumes one
 // guest-stack word the twin's JS return does not. Left because nothing can prove the swap safe:
 // no run reaches this call site (attract never builds this screen, and there is no tape-driven
 // convergence gate), and injecting the 2-byte delta here was caught by neither this routine's
 // equivalence gate nor the full-flip gate.
 import { loc_1826 } from "../translated/loc_1826.js";
-import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, SPRITE_BUFFER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./names.js";
 
 const Y_COLUMN = SPRITE_OBJ_BLOCK + 3; // 0x690b — field +3 (Y) of sprite-object record 0
 const DESCEND_STEP = 0x01; // +1 into the Y column each frame (slide the block down)

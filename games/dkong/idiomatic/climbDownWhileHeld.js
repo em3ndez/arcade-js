@@ -33,12 +33,12 @@
  * LIVE-OUT: memory-only — this routine writes nothing itself; the driver it hands off to
  *           writes. Its tail-calling callers consume no register it leaves, and the chain
  *           nets exactly one caller-return.
- * NAMES:    P1_INPUT (0x6010), MARIO_ON_LADDER (0x6215) from ram.js. Delegates to the
+ * NAMES:    P1_INPUT (0x6010), MARIO_ON_LADDER (0x6215) from names.js. Delegates to the
  *           already-idiomatic climbMarioDown (ROM 0x1CF2) and climbUpWhileHeld (ROM
  *           0x1B45); the cells those chains touch are named in their own headers.
  */
 
-import { P1_INPUT, MARIO_ON_LADDER } from "./ram.js";
+import { P1_INPUT, MARIO_ON_LADDER } from "./names.js";
 import { climbMarioDown } from "./climbMarioDown.js";     // ROM 0x1CF2
 import { climbUpWhileHeld } from "./climbUpWhileHeld.js"; // ROM 0x1B45
 

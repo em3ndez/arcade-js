@@ -45,7 +45,7 @@ import { loc_348b as oracle } from "../../translated/loc_348b.js";
 import { stepMoverUnmirrored } from "../stepMoverUnmirrored.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE } from "../ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

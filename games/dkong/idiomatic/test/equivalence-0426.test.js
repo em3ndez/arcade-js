@@ -51,7 +51,7 @@ import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { dispatchColorCascadeByBoard } from "../dispatchColorCascadeByBoard.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, BOARD, SPRITE_OBJ_BLOCK } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -63,9 +63,9 @@ const test = ROM_PRESENT
 
 const TARGET = 0x0426;
 const RET_ADDR = 0x0413;        // a plausible caller-return for the one net pop (any value works)
-const SWEEP_COUNTER = 0x6390;   // colour-cycle sweep counter (unnamed in ram.js)
-const OBJ_RELOAD_GATE = 0x6393; // 0 -> boundary reload arm, nonzero -> repaint arm (unnamed in ram.js)
-const OBJ_RELOAD_REQUEST = 0x6082; // request byte raised to 3 on the boundary arm (unnamed in ram.js)
+const SWEEP_COUNTER = 0x6390;   // colour-cycle sweep counter (unnamed in names.js)
+const OBJ_RELOAD_GATE = 0x6393; // 0 -> boundary reload arm, nonzero -> repaint arm (unnamed in names.js)
+const OBJ_RELOAD_REQUEST = 0x6082; // request byte raised to 3 on the boundary arm (unnamed in names.js)
 const SWEEP_TOP = 0x80;         // the counter's top of range
 const TEMPLATE_BIT5_SET = 0x39cf;   // ROM template reloaded when counter bit 5 is set
 const TEMPLATE_BIT5_CLEAR = 0x39f7; // ROM template reloaded when counter bit 5 is clear

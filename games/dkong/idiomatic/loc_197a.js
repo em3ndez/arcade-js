@@ -61,12 +61,12 @@
  *           brackets no longer write their return words — so that region is excluded from the
  *           byte comparison and covered by the SP assertion instead.
  * NAMES:    MARIO_ACTIVE (0x6200) and SND_TRIGGER (0x6080, an 8-entry array — this writes
- *           entry 2) from ram.js. ROM 0x1F72 is the one callee reached through the registry
+ *           entry 2) from names.js. ROM 0x1F72 is the one callee reached through the registry
  *           (0x2C8F and 0x30ED are direct-called but likewise not yet in ROUTINES); it stays an
  *           addressed call with the return bracket its oracle's `ret` pops.
  */
 
-import { MARIO_ACTIVE, SND_TRIGGER } from "./ram.js";
+import { MARIO_ACTIVE, SND_TRIGGER } from "./names.js";
 
 import { dispatchEffectState } from "./dispatchEffectState.js"; // ROM 0x1DBD
 import { runHitEffectInsteadOfPlay } from "./runHitEffectInsteadOfPlay.js"; // ROM 0x1E8C

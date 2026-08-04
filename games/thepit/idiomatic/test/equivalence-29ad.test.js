@@ -66,7 +66,7 @@ import {
   STAGED_TARGET_X,
   STAGED_TARGET_Y,
   PLAYER_CELL_PTR,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

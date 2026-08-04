@@ -85,7 +85,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_1f93 as oracle } from "../../translated/loc_1f93.js";
 import { loc_1f93 } from "../loc_1f93.js";
-import { OBJ_ARRAY_67, STACK_SCRATCH } from "../ram.js";
+import { OBJ_ARRAY_67, STACK_SCRATCH } from "../names.js";
 import { firstRegDiff } from "../../../../core/equivalence.js";
 import { Machine } from "../../machine.js";
 
@@ -109,7 +109,7 @@ const BRANCH_BIT2_ARM = 0x1fef; // record +2 bit 2
 const BRANCH_DEFAULT_ARM = 0x2053; // no low bit set
 const ARMS = [BRANCH_SELECT_ARM, BRANCH_BIT0_ARM, BRANCH_BIT1_ARM, BRANCH_BIT2_ARM, BRANCH_DEFAULT_ARM];
 
-// The two record fields the dispatcher reads. ram.js deliberately declines to give either
+// The two record fields the dispatcher reads. names.js deliberately declines to give either
 // a shared OBJ_* name (see its HAMMER_IN_PLAY note, which cites this very site).
 const SELECT = 1;
 const MODE_BITS = 2;

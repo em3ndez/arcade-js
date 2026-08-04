@@ -56,7 +56,7 @@ import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { advanceInterludeStepAndLiftKongFigure } from "../advanceInterludeStepAndLiftKongFigure.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "../ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -74,7 +74,7 @@ const COPY_DEST = Array.from({ length: 0x28 }, (_, k) => SPRITE_OBJ_BLOCK + k);
 const STAMP_ADDR = SPRITE_OBJ_BLOCK + 0x04; // 0x690C — copied byte re-stamped to 0x66
 const CLEAR_A = SPRITE_OBJ_BLOCK + 0x1c; // 0x6924
 const CLEAR_B = SPRITE_OBJ_BLOCK + 0x24; // 0x692C
-const BOARD_BOOKKEEPING = 0x62af; // 0x62AF — board-object bookkeeping (unnamed in ram.js)
+const BOARD_BOOKKEEPING = 0x62af; // 0x62AF — board-object bookkeeping (unnamed in names.js)
 const FIELD3_REC0 = SPRITE_OBJ_BLOCK + 0x03; // 0x690B — field 3 of record 0, advanceInterludeStepAndLiftKongFigure's first strided byte
 const BK_SENTINEL = 0x77; // nonzero value planted at 0x62AF so a dropped clear is visible
 

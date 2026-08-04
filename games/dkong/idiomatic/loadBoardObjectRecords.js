@@ -44,14 +44,14 @@
  *           modelled stack ABI the direct-call layer replaces with a JS return, and the
  *           harness supplies one m.ret() on the candidate to line them up.
  * NAMES:    BOARD (0x6227), OBJ_PARAM_TABLE0 (0x6300), OBJ_PARAM_TABLE1 (0x6310) from
- *           ram.js — the board selector and the two destination group bases (the ABC
+ *           names.js — the board selector and the two destination group bases (the ABC
  *           naming pass named them: this routine is cited as the de-interleaver). The
  *           rest stays hex: the checksum/record ROM addresses (0x3F0C,
  *           0x3AE4/0x3B5D/0x3BE5/0x3C8B) are ROM data; +0/+0x15/+0x2a are record field
  *           strides.
  */
 
-import { BOARD, OBJ_PARAM_TABLE0, OBJ_PARAM_TABLE1 } from "./ram.js";
+import { BOARD, OBJ_PARAM_TABLE0, OBJ_PARAM_TABLE1 } from "./names.js";
 
 // HEAD A — the ROM checksum that picks the IY group base.
 const CHECKSUM_SEED = 0x5e;

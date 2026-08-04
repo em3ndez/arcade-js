@@ -22,7 +22,7 @@
  * parameter; that dissolves once the caller is decompiled.
  *
  * NAME: kept the neutral loc_ — the mechanism is pinned to the oracle, but the two
- * record fields it writes (+0x10 / +0x11) are not yet named in ram.js and their
+ * record fields it writes (+0x10 / +0x11) are not yet named in names.js and their
  * "object velocity" reading rests on the still-oracle caller's header alone, below
  * the routine-name evidence bar. Promote once those offsets are corroborated.
  *
@@ -38,15 +38,15 @@
  * LIVE-OUT: memory-only — the caller tail-calls this (its own return is this routine's
  *           return) and consumes only the two record fields written here; the oracle's
  *           residual registers/flags and its terminal return are dead.
- * NAMES:    RANDOM (0x6018), MARIO_X (0x6203), OBJ_X (record +0x03) — all from ram.js.
+ * NAMES:    RANDOM (0x6018), MARIO_X (0x6203), OBJ_X (record +0x03) — all from names.js.
  *           The two written fields (record +0x10 step direction, +0x11 step magnitude)
- *           have no ram.js offset name yet and stay local consts here.
+ *           have no names.js offset name yet and stay local consts here.
  */
 
-import { RANDOM, MARIO_X, OBJ_X } from "./ram.js";
+import { RANDOM, MARIO_X, OBJ_X } from "./names.js";
 
 // Object-record fields written here, addressed off the record pointer. Neither has a
-// shared OBJ_* offset name in ram.js yet (only +0/+3/+5/+7/+8 are named there).
+// shared OBJ_* offset name in names.js yet (only +0/+3/+5/+7/+8 are named there).
 const OBJ_STEP_DIR = 0x10; // signed step direction: 0x01 = toward-right (+1), 0xFF = toward-left (−1)
 const OBJ_STEP_MAG = 0x11; // step magnitude, seeded from the random byte
 

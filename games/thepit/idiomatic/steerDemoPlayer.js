@@ -56,7 +56,7 @@
  *           register file is dead here (the caller overwrites it at once), so it is
  *           deliberately not part of the contract.
  * NAMES:    PLAYER_ACTIVE, PLAYER_Y, PLAYER_X, PLAY_PHASE_COUNTER, BOARD_END_PHASE, TRANSITION_TIMER,
- *           DEMO_STEER_DIR from ram.js. DEMO_STEER_SERVICE_TIMER (0x800b) and DEMO_STEER_BAND_HINT
+ *           DEMO_STEER_DIR from names.js. DEMO_STEER_SERVICE_TIMER (0x800b) and DEMO_STEER_BAND_HINT
  *           (0x800c) are private to this per-frame service (enterPlayMode only inits them).
  */
 
@@ -70,7 +70,7 @@ import {
   TRANSITION_TIMER,
   DEMO_STEER_SERVICE_TIMER,
   DEMO_STEER_BAND_HINT,
-} from "./ram.js";
+} from "./names.js";
 import { drawCreditsDisplay } from "./drawCreditsDisplay.js";
 import { cyclePanelColumnColour } from "./cyclePanelColumnColour.js";
 import { u8 } from "../../../core/int.js";

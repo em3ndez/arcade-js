@@ -46,7 +46,7 @@ import { loc_2679 } from "../loc_2679.js";
 import { loc_268d } from "../loc_268d.js";
 import { reverseStepDirection } from "../reverseStepDirection.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, FRAME, M50_OBJ3_STEP_DIR } from "../ram.js";
+import { STACK_SCRATCH, FRAME, M50_OBJ3_STEP_DIR } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -58,8 +58,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x2679;
 const RET_ADDR = 0x25fe;        // sub_25F2_body's site right after `call 0x2679`
-const TIMER = 0x62a5;           // object-3's reversal-timer countdown (no ram.js name)
-const SHADOW = 0x63a6;          // the tail's published step shadow (no ram.js name)
+const TIMER = 0x62a5;           // object-3's reversal-timer countdown (no names.js name)
+const SHADOW = 0x63a6;          // the tail's published step shadow (no names.js name)
 const PAIR_P = 0x69f5;          // the tail's sprite-pair counter (advanced only when the gate opens)
 const PAIR_P4 = 0x69f9;
 

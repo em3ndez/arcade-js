@@ -44,19 +44,19 @@
  *           registers or flags the routine leaves (the oracle's terminal A=0x05 is
  *           dead ABI). SP/pc are the dropped stack model — the oracle's per-call
  *           push/ret residue lands in STACK_SCRATCH, excluded by the contract.
- * NAMES:    GAME_SUBSTATE (0x600A) from ram.js; imports enqueueTask (ROM 0x309F) and
+ * NAMES:    GAME_SUBSTATE (0x600A) from names.js; imports enqueueTask (ROM 0x309F) and
  *           draw2UpLabel (ROM 0x09EE), the idiomatic callees. The two 0x7D8x targets
  *           are board control latches (palette bank), not work RAM, so they stay
  *           local hex constants — the same reason the optimized layer held them hex.
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { draw2UpLabel } from "./draw2UpLabel.js";
 
 // ls259.6h control latches, decoded by boards/dkong/memory.js
 // (case 0x7d86/0x7d87 -> io.writePaletteBank(addr-0x7d86, value&1)): the two-bit
-// palette-bank select. Board hardware, not work RAM, so not in ram.js. Writing 0 to
+// palette-bank select. Board hardware, not work RAM, so not in names.js. Writing 0 to
 // both selects palette bank 0.
 const PALETTE_BANK_LO = 0x7d86; // palette-bank bit 0
 const PALETTE_BANK_HI = 0x7d87; // palette-bank bit 1

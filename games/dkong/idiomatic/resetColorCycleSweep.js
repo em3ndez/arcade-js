@@ -21,7 +21,7 @@
  * from ROM, unless the gate suppresses the reload. This routine's own writes are just the two
  * counter clears; the block reload and every colour/sprite write happen in the callees.
  *
- * GROUNDED (DK understanding pass 4, independent confirmer): ram.js COLOUR_CYCLE_ACTIVE (0x6391)
+ * GROUNDED (DK understanding pass 4, independent confirmer): names.js COLOUR_CYCLE_ACTIVE (0x6391)
  * explicitly cites this routine — "loc_0464 clears it to 0 when the counter finishes its sweep at
  * 0x80 (ROM 0x0468)" — pinning the reset/end role on a named cell.
  *
@@ -43,17 +43,17 @@
  *           cascade returns up to a caller that reads no register before overwriting it, so the
  *           oracle's residual registers/flags are dead ABI. SP/PC are the single net return the
  *           JS call stack replaces (the harness supplies one m.ret()).
- * NAMES:    COLOUR_CYCLE_ACTIVE (0x6391) from ram.js. The sweep counter 0x6390 and the reload
- *           gate 0x6393 are UNNAMED in ram.js (both shared bytes left hex) — kept local hex
+ * NAMES:    COLOUR_CYCLE_ACTIVE (0x6391) from names.js. The sweep counter 0x6390 and the reload
+ *           gate 0x6393 are UNNAMED in names.js (both shared bytes left hex) — kept local hex
  *           consts. The ROM template address 0x385c is an immediate.
  */
 
-import { COLOUR_CYCLE_ACTIVE } from "./ram.js";
+import { COLOUR_CYCLE_ACTIVE } from "./names.js";
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
 import { dispatchColorCascadeByBoard } from "./dispatchColorCascadeByBoard.js"; // ROM 0x0450
 
-const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed/shared in ram.js — kept hex)
+const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed/shared in names.js — kept hex)
 const OBJ_RELOAD_GATE = 0x6393; // 0 -> reload the block + full cascade; nonzero -> repaint only (shared — hex)
 const OBJ_TEMPLATE = 0x385c; //   ROM sprite-object template copied into the block on the reload arm
 

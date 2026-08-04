@@ -35,14 +35,14 @@
  * LIVE-OUT: memory-only — 0x638F, 0x6392, BONUS_EVENT_MARK, and (slot-claim only)
  *           BARREL_CLAIM_MODE. The oracle threads residual registers/flags out and its callers
  *           reload; nothing reads a register the routine leaves behind.
- * NAMES:    BONUS_EVENT_MARK (0x62B2), OBJ_ARRAY_64 (0x6400) from ram.js; markNextBarrelAsAltKind (ROM 0x2C72)
+ * NAMES:    BONUS_EVENT_MARK (0x62B2), OBJ_ARRAY_64 (0x6400) from names.js; markNextBarrelAsAltKind (ROM 0x2C72)
  *           direct-called. The scratch cells 0x638F/0x6392 are unnamed engine scratch (rejected
- *           in ram.js under "0x63xx engine scratch"), so they stay hex + comment;
- *           BARREL_CLAIM_MODE (0x6382) is named in ram.js and imported inside markNextBarrelAsAltKind, which is
+ *           in names.js under "0x63xx engine scratch"), so they stay hex + comment;
+ *           BARREL_CLAIM_MODE (0x6382) is named in names.js and imported inside markNextBarrelAsAltKind, which is
  *           where this routine's only write to it happens.
  */
 
-import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "./ram.js";
+import { BONUS_EVENT_MARK, OBJ_ARRAY_64 } from "./names.js";
 import { markNextBarrelAsAltKind } from "./markNextBarrelAsAltKind.js"; // ROM 0x2C72 — raise bit 7 of BARREL_CLAIM_MODE
 
 const SCRATCH_MODE = 0x638f; // engine scratch: the caller's mode byte is recorded here

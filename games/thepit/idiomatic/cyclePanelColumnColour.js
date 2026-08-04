@@ -29,11 +29,11 @@
  *           registers, flags, and Z80 return path (SP/pc) are dead scratch a plain JS
  *           call replaces.
  * NAMES:    BOARD_MODE (0x8057, cycled here as the column's colour code), TILE_COL
- *           (0x8058), TILE_ROW (0x8059) from ram.js. 0x8055 is PLOT_RUN_LENGTH,
+ *           (0x8058), TILE_ROW (0x8059) from names.js. 0x8055 is PLOT_RUN_LENGTH,
  *           reused raw here as the fill length.
  */
 
-import { BOARD_MODE, TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { BOARD_MODE, TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";

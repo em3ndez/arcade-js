@@ -25,13 +25,13 @@
  *           neither hand-off consumes a register from the scan, so nothing has to be
  *           marshalled across it.
  * NAMES:    HAZARD_ACTIVE_COUNT (0x80bd), DROP_QUEUE (0x80c3, base of the 24-slot pending
- *           queue) from ram.js — the queue's exact per-slot contents are still not pinned.
+ *           queue) from names.js — the queue's exact per-slot contents are still not pinned.
  *           The occupied hand-off is the already-decompiled spawnPendingDigObject; the
  *           animation hand-off (0x2f71) is the decompiled advanceChamberCreature, called
  *           directly.
  */
 
-import { HAZARD_ACTIVE_COUNT, DROP_QUEUE } from "./ram.js";
+import { HAZARD_ACTIVE_COUNT, DROP_QUEUE } from "./names.js";
 import { spawnPendingDigObject } from "./spawnPendingDigObject.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
 

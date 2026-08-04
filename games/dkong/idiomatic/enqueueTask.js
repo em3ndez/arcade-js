@@ -34,11 +34,11 @@
  *           read neither). pc/SP are the dropped stack model — the oracle's `ret`
  *           becomes the JS return here — so the sole oracle-vs-idiomatic residue
  *           is the pushed-HL bytes in STACK_SCRATCH, excluded by the contract.
- * NAMES:    TASK_TAIL (0x60B0), TASK_RING (0x60C0) from ram.js. Page 0x60 kept
+ * NAMES:    TASK_TAIL (0x60B0), TASK_RING (0x60C0) from names.js. Page 0x60 kept
  *           as the fixed high byte of every ring/tail address.
  */
 
-import { TASK_TAIL, TASK_RING } from "./ram.js";
+import { TASK_TAIL, TASK_RING } from "./names.js";
 
 const PAGE = TASK_RING & 0xff00; // 0x6000 — the fixed high byte of every slot address
 const RING_BASE = TASK_RING & 0x00ff; // 0xC0 — low byte of the first slot / the wrap floor

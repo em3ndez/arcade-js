@@ -49,17 +49,17 @@
  *           the state-4 / inactive arms, and its landing pc are dead: the loop reloads/re-derives
  *           them for the next object before any test.
  * NAMES:    FRAME (0x601A), OBJ_ACTIVE (+0), OBJ_STATE (+0x0d), OBJ_X (+3), OBJ_Y (+5),
- *           SPRITE_CODE (sprite record +1) — from ram.js. The animation-string walk pointer
- *           (+0x0e/+0x0f) has no ram.js name and stays a local const.
+ *           SPRITE_CODE (sprite record +1) — from names.js. The animation-string walk pointer
+ *           (+0x0e/+0x0f) has no names.js name and stays a local const.
  */
 
-import { FRAME, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y, SPRITE_CODE } from "./ram.js";
+import { FRAME, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y, SPRITE_CODE } from "./names.js";
 import { spawnObjectIntoInactiveSlot } from "./spawnObjectIntoInactiveSlot.js"; // ROM 0x2EA7
 import { loc_2e84 } from "./loc_2e84.js"; // ROM 0x2E84
 import { loc_2e9c } from "./loc_2e9c.js"; // ROM 0x2E9C
 import { loc_2e4b } from "./loc_2e4b.js"; // ROM 0x2E4B
 
-// Object-record animation-string walk pointer (low at +0x0e, high at +0x0f). No ram.js name.
+// Object-record animation-string walk pointer (low at +0x0e, high at +0x0f). No names.js name.
 const OBJ_STR_PTR = 0x0e;
 
 const FRAME_TOGGLE_MASK = 0x0f;    // toggle fires once every 16 frames (FRAME low nibble == 0)

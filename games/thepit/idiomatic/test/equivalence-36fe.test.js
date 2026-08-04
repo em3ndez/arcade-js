@@ -48,7 +48,7 @@ import {
   ENEMY3_TWIN_X,
   ENEMY3_TWIN_TILE,
   ENEMY3_TWIN_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -60,7 +60,7 @@ const test = ROM_PRESENT
 const TARGET = 0x36fe;
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// Every byte the routine writes (named where ram.js has a name, hex otherwise).
+// Every byte the routine writes (named where names.js has a name, hex otherwise).
 const TARGET_ADDRS = [
   ENEMY3_X, ENEMY3_TILE, ENEMY3_Y, 0x810c, 0x810e, 0x810f, ENEMY3_TIMER,
   ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y, 0x811d, 0x811f, 0x8120, 0x8123,

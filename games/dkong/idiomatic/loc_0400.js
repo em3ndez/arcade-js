@@ -48,12 +48,12 @@
  *           JS call stack replaces (the harness supplies one m.ret()). The branch flag is a genuine
  *           LIVE-IN from the still-translated caller (read here as the incoming flag).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), M50_OBJ1_STEP (0x63a3), M50_OBJ_ROW_SHIFT (0x63b7) — all from
- *           ram.js. The third-record X byte at 0x6910 is record 2's X field inside the named
+ *           names.js. The third-record X byte at 0x6910 is record 2's X field inside the named
  *           SPRITE_OBJ_BLOCK span, reached as SPRITE_OBJ_BLOCK + 8 (matching begin50mKongRecaptureInterlude's
  *           SPRITE_OBJ_BLOCK + 0x08). Colour-cycle cells live inside serviceColorCycle.
  */
 
-import { SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, M50_OBJ1_STEP, M50_OBJ_ROW_SHIFT } from "./names.js";
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { serviceColorCycle } from "./serviceColorCycle.js"; // ROM 0x0413
 

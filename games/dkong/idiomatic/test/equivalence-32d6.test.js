@@ -41,7 +41,7 @@ import { loc_32d6 as oracle } from "../../translated/loc_32d6.js";
 import { loc_32d6 as candidate } from "../loc_32d6.js";
 import { tickFireTimerAndRerollDirection } from "../tickFireTimerAndRerollDirection.js";
 import { Machine } from "../../machine.js";
-import { MARIO_Y, RANDOM, STACK_SCRATCH } from "../ram.js";
+import { MARIO_Y, RANDOM, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

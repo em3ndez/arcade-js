@@ -54,7 +54,7 @@ import { loc_186f as idiomatic } from "../loc_186f.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loadSpriteObjectBlock } from "../loadSpriteObjectBlock.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, SND_TRIGGER } from "../ram.js";
+import { STACK_SCRATCH, SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, SND_TRIGGER } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x186f;
-const STEP_SELECTOR = 0x6388; // the board-advance render-sequence step index (unnamed in ram.js)
+const STEP_SELECTOR = 0x6388; // the board-advance render-sequence step index (unnamed in names.js)
 const SND_LATCH = SND_TRIGGER + 4; // 0x6084 — SND_TRIGGER[4], the 3-frame assert this step arms
 const COPY_SOURCE = 0x3a1f; // ROM base of the copied 40-byte sprite-object frame
 // The 40-byte copy destination: 0x6908..0x692F (10 records x 4 bytes).

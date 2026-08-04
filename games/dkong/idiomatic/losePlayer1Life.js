@@ -41,7 +41,7 @@
  *           the raw loc_1826 callee's own `ret` is a harmless read-only stack pop).
  * NAMES:    PLAY_INTRO (0x622C), LIVES (0x6228), P1_CONTEXT (0x6040), TWO_PLAYER_GAME
  *           (0x600F), P1_SCORE (0x60B2), GAME_SUBSTATE (0x600A), SUBSTATE_TIMER
- *           (0x6009) from ram.js. Kept hex: the game-over banner VRAM origin 0x76D4
+ *           (0x6009) from names.js. Kept hex: the game-over banner VRAM origin 0x76D4
  *           (video RAM, not work RAM) and the literal sub-state / timer / task-payload
  *           constants.
  */
@@ -50,7 +50,7 @@ import { silenceSound } from "./silenceSound.js"; // ROM 0x011C
 import { loc_13ca } from "./loc_13ca.js"; // ROM 0x13CA
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 // ROM 0x1826 — 70-tile VRAM fill. The FROZEN ORACLE deliberately: an idiomatic twin
-// (fillTileBlock.js) exists and 0x1826 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE.
+// (fillTileBlock.js) exists and 0x1826 is in names.js's ROUTINES, so "no idiomatic yet" is FALSE.
 // The oracle is a pure leaf ending in `ret` and consumes one guest-stack word the twin's JS
 // return does not. Left because nothing can prove the swap safe: no run reaches this call site,
 // and the injected 2-byte delta was caught by neither this routine's equivalence gate nor the
@@ -64,7 +64,7 @@ import {
   P1_SCORE,
   GAME_SUBSTATE,
   SUBSTATE_TIMER,
-} from "./ram.js";
+} from "./names.js";
 
 const CONTEXT_BYTES = 8; // the live player-context block 0x6228-0x622F saved to P1_CONTEXT
 

@@ -50,7 +50,7 @@ import { serviceColorCycle as loc_0413 } from "../serviceColorCycle.js";
 import { advanceColorCycleSweep } from "../advanceColorCycleSweep.js";
 import { dispatchColorCyclePaint } from "../dispatchColorCyclePaint.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, COLOUR_CYCLE_ACTIVE, FRAME, BOARD } from "../ram.js";
+import { STACK_SCRATCH, COLOUR_CYCLE_ACTIVE, FRAME, BOARD } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -62,7 +62,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x0413;
 const RET_ADDR = 0x03fb;        // a plausible caller-return for the one net pop (any value works)
-const SWEEP_COUNTER = 0x6390;   // colour-cycle sweep counter (unnamed in ram.js — kept hex)
+const SWEEP_COUNTER = 0x6390;   // colour-cycle sweep counter (unnamed in names.js — kept hex)
 const OBJ_RELOAD_GATE = 0x6393; // advanceColorCycleSweep's reload gate: 0 -> boundary reload arm
 const SWEEP_TOP = 0x80;         // the counter's top of range (advanceColorCycleSweep resets there)
 

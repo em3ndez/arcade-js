@@ -43,7 +43,7 @@
  *           dead: loc_0cf2 reloads A and DE next and never reads HL. (The oracle also
  *           pushes/pops its return address in STACK_SCRATCH — dead scratch, masked by
  *           the gate.) pc/SP are the dropped `ret` control-flow model, not compared.
- * NAMES:    none from ram.js — destinations are background-tilemap VRAM (0x7400–0x77FF)
+ * NAMES:    none from names.js — destinations are background-tilemap VRAM (0x7400–0x77FF)
  *           and 0xFD/0xFC are fixed tile codes. Callee fillTileRowPair (idiomatic, ROM
  *           0x0D30) is imported and called directly.
  */

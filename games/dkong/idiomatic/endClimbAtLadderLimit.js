@@ -39,15 +39,15 @@
  *           no successor reads a flag/register it leaves; the oracle's residual A (0x00
  *           then, from 0x1DA6, MARIO_Y), B, HL and flags are dead ABI. pc/SP model the
  *           single net `ret` the 0x1DA6 tail performs.
- * NAMES:    MARIO_SPRITE_CODE (0x6207), MARIO_ON_LADDER (0x6215) — from ram.js.
- *           0x6219 kept hex: an unnamed climb-toggle scratch byte (ram.js rejects it —
+ * NAMES:    MARIO_SPRITE_CODE (0x6207), MARIO_ON_LADDER (0x6215) — from names.js.
+ *           0x6219 kept hex: an unnamed climb-toggle scratch byte (names.js rejects it —
  *           two writers, zero absolute readers), so no confirmed name to import.
  */
 
-import { MARIO_SPRITE_CODE, MARIO_ON_LADDER } from "./ram.js";
+import { MARIO_SPRITE_CODE, MARIO_ON_LADDER } from "./names.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js";
 
-/** Climb half-step toggle scratch (unnamed in ram.js; cleared on ladder-end dismount). */
+/** Climb half-step toggle scratch (unnamed in names.js; cleared on ladder-end dismount). */
 const CLIMB_TOGGLE = 0x6219;
 
 /** Sprite code for Mario at a ladder end (written flat, discarding the facing bit). */

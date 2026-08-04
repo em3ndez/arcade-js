@@ -60,7 +60,7 @@
  * NAMES:    none imported — recordX / stepByte are honest inputs (record #2's X and the
  *           object's published step, named in prose to match stepKongWalk). The 93 rail threshold
  *           is unnamed engine scratch, kept in prose; the 0x6388 counter its loc_16ee callee
- *           advances is BOARD_ADVANCE_STEP (named in ram.js).
+ *           advances is BOARD_ADVANCE_STEP (named in names.js).
  */
 
 import { loc_16d0 } from "./loc_16d0.js"; // ROM 0x16D0 — schedule a reversal, then slide

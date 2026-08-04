@@ -25,10 +25,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
 import { GAME_STATE, LEVEL, MEN_LEFT, TRANSITION_TIMER, POST_TRANSITION_MODE,
-  SCORE_LO, SCORE_HI, INITIALS_REMAINING } from "../ram.js";
+  SCORE_LO, SCORE_HI, INITIALS_REMAINING } from "../names.js";
 
 // 0x8048 = the rank a submitted score landed at (0 = did not place). A submitPlayerHighScore local,
-// deliberately NOT a ram.js export (ram.js's 0x8048 carries a different tentative round-setup name).
+// deliberately NOT a names.js export (names.js's 0x8048 carries a different tentative round-setup name).
 const LANDED_RANK = 0x8048;
 import { runIdiomaticGame, runGeneratorGame } from "../../../../core/frame-stepped.js";
 

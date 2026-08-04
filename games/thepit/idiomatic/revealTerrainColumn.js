@@ -27,7 +27,7 @@
  * dispatched in attract, which shapes the gate below.
  *
  * Name kept as revealTerrainColumn: this backdrop-reveal subsystem is a best-effort reading. Three
- * of the counters it touches now carry ram.js names, but the subsystem as a whole is
+ * of the counters it touches now carry names.js names, but the subsystem as a whole is
  * still below the bar to promote to an English name (its siblings advanceChamberCreatureAnimation/setChamberCreatureFrame stay
  * loc_ for the same reason).
  *
@@ -46,12 +46,12 @@
  *           its caller consumes no register and the phase clock owns everything after
  *           the hand-off, identically both sides. Leftover registers/flags are dead.
  * NAMES:    the reveal gate (0x80e5), its reload period (0x80e4) and the table cursor
- *           (0x80e6) are PIT_FLOOR_REVEAL_GATE/PIT_FLOOR_REVEAL_PERIOD/PIT_FLOOR_REVEAL_CURSOR from ram.js; the stashed
+ *           (0x80e6) are PIT_FLOOR_REVEAL_GATE/PIT_FLOOR_REVEAL_PERIOD/PIT_FLOOR_REVEAL_CURSOR from names.js; the stashed
  *           pattern pointer is PATTERN_SOURCE_PTR (0x80e1). Delegates to the decompiled advanceChamberCreatureAnimation.
  */
 
 import { advanceChamberCreatureAnimation } from "./advanceChamberCreatureAnimation.js";
-import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD, PATTERN_SOURCE_PTR } from "./ram.js";
+import { PIT_FLOOR_REVEAL_CURSOR, PIT_FLOOR_REVEAL_GATE, PIT_FLOOR_REVEAL_PERIOD, PATTERN_SOURCE_PTR } from "./names.js";
 
 
 // The terrain pattern table: each column is 6 consecutive tile codes.

@@ -43,13 +43,13 @@
  *           right after the call and consumes no flag, so no register or flag is live out;
  *           the oracle just returns.
  * NAMES:    BONUS_TICK (0x62B4), BONUS_PERIOD (0x62B3), BONUS (0x62B1), BONUS_EXPIRED_STEP
- *           (0x6386), SPAWN_REQUEST (0x6396) from ram.js. 0x62B9 has no ram.js name — a
+ *           (0x6386), SPAWN_REQUEST (0x6396) from names.js. 0x62B9 has no names.js name — a
  *           board-object bookkeeping byte set in lockstep with SPAWN_REQUEST; kept hex.
  */
 
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — per-board skip gate
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F — post a task-ring message
-import { BONUS_TICK, BONUS_PERIOD, BONUS, BONUS_EXPIRED_STEP, SPAWN_REQUEST } from "./ram.js";
+import { BONUS_TICK, BONUS_PERIOD, BONUS, BONUS_EXPIRED_STEP, SPAWN_REQUEST } from "./names.js";
 
 export function tickTimedBoardBonus(m) {
   const { regs, mem } = m;
@@ -68,7 +68,7 @@ export function tickTimedBoardBonus(m) {
   // A bonus period just elapsed. Post its deferred work: request a board-object spawn
   // (SPAWN_REQUEST and its bookkeeping sibling both take 3) and enqueue a task-ring
   // message [opcode 5, argument 1].
-  mem.write8(0x62b9, 3); // board-object bookkeeping byte (unnamed in ram.js) — set with SPAWN_REQUEST
+  mem.write8(0x62b9, 3); // board-object bookkeeping byte (unnamed in names.js) — set with SPAWN_REQUEST
   mem.write8(SPAWN_REQUEST, 3);
   regs.d = 0x05; // task message opcode
   regs.e = 0x01; // task message argument

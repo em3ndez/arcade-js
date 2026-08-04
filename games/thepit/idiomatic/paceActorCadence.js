@@ -34,7 +34,7 @@
  * NAMES:    ENEMY3_TIMER (0x8112, the period-8 cadence timer) — fair-confidence.
  */
 
-import { ENEMY3_TIMER } from "./ram.js";
+import { ENEMY3_TIMER } from "./names.js";
 import { easeActorToRest } from "./easeActorToRest.js";
 
 export function paceActorCadence(m) {

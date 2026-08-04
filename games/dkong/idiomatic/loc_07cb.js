@@ -48,17 +48,17 @@
  *           up the NMI path and consumes none); pc/SP dropped — the oracle's `ret`
  *           becomes the JS return.
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600a), SPRITE_OBJ_BLOCK
- *           (0x6908) from ram.js. Kept hex: 0x638a/0x638b (unnamed animation
+ *           (0x6908) from names.js. Kept hex: 0x638a/0x638b (unnamed animation
  *           timer/pattern scratch), 0x7d86/0x7d87 (ls259 latch cells), 0x3d08 (ROM
  *           fill table), 0x39cf (ROM sprite template), 0x031e/0x031f (task payloads).
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, SPRITE_OBJ_BLOCK } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004E
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038
 // ROM 0x3F24 — the FROZEN ORACLE deliberately. An idiomatic twin (stampFixedTilePair.js) exists
-// and 0x3F24 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
+// and 0x3F24 is in names.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
 // ending in `ret` (zero m.call of its own), so it consumes one guest-stack word the twin's JS
 // return does not — the swap is not stack-neutral. Left because no gate can vouch for it: the
 // 2-byte delta was injected here and neither this routine's equivalence gate nor the full-flip

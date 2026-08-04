@@ -21,7 +21,7 @@
  * tile code changes on the 1 and on no other visit. The three tile codes attract pairs up are
  * 22/23, 26/27 and 150/151 — pairs differing only in the lowest bit — and the flip is observed in
  * both directions, so it is a swap between two tiles and not a one-way set. OBJ_SPRITE_CODE is
- * itself grounded live in ram.js as the byte copied into the sprite record, and its bit 7 (not
+ * itself grounded live in names.js as the byte copied into the sprite record, and its bit 7 (not
  * bit 0) is the raster flip, so this changes which tile is drawn rather than how it is drawn —
  * corroborated by two of those three pairs being the SAME pair with bit 7 set (150/151 is 22/23
  * plus 128), which this routine never touches. The walk that reaches here visits an active record
@@ -31,7 +31,7 @@
  * NOT CLAIMED: what the two tiles of a pair depict, and whether any reachable state delivers a
  * prescaler outside 1..4. The byte wrap at 0 is reproduced because the oracle has it and the gate
  * crafts it, not because it was observed. Record offset +0x0f is NOT a field with one meaning
- * across the object arrays — ram.js's ROUTINES entry for ROM 0x33A1 describes a record's +0x0f as a
+ * across the object arrays — names.js's ROUTINES entry for ROM 0x33A1 describes a record's +0x0f as a
  * height compared against 89 — so the prescaler reading is scoped to the records this walk drives
  * and the offset stays a file-local constant rather than a registry name.
  *
@@ -62,7 +62,7 @@
  *           nothing (its exit is a jump), and the tail chain that performs the single return runs
  *           identically on both sides, so STACK_SCRATCH, pc and SP legitimately agree and comparing
  *           them is free teeth.
- * NAMES:    OBJ_SPRITE_CODE (+7) is imported from ram.js. The prescaler at +0x0f has no ram.js name
+ * NAMES:    OBJ_SPRITE_CODE (+7) is imported from names.js. The prescaler at +0x0f has no names.js name
  *           and is a file-local constant — see NOT CLAIMED above for why registering it would be a
  *           trap. ROM 0x21BA is still frozen and is reached through the registry; it belongs to the
  *           same mutually-recursive object-walk cluster as this routine and is being decompiled
@@ -70,9 +70,9 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_SPRITE_CODE } from "./ram.js";
+import { OBJ_SPRITE_CODE } from "./names.js";
 
-/** Object-record field: the animation prescaler (+0x0f) this routine steps. No ram.js name. */
+/** Object-record field: the animation prescaler (+0x0f) this routine steps. No names.js name. */
 const OBJ_ANIM_PRESCALER = 0x0f;
 /** Visits per animation step — what the prescaler is reloaded with when it expires. */
 const VISITS_PER_TILE = 4;

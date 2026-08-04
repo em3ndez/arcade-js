@@ -66,7 +66,7 @@ import { loc_021c as oracle } from "../../translated/loc_021c.js";
 import { showCreditScreen as idiomatic } from "../showCreditScreen.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE } from "../ram.js";
+import { GAME_STATE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

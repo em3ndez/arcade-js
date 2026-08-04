@@ -58,7 +58,7 @@ import { positionBonusItemSprite } from "../positionBonusItemSprite.js";
 import { renderBcdColumn } from "../renderBcdColumn.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -69,7 +69,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x1486;
 
-// RAM landmarks (item-state block is ram.js-unnamed scratch; kept hex here too).
+// RAM landmarks (item-state block is names.js-unnamed scratch; kept hex here too).
 const SUBSTATE_TIMER = 0x6009;
 const GAME_SUBSTATE = 0x600a;
 const SLOT_KEY_SRC = 0x600e;

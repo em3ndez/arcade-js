@@ -50,7 +50,7 @@
  *           or flag survives to a reader. That is a DERIVATION; there is no committed live-wire
  *           arm in this gate to corroborate it.
  * NAMES:    MARIO_AIR_LANDCHECK (0x621F), MARIO_AIR_FRAMES (0x6214), EFFECT_SELECT (0x6342),
- *           EFFECT_STATE (0x6340), ITEM_COLLECTED (0x6225) — all from ram.js. Direct-called:
+ *           EFFECT_STATE (0x6340), ITEM_COLLECTED (0x6225) — all from names.js. Direct-called:
  *           loc_1c3a, markFatalFallByHeight (0x1C76), loc_1c33, searchPlayerObjectOverlap
  *           (0x2853) and writeMarioSpriteRecord (0x1DA6), all already idiomatic. loc_1c3a and
  *           loc_1c33 still take their live-ins in registers, so this routine marshals into
@@ -65,7 +65,7 @@ import {
   ITEM_COLLECTED,
   MARIO_AIR_FRAMES,
   MARIO_AIR_LANDCHECK,
-} from "./ram.js";
+} from "./names.js";
 import { loc_1c33 } from "./loc_1c33.js";
 import { loc_1c3a } from "./loc_1c3a.js";
 import { markFatalFallByHeight } from "./markFatalFallByHeight.js"; // ROM 0x1C76

@@ -19,10 +19,10 @@
  *           moves, backed by the real captured 0x2ACD dispatches an attract run produces.
  * LIVE-OUT: memory-only (MARIO_START_FALL). The oracle's residual register and its
  *           terminal return are dead — the caller tail-invokes this and consumes no value.
- * NAMES:    MARIO_START_FALL (0x6221) — from ram.js.
+ * NAMES:    MARIO_START_FALL (0x6221) — from names.js.
  */
 
-import { MARIO_START_FALL } from "./ram.js";
+import { MARIO_START_FALL } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

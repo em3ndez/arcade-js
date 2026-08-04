@@ -43,14 +43,14 @@
  *           tail makes; and the registers that tail leaves — object cursor +16, sprite cursor +4,
  *           remaining-object count preserved, step value 4. The scratch byte the oracle leaves in
  *           the accumulator is dead: the loop reloads it for the next object before any test.
- * NAMES:    OBJ_X (+0x03), OBJ_STATE (+0x0d), SND_TRIGGER (0x6080) — from ram.js. The string-pointer
- *           (+0x0e/+0x0f) field offset has no ram.js name and stays local.
+ * NAMES:    OBJ_X (+0x03), OBJ_STATE (+0x0d), SND_TRIGGER (0x6080) — from names.js. The string-pointer
+ *           (+0x0e/+0x0f) field offset has no names.js name and stays local.
  */
 
-import { OBJ_X, OBJ_STATE, SND_TRIGGER } from "./ram.js";
+import { OBJ_X, OBJ_STATE, SND_TRIGGER } from "./names.js";
 import { mirrorObjectPositionToSprite } from "./mirrorObjectPositionToSprite.js"; // ROM 0x2E6C
 
-// Animation-string pointer offset, without a ram.js name (indexed off the object-scan cursor).
+// Animation-string pointer offset, without a names.js name (indexed off the object-scan cursor).
 const OBJ_STR_PTR = 0x0e; // 16-bit animation-string pointer: low at +0x0e, high at +0x0f
 
 const X_BOUNDARY = 0xb7;         // object X at/past which the walk can finish

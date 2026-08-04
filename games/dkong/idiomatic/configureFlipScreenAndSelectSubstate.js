@@ -40,16 +40,16 @@
  *           direct-call layer replaces the oracle's `ret` stack/PC bookkeeping with
  *           the JS call stack).
  * NAMES:    GAME_SUBSTATE (0x600A), DIP_UPRIGHT (0x6026), ACTIVE_PLAYER_INDEX (0x600E)
- *           from ram.js. 0x7D82 (flip-screen board latch) is not in ram.js and stays a
+ *           from names.js. 0x7D82 (flip-screen board latch) is not in names.js and stays a
  *           local hex constant.
  */
 
-import { GAME_SUBSTATE, DIP_UPRIGHT, ACTIVE_PLAYER_INDEX } from "./ram.js";
+import { GAME_SUBSTATE, DIP_UPRIGHT, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 
 // Flip-screen control latch (ls259.6h bit 2) — a board hardware register, not work
-// RAM, so it lives outside ram.js as a local constant (as in handler_01c3).
+// RAM, so it lives outside names.js as a local constant (as in handler_01c3).
 const FLIPSCREEN = 0x7d82;
 
 export function configureFlipScreenAndSelectSubstate(m) {

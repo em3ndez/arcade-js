@@ -31,12 +31,12 @@
  *           replaces, so SP/PC are not in the contract; its residual A/F are dead ABI
  *           (loc_197a's next op after this returns is `call 0x1e8c`, which reads neither).
  * NAMES:    EFFECT_STATE (0x6340), EFFECT_TIMER (0x6341), POPUP_SPRITE (0x6a30) from
- *           ram.js — all three landed in the ABC/DE naming pass (this is sub_1dbd's
+ *           names.js — all three landed in the ABC/DE naming pass (this is sub_1dbd's
  *           effect state machine: EFFECT_STATE router, EFFECT_TIMER the state-2 hold
  *           countdown, POPUP_SPRITE the score-popup record blanked on expiry).
  */
 
-import { EFFECT_STATE, EFFECT_TIMER, POPUP_SPRITE } from "./ram.js";
+import { EFFECT_STATE, EFFECT_TIMER, POPUP_SPRITE } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

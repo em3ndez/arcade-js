@@ -9,7 +9,7 @@
  * stepBallisticMotion (ROM 0x239C, already idiomatic) reads the same pair as the amount added to
  * the record's OBJ_X:+0x04 coordinate on every airborne frame, and it is called on this very record
  * by ROM 0x2053, the handler this arm hangs off; and on Mario's record those two offsets ARE
- * ram.js's live-grounded MARIO_AIR_VX_HI/MARIO_AIR_VX_LO (0x6210/0x6211), whose whole-pixel byte
+ * names.js's live-grounded MARIO_AIR_VX_HI/MARIO_AIR_VX_LO (0x6210/0x6211), whose whole-pixel byte
  * carries the sign — 0x00 rightward, 0xFF leftward.
  *
  * The object then does it: over a 4000-frame attract run all 11 dispatches arrive at an
@@ -50,7 +50,7 @@
  *           either, and the tail at ROM 0x20C3 runs the object loop to its end and returns through
  *           ROM 0x1F92's `ret`. MEASURED: wired live for a 4000-frame attract run against the
  *           all-oracle baseline, the per-frame trace is byte-identical outside STACK_SCRATCH.
- * NAMES:    none imported. The record's +0x10/+0x11 have no ram.js name of their own — the named
+ * NAMES:    none imported. The record's +0x10/+0x11 have no names.js name of their own — the named
  *           cells are Mario's copies of them — so they stay in-record offsets, as they do in
  *           stepBallisticMotion. One m.call remains: ROM 0x20C3, which has no idiomatic twin in ROUTINES yet
  *           and is being decompiled alongside this routine.

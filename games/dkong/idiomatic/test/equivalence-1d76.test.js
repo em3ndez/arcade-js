@@ -60,8 +60,8 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1d76;
-const FLAG = 0x621a; // gate flag (unnamed in ram.js)
-const MIRROR = 0x6219; // flag mirror target (unnamed in ram.js)
+const FLAG = 0x621a; // gate flag (unnamed in names.js)
+const MIRROR = 0x6219; // flag mirror target (unnamed in names.js)
 const LIMIT = 0x621c; // MARIO_CLIMB_LIMIT_B
 const MARIO_Y = 0x6205; // MARIO_Y
 const TIMER = 0x620f; // MARIO_MOVE_STEP_TIMER

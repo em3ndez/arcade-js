@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_31dd as oracle } from "../../translated/loc_31dd.js";
 import { armAlternateFireModeAtHighDifficulty } from "../armAlternateFireModeAtHighDifficulty.js";
-import { DIFFICULTY, RANDOM, FRAME, OBJ_ARRAY_64, STACK_SCRATCH } from "../ram.js";
+import { DIFFICULTY, RANDOM, FRAME, OBJ_ARRAY_64, STACK_SCRATCH } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 

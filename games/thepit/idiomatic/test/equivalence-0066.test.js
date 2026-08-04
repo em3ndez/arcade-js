@@ -52,7 +52,7 @@ import {
   SOUND_HEAD,
   SOUND_RING,
   SPRITE_STAGING_BASE,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -62,7 +62,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x0066;
-const READ_INDEX = 0x801f; // sound-ring consume index (no ram.js name yet)
+const READ_INDEX = 0x801f; // sound-ring consume index (no names.js name yet)
 const DIVIDER_A = 0x8006; // 60-frame divider that borrows from 0x800f
 const DIVIDER_B = 0x8007; // 60-frame divider that bumps PLAY_PHASE_COUNTER
 const SPRITE_RAM = 0x9840; // hardware sprite RAM (blit destination)

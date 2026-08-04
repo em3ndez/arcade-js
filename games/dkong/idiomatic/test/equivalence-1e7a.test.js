@@ -56,7 +56,7 @@ import { loc_1e7a as oracle } from "../../translated/loc_1e7a.js";
 import { completeBoardWhenMarioReachesRescueRow } from "../completeBoardWhenMarioReachesRescueRow.js";
 import { loc_1e6d } from "../loc_1e6d.js"; // the shared callee — the twins call it directly to isolate completeBoardWhenMarioReachesRescueRow's own logic
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_SPRITE_RECORD, SPRITE_CODE, GAME_SUBSTATE } from "../ram.js";
+import { STACK_SCRATCH, MARIO_SPRITE_RECORD, SPRITE_CODE, GAME_SUBSTATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

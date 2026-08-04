@@ -47,7 +47,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0348 as oracle } from "../../translated/loc_0348.js";
 import { mainLoop as idiomatic } from "../mainLoop.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE } from "../ram.js";
+import { GAME_STATE } from "../names.js";
 
 // The idiomatic services the teeth twins reuse (they mirror mainLoop's body, one break each).
 import { enableNmi } from "../enableNmi.js";

@@ -46,7 +46,7 @@ import {
   HAZARD_ACTIVE_COUNT,
   DIG_OBJ_TIMER,
   HAZARD_STATE,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

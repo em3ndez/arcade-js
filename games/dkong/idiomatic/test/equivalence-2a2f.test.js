@@ -4,7 +4,7 @@
  * an object UP onto a sloped girder it has reached and reports the contact.
  *
  * ★ AXES. This header used to have the record's two coordinate fields SWAPPED (it called +3 "Y"
- * and +5 "X", and described the routine as sliding the object sideways along the slope). ram.js
+ * and +5 "X", and described the routine as sliding the object sideways along the slope). names.js
  * grounds OBJ_X = record +3 and OBJ_Y = record +5, and the store at ROM 0x2A7D (`d6 04 / dd 77
  * 05`) writes record +5 = OBJ_Y — see loc_2a2f.js's own AXIS CORRECTION note. The local names
  * below follow the corrected axes so the error cannot be re-derived from this file.
@@ -53,7 +53,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2a2f as oracle } from "../../translated/loc_2a2f.js";
 import { loc_2a2f } from "../loc_2a2f.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 

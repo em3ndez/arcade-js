@@ -39,12 +39,12 @@
  *           written by the callee) in memory, plus the boolean unwind signal (false). No
  *           live registers/flags out — the oracle's residual A/flags and the discarded
  *           return are dead ABI.
- * NAMES:    MARIO_SPRITE_RECORD (0x694C) + SPRITE_CODE (0x01) -> 0x694D from ram.js;
+ * NAMES:    MARIO_SPRITE_RECORD (0x694C) + SPRITE_CODE (0x01) -> 0x694D from names.js;
  *           enterBoardAdvanceAndUnwind (ROM 0x1E85) direct-called (writes GAME_SUBSTATE).
  *           0x80 is the sprite code's horizontal-flip / facing bit.
  */
 
-import { MARIO_SPRITE_RECORD, SPRITE_CODE } from "./ram.js";
+import { MARIO_SPRITE_RECORD, SPRITE_CODE } from "./names.js";
 import { enterBoardAdvanceAndUnwind } from "./enterBoardAdvanceAndUnwind.js"; // ROM 0x1E85
 
 export function loc_1e6d(m) {

@@ -34,7 +34,7 @@
 import { routeIdleObjectByMoveCommand } from "./routeIdleObjectByMoveCommand.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 import { walkActor } from "./walkActor.js";
-import { OBJECT_MOTION_MODE } from "./ram.js";
+import { OBJECT_MOTION_MODE } from "./names.js";
 
 export function advanceObjectFrame(m) {
   const { regs, mem8 } = m;

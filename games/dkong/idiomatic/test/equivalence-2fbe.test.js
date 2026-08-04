@@ -45,7 +45,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2fbe as oracle } from "../../translated/loc_2fbe.js";
 import { blinkHammerSpriteOnFramePhase as loc_2fbe } from "../blinkHammerSpriteOnFramePhase.js";
 import { commitSpriteRecordAtMarioOffset as loc_2f7c } from "../commitSpriteRecordAtMarioOffset.js"; // the proven-equal record-write tail, used by the teeth
-import { FRAME, MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y } from "../ram.js";
+import { FRAME, MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

@@ -55,7 +55,7 @@ import {
   MARIO_X,
   MARIO_Y,
   MARIO_AIRBORNE,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -67,7 +67,7 @@ const test = ROM_PRESENT
 const TARGET = 0x2227;
 const ANCESTOR = 0x2207;      // dispatch50mObjectState: the reachable same-subsystem ancestor
 const RET_ADDR = 0x199e;      // the site right after `call 0x2207`; the arm returns here
-const FLAG = 0x621a;          // the shared object flag this arm stamps (kept hex in ram.js)
+const FLAG = 0x621a;          // the shared object flag this arm stamps (kept hex in names.js)
 const REACH_Y = 0x7a;         // loc_2243: a hit needs MARIO_Y < 0x7a
 const FLAG_INIT = 0x77;       // sentinel pre-value, so "no stamp" is visibly unchanged
 // The two record bases dispatch50mObjectState selects on frame parity (0x6280 odd / 0x6288 even).

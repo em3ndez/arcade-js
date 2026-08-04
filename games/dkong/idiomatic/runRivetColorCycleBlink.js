@@ -48,11 +48,11 @@
  *           that stay on the machine because the (still register-based) idiomatic callees read
  *           them there — noted for the honest-signature capstone. SP/PC are the single net
  *           return the JS call stack replaces (the harness supplies one return to line them up).
- * NAMES:    MARIO_X (0x6203) from ram.js — the player X the branch reads. The colour-RAM column
+ * NAMES:    MARIO_X (0x6203) from names.js — the player X the branch reads. The colour-RAM column
  *           tops (0x7623/0x7583) and the sprite code bytes (owned by the blink callees) stay
  *           hex; the sweep counter (0x6390) and the one-row stride are caller-supplied live-ins.
  */
-import { MARIO_X } from "./ram.js";
+import { MARIO_X } from "./names.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 import { blinkSpritePairByX } from "./blinkSpritePairByX.js"; // ROM 0x0509
 import { paintColorColumnAndBlinkOff } from "./paintColorColumnAndBlinkOff.js"; // ROM 0x04f1

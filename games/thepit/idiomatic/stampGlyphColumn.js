@@ -33,13 +33,13 @@
  *           the cleared latch (0x8078) and the re-armed state timer (0x807c); then the
  *           decompiled background update runs identically on both sides (it reads no
  *           register left here). Leftover registers/flags are dead.
- * NAMES:    PLAYER_CELL_PTR (0x806e), TRANSITION_TIMER (0x807c) from ram.js. The per-event latch
- *           0x8078 is the byte ram.js names TREASURE_COLLECTED; it is kept as a hex literal
+ * NAMES:    PLAYER_CELL_PTR (0x806e), TRANSITION_TIMER (0x807c) from names.js. The per-event latch
+ *           0x8078 is the byte names.js names TREASURE_COLLECTED; it is kept as a hex literal
  *           here because on this dig-glyph subsystem it reads as a per-event latch clear,
  *           distinct from the loot collect->completion flow that shares the byte.
  */
 
-import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "./ram.js";
+import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "./names.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
 
 // The glyph's fixed tile codes, top cell to bottom cell.
@@ -72,7 +72,7 @@ export function stampGlyphColumn(m) {
     colourCell += ROW_STRIDE;
   }
 
-  // Clear the object's per-event latch (0x8078, the byte ram.js names TREASURE_COLLECTED) and
+  // Clear the object's per-event latch (0x8078, the byte names.js names TREASURE_COLLECTED) and
   // re-arm its state timer. This clear is on the DIG-object glyph-stamp path (captureTargetOnOverlap -> here),
   // a SEPARATE subsystem from the player collect -> climb -> top-rung completion flow. The
   // observed natural level completion proves the completion gate SURVIVES this clear — the byte

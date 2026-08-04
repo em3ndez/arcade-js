@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_2c4f as oracle } from "../../translated/loc_2c4f.js";
 import { armBarrelRelease } from "../armBarrelRelease.js";
 import { markNextBarrelAsAltKind } from "../markNextBarrelAsAltKind.js";
-import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../ram.js";
+import { BONUS_EVENT_MARK, OBJ_ARRAY_64, BARREL_CLAIM_MODE } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

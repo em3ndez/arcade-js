@@ -43,11 +43,11 @@
  *           dispatcher returns to the main-loop top; sub_0350's tail return
  *           reloads), and none read a flag it leaves. SP/pc are the modelled
  *           `ret` the direct-call layer replaces with a JS return.
- * NAMES:    LIVES (0x6228), LEVEL (0x6229) from ram.js; the HUD targets are video
- *           RAM (0x7400-0x77FF), outside ram.js's work-RAM map, so they stay hex.
+ * NAMES:    LIVES (0x6228), LEVEL (0x6229) from names.js; the HUD targets are video
+ *           RAM (0x7400-0x77FF), outside names.js's work-RAM map, so they stay hex.
  */
 
-import { LIVES, LEVEL } from "./ram.js";
+import { LIVES, LEVEL } from "./names.js";
 import { gameActiveGuard } from "./gameActiveGuard.js";
 
 // Reserve-lives marker column: six cells stepping one tilemap row (0x20) UP from

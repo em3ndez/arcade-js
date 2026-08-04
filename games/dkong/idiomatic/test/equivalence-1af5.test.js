@@ -50,7 +50,7 @@ import { walkMarioLeft } from "../walkMarioLeft.js";   // ROM 0x1CAB — used by
 import { walkMarioRight } from "../walkMarioRight.js"; // ROM 0x1C8F — the mirror arm's stepper
 import { loc_1afe } from "../loc_1afe.js";             // ROM 0x1AFE — used by the teeth twins
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, P1_INPUT, MARIO_X, MARIO_WALK_ANIM, MARIO_SPRITE_CODE } from "../ram.js";
+import { STACK_SCRATCH, P1_INPUT, MARIO_X, MARIO_WALK_ANIM, MARIO_SPRITE_CODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

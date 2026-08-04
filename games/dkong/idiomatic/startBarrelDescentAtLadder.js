@@ -19,7 +19,7 @@
  *     (random & 0x18)==0 gate decides.
  *
  * The record fields are indexed off the object pointer the caller set up, so their
- * absolute addresses are runtime-dependent and stay as computed offsets (no ram.js name).
+ * absolute addresses are runtime-dependent and stay as computed offsets (no names.js name).
  *
  * NAME — WHY "BARREL" AND WHY "LADDER". Both were blocked as ungrounded until the MAME run in
  * scratchpad/grounding-object-arrays.md, and both are now observed on the real ROM.
@@ -47,16 +47,16 @@
  *           overwrites the accumulator before reading anything, so every register/flag
  *           this routine leaves is dead; the oracle's `ret`/double-unwind stack effects
  *           are dead scratch. findOppositeLadderEnd's miss/hit is consumed here as the early return.
- * NAMES:    MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT from ram.js; findOppositeLadderEnd
- *           direct-called. 0x6348 stays hex (ram.js keeps it unnamed — a multiplexed
+ * NAMES:    MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT from names.js; findOppositeLadderEnd
+ *           direct-called. 0x6348 stays hex (names.js keeps it unnamed — a multiplexed
  *           engine-scratch gate), kept as a local const here.
  */
 
 import { u8 } from "../../../core/int.js";
 import { findOppositeLadderEnd } from "./findOppositeLadderEnd.js";
-import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./ram.js";
+import { MARIO_X, MARIO_Y, DIFFICULTY, RANDOM, P1_INPUT } from "./names.js";
 
-// Multiplexed engine-scratch gate. ram.js does NOT name 0x6348 — verified, it has no export —
+// Multiplexed engine-scratch gate. names.js does NOT name 0x6348 — verified, it has no export —
 // because the cell is read for DIFFERENT roles by different routines (a velocity-mode latch in
 // loc_22cb, this spawn/movement gate here), so no single name would be true of both. CLEAR here
 // takes the short advance path; SET routes through the difficulty/position/input grading below.

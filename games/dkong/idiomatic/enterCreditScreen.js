@@ -44,7 +44,7 @@
  *           harness's single m.ret(). RESIDUAL ABI: the fall-through leaves A = IN2 & B
  *           (readStartButtonSelector's live-out, which loc_08F8's separate caller reads
  *           but this level's caller does not); noted for the honest-signature capstone.
- * NAMES:    ATTRACT (0x6007), GAME_SUBSTATE (0x600A) from ram.js. Hex-kept: 0x030C =
+ * NAMES:    ATTRACT (0x6007), GAME_SUBSTATE (0x600A) from names.js. Hex-kept: 0x030C =
  *           the credit-screen text task message (D = opcode 0x03, E = arg 0x0C), and
  *           0x7D86/0x7D87 = the 2-bit palette-bank I/O latch (not work RAM). Imports
  *           the idiomatic callees for ROM 0x0874 / 0x309F / 0x0965 / 0x08D5.
@@ -54,7 +54,7 @@ import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM
 import { enqueueTask } from "./enqueueTask.js"; //                            ROM 0x309F
 import { enqueueTaskBatch } from "./enqueueTaskBatch.js"; //                  ROM 0x0965
 import { readStartButtonSelector } from "./readStartButtonSelector.js"; //    ROM 0x08D5
-import { ATTRACT, GAME_SUBSTATE } from "./ram.js";
+import { ATTRACT, GAME_SUBSTATE } from "./names.js";
 
 // enqueueTask message for the credit-screen text: D = opcode 0x03 (screen-text
 // handler), E = arg 0x0C (which string). The pair travels in the Z80 D/E register

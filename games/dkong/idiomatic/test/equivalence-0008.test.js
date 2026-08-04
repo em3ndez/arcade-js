@@ -40,7 +40,7 @@ import { loc_0008 as oracle } from "../../translated/loc_0008.js";
 import { gameActiveGuard } from "../gameActiveGuard.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { ATTRACT } from "../ram.js";
+import { ATTRACT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

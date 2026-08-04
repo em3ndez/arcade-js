@@ -13,7 +13,7 @@
  *     half is OBJ_X (+3) and whose fraction is +4 — so the pair is that coordinate's per-frame step
  *     and nothing else. Had it turned out to read the pair as a timer or a table index, the reading
  *     here would have died there.
- *   - The SIGN convention comes from Mario, whose airborne record has the same shape: ram.js
+ *   - The SIGN convention comes from Mario, whose airborne record has the same shape: names.js
  *     records MARIO_AIR_VX_HI:MARIO_AIR_VX_LO (0x6210:0x6211) holding 0x0080 for a rightward jump
  *     and 0xFF80 for a leftward one, so a whole-pixel byte of 255 is leftward.
  *
@@ -77,7 +77,7 @@
  *           byte-identical to the all-oracle baseline, STACK_SCRATCH included. That live comparison
  *           is sensitive, not lenient: without the oracle's skipped T-states charged back the same
  *           run forks at frame 967 on SPIN_COUNT, which the gate carries as a case.
- * NAMES:    none imported. The record's +16/+17 have no ram.js name of their own — the named cells
+ * NAMES:    none imported. The record's +16/+17 have no names.js name of their own — the named cells
  *           are Mario's copies of them — so they stay in-record offsets here, as they do in
  *           stepBallisticMotion and in the mirror arm. Both continuations, ROM 0x20E1 and ROM
  *           0x20C3, have no idiomatic twin in ROUTINES yet and are reached through the registry; they belong to

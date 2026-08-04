@@ -61,7 +61,7 @@ import {
   GAME_SUBSTATE,
   SUBSTATE_TIMER,
   STACK_SCRATCH,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

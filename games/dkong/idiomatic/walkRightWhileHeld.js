@@ -62,7 +62,7 @@
  *           register that IS live across the hand-off is the accumulator, carrying the control
  *           word into walkLeftWhileHeld. pc/SP model the single net return the whole
  *           cascade performs, supplied by the harness on the fully-idiomatic arm.
- * NAMES:    P1_INPUT (0x6010) from ram.js — bit 0 Right, bit 1 Left, both recorded there as
+ * NAMES:    P1_INPUT (0x6010) from names.js — bit 0 Right, bit 1 Left, both recorded there as
  *           observed. No object-record or sprite-record pointer is dereferenced here, so neither
  *           the OBJ_ nor the SPRITE_ offset namespace applies. limitMarioHorizontalTravel (ROM 0x241F) and
  *           walkMarioRight (ROM 0x1C8F) are direct-called, AS IS walkLeftWhileHeld (ROM 0x1AF5) — it
@@ -76,7 +76,7 @@
  *           callee-lands-then-dissolve-every-caller step.)
  */
 
-import { P1_INPUT } from "./ram.js";
+import { P1_INPUT } from "./names.js";
 import { limitMarioHorizontalTravel } from "./limitMarioHorizontalTravel.js";               // ROM 0x241F — horizontal position gate
 import { walkMarioRight } from "./walkMarioRight.js";   // ROM 0x1C8F — one rightward walk step
 import { walkLeftWhileHeld } from "./walkLeftWhileHeld.js";               // ROM 0x1AF5 — the LEFT arm this hands off to

@@ -47,10 +47,10 @@
  *           (findCollidingObject's live-out registers), from whichever sweep last ran. The oracle's
  *           dissolved push/call/return bracket is stack-only.
  * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_64 (0x6400), OBJ_ARRAY_65 (0x6500) from
- *           ram.js; findCollidingObject (ROM 0x2913) direct-called.
+ *           names.js; findCollidingObject (ROM 0x2913) direct-called.
  */
 
-import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65 } from "./ram.js";
+import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65 } from "./names.js";
 import { findCollidingObject } from "./findCollidingObject.js";
 
 const SWEEP1_COUNT = 5;    // records the first sweep scans (OBJ_ARRAY_64)

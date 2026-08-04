@@ -73,7 +73,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_1fce as oracle } from "../../translated/loc_1fce.js";
 import { loc_1fce } from "../loc_1fce.js";
-import { OBJ_SPRITE_CODE, OBJ_ARRAY_67 } from "../ram.js";
+import { OBJ_SPRITE_CODE, OBJ_ARRAY_67 } from "../names.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";
 
@@ -85,7 +85,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1fce;
-const PRESCALER = 0x0f; // the record's animation prescaler — no ram.js name (see loc_1fce.js)
+const PRESCALER = 0x0f; // the record's animation prescaler — no names.js name (see loc_1fce.js)
 const RELOAD = 4; // visits per animation step
 const SLOT_STRIDE = 32; // OBJ_ARRAY_67 record stride
 const SLOTS = 10; // records the walk visits

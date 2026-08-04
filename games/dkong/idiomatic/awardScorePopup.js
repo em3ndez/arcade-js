@@ -42,13 +42,13 @@
  *           dead ABI; SP/PC are the dropped stack model (the oracle's push/call/ret),
  *           so idiomatic leaves them at their entry values.
  * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), SPRITE_BUFFER (0x6900),
- *           SND_TRIGGER (0x6080) from ram.js. POPUP_SPRITE (0x6A30) kept as the
+ *           SND_TRIGGER (0x6080) from names.js. POPUP_SPRITE (0x6A30) kept as the
  *           fixed sprite slot = SPRITE_BUFFER + 0x130 (record 76). 0x14 = the
  *           below-Mario Y offset; 0x05 = the 25m|75m board mask; 0x07 = the sprite
  *           colour/attr byte; 3 = the SND_TRIGGER assert length in frames.
  */
 
-import { MARIO_X, MARIO_Y, SPRITE_BUFFER, SND_TRIGGER } from "./ram.js";
+import { MARIO_X, MARIO_Y, SPRITE_BUFFER, SND_TRIGGER } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { boardBitGate } from "./boardBitGate.js";
 

@@ -37,10 +37,10 @@
  *           NOT compared — the idiomatic layer replaces the rst-0x18 caller-skip and the
  *           call/ret stack bookkeeping with the JS call stack and a boolean return.
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), PLAY_INTRO (0x622C) — from
- *           ram.js.
+ *           names.js.
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, PLAY_INTRO } from "./ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, PLAY_INTRO } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
 

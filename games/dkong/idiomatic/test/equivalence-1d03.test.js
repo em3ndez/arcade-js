@@ -49,7 +49,7 @@ import { climbMarioUp } from "../climbMarioUp.js";
 import { loc_1d76 } from "../loc_1d76.js";
 import { advanceClimbStep } from "../advanceClimbStep.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_MOVE_STEP_TIMER, MARIO_Y } from "../ram.js";
+import { STACK_SCRATCH, MARIO_MOVE_STEP_TIMER, MARIO_Y } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

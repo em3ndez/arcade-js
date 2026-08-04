@@ -47,7 +47,7 @@ import { stageAward300Popup } from "../stageAward300Popup.js"; // idiomatic arms
 import { stageAward500Popup } from "../stageAward500Popup.js";
 import { stageAward800Popup } from "../stageAward800Popup.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

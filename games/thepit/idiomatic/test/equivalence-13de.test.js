@@ -61,7 +61,7 @@ import {
   GOAL_TILE_LATCH,
   PIT_CROSS_ACTIVE,
   PIT_FLOOR_REVEAL_CURSOR,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -74,7 +74,7 @@ const TARGET = 0x13de;
 const STACK_SCRATCH = 16; // dead-scratch window below entry SP (measured max 6 bytes on the real
 // attract paths; 16 leaves margin for the deeper crafted arms, and no real work-RAM output lives in 0x83xx)
 
-// The tracked-object control bytes without a ram.js name yet.
+// The tracked-object control bytes without a names.js name yet.
 const BUSY_THIS_FRAME = 0x807a;
 const MOTION_MARKER = 0x8075;
 const BIAS_LO = 0x806c;

@@ -33,13 +33,13 @@
  * LIVE-OUT: memory-only — MARIO_MOVE_STEP_TIMER here (tick-down or reload), plus
  *           whatever the tail callee writes. Its caller (the per-frame mover cascade)
  *           tails into this body and consumes no register it leaves.
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from ram.js. The reload value 3 (climb
+ * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from names.js. The reload value 3 (climb
  *           pace) and the +2 down step are plain constants. The cells the tail callees
  *           touch (MARIO_Y, the ladder limits, the centering-phase byte) are named
  *           inside those callees.
  */
 
-import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
+import { MARIO_MOVE_STEP_TIMER } from "./names.js";
 import { tickMoveStepTimer } from "./tickMoveStepTimer.js"; // ROM 0x1D8A
 import { advanceClimbStep } from "./advanceClimbStep.js";   // ROM 0x1D11
 

@@ -49,7 +49,7 @@ import { loc_08d5 as oracle } from "../../translated/loc_08d5.js";
 import { readStartButtonSelector } from "../readStartButtonSelector.js";
 import { drawStringVertical } from "../drawStringVertical.js";
 import { drawCreditDisplay } from "../drawCreditDisplay.js";
-import { CREDITS, FRAME, STACK_SCRATCH } from "../ram.js";
+import { CREDITS, FRAME, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

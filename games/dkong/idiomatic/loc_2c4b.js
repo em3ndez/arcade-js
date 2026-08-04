@@ -38,11 +38,11 @@
  *           registers/flags out and its callers reload; nothing reads a register the routine
  *           leaves behind.
  * NAMES:    armBarrelRelease (ROM 0x2C4F) direct-called; BONUS_EVENT_MARK / OBJ_ARRAY_64 live inside it.
- *           BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte, whose low
+ *           BARREL_CLAIM_MODE (0x6382) from names.js — the barrel slot-claim mode byte, whose low
  *           bits hold the mode value this routine stores and whose bit 7 is the barrel-kind select.
  */
 
-import { BARREL_CLAIM_MODE } from "./ram.js"; // ROM 0x6382 — the barrel slot-claim mode byte
+import { BARREL_CLAIM_MODE } from "./names.js"; // ROM 0x6382 — the barrel slot-claim mode byte
 import { armBarrelRelease } from "./armBarrelRelease.js"; // ROM 0x2C4F — the shared slot-claim body
 
 /**

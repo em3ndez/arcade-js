@@ -13,7 +13,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-22f6.test.js.
  */
-import { RANDOM } from "./ram.js";
+import { RANDOM } from "./names.js";
 import { loc_22f9 } from "./loc_22f9.js";
 
 /**

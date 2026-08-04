@@ -41,14 +41,14 @@
  *           the sprite/attribute-clear step, whose idiomatic form still models its
  *           own return; the oracle's three calls and closing tail-jump net exactly
  *           one return to the caller, and that is what is reproduced here.
- * NAMES:    BOARD_MODE (0x8057) from ram.js — the byte this door stows and the
+ * NAMES:    BOARD_MODE (0x8057) from names.js — the byte this door stows and the
  *           colour fill reuses. The display regions cleared/filled live inside the
  *           imported setup helpers. The 0x90 selector stays a literal: it is a
  *           board-mode / colour byte, so its bit layout is the point.
  *
  * PURPOSE [guess]: which game situation mode 0x90 means; "90" is the HEX selector byte (bit layout is the point; sibling "C0" anchors it as hex).
  */
-import { BOARD_MODE } from "./ram.js";
+import { BOARD_MODE } from "./names.js";
 import { clearSpriteAndAttributeRam } from "./clearSpriteAndAttributeRam.js";
 import { fillVideoRam } from "./fillVideoRam.js";
 import { fillColorRam } from "./fillColorRam.js";

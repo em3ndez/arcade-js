@@ -64,7 +64,7 @@
  *           oracle's push/call/ret churn lands in the dead STACK_SCRATCH region).
  * NAMES:    FRAME (0x601A), SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), SND_TRIGGER (0x6080;
  *           +2 = 0x6082), SPRITE_OBJ_BLOCK (0x6908), INTRO_WALK_PTR_B (0x63C4, the scroll
- *           cursor) and CUTSCENE_BAND_COUNT (0x638D, the band count) from ram.js; 0x38CB /
+ *           cursor) and CUTSCENE_BAND_COUNT (0x638D, the band count) from names.js; 0x38CB /
  *           0x38DC are ROM table bases.
  */
 
@@ -78,7 +78,7 @@ import {
   SPRITE_OBJ_BLOCK,
   INTRO_WALK_PTR_B,
   CUTSCENE_BAND_COUNT,
-} from "./ram.js";
+} from "./names.js";
 
 const SCROLL_TABLE = 0x38cb; // ROM base of the per-step signed-Y-delta table; 0x7F wraps it
 const BAND_TABLE = 0x38dc; // ROM base of the 16-byte-strided band-record table

@@ -48,15 +48,15 @@
  *           residual A/HL/flags are dead ABI, and its SP/pc are the Z80 caller-skip
  *           mechanism, not part of the memory contract.
  * NAMES:    SUBSTATE_TIMER (0x6009), INTRO_STEP (0x6385), SEQ_ADVANCE_PTR (0x63C0),
- *           SPRITE_OBJ_BLOCK (0x6908) from ram.js. Hex-kept: 0x62AF — the private 1-in-16
- *           cutscene tick counter animateSpriteObjectBlock owns (unnamed in ram.js).
+ *           SPRITE_OBJ_BLOCK (0x6908) from names.js. Hex-kept: 0x62AF — the private 1-in-16
+ *           cutscene tick counter animateSpriteObjectBlock owns (unnamed in names.js).
  */
 
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
 import { scrollClimbGraphicStep } from "./scrollClimbGraphicStep.js"; // ROM 0x304a
-import { SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SUBSTATE_TIMER, INTRO_STEP, SEQ_ADVANCE_PTR, SPRITE_OBJ_BLOCK } from "./names.js";
 
-const TICK_COUNTER = 0x62af; // private 1-in-16 cutscene tick counter (unnamed in ram.js)
+const TICK_COUNTER = 0x62af; // private 1-in-16 cutscene tick counter (unnamed in names.js)
 const CLIMBER_Y = SPRITE_OBJ_BLOCK + 3; // 0x690B — record 0's Y byte: the climbing figure
 
 export function animateIntroClimbStep(m) {

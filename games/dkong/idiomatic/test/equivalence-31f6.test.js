@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_31f6 as oracle } from "../../translated/loc_31f6.js";
 import { loc_31f6 } from "../loc_31f6.js";
-import { RANDOM, FRAME } from "../ram.js";
+import { RANDOM, FRAME } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

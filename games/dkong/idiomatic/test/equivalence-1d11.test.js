@@ -59,7 +59,7 @@ import {
   MARIO_CLIMB_LIMIT_B,
   MARIO_ON_LADDER,
   MARIO_SPRITE_CODE,
-} from "../ram.js";
+} from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -70,7 +70,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1d11;
-const CENTERING_PHASE = 0x6222; // shared climb-centering toggle (unnamed in ram.js)
+const CENTERING_PHASE = 0x6222; // shared climb-centering toggle (unnamed in names.js)
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 

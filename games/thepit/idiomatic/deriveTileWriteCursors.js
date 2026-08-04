@@ -29,12 +29,12 @@
  *           each caller's next act overwrites its scratch register and re-reads the
  *           cursors from memory, never from a leftover register.
  * NAMES:    TILEMAP_OFFSET (0x805a, tilemap-offset input) and COLOUR_RAM_CURSOR (0x805e,
- *           the colour write-cursor output cell) from ram.js; 0x8060 (the video write-
+ *           the colour write-cursor output cell) from names.js; 0x8060 (the video write-
  *           cursor output cell) is unnamed there and kept hex; the two RAM-region bases
  *           are named locally.
  */
 
-import { COLOUR_RAM_CURSOR, TILEMAP_OFFSET } from "./ram.js";
+import { COLOUR_RAM_CURSOR, TILEMAP_OFFSET } from "./names.js";
 
 const COLOUR_RAM_BASE = 0x8800; // per-tile colour map base
 const VIDEO_RAM_BASE = 0x9000; // tilemap (character) map base

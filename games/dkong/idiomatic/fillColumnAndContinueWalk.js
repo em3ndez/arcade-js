@@ -46,10 +46,10 @@
  *           and all flags are dead — the walk reloads them. The direct-call layer models
  *           no stack, so pc/SP carry no residue (the `jp 0x0DA7` becomes the JS call).
  * NAMES:    SEG_TILE (0x63B5, fill tile) and SEG_HEIGHT (0x63B1, column extent) from
- *           ram.js — the board-render segment scratch. The staged cursor's tile address
+ *           names.js — the board-render segment scratch. The staged cursor's tile address
  *           is SEG_ADDR1 (0x63AB; referenced in prose, not touched here).
  */
-import { SEG_TILE, SEG_HEIGHT } from "./ram.js";
+import { SEG_TILE, SEG_HEIGHT } from "./names.js";
 import { drawBoardLayout } from "./drawBoardLayout.js"; // ROM 0x0da7 — walk + draw the rest of the layout table
 
 export function fillColumnAndContinueWalk(m) {

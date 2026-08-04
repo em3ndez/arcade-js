@@ -41,7 +41,7 @@
  */
 
 import { findCollidingObject } from "./findCollidingObject.js";
-import { OBJ_ARRAY_66 } from "./ram.js";
+import { OBJ_ARRAY_66 } from "./names.js";
 
 export function loc_2a22(m) {
   const { regs } = m;

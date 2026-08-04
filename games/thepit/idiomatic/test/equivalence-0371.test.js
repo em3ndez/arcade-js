@@ -62,7 +62,7 @@ import { submitHighScoresAndReset as idiomatic } from "../submitHighScoresAndRes
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { GAME_STATE, ACTIVE_PLAYER, SOUND_RING } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

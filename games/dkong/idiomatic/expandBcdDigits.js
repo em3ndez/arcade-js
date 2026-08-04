@@ -44,7 +44,7 @@
  *           only survivor is the carry the final `add ix,de` (inside 0x0593) leaves —
  *           the oracle itself left that "unresolved" past three returns; the pixel
  *           capstone backstops it.
- * NAMES:    none from ram.js — HL/IX/DE/B and the destination cells are all
+ * NAMES:    none from names.js — HL/IX/DE/B and the destination cells are all
  *           caller-supplied; this routine references no fixed game RAM address.
  */
 import { storeDigitAndAdvance } from "./storeDigitAndAdvance.js"; // ROM 0x0593

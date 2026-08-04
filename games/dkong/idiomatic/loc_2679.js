@@ -43,11 +43,11 @@
  *           consumes a register this routine leaves; the oracle's terminal `ret` is the JS
  *           return (the tail-jump chain nets exactly one caller-return pop).
  * NAMES:    FRAME (0x601A), M50_OBJ3_REVERSE_TIMER (0x62A5), M50_OBJ3_STEP_DIR (0x62A6) — from
- *           ram.js. The tail's published shadow (0x63A6) and sprite pair (0x69F4) live inside loc_268d.
+ *           names.js. The tail's published shadow (0x63A6) and sprite pair (0x69F4) live inside loc_268d.
  */
 
 import { u8 } from "../../../core/int.js";
-import { FRAME, M50_OBJ3_REVERSE_TIMER, M50_OBJ3_STEP_DIR } from "./ram.js";
+import { FRAME, M50_OBJ3_REVERSE_TIMER, M50_OBJ3_STEP_DIR } from "./names.js";
 import { loc_268d } from "./loc_268d.js"; // ROM 0x268D — the shared publish/animate tail
 import { reverseStepDirection } from "./reverseStepDirection.js"; // ROM 0x26DE
 

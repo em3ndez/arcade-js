@@ -65,7 +65,7 @@
  *           caller-cascade continuation above is what shows none of them is read. pc/SP are
  *           the dropped stack model (see GATE).
  * NAMES:    MARIO_AIRBORNE (0x6216), MARIO_FREEZE_TIMER (0x621E), MARIO_HAMMER_ACTIVE (0x6217),
- *           MARIO_ON_LADDER (0x6215) and P1_INPUT (0x6010), all imported from ram.js. No
+ *           MARIO_ON_LADDER (0x6215) and P1_INPUT (0x6010), all imported from names.js. No
  *           record-offset ambiguity arises here: all five are absolute loads in the oracle, not
  *           reads through an object/sprite record pointer, so each names a fixed cell and not
  *           an offset into a block. (The oracle defines a record-offset helper off the caller's
@@ -83,7 +83,7 @@ import {
   MARIO_HAMMER_ACTIVE,
   MARIO_ON_LADDER,
   P1_INPUT,
-} from "./ram.js";
+} from "./names.js";
 import { advanceMarioAirborneFrame } from "./advanceMarioAirborneFrame.js"; // ROM 0x1BB2
 import { tickPostLandingFreeze } from "./tickPostLandingFreeze.js"; // ROM 0x1B55
 import { walkRightWhileHeld } from "./walkRightWhileHeld.js"; // ROM 0x1AE6

@@ -29,7 +29,7 @@
  *      0x3A7A. The record's own +0x13 field is the index into that table and counts DOWN
  *      each pass, reloading to 17 when it reaches 0.
  *
- * WHICH FIELDS THESE ARE, corroborated from outside this routine. ram.js grounds OBJ_X (+3)
+ * WHICH FIELDS THESE ARE, corroborated from outside this routine. names.js grounds OBJ_X (+3)
  * and OBJ_Y (+5) live as the DRAWN coordinates (gatherSpriteRecords copies them into the
  * sprite record), so the two stores at the end are a publish, not another working step. Its
  * sibling loc_33ad — written from the other side — names the same pair of record fields as the
@@ -37,7 +37,7 @@
  * its own real attract dispatches. The travel-direction reading agrees with loc_33ad
  * independently: it reads state 1 as the one that steps the working X UP, and the two arms here
  * move X the OPPOSITE way from the state they then write, which is what an undo-and-reverse
- * must do. That the record belongs to the 0x6400 array is ram.js's own OBJ_ITER_PTR entry,
+ * must do. That the record belongs to the 0x6400 array is names.js's own OBJ_ITER_PTR entry,
  * which names this routine as one of the two that re-load the iterator.
  *
  * WHAT IS NOT ESTABLISHED: what the 0x3A7A table means, and therefore what the +0x13
@@ -66,8 +66,8 @@
  *           This live-out is DERIVED; there is no committed live-wire arm in this gate to
  *           corroborate it.
  * NAMES:    OBJ_ITER_PTR (0x63C8), RANDOM (0x6018), OBJ_INSERT_REQUESTED (+0x18),
- *           OBJ_STATE (+0x0D), OBJ_X (+3), OBJ_Y (+5) — from ram.js. Record fields +0x0E, +0x0F,
- *           +0x13 and +0x19 have no ram.js name and stay local consts, as in loc_33ad/loc_33c3.
+ *           OBJ_STATE (+0x0D), OBJ_X (+3), OBJ_Y (+5) — from names.js. Record fields +0x0E, +0x0F,
+ *           +0x13 and +0x19 have no names.js name and stay local consts, as in loc_33ad/loc_33c3.
  *           Direct-called: loc_32bd (0x32BD), loc_32d6 (0x32D6), tickFireTimerAndRerollDirection (0x330F),
  *           loc_33ad (0x33AD), loc_298c (0x298C), loc_33e7 (0x33E7), loc_33c3 (0x33C3).
  *           ORACLE BOUNDARY: the movement/collision state machine at ROM 0x333D has no
@@ -78,7 +78,7 @@
 import { u8 } from "../../../core/int.js";
 import {
   OBJ_INSERT_REQUESTED, OBJ_ITER_PTR, OBJ_STATE, OBJ_X, OBJ_Y, RANDOM,
-} from "./ram.js";
+} from "./names.js";
 import { loc_298c } from "./loc_298c.js"; // ROM 0x298C — is the tile ahead outside the accepted band?
 import { loc_32bd } from "./loc_32bd.js"; // ROM 0x32BD — board-keyed object-walker dispatch
 import { loc_32d6 } from "./loc_32d6.js"; // ROM 0x32D6 — interval down-counter + periodic tick
@@ -87,7 +87,7 @@ import { loc_33ad } from "./loc_33ad.js"; // ROM 0x33AD — one-pixel X step + s
 import { loc_33c3 } from "./loc_33c3.js"; // ROM 0x33C3 — 25m girder-slope re-snap
 import { loc_33e7 } from "./loc_33e7.js"; // ROM 0x33E7 — animation step + step-counter nudge
 
-// Object-record fields with no ram.js name; kept as local offsets, as loc_33ad and loc_33c3 do.
+// Object-record fields with no names.js name; kept as local offsets, as loc_33ad and loc_33c3 do.
 const OBJ_WORKING_X = 0x0e;      // working X, published to OBJ_X below (loc_33ad steps it)
 const OBJ_WORKING_Y = 0x0f;      // working Y, published to OBJ_Y below (loc_33c3 re-snaps it)
 const OBJ_Y_OFFSET_INDEX = 0x13; // index into the 0x3A7A table; counts down, reloads at 0

@@ -50,7 +50,7 @@
  *           shows the probe is not inert by aiming the same mechanism at the record pointer,
  *           which IS caught. pc and SP need no fixup: the tail chain runs on both sides and nets
  *           out the caller's return by itself (both end at ROM 0x1986 with the same SP).
- * NAMES:    OBJ_ACTIVE (+0) and OBJ_X (+3) are imported from ram.js; OBJ_ARRAY_67 names the array
+ * NAMES:    OBJ_ACTIVE (+0) and OBJ_X (+3) are imported from names.js; OBJ_ARRAY_67 names the array
  *           those records belong to and is used by the gate rather than here, since this routine
  *           reaches its record only through the caller's pointer and holds no address of its own.
  *           ROM 0x21BA is still frozen and is reached with m.call — it belongs to the same
@@ -58,7 +58,7 @@
  *           alongside it, so dissolving that call is a later coordinated step.
  */
 
-import { OBJ_ACTIVE, OBJ_X } from "./ram.js";
+import { OBJ_ACTIVE, OBJ_X } from "./names.js";
 
 /**
  * @param {object} m  the machine.

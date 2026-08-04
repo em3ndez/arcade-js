@@ -38,7 +38,7 @@
  *           ABI. The oracle's terminal `ret` (SP += 2, PC vector) is the dropped
  *           control-flow model — the JS call stack replaces it — so pc/SP carry no
  *           residue.
- * NAMES:    none from ram.js — HL/DE/B/C and the target bytes are all caller-supplied;
+ * NAMES:    none from names.js — HL/DE/B/C and the target bytes are all caller-supplied;
  *           the routine references no fixed game RAM address.
  */
 export function copyBytePairsStrided(m) {

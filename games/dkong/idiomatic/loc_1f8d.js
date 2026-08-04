@@ -14,7 +14,7 @@
  * WHERE THE CURSORS ARE, checked rather than assumed. On entry the staging cursor sits on the
  * last byte of the record for slot 10-remaining, and this routine's step lands it on the first
  * byte of the next one: ACTOR_SPRITES + 4*(10-remaining) in, ACTOR_SPRITES + 4*(11-remaining)
- * out. That is the same arithmetic ram.js records for RENDER_DST_PTR from the OTHER producer
+ * out. That is the same arithmetic names.js records for RENDER_DST_PTR from the OTHER producer
  * of these records — a derivation that could have come out differently and did not — and the
  * gate measures it across every distinct entry shape those attract dispatches produce: the
  * staging cursor takes exactly the ten values 0x6983-0x69A7 against remaining 10 down to 1, and
@@ -65,7 +65,7 @@
  *           the per-frame trace is identical, on RAM minus STACK_SCRATCH and in fact on raw
  *           frame equality too. So the flag plumbing the oracle threads through both steps is
  *           dropped here rather than reproduced.
- * NAMES:    none imported — this routine touches no memory, so it names no ram.js cell in code
+ * NAMES:    none imported — this routine touches no memory, so it names no names.js cell in code
  *           (BOARD, OBJ_ARRAY_67, ACTOR_SPRITES and RENDER_DST_PTR are named above only to say
  *           where the walk runs). The one m.call is ROM 0x1F83, still frozen: it is in the same
  *           mutually-recursive cluster, being decompiled concurrently.

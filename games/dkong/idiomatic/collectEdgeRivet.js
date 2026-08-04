@@ -50,7 +50,7 @@
  *           byte it stores — so A is SET immediately before each, purely as their input.
  * NAMES:    MARIO_X, MARIO_Y, MARIO_AIRBORNE, EDGE_RIVET_ARMED, RIVET_PRESENT,
  *           RIVETS_LEFT and the collection flags EFFECT_STATE (0x6340) / EFFECT_SELECT
- *           (0x6342) / ITEM_COLLECTED (0x6225) from ram.js; edge columns / gate mask / VRAM
+ *           (0x6342) / ITEM_COLLECTED (0x6225) from names.js; edge columns / gate mask / VRAM
  *           bases kept hex (raw coordinates + a bit mask).
  */
 
@@ -64,7 +64,7 @@ import {
   EFFECT_STATE,
   EFFECT_SELECT,
   ITEM_COLLECTED,
-} from "./ram.js";
+} from "./names.js";
 
 import { boardBitGate } from "./boardBitGate.js";           // ROM 0x0030 (rst 0x30) — board-apply gate
 import { armEdgeRivetPickup } from "./armEdgeRivetPickup.js"; // ROM 0x1A4B — EDGE_RIVET_ARMED := 1

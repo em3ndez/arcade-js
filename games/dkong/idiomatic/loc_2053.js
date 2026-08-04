@@ -82,22 +82,22 @@
  *           Everything else holds and is asserted as an extra: pc, SP and the full main
  *           register file match on all 1246 captures, and the dropped-bracket twin is caught by
  *           pc and SP ALONE — RAM and the return value both miss it.
- * NAMES:    OBJ_X (record +3) from ram.js. The horizontal-velocity high byte at record +0x10 has
- *           no ram.js name and stays a file-local const. ROM 0x2083, 0x2079, 0x24B4 and 0x21BA
+ * NAMES:    OBJ_X (record +3) from names.js. The horizontal-velocity high byte at record +0x10 has
+ *           no names.js name and stays a file-local const. ROM 0x2083, 0x2079, 0x24B4 and 0x21BA
  *           have no idiomatic twin in ROUTINES yet — they are the rest of this sweep's cluster, decompiled
  *           in the same batch — so they are still reached through the registry, with the
  *           oracle's push bracket kept around the one of them that is entered by a call.
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_X } from "./ram.js";
+import { OBJ_X } from "./names.js";
 import { stepBallisticMotion } from "./stepBallisticMotion.js"; // ROM 0x239C
 import { loc_2a2f } from "./loc_2a2f.js"; // ROM 0x2A2F
 import { advanceBarrelSpriteOrientation } from "./advanceBarrelSpriteOrientation.js"; // ROM 0x23DE
 
 /**
  * Record +0x10 — the high byte of the horizontal velocity stepBallisticMotion adds into OBJ_X
- * every frame. ram.js names no object-record field at this offset; its low bit is all this
+ * every frame. names.js names no object-record field at this offset; its low bit is all this
  * routine reads, and only to pick the sprite-orientation selector.
  */
 const OBJ_VELOCITY_X_HI = 0x10;

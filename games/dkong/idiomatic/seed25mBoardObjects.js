@@ -50,7 +50,7 @@
  *           residual register/flag is dead ABI. SP/PC are the dropped control-flow
  *           model (the JS call stack replaces the oracle's `ret`), so they are not
  *           compared; the oracle's stack pushes land only in STACK_SCRATCH.
- * NAMES:    none from ram.js — every source (0x3DDC/0x3DEC/0x3DF4/0x3E00/0x3E0C/
+ * NAMES:    none from names.js — every source (0x3DDC/0x3DEC/0x3DF4/0x3E00/0x3E0C/
  *           0x101B) and destination (0x6407/0x66A0/0x6680.../0x6707/0x6807/0x69A8/
  *           0x69FC) is a ROM-hardcoded template or engine-scratch record base, kept
  *           hex, matching the callees. The sprite-buffer spans lie inside

@@ -22,7 +22,7 @@
  *   - the jump sound fires via SND_TRIGGER bit 1 (0x6081 = 3, a 3-frame assert).
  *
  * Reached once per jump, from loc_1b6e (itself dispatchMarioMovement's jump arm). Writes eight
- * RAM bytes, reads two (the sprite code and Y), calls nothing. (Aside: ram.js notes
+ * RAM bytes, reads two (the sprite code and Y), calls nothing. (Aside: names.js notes
  * a fall "sets VY to 0" citing this address — that is a separate fall-init path; this
  * routine unconditionally writes the 0x0148 jump impulse, and its sole caller is the
  * jump arm.)
@@ -40,13 +40,13 @@
  *           JS return.)
  * NAMES:    MARIO_AIR_VX_HI/LO, MARIO_AIR_VY_HI/LO, MARIO_AIR_FRAMES, MARIO_X_FRAC,
  *           MARIO_Y_FRAC, MARIO_SPRITE_CODE, MARIO_Y, MARIO_AIR_START_Y, SND_TRIGGER
- *           — ram.js.
+ *           — names.js.
  */
 import {
   MARIO_AIR_VX_HI, MARIO_AIR_VX_LO, MARIO_AIR_VY_HI, MARIO_AIR_VY_LO,
   MARIO_AIR_FRAMES, MARIO_X_FRAC, MARIO_Y_FRAC, MARIO_SPRITE_CODE, MARIO_Y,
   MARIO_AIR_START_Y, SND_TRIGGER,
-} from "./ram.js";
+} from "./names.js";
 
 /** Low-bits sprite state code for the jump pose (the facing bit is preserved). */
 const SPRITE_STATE_JUMP = 0x0e;

@@ -35,13 +35,13 @@
  *           plus everything the horizontal-step router or the record builders write
  *           downstream. No register live-out (every exit tail-calls a memory-only routine).
  * NAMES:    PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE,
- *           CARVE_SEAM_RIGHT (0x807f, the overlap/defer flag this arm reads) from ram.js;
+ *           CARVE_SEAM_RIGHT (0x807f, the overlap/defer flag this arm reads) from names.js;
  *           the sprite code and map geometry are literals.
  *
  * PURPOSE [guess]: "Unflipped"=0x80 clear; heads the Actor-vocab branch though it stages Object records; axis contested.
  */
 
-import { PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE, CARVE_SEAM_RIGHT } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING, PLAYER_TILE_ROW, PRIZE_GATE, HAZARD_ACTIVE_COUNT, HAZARD_STATE, CARVE_SEAM_RIGHT } from "./names.js";
 import { u8 } from "../../../core/int.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { locateActorCellCheckGoal } from "./locateActorCellCheckGoal.js";

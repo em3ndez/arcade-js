@@ -42,10 +42,10 @@
  *           registers), left by whichever sweep ran last. The oracle's pop/call/return bracket is
  *           stack-only (lands in STACK_SCRATCH).
  * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_64 (0x6400), OBJ_ARRAY_65A0 (0x65A0),
- *           OBJ_RECORD_66A0 (0x66A0) from ram.js; findCollidingObject (ROM 0x2913) direct-called.
+ *           OBJ_RECORD_66A0 (0x66A0) from names.js; findCollidingObject (ROM 0x2913) direct-called.
  */
 
-import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_RECORD_66A0 } from "./ram.js";
+import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64, OBJ_ARRAY_65A0, OBJ_RECORD_66A0 } from "./names.js";
 import { findCollidingObject } from "./findCollidingObject.js";
 
 export function search50mObjectOverlap(m) {

@@ -24,11 +24,11 @@
  *           colour-RAM cells. The leftover colour value in the accumulator is dead: the
  *           animation-loop callers immediately delay and re-loop, reading painted memory
  *           and the loop timer, never a leftover register.
- * NAMES:    none from ram.js. 0x8057 is the colour-cycle byte the sibling fillColourColumn
- *           also keeps hex — ram.js names it BOARD_MODE for a mode-index role used
+ * NAMES:    none from names.js. 0x8057 is the colour-cycle byte the sibling fillColourColumn
+ *           also keeps hex — names.js names it BOARD_MODE for a mode-index role used
  *           elsewhere, which does not describe the colour index cycled and painted here,
  *           so it is kept hex rather than misread. 0x8840 is colour RAM (outside the
- *           work-RAM range ram.js covers).
+ *           work-RAM range names.js covers).
  */
 export function cycleColumnColour(m, column = m.regs.a) {
   const { mem8 } = m;

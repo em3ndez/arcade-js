@@ -17,7 +17,7 @@
  *           dispatches; entered a handful of times during boot/attract, first ~frame 2.
  * LIVE-OUT: memory-only — the 64 zeroed bytes. The oracle's exit registers, flags,
  *           and Z80 return path (SP/PC) are dead scratch a plain JS return replaces.
- * NAMES:    none — the 0x8200 block has no confirmed ram.js role, so the base
+ * NAMES:    none — the 0x8200 block has no confirmed names.js role, so the base
  *           address is kept literal rather than given an unearned name.
  */
 export function clearSpriteStagingBuffer(m) {

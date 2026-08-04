@@ -26,7 +26,7 @@
  *           and flags the oracle path leaves in registers are dead scratch no caller
  *           reads, as are the register pairs it parks on the stack.
  * NAMES:    none of its own — delegates to enqueueSoundCommand, which owns
- *           SOUND_HEAD / SOUND_RING (from ram.js).
+ *           SOUND_HEAD / SOUND_RING (from names.js).
  */
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 

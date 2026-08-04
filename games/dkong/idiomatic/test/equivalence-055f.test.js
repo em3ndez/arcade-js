@@ -39,7 +39,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_055f as oracle } from "../../translated/loc_055f.js";
 import { selectCurrentPlayerScoreCounter as loc_055f } from "../selectCurrentPlayerScoreCounter.js";
-import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "../ram.js";
+import { CURRENT_PLAYER, P1_SCORE, P2_SCORE } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

@@ -47,7 +47,7 @@ import { loc_084b as oracle } from "../../translated/loc_084b.js";
 import { clearSubstateWhenTimerExpires } from "../clearSubstateWhenTimerExpires.js";
 import { tickSubstatePrescaler } from "../tickSubstatePrescaler.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
-import { SUBSTATE_TIMER_LO, SUBSTATE_TIMER, GAME_SUBSTATE, STACK_SCRATCH } from "../ram.js";
+import { SUBSTATE_TIMER_LO, SUBSTATE_TIMER, GAME_SUBSTATE, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

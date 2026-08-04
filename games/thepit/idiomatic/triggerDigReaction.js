@@ -41,13 +41,13 @@
  *           ABI no caller reads; the keep-moving path delegates to advanceActorWalk, which
  *           is memory-equivalent to the frozen 0x19d0.
  * NAMES:    PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE (the per-actor arm state
- *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from ram.js. Within the classifier
+ *           0x80c1) and DIG_OBJ_TIMER (its companion 0x80b1) from names.js. Within the classifier
  *           scratch bytes 0x80a3-0x80a7, 0x80a3 is REACTION_PERIOD and 0x80a6 is AHEAD_TILE_RAW;
  *           the remaining scratch bytes and the two ROM lookup tables at 0x1e48 / 0x1fb0 stay hex —
  *           their roles are not yet grounded.
  */
 
-import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW } from "./ram.js";
+import { PLAYER_FACING, NEXT_TILE, REACTION_STATE, DIG_COLLISION_STATE, DIG_OBJ_TIMER, REACTION_PERIOD, AHEAD_TILE_RAW } from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { enqueueSoundCommand } from "./enqueueSoundCommand.js";
 import { advanceActorWalk } from "./advanceActorWalk.js";

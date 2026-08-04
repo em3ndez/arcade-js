@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0030 as oracle } from "../../translated/loc_0030.js";
 import { boardBitGate } from "../boardBitGate.js";
-import { BOARD } from "../ram.js";
+import { BOARD } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

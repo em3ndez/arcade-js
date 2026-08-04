@@ -44,14 +44,14 @@
  *           boolean (false = the two-frame unwind).
  * NAMES:    probeTileForLanding (ROM 0x2B9B, the tile classifier) and loc_2b7a (ROM 0x2B7A, the
  *           X-snap tail), both direct-called. MARIO_X (0x6203) and MARIO_Y (0x6205) from
- *           ram.js supply the probe point; the tiles are read from tilemap VRAM inside
- *           probeTileForLanding (no ram.js name).
+ *           names.js supply the probe point; the tiles are read from tilemap VRAM inside
+ *           probeTileForLanding (no names.js name).
  */
 
 import { u8 } from "../../../core/int.js";
 import { probeTileForLanding } from "./probeTileForLanding.js"; // ROM 0x2B9B — tile classifier
 import { loc_2b7a } from "./loc_2b7a.js"; // ROM 0x2B7A — horizontal X-snap tail
-import { MARIO_X, MARIO_Y } from "./ram.js";
+import { MARIO_X, MARIO_Y } from "./names.js";
 
 /**
  * @param {object} m  the machine. Live-in: the object pointer (passed through to the

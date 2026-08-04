@@ -42,7 +42,7 @@ import { loc_26e9 as oracle } from "../../translated/loc_26e9.js";
 import { signStepHalfRate } from "../signStepHalfRate.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { FRAME } from "../ram.js";
+import { FRAME } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

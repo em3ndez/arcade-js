@@ -32,7 +32,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_22f6 as oracle } from "../../translated/loc_22f6.js";
 import { loc_22f6 } from "../loc_22f6.js";
 import { loc_22f9 } from "../loc_22f9.js";
-import { RANDOM } from "../ram.js";
+import { RANDOM } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

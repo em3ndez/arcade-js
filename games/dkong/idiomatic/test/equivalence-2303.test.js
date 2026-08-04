@@ -59,7 +59,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2303 as oracle } from "../../translated/loc_2303.js";
 import { loc_2303 } from "../loc_2303.js";
-import { RANDOM, MARIO_X, OBJ_X } from "../ram.js";
+import { RANDOM, MARIO_X, OBJ_X } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

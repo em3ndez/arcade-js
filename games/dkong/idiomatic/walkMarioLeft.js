@@ -51,14 +51,14 @@
  *           value is void on both arms and must stay void, since the cascade propagates it
  *           and a truthy value would read as a caller-skip. The chain nets exactly one
  *           caller-return, which the gate's pc + SP comparison pins.
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F), MARIO_WALK_ANIM (0x6202) — from ram.js.
+ * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F), MARIO_WALK_ANIM (0x6202) — from names.js.
  *           advanceMarioWalkX (ROM 0x1CD2), nextAnimationStep (ROM 0x3009) and beginWalkStep
  *           (ROM 0x1CC2) are already idiomatic and called directly. beginWalkStep still
  *           takes its walk tile in the accumulator (its own oracle-boundary ABI, not yet
  *           promoted to a parameter), so the tile is staged there for it.
  */
 
-import { MARIO_MOVE_STEP_TIMER, MARIO_WALK_ANIM } from "./ram.js";
+import { MARIO_MOVE_STEP_TIMER, MARIO_WALK_ANIM } from "./names.js";
 import { advanceMarioWalkX } from "./advanceMarioWalkX.js"; // ROM 0x1CD2
 import { nextAnimationStep } from "./nextAnimationStep.js";                   // ROM 0x3009
 import { beginWalkStep } from "./beginWalkStep.js";         // ROM 0x1CC2

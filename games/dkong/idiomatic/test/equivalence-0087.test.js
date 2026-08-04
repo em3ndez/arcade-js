@@ -44,7 +44,7 @@ import { loc_0087 as oracle } from "../../translated/loc_0087.js";
 import { readControls as candidate } from "../readControls.js";
 import { loc_0141 } from "../../translated/loc_0141.js";
 import { Machine } from "../../machine.js";
-import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW, ATTRACT, STACK_SCRATCH } from "../ram.js";
+import { DIP_UPRIGHT, P1_INPUT, P1_INPUT_RAW, ATTRACT, STACK_SCRATCH } from "../names.js";
 import { NotImplemented } from "../../../../boards/dkong/io.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

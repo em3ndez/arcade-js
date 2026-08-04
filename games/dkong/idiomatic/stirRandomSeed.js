@@ -27,9 +27,9 @@
  *           so the closing `ld hl,0x6019` is LOAD-BEARING, not dead. Flags are
  *           DEAD — every caller recomputes them (and/cp) or issues a call before
  *           branching. (No pc/SP: the Z80 `ret` is modelled by the JS return.)
- * NAMES:    RANDOM (0x6018), FRAME (0x601A), SPIN_COUNT (0x6019) — ram.js.
+ * NAMES:    RANDOM (0x6018), FRAME (0x601A), SPIN_COUNT (0x6019) — names.js.
  */
-import { RANDOM, FRAME, SPIN_COUNT } from "./ram.js";
+import { RANDOM, FRAME, SPIN_COUNT } from "./names.js";
 
 export function stirRandomSeed(m) {
   const { regs, mem } = m;

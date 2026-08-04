@@ -89,7 +89,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   for the new name.
 - **R5 [ALL]** Every name promoted loc_<addr>→English **in the commit under review** is corroborated
   by evidence OUTSIDE the routine itself (a named cell it touches, an idiomatic caller/callee,
-  mechanisms.md, or a sibling), and **that routine's `ROUTINES` entry in `ram.js` states the
+  mechanisms.md, or a sibling), and **that routine's `ROUTINES` entry in `names.js` states the
   corroboration in its `why` field** (defined in names-registry.md, "Routines — the `ROUTINES` map").
   Scoped to this commit's promotions, exactly like R4: entries promoted before the field existed do
   not have one, and a missing `why` on an untouched entry is NOT a violation. Do not fail a commit
@@ -136,19 +136,19 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 - **R6 [ALL]** Where purpose is not corroborated, the routine STAYS loc_<addr>. A confidently-wrong
   English name is a violation. Verify: spot-check promoted names aren't guesses.
 
-## Single source of truth (ram.js)
-- **R7 [ALL]** No staged prose (routine comment or mechanisms.md) calls a cell that IS named in ram.js
-  "unnamed / kept hex / no ram.js name". Verify: `python3 tools/names_consistency.py check` (also a
+## Single source of truth (names.js)
+- **R7 [ALL]** No staged prose (routine comment or mechanisms.md) calls a cell that IS named in names.js
+  "unnamed / kept hex / no names.js name". Verify: `python3 tools/names_consistency.py check` (also a
   hook) + scan comments in the diff.
-- **R8 [ALL]** A cell named in ram.js is IMPORTED from ram.js, not redefined as a local hex const.
-  Verify: grep the diff for `const [A-Z_0-9]+ = 0x6[0-9a-f]{3}` duplicating a ram.js name.
-- **R16 [ALL]** Every named cell in ram.js carries a grounding rating. Verify by PARSING ram.js: for
+- **R8 [ALL]** A cell named in names.js is IMPORTED from names.js, not redefined as a local hex const.
+  Verify: grep the diff for `const [A-Z_0-9]+ = 0x6[0-9a-f]{3}` duplicating a names.js name.
+- **R16 [ALL]** Every named cell in names.js carries a grounding rating. Verify by PARSING names.js: for
   each `export const NAME = 0x…`, its own comment must contain `[seen]`, `[code]`, or `[guess]`.
   **FAIL if ANY named cell is unrated** — no ratchet, no legacy-debt exception. A name is not
   understanding; the registry is complete only when every cell is labeled.
 
 ## Translation conventions
-- **R9 [ALL]** No import from `optimized/` (retired layer). Imports resolve from `./ram.js` and other
+- **R9 [ALL]** No import from `optimized/` (retired layer). Imports resolve from `./names.js` and other
   idiomatic files. Verify: `git diff --cached | grep optimized/`.
 - **R10 [ALL]** No idiomatic routine calls an already-idiomatic callee via `m.call(0xADDR…)`/push16
   (stale oracle leak) — idiomatic callees are direct JS calls.
@@ -158,14 +158,14 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   ROUTINES. Same leak, and the comment beside it is false as well.
   Verify (both, per game touched):
   1. `git diff --cached | grep 'm\.call(0x'` — any hit whose target address is a key of that game's
-     `games/<game>/idiomatic/ram.js` ROUTINES map FAILS.
+     `games/<game>/idiomatic/names.js` ROUTINES map FAILS.
   2. Resolve every `from "../translated/loc_XXXX.js"` import in the staged idiomatic files against
      the same ROUTINES map; any whose address is present FAILS. Game-agnostic one-liner:
      ```sh
      GAME=<game> node --input-type=module -e '
      import { readdirSync, readFileSync } from "node:fs";
      const d = `games/${process.env.GAME}/idiomatic`;
-     const { ROUTINES } = await import(`./${d}/ram.js`);
+     const { ROUTINES } = await import(`./${d}/names.js`);
      for (const f of readdirSync(d).filter((x) => x.endsWith(".js")))
        for (const m of readFileSync(`${d}/${f}`, "utf8").matchAll(/from "\.\.\/translated\/loc_([0-9a-f]{4})\.js"/g))
          if (ROUTINES[parseInt(m[1], 16)])
@@ -197,7 +197,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   gate ACTUALLY exercises — and a coverage claim that is VACUOUS must say so explicitly, in the
   header, rather than reading as coverage. (Since R21 a `GATE:` block lives only in a test file's
   header — an idiomatic routine header may not cite a test at all — and `NAMES:` is gone entirely,
-  since the import list already states which `ram.js` cells a routine uses. R17 is unchanged in
+  since the import list already states which `names.js` cells a routine uses. R17 is unchanged in
   substance; only the files it applies to moved.) "Replays every captured dispatch" when zero dispatches
   were captured, "all N routines live" in a file that wires one, "runs the whole game" in a tool
   that cannot construct that game's Machine: each is a claim the reader will bank and none of them
@@ -311,7 +311,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   no MAME, no frozen oracle, no sibling module, no test, no doc, no to-do. A count of what is in the
   file is fine; a count of anything outside it is not. Exempt, because their job *is* the cross-file
   map: `translated/**` (it comes from the disassembly — the address is its identity),
-  `idiomatic/ram.js` (the registry), and `idiomatic/**/test/**` (a test must name its subject).
+  `idiomatic/names.js` (the registry), and `idiomatic/**/test/**` (a test must name its subject).
 
   The mechanical half is a gate — `tools/idiomatic_comments.py check`, wired into `hooks/pre-commit`
   — because unlike every other rule here it tests REFERENCE rather than truth, and that is
@@ -332,7 +332,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
-  that batch's routines+tests; an UNDERSTANDING stages renames/ram.js/mechanisms/retrofits. No
+  that batch's routines+tests; an UNDERSTANDING stages renames/names.js/mechanisms/retrofits. No
   unrelated files, no cross-unit leak, no infra mixed in. Verify: `git diff --cached --stat` vs the
   stated scope.
 - **R14 [ALL]** No `git mv` leaked another unit's renames into this index. Verify: every staged rename

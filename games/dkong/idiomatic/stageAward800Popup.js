@@ -39,7 +39,7 @@
  *           (armScorePopupAndSelectAward / pickRandomAwardTier tail-jump here) reads no register afterward. SP/pc are
  *           the dropped stack model — the oracle's tail-jump becomes the JS call.
  * NAMES:    stageAwardPopupAtHitObject (ROM 0x1E15) is the idiomatic feeder, imported and called directly;
- *           it owns all the RAM writes and their ram.js names. The literals 0x7F (B, the
+ *           it owns all the RAM writes and their names.js names. The literals 0x7F (B, the
  *           sprite code byte) and 0x0008 (DE, the deferred-task message) are this setter's
  *           fixed parameters, kept as literals exactly as the oracle loads them.
  */

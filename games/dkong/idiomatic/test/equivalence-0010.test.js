@@ -48,7 +48,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x0010;
-const MARIO_ACTIVE = 0x6200; // the player-alive byte the guard reads (MARIO_ACTIVE in ram.js)
+const MARIO_ACTIVE = 0x6200; // the player-alive byte the guard reads (MARIO_ACTIVE in names.js)
 
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 

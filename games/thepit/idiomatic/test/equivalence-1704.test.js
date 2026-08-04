@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1704 as oracle } from "../../translated/loc_1704.js";
 import { resolveActorTerrainStep as idiomatic } from "../resolveActorTerrainStep.js";
 import { makeMachineFactory } from "../../machine.js";
-import { PLAYER_Y, PLAYER_FACING, REACTION_STATE, PLAYER_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING, REACTION_STATE, PLAYER_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

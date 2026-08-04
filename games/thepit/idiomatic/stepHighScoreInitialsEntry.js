@@ -43,9 +43,9 @@
  *           which the caller re-reads next pass. The other exit registers/flags are
  *           dead and excluded from the diff.
  * NAMES:    IN0_DEBOUNCED (the action byte), PLAY_PHASE_COUNTER and INITIALS_REMAINING (0x804b,
- *           the per-move step counter) from ram.js.
+ *           the per-move step counter) from names.js.
  */
-import { IN0_DEBOUNCED, PLAY_PHASE_COUNTER, INITIALS_REMAINING } from "./ram.js";
+import { IN0_DEBOUNCED, PLAY_PHASE_COUNTER, INITIALS_REMAINING } from "./names.js";
 import { stepInitialDown } from "./stepInitialDown.js";
 import { advanceInitialUp } from "./advanceInitialUp.js";
 import { requestSound16 } from "./requestSound16.js";

@@ -42,7 +42,7 @@
  *           are not modelled or compared.
  * NAMES:    none — the three operands are object-record field offsets (+0x12/+0x13/+0x14),
  *           i.e. structure displacements off the caller's pointer, not absolute cells, so
- *           they stay local offset consts (the record itself is unnamed in ram.js).
+ *           they stay local offset consts (the record itself is unnamed in names.js).
  */
 
 import { u16 } from "../../../core/int.js";

@@ -40,7 +40,7 @@ import { loc_33c3 as oracle } from "../../translated/loc_33c3.js";
 import { loc_33c3 } from "../loc_33c3.js";
 import { snapYToGirder } from "../snapYToGirder.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, OBJ_STATE } from "../ram.js";
+import { STACK_SCRATCH, BOARD, OBJ_STATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

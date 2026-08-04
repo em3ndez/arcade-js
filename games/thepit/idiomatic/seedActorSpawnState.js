@@ -28,8 +28,8 @@
  * LIVE-OUT: memory-only — the fifteen seeded work-RAM bytes. The residual accumulator
  *           value is dead ABI; the round-init caller consumes no register.
  * NAMES:    BOARD_END_PHASE, ENEMY3_X/ENEMY3_TILE/ENEMY3_Y/ENEMY3_STEP_X/ENEMY3_STEP_Y/ENEMY3_TIMER,
- *           ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y/ENEMY3_TWIN_ATTR/ENEMY3_TWIN_TIMER from ram.js. The neighbour
- *           primary field 0x810c is ENEMY3_ATTR (ram.js); the twin fields 0x811f/0x8120 are
+ *           ENEMY3_TWIN_X/ENEMY3_TWIN_TILE/ENEMY3_TWIN_Y/ENEMY3_TWIN_ATTR/ENEMY3_TWIN_TIMER from names.js. The neighbour
+ *           primary field 0x810c is ENEMY3_ATTR (names.js); the twin fields 0x811f/0x8120 are
  *           ENEMY3_TWIN_STEP_X/ENEMY3_TWIN_STEP_Y.
  */
 
@@ -49,7 +49,7 @@ import {
   ENEMY3_TWIN_X,
   ENEMY3_TWIN_STEP_X,
   ENEMY3_TWIN_STEP_Y,
-} from "./ram.js";
+} from "./names.js";
 
 export function seedActorSpawnState(m) {
   const { mem8 } = m;

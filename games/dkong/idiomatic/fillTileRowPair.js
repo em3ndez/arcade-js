@@ -34,7 +34,7 @@
  *           dropped `ret` control-flow model — the oracle pops the caller's return
  *           address (pc→target, SP+2); the direct-call layer replaces that with a JS
  *           return, so pc/SP are deliberately not compared.
- * NAMES:    none from ram.js — HL is the live-in write pointer; destinations are
+ * NAMES:    none from names.js — HL is the live-in write pointer; destinations are
  *           background tilemap VRAM (0x7400–0x77FF); 0xFD/0xFC are fixed tile codes.
  */
 

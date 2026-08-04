@@ -44,7 +44,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_0bb3 as oracle } from "../../translated/loc_0bb3.js";
 import { runIntroRoarStep } from "../runIntroRoarStep.js";
-import { SUBSTATE_TIMER, INTRO_STEP, GAME_SUBSTATE, STACK_SCRATCH } from "../ram.js";
+import { SUBSTATE_TIMER, INTRO_STEP, GAME_SUBSTATE, STACK_SCRATCH } from "../names.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { Machine } from "../../machine.js";
 

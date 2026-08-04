@@ -35,7 +35,7 @@
  *           register or flag; the counter and landing register are dead past the branch.
  * NAMES:    MARIO_AIR_LANDCHECK (0x621F), MARIO_AIR_VX_HI/LO (0x6210/0x6211),
  *           MARIO_AIR_VY_HI/LO (0x6212/0x6213), MARIO_AIR_FRAMES (0x6214) — all from
- *           ram.js. The two direct-called callees (settleMarioOnLanding, writeMarioSpriteRecord) own
+ *           names.js. The two direct-called callees (settleMarioOnLanding, writeMarioSpriteRecord) own
  *           the rest.
  */
 
@@ -46,7 +46,7 @@ import {
   MARIO_AIR_VY_HI,
   MARIO_AIR_VY_LO,
   MARIO_AIR_FRAMES,
-} from "./ram.js";
+} from "./names.js";
 import { settleMarioOnLanding } from "./settleMarioOnLanding.js"; // ROM 0x1C4F
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js"; // ROM 0x1DA6
 

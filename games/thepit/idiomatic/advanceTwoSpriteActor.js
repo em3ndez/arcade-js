@@ -42,14 +42,14 @@
  *           backstops that.
  * NAMES:    BOARD_END_PHASE, PLAY_PHASE_COUNTER, PLAYER_ACTIVE, PLAYER_Y, ENEMY3_STEP_X/ENEMY3_STEP_Y,
  *           ENEMY3_TIMER, ENEMY3_TILE/ENEMY3_TWIN_TILE, ENEMY3_X/ENEMY3_TWIN_X, ENEMY3_Y/ENEMY3_TWIN_Y from
- *           ram.js. The steady per-frame mover at 0x3a13 is the decompiled
+ *           names.js. The steady per-frame mover at 0x3a13 is the decompiled
  *           advanceActorMovers, called directly.
  */
 
 import {
   ENEMY3_STEP_X, ENEMY3_STEP_Y, ENEMY3_TILE, ENEMY3_TIMER, ENEMY3_X, ENEMY3_Y,
   PLAY_PHASE_COUNTER, PLAYER_Y, PLAYER_ACTIVE, BOARD_END_PHASE, ENEMY3_TWIN_Y, ENEMY3_TWIN_TILE, ENEMY3_TWIN_X,
-} from "./ram.js";
+} from "./names.js";
 import { spawnAltPhaseActor } from "./spawnAltPhaseActor.js";
 import { advanceOrRebuildTwinActor } from "./advanceOrRebuildTwinActor.js";
 import { spawnTwinActor } from "./spawnTwinActor.js";

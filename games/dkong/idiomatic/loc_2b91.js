@@ -15,7 +15,7 @@
  *
  * Memory-equivalent to the frozen oracle — equivalence-2b91.test.js.
  */
-import { MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "./ram.js";
+import { MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "./names.js";
 
 /**
  * @param {object} m  the machine; reads the adjusted X from regs.a (probe live-in).

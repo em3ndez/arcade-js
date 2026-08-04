@@ -28,7 +28,7 @@
  *           address lands it in HL; see the seam entry below.
  * NAMES:    none — a pure map of a register input to a fixed address; references no RAM
  *           cell. The two returned values are video-RAM column bases (0x74e0, 0x7740),
- *           not work RAM, so they have no ram.js name.
+ *           not work RAM, so they have no names.js name.
  */
 export function selectPlayerIndicatorColumnBase(playerSelector) {
   // Zero selects the player-1 column base; any nonzero value selects the player-2 base.

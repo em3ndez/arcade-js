@@ -62,7 +62,7 @@ import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { waitFrames } from "../waitFrames.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { IN0_DEBOUNCED, PLAY_PHASE_COUNTER, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { IN0_DEBOUNCED, PLAY_PHASE_COUNTER, SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

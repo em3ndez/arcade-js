@@ -52,8 +52,8 @@
  *           two call levels (ROM 0x2E04's prologue and the two rst targets it enters)
  *           without being read. MEASURED: the gate's LIVE-OUT case scrambles all six
  *           after every oracle dispatch and a 3000-frame attract run stays byte-identical.
- * NAMES:    OBJ_ITER_PTR (0x63C8), OBJ_ARRAY_64 (0x6400), OBJ_ACTIVE (+0) from ram.js;
- *           armAlternateFireModeAtHighDifficulty direct-called. The sweep index at 0x63A2 has no ram.js name — it is
+ * NAMES:    OBJ_ITER_PTR (0x63C8), OBJ_ARRAY_64 (0x6400), OBJ_ACTIVE (+0) from names.js;
+ *           armAlternateFireModeAtHighDifficulty direct-called. The sweep index at 0x63A2 has no names.js name — it is
  *           referenced by no other routine in the translated layer — so it stays a local
  *           const. ROM 0x3202 is not in the ROUTINES registry, so it is still reached
  *           through m.call; the push beside it is the return address its frozen oracle's
@@ -62,11 +62,11 @@
  */
 
 import { u8, u16 } from "../../../core/int.js";
-import { OBJ_ITER_PTR, OBJ_ARRAY_64, OBJ_ACTIVE } from "./ram.js";
+import { OBJ_ITER_PTR, OBJ_ARRAY_64, OBJ_ACTIVE } from "./names.js";
 import { armAlternateFireModeAtHighDifficulty } from "./armAlternateFireModeAtHighDifficulty.js"; // ROM 0x31DD — the difficulty+entropy gated object arm
 
 // Loop counter cell: reset to 0, incremented once per record, compared against the
-// record count. No ram.js name — nothing else in the translated layer references it.
+// record count. No names.js name — nothing else in the translated layer references it.
 const SWEEP_INDEX = 0x63a2;
 
 const OBJECT_COUNT = 5;     // records swept from OBJ_ARRAY_64

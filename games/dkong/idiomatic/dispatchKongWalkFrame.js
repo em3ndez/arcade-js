@@ -15,7 +15,7 @@
  *      frame, because on an odd one loc_2602 skips the tick and this clear wipes it next frame.
  *      Pre-clearing here is what makes "did we choose loc_16d0?" the whole bounce decision.
  *
- *   2. Read record #2's X (recordX, 0x6910 — not named in ram.js) and object #1's published
+ *   2. Read record #2's X (recordX, 0x6910 — not named in names.js) and object #1's published
  *      signed per-frame step (stepByte, M50_OBJ1_STEP), and route:
  *        - recordX at/above the rail region (>= 90): the group has climbed to the rail — hand
  *          to endKongWalkAndAdvanceInterlude, the second-stage dispatcher that decides reinit-vs-bounce at the 93
@@ -30,7 +30,7 @@
  * still travelling INTO the edge nearest it. dispatchKongWalkFrame's only memory write of its own is the
  * M50_OBJ1_REVERSE_TIMER (0x62A0) clear; the chosen handler does all the motion work.
  *
- * The M50_* names in ram.js place this family on the 50m board (board-2 object cascade), and the
+ * The M50_* names in names.js place this family on the 50m board (board-2 object cascade), and the
  * group it routes is the ten-record figure the previous sequence step stamps:
  * begin50mKongRecaptureInterlude (ROM 0x16A3) copies the ROM 0x385C template into
  * SPRITE_OBJ_BLOCK and bumps the 0x6388 selector to this routine, and record #2's X (0x6910)
@@ -63,12 +63,12 @@
  *           leaves — the register file is dead ABI. RAM (+ SP/pc) backstops that.
  * NAMES:    M50_OBJ1_REVERSE_TIMER (0x62A0, object #1's even-frame countdown) and
  *           M50_OBJ1_STEP (0x63A3, object #1's published signed per-frame step), both from
- *           ram.js. 0x6910 (a SPRITE_BUFFER record's X) is NOT individually named in ram.js —
+ *           names.js. 0x6910 (a SPRITE_BUFFER record's X) is NOT individually named in names.js —
  *           kept hex, described in prose to match stepKongWalk / endKongWalkAndAdvanceInterlude. The 90 / 93 rail
  *           thresholds are raw magnitudes and stay in prose.
  */
 
-import { M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP } from "./ram.js";
+import { M50_OBJ1_REVERSE_TIMER, M50_OBJ1_STEP } from "./names.js";
 import { loc_16d0 } from "./loc_16d0.js"; // ROM 0x16D0 — schedule a reversal, then slide (bounce)
 import { stepKongWalk } from "./stepKongWalk.js"; // ROM 0x16D5 — the shared group-slide motion tick
 import { endKongWalkAndAdvanceInterlude } from "./endKongWalkAndAdvanceInterlude.js"; // ROM 0x16E1 — the at-rail reinit/bounce dispatcher

@@ -37,7 +37,7 @@
  *           The callers discard the output registers (entry_051c pops DE and reads
  *           none; the renderer's residual A/HL/DE/B/C/IX are dead), so they are
  *           reproduced identically to the oracle and compared only for extra teeth.
- * NAMES:    none from ram.js — the selector and source pointer are caller-supplied and
+ * NAMES:    none from names.js — the selector and source pointer are caller-supplied and
  *           the two destination cells (0x7781, 0x7521) are video RAM (0x7400-0x77FF),
  *           deliberately unnamed. renderBcdColumn (ROM 0x057C) is direct-called.
  */

@@ -64,7 +64,7 @@
  *           m.call/ret stack traffic lands in the dead STACK_SCRATCH region and is
  *           excluded from the compare.
  * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), BOARD (0x6227),
- *           SPRITE_OBJ_BLOCK (0x6908), SPRITE_BUFFER (0x6900) from ram.js. Hex-kept:
+ *           SPRITE_OBJ_BLOCK (0x6908), SPRITE_BUFFER (0x6900) from names.js. Hex-kept:
  *           OBJECT_TEMPLATE_SRC 0x385C (a ROM data address / immediate) and the two
  *           rivet-arm addStrided delta immediates (0x10, 0xF8 applied at SPRITE_BUFFER /
  *           SPRITE_BUFFER+3).
@@ -75,7 +75,7 @@ import { loadBoardObjectRecords } from "./loadBoardObjectRecords.js"; // ROM 0x2
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
 import { addStrided } from "./addStrided.js"; // ROM 0x003d
-import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "./ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, BOARD, SPRITE_OBJ_BLOCK, SPRITE_BUFFER } from "./names.js";
 
 // ROM template of sprite-object records copied into the sprite buffer (ROM data — kept hex).
 const OBJECT_TEMPLATE_SRC = 0x385c;

@@ -29,10 +29,10 @@
  *           but the sole exit successor (loc_197a's next call, sub_2a85) overwrites A
  *           with `ld a,(0x6215)` before reading it, so A is dead ABI; no flags touched.
  *           (The whole-machine/pixel gate backstops the dead register.)
- * NAMES:    EDGE_RIVET_ARMED (0x6291) — from ram.js.
+ * NAMES:    EDGE_RIVET_ARMED (0x6291) — from names.js.
  */
 
-import { EDGE_RIVET_ARMED } from "./ram.js";
+import { EDGE_RIVET_ARMED } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

@@ -53,7 +53,7 @@ import {
   BONUS_EXPIRED_STEP,
   SPAWN_REQUEST,
   TASK_TAIL,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -64,7 +64,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x2fcb;
 const RET_ADDR = 0x19c2;   // loc_197a's continuation after `call 0x2fcb`
-const BOOKKEEP_62B9 = 0x62b9; // the spawn-request sibling byte, unnamed in ram.js
+const BOOKKEEP_62B9 = 0x62b9; // the spawn-request sibling byte, unnamed in names.js
 const PAGE = 0x6000;       // fixed high byte of every task-ring slot
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);

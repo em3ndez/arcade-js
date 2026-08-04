@@ -53,12 +53,12 @@
  *           (measured 0x6bec–0x6bef at the real dispatch), excluded by the contract; the
  *           direct-call layer replaces the `ret` with a JS return, so SP/pc are untouched.
  * NAMES:    MARIO_ACTIVE, SND_PRIORITY, SND_PRIORITY_FRAMES, HOW_HIGH_INDEX, BOARD_SEQ_PTR,
- *           HOW_HIGH_LAST_SEQ, SUBSTATE_TIMER, GAME_SUBSTATE (ram.js); imports silenceSound
+ *           HOW_HIGH_LAST_SEQ, SUBSTATE_TIMER, GAME_SUBSTATE (names.js); imports silenceSound
  *           (0x011C), tickSubstateTimer (0x0018), clearPlayfieldAndSprites (0x0874),
  *           enqueueTask (0x309F) — the four decompiled callees. The palette-bank latches,
  *           the climb-figure index/walk-pointer scratch, the girder VRAM base, and the ROM
  *           record table stay hex (board control / engine scratch / video RAM / ROM, none in
- *           ram.js).
+ *           names.js).
  */
 
 import {
@@ -70,7 +70,7 @@ import {
   HOW_HIGH_LAST_SEQ,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "./ram.js";
+} from "./names.js";
 import { silenceSound } from "./silenceSound.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js";
@@ -81,7 +81,7 @@ import { enqueueTask } from "./enqueueTask.js";
 const PALETTE_BANK_BIT0 = 0x7d86;
 const PALETTE_BANK_BIT1 = 0x7d87;
 
-// Climb-figure bookkeeping (engine scratch, not in ram.js): 0x63A7 = record index into the
+// Climb-figure bookkeeping (engine scratch, not in names.js): 0x63A7 = record index into the
 // ROM table below (stepped once per row); 0x63A8 = 16-bit VRAM walk pointer for the sprite
 // slots (walks down 4 per row). Seeded here to 0 and 0x76DC.
 const CLIMB_FIGURE_INDEX = 0x63a7;

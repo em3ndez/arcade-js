@@ -20,7 +20,7 @@
  *   • The select byte is written 46 times and takes only 0 (33x) and 1 (13x). Its ONLY
  *     non-initialising writers are ROM 0x2D92 and ROM 0x2D9D — the two arms of the record
  *     re-initialiser at ROM 0x2D8C, which writes 1 on one arm and, on the other, writes 0
- *     AND stamps the mode byte with 2. ram.js reaches the same pair of addresses from the
+ *     AND stamps the mode byte with 2. names.js reaches the same pair of addresses from the
  *     opposite direction: its HAMMER_IN_PLAY note names 0x2D92/0x2D9D as sites where
  *     record +1 carries a role unrelated to the hammer pair's, which is why it refuses to
  *     give +1 a shared OBJ_* name at all.
@@ -104,7 +104,7 @@
  *           SP and the entire register file on every dispatch; the stack window and both
  *           pointers legitimately hold here, so they are asserted as extra teeth rather
  *           than excluded.
- * NAMES:    OBJ_ARRAY_67 and OBJ_ACTIVE from ram.js are named above only to say where the
+ * NAMES:    OBJ_ARRAY_67 and OBJ_ACTIVE from names.js are named above only to say where the
  *           walk runs; this routine holds no address of its own and reaches its record
  *           through the walk's index register. The two fields it reads have NO registry
  *           name on purpose — see the HAMMER_IN_PLAY note quoted above — so they are
@@ -114,7 +114,7 @@
  *           routine, so dissolving those into direct calls is a later coordinated step.
  */
 
-// Record fields, relative to the walk's current record base. ram.js deliberately gives
+// Record fields, relative to the walk's current record base. names.js deliberately gives
 // neither a shared OBJ_* name: its HAMMER_IN_PLAY note records that +1 carries unrelated
 // roles per array and names this very site as one of them.
 const BRANCH_SELECT = 1; // tested for equality with 1, and outranks the mode bits

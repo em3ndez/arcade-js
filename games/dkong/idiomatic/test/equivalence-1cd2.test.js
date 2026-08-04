@@ -49,7 +49,7 @@ import { snapYToGirder } from "../snapYToGirder.js";
 import { continueWalkStep } from "../continueWalkStep.js";
 import { Machine } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
-import { STACK_SCRATCH, MARIO_X, MARIO_Y, BOARD } from "../ram.js";
+import { STACK_SCRATCH, MARIO_X, MARIO_Y, BOARD } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

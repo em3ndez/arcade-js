@@ -54,10 +54,10 @@
  *           identical arm). The oracle discards the arm's return value at this level, so this
  *           routine returns nothing too; loc_0a76's own callers ignore any return. Residual
  *           A/HL/DE/flags are the trampoline's dead ABI handoff, read by no arm.
- * NAMES:    INTRO_STEP (0x6385) from ram.js; table base 0x0A7A kept hex (ROM data, not work RAM).
+ * NAMES:    INTRO_STEP (0x6385) from names.js; table base 0x0A7A kept hex (ROM data, not work RAM).
  */
 
-import { INTRO_STEP } from "./ram.js";
+import { INTRO_STEP } from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 8 little-endian target addresses in ROM starting at

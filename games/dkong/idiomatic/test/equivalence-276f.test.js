@@ -51,7 +51,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_276f as oracle } from "../../translated/loc_276f.js";
 import { carryMarioUpWithLift } from "../carryMarioUpWithLift.js";
 import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js"; // idiomatic edge reset, used by the broken twins
-import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y, MARIO_ACTIVE, EDGE_REPOSITION_FLAG } from "../ram.js";
+import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y, MARIO_ACTIVE, EDGE_REPOSITION_FLAG } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

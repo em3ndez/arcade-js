@@ -64,7 +64,7 @@
  *           flags at the ROM 0x1FF6 handoff on every dispatch across a 3000-frame
  *           attract run and the trace stays byte-identical. That measurement is a
  *           superset — it also scrambles the twin arm's flags — and is reported as such.
- * NAMES:    OBJ_X (record +3) is the one ram.js name imported. OBJ_ARRAY_67 and
+ * NAMES:    OBJ_X (record +3) is the one names.js name imported. OBJ_ARRAY_67 and
  *           OBJ_ACTIVE appear in the prose above but are not referenced in code: this
  *           routine reaches its record through the pointer the sweep supplies and never
  *           forms the array base or reads the active flag itself. ROM 0x1FF6 is still
@@ -73,7 +73,7 @@
  *           the m.call dissolves into a direct call once 0x1FF6 is wired into ROUTINES.
  */
 
-import { OBJ_X } from "./ram.js";
+import { OBJ_X } from "./names.js";
 
 // The shared tail this arm falls into. Still the frozen oracle.
 const SHARED_TAIL = 0x1ff6;

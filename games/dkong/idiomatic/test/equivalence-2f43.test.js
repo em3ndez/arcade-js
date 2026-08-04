@@ -57,7 +57,7 @@ import {
   MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_RECORD,
   SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_ACTIVE, OBJ_X, OBJ_Y, SND_BGM, FRAME,
   HAMMER_SAVED_BGM as SAVED_BGM,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

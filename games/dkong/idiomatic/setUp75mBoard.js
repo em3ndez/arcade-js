@@ -35,7 +35,7 @@
  *           handed to the tail, not a live-out of this arm; A/HL/B and all flags are dead
  *           (the caller loc_0c92 reads no return). SP/pc are the dropped stack model —
  *           the oracle's push16/call/ret becomes the JS call stack.
- * NAMES:    SND_BGM (0x6089) from ram.js — the background-tune slot. Callees
+ * NAMES:    SND_BGM (0x6089) from names.js — the background-tune slot. Callees
  *           stamp75mBoardTiles (ROM 0x0D27) and loc_0cc6 (ROM 0x0CC6) are imported and
  *           called directly. 0x3BE5 is a ROM layout-table pointer (not work RAM), kept hex.
  *           (The SEG_* board-render scratch is touched only transitively, inside the tail.)
@@ -43,7 +43,7 @@
 
 import { stamp75mBoardTiles } from "./stamp75mBoardTiles.js"; // ROM 0x0D27 — elevator-board tile motifs
 import { loc_0cc6 } from "./loc_0cc6.js"; // ROM 0x0CC6 — shared draw + setup tail
-import { SND_BGM } from "./ram.js"; // 0x6089 — background-tune slot
+import { SND_BGM } from "./names.js"; // 0x6089 — background-tune slot
 
 export function setUp75mBoard(m) {
   const { regs, mem } = m;

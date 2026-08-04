@@ -52,7 +52,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_231a as oracle } from "../../translated/loc_231a.js";
 import { loc_231a } from "../loc_231a.js";
-import { MARIO_X, OBJ_X } from "../ram.js";
+import { MARIO_X, OBJ_X } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

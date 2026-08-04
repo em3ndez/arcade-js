@@ -46,7 +46,7 @@ import { loc_2c91 as oracle } from "../../translated/loc_2c91.js";
 import { flagObjectTargetOverlap as idiomatic } from "../flagObjectTargetOverlap.js";
 import { makeMachineFactory } from "../../machine.js";
 import { u8 } from "../../../../core/int.js";
-import { PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG } from "../ram.js";
+import { PLAYER_Y, PLAYER_X, HAZARD_X, HAZARD_Y, MOVE_BLOCK_FLAG } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

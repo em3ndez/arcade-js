@@ -25,12 +25,12 @@
  * LIVE-OUT: memory-only (MARIO_X, MARIO_SPRITE_RECORD). The velocity and prior X arrive
  *           in registers at the still-translated caller boundary; nothing downstream reads
  *           a register or flag this routine leaves — the callers tail-return.
- * NAMES:    MARIO_X (0x6203), MARIO_SPRITE_RECORD (0x694C) — from ram.js. Callee limitMarioHorizontalTravel
+ * NAMES:    MARIO_X (0x6203), MARIO_SPRITE_RECORD (0x694C) — from names.js. Callee limitMarioHorizontalTravel
  *           (ROM 0x241F, the horizontal position gate) is direct-called; it reads only
  *           memory, so no register marshalling precedes it.
  */
 
-import { MARIO_X, MARIO_SPRITE_RECORD } from "./ram.js";
+import { MARIO_X, MARIO_SPRITE_RECORD } from "./names.js";
 import { limitMarioHorizontalTravel } from "./limitMarioHorizontalTravel.js"; // ROM 0x241F — horizontal position gate -> (d,e)
 
 /**

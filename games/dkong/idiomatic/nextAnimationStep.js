@@ -31,7 +31,7 @@
  * DRAWN. walkMarioRight (ROM 0x1CA4) and walkMarioLeft (ROM 0x1CC0) store it straight into
  * MARIO_WALK_ANIM, whose low two bits become Mario's sprite tile code every frame; the
  * object-orientation refresher takes bits 1 and 0 as an object's two sprite mirror bits;
- * loc_18c6 ORs 0x20 in and stores it as a sprite-object byte. ram.js grounds
+ * loc_18c6 ORs 0x20 in and stores it as a sprite-object byte. names.js grounds
  * MARIO_WALK_ANIM live and independently — value set {0,1,2,4}, which is exactly this
  * function's reachable range minus the unreached 3, written ONLY by the two walk routines,
  * at exactly the two instructions that store this function's A. That pins the result as an

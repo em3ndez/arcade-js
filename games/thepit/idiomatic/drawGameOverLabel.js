@@ -38,20 +38,20 @@
  *           oracle it does not perform the tail helper's own return, so its exit pc and
  *           stack pointer are the caller's to close; the gate models that one return to
  *           line them up with the oracle before comparing.
- * NAMES:    TILE_COL / TILE_ROW from ram.js — the tile cell fed to the address calc.
- *           0x8057 kept local (FILL_ATTR): ram.js proposes BOARD_MODE for it, but here
+ * NAMES:    TILE_COL / TILE_ROW from names.js — the tile cell fed to the address calc.
+ *           0x8057 kept local (FILL_ATTR): names.js proposes BOARD_MODE for it, but here
  *           it is unambiguously the label's colour byte, so a local role name is used
  *           rather than a misfit import (matches the sibling drawCreditsDisplay). 0x8055
  *           (PLOT_RUN_LENGTH, the row count) and the ROM glyph source (0x49a5) are not
- *           named in ram.js.
+ *           named in names.js.
  */
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
 import { copyTileColumn } from "./copyTileColumn.js";
 
-// The colour attribute the whole label is painted in. ram.js proposes BOARD_MODE for
+// The colour attribute the whole label is painted in. names.js proposes BOARD_MODE for
 // 0x8057, but in this routine the byte is the fill colour, not a mode.
 const FILL_ATTR = 0x8057;
 

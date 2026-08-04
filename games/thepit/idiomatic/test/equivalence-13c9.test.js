@@ -62,7 +62,7 @@ import { advanceTrackedObject } from "../advanceTrackedObject.js";
 import { dockManAndDispatchRoundBoundary as loc_0278Ref } from "../dockManAndDispatchRoundBoundary.js"; // the mode-0 expiry destination (teeth mirror)
 import { advanceToNextLevel } from "../advanceToNextLevel.js"; // the mode-nonzero expiry destination (teeth mirror)
 import { makeMachineFactory } from "../../machine.js";
-import { TRANSITION_TIMER, GAME_STATE } from "../ram.js";
+import { TRANSITION_TIMER, GAME_STATE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -78,7 +78,7 @@ const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
 const test = (name, fn) => nodeTest(name, { skip: "retired: control-spine routine validated by the whole-game coroutine gates (golive/tape/transition)" }, fn);
 
 const TARGET = 0x13c9;
-const POST_TIMER_MODE = 0x807d; // selects the round-boundary routine on expiry (no ram.js name yet)
+const POST_TIMER_MODE = 0x807d; // selects the round-boundary routine on expiry (no names.js name yet)
 const SETUP_LEAF = 0x031a; // round-loop setup — the "setup" boundary destination (never returns)
 const RESET_LEAF = 0x01f9; // reset/entry handler — the "reset" boundary destination (never returns)
 const MARKER = 0x8700; // dead work-RAM byte the leaf stubs stamp with the reached leaf's low byte

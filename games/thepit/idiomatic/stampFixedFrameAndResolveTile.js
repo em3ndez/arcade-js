@@ -35,7 +35,7 @@
  * PURPOSE [guess]: what pose frame 52 depicts; stamp is a mostly-dead default (live 1/521).
  */
 
-import { PLAYER_FACING } from "./ram.js";
+import { PLAYER_FACING } from "./names.js";
 import { resolveObjectTile } from "./resolveObjectTile.js";
 
 export function stampFixedFrameAndResolveTile(m) {

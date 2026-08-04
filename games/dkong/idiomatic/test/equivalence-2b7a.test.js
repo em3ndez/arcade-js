@@ -67,7 +67,7 @@ import { loc_2b7a } from "../loc_2b7a.js";
 import { loc_2b8b } from "../loc_2b8b.js";
 import { loc_2b91 } from "../loc_2b91.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, MARIO_AIR_VX_HI, MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "../ram.js";
+import { STACK_SCRATCH, MARIO_AIR_VX_HI, MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

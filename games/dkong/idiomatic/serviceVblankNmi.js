@@ -63,14 +63,14 @@
  *           modelled interrupt ABI the direct-call layer drops. All stack traffic lands
  *           in the excluded STACK_SCRATCH region (verified: min SP over a 2600-frame
  *           run == 0x6be0, the region's low bound).
- * NAMES:    ATTRACT (0x6007) from ram.js. Board I/O 0x7D84 (NMI-enable latch) and
+ * NAMES:    ATTRACT (0x6007) from names.js. Board I/O 0x7D84 (NMI-enable latch) and
  *           0x7D00 (IN2 / watchdog kick, bit 0 = SERVICE) stay hex — they are control
- *           ports, not work RAM (ram.js is work-RAM only). The DMA setup block at
+ *           ports, not work RAM (names.js is work-RAM only). The DMA setup block at
  *           0x0138 is a ROM constant, kept hex as in blitSpritesViaDma.
  */
 
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { ATTRACT } from "./ram.js";
+import { ATTRACT } from "./names.js";
 import { blitSpritesViaDma } from "./blitSpritesViaDma.js";
 import { readControls } from "./readControls.js"; // ROM 0x0087
 import { perFrame } from "./perFrame.js"; //        ROM 0x00B5

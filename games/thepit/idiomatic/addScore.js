@@ -33,11 +33,11 @@
  *           (drawScoreDigits' own column-base register is dead in the award path; no caller
  *           reads it here). The value registers and flags the oracle path leaves are dead.
  * NAMES:    GAME_STATE (0x8001) — the active-player gate; SCORE_LO (0x8031) / SCORE_HI (0x8034),
- *           the packed-BCD score low / high, from ram.js (matching drawScoreDigits). The redraw
+ *           the packed-BCD score low / high, from names.js (matching drawScoreDigits). The redraw
  *           delegates to drawScoreDigits (ROM 0x46af).
  */
 
-import { GAME_STATE, SCORE_HI, SCORE_LO } from "./ram.js";
+import { GAME_STATE, SCORE_HI, SCORE_LO } from "./names.js";
 import { drawScoreDigits } from "./drawScoreDigits.js";
 
 // A packed-BCD byte holds two decimal digits, one per nibble. Convert to and from its

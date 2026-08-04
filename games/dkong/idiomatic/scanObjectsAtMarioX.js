@@ -38,10 +38,10 @@
  *           caller's next act (loc_197a → call 0x03FB) is a self-contained call, and
  *           the oracle's residual A/B/HL/F plus its ret's SP/pc are dead ABI — this
  *           routine models neither SP nor pc.
- * NAMES:    MARIO_X (0x6203) and OBJECT_COLLISION_SPRITES (0x6A0C) from ram.js;
+ * NAMES:    MARIO_X (0x6203) and OBJECT_COLLISION_SPRITES (0x6A0C) from names.js;
  *           confirmObjectHit (ROM 0x19ED) from the idiomatic layer.
  */
-import { MARIO_X, OBJECT_COLLISION_SPRITES } from "./ram.js";
+import { MARIO_X, OBJECT_COLLISION_SPRITES } from "./names.js";
 import { confirmObjectHit } from "./confirmObjectHit.js";
 
 const RECORD_COUNT = 3;

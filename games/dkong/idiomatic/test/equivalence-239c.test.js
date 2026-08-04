@@ -24,7 +24,7 @@
  *
  *   3. TEETH — a deliberately-broken twin whose gravity term drops the +8 midpoint
  *      constant (16·t instead of (2t+1)·8) MUST be caught by the crafted sweep. The +8
- *      is the subtlest part of the shift-chain decompile and the exact term ram.js
+ *      is the subtlest part of the shift-chain decompile and the exact term names.js
  *      documents, so it is the pointed thing to guard.
  *
  * WHY NOT pc/SP: the idiomatic leaf models the Z80 `ret` as the JS return (doc-06),

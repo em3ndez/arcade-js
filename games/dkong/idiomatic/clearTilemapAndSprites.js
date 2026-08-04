@@ -38,10 +38,10 @@
  *           backstops that). SP/PC are not compared — the idiomatic layer drops the
  *           `ret`'s stack/PC bookkeeping (the JS call stack replaces it).
  * NAMES:    SPRITE_BUFFER (0x6900). The tilemap base (0x7400 video RAM) stays hex —
- *           it is not named in ram.js.
+ *           it is not named in names.js.
  */
 
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 
 const TILEMAP_BASE = 0x7400; // video-RAM tilemap: first cell
 const TILEMAP_BYTES = 0x400; // 1024 = every cell of the 32x32 tilemap

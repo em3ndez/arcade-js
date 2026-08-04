@@ -34,14 +34,14 @@
  * LIVE-OUT: memory-only — the docked man count MEN_LEFT, the player record persisted by
  *           saveActivePlayerRecord, and 0x802d / 0x8002 on the mode == 1 arm. No
  *           register or flag is read by any successor, and the routine has no ret.
- * NAMES:    GAME_STATE 0x8001, ACTIVE_PLAYER 0x8002, MEN_LEFT 0x802b (ram.js).
+ * NAMES:    GAME_STATE 0x8001, ACTIVE_PLAYER 0x8002, MEN_LEFT 0x802b (names.js).
  *           PLAYER1_MEN_BACKUP 0x802c / PLAYER2_MEN_BACKUP 0x802d = the two players' backup copies of the working man count
  *           (field 1 of the player record based at LEVEL).
  *
  * PURPOSE [guess]: the mode 1-vs-2-leg semantics; backup man-count cells 0x802c/0x802d.
  */
 
-import { GAME_STATE, ACTIVE_PLAYER, MEN_LEFT, PLAYER1_MEN_BACKUP, PLAYER2_MEN_BACKUP } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, MEN_LEFT, PLAYER1_MEN_BACKUP, PLAYER2_MEN_BACKUP } from "./names.js";
 import { saveActivePlayerRecord } from "./saveActivePlayerRecord.js";
 import { resetStateAndShowSetup } from "./resetStateAndShowSetup.js";
 import { stepRoundSubPhaseAndBranch } from "./stepRoundSubPhaseAndBranch.js";

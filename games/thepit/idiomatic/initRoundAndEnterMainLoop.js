@@ -40,7 +40,7 @@
  *           that re-establishes its own state.
  * NAMES:    GAME_STATE (0x8001), LEVEL (0x8028), SOUND_RING (0x8020), PLAY_PHASE_COUNTER
  *           (0x8010), the pacing base LOOP_DELAY_BASE (0x804e) and the delay cell
- *           MAIN_LOOP_DELAY (0x8011) from ram.js.
+ *           MAIN_LOOP_DELAY (0x8011) from names.js.
  *
  * PURPOSE [guess]: exact boundary; straddles setup + on-ramp.
  */
@@ -52,7 +52,7 @@ import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { seedObjectStartState } from "./seedObjectStartState.js";
 import { seedMountainErosion } from "./seedMountainErosion.js";
 import { resetReactionState } from "./resetReactionState.js";
-import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE } from "./ram.js";
+import { GAME_STATE, LEVEL, SOUND_RING, PLAY_PHASE_COUNTER, MAIN_LOOP_DELAY, LOOP_DELAY_BASE } from "./names.js";
 
 export function* initRoundAndEnterMainLoop(m) {
   const { mem8 } = m;

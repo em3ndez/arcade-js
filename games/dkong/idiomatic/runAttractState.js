@@ -46,11 +46,11 @@
  *           are control-flow plumbing handled by the JS call stack: the credit branch's
  *           `ret` becomes the JS return (SP/pc left at entry), and the dispatch branch's
  *           SP/pc are set by the raw-ROM callee's own `ret` (which matches the oracle).
- * NAMES:    CREDITS (0x6001), GAME_STATE (0x6005), GAME_SUBSTATE (0x600A) from ram.js;
+ * NAMES:    CREDITS (0x6001), GAME_STATE (0x6005), GAME_SUBSTATE (0x600A) from names.js;
  *           the 0x0748 jump-table target addresses stay hex (ROM data, not work RAM).
  */
 
-import { CREDITS, GAME_STATE, GAME_SUBSTATE } from "./ram.js";
+import { CREDITS, GAME_STATE, GAME_SUBSTATE } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { loc_0779 } from "../translated/loc_0779.js";
 import { loc_0763 } from "../translated/loc_0763.js";

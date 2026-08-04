@@ -54,7 +54,7 @@ import { loc_2b9b as oracle } from "../../translated/loc_2b9b.js";
 import { probeTileForLanding } from "../probeTileForLanding.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { resolveAirborneTileLanding } from "../resolveAirborneTileLanding.js";
-import { STACK_SCRATCH, MARIO_Y, MARIO_AIR_PREV_Y } from "../ram.js";
+import { STACK_SCRATCH, MARIO_Y, MARIO_AIR_PREV_Y } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 

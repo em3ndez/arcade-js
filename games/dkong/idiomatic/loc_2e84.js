@@ -34,12 +34,12 @@
  *           leaves — object cursor +16, sprite cursor +4, remaining-object count preserved,
  *           step value 4. The scratch byte the oracle leaves in the accumulator is dead: the
  *           loop reloads it for the next object before any test, and no exit successor reads it.
- * NAMES:    OBJ_ACTIVE (+0), OBJ_X (+3), OBJ_Y (+5) — record-field offsets from ram.js,
+ * NAMES:    OBJ_ACTIVE (+0), OBJ_X (+3), OBJ_Y (+5) — record-field offsets from names.js,
  *           indexed off the object-scan cursor.
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_ACTIVE, OBJ_X, OBJ_Y } from "./ram.js";
+import { OBJ_ACTIVE, OBJ_X, OBJ_Y } from "./names.js";
 import { mirrorObjectPositionToSprite } from "./mirrorObjectPositionToSprite.js"; // ROM 0x2E6C
 
 // Y limit: once the object reaches this it is retired instead of moving further.

@@ -67,16 +67,16 @@
  *           direct-call layer replaces the oracle's push16/ret stack+PC bookkeeping with
  *           the JS call stack. The three sound-hardware latches silenceSound issues
  *           (0x7D00-07, 0x7D80, 0x7C00) are write-only io outputs, not in the RAM dump.
- * NAMES:    SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B) from ram.js. The
+ * NAMES:    SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B) from names.js. The
  *           sprite-buffer bytes 0x6A20-0x6A23, the blink code 0x6905, and the tilemap
- *           fill start 0x75C4 have no ram.js symbol and stay local hex constants.
+ *           fill start 0x75C4 have no names.js symbol and stay local hex constants.
  */
 
-import { SND_PRIORITY, SND_PRIORITY_FRAMES } from "./ram.js";
+import { SND_PRIORITY, SND_PRIORITY_FRAMES } from "./names.js";
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
 import { fillDescendingColumn } from "./fillDescendingColumn.js"; // ROM 0x0514
 
-// A 4-byte sprite record inside SPRITE_BUFFER (0x6900-0x6A7F); no ram.js symbol.
+// A 4-byte sprite record inside SPRITE_BUFFER (0x6900-0x6A7F); no names.js symbol.
 const SPRITE_RECORD_6A20 = 0x6a20;
 // Sprite-buffer record 1, +1 byte — the blink-sprite code the colour cycle toggles.
 const BLINK_SPRITE_CODE = 0x6905;

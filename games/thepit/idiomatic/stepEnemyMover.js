@@ -46,7 +46,7 @@
  *           ENEMY_WORK_SPRITE (0x8084), PLAYER_FACING (0x8069), PLAYER_Y/PLAYER_X (0x8068/0x806b),
  *           REACTION_OBJ_X/Y (0x8094/0x8097), DIG_COLLISION_STATE (0x80c1), ENEMY1_X
  *           (0x80e8), ENEMY_WORK_TARGET_COL (0x8093), LASER_STATE (0x80a1, the player-box
- *           owner flag here) from ram.js. The mover's own current column is LOCKED_COLUMN (0x807a),
+ *           owner flag here) from names.js. The mover's own current column is LOCKED_COLUMN (0x807a),
  *           and its position bytes are ENEMY_WORK_X/ENEMY_WORK_Y (0x8083/0x8086).
  */
 
@@ -71,7 +71,7 @@ import {
   ENEMY1_X,
   ENEMY_WORK_TARGET_COL,
   LASER_STATE,
-} from "./ram.js";
+} from "./names.js";
 import { tickObjectDwellThenTransition } from "./tickObjectDwellThenTransition.js";
 import { advanceDormantMover } from "./advanceDormantMover.js";
 import { awardOnePoint } from "./awardOnePoint.js";

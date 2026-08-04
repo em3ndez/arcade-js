@@ -38,7 +38,7 @@
  */
 
 import { advanceRandom } from "./advanceRandom.js";
-import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE } from "./ram.js";
+import { ENEMY_ACTION_TIMER, ENEMY_WORK_SPRITE } from "./names.js";
 
 export function reseedMoverCadenceAndRearmState(m) {
   // A fresh generator draw, forced into the upper half of the byte range (high

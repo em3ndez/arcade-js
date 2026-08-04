@@ -51,7 +51,7 @@
  *           is rewritten before the first reader.
  *           This live-out is DERIVED from the continuations above; there is no committed
  *           live-wire arm in this gate to corroborate it.
- * NAMES:    OBJ_Y (record +0x05) from ram.js. Record byte +0x19 has no ram.js name; it is kept
+ * NAMES:    OBJ_Y (record +0x05) from names.js. Record byte +0x19 has no names.js name; it is kept
  *           as a local offset const, like the +0x10/+0x11 step fields its sibling arms leave
  *           unnamed. Direct-called: loc_2407 (ROM 0x2407) and loc_22cb (ROM 0x22CB), both
  *           already idiomatic. The one m.call is ROM 0x2153, which is being decompiled in the
@@ -60,9 +60,9 @@
 
 import { loc_2407 } from "./loc_2407.js"; // ROM 0x2407
 import { loc_22cb } from "./loc_22cb.js"; // ROM 0x22CB
-import { OBJ_Y } from "./ram.js";
+import { OBJ_Y } from "./names.js";
 
-// Record field with no ram.js name: the object's Y as it stood when this arm ran. Its one
+// Record field with no names.js name: the object's Y as it stood when this arm ran. Its one
 // reader in this cluster, ROM 0x20EC, subtracts 0x1A from the object's freshly-stepped Y and
 // compares the result against this byte, so it serves there as a height reference.
 const OBJ_Y_SNAPSHOT = 0x19;

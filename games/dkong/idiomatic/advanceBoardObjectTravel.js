@@ -33,10 +33,10 @@
  *           record stride (16) returned for the sibling spawn walk (consumed by sub_27da
  *           via 0x2722 as its stride).
  * NAMES:    OBJ_ARRAY_66 (0x6600), OBJ_ACTIVE (+0), OBJ_STATE (+0x0d), OBJ_X (+3),
- *           OBJ_Y (+5) — all from ram.js.
+ *           OBJ_Y (+5) — all from names.js.
  */
 
-import { OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y } from "./ram.js";
+import { OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_STATE, OBJ_X, OBJ_Y } from "./names.js";
 
 const STRIDE = 0x10;          // object-record stride, 16 bytes
 const RECORD_COUNT = 6;

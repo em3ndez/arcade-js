@@ -38,7 +38,7 @@
  * NAMES:    none — the routine hardcodes only the stride 4 and record-count 10; HL
  *           (the field within the record) and C (the delta) are caller-supplied, and
  *           it references no fixed RAM address. Callers aim HL at SPRITE_OBJ_BLOCK
- *           (0x6908, named in ram.js), which is what earns the name.
+ *           (0x6908, named in names.js), which is what earns the name.
  */
 import { addStrided } from "./addStrided.js";
 

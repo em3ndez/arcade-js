@@ -43,12 +43,12 @@
  *           caller-return plumbing the tail dispatch dissolves into the JS call stack; its
  *           pushes land in the dead STACK_SCRATCH the equivalence gate excludes.
  * NAMES:    MARIO_ACTIVE (0x6200, the object-record base), MARIO_Y (0x6205), P1_INPUT
- *           (0x6010) from ram.js; the two packed threshold words kept hex (each byte is a
+ *           (0x6010) from names.js; the two packed threshold words kept hex (each byte is a
  *           per-axis overlap threshold). dispatchBoardOverlapSearch (ROM 0x3E88) is the
  *           idiomatic dispatch, called directly.
  */
 
-import { MARIO_ACTIVE, MARIO_Y, P1_INPUT } from "./ram.js";
+import { MARIO_ACTIVE, MARIO_Y, P1_INPUT } from "./names.js";
 import { dispatchBoardOverlapSearch } from "./dispatchBoardOverlapSearch.js";
 
 // The two overlap-threshold words. Kept hex because each byte is load-bearing on its own:

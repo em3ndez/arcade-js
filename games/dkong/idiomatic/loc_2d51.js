@@ -36,11 +36,11 @@
  * LIVE-OUT: memory-only. The oracle's residual registers/flags and the single terminal
  *           `ret` handed up through stepBarrelAlongReleasePath are dead ABI — the caller (advanceBarrelRelease's tail
  *           jump) reads none of them; that one return is modelled in the gate, not here.
- * NAMES:    RENDER_STR_PTR (0x62A8) from ram.js. The object record and destination slot are
+ * NAMES:    RENDER_STR_PTR (0x62A8) from names.js. The object record and destination slot are
  *           reached downstream through stepBarrelAlongReleasePath / activateReleasedBarrel's own pointers.
  */
 
-import { RENDER_STR_PTR } from "./ram.js"; // ROM 0x62A8 — the render source-string cursor
+import { RENDER_STR_PTR } from "./names.js"; // ROM 0x62A8 — the render source-string cursor
 import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js"; // ROM 0x2D54 — the per-character body
 
 export function loc_2d51(m) {

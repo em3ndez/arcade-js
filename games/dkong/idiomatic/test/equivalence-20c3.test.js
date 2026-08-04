@@ -105,7 +105,7 @@ import { loc_20e1 as oracle20e1 } from "../../translated/loc_20e1.js";
 import { loc_20c3 } from "../loc_20c3.js";
 import { loc_2407 } from "../loc_2407.js";
 import { Machine } from "../../machine.js";
-import { OBJ_ARRAY_67, STACK_SCRATCH } from "../ram.js";
+import { OBJ_ARRAY_67, STACK_SCRATCH } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

@@ -34,7 +34,7 @@
  * positive control ≈1 NMI fetch per frame, 44 episodes of this sub-state observed
  * (43 complete, all identical; the 44th cut off by end-of-run) — see
  * scratchpad/pass13-grounding.md §2. The outside evidence:
- *   - ram.js names the two cells this sub-state's dispatch walks — DEATH_ANIM_PHASE (0x639D)
+ *   - names.js names the two cells this sub-state's dispatch walks — DEATH_ANIM_PHASE (0x639D)
  *     and DEATH_ANIM_TICKS_LEFT (0x639E) — both at [seen], on this same run;
  *   - the ROM table position: 0x0702 puts it at 0x0D, between gameplay (0x0C) and the two
  *     life-loss handlers (0x0E / 0x0F), and 15 deaths produced 15 LIVES (0x6228) decrements
@@ -75,7 +75,7 @@
  *           STACK_SCRATCH, and neither is consumed, so both are outside the compare.
  * NAMES:    none of its own — runDeathAnimationSubstate indexes no RAM cell directly. The named cells its
  *           callees read (EFFECT_STATE 0x6340, DEATH_ANIM_PHASE 0x639D, DEATH_ANIM_TICKS_LEFT 0x639E)
- *           are imported and used inside those routines and named in ram.js.
+ *           are imported and used inside those routines and named in names.js.
  */
 
 import { dispatchEffectState } from "./dispatchEffectState.js"; // ROM 0x1DBD — effect-sprite state-machine router

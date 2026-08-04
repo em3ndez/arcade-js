@@ -46,7 +46,7 @@
  *     "object" probed is Mario, not a generic actor.
  *   - The grandparent fixes the MOMENT as airborne and the result as "landed": entry_1c05 is the
  *     airborne per-frame handler (it reads MARIO_AIR_LANDCHECK and MARIO_AIR_FRAMES), and right
- *     after the call it does `dec a / jp z,0x1c3a` — an address ram.js registers as "tick the
+ *     after the call it does `dec a / jp z,0x1c3a` — an address names.js registers as "tick the
  *     airborne object-counter; on the tick that reaches zero settle the landing". A == 1 is exactly
  *     what this routine's snap arm reports.
  *   - Its English-named callees agree: probeTileForLanding (ROM 0x2B9B), "the tile gate at the head
@@ -79,8 +79,8 @@
  * LIVE-OUT: MARIO_Y on the snap arm (and inside the classifier on its own landed arm); the two
  *           result bytes the consumer past entry_2b1c reads back; and the caller-skip boolean
  *           (false = the two-frame unwind). The residual coordinate/flag state is dead ABI.
- * NAMES:    BOARD (0x6227), MARIO_X (0x6203), MARIO_Y (0x6205) from ram.js. The probed tile lives
- *           in the hardware tilemap VRAM the classifier addresses, which has no ram.js name.
+ * NAMES:    BOARD (0x6227), MARIO_X (0x6203), MARIO_Y (0x6205) from names.js. The probed tile lives
+ *           in the hardware tilemap VRAM the classifier addresses, which has no names.js name.
  *           Direct-called: loc_2b53 (ROM 0x2B53), probeTileForLanding (ROM 0x2B9B), loc_2b51
  *           (ROM 0x2B51), loc_2b74 (ROM 0x2B74).
  */
@@ -90,7 +90,7 @@ import { loc_2b53 } from "./loc_2b53.js"; // ROM 0x2B53 — the off-25m two-poin
 import { probeTileForLanding } from "./probeTileForLanding.js"; // ROM 0x2B9B — the tile classifier
 import { loc_2b51 } from "./loc_2b51.js"; // ROM 0x2B51 — the plain abort exit
 import { loc_2b74 } from "./loc_2b74.js"; // ROM 0x2B74 — the abort exit that zeroes the result
-import { BOARD, MARIO_X, MARIO_Y } from "./ram.js";
+import { BOARD, MARIO_X, MARIO_Y } from "./names.js";
 
 const BOARD_25M = 1;
 const PROBE_OFFSET = 7; // pixels below Mario the probe point sits, and the snap's clearance

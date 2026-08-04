@@ -47,13 +47,13 @@
  *           so pc/SP line up with the oracle (both exit paths land at SP+2, pc =
  *           word@SP — the grandparent return, reached via this routine's own `ret`
  *           on the clear arm and via allSlotsClear's caller-skip on the abort arm).
- * NAMES:    SUBSTATE_TIMER (0x6009), BOARD_ADVANCE_STEP (0x6388) — ram.js. 0x6388 is the
+ * NAMES:    SUBSTATE_TIMER (0x6009), BOARD_ADVANCE_STEP (0x6388) — names.js. 0x6388 is the
  *           board-advance SEQUENCE SELECTOR that dispatchBoardClearedInterlude's rst-0x28 indexes and each
  *           advance arm increments. The 0x62AF phase counter lives inside
  *           animateSpriteObjectBlock, not here.
  */
 
-import { SUBSTATE_TIMER, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SUBSTATE_TIMER, BOARD_ADVANCE_STEP } from "./names.js";
 import { animateSpriteObjectBlock } from "./animateSpriteObjectBlock.js"; // ROM 0x306f
 import { cullSpriteObjectsAtTop } from "./cullSpriteObjectsAtTop.js"; // ROM 0x176c
 import { allSlotsClear } from "./allSlotsClear.js"; // ROM 0x1783

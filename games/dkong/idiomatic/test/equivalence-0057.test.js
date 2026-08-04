@@ -40,7 +40,7 @@ import { loc_0057 as oracle } from "../../translated/loc_0057.js";
 import { stirRandomSeed } from "../stirRandomSeed.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { RANDOM, FRAME, SPIN_COUNT } from "../ram.js";
+import { RANDOM, FRAME, SPIN_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

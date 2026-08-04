@@ -70,7 +70,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_31b1 as oracle } from "../../translated/loc_31b1.js";
 import { loc_31b1 } from "../loc_31b1.js";
 import { armAlternateFireModeAtHighDifficulty } from "../armAlternateFireModeAtHighDifficulty.js";
-import { OBJ_ARRAY_64, OBJ_ACTIVE, OBJ_ITER_PTR, STACK_SCRATCH } from "../ram.js";
+import { OBJ_ARRAY_64, OBJ_ACTIVE, OBJ_ITER_PTR, STACK_SCRATCH } from "../names.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 
@@ -84,7 +84,7 @@ const test = ROM_PRESENT
 const TARGET = 0x31b1;
 const OBJECT_CALL = 0x3202; // the per-object state machine, still the frozen oracle
 const RET_ADDR = 0x30f6; // the caller site right after `call 0x31b1` in ROM 0x30ED
-const SWEEP_INDEX = 0x63a2; // loop counter cell (no ram.js name)
+const SWEEP_INDEX = 0x63a2; // loop counter cell (no names.js name)
 const OBJECT_COUNT = 5;
 const OBJECT_STRIDE = 32;
 const MARKER = 1; // record field the stub bumps so every 0x3202 call is visible in RAM

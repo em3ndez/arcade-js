@@ -2,10 +2,10 @@
 //
 // On-demand REFERENCE DUMP of the read/write footprint + the STACK_SCRATCH region.
 // The footprint is the set of RAM addresses the game READS or WRITES over broad
-// coverage. NOTE: this output is NO LONGER pasted into ram.js — the giant
-// per-address FOOTPRINT table was removed from ram.js because no gate ever read it.
+// coverage. NOTE: this output is NO LONGER pasted into names.js — the giant
+// per-address FOOTPRINT table was removed from names.js because no gate ever read it.
 // The convergent gate (core/equivalence.js -> convergentEquivalence) compares ALL
-// work RAM minus STACK_SCRATCH, not a footprint-scoped list; ram.js keeps only the
+// work RAM minus STACK_SCRATCH, not a footprint-scoped list; names.js keeps only the
 // STACK_SCRATCH export. Run this tool when you want the address-level coverage table
 // as a standalone reference, or to re-measure the STACK_SCRATCH bounds.
 //
@@ -15,7 +15,7 @@
 // are register-indirect — VRAM/sprite fills via HL/IX — so a source grep misses
 // them), run broad coverage, and record the union of touched addresses. Measure
 // the stack extent from SP's low-water-mark so the dead stack scratch can be
-// EXCLUDED from the compare. Curated names (from ram.js's numeric exports) are
+// EXCLUDED from the compare. Curated names (from names.js's numeric exports) are
 // kept; everything else gets a SCRATCH_/SPRITE_/VRAM_/STACK_ placeholder to be
 // promoted as it is understood. Coverage caveat: only as complete as the paths run.
 
@@ -23,7 +23,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Machine } from "../machine.js";
-import * as RAM from "../idiomatic/ram.js";
+import * as RAM from "../idiomatic/names.js";
 
 const ROM_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "rom");
 const romPath = join(ROM_DIR, "maincpu.bin");
@@ -33,7 +33,7 @@ if (!existsSync(romPath)) {
 }
 const ROM = new Uint8Array(readFileSync(romPath));
 
-// address -> curated ram.js name (numeric exports in the RAM regions only)
+// address -> curated names.js name (numeric exports in the RAM regions only)
 const NAME = new Map();
 for (const [k, v] of Object.entries(RAM)) {
   if (typeof v === "number" && v >= 0x6000 && v <= 0x77ff) NAME.set(v, k);

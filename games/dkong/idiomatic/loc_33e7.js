@@ -33,11 +33,11 @@
  * NAMES:    stepObjectSpriteFrame (ROM 0x3409) — direct-called with the live-in object
  *           pointer as its base argument. The three record fields this routine touches
  *           (+0x0D state, +0x0F step counter, +0x14 sub-timer) are object-relative offsets
- *           with no ram.js cell name; kept as local field-offset consts.
+ *           with no names.js cell name; kept as local field-offset consts.
  */
 
 import { stepObjectSpriteFrame } from "./stepObjectSpriteFrame.js"; // ROM 0x3409
-import { OBJ_STATE } from "./ram.js"; // record field +0x0D — object state selector (named cell)
+import { OBJ_STATE } from "./names.js"; // record field +0x0D — object state selector (named cell)
 
 // Object-record field offsets (into the record the caller hands us in the object pointer).
 const OBJ_STEP_COUNTER = 0x0f; // the per-object step counter this routine nudges up/down

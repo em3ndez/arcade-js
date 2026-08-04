@@ -25,7 +25,7 @@
  *      updateActiveHammer, which ticks the duration counter, lays down this frame's record, and
  *      ends the hammer at expiry.
  *
- * ★ THE TWO EXTENT BYTES ARE THE SWINGING HAMMER'S HITBOX. +0x09/+0x0A are the ram.js-named
+ * ★ THE TWO EXTENT BYTES ARE THE SWINGING HAMMER'S HITBOX. +0x09/+0x0A are the names.js-named
  * OBJ_HIT_EXTENT_X / OBJ_HIT_EXTENT_Y — the per-axis collision half-extents, not opaque "state"
  * bytes. This routine stamps 0x06/0x03 on the main swing pose and 0x05/0x06 on the alternate pose,
  * and recordHammerHitOnObject then hands exactly those two bytes to the board's collision handler
@@ -62,14 +62,14 @@
  * NAMES:    MARIO_HAMMER_ACTIVE (0x6217), MARIO_HAMMER_PENDING (0x6218), MARIO_SPRITE_CODE
  *           (0x6207), HAMMER_TIMER_LO (0x6394), SND_BGM (0x6089), OBJ_PAIR_6680 (0x6680),
  *           HAMMER_IN_PLAY (+0x01) and OBJ_HIT_EXTENT_X / OBJ_HIT_EXTENT_Y (+0x09/+0x0A) —
- *           all from ram.js. boardBitGate (ROM 0x0030), marioActiveGuard (ROM 0x0010),
+ *           all from names.js. boardBitGate (ROM 0x0030), marioActiveGuard (ROM 0x0010),
  *           buildPendingHammerSprite (ROM 0x2F97), updateActiveHammer (ROM 0x2F43) —
- *           direct-called. What still has no ram.js name and stays a local hex const here:
+ *           direct-called. What still has no names.js name and stays a local hex const here:
  *           the pair's second object base (0x6690, derived from OBJ_PAIR_6680), its two
  *           sprite-record slots (0x6A18 / 0x6A1C, inside SPRITE_BUFFER) and the object-record
  *           displacement fields (+0x0E/+0x0F). HAMMER_IN_PLAY is deliberately SCOPED to this
  *           pair rather than given a generic OBJ_* name — +0x01 carries unrelated roles on
- *           other records (see ram.js).
+ *           other records (see names.js).
  */
 
 import { u8 } from "../../../core/int.js";
@@ -83,7 +83,7 @@ import {
   HAMMER_IN_PLAY,
   OBJ_HIT_EXTENT_X,
   OBJ_HIT_EXTENT_Y,
-} from "./ram.js";
+} from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";               // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js";       // ROM 0x0010 (rst 0x10)
 import { buildPendingHammerSprite } from "./buildPendingHammerSprite.js"; // ROM 0x2F97
@@ -95,12 +95,12 @@ const HAMMER_BOARDS = 0x0b;
 
 // The two hammer objects this dispatcher drives. Each pairs an object-record base with its
 // sprite-record slot in the sprite buffer (both slots live inside SPRITE_BUFFER and have no
-// ram.js name, so they stay hex).
+// names.js name, so they stay hex).
 const OBJ2_BASE = OBJ_PAIR_6680 + 0x10; // 0x6690 — the pair's second object record
 const OBJ1_RECORD = 0x6a18;             // object-1 sprite-record slot (SPRITE_BUFFER)
 const OBJ2_RECORD = 0x6a1c;             // object-2 sprite-record slot (SPRITE_BUFFER)
 
-// Object-record field offsets with no ram.js name yet.
+// Object-record field offsets with no names.js name yet.
 const OBJ_X_DISPLACEMENT = 0x0e; // horizontal offset added to Mario's X by the record write
 const OBJ_Y_DISPLACEMENT = 0x0f; // vertical offset added to Mario's Y by the record write
 

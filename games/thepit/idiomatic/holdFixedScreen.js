@@ -41,7 +41,7 @@
  * LIVE-OUT: none — the routine never returns (the display loop spins forever). Its whole effect
  *           is memory: the canned tile image in video RAM, the flooded + striped colour RAM, the
  *           setup panel, the DIP-decoded parameter block, and the per-pass colour step.
- * NAMES:    none from ram.js apply to the painted regions — video RAM (0x9000..0x93ff), colour
+ * NAMES:    none from names.js apply to the painted regions — video RAM (0x9000..0x93ff), colour
  *           RAM (0x8800..0x8bff) and the ROM image source (0x4232) are fixed hardware/ROM
  *           addresses. The DIP / parameter / colour work-RAM cells are written inside the
  *           decompiled callees (applyDipSwitches, cycleStagedColumnColour, drawSetupCreditsPanel),

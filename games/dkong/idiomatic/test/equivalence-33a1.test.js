@@ -56,7 +56,7 @@ import { loc_33a1 as oracle } from "../../translated/loc_33a1.js";
 import { loc_33a1 } from "../loc_33a1.js";
 import { boardBitGate } from "../boardBitGate.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, OBJ_ARRAY_64, OBJ_STATE } from "../ram.js";
+import { STACK_SCRATCH, BOARD, OBJ_ARRAY_64, OBJ_STATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -66,7 +66,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x33a1;
-const RECORD_Y_BASE = 0x0f; // the object-record field the routine tests; ram.js names no field here
+const RECORD_Y_BASE = 0x0f; // the object-record field the routine tests; names.js names no field here
 const THRESHOLD = 89; // at or above -> normal return; below -> the caller-skip
 const RECORD = OBJ_ARRAY_64; // record 0 of the stride-0x20 array — the record every natural dispatch uses
 const RECORD_1 = OBJ_ARRAY_64 + 0x20; // its neighbour, for the IX-relative check

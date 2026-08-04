@@ -43,7 +43,7 @@
  *           control flow (the boolean, false = the two-frame unwind).
  * NAMES:    tileAddrForPixel (ROM 0x2FF0) and resolveAirborneTileLanding (ROM 0x2BE1), both
  *           direct-called. The tile is read from the hardware tilemap VRAM the address
- *           computation lands in (0x7400-0x77FF), which has no ram.js name.
+ *           computation lands in (0x7400-0x77FF), which has no names.js name.
  */
 
 import { u8 } from "../../../core/int.js";
@@ -72,7 +72,7 @@ export function probeTileForLanding(m) {
   regs.hl = tileAddrForPixel(y, x); // the tilemap address the tile is read from
   regs.de = pixel;                  // DE = original pixel; E = x survives to the tail call
 
-  // Read the tile byte under the pixel (video RAM 0x7400-0x77FF, no ram.js name).
+  // Read the tile byte under the pixel (video RAM 0x7400-0x77FF, no names.js name).
   let tile = mem.read8(regs.hl);
 
   // Reject filters.

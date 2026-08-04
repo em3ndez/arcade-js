@@ -64,7 +64,7 @@ import { loc_022d as oracle } from "../../translated/loc_022d.js";
 import { startGame as idiomatic } from "../startGame.js";
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
-import { LEVEL, VARIANT } from "../ram.js";
+import { LEVEL, VARIANT } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -85,7 +85,7 @@ const RESET_LEAF = 0x01f9; // reset/entry handler leaf (never returns)
 const MARK_SETUP = SETUP_LEAF & 0xff; // 0x1a
 const MARK_RESET = RESET_LEAF & 0xff; // 0xf9
 const MARKER = 0x8700; // dead work-RAM byte the leaf stubs stamp with the reached leaf's low byte
-const MEN_LEFT = 0x802b; // live men-left / lives counter (no ram.js name yet)
+const MEN_LEFT = 0x802b; // live men-left / lives counter (no names.js name yet)
 const WATCHDOG = 0xb800; // reading it kicks the watchdog (once per frame-wait pass)
 const COUNTDOWN = 0x8009; // the per-frame countdown the frame-waits drain to 0
 // Top-of-work-RAM Z80 stack scratch the oracle leaves (and the round-boundary chain's SP

@@ -89,7 +89,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_1f83 as oracle } from "../../translated/loc_1f83.js";
 import { loc_1f83 } from "../loc_1f83.js";
-import { OBJ_ACTIVE, OBJ_ARRAY_67, ACTOR_SPRITES } from "../ram.js";
+import { OBJ_ACTIVE, OBJ_ARRAY_67, ACTOR_SPRITES } from "../names.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import manifest from "../../manifest.js";
 
@@ -109,7 +109,7 @@ const SLOT_STRIDE = 32; // OBJ_ARRAY_67 record stride
 const SPRITE_RECORD = 4; // bytes of ACTOR_SPRITES staged per slot
 const ATTRACT_FRAMES = 1200;
 
-// The flag values attract actually produces on this array, and the one it never does. ram.js
+// The flag values attract actually produces on this array, and the one it never does. names.js
 // records {0,1,2} live under MAME (bit0 = active, bit1 = occupied); 3 is the crafted value that
 // separates "equals 1" from "bit 0 is set".
 const NATURAL_FLAGS = [0, 1, 2];

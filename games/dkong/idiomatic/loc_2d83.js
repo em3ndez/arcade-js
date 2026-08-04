@@ -44,11 +44,11 @@
  * LIVE-OUT: memory-only. The oracle's residual registers/flags and the single net `ret`
  *           (stepBarrelAlongReleasePath returns on this routine's behalf via the tail jump) are dead ABI —
  *           the caller consumes none of them; the net return is modelled in the gate.
- * NAMES:    RENDER_STR_PTR (0x62A8) from ram.js. STRING_START (0x39CC) is a ROM address —
- *           the source-string data — kept as a hex const (no ram.js name; it is ROM).
+ * NAMES:    RENDER_STR_PTR (0x62A8) from names.js. STRING_START (0x39CC) is a ROM address —
+ *           the source-string data — kept as a hex const (no names.js name; it is ROM).
  */
 
-import { RENDER_STR_PTR } from "./ram.js";
+import { RENDER_STR_PTR } from "./names.js";
 import { stepBarrelAlongReleasePath } from "./stepBarrelAlongReleasePath.js"; // ROM 0x2D54 — the per-character render body
 
 const STRING_START = 0x39cc; // ROM address of the source string this renderer draws

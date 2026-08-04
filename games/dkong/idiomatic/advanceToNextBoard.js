@@ -32,13 +32,13 @@
  *           return), so its residue lands only in STACK_SCRATCH, excluded by the contract.
  * NAMES:    BOARD_SEQ_PTR (0x622A), BOARD (0x6227), SUBSTATE_TIMER (0x6009),
  *           GAME_SUBSTATE (0x600A), BOARD_ADVANCE_STEP (0x6388 — the board-advance sub-step
- *           counter dispatchBoardClearedInterlude indexes) from ram.js. 0x3A73 = ROM table wrap target; 0x7F =
+ *           counter dispatchBoardClearedInterlude indexes) from names.js. 0x3A73 = ROM table wrap target; 0x7F =
  *           end-of-table sentinel; 0x0500 = the posted task.
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
-import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP } from "./ram.js";
+import { BOARD_SEQ_PTR, BOARD, SUBSTATE_TIMER, GAME_SUBSTATE, BOARD_ADVANCE_STEP } from "./names.js";
 
 const SEQ_TABLE_WRAP = 0x3a73; // ROM board-order table: restart of the level-5+ group
 const SEQ_TERMINATOR = 0x7f; // end-of-table sentinel

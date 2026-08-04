@@ -50,7 +50,7 @@ import { loc_2bf2 as oracle } from "../../translated/loc_2bf2.js";
 import { startNextDigSpawn as idiomatic } from "../startNextDigSpawn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { HAZARD_ACTIVE_COUNT } from "../ram.js";
+import { HAZARD_ACTIVE_COUNT } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

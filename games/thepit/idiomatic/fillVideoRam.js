@@ -22,9 +22,9 @@
  * LIVE-OUT: memory-only — the painted tilemap cells. The leftover value registers are
  *           dead: the return lands back in blankScreen, whose very next call (fillColorRam)
  *           reloads all of them before any read.
- * NAMES:    none from ram.js. 0x9000..0x93FF is the video-RAM (tilemap) span and
+ * NAMES:    none from names.js. 0x9000..0x93FF is the video-RAM (tilemap) span and
  *           0x4b0f is a ROM constant holding the fill code — both kept hex (neither
- *           has a ram.js name).
+ *           has a names.js name).
  */
 export function fillVideoRam(m) {
   const { mem8 } = m;

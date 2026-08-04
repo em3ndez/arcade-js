@@ -21,7 +21,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine, resolveOverrides } from "../../machine.js";
 import manifest from "../../manifest.js";
-import { ROUTINES, GAME_STATE } from "../ram.js";
+import { ROUTINES, GAME_STATE } from "../names.js";
 import { runCycleFree, runGeneratorGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);

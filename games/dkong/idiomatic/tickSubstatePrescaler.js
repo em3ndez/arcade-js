@@ -36,11 +36,11 @@
  *           SP/PC churn is the Z80 caller-skip mechanism this boolean replaces, so SP/PC
  *           are NOT part of the contract; its residual HL/A/F are dead ABI (both callers
  *           reload HL/A the instant the helper returns).
- * NAMES:    SUBSTATE_TIMER_LO (0x6008) — from ram.js; SUBSTATE_TIMER (0x6009) is ticked
+ * NAMES:    SUBSTATE_TIMER_LO (0x6008) — from names.js; SUBSTATE_TIMER (0x6009) is ticked
  *           inside the tickSubstateTimer callee.
  */
 
-import { SUBSTATE_TIMER_LO } from "./ram.js";
+import { SUBSTATE_TIMER_LO } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 /**

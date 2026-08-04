@@ -670,7 +670,7 @@ export const STAGED_TARGET_Y = 0x80b9;
 /**
  *  STAGED_CELL_PTR (0x80ba) — 16-bit copy of PLAYER_CELL_PTR 0x806e saved by spawnDigEntity and
  *  reloaded into the live carve cursor 0x80af by commitDigEntity; both namers converged and
- *  SAVED_CELL_PTR is already taken by 0x8134 in ram.js, so STAGED_CELL_PTR is the correct
+ *  SAVED_CELL_PTR is already taken by 0x8134 in names.js, so STAGED_CELL_PTR is the correct
  *  distinct name. [code]
  */
 export const STAGED_CELL_PTR = 0x80ba;
@@ -914,7 +914,7 @@ export const STACK_TOP = 0x83ff;
 
 // ═══ ROUTINE LABELS ═══════════════════════════════════════════════════════════
 // Address → { name, role, cert } for every named main-CPU routine (ROM 0x0000-0x4FFF).
-// ram.js is the canonical NAMES registry for The Pit: work-RAM cells (above) and
+// names.js is the canonical NAMES registry for The Pit: work-RAM cells (above) and
 // ROM routine labels (here). Keeping both in one place lets the understanding phase
 // — and any external artifact, e.g. the Computer Archeology disassembly — resolve a
 // name for an address WITHOUT reading the JavaScript port (translated/ / idiomatic/),

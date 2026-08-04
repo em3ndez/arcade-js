@@ -64,7 +64,7 @@ import { loc_16d0 } from "../loc_16d0.js";
 import { stepKongWalk } from "../stepKongWalk.js";
 import { endKongWalkAndAdvanceInterlude } from "../endKongWalkAndAdvanceInterlude.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

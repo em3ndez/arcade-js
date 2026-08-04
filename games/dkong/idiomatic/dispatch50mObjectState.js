@@ -38,7 +38,7 @@
  *
  * NAME: promoted from loc_2207 in understanding pass 15 (proposer != confirmer; both derivations
  * landed on the same meaning — dispatch the 50m board-object state machine). The corroboration is
- * entirely OUTSIDE this routine (R5): both its inputs are named cells in ram.js — BOARD_OBJ_SCRATCH
+ * entirely OUTSIDE this routine (R5): both its inputs are named cells in names.js — BOARD_OBJ_SCRATCH
  * (0x6280) and FRAME (0x601A) — and boardBitGate's mask 0x02 resolves to BOARD (0x6227) `[seen]`
  * == 2 == the 50m board. The pass-14 grounding then measured both halves of the name directly.
  * The figures below come from THREE DIFFERENT RUNS and are labelled, because the board gate at
@@ -79,13 +79,13 @@
  *           or flag this routine leaves; the board-gate skip is the caller-skip idiom modelled
  *           as the boolean early return, and the dispatch is a tail call whose result the
  *           cascade discards.
- * NAMES:    BOARD_OBJ_SCRATCH (0x6280), FRAME (0x601A) from ram.js; boardBitGate (ROM 0x0030,
+ * NAMES:    BOARD_OBJ_SCRATCH (0x6280), FRAME (0x601A) from names.js; boardBitGate (ROM 0x0030,
  *           reads BOARD 0x6227 + the mask in regs.a). The four arms own every record cell they
  *           touch, so this routine names none of its own.
  */
 
 import { NotImplemented } from "../../../boards/dkong/io.js";
-import { BOARD_OBJ_SCRATCH, FRAME } from "./ram.js";
+import { BOARD_OBJ_SCRATCH, FRAME } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — per-board skip gate
 import { hold50mObjectParked } from "./hold50mObjectParked.js"; // ROM 0x2227 — state 0 arm (still pops its base off the stack)
 import { slide50mObjectDown } from "./slide50mObjectDown.js"; // ROM 0x2259 — state 1 arm

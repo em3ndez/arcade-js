@@ -41,12 +41,12 @@
  *           is written differently; the gate compares the whole RAM dump and needs no
  *           stack-scratch exclusion.
  * NAMES:    SPAWN_TIMER (0x62A7), OBJ_ARRAY_66 (0x6600), OBJ_ACTIVE (+0), OBJ_X (+3),
- *           OBJ_Y (+5), OBJ_STATE (+0x0D) from ram.js; decrementByteAt (ROM 0x2806)
+ *           OBJ_Y (+5), OBJ_STATE (+0x0D) from names.js; decrementByteAt (ROM 0x2806)
  *           direct-called with the timer address. The four seed bytes (X, Y, initial
  *           OBJ_STATE value, timer reload) are raw ROM data and stay local hex consts.
  */
 
-import { SPAWN_TIMER, OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_STATE } from "./ram.js";
+import { SPAWN_TIMER, OBJ_ARRAY_66, OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_STATE } from "./names.js";
 import { decrementByteAt } from "./decrementByteAt.js"; // ROM 0x2806
 
 const SLOT_COUNT = 6;         // OBJ_ARRAY_66 holds six object records

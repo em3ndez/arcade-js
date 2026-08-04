@@ -32,8 +32,8 @@
  * before the level and frame are ever read), then the level, then the frame.
  *
  * NAME: promoted from loc_26fa, and the name says which BOARD's per-frame service this
- * is — not what the board contains. The board is external: ram.js grounds BOARD by
- * control ("poking 1..4 selects the four boards") with 3 = 75m, and ram.js's OBJ_ARRAY_66
+ * is — not what the board contains. The board is external: names.js grounds BOARD by
+ * control ("poking 1..4 selects the four boards") with 3 = 75m, and names.js's OBJ_ARRAY_66
  * is measured live on 75m only (all six records active ~5180 of 6204 board-3 frames; its
  * two writers ran 0x on boards 1/2/4), which matches this routine's mask-0x04 gate
  * exactly. What the name refuses is "Lift": this router also runs the board's
@@ -58,12 +58,12 @@
  *           discards all registers/flags and the terminal return is dead ABI. The
  *           equivalence test still lines pc + SP up to prove the dissolved gate and
  *           tail-call/return brackets match.
- * NAMES:    MARIO_Y (0x6205), LEVEL (0x6229), FRAME (0x601A) from ram.js; boardBitGate
+ * NAMES:    MARIO_Y (0x6205), LEVEL (0x6229), FRAME (0x601A) from names.js; boardBitGate
  *           (ROM 0x0030, reads the mask from a register + BOARD), killMarioAtEndOfLiftTravel (ROM 0x277F),
  *           serviceBoardObjects (ROM 0x2722) and loc_271e (ROM 0x271E) all direct-called.
  */
 
-import { MARIO_Y, LEVEL, FRAME } from "./ram.js";
+import { MARIO_Y, LEVEL, FRAME } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";               // ROM 0x0030 (rst 0x30)
 import { killMarioAtEndOfLiftTravel } from "./killMarioAtEndOfLiftTravel.js";                       // ROM 0x277F — kill Mario (clears MARIO_ACTIVE + EDGE_REPOSITION_FLAG)
 import { serviceBoardObjects } from "./serviceBoardObjects.js"; // ROM 0x2722 — advance + spawn + publish

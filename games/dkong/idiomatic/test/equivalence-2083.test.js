@@ -50,7 +50,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { Machine } from "../../machine.js";
 import { loc_2083 as oracle } from "../../translated/loc_2083.js";
 import { loc_2083 } from "../loc_2083.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 import manifest from "../../manifest.js";
 import { runCycleFree } from "../../../../core/frame-stepped.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";

@@ -44,7 +44,7 @@ import { loc_4cca as oracle } from "../../translated/loc_4cca.js";
 import { renderScoreReadouts as idiomatic } from "../renderScoreReadouts.js";
 import { unpackScoreDigits } from "../unpackScoreDigits.js";
 import { makeMachineFactory } from "../../machine.js";
-import { SCORE_DISPLAY_LOW } from "../ram.js";
+import { SCORE_DISPLAY_LOW } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

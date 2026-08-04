@@ -54,7 +54,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_16b9 as oracle } from "../../translated/loc_16b9.js";
 import { locateActorCellCheckGoal as idiomatic } from "../locateActorCellCheckGoal.js";
 import { makeMachineFactory } from "../../machine.js";
-import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "../ram.js";
+import { PLAYER_X, PLAYER_TILE_COL, PLAYER_CELL_PTR, GOAL_TILE_LATCH, PIT_CROSS_ACTIVE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

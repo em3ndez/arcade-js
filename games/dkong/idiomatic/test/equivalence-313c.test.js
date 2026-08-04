@@ -40,7 +40,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { OBJ_INSERT_REQUESTED, OBJ_LIVE_COUNT } from "../ram.js";
+import { OBJ_INSERT_REQUESTED, OBJ_LIVE_COUNT } from "../names.js";
 import { loc_313c as oracle } from "../../translated/loc_313c.js";
 import { spawnRequestedFireAndRecolorLiveFires } from "../spawnRequestedFireAndRecolorLiveFires.js";
 import { Machine } from "../../machine.js";

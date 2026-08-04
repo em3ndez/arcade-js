@@ -29,7 +29,7 @@
  * consumes.
  *
  * GROUNDED (DK understanding pass 5, independent confirmer): sole reader/writer of the named
- * P1_INPUT (0x6010), DEMO_SCRIPT_INDEX (0x63CC) and DEMO_SCRIPT_COUNTDOWN (0x63CD); ram.js names
+ * P1_INPUT (0x6010), DEMO_SCRIPT_INDEX (0x63CC) and DEMO_SCRIPT_COUNTDOWN (0x63CD); names.js names
  * this the sole r/w of both script cells and notes each advance coincides with a fresh P1_INPUT
  * ([seen], live). mechanisms.md documents it as the scripted-joystick attract-demo player, and
  * its caller handler_1977 enters only on the attract path.
@@ -43,10 +43,10 @@
  *           return itself. The oracle's residual registers/flags are dead: the caller falls
  *           into the 0x197A cascade, whose first act reloads before reading anything here.
  * NAMES:    P1_INPUT (0x6010), DEMO_SCRIPT_INDEX (0x63CC), DEMO_SCRIPT_COUNTDOWN (0x63CD) from
- *           ram.js. The script table (0x21D1) is ROM.
+ *           names.js. The script table (0x21D1) is ROM.
  */
 
-import { P1_INPUT, DEMO_SCRIPT_INDEX as SCRIPT_INDEX, DEMO_SCRIPT_COUNTDOWN as SCRIPT_COUNTDOWN } from "./ram.js";
+import { P1_INPUT, DEMO_SCRIPT_INDEX as SCRIPT_INDEX, DEMO_SCRIPT_COUNTDOWN as SCRIPT_COUNTDOWN } from "./names.js";
 
 const SCRIPT_TABLE = 0x21d1;     // ROM: table of (input, duration) pairs; entry = base + 2*index (low byte)
 

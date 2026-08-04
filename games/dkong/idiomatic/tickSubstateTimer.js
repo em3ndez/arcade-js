@@ -29,10 +29,10 @@
  *           oracle's SP/PC churn is the caller-skip mechanism this boolean replaces, so
  *           SP/PC are NOT part of the contract; its residual HL/A/F are dead ABI (every
  *           caller consumes only the control-flow decision, never those registers).
- * NAMES:    SUBSTATE_TIMER (0x6009) — from ram.js.
+ * NAMES:    SUBSTATE_TIMER (0x6009) — from names.js.
  */
 
-import { SUBSTATE_TIMER } from "./ram.js";
+import { SUBSTATE_TIMER } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

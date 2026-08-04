@@ -31,7 +31,7 @@
  * or 0x42 (arm B) before loc_03f2 (its destination pointer and byte).
  *
  * NAME: promoted from loc_03a2. Two halves, evidenced separately.
- *   FIXED HAZARD. ram.js grounds OBJ_RECORD_66A0 live as per-board CONSTANTS — board 1
+ *   FIXED HAZARD. names.js grounds OBJ_RECORD_66A0 live as per-board CONSTANTS — board 1
  *   active=1, X=39, Y=224, code=112 over 3722 attract / 5267 credited frames; board 2
  *   active=1, X=127, Y=120, code=64 over 5271 frames; boards 3 and 4 all-zero. The record
  *   is alive on exactly the two boards this routine's rst-0x30 mask 0x03 admits and dead
@@ -61,12 +61,12 @@
  * NAMES:    boardBitGate (ROM 0x0030, reads BOARD 0x6227 + regs.a), marioActiveGuard
  *           (ROM 0x0010, reads MARIO_ACTIVE 0x6200), loc_03f2 (ROM 0x03F2, reads SPIN_COUNT
  *           0x6019 + regs.hl/regs.b) — all direct-called. Every cell THIS routine touches
- *           directly was examined against ram.js. NAMED there: OBJ_RECORD_66A0 (whose +9/+A
+ *           directly was examined against names.js. NAMED there: OBJ_RECORD_66A0 (whose +9/+A
  *           are OBJ_HIT_EXTENT_X/Y) and EVENT_REQ_313C (0x63A0). Genuinely UNNAMED and kept
  *           as local hex consts: 0x6350, 0x62B8, 0x62B9, 0x62BA, 0x6A29 (thin/shared/no-reader).
  */
 
-import { OBJ_RECORD_66A0, EVENT_REQ_313C, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js";
+import { OBJ_RECORD_66A0, EVENT_REQ_313C, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";       // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x10)
 import { loc_03f2 } from "./loc_03f2.js";               // ROM 0x03F2

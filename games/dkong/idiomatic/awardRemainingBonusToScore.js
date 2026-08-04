@@ -45,14 +45,14 @@
  * LIVE-OUT: memory-only — the score counter, the high-score counter (when it leads) and the score /
  *           high-score readouts addToScoreTask writes. awardRemainingBonusToScore returns nothing a caller reads: loc_062a
  *           tail-jumps in and the terminal return unwinds to loc_062a's caller, which reloads.
- * NAMES:    BONUS_DISPLAY (0x638C) from ram.js — the on-screen bonus readout, read here as a
+ * NAMES:    BONUS_DISPLAY (0x638C) from names.js — the on-screen bonus readout, read here as a
  *           packed digit-pair. loc_062a's task-10 divide writes it (quotient in the high
  *           nibble) on its other arm, so the value this arm reads is whatever that left behind;
  *           the A==0 arm skips that write. addToScoreTask (ROM 0x051C, the add-to-score task)
  *           is direct-called.
  */
 
-import { BONUS_DISPLAY } from "./ram.js";
+import { BONUS_DISPLAY } from "./names.js";
 import { addToScoreTask } from "./addToScoreTask.js"; // ROM 0x051C — the add-to-score task (payload in the accumulator)
 
 export function awardRemainingBonusToScore(m) {

@@ -62,7 +62,7 @@
  *           pair loc_2407 produced and reads no other register, and the handler after it
  *           reloads from memory before any read.
  * NAMES:    MARIO_FATAL_FALL (0x6220), MARIO_AIR_VY_HI (0x6212), MARIO_AIR_VY_LO (0x6213),
- *           MARIO_AIR_FRAMES (0x6214) — all from ram.js. Both callees, loc_2407 (ROM 0x2407)
+ *           MARIO_AIR_FRAMES (0x6214) — all from names.js. Both callees, loc_2407 (ROM 0x2407)
  *           and the tail loc_1bec (ROM 0x1BEC), are idiomatic and direct-called; no address
  *           dispatch and no stack modelling remain in this routine.
  */
@@ -72,7 +72,7 @@ import {
   MARIO_AIR_VY_HI,
   MARIO_AIR_VY_LO,
   MARIO_AIR_FRAMES,
-} from "./ram.js";
+} from "./names.js";
 import { loc_2407 } from "./loc_2407.js"; // ROM 0x2407
 import { loc_1bec } from "./loc_1bec.js"; // ROM 0x1BEC
 

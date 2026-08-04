@@ -37,20 +37,20 @@ Generate the external listing from **game-fact sources only**, and forbid the re
 1. **The raw disassembly** — `games/<game>/out/<game>.asm` (addresses, opcode bytes, mnemonics).
    This is the actual ROM. (Its header comment may carry a stale template label — the bytes are
    what matter.)
-2. **The names registry** — `games/<game>/idiomatic/ram.js` (see below): the RAM-cell names *and*
+2. **The names registry** — `games/<game>/idiomatic/names.js` (see below): the RAM-cell names *and*
    the routine labels. Read the `export const` names, and from the `ROUTINES` map ONLY each entry's
    `name` and `role` — never its `why` or `cert`, which record how OUR port earned the name.
 3. **The game model** — `games/<game>/mechanisms.md`, for the behaviour comments — with its
    method-language stripped (drop the evidence tags, `§` refs, and MAME/grounding/poke citations;
    keep the game fact, write it plainly).
 
-**Never open `translated/` or any `idiomatic/*.js` except `ram.js`.** If the generator can't see
+**Never open `translated/` or any `idiomatic/*.js` except `names.js`.** If the generator can't see
 the port, port cruft cannot leak — that is the whole point, and it is a hard input constraint, not
 a post-hoc scrub.
 
-## `ram.js` — the names registry (rule 2's source)
+## `names.js` — the names registry (rule 2's source)
 
-The names in rule 2 come from `games/<game>/idiomatic/ram.js`: the `export const` work-RAM cells
+The names in rule 2 come from `games/<game>/idiomatic/names.js`: the `export const` work-RAM cells
 **and** the `ROUTINES` map of every named ROM routine, in one file, so an address resolves to a name
 without touching the JavaScript. Its full format — the two sections, the confidence grades and certs,
 and how names carry across understanding laps — is documented in [the names registry](names-registry.md).

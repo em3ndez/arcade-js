@@ -23,7 +23,7 @@
  * reset (sub_1f46), which clears it and puts Mario AIRBORNE. So the only thing this routine
  * can cause is Mario STARTING to fall; everything else about it is the "when". The name says
  * "start" rather than "drop" for that reason: nothing in this cascade writes MARIO_Y.
- * CAVEAT ON THE CORROBORATION, recorded because it was overstated: ram.js attributes
+ * CAVEAT ON THE CORROBORATION, recorded because it was overstated: names.js attributes
  * MARIO_START_FALL's setter to entry_2acd (ROM 0x2ACF), but a raw ROM scan for `32 21 62`
  * finds a SECOND setter at 0x276B, inside loc_2766 — the third arm of
  * dispatchElevatorRideByColumn, i.e. on 75m. The "fires on 75m only, never on 25m" write-tap
@@ -43,8 +43,8 @@
  *           and its terminal ret / tail jump into the slope check are dead — the caller
  *           tail-invokes this and consumes no value.
  * NAMES:    MARIO_ON_LADDER (0x6215), MARIO_AIRBORNE (0x6216), EDGE_REPOSITION_FLAG (0x6398),
- *           MARIO_X (0x6203), MARIO_Y (0x6205) — from ram.js. The foot-cell address is computed
- *           by tileAddrForPixel (ROM 0x2FF0) and lands in tilemap video RAM (no ram.js name).
+ *           MARIO_X (0x6203), MARIO_Y (0x6205) — from names.js. The foot-cell address is computed
+ *           by tileAddrForPixel (ROM 0x2FF0) and lands in tilemap video RAM (no names.js name).
  *           decideSlopeGirderFooting (ROM 0x2AB4) reads its probe-X and foot-cell inputs from
  *           registers because this routine's hand-off to it is still a REGISTER-ABI boundary:
  *           both sides are idiomatic, neither signature is promoted yet, so the two values are
@@ -59,7 +59,7 @@ import {
   EDGE_REPOSITION_FLAG,
   MARIO_X,
   MARIO_Y,
-} from "./ram.js";
+} from "./names.js";
 
 export function startMarioFallWhenGroundGivesWay(m) {
   const { regs, mem } = m;

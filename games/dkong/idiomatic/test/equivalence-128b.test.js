@@ -63,7 +63,7 @@ import {
   SND_IRQ_TRIGGER,
   DEATH_ANIM_PHASE,
   DEATH_ANIM_TICKS_LEFT,
-} from "../ram.js";
+} from "../names.js";
 import { tickSubstateTimer } from "../tickSubstateTimer.js";
 import { loc_30bd } from "../../translated/loc_30bd.js";
 
@@ -75,7 +75,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x128b;
-// DEATH_ANIM_PHASE (0x639D) and DEATH_ANIM_TICKS_LEFT (0x639E) are imported from ram.js,
+// DEATH_ANIM_PHASE (0x639D) and DEATH_ANIM_TICKS_LEFT (0x639E) are imported from names.js,
 // the single source of truth — both [seen], grounded on the pass-13 real-MAME death runs.
 const SPRITE_CODE = MARIO_SPRITE_RECORD + 1; // 0x694D
 

@@ -22,11 +22,11 @@
  *           values it leaves behind are dead ABI; the classifier's caller consumes no
  *           register from here (the record is the whole output, and it lives in RAM).
  * NAMES:    PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR (the probe-block middle byte, 0x806a)
- *           from ram.js. The bias is SPRITE_COORD_BIAS (0x8051), used raw here as a
+ *           from names.js. The bias is SPRITE_COORD_BIAS (0x8051), used raw here as a
  *           dip-switch-derived end value, and the record base is SPRITE_STAGING_BASE (0x8220).
  */
 
-import { PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR } from "./ram.js";
+import { PLAYER_Y, PLAYER_FACING, PLAYER_X, PLAYER_SPRITE_ATTR } from "./names.js";
 
 const RECORD = 0x8220; // base of the 4-byte deferral record built for the object
 const BIAS = 0x8051; // the end-bias, held in the dip-switch parameter block

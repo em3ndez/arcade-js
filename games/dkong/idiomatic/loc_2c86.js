@@ -35,12 +35,12 @@
  *           terminal pop is dead; the translated callers reload before reading anything back.
  *           Nothing writes the stack, so the gate needs no STACK_SCRATCH exclusion.
  * NAMES:    armBarrelRelease (ROM 0x2C4F) direct-called with honest args. BARREL_CLAIM_MODE (0x6382) from
- *           ram.js — the barrel slot-claim mode byte, whose low bits carry the claim's mode value
+ *           names.js — the barrel slot-claim mode byte, whose low bits carry the claim's mode value
  *           and whose bit 7 selects the barrel kind; the cells armBarrelRelease touches carry their names
  *           inside that routine.
  */
 
-import { BARREL_CLAIM_MODE } from "./ram.js"; // ROM 0x6382 — the barrel slot-claim mode byte
+import { BARREL_CLAIM_MODE } from "./names.js"; // ROM 0x6382 — the barrel slot-claim mode byte
 import { armBarrelRelease } from "./armBarrelRelease.js"; // ROM 0x2C4F — the shared slot-claim entry
 
 const MODE_BYTE = 0x03; // the mode byte this entry stashes via armBarrelRelease

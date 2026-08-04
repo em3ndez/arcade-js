@@ -60,9 +60,9 @@
  *           registers/flags and its terminal return are dead ABI — the contract is the
  *           gathered records.
  * NAMES:    OBJ_ARRAY_64 (0x6400) and its field offsets OBJ_ACTIVE/OBJ_X/OBJ_SPRITE_CODE/
- *           OBJ_SPRITE_ATTR/OBJ_Y from ram.js. The destination base 0x69D0 (inside the
+ *           OBJ_SPRITE_ATTR/OBJ_Y from names.js. The destination base 0x69D0 (inside the
  *           sprite shadow buffer SPRITE_BUFFER, but not one of its named sub-bases) has
- *           no ram.js name and stays a local hex const.
+ *           no names.js name and stays a local hex const.
  */
 
 import {
@@ -72,11 +72,11 @@ import {
   OBJ_Y,
   OBJ_SPRITE_CODE,
   OBJ_SPRITE_ATTR,
-} from "./ram.js";
+} from "./names.js";
 
 const OBJECT_COUNT = 5;      // records swept from OBJ_ARRAY_64
 const OBJECT_STRIDE = 0x20;  // bytes between object records
-const GATHER_DEST = 0x69d0;  // 4-byte destination records inside SPRITE_BUFFER (no ram.js name)
+const GATHER_DEST = 0x69d0;  // 4-byte destination records inside SPRITE_BUFFER (no names.js name)
 
 /**
  * @param {object} m  the machine (uses m.mem only).

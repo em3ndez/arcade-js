@@ -53,11 +53,11 @@
  *           excluded from the contract); its residual A/HL/F are dead ABI (this returns
  *           into the rst-0x28 dispatch, which reads none before overwriting them).
  * NAMES:    GAME_SUBSTATE (0x600A), SUBSTATE_TIMER (0x6009), ACTIVE_PLAYER_INDEX (0x600E,
- *           the 1P/2P index gating the double-inc) — ram.js.
+ *           the 1P/2P index gating the double-inc) — names.js.
  *           Callees: tickSubstateTimer (ROM 0x0018), loc_30db (ROM 0x30db).
  */
 
-import { GAME_SUBSTATE, SUBSTATE_TIMER, ACTIVE_PLAYER_INDEX } from "./ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { loc_30db } from "./loc_30db.js";
 

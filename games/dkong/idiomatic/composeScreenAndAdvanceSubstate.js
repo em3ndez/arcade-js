@@ -41,12 +41,12 @@
  *           only push residue in STACK_SCRATCH (measured 0x6bea–0x6bed at the real
  *           dispatch), excluded by the contract; the direct-call layer replaces the `ret`
  *           with a JS return, so this routine leaves SP/pc untouched.
- * NAMES:    GAME_SUBSTATE (0x600A) from ram.js; imports enqueueTask (ROM 0x309F) and
+ * NAMES:    GAME_SUBSTATE (0x600A) from names.js; imports enqueueTask (ROM 0x309F) and
  *           draw1UpLabel (ROM 0x0A53), the two decompiled callees. The task opcode/argument
  *           bytes are the fixed message payloads, kept literal (not RAM addresses).
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 import { draw1UpLabel } from "./draw1UpLabel.js";
 

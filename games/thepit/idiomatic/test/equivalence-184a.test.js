@@ -46,7 +46,7 @@ import { walkActor as idiomatic } from "../walkActor.js";
 import { stageObjectSpriteRecord } from "../stageObjectSpriteRecord.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAYER_Y, PLAYER_FACING } from "../ram.js";
+import { PLAYER_Y, PLAYER_FACING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

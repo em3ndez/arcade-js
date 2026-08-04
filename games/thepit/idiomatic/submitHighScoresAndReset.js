@@ -34,14 +34,14 @@
  *           painted setup screen; the reset/entry handler owns the eventual return. No
  *           register or flag is read back.
  * NAMES:    GAME_STATE (0x8001, the player-count byte) and ACTIVE_PLAYER (0x8002, the
- *           selected-player / secondary-state byte) from ram.js. LANDED_RANK (0x8048) is a
+ *           selected-player / secondary-state byte) from names.js. LANDED_RANK (0x8048) is a
  *           local — the rank the just-submitted score placed at (0 = did not place), the
  *           same cell submitPlayerHighScore records and runHighScoreInitialsEntry consumes;
- *           ram.js's tentative VARIANT name is a different round-setup role and would
+ *           names.js's tentative VARIANT name is a different round-setup role and would
  *           mislead here.
  */
 
-import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, STACK_TOP } from "./names.js";
 import { requestSound5 } from "./requestSound5.js";
 import { setupBoardDisplay } from "./setupBoardDisplay.js";
 import { waitFrames } from "./waitFrames.js";

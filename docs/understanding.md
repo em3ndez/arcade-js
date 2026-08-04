@@ -68,7 +68,7 @@ Verify a control actually moved pixels — a positive control can silently be a 
 Two blind agents can converge on the same wrong reading, so convergence is not a pass.
 If both proposers report the same unexplained oddity, suspect their shared premise before the ROM.
 
-**6. Lead edits ram.js.**
+**6. Lead edits names.js.**
 Proposers never do. Rename every importer. Equivalence suite stays green.
 
 **7. Rewrite mechanisms.md whole.**
@@ -87,7 +87,7 @@ Re-derive every count a reworded predicate touches.
 Reviewer-rules R21 forbids an idiomatic routine header from referencing anything outside its own
 file. Once a game's layer complies, the only prose that can go stale on a rename is `mechanisms.md`
 (already covered — step 7 rewrites it WHOLE, which is why it is a rewrite and never a patch),
-`ram.js` roles, `ram.js` `why` fields — which cite callers and siblings BY NAME and are therefore
+`names.js` roles, `names.js` `why` fields — which cite callers and siblings BY NAME and are therefore
 the most rename-fragile prose in the registry — and test headers. That is a small, bounded surface.
 
 Until then the routine layer is still in scope for that game, and this step is still tree-wide.
@@ -101,7 +101,7 @@ both layers still carries a forbidden reference. Treat a green `scan` as the lic
 short version of this step, and nothing else as that licence.
 
 **9. One commit. Independent review confirms these steps were followed.**
-The whole pass lands as ONE unit — renames, `ram.js`, `mechanisms.md`, the prose sweep — because a
+The whole pass lands as ONE unit — renames, `names.js`, `mechanisms.md`, the prose sweep — because a
 reviewer cannot confirm steps that have not happened yet. Commit half and there is nothing to check.
 The reviewer reads the scratch artefacts from steps 1-5 live. Those stay scratch and may be deleted:
 they are REPRODUCIBLE — if they are gone, start again at step 1. That is why the evidence never needs
@@ -143,8 +143,8 @@ not before running one.
    **That prose list is a highlighted subset, NOT the whole to-do — never treat it as complete.** The
    exhaustive, ground-truth to-do for an understanding pass is *every undefined memory location*, and it
    has TWO nets, because either one alone leaks: **(a)** each work-RAM cell still referenced as a raw
-   `mem8[0x..]` hex literal with no `ram.js` name; **and (b)** each work-RAM cell aliased to a file-LOCAL
-   `const NAME = 0x8..` inside a routine but never centralized in `ram.js`. A local alias was understood
+   `mem8[0x..]` hex literal with no `names.js` name; **and (b)** each work-RAM cell aliased to a file-LOCAL
+   `const NAME = 0x8..` inside a routine but never centralized in `names.js`. A local alias was understood
    well enough to earn a name — yet it is *invisible* to net (a) (every use goes through the const), it
    is absent from the one registry, and different files may give the SAME address DIFFERENT local names
    (the exact "one routine's local view" the registry exists to reconcile). Plus each routine still
@@ -159,11 +159,11 @@ not before running one.
    ```sh
    node --input-type=module -e '
    const game="<game>";
-   const ram=await import(`./games/${game}/idiomatic/ram.js`);
+   const ram=await import(`./games/${game}/idiomatic/names.js`);
    const fs=await import("node:fs");
    const named=new Set(Object.values(ram).filter(v=>typeof v==="number"));
    const dir=`games/${game}/idiomatic`, rawHex=new Set(), local=new Map();
-   for(const f of fs.readdirSync(dir)){ if(!f.endsWith(".js")||f==="ram.js") continue;
+   for(const f of fs.readdirSync(dir)){ if(!f.endsWith(".js")||f==="names.js") continue;
      const t=fs.readFileSync(`${dir}/${f}`,"utf8");
      for(const m of t.matchAll(/mem(?:8|16)\[(0x8[0-9a-f]{3})\]/gi)){          // net (a): raw hex (8- AND 16-bit)
        const a=parseInt(m[1],16);
@@ -173,18 +173,18 @@ not before running one.
        if(a>=0x8000&&a<=0x87ff&&!named.has(a)){ if(!local.has(k)) local.set(k,new Set()); local.get(k).add(m[1]); } }
    }
    console.log("RAW-HEX unnamed:", [...rawHex].sort().join(" "), "("+rawHex.size+")");
-   console.log("LOCAL-CONST (named in a file, not in ram.js):");
+   console.log("LOCAL-CONST (named in a file, not in names.js):");
    for(const [a,ns] of [...local].sort()) console.log("  "+a+"  ["+[...ns].join(" | ")+"]");'
    ```
 
    Both nets still read cells through `mem8`/`mem16[...]` and `const` — a **bare** `0x8xxx` literal (in a
    clear-array, a `regs.sp = 0x83ff`, an offset base) hides a cell from either. So also
-   `grep -nE "0x8[0-9a-f]{3}"` the **non-comment** code and reconcile every hit against `ram.js`: a hit on
+   `grep -nE "0x8[0-9a-f]{3}"` the **non-comment** code and reconcile every hit against `names.js`: a hit on
    a NAMED address is a missed rewire (the cell must be used by its imported name — that a const is *live*
    is the other half of single-source), a hit on an UNNAMED one is an enumeration to-do net (a) missed.
 
    Each address either net prints is a to-do item: pin its role from its readers/writers (and a
-   control-poke if needed), then either promote it to a `ram.js` name if the role is earned — reconciling
+   control-poke if needed), then either promote it to a `names.js` name if the role is earned — reconciling
    any conflicting local names into one consensus, and replacing the local `const` with an `import` so
    the registry stays the single source of truth — or leave a comment saying *why* it stays hex (genuine
    scratch / a role you deliberately won't over-claim). "Understanding is as complete as it gets" is a
@@ -206,7 +206,7 @@ spiral — it FEEDS a grounding pass. Two stages, and stage B is not optional:
    enumeration's bracket-only net (a) is not enough; also `grep` the non-comment code for every bare
    `0x8xxx` and reconcile.) The rewire is behaviour-preserving, so the equivalence suite must stay green.
 2. **No prose contradicts the registry.** Sweep routine comments AND `mechanisms.md`: nothing may call a
-   now-named cell "hex / no ram.js name / unnamed". `tools/names_consistency.py` (pre-commit gate #2)
+   now-named cell "hex / no names.js name / unnamed". `tools/names_consistency.py` (pre-commit gate #2)
    enforces this — run it. Acknowledging a deliberate raw / different-role use is allowed ("0x8057 is
    `BOARD_MODE`, reused raw here"); a bare "0x8057 stays hex" is not. See [names-registry](names-registry.md)
    "One source per fact".
@@ -214,7 +214,7 @@ spiral — it FEEDS a grounding pass. Two stages, and stage B is not optional:
    derivations, promoted on convergence — but convergence is necessary, not sufficient (two blind
    derivations can converge on the same *wrong* reading, the recorded `0x8076` case), so a third
    adversarial review reads every promoted name before it lands, not only the ones the two split on. The
-   lead — not a proposer — edits `ram.js`. (See [decompiler-pipeline](decompiler-pipeline.md).)
+   lead — not a proposer — edits `names.js`. (See [decompiler-pipeline](decompiler-pipeline.md).)
 4. **Verify the code side mechanically, don't assert.** Both-net enumeration prints zero uncentralized
    cells; the names-consistency gate reports zero; the equivalence suite is green; a reviewer≠author
    reads the diff.
@@ -245,7 +245,7 @@ proposer-≠-confirmer discipline as code ([README](README.md): "proposer≠conf
 + third adversarial review"; [how-the-agents-worked](how-the-agents-worked.md): "a separate confirmer re-derives
 it by control-poke or citation before it is trusted"; also [names-registry](names-registry.md),
 [decompiler-pipeline](decompiler-pipeline.md)). So a `[guess]`/`[code]` item is promoted to
-`[seen]`/confirmed — and a name is trusted in `ram.js` — only after a **separate** agent (not the
+`[seen]`/confirmed — and a name is trusted in `names.js` — only after a **separate** agent (not the
 proposer) **independently re-derives it from scratch**: reproduces the control-poke and reads the result
 themselves, or cites the corroborating readers/writers themselves, and reaches the same conclusion (or
 refutes it). Grounding a claim yourself makes it a *proposal*, not a confirmation.

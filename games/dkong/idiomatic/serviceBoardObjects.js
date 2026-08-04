@@ -43,12 +43,12 @@
  *           with a terminal pop; the idiomatic form direct-calls both, so the dead
  *           STACK_SCRATCH the pushes leave is excluded from the RAM diff.
  * NAMES:    OBJ_ARRAY_66 (0x6600), OBJ_X (+3), OBJ_Y (+5), SPRITE_BUFFER (0x6900) from
- *           ram.js; advanceBoardObjectTravel (ROM 0x2797) and spawnBoardObject (ROM 0x27DA) direct-called.
- *           The six-record publish destination (SPRITE_BUFFER + 88) has no ram.js name of
+ *           names.js; advanceBoardObjectTravel (ROM 0x2797) and spawnBoardObject (ROM 0x27DA) direct-called.
+ *           The six-record publish destination (SPRITE_BUFFER + 88) has no names.js name of
  *           its own.
  */
 
-import { OBJ_ARRAY_66, OBJ_X, OBJ_Y, SPRITE_BUFFER } from "./ram.js";
+import { OBJ_ARRAY_66, OBJ_X, OBJ_Y, SPRITE_BUFFER } from "./names.js";
 import { advanceBoardObjectTravel } from "./advanceBoardObjectTravel.js";               // ROM 0x2797 — advance the objects
 import { spawnBoardObject } from "./spawnBoardObject.js"; // ROM 0x27DA — spawn on cadence
 

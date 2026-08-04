@@ -105,7 +105,7 @@
  *           4000-frame attract run with this routine wired live is byte-identical to the all-oracle
  *           baseline over the whole dumped state.
  * NAMES:    OBJ_ARRAY_67, OBJ_X, BOARD and stepBallisticMotion are named in the prose above and
- *           come from ram.js and the idiomatic layer; nothing is imported, because every access
+ *           come from names.js and the idiomatic layer; nothing is imported, because every access
  *           here is an offset from the record base the walk maintains and none of the three offsets
  *           has a registry entry of its own. The lead may want entries for +2 (the walk's branch
  *           selector, also written at ROM 0x2038 and ROM 0x2118 and read at ROM 0x1F93) and +14.
@@ -118,7 +118,7 @@
 
 import { u8 } from "../../../core/int.js";
 
-// Record offsets. None is named in ram.js: they are positions inside the walk's record, and the
+// Record offsets. None is named in names.js: they are positions inside the walk's record, and the
 // registry names object fields only where a field's meaning is settled across the arrays that
 // share it. All three names are taken from the siblings that already carry them — ARM_SELECT and
 // SUBSTATE from loc_2038, STEP_WHOLE from loc_20b5 — rather than invented here.

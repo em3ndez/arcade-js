@@ -46,14 +46,14 @@
  *           residual A/HL/flags are dead ABI, and its SP/pc are the Z80 caller-skip
  *           mechanism the boolean gate replaces (not part of the contract).
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), SND_PRIORITY (0x608A), SND_PRIORITY_FRAMES (0x608B),
- *           INTRO_STEP (0x6385), INTRO_SCROLL_INDEX (0x638E) from ram.js. Hex-kept: ROM
+ *           INTRO_STEP (0x6385), INTRO_SCROLL_INDEX (0x638E) from names.js. Hex-kept: ROM
  *           source 0x388C (an immediate).
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 // ROM 0x0038 — the `rst 0x38` add-pass, the FROZEN ORACLE. An idiomatic twin
-// (addToSpriteObjectColumn.js) exists and 0x0038 is in ram.js's ROUTINES, so "not yet idiomatic"
+// (addToSpriteObjectColumn.js) exists and 0x0038 is in names.js's ROUTINES, so "not yet idiomatic"
 // is FALSE. ★ THIS ONE IS HONESTLY UNSETTLED, not shown unsafe. The oracle has no `ret` of its
 // own — it ends in a TAIL `m.call(0x003D)` into addStrided — so whether it consumes a guest-stack
 // word depends on the seam, which is exactly the case a direct-call probe cannot decide (a probe
@@ -62,7 +62,7 @@ import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004
 // routine's equivalence gate nor the full-flip gate. So it stays on the oracle — correct today,
 // with the reason stated — rather than being swapped on an argument no instrument can check.
 import { loc_0038 } from "../translated/loc_0038.js";
-import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP, INTRO_SCROLL_INDEX } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, SND_PRIORITY, SND_PRIORITY_FRAMES, INTRO_STEP, INTRO_SCROLL_INDEX } from "./names.js";
 
 const CLIMB_RECORDS_SRC = 0x388c; // ROM template of 10 sprite-object records for this phase
 

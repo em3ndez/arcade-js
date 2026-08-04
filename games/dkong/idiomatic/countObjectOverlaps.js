@@ -36,13 +36,13 @@
  * LIVE-OUT: memory-only (OVERLAP_COUNT). The oracle's residual registers/flags and its
  * advanced record cursor are dead — the caller reads the counter from RAM, not registers —
  * and its terminal return is the ordinary subroutine return.
- * NAMES: OVERLAP_COUNT (0x6060) from ram.js. The record-array bases and the probe base arrive
+ * NAMES: OVERLAP_COUNT (0x6060) from names.js. The record-array bases and the probe base arrive
  * as inputs (the live caller passes 0x6700 ×10 then 0x6400 ×5), and the per-record field
  * offsets (+0/+3/+5/+9/+0x0A) and the probe's +3 field are record-relative — none has a
- * fixed-cell name in ram.js, so they stay as base+offset here.
+ * fixed-cell name in names.js, so they stay as base+offset here.
  */
 
-import { OVERLAP_COUNT, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./ram.js"; // 0x6060 — the shared overlap counter this routine bumps
+import { OVERLAP_COUNT, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y } from "./names.js"; // 0x6060 — the shared overlap counter this routine bumps
 
 export function countObjectOverlaps(m, { objectBase, probeBase, count, probeA, stride, threshA, threshB }) {
   const { mem } = m;

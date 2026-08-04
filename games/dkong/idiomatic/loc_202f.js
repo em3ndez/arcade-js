@@ -17,7 +17,7 @@
  *     airborne frame, so these two bytes are that coordinate's per-frame step. Had that routine
  *     turned out to read the pair as anything else — a timer, a table index — the role line would
  *     have died there.
- *   - The SIGN convention comes from Mario, whose airborne record has the same shape: ram.js
+ *   - The SIGN convention comes from Mario, whose airborne record has the same shape: names.js
  *     records MARIO_AIR_VX_HI:MARIO_AIR_VX_LO taking +0x0080 for a rightward jump and 0xFF80 for a
  *     leftward one, in 1/256 px per frame. A negative value is leftward.
  *   - The BRANCH that selects this value belongs to the caller, not to this routine. The frozen

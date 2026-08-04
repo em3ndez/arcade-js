@@ -76,7 +76,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_01a4 as oracle } from "../../translated/loc_01a4.js";
 import { coldBootInit as idiomatic } from "../coldBootInit.js";
 import { makeMachineFactory } from "../../machine.js";
-import { GAME_STATE, ACTIVE_PLAYER, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER, IN1_DEBOUNCED, IN1_PREV, STEP_TIMER_BASE } from "../names.js";
 
 // Callees imported for the dropped-credit-clear twin (a faithful copy of the body).
 import { disableFrameInterrupt } from "../disableFrameInterrupt.js";

@@ -37,11 +37,11 @@
  *           registers/flags are dead: every caller reloads the source pointer before
  *           its next call and reads the painted memory back, never a leftover register.
  * NAMES:    PLOT_RUN_LENGTH (0x8055 — the shared column-plotter run length). The
- *           video-RAM write cursor 0x8060 has no ram.js name — its sibling routines
+ *           video-RAM write cursor 0x8060 has no names.js name — its sibling routines
  *           deriveTileWriteCursors / fillColourColumn keep it hex too — so it stays hex.
  */
 
-import { PLOT_RUN_LENGTH } from "./ram.js";
+import { PLOT_RUN_LENGTH } from "./names.js";
 
 export function copyTileColumn(m, sourcePtr = m.regs.ix) {
   const { mem8, mem16 } = m;

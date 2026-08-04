@@ -15,7 +15,7 @@
  * WHERE IT SITS. The per-frame walk over the 25m OBJ_ARRAY_67 records (ROM 0x1F72) reaches an
  * object's movement branch at ROM 0x2053, which advances the object one frame along its arc
  * (stepBallisticMotion) and then asks loc_2a2f — "probe the tile 4 px below a moving object and
- * … report the contact", per its ram.js entry — whether it has reached a girder. On the
+ * … report the contact", per its names.js entry — whether it has reached a girder. On the
  * frames that says yes, ROM 0x2083 counts them into the record's +0x0E and routes the FIRST one
  * here; the second goes straight to the bounce tail and the rest go elsewhere.
  *
@@ -34,7 +34,7 @@
  * reached at (235 and 236, against 104/137/170/203 for the rest), with Mario above the object every
  * time — so what the arm is FOR, and whether the clearance means anything beyond "not on this row",
  * is not established here. Nor does anything here say the kind index's values are the two barrel
- * kinds ram.js grounds at BARREL_CLAIM_MODE: this routine only separates zero from non-zero.
+ * kinds names.js grounds at BARREL_CLAIM_MODE: this routine only separates zero from non-zero.
  *
  * AN EDGE THE ROM HAS THAT ATTRACT NEVER REACHES: the clearance comes off OBJ_Y as a byte, so an
  * object within 22 rows of the top of the screen wraps to a large value and takes the no-turn arm
@@ -79,7 +79,7 @@
  *           MEASURED: the gate compares the FULL exit register file on all 68 captured and all 18
  *           crafted entries, which is what turns that derivation into an observation, and the live
  *           run then covers what one call at a time cannot see.
- * NAMES:    MARIO_Y and OBJ_Y from ram.js. The record's +0x15 has no ram.js name of its own — the
+ * NAMES:    MARIO_Y and OBJ_Y from names.js. The record's +0x15 has no names.js name of its own — the
  *           registry names BARREL_CLAIM_MODE, the cell a claim's kind bit is set in, not the
  *           per-record index stamped from it — so it stays a file-local offset. Both exits are
  *           still frozen and are reached through the registry: ROM 0x20B5 and ROM 0x20C3 belong to
@@ -88,11 +88,11 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_Y, OBJ_Y } from "./ram.js";
+import { MARIO_Y, OBJ_Y } from "./names.js";
 
 /**
  * The object record's kind index (+0x15). Zero and non-zero are the only distinction drawn here;
- * ram.js grounds the cell the kind is claimed in, but not this per-record copy, so it has no
+ * names.js grounds the cell the kind is claimed in, but not this per-record copy, so it has no
  * registry name to import.
  */
 const OBJ_KIND = 0x15;

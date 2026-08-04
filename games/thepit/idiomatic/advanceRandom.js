@@ -25,11 +25,11 @@
  *           byte). The residual working registers and flags are dead ABI — every
  *           caller immediately masks the returned byte, discarding the flags, and
  *           reads no other register.
- * NAMES:    the PRNG state bytes PRNG_LOW (0x800d) / PRNG_HIGH (0x800e) from ram.js;
+ * NAMES:    the PRNG state bytes PRNG_LOW (0x800d) / PRNG_HIGH (0x800e) from names.js;
  *           no other RAM is touched.
  */
 
-import { PRNG_LOW, PRNG_HIGH } from "./ram.js";
+import { PRNG_LOW, PRNG_HIGH } from "./names.js";
 export function advanceRandom(m) {
   const { mem8, regs } = m;
 

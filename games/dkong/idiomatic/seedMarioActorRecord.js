@@ -40,14 +40,14 @@
  * NAMES:    MARIO_ACTIVE (0x6200), MARIO_X (0x6203), MARIO_Y (0x6205),
  *           MARIO_SPRITE_CODE (0x6207), MARIO_SPRITE_ATTR (0x6208),
  *           MARIO_MOVE_STEP_TIMER (0x620F), MARIO_SPRITE_RECORD (0x694C),
- *           GAME_SUBSTATE (0x600A), BOARD (0x6227) — all from ram.js.
+ *           GAME_SUBSTATE (0x600A), BOARD (0x6227) — all from names.js.
  */
 
 import {
   BOARD, GAME_SUBSTATE,
   MARIO_ACTIVE, MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_ATTR,
   MARIO_MOVE_STEP_TIMER, MARIO_SPRITE_RECORD,
-} from "./ram.js";
+} from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 import { enqueueTask } from "./enqueueTask.js";
 

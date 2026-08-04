@@ -29,7 +29,7 @@
  *           register this leaves behind.
  * NAMES:    columnOffset and colour are the two register inputs, surfaced as parameters.
  *           0x8840 (colour-RAM top-of-column anchor) and 0x8057 (the shared colour index)
- *           stay hex: ram.js names 0x8057 BOARD_MODE for a mode-index role used elsewhere,
+ *           stay hex: names.js names 0x8057 BOARD_MODE for a mode-index role used elsewhere,
  *           which does not describe the colour byte staged here, so it is kept hex rather
  *           than misread (matching the sibling fillColourColumn).
  */

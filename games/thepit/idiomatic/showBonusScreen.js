@@ -36,7 +36,7 @@
  *           columns (colour RAM), the queued sound-ring slots, the cycled colour band, the
  *           score digits (when a player is in play), and the tier counter 0x800a drained to
  *           0. No register/flag is read back; the oracle's tail return is modelled by m.ret.
- * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH from ram.js. 0x8081 / 0x8082 are
+ * NAMES:    TILE_COL / TILE_ROW / PLOT_RUN_LENGTH from names.js. 0x8081 / 0x8082 are
  *           CRYSTAL_COUNT / DIAMOND_COUNT (reused here as the two gameplay config bytes)
  *           and 0x800a is LOOP_COUNTER (used here as this routine's tier counter, the same
  *           hold cell showSetupScreen drains); the ROM label strips (0x4a07..0x4a55) and
@@ -52,7 +52,7 @@ import { requestSound8 } from "./requestSound8.js";
 import { addScore } from "./addScore.js";
 import { cycleColumnColour } from "./cycleColumnColour.js";
 import { waitFrames } from "./waitFrames.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "./names.js";
 
 const CONFIG_A = 0x8081; // first gameplay config byte; == 4 adds a tier
 const CONFIG_B = 0x8082; // second gameplay config byte; == 3 adds a tier

@@ -37,7 +37,7 @@ import nodeTest from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
-import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "../ram.js";
+import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED } from "../names.js";
 import { loc_06a8 as oracle } from "../../translated/loc_06a8.js";
 import { stepBonusDisplayDown } from "../stepBonusDisplayDown.js";
 import { renderBonusDisplay } from "../renderBonusDisplay.js";

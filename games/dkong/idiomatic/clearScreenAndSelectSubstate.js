@@ -16,7 +16,7 @@
  *      8-bit add (`ld a,(0x600e) / add a,0x12 / ld (0x600a),a`). ACTIVE_PLAYER_INDEX is
  *      the active-player index — the low byte of the game-start join value loc_08f8
  *      wrote (0 for a 1-player start), the very byte arm 0 reads as its start-up selector
- *      — and 0x12 is the base index of the phase group jumped into (ram.js cites this
+ *      — and 0x12 is the base index of the phase group jumped into (names.js cites this
  *      "+0x12 substate" reader in the ACTIVE_PLAYER_INDEX entry). The base is NOT folded
  *      into a single constant: the target sub-state is genuinely computed from it.
  *
@@ -38,15 +38,15 @@
  *           terminal A/B/C/HL/F are dead ABI (the whole-machine gate backstops that).
  *           SP/PC are not compared — the idiomatic layer drops the oracle's push16 /
  *           call / ret stack + PC bookkeeping (the JS call stack replaces it).
- * NAMES:    GAME_SUBSTATE (0x600A) and ACTIVE_PLAYER_INDEX (0x600E) from ram.js. The
+ * NAMES:    GAME_SUBSTATE (0x600A) and ACTIVE_PLAYER_INDEX (0x600E) from names.js. The
  *           cleared tilemap / sprite-buffer addresses are owned by clearTilemapAndSprites
  *           (ROM 0x0852). ACTIVE_PLAYER_INDEX — the active-player index / game-start join
  *           low byte — is the phase selector here; its +0x12 gives the next sub-state, the
- *           reader ram.js cites for that cell. (The sibling arm 0,
+ *           reader names.js cites for that cell. (The sibling arm 0,
  *           configureFlipScreenAndSelectSubstate at ROM 0x0986, reads the same byte.)
  */
 
-import { GAME_SUBSTATE, ACTIVE_PLAYER_INDEX } from "./ram.js";
+import { GAME_SUBSTATE, ACTIVE_PLAYER_INDEX } from "./names.js";
 import { clearTilemapAndSprites } from "./clearTilemapAndSprites.js"; // ROM 0x0852
 
 // Base index of the phase group this arm jumps into; added to ACTIVE_PLAYER_INDEX to form

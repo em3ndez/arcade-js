@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_03a2 as oracle } from "../../translated/loc_03a2.js";
 import { animateFixedHazardAndReleaseFire } from "../animateFixedHazardAndReleaseFire.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, SPIN_COUNT } from "../ram.js";
+import { STACK_SCRATCH, BOARD, MARIO_ACTIVE, SPIN_COUNT } from "../names.js";
 // The teeth twins reuse the real callees (their faithfulness is proven by their own gates,
 // not under test here) so only the sub_03a2-level logic error is what diverges.
 import { boardBitGate as boardBitGateRef } from "../boardBitGate.js";
@@ -58,7 +58,7 @@ const test = ROM_PRESENT
 const TARGET = 0x03a2;
 const RET_ADDR = 0x02e1; // the main-loop site right after `call 0x03a2` (02de, 3 bytes)
 
-// Cells animateFixedHazardAndReleaseFire touches directly — all examined-and-UNNAMED in ram.js, so kept hex here.
+// Cells animateFixedHazardAndReleaseFire touches directly — all examined-and-UNNAMED in names.js, so kept hex here.
 const EVENT_GATE = 0x6350;   // bit0 SET -> skip
 const PRESCALER = 0x62b8;    // 4-frame prescaler
 const PHASE_BITS = 0x62b9;   // bit0 continue, bit1 arm select

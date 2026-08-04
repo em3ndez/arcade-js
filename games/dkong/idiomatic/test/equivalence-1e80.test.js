@@ -58,7 +58,7 @@ import { loc_1e80 as oracle } from "../../translated/loc_1e80.js";
 import { completeRivetBoardWhenCleared } from "../completeRivetBoardWhenCleared.js";
 import { enterBoardAdvanceAndUnwind } from "../enterBoardAdvanceAndUnwind.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, RIVETS_LEFT, GAME_SUBSTATE } from "../ram.js";
+import { STACK_SCRATCH, RIVETS_LEFT, GAME_SUBSTATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

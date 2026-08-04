@@ -65,15 +65,15 @@
  *           no flag, so every register and flag this routine leaves is dead. The routine
  *           returns undefined on all four arms, which the gate asserts.
  * NAMES:    BONUS_START (0x62B0), BONUS_DISPLAY (0x638C) and BONUS_DISPLAY_ZEROED (0x63B8)
- *           from ram.js. The tile-block source at ROM 0x384A and its video-RAM destinations
- *           (0x7400–0x77FF) are not work RAM, so ram.js does not name them and they stay hex.
+ *           from names.js. The tile-block source at ROM 0x384A and its video-RAM destinations
+ *           (0x7400–0x77FF) are not work RAM, so names.js does not name them and they stay hex.
  *           awardRemainingBonusToScore (0x0691), stepBonusDisplayDown (0x06A8) and
  *           renderBonusDisplay (0x066A) are all idiomatic and direct-called; the latter two
  *           take their input byte in the accumulator, so it is loaded before the call.
  */
 
 import { u8 } from "../../../core/int.js";
-import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED, BONUS_START } from "./ram.js";
+import { BONUS_DISPLAY, BONUS_DISPLAY_ZEROED, BONUS_START } from "./names.js";
 import { awardRemainingBonusToScore } from "./awardRemainingBonusToScore.js"; // ROM 0x0691
 import { stepBonusDisplayDown } from "./stepBonusDisplayDown.js"; // ROM 0x06A8
 import { renderBonusDisplay } from "./renderBonusDisplay.js"; // ROM 0x066A — the fallthrough tail

@@ -21,11 +21,11 @@
  * LIVE-OUT: memory-only — the 16 cleared bytes. The oracle's leftover loop counter and
  *           pointer are dead scratch: each caller's next act is another call, so nothing
  *           reads them before they are overwritten. No flags are touched end to end.
- * NAMES:    SOUND_HEAD (0x801e) from ram.js heads the 10-byte sound-queue block (head
- *           index + eight ring slots). SCORE_LO (0x8031) from ram.js heads the 6-byte
+ * NAMES:    SOUND_HEAD (0x801e) from names.js heads the 10-byte sound-queue block (head
+ *           index + eight ring slots). SCORE_LO (0x8031) from names.js heads the 6-byte
  *           score block (the running score bytes).
  */
-import { SCORE_LO, SOUND_HEAD } from "./ram.js";
+import { SCORE_LO, SOUND_HEAD } from "./names.js";
 
 export function resetScoreAndSoundQueue(m) {
   const { mem8 } = m;

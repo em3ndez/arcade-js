@@ -43,7 +43,7 @@ import { loc_3e88 as oracle } from "../../translated/loc_3e88.js";
 import { dispatchBoardOverlapSearch } from "../dispatchBoardOverlapSearch.js"; // promoted from loc_3e88
 import { dispatchInlineJumpTable } from "../dispatchInlineJumpTable.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, OVERLAP_COUNT } from "../ram.js";
+import { STACK_SCRATCH, BOARD, OVERLAP_COUNT } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -56,7 +56,7 @@ const TABLE_BASE = 0x3e8d;              // loc_3e88's inline rst-0x28 table base
 const SITE = "0x3E8D (loc_3e88 dispatch)"; // dispatch-site label (only surfaces in a throw)
 const RET = 0x286e;                     // a plausible caller return (the arm's ret lands here)
 const LIVES = 0x6228;                   // used only to build the wrong-selector twin
-// OVERLAP_COUNT (0x6060) imported from ram.js — the collision counter entry_3e99/entry_3ec3 write.
+// OVERLAP_COUNT (0x6060) imported from names.js — the collision counter entry_3e99/entry_3ec3 write.
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;
 

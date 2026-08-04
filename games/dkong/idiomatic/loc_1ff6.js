@@ -42,7 +42,7 @@
  *   - THE HORIZONTAL STEP. loc_202f's header derives +0x10/+0x11 as a big-endian signed 16-bit
  *     per-frame X step in 1/256-px units from its decompiled CONSUMER, stepBallisticMotion (ROM
  *     0x239C), which adds the pair to the record's +0x03:+0x04 coordinate every airborne frame;
- *     ram.js corroborates the sign convention on Mario's identically-shaped record
+ *     names.js corroborates the sign convention on Mario's identically-shaped record
  *     (MARIO_AIR_VX_HI:MARIO_AIR_VX_LO, +128 rightward / −128 leftward). The value written here,
  *     +96, is the exact mirror of the −96 loc_202f writes at the other end.
  *   - "ORIENTATION REFRESH" for ROM 0x23DE is that routine's own gated role line, not a reading
@@ -88,7 +88,7 @@
  *           identical too. The second run is what makes "dropped" a measurement rather than an
  *           inference from reading the callees, and it carries its own non-vacuity check — the
  *           same poison aimed at the KEPT registers does diverge.
- * NAMES:    OBJ_X and OBJ_Y from ram.js. The horizontal-step pair +0x10/+0x11 has no registry
+ * NAMES:    OBJ_X and OBJ_Y from names.js. The horizontal-step pair +0x10/+0x11 has no registry
  *           entry — stepBallisticMotion reads the same two bytes as bare record offsets — so it
  *           is a file-local const here; OBJ_ARRAY_67, BOARD, MARIO_AIR_VX_HI and MARIO_AIR_VX_LO
  *           are named in the prose above and not imported. ROM 0x215F, 0x202F, 0x21BA, 0x2038 and
@@ -96,11 +96,11 @@
  */
 
 import { u8 } from "../../../core/int.js";
-import { OBJ_X, OBJ_Y } from "./ram.js";
+import { OBJ_X, OBJ_Y } from "./names.js";
 import { snapYToGirder } from "./snapYToGirder.js";
 import { advanceBarrelSpriteOrientation } from "./advanceBarrelSpriteOrientation.js";
 
-// The record's big-endian signed 16-bit per-frame horizontal step, high byte first. No ram.js
+// The record's big-endian signed 16-bit per-frame horizontal step, high byte first. No names.js
 // name: stepBallisticMotion, the routine that consumes the pair, reads it as bare record offsets
 // too, and naming it in the registry is the lead's call, not this file's.
 const STEP_X_HI = 0x10;

@@ -44,7 +44,7 @@
  *
  * ★ CORRECTION: an earlier version of this header said all three seeded blocks were of
  * unestablished identity — "OBJ_ARRAY_64 / OBJ_ARRAY_65 / OBJ_ARRAY_66 are address-keyed
- * structural names in ram.js, NOT actor identities". That is no longer true of the FIRST of
+ * structural names in names.js, NOT actor identities". That is no longer true of the FIRST of
  * them. **OBJ_ARRAY_64 (0x6400) IS the FIRES**, grounded on the real ROM under MAME 0.288 on a
  * natural zero-poke run (scratchpad/grounding-object-arrays.md): zeroing the records' +0
  * erases the fireball from the screen entirely while the barrels are statistically untouched,
@@ -81,19 +81,19 @@
  *           the gate compares RAM (minus STACK_SCRATCH) + pc + SP only — never the
  *           register file, never cycles.
  * NAMES:    OBJ_ARRAY_64 (0x6400), OBJ_ARRAY_66 (0x6600) and OBJECT_COLLISION_SPRITES (0x6A0C)
- *           imported from ram.js and used in code; OBJ_ARRAY_65 (0x6500) and ACTOR_SPRITES
- *           (0x6980) are named in ram.js too but appear only in this file's prose (their writes
+ *           imported from names.js and used in code; OBJ_ARRAY_65 (0x6500) and ACTOR_SPRITES
+ *           (0x6980) are named in names.js too but appear only in this file's prose (their writes
  *           happen inside the callees). SPRITE_BUFFER (0x6900) is the parent every sprite
- *           destination lands in. OBJ_STATE (+0x0d) is imported from ram.js for the state fill;
+ *           destination lands in. OBJ_STATE (+0x0d) is imported from names.js for the state fill;
  *           the remaining per-record field offsets and the intra-SPRITE_BUFFER slots 0x6958 /
- *           0x69A0 / 0x6970 stay hex (unnamed in ram.js).
+ *           0x69A0 / 0x6970 stay hex (unnamed in names.js).
  */
 
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedObjectBlockSprites } from "./seedObjectBlockSprites.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES, OBJ_STATE } from "./ram.js";
+import { OBJ_ARRAY_64, OBJ_ARRAY_66, OBJECT_COLLISION_SPRITES, OBJ_STATE } from "./names.js";
 
 /** Forward block-copy `count` bytes ROM/RAM[src..] -> RAM[dst..] — an `ldir`, cycle-free. */
 function blockCopy(mem, dst, src, count) {

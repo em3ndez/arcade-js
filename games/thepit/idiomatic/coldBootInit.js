@@ -42,7 +42,7 @@
  *           IN1_PREV (0x8016), the credit counter CREDIT_COUNT (0x8000) + mirrors
  *           CREDIT_MIRROR_A (0x801c) / CREDIT_MIRROR_B (0x812c), and the coin/start
  *           debounce accumulators COIN_SW_ACCUM (0x8003) / START1_SW_ACCUM (0x8004) /
- *           START2_SW_ACCUM (0x8005), all from ram.js.
+ *           START2_SW_ACCUM (0x8005), all from names.js.
  */
 
 import { disableFrameInterrupt } from "./disableFrameInterrupt.js";
@@ -67,7 +67,7 @@ import {
   START1_SW_ACCUM,
   START2_SW_ACCUM,
   STACK_TOP,
-} from "./ram.js";
+} from "./names.js";
 
 export function* coldBootInit(m) {
   const { mem8, regs } = m;

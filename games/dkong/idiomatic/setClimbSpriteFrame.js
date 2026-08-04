@@ -29,11 +29,11 @@
  *           registers/flags: the chain ends in a single unconditional return, so the
  *           oracle's residual registers/flags are dead ABI (the gate compares pc + SP,
  *           lined up by one modelled return, to backstop that).
- * NAMES:    MARIO_SPRITE_CODE from ram.js; the on-ladder flag + record copy delegate
+ * NAMES:    MARIO_SPRITE_CODE from names.js; the on-ladder flag + record copy delegate
  *           to the already-idiomatic markOnLadderAndCommitSprite (ROM 0x1D49).
  */
 
-import { MARIO_SPRITE_CODE } from "./ram.js";
+import { MARIO_SPRITE_CODE } from "./names.js";
 import { markOnLadderAndCommitSprite } from "./markOnLadderAndCommitSprite.js"; // ROM 0x1D49
 
 // Bit 7 of the sprite code is Mario's horizontal-mirror flag (set = facing right).

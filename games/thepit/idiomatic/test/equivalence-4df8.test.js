@@ -59,7 +59,7 @@ import { runHighScoreInitialsEntry as idiomatic } from "../runHighScoreInitialsE
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { VARIANT, IN0_DEBOUNCED, PLAY_PHASE_COUNTER } from "../ram.js";
+import { VARIANT, IN0_DEBOUNCED, PLAY_PHASE_COUNTER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

@@ -38,7 +38,7 @@
  * independently established that sprite code 0x76 decodes to a heart in gfx2.bin. That this is the
  * SAME figure as the odd-board opening is a code fact, not a snapshot reading: both load the
  * identical ROM template 0x385C. The confirmer also traced the re-anchor arithmetic outside this
- * file — ram.js's M50_OBJ_ROW_SHIFT (0x63B7) records `entry_03fb`/`entry_0400` computing the same
+ * file — names.js's M50_OBJ_ROW_SHIFT (0x63B7) records `entry_03fb`/`entry_0400` computing the same
  * `(0x6910) − 0x3B` expression on the BOARD==2 arm during play, with shiftEvenBoardSpriteColumn
  * adding it into this same block's X column, which is precisely WHY the 50m arm must preserve X
  * where the odd-board arm need not — and verified 0x3B as the template's own record-2 X byte in
@@ -69,18 +69,18 @@
  *           fresh from memory). SP/PC are not compared — the idiomatic layer drops the
  *           oracle's push16/ret stack+PC bookkeeping; the JS call stack replaces it.
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388, the step selector) from
- *           ram.js. 0x385c (ROM figure template) and 0x3b (that template's record-2 X anchor)
+ *           names.js. 0x385c (ROM figure template) and 0x3b (that template's record-2 X anchor)
  *           stay local hex constants.
  */
 
-import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 import { spawnInterludeHeart } from "./spawnInterludeHeart.js"; // ROM 0x1708 — opening tableau
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e — 40-byte template -> 0x6908
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38) — X column += C
 
 // The +0 (X) byte of record 2 in SPRITE_OBJ_BLOCK (0x6908 + 4*2). Read for the re-anchor.
 const RECORD2_X = SPRITE_OBJ_BLOCK + 0x08; // 0x6910
-// ROM source of the fixed ten-record figure template; no ram.js symbol.
+// ROM source of the fixed ten-record figure template; no names.js symbol.
 const FIGURE_TEMPLATE = 0x385c;
 // The template's own record-2 X (ROM 0x3864). shift is measured relative to it.
 const TEMPLATE_ANCHOR_X = 0x3b;

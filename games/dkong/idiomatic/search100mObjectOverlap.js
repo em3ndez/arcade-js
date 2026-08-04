@@ -38,11 +38,11 @@
  * LIVE-OUT: OBJ_SEARCH_COUNT in memory, plus the search result the dispatch caller consumes
  *           — result byte in the accumulator and the count-minus-index residue (findCollidingObject's
  *           live-out registers). The oracle's dissolved push/return bracket is stack-only.
- * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_64 (0x6400) from ram.js; findCollidingObject (ROM
+ * NAMES:    OBJ_SEARCH_COUNT (0x63B9), OBJ_ARRAY_64 (0x6400) from names.js; findCollidingObject (ROM
  *           0x2913) direct-called.
  */
 
-import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64 } from "./ram.js";
+import { OBJ_SEARCH_COUNT, OBJ_ARRAY_64 } from "./names.js";
 import { findCollidingObject } from "./findCollidingObject.js";
 
 const SWEEP_COUNT = 7;   // records this sweep scans

@@ -34,7 +34,7 @@
  * LIVE-OUT: memory-only — the two pickup counters, the score and its on-screen digits,
  *           the queued sound, the blanked cell, and whatever the movement tail leaves.
  *           The registers/flags the oracle threads out are dead ABI no caller reads.
- * NAMES:    PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT from ram.js. The two per-kind pickup counters
+ * NAMES:    PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT from names.js. The two per-kind pickup counters
  *           CRYSTAL_COUNT (0x8081) / DIAMOND_COUNT (0x8082) and the second kind's enable flag
  *           PRIZE_GATE (0x8076) — their roles are clear here but not yet grounded across the game;
  *           its one-shot latch is
@@ -43,7 +43,7 @@
  *           triggerDigReaction.
  */
 
-import { PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT, PRIZE_GATE } from "./ram.js";
+import { PLAYER_CELL_PTR, HAZARD_ACTIVE_COUNT, PRIZE_GATE } from "./names.js";
 import { triggerDigReaction } from "./triggerDigReaction.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
@@ -51,7 +51,7 @@ import { advanceActorWalk } from "./advanceActorWalk.js";
 
 // Per-kind running pickup counters, and the enable/latch/guard that gate the second
 // kind. (0x8081/0x8082/0x8078 are CRYSTAL_COUNT/DIAMOND_COUNT/TREASURE_COLLECTED in
-// ram.js; aliased locally here.)
+// names.js; aliased locally here.)
 const FIRST_TILE_COUNT = 0x8081; // times a tile-58 pickup was collected
 const SECOND_TILE_COUNT = 0x8082; // times a tile-59..61 pickup was collected
 const SECOND_TILE_LATCH = 0x8078; // one-shot latch that opens the second pickup

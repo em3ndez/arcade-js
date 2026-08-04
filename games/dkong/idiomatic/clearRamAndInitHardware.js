@@ -30,13 +30,13 @@
  *           twin, and a missing-silence twin.
  * LIVE-OUT: SP (= 0x6C00) — the stack the main loop inherits. Every other register the
  *           oracle leaves is dead (the main loop reloads before use); memory otherwise.
- * NAMES:    TASK_TAIL, TASK_HEAD, TASK_RING (ram.js); silenceSound = ROM 0x011c. The
+ * NAMES:    TASK_TAIL, TASK_HEAD, TASK_RING (names.js); silenceSound = ROM 0x011c. The
  *           bulk RAM spans (work/sprite/video) and the display-hardware control latches
- *           (0x7D82-0x7D87) have no ram.js cell, so they stay local hex constants.
+ *           (0x7D82-0x7D87) have no names.js cell, so they stay local hex constants.
  */
 
 import { silenceSound } from "./silenceSound.js"; // ROM 0x011c
-import { TASK_TAIL, TASK_HEAD, TASK_RING } from "./ram.js";
+import { TASK_TAIL, TASK_HEAD, TASK_RING } from "./names.js";
 
 // Work RAM is 0x6000-0x6BFF; the clear runs the full 4 KB page 0x6000-0x6FFF, so the
 // top 1 KB spills into the unmapped discard window (those writes are counted, not stored).
@@ -54,7 +54,7 @@ const TASK_RING_SLOTS = 0x40; // 64 bytes = 32 slots x 2 bytes
 const SLOT_FREE = 0xff; //       task-ring slot marked free
 const QUEUE_EMPTY = 0xc0; //     TASK_TAIL/TASK_HEAD parked at the ring base offset
 
-// Display-hardware control latches (board outputs, not work RAM — no ram.js cell).
+// Display-hardware control latches (board outputs, not work RAM — no names.js cell).
 const HW_FLIPSCREEN = 0x7d82;
 const HW_SPRITE_BANK = 0x7d83;
 const HW_NMI_MASK = 0x7d84;

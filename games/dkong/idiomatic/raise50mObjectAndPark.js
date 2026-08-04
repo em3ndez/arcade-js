@@ -80,7 +80,7 @@
  *           its dead scratch write lands in STACK_SCRATCH, excluded by the equivalence gate.
  * NAMES:    the record base is a BOARD_OBJ_SCRATCH (0x6280) record, passed in — the routine
  *           hardcodes no absolute cell. Fields +0/+1/+3/+4 are addressed relative to it; the
- *           two sprite destination cells live inside the publish50mObjectYToSprite callee (unnamed in ram.js).
+ *           two sprite destination cells live inside the publish50mObjectYToSprite callee (unnamed in names.js).
  */
 
 import { publish50mObjectYToSprite } from "./publish50mObjectYToSprite.js"; // ROM 0x22BD — display mirror

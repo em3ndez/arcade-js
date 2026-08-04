@@ -62,7 +62,7 @@ import {
   MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_ATTR, MARIO_SPRITE_RECORD,
   MARIO_AIR_FRAMES, MARIO_HAMMER_PENDING, SND_TRIGGER, BOARD,
   OBJ_PAIR_6680, OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y, HAMMER_IN_PLAY,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -77,7 +77,7 @@ const ATTRACT_FRAMES = 2000;
 // The hammer pair the latch searches. NAMESPACE: 0x6680 is an OBJECT array (the sprite buffer
 // starts at 0x6900), so these are OBJ_* record fields — OBJ_ACTIVE/OBJ_X/OBJ_Y and the two hit
 // extents — never the numerically-colliding SPRITE_* fields of a sprite record. HAMMER_IN_PLAY
-// (+0x01) is ram.js's name for this pair's selected-hammer flag and is scoped to this pair alone.
+// (+0x01) is names.js's name for this pair's selected-hammer flag and is scoped to this pair alone.
 const REC0 = OBJ_PAIR_6680;                    // 0x6680 — the pair's first record
 const REC1 = (OBJ_PAIR_6680 + 0x10) & 0xffff;  // 0x6690 — the pair's second record
 const SEL0 = REC0 + HAMMER_IN_PLAY;            // 0x6681

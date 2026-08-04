@@ -55,14 +55,14 @@
  * LIVE-OUT: memory-only + the boolean caller-skip return. The routine writes no RAM itself;
  *           the won arms write inside their callees (Mario's facing byte and GAME_SUBSTATE).
  *           The oracle's residual registers/flags and its return-stack churn are dead ABI.
- * NAMES:    BOARD (0x6227), MARIO_Y (0x6205), MARIO_X (0x6203) from ram.js. RIVETS_LEFT and
+ * NAMES:    BOARD (0x6227), MARIO_Y (0x6205), MARIO_X (0x6203) from names.js. RIVETS_LEFT and
  *           the won-path writes (0x694D facing, GAME_SUBSTATE) live inside the callees. The
  *           board-type bits 0x04 (rivet) / 0x01 (girder) are bit flags and the climb line
- *           0x51 is a screen-Y threshold with no ram.js name (mirroring completeBoardWhenMarioReachesRescueRow's 0x31), so
+ *           0x51 is a screen-Y threshold with no names.js name (mirroring completeBoardWhenMarioReachesRescueRow's 0x31), so
  *           all three stay as literals.
  */
 
-import { BOARD, MARIO_Y, MARIO_X } from "./ram.js";
+import { BOARD, MARIO_Y, MARIO_X } from "./names.js";
 import { completeRivetBoardWhenCleared } from "./completeRivetBoardWhenCleared.js"; // ROM 0x1E80
 import { completeBoardWhenMarioReachesRescueRow } from "./completeBoardWhenMarioReachesRescueRow.js"; // ROM 0x1E7A
 import { loc_1e6d } from "./loc_1e6d.js"; // ROM 0x1E6D

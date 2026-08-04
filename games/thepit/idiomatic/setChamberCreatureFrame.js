@@ -27,11 +27,11 @@
  * LIVE-OUT: memory-only — the one byte at the animation tile cell (CHAMBER_CREATURE_FRAME,
  *           0x80dc); the shared tail owns everything after the hand-off, identically
  *           both sides.
- * NAMES:    CHAMBER_CREATURE_FRAME (0x80dc), the creature's frame cell, from ram.js.
- *           0x2fe3 (the shared animation-update tail) is still unnamed in ram.js.
+ * NAMES:    CHAMBER_CREATURE_FRAME (0x80dc), the creature's frame cell, from names.js.
+ *           0x2fe3 (the shared animation-update tail) is still unnamed in names.js.
  */
 
-import { CHAMBER_CREATURE_FRAME } from "./ram.js";
+import { CHAMBER_CREATURE_FRAME } from "./names.js";
 export function setChamberCreatureFrame(m) {
   // Store the caller's just-chosen flip tile into the creature's frame cell.
   m.mem8[CHAMBER_CREATURE_FRAME] = m.regs.a;

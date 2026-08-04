@@ -53,7 +53,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 import { Machine, resolveOverrides } from "../../machine.js";
-import { ROUTINES } from "../ram.js";
+import { ROUTINES } from "../names.js";
 import { ORACLE_ROUTINES } from "../../routines.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 

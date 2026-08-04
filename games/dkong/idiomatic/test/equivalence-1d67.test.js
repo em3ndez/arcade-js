@@ -51,7 +51,7 @@ import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH,
   MARIO_X, MARIO_Y, MARIO_SPRITE_CODE, MARIO_SPRITE_ATTR, MARIO_ON_LADDER,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x1d67;
-const CLIMB_TOGGLE = 0x6219; // unnamed climb-toggle scratch (ram.js reject); kept hex
+const CLIMB_TOGGLE = 0x6219; // unnamed climb-toggle scratch (names.js reject); kept hex
 const hx = (v) => "0x" + (v & 0xff).toString(16).padStart(2, "0");
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;
 

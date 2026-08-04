@@ -27,7 +27,7 @@
  * episode — pc 0x1299 writing 0x639D = 1 and pc 0x129E writing 0x639E = 0x0D — with the
  * post-gate body fetched 11 times in the run where 11 episodes ran (704 entry fetches =
  * 64 × 11), i.e. one seed per death, zero strays. The outside evidence:
- *   - ram.js holds both cells at [seen] with this same run behind them;
+ *   - names.js holds both cells at [seen] with this same run behind them;
  *   - the caller chain: this arm's dispatcher is sub-state 0x0D of the 0x0702 table, sitting
  *     between gameplay (0x0C) and the life-loss handlers (0x0E / 0x0F); 15 observed deaths
  *     produced 15 LIVES (0x6228) decrements in those handlers and none anywhere else;
@@ -49,7 +49,7 @@
  * Callees: tickSubstateTimer (rst 0x18, 0x0018), the idiomatic version, called directly;
  * and loc_30bd (0x30BD) — STILL THE FROZEN ORACLE, called directly. Note the header used to
  * justify that with "no idiomatic yet", which is FALSE: idiomatic/clearSpriteColumns.js exists
- * and 0x30BD is in ram.js's ROUTINES map. This file deliberately still calls the oracle;
+ * and 0x30BD is in names.js's ROUTINES map. This file deliberately still calls the oracle;
  * swapping the import is a behaviour-affecting change (the tail-jump return accounting below),
  * so DISSOLVING this stale oracle reference is PENDING as its own unit — it is not done here.
  * The Z80 `ret` is the caller-skip's net return, which the equivalence harness reconciles (this
@@ -70,7 +70,7 @@
  *           (pc/SP model the caller-skip return + loc_30bd's tail-jump pop, both reconciled
  *           by the harness).
  * NAMES:    SUBSTATE_TIMER (0x6009), MARIO_SPRITE_RECORD (0x694C), SND_IRQ_TRIGGER (0x6088),
- *           DEATH_ANIM_PHASE (0x639D) and DEATH_ANIM_TICKS_LEFT (0x639E) from ram.js — the last
+ *           DEATH_ANIM_PHASE (0x639D) and DEATH_ANIM_TICKS_LEFT (0x639E) from names.js — the last
  *           two now [seen], grounded on the pass-13 MAME runs cited above.
  */
 
@@ -80,10 +80,10 @@ import {
   SND_IRQ_TRIGGER,
   DEATH_ANIM_PHASE,
   DEATH_ANIM_TICKS_LEFT,
-} from "./ram.js";
+} from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 // ROM 0x30BD — the FROZEN ORACLE, and it STAYS. An idiomatic twin (clearSpriteColumns.js) exists
-// and 0x30BD is in ram.js's ROUTINES map, so "no idiomatic yet" would be false. The swap is not
+// and 0x30BD is in names.js's ROUTINES map, so "no idiomatic yet" would be false. The swap is not
 // stack-neutral: loc_30bd's fourth clear is a `jp 0x30E4` TAIL JUMP, so sub_30e4's `ret` returns
 // on loc_30bd's behalf and consumes a word; clearSpriteColumns makes four plain JS calls and
 // consumes none. CONFIRMED BY MEASUREMENT (not by reading): swapping the import fails this

@@ -42,7 +42,7 @@
  *           SPRITE_STAGING_BASE, plus the credit count CREDIT_COUNT and its mirrors
  *           CREDIT_MIRROR_A/CREDIT_MIRROR_B, the coin accumulators COIN_SW_ACCUM/
  *           START1_SW_ACCUM/START2_SW_ACCUM, and the coins-per-credit rates
- *           COINS_PER_CREDIT_A/COINS_PER_CREDIT_B, all from ram.js. Kept hex: the mode
+ *           COINS_PER_CREDIT_A/COINS_PER_CREDIT_B, all from names.js. Kept hex: the mode
  *           mirrors 0x801d/0x812d; the divider timers 0x800f/0x8007 (0x8006 is SECONDS_PRESCALER); the
  *           sound-ring read index 0x801f; the hardware sprite RAM 0x9840; and the I/O
  *           latches 0xb000 (interrupt enable), 0xb800 (sound), 0xa000 (joystick port)
@@ -70,7 +70,7 @@ import {
   START2_SW_ACCUM,
   COINS_PER_CREDIT_A,
   COINS_PER_CREDIT_B,
-} from "./ram.js";
+} from "./names.js";
 import { coldBootInit } from "./coldBootInit.js";
 import { showCreditScreen } from "./showCreditScreen.js";
 import { startGame } from "./startGame.js";

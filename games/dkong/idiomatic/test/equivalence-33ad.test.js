@@ -51,7 +51,7 @@ import { loc_33ad } from "../loc_33ad.js";
 import { loc_33c3 } from "../loc_33c3.js";
 import { stepObjectSpriteFrame } from "../stepObjectSpriteFrame.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, BOARD, OBJ_STATE, OBJ_SPRITE_CODE, OBJ_ARRAY_64 } from "../ram.js";
+import { STACK_SCRATCH, BOARD, OBJ_STATE, OBJ_SPRITE_CODE, OBJ_ARRAY_64 } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -66,8 +66,8 @@ const OBJ_BASE = OBJ_ARRAY_64; // the object record every measured real dispatch
 
 const OFF_07 = OBJ_SPRITE_CODE; // sprite tile code — animation frame + the flip bit
 const OFF_0D = OBJ_STATE;       // travel state: 1 steps X up, anything else steps it down
-const OFF_0E = 0x0e;            // working X (no ram.js offset name)
-const OFF_0F = 0x0f;            // working Y (no ram.js offset name)
+const OFF_0E = 0x0e;            // working X (no names.js offset name)
+const OFF_0F = 0x0f;            // working Y (no names.js offset name)
 const OFF_15 = 0x15;            // the animation down-counter stepObjectSpriteFrame owns
 
 const CODE_ADDR = OBJ_BASE + OFF_07;

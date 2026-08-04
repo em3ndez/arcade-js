@@ -41,13 +41,13 @@
  * fireball. So step 6 above marks TWO FIRES active at board build (0x64A0 = record 5 and
  * 0x64C0 = record 6), which is why 100m's collision arm sweeps SEVEN records and not five.
  * What is still NOT established is per-record identity within the array, and 0x6680/0x6690 is
- * OBJ_PAIR_6680 in ram.js whose "hammers" reading remains [code]. The name
+ * OBJ_PAIR_6680 in names.js whose "hammers" reading remains [code]. The name
  * describes the MECHANISM and the board, exactly at the evidence
  * bar of its callee seedObjectBlockSprites — object-record blocks (they feed the same
  * gather/seed helpers with the same +3/+7/+8/+5 field layout) plus their sprite mirror in
  * SPRITE_BUFFER. 100m == board 4 is airtight from the dispatch table (sub_0f56's 0x0FCD
  * table entry 4, index C = BOARD) and corroborated by the sibling arms seed25m/50m/75m and
- * by ram.js (BOARD 4 = 100m rivets).
+ * by names.js (BOARD 4 = 100m rivets).
  *
  * Callees: replicateGroupStrided / seedSpriteObjectPair / copyBytePairsStrided /
  * gatherSpriteRecords — the idiomatic versions, called directly. Each reads its inputs from
@@ -72,7 +72,7 @@
  *           verifies them as a free safety margin. The oracle's terminal `ret` (pc/SP) is the
  *           dropped control-flow model — the JS call stack replaces it; the test models one
  *           `ret` on the candidate to line pc + SP up.
- * NAMES:    OBJECT_COLLISION_SPRITES (0x6A0C) from ram.js — the step-3 ldir destination,
+ * NAMES:    OBJECT_COLLISION_SPRITES (0x6A0C) from names.js — the step-3 ldir destination,
  *           the exact named base of the 3 collision sprite records (0x0C bytes = 3 records).
  *           Everything else is a fixed immediate the callee ABIs consume: 0x6680/0x6690 is
  *           OBJ_PAIR_6680 but appears only inside seedSpriteObjectPair (not this file's code);
@@ -82,7 +82,7 @@
  *           (0x6900–0x6A7F) at no named sub-base, so they stay hex too.
  */
 
-import { OBJECT_COLLISION_SPRITES } from "./ram.js";
+import { OBJECT_COLLISION_SPRITES } from "./names.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { seedSpriteObjectPair } from "./seedSpriteObjectPair.js";
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";

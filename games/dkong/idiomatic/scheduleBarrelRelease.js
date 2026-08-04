@@ -53,13 +53,13 @@
  *           writes) or tail-dispatches a void cluster entry; the oracle's residual registers,
  *           flags, and terminal `ret` are dead ABI the board-1 caller does not read back.
  * NAMES:    boardBitGate (ROM 0x0030), marioActiveGuard (ROM 0x0010), loc_2c7b (ROM 0x2C7B),
- *           loc_2c86 (ROM 0x2C86), loc_2c41 (ROM 0x2C41) — all direct-called. From ram.js:
+ *           loc_2c86 (ROM 0x2C86), loc_2c41 (ROM 0x2C41) — all direct-called. From names.js:
  *           BONUS_START (0x62B0), BONUS (0x62B1), DIFFICULTY (0x6380), FRAME (0x601A),
  *           SPIN_COUNT (0x6019), and BARREL_CLAIM_MODE (0x6382) — the barrel slot-claim mode
  *           byte, not a bare flag: its low bits carry the claim's mode value (observed 1, and
  *           0x81 = mode 1 with bit 7 set) while its bit 7 selects the barrel kind downstream;
  *           this routine tests its bit 1. The event-gate cell 0x6393 is rejected-as-shared
- *           engine scratch in ram.js — kept hex here.
+ *           engine scratch in names.js — kept hex here.
  *
  * REGISTER-ABI MARSHALLING (dissolves once the cluster entries take honest args): the cluster
  * entries still read their live-ins from registers, so this routine loads exactly what the
@@ -74,7 +74,7 @@ import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x1
 import { loc_2c7b } from "./loc_2c7b.js";               // ROM 0x2C7B — stepped-value entry
 import { loc_2c86 } from "./loc_2c86.js";               // ROM 0x2C86 — clear-then-mode-3 entry
 import { loc_2c41 } from "./loc_2c41.js";               // ROM 0x2C41 — slot-claim cluster head
-import { BONUS_START, BONUS, DIFFICULTY, FRAME, SPIN_COUNT, BARREL_CLAIM_MODE } from "./ram.js";
+import { BONUS_START, BONUS, DIFFICULTY, FRAME, SPIN_COUNT, BARREL_CLAIM_MODE } from "./names.js";
 
 const BOARD_MASK = 0x01;   // rst-0x30 applicability mask: bit0 = 25m only
 const EVENT_GATE = 0x6393; // bit0 SET -> skip this pass (unnamed, rejected-as-shared 0x63xx scratch)

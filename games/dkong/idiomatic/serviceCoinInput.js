@@ -36,7 +36,7 @@
  *           excluded by the contract.
  * NAMES:    COIN_EDGE (0x6003), COINS_PARTIAL (0x6002), CREDITS (0x6001),
  *           GAME_STATE (0x6005), DIP_COINS_PER_CREDIT (0x6024),
- *           DIP_CREDITS_PER_COIN (0x6025), SND_TRIGGER (0x6080) from ram.js.
+ *           DIP_CREDITS_PER_COIN (0x6025), SND_TRIGGER (0x6080) from names.js.
  *           Hex-kept: 0x7D00 = IN2 port (COIN1 = bit 7; the read also kicks the
  *           watchdog), 0x0400 = the credit task message (opcode 0x04, arg 0x00).
  */
@@ -51,7 +51,7 @@ import {
   DIP_COINS_PER_CREDIT,
   DIP_CREDITS_PER_COIN,
   SND_TRIGGER,
-} from "./ram.js";
+} from "./names.js";
 
 const IN2_PORT = 0x7d00; //   coin/start input; reading it also re-kicks the watchdog
 const COIN1_BIT = 0x80; //    IN2 bit 7 = COIN1

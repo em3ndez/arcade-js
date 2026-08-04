@@ -43,11 +43,11 @@
  * LIVE-OUT: memory-only — the callers tail-call this routine and read no register afterwards,
  *           so the oracle's residual registers/flags are dead ABI. SP/PC are the single net
  *           return the JS call stack replaces (the harness supplies one m.ret()).
- * NAMES:    COLOUR_CYCLE_ACTIVE (0x6391), FRAME (0x601A) — both from ram.js. The sweep counter
+ * NAMES:    COLOUR_CYCLE_ACTIVE (0x6391), FRAME (0x601A) — both from names.js. The sweep counter
  *           (0x6390) and every colour/sprite cell live inside the callees.
  */
 
-import { COLOUR_CYCLE_ACTIVE, FRAME } from "./ram.js";
+import { COLOUR_CYCLE_ACTIVE, FRAME } from "./names.js";
 import { advanceColorCycleSweep } from "./advanceColorCycleSweep.js"; // ROM 0x0426
 import { dispatchColorCyclePaint } from "./dispatchColorCyclePaint.js"; // ROM 0x0486
 

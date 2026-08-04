@@ -6,7 +6,7 @@
  *
  * Three gates in a row, each of which returns and leaves everything alone:
  *   - the record's OBJ_Y must have reached 232. Larger Y is LOWER on screen, and that is not
- *     assumed here: ram.js records the transitive path OBJ_Y -> the object's staged sprite byte
+ *     assumed here: names.js records the transitive path OBJ_Y -> the object's staged sprite byte
  *     +3, and raise50mObjectAndPark's VERTICAL CONVENTION block grounds that byte 1:1 against
  *     image rows under real MAME, larger lower. So 232 is near the bottom of a 256-row frame.
  *   - its OBJ_X must lie in 32..41, a ten-column band. Both ends are tested against the SAME
@@ -39,7 +39,7 @@
  * proves.
  * NOT CLAIMED: which physical screen edge the 32..41 band is (loc_2104 declined the same
  * question and it was not settled here), what the object at these coordinates is called, and
- * why the kind field selects the phase write. ram.js grounds the kind field only as the flag
+ * why the kind field selects the phase write. names.js grounds the kind field only as the flag
  * stampReleasedBarrelKind writes alongside a distinct sprite code and attribute (46/46 live
  * agreement under MAME); which of the two kinds is which named object it deliberately does not
  * say, and neither does this.
@@ -100,23 +100,23 @@
  *           machine's own call-bracket seam — and pc is what catches a leaked return bracket,
  *           which RAM, SP and the returned value all miss (twin 9).
  * NAMES:    OBJ_ACTIVE (+0), OBJ_X (+3), OBJ_Y (+5) and SND_TRIGGER (0x6080, whose +2 is the
- *           latch asserted here) from ram.js. EVENT_REQ_313C is named above only to say what
+ *           latch asserted here) from names.js. EVENT_REQ_313C is named above only to say what
  *           animateFixedHazardAndReleaseFire's second arm eventually raises; it is not touched here. Three of the things
- *           this routine touches have no ram.js name and are kept as file-local consts with
+ *           this routine touches have no names.js name and are kept as file-local consts with
  *           their reasons: the record's kind field (+0x15), the phase byte (0x62B9) and the
  *           one-shot latch (0x6348) — the last two are multiplexed across readers with
- *           different roles, which is why ram.js leaves them unnamed and three sibling files
- *           already scope them locally. All three were checked against ram.js's exports rather
+ *           different roles, which is why names.js leaves them unnamed and three sibling files
+ *           already scope them locally. All three were checked against names.js's exports rather
  *           than assumed absent.
  */
 
-import { OBJ_ACTIVE, OBJ_X, OBJ_Y, SND_TRIGGER } from "./ram.js";
+import { OBJ_ACTIVE, OBJ_X, OBJ_Y, SND_TRIGGER } from "./names.js";
 
 /**
  * Object-record kind flag (+0x15) — 0 for the default object, 1 for the alternate kind
  * stampReleasedBarrelKind writes alongside a different sprite code and attribute. Scoped to this
  * file rather than promoted to a shared OBJ_* name because offset 0x15 carries an unrelated role
- * on other arrays (loc_3409 down-counts it as a frame timer), exactly the trap ram.js flags for
+ * on other arrays (loc_3409 down-counts it as a frame timer), exactly the trap names.js flags for
  * the other multi-role record offsets.
  */
 const OBJ_KIND = 0x15;
@@ -132,7 +132,7 @@ const IMPACT_SOUND = SND_TRIGGER + 2;
 const SOUND_FRAMES = 3;
 
 /**
- * The phase byte animateFixedHazardAndReleaseFire dispatches on. No ram.js name: four unrelated routines write it and
+ * The phase byte animateFixedHazardAndReleaseFire dispatches on. No names.js name: four unrelated routines write it and
  * animateFixedHazardAndReleaseFire is its only reader, so sibling files scope it locally too. Bit 0 SET lets animateFixedHazardAndReleaseFire's
  * body run at all, bit 1 selects its second arm — the one that runs a countdown and, on its
  * underflow, raises the object-insert request.
@@ -142,7 +142,7 @@ const PHASE_CONTINUE = 1;
 const PHASE_SECOND_ARM = 2;
 
 /**
- * The one-shot mode latch; no ram.js name because it is multiplexed — loc_22cb reads it as the
+ * The one-shot mode latch; no names.js name because it is multiplexed — loc_22cb reads it as the
  * object-velocity mode and startBarrelDescentAtLadder as a spawn gate. Both take CLEAR as the simple early-game
  * behaviour, so setting it here is a one-way switch into the graded behaviour.
  */

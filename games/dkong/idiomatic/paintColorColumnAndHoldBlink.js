@@ -42,12 +42,12 @@
  *           immediately calls the next routine without reading A/B/C/F, so the oracle's
  *           residual registers are dead ABI. SP/PC are the `ret` bookkeeping the JS call
  *           stack replaces.
- * NAMES:    SPRITE_BUFFER (0x6900) from ram.js — 0x6905 is record #1's code byte (+5).
+ * NAMES:    SPRITE_BUFFER (0x6900) from names.js — 0x6905 is record #1's code byte (+5).
  *           0x75C4 (colour-RAM column top), the fill value A (0x10/0xEF), the stride DE
  *           (0x20), and the sweep counter C (0x6390, SHARED with the how-high interlude)
  *           are all caller-supplied by loc_0486; 0x75C4 and 0x6390 stay hex, here only.
  */
-import { SPRITE_BUFFER } from "./ram.js";
+import { SPRITE_BUFFER } from "./names.js";
 import { fillDescendingColumn } from "./fillDescendingColumn.js";
 import { storeBlinkSpriteCode } from "./storeBlinkSpriteCode.js";
 

@@ -24,7 +24,7 @@
  * routine only raises them, never clears them.
  *
  * NAME: PROMOTED in understanding pass 12. The corroboration is that BOTH cells it writes are
- * [seen]-GROUNDED in ram.js and BOTH name this routine as their producer: OBJ_SPAWN_REQ (0x639A) —
+ * [seen]-GROUNDED in names.js and BOTH name this routine as their producer: OBJ_SPAWN_REQ (0x639A) —
  * "Object-SPAWN request into OBJ_ARRAY_65A0 (the 50m moving objects), consumed by
  * service50mObjectSpawnRequest ... Producer: loc_2ddb" — and EVENT_REQ_313C (0x63A0), whose note
  * records that two producers raise it, the first being "loc_2ddb's difficulty-scaled periodic
@@ -52,12 +52,12 @@
  *           rst-0x10 caller-skip stack idiom; the terminal ret pops the one caller-return every
  *           path consumes.
  * NAMES:    DIFFICULTY (0x6380), BOARD (0x6227), FRAME (0x601A), EVENT_REQ_313C (0x63A0),
- *           OBJ_SPAWN_REQ (0x639A) — all from ram.js. The board mask 0x0A is a literal.
+ *           OBJ_SPAWN_REQ (0x639A) — all from names.js. The board mask 0x0A is a literal.
  *           Callees direct-called: boardBitGate (ROM 0x0030, reads regs.a + BOARD 0x6227),
  *           marioActiveGuard (ROM 0x0010, reads MARIO_ACTIVE 0x6200).
  */
 
-import { DIFFICULTY, BOARD, FRAME, EVENT_REQ_313C, OBJ_SPAWN_REQ } from "./ram.js";
+import { DIFFICULTY, BOARD, FRAME, EVENT_REQ_313C, OBJ_SPAWN_REQ } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";        // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x10)
 import { u8 } from "../../../core/int.js";

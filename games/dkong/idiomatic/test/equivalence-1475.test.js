@@ -51,7 +51,7 @@ import { loc_0018 as captureSiteOracle } from "../../translated/loc_0018.js";
 import { enterAttractMode } from "../enterAttractMode.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { STACK_SCRATCH, GAME_STATE, ATTRACT, GAME_SUBSTATE } from "../ram.js";
+import { STACK_SCRATCH, GAME_STATE, ATTRACT, GAME_SUBSTATE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

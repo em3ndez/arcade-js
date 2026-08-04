@@ -42,13 +42,13 @@
  *           object cursor +16, sprite cursor +4, remaining-object count preserved, step value 4. The
  *           scratch byte the oracle leaves in the accumulator is dead: the loop reloads it for the
  *           next object before any test.
- * NAMES:    SND_TRIGGER (0x6080) — from ram.js. The animation-string base 0x39AA is a ROM address
- *           (the object animation-string table), not work RAM, so it carries no ram.js name and stays
+ * NAMES:    SND_TRIGGER (0x6080) — from names.js. The animation-string base 0x39AA is a ROM address
+ *           (the object animation-string table), not work RAM, so it carries no names.js name and stays
  *           a local const. The object-record field offsets used by the tail live inside loc_2e4b: the
- *           state field is OBJ_STATE (+0x0d, ram.js); the string-pointer (+0x0e/+0x0f) stays local.
+ *           state field is OBJ_STATE (+0x0d, names.js); the string-pointer (+0x0e/+0x0f) stays local.
  */
 
-import { SND_TRIGGER } from "./ram.js";
+import { SND_TRIGGER } from "./names.js";
 import { loc_2e4b } from "./loc_2e4b.js"; // ROM 0x2E4B — object-update convergence point
 
 const ANIMATION_STRING_BASE = 0x39aa; // ROM base of the object animation string (walk rewind target)

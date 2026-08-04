@@ -29,12 +29,12 @@
  *           the boolean caller-skip signal. No live registers/flags — every consumer
  *           reads only that memory and the unwind; the oracle's residual accumulator/
  *           flags and its return-stack churn are dead ABI.
- * NAMES:    RIVETS_LEFT (0x6290) from ram.js; GAME_SUBSTATE (0x600A) is written inside
+ * NAMES:    RIVETS_LEFT (0x6290) from names.js; GAME_SUBSTATE (0x600A) is written inside
  *           enterBoardAdvanceAndUnwind. The won-path sub-state code 0x16 lives in the
  *           callee.
  */
 
-import { RIVETS_LEFT } from "./ram.js";
+import { RIVETS_LEFT } from "./names.js";
 import { enterBoardAdvanceAndUnwind } from "./enterBoardAdvanceAndUnwind.js"; // ROM 0x1E85
 
 export function completeRivetBoardWhenCleared(m) {

@@ -16,7 +16,7 @@
  *   3. rst 0x38 → the stride-4, count-10 form of addStrided: add C to byte +0 (the X
  *      field) of each of the 10 records in SPRITE_OBJ_BLOCK (0x6908, 0x690C, … 0x692C),
  *      sliding the whole group left/right by the object's step. This is one of the
- *      "rst-0x38 stride-4 add-loops" ram.js documents as how the block's fields are
+ *      "rst-0x38 stride-4 add-loops" names.js documents as how the block's fields are
  *      positioned.
  *
  * On even frames the published step is 0, so the group holds still that frame and only the
@@ -53,11 +53,11 @@
  *           routine leaves — A/B/C/DE/HL are dead ABI. The RAM diff (+ SP/pc) backstops that.
  * NAMES:    SPRITE_OBJ_BLOCK (0x6908) — the 10-record sprite-object group whose X field
  *           (byte +0) is shifted; M50_OBJ1_STEP (0x63A3) — object #1's published step, read
- *           here as the shift amount. Both from ram.js. Object #1's remaining state bytes stay
+ *           here as the shift amount. Both from names.js. Object #1's remaining state bytes stay
  *           hex, matching loc_2602's treatment of the same object.
  */
 
-import { SPRITE_OBJ_BLOCK, M50_OBJ1_STEP } from "./ram.js";
+import { SPRITE_OBJ_BLOCK, M50_OBJ1_STEP } from "./names.js";
 import { loc_2602 } from "./loc_2602.js";
 import { addStrided } from "./addStrided.js";
 

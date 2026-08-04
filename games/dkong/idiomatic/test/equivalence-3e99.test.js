@@ -75,7 +75,7 @@ import { Machine } from "../../machine.js";
 import {
   STACK_SCRATCH, OVERLAP_COUNT, OBJ_ARRAY_67, OBJ_ARRAY_64, MARIO_ACTIVE, MARIO_X,
   OBJ_ACTIVE, OBJ_X, OBJ_Y, OBJ_HIT_EXTENT_X, OBJ_HIT_EXTENT_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -88,7 +88,7 @@ const TARGET = 0x3e99;
 const ATTRACT_FRAMES = 6000;          // long enough to see every natural dispatch the demo produces
 const SP_TOP = STACK_SCRATCH.hi;      // stack top — every crafted push lands inside STACK_SCRATCH
 const RETURN_SITE = 0x286e;           // where the real dispatch returns (ROM address, kept hex)
-// The probe record pointer, as the live caller sets it: Mario's record base, whose byte +0 ram.js
+// The probe record pointer, as the live caller sets it: Mario's record base, whose byte +0 names.js
 // names MARIO_ACTIVE and whose +3 (the horizontal coordinate the search reads) is MARIO_X.
 const PROBE_BASE = MARIO_ACTIVE;
 const RECORD_STRIDE = 32;

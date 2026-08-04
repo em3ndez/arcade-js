@@ -87,7 +87,7 @@ import {
   MARIO_Y,
   MARIO_AIR_PREV_X,
   MARIO_AIR_PREV_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

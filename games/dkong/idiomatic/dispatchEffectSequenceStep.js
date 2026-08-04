@@ -50,11 +50,11 @@
  *           return nothing and runHitEffectInsteadOfPlay discards the result, taking its own skip decision — and
  *           no register or flag is consumed either. SP/pc are the dropped stack model: the
  *           oracle's table walk and return chain move them inside STACK_SCRATCH, dead either way.
- * NAMES:    EFFECT_SEQ_STATE (0x6345) from ram.js — the step selector, whose ram.js note already
+ * NAMES:    EFFECT_SEQ_STATE (0x6345) from names.js — the step selector, whose names.js note already
  *           records this routine as its router. No other cell is touched here.
  */
 
-import { EFFECT_SEQ_STATE } from "./ram.js";
+import { EFFECT_SEQ_STATE } from "./names.js";
 import { NotImplemented } from "../../../boards/dkong/io.js";
 import { buildEffectSprite } from "./buildEffectSprite.js"; // ROM 0x1EA0 — step 0
 import { flashEffectSpriteThenAdvanceSequence } from "./flashEffectSpriteThenAdvanceSequence.js"; // ROM 0x1F09 — step 1

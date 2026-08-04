@@ -56,7 +56,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_34b9 as oracle } from "../../translated/loc_34b9.js";
 import { loc_34b9 } from "../loc_34b9.js";
-import { BOARD, MARIO_X, SPIN_COUNT, OBJ_X, OBJ_Y, OBJ_STATE } from "../ram.js";
+import { BOARD, MARIO_X, SPIN_COUNT, OBJ_X, OBJ_Y, OBJ_STATE } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

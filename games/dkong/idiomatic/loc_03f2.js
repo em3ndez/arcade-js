@@ -36,13 +36,13 @@
  * LIVE-OUT: memory-only (the caller's destination cell). The oracle's residual registers and
  *           flags and its early return are dead ABI: the sole caller reloads its scratch and
  *           consumes no value the routine leaves behind — it returns nothing.
- * NAMES:    SPIN_COUNT (0x6019) — from ram.js. The destination is a register-supplied pointer
+ * NAMES:    SPIN_COUNT (0x6019) — from names.js. The destination is a register-supplied pointer
  *           (0x6A29 in play, inside SPRITE_BUFFER) with no fixed named cell, so it stays a
  *           bare address read from the caller's register.
  */
 
 import { u8 } from "../../../core/int.js";
-import { SPIN_COUNT } from "./ram.js";
+import { SPIN_COUNT } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.regs for the destination/byte inputs and m.mem).

@@ -47,7 +47,7 @@ import { loc_2d6b as oracle } from "../../translated/loc_2d6b.js";
 import { loc_2cb7 as caller } from "../../translated/loc_2cb7.js";
 import { stampGlyphColumn as idiomatic } from "../stampGlyphColumn.js";
 import { makeMachineFactory } from "../../machine.js";
-import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "../ram.js";
+import { PLAYER_CELL_PTR, TRANSITION_TIMER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -56,7 +56,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-const LATCH = 0x8078; // the per-event latch this routine clears (no ram.js name yet)
+const LATCH = 0x8078; // the per-event latch this routine clears (no names.js name yet)
 const GLYPH = [62, 20, 23, 24, 35]; // the fixed glyph tile codes, top cell to bottom
 const OFFSETS = [-0x41, -0x21, -0x01, 0x1f, 0x3f]; // glyph cell offsets from the object cell
 const COLOUR = 6; // the colour painted down the column

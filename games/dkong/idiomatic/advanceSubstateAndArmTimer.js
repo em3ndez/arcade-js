@@ -27,10 +27,10 @@
  *           oracle's residual HL/A/F are dead ABI (the dispatch this returns to reads
  *           none); SP/pc are the dropped Z80 stack model, so its `ret` residue lands
  *           only in STACK_SCRATCH, excluded from the contract.
- * NAMES:    GAME_SUBSTATE (0x600A), SUBSTATE_TIMER (0x6009) — from ram.js.
+ * NAMES:    GAME_SUBSTATE (0x600A), SUBSTATE_TIMER (0x6009) — from names.js.
  */
 
-import { GAME_SUBSTATE, SUBSTATE_TIMER } from "./ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER } from "./names.js";
 
 const SUBSTATE_WAIT_FRAMES = 0x40; // frames the new sub-state holds before it proceeds
 

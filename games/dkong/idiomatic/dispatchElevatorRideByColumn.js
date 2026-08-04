@@ -25,7 +25,7 @@
  *
  * NAME: promoted from loc_2745 in understanding pass 15 (proposer != confirmer; the two
  * derivations agree in meaning — carry Mario with whichever lift column he is standing
- * in). Corroboration from OUTSIDE the routine (R5). All three inputs are named ram.js
+ * in). Corroboration from OUTSIDE the routine (R5). All three inputs are named names.js
  * cells: MARIO_X (0x6203) `[seen]`, MARIO_AIRBORNE (0x6216) `[seen]`, and
  * EDGE_REPOSITION_FLAG (0x6398), whose whole lifecycle was lifted this pass — it has
  * exactly ONE setter in the ROM (0x29E8, in the land-on-a-lift arm), which THREE
@@ -72,12 +72,12 @@
  *           still lines pc + SP up to prove the dissolved tail-jump/return bracket
  *           matches.
  * NAMES:    EDGE_REPOSITION_FLAG (0x6398), MARIO_AIRBORNE (0x6216), MARIO_X
- *           (0x6203) from ram.js; loc_2766 (ROM 0x2766 — still loc_, never observed
+ *           (0x6203) from names.js; loc_2766 (ROM 0x2766 — still loc_, never observed
  *           executing), carryMarioUpWithLift (ROM 0x276F) and carryMarioDownWithLift
  *           (ROM 0x2787) direct-called with no register inputs.
  */
 
-import { EDGE_REPOSITION_FLAG, MARIO_AIRBORNE, MARIO_X } from "./ram.js";
+import { EDGE_REPOSITION_FLAG, MARIO_AIRBORNE, MARIO_X } from "./names.js";
 import { loc_2766 } from "./loc_2766.js"; // ROM 0x2766 — the never-observed third arm
 import { carryMarioUpWithLift } from "./carryMarioUpWithLift.js"; // ROM 0x276F — rising column
 import { carryMarioDownWithLift } from "./carryMarioDownWithLift.js"; // ROM 0x2787 — descending column

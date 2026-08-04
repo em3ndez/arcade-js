@@ -41,7 +41,7 @@ import { makeMachineFactory } from "../../machine.js";
 import {
   BOARD_END_PHASE, ENEMY3_X, ENEMY3_Y, ENEMY3_TILE, ENEMY3_TIMER,
   ENEMY3_TWIN_X, ENEMY3_TWIN_TILE, ENEMY3_TWIN_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -52,8 +52,8 @@ const test = ROM_PRESENT
 
 const TARGET = 0x37cf;
 const CAPTURE_FRAMES = 6000; // enough to reach the one natural first-frame spawn
-const PRIMARY_PAIRED = 0x810c; // primary paired-display byte (unnamed in ram.js)
-const TWIN_PAIRED = 0x811d; // twin paired-display byte (unnamed in ram.js)
+const PRIMARY_PAIRED = 0x810c; // primary paired-display byte (unnamed in names.js)
+const TWIN_PAIRED = 0x811d; // twin paired-display byte (unnamed in names.js)
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
 // The Z80 stack lives at the top of work RAM (SP boots at 0x83ff). The oracle pushes a

@@ -42,7 +42,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_2f7c as oracle } from "../../translated/loc_2f7c.js";
 import { commitSpriteRecordAtMarioOffset as loc_2f7c } from "../commitSpriteRecordAtMarioOffset.js";
-import { MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y } from "../ram.js";
+import { MARIO_X, MARIO_Y, SPRITE_X, SPRITE_CODE, SPRITE_ATTR, SPRITE_Y, OBJ_X, OBJ_Y } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

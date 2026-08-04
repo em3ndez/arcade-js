@@ -35,7 +35,7 @@
  *           final `ret` move SP/pc, but every stack byte sits in the dead STACK_SCRATCH.
  * NAMES:    P1_CONTEXT (0x6040), P2_CONTEXT (0x6048), DIP_LIVES (0x6020),
  *           GAME_STATE (0x6005), GAME_SUBSTATE (0x600A), TWO_PLAYER_GAME (0x600F),
- *           ACTIVE_PLAYER_INDEX (0x600E) from ram.js — the 16-bit `ld (0x600E),hl` at
+ *           ACTIVE_PLAYER_INDEX (0x600E) from names.js — the 16-bit `ld (0x600E),hl` at
  *           game start writes ACTIVE_PLAYER_INDEX (low byte, 0 = player 1 up) and
  *           TWO_PLAYER_GAME (high byte) in one store. Hex-kept: CONTEXT_TEMPLATE (0x095E,
  *           the 7-byte ROM template, read twice — it is ROM data adjacent to this routine,
@@ -50,7 +50,7 @@ import {
   GAME_SUBSTATE,
   TWO_PLAYER_GAME,
   ACTIVE_PLAYER_INDEX,
-} from "./ram.js";
+} from "./names.js";
 import { readStartButtonSelector } from "./readStartButtonSelector.js"; // ROM 0x08D5
 import { spendCredit } from "./spendCredit.js"; //                         ROM 0x0977
 import { clearPlayfieldAndSprites } from "./clearPlayfieldAndSprites.js"; // ROM 0x0874

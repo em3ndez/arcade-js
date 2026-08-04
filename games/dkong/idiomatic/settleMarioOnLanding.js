@@ -36,7 +36,7 @@
  *           register or flag.
  * NAMES:    MARIO_AIRBORNE (0x6216), MARIO_FATAL_FALL (0x6220), MARIO_ACTIVE (0x6200),
  *           MARIO_SPRITE_CODE (0x6207), MARIO_FREEZE_TIMER (0x621E),
- *           MARIO_AIR_LANDCHECK (0x621F), ITEM_COLLECTED (0x6225) — all from ram.js. The
+ *           MARIO_AIR_LANDCHECK (0x621F), ITEM_COLLECTED (0x6225) — all from names.js. The
  *           two direct-called callees (loc_1d95, writeMarioSpriteRecord) own the rest.
  */
 
@@ -48,7 +48,7 @@ import {
   MARIO_FREEZE_TIMER,
   MARIO_AIR_LANDCHECK,
   ITEM_COLLECTED,
-} from "./ram.js";
+} from "./names.js";
 import { loc_1d95 } from "./loc_1d95.js";                     // ROM 0x1D95
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js"; // ROM 0x1DA6
 

@@ -31,12 +31,12 @@
  *           SND_TRIGGER[0] (on the fire phase), and everything markOnLadderAndCommitSprite
  *           writes (MARIO_ON_LADDER + the 4-byte sprite record). No live registers/flags:
  *           the tail's ret is unconditional and every caller consumes only memory.
- * NAMES:    MARIO_X, MARIO_CLIMB_SOUND_TOGGLE (ram.js); footstep + sprite commit delegate
+ * NAMES:    MARIO_X, MARIO_CLIMB_SOUND_TOGGLE (names.js); footstep + sprite commit delegate
  *           to the already-idiomatic triggerWalkSound (0x1D8F) and
  *           markOnLadderAndCommitSprite (0x1D49).
  */
 
-import { MARIO_X, MARIO_CLIMB_SOUND_TOGGLE } from "./ram.js";
+import { MARIO_X, MARIO_CLIMB_SOUND_TOGGLE } from "./names.js";
 import { triggerWalkSound } from "./triggerWalkSound.js";
 import { markOnLadderAndCommitSprite } from "./markOnLadderAndCommitSprite.js";
 

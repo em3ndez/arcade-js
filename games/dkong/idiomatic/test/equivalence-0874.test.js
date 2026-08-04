@@ -43,7 +43,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_0874 as oracle } from "../../translated/loc_0874.js";
 import { clearPlayfieldAndSprites } from "../clearPlayfieldAndSprites.js";
 import { Machine } from "../../machine.js";
-import { SPRITE_BUFFER, STACK_SCRATCH } from "../ram.js";
+import { SPRITE_BUFFER, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -39,7 +39,7 @@
  *           five of the six call sites overwrite DE with their own `pop de`, but loc_298c
  *           does not, so DE is reproduced rather than argued away.
  * NAMES:    none — pure arithmetic on register inputs; references no RAM address.
- *           0x7400 is the hardware tilemap VRAM base, not a ram.js name.
+ *           0x7400 is the hardware tilemap VRAM base, not a names.js name.
  */
 export function tileAddrForPixel(y, x) {
   // col = x / 8 (0..31). The ROM's three `rrca` + `and 0x1f` is a rotate-based

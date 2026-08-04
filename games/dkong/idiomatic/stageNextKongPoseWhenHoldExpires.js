@@ -33,7 +33,7 @@
  * grounding's measured 32-frame step-1 hold on boards 1 and 3 exactly; the writer table attributes
  * 5 BOARD_ADVANCE_STEP writes to pc 0x1680 (3 on board 1, 2 on board 3) — one per non-50m
  * completion, which is what fixes this as one step of a once-per-completion ladder; and the
- * rst-0x30 mask 0x04 is corroborated as 75m by ram.js's `[seen]` BOARD note ("3=75m elevators").
+ * rst-0x30 mask 0x04 is corroborated as 75m by names.js's `[seen]` BOARD note ("3=75m elevators").
  * The confirmer decoded the two templates out of the ROM: 0x3932 spans 48 px × 32 px against the
  * previous pose's 40 × 32 — a WIDER silhouette, but not a lower one. Both are 32 px tall, and
  * 0x3932's drawing records sit at Y 60..76 where 0x385C's sit at Y 64..80, i.e. 4 px HIGHER on
@@ -68,7 +68,7 @@
  *           oracle's residual A/HL/DE/BC/flags are dead ABI, and its SP/pc are the Z80
  *           caller-skip mechanism the boolean gates replace (not part of the contract).
  * NAMES:    SUBSTATE_TIMER (0x6009), SPRITE_OBJ_BLOCK (0x6908), BOARD_ADVANCE_STEP (0x6388 —
- *           the board-cleared interlude's step) from ram.js. Hex-kept: ROM
+ *           the board-cleared interlude's step) from names.js. Hex-kept: ROM
  *           animation-table base 0x3932 (an immediate).
  */
 
@@ -76,7 +76,7 @@ import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30)
 import { addToSpriteObjectColumn } from "./addToSpriteObjectColumn.js"; // ROM 0x0038 (rst 0x38)
-import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SUBSTATE_TIMER, SPRITE_OBJ_BLOCK, BOARD_ADVANCE_STEP } from "./names.js";
 
 const ANIM_FRAME_SRC = 0x3932; // ROM base of the interlude's sprite-object animation table
 const POSE_HOLD_FRAMES = 0x20; // frames to hold the newly-staged pose before the next step

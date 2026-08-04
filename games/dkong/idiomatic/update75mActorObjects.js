@@ -16,7 +16,7 @@
  * cursor by 4 — so ten calls sweep the whole array, one object per pass.
  *
  * NAME: PROMOTED in understanding pass 12, corroborated from outside the file on both halves of the
- * name. The ARRAY half: ram.js names OBJ_ARRAY_65 (0x6500) the object ("actor") array and cites
+ * name. The ARRAY half: names.js names OBJ_ARRAY_65 (0x6500) the object ("actor") array and cites
  * entry_2e04 as its updater, and ACTOR_SPRITES records that entry_2e04 mirrors that array's X/Y into
  * it — two named cells naming this routine. The BOARD half: its boardBitGate mask is 0x04 = board 3,
  * cross-checked against raisePeriodicObjectSpawnRequests's mask 0x0A (boards 2+4) and confirmed
@@ -49,13 +49,13 @@
  *           replace the rst-0x30 / rst-0x10 caller-skip stack idiom; the terminal ret pops
  *           the one caller-return every path consumes.
  * NAMES:    OBJ_ARRAY_65 (0x6500 actor object array), ACTOR_SPRITES (0x6980 paired sprite
- *           array) — from ram.js. The board mask 0x04 and the record count 10 are literals.
+ *           array) — from names.js. The board mask 0x04 and the record count 10 are literals.
  *           Callees direct-called: boardBitGate (ROM 0x0030, reads regs.a + BOARD 0x6227),
  *           marioActiveGuard (ROM 0x0010, reads MARIO_ACTIVE 0x6200), loc_2e12 (ROM 0x2E12,
  *           reads and advances the two cursors in registers).
  */
 
-import { OBJ_ARRAY_65, ACTOR_SPRITES } from "./ram.js";
+import { OBJ_ARRAY_65, ACTOR_SPRITES } from "./names.js";
 import { boardBitGate } from "./boardBitGate.js";        // ROM 0x0030 (rst 0x30)
 import { marioActiveGuard } from "./marioActiveGuard.js"; // ROM 0x0010 (rst 0x10)
 import { loc_2e12 } from "./loc_2e12.js";                 // ROM 0x2E12

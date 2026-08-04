@@ -72,7 +72,7 @@ import { addScore } from "../addScore.js";
 import { cycleColumnColour } from "../cycleColumnColour.js";
 import { waitFrames } from "../waitFrames.js";
 import { drawSharedPanel } from "../drawSharedPanel.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "../ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

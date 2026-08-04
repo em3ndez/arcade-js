@@ -28,8 +28,8 @@
  * the sprite is held in the climb-down pose while they do.
  *
  * GROUNDED (DK understanding pass 5, independent confirmer): increments the named MARIO_Y
- * (ram.js: larger = lower on screen, so the step is DOWN) and pins the climb pose + steps
- * sprite-Y via pinMarioClimbPose. "climb" is grounded by ram.js's MARIO_SPRITE_CODE note
+ * (names.js: larger = lower on screen, so the step is DOWN) and pins the climb pose + steps
+ * sprite-Y via pinMarioClimbPose. "climb" is grounded by names.js's MARIO_SPRITE_CODE note
  * (pose codes 03-05 = climb; pinMarioClimbPose forces 3 with the mirror flag clear). Both
  * asserted facts (direction DOWN, CLIMB pose) rest on named cells. Promoted as a 2-member
  * family with pinMarioClimbPose (0x3FC0).
@@ -53,7 +53,7 @@
  *           0x694D) and Y byte (MARIO_SPRITE_RECORD+SPRITE_Y, 0x694F) are inside pinMarioClimbPose.
  */
 
-import { MARIO_Y } from "./ram.js";
+import { MARIO_Y } from "./names.js";
 import { pinMarioClimbPose } from "./pinMarioClimbPose.js"; // ROM 0x3FC0 — pin the climb pose, return the sprite Y pointer
 
 export function stepMarioDownInClimbPose(m) {

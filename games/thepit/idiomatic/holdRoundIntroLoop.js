@@ -42,7 +42,7 @@
  * LIVE-OUT: memory-only — the repainted "PLAYERS" label + playfield strip and the pass
  *           counter drained to 0. No register or flag is read back: the routine tail-jumps
  *           into the round loop and the caller's return is carried by initRoundAndEnterMainLoop.
- * NAMES:    LOOP_COUNTER (0x800a) from ram.js. initRoundAndEnterMainLoop is the idiomatic round-loop setup
+ * NAMES:    LOOP_COUNTER (0x800a) from names.js. initRoundAndEnterMainLoop is the idiomatic round-loop setup
  *           (the tail target).
  *
  * PURPOSE [guess]: same round-boundary ambiguity.
@@ -51,7 +51,7 @@
 import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { waitFrames } from "./waitFrames.js";
 import { paintPlayfieldStripCol1Row11 } from "./paintPlayfieldStripCol1Row11.js";
-import { LOOP_COUNTER } from "./ram.js";
+import { LOOP_COUNTER } from "./names.js";
 
 export function* holdRoundIntroLoop(m) {
   const { mem8 } = m;

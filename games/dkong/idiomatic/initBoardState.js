@@ -42,9 +42,9 @@
  *           `call` (0x0D62) that reads no register this routine leaves. SP/PC/flags are
  *           dead — the JS call stack replaces the Z80 stack (compared: RAM −STACK_SCRATCH).
  * NAMES:    LEVEL, BOARD, BONUS_START/BONUS/BONUS_EVENT_MARK/BONUS_PERIOD/BONUS_TICK
- *           (ram.js). Hex-kept: the 0x6200–0x6226 / 0x6280–0x6AFF clear spans and the
+ *           (names.js). Hex-kept: the 0x6200–0x6226 / 0x6280–0x6AFF clear spans and the
  *           0x6A00 sprite triple (bulk regions), ROM source 0x3D9C (a ROM offset), and
- *           0x6209/0x620A (rejected in ram.js — unused constant 4/8 copies).
+ *           0x6209/0x620A (rejected in names.js — unused constant 4/8 copies).
  */
 import { seed25mBoardObjects } from "./seed25mBoardObjects.js";
 import { seed50mBoardObjects } from "./seed50mBoardObjects.js";
@@ -58,7 +58,7 @@ import {
   BONUS_EVENT_MARK,
   BONUS_PERIOD,
   BONUS_TICK,
-} from "./ram.js";
+} from "./names.js";
 
 // The ROM 0x0FCD rst-0x28 jump table, as a table of function references (doc-06's
 // idiom for computed dispatch). Indexed by BOARD (0x6227): 1=25m, 2=50m, 3=75m,

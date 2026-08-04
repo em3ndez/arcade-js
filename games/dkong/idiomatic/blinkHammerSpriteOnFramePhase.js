@@ -35,11 +35,11 @@
  * LIVE-OUT: memory-only. This arm tail-calls the record write and its own caller discards
  *           the result; the oracle's residual registers/flags and commitSpriteRecordAtMarioOffset's terminal
  *           return reach no consumer. The attribute is an input threaded into commitSpriteRecordAtMarioOffset.
- * NAMES:    FRAME (0x601A) from ram.js. The forced attribute value 1 and the blink-phase
+ * NAMES:    FRAME (0x601A) from names.js. The forced attribute value 1 and the blink-phase
  *           bit (bit 3) are local constants; commitSpriteRecordAtMarioOffset owns every record/object cell.
  */
 
-import { FRAME } from "./ram.js";
+import { FRAME } from "./names.js";
 import { commitSpriteRecordAtMarioOffset } from "./commitSpriteRecordAtMarioOffset.js"; // ROM 0x2F7C — the shared object-sprite record write
 
 // Bit 3 splits the frame counter's 16-frame cycle into two 8-frame halves; the blink

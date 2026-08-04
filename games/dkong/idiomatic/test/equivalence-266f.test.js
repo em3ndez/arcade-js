@@ -52,7 +52,7 @@ import { loc_262f } from "../../translated/loc_262f.js";
 import { loc_266f } from "../loc_266f.js";
 import { loc_264c } from "../loc_264c.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, M50_OBJ2_STEP_DIR, FRAME } from "../ram.js";
+import { STACK_SCRATCH, M50_OBJ2_STEP_DIR, FRAME } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -65,8 +65,8 @@ const TARGET = 0x266f;
 const RET_ADDR = 0x25fb;        // sub_25F2_body's site right after `call 0x262f` — the real caller return
 const OBJ2_Y = 0x6205;          // object-2's Y; loc_262f branches here when it is below 0xC0
 const LATCH = M50_OBJ2_STEP_DIR; // 0x62A3 — object-2's step-direction latch (this routine's cell)
-const SHADOW_POS = 0x63a5;      // the tail's published +step shadow (no ram.js name)
-const SHADOW_NEG = 0x63a4;      // the tail's published −step shadow (no ram.js name)
+const SHADOW_POS = 0x63a5;      // the tail's published +step shadow (no names.js name)
+const SHADOW_NEG = 0x63a4;      // the tail's published −step shadow (no names.js name)
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (a) => a != null && a >= STACK_SCRATCH.lo && a < STACK_SCRATCH.hi;

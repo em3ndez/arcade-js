@@ -69,7 +69,7 @@ import {
   BOARD_END_PHASE,
   GOAL_TILE_LATCH,
   IN0_DEBOUNCED,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -79,7 +79,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const TARGET = 0x24f3;
-// Addresses this routine touches that have no ram.js name yet.
+// Addresses this routine touches that have no names.js name yet.
 const REACTION_SPRITE_CODE = 0x8095;
 const REACTION_ANIM = 0x8096;
 const REACTION_SPRITE_SLOT = 0x8224; // sprite slot 1 (the reaction object's record)

@@ -26,7 +26,7 @@
  * So the boolean answers "was loc_333d returned to normally?", not "did the board gate fire" —
  * conflating the two would strand loc_333d's continuation on every 100m frame.
  *
- * WHICH BYTE +0x0f IS. ram.js names no object-record field at +0x0f, so it stays a raw offset
+ * WHICH BYTE +0x0f IS. names.js names no object-record field at +0x0f, so it stays a raw offset
  * here, but its axis is pinned from outside this routine: loc_3202 builds the record's OBJ_Y
  * (+5) as a table offset PLUS this byte, and loc_333d compares this same byte directly against
  * MARIO_Y — so it is a Y-axis coordinate in Mario's units, the anchor the rendered Y is derived
@@ -49,8 +49,8 @@
  *           reloads the accumulator too. pc/SP are the Z80 stack idiom the boolean REPLACES, so
  *           they are deliberately not compared; the gate instead pins the boolean's meaning by
  *           asserting where the ORACLE's own return lands on each arm.
- * NAMES:    no ram.js cell is read here directly — BOARD (0x6227) is read inside boardBitGate,
- *           and the object field at +0x0f has no ram.js name (the named record offsets are +0,
+ * NAMES:    no names.js cell is read here directly — BOARD (0x6227) is read inside boardBitGate,
+ *           and the object field at +0x0f has no names.js name (the named record offsets are +0,
  *           +3, +5, +7, +8, +9, +0x0a, +0x0d, +0x18, +0x1a/+0x1b), so it is kept as a raw
  *           in-record offset rather than borrowed from another namespace.
  */
@@ -61,7 +61,7 @@ import { boardBitGate } from "./boardBitGate.js"; // ROM 0x0030 (rst 0x30) — t
 // mask leaves the gate open on those three and closed on 100m.
 const BOARDS_25M_50M_75M = 0x07;
 
-// The object record's Y-axis base, an offset ram.js does not name.
+// The object record's Y-axis base, an offset names.js does not name.
 const RECORD_Y_BASE = 0x0f;
 
 // Above this line (numerically below it — larger Y is further down the screen) the movement

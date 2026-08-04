@@ -66,14 +66,14 @@
  * LIVE-OUT: memory-only — SND_BGM plus the field's video cells. The digit byte arrives in a
  *           register (a still-translated caller marshals it — an oracle boundary), and no
  *           caller reads a register back, so the residual registers/flags are dead.
- * NAMES:    SND_BGM (0x6089) from ram.js; BONUS_DISPLAY (0x638C) is named in ram.js and is
+ * NAMES:    SND_BGM (0x6089) from names.js; BONUS_DISPLAY (0x638C) is named in names.js and is
  *           the cell the incoming digit byte comes from, but this routine never touches it
  *           (the byte arrives in a register), so nothing is imported for it. The field cells
- *           0x7486/0x74A6 (and the tail's 0x74E6/0x74C6) are video RAM, which ram.js does not
+ *           0x7486/0x74A6 (and the tail's 0x74E6/0x74C6) are video RAM, which names.js does not
  *           name, so they stay hex.
  */
 
-import { SND_BGM } from "./ram.js";
+import { SND_BGM } from "./names.js";
 import { stampTwoDigitField } from "./stampTwoDigitField.js"; // ROM 0x0689 — the shared two-cell stamp tail
 
 export function renderBonusDisplay(m) {

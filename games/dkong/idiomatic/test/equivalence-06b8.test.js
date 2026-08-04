@@ -41,7 +41,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_06b8 as oracle } from "../../translated/loc_06b8.js";
 import { drawLivesAndLevel } from "../drawLivesAndLevel.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, ATTRACT, LIVES, LEVEL } from "../ram.js";
+import { STACK_SCRATCH, ATTRACT, LIVES, LEVEL } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

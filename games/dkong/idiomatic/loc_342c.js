@@ -40,10 +40,10 @@
  *           record next pass; the oracle's residual registers/flags and its terminal return are
  *           dead.
  * NAMES:    OBJ_X (record +0x03), OBJ_WALK_PTR_LO (+0x1a), OBJ_WALK_PTR_HI (+0x1b) — object-record
- *           offsets from ram.js. TABLE_START (0x3A8C) is a ROM address, kept hex.
+ *           offsets from names.js. TABLE_START (0x3A8C) is a ROM address, kept hex.
  */
 
-import { OBJ_X, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./ram.js";
+import { OBJ_X, OBJ_WALK_PTR_LO, OBJ_WALK_PTR_HI } from "./names.js";
 import { loc_3445 } from "./loc_3445.js"; // ROM 0x3445 — the shared table-walk + finalize tail
 
 // ROM address of the object's scripted Y-path table (the walk's starting point).

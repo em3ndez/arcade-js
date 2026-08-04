@@ -68,8 +68,8 @@ makes a sharp prediction: text in this ROM goes to VRAM at `0x7400+`, because th
 `SPRITE_BUFFER` at 0x6900 and touches nothing at 0x7400+ at all. One measurement kills the theory,
 and that measurement was available from the first day. Instead the
 theory became the name, the name became the neighbouring files' framing by imitation, and it
-spread through the cluster's routines, their equivalence gates, and the `ram.js` roles those gates
-cite back. Retiring it is a multi-commit job long after the fact, and a `ram.js` section banner
+spread through the cluster's routines, their equivalence gates, and the `names.js` roles those gates
+cite back. Retiring it is a multi-commit job long after the fact, and a `names.js` section banner
 still carries it.
 
 **What you can measure before you have any theory at all.** None of this requires knowing what

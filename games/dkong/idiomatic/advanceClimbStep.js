@@ -36,20 +36,20 @@
  * LIVE-OUT: memory-only — MARIO_Y and the centering-phase byte here, plus whatever the
  *           chosen callee writes. Both callers tail into this body and consume no
  *           register it leaves, so no live registers/flags.
- * NAMES:    MARIO_Y, MARIO_CLIMB_LIMIT_A/B (ram.js). The centering-phase byte 0x6222
- *           stays hex — shared climb-centering scratch, unnamed in ram.js (also written
+ * NAMES:    MARIO_Y, MARIO_CLIMB_LIMIT_A/B (names.js). The centering-phase byte 0x6222
+ *           stays hex — shared climb-centering scratch, unnamed in names.js (also written
  *           by slide50mObjectDown). Dispatches to the already-idiomatic centerMarioAndCommitClimbStep
  *           (0x1D51), endClimbAtLadderLimit (0x1D67), setClimbSpriteFrame (0x1D3F).
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_Y, MARIO_CLIMB_LIMIT_A, MARIO_CLIMB_LIMIT_B } from "./ram.js";
+import { MARIO_Y, MARIO_CLIMB_LIMIT_A, MARIO_CLIMB_LIMIT_B } from "./names.js";
 import { centerMarioAndCommitClimbStep } from "./centerMarioAndCommitClimbStep.js"; // ROM 0x1D51
 import { endClimbAtLadderLimit } from "./endClimbAtLadderLimit.js";                 // ROM 0x1D67
 import { setClimbSpriteFrame } from "./setClimbSpriteFrame.js";                     // ROM 0x1D3F
 
 // Two-phase ladder-centering toggle: flips 0<->1 each step and gates which arm runs.
-// Unnamed in ram.js (shared scratch, also written by slide50mObjectDown at 0x2295), so kept hex.
+// Unnamed in names.js (shared scratch, also written by slide50mObjectDown at 0x2295), so kept hex.
 const CENTERING_PHASE = 0x6222;
 
 /**

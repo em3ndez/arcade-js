@@ -608,7 +608,7 @@ export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
  * would throw at import (loud, not silent). Used by the browser worker for the idiomatic runtime.
  */
 export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
-  const { ROUTINES } = await import(new URL("idiomatic/ram.js", baseUrl).href);
+  const { ROUTINES } = await import(new URL("idiomatic/names.js", baseUrl).href);
   const spec = {};
   for (const [addr, meta] of Object.entries(ROUTINES)) {
     spec[Number(addr).toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: meta.name };

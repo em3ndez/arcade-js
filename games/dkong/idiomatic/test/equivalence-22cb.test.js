@@ -50,7 +50,7 @@ import { loc_22e1 } from "../loc_22e1.js";
 import { loc_22f6 } from "../loc_22f6.js";
 import { loc_2303 } from "../loc_2303.js";
 import { loc_231a } from "../loc_231a.js";
-import { STACK_SCRATCH, DIFFICULTY, LEVEL, RANDOM, MARIO_X, OBJ_X } from "../ram.js";
+import { STACK_SCRATCH, DIFFICULTY, LEVEL, RANDOM, MARIO_X, OBJ_X } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x22cb;
-const MODE_LATCH = 0x6348; // the velocity-mode latch loc_22cb dispatches on (unnamed in ram.js)
+const MODE_LATCH = 0x6348; // the velocity-mode latch loc_22cb dispatches on (unnamed in names.js)
 const SAFE_SP = 0x6bf8;    // the rst-0x28 push (0x22D7) lands at 0x6BF6/0x6BF7, inside STACK_SCRATCH
 
 // Object-record pointers (IX live-in). Both are real stride-0x20 object arrays, so +0x10/+0x11

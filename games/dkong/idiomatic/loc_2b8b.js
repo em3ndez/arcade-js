@@ -27,7 +27,7 @@
  *           result register (A=1, consumed by the grandparent's `dec a`), and the
  *           boolean caller-skip signal. HL and the flags are dead ABI.
  * NAMES:    MARIO_X, MARIO_SPRITE_RECORD, SPRITE_X — the cells loc_2b91 writes, from
- *           ram.js. loc_2b8b touches no work-RAM cell directly; the arm selector
+ *           names.js. loc_2b8b touches no work-RAM cell directly; the arm selector
  *           MARIO_AIR_VX_HI (0x6210) is read by the caller, not here.
  */
 

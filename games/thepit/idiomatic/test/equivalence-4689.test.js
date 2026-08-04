@@ -51,7 +51,7 @@ import { addScore } from "../addScore.js";
 import { drawScoreDigits } from "../drawScoreDigits.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { GAME_STATE, ACTIVE_PLAYER } from "../ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -62,7 +62,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x4689;
 const NMI = 0x0066;
-const SCORE_LOW = 0x8031; // low pair of the two-byte packed-BCD score (not yet named in ram.js)
+const SCORE_LOW = 0x8031; // low pair of the two-byte packed-BCD score (not yet named in names.js)
 const SCORE_HIGH = 0x8034; // high pair of the score
 const P1_COLUMN = 0x9301; // player-1 score column base (drawScoreDigits picks by ACTIVE_PLAYER)
 const OTHER_COLUMN = 0x90c1; // any-other-player score column base

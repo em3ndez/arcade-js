@@ -63,7 +63,7 @@ import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
 import { drawBestScoresTodayLabel } from "../drawBestScoresTodayLabel.js";
 import { drawRightEdgeColumn } from "../drawRightEdgeColumn.js";
-import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "../ram.js";
+import { TILE_COL, TILE_ROW, PLOT_RUN_LENGTH, ACTIVE_PLAYER } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

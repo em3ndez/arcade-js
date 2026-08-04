@@ -48,7 +48,7 @@ import { loc_241c as oracle } from "../../translated/loc_241c.js";
 import { erodeMountain as idiomatic } from "../erodeMountain.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAY_PHASE_COUNTER, BOARD_END_PHASE, ENEMY3_Y } from "../ram.js";
+import { PLAY_PHASE_COUNTER, BOARD_END_PHASE, ENEMY3_Y } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

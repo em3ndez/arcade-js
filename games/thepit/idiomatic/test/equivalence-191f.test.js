@@ -51,7 +51,7 @@ import { triggerDigReaction as idiomatic } from "../triggerDigReaction.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAYER_FACING, NEXT_TILE, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { PLAYER_FACING, NEXT_TILE, SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

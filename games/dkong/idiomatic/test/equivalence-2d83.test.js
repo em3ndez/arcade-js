@@ -50,7 +50,7 @@ import { loc_2d83 as oracle } from "../../translated/loc_2d83.js";
 import { loc_2d83 } from "../loc_2d83.js";
 import { stepBarrelAlongReleasePath } from "../stepBarrelAlongReleasePath.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "../ram.js";
+import { STACK_SCRATCH, RENDER_STR_PTR, RENDER_OBJ_PTR, RENDER_DST_PTR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

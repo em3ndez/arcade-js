@@ -56,7 +56,7 @@ import { deriveTileWriteCursors } from "../deriveTileWriteCursors.js";
 import { fillColourColumn } from "../fillColourColumn.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { BOARD_MODE, TILE_COL, TILE_ROW } from "../ram.js";
+import { BOARD_MODE, TILE_COL, TILE_ROW } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -70,7 +70,7 @@ const TARGET = 0x48c4;
 // first entry lands near frame 695 (well past the title), so every capture/gate run
 // needs a budget that reaches the demo.
 const REACH_FRAMES = 820;
-const FILL_LENGTH = 0x8055; // nine-cell count the column fill reads (unnamed in ram.js)
+const FILL_LENGTH = 0x8055; // nine-cell count the column fill reads (unnamed in names.js)
 const COLOR_RAM_BASE = 0x8800; // colour-RAM base the address-derive helper adds
 const CELL_OFFSET = 32 * 10 + 6; // row 10, column 6 -> tilemap offset (32-wide stride)
 const COLOR_CELL = COLOR_RAM_BASE + CELL_OFFSET; // top of the painted column, in colour RAM

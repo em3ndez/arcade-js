@@ -32,7 +32,7 @@
  *           terminal return are dead — the caller reloads before reading, so nothing downstream
  *           observes them.
  * NAMES:    none imported. objRecord (the object-record pointer) and value (the dispatched byte)
- *           are honest inputs; +0x10 / +0x11 are unnamed object-record field offsets (no ram.js
+ *           are honest inputs; +0x10 / +0x11 are unnamed object-record field offsets (no names.js
  *           name — reported for the lead to name later).
  */
 

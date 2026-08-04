@@ -90,7 +90,7 @@ import { loc_2053 } from "../loc_2053.js";
 import { stepBallisticMotion } from "../stepBallisticMotion.js";
 import { loc_2a2f } from "../loc_2a2f.js";
 import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
-import { OBJ_ARRAY_67, OBJ_X, OBJ_Y, STACK_SCRATCH } from "../ram.js";
+import { OBJ_ARRAY_67, OBJ_X, OBJ_Y, STACK_SCRATCH } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 import { Machine } from "../../machine.js";
 
@@ -107,7 +107,7 @@ const RETIRE_ARM = 0x2079; // clears the record's active flag, taking it out of 
 const BOUNDS_GATE = 0x24b4; // may splice past 0x2053 entirely instead of returning
 const SHARED_TAIL = 0x21ba; // the sweep's shared sprite tail
 const GATE_RETURN = 0x206b; // the return address the oracle brackets the bounds-gate call with
-const VELOCITY_X_HI = 0x10; // record offset: horizontal-velocity high byte (no ram.js name)
+const VELOCITY_X_HI = 0x10; // record offset: horizontal-velocity high byte (no names.js name)
 const RECORD_STRIDE = 32;
 const ATTRACT_FRAMES = 3000;
 const RETIRE_MARGIN = 8;

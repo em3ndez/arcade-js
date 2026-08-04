@@ -56,7 +56,7 @@ import { requestSound16 } from "../requestSound16.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
-import { SOUND_HEAD, SOUND_RING, GAME_STATE } from "../ram.js";
+import { SOUND_HEAD, SOUND_RING, GAME_STATE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -67,7 +67,7 @@ const test = ROM_PRESENT
 
 const TARGET = 0x467b;
 const NMI = 0x0066;
-const SCORE_LOW = 0x8031; // low byte of the two-byte packed-decimal score (not yet named in ram.js)
+const SCORE_LOW = 0x8031; // low byte of the two-byte packed-decimal score (not yet named in names.js)
 const COMMAND = 16; // the sound command this entry queues (requestSound16 / ROM 0x4c8f)
 const PENDING = COMMAND | 0x80; // 0x90 — the byte the ring slot must end up holding (command + pending bit)
 const STACK_SCRATCH = 6; // dead bytes below entry SP: the oracle's own push (2) + the sound save (4)

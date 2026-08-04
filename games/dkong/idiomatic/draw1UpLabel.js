@@ -42,8 +42,8 @@
  *           and consume no flag it leaves; the oracle's terminal `ret` (an SP+2
  *           pop) is the modelled stack ABI the direct-call layer replaces with a
  *           JS return, so SP/pc are not live either.
- * NAMES:    none from ram.js — the three targets are video RAM (0x7400-0x77FF),
- *           outside ram.js's work-RAM map, so they stay local hex constants (the
+ * NAMES:    none from names.js — the three targets are video RAM (0x7400-0x77FF),
+ *           outside names.js's work-RAM map, so they stay local hex constants (the
  *           optimized layer held them hex for the same reason).
  */
 

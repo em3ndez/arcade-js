@@ -37,7 +37,7 @@
  *           matching the clearStridedBytes (0x30e4) sibling. DE is preserved (read-only).
  *           FLAGS are dropped as dead: the oracle's final `dec a` S/Z/H/PV/N and `add hl,de`
  *           C reach no traced conditional; each caller overwrites F before its next branch.
- * NAMES:    none from ram.js — HL/A/DE are caller-supplied; the routine references no fixed
+ * NAMES:    none from names.js — HL/A/DE are caller-supplied; the routine references no fixed
  *           game RAM address. The targets fall in the colour-RAM window (noted for context).
  *           0x0514 stays hex, in this header only.
  */

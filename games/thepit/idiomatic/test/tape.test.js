@@ -20,7 +20,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { Machine, resolveAllIdiomatic } from "../../machine.js";
 import manifest from "../../manifest.js";
-import { GAME_STATE, CREDIT_COUNT, PLAYER_X } from "../ram.js";
+import { GAME_STATE, CREDIT_COUNT, PLAYER_X } from "../names.js";
 import { runIdiomaticGame, runGeneratorGame } from "../../../../core/frame-stepped.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);

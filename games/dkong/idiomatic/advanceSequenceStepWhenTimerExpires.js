@@ -51,11 +51,11 @@
  *           a constant true on both paths (it cannot skip its own caller); no caller reads
  *           it, and its residual HL/A/F and the SP/PC churn are the dead caller-skip
  *           mechanism this boolean replaces.
- * NAMES:    SEQ_ADVANCE_PTR (0x63C0) — from ram.js; SUBSTATE_TIMER (0x6009) is named and
+ * NAMES:    SEQ_ADVANCE_PTR (0x63C0) — from names.js; SUBSTATE_TIMER (0x6009) is named and
  *           ticked inside the tickSubstateTimer callee.
  */
 
-import { SEQ_ADVANCE_PTR } from "./ram.js";
+import { SEQ_ADVANCE_PTR } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js";
 
 /**

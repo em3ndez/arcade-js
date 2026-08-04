@@ -42,7 +42,7 @@
  *           position + frame, and the display record. No register live-out (the oracle tail-jumps
  *           to the record builder, whose result is the whole output and lives in RAM).
  * NAMES:    CUR_TILE, NEXT_TILE, PRIZE_GATE, HAZARD_ACTIVE_COUNT, PLAYER_CELL_PTR, REACTION_STATE,
- *           REACTION_TIMER, PLAYER_FACING from ram.js; the pickup counters CRYSTAL_COUNT (0x8081) /
+ *           REACTION_TIMER, PLAYER_FACING from names.js; the pickup counters CRYSTAL_COUNT (0x8081) /
  *           DIAMOND_COUNT (0x8082) (roles clear here, not yet grounded across the game); the +20 latch is TREASURE_COLLECTED
  *           (0x8078) and the current scratch copy is EXPECTED_TILE (0x80a7); the ahead scratch
  *           copy is AHEAD_TILE_RAW (0x80a6) and the reaction
@@ -63,7 +63,7 @@ import {
   PLAYER_FACING,
   REACTION_PERIOD,
   AHEAD_TILE_RAW,
-} from "./ram.js";
+} from "./names.js";
 import { awardTenPoints } from "./awardTenPoints.js";
 import { awardTwentyPoints } from "./awardTwentyPoints.js";
 import { walkActor } from "./walkActor.js";

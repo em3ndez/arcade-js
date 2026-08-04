@@ -35,12 +35,12 @@
  *           (0x0DA7 overwrites A, then H then L) so they are neither reproduced nor
  *           compared; pc is the structural tail-jump target and is not compared
  *           (same treatment as loadSpriteObjectBlock's dropped ret/PC bookkeeping).
- * NAMES:    SEG_SUBTILE2 (0x63B0), SEG_KIND (0x63B3), SEG_ADDR2 (0x63AD) from ram.js —
+ * NAMES:    SEG_SUBTILE2 (0x63B0), SEG_KIND (0x63B3), SEG_ADDR2 (0x63AD) from names.js —
  *           the playfield line-segment end-cap scratch struct. The stamped tiles land in
  *           VRAM cells (0x70xx-0x77xx) reached through SEG_ADDR2's pointer value, kept hex.
  */
 
-import { SEG_SUBTILE2, SEG_ADDR2, SEG_KIND } from "./ram.js";
+import { SEG_SUBTILE2, SEG_ADDR2, SEG_KIND } from "./names.js";
 
 export function drawSegmentEndCap(m) {
   const { regs, mem } = m;

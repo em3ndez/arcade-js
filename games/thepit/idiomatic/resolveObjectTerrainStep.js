@@ -45,7 +45,7 @@
  *           targets' output is the whole result and lives in RAM (the walk path's E is set inside
  *           advanceObjectWalkFrame, already gated by its own test).
  * NAMES:    PRIZE_GATE, GOAL_TILE_LATCH, EXPECTED_TILE, NEXT_TILE, CUR_TILE, REACTION_STATE,
- *           REACTION_TIMER, PLAYER_FACING from ram.js. The reaction-timer reload source is REACTION_PERIOD (0x80a3) and the
+ *           REACTION_TIMER, PLAYER_FACING from names.js. The reaction-timer reload source is REACTION_PERIOD (0x80a3) and the
  *           raw-ahead scratch is AHEAD_TILE_RAW (0x80a6) (cleared here, roles not yet grounded
  *           across the game); the two expected-terrain tables live in ROM at 0x1b78 / 0x1ce0.
  *
@@ -63,7 +63,7 @@ import {
   PLAYER_FACING,
   REACTION_PERIOD,
   AHEAD_TILE_RAW,
-} from "./ram.js";
+} from "./names.js";
 import { stageObjectSpriteRecord } from "./stageObjectSpriteRecord.js";
 import { advanceObjectWalkFrame } from "./advanceObjectWalkFrame.js";
 

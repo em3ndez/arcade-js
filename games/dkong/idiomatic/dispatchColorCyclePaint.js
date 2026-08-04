@@ -37,11 +37,11 @@
  *           idiomatic paint arms, and the high arm's colour code (A) likewise — noted for the
  *           honest-signature capstone. SP/PC are the single net return the JS call stack replaces
  *           (the harness supplies one m.ret() to line them up).
- * NAMES:    BOARD (0x6227) from ram.js. The sweep counter 0x6390 stays hex — it is unnamed in
- *           ram.js (shared with the how-high interlude animation stepper). The stride and the
+ * NAMES:    BOARD (0x6227) from names.js. The sweep counter 0x6390 stays hex — it is unnamed in
+ *           names.js (shared with the how-high interlude animation stepper). The stride and the
  *           colour codes are immediates.
  */
-import { BOARD } from "./ram.js";
+import { BOARD } from "./names.js";
 import { runRivetColorCycleBlink } from "./runRivetColorCycleBlink.js"; // ROM 0x04be
 import { paintColorColumnWithLowCode } from "./paintColorColumnWithLowCode.js"; // ROM 0x04a1
 import { paintColorColumnAndHoldBlink } from "./paintColorColumnAndHoldBlink.js"; // ROM 0x04a3

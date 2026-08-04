@@ -30,11 +30,11 @@
  *           so SP/PC are not in the contract; its residual HL (= 0x620F), A and F are
  *           dead ABI — the exit successor loc_197a @ 0x1983 immediately does
  *           `call 0x1f72`, which reads none of them before overwriting.
- * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from ram.js (the ground walk/climb
+ * NAMES:    MARIO_MOVE_STEP_TIMER (0x620F) — from names.js (the ground walk/climb
  *           sub-step timer; control-poke confirmed there).
  */
 
-import { MARIO_MOVE_STEP_TIMER } from "./ram.js";
+import { MARIO_MOVE_STEP_TIMER } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

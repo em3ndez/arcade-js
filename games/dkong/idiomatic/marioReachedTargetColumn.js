@@ -43,11 +43,11 @@
  *           untouched. The oracle's residual registers/flags and its stack drop are
  *           dead — the JS call stack and the boolean carry the control flow.
  * NAMES:    MARIO_X (0x6203), MARIO_Y (0x6205), MARIO_AIRBORNE (0x6216) — all from
- *           ram.js. The target byte is read through the caller's pointer (no fixed
- *           address of its own), so it carries no ram.js name here.
+ *           names.js. The target byte is read through the caller's pointer (no fixed
+ *           address of its own), so it carries no names.js name here.
  */
 
-import { MARIO_X, MARIO_Y, MARIO_AIRBORNE } from "./ram.js";
+import { MARIO_X, MARIO_Y, MARIO_AIRBORNE } from "./names.js";
 import { reportNoHitAndSkipCaller } from "./reportNoHitAndSkipCaller.js"; // ROM 0x2257 — the shared no-hit caller-skip tail
 
 // Mario's Y must be numerically under this for the hit to register. Larger Y is LOWER on

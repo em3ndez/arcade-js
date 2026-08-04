@@ -46,7 +46,7 @@ import { armTwoPlayerBoardSetup } from "../armTwoPlayerBoardSetup.js";
 import { enqueueTask } from "../enqueueTask.js";
 import { loc_09ee } from "../../translated/loc_09ee.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

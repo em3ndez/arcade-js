@@ -44,10 +44,10 @@
  *           exactly; they become dead-stack once loc_1e28 is itself decompiled.
  * NAMES:    none in this body — it reads only register A and writes registers DE/B. loc_1e28
  *           (ROM 0x1E28) is the callee, imported from translated/ (the frozen oracle, not yet
- *           decompiled) and called directly; loc_1e28 owns all the RAM writes and ram.js names.
+ *           decompiled) and called directly; loc_1e28 owns all the RAM writes and names.js names.
  */
 // ROM 0x1E28 — the FROZEN ORACLE tail, deliberately. An idiomatic twin (awardScorePopup.js)
-// exists and 0x1E28 is in ram.js's ROUTINES, so "no idiomatic yet" would be false. The oracle
+// exists and 0x1E28 is in names.js's ROUTINES, so "no idiomatic yet" would be false. The oracle
 // ends in a `ret` that returns on this routine's behalf; the twin returns in JS and leaves SP at
 // entry. MEASURED — swapping it fails this routine's own equivalence gate with a contract diff
 // at SP (oracle 0x6BF0 vs idiomatic 0x6BEE) on the arm that reaches it.

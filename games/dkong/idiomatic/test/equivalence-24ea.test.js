@@ -57,7 +57,7 @@ import {
   M50_OBJ2_STEP_POS,
   M50_OBJ2_STEP_NEG,
   M50_OBJ3_STEP,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));
@@ -69,7 +69,7 @@ const test = ROM_PRESENT
 const TARGET = 0x24ea;
 const RECORD_COUNT = 6;
 const SLOT_STRIDE = 0x10;
-const SPRITE_BASE = 0x69b8;   // per-record sprite block inside SPRITE_BUFFER (unnamed in ram.js)
+const SPRITE_BASE = 0x69b8;   // per-record sprite block inside SPRITE_BUFFER (unnamed in names.js)
 const SPRITE_STRIDE = 0x04;
 const SPRITE_SENTINEL = 0xee; // preset into each sprite slot; a copy overwrites it, a skip leaves it
 const SAFE_SP = 0x6bf8;       // re-seat SP here so all oracle stack churn stays in STACK_SCRATCH

@@ -33,10 +33,10 @@
  * LIVE-OUT: memory-only (writes none) — the control-flow boolean is the whole output; the
  *           SP/PC/flags the oracle leaves are the dead Z80 return mechanism the JS return
  *           replaces.
- * NAMES:    FRAME (0x601A) from ram.js.
+ * NAMES:    FRAME (0x601A) from names.js.
  */
 
-import { FRAME } from "./ram.js";
+import { FRAME } from "./names.js";
 
 export function loc_3126(m) {
   // Proceed on every frame except the one in four where the frame counter's low two bits

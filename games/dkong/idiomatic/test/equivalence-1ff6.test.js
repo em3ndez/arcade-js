@@ -66,7 +66,7 @@ import { loc_2038 as oracle2038 } from "../../translated/loc_2038.js";
 import { loc_1ff6 } from "../loc_1ff6.js";
 import { advanceBarrelSpriteOrientation } from "../advanceBarrelSpriteOrientation.js";
 import { snapYToGirder, snapYToGirderFromRegisters } from "../snapYToGirder.js";
-import { OBJ_X, OBJ_Y, STACK_SCRATCH } from "../ram.js";
+import { OBJ_X, OBJ_Y, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -59,10 +59,10 @@
  *           any gate it selects writes RAM. The oracle's stack churn and its two-word
  *           caller-skip discard are the Z80 return mechanism the boolean replaces; they land
  *           in STACK_SCRATCH and are dead.
- * NAMES:    DIFFICULTY (0x6380) from ram.js; the gates read FRAME (0x601A) themselves.
+ * NAMES:    DIFFICULTY (0x6380) from names.js; the gates read FRAME (0x601A) themselves.
  */
 
-import { DIFFICULTY } from "./ram.js";
+import { DIFFICULTY } from "./names.js";
 import { loc_3110 } from "./loc_3110.js";
 import { loc_311b } from "./loc_311b.js";
 import { loc_3126 } from "./loc_3126.js";

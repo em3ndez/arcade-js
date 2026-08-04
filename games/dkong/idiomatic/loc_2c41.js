@@ -46,7 +46,7 @@
  *           This head references no named work RAM directly — the seed cells (RANDOM/FRAME/SPIN_COUNT)
  *           live inside stirRandomSeed and the slot-claim cells inside the two mode entries;
  *           BARREL_CLAIM_MODE (0x6382), the barrel slot-claim mode byte whose low bits carry the
- *           claim's mode value and whose bit 7 selects the barrel kind, is imported from ram.js
+ *           claim's mode value and whose bit 7 selects the barrel kind, is imported from names.js
  *           inside those entries.
  */
 

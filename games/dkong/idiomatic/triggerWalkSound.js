@@ -30,11 +30,11 @@
  *           A = 3 is dead ABI. pc/SP are not live either: the oracle models its
  *           terminal `ret` with m.step/m.ret (advancing pc to the popped return
  *           address, SP+2); the direct-call layer replaces that with a JS return.
- * NAMES:    SND_TRIGGER (ram.js, 0x6080 — base of the [8] sound-trigger shadow;
+ * NAMES:    SND_TRIGGER (names.js, 0x6080 — base of the [8] sound-trigger shadow;
  *           index 0 = the "walk" effect). The 3-frame hold is a local const.
  */
 
-import { SND_TRIGGER } from "./ram.js"; // 0x6080 — SND_TRIGGER[0] = walk (ls259.6h bit 0)
+import { SND_TRIGGER } from "./names.js"; // 0x6080 — SND_TRIGGER[0] = walk (ls259.6h bit 0)
 
 // Game code asserts a sound by storing a small frame count into its trigger shadow;
 // soundDriverTick (ROM 0x00E0) counts it down, so 3 holds the walk latch for 3 frames.

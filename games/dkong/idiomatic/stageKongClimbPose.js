@@ -67,7 +67,7 @@
  *           oracle's residual A/HL/DE/BC/flags are dead ABI, and its SP/pc are the Z80
  *           caller-skip / tail-jump mechanism the boolean gate and direct call replace.
  * NAMES:    SUBSTATE_TIMER (0x6009, inside tickSubstateTimer) and SPRITE_OBJ_BLOCK (0x6908)
- *           from ram.js. Hex-kept: ROM template base 0x388C (an immediate); 0x62AF, which
+ *           from names.js. Hex-kept: ROM template base 0x388C (an immediate); 0x62AF, which
  *           pass 15 deliberately left unnamed because it is multiplexed — the 1-in-8 animation
  *           phase animateSpriteObjectBlock drives during the climb, a 256-frame down-counter
  *           in loc_18c6.
@@ -76,14 +76,14 @@
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
 import { advanceInterludeStepAndLiftKongFigure } from "./advanceInterludeStepAndLiftKongFigure.js"; // ROM 0x1662 (jp — shared board-advance tail)
-import { SPRITE_OBJ_BLOCK } from "./ram.js";
+import { SPRITE_OBJ_BLOCK } from "./names.js";
 
 const COPY_SOURCE = 0x388c; // ROM base of this step's 40-byte sprite-object template
 const STAMP_ADDR = SPRITE_OBJ_BLOCK + 0x04; // 0x690C — a copied byte forced back to 0x66
 const STAMP_VALUE = 0x66;
 const CLEAR_A = SPRITE_OBJ_BLOCK + 0x1c; // 0x6924
 const CLEAR_B = SPRITE_OBJ_BLOCK + 0x24; // 0x692C
-const BOARD_BOOKKEEPING = 0x62af; // the next step's animation phase; multiplexed, unnamed in ram.js
+const BOARD_BOOKKEEPING = 0x62af; // the next step's animation phase; multiplexed, unnamed in names.js
 
 export function stageKongClimbPose(m) {
   const { regs, mem } = m;

@@ -30,11 +30,11 @@
  *           oracle, but are DEAD: the sole caller loc_12de reloads HL and A immediately
  *           (`ld hl,0x600a` / `ld a,(0x600e)`) and reads no flags. Checked in the gate as
  *           a free extra pin, not required. FLAGS dropped as dead.
- * NAMES:    MARIO_SPRITE_RECORD (0x694C) from ram.js. 0x6958–0x696C kept hex — unnamed
+ * NAMES:    MARIO_SPRITE_RECORD (0x694C) from names.js. 0x6958–0x696C kept hex — unnamed
  *           sprite-shadow records inside SPRITE_BUFFER (0x6900), passed to the callee as
  *           HL/B, not fixed game-state fields. Callee: clearStridedBytes (ROM 0x30e4).
  */
-import { MARIO_SPRITE_RECORD } from "./ram.js";
+import { MARIO_SPRITE_RECORD } from "./names.js";
 import { clearStridedBytes } from "./clearStridedBytes.js";
 
 export function loc_30db(m) {

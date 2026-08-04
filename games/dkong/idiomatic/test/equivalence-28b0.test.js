@@ -52,7 +52,7 @@ import {
   OBJ_ARRAY_64,
   OBJ_ARRAY_65A0,
   OBJ_RECORD_66A0,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

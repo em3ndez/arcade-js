@@ -46,7 +46,7 @@
  * NAME: promoted from loc_276f in understanding pass 15 (proposer != confirmer; both
  * derivations independently said "one pixel UP the screen"). Corroboration from OUTSIDE the
  * routine (R5). The direction rests on a named cell's grounded convention, not on a reading:
- * MARIO_Y (0x6205) is `[seen]` in ram.js as "larger = lower on screen", so this arm's `dec`
+ * MARIO_Y (0x6205) is `[seen]` in names.js as "larger = lower on screen", so this arm's `dec`
  * is up. The lockstep was then measured on a real 75m ride: over 199 flag-set frames
  * liftY - MARIO_Y took only the values 11 and 12 with ZERO drift, Mario's Y and the lift's Y
  * each moved exactly -49 px over the same 198 frames, and Mario's sprite-record Y (0x694F)
@@ -72,10 +72,10 @@
  *           dead ABI — the equivalence test still lines pc + SP up to prove the dissolved
  *           tail-jump bracket matches.
  * NAMES:    MARIO_Y (0x6205), MARIO_SPRITE_RECORD (0x694C) + SPRITE_Y (+3 = 0x694F) from
- *           ram.js; killMarioAtEndOfLiftTravel (ROM 0x277F) direct-called for the kill.
+ *           names.js; killMarioAtEndOfLiftTravel (ROM 0x277F) direct-called for the kill.
  */
 
-import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y } from "./ram.js";
+import { MARIO_Y, MARIO_SPRITE_RECORD, SPRITE_Y } from "./names.js";
 import { killMarioAtEndOfLiftTravel } from "./killMarioAtEndOfLiftTravel.js"; // ROM 0x277F — the kill at this arm's limit
 
 // MARIO_Y below this = he has been carried up to row 112 or above (smaller Y is higher on

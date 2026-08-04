@@ -34,11 +34,11 @@
  * LIVE-OUT: memory (the five or six digit cells) + the advanced buffer pointer.
  *           The scratch digit/flag state the oracle leaves behind is dead (the
  *           caller reloads the pointer for its next record and reads nothing else).
- * NAMES:    SCORE_DISPLAY_LOW (0x8037) / SCORE_DISPLAY_HIGH (0x8038) from ram.js — the
+ * NAMES:    SCORE_DISPLAY_LOW (0x8037) / SCORE_DISPLAY_HIGH (0x8038) from names.js — the
  *           staged score value low/high byte. The destination buffer is the caller-supplied pointer.
  */
 
-import { SCORE_DISPLAY_HIGH, SCORE_DISPLAY_LOW } from "./ram.js";
+import { SCORE_DISPLAY_HIGH, SCORE_DISPLAY_LOW } from "./names.js";
 export function unpackScoreDigits(m) {
   const { regs, mem8 } = m;
 

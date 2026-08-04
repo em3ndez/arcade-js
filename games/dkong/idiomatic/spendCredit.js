@@ -30,12 +30,12 @@
  *           oracle's residual A/HL/F are dead ABI. pc/SP are the dropped stack model — the
  *           oracle's push16+call+ret becomes a plain JS call here — so the only oracle-vs-
  *           idiomatic residue is the pushed bytes in STACK_SCRATCH, excluded by the contract.
- * NAMES:    CREDITS (0x6001) from ram.js. Hex-kept: 0x0400 = the credit task message
+ * NAMES:    CREDITS (0x6001) from names.js. Hex-kept: 0x0400 = the credit task message
  *           (D = opcode 0x04, E = arg 0x00). enqueueTask imported for the ROM 0x309F callee.
  */
 
 import { enqueueTask } from "./enqueueTask.js"; // ROM 0x309F
-import { CREDITS } from "./ram.js";
+import { CREDITS } from "./names.js";
 
 const CREDIT_TASK = 0x0400; // enqueueTask message: D = opcode 0x04, E = arg 0x00
 

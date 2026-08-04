@@ -51,7 +51,7 @@ import {
   BOARD,
   COLOUR_CYCLE_ACTIVE,
   FRAME,
-} from "../ram.js";
+} from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -65,9 +65,9 @@ const TARGET = 0x0400;
 const SIBLING = 0x03fb;      // reachable capture point (0x0400 == loc_03fb entered later)
 const F_Z = 0x40;            // Z flag bit in F
 const RET_ADDR = 0x19b3;     // a plausible caller-return for the one net pop (any value works)
-const THIRD_REC_X = 0x6910;  // SPRITE_OBJ_BLOCK + 8: X byte of the block's third record (no ram.js name)
+const THIRD_REC_X = 0x6910;  // SPRITE_OBJ_BLOCK + 8: X byte of the block's third record (no names.js name)
 const ROW_BIAS = 0x3b;       // the 50m arm's subtraction offset
-const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed in ram.js — kept hex)
+const SWEEP_COUNTER = 0x6390; // colour-cycle sweep counter (unnamed in names.js — kept hex)
 const OBJ_RELOAD_GATE = 0x6393; // advanceColorCycleSweep's reload gate (from the 0413 gate)
 
 // coin on IN2 bit7 @f10, start1 on IN2 bit2 @f30 — credits + starts a game so loc_197a's

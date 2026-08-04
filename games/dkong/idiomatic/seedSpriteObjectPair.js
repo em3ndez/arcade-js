@@ -50,7 +50,7 @@
  *           oracle's terminal `ret` (SP/PC) is the dropped control-flow model — the JS
  *           call stack replaces it — so pc/SP carry no residue and are not compared.
  * NAMES:    OBJ_PAIR_6680 (0x6680, rec0) + its +0x10 sibling (0x6690, rec1), and the field
- *           offsets OBJ_X/OBJ_SPRITE_CODE/OBJ_ACTIVE — from ram.js. The sprite destination
+ *           offsets OBJ_X/OBJ_SPRITE_CODE/OBJ_ACTIVE — from names.js. The sprite destination
  *           0x6A18 falls inside SPRITE_BUFFER (0x6900–0x6A7F) but stays hex, matching
  *           gatherSpriteRecords.
  */
@@ -58,7 +58,7 @@
 import { copyBytePairsStrided } from "./copyBytePairsStrided.js";
 import { replicateGroupStrided } from "./replicateGroupStrided.js";
 import { gatherSpriteRecords } from "./gatherSpriteRecords.js";
-import { OBJ_PAIR_6680, OBJ_ACTIVE, OBJ_X, OBJ_SPRITE_CODE } from "./ram.js";
+import { OBJ_PAIR_6680, OBJ_ACTIVE, OBJ_X, OBJ_SPRITE_CODE } from "./names.js";
 
 export function seedSpriteObjectPair(m) {
   const { regs, mem } = m;

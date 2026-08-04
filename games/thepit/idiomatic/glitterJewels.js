@@ -26,11 +26,11 @@
  * LIVE-OUT: memory-only — the caller overwrites every register this leaves before
  *           reading it, so nothing is live out; SP/pc are the modelled return the
  *           direct-call layer drops.
- * NAMES:    GLITTER_COUNTDOWN (0x805c) from ram.js is the countdown work-RAM byte; the
- *           cell targets are colour/video RAM outside ram.js's work-RAM map and stay hex.
+ * NAMES:    GLITTER_COUNTDOWN (0x805c) from names.js is the countdown work-RAM byte; the
+ *           cell targets are colour/video RAM outside names.js's work-RAM map and stay hex.
  */
 
-import { GLITTER_COUNTDOWN } from "./ram.js";
+import { GLITTER_COUNTDOWN } from "./names.js";
 
 // Countdown value → the cell it recolours:
 //   [ colour-RAM cell (written), video-RAM cell (read), animating glyph, resting colour ]

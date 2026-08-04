@@ -60,7 +60,7 @@ import {
   TWO_PLAYER_GAME,
   SUBSTATE_TIMER,
   GAME_SUBSTATE,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

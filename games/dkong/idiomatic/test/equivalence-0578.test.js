@@ -51,7 +51,7 @@ import { loc_0583 as loopOracle } from "../../translated/loc_0583.js";
 import { renderBcdColumnFixedCell as loc_0578 } from "../renderBcdColumnFixedCell.js";
 import { expandBcdDigits } from "../expandBcdDigits.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

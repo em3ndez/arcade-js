@@ -36,10 +36,10 @@
  *           oracle's SP/PC churn is the rst-0x18 caller-skip mechanism this boolean
  *           early-return replaces (not part of the contract); the dispatcher ignores
  *           the handler's residual A/C/F/HL.
- * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), P1_CONTEXT (0x6040) — ram.js.
+ * NAMES:    SUBSTATE_TIMER (0x6009), GAME_SUBSTATE (0x600A), P1_CONTEXT (0x6040) — names.js.
  */
 
-import { SUBSTATE_TIMER, GAME_SUBSTATE, P1_CONTEXT } from "./ram.js";
+import { SUBSTATE_TIMER, GAME_SUBSTATE, P1_CONTEXT } from "./names.js";
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018
 
 export function loc_13a1(m) {

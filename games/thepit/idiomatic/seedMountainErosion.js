@@ -31,13 +31,13 @@
  *           ring on the cued arm. The oracle's exit registers, flags and Z80 return
  *           path are dead scratch a plain JS call replaces.
  * NAMES:    LEVEL (0x8028), STEP_TIMER_BASE (0x804f), MOUNTAIN_ERODE_PTR (0x8065) and
- *           MOUNTAIN_ERODE_TIMER (0x8067) from ram.js; the tilemap cells (0x9104 / 0x9264 /
+ *           MOUNTAIN_ERODE_TIMER (0x8067) from names.js; the tilemap cells (0x9104 / 0x9264 /
  *           0x90e4 / 0x90c4) stay hex. Delegates the sound cue to requestSound21, which
  *           owns the sound-ring addresses.
  */
 import { requestSound21 } from "./requestSound21.js";
 
-import { MOUNTAIN_ERODE_TIMER, MOUNTAIN_ERODE_PTR, LEVEL, STEP_TIMER_BASE } from "./ram.js";
+import { MOUNTAIN_ERODE_TIMER, MOUNTAIN_ERODE_PTR, LEVEL, STEP_TIMER_BASE } from "./names.js";
 export function seedMountainErosion(m) {
   const { mem8, mem16 } = m;
 

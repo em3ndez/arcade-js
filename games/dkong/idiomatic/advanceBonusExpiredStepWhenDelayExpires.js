@@ -27,10 +27,10 @@
  * LIVE-OUT: memory-only — BONUS_EXPIRED_DELAY decremented, and BONUS_EXPIRED_STEP set
  *           to 3 on the underflow frame. No live registers/flags (the oracle's residual
  *           A/HL/F are dead ABI; SP/PC are the Z80 return mechanism, not the contract).
- * NAMES:    BONUS_EXPIRED_DELAY (0x6387), BONUS_EXPIRED_STEP (0x6386) — from ram.js.
+ * NAMES:    BONUS_EXPIRED_DELAY (0x6387), BONUS_EXPIRED_STEP (0x6386) — from names.js.
  */
 
-import { BONUS_EXPIRED_DELAY, BONUS_EXPIRED_STEP } from "./ram.js";
+import { BONUS_EXPIRED_DELAY, BONUS_EXPIRED_STEP } from "./names.js";
 
 /**
  * @param {object} m  the machine (uses m.mem only).

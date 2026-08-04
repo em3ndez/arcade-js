@@ -37,16 +37,16 @@
  *           oracle's residual A(=0x20)/DE(=0x0201)/HL/flags are dead ABI. pc/SP are the
  *           dropped stack model — loc_09ee's `ret` becomes the JS return, so the sole
  *           oracle-vs-idiomatic residue is the pushed bytes in STACK_SCRATCH (excluded).
- * NAMES:    GAME_SUBSTATE (0x600A) from ram.js; imports enqueueTask (idiomatic ROM 0x309F)
+ * NAMES:    GAME_SUBSTATE (0x600A) from names.js; imports enqueueTask (idiomatic ROM 0x309F)
  *           and the loc_09ee oracle (ROM 0x09EE, not yet decompiled). The two latches live
- *           in the 0x7D00-page board control space (not work RAM, so not in ram.js) and
+ *           in the 0x7D00-page board control space (not work RAM, so not in names.js) and
  *           stay hex; the task opcode/argument bytes are literal message payloads.
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE } from "./names.js";
 import { enqueueTask } from "./enqueueTask.js";
 // ROM 0x09EE — the FROZEN ORACLE, deliberately. An idiomatic twin (draw2UpLabel.js) exists and
-// 0x09EE is in ram.js's ROUTINES, so this is NOT a "no idiomatic yet" import. It stays because
+// 0x09EE is in names.js's ROUTINES, so this is NOT a "no idiomatic yet" import. It stays because
 // this is a tail FALL-THROUGH: loc_09ee's own Z80 `ret` is what returns from this routine, and
 // draw2UpLabel models that return as a JS `return` and leaves pc/SP at entry. MEASURED — swapping
 // it fails this routine's own equivalence gate: pc oracle=0x00D2 (the popped NMI continuation)
@@ -55,7 +55,7 @@ import { enqueueTask } from "./enqueueTask.js";
 import { loc_09ee } from "../translated/loc_09ee.js";
 
 // Two board control latches this arm clears to 0. They live in the 0x7D00-page board
-// control space (0x7D86, 0x7D87), NOT work RAM, so they are not in ram.js and stay hex.
+// control space (0x7D86, 0x7D87), NOT work RAM, so they are not in names.js and stay hex.
 // sub_0a1b (ROM 0x0A1B) clears the identical pair with the same `xor a / ld (nn),a` opener.
 const BOARD_CONTROL_LATCH_A = 0x7d86;
 const BOARD_CONTROL_LATCH_B = 0x7d87;

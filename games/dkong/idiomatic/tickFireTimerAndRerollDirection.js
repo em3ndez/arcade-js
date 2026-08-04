@@ -52,12 +52,12 @@
  *           residual registers/flags and its terminal return are dead — the
  *           caller issues its next work without reading them; the record pointer
  *           is unchanged.
- * NAMES:    RANDOM (0x6018) from ram.js. The two touched cells are object-record
+ * NAMES:    RANDOM (0x6018) from names.js. The two touched cells are object-record
  *           fields at pointer+0x16 (timer) and pointer+0x0d (state); neither has a
- *           ram.js name (the record layout is not yet named) — reported for the lead.
+ *           names.js name (the record layout is not yet named) — reported for the lead.
  */
 
-import { RANDOM } from "./ram.js";
+import { RANDOM } from "./names.js";
 
 const TIMER = 0x16; // object-record field: periodic countdown
 const STATE = 0x0d; // object-record field: 0/1 phase, advanced on a random beat

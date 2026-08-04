@@ -45,7 +45,7 @@ import { loc_3126 as oracle } from "../../translated/loc_3126.js";
 import { loc_3126 } from "../loc_3126.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { FRAME } from "../ram.js";
+import { FRAME } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

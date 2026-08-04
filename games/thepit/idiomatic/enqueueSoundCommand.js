@@ -23,9 +23,9 @@
  *           pointer (SOUND_HEAD). The command-with-high-bit and flags the oracle leaves
  *           behind are dead scratch no caller reads; the two saved-and-restored register
  *           pairs it parks on the stack are dead too.
- * NAMES:    SOUND_HEAD (ring write pointer), SOUND_RING (8-slot buffer base) from ram.js.
+ * NAMES:    SOUND_HEAD (ring write pointer), SOUND_RING (8-slot buffer base) from names.js.
  */
-import { SOUND_HEAD, SOUND_RING } from "./ram.js";
+import { SOUND_HEAD, SOUND_RING } from "./names.js";
 
 export function enqueueSoundCommand(m, commandIndex = m.regs.a) {
   const { mem8 } = m;

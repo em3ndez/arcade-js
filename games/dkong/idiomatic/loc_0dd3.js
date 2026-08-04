@@ -54,7 +54,7 @@
  *           so the test asserts it directly. A/HL/BC are reloaded by the renderers
  *           or dead in the successor; SP/pc are the dropped stack model (the oracle's
  *           push/call/ret becomes the JS call stack).
- * NAMES:    the segment scratch is the SEG_* cluster in ram.js (SEG_ADDR1/SEG_ADDR2/
+ * NAMES:    the segment scratch is the SEG_* cluster in names.js (SEG_ADDR1/SEG_ADDR2/
  *           SEG_SUBTILE1/SEG_SUBTILE2/SEG_HEIGHT/SEG_RUN/SEG_KIND) — imported and used
  *           below. Kept loc_ pending its own confirmer (proposer!=confirmer): the sibling
  *           record routines it once matched as "neutral" are already named — the walk head
@@ -66,7 +66,7 @@
 
 // ROM 0x2FF0 — (y,x) -> tile address. The FROZEN ORACLE deliberately: an idiomatic twin exists
 // (tileAddrForPixel.js, machine-shaped entry tileAddrForPixelFromRegisters) and 0x2FF0 is in
-// ram.js's ROUTINES, so "no idiomatic yet" is FALSE. Unlike the two segment drawers below, this
+// names.js's ROUTINES, so "no idiomatic yet" is FALSE. Unlike the two segment drawers below, this
 // one is NOT stack-neutral: 0x2FF0 is a pure leaf ending in `ret`, consuming a guest-stack word
 // the twin's JS return does not. Left because no gate here can prove the swap safe — the 2-byte
 // delta was injected at this call site and neither this routine's equivalence gate (RAM + DE
@@ -77,7 +77,7 @@ import { loc_2ff0 } from "../translated/loc_2ff0.js";
 import { drawLadder } from "./drawLadder.js"; //         ROM 0x0E4F — ladder (kind 2) / strip (kind 3+) drawer
 import { drawGirderSpan } from "./drawGirderSpan.js"; // ROM 0x0E19 — girder-span fill + end cap
 
-// Board-render line-segment scratch, all named in ram.js (SEG_* cluster):
+// Board-render line-segment scratch, all named in names.js (SEG_* cluster):
 //   SEG_HEIGHT   0x63b1  |y2 - y| — the segment's height/length counter
 //   SEG_RUN      0x63b2  x2 - x — the horizontal run (down-counted 8px/tile by loc_0e19)
 //   SEG_SUBTILE2 0x63b0  x2 & 7 — the second point's sub-tile x
@@ -93,7 +93,7 @@ import {
   SEG_SUBTILE1,
   SEG_ADDR1,
   SEG_KIND,
-} from "./ram.js";
+} from "./names.js";
 
 export function loc_0dd3(m) {
   const { regs, mem } = m;

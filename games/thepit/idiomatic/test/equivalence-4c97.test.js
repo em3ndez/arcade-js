@@ -52,7 +52,7 @@ import { loc_4c97 as oracle } from "../../translated/loc_4c97.js";
 import { requestSound18 as idiomatic } from "../requestSound18.js";
 import { loc_4c57 as siblingStub } from "../../translated/loc_4c57.js";
 import { makeMachineFactory } from "../../machine.js";
-import { SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

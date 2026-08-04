@@ -38,7 +38,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_066a as oracle } from "../../translated/loc_066a.js";
 import { renderBonusDisplay } from "../renderBonusDisplay.js";
 import { stampTwoDigitField } from "../stampTwoDigitField.js";
-import { SND_BGM } from "../ram.js";
+import { SND_BGM } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

@@ -10,7 +10,7 @@
  * fall-through). This is the branch reached when record field +1 is not 1 and record
  * field +2 has bit 1 set with bit 0 clear; its own body is the register-set swap below,
  * one increment of OBJ_X, and the two values it hands the tail. The "forward step"
- * reading rests on two things outside this body: OBJ_X (+3) is a live-grounded ram.js
+ * reading rests on two things outside this body: OBJ_X (+3) is a live-grounded names.js
  * name, and the mirror branch at ROM 0x1FEF is the same three operations with the sign
  * flipped — it DECREMENTS the same field and stages the mirrored pair (0xFF and 4
  * against this branch's 1 and 0).
@@ -77,12 +77,12 @@
  *           and the rest of the register file — survives unchanged, because the frozen
  *           tail runs the whole rest of the sweep and returns through the same `ret`;
  *           the gate compares those too, as extras beyond the required contract.
- * NAMES:    OBJ_X (record +3) from ram.js. ROM 0x1FF6 has no idiomatic twin in ROUTINES yet, so it
+ * NAMES:    OBJ_X (record +3) from names.js. ROM 0x1FF6 has no idiomatic twin in ROUTINES yet, so it
  *           is still reached through m.call; it is entered by a jump, not a call, so
  *           there is no return address to push beside it.
  */
 
-import { OBJ_X } from "./ram.js";
+import { OBJ_X } from "./names.js";
 
 // Staged for the tail, which takes both out of the shadow register set.
 const GIRDER_SNAP_STEP = 1; // snapYToGirder's step selector: snap on the offset-0 edge

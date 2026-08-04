@@ -68,7 +68,7 @@ import { loc_031a as oracleRoundInit } from "../../translated/loc_031a.js";
 import { loc_3dae as reachableOracle } from "../../translated/loc_3dae.js";
 
 import { makeMachineFactory } from "../../machine.js";
-import { LOOP_COUNTER, COLOUR_RAM_CURSOR } from "../ram.js";
+import { LOOP_COUNTER, COLOUR_RAM_CURSOR } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

@@ -49,7 +49,7 @@ import { loc_298c as oracle } from "../../translated/loc_298c.js";
 import { loc_298c } from "../loc_298c.js";
 import { tileAddrForPixel } from "../tileAddrForPixel.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, OBJ_ITER_PTR } from "../ram.js";
+import { STACK_SCRATCH, OBJ_ITER_PTR } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

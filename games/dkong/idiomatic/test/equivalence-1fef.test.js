@@ -72,7 +72,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_1fef as oracle } from "../../translated/loc_1fef.js";
 import { loc_1ff6 as tailOracle } from "../../translated/loc_1ff6.js";
 import { loc_1fef } from "../loc_1fef.js";
-import { OBJ_X, STACK_SCRATCH } from "../ram.js";
+import { OBJ_X, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);

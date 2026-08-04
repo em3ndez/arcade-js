@@ -48,13 +48,13 @@
  *           task returns to the top of the main loop, which reloads its registers, so
  *           the oracle's residual registers/flags are dead; they are reproduced here
  *           only for extra teeth.
- * NAMES:    P1_SCORE (0x60B2), P2_SCORE (0x60B5) from ram.js — the source is that base
+ * NAMES:    P1_SCORE (0x60B2), P2_SCORE (0x60B5) from names.js — the source is that base
  *           plus 2 (the most-significant BCD pair). The high score's source and all
  *           three destination columns are owned by the callees. loc_056b (ROM 0x056B)
  *           and drawHighScore (ROM 0x05DA) are direct-called.
  */
 
-import { P1_SCORE, P2_SCORE } from "./ram.js";
+import { P1_SCORE, P2_SCORE } from "./names.js";
 import { loc_056b } from "./loc_056b.js"; // ROM 0x056B — column-selecting BCD renderer
 import { drawHighScore } from "./drawHighScore.js"; // ROM 0x05DA — fixed-column high-score tail
 import { NotImplemented } from "../../../boards/dkong/io.js";

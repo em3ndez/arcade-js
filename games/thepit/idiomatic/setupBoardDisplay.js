@@ -27,10 +27,10 @@
  *           (sprite/attribute RAM, the tilemap, the colour RAM, the sprite-staging
  *           block). No register or flag is live out: the callers return straight
  *           through this routine's tail.
- * NAMES:    BOARD_MODE (0x8057) from ram.js — the byte recorded here and reused as the
+ * NAMES:    BOARD_MODE (0x8057) from names.js — the byte recorded here and reused as the
  *           screen-wide fill colour. The four setup helpers name their own regions.
  */
-import { BOARD_MODE } from "./ram.js";
+import { BOARD_MODE } from "./names.js";
 import { clearSpriteAndAttributeRam } from "./clearSpriteAndAttributeRam.js";
 import { fillVideoRam } from "./fillVideoRam.js";
 import { fillColorRam } from "./fillColorRam.js";

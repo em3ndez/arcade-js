@@ -24,11 +24,11 @@
  *           by one caller-return in the gate; no successor reads a register or flag left
  *           behind here.
  * NAMES:    MARIO_Y (0x6205), MARIO_AIR_START_Y (0x620E), MARIO_FATAL_FALL (0x6220),
- *           SND_TRIGGER (0x6080; +4 is the sound latch this fires) — all from ram.js.
+ *           SND_TRIGGER (0x6080; +4 is the sound latch this fires) — all from names.js.
  */
 
 import { u8 } from "../../../core/int.js";
-import { MARIO_Y, MARIO_AIR_START_Y, MARIO_FATAL_FALL, SND_TRIGGER } from "./ram.js";
+import { MARIO_Y, MARIO_AIR_START_Y, MARIO_FATAL_FALL, SND_TRIGGER } from "./names.js";
 import { writeMarioSpriteRecord } from "./writeMarioSpriteRecord.js"; // ROM 0x1DA6
 
 export function markFatalFallByHeight(m) {

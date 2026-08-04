@@ -40,13 +40,13 @@
  *           direct-call caller. Every other register/flag it leaves is dead ABI.
  * NAMES:    SUBTILE_PHASE (0x808d, object sub-tile phase), PROBE_CELL_PTR (0x8089,
  *           object tilemap pointer) and SAVED_CELL_PTR (0x8134, the advanced-pointer
- *           scratch) from ram.js.
+ *           scratch) from names.js.
  *
  * PURPOSE [guess]: "Ahead"=the +32 MEMORY-row offset, NOT a screen direction; tables unpinned.
  */
 
 import { F_Z } from "../../../core/cpu/z80.js";
-import { PROBE_CELL_PTR, SAVED_CELL_PTR, SUBTILE_PHASE } from "./ram.js";
+import { PROBE_CELL_PTR, SAVED_CELL_PTR, SUBTILE_PHASE } from "./names.js";
 
 
 const FIRST_TABLE = 0x34fe; // base of the first valid-tile table (rows of 32)

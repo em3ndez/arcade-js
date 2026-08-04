@@ -37,10 +37,10 @@
  * LIVE-OUT: memory-only — the advanced target position and the stored cell pointer. The
  *           cell it computes is passed to the embed continuation as an argument, so no
  *           register crosses that boundary; the residual working registers/flags are dead.
- * NAMES:    HAZARD_X, HAZARD_Y from ram.js. The live carve cursor is CARVE_CELL_PTR (0x80af).
+ * NAMES:    HAZARD_X, HAZARD_Y from names.js. The live carve cursor is CARVE_CELL_PTR (0x80af).
  */
 
-import { HAZARD_X, HAZARD_Y, CARVE_CELL_PTR } from "./ram.js";
+import { HAZARD_X, HAZARD_Y, CARVE_CELL_PTR } from "./names.js";
 import { stageDigObjectSpriteRecord } from "./stageDigObjectSpriteRecord.js";
 import { u8 } from "../../../core/int.js";
 import { landDigTarget } from "./landDigTarget.js";

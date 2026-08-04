@@ -39,12 +39,12 @@
  *           and derive fresh flags
  *           with a `cp` before any branch, so those residual flags — and the register
  *           churn copyByteDisplaced leaves in HL/A/F — are dead ABI.
- * NAMES:    INTRO_SCROLL_INDEX (0x638E) from ram.js. 0x7600 / 0x75C0 (video-RAM cell bases)
- *           and 0xFFE0 (−0x20 = one tilemap row) are kept as hex; not in ram.js by design.
+ * NAMES:    INTRO_SCROLL_INDEX (0x638E) from names.js. 0x7600 / 0x75C0 (video-RAM cell bases)
+ *           and 0xFFE0 (−0x20 = one tilemap row) are kept as hex; not in names.js by design.
  */
 
 import { copyByteDisplaced } from "./copyByteDisplaced.js";
-import { INTRO_SCROLL_INDEX } from "./ram.js";
+import { INTRO_SCROLL_INDEX } from "./names.js";
 
 const ROW = 0xffe0; // DE = −0x20 = one 32-column tilemap row, upward
 

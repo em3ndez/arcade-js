@@ -53,11 +53,11 @@
  *           the arm's skip-boolean here, so this routine returns nothing too; loc_06fe's
  *           own callers ignore any return. Residual A/HL/DE/flags are the trampoline's
  *           dead ABI handoff, read by no 0x0702 arm.
- * NAMES:    GAME_SUBSTATE (0x600A) from ram.js; table base 0x0702 kept hex (ROM data,
+ * NAMES:    GAME_SUBSTATE (0x600A) from names.js; table base 0x0702 kept hex (ROM data,
  *           not work RAM).
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE } from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 29 little-endian target addresses in ROM starting

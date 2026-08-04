@@ -55,7 +55,7 @@ import { loc_12de as oracle } from "../../translated/loc_12de.js";
 import { loc_12de } from "../loc_12de.js";
 import { tickSubstateTimer as tick } from "../tickSubstateTimer.js"; // reused inside the teeth twins
 import { loc_30db as clear } from "../loc_30db.js"; //                    "        "        "
-import { GAME_SUBSTATE, SUBSTATE_TIMER, STACK_SCRATCH } from "../ram.js";
+import { GAME_SUBSTATE, SUBSTATE_TIMER, STACK_SCRATCH } from "../names.js";
 import { Machine } from "../../machine.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
@@ -66,7 +66,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x12de;
-const PLAYER_INDEX = 0x600e; // 1P/2P index, unnamed in ram.js
+const PLAYER_INDEX = 0x600e; // 1P/2P index, unnamed in names.js
 const SPRITE_CLEARS = [0x694c, 0x6958, 0x695c, 0x6960, 0x6964, 0x6968, 0x696c]; // loc_30db's footprint
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 const inStack = (addr) => addr != null && addr >= STACK_SCRATCH.lo && addr < STACK_SCRATCH.hi;

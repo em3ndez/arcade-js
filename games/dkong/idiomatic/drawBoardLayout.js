@@ -38,7 +38,7 @@
  *           the dropped stack model (the oracle's push/call/ret becomes the JS call
  *           stack); loc_2ff0's `ret` drifts SP but writes no game-visible RAM.
  * NAMES:    SEG_ADDR1 (0x63ab), SEG_SUBTILE1 (0x63af), SEG_KIND (0x63b3),
- *           SEG_SUBTILE_Y1 (0x63b4) from ram.js — the board-render segment scratch.
+ *           SEG_SUBTILE_Y1 (0x63b4) from names.js — the board-render segment scratch.
  *           Promoted (understanding pass 6): this is the walk HEAD the board-setup arms call
  *           to draw the whole static board; its per-segment leaf drawers are the already-named
  *           drawGirderSpan (0x0e19) / drawLadder (0x0e4f) / drawSegmentEndCap (0x0e2a). Its
@@ -47,7 +47,7 @@
 
 // ROM 0x2FF0 — (H=y, L=x) -> HL = tile address. The FROZEN ORACLE deliberately: an idiomatic
 // twin exists (tileAddrForPixel.js, whose machine-shaped entry is tileAddrForPixelFromRegisters)
-// and 0x2FF0 is in ram.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
+// and 0x2FF0 is in names.js's ROUTINES, so "no idiomatic yet" is FALSE. The oracle is a pure leaf
 // ending in `ret` — it consumes one guest-stack word the twin's JS return does not — so the swap
 // is not stack-neutral. Left rather than dissolved because nothing here can prove it safe: the
 // 2-byte delta was injected at this exact call site and neither this routine's equivalence gate
@@ -57,7 +57,7 @@
 // silently corrupts the segment scratch.
 import { loc_2ff0 } from "../translated/loc_2ff0.js";
 import { loc_0dd3 } from "./loc_0dd3.js"; // ROM 0x0DD3 — convert the 2nd endpoint + draw the segment
-import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./ram.js"; // board-render segment scratch
+import { SEG_ADDR1, SEG_SUBTILE1, SEG_KIND, SEG_SUBTILE_Y1 } from "./names.js"; // board-render segment scratch
 
 export function drawBoardLayout(m) {
   const { regs, mem } = m;

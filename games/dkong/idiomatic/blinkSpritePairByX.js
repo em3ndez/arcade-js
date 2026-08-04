@@ -36,11 +36,11 @@
  *           dead ABI; SP/PC are `ret` bookkeeping the JS call stack replaces. No register
  *           is SET on entry: C already holds the sweep counter and is preserved by
  *           threading m into the idiomatic callees.
- * NAMES:    MARIO_X (0x6203) from ram.js — the player X the branch reads. The two blink
+ * NAMES:    MARIO_X (0x6203) from names.js — the player X the branch reads. The two blink
  *           bytes 0x6901/0x6905 live inside the callees; register C is the colour-cycle
  *           sweep counter (0x6390), consumed only in the shared store tail.
  */
-import { MARIO_X } from "./ram.js";
+import { MARIO_X } from "./names.js";
 import { blinkSpritePairOff } from "./blinkSpritePairOff.js"; // ROM 0x04f9
 import { blinkSpritePairOn } from "./blinkSpritePairOn.js"; // ROM 0x04e1
 

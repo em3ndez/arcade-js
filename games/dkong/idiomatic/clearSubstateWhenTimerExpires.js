@@ -30,11 +30,11 @@
  *           registers/flags (the oracle's residual HL/A/F are dead ABI); SP/PC are the
  *           caller-skip mechanism, not part of the contract, and the oracle's pushed
  *           return byte lands in the dead STACK_SCRATCH.
- * NAMES:    GAME_SUBSTATE (0x600A) — from ram.js; the timer bytes are named and ticked
+ * NAMES:    GAME_SUBSTATE (0x600A) — from names.js; the timer bytes are named and ticked
  *           inside the tickSubstatePrescaler callee.
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE } from "./names.js";
 import { tickSubstatePrescaler } from "./tickSubstatePrescaler.js";
 
 /**

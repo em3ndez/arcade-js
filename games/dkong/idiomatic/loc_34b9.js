@@ -37,19 +37,19 @@
  * LIVE-OUT: memory-only — the caller consumes only the seeded record fields; the
  *           oracle's residual registers/flags and its terminal return are dead ABI.
  * NAMES:    BOARD (0x6227), MARIO_X (0x6203), SPIN_COUNT (0x6019), and the record
- *           offsets OBJ_X (+0x03), OBJ_Y (+0x05), OBJ_STATE (+0x0d) — all from ram.js.
+ *           offsets OBJ_X (+0x03), OBJ_Y (+0x05), OBJ_STATE (+0x0d) — all from names.js.
  *           The ROM template tables (0x3AC4 / 0x3AD4) and the paired/cleared record
- *           fields (+0x0e, +0x0f, +0x18, +0x1c) have no ram.js name and stay local
+ *           fields (+0x0e, +0x0f, +0x18, +0x1c) have no names.js name and stay local
  *           consts here.
  */
 
-import { BOARD, MARIO_X, SPIN_COUNT, OBJ_X, OBJ_Y, OBJ_STATE } from "./ram.js";
+import { BOARD, MARIO_X, SPIN_COUNT, OBJ_X, OBJ_Y, OBJ_STATE } from "./names.js";
 
 // The two ROM template tables (four 2-byte entries each). Bit 7 of MARIO_X picks one.
 const TABLE_BIT7_CLEAR = 0x3ac4;
 const TABLE_BIT7_SET = 0x3ad4;
 
-// Record fields with no shared OBJ_* offset name in ram.js yet.
+// Record fields with no shared OBJ_* offset name in names.js yet.
 const OBJ_X_COMPANION = 0x0e; // gets the same byte as OBJ_X (+0x03)
 const OBJ_Y_COMPANION = 0x0f; // gets the same byte as OBJ_Y (+0x05)
 const OBJ_CLEAR_18 = 0x18;    // cleared to zero

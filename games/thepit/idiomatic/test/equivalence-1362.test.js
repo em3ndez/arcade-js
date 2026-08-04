@@ -38,7 +38,7 @@ import { loc_1362 as oracle } from "../../translated/loc_1362.js";
 import { seedObjectStartState } from "../seedObjectStartState.js";
 import { makeMachineFactory } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
-import { PLAYER_Y, PLAYER_X, PLAYER_FACING, BOARD_END_PHASE, MOVE_BLOCK_FLAG, NEXT_TILE } from "../ram.js";
+import { PLAYER_Y, PLAYER_X, PLAYER_FACING, BOARD_END_PHASE, MOVE_BLOCK_FLAG, NEXT_TILE } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -49,7 +49,7 @@ const test = ROM_PRESENT
 
 const hx = (v) => "0x" + (v & 0xffff).toString(16);
 
-// Every byte the routine writes (named where ram.js has a name, hex otherwise).
+// Every byte the routine writes (named where names.js has a name, hex otherwise).
 const TARGET_ADDRS = [
   PLAYER_Y, PLAYER_X, PLAYER_FACING,
   0x806a, 0x806c, 0x806d, 0x8070, 0x8071, 0x8073,

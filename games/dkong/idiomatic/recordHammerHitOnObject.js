@@ -82,13 +82,13 @@
  *           register this leaves behind, so the residual registers/flags and the terminal
  *           return are dead ABI. pc/SP net from the handler's own return plus the routine's
  *           terminal return, so both are checked too.
- * NAMES:    OBJ_PAIR_6680 (0x6680) and OBJ_SEARCH_COUNT (0x63B9) from ram.js; the collision-hit
+ * NAMES:    OBJ_PAIR_6680 (0x6680) and OBJ_SEARCH_COUNT (0x63B9) from names.js; the collision-hit
  *           record COLLIDED_OBJECT_INDEX (0x6354) / COLLIDED_OBJECT_STRIDE (0x6353) /
- *           COLLIDED_OBJECT_BASE (0x6351, 16-bit) from ram.js. The record-field offsets are all
- *           ram.js names too: HAMMER_IN_PLAY (+0x01 — SCOPED to this pair, see ram.js: +0x01
+ *           COLLIDED_OBJECT_BASE (0x6351, 16-bit) from names.js. The record-field offsets are all
+ *           names.js names too: HAMMER_IN_PLAY (+0x01 — SCOPED to this pair, see names.js: +0x01
  *           carries unrelated roles on other records, so there is deliberately no generic OBJ_*
  *           name at that offset), OBJ_Y (+0x05), OBJ_HIT_EXTENT_X (+0x09), OBJ_HIT_EXTENT_Y
- *           (+0x0A). The 0x6350 hit marker stays hex because ram.js genuinely does not name it —
+ *           (+0x0A). The 0x6350 hit marker stays hex because names.js genuinely does not name it —
  *           the named collision group starts one byte later at COLLIDED_OBJECT_BASE (0x6351). It is
  *           SHARED with the effect-sequence gate: this routine is its only nonzero writer, runHitEffectInsteadOfPlay
  *           and animateFixedHazardAndReleaseFire read it, and animateEffectSpriteThenRearmEffect's teardown is the only
@@ -105,7 +105,7 @@ import {
   COLLIDED_OBJECT_BASE,
   COLLIDED_OBJECT_STRIDE,
   COLLIDED_OBJECT_INDEX,
-} from "./ram.js";
+} from "./names.js";
 import { dispatchBoardCollision } from "./dispatchBoardCollision.js"; // ROM 0x286F
 
 // Stride between the two records of the hammer pair (0x6680 -> 0x6690).
@@ -161,7 +161,7 @@ export function recordHammerHitOnObject(m) {
   // Record the collided hazard: the marker, the hit's index within its sweep array
   // (array count minus the count still left when it fired), the array's stride low byte,
   // and the array's base.
-  // 0x6350 — the hit-effect latch, genuinely unnamed in ram.js (the named collision group starts
+  // 0x6350 — the hit-effect latch, genuinely unnamed in names.js (the named collision group starts
   // one byte later, at COLLIDED_OBJECT_BASE 0x6351). Whole-ROM scan: written ONLY here (always
   // nonzero — the `and a / ret z` two instructions earlier guarantees it), read by runHitEffectInsteadOfPlay and
   // animateFixedHazardAndReleaseFire, and cleared only by animateEffectSpriteThenRearmEffect's teardown. Setting it here

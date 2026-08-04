@@ -31,7 +31,7 @@
  *           shifted-tile-strip twin, each caught.
  * LIVE-OUT: memory-only — the 28 tile cells, the 28 colour cells, and the colour
  *           byte the shared column fill caches; no live registers/flags.
- * NAMES:    none from ram.js — writes raw video/colour RAM and the callee's own
+ * NAMES:    none from names.js — writes raw video/colour RAM and the callee's own
  *           colour-paint scratch, no named work-RAM address.
  */
 

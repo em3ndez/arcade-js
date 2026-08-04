@@ -41,9 +41,9 @@
  *           bytes in the dead STACK_SCRATCH region) is the modelled Z80 return that the
  *           direct-call layer replaces with a plain JS return, so this routine leaves
  *           both untouched and the test excludes them.
- * NAMES:    none imported from ram.js — the routine names no work-RAM address (it reads
+ * NAMES:    none imported from names.js — the routine names no work-RAM address (it reads
  *           ROM constants and writes hardware registers). The i8257 registers and the
- *           DRQ latch are board control outputs, not work RAM (ram.js is work-RAM
+ *           DRQ latch are board control outputs, not work RAM (names.js is work-RAM
  *           only), so they stay local hex constants, as in the translated DMA layer.
  *           SPRITE_BUFFER (0x6900, the DMA source) is referenced in prose only — it is
  *           encoded in the ROM setup block, never a literal here.

@@ -57,7 +57,7 @@ import {
   DIG_OBJ_SUBTYPE,
   HAZARD_X,
   HAZARD_Y,
-} from "../ram.js";
+} from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
@@ -66,7 +66,7 @@ const test = ROM_PRESENT
   ? nodeTest
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
-// Unnamed staging / pointer scratch this routine reads or mirrors (kept hex in ram.js).
+// Unnamed staging / pointer scratch this routine reads or mirrors (kept hex in names.js).
 const SAVED_CELL_PTR = 0x80ba; // 16-bit saved tilemap cell pointer for the entity
 const CARVE_CURSOR = 0x80af; // 16-bit live carve cursor (commitDigEntity sets it = SAVED_CELL_PTR)
 const STAGED_COLUMN = 0x80b6; // staged target column -> HAZARD_X + its mirror

@@ -20,7 +20,7 @@
  * SND_PRIORITY_FRAMES is nonzero). A LEAF: it calls nothing.
  *
  * NAME: kept the neutral loc_ — the mechanics are certain (store A into ITEM_COLLECTED;
- * off-25m queue tune 0x0D for 3 frames). 0x6225 is now ITEM_COLLECTED in ram.js (the ABC
+ * off-25m queue tune 0x0D for 3 frames). 0x6225 is now ITEM_COLLECTED in names.js (the ABC
  * naming pass promoted it: the set-at-pickup -> consume-at-landing lifecycle is visible end
  * to end, this very routine cited as the clearer), but the item IDENTITY stays inferred and
  * tune 0x0D is unconfirmed, so a meaningful English ROUTINE name would still over-assert. Its
@@ -43,9 +43,9 @@
  *           path just returns. SP/pc are the dropped stack model (the oracle's
  *           `ret` becomes the JS return).
  * NAMES:    ITEM_COLLECTED (0x6225), BOARD (0x6227), SND_PRIORITY (0x608A),
- *           SND_PRIORITY_FRAMES (0x608B) from ram.js.
+ *           SND_PRIORITY_FRAMES (0x608B) from names.js.
  */
-import { ITEM_COLLECTED, BOARD, SND_PRIORITY, SND_PRIORITY_FRAMES } from "./ram.js";
+import { ITEM_COLLECTED, BOARD, SND_PRIORITY, SND_PRIORITY_FRAMES } from "./names.js";
 
 export function loc_1d95(m) {
   const { regs, mem } = m;

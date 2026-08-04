@@ -34,13 +34,13 @@
  *           oracle's residual registers/flags are dead ABI; every value that matters
  *           was written to RAM. (No pc/SP: the Z80 tail-jump chain's `ret` is the JS
  *           return; dumpState excludes pc/SP.)
- * NAMES:    MARIO_AIRBORNE, P1_INPUT — ram.js. Velocity constants inline (they are the
+ * NAMES:    MARIO_AIRBORNE, P1_INPUT — names.js. Velocity constants inline (they are the
  *           two velocity bytes launchMarioJump copies verbatim).
  */
-import { MARIO_AIRBORNE, P1_INPUT } from "./ram.js";
+import { MARIO_AIRBORNE, P1_INPUT } from "./names.js";
 import { launchMarioJump } from "./launchMarioJump.js";
 
-/** P1_INPUT direction bits (ram.js: bit0 Right, bit1 Left, bit2 Up, bit3 Down). */
+/** P1_INPUT direction bits (names.js: bit0 Right, bit1 Left, bit2 Up, bit3 Down). */
 const INPUT_RIGHT = 0x01;
 const INPUT_LEFT = 0x02;
 

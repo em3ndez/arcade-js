@@ -51,7 +51,7 @@ import { loc_3dae as proxyOracle } from "../../translated/loc_3dae.js";
 import { requestSound7 } from "../requestSound7.js";
 import { enqueueSoundCommand } from "../enqueueSoundCommand.js";
 import { makeMachineFactory } from "../../machine.js";
-import { SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

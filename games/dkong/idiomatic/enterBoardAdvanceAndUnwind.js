@@ -35,11 +35,11 @@
  *           live registers/flags — every consumer reads only the sub-state byte and the
  *           unwind; the oracle's residual A (= 0x16) and the discarded return in HL are
  *           dead ABI.
- * NAMES:    GAME_SUBSTATE (0x600A) from ram.js. 0x16 is the board-cleared/advance sub-state
+ * NAMES:    GAME_SUBSTATE (0x600A) from names.js. 0x16 is the board-cleared/advance sub-state
  *           code that dispatchBoardClearedInterlude / advanceToNextBoard run.
  */
 
-import { GAME_SUBSTATE } from "./ram.js";
+import { GAME_SUBSTATE } from "./names.js";
 
 export function enterBoardAdvanceAndUnwind(m) {
   // The board is won — enter the board-cleared/advance sub-state (0x16), which dispatchBoardClearedInterlude

@@ -31,7 +31,7 @@
  *           registers right after the call, so the residual register file (and the
  *           transient stack return-slots) are dead. pc + SP still match: the routine
  *           returns to its still-oracle caller through the balanced stack.
- * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002) from ram.js. Hex-kept: 0x8028 is
+ * NAMES:    GAME_STATE (0x8001), ACTIVE_PLAYER (0x8002) from names.js. Hex-kept: 0x8028 is
  *           the shared display slot; 0x8ba1 / 0x8961 are the two HUD colour-column
  *           bottom cells. The state-copy callee is now the idiomatic loadPlayerState
  *           (0x4644), a direct JS call.
@@ -41,7 +41,7 @@ import { drawScoreDigits } from "./drawScoreDigits.js";
 import { drawGameOverLabel } from "./drawGameOverLabel.js";
 import { drawPlayerLabel } from "./drawPlayerLabel.js";
 import { loadPlayerState } from "./loadPlayerState.js";
-import { GAME_STATE, ACTIVE_PLAYER } from "./ram.js";
+import { GAME_STATE, ACTIVE_PLAYER } from "./names.js";
 
 // One screen row = 32 cells across the 32-wide tile/colour map.
 const ROW = 32;

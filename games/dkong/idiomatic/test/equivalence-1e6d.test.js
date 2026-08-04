@@ -48,7 +48,7 @@ import { loc_1e6d as oracle } from "../../translated/loc_1e6d.js";
 import { loc_1e6d } from "../loc_1e6d.js";
 import { enterBoardAdvanceAndUnwind } from "../enterBoardAdvanceAndUnwind.js";
 import { Machine } from "../../machine.js";
-import { STACK_SCRATCH, GAME_SUBSTATE, MARIO_SPRITE_RECORD, SPRITE_CODE } from "../ram.js";
+import { STACK_SCRATCH, GAME_SUBSTATE, MARIO_SPRITE_RECORD, SPRITE_CODE } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

@@ -49,7 +49,7 @@ import {
   P1_SCORE,
   P2_SCORE,
   HIGH_SCORE,
-} from "../ram.js";
+} from "../names.js";
 
 // direct callees, reused to build the broken twins faithfully (except the injected bug)
 import { gameActiveGuard } from "../gameActiveGuard.js";

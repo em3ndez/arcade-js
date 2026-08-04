@@ -58,7 +58,7 @@ import {
   MARIO_START_FALL,
   MARIO_SPRITE_RECORD,
   SPRITE_Y,
-} from "../ram.js";
+} from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 

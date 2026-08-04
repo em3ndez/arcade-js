@@ -53,14 +53,14 @@
  *           residue and the routine returns nothing; its two early exits just mean "skip this
  *           pass". The oracle's push/return bracket around the entropy call dissolves into a
  *           direct call, so its dead stack scratch is excluded from the equivalence diff.
- * NAMES:    DIFFICULTY (0x6380), OBJ_ARRAY_64 (0x6400) from ram.js; loc_31f6 direct-called for
+ * NAMES:    DIFFICULTY (0x6380), OBJ_ARRAY_64 (0x6400) from names.js; loc_31f6 direct-called for
  *           the entropy draw. The armed cells are field +0x19 of records 1 and 3 of
- *           OBJ_ARRAY_64 (0x6439 / 0x6479); that field has no ram.js name yet, so its offset
+ *           OBJ_ARRAY_64 (0x6439 / 0x6479); that field has no names.js name yet, so its offset
  *           stays a literal.
  */
 
 import { u8 } from "../../../core/int.js";
-import { DIFFICULTY, OBJ_ARRAY_64 } from "./ram.js";
+import { DIFFICULTY, OBJ_ARRAY_64 } from "./names.js";
 import { loc_31f6 } from "./loc_31f6.js"; // ROM 0x31F6 — the timing-entropy draw
 
 /**

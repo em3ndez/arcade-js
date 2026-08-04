@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { loc_277f as oracle } from "../../translated/loc_277f.js";
 import { killMarioAtEndOfLiftTravel } from "../killMarioAtEndOfLiftTravel.js";
-import { MARIO_ACTIVE } from "../ram.js";
+import { MARIO_ACTIVE } from "../names.js";
 import { Machine } from "../../machine.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -61,7 +61,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not built — run 'make -C games/dkong rom'" }, fn);
 
 const TARGET = 0x277f;
-const EDGE_FLAG = 0x6398; // cleared alongside MARIO_ACTIVE; no ram.js name yet.
+const EDGE_FLAG = 0x6398; // cleared alongside MARIO_ACTIVE; no names.js name yet.
 
 // Neighbour cells seeded with noise to prove the routine touches ONLY the two targets.
 const MARIO_LO = 0x61ff, MARIO_HI = 0x6201;

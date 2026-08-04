@@ -41,11 +41,11 @@
  *           signal entry_1a07/loc_197a consume. The oracle's residual A/HL/F are dead
  *           ABI (no successor reads them); SP/pc are the dropped Z80 stack model, so
  *           the oracle's push/pop residue lands only in STACK_SCRATCH, excluded.
- * NAMES:    MARIO_AIRBORNE (0x6216) — from ram.js. GAME_SUBSTATE (0x600A) and
+ * NAMES:    MARIO_AIRBORNE (0x6216) — from names.js. GAME_SUBSTATE (0x600A) and
  *           SUBSTATE_TIMER (0x6009) are written by the callee advanceSubstateAndArmTimer.
  */
 
-import { MARIO_AIRBORNE } from "./ram.js";
+import { MARIO_AIRBORNE } from "./names.js";
 import { advanceSubstateAndArmTimer } from "./advanceSubstateAndArmTimer.js";
 
 export function advanceSubstateWhenGrounded(m) {

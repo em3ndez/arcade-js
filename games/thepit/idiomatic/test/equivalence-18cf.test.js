@@ -49,7 +49,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { loc_18cf as oracle } from "../../translated/loc_18cf.js";
 import { collectLootTile as idiomatic } from "../collectLootTile.js";
 import { makeMachineFactory } from "../../machine.js";
-import { PLAYER_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../ram.js";
+import { PLAYER_CELL_PTR, SOUND_HEAD, SOUND_RING } from "../names.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);

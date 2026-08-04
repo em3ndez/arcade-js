@@ -32,7 +32,7 @@
  * indexed loads: ROM 0x11D3 (gatherSpriteRecords) runs this identical permutation — the same
  * four source offsets in the same order, the same four consecutive destination bytes, the same
  * page-confined cursor step — as a counted loop, and its five call sites all aim at
- * SPRITE_BUFFER. ram.js records the same mapping measured live under MAME on each of the four
+ * SPRITE_BUFFER. names.js records the same mapping measured live under MAME on each of the four
  * cells: OBJ_X and OBJ_Y as live coordinate sweeps on this very array (0x6703 swept 223 distinct
  * values, 0x6705 158) and OBJ_SPRITE_CODE as 11 distinct animation frames on it. A gather that
  * meant something else would have had to leave those cells doing something other than driving
@@ -104,7 +104,7 @@ import { u8 } from "../../../core/int.js";
 import {
   OBJ_SPRITE_ATTR, OBJ_SPRITE_CODE, OBJ_X, OBJ_Y,
   SPRITE_ATTR, SPRITE_CODE, SPRITE_X, SPRITE_Y,
-} from "./ram.js";
+} from "./names.js";
 
 export function loc_21ba(m) {
   const { regs, mem8 } = m;

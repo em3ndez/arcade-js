@@ -48,7 +48,7 @@ import { loc_2299 as oracle } from "../../translated/loc_2299.js";
 import { loc_2207 as oracle2207 } from "../../translated/loc_2207.js";
 import { advance50mObjectStateOnRandomGate } from "../advance50mObjectStateOnRandomGate.js";
 import { Machine } from "../../machine.js";
-import { RANDOM, STACK_SCRATCH } from "../ram.js";
+import { RANDOM, STACK_SCRATCH } from "../names.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
 const ROM_PRESENT = existsSync(new URL("maincpu.bin", ROM_DIR));

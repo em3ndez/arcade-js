@@ -24,7 +24,7 @@
  * LIVE-OUT: the interrupt-mask control line, driven off. No work RAM is touched and no
  *           register or flag is live out — the caller reloads its accumulator on the
  *           next instruction, so the value the pair leaves is dead.
- * NAMES:    none from ram.js — 0xb000 is the interrupt-mask control-latch address
+ * NAMES:    none from names.js — 0xb000 is the interrupt-mask control-latch address
  *           (I/O, one line per address), not work RAM; kept hex like the other latches.
  */
 export function disableFrameInterrupt(m) {

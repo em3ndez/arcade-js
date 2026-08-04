@@ -51,14 +51,14 @@
  *           exits the oracle pops one word too many and ends at whatever address that word held
  *           (0x03A6 on the gate's staged stack), an artifact of the discarded skip above rather
  *           than a property to reproduce.
- * NAMES:    MARIO_ACTIVE (0x6200) from ram.js, used as the base of Mario's context block, not read.
+ * NAMES:    MARIO_ACTIVE (0x6200) from names.js, used as the base of Mario's context block, not read.
  *           probeMarioDescentLanding (ROM 0x2B29) is direct-called. 0x29AF is not in the ROUTINES
  *           registry, so it stays an oracle call; dissolving it into a direct call is a coordinated
  *           follow-up for whoever wires its idiomatic form.
  */
 
 import { probeMarioDescentLanding } from "./probeMarioDescentLanding.js"; // ROM 0x2B29
-import { MARIO_ACTIVE } from "./ram.js";
+import { MARIO_ACTIVE } from "./names.js";
 
 /**
  * @param {object} m  the machine. No register live-in. Live-out: the two result bytes.

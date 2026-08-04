@@ -36,13 +36,13 @@
  *           frozen oracle any more; the decompiled helpers take no leftover-register input
  *           (copyTileColumn and copyCappedTileColumn are each handed their source pointer as
  *           an argument; the rest read the scratch block below).
- * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059), ACTIVE_PLAYER (0x8002) from ram.js.
- *           Hex-kept: the plotter scratch params below (ram.js names 0x8057 BOARD_MODE
+ * NAMES:    TILE_COL (0x8058), TILE_ROW (0x8059), ACTIVE_PLAYER (0x8002) from names.js.
+ *           Hex-kept: the plotter scratch params below (names.js names 0x8057 BOARD_MODE
  *           for a different entry-select role, so it is not imported here); and the ROM
  *           tile table.
  */
 
-import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH } from "./ram.js";
+import { TILE_COL, TILE_ROW, ACTIVE_PLAYER, PLOT_RUN_LENGTH } from "./names.js";
 import { rowColToTileOffset } from "./rowColToTileOffset.js";
 import { deriveTileWriteCursors } from "./deriveTileWriteCursors.js";
 import { fillColourColumn } from "./fillColourColumn.js";
@@ -60,7 +60,7 @@ export function drawPlayerLabel(m) {
   const { mem8 } = m;
 
   // Aim the panel at tile column 1, row 12, then turn that cell into the tilemap offset
-  // (0x805a, TILEMAP_OFFSET in ram.js) and the colour-/video-RAM write cursors the paint
+  // (0x805a, TILEMAP_OFFSET in names.js) and the colour-/video-RAM write cursors the paint
   // helpers write through.
   mem8[TILE_COL] = 1;
   mem8[TILE_ROW] = 12;

@@ -6,7 +6,7 @@
  * barrel's DROPPING behaviour to the bit this routine sets. The ROM refutes that: the drop path —
  * the one-waypoint table at 0x39CC that pins the spawn X at 59 — is selected by BIT 0 (ROM 0x2D4A
  * `ld a,(0x6382) / rrca / jp c,0x2D83`), and the mover arm likewise comes from record +1, which
- * activateReleasedBarrel sets from bit 0. Bit 7 is independent of both: ram.js records this byte
+ * activateReleasedBarrel sets from bit 0. Bit 7 is independent of both: names.js records this byte
  * taking 0x80, bit 7 set with bit 0 CLEAR, so a bit-7 barrel can walk the four-waypoint table and
  * spawn at (89,78). The name now claims only what bit 7 selects.
  *
@@ -64,12 +64,12 @@
  * LIVE-OUT: memory-only — BARREL_CLAIM_MODE. The oracle carries the value out through the
  *           accumulator, but no caller reads a register from it (its callers tail-jump or return
  *           and reload), so only the stored byte is live.
- * NAMES:    BARREL_CLAIM_MODE (0x6382) from ram.js — the barrel slot-claim mode byte, work RAM,
+ * NAMES:    BARREL_CLAIM_MODE (0x6382) from names.js — the barrel slot-claim mode byte, work RAM,
  *           not video RAM. It is not a bare flag: its low bits carry the claim's mode value and
  *           its bit 7 is the kind select this routine raises.
  */
 
-import { BARREL_CLAIM_MODE } from "./ram.js"; // ROM 0x6382 — the barrel slot-claim mode byte
+import { BARREL_CLAIM_MODE } from "./names.js"; // ROM 0x6382 — the barrel slot-claim mode byte
 
 export function markNextBarrelAsAltKind(m) {
   const { mem } = m;

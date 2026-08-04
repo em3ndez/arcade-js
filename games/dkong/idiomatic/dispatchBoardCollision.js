@@ -48,10 +48,10 @@
  *           table base nets to zero and the caller's HL push is reproduced, so SP entering the
  *           dispatch matches. The oracle discards the JS return value at this level, so this
  *           routine returns nothing too; the result lives in A/IX on the machine.
- * NAMES:    BOARD (0x6227) from ram.js; table base 0x2874 kept hex (ROM data, not work RAM).
+ * NAMES:    BOARD (0x6227) from names.js; table base 0x2874 kept hex (ROM data, not work RAM).
  */
 
-import { BOARD } from "./ram.js";
+import { BOARD } from "./names.js";
 import { loc_00ca } from "../translated/loc_00ca.js";
 
 // The `rst 0x28` inline jump table: 6 little-endian target addresses in ROM starting at

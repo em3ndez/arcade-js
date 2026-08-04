@@ -43,13 +43,13 @@
  *           BC/flags are dead ABI, and its SP/pc are the Z80 caller-skip mechanism the boolean
  *           gate replaces.
  * NAMES:    SUBSTATE_TIMER (0x6009), SND_TRIGGER (0x6080 → +4 = latch bit 4), BOARD_ADVANCE_STEP
- *           (0x6388 — the board-advance render-sequence step) from ram.js. Hex-kept: ROM table
+ *           (0x6388 — the board-advance render-sequence step) from names.js. Hex-kept: ROM table
  *           base 0x3A1F (an immediate).
  */
 
 import { tickSubstateTimer } from "./tickSubstateTimer.js"; // ROM 0x0018 (rst 0x18)
 import { loadSpriteObjectBlock } from "./loadSpriteObjectBlock.js"; // ROM 0x004e
-import { SUBSTATE_TIMER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./ram.js";
+import { SUBSTATE_TIMER, SND_TRIGGER, BOARD_ADVANCE_STEP } from "./names.js";
 
 const COPY_SOURCE = 0x3a1f; // ROM base of this step's 40-byte sprite-object frame
 const SND_LATCH = SND_TRIGGER + 4; // 0x6084 — SND_TRIGGER[4]

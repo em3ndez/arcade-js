@@ -39,10 +39,10 @@
  *           successor is a fresh call) and its `ret` pops into dead STACK_SCRATCH; this
  *           routine models neither SP nor pc.
  * NAMES:    MARIO_Y (0x6205), EFFECT_STATE (0x6340), EFFECT_SELECT (0x6342),
- *           EFFECT_PARAM_PTR (0x6343) from ram.js; the scanned object table base is
+ *           EFFECT_PARAM_PTR (0x6343) from names.js; the scanned object table base is
  *           OBJECT_COLLISION_SPRITES (0x6A0C).
  */
-import { MARIO_Y, EFFECT_STATE, EFFECT_SELECT, EFFECT_PARAM_PTR } from "./ram.js";
+import { MARIO_Y, EFFECT_STATE, EFFECT_SELECT, EFFECT_PARAM_PTR } from "./names.js";
 
 export function confirmObjectHit(m) {
   const { regs, mem } = m;

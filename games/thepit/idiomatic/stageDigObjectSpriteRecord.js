@@ -24,7 +24,7 @@
  * LIVE-OUT: memory-only — the four record bytes, then whatever the background update leaves.
  *           The residual value registers are dead ABI; no caller reads one back from here.
  * NAMES:    HAZARD_X, HAZARD_STATE, HAZARD_TYPE, HAZARD_Y, SPRITE_COORD_BIAS,
- *           SPRITE_STAGING_BASE from ram.js. The background-update tail 0x2f71 is the
+ *           SPRITE_STAGING_BASE from names.js. The background-update tail 0x2f71 is the
  *           decompiled advanceChamberCreature, called directly.
  */
 
@@ -35,7 +35,7 @@ import {
   HAZARD_Y,
   SPRITE_COORD_BIAS,
   SPRITE_STAGING_BASE,
-} from "./ram.js";
+} from "./names.js";
 import { advanceChamberCreature } from "./advanceChamberCreature.js";
 
 // The dig object occupies sprite slot 2 (records are 4 bytes each) of the staging buffer.

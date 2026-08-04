@@ -31,7 +31,7 @@
  * LIVE-OUT: memory-only — the seeded parameter bytes and the derived reload byte. The
  *           round-init caller consumes the seeded memory, not any register; the tail
  *           owns everything after the hand-off, identically on both sides.
- * NAMES:    from ram.js — CHAMBER_CREATURE_X/FRAME/ATTR/Y (0x80db–0x80de), CHAMBER_CREATURE_ANIM_PHASE
+ * NAMES:    from names.js — CHAMBER_CREATURE_X/FRAME/ATTR/Y (0x80db–0x80de), CHAMBER_CREATURE_ANIM_PHASE
  *           (0x80e3), PIT_FLOOR_REVEAL_PERIOD (0x80e4), PIT_FLOOR_REVEAL_GATE (0x80e5), PIT_FLOOR_REVEAL_CURSOR (0x80e6),
  *           GOAL_TILE_LATCH (0x80e7), and the LEVEL difficulty counter (0x8028); the block's
  *           0x80df–0x80e0 are CHAMBER_CREATURE_X_VELOCITY/CHAMBER_CREATURE_FALL_STEP. The tail is the decompiled
@@ -53,7 +53,7 @@ import {
   PIT_FLOOR_REVEAL_CURSOR,
   PIT_FLOOR_REVEAL_GATE,
   PIT_FLOOR_REVEAL_PERIOD,
-} from "./ram.js";
+} from "./names.js";
 export function seedChamberCreature(m) {
   const { mem8 } = m;
 

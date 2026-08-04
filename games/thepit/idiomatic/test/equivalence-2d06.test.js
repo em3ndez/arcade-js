@@ -58,7 +58,7 @@ import { advanceDigTarget as idiomatic } from "../advanceDigTarget.js";
 import { landDigTarget } from "../landDigTarget.js";
 import { loc_3dae as captureRoutine } from "../../translated/loc_3dae.js";
 import { makeMachineFactory } from "../../machine.js";
-import { HAZARD_X, HAZARD_Y } from "../ram.js";
+import { HAZARD_X, HAZARD_Y } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
@@ -69,7 +69,7 @@ const test = ROM_PRESENT
   : (name, fn) => nodeTest(name, { skip: "skipped: ROM not present at games/thepit/rom/maincpu.bin" }, fn);
 
 const CAPTURE_AT = 0x3dae; // a routine reached in attract — seeds a valid machine to craft from
-const CARVE_CURSOR = 0x80af; // the live carve cursor this routine stores (no ram.js name yet)
+const CARVE_CURSOR = 0x80af; // the live carve cursor this routine stores (no names.js name yet)
 const VRAM_BASE = 0x9000;
 const PROBE_OFFSET = 30; // the tile is read this many cells before the target's cell
 const EMBED_TILES = [42, 43, 65]; // codes that route to the embed continuation landDigTarget

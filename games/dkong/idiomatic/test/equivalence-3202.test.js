@@ -51,7 +51,7 @@ import { loc_3202 as oracle } from "../../translated/loc_3202.js";
 import { loc_3202 } from "../loc_3202.js";
 import { Machine } from "../../machine.js";
 import { ORACLE_ROUTINES } from "../../routines.js";
-import { STACK_SCRATCH } from "../ram.js";
+import { STACK_SCRATCH } from "../names.js";
 import { u8 } from "../../../../core/int.js";
 
 const ROM_DIR = new URL("../../rom/", import.meta.url);
