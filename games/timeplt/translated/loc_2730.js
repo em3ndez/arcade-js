@@ -10,7 +10,7 @@ export function loc_2730(m) {
   m.step(0x2735, 7); // 2733  cp 0x76
 
   if (regs.fNZ) {
-    m.step(0x2530, 10); // 2735  jp nz,0x2530 -- into a data table; reached only on checksum failure
+    m.step(0x2530, 10); // 2735  jp nz,0x2530
     return m.call(0x2530);
   }
   m.step(0x2738, 10); // 2735  jp nz not taken
