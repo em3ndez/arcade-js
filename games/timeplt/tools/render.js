@@ -37,6 +37,7 @@
  *   --sprites PATH    16KB sprite ROM    (default <game>/rom/sprites.bin)
  *   --proms PATH      576-byte PROMs     (default <game>/rom/proms.bin)
  *   --frames-out DIR  output dir         (default <game>/out/render)
+ *   --poke / --input  ADDR=VAL@FRAME / PORT=BITS@FRAME  (see tools/emit-core.js)
  *
  * A run that stops early writes the frames it DID paint, prints why, and exits
  * NONZERO. A short artifact must never read as a clean one.
@@ -91,15 +92,13 @@ async function main() {
   if (!Number.isInteger(args.frames) || args.frames < 2) {
     throw new Error(`--frames expects an integer >= 2, got ${args.frames}`);
   }
-  if (args.pokes.length || args.inputs.length) {
-    throw new Error("--poke/--input are not plumbed on this board yet; they would be ignored");
-  }
-
   const machine = new Machine(new Uint8Array(readFileSync(args.rom)), buildRoutines(), {
     tiles: loadRegion("tiles", args.tiles),
     sprites: loadRegion("sprites", args.sprites),
     proms: loadRegion("proms", args.proms),
   });
+  machine.inputTape = args.inputs.length ? args.inputs : null;
+  machine.pokes = args.pokes.length ? args.pokes : null;
 
   // STREAM the frames out. 1801 frames is 310MB; holding them costs nothing but a heap
   // limit, and the hash is wanted per frame anyway.

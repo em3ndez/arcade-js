@@ -22,6 +22,9 @@ GAME="$(dirname "$HERE")"
 REPO="$(dirname "$(dirname "$GAME")")"
 UNITS="$GAME/out/units"
 CAP="$UNITS/cap"
+# A MAME ROMPATH holds romsets -- a directory NAMED for the driver -- not the extracted
+# images this repo's own tools read. Both live under $GAME/rom: the .bin images directly,
+# and the romset as $GAME/rom/<driver>/. Gitignored either way; ROM data is never committed.
 ROMPATH="${ROMPATH:-$GAME/rom}"
 MAME="${MAME:-mame}"
 

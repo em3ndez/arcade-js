@@ -1,6 +1,9 @@
 # --- Copyrighted ROM data — NEVER commit. Supply your own via `make rom`. ---
 games/*/rom/*.bin
 games/*/rom/*.zip
+# MAME romsets live here too, as a directory named for the driver
+# (games/<id>/rom/<driver>/), so `-rompath games/<id>/rom` resolves them.
+games/*/rom/*/
 
 # --- Copyrighted AUDIO — NEVER commit. Recorded from YOUR ROM on YOUR machine
 #     by games/<game>/tools/record_samples.py (see that dir's README-samples.md).
