@@ -229,6 +229,37 @@ nothing at the target to call.
 Either way the arm stays transcribed, and the throw is what turns a silent wrong turn into a loud
 one if the guard assumption is ever wrong.
 
+**And let what the GUARD READS decide what a firing means.** A guard that sums ROM is dead on a
+genuine image, so if that arm ever fires the IMAGE is wrong. A guard that reads work RAM is live,
+so if that arm fires OUR OWN STATE is wrong — it is a bug report about the port, not a curiosity.
+Time Pilot has both: the checksum traps, and `loc_3176`, reached only when work RAM 0xACC7 is not
+0x3B or 0xACC8 is neither 0x05 nor 0x10. The consequence is operational — do not collapse these
+into one shape or one message, and triage a work-RAM-guarded trap firing mid-run as an emulation
+divergence rather than waving it off as a trap already known about.
+
+### The scan that answers all of this, and which direction to trust it in
+
+Decoding from EVERY byte offset, not just from instruction boundaries, is how you ask what
+reaches an address. It **over-generates and cannot under-generate**: every real instruction begins
+at some offset, so a real `call`/`jp`/`jr`/`djnz` targeting X is always in the output, while
+misaligned decodes add candidates that are not instructions at all.
+
+That asymmetry is the whole value. **"The scan found nothing targeting X" is sound** — over-
+generation cannot manufacture an empty result — and that is the claim worth building on. "The scan
+found something" is only a candidate, and has to be adjudicated against the real instruction
+stream before you believe it.
+
+**A boundary test can HIDE a real entry, so it does not settle entryhood.** Start a decode at a
+misaligned offset and it swallows the following real entry as an operand byte. Time Pilot's
+0x315B is a real routine reached by `jp nz,0x315b` from two sites, and it sits on a clean
+boundary — `jp 0x30d1` occupies 0x3158-0x315A and stops. But decode from 0x315A, itself that
+`jp`'s operand high byte, and you read `jr nc,0x311f`, which consumes 0x315B. Judge entryhood
+against that decode and a real routine disappears.
+
+So ask "does anything transfer to X?" — never "does X look like a boundary?" Genuine overlapping
+code does occur in Z80 ROMs and would defeat a boundary test outright; it just is not what is
+happening here. Measured on this layer: no registered entry is interior to a real instruction.
+
 **A second entry into one routine is real, and is not this.** Where the ROM genuinely has two
 entries sharing a body — each with its own prologue before common code — the interior address
 DOES need registering, because a caller entering later must not re-run the earlier prologue. Time
