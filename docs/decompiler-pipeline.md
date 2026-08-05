@@ -308,10 +308,37 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   goal and are worth writing; low-level narration is the noise. And **name methods directly** —
   "the entropy pin", "capture/clone/replay", "the caller-skip idiom" — never a doc number or `.md`
   path (citations rot; the shipped code should read on its own).
+- **Comments may not exceed HALF a file's code lines**, in `.js` and `.mjs` under
+  `boards/ games/ tools/ core/ web/`. A line carrying code AND a trailing comment is charged to
+  both. Blank lines, a shebang and the first `//`-form SPDX line count as neither; a second SPDX
+  line, or one written as a block comment, is prose like any other. Exempt: `games/*/translated/`
+  (its per-line comments are the disassembly listing, not prose), `node_modules`, and generated
+  files. **JS only**, deliberately: counting comments needs a real lexer for the host language,
+  and hand-written ones for Python, Lua and shell were wrong three review rounds running — a
+  narrow rule that is true beats a broad one with holes. Like the reference rule below, the hook
+  only inspects what is STAGED, so an unswept file blocks nothing until it is next touched.
+- **A third outcome: the gate can refuse to judge.** `/` in JavaScript is either division or the
+  start of a regex literal, and after `)`, `]` or `}` no scanner can tell which. Rather than
+  guess, the file is scanned both ways; if the two readings disagree about which lines are
+  comments, the commit is BLOCKED with "cannot lex" and no verdict is given. Rewrite the line —
+  name the regex, or space out the division — and it goes away. This is not a judgement about
+  your prose. It exists because the earlier version guessed, and guessed in the fail-OPEN
+  direction: a quote inside a regex body opened a phantom string that swallowed the following
+  comment lines *and* inflated the code count, so whether the gate saw your prose depended on how
+  many apostrophes were in it.
+  Enforced by
+  `tools/comment_gate.py`, which the pre-commit hook runs, so it fails on your machine before a
+  reviewer ever sees it. When it trips, **cut the prose — do not raise the cap.**
+
+  The cap exists because prose that outgrows its code becomes a second account of the program
+  that no gate checks: it makes claims about coverage, measurements and history that nothing
+  re-verifies, and a false one actively hides bugs. A renderer header here asserted the file was
+  byte-exact against MAME's own RAM while a swapped tile-flip bit sat twenty lines below it.
+  Say what the code does, cite the hardware source, stop.
 - **A comment in `idiomatic/` describes THIS FILE, and nothing else. Ever.** Not the ROM, not MAME,
   not the frozen oracle, not a sibling module, not a test, not a doc, not a to-do. A count of what is
   *in* this file is fine; a count of anything outside it is not. Enforced by
-  `tools/idiomatic_comments.py`, which the pre-commit hook runs. It is a gate rather than a reviewer
+  `tools/comment_gate.py`, which the pre-commit hook runs. It is a gate rather than a reviewer
   rule because it tests REFERENCE, not truth — "does this sentence name something outside this file"
   is decidable by a script, which is not true of almost anything else we ask a reviewer for.
 
@@ -331,9 +358,9 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   was comment rather than code. Not drift — the convention had never been written down, so the
   whole layer was generated without it.
 
-  **Neither game's layer is migrated yet.** The rule and its gate landed before the cleanup, so the
-  hook enforces it on anything newly staged while the existing bulk is still to be swept as its own
-  unit. Until `python3 tools/idiomatic_comments.py scan games/<game>` is green, do not read an
+  **Migration is per game, and `scan` is what says so.** The rule and its gate landed before the
+  cleanup, so the hook enforces it on anything newly staged while an unswept layer is still to be
+  done as its own unit. Until `python3 tools/comment_gate.py scan games/<game>` is green, do not read an
   existing header in that game as an example of this rule, and keep the routine layer inside step
   8's scope for it.
 
@@ -391,7 +418,7 @@ Range always present; em-dash; behaviour body stays faithful (one statement per 
 ```
 No `ROM 0x<addr>` tag, no `Memory-equivalent to …`, no `GATE:`, no `NAMES:` — every one of those
 names something outside the file, and they moved to the registry, the test header and the import
-list (see "Output conventions", the file-local comment rule). `tools/idiomatic_comments.py` refuses
+list (see "Output conventions", the file-local comment rule). `tools/comment_gate.py` refuses
 a commit that puts them back. No `CYCLES`/`COLLAPSE` sections and no inline disassembly dumps
 either — there is no cycle model to record, so that bulk (and most of the format drift) is absent.
 

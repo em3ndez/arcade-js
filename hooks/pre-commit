@@ -1,17 +1,9 @@
 #!/usr/bin/env bash
-# Pre-commit gates. Do NOT --no-verify around these — that defeats the rules they enforce.
-#   1. understanding_gate  — an understanding pass must rewrite the game's mechanisms.md in the SAME
-#        commit as its renames, and the map must reference no retired names.  tools/understanding_gate.py
-#   2. names_consistency  — names.js is the single source of truth for whether a cell is named;
-#        no staged prose (mechanisms.md / routine comment) may call a named cell "hex/unnamed".
-#        tools/names_consistency.py
-#   3. idiomatic_comments — a comment in the idiomatic layer describes ITS OWN FILE: no ROM, no
-#        MAME, no oracle, no sibling module/test/doc, no to-do.  tools/idiomatic_comments.py
-#   4. review_gate        — every commit's staged changes carry an independent PASS review token
-#        bound to their exact content.  tools/review_gate.py
+# Pre-commit gates: understanding_gate, names_consistency, comment_gate, review_gate.
+# Each refuses the commit rather than warning. Do NOT --no-verify around them.
 set -euo pipefail
 root="$(git rev-parse --show-toplevel)"
 python3 "$root/tools/understanding_gate.py" check
 python3 "$root/tools/names_consistency.py" check
-python3 "$root/tools/idiomatic_comments.py" check
+python3 "$root/tools/comment_gate.py" check
 exec python3 "$root/tools/review_gate.py" check

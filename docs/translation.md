@@ -13,13 +13,24 @@ address and charge the instruction's T-states. A fragment that loads a byte, tes
 translates to the equivalent register/flag operations plus the `m.step(...)` calls that account for
 exactly the cycles the Z80 spent.
 
+**`addr` is the NEXT instruction, not the one being charged** — `m.step` sets PC to where execution
+lands. Get this backwards and correct code reads as broken: a loop whose accumulator is loaded
+outside the body looks like it reloads every iteration, because the back-edge's `m.step` names the
+first instruction *inside* the loop rather than the load. Two reviewers hit that same shape in one
+night. It is settled without reading a single disassembly line, from `machine.js`'s own
+`ret(cycles = 10) { this.step(this.pop16(), cycles); }`: the argument is the popped return address,
+so it can only be the new PC. Prefer that proof — it is immune to the transcription being wrong,
+which is what you are there to check.
+
 Faithfulness is the whole point:
 
 - **T-states are charged, not ignored.** The cycle budget per frame is fixed by the hardware, and
   the video output depends on *when* within the frame each write lands. A translation that gets the
   logic right but the timing wrong fails the pixel gate. `stepcheck` audits that every `m.step`
-  target lands on a real instruction boundary — a cycle error that moves no memory is invisible to
-  the state and pixel diffs, so it needs its own check.
+  target lands on a real instruction boundary; `stepaudit` audits the CHARGE against a table of its
+  own, walking a recorded step trace. A cycle error that moves no memory is invisible to the state
+  and pixel diffs, so it needs its own check — and it needs a check whose timing model is not the
+  one under test, or it cannot fail visibly.
 - **Flags are exact,** including the awkward ones (`DAA`/BCD, half-carry, parity/overflow, the
   signed vs unsigned distinctions). Each flag helper is pinned against the reference CPU across all
   cases before use.
@@ -137,3 +148,105 @@ The tracer labels every jump/call target, so the boundary always already has a `
 split is "translate that label + trim the parent to delegate," never a hand-carve. The whole-machine
 gate ([the integration-testing doc](integration-testing.md)) finds the load-bearing ones for you: an unregistered
 `m.call` at boot is exactly an externally-entered address that got inlined instead of split.
+
+## Partitioning a lift across agents: a routine is a RANGE, not a filename
+
+Fanning the translated layer out across parallel agents needs a work list, and the obvious ways
+to build one are wrong in two directions.
+
+**Do not derive routine extents by slicing the listing.** A slicer that walks from an entry until
+it "looks finished" gets it wrong both ways at once. Ways it went wrong on Time Pilot: the `ret`
+terminator never fired, because the listing pads the mnemonic with spaces and the guard tested
+for `"ret "`, so slices ran past a routine's end into the next one and into data tables that
+decode as plausible nonsense; a hard line cap silently truncated the largest routines, stopping
+one mid-pattern with no terminator; other slices were cut SHORT at a branch, handing an agent a
+routine where both arms left the slice so it could not terminate as given; and the batch set did
+not close over the call graph, so routines called by assigned routines were in no batch at all.
+
+Walk control flow from the entry the way the tracer does, and stop only at a real terminator.
+
+**Do not compute "missing" by comparing executed addresses against FILENAMES.** This is the more
+expensive mistake because it looks right. An address MAME executes as a transfer target is not a
+missing routine just because no `loc_<addr>.js` exists: most are INTERIOR — a loop back-edge, a
+branch join, a shared tail — already transcribed inside the file that owns the surrounding range.
+Dispatching those to agents finds nothing to do.
+
+Subtract against COVERAGE, not names, and be careful which artifact you use:
+
+- The **tracer's** own output (`out/coverage.json`, `out/unreached.txt`) is the reachability
+  record, and it is what "still to lift" means.
+- The `m.step` targets inside each existing file say exactly which addresses that file
+  transcribes. This survives the no-prose rule below, because those are trailing comments on
+  code rather than a header listing.
+- **Do NOT use the unit-equivalence extents** (`out/units/extents.json`). Those follow tail jumps
+  transitively, so an entry that tail-jumps into shared code reports an extent covering most of
+  the ROM. Subtracting against them marks nearly everything covered — the same false negative,
+  arrived at from the other side.
+
+Then filter: an interior branch target is not an entry point. The test is whether anything
+reaches it from OUTSIDE its own routine, which a scan of the ROM for every `call`, `jp cc`, `jr`,
+`djnz` and raw little-endian word referencing the address settles in one pass.
+
+**A second entry into one routine is real, and is not this.** Where the ROM genuinely has two
+entries sharing a body — each with its own prologue before common code — the interior address
+DOES need registering, because a caller entering later must not re-run the earlier prologue. Time
+Pilot has several (`0x562A`, `0x4984`, `0x3B77`). Registering it is only half the fix: the
+earlier entry must then DELEGATE into it (`m.call`) rather than transcribe the shared body too,
+or the same ROM bytes exist in two files and the copies drift.
+
+## Commit the lift in small batches, WHILE the next batch is being written
+
+Do not let a translation pass accumulate into one commit. The costs are specific:
+
+- **Review degrades.** A reviewer cannot read hundreds of files, so it samples. Defects a
+  small-batch review catches cheaply survive a large one.
+- **Every round re-reviews everything.** A defect anywhere means another pass over the whole
+  mountain, almost all of it re-verifying files that were already fine.
+- **Prose goes stale inside the pass.** A header written early describes helpers and conventions
+  that the same pass later changes. A batch committed the day it is written cannot rot this way.
+- **Nothing is recoverable until the end.** An uncommitted pass is a single point of failure and
+  reads as a stall.
+
+**The rule: commit roughly twenty routines at a time, and commit a finished batch while the next
+is being lifted.** Ordering is almost free — a translated routine depends on the ROM and the
+machine contract, not on its siblings. The exception is a file that imports a sibling directly
+(a shared tail split out as a helper); keep such a pair in one batch.
+
+Regenerate the registry after the batches land, not per batch: `node tools/gen-registry.mjs
+<game>` rebuilds `translated/_registry.generated.js` from whatever is on disk, and the registry
+imports every routine, so it cannot be committed ahead of them. Until it is regenerated, an
+unregistered `m.call` is a loud, local failure — `emit.js` reports the first one as a boot gap —
+so a partial registry is a normal intermediate state rather than a broken one.
+
+## The translated layer carries NO explanatory prose
+
+A translated file gets an SPDX line, a ONE-LINE identity (`loc_<addr>` and its ROM range,
+optionally with a terse role), and the per-instruction trailing comments naming the address and
+mnemonic each `m.step` just executed. Nothing else. No paragraphs on what the routine means, why
+the stack balances, or what the ROM author was doing.
+
+**Why, given the explanations are often true and sometimes interesting.** This layer is an
+ORACLE. Its correctness is established mechanically — the listing byte-checked against the ROM,
+every `m.step` target and T-state audited, the whole thing state-diffed against MAME frame by
+frame. Explanatory prose adds nothing to that and cannot be checked by any of it, while it rots:
+a header written early in a pass describes conventions the same pass later changes, and nothing
+detects the drift. The failure mode to picture is a header that has been rewritten to DOCUMENT a
+bug rather than fix it, which reads as understanding and is the opposite.
+
+The per-instruction trailing comments are not prose and stay: they ARE the transcription, they
+are mechanically checkable against the ROM, and they are what makes a wrong `m.step` findable.
+
+**A trailing comment may append a short clause after `--`, and the test is whether the clause is
+CHECKABLE.** `-- the state byte`, `-- DE = the 16-bit X`, `-- -0x0180` all name what the bytes
+ARE, and a reviewer can confirm or refute each from the ROM. What is forbidden is a clause
+asserting a MECHANISM the bytes do not show. The failure to picture: three sites in one batch
+said an arm was "reached only on checksum failure", copied from the one neighbouring site where
+that was true; at the other two the guard was reading back a tile and its colour attribute out of
+video RAM, and there was no summation anywhere in the chain. Name what is compared, and stop.
+
+**Understanding belongs downstream.** Decompilation and the understanding pass are where a
+routine gets explained, in the idiomatic layer — where R21 then restricts a comment to describing
+its own file. Per-address facts that must outlive a pass go in the `ROUTINES` registry in that
+game's `idiomatic/names.js`, which the lift predates: during a lift there is nowhere durable to
+put an explanation, which is another reason not to write one. Not `mechanisms.md` either, which
+is rewritten from scratch every understanding pass.

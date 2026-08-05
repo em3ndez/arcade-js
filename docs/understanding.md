@@ -93,12 +93,12 @@ the most rename-fragile prose in the registry — and test headers. That is a sm
 Until then the routine layer is still in scope for that game, and this step is still tree-wide.
 The test is per game and it is `scan`, not `check`:
 
-    python3 tools/idiomatic_comments.py scan games/<game>
+    python3 tools/comment_gate.py scan games/<game>
 
 `check` only inspects files that are STAGED, so it goes green on a pass that stages no routine file
-and proves nothing about the layer. **As of R21 landing, neither game is migrated** — every file in
-both layers still carries a forbidden reference. Treat a green `scan` as the licence to run the
-short version of this step, and nothing else as that licence.
+and proves nothing about the layer. Migration is per game and not assumed: run `scan` for the game
+you are in. Treat a green `scan` as the licence to run the short version of this step, and nothing
+else as that licence.
 
 **9. One commit. Independent review confirms these steps were followed.**
 The whole pass lands as ONE unit — renames, `names.js`, `mechanisms.md`, the prose sweep — because a

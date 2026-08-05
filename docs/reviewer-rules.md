@@ -9,9 +9,11 @@ names how to verify it so the check is mechanical, not a matter of opinion.
 Enforcement lives HERE — in the rules an independent review agent checks — not in bespoke gate
 scripts. A gate can only test a proxy; the review agent can judge the actual requirement. (The
 always-on git hooks are `review_gate` / `names_consistency` / `understanding_gate` /
-`idiomatic_comments`; do not add more — express a new requirement as a rule below. The last of those
-is the one exception and R21's History note argues it: its test is REFERENCE, not truth, so it is
-not a proxy for the requirement — it IS the requirement.)
+`comment_gate`; do not add more — express a new requirement as a rule below. The last of those
+is the one exception, and it carries TWO rules that are exceptions for the same reason: its
+REFERENCE test is not a proxy for R21, it IS R21; and its DENSITY test counts lines, which is
+the whole of the rule rather than a stand-in for it. Neither asks whether a comment is true —
+that stays here, with you.)
 
 First, classify this commit from its subject line:
   DECOMPILE  = "decompile batch N"      UNDERSTANDING = "understanding pass N"
@@ -313,7 +315,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   map: `translated/**` (it comes from the disassembly — the address is its identity),
   `idiomatic/names.js` (the registry), and `idiomatic/**/test/**` (a test must name its subject).
 
-  The mechanical half is a gate — `tools/idiomatic_comments.py check`, wired into `hooks/pre-commit`
+  The mechanical half is a gate — `tools/comment_gate.py check`, wired into `hooks/pre-commit`
   — because unlike every other rule here it tests REFERENCE rather than truth, and that is
   decidable by a script. **What the reviewer adds is the part a script cannot do: whether the
   displaced content landed somewhere, or was simply deleted.** A header stripped of its
@@ -321,8 +323,10 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   header, or a grounding finding removed without reaching `mechanisms.md`, passes the gate and
   fails this rule. Deleting the evidence is not complying with the rule; relocating it is.
 
-  Verify: `python3 tools/idiomatic_comments.py check` exits 0 (the hook runs it, so a landed commit
-  has already passed it — the reviewer's job is the second paragraph). For a commit that strips
+  Verify: `python3 tools/comment_gate.py check` exits 0 (the hook runs it, so a landed commit
+  has already passed it — the reviewer's job is the second paragraph). Note it carries the DENSITY
+  rule too and reports both, so a nonzero exit is not necessarily about R21; read which rule the
+  message names. A "cannot lex" block is neither — it means the file could not be judged. For a commit that strips
   headers, diff what left against what arrived: `git diff --cached -- '*/idiomatic/*.js'` (note this
   pathspec also matches the exempt `idiomatic/test/**`, which you want anyway — that is where the
   gate claims land) and confirm each surviving CLAIM is present in the test header, the registry, or
