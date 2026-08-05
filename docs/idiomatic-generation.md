@@ -50,8 +50,8 @@ real signature and the marshalling dissolves into a named call.
 memory-equivalent routines (leaves first, cycles and dead registers/flags dropped, gated against the
 `loc_XXXX` lift with pinned PRNG and teeth). An **understanding pass** then makes the accumulated
 routines *read* like the game. Keep the two separate — decompile is about correctness, understanding
-is about meaning — and run understanding *after* and *across the whole set*, because a callee
-decompiled in a later batch is what makes an earlier caller's `m.call` dissolvable. This separation
+is about meaning — and run understanding *after* and *across the whole set*, so it sees the layer
+as a whole rather than one batch at a time. This separation
 is not stylistic: `reviewer-rules.md` classifies every commit as one or the other, and R1 forbids two
 DECOMPILE commits in a row with no UNDERSTANDING between them.
 
@@ -69,34 +69,45 @@ For each DECOMPILE batch:
 3. **Ground anything load-bearing, in-loop.** If the batch is about to commit an identity that
    downstream work will trust and the code alone cannot settle, fire the experiment *now*.
 4. **Write the four artifacts per routine** — module, equivalence test, `ROUTINES` entry, green
-   gate. All four or the routine is not in the layer.
+   gate. All four or the routine is not in the layer. If the routine calls an already-decompiled
+   callee, **dissolve that `m.call` into a direct call here**, as part of this routine's work.
 5. **Name it** under the three-look protocol, or leave it `loc_` if the *mechanism* is genuinely
    unreadable.
 6. **Land the batch as a DECOMPILE commit**, reviewed, with the `names.js` retrofit in the same
    commit — and **run the whole suite yourself first**. A per-agent "green" self-report is not the
    gate; a later dissolve in the same batch can break an earlier agent's routine after it reported.
 
-### A batch containing a shared helper is not landable as written
+### Dissolving belongs to the CALLER's unit, not the callee's
 
-Taking leaves first, this is the common case, not the edge case. **Decompiling a shared-helper leaf
-is not a landable unit on its own — the unit is decompile + dissolve-every-caller + migrate-the-
-strict-caller-tests.** Two coupled consequences fire the moment the leaf lands:
+**Dissolve an `m.call` when you write the caller, not when the callee lands.** A leaf — including a
+shared helper with thirty callers — is a landable unit on its own. Its callers are still translated
+oracle files, which are frozen and never edited, so nothing goes stale when it lands and there is
+nothing to retrofit. Later, when a caller is itself decompiled, that batch replaces its `m.call`s to
+already-decompiled callees with direct calls as part of its own work.
 
-1. Every caller's `m.call(0xADDR)` to it is now stale, so the `no-stale-mcall` dissolve-invariant
-   lint goes red. The batch will not go green until all callers are dissolved to direct calls. On
-   The Pit, decompiling one copy/fill helper stranded 25 `m.call`s across 15 files, including
-   `push16` return-brackets. **The guard must resolve file-local `const NAME = 0x….` aliases, not
-   just literal hex** — otherwise `m.call(ACTOR_UPDATE)` is a const-alias evasion that hides a stale
-   call to an already-decompiled callee from a lint that only greps for `m.call(0x…)`.
-2. Dissolving a *tail* `return m.call` or a bracketed call changes the Z80 pc/SP/stack, which
-   false-fails any caller test still written to the **strict** pc/SP/whole-stack contract. Those
-   tests must be migrated to the memory-equivalence contract — exclude the dead `[SP-8, SP)` stack
-   scratch, keep the RAM diff and the teeth.
+Strict bottom-up order is what makes this hold. Violate it — decompile a caller before its callee —
+and you buy the retrofit instead: the moment the callee lands, every already-idiomatic caller's
+`m.call(0xADDR)` is stale and the `no-stale-mcall` lint goes red. On The Pit, one batch of eight
+leaves landed under callers that had already been decompiled and stranded 25 `m.call` sites across
+15 caller files between them, including `push16` return-brackets. Worse, dissolving a
+*tail* `return m.call` changes the Z80 pc/SP/stack, which false-fails any caller test still written
+to the **strict** pc/SP/whole-stack contract; each must then be migrated to memory-equivalence —
+excluding the dead `[SP-8, SP)` stack scratch, keeping the RAM diff and the teeth, and re-proving
+that the relaxed gate still catches a broken-RAM twin at a *real* cell rather than a stack-scratch
+ghost. That is a whole unit of unplanned work, and leaves-first is what avoids it.
 
-So plan the batch as one unit: decompile the leaf, dissolve every caller (**partition the caller
-files across agents so no two touch one file**), migrate each stale strict test — each one must
-re-prove that its relaxed gate still catches a broken-RAM twin at a *real* cell, not a stack-scratch
-ghost — then gate the whole set on the full suite plus the lint before it lands.
+**A cycle is the third case, and it is not a violation.** A strongly-connected cluster has no
+leaves-first order — every member calls another member. Land the whole cluster as ONE unit and
+dissolve within it; the rule is unchanged, since you are still dissolving at each caller as you
+write it. Where a cycle runs through a routine that never returns, the lint needs a standing
+allowlist for those boundary addresses rather than a fix.
+
+Two rules for when you do dissolve, at the caller:
+
+- **Partition the caller files across agents so no two touch one file.**
+- **The lint must resolve file-local `const NAME = 0x….` aliases, not just literal hex** — otherwise
+  `m.call(ACTOR_UPDATE)` is a const-alias evasion that hides a stale call from a lint that only
+  greps for `m.call(0x…)`.
 
 ## Then the mechanisms file
 
@@ -601,9 +612,10 @@ is dead weight — the routines still read a hex literal, so nothing got more le
 batch ends by retrofitting the referencing routines, and `names.js` plus the retrofit land in **one
 commit**. Splitting them across two means the reviewer cannot confirm the second half happened.
 
-**Dissolve and promote the ABI in the same edit.** Replace every `m.call` to an already-decompiled
-callee with a genuine function call, and promote register live-ins to real parameters — a rename
-already rewrites every idiomatic caller, so the ABI promotion rides along for free.
+**Promote the ABI in the same edit, and dissolve anything left over.** Promote register live-ins to
+real parameters — a rename already rewrites every idiomatic caller, so the ABI promotion rides along
+for free. Dissolving `m.call` is NOT this pass's job: it belongs to each caller's own decompile
+unit. Replace only what genuinely remains, which in practice means a cluster landed as one unit.
 
 ---
 
