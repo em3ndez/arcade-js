@@ -283,6 +283,7 @@ import { loc_44c9 } from "./loc_44c9.js";
 import { loc_44dc } from "./loc_44dc.js";
 import { loc_459b } from "./loc_459b.js";
 import { loc_460e } from "./loc_460e.js";
+import { loc_46a6 } from "./loc_46a6.js";
 import { loc_46ba } from "./loc_46ba.js";
 import { loc_46ce } from "./loc_46ce.js";
 import { loc_46db } from "./loc_46db.js";
@@ -305,6 +306,7 @@ import { loc_4a42 } from "./loc_4a42.js";
 import { loc_4a9d } from "./loc_4a9d.js";
 import { loc_4acc } from "./loc_4acc.js";
 import { loc_4afb } from "./loc_4afb.js";
+import { loc_4b07 } from "./loc_4b07.js";
 import { loc_4b19 } from "./loc_4b19.js";
 import { loc_4b30 } from "./loc_4b30.js";
 import { loc_4b4b } from "./loc_4b4b.js";
@@ -343,12 +345,14 @@ import { loc_5205 } from "./loc_5205.js";
 import { loc_5211 } from "./loc_5211.js";
 import { loc_5254 } from "./loc_5254.js";
 import { loc_526a } from "./loc_526a.js";
+import { loc_5277 } from "./loc_5277.js";
 import { loc_5286 } from "./loc_5286.js";
 import { loc_52aa } from "./loc_52aa.js";
 import { loc_52d2 } from "./loc_52d2.js";
 import { loc_5303 } from "./loc_5303.js";
 import { loc_530e } from "./loc_530e.js";
 import { loc_5337 } from "./loc_5337.js";
+import { loc_53d4 } from "./loc_53d4.js";
 import { loc_55d4 } from "./loc_55d4.js";
 import { loc_55f8 } from "./loc_55f8.js";
 import { loc_560c } from "./loc_560c.js";
@@ -681,6 +685,7 @@ export const ROUTINE_ENTRIES = [
   [0x44dc, loc_44dc],
   [0x459b, loc_459b],
   [0x460e, loc_460e],
+  [0x46a6, loc_46a6],
   [0x46ba, loc_46ba],
   [0x46ce, loc_46ce],
   [0x46db, loc_46db],
@@ -703,6 +708,7 @@ export const ROUTINE_ENTRIES = [
   [0x4a9d, loc_4a9d],
   [0x4acc, loc_4acc],
   [0x4afb, loc_4afb],
+  [0x4b07, loc_4b07],
   [0x4b19, loc_4b19],
   [0x4b30, loc_4b30],
   [0x4b4b, loc_4b4b],
@@ -741,12 +747,14 @@ export const ROUTINE_ENTRIES = [
   [0x5211, loc_5211],
   [0x5254, loc_5254],
   [0x526a, loc_526a],
+  [0x5277, loc_5277],
   [0x5286, loc_5286],
   [0x52aa, loc_52aa],
   [0x52d2, loc_52d2],
   [0x5303, loc_5303],
   [0x530e, loc_530e],
   [0x5337, loc_5337],
+  [0x53d4, loc_53d4],
   [0x55d4, loc_55d4],
   [0x55f8, loc_55f8],
   [0x560c, loc_560c],
