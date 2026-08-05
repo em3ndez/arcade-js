@@ -1,29 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-// loc_3176  (ROM 0x3176-0x3180, Time Pilot)
+// loc_3176  (ROM 0x3176-0x31B3, Time Pilot) -- DATA, not code. The upper bound is where the
+// next registered routine starts; the table may end earlier.
 export function loc_3176(m) {
-  const { regs, mem } = m;
-
-  regs.h = regs.b;
-  m.step(0x3177, 4); // ld h,b
-  regs.l = regs.b;
-  m.step(0x3178, 4); // ld l,b
-  regs.h = regs.c;
-  m.step(0x3179, 4); // ld h,c
-  regs.h = regs.b;
-  m.step(0x317a, 4); // ld h,b
-  regs.h = regs.c;
-  m.step(0x317b, 4); // ld h,c
-  regs.h = regs.d;
-  m.step(0x317c, 4); // ld h,d
-  regs.h = regs.e;
-  m.step(0x317d, 4); // ld h,e
-  regs.e = regs.h;
-  m.step(0x317e, 4); // ld e,h
-  mem.write8(regs.hl, regs.h);
-  m.step(0x317f, 7); // ld (hl),h
-  mem.write8(regs.hl, regs.l);
-  m.step(0x3180, 7); // ld (hl),l
-
-  throw new Error("Time Pilot: reached the halt at 0x3180 -- 0x3176 is a data table.");
+  throw new Error(
+    "0x3176 is a data table, not code, and it was entered as a routine at cycle " +
+      m.cycles + ". loc_30a5 loads it as data: `ld hl,0x3176` at ROM 0x30B6 followed by " +
+      "`rst 0x18`, which adds A to HL. It is entered as CODE only through loc_315b's " +
+      "`jp 0x3176`, reached from `jp nz,0x315b` at 0x30E9 and 0x30F5 -- and unlike the " +
+      "ROM-checksum traps elsewhere in this layer those guards read WORK RAM (0xACC7 " +
+      "against 0x3B, 0xACC8 against 0x05 and 0x10), so this arm is reachable on bad " +
+      "runtime state rather than dead on a genuine image.",
+  );
 }
