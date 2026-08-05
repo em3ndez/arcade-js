@@ -693,7 +693,7 @@ def cmd_check(_args):
         print(
             "comment_gate: BLOCKED — these comments name something outside their own file.\n"
             "  An idiomatic comment describes THIS file.\n"
-            "  (docs/decompiler-pipeline.md, \"Output conventions\")\n",
+            "  (docs/idiomatic-generation.md, \"Output conventions\")\n",
             file=sys.stderr,
         )
         for path, lineno, label, matched in hits:

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Understanding-completeness gate — make the MECHANISMS-with-renames rule MECHANICAL.
 
-The recipe rule (docs/decompiler-pipeline.md and docs/understanding.md): an understanding pass
+The recipe rule (docs/idiomatic-generation.md and docs/understanding.md): an understanding pass
 rewrites the game's mechanisms.md in the SAME landable unit as the renames, and the
 map must reference only names that exist in the code. Prose can't enforce that — an
 agent (or a lead) under a "correctness gates are green -> commit" reflex ships the

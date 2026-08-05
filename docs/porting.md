@@ -157,7 +157,7 @@ what it cost on Time Pilot.
 The **method** — the model that turns a ROM into validated, *understood* JavaScript — lives in
 exactly one place: **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call
 graph, then Ship). Its detailed Structure/Meaning techniques are in
-[the decompiler pipeline](decompiler-pipeline.md), building on the disassembly, translation, and
+[idiomatic generation](idiomatic-generation.md), building on the disassembly, translation, and
 gate mechanics in the disassembly-through-pixel-gate docs.
 
 ## The ROM stays out
@@ -175,4 +175,4 @@ a few frames and every RNG-driven sprite drifts — a long pixel diff then looks
 is identical. Don't chase cycle-exactness for it; **pin the entropy** for equivalence testing instead
 (declare `manifest.entropyPin`, run with `--pin-entropy`). The full method — discovery, the pin, and
 the convergent diff for the residual DMA artifact — is the *Entropy pinning* section of
-[the decompiler pipeline](decompiler-pipeline.md).
+[idiomatic generation](idiomatic-generation.md).

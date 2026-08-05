@@ -2,7 +2,7 @@
 
 The [lift](translation.md) is byte-faithful but **meaning-blind**: it tells you a routine
 writes `0x801b`, not that `0x801b` is *which directions the player is allowed to dig*. The
-[decompiler pipeline](decompiler-pipeline.md) can't produce readable code or *earned* names
+[idiomatic generation](idiomatic-generation.md) can't produce readable code or *earned* names
 without that meaning — a name is a claim about what a routine does *in the game*. This step builds
 that claim, on evidence, before and during the idiomatic rewrite.
 
@@ -32,7 +32,7 @@ the port*, and both are `[code]`. When the number is ours, write **"harness repl
 was written to catch already said "attract run".
 
 A wrong role asserted with confidence is worse than a neutral `loc_<addr>` — it is the
-[sprite-record trap](decompiler-pipeline.md) at the level of the whole game. Tag honestly.
+[sprite-record trap](idiomatic-generation.md) at the level of the whole game. Tag honestly.
 
 ## The formula — how to run an understanding pass
 
@@ -128,7 +128,7 @@ not before running one.
    Read the frames. Identify the actors, the playfield, the HUD, the loop. That is your **[seen]**
    layer, and those same frames become the first [pixel-gate](pixel-gate.md) goldens (the title
    screen — deterministic, though often with a blink to match by frame *phase* — is the cleanest
-   first target; the demo needs the [entropy pin](decompiler-pipeline.md) because enemy motion
+   first target; the demo needs the [entropy pin](idiomatic-generation.md) because enemy motion
    pulls from the RNG).
 
 2. **Tie observed elements to routines and RAM.** For each thing you see (player, each enemy, the
@@ -214,7 +214,7 @@ spiral — it FEEDS a grounding pass. Two stages, and stage B is not optional:
    derivations, promoted on convergence — but convergence is necessary, not sufficient (two blind
    derivations can converge on the same *wrong* reading, the recorded `0x8076` case), so a third
    adversarial review reads every promoted name before it lands, not only the ones the two split on. The
-   lead — not a proposer — edits `names.js`. (See [decompiler-pipeline](decompiler-pipeline.md).)
+   lead — not a proposer — edits `names.js`. (See [idiomatic generation](idiomatic-generation.md).)
 4. **Verify the code side mechanically, don't assert.** Both-net enumeration prints zero uncentralized
    cells; the names-consistency gate reports zero; the equivalence suite is green; a reviewer≠author
    reads the diff.
@@ -244,7 +244,7 @@ role-tag is a claim about what something *means*, and the method holds interpret
 proposer-≠-confirmer discipline as code ([README](README.md): "proposer≠confirmer (RAM *and* routines)
 + third adversarial review"; [how-the-agents-worked](how-the-agents-worked.md): "a separate confirmer re-derives
 it by control-poke or citation before it is trusted"; also [names-registry](names-registry.md),
-[decompiler-pipeline](decompiler-pipeline.md)). So a `[guess]`/`[code]` item is promoted to
+[idiomatic generation](idiomatic-generation.md)). So a `[guess]`/`[code]` item is promoted to
 `[seen]`/confirmed — and a name is trusted in `names.js` — only after a **separate** agent (not the
 proposer) **independently re-derives it from scratch**: reproduces the control-poke and reads the result
 themselves, or cites the corroborating readers/writers themselves, and reaches the same conclusion (or
@@ -267,7 +267,7 @@ change. Treat a stale mechanism map the way you treat a stale doc: a bug.
 It is **cross-cutting, not a step.** The observation half needs only the ROM and MAME, so it
 **starts on day one — before the lift** — and orients everything that follows; the `[code]` layer
 then grows with the lift, and the deepest understanding lands *during* the decompile. It spans the
-whole [decompiler pipeline](decompiler-pipeline.md), whose RAM-naming and bottom-up-decompile
+whole [idiomatic generation](idiomatic-generation.md), whose RAM-naming and bottom-up-decompile
 steps **consume** it: an earned English name *is* a mechanism-map role that reached confidence. So:
 
 > **The mechanism map (`games/<game>/mechanisms.md`) is required reading for the idiomatic /

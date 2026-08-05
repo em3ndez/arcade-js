@@ -61,7 +61,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   and WHY — and "why" must rest on a REACHABILITY MEASUREMENT, not on an impression. Before a pass
   reports any routine as blocked, held, or hard, the backlog must have been swept: a read tap at
   each unnamed entry address on the real ROM under MAME, driven across boards/levels/difficulty,
-  with hit counts attributed to the live game state (see grounding.md, "Triage the backlog FIRST").
+  with hit counts attributed to the live game state (see idiomatic-generation.md, "Triage the backlog FIRST").
   The pass must name at least one blocked cluster its run actually attacked.
   Verify:
   1. The pass reports an unnamed COUNT, and it matches the registry — re-derive it.
@@ -134,7 +134,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   name things outside the file and now live in the registry, the test header (where R17 governs
   them) and the import list. Where the evidence stops, the header must say so rather than round
   up to a confident reading; a named open question is a PASS, a plausible guess stated as fact is a
-  FAIL. See `decompiler-pipeline.md`, "A claim budget per header".
+  FAIL. See `idiomatic-generation.md`, "A claim budget per header".
 - **R6 [ALL]** Where purpose is not corroborated, the routine STAYS loc_<addr>. A confidently-wrong
   English name is a violation. Verify: spot-check promoted names aren't guesses.
 
@@ -371,7 +371,7 @@ observed failing?", because that is the question none of the five instances coul
 several passes. With 105 DK routines unnamed, the standing account was that they were blocked for
 want of grounding. One 150-second MAME run with a read tap per entry showed 84 of them executing —
 one of them 9,548 times. The technique was NOT documented anywhere until the preceding commit put
-it in grounding.md; an earlier draft of this note claimed it "was already documented and simply was
+it in idiomatic-generation.md; an earlier draft of this note claimed it "was already documented and simply was
 not being reached for", which was false and erased that commit's contribution. The honest account
 is two steps: write the technique down, then REQUIRE reaching for it, because a document alone
 supplies no requirement. It is a rule and not a gate for the narrower reason that no script can

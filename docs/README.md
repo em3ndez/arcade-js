@@ -87,7 +87,7 @@ Each links to the doc that details it.
 - boot-gap-driven order (the gate doubles as the work-list) — [integration testing](integration-testing.md)
 - memory-equivalence fidelity contract, collapse (total-preservation), entropy-pinning,
   capture-clone-replay, NMI-at-vblank-yield, the `no-stale-mcall` guard **(must resolve const-aliases,
-  not just literal hex)** — [decompiler pipeline](decompiler-pipeline.md)
+  not just literal hex)** — [idiomatic generation](idiomatic-generation.md)
 
 **Gate face**
 - pixel gate (byte-exact vs tolerance, never lower the floor) — [pixel gate](pixel-gate.md)
@@ -96,9 +96,9 @@ Each links to the doc that details it.
 **Meaning**
 - confidence tags (`[seen]/[code]/[guess]`) + the build/maintain loops — [understanding](understanding.md)
 - **one source per fact**: `names.js` owns a cell's name/role/tag; `mechanisms.md` tags *mechanisms* not cells, comments never restate registry status — a fail-closed gate (`tools/names_consistency.py`) blocks prose that calls a named cell "hex/unnamed" — [the names registry](names-registry.md)
-- proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [understanding](understanding.md), [decompiler pipeline](decompiler-pipeline.md)
+- proposer≠confirmer (RAM *and* routines) + third adversarial review; keep-hex-if-ungrounded; name a routine once its **mechanism** is understood (`loc_` only when the mechanism itself is unclear) — [understanding](understanding.md), [idiomatic generation](idiomatic-generation.md)
 - grounding = poke-to-trigger + watch-in-MAME + A/B with a **negative control**; memory-diffing to
-  find where to poke; persistence + completeness-critic rounds — [grounding](grounding.md)
+  find where to poke; persistence + completeness-critic rounds — [idiomatic generation](idiomatic-generation.md)
 
 **Ship**
 - web-worker contract, audio record/replay (without emulating the sound CPU), ROM stays out — [porting](porting.md)
@@ -129,10 +129,9 @@ Each details one cluster inside a move (read in any order):
 - [disassembly](disassembly.md) · [translation](translation.md) · [testing & mutation](testing-and-mutation.md) · [integration testing](integration-testing.md) · [pixel gate](pixel-gate.md) — **Structure & the gate face**
 - [understanding](understanding.md) — **Meaning** (cross-cutting; starts day one)
 - [the names registry](names-registry.md) — **Meaning**: `names.js`, the one file mapping every address (RAM cell and routine) to its name
-- [decompiler pipeline](decompiler-pipeline.md) — **Structure**, the idiomatic rewrite in depth
+- [idiomatic generation](idiomatic-generation.md) — **Structure & Meaning together**: the batch loop that rewrites the lift into readable code, and the grounding that recovers what it means (the probe face of the oracle)
 - [porting a new game](porting.md) — **Ship** + CPU / board / game layering
 - [how the agents worked](how-the-agents-worked.md) — the experiment (the agents, not the method)
-- [grounding](grounding.md) — playing the game in MAME to recover its meaning (the probe face of the oracle)
 - [contributing a disassembly](contributing-disassembly.md) — **beyond the port**: publishing a clean-room ROM disassembly to an external archive
 
 The running example is **Donkey Kong** (Z80, `dkong` board); **The Pit** (Zilec / Centuri, `thepit`)

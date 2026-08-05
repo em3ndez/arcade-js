@@ -1,0 +1,642 @@
+# 8. Idiomatic generation — from the frozen lift to understood code
+
+This turns the [translated](translation.md) lift into idiomatic JavaScript that a person can read,
+held **memory-equivalent** to the oracle. It is one sentence:
+
+> Register fidelity and cycle fidelity are **conservative proxies**. The only thing that has to be
+> right is the memory the display reads. Reproduce *that* — plus the registers/flags a caller
+> actually consumes — and the code is free to be ordinary JavaScript.
+
+Everything here is the consequence of taking that seriously. Two activities interleave and neither
+works alone: **decompilation** recovers correct structure, **grounding** recovers what it means.
+Code has a hard ceiling — it cannot tell you which sprite is an enemy, what a cell means in play,
+or what the game *is*. Those answers live in behaviour. So grounding is not a phase at the end; it
+is the second face of the oracle, and it runs from day zero.
+
+---
+
+# Part I — The loop, concretely
+
+## Day zero, before any routine is rewritten
+
+1. **Stand up the MAME observation rig** — verified romset, per-frame RAM dump, poke/input harness.
+   Build it *before* naming. If the rig is late-phase setup, grounding slides to the end and stops
+   gating the picks it should, and a session gets lost to a false "I can't ground yet."
+2. **Write `gameplay.md`** — the outside-in view from public sources only, deliberately blind to the
+   ROM, so it can later adjudicate mechanics the code cannot settle.
+3. **Behavioural grounding** — play the game and take notes. Objective, cast, win/lose, controls.
+   Zero reverse-engineering required. Front-load it, or names get chosen at partial understanding
+   and need a costly re-derivation later.
+4. **Close the call graph** under the whole control-flow graph — not just `call` targets. A shared
+   tail reached only by `jr`, or a computed-dispatch target, is otherwise silently omitted. Report
+   "≥N, still closing," never "N of total," until a pass adds nothing new.
+5. **Reachability sweep** — see *Triage the backlog first*, below. One MAME run; it re-plans
+   everything.
+6. **RAM naming pass** — front-loaded, because named memory is the single biggest legibility lever.
+
+## The batch loop: ten leaf routines at a time
+
+The unit of work is a **batch of about ten routines, taken leaves-first**. Ten because it is small
+enough that one agent holds the whole batch in view and a reviewer can re-derive every claim in
+it, and large enough that shared context across sibling routines pays for itself. Bigger batches
+get sampled rather than reviewed; that is how defects survive.
+
+**Leaves first is not a preference.** A caller decompiled while its callee is still a raw ROM
+routine has to marshal the callee's register ABI by hand — an assembly leak that the equivalence
+gate cannot see, because both call paths are memory-equivalent. Decompile the callee first into a
+real signature and the marshalling dissolves into a named call.
+
+**Batches alternate: DECOMPILE, then UNDERSTANDING.** Decompilation recovers correct,
+memory-equivalent routines (leaves first, cycles and dead registers/flags dropped, gated against the
+`loc_XXXX` lift with pinned PRNG and teeth). An **understanding pass** then makes the accumulated
+routines *read* like the game. Keep the two separate — decompile is about correctness, understanding
+is about meaning — and run understanding *after* and *across the whole set*, because a callee
+decompiled in a later batch is what makes an earlier caller's `m.call` dissolvable. This separation
+is not stylistic: `reviewer-rules.md` classifies every commit as one or the other, and R1 forbids two
+DECOMPILE commits in a row with no UNDERSTANDING between them.
+
+For each DECOMPILE batch:
+
+1. **Pick ~10 routines with no un-decompiled callees.** Re-derive the leaf set *each* batch by
+   closing the call graph over the `m.call` targets in the current sources — a worklist computed
+   once goes stale the moment a batch lands, and a static list is not closed under the call graph.
+   Two counting traps: subtract against **transcription coverage** (which address ranges are
+   already lifted), never against filenames — a routine is a range, not a file; and **an interior
+   branch target is not an entry**, so do not dispatch an agent at one.
+2. **Disassemble and understand each one.** Before forming any theory, take the four theory-free
+   measurements (below): does it execute and where, what is its write-set, who calls it and what do
+   they do with the result, what changes on screen after it runs.
+3. **Ground anything load-bearing, in-loop.** If the batch is about to commit an identity that
+   downstream work will trust and the code alone cannot settle, fire the experiment *now*.
+4. **Write the four artifacts per routine** — module, equivalence test, `ROUTINES` entry, green
+   gate. All four or the routine is not in the layer.
+5. **Name it** under the three-look protocol, or leave it `loc_` if the *mechanism* is genuinely
+   unreadable.
+6. **Land the batch as a DECOMPILE commit**, reviewed, with the `names.js` retrofit in the same
+   commit — and **run the whole suite yourself first**. A per-agent "green" self-report is not the
+   gate; a later dissolve in the same batch can break an earlier agent's routine after it reported.
+
+### A batch containing a shared helper is not landable as written
+
+Taking leaves first, this is the common case, not the edge case. **Decompiling a shared-helper leaf
+is not a landable unit on its own — the unit is decompile + dissolve-every-caller + migrate-the-
+strict-caller-tests.** Two coupled consequences fire the moment the leaf lands:
+
+1. Every caller's `m.call(0xADDR)` to it is now stale, so the `no-stale-mcall` dissolve-invariant
+   lint goes red. The batch will not go green until all callers are dissolved to direct calls. On
+   The Pit, decompiling one copy/fill helper stranded 25 `m.call`s across 15 files, including
+   `push16` return-brackets. **The guard must resolve file-local `const NAME = 0x….` aliases, not
+   just literal hex** — otherwise `m.call(ACTOR_UPDATE)` is a const-alias evasion that hides a stale
+   call to an already-decompiled callee from a lint that only greps for `m.call(0x…)`.
+2. Dissolving a *tail* `return m.call` or a bracketed call changes the Z80 pc/SP/stack, which
+   false-fails any caller test still written to the **strict** pc/SP/whole-stack contract. Those
+   tests must be migrated to the memory-equivalence contract — exclude the dead `[SP-8, SP)` stack
+   scratch, keep the RAM diff and the teeth.
+
+So plan the batch as one unit: decompile the leaf, dissolve every caller (**partition the caller
+files across agents so no two touch one file**), migrate each stale strict test — each one must
+re-prove that its relaxed gate still catches a broken-RAM twin at a *real* cell, not a stack-scratch
+ghost — then gate the whole set on the full suite plus the lint before it lands.
+
+## Then the mechanisms file
+
+**Every understanding pass finishes by rewriting `games/<game>/mechanisms.md` from scratch, in the
+same landable unit as the renames.** Not editing it — rewriting it.
+
+The first step of the rewrite is to **read `gameplay.md`** as the outside-in frame, then re-derive
+the inside-out model from the *current* code and grounding, blind to the prior map. Regenerate the
+routine and RAM tables from what the idiomatic layer and `names.js` actually contain now,
+re-synthesize the subsystem prose, move newly-answered questions to a resolved note, sharpen the
+still-open ones, and recount by measuring rather than by adjusting the old numbers.
+
+Incremental edits accumulate exactly the drift that keeps biting: a count that lags, `loc_`
+references that outlive their rename, rows naming old callees, an internally inconsistent
+structure. A map that lags the code is the tell that a pass was left half-done — the names shipped
+and the understanding never reached where the next agent reads it.
+
+**Enforced, not advised:** `tools/understanding_gate.py` runs in the pre-commit hook and blocks any
+commit that renames routines or changes `names.js` exports without staging `mechanisms.md`, or that
+leaves a retired name anywhere in the map.
+
+---
+
+# Part II — Grounding
+
+## Two halves, different dependencies
+
+- **Behavioural** — the game as a player sees it. Needs only MAME and a verified romset. Day zero.
+- **Structural** — attaching that behaviour to specific addresses and routines ("*this* cell is the
+  completion gate"). Needs the memory map, so it threads through the decompile.
+
+**Meaning rides on the map.** Poke-assisted grounding needs to know where to poke. With no map yet,
+bootstrap with memory-diffing: play, snapshot RAM around an event, find the byte that changed
+("which cell decrements when I die?" → the lives counter, with zero decompilation).
+
+## Grounding GATES a load-bearing pick — in-loop, not deferred
+
+When the decompile is about to commit an identity that (a) downstream work will trust and (b) the
+code alone cannot settle — laser vs terrain-scroll, enemy vs ship, which axis is X — fire the
+experiment *then* and let the result set the name.
+
+Do **not** name it from code and let grounding upgrade it later. That deferral is how The Pit
+committed *"no laser exists"* and named enemy-3 a *"ship,"* each caught only by a later round after
+the wrong pick had propagated through the map. Low-stakes or code-decidable calls defer freely;
+this gate is for the picks everything downstream leans on.
+
+## The experiment discipline
+
+Every semantic claim is an experiment, not an assertion:
+
+1. **Hypothesis** — "the on-screen tank is the timer that kills you."
+2. **Reach the state** — play to it, or poke known cells to jump there fast.
+3. **Watch** — log RAM cells, read annotated frames.
+4. **A/B with a negative control.** The control is what makes it proof. To test "is X an enemy?",
+   force X active and overlap it onto the player (death) **and** run the identical setup with X far
+   away (no death); the difference is the finding. A same-cell pin on a *dormant* actor fires
+   nothing — a missing control produced an inconclusive death test once.
+5. **Prefer a natural run.** The strongest evidence is captured end-to-end in normal play with zero
+   pokes; pokes are an accelerator, not the goal.
+
+Cross-check a frame reading against the validated renderer's own computation of the same sprite RAM
+— an independent second "yes" that the pixels mean what you think.
+
+## Theory → prediction → measurement
+
+"Ground it before you name it" is impossible as stated: you cannot instrument a routine without
+some idea of what to look at. Reading the code and forming a theory is unavoidable and fine. The
+rule is what happens next: **the theory must yield a prediction about something observable, and you
+check the prediction before the name goes in the file.** A theory that cannot state a prediction is
+not ready to be a name, and the routine stays `loc_`.
+
+The worked failure is DK's `0x2C` cluster — **the sprite-record trap**, referred to by that name
+throughout these docs. "A routine walking a byte table to a `0x7F` terminator is
+a string renderer" is a reasonable first theory — and it makes a sharp prediction: text in this ROM
+goes to VRAM at `0x7400+`. The routine writes 4-byte sprite records at `0x6900` and never touches
+`0x7400+`. One measurement kills it, and that measurement was available on day one. Instead the
+theory became the name, the name became the neighbouring files' framing by imitation, and it spread
+through the cluster's routines, their gates, and the `names.js` roles those gates cite back.
+
+**What you can measure before any theory at all.** None of this needs to know what the routine is,
+and all of it narrows the hypothesis space:
+
+- **Does it execute, and where?** A read tap at the entry, attributed to board / level / substate.
+  Separates "runs constantly on 25m" from "never runs in attract."
+- **What is its write-set?** Clone the machine at each dispatch, run the routine, diff RAM.
+  Theory-free — but read it against the board's memory map, because a bare region name misleads.
+  The example above writes only work RAM and never DK's sprite RAM, which under a naive reading says
+  "not a renderer"; `0x6900` is the DMA shadow buffer that gets blitted to sprite RAM. The write-set
+  is the evidence; the memory map is what lets it mean anything.
+- **Who calls it, and what does the caller do with the result?**
+- **What changes on screen in the frames after it runs?**
+
+Do these first and the theory you form afterwards is already constrained by evidence, rather than
+being a guess that evidence must later be found to fit.
+
+**The cost asymmetry is why this is worth the trouble.** Idiomatic *code* has an oracle: checked
+against the frozen translation mechanically and for free on every push. Idiomatic *prose* has none —
+"this arm can never emit `0x1B`" is checkable only by a human disassembling the ROM, per claim.
+Producing the expensive-to-verify kind at the speed of the cheap kind is how a repair backlog gets
+made.
+
+## Triage the backlog FIRST: sweep reachability before deciding anything is blocked
+
+Before a naming pass decides which routines are "hard," **measure which ones the ROM actually
+executes.** Install a one-byte read tap at each unnamed entry, drive the game through every board,
+level and difficulty you can poke to, and count hits, attributing each to the live game state.
+
+Do this because the intuition is wrong. On DK, with 105 routines unnamed, the standing assumption
+was that they stayed unnamed because nothing grounded them. The sweep refuted it in 150 emulated
+seconds: **84 of 105 executed**, one of them 9,548 times. **38 fired on exactly one board** — the
+bucket where poking pays. **21 were not reached** — and a second sweep driving what the first
+skipped reached 7 of those 21, one of them 1,464 times. The first sweep's not-reached list
+overstated dead code by half.
+
+Three rules fall out:
+
+1. **"Unnamed" is not "unreachable."** Sort the backlog by hit count before planning. Reaching a
+   routine is necessary to ground it, not sufficient — but a routine nobody has run is blocked for a
+   different reason than one nobody has looked at, and the sweep tells you which you have.
+2. **A not-reached list is an UPPER BOUND on dead code, never a measurement of it.** It describes
+   the states your sweep drove, not the ROM. Report it as "not reached by this sweep," and narrow it
+   by driving more states rather than by concluding.
+3. **Corroborate a dead-code claim — and check the two methods answer the SAME question.** DK's
+   `loc_16d0` appeared in a not-reached set while a blind confirmer independently derived from code
+   that its one write is dead. That was written up as two methods agreeing. It was not: the
+   confirmer's claim was that a WRITE is unobservable, the sweep's was that the ROUTINE never runs. A
+   second sweep found it executing 107 times, and tracing the write showed it stores a direction
+   reversal — not inert either. Both halves were false and the file they were used to doubt had been
+   right all along. **Two results pointing the same direction are not corroboration unless they
+   answer the same question** — and when a claim has been wrong twice, the next correction is the one
+   to distrust most.
+
+### Two limits of the sweep method itself — both silent
+
+`tools/reach_sweep.lua` is the game-agnostic implementation (`ADDRLIST`, `REACHOUT`, `CTXCELLS`, and
+a `DRIVER` chunk that coins up and drives inputs). **Without a `DRIVER` it measures attract mode
+only**, which is the single easiest way to produce a falsely large not-reached set. Two further
+limits carry to any new game, and neither raises an error:
+
+- **Encrypted / decrypted-opcodes sets.** A program-space read tap counts executions only where the
+  CPU fetches opcodes through that space. On a driver with a separate `AS_OPCODES` region the tap
+  sees nothing and the sweep reports **every** routine as not-reached, silently. Verified sound as
+  used here: on dkong under MAME 0.288 a tap at `0x0066`, the Z80 NMI vector — pure code, never read
+  as data — counted 713 hits over 720 frames, one per NMI. **Before trusting a sweep on a new game,
+  tap a known-executing address and check the count is non-zero.**
+- **The boot blind spot, which is self-inflicted.** The taps install on the first frame
+  notification, so anything before that — the reset vector, boot-time setup — runs untapped and
+  reads as 0 hits. This is a choice, not a 0.288 limitation: both `devices[':maincpu']
+  .spaces['program']` and `install_read_tap` work at chunk top level (measured: a top-level install
+  counts the reset vector at `0x0000` once; the lazy install counts it zero times). If you care
+  about boot code, install at top level. Either way, never conclude boot code is dead from a 0-hit
+  row.
+
+Two operational notes: MAME 0.288 has no start or stop hook, so the sweep writes output
+periodically rather than at the end — and **every subscription token must be retained in a global**,
+or it is collected silently and the sweep measures nothing at all.
+
+**Forcing PC to an entry is a different, weaker move.** Poking *state* makes the game dispatch the
+routine itself with the rest of the machine coherent, so the screen is still evidence. Forcing the
+program counter runs code in an incoherent machine: it yields the mechanism, which the code already
+told you, and renders garbage, which grounds nothing. Reach for it only to confirm a mechanism on a
+genuinely dead path — and note a dead routine is still nameable, by its mechanism, marked unreached.
+
+## Rounds: persistence plus a completeness critic
+
+Run grounding in **rounds**, and keep going while each round still lands a *correction* — one game's
+first three rounds each overturned something: the objective wasn't collect-all, the "enemies" were
+decor, a "saucer" was a real enemy. Then spend the effort once more on a **completeness-critic**
+round that asks "what is still unlooked-at?", and stop only when it comes back dry.
+
+State the **honest floor**: what is structurally unobservable and stays `[guess]` — a sound-command
+mapping with no audio oracle, a cell dormant on every reachable path. Naming "we couldn't observe
+this" is a result, not a gap.
+
+## The MAME observation rig
+
+Agent-driven, headless, reproducible:
+
+- Capture with `-video none -aviwrite` in the **displayed** orientation (rotation applied, *not*
+  `-norotate`) so frames match what a player sees.
+- A per-frame Lua notifier logs cells and can poke state or drive inputs. **Retain EVERY
+  subscription token in a global** — the notifier and every write/read tap. A discarded token is
+  silently garbage-collected mid-run and the tap stops firing, so the log flatlines partway through,
+  which reads as *the game stalled* when it is running fine. Measured on The Pit: an unheld write-tap
+  died at frame 184; the same tap held in a global ran to completion. Suspect an unheld **tap**
+  before the notifier, and cross-check any "it stopped" reading against a GC-immune signal —
+  `screens:at(1):frame_number()` is a register read, not a subscription, and never lies.
+- Build a **properly-named, verified romset first**; a loose chip dump lacks the `.icNN` filenames
+  `-verifyroms` needs.
+- **Verify hardware citations against the actual MAME source**, never a web summary.
+
+## What grounding feeds
+
+`[seen]` facts flow into the **names** and into `mechanisms.md`. Grounding also **extends the pixel
+gate** into deep gameplay: the same pokes drive the engine to states attract never reaches, which
+can then be pixel-validated. The worked example is The Pit — four rounds took the whole game from
+`[guess]` to `[seen]`, recovering the dig → collect → surface objective, refuting a decorative
+"tank," and correcting names the code alone had gotten wrong.
+
+---
+
+# Part III — Correctness
+
+## Why the proxies are safe to drop
+
+The registers, flags and cycles a routine leaves behind matter only if something downstream *reads*
+them before they are overwritten. A dead value never reaches pixels.
+
+- **Registers, flags and the stack are droppable.** A routine can have its entire register dance
+  deleted and its whole-machine RAM trace stays byte-exact across every dispatch. Corrupting a
+  register on a naturally-run path is *not* caught by the whole-machine gate precisely when the
+  register is dead; when it is live, the corruption propagates into memory and the gate catches it
+  for free. A full-register unit check would only catch *dead* differences.
+- **Cycles are droppable, under two conditions.** A frame-stepped engine that fires the vblank NMI
+  at the main loop's natural poll yield produces per-frame RAM identical to a cycle-accurate engine,
+  with the PRNG pinned on both sides. The conditions are real requirements: keep the PRNG pinned for
+  validation, and fire the NMI at the vblank-poll yield — the real machine only accepts it when the
+  main loop is idling, so the handler always runs against quiescent work.
+- **The lift plus the RAM names carry the decompile on their own.** A routine can be hand-decompiled
+  from the lift and `names.js` alone, with no purpose-prose, and its meaning recovered. That is the
+  argument for front-loading the RAM-naming pass and keeping the names honest.
+
+The one thing cycles still feed that this does not remove is **DMA sub-frame raster position** — a
+pixel-only effect that never touches RAM.
+
+## The fidelity contract
+
+Per routine, the gate is **memory-equivalence, not byte-exactness**:
+
+- Compare RAM (minus stack scratch) + `pc` + `SP` + the routine's *declared live-out* against the
+  `loc_XXXX` lift. **Never** the full register file, **never** cycles.
+- Determine live-out honestly by reading the exit successors. For most routines it is memory only.
+- The PRNG is entropy-pinned so runs are deterministic.
+- Every gate carries **teeth** — a deliberately-broken twin it must catch — or it proves nothing.
+- Validate by **unit-capture at real dispatches**, plus a **reachability sweep** over natural
+  dispatches, plus **crafted identical-both-sides entries** for arms attract never reaches.
+
+The capstone over the whole game stays **pixel-exact vs pinned MAME**. Per-routine
+memory-equivalence is the fast local proxy; MAME pixels are the falsifiable ground truth.
+
+## Testing a routine without running the game — capture, clone, replay
+
+The gate needs realistic *inputs*: the exact state a routine is really called with. Constructing a
+valid one by hand is painful and error-prone — you build unrealistic states and miss the ones that
+matter. So inputs are **captured**, not constructed:
+
+1. **Run the real machine** — boot, then a couple thousand frames of attract or driven input.
+2. **Hook the routine's address in the dispatch registry.** A wrapper does `m.clone()` — a deep copy
+   of the entire machine — then lets the real routine run so the game continues undisturbed. Each
+   snapshot is one real captured dispatch.
+3. **Collect hundreds.** One routine fired 557× in a plain attract run, each with a different real
+   position and board state.
+4. **Replay each in isolation.** Clone twice, run oracle on one and candidate on the other, diff on
+   the contract above. Identical across every captured dispatch → the rewrite reproduces the oracle
+   on every state the game really produces.
+
+Why capture beats construct: **realism** (real state combinations, not synthetic guesses), **no
+guessing** (the game mints valid in-distribution inputs for free), **coverage**, and **isolation
+with a fair start** (both sides get byte-identical input, so any divergence is the rewrite's fault).
+
+For arms the real run never reaches, take a real captured state and poke the *one* variable that
+forces the unhit path, identically on both sides — a **crafted entry**: a real state with a surgical
+nudge, not a fabrication.
+
+Helpers live in `core/equivalence.js`; the per-routine `capture*` functions in each
+`equivalence-<addr>.test.js`.
+
+## Entropy pinning — keeping validation deterministic
+
+The one channel that does not confine itself to dead memory is the RNG, and because this method
+drops the cycle model, a timing-seeded RNG *does* fork under validation unless pinned. Pinning is
+the standard **test-only** technique that keeps a cycle-free routine's validation deterministic.
+
+Donkey Kong seeds randomness from timing: each vblank mixes the frame counter and a spin count that
+is a pure function of how many cycles the frame consumed. A correct collapse preserves each
+routine's total, so the spin count and PRNG stay identical — **total-preservation is what keeps the
+RNG out of the way.** A wrong total reseeds the PRNG, and unlike a stack byte a wrong random draw
+does not wash out; it compounds. The RNG is the one place a timing error is permanent.
+
+**The catch makes this a tool, not a shipping path.** Pinning changes the game's actual behaviour
+versus a real cabinet, so it has replaced part of the oracle and forfeited falsifiability. Use it as
+a **diagnostic**: pin both sides and see whether a stubborn divergence vanishes, which cleanly
+separates a timing/RNG bug from a logic bug — then unpin and fix the timing. **The shipped game
+never pins.**
+
+**Discovery is automatic.** Diff attract-mode work RAM between the two engines per frame: exactly
+the entropy set forks, and the tell is that it forks *while the interrupt counter stays
+byte-identical* — the interrupt counter is the synced twin. On DK, `0x601a` was identical through
+1214 frames; the spin counter `0x6019` forked first at frame 9, and the seed `0x6018` one frame
+later.
+
+**What the pin does.** It makes the RNG working set read a deterministic 0 on both engines: drop
+writes to the seed so it keeps its boot value (killing its single writer, the once-per-frame mix
+routine), and point the spin counter's direct readers at the pinned seed. Redirecting the *readers*
+sidesteps having to find every writer of the spin counter, and avoids depending on the interrupt
+counter, which can carry ±1 cutscene jitter from the DMA artifact.
+
+**★ The ROM patches must be cycle-neutral** — operand-only rewrites, never a NOP that changes an
+instruction's length. NOP-ing the `inc` instead of retargeting it would shift frame timing and make
+the diff *worse*.
+
+**Realized on each side, from one config.** `manifest.entropyPin` declares it once:
+
+| field | meaning |
+|---|---|
+| `seedBytes` | the seed address(es); the JS seam **drops writes** to each |
+| `redirectReads` | `[{from: spin, to: seed}]`; a read of `from` returns `to`'s value instead |
+| `romPatches` | `[{at, to}]` cycle-neutral operand rewrites for MAME — the seed store's target moved to a ROM address so the write is ignored, and each spin read's address moved to the seed |
+
+`core/entropy-pin.js` `installEntropyPin` wraps the JS `mem` seam (`emit.js --pin-entropy`);
+`games/<game>/tools/lua/pin_entropy.lua` applies the mirror ROM patches on MAME
+(`mame_golden.py --pin-entropy "<spec>"`, the spec rendered by `entropyPinRomSpec`). Both sides
+express the *same* intent twice, deliberately — so they can be checked against each other.
+
+**Adding a new game:** attract-diff to find the spin counter (it forks next to a synced counter) and
+the seed its mix routine writes; fill the three fields above; verify the seed goes byte-identical in
+attract with the pin, then that a gameplay tape converges to the game's residual floor.
+
+**Validate a pinned run with a convergent / align-tolerant diff, not a per-frame byte diff.** With
+the pin on, RNG-driven divergence is gone, and what remains is whatever residual the game's own
+hardware artifacts leave — for DK, the Kong-climb DMA phase, which no RNG work removes. Measure that
+residual as a trend that reconverges rather than demanding equality at every frame; on DK's long
+tape the convergent diff dropped from mean 90 px / 25 frames over 1% to mean 43 px / 1 frame over 1%.
+
+**When the coupling is harder.** If a game samples its RNG from a free-running counter on *every
+read*, or couples it to beam position or analog noise, no converge/diverge gate can save it. The
+fallback is to **replace the timing-seeded RNG with a deterministic generator installed identically
+on both sides** — a ROM patch or memory hook on MAME, a matching `mem`-seam hook on the port, seeded
+identically at reset. With the stream pinned, cycle differences can no longer move it and
+equivalence again isolates real logic bugs.
+
+---
+
+# Part IV — Output conventions
+
+- **Direct function calls.** No `m.call`/address registry, no `push16`/stack modelling. The Z80 stack
+  becomes the JS call stack. Computed dispatch → a table of function references. The caller-skip
+  idiom (`inc sp; inc sp; ret`) → a boolean return plus `if (!callee(m)) return;`.
+  **Before you write `m.call(0xADDR)`, check whether that callee is already decompiled.** A stale
+  `regs.a = 5; m.call(0x4ca5)` to an already-decompiled `enqueueSoundCommand` is a marshalling leak
+  the equivalence gate does **not** catch — both paths are memory-equivalent — so it survives to the
+  reviewer, who must reject it.
+- **Memory access is indexed:** `mem8[ADDR]` / `mem16[ADDR]`, never `mem.read8`/`write8`. Pure sugar
+  over the same accessors, so they wrap and diff identically. A still-hex address is fine at
+  decompile time; the understanding pass swaps the literal for a name later.
+- **Name locals by meaning, never by register.** A local that survives from a Z80 register keeps the
+  register's *value*, not its name: `const b = OBJ_X + 3` is `probeX`. Single-letter locals are the
+  variable-level version of the assembly-comment smell, and the understanding pass's variable naming
+  covers locals too.
+- **Bottom-up.** Decompile callees before callers.
+- **Naming.** Uniform `loc_<addr>` is the baseline. Drop the `sub_`/`entry_`/`handler_`/`arm_` prefix
+  zoo — pseudo-semantics applied ad hoc. This holds **even when the frozen oracle carries a zoo
+  name**: never mirror the oracle's cute filename into the idiomatic file. Promote to English only
+  where the meaning is earned; the address lives in the registry key, never in the identifier.
+- **A claim budget per header.** Default shape: what the routine does, the cells it reads and writes,
+  its `LIVE-OUT:`, and the one derivation justifying its name **drawn from this file's own body**.
+  Evidence from outside — a caller's use, a sibling, a write-set diff — goes in the `ROUTINES`
+  entry's `why` field. Where the evidence stops, **say so in the file**; a named open question is
+  worth more than a confident guess and costs nothing to verify.
+- **Name by EFFECT, not internal mechanism — the verb is what the output causes.** Trace every value
+  the routine writes to the last thing that consumes it, and ask what that consumer *does* as a
+  result. If a live-out drives an action, the verb is `steer`/`play`/`spawn`/`advance`, never
+  `classify`/`compute`/`check`/`detect`. Tell: if the output is read *in place of* another input — a
+  routine feeding the movement dispatcher where the joystick normally goes — the routine *generates*
+  that input. This is exactly how `classifyWallCollision` was mis-named: its own header described it
+  as steering the demo along the walls, yet it was named after the internal probe test.
+- **Verify an action-driving name by OBSERVATION.** Write a short trace that runs a real session and
+  logs the routine's output *and the downstream effect*, then confirm the name matches what you see.
+  It is ~30 lines the agent writes itself, so naming is checkable at scale.
+- **Disprove the existing name; ignore rename cost.** In an understanding pass, re-derive the name as
+  if the routine were an unnamed `loc_` — the current name is a hypothesis to break, not a default to
+  defend. Rename cost is never a reason to keep a name.
+- **Honest signatures by default.** Register live-ins become named parameters, live-outs become
+  returns, a routine that only maps inputs to outputs becomes a pure function. Keep register-passing
+  only at a genuine oracle boundary.
+- **Comments describe behaviour, not the assembly it came from.** No register names, no mnemonics, no
+  "the Z80 does X." Name methods directly — "the entropy pin", "the caller-skip idiom" — never a doc
+  number or `.md` path; citations rot.
+- **Comments may not exceed HALF a file's code lines.** Enforced by `tools/comment_gate.py` in the
+  pre-commit hook, so it fails on your machine before a reviewer sees it. When it trips, **cut the
+  prose — do not raise the cap.** The cap exists because prose that outgrows its code becomes a
+  second account of the program that no gate checks: a renderer header here asserted the file was
+  byte-exact against MAME while a swapped tile-flip bit sat twenty lines below it.
+
+  **Scope and counting.** `.js`, `.mjs`, `.py` and `.lua` under `boards/ games/ tools/ core/ web/`.
+  A line carrying code *and* a trailing comment counts as **both**, so a trailing mnemonic in
+  `translated/` is a comment — it restates the line beside it, and the remedy when it trips the cap
+  is to delete it. Nothing is exempt by kind; one file is exempt by **position**,
+  `games/<game>/idiomatic/names.js`, whose comments are each entry's own content. Shell stays out
+  deliberately: a hand-written scanner with nothing to check it against was measured wrong.
+
+  **★ The rule is WHOLE-FILE, so an over-cap file is FROZEN against every edit.** There is no delta
+  awareness — a commit *removing* fifty comment lines from an over-cap file blocks exactly as one
+  adding a line does. The consequence is procedural: when a one-line correction lands on a file
+  already over, bringing that file under the cap becomes a **prerequisite unit, sequenced first and
+  reviewed on its own**. Do not park the correction in the working tree meanwhile — a parked edit
+  makes a tree-wide grep report the fix as already made, and it is the state that most tempts a
+  `--no-verify`.
+
+  **A third outcome: the gate can refuse to judge.** `/` in JavaScript is either division or the
+  start of a regex literal, and after `)`, `]` or `}` no scanner can tell which. Rather than guess,
+  the file is scanned both ways; if the readings disagree about which lines are comments, the commit
+  is BLOCKED with **"cannot lex"** and no verdict is given. Rewrite the line — name the regex, or
+  space out the division. This is not a judgement about your prose. It exists because the earlier
+  version guessed, and guessed **fail-OPEN**: a quote inside a regex body opened a phantom string
+  that swallowed the following comment lines *and* inflated the code count, so whether the gate saw
+  your prose depended on how many apostrophes were in it.
+
+  Only the hook's **staged** view is inspected, so an unswept file blocks nothing until it is next
+  touched. **Migration is therefore per game, and `scan` is what says so:** until
+  `python3 tools/comment_gate.py scan games/<game>` is green, do not read an existing header in that
+  game as an example of these rules.
+
+  And note what this section does not do — quote a count. `scan` prints violations, not totals.
+  **Do not write a count of the tree into prose.** It is true when written, false after the next
+  file is cleaned, and unfalsifiable to a later reader. If you need the number, run the tool; it
+  expires the moment you paste it.
+- **A comment in `idiomatic/` describes THIS FILE, and nothing else. Ever.** Not the ROM, not MAME,
+  not the oracle, not a sibling, not a test, not a doc, not a to-do. Enforced by the same gate,
+  because it tests REFERENCE rather than truth, which a script can decide. Exempt: `translated/**`
+  (the address is its identity), `names.js` (the registry *is* the cross-file map), and
+  `idiomatic/**/test/**` (a test cannot describe itself without naming its subject).
+  Why absolute rather than taste: **a cross-file claim in a routine header is a cache.** The fact
+  lives elsewhere, nothing updates the copy, and it goes stale the moment understanding improves
+  anywhere else — across hundreds of files, once per pass, forever. Delete the cache and the
+  invalidation step disappears.
+- **Numbers are base-10.** Reserve hex for an irreducible bit operation. Most `& 0xff` is a Z80
+  width artifact, not behaviour — the register and memory models already truncate. Where a wrap *is*
+  load-bearing use `u8(x)`/`u16(x)`, never `% 256`, which is not even a correct 8-bit wrap.
+
+## File format & directory layout
+
+Validated output lives in `games/<game>/idiomatic/`, one module per routine. The frozen oracle stays
+in `games/<game>/translated/`. RAM names live in `games/<game>/idiomatic/names.js`.
+
+```js
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * <name> — <one-line role>.
+ *
+ * <what the routine does, in terms a reader of THIS file can check>
+ * LIVE-OUT: <memory-only | + what it returns>.
+ */
+```
+
+No `ROM 0x<addr>` tag, no `Memory-equivalent to …`, no `GATE:`, no `NAMES:` — each names something
+outside the file, and each has a home a machine can keep honest:
+
+| displaced from the header | goes to |
+|---|---|
+| `ROM 0x<addr>` tag | the `ROUTINES` registry key |
+| `GATE:` / `Memory-equivalent to …` | the test file's own header, where it is file-local |
+| `NAMES:` | the import list, which already states it |
+| evidence justifying a promoted name | the `ROUTINES` entry's `why` field |
+| a grounding finding | `mechanisms.md`, the one document whose job is cross-file facts |
+
+The test header carries the gate, because a test cannot describe itself without naming its subject:
+
+```js
+/**
+ * <subject> — memory-equivalent to the frozen oracle at ROM 0x<addr>.
+ * GATE:  <strict | convergent | crafted-entry>; <what it actually exercises, holes stated>.
+ */
+```
+
+**How a routine joins the layer.** Land the module; land `idiomatic/test/equivalence-<addr>.test.js`;
+add its address→`{name}` entry to `ROUTINES`; gate. **All four, or it is not in the layer** — a
+module with no registry entry is written and never executed, which is how Donkey Kong accumulated a
+whole batch of them without anyone noticing.
+
+---
+
+# Part V — Naming, and the three looks
+
+An understanding pass is **two fan-outs, keyed differently**:
+
+- **Routine names (per routine).** If you understand the routine, NAME it. A `loc_XXXX` a human
+  can't read is nonsense to the next reader; a routine whose **mechanism** is confident MUST get a
+  descriptive name *even when its game-purpose is still open* — record the open purpose as a
+  `[guess]`, do not withhold the name over it. Name by mechanism, sharpen with callers: internals
+  alone give `copyBytesToVram`, the callers reveal `drawScoreDigits`. `loc_` is reserved for a
+  routine whose *mechanism itself* is unclear.
+- **Variable names (per address, across routines).** Decided by the consensus of every routine that
+  touches an address, never by one. A single routine's view of a cell is "a loop count"; the eighteen
+  routines that stage it reveal `PLOT_RUN_LENGTH`. Divergent local names are the tell that it is
+  being decided in the wrong place.
+
+**Both kinds get the same three looks.** Two agents derive the name *blind* to each other — routine
+from body plus callers, variable over all uses of the address — promote only on convergence, then a
+**third adversarial review** before it lands. Two blind derivations can converge on the same wrong
+reading: on The Pit both derived `0x8076` as latching the goal tile because the shared classify
+ladder records two latches on adjacent lines, and only a separate reviewer re-deriving from scratch
+caught it.
+
+**Distinguish an open purpose from a code-undecidable identity.** An open purpose is
+defer-and-upgrade — name by mechanism now, let grounding sharpen it later. An identity the code
+cannot settle and downstream work will trust is **not**: ground it in-loop before committing the
+name, or the wrong pick propagates.
+
+**A name is not done until the code USES it.** A name promoted to `names.js` but left unreferenced
+is dead weight — the routines still read a hex literal, so nothing got more legible. Every naming
+batch ends by retrofitting the referencing routines, and `names.js` plus the retrofit land in **one
+commit**. Splitting them across two means the reviewer cannot confirm the second half happened.
+
+**Dissolve and promote the ABI in the same edit.** Replace every `m.call` to an already-decompiled
+callee with a genuine function call, and promote register live-ins to real parameters — a rename
+already rewrites every idiomatic caller, so the ABI promotion rides along for free.
+
+---
+
+# Part VI — Traps
+
+- **Running the idiomatic layer live HANGS.** A vblank busy-wait never returns because idiomatic
+  routines charge zero cycles, so the cycle-driven NMI never fires to tick the wait down. Expected,
+  not a bug. The fix is the frame-stepped engine, switched in as the whole-game capstone — **not**
+  re-adding cycles to unstick it.
+- **The poll-PC seam goes dark when the poll routines are themselves idiomatic.** Idiomatic code
+  never calls `m.step`, so there is no step to catch. Fix: the engine that fires the NMI on the
+  once-per-frame watchdog kick instead. Do not keep a token `m.step` inside an idiomatic poll routine.
+- **Idiomatic routines silently DROP load-bearing stack ops** that looked dead in the swap harness
+  because a translated caller balanced them — a main-loop SP re-seat, an NMI handler's normal-exit
+  `ret`. When a whole-game run leaks or creeps stack, suspect one of those before anything exotic.
+- **The mixed-migration stack leak is real but benign.** Bound the exclusion above the measured
+  game-state ceiling; do not "fix" it by popping in `m.call`, which over-pops the tail-jump routines.
+- **The NMI can LONG-JUMP into a new main loop.** A coin/start path is a warm restart driven from the
+  interrupt: the handler resets SP and tail-calls a new forever loop, so the nested call never
+  returns and a re-trigger guard freezes the game the instant a coin drops.
+- **Attract-only gates are BLIND to input.** "The whole game reproduces the oracle byte-for-byte"
+  passed green while the browser froze on the first coin. Every game's gates MUST replay its input
+  tapes through the runtime and the oracle, and assert the game **responds** — a credit banks, the
+  game starts at the tape's contract frame, the player moves and scores — as well as idiomatic ==
+  translated through the play sequence. Expand thin tapes so they exercise much of the game, not just
+  coin and start.
+
+## The tool question — mechanical vs manual
+
+The decompile is **manual (LLM)**, and for a single game that is the whole job. The best output is a
+hybrid: a mechanical pass for provably-correct clean *structure*, then an LLM *semantic* pass for
+names, comments and idiom, both memory-validated. Pure-mechanical is correct-but-soulless;
+pure-hand is great but doesn't generalize. Build the mechanical tool for the transfer thesis, where
+the front and middle end amortize across games. A manual pass cannot tell you whether a mechanical
+tool suffices — the LLM smuggles in understanding a tool lacks — so that question needs its own
+stripped-from-IR experiment.

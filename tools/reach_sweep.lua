@@ -1,13 +1,16 @@
 -- reach_sweep.lua — measure WHICH of a game's unnamed routines the real ROM actually executes.
 --
 -- Backlog triage for an understanding pass, and the evidence reviewer-rules.md R18 requires.
--- The intuition about which routines are "hard" is unreliable: on Donkey Kong, 84 of 105 routines
--- believed to be blocked for want of grounding turned out to execute in a single 150-second run,
--- one of them 9,548 times. See docs/grounding.md, "Triage the backlog FIRST".
+-- A Z80 opcode fetch is a read of the program space, so a one-byte read tap at a routine's entry
+-- address counts its executions, attributed to the game state live at the time.
 --
--- HOW IT WORKS: a Z80 opcode fetch is a read of the program space, so a one-byte read tap at a
--- routine's entry address counts its executions. Each hit is attributed to the game state live at
--- the time, so the output distinguishes "fires everywhere" from "fires only on board 3".
+-- WHY IT EXISTS, HOW TO READ A ZERO, and the two limits that make it report false zeros on a new
+-- game (encrypted AS_OPCODES sets; the boot blind spot) — all in docs/idiomatic-generation.md,
+-- "Triage the backlog FIRST". Read that before trusting a not-reached set.
+--
+-- MAME 0.288: there is no start or stop hook, which is why output is written periodically.
+-- RETAIN EVERY SUBSCRIPTION TOKEN IN A GLOBAL — a dropped token is collected silently and the
+-- sweep then measures nothing at all.
 --
 -- USAGE (game-agnostic — nothing about a specific game is hardcoded):
 --   ADDRLIST=<file>    one entry address per line ("0x1234" or decimal); blank lines ignored
@@ -23,34 +26,7 @@
 --   SDL_VIDEODRIVER=dummy mame <game> -rompath <dir> -video none -sound none -nothrottle \
 --     -seconds_to_run 150 -autoboot_script tools/reach_sweep.lua
 --
--- READING THE OUTPUT — the trap this exists to prevent: a zero-hit row means "not reached by THIS
--- sweep", never "dead code". It is a statement about the states your DRIVER drove. Before calling
--- anything dead, corroborate with a second, independent method (a code derivation that its writes
--- are unobservable), and say which states you never drove.
---
--- MAME 0.288 notes: emu.register_start / emu.register_stop do NOT exist, so there is no start
--- hook and no exit hook — which is why the output is written periodically rather than at the end.
--- It is NOT why the taps install lazily; see the boot blind spot below, where that is a choice.
--- RETAIN EVERY SUBSCRIPTION TOKEN IN A GLOBAL — the notifier and each tap. A dropped token is
--- collected silently and the sweep then measures nothing at all.
---
--- TWO LIMITS OF THE METHOD ITSELF, both load-bearing for any game after Donkey Kong:
---
---   * ENCRYPTED / DECRYPTED-OPCODES SETS. A program-space read tap counts executions only where the
---     CPU fetches opcodes through that space. On a driver with a separate AS_OPCODES (decrypted
---     opcodes) region the tap sees nothing and the sweep reports EVERY routine as not-reached —
---     silently, with no error. Verified true as used here: on dkong under MAME 0.288 a tap at
---     0x0066, the Z80 NMI vector (pure code, never read as data), counted 713 hits over 720 frames,
---     one per NMI. Before trusting this on a new game, put a tap on a known-executing address and
---     check the count is non-zero.
---   * THE BOOT BLIND SPOT, WHICH IS SELF-INFLICTED. The taps install on the first frame
---     notification, so anything running before that — the reset vector, boot-time setup —
---     executes untapped and reads as 0 hits. This is a CHOICE, not a 0.288 limitation: both
---     `devices[':maincpu'].spaces['program']` and `install_read_tap` work at chunk top level
---     (measured: a top-level install counts the reset vector at 0x0000 once; the lazy install
---     counts it zero times). Lazy install is kept only because it is the shape every driver here
---     already uses. If you care about boot code, install at top level. Either way, do not
---     conclude boot code is dead from a 0-hit row.
+-- A zero-hit row means "not reached by THIS sweep", never "dead code".
 
 local M = manager.machine
 local mem, frame = nil, 0
@@ -142,12 +118,9 @@ end
 
 REACH_SUB = emu.add_machine_frame_notifier(function()
   if not mem then
-    -- Install into a LOCAL handle and publish `mem` only once EVERY tap is in place. If an
-    -- install throws part-way, mem stays nil, this block retries and errors on every frame, and
-    -- dump() never runs -- so the run leaves the EMPTY file truncated at startup (no header, no
-    -- rows) rather than a csv full of false zeros. An empty file cannot be misread as data.
-    -- The earlier version assigned mem first, so one bad address silently left every later
-    -- address untapped while still writing a clean-looking, exit-0, all-zero result.
+    -- Install into a LOCAL handle and publish `mem` only once EVERY tap is in place, so a
+    -- part-way failure leaves the empty startup file rather than false zeros. The earlier version
+    -- assigned mem first: one bad address left every later address untapped, exit 0, all zeros.
     local space = M.devices[':maincpu'].spaces['program']
     local taps = {}
     for _, a in ipairs(ADDRS) do
@@ -168,11 +141,8 @@ REACH_SUB = emu.add_machine_frame_notifier(function()
   frame = frame + 1
   if DRIVE then DRIVE(frame, mem) end
 
-  -- Every second. NOT on frame 1: that dump would run in the same notifier call that installs
-  -- the taps, before a single CPU cycle has elapsed, so it would write an all-zero CSV BY
-  -- CONSTRUCTION and leave it sitting there until the next dump. A short run would then produce a
-  -- plausible file full of zeros instead of no file -- which is the silent-zero failure this tool
-  -- exists to prevent, and it would fire on exactly the known-executing-address sanity check the
-  -- header prescribes for a new game. 60 keeps short runs useful without that window.
+  -- Every second, and NOT on frame 1: that dump runs in the same notifier call that installs the
+  -- taps, before one CPU cycle has elapsed, so it writes an all-zero CSV by construction -- a
+  -- plausible file of zeros where "no file" is this tool's failure signal.
   if frame % 60 == 0 then dump() end
 end)

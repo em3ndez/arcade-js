@@ -39,7 +39,7 @@ audio a thin, swappable layer. A game supplies the trigger map + samples in `gam
 is deliberately close to the original assembly. Idiomatic, memory-equivalent rewrites of individual
 routines live in `games/<x>/idiomatic/` (the go-forward layer; the older strict `optimized/` is
 superseded and deleted per-routine) and are swapped in via the manifest — only after passing the
-memory-equivalence gate against the oracle. See [docs/decompiler-pipeline](../docs/decompiler-pipeline.md).
+memory-equivalence gate against the oracle. See [idiomatic generation](../docs/idiomatic-generation.md).
 
 **A shared board is factored out on the second game.** DK's hardware lives in `boards/dkong/`.
 When a second romset reuses it (DK Jr. / DK3 / Mario Bros family), it just references

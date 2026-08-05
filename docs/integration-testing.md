@@ -5,7 +5,7 @@ matches reality, where reality is **MAME** running the same ROM. The comparison 
 if both sides are deterministic and produce the same artifacts, so most of the harness is about
 pinning determinism. The one channel this cannot hold — the timing-seeded RNG — has a shared
 **entropy-pin** mode (`--pin-entropy` on both the golden and the port); see the *Entropy pinning*
-section of [the decompiler pipeline](decompiler-pipeline.md).
+section of [idiomatic generation](idiomatic-generation.md).
 
 ## Run it alongside translation, not after
 
@@ -136,7 +136,7 @@ Two cautions, both learned by being burned:
 
 The diffs above assume a cycle-*driven* run (the NMI fires at an absolute T-state count). The
 idiomatic layer is cycle-*free*, so it needs the frame-stepped engine (fire the NMI at the
-vblank-poll yield — see [the decompiler pipeline](decompiler-pipeline.md), "Cycles are droppable").
+vblank-poll yield — see [idiomatic generation](idiomatic-generation.md), "Cycles are droppable").
 Three committed pieces make that a repeatable, game-agnostic gate:
 
 - **`core/frame-stepped.js` — `runCycleFree(machine, {pollPCs, maxFrames, onFrame})`.** The engine
@@ -156,7 +156,7 @@ Three committed pieces make that a repeatable, game-agnostic gate:
    - **Pixel gate:** an *unpinned* golden (`--seconds N`, keep frames). The reconverge rule tolerates
      the RNG-driven attract content, so no pin is needed on either side.
    - **State gate:** a *pinned* golden — MAME's RNG frozen the SAME way as the JS `seedBytes`. Do NOT
-     freeze it with a frame-notifier or an un-held `install_write_tap` (see [grounding.md](grounding.md)
+     freeze it with a frame-notifier or an un-held `install_write_tap` (see [idiomatic-generation.md](idiomatic-generation.md)
      on token retention); a debugger write-reset of the LFSR at its `ret` is the reliable route, and
      verify the capture with `screen:frame_number()`, not a Lua frame counter.
 2. Run the gate:
@@ -174,7 +174,7 @@ Three committed pieces make that a repeatable, game-agnostic gate:
 spins waiting for vblank (a `waitFrames`-style flag read and the main-loop top); pick the loop
 YIELDS, never a busy-delay's inner djnz, or the NMI fires thousands of times per frame. (2) the
 entropy pin — find the byte that forks while the interrupt counter stays synced (the attract-mode
-RAM diff auto-identifies it; see decompiler-pipeline.md). Put both in `manifest.convergence` /
+RAM diff auto-identifies it; see idiomatic-generation.md). Put both in `manifest.convergence` /
 `manifest.entropyPin` and the tool works unchanged.
 
 ## Go-live — running the WHOLE game idiomatic
@@ -218,7 +218,7 @@ missing tooth).
 
 **The go-live gate above runs ATTRACT — which takes no input. That is only half the machine.** A
 runtime can reproduce the attract loop byte-for-byte and still freeze the instant a player inserts a
-coin (The Pit did: the coin/credit warm-restart long-jumps out of the NMI — see decompiler-pipeline.md
+coin (The Pit did: the coin/credit warm-restart long-jumps out of the NMI — see idiomatic-generation.md
 Traps). So the gate set MUST also **replay the input tapes**. `games/<game>/idiomatic/test/tape.test.js`
 replays `games/<game>/tapes/*.lua` through the idiomatic runtime AND the translated oracle (both under
 `runIdiomaticGame` — pure-translated runs under it too, since the translated poll loops also kick the
