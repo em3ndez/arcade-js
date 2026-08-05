@@ -64,6 +64,27 @@ Each stage names whether it actually ran (a missing reference reports "gate unav
 "pass"), and unexpected exit codes fail closed as harness errors. The result is `PASS` / `FAIL` /
 `PARTIAL` / `NOTHING-COMPARED`, with exactly which gates ran.
 
+## Unit equivalence — one routine at a time, without the boot chain
+
+Everything above drives the machine from reset, so a defect anywhere shows up as one failing frame
+number and localizing it means bisecting. The unit harness inverts that: `unit_capture.lua` taps a
+routine's entry and its exits under MAME, records the register and memory state at each end, and
+`unit_equiv.mjs` replays the same entry state through the translated routine and compares the exit.
+`routine_extents.py` supplies the exit addresses; `unit_equiv.sh` wires the three together.
+
+It is the only gate here that can fail a single routine by name, and the only one that reaches
+routines the attract mode never executes — which, on a typical batch, is over half of them.
+
+Two cautions, both learned by being burned:
+
+- **A window is only valid if nothing interrupted it.** The Lua side aborts and retries when an NMI
+  lands inside the window or the stack pointer moves under it, and the retry counters ride along in
+  the exit metadata. Those counters say how many tries it took; they do NOT mean the accepted pair
+  is bad, and reading them that way rejects sound captures.
+- **An empty capture directory is not a pass.** Zero comparisons performed and zero failures
+  reported is the same exit code as success. Check that the harness compared what you think it did
+  before quoting it.
+
 ## Cycle-free convergence — validating the whole game with no T-state clock
 
 The diffs above assume a cycle-*driven* run (the NMI fires at an absolute T-state count). The

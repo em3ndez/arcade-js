@@ -317,6 +317,8 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   and hand-written ones for Python, Lua and shell were wrong three review rounds running — a
   narrow rule that is true beats a broad one with holes. Like the reference rule below, the hook
   only inspects what is STAGED, so an unswept file blocks nothing until it is next touched.
+  Enforced by `tools/comment_gate.py`, which the pre-commit hook runs, so it fails on your machine
+  before a reviewer ever sees it. When it trips, **cut the prose — do not raise the cap.**
 - **A third outcome: the gate can refuse to judge.** `/` in JavaScript is either division or the
   start of a regex literal, and after `)`, `]` or `}` no scanner can tell which. Rather than
   guess, the file is scanned both ways; if the two readings disagree about which lines are
@@ -326,9 +328,6 @@ seed goes byte-identical in attract with the pin, then a gameplay tape converges
   direction: a quote inside a regex body opened a phantom string that swallowed the following
   comment lines *and* inflated the code count, so whether the gate saw your prose depended on how
   many apostrophes were in it.
-  Enforced by
-  `tools/comment_gate.py`, which the pre-commit hook runs, so it fails on your machine before a
-  reviewer ever sees it. When it trips, **cut the prose — do not raise the cap.**
 
   The cap exists because prose that outgrows its code becomes a second account of the program
   that no gate checks: it makes claims about coverage, measurements and history that nothing
