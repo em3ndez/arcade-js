@@ -1,0 +1,59 @@
+{
+  "_comment": [
+    "Tool-facing hardware/address declaration for the Konami Time Pilot board.",
+    "Read from MAME src/mame/konami/timeplt.cpp -- timeplt_state::main_map,",
+    "timeplt_state::timeplt(machine_config) and ROM_START(timeplt). Same role as the dkong",
+    "and thepit files: the single source of truth the shared Python tools read via",
+    "--hardware, so tools/ stays game-agnostic. Numbers are decimal (JSON has no 0x);",
+    "'_hex' fields are annotations the loader ignores.",
+    "NOT YET MEASURED: the boot/NMI landmark cycles. Those need a MAME golden run; they",
+    "are left empty rather than guessed."
+  ],
+
+  "driver": "timeplt",
+  "screen": { "width": 256, "height": 224, "_note": "raster 256x256, visarea 0..255 H and 16..239 V -> 256x224 visible; ROT90, which is thepit's orientation and the OPPOSITE of dkong's ROT270 -- see docs/porting.md, getting this backwards ships the display upside down" },
+  "refreshHz": 60,
+  "_refresh_note": "set_refresh_hz(60) EXACTLY -- unlike dkong and thepit, which are 60.606061. Do not copy their figure.",
+  "cpuHz": 3072000,
+  "_cpu_note": "MASTER_CLOCK 18.432MHz / 3 / 2. The driver comments this as 'not confirmed, but common for Konami games of the era'.",
+  "cyclesPerFrame": 51200,
+  "_cycles_note": "3072000 / 60. Differs from dkong/thepit (50688) because the refresh differs.",
+
+  "stateDumpSize": 4608,
+  "stateRegions": [
+    { "name": "color",   "base": 40960, "size": 1024, "_hex": "0xA000-0xA3FF colour RAM (this board DOES have writable colour, unlike dkong)" },
+    { "name": "video",   "base": 41984, "size": 1024, "_hex": "0xA400-0xA7FF video RAM / tilemap" },
+    { "name": "work",    "base": 43008, "size": 2048, "_hex": "0xA800-0xAFFF work RAM" },
+    { "name": "sprite0", "base": 45056, "size": 256,  "_hex": "0xB000-0xB0FF sprite RAM bank 0 (mirror MASK 0x0B00 -- don't-care bits, not an offset)" },
+    { "name": "sprite1", "base": 46080, "size": 256,  "_hex": "0xB400-0xB4FF sprite RAM bank 1 (mirror MASK 0x0B00 -- don't-care bits, not an offset)" }
+  ],
+
+  "writeRanges": [
+    { "name": "sound_latch", "start": 49152, "end": 49152, "_hex": "0xC000 sound data to the audio Z80 (READ at the same address returns the scanline counter)" },
+    { "name": "watchdog",    "start": 49664, "end": 49664, "_hex": "0xC200 watchdog reset (READ returns DSW1)" },
+    { "name": "mainlatch",   "start": 49920, "end": 49935, "_hex": "0xC300-0xC30F LS259 B3, bit index = (addr-0xC300)>>1 -- TWO addresses per bit -- with the data on d0: b0=NMI enable, b1=flipscreen (inverted), b2=audio IRQ trigger, b3=audio mute, b4=video enable, b5/b6=coin counters, b7=unused" }
+  ],
+
+  "dsw0": { "addr": 50016, "expected": 255, "_hex_addr": "0xC360", "_hex_expected": "0xFF -- MEASURED from a MAME run with -noreadconfig, all dips at their default (inactive-high inputs)" },
+  "_dsw1_note": "0xC200 reads 0x4B under the same defaults; it is a second dipswitch bank, not a mirror",
+
+  "controlByte": 195,
+  "_controlByte_hex": "0xC3 -- ROM 0x0000 first byte (JP 0x07B1, the reset vector); config-probe that the program ROM loaded",
+
+  "z80Reset": {
+    "AF": 64, "BC": 0, "DE": 0, "HL": 0, "IX": 65535, "IY": 65535, "SP": 0,
+    "_hex": "MAME Z80 reset: AF=0x0040 (Z flag set), IX=IY=0xFFFF, rest 0 -- same for every MAME Z80"
+  },
+
+  "writeTimestamp": "write-bus-cycle",
+
+  "interrupt": {
+    "kind": "NMI",
+    "vector": 102,
+    "_hex_vector": "0x0066",
+    "_note": "vblank_irq() asserts INPUT_LINE_NMI only while the mainlatch bit-0 NMI enable is set; clearing that bit clears the line. Same interrupt model as dkong."
+  },
+
+  "landmarks": [],
+  "_landmarks_todo": "measure boot-init-done and first-vblank-NMI cycles from a MAME golden run, as boards/dkong/hardware.json has"
+}
