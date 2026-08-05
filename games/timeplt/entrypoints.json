@@ -1,0 +1,107 @@
+[
+  {
+    "addr": "0x0008",
+    "why": "RST 0x08 vector -- table byte fetch (add a,l / ld l,a / jr nc / inc h / ld a,(hl) / ret)",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0010",
+    "why": "RST 0x10 vector -- table WORD fetch (add a,a / rst 0x18 / ld e,(hl) / inc hl / ld d,(hl) / inc hl / ret)",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0018",
+    "why": "RST 0x18 vector -- add A to HL with carry into H",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0020",
+    "why": "RST 0x20 vector -- DE -= 0x20 (row step up)",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0028",
+    "why": "RST 0x28 vector -- DE += 0x20 (row step down)",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0030",
+    "why": "RST 0x30 vector -- INLINE JUMP TABLE DISPATCH: pop hl / rst 0x10 / ex de,hl / jp (hl)",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0038",
+    "why": "RST 0x38 vector -- RST 0x38 handler -- real code on this board, NOT just 0xFF padding",
+    "provenance": "MAME instruction trace, boot+attract: this address is executed"
+  },
+  {
+    "addr": "0x0bf2",
+    "why": "head of an executed run $0BF2-$0C0C the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0d6b",
+    "why": "head of an executed run $0D6B-$0D71 the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0dd7",
+    "why": "head of an executed run $0DD7-$0DDC the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0de0",
+    "why": "head of an executed run $0DE0-$0DE5 the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0dea",
+    "why": "head of an executed run $0DEA-$0DF0 the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0df5",
+    "why": "head of an executed run $0DF5-$0DFB the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e00",
+    "why": "head of an executed run $0E00-$0E1A the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e28",
+    "why": "head of an executed run $0E28-$0E2C the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e3a",
+    "why": "head of an executed run $0E3A-$0E3E the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e4c",
+    "why": "head of an executed run $0E4C-$0E5E the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e62",
+    "why": "head of an executed run $0E62-$0E62 the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e66",
+    "why": "head of an executed run $0E66-$0E6F the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x0e8d",
+    "why": "head of an executed run $0E8D-$0E9B the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  },
+  {
+    "addr": "0x15fe",
+    "why": "head of an executed run $15FE-$1639 the static descent never reached",
+    "provenance": "MAME instruction-fetch trace, boot+attract"
+  }
+]
