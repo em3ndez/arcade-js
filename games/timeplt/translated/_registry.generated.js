@@ -66,6 +66,8 @@ import { loc_0dd7 } from "./loc_0dd7.js";
 import { loc_0e70 } from "./loc_0e70.js";
 import { loc_0e8d } from "./loc_0e8d.js";
 import { loc_0e9c } from "./loc_0e9c.js";
+import { loc_0eac } from "./loc_0eac.js";
+import { loc_0eeb } from "./loc_0eeb.js";
 import { loc_0f11 } from "./loc_0f11.js";
 import { loc_0f1a } from "./loc_0f1a.js";
 import { loc_0f1f } from "./loc_0f1f.js";
@@ -316,6 +318,9 @@ import { loc_4cc3 } from "./loc_4cc3.js";
 import { loc_4d2b } from "./loc_4d2b.js";
 import { loc_4d3a } from "./loc_4d3a.js";
 import { loc_4d67 } from "./loc_4d67.js";
+import { loc_4d72 } from "./loc_4d72.js";
+import { loc_4daf } from "./loc_4daf.js";
+import { loc_4dcf } from "./loc_4dcf.js";
 import { loc_4dde } from "./loc_4dde.js";
 import { loc_4e4f } from "./loc_4e4f.js";
 import { loc_4e63 } from "./loc_4e63.js";
@@ -459,6 +464,8 @@ export const ROUTINE_ENTRIES = [
   [0x0e70, loc_0e70],
   [0x0e8d, loc_0e8d],
   [0x0e9c, loc_0e9c],
+  [0x0eac, loc_0eac],
+  [0x0eeb, loc_0eeb],
   [0x0f11, loc_0f11],
   [0x0f1a, loc_0f1a],
   [0x0f1f, loc_0f1f],
@@ -709,6 +716,9 @@ export const ROUTINE_ENTRIES = [
   [0x4d2b, loc_4d2b],
   [0x4d3a, loc_4d3a],
   [0x4d67, loc_4d67],
+  [0x4d72, loc_4d72],
+  [0x4daf, loc_4daf],
+  [0x4dcf, loc_4dcf],
   [0x4dde, loc_4dde],
   [0x4e4f, loc_4e4f],
   [0x4e63, loc_4e63],

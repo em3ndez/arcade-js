@@ -28,7 +28,7 @@ export function loc_4b67(m) {
     m.step(0x6000, 10); // jp nz,0x6000
     throw new Error(
       "Time Pilot anti-tamper trap at 0x4B80 fired: the checksum over (0x086D)/(0x0870) " +
-      "did not come to zero, so the ROM image is not a genuine timeplt dump.",
+      "did not come to zero. 0x6000 is outside the 24KB image.",
     );
   }
   m.step(0x4b83, 10); // jp nz not taken -- the ROM checks out

@@ -187,6 +187,48 @@ Then filter: an interior branch target is not an entry point. The test is whethe
 reaches it from OUTSIDE its own routine, which a scan of the ROM for every `call`, `jp cc`, `jr`,
 `djnz` and raw little-endian word referencing the address settles in one pass.
 
+## A JUMP TARGET IS NOT PROOF OF CODE — some of them are traps
+
+**Evaluate a conditional transfer's guard before believing its target.** A ROM that checksums
+itself sends the failure arm somewhere deliberately fatal, and "deliberately fatal" usually means
+into DATA. Follow that arm without checking whether it can fire and a disassembler walks into a
+table and decodes it as instructions — plausible ones, because most byte sequences decode as
+something — until the garbage happens to look like a terminator.
+
+The Time Pilot ROM does it in every one of these places, each verified by evaluating the guard:
+
+| guard | arithmetic | its arm points at |
+|---|---|---|
+| `sum(0x27DE..0x28DD)` then `sub 0xc5` | `0xC5 - 0xC5 = 0` | `call nz,0x53d4` — a 512-byte record table |
+| `xor(0x0711..0x0810)` then `add a,0x19` | `0xE7 + 0x19 = 0x100` | `jp nz,0x4bb1` — a 0x28-byte block copied to RAM elsewhere |
+| `0x8C + sum(0x1748..0x1757)` | `= 0` | `jp nz,0x2509` — 8 bytes of data |
+| `ixl+ixh+l+0x44` from `(0x086D)`/`(0x0870)` | `0x10+0x30+0x7C+0x44 = 0x100` | `jp nz,0x6000` — outside the image entirely |
+| `d[0] + sum(0x0000..0x5FFF)` then `sub 0xaf` | `0xAF - 0xAF = 0` | `jp nz,0x59d7` — the cosine table |
+
+The last is the cleanest specimen in the layer: `loc_59d7.js` exists solely to be the loud target
+of a checksum trap, and transcribes no instructions at all because there are none there.
+
+Every one of them sets Z on a genuine image, so every one of those arms is dead. **The cost of
+not checking is not
+subtle:** walking them inflated routine extents several times over, and invented a whole routine
+at an address that holds no code at all.
+
+A `halt` would have been the obvious way to write these, and the author had the instruction —
+`loc_2251` transcribes one at 0x22B8. Jumping into data instead is a choice, and the plausible
+reason is that a `halt` is trivial to find and patch out while a crash in unrelated code is not.
+So expect this idiom wherever a ROM defends itself, and expect it aimed at exactly the addresses a
+naive extent-walk will treat as newly-discovered routines.
+
+**Model such an arm rather than pruning it, and let where it points decide how.** Aimed at DATA,
+make the taken side `throw` — `loc_4d72` and `loc_0eac` do. Aimed at REAL CODE deliberately
+re-entered, delegate: `loc_0dd7`'s failure arm is `jp nz,0x0000`, a jump to the reset vector,
+which is a registered routine and resolves. The distinction is the same one this section is
+about, so getting it wrong here would be self-defeating: a throw is right only when there is
+nothing at the target to call.
+
+Either way the arm stays transcribed, and the throw is what turns a silent wrong turn into a loud
+one if the guard assumption is ever wrong.
+
 **A second entry into one routine is real, and is not this.** Where the ROM genuinely has two
 entries sharing a body — each with its own prologue before common code — the interior address
 DOES need registering, because a caller entering later must not re-run the earlier prologue. Time
