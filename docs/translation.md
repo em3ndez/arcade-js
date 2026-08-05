@@ -233,8 +233,19 @@ a header written early in a pass describes conventions the same pass later chang
 detects the drift. The failure mode to picture is a header that has been rewritten to DOCUMENT a
 bug rather than fix it, which reads as understanding and is the opposite.
 
-The per-instruction trailing comments are not prose and stay: they ARE the transcription, they
-are mechanically checkable against the ROM, and they are what makes a wrong `m.step` findable.
+A trailing comment that carries a CLAUSE is not prose and stays: it is mechanically checkable
+against the ROM and it is what makes a wrong `m.step` findable.
+
+**A trailing comment that is only the mnemonic may be dropped, and should be when a file trips
+the comment-density cap.** `// and a` beside `regs.and(regs.a)`, or `// ret` beside `m.ret(10)`,
+restates its own line; the address and the cycle count are already arguments to `m.step`. The
+argument for keeping them is that a reviewer can diff them against a disassembly without decoding
+JavaScript — a convenience, not a necessity, and one that reviewers routinely decline by
+disassembling the range themselves rather than trusting the comment.
+
+The distinction matters more than it looks. The comments that restate a line are the ones that
+cannot be wrong; the ones that add a clause are the entire defect population of a careful lift.
+So the cheap ones are also the empty ones.
 
 **A trailing comment may append a short clause after `--`, and the test is whether the clause is
 CHECKABLE.** `-- the state byte`, `-- DE = the 16-bit X`, `-- -0x0180` all name what the bytes

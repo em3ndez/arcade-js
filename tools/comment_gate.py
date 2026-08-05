@@ -2,13 +2,24 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Comment gate — two mechanical rules about comments.
 
-DENSITY: comment lines may not exceed half the code lines, in .js and .mjs under boards/ games/
-tools/ core/ web/, excluding games/*/translated/, node_modules and a generated basename. A line
-carrying code AND a trailing comment counts as both. Prose that outgrows its code becomes a
-second, unverified account of the program that goes stale silently.
+DENSITY: comment lines may not exceed half the code lines, in .js, .mjs, .py and .lua under
+boards/ games/ tools/ core/ web/, minus node_modules. A line carrying code AND a trailing comment
+counts as both. Prose that outgrows its code becomes a second, unverified account of the program
+that goes stale silently.
 
-JS ONLY, and that is a decision rather than an omission -- counting comments needs a real lexer
-per language, and the ones written for .py/.lua/.sh were wrong three review rounds running.
+NOTHING UNDER THE ROOTS IS EXEMPT BY KIND -- not the transcription layer, not generated files,
+not this file. Every exemption that was here began as an assumption about what the rule would do
+to a class of files, and each was wrong when the class was finally measured.
+
+`translated/` is governed like everywhere else, and a trailing mnemonic is a comment. It restates
+the line it sits beside, so when a transcription trips the cap the remedy is to delete it.
+
+Counting comments needs a lexer for the host language, and a wrong one fails in both directions
+-- blocking an honest file, or letting prose through. Python uses `tokenize`, which ships with
+the interpreter and IS the reference lexer. Lua is hand-written, because the repo takes no
+third-party Python; what it rests on, and what that does and does not cover, is set out at
+`_scan_lua`. Shell stays out -- no second implementation to check a hand-written one against,
+and the hand-written one WAS measured wrong.
 
 REFERENCE (games/<game>/idiomatic/ only): a comment describes the file it sits in — not the ROM,
 MAME, the oracle, a sibling module, a test, a doc, or a to-do. Exempt: translated/**, names.js
@@ -38,10 +49,12 @@ can be fixed without the other. A gate that refuses a file it cannot read is rec
 that waves it through is not.
 """
 import argparse
+import io
 import os
 import re
 import subprocess
 import sys
+import tokenize
 
 
 class GitError(RuntimeError):
@@ -130,13 +143,17 @@ def in_scope(path):
 DENSITY_DIVISOR = 2  # comment lines allowed = code lines // DENSITY_DIVISOR
 
 _ROOTS = ("boards", "games", "tools", "core", "web")
-# JS ONLY, DELIBERATELY. Counting comments needs a real lexer for the host language,
-# and three rounds of review found this one wrong on Python string prefixes, shell
-# parameter expansion and `<<` in shell arithmetic -- each time in the direction that
-# either blocks an honest file or lets prose through. A narrow rule that is TRUE beats a
-# broad one with holes, so .py, .lua and .sh are NOT governed. Widening it means porting
-# a real lexer for that language, not another special case.
-_EXTS = (".js", ".mjs")
+# Counting comments needs a REAL lexer for the host language. Three review rounds found the
+# hand-written ones wrong on Python string prefixes, shell parameter expansion and `<<` in
+# shell arithmetic, each time either blocking an honest file or letting prose through.
+#
+# The fix for Python was never to hand-write one: `tokenize` IS the reference lexer and ships
+# with the interpreter. Narrowing the rule to JS instead was a scope cut dressed as a
+# principle, and it exempted this very file from the rule it enforces.
+#
+# Lua and shell stay out, and now for the true reason rather than that one: no lexer for them
+# is available here, and a hand-written approximation was measured wrong three times.
+_EXTS = (".js", ".mjs", ".py", ".lua")
 # A closed STRING ends a value too, so `"10" / 2` is division and its trailing `//` is a
 # comment. Leaving the quotes out ate the comment on any line dividing by a string result.
 _REGEX_OK_BEFORE = re.compile("[)\\]}A-Za-z0-9_$'\"`]$")
@@ -175,16 +192,14 @@ def _regex_reading_possible(text, i):
 def density_scope(path):
     """True for a source file the density rule governs.
 
-    `translated/` is exempt for the reason the reference rule exempts it: those files are
-    a transcription, and their per-line comments are the disassembly listing itself. Both
-    exemptions are POSITIONAL, like the reference rule's.
+    Nothing under the roots is exempt by kind. `translated/` is included, and what a comment
+    MEANS there is handled in `count_lines` rather than by excusing the layer; generated files
+    are included too, because a block on one is followable -- you fix the generator's template,
+    not the output. Every exemption written here so far was an assumption about what the rule
+    would do to a class of files, and each was wrong when the class was actually measured.
     """
     parts = path.split("/")
     if parts[0] not in _ROOTS or "node_modules" in parts:
-        return False
-    if len(parts) > 3 and parts[0] == "games" and parts[2] == "translated":
-        return False
-    if re.search(r"\.generated\.[A-Za-z0-9]+$", parts[-1]):
         return False
     return os.path.splitext(path)[1] in _EXTS
 
@@ -335,7 +350,147 @@ def _scan(path, text, amb_regex):
             word, word_open = "", False
         i += 1
 
+    # Blank lines are neither, INCLUDING inside a block comment or a template literal. The
+    # module docstring says so and the Python scanner already did it; JS was charging them,
+    # which penalised exactly the JSDoc headers the idiomatic layer is made of.
+    for r, raw in enumerate(text.splitlines()):
+        if not raw.strip():
+            is_code[r] = is_comment[r] = False
     return sum(is_code), sum(is_comment), spans
+
+
+def _scan_python(path, text):
+    """(code, comment, spans) for one .py file, via the stdlib `tokenize`.
+
+    No hand-written scanner and no ambiguity to resolve: this is the same lexer the
+    interpreter uses, so it cannot disagree with how the file actually parses.
+
+    A triple-quoted string is PROSE when it opens a statement (a docstring) and CODE when it
+    is a value -- the same distinction the JS side draws for a block comment versus a template
+    literal. A line carrying both is charged to both, as everywhere else.
+    """
+    comment, code, prose = set(), set(), set()
+    spdx_free = [True]
+    try:
+        toks = list(tokenize.generate_tokens(io.StringIO(text).readline))
+    except (tokenize.TokenError, IndentationError, SyntaxError) as e:
+        raise LexError(f"{path}: python tokenizer refused the file ({e})")
+
+    spans, opens_stmt = [], True
+    for t in toks:
+        if t.type == tokenize.COMMENT:
+            body = t.string.lstrip("#")
+            spans.append((t.start[0], body))
+            if body.lstrip().startswith("SPDX-License-Identifier") and spdx_free[0]:
+                spdx_free[0] = False
+            elif not (t.start[0] == 1 and t.string.startswith("#!")):
+                comment.add(t.start[0])
+        elif t.type == tokenize.STRING and opens_stmt:
+            for r in range(t.start[0], t.end[0] + 1):
+                prose.add(r)
+            spans += [(t.start[0] + i, ln) for i, ln in enumerate(t.string.splitlines())]
+        elif t.type not in (
+            tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+            tokenize.DEDENT, tokenize.ENDMARKER, tokenize.COMMENT,
+        ):
+            for r in range(t.start[0], t.end[0] + 1):
+                code.add(r)
+        if t.type not in (tokenize.NL, tokenize.COMMENT):
+            opens_stmt = t.type in (tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT)
+
+    blank = {i + 1 for i, ln in enumerate(text.splitlines()) if not ln.strip()}
+    return len(code - prose - blank), len((comment | prose) - blank), spans
+
+
+_LUA_LONG = re.compile(r"\[(=*)\[")
+
+
+def _scan_lua(path, text):
+    """(code, comment, spans) for one .lua file.
+
+    Lua's comment grammar is the whole of it: `--` to end of line, `--[=*[ ... ]=*]` for a long
+    comment, and `'`/`"`/`[=*[ ... ]=*]` for strings. The long bracket is what a naive scanner
+    gets wrong in both directions -- a `[[...]]` STRING containing `--` is not a comment, and a
+    `--[==[...]==]` comment is not one line. Both are handled by matching the closing bracket at
+    the same `=` level that opened it.
+
+    This is hand-written because the repo takes no third-party Python, so it needs an argument
+    for being trusted. That argument is in two parts, and the parts cover different things.
+
+    The corpus cross-check against Pygments' Lua lexer, over every .lua file in the tree, agrees
+    exactly. But it says nothing about the paragraph above: **no file in this repo contains a
+    long bracket of any kind** -- no `[[`, no `[=[`, no `--[[`. The corpus establishes agreement
+    on the forms the tree actually uses, and the long-bracket handling is carried entirely by
+    the fixtures in `DENSITY_CASES`. Re-running the corpus check after widening this function
+    would validate nothing about the change.
+
+    And agreement is not the standard of correctness. Pygments is WRONG on an unterminated
+    `--[[` at EOF -- it emits the first line as a comment and the rest as code, where Lua runs
+    the comment to EOF. This scanner is right there, so agreeing would have made it wrong.
+    """
+    n, i, ln = len(text), 0, 1
+    comment, code, spans = set(), set(), []
+    if text.startswith("#!"):  # neither, like the SPDX line and a blank -- JS and Python agree
+        i = text.find("\n")
+        if i < 0:
+            return 0, 0, []
+        ln, i = 2, i + 1
+    while i < n:
+        ch = text[i]
+        if ch == "\n":
+            ln += 1
+            i += 1
+            continue
+        if ch in " \t\r":
+            i += 1
+            continue
+        if text.startswith("--", i):
+            m = _LUA_LONG.match(text, i + 2)
+            if m:  # long comment: runs to the matching close at the same level
+                close = "]" + "=" * len(m.group(1)) + "]"
+                end = text.find(close, m.end())
+                end = n if end < 0 else end + len(close)
+                for off, raw in enumerate(text[i:end].splitlines()):
+                    comment.add(ln + off)
+                    spans.append((ln + off, raw))
+                ln += text.count("\n", i, end)
+                i = end
+                continue
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            body = text[i + 2 : end]
+            spans.append((ln, body))
+            if not body.lstrip().startswith("SPDX-License-Identifier"):
+                comment.add(ln)
+            i = end
+            continue
+        m = _LUA_LONG.match(text, i)
+        if m:  # a long-bracket STRING is code, whatever it contains
+            close = "]" + "=" * len(m.group(1)) + "]"
+            end = text.find(close, m.end())
+            end = n if end < 0 else end + len(close)
+            for off in range(text.count("\n", i, end) + 1):
+                code.add(ln + off)
+            ln += text.count("\n", i, end)
+            i = end
+            continue
+        if ch in "'\"":
+            q, i, start = ch, i + 1, ln
+            while i < n:
+                if text[i] == "\\":
+                    i += 2
+                    continue
+                if text[i] == "\n" or text[i] == q:
+                    break
+                i += 1
+            if i < n and text[i] == q:
+                i += 1
+            code.add(start)
+            continue
+        code.add(ln)
+        i += 1
+    blank = {k + 1 for k, l in enumerate(text.splitlines()) if not l.strip()}
+    return len(code - blank), len(comment - blank), spans
 
 
 def _both_ways(path, text):
@@ -349,7 +504,14 @@ def _both_ways(path, text):
     Scanning both ways removes the guess. Where the two readings agree the ambiguity did not
     matter and the file is judged normally; where they disagree no answer is defensible, so the
     file is refused. Both rules go through here, so neither can be fixed without the other.
+
+    Python takes none of this: `tokenize` is exact, so there is nothing to resolve.
     """
+    ext = os.path.splitext(path)[1]
+    if ext == ".py":
+        return _scan_python(path, text)
+    if ext == ".lua":
+        return _scan_lua(path, text)
     a = _scan(path, text, False)
     b = _scan(path, text, True)
     if a[:2] != b[:2] or a[2] != b[2]:
@@ -363,7 +525,11 @@ def _both_ways(path, text):
 
 
 def count_lines(path, text):
-    """(code, comment) for one JS file."""
+    """(code, comment) for one file. EVERY comment counts, wherever it sits.
+
+    A bare mnemonic beside `regs.and(regs.a)` says nothing the code does not, so a block on a
+    file made of them is followable: delete the comment.
+    """
     code, comment, _ = _both_ways(path, text)
     return code, comment
 
@@ -387,6 +553,11 @@ def density_violations(paths, read):
 def report_density(hits, stream):
     for path, code, comment, cap in hits:
         print(f"  {path}: {comment} comment lines, {code} code — cap is {cap}", file=stream)
+        # A generated file is governed like any other, but editing it is wasted work: the next
+        # regeneration discards it. Say where the prose actually lives, or the blanket advice
+        # above sends the reader to the wrong file.
+        if re.search(r"\.generated\.[A-Za-z0-9]+$", os.path.basename(path)):
+            print("      ^ generated — fix the generator's template, not this file", file=stream)
 
 
 # ── extracting comments ───────────────────────────────────────────────────────────────────────
@@ -670,6 +841,36 @@ DENSITY_CASES = [
     ("a.js", "if(x){} /[a]/.test(y); // a claim\n", 1, 1),
     # `of` is a legal identifier, so it is deliberately NOT a value-keyword.
     ("a.js", "let of = 4;\nlet x = of / 2; // halve it\n", 2, 1),
+    # translated/ is counted like everywhere else -- a trailing mnemonic is a comment. These
+    # two pin that: neither may quietly stop counting the `// ret`.
+    ("games/g/translated/loc_0ce8.js",
+     "// loc_0ce8  (ROM 0x0CE8)\nexport function loc_0ce8(m) {\n  m.ret(); // ret\n}\n", 3, 2),
+    ("games/g/translated/loc_x.js",
+     "// loc_x\n// an explanatory header\n// second line of it\n"
+     "export function f(m) {\n  m.ret(); // ret\n}\n", 3, 4),
+    ("games/g/idiomatic/f.js", "export function f(m) {\n  m.ret(); // ret\n}\n", 3, 1),
+    # Lua. The long bracket is what a naive scanner gets wrong in BOTH directions: a [[...]]
+    # string holding `--` is not a comment, and --[==[...]==] is not one line.
+    ("a.lua", "-- a claim\nlocal a = 1\n", 1, 1),
+    ("a.lua", "--[[ a claim\n  spanning lines ]]\nlocal a = 1\n", 1, 2),
+    ("a.lua", "--[==[ a claim ]==]\nlocal a = 1\n", 1, 1),
+    ("a.lua", "local s = [[\n-- not a comment\n]]\n", 3, 0),
+    ("a.lua", 'local s = "-- not a comment"\nlocal a = 1\n', 2, 0),
+    ("a.lua", "local a = 1 -- a claim\n", 1, 1),
+    ("a.lua", "-- SPDX-License-Identifier: X\nlocal a = 1\n", 1, 0),
+    ("a.lua", "#!/usr/bin/env lua\n-- a claim\nlocal a = 1\n", 1, 1),
+    # Python. The docstring-as-prose branch is the whole reason this gate can measure its own
+    # prose, and it was unfixtured -- stubbing it out left the selftest green while a file of
+    # 30 docstring lines over 2 of code read as 34 code / 0 comment.
+    ("a.py", '"""doc line one\ndoc line two\n"""\nx = 1\n', 1, 3),
+    ("a.py", "# a claim\nx = 1\n", 1, 1),
+    ("a.py", "x = f(\"\"\"a value, not a docstring\"\"\")\n", 1, 0),
+    ("a.py", "# SPDX-License-Identifier: X\nx = 1\n", 1, 0),
+    # Blank lines are neither, INCLUDING inside a block comment or a docstring. JS charged them
+    # and Python did not, so the two languages disagreed and the JS side contradicted the rule
+    # this file states.
+    ("a.js", "/* a\n\n b */\nlet a = 1;\n", 1, 2),
+    ("a.py", '"""a\n\nb"""\nx = 1\n', 1, 2),
 ]
 
 # Files no scanner can judge. Each must RAISE, not return a number -- these are the cases that
@@ -686,18 +887,21 @@ DENSITY_SCOPE_CASES = [
     ("core/cpu/z80.js", True),
     ("web/player.mjs", True),
     ("games/dkong/tools/x.mjs", True),
-    # NOT governed: the counter is a JS lexer, so other languages are out of scope
-    # rather than counted badly.
-    ("tools/comment_gate.py", False),
-    ("games/dkong/tools/lua/x.lua", False),
+    # Python IS governed, via the stdlib tokenizer -- including this file.
+    ("tools/comment_gate.py", True),
+    ("games/dkong/tools/lua/x.lua", True),
+    # NOT governed: shell has no lexer here and the hand-written one was measured wrong.
     ("games/dkong/tools/x.sh", False),
     ("docs/porting.md", False),
-    ("games/dkong/translated/loc_0000.js", False),
-    ("games/dkong/translated/_registry.generated.js", False),
+    ("games/dkong/translated/loc_0000.js", True),
+    ("games/dkong/translated/_registry.generated.js", True),
     ("web/node_modules/x/y.js", False),
     ("tools/translated/x.js", True),
     ("games/dkong/idiomatic/translated/x.js", True),
     ("boards/x/handwritten.generated.notjs.js", True),
+    # A generated file is governed like any other: the block is followable by fixing the
+    # generator's template. Measured, every generated file in the tree passes anyway.
+    ("games/thepit/translated/_registry.generated.js", True),
 ]
 
 def cmd_selftest(_args):
