@@ -301,7 +301,7 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   The same rule governs the commit message: it says what the commit DOES. "Corrects X to Y" IS the
   change and belongs; the history of the author's drafts does not.
 
-  Verify: `git diff --cached -- . ':(exclude)docs/reviewer-rules.md' | grep -Ein '^\+.*(earlier (draft|version|header)|previously (said|gave)|used to say|the old text|is withdrawn|has been removed|★ CORRECTION)'`
+  Verify: `git diff --cached -- . ':(exclude)docs/reviewer-rules.md' | grep -Ein '^\+.*(earlier (draft|version|header|revision|round|wording)|previously (said|gave)|used to say|the old text|is withdrawn|has been removed|★ CORRECTION)'`
   returns nothing. (The exclusion is not a loophole — it keeps this rule's own quoted EXAMPLES
   from matching it.) A hit FAILS unless the cited past wording is quotable from the parent revision
   (`git show HEAD:<path> | grep -F`) AND a reader of the current code would otherwise re-introduce

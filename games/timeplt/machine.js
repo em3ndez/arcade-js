@@ -19,6 +19,7 @@ import {
   renderRowsRGB,
 } from "../../boards/timeplt/video.js";
 import { Regs } from "../../core/cpu/z80.js";
+import { makeIndexedView } from "../../core/mem-views.js";
 
 /** 3072000 / 60 Hz exactly. dkong and thepit are 60.606061 / 50688 -- not this board. */
 export const CYCLES_PER_FRAME = 51200;
@@ -68,6 +69,14 @@ export class Machine {
     this.mem = new AddressSpace(rom, this.io);
     this.regs = new Regs();
     this.routines = routines;
+
+    // Retained so clone() can rebuild an identical machine from the same inputs.
+    this.rom = rom;
+    this.assets = opts;
+
+    // mem8[ADDR] / mem16[ADDR] forward to the address space, for the idiomatic layer.
+    this.mem8 = makeIndexedView(this.mem, 8);
+    this.mem16 = makeIndexedView(this.mem, 16);
 
     // MAME Z80 reset state, same for every MAME Z80.
     this.regs.af = 0x0040;
@@ -433,4 +442,69 @@ export class Machine {
       this.step(self, 21);
     }
   }
+
+  dumpState() {
+    return this.mem.dumpState();
+  }
+
+  stateOffsetToAddr(off) {
+    return this.mem.stateOffsetToAddr(off);
+  }
+
+  /**
+   * A fresh Machine on this one's inputs, restored to this machine's observable state: all
+   * RAM, the register file, and IO value-state. The clone's frame machinery is neutralised
+   * so that running ONE routine on it in isolation cannot trip a frame sample, fire an NMI
+   * or throw -- a unit gate measures the routine, not the scheduler.
+   *
+   * `cycles` is load-bearing and copied deliberately: the constructor rebinds the scanline
+   * read to a closure over the machine's own cycle count, so a clone that started at zero
+   * would report a different raster phase than the machine it came from.
+   */
+  clone() {
+    const c = new Machine(this.rom, this.routines, this.assets);
+    c.mem.colorRam.set(this.mem.colorRam);
+    c.mem.videoRam.set(this.mem.videoRam);
+    c.mem.workRam.set(this.mem.workRam);
+    c.mem.sprite0.set(this.mem.sprite0);
+    c.mem.sprite1.set(this.mem.sprite1);
+    c.mem.unmappedReads = this.mem.unmappedReads;
+    c.mem.unmappedWrites = this.mem.unmappedWrites;
+
+    c.regs.copyFrom(this.regs);
+    c.io.loadStateFrom(this.io);
+
+    c.cycles = this.cycles;
+    c.pc = this.pc;
+    c.pcKnown = this.pcKnown;
+    c.nmiCount = this.nmiCount;
+
+    c.nextBoundary = Infinity;
+    c.nextNmi = Infinity;
+    c.maxFrames = Infinity;
+    c.maxCycles = Infinity;
+    return c;
+  }
+}
+
+/**
+ * Resolve the whole idiomatic layer to a Map<addr, fn>, ready to merge over the translated
+ * registry. Both Node and the browser reach it the same way, through dynamic import.
+ *
+ * A registry entry naming a module or export that does not exist is an error here rather than
+ * a silent omission -- a routine quietly missing from the dispatch table would leave the oracle
+ * running in its place and every gate would still pass.
+ */
+export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
+  const { ROUTINES } = await import(new URL("idiomatic/names.js", baseUrl).href);
+  const out = new Map();
+  for (const [addr, meta] of Object.entries(ROUTINES)) {
+    const mod = await import(new URL(`idiomatic/${meta.name}.js`, baseUrl).href);
+    const fn = mod[meta.entry ?? meta.name];
+    if (typeof fn !== "function") {
+      throw new Error(`idiomatic registry: ${meta.name}.js has no export ${meta.entry ?? meta.name}`);
+    }
+    out.set(Number(addr), fn);
+  }
+  return out;
 }

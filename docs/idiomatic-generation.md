@@ -71,11 +71,17 @@ For each DECOMPILE batch:
 4. **Write the four artifacts per routine** — module, equivalence test, `ROUTINES` entry, green
    gate. All four or the routine is not in the layer. If the routine calls an already-decompiled
    callee, **dissolve that `m.call` into a direct call here**, as part of this routine's work.
-5. **Name it** under the three-look protocol, or leave it `loc_` if the *mechanism* is genuinely
-   unreadable.
-6. **Land the batch as a DECOMPILE commit**, reviewed, with the `names.js` retrofit in the same
-   commit — and **run the whole suite yourself first**. A per-agent "green" self-report is not the
-   gate; a later dissolve in the same batch can break an earlier agent's routine after it reported.
+5. **Leave it `loc_<addr>`.** A DECOMPILE batch ships address names and nothing else — R11 is
+   explicit that English names arrive ONLY through a confirmed understanding-pass promotion, with
+   a proposer and a separate confirmer (R4) and the corroboration written into the `why` field
+   (R5). Derive a name if the mechanism is clear, and park it as a *proposal* for that pass; do
+   not put it in `names.js`. A name that one agent derived and no second agent challenged is the
+   sprite-record trap with a batch's worth of downstream work about to trust it.
+6. **Land the batch as a DECOMPILE commit**, reviewed — and **run the whole suite yourself
+   first**. The `names.js` retrofit belongs to the understanding pass that promotes the names,
+   not here; what this commit adds to the registry is the address-to-module wiring. A per-agent
+   "green" self-report is not the gate; a later dissolve in the same batch can break an earlier
+   agent's routine after it reported.
 
 ### Dissolving belongs to the CALLER's unit, not the callee's
 

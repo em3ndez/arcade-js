@@ -84,6 +84,20 @@ export class Io {
   readDsw1() { return this.dsw1 & 0xff; }
   readScanline() { return this.scanline & 0xff; }
 
+  /** Copy another Io's value-state onto this one. Used when a Machine is cloned. */
+  loadStateFrom(other) {
+    this.in0 = other.in0;
+    this.in1 = other.in1;
+    this.in2 = other.in2;
+    this.dsw0 = other.dsw0;
+    this.dsw1 = other.dsw1;
+    this.latch.set(other.latch);
+    this.soundData = other.soundData;
+    this.watchdogKicks = other.watchdogKicks;
+    this.scanline = other.scanline;
+    this.inputAssert = other.inputAssert;
+  }
+
   writeSoundData(value) { this.soundData = value & 0xff; }
   kickWatchdog() { this.watchdogKicks++; }
 
