@@ -12,13 +12,11 @@
  *
  *   --frames N        frames to emit (default 242, the golden capture's length)
  *   --state-out DIR   output dir (default games/timeplt/out/emit)
+ *   --poke / --input  ADDR=VAL@FRAME / PORT=BITS@FRAME  (see tools/emit-core.js)
  *   --rom PATH        maincpu image (default games/timeplt/rom/maincpu.bin)
  *
  * A short run writes the frames it produced, prints the gap, and exits NONZERO: a
  * short artifact must never read as a clean one.
- *
- * There is no --poke / --input here yet. The Machine has no input tape or poke
- * plumbing, and accepting flags it would silently ignore is worse than rejecting them.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -58,12 +56,10 @@ async function main() {
   if (!Number.isInteger(args.frames) || args.frames < 1) {
     throw new Error(`--frames expects a positive integer, got ${args.frames}`);
   }
-  if (args.pokes.length || args.inputs.length) {
-    throw new Error("--poke/--input are not plumbed on this board yet; they would be ignored");
-  }
-
   const rom = new Uint8Array(readFileSync(args.rom));
   const machine = new Machine(rom, buildRoutines());
+  machine.inputTape = args.inputs.length ? args.inputs : null;
+  machine.pokes = args.pokes.length ? args.pokes : null;
   const want = args.frames;
   const frames = machine.runFrames(want);
 

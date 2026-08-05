@@ -45,6 +45,49 @@ rejected. A golden captured against a subtly different machine is worse than no 
 can only produce a short run, it says so and exits non-zero, so a partial artifact never reads as
 complete.
 
+## PLUMB `--input` AND `--poke` BEFORE YOU TRUST ANY OF IT
+
+Until a tape can press a button, the only thing a new game's harness validates is **attract mode**,
+and attract exercises a fraction of the ROM. Do this on day one, not when the layer looks finished.
+
+It is three small seams, and every board needs all three:
+
+1. **`io.inputAssert`** — a `{portAddress: pressedBits}` map, folded into the port reads with the
+   board's own polarity. Keep the tape in PRESSED-BIT form even when the hardware is active-low, so
+   one tape reads the same here as the MAME lua one, which sets named fields rather than a port byte.
+2. **`Machine.applyInputs(frameIndex)` / `applyPokes(frameIndex)`**, called at the frame boundary
+   **before** the state dump, so both are in effect DURING that frame. Call them for frame 0 too,
+   or a `@0` tape entry is silently dropped, and clear the assert map at the start of a run or a
+   Machine reused after stopping mid-hold begins with the button still down. Rebuild the map from
+   scratch each frame — then a press releases itself and a held bit stays down without the tape
+   restating it.
+
+   **This does NOT make the two sides agree on frame numbers, and assuming it does will cost you a
+   day.** MAME's frame notifier and the JS boundary sample count from different origins: the
+   notifier fires at the END of frame N. So the same tape lands at a different emulated frame on
+   each side, and the offset is a per-game CONSTANT THAT MUST BE MEASURED — The Pit's is +2, and
+   its tape carries the number in a header contract with the experiment that established it.
+   Measure yours, write it beside the tape, and re-verify it whenever the tape's timing changes.
+   Time Pilot's is not measured yet, so its tape carries no such note and no cross-side comparison
+   using it should be trusted until one exists.
+3. **`emit.js`** passing `machine.inputTape` / `machine.pokes` through from the parsed arguments.
+
+**What it is worth, measured on Time Pilot the day it was plumbed.** Attract had run 20000 frames
+with no translation gap and the layer looked complete. Insert a coin and press start, and against
+an attract baseline of the same length the run reached fifty-odd routines attract never touches —
+and with two ROM regions that had never been transcribed, the same tape hard-stopped at frame 610.
+Both regions were dispatched from a table through a computed jump, so no static tracer found them
+and no attract run executed them. **The harness was reporting a complete layer because it could
+not press the button that breaks it.**
+
+### Finding the input bits without trusting the driver's port table
+
+Do not transcribe a bit map out of MAME's source and hope. Press each bit in turn through the tape
+and diff the whole run against a no-input baseline **with an identical call structure** — same
+number of `runFrames` calls, only the held value differing, or you measure your own harness. The
+answer separates itself: a coin diverges the entire run, while a start button moves only the byte
+the ROM samples the port into, because the game ignores it until there is a credit.
+
 ## Diffing in an order that localizes the fault
 
 The diff tools are shared across every board, so none of them hardcode a game's addresses: each

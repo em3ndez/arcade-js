@@ -137,6 +137,11 @@ export class Machine {
     this.drainRaster();
 
     while (this.cycles >= this.nextBoundary && this.frames.length < this.maxFrames) {
+      // Frame N is about to execute: assert its inputs and apply its pokes first, so both
+      // are in effect DURING frame N. This does NOT align frame numbers with a MAME tape --
+      // the notifier fires at the END of a frame, so a per-game offset must be measured.
+      this.applyInputs(this.frames.length);
+      this.applyPokes(this.frames.length);
       // Sample BEFORE the boundary's NMI: state[N] holds no interrupt effects of N.
       this.frames.push(this.mem.dumpState());
       // The beam just finished the frame being painted; finishRasterFrame indexes it.
@@ -180,12 +185,37 @@ export class Machine {
     return this.call(NMI_VECTOR);
   }
 
+  // `dur` frames from `frame`, null = hold indefinitely.
+  applyPokes(frameIndex) {
+    if (!this.pokes) return;
+    for (const p of this.pokes) {
+      const due = frameIndex >= p.frame && (p.dur == null || frameIndex < p.frame + p.dur);
+      if (due) this.mem.write8(p.addr, p.val);
+    }
+  }
+
+  // Rebuilt from scratch each frame, so a press releases itself. io folds in the polarity.
+  applyInputs(frameIndex) {
+    if (!this.inputTape) return;
+    const assert = {};
+    for (const t of this.inputTape) {
+      const due = frameIndex >= t.frame && (t.dur == null || frameIndex < t.frame + t.dur);
+      if (due) assert[t.port] = (assert[t.port] || 0) | t.bits;
+    }
+    this.io.inputAssert = assert;
+  }
+
   /**
    * Run from reset capturing `count` state frames. The cycle budget runs PAST the last
    * sample so effects landing just after a boundary still happen, uncaptured. Boot never
    * returns, so FramesComplete is how a bounded run unwinds -- not an error.
    */
   runFrames(count) {
+    // Frame 0 gets its tape entries too, and a stale assert from a previous run must not
+    // survive into this one -- a run that stopped mid-hold would start with the button down.
+    this.io.inputAssert = null;
+    this.applyInputs(0);
+    this.applyPokes(0);
     this.frames = [this.mem.dumpState()]; // state[0], power-on
     this.maxFrames = count;
     this.maxCycles = count * CYCLES_PER_FRAME + CYCLES_PER_FRAME;

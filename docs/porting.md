@@ -149,6 +149,11 @@ The porting-specific glue is the three layers above, the `inputs` block below, k
 below, and registering the game — add its id to `games/registry.js`, write `games/<id>/manifest.js`
 (ROM part list + sha256 checksums + the `inputs` block), and a `Makefile` `rom` target.
 
+**Plumb `--input` and `--poke` in that same first pass**, not once the layer looks done. Skip it and
+every gate you run measures attract mode only, which leaves most of the ROM unexecuted while
+reporting clean — see [integration testing](integration-testing.md) for the three seams and for
+what it cost on Time Pilot.
+
 The **method** — the model that turns a ROM into validated, *understood* JavaScript — lives in
 exactly one place: **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call
 graph, then Ship). Its detailed Structure/Meaning techniques are in
