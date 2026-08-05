@@ -127,7 +127,7 @@ HISTORY of the earlier values, retained because the state-dumper fix inside it
 is still load-bearing:
 The original +2 was "AVI frame 0 is the init framebuffer (+1), plus render
 latency (+1)". The init framebuffer is REAL -- it is what makes the AVI frame
-count ceil(refresh*seconds)+1. What was wrong is that it was DOUBLE-COUNTED: an
+count floor(refresh*seconds)+2. What was wrong is that it was DOUBLE-COUNTED: an
 off-by-one in the state dumper this constant was derived from. MAME's Lua frame
 notifier fires at the END of frame N, so sampling only on the notifier made
 state[0] mean "after one frame" instead of "power-on". Re-basing state[] to

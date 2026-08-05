@@ -362,15 +362,42 @@ def main():
             if n == 0:
                 poison.append("capture produced 0 frames")
             else:
-                # avi_frame_count = ceil(refresh * seconds) + 1.
+                # avi_frame_count = floor(refresh * seconds) + 2.
+                #
+                # DERIVATION, because the obvious one is wrong. MAME appends one AVI frame
+                # per video update at t = 0, T, 2T, ... and exits at the FIRST update at or
+                # after t = seconds -- and that frame is still recorded. So the last frame
+                # lands PAST t = seconds, not on it (measured: timeplt at 2s ends at
+                # 2.0167s, dkong at 3s at 3.0030s), and the count is ceil(seconds/T) + 1.
+                #
+                # The step from there to floor(hz*sec)+2 is the part worth writing down.
+                # T is the frame period in whole attoseconds, and on every board here it
+                # lands strictly BELOW the ideal period, so seconds/T sits a shade above
+                # hz*sec and off an exact integer. That makes ceil(seconds/T) equal
+                # floor(hz*sec)+1 for a fractional AND a whole-number product alike --
+                # hence the uniform +2. Measured: timeplt's T is 16666666666666666 as,
+                # under the exact 1/60; its frame 120 lands at 1.99999999999999992 s and so
+                # does NOT end a 2-second run, while frame 121 at 2.0166... does.
+                #
+                # SCOPED DELIBERATELY: "below the ideal period" is a property of these
+                # boards, not a law. dkong's ideal period IS a whole attosecond count
+                # (16500000000000000) and is saved only by MAME's per-tick rounding pushing
+                # the stored value down to 16499999999932416. A board whose period divides
+                # 1e18 evenly -- a plain 50Hz set_refresh_hz would -- puts seconds/T exactly
+                # on an integer and costs this formula one frame. Re-measure T before
+                # trusting the +2 on a fourth board.
+                #
+                # NOT ceil(hz*sec)+1: that is short by one whenever hz*sec is a whole
+                # number, which a 60.000000Hz board hits at every integer duration. It
+                # agrees for a fractional product, which is why it survived two games.
                 # A capture that misses this was truncated or mis-run, and is the
                 # exact input that makes a short-run false PASS possible downstream.
-                expect = math.ceil(hw.refresh_hz * args.seconds) + 1
+                expect = math.floor(hw.refresh_hz * args.seconds) + 2
                 manifest["expected_frame_count"] = expect
                 if n != expect:
                     poison.append(
                         f"frame count {n} != documented formula "
-                        f"ceil({hw.refresh_hz}*{args.seconds})+1 = {expect}"
+                        f"floor({hw.refresh_hz}*{args.seconds})+2 = {expect}"
                     )
 
             hits = watchdog_check(fh)
@@ -418,29 +445,29 @@ def main():
                 )
             elif args.at_pc:
                 # A PC-triggered capture is one sample by design, so the
-                # ceil(refresh*seconds) frame-count invariant does not apply.
+                # floor(refresh*seconds)+2 frame-count invariant does not apply.
                 manifest["at_pc"] = args.at_pc
                 if n != 1:
                     poison.append(
                         f"--at-pc produced {n} state frames, expected exactly 1"
                     )
             else:
-                # The +1 is the power-on sample taken at Lua script
-                # load, before any instruction runs; the notifier then supplies
-                # one sample per emulated frame. That extra sample is what makes
-                # state[N] mean "after N frames" rather than "after N+1".
+                # The +2 is one power-on sample taken at Lua script load, before any
+                # instruction runs, plus the floor(hz*sec)+1 samples the frame notifier
+                # supplies. That power-on sample is what makes state[N] mean "after N
+                # frames" rather than "after N+1".
                 #
                 # This check must NOT live under `if not args.no_frames` -- a
                 # state-only capture would then have no length validation at all,
                 # and the Lua dumper's documented failure mode (GC-unsubscribe ->
                 # exactly one frame, plausible-looking truncated file) would sail
                 # through certified.
-                expect_state = math.ceil(hw.refresh_hz * args.seconds) + 1
+                expect_state = math.floor(hw.refresh_hz * args.seconds) + 2
                 manifest["expected_state_count"] = expect_state
                 if n != expect_state:
                     poison.append(
                         f"state frame count {n} != documented formula "
-                        f"ceil({hw.refresh_hz}*{args.seconds})+1 = {expect_state} "
+                        f"floor({hw.refresh_hz}*{args.seconds})+2 = {expect_state} "
                         f"(truncated dump, or the Lua notifier unsubscribed)"
                     )
                 # Verified power-on invariant. If this is false the

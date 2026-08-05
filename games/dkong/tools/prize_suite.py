@@ -46,7 +46,7 @@ os.makedirs(WORK, exist_ok=True)
 GW = 172032           # bytes per RGB frame (256*224*3)
 TOTPIX = 256 * 224    # 57344
 FIVE_PCT = TOTPIX * 5 // 100  # 2867
-FRAMES = 1820         # == mame_golden --seconds 30 (ceil(60.606*30)+1)
+FRAMES = 1820         # == mame_golden --seconds 30 (floor(60.606*30)+2)
 SDS = 5120            # state dump bytes/frame
 BPTR = {2: 0x74, 3: 0x76, 4: 0x78}   # board -> 0x3A70 seq-table ptr low byte
 
