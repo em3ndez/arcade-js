@@ -33,12 +33,14 @@ import subprocess
 import sys
 
 import numpy as np
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','..','..','tools'))
+import pixel_gate
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 GAME = os.path.dirname(TOOLS)                      # games/thepit
 REPO = os.path.dirname(os.path.dirname(GAME))      # repo root
 DRIVER = "thepitu1"
-GW = 172032                                        # 256x224 RGB888 bytes/frame
+HW = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','..','..','boards','thepit','hardware.json')
 STATE_FRAME = 4352                                 # work(2048)@0x8000 + color + video + attrspr
 PINSPEC = "4b34:00,4b35:00,4b39:00,4b3a:00"        # entropyPinRomSpec(manifest.entropyPin)
 SECONDS = 13                                        # boot -> coin(400) -> start(460) -> ~300f of dig
@@ -96,14 +98,9 @@ def render_js(rompath, out, frames):
 
 
 def diff(js_rgb, gd_rgb):
-    """Per-frame differing-pixel count, JS[m] vs golden[m+1] (the frozen AVI +1 lag)."""
-    J = np.fromfile(js_rgb, dtype=np.uint8)
-    G = np.fromfile(gd_rgb, dtype=np.uint8)
-    nJ, nG = len(J) // GW, len(G) // GW
-    J = J[:nJ * GW].reshape(nJ, -1, 3)
-    G = G[:nG * GW].reshape(nG, -1, 3)
-    n = min(nJ, nG - 1)
-    return np.array([int(np.any(J[m] != G[m + 1], axis=1).sum()) for m in range(n)])
+    """Per-frame differing-pixel count. Geometry, the pinned AVI offset and the
+    reconvergence rule are shared: tools/pixel_gate.py. Do not re-derive them here."""
+    return pixel_gate.frame_diffs(js_rgb, gd_rgb, HW)
 
 
 def main():
@@ -127,7 +124,7 @@ def main():
     if not ok:
         print(f"pixel_suite: FAIL -- golden shows a REAL reset (work RAM == boot at frames {resets})"); return 1
 
-    frames = os.path.getsize(f"{go}/frames.rgb") // GW      # render one fewer so golden covers the +1 offset
+    frames = os.path.getsize(f"{go}/frames.rgb") // pixel_gate.screen_geometry(HW)[2]      # render one fewer so golden covers the +1 offset
     ok, log = render_js(args.rompath, eo, frames)
     if not ok:
         print(f"pixel_suite: FAIL -- JS render produced no frames\n{log[-400:]}"); return 1
@@ -137,7 +134,18 @@ def main():
     bad = np.nonzero(window > 0)[0]
     start_js = 464                                          # GAME_STATE 3->1 (game begins)
     gp = d[start_js:]
-    total = 57344
+    w, h, _ = pixel_gate.screen_geometry(HW)
+    total = w * h
+
+    # An EMPTY window is INCOMPLETE, never PASS. Without this, a render that died before
+    # DIFF_FROM leaves `bad` empty, the headline reads PASS and main() returns 0 -- CI green
+    # on a run that compared nothing. This suite's own floor is 0 px, so only the empty case
+    # needs the shared verdict; everything below still applies the stricter byte-exact bar.
+    for label, win in (("boot+attract+play", window), ("gameplay (coin->dig)", gp)):
+        if pixel_gate.rough_verdict(win, HW)["verdict"] == pixel_gate.INCOMPLETE:
+            print(f"pixel_suite: {pixel_gate.INCOMPLETE} -- {label} compared 0 frames of "
+                  f"{len(d)} captured; a comparison this short concludes nothing.")
+            return 1
     print(f"{'window':22} {'frames':>7} {'clean':>7} {'maxpx':>6} {'max%':>7} verdict")
     print(f"{'boot+attract+play':22} {len(window):7d} {int((window==0).sum()):7d} "
           f"{int(window.max()) if len(window) else 0:6d} {100*window.max()/total if len(window) else 0:7.3f} "

@@ -35,7 +35,8 @@ import os
 import subprocess
 import sys
 
-import numpy as np
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','..','..','tools'))
+import pixel_gate
 
 S = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(S)
@@ -43,9 +44,7 @@ REPO = os.path.dirname(os.path.dirname(ROOT))  # repo root (games/dkong/tools ->
 TAPES = os.path.join(ROOT, "tapes")
 WORK = os.path.join(ROOT, "out", "prizework")
 os.makedirs(WORK, exist_ok=True)
-GW = 172032           # bytes per RGB frame (256*224*3)
-TOTPIX = 256 * 224    # 57344
-FIVE_PCT = TOTPIX * 5 // 100  # 2867
+HW = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','..','..','boards','dkong','hardware.json')
 FRAMES = 1820         # == mame_golden --seconds 30 (floor(60.606*30)+2)
 SDS = 5120            # state dump bytes/frame
 BPTR = {2: 0x74, 3: 0x76, 4: 0x78}   # board -> 0x3A70 seq-table ptr low byte
@@ -131,18 +130,12 @@ def emit_cmd(out, sout, b, start, prize, hold):
 
 
 def diff(js, gd):
-    """Per-frame count of differing pixels; JS frame i vs golden frame i+1
-    (the emit N+1 convention). Window = frame 1600 on."""
-    jp = open(js, "rb"); gp = open(gd, "rb"); off = 1
-    N = min(os.path.getsize(js) // GW, os.path.getsize(gd) // GW - off)
+    """Rough-gate verdict over the window from frame 1600 on.
 
-    def fr(fp, i):
-        fp.seek(i * GW)
-        return np.frombuffer(fp.read(GW), dtype=np.uint8).reshape(-1, 3)
-    d = np.array([int(np.any(fr(jp, i) != fr(gp, i + off), axis=1).sum())
-                  for i in range(N)])
-    mv = d[1600:]
-    return mv.max() * 100.0 / TOTPIX, int((mv > FIVE_PCT).sum()), N
+    Returns the verdict DICT. Never re-derive PASS from max_pct and frames_over: an empty
+    window has 0 and 0, so a run that compared nothing would read clean."""
+    d = pixel_gate.frame_diffs(js, gd, HW)
+    return pixel_gate.rough_verdict(d, HW, from_frame=1600)
 
 
 def bcd3(b0, b1, b2):
@@ -232,6 +225,7 @@ def main():
         so = os.path.join(WORK, f"s_{name}")
         subprocess.run(
             ["python3", os.path.join(REPO, "tools", "mame_golden.py"),
+             "--rompath", os.path.join(ROOT, "rom"),
              "--hardware", os.path.join(REPO, "boards", "dkong", "hardware.json"),
              "--lua-dir", os.path.join(REPO, "games", "dkong", "tools", "lua"),
              "--out", go, "--seconds", "30", "--tape", lp],
@@ -248,10 +242,11 @@ def main():
             print(f"{name:14} {tag:6} {'--':>6} {'--':>4} {'--':>7} {tag}")
             rows.append((name, None, None, None, None))
             continue
-        mx, over, N = diff(efr, gfr)
+        r = diff(efr, gfr)
+        mx, over = r["max_pct"], r["frames_over"]
         pu_ok, detail = verify_pickup(sbin, val, prize)
-        pix_ok = over == 0 and mx < 5
-        verdict = "PASS" if (pix_ok and pu_ok) else "FAIL"
+        pix_ok = r["verdict"] == pixel_gate.PASS
+        verdict = "PASS" if (pix_ok and pu_ok) else (r["verdict"] if not pix_ok else "FAIL")
         print(f"{name:14} {'ran':6} {mx:6.2f} {over:4d} "
               f"{('yes' if pu_ok else 'NO'):>7} {verdict}")
         print(f"               {detail}")

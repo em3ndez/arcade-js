@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-only
-import subprocess, os, sys, numpy as np
+import subprocess, os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..','..','..','tools'))
+import pixel_gate
 S=os.path.dirname(os.path.abspath(__file__)); ROOT=os.path.dirname(S)
 REPO=os.path.dirname(os.path.dirname(ROOT))  # repo root (games/dkong/tools -> ../../..)
-WORK=os.path.join(ROOT,"out","movework"); os.makedirs(WORK,exist_ok=True); GW=172032
+WORK=os.path.join(ROOT,"out","movework"); os.makedirs(WORK,exist_ok=True)
 BPTR={2:0x74,3:0x76,4:0x78}
 FIELD={0x01:"P1 Right",0x02:"P1 Left",0x04:"P1 Up",0x08:"P1 Down",0x10:"P1 Button 1"}
 # (name, board, mario_x, mario_y, input_bits, hold_frames)
@@ -44,24 +46,25 @@ def emit_cmd(out,b,x,y,bits,hold):
         for a,v in [(0x6049,b),(0x604a,p),(0x604b,0x3a),(0x622a,p),(0x622b,0x3a),(0x6227,b),(0x6229,b)]:
             c+=["--poke",f"0x{a:04x}=0x{v:02x}@465:hold1000"]
     return c
+HW=os.path.join(REPO,"boards","dkong","hardware.json")
 def diff(js,gd):
-    jp=open(js,"rb");gp=open(gd,"rb");off=1
-    N=min(os.path.getsize(js)//GW,os.path.getsize(gd)//GW-off)
-    def fr(fp,i): fp.seek(i*GW);return np.frombuffer(fp.read(GW),dtype=np.uint8).reshape(-1,3)
-    d=np.array([int(np.any(fr(jp,i)!=fr(gp,i+off),axis=1).sum()) for i in range(N)])
-    mv=d[1600:]; return mv.max()*100/57344, int((mv>2867).sum()), N
+    # Geometry, the pinned AVI offset and the reconvergence rule all live in tools/pixel_gate.py.
+    # Return the VERDICT, never just the numbers: an empty window has max 0 and 0 frames over,
+    # so a caller re-deriving PASS from those reads a run that compared nothing as clean.
+    d=pixel_gate.frame_diffs(js,gd,HW)
+    return pixel_gate.rough_verdict(d,HW,from_frame=1600)
 print(f"{'test':16} {'emit':10} {'max%':>6} {'>5%':>4} {'verdict'}")
 for name,b,x,y,bits,hold in TESTS:
     lp=lua(name,b,x,y,bits,hold)
     go=f"{WORK}/g_{name}"; eo=f"{WORK}/e_{name}"
     r=subprocess.run(["python3",f"{REPO}/tools/mame_golden.py",
        "--hardware",f"{REPO}/boards/dkong/hardware.json","--lua-dir",f"{REPO}/games/dkong/tools/lua",
+       "--rompath",f"{REPO}/games/dkong/rom",
        "--out",go,"--seconds","30","--tape",lp],capture_output=True,text=True,timeout=150)
     er=subprocess.run(emit_cmd(eo,b,x,y,bits,hold),cwd=ROOT,capture_output=True,text=True)
     stopped = "GAP" if "not impl" in (er.stdout+er.stderr).lower() else "ran"
     if stopped=="ran" and os.path.exists(f"{eo}/frames.rgb") and os.path.exists(f"{go}/frames.rgb"):
-        mx,over,N=diff(f"{eo}/frames.rgb",f"{go}/frames.rgb")
-        verdict="PASS" if (over==0 and mx<5) else "FAIL"
-        print(f"{name:16} {'ran':10} {mx:6.2f} {over:4d} {verdict}")
+        r=diff(f"{eo}/frames.rgb",f"{go}/frames.rgb")
+        print(f"{name:16} {'ran':10} {r['max_pct']:6.2f} {r['frames_over']:4d} {r['verdict']}")
     else:
         print(f"{name:16} {stopped:10} {'--':>6} {'--':>4} {'GAP-FOUND' if stopped=='GAP' else 'NO-FRAMES'}")

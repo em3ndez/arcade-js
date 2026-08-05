@@ -22,8 +22,10 @@ of sub-frame timing that no player could see — would fail an otherwise-perfect
 rough gate distinguishes them:
 
 > A frame may differ from MAME by a few pixels and still pass, **as long as the pixels don't
-> diverge arbitrarily.** Concretely (`games/dkong/tools/move_suite.py`): PASS iff the maximum per-frame
-> difference stays **under 5%** of the frame **and no single frame exceeds ~5%**.
+> diverge arbitrarily.** Concretely (`tools/pixel_gate.py`, which every game's suite calls): PASS iff
+> no frame in the window exceeds **5%** of the frame. An EMPTY window is `INCOMPLETE`, never a pass —
+> a run that died before the window began differs in nothing because it compared nothing, so a caller
+> must consume the verdict rather than re-derive one from the max and the over-count.
 
 The key word is *reconverge*. A translation that's right will differ from MAME only in brief,
 bounded transients and then snap back to identical; a translation that's wrong will diverge and
