@@ -250,3 +250,40 @@ its own file. Per-address facts that must outlive a pass go in the `ROUTINES` re
 game's `idiomatic/names.js`, which the lift predates: during a lift there is nowhere durable to
 put an explanation, which is another reason not to write one. Not `mechanisms.md` either, which
 is rewritten from scratch every understanding pass.
+
+## Two ways a class fix reintroduces the defect it is fixing
+
+Both were hit in one night, on the same pass, while fixing trailing clauses that asserted
+mechanisms the bytes did not show.
+
+**A site-specific clause cannot be applied by a site-agnostic edit.** Fixing a class of comments
+by scripted string replacement — one `old -> new` pair applied everywhere it matches — takes a
+derivation that is true at ONE site and stamps it onto every site with the same old text. Two
+`-- off-field` clauses looked identical and were different tests on different cells: one was
+`ld a,(iy+0x31) / add a,0x13 / cp 0x03`, the other `ld a,(iy+0x00) / add a,0x08 / cp 0x28`. The
+sweep did not merely fail to catch the imitation failure; the sweep WAS the imitation failure,
+industrialised. If the replacement text contains a fact about operands, the edit has to be
+per-site and each site re-derived.
+
+**Quote from grep output, never from recollection — and never from a reviewer's report.** A
+finding quotes a clause; you fix the clause; you then write the finding into the durable record
+still quoting the ORIGINAL text, which no longer exists anywhere.
+
+Two claims in one defect record failed checking, and they failed DIFFERENTLY, so separate the
+causes before reaching for a fix. In the first, a quoted clause could not be found in the file at
+all. `git log -S` on the string says whether the text was ever in the tree: if it was, the quote
+is stale and pasting from a command just run is the fix. **If it never was, the check is not
+conclusive** — the text may have been invented, or it may have lived only in an uncommitted draft,
+and only your own working history separates those. In the second, the values quoted were REAL but
+came from a different artifact than the one the code path reads, and described discarded attempts
+rather than the results they were attributed to. Pasting from a grep of the wrong file yields the
+same wrong claim, so that one needs a different habit: **quote the artifact PATH next to the
+value, not just the value.**
+
+The record is the thing that outlives the
+session and gets cited in commit messages, so every quoted string and every line number in it
+should be pasted out of a command you just ran. The same applies to a reviewer's note: it reads
+as already-checked and it is not. One such note named the wrong instruction as the lossy step in
+an `rst` chain, was written in faithfully, and produced a clause more precisely wrong than the
+one it replaced. The findings that survive scrutiny carry the opcode bytes; the ones that fail
+carry a conclusion.
