@@ -11,6 +11,15 @@ NOTHING IS EXEMPT BY KIND -- not the transcription layer, not generated files, n
 Every kind-exemption that was here began as an assumption about what the rule would do to a class
 of files, and each was wrong when the class was finally measured.
 
+THE RULE IS WHOLE-FILE, SO AN OVER-CAP FILE IS FROZEN AGAINST EVERY EDIT. `density_violations`
+recomputes `comment > code // 2` per file with no delta awareness, so a commit REMOVING fifty
+comment lines from an over-cap file blocks exactly as one adding a line does. There is no partial
+credit and no escape hatch. The consequence is procedural rather than technical: when a one-line
+correction lands on a file that is already over, bringing that file under the cap becomes a
+prerequisite UNIT, sequenced first and reviewed on its own. Do not park the correction in the
+working tree meanwhile -- a parked edit makes a tree-wide grep report the fix as already made,
+and it is the state that most tempts a `--no-verify`.
+
 One file is exempt by POSITION: `games/<game>/idiomatic/names.js`, the address-to-name map, whose
 comments are each entry's own content rather than commentary on code.
 

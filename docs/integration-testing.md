@@ -67,6 +67,10 @@ It is three small seams, and every board needs all three:
    notifier fires at the END of frame N. So the same tape lands at a different emulated frame on
    each side, and the offset is a per-game CONSTANT THAT MUST BE MEASURED — The Pit's is +2, and
    its tape carries the number in a header contract with the experiment that established it.
+   **The offset lives beside the tape and nowhere else. Never take it from a `machine.js`
+   comment** — the seam's own comment describes where inputs are applied, which is a different
+   question, and a board whose comment claims the two sides align is wrong rather than
+   authoritative.
    Measure yours, write it beside the tape, and re-verify it whenever the tape's timing changes.
    Time Pilot's is not measured yet, so its tape carries no such note and no cross-side comparison
    using it should be trusted until one exists.
