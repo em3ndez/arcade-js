@@ -11,7 +11,7 @@ export function loc_15e2(m) {
   regs.a = mem.read8(0x1749);
   m.step(0x15e8, 13); // ld a,(0x1749) -- a ROM constant
   mem.write8(0xa9ac, regs.a);
-  m.step(0x15eb, 13); // ld (0xa9ac),a
+  m.step(0x15eb, 13); // ld (0xa9ac),a -- the index loc_0f1f masks and dispatches on
   regs.c = 0x00;
   m.step(0x15ed, 7); // ld c,0x00 -- 256 iterations, not zero
   regs.hl = 0x5648;
@@ -37,7 +37,7 @@ export function loc_15e2(m) {
   regs.xor(0x4e);
   m.step(0x15fa, 7); // xor 0x4e
   mem.write8(0xa9ab, regs.a);
-  m.step(0x15fd, 13); // ld (0xa9ab),a -- the NMI sub-state selector
+  m.step(0x15fd, 13); // ld (0xa9ab),a -- the running total, folded with 0x4e
 
   m.ret(10); // ret -- pops the 0x0174 loc_00d8 pushed: the NMI epilogue
 }
