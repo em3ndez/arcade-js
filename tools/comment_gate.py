@@ -7,9 +7,12 @@ boards/ games/ tools/ core/ web/, minus node_modules. A line carrying code AND a
 counts as both. Prose that outgrows its code becomes a second, unverified account of the program
 that goes stale silently.
 
-NOTHING UNDER THE ROOTS IS EXEMPT BY KIND -- not the transcription layer, not generated files,
-not this file. Every exemption that was here began as an assumption about what the rule would do
-to a class of files, and each was wrong when the class was finally measured.
+NOTHING IS EXEMPT BY KIND -- not the transcription layer, not generated files, not this file.
+Every kind-exemption that was here began as an assumption about what the rule would do to a class
+of files, and each was wrong when the class was finally measured.
+
+One file is exempt by POSITION: `games/<game>/idiomatic/names.js`, the address-to-name map, whose
+comments are each entry's own content rather than commentary on code.
 
 `translated/` is governed like everywhere else, and a trailing mnemonic is a comment. It restates
 the line it sits beside, so when a transcription trips the cap the remedy is to delete it.
@@ -192,14 +195,21 @@ def _regex_reading_possible(text, i):
 def density_scope(path):
     """True for a source file the density rule governs.
 
-    Nothing under the roots is exempt by kind. `translated/` is included, and what a comment
-    MEANS there is handled in `count_lines` rather than by excusing the layer; generated files
-    are included too, because a block on one is followable -- you fix the generator's template,
-    not the output. Every exemption written here so far was an assumption about what the rule
-    would do to a class of files, and each was wrong when the class was actually measured.
+    Nothing is exempt by KIND. `translated/` is included, generated files are included, and so
+    is this file. Every kind-exemption written here began as an assumption about what the rule
+    would do to a class of files, and each was wrong when the class was finally measured.
+
+    ONE file is exempt, by position and for a measured reason: `games/<game>/idiomatic/names.js`.
+    It is the address-to-name map, and its comments are not commentary ON code -- each one is
+    the entry's own content, which is the same reason the reference rule already exempts it.
+    Both registries run well over the cap, and the overage is the per-entry documentation
+    itself: deleting every section banner in either one still leaves it over. There is nothing
+    to cut that is not a name's meaning.
     """
     parts = path.split("/")
     if parts[0] not in _ROOTS or "node_modules" in parts:
+        return False
+    if len(parts) == 4 and parts[0] == "games" and parts[2] == "idiomatic" and parts[3] == EXEMPT_LEAF:
         return False
     return os.path.splitext(path)[1] in _EXTS
 
@@ -895,6 +905,13 @@ DENSITY_SCOPE_CASES = [
     ("docs/porting.md", False),
     ("games/dkong/translated/loc_0000.js", True),
     ("games/dkong/translated/_registry.generated.js", True),
+    # The registry is exempt by POSITION, so a nested or differently-placed names.js is not.
+    # The game is a wildcard -- `nosuchgame` has never existed and must still be exempted, or
+    # the rule has quietly become a list of the games that happen to exist today.
+    ("games/dkong/idiomatic/names.js", False),
+    ("games/nosuchgame/idiomatic/names.js", False),
+    ("games/dkong/idiomatic/sub/names.js", True),
+    ("games/dkong/translated/names.js", True),
     ("web/node_modules/x/y.js", False),
     ("tools/translated/x.js", True),
     ("games/dkong/idiomatic/translated/x.js", True),
