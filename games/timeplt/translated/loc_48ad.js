@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-only
+
+// loc_48ad  (ROM 0x48AD–0x48BD)
+export function loc_48ad(m) {
+  const { regs, mem } = m;
+
+  mem.write8((regs.ix + 0x00) & 0xffff, 0x00);
+  m.step(0x48b1, 19); // ld (ix+0x00),0x00
+  mem.write8((regs.iy + 0x00) & 0xffff, 0x00);
+  m.step(0x48b5, 19); // ld (iy+0x00),0x00
+  mem.write8((regs.iy + 0x31) & 0xffff, 0x00);
+  m.step(0x48b9, 19); // ld (iy+0x31),0x00
+  mem.write8((regs.ix + 0x0e) & 0xffff, 0xf0);
+  m.step(0x48bd, 19); // ld (ix+0x0e),0xf0
+
+  m.ret(); // 48bd
+}
