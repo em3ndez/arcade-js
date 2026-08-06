@@ -145,6 +145,21 @@ export const ROUTINES = {
     cert: "code",
     why: "loc_19f0 pins the player's own sprite entry at (0x84, 0x78) and loc_20af never rewrites those two bytes, so the two lines at 0x04 and 0xF8 are each exactly +0x80 -- the antipode in a coordinate that wraps at 256; the callers that act on the carry use it to free the slot, though at least one path discards it",
   },
+  0x2d6e: {
+    name: "loc_2d6e",
+    role: "carry one object along with the scrolling world and a quarter further, applying the shared displacement pair to both of its split coordinates",
+    cert: "code",
+  },
+  0x2d93: {
+    name: "loc_2d93",
+    role: "carry one object along with the scrolling world at three quarters of the pace, applying the shared displacement pair to both of its split coordinates",
+    cert: "code",
+  },
+  0x2df4: {
+    name: "loc_2df4",
+    role: "carry one object along with the scrolling world at half the pace, applying the shared displacement pair to both of its split coordinates",
+    cert: "code",
+  },
   0x309b: {
     name: "advanceToNextSlot",
     role: "step the record cursor and the parallel sprite-entry cursor on to the next object slot",
@@ -222,6 +237,11 @@ export const ROUTINES = {
     role: "post a scoring command to the ring, stepping the award up while consecutive hits keep landing inside the chain window and wrapping back round after the eighth",
     cert: "code",
     why: "loc_5205, an entry in the once-per-frame call list, ticks the chain window down and clears the step cell when it expires -- without that outside reset the argument would not restart, so the chaining is fixed by a routine other than this one; and it posts through postCommand, which drops the pair on a full ring, so it posts rather than awards",
+  },
+  0x5840: {
+    name: "loc_5840",
+    role: "fly one object a single step at one fixed speed, choosing which table of velocity samples the step reads and deciding nothing else",
+    cert: "code",
   },
   0x596e: {
     name: "velocityForHeading",
