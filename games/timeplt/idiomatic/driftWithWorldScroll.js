@@ -5,13 +5,15 @@
  * than from the object, so every object that runs this drifts by the same amount per frame.
  * LIVE-OUT: memory only — four bytes; nothing is clamped and nothing is returned. */
 
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
+
 export function driftWithWorldScroll(m) {
   const { regs } = m;
   const object = regs.ix;
   const sprite = regs.iy;
 
-  driftCoordinate(m, sprite + 49, object + 3, m.mem16[0xa808]);
-  driftCoordinate(m, sprite, object + 5, m.mem16[0xa80a]);
+  driftCoordinate(m, sprite + 49, object + 3, m.mem16[WORLD_SCROLL_Y]);
+  driftCoordinate(m, sprite, object + 5, m.mem16[WORLD_SCROLL_X]);
 }
 
 /** One coordinate: whole and fraction read as a single number, displaced, then split back. */

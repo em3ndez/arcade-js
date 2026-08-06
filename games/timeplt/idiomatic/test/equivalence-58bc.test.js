@@ -64,6 +64,7 @@ import {
   wholeMachineEquivalence,
 } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "../names.js";
 
 const TARGET = 0x58bc;
 
@@ -71,10 +72,6 @@ const TARGET = 0x58bc;
 const HEADING_CELL = 2;
 const HEADINGS = 256;
 const QUARTER = HEADINGS / 4;
-
-/** The two cells holding the displacement every object gets this frame. */
-const SCROLL_FIRST = 0xa808;
-const SCROLL_SECOND = 0xa80a;
 
 /** The four speed tables the callers hand in. Only the first two appear in any tape. */
 const TABLES = [0x59d7, 0x5e00, 0x2e3e, 0x08fa];
@@ -227,8 +224,8 @@ function selector(table, heading) {
 /** The same, with both displacement cells and all four written bytes forced as well. */
 function craft(sel, prior) {
   const m = selector(sel[0], sel[1]);
-  m.mem16[SCROLL_FIRST] = prior.dA;
-  m.mem16[SCROLL_SECOND] = prior.dB;
+  m.mem16[WORLD_SCROLL_Y] = prior.dA;
+  m.mem16[WORLD_SCROLL_X] = prior.dB;
   m.mem8[wholeFirst(m)] = prior.wA;
   m.mem8[fractionFirst(m)] = prior.fA;
   m.mem8[wholeSecond(m)] = prior.wB;
@@ -370,7 +367,7 @@ test("DEGENERATE ENTRY: the second coordinate is inert and no fraction carries",
   const e = entryState();
   const [first, second] = componentsOf(e);
   assert.equal(second, 0, "the entry's second component is expected to be zero");
-  assert.equal(e.mem16[SCROLL_SECOND], 0, "and so is the second displacement cell");
+  assert.equal(e.mem16[WORLD_SCROLL_X], 0, "and so is the second displacement cell");
   assert.notEqual(first, 0, "the first component is not, which is what keeps the arm above alive");
   assert.equal(e.mem8[fractionFirst(e)], 0, "both fractions are zero here, so nothing can carry");
   assert.equal(e.mem8[fractionSecond(e)], 0, "both fractions are zero here, so nothing can carry");
@@ -381,7 +378,7 @@ test("DEGENERATE ENTRY: the second coordinate is inert and no fraction carries",
   assert.equal(stationary.length, 2, "exactly the second coordinate's two bytes must stand still");
   console.log(
     `  DEGENERATE: components ${hex4(first)}/${hex4(second)}, displacements ` +
-      `${hex4(e.mem16[SCROLL_FIRST])}/${hex4(e.mem16[SCROLL_SECOND])}; two written bytes inert`,
+      `${hex4(e.mem16[WORLD_SCROLL_Y])}/${hex4(e.mem16[WORLD_SCROLL_X])}; two written bytes inert`,
   );
 });
 
@@ -488,8 +485,8 @@ function brokenNoOp() {}
 
 /** BUG: carries the object with the world but never along the heading it points. */
 function brokenScrollOnly(m) {
-  store(m, wholeFirst(m), fractionFirst(m), m.mem16[SCROLL_FIRST]);
-  store(m, wholeSecond(m), fractionSecond(m), m.mem16[SCROLL_SECOND]);
+  store(m, wholeFirst(m), fractionFirst(m), m.mem16[WORLD_SCROLL_Y]);
+  store(m, wholeSecond(m), fractionSecond(m), m.mem16[WORLD_SCROLL_X]);
 }
 
 /** BUG: flies the object but pins it to the world instead of letting the world stream past. */
@@ -502,22 +499,22 @@ function brokenHeadingOnly(m) {
 /** BUG: applies the heading step twice, which is the double-speed behaviour. */
 function brokenDoubleStep(m) {
   const [first, second] = componentsOf(m);
-  store(m, wholeFirst(m), fractionFirst(m), m.mem16[SCROLL_FIRST] + 2 * first);
-  store(m, wholeSecond(m), fractionSecond(m), m.mem16[SCROLL_SECOND] + 2 * second);
+  store(m, wholeFirst(m), fractionFirst(m), m.mem16[WORLD_SCROLL_Y] + 2 * first);
+  store(m, wholeSecond(m), fractionSecond(m), m.mem16[WORLD_SCROLL_X] + 2 * second);
 }
 
 /** BUG: each coordinate gets the other coordinate's component, so the object flies sideways. */
 function brokenAxesSwapped(m) {
   const [first, second] = componentsOf(m);
-  store(m, wholeFirst(m), fractionFirst(m), m.mem16[SCROLL_FIRST] + second);
-  store(m, wholeSecond(m), fractionSecond(m), m.mem16[SCROLL_SECOND] + first);
+  store(m, wholeFirst(m), fractionFirst(m), m.mem16[WORLD_SCROLL_Y] + second);
+  store(m, wholeSecond(m), fractionSecond(m), m.mem16[WORLD_SCROLL_X] + first);
 }
 
 /** BUG: adds each half of a displacement to its own byte, so a fraction overflow never banks. */
 function brokenNoCarry(m) {
   const [first, second] = componentsOf(m);
-  const dA = (m.mem16[SCROLL_FIRST] + first) & 0xffff;
-  const dB = (m.mem16[SCROLL_SECOND] + second) & 0xffff;
+  const dA = (m.mem16[WORLD_SCROLL_Y] + first) & 0xffff;
+  const dB = (m.mem16[WORLD_SCROLL_X] + second) & 0xffff;
   m.mem8[wholeFirst(m)] = m.mem8[wholeFirst(m)] + (dA >> 8);
   m.mem8[fractionFirst(m)] = m.mem8[fractionFirst(m)] + (dA & 0xff);
   m.mem8[wholeSecond(m)] = m.mem8[wholeSecond(m)] + (dB >> 8);
@@ -527,7 +524,7 @@ function brokenNoCarry(m) {
 /** BUG: moves the first coordinate and forgets the second one entirely. */
 function brokenSecondSkipped(m) {
   const [first] = componentsOf(m);
-  store(m, wholeFirst(m), fractionFirst(m), m.mem16[SCROLL_FIRST] + first);
+  store(m, wholeFirst(m), fractionFirst(m), m.mem16[WORLD_SCROLL_Y] + first);
 }
 
 /**
@@ -595,14 +592,14 @@ for (const [label, twin, survives, crossCaught, caughtAtDispatch] of TWINS) {
 /** Headings where the second coordinate's whole displacement is zero at the captured entry. */
 function inertHeadings(table) {
   const m = entryState();
-  const scroll = m.mem16[SCROLL_SECOND];
+  const scroll = m.mem16[WORLD_SCROLL_X];
   return everyHeading.filter((h) => ((sampleAt(m, table, h - QUARTER) + scroll) & 0xffff) === 0);
 }
 
 test("TEETH: the no-op's blind headings come from the DATA, not from the twin", { skip }, () => {
   const m = entryState();
-  const first = m.mem16[SCROLL_FIRST];
-  const second = m.mem16[SCROLL_SECOND];
+  const first = m.mem16[WORLD_SCROLL_Y];
+  const second = m.mem16[WORLD_SCROLL_X];
   for (const table of TABLES) {
     const cancelling = everyHeading.filter(
       (h) =>

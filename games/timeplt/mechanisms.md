@@ -34,6 +34,11 @@ on the character plane, arrived after §8 had been drafted from adjacent evidenc
 against it when it did arrive is what caught a false claim that section was carrying. That is
 recorded in §8 rather than quietly corrected.
 
+The body stands as that rewrite. Grounding that lands **between** passes is folded into the section
+it belongs to rather than held back for the next one — the same method requires that too — so a
+`[seen]` claim may sit inside a section the rewrite produced, and an open question may have been
+struck off since.
+
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for
 the observations, which exist nowhere else. So the topics that previously had sections were known;
@@ -151,16 +156,42 @@ instruction.
 ### The camera is the player's own velocity, negated
 
 `loc_1f42` reads the era index, picks a velocity table, and calls the heading→velocity lookup for
-the player's current heading. Its continuation, `loc_1f55`, writes that vector **negated** into a
-pair of shared cells. Every world-static object then has that pair added to its position once a
-frame. The ship's sprite entry is pinned and never rewritten, so the ship cannot move; adding the
-negated player velocity to everything else is what turns the stick into flight. `[code]`
+the player's current heading. Its continuation, `loc_1f55`, writes that vector **negated** into
+`WORLD_SCROLL_Y` and `WORLD_SCROLL_X`. Every world-static object then has that pair added to its
+position once a frame. The ship's sprite entry is pinned and never rewritten, so the ship cannot
+move; adding the negated player velocity to everything else is what turns the stick into flight.
+`[code]`
 
 There is no separate camera and no scroll register. **The camera is a subtraction**, and the cells
 holding it are the single most load-bearing pair in the game.
 
 **Not claimed:** that the pair is only ever written from that path. It is the negated player
 velocity where we have traced it; nothing here proves no other routine writes it.
+
+### ★ The two halves of the camera are CROSSED against the glass
+
+The pair is named for the sprite-record field each half lands in, and that is the **native raster**
+frame. The board is ROT90 clockwise, so those are not the player's axes: `display_x = 239 -
+native_y` and `display_y = native_x`. Composed, the cell that feeds a sprite's **Y** byte is the
+one that moves the picture **sideways**:
+
+| cell | positive value slides the world |
+|---|---|
+| `WORLD_SCROLL_Y` | **LEFT** on the glass |
+| `WORLD_SCROLL_X` | **DOWN** the glass |
+
+Measured under MAME three ways, each of which could have come out the other way. The rotation
+itself: the same frame captured with and without `-norotate` matched ROT90-clockwise with **no
+residual at all**, while the nearest rival mapping left thousands of pixels wrong. Each cell alone:
+a read tap fed every reader a value of our choosing while the game's own writes stood, and the
+world's native motion followed that cell on its own axis at each parallax fraction and moved on the
+other axis by **exactly zero**. And end to end: the displayed picture at the two ends of a forced
+window shifted along one screen axis and not the other, in the predicted direction. `[seen]`
+
+★ **Prose written in DISPLAY axes calls these the horizontal and the vertical scroll, and is
+CROSSED against the names rather than in disagreement with them.** The frozen oracle's
+transcription of ROM 0x4017 reads them that way. It is a difference of convention; neither reading
+is wrong about any byte, and the transcription is faithful either way.
 
 ### The player's speed rises with the era — and so, therefore, does the world's
 
@@ -560,9 +591,29 @@ headings identical.
 **Not claimed:** that any of this is visible in play. It is a fact about the data, and nothing here
 says a player can see the twitch.
 
-★ **Also not claimed: which direction any heading points on the glass.** Mapping the heading byte to
-"up" or "left" needs the screen rotation, the vertical inversion and the table's sign convention
-composed together, and that was not closed. **Nothing in this document says a heading is "up".**
+### ★ Where a heading points on the glass — the three ingredients are now composed
+
+Mapping the heading byte to "up" or "left" needs the screen rotation, the vertical inversion and
+the table's sign convention put together. All three are now measured on the real machine, in §3.
+
+Driven over a whole attract run, **every one of the 256 heading bytes was observed**, and the camera
+pair traces a circle around them: `WORLD_SCROLL_Y = −R·cos θ`, `WORLD_SCROLL_X = −R·sin θ`, with
+θ = h·2π/256 and no residual anywhere reaching a tenth of a pixel. The residuals repeat in mirrored
+quadruples, which is the same one-defect-scaled-four-ways the table's shape already shows above.
+Negating that circle back into the player's own motion and rotating it onto the glass:
+
+| heading | the player travels |
+|---|---|
+| `0x00` | LEFT |
+| `0x40` | DOWN |
+| `0x80` | RIGHT |
+| `0xC0` | UP |
+
+Left, down, right, up — so the heading byte increases **counter-clockwise on the glass**. `[seen]`
+
+★ **This is the direction of TRAVEL and nothing more.** That the ship's *nose* is drawn along the
+same direction is a separate claim, about `spriteForHeading`, and no one has measured it. Do not
+read this table as a statement about the sprite.
 
 ---
 
@@ -650,8 +701,8 @@ Nothing in the public record describes what happens when you die. All of the fol
   marker into the player's state byte.
 - A seven-arm explosion is drawn into the **character plane**, coloured by era.
 - A life is deducted, the player's context block is saved, and the players swap.
-- **Respawn is at the same pinned screen position**, with a fixed heading and the world-scroll pair
-  zeroed.
+- **Respawn is at the same pinned screen position**, with a fixed heading and `WORLD_SCROLL_Y` /
+  `WORLD_SCROLL_X` zeroed.
 - ★ **There is no invulnerability window.** The only thing protecting a fresh plane is that its
   state byte is not yet the live value — and it becomes the live value a couple of instructions
   before the position is written.
@@ -940,8 +991,9 @@ These need the real machine, not more reading: `[code]` is the wrong instrument 
 
 ## §10 What our instruments can and cannot see
 
-Every entry here has already caused a false claim. They are recorded as instrument properties, not
-as history, because each will cause the next one too.
+Most entries here have already caused a false claim; the rest are limits caught before one could
+form. They are recorded as instrument properties, not as history, because each will cause the next
+one too.
 
 ### ★ The oracle's own fidelity has a scope, and it is narrower than the claim it carries
 
@@ -1015,16 +1067,109 @@ because table dispatch is invisible to either. A zero from one form alone means 
 The lift faithfully transcribes whatever bytes it is pointed at. A `translated/loc_<addr>.js`
 therefore records that somebody attempted a decode at that address — **never that the address is an
 entry point.** Several files in the layer are decodes of *data*: velocity tables reached only by
-anti-tamper traps, and caption records whose real routines begin a few bytes later. Several of them
+anti-tamper traps, and caption records sitting a few bytes from a real routine. Several of them
 give themselves away by calling addresses outside the ROM entirely.
 
 **No exhaustive determination of this set has been made.** Treat it as open rather than as a list.
+The cases below are additions to that set, not a closure of it.
 
 This deserves its own entry rather than a line in the list above, because the misleading artifact is
-a **file** — the most authoritative-looking object in the repository. Every other limit on this page
-is a measurement lying, and a measurement invites suspicion. A checked-in source file does not, which
-is why this one cost a false claim in §8 of this very document and survived hours of drafting before
-anything caught it. `[code]`
+a **file** — the most authoritative-looking object in the repository. Most other limits on this page
+are a measurement lying, and a measurement invites suspicion. A checked-in source file does not,
+which is why this one cost a false claim in §8 of this very document and survived hours of drafting
+before anything caught it. `[code]`
+
+#### The worked example: one address that refuses to have a single answer
+
+**0x0F8D is read as a table by two routines and jumped to as code by a third.** It has exactly three
+references in the image, and they do not agree about what it is.
+
+- 0x0F8C is `c9`, a `ret`. 0x0F8D through 0x0F96 is `f1 01 f1 02 f1 03 f1 04 f1 05`, and real code
+  resumes at 0x0F97.
+- 0x3381 doubles the selector (`add a,a`), points HL at 0x0F8D and takes the byte there through the
+  index-and-fetch restart at 0x0008; it then steps one on and takes the next byte as well.
+- 0x33AE doubles the selector, points HL at 0x0F8D, forms the address through the index-only restart
+  at 0x0018, and copies exactly two bytes — `ldi` twice.
+- 0x5308 is `jp nz,0x0f8d`. The value tested is a byte-sum walked over a block of the ROM by 0x43E8
+  and handed down a chain of tail jumps before being compared against 0x67.
+
+★ **The two-byte record is the reading the USING CODE performs, not our reading of the bytes.** Both
+readers double the selector before indexing, and both consume two consecutive bytes; the table's own
+content agrees, a constant first byte against a second running 1 to 5. Nothing in the bytes says
+"two-byte record" — the arithmetic in front of them does, and that is where a code/data
+determination has to come from.
+
+★ **And the reference graph cannot settle code-vs-data here, even in principle.** The third
+reference arrives only on the arm where that sum fails to match — one of the self-checks §2
+describes — so the tamper arm makes the data a jump target ON PURPOSE. An instrument that asks "is
+this address the target of a transfer" answers yes, correctly, about a routine that does not exist.
+`[code]`
+
+#### A misdecode that MANUFACTURES a call-graph edge
+
+`translated/loc_307f.js` transcribes 0x307F-0x3089 as instructions. Those bytes are a **caption
+record**: the first two are a destination in video RAM, the third a colour, and the rest a glyph run
+closed by 0xB9 — the terminator `drawTextRun` tests. 0x307F is one entry of the pointer table at
+0x0C50 that the caption routines index to choose which one to paint.
+
+★ **Its misdecoded `djnz 0x3074` is the only transfer into 0x3074 in the whole image.** A linear
+decode from every byte offset finds that one and no other, and the little-endian word `74 30` occurs
+nowhere, so no table names it either. A routine's entry status currently rests on a misdecode. That
+is worse than a bad decode sitting inertly in the layer: it manufactures an edge, and anything
+deriving entry points from the reference graph inherits it as evidence.
+
+On this evidence 0x3074 is interior rather than an entry. **0x306A-0x3073 is untranscribed**, and it
+is that routine's real prologue — two `iy` loads and a pair of immediates into H and L — which the
+transcribed body at 0x3074 continues. Its siblings at 0x3058 and 0x308A open with the same two `iy`
+loads and reach the same tail at 0x309B, so the family's shape puts the boundary at 0x306A. `[code]`
+
+#### A data table decoded as a hundred bytes of instructions
+
+`translated/loc_2251.js` decodes 0x2251-0x22B8 as instructions ending in a `halt`. 0x2251 is one of
+three sibling tables — 0x218C, 0x2251, 0x22FA — all opening `3c 3c 3c 3c`, and all three are handed
+to the same reader at 0x2123, which takes the table's first byte as a countdown seed and writes the
+table's base into work RAM as a pointer. That reader treats all three as data, and only one of them
+has a file. Its single transfer, `jp 0x2251` at 0x213D, sits behind a test on the work-RAM pair
+0xADFB/0xADFC: the anti-tamper idiom again. `[code]`
+
+#### The bytes exist twice
+
+`translated/loc_1098.js` covers 0x1098-0x1198 and inlines the block beginning at 0x10F8;
+`translated/loc_10f8.js` transcribes 0x10F8-0x1198 over again. Benign today — the only transfers
+into 0x10F8 are two branches inside 0x1098's own range, so nothing enters it from outside its owner
+— but it is exactly the duplicate-transcription shape `translation.md` warns about, where one span's
+bytes exist in two files and the copies drift the moment either is edited. `[code]`
+
+#### Two refusals, and they are the method working
+
+At 0x0F8D and at 0x1F99, agents writing the idiomatic layer DECLINED to produce a module and said
+why, rather than carrying the frozen decode forward. Both addresses already carry a `translated/`
+file, so the refusals did not prevent the defect — they stopped it propagating into the layer that
+ships. In a project carrying this defect in its own oracle, an agent that will not treat data as
+code is the system learning rather than repeating, and it is worth recording as a result and not
+only as an absence. `[code]`
+
+### ★ A rewrite's header is silent about the ROM BY RULE, and silence is not a finding
+
+The entry above is about a layer that says too much: a transcribed file asserts a decode it was
+never in a position to justify. This is its mirror, and it costs the same kind of false claim from
+the opposite direction.
+
+A comment in `games/<game>/idiomatic/` may describe THAT FILE and nothing else — not the ROM, not
+the frozen decode, not a sibling routine. So when a rewrite's header says it steps over a byte
+unread, that is a true and complete statement about the rewrite, and it carries **no claim
+whatever** about what the byte is. The header is not being cautious; it is forbidden to say.
+
+★ **So an enforced silence reads exactly like a finding of absence, and it fails hardest where it
+matters most.** The routine that DOES use the byte is a different file — precisely the one this
+header may not mention. The caption record's colour byte is the worked case: most of the routines
+that index the caption table never read it — some take a colour from a work-RAM cell instead, some
+write no colour at all — so their headers correctly report skipping a byte, while the one reader
+that unpacks the record's full header takes the colour from exactly that byte. Read the skippers'
+headers as a refutation and you conclude the byte has no role, in the teeth of the ROM.
+
+Ask the ROM, and enumerate the readers — never a header that was told not to talk about them.
+`[code]`
 
 ### ★ "Dark" means dark in the eras the tape visits — and one list proves it
 
@@ -1055,6 +1200,41 @@ determination the sweep does not supply.
 
 A measurement from `new Machine(ROM).runFrames(...)` is our engine replaying the ROM. It earns
 `[code]`. This is stated twice in this document on purpose.
+
+### ★ Two routines the memory-equivalence contract cannot express
+
+Memory-equivalence drops the T-state clock deliberately: a rewrite is judged on the bytes it leaves
+in RAM, never on how long it took. Two routines on this machine fall outside that. They are facts
+about how the machine works, not unfinished work, and neither is waiting on anyone.
+
+**0x0F97, the non-spinning twin of `multiplexSpriteSlots`.** Its eight blocks each test one slot's
+request byte against the LIVE RASTER COUNTER at 0xC000, and that counter advances with the T-states
+the routine itself spends — so each read the ROM makes sees a later beam position than the read
+before it. A rewrite that charges nothing sees the entry position every time, and the two part
+company wherever the beam crosses a block's threshold mid-routine. This is measured, not argued: run
+against the frozen layer on real dispatches, under the driven tape and under undriven attract alike,
+a cycle-free rewrite diverges on a MINORITY of them. That minority is the dangerous shape — a spot
+check of one entry finds the two identical, and the first cell to part company is a sprite-RAM byte
+the oracle displaced by half a screen while the rewrite left it alone. `[code]`, and emphatically
+so: both arms of that comparison are ours.
+
+**0x0B93, the foreground command-ring drain.** It is a loop with no exit of its own; the ring is
+refilled from outside it, by the interrupt. The engines that drive this port schedule that interrupt
+on something the running code produces — the T-states it charges, or its arrival at a declared poll
+address — and a cycle-free JavaScript loop produces neither, so the ring is never refilled and the
+loop spins for ever. Measured under the poll-PC engine `runCycleFree`: with the oracle in that path
+the run reaches its whole frame budget in milliseconds; with a cycle-free rewrite there it reaches
+the first frame boundary, never reaches a second, and has to be killed. Under the cycle-driven
+harness the two arms look identical instead, which is not a contradiction — a short capture there
+does not dispatch this routine at all, so that harness settles nothing either way. `[code]`
+
+★ **The discriminating rule, because it is the transferable part.** The test is not *"does this
+routine read a timing register"* — it is **"does this routine's behaviour depend on time IT ITSELF
+consumes"**, including "does it make progress only because time passes". A routine that WAITS on the
+raster converges however long it takes; one that SKIPS on a raster test does not. The waiting twin
+`multiplexSpriteSlots` is already idiomatic, dispatched, and a transparent swap under the
+whole-machine gate — same register, opposite outcome. That contrast is what shows the rule
+discriminates rather than merely excusing the two routines it excuses.
 
 ---
 
@@ -1103,9 +1283,9 @@ These need someone's attention, not a new capture and not a new lift.
 - Attract-mode composition — which eras the demo shows. A partial observation says the demo ship
   lives in the second era, consistent with the claim that this set never demos the first, but a
   single short capture is not a whole attract cycle.
-- The compass mapping: **which direction on the glass a heading byte points.** Composing the screen
-  rotation, the vertical inversion and the table's sign convention was not closed, so **nothing in
-  this document says a heading is "up".**
+- Whether the ship's **nose** is drawn along its direction of travel. The travel direction itself is
+  settled (§5); which way `spriteForHeading` points the sprite for a given heading is not, and a
+  16×16 sprite eyeballed off a snapshot is not the instrument for it.
 
 ### The states no instrument has visited
 
@@ -1121,7 +1301,7 @@ unbuilt.
 ### A defect the coverage audit turned up in passing
 
 Several files in the translated layer transcribe **data as code** — velocity tables reached only by
-anti-tamper traps, and caption records whose real routines begin a few bytes later. No exhaustive
+anti-tamper traps, and caption records sitting a few bytes from a real routine. No exhaustive
 determination of the set has been made. They
 are not wrong about any byte; the lift is faithful. They present data as routines, which will
 mislead anyone reading them as behaviour, and it already has: see §8 and §10. Several sibling files

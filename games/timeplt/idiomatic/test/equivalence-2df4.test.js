@@ -61,12 +61,11 @@ import { loc_2df4 as oracle } from "../../translated/loc_2df4.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u16 } from "../../../../core/int.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "../names.js";
 
 const TARGET = 0x2df4;
 const skip = romsPresent() ? false : "ROM images are not assembled";
 
-const ROW_DISPLACEMENT = 0xa808;
-const COLUMN_DISPLACEMENT = 0xa80a;
 const ROW_REMAINDER = 3;
 const COLUMN_REMAINDER = 5;
 const SPRITE_ROW = 49;
@@ -201,8 +200,8 @@ function unitDiff(candidate, machine) {
 function craft(prior) {
   const m = entryState().clone();
   const c = cellsOf(m);
-  m.mem16[ROW_DISPLACEMENT] = prior.dR;
-  m.mem16[COLUMN_DISPLACEMENT] = prior.dC;
+  m.mem16[WORLD_SCROLL_Y] = prior.dR;
+  m.mem16[WORLD_SCROLL_X] = prior.dC;
   m.mem8[c.wholeRow] = prior.wR;
   m.mem8[c.fractionRow] = prior.fR;
   m.mem8[c.wholeColumn] = prior.wC;
@@ -259,7 +258,7 @@ function corpus(label, opts) {
       const c = cellsOf(mm);
       const rec = {
         ix: mm.regs.ix, iy: mm.regs.iy,
-        dR: mm.mem16[ROW_DISPLACEMENT], dC: mm.mem16[COLUMN_DISPLACEMENT],
+        dR: mm.mem16[WORLD_SCROLL_Y], dC: mm.mem16[WORLD_SCROLL_X],
         wR: mm.mem8[c.wholeRow], fR: mm.mem8[c.fractionRow],
         wC: mm.mem8[c.wholeColumn], fC: mm.mem8[c.fractionColumn],
       };
@@ -286,8 +285,8 @@ function seat(m, rec) {
   m.regs.ix = rec.ix;
   m.regs.iy = rec.iy;
   const c = cellsOf(m);
-  m.mem16[ROW_DISPLACEMENT] = rec.dR;
-  m.mem16[COLUMN_DISPLACEMENT] = rec.dC;
+  m.mem16[WORLD_SCROLL_Y] = rec.dR;
+  m.mem16[WORLD_SCROLL_X] = rec.dC;
   m.mem8[c.wholeRow] = rec.wR;
   m.mem8[c.fractionRow] = rec.fR;
   m.mem8[c.wholeColumn] = rec.wC;
@@ -346,8 +345,8 @@ function runPair(candidate, prior) {
   for (const m of [a, b]) {
     m.regs.hl = LIVE_OUT_SEED;
     const c = cellsOf(m);
-    m.mem16[ROW_DISPLACEMENT] = prior.dR;
-    m.mem16[COLUMN_DISPLACEMENT] = prior.dC;
+    m.mem16[WORLD_SCROLL_Y] = prior.dR;
+    m.mem16[WORLD_SCROLL_X] = prior.dC;
     m.mem8[c.wholeRow] = prior.wR;
     m.mem8[c.fractionRow] = prior.fR;
     m.mem8[c.wholeColumn] = prior.wC;
@@ -457,7 +456,7 @@ test("EQUAL at the real dispatch: driftAtHalfWorldScroll == oracle outside the s
   assert.equal(d, null, `diverged — ${show(d)}`);
   console.log(
     `  EQUAL: entry bases ${hex4(e.regs.ix)}/${hex4(e.regs.iy)}, displacements ` +
-      `${hex4(e.mem16[ROW_DISPLACEMENT])}/${hex4(e.mem16[COLUMN_DISPLACEMENT])} within ` +
+      `${hex4(e.mem16[WORLD_SCROLL_Y])}/${hex4(e.mem16[WORLD_SCROLL_X])} within ` +
       `${ENTRY_FRAMES} frames; RAM and the moved coordinate identical`,
   );
 });
@@ -570,8 +569,8 @@ test("DROPPED: the registers the rewrite declines to reproduce steer nothing, th
 
 test("DEGENERATE: the real dispatch carries a zero displacement on BOTH axes", { skip }, () => {
   const before = entryState();
-  assert.equal(before.mem16[ROW_DISPLACEMENT], 0, "the row displacement at the entry is no longer zero");
-  assert.equal(before.mem16[COLUMN_DISPLACEMENT], 0, "the column displacement at the entry is no longer zero");
+  assert.equal(before.mem16[WORLD_SCROLL_Y], 0, "the row displacement at the entry is no longer zero");
+  assert.equal(before.mem16[WORLD_SCROLL_X], 0, "the column displacement at the entry is no longer zero");
 
   const after = before.clone();
   oracle(after);
@@ -785,32 +784,32 @@ function brokenNoOp() {}
 /** BUG: adds the whole displacement, so the object keeps pace instead of falling behind. */
 function brokenUnshortened(m) {
   const c = cellsOf(m);
-  put(m, c.wholeRow, c.fractionRow, m.mem16[ROW_DISPLACEMENT]);
-  put(m, c.wholeColumn, c.fractionColumn, m.mem16[COLUMN_DISPLACEMENT]);
+  put(m, c.wholeRow, c.fractionRow, m.mem16[WORLD_SCROLL_Y]);
+  put(m, c.wholeColumn, c.fractionColumn, m.mem16[WORLD_SCROLL_X]);
 }
 
 /** BUG: takes a quarter off instead of a half, so the object keeps three quarters of the pace. */
 function brokenQuartered(m) {
   const c = cellsOf(m);
   const q = (d) => d - ((d << 16) >> 18);
-  put(m, c.wholeRow, c.fractionRow, q(m.mem16[ROW_DISPLACEMENT]));
-  put(m, c.wholeColumn, c.fractionColumn, q(m.mem16[COLUMN_DISPLACEMENT]));
+  put(m, c.wholeRow, c.fractionRow, q(m.mem16[WORLD_SCROLL_Y]));
+  put(m, c.wholeColumn, c.fractionColumn, q(m.mem16[WORLD_SCROLL_X]));
 }
 
 /** BUG: halves by shifting in zeros, so a displacement running the other way is lengthened. */
 function brokenUnsigned(m) {
   const c = cellsOf(m);
   const h = (d) => d - (d >>> 1);
-  put(m, c.wholeRow, c.fractionRow, h(m.mem16[ROW_DISPLACEMENT]));
-  put(m, c.wholeColumn, c.fractionColumn, h(m.mem16[COLUMN_DISPLACEMENT]));
+  put(m, c.wholeRow, c.fractionRow, h(m.mem16[WORLD_SCROLL_Y]));
+  put(m, c.wholeColumn, c.fractionColumn, h(m.mem16[WORLD_SCROLL_X]));
 }
 
 /** BUG: rounds the half toward zero, which is what dividing and discarding the remainder does. */
 function brokenTruncated(m) {
   const c = cellsOf(m);
   const h = (d) => d - ((signed(d) / 2) | 0);
-  put(m, c.wholeRow, c.fractionRow, h(m.mem16[ROW_DISPLACEMENT]));
-  put(m, c.wholeColumn, c.fractionColumn, h(m.mem16[COLUMN_DISPLACEMENT]));
+  put(m, c.wholeRow, c.fractionRow, h(m.mem16[WORLD_SCROLL_Y]));
+  put(m, c.wholeColumn, c.fractionColumn, h(m.mem16[WORLD_SCROLL_X]));
 }
 
 /** BUG: stores the whole bytes but never the fractions, so sub-steps never bank. */
@@ -820,21 +819,21 @@ function brokenWholeOnly(m) {
     m.regs.hl = u16(((m.mem8[whole] << 8) + m.mem8[fraction]) + half(d));
     m.mem8[whole] = m.regs.hl >> 8;
   };
-  step(c.wholeRow, c.fractionRow, m.mem16[ROW_DISPLACEMENT]);
-  step(c.wholeColumn, c.fractionColumn, m.mem16[COLUMN_DISPLACEMENT]);
+  step(c.wholeRow, c.fractionRow, m.mem16[WORLD_SCROLL_Y]);
+  step(c.wholeColumn, c.fractionColumn, m.mem16[WORLD_SCROLL_X]);
 }
 
 /** BUG: drifts the first coordinate and forgets the second one entirely. */
 function brokenSecondSkipped(m) {
   const c = cellsOf(m);
-  put(m, c.wholeRow, c.fractionRow, half(m.mem16[ROW_DISPLACEMENT]));
+  put(m, c.wholeRow, c.fractionRow, half(m.mem16[WORLD_SCROLL_Y]));
 }
 
 /** BUG: feeds each coordinate the other coordinate's displacement. */
 function brokenSwapped(m) {
   const c = cellsOf(m);
-  put(m, c.wholeRow, c.fractionRow, half(m.mem16[COLUMN_DISPLACEMENT]));
-  put(m, c.wholeColumn, c.fractionColumn, half(m.mem16[ROW_DISPLACEMENT]));
+  put(m, c.wholeRow, c.fractionRow, half(m.mem16[WORLD_SCROLL_X]));
+  put(m, c.wholeColumn, c.fractionColumn, half(m.mem16[WORLD_SCROLL_Y]));
 }
 
 /** BUG: adds each half of the displacement to its own byte, so a fraction never carries. */
@@ -846,8 +845,8 @@ function brokenNoCarry(m) {
     m.mem8[fraction] = m.mem8[fraction] + (s & 0xff);
     m.regs.hl = u16((m.mem8[whole] << 8) + m.mem8[fraction]);
   };
-  step(c.wholeRow, c.fractionRow, m.mem16[ROW_DISPLACEMENT]);
-  step(c.wholeColumn, c.fractionColumn, m.mem16[COLUMN_DISPLACEMENT]);
+  step(c.wholeRow, c.fractionRow, m.mem16[WORLD_SCROLL_Y]);
+  step(c.wholeColumn, c.fractionColumn, m.mem16[WORLD_SCROLL_X]);
 }
 
 /** BUG: writes all four bytes correctly and hands the caller back a stale coordinate. */

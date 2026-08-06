@@ -7,14 +7,15 @@
  * second moved coordinate is also left standing in the pair the move hands it back through. */
 
 import { displaceByThreeQuarters } from "./displaceByThreeQuarters.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
 export function driftAtThreeQuartersWorldScroll(m) {
   const { regs } = m;
   const object = regs.ix;
   const sprite = regs.iy;
 
-  moveCoordinate(m, sprite + 49, object + 3, m.mem16[0xa808]);
-  moveCoordinate(m, sprite, object + 5, m.mem16[0xa80a]);
+  moveCoordinate(m, sprite + 49, object + 3, m.mem16[WORLD_SCROLL_Y]);
+  moveCoordinate(m, sprite, object + 5, m.mem16[WORLD_SCROLL_X]);
 }
 
 /** One coordinate: whole and fraction read as a single number, moved, then split back. */

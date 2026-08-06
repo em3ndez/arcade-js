@@ -36,7 +36,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, COIN_START_TAPE, romsPresent } from "./_harness.js";
 import { advanceSequencePhase } from "../advanceSequencePhase.js";
-import { SEQUENCE_SUBSTEP } from "../names.js";
+import { SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_0f11 as oracle } from "../../translated/loc_0f11.js";
 import { loc_167b } from "../../translated/loc_167b.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
@@ -44,7 +44,6 @@ import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x0f11;
 const LIVE_CALLER = 0x167b;
-const PHASE = 0xa9ab; // the second cell advanceSequencePhase writes; it carries no registry name yet
 const ATTRACT_FRAMES = 2000;
 const POINTS = 256 * 256;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -100,7 +99,7 @@ function session(tape, frames) {
         entries.push({
           frame: mm.frames.length,
           viaLiveCaller: insideLiveCaller,
-          phase: mm.mem8[PHASE],
+          phase: mm.mem8[SEQUENCE_PHASE],
           step: mm.mem8[SEQUENCE_SUBSTEP],
         });
         return oracle(mm);
@@ -128,7 +127,7 @@ class Arena {
 
   run(fn, phase, step) {
     const m = this.m;
-    m.mem8[PHASE] = phase;
+    m.mem8[SEQUENCE_PHASE] = phase;
     m.mem8[SEQUENCE_SUBSTEP] = step;
     fn(m);
     const after = m.dumpState();
@@ -150,7 +149,7 @@ class Arena {
 class LeakyArena extends Arena {
   run(fn, phase, step) {
     const m = this.m;
-    m.mem8[PHASE] = phase;
+    m.mem8[SEQUENCE_PHASE] = phase;
     m.mem8[SEQUENCE_SUBSTEP] = step;
     fn(m);
     return m.dumpState();
@@ -160,7 +159,7 @@ class LeakyArena extends Arena {
 /** A broken instrument: it ignores the priors it was handed and re-runs the captured ones. */
 class DeafArena extends Arena {
   run(fn) {
-    return super.run(fn, this.src.mem8[PHASE], this.src.mem8[SEQUENCE_SUBSTEP]);
+    return super.run(fn, this.src.mem8[SEQUENCE_PHASE], this.src.mem8[SEQUENCE_SUBSTEP]);
   }
 }
 
@@ -178,9 +177,9 @@ function pairDiff(pair, candidate, phase, step) {
 function cloneDiff(candidate, phase, step) {
   const a = entryState().clone();
   const b = entryState().clone();
-  a.mem8[PHASE] = phase;
+  a.mem8[SEQUENCE_PHASE] = phase;
   a.mem8[SEQUENCE_SUBSTEP] = step;
-  b.mem8[PHASE] = phase;
+  b.mem8[SEQUENCE_PHASE] = phase;
   b.mem8[SEQUENCE_SUBSTEP] = step;
   oracle(a);
   candidate(b);
@@ -212,7 +211,7 @@ function productSweep(candidate) {
 
 /** The two axis lines through the captured entry — the cross-check's 512 points. */
 function axisPoints() {
-  const phase0 = entryState().mem8[PHASE];
+  const phase0 = entryState().mem8[SEQUENCE_PHASE];
   const step0 = entryState().mem8[SEQUENCE_SUBSTEP];
   const out = [];
   for (let v = 0; v < 256; v++) out.push([v, step0]);
@@ -227,7 +226,7 @@ test("EQUAL at the real dispatch: advanceSequencePhase == oracle on RAM", { skip
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(
-    `  EQUAL: entry ${point(entryState().mem8[PHASE], entryState().mem8[SEQUENCE_SUBSTEP])} ` +
+    `  EQUAL: entry ${point(entryState().mem8[SEQUENCE_PHASE], entryState().mem8[SEQUENCE_SUBSTEP])} ` +
       `within ${ENTRY_FRAMES} frames; RAM identical`,
   );
 });
@@ -236,7 +235,7 @@ test("PROVENANCE: one driven entry, from the live-state caller", { skip }, () =>
   const driven = session(COIN_START_TAPE, ENTRY_FRAMES);
   assert.equal(driven.length, 1, "the driven session must enter the routine exactly once");
   assert.equal(driven[0].viaLiveCaller, true, "the entry did not come from the live-state caller");
-  assert.equal(driven[0].phase, entryState().mem8[PHASE], "the captured entry is that entry");
+  assert.equal(driven[0].phase, entryState().mem8[SEQUENCE_PHASE], "the captured entry is that entry");
   assert.equal(driven[0].step, entryState().mem8[SEQUENCE_SUBSTEP], "the captured entry is that entry");
   console.log(
     `  PROVENANCE: entered on frame ${driven[0].frame} from ${hex4(LIVE_CALLER)}, ` +
@@ -254,7 +253,11 @@ test("NOT VACUOUS: the captured entry makes both writes visible", { skip }, () =
   const before = entryState().clone();
   const after = entryState().clone();
   oracle(after);
-  assert.notEqual(after.mem8[PHASE], before.mem8[PHASE], "the step is invisible at this entry");
+  assert.notEqual(
+    after.mem8[SEQUENCE_PHASE],
+    before.mem8[SEQUENCE_PHASE],
+    "the step is invisible at this entry",
+  );
   assert.notEqual(
     after.mem8[SEQUENCE_SUBSTEP],
     before.mem8[SEQUENCE_SUBSTEP],
@@ -264,7 +267,7 @@ test("NOT VACUOUS: the captured entry makes both writes visible", { skip }, () =
   const r = gate(() => {});
   assert.notEqual(r.ram, null, "a do-nothing arm PASSED: this gate would be a tautology");
   console.log(
-    `  NOT VACUOUS: ${before.mem8[PHASE]} -> ${after.mem8[PHASE]} and ` +
+    `  NOT VACUOUS: ${before.mem8[SEQUENCE_PHASE]} -> ${after.mem8[SEQUENCE_PHASE]} and ` +
       `${before.mem8[SEQUENCE_SUBSTEP]} -> ${after.mem8[SEQUENCE_SUBSTEP]}; the do-nothing arm fails`,
   );
 });
@@ -282,7 +285,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   }
   assert.deepEqual(moved, ["a", "f", "l", "sp"], "the measured excluded set changed");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  assert.equal(a.mem8[PHASE], b.mem8[PHASE], "live-out one");
+  assert.equal(a.mem8[SEQUENCE_PHASE], b.mem8[SEQUENCE_PHASE], "live-out one");
   assert.equal(a.mem8[SEQUENCE_SUBSTEP], b.mem8[SEQUENCE_SUBSTEP], "live-out two");
   console.log(`  EXCLUDED: registers ${moved.join(", ")} and pc — RAM unaffected`);
 });
@@ -345,9 +348,9 @@ test("EXHAUSTIVE over priors: all 65536 prior pairs step and clear as the oracle
   assert.equal(r.agreements.length, POINTS, "every point must agree");
 
   const wrapped = entryState().clone();
-  wrapped.mem8[PHASE] = 255;
+  wrapped.mem8[SEQUENCE_PHASE] = 255;
   advanceSequencePhase(wrapped);
-  assert.equal(wrapped.mem8[PHASE], 0, "255 must round to 0, not widen to 256");
+  assert.equal(wrapped.mem8[SEQUENCE_PHASE], 0, "255 must round to 0, not widen to 256");
   console.log(`  EXHAUSTIVE: ${r.agreements.length} prior pairs identical, including the wrap`);
 });
 
@@ -362,7 +365,7 @@ function brokenNoOp() {}
 /** BUG: steps the state byte but leaves the sub-sequence index where it stood. */
 function brokenStepOnly(m) {
   const { mem8 } = m;
-  mem8[PHASE] = mem8[PHASE] + 1;
+  mem8[SEQUENCE_PHASE] = mem8[SEQUENCE_PHASE] + 1;
 }
 
 /** BUG: restarts the sub-sequence without stepping the state byte. */
@@ -375,13 +378,13 @@ function brokenClearOnly(m) {
 function brokenSwapped(m) {
   const { mem8 } = m;
   mem8[SEQUENCE_SUBSTEP] = mem8[SEQUENCE_SUBSTEP] + 1;
-  mem8[PHASE] = 0;
+  mem8[SEQUENCE_PHASE] = 0;
 }
 
 /** BUG: steps the state byte backwards. */
 function brokenStepsBack(m) {
   const { mem8 } = m;
-  mem8[PHASE] = mem8[PHASE] - 1;
+  mem8[SEQUENCE_PHASE] = mem8[SEQUENCE_PHASE] - 1;
   mem8[SEQUENCE_SUBSTEP] = 0;
 }
 

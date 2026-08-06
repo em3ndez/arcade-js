@@ -65,11 +65,10 @@ import { loc_2d93 as oracle } from "../../translated/loc_2d93.js";
 import { unitEquivalence, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "../names.js";
 
 const TARGET = 0x2d93;
 
-const DISPLACEMENT_A = 0xa808;
-const DISPLACEMENT_B = 0xa80a;
 
 /** Bytes of dead stack the oracle leaves a pushed continuation in and the rewrite does not. */
 const SCRATCH_BYTES = 2;
@@ -205,8 +204,8 @@ function unitDiff(candidate, before, poke) {
 /** Everything either arm reads: the two displacements and the four position bytes. */
 function inputsOf(m) {
   return {
-    dA: m.mem16[DISPLACEMENT_A],
-    dB: m.mem16[DISPLACEMENT_B],
+    dA: m.mem16[WORLD_SCROLL_Y],
+    dB: m.mem16[WORLD_SCROLL_X],
     wA: m.mem8[wholeA(m)],
     fA: m.mem8[fractionA(m)],
     wB: m.mem8[wholeB(m)],
@@ -260,7 +259,7 @@ function corpus(label, opts) {
     const host = makeMachine(
       new Map([[TARGET, (mm) => {
         dispatches++;
-        const key = mm.mem16[DISPLACEMENT_A] * 65536 + mm.mem16[DISPLACEMENT_B];
+        const key = mm.mem16[WORLD_SCROLL_Y] * 65536 + mm.mem16[WORLD_SCROLL_X];
         if (!byPair.has(key)) byPair.set(key, mm.clone());
         return oracle(mm);
       }]]),
@@ -335,8 +334,8 @@ function carryInputs() {
 
 /** Seat one input on the real captured machine, identically for both arms. */
 const seat = (i) => (m) => {
-  m.mem16[DISPLACEMENT_A] = i.dA;
-  m.mem16[DISPLACEMENT_B] = i.dB;
+  m.mem16[WORLD_SCROLL_Y] = i.dA;
+  m.mem16[WORLD_SCROLL_X] = i.dB;
   m.mem8[wholeA(m)] = i.wA;
   m.mem8[fractionA(m)] = i.fA;
   m.mem8[wholeB(m)] = i.wB;
@@ -549,8 +548,8 @@ test("CARRY: a fraction swept the whole way round carries exactly as the oracle 
 test("SHIM: the oracle's total is a constant, so the replay's charge is not a guess", { skip }, () => {
   for (const dA of DISPLACEMENTS) {
     const m = entryState().clone();
-    m.mem16[DISPLACEMENT_A] = dA;
-    m.mem16[DISPLACEMENT_B] = u16(~dA);
+    m.mem16[WORLD_SCROLL_Y] = dA;
+    m.mem16[WORLD_SCROLL_X] = u16(~dA);
     const before = m.cycles;
     oracle(m);
     assert.equal(m.cycles - before, ORACLE_TSTATES, `${hex4(dA)}: the shim's total is wrong`);
@@ -593,8 +592,8 @@ function storeAt(m, at, atFraction, moved) {
 
 /** Run one per-axis move over both coordinates, which is the shape every twin shares. */
 function overBothAxes(m, move) {
-  move(m, wholeA, fractionA, m.mem16[DISPLACEMENT_A]);
-  move(m, wholeB, fractionB, m.mem16[DISPLACEMENT_B]);
+  move(m, wholeA, fractionA, m.mem16[WORLD_SCROLL_Y]);
+  move(m, wholeB, fractionB, m.mem16[WORLD_SCROLL_X]);
 }
 
 /** A twin that differs only in how much of the displacement it adds. */
@@ -643,8 +642,8 @@ function brokenNoCarry(m) {
 
 /** BUG: feeds each coordinate the other coordinate's displacement. */
 function brokenSwapped(m) {
-  const dA = m.mem16[DISPLACEMENT_A];
-  const dB = m.mem16[DISPLACEMENT_B];
+  const dA = m.mem16[WORLD_SCROLL_Y];
+  const dB = m.mem16[WORLD_SCROLL_X];
   storeAt(m, wholeA, fractionA, u16(splitAt(m, wholeA, fractionA) + shortened(dB)));
   storeAt(m, wholeB, fractionB, u16(splitAt(m, wholeB, fractionB) + shortened(dA)));
 }

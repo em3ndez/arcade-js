@@ -56,10 +56,9 @@ import { loc_2d6e as oracle } from "../../translated/loc_2d6e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "../names.js";
 
 const TARGET = 0x2d6e;
-const DISPLACEMENT_A = 0xa808;
-const DISPLACEMENT_B = 0xa80a;
 // One pushed continuation, live only for the length of a helper call and never read again.
 const SCRATCH_BYTES = 2;
 const CORPUS_FRAMES = 1500;
@@ -139,8 +138,8 @@ const writtenBytes = (m) => [wholeA(m), fractionA(m), wholeB(m), fractionB(m)];
 /** The real entry with both displacements and all four position bytes forced. */
 function craft(prior) {
   const m = entryState().clone();
-  m.mem16[DISPLACEMENT_A] = prior.dA;
-  m.mem16[DISPLACEMENT_B] = prior.dB;
+  m.mem16[WORLD_SCROLL_Y] = prior.dA;
+  m.mem16[WORLD_SCROLL_X] = prior.dB;
   m.mem8[wholeA(m)] = prior.wA;
   m.mem8[fractionA(m)] = prior.fA;
   m.mem8[wholeB(m)] = prior.wB;
@@ -229,8 +228,8 @@ function corpus(label, opts) {
       dispatches++;
       bases.add(`${hex4(mm.regs.ix)}/${hex4(mm.regs.iy)}`);
       const prior = {
-        dA: mm.mem16[DISPLACEMENT_A],
-        dB: mm.mem16[DISPLACEMENT_B],
+        dA: mm.mem16[WORLD_SCROLL_Y],
+        dB: mm.mem16[WORLD_SCROLL_X],
         wA: mm.mem8[wholeA(mm)],
         fA: mm.mem8[fractionA(mm)],
         wB: mm.mem8[wholeB(mm)],
@@ -338,8 +337,8 @@ function diffAtEntry(candidate) {
 
 test("VACUOUS: the real dispatch moves no byte at all, so an empty body passes", { skip }, () => {
   const e = entryState();
-  assert.equal(e.mem16[DISPLACEMENT_A], 0, "the first displacement is no longer zero here");
-  assert.equal(e.mem16[DISPLACEMENT_B], 0, "the second displacement is no longer zero here");
+  assert.equal(e.mem16[WORLD_SCROLL_Y], 0, "the first displacement is no longer zero here");
+  assert.equal(e.mem16[WORLD_SCROLL_X], 0, "the second displacement is no longer zero here");
 
   const a = entryState().clone();
   oracle(a);
@@ -511,14 +510,14 @@ function brokenNoOp() {}
 /** BUG: stores the whole bytes but never the two fraction bytes, so sub-steps never bank. */
 function brokenWholeOnly(m) {
   const { mem8 } = m;
-  mem8[wholeA(m)] = ((mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + lengthen(m.mem16[DISPLACEMENT_A])) >> 8;
-  mem8[wholeB(m)] = ((mem8[wholeB(m)] << 8) + mem8[fractionB(m)] + lengthen(m.mem16[DISPLACEMENT_B])) >> 8;
+  mem8[wholeA(m)] = ((mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + lengthen(m.mem16[WORLD_SCROLL_Y])) >> 8;
+  mem8[wholeB(m)] = ((mem8[wholeB(m)] << 8) + mem8[fractionB(m)] + lengthen(m.mem16[WORLD_SCROLL_X])) >> 8;
 }
 
 /** BUG: displaces the first coordinate and forgets the second one entirely. */
 function brokenSecondSkipped(m) {
   const { mem8 } = m;
-  const moved = (mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + lengthen(m.mem16[DISPLACEMENT_A]);
+  const moved = (mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + lengthen(m.mem16[WORLD_SCROLL_Y]);
   mem8[wholeA(m)] = moved >> 8;
   mem8[fractionA(m)] = moved;
 }
@@ -526,8 +525,8 @@ function brokenSecondSkipped(m) {
 /** BUG: adds each displacement byte to its own half, so a fraction overflow never carries. */
 function brokenNoCarry(m) {
   const { mem8 } = m;
-  const dA = m.mem16[DISPLACEMENT_A];
-  const dB = m.mem16[DISPLACEMENT_B];
+  const dA = m.mem16[WORLD_SCROLL_Y];
+  const dB = m.mem16[WORLD_SCROLL_X];
   mem8[wholeA(m)] = mem8[wholeA(m)] + (dA >> 8);
   mem8[fractionA(m)] = mem8[fractionA(m)] + u8(dA);
   mem8[wholeB(m)] = mem8[wholeB(m)] + (dB >> 8);
@@ -536,26 +535,26 @@ function brokenNoCarry(m) {
 
 /** BUG: feeds each coordinate the other coordinate's displacement. */
 function brokenSwapped(m) {
-  applyStep(m, wholeA(m), fractionA(m), lengthen(m.mem16[DISPLACEMENT_B]));
-  applyStep(m, wholeB(m), fractionB(m), lengthen(m.mem16[DISPLACEMENT_A]));
+  applyStep(m, wholeA(m), fractionA(m), lengthen(m.mem16[WORLD_SCROLL_X]));
+  applyStep(m, wholeB(m), fractionB(m), lengthen(m.mem16[WORLD_SCROLL_Y]));
 }
 
 /** BUG: applies the displacement whole, dropping the extra quarter. */
 function brokenNoQuarter(m) {
-  applyStep(m, wholeA(m), fractionA(m), m.mem16[DISPLACEMENT_A]);
-  applyStep(m, wholeB(m), fractionB(m), m.mem16[DISPLACEMENT_B]);
+  applyStep(m, wholeA(m), fractionA(m), m.mem16[WORLD_SCROLL_Y]);
+  applyStep(m, wholeB(m), fractionB(m), m.mem16[WORLD_SCROLL_X]);
 }
 
 /** BUG: truncates the quarter toward zero instead of flooring it. */
 function brokenTruncatingQuarter(m) {
-  applyStep(m, wholeA(m), fractionA(m), truncated(m.mem16[DISPLACEMENT_A]));
-  applyStep(m, wholeB(m), fractionB(m), truncated(m.mem16[DISPLACEMENT_B]));
+  applyStep(m, wholeA(m), fractionA(m), truncated(m.mem16[WORLD_SCROLL_Y]));
+  applyStep(m, wholeB(m), fractionB(m), truncated(m.mem16[WORLD_SCROLL_X]));
 }
 
 /** BUG: quarters the displacement as an unsigned number, so a backward step lurches forward. */
 function brokenUnsignedQuarter(m) {
-  applyStep(m, wholeA(m), fractionA(m), m.mem16[DISPLACEMENT_A] + (m.mem16[DISPLACEMENT_A] >>> 2));
-  applyStep(m, wholeB(m), fractionB(m), m.mem16[DISPLACEMENT_B] + (m.mem16[DISPLACEMENT_B] >>> 2));
+  applyStep(m, wholeA(m), fractionA(m), m.mem16[WORLD_SCROLL_Y] + (m.mem16[WORLD_SCROLL_Y] >>> 2));
+  applyStep(m, wholeB(m), fractionB(m), m.mem16[WORLD_SCROLL_X] + (m.mem16[WORLD_SCROLL_X] >>> 2));
 }
 
 const truncated = (d) => u16(signed(d) + Math.trunc(signed(d) / 4));

@@ -139,6 +139,54 @@ export const ERA_INDEX = 0xad04;
 export const KILLS_REMAINING = 0xad02;
 
 /**
+ * Per-frame world scroll, the component that lands in a sprite entry's NATIVE-Y byte. [seen]
+ *
+ * 8.8 fixed point, and it is the camera rather than any object's: one routine writes the pair once
+ * a frame as the negation of the player's own velocity, and another zeroes both at life start.
+ * Every site that reads this one pairs it with the same coordinate — whole part at the sprite
+ * entry's `+0x31`, fraction at the object record's `+3` — and never with the other. Its magnitude
+ * is era-keyed, taken from one of several ROM velocity tables, so there is no fixed scroll speed.
+ *
+ * ★ X AND Y HERE ARE THE NATIVE RASTER AXES, NOT THE PLAYER'S — and for this board those are not
+ * the same axes. The name says which sprite-record FIELD the value lands in, which is what makes
+ * it checkable on the spot beside `sprite + 49`; it makes no claim about the glass. The board is
+ * ROT90 (clockwise), so native Y is the display's HORIZONTAL axis, mirrored:
+ * `display_x = 239 - native_y`. A positive value here therefore slides the whole world LEFT on the
+ * glass. Read as "horizontal" this name gives the right direction under the wrong axis; read as
+ * screen-vertical it is simply wrong.
+ *
+ * Grounded under MAME by forcing this cell alone while the other stayed zero: every scenery
+ * object's native Y moved at its own parallax fraction and its native X moved by exactly zero,
+ * and the displayed picture shifted horizontally with no vertical component.
+ *
+ * ★ Prose written in DISPLAY axes calls this the horizontal — or "X" — scroll. Such a reading is
+ * CROSSED against this name rather than disagreeing with it; the frozen oracle's transcription of
+ * ROM 0x4017 labels the pair that way.
+ */
+export const WORLD_SCROLL_Y = 0xa808;
+
+/**
+ * Per-frame world scroll, the component that lands in a sprite entry's NATIVE-X byte. [seen]
+ *
+ * The other half of the same vector, on the same terms as WORLD_SCROLL_Y: written and zeroed by
+ * the same two routines in the same breath, read by a set of sites disjoint from that cell's, and
+ * always paired with the coordinate whose whole part is the sprite entry's `+0x00` byte and whose
+ * fraction is the object record's `+5`.
+ *
+ * ★ Under the board's ROT90 native X is the display's VERTICAL axis (`display_y = native_x`), so a
+ * positive value here slides the world DOWN the glass. Same grounding run, same result with the
+ * axes exchanged: forcing this cell alone moved every scenery object's native X and left its
+ * native Y at exactly zero, and the displayed picture shifted vertically with no horizontal
+ * component.
+ *
+ * The structure ends here: the two words occupy 0xA808-0xA80B. The bytes flanking them —
+ * 0xA803-0xA807 below, up to the live player-record fields, and 0xA80C-0xA80F above, before a
+ * different structure begins — are touched by nothing but the two bulk RAM clears, in every run we
+ * have watched. That is "dead in everything observed", not "provably never used".
+ */
+export const WORLD_SCROLL_X = 0xa80a;
+
+/**
  * Address -> idiomatic routine. Artifact three of the four: a module that is not in here is
  * never dispatched, so it is written-and-never-executed no matter how green its own gate is.
  *

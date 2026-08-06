@@ -48,11 +48,10 @@ import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
 import { loc_2b60 as oracle } from "../../translated/loc_2b60.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "../names.js";
 
 const TARGET = 0x2b60;
 
-const DISPLACEMENT_A = 0xa808;
-const DISPLACEMENT_B = 0xa80a;
 
 const skip = romsPresent() ? false : "ROM images are not assembled";
 
@@ -86,8 +85,8 @@ const fractionB = (m) => (m.regs.ix + 5) & 0xffff;
 /** The real entry with both displacements and all four position bytes forced to `prior`. */
 function craft(prior) {
   const m = entryState().clone();
-  m.mem16[DISPLACEMENT_A] = prior.dA;
-  m.mem16[DISPLACEMENT_B] = prior.dB;
+  m.mem16[WORLD_SCROLL_Y] = prior.dA;
+  m.mem16[WORLD_SCROLL_X] = prior.dB;
   m.mem8[wholeA(m)] = prior.wA;
   m.mem8[fractionA(m)] = prior.fA;
   m.mem8[wholeB(m)] = prior.wB;
@@ -184,13 +183,13 @@ test("NARROW: the real dispatch moves only one of the four bytes", { skip }, () 
   const after = before.clone();
   oracle(after);
 
-  const dB = before.mem16[DISPLACEMENT_B];
+  const dB = before.mem16[WORLD_SCROLL_X];
   assert.equal(dB, 0, "the second displacement is zero here — the crafted sweep must cover it");
   const bytes = [wholeA, fractionA, wholeB, fractionB];
   const changed = bytes.filter((at) => before.mem8[at(before)] !== after.mem8[at(after)]);
   assert.equal(changed.length, 1, "one byte, so the natural dispatch is a nearly blind gate");
   console.log(
-    `  NARROW: displacements ${hex4(before.mem16[DISPLACEMENT_A])}/${hex4(dB)}; ` +
+    `  NARROW: displacements ${hex4(before.mem16[WORLD_SCROLL_Y])}/${hex4(dB)}; ` +
       `${changed.length} of ${bytes.length} written bytes move`,
   );
 });
@@ -236,14 +235,14 @@ function brokenNoOp() {}
 /** BUG: stores the whole bytes but never the two fraction bytes, so sub-steps never bank. */
 function brokenWholeOnly(m) {
   const { mem8 } = m;
-  mem8[wholeA(m)] = ((mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + m.mem16[DISPLACEMENT_A]) >> 8;
-  mem8[wholeB(m)] = ((mem8[wholeB(m)] << 8) + mem8[fractionB(m)] + m.mem16[DISPLACEMENT_B]) >> 8;
+  mem8[wholeA(m)] = ((mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + m.mem16[WORLD_SCROLL_Y]) >> 8;
+  mem8[wholeB(m)] = ((mem8[wholeB(m)] << 8) + mem8[fractionB(m)] + m.mem16[WORLD_SCROLL_X]) >> 8;
 }
 
 /** BUG: drifts the first coordinate and forgets the second one entirely. */
 function brokenSecondSkipped(m) {
   const { mem8 } = m;
-  const moved = (mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + m.mem16[DISPLACEMENT_A];
+  const moved = (mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + m.mem16[WORLD_SCROLL_Y];
   mem8[wholeA(m)] = moved >> 8;
   mem8[fractionA(m)] = moved;
 }
@@ -251,8 +250,8 @@ function brokenSecondSkipped(m) {
 /** BUG: adds each displacement byte to its own half, so a fraction overflow never carries. */
 function brokenNoCarry(m) {
   const { mem8 } = m;
-  const dA = m.mem16[DISPLACEMENT_A];
-  const dB = m.mem16[DISPLACEMENT_B];
+  const dA = m.mem16[WORLD_SCROLL_Y];
+  const dB = m.mem16[WORLD_SCROLL_X];
   mem8[wholeA(m)] = mem8[wholeA(m)] + (dA >> 8);
   mem8[fractionA(m)] = mem8[fractionA(m)] + (dA & 0xff);
   mem8[wholeB(m)] = mem8[wholeB(m)] + (dB >> 8);
@@ -262,10 +261,10 @@ function brokenNoCarry(m) {
 /** BUG: feeds each coordinate the other coordinate's displacement. */
 function brokenSwapped(m) {
   const { mem8 } = m;
-  let moved = (mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + m.mem16[DISPLACEMENT_B];
+  let moved = (mem8[wholeA(m)] << 8) + mem8[fractionA(m)] + m.mem16[WORLD_SCROLL_X];
   mem8[wholeA(m)] = moved >> 8;
   mem8[fractionA(m)] = moved;
-  moved = (mem8[wholeB(m)] << 8) + mem8[fractionB(m)] + m.mem16[DISPLACEMENT_A];
+  moved = (mem8[wholeB(m)] << 8) + mem8[fractionB(m)] + m.mem16[WORLD_SCROLL_Y];
   mem8[wholeB(m)] = moved >> 8;
   mem8[fractionB(m)] = moved;
 }

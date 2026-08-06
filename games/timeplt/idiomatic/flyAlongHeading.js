@@ -8,6 +8,7 @@
  * LIVE-OUT: memory only — the four coordinate bytes; nothing is clamped and nothing is returned. */
 
 import { velocityForHeading } from "./velocityForHeading.js";
+import { WORLD_SCROLL_X, WORLD_SCROLL_Y } from "./names.js";
 
 const CURRENT_HEADING = 2;
 
@@ -19,8 +20,8 @@ export function flyAlongHeading(m, table = m.regs.hl) {
   const alongFirstAxis = m.regs.de;
   const alongSecondAxis = m.regs.bc;
 
-  advanceCoordinate(m, sprite + 49, object + 3, m.mem16[0xa808] + alongFirstAxis);
-  advanceCoordinate(m, sprite, object + 5, m.mem16[0xa80a] + alongSecondAxis);
+  advanceCoordinate(m, sprite + 49, object + 3, m.mem16[WORLD_SCROLL_Y] + alongFirstAxis);
+  advanceCoordinate(m, sprite, object + 5, m.mem16[WORLD_SCROLL_X] + alongSecondAxis);
 }
 
 /** One coordinate: whole and fraction read as a single number, displaced, then split back. */
