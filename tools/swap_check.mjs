@@ -1,41 +1,38 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
  * swap_check — the ASSEMBLED-GAME transparency gate for rolling idiomatic routines into the
- * runtime. Runs the game cycle-free TWICE — baseline (pure translated) and test (with the
- * chosen idiomatic routines wired LIVE through the override seam) — and diffs the per-frame
- * RAM state. A memory-equivalent routine is a TRANSPARENT swap: wiring it live must change
- * nothing, so the two runs are byte-for-byte identical.
+ * runtime. Runs the game cycle-free twice — pure translated, then with the chosen idiomatic
+ * rewrites wired live — and diffs per-frame RAM: a memory-equivalent rewrite must change nothing.
  *
- * WHY THIS EXISTS. The per-routine equivalence tests (idiomatic vs translated on captured
- * states, isolated) are necessary but NOT sufficient — a routine can pass in isolation and
- * still break the assembled game through the calling convention (copyTileColumn: correct in
- * isolation, but the live translated caller passed IX in a register while the idiomatic
- * signature read a JS param → it wrote 0). Only running the whole game with the swap live
- * catches that. This is the whole-game half of the migration gate; convergence.mjs (vs MAME)
- * is the other half.
- *
- * It also reports a DISPATCH COUNT per wired routine: a "match" that comes from a routine
- * that never ran in the scenario is vacuous, so a 0-count is flagged, not silently passed.
+ * WHY THIS EXISTS. A routine can pass its isolated equivalence test and still break the
+ * assembled game through the calling convention (copyTileColumn: correct in isolation, but the
+ * live translated caller passed IX in a register while the idiomatic signature read a JS param
+ * → it wrote 0). Only running the whole game with the swap live catches that. This is the
+ * whole-game half of the migration gate; convergence.mjs (vs MAME) is the other half.
  *
  * CONSTRUCTION CONTRACT — a game is only checkable here if its machine.js exports
- * `static async Machine.create(rom, opts)`. This tool calls it, and a game without it does not
- * fail a check, it fails to RUN: `--game dkong` died on `TypeError: Machine.create is not a
- * function` at the first line of runOne, so DK had never once been through this gate despite
- * being listed as covered by it. Recorded here so the next game added is wired for it up front.
+ * `static async Machine.create(rom, opts)`. A game without it does not fail a check, it fails to
+ * RUN: `--game dkong` died on `TypeError: Machine.create is not a function` at the first line of
+ * runOne, so DK had never once been through this gate despite being listed as covered by it.
  *
  * ★ PER-GAME COVERAGE IS NOT UNIFORM — do not read a green run for one game as a green tool.
- * `--game thepit --all` currently reports DIVERGED with `test 0/720 (returned)`: The Pit's boot is a
- * GENERATOR, so under runCycleFree the wired-everything run returns at frame 0 and never plays. That
- * is pre-existing and unrelated to the `entry ?? name` export resolution this tool now uses (The Pit
- * has no `entry` fields, so that is a no-op for it) — but it means this tool gates DK's full set and
- * does NOT gate The Pit's. Fixing that is its own unit; stated here so this header cannot be read as
- * a claim of coverage it does not have.
+ * `--game thepit --all` currently reports DIVERGED with `test 0/720 (returned)`: The Pit's boot
+ * is a GENERATOR, so under runCycleFree the wired-everything run returns at frame 0 and never plays.
+ * So this tool gates DK's full set and does NOT gate The Pit's. Fixing that is its own unit;
+ * stated here so this header cannot be read as a claim of coverage it does not have.
+ *
+ * ★ THE FRAME BUDGET IS PART OF THE INSTRUMENT AND THE DEFAULT BELOW IS TOO SHORT. One parallax
+ * wrapper swapped for its sibling read TRANSPARENT at 600 frames and was caught at 937 on timeplt
+ * attract — but at 870 on its tape, so the frame a break surfaces at is per-game AND per-scenario.
+ * A green bounds divergence only over the frames run; raise --frames before believing one.
  *
  * Usage:
  *   node tools/swap_check.mjs --game thepit [--frames 720] [--all | --routines 0x1234,0x5678]
  *   (default: whatever is in manifest.optimized)
  *
- * Exit 0 = transparent (identical), 1 = a wired swap changed the assembled run, 2 = usage/IO.
+ * Exit 0 = TRANSPARENT (every COMPARED byte identical on every frame — the stack window is
+ * excluded), 1 = a wired swap changed the assembled run, 2 = usage/IO. The two runs are named
+ * throughout: BASELINE is pure translated, TEST is the one with rewrites wired live.
  * NOTE a length mismatch also reports as DIVERGED: read the "run coverage" line first — a test run
  * that stopped early has a real error to fix before its RAM diff means anything.
  */
@@ -76,12 +73,9 @@ async function main() {
   if (!existsSync(romPath)) { console.error(`ROM not present at ${romPath} (BYO)`); process.exit(2); }
   const rom = new Uint8Array(readFileSync(romPath));
 
-  // Build the override spec: manifest.optimized, or the whole idiomatic layer, or a list.
-  // MODULE from meta.name (the filename), EXPORT from meta.entry ?? meta.name — the same
-  // rule machine.js's resolveAllIdiomatic uses, and it must stay the same rule or this gate
-  // tests a different wiring than the one that ships. `entry` exists for the routines whose
-  // idiomatic export is a PURE function of its Z80 register inputs rather than of the
-  // Machine; see the `entry` note in games/<game>/idiomatic/names.js.
+  // MODULE from meta.name (the filename), EXPORT from meta.entry ?? meta.name — the same rule
+  // machine.js's resolveAllIdiomatic uses, and it must stay the same rule or this gate tests a
+  // different wiring than the one that ships.
   const exportOf = (meta) => meta.entry ?? meta.name;
   let spec;
   if (args.mode === "all" || args.mode === "leaves") {
@@ -90,9 +84,8 @@ async function main() {
       const a = Number(addr);
       const file = join(gameDir, "idiomatic", `${meta.name}.js`);
       if (!existsSync(file)) continue;
-      // --leaves: only routines that call nothing (no m.call). A leaf can't spin the engine;
-      // at worst it mis-reads the register ABI its translated caller passes, which the diff
-      // catches. Non-leaves (routines that call others) can spin and go in later, bottom-up.
+      // --leaves: a leaf can't spin the engine; at worst it mis-reads the register ABI its
+      // translated caller passes, which the diff catches. Non-leaves go in later, bottom-up.
       if (args.mode === "leaves" && /\bm\.call\(/.test(readFileSync(file, "utf8"))) continue;
       spec[a.toString(16)] = { module: `./idiomatic/${meta.name}.js`, export: exportOf(meta) };
     }
@@ -131,8 +124,8 @@ async function main() {
   const runOne = async (ovr) => {
     const m = await Machine.create(rom, ovr ? { overrides: ovr } : {});
     const frames = [];
-    // Budget scaled to the run: ~650 steps/frame observed on the attract, so 20000/frame is
-    // ~30x headroom — a real run finishes well under it, a spun swap trips it in seconds.
+    // ~650 steps/frame observed on the attract, so 20000/frame is ~30x headroom — a real run
+    // finishes well under it, a spun swap trips it in seconds.
     const r = runCycleFree(m, {
       pollPCs: cfg.pollPCs, maxFrames: args.frames, stepBudget: args.frames * 20000,
       onFrame: (mm) => frames.push(Buffer.from(mm.dumpState())),
@@ -150,10 +143,10 @@ async function main() {
     console.log(`  run coverage: baseline ${base.r.frames}/${args.frames} (${base.r.stop}); test ${test.r.frames}/${args.frames} (${test.r.stop})`);
   }
 
-  // Per-frame diff EXCLUDING the dead Z80 stack scratch: a direct idiomatic call doesn't
-  // push/pop the return address a translated call does, so [stackLo, stackHi) legitimately
-  // differs — the GAME-STATE RAM is what must match (docs: exclude the dead stack, keep the
-  // RAM diff). Everything else matches: same engine, same NMI timing, same RNG.
+  // Per-frame diff EXCLUDING the dead stack scratch: a direct idiomatic call doesn't push/pop
+  // the return address a translated call does, so [stackLo, stackHi) legitimately differs.
+  // Outside that window the two runs must agree: they share an engine, NMI timing and RNG, so
+  // the wired swap is the only variable between them.
   const [sLo, sHi] = cfg.stateExclude?.stack || [0, 0];
   const probe = new Machine(rom);
   const BPF = base.frames[0].length;
