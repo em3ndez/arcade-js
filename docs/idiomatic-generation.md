@@ -726,11 +726,41 @@ unit. Replace only what genuinely remains, which in practice means a cluster lan
 - **The poll-PC seam goes dark when the poll routines are themselves idiomatic.** Idiomatic code
   never calls `m.step`, so there is no step to catch. Fix: the engine that fires the NMI on the
   once-per-frame watchdog kick instead. Do not keep a token `m.step` inside an idiomatic poll routine.
+  - **Corollary — an `m.call` INTO a poll routine is load-bearing, and the dissolve rule does not
+    reach it.** `swap_check` keeps the routine containing a poll PC translated by deleting it from
+    the override set. A dispatch honours that deletion; a direct import defeats it and wires the
+    idiomatic twin in unconditionally, so the drain spins with the NMI never firing — and the
+    engine's spin backstop counts `m.step` calls, which that loop never makes, so nothing catches
+    it and the process simply stops. Measured on Time Pilot's `loc_00a8` → `0x0B93`: as a dispatch
+    it reaches its full frame budget; dissolved it produced no output in sixty seconds. Record the
+    pair in `tools/no-stale-mcall.config.mjs` under `ALLOWED` and leave the caller alone. These
+    dissolve only once the yield moves off the poll PC, i.e. under the generator engine.
 - **Idiomatic routines silently DROP load-bearing stack ops** that looked dead in the swap harness
   because a translated caller balanced them — a main-loop SP re-seat, an NMI handler's normal-exit
   `ret`. When a whole-game run leaks or creeps stack, suspect one of those before anything exotic.
-- **The mixed-migration stack leak is real but benign.** Bound the exclusion above the measured
-  game-state ceiling; do not "fix" it by popping in `m.call`, which over-pops the tail-jump routines.
+- **The mixed-migration stack leak is benign only if something HEALS it. Check; do not assume.**
+  A translated caller pushes a return address its idiomatic callee never pops. The three ports so
+  far answer differently: The Pit re-seats SP from a literal at the top of every main-loop pass, so
+  the leak dies once a frame; DK's idiomatic callers drop the oracle's `push16`/`ret` bracket at the
+  call site, so the bytes are never pushed; Time Pilot seats SP once at boot and does neither, and
+  there the leak walks the stack through live work RAM and kills the run in a frame or two. Where
+  nothing heals it the SEAM must, and the seam is the override RESOLVER — not `m.call`, and not the
+  idiomatic modules, which must stay free of stack modelling. Note this makes `resolveOverrides`
+  mean "wrapped" for Time Pilot and "bare" for the other two, so read a game's own resolver rather
+  than assuming from the shared name.
+- **A resolver-supplied `ret` OVER-POPS any routine whose ROM form is not exactly one `ret`.** The
+  tail-jump shape is the one to watch: `ld hl,<table> / jp <target>` carries no `ret` of its own and
+  borrows its target's. That is still one net `ret` and so it is safe — *provided* the rewrite
+  reaches its tail target by DIRECT IMPORT. Reach it with `m.call` instead and the target's own
+  wrapper pops a second time: SP climbs ABOVE its power-on seat and the next push lands above the
+  stack, in whatever the memory map puts there. R10 already forbids that `m.call`; this is its
+  second reason. Where a routine genuinely is not one net `ret` it must not go through an
+  unconditional-`ret` seam at all — and the whole-game gate should measure SP across every dispatch,
+  because the byte diff alone reports a corrupted cell and names no routine.
+- **Bound the stack exclusion by the MEASURED STACK, not by the game-state ceiling.** They are
+  different numbers, and the dead space between them is written by nothing — so comparing it is
+  free, and it is exactly where a leaking SP lands first. Excluding it blinds the gate at the one
+  place the seam can fail.
 - **The NMI can LONG-JUMP into a new main loop.** A coin/start path is a warm restart driven from the
   interrupt: the handler resets SP and tail-calls a new forever loop, so the nested call never
   returns and a re-trigger guard freezes the game the instant a coin drops.

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * The Time Pilot machine: address space, I/O, register file, frame accounting. The
- * renderer is optional and inert unless the graphics ROMs are supplied.
+ * The Time Pilot machine: address space, I/O, register file, frame accounting.
  *
  * FRAME SAMPLING CONTRACT, shared with the Lua dumper -- do not drift:
  *   state[0] = power-on, before a single instruction runs
@@ -20,6 +19,7 @@ import {
 } from "../../boards/timeplt/video.js";
 import { Regs } from "../../core/cpu/z80.js";
 import { makeIndexedView } from "../../core/mem-views.js";
+import { buildRoutines } from "./routines.js";
 
 /** 3072000 / 60 Hz exactly. dkong and thepit are 60.606061 / 50688 -- not this board. */
 export const CYCLES_PER_FRAME = 51200;
@@ -28,10 +28,9 @@ export const CYCLES_PER_FRAME = 51200;
 export const NMI_VECTOR = 0x0066;
 
 /**
- * Cycle within a frame at which the vblank NMI asserts: zero, the boundary itself.
- * screen_vblank() fires from vblank_begin, the same function that calls frame_update,
- * so MAME's frame origin IS the vblank point -- deriving 48000 from VBSTART/VTOTAL is
- * right arithmetic from the wrong origin. Derived from the driver, not measured.
+ * Zero, the boundary itself: screen_vblank() fires from vblank_begin, the same function that calls
+ * frame_update, so MAME's frame origin IS the vblank point -- deriving 48000 from VBSTART/VTOTAL
+ * is right arithmetic from the wrong origin. Derived from the driver, not measured.
  */
 export const NMI_CYCLE_IN_FRAME = 0;
 
@@ -42,8 +41,8 @@ export const CYCLES_PER_SCANLINE = 200;
 export const VPOS_AT_FRAME_ORIGIN = 240;
 
 /**
- * From our origin (vpos 240) to the first visible line (vpos 16, wrapping at 256), so
- * the visible lines end exactly ON the next boundary. NOT vbend.
+ * From our origin (vpos 240) to the first visible line (vpos 16, wrapping at 256), so the visible
+ * lines end exactly ON the next boundary. NOT vbend.
  */
 export const VBLANK_LINES = 32;
 
@@ -63,7 +62,6 @@ export class FramesComplete extends Error {
 }
 
 export class Machine {
-  /** opts.tiles + opts.sprites + opts.proms together enable video; omit them and it is off. */
   constructor(rom, routines, opts = {}) {
     this.io = new Io();
     this.mem = new AddressSpace(rom, this.io);
@@ -74,7 +72,6 @@ export class Machine {
     this.rom = rom;
     this.assets = opts;
 
-    // mem8[ADDR] / mem16[ADDR] forward to the address space, for the idiomatic layer.
     this.mem8 = makeIndexedView(this.mem, 8);
     this.mem16 = makeIndexedView(this.mem, 16);
 
@@ -111,7 +108,7 @@ export class Machine {
     this.onVideoFrame = null; // set to stream frames out and keep memory flat
     this.rasterBuf = null;
     this.rasterRow = 0;
-    this.nextRowCycle = 0; // absolute cycle the next row's beam arrives
+    this.nextRowCycle = 0;
     this.droppedFrames = 0;
 
     this.mem.clock = () => this.cycles;
@@ -124,13 +121,39 @@ export class Machine {
     this.io.readScanline = () => this.vpos(this.cycles + SCANLINE_READ_OFFSET);
   }
 
+  /**
+   * Async factory: build the routine registry, layer `opts.overrides` on it, then construct. The
+   * CONSTRUCTION CONTRACT the shared cross-game tools call; a game lacking it does not fail a
+   * check, it fails to RUN.
+   *
+   * IT LAYERS WHATEVER MAP IT IS HANDED, deliberately: the wrapping belongs to the caller. An
+   * override a TRANSLATED caller dispatches inside an ASSEMBLED run must be wrapped with
+   * `withOmittedRet`; an entry that calls the frozen oracle must NOT be, since the oracle rets for
+   * itself. Either mistake is fatal -- nothing in this game re-seats SP, so neither one heals.
+   */
+  static async create(rom, opts = {}) {
+    const routines = buildRoutines();
+    if (opts.overrides) for (const [addr, fn] of opts.overrides) routines.set(Number(addr), fn);
+    return new Machine(rom, routines, opts);
+  }
+
+  /**
+   * Z80 reset: entry at PC=0x0000, which is `jp 0x07b1` into the boot chain. Boot ends by jumping
+   * into the foreground command-ring drain, which never returns -- this call unwinds only through
+   * the frame budget, a translation gap, or the engine driving it. The shared frame-stepped
+   * engines call it to start a run, which is the other half of the contract `create` opens.
+   */
+  reset() {
+    this.call(0x0000);
+    this.booted = true;
+  }
+
   /** Raster vertical position, as MAME's vpos(). Starts at 240 -- see the constant. */
   vpos(atCycle = this.cycles) {
     const inFrame = atCycle % CYCLES_PER_FRAME;
     return (VPOS_AT_FRAME_ORIGIN + Math.floor(inFrame / CYCLES_PER_SCANLINE)) & 0xff;
   }
 
-  /** Advance to `nextAddr`, charging `cycles` T-states for the instruction just run. */
   step(nextAddr, cycles) {
     this.pc = nextAddr;
     this.pcKnown = true;
@@ -153,7 +176,6 @@ export class Machine {
       this.applyPokes(this.frames.length);
       // Sample BEFORE the boundary's NMI: state[N] holds no interrupt effects of N.
       this.frames.push(this.mem.dumpState());
-      // The beam just finished the frame being painted; finishRasterFrame indexes it.
       if (this.captureVideo) this.finishRasterFrame();
       this.nextBoundary += CYCLES_PER_FRAME;
     }
@@ -167,7 +189,7 @@ export class Machine {
     if (this.cycles >= this.nextNmi) {
       this.nextNmi += CYCLES_PER_FRAME;
       // The LS259 latch IS the gate: the handler clears bit 0 itself.
-      if (this.io.nmiEnabled) this.fireNmi();
+      if (this.io.nmiMask) this.fireNmi();
     }
 
     // A bare tick() records no successor, so the PC is stale until the next step().
@@ -175,11 +197,8 @@ export class Machine {
     this.pcKnown = false;
   }
 
-  /**
-   * Vector the vblank NMI as the Z80 would: push PC, jump to the vector. The pushed PC
-   * lands in work RAM, which IS diffed, so it must be real and not a sentinel.
-   * Reentrancy is guarded by the hardware -- the handler clears the enable bit itself.
-   */
+  /** The pushed PC lands in work RAM, which IS diffed, so it must be real and not a sentinel.
+   *  Reentrancy is guarded by the hardware -- the handler clears the enable bit itself. */
   fireNmi() {
     if (!this.pcKnown) {
       throw new Error(
@@ -194,7 +213,6 @@ export class Machine {
     return this.call(NMI_VECTOR);
   }
 
-  // `dur` frames from `frame`, null = hold indefinitely.
   applyPokes(frameIndex) {
     if (!this.pokes) return;
     for (const p of this.pokes) {
@@ -215,13 +233,12 @@ export class Machine {
   }
 
   /**
-   * Run from reset capturing `count` state frames. The cycle budget runs PAST the last
-   * sample so effects landing just after a boundary still happen, uncaptured. Boot never
-   * returns, so FramesComplete is how a bounded run unwinds -- not an error.
+   * The cycle budget runs PAST the last sample so effects landing just after a boundary still
+   * happen, uncaptured. Boot never returns, so FramesComplete is how a bounded run unwinds.
    */
   runFrames(count) {
-    // Frame 0 gets its tape entries too, and a stale assert from a previous run must not
-    // survive into this one -- a run that stopped mid-hold would start with the button down.
+    // Frame 0 gets its tape entries too, and a stale assert must not survive into this run --
+    // one that stopped mid-hold would otherwise start with the button still down.
     this.io.inputAssert = null;
     this.applyInputs(0);
     this.applyPokes(0);
@@ -239,7 +256,7 @@ export class Machine {
     if (this.captureVideo) this.startRasterFrame(0);
     if (count <= 1) return this.frames;
     try {
-      this.call(0x0000);
+      this.reset();
       this.stoppedBy = "returned"; // boot fell off the end -- it should not
     } catch (e) {
       if (e instanceof FramesComplete) {
@@ -266,10 +283,9 @@ export class Machine {
    * Paint every visible row the beam has reached, each from the RAM AND THE LS259 AS
    * THEY STAND AT THAT MOMENT.
    *
-   * NOT AN APPROXIMATION -- it is what MAME does under VIDEO_UPDATE_SCANLINE. A frame
-   * whose sprite RAM is rewritten halfway down comes out as the composite the hardware
-   * produced. GRANULARITY IS THE TICK: a tick spanning several lines paints them all
-   * with end-of-tick state.
+   * NOT AN APPROXIMATION -- it is what MAME does under VIDEO_UPDATE_SCANLINE: a frame whose
+   * sprite RAM is rewritten halfway down comes out as the composite the hardware produced.
+   * GRANULARITY IS THE TICK, so a tick spanning several lines paints them all at end-of-tick.
    */
   drainRaster() {
     if (!this.captureVideo || this.rasterBuf === null) return;
@@ -284,12 +300,10 @@ export class Machine {
   }
 
   /**
-   * Begin painting frame `n`; its first visible row arrives VBLANK_LINES in.
-   *
-   * A FRESH ZEROED BUFFER IS A MODELLING DECISION -- the hardware keeps the old bitmap
-   * when video_enable is clear, and the capture's disabled frame is black instead.
-   * Black is also pen 0, so the evidence cannot separate the two. If a disabled frame
-   * ever RETAINS an image, THIS is the line to change.
+   * A FRESH ZEROED BUFFER IS A MODELLING DECISION -- the hardware keeps the old bitmap when
+   * video_enable is clear, and the capture's disabled frame is black instead. Black is also pen 0,
+   * so the evidence cannot separate the two; if a disabled frame ever RETAINS an image, change
+   * this line.
    */
   startRasterFrame(n) {
     if (!this.video) throw new Error("raster capture needs tiles, sprites and proms");
@@ -299,13 +313,9 @@ export class Machine {
   }
 
   /**
-   * Publish the frame the beam just finished, and start the next.
-   *
-   * INDEXING: called after state[N] was pushed, so frames.length is N+1 and the frame
-   * to start is frames.length - 1. videoFrames[k] is the image painted DURING frame k;
-   * MAME's AVI lags one frame, which is the +1 the frame differ freezes.
-   *
-   * A frame with rows unpainted is DROPPED, not published part-black.
+   * INDEXING: called after state[N] was pushed, so frames.length is N+1 and the frame to start is
+   * frames.length-1. videoFrames[k] is painted DURING frame k; MAME's AVI lags one frame, the +1
+   * the frame differ freezes. A frame with rows unpainted is DROPPED.
    */
   finishRasterFrame() {
     if (this.rasterBuf !== null && this.rasterRow === SCREEN_H) {
@@ -317,7 +327,6 @@ export class Machine {
     this.startRasterFrame(this.frames.length - 1);
   }
 
-  /** Current memory to one RGB888 frame: a snapshot, for callers that skip the beam. */
   renderFrame() {
     if (!this.video) throw new Error("renderFrame needs tiles, sprites and proms");
     return renderFrameRGB(this.mem, this.video, {
@@ -346,7 +355,6 @@ export class Machine {
     this.step(this.pop16(), cycles);
   }
 
-  /** Invoke the routine at a ROM address through the registry. */
   call(addr, ...args) {
     const fn = this.routines.get(addr);
     if (fn === undefined) {
@@ -360,9 +368,9 @@ export class Machine {
   }
 
   /**
-   * LDI: one block-copy step, WITH the flags. Clears H and N, PV from BC nonzero after
-   * the decrement, undocumented F3/F5 from (A + the byte copied), S/Z/C untouched.
-   * F is diffed, so a site that open-codes this without F diverges for real.
+   * LDI: one block-copy step, WITH the flags. Clears H and N, PV from BC nonzero after the
+   * decrement, undocumented F3/F5 from (A + the byte copied), S/Z/C untouched. F is diffed, so a
+   * site that open-codes this without F diverges for real.
    */
   ldi(nextAddr) {
     const { regs, mem } = this;
@@ -374,19 +382,17 @@ export class Machine {
 
     const n = (regs.a + byte) & 0xff;
     regs.f =
-      (regs.f & (0x80 | 0x40 | 0x01)) |          // S, Z, C preserved
-      (regs.bc !== 0 ? 0x04 : 0) |               // PV = BC still nonzero
-      (n & 0x08 ? 0x08 : 0) |                    // F3 = bit 3 of A + byte
-      (n & 0x02 ? 0x20 : 0);                     // F5 = bit 1 of A + byte
+      (regs.f & (0x80 | 0x40 | 0x01)) |
+      (regs.bc !== 0 ? 0x04 : 0) |
+      (n & 0x08 ? 0x08 : 0) |
+      (n & 0x02 ? 0x20 : 0);
     this.step(nextAddr, 16);
   }
 
   /**
-   * LDIR at an arbitrary site: LDI in a loop, leaving its last LDI's flag state.
-   * 21 T-states per repeat, 16 on exit.
-   *
-   * F IS WRITTEN ON EVERY ITERATION: a repeat ends in a `step` that can accept the NMI,
-   * whose handler pushes AF into work RAM, which IS diffed.
+   * LDIR at an arbitrary site: LDI in a loop, leaving its last LDI's flag state. 21 T-states per
+   * repeat, 16 on exit. F IS WRITTEN ON EVERY ITERATION: a repeat ends in a `step` that can accept
+   * the NMI, whose handler pushes AF into work RAM, which IS diffed.
    */
   ldirAt(self, nextAddr) {
     const { regs, mem } = this;
@@ -452,14 +458,11 @@ export class Machine {
   }
 
   /**
-   * A fresh Machine on this one's inputs, restored to this machine's observable state: all
-   * RAM, the register file, and IO value-state. The clone's frame machinery is neutralised
-   * so that running ONE routine on it in isolation cannot trip a frame sample, fire an NMI
-   * or throw -- a unit gate measures the routine, not the scheduler.
-   *
-   * `cycles` is load-bearing and copied deliberately: the constructor rebinds the scanline
-   * read to a closure over the machine's own cycle count, so a clone that started at zero
-   * would report a different raster phase than the machine it came from.
+   * A fresh Machine on this one's inputs and observable state, with the frame machinery
+   * neutralised so running ONE routine on it cannot trip a frame sample, fire an NMI or throw.
+   * `cycles` is load-bearing and copied deliberately: the constructor rebinds the scanline read to
+   * a closure over the machine's own cycle count, so a clone starting at zero would report a
+   * different raster phase than the machine it came from.
    */
   clone() {
     const c = new Machine(this.rom, this.routines, this.assets);
@@ -488,23 +491,77 @@ export class Machine {
 }
 
 /**
- * Resolve the whole idiomatic layer to a Map<addr, fn>, ready to merge over the translated
- * registry. Both Node and the browser reach it the same way, through dynamic import.
+ * Adapt one idiomatic routine to a TRANSLATED caller by performing the ROM `ret` it omits.
  *
- * A registry entry naming a module or export that does not exist is an error here rather than
- * a silent omission -- a routine quietly missing from the dispatch table would leave the oracle
- * running in its place and every gate would still pass.
+ * THE SEAM. A translated call site models the Z80 `call` in two halves: it pushes the return
+ * address itself, and the translated callee's final `m.ret()` pops it back off. An idiomatic
+ * rewrite has no `ret`, so a translated -> idiomatic dispatch pushes two bytes nothing pops and
+ * SP walks DOWN two per dispatch. Time Pilot seats SP once, at boot (`ld sp,0xb000`), and never
+ * again, so nothing heals that: measured, the stack walks out of scratch and through live work
+ * RAM within a frame or two and the run dies on an unmapped write. `m.ret()` and not a bare SP
+ * adjustment, because pc is load-bearing too -- the ring drain dispatches a handler and then
+ * TESTS where it came back to (`if (m.pc !== 0x0b90)`).
+ *
+ * PRECONDITION, not enforced here: the routine's ROM form must have a net stack effect of exactly
+ * one `ret`. A rewrite popping more than its caller pushed is OVER-popped here and its SP climbs
+ * ABOVE the power-on seat, putting a push into sprite RAM -- which is why the assembled-swap gate
+ * measures SP across every dispatch. At go-live the wrapper is inert: rewrites import each other.
+ *
+ * DELIBERATELY UNLIKE THE OTHER TWO GAMES, whose resolvers hand back bare functions and restore
+ * stack ops inside individual rewrites -- do not harmonise it back. The missing `ret` belongs to
+ * the DISPATCH MECHANISM and not to any routine: the same function owes one pop when a translated
+ * caller reaches it through the registry and owes nothing when a rewrite imports it directly, and
+ * only the resolution path can tell those two callers apart.
+ *
+ * WHICH MAPS TO WRAP, and it is not every map. Wrap one an ASSEMBLED run will dispatch from
+ * translated code. Do NOT wrap a probe map whose entries call the frozen oracle -- the oracle rets
+ * for itself, so wrapping hands it a second one and over-pops, which is how the unit harness in
+ * idiomatic/test is correct while wired raw. Both errors are fatal here, in opposite directions,
+ * because nothing in this game re-seats SP.
+ */
+export function withOmittedRet(fn) {
+  return (m, ...args) => {
+    const r = fn(m, ...args);
+    m.ret();
+    return r;
+  };
+}
+
+/**
+ * Resolve a declarative override block ({ "hhhh": {module, export} }) into a Map<addr, fn> the
+ * Machine layers over the translated registry, each entry adapted by `withOmittedRet` above. A
+ * spec naming a module or export that does not exist is an error here rather than a silent
+ * omission: a routine quietly missing from the map leaves the old code running in its place, and
+ * every gate downstream still passes.
+ */
+export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
+  const map = new Map();
+  for (const [key, ent] of Object.entries(spec)) {
+    const addr = parseInt(key, 16);
+    const mod = await import(new URL(ent.module, baseUrl).href);
+    const fn = mod[ent.export];
+    if (typeof fn !== "function") {
+      throw new Error(`override ${key}: module ${ent.module} has no function export "${ent.export}"`);
+    }
+    map.set(addr, withOmittedRet(fn));
+  }
+  return map;
+}
+
+/**
+ * Resolve the whole idiomatic layer to a Map<addr, fn>, ready to merge over the translated
+ * registry. Both Node and the browser reach it the same way, through dynamic import, and it goes
+ * through `resolveOverrides` so that the whole layer and a hand-picked subset cross the SAME seam
+ * -- one definition of what a translated -> idiomatic dispatch does, not two.
  */
 export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
   const { ROUTINES } = await import(new URL("idiomatic/names.js", baseUrl).href);
-  const out = new Map();
+  const spec = {};
   for (const [addr, meta] of Object.entries(ROUTINES)) {
-    const mod = await import(new URL(`idiomatic/${meta.name}.js`, baseUrl).href);
-    const fn = mod[meta.entry ?? meta.name];
-    if (typeof fn !== "function") {
-      throw new Error(`idiomatic registry: ${meta.name}.js has no export ${meta.entry ?? meta.name}`);
-    }
-    out.set(Number(addr), fn);
+    spec[Number(addr).toString(16)] = {
+      module: `./idiomatic/${meta.name}.js`,
+      export: meta.entry ?? meta.name,
+    };
   }
-  return out;
+  return resolveOverrides(spec, baseUrl);
 }

@@ -103,8 +103,13 @@ export class Io {
 
   writeControlLatch(bit, value) { this.latch[bit & 7] = value & 1; }
 
-  /** NMI is asserted on vblank only while this bit is set (timeplt_state::vblank_irq). */
-  get nmiEnabled() { return this.latch[LATCH_NMI_ENABLE] === 1; }
+  /**
+   * NMI is asserted on vblank only while this bit is set (timeplt_state::vblank_irq). SPELLED
+   * `nmiMask` as on every other board, because the shared engines read the gate by that name and
+   * under any other spelling it reads `undefined` -- falsy -- so a cycle-free run returns 0 frames
+   * and throws nothing. Measured; one name, not two, is the whole point.
+   */
+  get nmiMask() { return this.latch[LATCH_NMI_ENABLE] === 1; }
 
   get flipScreen() { return this.latch[LATCH_FLIPSCREEN] === 0; }
 

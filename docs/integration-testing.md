@@ -177,6 +177,45 @@ entropy pin — find the byte that forks while the interrupt counter stays synce
 RAM diff auto-identifies it; see idiomatic-generation.md). Put both in `manifest.convergence` /
 `manifest.entropyPin` and the tool works unchanged.
 
+**Three ports in, two of those facts turn out to hide assumptions.** Check both against the new
+game before trusting a number out of any of these tools.
+
+- **A game need not poll a VBLANK flag at all.** Time Pilot polls none anywhere in the ROM: the
+  NMI is gated by an LS259 bit the service clears on entry and sets in its epilogue, all game logic
+  runs inside the service, and the foreground is a command-ring drain that spins on an empty ring.
+  Its poll PC is that drain's top by elimination. (It does poll the RASTER counter, in the sprite
+  multiplexer — "polls nothing" is the wrong reading, and one word too wide is where this project's
+  errors live.) The price is stated where the poll PC is declared, in `games/timeplt/manifest.js`
+  `convergence`: the drain gets one pass per NMI instead of a frame's worth, so the ring backs up
+  where the cycle-driven engine never lets it. That is sound for a **transparency** gate, where
+  both runs are the same engine and only their difference is read; it is not a model to converge
+  against MAME with. When you cannot find a yield, say which loop you picked and what it costs.
+- **The mixed layer only survives if SP gets back where it started.** A translated call site pushes
+  the return address and the translated callee's `ret` pops it; an idiomatic rewrite has no `ret`
+  and returns to JS, so every translated → idiomatic dispatch leaks two bytes of stack. **Ask what
+  heals that in the new game, and do not assume anything heals it.** The three ported so far answer
+  differently: The Pit re-seats SP from a literal at the top of every main-loop pass, so its leak
+  is gone once a frame; DK's idiomatic callers drop the oracle's `push16`/`ret` bracket at the call
+  site, so the bytes are never pushed (`games/dkong/manifest.js`); Time Pilot does neither — it
+  seats SP once at boot and never again, and unhealed the stack walks out of its scratch band and
+  through live work RAM inside a frame or two, ending in an unmapped write out of the foreground
+  loop holding a garbage pointer. Where nothing heals it, the seam must:
+  `games/timeplt/machine.js` `withOmittedRet` performs the omitted `ret` (pop AND pc — a foreground
+  loop that tests where a handler returned to needs both) around every resolved override, so the
+  whole layer and a hand-picked subset go in over one seam.
+- **A seam that supplies a `ret` has a PRECONDITION, and it is violated in practice.** It is right
+  only for a routine whose ROM form has a net stack effect of exactly one `ret`. A rewrite of a
+  routine that pops more than its caller pushed gets OVER-popped, and its SP climbs *above* the
+  power-on seat until a push lands in whatever sits above the stack. Wiring an untested batch of
+  Time Pilot rewrites produced exactly this on five of seven addresses. Measure SP across every
+  dispatch rather than trusting the byte diff to explain it — the byte diff reports a corrupted
+  sprite cell and names no routine.
+- **Bound the stack exclusion by the MEASURED STACK, never by the game-state ceiling.** Those are
+  different numbers and the gap between them is dead space that nothing writes — which is exactly
+  where a leaking SP lands first. Excluding it buys blindness at the one place the seam can fail:
+  on Time Pilot the tooth's bounded leak is invisible for an ENTIRE run under a ceiling-floored
+  window and is caught in the first few dozen frames under a stack-floored one.
+
 ## Go-live — running the WHOLE game idiomatic
 
 `runCycleFree` detects the frame boundary via **`m.step` reaching a poll PC**. That only works while

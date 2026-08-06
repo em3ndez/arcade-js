@@ -206,8 +206,10 @@ export class AddressSpace {
       if (d.kind === "unmapped") { this.unmappedWrites++; return; }
       if (d.kind === "scanline_sound") { this.io.writeSoundData(value); return; }
       if (d.kind === "dsw1_watchdog") { this.io.kickWatchdog(); return; }
-      // The LS259 sits at 0xC300-0xC30F and takes its bit index from offset>>1, with
-      // the data on d0. Only that 16-byte window latches; the port mirrors do not.
+      // The LS259 sits at 0xC300-0xC30F, bit index from offset>>1 and data on d0; only that
+      // 16-byte window latches, the mirrors do not. NOT offset&7, which the boot clear-walk over
+      // 0xC300-0xC307 fits equally: under &7 nothing ever sets flipscreen, so every frame would
+      // render inverted -- and the pixel gate against the real machine says they do not.
       if (addr >= 0xc300 && addr <= 0xc30f) {
         this.io.writeControlLatch((addr - 0xc300) >> 1, value & 1);
         return;
@@ -220,8 +222,7 @@ export class AddressSpace {
       return;
     }
 
-    // Unmapped writes go nowhere on the real board. Counted, not thrown, for symmetry
-    // with the read side -- but a nonzero count is worth looking at.
+    // Counted, not thrown, for symmetry with the read side -- a nonzero count is worth a look.
     this.unmappedWrites++;
   }
 

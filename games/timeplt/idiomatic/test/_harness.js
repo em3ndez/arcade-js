@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Shared entry-capture harness for the Time Pilot idiomatic gates. Every gate drives the same tape
- * the pixel gate uses — coin, then start — so a captured entry is taken while the game is being
- * PLAYED. Undriven attract does eventually dispatch these routines too; the tape buys the quality
- * of the entry (live objects, not an idle loop), not merely reaching one. Frame numbers are the
- * JS-side tape, one frame later than the lua tape; that offset is derived in tools/pixel_suite.py.
+ * Shared entry-capture harness for the Time Pilot idiomatic gates. Every gate drives the tape the
+ * pixel gate uses — coin, then start — so an entry is captured while the game is PLAYING; attract
+ * reaches these routines too, but the tape buys the QUALITY of the entry. Frames are the JS-side
+ * tape, one later than the lua, per tools/pixel_suite.py.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -23,8 +22,8 @@ const IN0 = 0xc300;
 
 /**
  * Frames before giving up on an entry. Measured: the batch's latest first dispatch is frame 1092,
- * and 900 made two of ten throw "never entered". Raising this cannot fix a gate whose FIRST
- * dispatch is uninformative — unitEquivalence clones the first entry, not the first useful one.
+ * and 900 made two of ten throw "never entered". Raising it cannot fix a gate whose FIRST dispatch
+ * is uninformative — unitEquivalence clones the first entry, not the first useful one.
  */
 export const ENTRY_FRAMES = 1400;
 
@@ -53,7 +52,14 @@ function romImages() {
   return cached;
 }
 
-/** makeMachine for unitEquivalence: overrides over the translated registry, tape armed. */
+/**
+ * makeMachine for unitEquivalence: overrides over the translated registry, tape armed. WIRED RAW,
+ * and CORRECT raw: the map holds ONE entry, the entry-capture probe, and that probe calls the
+ * frozen ORACLE, which rets for itself -- the two arms unitEquivalence compares are direct calls
+ * that never consult the map. Wrapping it with machine.js's `withOmittedRet` would hand the oracle
+ * a SECOND ret, over-popping two bytes per dispatch, OPPOSITE the leak the seam fixes. Measured:
+ * routed, the host dies in the ring drain and 210 of 246 tests across eight gates fail.
+ */
 export function makeMachine(overrides, opts = {}) {
   const { rom, tiles, sprites, proms } = romImages();
   const routines = buildRoutines();

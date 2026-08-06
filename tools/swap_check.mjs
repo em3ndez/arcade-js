@@ -23,17 +23,22 @@
  *
  * ★ THE FRAME BUDGET IS PART OF THE INSTRUMENT AND THE DEFAULT BELOW IS TOO SHORT. One parallax
  * wrapper swapped for its sibling read TRANSPARENT at 600 frames and was caught at 937 on timeplt
- * attract — but at 870 on its tape, so the frame a break surfaces at is per-game AND per-scenario.
+ * attract — but at 870 on its tape, so the frame a break surfaces at is scenario-dependent.
  * A green bounds divergence only over the frames run; raise --frames before believing one.
+ *
+ * ★ TWO KNOWN LIMITS. (1) NOTHING HERE DRIVES INPUT: a break the attract loop never reaches reads
+ * TRANSPARENT, and a credited, playing machine is unreachable by construction — which is what a
+ * game's own idiomatic/test/assembled-swap.test.js replays tapes for. (2) THE POLL EXCLUSION below
+ * resolves its PC against the SPARSE ROUTINES map, so it names the rewrite nearest BELOW the poll
+ * PC, not necessarily the one containing it: conservative, but the line it prints is not evidence.
  *
  * Usage:
  *   node tools/swap_check.mjs --game thepit [--frames 720] [--all | --routines 0x1234,0x5678]
  *   (default: whatever is in manifest.optimized)
  *
- * Exit 0 = TRANSPARENT (every COMPARED byte identical on every frame — the stack window is
- * excluded), 1 = a wired swap changed the assembled run, 2 = usage/IO. The two runs are named
- * throughout: BASELINE is pure translated, TEST is the one with rewrites wired live.
- * NOTE a length mismatch also reports as DIVERGED: read the "run coverage" line first — a test run
+ * Exit 0 = TRANSPARENT (every COMPARED byte identical every frame; the stack window is excluded),
+ * 1 = a wired swap changed the run, 2 = usage/IO. BASELINE is the pure-translated run, TEST the
+ * wired one. A length mismatch also reports DIVERGED, so read "run coverage" first — a test run
  * that stopped early has a real error to fix before its RAM diff means anything.
  */
 import { fileURLToPath } from "node:url";
@@ -110,6 +115,15 @@ async function main() {
   const excludedPoll = pollRoutines.filter((a) => spec[a.toString(16)]);
   for (const a of pollRoutines) delete spec[a.toString(16)];
   const nWired = Object.keys(spec).length;
+  // A run wiring NOTHING cannot fail, so a pass would say only that the game boots — and it is
+  // reachable by accident: the default mode reads manifest.optimized, absent in some games.
+  if (nWired === 0) {
+    console.error(
+      `swap_check [${args.game}]: no routine wired (mode ${args.mode}), so there is nothing to ` +
+        "compare and a pass would be vacuous. Use --all or --routines.",
+    );
+    process.exit(2);
+  }
   const baseUrl = new URL("machine.js", `file://${gameDir}/`).href;
   const overridesRaw = await resolveOverrides(spec, baseUrl);
 

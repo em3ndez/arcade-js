@@ -8,7 +8,8 @@
  *
  * These callees re-seat the stack and spin forever, so dissolving such a tail to a direct call
  * makes the caller's test spin too -- the loop can no longer be stubbed through the registry, and
- * a direct call is memory-equivalent anyway. The tails stay m.call.
+ * a direct call is memory-equivalent anyway. The tails stay m.call. A POLL routine qualifies for a
+ * second, measured reason -- docs/idiomatic-generation.md, Part VI.
  */
 export const ALLOWED = {
   thepit: {
@@ -20,6 +21,9 @@ export const ALLOWED = {
     "resetStateAndShowSetup.js": [0x01f9], // -> reset/entry handler (re-enters play)
     "submitHighScoresAndReset.js": [0x01f9],
     "rearmMachineAndBranchOnCredits.js": [0x021c], // -> credit-screen hold (displays forever)
+  },
+  timeplt: {
+    "loc_00a8.js": [0x0b93], // -> the foreground command-ring drain, and the game's only poll PC
   },
 };
 
