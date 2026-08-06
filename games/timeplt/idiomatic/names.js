@@ -157,4 +157,64 @@ export const ROUTINES = {
     cert: "code",
     why: "no file calls both this and the sibling retire helper -- the two caller sets are statically disjoint, which is what makes them two families' helpers rather than two versions of one; and loc_3dfb re-arms a cooldown byte after calling it, a slot going back on cooldown rather than an object deleted",
   },
+  0x0010: {
+    name: "loc_0010",
+    role: "fetch the two-byte entry an index selects from a word table and hand back both the word and the address past it",
+    cert: "code",
+  },
+  0x0028: {
+    name: "loc_0028",
+    role: "step the character-cell cursor one cell back along the line being drawn, the inverse of the advance vector",
+    cert: "code",
+  },
+  0x018c: {
+    name: "loc_018c",
+    role: "fetch the word an index selects from a word table; the callers all discard the advanced cursor, so this hands back only the word",
+    cert: "code",
+  },
+  0x0b06: {
+    name: "loc_0b06",
+    role: "stamp the four fixed pieces of the copyright caption into the display-list shadow; it reads nothing, so re-stamping changes nothing",
+    cert: "code",
+  },
+  0x0f11: {
+    name: "loc_0f11",
+    role: "advance the outer sequence phase and restart its inner step index at zero",
+    cert: "code",
+  },
+  0x1319: {
+    name: "loc_1319",
+    role: "fill a fixed-length run of character cells with one byte, stepping a cell at a time along the line",
+    cert: "code",
+  },
+  0x15b6: {
+    name: "loc_15b6",
+    role: "zero every slot of the vertical sprite shadow band, which parks all of them above the first visible line, hiding them without retiring any",
+    cert: "code",
+  },
+  0x2b52: {
+    name: "loc_2b52",
+    role: "count a held object's release delay down and, when it expires, step its state code to the live one and re-arm the delay",
+    cert: "code",
+  },
+  0x2bef: {
+    name: "loc_2bef",
+    role: "turn an object's heading one step toward the heading it aims at, the short way round, at a rate a small table supplies for the current mode cell",
+    cert: "code",
+  },
+  0x3058: {
+    name: "loc_3058",
+    role: "place an object's next sprite tile flush against the current one and step both cursors onto it",
+    cert: "code",
+  },
+  0x51de: {
+    name: "loc_51de",
+    role: "post a scoring command to the ring, stepping the award up while consecutive hits keep landing inside the chain window and wrapping back round after the eighth",
+    cert: "code",
+  },
+  0x596e: {
+    name: "loc_596e",
+    role: "look up the velocity vector for a heading: two perpendicular components a quarter turn apart, read from the table the caller supplies",
+    cert: "code",
+  },
 };

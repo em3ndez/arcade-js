@@ -4,9 +4,8 @@
  *
  * GATE: crafted-entry, because the strict gate CANNOT run here. The shipped coin -> start tape
  *   never reaches 0x1319 within ENTRY_FRAMES — nor in 20000 frames, nor undriven, nor under a
- *   tape that re-coins every thirty seconds. All six of its callers are dark as well (0x1323,
- *   0x142A, 0x14C5, 0x49FA, 0x4A0F, 0x4A42), so this is an UNREACHED routine and no frame
- *   budget fixes that.
+ *   tape that re-coins every thirty seconds. Its callers are dark as well (0x142A, 0x14C5,
+ *   0x49FA, 0x4A0F, 0x4A42), so this is an UNREACHED routine and no frame budget fixes that.
  *   unitEquivalence throws "never entered", and the first arm ASSERTS the throw rather than
  *   quietly raising maxFrames past what the harness exports.
  *
