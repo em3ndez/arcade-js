@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_58bc — memory-equivalent to the frozen oracle at ROM 0x58BC.
+ * flyAlongHeading — memory-equivalent to the frozen oracle at ROM 0x58BC.
  *
  * GATE: strict unit-capture, a corpus of real dispatches from three tapes, an exhaustive heading
  *   sweep, a crafted cross over the two displacement cells and the four coordinate bytes, and a
@@ -56,7 +56,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_58bc } from "../loc_58bc.js";
+import { flyAlongHeading } from "../flyAlongHeading.js";
 import { loc_58bc as oracle } from "../../translated/loc_58bc.js";
 import {
   firstStateDiff,
@@ -203,7 +203,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_58bc);
+  if (entry === null) gate(flyAlongHeading);
   return entry;
 }
 
@@ -313,8 +313,8 @@ function replay(candidate) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_58bc == oracle on RAM", { skip }, () => {
-  const r = gate(loc_58bc);
+test("EQUAL at the real dispatch: flyAlongHeading == oracle on RAM", { skip }, () => {
+  const r = gate(flyAlongHeading);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
@@ -339,7 +339,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_58bc(b);
+  flyAlongHeading(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -358,7 +358,7 @@ test("DEAD FIRST DISPATCH: doubling the budget captures the SAME entry", { skip 
   let later = null;
   unitEquivalence(makeMachine, TARGET, oracle, (m) => {
     if (later === null) later = m.clone();
-    return loc_58bc(m);
+    return flyAlongHeading(m);
   }, { maxFrames: 2 * ENTRY_FRAMES });
   assert.notEqual(later, null, "vacuous: the doubled budget never reached the routine");
   assert.equal(keyOf(later), keyOf(first), "a longer run must not change which entry is cloned");
@@ -405,7 +405,7 @@ test("UNIFORM CORPUS: real play holds one table and skips a band of headings", {
 test("CORPUS: every captured (table, heading) pair replays identically", { skip }, () => {
   const { entries } = captureCorpus();
   for (const captured of entries) {
-    const d = unitDiff(loc_58bc, captured);
+    const d = unitDiff(flyAlongHeading, captured);
     assert.equal(d, null, `${keyOf(captured)}: ${show(d)}`);
   }
   console.log(`  CORPUS: ${entries.length} distinct pairs replayed, RAM identical on each`);
@@ -415,7 +415,7 @@ test("EXHAUSTIVE: 256 headings on each of the four tables are identical", { skip
   let swept = 0;
   for (const table of TABLES) {
     for (const heading of everyHeading) {
-      const d = unitDiff(loc_58bc, selector(table, heading));
+      const d = unitDiff(flyAlongHeading, selector(table, heading));
       assert.equal(d, null, `${hex4(table)}/${heading}: ${show(d)}`);
       swept++;
     }
@@ -426,7 +426,7 @@ test("EXHAUSTIVE: 256 headings on each of the four tables are identical", { skip
 
 test("CRAFTED: every displacement x position x selector combination is identical", { skip }, () => {
   for (const [sel, p] of cross()) {
-    const d = unitDiff(loc_58bc, craft(sel, p));
+    const d = unitDiff(flyAlongHeading, craft(sel, p));
     assert.equal(d, null, `${hex4(sel[0])}/${sel[1]} ${JSON.stringify(p)}: ${show(d)}`);
   }
   const expected = SELECTORS.length * SCROLLS.length ** 2 * POSITIONS.length;
@@ -437,12 +437,12 @@ test("CRAFTED: every displacement x position x selector combination is identical
 test("CARRY: a fraction swept 0..255 carries into the whole byte as the oracle does", { skip }, () => {
   const priors = carryPriors();
   for (const p of priors) {
-    const d = unitDiff(loc_58bc, craft(SELECTORS[0], p));
+    const d = unitDiff(flyAlongHeading, craft(SELECTORS[0], p));
     assert.equal(d, null, `fraction=${p.fA}: ${show(d)}`);
   }
   const wrapped = craft(SELECTORS[1], { wA: 255, fA: 255, wB: 0, fB: 0, dA: 1, dB: 0 });
   assert.equal(componentsOf(wrapped)[0], 0, "this selector's first component must be zero here");
-  loc_58bc(wrapped);
+  flyAlongHeading(wrapped);
   assert.equal(wrapped.mem8[wholeFirst(wrapped)], 0, "the whole byte must round, not widen");
   assert.equal(wrapped.mem8[fractionFirst(wrapped)], 0, "and the fraction must round with it");
   console.log(`  CARRY: ${priors.length} fractions identical, including the wrap to zero`);
@@ -462,7 +462,7 @@ test("EXHAUSTIVE: the shim charges exactly what the oracle charges", { skip }, (
 });
 
 test("WHOLE-MACHINE: driven play is byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_58bc);
+  const w = replay(flyAlongHeading);
   const fired = w.invocations.get(TARGET);
   assert.ok(fired > 0, "vacuous: the override never dispatched in this many frames");
   assert.equal(w.framesCompared, WHOLE_FRAMES, "the replay ran short of the frames asked for");

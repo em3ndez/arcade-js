@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0bff — paint one caption into the character plane and give every cell of it one colour.
+/** drawTextRun — paint one caption into the character plane and give every cell of it one colour.
  * Glyphs are taken in order from a run that ends at a fixed terminating code. That code is
  * tested BEFORE anything is written, so an empty run paints nothing and the code itself is
  * never painted. Each glyph goes to the cell the cursor names, the caller's colour goes to the
@@ -14,7 +14,7 @@ import { advanceCharCursor } from "./advanceCharCursor.js";
 const END_OF_TEXT = 185;
 const CHARACTER_PLANE_BIT = 0x0400;
 
-export function loc_0bff(m) {
+export function drawTextRun(m) {
   const { regs, mem8 } = m;
   let nextGlyph = regs.hl;
   for (;;) {

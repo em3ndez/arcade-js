@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1098 — memory-equivalent to the frozen oracle at ROM 0x1098.
+ * multiplexSpriteSlots — memory-equivalent to the frozen oracle at ROM 0x1098.
  *
  * GATE: strict unit-capture, a captured corpus over two tapes, three crafted sweeps over the
  *   eight slots, and all three callers replayed whole. Registers are dropped by the contract,
@@ -56,7 +56,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1098 } from "../loc_1098.js";
+import { multiplexSpriteSlots } from "../multiplexSpriteSlots.js";
 import { loc_1098 as oracle } from "../../translated/loc_1098.js";
 import { loc_1199 } from "../../translated/loc_1199.js";
 import { loc_16af } from "../../translated/loc_16af.js";
@@ -314,8 +314,8 @@ function runSession(impl) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_1098 == oracle on RAM at the real dispatch", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_1098, { maxFrames: ENTRY_FRAMES });
+test("CONTRACT: multiplexSpriteSlots == oracle on RAM at the real dispatch", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, multiplexSpriteSlots, { maxFrames: ENTRY_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   console.log(`  CONTRACT: entered within ${ENTRY_FRAMES} frames; RAM identical`);
 });
@@ -343,7 +343,7 @@ test("CORPUS: every distinct captured slot state replays identically", { skip },
   assert.ok(full > 0, "no captured state has every slot requesting");
 
   for (const entry of entries) {
-    const d = ramDiff(loc_1098, entry);
+    const d = ramDiff(multiplexSpriteSlots, entry);
     assert.equal(d, null, `${stateKey(entry)} — ${show(d)}`);
   }
   console.log(
@@ -360,7 +360,7 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
     const a = e.clone();
     const b = e.clone();
     oracle(a);
-    loc_1098(b);
+    multiplexSpriteSlots(b);
     for (const k of REG_FIELDS) {
       if (a.regs[k] === b.regs[k]) continue;
       union.add(k);
@@ -389,28 +389,28 @@ test("SWEEP A: all 256 request patterns land what the oracle lands", { skip }, (
       "sweeps below are timing the wait rather than the writes",
   );
 
-  const { caught, patterns } = sweepPatterns(loc_1098);
+  const { caught, patterns } = sweepPatterns(multiplexSpriteSlots);
   assert.equal(patterns, 256, "the sweep did not walk every request pattern");
   assert.equal(caught, 0, "a request pattern diverged");
   console.log(`  SWEEP A: 256 patterns identical; the pin costs ${pinned.cycles - before} T-states`);
 });
 
 test("SWEEP B: each slot's request byte over every value", { skip }, () => {
-  const { caught, runs } = sweepRequests(loc_1098);
+  const { caught, runs } = sweepRequests(multiplexSpriteSlots);
   assert.equal(runs, 2048, "the sweep did not walk every slot and value");
   assert.equal(caught, 0, "a request value diverged");
   console.log(`  SWEEP B: ${runs} slot-and-value combinations identical`);
 });
 
 test("SWEEP C: each slot's partner byte over every value, wrap included", { skip }, () => {
-  const { caught, runs } = sweepPartners(loc_1098);
+  const { caught, runs } = sweepPartners(multiplexSpriteSlots);
   assert.equal(runs, 2048, "the sweep did not walk every slot and value");
   assert.equal(caught, 0, "a partner value diverged");
 
   const wrapped = craftedEntry().clone();
   wrapped.mem8[SLOTS[0].request] = HALF;
   wrapped.mem8[SLOTS[0].partner] = 200;
-  loc_1098(wrapped);
+  multiplexSpriteSlots(wrapped);
   assert.equal(wrapped.mem8[SLOTS[0].request], 0, "the request must be cleared, not decremented");
   assert.equal(wrapped.mem8[SLOTS[0].partner], 72, "the partner must wrap in a byte, not widen");
   console.log(`  SWEEP C: ${runs} slot-and-value combinations identical, including the wrap`);
@@ -420,7 +420,7 @@ test("CALLERS: every caller is unchanged by wiring the rewrite underneath it", {
   const reached = captureCallers();
   assert.equal(reached.length, 6, "each of the three callers must be captured under both tapes");
   for (const caller of reached) {
-    const d = callerDiff(caller, loc_1098);
+    const d = callerDiff(caller, multiplexSpriteSlots);
     assert.equal(d, null, `${hex4(caller.addr)} ${caller.tape}: ${d?.why}`);
   }
   console.log(`  CALLERS: ${reached.map((c) => `${hex4(c.addr)}/${c.tape}`).join(" ")} identical`);
@@ -429,7 +429,7 @@ test("CALLERS: every caller is unchanged by wiring the rewrite underneath it", {
 test("CALLERS: the rewrite leaves the pushed return standing, by exactly two bytes", { skip }, () => {
   for (const caller of captureCallers()) {
     const a = runCaller(caller, oracle);
-    const b = runCaller(caller, loc_1098);
+    const b = runCaller(caller, multiplexSpriteSlots);
     assert.equal(
       a.m.regs.sp - b.m.regs.sp,
       2 * a.fired,
@@ -585,7 +585,7 @@ test("NO SESSION ARM: the hold is load-bearing in a live cycle-driven run", { sk
   assert.equal(base.stoppedBy, null, `the all-oracle baseline stopped early: ${base.stoppedBy}`);
   assert.equal(base.frames.length, SESSION_FRAMES, "the all-oracle baseline is short of frames");
 
-  const live = runSession(loc_1098);
+  const live = runSession(multiplexSpriteSlots);
   assert.ok(live.fired > 0, "vacuous: the rewrite never dispatched in the live run");
   let fork = null;
   for (let f = 0; f < Math.min(base.frames.length, live.frames.length) && fork === null; f++) {

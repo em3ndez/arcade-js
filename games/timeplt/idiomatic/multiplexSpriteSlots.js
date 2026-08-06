@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1098 — give eight display-list slots a second appearance, half a screen away.
+/** multiplexSpriteSlots — give eight display-list slots a second appearance, half a screen away.
  *
  * A slot is a pair of bytes and the high bit of the first one is a request. Where it is set,
  * the pair trades half a byte range: the requester gives that half up and the partner takes it
@@ -21,7 +21,7 @@ const SPLIT_SLOTS = [
 
 const HALF_RANGE = 128;
 
-export function loc_1098(m) {
+export function multiplexSpriteSlots(m) {
   const { mem8 } = m;
   for (const slot of SPLIT_SLOTS) {
     const request = mem8[slot.request];

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_58bc — fly one object a single step along the heading it holds, while the world scrolls
+/** flyAlongHeading — fly one object a single step along the heading it holds, while the world scrolls
  * underneath it. That heading picks a pair of perpendicular components out of the speed
  * table the caller chose; each of the object's two coordinates then gains its own component PLUS
  * a per-frame displacement held in a fixed pair of cells, shared by every object rather than read
@@ -11,7 +11,7 @@ import { velocityForHeading } from "./velocityForHeading.js";
 
 const CURRENT_HEADING = 2;
 
-export function loc_58bc(m, table = m.regs.hl) {
+export function flyAlongHeading(m, table = m.regs.hl) {
   const object = m.regs.ix;
   const sprite = m.regs.iy;
 

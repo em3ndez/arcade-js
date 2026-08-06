@@ -55,6 +55,34 @@ as a whole rather than one batch at a time. This separation
 is not stylistic: `reviewer-rules.md` classifies every commit as one or the other, and R1 forbids two
 DECOMPILE commits in a row with no UNDERSTANDING between them.
 
+### ★ The proposals file belongs to the DECOMPILE batch, not to the promotion
+
+R4 wants a name to appear in a proposals file and to be judged in a *separate* confirmer file, by a
+different agent. That only works if the proposals are written when the routines are lifted. Backfill
+them at promotion time and the ordering collapses: the confirmer has nothing to judge but the
+registry `role` lines, and any routine those lines left unnamed gets its name invented by the
+confirmer — who is then judging its own proposal, which is the one thing R4 exists to prevent.
+
+So each DECOMPILE batch writes its proposals as it goes, and the promotion pass adds only the
+confirmer's file beside it. If a batch reaches promotion with no proposals file, the honest repair
+is to say so in the file you write, mark which names originated with the confirmer, and get a
+DIFFERENT agent to confirm those.
+
+### ★ An authoring agent must never `git add`. The lead stages.
+
+When routines are lifted by parallel agents, tell each one to write its files and stop. If an agent
+stages its own work, it silently changes the staged diff — and `review_gate` binds a review token to
+the *exact* staged diff, so any review already in flight against another unit is invalidated the
+moment an unrelated agent finishes. The reviewer then reports that the id moved, and a whole review
+round is wasted for a reason that has nothing to do with the code it was reading.
+
+The failure is quiet in the direction that matters: nothing errors, and the token simply no longer
+matches. The lead stages, one unit at a time, and unstages anything an agent added.
+
+The same reasoning says **do not run a naming/rename pass while authoring agents are live.** Their
+modules import their callees by filename; a rename lands under them and breaks imports mid-flight.
+Collect the batch first, then rename.
+
 For each DECOMPILE batch:
 
 1. **Pick ~10 routines with no un-decompiled callees.** Re-derive the leaf set *each* batch by
@@ -246,12 +274,24 @@ Three rules fall out:
    answer the same question** — and when a claim has been wrong twice, the next correction is the one
    to distrust most.
 
-### Two limits of the sweep method itself — both silent
+### Three limits of the sweep method itself — all silent
 
 `tools/reach_sweep.lua` is the game-agnostic implementation (`ADDRLIST`, `REACHOUT`, `CTXCELLS`, and
 a `DRIVER` chunk that coins up and drives inputs). **Without a `DRIVER` it measures attract mode
 only**, which is the single easiest way to produce a falsely large not-reached set. Two further
-limits carry to any new game, and neither raises an error:
+limits carry to any new game, and none raises an error:
+
+- **A hit count is not a dispatch count for a routine that WAITS.** Where a routine spins on the
+  raster or on any other poll, the program counter passes its entry region on every turn of the
+  wait, and the tap counts each turn. The inflation is not marginal: an address measured at *zero*
+  dispatches inside our own machine reported tens of thousands of PC hits on the real one, purely
+  because it lies inside a busy spin and is never called at all in that run. Two agents pointed at
+  the same question with different instruments produced confident and **opposite** orderings.
+  When comparing two routines that both wait, the hit count settles nothing — fall back to the
+  decidable facts: static call sites (`grep -hoE "(call|jp|jr) ([a-z]+,)?0xADDR"` over
+  `translated/`), and the structure of the wait itself. Say which you used. Note the call-site
+  count *undercounts* in turn, because table dispatch is invisible to it — so where both are
+  unsatisfying, the honest write-up is "not established", not the number you happen to have.
 
 - **Encrypted / decrypted-opcodes sets.** A program-space read tap counts executions only where the
   CPU fetches opcodes through that space. On a driver with a separate `AS_OPCODES` region the tap

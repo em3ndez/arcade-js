@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_303e — memory-equivalent to the frozen oracle at ROM 0x303E.
+ * displaceByThreeQuarters — memory-equivalent to the frozen oracle at ROM 0x303E.
  *
  * GATE: strict unit-capture, a corpus of real dispatches from three tapes, two exhaustive sweeps
  *   of the whole input space, and a whole-machine replay of driven play. RAM ALONE CANNOT GATE
@@ -59,7 +59,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_303e } from "../loc_303e.js";
+import { displaceByThreeQuarters } from "../displaceByThreeQuarters.js";
 import { loc_303e as oracle } from "../../translated/loc_303e.js";
 import {
   firstStateDiff,
@@ -254,8 +254,8 @@ function replay(candidate, mk = turningMachine) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_303e == oracle on RAM at the real dispatch", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_303e, { maxFrames: ENTRY_FRAMES });
+test("CONTRACT: displaceByThreeQuarters == oracle on RAM at the real dispatch", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, displaceByThreeQuarters, { maxFrames: ENTRY_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
   console.log(`  CONTRACT: entered within ${ENTRY_FRAMES} frames; RAM identical`);
 });
@@ -275,7 +275,7 @@ test("DEGENERATE ENTRY: the first dispatch carries a zero displacement", { skip 
   let entry = null;
   unitEquivalence(makeMachine, TARGET, oracle, (m) => {
     if (entry === null) entry = m.clone();
-    return loc_303e(m);
+    return displaceByThreeQuarters(m);
   }, { maxFrames: ENTRY_FRAMES });
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
@@ -300,7 +300,7 @@ test("CORPUS: every captured displacement replays identically", { skip }, () => 
     assert.ok(t.dispatches > 0, `vacuous: the ${t.label} tape never reached the routine`);
   }
   for (const entry of entries) {
-    const d = unitDiff(loc_303e, entry);
+    const d = unitDiff(displaceByThreeQuarters, entry);
     assert.equal(d, null, `${hex4(entry.regs.hl)}: ${d}`);
   }
   const seen = perTape
@@ -313,7 +313,7 @@ test("EXCLUDED, deliberately: only the dropped registers move, over a whole swee
   const moved = new Set();
   const held = anEntry().regs.de;
   for (const displacement of everyValue) {
-    const { a, b } = runPair(loc_303e, displacement, held);
+    const { a, b } = runPair(displaceByThreeQuarters, displacement, held);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   }
@@ -331,13 +331,13 @@ test("EXHAUSTIVE: both axes sweep clean over all 65536 values", { skip }, () => 
   const coordinate = anEntry().regs.de;
   const displacement = realNegative();
   for (const [axis, held] of [["displacement", coordinate], ["coordinate", displacement]]) {
-    const { caught } = sweep(loc_303e, axis, held);
+    const { caught } = sweep(displaceByThreeQuarters, axis, held);
     assert.deepEqual(caught, [], `${axis} sweep diverged at ${caught.slice(0, 4).map(hex4)}`);
   }
-  const wrapped = runPair(loc_303e, 4, WIDTH - 1);
+  const wrapped = runPair(displaceByThreeQuarters, 4, WIDTH - 1);
   assert.equal(wrapped.a.regs.hl, 2, "a coordinate at the top must wrap at 16 bits, not widen");
   assert.equal(wrapped.b.regs.hl, wrapped.a.regs.hl, "and the rewrite must wrap with it");
-  const direct = loc_303e(anEntry().clone(), 4, WIDTH - 1);
+  const direct = displaceByThreeQuarters(anEntry().clone(), 4, WIDTH - 1);
   assert.equal(direct, wrapped.a.regs.hl, "handing the pair in as parameters must land identically");
   console.log(
     `  EXHAUSTIVE: ${WIDTH} displacements against coordinate ${hex4(coordinate)} and ${WIDTH} ` +
@@ -357,7 +357,7 @@ test("EXHAUSTIVE: the shim charges exactly what the oracle charges", { skip }, (
 });
 
 test("WHOLE-MACHINE: driven play is byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_303e);
+  const w = replay(displaceByThreeQuarters);
   const fired = w.invocations.get(TARGET);
   assert.ok(fired > 0, "vacuous: the override never dispatched in this many frames");
   assert.equal(w.framesCompared, WHOLE_FRAMES, "the replay ran short of the frames asked for");

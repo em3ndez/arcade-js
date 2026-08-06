@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0bff — memory-equivalent to the frozen oracle at ROM 0x0BFF.
+ * drawTextRun — memory-equivalent to the frozen oracle at ROM 0x0BFF.
  *
  * GATE: unit-capture at the real first dispatch through unitEquivalence, widened to a REPLAY of
  *   EVERY dispatch the coin -> start tape produces, plus four crafted entries for arms the tape
@@ -44,7 +44,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0bff } from "../loc_0bff.js";
+import { drawTextRun } from "../drawTextRun.js";
 import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_0bff as oracle } from "../../translated/loc_0bff.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -196,7 +196,7 @@ test("EQUAL at the real dispatch, stack scratch aside", { skip }, () => {
   let harvested = null;
   const r = unitEquivalence(makeMachine, TARGET, oracle, (m) => {
     if (harvested === null) harvested = m.clone();
-    return loc_0bff(m);
+    return drawTextRun(m);
   }, { maxFrames: ENTRY_FRAMES });
 
   assert.notEqual(harvested, null, "vacuous: the routine was never entered");
@@ -210,7 +210,7 @@ test("EQUAL at the real dispatch, stack scratch aside", { skip }, () => {
   assert.notEqual(r.ram, null, "the oracle's pushed return address must show up here");
   assert.ok(window.includes(r.ram.addr), `RAM diverged off the stack — ${hex4(r.ram.addr)}`);
 
-  const diverged = divergences(harvested, loc_0bff);
+  const diverged = divergences(harvested, drawTextRun);
   assert.deepEqual(diverged, window, `the differing set must be exactly the pushed word`);
   console.log(`  EQUAL: RAM identical outside ${hex4(window[0])}..${hex4(window[1])}`);
 });
@@ -231,7 +231,7 @@ test("EXCLUDED, deliberately: three registers and pc move, and nothing else", { 
   const a = first.clone();
   const b = first.clone();
   oracle(a);
-  loc_0bff(b);
+  drawTextRun(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["a", "f", "sp"], "the excluded set changed shape");
@@ -245,7 +245,7 @@ test("CORPUS: every captured dispatch replays identically", { skip }, () => {
   const { entries } = corpus();
   let moved = 0;
   for (const state of entries) {
-    const diverged = outsideWindow(state, loc_0bff);
+    const diverged = outsideWindow(state, drawTextRun);
     assert.deepEqual(diverged, [], `a dispatch diverged — ${list(diverged)}`);
     if (footprint(state).length) moved++;
   }
@@ -258,7 +258,7 @@ test("THE WINDOW IS MINIMAL: two bytes wide, and both edges stay clean", { skip 
   const { entries } = corpus();
   let bothBytes = 0;
   for (const state of entries) {
-    const diverged = divergences(state, loc_0bff);
+    const diverged = divergences(state, drawTextRun);
     for (const edge of windowEdges(state)) {
       assert.ok(!diverged.includes(edge), `the window widened onto ${hex4(edge)}`);
     }
@@ -289,7 +289,7 @@ test("CRAFTED: the model's cells are exactly the cells the other arm moves", { s
   const actual = [...new Set(footprint(blank))].sort((x, y) => x - y);
   assert.deepEqual(actual, predicted, "the painted-cell model does not match the real footprint");
   assert.equal(predicted.length, 16, "the blank canvas footprint changed size");
-  assert.deepEqual(outsideWindow(blank, loc_0bff), [], "the blank canvas diverged");
+  assert.deepEqual(outsideWindow(blank, drawTextRun), [], "the blank canvas diverged");
   console.log(`  BLANK: ${predicted.length} cells predicted and moved — ${list(predicted)}`);
 });
 
@@ -297,7 +297,7 @@ test("CRAFTED: an empty caption paints nothing at all", { skip }, () => {
   const empty = craftedEmpty();
   assert.equal(runLength(empty), 0, "the crafted entry is not empty");
   assert.equal(footprint(empty).length, 0, "an empty caption must move no cell");
-  assert.deepEqual(divergences(empty, loc_0bff), [], "the empty entry diverged");
+  assert.deepEqual(divergences(empty, drawTextRun), [], "the empty entry diverged");
   console.log("  EMPTY: nothing painted, not even the stack — the run never steps");
 });
 
@@ -308,7 +308,7 @@ test("CRAFTED: a cursor arriving on the colour side", { skip }, () => {
     corpus().entries.every((e) => (e.regs.de & CHARACTER_PLANE_BIT) !== 0),
     "the tape reaches this arm after all, so it need not be crafted",
   );
-  assert.deepEqual(outsideWindow(s, loc_0bff), [], "the colour-side entry diverged");
+  assert.deepEqual(outsideWindow(s, drawTextRun), [], "the colour-side entry diverged");
   console.log("  COLOUR SIDE: the first glyph is overwritten by its own colour, both sides");
 });
 
@@ -316,7 +316,7 @@ test("CRAFTED: the run steps out of the character plane", { skip }, () => {
   const s = craftedPlaneCross();
   const glyphCells = paintedCells(s).filter((_, i) => i % 2 === 0);
   assert.ok(glyphCells.some((c) => c < CHARACTER_PLANE), "the crafted run never leaves the plane");
-  assert.deepEqual(outsideWindow(s, loc_0bff), [], "the plane-crossing entry diverged");
+  assert.deepEqual(outsideWindow(s, drawTextRun), [], "the plane-crossing entry diverged");
   const below = glyphCells.filter((c) => c < CHARACTER_PLANE);
   console.log(`  PLANE CROSS: ${below.length} glyph cell(s) below the plane — ${list(below)}`);
 });

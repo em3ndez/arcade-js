@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2e31 — memory-equivalent to the frozen oracle at ROM 0x2E31.
+ * displaceByFiveQuarters — memory-equivalent to the frozen oracle at ROM 0x2E31.
  *
  * GATE: strict unit-capture through unitEquivalence, PLUS a live-out comparison and a crafted
  *   cross that this file defines, because for THIS routine the RAM half of unitEquivalence has
@@ -49,7 +49,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2e31 } from "../loc_2e31.js";
+import { displaceByFiveQuarters } from "../displaceByFiveQuarters.js";
 import { loc_2e31 as oracle } from "../../translated/loc_2e31.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -96,7 +96,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_2e31);
+  if (entry === null) gate(displaceByFiveQuarters);
   return entry;
 }
 
@@ -342,12 +342,12 @@ function fallout(mutate) {
 
 // ── the contract call ───────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2e31 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_2e31);
+test("EQUAL at the real dispatch: displaceByFiveQuarters == oracle on RAM", { skip }, () => {
+  const r = gate(displaceByFiveQuarters);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
-  const d = atInput(loc_2e31, e.regs.hl, e.regs.de);
+  const d = atInput(displaceByFiveQuarters, e.regs.hl, e.regs.de);
   assert.equal(d, null, `the live-out at the real entry diverged — ${show(d)}`);
   console.log(
     `  EQUAL: entry step ${hex4(e.regs.hl)} position ${hex4(e.regs.de)} within ` +
@@ -402,7 +402,7 @@ test("EXCLUDED, deliberately: the scratch pair, the flag byte, the stack pointer
     b.regs.hl = 0xff00;
     b.regs.de = 0x1234;
     oracle(a);
-    loc_2e31(b);
+    displaceByFiveQuarters(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
     assert.deepEqual(
@@ -460,14 +460,14 @@ test("DROPPED: the registers the rewrite declines to reproduce steer nothing, an
 
 test("FACTORISES: both arms are the step's own column plus the position, unchanged", { skip }, () => {
   const oracleColumn = column(oracle);
-  const rewriteColumn = column(loc_2e31);
+  const rewriteColumn = column(displaceByFiveQuarters);
   let differing = 0;
   for (let step = 0; step < 65536; step++) {
     if (oracleColumn[step] !== rewriteColumn[step]) differing++;
   }
   assert.equal(differing, 0, `${differing} of 65536 steps differ with the position at zero`);
   assert.equal(factorViolations(oracle, oracleColumn), 0, "the oracle does not factorise");
-  assert.equal(factorViolations(loc_2e31, rewriteColumn), 0, "the rewrite does not factorise");
+  assert.equal(factorViolations(displaceByFiveQuarters, rewriteColumn), 0, "the rewrite does not factorise");
   console.log(
     "  FACTORISES: 65536 step columns identical, and both arms decompose on every input of " +
       `the ${SPACE}-input cross`,
@@ -475,11 +475,11 @@ test("FACTORISES: both arms are the step's own column plus the position, unchang
 });
 
 test("CROSS: every input of the enumerated cross is identical, and no byte moves", { skip }, () => {
-  const r = sweep(loc_2e31);
+  const r = sweep(displaceByFiveQuarters);
   assert.equal(r.ram, null, `a byte of memory moved during the sweep — ${show(r.ram)}`);
   assert.equal(r.caught, 0, `${r.caught} of ${SPACE} inputs diverged`);
   for (const [step, position] of [[0xffff, 0], [0xffff, 0xffff], [0x7fff, 0x7fff]]) {
-    const d = atInput(loc_2e31, step, position);
+    const d = atInput(displaceByFiveQuarters, step, position);
     assert.equal(d, null, `${hex4(step)} onto ${hex4(position)}: ${show(d)}`);
   }
   console.log(`  CROSS: ${SPACE} inputs identical, both wrap seams included`);
@@ -528,7 +528,7 @@ test("REAL TRAFFIC: every pair three sessions present, replayed", { skip }, () =
     for (const p of c.pairs) {
       put(p.step, p.position);
       oracle(a);
-      loc_2e31(b);
+      displaceByFiveQuarters(b);
       assert.equal(
         a.regs.hl,
         b.regs.hl,

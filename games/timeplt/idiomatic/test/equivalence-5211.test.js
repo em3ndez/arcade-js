@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5211 — memory-equivalent to the frozen oracle at ROM 0x5211.
+ * destroyTargetsHitByShots — memory-equivalent to the frozen oracle at ROM 0x5211.
  *
  * WHAT IT IS. A nested sweep: six shot records at 0xAA80 (16-byte stride, taken low-byte-only so
  * the page never changes) against a caller-supplied run of target slots, whose state byte lives in
@@ -61,7 +61,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_5211 } from "../loc_5211.js";
+import { destroyTargetsHitByShots } from "../destroyTargetsHitByShots.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
 import { loc_5211 as oracle } from "../../translated/loc_5211.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -108,7 +108,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_5211);
+  if (entry === null) gate(destroyTargetsHitByShots);
   return entry;
 }
 
@@ -490,8 +490,8 @@ function firstActing(name) {
 
 // ── the contract, and its vacuity ───────────────────────────────────────────────────────
 
-test("THE CONTRACT CALL: loc_5211 == oracle on RAM at the real dispatch", { skip }, () => {
-  const r = gate(loc_5211);
+test("THE CONTRACT CALL: destroyTargetsHitByShots == oracle on RAM at the real dispatch", { skip }, () => {
+  const r = gate(destroyTargetsHitByShots);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.equal(r.equal, false, "registers are excluded, so equal must be false here");
@@ -529,21 +529,21 @@ test("ATTRACT: every dispatch of a natural firing session replays identically", 
   const acting = corpusActing("attract");
   assert.equal(states.length, 939, `the attract corpus changed size to ${states.length}`);
   assert.equal(acting, 40, `the attract corpus now acts on ${acting} dispatches`);
-  assert.equal(corpusCaught("attract", loc_5211), 0, "the rewrite diverged on a real dispatch");
+  assert.equal(corpusCaught("attract", destroyTargetsHitByShots), 0, "the rewrite diverged on a real dispatch");
   console.log(`  ATTRACT: ${states.length} dispatches over ${ATTRACT_FRAMES} frames, ` +
     `${acting} of them destroying, all identical`);
 });
 
 test("DRIVEN: every dispatch of the shared tape replays identically", { skip }, () => {
   const { states } = corpus("driven");
-  assert.equal(corpusCaught("driven", loc_5211), 0, "the rewrite diverged on a driven dispatch");
+  assert.equal(corpusCaught("driven", destroyTargetsHitByShots), 0, "the rewrite diverged on a driven dispatch");
   console.log(`  DRIVEN: ${states.length} dispatches identical (and every one a no-op)`);
 });
 
 test("CRAFTED: the whole input space neither session presents", { skip }, () => {
   assert.equal(craftedCaught(CONTROL), 0, "the twin SKELETON is not faithful, so no twin's " +
     "catches can be attributed to its own bug");
-  assert.equal(craftedCaught(loc_5211), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(craftedCaught(destroyTargetsHitByShots), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  CRAFTED: ${CRAFTED_SIZE} comparisons over ` +
     `${Object.keys(CRAFTED).length} groups identical, control included`);
 });
@@ -563,7 +563,7 @@ test("MULTI-KILL: one shot takes four targets in one pass and the chain ramps", 
     "claimed — the fourth target sits outside the box and the fifth inside it");
   assert.deepEqual(fromOracle.scores, [1, 2, 3, 4], "the chain must climb within one dispatch");
   assert.equal(fromOracle.shot, DESTROYED, "the shot must be destroyed alongside its targets");
-  assert.deepEqual(posted(loc_5211), fromOracle, "the rewrite's multi-kill diverged");
+  assert.deepEqual(posted(destroyTargetsHitByShots), fromOracle, "the rewrite's multi-kill diverged");
   console.log(`  MULTI-KILL: slots ${fromOracle.destroyed.join(",")} destroyed by one shot, ` +
     `scores ${fromOracle.scores.join(",")}`);
 });
@@ -576,14 +576,14 @@ test("EXCLUDED, deliberately: registers, pc, and eight scratch bytes on a killin
     const { states } = corpus("attract");
     const moved = new Set();
     for (const s of states) {
-      const { a, b } = runBoth(s, loc_5211);
+      const { a, b } = runBoth(s, destroyTargetsHitByShots);
       for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     }
     assert.deepEqual([...moved].sort(), ["a", "c", "f", "ix", "sp"], "the excluded register set " +
       "changed shape across the corpus");
 
     const killer = firstActing("attract");
-    const { a, b } = runBoth(killer, loc_5211);
+    const { a, b } = runBoth(killer, destroyTargetsHitByShots);
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle pops its return address and the rewrite " +
       "does not — that unpopped word IS the mixed-migration leak, recorded not fixed");
@@ -592,7 +592,7 @@ test("EXCLUDED, deliberately: registers, pc, and eight scratch bytes on a killin
     let shallowest = SCRATCH_BYTES;
     let acting = 0;
     for (const s of states) {
-      const pair = runBoth(s, loc_5211);
+      const pair = runBoth(s, destroyTargetsHitByShots);
       const dirty = allDiffs(pair.a, pair.b).map((d) => d.addr);
       if (dirty.length === 0) continue;
       acting++;

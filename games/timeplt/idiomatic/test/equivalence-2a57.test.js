@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2a57 — memory-equivalent to the frozen oracle at ROM 0x2A57.
+ * spriteForHeading — memory-equivalent to the frozen oracle at ROM 0x2A57.
  *
  * GATE: crafted-entry live-out over the whole input space, every dispatch of a driven session,
  *   and a whole-session substitution with the rewrite actually wired in. The standard
@@ -64,7 +64,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2a57 as rewrite } from "../loc_2a57.js";
+import { spriteForHeading as rewrite } from "../spriteForHeading.js";
 import { loc_2a57 as oracle } from "../../translated/loc_2a57.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -259,7 +259,7 @@ function countDiff(a, b) {
 let session = null;
 function drivenSession() {
   if (session !== null) return session;
-  const labels = ["loc_2a57", ...TWINS.map(([label]) => label)];
+  const labels = ["spriteForHeading", ...TWINS.map(([label]) => label)];
   const arms = [rewrite, ...TWINS.map(([, fn]) => fn)];
   const diverged = new Array(arms.length).fill(0);
   const records = new Set();
@@ -393,7 +393,7 @@ function substitution(candidate) {
 
 // ── the contract ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_2a57 matches the oracle at the real dispatch", { skip }, () => {
+test("CONTRACT: spriteForHeading matches the oracle at the real dispatch", { skip }, () => {
   const r = gate(rewrite);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const top = entryState().regs.sp;
@@ -472,7 +472,7 @@ test("SESSION: every dispatch of a whole driven session, and the run COMPLETED",
   assert.equal(s.stoppedBy, null, `the session stopped early: ${s.stoppedBy}`);
   assert.equal(s.frames, ENTRY_FRAMES, "a truncated run finds no divergence and reads as a pass");
   assert.ok(s.dispatches > 0, "vacuous: the session never dispatched the routine");
-  assert.equal(caughtInPlay("loc_2a57"), 0, "the rewrite diverged on a real dispatch");
+  assert.equal(caughtInPlay("spriteForHeading"), 0, "the rewrite diverged on a real dispatch");
   assert.ok(s.records.length > 1, "one record only — the fixed-slot twin would be untestable");
   console.log(
     `  SESSION: ${s.dispatches} dispatches over ${s.frames} frames, ${s.inputs} distinct ` +

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1ed1 — memory-equivalent to the frozen oracle at ROM 0x1ED1.
+ * readPlayerControls — memory-equivalent to the frozen oracle at ROM 0x1ED1.
  *
  * GATE: unit-capture through unitEquivalence, PLUS an explicit live-out comparison run over a
  *   SECOND driven tape that presses the control panels, PLUS a crafted sweep of the selector.
@@ -44,7 +44,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_START_TAPE, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1ed1 } from "../loc_1ed1.js";
+import { readPlayerControls } from "../readPlayerControls.js";
 import { loc_1ed1 as oracle } from "../../translated/loc_1ed1.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -186,8 +186,8 @@ const correctFor = (selector, [main, cocktail]) => (selector !== 0 ? main : cock
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_1ed1 == oracle on RAM", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_1ed1, { maxFrames: ENTRY_FRAMES });
+test("EQUAL at the real dispatch: readPlayerControls == oracle on RAM", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, readPlayerControls, { maxFrames: ENTRY_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
   console.log(`  EQUAL: entered within ${ENTRY_FRAMES} frames; RAM identical`);
 });
@@ -204,7 +204,7 @@ test("BLIND: the RAM diff alone passes a no-op, so it is not the gate", { skip }
 });
 
 test("EQUAL at the real dispatch: the byte the caller reads back matches too", { skip }, () => {
-  const r = compare(baseEntry(), loc_1ed1);
+  const r = compare(baseEntry(), readPlayerControls);
   assert.deepEqual(
     r.differing.filter((k) => LIVE_OUT.includes(k)),
     [],
@@ -249,7 +249,7 @@ test("DRIVEN: a tape that presses the panels makes the mirrors differ, and both 
   assert.ok(pressed.length > 0, "no dispatch saw panel 1 pressed, so a press never landed");
 
   for (const c of d.classes) {
-    const r = compare(c.entry, loc_1ed1);
+    const r = compare(c.entry, readPlayerControls);
     assert.equal(r.caught, false, `class sel=${c.selector} main=${c.main}: ${JSON.stringify(r)}`);
   }
   console.log(
@@ -261,7 +261,7 @@ test("DRIVEN: a tape that presses the panels makes the mirrors differ, and both 
 });
 
 test("CRAFTED: every selector value against every mirror pair matches the oracle", { skip }, () => {
-  const r = craftedSweep(loc_1ed1);
+  const r = craftedSweep(readPlayerControls);
   assert.equal(r.caught, 0, `${r.caught} of ${r.trials} crafted trials diverged`);
   assert.equal(r.returnMismatch, 0, "the returned byte must be the byte left for the caller");
   assert.equal(r.trials, MIRROR_PAIRS.length * 256, "the sweep shrank");
@@ -269,7 +269,7 @@ test("CRAFTED: every selector value against every mirror pair matches the oracle
 });
 
 test("EXCLUDED, deliberately: only the flag byte, the address pair and the stack move", { skip }, () => {
-  const r = craftedSweep(loc_1ed1);
+  const r = craftedSweep(readPlayerControls);
   const widened = [...r.moved].filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(widened, [], `the excluded set widened to include ${widened.join(", ")}`);
   assert.ok(r.moved.size > 0, "nothing moved at all, which the frozen return alone rules out");

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_5211 — destroy every target a live shot has reached, and post the score for each one.
+/** destroyTargetsHitByShots — destroy every target a live shot has reached, and post the score for each one.
  *
  * A run of shot slots is swept against a run of target slots. A shot whose state byte does not
  * hold the live code is passed over entirely. A live one is tested against every target in the
@@ -57,7 +57,7 @@ function reached(mem8, shot, entry, target, reach, span) {
   );
 }
 
-export function loc_5211(
+export function destroyTargetsHitByShots(
   m,
   shot = m.regs.ix,
   entry = m.regs.iy,
