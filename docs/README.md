@@ -88,6 +88,12 @@ Each links to the doc that details it.
 - memory-equivalence fidelity contract, collapse (total-preservation), entropy-pinning,
   capture-clone-replay, NMI-at-vblank-yield, the `no-stale-mcall` guard **(must resolve const-aliases,
   not just literal hex)** — [idiomatic generation](idiomatic-generation.md)
+- **a unit is done when the routine is DISPATCHED, not when its gate is green** — the dispatch map is
+  built from `ROUTINES`, so an unwired module's address is never overridden and every dispatch to it
+  runs the oracle, while every per-routine test passes; the `registry-coverage` guard reads the
+  **index** and fails on any module neither wired nor recorded (`UNWIRED` with a reason, or `DEBT`),
+  and on any entry whose module is missing. **Coverage is not execution** — `manifest.runtime` decides
+  whether the layer runs at all — [idiomatic generation](idiomatic-generation.md), [reviewer rules](reviewer-rules.md) R22
 
 **Gate face**
 - pixel gate (byte-exact vs tolerance, never lower the floor) — [pixel gate](pixel-gate.md)

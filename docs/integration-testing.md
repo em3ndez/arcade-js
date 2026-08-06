@@ -132,6 +132,25 @@ Two cautions, both learned by being burned:
   reported is the same exit code as success. Check that the harness compared what you think it did
   before quoting it.
 
+## ★ A gate scoped to one routine cannot observe a property of the assembled system
+
+Per-routine equivalence proved every Time Pilot routine correct while the mixed layer destroyed the
+machine within a few frames, because the dropped returns were in SHARED HELPERS and never in the
+routine being dispatched. An isolation test cannot ask that question, and it cannot ask the prior
+one either — whether anything dispatches the routine at all. Both gaps hide in exact proportion to
+how many of those tests are green.
+
+**A new game gets its whole-machine swap gate in its FIRST unit, before the module count grows** —
+run the game twice, pure translated against the layer wired live, and diff every frame. Build it
+while there is one routine to bisect, not several hundred.
+
+**And the gate must be commissioned to FAIL: one built to prove it catches a break is a gate, one
+built to pass is a decoration.** Break it deliberately before you trust it — a plausible wrong twin,
+one wrong byte on one dispatch, a leak small enough to hide under a loose exclusion window, the seam
+adapter removed — and keep those teeth running rather than reporting them once. See R17: the
+question that none of the five dead gates found in one session could answer was "has this ever been
+observed failing?"
+
 ## Cycle-free convergence — validating the whole game with no T-state clock
 
 The diffs above assume a cycle-*driven* run (the NMI fires at an absolute T-state count). The
@@ -203,13 +222,22 @@ game before trusting a number out of any of these tools.
   `games/timeplt/machine.js` `withOmittedRet` performs the omitted `ret` (pop AND pc — a foreground
   loop that tests where a handler returned to needs both) around every resolved override, so the
   whole layer and a hand-picked subset go in over one seam.
-- **A seam that supplies a `ret` has a PRECONDITION, and it is violated in practice.** It is right
-  only for a routine whose ROM form has a net stack effect of exactly one `ret`. A rewrite of a
-  routine that pops more than its caller pushed gets OVER-popped, and its SP climbs *above* the
-  power-on seat until a push lands in whatever sits above the stack. Wiring an untested batch of
-  Time Pilot rewrites produced exactly this on five of seven addresses. Measure SP across every
-  dispatch rather than trusting the byte diff to explain it — the byte diff reports a corrupted
-  sprite cell and names no routine.
+- **A seam that supplies a `ret` UNCONDITIONALLY has a precondition, and the precondition is not
+  about the ROM form.** It is about the rewrite: the rewrite must not itself perform the `ret`. A
+  rewrite whose ROM form ends by TRANSFERRING into still-translated code (`jp`, `jr`,
+  fall-through) reaches that code through `m.call`, and `m.call` runs a routine INCLUDING its
+  `ret` — so it returns having already popped the caller's slot and set pc, and a second `ret`
+  sends SP *above* the power-on seat until a push lands in whatever sits above the stack. That
+  shape is not exotic: it is every tail transfer whose target has no idiomatic twin yet, which is
+  the normal state of a layer being built leaves-first. Wiring an untested Time Pilot batch hit it
+  on every tail-transfer address the run both reached and returned from, each over-popping by
+  exactly two bytes — the same figure every time, which is what a shape looks like rather than a
+  scatter of unrelated rewrite bugs. **A flag on the routine
+  cannot express it** — `loc_3e63` takes a `ret z` on one path and a `jp` on the other two — so
+  measure per dispatch: SP unmoved means supply the `ret`; SP up two with pc on the address the
+  slot held on entry means the transfer performed it; anything else is a fault, raised with the
+  routine named. Measure SP in the whole-game gate too rather than trusting the byte diff to
+  explain it — the byte diff reports a corrupted sprite cell and names no routine.
 - **Bound the stack exclusion by the MEASURED STACK, never by the game-state ceiling.** Those are
   different numbers and the gap between them is dead space that nothing writes — which is exactly
   where a leaking SP lands first. Excluding it buys blindness at the one place the seam can fail:

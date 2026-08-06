@@ -18,10 +18,12 @@
  * memory, frame by frame, for the whole run. A memory-equivalent rewrite is a TRANSPARENT swap:
  * wiring it live must change nothing at all.
  *
- * IT ALSO WATCHES THE SEAM ITSELF. machine.js's withOmittedRet supplies the `ret` a rewrite omits,
- * which is right only for a routine whose ROM form is exactly one `ret`. Every dispatch is
- * measured for its net effect on SP, and anything but the caller's two bytes fails with the
- * routine named — because the byte diff alone reports a corrupted cell and names nothing.
+ * IT ALSO WATCHES THE SEAM ITSELF. machine.js's withOmittedRet supplies the `ret` a rewrite omits
+ * — and stands aside for one that reached its ROM `ret` through a transfer into still-translated
+ * code, which returns having already popped. Either way the DISPATCH owes the caller its two
+ * bytes back and nothing else, so every dispatch is measured for its net effect on SP and
+ * anything but +2 fails with the routine named — the byte diff alone reports a corrupted cell and
+ * names nothing. The two shapes are bracketed by their own tests near the bottom of this file.
  *
  * ★ WHAT IT DOES NOT COVER, and both holes matter.
  *   1. Registered rewrites that NEITHER scenario dispatches. The run names them, computed as the
@@ -48,9 +50,9 @@
  * TEETH ARE PART OF THE GATE, not a one-off check someone did once. The tests at the bottom each
  * wire a deliberately broken layer and assert this comparison CATCHES it: a plausible wrong twin
  * of a rewrite that runs in the scenario, a single wrong byte on a single dispatch, a stack leak
- * small enough to hide under a loose exclusion window, and the seam
- * adapter removed. A gate never observed failing is not known to work, so it observes itself
- * failing on every run.
+ * small enough to hide under a loose exclusion window, the seam adapter removed, and a rewrite
+ * that returns one time too many. A gate never observed failing is not known to work, so it
+ * observes itself failing on every run.
  *
  * ROM-guarded: skips, loudly, when the BYO ROM images are absent.
  *
@@ -219,9 +221,10 @@ function counted(overrides) {
 /**
  * One assembled run from reset. `tape(frameIndex)` is asserted onto the input ports at each
  * frame, before that frame's state is sampled -- the same order the cycle-driven engine uses, so
- * a press is in effect DURING the frame it is dated to.
+ * a press is in effect DURING the frame it is dated to. `spoil` is for the teeth only: it runs at
+ * the same point and is the one place a fault can be injected that belongs to no dispatch.
  */
-async function run(overrides, tape) {
+async function run(overrides, tape, spoil = null) {
   const m = await Machine.create(ROM, overrides ? { overrides } : {});
   const frames = [];
   const observed = {
@@ -235,6 +238,7 @@ async function run(overrides, tape) {
     maxFrames: FRAMES,
     stepBudget: FRAMES * 20000,
     onFrame: (mm, fi) => {
+      if (spoil !== null) spoil(mm, fi);
       mm.io.inputAssert = tape(fi);
       frames.push(Buffer.from(mm.dumpState()));
       if (mm.mem.read8(COIN_ACCEPTED) !== 0) observed.coinAcceptedFrames++;
@@ -587,28 +591,30 @@ test("TEETH: ONE wrong byte on ONE dispatch is CAUGHT", async () => {
 });
 
 /**
- * Dispatches that leak two bytes of stack each. SMALL ON PURPOSE: the leak has to stop while it is
+ * Frames that leak two bytes of stack each. SMALL ON PURPOSE: the leak has to stop while it is
  * still inside the dead space between the game-state ceiling and the stack, because that is the
  * range this tooth is about. A bigger leak eventually derails the machine and any window catches
  * it, which would prove nothing about where the exclusion floor belongs.
+ *
+ * ★ AND IT BELONGS TO NO DISPATCH, which is a requirement and not a convenience. The seam measures
+ * every dispatch, so a leak injected INSIDE one is attributed to whichever wired routine encloses
+ * it and stopped there -- by the seam, loudly, which is a different tooth's job (the two below).
+ * This tooth is about the WIDTH OF THE WINDOW: it needs the one leak nothing can attribute, so it
+ * walks SP at the frame boundary, where no rewrite is running and only compared memory can report
+ * it. Moving it back inside a rewrite makes it test the seam instead, and silently.
  */
-const LEAK_DISPATCHES = 8;
+const LEAK_FRAMES = 8;
 
 test("TEETH: a stack leak short of the game-state ceiling is CAUGHT, and would not be by a wider window", async () => {
   const { tapeBase: base, liveSpec: live } = await baselines();
   const overrides = await resolveOverrides(live.spec);
-  const real = overrides.get(CURSOR_STEP);
-  let n = 0;
-  // The rewrite is left correct and the seam is left in place; SP is simply walked down two bytes
-  // on each of the first few dispatches, which is what an unhealed omitted `ret` does. Pushes and
-  // pops still pair, so control flow stays valid and nothing but compared memory can report it.
-  overrides.set(CURSOR_STEP, (m, ...rest) => {
-    const r = real(m, ...rest);
-    if (++n <= LEAK_DISPATCHES) m.regs.sp = (m.regs.sp - 2) & 0xffff;
-    return r;
-  });
 
-  const leaked = await run(overrides, coinPlayTape);
+  // Every rewrite is left correct and the seam is left in place; SP is simply walked down two
+  // bytes at each of the first few frame boundaries, which is what an unhealed omitted `ret` looks
+  // like from a distance. Pushes and pops still pair, so control flow stays valid.
+  const leaked = await run(overrides, coinPlayTape, (m, fi) => {
+    if (fi > 0 && fi <= LEAK_FRAMES) m.regs.sp = (m.regs.sp - 2) & 0xffff;
+  });
   // It must NOT derail: a run that crashes would be caught by any window at all, and then this
   // tooth would be testing the crash rather than the width of the exclusion.
   assertRanClean(leaked, "leaked run");
@@ -654,4 +660,82 @@ test("TEETH: the seam adapter removed is CAUGHT", async () => {
     `  TEETH/no-seam-ret: caught — ` +
       (errored ? `run stopped at ${leaked.r.frames}/${FRAMES} frames (${leaked.r.stop})` : showDiff(d)),
   );
+});
+
+// ── the seam's OTHER shape, bracketed ────────────────────────────────────────────────────────
+//
+// A rewrite whose ROM form ends by TRANSFERRING into still-translated code (`jp`, `jr`,
+// fall-through) reaches that callee through `m.call`, and `m.call` runs a routine INCLUDING its
+// `ret` — which for a transfer IS this routine's own ret. Such a rewrite RETURNS HAVING ALREADY
+// POPPED, and machine.js's seam measures rather than assuming: it supplies the `ret` only to a
+// rewrite that left SP where it found it. The two tests below bracket that branch from both
+// sides, and they build the shape by hand rather than naming a routine, so neither goes quiet on
+// the day the registry stops holding one.
+
+/** The raw, unwrapped export a spec entry names: the rewrite exactly as its module defines it. */
+async function rawExport(spec, addr) {
+  const ent = spec[addr.toString(16)];
+  assert.ok(ent, `${hex4(addr)} is not in the wired spec, so this test is blunt`);
+  const mod = await import(new URL(ent.module, new URL("../../machine.js", import.meta.url)).href);
+  return mod[ent.export];
+}
+
+test("SEAM: a rewrite that performs its OWN ROM ret is passed through, and stays transparent", async () => {
+  const { tapeBase: base, liveSpec: live } = await baselines();
+  const overrides = await resolveOverrides(live.spec);
+  const raw = await rawExport(live.spec, CURSOR_STEP);
+
+  // The real rewrite, unaltered, plus the `ret` a tail transfer into the oracle would have
+  // performed on its way out. Memory is untouched by the difference, so a seam that handed this
+  // one a second `ret` would show up as SP climbing rather than as a wrong byte.
+  const selfCompleting = withOmittedRet((m, ...rest) => {
+    const r = raw(m, ...rest);
+    m.ret();
+    return r;
+  }, CURSOR_STEP);
+  const { overrides: wired, counts, seam } = counted(
+    new Map(overrides).set(CURSOR_STEP, selfCompleting),
+  );
+
+  const swapped = await run(wired, coinPlayTape);
+  assertSeamBalanced(seam, "self-completing rewrite");
+  assertRanClean(swapped, "self-completing rewrite");
+  const d = firstDivergence(base, swapped);
+  assert.equal(d, null, `the self-completing shape was not transparent — ${showDiff(d)}`);
+  assert.ok(counts.get(CURSOR_STEP) > 0, "vacuous: the self-completing rewrite never dispatched");
+  console.log(
+    `  SEAM/self-completing: ${counts.get(CURSOR_STEP)} dispatches of ${hex4(CURSOR_STEP)} ` +
+      `returned already-popped, all balanced at +2, identical over ${base.frames.length} frames`,
+  );
+});
+
+test("TEETH: a rewrite that returns TWICE is REFUSED by the seam, and named", async () => {
+  const { liveSpec: live } = await baselines();
+  const overrides = await resolveOverrides(live.spec);
+  const raw = await rawExport(live.spec, CURSOR_STEP);
+
+  // One `ret` too many: SP climbs two bytes ABOVE its power-on seat per dispatch and the next
+  // push lands in sprite RAM. The measurement must not read this as the shape above just because
+  // a `ret` did happen — that reading is the whole risk of measuring instead of declaring.
+  overrides.set(
+    CURSOR_STEP,
+    withOmittedRet((m, ...rest) => {
+      const r = raw(m, ...rest);
+      m.ret();
+      m.ret();
+      return r;
+    }, CURSOR_STEP),
+  );
+
+  const broken = await run(overrides, coinPlayTape);
+  assert.notEqual(
+    broken.r.stopError,
+    null,
+    "a rewrite popping twice ran the whole game: the seam is absorbing an over-pop, which is the " +
+      "one failure it exists to make impossible",
+  );
+  const why = String(broken.r.stopError.message);
+  assert.match(why, /moved SP by 4/, `the seam threw, but not about the over-pop: ${why}`);
+  assert.match(why, new RegExp(hex4(CURSOR_STEP)), `the seam threw without naming the routine: ${why}`);
+  console.log(`  TEETH/rets-twice: caught at frame ${broken.r.frames} — ${why.split(".")[0]}.`);
 });

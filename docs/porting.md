@@ -154,6 +154,15 @@ every gate you run measures attract mode only, which leaves most of the ROM unex
 reporting clean — see [integration testing](integration-testing.md) for the three seams and for
 what it cost on Time Pilot.
 
+**★ A new game gets its whole-machine swap gate in its FIRST unit, before the module count grows.**
+A gate scoped to one routine cannot observe a property of the assembled system: per-routine
+equivalence proved every Time Pilot routine correct while the mixed layer destroyed the machine
+within a few frames, because the dropped returns were in shared helpers and never in the routine
+being dispatched. The same blindness hides the prior question — whether anything dispatches the
+routine at all (see [idiomatic generation](idiomatic-generation.md), *How a routine joins the
+layer*). Build the gate while there is one routine to bisect, and **commission it to FAIL**: a gate
+built to prove it catches a break is a gate, one built to pass is a decoration.
+
 The **method** — the model that turns a ROM into validated, *understood* JavaScript — lives in
 exactly one place: **[The Method](README.md)** (one oracle, a Structure⇄Meaning spiral up the call
 graph, then Ship). Its detailed Structure/Meaning techniques are in

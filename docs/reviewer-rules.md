@@ -190,6 +190,38 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   through R4). Also FAIL a redundant re-decompile: if a batch adds `loc_<addr>.js` for an address
   that already has a committed idiomatic file (any name), the duplicate must be reconciled, not committed.
 
+## Wiring — a module nothing dispatches is not in the layer
+- **R22 [ALL]** Every idiomatic module added by this commit appears in `ROUTINES` under its own
+  name, or in `tools/registry-coverage.config.mjs` — `UNWIRED` with a reason, or `DEBT`. And every
+  `ROUTINES` entry this commit adds has its module in the same commit.
+  Verify: `node --test tools/test/registry-coverage.test.js`, and read the reason for any exemption
+  this commit adds — an exemption whose reason you cannot check is a failure. The test reads the
+  INDEX, so it already describes the staged diff you are reviewing: an untracked module in the
+  author's tree is not yet a claim, a staged one is.
+
+  WHY THE REVIEWER AND NOT ONLY THE TEST. The dispatch map is built by walking `ROUTINES`, so a
+  module no entry names is never dispatched: its address is not overridden, so every dispatch to it
+  runs the frozen oracle, and the rewrite is reached only by a sibling importing it directly — for
+  many, by nothing but their own gate. Nothing turns red, because a gate imports its module rather
+  than dispatching to it. The test catches the absence; it cannot judge whether an `UNWIRED` reason
+  is TRUE, and a false reason is how a bulk exemption gets a test back to green. Re-derive each new
+  one from the code — the argument really does arrive on the stack, the loop really has no exit, no
+  table really names that address — exactly as R5 asks of a `why`.
+
+  ★ COVERAGE IS NOT EXECUTION. A green run says every module is dispatchABLE. It does not say the
+  layer runs: `manifest.runtime` decides that, and a game set to `"translated"` never calls
+  `resolveAllIdiomatic`. Do not accept this test as evidence that a layer is live — READ THE
+  RUNTIME it prints on each game's verdict line, and if a commit wires modules into a layer the
+  manifest does not run, say so in your report. That is not a violation of this rule; it is the
+  thing this rule cannot see.
+
+  On the file's closing instruction to add rules and not gates: the rule alone was already tried
+  here. `idiomatic-generation.md` has required the registry entry all along, in two places, naming
+  Donkey Kong as the precedent, and the batch it names is still unwired. What was missing was not a
+  statement but a consequence, and the mechanical half tests no proxy — the forbidden thing IS the
+  missing entry, which a script decides exactly. The half that would be a proxy, whether an
+  exemption's reason is true, stays above with you.
+
 ## Every routine gated with teeth
 - **R12 [D]** Each new/changed routine has an equivalence test that (a) compares work-RAM to the
   frozen oracle, (b) asserts the routine's REAL live-out (return value too, not just RAM), and
@@ -420,3 +452,23 @@ skipping the tree-wide half of step 8.
 
 Prompted by qarl, who asked what step 8 actually was and then observed that the fix was to stop
 putting the material in the files at all.*
+
+*R22's thesis is not "nobody wrote it down." That was the first diagnosis and it was wrong.
+`idiomatic-generation.md` has required the `ROUTINES` entry all along — once as one of the four
+artifacts a decompile batch delivers, and once in a sentence that names Donkey Kong as the worked
+precedent, mechanism included. Both were on the page, and Donkey Kong's unwired batch is still
+unwired: committed modules with green gates that no entry names and no sibling imports, so nothing
+but their own tests ever call them.
+That is the finding worth carrying. A requirement whose omission changes nothing observable is not
+enforced by being true, or by being written twice, or by being written beside its own precedent.
+An isolation gate cannot ask whether anything dispatches the routine, so the gap stays hidden in
+exact proportion to how many of those gates are green — which is why the rule needed a consequence
+and not a third restatement.
+Two corrections this rule's own review had to make, both to confident claims by the author and the
+lead, and both worth reading as the same species of error the rule is about. "No doc says it" came
+from a grep too narrow to find the sentence it was looking for. And Time Pilot was reported as
+having shipped its whole layer unwired; it had not — its commits wired 1:1 except one, which the
+very next commit repaired by title. Time Pilot's layer WAS executed by nothing, for a different
+reason this rule does not catch: `manifest.runtime` said `"translated"`, so the player never called
+`resolveAllIdiomatic`. Registry coverage and a live layer are different properties. Prompted by
+qarl asking how the docs change so the layer gets wired and used immediately.*

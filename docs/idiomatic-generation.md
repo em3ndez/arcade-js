@@ -105,7 +105,9 @@ For each DECOMPILE batch:
 3. **Ground anything load-bearing, in-loop.** If the batch is about to commit an identity that
    downstream work will trust and the code alone cannot settle, fire the experiment *now*.
 4. **Write the four artifacts per routine** — module, equivalence test, `ROUTINES` entry, green
-   gate. All four or the routine is not in the layer. If the routine calls an already-decompiled
+   gate. All four or the routine is not in the layer, and the third is the one that gets skipped:
+   the registry entry is what DISPATCHES the module, and nothing goes red when it is missing (see
+   *How a routine joins the layer*, below). If the routine calls an already-decompiled
    callee, **dissolve that `m.call` into a direct call here**, as part of this routine's work.
 5. **Leave it `loc_<addr>`.** A DECOMPILE batch ships address names and nothing else — R11 is
    explicit that English names arrive ONLY through a confirmed understanding-pass promotion, with
@@ -671,10 +673,62 @@ The test header carries the gate, because a test cannot describe itself without 
  */
 ```
 
-**How a routine joins the layer.** Land the module; land `idiomatic/test/equivalence-<addr>.test.js`;
-add its address→`{name}` entry to `ROUTINES`; gate. **All four, or it is not in the layer** — a
-module with no registry entry is written and never executed, which is how Donkey Kong accumulated a
-whole batch of them without anyone noticing.
+## How a routine joins the layer — it is not done until it is DISPATCHED
+
+Land the module; land `idiomatic/test/equivalence-<addr>.test.js`; add its address→`{name}` entry to
+`ROUTINES`; gate. **All four, or it is not in the layer.**
+
+A decompile unit is not done when the module and its gate are green. It is done when the routine is
+DISPATCHED. The dispatch map is built by walking `ROUTINES` — that is what each game's
+`resolveAllIdiomatic` does — so a module no entry names is never *dispatched*: its address is not
+overridden, so every dispatch to it runs the frozen oracle instead, and the rewrite is reached only
+by a sibling that imports it directly, which for many is nothing but their own gate. **The gate is
+why it goes unnoticed:** it imports the module rather than dispatching to it, so it passes either
+way. The registry entry ships in the same unit as the module. A `loc_<addr>` entry is correct here
+and does not violate R11, which governs the NAME and not the wiring.
+
+**Unwired is a legitimate state, but only as a DECISION with its reason recorded.** A routine that
+cannot be dispatched — its argument arrives on the stack, it never returns, it is not an entry
+point — belongs in the `UNWIRED` config, not in silence. Silence is indistinguishable from the
+oversight above, and the next reader "fixes" it by wiring it.
+
+**Enforced.** `tools/test/registry-coverage.test.js` reads every game's idiomatic layer against that
+game's `ROUTINES` and fails on any module that is neither named by an entry nor listed in
+`tools/registry-coverage.config.mjs` — `UNWIRED` for a decision with its reason, or `DEBT` for what
+was already unwired when the guard first ran, recorded and not blessed. It also fails the converse,
+a registry entry whose module is absent, which breaks `resolveAllIdiomatic` for the whole game. It
+discovers its games, so a new game is enrolled by existing. Reviewer-rules **R22** carries the half
+a script cannot judge: whether an exemption's stated reason is true.
+
+★ **The check reads the INDEX — modules, their text, and the registry — not the working tree**,
+because the invariant is a property of the repository and one scope keeps it answering one question.
+A module you are still writing trips nothing; the moment it is STAGED it trips, which is exactly
+when the defect is created; a committed one stays red until wired or recorded; and a registry entry
+staged without its module fails too. A gate scoped to the working tree measures something no commit
+describes, and it would block every push on work merely in flight, which is how a gate gets routed
+around. Untracked modules are still *reported*, so a forming debt is visible before it lands.
+
+★ **COVERAGE IS NOT EXECUTION, and this is the trap behind the trap.** A clean registry says every
+module is *dispatchable*; it does not say the layer *runs*. `manifest.runtime` decides that, and a
+game set to `"translated"` never calls `resolveAllIdiomatic` at all — so a fully-wired layer sits
+there executed by nothing, with this check green. That is exactly where Time Pilot sat. When a
+game's layer is meant to be live, the thing that proves it is a whole-machine gate plus the manifest
+switch, never registry coverage.
+
+So the check **prints each game's `manifest.runtime` on its verdict line**, every run, rather than
+leaving that to this paragraph — `runtime: translated -- so the player runs no idiomatic module`
+beside a clean coverage result states the problem without arguing it. It is a report and not an
+assertion on purpose: `"translated"` can be a perfectly accurate declaration, and a gate that fires
+on a correct declaration is one people learn to ignore. Whether a game *should* be live yet is a
+judgement, so the instrument is the line, not a failure.
+
+★ **Why this is written down HERE, when it was already written down.** The honest history is worse
+than "nobody wrote it down", and more useful. This document ALREADY required the registry entry, in
+two places: the four artifacts of a decompile batch, and this section naming Donkey Kong as the
+precedent. The requirement and its worked example were both on the page, and Donkey Kong's unwired
+batch is still unwired. A written rule that changes nothing observable when it is skipped is a rule
+in name only — which is why the enforcement half exists, and why the two halves land together. Do
+not read this section as the fix; read the test as the fix and this section as its reason.
 
 ---
 
@@ -748,15 +802,21 @@ unit. Replace only what genuinely remains, which in practice means a cluster lan
   idiomatic modules, which must stay free of stack modelling. Note this makes `resolveOverrides`
   mean "wrapped" for Time Pilot and "bare" for the other two, so read a game's own resolver rather
   than assuming from the shared name.
-- **A resolver-supplied `ret` OVER-POPS any routine whose ROM form is not exactly one `ret`.** The
-  tail-jump shape is the one to watch: `ld hl,<table> / jp <target>` carries no `ret` of its own and
-  borrows its target's. That is still one net `ret` and so it is safe — *provided* the rewrite
-  reaches its tail target by DIRECT IMPORT. Reach it with `m.call` instead and the target's own
-  wrapper pops a second time: SP climbs ABOVE its power-on seat and the next push lands above the
-  stack, in whatever the memory map puts there. R10 already forbids that `m.call`; this is its
-  second reason. Where a routine genuinely is not one net `ret` it must not go through an
-  unconditional-`ret` seam at all — and the whole-game gate should measure SP across every dispatch,
-  because the byte diff alone reports a corrupted cell and names no routine.
+- **An UNCONDITIONAL resolver-supplied `ret` over-pops any rewrite that already performed one, so
+  the seam must MEASURE the dispatch instead of assuming it.** The tail-jump shape is where this
+  bites: `ld hl,<table> / jp <target>` carries no `ret` of its own and borrows its target's. Reach
+  that target by DIRECT IMPORT and the rewrite is ret-free, which is what an unconditional seam
+  assumes. But the import only exists once the target has a twin, and until then the only way in is
+  `m.call` — which R10 permits precisely because there is nothing to import, and which runs the
+  target INCLUDING its `ret`. The rewrite then returns having already popped the caller's slot and
+  set pc, and a seam that adds a second `ret` walks SP ABOVE its power-on seat, putting the next
+  push above the stack. **Both shapes are legitimate, and one routine can take one on one path and
+  the other on another** — a `ret z` beside a `jp` does exactly that — so this cannot be a flag on
+  the routine. Measure: SP unmoved means the `ret` was omitted, so supply it; SP up two with pc on
+  the address the slot held means a transfer already performed it, so stand aside; anything else is
+  a fault to raise, naming the routine. Time Pilot's `withOmittedRet` is written that way, and its
+  whole-game gate measures SP across every dispatch as well, because the byte diff alone reports a
+  corrupted cell and names nobody.
 - **Bound the stack exclusion by the MEASURED STACK, not by the game-state ceiling.** They are
   different numbers, and the dead space between them is written by nothing — so comparing it is
   free, and it is exactly where a leaking SP lands first. Excluding it blinds the gate at the one

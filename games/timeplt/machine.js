@@ -128,8 +128,10 @@ export class Machine {
    *
    * IT LAYERS WHATEVER MAP IT IS HANDED, deliberately: the wrapping belongs to the caller. An
    * override a TRANSLATED caller dispatches inside an ASSEMBLED run must be wrapped with
-   * `withOmittedRet`; an entry that calls the frozen oracle must NOT be, since the oracle rets for
-   * itself. Either mistake is fatal -- nothing in this game re-seats SP, so neither one heals.
+   * `withOmittedRet`; an entry that calls the frozen oracle needs no wrapping, since the oracle
+   * rets for itself. Leaving the wrapping OFF where it is owed is fatal -- nothing in this game
+   * re-seats SP, so the leak never heals. Putting it on the oracle-calling map is not, since the
+   * seam measures what the entry did and stands aside for one that already returned.
    */
   static async create(rom, opts = {}) {
     const routines = buildRoutines();
@@ -502,10 +504,15 @@ export class Machine {
  * adjustment, because pc is load-bearing too -- the ring drain dispatches a handler and then
  * TESTS where it came back to (`if (m.pc !== 0x0b90)`).
  *
- * PRECONDITION, not enforced here: the routine's ROM form must have a net stack effect of exactly
- * one `ret`. A rewrite popping more than its caller pushed is OVER-popped here and its SP climbs
- * ABOVE the power-on seat, putting a push into sprite RAM -- which is why the assembled-swap gate
- * measures SP across every dispatch. At go-live the wrapper is inert: rewrites import each other.
+ * NOT EVERY REWRITE OMITS IT, and which it is changes per DISPATCH, not per routine. A rewrite
+ * whose ROM form ends by TRANSFERRING into still-translated code (`jp`, `jr`, fall-through) gets
+ * there through `m.call`, and `m.call` runs a routine INCLUDING its `ret` -- which for a transfer
+ * IS this routine's own ret: it pops the caller's slot and sets pc. Supplying a second one walks
+ * SP ABOVE the power-on seat and puts the next push in sprite RAM. It cannot be a flag on the
+ * routine, because loc_3e63 takes a `ret z` on one path and transfers on the other two, so it is
+ * MEASURED: SP unmoved means the ret was omitted and is supplied; SP up two AND pc equal to the
+ * address the slot held on entry means the transfer already performed it; anything else throws.
+ * The shape is transitional -- at go-live rewrites import each other and the wrapper is inert.
  *
  * DELIBERATELY UNLIKE THE OTHER TWO GAMES, whose resolvers hand back bare functions and restore
  * stack ops inside individual rewrites -- do not harmonise it back. The missing `ret` belongs to
@@ -514,16 +521,32 @@ export class Machine {
  * only the resolution path can tell those two callers apart.
  *
  * WHICH MAPS TO WRAP, and it is not every map. Wrap one an ASSEMBLED run will dispatch from
- * translated code. Do NOT wrap a probe map whose entries call the frozen oracle -- the oracle rets
- * for itself, so wrapping hands it a second one and over-pops, which is how the unit harness in
- * idiomatic/test is correct while wired raw. Both errors are fatal here, in opposite directions,
- * because nothing in this game re-seats SP.
+ * translated code. A probe map whose entries call the frozen oracle does not need it -- the oracle
+ * rets for itself, which is how the unit harness in idiomatic/test is correct while wired raw. That
+ * one is no longer FATAL, because the measurement above stands aside for a callee that already
+ * returned; leaving it out still keeps one definition of what a dispatch does.
  */
-export function withOmittedRet(fn) {
+export function withOmittedRet(fn, addr = null) {
+  const at = addr === null ? "" : ` at 0x${(addr & 0xffff).toString(16).padStart(4, "0")}`;
   return (m, ...args) => {
+    const seat = m.regs.sp;
+    const callerRet = m.mem.read16(seat);
     const r = fn(m, ...args);
-    m.ret();
-    return r;
+    const moved = (((m.regs.sp - seat) & 0xffff) << 16) >> 16;
+    if (moved === 0) {
+      m.ret();
+      return r;
+    }
+    if (moved === 2 && m.pc === callerRet) return r;
+    throw new Error(
+      `the seam cannot place this dispatch${at}: it moved SP by ${moved} and left pc at ` +
+        `0x${(m.pc & 0xffff).toString(16).padStart(4, "0")}, with the caller's return address ` +
+        `0x${callerRet.toString(16).padStart(4, "0")} at 0x${seat.toString(16).padStart(4, "0")}. ` +
+        "A rewrite either omits its ROM `ret`, leaving SP where it found it, or reaches that ret " +
+        "through a transfer into still-translated code, which pops the caller's slot and lands pc " +
+        "on it. Neither happened here: either this ROM form is not one net `ret`, or the stack was " +
+        "already adrift when the dispatch began and this is the first place that showed.",
+    );
   };
 }
 
@@ -543,7 +566,7 @@ export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
     if (typeof fn !== "function") {
       throw new Error(`override ${key}: module ${ent.module} has no function export "${ent.export}"`);
     }
-    map.set(addr, withOmittedRet(fn));
+    map.set(addr, withOmittedRet(fn, addr));
   }
   return map;
 }

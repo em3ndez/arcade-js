@@ -86,8 +86,16 @@ export const ROUTINES = {
   name and its justification sit together instead of in two files. Reviewer-rules **R5** is what
   requires it; `role` stays one line about the mechanism and does not absorb this.
 
-Unlike the RAM consts, `ROUTINES` is **metadata, not imported by the running code** — the routines call
-each other directly by function name. It is a lookup table for tooling and for the two uses below.
+Unlike the RAM consts, `ROUTINES` is not imported by the routines themselves — they call each other
+directly by function name. It is not inert metadata, though: **it is the wiring.** Each game's
+`resolveAllIdiomatic` walks this map to build the override map the machine dispatches through, so an
+address no entry here names is never overridden: every dispatch to it runs the frozen oracle, and
+the rewrite is reached only by a sibling that imports it directly. Its own equivalence gate stays
+green either way. An entry is wiring and not yet execution, though: the player calls
+`resolveAllIdiomatic` only where `manifest.runtime` is `"idiomatic"`, so a fully-wired layer in a
+game declared `"translated"` runs nowhere. The entry ships in the same unit as the module — see
+[idiomatic generation](idiomatic-generation.md), *How a routine joins the layer*, and reviewer-rules
+**R22**. It is also the lookup table for tooling and for the two uses below.
 
 ## One confidence vocabulary (`[seen]` / `[code]` / `[guess]`)
 
