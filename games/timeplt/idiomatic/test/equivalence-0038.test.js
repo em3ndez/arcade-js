@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0038 — memory-equivalent to the frozen oracle at ROM 0x0038.
+ * postCommand — memory-equivalent to the frozen oracle at ROM 0x0038.
  *
  * ★ THE VECTOR QUESTION, SETTLED — it is a CALLED HELPER, not an interrupt entry.
  *   0x0038 is both the RST 38 vector and the Z80 IM-1 interrupt vector, and which one this
@@ -71,7 +71,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0038 } from "../loc_0038.js";
+import { postCommand } from "../postCommand.js";
 import { loc_0038 as oracle } from "../../translated/loc_0038.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -101,7 +101,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0038);
+  if (entry === null) gate(postCommand);
   return entry;
 }
 
@@ -196,14 +196,14 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0038 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_0038);
+test("EQUAL at the real dispatch: postCommand == oracle on RAM", { skip }, () => {
+  const r = gate(postCommand);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0038(b);
+  postCommand(b);
   assert.equal(ramDiff(a, b), null, `RAM diverged — ${show(ramDiff(a, b))}`);
 
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr));
@@ -220,7 +220,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push and nothing els
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0038(b);
+  postCommand(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -240,7 +240,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push and nothing els
 });
 
 test("EXHAUSTIVE over priors: every cursor and guard byte behaves as the oracle", { skip }, () => {
-  const diverged = sweepCaught(loc_0038);
+  const diverged = sweepCaught(postCommand);
   assert.equal(diverged, 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} cursor x guard comparisons identical`);
 });
@@ -250,7 +250,7 @@ test("EXHAUSTIVE over the pair: neither byte is masked, reordered or dropped", {
   for (const command of BYTES) {
     for (const argument of BYTES) {
       for (const cursor of [0, 61, 62, 255]) {
-        const d = craftedDiff(loc_0038, cursor, 0xff, command, argument);
+        const d = craftedDiff(postCommand, cursor, 0xff, command, argument);
         assert.equal(d, null, `cursor=${cursor} pair=(${command},${argument}): ${show(d)}`);
         compared++;
       }
@@ -262,7 +262,7 @@ test("EXHAUSTIVE over the pair: neither byte is masked, reordered or dropped", {
 test("CORPUS: every input tuple a longer driven run presents replays identically", { skip }, () => {
   const tuples = inputCorpus();
   assert.ok(tuples.length > 0, "vacuous: the longer run never reached the routine either");
-  assert.equal(corpusCaught(loc_0038), 0, "the rewrite diverged on a real input tuple");
+  assert.equal(corpusCaught(postCommand), 0, "the rewrite diverged on a real input tuple");
   const guards = [...new Set(tuples.map((t) => t[1]))];
   const cursors = tuples.map((t) => t[0]);
   console.log(
@@ -303,8 +303,8 @@ test("HONEST SIGNATURE: passing the pair explicitly matches taking it from the m
   viaRegisters.regs.e = 0x94;
   viaArguments.regs.d = 0x00;
   viaArguments.regs.e = 0x00;
-  loc_0038(viaRegisters);
-  loc_0038(viaArguments, 0x2b, 0x94);
+  postCommand(viaRegisters);
+  postCommand(viaArguments, 0x2b, 0x94);
   assert.equal(ramDiff(viaRegisters, viaArguments), null, "the two entry forms must agree");
   console.log("  HONEST SIGNATURE: named parameters and the register defaults agree on RAM");
 });

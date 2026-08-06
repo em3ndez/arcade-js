@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b60 — memory-equivalent to the frozen oracle at ROM 0x2B60.
+ * driftWithWorldScroll — memory-equivalent to the frozen oracle at ROM 0x2B60.
  *
  * GATE: strict unit-capture PLUS crafted entries. The host game runs the coin -> start tape
  *   until 0x2B60 first dispatches (undriven attract reaches it too, later), and both arms run on
@@ -44,7 +44,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b60 } from "../loc_2b60.js";
+import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
 import { loc_2b60 as oracle } from "../../translated/loc_2b60.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -73,7 +73,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_2b60);
+  if (entry === null) gate(driftWithWorldScroll);
   return entry;
 }
 
@@ -137,8 +137,8 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2b60 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_2b60);
+test("EQUAL at the real dispatch: driftWithWorldScroll == oracle on RAM", { skip }, () => {
+  const r = gate(driftWithWorldScroll);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
@@ -163,7 +163,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2b60(b);
+  driftWithWorldScroll(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -198,7 +198,7 @@ test("NARROW: the real dispatch moves only one of the four bytes", { skip }, () 
 test("CRAFTED: every displacement x position combination steps as the oracle steps it", { skip }, () => {
   const priors = craftedPriors();
   for (const p of priors) {
-    const d = craftedDiff(loc_2b60, p);
+    const d = craftedDiff(driftWithWorldScroll, p);
     assert.equal(d, null, `${JSON.stringify(p)}: ${show(d)}`);
   }
   assert.equal(priors.length, DISPLACEMENTS.length ** 2 * POSITIONS.length, "sweep shrank");
@@ -208,12 +208,12 @@ test("CRAFTED: every displacement x position combination steps as the oracle ste
 test("CARRY: a fraction swept 0..255 carries into the whole byte exactly as the oracle does", { skip }, () => {
   const priors = carryPriors();
   for (const p of priors) {
-    const d = craftedDiff(loc_2b60, p);
+    const d = craftedDiff(driftWithWorldScroll, p);
     assert.equal(d, null, `fraction=${p.fA}: ${show(d)}`);
   }
 
   const wrapped = craft({ wA: 255, fA: 255, wB: 0, fB: 0, dA: 1, dB: 0 });
-  loc_2b60(wrapped);
+  driftWithWorldScroll(wrapped);
   assert.equal(wrapped.mem8[wholeA(wrapped)], 0, "the whole byte must round, not widen");
   assert.equal(wrapped.mem8[fractionA(wrapped)], 0, "the fraction must round too");
   console.log(`  CARRY: ${priors.length} fractions identical, including the 0xFFFF -> 0 wrap`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0018 — memory-equivalent to the frozen oracle at ROM 0x0018.
+ * offsetAddress — memory-equivalent to the frozen oracle at ROM 0x0018.
  *
  * GATE: strict unit-capture through unitEquivalence, PLUS a live-out comparison this file
  *   defines, because for THIS routine the RAM half of unitEquivalence has no teeth at all.
@@ -51,7 +51,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0018 } from "../loc_0018.js";
+import { offsetAddress } from "../offsetAddress.js";
 import { loc_0018 as oracle } from "../../translated/loc_0018.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -87,7 +87,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0018);
+  if (entry === null) gate(offsetAddress);
   return entry;
 }
 
@@ -237,8 +237,8 @@ const show = (d) =>
 
 // ── the contract call ───────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0018 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_0018);
+test("EQUAL at the real dispatch: offsetAddress == oracle on RAM", { skip }, () => {
+  const r = gate(offsetAddress);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
@@ -271,7 +271,7 @@ test("EXCLUDED, deliberately: the flag byte, the stack pointer and pc, and nothi
     b.regs.hl = 0x18ff;
     b.regs.a = 0x01;
     oracle(a);
-    loc_0018(b);
+    offsetAddress(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
     assert.deepEqual(
@@ -318,11 +318,11 @@ test("FLAGS: the byte the rewrite drops steers nothing in a whole driven session
 // ── the comparison with teeth ───────────────────────────────────────────────────────────────
 
 test("EXHAUSTIVE: all 16777216 inputs, address pair and offset, identical", { skip }, () => {
-  const r = sweepAll(loc_0018);
+  const r = sweepAll(offsetAddress);
   assert.equal(r.ram, null, `a byte of memory moved during the sweep — ${show(r.ram)}`);
   assert.equal(r.caught, 0, `${r.caught} of ${SPACE} inputs diverged`);
 
-  const wrap = atInput(loc_0018, 0xffff, 0x01);
+  const wrap = atInput(offsetAddress, 0xffff, 0x01);
   assert.equal(wrap, null, `the top-of-space wrap diverged — ${show(wrap)}`);
   console.log(`  EXHAUSTIVE: ${SPACE} inputs identical, top-of-space wrap included`);
 });
@@ -335,7 +335,7 @@ test("REAL TRAFFIC: every pair a driven session presents, and the carry path is 
     let dispatches = 0;
     let carrying = 0;
     for (const p of pairs) {
-      const d = atInput(loc_0018, p.address, p.offset);
+      const d = atInput(offsetAddress, p.address, p.offset);
       assert.equal(d, null, `${hex4(p.address)} + ${hex2(p.offset)}: ${show(d)}`);
       dispatches += p.hits;
       if (u8(p.address) + p.offset > 255) carrying++;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bde — memory-equivalent to the frozen oracle at ROM 0x2BDE.
+ * retireSlotAndSubPixel — memory-equivalent to the frozen oracle at ROM 0x2BDE.
  *
  * GATE: crafted-entry, because the strict one is BLIND here and this file proves it.
  *   The coin -> start tape does reach 0x2BDE, at frame 612, inside the harness budget —
@@ -40,7 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2bde } from "../loc_2bde.js";
+import { retireSlotAndSubPixel } from "../retireSlotAndSubPixel.js";
 import { loc_2bde as oracle } from "../../translated/loc_2bde.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -74,7 +74,7 @@ function strict(candidate) {
 }
 
 function entryState() {
-  if (entry === null) strict(loc_2bde);
+  if (entry === null) strict(retireSlotAndSubPixel);
   return entry;
 }
 
@@ -146,7 +146,7 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("BLIND: the strict capture is VACUOUS here — a no-op passes it", { skip }, () => {
-  const real = strict(loc_2bde);
+  const real = strict(retireSlotAndSubPixel);
   assert.equal(real.ram, null, `RAM diverged on the real arm — ${show(real.ram)}`);
 
   const e = entryState();
@@ -185,7 +185,7 @@ test("EXCLUDED, deliberately: A, F, SP and pc move and nothing else does", { ski
     mm.regs.f = 0;
   }
   oracle(a);
-  loc_2bde(b);
+  retireSlotAndSubPixel(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["a", "f", "sp"], "the excluded set changed shape");
@@ -196,7 +196,7 @@ test("EXCLUDED, deliberately: A, F, SP and pc move and nothing else does", { ski
 
 test("CRAFTED: identical on every slot the two tables carry", { skip }, () => {
   for (const [slot, sprite] of PAIRS) {
-    const d = craftedDiff(loc_2bde, slot, sprite);
+    const d = craftedDiff(retireSlotAndSubPixel, slot, sprite);
     assert.equal(d, null, `slot ${hex4(slot)}: ${show(d)}`);
 
     const after = entryState().clone();
@@ -212,7 +212,7 @@ test("CRAFTED: identical on every slot the two tables carry", { skip }, () => {
 test("PRIORS: every value 0..255 in the five cells clears the same way", { skip }, () => {
   let swept = 0;
   for (let prior = 0; prior < 256; prior++) {
-    const d = craftedDiff(loc_2bde, 0xa8f0, 0xaa2e, prior);
+    const d = craftedDiff(retireSlotAndSubPixel, 0xa8f0, 0xaa2e, prior);
     assert.equal(d, null, `prior=${prior}: ${show(d)}`);
     swept++;
   }

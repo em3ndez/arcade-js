@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2b60 — carry one object along with the scrolling world.
+/** driftWithWorldScroll — carry one object along with the scrolling world.
  * Each of the object's two coordinates is 16 bits stored split: the whole part off one base,
  * the fraction off the other. Both gain a displacement read from a fixed pair of cells rather
  * than from the object, so every object that runs this drifts by the same amount per frame.
  * LIVE-OUT: memory only — four bytes; nothing is clamped and nothing is returned. */
 
-export function loc_2b60(m) {
+export function driftWithWorldScroll(m) {
   const { regs } = m;
   const object = regs.ix;
   const sprite = regs.iy;

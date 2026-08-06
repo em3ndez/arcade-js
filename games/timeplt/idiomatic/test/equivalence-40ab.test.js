@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_40ab — memory-equivalent to the frozen oracle at ROM 0x40AB.
+ * retireSlot — memory-equivalent to the frozen oracle at ROM 0x40AB.
  *
  * GATE: crafted-entry over a captured corpus. The routine's whole effect is three zero-stores
  *   through two bases the CALLER supplies, so RAM really is the contract here and the RAM diff
@@ -48,7 +48,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_40ab } from "../loc_40ab.js";
+import { retireSlot } from "../retireSlot.js";
 import { loc_40ab as oracle } from "../../translated/loc_40ab.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -96,7 +96,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_40ab);
+  if (entry === null) gate(retireSlot);
   return entry;
 }
 
@@ -169,8 +169,8 @@ function eachPair(fn) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("ENTERED: the tape reaches the routine and loc_40ab == oracle on RAM", { skip: SKIP }, () => {
-  const r = gate(loc_40ab);
+test("ENTERED: the tape reaches the routine and retireSlot == oracle on RAM", { skip: SKIP }, () => {
+  const r = gate(retireSlot);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const s = entryState();
@@ -222,7 +222,7 @@ test("EXCLUDED, deliberately: only the stack pointer and pc diverge", { skip: SK
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_40ab(b);
+  retireSlot(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["sp"], "the excluded set changed shape: only the stack pointer may differ");
@@ -235,7 +235,7 @@ test("CORPUS: every real dispatch replays identically, and some are LIVE", { ski
   assert.ok(all.length > 0, "the tape produced no dispatch at all");
   let live = 0;
   for (const s of all) {
-    const d = replay(loc_40ab, s);
+    const d = replay(retireSlot, s);
     assert.equal(d, null, `dispatch at record ${hex4(s.regs.ix)}: ${show(d)}`);
     if (!isDegenerate(s)) live++;
   }
@@ -260,9 +260,9 @@ test("RAM IS THE GATE: on a live dispatch the diff lands on a target byte", { sk
   console.log(`  RAM IS THE GATE: ${live.length} live dispatch(es), each catches a no-op on a target byte`);
 });
 
-test("CRAFTED: loc_40ab == oracle at every real base pair", { skip: SKIP }, () => {
+test("CRAFTED: retireSlot == oracle at every real base pair", { skip: SKIP }, () => {
   const n = eachPair((record, entryBase) => {
-    const d = replay(loc_40ab, craft(record, entryBase));
+    const d = replay(retireSlot, craft(record, entryBase));
     assert.equal(d, null, `record ${hex4(record)} entry ${hex4(entryBase)}: ${show(d)}`);
   });
   assert.ok(n > 100, "the pair sweep collapsed to almost nothing");
@@ -280,7 +280,7 @@ test("PARAMETERISED: explicit bases carry the meaning, not the machine's pointer
   const a = craft(record, entryBase);
   oracle(a);
   const b = decoy.clone();
-  loc_40ab(b, record, entryBase);
+  retireSlot(b, record, entryBase);
   const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   assert.equal(d, null, `explicit bases did not match the register-driven run — ${show(d)}`);
   console.log(`  PARAMETERISED: cleared ${hex4(record)}/${hex4(entryBase)} while pointing elsewhere`);

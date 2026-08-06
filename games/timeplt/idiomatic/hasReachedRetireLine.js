@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2b83 — true once an actor's screen position lands on a retire line.
+/** hasReachedRetireLine — true once an actor's screen position lands on a retire line.
  * One line per axis; a hit is the line or either neighbouring pixel, three values wide, which
  * lets a coordinate moving up to three pixels a frame land ON the line rather than step over
  * it. Both coordinates wrap at 256, so the window is a wrapped distance, not a range.
@@ -15,7 +15,7 @@ const RETIRE_ROW = 248;
 
 const atLine = (coord, line) => u8(coord - line + 1) < 3;
 
-export function loc_2b83(m) {
+export function hasReachedRetireLine(m) {
   const { mem8, regs } = m;
   const columnCell = regs.iy;
   const reached =

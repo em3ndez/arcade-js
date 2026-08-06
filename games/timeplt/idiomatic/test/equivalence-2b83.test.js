@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b83 — memory-equivalent to the frozen oracle at ROM 0x2B83.
+ * hasReachedRetireLine — memory-equivalent to the frozen oracle at ROM 0x2B83.
  *
  * GATE: strict unit-capture, plus an EXHAUSTIVE input sweep, a whole-run replay of every real
  *   dispatch, and a whole-machine trace. Holes stated below.
@@ -47,7 +47,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b83 } from "../loc_2b83.js";
+import { hasReachedRetireLine } from "../hasReachedRetireLine.js";
 import { loc_2b83 as oracle } from "../../translated/loc_2b83.js";
 import {
   firstStateDiff,
@@ -83,7 +83,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_2b83);
+  if (entry === null) gate(hasReachedRetireLine);
   return entry;
 }
 
@@ -168,7 +168,7 @@ function wireRun(candidate) {
 const CARRY_CYCLES = 34;
 const FALLTHROUGH_CYCLES = 71;
 function restored(m) {
-  const answer = loc_2b83(m);
+  const answer = hasReachedRetireLine(m);
   m.tick(answer ? CARRY_CYCLES : FALLTHROUGH_CYCLES);
   m.ret();
   return answer;
@@ -188,14 +188,14 @@ test("BLIND: RAM is a TAUTOLOGY here — a bare no-op passes it too", { skip }, 
 });
 
 test("EQUAL at the real dispatch: RAM and carry, with the excluded set pinned", { skip }, () => {
-  const r = gate(loc_2b83);
+  const r = gate(hasReachedRetireLine);
   assert.equal(r.ram, null, "RAM diverged");
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  const answer = loc_2b83(b);
+  const answer = hasReachedRetireLine(b);
 
   assert.equal(b.regs.fC, a.regs.fC, "the carry live-out");
   assert.equal(answer, a.regs.fC, "the returned boolean must mirror the carry");
@@ -209,7 +209,7 @@ test("EQUAL at the real dispatch: RAM and carry, with the excluded set pinned", 
 });
 
 test("CORPUS: every real dispatch of a driven run agrees", { skip }, () => {
-  const r = corpus(loc_2b83);
+  const r = corpus(hasReachedRetireLine);
   assert.ok(r.dispatches > 0, "vacuous: the routine never dispatched");
   assert.equal(r.caught, 0, `${r.caught} of ${r.dispatches} real dispatches disagreed`);
   assert.deepEqual(r.moved, EXCLUDED, "the excluded set must not widen across the corpus");
@@ -221,7 +221,7 @@ test("CORPUS: every real dispatch of a driven run agrees", { skip }, () => {
 });
 
 test("EXHAUSTIVE: all 65536 coordinate pairs answer as the frozen routine does", { skip }, () => {
-  const r = sweep(loc_2b83);
+  const r = sweep(hasReachedRetireLine);
   assert.equal(r.caught, 0, `${r.caught} of ${r.total} input pairs disagreed`);
   assert.equal(
     r.retires,
@@ -232,7 +232,7 @@ test("EXHAUSTIVE: all 65536 coordinate pairs answer as the frozen routine does",
 });
 
 test("LEAK, expected: wiring the routine in as-is faults, and this is its shape", { skip }, () => {
-  const r = wireRun(loc_2b83);
+  const r = wireRun(hasReachedRetireLine);
   assert.notEqual(
     r.fault,
     null,

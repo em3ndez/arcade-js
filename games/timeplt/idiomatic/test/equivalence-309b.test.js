@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_309b — memory-equivalent to the frozen oracle at ROM 0x309B.
+ * advanceToNextSlot — memory-equivalent to the frozen oracle at ROM 0x309B.
  *
  * GATE: strict unit-capture over the routine's WHOLE captured input space, plus a whole-machine
  *   replay of driven play. RAM ALONE CANNOT GATE THIS ROUTINE. It writes no memory, so
@@ -45,7 +45,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_309b } from "../loc_309b.js";
+import { advanceToNextSlot } from "../advanceToNextSlot.js";
 import { loc_309b as oracle } from "../../translated/loc_309b.js";
 import { firstStateDiff, unitEquivalence, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -149,8 +149,8 @@ function replay(candidate) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_309b == oracle on RAM at the real dispatch", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_309b, {
+test("CONTRACT: advanceToNextSlot == oracle on RAM at the real dispatch", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, advanceToNextSlot, {
     maxFrames: ENTRY_FRAMES,
   });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
@@ -176,7 +176,7 @@ test("CORPUS: every captured cursor pair replays identically", { skip }, () => {
     `the corpus thinned to ${entries.length} pairs — a thin corpus is a weak gate`,
   );
   for (const entry of entries) {
-    const d = unitDiff(loc_309b, entry);
+    const d = unitDiff(advanceToNextSlot, entry);
     assert.equal(d, null, `${pairOf(entry)}: ${d}`);
   }
   console.log(`  CORPUS: ${dispatches} dispatches, ${entries.length} distinct — ${pairs.join(" ")}`);
@@ -187,7 +187,7 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
   const a = entry.clone();
   const b = entry.clone();
   oracle(a);
-  loc_309b(b);
+  advanceToNextSlot(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -203,20 +203,20 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
 
 test("EXHAUSTIVE: both cursors step as the oracle steps them, over all 65536 values", { skip }, () => {
   for (const which of LIVE_OUT) {
-    const caught = sweepCursor(loc_309b, which);
+    const caught = sweepCursor(advanceToNextSlot, which);
     assert.equal(caught, 0, `${which} sweep: ${caught} of 65536 values diverged`);
   }
   const entry = captureCorpus().entries[0].clone();
   entry.regs.ix = 0xfff8;
   entry.regs.iy = 0xffff;
-  loc_309b(entry);
+  advanceToNextSlot(entry);
   assert.equal(entry.regs.ix, 0x0008, "the record cursor must wrap at 16 bits, not widen");
   assert.equal(entry.regs.iy, 0x0001, "the entry cursor must wrap at 16 bits, not widen");
   console.log("  EXHAUSTIVE: 65536 values per cursor identical, including the 16-bit wrap");
 });
 
 test("WHOLE-MACHINE: 800 driven frames are byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_309b);
+  const w = replay(advanceToNextSlot);
   const fired = w.invocations.get(TARGET);
   assert.ok(fired > 0, "vacuous: the override never dispatched in this many frames");
   assert.equal(w.equal, true, `forked at frame ${w.frame} on ${hex4(w.addr ?? 0)}`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0020 — memory-equivalent to the frozen oracle at ROM 0x0020.
+ * advanceCharCursor — memory-equivalent to the frozen oracle at ROM 0x0020.
  *
  * GATE: unit-capture on the real dispatch, but the comparison is RAM **plus a declared
  *   live-out**, because RAM ALONE IS VACUOUS FOR THIS ROUTINE. It writes nothing; the whole
@@ -55,7 +55,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0020 } from "../loc_0020.js";
+import { advanceCharCursor } from "../advanceCharCursor.js";
 import { loc_0020 as oracle } from "../../translated/loc_0020.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -102,7 +102,7 @@ function rawGate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) rawGate(loc_0020);
+  if (entry === null) rawGate(advanceCharCursor);
   return entry;
 }
 
@@ -234,8 +234,8 @@ test("BLIND: the RAM half of the comparison cannot fail — a no-op passes it", 
   console.log("  BLIND: RAM is vacuous here — the live-out half below is the whole gate");
 });
 
-test("EQUAL at the real dispatch: loc_0020 == oracle on RAM and the live-out", OPTS, () => {
-  const r = gate(loc_0020);
+test("EQUAL at the real dispatch: advanceCharCursor == oracle on RAM and the live-out", OPTS, () => {
+  const r = gate(advanceCharCursor);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.equal(r.live, null, `the live-out diverged — ${show(r.live)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
@@ -246,7 +246,7 @@ test("EXCLUDED, deliberately: the accumulator, the flags and the stack pointer",
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0020(b);
+  advanceCharCursor(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, EXCLUDED, "the excluded set changed shape");
@@ -257,14 +257,14 @@ test("EXCLUDED, deliberately: the accumulator, the flags and the stack pointer",
 });
 
 test("EXHAUSTIVE: all 65536 cursor values step as the oracle steps them", OPTS, () => {
-  const r = replay(loc_0020, everyCursor());
+  const r = replay(advanceCharCursor, everyCursor());
   assert.equal(r.caught, 0, `diverged on ${r.caught} cursor(s), first ${JSON.stringify(r.first)}`);
   assert.equal(r.wroteA, null, `the oracle wrote memory during the sweep — ${show(r.wroteA)}`);
   assert.equal(r.wroteB, null, `the rewrite wrote memory during the sweep — ${show(r.wroteB)}`);
 
   const wrapped = entryState().clone();
   wrapped.regs.de = 0x0000;
-  loc_0020(wrapped);
+  advanceCharCursor(wrapped);
   assert.equal(wrapped.regs.de, 0xffe0, "the step must wrap to sixteen bits, not go negative");
   console.log(`  EXHAUSTIVE: ${CURSOR_SPACE} cursors identical, no memory written by either side`);
 });
@@ -275,7 +275,7 @@ test("CORPUS: every cursor the running game presents is stepped identically", OP
   const borrowing = cursors.filter((c) => (c & 0xff) < 32).length;
   assert.ok(borrowing > 0, "vacuous: the corpus never exercises the borrow into the high byte");
   const pages = new Set(cursors.map((c) => c >> 8));
-  const r = replay(loc_0020, cursors);
+  const r = replay(advanceCharCursor, cursors);
   assert.equal(r.caught, 0, `diverged on ${r.caught} real cursor(s), first ${JSON.stringify(r.first)}`);
   console.log(
     `  CORPUS: ${cursors.length} real dispatches over ${CORPUS_FRAMES} frames, ` +
@@ -287,7 +287,7 @@ test("CORPUS: every cursor the running game presents is stepped identically", OP
 // ── the stack, and what dropping it does and does not cost ──────────────────────────────
 
 test("EXPECTED DIVERGENCE: substituted as-is, the engine leaks stack and gives up", OPTS, () => {
-  const r = drivenRun(loc_0020);
+  const r = drivenRun(advanceCharCursor);
   assert.notEqual(
     r.stopped,
     null,
@@ -309,7 +309,7 @@ test("EXPECTED DIVERGENCE: substituted as-is, the engine leaks stack and gives u
 });
 
 test("LIVE-OUT (MEASURED): supply the return and nothing the display reads diverges", OPTS, () => {
-  const r = drivenRun(substitutable(loc_0020));
+  const r = drivenRun(substitutable(advanceCharCursor));
   assert.equal(r.stopped, null, `the driven run stopped early even with the return supplied: ${r.stopped}`);
   assert.equal(r.compared, CORPUS_FRAMES, "the run did not reach the frames it was asked for");
   assert.ok(r.calls > 0, "vacuous: the rewrite was never dispatched");

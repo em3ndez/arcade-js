@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0008 — memory-equivalent to the frozen oracle at ROM 0x0008.
+ * fetchTableByte — memory-equivalent to the frozen oracle at ROM 0x0008.
  *
  * GATE: strict unit-capture through unitEquivalence, PLUS an explicit live-out comparison,
  *   exhaustive over the index and over every table base the driven coin -> start tape reaches.
@@ -34,7 +34,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0008 } from "../loc_0008.js";
+import { fetchTableByte } from "../fetchTableByte.js";
 import { loc_0008 as oracle } from "../../translated/loc_0008.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -118,8 +118,8 @@ function sweep(candidate) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0008 == oracle on RAM", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_0008, {
+test("EQUAL at the real dispatch: fetchTableByte == oracle on RAM", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, fetchTableByte, {
     maxFrames: ENTRY_FRAMES,
   });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
@@ -140,7 +140,7 @@ test("BLIND: the RAM diff alone passes a no-op, so it is not the gate", { skip }
 test("EXHAUSTIVE: every index at every captured base matches the oracle", { skip }, () => {
   const bases = entries().length;
   assert.ok(bases > 0, "vacuous: the tape never reached the routine");
-  const r = sweep(loc_0008);
+  const r = sweep(fetchTableByte);
   assert.equal(r.caught, 0, `${r.caught} of ${r.trials} trials diverged on RAM or a live-out`);
   assert.equal(r.returnMismatch, 0, "the returned byte must be the byte left for the caller");
   assert.ok(r.carrying > 0, "no trial crossed the low-byte carry — the sweep proves nothing");
@@ -151,7 +151,7 @@ test("EXHAUSTIVE: every index at every captured base matches the oracle", { skip
 });
 
 test("EXCLUDED, deliberately: only the flag byte and the stack pointer may move", { skip }, () => {
-  const r = sweep(loc_0008);
+  const r = sweep(fetchTableByte);
   const widened = [...r.moved].filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(widened, [], `the excluded set widened to include ${widened.join(", ")}`);
   console.log(`  EXCLUDED: ${[...r.moved].join(", ")} — and nothing else, over ${r.trials} trials`);

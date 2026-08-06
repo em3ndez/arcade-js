@@ -18,7 +18,7 @@
  */
 
 /**
- * Sequence step for the jump-table state machine. [code]
+ * INNER index of the two-level sequence machine. [code]
  *
  * One reader masks this to its low nibble and dispatches through a word table on the result, so
  * it is an index rather than a count. One routine's only job is to increment it; another clears
@@ -26,7 +26,22 @@
  * index. Not yet observed under a capture, so the *identity* is code-derived: which sequence it
  * steps (attract, round intro, or both) is NOT established and this name does not claim it.
  */
-export const SEQUENCE_STEP = 0xa9ac;
+export const SEQUENCE_SUBSTEP = 0xa9ac;
+
+/**
+ * OUTER phase of the same two-level machine. [code]
+ *
+ * The vblank service masks this to its low two bits and dispatches a jump table on the result;
+ * inside those arms the inner index is consumed with several different masks,
+ * which is what a per-phase table size looks like. Every phase-entry site writes the pair in one
+ * idiom -- set this to a small constant, zero the inner one -- and the routine that steps this is
+ * that same idiom with an increment in place of the store.
+ *
+ * It is also routed through several ROM checksums whose trailing constants net to zero on a
+ * genuine image, so a patched ROM corrupts the phase instead of failing cleanly. Same cell, same
+ * meaning, booby-trapped.
+ */
+export const SEQUENCE_PHASE = 0xa9ab;
 
 /**
  * Mirror of the IN0 input port, rewritten every frame from the port itself. [seen]
@@ -72,63 +87,74 @@ export const PLAY_ACTIVE = 0xad30;
  * `cert` uses the same evidence vocabulary as the cell names above.
  */
 /**
- * OPEN QUESTION, for the understanding pass. Two routines here retire an object and their caller
- * sets are DISJOINT — one serves the family in the lower band, the other the family in the upper.
- * They are not a partial and a complete version of one helper. The mechanical difference is that
- * one zeroes each coordinate whole and the other leaves the sub-pixel remainders standing, and
- * nobody has yet grounded whether those surviving remainders matter when a slot is reused. Until
- * that is settled the two verbs are synonyms carrying none of the distinction, which is a naming
- * defect this registry is recording rather than hiding.
+ * SETTLED IN PASS 1, kept because the shape of the answer matters. Two routines here retire an
+ * object and a third site inlines the same stores; no file calls more than one, so these are
+ * per-family helpers rather than versions of one. The mechanical difference is that one also
+ * clears the sub-pixel remainders. Whether that is observable depends on the spawn path: some
+ * reinitialise those cells immediately after marking a slot live, others have not been shown to.
+ *
+ * STILL OPEN: whether the two families were meant to differ here, or whether this is two habits.
+ * Code cannot settle it.
  */
 export const ROUTINES = {
   0x0008: {
-    name: "loc_0008",
+    name: "fetchTableByte",
     role: "step a table pointer on by an index and return the byte it lands on, leaving the pointer at that entry",
     cert: "code",
+    why: "most call sites consume the returned byte immediately (ld (iy+n),a, ld (de),a) while only a few read on through the surviving pointer, so the fetch is the product. Siblings 0x0010 and 0x018c already read as \"fetch what an index selects\", and this is the byte-table member of that family",
   },
   0x0018: {
-    name: "loc_0018",
+    name: "offsetAddress",
     role: "move a 16-bit address forward by an unsigned byte offset, echoing the low half of the result back",
     cert: "code",
+    why: "loc_20af hands it a table base and an index and then does its OWN ld a,(hl), so the caller owns the fetch and this must stop at the arithmetic; loc_0010 uses it as the first half of a word-table fetch",
   },
   0x0020: {
-    name: "loc_0020",
+    name: "advanceCharCursor",
     role: "step the character-cell cursor on to the next cell of the line being drawn",
     cert: "code",
+    why: "loc_0d81 draws a two-digit pair as high nibble, step, low nibble, so the step is reading order; MAME's ROT90 (clockwise) maps a decreasing native row to an increasing display column, and every base feeding these drawers lies inside video RAM",
   },
   0x0038: {
-    name: "loc_0038",
-    role: "queue a command byte and its argument in the main command ring, dropping the pair when the cursor's cell is still occupied",
+    name: "postCommand",
+    role: "queue a command byte and its argument in the command ring, dropping the pair when the cursor's cell is still occupied",
     cert: "code",
+    why: "loc_2511 fills the ring with 0xFF at init and loc_0b93 restores 0xFF on consumption, so \"free = high bit set\" is fixed by a writer and a reader outside this routine; loc_0b93 then dispatches the low nibble through a sixteen-way table, which is what makes it a command rather than a sound byte",
   },
   0x0f1a: {
-    name: "loc_0f1a",
+    name: "advanceSequenceSubStep",
     role: "step the jump-table sequence index on by one; reached as a tail jump so the caller's own return carries it",
     cert: "code",
+    why: "loc_0f11 increments the outer phase and zeroes this index in one breath, which is only coherent if this is the inner half of a two-level machine -- so a name saying merely \"sequence step\" would claim the half that gets discarded whenever the sequence really advances",
   },
   0x2b60: {
-    name: "loc_2b60",
+    name: "driftWithWorldScroll",
     role: "add the frame's world-scroll displacement to one object's two split 16-bit coordinates",
     cert: "code",
+    why: "loc_1f55 writes the displacement pair as the NEGATION of a velocity pair on its way into the routine that refreshes the player sprite from its heading, and gameplay.md records that the background moves opposite the plane -- so adding that pair to a world-static object is what streams it past a fixed ship",
   },
   0x2bde: {
-    name: "loc_2bde",
+    name: "retireSlotAndSubPixel",
     role: "take an object out of play, zeroing each coordinate WHOLE — occupancy byte, both sub-pixel remainders, and both sprite-entry coordinates",
     cert: "code",
+    why: "it clears the two sub-pixel remainders as well as the coordinates, which the sibling retire helper leaves standing; spawn paths differ on whether they reinitialise those cells, so which helper retired a slot can still be visible to its next occupant",
   },
   0x2b83: {
-    name: "loc_2b83",
+    name: "hasReachedRetireLine",
     role: "answer whether an actor has drifted onto either of two fixed retire lines, within a narrow wrapped window, which is what makes its caller free the slot",
     cert: "code",
+    why: "loc_19f0 pins the player's own sprite entry at (0x84, 0x78) and loc_20af never rewrites those two bytes, so the two lines at 0x04 and 0xF8 are each exactly +0x80 -- the antipode in a coordinate that wraps at 256; the callers that act on the carry use it to free the slot, though at least one path discards it",
   },
   0x309b: {
-    name: "loc_309b",
+    name: "advanceToNextSlot",
     role: "step the record cursor and the parallel sprite-entry cursor on to the next object slot",
     cert: "code",
+    why: "loc_3058 uses it to step onto a further tile of the sprite it has just placed, while loc_2d62 and loc_2d68 use it to reach a different entity -- the callers disagree about what the next slot holds, so the unit it advances is the slot index, not the object",
   },
   0x40ab: {
-    name: "loc_40ab",
+    name: "retireSlot",
     role: "retire an object, zeroing only the INTEGER halves — occupancy byte and both sprite-entry coordinates — leaving the sub-pixel remainders standing",
     cert: "code",
+    why: "no file calls both this and the sibling retire helper -- the two caller sets are statically disjoint, which is what makes them two families' helpers rather than two versions of one; and loc_3dfb re-arms a cooldown byte after calling it, a slot going back on cooldown rather than an object deleted",
   },
 };

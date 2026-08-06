@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f1a — memory-equivalent to the frozen oracle at ROM 0x0F1A.
+ * advanceSequenceSubStep — memory-equivalent to the frozen oracle at ROM 0x0F1A.
  *
  * GATE: strict unit-capture, straight through unitEquivalence. The entry state is the real
  *   one: the host game runs the coin -> start tape until 0x0F1A first dispatches (undriven
@@ -31,8 +31,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES } from "./_harness.js";
-import { loc_0f1a } from "../loc_0f1a.js";
-import { SEQUENCE_STEP } from "../names.js";
+import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
+import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_0f1a as oracle } from "../../translated/loc_0f1a.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -56,7 +56,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0f1a);
+  if (entry === null) gate(advanceSequenceSubStep);
   return entry;
 }
 
@@ -64,8 +64,8 @@ function entryState() {
 function sweepDiff(candidate, prior) {
   const a = entryState().clone();
   const b = entryState().clone();
-  a.mem8[SEQUENCE_STEP] = prior;
-  b.mem8[SEQUENCE_STEP] = prior;
+  a.mem8[SEQUENCE_SUBSTEP] = prior;
+  b.mem8[SEQUENCE_SUBSTEP] = prior;
   oracle(a);
   candidate(b);
   return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
@@ -76,12 +76,12 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0f1a == oracle on RAM", () => {
-  const r = gate(loc_0f1a);
+test("EQUAL at the real dispatch: advanceSequenceSubStep == oracle on RAM", () => {
+  const r = gate(advanceSequenceSubStep);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(
-    `  EQUAL: entry ${hex4(SEQUENCE_STEP)}=${entryState().mem8[SEQUENCE_STEP]} within ` +
+    `  EQUAL: entry ${hex4(SEQUENCE_SUBSTEP)}=${entryState().mem8[SEQUENCE_SUBSTEP]} within ` +
       `${ENTRY_FRAMES} frames; RAM identical`,
   );
 });
@@ -90,7 +90,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", (
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0f1a(b);
+  advanceSequenceSubStep(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -100,23 +100,23 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", (
       "the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
-  assert.equal(a.mem8[SEQUENCE_STEP], b.mem8[SEQUENCE_STEP], "the one live-out");
+  assert.equal(a.mem8[SEQUENCE_SUBSTEP], b.mem8[SEQUENCE_SUBSTEP], "the one live-out");
   console.log(`  EXCLUDED: registers ${moved.join(", ")} and pc — RAM unaffected`);
 });
 
 test("EXHAUSTIVE over priors: every value 0..255 steps as the oracle steps it", () => {
   let swept = 0;
   for (let prior = 0; prior < 256; prior++) {
-    const d = sweepDiff(loc_0f1a, prior);
+    const d = sweepDiff(advanceSequenceSubStep, prior);
     assert.equal(d, null, `prior=${prior}: ${show(d)}`);
     swept++;
   }
   assert.equal(swept, 256, "must have swept every prior");
 
   const wrapped = entryState().clone();
-  wrapped.mem8[SEQUENCE_STEP] = 255;
-  loc_0f1a(wrapped);
-  assert.equal(wrapped.mem8[SEQUENCE_STEP], 0, "255 must round to 0, not widen to 256");
+  wrapped.mem8[SEQUENCE_SUBSTEP] = 255;
+  advanceSequenceSubStep(wrapped);
+  assert.equal(wrapped.mem8[SEQUENCE_SUBSTEP], 0, "255 must round to 0, not widen to 256");
   console.log(`  EXHAUSTIVE: ${swept} priors identical, including the 255 -> 0 wrap`);
 });
 
@@ -127,13 +127,13 @@ test("EXHAUSTIVE over priors: every value 0..255 steps as the oracle steps it", 
 /** BUG: steps by two. */
 function brokenStepsTwice(m) {
   const { mem8 } = m;
-  mem8[SEQUENCE_STEP] = mem8[SEQUENCE_STEP] + 2;
+  mem8[SEQUENCE_SUBSTEP] = mem8[SEQUENCE_SUBSTEP] + 2;
 }
 
 /** BUG: steps the cell below the target, leaving the target untouched. */
 function brokenWrongCell(m) {
   const { mem8 } = m;
-  const addr = (SEQUENCE_STEP - 1) & 0xffff;
+  const addr = (SEQUENCE_SUBSTEP - 1) & 0xffff;
   mem8[addr] = mem8[addr] + 1;
 }
 
