@@ -229,4 +229,49 @@ export const ROUTINES = {
     cert: "code",
     why: "loc_1f55 negates the pair this returns into the very cells driftWithWorldScroll adds to every world-static object -- negated player velocity applied to everything else is the camera, which gameplay.md records independently; the selectable tables hold a near-constant magnitude around the heading circle, not an exact one, with anomalous words widening the spread",
   },
+  0x0bff: {
+    name: "loc_0bff",
+    role: "paint one caption into the character plane and give every cell of it one colour, taking glyphs in order from a run that ends at a fixed terminating code",
+    cert: "code",
+  },
+  0x1098: {
+    name: "loc_1098",
+    role: "give eight display-list slots a second appearance half a screen away, once the raster has passed each one's last line",
+    cert: "code",
+  },
+  0x1ed1: {
+    name: "loc_1ed1",
+    role: "hand back the control word of whichever cabinet panel currently faces the picture",
+    cert: "code",
+  },
+  0x2a57: {
+    name: "loc_2a57",
+    role: "pick the sprite shape, and the byte beside it, that show an object pointing the way it is heading, alternating between two shape banks as a frame counter's bit turns over",
+    cert: "code",
+  },
+  0x2e31: {
+    name: "loc_2e31",
+    role: "move a coordinate by a displacement and a further quarter of it, so what it carries leads what moves by the whole of it; the quarter rounds down rather than toward zero",
+    cert: "code",
+  },
+  0x303e: {
+    name: "loc_303e",
+    role: "move a coordinate by three quarters of a displacement, so what it carries trails what moves by the whole of it",
+    cert: "code",
+  },
+  0x304d: {
+    name: "loc_304d",
+    role: "move a coordinate by half a displacement, so what it carries keeps half the pace of what moves by the whole of it",
+    cert: "code",
+  },
+  0x5211: {
+    name: "loc_5211",
+    role: "destroy every target a live shot has reached, spending the shot with them, and post the score for each; the sweep does not stop at the first, so one shot can take several in a pass",
+    cert: "code",
+  },
+  0x58bc: {
+    name: "loc_58bc",
+    role: "fly one object a single step along the heading it holds, while the world scrolls underneath it",
+    cert: "code",
+  },
 };
