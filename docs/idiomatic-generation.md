@@ -411,7 +411,39 @@ them before they are overwritten. A dead value never reaches pixels.
   deleted and its whole-machine RAM trace stays byte-exact across every dispatch. Corrupting a
   register on a naturally-run path is *not* caught by the whole-machine gate precisely when the
   register is dead; when it is live, the corruption propagates into memory and the gate catches it
-  for free. A full-register unit check would only catch *dead* differences.
+  for free.
+
+  ★ **But a live register live-out is invisible to the unit gate, and that is not theoretical.** The
+  unit gate compares memory. A routine whose product is left in a register can be entirely wrong and
+  still pass it, every twin, and a real corpus — one such rewrite dropped `HL`, which its caller
+  loops on, and wiring it hung the game while its own gate stayed green. So a module whose live-out IS a
+  register or flag needs an arm that actually checks it.
+
+  ★ And the trigger cannot be the module's own `LIVE-OUT:` line. That rewrite declared a MEMORY
+  live-out — **the wrong declaration was the defect**, so a rule keyed on the declaration cannot fire
+  on the case that motivates it. The check has to compare registers against the oracle regardless of
+  what the file claims. And note the order this actually happened in, because it is the lesson: the
+  bug was found by WIRING the routine and running a driven tape until the machine hung, diagnosed by
+  reading the caller, and only then confirmed by a register probe built afterwards, with that very
+  routine as its positive control — so the register comparison has to be STANDING, not reached for
+  after a hang. Nor does the whole-machine gate stand in for
+  it: attract ran clean, and a routine absent from `ROUTINES` is never dispatched there at all.
+
+- **The one stack exception, and its three conditions.** The idiomatic layer models no stack.
+  **Exception: when a routine transfers to a STILL-FROZEN callee that POPS a slot the caller is
+  expected to have supplied, the idiomatic caller must park that slot.** This is not stack
+  modelling — it is satisfying the calling interface of a routine that has not been lifted yet. It
+  is temporary debt BY CONSTRUCTION: when that tail is lifted and dissolved, the push must go with
+  it. Three conditions, all required: (1) the drift is MEASURED, not assumed — show the SP error per
+  dispatch without it; (2) the gate ASSERTS the SP property, so removing or breaking it fails
+  loudly; (3) the file says which tail it is coupled to, so the debt is discoverable when that tail
+  lands.
+
+  The debt really does liquidate: a routine reaching a tail that had already been lifted needed no
+  park at all. And note what the exception does NOT cover — a routine whose ROM form ends by
+  transferring into a frozen callee reaches it through a dispatch that runs that callee *including
+  its own return*, so the seam must not supply a second one. That case is measured at the seam
+  rather than parked here.
 - **Cycles are droppable, under two conditions.** A frame-stepped engine that fires the vblank NMI
   at the main loop's natural poll yield produces per-frame RAM identical to a cycle-accurate engine,
   with the PRNG pinned on both sides. The conditions are real requirements: keep the PRNG pinned for
@@ -543,7 +575,9 @@ equivalence again isolates real logic bugs.
 
 # Part IV — Output conventions
 
-- **Direct function calls.** No `m.call`/address registry, no `push16`/stack modelling. The Z80 stack
+- **Direct function calls.** No `m.call`/address registry, and no `push16`/stack modelling **except
+  the one measured case above** — a transfer to a still-frozen callee that pops a slot the caller
+  must supply, under its three conditions. Everywhere else the Z80 stack
   becomes the JS call stack. Computed dispatch → a table of function references. The caller-skip
   idiom (`inc sp; inc sp; ret`) → a boolean return plus `if (!callee(m)) return;`.
   **Before you write `m.call(0xADDR)`, check whether that callee is already decompiled.** A stale

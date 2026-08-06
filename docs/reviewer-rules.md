@@ -143,7 +143,21 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   "unnamed / kept hex / no names.js name". Verify: `python3 tools/names_consistency.py check` (also a
   hook) + scan comments in the diff.
 - **R8 [ALL]** A cell named in names.js is IMPORTED from names.js, not redefined as a local hex const.
-  Verify: grep the diff for `const [A-Z_0-9]+ = 0x6[0-9a-f]{3}` duplicating a names.js name.
+  Verify WITHOUT a hardcoded address range: read the game's `names.js`, collect the addresses it
+  names, and grep the diff for any `const [A-Z_0-9]+ = 0x…` whose value is one of them. ★ The recipe
+  here used to say `0x6[0-9a-f]{3}`, which is **Donkey Kong's** work RAM — so a reviewer following
+  it literally on any other game grepped a range that cannot appear and reported clean having
+  inspected nothing. `tools/names_consistency.py` documents that exact defect in its own docstring
+  and already fixed it by deriving each game's window from `boards/<board>/memory.js` through the
+  manifest; the hardcode survived only here, in the half a person follows. A check that cannot fail
+  is not a check.
+
+  Two things this rule does NOT cover, so do not read a pass as more than it is. **Naming a cell is
+  retroactive**: the moment a cell enters `names.js`, every surviving local alias for it becomes a
+  violation, in files the naming commit never touched — so a rewire must sweep the whole layer at
+  the moment of the edit, not from an earlier count. And a bare hex CITATION in prose is not a
+  redefinition: R7 forbids calling a *named* cell unnamed, but mentioning an address makes no such
+  claim, so naming that cell later creates staleness rather than a violation.
 - **R16 [ALL]** Every named cell in names.js carries a grounding rating. Verify by PARSING names.js: for
   each `export const NAME = 0x…`, its own comment must contain `[seen]`, `[code]`, or `[guess]`.
   **FAIL if ANY named cell is unrated** — no ratchet, no legacy-debt exception. A name is not
