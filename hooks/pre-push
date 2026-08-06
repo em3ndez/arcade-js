@@ -5,14 +5,43 @@
 # masked a red translated test that got pushed). --no-verify bypasses it; don't.
 repo="$(git rev-parse --show-toplevel)" || { echo "[pre-push] not a git repo -- blocking" >&2; exit 1; }
 cd "$repo" || { echo "[pre-push] cannot cd to repo -- blocking" >&2; exit 1; }
-echo "[pre-push] running npm test (full suite, ~46s) before push..." >&2
+# A SPIN IN THE IDIOMATIC LAYER CANNOT BE BOUNDED FROM INSIDE, so it is bounded from out here.
+# runCycleFree's stepBudget counts m.step calls; idiomatic routines are cycle-free and never call
+# it, so the budget bounds the TRANSLATED arm -- faithful transcription of terminating ROM code,
+# the arm least able to spin -- and is blind to the arm most able to. node --test's --test-timeout
+# does not help either: a synchronous loop never yields, so no timer in that process ever runs
+# (measured: --test-timeout=5000 against a `for(;;){}` had to be killed externally at 40s).
+# Hence a process-level kill, the one bound the code under test cannot decline to call.
+# A hanging gate is worse than a failing one: CI waits, no verdict is produced, and it looks
+# exactly like a slow machine -- the failure mode people wait through instead of investigating.
+SUITE_TIMEOUT="${SUITE_TIMEOUT:-600}"
+runner=""
+for t in timeout gtimeout; do command -v "$t" >/dev/null 2>&1 && { runner="$t"; break; }; done
+if [ -z "$runner" ]; then
+  echo "[pre-push] WARNING: no timeout(1) found -- running the suite UNBOUNDED." >&2
+  echo "[pre-push] a spin in an idiomatic routine will hang this push with no verdict." >&2
+fi
+echo "[pre-push] running npm test (full suite, ~46s; hard cap ${SUITE_TIMEOUT}s) before push..." >&2
 log="$(mktemp)"
-if npm test >"$log" 2>&1 </dev/null; then
+if [ -n "$runner" ]; then
+  "$runner" "$SUITE_TIMEOUT" npm test >"$log" 2>&1 </dev/null; rc=$?
+else
+  npm test >"$log" 2>&1 </dev/null; rc=$?
+fi
+if [ "$rc" -eq 0 ]; then
   echo "[pre-push] suite green -- push allowed." >&2
   rm -f "$log"; exit 0
 fi
 echo "" >&2
-echo "PUSH BLOCKED -- npm test is RED. Fix the suite before pushing (do not --no-verify)." >&2
+if [ "$rc" -eq 124 ]; then
+  echo "PUSH BLOCKED -- the suite did not FINISH within ${SUITE_TIMEOUT}s; it was killed." >&2
+  echo "This is a HANG, not a red test, and the two have different causes." >&2
+  echo "Most likely an unbounded spin in a wired idiomatic routine: the step budget cannot" >&2
+  echo "see those, so the run never terminates and never reports. Find which test file stops" >&2
+  echo "producing output, then run that file alone under 'timeout'." >&2
+else
+  echo "PUSH BLOCKED -- npm test is RED. Fix the suite before pushing (do not --no-verify)." >&2
+fi
 grep -E '✖|^ℹ (tests|pass|fail)' "$log" | tail -25 >&2
 rm -f "$log"
 exit 1
