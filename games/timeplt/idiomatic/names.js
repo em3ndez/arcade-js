@@ -367,4 +367,39 @@ export const ROUTINES = {
     cert: "code",
     why: "the pair it adds to every coordinate is the same pair driftWithWorldScroll applies to world-static objects, so this is that camera application and the object's own velocity folded into one add -- which is why none of its callers drifts the object separately, and why a reader who takes the name to mean velocity only will add a drift beside it and apply the camera twice. Its first half is byte-identical to velocityForHeading, so the module's reuse of that routine is an identity rather than an approximation",
   },
+  0x0b46: {
+    name: "loc_0b46",
+    role: "queue one fixed command, with its one fixed argument, in the command ring -- both bytes are chosen here and whatever the caller held is discarded; the pair is dropped when the slot the write cursor names has not been consumed, and this entry never learns that",
+    cert: "code",
+  },
+  0x0ce8: {
+    name: "loc_0ce8",
+    role: "an exit with nothing left to do: no cell is read or written and no register moves",
+    cert: "code",
+  },
+  0x181d: {
+    name: "loc_181d",
+    role: "an arrival point with nothing to do: no cell is read or written and no register moves",
+    cert: "code",
+  },
+  0x3ce1: {
+    name: "loc_3ce1",
+    role: "answer whether the byte at the head of a sprite entry has reached its wrap point, testing a four-wide window that straddles zero -- so it measures a wrapped distance rather than bounding a range, which is what lets a byte stepping several units at a time land inside the window instead of over it",
+    cert: "code",
+  },
+  0x5854: {
+    name: "loc_5854",
+    role: "fly one object a single step at the pace the velocity samples based at 0x5E00 set, choosing that table and deciding nothing else",
+    cert: "code",
+  },
+  0x594e: {
+    name: "loc_594e",
+    role: "hand back the perpendicular component pair an object's heading calls for, at the pace the velocity samples based at 0x5E00 set; choosing that table is all this entry does",
+    cert: "code",
+  },
+  0x5965: {
+    name: "loc_5965",
+    role: "hand back the perpendicular component pair an object's heading calls for, at the pace the velocity samples based at 0x2E3E set; choosing that table is all this entry does",
+    cert: "code",
+  },
 };
