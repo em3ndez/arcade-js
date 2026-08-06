@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3058 — memory-equivalent to the frozen oracle at ROM 0x3058.
+ * placeAbuttingTile — memory-equivalent to the frozen oracle at ROM 0x3058.
  *
  * GATE: strict unit-capture, a captured corpus over two tapes, an exhaustive sweep of both
  *   source bytes, its reachable callers replayed whole, and a driven whole-session replay.
@@ -58,7 +58,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3058 } from "../loc_3058.js";
+import { placeAbuttingTile } from "../placeAbuttingTile.js";
 import { advanceToNextSlot } from "../advanceToNextSlot.js";
 import { loc_3058 as oracle } from "../../translated/loc_3058.js";
 import { loc_2d15 } from "../../translated/loc_2d15.js";
@@ -317,8 +317,8 @@ function assertSessionRan(s) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_3058 == oracle on RAM at the real dispatch", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_3058, { maxFrames: ENTRY_FRAMES });
+test("CONTRACT: placeAbuttingTile == oracle on RAM at the real dispatch", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, placeAbuttingTile, { maxFrames: ENTRY_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
   console.log(`  CONTRACT: entered within ${ENTRY_FRAMES} frames; RAM identical`);
 });
@@ -343,7 +343,7 @@ test("CORPUS: every captured entry state replays identically", { skip }, () => {
     `the corpus thinned to ${entries.length} states — a thin corpus is a weak gate`,
   );
   for (const entry of entries) {
-    const d = unitDiff(loc_3058, entry);
+    const d = unitDiff(placeAbuttingTile, entry);
     assert.equal(d, null, `${hex4(entry.regs.iy)}: ${d}`);
   }
   console.log(`  CORPUS: ${dispatches} dispatches (${changing} changing), ${entries.length} distinct states`);
@@ -356,7 +356,7 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
     const a = e.clone();
     const b = e.clone();
     oracle(a);
-    loc_3058(b);
+    placeAbuttingTile(b);
     const extra = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !EXCLUDED.includes(k));
     if (extra.length) widened.push(`${hex4(e.regs.iy)}: ${extra.join(",")}`);
   }
@@ -365,7 +365,7 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
   const a = entries[0].clone();
   const b = entries[0].clone();
   oracle(a);
-  loc_3058(b);
+  placeAbuttingTile(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
     moved,
@@ -379,13 +379,13 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
 });
 
 test("EXHAUSTIVE: every source-byte pair writes what the oracle writes", { skip }, () => {
-  assert.equal(sweep(loc_3058), 0, "the sweep found a source-byte pair that diverges");
+  assert.equal(sweep(placeAbuttingTile), 0, "the sweep found a source-byte pair that diverges");
 
   const entry = captureCorpus().entries[0].clone();
   const iy = entry.regs.iy;
   entry.mem8[iy + STEPPED] = 240;
   entry.mem8[iy + NEXT_STEPPED] = 99;
-  loc_3058(entry);
+  placeAbuttingTile(entry);
   assert.equal(entry.mem8[iy + NEXT_STEPPED], 0, "the advance must wrap in a byte, not widen");
   console.log("  EXHAUSTIVE: 65536 source-byte pairs identical, including the byte wrap");
 });
@@ -395,7 +395,7 @@ test("CALLERS: each reachable caller is unchanged by wiring the rewrite undernea
   const missing = FAMILY.filter((c) => !reached.some((r) => r.addr === c.addr));
   assert.ok(reached.length >= 3, `only ${reached.length} of the family dispatched — arm too thin`);
   for (const caller of reached) {
-    const d = callerDiff(caller, loc_3058);
+    const d = callerDiff(caller, placeAbuttingTile);
     assert.equal(d, null, `${hex4(caller.addr)}: ${d}`);
   }
   console.log(
@@ -405,7 +405,7 @@ test("CALLERS: each reachable caller is unchanged by wiring the rewrite undernea
 });
 
 test("SESSION: 800 driven frames are byte-identical with the rewrite wired", { skip }, () => {
-  const s = session(loc_3058);
+  const s = session(placeAbuttingTile);
   assertSessionRan(s);
   assert.equal(s.diff, null, `forked at frame ${s.diff?.frame} on ${hex4(s.diff?.addr ?? 0)}`);
   console.log(`  SESSION: ${s.frames} frames, ${s.fired} dispatches, RAM identical`);

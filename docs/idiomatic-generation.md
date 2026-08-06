@@ -347,6 +347,15 @@ Per routine, the gate is **memory-equivalence, not byte-exactness**:
   `loc_XXXX` lift. **Never** the full register file, **never** cycles.
 - Determine live-out honestly by reading the exit successors. For most routines it is memory only.
 - The PRNG is entropy-pinned so runs are deterministic.
+- **A windowed stack exclusion is not expressible in the gate's return value.** The frozen routine
+  pushes and the rewrite does not, so dead scratch differs — but the diff helper reports only the
+  FIRST differing byte, so it can never say "differs only inside the window". A push-bearing routine
+  needs its own full masked diff. Do not over-specify the window either: where the pushed byte
+  already held its own value only one byte differs, and on an early exit none does.
+- **Pick a batch by CALL TARGETS, not by execution count.** A program-counter-gated reachability
+  tap cannot tell a routine entry from a loop head — a raster wait re-branching to its own address
+  reported tens of thousands of executions for an interior block that is dispatched zero times.
+  Intersect the hot list with addresses something actually calls.
 - Every gate carries **teeth** — a deliberately-broken twin it must catch — or it proves nothing.
 - Validate by **unit-capture at real dispatches**, plus a **reachability sweep** over natural
   dispatches, plus **crafted identical-both-sides entries** for arms attract never reaches.

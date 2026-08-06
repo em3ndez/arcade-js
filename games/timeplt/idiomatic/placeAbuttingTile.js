@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3058 — carry an object onto one more sprite entry, flush against the one it already
+/** placeAbuttingTile — carry an object onto one more sprite entry, flush against the one it already
  * occupies. The current entry's two coordinate bytes are read; the entry one stride on takes one
  * of them advanced by a sprite's pitch, truncated to a byte, and the other copied unchanged.
  * Both cursors then step onto the entry just written, so a caller can chain a further one.
@@ -12,7 +12,7 @@ const SPRITE_PITCH = 16;
 const STEPPED_COORDINATE = 49;
 const COPIED_COORDINATE = 0;
 
-export function loc_3058(m) {
+export function placeAbuttingTile(m) {
   const { mem8, regs } = m;
   const entry = regs.iy;
   const nextEntry = entry + ENTRY_STRIDE;

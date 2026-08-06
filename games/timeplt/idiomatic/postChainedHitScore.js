@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_51de — post the next entry of an eight-long climbing chain, one entry per call, and
+/** postChainedHitScore — post the next entry of an eight-long climbing chain, one entry per call, and
  * re-arm the window that keeps the chain alive. A call arriving while the window cell still
  * holds a count advances the step cell and posts a value that climbs with it, wrapping back to
  * the first entry after the eighth; a call arriving once the window has run down to zero posts
@@ -15,7 +15,7 @@ const CHAIN_COMMAND = 4;
 const CHAIN_LENGTH = 8;
 const WINDOW_RELOAD = 30;
 
-export function loc_51de(m) {
+export function postChainedHitScore(m) {
   const { mem8 } = m;
   if (mem8[CHAIN_WINDOW] === 0) {
     postCommand(m, CHAIN_COMMAND, 1);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b06 — memory-equivalent to the frozen oracle at ROM 0x0B06.
+ * stampCopyrightStrip — memory-equivalent to the frozen oracle at ROM 0x0B06.
  *
  * GATE: strict unit-capture through unitEquivalence at the real first dispatch, plus crafted
  *   entries for priors the first dispatch does not present. There is NO exclusion window:
@@ -45,7 +45,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0b06 } from "../loc_0b06.js";
+import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
 import { loc_0b06 as oracle } from "../../translated/loc_0b06.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -108,7 +108,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0b06);
+  if (entry === null) gate(stampCopyrightStrip);
   return entry;
 }
 
@@ -200,8 +200,8 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0b06 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_0b06);
+test("EQUAL at the real dispatch: stampCopyrightStrip == oracle on RAM", { skip }, () => {
+  const r = gate(stampCopyrightStrip);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   console.log(`  EQUAL: entry reached within ${ENTRY_FRAMES} frames; RAM identical everywhere`);
@@ -212,7 +212,7 @@ test("NOT DEGENERATE: the captured entry really tests something", { skip }, () =
   assert.deepEqual(prior, ZEROED, "the first dispatch no longer arrives with the strip clear");
   assert.equal(isDegenerate(prior), false, "the gate would be a tautology at a stamped entry");
   assert.deepEqual(
-    writeSet(loc_0b06, prior),
+    writeSet(stampCopyrightStrip, prior),
     CELLS,
     "the rewrite must move exactly its sixteen cells from this entry, no more and no fewer",
   );
@@ -223,7 +223,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0b06(b);
+  stampCopyrightStrip(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -239,7 +239,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
 
 test("WRITE-SET: the sixteen constants land where the table says", { skip }, () => {
   const after = entryState().clone();
-  loc_0b06(after);
+  stampCopyrightStrip(after);
   for (const [addr, value] of EXPECTED) {
     assert.equal(after.mem8[addr], value, `${hex4(addr)} must hold ${value}`);
   }
@@ -257,12 +257,12 @@ test("CRAFTED PRIORS: every starting content of the sixteen cells replays identi
     ["strip hidden", HIDDEN],
     ["scrambled", SCRAMBLED],
   ]) {
-    const d = craftedDiff(loc_0b06, prior);
+    const d = craftedDiff(stampCopyrightStrip, prior);
     assert.equal(d, null, `prior ${label}: ${show(d)}`);
   }
-  assert.deepEqual(writeSet(loc_0b06, STAMPED), [], "re-stamping a stamped strip must move nothing");
+  assert.deepEqual(writeSet(stampCopyrightStrip, STAMPED), [], "re-stamping a stamped strip must move nothing");
   assert.deepEqual(
-    writeSet(loc_0b06, HIDDEN),
+    writeSet(stampCopyrightStrip, HIDDEN),
     [...SECOND_AXIS_CELLS].sort((a, b) => a - b),
     "re-showing a hidden strip must touch only the four positions that were cleared",
   );
@@ -273,7 +273,7 @@ test("CORPUS: every prior a longer driven run presents replays identically", { s
   const { rows, dispatches } = inputCorpus();
   assert.ok(rows.length > 0, "vacuous: the longer run never reached the routine either");
   for (const { prior } of rows) {
-    const d = craftedDiff(loc_0b06, prior);
+    const d = craftedDiff(stampCopyrightStrip, prior);
     assert.equal(d, null, `a real prior diverged: ${show(d)}`);
   }
   const degenerate = rows.filter((r) => isDegenerate(r.prior)).reduce((n, r) => n + r.count, 0);

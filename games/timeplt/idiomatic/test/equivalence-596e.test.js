@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_596e — memory-equivalent to the frozen oracle at ROM 0x596E.
+ * velocityForHeading — memory-equivalent to the frozen oracle at ROM 0x596E.
  *
  * GATE: strict unit-capture, a corpus of real dispatches from three tapes, an exhaustive sweep of
  *   the entire input space, and a whole-machine replay of driven play. RAM ALONE CANNOT GATE THIS
@@ -52,7 +52,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_596e } from "../loc_596e.js";
+import { velocityForHeading } from "../velocityForHeading.js";
 import { loc_596e as oracle } from "../../translated/loc_596e.js";
 import {
   firstStateDiff,
@@ -236,8 +236,8 @@ function replay(candidate) {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_596e == oracle on RAM at the real dispatch", { skip }, () => {
-  const r = unitEquivalence(makeMachine, TARGET, oracle, loc_596e, { maxFrames: ENTRY_FRAMES });
+test("CONTRACT: velocityForHeading == oracle on RAM at the real dispatch", { skip }, () => {
+  const r = unitEquivalence(makeMachine, TARGET, oracle, velocityForHeading, { maxFrames: ENTRY_FRAMES });
   assert.equal(r.ram, null, `RAM diverged — ${JSON.stringify(r.ram)}`);
   console.log(`  CONTRACT: entered within ${ENTRY_FRAMES} frames; RAM identical`);
 });
@@ -257,7 +257,7 @@ test("DEGENERATE ENTRY: two real twins are invisible at the first dispatch", { s
   let entry = null;
   unitEquivalence(makeMachine, TARGET, oracle, (m) => {
     if (entry === null) entry = m.clone();
-    return loc_596e(m);
+    return velocityForHeading(m);
   }, { maxFrames: ENTRY_FRAMES });
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
@@ -281,7 +281,7 @@ test("CORPUS: every captured (table, heading) pair replays identically", { skip 
     assert.ok(t.dispatches > 0, `vacuous: the ${t.label} tape never reached the routine`);
   }
   for (const entry of entries) {
-    const d = unitDiff(loc_596e, entry);
+    const d = unitDiff(velocityForHeading, entry);
     assert.equal(d, null, `${keyOf(entry)}: ${d}`);
   }
   const seen = perTape.map((t) => `${t.label} ${t.dispatches}/${t.distinct}`).join(", ");
@@ -295,7 +295,7 @@ test("EXCLUDED, deliberately: only the dropped registers move, over the whole sw
       const a = craft(table, heading);
       const b = craft(table, heading);
       oracle(a);
-      loc_596e(b);
+      velocityForHeading(b);
       for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
       assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     }
@@ -314,7 +314,7 @@ test("EXHAUSTIVE: 256 headings on each of the four tables are identical", { skip
   let swept = 0;
   for (const table of TABLES) {
     for (const heading of everyHeading) {
-      const d = unitDiff(loc_596e, craft(table, heading));
+      const d = unitDiff(velocityForHeading, craft(table, heading));
       assert.equal(d, null, `${hex4(table)}/${heading}: ${d}`);
       swept++;
     }
@@ -337,7 +337,7 @@ test("EXHAUSTIVE: the shim charges exactly what the oracle charges", { skip }, (
 });
 
 test("WHOLE-MACHINE: driven play is byte-identical with the rewrite wired", { skip }, () => {
-  const w = replay(loc_596e);
+  const w = replay(velocityForHeading);
   const fired = w.invocations.get(TARGET);
   assert.ok(fired > 0, "vacuous: the override never dispatched in this many frames");
   assert.equal(w.framesCompared, WHOLE_FRAMES, "the replay ran short of the frames asked for");

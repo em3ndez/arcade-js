@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2bef — memory-equivalent to the frozen oracle at ROM 0x2BEF.
+ * steerTowardAimHeading — memory-equivalent to the frozen oracle at ROM 0x2BEF.
  *
  * GATE: the required strict unit-capture is VACUOUS, and the BLIND arm PROVES that rather than
  *   asserting it. unitEquivalence clones the FIRST dispatch, and at that dispatch the object's two
@@ -41,7 +41,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2bef } from "../loc_2bef.js";
+import { steerTowardAimHeading } from "../steerTowardAimHeading.js";
 import { loc_2bef as oracle } from "../../translated/loc_2bef.js";
 import { unitEquivalence, wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -79,7 +79,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_2bef);
+  if (entry === null) gate(steerTowardAimHeading);
   return entry;
 }
 
@@ -220,7 +220,7 @@ function assertWholeRun(r) {
  */
 function poisonDropped(m) {
   const b = m.clone();
-  loc_2bef(b);
+  steerTowardAimHeading(b);
   const out = oracle(m);
   for (const k of DROPPED) m.regs[k] = b.regs[k];
   return out;
@@ -255,14 +255,14 @@ test("BLIND: the required unit gate is a TAUTOLOGY here — a no-op passes it", 
 });
 
 test("EQUAL at the real dispatch: the rewrite passes the same unit gate", { skip }, () => {
-  const r = gate(loc_2bef);
+  const r = gate(steerTowardAimHeading);
   assert.equal(r.ram, null, "RAM diverged at the captured entry");
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(`  EQUAL: reached within ${ENTRY_FRAMES} frames; RAM identical — and meaningless`);
 });
 
 test("EXHAUSTIVE: all 65536 heading pairs leave the record identical", { skip }, () => {
-  const r = sweep(loc_2bef);
+  const r = sweep(steerTowardAimHeading);
   assert.equal(r.caught, 0, `${r.caught} of ${r.total} heading pairs disagreed`);
   assert.equal(r.arms.arrived, 4 * 256, "a four-wide window on every one of the 256 headings");
   assert.equal(r.arms.forward, 126 * 256, "the rest of the near half turn, per heading");
@@ -274,8 +274,8 @@ test("EXHAUSTIVE: all 65536 heading pairs leave the record identical", { skip },
 });
 
 test("RATE, crafted: every value of the rate cell fetches the step the frozen routine does", { skip }, () => {
-  const forward = rateSweep(loc_2bef, 160, 100);
-  const back = rateSweep(loc_2bef, 40, 100);
+  const forward = rateSweep(steerTowardAimHeading, 160, 100);
+  const back = rateSweep(steerTowardAimHeading, 40, 100);
   assert.equal(forward.caught, 0, "the forward direction disagreed on some rate");
   assert.equal(back.caught, 0, "the backward direction disagreed on some rate");
   assert.ok(
@@ -289,7 +289,7 @@ test("RATE, crafted: every value of the rate cell fetches the step the frozen ro
 });
 
 test("CORPUS: every real dispatch of a driven session agrees", { skip }, () => {
-  const r = corpus(loc_2bef);
+  const r = corpus(steerTowardAimHeading);
   assertWholeRun(r);
   assert.equal(r.disagreed, 0, `${r.disagreed} of ${r.dispatches} real dispatches disagreed`);
   assert.deepEqual(r.foreign, [], "a difference landed somewhere other than the stack scratch");

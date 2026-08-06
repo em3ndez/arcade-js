@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f11 — memory-equivalent to the frozen oracle at ROM 0x0F11.
+ * advanceSequencePhase — memory-equivalent to the frozen oracle at ROM 0x0F11.
  *
  * GATE: strict unit-capture straight through unitEquivalence, plus an EXHAUSTIVE sweep of the
  *   FULL PRODUCT of both written cells' priors — 65536 points — on the captured entry state.
@@ -35,7 +35,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, COIN_START_TAPE, romsPresent } from "./_harness.js";
-import { loc_0f11 } from "../loc_0f11.js";
+import { advanceSequencePhase } from "../advanceSequencePhase.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_0f11 as oracle } from "../../translated/loc_0f11.js";
 import { loc_167b } from "../../translated/loc_167b.js";
@@ -44,7 +44,7 @@ import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x0f11;
 const LIVE_CALLER = 0x167b;
-const PHASE = 0xa9ab; // the second cell loc_0f11 writes; it carries no registry name yet
+const PHASE = 0xa9ab; // the second cell advanceSequencePhase writes; it carries no registry name yet
 const ATTRACT_FRAMES = 2000;
 const POINTS = 256 * 256;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -66,7 +66,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0f11);
+  if (entry === null) gate(advanceSequencePhase);
   return entry;
 }
 
@@ -222,8 +222,8 @@ function axisPoints() {
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0f11 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_0f11);
+test("EQUAL at the real dispatch: advanceSequencePhase == oracle on RAM", { skip }, () => {
+  const r = gate(advanceSequencePhase);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(
@@ -273,7 +273,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0f11(b);
+  advanceSequencePhase(b);
 
   const allowed = ["a", "f", "h", "l", "sp"];
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
@@ -291,8 +291,8 @@ test("INSTRUMENT: the reused machine agrees with clone-per-point, passing and fa
   const pair = makePair();
   let checked = 0;
   for (const [phase, step] of axisPoints()) {
-    const goodFast = pairDiff(pair, loc_0f11, phase, step);
-    const goodSlow = cloneDiff(loc_0f11, phase, step);
+    const goodFast = pairDiff(pair, advanceSequencePhase, phase, step);
+    const goodSlow = cloneDiff(advanceSequencePhase, phase, step);
     assert.equal(goodFast, null, `${point(phase, step)} reused: ${show(goodFast)}`);
     assert.equal(goodSlow, null, `${point(phase, step)} cloned: ${show(goodSlow)}`);
 
@@ -322,8 +322,8 @@ test("INSTRUMENT TEETH: a sweep machine deaf to its priors is CAUGHT", { skip },
   let passingArmDisagreed = 0;
   let failingArmDisagreed = 0;
   for (const [phase, step] of axisPoints()) {
-    const good = pairDiff(deaf, loc_0f11, phase, step);
-    if (good !== null || cloneDiff(loc_0f11, phase, step) !== null) passingArmDisagreed++;
+    const good = pairDiff(deaf, advanceSequencePhase, phase, step);
+    if (good !== null || cloneDiff(advanceSequencePhase, phase, step) !== null) passingArmDisagreed++;
     const bad = pairDiff(deaf, brokenNoOp, phase, step);
     try {
       assert.deepEqual(bad, cloneDiff(brokenNoOp, phase, step));
@@ -340,13 +340,13 @@ test("INSTRUMENT TEETH: a sweep machine deaf to its priors is CAUGHT", { skip },
 });
 
 test("EXHAUSTIVE over priors: all 65536 prior pairs step and clear as the oracle does", { skip }, () => {
-  const r = productSweep(loc_0f11);
+  const r = productSweep(advanceSequencePhase);
   assert.equal(r.caught, 0, `diverged at ${r.firstCatch && point(r.firstCatch.phase, r.firstCatch.step)}`);
   assert.equal(r.agreements.length, POINTS, "every point must agree");
 
   const wrapped = entryState().clone();
   wrapped.mem8[PHASE] = 255;
-  loc_0f11(wrapped);
+  advanceSequencePhase(wrapped);
   assert.equal(wrapped.mem8[PHASE], 0, "255 must round to 0, not widen to 256");
   console.log(`  EXHAUSTIVE: ${r.agreements.length} prior pairs identical, including the wrap`);
 });

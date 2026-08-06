@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0010 — memory-equivalent to the frozen oracle at ROM 0x0010.
+ * fetchTableWord — memory-equivalent to the frozen oracle at ROM 0x0010.
  *
  * GATE: crafted-entry live-out, plus a whole-session arm. Both halves of the standard
  *   unitEquivalence verdict are toothless for THIS routine, and this file proves that rather
@@ -66,7 +66,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0010 } from "../loc_0010.js";
+import { fetchTableWord } from "../fetchTableWord.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { loc_0010 as oracle } from "../../translated/loc_0010.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -113,7 +113,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_0010);
+  if (entry === null) gate(fetchTableWord);
   return entry;
 }
 
@@ -244,7 +244,7 @@ function drivenSession() {
 
       const mine = mm.clone();
       const beforeMine = mine.dumpState();
-      loc_0010(mine);
+      fetchTableWord(mine);
       rewrote += countDiff(beforeMine, mine.dumpState());
 
       const before = mm.dumpState();
@@ -327,11 +327,11 @@ const show = (d) => (d ? `${d.where}: oracle=${d.oracle} candidate=${d.candidate
 
 // ── the contract call ───────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0010 == oracle on every live-out", { skip }, () => {
-  gate(loc_0010);
+test("EQUAL at the real dispatch: fetchTableWord == oracle on every live-out", { skip }, () => {
+  gate(fetchTableWord);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
-  const d = atInput(loc_0010, e.regs.hl, e.regs.a);
+  const d = atInput(fetchTableWord, e.regs.hl, e.regs.a);
   assert.equal(d, null, `the real entry diverged — ${show(d)}`);
   console.log(
     `  EQUAL: entry base ${hex4(e.regs.hl)} number ${hex2(e.regs.a)} within ${ENTRY_FRAMES} ` +
@@ -340,7 +340,7 @@ test("EQUAL at the real dispatch: loc_0010 == oracle on every live-out", { skip 
 });
 
 test("BLIND: the RAM verdict says the same thing about an empty body", { skip }, () => {
-  const real = gate(loc_0010);
+  const real = gate(fetchTableWord);
   const empty = gate(() => {});
   assert.notEqual(real.ram, null, "the oracle's scratch write vanished — re-derive this file");
   assert.deepEqual(
@@ -362,7 +362,7 @@ test("EXCLUDED, deliberately: the flag byte, the stack pointer, pc, and two scra
     const b = entryState().clone();
     const top = a.regs.sp;
     oracle(a);
-    loc_0010(b);
+    fetchTableWord(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
     assert.deepEqual(moved, ["f", "sp"], "the excluded register set changed shape");
@@ -430,12 +430,12 @@ test("FLAGS: the byte the rewrite drops steers nothing in a whole driven session
 // ── the comparison with teeth ───────────────────────────────────────────────────────────────
 
 test("EXHAUSTIVE: every entry number against every crafted base, identical", { skip }, () => {
-  const r = sweep(loc_0010);
+  const r = sweep(fetchTableWord);
   assert.deepEqual(r.strayed, [], `RAM moved outside the scratch window — ${show(r.strayed[0])}`);
   assert.deepEqual(r.wrote, [], "the rewrite wrote memory, so reusing one machine was unsound");
   assert.equal(r.caught, 0, `${r.caught} of ${SPACE} inputs diverged`);
 
-  const wrap = atInput(loc_0010, 0xffff, 0);
+  const wrap = atInput(fetchTableWord, 0xffff, 0);
   assert.equal(wrap, null, `the two-byte read across the top of the space diverged — ${show(wrap)}`);
   console.log(`  EXHAUSTIVE: ${SPACE} inputs identical, top-of-space wrap included`);
 });

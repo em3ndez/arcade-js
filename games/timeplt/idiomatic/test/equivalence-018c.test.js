@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_018c — memory-equivalent to the frozen oracle at ROM 0x018C.
+ * fetchWideTableWord — memory-equivalent to the frozen oracle at ROM 0x018C.
  *
  * GATE: unit-capture on the real dispatch, but the comparison is RAM **plus a declared
  *   live-out**, because RAM ALONE IS VACUOUS FOR THIS ROUTINE. It writes nothing at all; the
@@ -74,7 +74,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_018c } from "../loc_018c.js";
+import { fetchWideTableWord } from "../fetchWideTableWord.js";
 import { loc_018c as oracle } from "../../translated/loc_018c.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -143,7 +143,7 @@ function rawGate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) rawGate(loc_018c);
+  if (entry === null) rawGate(fetchWideTableWord);
   return entry;
 }
 
@@ -333,8 +333,8 @@ test("BLIND: the RAM half of the comparison cannot fail — a no-op passes it", 
   console.log("  BLIND: RAM is vacuous here — the live-out half below is the whole gate");
 });
 
-test("EQUAL at the real dispatch: loc_018c == oracle on RAM and the live-out", OPTS, () => {
-  const r = gate(loc_018c);
+test("EQUAL at the real dispatch: fetchWideTableWord == oracle on RAM and the live-out", OPTS, () => {
+  const r = gate(fetchWideTableWord);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.equal(r.live, null, `the live-out diverged — ${show(r.live)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
@@ -344,7 +344,7 @@ test("EQUAL at the real dispatch: loc_018c == oracle on RAM and the live-out", O
   const at = entryState().regs;
   const before = at.de;
   const after = entryState().clone();
-  loc_018c(after);
+  fetchWideTableWord(after);
   assert.notEqual(after.regs.de, before, "the captured entry is degenerate: the fetch changes nothing");
   console.log(
     `  EQUAL: entry base ${hex4(at.hl)} index ${at.a}; ${hex4(before)} -> ${hex4(after.regs.de)}`,
@@ -355,7 +355,7 @@ test("EXCLUDED, deliberately: the accumulator, the flags, the cursor and the sta
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_018c(b);
+  fetchWideTableWord(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, MOVED_AT_ENTRY, "the excluded set changed shape at the captured entry");
@@ -381,7 +381,7 @@ test("EXCLUDED at a crafted carry entry: the cursor's high byte moves there too"
     m.regs.a = index;
   }
   oracle(a);
-  loc_018c(b);
+  fetchWideTableWord(b);
 
   assert.ok(fetchAddr(base, index) < base, "the crafted base does not wrap the address space");
   assert.equal(a.regs.hl, u16(fetchAddr(base, index) + ENTRY_WIDTH), "the cursor did not land past the entry");
@@ -396,7 +396,7 @@ test("EXCLUDED at a crafted carry entry: the cursor's high byte moves there too"
 });
 
 test("EXHAUSTIVE (REAL TABLES): both real tables, every index", OPTS, () => {
-  const r = replay(loc_018c, realTablePairs());
+  const r = replay(fetchWideTableWord, realTablePairs());
   assert.equal(r.n, 2 * INDEX_SPACE, "the real-table sweep did not cover what it claims");
   assert.equal(r.caught, 0, `diverged on ${r.caught} pair(s), first ${JSON.stringify(r.first)}`);
   assert.equal(r.wroteA, null, `the oracle wrote memory during the sweep — ${show(r.wroteA)}`);
@@ -414,7 +414,7 @@ test("EXHAUSTIVE (ADDRESS ARITHMETIC): every base low byte against every index",
     "vacuous: the sweep never takes both carries at once",
   );
 
-  const r = replay(loc_018c, pairs);
+  const r = replay(fetchWideTableWord, pairs);
   assert.equal(r.n, 256 * INDEX_SPACE, "the arithmetic sweep did not cover what it claims");
   assert.equal(r.caught, 0, `diverged on ${r.caught} pair(s), first ${JSON.stringify(r.first)}`);
   assert.equal(r.wroteA, null, `the oracle wrote memory during the sweep — ${show(r.wroteA)}`);
@@ -430,7 +430,7 @@ test("PAGES: the base walked across every page, the port block split off by coun
   assert.equal(compared.length, PAGES_COMPARED, "the compared page set changed size");
   assert.equal(excluded.length, PAGES_EXCLUDED, "the excluded page set changed size");
 
-  const r = replay(loc_018c, compared);
+  const r = replay(fetchWideTableWord, compared);
   assert.equal(r.caught, 0, `diverged on ${r.caught} page(s), first ${JSON.stringify(r.first)}`);
   assert.equal(r.wroteA, null, `the oracle wrote memory during the sweep — ${show(r.wroteA)}`);
   assert.equal(r.wroteB, null, `the rewrite wrote memory during the sweep — ${show(r.wroteB)}`);
@@ -450,7 +450,7 @@ test("CORPUS: every pair the running game presents is fetched identically", OPTS
     "the game passed a table this file does not know about",
   );
 
-  const r = replay(loc_018c, pairs);
+  const r = replay(fetchWideTableWord, pairs);
   assert.equal(r.caught, 0, `diverged on ${r.caught} real pair(s), first ${JSON.stringify(r.first)}`);
 
   // The two blind spots, asserted rather than assumed. Both carry arms are unreachable in real
@@ -468,7 +468,7 @@ test("CORPUS: every pair the running game presents is fetched identically", OPTS
 // ── what dropping the stack and the clock does and does not cost ────────────────────────
 
 test("EXPECTED DIVERGENCE (STACK): substituted as-is, the engine leaks stack and gives up", OPTS, () => {
-  const r = drivenRun(loc_018c);
+  const r = drivenRun(fetchWideTableWord);
   assert.notEqual(
     r.stopped,
     null,
@@ -508,7 +508,7 @@ test("EXPECTED DIVERGENCE (RASTER): a table base in the port block is not memory
       m.regs.a = index;
     }
     oracle(a);
-    loc_018c(b);
+    fetchWideTableWord(b);
     if (a.regs.de !== b.regs.de) diverging++;
   }
   assert.equal(
@@ -523,7 +523,7 @@ test("EXPECTED DIVERGENCE (RASTER): a table base in the port block is not memory
 });
 
 test("LIVE-OUT (MEASURED): supply the return and nothing the display reads diverges", OPTS, () => {
-  const r = drivenRun(substitutable(loc_018c));
+  const r = drivenRun(substitutable(fetchWideTableWord));
   assert.equal(r.stopped, null, `the driven run stopped early even with the return supplied: ${r.stopped}`);
   assert.equal(r.compared, CORPUS_FRAMES, "the run did not reach the frames it was asked for");
   assert.equal(r.reached, CORPUS_FRAMES, "a truncated run finds nothing and must not read as a pass");

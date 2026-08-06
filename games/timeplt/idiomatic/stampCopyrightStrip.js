@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0b06 — park the four pieces of one fixed caption strip in the display list.
+/** stampCopyrightStrip — park the four pieces of one fixed caption strip in the display list.
  * Four consecutive object entries are filled entirely from constants: a shared position on one
  * axis and a shared control byte, shapes counting up from the first, and positions on the other
  * axis stepping one piece-width apart so the pieces butt together into a single strip. Each
@@ -21,7 +21,7 @@ const FIRST_SHAPE = 4;
 const LEADING_EDGE = 160;
 const PIECE_PITCH = 16;
 
-export function loc_0b06(m) {
+export function stampCopyrightStrip(m) {
   const { mem8 } = m;
   for (let piece = 0; piece < PIECES; piece++) {
     const entry = FIRST_ENTRY + piece * ENTRY_STRIDE;

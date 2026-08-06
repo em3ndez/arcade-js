@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1319 — memory-equivalent to the frozen oracle at ROM 0x1319.
+ * fillCellRun — memory-equivalent to the frozen oracle at ROM 0x1319.
  *
  * GATE: crafted-entry, because the strict gate CANNOT run here. The shipped coin -> start tape
  *   never reaches 0x1319 within ENTRY_FRAMES — nor in 20000 frames, nor undriven, nor under a
@@ -40,7 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1319 } from "../loc_1319.js";
+import { fillCellRun } from "../fillCellRun.js";
 import { loc_1319 as oracle } from "../../translated/loc_1319.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -75,7 +75,7 @@ function sessionRun() {
   let host = null;
   let threw = null;
   try {
-    unitEquivalence((overrides) => (host = makeMachine(overrides)), TARGET, oracle, loc_1319, {
+    unitEquivalence((overrides) => (host = makeMachine(overrides)), TARGET, oracle, fillCellRun, {
       maxFrames: ENTRY_FRAMES,
     });
   } catch (e) {
@@ -165,7 +165,7 @@ test("NEVER ENTERED: the tape does not reach the routine, and the session says s
 
 test("REAL ARGUMENTS: identical RAM at each of the four calls the callers make", { skip }, () => {
   for (const [start, fill] of callArguments()) {
-    const d = diffOf(loc_1319, start, fill);
+    const d = diffOf(fillCellRun, start, fill);
     assert.equal(d, null, `${hex4(start)} filled with ${fill} — ${show(d)}`);
   }
   console.log(`  REAL ARGUMENTS: ${callArguments().map(([s, f]) => `${hex4(s)}<-${f}`).join(" ")}`);
@@ -190,7 +190,7 @@ test("EXHAUSTIVE: every byte at every start, 1024 cases identical", { skip }, ()
   let swept = 0;
   for (const start of STARTS) {
     for (let fill = 0; fill < 256; fill++) {
-      const d = diffOf(loc_1319, start, fill);
+      const d = diffOf(fillCellRun, start, fill);
       assert.equal(d, null, `${hex4(start)} filled with ${fill} — ${show(d)}`);
       swept++;
     }
@@ -203,7 +203,7 @@ test("LIVE-OUT: the step register survives, and only dead registers move", { ski
   const a = craft(STARTS[0], BLANK_CHAR);
   const b = craft(STARTS[0], BLANK_CHAR);
   oracle(a);
-  loc_1319(b);
+  fillCellRun(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -312,7 +312,7 @@ test("CALLER-LEVEL: the caller composes, and its twins are caught at real cells"
   const dead = (addr) => addr >= entrySp - DEAD_SCRATCH && addr < entrySp;
   const frozen = callerRun(oracle);
 
-  const mixed = differingAddrs(frozen, callerRun(loc_1319));
+  const mixed = differingAddrs(frozen, callerRun(fillCellRun));
   assert.ok(
     mixed.every(dead),
     `the caller diverged outside the dead stack scratch: ${mixed.map(hex4).join(",")}`,

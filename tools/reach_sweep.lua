@@ -4,9 +4,9 @@
 -- A Z80 opcode fetch is a read of the program space, so a one-byte read tap at a routine's entry
 -- address counts its executions, attributed to the game state live at the time.
 --
--- WHY IT EXISTS, HOW TO READ A ZERO, and the two limits that make it report false zeros on a new
--- game (encrypted AS_OPCODES sets; the boot blind spot) — all in docs/idiomatic-generation.md,
--- "Triage the backlog FIRST". Read that before trusting a not-reached set.
+-- WHY IT EXISTS, HOW TO READ A ZERO, and the limits that make it report false zeros on a new game
+-- (encrypted AS_OPCODES sets; the boot blind spot) — docs/idiomatic-generation.md, "Triage the
+-- backlog FIRST". Read it before trusting a not-reached set.
 --
 -- MAME 0.288: there is no start or stop hook, which is why output is written periodically.
 -- RETAIN EVERY SUBSCRIPTION TOKEN IN A GLOBAL — a dropped token is collected silently and the
@@ -29,7 +29,7 @@
 -- A zero-hit row means "not reached by THIS sweep", never "dead code".
 
 local M = manager.machine
-local mem, frame = nil, 0
+local mem, frame, cpu = nil, 0, nil
 
 local function parse_addrs(path)
   -- EVERY malformed input here is FATAL. A sweep that silently drops an address reports it as
@@ -122,10 +122,16 @@ REACH_SUB = emu.add_machine_frame_notifier(function()
     -- part-way failure leaves the empty startup file rather than false zeros. The earlier version
     -- assigned mem first: one bad address left every later address untapped, exit 0, all zeros.
     local space = M.devices[':maincpu'].spaces['program']
+    cpu = M.devices[':maincpu']
     local taps = {}
     for _, a in ipairs(ADDRS) do
       taps[#taps + 1] = space:install_read_tap(a, a, string.format('reach%04x', a),
         function(offset, data)
+          -- A read tap cannot see WHY a byte was read, and a self-checksumming ROM reads every
+          -- byte it folds -- which made proven-dark routines report hits and the sweep claim total
+          -- coverage. Require PC at the address: a fetch has it there, a checksum does not.
+          local pc = cpu.state['PC'].value
+          if pc ~= a and pc ~= a + 1 then return data end
           hits[a] = hits[a] + 1
           local k = context_key()
           if k then ctxhits[a][k] = (ctxhits[a][k] or 0) + 1 end

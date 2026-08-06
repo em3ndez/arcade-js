@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_15b6 — memory-equivalent to the frozen oracle at ROM 0x15B6.
+ * hideAllSprites — memory-equivalent to the frozen oracle at ROM 0x15B6.
  *
  * GATE: crafted-entry. The real dispatch is kept as one arm, but it is only PARTLY informative
  *   and the teeth live on entries this file builds.
@@ -39,7 +39,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_15b6 } from "../loc_15b6.js";
+import { hideAllSprites } from "../hideAllSprites.js";
 import { loc_15b6 as oracle } from "../../translated/loc_15b6.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -91,7 +91,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_15b6);
+  if (entry === null) gate(hideAllSprites);
   return entry;
 }
 
@@ -174,8 +174,8 @@ const flipRegisters = (m) => {
 
 // ── arm 1: the real dispatch ─────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_15b6 == oracle on RAM", { skip }, () => {
-  const r = gate(loc_15b6);
+test("EQUAL at the real dispatch: hideAllSprites == oracle on RAM", { skip }, () => {
+  const r = gate(hideAllSprites);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(`  EQUAL: entered within ${ENTRY_FRAMES} frames; RAM identical`);
@@ -202,7 +202,7 @@ test("BLIND: the real dispatch sees only four of the twenty-four writes", { skip
 test("CRAFTED: the pair agrees on every one of the band's marked entries", { skip }, () => {
   let swept = 0;
   for (let p = BAND_LO; p < BAND_HI; p++) {
-    const d = craftedDiff(loc_15b6, p);
+    const d = craftedDiff(hideAllSprites, p);
     assert.equal(d, null, `marker at ${hex4(p)}: ${show(d)}`);
     swept++;
   }
@@ -215,7 +215,7 @@ test("WRITE-SET: exactly the twenty-four expected cells are cleared, and nothing
   const mangled = [];
   const m = entryState().clone();
   for (let a = BAND_LO; a < BAND_HI; a++) m.mem8[a] = MARKER;
-  loc_15b6(m);
+  hideAllSprites(m);
   for (let a = BAND_LO; a < BAND_HI; a++) {
     if (m.mem8[a] === 0) cleared.push(a);
     else if (m.mem8[a] !== MARKER) mangled.push(a);
@@ -232,7 +232,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_15b6(b);
+  hideAllSprites(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, MOVED_BY_THE_PAIR, "the excluded set changed shape");
@@ -264,7 +264,7 @@ test("LIVE-OUT: complementing every register AFTER it reaches only dead stack sc
 // ── arm 5: the rewrite through a whole session ───────────────────────────────────────────────
 
 test("SESSION: the rewrite dispatches through the real callers for the whole run", { skip }, () => {
-  const r = sessionDiff(withReturn(loc_15b6));
+  const r = sessionDiff(withReturn(hideAllSprites));
   assertSessionRan(r, "session");
   assert.deepEqual(r.addrs, STACK_SCRATCH, `state diverged outside the scratch: ${hexList(r.addrs)}`);
   console.log(`  SESSION: ${r.frames} frames, ${r.dispatches} dispatches, scratch ${hexList(r.addrs)}`);
@@ -311,7 +311,7 @@ for (const [label, twin, expected] of [
   ["shifted-base", twinShiftedBase, 48],
 ]) {
   test(`TEETH: the ${label} twin is CAUGHT on exactly ${expected} crafted entries`, { skip }, () => {
-    assert.equal(sweepCaught(loc_15b6), 0, "the real arm must pass the comparison scoring the twin");
+    assert.equal(sweepCaught(hideAllSprites), 0, "the real arm must pass the comparison scoring the twin");
     const caught = sweepCaught(twin);
     assert.equal(caught, expected, `the ${label} twin scored ${caught} of ${BAND_SIZE}`);
     console.log(`  TEETH/${label}: caught on ${caught} of ${BAND_SIZE} crafted entries`);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b52 — memory-equivalent to the frozen oracle at ROM 0x2B52.
+ * releaseHeldObject — memory-equivalent to the frozen oracle at ROM 0x2B52.
  *
  * GATE: crafted-entry over a captured dispatch — and the first thing this file records is
  *   that the SHARED entry budget does not reach the routine at all. Driven by the coin ->
@@ -45,7 +45,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b52 } from "../loc_2b52.js";
+import { releaseHeldObject } from "../releaseHeldObject.js";
 import { loc_2b52 as oracle } from "../../translated/loc_2b52.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -80,7 +80,7 @@ function strict(candidate) {
 }
 
 function entryState() {
-  if (entry === null) strict(loc_2b52);
+  if (entry === null) strict(releaseHeldObject);
   return entry;
 }
 
@@ -172,7 +172,7 @@ const TWINS = [
 
 test("NOT-REACHED: the shared entry budget never dispatches the routine", { skip }, () => {
   assert.throws(
-    () => unitEquivalence(makeMachine, TARGET, oracle, loc_2b52, { maxFrames: ENTRY_FRAMES }),
+    () => unitEquivalence(makeMachine, TARGET, oracle, releaseHeldObject, { maxFrames: ENTRY_FRAMES }),
     /never entered/,
     `0x2b52 IS reachable within ${ENTRY_FRAMES} frames now — this file's whole reason for ` +
       "running a longer tape has gone, so re-derive it against the shared budget",
@@ -202,8 +202,8 @@ test("SESSION: the run completes and the routine really dispatches", { skip }, (
   );
 });
 
-test("EQUAL at the real dispatch: loc_2b52 == oracle on RAM", { skip }, () => {
-  const r = strict(loc_2b52);
+test("EQUAL at the real dispatch: releaseHeldObject == oracle on RAM", { skip }, () => {
+  const r = strict(releaseHeldObject);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   console.log(`  EQUAL: RAM identical at the captured dispatch, slot ${hex4(entry.regs.ix)}`);
@@ -229,7 +229,7 @@ test("EXCLUDED, deliberately: F, SP and pc move and nothing else does", { skip }
   paint(b, SLOTS[2], HELD, 5);
   for (const mm of [a, b]) mm.regs.a = 0x5a;
   oracle(a);
-  loc_2b52(b);
+  releaseHeldObject(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved, ["f", "sp"], "the excluded set changed shape");
@@ -240,7 +240,7 @@ test("EXCLUDED, deliberately: F, SP and pc move and nothing else does", { skip }
 
 test("CRAFTED: identical on every slot, releasing, ticking and wrapping", { skip }, () => {
   for (const [slot, delay] of CASES) {
-    const d = craftedDiff(loc_2b52, slot, delay);
+    const d = craftedDiff(releaseHeldObject, slot, delay);
     assert.equal(d, null, `slot ${hex4(slot)} delay ${delay}: ${show(d)}`);
 
     const after = entryState().clone();
@@ -256,12 +256,12 @@ test("CRAFTED: identical on every slot, releasing, ticking and wrapping", { skip
 
 test("PRIORS: every delay 0..255 counts down the same way", { skip }, () => {
   for (let delay = 0; delay < 256; delay++) {
-    const d = craftedDiff(loc_2b52, SLOTS[5], delay);
+    const d = craftedDiff(releaseHeldObject, SLOTS[5], delay);
     assert.equal(d, null, `delay=${delay}: ${show(d)}`);
   }
   const wrapped = entryState().clone();
   paint(wrapped, SLOTS[5], HELD, 0);
-  loc_2b52(wrapped);
+  releaseHeldObject(wrapped);
   assert.equal(wrapped.mem8[SLOTS[5] + RELEASE_DELAY], 255, "0 must wrap to 255, not release");
   assert.equal(wrapped.mem8[SLOTS[5]], HELD, "a wrap must not touch the state code");
   console.log("  PRIORS: 256 delays identical, including the wrap under zero");
@@ -269,12 +269,12 @@ test("PRIORS: every delay 0..255 counts down the same way", { skip }, () => {
 
 test("PRIORS: every state code 0..255 steps on the same way at release", { skip }, () => {
   for (let state = 0; state < 256; state++) {
-    const d = craftedDiff(loc_2b52, SLOTS[3], 1, state);
+    const d = craftedDiff(releaseHeldObject, SLOTS[3], 1, state);
     assert.equal(d, null, `state=${state}: ${show(d)}`);
   }
   const rolled = entryState().clone();
   paint(rolled, SLOTS[3], 255, 1);
-  loc_2b52(rolled);
+  releaseHeldObject(rolled);
   assert.equal(rolled.mem8[SLOTS[3]], 0, "255 must round to 0, not widen to 256");
   console.log("  PRIORS: 256 state codes identical, including the 255 -> 0 wrap");
 });

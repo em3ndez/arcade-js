@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2bef — turn an object one step toward the heading it is aiming for.
+/** steerTowardAimHeading — turn an object one step toward the heading it is aiming for.
  * The two headings are points on a 256-step circle, so their difference taken as a wrapped
  * byte says how far round the aim lies: under half a turn away and the short way is forward,
  * otherwise it is back. The size of a step is not the object's own — it is fetched from a
@@ -18,7 +18,7 @@ const TURN_RATE_INDEX = 0xad04;
 /** Close enough to stop turning: the aim at most one step ahead, or two steps behind. */
 const arrived = (away) => u8(away + 2) < 4;
 
-export function loc_2bef(m, object = m.regs.ix) {
+export function steerTowardAimHeading(m, object = m.regs.ix) {
   const { mem8 } = m;
   const headingCell = u16(object + HEADING);
   const heading = mem8[headingCell];

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_51de — memory-equivalent to the frozen oracle at ROM 0x51DE.
+ * postChainedHitScore — memory-equivalent to the frozen oracle at ROM 0x51DE.
  *
  * WHAT IT IS, AND WHAT THAT COSTS THE GATE. Every call posts one (command, argument) pair into
  * the 64-cell command ring through the helper at 0x0038, which is ALREADY DECOMPILED, so the
@@ -72,7 +72,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_51de } from "../loc_51de.js";
+import { postChainedHitScore } from "../postChainedHitScore.js";
 import { postCommand } from "../postCommand.js";
 import { loc_51de as oracle } from "../../translated/loc_51de.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -105,7 +105,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_51de);
+  if (entry === null) gate(postChainedHitScore);
   return entry;
 }
 
@@ -248,14 +248,14 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_51de == oracle on RAM", { skip }, () => {
-  const r = gate(loc_51de);
+test("EQUAL at the real dispatch: postChainedHitScore == oracle on RAM", { skip }, () => {
+  const r = gate(postChainedHitScore);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
 
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_51de(b);
+  postChainedHitScore(b);
   assert.equal(ramDiff(a, b), null, `RAM diverged — ${show(ramDiff(a, b))}`);
 
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr));
@@ -292,7 +292,7 @@ test("EXCLUDED, deliberately: registers, pc and the six scratch bytes and nothin
     const a = entryState().clone();
     const b = entryState().clone();
     oracle(a);
-    loc_51de(b);
+    postChainedHitScore(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
     assert.deepEqual(
@@ -315,8 +315,8 @@ test("EXCLUDED, deliberately: registers, pc and the six scratch bytes and nothin
   });
 
 test("CRAFTED: every window, step prior and ring guard behaves as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_51de), 0, "the rewrite diverged somewhere in the crafted space");
-  assert.equal(cursorSweepCaught(loc_51de), 0, "the rewrite diverged at some ring cursor");
+  assert.equal(sweepCaught(postChainedHitScore), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(cursorSweepCaught(postChainedHitScore), 0, "the rewrite diverged at some ring cursor");
   console.log(
     `  CRAFTED: ${SWEEP_SIZE} window x guard x step comparisons and ${CURSOR_SWEEP_SIZE} ` +
       "cursor comparisons identical",
@@ -326,7 +326,7 @@ test("CRAFTED: every window, step prior and ring guard behaves as the oracle", {
 test("THE CHAIN: ten successive calls climb 1..8 and start round again", { skip }, () => {
   const expected = [1, 2, 3, 4, 5, 6, 7, 8, 1, 2];
   assert.deepEqual(chainSequence(oracle), expected, "the oracle's own chain is not what is claimed");
-  assert.deepEqual(chainSequence(loc_51de), expected, "the rewrite's chain diverged");
+  assert.deepEqual(chainSequence(postChainedHitScore), expected, "the rewrite's chain diverged");
   console.log(`  THE CHAIN: ${expected.join(" ")}`);
 });
 
@@ -336,7 +336,7 @@ test("CORPUS: every input tuple two longer real sessions present replays identic
     for (const [name] of CORPORA) {
       const tuples = inputCorpus(name);
       assert.ok(tuples.length > 0, `vacuous: the ${name} session never reached the routine`);
-      assert.equal(corpusCaught(loc_51de, tuples), 0, `${name}: diverged on a real input tuple`);
+      assert.equal(corpusCaught(postChainedHitScore, tuples), 0, `${name}: diverged on a real input tuple`);
       const chained = tuples.filter((t) => t[0] !== 0).length;
       const steps = tuples.map((t) => t[1]);
       console.log(
@@ -352,8 +352,8 @@ test("HONEST SIGNATURE: the routine reads no register, so its inputs are all in 
     const clean = entryState().clone();
     const hostile = entryState().clone();
     for (const k of REG_FIELDS) if (k !== "sp") hostile.regs[k] = 0x5a;
-    loc_51de(clean);
-    loc_51de(hostile);
+    postChainedHitScore(clean);
+    postChainedHitScore(hostile);
     assert.equal(ramDiff(clean, hostile), null, "a register steered the rewrite, so the " +
       "signature is hiding a live-in that ought to be a parameter");
     console.log("  HONEST SIGNATURE: every register forced hostile, same memory written");
@@ -465,7 +465,7 @@ test("TEETH: real data cannot see the chain's wrap, and the crafted space can", 
 });
 
 test("TEETH: every twin also breaks the ten-call chain", { skip }, () => {
-  const good = chainSequence(loc_51de);
+  const good = chainSequence(postChainedHitScore);
   for (const [label, twin] of TWINS) {
     assert.notDeepEqual(chainSequence(twin), good, `the chain arm PASSED the ${label} twin`);
   }
