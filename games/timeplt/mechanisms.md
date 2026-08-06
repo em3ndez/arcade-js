@@ -1,398 +1,1131 @@
-# Time Pilot — mechanisms
+# Time Pilot — how the machine actually works
 
-The inside-out map: what the ROM does, as far as the decompiled layer can show. Its outside-in
-counterpart is [gameplay.md](gameplay.md), assembled from public sources before anyone read the ROM;
-where the two disagree this file says so rather than quietly siding with one.
+A code-grounded model of Konami's Time Pilot (`timeplt`, 1982), built from the translated ROM, from
+the routines the idiomatic layer has rewritten, and from observations of the real machine under
+MAME. Its companion is `gameplay.md`, which describes the same game from the outside using only the
+public record and deliberately knows nothing about the code. Where the two meet is the interesting
+part: this document exists to answer the questions `gameplay.md` could not, and to be honest about
+which ones it still cannot.
 
-**Rewritten from scratch each understanding pass, never edited.** A map that lags the code is the
-tell that a pass was left half-done.
+**Every claim carries a confidence tag, and the tags are not decoration.**
 
-**Confidence.** `[seen]` means observed under real MAME; `[code]` means understood from the routines
-that touch it. A measurement taken from our own JS machine is `[code]`, not `[seen]` — our machine
-is the thing under test, so a count from it cannot ground itself. Only MAME is the oracle.
+- **`[seen]`** — observed on the real ROM under MAME. Our engine may be in the chain, but the
+  reference must be the real machine. A pixel diff against a MAME golden is `[seen]`.
+- **`[code]`** — derived from the behaviour of a translated routine. The mechanics are exact,
+  because the lift is faithful; the *role* is inference.
+- **`[guess]`** — plausible and unverified. Not to be relied on.
+
+**A number is `[seen]` only if its evidence chain terminates in MAME.** A dispatch count from our
+own `Machine` replaying the ROM is our engine, however long the window, and an
+idiomatic-versus-oracle equality is our JavaScript against our JavaScript. Both are good evidence
+about the *port* and both are `[code]`. This is not pedantry: several claims in this document's
+history were tagged `[seen]` on the strength of a measurement taken from our own machine, and the
+error is invisible once written.
+
+A wrong role stated confidently is worse than no name at all. Where the code cannot settle
+something, this document says so rather than choosing.
+
+**How this was written.** The method requires this file to be rewritten WHOLE each understanding
+pass, from `gameplay.md`, blind to its previous version — never patched. A patch preserves the
+previous reading's blind spots; a rewrite forces re-derivation. This revision honours that: the
+previous map was not opened, and each of the eight area re-derivations behind it carried an explicit
+prohibition against reading or citing it. Seven returned in time to inform the text; the eighth,
+on the character plane, arrived after §8 had been drafted from adjacent evidence — and checking §8
+against it when it did arrive is what caught a false claim that section was carrying. That is
+recorded in §8 rather than quietly corrected.
+
+Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
+`[seen]` grounding record lives in refer to the old map by section number, and those were read for
+the observations, which exist nowhere else. So the topics that previously had sections were known;
+their content and wording were not. The structure below follows `gameplay.md`'s outside-in order and
+what the evidence actually turned out to be.
 
 ---
 
-## 1. The two-level sequencer
+## §2 The frame: one interrupt, four modes
 
-- **`SEQUENCE_PHASE` (0xA9AB)** — outer phase; the vblank service masks it to two bits and
-  jump-tables on it. `advanceSequencePhase` steps it and restarts the inner.
-- **`SEQUENCE_SUBSTEP` (0xA9AC)** — inner index, consumed with *different masks* by different
-  readers, which is what per-phase table sizes look like. `advanceSequenceSubStep` steps it alone.
+### Everything happens in the vblank interrupt
 
-Every phase-entry site writes the pair in one idiom: outer to a constant, inner to zero.
+The NMI vector's whole job is to reach one routine, and that routine is the game. There is no
+vblank-flag poll anywhere in the ROM; the hardware asserts the interrupt only while a latch bit is
+set, and the service turns that bit off on entry and back on in its epilogue. `[code]`
 
-### 1.1 The phase byte is booby-trapped
+The service, in the order it runs:
 
-Several routines fold a block of ROM into `SEQUENCE_PHASE` and store it back with a constant chosen
-so the fold **nets to zero on a genuine image**. Anti-tamper: a patched ROM corrupts the phase and
-derails the state machine rather than failing cleanly. Most of `advanceSequencePhase`'s callers sit
-behind such a fold and are dead on a genuine image, so **counting callers to judge importance
-misleads here.** `[code]`
+1. **Copy the sprite shadow to the hardware** — first, before anything else, so the picture is
+   written during the blanking interval.
+2. **Disarm its own interrupt and kick the watchdog.** Note this happens *after* the sprite copy,
+   so the disarm is not protecting it.
+3. **Recompute screen flip** from the cabinet setting and the current player, and drive the
+   flip latch. The sprite copy therefore uses the *previous* frame's flip decision.
+4. **Mirror all five input and dip ports** into consecutive cells, complemented, unconditionally.
+5. **Bump two frame counters** — one plain binary, one BCD — and tick three countdown timers that
+   floor at zero.
+6. **Run the coin service.**
+7. **Dispatch the sequence machine**, with the epilogue's address pushed as the arm's return.
 
----
+The epilogue restores both register banks plus the index registers, and does one piece of work of
+its own: hand a single queued byte to the sound CPU and pulse its interrupt line. `[code]`
 
-## 2. The command ring
+**The foreground program is not a game loop.** Boot ends by jumping into a command-ring drain that
+spins on an empty ring, takes a (command, argument) pair, marks the slot free, and dispatches the
+low nibble through a sixteen-way table — for ever. All game logic hangs off the interrupt; the
+foreground exists to service the ring. `[code]`
 
-| cell | role |
+### The four modes
+
+A two-level index drives everything: an outer **phase** masked to two bits, dispatched through a
+four-entry table, and an inner **substep** dispatched again inside each arm — with a different
+width per arm, and two of the four arms not masking at all.
+
+The registry declined for two passes to say what these sequences were. **They are now established
+by observation of the real machine, in two independent captures:** `[seen]`
+
+| phase | what it is |
 |---|---|
-| 0xAC00.. | the ring: 64 bytes, so 32 two-byte entries; **free while the high bit is set** |
-| 0xA9B2 | write cursor, masked, always even |
-| 0xA9B3 | read cursor |
+| 0 | boot wipe — blanks one screen column per frame, then hands over |
+| 1 | attract — the copyright strip, the score and how-to pages, then the demo launch |
+| 2 | credit taken, "push start" |
+| 3 | the round engine |
 
-`postCommand` appends a (command, argument) pair and **drops it** if the cursor's cell is occupied.
-The drain releases both cells and dispatches the command's low nibble through a sixteen-entry table.
-Polarity is fixed outside the poster: init fills the ring free, the drain restores it. **Not the
-sound ring.** `[code]`
+★ **Phase 3 is necessary for play and not sufficient**, and the difference matters more than the
+phases themselves. The attract **demo is launched by entering phase 3 with the play flag off** —
+one life, real game logic, the era index advancing as it runs. It is not a recorded replay.
 
-> **Reading the ring from outside is harder than it looks.** The drain releases cells by setting
-> the high bit, and those writes interleave with a poster's two — so pairing (command, argument)
-> live, as a tap sees them, silently attributes a drain byte to a command. Log raw writes and
-> reconstruct afterwards. `[seen]`
+So the play flag, not the phase, is what separates a game from a demo. Anything that treats
+phase 3 as a play detector will count the demo as a game, and since the demo is where most
+attract-mode execution comes from, that error silently corrupts any measurement keyed on it. This
+is the single most useful thing to know before pointing an instrument at this machine.
+
+**The inner substep is a per-life cycle within phase 3**, returning to a *mid* value rather than
+zero each time a life is lost — so reading it as a simple progression misleads. `[seen]`
+
+**Not claimed:** what every substep value selects. Several were never observed in any run; two of
+them are real code with real bodies, reachable by some path none of our tapes drove — a two-player
+game and the high-score entry screen being the obvious candidates. One is a bare `ret`.
+
+### Coin, credit, and a distinction worth keeping
+
+Three cells are easy to conflate and mean different things: `[code][seen]`
+
+- the **port mirror** is rewritten from the hardware every frame, unconditionally, so a non-zero
+  value proves a contact was closed and nothing more;
+- the **coin-pulse count** is bumped only after a debounce sees idle-then-pressed, and counts
+  solenoid pulses the machine still owes the mechanical counter;
+- the **credit count** is a separate BCD cell reached only after the coinage arithmetic.
+
+An accepted coin is therefore not a banked credit on any setting that charges more than one coin
+per credit.
+
+### The ROM checks itself, and a bad copy desynchronises rather than dying
+
+The image is threaded with folds: a routine sums or exclusive-ors a block of ROM, applies a
+trailing constant, and on a genuine image the result is zero. What hangs off a non-zero result is
+the interesting part, because none of it is a clean failure. `[code]`
+
+Four distinct corruption targets were identified:
+
+- **the outer phase** — several sites rewrite it with an expression that is the identity only on a
+  genuine image, and the dispatch then masks the result, so a tampered ROM lands in a *plausible*
+  phase carrying a stale substep. It does not crash; it desynchronises.
+- **the inner substep** — the game-over teardown's "clear the index" is itself a fold.
+- **a live countdown timer** that other code tests against zero.
+- **the video-enable latch** — two folds drive it, so a tampered image can simply go black.
+
+This has a direct consequence for our own instruments, and it is why every reachability sweep here
+must gate on the program counter: **a plain memory read tap counts the ROM reading itself.** See
+§10.
+
+It also means a routine can look live and be dead. Several call sites exist only behind a failed
+fold and never execute on a genuine image, and several of their targets are not routines at all —
+they are word tables that happen to disassemble. `[code]`
 
 ---
 
-## 3. Scoring
+## §3 The world moves, not the ship
 
-Command 4 indexes a BCD table by its argument. The table reads **100…900, 1000, 1500, 2000, 3000,
-4000, 5000** — recovered from ROM bytes. It is a SUPERSET of `gameplay.md` §9's Centuri chart:
-every charted value appears, but 200 through 900 appear nowhere in the chart.
+`gameplay.md` §4 quotes the public record: *"The background moves in the opposite direction to the
+player's plane, rather than the other way around."* The code says exactly that, and says it in one
+instruction.
 
-`postChainedHitScore` ramps. A kill inside the chain window posts the next entry; an isolated kill
-posts the first. The reset that restarts the chain lives **outside** the poster, in a per-frame
-routine on the play arm's call list — and that placement is observable, not merely inferred: a step
-planted at an arbitrary frame is wiped before any kill can use it. `[seen]`
+### The camera is the player's own velocity, negated
 
-The code encodes its scoring split as a **slot range** under a collision master and never names an
-object class, so "common enemy" is the manual's word rather than the ROM's, and this poster serves
-more than one object array.
+`loc_1f42` reads the era index, picks a velocity table, and calls the heading→velocity lookup for
+the player's current heading. Its continuation, `loc_1f55`, writes that vector **negated** into a
+pair of shared cells. Every world-static object then has that pair added to its position once a
+frame. The ship's sprite entry is pinned and never rewritten, so the ship cannot move; adding the
+negated player velocity to everything else is what turns the stick into flight. `[code]`
 
-> **THE RAMP AND ITS CEILING, BOTH SETTLED UNDER MAME. `[seen]`**
->
-> Isolated kills pay the first entry — the manual's figure. Kills a handful of frames apart pay the
-> second, then the third. **At the top it WRAPS and the counter keeps going:** consecutive posts in
-> one live chain run the last entry, then the first again, then the second. The step counter does
-> not saturate; only the argument cycles. A reader who assumed the counter pins would predict the
-> top award repeating, and it does not.
->
-> **Reached in ORDINARY PLAY, with nothing poked.** One driven chain climbed the fourth, fifth,
-> sixth, seventh and eighth entries on consecutive posts and then paid the FIRST again, and the one
-> after that paid the second — the step counter reading one and two past the table length while the
-> argument cycled. No seeding, no poking, a single tapped-fire tape.
->
-> The tape can also seed a live chain to force the boundary, and that option is kept because it
-> reaches the top on demand rather than on luck. It turned out not to be needed for this claim.
-> Re-run `tools/lua/ramp_ceiling_tape.lua` rather than trusting this paragraph.
+There is no separate camera and no scroll register. **The camera is a subtraction**, and the cells
+holding it are the single most load-bearing pair in the game.
 
-> **★ COMMAND 4 HAS MORE THAN ONE POSTER.** Arguments beyond the chain's range appear with no chain
-> running — the fixed awards for bomber, formation and Mother-Ship kills, posted through the same
-> command. Two consequences: anything that infers "a kill happened" from a command-4 post
-> **overcounts** the chained path, and `postChainedHitScore` must not be described as owning the
-> command. `[seen]`
+**Not claimed:** that the pair is only ever written from that path. It is the negated player
+velocity where we have traced it; nothing here proves no other routine writes it.
 
-**The parachutist ladder is a second ramp of a different shape** — a per-pickup counter walks a
-short table and then pins at the top value, so it CAPS where this one WRAPS. `gameplay.md` §9
-already records that ladder as capped, so the ROM and the public record agree.
+### The player's speed rises with the era — and so, therefore, does the world's
 
----
+`loc_1f42` buckets the era index and hands out a different velocity table for each bucket:
 
-## 4. Objects
+| era index | table | peak magnitude | pixels/frame (8.8) |
+|---|---|---|---|
+| 0 | 0x5E00 | 256 | 1.00 |
+| 1–2 | 0x2E3E | 306 | 1.19 |
+| 3 and up | 0x08FA | 331 | 1.29 |
 
-### 4.1 Two parallel tables
-
-A **record** (16-byte stride, `ix`) and a **sprite entry** (2-byte stride, `iy`).
-`advanceToNextSlot` steps both — a *slot*, not necessarily an object, since consecutive slots can
-hold one multi-tile sprite that `placeAbuttingTile` builds by seeding the next entry from the
-current one.
-
-| record off | meaning |
-|---|---|
-| +0 | state: 0 free, 254 held, 255 live, 240 destroyed |
-| +1 | aim heading |
-| +2 | current heading |
-| +3, +5 | sub-pixel remainders |
-| +0x0A..0x0D | velocity pair |
-| +0x0E | release / cooldown delay |
-
-`releaseHeldObject` ticks that delay and promotes held→live on expiry. Sprite entry: `+0` and `+49`
-the coordinate whole-parts, `+1` tile code, `+48` control — the halves 48 apart because they shadow
-two banks.
-
-**The destroyed code is not removal.** A separate routine converts it into a countdown and only
-then retires the slot, so "destroyed" begins an animation rather than freeing anything. `[code]`
-
-### 4.2 The sprite shadow and the display
-
-The shadow is copied into sprite RAM every frame at an offset, through **two DMA variants** selected
-by the screen-flip flag. Composed with the renderer:
-
-- **main variant** — the shadow byte **is** the raster row.
-- **mirrored variant** — the raster row is one greater.
-
-Both park a zeroed slot at the **top**, one row apart; neither puts it below the last line.
-`hideAllSprites` zeroes the whole vertical band and touches no occupancy byte, so everything hides
-and nothing retires. The mirrored variant is rare but real — a zeroed slot's bottom row can land on
-the first visible line there. `[code]`
-
-The shadow block is **not contiguous** in sprite RAM: the scenery slots land in two runs, a short
-one and a longer one. That split is what §4.4's raster trick has to work around, and it is why the
-slot list there looks discontinuous. `[code]`
-
-### 4.3 Steering and the world scroll — the camera
-
-1. A heading is a **full-circle byte**: 256 steps, a quarter turn is 64.
-2. `steerTowardAimHeading` turns one step the short way round, idle inside a four-wide arrival
-   window, at a rate from a five-entry table.
-3. `velocityForHeading` returns **two components a quarter turn apart**. Every selectable table
-   holds a NEAR-constant magnitude around the circle — not exact; anomalous words widen the spread
-   — with one table close to a pixel per frame in 8.8 fixed point. Speed times unit direction.
-4. Another routine negates that pair into 0xA808 / 0xA80A, and `driftWithWorldScroll` adds those to
-   every world-static object.
-
-**Negated player velocity applied to everything else is the camera.** `gameplay.md` §4 records the
-same thing independently: the background moves opposite the plane. `[code]`
-
-#### The camera has FOUR parallax rungs, not one
-
-`driftWithWorldScroll` is only the ×1 rung. Three sibling wrappers apply a *fraction* of the same
-displacement pair to the same split-coordinate layout, each through its own arithmetic helper:
-
-| rung | wrapper | helper |
-|---|---|---|
-| ×1/2 | not yet lifted | `displaceByHalf` |
-| ×3/4 | not yet lifted | `displaceByThreeQuarters` |
-| ×1 | `driftWithWorldScroll` | — applies the pair inline |
-| ×5/4 | not yet lifted | `displaceByFiveQuarters` |
-
-Only the helpers and the ×1 rung carry names today; the three fractional wrappers are still address
-routines, so this table does not invent names for them.
-
-**The helpers know nothing about any of this.** They read no scroll cell, touch no object, and write
-no memory — they are pure arithmetic on a coordinate and a displacement, and the memory traffic
-belongs entirely to the wrapper. That division is why they are named for their fraction and not for
-the camera. `[code]`
-
-**The four rungs are one family by arithmetic, not one dispatch group.** The ×1 rung runs far less
-often than the fractional three and is reached another way entirely, serving world-static objects
-rather than the scenery list. Each helper is called exactly twice per wrapper dispatch, which is the
-two axes. `[seen]`
-
-> ★ **A measured ratio that is really a COVERAGE result.** The era dispatcher's lists are not all the
-> same shape: four of the five eras give the fractional rungs in a one-to-two-to-one proportion, and
-> the last era gives them in equal proportion. A MAME sweep measured the three rungs in an *exact*
-> one-to-two-to-one — which the lists therefore do NOT predict, and which could not have come out
-> exact if the run had spent any time in the last era.
->
-> So the exactness is not a confirmation of the structure. **It is evidence the sweep never reached
-> the last era at all**, and that is a gap in every reachability number taken from that run. Read it
-> as coverage, not as agreement. `[seen]` for the measurement; the era-shape difference is `[code]`.
-
-The rounding is **asymmetric and looks deliberate**: the half and three-quarter forms round up,
-because they subtract a floored fraction, while the five-quarter form floors, because it adds one.
-Nothing here claims the asymmetry was intended.
-
-**This is a parallax depth stack, and the depth tracks sprite size.** An era-keyed dispatcher reads
-the round index and selects one of three handler lists; every list fills the same scenery block.
-Bigger sprites take the faster rungs and smaller ones the slower, with the action plane at ×1 —
-so scenery nearer the eye sweeps past faster. The art in those slots decodes as clouds in the early
-eras and an asteroid field in the last, which is what `gameplay.md` §5 describes from the outside.
+Those tables are three rungs of a closed ladder of six that steps evenly by 25 — the other three
+peak at 206, 231 and 281. **The player is never given any of those three**, and the skipped rung is
+not simply "the slow end": it takes the third, fifth and sixth rungs and steps over the fourth.
 `[code]`
 
-A fifth relative exists and is not a rung: `flyAlongHeading` adds the full scroll pair **and** the
-object's own heading velocity in a single add. Anything that calls it must not also drift the
-object, or the camera is applied twice.
+★ **The fourth rung is not reachable by anything.** Both shims that would select it are uncalled,
+and its only other mention in the ROM is a deliberate checksum trap that jumps into it as if it
+were code. A rung of a closed, evenly-stepped ladder exists in the data and is wired to nothing.
+`[code]`, read from
+the ROM words directly.
 
-### 4.4 A second appearance, bought with the raster
+★ **The six tables are one waveform scaled.** Each of them is the 256-peak table multiplied by its
+own peak and rounded, never off by more than two units in the last place, and all six carry the
+*same* off-symmetry headings — identical rounding scars in identical places. The tables differ by a
+scalar and by nothing else: same heading map, same turn geometry. `[code]`
 
-Two routines give the scenery slots a **second appearance half a screen away in both axes**, by
-editing a slot's coordinate bytes after the beam has already drawn it. They are near-twins over the
-same slots in the same order, and they differ in exactly one thing:
+That is what licenses reading the ladder as a ladder of **speeds**. Had the tables differed in
+shape, an entry that picks one would be selecting a flight *character* — how a thing turns, not how
+fast it travels — and every claim above about who is faster than whom would be the wrong kind of
+claim to make about it.
 
-- one **spins** until the beam has passed a slot's last line, and
-- the other **skips** a slot whose beam has not arrived yet.
+★ **A rung does not identify a routine.** These tables are chosen by short shims — mostly a table
+load and a jump, though a couple simply fall through into their target — and the shims fan out over
+several distinct bodies. **Only two of those bodies move anything**: one adds the velocity term once,
+the other adds it twice, so the second sends objects faster than every rung of the first. The
+remaining bodies only look a velocity up and hand the pair back; they write no memory at all, and a
+`fly`-shaped name would be false for anything that reaches them.
 
-A slot whose request bit is clear is left alone by both. The skipping form is reached from more call
-sites, and one straight-line run of them is transcribed as a table of (target, return) pairs rather
-than as call instructions — so a grep for the mnemonic misses most of its callers and a count taken
-that way is badly low. `[code]`
+Every body has a shim selecting the lowest table, so "the slowest rung" picks out several different
+routines. And one body is entered two ways — a short prologue falling into the body proper, each
+with its own shim — so even body-plus-rung leaves two entries sharing a description. **What
+identifies one of these entries is the body it reaches together with how it enters; the rung alone
+names nothing.** `[code]`
 
-> ★ **Which of the two actually runs more often is NOT established, and two instruments disagree
-> about it in opposite directions.** Both forms wait on the beam, and a PC-gated tap cannot tell a
-> dispatch from another turn of a spin — so it reports the *spinning* form as far busier, while a
-> dispatch count taken inside our own machine reports the opposite. Neither reading is a dispatch
-> count for a routine that spins. See §8; do not quote a frequency for either of these.
+★ This is worth stating plainly because the public record appears to have missed it. `gameplay.md`
+§2 records that *"the plane is always flying forward at what appears to be a fixed speed; no public
+source describes a throttle or brake"*, and question 17 asks whether the player's speed is fixed.
+**It is not — it steps up twice over the five eras.** Both descriptions are true of the same
+machine: since the player's velocity IS the world scroll, a faster player renders as a faster world
+rather than as a faster plane, and there is nothing on screen for a spectator to measure it against.
 
-> **The idiomatic layer does not model the wait.** Memory-equivalence per dispatch holds, but the
-> second appearance is a consequence of *when* the edit lands relative to the beam, and our layer
-> has no beam. The modules say so and their gates measure the cost rather than papering over it.
+### Depth: the same displacement, applied in fractions
 
-### 4.5 The era index
+Scenery does not receive the whole camera displacement. An era-keyed dispatcher walks a list of
+per-object handlers, each of which applies a **fraction** of the shared pair to its object before
+stepping to the next slot. Four fractions exist, and they are one family by arithmetic rather than
+one dispatch group:
 
-**0xAD04 is the round/era index.** It is stepped as a **mod-5 counter** and reloads per-round
-parameters in the same breath; its caller chain runs off the Mother-Ship award, so destroying the
-Mother-Ship advances the round. It selects the turn-step table, the velocity amplitude, the parallax
-handler list, and several jump tables. `gameplay.md` §5 and §11 describe five eras in strict order
-wrapping to the first, with speed and manoeuvrability rising — written before anyone read the ROM.
+| rung | applies | who calls it |
+|---|---|---|
+| ×1 | the whole displacement | world-static objects, reached outside the scenery list |
+| ×5/4 | a quarter more than the world | the scenery dispatcher |
+| ×3/4 | three quarters | the scenery dispatcher |
+| ×1/2 | half | the scenery dispatcher |
 
-The routine that forces it to a fixed value around a single steering call is a **temporary
-override**, not the writer. **A grep for a direct store misses the real one, which writes through a
-pointer** — so anyone re-deriving this must search for the pointer form or they will conclude the
-cell has a single writer and strike the era reading as unearned. `[code]`
+A rung that over-travels at ×5/4 is not an error: something moving *faster* than the world reads as
+nearer than the world, which is what the front layer of a parallax stack must do.
 
-### 4.6 Retiring
+The arithmetic helpers underneath are pure — they read no scroll cell, touch no object and write no
+memory. The wrappers own every memory access. That division is why the helpers are named for what
+they compute and the wrappers for what they move. `[code]`
 
-An object leaves play when a coordinate reaches a **retire line** — one per axis, three values wide
-so a fast mover lands on it. The lines are the **antipode of the player's own position**, which
-per-life setup pins and the per-frame update never rewrites. A wrap seam, not a viewport edge.
+**Measured under MAME:** each wrapper matched its own fraction on every dispatch and the other two
+on none, with zero mismatches, and every dispatch sat inside the eight scenery slots. `[seen]`
 
-Two helpers plus a third site that inlines the same stores; no file calls more than one, so the
-caller sets are statically disjoint — per-family helpers, not versions of one.
+### Depth tracks sprite size — strictly, in the eras we have watched
 
-- **`retireSlot`** zeroes occupancy and both coordinate whole-parts.
-- **`retireSlotAndSubPixel`** zeroes those and the sub-pixel remainders.
+Each handler places its object's tiles before stepping the slot, so the handler body records how
+big its object is:
 
-Observability depends on the spawn path: some reinitialise those cells right after marking a slot
-live, most do not. Where they do not, what a retire left behind becomes the next occupant's starting
-accumulator phase.
+| era index | handler list | tiles per rung (×5/4, ×3/4, ×1/2) |
+|---|---|---|
+| 0 | `2d15, 2d36, 2d36, 2d68` | 3, 2, 1 |
+| 1–3 | `2d21, 2d36, 2d36, 2d68` | 3, 2, 1 |
+| 4 | `2d2d, 2d2d, 2d62, 2d62, 2d68, 2d68` | 2, 1, 1 |
 
-> **Open.** Whether the families were meant to differ, or whether this is two habits.
+The nearest layer carries the largest sprite and the farthest the smallest, which is the prediction
+the naming rests on and it could have failed. `[code]`
+
+★ **But "strictly monotone" holds only for the first four eras.** The last era's ×3/4 and ×1/2
+objects are the same size, so the ordering there is monotone and not strict. Its scenery set is
+smaller and more numerous — `gameplay.md` §5 describes the final era as an asteroid field rather
+than clouds. Every sweep we have run stops long before it, so the strict form was an artifact of
+coverage. See §10.
+
+★ **A dispatch ratio measured at exactly 1:2:1 across the rungs is evidence about WHICH LIST RAN,
+not about the family.** Era 0's list contains ×3/4 twice and the others once each; the last era's
+contains each twice, which is 1:1:1. The measured ratio therefore dates the capture rather than
+describing the mechanism.
+
+### "The era" is not one switch
+
+Three subsystems read the same era index and divide it differently:
+
+- the player's speed: `{0}`, `{1,2}`, `{3,4}`
+- the player's turn rate: `{0,1,2}`, `{3,4}` — see §5
+- the scenery: `{0}`, `{1,2,3}`, `{4}`
+
+The first two are decided in the same chain, at different boundaries, so the
+player's own handling divides the era index two ways by itself.
+
+Both are consistent with the five rounds the public record describes, and neither implements an era
+as a bundle of settings. The difficulty curve and the scenery curve step at **different rounds**.
+A reader who assumes one era boundary will predict changes that do not happen. `[code]`
+
+### The era index advances during the attract demo
+
+The demo is not a canned replay — it runs the real play arm, and the era index moves while it runs.
+`[seen]` Anything that attributes a dispatch to "a game being played" on the strength of the era
+index or the play arm alone will count the demo as a game. See §2 and §10.
 
 ---
 
-## 5. Shots and collision
+## §4 Objects: one array, two tables, and two ways onto the screen
 
-`destroyTargetsHitByShots` sweeps a run of shot slots against a run of target slots. The outer array
-is always the player's shots and only the inner list varies across its callers, which is what fixes
-the sweep's direction. A shot is armed only on a fire-button **rising edge**, though the routine that
-owns those slots writes them every frame — so a sparse arming sits inside a dense write set, and an
-instrument that watches writes will not see the edge.
+### Every object is a record and a sprite entry, indexed in lockstep
 
-A target that is reached is destroyed **together with the shot that reached it**, and the sweep does
-not stop there: one shot can take several targets in a pass and is paid for each. `[code]`
+There is **one** record array and **one** sprite-entry array. The "actor array" and "scenery block"
+are bands within them, not separate tables. `advanceToNextSlot` states both strides in four
+instructions — record `+0x10`, entry `+2` — and that ratio of eight fixes the mapping:
 
-**This is not the only collision path.** At least one other routine tests and destroys inline, so a
-capture that only watches score cells cannot attribute a kill to this routine. That is why nothing
-here is `[seen]`.
+```
+entry = 0xAA10 + (record - 0xA800) / 8
+```
 
----
+Every record/entry base PAIR in the lift obeys it. `[code]` (Not every `ix`/`iy` literal is such a
+pair — the shot array and a structure outside the object arrays are loaded into the same registers,
+and several routines put a sprite-entry base in the record register.)
 
-## 6. Input and credit
+| band | records | entries | who owns it |
+|---|---|---|---|
+| the player | `0xA800` | `0xAA10` | armed once per life, refreshed each frame from its heading |
+| actors | `0xA810`–`0xA8F0` | `0xAA12`–`0xAA2E` | one small handler per slot, each hard-coding its own pair |
+| scenery | `0xA900`–`0xA970` | `0xAA30`–`0xAA3E` | the era-keyed parallax dispatcher |
 
-| cell | role |
+Player shots are the exception: a **separate** six-slot array at `0xAA80` with no sprite entries at
+all. `[code]`
+
+### A coordinate is split across both tables
+
+An actor's position is 16-bit 8.8 fixed point whose **whole byte lives in the sprite entry** and
+whose **fraction lives in the record**. Motion is a single 16-bit add that writes both halves back.
+
+```
+ld h,(iy+0x31)   ld l,(ix+0x03)   ld de,(0xa808)   add hl,de
+ld (iy+0x31),h   ld (ix+0x03),l
+```
+
+This is why the drift routines touch two tables to move one thing, and why a reader expecting a
+position to live in one place will not find it. `[code]`
+
+### The record layout
+
+Offsets `0x00`–`0x05` and `0x0E`–`0x0F` mean the same thing to every family. **`+0x08`..`+0x0D` do
+not** — the player keeps the camera there, a shot keeps its frozen velocity there, and actor
+families use them differently again. Any single name for that block would be wrong for somebody.
+
+| off | meaning |
 |---|---|
-| 0xA9AE | IN0 mirror, rewritten every frame — shows what the panel asserts, never what the machine decided `[seen]` |
-| 0xA981 | set when the machine **accepts** a coin, debounced rising edge `[seen]` |
-| 0xAD30 | set while play is active `[seen]` |
+| `+0x00` | state code / occupancy — see the lifecycle below |
+| `+0x01` | the heading the object is turning **toward** |
+| `+0x02` | current heading, a full byte = 256 steps of the circle |
+| `+0x03` | Y fraction |
+| `+0x05` | X fraction |
+| `+0x0E` | release delay, then a general cooldown |
+| `+0x0F` | slot ordinal, stamped once at round init and used as a round-robin key |
 
-The first row's distinction is load-bearing: the mirror proves a button was down and nothing more.
-The pixel gate asserts all three, because a tape that never reaches the machine leaves both
-emulators in attract with every frame matching.
+The record holds **no** whole coordinate for actors, no sprite code and no colour. Those are in the
+entry: X, tile code, attribute (colour plus two flip bits), Y. `[code]`
 
-`readPlayerControls` returns the **whole panel word** for whichever panel faces the picture, choosing
-between two frame mirrors on the screen-flip flag — which the vblank service latches into the LS259
-bit MAME reads back as flip-screen. The two mirrors are the mono panel and its cocktail twin, so the
-swap happens exactly when the cabinet is a cocktail and it is the second player's turn. Its callers
-then split the word three different ways: the stick nibble, the fire bit edge-detected into a
-three-shot burst, and — in initials entry — several individual bits, each into its own one-bit
-edge history. `[code]`
+### The lifecycle of a slot
+
+Five per-slot handlers share one ladder, and it is the ladder that defines the states:
+
+```
+ld a,(ix+0x00) ; and a ; ret z     ; 0x00  free
+inc a ; jr z,<live>                ; 0xFF  live
+inc a ; jp z,0x2b52                ; 0xFE  held -> release it
+        jp 0x2b93                  ; anything else -> dying
+```
+
+| code | state | left by |
+|---|---|---|
+| `0x00` | free | a spawn |
+| `0xFE` | held — spawned, waiting out its delay | `releaseHeldObject` promotes it to live and re-arms the delay |
+| `0xFF` | live | a hit writing `0xF0`, or drifting onto a retire line |
+| `0xF0` | just hit | converted to a countdown |
+| `0x01`–`0x3B` | dying, animating | counts down; at zero the slot is retired |
+
+The held code is stored literally on a live spawn path: `ld (ix+0x00),0xfe`, inside the routine that
+walks the actor band, which the per-frame list calls unconditionally. The very next instructions read
+the slot's delay and promote `0xFE` to `0xFF` when that delay has already expired, so "held" and
+"live" are set by one piece of code a few bytes apart. `[code]`
+
+### Retiring and hiding are the same store
+
+Two retire helpers do the same job by different idioms — one stores from a zeroed register and also
+clears the sub-pixel fractions, the other stores immediates and leaves them — and their
+caller sets are statically disjoint, which is what makes them two families' helpers rather than two
+versions of one.
+
+What actually removes an object from the picture is zeroing the entry's Y: the DMA turns `Y = 0`
+into a hardware value that puts the sprite entirely above the first visible raster line.
+`hideAllSprites` does the identical store to every entry at once, and the caption-hiding routine
+does it to four. **"Retired" and "hidden" are the same write; the occupancy byte is the only thing
+that distinguishes them.** `[code]`
+
+### The retire lines are the player's antipode
+
+`hasReachedRetireLine` tests two three-pixel windows: Y at `0xF8`, X at
+`0x04`. The player is pinned at `(0x84, 0x78)`, and `0x78 + 0x80 = 0xF8`, `0x84 + 0x80 = 0x04`
+modulo 256. Both lines are **exactly halfway round a wrapping axis from the ship** — the farthest
+an object can get behind a camera that never moves. `[code]`
+
+★ **The window is three pixels wide, so it can be stepped over.** An object whose whole part moves
+more than three pixels a frame on the retiring axis can jump the line and go round again. Whether
+anything in the game is that fast is unresolved; the shot family notably uses its own explicit range
+test instead of this routine, which is suggestive and not proof.
+
+### Two ways onto the screen — and shots use the second one
+
+**Sprites** reach the hardware through a DMA that runs first thing in the vblank service, copying
+two 48-byte shadow bands into the two hardware sprite banks. It is the largest routine in the game.
+It is transcribed, but it has not been brought into the idiomatic layer. It does two things beyond
+copying:
+
+1. **It encodes Y** as `~(Y + 0x0E)`, which is exactly the inverse of what MAME reads back — so the
+   shadow's Y byte is literally the sprite's native top row. `[code]`
+2. **It reorders the bands**, and the reorder is a priority arrangement. MAME paints from the
+   highest hardware offset down, so the lowest offset is painted last and wins overlaps. The DMA
+   places three scenery entries at the very lowest offsets and the rest at the very highest.
+
+★ **A coherence check that could have failed and did not:** the three entries the DMA promotes to
+front-most are exactly the ones the fastest parallax rung occupies, and the slowest rung lands at
+the back. *Nearest moves fastest* and *nearest paints in front* are two independent mechanisms that
+agree. `[code]`
+
+A second variant of the DMA handles the flipped cabinet by mirroring every sprite **in software** —
+`240 - X`, `240 - Y`, and both flip bits toggled. MAME's sprite drawing has no flip handling at all,
+because the tilemap is flipped in hardware and the sprites are flipped by the ROM. `[code]`
+
+**Player shots are not sprites at all.** They are painted as 2×2 blocks of character cells through a
+double-buffered display list: a per-shot routine appends address/code/attribute quads to a list, and
+inside the vblank service one walker blanks the *previous* frame's cells while another writes this
+frame's, after which the list is copied over and the write pointer reset. Both walkers test the
+cell's colour-RAM priority bit and **skip the cell if it is set**, so the shot layer refuses to
+scribble over foreground and HUD cells. `[code]`
+
+### Multi-tile objects are not a structure
+
+`placeAbuttingTile` writes **only two bytes** — the next entry's coordinates, one sprite pitch along
+— and then steps both cursors. Neither it nor its diagonal sibling copies the tile code or the
+attribute; those were seeded for all eight scenery entries at round init. So a "three-tile cloud" is
+three ordinary sprite entries whose coordinates are recomputed from the first every frame.
+
+That is what makes the slot budget legible. Each era's dispatch list sums to **exactly eight**
+scenery slots: four objects costing 3+2+2+1 in the early eras, six objects costing 2+2+1+1+1+1 in
+the last. The number of objects changes with the era; the number of slots never does. **A bigger
+scenery piece is bought by having fewer of them.** `[code]`
+
+### The cloud multiplexer: the same sprite, drawn twice
+
+Eight scenery slots produce up to sixteen images. A routine waits until the raster has passed a
+slot's last line, then moves that slot half a screen in **both** axes, so the same sprite is drawn a
+second time lower down the frame.
+
+The "request bit" is written by an explicit store, once per slot per frame and gated on game state,
+at the DMA's own tail. What it would store is the *encoded* Y plus 0x80, and the carry out of that
+addition decides whether the slot is displaced at all: when it is set, the Y store and the partner X
+bump are both skipped and the slot keeps whatever the copy loop wrote. Either way the bit ends up
+set. `[code]`
+
+★ **Across a gated frame, the bit's state tracks serviced against not-yet-serviced.** The tail sets
+it over exactly the slots the multiplexer walks — the two cover the same slots in the same order —
+and it ends set on both arms of the branch, so once the tail has run they are all set. The
+multiplexer clears the bit when it services a slot, and it runs several times over a frame. `[code]`
+
+**It is not only a flag, and that matters to anyone tempted to move it.** The multiplexer feeds the
+whole byte, bit 7 included, into its comparison against the beam — the byte reaches that comparison
+unmasked — so the bit shifts the firing threshold by half a screen rather than merely being tested.
+Masking it before that compare would not be harmless, and the flag cannot be relocated or stored
+elsewhere. `[code]`
+
+What the bit means **outside** that gate is a separate question. The tail returns early unless the
+sequence cells say a round is running, and outside it the bit is simply the top bit of the encoded
+Y. Whether the multiplexer ever runs outside the gate is not established here.
+
+**There are two versions, and they differ by one byte per block.** Re-verified from the ROM this
+run: the two routines are byte-identical across their whole length except for **eight** bytes, every
+one at the same offset within its block — the displacement of the branch after the beam test.
+
+- one jumps **forward**: skip a slot whose beam has not arrived
+- the other jumps **back to the block head**: spin until it does
+
+They are used together — the skipping one is called repeatedly, interleaved with other work, to
+catch slots opportunistically, and the spinning one runs last as the backstop that guarantees every
+request is serviced before the frame ends. That pairing repeats in each of the routines that use
+them. That contrast is the strongest evidence that the *wait*
+is what the second one is for. `[code]`
+
+**Not claimed:** which twin runs more often. Two agents once produced confident and opposite
+orderings, and the instrument that would settle it cannot count a routine that waits. See §10.
 
 ---
 
-## 7. Text and captions
+## §5 The player's ship
 
-A cursor in `DE` walks character cells; one cell is 32 addresses back down the tilemap, and under
-ROT90 that is one cell **right** on the display — so `advanceCharCursor` is reading order and
-`retreatCharCursor` its exact inverse. At least one leading-zero suppressor calls the retreat so a
-following advance nets to zero; whether every suppressor does is not established.
+### Three different numbers of directions, and the public record conflated them
 
-`drawTextRun` copies one glyph run into the character and colour planes; its wrappers are what walk
-the record table and choose which run. The
-runs decode, through the board's own tile layout, as the game's English captions — and two of them
-spell the exact bonus settings on the DIP switch, which is an independent hit on the public record.
-**Two records are not text at all:** they select second-bank tiles with three pen levels, forming a
-shaded banner where a byte is a piece of a letter rather than a character. The name covers the
-common case and not that one. `[code]`
+`gameplay.md` asks how many facings the ship renders and fires at, and reports the public claim of
+"eight locked facings plus transitional angles". The truth has **three layers**, and that is why the
+record is muddled: `[code]`, the rendering and the live heading range `[seen]`
 
-`stampCopyrightStrip` places caption glyphs into the display-list shadow, **and it really runs** —
-a PC-gated sweep of the real machine dispatches it steadily. Those sprites are nevertheless never
-visible: hiding them changes zero pixels, while blanking the tilemap cells over them changes
-hundreds. The cells are category 1 and painted opaquely over sprites in a later pass, so the glyphs
-are **written and occluded**, not never written. `[seen]` for the dispatch, `[code]` for the occlusion.
+- **The stick names eight targets.** There really are exactly eight, so the public description of
+  the *control* is right.
+- **The ship renders thirty-two.** The heading is rounded to the nearest of 32 sectors and drawn
+  from sixteen tiles plus a mirror. It never locks to eight.
+- **It fires along all 256.** A shot's velocity is looked up at the **raw** heading byte, not the
+  rounded one.
 
-`fillCellRun` lays a fixed-length uniform run, used with a blanking glyph in the character plane and
-a computed colour in the colour plane. **Nothing has ever been observed dispatching it** — and the
-reason is now known for one of its two call chains.
+So a shot fired mid-turn goes exactly where the ship is pointing, at an angle the sprite cannot
+depict. The heading itself is a full 256-step byte, and all 256 values were observed live.
 
-> **It is a REPAIR path, which is why it never fires.** A routine that IS reached walks the very
-> run `fillCellRun` writes — same length, same backward stride, in the colour plane — comparing each
-> cell against an expected colour, and tail-jumps to the fill the moment one does not match. The
-> scan and the fill are a check-then-repair pair. Under every tape the strip is already correct, so
-> the guard falls through every time. **A routine can be live, correct, fully understood and still
-> never dispatch, because its job is to fix something that does not go wrong.**
->
-> This was found by tracing the call graph after guessing at game states failed: free play was
-> enabled by name and driven for minutes, and neither the fill nor initials entry was reached.
-> Sweeping every caller localised it to one conditional. `[seen]` for the reachability,
-> `[code]` for the guard.
->
-> **Scope.** This speaks only for that chain. `fillCellRun`'s other root and its two callers are
-> entirely unreached and may fill a different strip. And "the strip is always correct" is inferred
-> from the branch never being taken, not observed on the cells themselves.
+### ★ The ship can about-face — the public record's contradiction is resolved
+
+StrategyWiki says the plane *"can't about face"*; arcade-history says you can flip 180° quickly and
+calls it a core tactic. **arcade-history is right.**
+
+The turn law takes the shorter way round to whichever of the eight targets the stick names, and
+contains **no special case, no cap and no refusal** — a half-turn difference simply turns the
+increasing way. It is *slow*, not impossible: about three quarters of a second in the first three
+eras and just over half a second in the last two. StrategyWiki was most likely describing that
+feel. `[code]`
+
+The turn rate is **per era, not per difficulty** — it steps up with the era, and nothing on the
+player's path reads a difficulty setting at all.
+
+### The ship never moves, and its speed is not fixed
+
+The player's sprite **position** is written once per life and never again; the tile code and
+attribute are refreshed every frame from the heading, as §4's band table says. Everything the
+player experiences as
+flight is the world moving the other way — see §3. The consequence is worth stating twice: the
+player's velocity *is* the camera, so raising it speeds up the entire world.
+
+There is **no acceleration and no momentum**: both velocity components are recomputed from the
+heading every frame and stored. The speed changes only because the era selects a different velocity
+table. `[code]`
+
+### Shooting: the public record's single-source claim is correct
+
+`gameplay.md` carries a StrategyWiki claim it flags as unverified — that one press launches a burst
+of three shots and the button must be released before firing again. **The code confirms all of
+it.** `[code]`, with the ceiling and cadence `[seen]`
+
+- A **rising edge** on the fire bit loads a pending count of three. Holding the button leaves the
+  edge history saturated and never re-arms, so **release really is required.**
+- Shots leave one every six frames.
+- The table has **six slots**, which is the hard ceiling on screen.
+- A shot carries four times the ship's world velocity while the world scrolls back at one, so it
+  travels at **three times the ship's on-screen speed** — and therefore speeds up with the era too.
+- **There is no lifetime.** A shot dies when it hits something or reaches the edge of the picture.
+
+### Which panel the machine reads
+
+The control read hands back the word of whichever cabinet panel currently faces the picture,
+selecting on the same flag the interrupt latches into the flip-screen line — so which panel is
+"live" is fixed by hardware outside the routine. Its callers then split that word three different
+ways: the stick nibble, the fire bit edge-detected into a burst, and, in initials entry, individual
+bits shifted into their own one-bit histories. That is what makes the whole word the product rather
+than any one field. `[code]`
+
+### The velocity tables are hand-drawn, not computed
+
+Worth recording because it is a fact about the authors. The heading→velocity table is **not** a
+cosine: a computed cosine disagrees with the ROM at most indices. It is a monotone quarter-wave
+whose differences run one step near one axis and eight near the other, mirrored and negated into
+the other quadrants. A drawn circle, not a calculated one. `[code]`
+
+It has small defects, and they are in **every** table at the same indices — so they were introduced
+once and scaled. The worst is a zeroed entry where its neighbours demand a value: it costs almost no
+speed but rotates the direction, so an object turning steadily through that heading steps
+**backwards** and then jumps forwards. Axis samples are also duplicated, making two adjacent
+headings identical.
+
+**Not claimed:** that any of this is visible in play. It is a fact about the data, and nothing here
+says a player can see the twitch.
+
+★ **Also not claimed: which direction any heading points on the glass.** Mapping the heading byte to
+"up" or "left" needs the screen rotation, the vertical inversion and the table's sign convention
+composed together, and that was not closed. **Nothing in this document says a heading is "up".**
 
 ---
 
-## 8. Reachability
+## §6 Killing, and being killed
 
-A PC-gated sweep over the unnamed routines, driven through play, finds a majority executing and a
-substantial minority not. Re-derive with `tools/reach_sweep.lua`; the hot tail is the backlog worth
-taking next. Pick a batch by intersecting the leaf set with **measured execution**: a leaf nothing
-dispatches is a slot spent for nothing, and roughly half of any size-ordered candidate list is dark.
+### There is no "kill routine"
 
-**The instrument lies on this game unless gated.** A plain read tap counts *any* read of an entry
-byte, and this ROM folds blocks of itself for anti-tamper (§1.1) — so an ungated sweep reported
-**every** unnamed routine as reached, including routines independently proven dark. The tool now
-requires the program counter to be at the address. Its header warned about the mirror failure
-(encrypted opcode regions making everything look unreached); the prescribed sanity check, tapping a
-known-executing address, is blind to this direction.
+Ten distinct collision tests exist. The shot-versus-target sweep is one of three shot paths, and the
+two biggest targets in the game — the Mother-Ship and the 1940 bomber — are reached only by
+open-coded inline loops that share no code with it. **Most of them kill the player**; the rest mark
+only the other object, and one of those is the pickup test. `[code]`
 
-★ **A PC gate still cannot tell an entry from a loop head.** A back-branch to an interior address
-counts as a dispatch, which is how an interior block once looked like a live routine. Confirm that a
-hot address is an entry — something must *call* it — before spending a batch slot on it.
+Any statement of the form "kills happen in *the* collision routine" is wrong about this machine, and
+a reader who instruments one path will under-count.
 
-★ **AND IT CANNOT COUNT A SPINNER.** Where a routine waits on the raster, the program counter passes
-its entry region on every turn of the wait, so the tap reports iterations of a spin as though they
-were dispatches. The effect is not subtle: an address our own machine measures at zero dispatches
-reports tens of thousands of PC hits, purely because it lies inside a busy spin. **A hit count is
-only a dispatch count for a routine that does not wait.** For anything that does, the decidable
-facts are the static call sites and the structure of the wait — use those instead, and say which
-you used.
+### One byte means "destroyed", and each family decides what it means
+
+Every one of the ten tests writes the same marker into the victim's state byte. Most of them also
+post the score at that instant, and three zero a hit counter as well; what none of them writes is
+sound or animation. Those belong to the victim's own handler, a frame later. `[code]`
+
+For an ordinary enemy craft the handler replaces the marker with a countdown on the first frame,
+pays the kill there, and counts down to zero before freeing the slot. During the countdown a
+three-phase explosion plays, and **the wreck keeps flying through the first phase**.
+
+★ **The countdown is shorter than it looks.** While the value is still high the object is
+decremented *twice* per frame, so the elapsed time is not the state value in frames — it is about
+forty-six. Reading the state byte as a frame count overstates the explosion's length. `[code]`
+
+The kill is also **paid in two places at two times**: the score posts at the instant of collision,
+while the sound and the quota decrement happen one frame later, in the handler. `[code]`
+
+### ★ The quota is 56, and it never changes
+
+The manual says you advance by destroying 56 enemies and landing 7 hits on the Mother-Ship, and
+`gameplay.md` flags two open questions about it — whether 56 holds for every era and loop, and what
+counts toward it.
+
+**The quota is one work-RAM byte counting down from a value loaded once at boot from a single ROM
+byte, and that byte is `0x38` = 56.** Re-read from the image for this document. It is not era-keyed,
+not loop-keyed and not difficulty-keyed. `[code]`
+
+The escalation the manual describes for later rounds is real but lives in a **different cell**,
+banded by rounds completed. So "harder" never means "more enemies to clear".
+
+**What counts toward it: only the seven ordinary enemy-craft slots.** Every call site of the
+decrement that is reachable sits in the generic craft-death ladder, reachable only from those seven
+slots' handlers. One further call site exists, in a short block the transcription skips and to which
+no static reference was found. Enemy
+projectiles, the 1940 middle-size bomber, the Mother-Ship and the pickup all use other handlers and
+none of them touches the quota. Projectiles shot down still **score**; they simply do not move the
+meter. `[code]`
+
+★ **And that settles the last open question in the public record about the screen furniture.** The
+bar along the bottom is a direct rendering of the quota cell — its run length is the cell shifted,
+with a partial tile from the low bits. `gameplay.md` records one source calling it a "time bar" and
+flags it as ambiguous. **Nothing in this game times the player.** The bar is the kill meter, and 56 and the bar are the
+same fact. (The interrupt does tick short countdown cells — see §2 — but none of them races the
+player or ends a round.) `[code]`
+
+### The 1940 bomber takes four hits
+
+Its counter starts at three, absorbs three, and the object dies on the hit that finds it at zero.
+The manual says four; StrategyWiki says three, twice. **The manual is right.** `[code]`
+
+The same arithmetic on the Mother-Ship's counter of seven implies **eight** shots rather than the
+advertised seven — flagged deliberately as the one number here that a capture should confirm before
+anyone repeats it, because it contradicts the manufacturer.
+
+### Ramming
+
+`gameplay.md` carries a single-source claim that colliding with an enemy credits its points, and
+that ramming the Mother-Ship on its last hit still advances you. Both are true, and they are
+**separate mechanisms**: `[code]`
+
+- ramming an ordinary enemy craft posts a score; ramming an enemy *projectile* does not;
+- ramming the Mother-Ship **zeroes its hit counter** as well as marking it, so it dies outright
+  rather than needing its remaining hits.
+
+### Dying
+
+Nothing in the public record describes what happens when you die. All of the following is new: `[code]`
+
+- Being killed is **the same event** as an enemy being killed — a collision test writes the same
+  marker into the player's state byte.
+- A seven-arm explosion is drawn into the **character plane**, coloured by era.
+- A life is deducted, the player's context block is saved, and the players swap.
+- **Respawn is at the same pinned screen position**, with a fixed heading and the world-scroll pair
+  zeroed.
+- ★ **There is no invulnerability window.** The only thing protecting a fresh plane is that its
+  state byte is not yet the live value — and it becomes the live value a couple of instructions
+  before the position is written.
+- ★ **The era's kill counter is not reset by dying**, and the enemy craft already on the field are
+  not cleared. The projectile and pickup slots are re-initialised, and so is the 1940 bomber — both
+  its slots are cleared and its delay re-seeded — along with a reload of the era parameters. The
+  bomber's hit counter is not touched here; it is re-seeded whenever the bomber arms.
+- If the round had already been won, the advance is applied on the way out, so **the win is not
+  lost by dying during the warp**.
+
+### The Mother-Ship, as far as the code goes
+
+It is a **two-slot object** — one entity occupying two consecutive slots — armed after a delay once
+both slots are free, with a per-era velocity table. Hits count **from any angle**: the test box is
+symmetric on one axis and merely long on the other, and that length is the sprite's own, not a
+facing test. ★ **Its hit count never falls below five across appearances.** The re-entry path tests
+the counter and writes five only if it is already under six — so the first two hits survive a
+departure and everything after them is undone. Damage accumulates exactly that far and then stops.
+The 1940 bomber is different again: its counter is re-seeded every time it arms, so against it
+nothing persists at all. `[code]`
+
+Not established: which edge it enters from, and whether it fires at the player.
 
 ---
 
-## 9. What is not established
+## §7 Score, and the ladder that ends
 
-- ★ **The last era is not reached by the driver.** §4.3 shows why: the rung proportions differ in
-  that era, and the measured proportion is the one the other four produce. Every reachability
-  number in this file comes from runs with that gap in them, so a routine used only in the last era
-  would read as unreached. Nothing here has been shown to be dead on that evidence alone.
-- **Which physical axis is which** — under ROT90 the labels invert and the shadow-to-bank path is
-  not traced end to end.
-- **Whether the retire helpers' sub-pixel difference is intentional** (§4.6).
-- **What each individual substep value selects** (§1). The walk the phase/substep pair takes is now
-  observed — four outer modes, and an inner cycle that returns to a mid value once per life — but
-  what any one substep *selects* is not established, and the differing consumer masks mean it may
-  not be a single sequence at all.
-- **`fillCellRun`'s other call chain** (§7). One chain is now understood as a repair guard. The
-  other root and its two callers are unreached by every instrument pointed at them, including a
-  driven real-machine sweep under free play with sibling text routines in the same run proving the
-  tap fires. Initials entry was never reached either, so a routine used only there would still read
-  like this.
+### Nothing awards points directly — everything posts
 
-## 10. Known defects in the frozen layer
+Scoring goes through the same command ring the foreground loop drains. A routine that wants to
+award something queues a (command, argument) pair; the ring drops the pair if the slot is still
+occupied, so **an award can be lost under load** rather than queued behind others. `[code]`
 
-- A routine declares a range stopping short of where its body runs on, and another is a byte-exact
-  interior slice of a third — the same tail transcribed three times. Dispatch is by address and
-  every entry resolves to a body starting there, so nothing misbehaves.
-- Overlapping declared ranges are widespread rather than isolated, and `stepcheck` is blind to
-  duplication: it only asks whether a target is an instruction start. Re-derive the extent by
-  parsing the range headers; do not trust a figure written here.
+This matters for reading the game: a scoring routine does not score, it *posts*. And one command
+carries most of the awards, keyed by argument — which is why attributing a post to any single
+routine is wrong. `[seen]`: a capture watched arguments arrive with no chain running at all,
+proving the command has several independent posters. The posters found cover the swept field, the
+1940 bomber, a formation, the Mother-Ship, the parachutist ladder, the chained ramp, and a bare
+repaint; two of those routines post from more than one site.
+
+★ **The ring carries no sound at all**, which is worth saying because it is the natural assumption
+and it is wrong. Its sixteen commands are caption drawing at several colour phases, caption
+erasure, the score, the remaining-plane icons and the round number — and several entries point at a
+bare `ret`. Sound has an entirely separate queue, handed one byte per frame to the second CPU by
+the interrupt epilogue. `[code]`
+
+### The chained-hit ramp wraps rather than capping
+
+Consecutive kills inside a window step the award up. A per-frame routine outside the poster ticks
+that window down and clears the step when it expires — so the chaining is enforced from *outside*
+the routine that benefits from it.
+
+★ **At the top it wraps and keeps going.** `[seen]`, on the real machine: step 7 posts argument 8,
+step 8 posts argument 1, step 9 posts argument 2. **The step counter keeps incrementing past the
+table; it is the argument that cycles.** A reader assuming the counter saturates would predict the
+top award repeating, and it does not.
+
+Honest scope: reaching the top of the ramp was **seeded** in that capture, not played. Under the
+same tape unseeded, natural play reached the fourth rung — and that unseeded run was the attract
+demo rather than a credited game, so it is not evidence about a player either. The wrap is real
+machine behaviour; whether anyone reaches it in play is a question none of this answers.
+
+The window is thirty frames, and the ramp has a seam worth knowing: the routine that posts and the
+routine that ticks the window sit at different points in the per-frame list, so **a kill landing one
+frame after the window expires posts the bottom award while leaving the old step standing.** `[code]`
+
+### The score is six BCD digits and it rolls over
+
+Three bytes, low byte first, packed BCD, per player, with the high score kept separately. The adder
+discards the final carry, so the score **wraps at 1,000,000**. The readout suppresses leading zeros
+and always prints the last two digits — which are permanently `00`, because every award record has
+a zero low byte. `[code]`
+
+That answers a puzzle in the public record: a recorded score of 15,000,000 is fifteen rollovers and
+a scorekeeper, not a wider counter.
+
+### ★ Extra lives: the ceiling is real, the "mode" is not
+
+`gameplay.md` records a Wikipedia-only, uncited claim that extra lives stop at 960,000 and the game
+enters a "survival of the fittest" mode. The code settles it.
+
+Once a frame, while play is active, the machine takes the **high byte** of the active player's score
+and searches for it in a table chosen by one DIP bit. Both tables were read straight out of the ROM
+image (re-verified independently for this document):
+
+| DIP | schedule | last award |
+|---|---|---|
+| factory setting | 10,000 then every 50,000 | **960,000** |
+| alternate | 20,000 then every 60,000 | **980,000** |
+
+These reproduce the manufacturer's own DIP table byte for byte.
+
+**So the number is right and the framing is wrong.** Past the final entry the search simply misses,
+and the miss path does exactly one thing: it clears the one-shot latch, the same as any other miss.
+No counter moves, no mode is entered, nothing distinguishes "past the last threshold" from "between
+two thresholds". "Survival of the fittest" describes the *consequence* of getting no more planes;
+there is nothing in the ROM that switches mode. `[code]`
+
+★ **And the ceiling is not permanent.** Because the key is the score's high byte and the score rolls
+over at a million, the high byte returns through the low values and the whole ladder awards again.
+On a marathon the player collects the full schedule once per million. That is a code-derived
+prediction and no capture has tested it. `[code]`
+
+The award is latched by a single bit so each threshold pays once, and since no single award can
+raise the high byte by more than one step, no threshold can be jumped over. `[code]`
+
+### Parachutists: the ladder, the cap, and the era that has none
+
+The parachutist is a **singleton** — one dedicated record and sprite entry with one manager, not a
+pool. `[code]`
+
+- **The ladder is 1,000 / 2,000 / 3,000 / 4,000, then 5,000 for every one after.** Four table
+  entries, and a compare that sends every rung from the fifth onward to the same award record. The
+  manual's chart trails off in an "ETC."; the cap the secondary sources assert is really there.
+- **There are none in the final era.** The manager's first three instructions read the era index,
+  compare, and return. The two sources that addressed the question were right; the one that said
+  parachutists appear in every era was wrong. `[code]`
+- **The rung counter is reset by the routine that places a plane on the field**, which is the same
+  routine that pins the player's sprite at screen centre — so it covers both losing a life and
+  starting a round, which is the shape the secondary record claims. Exactly one writer *resets* the
+  cell — the ladder's own increment is the only other — which is what makes the sharing invisible
+  across a hand-over.
+
+### Killing the Mother-Ship pays for the field it clears
+
+`gameplay.md` notes that every source says the remaining craft are destroyed and **no source says
+whether they score**. They do: every live actor slot is given a death code and its own award post,
+worth twice a first chained kill. `[code]`
+
+### Two-player state is kept independently — with one exception
+
+Lives, round, era and score are per player: a sixteen-byte context block is swapped in and out for
+the active player, and the score triples are addressed per player directly.
+
+★ **The parachutist rung counter is not in that block.** It is a single shared cell. In practice
+every hand-over re-places a plane, which clears it — so the sharing is invisible, but it is sharing
+and not separation, and a change to the hand-over path could expose it. `[code]`
+
+---
+
+## §8 The character plane: text, the meter, and a routine nothing reaches
+
+The screen has two layers. Sprites carry the ship, the enemies and the scenery (§4). **Everything
+else is character cells** — the captions, the score, the round number, the progress meter, the
+player's own shots, and the explosion that plays when the player dies.
+
+### Captions are glyph runs, with one exception the name does not cover
+
+A caption is painted by walking a run of glyph codes terminated by a fixed byte, giving every cell
+of the run one colour. The runs its callers select decode, through the board's own tile layout,
+into the English captions the public record independently names — and two of them spell out the
+exact bonus settings the hardware reads off the dip switches, which is a strong check that the
+bytes really are glyphs. `[code]`
+
+★ **Two records are not text at all.** They select second-bank tiles with three pen levels — a
+shaded banner strip in which a byte is a *piece of a letter* rather than a letter. The routine is
+the same; the data is a different kind. Anyone reading its name as "draws text" will misread those
+two. `[code]`
+
+The copyright caption is different again: it is stamped as **sprites**, into four display-list
+slots, by a routine that reads nothing and can therefore be re-stamped harmlessly. A sibling hides
+exactly those four slots by zeroing their vertical byte — the same store that retires an object
+(§4). `[seen]`: it really does execute, so the glyphs are written and then painted over by the
+tilemap. Written-and-occluded, not never-written.
+
+### The progress meter is the quota, drawn
+
+The bar along the bottom is a direct rendering of the kill-quota cell: its run length is the cell
+shifted down, with an eight-level partial tile from the low bits, in era-keyed tiles. `[code]`
+
+This is why §6 can say flatly that the game has no timer. The bar and the 56 are the same fact
+rendered two ways, and the single public source that called it a "time bar" was watching the kill
+meter fill.
+
+### Player shots live here too
+
+Shots have no sprite entry. They are painted as 2×2 blocks of cells through a **double-buffered
+display list**: one walker blanks the previous frame's cells, another writes this frame's, and the
+list is then copied and its cursor reset — all inside the interrupt. Both walkers check each cell's
+colour-plane priority bit and **skip the cell if it is set**, so shots refuse to scribble over
+foreground and HUD cells. `[code]`
+
+### ★ A routine that is live, correct, understood — and never reached
+
+`fillCellRun` fills a fixed-length run of cells with one byte. Under every instrument pointed at it,
+including a four-minute driven run of the **real machine** with sibling routines in the same sweep
+proving the tap fires, it has **never once dispatched**. `[seen]`
+
+It is not dead code. It belongs to a screen our instruments never reach.
+
+Its call sites sit in two sequence sub-steps that the attract loop never enters — confirmed three
+independent ways, the cleanest being that the sub-step cell never takes either value across a
+3602-frame capture. What arms them is the routine that checkpoints the live player block and then
+writes that sub-step directly; the second of the two hands off to the sub-step that arms the round
+HUD. So this is the **inter-round / player-change transition**, and a demo that never finishes a
+round never performs one. `[seen]` for the zero dispatches and the sub-step observation, `[code]`
+for the arming path.
+
+★ **An earlier reading of ours had this wrong, and how it was wrong matters more than the error.**
+It held that the routine was the repair half of a *check-then-repair pair*: that a reachable routine
+inspects a thirteen-cell colour strip and, on finding a cell wrong, jumps to the branch that
+repaints it.
+
+The inspection is real — thirteen cells in the colour plane, stepping one cell along the line. **The
+repair is not.** That failure arm jumps into **caption data**, which is this ROM's anti-tamper idiom
+(§2). It is a tamper check whose failure is a deliberate crash, and the same document already
+describes two other traps of exactly that shape.
+
+The misreading was convincing because the branch target was taken for a routine **on the strength of
+a transcribed file existing for that address** — and that file is itself a decode of caption data as
+code. §10 records the general form, because it will happen again.
+
+**Also refuted, and it was our own hypothesis:** that the routine belongs to high-score initials
+entry. The initials screen is a different sub-step and never calls it. `[code]`
+
+### The cursor helpers are exact inverses
+
+Stepping the character cursor forward and back are two routines on the same axis, and the leading-
+zero suppressor depends on it: it blanks a digit and returns so that the caller's following advance
+nets to zero, which is only coherent if the two are exact inverses. `[seen]`: the retreat helper
+fires, but on a small fraction of its sibling's dispatches — exactly the shape a suppressor that
+runs only on the digits actually suppressed should have.
+
+---
+
+## §9 What the code settles
+
+`gameplay.md` ends with two dozen numbered questions the public record could not answer, ordered by
+how much a faithful reimplementation depends on them. This section answers the ones the lifted code
+can, and says plainly which it cannot. **Every answer here is `[code]` unless marked otherwise** —
+derived from the ROM, not watched on a screen.
+
+| # | the question | the answer |
+|---|---|---|
+| 1 | Is the quota 56 for every era and every loop? | **Yes, always.** One byte, loaded once at boot from ROM. Not era-, loop- or DIP-keyed. The later-round escalation lives in a different cell. |
+| 2 | What counts toward the 56? | **Only the seven ordinary enemy-craft slots.** Not projectiles, not the 1940 bomber, not the Mother-Ship, not the pickup. Projectiles still score. |
+| 3 | Mother-Ship behaviour | Partly. Two-slot object, armed after a delay, per-era speed. **Hits count from any angle**, and the count **never falls below five across appearances** — the first two hits persist, later ones are undone. Which edge it enters from, and whether it fires, are open. |
+| 4 | Does clearing the Mother-Ship pay for the enemies it sweeps? | **Yes** — one post per live slot, and they explode in a ripple. |
+| 5 | Does ramming credit the points? Can you ram the Mother-Ship and still advance? | **Both yes, by separate mechanisms.** Ramming an enemy craft posts a score; ramming a projectile does not. Ramming the Mother-Ship zeroes its hit counter, so it dies outright. |
+| 6 | The 1940 bomber: three hits or four? | **Four.** The manual is right; StrategyWiki is wrong. |
+| 10 | Parachutists in the final era? | **No.** The manager reads the era index and returns immediately. |
+| 11 | Is the pickup ladder capped at 5,000? | **Yes, hard.** Four table entries, then the same award for ever. |
+| 12 | What resets the ladder? | The routine that places a plane on the field — which covers both a lost life and a new round. |
+| 17 | Is the player's speed fixed? | ★ **No.** It steps up twice across the eras, and the public record appears to have missed it. See §3. |
+| 18 | Is there an extra-life ceiling at 960,000 and a "survival of the fittest" mode? | ★ **The ceiling is real; the mode is not.** The bonus table simply ends. And rollover restarts the whole ladder. |
+| 20 | Score width and rollover | **Six BCD digits, rolls at 1,000,000.** A recorded 15,000,000 is fifteen rollovers. |
+| 21 | What happens when you die? | Fully answered, and all of it new — **no invulnerability window**, respawn at the pinned position, and **the kill counter is not reset**. See §6. |
+| 22 | Two-player independence | **Yes** for lives, round, era and score. ★ The pickup rung counter is a **shared** cell, masked by the fact that every hand-over clears it. |
+| 24 | Is there a timer anywhere? | ★ **Nothing times the player.** The bottom bar renders the kill quota; the source calling it a "time bar" was describing the kill meter. Short countdown cells exist in the interrupt (§2), but none races the player. |
+
+### The pattern in the misses
+
+The public record is not sloppy; it is **outside-in**, and every place it goes wrong is a place
+where the inside and the outside genuinely look different.
+
+- It calls the player's speed fixed because **the plane never moves on screen.** The ship is pinned
+  and the world is what accelerates, so there is nothing on the glass to measure the change
+  against — and the enemies speed up too.
+- It reports a "time bar" because a bar that fills toward an event looks like a clock.
+- It splits three ways on the bomber's hit count because a counter that starts at three and dies on
+  the fourth hit can honestly be described either way, depending on whether you count the one that
+  kills it.
+- It could not settle what happens on death because **nothing about death is visible except its
+  consequences.**
+
+Where the record and the code disagree, the record usually describes the *experience* correctly and
+the mechanism wrongly. That is worth remembering when using it as evidence: `gameplay.md` is a
+reliable witness to what a player sees and an unreliable one about why.
+
+### What the code cannot settle, and what would
+
+These need the real machine, not more reading: `[code]` is the wrong instrument for all of them.
+
+- **Whether the speed-up is perceptible.** The numbers differ; whether a player can tell is a
+  question about eyes.
+- **The Mother-Ship's entry edge and whether it fires.**
+- ★ **Whether the Mother-Ship really takes seven hits or eight.** The same arithmetic that gives the
+  1940 bomber four hits from a counter of three gives the Mother-Ship eight from a counter of
+  seven — contradicting the manufacturer. Flagged rather than published.
+- **Formation composition and the bonus window** — the per-era spawn parameter table is not
+  transcribed. See §11.
+- **What the player actually perceives of the era boundaries**, given that the two subsystems that
+  read the era index divide it at different rounds.
+
+---
+
+## §10 What our instruments can and cannot see
+
+Every entry here has already caused a false claim. They are recorded as instrument properties, not
+as history, because each will cause the next one too.
+
+### ★ The oracle's own fidelity has a scope, and it is narrower than the claim it carries
+
+**This is the most important limitation in the document, because everything else rests on it.**
+
+The translated layer is described as byte-exact against MAME. That is true, and it is scoped: it
+holds for routines the golden capture actually **dispatches**. `tools/pixel_suite.py` drives its
+tape with `Coin 1` and `1 Player Start` and nothing else — **no fire, no direction** — for
+`SECONDS = 30`, `GOLDEN_FRAMES = 1802`. A routine that tape never reaches contributes no evidence in
+either direction. It is **unobserved, not verified.** A substantial fraction of the registry is never dispatched under
+the golden tape, and no figure for it is quoted here on purpose: the shape is what is durable, and
+anyone who needs the number should measure it rather than inherit it.
+
+The consequence reaches the whole idiomatic layer. Each idiomatic module is proved memory-equivalent
+**to the translation**, never to MAME directly. Where the tape dispatches, that composes into a
+chain back to hardware. Where it does not, it is a proof of agreement with an **unverified
+reference** — internally consistent and unanchored.
+
+`games/timeplt/tools/unit_equiv.sh` is the instrument that would close this: per-routine
+equivalence, tape-configurable, fire- and direction-capable, 90-second default, entry list rebuilt
+from `translated/` at run time. **It is wired into no gate, no Makefile target and no hook, and has
+never been shown to run clean.** Recording this gap is not closing it.
+
+The gap was already known in exactly one place. `idiomatic/test/equivalence-5211.test.js` says, in
+capitals: *"THE SHARED DRIVEN TAPE IS TOTALLY BLIND TO THIS ROUTINE, AND THAT IS THE HEADLINE. The
+coin -> start tape never presses fire, so no shot slot is ever live."* Every artifact carrying the
+claim forward stated it unqualified. **A caveat that lives in a test comment and is absent from the
+durable record is functionally not known at all** — the next reader inherits the confident version.
+
+★ **But do not over-read the tape's input list, because it mis-states the fix.** The capture is not
+thirty seconds of a title screen. The attract **demo runs the real play arm** — the era index
+advances during it and it fires — so a substantial amount of gameplay code is dispatched with no
+input at all. That is why coverage is a large fraction rather than a sliver. The same test file says
+so: *"The real teeth are the undriven ATTRACT demo, which does fire, and a crafted space."*
+
+So the honest form of the gap is not "gameplay is never exercised". It is: **the only gameplay the
+oracle has been checked against is whatever the demo happens to do, and the demo is not a player.**
+It never collects a parachutist, never dies deliberately, never finishes a round, never reaches the
+later eras. Adding *any* input would not close this; adding input that reaches **what the demo never
+does** would, which is precisely what `unit_equiv.sh`'s tape parameter exists for.
+
+### A read tap over-counts, because the ROM reads itself
+
+This ROM folds blocks of itself through anti-tamper checksums, and a memory read tap counts a
+checksum pass as a hit. Under an ungated sweep, routines two agents had independently proved dark
+showed non-zero counts. Any reachability instrument here must gate on the program counter. `[code]`
+
+### A PC-gated tap cannot tell an entry from a loop head
+
+The gate re-triggers on every turn of a wait, so a routine that spins on the beam reports its
+iterations as dispatches. The decisive case: an address our own machine measures at **zero**
+dispatches reports **54659** PC hits on the real machine, because it lies inside a busy spin and is
+never called at all in that run. `[seen]`
+
+**So a PC hit count is a dispatch count only for a routine that does not wait.** For anything that
+waits it is an iteration count wearing a dispatch's clothes — which is precisely the class the
+raster and sprite-multiplex work lives in. Two agents once produced confident and opposite frequency
+orderings for the multiplex twins; both should be disregarded, and nothing available settles it.
+
+### A call-site grep misses computed dispatch, in both directions
+
+The mnemonic form `(call|jp|jr) 0xADDR` misses a call whose target is computed and loaded into a
+register first; `0x181d` scores zero by it and is a genuine entry, reached as a pushed return
+address that the transcription renders as `m.call(0x181d)`. The `m.call` form in turn misses tail jumps the transcription
+renders as something else. **Take the union of both forms and treat even that as a lower bound**,
+because table dispatch is invisible to either. A zero from one form alone means "look harder", never
+"not an entry". `[code]`
+
+### ★ A transcribed file is not evidence that its address is code
+
+The lift faithfully transcribes whatever bytes it is pointed at. A `translated/loc_<addr>.js`
+therefore records that somebody attempted a decode at that address — **never that the address is an
+entry point.** Several files in the layer are decodes of *data*: velocity tables reached only by
+anti-tamper traps, and caption records whose real routines begin a few bytes later. Several of them
+give themselves away by calling addresses outside the ROM entirely.
+
+**No exhaustive determination of this set has been made.** Treat it as open rather than as a list.
+
+This deserves its own entry rather than a line in the list above, because the misleading artifact is
+a **file** — the most authoritative-looking object in the repository. Every other limit on this page
+is a measurement lying, and a measurement invites suspicion. A checked-in source file does not, which
+is why this one cost a false claim in §8 of this very document and survived hours of drafting before
+anything caught it. `[code]`
+
+### ★ "Dark" means dark in the eras the tape visits — and one list proves it
+
+The driven tape does not get far into the game, so a routine serving later content reads exactly
+like dead code. This is not a worry; it is measured. The three shims that arm the player's velocity
+table decay in precisely the order that says where the tape stops:
+
+| shim | selects for | PC hits |
+|---|---|---|
+| 0x594E | era 0 | 5784 |
+| 0x5965 | eras 1–2 | 962 |
+| **0x596B** | **era 3 and up** | **0** |
+
+`[seen]` for the counts; `[code]` for which era each arm serves, which is read from `loc_1f42`.
+
+Four of the twelve addresses on our own "proven dark, do not spend a batch slot" list are one cause:
+`0x596B` is the player's top-speed arm, `0x5860` and `0x58A4` are later-era enemy shims — and
+`0x59D7` **is not code at all.** It is the slowest velocity table, dark because a program counter
+never enters data.
+
+Two lessons, and the second is the uncomfortable one. Striking `0x596B` off as dead code would
+delete the arm that gives the player its top speed. And a list that cannot distinguish *data* from
+*unreached code* excludes the right things for a reason that does not generalise — the same
+blindness will admit a data table as a candidate just as readily. Entry candidacy needs a code/data
+determination the sweep does not supply.
+
+### Our own engine is not a grounding instrument
+
+A measurement from `new Machine(ROM).runFrames(...)` is our engine replaying the ROM. It earns
+`[code]`. This is stated twice in this document on purpose.
+
+---
+
+## §11 What is still open, sorted by what would close it
+
+★ **Transcription is essentially complete; understanding is not.** After two corrections to its own
+derivation, an audit of the untranscribed remainder of the ROM found **almost no established real
+code in it** — what is left is very largely data tables, among them several of the velocity tables.
+Not all of those tables are outside the transcription: the lowest one is transcribed in full, by the
+file this section later holds up as the model. And "no code at all" would overstate it, because one
+short block in the remainder decodes cleanly and calls the quota decrement. The distance between
+"we have the ROM in JavaScript" and "we know what the game does" is **not a lifting gap.** It is a
+reading gap and a grounding gap, and sorting the open questions by which one they need is the most
+useful thing this section can do. `[code]`
+
+### (i) Answerable from code already lifted — just read it
+
+These need someone's attention, not a new capture and not a new lift.
+
+- The meaning of the in-round sub-state cell that most per-frame handlers key on.
+- The roles of most handlers on the gameplay call list. Their slot bank and dispatch key are known;
+  what they *are* is not.
+- What the two paired display lists hold. The mechanism is clear, the content is not.
+- Which enemy class each velocity shim serves. The ladder and its call sites are mapped; the
+  classes are not, beyond the two identified for the shared sprite picker (the first two eras'
+  common craft).
+
+### (ii) Answerable only from code or data not yet read
+
+- **Formation composition, spawn rates, and the bonus window.** The per-era, per-difficulty spawn
+  parameter table is a large untranscribed data block. Enemy counts and speeds live there. This is
+  where `gameplay.md`'s questions 8 and 9 go, and neither can be answered without decoding it.
+- **What the difficulty DIP actually changes.** Nothing on the player's path reads it — not speed,
+  not turn rate, not the quota. It must act through the spawn parameters, which is the same block.
+- The one ring command whose handler is real code with no transcribed file. Several other commands
+  also lack a file, but they all resolve to the same bare `ret` that §7 already accounts for.
+
+### (iii) Answerable only on the real machine
+
+- Whether the per-era speed-up is **perceptible**.
+- The Mother-Ship's entry edge, and whether it fires.
+- ★ **Whether the Mother-Ship takes seven hits or eight.** The arithmetic that gives the 1940 bomber
+  four hits from a counter of three gives the Mother-Ship eight from a counter of seven, which
+  contradicts the manufacturer. One capture settles it; until then, do not repeat either number as
+  established.
+- Attract-mode composition — which eras the demo shows. A partial observation says the demo ship
+  lives in the second era, consistent with the claim that this set never demos the first, but a
+  single short capture is not a whole attract cycle.
+- The compass mapping: **which direction on the glass a heading byte points.** Composing the screen
+  rotation, the vertical inversion and the table's sign convention was not closed, so **nothing in
+  this document says a heading is "up".**
+
+### The states no instrument has visited
+
+Two-player alternating play, the difficulty tiers, deliberate death, the later eras, the loop wrap,
+and high-score initials entry. Each is a hole of the same shape: code serving it reads as dark.
+
+★ **And the fix is cheap and already demonstrated.** Poking the stage cell is a working grounding
+technique on this game — exactly as poking board state was on Donkey Kong. A driver that sweeps the
+stage cell through each of its values with the reach sweep running would convert most of this list
+into real evidence for the cost of one MAME run. That is the single highest-value instrument left
+unbuilt.
+
+### A defect the coverage audit turned up in passing
+
+Several files in the translated layer transcribe **data as code** — velocity tables reached only by
+anti-tamper traps, and caption records whose real routines begin a few bytes later. No exhaustive
+determination of the set has been made. They
+are not wrong about any byte; the lift is faithful. They present data as routines, which will
+mislead anyone reading them as behaviour, and it already has: see §8 and §10. Several sibling files
+get it right — they declare themselves data in the header and throw if called, and one of them
+covers a kind the bad set does not, records of tile and attribute pairs. That is the convention the
+others should follow. Recorded here
+rather than fixed, because fixing it is a lift change and this is a map. `[code]`

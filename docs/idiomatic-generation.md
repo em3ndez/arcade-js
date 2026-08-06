@@ -68,16 +68,24 @@ confirmer's file beside it. If a batch reaches promotion with no proposals file,
 is to say so in the file you write, mark which names originated with the confirmer, and get a
 DIFFERENT agent to confirm those.
 
-### ★ An authoring agent must never `git add`. The lead stages.
+### ★ While a review is in flight, NOTHING moves the index
 
-When routines are lifted by parallel agents, tell each one to write its files and stop. If an agent
-stages its own work, it silently changes the staged diff — and `review_gate` binds a review token to
-the *exact* staged diff, so any review already in flight against another unit is invalidated the
-moment an unrelated agent finishes. The reviewer then reports that the id moved, and a whole review
-round is wasted for a reason that has nothing to do with the code it was reading.
+`review_gate` binds a review token to the *exact* staged diff, so any change to the index silently
+retargets a review already underway. The reviewer then reports that the id moved, and a round is
+spent for a reason unrelated to the code it was reading. The failure is quiet in the direction that
+matters: nothing errors, the token simply stops matching.
 
-The failure is quiet in the direction that matters: nothing errors, and the token simply no longer
-matches. The lead stages, one unit at a time, and unstages anything an agent added.
+So: while a review is live, nobody stages — not an authoring agent, not the lead. Agents lift their
+routines and stop; the lead stages one unit at a time and unstages anything an agent added. A fix
+for a NO-PASS either waits for the verdict to be recorded, or goes back to the reviewer as an
+explicit re-review naming the new id. It is never slipped underneath one.
+
+★ **Note the rule names the HAZARD, not an actor, and that is deliberate.** Written as "an authoring
+agent must never `git add`" it looks equivalent and is not: the lead is a different actor, and walks
+straight through the hole while obeying the words. **A rule scoped to a role has a hole exactly where
+the role changes hands.** The general form is worth carrying past this file — after an incident the
+instinct is to name whoever caused it, which yields a rule that stops that incident and nothing
+adjacent to it.
 
 The same reasoning says **do not run a naming/rename pass while authoring agents are live.** Their
 modules import their callees by filename; a rename lands under them and breaks imports mid-flight.
@@ -188,6 +196,33 @@ committed *"no laser exists"* and named enemy-3 a *"ship,"* each caught only by 
 the wrong pick had propagated through the map. Low-stakes or code-decidable calls defer freely;
 this gate is for the picks everything downstream leans on.
 
+## ★ A check that cannot fail is worse than no check
+
+Before quoting a check's output as a fact, ask what would make it print the other answer. If nothing
+would, it is measuring the runtime rather than the artifact.
+
+The instance worth remembering, because it happened to the person writing this rule rather than to
+an agent: the registry's entries were verified "sorted" with
+
+```js
+const k = Object.keys(ROUTINES).map(Number);
+k.every((v, i) => i === 0 || k[i - 1] < v);   // true for ANY registry, however scrambled
+```
+
+and the result was reported to a reviewer as verified. But an object key written `0x2bde:` becomes
+an integer-like property, and `Object.keys` returns integer-like keys in ascending numeric order
+**whatever order they appear in the source**. The expression returns true for any registry, however
+scrambled. The reviewer said the file had source-order descents; both statements were true, because
+the check never measured source order at all.
+
+Two things generalise. **To check a property of the SOURCE, parse the source** — a regex over the
+file would have answered it correctly, and the script that inserted those entries minutes earlier
+already did exactly that, so the right tool was in hand and the convenient one got used instead.
+And **the same vacuity flavours that make a test hollow make a one-off check hollow**: asserting
+something the language guarantees is the register-only flavour wearing different clothes. Gates get
+attacked with substitution; ad-hoc checks usually get none, which is precisely why they should be
+read with more suspicion, not less.
+
 ## The experiment discipline
 
 Every semantic claim is an experiment, not an assertion:
@@ -287,11 +322,19 @@ limits carry to any new game, and none raises an error:
   dispatches inside our own machine reported tens of thousands of PC hits on the real one, purely
   because it lies inside a busy spin and is never called at all in that run. Two agents pointed at
   the same question with different instruments produced confident and **opposite** orderings.
-  When comparing two routines that both wait, the hit count settles nothing — fall back to the
-  decidable facts: static call sites (`grep -hoE "(call|jp|jr) ([a-z]+,)?0xADDR"` over
-  `translated/`), and the structure of the wait itself. Say which you used. Note the call-site
-  count *undercounts* in turn, because table dispatch is invisible to it — so where both are
-  unsatisfying, the honest write-up is "not established", not the number you happen to have.
+  When comparing two routines that both wait, the hit count settles nothing — fall back to static
+  call sites and to the structure of the wait itself, and say which you used.
+  ★ **Counting call sites needs BOTH forms, and is still a lower bound.** The mnemonic form
+  (`grep -hoE "(call|jp|jr) ([a-z]+,)?0xADDR"` over `translated/`) misses an entry the caller reaches
+  without ever writing a `call 0xADDR` mnemonic — loading the address into a register first, or
+  PUSHING IT AS A RETURN ADDRESS and letting a dispatched arm's `ret` land on it. One address scored
+  zero by this form while being a perfectly live entry, and it turned out to be the pushed kind, not
+  the computed kind — so do not assume which mechanism a zero is hiding. The transcription form
+  (`grep -hoE "m\.call\(0xADDR\)"`) misses tail jumps the transcription renders as something other
+  than a call. Measured across several addresses the two disagree in BOTH directions, so take their
+  union — and even that misses table dispatch entirely. A zero from either form alone means "look
+  harder", never "not an entry"; where both are unsatisfying the honest write-up is "not
+  established", not whichever number you happen to have.
 
 - **Encrypted / decrypted-opcodes sets.** A program-space read tap counts executions only where the
   CPU fetches opcodes through that space. On a driver with a separate `AS_OPCODES` region the tap

@@ -37,6 +37,7 @@
  * Run: node --test games/timeplt/idiomatic/test/equivalence-2bef.test.js
  */
 
+import { ERA_INDEX } from "../names.js";
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -52,7 +53,7 @@ const CORPUS_FRAMES = 2600;
 const AIM = 1;
 const HEADING = 2;
 const HALF_TURN = 128;
-const RATE_CELL = 0xad04;
+
 const RECORD_BYTES = 8;
 const SCRATCH_BYTES = 2;
 const DROPPED = ["a", "b", "c", "f"];
@@ -145,7 +146,7 @@ function rateSweep(candidate, aim, heading) {
       side.regs.copyFrom(pristine);
       side.mem8[aimCell] = aim;
       side.mem8[headingCell] = heading;
-      side.mem8[RATE_CELL] = index;
+      side.mem8[ERA_INDEX] = index;
     }
     oracle(a);
     candidate(b);
@@ -174,7 +175,7 @@ function corpus(candidate) {
           const object = m.regs.ix;
           const sp = m.regs.sp;
           const arm = armOf(awayIn(m, object));
-          rates.add(m.mem8[RATE_CELL]);
+          rates.add(m.mem8[ERA_INDEX]);
           candidate(b);
           const proceed = oracle(m);
           dispatches++;
@@ -346,7 +347,7 @@ test("LIVE-OUT is not vacuous: the same arm SEES a register that is live", { ski
 
 const TURN_RATE_TABLE = 0x2c1d;
 const headingCellOf = (m, object) => u16(object + HEADING);
-const stepFor = (m) => m.mem8[u16(TURN_RATE_TABLE + m.mem8[RATE_CELL])];
+const stepFor = (m) => m.mem8[u16(TURN_RATE_TABLE + m.mem8[ERA_INDEX])];
 
 /** BUG: writes nothing — the tell that a gate is measuring an unreached routine. */
 const brokenNoOp = () => {};

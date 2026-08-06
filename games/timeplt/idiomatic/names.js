@@ -29,13 +29,22 @@
 export const SEQUENCE_SUBSTEP = 0xa9ac;
 
 /**
- * OUTER phase of the same two-level machine. [code]
+ * OUTER phase of the same two-level machine: the machine's top-level MODE. [seen]
  *
  * The vblank service masks this to its low two bits and dispatches a jump table on the result;
  * inside those arms the inner index is consumed with several different masks,
  * which is what a per-phase table size looks like. Every phase-entry site writes the pair in one
  * idiom -- set this to a small constant, zero the inner one -- and the routine that steps this is
  * that same idiom with an increment in place of the store.
+ *
+ * Four values occur and no more. Watched under two independent MAME captures: 0 is the boot wipe,
+ * 1 the attract sequence, 2 the credit / push-start state, and 3 the round engine.
+ *
+ * ★ Phase 3 is NECESSARY for play and NOT SUFFICIENT: the attract demo runs the same round engine
+ * with the play flag clear, so the demo executes real game logic rather than replaying a recording.
+ * Anything treating this cell alone as a play detector counts the demo as a game -- and the demo
+ * is where most attract-mode dispatches come from, so that error silently corrupts any dispatch
+ * attribution keyed on it.
  *
  * It is also routed through several ROM checksums whose trailing constants net to zero on a
  * genuine image, so a patched ROM corrupts the phase instead of failing cleanly. Same cell, same
@@ -55,11 +64,18 @@ export const SEQUENCE_PHASE = 0xa9ab;
 export const IN0_MIRROR = 0xa9ae;
 
 /**
- * Set when the machine ACCEPTS a coin, as distinct from merely seeing the button. [seen]
+ * Coin-counter pulses the machine still OWES the mechanical counter. [seen]
  *
  * Reads zero for the whole of an undriven run, and goes non-zero on the frame a driven coin is
  * taken, holding for a short spell before clearing. Unlike the port mirror this is downstream of
- * the machine's own decision, which is what makes it usable as evidence that a credit banked.
+ * the machine's own decision: a debounce has to see idle-then-pressed before this is bumped.
+ *
+ * It is a COUNT, not a boolean — two coins in quick succession take it to two — and the pulse
+ * driver decrements it as each solenoid pulse finishes.
+ *
+ * ★ What it does NOT mean: that a credit was banked. Credits live in a different, BCD cell and
+ * are reached only after the coinage arithmetic, so on any setting that charges more than one coin
+ * per credit these two diverge.
  */
 export const COIN_ACCEPTED = 0xa981;
 
@@ -72,11 +88,55 @@ export const COIN_ACCEPTED = 0xa981;
  * over five thousand frames, goes all-ones on the frame a driven start press lands, and holds
  * for every remaining frame.
  *
- * What this name does NOT claim: the exact scope of "active". Whether it spans a whole credit,
- * a single life, or the interval between round transitions is not established — only that it is
- * set once play begins and is not set during attract.
+ * SCOPE, since the obvious readings differ: it spans a whole CREDIT, not a life and not a round.
+ * Watched through a driven game to game over, it stayed set across every life lost and cleared
+ * only at teardown. Four start sites set it and two teardown sites clear it.
+ *
+ * ★ It is also the ONLY thing separating real play from the attract DEMO, because the demo runs
+ * the same round engine with this flag clear. Anything that infers "a game is being played" from
+ * the sequence phase alone counts the demo as a game.
  */
 export const PLAY_ACTIVE = 0xad30;
+
+/**
+ * Which era (the manual's ROUND) is being played, 0-4. [seen]
+ *
+ * The single most widely read cell in the game and, until this pass, the most conspicuous one with
+ * no name. Dozens of transcribed routines key on it.
+ *
+ * ★ It is NOT one switch. Subsystems read it against their own thresholds and therefore step at
+ * different rounds: the routine that arms the player's speed splits it {0}, {1,2}, {3,4}, while the
+ * scenery dispatcher splits it {0}, {1,2,3}, {4}. Anything treating "the era" as one bundle of
+ * settings will predict changes that do not happen.
+ *
+ * Watched under MAME it advances during the attract DEMO as well as in play, which is one reason
+ * the demo cannot be told from a game by watching game state alone.
+ *
+ * It wraps to 0 when the game loops back to the first era, so the second loop's first era runs at
+ * the first loop's speed; the escalation the manual describes for later rounds lives elsewhere.
+ *
+ * One reader shifts this cell up by four bits and masks the low nibble away. That is not a hint of
+ * hidden state -- it is building a composite index, era in the high nibble and a per-era rung in
+ * the low, into a table of five eras by sixteen rungs.
+ */
+export const ERA_INDEX = 0xad04;
+
+/**
+ * Enemies still to destroy before the Mother-Ship appears -- the manual's 56. [code]
+ *
+ * Counts DOWN. Loaded from a cell that is itself loaded once at boot from a single ROM byte whose
+ * value is 56, and it is not era-keyed, loop-keyed or difficulty-keyed: the quota is the same in
+ * every round of every loop on every setting. The escalation the manual describes for later rounds
+ * is a different cell entirely.
+ *
+ * Only the ordinary enemy-craft slots decrement it -- not projectiles, not the middle-size bomber,
+ * not the Mother-Ship, not the pickup -- so shooting a bullet scores without advancing the round.
+ *
+ * The bar along the bottom of the screen is a direct rendering of this cell, which is why nothing
+ * in this game times the player: the one public source calling it a "time bar" was watching the
+ * kill meter fill.
+ */
+export const KILLS_REMAINING = 0xad02;
 
 /**
  * Address -> idiomatic routine. Artifact three of the four: a module that is not in here is
@@ -146,19 +206,22 @@ export const ROUTINES = {
     why: "loc_19f0 pins the player's own sprite entry at (0x84, 0x78) and loc_20af never rewrites those two bytes, so the two lines at 0x04 and 0xF8 are each exactly +0x80 -- the antipode in a coordinate that wraps at 256; the callers that act on the carry use it to free the slot, though at least one path discards it",
   },
   0x2d6e: {
-    name: "loc_2d6e",
-    role: "carry one object along with the scrolling world and a quarter further, applying the shared displacement pair to both of its split coordinates",
-    cert: "code",
+    name: "driftAtFiveQuartersWorldScroll",
+    role: "move one object by the frame's world-scroll displacement and a further quarter of it, so it over-travels the world; applied to both of its split coordinates, whole part in the sprite entry and fraction in the object record",
+    cert: "seen",
+    why: "the displacement pair they read is written elsewhere as the negation of the player's own velocity, which gameplay.md describes independently as the background moving opposite the plane -- so it is the camera and nothing of the object's. Their only caller chain is the era-keyed dispatcher, which seats every dispatch inside the scenery slots. The fraction assignment makes a prediction its callers could refute: parallax depth should track sprite size, and each dispatched wrapper places a different number of tiles before stepping the slot -- smallest scenery on the slowest rung, largest on the fastest. Crossing any two of these names inverts that. A MAME run then watched all three addresses and matched each to its own fraction on every dispatch and the other two on none, every dispatch seated inside the scenery block. What that capture covers is the fraction and the slots; the rung ORDERING and the sprite-size correspondence stay code-derived, since it watched neither relative speed nor sprite size",
   },
   0x2d93: {
-    name: "loc_2d93",
-    role: "carry one object along with the scrolling world at three quarters of the pace, applying the shared displacement pair to both of its split coordinates",
-    cert: "code",
+    name: "driftAtThreeQuartersWorldScroll",
+    role: "move one object by three quarters of the frame's world-scroll displacement, applied to both of its split coordinates, whole part in the sprite entry and fraction in the object record",
+    cert: "seen",
+    why: "the displacement pair they read is written elsewhere as the negation of the player's own velocity, which gameplay.md describes independently as the background moving opposite the plane -- so it is the camera and nothing of the object's. Their only caller chain is the era-keyed dispatcher, which seats every dispatch inside the scenery slots. The fraction assignment makes a prediction its callers could refute: parallax depth should track sprite size, and each dispatched wrapper places a different number of tiles before stepping the slot -- smallest scenery on the slowest rung, largest on the fastest. Crossing any two of these names inverts that. A MAME run then watched all three addresses and matched each to its own fraction on every dispatch and the other two on none, every dispatch seated inside the scenery block. What that capture covers is the fraction and the slots; the rung ORDERING and the sprite-size correspondence stay code-derived, since it watched neither relative speed nor sprite size",
   },
   0x2df4: {
-    name: "loc_2df4",
-    role: "carry one object along with the scrolling world at half the pace, applying the shared displacement pair to both of its split coordinates",
-    cert: "code",
+    name: "driftAtHalfWorldScroll",
+    role: "move one object by half the frame's world-scroll displacement, applied to both of its split coordinates, whole part in the sprite entry and fraction in the object record",
+    cert: "seen",
+    why: "the displacement pair they read is written elsewhere as the negation of the player's own velocity, which gameplay.md describes independently as the background moving opposite the plane -- so it is the camera and nothing of the object's. Their only caller chain is the era-keyed dispatcher, which seats every dispatch inside the scenery slots. The fraction assignment makes a prediction its callers could refute: parallax depth should track sprite size, and each dispatched wrapper places a different number of tiles before stepping the slot -- smallest scenery on the slowest rung, largest on the fastest. Crossing any two of these names inverts that. A MAME run then watched all three addresses and matched each to its own fraction on every dispatch and the other two on none, every dispatch seated inside the scenery block. What that capture covers is the fraction and the slots; the rung ORDERING and the sprite-size correspondence stay code-derived, since it watched neither relative speed nor sprite size",
   },
   0x309b: {
     name: "advanceToNextSlot",
@@ -239,9 +302,10 @@ export const ROUTINES = {
     why: "loc_5205, an entry in the once-per-frame call list, ticks the chain window down and clears the step cell when it expires -- without that outside reset the argument would not restart, so the chaining is fixed by a routine other than this one; and it posts through postCommand, which drops the pair on a full ring, so it posts rather than awards",
   },
   0x5840: {
-    name: "loc_5840",
-    role: "fly one object a single step at one fixed speed, choosing which table of velocity samples the step reads and deciding nothing else",
+    name: "flyAtSlowestSpeed",
+    role: "fly one object a single step at the slowest of the velocity-table speeds, choosing that table for the flier and deciding nothing else; reached as a call from two per-slot actor handlers and as a tail jump from a third",
     cert: "code",
+    why: "every entry into flyAlongHeading is a two-instruction shim fixing one of several velocity tables whose peak magnitudes step evenly in 8.8 fixed point, so what an entry contributes is a rung on that ladder and not the act of fixing a table. Those tables are one waveform scaled -- each is the 256-peak table times its own peak to within two units of the last place, with identical off-symmetry headings -- so magnitude is the only degree of freedom a shim has, which is what makes a speed the right kind of thing to name it for. The ladder's ORDER is fixed from outside the flier: the routine that arms the player reads the era index and climbs the same tables as it rises, and an enemy shim selects the table that routine reaches at the top -- an enemy flying the player's own rung, which is what gameplay.md describes when it records the fourth era's jets as as fast and manoeuvrable as you. This entry's table sits below the slowest the player is ever given. A MAME run saw every dispatch here predicted exclusively by that table, while a sibling shim ran on the SAME slot array with a faster one, so an entry selects a speed and not an object class. cert stays code because 'slowest' is a rank over ROM tables and must stay one: two rungs of this ladder are selected only by shims whose addresses appear nowhere in the image, so no capture can ever watch the whole rank. A run reaching the later eras would put every REACHABLE rung under observation, and the name survives that ordering too",
   },
   0x596e: {
     name: "velocityForHeading",

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2d6e — carry one object along with the scrolling world, over-travelling it by a quarter.
+/** driftAtFiveQuartersWorldScroll — carry one object along with the scrolling world, over-travelling it by a quarter.
  * Each of the object's two coordinates is 16 bits stored split: the whole part off one base, the
  * fraction off the other. Both gain a displacement read from a fixed pair of cells rather than
  * from the object — so every object running this drifts alike — lengthened by a quarter of
@@ -8,7 +8,7 @@
 
 import { displaceByFiveQuarters } from "./displaceByFiveQuarters.js";
 
-export function loc_2d6e(m) {
+export function driftAtFiveQuartersWorldScroll(m) {
   const { regs } = m;
   const object = regs.ix;
   const sprite = regs.iy;

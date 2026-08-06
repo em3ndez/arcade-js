@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2df4 — drift one object by half of a displacement that is not its own.
+/** driftAtHalfWorldScroll — drift one object by half of a displacement that is not its own.
  * Each of the object's two coordinates is 16 bits stored split: the whole part off one base,
  * the fraction off the other. Both gain a displacement read from a fixed pair of cells rather
  * than from the object — so every object that runs this drifts alike — and each displacement is
@@ -15,7 +15,7 @@ const ROW_REMAINDER = 3;
 const COLUMN_REMAINDER = 5;
 const SPRITE_ROW = 49;
 
-export function loc_2df4(m, object = m.regs.ix, sprite = m.regs.iy) {
+export function driftAtHalfWorldScroll(m, object = m.regs.ix, sprite = m.regs.iy) {
   driftCoordinate(m, sprite + SPRITE_ROW, object + ROW_REMAINDER, m.mem16[ROW_DISPLACEMENT]);
   driftCoordinate(m, sprite, object + COLUMN_REMAINDER, m.mem16[COLUMN_DISPLACEMENT]);
 }

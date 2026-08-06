@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2df4 — memory-equivalent to the frozen oracle at ROM 0x2DF4.
+ * driftAtHalfWorldScroll — memory-equivalent to the frozen oracle at ROM 0x2DF4.
  *
  * GATE: masked unit-capture, a real-traffic corpus from three tapes, a crafted cross, an
  *   exhaustive sweep of one displacement, and a whole-machine replay of driven play.
@@ -56,7 +56,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2df4 } from "../loc_2df4.js";
+import { driftAtHalfWorldScroll } from "../driftAtHalfWorldScroll.js";
 import { loc_2df4 as oracle } from "../../translated/loc_2df4.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -158,7 +158,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_2df4);
+  if (entry === null) gate(driftAtHalfWorldScroll);
   return entry;
 }
 
@@ -449,11 +449,11 @@ const liveCells = (addrs) => outside(addrs, stackBand());
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2df4 == oracle outside the scratch window", { skip }, () => {
-  gate(loc_2df4);
+test("EQUAL at the real dispatch: driftAtHalfWorldScroll == oracle outside the scratch window", { skip }, () => {
+  gate(driftAtHalfWorldScroll);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const e = entryState();
-  const d = unitDiff(loc_2df4, e);
+  const d = unitDiff(driftAtHalfWorldScroll, e);
   assert.equal(d, null, `diverged — ${show(d)}`);
   console.log(
     `  EQUAL: entry bases ${hex4(e.regs.ix)}/${hex4(e.regs.iy)}, displacements ` +
@@ -470,7 +470,7 @@ test("STACK SCRATCH: the excluded window is exactly the oracle's own pushes, and
     const a = e.clone();
     const b = e.clone();
     oracle(a);
-    loc_2df4(b);
+    driftAtHalfWorldScroll(b);
     const raw = everyDiff(a, b);
     assert.deepEqual(
       raw.map((d) => d.addr).sort((p, q) => p - q),
@@ -589,7 +589,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const a = m.clone();
   const b = m.clone();
   oracle(a);
-  loc_2df4(b);
+  driftAtHalfWorldScroll(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -647,7 +647,7 @@ test("REAL TRAFFIC: every distinct dispatch three sessions present, replayed", {
       );
       assert.equal(live.regs.hl, rec.hl, `${label}: the replayed moved coordinate is not the live one`);
 
-      const d = unitDiff(loc_2df4, seated(rec));
+      const d = unitDiff(driftAtHalfWorldScroll, seated(rec));
       assert.equal(d, null, `${label} ${hex4(rec.dR)}/${hex4(rec.dC)}: ${show(d)}`);
       checked++;
     }
@@ -700,7 +700,7 @@ test("CRAFTED: every displacement x position combination steps as the oracle ste
   const priors = craftedPriors();
   assert.equal(priors.length, DISPLACEMENTS.length ** 2 * POSITIONS.length, "the cross shrank");
   for (const p of priors) {
-    const d = craftedDiff(loc_2df4, p);
+    const d = craftedDiff(driftAtHalfWorldScroll, p);
     assert.equal(d, null, `${JSON.stringify(p)}: ${show(d)}`);
   }
   console.log(`  CRAFTED: ${priors.length} entries identical`);
@@ -709,12 +709,12 @@ test("CRAFTED: every displacement x position combination steps as the oracle ste
 test("CARRY: a fraction swept over its whole range carries as the oracle carries", { skip }, () => {
   const priors = carryPriors();
   for (const p of priors) {
-    const d = craftedDiff(loc_2df4, p);
+    const d = craftedDiff(driftAtHalfWorldScroll, p);
     assert.equal(d, null, `fraction=${p.fR}: ${show(d)}`);
   }
   const wrapped = craft({ wR: 255, fR: 255, wC: 0, fC: 0, dR: 1, dC: 0 });
   const c = cellsOf(wrapped);
-  loc_2df4(wrapped);
+  driftAtHalfWorldScroll(wrapped);
   assert.equal(wrapped.mem8[c.wholeRow], 0, "the whole byte must round, not widen");
   assert.equal(wrapped.mem8[c.fractionRow], 0, "the fraction must round too");
   console.log(`  CARRY: ${priors.length} fractions identical, including the top-of-range wrap`);
@@ -722,7 +722,7 @@ test("CARRY: a fraction swept over its whole range carries as the oracle carries
 
 test("EXHAUSTIVE: all 65536 row displacements against a real position", { skip }, () => {
   const held = { wR: 138, fR: 203, wC: 129, fC: 88, dC: 0xff01 };
-  const caught = sweepRowDisplacement(loc_2df4, held);
+  const caught = sweepRowDisplacement(driftAtHalfWorldScroll, held);
   assert.deepEqual(caught.slice(0, 4).map(hex4), [], `the sweep diverged at ${caught.slice(0, 4).map(hex4)}`);
   assert.equal(caught.length, 0, `${caught.length} of ${WIDTH} displacements diverged`);
   console.log(`  EXHAUSTIVE: ${WIDTH} row displacements identical, column held at ${hex4(held.dC)}`);
@@ -739,7 +739,7 @@ test("EXHAUSTIVE: the shim charges exactly what the oracle charges, branchlessly
 });
 
 test("WHOLE-MACHINE: driven play moves nothing outside the scratch window", { skip }, () => {
-  const w = replay(loc_2df4);
+  const w = replay(driftAtHalfWorldScroll);
   assert.ok(w.fired > 0, "vacuous: the override never dispatched in this many frames");
   assert.equal(w.frames, WHOLE_FRAMES, "the replay ran short of the frames asked for");
   assert.deepEqual(
@@ -853,7 +853,7 @@ function brokenNoCarry(m) {
 /** BUG: writes all four bytes correctly and hands the caller back a stale coordinate. */
 function brokenStaleLiveOut(m) {
   const hl = m.regs.hl;
-  loc_2df4(m);
+  driftAtHalfWorldScroll(m);
   m.regs.hl = hl;
 }
 

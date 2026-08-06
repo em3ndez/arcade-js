@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2d93 — carry one object along with the scrolling world, at three quarters of the pace.
+/** driftAtThreeQuartersWorldScroll — carry one object along with the scrolling world, at three quarters of the pace.
  * Each of the object's two coordinates is 16 bits stored split: the whole part off one base, the
  * fraction off the other. Both are moved by a displacement read from a fixed pair of cells rather
  * than from the object, shortened by a quarter on the way in, so an object running this trails one
@@ -8,7 +8,7 @@
 
 import { displaceByThreeQuarters } from "./displaceByThreeQuarters.js";
 
-export function loc_2d93(m) {
+export function driftAtThreeQuartersWorldScroll(m) {
   const { regs } = m;
   const object = regs.ix;
   const sprite = regs.iy;

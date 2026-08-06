@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d6e — memory-equivalent to the frozen oracle at ROM 0x2D6E.
+ * driftAtFiveQuartersWorldScroll — memory-equivalent to the frozen oracle at ROM 0x2D6E.
  *
  * GATE: strict unit-capture for the entry state, judged by a RAM diff that MASKS the pushed
  *   continuation, plus crafted entries and three replayed sessions. The host game runs the
@@ -51,7 +51,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2d6e } from "../loc_2d6e.js";
+import { driftAtFiveQuartersWorldScroll } from "../driftAtFiveQuartersWorldScroll.js";
 import { loc_2d6e as oracle } from "../../translated/loc_2d6e.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -102,7 +102,7 @@ function capture(candidate) {
 }
 
 function entryState() {
-  if (entry === null) capture(loc_2d6e);
+  if (entry === null) capture(driftAtFiveQuartersWorldScroll);
   return entry;
 }
 
@@ -281,13 +281,13 @@ function catchCount(twin, priors, pred) {
 
 // ── the contract call ───────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2d6e == oracle outside the pushed continuation", { skip }, () => {
-  capture(loc_2d6e);
+test("EQUAL at the real dispatch: driftAtFiveQuartersWorldScroll == oracle outside the pushed continuation", { skip }, () => {
+  capture(driftAtFiveQuartersWorldScroll);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2d6e(b);
+  driftAtFiveQuartersWorldScroll(b);
   assert.equal(maskedDiff(a, b), null, `RAM diverged — ${show(maskedDiff(a, b))}`);
   for (const at of writtenBytes(a)) {
     assert.equal(a.mem8[at], b.mem8[at], `the byte at ${hex4(at)} diverged`);
@@ -305,7 +305,7 @@ test("SCRATCH: the masked bytes are exactly the pushed continuation, and nothing
     const a = entryState().clone();
     const b = entryState().clone();
     oracle(a);
-    loc_2d6e(b);
+    driftAtFiveQuartersWorldScroll(b);
     const w = scratchWindow();
     const diffs = allDiffs(a, b);
     assert.ok(
@@ -359,7 +359,7 @@ test("EXCLUDED, deliberately: registers and pc diverge, the position pair does n
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2d6e(b);
+  driftAtFiveQuartersWorldScroll(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
@@ -380,7 +380,7 @@ test("CRAFTED: every displacement x position combination steps as the frozen sid
   () => {
     const priors = craftedPriors();
     for (const p of priors) {
-      const d = craftedDiff(loc_2d6e, p);
+      const d = craftedDiff(driftAtFiveQuartersWorldScroll, p);
       assert.equal(d, null, `${JSON.stringify(p)}: ${show(d)}`);
     }
     assert.equal(priors.length, DISPLACEMENTS.length ** 2 * POSITIONS.length, "the sweep shrank");
@@ -390,11 +390,11 @@ test("CRAFTED: every displacement x position combination steps as the frozen sid
 test("CARRY: a fraction swept 0..255 carries into the whole byte the same way", { skip }, () => {
   const priors = carryPriors();
   for (const p of priors) {
-    const d = craftedDiff(loc_2d6e, p);
+    const d = craftedDiff(driftAtFiveQuartersWorldScroll, p);
     assert.equal(d, null, `fraction=${p.fA}: ${show(d)}`);
   }
   const wrapped = craft({ wA: 255, fA: 255, wB: 0, fB: 0, dA: 1, dB: 0 });
-  loc_2d6e(wrapped);
+  driftAtFiveQuartersWorldScroll(wrapped);
   assert.equal(wrapped.mem8[wholeA(wrapped)], 0, "the whole byte must round, not widen");
   assert.equal(wrapped.mem8[fractionA(wrapped)], 0, "the fraction must round too");
   console.log(`  CARRY: ${priors.length} fractions identical, including the wrap back to zero`);
@@ -410,10 +410,10 @@ test("ROUNDING: the quarter is floored, so a backward displacement overshoots", 
   for (const c of cases) {
     const prior = { wA: 0x10, fA: 0x00, wB: 0x10, fB: 0x00, dA: c.d, dB: c.d };
     const b = craft(prior);
-    loc_2d6e(b);
+    driftAtFiveQuartersWorldScroll(b);
     const got = (b.mem8[wholeA(b)] << 8) + b.mem8[fractionA(b)];
     assert.equal(got, c.moved, `${hex4(c.d)}: ${c.why} — got ${hex4(got)}`);
-    assert.equal(craftedDiff(loc_2d6e, prior), null, `${hex4(c.d)} diverged from the frozen side`);
+    assert.equal(craftedDiff(driftAtFiveQuartersWorldScroll, prior), null, `${hex4(c.d)} diverged from the frozen side`);
   }
   console.log(
     "  ROUNDING: " + cases.map((c) => `${hex4(c.d)} -> ${hex4(c.moved)}`).join(", ") +
@@ -475,7 +475,7 @@ test("REAL TRAFFIC: every entry state three sessions present, replayed", { skip 
         "the captured bases no longer reproduces them",
     );
     for (const p of c.priors) {
-      const d = craftedDiff(loc_2d6e, p);
+      const d = craftedDiff(driftAtFiveQuartersWorldScroll, p);
       assert.equal(d, null, `${label} ${JSON.stringify(p)}: ${show(d)}`);
       checked++;
     }
