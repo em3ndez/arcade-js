@@ -708,4 +708,9 @@ export const ROUTINES = {
     role: "queue a sound code when either the play flag or the cell at 0xA9C6 is set; only with both clear is the request dropped",
     cert: "code",
   },
+  0x560c: {
+    name: "loc_560c",
+    role: "queue a sound code, but only while a game is being played; with the play flag clear the request is dropped and nothing is left behind for a later frame",
+    cert: "code",
+  },
 };
