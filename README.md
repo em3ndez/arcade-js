@@ -160,12 +160,6 @@ what the tooling had to do about them — is written up in
 > **Status — Donkey Kong:** plays. All four boards, natural board-to-board progression, and the
 > level loop all work — finish 100m and it wraps back to 25m at the next level, indefinitely —
 > and the rendering is pixel-validated frame-by-frame against MAME 0.288.
->
-> **Status — The Pit:** in progress. Its whole boot→attract sequence runs and renders pixel-exact
-> against MAME; **all 169 of its routines are now rewritten into idiomatic JavaScript**
-> (memory-equivalent to the oracle, with memory and routines named from evidence, proposer≠confirmer);
-> and its full mechanics — objective, cast, win/lose — have been mapped by *playing it under MAME*.
-> End-to-end gameplay pixel-validation is the remaining work.
 
 ## What's here (and what isn't)
 
