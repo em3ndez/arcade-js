@@ -66,7 +66,7 @@ import { postChainedHitScore } from "../postChainedHitScore.js";
 import { loc_5211 as oracle } from "../../translated/loc_5211.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { COMMAND_RING } from "../names.js";
+import { COMMAND_RING, CHAIN_WINDOW, CHAIN_STEP } from "../names.js";
 
 const TARGET = 0x5211;
 const SHOT_BASE = 0xaa80;
@@ -75,8 +75,6 @@ const RECORD_BASE = 0xa850;
 const ENTRY_CURSOR_CELL = 0xa991;
 const RECORD_CURSOR_CELL = 0xa993;
 const RING_CURSOR = 0xa9b2;
-const CHAIN_WINDOW = 0xa99d;
-const CHAIN_STEP = 0xa99e;
 const LIVE = 255;
 const DESTROYED = 240;
 const SCRATCH_BYTES = 8;

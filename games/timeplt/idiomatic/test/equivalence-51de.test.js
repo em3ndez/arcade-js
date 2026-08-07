@@ -77,11 +77,9 @@ import { postCommand } from "../postCommand.js";
 import { loc_51de as oracle } from "../../translated/loc_51de.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { COMMAND_RING } from "../names.js";
+import { COMMAND_RING, CHAIN_WINDOW, CHAIN_STEP } from "../names.js";
 
 const TARGET = 0x51de;
-const CHAIN_WINDOW = 0xa99d;
-const CHAIN_STEP = 0xa99e;
 const RING_CURSOR = 0xa9b2;
 const SCRATCH_BYTES = 6;
 const WINDOW_RELOAD = 30;

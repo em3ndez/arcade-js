@@ -8,9 +8,8 @@
 
 import { postCommand } from "./postCommand.js";
 import { u8 } from "../../../core/int.js";
+import { CHAIN_WINDOW, CHAIN_STEP } from "./names.js";
 
-const CHAIN_WINDOW = 0xa99d;
-const CHAIN_STEP = 0xa99e;
 const CHAIN_COMMAND = 4;
 const CHAIN_LENGTH = 8;
 const WINDOW_RELOAD = 30;

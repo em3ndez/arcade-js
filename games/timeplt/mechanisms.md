@@ -96,6 +96,25 @@ spins on an empty ring, takes a (command, argument) pair, marks the slot free, a
 low nibble through a sixteen-way table — for ever. All game logic hangs off the interrupt; the
 foreground exists to service the ring. `[code]`
 
+### ★ The round engine's service list is not a per-frame list
+
+The round phase's arm is a straight run of `call`s — a scenery dispatcher, several per-slot
+handlers, the shot sweeps, the chained-hit window, the base-sixty counter, the meter and the
+cloud multiplexer, in that order. Each member has exactly one transfer-in and they sit three
+bytes apart, so membership is not inferred: it is the instruction stream.
+
+**It does not run once a frame, and prose calling it a "once-per-frame list" is wrong.** Read
+taps on four of its members returned identical counts to each other in every run and well short
+of the frame count — 13094 against 17764 frames on undriven attract, 11712 driven, 8040 on a tape
+that never fought back, 9192 on a two-player tape. Attributed by mode, **every one of those
+dispatches is in the round mode and none in any other**, and even inside the round mode the list
+is short of the frame count, so a second gate sits below the mode. That gate is not identified
+here. `[seen]`
+
+The consequence reaches further than cadence. Anything the list counts measures **dispatches of
+this list**, not time: the base-sixty counter it steps takes 84, 95, 120 and 140 frames to
+complete one wrap on four different tapes. `[seen]`
+
 ### The four modes
 
 A two-level index drives everything: an outer **phase** masked to two bits, dispatched through a
@@ -140,6 +159,17 @@ Three cells are easy to conflate and mean different things: `[code][seen]`
 
 An accepted coin is therefore not a banked credit on any setting that charges more than one coin
 per credit.
+
+★ **Two slots, two mechanical counters, two byte-identical drivers.** Each coin slot owes its own
+counter its own pulses, and each has its own debt cell, its own 48-frame pulse timer and its own
+LS259 line — the two driver routines are identical for all thirty-six bytes but three operands.
+A pulse energises the line, releases it at the half-way count, and pays one off the debt as it
+ends, so two coins come out as two separate pulses rather than one long one.
+
+Watched under MAME against an undriven run as the control: with no coin the line, the debt and the
+timer took no write at all; with five coins the line took five writes of one and five of zero,
+the timer took 240 decrements — exactly 48 per pulse — and the second slot's driver, dispatched
+every frame throughout, drove nothing whatever. `[seen]`
 
 ### Work RAM is cleared three times, and only one of them is the power-on wipe
 
@@ -370,6 +400,26 @@ Both are consistent with the five rounds the public record describes, and neithe
 as a bundle of settings. The difficulty curve and the scenery curve step at **different rounds**.
 A reader who assumes one era boundary will predict changes that do not happen. `[code]`
 
+### Difficulty also climbs INSIDE an era, on a rung of its own
+
+The era is not the only difficulty axis. A second cell holds a **rung** that climbs while a life
+lasts: it is seeded per player at life start, bumped each time a countdown of base-sixty wraps
+expires, and clamped at fifteen. The era and the rung are then packed into one index — era in the
+high nibble, rung in the low — which selects a ten-byte row from a table of five eras by sixteen
+rungs, and one routine scatters that row over twelve cells.
+
+**The row is difficulty settings, and it was watched being applied.** As the rung climbed under
+MAME, the destinations took a monotone ladder of values: a fire cooldown period stepping 0x32,
+0x28, 0x1E; an aim window widening; a spawner's cap going 0, 1, 2; a draw threshold climbing 0x50
+through 0xA0. Two of the twelve are the reload periods of live countdowns the **vblank service
+itself** decrements and six other sites reload — a period-and-countdown pair that a row of
+unrelated constants could not produce. `[seen]`
+
+So a round gets harder as it goes on, independently of which era it is, and an attract run that
+never reaches the clamp is seeing only the bottom of that ramp. What each of the twelve cells
+governs is not fully settled: most are read by spawners, aim windows and fire cooldowns, two are
+read by paths this pass did not tie to attacking. `[code]`
+
 ### The era index advances during the attract demo
 
 The demo is not a canned replay — it runs the real play arm, and the era index moves while it runs.
@@ -467,7 +517,7 @@ inc a ; jp z,0x2b52                ; 0xFE  held -> release it
 | `0x01`–`0x3B` | dying, animating | counts down; at zero the slot is retired |
 
 The held code is stored literally on a live spawn path: `ld (ix+0x00),0xfe`, inside the routine that
-walks the actor band, which the per-frame list calls unconditionally. The very next instructions read
+walks the actor band, which the round engine's service list calls unconditionally. The very next instructions read
 the slot's delay and promote `0xFE` to `0xFF` when that delay has already expired, so "held" and
 "live" are set by one piece of code a few bytes apart. `[code]`
 
@@ -892,6 +942,20 @@ nothing persists at all. `[code]`
 
 Not established: which edge it enters from, and whether it fires at the player.
 
+★ **Clearing the field is staggered, and it reuses the ordinary death countdown.** The sweep that
+pays for the cleared field does not simply delete the live actors: it walks fifteen records and
+writes an increasing seed into every live one — 0x14, then 0x1E, then 0x28, stepping by ten — and
+posts an award for each. Those seeds land in the same state range an object's own death countdown
+occupies, so each slot dies a little later than the one before it. Only the seeds at or above
+sixty are high enough to take the arm that re-arms the full countdown and asks for a sound; the
+lower ones simply run down and retire. So the first actors cleared vanish quietly and the later
+ones explode. `[code]`
+
+This also fixes something a reader would otherwise get wrong: the state byte of an object slot is
+not a small alphabet of free / alive / destroyed. A second system writes a *range* of values into
+it, and a routine that assumes the destroyed code is the only way into the countdown is wrong.
+`[seen]` — one of those seeds was caught in a write tap on undriven attract.
+
 ---
 
 ## §7 Score, and the ladder that ends
@@ -917,9 +981,9 @@ the interrupt epilogue. `[code]`
 
 ### The chained-hit ramp wraps rather than capping
 
-Consecutive kills inside a window step the award up. A per-frame routine outside the poster ticks
-that window down and clears the step when it expires — so the chaining is enforced from *outside*
-the routine that benefits from it.
+Consecutive kills inside a window step the award up. A routine outside the poster, on the round
+engine's service list, ticks that window down and holds the step at zero once it has run out — so
+the chaining is enforced from *outside* the routine that benefits from it.
 
 ★ **At the top it wraps and keeps going.** `[seen]`, on the real machine: step 7 posts argument 8,
 step 8 posts argument 1, step 9 posts argument 2. **The step counter keeps incrementing past the
@@ -931,8 +995,9 @@ same tape unseeded, natural play reached the fourth rung — and that unseeded r
 demo rather than a credited game, so it is not evidence about a player either. The wrap is real
 machine behaviour; whether anyone reaches it in play is a question none of this answers.
 
-The window is thirty frames, and the ramp has a seam worth knowing: the routine that posts and the
-routine that ticks the window sit at different points in the per-frame list, so **a kill landing one
+The window is reloaded to thirty and ticked down once per dispatch of that service list rather than
+once a frame, and the ramp has a seam worth knowing: the routine that posts and the
+routine that ticks the window sit at different points in that service list, so **a kill landing one
 frame after the window expires posts the bottom award while leaving the old step standing.** `[code]`
 
 ### The score is six BCD digits and it rolls over
@@ -988,9 +1053,10 @@ pool. `[code]`
   parachutists appear in every era was wrong. `[code]`
 - **The rung counter is reset by the routine that places a plane on the field**, which is the same
   routine that pins the player's sprite at screen centre — so it covers both losing a life and
-  starting a round, which is the shape the secondary record claims. Exactly one writer *resets* the
-  cell — the ladder's own increment is the only other — which is what makes the sharing invisible
-  across a hand-over.
+  starting a round, which is the shape the secondary record claims. Two routines write the cell in
+  play — the life-start reset and the ladder's own increment — and a MAME write tap found no third
+  in a driven run. It is not the whole writer set: the cell sits inside the block the boot clear
+  wipes, so boot writes it too. `[seen]`
 
 ### Killing the Mother-Ship pays for the field it clears
 
@@ -1198,6 +1264,14 @@ flip test changes only the ORDER of the writes, which can matter against the ras
 else. A name built on the flip would assert a difference in the result that does not exist, and a
 name built on the flood alone would drop the sequence stepping that is half of what it does. So it
 keeps its address. `[seen]` for the zeros; `[code]` for the identical rectangles.
+
+★ **One of this game's "nothing reaches it" entries is reached — by the two-player start.** A
+guard comparing a character cell against a copy of itself takes its passing arm once, in the
+credit mode with play already active, on a tape that coins twice and presses the two-player
+button; the machine runs on normally for thirteen thousand further frames afterwards. Eight
+single-player sweeps and four grounding tapes reached it zero times. The lesson is the one this
+section already teaches, with a new instance: **an unreached set is a fact about the states the
+tapes drove**, and two-player was the state nobody had driven. `[seen]`
 
 ### The cursor helpers are exact inverses
 
@@ -1511,6 +1585,42 @@ also read unchanged — yet the override had taken: later in the same run the po
 set, the field reported the new value, and the game's cocktail cell was non-zero for a quarter of
 the run. Read a dip back on a LATER frame. An immediate read-back is a false negative, which is the
 failure mode most likely to make someone abandon a working experiment.
+
+### ★ MAME persists DIP positions between runs, and `-nowriteconfig` does not stop it
+
+MAME writes `cfg/<game>.cfg` regardless of `-nowriteconfig`, which covers the `.ini` files and
+not the per-game configuration. DIP positions therefore **survive from one process to the next**,
+and with two runs going at once the last to exit wins.
+
+This is not hypothetical here. Run from a fresh configuration directory this machine's dip ports
+read `0xFF` and `0x4B`; run from the repository's own directory they read `0x7E` and `0x4A`,
+because an earlier session's coinage experiment left three switches off their defaults —
+both coin settings and the life count. Every grounding run this port made before this pass
+inherited that cabinet and recorded its ports faithfully without anyone noticing they were not
+the defaults. Nothing measured that way is wrong; it is just a measurement of a machine nobody
+chose. **Pass `-cfg_directory` per run.** `[seen]`
+
+### ★ A DIP switch can be driven, but not by the obvious call
+
+`field:set_value()` is a digital override. On a multi-position DIP it **returns success and does
+nothing** — the port reads back unchanged, which is the exact shape of a check that cannot fail.
+`field.user_value = n` does move it: driven through all eight positions, this machine's
+difficulty switch read back as eight distinct port values in the right bits.
+
+One trap comes with it. Applied on the first frame, the write lands before the port defaults are
+seated and drags **other fields on the same port** with it — setting difficulty took the life
+count from 2 to 0. From frame sixty on, the neighbours hold. Read both ports back after the write,
+every run, and print them. `[seen]`
+
+### ★ A duplicated tap doubles a count and passes its own assert
+
+An instrument this pass wrote listed four addresses twice, installed two write taps on each, and
+counted every write twice. The count-assert passed, because the list really did contain that many
+entries. What caught it was arithmetic against a neighbour: a routine dispatched 22 times stores
+two cells in the same breath, and the tap reported 22 for one and 44 for the other. The general
+form is the one this section already records — **a broken instrument returns a believable number,
+never an error** — and the defence is to cross-derive every count against something that must
+agree with it.
 
 ### ★ Two routines the memory-equivalence contract cannot express
 
