@@ -628,13 +628,36 @@ The guard is the accounting check above, plus: prefer replacing a **named, bound
 anchor-to-next-anchor, and after any scripted edit assert that every pre-existing paragraph either
 survives or is explicitly accounted for.
 
-## R34 [D] The pixel gate must be ON before a game's first idiomatic module
+## R34 [ALL] The pixel gate must be ON, and green, for any commit the interlock fires on
 
-**Applies to the first decompile unit of any game.** Run it yourself:
+**Applies to the first decompile unit of any game, and to every commit the interlock fires on.**
+`hooks/pre-commit` enforces this automatically — `tools/pixel_gate_required.py check` refuses any
+commit whose staged diff touches, for some game, its `idiomatic/`, `translated/`, `routines.js`,
+`machine.js`, `manifest.js`, its own `tools/render.js` or `tools/pixel_suite.py`, or its
+`boards/<board>/` directory — unless that game's suite prints its literal `PASS` line. **So a
+plain `translated/` lift fires it too**, and a reviewer on such a commit owes the verdict line
+just as much as one reviewing an idiomatic batch. Your job is to check the enforcement was not
+waived, and to run it yourself where it could not be:
 
 ```
-python3 games/<game>/tools/pixel_suite.py
+make pixel GAME=<game>          # or: python3 games/<game>/tools/pixel_suite.py
 ```
+
+Not every game's gate is a `pixel_suite.py` — Donkey Kong's are `move_suite.py` and
+`prize_suite.py`. `make pixel` delegates to the declared suite for the game, so it is the honest
+entry point; a game with no declared suite refuses loudly rather than reporting nothing to do.
+
+**If the diff adds or changes an `EXEMPT` entry in `tools/pixel_gate_required.py`, that is a waiver
+of this gate and it is yours to adjudicate.** An exemption is legitimate only when the suite
+genuinely cannot run and the stated reason is one you can check. ★ **An entry waives the game until
+someone removes it** — it is not scoped to the commit that added it, and it will silently waive
+every later commit. Adjudicate it as permanent, because it is.
+
+★ **Know what a PASS does not cover.** While a game's `manifest.runtime` is `"translated"`, its
+suite renders the ORACLE and its idiomatic layer is dormant — a green pixel gate says nothing about
+idiomatic code, because nothing renders it. Do not accept "pixel gate green" as evidence about an
+idiomatic module in such a game; the honest statement is that the layer is unrendered and therefore
+unmeasured. See [the pixel gate](pixel-gate.md).
 
 **Paste the verdict line into your review, and accept only `PASS`.** The other outcomes are not
 passes and do not look like failures:

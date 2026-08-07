@@ -36,6 +36,16 @@ is the second face of the oracle, and it runs from day zero.
 7. ★★ **TURN THE PIXEL GATE ON.** Before the first idiomatic module is written, the pixel gate must
    be running against pinned MAME and green, and it must stay running for the life of the idiomatic
    layer. **The pixel gate is a precondition for idiomatic work, not a capstone you reach later.**
+   For a NEW game this is real work, not a switch: declare the game's suite in
+   `tools/pixel_gate_required.py`, which is what makes `hooks/pre-commit` refuse an idiomatic
+   commit whose pixels were never compared. Until you do, the gate refuses that game rather than
+   passing it — an undeclared game is unevaluable, not clean.
+   ★ **But know what it can and cannot see.** The suites render the ORACLE; a game whose
+   `manifest.runtime` is still `"translated"` has a dormant idiomatic layer that nothing renders,
+   so no pixel gate can observe an idiomatic regression in it until go-live. Getting the gate
+   running from day zero is still right — it holds the oracle and the board layer to MAME while the
+   idiomatic layer is being built, and it is in place the moment go-live makes it bite. See
+   [the pixel gate](pixel-gate.md).
 
 ## ★★ Why the pixel gate has to be on BEFORE the idiomatic layer, not after
 

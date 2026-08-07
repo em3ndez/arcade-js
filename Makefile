@@ -12,7 +12,7 @@ ROMPATH ?= $(HOME)/Downloads
 # Extra flags forwarded to the recorder, e.g. SAMPLEFLAGS="--dry-run".
 SAMPLEFLAGS ?=
 
-.PHONY: help test serve rom-dkong samples trace verify stepcheck
+.PHONY: help test serve rom-dkong samples trace verify stepcheck pixel
 
 help:
 	@echo "arcade-js targets:"
@@ -23,6 +23,9 @@ help:
 	@echo "                    Optional: the game is fully playable, and silent, without it."
 	@echo "  make serve        start the dev web server (COOP/COEP) — pick a game and play"
 	@echo "  make test         run the unit suite (node --test)"
+	@echo "  make pixel        GAME's pixel gate vs MAME — the only check that looks at the glass."
+	@echo "                    Needs MAME on PATH and your own romset. Accept only 'PASS':"
+	@echo "                    SKIP and INCOMPLETE mean nothing was compared."
 	@echo "  make trace        recursive-descent disassembly of GAME's ROM  -> $(OUT)/dk.asm"
 	@echo "  make verify       cross-check our Z80 decoder against z80dasm (needs z80dasm)"
 	@echo "  make stepcheck    audit every m.step() target against the ROM's instruction boundaries"
@@ -33,6 +36,11 @@ test:
 
 serve:
 	python3 web/server.py
+
+# Delegates to the gate's own SUITES map so "which suite is this game's pixel gate" has one
+# answer, and a game with no declared suite says so instead of failing on a missing file.
+pixel:
+	python3 tools/pixel_gate_required.py run $(GAME)
 
 rom-dkong:
 	$(MAKE) -C games/dkong rom
