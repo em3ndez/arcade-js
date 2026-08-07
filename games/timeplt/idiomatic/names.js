@@ -326,6 +326,73 @@ export const TAMPER_WITNESS = 0xad39;
 export const DEFERRED_WRITE_CURSOR = 0xae00;
 
 /**
+ * Base of the seventeen-byte shift register the pseudo-random generator advances. [seen]
+ *
+ * Every draw moves the block one place along and fills the vacated head with the exclusive-or of
+ * two taps, so this cell is both the newest byte and the whole register's handle. It is seeded once
+ * from seventeen bytes of the program image; nothing else writes it.
+ *
+ * Watched under MAME across a run covering boot, attract, the demo and a driven game, the head took
+ * writes from exactly two program counters: the generator's own feedback store, and the seeder's
+ * block copy, twice. The values it took spread across the byte range with no value dominating.
+ *
+ * ★ Anything that pins this game's entropy pins THIS register.
+ */
+export const RANDOM_REGISTER = 0xab30;
+
+/**
+ * The kill quota a round is armed with: how many enemies the next round will ask for. [seen]
+ *
+ * Loaded once at boot from a single ROM byte and read only by the routine that starts a round,
+ * which copies it into KILLS_REMAINING. It is not era-keyed, loop-keyed or difficulty-keyed, so the
+ * quota is the same in every round of every loop on every setting.
+ *
+ * Watched under MAME for a run covering boot, attract, the demo and a driven game it took exactly
+ * one write -- at boot, value 0x38, which is 56.
+ */
+export const KILL_QUOTA = 0xa9cd;
+
+/**
+ * How many more hits the big two-slot object can absorb before it dies. [seen]
+ *
+ * Counts DOWN, and the routine that receives a hit is what fixes the role: if this cell is non-zero
+ * it decrements it, puts the object's state back to alive, requests a sound and returns the object
+ * to its live handler -- the hit is ABSORBED. Only when the cell is already zero does that routine
+ * fall through to the explosion and the retire. So an object armed with 3 takes four hits, which is
+ * the count `mechanisms.md` derives independently for the second era's bomber and the manual
+ * states.
+ *
+ * ★ It is also what the object LOOKS like. The second era's dresser reads it as `3 - cell` to pick
+ * one of four shape blocks, so the sprite shows its damage; and the ram path zeroes it, which is
+ * why ramming kills outright instead of costing one hit.
+ *
+ * Watched under MAME it was armed to 3 by one routine and walked down 2, 1, 0 by the absorb path.
+ * It is not the only writer: boot clears the block this cell sits inside, so the sibling cells'
+ * "nothing else writes it" claims hold only because they sit OUTSIDE that block. That capture
+ * reached only the first two eras, so the values seen are 0-3; whether a later object arms it
+ * higher is not established here.
+ */
+export const HITS_REMAINING = 0xa8dc;
+
+/**
+ * Which round is being played, counting on without wrapping. [code]
+ *
+ * ★ NOT the same thing as ERA_INDEX, and the difference is the whole reason this cell exists. The
+ * era is this count wrapped to five; this one keeps going, which is what lets the game get harder
+ * on the second lap through the same five eras. Stepped once per completed round by the routine
+ * that starts one, and read three ways that only make sense of an unwrapped ordinal: bracketed
+ * against 6 and 11 to pick the round's difficulty byte, compared against 100, and passed as the
+ * argument of a ring command whose handler decomposes a value into counts of thirty, ten, five and
+ * one.
+ *
+ * It is per player. Watched under MAME the only writes in a whole run came from the sixteen-byte
+ * context copy that swaps a player's block into 0xAD00, which seeded it to 2 for the attract demo
+ * and 1 for a real game; the routine that steps it needs a completed round, and no watched run
+ * completed one.
+ */
+export const ROUND_NUMBER = 0xad01;
+
+/**
  * Address -> idiomatic routine. Artifact three of the four: a module that is not in here is
  * never dispatched, so it is written-and-never-executed no matter how green its own gate is.
  *
@@ -665,7 +732,7 @@ export const ROUTINES = {
     name: "paintQuadTile",
     role: "lay one four-tile block into the character plane from a base code the caller fixes, give all four the caller's colour a plane below, and leave the cursor clear of the block for the next one",
     cert: "code",
-    why: "'quad' is the discriminating claim, and the caller could have contradicted it: the routine that decomposes a value into counts of thirty, ten, five and one calls a DIFFERENT painter per denomination and chains the cursor between them -- one tile for the units, two for the fives, and this one for both the tens and the thirties with only the base code and the colour differing. So what this entry contributes is the block SIZE and not a denomination, and the four codes are the caller's base plus 0..3 rather than anything a table selects. Not reached by either MAME sweep, which is a fact about the states those sweeps drove: TWO sites post its caller's ring command, and the second passes the cell at 0xad01 rather than a constant -- a cell stepped on the same path that steps ERA_INDEX, and tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated and ten is the smallest that gives the tens a non-zero count",
+    why: "'quad' is the discriminating claim, and the caller could have contradicted it: the routine that decomposes a value into counts of thirty, ten, five and one calls a DIFFERENT painter per denomination and chains the cursor between them -- one tile for the units, two for the fives, and this one for both the tens and the thirties with only the base code and the colour differing. So what this entry contributes is the block SIZE and not a denomination, and the four codes are the caller's base plus 0..3 rather than anything a table selects. Not reached by either MAME sweep, which is a fact about the states those sweeps drove: TWO sites post its caller's ring command, and the second passes ROUND_NUMBER rather than a constant -- a cell stepped on the same path that steps ERA_INDEX, and tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated and ten is the smallest that gives the tens a non-zero count",
   },
   0x323a: {
     name: "stepShapeAnimation",
@@ -695,7 +762,7 @@ export const ROUTINES = {
     name: "markObjectsTouchingPlayer",
     role: "replace the state byte of every object in a caller's run that lies inside a wrapped box around the player's sprite entry, while the player is alive; the box is the caller's, the player's own state is untouched and nothing is scored",
     cert: "seen",
-    why: "that the reference is the PLAYER is what the name adds over the mechanism, and it rests on evidence outside the routine: three sibling sweeps read the same guard cell and the same reference pair, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship held at one screen position through a driven game. What separates this entry is what it does NOT do -- the other three also write the destroyed code into the player's own state and post a score. Under MAME it marked ten times in 300 s of attract, every mark on the same record, which is the single object every one of its four call sites leaves the cursor on",
+    why: "that the reference is the PLAYER is what the name adds over the mechanism, and it rests on evidence outside the routine: three sibling sweeps read the same guard cell and the same reference pair, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship held at one screen position through a driven game. What separates this entry is what it does NOT do -- the other three also write the destroyed code into the player's own state. Only two of those three go on to post a score: destroyPlayerAndObjectsTouchingIt does not. Under MAME it marked ten times in 300 s of attract, every mark on the same record, which is the single object every one of its four call sites leaves the cursor on",
   },
   0x5683: {
     name: "requestTwoSounds",
@@ -712,5 +779,101 @@ export const ROUTINES = {
     name: "loc_560c",
     role: "queue a sound code, but only while a game is being played; with the play flag clear the request is dropped and nothing is left behind for a later frame",
     cert: "code",
+  },
+  0x0bf2: {
+    name: "drawTextRunByIndex",
+    role: "paint the caption an index selects: the index picks a record from one word table, and the record supplies the destination cell, the colour and the glyph run that drawTextRun then paints",
+    cert: "seen",
+    why: "the name claims selection by index into a table of a definite size, and both halves are refutable from outside. A PC-gated read tap under MAME logged the accumulator on 1578 dispatches across 200 s of undriven attract and the largest index ever presented was 31 -- and the byte one past the table's 32nd entry is 0x0C90, which is the entry of the very routine that calls this one, so the table cannot be longer. Every one of those 32 records names a destination inside video RAM and ends its run on drawTextRun's terminator, while the two records past the end name 0x7E1C and 0x0D0D, neither of which is video RAM. It does NOT claim every record is text: drawTextRun's own entry records that two of them are a shaded banner strip instead",
+  },
+  0x2755: {
+    name: "freeAllShotSlots",
+    role: "free all six of the player's shot slots, zeroing each record's occupancy byte and its second-axis coordinate but not its first; the fill byte and the record stride are both fetched from program space rather than written as immediates",
+    cert: "seen",
+    why: "that the array is the player's shots is fixed outside this routine: loc_23e3 reads the panel through readPlayerControls, rotates the fire bit into carry, shifts it into a two-bit edge history and tests for exactly a rising edge before arming this same six-record table, and destroyTargetsHitByShots fixes its outer array here too. The name then predicts a cadence a tap could refute -- freeing the shots belongs to the start of a life, not to a frame or a round -- and under MAME its store fired 9 times on a tape whose life-start store wrote PLAYER_STATE alive exactly 9 times. Its only caller is that life-start routine. Patch-sensitive by construction: change either fetched byte and it clears a different array with a different stride",
+  },
+  0x2b38: {
+    name: "animateSelectedShapeCycle",
+    role: "give one sprite entry the current frame of a four-frame shape cycle, from the block a record byte selects, and one fixed attribute beside it",
+    cert: "code",
+    why: "'Selected' is the whole discriminator against animateFixedShapeCycle, and the two bodies settle it: that sibling's base is a literal while this one's is four times a record byte, and its cycle is eight frames from the counter's low bits where this one is four from bits 2-3. Reachability was measured rather than assumed -- read taps under MAME counted zero dispatches on two tapes that stayed in eras 0-1 and 48894 on a third that held the era at 4. It does not claim what the record byte IS; only that it selects",
+  },
+  0x2d36: {
+    name: "driftTwoTileSceneryAtThreeQuarters",
+    role: "drift one scenery object at three quarters of the frame's world scroll, place a second tile flush against it, and step both cursors past the object so the caller lands on the next slot",
+    cert: "code",
+    why: "the fraction and the tile count are the claim, and the family could have contradicted either: its four siblings are the same three calls with one term changed each -- three quarters with one tile, five quarters with two, five quarters with three, a half with one -- and every one of them tails into advanceToNextSlot. Its callee driftAtThreeQuartersWorldScroll is already grounded with every dispatch seated inside the scenery block, and the era-keyed scenery dispatcher calls this entry twice in a row from two of its arms, which is the shape of two consecutive two-tile items in a parallax list. It does not say which object",
+  },
+  0x2db8: {
+    name: "startNextRound",
+    role: "start the next round: step the round number, roll the era on and wrap it after the fifth, set the round's difficulty byte from one of three sources by round bracket, refill the kill quota, and clear two flags while arming a third",
+    cert: "code",
+    why: "a routine that starts a round must re-arm the quota that ends one, and must advance the era on the schedule the era cell independently follows -- both are checkable against other code and both hold. It reloads KILLS_REMAINING from KILL_QUOTA, which is written once at boot with 56 and is not era-keyed; its era roll wraps at five, which is what ERA_INDEX's own entry records from a separate derivation; and its round brackets at 6 and 11 are the escalation mechanisms.md derives independently as banded by rounds completed rather than by era. Both callers gate it on a round being over. NOT REACHED by three MAME sweeps -- none completed a round -- and a write tap corroborates from the other side: across a run covering boot, attract, the demo and a driven game, not one of this routine's stores fired, every write to those cells coming from the per-player context copy instead",
+  },
+  0x3252: {
+    name: "guardBlockOrDerailSequence",
+    role: "fold a fixed span of the program image and let the sequence's inner step go on if it still adds up; a span that does not fold to the expected value throws the sequence a whole phase forward instead, which derails it rather than halting it",
+    cert: "code",
+    why: "named after guardBlockOrBlankDisplay, whose name states its failure arm, because the failure arm is what separates the four members of this family and this one's could have gone either way. Two of them jump at data or outside the image and simply kill the machine; stepSequenceUnderChecksum takes BOTH arms, advancing the phase and then always stepping the sub-step. This one is a tail jump to one or the other and never both. Its pass arm is advanceSequenceSubStep and its failure arm advanceSequencePhase, and read taps under MAME reached this entry on all three sweeps while advanceSequencePhase's own entry took zero dispatches on every one -- which is what an arm that cannot run on a genuine image looks like from outside",
+  },
+  0x3ce9: {
+    name: "mirrorTwoTileObjectByHeading",
+    role: "dress two adjacent sprite entries with a consecutive pair of shape codes from the block HITS_REMAINING selects, so the object wears its damage, and mirror the pair -- swapping which entry takes the lower code, and flipping both -- on whichever half of the heading circle it is in",
+    cert: "seen",
+    why: "if the two arms are a mirror rather than two different poses then the two attributes must be one colour differing in a flip bit, and the swap must fall at two antipodal headings. Both held: the attributes are 0x6D and 0xED, and the board decodes a sprite's second bank byte as six colour bits, an inverted flip-X and a flip-Y, so those two are the same colour differing only in flip-Y; and the boundary is the heading biased by a quarter turn against a half, which is exactly 0x40 and 0xC0. Watched under MAME the entry's code byte took 172 writes from each arm and its attribute byte 172 of each value, summing to the 344 dispatches a read tap counted on the same tape. It does not say what the object is, and unlike spriteForHeading it resolves the heading to one bit. The block selector is HITS_REMAINING, read as the most hits minus what is left -- so a fresh object and a damaged one are drawn from different blocks",
+  },
+  0x421f: {
+    name: "steerTowardAimAtFixedRate",
+    role: "turn an object's heading two units toward the heading it aims at, on the three frames in four when the frame counter's low two bits are not both clear; a fixed step, where its sibling steerTowardAimHeading takes its rate from a table",
+    cert: "code",
+    why: "the name says the byte it writes is the heading MOTION follows, and its caller could have refuted that: loc_41b8 re-aims by writing the aim byte every sixteenth frame, calls this routine, and then calls the flier whose first instruction reads the very byte this one wrote. A caller that used the result as a table index, or a flier that read the aim instead, would have killed the name. Read taps under MAME counted zero dispatches on two tapes in eras 0-1 and 8225 on one holding the era at 4. ★ The name deliberately does NOT say 'the short way round': the direction test is taken on the gap PLUS ONE, so a gap of exactly 127 turns long; the standing band is two wide and off centre, at gaps of 0 and 255; and because the step is TWO the gap's parity is invariant, so which of those two it comes to rest on follows that parity and not the side it approached from. Sibling 0x4201 has the same biased tests with a step of one, which makes it side-determined instead -- same shape, different mechanism",
+  },
+  0x48ad: {
+    name: "retireSlotIntoCooldown",
+    role: "take an object out of play -- occupancy byte and both of its sprite entry's coordinates -- and then arm the record's delay byte instead of leaving it clear, so the slot is held rather than freed",
+    cert: "code",
+    why: "'cooldown' is the claim and it is refutable: if that byte were scratch nothing would read it. Six sites outside this routine form the loop instead -- the per-slot handler tests it and, when it is non-zero, diverts the whole slot to the routine that counts it down; two routines decrement it; and the sibling that calls retireSlot re-arms this same byte immediately afterwards, which retireSlot's own entry already records. Its first three stores are retireSlot byte for byte, so the arming is the entire difference. It does not claim how long the delay is: this entry writes 0xF0 where retireObjectAndHold writes 0x80, and nothing here fixes the tick rate",
+  },
+  0x4b4b: {
+    name: "drawRandomByte",
+    role: "draw the next pseudo-random byte: advance the seventeen-byte shift register one place, fill the vacated head with the exclusive-or of two taps, and hand back that feedback plus the frame counter, so two draws at different moments differ even where the register has not moved",
+    cert: "seen",
+    why: "if this is the game's generator the register must be seeded from somewhere and must have no other writer, and a write tap could have found a dozen. It found two program counters: this routine's feedback store, and -- twice in a whole run -- the block copy that seeds seventeen bytes from the program image. Its four callers each consume the accumulator immediately as a draw and each shapes it differently: a bit, a signed jitter around a heading, a compare against a threshold cell, and a masked table index. ★ Anything that pins this game's entropy pins THIS",
+  },
+  0x4ba5: {
+    name: "loadDefaultHighScores",
+    role: "copy forty bytes of program space into the five-entry high-score table, which is the only way that table is ever initialised",
+    cert: "code",
+    why: "the block's first column runs 0,1,2,3,4, which fits five eras and five ranks equally, so the column cannot settle the noun and other code has to. It does: one routine compares each record's score field against the CURRENT PLAYER'S score cell, slides the tail down by exactly one eight-byte record when it is beaten, and then renumbers that first column 0,1,2,3,4 -- an insertion sort with a rank key, which an era table would never receive. Another draws all five records into video RAM. The ROM defaults are monotone decreasing in the compared field. Watched under MAME the destination took exactly one write, at boot, and none through a full driven game, which is what a table of DEFAULTS looks like. It does not claim what the four bytes past each score are",
+  },
+  0x4f7e: {
+    name: "destroyFixedTargetHitByShots",
+    role: "destroy the one fixed target the player's shots have reached, spending each shot that reached it and posting the score for each; the target's liveness is tested ONCE, ahead of the sweep, so several shots can be spent on it in a single pass",
+    cert: "seen",
+    why: "the swept array is the claim, and its record layout could have contradicted it: this routine reads each record's coordinates at the same two offsets destroyTargetsHitByShots uses on its own outer array, which is this same six-record table, which loc_23e3 arms only on a fire-button rising edge. Watched under MAME both of its stores fired -- the target's state byte nine times and a shot's occupancy byte once -- so the hit path is observed and not inferred. ★ The guard sits BEFORE the loop and is never re-tested, which is why the role says so: a reader who assumes it re-arms will predict one hit per call and be wrong",
+  },
+  0x507e: {
+    name: "destroyFixedTargetReachedByPlayer",
+    role: "destroy one fixed target and the player with it when the two touch, zero the target's HITS_REMAINING so the contact kills it outright rather than costing it a hit, and tail-transfer to the scoring routine; four tests must all pass, so nothing at all is written unless every one of them does",
+    cert: "code",
+    why: "the reference it measures the target against is what the name adds, and it is fixed outside this routine: it reads the same sprite-entry pair three sibling sweeps use, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship that held one screen position while the world scrolled past. NOT GROUNDED, and the reason is specific: across two MAME write-tap runs none of its three stores ever fired, so the four-test conjunction was never satisfied on any tape we have driven",
+  },
+  0x5185: {
+    name: "destroyPlayerAndObjectsTouchingIt",
+    role: "destroy the player and every object of a caller's run that lies inside a wrapped box around the player's sprite entry, while the player is alive; one window width serves both axes, nothing is scored, and the sweep runs on past the first",
+    cert: "seen",
+    why: "the name makes two claims the family splits on -- that the player's OWN state takes the destroyed code, and that nothing is scored -- and a write tap settled the first: across a driven run the destroyed code reached PLAYER_STATE from exactly three program counters, one of them this routine's store, which fired together with its target store in a single event; markObjectsTouchingPlayer's store never appears, as that entry claims. The second is structural: its two nearer siblings both call the scoring routine and this one has no path to it. ★ LIVE-OUT IS NOT MEMORY, and a memory-equivalence gate is structurally blind to the rest: it hands back the occupancy cursor in E -- stepped by 0x10 with no carry into D, so it wraps inside its own page -- and the sprite-entry cursor in IY, stepped by two. Its callers at 0x4EF9 and 0x4F21 reload only B, L and H before tail-jumping into markObjectsTouchingPlayer, so DE and IY carry straight over; that is how the module's first version was wrong while passing every twin",
+  },
+  0x55f8: {
+    name: "sendSoundCommand",
+    role: "hand one byte to the audio processor: write it into the one-byte latch that processor reads, then drive its attention line high and back low, the edge that makes it look",
+    cert: "seen",
+    why: "'the' latch is a uniqueness claim and one tap could have killed it. A write tap on the real ROM under MAME recorded 1686 writes to the sound-data latch across boot, attract, the demo and driven play, and every single one came from this routine's store -- no second program counter. The attention line took exactly twice that, 1686 highs from one instruction paired with 1686 lows from the other, and a read tap at this entry counted the same 1686 dispatches. The board layer, read against the driver, has that address as sound data to the second Z80 on WRITE and the LS259 bit MAME wires to that processor's interrupt at the other. ★ The latch address is split BY DIRECTION -- read, it is the scanline counter -- so the sites elsewhere that load from it are not reading what this routine wrote. It does not claim what any particular byte MEANS; there is no audio oracle here",
+  },
+  0x58fe: {
+    name: "flyAlongHeadingAtDoubleVelocity",
+    role: "fly one object a single step along the heading it holds, with TWICE its own velocity component and the shared world scroll added once, so nothing else may drift this object",
+    cert: "code",
+    why: "if only the velocity term doubles then the difference from flyAlongHeading must be exactly two instructions, each sitting immediately after a velocity load and neither after a scroll load -- and the two bodies are byte-identical but for two inserted adds, in exactly those places. Both entries are reached only through two-instruction table-fixing shims. Read taps counted zero dispatches on two tapes in eras 0-1 and 38749 on one holding the era at 4. ★ It says 'Velocity' and not 'Step' on purpose: flyAlongHeading's entry already warns that a reader who takes it for velocity alone will apply the camera twice, and a name saying the whole step doubles would make that same error in the other direction",
   },
 };

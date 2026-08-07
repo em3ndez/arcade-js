@@ -39,6 +39,14 @@ it belongs to rather than held back for the next one — the same method require
 `[seen]` claim may sit inside a section the rewrite produced, and an open question may have been
 struck off since.
 
+★ **This revision was FOLDED INTO, not rewritten whole, and that is a deviation rather than the
+clause above.** The between-passes clause licenses grounding that arrives between passes; the
+cluster-6 pass is a pass, so it does not cover it. The reason the fold was allowed is narrower and
+worth stating plainly: the standing body rests on eight blind area re-derivations, and a confirmer
+working one cluster is not positioned to reproduce them — replacing them from a single cluster's
+evidence would have destroyed the wider derivation to look tidy. **A whole rewrite is therefore
+OWED, and this note is the record of that debt** rather than a licence to keep folding.
+
 Blind is not the same as ignorant, and the difference is worth stating. Two working notes that the
 `[seen]` grounding record lives in refer to the old map by section number, and those were read for
 the observations, which exist nowhere else. So the topics that previously had sections were known;
@@ -71,6 +79,17 @@ The service, in the order it runs:
 
 The epilogue restores both register banks plus the index registers, and does one piece of work of
 its own: hand a single queued byte to the sound CPU and pulse its interrupt line. `[code]`
+
+★ **One routine is the whole of that hand-off, and it is the machine that says so.** A write tap on
+the sound-data latch under MAME, across boot, attract, the demo and driven play, recorded every
+single write from one instruction — no second writer anywhere in the image. The interrupt line took
+exactly twice as many writes, a high from one instruction paired with a low from the next, and a
+read tap at the routine's entry counted the same number of dispatches as there were latch writes.
+`[seen]`
+
+★ **That address is split by DIRECTION and this is a standing trap.** Written it is the sound latch;
+READ it is the scanline counter, a different device behind the same number. The load-from-it sites
+scattered through the raster-wait code are not reading back what the sound path wrote. `[code]`
 
 **The foreground program is not a game loop.** Boot ends by jumping into a command-ring drain that
 spins on an empty ring, takes a (command, argument) pair, marks the slot free, and dispatches the
@@ -693,6 +712,10 @@ counts toward it.
 byte, and that byte is `0x38` = 56.** Re-read from the image for this document. It is not era-keyed,
 not loop-keyed and not difficulty-keyed. `[code]`
 
+The cell it is reloaded from is `KILL_QUOTA`, and "once at boot" has now been watched rather than
+read: a write tap across a run covering boot, attract, the demo and a driven game recorded exactly
+one write to it, at boot, of `0x38`. Its only reader is the routine that starts a round. `[seen]`
+
 The escalation the manual describes for later rounds is real but lives in a **different cell**,
 banded by rounds completed. So "harder" never means "more enemies to clear".
 
@@ -715,6 +738,27 @@ player or ends a round.) `[code]`
 
 Its counter starts at three, absorbs three, and the object dies on the hit that finds it at zero.
 The manual says four; StrategyWiki says three, twice. **The manual is right.** `[code]`
+
+That counter is `HITS_REMAINING`, and the routine a hit lands in is what fixes the mechanism: with
+the cell non-zero it decrements it, puts the object's state byte back to alive, requests a sound and
+returns the object to its live handler — the hit is ABSORBED and nothing else changes. Only a hit
+that finds the cell already zero falls through to the explosion and the retire. Watched under MAME
+the cell was armed to three by one routine and walked down 2, 1, 0 by that absorb path. It is not
+the cell's only writer: boot clears the whole block this cell sits inside, which is why the
+neighbouring cells that DO claim a sole writer can — they sit outside that block. `[seen]`
+
+★ **The object wears its damage.** The second era's dresser reads the same cell as *the most it can
+take minus what is left* and steps a shape base in fours on the result, so a fresh bomber and a
+three-times-hit one are drawn from different blocks of the sprite ROM. It is a two-tile object, and
+the pair is mirrored — tiles swapped and both flipped — on whichever half of the heading circle it
+is in. `[code]` for the arithmetic; `[seen]` that both mirror arms fire, in equal numbers, on a
+capture whose per-arm write counts sum exactly to the dispatch count a read tap measured
+independently.
+
+★ **And this is what "ramming zeroes its hit counter" is.** The sweep that runs the player against
+this one object writes the destroyed marker into both and then zeroes `HITS_REMAINING`, so the
+contact kills outright rather than costing one hit. That sweep's conjunction never passed on any
+tape we have driven, so the path is read and not watched. `[code]`
 
 The same arithmetic on the Mother-Ship's counter of seven implies **eight** shots rather than the
 advertised seven — flagged deliberately as the one number here that a capture should confirm before
@@ -1036,6 +1080,30 @@ code. §10 records the general form, because it will happen again.
 **Also refuted, and it was our own hypothesis:** that the routine belongs to high-score initials
 entry. The initials screen is a different sub-step and never calls it. `[code]`
 
+### Two more routines nothing reaches, and they are not the same kind of thing
+
+`fillCellRun` above is unreached because its screen is. Two others are unreached for reasons worth
+separating, because only one of them is a limit of our tapes.
+
+**`startNextRound` is unreached because no tape has finished a round.** It steps the round number,
+rolls the era on and wraps it after the fifth, sets the round's difficulty byte by round bracket,
+refills `KILL_QUOTA` into the kill meter, and arms a flag. Three MAME sweeps dispatched it zero
+times, and a write tap corroborates from the other side: every write to the cells it touches came
+from the sixteen-byte per-player context copy instead, never from this routine. Its two doors are a
+completed round and a life lost while the round-over flag is set, and that flag was never once
+non-zero in a run covering boot, attract, the demo and a driven game. `[seen]` for the zeros;
+`[code]` for what it does.
+
+**`loc_13cc` is unreached AND unnamed, deliberately.** It floods a 27-by-28 rectangle of the colour
+plane with a byte the active-player selector picks, sets one sequence cell and counts another down.
+Neither of those two cells took a single write in a whole run, which is a second instrument agreeing
+with the zero dispatches. ★ And its two arms — chosen on the screen-flip flag — write **the identical
+rectangle with the identical byte**, ascending from one corner or descending from the other. The
+flip test changes only the ORDER of the writes, which can matter against the raster and nowhere
+else. A name built on the flip would assert a difference in the result that does not exist, and a
+name built on the flood alone would drop the sequence stepping that is half of what it does. So it
+keeps its address. `[seen]` for the zeros; `[code]` for the identical rectangles.
+
 ### The cursor helpers are exact inverses
 
 Stepping the character cursor forward and back are two routines on the same axis, and the leading-
@@ -1152,6 +1220,21 @@ oracle has been checked against is whatever the demo happens to do, and the demo
 It never collects a parachutist, never dies deliberately, never finishes a round, never reaches the
 later eras. Adding *any* input would not close this; adding input that reaches **what the demo never
 does** would, which is precisely what `unit_equiv.sh`'s tape parameter exists for.
+
+### ★ A driven tape measures the eras it reaches, and it reaches two
+
+The strongest not-reached list this document has produced was wrong about three routines, and the
+reason generalises. A tape that coins up, flies and fires never survives four rounds, so it lives in
+the first two eras — and whole families of handler are gated on the era with `cp 2` and `cp 4`. On
+one sweep three cluster routines read as never dispatched; holding the era cell at 4 while play ran
+dispatched them 8225, 38749 and 48894 times.
+
+So a not-reached row is a statement about which ERA the tape lived in before it is a statement about
+the code, and the fix is cheap: hold the era and sweep again. The poke has to be written every
+frame, not once a second, because a routine that borrows a different rate row writes the era cell
+twice in three instructions and leaves it on whatever it last set.
+
+What the technique does NOT reach is anything gated on a round actually ending — see §8.
 
 ### A read tap over-counts, because the ROM reads itself
 
