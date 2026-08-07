@@ -536,6 +536,98 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   pass appeared — and verified that the pass was substantive, had a grounding record, and had
   itself been blind-reviewed and BLOCKED once.*
 
+- **R30 [ALL]** Before presenting a unit, run the cheap pre-flight checks that have blocked units
+  of its class before. Rounds are the price of unchecked work, not of rigour — when review looks
+  expensive, ask how many of its rounds existed to catch something the author could have caught
+  alone.
+
+  *Three units went through review in one day, same reviewers, same gates. Two took several rounds;
+  one took a single round with no blockers. The one that passed first time differed in exactly one
+  respect — its failure modes were checked before the reviewer saw it. For a routine promotion those
+  checks are: does naming it leave a stale alias anywhere, does its declared range swallow an
+  already-named routine, do its comments cite anything outside their own file. Each had cost a round
+  on an earlier unit. The multi-round units were not blocked on hard questions; they were blocked on
+  claims their author had not verified, and on a scripted edit whose blast radius he had not checked.*
+
+  ⚠️ *This rule deliberately carries no figures. It first shipped with a table of round counts and
+  durations, and a reviewer checked them: the round count double-counted a re-adjudication, one
+  duration contradicted its own report, two were not derivable from anything recorded, and a "six of
+  seven" was six. A rule arguing against unverified claims had five of them in its own table — see
+  R19.1. The lesson never needed the numbers; only the wish to sound precise did.*
+
+## R31 [ALL] A narrow brief still has to account for the whole diff
+
+Scoping a review to the risk is correct — re-reviewing a change the owner specified himself is
+waste. But **scope the JUDGEMENT, never the ACCOUNTING.**
+
+Every narrow brief carries this as check #1, un-narrowed:
+
+> Diff the staged file against `HEAD` and justify **every** removed or changed line. Anything not
+> explained by the change's stated intent is a blocker. Confirm nothing was silently re-ordered.
+
+It exists because a four-check brief once passed all four while the same edit had silently deleted
+six unrelated things — an argument paragraph, a mechanics paragraph, a subject paragraph, a docs
+link, a screenshot and two status blockquotes. The narrow checks could not see it; they were not
+looking there. It was caught only because the reviewer read the diff anyway and chose to mention it.
+
+**The cause is worth knowing, because the edit pattern is common.** A script replaced everything
+between a heading and the next heading — and that span held more than the section:
+
+```python
+e = src.index("\n## ", s + 10)      # swallows whatever else lives in the span
+```
+
+★ **And the line count hid it: +1 net**, because ~74 lines of new code block replaced ~70 lines of
+prose. **A near-zero net delta is the signature of a swap, not evidence that little changed.** Read
+insertions and deletions separately; never reason from the net.
+
+### R32 [ALL] The brief side of it: a disclosure must be RE-STATED every round
+
+The accounting check is only as good as the list of authorized changes it is given, and **every
+round gets a fresh, blind reviewer.** Anything you disclosed in round 3 does not exist in round 5.
+
+This bit immediately. A layout line was corrected on explicit instruction, disclosed in two
+successive briefs, and then dropped from the third — so round 5's reviewer, seeing a change outside
+the commit's declared scope, correctly blocked on it. The change was authorized, deliberate, and
+*more accurate than what it replaced*; the reviewer independently confirmed that. It was blocked
+purely because the brief had lost its provenance.
+
+★ **An authorized change whose authorization is not restated is indistinguishable from collateral
+damage** — and it must be, otherwise the accounting check would have to trust the author's memory,
+which is the thing it exists to replace. **The reviewer was right to block; the defect was in the
+brief.**
+
+So: keep the list of authorized deviations in the *unit's* notes, not in your head, and paste it
+whole into every round. Carrying it forward costs a line. Losing it costs a round.
+
+And when it happens, the remedy is to supply the sign-off **in writing, to that reviewer, and let it
+re-adjudicate** — not to wave the finding away. Offer it the option of holding the block: an
+authorized-but-unrelated change may still belong in its own commit, and that is the reviewer's call
+to make.
+
+## R33 [ALL] Generating a quote fixes drift and introduces range errors
+
+Two failures on the same document, one after the other, and the fix for the first caused the second.
+
+**First: a hand-copied code block silently lost four comments**, and was then reported as "verified
+verbatim". Transcription drifts, and the drift ran in the direction of the surrounding argument —
+which is the dangerous direction, because *tidying* a quote and *shading* one are the same edit and
+a reader cannot tell them apart.
+
+⇒ **So generate quotes from their source by script.** Verbatim then holds by construction rather
+than by care, and the claim can be re-checked mechanically afterwards.
+
+**Then: the generating script deleted six unrelated things**, because it replaced everything between
+one heading and the next and that span held more than the section.
+
+★ **A script's blast radius is not what you aimed it at — it is what its bounds actually span, and
+you cannot eyeball a span you did not compute.** Generation removes one failure mode and adds
+another; it needs its own guard, not fewer.
+
+The guard is the accounting check above, plus: prefer replacing a **named, bounded** region over
+anchor-to-next-anchor, and after any scripted edit assert that every pre-existing paragraph either
+survives or is explicitly accounted for.
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/names.js/mechanisms/retrofits. No

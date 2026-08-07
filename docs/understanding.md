@@ -110,6 +110,46 @@ committing, and why the committed prose carries the finding rather than a path t
 The sections below are the reasoning behind those steps — read them when a step needs justifying,
 not before running one.
 
+## Before you report a negative from a search, prove the search can find things
+
+**A search that CANNOT match returns exactly what a search that matched nothing returns.** Zero hits
+is not evidence of absence until you have shown the instrument working.
+
+So: **search for something you know is there, in the same shape, in the same command.** If the
+control does not come back, the zero means nothing. This costs one extra pattern and it is the
+difference between a finding and a guess.
+
+Three reported instances, three different formatting causes, one identical output — every one read
+as absence:
+
+- **Hyphenation.** Grepped `game over`; the document writes `game-over`. Reported that
+  "mechanisms.md says nothing about this routine" — it discusses the routine under the hyphenated
+  spelling, and elsewhere names the very table the commit decodes.
+- **Line wrap.** Grepped a sentence that wraps across two lines in the target file. Zero hits, and
+  one keystroke away from telling a colleague the insertion point she had specified did not exist.
+  It existed.
+- **Sample size.** A sample far too small for the rate being looked for, so the expected yield was
+  a fraction of one hit. Zero was the *predicted* output of a search that could not have found the
+  thing, and it was read as proof the thing was absent. (Reported to me by another agent; I have not
+  seen the artifact, so take the shape as the lesson and the instance as second-hand.)
+
+The failure is never in the reasoning after the search; it is that the search was never shown to be
+capable. Related, and the same discipline one layer down: a MAME positive control can silently be a
+no-op, so verify it actually moved pixels (step 4).
+
+★ **Corollary — where an unverified premise hides.** Twice in that same day the *conclusion* was
+right and the premise supporting it was false. That is not luck, it is the mechanism: **a sound
+conclusion is the most comfortable place for an unverified premise to sit**, because nothing
+downstream ever fails, so nothing ever checks it. When a decision is obviously correct, that is
+precisely when to ask which of its stated reasons was actually derived.
+
+★★ **And do not report a difference in SPELLING as a difference in BEHAVIOUR.** Two expressions with
+different parenthesisation are a fact about the text. `0 of 65536 inputs differ` is a fact about the
+function. Only the second one licenses a claim that something diverged — evaluate it, do not eyeball
+it. Reporting the wrong one as an *instrument* defect ("the gate is blind to this") is worse than
+reporting a wrong number: a number gets re-measured, but a claimed gate hole gets acted on, and
+someone repairs a gate that was working.
+
 ## How to build it
 
 1. **Watch the game — attract mode is free ground truth.** Every arcade game of this era runs an
