@@ -770,6 +770,11 @@ export const ROUTINES = {
     cert: "code",
     why: "'sounds' is a claim about where the codes end up, and it is settled outside this routine by the rest of the path: the drain at 0x55d4 takes the queue's head, hands it to 0x55f8, which writes it to 0xC000 -- the sound-data latch in the driver's memory map -- and pulses the LS259 bit MAME wires to the second Z80's IRQ trigger. So the bytes reach another processor as commands rather than sitting in RAM. Neither code is baked in: each is read from a program byte, and the two bytes are far apart, so this is a chosen pair and not a run walked through",
   },
+  0x5628: {
+    name: "loc_5628",
+    role: "queue a sound code with no permission test, so it is queued whether or not a game is being played",
+    cert: "code",
+  },
   0x5617: {
     name: "loc_5617",
     role: "queue a sound code when either the play flag or the cell at 0xA9C6 is set; only with both clear is the request dropped",
