@@ -1027,6 +1027,11 @@ export const ROUTINES = {
     role: "queue a sound code, but only while a game is being played; with the play flag clear the request is dropped and nothing is left behind for a later frame",
     cert: "code",
   },
+  0x0b4c: {
+    name: "loc_0b4c",
+    role: "add a run of bytes together and answer whether the total is the byte the caller named; the length means a full 256 when it is zero, the total wraps at eight bits, nothing is written, and the answer is left for the caller rather than acted on here",
+    cert: "code",
+  },
   0x0bf2: {
     name: "drawTextRunByIndex",
     role: "paint the caption an index selects: the index picks a record from one word table, and the record supplies the destination cell, the colour and the glyph run that drawTextRun then paints",
