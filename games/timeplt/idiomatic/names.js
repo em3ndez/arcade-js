@@ -1296,6 +1296,16 @@ export const ROUTINES = {
     cert: "code",
     why: "every entry into flyAlongHeading is a two-instruction shim fixing one of several velocity tables whose peak magnitudes step evenly in 8.8 fixed point, so what an entry contributes is a rung on that ladder and not the act of fixing a table. Those tables are one waveform scaled -- each is the 256-peak table times its own peak to within two units of the last place, with identical off-symmetry headings -- so magnitude is the only degree of freedom a shim has, which is what makes a speed the right kind of thing to name it for. The ladder's ORDER is fixed from outside the flier: the routine that arms the player reads the era index and climbs the same tables as it rises, and an enemy shim selects the table that routine reaches at the top -- an enemy flying the player's own rung, which is what gameplay.md describes when it records the fourth era's jets as as fast and manoeuvrable as you. This entry's table sits below the slowest the player is ever given. A MAME run saw every dispatch here predicted exclusively by that table, while a sibling shim ran on the SAME slot array with a faster one, so an entry selects a speed and not an object class. cert stays code because 'slowest' is a rank over ROM tables and must stay one: two rungs of this ladder are selected only by shims whose addresses appear nowhere in the image, so no capture can ever watch the whole rank. A run reaching the later eras would put every REACHABLE rung under observation, and the name survives that ordering too",
   },
+  0x5860: {
+    name: "loc_5860",
+    role: "fly one object a single step at the pace the velocity samples based at 0x2E3E set, choosing that table and deciding nothing else; a pointer the caller was holding is discarded. Its one reader in the image is loc_29f7, which the era-4 arm of the handler table at 0x2914 calls for a live slot, and that reader alternates on bit 1 of the frame tick between this entry and 0x58AA -- the shim that hands the double-velocity mover the ladder's bottom table -- so the object it steps does not stay on one rung",
+    cert: "code",
+  },
+  0x5942: {
+    name: "loc_5942",
+    role: "hand back the perpendicular component pair an object's heading calls for, at the pace the velocity samples based at 0x59D7 set -- the bottom rung of the six-table ladder; choosing that table is all this entry does, an incoming pointer is discarded, and the pair is the whole product, no memory is written. Two readers: loc_3c25 calls it while arming a slot and stores the pair straight into that record, and it is the first word of the era-indexed arm table at 0x46C4, the arm setMotherShipVelocityFromHeading takes at era 0",
+    cert: "code",
+  },
   0x596b: {
     name: "loc_596b",
     role: "hand back the perpendicular component pair an object's heading calls for, at the pace the velocity samples based at 0x08FA set; choosing that table is all this entry does, an incoming pointer is discarded, and the pair is the whole product -- no memory is written",
