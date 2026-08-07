@@ -3,7 +3,8 @@
  * Both panels are mirrored into work RAM every frame and a flag cell selects between them.
  * LIVE-OUT: that word, returned and left in the register file; nothing is written here. */
 
-const SCREEN_UNFLIPPED = 0xa987;
+import { SCREEN_UNFLIPPED } from "./names.js";
+
 const MAIN_PANEL_CONTROLS = 0xa9af;
 const COCKTAIL_PANEL_CONTROLS = 0xa9b0;
 

@@ -41,6 +41,7 @@
  */
 
 import test from "node:test";
+import { SCREEN_UNFLIPPED } from "../names.js";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_START_TAPE, ENTRY_FRAMES, romsPresent } from "./_harness.js";
@@ -51,7 +52,6 @@ import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x1ed1;
 
-const SELECTOR = 0xa987;
 const MAIN_PANEL = 0xa9af;
 const COCKTAIL_PANEL = 0xa9b0;
 
@@ -84,11 +84,11 @@ const skip = romsPresent() ? false : "ROM images are gitignored and absent";
 function session(tape) {
   const classes = new Map();
   const capture = new Map([[TARGET, (m) => {
-    const key = `${m.mem8[SELECTOR]},${m.mem8[MAIN_PANEL]},${m.mem8[COCKTAIL_PANEL]}`;
+    const key = `${m.mem8[SCREEN_UNFLIPPED]},${m.mem8[MAIN_PANEL]},${m.mem8[COCKTAIL_PANEL]}`;
     if (!classes.has(key)) {
       classes.set(key, {
         key,
-        selector: m.mem8[SELECTOR],
+        selector: m.mem8[SCREEN_UNFLIPPED],
         main: m.mem8[MAIN_PANEL],
         cocktail: m.mem8[COCKTAIL_PANEL],
         arriving: m.regs.a,
@@ -149,7 +149,7 @@ const MIRROR_PAIRS = [
 
 function crafted(selector, [main, cocktail]) {
   const m = baseEntry().clone();
-  m.mem8[SELECTOR] = selector;
+  m.mem8[SCREEN_UNFLIPPED] = selector;
   m.mem8[MAIN_PANEL] = main;
   m.mem8[COCKTAIL_PANEL] = cocktail;
   return m;
@@ -287,13 +287,13 @@ function brokenNoOp() {}
 /** BUG: hands the byte back as a return value only, leaving the register a caller reads stale. */
 function brokenReturnOnly(m) {
   const { mem8 } = m;
-  return mem8[mem8[SELECTOR] !== 0 ? MAIN_PANEL : COCKTAIL_PANEL];
+  return mem8[mem8[SCREEN_UNFLIPPED] !== 0 ? MAIN_PANEL : COCKTAIL_PANEL];
 }
 
 /** BUG: reads the other panel's mirror on both arms of the branch. */
 function brokenPanelsSwapped(m) {
   const { regs, mem8 } = m;
-  regs.a = mem8[mem8[SELECTOR] !== 0 ? COCKTAIL_PANEL : MAIN_PANEL];
+  regs.a = mem8[mem8[SCREEN_UNFLIPPED] !== 0 ? COCKTAIL_PANEL : MAIN_PANEL];
   return regs.a;
 }
 
@@ -314,7 +314,7 @@ function brokenAlwaysCocktail(m) {
 /** BUG: tests the selector's low bit rather than the whole byte, so even values invert. */
 function brokenLowBitSelector(m) {
   const { regs, mem8 } = m;
-  regs.a = mem8[(mem8[SELECTOR] & 1) !== 0 ? MAIN_PANEL : COCKTAIL_PANEL];
+  regs.a = mem8[(mem8[SCREEN_UNFLIPPED] & 1) !== 0 ? MAIN_PANEL : COCKTAIL_PANEL];
   return regs.a;
 }
 

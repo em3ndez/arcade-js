@@ -143,6 +143,26 @@ export const COIN_SLOT_2_RATIO = 0xa9cc;
 export const PLAY_ACTIVE = 0xad30;
 
 /**
+ * Whether the picture is the right way up for whoever is playing: 1 upright, 0 turned round. [seen]
+ *
+ * The vblank service rewrites it every frame -- 1 unconditionally, then 0 only when the cabinet cell
+ * says cocktail AND the player-select cell is clear -- and hands it straight to the LS259 bit the
+ * board reports as flip-screen. Three routines read it and all three read it as orientation: the
+ * sprite publish chooses between its upright and turned-round transform sets, the control reader
+ * chooses which cabinet panel to hand back, and loc_13cc chooses which corner to flood from.
+ *
+ * Watched under MAME it takes exactly two values and no others across 29400 frames. With the Cabinet
+ * dip at its default it held 1 on every frame after the first interrupt and the clearing store never
+ * ran at all; with the dip at cocktail and a second player started it took 0 for 3007 frames, and the
+ * sprite publish's turned-round arm went from 1 dispatch to 3008 in step.
+ *
+ * Three writers, and the third matters: boot clears the whole of work RAM, so the cell reads 0 --
+ * "turned round" -- until the service's first store. That is why the turned-round publish arm runs
+ * exactly once on a cold machine. The clear agrees with the name rather than excepting it.
+ */
+export const SCREEN_UNFLIPPED = 0xa987;
+
+/**
  * Which era (the manual's ROUND) is being played, 0-4. [seen]
  *
  * The single most widely read cell in the game and, until this pass, the most conspicuous one with
@@ -367,8 +387,12 @@ export const KILL_QUOTA = 0xa9cd;
  * why ramming kills outright instead of costing one hit.
  *
  * Watched under MAME it was armed to 3 by one routine and walked down 2, 1, 0 by the absorb path.
- * It is not the only writer: boot clears the block this cell sits inside, so the sibling cells'
- * "nothing else writes it" claims hold only because they sit OUTSIDE that block. That capture
+ * It is not the only writer. Power-on clears the WHOLE of work RAM (0xA800-0xAFFF, the `ldir` at
+ * 0x0091), so boot writes every cell in the page and no cell is exempt from that. Two narrower
+ * blocks are cleared again later, but by the ATTRACT SETUP rather than by a round: both sit behind
+ * a test of the play flag and are skipped exactly when a credited game begins. Any "nothing else
+ * writes it" claim elsewhere in this file is about the game's own stores and not about either
+ * wipe. That capture
  * reached only the first two eras, so the values seen are 0-3; whether a later object arms it
  * higher is not established here.
  */
@@ -487,7 +511,7 @@ export const ROUTINES = {
     name: "retireSlot",
     role: "retire an object, zeroing only the INTEGER halves — occupancy byte and both sprite-entry coordinates — leaving the sub-pixel remainders standing",
     cert: "code",
-    why: "no file calls both this and the sibling retire helper -- the two caller sets are statically disjoint, which is what makes them two families' helpers rather than two versions of one; and loc_3dfb re-arms a cooldown byte after calling it, a slot going back on cooldown rather than an object deleted",
+    why: "no file calls both this and the sibling retire helper -- the two caller sets are statically disjoint, which is what makes them two families' helpers rather than two versions of one; and retireSlotIntoSharedCooldown re-arms a cooldown byte after calling it, a slot going back on cooldown rather than an object deleted",
   },
   0x0010: {
     name: "fetchTableWord",
@@ -501,6 +525,12 @@ export const ROUTINES = {
     cert: "code",
     why: "loc_0eeb calls it on a blanked digit and returns so the caller's following advanceCharCursor nets to zero -- a suppressed digit consuming no cell is only coherent if the two are exact inverses on the same axis; MAME's ROT90 maps an increasing native row to a decreasing display column, which is the direction retreat names",
   },
+  0x00c7: {
+    name: "stampGridBox",
+    role: "lay the four corner tiles of one hollow sixteen-by-sixteen box into the character plane at the cursor -- two cells across and two rows down -- and give the cursor back unmoved",
+    cert: "seen",
+    why: "'box' is the refutable half and the tile ROM settles it: codes 86, 131, 199 and 239 decode through this board's character layout as a top edge with a left edge, a top edge with a right edge, and the two matching bottom halves, which assemble into a closed rectangle and nothing else. 'Grid' is the caller: loc_00b1 runs this over 224 distinct cursors stepping two cells across and two rows down, and a MAME write tap attributed to this routine's own stores counted 896 writes to 896 DISTINCT cells spanning 0xA440-0xA7BF -- a regular tiling of 28 of the plane's 32 lines, where a caption would have been a handful. It does NOT claim a gameplay background: the same runs show the plane already blank before the fill, the fill standing for about 200 frames from power-on with the video-enable bit set, and the boot wipe erasing all 896 cells before the attract sequence starts",
+  },
   0x018c: {
     name: "fetchWideTableWord",
     role: "fetch the word an index selects from a word table, with the index doubling carrying into the high byte so the table may run past the reach of its narrow sibling",
@@ -512,6 +542,12 @@ export const ROUTINES = {
     role: "stamp the four fixed pieces of the copyright caption into the display-list shadow; it reads nothing, so re-stamping changes nothing",
     cert: "code",
     why: "sibling hideCaptionSprites zeroes the vertical byte of exactly these four slots and nothing else, so an outside routine treats them as one addressable unit; the shapes it places decode out of the sprite ROM as the glyphs of the copyright caption, in the order it places them",
+  },
+  0x0e9c: {
+    name: "paintDoubleTile",
+    role: "lay one two-tile block into the character plane from a base code the caller fixes -- the base below the cursor and the base plus one at it -- colour both cells a plane below, and step the cursor clear of the block",
+    cert: "seen",
+    why: "the family is named by BLOCK SIZE, as paintQuadTile's entry records, and this is the member the count of FIVES drives -- checkable, and checked on the real machine. Neither MAME sweep reached it, because the only argument either sweep presented to the routine that splits a value into thirties, tens, fives and ones was 1; posting that routine's ring command by the ROM's own protocol with the argument 37 -- one thirty, no tens, one five, two units -- dispatched this routine exactly once, paintQuadTile exactly once and the single-tile painter twice more, and a write tap caught this one laying codes 0x32 and 0x33 into two character cells with colour 0x11 in the two cells a plane below. Any other reading of the denominations gives different counts",
   },
   0x0f11: {
     name: "advanceSequencePhase",
@@ -626,6 +662,12 @@ export const ROUTINES = {
     role: "queue one fixed command, with its one fixed argument, in the command ring -- both bytes are chosen here and whatever the caller held is discarded; the pair is dropped when the slot the write cursor names has not been consumed, and this entry never learns that",
     cert: "code",
   },
+  0x0c23: {
+    name: "drawCaptionTenPastSharedColour",
+    role: "paint the caption an index selects from the shared record table, taking the destination and the glyph run from the record but the colour from a cell outside it, ten past that cell's value and kept to four bits",
+    cert: "seen",
+    why: "the discriminating claim is the OFFSET, and the image holds the set that makes it one: the handler table at 0x0BBC sends three entries to routines that read the SAME cell and add 0, 5 and 10 before the same four-bit mask, all three ending in drawTextRun, while a fourth takes the colour the record itself carries. The name deliberately does not say the colour cycles, because that was refuted: a read tap logging the accumulator and the source cell together on every dispatch found this handler painting caption 27 at source value 2 and caption 28 at source value 3, every time and at no other value, across 90 s of attract and a 200 s driven game -- its own colour never moved. The flashing comes from the three handlers taking turns at one caption",
+  },
   0x0ce8: {
     name: "loc_0ce8",
     role: "an exit with nothing left to do: no cell is read or written and no register moves",
@@ -662,6 +704,12 @@ export const ROUTINES = {
     cert: "seen",
     why: "the name claims a line at a time, not a screen and not a cell, and that is countable from outside: a read tap at this entry on the real ROM under MAME counted exactly 32 dispatches through the boot wipe, in two independent runs. A whole-screen wipe would have been one, a cell at a time 1024, and 32 is the tilemap's line count. Both callers then `ret nz` on the flag it leaves, which is what makes the wipe span frames rather than run to completion inside one call -- so a name saying merely 'blank' would drop the half the callers use",
   },
+  0x0365: {
+    name: "publishSpriteShadow",
+    role: "gather the sprite shadow into the two hardware banks, three runs per bank in an order that is not their order in memory, transforming each byte by which half of its sprite it is and which way round the cabinet has the picture; then, inside one window of the sequence, ask for the eight scenery slots to be shown a second time half a screen away",
+    cert: "seen",
+    why: "which half is which coordinate was the open question, and the transform table answers it in a way that could have come out otherwise. The second byte of each bank-1 sprite is complemented past fourteen when the picture is upright and merely stepped on when it is turned round; 241-(b+1) is exactly 240-b, so that byte is the vertical coordinate under the board's own reading of the driver (sy = 241 - value), and on the same argument the first byte of a bank-0 sprite is the horizontal one, the second is the tile code, and the first byte of a bank-1 sprite is the attribute, since the turned-round arm toggles exactly its two flip bits. Grounded: under MAME both banks matched that reconstruction on all 48 bytes on every quiet frame of an upright run, and with the Cabinet dip at cocktail on player two's turn every bank-0 byte matched the TURNED-ROUND reconstruction instead -- an arm that took 1 dispatch upright and 3008 flipped, while this entry's own dispatch count stayed equal to the NMI count in every run, which is what a sole caller in the vblank service looks like from outside. The eight sprites it raises are the scenery band entire, split by its own reorder into the three it promotes to the front and the five it sends to the back, and what it adds is half a screen on both axes to the same slots multiplexSpriteSlots walks",
+  },
   0x0809: {
     name: "drawKillMeter",
     role: "repaint the meter that shows how many kills are still owed: a bar of era-selected glyphs one cell long per four kills, an end glyph carrying the remainder, and one blanking cell past it",
@@ -679,6 +727,12 @@ export const ROUTINES = {
     role: "carry an object diagonally onto one more sprite entry, cornering off the one it already occupies: a pitch back along the high axis and a pitch on along the low one, in one 16-bit add so the low axis's wrap borrows",
     cert: "code",
     why: "placeAbuttingTile's registry entry already called this address the diagonal sibling before it was decompiled, and the write-set could have contradicted that: it does not -- the step is -16 on the entry's +49 byte and +16 on its +0 byte. loc_2d21 chains placeAbuttingTile then this one, which lays three tiles on three corners of a square -- the fourth corner is never written; loc_2d15 chains two straight ones and lays a strip",
+  },
+  0x3dfb: {
+    name: "retireSlotIntoSharedCooldown",
+    role: "retire a slot the way retireSlot does and then arm its delay byte from one shared address instead of leaving it clear, so every slot retired here goes out holding the same value",
+    cert: "code",
+    why: "'cooldown' is retireSlotIntoCooldown's claim about the same record byte, and that entry's own why already names this routine as the sibling that re-arms the byte after calling retireSlot, citing the six sites outside it that form the loop. What this name adds is 'shared', and the source could have been an immediate: it is one address read by six sites, and MAME shows the value is not fixed -- 0x1E through the attract demo and 0x42, 0x48 then 0x4E across a driven game, restamped by the routine that loads a per-era table block. A cooldown length chosen elsewhere and travelling is not something an immediate can do",
   },
   0x3e05: {
     name: "flyAlongStoredVelocity",
@@ -832,6 +886,12 @@ export const ROUTINES = {
     role: "turn an object's heading two units toward the heading it aims at, on the three frames in four when the frame counter's low two bits are not both clear; a fixed step, where its sibling steerTowardAimHeading takes its rate from a table",
     cert: "code",
     why: "the name says the byte it writes is the heading MOTION follows, and its caller could have refuted that: loc_41b8 re-aims by writing the aim byte every sixteenth frame, calls this routine, and then calls the flier whose first instruction reads the very byte this one wrote. A caller that used the result as a table index, or a flier that read the aim instead, would have killed the name. Read taps under MAME counted zero dispatches on two tapes in eras 0-1 and 8225 on one holding the era at 4. ★ The name deliberately does NOT say 'the short way round': the direction test is taken on the gap PLUS ONE, so a gap of exactly 127 turns long; the standing band is two wide and off centre, at gaps of 0 and 255; and because the step is TWO the gap's parity is invariant, so which of those two it comes to rest on follows that parity and not the side it approached from. Sibling 0x4201 has the same biased tests with a step of one, which makes it side-determined instead -- same shape, different mechanism",
+  },
+  0x46db: {
+    name: "retireEntryPairIntoCooldown",
+    role: "clear a record's occupancy byte and both coordinates of TWO neighbouring sprite entries, then arm the record's delay byte with a fixed value rather than leaving it clear",
+    cert: "code",
+    why: "'pair' is the whole of the claim and the caller settles it from outside: loc_43b7 refuses to spawn unless the occupancy bytes of BOTH the record at 0xA8A0 and the record one stride on are clear, and then hands this routine that record with the matching entry base 0xAA24 -- so the thing retired occupies two entries by the caller's own test, not by this routine's shape. Its second caller reaches it conditionally from a different file, so the shape is not one caller's habit. The byte it arms is the offset retireSlotIntoCooldown and retireObjectAndHold arm with 0xF0 and 0x80; this site's value is 95, and nothing here fixes the tick rate",
   },
   0x48ad: {
     name: "retireSlotIntoCooldown",

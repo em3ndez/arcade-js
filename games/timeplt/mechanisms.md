@@ -141,6 +141,35 @@ Three cells are easy to conflate and mean different things: `[code][seen]`
 An accepted coin is therefore not a banked credit on any setting that charges more than one coin
 per credit.
 
+### Work RAM is cleared three times, and only one of them is the power-on wipe
+
+| clear | extent | when |
+|---|---|---|
+| `ldir` at `0x0091` | `0xA800`-`0xAFFF` — **all of it** | once, from reset: the reset routine falls through to `jp 0x0069` and the wipe is the third thing it does |
+| `ldir` at `0x2860` | `0xAA80`-`0xAADF` (the shot array) | attract/demo setup |
+| `ldir` at `0x286D` | `0xA800`-`0xA97F` (the record array and the block after it) | attract/demo setup |
+
+`[code]` for the extents, read off the setups; `[seen]` for the timing.
+
+**Every work-RAM cell therefore has the power-on wipe as a writer**, and a "nothing else writes
+this" claim about any of them is a claim about the game's own stores, not about the whole history
+of the byte. Because the wipe is a real instruction and not the emulator starting RAM at zero, a
+cell's post-reset value is a property of the machine and can be relied on: it is why the sprite
+publish's turned-round arm runs exactly once on a cold machine whatever the RAM powered up holding.
+
+★ **The two narrower clears are NOT a round init.** They sit behind `ld a,(PLAY_ACTIVE) / and a /
+jr z` — taken only when the play flag is CLEAR — so they run when the demo sets itself up and are
+skipped when a credited game starts. `[seen]`: over 200 s each, attract entered that routine three
+times and ran both clears three times, once per demo start, while a run containing a real game
+entered it once, on the frame the start press raised the play flag, and ran them zero times. They
+are not keyed to the round either: `startNextRound` took zero dispatches in both runs while the
+round number still advanced through the per-player context copy.
+
+There is a second door to the power-on wipe, and it cannot open on a genuine image: `call nz,0x0069`
+at `0x01FD`, after folding 256 bytes from `0x0E33` and subtracting 0xFD. The fold over the real
+image comes to exactly 0xFD, so the call is not taken — another member of the anti-tamper family
+above, whose failure arm is "wipe everything and start again". `[code]`
+
 ### What a coin buys: two slots, each with its own price
 
 The coinage switches are read once, complemented, and unpacked through a small ROM table into one
@@ -406,6 +435,15 @@ families use them differently again. Any single name for that block would be wro
 | `+0x0E` | release delay, then a general cooldown |
 | `+0x0F` | slot ordinal, stamped once at round init and used as a round-robin key |
 
+★ **Some record bytes are per-slot PARAMETERS, stamped once per era and never touched by the slot's
+own handler.** One routine reads a table block chosen by the era and distributes its bytes to
+`+0x04`, `+0x06` and `+0x07` of six named records — so a byte inside the record array can be read by
+code that has nothing to do with that slot. The clearest case is `0xA8F6`, offset `+0x06` of the
+last actor record: six retire sites outside it copy it into whatever record they are retiring, as
+that record's cooldown. `[seen]` for the value travelling — it is `0x1E` through the attract demo
+and `0x42`, `0x48`, `0x4E` across a driven game, restamped six times by the era loader. Anyone
+reading the offsets table as "every byte of a record belongs to that record" will misread these.
+
 The record holds **no** whole coordinate for actors, no sprite code and no colour. Those are in the
 entry: X, tile code, attribute (colour plus two flip bits), Y. `[code]`
 
@@ -482,14 +520,30 @@ test instead of this routine, which is suggestive and not proof.
 
 **Sprites** reach the hardware through a DMA that runs first thing in the vblank service, copying
 two 48-byte shadow bands into the two hardware sprite banks. It is the largest routine in the game.
-It is transcribed, but it has not been brought into the idiomatic layer. It does two things beyond
-copying:
+It does two things beyond copying:
 
 1. **It encodes Y** as `~(Y + 0x0E)`, which is exactly the inverse of what MAME reads back — so the
    shadow's Y byte is literally the sprite's native top row. `[code]`
 2. **It reorders the bands**, and the reorder is a priority arrangement. MAME paints from the
    highest hardware offset down, so the lowest offset is painted last and wins overlaps. The DMA
    places three scenery entries at the very lowest offsets and the rest at the very highest.
+
+★ **Which byte of a sprite is which is settled, and the flipped variant is what settles it.** A
+sprite is two bytes in each bank. Bank 0 holds the horizontal coordinate then the tile code; bank 1
+holds the attribute — colour with two flip bits — then the vertical coordinate, encoded so that the
+hardware reads back `241 - value`. The DMA's own transform table is the proof, because the flipped
+variant has to mirror the same quantities: it complements the bank-0 first byte past fifteen
+(`240 - X`), leaves the second alone (a tile code has no handedness), toggles exactly two bits of
+the bank-1 first byte (the two flip flags), and merely steps the bank-1 second byte on by one —
+which is the *same* encoding applied to `240 - Y`, since `241 - (Y+1) = 240 - Y`. Four transforms,
+one reading, no spare parts. `[seen]`: with the cabinet dip at cocktail on player two's turn, every
+one of bank 0's 48 bytes matched the mirrored reconstruction, and the flipped arm went from 1
+dispatch to 3008 in step with the orientation flag; upright, both banks matched the plain
+reconstruction on all 48 bytes.
+
+The single upright dispatch of the flipped arm is not noise. Boot clears the whole of work RAM, and
+the DMA runs BEFORE the store that sets the orientation flag, so the first publish of a cold machine
+is always the turned-round one. `[seen]`
 
 ★ **A coherence check that could have failed and did not:** the three entries the DMA promotes to
 front-most are exactly the ones the fastest parallax rung occupies, and the slowest rung lands at
@@ -530,6 +584,14 @@ at the DMA's own tail. What it would store is the *encoded* Y plus 0x80, and the
 addition decides whether the slot is displaced at all: when it is set, the Y store and the partner X
 bump are both skipped and the slot keeps whatever the copy loop wrote. Either way the bit ends up
 set. `[code]`
+
+**The slots the tail sets are the scenery band entire, and the DMA's own reorder is what hides
+that.** The tail reaches eight sprites at bank offsets 0, 2, 4 and 38, 40, 42, 44, 46 — which look
+like two unrelated groups until you undo the copy: they are the three scenery entries the DMA
+promotes to the front-most hardware offsets and the five it sends to the back, i.e.
+`0xAA30`-`0xAA3E` with nothing else. So the request is posted for every scenery slot and for no
+actor. `[seen]`: on frames sampled just after the tail had run, exactly those slots read as their
+transform plus `0x80` on the horizontal byte with the top bit set on the vertical one.
 
 ★ **Across a gated frame, the bit's state tracks serviced against not-yet-serviced.** The tail sets
 it over exactly the slots the multiplexer walks — the two cover the same slots in the same order —
@@ -744,8 +806,11 @@ the cell non-zero it decrements it, puts the object's state byte back to alive, 
 returns the object to its live handler — the hit is ABSORBED and nothing else changes. Only a hit
 that finds the cell already zero falls through to the explosion and the retire. Watched under MAME
 the cell was armed to three by one routine and walked down 2, 1, 0 by that absorb path. It is not
-the cell's only writer: boot clears the whole block this cell sits inside, which is why the
-neighbouring cells that DO claim a sole writer can — they sit outside that block. `[seen]`
+the cell's only writer: power-on clears the WHOLE of work RAM — `0xA800`-`0xAFFF`, the `ldir` at
+`0x0091` — so every cell in the page is written at boot and none is exempt. Two narrower blocks are
+cleared again later, but by the ATTRACT SETUP rather than by a round: both `ldir`s sit behind a test
+of the play flag, and a driven run that took the credit ran neither of them. Sole-writer claims elsewhere in this document are about the
+game's own stores, not about the power-on wipe. `[seen]`
 
 ★ **The object wears its damage.** The second era's dresser reads the same cell as *the most it can
 take minus what is left* and steps a shape base in fours on the result, so a fresh bomber and a
@@ -980,10 +1045,16 @@ Four command handlers draw a caption from the same record table. One takes the c
 record. The other **three ignore that byte and derive the colour from one cell, each adding its own
 fixed offset** before masking to four bits. Post them in rotation at the same caption and its cells
 change colour every few frames; post only one and the colour is whatever that cell holds, held
-still. `[seen]` — a write tap on the colour cell under an attract caption attributes the rotation to
-three separate arrivals through the shared painter, and across a long attract run each caption index
-was drawn at one and only one value of the source cell, so no single handler ever changed its own
-colour.
+still. The three offsets are **0, 5 and 10** — equally spaced round the sixteen-colour wheel the
+mask implies — and the fourth handler, the one that takes the record's own colour byte, is the entry
+the handler table sends index 1 to. `[code]` for the offsets, which are immediates in the image.
+`[seen]` — a write tap on the colour cell under an attract caption attributes the rotation to three
+separate arrivals through the shared painter, and across a long attract run each caption index was
+drawn at one and only one value of the source cell, so no single handler ever changed its own
+colour. Re-measured from the other side: a read tap at each of the three entries, logging the
+accumulator and the source cell together, found the `+10` handler painting caption 27 at source
+value 2 and caption 28 at source value 3, every time and at no other value, across 90 s of attract
+and a 200 s driven game. A handler that cycled its own colour could not do that. `[seen]`
 
 The source cell is not a frame counter. It is written from a ROM table on the sequence's own steps,
 takes a handful of values in an attract loop, and never reaches the wrap its four-bit mask implies.
@@ -1032,12 +1103,36 @@ per denomination, and a different SIZE: one tile for the units, two for the five
 block for both the tens and the thirties, the last two differing only in which tiles and which
 colour. The row is padded out to its end with the blanking glyph. `[code]`
 
-★ **The four-tile painter has not been seen to run.** Neither MAME sweep reached it. Two sites in
-the image post this handler's command: one passes a constant one, which routes to the single-tile
-painter alone; the other passes a work-RAM cell, stepped on the same path that steps `ERA_INDEX` and
-tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated — and ten is the
-smallest that gives the tens a non-zero count. That is "not reached by these sweeps", and it is not
-a dead-code claim.
+★ **Both the four-tile and the two-tile painter have now been made to run, and the argument that
+reaches the splitter in attract is not the round number.** A read tap on the splitter's accumulator
+says the value it is handed on the path the attract loop and a driven game both take is **1** — the
+constant, from the first of the two posting sites — so the strip lays one unit pictogram and
+thirteen blanks, and the fives and thirties painters cannot fire. Holding `ROUND_NUMBER` and both of
+its saved copies at 37 for a whole run changed nothing, which is the cleanest evidence that this
+path does not read that cell. Posting the ring command directly with the argument 37 — one thirty,
+no tens, one five, two units — dispatched the four-tile painter exactly once, the two-tile painter
+exactly once and the single-tile painter twice more, and a write tap caught the two-tile one laying
+codes `0x32`/`0x33` and the four-tile one laying `0x23`-`0x26`, both coloured `0x11` a plane below.
+`[seen]`. **The strip is fourteen positions long whatever the value**, padded out with the blanking
+glyph. The second posting site, the one that passes `ROUND_NUMBER`, still needs a completed round
+and no tape has finished one.
+
+### A grid of empty boxes runs at power-on, and is wiped before the attract loop
+
+Between the dip-switch read and the first interrupt, one routine tiles 28 of the character plane's
+32 lines with a 2×2 block of four fixed codes. Decoded through the board's own character layout the
+four are the corners and edges of **a closed 16×16 box**, so what the plane carries is a grid of
+hollow boxes, 16 across and 14 down. `[code]` for the tiles.
+
+It really is on the glass, and it really does go. `[seen]`: a census of the same 896 cells found the
+plane already blank before the fill (all blanking glyph), the full pattern standing from frame 35 to
+frame 236 with the video-enable bit set, 812 cells left at frame 240, and none at frame 300 — the
+boot wipe, which cannot start until the interrupt does. About three and a half seconds of a cold
+machine, once per power-on, and never again: the tiling routine dispatched once in every run and the
+block-stamper 224 times, to 896 distinct cells with no cell written twice.
+
+This is a power-on pattern, not a background. Nothing in the game draws on it and nothing restores
+it.
 
 ### Player shots live here too
 
@@ -1402,6 +1497,21 @@ determination the sweep does not supply.
 A measurement from `new Machine(ROM).runFrames(...)` is our engine replaying the ROM. It earns
 `[code]`. This is stated twice in this document on purpose.
 
+★ **A read tap counts the debugger's own reads.** A Lua `read_u8` from a frame notifier goes through
+the tap like any other access, and the program counter it is attributed to is wherever the CPU
+happens to be parked — so a per-frame sample of three cells produced three IDENTICAL, plausible
+program-counter histograms concentrated in the command-ring drain loop, a routine that reads none of
+the three. Two things caught it: the counts summed to exactly the frame count, and the loop's own
+disassembly reads `0xACxx`. Guard every debugger-initiated access with a flag the tap checks, or the
+instrument reports its own footprints as the game's.
+
+★ **A dip override can read back as not-taken on the frame it is set.** Setting the cabinet dip and
+reading `0xC200` in the same notifier call returned the unchanged default, and the field's own value
+also read unchanged — yet the override had taken: later in the same run the port read with the bit
+set, the field reported the new value, and the game's cocktail cell was non-zero for a quarter of
+the run. Read a dip back on a LATER frame. An immediate read-back is a false negative, which is the
+failure mode most likely to make someone abandon a working experiment.
+
 ### ★ Two routines the memory-equivalence contract cannot express
 
 Memory-equivalence drops the T-state clock deliberately: a rewrite is judged on the bytes it leaves
@@ -1487,11 +1597,25 @@ These need someone's attention, not a new capture and not a new lift.
 - Whether the ship's **nose** is drawn along its direction of travel. The travel direction itself is
   settled (§5); which way `spriteForHeading` points the sprite for a given heading is not, and a
   16×16 sprite eyeballed off a snapshot is not the instrument for it.
+- **What the per-player colour byte at `0xAD0C` IS.** Every reader treats it as a colour — three
+  caption handlers at offsets 0, 5 and 10, the round-number digits, a colour-plane fill, a straight
+  store into the colour plane — but it is byte 12 of the sixteen-byte per-player context block,
+  `[seen]` being saved and restored by the two block copies, and one writer uses it as a
+  has-this-changed marker that steps the sequence when the ROM table it walks stops changing. It
+  takes four values in an attract loop and two in a driven game, and never approaches the wrap its
+  four-bit mask implies. A name has to survive all of that and none of ours does yet.
 
 ### The states no instrument has visited
 
 Two-player alternating play, the difficulty tiers, deliberate death, the later eras, the loop wrap,
 and high-score initials entry. Each is a hole of the same shape: code serving it reads as dark.
+
+- **The high half of the sequence sub-step table.** The dispatcher masks the sub-step to four bits
+  and jumps through sixteen words, but a tap on its own dispatch byte recorded only nibbles 0-7
+  across boot, attract, the demo, the credit state and a driven game. Slot 15 is a bare `ret`
+  reached by nothing else in the image; whether it is a deliberate idle rung or a filler for an
+  index the machine never produces is not decidable from any state we have driven, which is why
+  `loc_15b5` keeps its address.
 
 ★ **And the fix is cheap and already demonstrated.** Poking the stage cell is a working grounding
 technique on this game — exactly as poking board state was on Donkey Kong. A driver that sweeps the
