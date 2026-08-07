@@ -15,14 +15,98 @@ validated **pixel-exact against MAME**. Not a re-implementation from observation
 disassembled and translated instruction by instruction, then checked frame against frame until
 the pixels match.
 
-That falsifiable translation is the foundation. On top of it the port is made **readable** — routines
-are decompiled to idiomatic JavaScript, each still proven memory-equivalent to the translation (a sweep
-that's complete for The Pit and ongoing for Donkey Kong) — and **understood** — the game's mechanics
-*grounded by playing it in MAME*, not guessed from the code.
-The same oracle does double duty: a **gate** that proves the pixels match, and a **probe** we drive
-to learn what the game means. The whole method is one page: [docs/README.md](docs/README.md).
+That falsifiable translation is the foundation. What's built on top of it is the part worth looking at.
 
-**Donkey Kong** is the first subject, and it is complete. **The Pit** (Zilec/Centuri, 1982) is
+## The ROM comes back as readable code
+
+A pixel-exact translation is still machine code wearing a JavaScript costume — correct, and nearly
+as opaque as the bytes it came from. So every routine is **decompiled again**, into idiomatic
+JavaScript with **English names and comments that explain what the code is for**. Same routine,
+three levels:
+
+**1. The original Z80**, disassembled from Time Pilot's `maincpu` ROM. Eight bytes at `0x43E8`:
+
+```
+43E8   xor a              ; total = 0
+43E9   add a,(hl)         ; add the byte under HL
+43EA   inc hl
+43EB   djnz 0x43E9        ; ...B times
+43ED   jp 0x07AD          ; tail into the next link
+```
+
+**2. The faithful translation** — instruction for instruction, cycle counts and all. This is the
+layer the pixel gate proves correct. Its comments are transcriptions of the assembly, not
+explanations of it: the code exists to be *right*, and its shape is the machine's, not a
+programmer's. `games/timeplt/translated/loc_43e8.js`:
+
+```js
+// loc_43e8  (ROM 0x43E8-0x43EF, Time Pilot)
+export function loc_43e8(m) {
+  const { regs, mem } = m;
+
+  regs.xor(regs.a);
+  m.step(0x43e9, 4); // xor a
+
+  do {
+    regs.add(mem.read8(regs.hl));
+    m.step(0x43ea, 7); // add a,(hl)
+    regs.hl = (regs.hl + 1) & 0xffff; // 16-bit INC: no flags
+    m.step(0x43eb, 6); // inc hl
+    regs.djnz(); // djnz -- no flags
+    m.step(regs.b !== 0 ? 0x43e9 : 0x43ed, regs.b !== 0 ? 13 : 8); // djnz 0x43e9
+  } while (regs.b !== 0);
+
+  m.step(0x07ad, 10); // jp 0x07ad -- TAIL, nothing pushed
+  return m.call(0x07ad);
+}
+```
+
+**3. The decompilation.** Same behaviour, proven memory-equivalent to the layer above — and it now
+says what it is *for*. `games/timeplt/idiomatic/sumImageBlockForTheTamperCheck.js`:
+
+```js
+/** sumImageBlockForTheTamperCheck — add a run of bytes together and hand the total on to the routine this entry
+ * transfers into, reached by a jump so that routine's own return carries this one. The run is
+ * walked forward from a pointer; the length means a full 256 when it is zero and the total wraps
+ * at eight bits. Nothing is written and nothing is compared: this entry produces a number, and
+ * what is made of it belongs to the chain. The flags the additions leave are not reproduced.
+ * LIVE-OUT: memory, whatever the chain writes; plus the total and the pointer, handed on. */
+
+import { u8, u16 } from "../../../core/int.js";
+
+const LENGTH_ZERO_MEANS = 256;
+const CONTINUATION = 0x07ad;
+
+export function sumImageBlockForTheTamperCheck(m, base = m.regs.hl, length = m.regs.b) {
+  const { regs, mem8 } = m;
+  const run = length === 0 ? LENGTH_ZERO_MEANS : length;
+  let total = 0;
+  for (let i = 0; i < run; i++) total = u8(total + mem8[u16(base + i)]);
+  regs.a = total;
+  regs.hl = u16(base + run);
+  regs.b = 0;
+  return m.call(CONTINUATION);
+}
+```
+
+Both blocks are the complete files, with only the SPDX licence header removed.
+
+**That name is the point.** Nothing in the ROM says "tamper check" — the bytes are a summing loop
+and nothing more. That this run of image bytes is a *checksum the game later tests against itself*
+was recovered by driving the real ROM under MAME and watching where the total goes. The names and
+the comments carry findings that are not in the machine code at all.
+
+Every such routine keeps a gate proving it memory-equivalent to the faithful translation, so
+readability is never bought with correctness. The sweep is **complete for The Pit** and **ongoing
+for Time Pilot and Donkey Kong**.
+
+Alongside the code, the game's **mechanics** are written up in the same way: *grounded by playing it
+in MAME*, not guessed from the source. The same oracle does double duty — a **gate** that proves the
+pixels match, and a **probe** we drive to learn what the game means. The whole method is one page:
+[docs/README.md](docs/README.md).
+
+**Donkey Kong** is the first subject, and its port is complete — the decompilation sweep above is
+the part still running on it. **The Pit** (Zilec/Centuri, 1982) is
 the second, and it was chosen deliberately: **no public disassembly of it exists**, so there was
 nothing for a model to have memorized — the agents had to recover it from the raw ROM. That makes
 it the sharper test of the thesis, and the same falsifiable pixel gate keeps it honest. The repo
@@ -113,7 +197,7 @@ boards/               arcade hardware, named by MAME driver (a "board")
   dkong/hardware.json the same, as JSON: the single source the shared Python gate
                       tools read via --hardware, instead of hardcoding DK addresses
   dkong/test/         unit tests for the board
-games/                one directory per romset (dkong, thepit)
+games/                one directory per romset (dkong, thepit, timeplt)
   dkong/
     manifest.js       declares its cpu + board + rom set + inputs + metadata
     translated/       the assembly-JS translation of the ROM (the frozen oracle)
@@ -125,7 +209,9 @@ games/                one directory per romset (dkong, thepit)
     entrypoints.json  disassembly entry points (folded into the trace)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
   thepit/             the second game — same shape; its mechanisms.md maps the game
-                      as understood so far (see docs/mechanisms)
+                      as understood so far
+  timeplt/            the third game — same shape; translation done, decompilation
+                      in progress
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·
                        gate runner (verdict.sh) — shared, game-agnostic
