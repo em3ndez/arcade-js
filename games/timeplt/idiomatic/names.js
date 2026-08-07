@@ -525,6 +525,11 @@ export const ROUTINES = {
     cert: "code",
     why: "loc_0eeb calls it on a blanked digit and returns so the caller's following advanceCharCursor nets to zero -- a suppressed digit consuming no cell is only coherent if the two are exact inverses on the same axis; MAME's ROT90 maps an increasing native row to a decreasing display column, which is the direction retreat names",
   },
+  0x00a8: {
+    name: "loc_00a8",
+    role: "hand the machine over to its foreground loop and never come back: drive the interrupt-enable bit of the output latch from the byte the caller carries, of which only the low bit reaches the latch, pet the watchdog, then fall in -- neither store reaches work RAM",
+    cert: "code",
+  },
   0x00c7: {
     name: "stampGridBox",
     role: "lay the four corner tiles of one hollow sixteen-by-sixteen box into the character plane at the cursor -- two cells across and two rows down -- and give the cursor back unmoved",
