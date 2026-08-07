@@ -214,6 +214,29 @@ label gives each setting, each destination following its own nibble alone.
 Free play is not a price. Either slot set to it raises `FREE_PLAY`, and the accept path then skips
 the credit arithmetic entirely rather than charging zero. `[seen]`
 
+### Free play is a different start button, not a discount
+
+There are two start paths and they are not the same routine. The coin path debits the credit
+cell in packed BCD. The free-play path **charges nothing at all** — it has no credit arithmetic
+in it — and it is reached only through callers that first test `FREE_PLAY` and, in one case, also
+require the credit cell to be zero. So a free-play cabinet does not run the coin path with the
+price set to nought; it runs different code. `[seen]`
+
+That path reads both start buttons and tests the two-player one **first**: with both held, a
+two-player game starts. It stocks the started players' blocks from the lives setting — both
+blocks for two players, one for one, with the other player's block cleared.
+
+★ **This is why an instrument pointed at a coin cabinet sees the routine at zero.** Across four
+driven MAME runs on the default coinage — including one that started a real two-player game by
+inserting four coins — a read tap at its entry counted nothing. Forcing the coinage port to Free
+Play and pressing a start button with no coin inserted made it run, and pressing the *other*
+button made it take the *other* arm, with neither arm's program counters appearing in the other
+run. `[seen]`
+
+The consequence for anyone measuring this game: **a reachability sweep run on the default DIPs
+cannot see the free-play half of the machine at all**, and a zero there means the cabinet, not
+the code.
+
 ### The ROM checks itself, and a bad copy desynchronises rather than dying
 
 The image is threaded with folds: a routine sums or exclusive-ors a block of ROM, applies a
@@ -236,6 +259,19 @@ must gate on the program counter: **a plain memory read tap counts the ROM readi
 It also means a routine can look live and be dead. Several call sites exist only behind a failed
 fold and never execute on a genuine image, and several of their targets are not routines at all —
 they are word tables that happen to disassemble. `[code]`
+
+Two more sites fold a checksum into a cell that also carries live state, which is what makes this
+idiom dangerous to a reader rather than merely clever. One sums thirty bytes of the image onto the
+**sequence phase** and stores the result back into the phase cell; another folds a word of the
+image into the **sequence sub-step**. On a genuine image the trailing constants net the fold to
+the value the sequence actually wanted, so the cell behaves; on a patched one the machine walks
+into a different phase instead of failing. `[code]`
+
+★ The reader's hazard is not the trap, it is the naming. **These cells have writers that are not
+about what the cell is for**, so a name derived from the obvious writer will be right about the
+role and wrong about the cell — and any claim of the form "nothing else writes it" is false here.
+Enumerate every writer before naming a cell in this game; the power-on clear of work RAM counts as
+a writer too, for every cell inside it.
 
 ---
 
@@ -360,6 +396,13 @@ they compute and the wrappers for what they move. `[code]`
 **Measured under MAME:** each wrapper matched its own fraction on every dispatch and the other two
 on none, with zero mismatches, and every dispatch sat inside the eight scenery slots. `[seen]`
 
+The final era's band is not the others rearranged — it is built from a different set of pieces.
+Where the middle eras place a three-tile object at the fastest rung, one at three quarters and
+one at half, the last era places **two** two-tile objects at the fastest rung, two single tiles
+at three quarters and two at half. The fastest rung there carries the smallest multi-tile object
+in the game. `[seen]` for the composition, from the dispatch counts of the era-4 run; `[code]`
+for reading the tile counts off the wrappers.
+
 ### Depth tracks sprite size — strictly, in the eras we have watched
 
 Each handler places its object's tiles before stepping the slot, so the handler body records how
@@ -398,7 +441,15 @@ player's own handling divides the era index two ways by itself.
 
 Both are consistent with the five rounds the public record describes, and neither implements an era
 as a bundle of settings. The difficulty curve and the scenery curve step at **different rounds**.
-A reader who assumes one era boundary will predict changes that do not happen. `[code]`
+A reader who assumes one era boundary will predict changes that do not happen.
+
+The scenery split is no longer only a code reading. A MAME run holding the era index at 4, whose
+undriven stretch ran at era 1, put both arms of the scenery dispatcher under one instrument, and
+every wrapper's dispatch count came out as the dispatcher's own count times its multiplicity in
+that arm's list — exactly, at both eras, with each arm's members sitting at zero in the other's
+context. Two wrappers belong to the final era and to nothing else. `[seen]`
+
+The rest is `[code]`.
 
 ### Difficulty also climbs INSIDE an era, on a rung of its own
 
@@ -1082,6 +1133,19 @@ pool. `[code]`
 - **There are none in the final era.** The manager's first three instructions read the era index,
   compare, and return. The two sources that addressed the question were right; the one that said
   parachutists appear in every era was wrong. `[code]`
+- **It arrives at the edge of the field, ahead of you.** The manager places its singleton at one
+  of sixteen positions selected by the player's current heading — every one of them within a tile
+  or two of the wrapped field's border, and every one of them within about forty degrees of the
+  direction the plane is pointing. So it is not dropped at random and it is not dropped behind
+  you: it enters from the edge you are flying at. The placement is armed on a cooldown and only
+  on alternate frames. `[seen]` — a write tap on the singleton's two coordinate bytes matched the
+  ROM table against the live heading on every one of nineteen placements, across eight different
+  heading sectors.
+
+  ★ Reading that table without the machine is a trap: the object's two coordinate bytes are
+  `+0x31` and `+0x00` of its sprite entry, and taking them in the wrong order turns "ahead of
+  you" into "behind you" for seven of the sixteen. The player's own entry reads `+0x31 = 0x78`,
+  `+0x00 = 0x84`.
 - **The rung counter is reset by the routine that places a plane on the field**, which is the same
   routine that pins the player's sprite at screen centre — so it covers both losing a life and
   starting a round, which is the shape the secondary record claims. Two routines write the cell in
@@ -1266,6 +1330,13 @@ list is then copied and its cursor reset — all inside the interrupt. Both walk
 colour-plane priority bit and **skip the cell if it is set**, so shots refuse to scribble over
 foreground and HUD cells. `[code]`
 
+The publish step has an empty branch, and it is the branch that keeps the two buffers in step:
+when the staging list has nothing in it, a separate routine puts **both** cursors back to their
+empty sentinels rather than copying nothing over a stale erase list. Measured under MAME by
+program counter, that routine wrote the two heads an equal number of times, while the copying
+branch wrote only the staging head. `[seen]` The same routine is what empties the pair at
+initialisation.
+
 ### ★ A routine that is live, correct, understood — and never reached
 
 `fillCellRun` fills a fixed-length run of cells with one byte. Under every instrument pointed at it,
@@ -1281,6 +1352,42 @@ writes that sub-step directly; the second of the two hands off to the sub-step t
 HUD. So this is the **inter-round / player-change transition**, and a demo that never finishes a
 round never performs one. `[seen]` for the zero dispatches and the sub-step observation, `[code]`
 for the arming path.
+
+### A whole animation machine sits behind the same door
+
+`fillCellRun` is not alone behind the inter-round transition. A **five-step animation state
+machine** on the player's own sprite is dark by exactly the same measurement: a dispatcher that
+switches on a step cell and calls one or two handlers per step, the five handlers, the two
+routines that initialise the step block, and the sound the first handler requests — every one of
+them at **zero dispatches**, across an undriven run, a one-player driven game played to game
+over, a two-player driven game, two free-play runs and an era-4 poked run. `[seen]`
+
+The absence is worth something only because the same instrument, in the same runs, was counting
+five-figure dispatches at other addresses in the same sweep — tens of thousands at a sprite
+dresser and at a scenery wrapper. The taps fire; these routines do not run.
+
+What the machine *does* is readable even though it is never seen to run: each step recolours the
+player's sprite attribute from a counter, preserving the attribute's top two bits and replacing
+the rest, and hands on to the next step when its counter runs out. One step alternates the colour
+field every frame between a value and zero; another alternates between two values every fourth
+frame, on a countdown. That is two different flashes at two different rates. `[code]`
+
+**What it is FOR is not established, and this is the honest shape of the gap:** the code fixes
+the mechanism and cannot fix the occasion. Death is ruled out — §6's write tap shows dying goes
+through the state byte and the death countdown, not through this cell — which leaves a
+celebration, a hand-over or a bonus screen, and nothing we can reach distinguishes them. The
+routines therefore keep their addresses.
+
+No `call` or `jp` to the dispatcher exists anywhere in the ROM. Its address appears as a
+little-endian word at five offsets in the image and not one of them is the operand of a call or a
+jump: four sit inside unrelated data or instruction streams, and the fifth — the one that looks
+like a conditional call, because the byte before it is `0xD4` — is the second byte of a
+`set 2,h`. That is a second method answering the same question as the sweep, *can control reach
+this address*, and it agrees.
+
+It is still **not** a dead-code claim. The dispatcher could be reached through a computed address
+or from a span the disassembly has not covered, and a routine reached only from the screen our
+instruments never see would look exactly like this either way.
 
 ★ **An earlier reading of ours had this wrong, and how it was wrong matters more than the error.**
 It held that the routine was the repair half of a *check-then-repair pair*: that a reachable routine

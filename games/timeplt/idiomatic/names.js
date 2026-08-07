@@ -797,6 +797,12 @@ export const ROUTINES = {
     cert: "code",
     why: "sibling hideCaptionSprites zeroes the vertical byte of exactly these four slots and nothing else, so an outside routine treats them as one addressable unit; the shapes it places decode out of the sprite ROM as the glyphs of the copyright caption, in the order it places them",
   },
+  0x0e8d: {
+    name: "drawSlotWithOneGlyph",
+    role: "paint a two-cell character slot with a single glyph, blanking the other cell of the slot, give both the caller's colour, and step the cursor on to the next slot",
+    cert: "seen",
+    why: "the name predicts a write pair one cell apart with the blanking glyph on the lower address on every dispatch, and a MAME write tap gated to this routine saw 126 dispatches and 126 such pairs with no other shape. Two siblings fix the slot as two cells wide and not one: loc_0e9c writes glyphs into BOTH cells of the same pair and loc_0e70 writes four, all three stepping the same cursor by the same amount -- so the blank is the unused half of a fixed-width slot. It is not leading-zero suppression, which mechanisms.md attributes to a different drawer that chooses its glyph three ways from a carry flag",
+  },
   0x0e9c: {
     name: "paintDoubleTile",
     role: "lay one two-tile block into the character plane from a base code the caller fixes -- the base below the cursor and the base plus one at it -- colour both cells a plane below, and step the cursor clear of the block",
@@ -897,6 +903,12 @@ export const ROUTINES = {
     cert: "code",
     why: "the flag it selects on is the byte the vblank service latches into the LS259 bit MAME reports as flip-screen, and the two cells it chooses between are the frame mirrors of the driver's mono panel and its cocktail twin -- so which panel faces the picture is fixed by hardware outside this routine. Its callers then split the returned word three different ways (the stick nibble, the fire bit edge-detected into a burst, and, in initials entry, individual bits each shifted into their own one-bit edge history), which is what makes the whole word the product rather than any one field",
   },
+  0x2a3c: {
+    name: "refreshSpriteFromHeading",
+    role: "store the shape byte and the attribute byte that show an object pointing the way it is heading into that object's own sprite entry",
+    cert: "code",
+    why: "spriteForHeading returns the pair and this is one of the two sites that consume it; the two bytes land at +0x01 and +0x30 of the same sprite entry whose +0x00 and +0x31 the parallax and flight helpers write as coordinates, so the four bytes are one entry and what is stored is a sprite rather than a state code. A read tap measured 51532 dispatches through driven play and none at all in an undriven run, so whatever it dresses is not on screen in attract",
+  },
   0x2a57: {
     name: "spriteForHeading",
     role: "pick the sprite shape, and the byte beside it, that show an object pointing the way it is heading, alternating between two shape banks as a frame counter's bit turns over",
@@ -954,6 +966,12 @@ export const ROUTINES = {
     role: "queue one fixed command, with its one fixed argument, in the command ring -- both bytes are chosen here and whatever the caller held is discarded; the pair is dropped when the slot the write cursor names has not been consumed, and this entry never learns that",
     cert: "code",
   },
+  0x0c0f: {
+    name: "drawCaptionInPenColour",
+    role: "paint the caption a caller's index selects, taking the glyph run from a record in the table at 0x0C50 and colouring every cell from the low nibble of the shared colour cell instead of from the record's own colour byte",
+    cert: "code",
+    why: "which byte the colour comes from is the only thing separating this entry from its siblings, and a sibling settles it the other way: loc_0bf2 walks the same table and the same record layout and loads the colour FROM the record's third byte -- the byte this routine steps over -- so that byte is the record's own colour and skipping it is the whole of what this entry contributes; loc_0c23 is the same skip with a fixed offset added. mechanisms.md reaches the same split from a colour-cell write tap, recording that four handlers draw from one record table, one taking the record's colour and the others deriving it from a single cell",
+  },
   0x0c23: {
     name: "drawCaptionTenPastSharedColour",
     role: "paint the caption an index selects from the shared record table, taking the destination and the glyph run from the record but the colour from a cell outside it, ten past that cell's value and kept to four bits",
@@ -1008,6 +1026,12 @@ export const ROUTINES = {
     cert: "seen",
     why: "which half is which coordinate was the open question, and the transform table answers it in a way that could have come out otherwise. The second byte of each bank-1 sprite is complemented past fourteen when the picture is upright and merely stepped on when it is turned round; 241-(b+1) is exactly 240-b, so that byte is the vertical coordinate under the board's own reading of the driver (sy = 241 - value), and on the same argument the first byte of a bank-0 sprite is the horizontal one, the second is the tile code, and the first byte of a bank-1 sprite is the attribute, since the turned-round arm toggles exactly its two flip bits. Grounded: under MAME both banks matched that reconstruction on all 48 bytes on every quiet frame of an upright run, and with the Cabinet dip at cocktail on player two's turn every bank-0 byte matched the TURNED-ROUND reconstruction instead -- an arm that took 1 dispatch upright and 3008 flipped, while this entry's own dispatch count stayed equal to the NMI count in every run, which is what a sole caller in the vblank service looks like from outside. The eight sprites it raises are the scenery band entire, split by its own reorder into the three it promotes to the front and the five it sends to the back, and what it adds is half a screen on both axes to the same slots multiplexSpriteSlots walks",
   },
+  0x07d2: {
+    name: "blankFourteenCharCells",
+    role: "blank a fixed run of fourteen character cells, walking back one native row at a time from a fixed cell, and give every one of them the same colour",
+    cert: "seen",
+    why: "the extent of the run is the whole claim, so a MAME write tap gated to this routine's program counters listed the distinct video addresses it touched: exactly 0xA79F - 0x20k for k = 0..13, each 433 times, each the blanking glyph, and no other video address. The name deliberately declines to say where that is on the glass -- the run holds a native COLUMN and varies the native row, which under this board's ROT90 is a display ROW, and no pixels were captured",
+  },
   0x0809: {
     name: "drawKillMeter",
     role: "repaint the meter that shows how many kills are still owed: a bar of era-selected glyphs one cell long per four kills, an end glyph carrying the remainder, and one blanking cell past it",
@@ -1055,6 +1079,12 @@ export const ROUTINES = {
     cert: "seen",
     why: "the attacker is not a parameter, and which object it is decides whether this duplicates destroyTargetsHitByShots or is the other half of the collision system. A MAME write tap recording the program counter at every write of the attacker's state byte settled it: this routine is one of only three writers of the destroyed code, each such write is followed within a frame by a death-countdown reload and, at the end of the countdown, by the life-start routine writing the live code again. The entry it tests stayed at one pinned screen position through the whole run while the world scrolled, and showed no correlation with the fire button. LIVE-OUT is not only memory: both cursors are left where the sweep ended and the caller's tail target reads them",
   },
+  0x526a: {
+    name: "emptyBothDeferredCellLists",
+    role: "put both deferred character-cell lists back to empty, parking each cursor four bytes past its own head",
+    cert: "seen",
+    why: "doing BOTH in one breath is what separates it from the publish step it is the empty branch of, and a MAME write tap by program counter measured exactly that: this routine wrote the two heads 7916 times each, equal counts, while loc_5286's own reset wrote only the staging head, 9849 times. The values are the sentinels both drains test for -- one masking the low byte before subtracting four, the other subtracting four directly -- so 'empty' is fixed by two readers outside this routine. mechanisms.md reaches the pair independently as a double-buffered display list, one walker blanking last frame's cells and another writing this frame's",
+  },
   0x5337: {
     name: "queueTileStampForObject",
     role: "queue a two-by-two block of character cells for an object's position onto the deferred write list, one four-byte entry per cell, skipping a pair whose glyph is zero",
@@ -1101,6 +1131,12 @@ export const ROUTINES = {
     role: "count one record's step timer down and refresh that record's shape byte from the entry the NEW count selects, in the run its own selector byte points at; a timer already at zero is left alone",
     cert: "seen",
     why: "the sharp claim is that the count is also the INDEX rather than only a delay, and that is checkable from outside the routine. Watching one record's three fields under MAME produced six distinct (selector, count) pairs, and in every one the shape byte equalled the byte the ROM's own run-pointer table at 0x3438 puts at that count -- a plain delay would have left the shape unrelated to it. That table has eighteen usable entries and each run is 32 bytes, which is exactly the count the three sites that START an animation load into the step; and since the countdown ends at index 0, every run's FIRST byte is the shape a finished animation is left standing on -- the same shape loc_3855 writes, alongside a zeroed step, into its five records",
+  },
+  0x33b8: {
+    name: "headingToward",
+    role: "return the heading from an object to a point as a byte of a 256-step circle: the signs and relative sizes of the two axis differences pick one of eight octants, and the shorter leg over the longer places the answer at one of thirty-two rungs inside it",
+    cert: "code",
+    why: "an index would not survive arithmetic only an angle admits, and three places do it. The octant table at ROM 0x3415 holds the eight multiples of 32, each exactly once, with bit 5 of each base doubling as a run-backwards flag -- under which the eight octants tile 0x00 to 0xFF with no overlap and no gap; the equal-legs table at ROM 0x341D holds exactly the four diagonals and is four bytes long, its fifth byte being an instruction. And loc_3ed6 subtracts the object's own heading cell from the returned value, biases by 0x10 and tests against 0x20, which is a wrapped alignment window, while loc_31b4 adds half a turn before storing it into the cell steerTowardAimHeading turns toward. cert stays code because no capture can watch an angle",
   },
   0x3c0d: {
     name: "retireObjectAndHold",
@@ -1192,11 +1228,23 @@ export const ROUTINES = {
     cert: "code",
     why: "'Selected' is the whole discriminator against animateFixedShapeCycle, and the two bodies settle it: that sibling's base is a literal while this one's is four times a record byte, and its cycle is eight frames from the counter's low bits where this one is four from bits 2-3. Reachability was measured rather than assumed -- read taps under MAME counted zero dispatches on two tapes that stayed in eras 0-1 and 48894 on a third that held the era at 4. It does not claim what the record byte IS; only that it selects",
   },
+  0x2cbc: {
+    name: "runSceneryForEra",
+    role: "seat the record cursor and the sprite-entry cursor on the first scenery slot, then run one of three fixed lists of parallax wrappers, chosen by the era index",
+    cert: "seen",
+    why: "the arms test the era against 0 and then 4, so the name predicts the last era gets its own list while the middle eras share one -- which mechanisms.md derives independently as this dispatcher splitting the era {0}, {1,2,3}, {4}. A MAME run holding the era at 4, whose undriven stretch ran at era 1, measured both arms with one instrument and every wrapper's count is this routine's own dispatch count times its place in the arm's list, exactly: 963 dispatches at era 1 gave 963 / 1926 / 963 across that arm's three calls, 15817 at era 4 gave 31634 to each of its three doubled calls, and each arm's members sat at zero in the other's context",
+  },
   0x2d15: {
     name: "driftThreeTileSceneryAtFiveQuarters",
     role: "drift one scenery object at five quarters of the frame's world scroll, lay two further tiles flush against it in a straight strip, and step both cursors past the object so the caller lands on the next slot",
     cert: "seen",
     why: "the fraction and the tile count are the whole claim, and the family could have contradicted either: its four siblings are the same calls with one term changed each, and driftTwoTileSceneryAtThreeQuarters' own entry already lists a 'five quarters with three' sibling from a separate derivation. A prediction that could have failed: the scenery band is eight slots wide, and each member consumes one slot per tile, so every arm of the era-keyed dispatcher must total exactly eight -- the era-0 arm comes to 3+2+2+1, the middle arm to 3+2+2+1 and the era-4 arm to 2+2+1+1+1+1, all landing on the band boundary. Under MAME it was dispatched 11999 times on a tape held in the first era and ZERO on the attract demo, which never runs that era in the round phase -- the {0} {1,2,3} {4} split ERA_INDEX's entry records independently. Its callee driftAtFiveQuartersWorldScroll is already grounded with every dispatch seated inside the scenery block. It does not say which object",
+  },
+  0x2d2d: {
+    name: "stepTwoTileSceneryAtFiveQuarters",
+    role: "advance one two-tile scenery object: drift it at five quarters of the world scroll, lay its second tile flush against the first, and step both cursors past the pair",
+    cert: "seen",
+    why: "the fraction and the tile count are both counts a run can refute. The fraction: its drift call is driftAtFiveQuartersWorldScroll and no other, and that helper's count in an era-4 MAME run equals this routine's exactly. The tile count: two slots go per dispatch, one inside placeAbuttingTile and one at the tail, so advanceToNextSlot must run eight times per dispatch of the last era's arm in the era-keyed scenery dispatcher at ROM 0x2CBC -- 126536 against that dispatcher's own 15817 dispatches, which is eight, and a tile count wrong by one breaks it. It is also the only member of its family absent from every other arm of that dispatcher, measured at zero across four runs that never reached era 4",
   },
   0x2d36: {
     name: "driftTwoTileSceneryAtThreeQuarters",
@@ -1249,6 +1297,12 @@ export const ROUTINES = {
     role: "post the next rung of the rescue award to the command ring and step the per-life rung count on; the first four rungs each take their own value from a four-entry table and every rung after them takes the same top value, so the ladder rises and then caps",
     cert: "seen",
     why: "the ladder is the claim and it is decodable outside this routine, through a table this routine never touches: the four bytes it posts are arguments to ring command 4, whose handler indexes a packed-decimal table and adds the result to the player's score, and decoding all five gives 1,000 / 2,000 / 3,000 / 4,000 then 5,000 for ever -- monotone, round, and capping, where any non-monotone or non-round decode would have killed the name. mechanisms.md derives the same ladder and the same cap independently. ★ 'per-life' was measured rather than assumed: under MAME the rung cell took writes from this routine's increment with the values 1, 2, 3 and from the life-start routine resetting it, five times on one tape and ten on another. The observed rungs are the first four only -- the capped arm was never taken on any tape, so the top value stays code-derived. Its caller returns early in the final era, which is the one era mechanisms.md records as having no parachutists",
+  },
+  0x4853: {
+    name: "spawnAtEdgeAhead",
+    role: "on a cooldown, and only on alternate frames, place a free slot at the field-edge position the player's current heading selects, clear its sub-pixel remainders and mark it live",
+    cert: "seen",
+    why: "a heading-indexed table gives one answer per dispatch, so a MAME write tap on the slot's two coordinate bytes recomputed the index the ROM's way and compared: 19 placements, 19 matches on both bytes, over eight heading sectors. Both halves of the name are properties of that table and both hold -- all sixteen pairs lie within sixteen of a field border, and against the player position the same run measured, each pair lies within 41 degrees of the heading that selects it. That second check is the one that could have failed, and on a first derivation with the player's two axis bytes crossed it did; the measurement corrected the axes. What it places is fixed from outside: its caller seats one dedicated record and sprite entry and opens by reading the era index, comparing and returning, which is the singleton manager mechanisms.md derives independently for the parachutist and the reason there are none in the final era",
   },
   0x48ad: {
     name: "retireSlotIntoCooldown",
@@ -1305,6 +1359,12 @@ export const ROUTINES = {
     role: "destroy one fixed target and the player with it when the two touch, zero the target's HITS_REMAINING so the contact kills it outright rather than costing it a hit, and tail-transfer to the scoring routine; four tests must all pass, so nothing at all is written unless every one of them does",
     cert: "code",
     why: "the reference it measures the target against is what the name adds, and it is fixed outside this routine: it reads the same sprite-entry pair three sibling sweeps use, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship that held one screen position while the world scrolled past. NOT GROUNDED, and the reason is specific: across two MAME write-tap runs none of its three stores ever fired, so the four-test conjunction was never satisfied on any tape we have driven",
+  },
+  0x5152: {
+    name: "destroySlotsAndPlayerOnContact",
+    role: "sweep a run of slots against the player's own sprite entry and, for every overlap, write the destroyed marker into both the slot and the player and post the score; the sweep does not stop at the first",
+    cert: "seen",
+    why: "were this the shots-against-targets sweep it would neither refuse to run on the player's state byte nor write it, and it does both: a MAME write tap attributing every write of PLAYER_STATE by program counter through a driven game caught this routine's own store six times, each the destroyed marker. mechanisms.md derives independently that the collision chain's members differ in what else they write, and that two of them write the player and post a score; this is one of those two",
   },
   0x5185: {
     name: "destroyPlayerAndObjectsTouchingIt",
