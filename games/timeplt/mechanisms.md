@@ -94,7 +94,32 @@ scattered through the raster-wait code are not reading back what the sound path 
 **The foreground program is not a game loop.** Boot ends by jumping into a command-ring drain that
 spins on an empty ring, takes a (command, argument) pair, marks the slot free, and dispatches the
 low nibble through a sixteen-way table — for ever. All game logic hangs off the interrupt; the
-foreground exists to service the ring. `[code]`
+foreground exists to service the ring.
+
+Every clause of that is now watched rather than read. The drain is entered **once** — its one
+entrance from outside fired exactly once in every MAME run, one of which contained a whole
+credited game and its game-over, and the loop head was fetched exactly one more time than its own
+branch back into itself, so every other arrival is the loop's own jump. Boot reaches it by a JUMP
+at the stack seat boot installed, so **there is no return address anywhere for it to return to**:
+over 4.5 million fetches of the loop head the stack pointer took ONE value. The table read it
+delegates to, tapped in the same runs, showed three and four distinct stack pointers, so the single
+value is a measurement and not a blind instrument. And the interrupt really is the other half of
+the pair: all 8764 vblank interrupts of a 150-second session were accepted two bytes below that one
+seat, so in two such sessions the background never interrupted the machine anywhere but here.
+`[seen]`
+
+**Almost all of the foreground is the empty-ring spin.** On undriven attract the loop head was
+fetched 3291149 times while the eleven distinct arms of its table were dispatched 1308 times
+between them — about one fetch in 2500 consumed a command. `[seen]`
+
+**The low nibble really is the selector, and one experiment could have refuted it.** A command byte
+poked repeatedly into the ring cell the read cursor names produced dispatches of the arm that
+nibble's table slot holds and none of any other arm; the same run with a different nibble moved the
+dispatches wholesale to that nibble's arm; and the control run, identical but for the poke,
+dispatched neither. The two zero taps are not blind — each is shown firing under identical wiring in
+its sibling arm. What is NOT established is the ORDER — the ROM frees the pair before running the
+arm, so a command may re-use the pair it arrived in, and a read two frames later cannot see that.
+`[seen]`, except the ordering, which stays `[code]`
 
 ### ★ The round engine's service list is not a per-frame list
 
