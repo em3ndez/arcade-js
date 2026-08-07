@@ -1366,13 +1366,18 @@ meter fill.
 
 ### The nibble-pair drawer draws DECIMAL digits, not hexadecimal
 
-One drawer masks a value to four bits and indexes a sixteen-entry table of glyph codes at 0x0DCC;
-its only caller splits a byte into high nibble then low, which invites the reading that it prints a
-byte in hex. It does not. Decoded through this board's own character layout, entries 0-9 of that
-table are the glyphs `0`-`9` and the remaining six are not letters: three are blank tiles — one of
-them the blanking glyph the whole game erases with — one is a period, one is an unrelated shape,
-and the last repeats the glyph `3`. So the table covers only the digits a packed-BCD byte can
-hold, which is what the machine keeps its counters in. `[code]`
+One drawer masks a value to four bits and indexes a table of glyph codes at 0x0DCC; its only
+caller splits a byte into high nibble then low, which invites the reading that it prints a byte
+in hex. It does not. The table is **eleven** bytes — the glyphs `0`-`9`, then the blanking glyph
+the whole game erases with, which is the entry the suppressing twin reaches when it blanks. The
+mask lets sixteen values through, so the top five reach past the table's end and into the first
+two instructions of the ring arm at 0x0DD7; decoded as tiles those five bytes are two blanks, a
+period, an unrelated shaded shape, and a second copy of the glyph `3`. So the table covers only
+the digits a packed-BCD byte can hold, which is what the machine keeps its counters in, and the
+mask is not a bounds check — it bounds the read to sixteen bytes and no further. `[seen]` —
+holding a displayed field at 0xAB, 0xCD and 0xEF drove the drawer through all six indices the
+game never presents, and a tap logging the value in and the glyph byte out caught it painting
+0xF1, 0x11, 0x63, 0xA4, 0xFE and 0x64 — the blank, then the first five bytes of that routine.
 
 ### Leading zeros are blanked, and one flag carries the whole number
 

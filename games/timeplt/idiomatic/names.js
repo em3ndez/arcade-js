@@ -822,6 +822,12 @@ export const ROUTINES = {
     cert: "code",
     why: 'loc_2511 fills the ring with 0xFF at init and loc_0b93 restores 0xFF on consumption, so "free = high bit set" is fixed by a writer and a reader outside this routine; loc_0b93 then dispatches the low nibble through a sixteen-way table, which is what makes it a command rather than a sound byte',
   },
+  0x0d90: {
+    name: "paintUnsuppressedDigit",
+    role: "paint one decimal digit and the caller's colour into the cell a cursor names, taking the glyph from the table at 0x0DCC by the value's low four bits -- a zero always paints the digit `0`, where the suppressing twin paints the blank instead while no significant digit has been seen yet -- and leaving the cursor on the glyph side and the caller's run pointer where it was",
+    cert: "seen",
+    why: "the name's whole content is the contrast with paintSuppressedDigit at 0x0DAF, and the contrast is refutable per dispatch. A PC-gated read tap under MAME logged the value handed in and the glyph byte written out, on every entry to BOTH routines in ONE ninety-second run: this one painted the digit `0` on all twenty-two of its zero-valued dispatches and the blanking glyph on none, while the twin -- same run, same instrument -- painted the blanking glyph on nineteen zero-valued dispatches and the digit `0` on six, so the instrument that reported the absence was shown able to see the thing absent. MAME's own screenshot agrees on the glass, on the HI-SCORE field rather than a player's: it reads `10000`, and the tap attributes its leading blank and first three digits to the twin and only its two trailing zeros to this routine. Feeding it what the name says it never gets refutes `hex` as well: holding the displayed field at 0xAB, 0xCD and 0xEF drove it to the table's last entry and five bytes beyond, where it painted 0xF1, 0x11, 0x63, 0xA4, 0xFE, 0x64 -- the blanking glyph the table really holds, then the first five bytes of the routine at 0x0DD7 -- and never a glyph A-F",
+  },
   0x0f1a: {
     name: "advanceSequenceSubStep",
     role: "step the jump-table sequence index on by one; reached as a tail jump so the caller's own return carries it",
