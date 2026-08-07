@@ -37,11 +37,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0b4c } from "../loc_0b4c.js";
 import { loc_0b4c as oracle } from "../../translated/loc_0b4c.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+
+const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x0b4c;
 const EXCLUDED = ["sp"];
@@ -261,7 +263,7 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0b4c == oracle on RAM, registers and the answer", () => {
+test("EQUAL at the real dispatch: loc_0b4c == oracle on RAM, registers and the answer", { skip }, () => {
   const r = gate(loc_0b4c);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
@@ -273,7 +275,7 @@ test("EQUAL at the real dispatch: loc_0b4c == oracle on RAM, registers and the a
   );
 });
 
-test("NOT VACUOUS: RAM alone passes a candidate that does nothing", () => {
+test("NOT VACUOUS: RAM alone passes a candidate that does nothing", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
@@ -289,7 +291,7 @@ test("NOT VACUOUS: RAM alone passes a candidate that does nothing", () => {
   console.log("  NOT VACUOUS: RAM is empty here; the registers and the answer are the gate");
 });
 
-test("EXCLUDED, deliberately: the stack pointer, and nothing else", () => {
+test("EXCLUDED, deliberately: the stack pointer, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
@@ -304,7 +306,7 @@ test("EXCLUDED, deliberately: the stack pointer, and nothing else", () => {
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 
-test("CORPUS: every real dispatch replays identically, on a thin and uniform corpus", () => {
+test("CORPUS: every real dispatch replays identically, on a thin and uniform corpus", { skip }, () => {
   const seen = sessions();
   let total = 0;
   for (const s of seen) {
@@ -322,7 +324,7 @@ test("CORPUS: every real dispatch replays identically, on a thin and uniform cor
   console.log(`  CORPUS: ${total} dispatches over two sessions, one argument set, identical`);
 });
 
-test("EXHAUSTIVE: every expected byte, and a length sweep reaching the zero case", () => {
+test("EXHAUSTIVE: every expected byte, and a length sweep reaching the zero case", { skip }, () => {
   assert.equal(sweepCaught(loc_0b4c), 0, "the rewrite diverged somewhere in the crafted space");
 
   // The zero-length case is the one the corpus can never show: a count of zero is a full run.
@@ -336,14 +338,14 @@ test("EXHAUSTIVE: every expected byte, and a length sweep reaching the zero case
 });
 
 for (const [label, twin, craftedCaught] of TWINS) {
-  test(`TEETH: the ${label} twin is caught on an exact count of crafted entries`, () => {
+  test(`TEETH: the ${label} twin is caught on an exact count of crafted entries`, { skip }, () => {
     assert.equal(sweepCaught(twin), craftedCaught, `the ${label} twin's crafted catch count moved`);
     assert.ok(craftedCaught > 0, `the ${label} twin is caught by nothing`);
     console.log(`  TEETH/${label}: caught on ${craftedCaught} of ${SWEEP_SIZE} crafted entries`);
   });
 }
 
-test("THE BASE POINTER IS SWEPT: the answer follows the caller's pointer", () => {
+test("THE BASE POINTER IS SWEPT: the answer follows the caller's pointer", { skip }, () => {
   assert.equal(baseSweepCaught(loc_0b4c), 0, "the rewrite diverged at some base other than the real one");
   // Anti-vacuity: the arm is only evidence if the bases actually produce different folds.
   const folds = new Set(BASE_SWEEP.map((b) => { const m = craft(b, REAL_LENGTH, 0x22); oracle(m); return m.regs.a; }));
@@ -351,7 +353,7 @@ test("THE BASE POINTER IS SWEPT: the answer follows the caller's pointer", () =>
   console.log(`  BASE SWEEP: ${BASE_SWEEP.length} bases identical, and they do not all fold alike`);
 });
 
-test("TEETH: a twin that ignores the caller's pointer is caught, and ONLY by the base sweep", () => {
+test("TEETH: a twin that ignores the caller's pointer is caught, and ONLY by the base sweep", { skip }, () => {
   assert.equal(sweepCaught(brokenIgnoresBase), 0,
     "the expected/length sweeps caught it — then this file's own stated hole is wrong");
   const caught = baseSweepCaught(brokenIgnoresBase);

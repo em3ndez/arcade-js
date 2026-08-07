@@ -30,12 +30,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_0f1a as oracle } from "../../translated/loc_0f1a.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+
+const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x0f1a;
 
@@ -76,7 +78,7 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: advanceSequenceSubStep == oracle on RAM", () => {
+test("EQUAL at the real dispatch: advanceSequenceSubStep == oracle on RAM", { skip }, () => {
   const r = gate(advanceSequenceSubStep);
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
@@ -86,7 +88,7 @@ test("EQUAL at the real dispatch: advanceSequenceSubStep == oracle on RAM", () =
   );
 });
 
-test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", () => {
+test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
@@ -104,7 +106,7 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", (
   console.log(`  EXCLUDED: registers ${moved.join(", ")} and pc — RAM unaffected`);
 });
 
-test("EXHAUSTIVE over priors: every value 0..255 steps as the oracle steps it", () => {
+test("EXHAUSTIVE over priors: every value 0..255 steps as the oracle steps it", { skip }, () => {
   let swept = 0;
   for (let prior = 0; prior < 256; prior++) {
     const d = sweepDiff(advanceSequenceSubStep, prior);
@@ -145,14 +147,14 @@ for (const [label, twin] of [
   ["wrong-cell", brokenWrongCell],
   ["no-op", brokenNoOp],
 ]) {
-  test(`TEETH: the ${label} twin is CAUGHT by unitEquivalence`, () => {
+  test(`TEETH: the ${label} twin is CAUGHT by unitEquivalence`, { skip }, () => {
     const r = gate(twin);
     assert.notEqual(r.ram, null, `the gate PASSED the ${label} twin — it has no teeth`);
     assert.equal(r.equal, false, "a RAM divergence must fail the whole comparison");
     console.log(`  TEETH/${label}: caught — ${show(r.ram)}`);
   });
 
-  test(`TEETH: the ${label} twin is CAUGHT across every prior`, () => {
+  test(`TEETH: the ${label} twin is CAUGHT across every prior`, { skip }, () => {
     let caught = 0;
     for (let prior = 0; prior < 256; prior++) if (sweepDiff(twin, prior)) caught++;
     assert.equal(caught, 256, `the sweep missed the ${label} twin on ${256 - caught} prior(s)`);

@@ -35,12 +35,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine } from "./_harness.js";
+import { makeMachine, romsPresent } from "./_harness.js";
 import { loc_00a8 } from "../loc_00a8.js";
 import { loc_00a8 as oracle } from "../../translated/loc_00a8.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { LATCH_NMI_ENABLE } from "../../../../boards/timeplt/io.js";
+
+const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x00a8;
 const FOREGROUND_LOOP = 0x0b93;
@@ -208,7 +210,7 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("WITNESSED: the game really does reach this entry, carrying one fixed value", () => {
+test("WITNESSED: the game really does reach this entry, carrying one fixed value", { skip }, () => {
   entryState();
   assert.notEqual(entry, null, "vacuous: no session reached the routine");
   assert.equal(witnessed.value, CARRIED, "the value the caller carries in moved");
@@ -218,7 +220,7 @@ test("WITNESSED: the game really does reach this entry, carrying one fixed value
   );
 });
 
-test("★ THE STATE DUMP IS BLIND: a candidate that does nothing passes a RAM comparison", () => {
+test("★ THE STATE DUMP IS BLIND: a candidate that does nothing passes a RAM comparison", { skip }, () => {
   const logA = [];
   const a = severed(entryState(), logA);
   const b = severed(entryState(), []);
@@ -234,7 +236,7 @@ test("★ THE STATE DUMP IS BLIND: a candidate that does nothing passes a RAM co
   console.log("  BLIND: RAM is empty here; the latch, the watchdog and the handover are the gate");
 });
 
-test("EQUAL at the captured entry, loop severed: latch, watchdog and handover identical", () => {
+test("EQUAL at the captured entry, loop severed: latch, watchdog and handover identical", { skip }, () => {
   const logA = [];
   const logB = [];
   const a = severed(entryState(), logA);
@@ -254,7 +256,7 @@ test("EQUAL at the captured entry, loop severed: latch, watchdog and handover id
   );
 });
 
-test("EXCLUDED, deliberately: nothing at all, once the loop is severed", () => {
+test("EXCLUDED, deliberately: nothing at all, once the loop is severed", { skip }, () => {
   const a = severed(entryState(), []);
   const b = severed(entryState(), []);
   oracle(a);
@@ -267,7 +269,7 @@ test("EXCLUDED, deliberately: nothing at all, once the loop is severed", () => {
   console.log("  EXCLUDED: nothing — no register moves on either side");
 });
 
-test("EXHAUSTIVE: all 256 carried values against both starting latch states", () => {
+test("EXHAUSTIVE: all 256 carried values against both starting latch states", { skip }, () => {
   assert.equal(sweepCaught(loc_00a8), 0, "the rewrite diverged somewhere in the crafted space");
 
   // Only the low bit reaches the latch, and the sweep is what proves the other seven do not.
@@ -281,7 +283,7 @@ test("EXHAUSTIVE: all 256 carried values against both starting latch states", ()
 });
 
 for (const [label, twin, craftedCaught] of TWINS) {
-  test(`TEETH: the ${label} twin is caught on an exact count of crafted entries`, () => {
+  test(`TEETH: the ${label} twin is caught on an exact count of crafted entries`, { skip }, () => {
     assert.equal(sweepCaught(twin), craftedCaught, `the ${label} twin's crafted catch count moved`);
     assert.ok(craftedCaught > 0, `the ${label} twin is caught by nothing`);
     console.log(`  TEETH/${label}: caught on ${craftedCaught} of ${SWEEP_SIZE} crafted entries`);

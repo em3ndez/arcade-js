@@ -31,11 +31,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { makeMachine, ENTRY_FRAMES } from "./_harness.js";
+import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0d6b } from "../loc_0d6b.js";
 import { loc_0d6b as oracle } from "../../translated/loc_0d6b.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+
+const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 const TARGET = 0x0d6b;
 const PRINTER = 0x0d73;
@@ -184,7 +186,7 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: RAM and EVERY register, the stack pointer included", () => {
+test("EQUAL at the real dispatch: RAM and EVERY register, the stack pointer included", { skip }, () => {
   const r = gate(loc_0d6b);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
@@ -203,7 +205,7 @@ test("EQUAL at the real dispatch: RAM and EVERY register, the stack pointer incl
   console.log("  EQUAL: RAM and every register identical, sp and pc included");
 });
 
-test("SEVERED: the three arguments are the ones this entry names, and only those", () => {
+test("SEVERED: the three arguments are the ones this entry names, and only those", { skip }, () => {
   const logA = [];
   const logB = [];
   const a = severed(entryState(), logA);
@@ -228,7 +230,7 @@ test("SEVERED: the three arguments are the ones this entry names, and only those
   );
 });
 
-test("CORPUS: the one dispatch of each session replays identically", () => {
+test("CORPUS: the one dispatch of each session replays identically", { skip }, () => {
   let total = 0;
   for (const [label, opts] of TAPES) {
     const r = replaySession(opts, loc_0d6b);
@@ -241,7 +243,7 @@ test("CORPUS: the one dispatch of each session replays identically", () => {
 });
 
 for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin is CAUGHT at the real dispatch`, () => {
+  test(`TEETH: the ${label} twin is CAUGHT at the real dispatch`, { skip }, () => {
     const d = unitDiff(twin, entryState());
     assert.notEqual(d, null, `the gate PASSED the ${label} twin — it has no teeth`);
     console.log(`  TEETH/${label}: caught — ${JSON.stringify(d)}`);

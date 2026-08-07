@@ -461,6 +461,81 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   those lines**, and finding one instance means sweeping every file that script has ever touched.*
 
 
+- **R26 [ALL]** A test that needs a ROM must SKIP without one, and this is checked by RUNNING, not
+  by reading. `README.md`'s Quickstart tells a stranger to run `npm test` and promises the
+  ROM-dependent tests "skip cleanly if you haven't built one". Nobody outside the project owns the
+  ROMs, so that is the only path an outside reader ever takes.
+
+  Verify: `node tools/rom_guard_check.mjs`. It clones the committed state — ROM images are
+  gitignored, so the clone has none BY CONSTRUCTION — and runs the project's own test command
+  there. Anything that FAILS is the defect; skipping is the intended outcome and passing is fine.
+  The pre-push hook runs it, so a landed commit has already passed it.
+
+  ★ **It reports on the COMMITTED state, so at review time it cannot see the diff under review.**
+  On a commit that REPAIRS a guard it returns FAIL, because it is still reading the parent. A
+  reviewer who runs it literally will block a correct commit, or learn to ignore it. To judge a
+  staged repair, commit it in a scratch clone (or `git stash` nothing and run it after committing
+  locally, before pushing) — the push hook is the enforcing use; the review-time use is diagnostic.
+
+  ★ **Do not replace this with a grep.** Two guard idioms are live: `romsPresent()` plus `{ skip }`,
+  and *shadowing* `test` with a ROM-conditional wrapper — whose calls read `test(name, fn)` and look
+  unguarded while being guarded. Both dkong and thepit use the shadow, and so does timeplt's own
+  `assembled-swap.test.js`, so this is not one game's local habit. A grep for `romsPresent` condemns
+  every healthy dkong test file, and an idiom invented later would break a static check silently.
+
+  *Why it is owed: nine gates broke the promise, four of them already pushed to the public branch.
+  A static repair keyed on `^test(` then reported itself complete while missing tests generated
+  inside a `for` loop, and a ROM read reached from inside a test body. Both were found by running,
+  after the pattern said it was done.*
+
+- **R27 [ALL]** **Before you measure, read what the tree already says. After you measure, do not
+  let the sentence outrun the log.**
+
+  Verify: before building apparatus, grep `mechanisms.md` and the registry for the routine's FAMILY
+  and its callers. After a run, grep your own log for counterexamples to every universal you are
+  about to write.
+
+  Four instances, one night:
+  1. A proposer's falsifiable prediction read *"a read tap at the entry must count exactly one
+     dispatch."* The real tap counts **3,291,149** — its "one" was our JS harness entering a JS
+     function once, R3a `[code]` wearing `[seen]` clothes, inside a prediction whose whole purpose
+     was to be falsifiable against the ROM. A confirmer reproducing it literally **kills a correct
+     name**: worse than a false positive, because it destroys good work quietly.
+  2. A pass reported 55 pokes producing 55 dispatches. Both were cut off by the same run-end — the
+     real count is 56 — so the correspondence was **manufactured by the measurement window**.
+  3. Nine gates with no ROM guard, found by RUNNING the suite with no ROM (see R26).
+  4. A `mechanisms.md` section headed *"The nibble-pair drawer draws DECIMAL digits, not
+     hexadecimal"* refuted a proposed name before any run. The pass found it at minute twelve,
+     after all six MAME runs — roughly half the pass spent re-deriving a committed heading.
+
+  ★ The first three are the sentence outrunning the log. The fourth is nobody reading the log at
+  all. Same disease, opposite faces.
+
+- **R28 [ALL]** Derive a check from the RANGE OF LEGAL VALUES, never from the case in front of you.
+  A check written from the expected value rejects compliance at the boundaries, and it passes on
+  today's example BY CONSTRUCTION — so it has never been tested against anything but the thing it
+  was copied from.
+
+  *Two instances, on instruments written to police each other. A ceiling of "exactly one new module
+  per commit" flagged a compliant ZERO-module pass, and once relaxed flagged a compliant
+  one-routine lift at TWO, because its pattern counted the module and its test together. Wrong
+  boundary in both directions, on one rule, within hours. And a gate's `EXCLUDED` register set,
+  written to match the module rather than derived from the oracle, ASSERTED the divergence: green
+  on a broken module, red on the correct one — and the module it defended hung the game.*
+
+- **R29 [ALL]** When a commit was previously BLOCKED and is re-presented because a qualifying
+  commit has since landed, audit whether the unblocking commit is SUBSTANTIVE — not a shim created
+  to satisfy the rule.
+
+  Verify: read its diff; confirm it does the work its subject claims; confirm it has its own
+  grounding record where its class requires one; confirm it was itself reviewed, a recorded review
+  token being the strongest single check.
+
+  *Any rule of the form "X is allowed once Y exists" has this hole, and R1 is only the instance we
+  hit. A reviewer derived this check unprompted when a decompile it had blocked came back after a
+  pass appeared — and verified that the pass was substantive, had a grounding record, and had
+  itself been blind-reviewed and BLOCKED once.*
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/names.js/mechanisms/retrofits. No

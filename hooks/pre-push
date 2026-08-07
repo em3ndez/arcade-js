@@ -29,8 +29,38 @@ else
   npm test >"$log" 2>&1 </dev/null; rc=$?
 fi
 if [ "$rc" -eq 0 ]; then
-  echo "[pre-push] suite green -- push allowed." >&2
-  rm -f "$log"; exit 0
+  rm -f "$log"
+  # The suite passing HERE says nothing about a stranger, because we own the ROMs and they do
+  # not. README's Quickstart promises the ROM-dependent tests skip cleanly without one, and nine
+  # gates broke that promise -- four of them already pushed -- before anyone ran the only command
+  # an outside reader ever runs. This clones the committed state (ROMs are gitignored, so the
+  # clone has none) and runs the suite there. ~12s unloaded, ~20s+ on a busy machine, because
+  # almost everything skips.
+  #
+  # It runs UNDER THE SAME TIMEOUT as the suite above, and for the same reason: it starts a second
+  # `npm test` in the clone, so every way the suite can hang, this can hang -- and a hang here is
+  # the failure mode this hook's whole design treats as worse than a red one, because CI waits and
+  # no verdict is ever produced.
+  echo "[pre-push] suite green -- now checking a stranger's clone (no ROMs)..." >&2
+  if [ -n "$runner" ]; then
+    "$runner" "$SUITE_TIMEOUT" node tools/rom_guard_check.mjs >&2; grc=$?
+  else
+    node tools/rom_guard_check.mjs >&2; grc=$?
+  fi
+  if [ "$grc" -eq 124 ]; then
+    echo "" >&2
+    echo "PUSH BLOCKED -- the no-ROM clone check did not FINISH within ${SUITE_TIMEOUT}s." >&2
+    echo "That is a HANG, not a red test. Run 'node tools/rom_guard_check.mjs' by hand." >&2
+    exit 1
+  fi
+  if [ "$grc" -eq 0 ]; then
+    echo "[pre-push] push allowed." >&2
+    exit 0
+  fi
+  echo "" >&2
+  echo "PUSH BLOCKED -- the suite is green for US and RED for anyone who clones it." >&2
+  echo "Do not --no-verify: this is the first command the README tells a stranger to run." >&2
+  exit 1
 fi
 echo "" >&2
 if [ "$rc" -eq 124 ]; then
