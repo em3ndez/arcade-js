@@ -1114,6 +1114,11 @@ export const ROUTINES = {
     role: "enter the shared packed-decimal digit routine at 0x0D73 with one fixed triple -- first cell 0xA781, the three-byte field whose high end is 0xAD35, and a fixed colour; choosing that triple is the whole entry and whatever the caller held is discarded",
     cert: "code",
   },
+  0x0d61: {
+    name: "loc_0d61",
+    role: "enter the shared packed-decimal digit routine at 0x0D73 with a second fixed triple -- first cell 0xA501, the three-byte field whose high end is 0xAD38, and a fixed colour; choosing that triple is the whole entry and whatever the caller held is discarded",
+    cert: "code",
+  },
   0x0daf: {
     name: "paintSuppressedDigit",
     role: "paint one four-bit digit into the cell the cursor names with the caller's colour a plane below, using the blank glyph instead when the digit is zero and no significant digit has been seen yet, and stepping the caller's flag on at the first that is",
