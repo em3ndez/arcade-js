@@ -270,8 +270,9 @@ cycle-proxy cells — plus that it reaches a known state (The Pit: `GAME_STATE =
 proving boot → setup → demo all run idiomatic). This is the capstone the per-routine equivalence
 tests build toward: not "each routine matches in isolation" but "all N routines run together AS the
 game and reproduce the oracle" (which is itself pixel-validated vs MAME). The translated oracle is
-the practical ground truth here; the pinned-MAME *pixel* golden is the final capstone once the
-shipped runtime is flipped.
+the practical ground truth here. The pinned-MAME *pixel* golden is **not** a later capstone: it runs
+from before the first idiomatic module and stays running, because this gate and the per-routine ones
+compare memory and never a pixel. See [the pixel gate](pixel-gate.md).
 
 **Porting go-live is three facts** in `manifest.convergence.golive = { watchdogPort, nmiReturnPC,
 gameStateHi }`: (1) `watchdogPort` — the I/O address whose READ kicks the watchdog (once per frame in

@@ -77,6 +77,34 @@ Three rules keep the gate honest, each learned the hard way:
   would catch a planted error (that's what mutation testing verifies for the unit tests, and what
   the both-directions and no-auto-offset rules verify for the pixel gate).
 
-This same picture-against-MAME gate is the **capstone** of idiomatic generation: per-routine
-memory-equivalence is the fast local proxy, and pixel-exact-vs-pinned-MAME is the falsifiable
-ground truth over the whole game. See [idiomatic generation](idiomatic-generation.md).
+## ★★ The gate is a PRECONDITION for the idiomatic layer, not a capstone after it
+
+This picture-against-MAME gate is the falsifiable ground truth for idiomatic generation, and
+per-routine memory-equivalence is the fast local proxy. That framing is right, and it is easy to
+misread as *"run the proxy now, run the truth at the end."* Do not.
+
+> **Before the first idiomatic module of a game is written, the pixel gate must be running and
+> green, and it must stay running for the life of that layer.**
+> Day-zero item 7 in [idiomatic generation](idiomatic-generation.md).
+
+**Why the proxy cannot stand alone.** The two gates the idiomatic loop runs all day — the per-routine
+equivalence gates and the assembled swap — compare RAM outside the stack window and a declared
+live-out. **Neither looks at a pixel.** No idiomatic module spends T-states, by design, so
+every rewrite is cheaper than its frozen twin: harmless under the cycle-free engine the swap gate
+runs, and *not* harmless under the cycle-driven engine a player runs, where it shifts the foreground
+phase, the NMI's interruption point, and what the beam has drawn when it fires. The DMA sub-frame
+raster position has no owner among the memory gates at all.
+
+So a layer built with this gate off can be green on every gate it runs and still wrong on the glass.
+
+**And the cost of switching it on late is the bisect, not the run.** Many green routines and one
+pixel diff is a search problem; one routine and one pixel diff is a bug report.
+
+★ Written because it happened: Time Pilot's idiomatic layer ran a full day of batches — per-routine
+gates green, whole-game swap green, suite green — while this gate was wired into nothing at all. It
+was in no npm script, no hook and no Makefile target, so it ran only when a person chose to run it,
+and for a day nobody chose to. **Before relying on this gate, check where it is wired** — that is
+the durable question, and the answer changes. **Beware also that `make verify` is NOT this gate**
+despite the name — it is `verify_decoder.py`, a disassembly check, and it defaults to `GAME=dkong`,
+so on another game it does not even read your ROM. A green `make verify`
+says nothing whatever about pixels.

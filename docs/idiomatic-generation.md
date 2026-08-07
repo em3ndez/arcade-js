@@ -33,6 +33,39 @@ is the second face of the oracle, and it runs from day zero.
 5. **Reachability sweep** — see *Triage the backlog first*, below. One MAME run; it re-plans
    everything.
 6. **RAM naming pass** — front-loaded, because named memory is the single biggest legibility lever.
+7. ★★ **TURN THE PIXEL GATE ON.** Before the first idiomatic module is written, the pixel gate must
+   be running against pinned MAME and green, and it must stay running for the life of the idiomatic
+   layer. **The pixel gate is a precondition for idiomatic work, not a capstone you reach later.**
+
+## ★★ Why the pixel gate has to be on BEFORE the idiomatic layer, not after
+
+Per-routine memory-equivalence and the assembled swap are the two gates the idiomatic loop runs all
+day, and **neither one looks at a pixel.** They compare RAM outside the stack window and a declared
+live-out. That is a fast, precise proxy — and it is a proxy.
+
+What it cannot see is everything the machine expresses through *timing and the beam* rather than
+through work RAM. No idiomatic module spends T-states, by design, so every rewrite is cheaper than
+its frozen twin. Under the cycle-free engine the swap gate runs, that is harmless. Under the
+cycle-driven engine a player actually runs, it moves the foreground phase, which moves where the
+NMI interrupts the idle spin, which moves what the beam has drawn when it fires. **None of that
+touches a byte the memory gates compare.** The DMA sub-frame raster position has no owner among
+them at all — it is pixel-only.
+
+So an idiomatic layer built with the pixel gate off can be *green on every gate it runs* and still
+be wrong on the glass, and nothing will say so until someone finally runs it — by which point the
+regression is buried under however many routines landed after it. **A proxy is only safe while the
+thing it proxies for is being checked.**
+
+The cost of turning it on late is not the run; it is the bisect. Many green routines and one pixel
+diff is a search problem. One routine and one pixel diff is a bug report.
+
+★ **This is written here because it happened.** Time Pilot's idiomatic layer ran a full day of
+batches — per-routine gates green, whole-game swap green, suite green — with the pixel gate wired
+into nothing at all: no npm script, no hook, no Makefile target, last run by hand days earlier.
+Nothing was lying: every gate reported truthfully on what it measured. The gap was that nobody had
+asked what none of them measured. Note also that `make verify` is **not** the pixel gate despite the
+name — it is a disassembly decoder check, and it defaults to `GAME=dkong`, so on any other game it
+does not even read your ROM.
 
 ## The batch loop: ten leaf routines at a time
 
@@ -477,8 +510,10 @@ Per routine, the gate is **memory-equivalence, not byte-exactness**:
 - Validate by **unit-capture at real dispatches**, plus a **reachability sweep** over natural
   dispatches, plus **crafted identical-both-sides entries** for arms attract never reaches.
 
-The capstone over the whole game stays **pixel-exact vs pinned MAME**. Per-routine
-memory-equivalence is the fast local proxy; MAME pixels are the falsifiable ground truth.
+Over the whole game the check stays **pixel-exact vs pinned MAME**. Per-routine memory-equivalence
+is the fast local proxy; MAME pixels are the falsifiable ground truth. **That gate runs from day
+zero, not at the end** — see item 7 above and [the pixel gate](pixel-gate.md). Calling it the
+capstone is how it came to be left off for a whole day of batches.
 
 ### Which gate owns which property — including the ones nothing owns
 

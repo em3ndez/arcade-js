@@ -628,6 +628,42 @@ The guard is the accounting check above, plus: prefer replacing a **named, bound
 anchor-to-next-anchor, and after any scripted edit assert that every pre-existing paragraph either
 survives or is explicitly accounted for.
 
+## R34 [D] The pixel gate must be ON before a game's first idiomatic module
+
+**Applies to the first decompile unit of any game.** Run it yourself:
+
+```
+python3 games/<game>/tools/pixel_suite.py
+```
+
+**Paste the verdict line into your review, and accept only `PASS`.** The other outcomes are not
+passes and do not look like failures:
+
+- `pixel_suite: SKIP -- no mame on PATH` / `SKIP -- romset ... not found` — you have checked
+  nothing. This is the false green: a reviewer with no romset sees no failure and writes
+  "confirmed green."
+- `INCOMPLETE` — the render delivered fewer frames than asked. An empty comparison is inconclusive;
+  `pixel_gate.py` returns this verdict precisely so it cannot be read as a pass.
+
+**If you cannot run it** (no MAME, no romset), say so in the review as an explicit UNVERIFIED and
+do not clear the unit on this rule — hand it back to the author to run and paste. An absence is
+evidence only if the instrument was shown able to detect presence.
+
+Why the memory gates cannot cover for it: the per-routine equivalence gates and the assembled swap
+compare RAM outside the stack window and a declared live-out. **Neither looks at a pixel.** A layer
+can be green on every gate the loop runs and wrong on the glass, because no idiomatic module spends
+T-states — which moves the foreground phase, the NMI's interruption point, and what the beam has
+drawn when it fires. The DMA sub-frame raster position has no owner among the memory gates at all.
+
+**Turning it on late costs the bisect, not the run.** Many green routines and one pixel diff is a
+search problem; one routine and one pixel diff is a bug report.
+
+*Written because a game's idiomatic layer ran a full day of batches — per-routine gates green,
+whole-game swap green, suite green — with the pixel gate wired into nothing. Every gate reported
+truthfully on what it measured; nobody had asked what none of them measured. Beware that `make
+verify` is a disassembly decoder check defaulting to `GAME=dkong` — a green `make verify` says
+nothing about pixels.*
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/names.js/mechanisms/retrofits. No
