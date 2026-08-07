@@ -2059,8 +2059,17 @@ These need someone's attention, not a new capture and not a new lift.
 
 ### The states no instrument has visited
 
-The difficulty tiers, deliberate death, the later eras, the loop wrap, and high-score initials
-entry. Each is a hole of the same shape: code serving it reads as dark.
+The difficulty tiers, deliberate death, the later eras and the loop wrap. Each is a hole of the
+same shape: code serving it reads as dark.
+
+High-score initials entry is no longer on that list. The recipe is worth recording, because poking
+its own sub-step does not get there: the screen's cursor words are written by the qualification
+check, on the path where the score does make the table, so a machine dropped straight into the
+screen paints through whatever those words happened to hold. Set the active player's score high and
+the sub-step to the qualification step once, and the ROM does the rest — it spends its own delay,
+runs the screen's setup, and arrives at the entry loop by its own advance. Driven that way with a
+panel bit held, the entry loop runs and one unbroken press steps the letter index over and over,
+which is the auto-repeat. `[seen]`
 
 Two-player alternating play is no longer on that list. A driven MAME run that presses the second
 start button reaches it: both save blocks arm, the active-player index alternates,
