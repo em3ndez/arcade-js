@@ -36,12 +36,11 @@ import { emptyBothDeferredCellLists } from "../emptyBothDeferredCellLists.js";
 import { loc_526a as oracle } from "../../translated/loc_526a.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { DEFERRED_WRITE_CURSOR } from "../names.js";
+import { DEFERRED_WRITE_CURSOR, DEFERRED_BLANK_CURSOR } from "../names.js";
 
 const TARGET = 0x526a;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
 
-const FIRST_LIST = 0xae80;
 const FIRST_ENTRY = 4;
 
 const CORPUS_FRAMES = 2000;
@@ -103,8 +102,8 @@ function unitDiff(candidate, machine) {
 /** A real captured machine with all four written bytes forced. */
 function craft(low, high) {
   const m = entryState().clone();
-  m.mem8[FIRST_LIST] = low;
-  m.mem8[FIRST_LIST + 1] = high;
+  m.mem8[DEFERRED_BLANK_CURSOR] = low;
+  m.mem8[DEFERRED_BLANK_CURSOR + 1] = high;
   m.mem8[DEFERRED_WRITE_CURSOR] = high;
   m.mem8[DEFERRED_WRITE_CURSOR + 1] = low;
   return m;
@@ -163,21 +162,21 @@ function brokenOnlyOneList(m) {
 
 /** BUG: the cursor is parked on the head itself instead of past it. */
 function brokenParksOnTheHead(m) {
-  m.mem16[FIRST_LIST] = FIRST_LIST;
+  m.mem16[DEFERRED_BLANK_CURSOR] = DEFERRED_BLANK_CURSOR;
   m.mem16[DEFERRED_WRITE_CURSOR] = DEFERRED_WRITE_CURSOR;
   m.regs.hl = DEFERRED_WRITE_CURSOR;
 }
 
 /** BUG: each cursor is parked on the OTHER list's first entry. */
 function brokenCrossesTheLists(m) {
-  m.mem16[FIRST_LIST] = DEFERRED_WRITE_CURSOR + FIRST_ENTRY;
-  m.mem16[DEFERRED_WRITE_CURSOR] = FIRST_LIST + FIRST_ENTRY;
-  m.regs.hl = FIRST_LIST + FIRST_ENTRY;
+  m.mem16[DEFERRED_BLANK_CURSOR] = DEFERRED_WRITE_CURSOR + FIRST_ENTRY;
+  m.mem16[DEFERRED_WRITE_CURSOR] = DEFERRED_BLANK_CURSOR + FIRST_ENTRY;
+  m.regs.hl = DEFERRED_BLANK_CURSOR + FIRST_ENTRY;
 }
 
 /** BUG: the cursors land right but the register pair is left holding whatever it had. */
 function brokenDropsTheLiveOut(m) {
-  m.mem16[FIRST_LIST] = FIRST_LIST + FIRST_ENTRY;
+  m.mem16[DEFERRED_BLANK_CURSOR] = DEFERRED_BLANK_CURSOR + FIRST_ENTRY;
   m.mem16[DEFERRED_WRITE_CURSOR] = DEFERRED_WRITE_CURSOR + FIRST_ENTRY;
 }
 
@@ -201,14 +200,14 @@ test("EQUAL at the real dispatch: the whole dump, stack included", { skip }, () 
 test("STORES: both cursors carry their own first entry, from arbitrary priors", { skip }, () => {
   const m = craft(0x5a, 0xa5);
   emptyBothDeferredCellLists(m);
-  assert.equal(m.mem16[FIRST_LIST], FIRST_LIST + FIRST_ENTRY, "the first cursor did not move");
+  assert.equal(m.mem16[DEFERRED_BLANK_CURSOR], DEFERRED_BLANK_CURSOR + FIRST_ENTRY, "the first cursor did not move");
   assert.equal(
     m.mem16[DEFERRED_WRITE_CURSOR],
     DEFERRED_WRITE_CURSOR + FIRST_ENTRY,
     "the second cursor did not move",
   );
   console.log(
-    `  STORES: ${hex4(FIRST_LIST)} -> ${hex4(FIRST_LIST + FIRST_ENTRY)}, ` +
+    `  STORES: ${hex4(DEFERRED_BLANK_CURSOR)} -> ${hex4(DEFERRED_BLANK_CURSOR + FIRST_ENTRY)}, ` +
       `${hex4(DEFERRED_WRITE_CURSOR)} -> ${hex4(DEFERRED_WRITE_CURSOR + FIRST_ENTRY)}`,
   );
 });

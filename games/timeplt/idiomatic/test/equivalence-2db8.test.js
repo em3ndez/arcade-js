@@ -45,18 +45,14 @@ import {
   wholeMachineEquivalence,
 } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { ERA_INDEX, KILLS_REMAINING, KILL_QUOTA, ROUND_NUMBER } from "../names.js";
+import { ERA_INDEX, KILLS_REMAINING, KILL_QUOTA, ROUND_NUMBER, START_RUNG_ROUNDS_1_5, START_RUNG_ROUNDS_6_10, START_RUNG_ROUNDS_11_UP, MOTHER_SHIP_ARMED } from "../names.js";
 
 const TARGET = 0x2db8;
 
 const ERAS = 5;
 const SECOND_BRACKET_FROM = 6;
 const THIRD_BRACKET_FROM = 11;
-const EASY_DIFFICULTY = 0xa9d3;
-const MEDIUM_DIFFICULTY = 0xa9d4;
-const HARD_DIFFICULTY = 0xa9d5;
 const DIFFICULTY = 0xad0a;
-const CLEARED_FLAG = 0xad0d;
 const ROUND_OVER_FLAG = 0xacc6;
 const ARMED_FLAG = 0xad0e;
 const ARMED = 0xff;
@@ -174,15 +170,15 @@ const replay = (candidate) =>
 function tail(m, difficulty) {
   m.mem8[DIFFICULTY] = m.mem8[difficulty];
   m.mem8[KILLS_REMAINING] = m.mem8[KILL_QUOTA];
-  m.mem8[CLEARED_FLAG] = 0;
+  m.mem8[MOTHER_SHIP_ARMED] = 0;
   m.mem8[ROUND_OVER_FLAG] = 0;
   m.mem8[ARMED_FLAG] = ARMED;
 }
 
 function bracketOf(round) {
-  if (round < SECOND_BRACKET_FROM) return EASY_DIFFICULTY;
-  if (round < THIRD_BRACKET_FROM) return MEDIUM_DIFFICULTY;
-  return HARD_DIFFICULTY;
+  if (round < SECOND_BRACKET_FROM) return START_RUNG_ROUNDS_1_5;
+  if (round < THIRD_BRACKET_FROM) return START_RUNG_ROUNDS_6_10;
+  return START_RUNG_ROUNDS_11_UP;
 }
 
 function correctEra(m) {
@@ -227,7 +223,7 @@ function brokenNoHardBracket(m) {
   m.mem8[ROUND_NUMBER] = m.mem8[ROUND_NUMBER] + 1;
   correctEra(m);
   const round = m.mem8[ROUND_NUMBER];
-  tail(m, round < SECOND_BRACKET_FROM ? EASY_DIFFICULTY : MEDIUM_DIFFICULTY);
+  tail(m, round < SECOND_BRACKET_FROM ? START_RUNG_ROUNDS_1_5 : START_RUNG_ROUNDS_6_10);
 }
 
 /** BUG: the kill quota is not refilled, so the next round is over the moment it starts. */
@@ -235,7 +231,7 @@ function brokenNoQuota(m) {
   m.mem8[ROUND_NUMBER] = m.mem8[ROUND_NUMBER] + 1;
   correctEra(m);
   m.mem8[DIFFICULTY] = m.mem8[bracketOf(m.mem8[ROUND_NUMBER])];
-  m.mem8[CLEARED_FLAG] = 0;
+  m.mem8[MOTHER_SHIP_ARMED] = 0;
   m.mem8[ROUND_OVER_FLAG] = 0;
   m.mem8[ARMED_FLAG] = ARMED;
 }
@@ -246,7 +242,7 @@ function brokenNotArmed(m) {
   correctEra(m);
   m.mem8[DIFFICULTY] = m.mem8[bracketOf(m.mem8[ROUND_NUMBER])];
   m.mem8[KILLS_REMAINING] = m.mem8[KILL_QUOTA];
-  m.mem8[CLEARED_FLAG] = 0;
+  m.mem8[MOTHER_SHIP_ARMED] = 0;
   m.mem8[ROUND_OVER_FLAG] = 0;
   m.mem8[ARMED_FLAG] = 0;
 }
@@ -257,7 +253,7 @@ function brokenFlagNotCleared(m) {
   correctEra(m);
   m.mem8[DIFFICULTY] = m.mem8[bracketOf(m.mem8[ROUND_NUMBER])];
   m.mem8[KILLS_REMAINING] = m.mem8[KILL_QUOTA];
-  m.mem8[CLEARED_FLAG] = 0;
+  m.mem8[MOTHER_SHIP_ARMED] = 0;
   m.mem8[ARMED_FLAG] = ARMED;
 }
 

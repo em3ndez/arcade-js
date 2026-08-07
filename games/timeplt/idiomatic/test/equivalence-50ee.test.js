@@ -65,7 +65,7 @@ import { loc_50ee } from "../loc_50ee.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
 import { loc_50ee as oracle } from "../../translated/loc_50ee.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { ERA_INDEX, PLAYER_STATE } from "../names.js";
+import { ERA_INDEX, PLAYER_STATE, MOTHER_SHIP_STATE } from "../names.js";
 import { u8, u16 } from "../../../../core/int.js";
 
 const TARGET = 0x50ee;
@@ -76,7 +76,6 @@ const NUDGED_ERA = 0;
 
 const ENTRY = 0xaa10;
 const ENTRY_SECOND_AXIS = 49;
-const SECOND_STATE = 0xa8a0;
 const CLEARED_BESIDE = 0xa8a4;
 const SECOND_FIRST_AXIS = 0xaa24;
 const SECOND_SECOND_AXIS = 0xaa55;
@@ -178,7 +177,7 @@ function nudgedSession(candidate, opts) {
         dispatches++;
         if (first === null) first = mm.clone();
         const one = mm.mem8[PLAYER_STATE] === LIVE;
-        const two = one && mm.mem8[SECOND_STATE] === LIVE;
+        const two = one && mm.mem8[MOTHER_SHIP_STATE] === LIVE;
         const near = two && within(
           mm.mem8[SECOND_FIRST_AXIS], mm.mem8[ENTRY], FIRST_AXIS_REACH, FIRST_AXIS_SPAN,
         );
@@ -224,7 +223,7 @@ const INSIDE = 100;
 function craft(firstState, secondState, firstBase, firstCoord, secondBase, secondCoord) {
   const m = entryState().clone();
   m.mem8[PLAYER_STATE] = firstState;
-  m.mem8[SECOND_STATE] = secondState;
+  m.mem8[MOTHER_SHIP_STATE] = secondState;
   m.mem8[ENTRY] = firstBase;
   m.mem8[SECOND_FIRST_AXIS] = firstCoord;
   m.mem8[u16(ENTRY + ENTRY_SECOND_AXIS)] = secondBase;
@@ -317,12 +316,12 @@ function variant({ reach1, span1, reach2, span2, skipFirst, skipSecond, keepThir
   return (m) => {
     const { mem8 } = m;
     if (!skipFirst && mem8[PLAYER_STATE] !== LIVE) return;
-    if (!skipSecond && mem8[SECOND_STATE] !== LIVE) return;
+    if (!skipSecond && mem8[MOTHER_SHIP_STATE] !== LIVE) return;
     if (!within(mem8[SECOND_FIRST_AXIS], mem8[ENTRY], reach1, span1)) return;
     const other = mem8[u16(ENTRY + ENTRY_SECOND_AXIS)];
     if (!within(mem8[SECOND_SECOND_AXIS], other, reach2, span2)) return;
     mem8[PLAYER_STATE] = DESTROYED;
-    mem8[SECOND_STATE] = DESTROYED;
+    mem8[MOTHER_SHIP_STATE] = DESTROYED;
     if (!keepThird) mem8[CLEARED_BESIDE] = 0;
     if (!noScore) postChainedHitScore(m);
   };
@@ -402,7 +401,7 @@ test("EQUAL at a nudged dispatch, outside the dead stack window", { skip }, () =
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(
-    `  EQUAL: first=${entryState().mem8[PLAYER_STATE]} second=${entryState().mem8[SECOND_STATE]} ` +
+    `  EQUAL: first=${entryState().mem8[PLAYER_STATE]} second=${entryState().mem8[MOTHER_SHIP_STATE]} ` +
       `sp=${hex4(sp)}; identical outside [sp-${SCRATCH_BYTES}, sp)`,
   );
 });
@@ -459,7 +458,7 @@ test("EXHAUSTIVE: four state pairs x each axis over 256 coordinates from two bas
   overSweep((machine) => {
     const a = machine.clone();
     oracle(a);
-    if (a.mem8[PLAYER_STATE] === DESTROYED && a.mem8[SECOND_STATE] === DESTROYED) destroys++;
+    if (a.mem8[PLAYER_STATE] === DESTROYED && a.mem8[MOTHER_SHIP_STATE] === DESTROYED) destroys++;
   });
   assert.equal(destroys, CRAFTED_DESTROYS, "the crafted sweep's destroy count moved, so it no " +
     "longer covers what this entry does when the guard holds");

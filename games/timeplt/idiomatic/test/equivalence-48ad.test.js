@@ -48,6 +48,7 @@ import {
   wholeMachineEquivalence,
 } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { DEFERRED_BLANK_CURSOR } from "../names.js";
 
 const TARGET = 0x48ad;
 
@@ -119,7 +120,6 @@ function captureCorpus() {
 
 /** Two bases inside work RAM that no captured dispatch uses, so the cross is not shadowed. */
 const CRAFT_RECORD = 0xae00;
-const CRAFT_ENTRY = 0xae80;
 
 /** Prior values, including the ones the writes would leave anyway. */
 const PRIORS = [0x00, 0x01, 0x7f, 0x80, 0xf0, 0xff];
@@ -151,7 +151,7 @@ function cross() {
 }
 
 const craftedCaught = (candidate) =>
-  cross().filter((p) => unitDiff(candidate, craft(CRAFT_RECORD, CRAFT_ENTRY, p)) !== null).length;
+  cross().filter((p) => unitDiff(candidate, craft(CRAFT_RECORD, DEFERRED_BLANK_CURSOR, p)) !== null).length;
 
 // ── the shim, measured rather than asserted ─────────────────────────────────────────────
 
@@ -272,7 +272,7 @@ test("CORPUS: every captured dispatch replays identically", { skip }, () => {
 
 test("EXHAUSTIVE: the crafted cross of prior values is identical", { skip }, () => {
   for (const p of cross()) {
-    const d = unitDiff(retireSlotIntoCooldown, craft(CRAFT_RECORD, CRAFT_ENTRY, p));
+    const d = unitDiff(retireSlotIntoCooldown, craft(CRAFT_RECORD, DEFERRED_BLANK_CURSOR, p));
     assert.equal(d, null, `${JSON.stringify(p)}: ${show(d)}`);
   }
   assert.equal(cross().length, PRIORS.length ** 4, "the crafted cross shrank");

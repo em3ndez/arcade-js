@@ -46,6 +46,7 @@ import { loc_46db as oracle } from "../../translated/loc_46db.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { buildRoutines } from "../../routines.js";
+import { MOTHER_SHIP_STATE } from "../names.js";
 
 const TARGET = 0x46db;
 
@@ -62,8 +63,6 @@ const SKIP = romsPresent() ? false : "ROM images are gitignored; nothing to gate
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
 
-/** The bases the real dispatch presents. Measured; a move here is a finding. */
-const REAL_RECORD = 0xa8a0;
 const REAL_ENTRY = 0xaa24;
 
 // ── the one expensive run ───────────────────────────────────────────────────────────────────
@@ -184,10 +183,10 @@ test("EQUAL at the real dispatch: retireEntryPairIntoCooldown == oracle on RAM a
 
 test("THE REAL DISPATCH EXERCISES ONE STORE: the other five cells already read zero", { skip: SKIP }, () => {
   const e = entryState();
-  assert.equal(e.regs.ix, REAL_RECORD, "the real record base moved");
+  assert.equal(e.regs.ix, MOTHER_SHIP_STATE, "the real record base moved");
   assert.equal(e.regs.iy, REAL_ENTRY, "the real entry base moved");
   const zeroed = [
-    e.mem8[REAL_RECORD],
+    e.mem8[MOTHER_SHIP_STATE],
     e.mem8[REAL_ENTRY],
     e.mem8[REAL_ENTRY + NEXT_ENTRY],
     e.mem8[REAL_ENTRY + SECOND_AXIS],
@@ -200,13 +199,13 @@ test("THE REAL DISPATCH EXERCISES ONE STORE: the other five cells already read z
       "crafted sweep was added to cover and this file's account of the split must be re-derived",
   );
   assert.notEqual(
-    e.mem8[REAL_RECORD + RECORD_BYTE],
+    e.mem8[MOTHER_SHIP_STATE + RECORD_BYTE],
     RECORD_CODE,
     "the record byte already holds the constant, so even that store is invisible on real data",
   );
   console.log(
     `  ONE STORE: the five zeroed cells all read 0 at entry; record byte 14 goes ` +
-      `${e.mem8[REAL_RECORD + RECORD_BYTE]} -> ${RECORD_CODE}`,
+      `${e.mem8[MOTHER_SHIP_STATE + RECORD_BYTE]} -> ${RECORD_CODE}`,
   );
 });
 

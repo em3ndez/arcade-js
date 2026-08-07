@@ -12,12 +12,11 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
-import { PLAYER_STATE } from "./names.js";
+import { PLAYER_STATE, MOTHER_SHIP_STATE } from "./names.js";
 
 const ENTRY = 0xaa10;
 const ENTRY_SECOND_AXIS = 49;
 
-const SECOND_STATE = 0xa8a0;
 const CLEARED_BESIDE = 0xa8a4;
 const SECOND_FIRST_AXIS = 0xaa24;
 const SECOND_SECOND_AXIS = 0xaa55;
@@ -36,7 +35,7 @@ const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 export function loc_50ee(m) {
   const { mem8 } = m;
   if (mem8[PLAYER_STATE] !== LIVE) return;
-  if (mem8[SECOND_STATE] !== LIVE) return;
+  if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;
   if (!within(mem8[SECOND_FIRST_AXIS], mem8[ENTRY], FIRST_AXIS_REACH, FIRST_AXIS_SPAN)) return;
   if (
     !within(mem8[SECOND_SECOND_AXIS], mem8[u16(ENTRY + ENTRY_SECOND_AXIS)],
@@ -46,7 +45,7 @@ export function loc_50ee(m) {
   }
 
   mem8[PLAYER_STATE] = DESTROYED;
-  mem8[SECOND_STATE] = DESTROYED;
+  mem8[MOTHER_SHIP_STATE] = DESTROYED;
   mem8[CLEARED_BESIDE] = 0;
   postChainedHitScore(m);
 }

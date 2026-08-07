@@ -49,7 +49,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { loc_4fe0 } from "../loc_4fe0.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
-import { ERA_INDEX } from "../names.js";
+import { ERA_INDEX, MOTHER_SHIP_STATE } from "../names.js";
 import { loc_4fe0 as oracle } from "../../translated/loc_4fe0.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { buildRoutines } from "../../routines.js";
@@ -65,7 +65,6 @@ const STATE = 0;
 const SLOT_FIRST_AXIS = 6;
 const SLOT_SECOND_AXIS = 4;
 
-const ROAMER_STATE = 0xa8a0;
 const ROAMER_FIRST_AXIS = 0xaa24;
 const ROAMER_SECOND_AXIS = 0xaa55;
 
@@ -143,7 +142,7 @@ const ANCHOR = 100;
 function craft(era, firstDiff, secondDiff, roamerLive, slotLive) {
   const m = realStates()[0].clone();
   m.mem8[ERA_INDEX] = era;
-  m.mem8[ROAMER_STATE] = roamerLive ? LIVE : DESTROYED;
+  m.mem8[MOTHER_SHIP_STATE] = roamerLive ? LIVE : DESTROYED;
   for (let i = 0; i < SLOT_COUNT; i++) {
     const slot = SLOTS + i * RECORD_STRIDE;
     m.mem8[slot + STATE] = slotLive ? LIVE : DESTROYED;
@@ -199,7 +198,7 @@ function sweep(m, { wide = null, gateRoamer = true, gateSlot = true, stopAtFirst
   const isWide = wide ?? [0, 4].includes(mem8[ERA_INDEX]);
   const reach = isWide ? FIRST_AXIS_REACH_WIDE : FIRST_AXIS_REACH;
   const span = isWide ? FIRST_AXIS_SPAN_WIDE : FIRST_AXIS_SPAN;
-  if (gateRoamer && mem8[ROAMER_STATE] !== LIVE) return;
+  if (gateRoamer && mem8[MOTHER_SHIP_STATE] !== LIVE) return;
   let slot = SLOTS;
   for (let left = SLOT_COUNT; left !== 0; left--) {
     const liveSlot = !gateSlot || mem8[slot + STATE] === LIVE;
@@ -209,7 +208,7 @@ function sweep(m, { wide = null, gateRoamer = true, gateSlot = true, stopAtFirst
       (!secondAxis ||
         within(mem8[ROAMER_SECOND_AXIS], mem8[slot + SLOT_SECOND_AXIS], SECOND_AXIS_REACH, SECOND_AXIS_SPAN));
     if (hit) {
-      mem8[ROAMER_STATE] = DESTROYED;
+      mem8[MOTHER_SHIP_STATE] = DESTROYED;
       mem8[slot + STATE] = DESTROYED;
       postChainedHitScore(m);
       if (stopAtFirst) return;

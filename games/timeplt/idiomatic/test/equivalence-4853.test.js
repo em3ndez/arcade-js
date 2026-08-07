@@ -42,14 +42,12 @@ import { loc_4853 as oracle } from "../../translated/loc_4853.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
-import { FRAME_TICK } from "../names.js";
+import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_HEADING } from "../names.js";
 
 const TARGET = 0x4853;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
 
 const SCRATCH_BYTES = 2;
-const ACTION_GATE = 0xad0d;
-const PLAYER_HEADING = 0xa802;
 const EVERY_OTHER_FRAME = 0x01;
 const DELAY = 0x0e;
 const STATE = 0x00;
@@ -119,7 +117,7 @@ function unitDiff(candidate, machine) {
 
 /** Which of the four exits a state takes, named by what stops it. */
 function exitOf(m) {
-  if (m.mem8[ACTION_GATE] !== 0) return "gate";
+  if (m.mem8[MOTHER_SHIP_ARMED] !== 0) return "gate";
   if ((m.mem8[FRAME_TICK] & EVERY_OTHER_FRAME) === 0) return "frame";
   if (u8(m.mem8[u16(m.regs.ix + DELAY)] - 1) !== 0) return "delay";
   return "places";
@@ -127,7 +125,7 @@ function exitOf(m) {
 
 function craft(gateCell, counter, delay, heading) {
   const m = entryState().clone();
-  m.mem8[ACTION_GATE] = gateCell;
+  m.mem8[MOTHER_SHIP_ARMED] = gateCell;
   m.mem8[FRAME_TICK] = counter;
   m.mem8[u16(m.regs.ix + DELAY)] = delay;
   m.mem8[PLAYER_HEADING] = heading;
@@ -204,7 +202,7 @@ function place(m, { round = 8, order = 0, live = true, reset = true } = {}) {
 
 function guarded(m, options, { checkGate = true, checkFrame = true, writeDelay = true } = {}) {
   const { regs, mem8 } = m;
-  if (checkGate && mem8[ACTION_GATE] !== 0) return;
+  if (checkGate && mem8[MOTHER_SHIP_ARMED] !== 0) return;
   if (checkFrame && (mem8[FRAME_TICK] & EVERY_OTHER_FRAME) === 0) return;
   const delay = u8(mem8[u16(regs.ix + DELAY)] - 1);
   if (writeDelay) mem8[u16(regs.ix + DELAY)] = delay;

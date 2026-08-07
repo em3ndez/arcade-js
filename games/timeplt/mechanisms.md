@@ -459,6 +459,42 @@ expires, and clamped at fifteen. The era and the rung are then packed into one i
 high nibble, rung in the low — which selects a ten-byte row from a table of five eras by sixteen
 rungs, and one routine scatters that row over twelve cells.
 
+### ★ And the cabinet's Difficulty switch sets where that rung STARTS and how fast it climbs
+
+The rung is not only a per-life ramp; the DIP decides the ramp's two ends. A three-bit field of
+DSW1 is unpacked at boot into one cell, and the credited-game init uses it to index an eight-record
+table of four bytes each. Three of the four bytes are the rung a round STARTS on, chosen by rounds
+completed — under 6, 6 to 10, 11 and up — and the fourth is how many wraps of the base-sixty
+counter one rung lasts. `[seen]`
+
+Driven through all eight DIP positions on the real ROM under MAME, one process per position, and
+read back from the DERIVED cells rather than from the port:
+
+| MAME's own label | index cell | start rung, rounds 1-5 / 6-10 / 11+ | wraps per rung |
+|---|---|---|---|
+| 1 (Easiest) | 0 | 0 / 2 / 6 | 13 |
+| 2 | 1 | 0 / 3 / 7 | 12 |
+| 3 | 2 | 0 / 4 / 8 | 11 |
+| 4 (default) | 3 | 2 / 6 / 10 | 10 |
+| 5 | 4 | 4 / 8 / 12 | 9 |
+| 6 | 5 | 7 / 10 / 13 | 7 |
+| 7 | 6 | 11 / 13 / 14 | 5 |
+| 8 (Difficult) | 7 | 15 / 15 / 15 | 5 |
+
+Both directions were watched, and either could have come out backwards: as the setting hardens the
+start rung RISES and the wraps per rung FALL. At the hardest position the start rung is already the
+clamp, so the ramp is over before it begins. The first column was watched arriving in the per-player
+block and then in the rung cell itself at every one of the eight positions. `[seen]`
+
+★ **The attract demo runs on one fixed record whatever the cabinet says.** The same eight runs, read
+before a credit was taken, all produced the third record: the attract path reaches the loader
+through a call site that passes a literal 2 where the credited-game path passes the DIP cell. A
+demo is therefore no guide to how the cabinet is set. `[seen]`
+
+★ **"Easy / medium / hard" is the wrong reading of the three bracket bytes.** They are not three
+difficulty tiers — all three come from the SAME record, so from the same DIP position, and what
+selects between them is how many rounds the player has completed.
+
 **The row is difficulty settings, and it was watched being applied.** As the rung climbed under
 MAME, the destinations took a monotone ladder of values: a fire cooldown period stepping 0x32,
 0x28, 0x1E; an aim window widening; a spawner's cap going 0, 1, 2; a draw threshold climbing 0x50
@@ -534,7 +570,7 @@ families use them differently again. Any single name for that block would be wro
 | `+0x09` | animation step — a countdown that is ALSO the index into the run |
 | `+0x0A` | which run of shape bytes this record animates through |
 | `+0x0E` | release delay, then a general cooldown |
-| `+0x0F` | slot ordinal, stamped once at round init and used as a round-robin key |
+| `+0x0F` | slot ordinal, stamped once per life and used as an identity key |
 
 ★ **Some record bytes are per-slot PARAMETERS, stamped once per era and never touched by the slot's
 own handler.** One routine reads a table block chosen by the era and distributes its bytes to
@@ -544,6 +580,21 @@ last actor record: six retire sites outside it copy it into whatever record they
 that record's cooldown. `[seen]` for the value travelling — it is `0x1E` through the attract demo
 and `0x42`, `0x48`, `0x4E` across a driven game, restamped six times by the era loader. Anyone
 reading the offsets table as "every byte of a record belongs to that record" will misread these.
+
+★ **The ordinal at `+0x0F` is stamped by ONE routine, on the whole array at once, at life start.**
+It walks twenty-three records sixteen bytes apart from `0xA810` — which is the actor band and the
+scenery band entire, every slot but the player's — clearing each occupancy byte and writing that
+record's position from one. Read back on the real ROM under MAME in the frame it ran, three times
+in one driven game, the twenty-three bytes held 1 through 23 and the twenty-three occupancy bytes
+held zero. `[seen]`
+
+Two routines then use it as an IDENTITY rather than a round-robin index, and between them they are
+what makes it a key: when a shared timer expires one of them stores a dying record's own ordinal,
+plus a top bit, into a single cell at `0xA821`; the appearance driver on the dying path reads that
+cell and RETIRES its object outright unless the low seven bits are its own ordinal. So the cell is a
+token, granted to one slot at a time, and the ordinal is how a slot recognises that it holds it.
+`[code]` for what the token buys — only that it is consumed exactly once, on the first value, and
+that the same dispatch posts a ring command.
 
 The record holds **no** whole coordinate for actors, no sprite code and no colour. Those are in the
 entry: X, tile code, attribute (colour plus two flip bits), Y. `[code]`
@@ -875,6 +926,12 @@ counts toward it.
 byte, and that byte is `0x38` = 56.** Re-read from the image for this document. It is not era-keyed,
 not loop-keyed and not difficulty-keyed. `[code]`
 
+★ **What the quota reaching zero DOES is now watched, and it is the Mother-Ship.** Forcing the
+counter to zero on the real ROM under MAME armed the two-slot object four times in one run, each
+arming raising the flag and writing seven into that object's counter in the same frame; the run that
+did not force it never armed it once. The two halves of the manual's sentence are the same event.
+`[seen]`
+
 The cell it is reloaded from is `KILL_QUOTA`, and "once at boot" has now been watched rather than
 read: a write tap across a run covering boot, attract, the demo and a driven game recorded exactly
 one write to it, at boot, of `0x38`. Its only reader is the routine that starts a round. `[seen]`
@@ -988,12 +1045,32 @@ Nothing in the public record describes what happens when you die. All of the fol
 
 ### The Mother-Ship, as far as the code goes
 
-It is a **two-slot object** — one entity occupying two consecutive slots — armed after a delay once
-both slots are free, with a per-era velocity table. Hits count **from any angle**: the test box is
+It is a **two-slot object** — one entity occupying two consecutive slots — and it is armed when the
+kill meter reaches zero, both slots are free and a frame gate comes round, with a per-era velocity
+table. ★ **The quota and the Mother-Ship are one mechanism, not two.** The arming path ORs the kill
+counter with both occupancy bytes and returns unless all three are zero, then raises a flag and
+writes seven into the object's own fifth byte. So the manual's "destroy 56 enemies, then land 7 hits
+on the Mother-Ship" is a single sequence in the code: the 56th kill is what puts it on the field, and
+the 7 is an immediate two instructions later. `[seen]` for the arming, watched four times. Hits count **from any angle**: the test box is
 symmetric on one axis and merely long on the other, and that length is the sprite's own, not a
 facing test. ★ **Its hit count never falls below five across appearances.** The re-entry path tests
 the counter and writes five only if it is already under six — so the first two hits survive a
 departure and everything after them is undone. Damage accumulates exactly that far and then stops.
+
+★ **While it is out, five of the seven ordinary craft slots exist and two do not**, and the whole
+machine knows it through one flag. That flag is raised by the arming path and cleared only by the
+next round start or life start — so it stays up after the object dies, until the round turns over.
+Every reader of it reads it as "the last two craft slots are taken": the shot sweep
+takes an arm that runs FIVE craft instead of seven and then falls into a sweep against the
+Mother-Ship itself; a spawn walk shortens its own run to five; the two ordinary per-slot handlers
+for exactly those two records return early; and the parachutist spawn refuses outright. The
+arithmetic closes — the craft run's base plus five strides IS the Mother-Ship's record. `[code]`
+
+Measured, with a control: two MAME runs identical but for one line of the driver, whether the kill
+counter is forced to zero. In the control the flag never left zero and the five-craft arm took
+**zero** dispatches while the caller that chooses between the arms took 2090; with the counter
+forced, the flag went up four times and that arm took 1361, every one of them attributed to the
+flag-set state and none to the flag-clear state the same run entered nine times. `[seen]`
 The 1940 bomber is different again: its counter is re-seeded every time it arms, so against it
 nothing persists at all. `[code]`
 
@@ -1325,10 +1402,25 @@ it.
 ### Player shots live here too
 
 Shots have no sprite entry. They are painted as 2×2 blocks of cells through a **double-buffered
-display list**: one walker blanks the previous frame's cells, another writes this frame's, and the
-list is then copied and its cursor reset — all inside the interrupt. Both walkers check each cell's
-colour-plane priority bit and **skip the cell if it is set**, so shots refuse to scribble over
-foreground and HUD cells. `[code]`
+display list**: one walker blanks the previous pass's cells, another writes this pass's, and the
+list is then copied onto the blank list wholesale and its cursor reset — all inside the interrupt.
+Both walkers check each cell's colour-plane priority bit and **skip the cell if it is set**, so
+shots refuse to scribble over foreground and HUD cells. `[code]`
+
+★ **The pairing is now measured, not derived.** A write tap over the whole character plane on the
+real ROM under MAME, attributed by program counter and compared per pass rather than per frame: over
+3767 passes with a non-empty set on either side, the set of cells the blanking walker erased was
+EXACTLY the set the painting walker had written on the pass before — equality tested in both
+directions, with no exceptions. The tap is not blind to the alternative: twenty-six other program
+counters wrote the same plane in the same run and were bucketed separately, the kill meter's two
+stores alone taking 25392 writes. `[seen]`
+
+Two consequences a reader would otherwise get wrong. The pass is a dispatch of the shared drain, not
+a video frame, and the count of pending entries is read off the low half of each list's own cursor —
+so a cursor that scales to a count of zero is **not** an empty list, and both walkers run 256 times
+on it. And the blank list's cursor carries a top bit the copy adds, which its walker masks away
+before scaling; the mask cannot change the entry count, only whether the list reads as empty, and
+that for exactly one cursor value in 256.
 
 The publish step has an empty branch, and it is the branch that keeps the two buffers in step:
 when the staging list has nothing in it, a separate routine puts **both** cursors back to their
@@ -1730,12 +1822,20 @@ table decay in precisely the order that says where the tape stops:
 |---|---|---|
 | 0x594E | era 0 | 5784 |
 | 0x5965 | eras 1–2 | 962 |
-| **0x596B** | **era 3 and up** | **0** |
+| **0x596B** | **era 3 and up** | **2596** (attract, era 3) / **2821** (era 4 held) |
 
 `[seen]` for the counts; `[code]` for which era each arm serves, which is read from `loc_1f42`.
 
+★ **The zero this table once carried for `0x596B` was the tape's, and a later sweep collected the
+number.** An undriven attract run that reaches the fourth era dispatched it 2596 times, all of them
+attributed to era 3; a driven run holding the era index at 4 dispatched it 2821 times, all at era 4;
+and two runs that stayed in eras 0-2 dispatched it zero times. So the row's own prediction — era 3
+and up — held, and the lesson below stands for a better reason than it did: the arm was never dark,
+only unvisited. `[seen]`
+
 Four of the twelve addresses on our own "proven dark, do not spend a batch slot" list are one cause:
-`0x596B` is the player's top-speed arm, `0x5860` and `0x58A4` are later-era enemy shims — and
+`0x596B` is the player's top-speed arm and has since been watched executing thousands of times,
+`0x5860` and `0x58A4` are later-era enemy shims — and
 `0x59D7` **is not code at all.** It is the slowest velocity table, dark because a program counter
 never enters data.
 

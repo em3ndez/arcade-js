@@ -11,7 +11,7 @@
  * are stepped a record at a time WITHOUT leaving their page. LIVE-OUT: memory. */
 
 import { u8, u16 } from "../../../core/int.js";
-import { ERA_INDEX } from "./names.js";
+import { ERA_INDEX, MOTHER_SHIP_STATE } from "./names.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
 
 const SLOTS = 0xaa80;
@@ -21,7 +21,6 @@ const STATE = 0;
 const SLOT_FIRST_AXIS = 6;
 const SLOT_SECOND_AXIS = 4;
 
-const ROAMER_STATE = 0xa8a0;
 const ROAMER_FIRST_AXIS = 0xaa24;
 const ROAMER_SECOND_AXIS = 0xaa55;
 
@@ -45,7 +44,7 @@ export function loc_4fe0(m) {
   const reach = wide ? FIRST_AXIS_REACH_WIDE : FIRST_AXIS_REACH;
   const span = wide ? FIRST_AXIS_SPAN_WIDE : FIRST_AXIS_SPAN;
 
-  if (mem8[ROAMER_STATE] !== LIVE) return;
+  if (mem8[MOTHER_SHIP_STATE] !== LIVE) return;
 
   let slot = SLOTS;
   for (let left = SLOT_COUNT; left !== 0; left--) {
@@ -55,7 +54,7 @@ export function loc_4fe0(m) {
       within(mem8[ROAMER_SECOND_AXIS], mem8[u16(slot + SLOT_SECOND_AXIS)],
         SECOND_AXIS_REACH, SECOND_AXIS_SPAN)
     ) {
-      mem8[ROAMER_STATE] = DESTROYED;
+      mem8[MOTHER_SHIP_STATE] = DESTROYED;
       mem8[u16(slot + STATE)] = DESTROYED;
       postChainedHitScore(m);
     }

@@ -10,11 +10,9 @@
 
 import { u8, u16 } from "../../../core/int.js";
 import { fetchTableByte } from "./fetchTableByte.js";
-import { FRAME_TICK } from "./names.js";
+import { FRAME_TICK, MOTHER_SHIP_ARMED, PLAYER_HEADING } from "./names.js";
 
-const ACTION_GATE = 0xad0d;
 const EVERY_OTHER_FRAME = 0x01;
-const PLAYER_HEADING = 0xa802;
 
 const DELAY = 0x0e;
 const STATE = 0x00;
@@ -31,7 +29,7 @@ const SECOND_COORDINATE = 0x31;
 
 export function spawnAtEdgeAhead(m, record = m.regs.ix, entry = m.regs.iy) {
   const { regs, mem8 } = m;
-  if (mem8[ACTION_GATE] !== 0) return;
+  if (mem8[MOTHER_SHIP_ARMED] !== 0) return;
   if ((mem8[FRAME_TICK] & EVERY_OTHER_FRAME) === 0) return;
 
   const delay = u8(mem8[u16(record + DELAY)] - 1);
