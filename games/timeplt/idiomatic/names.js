@@ -80,6 +80,50 @@ export const IN0_MIRROR = 0xa9ae;
 export const COIN_ACCEPTED = 0xa981;
 
 /**
+ * The two coinage DIP settings, as the machine sees them: the complement of the DSW0 port. [seen]
+ *
+ * The boot path reads the port, complements it (the switches are active-low) and stores the result
+ * here, then unpacks it. The low nibble is the setting MAME's own port definition for this driver
+ * labels Coin A and the high nibble the one it labels Coin B, and forcing the port to a value under
+ * MAME moves this cell to that value's complement.
+ */
+export const COINAGE_SETTINGS = 0xa9b1;
+
+/**
+ * Set while the cabinet is on free play, so a coin never has to buy a credit. [seen]
+ *
+ * Raised to all-ones by the coinage unpack when EITHER coin setting reads free play. Of the sites
+ * that name this address those two are the only writes; the other six read it -- the sharpest being
+ * the tail of the coin-accept path, which skips the whole credit arithmetic while this is non-zero.
+ * Watched under MAME across eight forced DSW0 values it read
+ * all-ones for exactly the three where a nibble was set to free play and zero for the other five.
+ */
+export const FREE_PLAY = 0xa9c0;
+
+/**
+ * What coin slot 1 charges: coins-required-minus-one in the high nibble, credits in the low. [seen]
+ *
+ * Written once at boot from the low nibble of COINAGE_SETTINGS through a sixteen-entry table, and
+ * read by the accept arm that debounces the coin-1 bit of IN0_MIRROR: that arm steps an accumulator
+ * by 0x10 per coin and returns until it reaches this byte's high nibble, then adds this byte's low
+ * nibble to the BCD credit count. So the two nibbles are coins and credits, not one packed number.
+ *
+ * Forced under MAME, it carried exactly the pair MAME's own label gives the setting -- one coin for
+ * one credit as 0x01, two coins for one as 0x11, two for three as 0x13, three for two as 0x22, four
+ * for three as 0x33 -- and it followed its own nibble while the other nibble moved independently.
+ */
+export const COIN_SLOT_1_RATIO = 0xa9c9;
+
+/**
+ * The same for coin slot 2, from the OTHER nibble. [seen]
+ *
+ * Same encoding, same table, same grounding run; the arm that reads it is the one debouncing the
+ * coin-2 bit, and it keeps its own accumulator. The two slots are independent: a run with one
+ * nibble at free play and the other at one-coin-one-credit moved only its own destination.
+ */
+export const COIN_SLOT_2_RATIO = 0xa9cc;
+
+/**
  * Flag set while play is active. [seen]
  *
  * A true boolean rather than a value: one routine stores all-ones into it, three others clear it
@@ -400,7 +444,7 @@ export const ROUTINES = {
     name: "stampCopyrightStrip",
     role: "stamp the four fixed pieces of the copyright caption into the display-list shadow; it reads nothing, so re-stamping changes nothing",
     cert: "code",
-    why: "sibling loc_0b2b zeroes the vertical byte of exactly these four slots and nothing else, so an outside routine treats them as one addressable unit; the shapes it places decode out of the sprite ROM as the glyphs of the copyright caption, in the order it places them",
+    why: "sibling hideCaptionSprites zeroes the vertical byte of exactly these four slots and nothing else, so an outside routine treats them as one addressable unit; the shapes it places decode out of the sprite ROM as the glyphs of the copyright caption, in the order it places them",
   },
   0x0f11: {
     name: "advanceSequencePhase",
@@ -418,7 +462,7 @@ export const ROUTINES = {
     name: "hideAllSprites",
     role: "zero every slot of the vertical sprite shadow band, which parks all of them above the first visible line, hiding them without retiring any",
     cert: "code",
-    why: "the slots it zeroes are exactly the ones the renderer scans, and its four-slot sibling loc_0b2b uses the identical idiom on the caption's slots alone -- one routine hiding a caption, this one hiding everything",
+    why: "the slots it zeroes are exactly the ones the renderer scans, and its four-slot sibling hideCaptionSprites uses the identical idiom on the caption's slots alone -- one routine hiding a caption, this one hiding everything",
   },
   0x2b52: {
     name: "releaseHeldObject",
@@ -598,5 +642,70 @@ export const ROUTINES = {
     role: "turn a heading handed straight in into the velocity pair the caller's table gives for it, doubled; the doubling wraps at sixteen bits and nothing is written",
     cert: "code",
     why: "'doubled' distinguishes this body from velocityForHeading, and its consumers show the doubling is the product rather than an artefact: the three shims that fix a table tail-jump here, and their callers bank the pair straight into an object record's +0x0A..+0x0D, which flyAlongStoredVelocity then integrates every frame. 'ForHeading' rather than 'ForObject' is the other half -- loc_599d enters this same body after reading the heading off an object, so taking it as a value is exactly what this entry contributes",
+  },
+  0x08ae: {
+    name: "selectFoldBlock",
+    role: "hand back where a fixed block of the program image starts and how many bytes of it to take; nothing is read and nothing is written",
+    cert: "code",
+    why: "the name says the pair it returns is a fold's source and count, and the caller could have refuted that: the only transfer into this address is a tail jump from 0x4bd9, whose single caller loads a seed byte and then immediately calls 0x291e -- which IS add a,(hl) / inc hl / djnz, over exactly the count returned here -- and banks the total in a cell a later sequence arm reads. A copy would have used ldir and a painter would have used the character cursor; neither appears anywhere on that path",
+  },
+  0x0b2b: {
+    name: "hideCaptionSprites",
+    role: "park the four sprites of the copyright caption above the first visible line by zeroing the vertical byte of each, leaving the rest of their slots standing",
+    cert: "seen",
+    why: "two things the name claims could have been refuted by watching one of those four bytes under MAME, and neither was. Attributed by program counter over 160 s of driven play the byte took 1255 writes from stampCopyrightStrip's own store and exactly two zeroes from this routine's, and the four bytes went from the stamped ladder to all-zero on the frame a driven start press raised PLAY_ACTIVE -- so it fires when a game begins, on the slots the stamper filled. That those slots are the copyright caption's is re-derivable: the shapes the stamper puts in them decode out of the sprite ROM as a copyright mark and then KO, NA, MI",
+  },
+  0x0daf: {
+    name: "paintSuppressedDigit",
+    role: "paint one four-bit digit into the cell the cursor names with the caller's colour a plane below, using the blank glyph instead when the digit is zero and no significant digit has been seen yet, and stepping the caller's flag on at the first that is",
+    cert: "seen",
+    why: "the suppression is the claim and it is refutable per dispatch: a PC-gated tap under MAME logged the digit, the caller's flag and the destination cell on every entry, and the SAME digit zero painted the blanking glyph while the flag was clear and the glyph '0' once it was set, with the flag turning over exactly at the first non-zero digit -- the six-cell field then read blank, 1, 0, 0, 0, 0 for a value of ten thousand. The glyph it picks for a suppressed zero is independently the game's blank: one caption handler writes that same code to erase a caption, and the pictogram strip pads with it",
+  },
+  0x0e70: {
+    name: "paintQuadTile",
+    role: "lay one four-tile block into the character plane from a base code the caller fixes, give all four the caller's colour a plane below, and leave the cursor clear of the block for the next one",
+    cert: "code",
+    why: "'quad' is the discriminating claim, and the caller could have contradicted it: the routine that decomposes a value into counts of thirty, ten, five and one calls a DIFFERENT painter per denomination and chains the cursor between them -- one tile for the units, two for the fives, and this one for both the tens and the thirties with only the base code and the colour differing. So what this entry contributes is the block SIZE and not a denomination, and the four codes are the caller's base plus 0..3 rather than anything a table selects. Not reached by either MAME sweep, which is a fact about the states those sweeps drove: TWO sites post its caller's ring command, and the second passes the cell at 0xad01 rather than a constant -- a cell stepped on the same path that steps ERA_INDEX, and tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated and ten is the smallest that gives the tens a non-zero count",
+  },
+  0x323a: {
+    name: "stepShapeAnimation",
+    role: "count one record's step timer down and refresh that record's shape byte from the entry the NEW count selects, in the run its own selector byte points at; a timer already at zero is left alone",
+    cert: "seen",
+    why: "the sharp claim is that the count is also the INDEX rather than only a delay, and that is checkable from outside the routine. Watching one record's three fields under MAME produced six distinct (selector, count) pairs, and in every one the shape byte equalled the byte the ROM's own run-pointer table at 0x3438 puts at that count -- a plain delay would have left the shape unrelated to it. That table has eighteen usable entries and each run is 32 bytes, which is exactly the count the three sites that START an animation load into the step; and since the countdown ends at index 0, every run's FIRST byte is the shape a finished animation is left standing on -- the same shape loc_3855 writes, alongside a zeroed step, into its five records",
+  },
+  0x3c0d: {
+    name: "retireObjectAndHold",
+    role: "take an object and the slot one stride on out of play -- both record heads, both coordinates of the caller's sprite entry and of one fixed entry -- then set a further byte of the caller's record to a non-zero constant instead of clearing it",
+    cert: "seen",
+    why: "'hold' says the byte left standing is a delay rather than a survivor of the wipe, and watching it could have refuted that: under MAME the record head went to zero and that byte jumped to 128 in the same frame, then counted down by one every OTHER frame, which is the cadence of the routine at 0x3c25 -- it gates the decrement on FRAME_TICK's low bit and branches only when the byte reaches zero. Its two siblings retireSlot and retireSlotAndSubPixel clear their record and stop; this one retires a second record and a fixed entry as well, and arms the delay",
+  },
+  0x4acc: {
+    name: "unpackCoinage",
+    role: "turn the two four-bit coinage settings into the byte each coin slot's accept arm works from, and raise the free-play flag when either of them reads free play",
+    cert: "seen",
+    why: "the subject matter is the whole of the name, and it is a MAME experiment that could have gone the other way. Forcing the DSW0 port to eight values and reading the destinations back, each carried exactly the coins-and-credits pair MAME's own label gives that nibble's setting, each destination followed its OWN nibble while the other moved independently, FREE_PLAY came up only for the settings labelled free play, and a control cell in the same block did not move. Which destination belongs to which slot is fixed outside this routine: the accept arm that debounces the coin-1 bit reads COIN_SLOT_1_RATIO and the one debouncing coin 2 reads COIN_SLOT_2_RATIO",
+  },
+  0x4b19: {
+    name: "stepSequenceUnderChecksum",
+    role: "step the sequence's inner sub-step on, folding a block of the program image on the way; a total that does not match advances the outer phase instead, which derails the sequence rather than halting it",
+    cert: "code",
+    why: "the name says the mismatch arm cannot run on a genuine image, and a measurement could have contradicted it: read taps under MAME counted zero dispatches at advanceSequencePhase's entry across both runs while this routine's own entry was reached in both, and the fold over the real image comes to exactly the byte it is compared with. This entry has no static call site anywhere in the image -- it is reached only as the eleventh entry of the word table at 0x1659 that loc_1651 dispatches -- so what it is FOR is fixed by that table and by nothing that could be mistaken for a caller",
+  },
+  0x51b3: {
+    name: "markObjectsTouchingPlayer",
+    role: "replace the state byte of every object in a caller's run that lies inside a wrapped box around the player's sprite entry, while the player is alive; the box is the caller's, the player's own state is untouched and nothing is scored",
+    cert: "seen",
+    why: "that the reference is the PLAYER is what the name adds over the mechanism, and it rests on evidence outside the routine: three sibling sweeps read the same guard cell and the same reference pair, and the write tap behind destroyTargetsReachedByFixedAttacker already attributed that pair to the ship held at one screen position through a driven game. What separates this entry is what it does NOT do -- the other three also write the destroyed code into the player's own state and post a score. Under MAME it marked ten times in 300 s of attract, every mark on the same record, which is the single object every one of its four call sites leaves the cursor on",
+  },
+  0x5683: {
+    name: "requestTwoSounds",
+    role: "request two sounds in a row, each code fetched from its own byte of the program image, both admitted by the shared play-or-demo permission",
+    cert: "code",
+    why: "'sounds' is a claim about where the codes end up, and it is settled outside this routine by the rest of the path: the drain at 0x55d4 takes the queue's head, hands it to 0x55f8, which writes it to 0xC000 -- the sound-data latch in the driver's memory map -- and pulses the LS259 bit MAME wires to the second Z80's IRQ trigger. So the bytes reach another processor as commands rather than sitting in RAM. Neither code is baked in: each is read from a program byte, and the two bytes are far apart, so this is a chosen pair and not a run walked through",
+  },
+  0x5617: {
+    name: "loc_5617",
+    role: "queue a sound code when either the play flag or the cell at 0xA9C6 is set; only with both clear is the request dropped",
+    cert: "code",
   },
 };

@@ -122,6 +122,20 @@ Three cells are easy to conflate and mean different things: `[code][seen]`
 An accepted coin is therefore not a banked credit on any setting that charges more than one coin
 per credit.
 
+### What a coin buys: two slots, each with its own price
+
+The coinage switches are read once, complemented, and unpacked through a small ROM table into one
+byte per coin slot — `COIN_SLOT_1_RATIO` and `COIN_SLOT_2_RATIO`. Each byte packs **the number of
+coins required, less one, in the high nibble and the credits awarded in the low**, and the accept
+arm for that slot keeps its own accumulator: a coin steps the accumulator by one unit of the high
+nibble, and only when it reaches the required count is the low nibble added to the BCD credit
+count and the accumulator drawn down. The two slots are wholly independent, price included.
+`[seen]` — forced switch values under MAME produced exactly the coins-and-credits pair MAME's own
+label gives each setting, each destination following its own nibble alone.
+
+Free play is not a price. Either slot set to it raises `FREE_PLAY`, and the accept path then skips
+the credit arithmetic entirely rather than charging zero. `[seen]`
+
 ### The ROM checks itself, and a bad copy desynchronises rather than dying
 
 The image is threaded with folds: a routine sums or exclusive-ors a block of ROM, applies a
@@ -367,6 +381,9 @@ families use them differently again. Any single name for that block would be wro
 | `+0x02` | current heading, a full byte = 256 steps of the circle |
 | `+0x03` | Y fraction |
 | `+0x05` | X fraction |
+| `+0x08` | shape byte the entry's tile code is refreshed from |
+| `+0x09` | animation step — a countdown that is ALSO the index into the run |
+| `+0x0A` | which run of shape bytes this record animates through |
 | `+0x0E` | release delay, then a general cooldown |
 | `+0x0F` | slot ordinal, stamped once at round init and used as a round-robin key |
 
@@ -396,6 +413,26 @@ The held code is stored literally on a live spawn path: `ld (ix+0x00),0xfe`, ins
 walks the actor band, which the per-frame list calls unconditionally. The very next instructions read
 the slot's delay and promote `0xFE` to `0xFF` when that delay has already expired, so "held" and
 "live" are set by one piece of code a few bytes apart. `[code]`
+
+### An animation is a run of shape bytes, walked BACKWARDS by its own timer
+
+A record's animation is three bytes of the record and one table. The selector byte picks a run out
+of a table of run pointers; the step byte is counted down once per dispatch and the count it lands
+on is the INDEX into that run, so the shape walks the run from the far end toward the front and
+**stops at the run's first entry** when the count reaches zero — a step already at zero is left
+alone and nothing at all is written. `[seen]`: watching one record's three bytes on the real machine
+gave several distinct selector-and-count pairs, and in every one the shape byte was the byte the
+ROM's own run for that selector holds at that count.
+
+The three sites that START an animation all load the same step, `0x20`, and each run is `0x20` bytes
+long — so a freshly started animation walks the whole run and comes to rest on its first byte.
+
+Every run in that table begins with the same shape. That shape is therefore what a record is left
+standing on once its animation has run out, and one routine writes a band of five records straight
+into that state: the shape, and a zeroed step. Those five are STOPPED, not started — a zeroed step
+is never raised by the countdown itself, which reads the step and returns before writing anything,
+so nothing steps them again until one of the three arming sites fires. `[code]`, and the shared first byte is a property of the table anyone
+can re-derive.
 
 ### Retiring and hiding are the same store
 
@@ -693,6 +730,23 @@ that ramming the Mother-Ship on its last hit still advances you. Both are true, 
 - ramming the Mother-Ship **zeroes its hit counter** as well as marking it, so it dies outright
   rather than needing its remaining hits.
 
+### Four sweeps run the ship against the field, and one of them is survivable
+
+The collision system is a chain of near-identical sweeps, entered from more than one place and
+gated on the frame counter's low bit — not, measured at one of the sweeps, once per frame.
+Each takes a run of records and the matching sprite entries, guards on the player being alive,
+measures a wrapped box between the player's entry and each object's, and writes the destroyed marker
+into whatever it finds. They are chained: each leaves its cursors where it stopped and the next
+picks them up, so together they cover the whole field band by band, with a different box size per
+band. `[code]`
+
+★ **They differ in what else they write, and that is the mechanism.** Two also write the marker into
+the player's own state and post a score — those are the collisions that kill you. One writes the
+player's state but posts nothing. **The last writes only the object**: the player is untouched and
+nothing is scored, so whatever it reaches is destroyed on contact without harming the ship. Every
+call site hands that last one a run of exactly one object, always the same slot. `[seen]` for the
+slot and for the marking; what that object IS has not been established here.
+
 ### Dying
 
 Nothing in the public record describes what happens when you die. All of the following is new: `[code]`
@@ -871,6 +925,26 @@ exactly those four slots by zeroing their vertical byte — the same store that 
 (§4). `[seen]`: it really does execute, so the glyphs are written and then painted over by the
 tilemap. Written-and-occluded, not never-written.
 
+**When it is hidden is the start of a game.** A write tap on one of those four bytes, attributed by
+program counter through driven play, sees the stamper writing it over and over and the hiding
+routine zeroing it on the frame the play flag goes up — the two paths that raise that flag, one per
+start button, both call the hider first. `[seen]`
+
+### A caption's colour flashes because three handlers take turns, not because one cycles
+
+Four command handlers draw a caption from the same record table. One takes the colour stored in the
+record. The other **three ignore that byte and derive the colour from one cell, each adding its own
+fixed offset** before masking to four bits. Post them in rotation at the same caption and its cells
+change colour every few frames; post only one and the colour is whatever that cell holds, held
+still. `[seen]` — a write tap on the colour cell under an attract caption attributes the rotation to
+three separate arrivals through the shared painter, and across a long attract run each caption index
+was drawn at one and only one value of the source cell, so no single handler ever changed its own
+colour.
+
+The source cell is not a frame counter. It is written from a ROM table on the sequence's own steps,
+takes a handful of values in an attract loop, and never reaches the wrap its four-bit mask implies.
+`[seen]` for the values, `[code]` for the writers.
+
 ### The progress meter is the quota, drawn
 
 The bar along the bottom is a direct rendering of the kill-quota cell: its run length is the cell
@@ -894,6 +968,32 @@ table are the glyphs `0`-`9` and the remaining six are not letters: three are bl
 them the blanking glyph the whole game erases with — one is a period, one is an unrelated shape,
 and the last repeats the glyph `3`. So the table covers only the digits a packed-BCD byte can
 hold, which is what the machine keeps its counters in. `[code]`
+
+### Leading zeros are blanked, and one flag carries the whole number
+
+The suppressing twin of that drawer takes the same nibble but chooses the glyph three ways: a
+non-zero digit indexes by its own value and steps a flag on; a zero indexes the blank while the flag
+is still clear; a zero indexes the digit `0` once it is set. The flag lives in the caller across the
+whole number and is cleared before the first digit, and the drawer that lays a number's last two
+digits is the NON-suppressing one — so a value of zero still shows its final digits. `[seen]` — a
+tap logging the digit, the flag and the destination on every dispatch caught the same digit zero
+painting the blank with the flag clear and the digit `0` with it set, the flag turning over exactly
+at the first significant digit.
+
+### A pictogram strip counts in thirties, tens, fives and ones
+
+One command handler clamps its argument below a hundred, splits it into counts of thirty, ten, five
+and one, and lays a row of pictograms at a fixed place in the character plane — a different picture
+per denomination, and a different SIZE: one tile for the units, two for the fives, and a four-tile
+block for both the tens and the thirties, the last two differing only in which tiles and which
+colour. The row is padded out to its end with the blanking glyph. `[code]`
+
+★ **The four-tile painter has not been seen to run.** Neither MAME sweep reached it. Two sites in
+the image post this handler's command: one passes a constant one, which routes to the single-tile
+painter alone; the other passes a work-RAM cell, stepped on the same path that steps `ERA_INDEX` and
+tested against 6 and 11 elsewhere, so arguments of ten and more are anticipated — and ten is the
+smallest that gives the tens a non-zero count. That is "not reached by these sweeps", and it is not
+a dead-code claim.
 
 ### Player shots live here too
 
