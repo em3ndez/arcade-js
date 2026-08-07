@@ -1013,9 +1013,84 @@ export const ROUTINES = {
     cert: "code",
     why: "expireHitChain, an entry in the round engine's service block, ticks the chain window down and clears the step cell when it expires -- without that outside reset the argument would not restart, so the chaining is fixed by a routine other than this one; and it posts through postCommand, which drops the pair on a full ring, so it posts rather than awards",
   },
+  0x565f: {
+    name: "loc_565f",
+    role: "read the byte at 0x07A2 and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5664: {
+    name: "loc_5664",
+    role: "read the byte at 0x16DE and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5669: {
+    name: "loc_5669",
+    role: "read the byte at 0x4C9F and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5674: {
+    name: "loc_5674",
+    role: "read the byte at 0x276B and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5679: {
+    name: "loc_5679",
+    role: "read the byte at 0x07FE and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x567e: {
+    name: "loc_567e",
+    role: "read the byte at 0x3270 and request it as a sound code, admitted while a game is being played or the cell at 0xA9C6 is set",
+    cert: "code",
+  },
   0x568e: {
     name: "loc_568e",
     role: "read the byte at 0x2D87 and request it as a sound code, only while a game is being played; it is the fifth member of the family of shims that each bake in one program address and share one permission door",
+    cert: "code",
+  },
+  0x57f1: {
+    name: "loc_57f1",
+    role: "read the byte at 0x322E and request it as a sound code, with no permission test",
+    cert: "code",
+  },
+  0x57f7: {
+    name: "loc_57f7",
+    role: "request the sound code that the era index selects out of a run beginning twelve codes up, only while a game is being played; the sum is not clamped",
+    cert: "code",
+  },
+  0x57ff: {
+    name: "loc_57ff",
+    role: "read the byte at 0x079B and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5805: {
+    name: "loc_5805",
+    role: "read the byte at 0x2D4E and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x580b: {
+    name: "loc_580b",
+    role: "read the byte at 0x49EE and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5811: {
+    name: "loc_5811",
+    role: "read the byte at 0x07A9 and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5817: {
+    name: "loc_5817",
+    role: "read the byte at 0x273A and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x5834: {
+    name: "loc_5834",
+    role: "read the byte at 0x1767 and request it as a sound code, only while a game is being played",
+    cert: "code",
+  },
+  0x583a: {
+    name: "loc_583a",
+    role: "read the byte at 0x18FA and request it as a sound code, only while a game is being played",
     cert: "code",
   },
   0x5840: {
