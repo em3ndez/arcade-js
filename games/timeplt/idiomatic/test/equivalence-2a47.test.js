@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2a47 — memory-equivalent to the frozen oracle at ROM 0x2A47.
+ * refreshSecondEraSpriteFromHeading — memory-equivalent to the frozen oracle at ROM 0x2A47.
  *
  * GATE: strict unit-capture replayed over every dispatch of an undriven attract session, plus an
  *   exhaustive crafted sweep over the heading and both halves of the shape-bank flip, plus teeth.
@@ -30,7 +30,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_2a47 } from "../loc_2a47.js";
+import { refreshSecondEraSpriteFromHeading } from "../refreshSecondEraSpriteFromHeading.js";
 import { spriteForHeading } from "../spriteForHeading.js";
 import { loc_2a47 as oracle } from "../../translated/loc_2a47.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -108,7 +108,7 @@ function replay(candidate) {
 }
 
 function entryState() {
-  if (entry === null) replay(loc_2a47);
+  if (entry === null) replay(refreshSecondEraSpriteFromHeading);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   return entry;
 }
@@ -179,12 +179,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2a47 == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: refreshSecondEraSpriteFromHeading == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2a47(b);
+  refreshSecondEraSpriteFromHeading(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.b, b.regs.b, "the shape the lookup left behind");
@@ -203,7 +203,7 @@ test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2a47(b);
+  refreshSecondEraSpriteFromHeading(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -214,7 +214,7 @@ test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }
 });
 
 test("CORPUS: every dispatch of a real attract session replays identically", { skip }, () => {
-  const r = replay(loc_2a47);
+  const r = replay(refreshSecondEraSpriteFromHeading);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, "the rewrite diverged on a real dispatch");
   assert.ok(r.headings.size > 1, "vacuous: the session presents one heading only");
@@ -222,7 +222,7 @@ test("CORPUS: every dispatch of a real attract session replays identically", { s
 });
 
 test("EXHAUSTIVE: every heading against both halves of the bank flip", { skip }, () => {
-  assert.equal(sweepCaught(loc_2a47), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(refreshSecondEraSpriteFromHeading), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} heading x half comparisons identical`);
 });
 
@@ -232,7 +232,7 @@ test("THE BIASES LAND: both cells sit a fixed distance from the lookup's pair", 
     const m = craft(heading, 0);
     const probe = m.clone();
     spriteForHeading(probe, probe.regs.ix);
-    loc_2a47(m);
+    refreshSecondEraSpriteFromHeading(m);
     assert.equal(m.mem8[m.regs.iy + SHAPE], (probe.regs.b + SHAPE_BIAS) & 0xff, "shape bias");
     assert.equal(m.mem8[m.regs.iy + ATTRIBUTE], (probe.regs.c + ATTRIBUTE_BIAS) & 0xff, "tint bias");
     shapes.add(m.mem8[m.regs.iy + SHAPE]);

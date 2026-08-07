@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_00a8 — memory-equivalent to the frozen oracle at ROM 0x00A8.
+ * enableInterruptAndEnterForegroundLoop — memory-equivalent to the frozen oracle at ROM 0x00A8.
  *
  * GATE: crafted-entry, with the foreground loop SEVERED on both arms — it never returns, so no
  *   arm of this file can run it. Plus a hardware-side comparison the state dump cannot make, plus
@@ -36,7 +36,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_00a8 } from "../loc_00a8.js";
+import { enableInterruptAndEnterForegroundLoop } from "../enableInterruptAndEnterForegroundLoop.js";
 import { loc_00a8 as oracle } from "../../translated/loc_00a8.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -242,14 +242,14 @@ test("EQUAL at the captured entry, loop severed: latch, watchdog and handover id
   const a = severed(entryState(), logA);
   const b = severed(entryState(), logB);
   oracle(a);
-  loc_00a8(b);
+  enableInterruptAndEnterForegroundLoop(b);
   assert.equal(logA.length, 1, "vacuous: the oracle did not reach the foreground loop");
   assert.equal(logB.length, 1, "the rewrite did not reach the foreground loop");
   assert.deepEqual(logB[0], logA[0], "the state handed to the loop differs");
   assert.equal(a.io.latch[LATCH_NMI_ENABLE], CARRIED & 1, "the carried value's low bit drives it");
   assert.equal(b.io.latch[LATCH_NMI_ENABLE], a.io.latch[LATCH_NMI_ENABLE], "the latch differs");
   assert.equal(b.io.watchdogKicks, a.io.watchdogKicks, "the watchdog count differs");
-  assert.equal(unitDiff(loc_00a8, entryState()), null, "the contract diverged");
+  assert.equal(unitDiff(enableInterruptAndEnterForegroundLoop, entryState()), null, "the contract diverged");
   console.log(
     `  EQUAL: latch=${a.io.latch[LATCH_NMI_ENABLE]} kicks=${a.io.watchdogKicks} handover=` +
       JSON.stringify(logA[0]),
@@ -260,7 +260,7 @@ test("EXCLUDED, deliberately: nothing at all, once the loop is severed", { skip 
   const a = severed(entryState(), []);
   const b = severed(entryState(), []);
   oracle(a);
-  loc_00a8(b);
+  enableInterruptAndEnterForegroundLoop(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     [],
@@ -270,14 +270,14 @@ test("EXCLUDED, deliberately: nothing at all, once the loop is severed", { skip 
 });
 
 test("EXHAUSTIVE: all 256 carried values against both starting latch states", { skip }, () => {
-  assert.equal(sweepCaught(loc_00a8), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(enableInterruptAndEnterForegroundLoop), 0, "the rewrite diverged somewhere in the crafted space");
 
   // Only the low bit reaches the latch, and the sweep is what proves the other seven do not.
   const even = severed(craft(0xfe, 1), []);
-  loc_00a8(even);
+  enableInterruptAndEnterForegroundLoop(even);
   assert.equal(even.io.latch[LATCH_NMI_ENABLE], 0, "an even value must clear the latch bit");
   const odd = severed(craft(0xff, 0), []);
-  loc_00a8(odd);
+  enableInterruptAndEnterForegroundLoop(odd);
   assert.equal(odd.io.latch[LATCH_NMI_ENABLE], 1, "an odd value must set it");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted entries identical; only the low bit lands`);
 });

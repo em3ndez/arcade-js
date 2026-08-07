@@ -10,7 +10,7 @@ import { driftThreeTileSceneryAtFiveQuarters } from "./driftThreeTileSceneryAtFi
 import { stepTwoTileSceneryAtFiveQuarters } from "./stepTwoTileSceneryAtFiveQuarters.js";
 import { driftTwoTileSceneryAtThreeQuarters } from "./driftTwoTileSceneryAtThreeQuarters.js";
 import { driftOneTileSceneryAtThreeQuarters } from "./driftOneTileSceneryAtThreeQuarters.js";
-import { loc_2d68 } from "./loc_2d68.js";
+import { driftOneTileSceneryAtHalf } from "./driftOneTileSceneryAtHalf.js";
 
 const FIRST_RECORD = 0xa900;
 const FIRST_ENTRY = 0xaa30;
@@ -28,9 +28,9 @@ function diagonalPair(m) {
   m.call(DIAGONAL_PAIR);
 }
 
-const OPENING_ORDER = [driftThreeTileSceneryAtFiveQuarters, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, loc_2d68];
-const MIDDLE_ORDER = [diagonalPair, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, loc_2d68];
-const CLOSING_ORDER = [stepTwoTileSceneryAtFiveQuarters, stepTwoTileSceneryAtFiveQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtThreeQuarters, loc_2d68, loc_2d68];
+const OPENING_ORDER = [driftThreeTileSceneryAtFiveQuarters, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
+const MIDDLE_ORDER = [diagonalPair, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
+const CLOSING_ORDER = [stepTwoTileSceneryAtFiveQuarters, stepTwoTileSceneryAtFiveQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf, driftOneTileSceneryAtHalf];
 
 export function runSceneryForEra(m) {
   const { regs, mem8 } = m;

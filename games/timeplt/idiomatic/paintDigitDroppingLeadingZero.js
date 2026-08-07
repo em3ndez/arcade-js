@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0eeb — paint one digit, with its colour, into the cell a cursor names — or suppress it.
+/** paintDigitDroppingLeadingZero — paint one digit, with its colour, into the cell a cursor names — or suppress it.
  *
  * Only the low four bits of the value arriving choose the shape, out of a table in the program
  * image. A value that is not zero always paints and spends the whole suppression allowance at
@@ -18,7 +18,7 @@ const GLYPHS = 0x0f06;
 const DIGIT_BITS = 0x0f;
 const CHARACTER_PLANE_BIT = 0x0400;
 
-export function loc_0eeb(m, value = m.regs.a, allowance = m.regs.b, colour = m.regs.c) {
+export function paintDigitDroppingLeadingZero(m, value = m.regs.a, allowance = m.regs.b, colour = m.regs.c) {
   const { regs, mem8 } = m;
   const digit = value & DIGIT_BITS;
 

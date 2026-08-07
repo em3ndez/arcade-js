@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0b39 — queue one fixed command whose ARGUMENT alternates: the lowest bit of a counter cell
+/** flashCopyrightLine — queue one fixed command whose ARGUMENT alternates: the lowest bit of a counter cell
  * chooses between two of them, and nothing else about the pair varies. The counter is only read.
  * Queueing is not a guarantee — the append drops the pair when the ring cell the write cursor
  * names has not been consumed, and this entry never learns that.
@@ -12,7 +12,7 @@ import { FRAME_TICK } from "./names.js";
 const COMMAND = 1;
 const ARGUMENT_ON_THE_ODD_TURN = 0;
 
-export function loc_0b39(m) {
+export function flashCopyrightLine(m) {
   if ((m.mem8[FRAME_TICK] & 1) === 0) {
     loc_0b46(m);
     return;

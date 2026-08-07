@@ -45,7 +45,7 @@ import { driftThreeTileSceneryAtFiveQuarters } from "../driftThreeTileSceneryAtF
 import { stepTwoTileSceneryAtFiveQuarters } from "../stepTwoTileSceneryAtFiveQuarters.js";
 import { driftTwoTileSceneryAtThreeQuarters } from "../driftTwoTileSceneryAtThreeQuarters.js";
 import { driftOneTileSceneryAtThreeQuarters } from "../driftOneTileSceneryAtThreeQuarters.js";
-import { loc_2d68 } from "../loc_2d68.js";
+import { driftOneTileSceneryAtHalf } from "../driftOneTileSceneryAtHalf.js";
 import { ERA_INDEX } from "../names.js";
 import { loc_2cbc as oracle } from "../../translated/loc_2cbc.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
@@ -182,9 +182,9 @@ function diagonalPair(m) {
   m.call(DIAGONAL_PAIR);
 }
 
-const OPENING = [driftThreeTileSceneryAtFiveQuarters, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, loc_2d68];
-const MIDDLE = [diagonalPair, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, loc_2d68];
-const CLOSING = [stepTwoTileSceneryAtFiveQuarters, stepTwoTileSceneryAtFiveQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtThreeQuarters, loc_2d68, loc_2d68];
+const OPENING = [driftThreeTileSceneryAtFiveQuarters, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
+const MIDDLE = [diagonalPair, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
+const CLOSING = [stepTwoTileSceneryAtFiveQuarters, stepTwoTileSceneryAtFiveQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf, driftOneTileSceneryAtHalf];
 
 function band(m, order, { seat = true } = {}) {
   if (seat) {
@@ -222,7 +222,7 @@ function brokenDropsTheLastStep(m) {
 
 /** BUG: one extra step, so the band runs a slot too far. */
 function brokenRunsOneStepTooMany(m) {
-  band(m, [...orderFor(m.mem8[ERA_INDEX]), loc_2d68]);
+  band(m, [...orderFor(m.mem8[ERA_INDEX]), driftOneTileSceneryAtHalf]);
 }
 
 /** BUG: the slot the transferred step returns through is never laid down. */
@@ -230,7 +230,7 @@ function brokenDropsTheParkedSlot(m) {
   const era = m.mem8[ERA_INDEX];
   const order = era === FIRST_ERA ? OPENING
     : era === LAST_ERA ? CLOSING
-    : [(mm) => mm.call(DIAGONAL_PAIR), driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, loc_2d68];
+    : [(mm) => mm.call(DIAGONAL_PAIR), driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];
   band(m, order);
 }
 

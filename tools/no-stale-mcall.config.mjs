@@ -23,7 +23,7 @@ export const ALLOWED = {
     "rearmMachineAndBranchOnCredits.js": [0x021c], // -> credit-screen hold (displays forever)
   },
   timeplt: {
-    "loc_00a8.js": [0x0b93], // -> the foreground command-ring drain, and the game's only poll PC
+    "enableInterruptAndEnterForegroundLoop.js": [0x0b93], // -> the foreground command-ring drain, and the game's only poll PC
   },
 };
 

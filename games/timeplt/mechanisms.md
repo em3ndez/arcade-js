@@ -1385,6 +1385,39 @@ tap logging the digit, the flag and the destination on every dispatch caught the
 painting the blank with the flag clear and the digit `0` with it set, the flag turning over exactly
 at the first significant digit.
 
+### A third drawer RETREATS the cursor instead of blanking
+
+There is a third member of that family and it suppresses by a different mechanism. It carries a
+countdown allowance rather than a flag, and when the allowance is still unspent it does not paint a
+blank over the leading zero — it steps the destination cursor BACK, so the next digit lands on the
+cell the zero would have used. The visible result on a two-digit field is the same as blanking, and
+the mechanism is not: nothing is written where the leading zero was, and the number shifts rather
+than being padded. `[seen]` — driven on the real ROM by posting the drawing command through the
+ROM's own ring protocol. A value of 37 produced 904 entries and 1808 writes, one glyph at each of
+two cells. A value of 7 produced the SAME 904 entries but only 904 writes, and the surviving digit
+landed at the cell the TENS digit had occupied, not the units cell. The control, with the poke off,
+produced no entries and no writes. A blanking drawer would have written twice in both runs.
+
+### ★ A range boundary is not a routine, and a filename cannot tell you which it is
+
+Two addresses in the map are labels, not entries, and both were found the same way — by asking what
+transfers to them rather than by trusting that a transcribed file exists.
+
+One is the address a routine's early-out and its normal end both land on. It appears exactly ONCE in
+the whole program image, as that same routine's own conditional-jump operand; no table holds it and
+nothing outside its parent reaches it. It runs — an entry tap catches it in undriven attract — but
+what runs is a `ret`, and reaching a `ret` is not a role.
+
+The other is worse, because it looks like an entry from the inside. Its real prologue sits four
+instructions earlier at an address the transcription never covered, and that prologue loads the
+pointer the later code reads — so the value that code selects is a CONSTANT decided before the
+routine begins, not anything a caller supplies. The only transfer into it anywhere in the image is a
+jump that lies inside a caption record, which is data being misread as code.
+
+The lesson is about evidence, not about these two: the transcription turns ranges into filenames,
+and a filename is the one artefact that always looks like a routine no matter what it contains.
+`[seen]` for both — the occurrence counts are from the image and the liveness from taps.
+
 ### A pictogram strip counts in thirties, tens, fives and ones
 
 One command handler clamps its argument below a hundred, splits it into counts of thirty, ten, five

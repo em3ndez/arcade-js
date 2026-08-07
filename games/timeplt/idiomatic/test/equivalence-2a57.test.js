@@ -26,7 +26,7 @@
  *
  * WHY THE LIVE-OUT IS {b, c}, DERIVED FROM THE CALLERS. refreshSpriteFromHeading stores the
  * second register into the object's sprite-entry control byte and the first into its tile code;
- * loc_2a47 stores the same two, each stepped by a constant, into the same two cells. Nothing else
+ * refreshSecondEraSpriteFromHeading stores the same two, each stepped by a constant, into the same two cells. Nothing else
  * the oracle leaves behind survives: both callers overwrite the accumulator on their next step,
  * neither branches on a flag, and their own callers loc_2927 and loc_294c either return at once
  * or go on to loc_4243, which loads the accumulator and both address pairs before reading any of

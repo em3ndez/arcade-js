@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b39 — memory-equivalent to the frozen oracle at ROM 0x0B39.
+ * flashCopyrightLine — memory-equivalent to the frozen oracle at ROM 0x0B39.
  *
  * WHAT IT IS. Five instructions: read one counter cell, test its lowest bit, and leave by one of
  * two transfers — a tail jump to 0x0B46, or a fixed pair loaded into the command registers and a
@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_0b39 } from "../loc_0b39.js";
+import { flashCopyrightLine } from "../flashCopyrightLine.js";
 import { loc_0b46 } from "../loc_0b46.js";
 import { postCommand } from "../postCommand.js";
 import { loc_0b39 as oracle } from "../../translated/loc_0b39.js";
@@ -137,7 +137,7 @@ function replaySession(opts, candidate) {
 
 let cache = null;
 function sessions() {
-  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_0b39) }));
+  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, flashCopyrightLine) }));
   return cache;
 }
 
@@ -266,12 +266,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0b39 == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: flashCopyrightLine == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0b39(b);
+  flashCopyrightLine(b);
 
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
@@ -292,7 +292,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing el
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0b39(b);
+  flashCopyrightLine(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -330,13 +330,13 @@ test("CORPUS: every dispatch of two real sessions replays identically", { skip }
 });
 
 test("EXHAUSTIVE: all 256 counter values against four ring priors", { skip }, () => {
-  assert.equal(sweepCaught(loc_0b39), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(flashCopyrightLine), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} counter x guard comparisons identical`);
 });
 
 for (const [label, opts] of TAPES) {
   test(`WHOLE-MACHINE: the ${label} session differs only in the scratch window`, { skip }, () => {
-    const r = wholeRunCells(loc_0b39, opts);
+    const r = wholeRunCells(flashCopyrightLine, opts);
     assert.equal(r.threw, null, `the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `a run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

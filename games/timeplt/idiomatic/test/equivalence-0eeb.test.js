@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0eeb — memory-equivalent to the frozen oracle at ROM 0x0EEB.
+ * paintDigitDroppingLeadingZero — memory-equivalent to the frozen oracle at ROM 0x0EEB.
  *
  * WHAT IT IS. One digit painted into the character plane with its colour, or suppressed. Two of
  * the transfers it makes are restarts into routines that are ALREADY decompiled — the table fetch
@@ -40,7 +40,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_0eeb } from "../loc_0eeb.js";
+import { paintDigitDroppingLeadingZero } from "../paintDigitDroppingLeadingZero.js";
 import { loc_0eeb as oracle } from "../../translated/loc_0eeb.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -118,7 +118,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_0eeb));
+const session = () => (cache ??= replaySession(paintDigitDroppingLeadingZero));
 
 let entry = null;
 function entryState() {
@@ -272,12 +272,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_0eeb == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: paintDigitDroppingLeadingZero == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0eeb(b);
+  paintDigitDroppingLeadingZero(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.b, b.regs.b, "the suppression allowance left behind");
@@ -298,7 +298,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing el
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0eeb(b);
+  paintDigitDroppingLeadingZero(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -325,12 +325,12 @@ test("CORPUS: every dispatch of the real session replays identically", { skip },
 });
 
 test("EXHAUSTIVE: every value against four allowances behaves as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_0eeb), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(paintDigitDroppingLeadingZero), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} value x allowance comparisons identical`);
 });
 
 test("WHOLE-MACHINE: the session differs only in the dead stack bytes", { skip }, () => {
-  const r = wholeRunCells(loc_0eeb);
+  const r = wholeRunCells(paintDigitDroppingLeadingZero);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

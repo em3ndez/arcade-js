@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1563 — memory-equivalent to the frozen oracle at ROM 0x1563.
+ * restoreColumnFromSavedRun — memory-equivalent to the frozen oracle at ROM 0x1563.
  *
  * ★ NOT REACHED BY EITHER SESSION THIS FILE DRIVES. The one call site sits inside a step of the
  *   sequence machine that neither an undriven attract run nor a driven one enters, which the
@@ -39,7 +39,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { buildRoutines } from "../../routines.js";
-import { loc_1563 } from "../loc_1563.js";
+import { restoreColumnFromSavedRun } from "../restoreColumnFromSavedRun.js";
 import { loc_1563 as oracle } from "../../translated/loc_1563.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -228,13 +228,13 @@ test("NEGATIVE CONTROL: neither attract nor a driven session dispatches this add
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL from the crafted entry: loc_1563 == oracle over the whole dump", { skip }, () => {
+test("EQUAL from the crafted entry: restoreColumnFromSavedRun == oracle over the whole dump", { skip }, () => {
   for (const offset of SEEDS) {
     const m = seeded(offset);
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_1563(b);
+    restoreColumnFromSavedRun(b);
     assert.deepEqual(allDiffs(a, b), [], `seed ${offset}: the dumps must agree byte for byte`);
   }
   console.log(`  EQUAL: ${SEEDS.length} seeded entries, no byte differs on any`);
@@ -252,7 +252,7 @@ test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }
   const a = m.clone();
   const b = m.clone();
   oracle(a);
-  loc_1563(b);
+  restoreColumnFromSavedRun(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -265,7 +265,7 @@ test("THE SCATTER LANDS: every source byte reaches its own cell, and no other mo
   const m = seeded(17);
   const source = Array.from({ length: RUN_BYTES }, (_unused, i) => m.mem8[RUN + i]);
   const before = m.clone();
-  loc_1563(m);
+  restoreColumnFromSavedRun(m);
   const destinations = new Set();
   for (let i = 0; i < RUN_BYTES; i++) {
     const at = destinationOf(i);

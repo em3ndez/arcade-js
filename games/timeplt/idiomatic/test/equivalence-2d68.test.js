@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d68 — memory-equivalent to the frozen oracle at ROM 0x2D68.
+ * driftOneTileSceneryAtHalf — memory-equivalent to the frozen oracle at ROM 0x2D68.
  *
  * WHAT IT IS. Six bytes: call the half-speed drift, then tail-jump to the slot step. BOTH are
  * ALREADY decompiled, so the rewrite calls driftAtHalfWorldScroll and advanceToNextSlot directly
@@ -37,7 +37,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_2d68 } from "../loc_2d68.js";
+import { driftOneTileSceneryAtHalf } from "../driftOneTileSceneryAtHalf.js";
 import { driftAtHalfWorldScroll } from "../driftAtHalfWorldScroll.js";
 import { driftAtThreeQuartersWorldScroll } from "../driftAtThreeQuartersWorldScroll.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
@@ -124,7 +124,7 @@ function replaySession(opts, candidate) {
 
 let cache = null;
 function sessions() {
-  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_2d68) }));
+  if (!cache) cache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, driftOneTileSceneryAtHalf) }));
   return cache;
 }
 
@@ -231,12 +231,12 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_2d68 == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at the real dispatch: driftOneTileSceneryAtHalf == oracle outside the scratch window", { skip }, () => {
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2d68(b);
+  driftOneTileSceneryAtHalf(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.equal(a.regs.ix, b.regs.ix, "the record cursor left behind");
@@ -254,7 +254,7 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing el
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_2d68(b);
+  driftOneTileSceneryAtHalf(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,
@@ -282,13 +282,13 @@ test("CORPUS: every dispatch of two real sessions replays identically", { skip }
 });
 
 test("CRAFTED: the displacement pair swept over carries and both signs", { skip }, () => {
-  assert.equal(sweepCaught(loc_2d68), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(driftOneTileSceneryAtHalf), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  CRAFTED: ${SWEEP_SIZE} displacement pairs identical`);
 });
 
 for (const [label, opts] of TAPES) {
   test(`WHOLE-MACHINE: the ${label} session differs only in the dead stack bytes`, { skip }, () => {
-    const r = wholeRunCells(loc_2d68, opts);
+    const r = wholeRunCells(driftOneTileSceneryAtHalf, opts);
     assert.equal(r.threw, null, `the run threw: ${r.threw}`);
     assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
     assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);
