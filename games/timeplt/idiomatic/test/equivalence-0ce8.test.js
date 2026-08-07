@@ -88,7 +88,7 @@ import assert from "node:assert/strict";
 import { makeMachine, COIN_START_TAPE, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0ce8 } from "../loc_0ce8.js";
 import { loc_0ce8 as oracle } from "../../translated/loc_0ce8.js";
-import { PLAY_ACTIVE, PLAYER_STATE } from "../names.js";
+import { PLAY_ACTIVE, PLAYER_STATE, ACTIVE_PLAYER } from "../names.js";
 import {
   firstStateDiff,
   unitEquivalence,
@@ -97,9 +97,6 @@ import {
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x0ce8;
-
-/** Which player's score the award routine was working on, which is what picks its exit path. */
-const SCORING_PLAYER_TWO = 0xad32;
 
 /** The cell the byte after this one loads, for the twin that gets the extent wrong. */
 const PLAYER_COUNT = 0xad31;
@@ -185,7 +182,7 @@ const allEntries = () => entries().flatMap(([, list]) => list);
 /** Which of the caller's three exits an entry came through, read off the cells they branch on. */
 function arrivalPath(entry) {
   if (entry.mem8[PLAY_ACTIVE] === 0) return "no-award early-out";
-  return entry.mem8[SCORING_PLAYER_TWO] === 0 ? "after the 1UP redraw" : "after the 2UP redraw";
+  return entry.mem8[ACTIVE_PLAYER] === 0 ? "after the 1UP redraw" : "after the 2UP redraw";
 }
 
 /**

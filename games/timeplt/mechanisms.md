@@ -886,8 +886,10 @@ that ramming the Mother-Ship on its last hit still advances you. Both are true, 
 **separate mechanisms**: `[code]`
 
 - ramming an ordinary enemy craft posts a score; ramming an enemy *projectile* does not;
-- ramming the Mother-Ship **zeroes its hit counter** as well as marking it, so it dies outright
-  rather than needing its remaining hits.
+- ramming either big two-slot target **zeroes that target's own hit counter** as well as marking
+  it, so the contact kills it outright rather than costing it one hit. There are two such tests,
+  one per target, built to the same pattern and neither shared with the other; the counter each
+  one zeroes is the counter that target's handler decrements to absorb a shot.
 
 ### Four sweeps run the ship against the field, and one of them is survivable
 
@@ -912,9 +914,13 @@ Nothing in the public record describes what happens when you die. All of the fol
 
 - Being killed is **the same event** as an enemy being killed — a collision test writes the same
   marker into the player's state byte. `[seen]`: a MAME write tap recording the program counter at
-  every write of `PLAYER_STATE` through a driven game found three writers of the destroyed marker,
-  all of them collision sweeps, and every such write followed within a frame by the death
-  countdown's reload and, at its end, by the life-start routine writing the live value again.
+  every write of `PLAYER_STATE` through a driven game finds every writer of the destroyed marker to
+  be a collision sweep, and every such write followed within a frame by the death countdown's reload
+  and, at its end, by the life-start routine writing the live value again. **How many sweeps that is
+  depends on the eras the run reaches**, which is worth stating because it is the kind of number a
+  reader banks: a run confined to the second era sees three, and a run that spends its first round
+  in the first era sees a fourth — the wider-boxed arm of the ram test against the big two-slot
+  target, which only the first and last eras select.
 - A seven-arm explosion is drawn into the **character plane**, coloured by era.
 - A life is deducted, the player's context block is saved, and the players swap.
 - **Respawn is at the same pinned screen position**, with a fixed heading and `WORLD_SCROLL_Y` /
@@ -939,6 +945,21 @@ the counter and writes five only if it is already under six — so the first two
 departure and everything after them is undone. Damage accumulates exactly that far and then stops.
 The 1940 bomber is different again: its counter is re-seeded every time it arms, so against it
 nothing persists at all. `[code]`
+
+The counter is a byte of the Mother-Ship's own record, and the three things the map says about it
+are three different instructions on that one byte: the arming path writes **seven** into it, the
+absorb path decrements it and puts the state byte back to alive, and the re-entry path compares it
+against six and writes five only when it is below. `[code]`
+
+★ **The ram test against it is era-keyed, and that is the only thing the era changes here.** Two
+arms exist, identical instruction for instruction except for the width of one axis of the box;
+the caller picks the wider one for the first and last eras and the narrower one for the middle
+three. Same objects, same second axis, same three writes, same tail into the chained score — so
+this is one hitbox at two widths and not two mechanics. `[code]`
+
+The wider arm is not exotic. A game starts in the first era, so it is the arm that runs for the
+whole of a player's first round: a driven MAME run dispatched it 912 times, and its destroy path
+— the player marked, the target marked, the counter zeroed — fired twice. `[seen]`
 
 Not established: which edge it enters from, and whether it fires at the player.
 
@@ -1040,6 +1061,16 @@ prediction and no capture has tested it. `[code]`
 The award is latched by a single bit so each threshold pays once, and since no single award can
 raise the high byte by more than one step, no threshold can be jumped over. `[code]`
 
+The award has now been watched paying out. Through a driven MAME run, a write tap with
+program-counter attribution recorded the lives cell taking writes from exactly three instructions
+— the decrement on a death, the context copy that swaps a player in, and **this routine's
+increment** — and the increment fired on the frame the score crossed the first threshold on the
+setting the cabinet was running. Nothing else in the game gives a life back. `[seen]`
+
+The reserve display is posted with the count from **before** the increment, which is the same
+convention the context-swap path uses: what the player sees is the cell minus the plane in the
+air. `[code]`
+
 ### Parachutists: the ladder, the cap, and the era that has none
 
 The parachutist is a **singleton** — one dedicated record and sprite entry with one manager, not a
@@ -1068,6 +1099,33 @@ worth twice a first chained kill. `[code]`
 
 Lives, round, era and score are per player: a sixteen-byte context block is swapped in and out for
 the active player, and the score triples are addressed per player directly.
+
+The swap itself is three cells and one bit. A one-bit index says who is up; losing a life copies
+the live sixteen-byte block out to the index's own save and, if the *other* save still shows lives
+left, flips the index, arms a delay and restarts the sequence step — and the block belonging to
+the player now named is copied back in later, by a different routine. So a hand-over moves no
+data at the moment it happens: it moves the *index*, and everything per-player follows because
+everything per-player is addressed through it. `[seen]`
+
+★ **Which value is which player is fixed, and it is fixed outside the swap.** Index zero is player
+one. Three separate sites say so and none of them is the swap: the announcement caption is posted
+at one record for zero and the next record for one, and those two records are identical but for
+the single glyph that the score readout independently fixes as the digit one versus the digit two;
+the score drawer chosen on zero is the one the two-player HUD pairs with the "1UP" caption; and a
+one-player start arms the first save block and writes zero into the second. `[seen]`
+
+**A one-player game can never hand over**, and that is not a special case in the code — it falls
+out of the same test. The one-player start paths write the starting count into the first block and
+**zero** into the second, and the branch into the swap is taken only when the block the index does
+not select has a non-zero first byte. Measured on two MAME runs differing in one line — which
+start button the driver pulses — the swap fired nine times under two players and **zero** times
+under one. `[seen]`
+
+**The HUD follows the index, on the glass and not merely in RAM.** Reading the glyph codes out of
+video RAM at both score fields through a two-player game, the inactive player's six cells stand
+still and the active player's move, swapping at every flip. In a one-player game the second field
+is the blank glyph for its whole length: the same routine that draws two score fields when the
+two-player flag is set draws one and then blanks six cells when it is clear. `[seen]`
 
 ★ **The parachutist rung counter is not in that block.** It is a single shared cell. In practice
 every hand-over re-places a plane, which clears it — so the sharing is invisible, but it is sharing
@@ -1305,7 +1363,7 @@ derived from the ROM, not watched on a screen.
 | 18 | Is there an extra-life ceiling at 960,000 and a "survival of the fittest" mode? | ★ **The ceiling is real; the mode is not.** The bonus table simply ends. And rollover restarts the whole ladder. |
 | 20 | Score width and rollover | **Six BCD digits, rolls at 1,000,000.** A recorded 15,000,000 is fifteen rollovers. |
 | 21 | What happens when you die? | Fully answered, and all of it new — **no invulnerability window**, respawn at the pinned position, and **the kill counter is not reset**. See §6. |
-| 22 | Two-player independence | **Yes** for lives, round, era and score. ★ The pickup rung counter is a **shared** cell, masked by the fact that every hand-over clears it. |
+| 22 | Two-player independence | **Yes** for lives, round, era and score, and now watched rather than derived: a two-player MAME run alternated the two players nine times, with each one's score field moving only while it was up. ★ The pickup rung counter is a **shared** cell, masked by the fact that every hand-over clears it. |
 | 24 | Is there a timer anywhere? | ★ **Nothing times the player.** The bottom bar renders the kill quota; the source calling it a "time bar" was describing the kill meter. Short countdown cells exist in the interrupt (§2), but none races the player. |
 
 ### The pattern in the misses
@@ -1387,7 +1445,8 @@ so: *"The real teeth are the undriven ATTRACT demo, which does fire, and a craft
 So the honest form of the gap is not "gameplay is never exercised". It is: **the only gameplay the
 oracle has been checked against is whatever the demo happens to do, and the demo is not a player.**
 It never collects a parachutist, never dies deliberately, never finishes a round, never reaches the
-later eras. Adding *any* input would not close this; adding input that reaches **what the demo never
+later eras — and, being one plane, never hands over to a second player, which is a whole branch of
+the round machinery the demo cannot enter at all. Adding *any* input would not close this; adding input that reaches **what the demo never
 does** would, which is precisely what `unit_equiv.sh`'s tape parameter exists for.
 
 ### ★ A driven tape measures the eras it reaches, and it reaches two
@@ -1492,6 +1551,19 @@ On this evidence 0x3074 is interior rather than an entry. **0x306A-0x3073 is unt
 is that routine's real prologue — two `iy` loads and a pair of immediates into H and L — which the
 transcribed body at 0x3074 continues. Its siblings at 0x3058 and 0x308A open with the same two `iy`
 loads and reach the same tail at 0x309B, so the family's shape puts the boundary at 0x306A. `[code]`
+
+**0x1F76–0x200B is a five-frame tilemap animation, not code.** Five records of thirty bytes, each
+six rows of five tile codes with the blank glyph as the pad, copied into the character plane and
+its colour plane by a loop that takes both counts from ROM bytes. A seven-way compare ladder picks
+the record from a per-object countdown, and two of the five records are each selected by two of
+the seven arms, so the shape grows and then shrinks; the fifth record is entirely blank and erases
+it. `translated/loc_1f99.js` and `translated/loc_1f2e.js` are both this field decoded as
+instructions and belong on this list.
+
+**0x5254 is not a routine.** It is the loop tail of 0x5211, and `translated/loc_5254.js` is a
+second transcription of bytes `translated/loc_5211.js` already carries; the idiomatic layer covers
+them inside `destroyTargetsHitByShots`. No pointer anywhere in the image names the address, and
+its only inbound transfers are two branches from inside 0x5211's own body.
 
 #### A data table decoded as a hundred bytes of instructions
 
@@ -1717,8 +1789,14 @@ These need someone's attention, not a new capture and not a new lift.
 
 ### The states no instrument has visited
 
-Two-player alternating play, the difficulty tiers, deliberate death, the later eras, the loop wrap,
-and high-score initials entry. Each is a hole of the same shape: code serving it reads as dark.
+The difficulty tiers, deliberate death, the later eras, the loop wrap, and high-score initials
+entry. Each is a hole of the same shape: code serving it reads as dark.
+
+Two-player alternating play is no longer on that list. A driven MAME run that presses the second
+start button reaches it: both save blocks arm, the active-player index alternates,
+and the routines that serve the hand-over execute. What the run did NOT reach is a hand-over
+*between eras* — both players stayed in the first two — so the interaction between a swap and an
+era change is still dark.
 
 - **The high half of the sequence sub-step table.** The dispatcher masks the sub-step to four bits
   and jumps through sixteen words, but a tap on its own dispatch byte recorded only nibbles 0-7

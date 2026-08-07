@@ -576,6 +576,91 @@ export const ROUND_NUMBER = 0xad01;
  * STILL OPEN: whether the two families were meant to differ here, or whether this is two habits.
  * Code cannot settle it.
  */
+/**
+ * Which of the two players is up: 0 for player one, 1 for player two. [seen]
+ *
+ * A one-bit index and the whole of the two-player machinery. Everything that is per player is
+ * reached through it: the sixteen-byte context block copied in and out at 0xAD00, the score triple
+ * (0xAD33 or 0xAD36), the score drawer, and the caption the game announces a turn with.
+ *
+ * Three writers, and the ROM and the machine agree on which three. A decode from every byte offset
+ * of the whole image finds exactly three instructions that store here; a MAME write tap with
+ * program-counter attribution, over 600 s of two-player play, recorded eleven writes from exactly
+ * those three -- handPlayOverToOtherPlayer's flip, the game-over teardown that clears it alongside
+ * the play flag, and the new-game init that clears it alongside both save blocks. It never held a
+ * value other than 0 or 1. (Boot's clear of all work RAM is a fourth writer no tap can see; it
+ * writes zero, which is consistent.)
+ *
+ * ★ Its POLARITY is grounded, not assumed. A one-player start arms PLAYER_ONE_LIVES and leaves
+ * PLAYER_TWO_LIVES at zero, and this cell stays 0 for the whole game; the save and the restore both
+ * map 0 to the first block; and the caption posted on 0 spells the digit one where the caption
+ * posted on 1 spells two.
+ *
+ * ★ Six routines had five different local names for it -- a second-player flag, a tally selector,
+ * a cell cleared alongside another. Those are one routine's view of an index.
+ */
+export const ACTIVE_PLAYER = 0xad32;
+
+/**
+ * Lives the ACTIVE player has left, in the live context block. [seen]
+ *
+ * Counts DOWN, and reaching zero is what ends that player's turn rather than the game: the routine
+ * that decrements it branches away to the teardown path only when the decrement made it zero.
+ *
+ * Watched under MAME with a program-counter write tap through a 600 s two-player game it took 22
+ * writes from exactly three instructions, and the three between them ARE the life cycle: the
+ * decrement taken on a death, the sixteen-byte context copy that swaps a player in, and an
+ * increment inside the routine that awards an extra life at a score mark. Nothing else wrote it.
+ * (Boot's clear of all work RAM is the fourth writer, and no tap can see it.)
+ *
+ * ★ What the player SEES is this value minus one -- the reserve display is posted as a ring command
+ * whose argument is read here and decremented first, both where the count changes and where a
+ * context is swapped in. A reader who matches the cell against the ships on the glass will be off
+ * by the one in the air.
+ */
+export const LIVES_REMAINING = 0xad00;
+
+/**
+ * Player one's lives, in their saved sixteen-byte context block at 0xAD10. [seen]
+ *
+ * The block is a mirror of the live one at 0xAD00, and this is its first byte. It is written by the
+ * save copy taken when a life is lost, by whichever start path armed the game, and by nothing else
+ * in a watched run; it is read directly by the routine that refuses to start a new game while
+ * either player still has lives, and by the hand-over test that asks whether the other player has
+ * any left.
+ *
+ * Grounded by the pair of runs that differ only in which start button is pressed: a ONE-player
+ * start put the starting count here and zero in PLAYER_TWO_LIVES, a two-player start put the count
+ * in both. That, with ACTIVE_PLAYER's polarity, is what makes this one PLAYER ONE's and not merely
+ * the first of two.
+ */
+export const PLAYER_ONE_LIVES = 0xad10;
+
+/**
+ * Player two's lives, in their saved context block at 0xAD20 -- the same byte, the other block. [seen]
+ *
+ * Same writers, same readers, same grounding run. It is ZERO for the whole of a one-player game,
+ * which is exactly what makes a hand-over impossible there: the branch into
+ * handPlayOverToOtherPlayer is taken only when the block the index does NOT select still has a
+ * non-zero first byte.
+ */
+export const PLAYER_TWO_LIVES = 0xad20;
+
+/**
+ * The sequence machine's shared one-shot delay: frames still to wait before its next step. [code]
+ *
+ * One cell, not one per step. Twelve instructions write it and every one is either an ARM -- a step
+ * storing its own span, six of them with six different spans -- or the `dec (hl) / ret nz` countdown
+ * at the head of a step, six of those, which lets the step run only on the frame it reaches zero.
+ * Every arm site hands on to the routine that advances the inner sequence index, or writes that
+ * index itself. Watched under MAME it took 2409 writes across a driven game and all of them fit
+ * that shape.
+ *
+ * `[code]` and not `[seen]`: the counting was observed, but that its users are all the SEQUENCE
+ * machine is read off the code rather than watched.
+ */
+export const SEQUENCE_DELAY = 0xa9eb;
+
 export const ROUTINES = {
   0x0008: {
     name: "fetchTableByte",
@@ -631,6 +716,11 @@ export const ROUTINES = {
     cert: "code",
     why: "same family, same falsifiable arithmetic as driftThreeTileSceneryAtFiveQuarters: this is the one-tile member, so the era-4 arm that calls it twice can reach the band's eight slots only if it lays exactly one -- 2+2+1+1+1+1 -- and any second tile would overrun the band. Its callee driftAtThreeQuartersWorldScroll is already grounded to the scenery slots, and driftTwoTileSceneryAtThreeQuarters' entry lists this shape as its 'three quarters with one tile' sibling. NOT GROUNDED, and the reason is specific: it sits in the dispatcher's fifth-era arm, and no tape we can drive reaches the fifth era by playing -- four played tapes gave it zero dispatches while an era-held sweep arm gave it 31634, so cert stays code",
   },
+  0x2d68: {
+    name: "loc_2d68",
+    role: "drift one object at half the shared displacement and step the caller's two cursors on to the next slot",
+    cert: "code",
+  },
   0x2d6e: {
     name: "driftAtFiveQuartersWorldScroll",
     role: "move one object by the frame's world-scroll displacement and a further quarter of it, so it over-travels the world; applied to both of its split coordinates, whole part in the sprite entry and fraction in the object record",
@@ -654,6 +744,11 @@ export const ROUTINES = {
     role: "step the record cursor and the parallel sprite-entry cursor on to the next object slot",
     cert: "code",
     why: "placeAbuttingTile uses it to step onto a further tile of the sprite it has just placed, while driftOneTileSceneryAtThreeQuarters and loc_2d68 use it to reach a different entity -- the callers disagree about what the next slot holds, so the unit it advances is the slot index, not the object",
+  },
+  0x3faf: {
+    name: "loc_3faf",
+    role: "point an object's sprite the way it is heading, from a different pair of sector tables to the sibling that does the same rounding",
+    cert: "code",
   },
   0x4017: {
     name: "flyAlongBallisticArc",
@@ -708,11 +803,22 @@ export const ROUTINES = {
     cert: "seen",
     why: "the family is named by BLOCK SIZE, as paintQuadTile's entry records, and this is the member the count of FIVES drives -- checkable, and checked on the real machine. Neither MAME sweep reached it, because the only argument either sweep presented to the routine that splits a value into thirties, tens, fives and ones was 1; posting that routine's ring command by the ROM's own protocol with the argument 37 -- one thirty, no tens, one five, two units -- dispatched this routine exactly once, paintQuadTile exactly once and the single-tile painter twice more, and a write tap caught this one laying codes 0x32 and 0x33 into two character cells with colour 0x11 in the two cells a plane below. Any other reading of the denominations gives different counts",
   },
+  0x0eeb: {
+    name: "loc_0eeb",
+    role: "paint one digit and its colour into the cell a cursor names, or suppress it and step the cursor back so the blank takes no space",
+    cert: "code",
+  },
   0x0f11: {
     name: "advanceSequencePhase",
     role: "advance the outer sequence phase and restart its inner step index at zero",
     cert: "code",
     why: "it executes zero times across a driven run -- every read of its entry byte is a checksum fold, none with the program counter at the address -- which corroborates from outside that all but one of its callers sit behind an anti-tamper test and are dead on a genuine image",
+  },
+  0x1226: {
+    name: "handPlayOverToOtherPlayer",
+    role: "give the turn to the other player: flip the one-bit active-player index, re-arm the shared sequence delay with a fixed span, and reseat the inner sequence index from a byte of the program image; nothing is copied here, and the flip is the only effect the skipped arm does not also have",
+    cert: "seen",
+    why: "the name predicts that a ONE-player game can never reach this entry, because the one-player start paths arm one save block and write zero into the other while the branch that arrives here is taken only when the OTHER block's first byte is non-zero -- so a two-player start must make it fire and a one-player start must not. Two MAME runs on the real ROM differing in one line of the driver, which start field it pulses, settled it: nine dispatches under a two-player start against ZERO under the one-player control, the selector alternating 0/1 on each of the nine, and the counts closing against the ten deaths the same runs recorded. It could have come out either way and the control is what makes the nine mean anything. Which player each value names is fixed outside this routine too: loc_078d posts caption index 9 or 10 on this cell, and those two records of the table at 0x0C50 are identical but for the one glyph that the score field independently fixes as 1 versus 2. A read of video RAM at the two score fields through the same run shows the inactive player's six cells frozen and the active player's moving, swapping at every flip",
   },
   0x1319: {
     name: "fillCellRun",
@@ -827,11 +933,21 @@ export const ROUTINES = {
     cert: "code",
     why: "every caller fixes the outer array at the six-slot table loc_23e3 owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one loc_2b93 converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision, which is why nothing here is [seen]",
   },
+  0x58a4: {
+    name: "loc_58a4",
+    role: "fly one object a single step at the pace one fixed table of velocity samples sets, discarding any pointer the caller held",
+    cert: "code",
+  },
   0x58bc: {
     name: "flyAlongHeading",
     role: "fly one object a single step along the heading it holds, and in the same add carry it with the world: each coordinate gains its own velocity component PLUS the shared per-frame scroll pair, so nothing else may drift this object",
     cert: "code",
     why: "the pair it adds to every coordinate is the same pair driftWithWorldScroll applies to world-static objects, so this is that camera application and the object's own velocity folded into one add -- which is why none of its callers drifts the object separately, and why a reader who takes the name to mean velocity only will add a drift beside it and apply the camera twice. Its first half is byte-identical to velocityForHeading, so the module's reuse of that routine is an identity rather than an approximation",
+  },
+  0x0b39: {
+    name: "loc_0b39",
+    role: "queue one fixed command whose argument alternates on the low bit of a counter cell it only reads",
+    cert: "code",
   },
   0x0b46: {
     name: "loc_0b46",
@@ -928,6 +1044,11 @@ export const ROUTINES = {
     cert: "seen",
     why: "the name claims a cycle that is fixed and not the object's, and its one caller reaches it as `call z` after comparing ERA_INDEX with 4. That gating is measurable and it was measured: read taps at this entry counted zero dispatches across two MAME runs that stayed in eras 0-3, and 7242 in a third that held the era at 4. A name tied to an object class would have to survive that the two entries written in one tick cannot be told apart, which they cannot",
   },
+  0x50ee: {
+    name: "loc_50ee",
+    role: "★ destroy the player and one fixed two-slot target together when they touch, zero that target's hit counter so the contact kills it outright instead of costing it one hit, and tail-transfer to the chained hit score; this is the wider of two first-axis windows, and the arm its caller selects for two of the era values",
+    cert: "seen",
+  },
   0x5121: {
     name: "destroyTargetsReachedByFixedAttacker",
     role: "destroy every target of a caller's run that one fixed attacker -- the player's own ship -- has reached, marking both destroyed and posting the chained score for each; the attacker's state is tested once, so one pass can take several",
@@ -987,6 +1108,11 @@ export const ROUTINES = {
     role: "drive coin slot 1's mechanical counter through one pulse for each coin the machine still owes it -- energise the line, release it at the half-way count, and take one off the debt as the pulse ends -- so a debt of two comes out as two separate pulses; with nothing owed it does nothing",
     cert: "seen",
     why: "the slot number is the load-bearing half, and the twin is what forces it: 0x49D6 is byte-identical for all thirty-six bytes but for three operands -- a different debt cell, a different timer, and a different LS259 line -- so an unqualified 'pulse the coin counter' would name two routines. Watched under MAME with a write tap, the twin was dispatched 17764 times on every tape and drove NOTHING, because no tape coined the second slot. The pulse itself is measured, against an undriven tape as the negative control: with no coin the line, the debt and the timer took no writes at all; with five coins the line took five writes of one and five of zero from two program counters both inside this routine, the timer took 240 decrements -- exactly 48 per pulse -- and the debt took five increments from the accept arm and five decrements from here. ★ A prediction that could have come out otherwise: this routine is entered three ways, one of them a fall-through from the credit path, so it must run TWICE on the frame a coin is banked -- its dispatch count came out at exactly the undriven count plus one per coin, on all three driven tapes",
+  },
+  0x49d6: {
+    name: "loc_49d6",
+    role: "drive one hardware output line as a train of square pulses, one pulse per unit of a pending count",
+    cert: "seen",
   },
   0x4acc: {
     name: "unpackCoinage",
@@ -1050,6 +1176,11 @@ export const ROUTINES = {
     cert: "seen",
     why: "'Fine' is a rank against exactly one sibling and it has to be checkable: spriteForHeading rounds to sixteen sectors and RETURNS the pair, this rounds to thirty-two and STORES it -- the mask is 0x3F with a pre-add of half a sector, where sixteen sectors would need 0x1E. The sharper claim is that the second table byte is a flip attribute and not a per-sector palette, and one tap could have killed it: the sprite entry's attribute byte took 914 writes from this routine's store and the value histogram of those writes contains ONLY 0x5C and 0xDC, summing to exactly 914 -- two values differing in one bit across every dispatch, where a palette pick would have spread. Reachability was measured rather than assumed: 7126 dispatches on the one tape that reaches the third era and zero on three tapes that do not, which is its handler's seat in the era-keyed table. It does not say what the object is",
   },
+  0x2afc: {
+    name: "loc_2afc",
+    role: "point an object's sprite the way it is heading, by rounding its heading byte to the nearest of sixteen sectors and taking a shape pair from two parallel tables",
+    cert: "code",
+  },
   0x2b38: {
     name: "animateSelectedShapeCycle",
     role: "give one sprite entry the current frame of a four-frame shape cycle, from the block a record byte selects, and one fixed attribute beside it",
@@ -1092,6 +1223,16 @@ export const ROUTINES = {
     cert: "code",
     why: "the name says the byte it writes is the heading MOTION follows, and its caller could have refuted that: loc_41b8 re-aims by writing the aim byte every sixteenth frame, calls this routine, and then calls the flier whose first instruction reads the very byte this one wrote. A caller that used the result as a table index, or a flier that read the aim instead, would have killed the name. Read taps under MAME counted zero dispatches on two tapes in eras 0-1 and 8225 on one holding the era at 4. ★ The name deliberately does NOT say 'the short way round': the direction test is taken on the gap PLUS ONE, so a gap of exactly 127 turns long; the standing band is two wide and off centre, at gaps of 0 and 255; and because the step is TWO the gap's parity is invariant, so which of those two it comes to rest on follows that parity and not the side it approached from. Sibling 0x4201 has the same biased tests with a step of one, which makes it side-determined instead -- same shape, different mechanism",
   },
+  0x44dc: {
+    name: "loc_44dc",
+    role: "give an object the two shapes of a two-frame flutter, the pair picked by one bit of a counter cell and nothing the object holds",
+    cert: "code",
+  },
+  0x46ce: {
+    name: "loc_46ce",
+    role: "file two register pairs into an object's record as four bytes, each pair high byte first and so stored the opposite way round from a word",
+    cert: "code",
+  },
   0x46db: {
     name: "retireEntryPairIntoCooldown",
     role: "clear a record's occupancy byte and both coordinates of TWO neighbouring sprite entries, then arm the record's delay byte with a fixed value rather than leaving it clear",
@@ -1109,6 +1250,11 @@ export const ROUTINES = {
     role: "take an object out of play -- occupancy byte and both of its sprite entry's coordinates -- and then arm the record's delay byte instead of leaving it clear, so the slot is held rather than freed",
     cert: "code",
     why: "'cooldown' is the claim and it is refutable: if that byte were scratch nothing would read it. Six sites outside this routine form the loop instead -- the per-slot handler tests it and, when it is non-zero, diverts the whole slot to the routine that counts it down; two routines decrement it; and the sibling that calls retireSlot re-arms this same byte immediately afterwards, which retireSlot's own entry already records. Its first three stores are retireSlot byte for byte, so the arming is the entire difference. It does not claim how long the delay is: this entry writes 0xF0 where retireObjectAndHold writes 0x80, and nothing here fixes the tick rate",
+  },
+  0x4b30: {
+    name: "loc_4b30",
+    role: "copy three tilemap cells into three two-byte keeps, reading each cell twice because its two planes sit a fixed distance apart",
+    cert: "code",
   },
   0x4b4b: {
     name: "drawRandomByte",
@@ -1128,6 +1274,11 @@ export const ROUTINES = {
     cert: "seen",
     why: "base sixty rather than base a hundred is the claim, and the value histogram of a MAME write tap could have refuted it: the cell it steps took writes at 00-09, 10-19, 20-29, 30-39, 40-49, 50-59 and 60 and at no other value -- no invalid packed-decimal nibble ever appeared -- and the wrap store fired exactly as often as the value 60 was written. The inverted carry is what its caller consumes: the caller chains it over three neighbouring cells and stops at the first that does not wrap, so the flag and not the byte is the product, and the carry into the second place was one-to-one with the first place's wrap in every run. ★ The counter it serves is NOT a clock, and the name says 'sexagesimal' rather than 'seconds' because of it: one wrap took 84, 95, 120 and 140 frames on four different tapes, because the caller runs once per dispatch of the round engine's service block and that block does not run every frame",
   },
+  0x4daf: {
+    name: "loc_4daf",
+    role: "stamp one two-cell-square emblem at the cursor, colour all four cells walking back across the square, and leave the cursor past it",
+    cert: "code",
+  },
   0x4f5d: {
     name: "loc_4f5d",
     role: "stage the two cursor cells and the eight fixed arguments -- the six-slot player shot run, a three-slot target run at a sixteen-byte stride, and a box seven by fifteen -- then tail-jump into destroyTargetsHitByShots, which does the destroying; choosing the runs is the whole of what this entry contributes",
@@ -1138,6 +1289,11 @@ export const ROUTINES = {
     role: "destroy the one fixed target the player's shots have reached, spending each shot that reached it and posting the score for each; the target's liveness is tested ONCE, ahead of the sweep, so several shots can be spent on it in a single pass",
     cert: "seen",
     why: "the swept array is the claim, and its record layout could have contradicted it: this routine reads each record's coordinates at the same two offsets destroyTargetsHitByShots uses on its own outer array, which is this same six-record table, which loc_23e3 arms only on a fire-button rising edge. Watched under MAME both of its stores fired -- the target's state byte nine times and a shot's occupancy byte once -- so the hit path is observed and not inferred. ★ The guard sits BEFORE the loop and is never re-tested, which is why the role says so: a reader who assumes it re-arms will predict one hit per call and be wrong",
+  },
+  0x4fe0: {
+    name: "loc_4fe0",
+    role: "sweep the six player-shot slots for one that has reached the single fixed two-slot target, mark both destroyed and post the score for each; the first-axis window is widened for two of the era values, by a data swap rather than a second body",
+    cert: "seen",
   },
   0x507e: {
     name: "destroyFixedTargetReachedByPlayer",
