@@ -21,80 +21,118 @@ That falsifiable translation is the foundation. What's built on top of it is the
 
 A pixel-exact translation is still machine code wearing a JavaScript costume — correct, and nearly
 as opaque as the bytes it came from. So every routine is **decompiled again**, into idiomatic
-JavaScript with **English names and comments that explain what the code is for**. Same routine,
-three levels:
+JavaScript with **English names and comments that explain what the code is for**.
 
-**1. The original Z80**, disassembled from Time Pilot's `maincpu` ROM. Eight bytes at `0x43E8`:
+Here is one routine from The Pit. This is what the machine contains — disassembled from
+`games/thepit/rom/maincpu.bin`, unannotated, because the ROM holds no names, no comments and no
+explanation:
 
 ```
-43E8   xor a              ; total = 0
-43E9   add a,(hl)         ; add the byte under HL
-43EA   inc hl
-43EB   djnz 0x43E9        ; ...B times
-43ED   jp 0x07AD          ; tail into the next link
+06AC   ld b,003h
+06AE   ld c,007h
+06B0   ld a,(0805ch)
+06B3   dec a
+06B4   ld (0805ch),a
+06B7   cp 004h
+06B9   jr z,$+10
+06BB   and a
+06BC   jr nz,$+20
+06BE   ld a,008h
+06C0   ld (0805ch),a
+06C3   ld hl,089fdh
+06C6   ld de,091fdh
+06C9   ld a,(de)
 ```
 
-**2. The faithful translation** — instruction for instruction, cycle counts and all. This is the
-layer the pixel gate proves correct. Its comments are transcriptions of the assembly, not
-explanations of it: the code exists to be *right*, and its shape is the machine's, not a
-programmer's. `games/timeplt/translated/loc_43e8.js`:
+*First 14 of 75 instructions, `0x06AC`–`0x0737`.*
+
+And this is what comes back out — same behaviour, proven memory-equivalent to a faithful
+instruction-for-instruction translation of those bytes, and now saying what it is *for*:
 
 ```js
-// loc_43e8  (ROM 0x43E8-0x43EF, Time Pilot)
-export function loc_43e8(m) {
-  const { regs, mem } = m;
+/**
+ * glitterJewels — cycle the colour of the on-screen diamond cells so they glitter:
+ * each frame advance one diamond cell's colour attribute through the palette; a diamond
+ * that has been collected drops out of the set and holds a fixed colour.  ROM 0x06ac.
+ *
+ * A free-running countdown at GLITTER_COUNTDOWN (0x805c) runs 8 → 7 → ... → 1 and reloads to 8 when it
+ * reaches 0, so it repeats on a fixed eight-frame period. Each value it passes
+ * through names one fixed screen cell — a colour-RAM byte paired with the video-RAM
+ * byte that holds the glyph currently shown at that cell. For that one cell:
+ *   - if the shown glyph is the cell's "animating" glyph, its colour attribute
+ *     steps to the next of eight shades — the running colour flash;
+ *   - otherwise the cell is pinned to its resting colour (3 or 7).
+ * The value-4 step and the wrap-through-0 both land on the same cell, so seven
+ * distinct cells share the eight-frame cycle. Any countdown value outside 2..7
+ * falls to the value-1 cell.
+ *
+ * Called once per main-loop pass (mainLoop) as a decorative recolour; it takes no
+ * caller input beyond the countdown and screen bytes it reads, and returns nothing.
+ *
+ * Memory-equivalent to the frozen oracle — equivalence-06ac.test.js.
+ * GATE:     crafted-entry — real captured main-loop dispatches (the countdown at
+ *           its natural values) plus a crafted sweep over every countdown value and
+ *           both recolour branches (glyph animating vs resting), with the colour
+ *           seeded to cross the eight-shade wrap. Teeth on the sweep.
+ * LIVE-OUT: memory-only — the caller overwrites every register this leaves before
+ *           reading it, so nothing is live out; SP/pc are the modelled return the
+ *           direct-call layer drops.
+ * NAMES:    GLITTER_COUNTDOWN (0x805c) from names.js is the countdown work-RAM byte; the
+ *           cell targets are colour/video RAM outside names.js's work-RAM map and stay hex.
+ */
 
-  regs.xor(regs.a);
-  m.step(0x43e9, 4); // xor a
+import { GLITTER_COUNTDOWN } from "./names.js";
 
-  do {
-    regs.add(mem.read8(regs.hl));
-    m.step(0x43ea, 7); // add a,(hl)
-    regs.hl = (regs.hl + 1) & 0xffff; // 16-bit INC: no flags
-    m.step(0x43eb, 6); // inc hl
-    regs.djnz(); // djnz -- no flags
-    m.step(regs.b !== 0 ? 0x43e9 : 0x43ed, regs.b !== 0 ? 13 : 8); // djnz 0x43e9
-  } while (regs.b !== 0);
+// Countdown value → the cell it recolours:
+//   [ colour-RAM cell (written), video-RAM cell (read), animating glyph, resting colour ]
+const CELLS = {
+  7: [0x8873, 0x9073, 0x3a, 7],
+  6: [0x895d, 0x915d, 0x3b, 3],
+  5: [0x88d9, 0x90d9, 0x3a, 7],
+  4: [0x89fd, 0x91fd, 0x3c, 3],
+  3: [0x89b6, 0x91b6, 0x3a, 7],
+  2: [0x8a7d, 0x927d, 0x3d, 3],
+};
+// Countdown value 1, and any stray value outside 2..7.
+const CELL_DEFAULT = [0x8b3a, 0x933a, 0x3a, 7];
 
-  m.step(0x07ad, 10); // jp 0x07ad -- TAIL, nothing pushed
-  return m.call(0x07ad);
+function recolorCell(m, colourCell, tileCell, animatingGlyph, restingColor) {
+  const { mem8 } = m;
+  if (mem8[tileCell] === animatingGlyph) {
+    // Glyph animating: advance the colour attribute one shade of eight.
+    mem8[colourCell] = (mem8[colourCell] + 1) % 8;
+  } else {
+    // Glyph idle: hold the cell at its resting colour.
+    mem8[colourCell] = restingColor;
+  }
+}
+
+export function glitterJewels(m) {
+  const { mem8 } = m;
+
+  // Step the countdown one and store it back; the value it now holds selects the
+  // cell recoloured below. (In play it runs 8..1; the byte store wraps for free.)
+  const countdown = mem8[GLITTER_COUNTDOWN] - 1;
+
+  if (countdown === 0) {
+    // Wrapped: reload for the next cycle, then recolour the shared value-4 cell.
+    mem8[GLITTER_COUNTDOWN] = 8;
+    recolorCell(m, ...CELLS[4]);
+    return;
+  }
+
+  mem8[GLITTER_COUNTDOWN] = countdown;
+  recolorCell(m, ...(CELLS[countdown] ?? CELL_DEFAULT));
 }
 ```
 
-**3. The decompilation.** Same behaviour, proven memory-equivalent to the layer above — and it now
-says what it is *for*. `games/timeplt/idiomatic/sumImageBlockForTheTamperCheck.js`:
+*`games/thepit/idiomatic/glitterJewels.js`, complete, with only the SPDX licence header removed.*
 
-```js
-/** sumImageBlockForTheTamperCheck — add a run of bytes together and hand the total on to the routine this entry
- * transfers into, reached by a jump so that routine's own return carries this one. The run is
- * walked forward from a pointer; the length means a full 256 when it is zero and the total wraps
- * at eight bits. Nothing is written and nothing is compared: this entry produces a number, and
- * what is made of it belongs to the chain. The flags the additions leave are not reproduced.
- * LIVE-OUT: memory, whatever the chain writes; plus the total and the pointer, handed on. */
-
-import { u8, u16 } from "../../../core/int.js";
-
-const LENGTH_ZERO_MEANS = 256;
-const CONTINUATION = 0x07ad;
-
-export function sumImageBlockForTheTamperCheck(m, base = m.regs.hl, length = m.regs.b) {
-  const { regs, mem8 } = m;
-  const run = length === 0 ? LENGTH_ZERO_MEANS : length;
-  let total = 0;
-  for (let i = 0; i < run; i++) total = u8(total + mem8[u16(base + i)]);
-  regs.a = total;
-  regs.hl = u16(base + run);
-  regs.b = 0;
-  return m.call(CONTINUATION);
-}
-```
-
-Both blocks are the complete files, with only the SPDX licence header removed.
-
-**That name is the point.** Nothing in the ROM says "tamper check" — the bytes are a summing loop
-and nothing more. That this run of image bytes is a *checksum the game later tests against itself*
-was recovered by driving the real ROM under MAME and watching where the total goes. The names and
-the comments carry findings that are not in the machine code at all.
+**That name is the point.** Nothing in the ROM says "glitter", and nothing in it names a jewel — the
+bytes are a countdown, a table of screen cells and a colour step. That those cells are the jewels on
+screen, and that a collected one drops out of the cycle and holds still, is a finding about the
+*game*, recovered by watching it run. It lives in the name and the comment because there is nowhere
+in the machine code for it to live.
 
 Every such routine keeps a gate proving it memory-equivalent to the faithful translation, so
 readability is never bought with correctness. The sweep is **complete for The Pit** and **ongoing
@@ -210,8 +248,8 @@ games/                one directory per romset (dkong, thepit, timeplt)
     tools/            per-game gate runners (emit.js · move_suite.py · prize_suite.py)
   thepit/             the second game — same shape; its mechanisms.md maps the game
                       as understood so far
-  timeplt/            the third game — same shape; translation done, decompilation
-                      in progress
+  timeplt/            the third game — same shape; translation essentially
+                      complete, decompilation in progress
 web/                  browser front-end: pick a game and play it
 tools/                disassembler · tracer · MAME golden capture · pixel/state diff ·
                        gate runner (verdict.sh) — shared, game-agnostic
