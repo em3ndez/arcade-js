@@ -75,9 +75,9 @@ import { postCommand } from "../postCommand.js";
 import { loc_0038 as oracle } from "../../translated/loc_0038.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { COMMAND_RING } from "../names.js";
 
 const TARGET = 0x0038;
-const RING = 0xac00;
 const RING_CELLS = 64;
 const WRITE_CURSOR = 0xa9b2;
 const SCRATCH_BYTES = 2;
@@ -132,7 +132,7 @@ function craftedDiff(candidate, cursor, guard, command, argument) {
   const arms = [entryState().clone(), entryState().clone()];
   for (const s of arms) {
     s.mem8[WRITE_CURSOR] = cursor;
-    s.mem8[RING + cursor] = guard;
+    s.mem8[COMMAND_RING + cursor] = guard;
     s.regs.d = command;
     s.regs.e = argument;
   }
@@ -173,7 +173,7 @@ function inputCorpus() {
       TARGET,
       (mm) => {
         const cursor = mm.mem8[WRITE_CURSOR];
-        const tuple = [cursor, mm.mem8[RING + cursor], mm.regs.d, mm.regs.e];
+        const tuple = [cursor, mm.mem8[COMMAND_RING + cursor], mm.regs.d, mm.regs.e];
         seen.set(tuple.join(","), tuple);
         return oracle(mm);
       },
@@ -275,23 +275,23 @@ test("CORPUS: every input tuple a longer driven run presents replays identically
 test("NON-VACUOUS: the two branches really do different things", { skip }, () => {
   const free = entryState().clone();
   free.mem8[WRITE_CURSOR] = 62;
-  free.mem8[RING + 62] = 0xff;
+  free.mem8[COMMAND_RING + 62] = 0xff;
   free.regs.d = 0x2b;
   free.regs.e = 0x94;
   oracle(free);
-  assert.equal(free.mem8[RING + 62], 0x2b, "the command byte must land in the cursor's cell");
-  assert.equal(free.mem8[RING + 63], 0x94, "the argument byte must land in the next cell");
+  assert.equal(free.mem8[COMMAND_RING + 62], 0x2b, "the command byte must land in the cursor's cell");
+  assert.equal(free.mem8[COMMAND_RING + 63], 0x94, "the argument byte must land in the next cell");
   assert.equal(free.mem8[WRITE_CURSOR], 0, "cursor 62 must step two cells on and wrap to 0");
 
   const full = entryState().clone();
   full.mem8[WRITE_CURSOR] = 62;
-  full.mem8[RING + 62] = 0x7f;
-  const before = full.mem8[RING + 63];
+  full.mem8[COMMAND_RING + 62] = 0x7f;
+  const before = full.mem8[COMMAND_RING + 63];
   full.regs.d = 0x2b;
   full.regs.e = 0x94;
   oracle(full);
-  assert.equal(full.mem8[RING + 62], 0x7f, "an occupied cell must not be overwritten");
-  assert.equal(full.mem8[RING + 63], before, "nor may the cell after it be");
+  assert.equal(full.mem8[COMMAND_RING + 62], 0x7f, "an occupied cell must not be overwritten");
+  assert.equal(full.mem8[COMMAND_RING + 63], before, "nor may the cell after it be");
   assert.equal(full.mem8[WRITE_CURSOR], 62, "and the cursor must not move");
   console.log("  NON-VACUOUS: the free path writes and wraps; the occupied path changes nothing");
 });
@@ -321,8 +321,8 @@ function brokenNoOp() {}
 function brokenIgnoresGuard(m) {
   const { mem8 } = m;
   const cursor = mem8[WRITE_CURSOR];
-  mem8[RING + cursor] = m.regs.d;
-  mem8[RING + ((cursor + 1) & 0xff)] = m.regs.e;
+  mem8[COMMAND_RING + cursor] = m.regs.d;
+  mem8[COMMAND_RING + ((cursor + 1) & 0xff)] = m.regs.e;
   mem8[WRITE_CURSOR] = (cursor + 2) % RING_CELLS;
 }
 
@@ -330,9 +330,9 @@ function brokenIgnoresGuard(m) {
 function brokenSwapsPair(m) {
   const { mem8 } = m;
   const cursor = mem8[WRITE_CURSOR];
-  if ((mem8[RING + cursor] & 0x80) === 0) return;
-  mem8[RING + cursor] = m.regs.e;
-  mem8[RING + ((cursor + 1) & 0xff)] = m.regs.d;
+  if ((mem8[COMMAND_RING + cursor] & 0x80) === 0) return;
+  mem8[COMMAND_RING + cursor] = m.regs.e;
+  mem8[COMMAND_RING + ((cursor + 1) & 0xff)] = m.regs.d;
   mem8[WRITE_CURSOR] = (cursor + 2) % RING_CELLS;
 }
 
@@ -340,9 +340,9 @@ function brokenSwapsPair(m) {
 function brokenCursorRunsOn(m) {
   const { mem8 } = m;
   const cursor = mem8[WRITE_CURSOR];
-  if ((mem8[RING + cursor] & 0x80) === 0) return;
-  mem8[RING + cursor] = m.regs.d;
-  mem8[RING + ((cursor + 1) & 0xff)] = m.regs.e;
+  if ((mem8[COMMAND_RING + cursor] & 0x80) === 0) return;
+  mem8[COMMAND_RING + cursor] = m.regs.d;
+  mem8[COMMAND_RING + ((cursor + 1) & 0xff)] = m.regs.e;
   mem8[WRITE_CURSOR] = (cursor + 2) & 0xff;
 }
 
@@ -350,9 +350,9 @@ function brokenCursorRunsOn(m) {
 function brokenArgumentCellLeavesPage(m) {
   const { mem8 } = m;
   const cursor = mem8[WRITE_CURSOR];
-  if ((mem8[RING + cursor] & 0x80) === 0) return;
-  mem8[RING + cursor] = m.regs.d;
-  mem8[RING + cursor + 1] = m.regs.e;
+  if ((mem8[COMMAND_RING + cursor] & 0x80) === 0) return;
+  mem8[COMMAND_RING + cursor] = m.regs.d;
+  mem8[COMMAND_RING + cursor + 1] = m.regs.e;
   mem8[WRITE_CURSOR] = (cursor + 2) % RING_CELLS;
 }
 

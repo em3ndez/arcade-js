@@ -69,6 +69,7 @@ import { loc_2a57 as oracle } from "../../translated/loc_2a57.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { u8, u16 } from "../../../../core/int.js";
+import { FRAME_TICK } from "../names.js";
 
 const TARGET = 0x2a57;
 const skip = romsPresent() ? false : "ROM images are gitignored and absent";
@@ -81,7 +82,6 @@ const HALF_TURN = STEPS_PER_TURN / 2;
 
 const SHAPE_BY_SECTOR = 0x2a77;
 const MIRROR_BY_SECTOR = 0x2a87;
-const ANIMATION_COUNTER = 0xa980;
 const FAR_HALF_BIT = 2;
 const SHAPES_PER_HALF = 8;
 
@@ -208,7 +208,7 @@ function sweep(candidate) {
           for (const other of records) {
             mm.mem8[u16(other + HEADING)] = other === record ? heading : u8(heading + HALF_TURN);
           }
-          mm.mem8[ANIMATION_COUNTER] = counter;
+          mm.mem8[FRAME_TICK] = counter;
           mm.regs.ix = record;
           mm.regs.bc = POISON;
         }
@@ -275,7 +275,7 @@ function drivenSession() {
     dispatches++;
     records.add(mm.regs.ix);
     const heading = mm.mem8[u16(mm.regs.ix + HEADING)];
-    inputs.add(`${mm.regs.ix}/${heading}/${mm.mem8[ANIMATION_COUNTER] & FAR_HALF_BIT}`);
+    inputs.add(`${mm.regs.ix}/${heading}/${mm.mem8[FRAME_TICK] & FAR_HALF_BIT}`);
     const top = mm.regs.sp;
     if (top < lowSp) lowSp = top;
     if (top > highSp) highSp = top;
@@ -332,7 +332,7 @@ const caughtInPlay = (label) => {
 
 /** The oracle's own total. Its one branch costs more when it steps the shape on. */
 function oracleTStates(m) {
-  const far = (m.mem8[ANIMATION_COUNTER] & FAR_HALF_BIT) !== 0;
+  const far = (m.mem8[FRAME_TICK] & FAR_HALF_BIT) !== 0;
   return STRAIGHT_LINE + (far ? FAR_HALF_TAIL : NEAR_HALF_TAIL);
 }
 
@@ -460,7 +460,7 @@ test("DEGENERATE: half the twins are invisible at the captured entry", { skip },
     assert.ok(caughtInPlay(label) > 0, `${label} is invisible in play too, not merely at entry`);
   }
   console.log(
-    `  DEGENERATE: heading ${heading}, counter ${e.mem8[ANIMATION_COUNTER]}, record ` +
+    `  DEGENERATE: heading ${heading}, counter ${e.mem8[FRAME_TICK]}, record ` +
       `${hex4(e.regs.ix)} — ${survivors.join(", ")} all survive it, and all are caught in play`,
   );
 });
@@ -525,7 +525,7 @@ test("COUNTER: exactly one bit of the counter decides the animation half", { ski
       a.pc = pc;
       a.cycles = cycles;
       a.mem8[u16(a.regs.ix + HEADING)] = sector * STEPS_PER_SECTOR;
-      a.mem8[ANIMATION_COUNTER] = counter;
+      a.mem8[FRAME_TICK] = counter;
       oracle(a);
       const far = a.regs.b === shapeAt(sector) + SHAPES_PER_HALF;
       assert.ok(far || a.regs.b === shapeAt(sector), `counter ${counter}: neither half was chosen`);
@@ -579,7 +579,7 @@ test("SUBSTITUTION: the rewrite wired in leaves only the scratch, and it HEALS",
 // agreeing with the wrong theory of why it failed.
 
 const headingOf = (m) => m.mem8[u16(m.regs.ix + HEADING)];
-const farHalf = (m) => ((m.mem8[ANIMATION_COUNTER] & FAR_HALF_BIT) !== 0 ? SHAPES_PER_HALF : 0);
+const farHalf = (m) => ((m.mem8[FRAME_TICK] & FAR_HALF_BIT) !== 0 ? SHAPES_PER_HALF : 0);
 
 function deliver(m, sector, step) {
   m.regs.b = m.mem8[SHAPE_BY_SECTOR + sector] + step;
@@ -611,7 +611,7 @@ function brokenFarHalf(m) {
 
 /** BUG: reads the wrong bit of the counter, so the animation runs at twice the rate. */
 function brokenWrongBit(m) {
-  deliver(m, sectorOf(headingOf(m)), m.mem8[ANIMATION_COUNTER] & 1 ? SHAPES_PER_HALF : 0);
+  deliver(m, sectorOf(headingOf(m)), m.mem8[FRAME_TICK] & 1 ? SHAPES_PER_HALF : 0);
 }
 
 /** BUG: hands back the two table entries the other way round. */

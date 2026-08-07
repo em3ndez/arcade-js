@@ -63,11 +63,10 @@ import { postCommand } from "../postCommand.js";
 import { loc_0b46 as oracle } from "../../translated/loc_0b46.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
-import { ERA_INDEX } from "../names.js";
+import { COMMAND_RING, ERA_INDEX } from "../names.js";
 
 const TARGET = 0x0b46;
 
-const RING = 0xac00;
 const RING_CELLS = 64;
 const LAST_SLOT = RING_CELLS - 2;
 const WRITE_CURSOR = 0xa9b2;
@@ -200,7 +199,7 @@ function unitDiff(candidate, machine) {
 function craft(cursor, guard) {
   const m = entryState().clone();
   m.mem8[WRITE_CURSOR] = cursor;
-  m.mem8[RING + cursor] = guard;
+  m.mem8[COMMAND_RING + cursor] = guard;
   return m;
 }
 
@@ -232,10 +231,10 @@ function replaySession(opts, candidate) {
       dispatches++;
       const cursor = mm.mem8[WRITE_CURSOR];
       cursors.add(cursor);
-      guards.add(mm.mem8[RING + cursor]);
+      guards.add(mm.mem8[COMMAND_RING + cursor]);
       incoming.add(mm.regs.de);
       eras.add(mm.mem8[ERA_INDEX]); // read only to attribute the corpus to a game state
-      if (mm.mem8[RING + cursor] & 0x80) free++;
+      if (mm.mem8[COMMAND_RING + cursor] & 0x80) free++;
       if (unitDiff(candidate, mm)) caught++;
       return oracle(mm);
     }]]),
@@ -257,7 +256,7 @@ function sessions() {
 // ── the cycle shim, and the whole-run masked diff ───────────────────────────────────────
 
 const oracleTStates = (m) =>
-  (m.mem8[RING + m.mem8[WRITE_CURSOR]] & 0x80) === 0 ? DROPPED_TSTATES : QUEUED_TSTATES;
+  (m.mem8[COMMAND_RING + m.mem8[WRITE_CURSOR]] & 0x80) === 0 ? DROPPED_TSTATES : QUEUED_TSTATES;
 
 /** Adapt a candidate to the cycle-driven host: pay the oracle's total, then take the return. */
 function hosted(candidate) {
@@ -357,8 +356,8 @@ function brokenIgnoresGuard(m) {
   m.regs.d = COMMAND;
   m.regs.e = ARGUMENT;
   const cursor = mem8[WRITE_CURSOR];
-  mem8[RING + cursor] = COMMAND;
-  mem8[RING + ((cursor + 1) & 0xff)] = ARGUMENT;
+  mem8[COMMAND_RING + cursor] = COMMAND;
+  mem8[COMMAND_RING + ((cursor + 1) & 0xff)] = ARGUMENT;
   mem8[WRITE_CURSOR] = (cursor + 2) % RING_CELLS;
 }
 
@@ -368,9 +367,9 @@ function brokenCursorRunsOn(m) {
   m.regs.d = COMMAND;
   m.regs.e = ARGUMENT;
   const cursor = mem8[WRITE_CURSOR];
-  if ((mem8[RING + cursor] & 0x80) === 0) return;
-  mem8[RING + cursor] = COMMAND;
-  mem8[RING + ((cursor + 1) & 0xff)] = ARGUMENT;
+  if ((mem8[COMMAND_RING + cursor] & 0x80) === 0) return;
+  mem8[COMMAND_RING + cursor] = COMMAND;
+  mem8[COMMAND_RING + ((cursor + 1) & 0xff)] = ARGUMENT;
   mem8[WRITE_CURSOR] = (cursor + 2) & 0xff;
 }
 

@@ -6,17 +6,17 @@
  * LIVE-OUT: memory-only. */
 
 import { u8 } from "../../../core/int.js";
+import { COMMAND_RING } from "./names.js";
 
-const RING = 0xac00;
 const RING_CELLS = 64;
 const WRITE_CURSOR = 0xa9b2;
 
 export function postCommand(m, command = m.regs.d, argument = m.regs.e) {
   const { mem8 } = m;
   const cursor = mem8[WRITE_CURSOR];
-  if ((mem8[RING + cursor] & 0x80) === 0) return;
-  mem8[RING + cursor] = command;
+  if ((mem8[COMMAND_RING + cursor] & 0x80) === 0) return;
+  mem8[COMMAND_RING + cursor] = command;
   const argumentCell = u8(cursor + 1);
-  mem8[RING + argumentCell] = argument;
+  mem8[COMMAND_RING + argumentCell] = argument;
   mem8[WRITE_CURSOR] = (cursor + 2) % RING_CELLS;
 }

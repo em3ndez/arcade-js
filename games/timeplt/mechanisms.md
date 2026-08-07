@@ -698,7 +698,10 @@ that ramming the Mother-Ship on its last hit still advances you. Both are true, 
 Nothing in the public record describes what happens when you die. All of the following is new: `[code]`
 
 - Being killed is **the same event** as an enemy being killed — a collision test writes the same
-  marker into the player's state byte.
+  marker into the player's state byte. `[seen]`: a MAME write tap recording the program counter at
+  every write of `PLAYER_STATE` through a driven game found three writers of the destroyed marker,
+  all of them collision sweeps, and every such write followed within a frame by the death
+  countdown's reload and, at its end, by the life-start routine writing the live value again.
 - A seven-arm explosion is drawn into the **character plane**, coloured by era.
 - A life is deducted, the player's context block is saved, and the players swap.
 - **Respawn is at the same pinned screen position**, with a fixed heading and `WORLD_SCROLL_Y` /
@@ -871,11 +874,26 @@ tilemap. Written-and-occluded, not never-written.
 ### The progress meter is the quota, drawn
 
 The bar along the bottom is a direct rendering of the kill-quota cell: its run length is the cell
-shifted down, with an eight-level partial tile from the low bits, in era-keyed tiles. `[code]`
+shifted down, with an eight-level partial tile from the low bits, in era-keyed tiles. `[seen]`
+
+Grounded by forcing the quota cell alone for the three frames before a snapshot, in MAME runs
+otherwise identical: two runs forcing the same value gave byte-identical images, and two values
+four apart differed in one 8×8 character cell at the bottom of the glass and nowhere else. So the
+cell the routine writes is the cell the player sees, and four kills are one tile.
 
 This is why §6 can say flatly that the game has no timer. The bar and the 56 are the same fact
 rendered two ways, and the single public source that called it a "time bar" was watching the kill
 meter fill.
+
+### The nibble-pair drawer draws DECIMAL digits, not hexadecimal
+
+One drawer masks a value to four bits and indexes a sixteen-entry table of glyph codes at 0x0DCC;
+its only caller splits a byte into high nibble then low, which invites the reading that it prints a
+byte in hex. It does not. Decoded through this board's own character layout, entries 0-9 of that
+table are the glyphs `0`-`9` and the remaining six are not letters: three are blank tiles — one of
+them the blanking glyph the whole game erases with — one is a period, one is an unrelated shape,
+and the last repeats the glyph `3`. So the table covers only the digits a packed-BCD byte can
+hold, which is what the machine keeps its counters in. `[code]`
 
 ### Player shots live here too
 

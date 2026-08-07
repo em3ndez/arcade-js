@@ -88,7 +88,7 @@ import assert from "node:assert/strict";
 import { makeMachine, COIN_START_TAPE, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0ce8 } from "../loc_0ce8.js";
 import { loc_0ce8 as oracle } from "../../translated/loc_0ce8.js";
-import { PLAY_ACTIVE } from "../names.js";
+import { PLAY_ACTIVE, PLAYER_STATE } from "../names.js";
 import {
   firstStateDiff,
   unitEquivalence,
@@ -132,9 +132,6 @@ const TWO_PLAYER_TAPE = [
 
 /** Long enough that the demo awards points repeatedly; the first dispatch is past frame 1000. */
 const CORPUS_FRAMES = 2500;
-
-/** A work-RAM byte for the twin that writes, chosen only because the state dump covers it. */
-const SCRATCH_CELL = 0xa800;
 
 /** Register patterns for the crafted arm: all clear, all set, and two alternating fills. */
 const HOSTILE_FILLS = [0x00, 0xff, 0x5a, 0xa5];
@@ -231,7 +228,7 @@ function sweep(candidate, list = allEntries()) {
 
 /** BUG: writes a byte. The only twin the RAM diff can see, and the proof that it can see one. */
 function brokenWritesOneCell(m) {
-  m.mem8[SCRATCH_CELL] ^= 0xff;
+  m.mem8[PLAYER_STATE] ^= 0xff;
 }
 
 /** BUG: leaves a value in the accumulator, as a routine that computed something would. */

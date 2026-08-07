@@ -187,6 +187,101 @@ export const WORLD_SCROLL_Y = 0xa808;
 export const WORLD_SCROLL_X = 0xa80a;
 
 /**
+ * State byte of the player's own record, which begins at this address. [seen]
+ *
+ * 0xFF is alive; 0xF0 starts the death; 0x00 is torn down. Six routines had six different local
+ * names for it (an attacker's state, a guard, a target flag, a mover flag, the first state, the
+ * player's state) and this reconciles them.
+ *
+ * Watched under MAME with a write tap that recorded the program counter of every write across a
+ * driven game: the writers are the life-start routine (0xFF, twelve times), the pair that reloads
+ * and counts down a death timer, three collision sweeps that store 0xF0, and one teardown storing
+ * zero. Every 0xF0 was followed within a frame by the countdown reload and, at its end, by a fresh
+ * 0xFF from the life-start routine — nine complete death-to-respawn cycles.
+ *
+ * ★ It is NOT a shot. Watched against the fire button over twelve thousand frames the cell is
+ * alive on much the same share of frames whether the button is down or up, and the sprite entry
+ * its record drives stays pinned at one screen position while the world scrolls past.
+ *
+ * ★ 0xA800 is also the base of work RAM, and several fixtures use the bare address for that —
+ * a record base, a scratch cell, the start of a clear loop. Those are the address, not this cell.
+ */
+export const PLAYER_STATE = 0xa800;
+
+/**
+ * Free-running frame counter, advanced once per vblank service. [seen]
+ *
+ * Thirteen routines read it and had eight different local names for it; readers take a bit of it
+ * as a coin toss, or halve it to slow an animation down.
+ *
+ * Watched under MAME across two thousand consecutive frames after boot it advanced by exactly one
+ * on every frame — never zero, never two. (Before that, during the boot stretch where the service
+ * is not yet running, it stands still; a reader that assumes a value here is elapsed time from
+ * power-on will be short by that stretch.)
+ */
+export const FRAME_TICK = 0xa980;
+
+/**
+ * Lines of the character plane still to blank in the wipe now running. [code]
+ *
+ * Counted down one per call by the routine that blanks a single line, which leaves the zero test
+ * in the flags; the callers return early while it is non-zero, so the wipe is spread over frames
+ * rather than run to completion in one. Written with the run length by the routine that starts a
+ * wipe, alongside the cursor below.
+ */
+export const BLANK_LINES_LEFT = 0xa988;
+
+/**
+ * Where the next line of that wipe starts — a 16-bit cell address in the character plane. [code]
+ *
+ * Advanced by ONE per line, not by a line's worth of cells: the routine walks a line by stepping
+ * 32 cells at a time and the next line is the neighbouring cell of the first.
+ */
+export const BLANK_LINE_CURSOR = 0xa989;
+
+/**
+ * The command ring's CONSUMER cursor: which cell the foreground loop reads next. [code]
+ *
+ * A byte offset into COMMAND_RING, stepped two on per command taken and wrapped to the ring's
+ * length. Its producer-side twin is the neighbouring cell 0xA9B2, which the queueing routine steps
+ * and which nothing here touches — that split is what makes this one the read cursor rather than
+ * simply "the ring cursor".
+ */
+export const COMMAND_READ_CURSOR = 0xa9b3;
+
+/**
+ * The 64-cell command ring: command byte and argument byte in adjacent cells. [code]
+ *
+ * A cell whose high bit is set holds no command. One routine fills the whole ring with 0xFF at
+ * init, the queueing routine writes a pair only into a free cell, and the foreground loop restores
+ * 0xFF to both cells of a pair as it takes it.
+ */
+export const COMMAND_RING = 0xac00;
+
+/**
+ * A character cell copied out of the display when the image checksum fails, glyph then colour. [code]
+ *
+ * Written only by the failing arm of the routine that folds a block of the program image, and read
+ * by a routine that compares this cell against one glyph code and the next against two colours,
+ * taking a different path on a match. So it is not scratch: it is a mark one part of the anti-tamper
+ * machinery leaves for another to find.
+ *
+ * The arm that writes it cannot run on a genuine image — the fold comes to exactly the compared
+ * value — so what this cell does downstream is derived from the code and cannot be watched.
+ */
+export const TAMPER_WITNESS = 0xad39;
+
+/**
+ * Write pointer of the deferred character-write list, which runs from 0xAE04. [code]
+ *
+ * The routine that queues a tile block appends four bytes per cell here — address low, address
+ * high, glyph, attribute — stepping the pointer WITHIN its own page, so a full list wraps onto its
+ * own head. The routine that drains the list reads this to learn how many entries are waiting, and
+ * treats a pointer still at 0xAE04 as empty.
+ */
+export const DEFERRED_WRITE_CURSOR = 0xae00;
+
+/**
  * Address -> idiomatic routine. Artifact three of the four: a module that is not in here is
  * never dispatched, so it is written-and-never-executed no matter how green its own gate is.
  *
@@ -341,7 +436,7 @@ export const ROUTINES = {
     name: "placeAbuttingTile",
     role: "place an object's next sprite tile flush against the current one and step both cursors onto it",
     cert: "code",
-    why: "loc_2d15 chains two of these and loc_2d21 chains one plus the diagonal sibling loc_308a, both tail-jumping into advanceToNextSlot -- so a slot boundary here is a tile boundary, which is exactly why that routine's own entry declines to call the unit an object",
+    why: "loc_2d15 chains two of these and loc_2d21 chains one plus the diagonal sibling placeDiagonallyAbuttingTile, both tail-jumping into advanceToNextSlot -- so a slot boundary here is a tile boundary, which is exactly why that routine's own entry declines to call the unit an object",
   },
   0x51de: {
     name: "postChainedHitScore",
@@ -449,5 +544,59 @@ export const ROUTINES = {
     name: "loc_5965",
     role: "hand back the perpendicular component pair an object's heading calls for, at the pace the velocity samples based at 0x2E3E set; choosing that table is all this entry does",
     cert: "code",
+  },
+  0x01c2: {
+    name: "blankNextLine",
+    role: "blank one line of the character plane in both planes, step the wipe's cursor on to the next line, and count the lines still owed down by one; the zero test is left in the flags for the caller",
+    cert: "seen",
+    why: "the name claims a line at a time, not a screen and not a cell, and that is countable from outside: a read tap at this entry on the real ROM under MAME counted exactly 32 dispatches through the boot wipe, in two independent runs. A whole-screen wipe would have been one, a cell at a time 1024, and 32 is the tilemap's line count. Both callers then `ret nz` on the flag it leaves, which is what makes the wipe span frames rather than run to completion inside one call -- so a name saying merely 'blank' would drop the half the callers use",
+  },
+  0x0809: {
+    name: "drawKillMeter",
+    role: "repaint the meter that shows how many kills are still owed: a bar of era-selected glyphs one cell long per four kills, an end glyph carrying the remainder, and one blanking cell past it",
+    cert: "seen",
+    why: "the name says these cells ARE the bar the player sees, which a pixel A/B can refute. Three MAME runs identical in every input but the count forced into KILLS_REMAINING for the three frames before a snapshot: two runs forcing the same value produced byte-identical images, and two counts four apart differed in 33 pixels confined to one 8x8 character cell at the bottom of the glass. Reading the video-RAM strip back for seven forced counts also matched, at every one of the seven, the bar length and end glyph the era's own ROM row predicts",
+  },
+  0x17b9: {
+    name: "guardBlockOrBlankDisplay",
+    role: "fold a block of the program image and let the sequence step on only if it still adds up; otherwise switch the display off and copy one character cell into TAMPER_WITNESS",
+    cert: "code",
+    why: "two things outside the routine could have refuted it and did not. The block it folds is 51 bytes from 0x0B06, which is the entry of stampCopyrightStrip -- the guard covers a routine, not an arbitrary span -- and the fold over the real image comes to exactly the value compared, while shifting the seed by one takes the other arm. Its address also sits in the word table at 0x1659 that loc_1651 dispatches, at the eighth entry, so the sequence really is what it gates",
+  },
+  0x308a: {
+    name: "placeDiagonallyAbuttingTile",
+    role: "carry an object diagonally onto one more sprite entry, cornering off the one it already occupies: a pitch back along the high axis and a pitch on along the low one, in one 16-bit add so the low axis's wrap borrows",
+    cert: "code",
+    why: "placeAbuttingTile's registry entry already called this address the diagonal sibling before it was decompiled, and the write-set could have contradicted that: it does not -- the step is -16 on the entry's +49 byte and +16 on its +0 byte. loc_2d21 chains placeAbuttingTile then this one, which lays three tiles on three corners of a square -- the fourth corner is never written; loc_2d15 chains two straight ones and lays a strip",
+  },
+  0x3e05: {
+    name: "flyAlongStoredVelocity",
+    role: "fly one object a single step along the velocity held in its own record, and in the same add carry it with the world; each coordinate gains its stored word plus the shared per-frame scroll",
+    cert: "code",
+    why: "the four bytes it reads at +0x0A..+0x0D are written by other routines and never by this one: loc_3d25 and loc_3ed6 each call a doubled-velocity shim and store the returned pair straight into exactly those four. So 'stored velocity' names a value some other routine banked, which is a claim their write-sets could have refuted. Its sibling flyAlongHeading looks the velocity up from the heading instead, and both add the same world-scroll pair -- so nothing else may drift an object this moves",
+  },
+  0x3e7e: {
+    name: "animateFixedShapeCycle",
+    role: "give a sprite entry the next frame of an eight-frame cycle from a fixed shape base, and one fixed control byte beside it; nothing of the object is read, so two entries written in one tick get the same shape",
+    cert: "seen",
+    why: "the name claims a cycle that is fixed and not the object's, and its one caller reaches it as `call z` after comparing ERA_INDEX with 4. That gating is measurable and it was measured: read taps at this entry counted zero dispatches across two MAME runs that stayed in eras 0-3, and 7242 in a third that held the era at 4. A name tied to an object class would have to survive that the two entries written in one tick cannot be told apart, which they cannot",
+  },
+  0x5121: {
+    name: "destroyTargetsReachedByFixedAttacker",
+    role: "destroy every target of a caller's run that one fixed attacker -- the player's own ship -- has reached, marking both destroyed and posting the chained score for each; the attacker's state is tested once, so one pass can take several",
+    cert: "seen",
+    why: "the attacker is not a parameter, and which object it is decides whether this duplicates destroyTargetsHitByShots or is the other half of the collision system. A MAME write tap recording the program counter at every write of the attacker's state byte settled it: this routine is one of only three writers of the destroyed code, each such write is followed within a frame by a death-countdown reload and, at the end of the countdown, by the life-start routine writing the live code again. The entry it tests stayed at one pinned screen position through the whole run while the world scrolled, and showed no correlation with the fire button. LIVE-OUT is not only memory: both cursors are left where the sweep ended and the caller's tail target reads them",
+  },
+  0x5337: {
+    name: "queueTileStampForObject",
+    role: "queue a two-by-two block of character cells for an object's position onto the deferred write list, one four-byte entry per cell, skipping a pair whose glyph is zero",
+    cert: "code",
+    why: "the noun 'tile' is the claim, and the routine alone cannot settle it -- it only builds an address from a base of 0xA000. The routine that drains the list does: it takes each stored address, sets bit 10 to reach 0xA4xx and writes the glyph there, clears it again and writes the attribute at 0xA0xx. Those are this board's video and colour RAM, so the entries are character cells in both planes and not sprite records",
+  },
+  0x59a0: {
+    name: "doubledVelocityForHeading",
+    role: "turn a heading handed straight in into the velocity pair the caller's table gives for it, doubled; the doubling wraps at sixteen bits and nothing is written",
+    cert: "code",
+    why: "'doubled' distinguishes this body from velocityForHeading, and its consumers show the doubling is the product rather than an artefact: the three shims that fix a table tail-jump here, and their callers bank the pair straight into an object record's +0x0A..+0x0D, which flyAlongStoredVelocity then integrates every frame. 'ForHeading' rather than 'ForObject' is the other half -- loc_599d enters this same body after reading the heading off an object, so taking it as a value is exactly what this entry contributes",
   },
 };

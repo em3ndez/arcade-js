@@ -66,6 +66,7 @@ import { postChainedHitScore } from "../postChainedHitScore.js";
 import { loc_5211 as oracle } from "../../translated/loc_5211.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { COMMAND_RING } from "../names.js";
 
 const TARGET = 0x5211;
 const SHOT_BASE = 0xaa80;
@@ -73,7 +74,6 @@ const ENTRY_BASE = 0xaa1a;
 const RECORD_BASE = 0xa850;
 const ENTRY_CURSOR_CELL = 0xa991;
 const RECORD_CURSOR_CELL = 0xa993;
-const RING = 0xac00;
 const RING_CURSOR = 0xa9b2;
 const CHAIN_WINDOW = 0xa99d;
 const CHAIN_STEP = 0xa99e;
@@ -251,7 +251,7 @@ function scene(o = {}) {
     mem8[u16(cursor + 2 * k + 49)] = t.second ?? 0;
   }
   // A free ring and an expired window, so a posted score is VISIBLE rather than dropped.
-  for (let cell = 0; cell < 64; cell++) mem8[RING + cell] = 0xff;
+  for (let cell = 0; cell < 64; cell++) mem8[COMMAND_RING + cell] = 0xff;
   mem8[RING_CURSOR] = 0;
   mem8[CHAIN_WINDOW] = 0;
   mem8[CHAIN_STEP] = 0;
@@ -554,7 +554,7 @@ test("MULTI-KILL: one shot takes four targets in one pass and the chain ramps", 
     fn(s);
     return {
       destroyed: [0, 1, 2, 3, 4].filter((j) => s.mem8[RECORD_BASE + 16 * j] === DESTROYED),
-      scores: [0, 1, 2, 3].map((k) => s.mem8[RING + 2 * k + 1]),
+      scores: [0, 1, 2, 3].map((k) => s.mem8[COMMAND_RING + 2 * k + 1]),
       shot: s.mem8[SHOT_BASE],
     };
   };

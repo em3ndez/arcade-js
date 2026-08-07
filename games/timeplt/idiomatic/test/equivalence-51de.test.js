@@ -77,11 +77,11 @@ import { postCommand } from "../postCommand.js";
 import { loc_51de as oracle } from "../../translated/loc_51de.js";
 import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { COMMAND_RING } from "../names.js";
 
 const TARGET = 0x51de;
 const CHAIN_WINDOW = 0xa99d;
 const CHAIN_STEP = 0xa99e;
-const RING = 0xac00;
 const RING_CURSOR = 0xa9b2;
 const SCRATCH_BYTES = 6;
 const WINDOW_RELOAD = 30;
@@ -138,7 +138,7 @@ function craftedDiff(candidate, window, stepPrior, cursor, guard) {
     s.mem8[CHAIN_WINDOW] = window;
     s.mem8[CHAIN_STEP] = stepPrior;
     s.mem8[RING_CURSOR] = cursor;
-    s.mem8[RING + cursor] = guard;
+    s.mem8[COMMAND_RING + cursor] = guard;
   }
   oracle(arms[0]);
   candidate(arms[1]);
@@ -203,7 +203,7 @@ function inputCorpus(name) {
       TARGET,
       (mm) => {
         const cursor = mm.mem8[RING_CURSOR];
-        const tuple = [mm.mem8[CHAIN_WINDOW], mm.mem8[CHAIN_STEP], cursor, mm.mem8[RING + cursor]];
+        const tuple = [mm.mem8[CHAIN_WINDOW], mm.mem8[CHAIN_STEP], cursor, mm.mem8[COMMAND_RING + cursor]];
         seen.set(tuple.join(","), tuple);
         return oracle(mm);
       },
@@ -234,11 +234,11 @@ function chainSequence(fn) {
   s.mem8[CHAIN_WINDOW] = 0;
   s.mem8[CHAIN_STEP] = 0;
   s.mem8[RING_CURSOR] = 0;
-  for (let cell = 0; cell < 2 * CHAIN_CALLS; cell++) s.mem8[RING + cell] = 0xff;
+  for (let cell = 0; cell < 2 * CHAIN_CALLS; cell++) s.mem8[COMMAND_RING + cell] = 0xff;
   const posted = [];
   for (let call = 0; call < CHAIN_CALLS; call++) {
     fn(s);
-    posted.push(s.mem8[RING + 2 * call + 1]);
+    posted.push(s.mem8[COMMAND_RING + 2 * call + 1]);
   }
   return posted;
 }
@@ -274,14 +274,14 @@ test("THE FIRST DISPATCH IS NOT DEAD, and its shape is pinned", { skip }, () => 
   const cursor = s.mem8[RING_CURSOR];
   assert.equal(s.mem8[CHAIN_WINDOW], 0, "the captured entry stopped taking the expired path");
   assert.equal(s.mem8[CHAIN_STEP], 0, "the captured entry's step prior moved");
-  assert.equal(s.mem8[RING + cursor] & 0x80, 0x80, "the ring cell is no longer free, so no pair " +
+  assert.equal(s.mem8[COMMAND_RING + cursor] & 0x80, 0x80, "the ring cell is no longer free, so no pair " +
     "is posted at the real entry and the arm above tests one cell instead of three");
 
   const after = s.clone();
   oracle(after);
   assert.equal(after.mem8[CHAIN_WINDOW], WINDOW_RELOAD, "the window must be re-armed");
-  assert.equal(after.mem8[RING + cursor], 4, "the command byte must land in the cursor's cell");
-  assert.equal(after.mem8[RING + cursor + 1], 1, "the expired path posts the FIRST argument");
+  assert.equal(after.mem8[COMMAND_RING + cursor], 4, "the command byte must land in the cursor's cell");
+  assert.equal(after.mem8[COMMAND_RING + cursor + 1], 1, "the expired path posts the FIRST argument");
   assert.equal(after.mem8[CHAIN_STEP], 0, "the expired path must leave the step cell alone");
   console.log(`  FIRST DISPATCH: expired window, free cell at ${cursor} — three cells move`);
 });
