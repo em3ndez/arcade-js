@@ -1199,6 +1199,12 @@ export const ROUTINES = {
     cert: "seen",
     why: "the name claims a line at a time, not a screen and not a cell, and that is countable from outside: a read tap at this entry on the real ROM under MAME counted exactly 32 dispatches through the boot wipe, in two independent runs. A whole-screen wipe would have been one, a cell at a time 1024, and 32 is the tilemap's line count. Both callers then `ret nz` on the flag it leaves, which is what makes the wipe span frames rather than run to completion inside one call -- so a name saying merely 'blank' would drop the half the callers use",
   },
+  0x026f: {
+    name: "plotPenCell",
+    role: "stamp the current pen glyph and pen colour into the one character cell a row cell and a column cell name, and hand back the video-plane address of that cell",
+    cert: "seen",
+    why: "the name predicts an exact address, so a MAME write tap recomputed 0xA400 + row*32 + column the way the ROM does -- eight-bit row multiply, and the column added to the low byte with the carry discarded -- and compared it against every write the routine made: 14200 writes, 14200 landing on that cell or its colour twin, zero misses, where an arithmetic reading that kept the carry would miss at every row wrap. loc_0201 fixes the returned address as a product rather than a leftover: it subtracts a target cell from it to decide whether to keep stepping",
+  },
   0x0365: {
     name: "publishSpriteShadow",
     role: "gather the sprite shadow into the two hardware banks, three runs per bank in an order that is not their order in memory, transforming each byte by which half of its sprite it is and which way round the cabinet has the picture; then, inside one window of the sequence, ask for the eight scenery slots to be shown a second time half a screen away",
