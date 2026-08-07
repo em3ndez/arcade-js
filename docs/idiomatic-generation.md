@@ -480,6 +480,42 @@ Per routine, the gate is **memory-equivalence, not byte-exactness**:
 The capstone over the whole game stays **pixel-exact vs pinned MAME**. Per-routine
 memory-equivalence is the fast local proxy; MAME pixels are the falsifiable ground truth.
 
+### Which gate owns which property — including the ones nothing owns
+
+| property | owner | notes |
+|---|---|---|
+| RAM outside the stack window | unit gate **and** assembled-swap | the primary contract |
+| the routine's declared live-out | unit gate | derive it from the ORACLE, never from the module's own header |
+| `pc` and `SP` | unit gate | `SP` must return to its seat |
+| stack scratch below the seated `SP` | **nobody, deliberately** | masked by `manifest.convergence.stateExclude` |
+| the full register file | **nobody, deliberately** | the contract says "never the full register file" |
+| **T-state cost** | **★ NOBODY, deliberately** | see below |
+| DMA sub-frame raster position | nobody | pixel-only, never touches RAM |
+
+★ **A property with no owner is fine. A property with no owner and NO RECORD of being unowned is a
+trap**, because the next person to measure it reads a real, reproducible, meaningless difference and
+reasonably concludes something is broken. This table exists because that happened three times in one
+night.
+
+**T-states, the one that bit us.** No idiomatic module calls `m.step`/`m.tick` — not one, by design
+— so every rewrite spends fewer T-states than its frozen twin. One measured case was exactly 84
+fewer, constant across every captured entry state, decomposing as its own instructions plus a
+translated callee plus the seam's substituted `ret`. That is intended and harmless under the
+cycle-free engine the assembled-swap GATE runs, which fires the vblank NMI on reaching a poll PC —
+and that engine is a test seam, not what the player runs. It is NOT harmless on the cycle-driven
+engine, where the missing T-states shift the foreground phase, the NMI interrupts
+the idle spin at a different instruction, and its pushed PC and `push af` land at a different stack
+depth. Those bytes are popped before sampling and survive only as residue in the masked-out stack
+window — invisible to every gate we ship, and glaring to any hand-written probe that forgets the
+mask. See R23.
+
+★ **"Derive the live-out from the ORACLE, never from the module's own header"** is in the table
+because the reverse has shipped. A gate whose `EXCLUDED` set was written to match its module rather
+than the oracle it compares against does not merely have a hole — it **asserts the divergence**, so
+it is green on a broken module and would go RED on the correct one. A gate you must edit in order to
+accept correct code is inverted, and the next person to fix the module will read the red as evidence
+their fix is wrong.
+
 ## Testing a routine without running the game — capture, clone, replay
 
 The gate needs realistic *inputs*: the exact state a routine is really called with. Constructing a

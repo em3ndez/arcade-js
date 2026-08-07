@@ -26,6 +26,25 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   commit must appear before you reach a second "decompile batch" (i.e. this decompile batch is not
   the second in a row with no understanding pass between them).
 
+  ★ **OPEN QUESTION FOR KARL — do not resolve this by reinterpretation.** The headline above says
+  "decompile COMMITS"; the verify recipe says "decompile BATCH". Those named the same object until
+  now, because `idiomatic-generation.md` defines a batch as the content of ONE commit — *"the
+  unit of work is a batch of about ten routines"*, *"land the batch as a DECOMPILE commit"* — and
+  the history bears that out — every commit titled `decompile batch <N>` carries a group of
+  routines. **The instruction to commit one routine at a time is what splits them**: ten
+  single-routine commits are ten decompile COMMITS and one decompile BATCH.
+
+  Until Karl rules, **the headline governs** — a reviewer withheld a token on exactly this and was
+  upheld, on the ground that the permissive reading requires "batch" to mean a group of commits,
+  which appears nowhere in `docs/`. Whichever way he rules must be written into **both** this rule
+  (headline *and* recipe) **and** `idiomatic-generation.md` step 6; one place is not enough, since
+  keeping them in step in only one place is how they drifted apart.
+
+  *Worth recording because it cost a round: two agents argued this from the text in front of them
+  and each found the half that agreed with them. Neither opened the document that defines the term.
+  When two readings of a rule disagree, the disagreement is usually not in the rule — it is in a
+  word the rule leaves to another document.*
+
 ## Understanding passes must not be hollowed out (kept the cheap half, dropped grounding)
 - **R2 [U]** Grounding is part of understanding, so the pass must DO grounding. But grounding is an
   ACTIVITY (run the real ROM under MAME, try to observe the candidate cells, record what was seen) —
@@ -87,8 +106,22 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 
 ## Naming — proposer ≠ confirmer
 - **R4 [ALL]** Every routine promoted loc_<addr>→English this commit appears in BOTH a scratchpad
-  proposals file AND a separate `pass<N>-confirmed.md` (distinct agents). Verify: grep both files
-  for the new name.
+  PROPOSER file AND a separate CONFIRMER file, written by distinct agents. **Verify by ADDRESS, not
+  by name**: grep both files for `0x<addr>`. The confirmer is expected to rename — a promotion whose
+  final name is absent from the proposals file is the NORMAL case and not a finding. What the rule
+  requires is that the same ADDRESS was proposed by one agent and confirmed by another.
+
+  ★ **Find the two files by asking the pass, not by pattern.** The naming has already changed once —
+  `pass<N>-confirmed.md` gave way to `pass-c<N>-entries.md` / `pass-c<N>.md`, alongside proposer
+  files named `proposals-cluster<N>.md`, `routines-cluster<N>.md` and `authored-cluster<N>.md`. A
+  recipe that hard-codes either filename goes silently unrunnable the next time a pass renames its
+  own output, which is exactly the failure this rule already had once.
+
+  *Why the join key changed: it used to join the two documents on the promoted NAME. But a confirmer
+  doing its job changes names, and in the recent cluster passes nearly every promotion was renamed
+  away from the proposer's wording, precisely because the confirmer refused it. Grepping for the
+  final name then finds nothing, and the rule reads as violated exactly when the process worked. A
+  recipe that fails on correct behaviour and passes on rubber-stamping is inverted.*
 - **R5 [ALL]** Every name promoted loc_<addr>→English **in the commit under review** is corroborated
   by evidence OUTSIDE the routine itself (a named cell it touches, an idiomatic caller/callee,
   mechanisms.md, or a sibling), and **that routine's `ROUTINES` entry in `names.js` states the
@@ -379,6 +412,54 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
   `mechanisms.md`. A removal with no destination FAILS unless the claim was false or vacuous, which
   the commit message must then say.
 
+- **R23 [ALL]** A probe or script that reproduces a gate's subject must reuse that gate's **wiring
+  path** and its **exclusion window**, or state in the file why it diverges from both. Hand-rolled
+  apparatus omits what the real apparatus encodes.
+
+  Verify: the probe resolves overrides the way the shipped code does (for arcade-js,
+  `resolveOverrides`, so candidates cross the same seam as every registered entry), runs **the
+  engine the GATE runs** — for the assembled-swap gate that is `runCycleFree`, which is a test seam
+  and NOT what the player runs — and masks `manifest.convergence.stateExclude`. Read the gate and
+  see; do not assume the gate and the player share an engine, because here they do not.
+
+  ★ The strongest single control, and it costs one run: **wire the candidate to the FROZEN ORACLE
+  and require byte-identity with baseline.** It catches wrong-engine, wrong-exclusion and
+  wrong-wiring at once. A no-op control (re-apply something already in place, require nothing to
+  change) is real but weaker — it is inert under any comparison window, so it cannot see a
+  wrong-exclusion fault. **A control licenses exactly the inference it tests and nothing adjacent.**
+
+  And the cheap sanity check that ends most of these in a minute: **run the probe against the code
+  already shipped.** An instrument that condemns the live registry is not detecting a defect.
+
+  *Why: three probes in one night each returned a confident, plausible, wrong answer — one reported
+  a defect class that does not exist, one condemned routines a colleague had cleared. Both omissions
+  were sitting in committed files the whole time.*
+
+- **R24 [ALL]** A comment-density pass is a fact about the file AS IT WAS. The cap scales with code
+  length, so **DELETING code can push an unchanged header over the cap** — a rewire that removes
+  local `const` declarations, a refactor that shortens a body.
+
+  Verify: re-run `comment_gate.py check` after any edit that REMOVES lines, not only after edits
+  that add prose. **Cut the prose; never raise the cap.**
+
+  *Why: this blocked two commits in one night, both times because a retroactive R8 rewire deleted
+  `const` lines from a file whose header a confirmer had already sized against the old body. Nothing
+  about the header changed; something else did.*
+
+- **R25 [ALL]** Deleting a declaration ORPHANS the doc block above it, and **JSDoc attaches
+  DOWNWARD** — so an orphan does not merely go stale, a reader binds it to the NEXT declaration,
+  which is a different thing. That is a false statement in the file, not a tired one.
+
+  Verify: after any rewire or deletion, check every `/** … */` immediately followed by a blank line
+  for whether the next non-blank line is still a declaration. Delete the orphan; do not reword it —
+  the claim it made belongs in the registry entry for the cell that now has a name. Run the check
+  with a PLANTED orphan in the same pass, so a clean result is a measurement.
+
+  *Why: a rewire deleted `const SCORING_PLAYER_TWO = 0xad32;` from a gate and left
+  "Which player's score the award routine was working on…" standing above a different cell's
+  declaration. ★ The general shape: **a script that removes lines must own everything ATTACHED to
+  those lines**, and finding one instance means sweeping every file that script has ever touched.*
+
 
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
@@ -390,6 +471,25 @@ Rules tagged [D]/[U]/[ALL] apply to that class.
 - **R15 [ALL]** Commit authored by Jimmy; NO Co-Authored-By trailer; review_gate token bound to this
   exact staged diff; no `--no-verify`; no ROM/binary assets staged. Verify: author, trailer, token,
   staged file types.
+
+  **Token handover has TWO halves. Both are load-bearing and neither substitutes for the other.**
+
+  * **Sender**: quote the hash; NEVER assert equality. "Unchanged since you audited" is not
+    checkable by the recipient. The hash is.
+  * **Recipient**: compare against YOUR OWN anchor, recorded in your review file at the previous
+    round — never against the hash the message supplies. A hash the sender derived from the current
+    file cannot disagree with the current file.
+
+  Therefore **a blind reviewer MUST record, in its review file, the blob hashes it anchored to.** A
+  review that reports only a verdict cannot perform this check next round, and a superseded blob
+  that was never staged is unrecoverable — it is not in the object database, so the review file is
+  the only record that revision ever existed.
+
+  *Why: a coordinator handed a reviewer a token saying both blobs were unchanged. False — one had
+  been edited twice. But the message quoted the CORRECT current hash, so a recipient whose check is
+  "re-hash the file, compare to the quoted hash" gets a PASS. Self-consistent, and it cannot fail —
+  the same species as "a check that cannot fail is not a check". What caught it was the reviewer's
+  own anchor from the previous round.*
 
 Report format: for each class-applicable rule, `Rxx PASS` or `Rxx FAIL <evidence>`; record the token
 only if ALL are PASS (plus the correctness review passes).
