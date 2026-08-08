@@ -822,6 +822,11 @@ export const ROUTINES = {
     cert: "code",
     why: 'loc_2511 fills the ring with 0xFF at init and loc_0b93 restores 0xFF on consumption, so "free = high bit set" is fixed by a writer and a reader outside this routine; loc_0b93 then dispatches the low nibble through a sixteen-way table, which is what makes it a command rather than a sound byte',
   },
+  0x0d73: {
+    name: "loc_0d73",
+    role: "paint a six-digit field: two packed bytes through the suppressing painter, sharing one suppression flag this entry clears, then a third through the plain painter so the last two digits always show, walking the source pointer backwards as it goes",
+    cert: "code",
+  },
   0x0d81: {
     name: "loc_0d81",
     role: "paint the two decimal digits packed into one byte, the high one first, stepping the cursor one cell on after each; the byte is read twice from the pointer the caller is walking, shifted down for the high digit and taken whole for the low, and the colour and cursor arrive as the caller left them",
@@ -854,6 +859,11 @@ export const ROUTINES = {
     role: "the last life is gone: queue the PLAYER-n caption and the GAME OVER caption, hold them for three seconds and step the sequence on; when no game is running it branches instead into the shared teardown restartAttractSequence, which hands the machine back to attract",
     cert: "seen",
     why: "watched under MAME on the real ROM from both directions. Naturally: five dispatches over 600 s of driven play, every one with LIVES_REMAINING zero and PLAY_ACTIVE set, and SEQUENCE_DELAY written 0xB4 from this routine's own store exactly five times in the same run -- so the queueing side is the side the machine takes, and its caller's other arm accounts for the remaining eleven of its sixteen entries. Forced: a one-shot opcode substitution that dispatches it once mid-game put 02 09 and 0A 0B into the command ring on the same frame and left `7d a5 38 34 f1 68 0e 34 d7` in the cells at 0xA672, which is GAME OVER glyph for glyph out of caption record 11, against blanks in both control arms, and 361 pixels of the real screen changed where a control that suppresses the same host changes none. Command 2 is drawCaptionInPenColour and command 10 is the same drawer taking its colour from a counter, so the arguments 9/10 and 11 are caption indices and the ROM's own record table decodes them as PLAYER 1 / PLAYER 2 and GAME OVER",
+  },
+  0x12e7: {
+    name: "loc_12e7",
+    role: "hand the turn over to the other player when that player's saved lives count is non-zero, and otherwise step the inner sequence index; both exits are tails, so this entry chooses between two continuations rather than returning to anything",
+    cert: "code",
   },
   0x12fb: {
     name: "restartAttractSequence",
@@ -903,6 +913,11 @@ export const ROUTINES = {
     role: "jump the sequence machine to its last outer phase and restart the inner index at zero; both stores are constants and neither cell is read first, so this is an unconditional jump to a fixed place rather than a step",
     cert: "code",
   },
+  0x17e2: {
+    name: "loc_17e2",
+    role: "raise one flag cell to all bits, fold a fixed block of the program image into a running total seeded from an image byte and bank the result, then step the inner sequence index -- one step of the tamper-check sequence",
+    cert: "code",
+  },
   0x17fb: {
     name: "loc_17fb",
     role: "a sequence step that does no work of its own -- it only moves the inner index on, so reaching it costs one turn and changes nothing else",
@@ -930,11 +945,51 @@ export const ROUTINES = {
     cert: "seen",
     why: 'the reading a name has to choose between is SAMPLE and SAVE-FOR-RESTORE: both copy a cell into RAM, and only what happens to the record afterwards tells them apart. A write tap on the record cells across a driven MAME game on the real ROM settles it. The glyph half came back CONSTANT -- 0xA5 on all 15733 writes -- while the colour half alternated, 0x05 on 7865 and 0x10 on 7868, so the cell being read is blinking under the routine and the copy tracks it frame by frame; a fixed pair would have made "sample" pointless and a constant colour would have made it a plain save. A read tap on the same cells then enumerated the consumers rather than grepping for them: exactly two program counters ever read the record, 0x202D and 0x2036, and both are COMPARISONS inside loc_2010 (against 0xA5, then against 0x05 or 0x10). Nothing writes the pair back to any cell in that run, which is what a restore would have to do. The two call sites fix the cells from outside: loc_07e6 samples 0xA61C into 0xABFE every frame, loc_181e samples 0xA5FC into 0xACBE once. The second record took ZERO reads in the run, so what consumes it is unmeasured and this entry does not claim one. Dispatches are a clean A/B: 15735 across a driven game, ZERO across two undriven attract runs of 180 and 300 emulated seconds',
   },
+  0x1f55: {
+    name: "loc_1f55",
+    role: "negate both velocity components into the world scroll cells, so the world moves opposite the player, then dress the player's sprite for its heading",
+    cert: "code",
+  },
   0x200c: {
     name: "presentChecksumForTamperTest",
     role: "put the byte the caller has been carrying where a result is read from, so the verdict of an image check can be taken; on the way it walks an address forward twice, by a wide step and then by that same byte, and the address it lands on is never dereferenced by anything downstream. It reads and writes no memory, so the walk is arithmetic and not a fetch",
     cert: "seen",
     why: "the tempting name is a table-index helper -- add a stride, add an offset, return a byte -- and the caller chain refutes it. Its only reachable entry is the tail chain loc_2d3f -> loc_43e8 -> loc_07ad -> loc_5303: loc_43e8 folds a run of image bytes into A with `add a,(hl)`, loc_07ad moves that sum into B and does nothing else, and loc_5303 calls here and then `cp 0x67`, branching to loc_0f8d on a mismatch and tail-jumping to advanceSequenceSubStep on a match. loc_0f8d pops four words off the stack and unwinds -- it is the tamper arm, not an error return -- so the byte this entry moves into A is a verdict and the compared constant is baked in. That the walked address is a decoy is not read off the code, it is a claim about the callers, and neither branch of loc_5303 touches HL. Under MAME on the real ROM, with a PC-filtered read tap: 5 dispatches over 300 emulated seconds of attract, 3 over 180, 1 over a driven game, and in EVERY run the count equals loc_43e8's and loc_5303's exactly, so the fold and the test are one chain with no second entrance. Every dispatch was captured with A = 0x67 and B = 0x67 -- the sum already correct -- and the tamper arm loc_0f8d, tapped in the same runs as the control, took ZERO dispatches in all three. A genuine image never fails, which is the only outcome that lets the game boot; a wrong constant or a second caller would have shown here. cert stays honest about one thing: with A and B equal at every observed entry, no capture can distinguish `ld a,b` from leaving A alone, and that half is read from the image",
+  },
+  0x28b7: {
+    name: "loc_28b7",
+    role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
+    cert: "code",
+  },
+  0x28c2: {
+    name: "loc_28c2",
+    role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
+    cert: "code",
+  },
+  0x28cd: {
+    name: "loc_28cd",
+    role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
+    cert: "code",
+  },
+  0x28d8: {
+    name: "loc_28d8",
+    role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it; the pair of immediates is the whole of what distinguishes this entry from the four siblings that share its shape -- the two gated ones later in the chain differ by more",
+    cert: "code",
+  },
+  0x28e3: {
+    name: "loc_28e3",
+    role: "seat the record cursor and the sprite-entry cursor on one fixed object slot, then run the era-keyed dispatch over it, with no gate in front of it",
+    cert: "code",
+  },
+  0x28ee: {
+    name: "loc_28ee",
+    role: "run the era-keyed dispatch over the mother ship's slot, but only while the armed cell is clear -- a set cell returns at once, leaving the slot unserviced for the frame",
+    cert: "code",
+  },
+  0x28fe: {
+    name: "loc_28fe",
+    role: "run the era-keyed dispatch over one fixed object slot, but only while the mother ship's armed cell is clear -- a set cell returns at once, leaving the slot unserviced for the frame",
+    cert: "code",
   },
   0x290e: {
     name: "loc_290e",
@@ -969,6 +1024,16 @@ export const ROUTINES = {
     role: "move one object for the frame according to its state byte, then run the shared appearance step over that same object: from thirty-two up it counts the state byte down and flies on at the slowest table speed, below thirty-two it only drifts with the world and the state byte is left alone; the appearance step runs on both paths",
     cert: "code",
   },
+  0x3cc4: {
+    name: "loc_3cc4",
+    role: "answer, in the carry flag, whether an object has reached a boundary, the heading choosing which of two adjacent and disjoint three-wide bands is the one tested",
+    cert: "code",
+  },
+  0x3dda: {
+    name: "loc_3dda",
+    role: "guard on the era index and, when it passes, hand two fixed bases to the shared slot servicer; the guard is the whole of the decision, and the bases are constants rather than anything a caller chose",
+    cert: "code",
+  },
   0x3deb: {
     name: "loc_3deb",
     role: "service one slot, splitting three ways on the head byte of its record: zero does nothing at all, all-ones flies the object one step along the velocity it carries and retires it into the shared cooldown only once that step has put it on a retire line, and any OTHER value retires it on the spot without moving it first",
@@ -995,11 +1060,21 @@ export const ROUTINES = {
     role: "stamp one object's state byte to fifty-nine and ask for the sound that goes with it; the stamp is unconditional -- nothing here reads the byte first, and the ROM's test at this entry sends both of its answers to the same address",
     cert: "code",
   },
+  0x4afb: {
+    name: "loc_4afb",
+    role: "set the pen colour, the destination cell and the source byte, then paint them through the packed-digit painter; every one of the three is fixed here, so a caller chooses none of them",
+    cert: "code",
+  },
   0x566e: {
     name: "requestTwoSoundsWhilePlaying",
     role: "ask for two sounds in a row, each code fetched from its own byte of the program image, both admitted only while a game is being played",
     cert: "code",
     why: "requestTwoSounds is this routine's structural twin -- same two-fetch shape, same fall-through into the entry that supplies the second code -- and the ONLY difference between them in the image is the permission: this one enters loc_560c twice, which drops the request with the play flag clear, while the twin enters loc_5617, which also admits the demo. That is what the name has to carry and either entry could refute it. Under MAME every dispatch of this routine was in the demo with the play flag clear, the state its own permission drops, while the twin dispatched 101 times in the same run",
+  },
+  0x56d2: {
+    name: "loc_56d2",
+    role: "ask for three sounds whose codes come from bytes of the program image, all three refused unless a game is being played, then leave through the two-request tail whose permission is looser -- so a state that drops the three can still admit the pair",
+    cert: "code",
   },
   0x58aa: {
     name: "loc_58aa",
@@ -1009,6 +1084,11 @@ export const ROUTINES = {
   0x58b6: {
     name: "loc_58b6",
     role: "fly one object a step at twice the velocity one fixed table of samples sets, the shared drift added once; choosing that table is all this entry does",
+    cert: "code",
+  },
+  0x599d: {
+    name: "loc_599d",
+    role: "take the heading out of an object's own record and continue into the doubled velocity lookup, forwarding rather than replacing the table pointer the caller seated -- which is what separates it from the sibling shims that choose a table themselves",
     cert: "code",
   },
   0x59c5: {

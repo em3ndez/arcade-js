@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/** loc_4afb — repaint one two-digit panel field: a single packed byte, in a fixed pen colour,
+ * into a fixed pair of cells. Nothing arrives from the caller and nothing is handed back — the
+ * colour, the cell the first digit lands in and the byte the digits are read from are constants
+ * of this entry, and choosing those three is the whole of it. LIVE-OUT: the cells painted. */
+
+import { loc_0d81 } from "./loc_0d81.js";
+
+const PEN_COLOUR = 16;
+const FIRST_CELL = 0xa47f;
+const PACKED_BYTE = 0xa986;
+
+export function loc_4afb(m) {
+  const { regs } = m;
+  regs.c = PEN_COLOUR;
+  regs.de = FIRST_CELL;
+  regs.hl = PACKED_BYTE;
+  loc_0d81(m);
+}
