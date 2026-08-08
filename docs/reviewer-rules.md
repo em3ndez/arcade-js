@@ -687,6 +687,44 @@ truthfully on what it measured; nobody had asked what none of them measured. Bew
 verify` is a disassembly decoder check defaulting to `GAME=dkong` — a green `make verify` says
 nothing about pixels.*
 
+## R35 [ALL] An exclusivity claim about a cell needs a WRITE TAP, not a scan
+
+A staged claim of the form *"nothing writes this cell"*, *"its only writer is X"*, or *"the word
+occurs nowhere"* must cite an instrument that could have seen a writer it did not name. A scan of
+the image — by byte pattern or by decoded operand — is not that instrument, and the reviewer's job
+is to ask which one produced the claim, because the diff shows the conclusion and never the tool.
+
+Two ways such a scan comes back confidently wrong, both caught in one batch:
+- **The address is never an operand.** A store through an index register (`ld (ix+d),a`) or through
+  a register pair loaded earlier (`dec (hl)`) names no address at the writing instruction. A pair of
+  cells was declared unwritten on a scan; a write tap found them rewritten 596 times each in a 200 s
+  run.
+- **The scan finds the site and stops.** Worse than blindness, because it looks like coverage: an
+  operand scan located a routine's arm and therefore counted the routine, then missed a SECOND
+  write sixteen bytes later in the same twenty-two-byte body.
+
+So the failure is not "scans miss things" — it is that a scan's output is a lower bound wearing the
+costume of a count. **Accept a floor stated as a floor.** Refuse a floor stated as an exclusivity.
+
+Verify: grep the staged diff for the SHAPE. This list is a starting point and is NOT exhaustive:
+
+```
+git diff --cached | grep -niE "nothing( else)? (writes|stores)|no other (writer|program counter\
+|setter)|(only|sole)[- ](writer|setter)|sole writers|exactly (one|two|three) (writer|program \
+counter)|never written|occurs nowhere"
+```
+
+For each hit, that same comment or this pass's grounding report must name the tap. The trigger is
+mechanical; whether the instrument named could have seen a writer it did not report is the
+reviewer's judgement.
+
+★ **A hit on this rule's own text is not a test of the trigger.** Check it against the prose in the
+diff, not against the examples above. The first version of this recipe listed five literal phrases,
+fired on its own examples, and read as validated — while missing `names.js`'s "and nothing else
+writes it", which is this repo's canonical phrasing for the hazard and was the very claim used to
+demonstrate that R35 works. A word list rots; this one will too. What does not rot is checking the
+list against the corpus rather than against itself.
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/names.js/mechanisms/retrofits. No

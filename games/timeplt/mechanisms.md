@@ -262,6 +262,31 @@ The consequence for anyone measuring this game: **a reachability sweep run on th
 cannot see the free-play half of the machine at all**, and a zero there means the cabinet, not
 the code.
 
+### Two start buttons, two routines, and each is the other's control
+
+The credited start is not one routine with a player count in it either. Two separate routines exist,
+and two bits of the port mirror choose between them: bit 3 runs one, bit 4 runs the other.
+
+Two 200 s MAME runs on the real ROM, identical but for which button the tape presses, with no cell
+poked and no DIP touched. Coin once and press one-player: the mirror carried `0x01` at the coin and
+`0x08` at the press, the one-player routine dispatched once and the two-player routine not at all.
+Coin twice and press two-player: the mirror carried `0x01` at each coin and `0x10` at the press, the
+two-player routine dispatched once and the one-player routine not at all. **Each run is the other's
+positive control** — neither zero can be the instrument, because the same tap array caught the twin
+firing in the other run. `[seen]`
+
+Their stores were watched, and they differ in exactly the places that should differ: the one-player
+start CLEARS the two-player flag and zeroes player two's lives, the two-player start SETS the flag
+and stocks both players' lives from the same value, and both raise the play flag. Each ends by
+writing the credit count to zero — from 1 in the one-player run, from 2 in the two-player one, with
+the count itself watched going 0→1→2 at the coins and 2→0 at the press. **Neither run separates a
+subtraction from a clear**, because in both the bank held exactly what the game cost. `[seen]`
+
+Neither run reached the free-play arm above: the free-play cell was zero throughout both, so it was
+the coin tail that ran each time. The two-player run then shows what the flag buys, which §7
+describes from the other side — the active-player index alternating 0→1→0→1 with each player's lives
+coming down in turn.
+
 ### The ROM checks itself, and a bad copy desynchronises rather than dying
 
 The image is threaded with folds: a routine sums or exclusive-ors a block of ROM, applies a
@@ -297,6 +322,23 @@ about what the cell is for**, so a name derived from the obvious writer will be 
 role and wrong about the cell — and any claim of the form "nothing else writes it" is false here.
 Enumerate every writer before naming a cell in this game; the power-on clear of work RAM counts as
 a writer too, for every cell inside it.
+
+### The generator's register has two writers, and the second one lays a seed
+
+The pseudo-random generator's seventeen-byte shift register is the worked case for that instruction,
+and it comes out clean. A write tap over the whole register through a 200 s undriven attract run,
+attributed by program counter, found the head cell taking writes from exactly two program counters:
+the generator's own feedback store, and a block copy. The shift store wrote the sixteen cells behind
+the head and never the head itself; the block copy wrote all seventeen. `[seen]`
+
+**The block copy lays a seed of constants, not an update.** The seventeen bytes it wrote, watched one
+per cell, are `ff 05 f6 80 32 17 9c c9 dd 21 74 98 fd bf 24 ae 46` — which is what the program image
+holds at `0x4B84`, byte for byte.
+
+★ **And the seed is re-laid.** The copy ran four times in that run: once on a cold machine in the
+boot phase, and then once at each of the three attract demo starts, on the round engine's first
+substep. So every demo begins from the same seventeen bytes, and anything pinning this game's
+entropy has to account for the re-seed and not only for the feedback. `[seen]`
 
 ---
 
@@ -396,6 +438,26 @@ source describes a throttle or brake"*, and question 17 asks whether the player'
 **It is not — it steps up twice over the five eras.** Both descriptions are true of the same
 machine: since the player's velocity IS the world scroll, a faster player renders as a faster world
 rather than as a faster plane, and there is nothing on screen for a spectator to measure it against.
+
+### The two ceilings those tables promise are the two ceilings the camera takes
+
+The ladder above is read off the ROM. Its top two rungs have now been watched as **products**, by
+logging every write to the camera pair through a 200 s undriven attract run and pairing the bytes
+back into signed words offline. Bucketed by the era index they come out where the tables say: eras 1
+and 2 reach ±306 and era 3 reaches ±331, each on 64 distinct magnitudes — the same 64-point compass
+at a different scale, era 3 about 8 % faster. That is the per-era speed-up measured as a product
+rather than derived from a table, and the prediction could have failed. `[seen]`
+
+The pair is written on **every** dispatch and not on some of them: in a second 200 s attract run
+attributing entries and writes by era, the two sixteen-bit stores in the continuation fired the same
+number of times as the routine dispatched, per era, to the unit. `[seen]`
+
+★ **The era-0 rung was not exercised, and cannot be by this route.** The routine runs only in the
+round engine, which is entered after the era index has left 0, so its slowest table stayed unreached
+in every run here. What the era-0 shim did take in that run was three hits carrying era contexts its
+own gate forbids — so they arrived through a second dispatcher, a restart on an inline table, rather
+than from this routine. A shim's count is not its selector's; see §10. `[seen]` for the counts,
+`[code]` for the table those three came through.
 
 ### Depth: the same displacement, applied in fractions
 
@@ -531,6 +593,30 @@ So a round gets harder as it goes on, independently of which era it is, and an a
 never reaches the clamp is seeing only the bottom of that ramp. What each of the twelve cells
 governs is not fully settled: most are read by spawners, aim windows and fire cooldowns, two are
 read by paths this pass did not tie to attacking. `[code]`
+
+### ★ One of those twelve cells, followed from its writer to its reader
+
+The row applier scatters the row over twelve cells. One of them — the draw threshold — has now been
+watched at both ends, and that is what settles it as a difficulty setting rather than a constant
+somebody re-stores.
+
+**Its writer.** In two independent 200 s undriven attract runs the cell took writes from exactly one
+program counter, the store inside the row applier, and the values it took were `0x50`, `0x60`,
+`0x70`, `0x80`, `0x90`. Lined up against the era index and the rung in the same runs' per-frame state
+log, the shape is not one climb: **at every era change the cell RE-BASES and starts again** — `0x70`
+back to `0x50` as the era went 1→2, `0x80` back to `0x60` as it went 2→3 — and then climbs with the
+rung. The rate is NOT established: only two of the observed changes carry a rung label, and both
+span two rungs (`0x50`→`0x60` at rung 1→2, `0x60`→`0x70` at rung 3→4), so a step-per-rung reading
+would predict changes at 0→1 and 2→3 that did not occur. The base is itself era-keyed: rung 0 gives
+`0x50` in the first two eras and `0x60` in the third. Watched across two era changes. `[seen]`
+
+**Its reader.** The routine that tests against the cell took both arms in a 200 s attract run — 83
+dispatches below the threshold and 146 at or above it, summing exactly to its own 229 — and the
+split moves with the era, the at-or-above arm taking 60, 55 and 31 of them in eras 1, 2 and 3. A
+threshold that did not move could not move that split. `[seen]`
+
+**Not claimed:** what the reader's answer is for. Both arms were counted; the byte it hands back was
+not followed to a consumer, and the counter its other arm steps was not watched.
 
 ### The era index advances during the attract demo
 
@@ -910,6 +996,39 @@ Left, down, right, up — so the heading byte increases **counter-clockwise on t
 same direction is a separate claim, about `spriteForHeading`, and no one has measured it. Do not
 read this table as a statement about the sprite.
 
+### ★ Six points stand off the ship on its own heading — and they are WRITTEN
+
+Twelve cells at `0xAC74`-`0xAC7F` hold six coordinate pairs, and the block is rewritten as a block.
+In a 300 s driven run twelve program counters, one per cell, each wrote its own cell 762 times; in a
+200 s undriven attract run a write tap on the block's last two cells alone counted 596 writes to
+each. `[seen]`
+
+The six pairs are not scattered. Every one of them sits around a single centre — the two constants
+`0x78` and `0x84`, which §4 independently records as the ship's own pinned coordinates — some at a
+radius of about `0x10` and the rest at about `0x20`. The arithmetic that puts them there reads
+`PLAYER_HEADING`, takes it through the
+heading→vector lookup, doubles the result three times and adds `0x78` to one byte of the pair and
+`0x84` to the other, which are exactly the two centres the observed values came out on. So the block
+holds points standing off the ship's own pinned position at two distances, swung by the ship's own
+heading. `[seen]` for the values, the centre and the two radii; `[code]` for the arithmetic.
+
+The same block also takes a sixteen-byte fill of `0x80` over `0xAC74`-`0xAC83`, three times in that
+attract run — so even the centre value is re-laid rather than being a power-on relic.
+
+★ **The reading this replaces had the point FIXED, and the fault was the instrument's rather than
+the reasoning's.** A scan of the image for instructions naming `0xAC7E` or `0xAC7F` as an operand
+finds nothing, which was taken to mean nothing writes them and that the point sits fixed at the
+centre of the coordinate space. Both stores are indexed — `ld (ix+0x1a),a` at `0x32D5` and
+`ld (ix+0x1b),a` at `0x32E7`, with a register probe reporting `IX = 0xAC64` on every sample — and an
+operand scan cannot see either one. The rule is in `docs/understanding.md`, at the step that runs
+the scan.
+
+**Not claimed:** who reads the block, or that these are what an attacker aims at. The centre is the
+ship's pinned position and the heading cell is the player's own by the registry's separate
+grounding, but no run here followed the block to a reader, and none tested the points against a
+player doing anything in particular. What is settled is that six of them exist, at two distances,
+and that they move.
+
 ---
 
 ## §6 Killing, and being killed
@@ -1130,6 +1249,26 @@ not a small alphabet of free / alive / destroyed. A second system writes a *rang
 it, and a routine that assumes the destroyed code is the only way into the countdown is wrong.
 `[seen]` — one of those seeds was caught in a write tap on undriven attract.
 
+### ★ The slot stepper enters all seven workers, armed or not
+
+"Five of the seven slots exist while it is out" is a fact about the SLOTS and not about their
+caller. The routine that steps the seven slot workers in fixed order dispatched 8958 times across a
+200 s undriven attract run, and each of the seven workers dispatched 8958 times in the same run —
+identical to the count, in every bucket the run split the dispatches into, including the 1598 taken
+with the mother-ship flag set. The two workers whose records the Mother-Ship occupies are entered on
+every single dispatch. `[seen]`
+
+The armed bucket is real, and the instrument could see into it. In the same run the arm that the
+mother-ship handler takes only when that flag is non-zero dispatched 800 times, every one of them
+attributed to the armed state and none to the clear state the run spent most of its length in.
+`[seen]`
+
+So the standing down happens INSIDE the callees, on their own test, after they have been entered.
+A rewrite that skips one of the seven while the flag is set is not what this ROM does, however
+similar the memory it leaves behind — and the same goes for prose that describes the caller as
+running five. What was watched is entry, not product: the callees test the same flag themselves, so
+the net effect on memory may well be identical, and nothing here claims otherwise.
+
 ---
 
 ## §7 Score, and the ladder that ends
@@ -1328,6 +1467,31 @@ tilemap. Written-and-occluded, not never-written.
 program counter through driven play, sees the stamper writing it over and over and the hiding
 routine zeroing it on the frame the play flag goes up — the two paths that raise that flag, one per
 start button, both call the hider first. `[seen]`
+
+### The coin invitation is erased on ONE frame, and the copyright line is not touched
+
+The attract step that shows the coin invitation holds it for 256 consecutive frames and then blanks
+it in a single frame. Watched cell by cell in an 11 s run logging every character-plane write with
+its program counter: on the last of those 256 frames, and on no other, one program counter wrote the
+blanking glyph into exactly 36 cells — the nineteen of `PLEASE DEPOSIT COIN` and the seventeen of
+`AND TRY THIS GAME` — and nothing else. **The copyright line is not among them**; it keeps its own
+thirteen writes a frame straight through that frame and past it. The per-frame write count tells the
+same story without knowing what a cell means: thirteen a frame, then forty-nine on the expiry frame,
+then the next step's own work. `[seen]`
+
+Which cells those are is not a guess. The glyph map was derived from the writes themselves and
+cross-checked four ways — every letter shared between two of the attract strings takes the same code
+in both — and all four strings are legible in a snapshot from the same run. A caption line runs
+DOWN in memory in steps of −0x20, because the tilemap is column-major under the board's rotation.
+
+**And the step ordered the erase through the ring.** A 10 s run tapping the command ring across the
+frames either side of the expiry saw every frame carry the same routine's post, and the expiry frame
+carry two extra posts and only two — `0x0303` and `0x0304`, which are the two `rst 0x38` posts in
+that step's expiry arm. `[seen]`
+
+One honesty note about the step's other half: **it does not paint the copyright caption.** That
+repaint is continuous from two frames before this step begins and outlives it. What the step holds is the
+sequence's own substep, for 256 frames.
 
 ### A caption's colour flashes because three handlers take turns, not because one cycles
 
@@ -1743,6 +1907,35 @@ never called at all in that run. `[seen]`
 waits it is an iteration count wearing a dispatch's clothes — which is precisely the class the
 raster and sprite-multiplex work lives in. Two agents once produced confident and opposite frequency
 orderings for the multiplex twins; both should be disregarded, and nothing available settles it.
+
+★ **There is a way to get a real number out of one of these anyway: count a STORE the block makes,
+instead of its entry.** The five sprite-flip blocks are the case. An entry tap on the first of them
+read 28910 in a 100 s attract run — the turns of its own beam wait, since its `jr nc` returns to its
+own head — while write taps on the two sprite-RAM cells each block publishes read 670, 544, 616, 627
+and 501 for the five blocks in that same run. Those are COMPLETIONS: the times a block found a
+request pending and got past the wait. The two figures answer different questions, and the spin
+count must never be quoted as a dispatch figure. `[seen]`
+
+### ★ A zero whose only control is REMOTE is a weaker zero, and has to be labelled as one
+
+`loc_44c9` read zero in every run of the last sweep — undriven attract, a one-player run, a
+two-player run and a 300 s driven run. Its three siblings in the same block were tapped in the same
+runs and **they are zero too**. So there is no positive control anywhere in that neighbourhood: what
+the sweep establishes is that the tap array works, not that it could have caught a hit HERE. A tap
+mis-installed on this one address, or a block the array never really covered, would produce exactly
+the same page.
+
+Most zeros in this document are not like that. They carry a LOCAL control — a sibling firing through
+the same array in the same run, or a twin run in which the same address fires. **Record which kind a
+zero is in the same breath as the zero**, because once written down as "0" the two are
+indistinguishable, and the weak one will be read as the strong one.
+
+The image explains this zero rather than corroborating it: no reference to the address exists
+anywhere in the program image, and the only way in is a relative branch from a sibling arm, taken on
+a bit that only that sibling ever sets — a second-visit arm of an animation counter, which needs an
+object to survive into a second cycle of what the sibling handles. That is a reason a sweep would
+miss it. It is not evidence that nothing reaches it. `[seen]` for the zeros; `[code]` for the
+reference count.
 
 ### A call-site grep misses computed dispatch, in both directions
 

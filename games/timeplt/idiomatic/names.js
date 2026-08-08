@@ -491,12 +491,13 @@ export const DEFERRED_WRITE_CURSOR = 0xae00;
  * Base of the seventeen-byte shift register the pseudo-random generator advances. [seen]
  *
  * Every draw moves the block one place along and fills the vacated head with the exclusive-or of
- * two taps, so this cell is both the newest byte and the whole register's handle. It is seeded once
- * from seventeen bytes of the program image; nothing else writes it.
+ * two taps, so this cell is both the newest byte and the whole register's handle. It is seeded from
+ * seventeen bytes of the program image -- on a cold machine and again at each attract demo start,
+ * the same seventeen bytes every time -- and nothing else writes it.
  *
  * Watched under MAME across a run covering boot, attract, the demo and a driven game, the head took
  * writes from exactly two program counters: the generator's own feedback store, and the seeder's
- * block copy, twice. The values it took spread across the byte range with no value dominating.
+ * block copy. The values it took spread across the byte range with no value dominating.
  *
  * ★ Anything that pins this game's entropy pins THIS register.
  */
@@ -649,15 +650,22 @@ export const PLAYER_TWO_LIVES = 0xad20;
 /**
  * The sequence machine's shared one-shot delay: frames still to wait before its next step. [code]
  *
- * One cell, not one per step. Twelve instructions write it and every one is either an ARM -- a step
- * storing its own span, six of them with six different spans -- or the `dec (hl) / ret nz` countdown
- * at the head of a step, six of those, which lets the step run only on the frame it reaches zero.
- * Every arm site hands on to the routine that advances the inner sequence index, or writes that
- * index itself. Watched under MAME it took 2409 writes across a driven game and all of them fit
- * that shape.
+ * One cell, not one per step. Every writer found so far either ARMS it with a span or COUNTS THAT
+ * SPAN DOWN by one. Most countdowns sit at the head of a step and return while the cell is still
+ * running, so the step's body runs only on the frame it reaches zero, and most arm sites hand on to
+ * the routine that advances the inner sequence index.
  *
- * `[code]` and not `[seen]`: the counting was observed, but that its users are all the SEQUENCE
- * machine is read off the code rather than watched.
+ * ★ One writer is neither of those, and it is why this description carries no tally. The delay loop
+ * at 0x32EB arms the cell and then counts it down inside its OWN body, with a bare `dec (hl)` whose
+ * HL was loaded before a nested inner loop. A scan keyed on 0xA9EB is NOT blind to this routine --
+ * it finds the arm sixteen bytes above and stops there, because nothing in it can attribute a
+ * SECOND write at a site it has already counted. A MAME write tap can, and did: it caught a writer
+ * at every site predicted from the image except one no tape reached, and then this one, which no
+ * prediction contained. No run can rule out a further writer in a state none of them drove.
+ *
+ * `[code]` and not `[seen]`: the writers were watched, but that its users are all the SEQUENCE
+ * machine is read off the code rather than observed -- and the delay loop above is a counterexample
+ * to the tidier version of that claim.
  */
 export const SEQUENCE_DELAY = 0xa9eb;
 
@@ -2017,7 +2025,7 @@ export const ROUTINES = {
     name: "drawRandomByte",
     role: "draw the next pseudo-random byte: advance the seventeen-byte shift register one place, fill the vacated head with the exclusive-or of two taps, and hand back that feedback plus the frame counter, so two draws at different moments differ even where the register has not moved",
     cert: "seen",
-    why: "if this is the game's generator the register must be seeded from somewhere and must have no other writer, and a write tap could have found a dozen. It found two program counters: this routine's feedback store, and -- twice in a whole run -- the block copy that seeds seventeen bytes from the program image. Its four callers each consume the accumulator immediately as a draw and each shapes it differently: a bit, a signed jitter around a heading, a compare against a threshold cell, and a masked table index. ★ Anything that pins this game's entropy pins THIS",
+    why: "if this is the game's generator the register must be seeded from somewhere and must have no other writer, and a write tap could have found a dozen. It found two program counters: this routine's feedback store, and the block copy that seeds seventeen bytes from the program image. Its four callers each consume the accumulator immediately as a draw and each shapes it differently: a bit, a signed jitter around a heading, a compare against a threshold cell, and a masked table index. ★ Anything that pins this game's entropy pins THIS",
   },
   0x4ba5: {
     name: "loadDefaultHighScores",

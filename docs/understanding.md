@@ -63,6 +63,13 @@ A/B with a negative control, or it's an anecdote.
 Say played vs poked. Hold Lua tokens in globals.
 Verify a control actually moved pixels — a positive control can silently be a no-op.
 "Still open, and here's why" is a result.
+★ **On a MAME write tap the reported PC is the NEXT instruction.** The store is the instruction
+*ending* at the reported address, so decode back one instruction before you name a writer — otherwise
+every store is attributed to its neighbour, and the attribution is what the whole tap is for. Two
+readings in one Time Pilot grounding pass turn on this, one of them load-bearing: the decoder puts
+`ld (ix+0x1a),a` at `0x32D5` and the tap reported that store at `0x32D8`, the byte after it. Check it
+per game rather than assuming it, and the cheap check is a routine whose own transcription predicts
+the addresses of its stores — if the tap's rows sit one instruction past the predictions, this is why.
 
 **5. Third review: try to break it.**
 Two blind agents can converge on the same wrong reading, so convergence is not a pass.
@@ -222,6 +229,18 @@ someone repairs a gate that was working.
    `grep -nE "0x8[0-9a-f]{3}"` the **non-comment** code and reconcile every hit against `names.js`: a hit on
    a NAMED address is a missed rewire (the cell must be used by its imported name — that a const is *live*
    is the other half of single-source), a hit on an UNNAMED one is an enumeration to-do net (a) missed.
+
+   ★ **Enumerate writers with a TAP, never with an operand scan — a scan cannot see an indexed
+   write.** Searching the image for instructions that name a cell as an immediate operand misses
+   `ld (ix+d),a`, `ld (iy+d),a` and every store made through a pointer register, so it returns
+   "nothing writes this" for a cell being rewritten hundreds of times a run. That exact zero was read
+   as a finding on this project: a pair of cells was declared a FIXED point because no instruction
+   named them, while two `ld (ix+d),a` stores rewrote them 596 times each in a 200 s undriven attract
+   run. A caveat naming this precise hole had been written down in the same working document and
+   the scan was trusted anyway — which is why the rule belongs HERE, at the step that runs the
+   scan, and not in a page of lessons somebody reads once. **A writer set is a write
+   tap's output. A scan is a hint, and its zero is not an absence** ("Before you report a negative
+   from a search", above).
 
    Each address either net prints is a to-do item: pin its role from its readers/writers (and a
    control-poke if needed), then either promote it to a `names.js` name if the role is earned — reconciling
