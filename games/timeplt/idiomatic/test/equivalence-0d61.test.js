@@ -2,43 +2,74 @@
 /**
  * loc_0d61 — memory-equivalent to the frozen oracle at ROM 0x0D61.
  *
- * GATE: crafted-entry, because no dispatch of 0x0D61 exists to capture. The shared
- *   coin -> start tape is a ONE-PLAYER tape, and the caller picks between this entry and
- *   its sibling at 0x0D57 on a cell the tape never sets; the UNREACHED arm below runs the
- *   whole tape with a counting hook and asserts zero dispatches, so the crafting is
- *   forced rather than chosen. The entry state is therefore a REAL machine — captured at
- *   a live dispatch of that sibling — with this routine run on clones of it.
+ * WHAT IT IS. Three constants and a tail transfer: the character-plane cell a run of digits
+ * starts from, the high end of the packed-decimal field it walks down, and the pen colour —
+ * handed to the shared digit painter at ROM 0x0D73, WHICH IS ALREADY DECOMPILED, so the rewrite
+ * calls loc_0d73 directly and dissolving that transfer belongs to this caller's unit.
  *
- *   Both planes are then filled with a marker so every cell the painter WRITES is
- *   visible, and the two adjacent packed-decimal fields are loaded with different digits
- *   so a twin reading the wrong one diverges at a painted cell rather than in stack
- *   scratch. Every twin is required to be caught inside the planes.
+ * ★ THE ORACLE PUSHES AND RETURNS, AND THE REWRITE DOES NEITHER. The oracle reaches the painter
+ *   through `m.call`, so the painter's own body pushes return addresses below the entry seat and
+ *   then takes a return the direct call never takes. That leaves DEAD STACK SCRATCH below the
+ *   seat, and moves the accumulator, the flags, the stack pointer and pc. The window is MEASURED
+ *   — the WINDOW arm instruments the oracle's own `push16` over this file's whole sweep and
+ *   reports the deepest stack pointer it reaches — never assumed, and never taken from another
+ *   gate. A diff-derived window could not see a pushed byte that already held its own value.
+ *   Every other arm walks the whole dump and masks ONLY that window.
+ *
+ * GATE: crafted-entry, because no dispatch of 0x0D61 exists to capture. The shared coin -> start
+ *   tape is a ONE-PLAYER tape, and the caller picks between this entry and its sibling at 0x0D57
+ *   on a cell the tape never sets; the UNREACHED arm below runs the whole tape with a counting
+ *   hook and asserts zero dispatches, so the crafting is forced rather than chosen. The entry
+ *   state is therefore a REAL machine — captured at a live dispatch of that sibling — with this
+ *   routine run on clones of it.
+ *
+ *   Both planes are then filled with a marker so every cell the painter WRITES is visible, and
+ *   the two adjacent packed-decimal fields are loaded with different digits so a twin reading the
+ *   wrong one diverges at a painted cell rather than in stack scratch — which is masked. Every
+ *   twin is required to be caught inside the planes.
  *
  *   1. UNREACHED  — the tape really does not dispatch this address.
- *   2. EQUAL      — RAM byte-identical on the crafted entry.
- *   3. PAINTS     — a run appears in both planes, coloured with the colour it fixes.
- *   4. REGISTERS  — nothing is excluded here: the whole register file and pc agree too.
- *   5. PRIORS     — the packed-decimal field swept over a spread of values.
- *   6. TEETH      — four broken twins, each caught AT A PLANE CELL.
+ *   2. EQUAL      — identical across the whole state dump outside the measured window, on the
+ *                   crafted entry.
+ *   3. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED, so
+ *                   a change that deepens the oracle's stack traffic turns this gate red instead
+ *                   of being absorbed by a wider mask.
+ *   4. BOUNDARY   — the exclusion is exactly as wide as it declares: a planted divergence one
+ *                   byte BELOW the window is caught, one AT the entry seat is caught, and one
+ *                   INSIDE is masked. The last is what shows the first two are not simply the
+ *                   instrument catching everything.
+ *   5. PAINTS     — a run appears in both planes, coloured with the colour it fixes.
+ *   6. EXCLUDED   — no register outside the declared ceiling moves, with a twin that moves one
+ *                   as the in-arm control that the measurement can see one.
+ *   7. PRIORS     — the packed-decimal field swept over a spread of values.
+ *   8. CALLS, NOT RESTATES — the module's text: it must name the painter's file and call it
+ *                   rather than carry the painter's own body, with that body as a control.
+ *   9. TEETH      — four broken twins, each built the way the module is built — a direct call to
+ *                   the painter with one argument wrong — and each caught AT A PLANE CELL.
  *
- * The painter itself is frozen on both sides, so what this file gates is the CHOICE of
- * the three arguments handed to it.
+ * The painter itself is gated by its own file, so what this file gates is the CHOICE of the three
+ * arguments handed to it, and the dissolve of the transfer.
  *
- * HOLE: one captured machine, and it is the sibling's dispatch rather than this one's, so
- * the surrounding state is one this entry is never really called with. The run's position
- * and colour are constants that cannot be swept; the twins vary them instead.
+ * HOLE: one captured machine, and it is the sibling's dispatch rather than this one's, so the
+ * surrounding state is one this entry is never really called with. The run's position and colour
+ * are constants that cannot be swept; the twins vary them instead.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0d61.test.js
+ * WHERE THE STACK POINTER IS OWNED. This gate pins the candidate's pc but leaves sp inside the
+ * excluded set, so a rewrite that silently leaked stack without writing memory would pass here.
+ * assembled-swap.test.js owns that and carries an arm for it; this gate does not, and says so
+ * rather than implying a coverage it does not have.
  */
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0d61 } from "../loc_0d61.js";
+import { loc_0d73 } from "../loc_0d73.js";
 import { loc_0d61 as oracle } from "../../translated/loc_0d61.js";
 import { loc_0d57 as sibling } from "../../translated/loc_0d57.js";
-import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x0d61;
@@ -49,7 +80,16 @@ const FIRST_CELL = 0xa501;
 const FIELD_HIGH_END = 0xad38;
 const FIELD_BYTES = 3;
 const COLOUR = 0x10;
-const PAINTER = 0x0d73;
+
+/** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
+const SCRATCH_BYTES = 8;
+
+/**
+ * The ceiling on divergence, and the whole of it: the oracle takes a return the dissolved call
+ * does not. Not a set the rewrite is required to fill — a rewrite that diverged on fewer still
+ * passes, so this can never refuse a fix.
+ */
+const MOVED = ["a", "f", "sp"];
 
 const COLOUR_PLANE = 0xa000;
 const CHARACTER_PLANE = 0xa400;
@@ -58,6 +98,22 @@ const POISON = 0x5a;
 /** Two packed-decimal fields that share no digit, so reading the wrong one shows. */
 const MINE_DIGITS = [0x12, 0x34, 0x56];
 const OTHER_DIGITS = [0x98, 0x76, 0x54];
+
+const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
+
+/**
+ * The module's text against the painter it is supposed to CALL. The painter is identified by a
+ * name out of its own body; the module must name the painter's file, call it, and NOT carry that
+ * name. The same predicate runs over the painter itself as a positive control, so the absence is
+ * evidence only once the check is shown able to see the thing present.
+ */
+const HELPER = ["loc_0d73", "../loc_0d73.js", "loc_0da0"];
+
+function callsRatherThanRestates(text, [name, file, ownName]) {
+  return text.includes(`from "./${file.slice(3)}"`) &&
+    text.includes(`${name}(m)`) &&
+    !text.includes(ownName);
+}
 
 let entry = null;
 
@@ -86,34 +142,90 @@ function poisoned() {
   return mm;
 }
 
-function poisonedDiff(candidate) {
-  const a = poisoned();
-  const b = poisoned();
-  oracle(a);
-  candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+/** A clone of the crafted entry with the packed-decimal field loaded from `bytes`. */
+function withField(bytes) {
+  const mm = entryState().clone();
+  for (let i = 0; i < FIELD_BYTES; i++) mm.mem8[FIELD_HIGH_END - i] = bytes[i];
+  return mm;
 }
 
-/** Oracle vs candidate from the crafted entry, with the field loaded from `bytes`. */
-function fieldDiff(candidate, bytes) {
-  const a = entryState().clone();
-  const b = entryState().clone();
-  for (const mm of [a, b]) {
-    for (let i = 0; i < FIELD_BYTES; i++) mm.mem8[FIELD_HIGH_END - i] = bytes[i];
+function allDiffs(a, b) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const out = [];
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] !== db[i]) out.push({ addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] });
   }
+  return out;
+}
+
+/** The masked window, and nothing else: the bytes the oracle's own pushes reach and no others. */
+function inScratch(addr, sp) {
+  return addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
+}
+
+/**
+ * Oracle vs candidate on clones of `machine`: the whole state dump masked to the measured window,
+ * then every register outside the ceiling. A candidate that raises rather than writing counts as
+ * caught; only the candidate's side is wrapped, because a raise from the oracle is a harness fault
+ * and must not be swallowed.
+ */
+function unitDiff(candidate, machine) {
+  const sp = machine.regs.sp;
+  const a = machine.clone();
+  const b = machine.clone();
   oracle(a);
-  candidate(b);
-  return firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
+  try {
+    candidate(b);
+  } catch (e) {
+    return { addr: null, reg: "raised", a: "returned", b: String(e).slice(0, 40) };
+  }
+  const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
+  if (ram) return ram;
+  for (const k of REG_FIELDS) {
+    if (MOVED.includes(k)) continue;
+    if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
+  }
+  return null;
+}
+
+/** How far below its seat the oracle's own pushes take the stack pointer, on one entry state. */
+function oracleDepth(machine) {
+  const c = machine.clone();
+  const seat = c.regs.sp;
+  let deepest = seat;
+  const push = c.push16.bind(c);
+  c.push16 = (v) => {
+    const r = push(v);
+    if (c.regs.sp < deepest) deepest = c.regs.sp;
+    return r;
+  };
+  oracle(c);
+  return seat - deepest;
 }
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
-const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
+const show = (d) => {
+  if (!d) return "identical";
+  return d.addr === null
+    ? `${d.reg}: oracle=${d.a} candidate=${d.b}`
+    : `${hex4(d.addr)}: oracle=${d.a} candidate=${d.b}`;
+};
 
 const FIELD_CASES = [];
 for (let hi = 0; hi < 256; hi += 17) FIELD_CASES.push([hi, (hi * 7) & 0xff, (hi * 13) & 0xff]);
 FIELD_CASES.push([0, 0, 0], [0x99, 0x99, 0x99], [0xff, 0xff, 0xff], [0x0a, 0xbc, 0xde]);
 
+/** Every machine this file compares on. What the WINDOW arm measures the oracle over. */
+function sweep() {
+  return [entryState(), poisoned(), ...FIELD_CASES.map(withField)];
+}
+
 // ── broken twins ────────────────────────────────────────────────────────────────────────
+// Each is the module with one constant wrong, transferring the way the module transfers —
+// a DIRECT call to the painter. A twin reaching it by `m.call` would match the oracle's stack
+// traffic exactly and so would never be masked, which would let the teeth pass without ever
+// exercising the exclusion.
 
 /** BUG: does nothing. */
 function brokenNoOp() {}
@@ -124,7 +236,7 @@ function brokenWrongCell(m) {
   regs.de = FIRST_CELL + 1;
   regs.hl = FIELD_HIGH_END;
   regs.c = COLOUR;
-  m.call(PAINTER);
+  loc_0d73(m);
 }
 
 /** BUG: reads the other player's field. */
@@ -133,7 +245,7 @@ function brokenWrongField(m) {
   regs.de = FIRST_CELL;
   regs.hl = FIELD_HIGH_END - FIELD_BYTES;
   regs.c = COLOUR;
-  m.call(PAINTER);
+  loc_0d73(m);
 }
 
 /** BUG: lays down a different colour beside every cell. */
@@ -142,7 +254,7 @@ function brokenWrongColour(m) {
   regs.de = FIRST_CELL;
   regs.hl = FIELD_HIGH_END;
   regs.c = COLOUR + 1;
-  m.call(PAINTER);
+  loc_0d73(m);
 }
 
 const TWINS = [
@@ -151,6 +263,20 @@ const TWINS = [
   ["wrong-field", brokenWrongField],
   ["wrong-colour", brokenWrongColour],
 ];
+
+/**
+ * The BOUNDARY arm's probe: the ORACLE ITSELF, plus one byte flipped at `sp + offset`. Built on
+ * the oracle rather than on the rewrite so that what the arm reports is a property of the MASK
+ * alone — a broken rewrite must fail the arms that judge the rewrite, not be re-reported here as
+ * a mis-placed window.
+ */
+function scribbler(offset) {
+  return (m) => {
+    const at = (m.regs.sp + offset) & 0xffff;
+    oracle(m);
+    m.mem8[at] ^= 0xff;
+  };
+}
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
@@ -167,14 +293,48 @@ test("UNREACHED: the shared tape never dispatches this address", { skip }, () =>
   console.log(`  UNREACHED: 0 dispatches in ${ENTRY_FRAMES} frames (sibling: ${siblingHits})`);
 });
 
-test("EQUAL on the crafted entry: loc_0d61 == oracle on RAM", { skip }, () => {
-  const a = entryState().clone();
-  const b = entryState().clone();
+test("EQUAL on the crafted entry: identical outside the measured window", { skip }, () => {
+  const e = entryState();
+  const sp = e.regs.sp;
+  const a = e.clone();
+  const b = e.clone();
   oracle(a);
   loc_0d61(b);
-  const d = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  assert.equal(d, null, `RAM diverged — ${show(d)}`);
-  console.log("  EQUAL: RAM identical on a real machine taken at the sibling's dispatch");
+  const all = allDiffs(a, b);
+  const strays = all.filter((d) => !inScratch(d.addr, sp));
+  console.log(
+    `  EQUAL: real machine taken at the sibling's dispatch, seat ${hex4(sp)}; ${all.length} ` +
+      `differing bytes, ${strays.length} outside the window`,
+  );
+  assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
+  assert.ok(all.length <= SCRATCH_BYTES, "more bytes differ than the window is wide");
+  assert.equal(b.pc, e.pc, "the dissolved chain never steps, so the rewrite leaves pc where it " +
+    "found it; the oracle's pc is its caller's return address instead");
+});
+
+test("WINDOW: the oracle's own deepest push, measured over the whole sweep", { skip }, () => {
+  let deepest = 0;
+  for (const m of sweep()) deepest = Math.max(deepest, oracleDepth(m));
+  console.log(`  WINDOW (measured): the oracle reaches ${deepest} bytes below its seat`);
+  assert.equal(deepest, SCRATCH_BYTES, "the oracle's stack footprint moved, so the masked window " +
+    "is no longer the measured one and every arm below is masking the wrong bytes");
+});
+
+test("BOUNDARY: the exclusion is exactly as wide as it declares", { skip }, () => {
+  const sp = entryState().regs.sp;
+  const below = unitDiff(scribbler(-SCRATCH_BYTES - 1), entryState());
+  const seat = unitDiff(scribbler(0), entryState());
+  const inside = unitDiff(scribbler(-1), entryState());
+  console.log(
+    `  BOUNDARY: ${hex4(sp - SCRATCH_BYTES - 1)} caught, ${hex4(sp)} caught, ` +
+      `${hex4(sp - 1)} masked`,
+  );
+  assert.notEqual(below, null, "a divergence one byte BELOW the window was swallowed, so the " +
+    "exclusion is wider than it declares and a leaking stack pointer would walk out of sight");
+  assert.notEqual(seat, null, "a divergence AT the entry seat was swallowed: the window must lie " +
+    "strictly below the seat, and live stack above it must still fail");
+  assert.equal(inside, null, "a divergence INSIDE the window was caught, so the two catches above " +
+    "are the instrument catching everything rather than the boundary being where it says");
 });
 
 test("PAINTS: over a poisoned plane the run really appears, in both planes", { skip }, () => {
@@ -198,29 +358,62 @@ test("PAINTS: over a poisoned plane the run really appears, in both planes", { s
   );
 });
 
-test("REGISTERS: nothing is excluded here — the whole file agrees too", { skip }, () => {
-  const a = entryState().clone();
-  const b = entryState().clone();
-  oracle(a);
-  loc_0d61(b);
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.deepEqual(moved, [], "a register moved: the two arms no longer hand over identically");
-  assert.equal(a.pc, b.pc, "both arms leave through the same painter, so pc agrees as well");
-  console.log("  REGISTERS: whole register file and pc identical, not merely excluded");
+/** Which registers a candidate parts company with the oracle on, over the whole sweep. */
+function movedOver(candidate) {
+  const moved = new Set();
+  for (const m of sweep()) {
+    const a = m.clone();
+    const b = m.clone();
+    oracle(a);
+    try {
+      candidate(b);
+    } catch {
+      continue;
+    }
+    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
+  }
+  return moved;
+}
+
+test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
+  const moved = movedOver(loc_0d61);
+  // The absence below is only evidence if the same measurement CAN report a register outside the
+  // ceiling. The wrong-cell twin leaves the cursor elsewhere, and the control asserts it is seen.
+  const control = movedOver(brokenWrongCell);
+  assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
+    "the measurement reports nothing outside the ceiling even for a twin that moves the cursor, " +
+      "so a clean reading below proves nothing");
+  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
+    `ceiling ${MOVED.join(", ")}; the control twin also moves ` +
+    `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);
+  // MOVED is a CEILING. deepEqual against it would DEMAND the divergence and go RED on a rewrite
+  // that became register-exact — a gate that requires a wart refuses the fix.
+  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
+    "a register outside the declared ceiling diverged");
 });
 
 test("PRIORS: the same run is painted for every field value tried", { skip }, () => {
   for (const bytes of FIELD_CASES) {
-    const d = fieldDiff(loc_0d61, bytes);
+    const d = unitDiff(loc_0d61, withField(bytes));
     assert.equal(d, null, `field=${bytes.join(",")}: ${show(d)}`);
   }
-  console.log(`  PRIORS: ${FIELD_CASES.length} field values identical`);
+  console.log(`  PRIORS: ${FIELD_CASES.length} field values identical outside the window`);
+});
+
+test("CALLS, NOT RESTATES: the module's text, with the painter as a positive control", () => {
+  const module = read("../loc_0d61.js");
+  assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
+  assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
+    "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
+  console.log(`  CALLS, NOT RESTATES: ${HELPER[0]} is called, and its own body fails the same check`);
 });
 
 for (const [label, twin] of TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT, at a plane cell`, { skip }, () => {
-    const d = poisonedDiff(twin);
-    assert.notEqual(d, null, `the comparison PASSED the ${label} twin — it has no teeth`);
+    const d = unitDiff(twin, poisoned());
+    assert.notEqual(d, null, `the masked comparison PASSED the ${label} twin — it has no teeth`);
+    assert.notEqual(d.addr, null, `the ${label} twin is caught on a register alone, so nothing ` +
+      "says the cells it paints are wrong");
     assert.ok(
       d.addr >= COLOUR_PLANE && d.addr < CHARACTER_PLANE + PLANE_BYTES,
       `the ${label} twin diverges first at ${hex4(d.addr)}, outside the two planes — the ` +

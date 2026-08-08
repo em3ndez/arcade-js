@@ -4,15 +4,16 @@
  * down, and the colour laid beside every cell it fills. All three are constants chosen here, so
  * whatever a caller was holding is discarded. LIVE-OUT: memory -- the cells the painter fills. */
 
+import { loc_0d73 } from "./loc_0d73.js";
+
 const FIRST_CELL = 0xa781;
 const FIELD_HIGH_END = 0xad35;
 const COLOUR = 0x10;
-const PAINTER = 0x0d73;
 
 export function loc_0d57(m) {
   const { regs } = m;
   regs.de = FIRST_CELL;
   regs.hl = FIELD_HIGH_END;
   regs.c = COLOUR;
-  return m.call(PAINTER);
+  return loc_0d73(m);
 }

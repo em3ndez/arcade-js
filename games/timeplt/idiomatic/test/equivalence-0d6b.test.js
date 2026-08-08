@@ -2,23 +2,52 @@
 /**
  * loc_0d6b — memory-equivalent to the frozen oracle at ROM 0x0D6B.
  *
- * GATE: strict unit-capture with the printer RUNNING, plus a severed arm that inspects the three
- *   arguments this entry exists to fix, plus a corpus, plus teeth. What it exercises, holes
- *   stated:
+ * WHAT IT IS. Three constants and a fall-through: the tally to print, taken from its highest byte
+ * because the printer walks downward; the cell its leftmost digit lands in; and the colour every
+ * digit is given — handed to the six-digit readout printer at ROM 0x0D73, WHICH IS ALREADY
+ * DECOMPILED, so the rewrite calls loc_0d73 directly and dissolving that transfer belongs to this
+ * caller's unit.
  *
- *   1. EQUAL at the real dispatch with the printer running — RAM byte-identical across the whole
- *      state dump, AND every register identical, the stack pointer included, because the printer
- *      returns on both sides. Nothing is excluded at all in this arm.
- *   2. SEVERED — the printer replaced by a recorder on BOTH arms, so the three arguments this
- *      entry chooses are compared directly. This is the arm that would catch a rewrite whose
- *      argument happened to make no visible difference on the one captured screen.
- *   3. THE ARGUMENTS ARE PINNED AS VALUES, not merely compared: the recorded triple is asserted
- *      against the constants the module names, so a rewrite and a twin cannot drift together.
- *   4. CORPUS — every dispatch of the driven tape and of the undriven demo. ★ THIS ENTRY FIRES
+ * ★ THE ORACLE PUSHES AND RETURNS, AND THE REWRITE DOES NEITHER. The oracle reaches the printer
+ *   through `m.call`, so the printer's own body pushes return addresses below the entry seat and
+ *   then takes a return the direct call never takes. That leaves DEAD STACK SCRATCH below the
+ *   seat, and moves the accumulator, the flags, the stack pointer and pc. The window is MEASURED
+ *   — the WINDOW arm instruments the oracle's own `push16` at the captured entry and at every
+ *   dispatch of both sessions, and reports the deepest stack pointer it reaches — never assumed,
+ *   and never taken from another gate. A diff-derived window could not see a pushed byte that
+ *   already held its own value. Every other arm walks the whole dump and masks ONLY that window.
+ *
+ * GATE: strict unit-capture with one measured exclusion and the printer RUNNING, plus the ROM's
+ *   argument triple pinned as values, plus a corpus, plus teeth. What it exercises, holes stated:
+ *
+ *   1. EQUAL at the real dispatch with the printer running — identical across the whole state
+ *      dump outside the measured window, and every register outside the declared ceiling.
+ *   2. WINDOW — the oracle's own deepest push, measured over the captured entry and every real
+ *      dispatch and PINNED, so a change that deepens the oracle's stack traffic turns this gate
+ *      red instead of being absorbed by a wider mask.
+ *   3. BOUNDARY — the exclusion is exactly as wide as it declares: a planted divergence one byte
+ *      BELOW the window is caught, one AT the entry seat is caught, and one INSIDE is masked. The
+ *      last is what shows the first two are not simply the instrument catching everything.
+ *   4. PINNED — the argument triple is asserted AS VALUES, recorded off the ORACLE by replacing
+ *      the printer in the routine registry, and the module's own text is required to name the
+ *      same three constants, with a sibling entry's text as the control that the check can tell
+ *      one module from another. Together these are what stop a rewrite, a twin and this file's
+ *      constants from drifting together.
+ *      ★ HOLE, AND IT IS THE DISSOLVE'S: the registry recorder reaches the ORACLE only. The
+ *      rewrite's transfer is a direct call and no registry entry can intercept it, so the
+ *      candidate side of the argument comparison is carried by the masked whole-RAM diff at the
+ *      real dispatch and over the corpus — the printer runs for real on both arms and every cell
+ *      it touches is compared — and by the twins below.
+ *   5. EXCLUDED — no register outside the declared ceiling moves, with a twin that moves one as
+ *      the in-arm control that the measurement can see one.
+ *   6. CORPUS — every dispatch of the driven tape and of the undriven demo. ★ THIS ENTRY FIRES
  *      ONCE PER SESSION and the corpus arm asserts that count, so a change is a finding.
- *   5. TEETH — a twin for each way this entry could be wrong: doing nothing, each of the three
+ *   7. CALLS, NOT RESTATES — the module's text: it must name the printer's file and call it
+ *      rather than carry the printer's own body, with that body as a control.
+ *   8. TEETH — a twin for each way this entry could be wrong: doing nothing, each of the three
  *      arguments taken from the wrong place, the field walked from the wrong end, and the
- *      transfer skipped. Each is listed with the exact arms that catch it.
+ *      transfer skipped. Each is built the way the module is built, a direct call to the printer
+ *      with one argument wrong, and each must be caught at a real cell rather than in scratch.
  *
  * HOLE: one dispatch per session, at one point in the sequence, so nothing here exercises the
  * printer against a different screen state.
@@ -26,15 +55,21 @@
  * and a destination; what lives at that source is the printer's business and its caller's.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0d6b.test.js
+ * WHERE THE STACK POINTER IS OWNED. This gate pins the candidate's pc but leaves sp inside the
+ * excluded set, so a rewrite that silently leaked stack without writing memory would pass here.
+ * assembled-swap.test.js owns that and carries an arm for it; this gate does not, and says so
+ * rather than implying a coverage it does not have.
  */
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_0d6b } from "../loc_0d6b.js";
+import { loc_0d73 } from "../loc_0d73.js";
 import { loc_0d6b as oracle } from "../../translated/loc_0d6b.js";
-import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
+import { unitEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
@@ -48,14 +83,51 @@ const TALLY_TOP_BYTE = 0xa98d;
 const FIRST_DIGIT_CELL = 0xa641;
 const DIGIT_COLOUR = 0x10;
 
+/** Measured by the WINDOW arm: the deepest the oracle's own pushes reach below the entry seat. */
+const SCRATCH_BYTES = 8;
+
+/**
+ * The ceiling on divergence, and the whole of it: the oracle takes a return the dissolved call
+ * does not. Not a set the rewrite is required to fill — a rewrite that diverged on fewer still
+ * passes, so this can never refuse a fix.
+ */
+const MOVED = ["a", "f", "sp"];
+
 const TAPES = [
   ["driven", {}],
   ["attract", { tape: [] }],
 ];
 const DISPATCHES = { driven: 1, attract: 1 };
 
+const read = (rel) => readFileSync(new URL(rel, import.meta.url), "utf8");
+
+/**
+ * The module's text against the printer it is supposed to CALL. The printer is identified by a
+ * name out of its own body; the module must name the printer's file, call it, and NOT carry that
+ * name. The same predicate runs over the printer itself as a positive control, so the absence is
+ * evidence only once the check is shown able to see the thing present.
+ */
+const HELPER = ["loc_0d73", "../loc_0d73.js", "loc_0da0"];
+
+function callsRatherThanRestates(text, [name, file, ownName]) {
+  return text.includes(`from "./${file.slice(3)}"`) &&
+    text.includes(`${name}(m)`) &&
+    !text.includes(ownName);
+}
+
+/** The module must name all three of the ROM's constants, not merely some of them. */
+function namesTheTriple(text) {
+  return [TALLY_TOP_BYTE, FIRST_DIGIT_CELL, DIGIT_COLOUR]
+    .every((v) => text.includes("0x" + v.toString(16)));
+}
+
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
-const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
+const show = (d) => {
+  if (!d) return "identical";
+  return d.addr === null
+    ? `${d.reg}: oracle=${d.a} candidate=${d.b}`
+    : `${hex4(d.addr)}: oracle=${d.a} candidate=${d.b}`;
+};
 
 let entry = null;
 
@@ -77,7 +149,7 @@ function entryState() {
   return entry;
 }
 
-/** A clone whose printer is a recorder, installed identically on both arms. */
+/** A clone whose printer is a recorder. Reaches the ORACLE only — see the PINNED arm's hole. */
 function severed(machine, log) {
   const c = machine.clone();
   c.routines = new Map(c.routines);
@@ -87,39 +159,69 @@ function severed(machine, log) {
   return c;
 }
 
-/** The full contract: RAM and every register with the printer running, then the arguments. */
+function allDiffs(a, b) {
+  const da = a.dumpState();
+  const db = b.dumpState();
+  const out = [];
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] !== db[i]) out.push({ addr: a.stateOffsetToAddr(i), a: da[i], b: db[i] });
+  }
+  return out;
+}
+
+/** The masked window, and nothing else: the bytes the oracle's own pushes reach and no others. */
+function inScratch(addr, sp) {
+  return addr !== null && addr >= sp - SCRATCH_BYTES && addr < sp;
+}
+
+/**
+ * Oracle vs candidate on clones of `machine`, with the printer running on both: the whole state
+ * dump masked to the measured window, then every register outside the ceiling. A candidate that
+ * raises rather than writing counts as caught; only the candidate's side is wrapped, because a
+ * raise from the oracle is a harness fault and must not be swallowed.
+ */
 function unitDiff(candidate, machine) {
+  const sp = machine.regs.sp;
   const a = machine.clone();
   const b = machine.clone();
   oracle(a);
-  candidate(b);
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  if (ram) return ram;
-  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  if (moved.length) return { addr: null, reg: moved[0], a: a.regs[moved[0]], b: b.regs[moved[0]] };
-  const logA = [];
-  const logB = [];
-  const sa = severed(machine, logA);
-  const sb = severed(machine, logB);
-  oracle(sa);
-  candidate(sb);
-  if (logA.length !== logB.length) {
-    return { addr: null, reg: "handovers", a: logA.length, b: logB.length };
+  try {
+    candidate(b);
+  } catch (e) {
+    return { addr: null, reg: "raised", a: "returned", b: String(e).slice(0, 40) };
   }
-  for (const [i, x] of logA.entries()) {
-    for (const k of ["source", "destination", "colour"]) {
-      if (x[k] !== logB[i][k]) return { addr: null, reg: k, a: x[k], b: logB[i][k] };
-    }
+  const ram = allDiffs(a, b).find((d) => !inScratch(d.addr, sp));
+  if (ram) return ram;
+  for (const k of REG_FIELDS) {
+    if (MOVED.includes(k)) continue;
+    if (a.regs[k] !== b.regs[k]) return { addr: null, reg: k, a: a.regs[k], b: b.regs[k] };
   }
   return null;
+}
+
+/** How far below its seat the oracle's own pushes take the stack pointer, on one entry state. */
+function oracleDepth(machine) {
+  const c = machine.clone();
+  const seat = c.regs.sp;
+  let deepest = seat;
+  const push = c.push16.bind(c);
+  c.push16 = (v) => {
+    const r = push(v);
+    if (c.regs.sp < deepest) deepest = c.regs.sp;
+    return r;
+  };
+  oracle(c);
+  return seat - deepest;
 }
 
 function replaySession(opts, candidate) {
   let dispatches = 0;
   let caught = 0;
+  let deepest = 0;
   const m = makeMachine(
     new Map([[TARGET, (mm) => {
       dispatches++;
+      deepest = Math.max(deepest, oracleDepth(mm));
       if (unitDiff(candidate, mm)) caught++;
       return oracle(mm);
     }]]),
@@ -128,10 +230,21 @@ function replaySession(opts, candidate) {
   const frames = m.runFrames(CORPUS_FRAMES);
   assert.equal(m.stoppedBy, null, `session stopped early: ${m.stoppedBy}`);
   assert.equal(frames.length, CORPUS_FRAMES, "session ran short");
-  return { dispatches, caught };
+  return { dispatches, caught, deepest };
+}
+
+let sessionCache = null;
+function sessions() {
+  if (sessionCache) return sessionCache;
+  sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_0d6b) }));
+  return sessionCache;
 }
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
+// Each is the module with one thing wrong, transferring the way the module transfers — a DIRECT
+// call to the printer. A twin reaching it by `m.call` would match the oracle's stack traffic
+// exactly and so would never be masked, which would let the teeth pass without ever exercising
+// the exclusion.
 
 /** BUG: does nothing at all — the tell that a gate is measuring an unreached routine. */
 function brokenNoOp() {}
@@ -141,7 +254,7 @@ function brokenWrongSource(m) {
   m.regs.de = FIRST_DIGIT_CELL;
   m.regs.hl = 0xad35;
   m.regs.c = DIGIT_COLOUR;
-  return m.call(PRINTER);
+  loc_0d73(m);
 }
 
 /** BUG: prints into one of the other siblings' screen positions. */
@@ -149,7 +262,7 @@ function brokenWrongDestination(m) {
   m.regs.de = 0xa781;
   m.regs.hl = TALLY_TOP_BYTE;
   m.regs.c = DIGIT_COLOUR;
-  return m.call(PRINTER);
+  loc_0d73(m);
 }
 
 /** BUG: picks a different colour for the digits. */
@@ -157,7 +270,7 @@ function brokenWrongColour(m) {
   m.regs.de = FIRST_DIGIT_CELL;
   m.regs.hl = TALLY_TOP_BYTE;
   m.regs.c = DIGIT_COLOUR + 1;
-  return m.call(PRINTER);
+  loc_0d73(m);
 }
 
 /** BUG: walks the tally upward from its lowest byte instead of down from its highest. */
@@ -165,7 +278,7 @@ function brokenLowestByteFirst(m) {
   m.regs.de = FIRST_DIGIT_CELL;
   m.regs.hl = TALLY_TOP_BYTE - 2;
   m.regs.c = DIGIT_COLOUR;
-  return m.call(PRINTER);
+  loc_0d73(m);
 }
 
 /** BUG: fixes the arguments and never transfers, so nothing is printed. */
@@ -184,68 +297,157 @@ const TWINS = [
   ["skips-the-printer", brokenSkipsThePrinter],
 ];
 
+/**
+ * The BOUNDARY arm's probe: the ORACLE ITSELF, plus one byte flipped at `sp + offset`. Built on
+ * the oracle rather than on the rewrite so that what the arm reports is a property of the MASK
+ * alone — a broken rewrite must fail the arms that judge the rewrite, not be re-reported here as
+ * a mis-placed window.
+ */
+function scribbler(offset) {
+  return (m) => {
+    const at = (m.regs.sp + offset) & 0xffff;
+    oracle(m);
+    m.mem8[at] ^= 0xff;
+  };
+}
+
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: RAM and EVERY register, the stack pointer included", { skip }, () => {
-  const r = gate(loc_0d6b);
+test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
+  gate(loc_0d6b);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
-  assert.equal(r.ram, null, `RAM diverged — ${show(r.ram)}`);
-  assert.equal(r.regs, null, `a register diverged — ${JSON.stringify(r.regs)}`);
+  const e = entryState();
+  const sp = e.regs.sp;
+  const a = e.clone();
+  const b = e.clone();
+  oracle(a);
+  loc_0d6b(b);
+  const all = allDiffs(a, b);
+  const strays = all.filter((d) => !inScratch(d.addr, sp));
+  console.log(
+    `  EQUAL: seat ${hex4(sp)}; ${all.length} differing bytes, ${strays.length} outside the window`,
+  );
+  assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
+  assert.ok(all.length <= SCRATCH_BYTES, "more bytes differ than the window is wide");
+  assert.deepEqual(
+    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k] && !MOVED.includes(k)),
+    [],
+    "a register outside the declared ceiling diverged",
+  );
+  assert.equal(b.pc, e.pc, "the dissolved chain never steps, so the rewrite leaves pc where it " +
+    "found it; the oracle's pc is its caller's return address instead");
+});
+
+test("WINDOW: the oracle's own deepest push, measured at the entry and every dispatch", { skip }, () => {
+  const seen = sessions();
+  const deepest = Math.max(oracleDepth(entryState()), ...seen.map((s) => s.deepest));
+  console.log(
+    `  WINDOW (measured): the oracle reaches ${deepest} bytes below its seat — ` +
+      `${seen.map((s) => `${s.label} ${s.deepest}`).join(", ")}`,
+  );
+  for (const s of seen) assert.ok(s.dispatches > 0, `vacuous: ${s.label} never dispatched`);
+  assert.equal(deepest, SCRATCH_BYTES, "the oracle's stack footprint moved, so the masked window " +
+    "is no longer the measured one and every arm below is masking the wrong bytes");
+});
+
+test("BOUNDARY: the exclusion is exactly as wide as it declares", { skip }, () => {
+  const sp = entryState().regs.sp;
+  const below = unitDiff(scribbler(-SCRATCH_BYTES - 1), entryState());
+  const seat = unitDiff(scribbler(0), entryState());
+  const inside = unitDiff(scribbler(-1), entryState());
+  console.log(
+    `  BOUNDARY: ${hex4(sp - SCRATCH_BYTES - 1)} caught, ${hex4(sp)} caught, ` +
+      `${hex4(sp - 1)} masked`,
+  );
+  assert.notEqual(below, null, "a divergence one byte BELOW the window was swallowed, so the " +
+    "exclusion is wider than it declares and a leaking stack pointer would walk out of sight");
+  assert.notEqual(seat, null, "a divergence AT the entry seat was swallowed: the window must lie " +
+    "strictly below the seat, and live stack above it must still fail");
+  assert.equal(inside, null, "a divergence INSIDE the window was caught, so the two catches above " +
+    "are the instrument catching everything rather than the boundary being where it says");
+});
+
+test("PINNED: the ROM's argument triple, and the module names the same three", { skip }, () => {
+  const log = [];
+  const a = severed(entryState(), log);
+  oracle(a);
+  assert.equal(log.length, 1, "vacuous: the recorder is not wired — the oracle did not reach it");
+  assert.deepEqual(
+    log[0],
+    { source: TALLY_TOP_BYTE, destination: FIRST_DIGIT_CELL, colour: DIGIT_COLOUR },
+    "the argument triple moved, so the constants this file names are no longer the ROM's",
+  );
+  assert.equal(
+    allDiffs(entryState(), a).length,
+    0,
+    "with the printer severed the oracle may write nothing at all",
+  );
+  // The text check is only evidence if it can tell one module from another. A sibling entry
+  // chooses a different tally and a different cell, and must FAIL the same predicate.
+  assert.ok(namesTheTriple(read("../loc_0d6b.js")), "the module does not name the ROM's triple");
+  assert.ok(!namesTheTriple(read("../loc_0d57.js")), "a sibling entry that chooses a different " +
+    "tally and cell passes the same text check, so the check proves nothing");
+  console.log(
+    `  PINNED: source=${hex4(TALLY_TOP_BYTE)} destination=${hex4(FIRST_DIGIT_CELL)} ` +
+      `colour=${DIGIT_COLOUR}, named by the module and recorded off the oracle`,
+  );
+});
+
+/** Which registers a candidate parts company with the oracle on, at the captured entry. */
+function movedOver(candidate) {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_0d6b(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    [],
-    "NOTHING is excluded for this entry: the printer it falls into returns on both sides, so " +
-      "even the stack pointer must agree",
-  );
-  assert.equal(a.pc, b.pc, "the printer's own return sets pc on both sides");
-  console.log("  EQUAL: RAM and every register identical, sp and pc included");
-});
+  try {
+    candidate(b);
+  } catch {
+    return new Set();
+  }
+  return new Set(REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]));
+}
 
-test("SEVERED: the three arguments are the ones this entry names, and only those", { skip }, () => {
-  const logA = [];
-  const logB = [];
-  const a = severed(entryState(), logA);
-  const b = severed(entryState(), logB);
-  oracle(a);
-  loc_0d6b(b);
-  assert.equal(logA.length, 1, "vacuous: the oracle did not reach the printer");
-  assert.deepEqual(logB, logA, "the arguments handed to the printer differ");
-  assert.deepEqual(
-    logA[0],
-    { source: TALLY_TOP_BYTE, destination: FIRST_DIGIT_CELL, colour: DIGIT_COLOUR },
-    "the argument triple moved, so the constants this module names are no longer the ROM's",
-  );
-  assert.equal(
-    firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off)),
-    null,
-    "with the printer severed neither arm may write anything at all",
-  );
-  console.log(
-    `  SEVERED: source=${hex4(TALLY_TOP_BYTE)} destination=${hex4(FIRST_DIGIT_CELL)} ` +
-      `colour=${DIGIT_COLOUR}`,
-  );
+test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
+  const moved = movedOver(loc_0d6b);
+  // The absence below is only evidence if the same measurement CAN report a register outside the
+  // ceiling. The wrong-destination twin leaves the cursor elsewhere, and the control says so.
+  const control = movedOver(brokenWrongDestination);
+  assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
+    "the measurement reports nothing outside the ceiling even for a twin that moves the cursor, " +
+      "so a clean reading below proves nothing");
+  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
+    `ceiling ${MOVED.join(", ")}; the control twin also moves ` +
+    `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);
+  // MOVED is a CEILING. deepEqual against it would DEMAND the divergence and go RED on a rewrite
+  // that became register-exact — a gate that requires a wart refuses the fix.
+  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
+    "a register outside the declared ceiling diverged");
 });
 
 test("CORPUS: the one dispatch of each session replays identically", { skip }, () => {
   let total = 0;
-  for (const [label, opts] of TAPES) {
-    const r = replaySession(opts, loc_0d6b);
-    assert.equal(r.dispatches, DISPATCHES[label], `the ${label} dispatch count moved`);
-    assert.ok(r.dispatches > 0, `vacuous: the ${label} tape never reached the routine`);
-    assert.equal(r.caught, 0, `the rewrite diverged on ${r.caught} ${label} dispatches`);
-    total += r.dispatches;
+  for (const s of sessions()) {
+    assert.equal(s.dispatches, DISPATCHES[s.label], `the ${s.label} dispatch count moved`);
+    assert.ok(s.dispatches > 0, `vacuous: the ${s.label} tape never reached the routine`);
+    assert.equal(s.caught, 0, `the rewrite diverged on ${s.caught} ${s.label} dispatches`);
+    total += s.dispatches;
   }
-  console.log(`  CORPUS: ${total} dispatches over two sessions, identical on each`);
+  console.log(`  CORPUS: ${total} dispatches over two sessions, identical outside the window`);
+});
+
+test("CALLS, NOT RESTATES: the module's text, with the printer as a positive control", () => {
+  const module = read("../loc_0d6b.js");
+  assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
+  assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
+    "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
+  console.log(`  CALLS, NOT RESTATES: ${HELPER[0]} is called, and its own body fails the same check`);
 });
 
 for (const [label, twin] of TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT at the real dispatch`, { skip }, () => {
     const d = unitDiff(twin, entryState());
-    assert.notEqual(d, null, `the gate PASSED the ${label} twin — it has no teeth`);
-    console.log(`  TEETH/${label}: caught — ${JSON.stringify(d)}`);
+    assert.notEqual(d, null, `the masked gate PASSED the ${label} twin — it has no teeth`);
+    assert.notEqual(d.addr, null, `the ${label} twin is caught on a register alone, so nothing ` +
+      "says the cells it prints into are wrong");
+    console.log(`  TEETH/${label}: caught — ${show(d)}`);
   });
 }

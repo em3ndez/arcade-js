@@ -5,15 +5,16 @@
  * that triple is the whole of this entry, and whatever a caller held in those registers is
  * discarded. LIVE-OUT: memory — the digits and their colours, written by the printer. */
 
+import { loc_0d73 } from "./loc_0d73.js";
+
 const TALLY_TOP_BYTE = 0xa98d;
 const FIRST_DIGIT_CELL = 0xa641;
 const DIGIT_COLOUR = 0x10;
-const PRINTER = 0x0d73;
 
 export function loc_0d6b(m) {
   const { regs } = m;
   regs.de = FIRST_DIGIT_CELL;
   regs.hl = TALLY_TOP_BYTE;
   regs.c = DIGIT_COLOUR;
-  return m.call(PRINTER);
+  return loc_0d73(m);
 }
