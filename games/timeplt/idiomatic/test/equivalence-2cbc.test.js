@@ -21,7 +21,8 @@
  *      asserted from a poisoned pair so it cannot pass by agreeing on an unwritten register.
  *   4. CORPUS — every dispatch of a driven and an undriven session, counts asserted, together
  *      with WHICH eras those sessions present. They present one each, and different ones.
- *   5. EXCLUDED — the register divergence pinned to a measured set.
+ *   5. EXCLUDED — the register divergence BOUNDED by a measured set: a register diverging outside
+ *      it fails the arm, and a rewrite that diverges on fewer of them still passes.
  *   6. CRAFTED — the era index forced to each of 0..7 and to 255, so all three orders run,
  *      including the one an index past the last era falls to.
  *   7. THE PARKED SLOT IS LOAD-BEARING — measured, not argued.
@@ -299,11 +300,9 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch pushes", { skip 
   const b = entryState().clone();
   oracle(a);
   runSceneryForEra(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the two cursors are live-outs and must not appear here",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });

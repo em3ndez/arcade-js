@@ -21,7 +21,9 @@
  *
  *   1. EQUAL at the real dispatch — identical outside the scratch window.
  *   2. NOT VACUOUS — a no-op FAILS that same masked diff on a real cell.
- *   3. EXCLUDED — the registers that move over the whole sweep, pinned.
+ *   3. EXCLUDED — a BOUND, not a measurement: no register outside the declared set moves anywhere
+ *      in the sweep. A rewrite that moves fewer of them still passes; one that moves another does
+ *      not. The index registers are separately asserted to be held.
  *   4. UNIFORM CORPUS — which eras and counts real play presents, measured. The sweep is what
  *      covers the rest.
  *   5. CORPUS — every dispatch of three sessions.
@@ -390,17 +392,19 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked diff, on a real cell"
 });
 
 test("EXCLUDED, deliberately: only scratch registers move, over the whole sweep", { skip }, () => {
-  const moved = new Set();
+  const movedSomewhere = new Set();
   for (const [era, owed] of cross()) {
     const a = craft(era, owed);
     const b = a.clone();
     oracle(a);
     drawKillMeter(b);
-    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
+    for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) movedSomewhere.add(k);
   }
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
-  for (const k of HELD) assert.ok(!moved.has(k), `an index register moved (${k})`);
+  const moved = REG_FIELDS.filter((k) => movedSomewhere.has(k));
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  console.log(`  EXCLUDED (measured): ${moved.join(", ")}`);
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
+  for (const k of HELD) assert.ok(!movedSomewhere.has(k), `an index register moved (${k})`);
 });
 
 test("UNIFORM CORPUS: which eras and counts real play presents", { skip }, () => {

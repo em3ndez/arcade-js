@@ -15,8 +15,11 @@
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, three bytes below the stack pointer: the oracle pushes a
  *      return address for the inner call and pops it, and the rewrite models no stack. The corpus
  *      arm asserts the exact set of offsets ever dirtied, so the window cannot quietly widen.
- *   3. EXCLUDED, DELIBERATELY — the register file differs in exactly {f, b, c, sp} and pc. The
- *      pair the inner drift leaves is dead; the whole-machine arm is what holds that.
+ *   3. EXCLUDED, DELIBERATELY — the register file may differ only within {f, b, c, sp}, and pc.
+ *      The arm BOUNDS the divergence rather than pinning it: a register outside that set fails,
+ *      a register that stops diverging does not, since a rewrite that drops one is better. The
+ *      two cursors are outside the set and are compared explicitly by arm 1 besides. The pair
+ *      the inner drift leaves is dead; the whole-machine arm is what holds that.
  *   4. CORPUS — every dispatch of two sessions replayed, with both dispatch counts asserted.
  *   5. CRAFTED — the shared displacement swept over values that force a carry out of each
  *      coordinate's fraction and both signs, which real play does not present in one session.
@@ -255,11 +258,9 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing el
   const b = entryState().clone();
   oracle(a);
   driftOneTileSceneryAtHalf(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the two cursors are live-outs and are compared above",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 

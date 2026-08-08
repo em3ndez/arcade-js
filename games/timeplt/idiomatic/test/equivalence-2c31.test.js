@@ -14,7 +14,8 @@
  *      reached only by the crafted sweep. Every arm walks the whole dump and asserts nothing
  *      escapes the window. It is an upper bound: the arms that push nothing dirty no byte at all.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement.
+ *   4. EXCLUDED, deliberately — the register set that may differ is BOUNDED by a measured list: a
+ *      register diverging outside it fails the arm, and a rewrite diverging on fewer still passes.
  *   5. CORPUS — every dispatch of the session replayed on a clone, with the set of phases the
  *      session presents asserted rather than reported.
  *   6. EXHAUSTIVE — all 256 phases crossed with four request bytes and two counter positions.
@@ -299,16 +300,14 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   loc_2c31(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });
 

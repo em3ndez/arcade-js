@@ -12,7 +12,8 @@
  *   counter, a crafted sweep of the era cell, a whole-machine replay, and teeth.
  *   1. EQUAL at the real dispatch — the whole dump identical, stack scratch included.
  *   2. NOT VACUOUS — a no-op candidate fails the same diff.
- *   3. EXCLUDED, deliberately, pinned to an exact set.
+ *   3. EXCLUDED, deliberately, BOUNDED by a measured set rather than pinned to it: a register
+ *      outside the set fails, a register that stops diverging does not.
  *   4. CORPUS — every dispatch the poked run produces, with the rounds and eras it presented.
  *   5. EXHAUSTIVE ROUND — all 256 values of the round counter, which is the only thing choosing
  *      between the three difficulty cells; the real corpus reaches only the first of the three.
@@ -299,11 +300,9 @@ test("EXCLUDED, deliberately: scratch registers, the stack pointer and pc", { sk
   const b = entryState().clone();
   oracle(a);
   startNextRound(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc`);
 });

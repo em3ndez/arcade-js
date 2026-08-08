@@ -24,6 +24,12 @@ Most common shapes: `[a,f,sp]` 29 · `[a,f,d,e,h,l,sp]` 11 · `[a,f,h,l,sp]` 9 �
 The 14 structural-only ones are harmless in practice and can stay: no idiomatic module models
 flags, and `withOmittedRet` always moves SP, so those sets cannot shrink. **The 115 are the class.**
 
+⚠ **SUPERSEDED — the figures in this opening section are the campaign's FIRST estimate.** They count
+gates that DECLARE a set; the class is executed PINS, and the measured figure is in the batch-3
+pre-flight below. Read that section for any number you intend to act on. 129/115/14 here, 94 after
+batch 1, 66 in the handoff, 73 measured: same campaign, four different objects and four different
+instruments. This block is kept because the reasoning is still right, not because the counts are.
+
 ## ★ What this plan CORRECTS about the earlier framing
 
 Two prior numbers do not survive being re-derived, and both were over-counts produced by grepping
@@ -88,8 +94,10 @@ and the table below supersedes it. The four-fold gap is worth understanding rath
 overwriting, because the narrow scan was built to correct an over-count and produced an under-count
 in the direction that made the job look nearly done.
 
-Measured with an argument-aware scan that accepts ANY left-hand side:
+Measured with a scan that resolves the expected side rather than requiring a literal (it does NOT
+accept any left-hand side — see the batch-3 pre-flight, where that phrasing is retracted):
 
+    ⚠ SUPERSEDED by the batch-3 pre-flight below (73 / 26 / 47). Kept for the reasoning.
     120  gates carry an EXACT pin whose expected set contains a general-purpose register
      26  of those are converted in this unit
      94  STILL CARRY THE DEFECT
@@ -101,7 +109,12 @@ Measured with an argument-aware scan that accepts ANY left-hand side:
 
 So the original estimate of 115 was approximately correct and my "correction" of it was the error.
 
-### HOW THE NARROW SCAN GOT 27, because it is the same failure this file exists to describe
+### HOW THE NARROW SCAN GOT 27 — ⚠ SUPERSEDED, the mechanism below does not reproduce
+⚠ Read this section for its LESSON, not its diagnosis. The committed scan measures the stated
+mechanism directly: keying the left side on the bare identifier `moved` yields 13 pins, of which
+**zero** are in the class — so that cannot be what produced 27. Whatever did is unknown. The rule
+the section draws (scan for the cause, count the symptom independently) survives intact and is the
+reason this campaign has a pre-flight; the causal story attached to it does not.
 My scan required the assertion's LEFT side to be the bare identifier `moved`. The construct is
 written at least four other ways, all identical in effect:
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k])   inlined, never assigned  -- the big one
@@ -140,6 +153,154 @@ against the old shape. Checked: of the 18 untracked batch-3 gates, **zero** use
 `deepEqual(moved, …)`. The authoring agents did not reach for the construct. So the batch imposes
 no double edit, and the sweep does not have to wait on it.
 
+---
+
+# ★★ BATCH-3 PRE-FLIGHT (2026-08-08). THE CLASS IS BIGGER THAN 66. The instrument is now committed.
+
+`scratchpad/scan-inverted-gates.py` is the campaign's scan. **Run it, do not rebuild it** — three
+of the four scope figures this campaign has quoted came from an instrument built fresh and trusted
+once, and each was a floor. It reads its register vocabulary from `core/cpu/z80.js` and prints its
+reconciliation, its untracked-file exposure and its selector contribution as part of every run.
+
+⚠ **THE SCAN READS A WORKING TREE, so these figures reproduce only against `a805666`** — the head
+of batch 3, before a single conversion. Run it mid-batch and every count is lower, correctly, and
+looks like the table is wrong. It takes the root as an argument for exactly this:
+`scan-inverted-gates.py /tmp/clean-checkout`.
+
+⚠ **IT ALSO COUNTS UNTRACKED GATES.** Eighteen sit in the tree today (the R1-gated authoring batch)
+and contribute nothing to the class, but a future batch measuring mid-authoring would silently fold
+uncommitted gates into "the class". The run prints the count so the exposure is visible rather than
+disclosed in a document nobody re-reads.
+
+⚠ **THE MESSAGE SELECTOR FINDS NO PIN THE OTHER ONE MISSES — but do NOT delete it.** It contributes
+zero unique PIN rows, and that is the whole of what can be claimed. It uniquely supplies three
+UNRESOLVED rows (`15b6:188`, `2a57:455`, `50ee:445`); removing it drops them from hand judgement,
+and two of the three are half of the four-file SYMPTOM-BUT-NO-PIN residue enumerated below. The
+genuine second COUNT is the symptom grep, and only that. It was added believing it recovered
+`0ce8`, `1253` and `2bef`; it recovers none of them.
+★ **This bullet said "contributes ZERO unique rows" through FOUR review rounds, and the instrument
+agreed with it, because the contribution counter could not see unresolved rows** — they were skipped
+before it ran. The count printed zero while the three rows printed a few lines below it. Fixed: the
+counter spans both buckets. The control is one `sed` replacing the pattern with something
+unmatchable and one `diff` of the output — cheaper than any of the four rounds that missed it.
+⚠ An earlier repair of this bullet said "two rounds". It was four, and a self-critical count that
+errs toward flattering the author is the exact failure this document is about.
+
+⚠ **ITS LINE NUMBERS ARE APPROXIMATE.** `PIN` is DOTALL with a non-greedy left side, so a preceding
+non-matching `deepEqual` swallows the following pin and the reported line is the earlier one —
+`2cbc` reports about seventeen lines early. Corpus-wide, 21 matches swallow 22 `deepEqual` openings;
+of the rows the scan PRINTS, one emitted row and thirteen unresolved rows are swallow artifacts. No pin
+is lost to the swallow today, because each swallowed opening resolves to the same assertion — but
+**this is not hypothetical**: `2bef`'s two pins at 304 and 309 already sit under one swallow, and
+they escape only because neither is independently matchable anyway. Use the worklist to find FILES,
+then grep the file. An earlier draft said "exactly one swallowed site", which was true only of the
+emitted rows and read as though it were true of the corpus.
+
+⚠ **ONE MORE DROP, AND IT WAS LIVE WHILE BEING DISCLOSED AS INERT.** `register_set` returned a bare
+`None` for several expected-side shapes — the same mechanism that hid the six shadow gates. It was
+hiding two more the entire time: `deepEqual([...r.moved], [EXCLUDED], …)` at `0ce8:355` and
+`181d:333`, an identifier INSIDE the array, so no string literal is found. Both are genuine exact
+pins. Both have `EXCLUDED = "sp"`, so the class of 73 is unaffected — but **structural-only is 34
+by scan PLUS those 2.** Now fixed: every failure path reports for hand judgement instead of
+dropping. The previous draft of this bullet described the drop as "0 cases today" while two cases
+sat in it, which is the campaign's own thesis happening inside the paragraph written to close it.
+
+⚠ `PIN` also requires a message argument, so a message-less `deepEqual` cannot match. There is
+exactly **one** in the timeplt gates, `0f11:334`, and it is not a register pin. An earlier draft
+said 98 — a figure transcribed from a review rather than measured.
+
+    73   exact pins containing a register outside {f, sp}, across 72 files   <- THE CLASS
+     4   further executed pins, in 2 files, that the WORKLIST does not carry (below)
+    34   structural-only BY SCAN: [sp] x18, [f,sp] x15, [f] x1 -- unchanged from batch 1's table.
+         ★ The true figure is 36: `0ce8:355` and `181d:333` both pin `[EXCLUDED]` with
+         `EXCLUDED = "sp"`, and were silently dropped until this batch made the drop report.
+   104   files carrying the loosest symptom string, the independent count
+
+**The previous figure of 66 was low by six**, and the six are named below. ⚠ An earlier draft of
+this section said seven, which was `73 pins − 66 files` — a subtraction across two different units,
+presented as a count of gates. Ablating the committed scan gives the honest answer: hand-authored
+vocabulary 67 pins / 66 files, vocabulary read from `z80.js` 73 / 72, and the entire delta is six
+pins in six files.
+
+**Separately** — and these two facts have nothing to do with each other — the residue between the
+pin count and the symptom count is enumerated rather than estimated: 4 symptom-files with no pin
+(2 already converted, plus `1253` and `2bef` below) and 3 pin-files whose failure message is phrased
+differently (`08ae`, `43e8`, `46ba`). ⚠ That is also seven files, and the draft welded the two
+sevens into one sentence reading as though the residue accounted for the delta. It does not. Two
+unrelated quantities that happen to coincide, presented as arithmetic.
+
+### THE EXEMPTION IS TWO REGISTERS, AND IT IS DERIVED RATHER THAN LISTED
+The "cannot shrink" carve-out covers exactly `f` (nothing models flags) and `sp` (`withOmittedRet`
+always moves it). **Every other name in REG_FIELDS can be preserved by a better rewrite, the eight
+shadow registers included** — so the class is the complement of those two, not a hand-kept list of
+"general-purpose" names. The six newly-visible gates are exactly the shadow-bearing ones: an earlier
+hand-authored vocabulary omitted `a_`…`l_`, and a set mentioning one failed validation and was
+dropped whole. They are `0809`, `13cc`, `33b8`, `4b30`, `4b4b`, `4fbf` — six named, six counted.
+
+### THREE INSTRUMENT ERRORS IN ONE PRE-FLIGHT, each returning a plausible number
+Recorded because the pattern is the campaign's subject, and it recurred while measuring it:
+  1. keyed on the EXPECTED side being a literal array → **10 rows, 9 of them in the class**. The
+     dominant form is a named const. (The tenth is `0ce8:399`, which error 3 separately hides, so
+     "10 of the 73" — an earlier draft's phrasing — is arithmetically impossible.)
+  2. resolved the const but hand-authored the register vocabulary → **67**. Sets naming a shadow
+     register were dropped silently; a dropped case is indistinguishable from an absent one.
+  3. narrowed candidates by the measured side matching `REG_FIELDS|moved|regs[` → dropped `0ce8`,
+     whose measured set is named `surviving`. **ONE false negative, not three.** An earlier draft
+     said this also lost `1253` and `2bef`; both of their measured sides DO match the filter
+     (`REG_FIELDS.filter(…)` and `moved(…)`), and both are lost further downstream, to const
+     resolution. The scan's own comment says this correctly while this bullet said the opposite,
+     in the same commit.
+★ **None of the three errored. Each returned a smaller, healthier-looking class.**
+⚠ **AND THE TWO-COUNT RULE DID NOT CATCH ALL THREE — it caught two.** The signal is the
+SYMPTOM-BUT-NO-PIN gap: error 1 leaves 80 such files and error 2 leaves 10, both screaming. **Error 3
+leaves 4 — the same four files the correct scan leaves.** Nothing in that run's own output says a
+row is missing, which is what makes the narrowing the one error a cross-check cannot see.
+⇒ Correcting error 3 DOES move the pin counts: the class goes 73 → 74 over 72 → 73 files, and
+`0ce8` joins PIN-BUT-NO-SYMPTOM. So the honest statement is about the GAP, not about the whole
+output — an earlier draft called error 3's reconciliation "bit-identical to the shipped scan's",
+which is a comparison that cannot fail, since **the shipped scan still carries error 3** (its
+docstring says so: `DIVERGENCE_LHS` is what loses `0ce8`). Shipped compared against shipped.
+⇒ That draft also said the lost row "carries neither a changed-shape message nor a countable pin".
+Half right. `0ce8:399` pins `["a","h","l"]` and IS a countable in-class pin — counting it is exactly
+what moves 73 → 74. Only the message half holds.
+⇒ The rule is still worth its cost; it caught the two errors that moved the class by tens. But "it
+caught all three, one run each" was a claim about the rule made by the person the rule had just
+rescued, and it took two further rounds to reduce to what the measurement supports.
+
+### ⛔ PRE-STAGE CHECK THE SWEEP CREATES AND NOTHING ELSE CATCHES
+A teeth arm works by CLOBBERING a register inside the idiomatic module, so every sweeper dirties
+files outside its own assignment for as long as its mutation is live. Mid-batch, `git status`
+legitimately shows modified modules. **A mutation left behind is a corrupted shipped module**, and
+staging explicit paths hides rather than prevents it — the file simply stays dirty until some later
+batch sweeps it up.
+⇒ **Before staging: `git diff --stat games/timeplt/idiomatic/*.js` must be EMPTY.** Not "reported
+reverted by the agent" — empty. This is cheap, and it is the only check between a mutation arm and
+the shipped layer.
+⚠ **AND IT IS ONLY MEANINGFUL AFTER EVERY SWEEPER HAS REPORTED.** Polled mid-run it goes clean and
+dirty repeatedly, once per arm per agent, so a poll that happens to land between one agent's revert
+and another's next clobber reads EXACTLY like the end state. I armed a waiter on this condition and
+it fired with all five agents still running. The check is `all agents done` AND `diff empty`, in
+that order — a clean tree at an arbitrary instant is not evidence about the final tree.
+
+### TWO GENUINE MEMBERS THE WORKLIST DOES NOT CARRY — convert by hand
+Both are 2 FILES holding 4 executed pins. Counting sites in source is not counting the assertions
+that run, and this class hides arms behind loops and helpers.
+  - `1253`, its `deepEqual` at line 305 — expected side is a computed local `expected`, not a const.
+    ⚠ **The scan DOES report this one, by name, in its unresolved list**, which is what that list is
+    for; it is absent from the WORKLIST, not from the output. Saying "no selector reaches it" was
+    wrong. It is ONE textual assertion driven twice by a loop over `[LIVE_POINT,
+    EXCLUDED_QUEUEING]` and `[TEARDOWN_POINT, EXCLUDED_TEARDOWN]` — one edit fixes both arms, but
+    both must be re-run.
+  - `2bef`, its two `deepEqual` calls opening at lines 304 and 309 —
+    `moved(r.movedRegs.arrived)` against `moved(new Set([…]))`, and the same for `.turning`. The
+    expected side is a CALL wrapping a Set literal, so no array ever appears in source position and
+    no regex over the expected side will ever find these. ⚠ **But the scan DOES print
+    `equivalence-2bef.test.js:304` in its unresolved list**, and 304 is the exact opening line of
+    the first pin — only the resolved identifier (`CORPUS_FRAMES`) is a swallow artifact. So the
+    output names the file AND the line for both of these; what it cannot do is CLASSIFY them.
+    Round 2 blocked this same over-specific claim about `1253`; the repair fixed `1253` and made
+    the identical claim about `2bef` two lines later.
+
 ### ★ THE DEFECT IS DEMONSTRATED, not argued — run on `equivalence-3e63` before any edit
     CONTROL, gate untouched .................................. 8 pass, 0 fail
     ARM, module IMPROVED to also preserve the accumulator .... 7 pass, 1 FAIL
@@ -169,9 +330,11 @@ is gone for these 26 from the moment they commit, so the replacement has to arri
 
 ## OPEN ITEMS — this file is the campaign's tracking document, so they live here, not in a review
 
-  - **94 gates still carry the defect.** Roughly four more units at this batch size. Per-unit
-    pre-flight is now known: run the argument-aware scan AND the symptom count, and reconcile them
-    before presenting. A unit whose two numbers disagree is not ready.
+  - **73 pins at the head of batch 3, 47 after it lands**, plus 4 executed pins in 2 files the
+    worklist does not carry — pins throughout, never files; measured
+    at the head of batch 3, superseding the 94 recorded after batch 1 and the 66 carried in the
+    handoff. Per-unit pre-flight: run `scan-inverted-gates.py`, which does both counts, and
+    reconcile them before presenting. A unit whose two numbers disagree is not ready.
   - **`equivalence-43e8` pins to `["f"]`** -- structural-looking but with no SP, so the
     "cannot shrink" exemption does not reach it. IN SCOPE, unfixed.
   - **`equivalence-0f11`** is the first live instance of the guarantee this sweep gives up: `h` sits
@@ -182,6 +345,27 @@ is gone for these 26 from the moment they commit, so the replacement has to arri
     SHAPE and not its assertion. Each needs its own mutation test. Not a rider on a mechanical batch.
   - **`equivalence-0365`'s allowed set is every main register**, so its arm keeps teeth only on ix,
     iy and the shadow set -- 10 of REG_FIELDS' 19. Its header says so. Flagged, not narrowed.
+  - **`equivalence-0ce8` is PERMANENTLY DECLINED**, not an oversight in any batch. Its set is built
+    by corrupting a register AFTER calling the oracle, so the candidate never appears and it
+    measures the instrument's sensitivity rather than the rewrite's divergence; the subset form is
+    blind to it collapsing to empty, reachable because `replay` catches and returns `forked: true`.
+    Batch 1 demonstrated it: exact pin 1 FAIL, subset form 15 pass / 0 fail.
+    ★ **A WORKLIST REGENERATED FROM THE CODE HAS NO MEMORY OF THE JUDGEMENTS MADE ABOUT THE CODE.**
+    Batch 2's generator matched on shape, and this gate has the shape, so it was re-emitted and
+    pulled out by hand.
+    ⚠ **THE HAZARD INVERTED IN BATCH 3 AND THE INSTRUCTION IS NOW A NO-OP.** `scan-inverted-gates.py`
+    does NOT re-emit it: its measured side is named `surviving` and its message reads "the set of
+    unmeasurable registers moved", so it matches neither the divergence-LHS selector nor the
+    message selector. It is now SILENTLY ABSENT. A future batch that follows the old instruction
+    will "pull it out", find nothing, and have no way to tell that from having pulled it out --
+    an absence that looks identical whether the judgement was honoured or the scan simply went
+    blind. ⇒ **Assert the absence is the intended one: grep 0ce8 in the WORKLIST and expect zero
+    BECAUSE of the named selector miss, not because the gate is gone.**
+    ⚠ Scope that to the worklist, because `0ce8` DOES appear in the scan's output — two different
+    assertions in the one file. Line 399 (`surviving`, the declined pin) is missed by both
+    selectors and is the silent absence. Line 355 (`[EXCLUDED]`, a structural pin) is REPORTED in
+    the unresolved list as of this batch. A reader who greps the whole output gets a hit and may
+    conclude the declined gate was found.
 
 ## ★ THE DEFECT HAS A SECOND FORM, ONE LEVEL UP — found by batch 2, swept for the class
 
@@ -210,7 +394,7 @@ The two it did find:
 The other 13 are not this class and must not be swept up with it:
   - `MAY_MOVE.includes(k)` inside a loop over the registers that actually moved (181e, 3deb, 3e6c)
     is the SUBSET FORM ALREADY DONE RIGHT — these gates were never inverted.
-  - `WRITTEN.includes(d.addr)`, `CELLS.includes(d.addr)` (1a9a:199), `SLOTS.includes(...)` x2,
+  - `WRITTEN.includes(d.addr)` x2, `CELLS.includes(d.addr)` (1a9a:199), `SLOTS.includes(...)` x2,
     `RECORDS.includes(...)`, `ERAS.includes(LAST_ERA)`, `HOSTILE_FILLS.includes(0x00)` x2 and
     `CALLER_TABLES.includes(t)` are positive controls and vacuity guards over cells, slots and
     eras — the good pattern. Ten, with the three `MAY_MOVE` above making thirteen.
@@ -248,6 +432,33 @@ obstruction.
 at HEAD, which IS proof each listed register moved. That is the guarantee being spent, and it is
 worth recording per batch that none of these was padded when it was converted.
 
+### R36 items named by batch 3 — the WIDE sets, ranked by what teeth remain
+All 26 batch-3 sets were verified tight at conversion: each gate's exact pin was green at HEAD,
+which is proof every register listed really did move. None is padded. But tight is not narrow, and
+`REG_FIELDS` has 19 names, so the number worth reading is what is still WATCHED:
+
+    13cc   set 14   teeth  5  (ix, iy, a_, f_, b_)   ★ the widest gate in the campaign so far
+    0809   set 10   teeth  9
+    33b8   set  7   teeth 12    3252  set 7  teeth 12    339c  set 7  teeth 12
+    2bb4   set  7   teeth 12    2a47  set 7  teeth 12
+
+⚠ **An earlier draft named only `3252`, `2bb4` and `339c` and missed the two widest.** Batch 1 put
+`0365` in OPEN ITEMS for keeping teeth on 10 of 19; `13cc` keeps teeth on 5 of 19 and was not
+mentioned at all. R36 hands tightness from the assertion to the reviewer — this list IS the
+hand-off, so omitting its largest members is the one way to break it.
+`13cc` is wide but justified rather than lazy: its rewrite writes no register at all while the
+oracle works through the alternate bank via `EXX`, and `b_` sits OUTSIDE the set, which is exactly
+the discrimination padding would have destroyed. `339c` likewise excludes `l` and not `h`.
+
+### SIX of the batch-3 gates pin a UNION, not a single-entry measurement
+`0809`, `2b83` (its CORPUS arm), `303e`, `304d`, `308a`, `3e05` accumulate `moved` across a loop, so
+"tight" means each member moved SOMEWHERE in the corpus, not at every entry. That was already true
+of these arms before conversion and the conversion preserves it exactly — but it is a weaker
+guarantee than the single-entry arms carry, and the difference is invisible in the diff. `2b83` sits
+in BOTH camps — it has one union pin and one single-entry pin — so these do not partition the
+twenty-five gates and no "the other N" figure is available here.
+⚠ An earlier draft said two. Six is the measured answer.
+
 ### ★★ A MUTATION ARM PLACED BEFORE THE CODE THAT REWRITES THE REGISTER PROVES NOTHING
 Found by a batch-2 sweeper on `0f7b`: its first detection arm clobbered `h` at function ENTRY and
 the gate stayed GREEN, because `tableEntry()` overwrites HL further down. The arm was measuring a
@@ -269,12 +480,3 @@ move". So the pin is removed and the measured union is REPORTED in the arm's log
 (`assert.deepEqual(widened, [], …)`). Only the measurement that can no longer be asserted became a
 report, and the log shows it equals EXCLUDED, so that gate's set is demonstrably tight on the record.
 
-  - **`equivalence-0ce8` is PERMANENTLY DECLINED**, not an oversight in any batch. Its set is built
-    by corrupting a register AFTER calling the oracle, so the candidate never appears and it
-    measures the instrument's sensitivity rather than the rewrite's divergence; the subset form is
-    blind to it collapsing to empty, reachable because `replay` catches and returns `forked: true`.
-    Batch 1 demonstrated it: exact pin 1 FAIL, subset form 15 pass / 0 fail.
-    ★ **THE WORKLIST GENERATOR CANNOT SEE THAT AND RE-EMITS IT EVERY BATCH.** The scan matches on
-    shape and this gate has the shape. It was regenerated into batch 2 and pulled out by hand;
-    every future batch must pull it out again. A worklist regenerated from the code has no memory
-    of the judgement calls made about the code.

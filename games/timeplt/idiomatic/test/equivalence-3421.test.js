@@ -9,7 +9,8 @@
  *      whole-state-dump comparison outside the scratch window.
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, pinned to [SP-2, SP): the oracle pushes one
  *      return address for the table lookup it delegates. Every arm asserts nothing escapes it.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {a, f, sp}. The
+ *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, sp} — a register
+ *      outside that set diverging fails the arm; a rewrite that diverges on fewer does not. The
  *      accumulator is in that set because the painter this entry hands over to leaves the run's
  *      terminating code there and the rewrite of that painter does not model it; both cursors
  *      the painter leaves ARE reproduced and compared.
@@ -185,8 +186,9 @@ test("EXCLUDED, deliberately: the accumulator, the flag byte, sp, pc and one pus
   const b = entry.clone();
   oracle(a);
   drawCaptionFivePastSharedColour(b);
-  assert.deepEqual(REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]), EXCLUDED,
-    "the excluded register set changed shape");
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.deepEqual(allDiffs(a, b).filter((d) => !inScratch(d.addr, sp)), [],
     "a divergence escaped the scratch window");

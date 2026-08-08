@@ -11,8 +11,9 @@
  *      lookup with a pushed return address and that lookup pushes again. Every arm walks the whole
  *      dump and asserts nothing escapes the window.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement. The two
- *      bytes the lookup leaves behind are NOT in it: the rewrite reproduces them.
+ *   4. EXCLUDED, deliberately — a declared set that BOUNDS which registers may differ: nothing
+ *      outside it may move, and a rewrite that moves fewer of them still passes. The two bytes the
+ *      lookup leaves behind are NOT in it: the rewrite reproduces them.
  *   5. CORPUS — every dispatch of a 2000-frame attract session replayed on a clone.
  *   6. EXHAUSTIVE — all 256 headings crossed with both halves of the bank flip, crafted onto the
  *      real entry state, which is the only arm that covers the whole circle.
@@ -199,16 +200,14 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   refreshSecondEraSpriteFromHeading(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.ok(!EXCLUDED.includes("b") && !EXCLUDED.includes("c"), "the lookup's pair must agree");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });

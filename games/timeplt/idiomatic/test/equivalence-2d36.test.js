@@ -9,8 +9,10 @@
  *      the two return addresses the original brackets its two calls with. Every arm PINS that
  *      window by walking the whole dump, so it cannot quietly widen.
  *   2. NOT VACUOUS — a no-op candidate fails the same masked diff on a real cell.
- *   3. EXCLUDED, deliberately, pinned to an exact set. The two cursors are NOT in it: they are
- *      live-outs, both stepped twice between the placement and the final step.
+ *   3. EXCLUDED, deliberately, BOUNDED by a measured set rather than pinned to it: a register
+ *      outside the set fails, a register that stops diverging does not. The two cursors are NOT
+ *      in the set — they are live-outs, both stepped twice between the placement and the final
+ *      step — so either of them left behind still fails here.
  *   4. CORPUS — every dispatch the tape produces, one at a time.
  *   5. CRAFTED CROSS — both displacement cells and all four coordinate bytes forced identically on
  *      both arms, over displacements that carry, wrap and change sign.
@@ -304,11 +306,9 @@ test("EXCLUDED, deliberately: scratch registers and pc, but NOT the two cursors"
   const b = entryState().clone();
   oracle(a);
   driftTwoTileSceneryAtThreeQuarters(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape: both cursors are live-outs and must agree",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc, plus ${SCRATCH_BYTES} scratch bytes`);
 });

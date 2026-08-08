@@ -12,9 +12,10 @@
  *   flags and the two colour cells, a whole-machine replay, and teeth.
  *   1. EQUAL at the real dispatch — the whole dump identical, stack scratch included.
  *   2. NOT VACUOUS — a no-op candidate fails the same diff.
- *   3. EXCLUDED, deliberately, pinned to an exact set. It includes the ALTERNATE register set,
- *      which the original swaps in to hold its row counter; the whole-machine arm is what says
- *      that is dead rather than merely unread here.
+ *   3. EXCLUDED, deliberately — the declared set BOUNDS the divergence rather than measuring it:
+ *      nothing outside it may move, and a rewrite that moves fewer of them still passes. It
+ *      includes the ALTERNATE register set, which the original swaps in to hold its row counter;
+ *      the whole-machine arm is what says that is dead rather than merely unread here.
  *   4. CORPUS — every dispatch the poked run produces.
  *   5. CRAFTED CROSS — both flags against a spread of colour bytes. REAL PLAY PRESENTS ONE CORNER
  *      OF THIS: the corpus arm asserts that every dispatch arrives with the same flags and the
@@ -288,11 +289,9 @@ test("EXCLUDED, deliberately: the alternate register set, the scratch registers 
   const b = entryState().clone();
   oracle(a);
   loc_13cc(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc`);
 });

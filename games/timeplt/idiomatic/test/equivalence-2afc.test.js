@@ -18,9 +18,11 @@
  *
  *   1. EQUAL at the real dispatch — RAM identical outside the dead stack bytes.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS that same diff, so RAM really is the gate.
- *   3. EXCLUDED, DELIBERATELY — the register file differs in exactly {a, f, d, e, l, sp} and pc,
- *      asserted as a set. Those are dead: this entry's one caller loads its own values into every
- *      one of them before reading any of them again, and the whole-machine arm is what holds it.
+ *   3. EXCLUDED, DELIBERATELY — the register file may differ only inside {a, f, d, e, l, sp}, and
+ *      pc. The set is a BOUND, not a measurement: nothing outside it may move, and a rewrite that
+ *      moves fewer of them still passes. Those are dead: this entry's one caller loads its own
+ *      values into every one of them before reading any of them again, and the whole-machine arm
+ *      is what holds it.
  *   4. CORPUS — every dispatch replayed, with the dispatch count and the sector spread asserted.
  *   5. EXHAUSTIVE — all 256 headings on a real entry, which covers every sector and both sides of
  *      the rounding step, including the wrap that closes the circle.
@@ -291,11 +293,9 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const b = entryState().clone();
   oracle(a);
   loc_2afc(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 

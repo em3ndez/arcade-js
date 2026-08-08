@@ -19,8 +19,10 @@
  *   4. CORPUS — every distinct displacement three tapes produce, each replayed from its own
  *      captured machine: the shared coin -> start tape, the same tape with the stick walked round
  *      the compass, and undriven attract.
- *   5. EXCLUDED — across a whole sweep the registers that move are exactly {f, b, c, sp} and the
- *      live-out never moves. What licenses dropping them is the CALLER: it reloads the scratch
+ *   5. EXCLUDED — across a whole sweep no register outside {f, b, c, sp} moves, and the
+ *      live-out never moves. The arm BOUNDS the moved set rather than pinning it: a register
+ *      outside the set fails, a register that stops moving does not, since a rewrite that drops
+ *      one is strictly better. What licenses dropping them is the CALLER: it reloads the scratch
  *      pair from memory before its second use of this routine and branches on no flag, and the
  *      stack pointer differs only because the oracle takes the Z80 return. Test 8 is the
  *      falsifiable version.
@@ -317,12 +319,8 @@ test("EXCLUDED, deliberately: only the dropped registers move, over a whole swee
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   }
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => moved.has(k)),
-    EXCLUDED,
-    "the excluded set changed shape: only the flag byte, the scratch pair the shift runs in " +
-      "and the stack pointer may differ",
-  );
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   for (const k of LIVE_OUT) assert.ok(!moved.has(k), `the live-out ${k} moved somewhere`);
   console.log(`  EXCLUDED: ${[...moved].join(", ")} and pc — the moved coordinate matches`);
 });

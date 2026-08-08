@@ -56,6 +56,13 @@ const SCRATCH_BYTES = 4;
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 788;
 
+/**
+ * The registers allowed to diverge. A BOUND, not an exact list: a register that diverges outside
+ * this set fails the arm below, and a rewrite that diverges on fewer of them still passes. The two
+ * cursors are live-outs and are deliberately absent, so they can never be excused by this set.
+ */
+const EXCLUDED = ["a", "f", "b", "c", "e", "sp"];
+
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr)}: oracle=${d.a} candidate=${d.b}` : "identical");
@@ -160,11 +167,9 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
     allDiffs(a, b).length > 0,
     "nothing differs at all, so the scratch exclusion is buying nothing and should be dropped",
   );
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "b", "c", "e", "sp"],
-    "the excluded set changed shape: the two cursors are live-outs and must NOT be in here",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(
     `  EQUAL: record ${hex4(entry.regs.ix)}, entry ${hex4(entry.regs.iy)}, sp ${hex4(sp)}`,
   );

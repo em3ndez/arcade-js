@@ -8,7 +8,8 @@
  *   1. EQUAL at the real dispatch — the whole dump identical, stack scratch included.
  *   2. VACUITY, MEASURED — a no-op is invisible at ABOUT HALF the real dispatches, because the
  *      four bytes often already hold what this writes. The exact count is asserted.
- *   3. EXCLUDED, deliberately, pinned to an exact set.
+ *   3. EXCLUDED, deliberately, bounded by a declared set — a register outside it diverging fails
+ *      the arm, and a rewrite that diverges on fewer of them passes.
  *   4. CORPUS — every dispatch the attract run produces, with the shapes it presented.
  *   5. EXHAUSTIVE — 256 headings against every stage value and both counter bits.
  *   6. THE SWAP HAPPENS AT THE HALF TURN — the heading at which the two shape codes change ends is
@@ -275,11 +276,9 @@ test("EXCLUDED, deliberately: scratch registers, the stack pointer and pc", { sk
   const b = entryState().clone();
   oracle(a);
   mirrorTwoTileObjectByHeading(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc`);
 });

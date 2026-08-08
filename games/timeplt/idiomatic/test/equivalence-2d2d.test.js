@@ -19,7 +19,9 @@
  *   2. NOT VACUOUS — an empty candidate FAILS the same masked comparison.
  *   3. CORPUS — every captured sibling entry replayed, so the comparison runs over many real
  *      slots and many real scroll displacements rather than one.
- *   4. EXCLUDED — the register divergence pinned to a measured set.
+ *   4. EXCLUDED — the register divergence BOUNDED by a measured set: a register outside it
+ *      fails, and the two cursors are outside it, so a cursor left behind fails here too. A
+ *      register that stops diverging does not, because a rewrite that drops one is better.
  *   5. CURSORS — the two cursors are a live-out, compared explicitly, and the arm asserts the
  *      distance they move, which is what makes this a TWO-slot step rather than a one-slot one.
  *   6. TEETH — six twins, each caught on an exact count of the captured entries. The two that
@@ -228,11 +230,9 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch pushes", { skip 
   const b = a.clone();
   oracle(a);
   stepTwoTileSceneryAtFiveQuarters(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the two cursors are live-outs and must not appear here",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });

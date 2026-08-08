@@ -26,9 +26,10 @@
  *
  *   1. BLIND — a no-op passes the RAM diff, so RAM cannot be this gate.
  *   2. EQUAL at the real dispatch — carry and the returned boolean, with the registers allowed to
- *      differ pinned to exactly {a, f, sp}. The stack pointer is in that set because the layer
- *      models no stack: the frozen routine takes the return its caller pushed and the rewrite does
- *      not.
+ *      differ bounded by {a, f, sp}: a register outside that set diverging fails the arm, and a
+ *      rewrite that diverges on fewer of them passes. The stack pointer is in that set because the
+ *      layer models no stack: the frozen routine takes the return its caller pushed and the
+ *      rewrite does not.
  *   3. NO DRIVEN TAPE REACHES IT — the two zeroes above, asserted.
  *   4. DEGENERATE ENTRY AND DEGENERATE CORPUS — the captured entry answers false, and so does
  *      every other dispatch; one record base and one era occur. Doubling the entry budget captures
@@ -361,7 +362,7 @@ test("BLIND: RAM is a TAUTOLOGY here — a bare no-op passes it too", { skip }, 
   console.log("  BLIND: the RAM diff is identical for a no-op — carry is the only gate");
 });
 
-test("EQUAL at the real dispatch: carry and the returned boolean, excluded set pinned", { skip }, () => {
+test("EQUAL at the real dispatch: carry and the returned boolean, excluded set bounded", { skip }, () => {
   const r = gate(loc_3ce1);
   assert.notEqual(entry, null, "vacuous: the attract run never reached the routine");
   assert.equal(r.ram, null, "RAM diverged");
@@ -373,12 +374,9 @@ test("EQUAL at the real dispatch: carry and the returned boolean, excluded set p
 
   assert.equal(b.regs.fC, a.regs.fC, "the carry live-out");
   assert.equal(answer, a.regs.fC, "the returned boolean must mirror the carry");
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack pointer " +
-      "may differ",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle takes its return; the rewrite does not");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(

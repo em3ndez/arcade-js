@@ -18,8 +18,10 @@
  *
  *   1. EQUAL at the real dispatch — RAM byte-identical.
  *   2. NOT VACUOUS — a no-op FAILS that same diff.
- *   3. EXCLUDED — over the crafted cross the registers that move are exactly the scratch set, and
- *      the two cursors the caller relies on are checked as live-outs rather than excluded.
+ *   3. EXCLUDED — over the crafted cross nothing outside the scratch set moves. The set is an
+ *      upper BOUND on the divergence, not a measurement of it: a rewrite that leaves fewer of
+ *      those registers dirty is strictly better and still passes. The two cursors the caller
+ *      relies on are checked as live-outs rather than excluded.
  *   4. UNIFORM CORPUS — which sessions reach this entry and how many sprite bases they present.
  *   5. CORPUS — every dispatch of three sessions.
  *   6. EXHAUSTIVE — the low byte swept 0..255 against a fixed high byte, then the reverse.
@@ -332,7 +334,8 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     for (const k of LIVE_OUT) assert.equal(a.regs[k], b.regs[k], `live-out ${k}`);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
 });
 
 test("UNIFORM CORPUS: which sessions reach this entry, and with what", { skip }, () => {

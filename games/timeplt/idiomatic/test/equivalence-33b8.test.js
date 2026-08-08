@@ -17,9 +17,12 @@
  *   1. EQUAL at the real dispatch — identical outside the window, and the answer identical.
  *   2. RAM IS BLIND — measured with a twin that answers one out and moves no byte.
  *   3. CORPUS — every dispatch of a driven and an undriven session, counts asserted.
- *   4. EXCLUDED — the register divergence pinned to a measured set. The ALTERNATE accumulator is
- *      in it deliberately: the frozen routine parks a copy of one leg there and nothing reads it
- *      back, so the rewrite drops the copy.
+ *   4. EXCLUDED — the register divergence BOUNDED by a declared set rather than pinned to it:
+ *      nothing outside the set may move, and a rewrite that leaves fewer of those registers dirty
+ *      is strictly better and still passes. The accumulator holding the heading is OUTSIDE the
+ *      set, so the live-out still cannot move. The ALTERNATE accumulator is inside it
+ *      deliberately: the frozen routine parks a copy of one leg there and nothing reads it back,
+ *      so the rewrite drops the copy — but the rest of the alternate bank stays watched.
  *   5. EXHAUSTIVE — the input space is two coordinate bytes of the object against two of the
  *      point, but only the DIFFERENCES matter, so it is covered by fixing each of the object's
  *      coordinates at both ends of its range and sweeping both of the point's over 0..255: every
@@ -325,11 +328,9 @@ test("EXCLUDED, deliberately: registers and pc, the alternate accumulator among 
   const b = entryState().clone();
   oracle(a);
   headingToward(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the heading is the live-out and must not appear here",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });

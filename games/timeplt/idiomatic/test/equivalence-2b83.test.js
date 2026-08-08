@@ -16,9 +16,11 @@
  *
  * What it exercises:
  *   1. EQUAL at the real dispatch — RAM identical, carry identical, and the registers allowed to
- *      differ pinned to exactly {a, f, sp} so "excluded" cannot quietly widen. The stack pointer
- *      is in that set because the layer models no stack: the frozen routine pops the return
- *      address a register-passing caller pushed and the rewrite, correctly, does not.
+ *      differ BOUNDED by {a, f, sp}: any register that diverges outside that set fails the arm,
+ *      so "excluded" cannot quietly widen, while a rewrite that diverges on FEWER of them still
+ *      passes. The stack pointer is in that set because the layer models no stack: the frozen
+ *      routine pops the return address a register-passing caller pushed and the rewrite,
+ *      correctly, does not.
  *   2. CORPUS — every dispatch of a long driven run, the candidate on a clone taken at the
  *      dispatch and the frozen routine on the live machine it came from. The run is longer than
  *      ENTRY_FRAMES on purpose: entering the routine takes far fewer frames than exercising it,
@@ -187,7 +189,7 @@ test("BLIND: RAM is a TAUTOLOGY here — a bare no-op passes it too", { skip }, 
   console.log("  BLIND: unitEquivalence ram === null for a no-op — RAM cannot be the gate");
 });
 
-test("EQUAL at the real dispatch: RAM and carry, with the excluded set pinned", { skip }, () => {
+test("EQUAL at the real dispatch: RAM and carry, with the excluded set bounded", { skip }, () => {
   const r = gate(hasReachedRetireLine);
   assert.equal(r.ram, null, "RAM diverged");
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
@@ -199,12 +201,9 @@ test("EQUAL at the real dispatch: RAM and carry, with the excluded set pinned", 
 
   assert.equal(b.regs.fC, a.regs.fC, "the carry live-out");
   assert.equal(answer, a.regs.fC, "the returned boolean must mirror the carry");
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack " +
-      "pointer may differ",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EQUAL: carry=${a.regs.fC}; only ${EXCLUDED.join(", ")} differ`);
 });
 
@@ -212,7 +211,8 @@ test("CORPUS: every real dispatch of a driven run agrees", { skip }, () => {
   const r = corpus(hasReachedRetireLine);
   assert.ok(r.dispatches > 0, "vacuous: the routine never dispatched");
   assert.equal(r.caught, 0, `${r.caught} of ${r.dispatches} real dispatches disagreed`);
-  assert.deepEqual(r.moved, EXCLUDED, "the excluded set must not widen across the corpus");
+  const unexpected = r.moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.deepEqual(r.leaks, [2], "the stack difference must be the one unpopped return address");
   console.log(
     `  CORPUS: ${r.dispatches} dispatches over ${CORPUS_FRAMES} frames, ${r.retires} answered ` +

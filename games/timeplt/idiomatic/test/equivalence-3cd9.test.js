@@ -18,7 +18,8 @@
  *      only thing holding this routine to its answer.
  *   3. CORPUS — every dispatch of the UNDRIVEN session. The driven tape never reaches this
  *      routine, which is asserted, and is why the corpus is taken from attract.
- *   4. EXCLUDED — the register divergence pinned to a measured set.
+ *   4. EXCLUDED — the register divergence bounded by a measured set: anything outside it fails,
+ *      and a rewrite that diverges on fewer of them passes.
  *   5. EXHAUSTIVE — the whole input space is the two coordinate bytes of one sprite entry:
  *      all 65536 pairs, comparing the carry the frozen routine leaves against the carry AND the
  *      returned boolean. Both windows are covered, including the one the second test owns.
@@ -310,11 +311,9 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const b = entryState().clone();
   oracle(a);
   hasDriftedOffTheField(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — the carry inside f is compared apart`);
 });

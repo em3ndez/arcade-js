@@ -15,7 +15,9 @@
  * What it exercises, holes stated:
  *   1. UNREACHED — measured on both sessions and on all three callers, not assumed.
  *   2. NOT VACUOUS — an empty candidate FAILS the crafted comparison, from poisoned destinations.
- *   3. EXCLUDED — the register divergence pinned to a measured set.
+ *   3. EXCLUDED — the register divergence BOUNDED by a declared set rather than pinned to it:
+ *      nothing outside the set may move, and a rewrite that leaves fewer of those registers
+ *      dirty is strictly better and still passes.
  *   4. EXHAUSTIVE — the whole input space is three bytes, and all of it is swept: three states of
  *      the player-up flag against every one of 256 index values, with the OTHER player's index
  *      set to a different value at each point so a routine that read the wrong one is visible.
@@ -241,11 +243,9 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch push", { skip },
   const b = a.clone();
   oracle(a);
   setSavedPenFromEra(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });

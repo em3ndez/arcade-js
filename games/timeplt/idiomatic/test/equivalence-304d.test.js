@@ -12,8 +12,9 @@
  *   routine, at two sites, and each site does the same three things afterwards: it stores the two
  *   halves of the result to memory, reloads the scratch pair from memory before the next use, and
  *   branches on no flag. So {h, l} is the whole contract and {f, b, c} are dead; the stack pointer
- *   differs only because the oracle takes the Z80 return. Test 5 pins that set by name and test 8
- *   is the falsifiable version — a register a caller really consumed would fork the whole machine.
+ *   differs only because the oracle takes the Z80 return. Test 5 bounds the divergence to that set
+ *   and test 8 is the falsifiable version — a register a caller really consumed would fork the
+ *   whole machine.
  *
  * What it exercises, holes stated:
  *   1. CONTRACT — unitEquivalence at the first real dispatch: RAM identical. `equal` is not
@@ -26,8 +27,9 @@
  *   4. CORPUS — every distinct displacement three tapes produce, each replayed from its own
  *      captured machine: the shared coin -> start tape, the same tape with the stick walked round
  *      the compass, and undriven attract.
- *   5. EXCLUDED — across a whole sweep the registers that move are exactly {f, b, c, sp} and the
- *      live-out never moves.
+ *   5. EXCLUDED — across a whole sweep nothing outside {f, b, c, sp} moves, and the live-out never
+ *      moves. The set is an upper BOUND on the divergence, not a measurement of it: a rewrite that
+ *      leaves fewer of those registers dirty is strictly better and still passes.
  *   6. EXHAUSTIVE — both inputs swept over all 65536 values, the displacement against a real
  *      coordinate and the coordinate against a real NEGATIVE ODD displacement. Both adjectives
  *      earn their place: sign splits the space in half, and only an odd displacement can show
@@ -336,12 +338,8 @@ test("EXCLUDED, deliberately: only the dropped registers move, over a whole swee
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   }
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => moved.has(k)),
-    EXCLUDED,
-    "the excluded set changed shape: only the flag byte, the scratch pair the shift runs in " +
-      "and the stack pointer may differ",
-  );
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   for (const k of LIVE_OUT) assert.ok(!moved.has(k), `the live-out ${k} moved somewhere`);
   console.log(`  EXCLUDED: ${[...moved].join(", ")} and pc — the moved coordinate matches`);
 });

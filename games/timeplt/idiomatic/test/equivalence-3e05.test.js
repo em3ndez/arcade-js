@@ -14,9 +14,10 @@
  *   1. EQUAL at the real dispatch — RAM byte-identical across the whole state dump.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS that same diff at that same dispatch, so
  *      RAM really is the gate here.
- *   3. EXCLUDED, deliberately — registers and pc, pinned to a fixed shape over the whole crafted
- *      cross rather than at one entry, so "excluded" cannot quietly widen. The four written bytes
- *      are asserted equal on every one of those entries.
+ *   3. EXCLUDED, deliberately — registers and pc, bounded by a declared set over the whole crafted
+ *      cross rather than at one entry, so "excluded" cannot quietly widen; a rewrite that diverges
+ *      on fewer of them passes, and the registers the callers rely on are held separately. The
+ *      four written bytes are asserted equal on every one of those entries.
  *   4. UNIFORM CORPUS — what real play actually presents at this entry: the record bases, the
  *      sprite bases, and how often either displacement cell is non-zero. Asserted as counts, so a
  *      move is a finding rather than a silent change of coverage.
@@ -345,12 +346,8 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     for (const at of WRITTEN) assert.equal(a.mem8[at(a)], b.mem8[at(b)], `live-out ${hex4(at(a))}`);
   }
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => moved.has(k)),
-    MOVED,
-    "the excluded set changed shape: nothing beyond the scratch registers and the stack " +
-      "pointer may differ",
-  );
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   for (const k of HELD) assert.ok(!moved.has(k), `a register the callers rely on moved (${k})`);
   console.log(`  EXCLUDED: ${[...moved].join(", ")} and pc, over ${cross().length} crafted entries`);
 });

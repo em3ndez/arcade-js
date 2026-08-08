@@ -13,7 +13,9 @@
  *   patching the guarded span at both ends and in the middle, a whole-machine replay, and teeth.
  *   1. EQUAL at the real dispatch — the whole dump identical, stack scratch included.
  *   2. NOT VACUOUS — a no-op candidate fails the same diff.
- *   3. EXCLUDED, deliberately, pinned to an exact set.
+ *   3. EXCLUDED, deliberately — the register divergence BOUNDED by a declared set rather than
+ *      pinned to it: nothing outside the set may move, and a rewrite that leaves fewer of those
+ *      registers dirty is strictly better and still passes.
  *   4. CORPUS — the dispatch the attract run produces.
  *   5. THE GUARD IS SATISFIED — the fold over the span is measured and the sum with the constant
  *      asserted to be zero, which is what makes the other arm unreachable rather than merely
@@ -220,11 +222,9 @@ test("EXCLUDED, deliberately: scratch registers, the stack pointer and pc", { sk
   const b = entryState().clone();
   oracle(a);
   guardBlockOrDerailSequence(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc`);
 });
