@@ -15,8 +15,9 @@
  *      address pair, so the two popped bytes below the stack pointer can hold that pair; the
  *      rewrite models no stack. The window is exactly [SP-2, SP) and every arm PINS it — each
  *      walks the whole dump and asserts no divergence escapes it, so it cannot quietly widen.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {a, f, sp}. The command
- *      pair is NOT in that set: it is a live-out, see 7.
+ *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, sp} — a register outside
+ *      that set fails, a rewrite that clobbers fewer of them does not. The command pair is NOT in
+ *      that set: it is a live-out, see 7.
  *   4. UNIFORM CORPUS, AND THIS ONE REALLY IS UNIFORM. Every dispatch of all three tapes presents
  *      a FREE ring cell, one guard byte, and seventeen even cursors that never reach the last
  *      slot. So the DROP branch and the ring WRAP never happen on real data at this entry, and
@@ -436,17 +437,19 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing outside", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   loc_0b46(b);
 
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack pointer " +
-      "may differ — the command pair is a live-out and the address pair is push/pop balanced",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged: only the accumulator, the flag byte " +
+      "and the stack pointer may differ — the command pair is a live-out and the address pair " +
+      "is push/pop balanced",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.sp - b.regs.sp, SCRATCH_BYTES, "the oracle returns; the rewrite does not");

@@ -18,7 +18,8 @@
  *      ROUTINE, which is asserted rather than passed over, because it is what makes the tape
  *      load-bearing here.
  *   4. LIVE-OUT — the shape left in the accumulator is compared as well as the two slots.
- *   5. EXCLUDED — the register divergence pinned to a measured set.
+ *   5. EXCLUDED — the register divergence BOUNDED by a declared set: nothing outside it may move,
+ *      and a rewrite that clobbers fewer of them stays green.
  *   6. EXHAUSTIVE — the whole input space is the heading byte and the one counter bit that
  *      chooses between the two shape banks: 256 headings against both parities, and the two
  *      target slots pre-loaded with a value the correct answer never leaves, so every point
@@ -279,11 +280,13 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch pushes", { skip 
   const b = entryState().clone();
   oracle(a);
   refreshSpriteFromHeading(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the shape and the mirroring byte are live-outs and must " +
-      "not appear here",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: the shape and the mirroring byte are " +
+      "live-outs and must not appear here",
   );
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

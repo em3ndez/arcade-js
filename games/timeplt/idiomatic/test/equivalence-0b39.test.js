@@ -18,7 +18,8 @@
  *      brackets its work with a push/pop; the rewrite models no stack. Every arm PINS the window:
  *      each walks the whole dump and asserts no divergence escapes it, and the corpus arm asserts
  *      the exact set of offsets that were ever dirty, so it cannot quietly widen.
- *   3. EXCLUDED, DELIBERATELY — the register file differs in exactly {a, f, sp} and pc. The
+ *   3. EXCLUDED, DELIBERATELY — the register file may differ only within {a, f, sp}, plus pc; a
+ *      register outside the set fails and a rewrite that clobbers fewer of them does not. The
  *      command pair is NOT in that set: it is a live-out, compared explicitly.
  *   4. BOTH ARMS ARE REAL — the corpus arm asserts that both parities of the deciding bit occur,
  *      so neither branch is covered only by craft.
@@ -288,16 +289,17 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing outside", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   flashCopyrightLine(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack pointer " +
-      "may differ — the command pair is a live-out and is compared above",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged: only the accumulator, the flag byte " +
+      "and the stack pointer may differ — the command pair is a live-out and is compared above",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

@@ -18,7 +18,8 @@
  *   4. LIVE-OUT — the cursor the painter leaves standing is compared explicitly, because the
  *      caller steps it on twice without reloading it. RAM equality is not blind to it here, and
  *      the arm says so rather than claiming credit it has not earned.
- *   5. EXCLUDED — the register divergence pinned to a measured set.
+ *   5. EXCLUDED — the register divergence bounded by a measured set: one outside it fails, and a
+ *      rewrite that stops clobbering one of them stays green.
  *   6. EXHAUSTIVE — the routine's whole input space is the record index and the colour cell.
  *      Every index the table can be walked to is swept against sixteen colours, and the colour
  *      is swept over its full 0..255 at a fixed index to pin the low-nibble mask.
@@ -320,10 +321,12 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch push", { skip },
   const b = entryState().clone();
   oracle(a);
   drawCaptionInPenColour(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the cursor is a live-out and must not appear here",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged: the cursor is a live-out and must " +
+      "not appear here",
   );
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

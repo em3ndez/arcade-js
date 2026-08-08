@@ -9,8 +9,9 @@
  *      the return address the original brackets its table fetch with and the rewrite models no
  *      stack for. Every arm PINS that window: it walks the whole dump and asserts nothing escapes.
  *   2. NOT VACUOUS — a no-op candidate fails the same masked diff at the real dispatch.
- *   3. EXCLUDED, deliberately, pinned to an exact set. The cursor, the colour and the run pointer
- *      the painting leaves behind are NOT in it — they are live-outs and must agree.
+ *   3. EXCLUDED, deliberately, bounded by a measured set: a register outside it fails, a rewrite
+ *      that clobbers fewer of them does not. The cursor, the colour and the run pointer the
+ *      painting leaves behind are NOT in it — they are live-outs and must agree.
  *   4. CORPUS — every dispatch the attract run produces, with the set of indices it presented.
  *   5. INDEX SWEEP — every index of the pointer table, which is far more than real play uses.
  *   6. WHOLE-MACHINE — the session replayed with the rewrite wired through a measured shim.
@@ -288,10 +289,12 @@ test("EXCLUDED, deliberately: registers and pc, but NOT the three live-outs", { 
   const b = entryState().clone();
   oracle(a);
   drawTextRunByIndex(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape: the cursor, the colour and the run pointer must agree",
+    moved.filter((k) => !MOVED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged: the cursor, the colour and the run " +
+      "pointer must agree",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.sp - b.regs.sp, SCRATCH_BYTES, "the oracle returns; the rewrite does not");

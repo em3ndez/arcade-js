@@ -22,7 +22,8 @@
  *      that BOTH sides fail there, which is what fixes the table's extent.
  *   5. COLOUR SWEEP — all 256 values of the cell the colour follows, which is the only coverage
  *      of both the eight-bit wrap of the bias and the four-bit mask.
- *   6. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {a, f, sp}.
+ *   6. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by {a, f, sp}: a register outside
+ *      that set fails, and a rewrite that clobbers fewer of them stays green.
  *   7. TEETH — eight twins, each asserted caught on exact counts of both sweeps.
  *
  * HOLE: THE ACCUMULATOR IS EXCLUDED. The oracle leaves it holding the code that ends the glyph
@@ -54,6 +55,9 @@ const COLOUR_CYCLE = 0xad0c;
 const COLOUR_BIAS = 10;
 const COLOUR_MASK = 0x0f;
 const SCRATCH_BYTES = 2;
+
+/** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
+const EXCLUDED = ["a", "f", "sp"];
 
 /** The last selector whose record the painter can follow without leaving writable memory. */
 const LAST_SELECTOR = 32;
@@ -243,10 +247,11 @@ test("EXCLUDED, deliberately: the accumulator, the flag byte, the stack pointer 
   const b = e.clone();
   oracle(a);
   drawCaptionTenPastSharedColour(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "sp"],
-    "the excluded set changed shape",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged",
   );
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle returns; the rewrite does not");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");

@@ -49,6 +49,9 @@ const CHARACTER_PLANE_END = 0xa7ff;
 
 const SCRATCH_BYTES = 2;
 
+/** Registers the rewrite may leave diverged: the caller reloads all of these before reading. */
+const EXCLUDED = ["a", "f", "h", "l", "sp"];
+
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 4;
 
@@ -147,10 +150,12 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
     [],
     `a divergence escaped the scratch window — ${show(outsideScratch(a, b, sp)[0])}`,
   );
+  const movedRegs = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "h", "l", "sp"],
-    "the excluded set changed shape: the caller reloads all of these before reading anything",
+    movedRegs.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged: the caller reloads all of the " +
+      "excluded ones before reading anything",
   );
   console.log(
     `  EQUAL: record number ${entry.regs.a}, run at ${hex4(realRecord().runStart)}, sp ${hex4(sp)}`,

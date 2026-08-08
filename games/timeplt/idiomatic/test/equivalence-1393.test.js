@@ -12,7 +12,7 @@
  * What it exercises, holes stated:
  *   1. UNREACHED — measured on both sessions, not assumed.
  *   2. NOT VACUOUS — an empty candidate FAILS the crafted comparison.
- *   3. EXCLUDED — the register divergence pinned to a measured set.
+ *   3. EXCLUDED — nothing outside the measured allowed register set may diverge.
  *   4. EXHAUSTIVE — every one of 256 countdown values against five priors of the attribute byte,
  *      which is the WHOLE of the routine's input space. This is the arm that matters most here,
  *      because the rewrite COLLAPSES a five-armed ladder into one test of one bit: if that
@@ -215,10 +215,12 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () 
   const b = a.clone();
   oracle(a);
   loc_1393(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged",
   );
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

@@ -178,6 +178,103 @@ is gone for these 26 from the moment they commit, so the replacement has to arri
     in its allowed set legitimately, but nothing now records that `h` does not move at the captured
     entry. Deferred deliberately -- it is an evidence judgement, not a conversion, and doing it
     properly means either narrowing the bound to the measured set or building a crafted-carry arm
-    like `018c`'s, each needing its own mutation test. Not a rider on a mechanical batch.
+    like `018c`'s — but 018c's own crafted arm is defective (see the one-step case), so copy its
+    SHAPE and not its assertion. Each needs its own mutation test. Not a rider on a mechanical batch.
   - **`equivalence-0365`'s allowed set is every main register**, so its arm keeps teeth only on ix,
     iy and the shadow set -- 10 of REG_FIELDS' 19. Its header says so. Flagged, not narrowed.
+
+## ★ THE DEFECT HAS A SECOND FORM, ONE LEVEL UP — found by batch 2, swept for the class
+
+A batch-2 sweeper found `equivalence-20af:220`:
+
+    assert.ok(EXCLUDED.includes("ix"), "the dropped index register must stay declared");
+
+Under the exact pin this was a harmless restatement. **Under the subset form it becomes a
+requirement that the allowed set stay WIDE** — the same "gate requires a wart" shape the campaign
+exists to remove, now biting a future author who improves the rewrite to preserve `ix` and then
+tightens the set to match. The conversion does not create it; it promotes it from redundant to
+load-bearing.
+
+Swept the corpus for `assert.ok(<CONST>.includes(...))` — 15 sites, of which TWO are this shape.
+⛔ **THAT SWEEP IS A FLOOR AND WAS WRITTEN AS A COUNT.** It required an UPPERCASE constant on the
+left. Loosened to any left-hand side, `assert.ok(...includes(` has **49** sites, 18 of them
+`assert.ok(moved.includes(...))` — assertions on the MEASURED set rather than the declared one,
+i.e. "this register must still diverge". Seventeen are `moved.includes("sp")`, harmless for the
+same reason `4d2b` is. The eighteenth is WORSE than either case the narrow sweep found.
+The two it did find:
+
+    20af:220   EXCLUDED.includes("ix")   ★ GENUINE. `ix` is a general register; the set CAN tighten.
+    4d2b:282   EXCLUDED.includes("f")    harmless -- nothing models flags, so `f` can never leave
+                                          the set, and the assertion can never obstruct a fix.
+
+The other 13 are not this class and must not be swept up with it:
+  - `MAY_MOVE.includes(k)` inside a loop over the registers that actually moved (181e, 3deb, 3e6c)
+    is the SUBSET FORM ALREADY DONE RIGHT — these gates were never inverted.
+  - `WRITTEN.includes(d.addr)`, `CELLS.includes(d.addr)` (1a9a:199), `SLOTS.includes(...)` x2,
+    `RECORDS.includes(...)`, `ERAS.includes(LAST_ERA)`, `HOSTILE_FILLS.includes(0x00)` x2 and
+    `CALLER_TABLES.includes(t)` are positive controls and vacuity guards over cells, slots and
+    eras — the good pattern. Ten, with the three `MAY_MOVE` above making thirteen.
+
+### ★★ THE ONE-STEP CASE the narrow sweep could not see: `018c:394`
+    const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);   // a oracle, b candidate
+    assert.ok(moved.includes("h"), "the crafted entry did not move the cursor's high byte after all");
+`20af:220` needs TWO steps to bite — improve the rewrite to preserve `ix`, THEN tighten EXCLUDED.
+**This needs one.** A rewrite that leaves `hl` where the oracle leaves it drops `"h"` from `moved`
+and the gate goes RED on the strictly better module: the campaign's own definition of the defect,
+unmediated. It is LIVE — `df35ec6` converted this file's captured-entry pin to the subset form and
+left this arm untouched, so the exact-pin regime that made it redundant is already gone.
+★ **AND THIS FILE POINTED AT IT AS THE REMEDY.** The `0f11` deferral recommends "a crafted-carry
+arm like 018c's". Following that propagates the defect into the fixes. What a vacuity guard must
+assert is that the ORACLE moved `h` — entry state against oracle output — not that oracle and
+candidate disagree on it. Only the first cannot be defeated by an improvement.
+
+⇒ **OPEN ITEMS: `20af:220` (two-step) and `018c:394` (one-step, and the more urgent).** Neither
+fixed in batch 2: removing either is a behaviour change beyond a mechanical conversion, and each is
+the only in-code record that its register is deliberately dropped. Keep the record, remove the
+obstruction.
+
+### R36 items named by batch 2 — allowed sets that are wide or unrecorded, NOT narrowed
+  - `0c39` `[a,f,h,l,sp]` -- `h`/`l` justified only by the file's own prose ("the caller reloads all
+    of these before reading anything"), with no arm recording it. Same shape as the `0f11` deferral.
+  - `07d2` `[f,b,d,e,h,l,sp]` -- seven of nine main registers, so its teeth now cover only `a`, `c`,
+    the index pair and the shadow set. Every name was demonstrably moving under the old exact pin.
+  - `1563` / `158c` `[a,f,b,c,d,e,h,l,sp]` -- every main register. Confirmed GENUINE SIBLINGS from
+    the oracles (0x1563 scatters `ld a,(de) / ld (hl),a`, 0x158c gathers the inverse; same
+    immediates, same `exx` split), so neither borrowed the other's set. Both headers now state what
+    teeth remain (index pair + shadow set, 10 of REG_FIELDS' 19).
+  - Unusually TIGHT rather than padded, noted only because they break the common shape:
+    `01b5` `[a,h,l,sp]` has no `f`; `01c2` `[b,d,e,h,l,sp]` has neither `a` nor `f`.
+★ All 27 batch-2 sets were verified tight at the moment of conversion -- every exact pin was green
+at HEAD, which IS proof each listed register moved. That is the guarantee being spent, and it is
+worth recording per batch that none of these was padded when it was converted.
+
+### ★★ A MUTATION ARM PLACED BEFORE THE CODE THAT REWRITES THE REGISTER PROVES NOTHING
+Found by a batch-2 sweeper on `0f7b`: its first detection arm clobbered `h` at function ENTRY and
+the gate stayed GREEN, because `tableEntry()` overwrites HL further down. The arm was measuring a
+value the routine was going to discard.
+⇒ **CLOBBER AT THE EXIT, not the entry.** A green detection arm is not evidence the subset check is
+too loose until you have shown the clobber survived to the comparison. Carry into every later batch;
+this is the one way a detection arm can report the wrong answer and look correct doing it.
+
+### The one deviation in batch 2, and why it is right — `equivalence-1098`
+Its union pin IS the class construct (the union is candidate-vs-oracle divergence accumulated over
+890 captured states, so a rewrite that stops moving `c` shrinks it and the pin goes red). But the
+file ALREADY carried the subset assertion three lines above, built in the same loop against the
+same set. Converting would have produced a literal duplicate.
+What the union pin uniquely provided was TIGHTNESS -- proof each of {a,f,c,sp} really moved
+somewhere in the corpus -- and that is exactly the guarantee this campaign spends. Tightness and
+improvement are contradictory by construction: "exactly these moved" cannot coexist with "fewer may
+move". So the pin is removed and the measured union is REPORTED in the arm's log instead.
+★ This is NOT "a warning that does not halt": the SAFETY check is untouched and still an assertion
+(`assert.deepEqual(widened, [], …)`). Only the measurement that can no longer be asserted became a
+report, and the log shows it equals EXCLUDED, so that gate's set is demonstrably tight on the record.
+
+  - **`equivalence-0ce8` is PERMANENTLY DECLINED**, not an oversight in any batch. Its set is built
+    by corrupting a register AFTER calling the oracle, so the candidate never appears and it
+    measures the instrument's sensitivity rather than the rewrite's divergence; the subset form is
+    blind to it collapsing to empty, reachable because `replay` catches and returns `forked: true`.
+    Batch 1 demonstrated it: exact pin 1 FAIL, subset form 15 pass / 0 fail.
+    ★ **THE WORKLIST GENERATOR CANNOT SEE THAT AND RE-EMITS IT EVERY BATCH.** The scan matches on
+    shape and this gate has the shape. It was regenerated into batch 2 and pulled out by hand;
+    every future batch must pull it out again. A worklist regenerated from the code has no memory
+    of the judgement calls made about the code.

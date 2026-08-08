@@ -20,7 +20,10 @@
  *   2. EQUAL from the crafted entry — the whole state dump is identical, the stack included: the
  *      routine pushes nothing, so the exclusion window is measured at ZERO bytes and asserted so.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement.
+ *   4. EXCLUDED, deliberately — the registers that may differ are BOUNDED by a declared set:
+ *      nothing outside it may move, and a rewrite that clobbers FEWER of them is an improvement
+ *      and stays green. That set is every main register, so what this arm still has teeth on is
+ *      the index pair and the shadow set — which the routine's exx pairs make real teeth here.
  *   5. SEEDED SWEEP — four different patterns written over the source run, so every destination
  *      cell provably changes and no comparison can pass by both sides leaving a cell alone.
  *   6. THE SCATTER LANDS — the full destination map is checked cell by cell against the source,
@@ -247,16 +250,18 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip }, () => {
   const m = seeded(17);
   const a = m.clone();
   const b = m.clone();
   oracle(a);
   restoreColumnFromSavedRun(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set",
   );
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });

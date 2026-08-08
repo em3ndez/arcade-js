@@ -11,9 +11,11 @@
  *      that does nothing passes it. A second arm shows the corpus catching that candidate on
  *      almost every dispatch, and a third shows the crafted sweep catching it on all of them.
  *   2. EXCLUDED, deliberately: the registers the copy walks through are DROPPED, not reproduced,
- *      and this arm pins exactly which ones that makes differ. Both call sites in the image
- *      reload every one of them before reading anything, which is why dropping them is safe; if
- *      that ever stops being true this arm's expected set is where it will show.
+ *      and this arm BOUNDS which ones that makes differ — nothing outside the declared set may
+ *      move, while a rewrite that drops fewer of them is an improvement and stays green. Both
+ *      call sites in the image reload every one of them before reading anything, which is why
+ *      dropping them is safe; if that ever stops being true this arm's declared set is where it
+ *      will show.
  *   3. CORPUS — every dispatch of the driven tape. ★ THE UNDRIVEN DEMO NEVER REACHES THIS ENTRY,
  *      and the corpus arm asserts that as a fact rather than skipping the session silently.
  *   4. EXHAUSTIVE — every cell of the character grid as the source, and a sweep of destinations
@@ -251,11 +253,13 @@ test("EXCLUDED, deliberately: the dropped walk registers, and nothing else", { s
   const b = entryState().clone();
   oracle(a);
   sampleCellGlyphAndColour(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the copy's walk registers are deliberately not reproduced, " +
-      "and the stack pointer differs because the oracle returns through the stack",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: the copy's walk registers are deliberately " +
+      "not reproduced, and the stack pointer differs because the oracle returns through the stack",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — RAM unaffected`);

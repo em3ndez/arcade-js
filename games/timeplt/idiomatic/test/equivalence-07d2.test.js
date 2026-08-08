@@ -11,7 +11,8 @@
  *   2. STORES — the twenty-eight cells really do carry the two constants afterwards, from
  *      arbitrary priors, so the comparison is not agreeing on a no-change.
  *   3. CORPUS — every dispatch of a driven and an undriven session, counts asserted.
- *   4. EXCLUDED — the register divergence pinned to a measured set.
+ *   4. EXCLUDED — the register divergence bounded by a measured set: one outside it fails, and a
+ *      rewrite that stops clobbering one of them stays green.
  *   5. EXHAUSTIVE — the routine reads NOTHING, so its whole input space is the prior content of
  *      the cells it writes and of their neighbours. Two families cover it: every one of 256
  *      priors filled uniformly across a band two cells wider than the run at each end, and the
@@ -252,15 +253,16 @@ test("CORPUS: every dispatch of two whole sessions replays identically", { skip 
   console.log(`  CORPUS: ${total} dispatches over ${TAPES.length} sessions, identical on each`);
 });
 
-test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: registers and pc, and nothing outside the set", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   blankFourteenCharCells(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged",
   );
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

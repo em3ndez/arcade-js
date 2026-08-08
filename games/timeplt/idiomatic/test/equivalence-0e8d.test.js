@@ -18,7 +18,7 @@
  *   4. LIVE-OUT — the stepped cursor is compared explicitly, because the caller draws the next
  *      line from it without reloading. The twin that drops it is caught HERE and nowhere else,
  *      which the arm measures rather than claims.
- *   5. EXCLUDED — the register divergence pinned to a measured set.
+ *   5. EXCLUDED — nothing outside the allowed register set may diverge.
  *   6. EXHAUSTIVE — the glyph and the colour swept over their whole 0..255 at a real cursor, and
  *      a cursor family that includes THE EDGE CASE: a cursor sitting on the first cell of the
  *      character plane, where the cell one place along lies in the other plane already and
@@ -342,10 +342,13 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch push", { skip },
   const b = entryState().clone();
   oracle(a);
   drawSlotWithOneGlyph(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the cursor is a live-out and must not appear here",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: the cursor is a live-out and must not " +
+      "appear here",
   );
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

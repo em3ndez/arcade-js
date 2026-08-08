@@ -11,7 +11,7 @@
  *      address step with a pushed return address and the rewrite models no stack. Every arm
  *      walks the whole dump and asserts nothing escapes the window, so it cannot quietly widen.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement.
+ *   4. EXCLUDED, deliberately — no register outside the measured allowed set may differ.
  *   5. THE RECORD LANDS — the four written cells are read back and matched against the table
  *      entry the index selects, so the RAM arm is not vacuous on the cells that matter.
  *   6. EXHAUSTIVE — all 256 indices crafted onto the real entry state. This is the load-bearing
@@ -196,15 +196,17 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: the allowed register set bounds it, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   loadDifficultyRecord(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged",
   );
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });

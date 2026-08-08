@@ -59,6 +59,9 @@ const CELLS = DESTINATIONS.flat();
 
 const SCRATCH_BYTES = 4;
 
+/** Registers the rewrite may leave diverged: none of these outlives the entry. */
+const EXCLUDED = ["a", "f", "b", "e", "sp"];
+
 /** The attract run this entry is reached by, and the frame it is first reached on. Measured. */
 const ATTRACT_FRAMES = 2000;
 const FIRST_DISPATCH = 1782;
@@ -179,10 +182,13 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
     [],
     `a divergence escaped the scratch window — ${show(outsideScratch(a, b, sp)[0])}`,
   );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "b", "e", "sp"],
-    "the excluded set changed shape: none of these outlives the entry",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set, which holds only registers that do not " +
+      "outlive the entry",
   );
   console.log(`  EQUAL: sp ${hex4(sp)}; identical outside [SP-${SCRATCH_BYTES}, SP)`);
 });

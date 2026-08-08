@@ -29,7 +29,7 @@
  *   2. NOT BLIND — the no-op is CAUGHT at that same dispatch.
  *   3. CORPUS — every distinct slot state a driven and an undriven run produce, each replayed
  *      from its own captured machine.
- *   4. EXCLUDED — {a, f, c, sp} and pc diverge by design and nothing else does, at every
+ *   4. EXCLUDED — {a, f, c, sp} and pc may diverge by design and nothing else does, at every
  *      captured state. What licenses dropping the three registers is the callers: each loads
  *      the accumulator again before it reads one, and none reads the counter or the flags. The
  *      caller arm is the falsifiable version of that claim.
@@ -369,13 +369,12 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
     assert.equal(a.pc === b.pc, false, "the oracle's return moves pc; the rewrite returns to JS");
   }
   assert.deepEqual(widened, [], "a register outside the excluded set diverged");
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => union.has(k)),
-    EXCLUDED,
-    "the excluded set changed shape: only the accumulator, the flag byte, the counter the " +
-      "oracle stages a request in and the stack pointer its return moves may differ",
+  // The union is REPORTED, not asserted: it is what the excluded set is allowed to cover, and a
+  // rewrite that stops moving one of them is an improvement rather than a failure.
+  console.log(
+    `  EXCLUDED: ${EXCLUDED.join(", ")} and pc, over all ${entries.length} states; ` +
+      `measured union ${REG_FIELDS.filter((k) => union.has(k)).join(", ")}`,
   );
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc, over all ${entries.length} states`);
 });
 
 test("SWEEP A: all 256 request patterns land what the oracle lands", { skip }, () => {

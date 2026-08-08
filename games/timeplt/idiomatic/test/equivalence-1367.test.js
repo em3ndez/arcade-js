@@ -16,7 +16,7 @@
  * What it exercises, holes stated:
  *   1. UNREACHED — measured on both sessions, not assumed.
  *   2. NOT VACUOUS — an empty candidate FAILS the crafted comparison.
- *   3. EXCLUDED — the register divergence pinned to a measured set.
+ *   3. EXCLUDED — nothing outside the measured allowed register set may diverge.
  *   4. EXHAUSTIVE — the routine reads two cells and writes three, and the sweep covers the WHOLE
  *      of that space: every one of 256 tick values against five priors of the attribute byte.
  *      The one tick that asks for a sound is in there, and so is the wrap of the tick counter.
@@ -232,10 +232,12 @@ test("EXCLUDED, deliberately: registers and pc, and the scratch pushes", { skip 
   const b = a.clone();
   oracle(a);
   flashPlayerWhiteEveryOtherFrame(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged",
   );
   assert.notEqual(a.pc, b.pc, "the frozen routine's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);

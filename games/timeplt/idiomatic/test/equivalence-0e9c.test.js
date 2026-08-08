@@ -30,7 +30,7 @@
  *      subtraction parts company with the oracle. The real dispatch does none of that, and the
  *      per-twin counts below record exactly which cursors see it.
  *   6. THE COLOUR SWEEP — four values, which is enough: the colour is copied, not computed.
- *   7. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to exactly {a, f, sp}. The
+ *   7. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and nothing outside {a, f, sp} may move. The
  *      accumulator is in that set because the oracle's cursor step leaves the stepped low byte in
  *      it and the already-decompiled step does not; nothing here watches a caller read it.
  *   8. TEETH — seven twins, each asserted caught on exact counts of all three sweeps.
@@ -62,6 +62,9 @@ const SCRATCH_BYTES = 2;
 
 /** The meter value the nudge forces. Its decomposition leaves exactly one mark of this size. */
 const NUDGED_VALUE = 99;
+
+/** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
+const EXCLUDED = ["a", "f", "sp"];
 
 const SKIP = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -249,11 +252,13 @@ test("EXCLUDED, deliberately: the accumulator, the flag byte, the stack pointer 
   const b = e.clone();
   oracle(a);
   paintDoubleTile(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "sp"],
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack pointer " +
-      "may differ",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: only the accumulator, the flag byte and the " +
+      "stack pointer may differ",
   );
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle returns; the rewrite does not");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");

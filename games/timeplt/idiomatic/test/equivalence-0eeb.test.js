@@ -14,7 +14,7 @@
  *   2. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, exactly [SP-4, SP): the oracle brackets the
  *      table fetch with a push/pop of the run pointer and pays a nested return; the rewrite models
  *      no stack. The corpus arm asserts the exact set of offsets ever dirtied, so it cannot widen.
- *   3. EXCLUDED, DELIBERATELY — the register file differs in exactly {a, f, sp} and pc. The
+ *   3. EXCLUDED, DELIBERATELY — the register file may differ only within {a, f, sp}, and pc. The
  *      accumulator is dead: the one caller reloads it before each of its two calls.
  *   4. THE CORPUS IS TINY AND THIS ARM SAYS SO — the shared tape dispatches this entry twice, both
  *      in one frame, and the arm asserts that exactly one of the two suppresses. So both branches
@@ -299,10 +299,12 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push, and nothing el
   const b = entryState().clone();
   oracle(a);
   paintDigitDroppingLeadingZero(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded set changed shape: the allowance and the cursor are live-outs",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: the allowance and the cursor are live-outs",
   );
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });

@@ -21,8 +21,9 @@
  *
  *   1. EQUAL at the real dispatch — RAM byte-identical, and the zero flag identical.
  *   2. NOT VACUOUS — a no-op FAILS that same diff on a real cell.
- *   3. EXCLUDED — the registers that move over the whole cross, pinned; the zero flag is checked
- *      as a live-out rather than excluded with the rest of the flag byte.
+ *   3. EXCLUDED — the registers that move over the whole cross, bounded: one outside the set
+ *      fails and one that stops moving does not; the zero flag is checked as a live-out rather
+ *      than excluded with the rest of the flag byte.
  *   4. UNIFORM CORPUS — the cursors and counter values real play presents, and how often the
  *      counter reaches zero. That last number is what says whether the flag is exercised at all.
  *   5. CORPUS — every dispatch of three sessions.
@@ -393,7 +394,11 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     assert.equal(a.regs.f & F_Z, b.regs.f & F_Z, `the zero flag at cursor ${hex4(cursor)}`);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
+  assert.deepEqual(
+    REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)),
+    [],
+    "a register outside the declared excluded set moved",
+  );
   for (const k of HELD) assert.ok(!moved.has(k), `an index register moved (${k})`);
 });
 

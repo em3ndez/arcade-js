@@ -10,7 +10,8 @@
  *   1. EQUAL at every real dispatch — the whole state dump is identical, the stack included: the
  *      routine pushes nothing, so the exclusion window is measured at ZERO bytes and asserted so.
  *   2. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   3. EXCLUDED, deliberately — the register set that may differ is pinned by measurement.
+ *   3. EXCLUDED, deliberately — the registers that may differ are BOUNDED by a declared set:
+ *      nothing outside it may move, and a rewrite that clobbers fewer of them stays green.
  *   4. THE RUN LANDS — the whole run is seeded with a pattern first, so every cell the routine
  *      writes provably CHANGED, and each record is then read back and checked.
  *   5. SEEDED CRAFTED ARM — the same comparison from entry states whose record run has been
@@ -189,15 +190,17 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   freeAndNumberEveryObjectSlot(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set",
   );
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });

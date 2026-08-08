@@ -26,7 +26,7 @@
  *      dead stack window to exclude and the comparison is over the whole dumped state.
  *   4. NOT VACUOUS — a candidate that does nothing FAILS the same comparison.
  *   5. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted as a set.
+ *      space, asserted to stay inside the allowed set.
  *   6. THE FETCHED BYTE — the index is not an immediate, so the arm reads it through the machine's
  *      own memory map and asserts both what it is and that it comes from below the RAM window.
  *   7. EXHAUSTIVE — all 256 selector values against three entry accumulators. The selector is the
@@ -388,9 +388,14 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(handPlayOverToOtherPlayer), EXCLUDED, "the excluded set changed shape");
-  console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; there is no live-out but memory`);
+test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(handPlayOverToOtherPlayer);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register outside the excluded set diverged");
+  console.log(
+    `  EXCLUDED: ${EXCLUDED.join(", ")} and pc; there is no live-out but memory; ` +
+      `measured ${moved.join(", ")}`,
+  );
 });
 
 test("THE FETCHED BYTE: the index comes from the program image, not an immediate", { skip }, () => {

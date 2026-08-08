@@ -13,8 +13,10 @@
  *   1. EQUAL at the real dispatch — the whole dump identical, stack scratch included.
  *   2. VACUITY, MEASURED — a no-op passes the RAM half at both real dispatches, and the two arms
  *      that do catch it are named.
- *   3. EXCLUDED, deliberately, pinned to an exact set. The record cursor is NOT in it: the rewrite
- *      leaves the same value there, which is a live-out claim this arm makes falsifiable.
+ *   3. EXCLUDED, deliberately, BOUNDED by a declared set — nothing outside it may move, and a
+ *      rewrite that clobbers fewer of them stays green. The record cursor is NOT in that set: the
+ *      rewrite leaves the same value there, which is a live-out claim this arm makes falsifiable,
+ *      because a cursor that diverged would be outside the set and would fail the arm.
  *   4. CORPUS — both dispatches.
  *   5. CRAFTED PRIORS — the six slots filled with patterns, so the writes have something to erase.
  *   6. CRAFTED SOURCE BYTES — the fill byte and the stride's low half are read from program space,
@@ -298,10 +300,12 @@ test("EXCLUDED, deliberately: scratch registers and pc, but NOT the record curso
   const b = entryState().clone();
   oracle(a);
   freeAllShotSlots(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape: the record cursor must agree on both arms",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: the record cursor must agree on both arms",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc — the record cursor is a live-out`);

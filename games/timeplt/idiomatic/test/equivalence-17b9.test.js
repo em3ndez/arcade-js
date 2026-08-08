@@ -25,7 +25,9 @@
  *
  *   1. EQUAL at the real dispatch — RAM byte-identical.
  *   2. NOT VACUOUS — a no-op FAILS that same diff.
- *   3. EXCLUDED — the registers that move, pinned on both arms.
+ *   3. EXCLUDED — the registers that move, BOUNDED on both arms: their union over the clean and
+ *      altered entries may contain nothing outside the declared set, and a rewrite that clobbers
+ *      fewer of them is an improvement and stays green. The measured union is logged.
  *   4. TAPE REACH — measured: only the undriven session reaches this entry, once.
  *   5. CORPUS — that dispatch replayed.
  *   6. THE TOTAL — the total the image actually produces, read back rather than asserted, and the
@@ -367,8 +369,10 @@ test("EXCLUDED, deliberately: the registers that move, on both arms", { skip }, 
     guardBlockOrBlankDisplay(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
+  const movedList = REG_FIELDS.filter((k) => moved.has(k));
+  console.log(`  EXCLUDED (measured): ${movedList.join(", ")}`);
+  const unexpected = movedList.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
 });
 
 test("TAPE REACH: exactly one session reaches this entry, once", { skip }, () => {

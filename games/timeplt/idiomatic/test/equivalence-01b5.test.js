@@ -10,7 +10,8 @@
  *   1. EQUAL at the real dispatch — the whole state dump is identical, the stack included: this
  *      entry pushes nothing, so the exclusion window is measured at ZERO bytes and asserted so.
  *   2. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   3. EXCLUDED, deliberately — the register set that may differ is pinned by measurement.
+ *   3. EXCLUDED, deliberately — the registers that may differ are bounded by measurement; a
+ *      register outside the set fails, and a rewrite that clobbers fewer of them stays green.
  *   4. THE VALUES LAND — both cells are read back after the rewrite runs and checked against the
  *      program image, so the RAM arm is demonstrably not vacuous on the two cells that matter.
  *   5. IT READS THE IMAGE — a twin that bakes the count in as a constant is byte-identical on an
@@ -185,15 +186,16 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing outside it", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   armLineWipeFromFifthLine(b);
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set diverged",
   );
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle returns; the rewrite does not");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);

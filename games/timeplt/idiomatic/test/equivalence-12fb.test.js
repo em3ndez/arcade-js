@@ -27,7 +27,7 @@
  *   1. UNREACHED — three sessions' dispatch counts for this entry, measured and asserted.
  *   2. EQUAL at the crafted entry — identical outside the scratch window.
  *   3. NOT VACUOUS — a no-op FAILS that same masked diff on a real cell.
- *   4. EXCLUDED — the registers that move over the whole cross, pinned.
+ *   4. EXCLUDED — over the whole cross, no register outside the allowed set moves.
  *   5. CRAFTED CROSS — every one of the four written cells given a spread of priors.
  *   6. FOLD — the fold's value on an unaltered image, and on an altered one.
  *   7. WHOLE-MACHINE — the entry wired into a whole driven session. It never dispatches there, so
@@ -354,7 +354,8 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     for (const addr of WRITTEN) assert.equal(a.mem8[addr], b.mem8[addr], `live-out ${hex4(addr)}`);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register outside the excluded set diverged");
   for (const k of HELD) assert.ok(!moved.has(k), `a register a caller may rely on moved (${k})`);
 });
 
