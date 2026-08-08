@@ -5,7 +5,10 @@
 // the per-routine gate and its reviewer both pass one; only a cross-file scan catches it. A callee
 // with no idiomatic file is a genuine oracle boundary and stays m.call.
 import { readdirSync, readFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import { ALLOWED, DEBT } from "./no-stale-mcall.config.mjs";
 
 /** Addresses with a committed idiomatic file, identified by their equivalence gate. */
 export function decompiledAddresses(idiomaticDir) {
@@ -82,4 +85,40 @@ export function gamesWithIdiomaticLayer(gamesDir) {
 /** `{file: [addrs]}` -> `Map<file, Set<addr>>`, the shape findStaleMcalls wants. */
 export function toAllowMap(spec = {}) {
   return new Map(Object.entries(spec).map(([f, addrs]) => [f, new Set(addrs)]));
+}
+
+// ── running this file as a command ──────────────────────────────────────────────────────
+//
+// ★ WITHOUT THIS BLOCK, `node tools/no-stale-mcall.mjs` EXITED 0 ON ANY TREE. The file was
+// exports only, so running it proved that it parses and nothing else -- and a command that
+// returns success for every input gets quoted as evidence by whoever has not been caught by it
+// yet. It was cited as a passing check for a whole session while the real gate,
+// tools/test/no-stale-mcall.test.js, was the thing catching leaks. The trap does not announce
+// itself, so the fix is to make the command DO the scan and exit NON-ZERO when it finds one.
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
+  const games = join(dirname(fileURLToPath(import.meta.url)), "..", "games");
+  const scanned = gamesWithIdiomaticLayer(games);
+  // ★ REFUSE TO REPORT SUCCESS HAVING MEASURED NOTHING -- the same disease, one corner in. An
+  // empty game list, or a game whose idiomatic/ holds no files, would otherwise print a clean
+  // line and exit 0. The test carries these two assertions; without them the command is LAXER
+  // than the gate it stands in for, which is how the original defect got here.
+  if (!scanned.length) {
+    console.error(`no game under ${games} has an idiomatic layer: nothing was scanned`);
+    process.exit(2);
+  }
+  let fresh = 0;
+  for (const game of scanned) {
+    const { leaks, files } = findStaleMcalls(join(games, game, "idiomatic"), toAllowMap(ALLOWED[game]));
+    if (!files.length) {
+      console.error(`${game}: idiomatic/ holds no files, so this scan reached nothing`);
+      process.exit(2);
+    }
+    const debt = toAllowMap(DEBT[game]);
+    const now = leaks.filter((l) => !debt.get(l.file)?.has(l.addr));
+    fresh += now.length;
+    console.log(now.length
+      ? `${game}: STALE m.call(s) beyond anything recorded:\n  ${formatLeaks(now)}`
+      : `${game}: no new leaks${debt.size ? ` (${debt.size} caller(s) carry recorded debt)` : ""}`);
+  }
+  process.exit(fresh ? 1 : 0);
 }
