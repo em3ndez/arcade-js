@@ -20,8 +20,9 @@
  *   2. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY. Memory-equivalence drops the register trace:
  *      the frozen original loads the cell's address, its increment sets the flag byte and its
  *      `ret` pops the stack pointer, none of which the rewrite does. `equal` is therefore false
- *      for a CORRECT routine. The divergence is pinned to exactly {f, h, l, sp} plus pc so
- *      "excluded" cannot quietly widen.
+ *      for a CORRECT routine. The divergence is bounded by {f, h, l, sp} plus pc so "excluded"
+ *      cannot quietly widen; a rewrite that clobbers fewer of them is an improvement, not a
+ *      failure.
  *   3. EXHAUSTIVE over priors — the stepped cell swept 0..255 on the real entry, which is the only
  *      way the 255 -> 0 wrap is covered; the captured entry holds one low value.
  *   4. TEETH — a no-op twin, a steps-by-two twin and a wrong-cell twin, each caught by both the
@@ -109,11 +110,12 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   loc_17fb(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !["f", "h", "l", "sp"].includes(k));
   assert.deepEqual(
-    moved,
-    ["f", "h", "l", "sp"],
-    "the excluded set changed shape: only the flag byte, the address register pair and the " +
-      "stack pointer may differ",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: only the flag byte, the address register " +
+      "pair and the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the frozen original's return moves pc; the rewrite returns to JS");
   assert.equal(a.mem8[SEQUENCE_SUBSTEP], b.mem8[SEQUENCE_SUBSTEP], "the one live-out");

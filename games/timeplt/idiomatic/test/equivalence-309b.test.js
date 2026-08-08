@@ -15,7 +15,7 @@
  *      all and this whole file has to be re-derived from the oracle.
  *   3. CORPUS — every distinct cursor pair the driven tape produces, each replayed from its own
  *      captured machine. The pairs are enumerable: eight, stable at 1200, 2000 and 3000 frames.
- *   4. EXCLUDED — {f, d, e, sp} and pc diverge by design, nothing else does. The oracle loads
+ *   4. EXCLUDED — {f, d, e, sp} and pc may diverge by design, nothing else does. The oracle loads
  *      its addend into de, adds it (touching the flags) and pops its return; a rewrite that
  *      returns to JS does none of the three. What licenses dropping them is the CALLERS: all
  *      nine reach here by tail transfer, and every continuation reloads d and e from memory
@@ -190,11 +190,12 @@ test("EXCLUDED, deliberately: only the dropped registers and pc diverge", { skip
   advanceToNextSlot(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    moved,
-    EXCLUDED,
-    "the excluded set changed shape: only the flag byte, the addend pair and the stack " +
-      "pointer may differ",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: only the flag byte, the addend pair and " +
+      "the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   for (const k of LIVE_OUT) assert.equal(a.regs[k], b.regs[k], `the live-out ${k} must match`);

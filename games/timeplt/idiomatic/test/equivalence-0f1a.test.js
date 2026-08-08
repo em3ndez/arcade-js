@@ -11,8 +11,9 @@
  *   2. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY. The memory-equivalence contract drops
  *      the Z80 register trace, so the oracle's address load, its flag update and its `ret`
  *      pop all diverge by design, and `equal` is therefore false for a CORRECT routine.
- *      The test pins the divergence to exactly {f, h, l, sp} plus pc and asserts nothing
- *      else moved, so "excluded" cannot quietly widen.
+ *      The test bounds the divergence to {f, h, l, sp} plus pc and asserts nothing else
+ *      moved, so "excluded" cannot quietly widen. A rewrite that clobbers FEWER of them
+ *      is an improvement and stays green.
  *   3. EXHAUSTIVE over priors — the target cell swept 0..255 on the real entry, which is
  *      the only way the 255 -> 0 wrap gets covered (the captured entry holds a low value).
  *   4. TEETH — three broken twins, each of which must FAIL the same comparison.
@@ -95,11 +96,12 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   advanceSequenceSubStep(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !["f", "h", "l", "sp"].includes(k));
   assert.deepEqual(
-    moved,
-    ["f", "h", "l", "sp"],
-    "the excluded set changed shape: only the flag byte, the address register pair and " +
-      "the stack pointer may differ",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: only the flag byte, the address register " +
+      "pair and the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.mem8[SEQUENCE_SUBSTEP], b.mem8[SEQUENCE_SUBSTEP], "the one live-out");

@@ -29,7 +29,8 @@
  *      exclusion is exactly [SP-2, SP) and the test PINS it: it walks the whole dump and asserts
  *      every divergence lies in that two-byte window, so the exclusion cannot quietly widen.
  *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY — memory-equivalence drops the Z80 register
- *      trace, so `equal` is false for a CORRECT routine. Pinned to exactly {a, f, sp} plus pc.
+ *      trace, so `equal` is false for a CORRECT routine. Pinned so nothing outside {a, f, sp}
+ *      moves, plus pc.
  *   4. EXHAUSTIVE over write-cursor priors, 0..255 against four guard bytes. Only this covers
  *      the ring wrap at cursor 62 and the eight-bit wrap of the second cell at cursor 255; the
  *      real run only ever presents even cursors 0..62 with the cell free.
@@ -222,12 +223,13 @@ test("EXCLUDED, deliberately: registers, pc and the scratch push and nothing els
   oracle(a);
   postCommand(b);
 
+  const EXCLUDED = ["a", "f", "sp"];
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    moved,
-    ["a", "f", "sp"],
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack " +
-      "pointer may differ — the address pair is push/pop balanced and must come back",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set moved: only the accumulator, the flag byte " +
+      "and the stack pointer may differ — the address pair is push/pop balanced and must come back",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle pops its return address; the rewrite does not");

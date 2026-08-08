@@ -37,7 +37,7 @@
  * and inputs off the cross are covered only through it.
  *
  * What it exercises: EQUAL at the real dispatch; BLIND and DEGENERATE, the two holes; EXCLUDED,
- * pinning the divergent register set by name; DROPPED, with its control; FACTORISES; CROSS, the
+ * bounding the divergent register set by name; DROPPED, with its control; FACTORISES; CROSS, the
  * enumerated sweep; UNIFORM; REAL TRAFFIC over three tapes; BUDGET; and TEETH — six twins, each
  * caught on exactly the inputs a predicate over the input names, never on a set read back off
  * the twin, plus each twin's blindness at the real dispatch re-derived from that same predicate.
@@ -60,6 +60,9 @@ const skip = romsPresent() ? false : "ROM images absent";
 
 /** Frames for the corpus runs, file-local and longer than the entry capture. */
 const CORPUS_FRAMES = 1500;
+
+/** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
+const EXCLUDED = ["f", "b", "c", "sp"];
 
 const IN0 = 0xc300;
 const IN1 = 0xc320;
@@ -405,11 +408,12 @@ test("EXCLUDED, deliberately: the scratch pair, the flag byte, the stack pointer
     displaceByFiveQuarters(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+    const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
     assert.deepEqual(
-      moved,
-      ["f", "b", "c", "sp"],
-      "the excluded set changed shape: only the flag byte, the pair the oracle assembles the " +
-        "quarter in, and the stack pointer may differ",
+      unexpected,
+      [],
+      "a register outside the excluded set diverged: only the flag byte, the pair the oracle " +
+        "assembles the quarter in, and the stack pointer may differ",
     );
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     assert.equal(a.regs.hl, 0x10f4, "a backward step must carry a backward quarter with it");

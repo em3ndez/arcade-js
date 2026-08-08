@@ -725,6 +725,22 @@ writes it", which is this repo's canonical phrasing for the hazard and was the v
 demonstrate that R35 works. A word list rots; this one will too. What does not rot is checking the
 list against the corpus rather than against itself.
 
+## R36 [ALL] A register in an EXCLUDED set that the routine does not clobber is dead weight
+
+Equivalence gates declare the registers allowed to diverge from the oracle. That set used to police
+itself: while a gate pinned the divergence EXACTLY (`deepEqual(moved, EXCLUDED)`), a green run was
+proof every listed register really did move, or the assertion would have failed. But an exact pin
+also goes RED when a rewrite IMPROVES and diverges on one register fewer — a gate that refuses the
+fix — so those pins are being converted to subset checks, which cannot notice a padded set.
+
+So ask, of any ALLOWED/EXCLUDED set a diff adds or widens: **what put each name in it?** A register
+the routine does not actually clobber costs nothing to add, weakens the arm silently, and no gate
+will ever complain. Tightness moved from the assertion to you.
+
+Two things this is NOT. It is not an argument for restoring exact pins — refusing the better module
+is the worse failure. And a register legitimately in the set needs no removal; it needs its
+liveness recorded somewhere the next reader can find, which is what a crafted arm does.
+
 ## Staging & commit hygiene
 - **R13 [ALL]** The staged diff contains ONLY files of this commit's stated unit — a DECOMPILE stages
   that batch's routines+tests; an UNDERSTANDING stages renames/names.js/mechanisms/retrofits. No

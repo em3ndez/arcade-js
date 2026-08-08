@@ -206,11 +206,13 @@ test("LIVE-OUT: the step register survives, and only dead registers move", { ski
   fillCellRun(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !["f", "b", "h", "l", "sp"].includes(k));
   assert.deepEqual(
-    moved,
-    ["f", "b", "h", "l", "sp"],
-    "the excluded set changed shape: only the flag byte, the loop counter, the cursor pair and " +
-      "the stack pointer may differ — every caller reloads all four before reading them",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: only the flag byte, the loop counter, the " +
+      "cursor pair and the stack pointer may differ — every caller reloads all four before " +
+      "reading them",
   );
   assert.equal(a.regs.de, b.regs.de, "the cell-step register is a LIVE-OUT, not an exclusion");
   assert.equal(a.regs.a, b.regs.a, "the fill byte is left standing for the caller's own writes");

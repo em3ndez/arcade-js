@@ -64,7 +64,8 @@ const STACK_SCRATCH = [0xafe2, 0xafe3, 0xaffd, 0xaffe];
 const SEEN_BY_DISPLAY = 0xb43f;
 
 // The registers the memory-equivalence contract drops. Written out so it cannot quietly widen:
-// arms 4 and 5 measure this exact list, and adding a name to it changes what they claim.
+// arm 4 complements this exact list at the seam AND bounds the moved set by MOVED_BY_THE_PAIR,
+// so adding a name to either changes what it claims.
 const WIDE_REGS = new Set(["ix", "iy"]);
 const EXCLUDED_REGS = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy"];
 const MOVED_BY_THE_PAIR = ["a", "f", "b", "h", "l", "sp"];
@@ -235,7 +236,8 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   hideAllSprites(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.deepEqual(moved, MOVED_BY_THE_PAIR, "the excluded set changed shape");
+  const unexpected = moved.filter((k) => !MOVED_BY_THE_PAIR.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   for (const addr of CLEARED) assert.equal(a.mem8[addr], b.mem8[addr], `live-out ${hex4(addr)}`);
   console.log(`  EXCLUDED: registers ${moved.join(", ")} and pc — RAM unaffected`);

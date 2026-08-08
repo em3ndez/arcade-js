@@ -16,7 +16,8 @@
  *      is invisible there. The no-op twin failing is the proof, and it is asserted.
  *   4. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY. Memory-equivalence drops the register
  *      trace, so `equal` is false for a CORRECT routine and only `ram` is ever asserted. The
- *      divergence is pinned to a measured subset of {a, f, h, l, sp} so it cannot quietly widen.
+ *      divergence is bounded by {a, f, h, l, sp} — nothing outside it may move — so the
+ *      exclusion cannot quietly widen.
  *   5. EXHAUSTIVE over the product of priors, with an exact catch count per twin and the exact
  *      identity of every point a twin is allowed to agree on.
  *
@@ -280,10 +281,11 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
 
   const allowed = ["a", "f", "h", "l", "sp"];
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  for (const k of moved) {
-    assert.ok(allowed.includes(k), `${k} moved: the excluded set changed shape`);
-  }
-  assert.deepEqual(moved, ["a", "f", "l", "sp"], "the measured excluded set changed");
+  assert.deepEqual(
+    moved.filter((k) => !allowed.includes(k)),
+    [],
+    "a register outside the declared excluded set moved",
+  );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.mem8[SEQUENCE_PHASE], b.mem8[SEQUENCE_PHASE], "live-out one");
   assert.equal(a.mem8[SEQUENCE_SUBSTEP], b.mem8[SEQUENCE_SUBSTEP], "live-out two");

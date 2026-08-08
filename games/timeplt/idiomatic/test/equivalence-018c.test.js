@@ -46,9 +46,9 @@
  * What it exercises, holes stated:
  *   1. BLIND — the RAM half is proven vacuous, so it cannot be mistaken for the gate.
  *   2. EQUAL at the real dispatch — RAM identical AND the live-out identical.
- *   3. EXCLUDED — exactly {a, f, l, sp} move at the captured entry, plus pc; the fetched word
- *      does not. The cursor's high byte is idle at THIS entry, so a crafted carry entry covers
- *      it separately rather than leaving `h` in EXCLUDED unexercised.
+ *   3. EXCLUDED — nothing outside {a, f, l, sp} moves at the captured entry, plus pc; the
+ *      fetched word does not. The cursor's high byte is idle at THIS entry, so a crafted carry
+ *      entry covers it separately rather than leaving `h` in EXCLUDED unexercised.
  *   4. EXHAUSTIVE (REAL TABLES) — both tables the game really passes, swept over every index.
  *   5. EXHAUSTIVE (ADDRESS ARITHMETIC) — every low byte of the base against every index, which
  *      is the whole cross-product of the two carries the address sum can produce.
@@ -358,7 +358,12 @@ test("EXCLUDED, deliberately: the accumulator, the flags, the cursor and the sta
   fetchWideTableWord(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.deepEqual(moved, MOVED_AT_ENTRY, "the excluded set changed shape at the captured entry");
+  assert.deepEqual(
+    moved.filter((k) => !MOVED_AT_ENTRY.includes(k)),
+    [],
+    "a register outside the set this entry may move diverged — MOVED_AT_ENTRY is the captured " +
+      "entry's subset of EXCLUDED, the cursor's high byte being idle here",
+  );
   assert.ok(
     moved.every((k) => EXCLUDED.includes(k)),
     "a register outside the declared excluded set moved",

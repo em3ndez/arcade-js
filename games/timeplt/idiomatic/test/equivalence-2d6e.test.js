@@ -361,11 +361,12 @@ test("EXCLUDED, deliberately: registers and pc diverge, the position pair does n
   driftAtFiveQuartersWorldScroll(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !["f", "d", "e", "sp"].includes(k));
   assert.deepEqual(
-    moved,
-    ["f", "d", "e", "sp"],
-    "the excluded set changed shape: only the flag byte, the pair the frozen side loads each " +
-      "coordinate into, and the stack pointer may differ",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: only the flag byte, the pair the frozen " +
+      "side loads each coordinate into, and the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the frozen side's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.hl, b.regs.hl, "the position pair left standing must agree");

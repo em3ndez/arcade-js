@@ -24,7 +24,8 @@
  *   1. EQUAL at the real dispatch — RAM byte-identical across the whole state dump.
  *   2. NOT VACUOUS — a no-op candidate FAILS that same diff, so flavour-one vacuity (a
  *      register-only routine whose RAM diff passes anything) does not apply to this file.
- *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to a fixed shape.
+ *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded: nothing outside the declared
+ *      set may diverge, while a rewrite that diverges on fewer of them is free to.
  *   4. DEAD FIRST DISPATCH — unitEquivalence clones the FIRST entry and no frame budget changes
  *      which one; the test doubles the budget and asserts the same entry comes back.
  *   5. DEGENERATE ENTRY — that entry sits on a cardinal heading whose second component is zero,
@@ -473,11 +474,13 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   flyAtSlowestSpeed(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
   assert.deepEqual(
-    moved,
-    MOVED,
-    "the excluded set changed shape: nothing beyond the scratch registers and the stack " +
-      "pointer may differ, and the pair carrying the second component must agree on both arms",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: nothing beyond the scratch registers and " +
+      "the stack pointer may differ, and the pair carrying the second component must agree " +
+      "on both arms",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   for (const at of WRITTEN) assert.equal(a.mem8[at(a)], b.mem8[at(b)], `live-out ${hex4(at(a))}`);

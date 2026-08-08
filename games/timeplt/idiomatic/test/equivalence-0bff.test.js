@@ -233,8 +233,13 @@ test("EXCLUDED, deliberately: three registers and pc move, and nothing else", { 
   oracle(a);
   drawTextRun(b);
 
+  const EXCLUDED = ["a", "f", "sp"];
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.deepEqual(moved, ["a", "f", "sp"], "the excluded set changed shape");
+  assert.deepEqual(
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set moved",
+  );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.hl, b.regs.hl, "the caption pointer is reproduced, not excluded");
   assert.equal(a.regs.de, b.regs.de, "the cursor is reproduced, not excluded");

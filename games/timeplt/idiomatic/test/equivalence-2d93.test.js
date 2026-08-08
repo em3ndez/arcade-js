@@ -451,11 +451,12 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   const e = entryState();
   const { a, b } = bothArms(driftAtThreeQuartersWorldScroll, e, seat({ dA: 0xfe83, dB: 0x0177, wA: 200, fA: 30, wB: 9, fB: 77 }));
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    moved,
-    EXCLUDED,
-    "the excluded set changed shape: only the flag byte, the pairs the oracle assembles its " +
-      "arithmetic in, and the stack pointer may differ",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: only the flag byte, the pairs the oracle " +
+      "assembles its arithmetic in, and the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   for (const k of LIVE_OUT) assert.equal(a.regs[k], b.regs[k], `the live-out ${k} moved`);

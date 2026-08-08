@@ -36,8 +36,9 @@
  * What it exercises, holes stated:
  *   1. CONTRACT — unitEquivalence at the real dispatch, with the scratch window excluded.
  *   2. BLIND — the RAM verdict shown to be identical for the rewrite and for an empty body.
- *   3. EXCLUDED — the divergence pinned to {a, f, d, e, h, l, sp} plus pc, and the RAM
- *      difference pinned to the scratch window, so "excluded" cannot quietly widen.
+ *   3. EXCLUDED — the divergence bounded by {a, f, d, e, h, l, sp} plus pc, and the RAM
+ *      difference pinned to the scratch window, so "excluded" cannot quietly widen. A rewrite
+ *      that clobbers fewer of those registers is an improvement and stays green.
  *   4. DEGENERATE — the four twins the captured entry cannot see, each named and each shown to
  *      be caught elsewhere.
  *   5. SESSION — every dispatch of a whole driven session compared on a real machine, the run
@@ -433,7 +434,8 @@ test("EXCLUDED, deliberately: the dropped registers, pc, and two scratch bytes",
   rewrite(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.deepEqual(moved, EXCLUDED, "the excluded register set changed shape");
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   for (const k of LIVE_OUT) assert.equal(a.regs[k], b.regs[k], `the live-out ${k} moved`);
 

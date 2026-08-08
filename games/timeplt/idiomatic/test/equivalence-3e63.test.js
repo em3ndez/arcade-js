@@ -15,7 +15,7 @@
  *   2. BLIND      — the strict capture is asserted vacuous, with the no-op proving it.
  *   3. EXHAUSTIVE — heads 0..255, each arm run for real on both sides.
  *   4. ARMS       — the sweep is shown to have covered all three exits, not just one.
- *   5. EXCLUDED   — registers and pc diverge by design; the moved set is pinned.
+ *   5. EXCLUDED   — registers and pc diverge by design; nothing outside the excluded set may.
  *   6. TEETH      — three broken twins, each caught by the same sweep.
  *
  * The two non-zero arms run continuations that are still the frozen oracle on both
@@ -43,6 +43,9 @@ const skip = romsPresent() ? false : "ROM images are gitignored; none assembled"
 /** The four record bases the caller walks, sixteen bytes apart. */
 const RECORD_BASES = [0xa810, 0xa820, 0xa830, 0xa840];
 const ALL_ONES = 255;
+
+/** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
+const EXCLUDED = ["a", "f", "sp"];
 
 let entry = null;
 
@@ -170,11 +173,12 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   oracle(a);
   loc_3e63(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    moved,
-    ["a", "f", "sp"],
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack " +
-      "pointer may differ on the inert arm",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: only the accumulator, the flag byte and " +
+      "the stack pointer may differ on the inert arm",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(firstStateDiff(a.dumpState(), b.dumpState()), null, "RAM must still agree");

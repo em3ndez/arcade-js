@@ -37,7 +37,7 @@
  * What it exercises, holes stated:
  *   1. BLIND — the RAM half is proven vacuous, so it cannot be mistaken for the gate.
  *   2. EQUAL at the real dispatch — RAM identical AND the live-out identical.
- *   3. EXCLUDED — exactly {a, f, sp} move, plus pc; the cursor does not.
+ *   3. EXCLUDED — nothing outside {a, f, sp} moves, plus pc; the cursor does not.
  *   4. EXHAUSTIVE — all 65536 cursor values. The routine reads nothing else, so this is its
  *      entire input space, and it is the only arm that covers the borrow into the high byte.
  *   5. CORPUS — every cursor the running game really presents over a driven tape, replayed.
@@ -249,7 +249,8 @@ test("EXCLUDED, deliberately: the accumulator, the flags and the stack pointer",
   advanceCharCursor(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
-  assert.deepEqual(moved, EXCLUDED, "the excluded set changed shape");
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register outside the declared excluded set moved");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle pops a return address and the rewrite does not");
   assert.equal(a.regs.de, b.regs.de, "the one live-out");

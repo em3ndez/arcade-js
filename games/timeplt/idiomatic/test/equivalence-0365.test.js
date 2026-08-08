@@ -21,7 +21,9 @@
  *   5. IT READS THE THRESHOLD out of the program image rather than carrying it: poking that byte
  *      moves the window, and a twin that bakes the value in is asserted INVISIBLE without the poke
  *      and caught with it.
- *   6. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and pinned to a fixed set.
+ *   6. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY, and bounded by a declared set: nothing
+ *      outside it may move. That set is wide — every main register — so the index and shadow
+ *      sets are all this arm still has teeth on.
  *   7. TEETH — ten twins, each with its exact catch count on all three arms asserted, ZEROS
  *      INCLUDED, so a twin that is blind somewhere stays recorded as blind there.
  *
@@ -314,11 +316,12 @@ test("EXCLUDED, deliberately: registers and pc, and nothing else", { skip: SKIP 
   const b = entryState().clone();
   oracle(a);
   publishSpriteShadow(b);
+  const EXCLUDED = ["a", "f", "b", "c", "d", "e", "h", "l", "sp"];
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(
-    moved,
-    ["a", "f", "b", "c", "d", "e", "h", "l", "sp"],
-    "the excluded set changed shape",
+    moved.filter((k) => !EXCLUDED.includes(k)),
+    [],
+    "a register outside the declared excluded set moved",
   );
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle returns; the rewrite does not");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");

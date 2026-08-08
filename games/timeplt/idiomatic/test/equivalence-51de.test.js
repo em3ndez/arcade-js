@@ -26,7 +26,8 @@
  *      inside it (so it cannot hide one) and it must be filled exactly to its bottom byte (so it
  *      cannot quietly widen). This is the mixed-migration stack leak, recorded, not fixed.
  *   3. REGISTERS AND PC ARE EXCLUDED, DELIBERATELY — memory-equivalence drops the Z80 register
- *      trace, so `equal` is false for a CORRECT routine. Pinned to exactly {a, f, sp} plus pc.
+ *      trace, so `equal` is false for a CORRECT routine. Bounded to {a, f, sp} plus pc — nothing
+ *      outside that may diverge, and a rewrite that diverges on fewer is free to.
  *   4. THE FIRST DISPATCH IS PINNED, because unitEquivalence clones the FIRST entry rather than
  *      the first informative one and no larger frame budget changes which one that is. It lands
  *      on the expired-window path with a free ring cell, which is informative — it writes three
@@ -83,6 +84,9 @@ const TARGET = 0x51de;
 const RING_CURSOR = 0xa9b2;
 const SCRATCH_BYTES = 6;
 const WINDOW_RELOAD = 30;
+
+/** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
+const EXCLUDED = ["a", "f", "sp"];
 
 const skip = romsPresent() ? false : "ROM images are absent from this checkout";
 
@@ -293,11 +297,12 @@ test("EXCLUDED, deliberately: registers, pc and the six scratch bytes and nothin
     postChainedHitScore(b);
 
     const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+    const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
     assert.deepEqual(
-      moved,
-      ["a", "f", "sp"],
-      "the excluded set changed shape: only the accumulator, the flag byte and the stack " +
-        "pointer may differ — the saved pairs are push/pop balanced and must come back",
+      unexpected,
+      [],
+      "a register outside the excluded set diverged: only the accumulator, the flag byte and " +
+        "the stack pointer may differ — the saved pairs are push/pop balanced and must come back",
     );
     assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
     assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle pops its return address; the rewrite " +

@@ -11,7 +11,7 @@
  *   1. EQUAL      — RAM byte-identical across the whole state dump at the real dispatch.
  *   2. STORES     — the two cells really hold the two constants afterwards, whatever they
  *                   held before, so the comparison is not agreeing on a no-change.
- *   3. EXCLUDED   — registers and pc diverge by design; the moved set is pinned.
+ *   3. EXCLUDED   — registers and pc diverge by design; the moved set is bounded.
  *   4. EXHAUSTIVE — both priors swept 0..255, in step and crossed.
  *   5. TEETH      — broken twins, each caught by that sweep.
  *   6. BLIND SPOT — the one dispatch the tape produces has the phase cell already one
@@ -137,11 +137,12 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   oracle(a);
   loc_172a(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !["a", "f", "sp"].includes(k));
   assert.deepEqual(
-    moved,
-    ["a", "f", "sp"],
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack " +
-      "pointer may differ",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: only the accumulator, the flag byte and " +
+      "the stack pointer may differ",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(firstStateDiff(a.dumpState(), b.dumpState()), null, "RAM must still agree");

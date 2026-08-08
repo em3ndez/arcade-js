@@ -70,6 +70,9 @@ const ROW_REMAINDER = 3;
 const COLUMN_REMAINDER = 5;
 const SPRITE_ROW = 49;
 
+/** Registers the rewrite may leave diverged. Dead for this routine, so it need not move them. */
+const EXCLUDED = ["f", "b", "c", "d", "e", "sp"];
+
 const WIDTH = 65536;
 const NEGATIVE_FROM = WIDTH / 2;
 
@@ -591,11 +594,12 @@ test("EXCLUDED, deliberately: registers and pc diverge and nothing else does", {
   driftAtHalfWorldScroll(b);
 
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    moved,
-    ["f", "b", "c", "d", "e", "sp"],
-    "the excluded set changed shape: only the flag byte, the pairs the oracle assembles its " +
-      "arithmetic in, and the stack pointer may differ — the moved coordinate may not",
+    unexpected,
+    [],
+    "a register outside the excluded set diverged: only the flag byte, the pairs the oracle " +
+      "assembles its arithmetic in, and the stack pointer may differ — the moved coordinate may not",
   );
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   assert.equal(a.regs.hl, b.regs.hl, "the moved coordinate is live-out and must agree");
