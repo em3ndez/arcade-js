@@ -822,11 +822,21 @@ export const ROUTINES = {
     cert: "code",
     why: 'loc_2511 fills the ring with 0xFF at init and loc_0b93 restores 0xFF on consumption, so "free = high bit set" is fixed by a writer and a reader outside this routine; loc_0b93 then dispatches the low nibble through a sixteen-way table, which is what makes it a command rather than a sound byte',
   },
+  0x0d81: {
+    name: "loc_0d81",
+    role: "paint the two decimal digits packed into one byte, the high one first, stepping the cursor one cell on after each; the byte is read twice from the pointer the caller is walking, shifted down for the high digit and taken whole for the low, and the colour and cursor arrive as the caller left them",
+    cert: "code",
+  },
   0x0d90: {
     name: "paintUnsuppressedDigit",
     role: "paint one decimal digit and the caller's colour into the cell a cursor names, taking the glyph from the table at 0x0DCC by the value's low four bits -- a zero always paints the digit `0`, where the suppressing twin paints the blank instead while no significant digit has been seen yet -- and leaving the cursor on the glyph side and the caller's run pointer where it was",
     cert: "seen",
     why: "the name's whole content is the contrast with paintSuppressedDigit at 0x0DAF, and the contrast is refutable per dispatch. A PC-gated read tap under MAME logged the value handed in and the glyph byte written out, on every entry to BOTH routines in ONE ninety-second run: this one painted the digit `0` on all twenty-two of its zero-valued dispatches and the blanking glyph on none, while the twin -- same run, same instrument -- painted the blanking glyph on nineteen zero-valued dispatches and the digit `0` on six, so the instrument that reported the absence was shown able to see the thing absent. MAME's own screenshot agrees on the glass, on the HI-SCORE field rather than a player's: it reads `10000`, and the tap attributes its leading blank and first three digits to the twin and only its two trailing zeros to this routine. Feeding it what the name says it never gets refutes `hex` as well: holding the displayed field at 0xAB, 0xCD and 0xEF drove it to the table's last entry and five bytes beyond, where it painted 0xF1, 0x11, 0x63, 0xA4, 0xFE, 0x64 -- the blanking glyph the table really holds, then the first five bytes of the routine at 0x0DD7 -- and never a glyph A-F",
+  },
+  0x0da0: {
+    name: "loc_0da0",
+    role: "paint the two decimal digits packed into one byte with a leading zero suppressed, the high one first, stepping the cursor one cell on after each; the caller's suppression flag arrives, carries across both digits and goes back out, so a longer run of digits suppresses as one field",
+    cert: "code",
   },
   0x0f1a: {
     name: "advanceSequenceSubStep",
@@ -872,10 +882,21 @@ export const ROUTINES = {
     role: "a single ROM byte, `ret`, wired in as slot 15 of the sixteen-word table at 0x0F29 that loc_0f1f dispatches on the low nibble of SEQUENCE_SUBSTEP; taking this arm reads nothing, writes nothing and drops straight into 0x0F54, the continuation every arm of that table returns into. The address occurs exactly once in the whole 24KB image as a little-endian word -- that table slot -- and its gate measures both shipped tapes never presenting nibble 15, so whether the slot is a deliberate idle rung or filler for an index the machine never produces is not settled by anything read here",
     cert: "code",
   },
+  0x15c2: {
+    name: "loc_15c2",
+    role: "run the arm the LOW THREE BITS of the inner sequence step select out of a word table laid down inline just behind this entry; the arm is entered as a transfer with no place parked for it to come back to, so it returns past this entry and nothing here runs after it, and all eight indices are carried out through the machine's own arithmetic rather than assumed away",
+    cert: "code",
+  },
   0x1651: {
     name: "loc_1651",
     role: "the inner level of the two-level sequence machine for one outer mode: run the arm the RAW inner index selects out of a word table laid inline just after this entry, then this mode's shared tail at 0x167B; the doubling that turns the index into an offset wraps at eight bits, so a large index folds back onto the head of the table",
     cert: "code",
+  },
+  0x1690: {
+    name: "startGameOnFreePlay",
+    role: "start a game for whichever start button the input mirror shows held -- two players if the two-player bit is set, one if only the one-player bit is -- stocking each started player's block with the lives setting, and charging no credit",
+    cert: "seen",
+    why: "the name predicts the routine is unreachable on a coin cabinet and reachable with no coin on a free-play one, and both halves were measured. On the default coinage a read tap counted zero across four driven MAME runs including a real two-player game, while the sibling coin start site ran; with the DSW0 port read forced to the value MAME's own driver calls Free Play -- proved by COINAGE_SETTINGS and FREE_PLAY both reading all-ones while the credit cell stayed zero -- it ran and started a game with nothing inserted. Which arm is which was then fixed by changing only the button: at mirror 0x08 only the one-player arm's program counters wrote, at 0x10 only the two-player arm's, and those are the masks the driver gives the one- and two-player start buttons. All three callers test the free-play cell before tail-jumping here, which is why this one takes no credit where loc_189e subtracts two in packed BCD",
   },
   0x172a: {
     name: "loc_172a",
@@ -890,6 +911,11 @@ export const ROUTINES = {
   0x17fe: {
     name: "loc_17fe",
     role: "the inner level of the two-level sequence machine for one outer mode: run the arm the RAW inner index selects out of a word table laid inline just after this entry; this mode's tail does nothing at all, which is why every arm here simply ends",
+    cert: "code",
+  },
+  0x181e: {
+    name: "loc_181e",
+    role: "one step of a screen-clearing sequence: park every sprite out of sight, copy the glyph and colour showing at one fixed character cell into one fixed two-byte record, arm the line wipe to run from the plane's fifth line, and step the sequence's inner index on last; both the cell and the record are fixed here, so nothing a caller was holding chooses either",
     cert: "code",
   },
   0x1980: {
@@ -909,6 +935,11 @@ export const ROUTINES = {
     role: "put the byte the caller has been carrying where a result is read from, so the verdict of an image check can be taken; on the way it walks an address forward twice, by a wide step and then by that same byte, and the address it lands on is never dereferenced by anything downstream. It reads and writes no memory, so the walk is arithmetic and not a fetch",
     cert: "seen",
     why: "the tempting name is a table-index helper -- add a stride, add an offset, return a byte -- and the caller chain refutes it. Its only reachable entry is the tail chain loc_2d3f -> loc_43e8 -> loc_07ad -> loc_5303: loc_43e8 folds a run of image bytes into A with `add a,(hl)`, loc_07ad moves that sum into B and does nothing else, and loc_5303 calls here and then `cp 0x67`, branching to loc_0f8d on a mismatch and tail-jumping to advanceSequenceSubStep on a match. loc_0f8d pops four words off the stack and unwinds -- it is the tamper arm, not an error return -- so the byte this entry moves into A is a verdict and the compared constant is baked in. That the walked address is a decoy is not read off the code, it is a claim about the callers, and neither branch of loc_5303 touches HL. Under MAME on the real ROM, with a PC-filtered read tap: 5 dispatches over 300 emulated seconds of attract, 3 over 180, 1 over a driven game, and in EVERY run the count equals loc_43e8's and loc_5303's exactly, so the fold and the test are one chain with no second entrance. Every dispatch was captured with A = 0x67 and B = 0x67 -- the sum already correct -- and the tamper arm loc_0f8d, tapped in the same runs as the control, took ZERO dispatches in all three. A genuine image never fails, which is the only outcome that lets the game boot; a wrong constant or a second caller would have shown here. cert stays honest about one thing: with A and B equal at every observed entry, no capture can distinguish `ld a,b` from leaving A alone, and that half is read from the image",
+  },
+  0x290e: {
+    name: "loc_290e",
+    role: "run the arm the LOW THREE BITS of the ERA INDEX select out of a word table laid down inline just behind this entry; the arm is entered as a transfer with no place parked for it to come back to, so it returns past this entry and nothing here runs after it",
+    cert: "code",
   },
   0x291e: {
     name: "foldBlockIntoTotal",
@@ -932,6 +963,68 @@ export const ROUTINES = {
     role: "take an object out of play, zeroing each coordinate WHOLE — occupancy byte, both sub-pixel remainders, and both sprite-entry coordinates",
     cert: "code",
     why: "it clears the two sub-pixel remainders as well as the coordinates, which the sibling retire helper leaves standing; spawn paths differ on whether they reinitialise those cells, so which helper retired a slot can still be visible to its next occupant",
+  },
+  0x2c22: {
+    name: "loc_2c22",
+    role: "move one object for the frame according to its state byte, then run the shared appearance step over that same object: from thirty-two up it counts the state byte down and flies on at the slowest table speed, below thirty-two it only drifts with the world and the state byte is left alone; the appearance step runs on both paths",
+    cert: "code",
+  },
+  0x3deb: {
+    name: "loc_3deb",
+    role: "service one slot, splitting three ways on the head byte of its record: zero does nothing at all, all-ones flies the object one step along the velocity it carries and retires it into the shared cooldown only once that step has put it on a retire line, and any OTHER value retires it on the spot without moving it first",
+    cert: "code",
+  },
+  0x3e6c: {
+    name: "loc_3e6c",
+    role: "fly one object a step along the velocity it carries and retire its slot once that step has put it on a retire line; in one era of the game, and only that one, the object is also given the next frame of a fixed shape cycle before it moves, and the retire is last so a shape written this tick may go out in the same breath",
+    cert: "code",
+  },
+  0x3e8e: {
+    name: "loc_3e8e",
+    role: "run one slot's counter down for a frame and take the slot out of play as soon as it has nothing left to run; the era cell not standing at the last era, or the counter already sitting one above the floor, ends it outright, and otherwise the counter drops by one and the slot drifts with the world",
+    cert: "code",
+  },
+  0x3f93: {
+    name: "requestEraKeyedLaunchSound",
+    role: "request the sound of a craft launching, taking the code from one of two program bytes according to whether the era has reached the fourth; both go through the play-gated door, so the attract demo stays silent",
+    cert: "seen",
+    why: "the split point is the claim and it is refutable per era. Read taps on both tail targets under MAME: the high arm fired 7 times on the one tape that reaches the fourth era and ZERO on every tape that stops below it, including a poked run held at the first era, while a poked run held at the fifth took it on most dispatches. Had both arms queued the same byte the distinction would not exist; the two program bytes differ. 'Launch' rather than the object's name is deliberate and rests on the caller: its one caller is the tail of a spawner that finds a free slot and writes a fresh record -- velocity, shape and the live state code -- with nothing after this call able to abort it, so the request is one-to-one with something appearing. What that something IS stays unnamed, and a sibling launcher reaches the low arm directly even in the fifth era, so this selector belongs to its own caller and not to launches in general",
+  },
+  0x409d: {
+    name: "loc_409d",
+    role: "stamp one object's state byte to fifty-nine and ask for the sound that goes with it; the stamp is unconditional -- nothing here reads the byte first, and the ROM's test at this entry sends both of its answers to the same address",
+    cert: "code",
+  },
+  0x566e: {
+    name: "requestTwoSoundsWhilePlaying",
+    role: "ask for two sounds in a row, each code fetched from its own byte of the program image, both admitted only while a game is being played",
+    cert: "code",
+    why: "requestTwoSounds is this routine's structural twin -- same two-fetch shape, same fall-through into the entry that supplies the second code -- and the ONLY difference between them in the image is the permission: this one enters loc_560c twice, which drops the request with the play flag clear, while the twin enters loc_5617, which also admits the demo. That is what the name has to carry and either entry could refute it. Under MAME every dispatch of this routine was in the demo with the play flag clear, the state its own permission drops, while the twin dispatched 101 times in the same run",
+  },
+  0x58aa: {
+    name: "loc_58aa",
+    role: "fly one object a double step at the pace one fixed table of velocity samples sets; choosing the table and the mover is the whole of this entry, and a pointer the caller held is discarded",
+    cert: "code",
+  },
+  0x58b6: {
+    name: "loc_58b6",
+    role: "fly one object a step at twice the velocity one fixed table of samples sets, the shared drift added once; choosing that table is all this entry does",
+    cert: "code",
+  },
+  0x59c5: {
+    name: "loc_59c5",
+    role: "hand back the doubled component pair a heading handed straight in calls for, at the pace one fixed table of samples sets; choosing that table is all this entry does",
+    cert: "code",
+  },
+  0x59cb: {
+    name: "loc_59cb",
+    role: "hand back the doubled component pair a heading handed straight in calls for, at the pace a second fixed table of samples sets; choosing that table is all this entry does",
+    cert: "code",
+  },
+  0x59d1: {
+    name: "loc_59d1",
+    role: "hand back the doubled component pair a heading handed straight in calls for, at the pace a third fixed table of samples sets; choosing that table is all this entry does",
+    cert: "code",
   },
   0x2b83: {
     name: "hasReachedRetireLine",

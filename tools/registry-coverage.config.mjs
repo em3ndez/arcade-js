@@ -29,6 +29,17 @@ export const UNWIRED = {
       "direction is the point: while this address stays UNWIRED the caller's m.call lands on the " +
       "oracle, which charges T-states, and the run makes its full frame budget; put the idiomatic " +
       "twin in that path instead and it produces no output at all.",
+    "loc_3074.js":
+      "Not a dispatch entry: it is an interior continuation. Decoding the image from EVERY byte " +
+      "offset -- which over-generates and cannot under-generate -- finds exactly one transfer to " +
+      "0x3074 in the whole 24KB, a `djnz` at 0x3081, and 0x307F..0x3089 is a CAPTION RECORD " +
+      "(destination, colour, then glyph codes) rather than instructions, so that transfer is a " +
+      "decode of data and not a real entry. The genuine way in is a fall-through from 0x306A, " +
+      "four instructions that load the two coordinate registers off the sprite entry and point HL " +
+      "at a table -- and 0x306A has no transcribed routine, which is why 0x3074 stands alone at " +
+      "all. Both tapes dispatch it zero times, asserted in its gate. A ROUTINES entry would claim " +
+      "an entry point the image does not have; it becomes dispatchable when 0x306A is lifted and " +
+      "swallows it.",
     "loc_562a.js":
       "Not a dispatch entry at all. The little-endian word for its address occurs nowhere in the " +
       "ROM image, so no table can name it, and every path in reaches it from a point interior to " +
