@@ -202,7 +202,11 @@ game before trusting a number out of any of these tools.
 - **A game need not poll a VBLANK flag at all.** Time Pilot polls none anywhere in the ROM: the
   NMI is gated by an LS259 bit the service clears on entry and sets in its epilogue, all game logic
   runs inside the service, and the foreground is a command-ring drain that spins on an empty ring.
-  Its poll PC is that drain's top by elimination. (It does poll the RASTER counter, in the sprite
+  Its poll PC is that drain's top — MEASURED by `games/timeplt/tools/poll_detect.mjs`, which finds
+  loops whose iterations write no state and ranks them by whether a write from inside the NMI is
+  what releases them. **The METHOD is what transfers, not that file**: it hardcodes Time Pilot's
+  RAM window, ring, handler table and tape, so another game wants its own copy. Derive a poll set
+  rather than declaring one. (It does poll the RASTER counter, in the sprite
   multiplexer — "polls nothing" is the wrong reading, and one word too wide is where this project's
   errors live.) The price is stated where the poll PC is declared, in `games/timeplt/manifest.js`
   `convergence`: the drain gets one pass per NMI instead of a frame's worth, so the ring backs up

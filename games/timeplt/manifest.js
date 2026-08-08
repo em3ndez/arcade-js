@@ -81,13 +81,13 @@ export default {
     },
   },
 
-  // pollPCs -- THIS BOARD HAS NO VBLANK POLL. All game logic runs inside the NMI service and the
-  // foreground is a command-ring drain spinning on an empty ring for ever; 0x0B93 is that drain's
-  // top and the only foreground control-flow event there is, so it is the yield by ELIMINATION.
-  // It costs something: the drain gets one pass per NMI instead of a frame's worth, so the ring
-  // backs up where the cycle-driven engine never lets it, and a pair posted onto a cell not yet
-  // consumed is dropped by the ROM. Sound for a TRANSPARENCY gate, where both runs are the same
-  // engine and only their difference is read; not a model to converge against MAME with.
+  // pollPCs -- NO VBLANK POLL ON THIS BOARD. All game logic runs inside the NMI service and the
+  // foreground is a command-ring drain spinning on an empty ring for ever, 0x0B93 its top. MEASURED
+  // by tools/poll_detect.mjs, not argued from elimination: among the foreground loops THE TAPE
+  // REACHES it is the only one that waits without writing, recurs, and is ended by the NMI.
+  // It costs something: the drain gets one pass per NMI, so the ring backs up where the
+  // cycle-driven engine never lets it and the ROM drops pairs. Sound for a TRANSPARENCY gate
+  // reading a difference between two runs of the same engine; not a MAME-convergence model.
   //
   // stateExclude.stack -- SP is seated once at boot (`ld sp,0xb000`) and never re-seated, so the
   // stack is the top of work RAM and grows down. Its floor is the DEEPEST SP a tape-driven run
