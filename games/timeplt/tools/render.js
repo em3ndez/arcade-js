@@ -37,6 +37,8 @@
  *   --sprites PATH    16KB sprite ROM    (default <game>/rom/sprites.bin)
  *   --proms PATH      576-byte PROMs     (default <game>/rom/proms.bin)
  *   --frames-out DIR  output dir         (default <game>/out/render)
+ *   --idiomatic       render the IDIOMATIC layer, not the oracle -- see the note at the
+ *                     override site: the picture is right, the frame PHASE is not
  *   --poke / --input  ADDR=VAL@FRAME / PORT=BITS@FRAME  (see tools/emit-core.js)
  *
  * A run that stops early writes the frames it DID paint, prints why, and exits
@@ -47,7 +49,7 @@ import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync, writeSync 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Machine, CYCLES_PER_FRAME } from "../machine.js";
+import { Machine, CYCLES_PER_FRAME, resolveAllIdiomatic } from "../machine.js";
 import { buildRoutines } from "../routines.js";
 import { SCREEN_W, SCREEN_H } from "../../../boards/timeplt/video.js";
 import { parseEmitArgs, hex4 } from "../../../tools/emit-core.js";
@@ -85,6 +87,7 @@ async function main() {
         case "--sprites": a.sprites = next(); return true;
         case "--proms": a.proms = next(); return true;
         case "--frames-out": a.framesOut = next(); return true;
+        case "--idiomatic": a.idiomatic = true; return true;
         default: return false;
       }
     },
@@ -92,11 +95,33 @@ async function main() {
   if (!Number.isInteger(args.frames) || args.frames < 2) {
     throw new Error(`--frames expects an integer >= 2, got ${args.frames}`);
   }
-  const machine = new Machine(new Uint8Array(readFileSync(args.rom)), buildRoutines(), {
+  // --idiomatic renders the IDIOMATIC layer instead of the oracle, through the same override
+  // path the shipped player uses (resolveAllIdiomatic -> withOmittedRet -> Machine.create), so
+  // the pixel gate measures the code being written rather than the code it replaces. Without
+  // this flag it does NOT: the default path builds from buildRoutines() alone, and poisoning
+  // every idiomatic module leaves the frames byte-identical.
+  //
+  // ★ WHAT THIS DOES NOT GIVE YOU, measured rather than assumed. An idiomatic module spends no
+  // T-states, so under this cycle-driven engine the frame clock runs ahead of the oracle's and
+  // events land a frame early -- the picture is right, the PHASE is not. Over 300 frames of boot
+  // and attract, 36 frames differ, and they are not scattered: frame 33, where the grid fill
+  // happens, and the run 236-270, which is the boot wipe. Shifting the comparison one frame
+  // matches 292 of 299 against the 263 that match unshifted. So a raw diff of this output against
+  // the golden is NOT a fidelity verdict, and a run that "fails" here may be a clock artefact and
+  // nothing else. Charging each substituted call its frozen twin's measured cost fixes it at unit
+  // scale and is what the per-routine gates do; it does not scale to a whole-run render.
+
+  const gfx = {
     tiles: loadRegion("tiles", args.tiles),
     sprites: loadRegion("sprites", args.sprites),
     proms: loadRegion("proms", args.proms),
-  });
+  };
+  const romImage = new Uint8Array(readFileSync(args.rom));
+  const overrides = args.idiomatic ? await resolveAllIdiomatic() : null;
+
+  const machine = args.idiomatic
+    ? await Machine.create(romImage, { ...gfx, overrides })
+    : new Machine(romImage, buildRoutines(), gfx);
   machine.inputTape = args.inputs.length ? args.inputs : null;
   machine.pokes = args.pokes.length ? args.pokes : null;
 

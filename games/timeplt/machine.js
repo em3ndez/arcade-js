@@ -492,6 +492,8 @@ export class Machine {
   }
 }
 
+const GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
+
 /**
  * Adapt one idiomatic routine to a TRANSLATED caller by performing the ROM `ret` it omits.
  *
@@ -527,6 +529,10 @@ export class Machine {
  * returned; leaving it out still keeps one definition of what a dispatch does.
  */
 export function withOmittedRet(fn, addr = null) {
+  // A SPINE GENERATOR PASSES THROUGH UNWRAPPED: calling one builds the iterator without running the
+  // body, so the seam would read the unmoved stack as an omitted ret. test/omitted-ret-seam.test.js.
+  if (fn instanceof GeneratorFunction) return fn;
+
   const at = addr === null ? "" : ` at 0x${(addr & 0xffff).toString(16).padStart(4, "0")}`;
   return (m, ...args) => {
     const seat = m.regs.sp;
