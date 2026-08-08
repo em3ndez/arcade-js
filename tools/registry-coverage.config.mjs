@@ -11,6 +11,15 @@
  */
 export const UNWIRED = {
   timeplt: {
+    "sendOneQueuedSoundThenUnwindTheFrameInterrupt.js":
+      "the vblank EPILOGUE: it unwinds the whole interrupt frame, so it legitimately moves SP by " +
+      "22. `withOmittedRet` places a dispatch only where the rewrite leaves SP where it found it " +
+      "or moves it by one return slot -- 0 or +2 -- so the seam cannot seat this address at all, " +
+      "and wiring it fails the assembled-game and seam gates by name. Nothing reaches it as a " +
+      "call either: the word 0x0174 occurs once in the image, at 0x0156, as the resume address " +
+      "the frame service PUSHES, so control RETURNS into it rather than calling it. The module " +
+      "and its gate are correct and stay; what is missing is a seam that can model a routine " +
+      "whose whole job is to dismantle the frame its caller is standing on.",
     "loc_0030.js":
       "RST 0x30's argument IS the stack slot. The caller's transfer leaves the inline table's " +
       "address where a return address would sit, and the routine pops it -- consuming it is what " +

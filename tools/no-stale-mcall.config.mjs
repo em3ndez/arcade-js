@@ -4,12 +4,11 @@
 // no debt.
 
 /**
- * ALLOWED: never-returning forever-loop m.call BOUNDARIES, keyed game -> caller file -> targets.
- *
- * These callees re-seat the stack and spin forever, so dissolving such a tail to a direct call
- * makes the caller's test spin too -- the loop can no longer be stubbed through the registry, and
- * a direct call is memory-equivalent anyway. The tails stay m.call. A POLL routine qualifies for a
- * second, measured reason -- docs/idiomatic-generation.md, Part VI.
+ * ALLOWED: m.call BOUNDARIES THAT CANNOT BE DISSOLVED, keyed game -> caller file -> targets.
+ * Two kinds: a never-returning forever loop (a direct call makes the caller's test spin too), and
+ * a tail some GATE severs through the routine map to observe the handover (that interception only
+ * works via m.call). A direct call is memory-equivalent either way, so these tails stay m.call.
+ * A POLL routine qualifies for a third, measured reason -- docs/idiomatic-generation.md, Part VI.
  */
 export const ALLOWED = {
   thepit: {
@@ -24,6 +23,7 @@ export const ALLOWED = {
   },
   timeplt: {
     "enableInterruptAndEnterForegroundLoop.js": [0x0b93], // -> the foreground command-ring drain, and the game's only poll PC
+    "sumImageBlockForTheTamperCheck.js": [0x07ad], // -> the tamper hand-off; equivalence-43e8 severs the chain here with a routine-map stub to record the handover, and that interception only works through m.call, so a direct import blinds four of its arms (dissolve attempted, reverted)
   },
 };
 
