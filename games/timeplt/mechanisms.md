@@ -350,12 +350,12 @@ instruction.
 
 ### The camera is the player's own velocity, negated
 
-`loc_1f42` reads the era index, picks a velocity table, and calls the heading→velocity lookup for
-the player's current heading. Its continuation, `loc_1f55`, writes that vector **negated** into
-`WORLD_SCROLL_Y` and `WORLD_SCROLL_X`. Every world-static object then has that pair added to its
-position once a frame. The ship's sprite entry is pinned and never rewritten, so the ship cannot
-move; adding the negated player velocity to everything else is what turns the stick into flight.
-`[code]`
+`scrollWorldAtTheEraPace` reads the era index, picks a velocity table, and calls the
+heading→velocity lookup for the player's current heading. Its continuation, `loc_1f55`, writes that
+vector **negated** into `WORLD_SCROLL_Y` and `WORLD_SCROLL_X`. Every world-static object then has
+that pair added to its position once a frame. The ship's sprite entry is pinned and never rewritten,
+so the ship cannot move; adding the negated player velocity to everything else is what turns the
+stick into flight. `[code]`
 
 There is no separate camera and no scroll register. **The camera is a subtraction**, and the cells
 holding it are the single most load-bearing pair in the game.
@@ -390,7 +390,8 @@ is wrong about any byte, and the transcription is faithful either way.
 
 ### The player's speed rises with the era — and so, therefore, does the world's
 
-`loc_1f42` buckets the era index and hands out a different velocity table for each bucket:
+`scrollWorldAtTheEraPace` buckets the era index and hands out a different velocity table for each
+bucket:
 
 | era index | table | peak magnitude | pixels/frame (8.8) |
 |---|---|---|---|
@@ -818,11 +819,16 @@ A second variant of the DMA handles the flipped cabinet by mirroring every sprit
 because the tilemap is flipped in hardware and the sprites are flipped by the ROM. `[code]`
 
 **Player shots are not sprites at all.** They are painted as 2×2 blocks of character cells through a
-double-buffered display list: a per-shot routine appends address/code/attribute quads to a list, and
-inside the vblank service one walker blanks the *previous* frame's cells while another writes this
-frame's, after which the list is copied over and the write pointer reset. Both walkers test the
-cell's colour-RAM priority bit and **skip the cell if it is set**, so the shot layer refuses to
-scribble over foreground and HUD cells. `[code]`
+pair of deferred-cell lists — and the pair is **not a double buffer**. A per-shot routine appends
+address/code/attribute quads to the pending list at `0xAE00`, and inside the vblank service one
+walker blanks the *previous* pass's cells off the erase list at `0xAE80` while another writes this
+pass's off the pending list, after which the pending list is copied wholesale onto the erase list
+and the pending cursor is reset. The copy runs **one way on every pass** — `0xAE00` onto `0xAE80`,
+never back — and the two walkers are asymmetric: the blanking one writes only the character plane
+and leaves colour exactly as it was, the painting one writes both planes, and their entries even
+start at different offsets, `0xAE84` against `0xAE04`. So the halves cannot exchange roles the way a
+double buffer's do. Both walkers test the cell's colour-RAM priority bit and **skip the cell if it
+is set**, so the shot layer refuses to scribble over foreground and HUD cells. `[code]`
 
 ### Multi-tile objects are not a structure
 
@@ -1628,11 +1634,19 @@ it.
 
 ### Player shots live here too
 
-Shots have no sprite entry. They are painted as 2×2 blocks of cells through a **double-buffered
-display list**: one walker blanks the previous pass's cells, another writes this pass's, and the
-list is then copied onto the blank list wholesale and its cursor reset — all inside the interrupt.
-Both walkers check each cell's colour-plane priority bit and **skip the cell if it is set**, so
-shots refuse to scribble over foreground and HUD cells. `[code]`
+Shots have no sprite entry. They are painted as 2×2 blocks of cells through a **pair of
+deferred-cell lists**: one walker blanks the previous pass's cells off the erase list, another
+writes this pass's off the pending list, and the pending list is then copied onto the erase list
+wholesale and its cursor reset — all inside the interrupt. Both walkers check each cell's
+colour-plane priority bit and **skip the cell if it is set**, so shots refuse to scribble over
+foreground and HUD cells. `[code]`
+
+**The pair is not a double buffer**, and this is the reading the code refuses. The copy runs one
+way, `0xAE00` onto `0xAE80`, on every pass and never back, so the halves never swap. And they hold
+different jobs rather than alternating ones: the blanking walker writes only the character plane and
+leaves every colour cell as it was, the painting walker writes both planes with a shared tint bias,
+and their entries start at different offsets, `0xAE84` against `0xAE04`. One list is the edits to
+make, the other a record of last pass's edits to take back. `[code]`
 
 ★ **The pairing is now measured, not derived.** A write tap over the whole character plane on the
 real ROM under MAME, attributed by program counter and compared per pass rather than per frame: over
@@ -1649,7 +1663,7 @@ on it. And the blank list's cursor carries a top bit the copy adds, which its wa
 before scaling; the mask cannot change the entry count, only whether the list reads as empty, and
 that for exactly one cursor value in 256.
 
-The publish step has an empty branch, and it is the branch that keeps the two buffers in step:
+The publish step has an empty branch, and it is the branch that keeps the two lists in step:
 when the staging list has nothing in it, a separate routine puts **both** cursors back to their
 empty sentinels rather than copying nothing over a stale erase list. Measured under MAME by
 program counter, that routine wrote the two heads an equal number of times, while the copying
@@ -2080,7 +2094,8 @@ table decay in precisely the order that says where the tape stops:
 | 0x5965 | eras 1–2 | 962 |
 | **0x596B** | **era 3 and up** | **2596** (attract, era 3) / **2821** (era 4 held) |
 
-`[seen]` for the counts; `[code]` for which era each arm serves, which is read from `loc_1f42`.
+`[seen]` for the counts; `[code]` for which era each arm serves, which is read from
+`scrollWorldAtTheEraPace`.
 
 ★ **The zero this table once carried for `0x596B` was the tape's, and a later sweep collected the
 number.** An undriven attract run that reaches the fourth era dispatched it 2596 times, all of them

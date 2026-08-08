@@ -40,6 +40,20 @@ export const UNWIRED = {
       "all. Both tapes dispatch it zero times, asserted in its gate. A ROUTINES entry would claim " +
       "an entry point the image does not have; it becomes dispatchable when 0x306A is lifted and " +
       "swallows it.",
+    "loc_5254.js":
+      "Not a dispatch entry: it is an interior continuation of destroyTargetsHitByShots, and the " +
+      "frozen layer never transfers to it. A scan of the whole 24 KB for the little-endian word " +
+      "0x5254, at every alignment, finds no occurrence, so no table can name it -- and the same " +
+      "scan is shown able to find an entry point in the same breath, returning six occurrences of " +
+      "0x5211's word, each behind a `c3`, `cd` or `c2`. Both paths in are interior to 0x5211's " +
+      "own body: a `jr nz` at 0x5215 and the fall-through of the `djnz` at 0x5252. The frozen " +
+      "transcription says the same thing by giving loc_5211 the range 0x5211-0x5269 and holding " +
+      "0x5254-0x5269 a second time inside it, and loc_5211 reaches that stretch by falling into " +
+      "it rather than by calling 0x5254. The idiomatic destroyTargetsHitByShots has already " +
+      "SWALLOWED the continuation -- its own body reloads the two target cursors from 0xA991 and " +
+      "0xA993 and the inner count from the shadow accumulator between passes, which is the whole " +
+      "of what this module does -- so a ROUTINES entry would claim an entry point the image does " +
+      "not have and override an address the enclosing routine's rewrite already covers.",
     "loc_562a.js":
       "Not a dispatch entry at all. The little-endian word for its address occurs nowhere in the " +
       "ROM image, so no table can name it, and every path in reaches it from a point interior to " +

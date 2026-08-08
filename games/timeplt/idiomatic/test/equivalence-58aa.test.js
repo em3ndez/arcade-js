@@ -10,13 +10,14 @@
  *
  * ★ HOW THE LIVE-OUT WAS DERIVED, and it is from the ORACLE's exit successors, not from the
  *   module. The oracle transfers into 0x58FE, whose four stores are its only writes and whose
- *   `ret` carries this entry's return. Two call sites reach here. loc_4117 CALLS it and its very
- *   next instruction is `call 0x3FAF`, which opens `ld a,(ix+0x02)` — it reads IX, which both
- *   sides leave untouched, and overwrites A before reading it. loc_29F7 TAIL-JUMPS here, so the
- *   return lands in loc_29D5 just before `call 0x2B83`, which opens `ld a,(iy+0x31)` — IY again,
- *   and A overwritten. Neither successor reads A, F, D, E, H or L, and BOTH sides leave B, C, IX
- *   and IY equal, which the EXCLUDED arm asserts as a set rather than assuming. So the live-out is
- *   the four coordinate bytes; SP and pc belong to the dispatch seam, below.
+ *   `ret` carries this entry's return. Two call sites reach here.
+ *   chaseOneAimPointAndRetireAtTheLine CALLS it and its very next instruction is `call 0x3FAF`,
+ *   which opens `ld a,(ix+0x02)` — it reads IX, which both sides leave untouched, and overwrites A
+ *   before reading it. loc_29F7 TAIL-JUMPS here, so the return lands in loc_29D5 just before `call
+ *   0x2B83`, which opens `ld a,(iy+0x31)` — IY again, and A overwritten. Neither successor reads
+ *   A, F, D, E, H or L, and BOTH sides leave B, C, IX and IY equal, which the EXCLUDED arm asserts
+ *   as a set rather than assuming. So the live-out is the four coordinate bytes; SP and pc belong
+ *   to the dispatch seam, below.
  *
  * ★ SP AND pc ARE THE SEAM'S, NOT THIS FILE'S. The oracle reaches its `ret` through the transfer,
  *   so it pops the caller's slot; the rewrite performs no return at all. `withOmittedRet` measures
@@ -49,8 +50,8 @@
  *      which is half of what this entry decides.
  *
  * HOLE: only ONE of the two call sites is exercised. The session reaches this entry entirely
- * through loc_4117; loc_29F7's tail transfer is dispatched zero times, so nothing here speaks for
- * the object population that path would bring.
+ * through chaseOneAimPointAndRetireAtTheLine; loc_29F7's tail transfer is dispatched zero times,
+ * so nothing here speaks for the object population that path would bring.
  * HOLE: the session presents one object slot, so the record and sprite bases are never varied —
  * the crafted arms vary the values read, never the addresses they are read from.
  * HOLE: the carry twin is invisible on the heading sweep and at the real dispatch because both
