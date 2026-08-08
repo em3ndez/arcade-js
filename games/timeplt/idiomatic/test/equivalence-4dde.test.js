@@ -21,7 +21,8 @@
  *   2. NOT VACUOUS — a candidate that does nothing FAILS somewhere in the crafted space, and the
  *      REAL DISPATCH arm measures whether it fails at the captured entry too.
  *   3. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      sweep, asserted as a set, so "excluded" is pinned over the space rather than at one entry.
+ *      sweep, BOUNDED by a declared set over the whole space rather than at one entry: nothing
+ *      outside it may move, and a rewrite that moves fewer of them still passes.
  *   4. CORPUS — every dispatch of two sessions replayed, with both counts and the arm histogram
  *      asserted; a session that stops presenting the award arm invalidates the per-twin counts.
  *   5. EXHAUSTIVE — 256 tally values x both mark lists x both tallies x both latch states.
@@ -371,8 +372,10 @@ test("NOT VACUOUS: a no-op candidate FAILS in the crafted space", { skip }, () =
   console.log(`  NOT VACUOUS: the empty candidate is caught ${sweepCaught(brokenNoOp)} times`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space, not at one entry", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_4dde), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: bounded over the whole crafted space, not at one entry", { skip }, () => {
+  const moved = movedRegisters(loc_4dde);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 

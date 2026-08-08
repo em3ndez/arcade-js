@@ -19,7 +19,9 @@
  *   1. UNREACHED — the three undriven sessions' counts, and the era-held session's, side by side.
  *   2. EQUAL at the real dispatch — RAM byte-identical.
  *   3. NOT VACUOUS — a no-op FAILS that same diff.
- *   4. EXCLUDED — over the whole clock sweep the registers that move are exactly the scratch set.
+ *   4. EXCLUDED — over the whole clock sweep nothing outside the scratch set moves. The set is an
+ *      upper BOUND on the divergence, not a measurement of it: a rewrite that leaves fewer of
+ *      those registers dirty is strictly better and still passes.
  *   5. UNIFORM CORPUS — how many sprite bases and how many distinct clock values the era-held
  *      sessions present, asserted as counts.
  *   6. CORPUS — every dispatch of two era-held sessions.
@@ -65,6 +67,7 @@ const CONTROL_BYTE = 68;
 const GATING_ERA = 4;
 const FRAME_SERVICE = 0x0038;
 
+/** The scratch set: an upper bound on what may diverge, not a measurement of what does. */
 const MOVED = ["a", "f", "sp"];
 const HELD = ["b", "c", "d", "e", "h", "l", "ix", "iy"];
 
@@ -324,7 +327,8 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole clock 
     for (const at of WRITTEN) assert.equal(a.mem8[at(a)], b.mem8[at(b)], `live-out ${hex4(at(a))}`);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   for (const k of HELD) assert.ok(!moved.has(k), `a register a caller may rely on moved (${k})`);
 });
 

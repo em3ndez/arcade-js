@@ -19,7 +19,8 @@
  *   2. EQUAL on real states — RAM byte-identical with nothing masked, at every sampled state.
  *   3. NOT VACUOUS — a candidate that does nothing FAILS the same comparison.
  *   4. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted as a set.
+ *      space, asserted to stay inside the allowed set: a register diverging outside it fails the
+ *      arm, and a rewrite diverging on fewer still passes.
  *   5. EXHAUSTIVE — all 256 counter values, which is the entry's whole input space, on three
  *      sprite-entry bases: the real one and two chosen.
  *   6. BOTH ARMS — the sweep is asserted to present both states of the deciding bit.
@@ -28,7 +29,7 @@
  * HOLE: there is no whole-machine arm, because no session dispatches this entry: wiring the rewrite
  * over the address would change nothing and pass vacuously. Nothing here therefore speaks for the
  * registers the entry leaves behind beyond the crafted comparison, which is why arm 4 is a set
- * pinned over the whole space rather than a claim that they are dead.
+ * bounding the whole space rather than a claim that they are dead.
  * HOLE: the sampled states all come from one routine's dispatches in one session, so the sprite
  * entry base is nearly constant across them; the two chosen bases stand in for that.
  *
@@ -220,8 +221,10 @@ test("NOT VACUOUS: a no-op candidate FAILS on a sampled state", { skip }, () => 
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_44dc), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(loc_44dc);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 

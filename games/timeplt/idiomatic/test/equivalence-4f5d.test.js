@@ -70,6 +70,19 @@ const SWEEP = 0x5211;
  */
 const SCRATCH_BYTES = 8;
 
+/**
+ * The registers allowed to diverge. A BOUND, not an exact list: a register diverging outside this
+ * set fails the arm below, and a rewrite that diverges on fewer of them still passes. The count and
+ * the shot cursor are the SWEEP's leftovers — the frozen sweep runs them down and the stack-free
+ * one keeps its cursors in locals — so they belong to the sweep's own contract and not to this
+ * entry's. Most of what this entry STAGES is deliberately absent from the set — but not all of it:
+ * `c` is both STAGED and excluded here, and `ix` is in the harvested set too. Neither is excused,
+ * because THE STAGED REGISTERS arm asserts them equal directly; this bound is simply not what
+ * guards them. (An earlier draft of this comment claimed every staged register was absent, which
+ * the `STAGED` literal above contradicts outright.)
+ */
+const EXCLUDED = ["a", "f", "c", "ix", "sp"];
+
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr)}: oracle=${d.a} candidate=${d.b}` : "identical");
@@ -201,14 +214,12 @@ test("EQUAL at the real dispatch: every byte identical, the stack scratch includ
   oracle(a);
   loc_4f5d(b);
   assert.deepEqual(allDiffs(a, b), [], `a byte diverged — ${show(allDiffs(a, b)[0])}`);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "c", "ix", "sp"],
-    "the excluded set changed shape: the count and the shot cursor are the SWEEP's leftovers — " +
-      "the frozen sweep runs them down and the stack-free one keeps its cursors in locals — so " +
-      "they belong to the sweep's own contract and not to this entry's",
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
+  console.log(
+    `  EQUAL: entry sp=${hex4(entry.regs.sp)}; every byte identical, registers moved: ${moved.join(", ")}`,
   );
-  console.log(`  EQUAL: entry sp=${hex4(entry.regs.sp)}; every byte and every register identical`);
 });
 
 test("THE STAGED REGISTERS: harvested at the hand-over, both sides agree", { skip }, () => {

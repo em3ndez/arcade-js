@@ -19,7 +19,8 @@
  *   1. EQUAL at the real dispatches — RAM identical outside the dead stack bytes.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS the same masked comparison.
  *   3. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      sweep, asserted as a set.
+ *      sweep, asserted to stay inside the allowed set: a register diverging outside it fails the
+ *      arm, and a rewrite diverging on fewer still passes.
  *   4. CORPUS — both real dispatches replayed, with the count and the index they present asserted.
  *   5. EXHAUSTIVE — all 256 index values against BOTH states of the permission cell the sound
  *      request consults. The arm covers every table entry, the first value past the end, and the
@@ -287,8 +288,10 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(showParachutistAward), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(showParachutistAward);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 

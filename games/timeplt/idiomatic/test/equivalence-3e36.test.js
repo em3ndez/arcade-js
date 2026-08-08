@@ -62,6 +62,14 @@ const IDLE = 0;
  */
 const SCRATCH_BYTES = 2;
 
+/**
+ * An upper BOUND on the register divergence, not a measurement of it: nothing outside this set may
+ * move, and a rewrite that leaves fewer of these dirty is strictly better and still passes. The two
+ * cursors are deliberately outside it — the fourth slot leaves them in the same place on both
+ * sides, and the arm checks them as live-outs.
+ */
+const EXCLUDED = ["a", "f", "sp"];
+
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 303;
 
@@ -169,12 +177,9 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
     [],
     `a divergence escaped the scratch window — ${show(outsideScratch(a, b, sp)[0])}`,
   );
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "sp"],
-    "the excluded set changed shape: the two cursors are left where the fourth slot put them " +
-      "on both sides, so neither of them may appear here",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.equal(a.regs.ix, b.regs.ix, "the record cursor diverged");
   assert.equal(a.regs.iy, b.regs.iy, "the entry cursor diverged");
   console.log(`  EQUAL: sp ${hex4(sp)}, cursors ${hex4(a.regs.ix)}/${hex4(a.regs.iy)}`);

@@ -13,9 +13,10 @@
  *   1. EQUAL at every real dispatch — the whole state dump is identical, the stack included: the
  *      exclusion window is measured at ZERO bytes and asserted so.
  *   2. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   3. EXCLUDED, deliberately — the register set that may differ is pinned by measurement. The
- *      carry the early return leaves behind is NOT a live-out here and is not asserted; the twin
- *      list says which arms that costs.
+ *   3. EXCLUDED, deliberately — the register set that may differ is BOUNDED by a measured list: a
+ *      register diverging outside it fails the arm, and a rewrite diverging on fewer still passes.
+ *      The carry the early return leaves behind is NOT a live-out here and is not asserted; the
+ *      twin list says which arms that costs.
  *   4. CORPUS — every dispatch of the session replayed on a clone, not a deduplicated sample.
  *   5. EXHAUSTIVE — all 256 wrapped differences between the two bytes, crafted onto the real entry
  *      state, which is the only arm that reaches both turn directions and both edges of the band.
@@ -197,16 +198,14 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   steerTowardAimOneUnitAFrame(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });
 

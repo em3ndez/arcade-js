@@ -42,6 +42,11 @@ const TARGET = 0x4d67;
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 308;
 
+/** REGISTERS the rewrite is allowed to leave differing. A bound, not a pin: a rewrite that moves
+ * fewer of them still passes; one that moves anything else does not. Nothing to do with the RAM
+ * exclusion, which is empty here. */
+const EXCLUDED_REGS = ["a", "f", "sp"];
+
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr)}: oracle=${d.a} candidate=${d.b}` : "identical");
@@ -120,11 +125,13 @@ test("EQUAL at the real dispatch: RAM identical, scratch window included", { ski
   advanceSexagesimalDigit(b);
   assert.deepEqual(allDiffs(a, b), [], `a byte diverged — ${show(allDiffs(a, b)[0])}`);
   assert.equal(a.regs.sp - b.regs.sp, 2, "the oracle pops its return address; the rewrite does not");
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED_REGS.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "sp"],
-    "the excluded set changed shape: only the accumulator, the flag byte and the stack pointer " +
-      "may differ, and of those only carry is a live-out",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: only the accumulator, the flag byte and the " +
+      "stack pointer may differ, and of those only carry is a live-out",
   );
   console.log(
     `  EQUAL: cell ${hex4(entry.regs.hl)} held ${entry.mem8[entry.regs.hl]}; every byte identical`,

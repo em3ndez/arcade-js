@@ -7,7 +7,9 @@
  *   exercises, holes stated:
  *
  *   1. EQUAL at the real dispatch — the state dump agrees byte for byte, the stack scratch
- *      included, so this file names NO exclusion and asserts the empty one.
+ *      included, so this file names NO MEMORY exclusion and asserts the empty one. The register
+ *      file is a different matter: a declared set BOUNDS what may diverge there, rather than
+ *      pinning it, so a rewrite that leaves fewer of those registers dirty still passes.
  *   2. NOT VACUOUS — a candidate that does nothing is caught at the same dispatch, so the RAM
  *      comparison really is the gate here.
  *   3. CROSS — the direction byte against a spread of shared displacements, against a spread of
@@ -52,6 +54,13 @@ const SPEED_HIGH = 8;
 
 /** Dispatches the shared tape produces in the harness budget. Measured; a move is a finding. */
 const DISPATCHES = 154;
+
+/**
+ * An upper BOUND on the register divergence, not a measurement of it: nothing outside this set may
+ * move, and a rewrite that leaves fewer of these dirty is strictly better and still passes. None
+ * of them outlives the entry.
+ */
+const EXCLUDED = ["a", "f", "e", "h", "l", "sp"];
 
 const skip = romsPresent() ? false : "ROM images are gitignored; nothing to gate";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -188,11 +197,9 @@ test("EQUAL at the real dispatch: every byte identical, the stack scratch includ
   oracle(a);
   flyAlongBallisticArc(b);
   assert.deepEqual(allDiffs(a, b), [], `a byte diverged — ${show(allDiffs(a, b)[0])}`);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "e", "h", "l", "sp"],
-    "the excluded set changed shape: none of these outlives the entry",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(
     `  EQUAL: record ${hex4(entry.regs.ix)}, entry ${hex4(entry.regs.iy)}; every byte identical`,
   );

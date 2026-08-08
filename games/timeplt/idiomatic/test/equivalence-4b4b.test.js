@@ -9,9 +9,11 @@
  *   1. EQUAL at the real dispatch — the whole dump identical, stack scratch included, plus the
  *      drawn byte, which is compared as a live-out and not excluded.
  *   2. NOT VACUOUS — a no-op candidate fails the same diff.
- *   3. EXCLUDED, deliberately, pinned to an exact set. It includes the ALTERNATE register set,
- *      which the original swaps in to do its work and the rewrite never touches; the whole-machine
- *      arm is what says that is dead rather than merely unread here.
+ *   3. EXCLUDED, deliberately — nothing diverges outside the declared set, which is an upper bound
+ *      and not a pin: a rewrite that leaves one MORE register alone passes. The set is almost
+ *      entirely the ALTERNATE register set, which the original swaps in to do its work and the
+ *      rewrite never touches; the whole-machine arm is what says that is dead rather than merely
+ *      unread here.
  *   4. CORPUS — every dispatch the tape produces.
  *   5. EXHAUSTIVE COUNTER — all 256 values of the counter the drawn byte is offset by.
  *   6. CRAFTED REGISTER — the seventeen bytes forced to patterns that make the two taps agree,
@@ -261,12 +263,11 @@ test("EXCLUDED, deliberately: the alternate register set, the flags, the pointer
   const b = entryState().clone();
   oracle(a);
   drawRandomByte(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape: the drawn byte must agree and the MAIN register set must be " +
-      "untouched on both arms, which is what the original's pair of set swaps buys it",
-  );
+  // What this catches: the drawn byte disagreeing, or the MAIN register set being touched on
+  // either arm — the original's pair of set swaps is what buys it that.
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc`);
 });

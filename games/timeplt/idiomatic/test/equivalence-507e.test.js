@@ -15,7 +15,8 @@
  *      walking the whole dump.
  *   2. VACUITY, MEASURED — a no-op passes at every real dispatch; the crafted arm that catches it
  *      is named.
- *   3. EXCLUDED, deliberately, pinned to an exact set.
+ *   3. EXCLUDED, deliberately, BOUNDED by a measured set: a register diverging outside it fails
+ *      the arm, and a rewrite that diverges on fewer of them still passes.
  *   4. CORPUS — every dispatch the attract run produces, with the flag pairs it presented.
  *   5. CRAFTED CROSS — both flags live or not, and the target's two coordinates swept across the
  *      window edge on each axis. The two axes have DIFFERENT window widths and the cross covers
@@ -58,6 +59,13 @@ const LIVE = 0xff;
 const DESTROYED = 0xf0;
 
 const SCRATCH_BYTES = 8;
+/**
+ * The registers allowed to diverge: the accumulator and flags carry each of the four tests, the
+ * record base is loaded into IX and the rewrite does not load it, and the closing transfer lifts
+ * SP. A BOUND, not an exact list: a register diverging outside this set fails the arm below, and a
+ * rewrite that diverges on fewer of them still passes. Everything else — BC, DE, HL, IY and the
+ * whole shadow bank — is deliberately absent, so none of it can be excused here.
+ */
 const MOVED = ["a", "f", "ix", "sp"];
 const FRAMES = 1600;
 const RET_TSTATES = 10;
@@ -349,11 +357,9 @@ test("EXCLUDED, deliberately: scratch registers, the record base and pc", { skip
   const b = entryState().clone();
   oracle(a);
   destroyFixedTargetReachedByPlayer(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc, plus ${SCRATCH_BYTES} scratch bytes`);
 });

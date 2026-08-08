@@ -15,7 +15,8 @@
  *      cursor identical too; it is a live-out and is compared explicitly.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS the same masked comparison.
  *   3. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted as a set; the cursor is NOT in it.
+ *      space is BOUNDED by a declared set: nothing outside it may move, and a rewrite that moves
+ *      fewer of them still passes. The cursor is not in the set.
  *   4. CORPUS — all three real dispatches replayed, with the count asserted.
  *   5. CRAFTED — 256 shape bases x three colours x five cursors. Two of those cursors are chosen
  *      so the colour walk's step CARRIES out of the low half of the address, which is the one
@@ -271,8 +272,10 @@ test("NOT VACUOUS: a no-op candidate FAILS the same masked comparison", { skip }
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_4daf), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(loc_4daf);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; the cursor is a live-out`);
 });
 

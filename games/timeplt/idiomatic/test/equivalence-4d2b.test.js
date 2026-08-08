@@ -17,7 +17,8 @@
  *      the carry comparison catching them.
  *   3. THE RETURN AND THE CARRY AGREE — the rewrite hands the answer back as a value as well as
  *      leaving it in the flag, and the two are asserted equal on every crafted entry.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement. The
+ *   4. EXCLUDED, deliberately — the register set that may differ is BOUNDED, not pinned: nothing
+ *      outside it may diverge, and a rewrite that moves one FEWER register still passes. The
  *      flag byte is IN that set because the rewrite reproduces only the carry bit of it, which is
  *      the reason arm 1 asserts carry rather than the whole byte.
  *   5. CORPUS — every dispatch of the session replayed on a clone.
@@ -269,16 +270,14 @@ test("THE RETURN AND THE CARRY AGREE on every crafted entry", { skip }, () => {
   console.log(`  RETURN: ${checked} crafted entries, return and carry agree on each`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: no register diverges outside the declared set", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   isScoreBelow(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.ok(EXCLUDED.includes("f"), "the flag byte differs in bits other than carry, and must " +
     "stay declared — which is why the carry is compared on its own above");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);

@@ -51,6 +51,9 @@ const RING_CELLS = 64;
 const WRITE_CURSOR = 0xa9b2;
 const SCRATCH_BYTES = 2;
 
+/** The registers allowed to differ. The command pair D/E is a live-out, so it must NOT be here. */
+const EXCLUDED = ["a", "f", "sp"];
+
 /** The attract run this entry is reached by, and the frame it is first reached on. Measured. */
 const ATTRACT_FRAMES = 3000;
 const FIRST_DISPATCH = 2758;
@@ -172,10 +175,12 @@ test("EQUAL at the real dispatch: identical outside the scratch window", { skip 
   );
   assert.equal(a.regs.d, b.regs.d, "the command byte left behind diverged");
   assert.equal(a.regs.e, b.regs.e, "the argument byte left behind diverged");
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    ["a", "f", "sp"],
-    "the excluded set changed shape: the command pair is a live-out and must NOT be in here",
+    unexpected,
+    [],
+    "a register diverged outside the excluded set: the command pair is a live-out and is not in it",
   );
   console.log(`  EQUAL: pair ${a.regs.d}/${a.regs.e}; identical outside [SP-${SCRATCH_BYTES}, SP)`);
 });

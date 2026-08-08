@@ -27,8 +27,10 @@
  *   4. NOT VACUOUS — a candidate that does nothing FAILS the crafted comparison. It does NOT fail
  *      on a nudged dispatch, which is arm 2's finding restated as a test.
  *   5. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted as a set. The sprite-entry base register is in it: the oracle loads it and
- *      the rewrite does not, and the whole-machine arms are what show nothing downstream reads it.
+ *      space, BOUNDED by a measured set rather than pinned to it: a register diverging outside
+ *      that set fails the arm, and a rewrite that diverges on fewer still passes. The sprite-entry
+ *      base register is in it: the oracle loads it and the rewrite does not, and the whole-machine
+ *      arms are what show nothing downstream reads it.
  *   6. THE MASK IS LOAD-BEARING, MEASURED — the crafted entries where an unmasked comparison
  *      differs are counted, and the window they differ in is pinned to exactly six bytes below the
  *      entry stack pointer. Both numbers are asserted, so the window cannot quietly widen.
@@ -90,6 +92,14 @@ const SECOND_AXIS_SPAN = 35;
 /** The score routine brackets its work, and its own helper pushes too. Measured, then pinned. */
 const SCRATCH_BYTES = 6;
 const SCRATCH_OFFSETS = [-6, -5, -4, -3, -2, -1];
+/**
+ * The registers allowed to diverge: the accumulator and flags carry each of the four tests, the
+ * sprite-entry base is loaded into IX and the rewrite does not load it, and the omitted return
+ * lifts SP. A BOUND, not an exact list: a register diverging outside this set fails the arm below,
+ * and a rewrite that diverges on fewer of them still passes. It is a UNION over the crafted space,
+ * so every member is known to have moved SOMEWHERE in it, not at every entry. BC, DE, HL, IY and
+ * the whole shadow bank are deliberately absent, so none of them can be excused here.
+ */
 const EXCLUDED = ["a", "f", "ix", "sp"];
 
 const CORPUS_FRAMES = 6000;
@@ -420,8 +430,10 @@ test("NOT VACUOUS: a no-op FAILS on a crafted entry, and passes on every real on
   console.log(`  NOT VACUOUS: crafted catches the empty candidate — ${show(d)}; real does not`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_50ee), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(loc_50ee);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; live-out is memory only`);
 });
 

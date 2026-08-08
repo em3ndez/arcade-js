@@ -9,7 +9,8 @@
  *   1. EQUAL at the real dispatch — the whole state dump identical, stack scratch included,
  *      because this routine pushes nothing and the arm asserts that rather than masking for it.
  *   2. NOT VACUOUS — a no-op candidate fails the same diff.
- *   3. EXCLUDED, deliberately, pinned to an exact set.
+ *   3. EXCLUDED, deliberately — no register diverges outside the declared set. The set is an upper
+ *      bound, not a pin: a rewrite that leaves one MORE register alone passes.
  *   4. CORPUS — the single dispatch the boot sequence produces.
  *   5. CRAFTED — the destination and the byte either side of it forced to eight prior patterns,
  *      which is what makes "wrote the right bytes" separable from "found them already right".
@@ -192,11 +193,9 @@ test("EXCLUDED, deliberately: scratch registers, the stack pointer and pc", { sk
   const b = entryState().clone();
   oracle(a);
   loadDefaultHighScores(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc`);
 });

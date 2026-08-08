@@ -450,6 +450,95 @@ hand-off, so omitting its largest members is the one way to break it.
 oracle works through the alternate bank via `EXX`, and `b_` sits OUTSIDE the set, which is exactly
 the discrimination padding would have destroyed. `339c` likewise excludes `l` and not `h`.
 
+### R36 items named by batch 4 — the table is GENERATED, not transcribed
+Regenerate with (this is the point — do not copy the numbers forward):
+
+    python3 - <<'PY'
+    import re,pathlib
+    B4="3e36 3e7e 3ecb 3faf 4017 41f1 4201 44dc 4809 4831 49d6 4a9d 4b30 4b4b 4ba5 \
+    4d2b 4d67 4daf 4dcf 4dde 4f5d 4f7e 4fbf 4fe0 507e 50ee".split()
+    Z=pathlib.Path("core/cpu/z80.js").read_text()
+    REGS=re.findall(r'"([^"]+)"',re.search(r"export const REG_FIELDS = \[(.*?)\];",Z,re.S).group(1))
+    T=pathlib.Path("games/timeplt/idiomatic/test")
+    for a in B4:
+        s=(T/f"equivalence-{a}.test.js").read_text()
+        m=re.search(r"const (EXCLUDED\w*|MOVED\w*)\s*=\s*\[([^\]]*)\]",s)
+        n=len(re.findall(r'"([^"]+)"',m.group(2)))
+        print(f"  {a}  set={n:>2}  teeth={len(REGS)-n}")
+    PY
+
+At the time of the batch, widest first: `4fbf` 12/7 · `4f7e` 9/10 · `4fe0` 9/10 · `4a9d` 8/11 ·
+`4b30` 8/11 · `4b4b` 8/11 · `4dde` 8/11 · `44dc` 7/12; the remaining eighteen sit at 6 or below.
+Every exact pin was green at HEAD, so no set here is padded.
+
+★ **`4fbf`'s width is DERIVED, not merely measured.** Its twelve names fall out of the oracle line
+by line — `ld de` / `ld iy` / `ld ix` / `ex af,af'` with `ld a,0x05` / `ld c` / `ld l` / `ld h`,
+then its own sweep through A and F. That is the standard R36 should be held to: not "the pin was
+green" but "here is the instruction that moves each name".
+
+### THREE THINGS BATCH 4 FOUND THAT ARE NOT CONVERSIONS
+  - **On five of the twenty-six the conversion unblocks nothing that exists today.** In `49d6`,
+    `4a9d`, `4b30`, `4b4b`, `4ba5` every divergence is ORACLE-SIDE: four rewrites write no register
+    at all and the fifth writes only a live-out, so no improvement to a rewrite could shrink those
+    sets. What it does buy there is narrower and real — three are single-entry, and a capture that
+    drifts so an oracle-written value coincidentally equals its entry value would red the exact pin
+    on a perfectly good module. Worth stating rather than letting the batch imply otherwise.
+  - **The converted arm is the ONLY register-comparing check in most of these files.** `dumpState()`
+    is RAM-only. Positive control rather than inference: with `b` clobbered in a live session,
+    `4809`'s WHOLE-MACHINE arm stayed GREEN and only the new assertion caught it.
+  - **A hand-off log that prints the CONSTANT is a declaration wearing a measurement's clothes.**
+    If a module later stops moving a member, the set silently over-declares and nothing notices.
+    ⚠ **19 of batch 4's 26 do this** — 14 print `EXCLUDED*.join(`, 5 print `MOVED*.join(`. An
+    earlier draft said "three", which was one sweeper's count over ITS OWN five files, promoted to
+    a batch figure without measuring. A 6x understatement of the batch's residual debt, in the
+    flattering direction, in the document the next batch reads. Regenerate before acting on it:
+
+        cd games/timeplt/idiomatic/test && grep -lE '(EXCLUDED|MOVED)\w*\.join\(' equivalence-{3e36,3e7e,\
+        3ecb,3faf,4017,41f1,4201,44dc,4809,4831,49d6,4a9d,4b30,4b4b,4ba5,4d2b,4d67,4daf,4dcf,4dde,4f5d,\
+        4f7e,4fbf,4fe0,507e,50ee}.test.js | wc -l
+
+    ⚠ SCOPED TO THE 26 ON PURPOSE, and paste it UNINDENTED — with the code-block indent left in, the
+    backslash continuations join to whitespace, the brace expansion breaks into three words, and the
+    pipeline prints 0. The same expression over `equivalence-*.test.js` returns 100, not 19: that is
+    the whole corpus, most of it untouched by this batch, and 9 of those 100 files are untracked.
+    (18 untracked gates sit in the tree overall — a different set, stated above. A draft of this
+    bullet attached the 18 to the 100, which is the wrong referent.) A previous draft also carried
+    the unscoped form directly beneath the words "Regenerate before acting on it", which is a command
+    that does not regenerate the figure beside it. The corpus-wide 100 is real and larger, but it is
+    a different claim.
+
+    `3e7e` and `4dcf` print the MEASURED list and stay honest — that is the form to propagate, and
+    it is a bigger job than three files. Two false logs were fixed here: `3ecb`'s "only a, sp move"
+    (falsified BY the conversion) and `4f5d`'s "every byte and every register identical", which was
+    already false at HEAD, sitting under a pin that permits five registers to differ.
+    ⚠ **Only `4f5d` was moved to the measured form.** `3ecb`'s sentence was corrected but it still
+    prints `MOVED.join(", ")`, so it remains one of the nineteen. Fixing the WORDING of a log is not
+    fixing its FORM, and a draft of this batch's commit message claimed both had been converted.
+
+### ★★ THE DISCARDED-PROBE HAZARD HAS A SECOND FORM — the LAST exit is not the only exit
+Batch 2 established: a probe placed before the routine's last WRITE to a register is discarded.
+Batch 4's reviewer found the other way to be discarded: **a probe at the routine's LAST exit never
+runs when the captured entry takes an EARLIER return.** Their first `4fbf` probe sat at the tail of
+`destroyCraftAndMotherShipHitByShots`, which has an early return, and read falsely GREEN; the
+`try/finally` wrapper form reds. So "clobber at the exit" is not sufficient — it must be at an exit
+the entry actually REACHES, and a wrapper is the only placement that cannot be wrong about which.
+⇒ Wrap the body unless the routine demonstrably has one exit. Exit counts are also easy to get
+wrong from prose: `loc_4dde` has three explicit returns plus fall-through, and this plan's own
+commit message called it two until review.
+
+### AFTER BATCH 4 — regenerate, do not carry forward
+
+    python3 scratchpad/scan-inverted-gates.py /tmp/clean-checkout   # 21 in-class pins remain
+
+plus the 4 executed pins in 2 files (`1253`, `2bef`) the worklist structurally cannot carry. One
+more sweep unit finishes the mechanical class.
+
+### `4d2b:282` — batch 3's judgement REFINED, not overturned
+Batch 3 called `assert.ok(EXCLUDED.includes("f"))` harmless because nothing models flags. More
+precisely: it cannot obstruct a CODE fix, since a rewrite reproducing the whole flag byte passes the
+converted gate untouched. It CAN obstruct the DECLARATION tightening that would follow — removing
+`"f"` from the literal trips it. A wart on the declaration, not a gate that refuses a fix. Unfixed.
+
 ### SIX of the batch-3 gates pin a UNION, not a single-entry measurement
 `0809`, `2b83` (its CORPUS arm), `303e`, `304d`, `308a`, `3e05` accumulate `moved` across a loop, so
 "tight" means each member moved SOMEWHERE in the corpus, not at every entry. That was already true

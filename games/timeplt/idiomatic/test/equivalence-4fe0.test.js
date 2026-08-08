@@ -25,7 +25,8 @@
  *   2. EQUAL on real states — RAM identical outside the dead stack bytes, at every sampled state.
  *   3. NOT VACUOUS — a candidate that does nothing FAILS somewhere in the crafted space.
  *   4. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted as a set.
+ *      space, BOUNDED by a measured set rather than pinned to it: a register diverging outside
+ *      that set fails the arm, and a rewrite that diverges on fewer still passes.
  *   5. CRAFTED — each axis swept over all 256 wrapped differences, on BOTH widths of the box, plus
  *      the four combinations of the two liveness gates. The axis sweeps are what pin the window
  *      edges; the gate combinations are what pin the two early exits.
@@ -35,7 +36,7 @@
  *
  * HOLE: there is no whole-machine arm, because no session dispatches this entry; wiring the rewrite
  * over the address would pass vacuously. Nothing here speaks for whether the registers it leaves
- * are dead — arm 4 pins WHICH ones move, not that nothing reads them.
+ * are dead — arm 4 bounds WHICH ones may move, not that nothing reads them.
  * HOLE: the sweep moves the roamer against slots that all hold the same coordinates, so it cannot
  * distinguish which of the six slots a hit came from; the multiple-hit twin is what covers the
  * sweep not stopping at the first.
@@ -88,6 +89,10 @@ const SCRATCH_BYTES = 8;
  * carry each comparison, the slot cursor lives in IY, and the closing `ret` lifts SP by two. C is
  * NOT among them — nothing between 0x4FE0 and 0x5031 writes it, and neither does the chained-score
  * routine the hit arm calls. IX and the shadow bank are untouched on both sides.
+ *
+ * A BOUND, not an exact list: a register diverging outside this set fails the arm below, and a
+ * rewrite that diverges on fewer of them still passes. It is a UNION over the crafted space, so
+ * every member is known to have moved SOMEWHERE in it, not at every entry.
  */
 const EXCLUDED = ["a", "f", "b", "d", "e", "h", "l", "iy", "sp"];
 
@@ -301,8 +306,10 @@ test("NOT VACUOUS: a no-op candidate FAILS in the crafted space", { skip }, () =
   console.log(`  NOT VACUOUS: the empty candidate is caught ${sweepCaught(brokenNoOp)} times`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_4fe0), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(loc_4fe0);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
 });
 

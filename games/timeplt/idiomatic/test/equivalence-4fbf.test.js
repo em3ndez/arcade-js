@@ -16,8 +16,9 @@
  *      score it posts each bracket their work with pushed pairs. Every arm walks the whole dump
  *      and asserts nothing escapes the window; it is an upper bound, not a prediction.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement, the
- *      alternate accumulator among them.
+ *   4. EXCLUDED, deliberately — the register set that may differ is BOUNDED by a measured list,
+ *      the alternate accumulator among them: a register diverging outside it fails the arm, and a
+ *      rewrite that diverges on fewer still passes. The rest of the shadow bank is outside it.
  *   5. CORPUS — every dispatch of the session replayed on a clone.
  *   6. THE CURSOR CELLS ARE STAGED — the two cells the first sweep reloads between passes are
  *      forced to a wrong value on entry and checked to be rewritten before it runs, which is the
@@ -83,6 +84,27 @@ const SECOND_AXIS_REACH = 23;
 const SECOND_AXIS_SPAN = 31;
 
 const SCRATCH_BYTES = 10;
+/**
+ * The registers allowed to diverge. A BOUND, not an exact list: a register diverging outside this
+ * set fails the arm below, and a rewrite that diverges on fewer of them still passes.
+ *
+ * IT IS WIDE, AND EVERY MEMBER WAS MEASURED MOVING. This entry stages the first sweep's runs,
+ * counts and box outright — that alone is DE, IY, IX, B, C, H, L, and A', which the sweep reloads
+ * its inner count from and which the ROM sets by bracketing `ld a,0x05` (0x4FCB) and `ld b,a`
+ * (0x4FCD) in a pair of `ex af,af'` at 0x4FCA and 0x4FCE. ⚠ Those two addresses are NOT the ones
+ * in `translated/loc_4fbf.js` beside the `exAf()` calls: `m.step`'s argument is the address of the
+ * NEXT instruction, so the file reads 0x4FCB/0x4FCF for instructions that live one byte earlier.
+ * It then runs its own sweep, which carries every comparison through A and F, and the closing
+ * `ret` lifts SP. So the set absorbs all eleven main registers plus A'.
+ *
+ * What is still WATCHED is the rest of the shadow bank: F', B', C', D', E', H' and L'. B' through
+ * L' are never touched by either side — checked across the whole call closure {4FBF, 51DE, 5211,
+ * 0038}, which contains no `exx`. F' IS touched, by TWO `ex af,af'` pairs: the one above, and a
+ * second at 0x525C/0x525E inside `loc_5211`, which this routine calls. It returns to its entry
+ * value either way, because both pairs bracket only flag-neutral instructions (`ld a,0x05` /
+ * `ld b,a`, and `ld b,a` again), so it does not diverge and stays outside the set. A rewrite that
+ * started disturbing any of the seven fails here.
+ */
 const EXCLUDED = ["a", "f", "b", "c", "d", "e", "h", "l", "ix", "iy", "sp", "a_"];
 
 const ERAS = [0, 1, 2, 3, 4];
@@ -337,16 +359,14 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: a bounded register set, and nothing else", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
   destroyCraftAndMotherShipHitByShots(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });
 

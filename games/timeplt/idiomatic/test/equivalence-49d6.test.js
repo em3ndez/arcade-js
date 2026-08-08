@@ -26,8 +26,10 @@
  *   2. REAL DISPATCH IS VACUOUS, MEASURED — a no-op twin PASSES at the captured entry.
  *   3. NOT VACUOUS, CRAFTED — the same no-op twin FAILS on a crafted entry with work to do.
  *   4. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      sweep is exactly {a, f, l, sp}, so "excluded" is pinned over the whole space and not at one
- *      entry, where the arms it never reaches would leave the set artificially small.
+ *      sweep is asserted to stay INSIDE {a, f, l, sp} rather than to equal it, so a rewrite that
+ *      leaves one MORE register alone than the original passes. Taking the union over the whole
+ *      space rather than at one entry is what stops the arms an entry never reaches from hiding a
+ *      register that does move.
  *   5. CORPUS — every dispatch replayed, with the count and the arm histogram asserted.
  *   6. EXHAUSTIVE — all 256 phase values, four pending counts, and BOTH starting states of the
  *      driven line, which is what makes a spurious drop visible: writing a zero over a zero
@@ -174,7 +176,8 @@ function sweepCaught(candidate, diff = unitDiff) {
   return caught;
 }
 
-/** Every register that differs ANYWHERE in the crafted space, so the excluded set cannot shrink. */
+/** Every register that differs ANYWHERE in the crafted space, so a register that moves only on an
+ * arm one entry never reaches is still seen. */
 function movedRegisters(candidate) {
   const moved = new Set();
   for (const line of LINES) {
@@ -401,8 +404,10 @@ test("THE LINE IS INVISIBLE TO RAM, MEASURED: a silent twin passes the RAM diff"
   );
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space, not at one entry", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_49d6), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: measured over the whole crafted space, not at one entry", { skip }, () => {
+  const moved = movedRegisters(loc_49d6);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; the driven line is latch bit ${LATCH_BIT}`);
 });
 

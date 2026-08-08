@@ -11,7 +11,8 @@
  *   2. VACUITY, MEASURED — a no-op is invisible at almost every real dispatch, because almost none
  *      of them reaches anything. The exact count is asserted; the crafted cross is where the
  *      destroying path is gated.
- *   3. EXCLUDED, deliberately, pinned to an exact set.
+ *   3. EXCLUDED, deliberately, BOUNDED by a measured set: a register diverging outside it fails
+ *      the arm, and a rewrite that diverges on fewer of them still passes.
  *   4. CORPUS — every dispatch the attract run produces, with the flag and occupancy shapes it saw.
  *   5. CRAFTED CROSS — the shared flag live or not, TWO slots (the first and the last) live or
  *      not, and their two coordinates swept across the window edge on each axis. The two axes have
@@ -62,6 +63,14 @@ const LIVE = 0xff;
 const DESTROYED = 0xf0;
 
 const SCRATCH_BYTES = 8;
+/**
+ * The registers allowed to diverge, read off the ROM body: the two box dimensions land in H/L and
+ * D/E, the slot count lands in B and is counted down, A and F carry each comparison, the slot
+ * cursor lives in IY, and the closing `ret` lifts SP. A BOUND, not an exact list: a register
+ * diverging outside this set fails the arm below, and a rewrite that diverges on fewer of them
+ * still passes. C, IX and the whole shadow bank are deliberately absent — the oracle never writes
+ * them, so nothing can be excused here.
+ */
 const MOVED = ["a", "f", "b", "d", "e", "h", "l", "iy", "sp"];
 const FRAMES = 1600;
 const RET_TSTATES = 10;
@@ -351,11 +360,9 @@ test("EXCLUDED, deliberately: scratch registers, the slot cursor and pc", { skip
   const b = entryState().clone();
   oracle(a);
   destroyFixedTargetHitByShots(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    MOVED,
-    "the excluded set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   assert.notEqual(a.pc, b.pc, "the oracle's return moves pc; the rewrite returns to JS");
   console.log(`  EXCLUDED: ${MOVED.join(", ")} and pc, plus ${SCRATCH_BYTES} scratch bytes`);
 });

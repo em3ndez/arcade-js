@@ -18,7 +18,8 @@
  *   2. EQUAL from the crafted entry — the whole state dump is identical, the stack included: the
  *      routine pushes nothing, so the exclusion window is measured at ZERO bytes and asserted so.
  *   3. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   4. EXCLUDED, deliberately — the register set that may differ is pinned by measurement.
+ *   4. EXCLUDED, deliberately — the declared set is an upper bound on what may differ, measured;
+ *      a rewrite that leaves one MORE register alone than the original passes.
  *   5. EXHAUSTIVE over the direction byte — all 256 values, not just the four the two bits span,
  *      so a candidate that read a third bit would be caught.
  *   6. SCRIPTS — five scripts crossed with the four direction combinations, including an all-zero
@@ -265,17 +266,15 @@ test("NOT VACUOUS: a no-op candidate FAILS the same comparison", { skip }, () =>
   console.log(`  NOT VACUOUS: the empty candidate is caught — ${show(d)}`);
 });
 
-test("EXCLUDED, deliberately: a pinned register set, and nothing else", { skip }, () => {
+test("EXCLUDED, deliberately: nothing diverges outside the declared register set", { skip }, () => {
   const m = craft(0, A_SCRIPT);
   const a = m.clone();
   const b = m.clone();
   oracle(a);
   loc_4a9d(b);
-  assert.deepEqual(
-    REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
-    EXCLUDED,
-    "the excluded register set changed shape",
-  );
+  const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")}`);
 });
 

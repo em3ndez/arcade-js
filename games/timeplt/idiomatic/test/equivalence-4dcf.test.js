@@ -21,8 +21,9 @@
  *
  *   1. EQUAL at the real dispatch — identical outside the scratch window; the cursor checked.
  *   2. NOT VACUOUS — a no-op FAILS the same masked diff, on a real cell.
- *   3. EXCLUDED — the registers that move over the whole cross, pinned; the pair the caller keeps
- *      across the loop is checked as HELD.
+ *   3. EXCLUDED — the registers that move over the whole cross, BOUNDED by a declared set rather
+ *      than pinned to it, so a rewrite that moves fewer of them still passes and one that moves
+ *      anything else does not; the pair the caller keeps across the loop is checked as HELD.
  *   4. UNIFORM CORPUS — how many cursors, glyphs and colours real play presents.
  *   5. CORPUS — every dispatch of three sessions.
  *   6. CRAFTED CROSS — cursors that include one on the colour side and one at a page boundary,
@@ -437,7 +438,8 @@ test("EXCLUDED, deliberately: only scratch registers move, over the whole cross"
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k)), MOVED, "the excluded set changed shape");
+  const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   for (const k of HELD) assert.ok(!moved.has(k), `a register the caller's loop relies on moved (${k})`);
 });
 

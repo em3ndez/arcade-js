@@ -8,7 +8,7 @@
  *   one that carried this routine's own caller. Everything that leaves behind is inside the
  *   word-aligned window just below the stack pointer BOTH sides enter on, which is dead: the
  *   SCRATCH arm asserts the raw difference never reaches out of it, and the STACK arm pins the
- *   pointer's offset and the registers that move with it. No tooth is blunted by the mask —
+ *   pointer's offset and BOUNDS the registers that move with it. No tooth is blunted by the mask —
  *   every twin is still caught on live cells, the one that skips the continuation included.
  *
  *   Crafted because the shared coin -> start tape never dispatches 0x3ECB: it is reached
@@ -22,8 +22,10 @@
  *   2. EQUAL      — masked RAM identical on the crafted entry.
  *   3. SCRATCH    — the unmasked difference lies wholly inside the dead window, whose depth
  *                   is asserted so it cannot silently grow.
- *   4. STACK      — the rewrite ends exactly one word deeper than the frozen twin, and the
- *                   set of registers that move with it is pinned.
+ *   4. STACK      — the rewrite ends exactly one word deeper than the frozen twin, and nothing
+ *                   outside the declared set moves with it. That set is an upper BOUND, not a
+ *                   measurement: a rewrite that leaves fewer of them dirty is strictly better
+ *                   and still passes.
  *   5. CLAMPS     — the head byte really carries the constant afterwards, from any prior.
  *   6. EXHAUSTIVE — the head byte swept 0..255; the routine reads nothing, so together
  *                   with the fixed surroundings that is its whole input space.
@@ -64,9 +66,10 @@ const RECORDS = [0xa810, 0xa820, 0xa830, 0xa840];
 const WINDOW = 8;
 /**
  * The continuation's tail return becomes a JS return, so the word it would have popped stays on
- * the stack. One dissolved return, one word. The registers that move with it: the frozen chain
+ * the stack. One dissolved return, one word. The registers that may move with it: the frozen chain
  * stages each sound code in the accumulator on its way to the request, while the rewrite hands it
- * over as an argument and never writes the register at all.
+ * over as an argument and never writes the register at all. An upper BOUND on the divergence,
+ * not a measurement of it — a rewrite that dirties fewer of these is strictly better and passes.
  */
 const DISSOLVED_RET = 2;
 const MOVED = ["a", "sp"];
@@ -207,7 +210,7 @@ test("SCRATCH: the whole raw difference lies inside the dead window", { skip }, 
   );
 });
 
-test("STACK: the rewrite ends exactly two bytes deeper, and the moved set is pinned", { skip }, () => {
+test("STACK: the rewrite ends exactly two bytes deeper, and the moved set is bounded", { skip }, () => {
   for (const record of RECORDS) {
     for (const head of [0, CLAMPED_TO, 0xff]) {
       const r = runAt(loc_3ecb, record, head);
@@ -218,14 +221,15 @@ test("STACK: the rewrite ends exactly two bytes deeper, and the moved set is pin
           `are ${r.spA - r.spB} bytes apart, not ${DISSOLVED_RET} — the rewrite is moving the ` +
           "stack for some reason other than the one dissolved return",
       );
+      const unexpected = r.moved.filter((k) => !MOVED.includes(k));
       assert.deepEqual(
-        r.moved,
-        MOVED,
-        `record ${hex4(record)} head ${head}: the moved register set changed shape`,
+        unexpected,
+        [],
+        `record ${hex4(record)} head ${head}: a register diverged outside the excluded set`,
       );
     }
   }
-  console.log(`  STACK: ${DISSOLVED_RET} bytes deeper everywhere, and only ${MOVED.join(", ")} move`);
+  console.log(`  STACK: ${DISSOLVED_RET} bytes deeper everywhere, and nothing outside ${MOVED.join(", ")} moves`);
 });
 
 test("CLAMPS: the head byte carries the constant afterwards, from any prior", { skip }, () => {

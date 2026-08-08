@@ -20,8 +20,10 @@
  *   1. EQUAL at the real dispatch — RAM byte-identical with nothing masked.
  *   2. NOT VACUOUS — a candidate that does nothing FAILS somewhere in the crafted space.
  *   3. EXCLUDED, DELIBERATELY — the union of every register that differs anywhere in the crafted
- *      space, asserted as a set. It includes the SHADOW accumulator, which the oracle parks a byte
- *      in and does not put back; nothing reads it, and the whole-machine arm is what holds that.
+ *      space, asserted to stay INSIDE the declared set rather than to equal it, so a rewrite that
+ *      leaves one MORE register alone than the original passes. The declared set includes the
+ *      SHADOW accumulator, which the oracle parks a byte in and does not put back; nothing reads
+ *      it, and the whole-machine arm is what holds that.
  *   4. CORPUS — the real dispatches replayed, with the count asserted.
  *   5. CRAFTED — 256 patterns over the six bytes this entry copies, so every one of the three
  *      records and both of its reads are varied independently of the others.
@@ -244,8 +246,10 @@ test("NOT VACUOUS: a no-op candidate FAILS in the crafted space", { skip }, () =
   console.log(`  NOT VACUOUS: the empty candidate is caught ${sweepCaught(brokenNoOp)} times`);
 });
 
-test("EXCLUDED, deliberately: pinned over the whole crafted space", { skip }, () => {
-  assert.deepEqual(movedRegisters(loc_4b30), EXCLUDED, "the excluded set changed shape");
+test("EXCLUDED, deliberately: measured over the whole crafted space", { skip }, () => {
+  const moved = movedRegisters(loc_4b30);
+  const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
+  assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — the shadow accumulator included`);
 });
 
