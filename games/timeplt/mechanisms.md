@@ -363,6 +363,9 @@ holding it are the single most load-bearing pair in the game.
 **Not claimed:** that the pair is only ever written from that path. It is the negated player
 velocity where we have traced it; nothing here proves no other routine writes it.
 
+How `scrollWorldAtTheEraPace` is *entered*, and who decides the heading it reads, is watched on the
+real machine in §12.
+
 ### ★ The two halves of the camera are CROSSED against the glass
 
 The pair is named for the sprite-record field each half lands in, and that is the **native raster**
@@ -2309,3 +2312,252 @@ get it right — they declare themselves data in the header and throw if called,
 covers a kind the bad set does not, records of tile and attribute pairs. That is the convention the
 others should follow. Recorded here
 rather than fixed, because fixing it is a lift change and this is a map. `[code]`
+
+---
+
+## §12 How the heading is set, and what actually reaches the world-scroll routine
+
+§3 says what `scrollWorldAtTheEraPace` *does* with the heading. It did not say how the routine is
+entered, and the rewrite's header hedged — *"some paths in write it first and others arrive with
+whatever is already there."* That hedge was true and useless, because nobody had watched the
+machine. This section is that watch.
+
+**The apparatus.** MAME 0.288, driver `timeplt`, headless, a fresh empty `nvram`/`cfg` directory per
+run, `-seconds_to_run 180` — 10801 emulated frames each. DIPs read back on every run as `0xFF` at
+`0xC360` and `0x4B` at `0xC200`: three lives, difficulty 4, bonus at 10000/50000, demo sounds on,
+upright. Four runs:
+
+| | what drove it |
+|---|---|
+| **A** | nothing. The attract loop, undriven. |
+| **B** | coin, start, fire, and the stick walked round all eight compass points — **never centred**. |
+| **C** | the same walk, but the stick **released** for two thirds of every slice. |
+| **D** | the **B** tape exactly, plus a synthetic era — see the turn-rate finding below. |
+
+Two runs of **A** under different instrument configurations produced identical counts for every
+site they share, so the undriven machine is deterministic here. `[seen]`
+
+The instrument is a read tap on each site's opcode byte gated on `CURPC`, which counts *executions*
+of that instruction; for the conditional jumps the flag byte is sampled at the fetch, so a
+conditional that ran and fell through is never counted as a transfer. Heading writes are caught by a
+**write tap** attributed by `CURPC`, not by scanning operands.
+
+### ★ `loc_1f42` is not called by anything. It is the tail of `loc_1edf`.
+
+`loc_1edf` is the player record's per-frame update. It takes two guards — the record's state byte
+must be non-zero, and must be `0xFF` — and then splits into a stick arm and a demo arm. **Both arms
+end at `0x1F42`**, every time, and nothing else goes there.
+
+The check is a cross-derivation rather than a reading: the transfers observed to be *taken* are
+summed and compared against the count of opcode fetches at `0x1F42` itself. In all four runs the
+residual is **zero** — 8425 against 8425 in **A**, 7006 against 7006 in **B** and in **C**, 6106
+against 6106 in **D**. Had anything reached `0x1F42` by a computed jump, a `call`, or a path nobody
+listed, the residual would have carried it. `[seen]`
+
+Callers of `loc_1edf` were counted the same way and also sum exactly: 7759 + 540 + 126 = 8425 in
+**A**, 6177 + 1477 + 252 = 7906 in **B**, from `0x119C`, `0x16C3` and `0x56A9` respectively. All
+three are live. `[seen]`
+
+### Which of the eight transfers actually execute
+
+Three of the eight arrive without having written the heading. Five write it immediately before —
+four by jumping after the store, one (`0x1F3F`) by falling straight through into `0x1F42`.
+
+| transfer into `0x1F42` | writes first | **A** attract | **B** stick held | **C** stick released | **D** era forced |
+|---|---|---|---|---|---|
+| `0x1F3F` fall-through | yes, at `0x1F3F` | 0 | 107 | 96 | 0 |
+| `0x1F6D` `jr` | yes, at `0x1F6A` | 0 | 1200 | 1096 | 683 |
+| `0x1F74` `jr` | yes, at `0x1F71` | 0 | 79 | 71 | 72 |
+| `0x217E` `jp` | yes, at `0x217B` | 2100 | 558 | 558 | 558 |
+| `0x2189` `jp` | yes, at `0x2186` | 3028 | 985 | 985 | 985 |
+| `0x1EFE` `jp` | **no** | 0 | 0 | **3194** | 0 |
+| `0x1F0A` `jp z` | **no** | 0 | 3398 | 327 | 3129 |
+| `0x2170` `jp z` | **no** | **3297** | 679 | 679 | 679 |
+
+★ **The attract loop uses three of the eight and no others, and the entire stick arm is dark.** In
+**A** the flag at `0xAD30` read zero on all 10801 frames, the `jp z` at `0x1EF4` was taken on all
+8425 entries, and `call 0x1ED1` at `0x1EF7` — the stick fetch — never executed. The demo does not
+steer with a suppressed joystick; it takes a different arm of the same routine. `[seen]`
+
+★ **Every zero above has its positive control in the same table, from the same instrument, in the
+same run.** In **A** the instrument recorded 3297, 2100 and 3028 transfers while reporting zero for
+the stick arm, so the zeros are the ROM's and not the tap's. The one zero that was **not** safe is
+`0x1EFE` in **B**: that tape holds a direction on every frame, so the branch taken when the stick is
+centred could not fire, and the reading "never runs" would have been an artifact of the tape. **C**
+releases the stick and `0x1EFE` immediately becomes the busiest no-write transfer in the run. A
+condition that is untestable by a tape looks exactly like a condition that never happens.
+⚠ **`0x1EFE`'s zero in D is the SAME artifact, and the table's D column must be read that way too.**
+D re-runs B's tape with only the era read substituted, so it never centres the stick either. Two
+cells carry that caveat, not one.
+
+### ★ The three transfers that do not write the heading — and where the value came from
+
+This is the measurement that replaces the hedge. At each such arrival the tap records the live value
+of `0xA802`, the `CURPC` of the **last instruction that wrote it**, and how many frames earlier that
+write happened.
+
+| run | arriving at | last writer of `0xA802` | arrivals |
+|---|---|---|---|
+| **A** | `0x2170` | `0x217B` | 1307 |
+| **A** | `0x2170` | `0x2186` | 1247 |
+| **A** | `0x2170` | `0x1A1B` | 743 |
+| **B** | `0x1F0A` | `0x1F3F` | 3381 |
+| **B** | `0x1F0A` | `0x1F71` | 17 |
+| **B** | `0x2170` | `0x1A1B` / `0x217B` / `0x2186` | 251 / 229 / 199 |
+| **C** | `0x1EFE` | `0x1F3F` | 2821 |
+| **C** | `0x1EFE` | `0x1F71` | 150 |
+| **C** | `0x1EFE` | `0x1F6A` | 120 |
+| **C** | `0x1EFE` | `0x1A1B` | 103 |
+| **C** | `0x1F0A` | `0x1F3F` / `0x1A1B` / `0x1F6A` | 302 / 15 / 10 |
+
+**Every no-write arrival inherits from a writer inside this same pipeline, or from the ship's arming
+store.** Not one of them inherited from anywhere else. The three "no write" transfers are the three
+*no change needed* cases, and they are exactly that:
+
+- `0x1EFE` — the stick is centred, so there is no target to turn toward. Taken only in **C**, the
+  only run whose tape ever releases the stick.
+- `0x1F0A` — the stick is held and the heading **already equals** the direction it names. The
+  dominant predecessor is `0x1F3F`, the snap that put it there.
+- `0x2170` — the demo script's current step says *fly straight*.
+
+The ages make the point concretely. In **C**, 235 of the `0x2170` arrivals found `0xA802` holding
+`0x80` written more than sixteen frames earlier by `0x1A1B` — the store that arms the ship — and the
+first six samples after a spawn show the cell holding `0x80` for consecutive frames while `0x1F42`
+is entered on each of them. The heading is **not stale by accident**; it persists deliberately, and
+`scrollWorldAtTheEraPace` re-derives the camera from it every frame regardless. `[seen]`
+
+### ★ The write tap found two writers no operand scan can see
+
+A scan of the image for instructions naming `0xA802` as an operand finds six stores. The tap finds
+**eight** writers, and the two extras are both `ldir`:
+
+| `CURPC` | **A** | **B** | **C** | **D** | what it writes |
+|---|---|---|---|---|---|
+| `0x1F6A` | 0 | 1200 | 1096 | 683 | one turn step, one way |
+| `0x2186` | 3028 | 985 | 985 | 985 | one demo step, one way |
+| `0x217B` | 2100 | 558 | 558 | 558 | one demo step, the other way |
+| `0x1F3F` | 0 | 107 | 96 | 0 | the target heading exactly |
+| `0x1F71` | 0 | 79 | 71 | 72 | one turn step, the other way |
+| `0x1A1B` | 3 | 7 | 7 | 7 | `0x80`, always |
+| `0x286D` | 3 | 1 | 1 | 1 | **`ldir`** clearing `0xA800`–`0xA97F` |
+| `0x0091` | 1 | 1 | 1 | 1 | **`ldir`**, the power-on RAM clear |
+
+This is the `0xAC7F` lesson repeating with a different instruction. An operand scan is blind to a
+block move for the same reason it is blind to `ld (ix+d),a`: the address never appears in the
+instruction. **No claim of the form "nothing else writes this cell" should be made on this game
+without a tap.** `[seen]`
+
+### The turn is a fixed step, and the snap is exactly one
+
+The tap records each write's **delta** against the value it replaced, and the deltas are not spread
+— they are single values:
+
+- `0x1F6A` wrote **−3** on all 1200 writes in **B** and all 1096 in **C**; `0x1F71` wrote **+3** on
+  all 79 and all 71.
+- `0x217B` wrote **+3** and `0x2186` wrote **−3**, on every one of their writes in all four runs.
+  The demo arm's step is a constant and does not consult the era.
+- `0x1F3F` wrote **+1** 104 times and **−1** 3 times in **B**, and nothing else. It is a
+  correction of exactly one step, not a general assignment.
+- `0x1A1B` wrote **`0x80`** every time — visible as seven different deltas in **B** landing on one
+  value. §5's table calls `0x80` travel to the RIGHT.
+
+★ **The fast turn rate could not be reached by any tape, and was reached by intervention instead.**
+The step is 3 or 4 depending on the era byte at `0xAD04`, read at `0x1F0E`. Sampled once per frame,
+that byte reached `0x03` in the **undriven** run (898/4188/4316/1399 frames at `0x00`/`0x01`/`0x02`/
+`0x03`) but only `0x01` in the driven runs (8389 frames at `0x00`, 2412 at `0x01`) — the driven tape
+never gets that far — and the arm at `0x1F1B` executed zero times in A, B and C. Run **D**
+substitutes `0x03` **on the read at `0x1F0E` only**, leaving every other reader — including the era
+read inside `0x1F42` itself — seeing the real byte. Under it `0x1F1B` executes 755 times, `0x1F17`
+zero, and the deltas become **−4** (683) and **+4** (72). `[seen]`, **as an intervention** — the
+mechanism is measured, the era it belongs to is not.
+
+**D** also settles what the one-step correction is for. With a step of 4 the snap arm never ran at
+all: `0x1F3F` executed zero times and the carry branch at `0x1F22` was taken zero times. The eight
+stick headings are 32 apart, 4 divides 32 and 3 does not, so a 4-step turn lands on the target
+exactly and leaves by `0x1F0A`, while a 3-step turn overshoots by one and needs `0x1F3F` to put it
+back. The correction exists because of the arithmetic, not because of the input. `[seen]` for both
+behaviours; the *reason* is `[code]`.
+
+### Stick to heading, watched end to end
+
+Four links were measured in one run rather than inferred:
+
+1. `0x011A` reads port `0xC320`, complements it, stores it at `0xA9AF`. It executed 10565 times in
+   every 10801-frame run. A write tap on `0xA9AF` found **exactly two** writers: `0x011E` and the
+   power-on `ldir` at `0x0091`. `[seen]`
+2. `loc_1ed1` picks `0xA9AF` or `0xA9B0` on the value of `0xA987` — sampled as `1` on every logged
+   sample of a one-player game — and returns that byte. It has a second live caller at `0x23F1`
+   outside this pipeline: in **B** the fetch ran 10313 times, 4784 from `0x1EF7` and 5529 from
+   `0x23F1`, summing exactly. A third call site at `0x18CB` never executed. `[seen]`
+3. The low nibble indexes the table at `0x1F2E` through `rst 08`.
+4. The looked-up byte is the **target** heading. Logged at `0x1F06`, beside the physical stick state
+   the tape was holding:
+
+| stick | `0xA9AF` | target heading | §5 says that heading travels |
+|---|---|---|---|
+| LEFT | `0x01` | `0x00` | LEFT |
+| DOWN+LEFT | `0x09` | `0x20` | — |
+| DOWN | `0x08` | `0x40` | DOWN |
+| RIGHT+DOWN | `0x0A` | `0x60` | — |
+| RIGHT | `0x02` | `0x80` | RIGHT |
+| UP+RIGHT | `0x06` | `0xA0` | — |
+| UP | `0x04` | `0xC0` | UP |
+| UP+LEFT | `0x05` | `0xE0` | — |
+
+★ **The stick is absolute, not relative.** It does not turn the ship; it names a direction, and the
+ship rotates toward it — three steps a frame in the eras a tape reaches, four higher up. Each row was also observed with the fire button held
+(`0x11`, `0x12`, `0x14`, `0x16`, `0x18`, `0x19`, `0x1A`, `0x15`) producing an **identical** target,
+which is the `and 0x0F` masking the button out — measured, not assumed. The four cardinal rows land
+on exactly the four headings §5 independently derived from the camera circle. Two instruments, two
+methods, one answer. `[seen]`
+
+### The three candidate routines, one sentence each
+
+- **`0x1EDF`** is the player record's **per-frame update and the gate on everything downstream** —
+  entered 8425 times in **A** and 7906 in **B** from three live call sites, it loads `ix = 0xA800`
+  and `iy = 0xAA10`, drops out to `0x2010` when the record's state byte is neither zero nor `0xFF`
+  (900 such dispatches in every driven run, none at all in the attract run), and otherwise chooses
+  the stick arm or the demo arm and falls into `0x1F42`.
+- **`0x1F01`** is the **turn**: it fetches the target heading for the stick's nibble, subtracts it
+  from the live heading (`ld b,a` / `ld a,(0xa802)` / `sub b`, so the difference is LIVE − TARGET and
+  its sign is what picks the turn arm at `cp 0x80` / `jp nc,0x1f6f`), leaves at once if the
+  difference is zero (3398 of 4784 entries in **B**), and otherwise steps the heading three or four
+  toward the target, or snaps the last one.
+- **`0x1F2E`** is **read as data, and was never executed as code in any run** — it is the
+  sixteen-byte stick-nibble→heading table. Zero opcode fetches at `0x1F2E` in all four runs, while
+  the `rst 08` fetcher at `0x000D` executed 23501 times in **B** and read this block 4784 times at
+  the eight populated indices; its only other reader was `0x588D`, the boot checksum sweep, once
+  per byte.
+  ⚠ **It is NOT unreachable, and this section must not be read as saying so.** The image holds one
+  static entry — `jp 0x1f2e` at `0x2063`, on an instruction boundary — reached by two `jp nz,0x2063`
+  at `0x202F` and `0x203D` inside the not-alive path at `0x2010`, on the death arm past `cp 0xb4`.
+  Its guard (`0xABFE == 0xA5`, then `0xABFF` in {5, 0x10}) held in every run, so the edge never
+  fired. **That guard was exercised identically in the three runs that reached it** — 900 dispatches to
+  `0x2010` in B, C and D alike, and none at all in A — so this is one observation repeated, not four independent ones. It is the same
+  shape as `0x1EFE` above, and the honest reading is "never fired on these tapes", not "cannot".
+  ⇒ Consequence for the layer: `translated/loc_1f2e.js` already exists, is registered, and is a
+  live `m.call` target from `loc_2010`. Whatever eventually models this address must decode the
+  bytes and MUST NOT be a stub that throws, or it breaks the one inbound path the ROM has.
+  (§10 lists `loc_1f2e.js` under the 0x1F76–0x200B tilemap field; that filing is wrong and this
+  supersedes it.)
+
+### What this section could not establish
+
+- **What `0xAD30` is.** It read zero on every frame of **A** and non-zero for 6098 of **C**'s
+  10801, and it selects the demo arm when zero — that correlation is all that is measured. Four
+  program counters were seen writing it; which of them means what was not chased.
+- **The fast turn rate in its own era.** Run **D** proves the arm and its step size. It does not
+  prove that a player who reaches era 3 turns at 4, because no tape reached era 3 with a live
+  player. The stage-poke driver §11 asks for would close this properly.
+- **Which caller of `loc_1edf` is the real per-frame one.** All three are live and their counts sum,
+  but nothing here says what the other two are for, and `loc_1edf` runs fewer times than there are
+  frames.
+- **The heading's meaning at `+0x01`.** The record layout calls `+0x01` "the heading being turned
+  toward", and `0x1A1F` clears it in the same breath as `0x1A1B` sets `+0x02` to `0x80`. The player's
+  target comes from the stick table every frame, not from `+0x01`, and no run here observed the
+  player's `+0x01` being read.
+- **Runs B and C are not independent samples.** They share a direction schedule and differ only in
+  hold duration, and over the whole logged window they produced *byte-identical* player-state
+  timelines — same death frames, same respawns — despite measurably different heading paths and
+  different heading-write counts. Run **D**, whose heading path differs more, died at different
+  frames. Treat B and C as one tape observed two ways, not as two samples agreeing.
