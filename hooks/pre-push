@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-push gate: never push a red tree. Runs the full unit suite once per push (~46s)
+# Pre-push gate: never push a red tree. Runs the full unit suite once per push
 # and BLOCKS the push if it fails -- the backstop the review gate cannot give (a review
 # token attests a review happened, not that the suite is green; a partial-suite pass once
 # masked a red translated test that got pushed). --no-verify bypasses it; don't.
@@ -14,14 +14,25 @@ cd "$repo" || { echo "[pre-push] cannot cd to repo -- blocking" >&2; exit 1; }
 # Hence a process-level kill, the one bound the code under test cannot decline to call.
 # A hanging gate is worse than a failing one: CI waits, no verdict is produced, and it looks
 # exactly like a slow machine -- the failure mode people wait through instead of investigating.
-SUITE_TIMEOUT="${SUITE_TIMEOUT:-600}"
+# The cap bounds a spin; it must not bound a healthy run. Same green tree, 2026-08-08: 508s and
+# 565s at load ~150-200, and 1056s with the load unrecorded -- so it varies >2x between runs, and
+# 600 sat inside that spread. 2400 is ~2.3x the slowest; a spin now reports in 40 min, not 10.
+# ⚠ Re-measure as it grows past 9624 tests, and RECORD THE LOAD; the cap-setting sample has none.
+# SUITE_TIMEOUT=<seconds> overrides -- not a bypass, the suite still runs whole and must pass.
+SUITE_TIMEOUT="${SUITE_TIMEOUT:-2400}"
+
+# ⚠ KEEP UNDER 900 -- rom_guard_check.mjs bounds its own run at `timeout: 900_000` MILLIseconds
+# and this is SECONDS. If the inner bound fires first, rom_guard exits 1 not 124 and the clone
+# hang below is misreported as "RED for a stranger", branch unreachable. Measured 37-54s.
+GUARD_TIMEOUT="${GUARD_TIMEOUT:-600}"
 runner=""
 for t in timeout gtimeout; do command -v "$t" >/dev/null 2>&1 && { runner="$t"; break; }; done
 if [ -z "$runner" ]; then
   echo "[pre-push] WARNING: no timeout(1) found -- running the suite UNBOUNDED." >&2
   echo "[pre-push] a spin in an idiomatic routine will hang this push with no verdict." >&2
 fi
-echo "[pre-push] running npm test (full suite, ~46s; hard cap ${SUITE_TIMEOUT}s) before push..." >&2
+# No runtime estimate here on purpose -- a hand-maintained one goes stale and misleads.
+echo "[pre-push] running npm test (full suite; hard cap ${SUITE_TIMEOUT}s) before push..." >&2
 log="$(mktemp)"
 if [ -n "$runner" ]; then
   "$runner" "$SUITE_TIMEOUT" npm test >"$log" 2>&1 </dev/null; rc=$?
@@ -34,23 +45,22 @@ if [ "$rc" -eq 0 ]; then
   # not. README's Quickstart promises the ROM-dependent tests skip cleanly without one, and nine
   # gates broke that promise -- four of them already pushed -- before anyone ran the only command
   # an outside reader ever runs. This clones the committed state (ROMs are gitignored, so the
-  # clone has none) and runs the suite there. ~12s unloaded, ~20s+ on a busy machine, because
-  # almost everything skips.
-  #
-  # It runs UNDER THE SAME TIMEOUT as the suite above, and for the same reason: it starts a second
-  # `npm test` in the clone, so every way the suite can hang, this can hang -- and a hang here is
-  # the failure mode this hook's whole design treats as worse than a red one, because CI waits and
-  # no verdict is ever produced.
+  # clone has none) and runs the suite there; almost everything skips, so it is far cheaper.
+  # It runs under GUARD_TIMEOUT, not SUITE_TIMEOUT -- a second `npm test` hangs the same ways.
+  # The two caps are coupled (see above) and must not be re-merged.
   echo "[pre-push] suite green -- now checking a stranger's clone (no ROMs)..." >&2
   if [ -n "$runner" ]; then
-    "$runner" "$SUITE_TIMEOUT" node tools/rom_guard_check.mjs >&2; grc=$?
+    "$runner" "$GUARD_TIMEOUT" node tools/rom_guard_check.mjs >&2; grc=$?
   else
     node tools/rom_guard_check.mjs >&2; grc=$?
   fi
   if [ "$grc" -eq 124 ]; then
     echo "" >&2
-    echo "PUSH BLOCKED -- the no-ROM clone check did not FINISH within ${SUITE_TIMEOUT}s." >&2
-    echo "That is a HANG, not a red test. Run 'node tools/rom_guard_check.mjs' by hand." >&2
+    echo "PUSH BLOCKED -- the no-ROM clone check did not FINISH within ${GUARD_TIMEOUT}s." >&2
+    echo "That is a TIMEOUT, not a red test. As with the suite above, rule out a too-small cap" >&2
+    echo "FIRST: run 'time node tools/rom_guard_check.mjs' by hand and see whether it finishes." >&2
+    echo "If it does, raise GUARD_TIMEOUT in hooks/pre-push -- but keep it BELOW the 900s bound" >&2
+    echo "hardcoded in tools/rom_guard_check.mjs, or this branch stops being reachable." >&2
     exit 1
   fi
   if [ "$grc" -eq 0 ]; then
@@ -65,13 +75,24 @@ fi
 echo "" >&2
 if [ "$rc" -eq 124 ]; then
   echo "PUSH BLOCKED -- the suite did not FINISH within ${SUITE_TIMEOUT}s; it was killed." >&2
-  echo "This is a HANG, not a red test, and the two have different causes." >&2
-  echo "Most likely an unbounded spin in a wired idiomatic routine: the step budget cannot" >&2
-  echo "see those, so the run never terminates and never reports. Find which test file stops" >&2
-  echo "producing output, then run that file alone under 'timeout'." >&2
+  echo "This is a TIMEOUT, not a red test. It has TWO causes and they look identical here:" >&2
+  echo "  (a) the cap is too small for a suite that grew -- the run was HEALTHY and was killed;" >&2
+  echo "  (b) an unbounded spin in a wired idiomatic routine, which the step budget cannot see." >&2
+  echo "CHECK (a) FIRST -- it is cheaper to rule out, and this suite has been measured varying" >&2
+  echo "more than 2x between runs of the same tree, so a cap that passed yesterday can kill a" >&2
+  echo "green run today. Run 'time npm test' unbounded: if it finishes green, raise" >&2
+  echo "SUITE_TIMEOUT in hooks/pre-push and record the load; do NOT hunt a spin." >&2
+  echo "Only if it never finishes is it (b): find which test file stopped producing output in the" >&2
+  echo "log named below, then run that file alone under 'timeout'." >&2
+  # Kept on timeout only: a hang emits no ✖ and no summary, so the grep below shows nothing and
+  # this log is the only thing that can answer (b).
+  echo "" >&2
+  echo "Suite output kept for diagnosis: $log" >&2
+  echo "  tail -5 '$log'   # the last file to report before it stopped" >&2
+  keep_log=1
 else
   echo "PUSH BLOCKED -- npm test is RED. Fix the suite before pushing (do not --no-verify)." >&2
 fi
 grep -E '✖|^ℹ (tests|pass|fail)' "$log" | tail -25 >&2
-rm -f "$log"
+[ -n "${keep_log:-}" ] || rm -f "$log"
 exit 1

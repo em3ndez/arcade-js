@@ -59,6 +59,8 @@ export function cloneWithoutRoms(repo = process.cwd()) {
 // a false PASS, but it loses its diagnosis at the moment the diagnosis matters.
 const MAX_OUTPUT = 64 * 1024 * 1024;
 
+// ⚠ hooks/pre-push's GUARD_TIMEOUT must stay strictly BELOW the 900s bound here, or a clone hang
+// exits 1 rather than 124 and the hook misreports it as "RED for a stranger". Full note is there.
 export function runSuite(dir) {
   const r = spawnSync("npm", ["test"], {
     cwd: dir,
@@ -90,8 +92,8 @@ export function runSuite(dir) {
 
 // A suite that ran NOTHING also prints `fail 0` and exits 0 -- `node --test` on a glob matching no
 // file does exactly that. So "no failures" is evidence only if something ran AND the ROM-dependent
-// tests skipped. Both floors are facts about a no-ROM clone of THIS repo (~6900 tests, ~6100
-// skipped); set far below those, they guard against nothing-ran without asserting the suite's size.
+// tests skipped. Both floors are facts about a no-ROM clone of THIS repo (9624 tests, 8801 skipped
+// on 2026-08-08); set far below those, they guard nothing-ran without asserting the suite's size.
 const MIN_TESTS = 1000;
 
 // Skipping is the intended outcome and passing is fine; only failure is a defect. A null count means
