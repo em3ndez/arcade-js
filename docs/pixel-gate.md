@@ -145,3 +145,5 @@ frames **byte-identical**, with a positive control confirming the poison fires w
 in `pixel_suite.py`: the frames before the first vblank yield have no counterpart on a yield clock
 and are not compared, and the upper rows carry a scanline-compositing residual worth about half the
 tolerance — which is why that suite adds a tight second criterion on the band below it.
+
+⚠ **The gate only covers what its tape REACHES** (one credit + attract); the distant routines need [poke-tapes](pixel-tapes.md) — a required idiomatic-layer step, per game.

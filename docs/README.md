@@ -97,6 +97,7 @@ Each links to the doc that details it.
 
 **Gate face**
 - pixel gate (byte-exact vs tolerance, never lower the floor) — [pixel gate](pixel-gate.md)
+- poke-tapes drive the DISTANT routines (later eras, 2P, game-over, boss) onto the pixel gate, per game — [poke-tapes](pixel-tapes.md)
 - integration state→writes→pixels diff order — [integration testing](integration-testing.md)
 
 **Meaning**
