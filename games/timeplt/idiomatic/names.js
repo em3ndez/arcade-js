@@ -830,6 +830,36 @@ export const ROUTINES = {
     cert: "code",
     why: 'loc_2511 fills the ring with 0xFF at init and loc_0b93 restores 0xFF on consumption, so "free = high bit set" is fixed by a writer and a reader outside this routine; loc_0b93 then dispatches the low nibble through a sixteen-way table, which is what makes it a command rather than a sound byte',
   },
+  0x0201: {
+    name: "loc_0201",
+    role: "draw one interpolated run of pen-glyph cells from the current row/column toward a target pair (signed per-step increment (target-current)>>4), stamping each cell until the stamped video cell hits the run's end cell, then advance the run index, load the next run's endpoint from the word table at 0x0290, reseat the pen, and leave Z set when the new row integer is 0 (callers ret nz on it)",
+    cert: "code",
+  },
+  0x07e6: {
+    name: "loc_07e6",
+    role: "title/attract sequence arm (table-dispatched): re-stamp the copyright strip, re-request the flashing copyright line, sample one character cell (0xA61C) into a two-byte record (0xABFE), then read the IN0 mirror -- hand off to the one-player game start when 1-player start (bit 3) is held, return when the credit count at 0xA986 is one, otherwise queue ring command 1/argument 25 and step the sequence sub-step",
+    cert: "code",
+  },
+  0x08fa: {
+    name: "loc_08fa",
+    role: "checksum-failure landing whose bytes are really a read-as-data table; run as code it always faults — carry-clear stores into program space, carry-set spills 1-2 stack words and jumps to unmapped space",
+    cert: "code",
+  },
+  0x0c90: {
+    name: "loc_0c90",
+    role: "score-award command (ring handler 4): add the argument-selected award to the current player's packed-decimal score, promote it into the high score when it now beats it, and repaint the affected scores; argument 0 repaints the score labels and blanks the absent second score",
+    cert: "code",
+  },
+  0x0b90: {
+    name: "loc_0b90",
+    role: "tail transfer into the foreground command-ring loop: a jp that hands control to the drain and never comes back; touches no memory or register, so its whole product is the drain's continuation handed straight back",
+    cert: "code",
+  },
+  0x0066: {
+    name: "loc_0066",
+    role: "the per-frame (vblank) interrupt vector: hardware dispatches it once per interrupt and it transfers straight to the frame-service handler at 0x00d8, writing nothing of its own",
+    cert: "code",
+  },
   0x0d73: {
     name: "loc_0d73",
     role: "paint a six-digit field: two packed bytes through the suppressing painter, sharing one suppression flag this entry clears, then a third through the plain painter so the last two digits always show, walking the source pointer backwards as it goes",
@@ -851,6 +881,16 @@ export const ROUTINES = {
     role: "paint the two decimal digits packed into one byte with a leading zero suppressed, the high one first, stepping the cursor one cell on after each; the caller's suppression flag arrives, carries across both digits and goes back out, so a longer run of digits suppresses as one field",
     cert: "code",
   },
+  0x0dd7: {
+    name: "loc_0dd7",
+    role: "draw a clamped 0..99 value as a right-to-left row of denomination tiles (thirties, tens, fives, ones) from display cell 0xa463, pad the rest of the row to 0xa623 with the blank glyph, then verify a fixed three-word checksum (0x009d/0x00a0/0x00a3) and hard-reset via 0x0000 on mismatch",
+    cert: "code",
+  },
+  0x0eac: {
+    name: "loc_0eac",
+    role: "paint the round number as two decimal digits into a caption frame via the leading-zero-dropping digit painter (nothing once it reaches 100), then fold a fixed program block onto a seed and throw/halt-into-data if it does not sum to zero -- an anti-tamper guard",
+    cert: "code",
+  },
   0x0f1a: {
     name: "advanceSequenceSubStep",
     role: "step the jump-table sequence index on by one; reached as a tail jump so the caller's own return carries it",
@@ -862,11 +902,36 @@ export const ROUTINES = {
     role: "the inner level of the two-level sequence machine for one outer mode: run the arm the LOW NIBBLE of the inner index selects out of a sixteen-word table laid inline just after this entry, then one fixed block; the arm returns through a slot this entry parks for it",
     cert: "code",
   },
+  0x10fd: {
+    name: "loc_10fd",
+    role: "reused subroutine entry into the five-slot display-list split pass, joined inside the first slot: trades the first slot from the caller's held byte (or, below the raster line, restarts the whole pass and re-reads every slot from memory), then trades slots 2-5 wherever their top bit is set; live-out memory only",
+    cert: "code",
+  },
+  0x11ed: {
+    name: "loc_11ed",
+    role: "one per-call maintenance step: hide the sprite band, start the next round when a flag is set, and queue the frame's fixed sound requests; then decrement the countdown at the head of a 16-byte record and copy the record into one of two selector-chosen slots — on the countdown reaching zero it tail-hands-off to the game-over banner, otherwise it advances the selector when the idle slot is armed and stamps two fixed cells",
+    cert: "code",
+  },
+  0x0f97: {
+    name: "loc_0f97",
+    role: "scanline-gated sprite position fixup over 8 slots: for each slot whose Y byte (sprite bank 1) has bit 7 set and whose Y + scanline counter carries, clears bit 7 of that Y byte and toggles bit 7 of the paired X byte (sprite bank 0)",
+    cert: "code",
+  },
+  0x0f54: {
+    name: "loc_0f54",
+    role: "guarded tail of the phase-3 image-service step, reached as loc_0f1f's pushed continuation: returns while the play-active flag (0xAD30) is set; on a pending-reset flag (0xA986) it zeroes the sequence sub-step (0xA9AC) and reloads the phase (0xA9AB) from the ROM constant at 0x1736; otherwise, only when the free-play flag (0xA9C0) is set and one of two input bits (0xA9AE & 0x18) is held, it zero-fills the work table 0x15b6 clears and tail-calls loc_1690",
+    cert: "code",
+  },
   0x1253: {
     name: "postGameOverBanner",
     role: "the last life is gone: queue the PLAYER-n caption and the GAME OVER caption, hold them for three seconds and step the sequence on; when no game is running it branches instead into the shared teardown restartAttractSequence, which hands the machine back to attract",
     cert: "seen",
     why: "watched under MAME on the real ROM from both directions. Naturally: five dispatches over 600 s of driven play, every one with LIVES_REMAINING zero and PLAY_ACTIVE set, and SEQUENCE_DELAY written 0xB4 from this routine's own store exactly five times in the same run -- so the queueing side is the side the machine takes, and its caller's other arm accounts for the remaining eleven of its sixteen entries. Forced: a one-shot opcode substitution that dispatches it once mid-game put 02 09 and 0A 0B into the command ring on the same frame and left `7d a5 38 34 f1 68 0e 34 d7` in the cells at 0xA672, which is GAME OVER glyph for glyph out of caption record 11, against blanks in both control arms, and 361 pixels of the real screen changed where a control that suppresses the same host changes none. Command 2 is drawCaptionInPenColour and command 10 is the same drawer taking its colour from a counter, so the arguments 9/10 and 11 are caption indices and the ROM's own record table decodes them as PLAYER 1 / PLAYER 2 and GAME OVER",
+  },
+  0x1271: {
+    name: "loc_1271",
+    role: "gated two-arm state transition: fires only when 0xad02=0, 0xacc6!=0 and all 15 slots at 0xa810 are empty, then queues the fixed sound set and runs one of two arms on 0xad30 — disarm+reset a cell cluster, or clear a strided run and copy a 16-byte record into 0xad10/0xad20",
+    cert: "code",
   },
   0x12e7: {
     name: "loc_12e7",
@@ -895,6 +960,16 @@ export const ROUTINES = {
     role: "the step-4 arm of the round engine's step-14 sub-sequence: flood a fixed block of the colour plane with one byte, and hand the sub-sequence the step whose arm winds it up. The byte comes from one of two parallel cells — the same offset in each of the two per-player save blocks — chosen by the active-player index, so it is a saved value rather than the live one. The block is twenty-eight rows of twenty-seven cells: every row the driver leaves visible, and all but five of the plane's thirty-two columns. When the picture is turned round the painting runs from the far corner backwards, which changes the ORDER the cells are touched in and not WHICH, so the two directions leave the plane identical. A separate count is stepped down by one on the way out",
     cert: "code",
   },
+  0x14c5: {
+    name: "loc_14c5",
+    role: "one pass of the cursor-scripted title character-plane animation: erases two columns + six loose cells on even passes, refills/steps them from the script on odd passes, ends the script by clearing the counter, advancing the stage to 4 and requesting sounds; decrements the pass counter otherwise",
+    cert: "code",
+  },
+  0x142a: {
+    name: "loc_142a",
+    role: "advance one frame of a script-driven character-plane animation: bit 0 of a countdown cell alternates a blanking pass (fill two thirteen-cell columns and six lead cells with one tile code) with a drawing pass (restore the working column from its saved run, nudge four counters by the low bit of the next two script bytes, step the band up then back down, and gather the column back); a terminator byte instead clears the countdown, arms the next sequence step and rewinds the script pointer one, ending early, and every non-terminating call then decrements the countdown",
+    cert: "code",
+  },
   0x15b5: {
     name: "loc_15b5",
     role: "a single ROM byte, `ret`, wired in as slot 15 of the sixteen-word table at 0x0F29 that loc_0f1f dispatches on the low nibble of SEQUENCE_SUBSTEP; taking this arm reads nothing, writes nothing and drops straight into 0x0F54, the continuation every arm of that table returns into. The address occurs exactly once in the whole 24KB image as a little-endian word -- that table slot -- and its gate measures both shipped tapes never presenting nibble 15, so whether the slot is a deliberate idle rung or filler for an index the machine never produces is not settled by anything read here",
@@ -903,6 +978,11 @@ export const ROUTINES = {
   0x15c2: {
     name: "loc_15c2",
     role: "run the arm the LOW THREE BITS of the inner sequence step select out of a word table laid down inline just behind this entry; the arm is entered as a transfer with no place parked for it to come back to, so it returns past this entry and nothing here runs after it, and all eight indices are carried out through the machine's own arithmetic rather than assumed away",
+    cert: "code",
+  },
+  0x15fe: {
+    name: "loc_15fe",
+    role: "once a per-frame countdown lapses, arm a fresh screen: enqueue four fixed ring commands, seed a marker byte into two cells, patch six cells from a following table (value + 0x05 marker), print the six-digit readout, set two sub-states, and enqueue a fifth command when the gate cell is set",
     cert: "code",
   },
   0x1651: {
@@ -941,6 +1021,11 @@ export const ROUTINES = {
     role: "one step of a screen-clearing sequence: park every sprite out of sight, copy the glyph and colour showing at one fixed character cell into one fixed two-byte record, arm the line wipe to run from the plane's fifth line, and step the sequence's inner index on last; both the cell and the record are fixed here, so nothing a caller was holding chooses either",
     cert: "code",
   },
+  0x1830: {
+    name: "loc_1830",
+    role: "one arm of the two-level sequence machine (inner index 2 of loc_17fe): after two setup calls it posts a fixed run of display codes to the writer at 0x0038 as (D=1,code) pairs -- 0x01,0x14,0x15, a code that flips 0x0F/0x11 on cell 0xA9C3 and its successor, 0x16, 0x00, and a tail 0x19/0x17 chosen by 0xA986 -- advancing the sequence counter 0xA9AC through 0x0F1A twice on the 0xA986>=2 branch and once below",
+    cert: "code",
+  },
   0x1980: {
     name: "rearmHeldControlRepeat",
     role: "clear the one-bit press history a caller points at, and hand back a zero. A history is a byte a control's bit is rolled into every other frame, and its owner acts on the frame the low three bits read 001; while a control stays held the byte fills and that pattern cannot recur, so clearing it is what lets the same press act again",
@@ -953,9 +1038,19 @@ export const ROUTINES = {
     cert: "seen",
     why: 'the reading a name has to choose between is SAMPLE and SAVE-FOR-RESTORE: both copy a cell into RAM, and only what happens to the record afterwards tells them apart. A write tap on the record cells across a driven MAME game on the real ROM settles it. The glyph half came back CONSTANT -- 0xA5 on all 15733 writes -- while the colour half alternated, 0x05 on 7865 and 0x10 on 7868, so the cell being read is blinking under the routine and the copy tracks it frame by frame; a fixed pair would have made "sample" pointless and a constant colour would have made it a plain save. A read tap on the same cells then enumerated the consumers rather than grepping for them: exactly two program counters ever read the record, 0x202D and 0x2036, and both are COMPARISONS inside loc_2010 (against 0xA5, then against 0x05 or 0x10). Nothing writes the pair back to any cell in that run, which is what a restore would have to do. The two call sites fix the cells from outside: loc_07e6 samples 0xA61C into 0xABFE every frame, loc_181e samples 0xA5FC into 0xACBE once. The second record took ZERO reads in the run, so what consumes it is unmeasured and this entry does not claim one. Dispatches are a clean A/B: 15735 across a driven game, ZERO across two undriven attract runs of 180 and 300 emulated seconds',
   },
+  0x1f01: {
+    name: "loc_1f01",
+    role: "steer the ship one notch toward the wanted heading a table selects (leave it when already there, snap on when within one notch, else step the short way round the compass by three notches — four once the era's low digit reaches three), then fall into the shared world-scroll tail",
+    cert: "code",
+  },
   0x1f55: {
     name: "loc_1f55",
     role: "negate both velocity components into the world scroll cells, so the world moves opposite the player, then dress the player's sprite for its heading",
+    cert: "code",
+  },
+  0x1f99: {
+    name: "loc_1f99",
+    role: "direction-table bytes decoded as code: pops a long run of stack words while shuffling registers, pushes the pointer once and decrements one cell, then exits via ret / an off-map call / a computed jp(hl); no input tape dispatches it",
     cert: "code",
   },
   0x200c: {
@@ -963,6 +1058,11 @@ export const ROUTINES = {
     role: "put the byte the caller has been carrying where a result is read from, so the verdict of an image check can be taken; on the way it walks an address forward twice, by a wide step and then by that same byte, and the address it lands on is never dereferenced by anything downstream. It reads and writes no memory, so the walk is arithmetic and not a fetch",
     cert: "seen",
     why: "the tempting name is a table-index helper -- add a stride, add an offset, return a byte -- and the caller chain refutes it. Its only reachable entry is the tail chain showCreditLine -> sumImageBlockForTheTamperCheck -> parkTheImageTotalForTheTamperVerdict -> loc_5303: sumImageBlockForTheTamperCheck folds a run of image bytes into A with `add a,(hl)`, parkTheImageTotalForTheTamperVerdict hands it on to B, and loc_5303 calls here and then `cp 0x67`, branching to loc_0f8d on a mismatch and tail-jumping to advanceSequenceSubStep on a match. loc_0f8d pops four words off the stack and unwinds -- it is the tamper arm, not an error return -- so the byte this entry moves into A is a verdict and the compared constant is baked in. That the walked address is a decoy is not read off the code, it is a claim about the callers, and neither branch of loc_5303 touches HL. Under MAME on the real ROM, with a PC-filtered read tap: 5 dispatches over 300 emulated seconds of attract, 3 over 180, 1 over a driven game, and in EVERY run the count equals sumImageBlockForTheTamperCheck's and loc_5303's exactly, so the fold and the test are one chain with no second entrance. Every dispatch was captured with A = 0x67 and B = 0x67 -- the sum already correct -- and the tamper arm loc_0f8d, tapped in the same runs as the control, took ZERO dispatches in all three. A genuine image never fails, which is the only outcome that lets the game boot; a wrong constant or a second caller would have shown here. cert stays honest about one thing: with A and B equal at every observed entry, no capture can distinguish `ld a,b` from leaving A alone, and that half is read from the image",
+  },
+  0x214b: {
+    name: "loc_214b",
+    role: "attract demo auto-pilot step: ticks the packed dwell/turn countdown at 0xadf2, steps the heading-command script at 0xadf3/4 when the dwell expires, turns PLAYER_HEADING (0xa802) by the 2-bit command, then tail-jumps to the mover at 0x1f42",
+    cert: "code",
   },
   0x28b7: {
     name: "loc_28b7",

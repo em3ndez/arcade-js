@@ -1,0 +1,208 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/**
+ * loc_14c5 — memory-equivalent to the frozen oracle at ROM 0x14C5.
+ * GATE: crafted-entry. No tape dispatches this address, nor its title-band subsystem, so entries
+ *   are a real attract machine with the countdown, the script pointer and a written script poked
+ *   identically on both arms; a live control proves the tap can see a dispatch. Live-out is
+ *   memory-only -- the sole caller returns the instant this does -- so the contract is RAM outside
+ *   the measured stack window, scanned in full so a stack-scratch diff cannot mask a real one, and
+ *   the omitted ret is witnessed as SP left unmoved while the oracle rets for itself.
+ * HOLE: the script and its window are fabricated; which script the game feeds this, at which step,
+ *   is not observed here.
+ * Run: node --test games/timeplt/idiomatic/test/equivalence-14c5.test.js
+ */
+
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
+import { ROUTINES as TRANSLATED } from "../../routines.js";
+import { loc_14c5 } from "../loc_14c5.js";
+import { loc_14c5 as oracle } from "../../translated/loc_14c5.js";
+import manifest from "../../manifest.js";
+import { u8 } from "../../../../core/int.js";
+
+const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
+
+const TARGET = 0x14c5;
+const CONTROL = 0x00d8;
+const COUNTDOWN = 0xa9f4;
+const SCRIPT_POINTER = 0xa9f7;
+const NEXT_STEP_CELL = 0xa9f0;
+const SCRIPT_AT = 0xa960;
+const WALK_LO = SCRIPT_AT - 14; // the furthest byte the two backward walks read
+const RUN = 0xa400;
+const [STACK_LO, STACK_HI] = manifest.convergence.stateExclude.stack;
+const outsideStack = (a) => a === null || a < STACK_LO || a >= STACK_HI;
+
+const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
+const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
+
+// ── crafted entries ─────────────────────────────────────────────────────────────────────
+let base = null;
+function baseMachine() {
+  if (!base) {
+    const m = makeMachine(null, { tape: [] });
+    m.runFrames(200);
+    base = m.clone();
+  }
+  return base.clone();
+}
+function withPointer(m) {
+  m.mem8[SCRIPT_POINTER] = SCRIPT_AT & 0xff;
+  m.mem8[SCRIPT_POINTER + 1] = (SCRIPT_AT >> 8) & 0xff;
+  return m;
+}
+function craftBlanking(countdown) {
+  const m = baseMachine();
+  m.mem8[COUNTDOWN] = countdown;
+  return m;
+}
+function craftDrawing() {
+  const m = withPointer(baseMachine());
+  m.mem8[COUNTDOWN] = 0x07;
+  for (let a = WALK_LO; a <= SCRIPT_AT; a++) m.mem8[a] = 0x01;
+  return m;
+}
+function craftTerminator() {
+  const m = withPointer(baseMachine());
+  m.mem8[COUNTDOWN] = 0x07;
+  m.mem8[SCRIPT_AT] = 0xff;
+  return m;
+}
+function scenarios() {
+  return [
+    ["blanking-8", craftBlanking(0x08)],
+    ["blanking-0", craftBlanking(0x00)],
+    ["drawing", craftDrawing()],
+    ["terminator", craftTerminator()],
+  ];
+}
+
+/** First byte that differs OUTSIDE the stack window; full scan, so a scratch diff cannot mask it. */
+function diffOutsideStack(machine, candidate) {
+  const a = machine.clone();
+  const b = machine.clone();
+  oracle(a);
+  try {
+    candidate(b);
+  } catch (e) {
+    return { addr: null, a: "returned", b: String(e).slice(0, 50) };
+  }
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] !== db[i]) {
+      const addr = machine.stateOffsetToAddr(i);
+      if (outsideStack(addr)) return { addr, a: da[i], b: db[i] };
+    }
+  }
+  return null;
+}
+function footprint(machine) {
+  const before = machine.dumpState().slice();
+  const after = machine.clone();
+  oracle(after);
+  const now = after.dumpState();
+  let n = 0;
+  for (let i = 0; i < now.length; i++) if (now[i] !== before[i]) n++;
+  return n;
+}
+function caughtCount(candidate) {
+  let n = 0;
+  for (const [, m] of scenarios()) if (diffOutsideStack(m, candidate)) n++;
+  return n;
+}
+
+// ── broken twins ────────────────────────────────────────────────────────────────────────
+function brokenNoUpdate(m) {
+  const x = m.mem8[COUNTDOWN];
+  loc_14c5(m);
+  m.mem8[COUNTDOWN] = x;
+}
+function brokenWrongFill(m) {
+  const blank = (m.mem8[COUNTDOWN] & 1) === 0;
+  loc_14c5(m);
+  if (blank) m.mem8[0xa7b1] = 0xf0;
+}
+function brokenTerminatorNoArm(m) {
+  const x = m.mem8[NEXT_STEP_CELL];
+  loc_14c5(m);
+  m.mem8[NEXT_STEP_CELL] = x;
+}
+function brokenNoPointerAdvance(m) {
+  const x = m.mem16[SCRIPT_POINTER];
+  loc_14c5(m);
+  m.mem16[SCRIPT_POINTER] = x;
+}
+function brokenNoGather(m) {
+  const draw = (m.mem8[COUNTDOWN] & 1) === 1 && (m.mem8[m.mem16[SCRIPT_POINTER]] & 0xfe) === 0;
+  const saved = [];
+  if (draw) for (let i = 0; i < 32; i++) saved.push(m.mem8[RUN + i]);
+  loc_14c5(m);
+  if (draw) for (let i = 0; i < 32; i++) m.mem8[RUN + i] = saved[i];
+}
+function brokenNoLeadLower(m) {
+  const draw = (m.mem8[COUNTDOWN] & 1) === 1 && (m.mem8[m.mem16[SCRIPT_POINTER]] & 0xfe) === 0;
+  loc_14c5(m);
+  if (draw) m.mem8[0xa611] = u8(m.mem8[0xa611] + 1);
+}
+const TWINS = [
+  ["no-update", brokenNoUpdate, 4],
+  ["wrong-fill", brokenWrongFill, 2],
+  ["terminator-no-arm", brokenTerminatorNoArm, 1],
+  ["no-pointer-advance", brokenNoPointerAdvance, 2],
+  ["no-gather", brokenNoGather, 1],
+  ["no-lead-lower", brokenNoLeadLower, 1],
+];
+
+// ── the gate ────────────────────────────────────────────────────────────────────────────
+test("UNREACHED: no tape dispatches this address, with a live control", { skip }, () => {
+  for (const [label, opts] of [["coin-start", {}], ["undriven", { tape: [] }]]) {
+    let target = 0;
+    let control = 0;
+    const realControl = TRANSLATED.get(CONTROL);
+    const m = makeMachine(new Map([
+      [TARGET, (mm) => { target++; return oracle(mm); }],
+      [CONTROL, (mm) => { control++; return realControl(mm); }],
+    ]), opts);
+    m.runFrames(ENTRY_FRAMES);
+    assert.equal(m.stoppedBy, null, `${label} stopped early: ${m.stoppedBy}`);
+    assert.ok(control > 0, `${label}: the control fired nothing, so the zero beside it is meaningless`);
+    assert.equal(target, 0, `${label} now dispatches this address; capture plain entries instead`);
+    console.log(`  UNREACHED: ${label} — ${hex4(TARGET)} ${target}, control ${hex4(CONTROL)} ${control}`);
+  }
+});
+
+test("EQUIVALENT: every crafted pass, RAM outside the stack", { skip }, () => {
+  for (const [label, m] of scenarios()) {
+    assert.equal(show(diffOutsideStack(m, loc_14c5)), "identical", label);
+  }
+});
+
+test("NON-VACUOUS: the oracle moves memory on every crafted pass", { skip }, () => {
+  for (const [label, m] of scenarios()) {
+    const moved = footprint(m);
+    assert.ok(moved > 0, `${label} moved nothing, so its equivalence check is vacuous`);
+    console.log(`  NON-VACUOUS: ${label} moves ${moved} bytes`);
+  }
+});
+
+test("OMITTED RET: the rewrite leaves SP put, the oracle rets for itself", { skip }, () => {
+  for (const [label, m] of scenarios()) {
+    const b = m.clone();
+    const spBefore = b.regs.sp;
+    loc_14c5(b);
+    assert.equal((b.regs.sp - spBefore) & 0xffff, 0, `${label}: the rewrite moved SP`);
+    const a = m.clone();
+    const spOracle = a.regs.sp;
+    oracle(a);
+    assert.equal((a.regs.sp - spOracle) & 0xffff, 2, `${label}: the oracle did not ret`);
+  }
+});
+
+for (const [label, twin, expected] of TWINS) {
+  test(`TEETH: the ${label} twin is caught on ${expected} of the crafted passes`, { skip }, () => {
+    assert.equal(caughtCount(twin), expected, `${label} caught on the wrong number of passes`);
+  });
+}

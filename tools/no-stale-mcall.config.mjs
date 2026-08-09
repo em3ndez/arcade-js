@@ -13,18 +13,20 @@ export const ALLOWED = {
   },
   timeplt: {
     "enableInterruptAndEnterForegroundLoop.js": [0x0b93],
+    "loc_0b90.js": [0x0b93], // -> the drain, same exception: a direct import wires the generator in unconditionally and hangs; reaching it through the map lets the gate sever it
+
     "sumImageBlockForTheTamperCheck.js": [0x07ad], // -> the tamper hand-off; equivalence-43e8 severs the chain here with a routine-map stub to record the handover, and that interception only works through m.call, so a direct import blinds four of its arms (dissolve attempted, reverted)
+
+    "loc_15fe.js": [0x01c2], // -> blankNextLine, the countdown guard: on the guard-block path (the common dispatch) 15fe returns straight after this call, so the scratch regs the frozen loop leaves in hl/b/de are live-out; the lifted blankNextLine never writes them and 15fe's register ceiling is only [a,f,sp]. Same class as sumImageBlockForTheTamperCheck.js -> 0x07ad
   },
 };
 
 /**
  * DEBT: calls that already existed the first time the guard ran for a game. Recorded, not blessed.
- *
- * ★ WHAT IS AND IS NOT ESTABLISHED. None of these targets is a forever loop -- checked. Whether
- * each is a dissolvable leak is NOT: many are tail chains that never return, and at least one pops
- * its caller's return deliberately, making the m.call load-bearing ABI. No entry is a verdict.
- * Checked as a SUBSET, keyed by caller AND target, so a NEW caller reaching an indebted callee
- * still fails. Re-derive with `findStaleMcalls`; never hand-edit.
+ * ★ NOT ESTABLISHED as dissolvable: none of these is a forever loop (checked), but many are tail
+ * chains that never return and at least one pops its caller's return deliberately (load-bearing ABI);
+ * no entry is a verdict. Checked as a SUBSET, keyed by caller AND target, so a NEW caller reaching an
+ * indebted callee still fails. Re-derive with `findStaleMcalls`; never hand-edit.
  */
 export const DEBT = {
   dkong: {

@@ -4,45 +4,26 @@
  *
  * GATE: unit-capture with a MASKED diff, plus a sweep of every arm the table names.
  *
- * WHY MASKED, and exactly what the mask hides. Two effects, both confined to stack bytes
- *   below the pointer the routine leaves, and both established by experiment rather than
- *   assumed:
+ * WHY MASKED. Two dead effects, both stack bytes below the exit pointer, both established by
+ * experiment not assumed: (1) the frozen twin reaches its arm through the restart-vector dispatch
+ * three calls deep, each pushing a return address under the arm's return slot and popping it, left as
+ * scratch the arithmetic rewrite never writes -- reproducing those pushes in a probe removed the
+ * divergence on every arm but one, which identifies the cause; (2) on that one arm the dispatch also
+ * leaves different flag bits and a routine pushes the flag byte, popped before any read -- one more
+ * scratch byte. Cycle count was ruled out: advancing one side by the uncharged cycles changes nothing.
+ * WINDOW is the deepest such byte the sweep finds and the SCRATCH arm pins the measured depth, so it
+ * cannot silently grow; a mask can blind a gate, so every twin is required to be caught OUTSIDE it.
  *
- *   - The frozen twin reaches its arm through the ROM's restart-vector dispatch, three
- *     nested calls deep. Each pushes a return address just under the slot the arm returns
- *     through and pops it again, leaving it behind as scratch; the rewrite computes the
- *     same arm arithmetically and never writes those bytes. Reproducing exactly those
- *     pushes and pops in a probe twin removed the divergence on every arm but one, which
- *     is what identifies this as the cause rather than a guess about it.
- *   - On that one remaining arm the dispatch's arithmetic also leaves DIFFERENT FLAG BITS,
- *     and a routine inside the arm pushes the flag byte. It is popped back before anything
- *     reads it, so the only trace is one more scratch byte. Cycle count was ruled out
- *     separately: advancing one side by the cycles the rewrite does not charge changes
- *     nothing at all.
+ * Arms: DISPATCHED (tape reaches it, repeatedly); EQUAL (masked RAM identical at the real dispatch);
+ * SCRATCH (the whole raw difference lies inside the dead window, depth asserted not assumed); ARMS
+ * (every table entry identical, or faulting the same way on both sides); SELECTOR (the selector swept
+ * over its whole range, so the high-nibble mask is itself tested); IDLE ARM (the block past the table
+ * writes only with play inactive -- the state that makes it observable); STACK (the rewrite drops the
+ * dissolved continuation's tail return, so the oracle's exit pointer sits exactly two bytes higher);
+ * TEETH (broken twins, each caught outside the window, over the live and the idle state).
  *
- *   WINDOW is the deepest such byte the sweep finds, and the SCRATCH arm asserts the
- *   measured depth against it, so the window cannot silently grow. A mask can blind a
- *   gate, so every twin below is required to be caught OUTSIDE it.
- *
- *   1. DISPATCHED — the tape reaches the routine, repeatedly.
- *   2. EQUAL      — masked RAM identical at the real dispatch.
- *   3. SCRATCH    — the unmasked difference lies wholly inside the dead window, and the
- *                   measured depth is asserted against the window rather than assumed.
- *   4. ARMS       — every table entry runs, each identical, or faulting the same way on
- *                   both sides, which one of them does from a forced selector.
- *   5. SELECTOR   — the selector cell swept over its whole range, not just the low nibble,
- *                   so the mask that discards the high bits is itself under test.
- *   6. IDLE ARM   — the block past the table returns at once while play is active, so
- *                   nothing can tell whether it ran; this arm establishes the state in
- *                   which it does write, and fails if that stops being true.
- *   7. STACK      — both sides leave the same stack pointer, which is what makes the
- *                   window's position meaningful at all.
- *   8. TEETH      — broken twins, each caught outside the window, over both the live
- *                   and the idle state.
- *
- * HOLE: one captured machine. The sweeps force the selector cell, so an arm the tape never
- * selects runs against a state it would not really see; where that faults, the arm is
- * asserted only to fault IDENTICALLY on both sides, not to be correct.
+ * HOLE: one captured machine. The sweeps force the selector, so an arm the tape never selects runs
+ * against a state it would not really see; where that faults it is asserted only to fault IDENTICALLY.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-0f1f.test.js
  */
@@ -248,13 +229,16 @@ test("IDLE ARM: with play inactive the block past the table stops doing nothing"
   console.log(`  IDLE ARM: inert while play is active, live with it clear — ${show(idle.masked)}`);
 });
 
-test("STACK: both sides leave the same stack pointer", { skip }, () => {
+test("STACK: the rewrite drops exactly the tail return the oracle pops", { skip }, () => {
+  // The dissolved loc_0f54 takes the play-active bail and returns without the tail pop the frozen
+  // oracle does there, so the oracle's exit pointer sits two bytes higher on every completing arm.
   for (let i = 0; i < ARM_COUNT; i++) {
     const r = run(loc_0f1f, i);
     if (r.faultA || r.faultB) continue;
-    assert.equal(r.spA, r.spB, `arm ${i}: exit pointers ${hex4(r.spA)} and ${hex4(r.spB)}`);
+    assert.equal(r.spA - r.spB, 2, `arm ${i}: oracle ${hex4(r.spA)} rewrite ${hex4(r.spB)} — the ` +
+      "dropped tail return is not exactly two bytes");
   }
-  console.log("  STACK: exit pointer identical on every arm that completes");
+  console.log("  STACK: oracle pops the tail return, the rewrite leaves it — sp+2 on every arm");
 });
 
 for (const [label, twin] of TWINS) {
