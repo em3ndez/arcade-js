@@ -1,15 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Per-game input to the dissolve-invariant scan, kept OUTSIDE `games/` so a finished port can be
-// governed without its tree being edited. A game absent here is scanned strictly -- no allowlist,
-// no debt.
 
-/**
- * ALLOWED: m.call BOUNDARIES THAT CANNOT BE DISSOLVED, keyed game -> caller file -> targets.
- * Two kinds: a never-returning forever loop (a direct call makes the caller's test spin too), and
- * a tail some GATE severs through the routine map to observe the handover (that interception only
- * works via m.call). A direct call is memory-equivalent either way, so these tails stay m.call.
- * A POLL routine qualifies for a third, measured reason -- docs/idiomatic-generation.md, Part VI.
- */
 export const ALLOWED = {
   thepit: {
     "initRoundAndEnterMainLoop.js": [0x0348], // -> mainLoop
@@ -22,7 +12,7 @@ export const ALLOWED = {
     "rearmMachineAndBranchOnCredits.js": [0x021c], // -> credit-screen hold (displays forever)
   },
   timeplt: {
-    "enableInterruptAndEnterForegroundLoop.js": [0x0b93], // -> the foreground command-ring drain, and the game's only poll PC
+    "enableInterruptAndEnterForegroundLoop.js": [0x0b93],
     "sumImageBlockForTheTamperCheck.js": [0x07ad], // -> the tamper hand-off; equivalence-43e8 severs the chain here with a routine-map stub to record the handover, and that interception only works through m.call, so a direct import blinds four of its arms (dissolve attempted, reverted)
   },
 };
@@ -31,13 +21,10 @@ export const ALLOWED = {
  * DEBT: calls that already existed the first time the guard ran for a game. Recorded, not blessed.
  *
  * ★ WHAT IS AND IS NOT ESTABLISHED. None of these targets is a forever loop -- checked. Whether
- * each is a dissolvable leak is NOT: many are tail chains that never execute a return, and at
- * least one pops its caller's return deliberately, making the m.call load-bearing ABI. The list
- * mixes real leaks with probable boundaries; no entry is a verdict.
- *
- * Checked as a SUBSET: a new leak fails, removing an old one does not. Keyed by caller AND target,
- * so a NEW caller reaching an indebted callee still fails. Re-derive with `findStaleMcalls`, which
- * returns exactly what belongs here; never hand-edit.
+ * each is a dissolvable leak is NOT: many are tail chains that never return, and at least one pops
+ * its caller's return deliberately, making the m.call load-bearing ABI. No entry is a verdict.
+ * Checked as a SUBSET, keyed by caller AND target, so a NEW caller reaching an indebted callee
+ * still fails. Re-derive with `findStaleMcalls`; never hand-edit.
  */
 export const DEBT = {
   dkong: {

@@ -1,14 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Per-game input to the wiring-invariant scan, kept OUTSIDE `games/` so a finished port can be
-// governed without its tree being edited. A game absent here is scanned strictly.
 
-/**
- * UNWIRED: modules NOT dispatched BY DECISION, keyed game -> module -> the reason.
- *
- * Legitimate only for a routine the override map cannot reach -- its argument arrives on the guest
- * stack, it never returns, it is not an entry point -- and only with its reason here: silence
- * reads exactly like the oversight this scan catches. A reason a reviewer cannot check is a fail.
- */
 export const UNWIRED = {
   timeplt: {
     "sendOneQueuedSoundThenUnwindTheFrameInterrupt.js":
@@ -30,14 +21,6 @@ export const UNWIRED = {
       "directly and none of them calls this address -- so the route out is demonstrated, not " +
       "hoped for. The remaining four are frozen, and each dissolves it in its own unit by passing " +
       "the table address as an argument, at which point nothing here touches the stack.",
-    "loc_0b93.js":
-      "The foreground command-ring drain. It is a forever loop with no exit OF ITS OWN, and it cannot " +
-      "be wired live: an idiomatic loop charges no T-states, so the vblank NMI never fires and " +
-      "the machine hangs. It is also the poll PC the whole-machine gate yields the frame on, " +
-      "declared in the game's manifest as convergence.pollPCs. Measured at its caller, and the " +
-      "direction is the point: while this address stays UNWIRED the caller's m.call lands on the " +
-      "oracle, which charges T-states, and the run makes its full frame budget; put the idiomatic " +
-      "twin in that path instead and it produces no output at all.",
     "loc_3074.js":
       "Not a dispatch entry: it is an interior continuation. Decoding the image from EVERY byte " +
       "offset -- which over-generates and cannot under-generate -- finds exactly one transfer to " +

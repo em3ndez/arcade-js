@@ -2,57 +2,37 @@
 # SPDX-License-Identifier: GPL-3.0-only
 """Refuse a commit that changes what a game renders unless that game's pixel gate PASSED.
 
-WHY THIS EXISTS. The gates the idiomatic loop runs all day -- per-routine memory-equivalence and
-the assembled swap -- compare RAM outside the stack window and a declared live-out. Neither looks
-at a pixel. A layer can therefore be green on every gate the loop runs and wrong on the glass. That
-is not hypothetical: Time Pilot's idiomatic layer ran a full day of batches with the pixel gate
-wired into nothing, and the gap was noticed by a person, twice, not by a gate.
+WHY. The per-routine and assembled gates compare RAM and a declared live-out; neither looks at a
+pixel, so a layer can be green everywhere and wrong on the glass. That is not hypothetical -- Time
+Pilot ran a full day of batches with the pixel gate wired into nothing, and a person noticed twice,
+not a gate. Documentation was the first fix and it is the wrong shape: a doc fires when someone
+chooses to look, which is exactly the moment a person who forgot is not having. Forgetting is a
+WRITE-TIME failure, so the remedy is a write-time interlock.
 
-Documentation was the first fix and it is the wrong shape. A doc item and a reviewer rule both fire
-when someone chooses to look, which is exactly the moment a person who forgot is not having.
-Forgetting is a WRITE-TIME failure, so the remedy has to be a write-time interlock.
+★★ WHICH LAYER THE SUITES RENDER, first because getting it backwards misleads most. `render.js`
+follows its own `--idiomatic` FLAG and the game's `pixel_suite.py` decides whether to pass it --
+`manifest.runtime` alone does NOT control it. All three games declare "idiomatic", yet only
+timeplt's suite passes the flag and thepit's renderer has no override path, so thepit still renders
+the ORACLE. `suite_renders_idiomatic()` requires all three terms; keying on the manifest alone once
+silenced the caveat for every game. Where the oracle is rendered the idiomatic layer is dormant and
+a regression in it is uncovered -- MEASURED: poisoning every timeplt idiomatic module with a
+throwing import left the frames byte-identical, with a positive control confirming the poison fires
+when a module genuinely loads.
+⚠ Two limits survive the wiring, stated where they are measured in `pixel_suite.py`: the frames
+before the first vblank yield are not compared, and the upper rows carry a residual worth about
+half the tolerance. A PASS is real coverage of the shipped layer, not parity.
 
-★★ WHAT THIS GATE CANNOT SEE TODAY, STATED FIRST BECAUSE IT IS THE THING MOST LIKELY TO MISLEAD.
-The declared suites render the ORACLE, not the idiomatic layer. `games/<g>/tools/render.js` builds
-its machine from `buildRoutines()`, which is `translated/_registry.generated.js` alone; THE
-RENDERER IS NOT AMONG THE CALLERS of `resolveAllIdiomatic`, the only route to `idiomatic/`. The
-shipped player reaches it only when a game's `manifest.runtime` is "idiomatic" -- Time Pilot's is
-"translated". So while a game's runtime is "translated", ITS IDIOMATIC LAYER IS DORMANT AND AN
-IDIOMATIC PIXEL REGRESSION IS NOT COVERED BY THIS GATE, and cannot be until go-live points the
-renderer at that layer.
+★ THE FAILURE MODE THIS MUST NOT REPRODUCE. `pixel_suite.py` exits 0 when it CANNOT run -- no MAME,
+no romset -- which is right for the suite and fatal for a gate reading its exit code. So this gate
+never trusts the code alone: it requires the literal PASS line and treats SKIP, INCOMPLETE, FAIL, a
+crash or a timeout as refusal. An absence of failure is not a pass.
 
-This was measured, not assumed: every timeplt idiomatic module was poisoned with a throwing import
-and the rendered frames came back byte-identical, with a positive control confirming the poison
-fires when the module is actually loaded. A green suite proves nothing about idiomatic code until
-that changes. This gate still fires on idiomatic paths, because the day the renderer resolves them
-the interlock must already be in place -- but do not read its PASS as covering them. `cmd_check`
-says so on the spot: a PASS driven only by idiomatic paths, for a game whose runtime is not
-"idiomatic", is printed with the dormancy caveat attached rather than as a bare PASS.
-
-★ THE FAILURE MODE THIS TOOL MUST NOT REPRODUCE. `pixel_suite.py` exits 0 when it cannot run --
-no MAME on PATH, or no romset -- because to a fresh clone that is not a failure of the
-translation. That is right for the suite and fatal for a gate built on its exit code: the machine
-that cannot check anything would report success, which is the same silent-skip defect
-`no-stale-mcall` has (`if (addr === undefined) continue`, no record, no failure). So this gate
-NEVER trusts the exit code alone. It requires the suite's literal PASS line, and treats every other
-outcome -- SKIP, INCOMPLETE, FAIL, a crash, a timeout -- as a refusal. An absence of failure is not
-a pass.
-
-★ WHAT THIS DELIBERATELY DOES NOT OWN, recorded because an unowned property with no record of
-being unowned is a trap -- and each exclusion gets its OWN reason, because one reason covering a
-list is how a wrong exclusion hides inside a right one.
-
-  - `core/` -- shared by every game. Firing would demand every declared game's suite, and a
-    machine holding one romset cannot evaluate the others, so the gate would refuse commits it is
-    unable to judge rather than commits that are wrong.
-  - `tools/pixel_gate.py` -- the shared half of the instrument, and it holds `ROUGH_TOLERANCE`.
-    Loosening that changes every game's verdict. Excluded for the same reason as `core/` and for
-    no better one: this is the sharpest hole left in this gate, and it is left open knowingly.
-  - `boards/<board>/` and `games/<g>/manifest.js` are NOT excluded. The cost argument above does
-    not reach them: a board is one-to-one with a game here and contains the renderer itself
-    (`boards/<b>/video.js`), and a manifest is single-game. Each costs one suite run. The board is
-    resolved through each manifest's `board:` field, not by assuming the directory name matches
-    the game.
+★ WHAT THIS DELIBERATELY DOES NOT OWN, each with its own reason, because one reason covering a list
+is how a wrong exclusion hides inside a right one. `core/` -- shared by every game, so firing would
+demand suites a machine holding one romset cannot run. `tools/pixel_gate.py` -- holds
+ROUGH_TOLERANCE, which changes every game's verdict; the sharpest hole left here, left open
+knowingly. `boards/<board>/` and `games/<g>/manifest.js` are NOT excluded: each is single-game and
+costs one suite run, and the board is resolved through each manifest's `board:` field.
 """
 import os
 import re
@@ -62,56 +42,25 @@ import tempfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-#: Staged paths that can change what a game's pixel suite renders, or what the suite itself
-#: measures. Deliberately WIDER than the idiomatic layer: `translated/` is the layer the suite
-#: actually executes today, so it is the one directory whose changes this gate can genuinely
-#: attribute, and leaving it out would have meant firing only where the instrument is blind.
-#: All of these are single-game and cost one suite run.
 RENDER_AFFECTING = re.compile(
     r"^games/([^/]+)/(?:idiomatic/|translated/|routines\.js$|machine\.js$|manifest\.js$"
     r"|tools/render\.js$|tools/pixel_suite\.py$)"
 )
 
-#: A board directory is shared machinery, but one-to-one with a game in this repo -- and it holds
-#: the renderer. Matched separately because the path carries a BOARD id, which must be resolved to
-#: the game(s) that declare it rather than assumed equal to the directory name.
 BOARD_PATH = re.compile(r"^boards/([^/]+)/")
 
-#: Paths under `idiomatic/` specifically -- used to qualify a PASS that only these triggered.
 IDIOMATIC_ONLY = re.compile(r"^games/([^/]+)/idiomatic/")
 
-#: Manifest field reads, ANCHORED TO A DECLARATION LINE. Unanchored, these match inside a `//`
-#: comment: two manifests carry `// Live runtime: "idiomatic" runs the whole game...` ABOVE the
-#: real field, and an unanchored read takes the comment. Today those comments happen to agree with
-#: their declarations, so every game still resolves correctly and nothing looks wrong -- the defect
-#: is invisible on the present corpus and would surface only when a comment and a declaration
-#: disagree. For `runtime` that failure is silent and unsafe in the worst direction: a comment
-#: saying "idiomatic" above a translated declaration SUPPRESSES the dormancy caveat, removing the
-#: warning precisely where it is needed.
 MANIFEST_RUNTIME = re.compile(r'^\s*runtime:\s*"([^"]+)"', re.M)
 MANIFEST_BOARD = re.compile(r'^\s*board:\s*"([^"]+)"', re.M)
 
-#: The line `pixel_suite.py` prints only on a real, complete, passing comparison. Shared by
-#: timeplt and thepit. The `^` under re.M is load-bearing: the suite also prints INDENTED
-#: per-window lines ending in "-> PASS", and those must not satisfy this.
 PIXEL_SUITE_PASS = re.compile(r"^pixel_suite: PASS", re.M)
 
-#: game -> [(argv, success pattern)]. A game absent from here CANNOT be evaluated, and this gate
-#: refuses rather than assuming. Adding a game means verifying its success line at the source,
-#: not guessing it from another game's format.
 SUITES = {
     "timeplt": [(["python3", "games/timeplt/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
     "thepit": [(["python3", "games/thepit/tools/pixel_suite.py"], PIXEL_SUITE_PASS)],
 }
 
-#: game -> why it has no single automated suite here, and what to run by hand instead.
-#:
-#: Donkey Kong's pixel validation is real but split across per-mechanic suites with a different
-#: report format (`move_suite.py`, `prize_suite.py`), and their pass lines are NOT wired here
-#: because they were never observed matching. Both always exit 0 and `move_suite.py` prints no
-#: summary line at all, so a naive predicate would match a per-row PASS while siblings failed. A
-#: predicate never seen to match is an instrument that returns a believable answer without having
-#: measured anything -- worse than none, because this one would be trusted.
 MANUAL = {
     "dkong": (
         "Donkey Kong's pixel gates are games/dkong/tools/move_suite.py and prize_suite.py, not a\n"
@@ -122,12 +71,8 @@ MANUAL = {
 }
 
 #: game -> the written reason this game's pixel gate is not required.
-#:
-#: ★ AN ENTRY EXEMPTS THE GAME UNTIL IT IS REMOVED. It is not scoped to one commit, and nothing
-#: here can make it so: once adjudicated it keeps waiving every later commit silently. Prefer
-#: fixing the suite. Empty by design -- an entry is legitimate only when the gate genuinely cannot
-#: run and the reason is one a reviewer can check, since silence reads exactly like the oversight
-#: this catches.
+#: ★ AN ENTRY EXEMPTS THE GAME UNTIL REMOVED, waiving every later commit silently. Empty by
+#: design: legitimate only when the gate cannot run and the reason is one a reviewer can check.
 EXEMPT = {}
 
 
@@ -144,7 +89,6 @@ def staged_paths():
     paths, i = [], 0
     while i < len(fields):
         status = fields[i]
-        # A rename/copy status (R100, C75) is followed by BOTH source and destination.
         n = 2 if status[:1] in ("R", "C") else 1
         paths.extend(fields[i + 1:i + 1 + n])
         i += 1 + n
@@ -203,6 +147,30 @@ def game_runtime(game):
     return m.group(1) if m else None
 
 
+def suite_renders_idiomatic(game):
+    """Does THIS game's suite actually render the idiomatic layer?
+
+    THREE INDEPENDENT TERMS, ALL REQUIRED: the suite must pass `--idiomatic`, the renderer must have
+    an override path, and the manifest must say "idiomatic" (the suite reads `runtime()` and appends
+    the flag only then). ⚠ Keying on the manifest ALONE silenced the caveat for every game; dropping
+    it silenced a translated game whose suite merely COULD render idiomatic. Each term is
+    mutation-tested in `_selftest_predicate_terms`, which the corpus cannot do.
+    """
+    suite = os.path.join(REPO, "games", game, "tools", "pixel_suite.py")
+    render = os.path.join(REPO, "games", game, "tools", "render.js")
+    try:
+        with open(suite, encoding="utf-8") as fh:
+            passes_flag = "--idiomatic" in fh.read()
+        with open(render, encoding="utf-8") as fh:
+            has_path = "resolveAllIdiomatic" in fh.read()
+    except OSError:
+        return False
+    # ★ A CONJUNCTION, all three terms INDEPENDENT: a suite can pass the flag whether or not its
+    # renderer honours it, and appends it only when `runtime()` reads "idiomatic". Dropping the
+    # manifest term would silence the caveat for a translated game rendering the ORACLE.
+    return passes_flag and has_path and game_runtime(game) == "idiomatic"
+
+
 def run_suite(argv, pattern, timeout=900):
     """(ok, output). ok ONLY when the process exits 0 AND prints its literal pass line.
 
@@ -226,10 +194,10 @@ def run_suite(argv, pattern, timeout=900):
 def dormancy_caveat(game, paths):
     """The warning to hang on a PASS that cannot mean what it looks like, or "".
 
-    A PASS driven ONLY by `idiomatic/` paths, for a game whose runtime is not "idiomatic", is the
-    exact artifact the docs exist to qualify: the suite rendered the oracle and never executed a
-    line of what was staged. Printing it bare invites the reading it is meant to prevent, so the
-    caveat travels with the verdict instead of living only in a document someone has to consult.
+    A PASS driven ONLY by `idiomatic/` paths, for a game whose SUITE RENDERS THE ORACLE, never
+    executed a line of what was staged. Printing it bare invites the reading it prevents, so the
+    caveat travels with the verdict rather than living in a document someone must consult.
+    ⚠ "Renders the oracle" is NOT "runtime is not idiomatic" -- see `suite_renders_idiomatic()`.
     """
     matched, boards = [], None
     for p in paths:
@@ -240,19 +208,16 @@ def dormancy_caveat(game, paths):
             continue
         b = BOARD_PATH.match(p)
         if b:
-            # A board path is a REAL render change the suite executed, so it must count as
-            # matched -- otherwise a board edit staged beside idiomatic ones is invisible here
-            # and the caveat claims "this PASS does not cover the staged change" when it does.
             if boards is None:
                 boards = board_to_games()
             if game in boards.get(b.group(1), []):
                 matched.append(p)
     if not matched or not all(IDIOMATIC_ONLY.match(p) for p in matched):
         return ""
-    if game_runtime(game) == "idiomatic":
+    if suite_renders_idiomatic(game):
         return ""
-    return ("\n  ★ but the staged paths are idiomatic/ ONLY, and this game's runtime is not "
-            f'"idiomatic" -- the suite rendered the ORACLE and executed none of them.\n'
+    return ("\n  ★ but the staged paths are idiomatic/ ONLY, and this game's suite renders the "
+            "ORACLE -- it executed none of them.\n"
             "    This PASS does NOT cover the staged change. See docs/pixel-gate.md.")
 
 
@@ -353,6 +318,54 @@ def _selftest_staged_paths():
     return bad
 
 
+def _fixture_game(root, game, *, flag, path, runtime):
+    """A minimal game with the three predicate terms set INDEPENDENTLY: no shipped game has
+    exactly one term false, so the corpus cannot supply these."""
+    gdir = os.path.join(root, "games", game)
+    tdir = os.path.join(gdir, "tools")
+    os.makedirs(tdir, exist_ok=True)
+    with open(os.path.join(gdir, "manifest.js"), "w", encoding="utf-8") as fh:
+        fh.write(f'export default {{\n  board: "{game}board",\n  runtime: "{runtime}",\n}};\n')
+    with open(os.path.join(tdir, "pixel_suite.py"), "w", encoding="utf-8") as fh:
+        fh.write('cmd += ["--idiomatic"]\n' if flag else "# renders the oracle\n")
+    with open(os.path.join(tdir, "render.js"), "w", encoding="utf-8") as fh:
+        fh.write("await resolveAllIdiomatic();\n" if path else "buildRoutines();\n")
+
+
+def _selftest_predicate_terms():
+    """Every conjunct of `suite_renders_idiomatic` must be INDEPENDENTLY load-bearing.
+
+    ⛔ Arms keyed to the real games were BLIND to it -- deleting any term left zero failures,
+    since timeplt is (True,True,idiomatic) and thepit (False,False,idiomatic) -- and went red when
+    thepit was made compliant, a gate refusing the fix.
+    """
+    global REPO
+    bad, saved = 0, REPO
+    cases = [
+        ("all three terms true", True, True, "idiomatic", True),
+        ("suite never passes the flag", False, True, "idiomatic", False),
+        ("renderer has no override path", True, False, "idiomatic", False),
+        ("manifest declares translated", True, True, "translated", False),
+    ]
+    with tempfile.TemporaryDirectory() as root:
+        try:
+            REPO = root
+            for i, (label, flag, path, runtime, want) in enumerate(cases):
+                game = f"fixture{i}"
+                _fixture_game(root, game, flag=flag, path=path, runtime=runtime)
+                got = suite_renders_idiomatic(game)
+                ok = got == want
+                bad += not ok
+                print(f"  [{'ok ' if ok else 'BAD'}] terms: {label} -> {got} (expected {want})")
+                fired = bool(dormancy_caveat(game, [f"games/{game}/idiomatic/x.js"]))
+                ok = fired == (not want)
+                bad += not ok
+                print(f"  [{'ok ' if ok else 'BAD'}] terms: {label} -> caveat {fired}")
+        finally:
+            REPO = saved
+    return bad
+
+
 def _selftest_manifest_reads():
     """Manifest fields must come from a DECLARATION, never from a `//` comment.
 
@@ -386,7 +399,16 @@ def _selftest_manifest_reads():
                 bad += not ok
                 print(f"  [{'ok ' if ok else 'BAD'}] manifest: {label} -> {got!r} "
                       f"(expected {want!r})")
-            # And the caveat must still fire for this game: runtime really is "translated".
+            # ⚠ Once green for the WRONG reason -- no `tools/`, so the predicate returned False on
+            # OSError whatever the manifest said. Now only the runtime read can fire the caveat.
+            _fixture_game(root, "trap", flag=True, path=True, runtime="translated")
+            with open(os.path.join(gdir, "manifest.js"), "w", encoding="utf-8") as fh:
+                fh.write('// Live runtime: "idiomatic" runs the whole game on the readable layer.\n'
+                         '// board: "decoy"\n'
+                         'export const manifest = {\n'
+                         '  board: "trapboard",\n'
+                         '  runtime: "translated",\n'
+                         '};\n')
             fired = bool(dormancy_caveat("trap", ["games/trap/idiomatic/x.js"]))
             bad += not fired
             print(f"  [{'ok ' if fired else 'BAD'}] manifest: caveat NOT suppressed by the "
@@ -423,14 +445,11 @@ def cmd_selftest(_args=None):
             bad += got != want
             print(f"  [{mark}] {label}: accepted={got} expected={want}")
 
-        # A suite that cannot be executed at all must refuse, not crash the hook.
         got, _ = run_suite(["python3", os.path.join(tmp, "does-not-exist.py")], PIXEL_SUITE_PASS)
         mark = "ok " if got is False else "BAD"
         bad += got is not False
         print(f"  [{mark}] missing suite file: accepted={got} expected=False")
 
-        # A suite that HANGS must refuse. Without this arm the timeout handler can be mutated to
-        # return True and every other arm stays green -- a wedged render would read as a pass.
         hang = os.path.join(tmp, "hang.py")
         with open(hang, "w", encoding="utf-8") as fh:
             fh.write("import time\nprint('pixel_suite: PASS')\ntime.sleep(30)\n")
@@ -439,7 +458,6 @@ def cmd_selftest(_args=None):
         bad += got is not False
         print(f"  [{mark}] suite HANGS past its timeout: accepted={got} expected=False")
 
-        # Drive cmd_check end-to-end: the decision to refuse lives there, not in run_suite.
         real_staged, real_suites = globals()["staged_paths"], SUITES
         try:
             for label, paths, suites, want_rc in [
@@ -469,14 +487,11 @@ def cmd_selftest(_args=None):
 
     bad += _selftest_staged_paths()
     bad += _selftest_manifest_reads()
+    bad += _selftest_predicate_terms()
 
-    # The path matcher decides whether the gate fires at all; one that never fires is a gate that
-    # never runs, and it would look exactly like a clean repo.
-    #
-    # ★ The `*ness.js` / `*-notes.md` entries are not padding. The real tree contains no path that
-    # starts with "idiomatic" WITHOUT being the directory, so against real data a regex that has
-    # lost its trailing slash behaves identically to one that has not. These are the discriminating
-    # cases the corpus cannot supply; without them that mutation is invisible.
+    # A path matcher that never fires looks exactly like a clean repo. ★ The `*ness.js` /
+    # `*-notes.md` entries are not padding: no real path starts with "idiomatic" without being the
+    # directory, so a regex that lost its trailing slash is invisible against real data.
     for path, want_game in [
         ("games/timeplt/idiomatic/loc_1234.js", "timeplt"),
         ("games/timeplt/idiomatic/names.js", "timeplt"),
@@ -503,26 +518,34 @@ def cmd_selftest(_args=None):
         bad += got_game != want_game
         print(f"  [{mark}] {path} -> {got_game} (expected {want_game})")
 
-    # The dormancy caveat must appear exactly when a PASS cannot mean what it looks like, and must
-    # NOT appear otherwise -- a caveat printed on every PASS is noise that gets filtered out.
-    for label, game, paths, want in [
-        ("idiomatic-only on a translated-runtime game -> CAVEAT",
-         "timeplt", ["games/timeplt/idiomatic/loc_1.js"], True),
-        ("idiomatic AND translated staged -> no caveat (the suite ran that code)",
-         "timeplt", ["games/timeplt/idiomatic/loc_1.js", "games/timeplt/translated/loc_1.js"], False),
-        ("idiomatic-only on an idiomatic-runtime game -> no caveat",
-         "thepit", ["games/thepit/idiomatic/x.js"], False),
-        # A board path IS a render change the suite executed, so it must count as matched --
-        # otherwise the caveat claims the PASS does not cover a change that it does cover.
-        ("idiomatic AND a board path -> no caveat (the suite rendered the board change)",
-         "timeplt", ["games/timeplt/idiomatic/x.js", "boards/timeplt/video.js"], False),
-        ("a board path for ANOTHER game does not clear the caveat",
-         "timeplt", ["games/timeplt/idiomatic/x.js", "boards/dkong/video.js"], True),
-    ]:
-        got = bool(dormancy_caveat(game, paths))
-        mark = "ok " if got == want else "BAD"
-        bad += got != want
-        print(f"  [{mark}] caveat: {label} -> {got}")
+    # ⛔ SYNTHETIC games: corpus-keyed arms were blind to the predicate and went red when a real
+    # game became compliant. See _selftest_predicate_terms.
+    global REPO
+    saved = REPO
+    with tempfile.TemporaryDirectory() as root:
+        try:
+            REPO = root
+            _fixture_game(root, "oracled", flag=False, path=False, runtime="idiomatic")
+            _fixture_game(root, "idio", flag=True, path=True, runtime="idiomatic")
+            for label, game, paths, want in [
+                ("idiomatic-only, suite renders the ORACLE -> CAVEAT",
+                 "oracled", ["games/oracled/idiomatic/loc_1.js"], True),
+                ("idiomatic AND translated staged -> no caveat",
+                 "oracled", ["games/oracled/idiomatic/loc_1.js",
+                             "games/oracled/translated/loc_1.js"], False),
+                ("idiomatic-only, suite renders IDIOMATIC -> no caveat",
+                 "idio", ["games/idio/idiomatic/x.js"], False),
+                ("idiomatic AND its own board path -> no caveat",
+                 "oracled", ["games/oracled/idiomatic/x.js", "boards/oracledboard/video.js"], False),
+                ("a board path for ANOTHER game does not clear the caveat",
+                 "oracled", ["games/oracled/idiomatic/x.js", "boards/idioboard/video.js"], True),
+            ]:
+                got = bool(dormancy_caveat(game, paths))
+                mark = "ok " if got == want else "BAD"
+                bad += got != want
+                print(f"  [{mark}] caveat: {label} -> {got}")
+        finally:
+            REPO = saved
 
     print("pixel_gate_required selftest: " + ("OK" if not bad else f"{bad} FAILING CASE(S)"))
     return 1 if bad else 0

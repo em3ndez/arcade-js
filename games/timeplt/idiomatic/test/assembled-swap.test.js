@@ -1,7 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * assembled-swap — the WHOLE-GAME gate for the REGISTERED Time Pilot rewrites.
+ * assembled-swap — RETIRED AT THE COROUTINE GO-LIVE. NOTHING BELOW RUNS: 9 tests, 9 skipped.
  *
+ * ⛔ READ THIS BEFORE THE REST OF THE HEADER, WHICH DESCRIBES THE GATE AS IT WAS. Every sentence
+ * after this block is written in the present tense about a gate that no longer executes — it
+ * "runs the whole thing twice", "observes itself failing", "skips loudly without ROMs". None of
+ * that happens now; the file skips unconditionally. The reason and the measurement are at the
+ * `const test =` binding below, and golive.test.js is what replaced it. The description is kept
+ * because the harness is kept, not because it is still true.
+ *
+ * WHAT IT COVERED, while it ran:
  * WHAT IT COVERS, exactly. It wires the entries of idiomatic/names.js ROUTINES and only those.
  * The idiomatic directory holds many more files than the registry names, and every one of them is
  * outside this gate — the registry is what the machine dispatches and what ships, so that is what
@@ -79,39 +87,17 @@ import { u8 } from "../../../../core/int.js";
 const ROM_PATH = new URL("../../rom/maincpu.bin", import.meta.url);
 const ROM_PRESENT = existsSync(ROM_PATH);
 const ROM = ROM_PRESENT ? new Uint8Array(readFileSync(ROM_PATH)) : null;
-const test = ROM_PRESENT
-  ? nodeTest
-  : (name, fn) =>
-      nodeTest(name, { skip: "ROM absent at games/timeplt/rom/maincpu.bin (BYO)" }, fn);
+const test = (name, fn) =>
+  nodeTest(name, { skip: "retired: swap-era gate on runCycleFree, which cannot drive the coroutine spine; superseded by golive.test.js" }, fn);
 
 const { pollPCs, stateExclude } = manifest.convergence;
 const [STACK_LO, STACK_HI] = stateExclude.stack;
 
-/**
- * The highest DIRECT store into work RAM -- a write whose address is neither SP nor SP+1, boot's
- * one-time wipe of the whole region excluded. Measured on a tape-driven translated run, where one
- * site accounts for it. It is NOT the exclusion floor and must not become one: everything between
- * here and STACK_LO is written by nothing, which is exactly where a leaking SP lands first. The
- * last tooth in this file exists to keep that true.
- */
 const GAME_STATE_CEILING = 0xaebc;
 
-/** Long enough to boot, attract, take the coin, start, and play out several hundred frames. */
 const FRAMES = 1400;
 
 // ── the tape ────────────────────────────────────────────────────────────────────────────────
-//
-// games/timeplt/tools/tapes/coin_play.lua is the pinned contract: coin at hardware frame 300 and
-// start at 360, both held 8; from 420 the stick holds one of the four directions for 97 frames at
-// a time and the button fires 7 frames in every 23, the two periods coprime so they cannot
-// phase-lock into one repeated situation.
-//
-// THE FRAME ORIGIN IS DIFFERENT HERE AND THE OFFSET IS MEASURED, not guessed. Under runCycleFree
-// a "frame" is one vblank NMI, and Time Pilot spends its first couple of hundred hardware frames
-// in boot with the interrupt masked, so the two timelines are offset by however long that takes.
-// Instrumenting a cycle-driven run for the NMI count at each of the tape's three contract frames
-// gives 300 -> 65, 360 -> 125, 420 -> 185: one constant offset of 235, consistent at all three.
-// That is where these numbers come from; the periods and hold lengths are the lua file's own.
 const COIN_FRAME = 65;
 const START_FRAME = 125;
 const PLAY_FROM = 185;
@@ -124,7 +110,6 @@ const IN0 = 0xc300; // coin 1 is bit 0, 1-player start is bit 3
 const IN1 = 0xc320; // left 0x01, right 0x02, up 0x04, down 0x08, button 0x10
 const TURN_CYCLE = [0x04, 0x02, 0x08, 0x01]; // up, right, down, left -- the lua file's order
 
-/** Pressed bits for frame `fi`. The io layer folds in the active-low polarity. */
 function coinPlayTape(fi) {
   let in0 = 0;
   if (fi >= COIN_FRAME && fi < COIN_FRAME + HOLD) in0 |= 0x01;
@@ -137,22 +122,12 @@ function coinPlayTape(fi) {
   return { [IN0]: in0, [IN1]: in1 };
 }
 
-/** The undriven control: nothing is ever pressed. */
 function silentTape() {
   return { [IN0]: 0, [IN1]: 0 };
 }
 
 // ── wiring ──────────────────────────────────────────────────────────────────────────────────
 
-/**
- * The ROM address of the routine a PC falls inside, resolved against the TRANSLATED registry.
- *
- * It has to be the translated one. That registry holds every routine in the game, so the
- * largest start at or below a PC really is the routine containing it; the idiomatic registry is
- * sparse, so the same arithmetic over it returns whichever rewritten routine happens to sit
- * nearest below and names the wrong routine (for this game it answers 0x0b46, a six-byte routine
- * ending at 0x0b4b, for a poll PC at 0x0b93).
- */
 const TRANSLATED_STARTS = [...TRANSLATED_ROUTINES.keys()].sort((a, b) => a - b);
 function routineContaining(pc) {
   let found = -1;
@@ -163,17 +138,8 @@ function routineContaining(pc) {
   return found;
 }
 
-/**
- * The routines that must stay TRANSLATED: whichever ones contain a poll PC. runCycleFree finds
- * the frame boundary by watching m.step reach a poll PC, and a rewrite never calls m.step -- wire
- * the poll routine and frame detection dies silently, with the run reporting zero frames and no
- * error. (For Time Pilot the poll sits in the foreground ring drain, which has no rewrite, so
- * this set is expected to be empty; it is computed rather than assumed so that it stops being
- * empty by itself on the day one is written.)
- */
 const POLL_ROUTINES = new Set(pollPCs.map(routineContaining).filter((a) => a >= 0));
 
-/** The whole idiomatic layer as a resolvable spec, minus anything holding a poll PC. */
 function idiomaticSpec() {
   const spec = {};
   const excluded = [];
@@ -188,15 +154,6 @@ function idiomaticSpec() {
   return { spec, excluded };
 }
 
-/**
- * Count dispatches per wired address, so a "match" from a routine that never ran is visible, and
- * record every dispatch whose net effect on SP was not the caller's two bytes.
- *
- * A translated call site pushes the return address and the seam's `ret` pops it, so a balanced
- * dispatch is exactly +2. Any other figure means the rewrite's ROM form is not one net `ret` and
- * the unconditional seam is over- or under-popping it. Watching SP here names the routine; the
- * memory diff downstream sees only whichever cell the misplaced push landed in.
- */
 function counted(overrides) {
   const counts = new Map();
   const wrapped = new Map();
@@ -218,12 +175,6 @@ function counted(overrides) {
 
 // ── running and comparing ───────────────────────────────────────────────────────────────────
 
-/**
- * One assembled run from reset. `tape(frameIndex)` is asserted onto the input ports at each
- * frame, before that frame's state is sampled -- the same order the cycle-driven engine uses, so
- * a press is in effect DURING the frame it is dated to. `spoil` is for the teeth only: it runs at
- * the same point and is the one place a fault can be injected that belongs to no dispatch.
- */
 async function run(overrides, tape, spoil = null) {
   const m = await Machine.create(ROM, overrides ? { overrides } : {});
   const frames = [];
@@ -250,7 +201,6 @@ async function run(overrides, tape, spoil = null) {
   return { m, frames, r, observed };
 }
 
-/** The compared offsets for one exclusion window: the whole state dump minus [lo, hi). Cached. */
 const COMPARED = new Map();
 function comparedOffsets(probe, bytesPerFrame, lo, hi) {
   const key = `${lo},${hi}`;
@@ -265,18 +215,9 @@ function comparedOffsets(probe, bytesPerFrame, lo, hi) {
   return COMPARED.get(key);
 }
 
-/**
- * The first frame and address at which two runs differ over compared memory, or null. Returned
- * rather than asserted, so the teeth can require a difference with the SAME comparison the real
- * arms are required to pass. `lo` is a parameter only so the last tooth can ask what a WIDER
- * window would have seen; every real arm uses the shipped one.
- */
 function firstDivergence(base, other, lo = STACK_LO, hi = STACK_HI) {
   const probe = new Machine(ROM);
   const keep = comparedOffsets(probe, base.frames[0].length, lo, hi);
-  // The shared prefix first: a run that also died early has a byte difference worth naming, and
-  // reporting only "the lengths differ" would throw away the address that says WHERE it went
-  // wrong.
   const shared = Math.min(base.frames.length, other.frames.length);
   for (let i = 0; i < shared; i++) {
     const a = base.frames[i];
@@ -309,8 +250,6 @@ function assertRanClean(r, label) {
 
 const nameOf = (a) => ROUTINES[a]?.name ?? `loc_${(a & 0xffff).toString(16).padStart(4, "0")}`;
 
-/** Assert every wired dispatch handed the caller's two pushed bytes back, and name the first
- *  routine that did not. Checked before the memory diff, because it EXPLAINS the memory diff. */
 function assertSeamBalanced(seam, label) {
   if (seam.length === 0) return;
   const s = seam[0];
@@ -323,13 +262,6 @@ function assertSeamBalanced(seam, label) {
   );
 }
 
-/**
- * WHO PUT THAT BYTE THERE. A divergence names a frame and a cell, and the reader's next question
- * is which registered routine is responsible — which the diff cannot say, because the wrong byte
- * is usually written by translated code holding a value a rewrite left wrong. So on the failure
- * path only, re-run each arm as far as the divergent frame with a write tap on that one address
- * and report its last writer, attributed to the wired routine that was executing at the time.
- */
 async function lastWriterOf(spec, tape, stopFrame, addr) {
   const m = await Machine.create(ROM, {});
   let inside = null;
@@ -364,8 +296,6 @@ async function lastWriterOf(spec, tape, stopFrame, addr) {
       },
     });
   } catch {
-    // An arm that derails on the way has still recorded everything up to the point it died,
-    // which is the part being asked about.
   }
   return last;
 }
@@ -497,9 +427,6 @@ test("tape: the wired idiomatic layer is a transparent swap through coin, start 
     })()),
   );
   const tapeOnly = ran.map(([a]) => a).filter((a) => !attractRan.has(a));
-  // "Neither scenario" is an INTERSECTION and has to be computed as one. Reading it off the tape
-  // run alone reports every attract-only routine as unexercised -- a gate overstating its own
-  // hole, in a line that gets quoted forward.
   const never = [...counts.entries()]
     .filter(([a, c]) => c === 0 && !attractRan.has(a))
     .map(([a]) => a);
@@ -517,18 +444,10 @@ test("tape: the wired idiomatic layer is a transparent swap through coin, start 
 });
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────────
-//
-// Each tooth wires the real layer with ONE thing wrong and requires the comparison above to
-// catch it. A tooth that passes is a gate that has stopped working, so these fail loudly rather
-// than warn.
 
 /** The rewrite the twins are built from: it steps the character cursor back one cell. */
 const CURSOR_STEP = 0x0020;
 
-/**
- * BUG: subtracts the cell stride from the low half only, dropping the borrow into the high half.
- * The classic form of getting this routine wrong, and invisible until a line crosses a boundary.
- */
 function cursorDropsBorrow(m) {
   m.regs.e = u8(m.regs.e - 32);
 }
@@ -550,13 +469,6 @@ test("TEETH: a plausible wrong twin of a dispatched rewrite is CAUGHT", async ()
   console.log(`  TEETH/drops-borrow: caught — ${showDiff(d)}`);
 });
 
-/**
- * How many of the FIRST `n` dispatches of the cursor step can be spoiled by one byte and still be
- * caught. Not all of them, and that is the honest shape of this gate rather than a defect in it:
- * the last cursor step of a text run is discarded by its caller, so spoiling THAT one changes no
- * memory anywhere and nothing downstream can see it. What the sweep establishes is resolution —
- * that a fault does not have to be gross to be caught.
- */
 const ONE_BYTE_SWEEP = 16;
 
 test("TEETH: ONE wrong byte on ONE dispatch is CAUGHT", async () => {
@@ -609,21 +521,13 @@ test("TEETH: a stack leak short of the game-state ceiling is CAUGHT, and would n
   const { tapeBase: base, liveSpec: live } = await baselines();
   const overrides = await resolveOverrides(live.spec);
 
-  // Every rewrite is left correct and the seam is left in place; SP is simply walked down two
-  // bytes at each of the first few frame boundaries, which is what an unhealed omitted `ret` looks
-  // like from a distance. Pushes and pops still pair, so control flow stays valid.
   const leaked = await run(overrides, coinPlayTape, (m, fi) => {
     if (fi > 0 && fi <= LEAK_FRAMES) m.regs.sp = (m.regs.sp - 2) & 0xffff;
   });
-  // It must NOT derail: a run that crashes would be caught by any window at all, and then this
-  // tooth would be testing the crash rather than the width of the exclusion.
   assertRanClean(leaked, "leaked run");
   const d = firstDivergence(base, leaked);
   assert.notEqual(d, null, "a walking stack pointer ran the whole game unnoticed — this gate is blind");
 
-  // The discriminating half. Floored at the game-state ceiling instead of at the measured stack,
-  // the SAME comparison sees nothing for the whole run. That is the width this window must never
-  // have, and this assertion is what keeps it from drifting back.
   const wider = firstDivergence(base, leaked, GAME_STATE_CEILING, STACK_HI);
   assert.equal(
     wider,
@@ -640,9 +544,6 @@ test("TEETH: a stack leak short of the game-state ceiling is CAUGHT, and would n
 test("TEETH: the seam adapter removed is CAUGHT", async () => {
   const { tapeBase: base, liveSpec: live } = await baselines();
 
-  // The same layer, resolved WITHOUT machine.js's withOmittedRet — so every translated caller
-  // pushes a return address that its idiomatic callee never pops. Time Pilot re-seats SP only at
-  // boot, so this is unbounded; the gate must not let it through as a rounding error.
   const raw = new Map();
   for (const [key, ent] of Object.entries(live.spec)) {
     const mod = await import(new URL(ent.module, new URL("../../machine.js", import.meta.url)).href);
@@ -663,14 +564,6 @@ test("TEETH: the seam adapter removed is CAUGHT", async () => {
 });
 
 // ── the seam's OTHER shape, bracketed ────────────────────────────────────────────────────────
-//
-// A rewrite whose ROM form ends by TRANSFERRING into still-translated code (`jp`, `jr`,
-// fall-through) reaches that callee through `m.call`, and `m.call` runs a routine INCLUDING its
-// `ret` — which for a transfer IS this routine's own ret. Such a rewrite RETURNS HAVING ALREADY
-// POPPED, and machine.js's seam measures rather than assuming: it supplies the `ret` only to a
-// rewrite that left SP where it found it. The two tests below bracket that branch from both
-// sides, and they build the shape by hand rather than naming a routine, so neither goes quiet on
-// the day the registry stops holding one.
 
 /** The raw, unwrapped export a spec entry names: the rewrite exactly as its module defines it. */
 async function rawExport(spec, addr) {
@@ -685,9 +578,6 @@ test("SEAM: a rewrite that performs its OWN ROM ret is passed through, and stays
   const overrides = await resolveOverrides(live.spec);
   const raw = await rawExport(live.spec, CURSOR_STEP);
 
-  // The real rewrite, unaltered, plus the `ret` a tail transfer into the oracle would have
-  // performed on its way out. Memory is untouched by the difference, so a seam that handed this
-  // one a second `ret` would show up as SP climbing rather than as a wrong byte.
   const selfCompleting = withOmittedRet((m, ...rest) => {
     const r = raw(m, ...rest);
     m.ret();
@@ -714,9 +604,6 @@ test("TEETH: a rewrite that returns TWICE is REFUSED by the seam, and named", as
   const overrides = await resolveOverrides(live.spec);
   const raw = await rawExport(live.spec, CURSOR_STEP);
 
-  // One `ret` too many: SP climbs two bytes ABOVE its power-on seat per dispatch and the next
-  // push lands in sprite RAM. The measurement must not read this as the shape above just because
-  // a `ret` did happen — that reading is the whole risk of measuring instead of declaring.
   overrides.set(
     CURSOR_STEP,
     withOmittedRet((m, ...rest) => {

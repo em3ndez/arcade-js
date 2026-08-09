@@ -1,49 +1,24 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * Time Pilot RENDER emitter — the JS side of the pixel gate (game #3).
+ * Time Pilot RENDER emitter — the JS side of the pixel gate. Writes frames.rgb in the same wire
+ * format as the MAME golden and the other two games: 256x224 RGB888, row-major, top-left origin,
+ * unrotated, headerless, 172032 bytes/frame, plus a frames.json index. `--help` lists the flags.
  *
- * Boots the translated machine WITH the video ROMs, paints every frame line by line as
- * the beam reaches it (boards/timeplt/video.js via Machine.drainRaster), and writes a
- * frames.rgb in the SAME wire format the MAME golden capture and the other two games
- * use: 256x224 RGB888, row-major, top-left origin, UNROTATED, headerless concatenation,
- * 172032 bytes per frame, plus a frames.json index.
+ * FRAME MAPPING needs no shift on the cycle-driven path: videoFrames[k] is painted DURING frame k
+ * and MAME's AVI lags one, so AVI[k+1] is the same image — the +1 framediff.py freezes.
  *
- * FRAME MAPPING, and it needs no shifting here:
- *   videoFrames[k] is the image painted DURING frame k. MAME's AVI writer lags one
- *   frame, so AVI[k+1] is also the image of frame k — which is exactly the +1 that
- *   tools/framediff.py freezes (JS[M] <-> golden[M+1]). So the frames go to disk in
- *   the order the Machine produced them. Contrast games/thepit/tools/render.js, which
- *   renders SNAPSHOTS at frame boundaries and therefore has to drop its index 0.
+ * ⚠ WHAT THIS GATE CANNOT SEE, measured. Feeding MAME's own captured RAM to the renderer agrees
+ * byte-for-byte over a run of early frames, and those are the attract TITLE screen: zeroing both
+ * sprite RAM banks changes not one pixel there. Sprite decode, priority, flip and clipping, the
+ * tile flip bits and flip-screen are all invisible to it — sixteen deliberate breakages of those
+ * paths, including a swapped tile flip bit that shipped once, survive byte-identical. Those paths
+ * rest on the .cpp transcription until a capture with the game actually drawing replaces it.
  *
- * WHY THE PIXEL GATE COMES SECOND. The state diff already says this CPU reproduces
- * MAME's RAM byte-for-byte over the whole 30-second capture. So a pixel difference
- * here cannot be the CPU: it is the video model, and the two halves never have to be
- * debugged at once.
- *
- * WHAT THIS GATE CANNOT SEE, measured rather than assumed. Feeding MAME's own captured
- * RAM to the renderer agrees byte-for-byte on a contiguous run of early frames — and
- * those frames are the attract TITLE screen. Zeroing both sprite RAM banks changes not
- * one pixel across all of them, so nothing a sprite draws is compared there: sprite
- * decode, priority, flip and clipping are all invisible, as are the tile flip bits and
- * flip-screen. Sixteen deliberate breakages of those paths, including a swapped tile
- * flip bit that shipped once, survive that comparison byte-identical. Everything in
- * those paths rests on the transcription from the .cpp until a capture with the game
- * actually drawing replaces it.
- *
- *   --frames N        frames of state to run (default 1802, the golden30 length)
- *   --rom PATH        maincpu image      (default <game>/rom/maincpu.bin)
- *   --tiles PATH      8KB tile ROM       (default <game>/rom/tiles.bin)
- *   --sprites PATH    16KB sprite ROM    (default <game>/rom/sprites.bin)
- *   --proms PATH      576-byte PROMs     (default <game>/rom/proms.bin)
- *   --frames-out DIR  output dir         (default <game>/out/render)
- *   --idiomatic       render the IDIOMATIC layer, not the oracle -- see the note at the
- *                     override site: the picture is right, the frame PHASE is not
- *   --poke / --input  ADDR=VAL@FRAME / PORT=BITS@FRAME  (see tools/emit-core.js)
- *
- * A run that stops early writes the frames it DID paint, prints why, and exits
- * NONZERO. A short artifact must never read as a clean one.
+ * A run that stops early writes what it painted, says why, and exits NONZERO: a short artifact
+ * must never read as a clean one.
  */
+
 import { createHash } from "node:crypto";
 import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync, writeSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -51,13 +26,14 @@ import { fileURLToPath } from "node:url";
 
 import { Machine, CYCLES_PER_FRAME, resolveAllIdiomatic } from "../machine.js";
 import { buildRoutines } from "../routines.js";
+import { runGeneratorGame } from "../../../core/frame-stepped.js";
+import manifest from "../manifest.js";
 import { SCREEN_W, SCREEN_H } from "../../../boards/timeplt/video.js";
 import { parseEmitArgs, hex4 } from "../../../tools/emit-core.js";
 
 const GAME_DIR = dirname(dirname(fileURLToPath(import.meta.url))); // games/timeplt
 const BYTES_PER_FRAME = SCREEN_W * SCREEN_H * 3; // 172032, the frame contract
 
-/** Expected sizes, so a mis-assembled region fails here and not as a mangled picture. */
 const ROM_SIZES = { tiles: 0x2000, sprites: 0x4000, proms: 0x0240 };
 
 function loadRegion(name, path) {
@@ -88,6 +64,7 @@ async function main() {
         case "--proms": a.proms = next(); return true;
         case "--frames-out": a.framesOut = next(); return true;
         case "--idiomatic": a.idiomatic = true; return true;
+        case "--tape-origin": a.tapeOrigin = Number(next()); return true;
         default: return false;
       }
     },
@@ -95,21 +72,14 @@ async function main() {
   if (!Number.isInteger(args.frames) || args.frames < 2) {
     throw new Error(`--frames expects an integer >= 2, got ${args.frames}`);
   }
-  // --idiomatic renders the IDIOMATIC layer instead of the oracle, through the same override
-  // path the shipped player uses (resolveAllIdiomatic -> withOmittedRet -> Machine.create), so
-  // the pixel gate measures the code being written rather than the code it replaces. Without
-  // this flag it does NOT: the default path builds from buildRoutines() alone, and poisoning
-  // every idiomatic module leaves the frames byte-identical.
-  //
-  // ★ WHAT THIS DOES NOT GIVE YOU, measured rather than assumed. An idiomatic module spends no
-  // T-states, so under this cycle-driven engine the frame clock runs ahead of the oracle's and
-  // events land a frame early -- the picture is right, the PHASE is not. Over 300 frames of boot
-  // and attract, 36 frames differ, and they are not scattered: frame 33, where the grid fill
-  // happens, and the run 236-270, which is the boot wipe. Shifting the comparison one frame
-  // matches 292 of 299 against the 263 that match unshifted. So a raw diff of this output against
-  // the golden is NOT a fidelity verdict, and a run that "fails" here may be a clock artefact and
-  // nothing else. Charging each substituted call its frozen twin's measured cost fixes it at unit
-  // scale and is what the per-routine gates do; it does not scale to a whole-run render.
+  // --idiomatic renders the IDIOMATIC layer THROUGH THE ENGINE THAT SHIPS, so it swaps the CLOCK
+  // as well as the routine map. Without it the default path builds from buildRoutines() alone.
+  // ★ THE CYCLE-DRIVEN --idiomatic COULD NOT BE TRUSTED: a module spending no T-states drifted the
+  // frame boundary ahead, and 36 of 300 boot frames differed while a one-frame shift matched 292 of
+  // 299 against 263 -- the diff measured the clock, not the picture. Frames advance on a YIELD here.
+  // ★ THE TWO SIDES SHARE NO FRAME ORIGIN: boot burns no frames, the machine spends ~235. The tape
+  // origin is that gap and the TAPE must ride the golden's numbering, or the two coin on different
+  // game frames; pixel_suite.py measures and pins the value.
 
   const gfx = {
     tiles: loadRegion("tiles", args.tiles),
@@ -125,8 +95,6 @@ async function main() {
   machine.inputTape = args.inputs.length ? args.inputs : null;
   machine.pokes = args.pokes.length ? args.pokes : null;
 
-  // STREAM the frames out. 1801 frames is 310MB; holding them costs nothing but a heap
-  // limit, and the hash is wanted per frame anyway.
   mkdirSync(args.framesOut, { recursive: true });
   const rgbPath = join(args.framesOut, "frames.rgb");
   const fd = openSync(rgbPath, "w");
@@ -138,7 +106,9 @@ async function main() {
   };
 
   const want = args.frames;
-  const states = machine.runFrames(want);
+  const states = args.idiomatic
+    ? runGeneratorFrames(machine, want, args.tapeOrigin ?? 0)
+    : machine.runFrames(want);
   closeSync(fd);
 
   writeFileSync(
@@ -197,9 +167,6 @@ async function main() {
     );
     return 1;
   }
-  // A frame count cannot tell running from spinning; the NMI count can. Boot runs with
-  // NMIs masked for a couple of hundred frames, so allow generous slack. Same assertion,
-  // and the same reason, as emit.js.
   const expectedNmis = states.length - 400;
   if (expectedNmis > 0 && machine.nmiCount < expectedNmis) {
     console.error(
@@ -209,12 +176,39 @@ async function main() {
     return 1;
   }
 
+  const clock = args.idiomatic
+    ? "vblank yields"
+    : `${(machine.cycles / CYCLES_PER_FRAME).toFixed(1)} frames of cycles`;
   console.log(
-    `\nCLEAN: painted ${hashes.length} frames (${(machine.cycles / CYCLES_PER_FRAME).toFixed(1)} ` +
-      `frames of cycles) with no translation gap, taking ${machine.nmiCount} NMI(s). ` +
-      "Now pixel-diff frames.rgb against the MAME golden.",
+    `\nCLEAN: painted ${hashes.length} frames (${clock}) with no translation gap, ` +
+      `taking ${machine.nmiCount} NMI(s). Now pixel-diff frames.rgb against the MAME golden.`,
   );
   return 0;
+}
+
+/**
+ * Paint `want` frames of the idiomatic game under runGeneratorGame.
+ *
+ * PAINTED WHOLE AT THE VBLANK YIELD: there is no beam on this clock, and the cycle-driven painter
+ * publishes on a boundary this engine sets to Infinity. ⚠ The whole-frame tolerance does NOT settle
+ * which instant to snapshot -- yield 1324px and post-NMI 2810px BOTH sit inside 5%. The band check
+ * does: 33px/0 over at the yield against 1571px/1278 over post-NMI. Pick on the band.
+ */
+function runGeneratorFrames(machine, want, tapeOrigin) {
+  const states = [];
+  const r = runGeneratorGame(machine, {
+    nmiReturnPC: manifest.convergence.golive.nmiReturnPC,
+    maxFrames: want,
+    onFrame: (m, f) => {
+      if (f === 0) return; // power-on, before the boot generator runs: no golden frame matches it
+      m.applyInputs(f + tapeOrigin);
+      m.applyPokes(f + tapeOrigin);
+      states.push(m.mem.dumpState());
+      if (m.onVideoFrame) m.onVideoFrame(m.renderFrame());
+    },
+  });
+  machine.stoppedBy = r.stopError ?? null;
+  return states;
 }
 
 process.exit(await main());

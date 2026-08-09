@@ -1,20 +1,11 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Time Pilot gameplay pixel gate: JS render vs MAME, through coin -> start -> play.
+"""Time Pilot gameplay pixel gate: JS render vs MAME, through coin -> start -> play. Attract takes
+no input, so a golden captures itself and proves little; this drives the same tape into both.
 
-Attract is the easy half -- it takes no input, so a golden captures itself, and for a long
-time that was the only thing this game's pixel path had ever been shown. It reached 7 NMIs.
-This drives the same tape into both emulators and compares every frame.
-
-THE TAPE OFFSET IS +1 AND IT IS MEASURED, NOT GUESSED. MAME's frame notifier and the JS
-boundary sample count from different origins, so the same tape lands a frame apart. Anchor,
-with both tapes pressing at frame 400: the first frame the coin alters RAM is JS 401 and
-MAME 402, 13 bytes on both sides. So the JS tape presses ONE FRAME LATER than the lua tape.
-Verified discriminating: at +1 the state diff is byte-for-byte over all 1802 frames; at +2
-it fails at frame 402. Re-derive this if the tape's timing changes; do not carry it on faith.
-
-Rendering is slow. --frames trades coverage for time; the default covers the golden except
-its final frame.
+THE TAPE OFFSET IS +1, MEASURED. Both tapes press at frame 400; the first frame the coin alters RAM
+is JS 401 and MAME 402, 13 bytes each side. Discriminating: at +1 the state diff is byte-for-byte
+over all 1802 frames, at +2 it fails at 402. Re-derive if the tape's timing changes.
 """
 import argparse
 import os
@@ -26,7 +17,9 @@ GAME = os.path.dirname(HERE)
 REPO = os.path.dirname(os.path.dirname(GAME))
 sys.path.insert(0, os.path.join(REPO, "tools"))
 
+import numpy as np  # noqa: E402
 import pixel_gate  # noqa: E402
+from framediff import FROZEN_OFFSET  # noqa: E402
 from hardware import Hardware  # noqa: E402
 
 HW = os.path.join(REPO, "boards", "timeplt", "hardware.json")
@@ -34,22 +27,32 @@ DRIVER = "timeplt"
 SECONDS = 30
 GOLDEN_FRAMES = 1802          # floor(60.0 * 30) + 2, the capture's own length
 
+# ★★ THE SHARP CRITERION, because the loose one has no teeth: a live wrong twin (one bit flipped in
+# the shape byte `refreshSpriteFromHeading` stores, changing 630 of 1801 frames) reaches only 2.99%
+# and PASSES the 5%. Below BAND_FROM a correct layer is nearly exact -- 31 of 1566 frames, worst
+# 33px, against 408 frames / 490px for that twin. BAND_MAX_PX is 3x the CORRECT layer's floor, NOT
+# fitted to the twin; scroll-pace and bar-phase twins also go red here.
+BAND_FROM = 113
+BAND_MAX_PX = 100
+
 LUA_COIN, LUA_START = 400, 500
 TAPE_OFFSET = 1               # measured; see the module docstring
 HOLD = 8
 
-# Every frame is compared. The Pit's gate starts at frame 2, so the natural assumption is
-# that this one must skip a boot transient too -- it does not. Measured over the whole run:
-# frame 0 differs by ZERO pixels, and the only differing frames are well inside tolerance.
+LANDMARK = 235
+GEN_OFFSET = LANDMARK + 1
+
 DIFF_FROM = 0
 
-# What the golden must show before its pixels mean anything. Each reads 0x00 for the whole of
-# two undriven captures (30s and 60s), so any of them moving is caused by the tape.
-#
-# Pick anchors that are zero in attract FOR A REASON. An earlier choice here, 0xA9D3, is the
-# first byte of a four-byte record copied from a ROM table; it reads zero in attract only because
-# attract selects the one row whose first byte happens to be zero. On an easier difficulty a
-# perfectly good coined run loads a different row and the check FAILS a passing game.
+# ★★ WHAT THE IDIOMATIC PATH COSTS, SO A PASS IS NOT READ AS PARITY. (1) The first GEN_OFFSET
+# golden frames are NOT compared -- boot produces none on a yield clock, and rendering further
+# cannot extend coverage: the length is golden_frames - offset. (2) A scanline-compositing residual
+# above BAND_FROM, because MAME paints as the beam descends while a yield clock snapshots FINAL RAM
+# for every row. ⛔ SO ROWS 0..BAND_FROM-1 ARE WEAKLY GUARDED -- a HOLE, not an artifact: only the
+# 5% covers them and the residual spends 2.309% of it, leaving ~1543px/frame of slack. Injected
+# top-band defects all PASS with the band unmoved at 33px (one tile 2.420%, one sprite 2.755%, FOUR
+# sprites 4.095%), so a top-of-screen regression under ~1500px is invisible here.
+
 INPUT_LATCH = 0xA9AE   # raw IN0 mirror, rewritten every NMI: 0x01 coin held, 0x08 start held
 COIN_TAKEN = 0xA981    # 0 -> non-zero when the machine ACCEPTS the coin (debounced rising edge)
 PLAY_ACTIVE = 0xAD30   # explicit flag: stored 0xFF when play begins, cleared with xor a
@@ -81,13 +84,42 @@ def capture_golden(rompath, out, tape):
         check=True)
 
 
-def render_js(out, frames):
-    subprocess.run(
-        ["node", os.path.join(HERE, "render.js"), "--frames", str(frames),
-         "--input", f"0xc300=0x01@{LUA_COIN + TAPE_OFFSET}:hold{HOLD}",
-         "--input", f"0xc300=0x08@{LUA_START + TAPE_OFFSET}:hold{HOLD}",
-         "--frames-out", out],
-        check=True)
+def band_worst(js_rgb, golden_rgb, offset, from_frame):
+    """Worst per-frame pixel count in rows BAND_FROM.. , and how many frames are over budget."""
+    w, h, bpf = pixel_gate.screen_geometry(HW)
+    n = min(os.path.getsize(js_rgb) // bpf, os.path.getsize(golden_rgb) // bpf - offset)
+    worst, over, worst_at = 0, 0, None
+    with open(js_rgb, "rb") as jf, open(golden_rgb, "rb") as gf:
+        for i in range(from_frame, n):
+            jf.seek(i * bpf)
+            gf.seek((i + offset) * bpf)
+            a = np.frombuffer(jf.read(bpf), dtype=np.uint8).reshape(h, w, 3)[BAND_FROM:]
+            b = np.frombuffer(gf.read(bpf), dtype=np.uint8).reshape(h, w, 3)[BAND_FROM:]
+            c = int(np.any(a != b, axis=2).sum())
+            if c > BAND_MAX_PX:
+                over += 1
+            if c > worst:
+                worst, worst_at = c, i
+    return worst, over, worst_at
+
+
+def runtime():
+    """Which layer the player runs, read from the manifest rather than assumed."""
+    r = subprocess.run(
+        ["node", "-e",
+         f'import("{os.path.join(GAME, "manifest.js")}").then(m => console.log(m.default.runtime))'],
+        capture_output=True, text=True, check=True)
+    return r.stdout.strip()
+
+
+def render_js(out, frames, idiomatic):
+    cmd = ["node", os.path.join(HERE, "render.js"), "--frames", str(frames),
+           "--input", f"0xc300=0x01@{LUA_COIN + TAPE_OFFSET}:hold{HOLD}",
+           "--input", f"0xc300=0x08@{LUA_START + TAPE_OFFSET}:hold{HOLD}",
+           "--frames-out", out]
+    if idiomatic:
+        cmd += ["--idiomatic", "--tape-origin", str(LANDMARK)]
+    subprocess.run(cmd, check=True)
 
 
 def state_column(golden_dir, addr):
@@ -117,13 +149,12 @@ def state_column(golden_dir, addr):
 
 
 def game_responded(golden_dir):
-    """Report whether the golden took the coin, and whether the game then started.
+    """Did the golden take the coin, and did the game then start?
 
-    Without this the suite has a silent hole: if the tape fails to reach the machine, the
-    golden stays in attract, the JS side stays in attract with it, every frame matches, and
-    the gate reports PASS over a run that played nothing. Checking the input latch alone is
-    not enough -- it is rewritten from the port every NMI, so it proves the bits arrived,
-    not that the machine acted on them. The two state cells prove the response.
+    Without this, a tape that never reaches the machine leaves both sides in attract, every frame
+    matches, and the gate PASSes over a run that played nothing. The input latch alone is not
+    enough -- rewritten from the port every NMI, it proves the bits arrived, not that the machine
+    acted. The two state cells prove the response.
     """
     latch = state_column(golden_dir, INPUT_LATCH)
     return {
@@ -141,8 +172,6 @@ def main():
     p.add_argument("--work", default=os.path.join(GAME, "out", "pixelwork"))
     a = p.parse_args()
 
-    # Both BYO-ROM absences skip the same way: no romset and no MAME are the same situation
-    # to a fresh clone, and neither is a failure of this game's translation.
     try:
         verified = subprocess.run(["mame", "-rompath", a.rompath, "-verifyroms", DRIVER],
                                   capture_output=True, text=True).returncode == 0
@@ -155,11 +184,13 @@ def main():
 
     os.makedirs(a.work, exist_ok=True)
     go, jo = os.path.join(a.work, "golden"), os.path.join(a.work, "js")
+    idiomatic = runtime() == "idiomatic"
+    offset = GEN_OFFSET if idiomatic else FROZEN_OFFSET
+    print(f"  layer: {'IDIOMATIC (generator engine)' if idiomatic else 'oracle (cycle-driven)'}"
+          f"; golden offset {offset}")
     capture_golden(a.rompath, go, lua_tape(os.path.join(a.work, "tape.lua")))
-    render_js(jo, a.frames)
+    render_js(jo, a.frames, idiomatic)
 
-    # THE GAME MUST HAVE RESPONDED. Checked before the pixels, for the reason in
-    # game_responded(). Reported in order so a failure says which stage broke.
     for label, frames in game_responded(go).items():
         if not frames:
             print(f"pixel_suite: FAIL -- golden shows no '{label}'; this run compares two "
@@ -167,9 +198,6 @@ def main():
             return 1
         print(f"  golden: {label:22} frames {frames[0]}..{frames[-1]}")
 
-    # COMPLETENESS. A render that delivered fewer frames than asked still compares clean
-    # over the frames it did deliver, so checking the diff alone reports a truncated run as
-    # a pass. runFrames publishes one image per boundary, so want-1 is the attainable max.
     _, _, bpf = pixel_gate.screen_geometry(HW)
     got = os.path.getsize(os.path.join(jo, "frames.rgb")) // bpf
     if got < a.frames - 1:
@@ -178,16 +206,25 @@ def main():
         return 1
 
     d = pixel_gate.frame_diffs(os.path.join(jo, "frames.rgb"),
-                               os.path.join(go, "frames.rgb"), HW)
+                               os.path.join(go, "frames.rgb"), HW, offset=offset)
     rc = 0
+    coin_js = LUA_COIN + TAPE_OFFSET + FROZEN_OFFSET - offset
     for label, frm in (("boot+attract+play", DIFF_FROM),
-                       ("gameplay (coin on)", LUA_COIN + TAPE_OFFSET)):
+                       ("gameplay (coin on)", coin_js)):
         r = pixel_gate.rough_verdict(d, HW, from_frame=frm)
         print(f"  {label:20} frames={r['frames']:5d} differ={r['frames_differing']:5d} "
               f"max={r['max_pixels']:5d}px ({r['max_pct']:6.3f}%) "
               f"worst@{r['worst_frame']} -> {r['verdict']}")
         if r["verdict"] != pixel_gate.PASS:
             rc = 1
+    bw, bover, bat = band_worst(os.path.join(jo, "frames.rgb"),
+                                os.path.join(go, "frames.rgb"), offset, DIFF_FROM)
+    bverdict = pixel_gate.PASS if bover == 0 else pixel_gate.FAIL
+    print(f"  {'band rows ' + str(BAND_FROM) + '..':20} worst={bw:5d}px (budget {BAND_MAX_PX}) "
+          f"over={bover} worst@{bat} -> {bverdict}")
+    if bover:
+        rc = 1
+
     print(f"pixel_suite: {'PASS' if rc == 0 else 'FAIL'}")
     return rc
 

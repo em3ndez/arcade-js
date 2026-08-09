@@ -1610,6 +1610,11 @@ export const ROUTINES = {
     role: "queue one fixed command, with its one fixed argument, in the command ring -- both bytes are chosen here and whatever the caller held is discarded; the pair is dropped when the slot the write cursor names has not been consumed, and this entry never learns that",
     cert: "code",
   },
+  0x0b93: {
+    name: "loc_0b93",
+    role: "the foreground loop: take commands off the ring one at a time and run each, for ever. A read cursor names a cell; while its high bit is set the cell holds nothing and the loop looks again, which is the only wait for the vblank among the foreground loops a coin-and-play tape reaches -- the ring is refilled from outside the loop. An occupied cell gives up a command byte and an argument byte, both cells are freed BEFORE the command runs so a command may reuse the pair it arrived in, and the low nibble of the command indexes a sixteen-way table. Where the handler lands is the exit test: it is handed one fixed place to come back to, and anything else means it has taken the machine somewhere this loop no longer owns",
+    cert: "code",
+  },
   0x0c0f: {
     name: "drawCaptionInPenColour",
     role: "paint the caption a caller's index selects, taking the glyph run from a record in the table at 0x0C50 and colouring every cell from the low nibble of the shared colour cell instead of from the record's own colour byte",
@@ -1810,6 +1815,11 @@ export const ROUTINES = {
     role: "count one record's step timer down and refresh that record's shape byte from the entry the NEW count selects, in the run its own selector byte points at; a timer already at zero is left alone",
     cert: "seen",
     why: "the sharp claim is that the count is also the INDEX rather than only a delay, and that is checkable from outside the routine. Watching one record's three fields under MAME produced six distinct (selector, count) pairs, and in every one the shape byte equalled the byte the ROM's own run-pointer table at 0x3438 puts at that count -- a plain delay would have left the shape unrelated to it. That table has eighteen usable entries and each run is 32 bytes, which is exactly the count the three sites that START an animation load into the step; and since the countdown ends at index 0, every run's FIRST byte is the shape a finished animation is left standing on -- the same shape loc_3855 writes, alongside a zeroed step, into its five records",
+  },
+  0x32eb: {
+    name: "loc_32eb",
+    role: "hold the machine still at power-on and then hand it over: count twelve passes down in a work-RAM cell, petting the watchdog 256 times inside each so the board is never reset while nothing happens, leave the cell and the two counting registers at zero and the pointer on the cell, tell the audio processor to go quiet, pick up the byte that decides the interrupt-enable bit, and fall into the routine that starts the machine",
+    cert: "code",
   },
   0x33b8: {
     name: "headingToward",

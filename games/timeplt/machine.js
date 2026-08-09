@@ -1,12 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/**
- * The Time Pilot machine: address space, I/O, register file, frame accounting.
- *
- * FRAME SAMPLING CONTRACT, shared with the Lua dumper -- do not drift:
- *   state[0] = power-on, before a single instruction runs
- *   state[N] = after frames 0..N-1 have executed
- * Both sides sample at the boundary BEFORE that frame runs, so there is no offset.
- */
 
 import { AddressSpace } from "../../boards/timeplt/memory.js";
 import { Io, NotImplemented } from "../../boards/timeplt/io.js";
@@ -46,12 +38,6 @@ export const VPOS_AT_FRAME_ORIGIN = 240;
  */
 export const VBLANK_LINES = 32;
 
-/**
- * T-states consumed before the scanline register is sampled. NOT ZERO: our routines read
- * then step, so `this.cycles` at a read is the instruction's start, while MAME samples
- * mid-instruction. Every read here is `ld a,(nn)` = rop/arg/arg, 4+3+3 consumed by then.
- * The ROM's raster-sync spin is short enough that being early flips its exit iteration.
- */
 export const SCANLINE_READ_OFFSET = 10;
 
 export class FramesComplete extends Error {
@@ -121,30 +107,12 @@ export class Machine {
     this.io.readScanline = () => this.vpos(this.cycles + SCANLINE_READ_OFFSET);
   }
 
-  /**
-   * Async factory: build the routine registry, layer `opts.overrides` on it, then construct. The
-   * CONSTRUCTION CONTRACT the shared cross-game tools call; a game lacking it does not fail a
-   * check, it fails to RUN.
-   *
-   * IT LAYERS WHATEVER MAP IT IS HANDED, deliberately: the wrapping belongs to the caller. An
-   * override a TRANSLATED caller dispatches inside an ASSEMBLED run must be wrapped with
-   * `withOmittedRet`; an entry that calls the frozen oracle needs no wrapping, since the oracle
-   * rets for itself. Leaving the wrapping OFF where it is owed is fatal -- nothing in this game
-   * re-seats SP, so the leak never heals. Putting it on the oracle-calling map is not, since the
-   * seam measures what the entry did and stands aside for one that already returned.
-   */
   static async create(rom, opts = {}) {
     const routines = buildRoutines();
     if (opts.overrides) for (const [addr, fn] of opts.overrides) routines.set(Number(addr), fn);
     return new Machine(rom, routines, opts);
   }
 
-  /**
-   * Z80 reset: entry at PC=0x0000, which is `jp 0x07b1` into the boot chain. Boot ends by jumping
-   * into the foreground command-ring drain, which never returns -- this call unwinds only through
-   * the frame budget, a translation gap, or the engine driving it. The shared frame-stepped
-   * engines call it to start a run, which is the other half of the contract `create` opens.
-   */
   reset() {
     this.call(0x0000);
     this.booted = true;
@@ -281,14 +249,6 @@ export class Machine {
     return this.frames;
   }
 
-  /**
-   * Paint every visible row the beam has reached, each from the RAM AND THE LS259 AS
-   * THEY STAND AT THAT MOMENT.
-   *
-   * NOT AN APPROXIMATION -- it is what MAME does under VIDEO_UPDATE_SCANLINE: a frame whose
-   * sprite RAM is rewritten halfway down comes out as the composite the hardware produced.
-   * GRANULARITY IS THE TICK, so a tick spanning several lines paints them all at end-of-tick.
-   */
   drainRaster() {
     if (!this.captureVideo || this.rasterBuf === null) return;
     while (this.rasterRow < SCREEN_H && this.cycles >= this.nextRowCycle) {
@@ -301,12 +261,6 @@ export class Machine {
     }
   }
 
-  /**
-   * A FRESH ZEROED BUFFER IS A MODELLING DECISION -- the hardware keeps the old bitmap when
-   * video_enable is clear, and the capture's disabled frame is black instead. Black is also pen 0,
-   * so the evidence cannot separate the two; if a disabled frame ever RETAINS an image, change
-   * this line.
-   */
   startRasterFrame(n) {
     if (!this.video) throw new Error("raster capture needs tiles, sprites and proms");
     this.rasterBuf = new Uint8Array(SCREEN_W * SCREEN_H * 3);
@@ -459,13 +413,6 @@ export class Machine {
     return this.mem.stateOffsetToAddr(off);
   }
 
-  /**
-   * A fresh Machine on this one's inputs and observable state, with the frame machinery
-   * neutralised so running ONE routine on it cannot trip a frame sample, fire an NMI or throw.
-   * `cycles` is load-bearing and copied deliberately: the constructor rebinds the scanline read to
-   * a closure over the machine's own cycle count, so a clone starting at zero would report a
-   * different raster phase than the machine it came from.
-   */
   clone() {
     const c = new Machine(this.rom, this.routines, this.assets);
     c.mem.colorRam.set(this.mem.colorRam);
@@ -494,40 +441,6 @@ export class Machine {
 
 const GeneratorFunction = Object.getPrototypeOf(function* () {}).constructor;
 
-/**
- * Adapt one idiomatic routine to a TRANSLATED caller by performing the ROM `ret` it omits.
- *
- * THE SEAM. A translated call site models the Z80 `call` in two halves: it pushes the return
- * address itself, and the translated callee's final `m.ret()` pops it back off. An idiomatic
- * rewrite has no `ret`, so a translated -> idiomatic dispatch pushes two bytes nothing pops and
- * SP walks DOWN two per dispatch. Time Pilot seats SP once, at boot (`ld sp,0xb000`), and never
- * again, so nothing heals that: measured, the stack walks out of scratch and through live work
- * RAM within a frame or two and the run dies on an unmapped write. `m.ret()` and not a bare SP
- * adjustment, because pc is load-bearing too -- the ring drain dispatches a handler and then
- * TESTS where it came back to (`if (m.pc !== 0x0b90)`).
- *
- * NOT EVERY REWRITE OMITS IT, and which it is changes per DISPATCH, not per routine. A rewrite
- * whose ROM form ends by TRANSFERRING into still-translated code (`jp`, `jr`, fall-through) gets
- * there through `m.call`, and `m.call` runs a routine INCLUDING its `ret` -- which for a transfer
- * IS this routine's own ret: it pops the caller's slot and sets pc. Supplying a second one walks
- * SP ABOVE the power-on seat and puts the next push in sprite RAM. It cannot be a flag on the
- * routine, because loc_3e63 takes a `ret z` on one path and transfers on the other two, so it is
- * MEASURED: SP unmoved means the ret was omitted and is supplied; SP up two AND pc equal to the
- * address the slot held on entry means the transfer already performed it; anything else throws.
- * The shape is transitional -- at go-live rewrites import each other and the wrapper is inert.
- *
- * DELIBERATELY UNLIKE THE OTHER TWO GAMES, whose resolvers hand back bare functions and restore
- * stack ops inside individual rewrites -- do not harmonise it back. The missing `ret` belongs to
- * the DISPATCH MECHANISM and not to any routine: the same function owes one pop when a translated
- * caller reaches it through the registry and owes nothing when a rewrite imports it directly, and
- * only the resolution path can tell those two callers apart.
- *
- * WHICH MAPS TO WRAP, and it is not every map. Wrap one an ASSEMBLED run will dispatch from
- * translated code. A probe map whose entries call the frozen oracle does not need it -- the oracle
- * rets for itself, which is how the unit harness in idiomatic/test is correct while wired raw. That
- * one is no longer FATAL, because the measurement above stands aside for a callee that already
- * returned; leaving it out still keeps one definition of what a dispatch does.
- */
 export function withOmittedRet(fn, addr = null) {
   // A SPINE GENERATOR PASSES THROUGH UNWRAPPED: calling one builds the iterator without running the
   // body, so the seam would read the unmoved stack as an omitted ret. test/omitted-ret-seam.test.js.
@@ -538,6 +451,8 @@ export function withOmittedRet(fn, addr = null) {
     const seat = m.regs.sp;
     const callerRet = m.mem.read16(seat);
     const r = fn(m, ...args);
+    // A PLAIN ROUTINE HANDING BACK A COROUTINE HAS NOT FINISHED -- no ret owed, stack mid-flight.
+    if (r && typeof r.next === "function" && typeof r.throw === "function") return r;
     const moved = (((m.regs.sp - seat) & 0xffff) << 16) >> 16;
     if (moved === 0) {
       m.ret();
@@ -556,13 +471,6 @@ export function withOmittedRet(fn, addr = null) {
   };
 }
 
-/**
- * Resolve a declarative override block ({ "hhhh": {module, export} }) into a Map<addr, fn> the
- * Machine layers over the translated registry, each entry adapted by `withOmittedRet` above. A
- * spec naming a module or export that does not exist is an error here rather than a silent
- * omission: a routine quietly missing from the map leaves the old code running in its place, and
- * every gate downstream still passes.
- */
 export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
   const map = new Map();
   for (const [key, ent] of Object.entries(spec)) {
@@ -577,12 +485,6 @@ export async function resolveOverrides(spec = {}, baseUrl = import.meta.url) {
   return map;
 }
 
-/**
- * Resolve the whole idiomatic layer to a Map<addr, fn>, ready to merge over the translated
- * registry. Both Node and the browser reach it the same way, through dynamic import, and it goes
- * through `resolveOverrides` so that the whole layer and a hand-picked subset cross the SAME seam
- * -- one definition of what a translated -> idiomatic dispatch does, not two.
- */
 export async function resolveAllIdiomatic(baseUrl = import.meta.url) {
   const { ROUTINES } = await import(new URL("idiomatic/names.js", baseUrl).href);
   const spec = {};

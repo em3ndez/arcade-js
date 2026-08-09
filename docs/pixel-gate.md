@@ -79,94 +79,69 @@ Three rules keep the gate honest, each learned the hard way:
 
 ## ★★ The gate is a PRECONDITION for the idiomatic layer, not a capstone after it
 
-This picture-against-MAME gate is the falsifiable ground truth for idiomatic generation, and
-per-routine memory-equivalence is the fast local proxy. That framing is right, and it is easy to
-misread as *"run the proxy now, run the truth at the end."* Do not.
+This picture-against-MAME gate is the falsifiable ground truth; per-routine memory-equivalence is
+the fast local proxy. Easy to misread as *"proxy now, truth at the end"* — do not.
 
 > **Before the first idiomatic module of a game is written, the pixel gate must be running and
-> green, and it must stay running for the life of that layer.**
-> Day-zero item 7 in [idiomatic generation](idiomatic-generation.md).
+> green, and stay green for the life of that layer.** Day-zero item 7 in
+> [idiomatic generation](idiomatic-generation.md).
 
-**Why the proxy cannot stand alone.** The two gates the idiomatic loop runs all day — the per-routine
-equivalence gates and the assembled swap — compare RAM outside the stack window and a declared
-live-out. **Neither looks at a pixel.** No idiomatic module spends T-states, by design, so
-every rewrite is cheaper than its frozen twin: harmless under the cycle-free engine the swap gate
-runs, and *not* harmless under the cycle-driven engine a player runs, where it shifts the foreground
-phase, the NMI's interruption point, and what the beam has drawn when it fires. The DMA sub-frame
-raster position has no owner among the memory gates at all.
+**Why the proxy cannot stand alone.** The per-routine equivalence gates and the assembled swap
+compare RAM outside the stack and a declared live-out; **neither looks at a pixel.** No idiomatic
+module spends T-states, so every rewrite is cheaper than its frozen twin — harmless under the
+cycle-free swap engine, *not* harmless under the cycle-driven engine a player runs, where it shifts
+the foreground phase, the NMI's interruption point, and what the beam has drawn when it fires. The
+DMA sub-frame raster position has no owner among the memory gates. So a layer built with this gate
+off can be green everywhere and still wrong on the glass, and switching it on late turns a bug
+report (one routine, one diff) into a bisect (many green routines, one diff).
 
-So a layer built with this gate off can be green on every gate it runs and still wrong on the glass.
-
-**And the cost of switching it on late is the bisect, not the run.** Many green routines and one
-pixel diff is a search problem; one routine and one pixel diff is a bug report.
-
-★ Written because it happened: Time Pilot's idiomatic layer ran a full day of batches — per-routine
-gates green, whole-game swap green, suite green — while this gate was wired into nothing at all. It
-was in no npm script, no hook and no Makefile target, so it ran only when a person chose to run it,
-and for a day nobody chose to. **Before relying on this gate, check where it is wired** — that is
-the durable question, and the answer changes. **Beware also that `make verify` is NOT this gate**
-despite the name — it is `verify_decoder.py`, a disassembly check, and it defaults to `GAME=dkong`,
-so on another game it does not even read your ROM. A green `make verify`
-says nothing whatever about pixels.
+★ Written because it happened: Time Pilot's idiomatic layer ran a full day — per-routine, swap and
+suite all green — while this gate was in no npm script, hook or Makefile target, so it ran only when
+someone chose to, and nobody did. **Check where it is wired; the answer changes.** ⚠ `make verify`
+is NOT this gate — it is `verify_decoder.py`, a disassembly check defaulting to `GAME=dkong`, and
+says nothing about pixels.
 
 ## Where it is wired, and why a doc could not have fixed this
 
 **`hooks/pre-commit` runs `tools/pixel_gate_required.py check`.** When the staged diff touches, for
 some game, its `idiomatic/`, `translated/`, `routines.js`, `machine.js`, `manifest.js`, its own
-`tools/render.js` or `tools/pixel_suite.py`, or its `boards/<board>/` directory, that game's pixel
-suite runs and the commit is REFUSED unless the suite prints its literal `PASS` line. `make pixel
-GAME=<id>` runs the same suite by hand. The board is resolved through each manifest's `board:`
-field rather than by assuming the directory name matches the game.
+`tools/render.js`/`tools/pixel_suite.py`, or its `boards/<board>/`, that game's suite runs and the
+commit is REFUSED unless the suite prints its literal `PASS` line. `make pixel GAME=<id>` runs it by
+hand; the board is resolved through each manifest's `board:` field. Instruction alone could not fix
+this: forgetting is a **write-time** failure, and a doc or reviewer rule is a **read-time**
+instrument that fires only when someone chooses to look — the moment a person who forgot is not.
 
-Instruction alone could not have fixed this. Forgetting is a **write-time** failure; a doc item and
-a reviewer rule are **read-time** instruments, and both fire only when someone chooses to look,
-which is exactly the moment a person who forgot is not having. The gate had to become something you
-cannot commit around.
+★ **The interlock does not trust the suite's exit code.** `pixel_suite.py` exits 0 when it cannot
+run (no MAME, no romset), so a gate on that code would report success loudest on the machine that
+checked nothing — the silent-skip defect `no-stale-mcall` has. It requires the literal PASS line and
+treats SKIP, INCOMPLETE, FAIL, a crash and a timeout alike as refusals; `selftest` asserts the PASS
+case is ACCEPTED first, or the refusals prove only that the predicate rejects everything.
 
-★ **The interlock does not trust the suite's exit code**, and that is the whole of its design.
-`pixel_suite.py` exits 0 when it cannot run — no MAME, no romset — because to a fresh clone that is
-not a translation failure. A gate built on that exit code would report success loudest on the
-machine that checked nothing, which is the silent-skip defect `no-stale-mcall` already has. So the
-interlock requires the literal PASS line and treats SKIP, INCOMPLETE, FAIL, a crash and a timeout
-alike as refusals. `pixel_gate_required.py selftest` asserts exactly that, controls first: the PASS
-case must be ACCEPTED, or the refusals prove only that the predicate rejects everything.
+A game with no declared suite is **refused, not skipped** — Donkey Kong's `move_suite.py`/
+`prize_suite.py` have a deliberately un-encoded pass line, because a predicate never observed
+matching returns a believable answer without measuring. The escape is an `EXEMPT` entry with a
+reviewable reason, which waives its game **until someone removes it**. ⚠ Knowingly left: `core/` and
+`tools/pixel_gate.py` do not fire — shared by every game, so firing would demand suites a machine
+with one romset cannot run, and `pixel_gate.py` holds `ROUGH_TOLERANCE`, which changes every
+verdict. Recorded, not fixed.
 
-A game with no declared suite is **refused, not skipped** — Donkey Kong's pixel gates are
-`move_suite.py` and `prize_suite.py`, whose pass-line format is deliberately not encoded, because a
-predicate never observed matching is an instrument that returns a believable answer without having
-measured anything. The escape is an `EXEMPT` entry carrying a reason a reviewer can check, which
-lands in the diff and gets reviewed. An entry waives its game **until someone removes it** — it is
-not scoped to one commit.
+### ★★ Which layer a green suite covers, and what it still does not
 
-The sharpest hole left open knowingly: `core/` and `tools/pixel_gate.py` do not fire. Both are
-shared by every game, so firing would demand every declared game's suite, and a machine holding one
-romset cannot evaluate the others — the gate would start refusing commits it is unable to judge
-rather than commits that are wrong. `tools/pixel_gate.py` holds `ROUGH_TOLERANCE`, so loosening it
-changes every game's verdict and nothing fires. That is recorded rather than fixed.
+**A suite renders the layer its own `pixel_suite.py` asks for.** `render.js` builds from
+`buildRoutines()` — the oracle — unless given `--idiomatic`, which routes it through
+`resolveAllIdiomatic` and the generator engine; the suite passes that flag only when
+`manifest.runtime` reads `"idiomatic"` at run time. **Today only Time Pilot's suite does.** dkong and
+thepit declare `"idiomatic"` too but thepit's `render.js` has no override path, so its suite still
+renders the ORACLE — **a declared runtime is not evidence about what got rendered**, which is why
+`suite_renders_idiomatic()` requires the flag, the path and the manifest together. Where the oracle
+is rendered, that game's idiomatic layer is dormant and a regression in it is uncovered; the tool
+prints a dormancy caveat on such a PASS rather than a bare one, so it travels with the verdict.
 
-### ★★ What a green suite does NOT yet cover: the idiomatic layer itself
+Measured, not reasoned: poisoning every Time Pilot idiomatic module with a throwing import left the
+frames **byte-identical**, with a positive control confirming the poison fires when a module loads
+— an absence is evidence only once the instrument is shown able to detect presence.
 
-**The declared suites render the ORACLE, not the idiomatic layer.** `games/<g>/tools/render.js`
-builds its machine from `buildRoutines()` — `translated/_registry.generated.js` alone. **The
-renderer is not among the callers** of `resolveAllIdiomatic`, which is the only route to
-`idiomatic/`; the shipped player reaches it only when a game's `manifest.runtime` is
-`"idiomatic"`. Time Pilot's is `"translated"`.
-
-So while a game's runtime is `"translated"`, **its idiomatic layer is dormant and an idiomatic
-pixel regression is not covered by this gate** — not because the gate is misconfigured, but because
-nothing renders that layer to have a pixel to compare. Turning the gate on does not fix this;
-go-live does, by pointing the renderer at the idiomatic layer.
-
-This was measured, not reasoned: all of Time Pilot's idiomatic modules were poisoned with a
-throwing import and the rendered frames came back **byte-identical**, with a positive control
-confirming the poison fires when a module is genuinely loaded. Without that control the identical
-frames would have been read as "the idiomatic layer is pixel-clean." An absence is evidence only if
-the instrument was shown able to detect presence.
-
-The interlock still fires on idiomatic paths, deliberately: the day the renderer resolves them, it
-must already be in place rather than remembered. But do not read today's PASS as covering them —
-that is the misreading this section exists to prevent, and it is exactly the shape of the mistake
-that made the gate necessary in the first place. **The tool says so itself**: a PASS driven only by
-`idiomatic/` paths, for a game whose runtime is not `"idiomatic"`, prints with the dormancy caveat
-attached rather than as a bare PASS, so the qualification travels with the verdict instead of
-living only here.
+⚠ **A PASS on an idiomatic-rendering game is real coverage, not parity.** Two limits, both measured
+in `pixel_suite.py`: the frames before the first vblank yield have no counterpart on a yield clock
+and are not compared, and the upper rows carry a scanline-compositing residual worth about half the
+tolerance — which is why that suite adds a tight second criterion on the band below it.

@@ -48,7 +48,6 @@ const TARGET = 0x00a8;
 const FOREGROUND_LOOP = 0x0b93;
 const CORPUS_FRAMES = 1200;
 
-/** The value the one caller in the image carries in. Measured by the witness arm below. */
 const CARRIED = 1;
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
@@ -57,11 +56,6 @@ const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` 
 let entry = null;
 let witnessed = null;
 
-/**
- * Capture the machine at the real dispatch. The routine never returns, so the capture hook must
- * NOT let the oracle run and then continue — it stops the session instead, which is why this
- * file cannot use the shared unit harness.
- */
 function entryState() {
   if (entry === null) {
     class Reached extends Error {}
@@ -82,29 +76,45 @@ function entryState() {
   return entry;
 }
 
-/** A clone whose foreground loop is a recorder, installed identically on both arms. */
+/** A clone whose foreground loop is a recorder, installed identically on both arms.
+ *
+ * ★ The recorder is a PLAIN function returning an empty ITERABLE, and it has to be both. The
+ * rewrite reaches the loop with `yield*`, which demands an iterable; the frozen oracle reaches it
+ * with a plain call and would never drive a generator. A generator recorder would therefore record
+ * on the candidate arm and silently record NOTHING on the oracle's, making the two arms
+ * incomparable in the one place this file exists to compare them.
+ */
 function severed(machine, log) {
   const c = machine.clone();
   c.routines = new Map(c.routines);
   c.routines.set(FOREGROUND_LOOP, (mm) => {
     log.push({ a: mm.regs.a, latch: mm.io.latch[LATCH_NMI_ENABLE], kicks: mm.io.watchdogKicks });
+    return { [Symbol.iterator]: function* () {} };
   });
   return c;
 }
 
-/** The real contract: RAM, the latch bit, the watchdog, the registers, and the handover. */
+const YIELD_BUDGET = 64;
+
+function drive(fn, m, ...args) {
+  const r = fn(m, ...args);
+  if (!r || typeof r.next !== "function") return r;
+  for (let i = 0; i <= YIELD_BUDGET; i++) {
+    const step = r.next();
+    if (step.done) return step.value;
+  }
+  throw new Error(`still yielding after ${YIELD_BUDGET} resumptions; the oracle returned`);
+}
+
 function unitDiff(candidate, machine) {
   const logA = [];
   const logB = [];
   const a = severed(machine, logA);
   const b = severed(machine, logB);
   oracle(a);
-  candidate(b);
+  drive(candidate, b);
   const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
   if (ram) return ram;
-  // The WHOLE LS259, not just the bit this routine drives. Comparing one bit would pass a
-  // candidate that additionally drove any of the other seven outputs, and there could be no twin
-  // for that failure because the comparison could not express it.
   for (let i = 0; i < a.io.latch.length; i++) {
     if (a.io.latch[i] !== b.io.latch[i]) {
       return { reg: `latch[${i}]`, a: a.io.latch[i], b: b.io.latch[i] };
@@ -147,10 +157,8 @@ function sweepCaught(candidate) {
 
 // ── teeth ───────────────────────────────────────────────────────────────────────────────
 
-/** BUG: does nothing at all — the tell that a gate is measuring an unreached routine. */
 function brokenNoOp() {}
 
-/** BUG: never kicks the watchdog. */
 function brokenNoWatchdogKick(m) {
   m.mem.write8(0xc300, m.regs.a, 10);
   return m.call(FOREGROUND_LOOP);
@@ -176,12 +184,6 @@ function brokenWrongLatchBit(m) {
   return m.call(FOREGROUND_LOOP);
 }
 
-/**
- * BUG: does everything the oracle does, correctly, and ALSO drives one more LS259 output. This
- * twin exists because it was INVISIBLE while the comparison looked at a single latch bit — a way
- * the handover could be wrong that no twin could have caught, because the check could not express
- * it. It is the reason unitDiff now walks the whole latch.
- */
 function brokenAlsoDrivesAnotherOutput(m) {
   m.mem.write8(0xc300, m.regs.a, 10);
   m.mem.write8(0xc200, m.regs.a, 10);
@@ -201,8 +203,6 @@ const TWINS = [
   // Caught only where the carried value's low bit disagrees with the latch's starting state.
   ["no-latch-write", brokenNoLatchWrite, 256],
   ["forces-latch-on", brokenForcesLatchOn, 256],
-  // 384, not 256: since the comparison widened from one latch bit to the whole LS259, this twin
-  // is now caught BOTH where it fails to drive bit 0 and where the bit it wrongly drives differs.
   ["wrong-latch-bit", brokenWrongLatchBit, 384],
   ["also-drives-another-output", brokenAlsoDrivesAnotherOutput, SWEEP_SIZE],
   ["skips-the-handover", brokenSkipsTheHandover, SWEEP_SIZE],
@@ -242,7 +242,7 @@ test("EQUAL at the captured entry, loop severed: latch, watchdog and handover id
   const a = severed(entryState(), logA);
   const b = severed(entryState(), logB);
   oracle(a);
-  enableInterruptAndEnterForegroundLoop(b);
+  drive(enableInterruptAndEnterForegroundLoop, b);
   assert.equal(logA.length, 1, "vacuous: the oracle did not reach the foreground loop");
   assert.equal(logB.length, 1, "the rewrite did not reach the foreground loop");
   assert.deepEqual(logB[0], logA[0], "the state handed to the loop differs");
@@ -260,7 +260,7 @@ test("EXCLUDED, deliberately: nothing at all, once the loop is severed", { skip 
   const a = severed(entryState(), []);
   const b = severed(entryState(), []);
   oracle(a);
-  enableInterruptAndEnterForegroundLoop(b);
+  drive(enableInterruptAndEnterForegroundLoop, b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     [],
@@ -274,10 +274,10 @@ test("EXHAUSTIVE: all 256 carried values against both starting latch states", { 
 
   // Only the low bit reaches the latch, and the sweep is what proves the other seven do not.
   const even = severed(craft(0xfe, 1), []);
-  enableInterruptAndEnterForegroundLoop(even);
+  drive(enableInterruptAndEnterForegroundLoop, even);
   assert.equal(even.io.latch[LATCH_NMI_ENABLE], 0, "an even value must clear the latch bit");
   const odd = severed(craft(0xff, 0), []);
-  enableInterruptAndEnterForegroundLoop(odd);
+  drive(enableInterruptAndEnterForegroundLoop, odd);
   assert.equal(odd.io.latch[LATCH_NMI_ENABLE], 1, "an odd value must set it");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} crafted entries identical; only the low bit lands`);
 });

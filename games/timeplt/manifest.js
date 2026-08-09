@@ -1,8 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-only
-// Time Pilot — game manifest, and the single source of truth for the ROM part list. Every
-// hardware fact here is read from MAME src/mame/konami/timeplt.cpp -- ROM_START(timeplt),
-// timeplt_state::main_map, the timeplt machine_config, and INPUT_PORTS_START(timeplt) with the
-// KONAMI8 macros expanded from konamipt.h. The `keys` block is our own web-player binding.
 
 export default {
   id: "timeplt",
@@ -16,11 +12,8 @@ export default {
   board: "timeplt",
   mameDriver: "timeplt.cpp",
 
-  runtime: "translated",
+  runtime: "idiomatic",
 
-  // MAME part filenames concatenated in address order into the flat images the engine loads;
-  // sha256 verifies each. ROM bytes are copyrighted and never committed. Every part is
-  // contiguous with the one before, so the ROM_START load addresses are the running totals.
   rom: {
     zip: "timeplt.zip",
     images: {
@@ -81,20 +74,10 @@ export default {
     },
   },
 
-  // pollPCs -- NO VBLANK POLL ON THIS BOARD. All game logic runs inside the NMI service and the
-  // foreground is a command-ring drain spinning on an empty ring for ever, 0x0B93 its top. MEASURED
-  // by tools/poll_detect.mjs, not argued from elimination: among the foreground loops THE TAPE
-  // REACHES it is the only one that waits without writing, recurs, and is ended by the NMI.
-  // It costs something: the drain gets one pass per NMI, so the ring backs up where the
-  // cycle-driven engine never lets it and the ROM drops pairs. Sound for a TRANSPARENCY gate
-  // reading a difference between two runs of the same engine; not a MAME-convergence model.
-  //
-  // stateExclude.stack -- SP is seated once at boot (`ld sp,0xb000`) and never re-seated, so the
-  // stack is the top of work RAM and grows down. Its floor is the DEEPEST SP a tape-driven run
-  // reaches, NOT the game-state ceiling far below: the bytes between are written by nothing, and
-  // a leaking SP walks down into them FIRST, so excluding them would hide the very fault the
-  // seam exists to prevent.
   convergence: {
+    // golive -- nmiReturnPC is what the interrupt PUSHES; at a yield the counter is stale, so the
+    // engine is told where control ACTUALLY is. It lands in the excluded stack window.
+    golive: { nmiReturnPC: 0x0b93 },
     pollPCs: [0x0b93],
     stateExclude: { stack: [0xafd6, 0xb000] }, // [start, end) -- the measured stack, nothing more
   },

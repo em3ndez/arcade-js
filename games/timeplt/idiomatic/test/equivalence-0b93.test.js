@@ -62,8 +62,6 @@ import { loc_0b93 } from "../loc_0b93.js";
 import { loc_0b93 as oracle } from "../../translated/loc_0b93.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { COMMAND_READ_CURSOR, COMMAND_RING } from "../names.js";
-// unitEquivalence is deliberately NOT imported: it runs both sides to completion, and neither
-// side of this routine completes. The escape below is what replaces it.
 
 const TARGET = 0x0b93;
 
@@ -73,16 +71,25 @@ const HANDLERS = 0x0bbc;
 const HANDLER_COUNT = 16;
 const COME_BACK_TO = 0x0b90;
 
-/** An address the loop does not own, registered as a no-op so both sides can hand over to it. */
 const ESCAPE = 0xffff;
 
-/** Measured: the return address the oracle parks for the arm it hands over to. */
 const SCRATCH_BYTES = 2;
 
-/** The register state a handler is handed, which both sides must agree on. */
 const HANDOVER = ["a", "b", "c", "de", "hl"];
 
 const skip = romsPresent() ? false : "ROM images are not assembled";
+
+const YIELD_BUDGET = 64;
+
+function drive(fn, m, ...args) {
+  const r = fn(m, ...args);
+  if (!r || typeof r.next !== "function") return r;
+  for (let i = 0; i <= YIELD_BUDGET; i++) {
+    const step = r.next();
+    if (step.done) return step.value;
+  }
+  throw new Error(`still yielding after ${YIELD_BUDGET} resumptions; the oracle returned`);
+}
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
@@ -111,18 +118,8 @@ function entryState() {
 const handlerTable = () =>
   Array.from({ length: HANDLER_COUNT }, (_unused, i) => entryState().mem16[HANDLERS + 2 * i]);
 
-/** The one address the oracle transfers to that is NOT an arm: its own table read. */
 const TABLE_READ = 0x018c;
 
-/**
- * A clone with its OWN registry, in which EVERY address other than the table read records what it
- * was handed and then points the program counter at the escape. Both implementations already hand
- * over to a program counter that is not the place they parked, so this makes both of them return.
- *
- * It stubs every address rather than only the sixteen in the table because a twin that indexes
- * past the table hands over somewhere else entirely: stubbing only the sixteen would let such a
- * twin run a real routine and hang, which is a harness failure rather than a verdict.
- */
 function escaping(machine) {
   const seen = [];
   const m = machine.clone();
@@ -169,10 +166,8 @@ function unitDiff(candidate, machine) {
   const left = escaping(machine);
   const right = escaping(machine);
   oracle(left.m);
-  // A twin that indexes past the table hands over to an address with no routine, which throws.
-  // Dying where the oracle does not IS a divergence, so it is reported as one.
   try {
-    candidate(right.m);
+    drive(candidate, right.m);
   } catch (e) {
     return { addr: null, a: "returned once", b: String(e).slice(0, 50) };
   }
@@ -211,13 +206,6 @@ function cross() {
 
 function brokenNoOp() {}
 
-/**
- * The correct consume-and-dispatch, so each twin below breaks ONE decision. It carries a pass
- * guard the real routine does not: a twin that indexes past the table can select an address whose
- * own return lands back on the place the loop parked, and then spin on a ring it has already
- * emptied. That is a divergence, and the guard turns it into one the comparison can report
- * instead of a hang.
- */
 const TWIN_PASS_LIMIT = 2;
 
 function consume(m, opts) {
@@ -281,7 +269,7 @@ test("ESCAPE WORKS: both sides return after exactly one command", { skip }, () =
   const left = escaping(machine);
   const right = escaping(machine);
   oracle(left.m);
-  loc_0b93(right.m);
+  drive(loc_0b93, right.m);
   console.log(
     `  ESCAPE: oracle handed over ${left.seen.length} time(s) to ${hex4(left.seen[0]?.handler ?? 0)}, ` +
       `rewrite ${right.seen.length} time(s)`,
@@ -296,7 +284,7 @@ test("EQUAL: identical outside the scratch window, on the real cursor", { skip }
   const left = escaping(machine);
   const right = escaping(machine);
   oracle(left.m);
-  loc_0b93(right.m);
+  drive(loc_0b93, right.m);
   const all = allDiffs(left.m, right.m);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(`  EQUAL: ${all.length} differing bytes, ${strays.length} outside the window`);
@@ -317,7 +305,7 @@ test("THE HANDOVER: the arm chosen, and the registers it is handed", { skip }, (
     const left = escaping(machine);
     const right = escaping(machine);
     oracle(left.m);
-    loc_0b93(right.m);
+    drive(loc_0b93, right.m);
     assert.equal(left.seen[0].handler, table[index], `arm ${index} is not the table's entry`);
     assert.deepEqual(right.seen, left.seen, `arm ${index}: the handover state differs`);
   }
@@ -331,7 +319,7 @@ test("EXCLUDED, deliberately: which registers differ after the handover", { skip
     const left = escaping(machine);
     const right = escaping(machine);
     oracle(left.m);
-    loc_0b93(right.m);
+    drive(loc_0b93, right.m);
     for (const k of REG_FIELDS) if (left.m.regs[k] !== right.m.regs[k]) moved.add(k);
   }
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")}`);
@@ -365,9 +353,6 @@ test("COMMAND_RING WRAP: a cursor at the end of the ring folds back onto its hea
 });
 
 test("HANDLER ENTRIES: no arm reads a flag before setting one", { skip }, () => {
-  // Read the first opcode of every arm out of memory. A conditional transfer or a conditional
-  // return as the FIRST instruction would mean the incoming flag state is live at that arm, and
-  // the flags at the handover would then have to be part of the contract.
   const CONDITIONAL_FIRST_BYTES = new Set([
     0xc0, 0xc8, 0xd0, 0xd8, 0xe0, 0xe8, 0xf0, 0xf8, // ret cc
     0xc2, 0xca, 0xd2, 0xda, 0xe2, 0xea, 0xf2, 0xfa, // jp cc
