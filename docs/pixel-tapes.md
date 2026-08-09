@@ -54,6 +54,11 @@ one poke-tape per state to the pixel gate. State plainly which routines each tap
 remain oracle-only. "The pixel gate covers this game" is a claim about that list being worked, not about
 one credit's worth of play.
 
-**timeplt (owed):** era 4 (2001); two-player; game-over / high-score entry; mother-ship (boss) armed
-collision; a deep round. Until those tapes exist, the batch-3/batch-4 deep routines are `[code]`, not
-`[seen]`.
+**timeplt (worked):** six tapes now live in `games/timeplt/tapes/`, run by `tools/distant_suite.py` and each
+pixel-validated against MAME — era 4 (2001), two-player, game-over, high-score entry, mother-ship (boss)
+armed collision, and a deep round. Five of the six carry a game-set `responded` cell — a value the ROM
+writes only on reaching the state, read from the golden dump — so a pass is not two engines agreeing on the
+same wrong thing; era-4's `responded` instead confirms its held era poke landed in the golden (that state's
+coherence comes from the MAME grounding, not the cell). Entropy pinning proved unnecessary (the JS PRNG runs
+in lockstep with MAME even in the spawn-heavy fields, measured). Remaining: promote the specific routines each tape exercises from `[code]` to `[seen]` — a per-tape
+reach map, still owed.
