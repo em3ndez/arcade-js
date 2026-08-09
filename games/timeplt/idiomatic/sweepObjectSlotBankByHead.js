@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3ff9 — sweep a fixed bank of object slots for a frame, servicing each occupied one. An empty
+/** sweepObjectSlotBankByHead — sweep a fixed bank of object slots for a frame, servicing each occupied one. An empty
  * head (0) is left alone, a ballistic head (0xFF) is flown a frame along its arc, any other value is
  * a live countdown the shape-cycle service runs down; the cursor strides one record and two
  * sprite-entry bytes per slot, for the caller's count. LIVE-OUT: memory. */
@@ -11,7 +11,7 @@ const RECORD_STRIDE = 0x10;
 const ENTRY_STRIDE = 2;
 const BALLISTIC = 0xff;
 
-export function loc_3ff9(m) {
+export function sweepObjectSlotBankByHead(m) {
   const { regs, mem8 } = m;
   let record = regs.ix;
   let entry = regs.iy;

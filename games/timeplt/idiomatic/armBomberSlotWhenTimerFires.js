@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3c25 — on even frames only, tick a slot's arming countdown; when it reaches zero and the
+/** armBomberSlotWhenTimerFires — on even frames only, tick a slot's arming countdown; when it reaches zero and the
  * mother ship is not already armed, arm the slot: pick a shape record from the heading, snap the
  * heading to a single facing bit, fetch the velocity pair for that facing, write shape, facing and
  * velocity into the slot record, set the shared hit count, and mark the slot live. LIVE-OUT: memory. */
@@ -14,7 +14,7 @@ const MOTHER_SHIP_ARMED = 0xad0d;
 const HITS_REMAINING = 0xa8dc;
 const SHAPE_TABLE = 0x3c84;
 
-export function loc_3c25(m) {
+export function armBomberSlotWhenTimerFires(m) {
   const { regs, mem8 } = m;
 
   if (mem8[FRAME_TICK] & 0x01) return;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4d72 — stamp a row of award emblems, then blank the rest of that row.
+/** drawEmblemStripThenGuardImage — stamp a row of award emblems, then blank the rest of that row.
  * The enable cell gates the whole routine. The caller's count, clamped to six, sets how many
  * two-by-two emblems to stamp leftward from a fixed cursor; the cursor then carries on and the row
  * is blanked down to a fixed floor. A running XOR over a fixed program span guards the image last.
@@ -21,7 +21,7 @@ const CHECK_START = 0x0711;
 const CHECK_LEN = 256;
 const CHECK_BIAS = 25;
 
-export function loc_4d72(m, count = m.regs.a) {
+export function drawEmblemStripThenGuardImage(m, count = m.regs.a) {
   const { regs, mem8 } = m;
   if (mem8[ENABLE] === 0) return;
 

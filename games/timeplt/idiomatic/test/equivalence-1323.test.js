@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1323 — memory-equivalent to the frozen oracle at ROM 0x1323.
+ * stepRoundStartIntroAnimation — memory-equivalent to the frozen oracle at ROM 0x1323.
  * GATE: crafted-entry; no tape dispatches this phase-14 handler, so a coherent machine is captured
  *   at the reachable dispatcher and each arm is poked in. RAM compared with the dead stack scratch
  *   below the seated SP masked out (the oracle nests calls and rets, the rewrite does not), the SP
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_1323 as candidate } from "../loc_1323.js";
+import { stepRoundStartIntroAnimation as candidate } from "../stepRoundStartIntroAnimation.js";
 import { loc_1323 as oracle } from "../../translated/loc_1323.js";
 import { flashPlayerWhiteEveryOtherFrame } from "../flashPlayerWhiteEveryOtherFrame.js";
 import { hideAllSprites } from "../hideAllSprites.js";
@@ -122,7 +122,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every knob matches loc_1323 by default. */
+/** The rewrite with one deliberate defect each; every knob matches stepRoundStartIntroAnimation by default. */
 function twin({ gate = true, arm1Tail = true, windDelay = WIND_DELAY, reload = true, step3Extra = false }) {
   return (m) => {
     const { mem8 } = m;

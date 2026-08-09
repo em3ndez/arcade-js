@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_189e — memory-equivalent to the frozen oracle at ROM 0x189E (the two-player game start).
+ * startTwoPlayerGame — memory-equivalent to the frozen oracle at ROM 0x189E (the two-player game start).
  * GATE: real capture on a two-player tape, plus crafted entries. RAM compared with the dead stack
  *   scratch below the seated SP masked out (the oracle brackets its dissolved calls with pushes the
  *   rewrite does not), the SP re-seat and the return value checked, and teeth. Registers are not
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, COIN_FRAME, START_FRAME, romsPresent } from "./_harness.js";
-import { loc_189e as candidate } from "../loc_189e.js";
+import { startTwoPlayerGame as candidate } from "../startTwoPlayerGame.js";
 import { loc_189e as oracle } from "../../translated/loc_189e.js";
 import { hideCaptionSprites } from "../hideCaptionSprites.js";
 import { setUpTwoPlayerStartObjectOnce } from "../setUpTwoPlayerStartObjectOnce.js";
@@ -142,7 +142,7 @@ function deductTwoBcd(value) {
   return u8(d - c);
 }
 
-/** The rewrite with one deliberate defect each; every knob matches loc_189e by default. */
+/** The rewrite with one deliberate defect each; every knob matches startTwoPlayerGame by default. */
 function twin({ credit = "two", p2flag = ALL_BITS, p2lives = true, arm = true }) {
   return (m) => {
     const { mem8 } = m;

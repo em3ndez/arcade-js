@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_386e — memory-equivalent to the frozen oracle at ROM 0x386E.
+ * spawnEnemyWaveIntoFreeSlots — memory-equivalent to the frozen oracle at ROM 0x386E.
  * GATE: crafted-entry; states captured at the caller (real in-distribution), plus an exhaustive
- *   sweep of the bank's free/busy occupancy and crafted count/mode entries. RAM compared with the
+ *   sweep of the bank's free/busy occupancy and crafted count/armed entries. RAM compared with the
  *   dead stack scratch below the seated SP masked out (the dissolved callees push/pop where the
  *   rewrite does not) and the SP re-seat asserted; registers are not compared, as the dissolved
  *   callees do not reproduce the register dance and the exit stores its product to memory. Run:
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_386e as candidate } from "../loc_386e.js";
+import { spawnEnemyWaveIntoFreeSlots as candidate } from "../spawnEnemyWaveIntoFreeSlots.js";
 import { loc_386e as oracle } from "../../translated/loc_386e.js";
 import { loc_36af as caller } from "../../translated/loc_36af.js";
 import { drawRandomByte } from "../drawRandomByte.js";
@@ -26,7 +26,7 @@ const CALLER = 0x36af;
 const SLOT_BANK = 0xa850;
 const ENTRY_BANK = 0xaa1a;
 const CONFIGURED_COUNT = 0xacc1;
-const MODE_CELL = 0xad0d;
+const MOTHER_SHIP_ARMED = 0xad0d;
 const SLOT_STRIDE = 0x10;
 const DEFAULT_COUNT = 5;
 const SHAPE_TABLE = 0x3a3b;
@@ -113,11 +113,11 @@ function craftOccupancy(mask) {
   return m;
 }
 
-/** A captured state with a chosen count and mode, and the bank forced all-free. */
-function craftCount(configured, mode) {
+/** A captured state with a chosen count and armed, and the bank forced all-free. */
+function craftCount(configured, armed) {
   const m = base().clone();
   m.mem8[CONFIGURED_COUNT] = configured;
-  m.mem8[MODE_CELL] = mode;
+  m.mem8[MOTHER_SHIP_ARMED] = armed;
   for (let i = 0; i < 8; i++) m.mem8[SLOT_BANK + i * SLOT_STRIDE] = 0;
   return m;
 }
@@ -132,13 +132,13 @@ function sweepOccupancy(cand) {
 
 // ── twins ───────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every knob matches loc_386e by default. */
+/** The rewrite with one deliberate defect each; every knob matches spawnEnemyWaveIntoFreeSlots by default. */
 function twin({ status = true, shapeTable = SHAPE_TABLE, ordinalTable = ORDINAL_TABLE,
   isFree = (h) => h === 0, step = true } = {}) {
   return (m) => {
     const { regs, mem8 } = m;
     const configured = mem8[CONFIGURED_COUNT];
-    const count = mem8[MODE_CELL] === 0 ? configured : DEFAULT_COUNT;
+    const count = mem8[MOTHER_SHIP_ARMED] === 0 ? configured : DEFAULT_COUNT;
     let slot = SLOT_BANK, entry = ENTRY_BANK, remaining = count;
     do {
       if (isFree(mem8[slot])) {
@@ -218,17 +218,17 @@ test("OCCUPANCY: all 32 free/busy patterns of the bank are equivalent", { skip }
   console.log(`  OCCUPANCY: 32 patterns equivalent; all-free ${allFree} cells, all-busy ${allBusy}`);
 });
 
-test("COUNT: crafted count/mode entries are equivalent, and the count really drives the pass",
+test("COUNT: crafted count/armed entries are equivalent, and the count really drives the pass",
   { skip }, () => {
-    for (const [c, mode] of [[3, 0], [5, 0], [7, 0], [3, 1]]) {
-      assert.equal(compare(candidate, craftCount(c, mode)).escaped, null, `count ${c} mode ${mode} diverged`);
+    for (const [c, armed] of [[3, 0], [5, 0], [7, 0], [3, 1]]) {
+      assert.equal(compare(candidate, craftCount(c, armed)).escaped, null, `count ${c} armed ${armed} diverged`);
     }
     const short = footprint(craftCount(3, 0));
     const full = footprint(craftCount(5, 0));
     const forced = footprint(craftCount(3, 1));
     assert.notEqual(short, full, "a 3-count and a 5-count pass move the same cells; count is not read");
-    assert.notEqual(short, forced, "the mode cell does not override the count to five");
-    console.log(`  COUNT: equivalent; count-3 ${short} cells, count-5 ${full}, mode-forced ${forced}`);
+    assert.notEqual(short, forced, "the armed cell does not override the count to five");
+    console.log(`  COUNT: equivalent; count-3 ${short} cells, count-5 ${full}, armed-forced ${forced}`);
   });
 
 for (const [label, brokenTwin, expected] of TWINS) {

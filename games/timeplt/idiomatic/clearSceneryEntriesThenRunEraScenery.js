@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_30d1 — clear a stride-two run of eight object cells to the fill byte the caller hands in A,
+/** clearSceneryEntriesThenRunEraScenery — clear a stride-two run of eight object cells to the fill byte the caller hands in A,
  * then branch on the era and two runtime guards. Below era four one path seats and runs the whole
  * frame's scenery; at era four and up, when the guard pair reads its expected values a second packed
  * table fills eight entry cells before the scenery runs; a guard that reads wrong transfers into a
@@ -20,7 +20,7 @@ const SEAT_TABLE = 0x315e;
 const FIRST_ENTRY = 0xaa30;
 const SEAT_COUNT = 8;
 
-export function loc_30d1(m) {
+export function clearSceneryEntriesThenRunEraScenery(m) {
   const { regs, mem8 } = m;
 
   regs.hl = CLEAR_BASE;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4194 — the per-frame handler for one slot in an object sweep. The record byte at +4 is an
+/** stepSlotApproachThenBreakawayRetire — the per-frame handler for one slot in an object sweep. The record byte at +4 is an
  * approach countdown: while it runs, count it down by one and drive the object through its full
  * chased-object frame. The tick it reaches zero, fly the object at double velocity, animate its
  * shape, and retire the slot only if it has drifted onto a retire line. Either way step the sweep
@@ -15,7 +15,7 @@ import { flyTowardShipStandoffThenEndApproach } from "./flyTowardShipStandoffThe
 
 const COUNTDOWN = 4;
 
-export function loc_4194(m) {
+export function stepSlotApproachThenBreakawayRetire(m) {
   const { regs, mem8 } = m;
   const countdown = u16(regs.ix + COUNTDOWN);
 

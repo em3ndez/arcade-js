@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4ebc — memory-equivalent to the frozen oracle at ROM 0x4EBC.
+ * splitCollisionWorkByFrameParity — memory-equivalent to the frozen oracle at ROM 0x4EBC.
  * GATE: unit-capture on every real dispatch (the attract demo reaches it; coin-start does not in
  *   the budget, with the caller as the live control) plus crafted collision entries for the three
  *   even-frame arms. RAM compared with the dead stack scratch below the seated SP masked out (the
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4ebc as candidate } from "../loc_4ebc.js";
+import { splitCollisionWorkByFrameParity as candidate } from "../splitCollisionWorkByFrameParity.js";
 import { loc_4ebc as oracle } from "../../translated/loc_4ebc.js";
 import { loc_4e4f as caller } from "../../translated/loc_4e4f.js";
 import { loc_4f35 } from "../loc_4f35.js";
@@ -162,7 +162,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite's even-frame chain, each option a deliberate defect; defaults match loc_4ebc. */
+/** The rewrite's even-frame chain, each option a deliberate defect; defaults match splitCollisionWorkByFrameParity. */
 function evenChain(m, { skipFirst = false, forceArmed = null, tailReach = 17, firstRecords = 0xa810 } = {}) {
   const { mem8, regs } = m;
   destroyFixedTargetHitByShots(m);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_47b3 — run the single parachutist slot for one frame, doing nothing in the era that has
+/** runParachutistSlot — run the single parachutist slot for one frame, doing nothing in the era that has
  * none. The slot's own state byte picks the step: a free slot goes to the spawner; a slot in
  * flight drifts along its velocity and is retired the moment it lands on a retire line, else its
  * sprite takes the next shape the frame tick selects; any value between drifts with the world and
@@ -29,7 +29,7 @@ const SHAPE_OFFSET = 0x01;
 const CONTROL_OFFSET = 0x30;
 const CONTROL_BYTE = 0x75;
 
-export function loc_47b3(m) {
+export function runParachutistSlot(m) {
   const { regs, mem8 } = m;
   if (mem8[ERA_INDEX] === ERA_WITH_NO_PARACHUTISTS) return;
 

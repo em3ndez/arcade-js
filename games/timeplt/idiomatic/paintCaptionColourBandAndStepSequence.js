@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4a42 — paint a caption's colour band from a base colour. Starting at the cursor the caller
+/** paintCaptionColourBandAndStepSequence — paint a caption's colour band from a base colour. Starting at the cursor the caller
  * leaves in HL it lays the caller's A over one cell, then a run of the caller's C, then a short
  * fixed tail; next it reads the base colour and fills two colour-RAM rows and six scattered colour
  * cells, every value the base plus a fixed offset. Last it seeds the saved pen from the era and
@@ -24,7 +24,7 @@ const CELL_HI = 0xa210;
 const CELL_MID = 0xa211;
 const CELL_LO = 0xa212;
 
-export function loc_4a42(m) {
+export function paintCaptionColourBandAndStepSequence(m) {
   const { regs, mem8 } = m;
   const head = regs.a;
   const body = regs.c;

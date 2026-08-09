@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4194 — equivalence gate. The address is unreached under both tapes because it needs the
+ * stepSlotApproachThenBreakawayRetire — equivalence gate. The address is unreached under both tapes because it needs the
  * fifth era, so entries come from a run holding the era cell there; RAM is compared with the dead
  * stack scratch below the seat masked, the SP re-seat and return checked, the live sweep cursors
  * held equal and the object-work scratch excluded, plus teeth.
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4194 as candidate } from "../loc_4194.js";
+import { stepSlotApproachThenBreakawayRetire as candidate } from "../stepSlotApproachThenBreakawayRetire.js";
 import { loc_4194 as oracle } from "../../translated/loc_4194.js";
 import { loc_40ea as dispatchSite } from "../../translated/loc_40ea.js";
 import { loc_40d6 as sweepEntry } from "../../translated/loc_40d6.js";
@@ -135,7 +135,7 @@ function classify() {
 
 // ── broken twins ────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one defect each; every knob matches loc_4194 by default. */
+/** The rewrite with one defect each; every knob matches stepSlotApproachThenBreakawayRetire by default. */
 function twin({ fly = true, retire = true, alwaysRetire = false, advance = true, holdBc = true, dec = true, invert = false } = {}) {
   return (m) => {
     const { regs, mem8 } = m;

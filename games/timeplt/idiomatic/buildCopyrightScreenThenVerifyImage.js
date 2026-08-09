@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_083e — lay out the title/attract copyright screen, then run the anti-tamper check:
+/** buildCopyrightScreenThenVerifyImage — lay out the title/attract copyright screen, then run the anti-tamper check:
  * request the flashing copyright line, stamp the copyright caption strip, post caption commands
  * (command 1, arguments 0,1,3..7,20,21) to the ring, then XOR-fold a 24-byte program block and
  * step the sequence sub-step when it matches, else drop into the failure landing. LIVE-OUT: memory. */
@@ -17,7 +17,7 @@ const CHECKSUM_BLOCK = 0x176a;
 const CHECKSUM_LENGTH = 24;
 const CHECKSUM_MATCH = 0xc9;
 
-export function loc_083e(m) {
+export function buildCopyrightScreenThenVerifyImage(m) {
   const { regs, mem8 } = m;
 
   flashCopyrightLine(m);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4ebc — split the per-frame collision work by frame parity: on odd frames run the shot-versus-
+/** splitCollisionWorkByFrameParity — split the per-frame collision work by frame parity: on odd frames run the shot-versus-
  * target sweeps; on even frames run the player-versus-object collision chain, adding the mother-ship
  * mutual-kill check only while the mother ship is armed. LIVE-OUT: memory only. */
 
@@ -17,7 +17,7 @@ const FIRST_SWEEP_ENTRIES = 0xaa12;
 const SECOND_SWEEP_RECORDS = 0xa8e0;
 const SECOND_SWEEP_ENTRIES = 0xaa2c;
 
-export function loc_4ebc(m) {
+export function splitCollisionWorkByFrameParity(m) {
   const { mem8, regs } = m;
   if (mem8[FRAME_TICK] & 0x01) return loc_4f35(m);
 

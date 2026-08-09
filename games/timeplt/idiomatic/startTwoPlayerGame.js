@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_189e — stock the machine for a game with BOTH players' contexts filled in. The caption
+/** startTwoPlayerGame — stock the machine for a game with BOTH players' contexts filled in. The caption
  * sprites are parked, PLAY_ACTIVE and the byte beside it are both raised, and each player's life
  * count is loaded from the settings cell that carries the starting count. The two-player-start arm
  * then runs, two are taken off the packed-decimal count the panel field shows, that field is
@@ -33,7 +33,7 @@ function stepPackedDecimalDownByTwo(value) {
   return u8(difference - correction);
 }
 
-export function loc_189e(m) {
+export function startTwoPlayerGame(m) {
   const { mem8 } = m;
   hideCaptionSprites(m);
 

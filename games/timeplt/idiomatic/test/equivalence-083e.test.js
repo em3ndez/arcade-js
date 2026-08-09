@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_083e — memory-equivalent to the frozen oracle at ROM 0x083E.
+ * buildCopyrightScreenThenVerifyImage — memory-equivalent to the frozen oracle at ROM 0x083E.
  * GATE: real dispatch (coin-start and attract both reach this title arm) plus a strip-dirtied craft;
  *   RAM diffed with the dead stack scratch below the seat masked, the +2 SP re-seat asserted, regs
  *   not compared (the dissolved tail pops a return the rewrite drops). The fail branch is unreachable
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_083e as candidate } from "../loc_083e.js";
+import { buildCopyrightScreenThenVerifyImage as candidate } from "../buildCopyrightScreenThenVerifyImage.js";
 import { loc_083e as oracle } from "../../translated/loc_083e.js";
 import { flashCopyrightLine } from "../flashCopyrightLine.js";
 import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
@@ -107,7 +107,7 @@ function scenarios() {
   ];
 }
 
-/** The rewrite with one deliberate defect each; every knob matches loc_083e by default. */
+/** The rewrite with one deliberate defect each; every knob matches buildCopyrightScreenThenVerifyImage by default. */
 function twin({ flash = true, stamp = true, args = CAPTION_ARGUMENTS, swap = false } = {}) {
   return (m) => {
     const { regs, mem8 } = m;

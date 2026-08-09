@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_413c — memory-equivalent to the frozen oracle at ROM 0x413C. GATE: neither tape reaches it,
+ * stepDriftingCountdownObjectByEraFrames — memory-equivalent to the frozen oracle at ROM 0x413C. GATE: neither tape reaches it,
  * so entries are CRAFTED on a captured mid-game base — the object countdown swept 0..255 across
  * both mode halves, world-scroll forced nonzero so the drift is live. RAM is compared with the
  * dead stack scratch below the seat masked out (the oracle pops a return the dissolved rewrite
@@ -14,7 +14,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_413c as candidate } from "../loc_413c.js";
+import { stepDriftingCountdownObjectByEraFrames as candidate } from "../stepDriftingCountdownObjectByEraFrames.js";
 import { loc_413c as oracle } from "../../translated/loc_413c.js";
 import { loc_409d } from "../loc_409d.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
@@ -117,7 +117,7 @@ function footprint(machine) {
 
 // ── broken twins ──────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every switch matches loc_413c by default. */
+/** The rewrite with one deliberate defect each; every switch matches stepDriftingCountdownObjectByEraFrames by default. */
 function twin({ reset = true, drift = true, window = true, retire = true,
   nearTbl = NEAR_TABLE, farTbl = FAR_TABLE, nearSt = NEAR_STATE, farSt = FAR_STATE } = {}) {
   return (m) => {

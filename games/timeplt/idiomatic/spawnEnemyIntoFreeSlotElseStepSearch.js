@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_37d6 — work one object slot in a downward search for a free one. A slot whose head byte is
+/** spawnEnemyIntoFreeSlotElseStepSearch — work one object slot in a downward search for a free one. A slot whose head byte is
  * already taken is left untouched and the turn is handed to the tail that steps to the next slot;
  * a free slot is claimed and stocked. Stocking draws a heading from the scroll angle jittered by a
  * random amount, reads a velocity pair from two chained tables through it, and seeds the record and
@@ -23,7 +23,7 @@ const JITTER_MASK = 0x0f;
 const JITTER_BIAS = 0x08;
 const VELOCITY_STRIDE = 4;
 
-export function loc_37d6(m, record = m.regs.ix, entry = m.regs.iy) {
+export function spawnEnemyIntoFreeSlotElseStepSearch(m, record = m.regs.ix, entry = m.regs.iy) {
   const { regs, mem8 } = m;
 
   if (mem8[record + 0x00] !== 0) return closeOneTurnOfTheFreeSlotSearch(m);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4d72 — memory-equivalent to the frozen oracle at ROM 0x4D72.
+ * drawEmblemStripThenGuardImage — memory-equivalent to the frozen oracle at ROM 0x4D72.
  * GATE: unit-capture on the real coin-start dispatches plus crafted path entries; RAM compared with
  *   the dead stack scratch below the seated pointer masked out (the oracle brackets its two dissolved
  *   calls with return-address pushes the rewrite does not), the two-byte SP re-seat and the return
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4d72 as candidate } from "../loc_4d72.js";
+import { drawEmblemStripThenGuardImage as candidate } from "../drawEmblemStripThenGuardImage.js";
 import { loc_4d72 as oracle } from "../../translated/loc_4d72.js";
 import { loc_4daf } from "../loc_4daf.js";
 import { loc_4dcf } from "../loc_4dcf.js";
@@ -116,7 +116,7 @@ function scenarios() {
 }
 
 // ── the twins ────────────────────────────────────────────────────────────────────────────
-/** The rewrite with one decision changed; every knob matches loc_4d72 by default. */
+/** The rewrite with one decision changed; every knob matches drawEmblemStripThenGuardImage by default. */
 function variant({ enable = true, clamp = true, base = EMBLEM_BASE, colour = EMBLEM_COLOUR,
   blankGlyph = BLANK_GLYPH, blankColour = BLANK_COLOUR, blank = true, extra = 0 } = {}) {
   return (m) => {

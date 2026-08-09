@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4e63 — run one round's whole collision-and-destruction pass. First sweep the player's shots
+/** runAllCollisionSweepsThisFrame — run one round's whole collision-and-destruction pass. First sweep the player's shots
  * against their targets, then sweep the player against a run of objects. A round-state flag then
  * picks the wider pass: when the mother-ship is armed, also run the player-vs-slots contact sweep,
  * the mother-ship's own mutual-kill box, and a three-target attacker sweep; when it is not, run the
@@ -16,7 +16,7 @@ import { destroyTargetsReachedByFixedAttacker } from "./destroyTargetsReachedByF
 import { markObjectsTouchingPlayer } from "./markObjectsTouchingPlayer.js";
 import { MOTHER_SHIP_ARMED } from "./names.js";
 
-export function loc_4e63(m) {
+export function runAllCollisionSweepsThisFrame(m) {
   const { regs, mem8 } = m;
   loc_4f5d(m);
 

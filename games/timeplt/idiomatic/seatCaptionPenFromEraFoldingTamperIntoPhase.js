@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_335e — seat the caption pen from the active player's era, and fold an image block into a
+/** seatCaptionPenFromEraFoldingTamperIntoPhase — seat the caption pen from the active player's era, and fold an image block into a
  * tamper cell as it goes. It sums a fixed run of program bytes into the sequence-phase cell (net
  * zero on a genuine image, so the phase is left standing) then, off the era of whichever save block
  * is active, reads a two-byte glyph/colour record and writes it both into that save block and onto
@@ -26,7 +26,7 @@ const GLYPH_COLOUR_TABLE = 0x0f8d;
 const LIVE_PEN_GLYPH = 0xad0b;
 const LIVE_PEN_COLOUR = 0xad0c;
 
-export function loc_335e(m) {
+export function seatCaptionPenFromEraFoldingTamperIntoPhase(m) {
   const { regs, mem8 } = m;
 
   let total = mem8[PHASE_ACCUMULATOR];

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_335e vs the frozen oracle: the dissolved callees drop the ROM rets, so RAM is compared with
+ * seatCaptionPenFromEraFoldingTamperIntoPhase vs the frozen oracle: the dissolved callees drop the ROM rets, so RAM is compared with
  * the dead stack below the seat masked out, the +2 sp re-seat and the undefined return checked,
  * registers left out (no caller consumes one); plus branch paths, a corpus, and teeth. Run:
  * node --test games/timeplt/idiomatic/test/equivalence-335e.test.js
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_335e as candidate } from "../loc_335e.js";
+import { seatCaptionPenFromEraFoldingTamperIntoPhase as candidate } from "../seatCaptionPenFromEraFoldingTamperIntoPhase.js";
 import { loc_335e as oracle } from "../../translated/loc_335e.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { fetchTableByte } from "../fetchTableByte.js";

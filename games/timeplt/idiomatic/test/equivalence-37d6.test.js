@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_37d6 — memory-equivalent to the frozen oracle at ROM 0x37D6. A pure leaf: every ROM call is
+ * spawnEnemyIntoFreeSlotElseStepSearch — memory-equivalent to the frozen oracle at ROM 0x37D6. A pure leaf: every ROM call is
  * dissolved into a direct import, so the rewrite pushes no return addresses and omits its own ret.
  * GATE: the whole recursive pass replayed on each side (the loop re-enters this address), RAM
  * compared with the dead stack scratch below the seated SP masked out, the +2 SP re-seat and the
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_37d6 as candidate } from "../loc_37d6.js";
+import { spawnEnemyIntoFreeSlotElseStepSearch as candidate } from "../spawnEnemyIntoFreeSlotElseStepSearch.js";
 import { loc_37d6 as oracle } from "../../translated/loc_37d6.js";
 import { drawRandomByte } from "../drawRandomByte.js";
 import { fetchTableByte } from "../fetchTableByte.js";
@@ -144,7 +144,7 @@ function craftAllBusy() {
 // ── broken twins ────────────────────────────────────────────────────────────────────────────
 
 /**
- * The rewrite with one deliberate defect each; every parameter matches loc_37d6 by default. On the
+ * The rewrite with one deliberate defect each; every parameter matches spawnEnemyIntoFreeSlotElseStepSearch by default. On the
  * occupied-slot path it walks the pass with ITSELF rather than delegating: the real close tail now
  * imports the concrete generator, so calling it would run the correct body on every turn but the
  * first and hide the defect on all of them. Stepping and re-entering `body` keeps the whole pass on

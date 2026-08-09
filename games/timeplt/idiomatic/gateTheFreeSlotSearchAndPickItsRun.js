@@ -5,7 +5,7 @@
  * the round's craft count, else a fixed run of five two records earlier. LIVE-OUT: memory, the two cursors, the counter. */
 
 import { KILLS_REMAINING } from "./names.js";
-import { loc_37d6 } from "./loc_37d6.js";
+import { spawnEnemyIntoFreeSlotElseStepSearch } from "./spawnEnemyIntoFreeSlotElseStepSearch.js";
 
 const LAUNCH_TICKS = [0x00, 0x30];
 const ROUND_CRAFT_COUNT = 0xacc1;
@@ -22,5 +22,5 @@ export function gateTheFreeSlotSearchAndPickItsRun(m) {
   regs.b = cleared ? CLEARED_RUN.slots : mem8[ROUND_CRAFT_COUNT];
   regs.ix = run.records;
   regs.iy = run.entries;
-  return loc_37d6(m);
+  return spawnEnemyIntoFreeSlotElseStepSearch(m);
 }

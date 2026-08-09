@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_496e — memory-equivalent to the frozen oracle at ROM 0x496E.
+ * awardCoinCreditThenPulseCoinCounter — memory-equivalent to the frozen oracle at ROM 0x496E.
  * GATE: crafted entries off a real captured state (this address is never dispatched by either tape,
  *   with its callers as the live positive control). RAM compared with the dead stack scratch below
  *   the seated SP masked out (the oracle pushes and rets, the rewrite does neither), the SP re-seat
@@ -15,7 +15,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_496e as candidate } from "../loc_496e.js";
+import { awardCoinCreditThenPulseCoinCounter as candidate } from "../awardCoinCreditThenPulseCoinCounter.js";
 import { loc_496e as oracle } from "../../translated/loc_496e.js";
 import { loc_4984 as tailOracle } from "../../translated/loc_4984.js";
 import { loc_4afb } from "../loc_4afb.js";

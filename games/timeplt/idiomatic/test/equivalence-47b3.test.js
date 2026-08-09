@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_47b3 — memory-equivalent to the frozen oracle at ROM 0x47B3. Unit-capture at the real
+ * runParachutistSlot — memory-equivalent to the frozen oracle at ROM 0x47B3. Unit-capture at the real
  * dispatch plus crafted branch entries; RAM diffed with the dead stack scratch below the seated SP
  * masked out (the oracle nests calls, the rewrite does not), the +2 SP re-seat and the return value
  * checked, plus teeth. Registers are not compared: the dissolved callees drop the register dance.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_47b3 as candidate } from "../loc_47b3.js";
+import { runParachutistSlot as candidate } from "../runParachutistSlot.js";
 import { loc_47b3 as oracle } from "../../translated/loc_47b3.js";
 import { fetchTableByte } from "../fetchTableByte.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
@@ -114,7 +114,7 @@ function scenarios() {
 }
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
-/** The rewrite with one deliberate defect each; every knob matches loc_47b3 by default. */
+/** The rewrite with one deliberate defect each; every knob matches runParachutistSlot by default. */
 function twin({ drift = true, dec = 1, shiftBy = 4, retireInv = false, awardFrom = 0x3c }) {
   return (m) => {
     const { regs, mem8 } = m;

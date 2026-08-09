@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3c25 — memory-equivalent to the frozen oracle at ROM 0x3C25.
+ * armBomberSlotWhenTimerFires — memory-equivalent to the frozen oracle at ROM 0x3C25.
  * GATE: crafted-entry, one branch per exit plus the full arm, replayed at every real dispatch. The
  *   dissolved callees drop their ROM rets, so the oracle leaves two dead return-address bytes below
  *   its seated SP that the rewrite never writes; the diff masks [lowestSP, seat) — lowestSP watched
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3c25 as candidate } from "../loc_3c25.js";
+import { armBomberSlotWhenTimerFires as candidate } from "../armBomberSlotWhenTimerFires.js";
 import { loc_3c25 as oracle } from "../../translated/loc_3c25.js";
 import { fetchTableByte } from "../fetchTableByte.js";
 import { loc_5942 } from "../loc_5942.js";
@@ -113,7 +113,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every knob matches loc_3c25 by default. */
+/** The rewrite with one deliberate defect each; every knob matches armBomberSlotWhenTimerFires by default. */
 function twin({ hits = 3, live = 0xff, table = SHAPE_TABLE, snap = true, nudge = true, velocity = true } = {}) {
   return (m) => {
     const { regs, mem8 } = m;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1323 — run one frame of the phase-14 animation, and only on alternate frames. The phase's
+/** stepRoundStartIntroAnimation — run one frame of the phase-14 animation, and only on alternate frames. The phase's
  * own step cell picks the arm: the early steps flash the player ship and advance two character-plane
  * animations, the last step hides every sprite, sets up the active player's turn and winds the outer
  * sequence on to its reload sub-step. LIVE-OUT: memory. */
@@ -17,7 +17,7 @@ const ANIMATION_STEP = 0xa9f0;
 const SUBSTEP_RELOAD = 0x2750;
 const WIND_DELAY = 90;
 
-export function loc_1323(m) {
+export function stepRoundStartIntroAnimation(m) {
   const { mem8 } = m;
   if (mem8[FRAME_TICK] & 2) return;
 

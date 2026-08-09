@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3ff9 — memory-equivalent to the frozen oracle at ROM 0x3FF9.
+ * sweepObjectSlotBankByHead — memory-equivalent to the frozen oracle at ROM 0x3FF9.
  * GATE: crafted-entry sweep over the bank's occupancy on a real captured machine, seated exactly as
  *   the loop's fall-through entry seats it. The oracle brackets each service with a pushed return the
  *   rewrite never writes, so RAM is compared with the dead stack scratch below the seat masked out,
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3ff9 as candidate } from "../loc_3ff9.js";
+import { sweepObjectSlotBankByHead as candidate } from "../sweepObjectSlotBankByHead.js";
 import { loc_3ff9 as oracle } from "../../translated/loc_3ff9.js";
 import { loc_3fea as seedOracle } from "../../translated/loc_3fea.js";
 import { flyAlongBallisticArc } from "../flyAlongBallisticArc.js";

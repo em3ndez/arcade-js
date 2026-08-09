@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4008 — memory-equivalent to the frozen oracle at ROM 0x4008.
+ * sweepObjectSlotBankServicingFirstSlot — memory-equivalent to the frozen oracle at ROM 0x4008.
  * GATE: crafted-entry, because neither tape dispatches this address. A real machine captured at the
  *   per-frame dispatcher seats the documented cursors and every occupancy of the three-slot bank is
  *   swept. RAM is compared outside the masked stack scratch (the oracle rets, the rewrite does not),
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4008 as candidate } from "../loc_4008.js";
+import { sweepObjectSlotBankServicingFirstSlot as candidate } from "../sweepObjectSlotBankServicingFirstSlot.js";
 import { loc_4008 as oracle } from "../../translated/loc_4008.js";
 import { loc_1199 as dispatcher } from "../../translated/loc_1199.js";
 import { runOneShotAnimatedObjectSlot } from "../runOneShotAnimatedObjectSlot.js";
@@ -107,7 +107,7 @@ function footprint(machine) {
 
 // ── twins ─────────────────────────────────────────────────────────────────────────────────
 
-// The rewrite with one deliberate defect each; every knob matches loc_4008 by default.
+// The rewrite with one deliberate defect each; every knob matches sweepObjectSlotBankServicingFirstSlot by default.
 function twin({ recStride = RECORD_STRIDE, sprStride = SPRITE_STRIDE, skipEmpty = true,
                 ballistic = BALLISTIC, stopAt = 0 }) {
   return (m) => {

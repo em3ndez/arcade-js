@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4e63 — memory-equivalent to the frozen oracle at ROM 0x4E63.
+ * runAllCollisionSweepsThisFrame — memory-equivalent to the frozen oracle at ROM 0x4E63.
  * GATE: unit-capture on the coin-start dispatch plus crafted armed / loaded-collision entries; RAM
  *   compared with the dead stack scratch below the seated SP masked out (the oracle nests calls, the
  *   rewrite does not), the SP re-seat and the return value checked, and teeth. Registers are NOT
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4e63 as candidate } from "../loc_4e63.js";
+import { runAllCollisionSweepsThisFrame as candidate } from "../runAllCollisionSweepsThisFrame.js";
 import { loc_4e63 as oracle } from "../../translated/loc_4e63.js";
 import { loc_4f5d } from "../loc_4f5d.js";
 import { destroyPlayerAndObjectsTouchingIt } from "../destroyPlayerAndObjectsTouchingIt.js";
@@ -136,7 +136,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every option matches loc_4e63 by default. */
+/** The rewrite with one deliberate defect each; every option matches runAllCollisionSweepsThisFrame by default. */
 function twin({ skipShots = false, invertBranch = false, skipMark = false, breakThread = false }) {
   return (m) => {
     const { regs, mem8 } = m;

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5303 — memory-equivalent to the frozen oracle at ROM 0x5303.
+ * advanceSequenceUnlessImageTampered — memory-equivalent to the frozen oracle at ROM 0x5303.
  * GATE: the real dispatch (a genuine image, so the match arm) plus crafted tamper entries forcing
  *   the mismatch arm; RAM compared with the two dead push words below the seat masked out (the
  *   oracle brackets its call, the rewrite dissolves it), SP drift and return asserted per arm, and
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_5303 as candidate } from "../loc_5303.js";
+import { advanceSequenceUnlessImageTampered as candidate } from "../advanceSequenceUnlessImageTampered.js";
 import { loc_5303 as oracle } from "../../translated/loc_5303.js";
 import { loc_0f8d as springTamperTrap } from "../loc_0f8d.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";

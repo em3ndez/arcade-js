@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2511 — memory-equivalent to the frozen oracle at ROM 0x2511. Cold-boot init that paints a
+ * initColdStartRamThenSeedConfig — memory-equivalent to the frozen oracle at ROM 0x2511. Cold-boot init that paints a
  * work-RAM block, seeds/loads/empties via three dissolved callees kicking the watchdog after each,
  * and tail-jumps into the settings and cold-start chain, which hands off to the foreground loop as a
  * COROUTINE and never returns. Both arms run with that loop (0x0B93) SEVERED to an empty coroutine,
@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2511 as candidate } from "../loc_2511.js";
+import { initColdStartRamThenSeedConfig as candidate } from "../initColdStartRamThenSeedConfig.js";
 import { loc_2511 as oracle } from "../../translated/loc_2511.js";
 import { seedRandomRegister } from "../seedRandomRegister.js";
 import { loadDefaultHighScores } from "../loadDefaultHighScores.js";
@@ -61,7 +61,7 @@ function entryState() {
   return entry;
 }
 
-/** A clone with loc_2511's paint region pre-loaded to a prior; everything it writes overwrites it. */
+/** A clone with initColdStartRamThenSeedConfig's paint region pre-loaded to a prior; everything it writes overwrites it. */
 function craftFill(prior) {
   const m = entryState().clone();
   for (let i = 0; i < FILL_BYTES; i++) m.mem8[FILL_BASE + i] = prior;

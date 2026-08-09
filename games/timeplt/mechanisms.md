@@ -1113,6 +1113,21 @@ projectiles, the 1940 middle-size bomber, the Mother-Ship and the pickup all use
 none of them touches the quota. Projectiles shot down still **score**; they simply do not move the
 meter. `[code]`
 
+★ **Those "other handlers" share one array, repurposed by era.** The special large craft do not each
+own a slot pool — they time-share the single three-slot bank at `0xA8C0` (records `0xA8C0`-`0xA8E0`,
+sprite entries from `0xAA28`), and which handler drives it changes with the era index. In era 0 the
+bank holds ordinary swept objects, walked a frame at a time by `sweepObjectSlotBankByHead` /
+`sweepObjectSlotBankServicingFirstSlot` (two interior entries of one loop, dispatched from
+`loc_3fea`); in era 1 `armBomberSlotWhenTimerFires` arms the 1940 bomber into slot 0 on an even-frame
+countdown; in era 2 `stepDriftingCountdownObjectByEraFrames` runs a world-drifting bonus craft in the
+same slot. Watched under MAME: which handler services slot 0 changes with the era index — read per
+era by tapping the bank's occupancy — and the era-1 occupant, isolated by a negative control, is the
+multi-hit bomber above, not a fixed object class. `[seen]` that the bank is repurposed across eras and
+for the era-1 occupant; `[code]` for the per-era handler set and the era-0/era-2 occupants (not
+isolated by a control — the era-0 sprite was never pinned, and era-2's 413c is the same reason it
+stays `[code]`). (So a name
+like "the projectile bank" would over-fit one era's use of it.)
+
 ★ **And that settles the last open question in the public record about the screen furniture.** The
 bar along the bottom is a direct rendering of the quota cell — its run length is the cell shifted,
 with a partial tile from the low bits. `gameplay.md` records one source calling it a "time bar" and
@@ -1387,8 +1402,11 @@ air. `[code]`
 
 ### Parachutists: the ladder, the cap, and the era that has none
 
-The parachutist is a **singleton** — one dedicated record and sprite entry with one manager, not a
-pool. `[code]`
+The parachutist is a **singleton** — one dedicated record and sprite entry with one manager
+(`runParachutistSlot`, record `0xA8F0` / sprite `0xAA2E`), not a pool. `[code]` Watched under MAME: a
+plane that is shot drops a pilot who bails into an animated white canopy, the canopy drifts down over
+a countdown, and flying the ship into it posts the rescue bonus; suppressing the slot removes the
+canopy while everything else remains. `[seen]`
 
 - **The ladder is 1,000 / 2,000 / 3,000 / 4,000, then 5,000 for every one after.** Four table
   entries, and a compare that sends every rung from the fifth onward to the same award record. The
