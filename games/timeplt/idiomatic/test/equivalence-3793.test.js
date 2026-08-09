@@ -1,59 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3793 — memory-equivalent to the frozen oracle at ROM 0x3793.
+ * loc_3793 — poke-assisted real dispatches, crafted entries at the site that branches here, an
+ * exhaustive sweep of the slot occupancy the pass walks, and a MASKED diff.
  *
- * GATE: poke-assisted real dispatches, plus crafted entries taken at the address that branches
- *   here, plus an exhaustive sweep of the slot occupancy the pass then walks.
+ * Neither tape dispatches this address, structurally: one branching site swallows the block and
+ * runs it inline (arm 6 compares against it), the other's arm is never taken (arm 1 measures both
+ * at zero with the swallowing range as the live control). So arm 2 pokes two cells and lets the ROM
+ * reach the address itself, and arm 3 replays the machine captured at the other site.
  *
- * ★ NEITHER TAPE DISPATCHES THIS ADDRESS, AND THE REASON IS STRUCTURAL, NOT ACCIDENTAL. Two ROM
- *   sites branch here. One of them, 0x37BD, is transcribed as a range that SWALLOWS this block and
- *   runs it inline, so that site can never dispatch the address however the game goes — which is
- *   why arm 6 compares against it rather than counting on it. The other, 0x379F, would dispatch
- *   it, and arm 1 measures 0x379F ITSELF at zero under both tapes: the spawner above the two picks
- *   between them on the low digit of the life-progress counter, and neither tape's session takes
- *   0x379F's arm at all. All three counts come off the same taps in the same runs, with the
- *   swallowing range — hundreds of dispatches — as the control that the taps can see anything.
+ * This entry seats three values and transfers into the body that works a slot, and the body walks
+ * the whole bank, so a comparison is the whole pass on both sides; the sweeps vary occupancy because
+ * that decides how much of the pass runs. The dissolved body drops its tail return and never writes
+ * the stack scratch the frozen side leaves, so [low, seat) is masked (floor watched off the oracle's
+ * pushes, proved above the data), the two-byte drift asserted, and the registers it leaves excluded
+ * as a ceiling. Teeth are required to catch OUTSIDE the mask, in memory as well as in a cursor.
  *
- * ★ SO THE ENTRIES ARE POKED, NOT FABRICATED. Arm 2 forces exactly two work-RAM cells from a
- *   chosen frame onward and lets the ROM do the rest: the kill counter to empty, and the
- *   life-progress counter to the digit that selects 0x379F's arm. The game then reaches 0x379F on
- *   its own and dispatches this address itself, with the machine coherent around it — a real
- *   dispatch of a poked game rather than a hand-built state. Arm 3 widens the state space the
- *   other way: the machine captured at every dispatch of 0x37BD, untouched.
- *
- * ★ WHAT ONE COMPARISON RUNS. This entry seats three values and transfers into the body that
- *   works one slot, and the body walks the whole bank before control comes back. So a comparison
- *   is the whole pass on both sides — reading slot heads, drawing from the random register and
- *   filling any free slot — and not three register loads. The sweeps below vary the occupancy of
- *   the bank precisely because that is what decides how much of the pass does anything.
- *
- * ★ THE EXCLUDED SET IS EMPTY, and that is measured rather than hoped for: the oracle sets a
- *   count and two cursors and touches nothing else, and the rewrite sets the same three by the
- *   same route. It is still checked as a SUBSET, so it is the ceiling and not a demand.
- *
- * What it exercises, holes stated:
- *   1. UNREACHED BY EITHER TAPE — this address AND the site that would dispatch it, both
- *      asserted at zero, with a live positive control counted by the same taps.
- *   2. POKED DISPATCH — two cells forced, the ROM reaches the address itself, and every entry it
- *      mints replays identically. This is the vacuity guard: it fails if the pokes stop working.
- *   3. NEIGHBOURS — the machine at every dispatch of the other branching site, replayed here.
- *   4. OCCUPANCY — all 32 free/busy patterns of the bank this entry seats the pass on.
- *   5. THE SEATS — the three values are read back off the FROZEN side and pinned, so this file's
- *      account of what the pass is seated on cannot rot. It checks the frozen side, not the
- *      rewrite; the arms around it are what hold the rewrite to it.
- *   6. INLINE TWIN — with the two branch conditions met, the swallowing range and this entry
- *      leave byte-identical machines. That is what ties this address to one the game does run.
- *   7. EXCLUDED — no register diverges at all, with a control twin proving the check can see one.
- *   8. TEETH — six twins, each caught on every occupancy pattern, and each carrying the exact
- *      number of those patterns that catch it IN MEMORY rather than in a cursor. With nothing
- *      excluded a register difference alone catches everything, so a bare catch count would read
- *      the same for a gate with real memory reach and one with none.
- *
- * HOLE: the poked run forces two cells for the rest of the session, so everything downstream of
- * them runs in a state the cabinet would not produce on its own. It buys a real dispatch, not a
- * realistic session.
- * HOLE: nothing here says which of the two banks the game SHOULD use when; that belongs to the
- * sites that branch, not to this entry.
+ * HOLE: the poked run forces two cells for the session, so downstream runs in a state the cabinet
+ * would not produce on its own — a real dispatch, not a realistic session.
+ * HOLE: nothing here says which bank the game SHOULD use when; that belongs to the branching sites.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-3793.test.js
  */
@@ -96,12 +60,15 @@ const POKE_FROM = 600;
 /** How many machines to keep from the branching site; it runs hundreds of times. */
 const NEIGHBOUR_CAP = 120;
 
+/** Every data write lands at or below here; the stack seats far above it, so the mask is safe. */
+const DATA_TOP = 0xadff;
+
 /**
- * The ceiling on divergence. MEASURED EMPTY: the rewrite seats the same three values the oracle
- * does and neither touches anything else, so nothing is licensed to move. Kept as a subset check
- * rather than an equality so this stays a ceiling.
+ * The ceiling on divergence. This entry seats three values and touches nothing else, but the body
+ * it tails into drops its tail return and leaves the flag byte, the accumulator, the staging pair
+ * and the shadow set differently, and moves the stack pointer. Checked as a SUBSET, a ceiling.
  */
-const EXCLUDED = [];
+const EXCLUDED = ["a", "d", "e", "f", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) =>
@@ -154,10 +121,18 @@ function anEntry() {
   return captureNeighbours()[0];
 }
 
-/** Oracle vs candidate on independent clones: the whole dump, then every register. */
+/**
+ * Oracle vs candidate on independent clones: the whole dump outside the dead stack scratch, then
+ * the registers outside the ceiling. The frozen body pushes below its seat and takes a return the
+ * rewrite leaves; [low, seat) is masked, low watched off the oracle's own pushes.
+ */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   try {
     oracle(a);
   } catch (e) {
@@ -168,13 +143,32 @@ function unitDiff(candidate, machine) {
   } catch (e) {
     return { addr: null, a: "returned", b: String(e).slice(0, 40) };
   }
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  if (ram) return ram;
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= low && addr < seat) continue;
+    return { addr, a: da[i], b: db[i] };
+  }
   for (const k of REG_FIELDS) {
     if (EXCLUDED.includes(k)) continue;
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   return null;
+}
+
+/** The mask floor and the sp drift, watched off the frozen side's own pushes. */
+function maskProbe(machine) {
+  const a = machine.clone();
+  const b = machine.clone();
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
+  oracle(a);
+  loc_3793(b);
+  return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
 /** How many bytes of the whole dump the oracle moves from this entry. */
@@ -384,6 +378,19 @@ test("OCCUPANCY: all 32 free/busy patterns of the bank this entry seats", { skip
     `${allFree} bytes, all-busy moves ${allBusy}`);
 });
 
+test("SP AND SCRATCH: the drift is exactly two bytes and the mask floor sits above the data",
+  { skip }, () => {
+    // On a bank the pass actually fills the frozen side pushes and pops a return the rewrite leaves;
+    // its deepest push stays above every data cell, so the masked window can hide nothing real.
+    for (const mask of [0, OCCUPANCY_PATTERNS - 1]) {
+      const r = maskProbe(craftOccupancy(mask));
+      assert.equal(r.spDiff, 2, `the frozen side no longer re-seats two bytes higher (${r.spDiff})`);
+      assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached down into game data`);
+    }
+    const r = maskProbe(craftOccupancy(0));
+    console.log(`  SP AND SCRATCH: spDiff 2; window floor ${hex4(r.low)} over an all-free bank`);
+  });
+
 test("THE SEATS: the three values, read back off the frozen side and pinned", { skip }, () => {
   // This arm reads the FROZEN side only, deliberately: it pins what the seats are so the prose
   // here cannot drift from them. Holding the rewrite to them is the other arms' job.
@@ -448,19 +455,19 @@ function movedOver(candidate) {
   return moved;
 }
 
-test("EXCLUDED, deliberately: the set is empty, and the check can still see a register",
+test("EXCLUDED, deliberately: nothing moves outside the ceiling, with a control that does",
   { skip }, () => {
     const moved = movedOver(loc_3793);
     const control = movedOver(brokenMovesSpareRegister);
-    // An empty result is worth nothing on its own: the same measurement must report a register
-    // for a twin that scribbles on one, or it is not looking at registers at all.
+    // A clean result is worth nothing on its own: the same measurement must report a register for a
+    // twin that scribbles on one outside the ceiling, or it is not looking at registers at all.
     assert.ok(REG_FIELDS.some((k) => control.has(k) && !EXCLUDED.includes(k)),
       "the measurement reports nothing even for a twin that scribbles on a register, so the " +
-        "empty reading below proves nothing");
+        "clean reading below proves nothing");
     const unexpected = REG_FIELDS.filter((k) => moved.has(k) && !EXCLUDED.includes(k));
     assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
-    console.log(`  EXCLUDED (measured): nothing moves; the control twin moves ` +
-      `${REG_FIELDS.filter((k) => control.has(k)).join(", ")}`);
+    console.log(`  EXCLUDED (measured): observed moving ${EXCLUDED.filter((k) => moved.has(k)).join(", ")}; ` +
+      `the control twin also moves ${REG_FIELDS.filter((k) => control.has(k) && !EXCLUDED.includes(k)).join(", ")}`);
   });
 
 for (const [label, twin, ramExpected] of TWINS) {

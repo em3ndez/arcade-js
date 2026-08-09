@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** parkTheImageTotalForTheTamperVerdict — park the running total the caller arrives with in the register the verdict arm
- * reads it from, and hand on. Nothing is read or written and no flag moves; the transfer is a
- * jump, so the arm's own return carries this entry too. LIVE-OUT: memory and registers. */
+/** parkTheImageTotalForTheTamperVerdict — park the running total in the register the verdict arm reads from, then hand on by transfer. LIVE-OUT: memory and registers. */
 
-const CONTINUATION = 0x5303;
+import { loc_5303 } from "./loc_5303.js";
 
 export function parkTheImageTotalForTheTamperVerdict(m) {
   const { regs } = m;
   regs.b = regs.a;
-  return m.call(CONTINUATION);
+  return loc_5303(m);
 }

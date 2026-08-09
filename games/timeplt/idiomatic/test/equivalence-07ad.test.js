@@ -1,484 +1,235 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * parkTheImageTotalForTheTamperVerdict — memory-equivalent to the frozen oracle at ROM 0x07AD.
- *
- * Four bytes: `ld b,a` and a jump to 0x5303. It sits in the middle of the tamper chain — a fold
- * over a block of the image arrives with the total in A, this entry parks that total in B, and
- * 0x5303 calls a helper whose last act hands the same byte back before comparing it against a
- * baked-in constant and branching to the trap on a mismatch.
- *
- * ★ IT IS A TRANSFER, NOT A CALL, so the rewrite's `m.call(0x5303)` performs the caller's return
- *   itself and the candidate is wired RAW in the whole-machine arm, as _harness.js sets out.
- *
- * ★ ONE DISPATCH A SESSION. This entry fires exactly once under each tape — the tamper check runs
- *   at boot and never again — so a corpus arm alone would rest on a single point. The two crafted
- *   sweeps are where the coverage actually is, and the VERDICT arm shows they are not all the same
- *   point in disguise: the swept total drives the chain down BOTH sides of the comparison, and the
- *   counts of each are asserted rather than hoped for.
- *
- * ★ NOTHING IS MASKED. The frozen entry pushes nothing of its own and writes nothing, which the
- *   FOOTPRINT arm measures rather than assumes, so the whole state dump is compared, stack
- *   included, and the device state and the unmapped-access counters with it.
- *
- * What it exercises, holes stated:
- *   1. REACH — dispatch counts under both tapes, with the folding routine that jumps here as the
- *      positive control that the instrument can see a dispatch.
- *   2. SEAM — the captured entry, both sides stopped AT the jump: the whole dump, the devices, the
- *      counters, the destination and every register.
- *   3. FULL — the same entry with the verdict arm really running, end to end.
- *   4. TOTAL — all 256 totals, at the seam AND in full, so the comparison downstream is exercised
- *      on both of its answers.
- *   5. VERDICT — how many of those 256 reach the trap and how many the clean arm, measured, so the
- *      sweep is shown to discriminate instead of merely being large.
- *   6. PASSENGER — the other registers walked at the seam, including the one this entry
- *      overwrites, so a rewrite that reads the wrong source is caught by value and not by luck.
- *   7. FOOTPRINT — the frozen entry's deepest push and its device writes, measured and pinned at
- *      nothing, which is what licenses comparing the raw dump.
- *   8. TIME — the entry's own T-states, measured; one value, which the whole-machine arm charges.
- *   9. WHOLE-MACHINE — both tapes, the full frame budget, byte-identical with the rewrite wired.
- *  10. EXCLUDED — measured empty, with a control twin that scribbles on an index register.
- *  11. TEETH — six twins with their catch counts on both sweeps.
- *
- * HOLE: every crafted point is the one captured entry with registers set by hand. Work RAM is
- * whatever that entry held, and no sweep varies it — this entry reads no memory, but that is a
- * claim about the four bytes and not something these arms measure.
- * HOLE: pc and the cycle count are not compared, the ordinary memory-equivalence drop.
- *
+ * parkTheImageTotalForTheTamperVerdict — the real dispatch (a genuine image, the match arm) plus
+ * crafted tamper entries forcing the trap arm, compared with the dead push words below the seat
+ * masked out. This entry parks the total in B and tails into the verdict; the dissolved verdict
+ * drops its tail return and brackets its own call with a push the rewrite never writes, so [low,
+ * seat) is masked (floor watched off the oracle's pushes, proved above the data), the SP drift is
+ * asserted per arm, and the scanline is pinned so the trap's cycle-driven fixup read matches a
+ * cycle-free rewrite. Registers are not compared: the dissolved callees drop the register dance and
+ * the verdict's own return carries this entry, so nothing downstream consumes what it leaves.
  * Run: node --test games/timeplt/idiomatic/test/equivalence-07ad.test.js
  */
-
 import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { parkTheImageTotalForTheTamperVerdict } from "../parkTheImageTotalForTheTamperVerdict.js";
+import { parkTheImageTotalForTheTamperVerdict as candidate } from "../parkTheImageTotalForTheTamperVerdict.js";
 import { loc_07ad as oracle } from "../../translated/loc_07ad.js";
 import { buildRoutines } from "../../routines.js";
-import { firstStateDiff, wholeMachineEquivalence } from "../../../../core/equivalence.js";
-import { REG_FIELDS } from "../../../../core/cpu/z80.js";
+import { SEQUENCE_SUBSTEP } from "../names.js";
 
 const TARGET = 0x07ad;
 const CONTINUATION = 0x5303;
 /** The fold that jumps here with the total in A; the positive control for the REACH arm. */
 const FOLDER = 0x43e8;
-/** The two ends of the comparison 0x5303 makes: the tamper trap and the clean continuation. */
-const TRAP_ARM = 0x0f8d;
-const CLEAN_ARM = 0x0f1a;
-
-const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
-
-const WHOLE_FRAMES = 1400;
+const GENUINE = 0x67;
+const MATCH_DRIFT = 2; // match arm: the oracle's tail rets, the cycle-free rewrite leaves SP put
+const MISMATCH_DRIFT = 0; // trap arm: both reach the trap's unwind, so SP tracks
+const WINDOW_BYTES = 4; // the two dead words the verdict brackets its own call with
+/** Work RAM tops here; the stack seats above every game variable, so what sits below is scratch. */
+const DATA_TOP = 0xadff;
+/** The trap falls through eight sprite slots; arming these Y bytes and pinning a carrying scanline
+ * makes that fixup write, so the trap comparison has something to hold. */
+const SLOT_Y = [0xb411, 0xb413, 0xb415, 0xb437, 0xb439, 0xb43b, 0xb43d, 0xb43f];
+const ARMED = 0xf0;
+const FIRING_SCANLINE = 0x30;
 const VALUES = 256;
 
-/** Measured by the TIME arm: `ld b,a` and the jump. */
-const OWN_TSTATES = 14;
-/** Measured by the FOOTPRINT arm: the frozen entry pushes nothing, so nothing is masked. */
-const SCRATCH_BYTES = 0;
-
-/**
- * The ceiling on register divergence, and it is EMPTY: the rewrite makes the same one register
- * move the frozen entry makes and leaves every other alone, flags included. A ceiling, not a
- * demand — the EXCLUDED arm tests a subset, so a closer rewrite still passes.
- */
-const MOVED = [];
-
-const TAPES = [
-  ["attract", { tape: [] }],
-  ["coin-start", {}],
-];
-
-/** Registers the entry carries past untouched; each is walked over these values at the seam. */
-const PASSENGERS = ["a", "b", "c", "d", "e", "h", "l", "f"];
-const PASSENGER_VALUES = [0x00, 0x01, 0x55, 0x67, 0x80, 0xaa, 0xff];
-
+const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
-function lean(mm) {
-  mm.assets = {};
-  mm.video = null;
-  return mm;
-}
-
-// ── capture ─────────────────────────────────────────────────────────────────────────────
-
-const captured = new Map();
-
-function capture(label, opts) {
-  if (captured.has(label)) return captured.get(label);
-  const real = buildRoutines();
-  const body = real.get(TARGET);
-  const entries = [];
-  const m = makeMachine(
-    new Map([[TARGET, (mm, ...args) => {
-      entries.push(lean(mm.clone()));
-      return body(mm, ...args);
-    }]]),
-    opts,
-  );
-  const frames = m.runFrames(ENTRY_FRAMES);
-  assert.equal(m.stoppedBy, null, `the ${label} capture run stopped early: ${m.stoppedBy}`);
-  assert.equal(frames.length, ENTRY_FRAMES, `the ${label} capture run ran short`);
-  captured.set(label, entries);
-  return entries;
-}
-
-const theEntry = () => capture("coin-start", {})[0] ?? null;
-
-// ── the seam ────────────────────────────────────────────────────────────────────────────
-
-function stopAtSeam(real, sink) {
-  return {
-    get(addr) {
-      if (addr !== CONTINUATION) return real.get(addr);
-      return (mm) => {
-        sink.hits++;
-        sink.addr = addr;
-        sink.regs = Object.fromEntries(REG_FIELDS.map((k) => [k, mm.regs[k]]));
-      };
-    },
-  };
-}
-
-const deviceSignature = (c) =>
-  `${[...c.io.latch].join(",")}|wd=${c.io.watchdogKicks}|snd=${c.io.soundData}` +
-  `|ur=${c.mem.unmappedReads}|uw=${c.mem.unmappedWrites}`;
-
-function runToSeam(entry, fn) {
-  const c = entry.clone();
-  const sink = { hits: 0, addr: null, regs: null };
-  c.routines = stopAtSeam(entry.routines, sink);
-  let threw = null;
-  try {
-    fn(c);
-  } catch (e) {
-    threw = String(e).slice(0, 60);
+// ── the masked comparison ─────────────────────────────────────────────────────────────────
+/**
+ * Oracle vs a candidate on clones with the scanline pinned identically. The verdict pushes a return
+ * word its dissolved rewrite never writes, so the diff excludes [low, seat) — low watched off the
+ * oracle's own pushes. Anything outside that window has escaped.
+ */
+function compare(cand, machine, scanline) {
+  const a = machine.clone();
+  const b = machine.clone();
+  a.io.readScanline = () => scanline & 0xff;
+  b.io.readScanline = () => scanline & 0xff;
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
+  const retOracle = oracle(a);
+  let retCand, threw = null;
+  try { retCand = cand(b); } catch (e) { threw = String(e).slice(0, 40); }
+  const da = a.dumpState();
+  const db = b.dumpState();
+  let escaped = null;
+  for (let i = 0; i < da.length && escaped === null; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= low && addr < seat) continue;
+    escaped = { addr, oracle: da[i], candidate: db[i] };
   }
-  return { c, sink, threw };
+  return { escaped, low, seat, spDiff: ((a.regs.sp - b.regs.sp) << 16) >> 16, retOracle, retCand, threw };
 }
 
-function compare(a, b) {
-  if (a.threw !== b.threw) return `threw ${a.threw} vs ${b.threw}`;
-  const d = firstStateDiff(a.c.dumpState(), b.c.dumpState(), (o) => a.c.stateOffsetToAddr(o));
-  if (d) return `${hex4(d.addr ?? 0)}: frozen=${d.a} rewrite=${d.b}`;
-  if (deviceSignature(a.c) !== deviceSignature(b.c)) {
-    return `devices ${deviceSignature(a.c)} vs ${deviceSignature(b.c)}`;
+/** Cells the oracle moves from a state, ignoring the push scratch — one arm's footprint. */
+function footprint(machine, scanline) {
+  const a = machine.clone();
+  a.io.readScanline = () => scanline & 0xff;
+  const seat = a.regs.sp;
+  const before = a.dumpState().slice();
+  oracle(a);
+  const now = a.dumpState();
+  const cells = [];
+  for (let i = 0; i < now.length; i++) {
+    const addr = a.stateOffsetToAddr(i);
+    if (now[i] !== before[i] && !(addr < seat && addr >= seat - WINDOW_BYTES)) cells.push(addr);
   }
-  for (const k of REG_FIELDS) {
-    if (!MOVED.includes(k) && a.c.regs[k] !== b.c.regs[k]) {
-      return `${k}=${a.c.regs[k]} vs ${b.c.regs[k]}`;
-    }
+  return cells;
+}
+
+// ── the captured entry, and the crafted tamper entries ────────────────────────────────────
+let captured = null;
+function entryState() {
+  if (captured === null) {
+    const m = makeMachine(new Map([[TARGET, (mm) => {
+      if (captured === null) captured = mm.clone();
+      return oracle(mm);
+    }]]));
+    const frames = m.runFrames(ENTRY_FRAMES);
+    assert.equal(m.stoppedBy, null, `the capture run stopped early: ${m.stoppedBy}`);
+    assert.equal(frames.length, ENTRY_FRAMES, "the capture run ran short");
   }
-  return null;
+  return captured;
 }
 
-function seamDiff(candidate, entry) {
-  const a = runToSeam(entry, oracle);
-  const b = runToSeam(entry, candidate);
-  if (a.sink.hits !== b.sink.hits) return `reached the jump ${a.sink.hits} vs ${b.sink.hits} times`;
-  if (a.sink.addr !== b.sink.addr) return `jumped to ${a.sink.addr} vs ${b.sink.addr}`;
-  for (const k of REG_FIELDS) {
-    if (MOVED.includes(k)) continue;
-    if (a.sink.regs && a.sink.regs[k] !== b.sink.regs[k]) {
-      return `${k}=${a.sink.regs[k]} vs ${b.sink.regs[k]} at the jump`;
-    }
-  }
-  return compare(a, b);
-}
+const craft = (mutate) => { const m = entryState().clone(); mutate(m); return m; };
 
-function runFull(entry, fn) {
-  const c = entry.clone();
-  try {
-    fn(c);
-    return { c, threw: null, sink: { hits: 1, addr: CONTINUATION, regs: null } };
-  } catch (e) {
-    return { c, threw: String(e).slice(0, 60), sink: { hits: 1, addr: CONTINUATION, regs: null } };
-  }
-}
-
-const fullDiff = (candidate, entry) => compare(runFull(entry, oracle), runFull(entry, candidate));
-
-// ── the crafted sweeps ──────────────────────────────────────────────────────────────────
-
-function craft(setup) {
-  const c = theEntry().clone();
-  setup(c);
-  return c;
-}
-
-function sweepTotals(candidate, diff) {
-  let caught = 0;
-  for (let v = 0; v < VALUES; v++) {
-    if (diff(candidate, craft((mm) => { mm.regs.a = v; })) !== null) caught++;
-  }
-  return caught;
-}
-
-function sweepPassengers(candidate) {
-  let caught = 0;
-  for (const k of PASSENGERS) {
-    for (const v of PASSENGER_VALUES) {
-      const point = craft((mm) => { mm.regs[k] = v; });
-      if (seamDiff(candidate, point) !== null) caught++;
-    }
-  }
-  return caught;
-}
-
-const SWEEP_RUNS = {
-  totalsSeam: VALUES,
-  totalsFull: VALUES,
-  passengers: PASSENGERS.length * PASSENGER_VALUES.length,
-};
-
-/** Which end of the comparison each swept total drives the chain into, counted. */
-function verdictCounts(fn) {
-  const counts = { [TRAP_ARM]: 0, [CLEAN_ARM]: 0 };
-  for (let v = 0; v < VALUES; v++) {
-    const c = craft((mm) => { mm.regs.a = v; });
-    const real = c.routines;
-    c.routines = {
-      get: (addr) =>
-        addr === TRAP_ARM || addr === CLEAN_ARM
-          ? (mm) => {
-              counts[addr]++;
-              return real.get(addr)(mm);
-            }
-          : real.get(addr),
-    };
-    fn(c);
-  }
-  return counts;
-}
-
-// ── the hosted whole-machine replay ─────────────────────────────────────────────────────
-
-function hosted(candidate) {
-  return (mm) => {
-    const real = mm.routines;
-    mm.routines = {
-      get: (addr) =>
-        addr === CONTINUATION
-          ? (x) => {
-              x.routines = real;
-              x.step(CONTINUATION, OWN_TSTATES);
-              return x.call(CONTINUATION);
-            }
-          : real.get(addr),
-    };
-    try {
-      return candidate(mm);
-    } finally {
-      mm.routines = real;
-    }
-  };
+/** The captured entry is a genuine image (A is the good total, so the match arm). Each tamper arm
+ * forces A off that value — this entry parks A into B — and arms the slots the trap falls through. */
+function scenarios() {
+  const tamper = (a) => craft((m) => { m.regs.a = a; for (const y of SLOT_Y) m.mem8[y] = ARMED; });
+  return [
+    { label: "match", m: craft(() => {}), sp: MATCH_DRIFT, scan: 0 },
+    { label: "tamper-00", m: tamper(0x00), sp: MISMATCH_DRIFT, scan: FIRING_SCANLINE },
+    { label: "tamper-66", m: tamper(0x66), sp: MISMATCH_DRIFT, scan: FIRING_SCANLINE },
+    { label: "tamper-68", m: tamper(0x68), sp: MISMATCH_DRIFT, scan: FIRING_SCANLINE },
+    { label: "tamper-ff", m: tamper(0xff), sp: MISMATCH_DRIFT, scan: FIRING_SCANLINE },
+  ];
 }
 
 // ── broken twins ────────────────────────────────────────────────────────────────────────
+// The twins reach the verdict by dispatch, so they run the frozen continuation with matching
+// scratch; a staging bug shows as the wrong arm (SP drift) or the wrong game state.
+const brokenNoCopy = (m) => m.call(CONTINUATION);
+const brokenCopiesC = (m) => { m.regs.b = m.regs.c; return m.call(CONTINUATION); };
+const brokenCopiesBackwards = (m) => { m.regs.a = m.regs.b; return m.call(CONTINUATION); };
+const brokenClearsTotal = (m) => { m.regs.b = m.regs.a; m.regs.a = 0; return m.call(CONTINUATION); };
+const brokenNeverHandsOn = (m) => { m.regs.b = m.regs.a; };
+// ★ correct staging, one word too many popped: the control that proves the SP check has teeth.
+const brokenExtraPop = (m) => { const r = candidate(m); m.pop16(); return r; };
+// ★ correct control flow, then scribbles a data cell below the mask: proves the mask hides no data.
+const brokenScribblesData = (m) => {
+  const r = candidate(m);
+  m.mem8[SEQUENCE_SUBSTEP] = (m.mem8[SEQUENCE_SUBSTEP] + 7) & 0xff;
+  return r;
+};
 
-/** BUG: hands on without parking the total, so the verdict is made on a stale register. */
-function brokenNoCopy(m) {
-  return m.call(CONTINUATION);
-}
-
-/** BUG: parks the wrong register. */
-function brokenCopiesC(m) {
-  m.regs.b = m.regs.c;
-  return m.call(CONTINUATION);
-}
-
-/** BUG: copies the wrong way round, losing the total instead of duplicating it. */
-function brokenCopiesBackwards(m) {
-  m.regs.a = m.regs.b;
-  return m.call(CONTINUATION);
-}
-
-/** BUG: clears the total after parking it; the helper puts it back, so only the flags tell. */
-function brokenClearsTotal(m) {
-  m.regs.b = m.regs.a;
-  m.regs.a = 0;
-  return m.call(CONTINUATION);
-}
-
-/** BUG: sets flags the frozen entry leaves standing — a plain register move raises none. */
-function brokenSetsFlags(m) {
-  m.regs.b = m.regs.a;
-  m.regs.and(m.regs.a);
-  return m.call(CONTINUATION);
-}
-
-/** BUG: parks the total and stops, so the verdict is never reached. */
-function brokenNeverHandsOn(m) {
-  m.regs.b = m.regs.a;
-}
-
-/** BUG: scribbles on an index register — the control for the EXCLUDED ceiling. */
-function brokenMovesIndex(m) {
-  m.regs.b = m.regs.a;
-  m.regs.iy = (m.regs.iy + 1) & 0xffff;
-  return m.call(CONTINUATION);
-}
-
+// The four staging twins flip the genuine image to the trap, so they are caught on the match arm
+// where the correct total passes; the trap itself is total-blind, so the tamper arms cannot see a
+// wrong total. never-hands-on and extra-pop diverge on every scenario, in the return and the SP.
 const TWINS = [
-  ["no-copy", brokenNoCopy],
-  ["copies-c", brokenCopiesC],
-  ["copies-backwards", brokenCopiesBackwards],
-  ["clears-total", brokenClearsTotal],
-  ["sets-flags", brokenSetsFlags],
-  ["never-hands-on", brokenNeverHandsOn],
+  ["no-copy", brokenNoCopy, 1],
+  ["copies-c", brokenCopiesC, 1],
+  ["copies-backwards", brokenCopiesBackwards, 1],
+  ["clears-total", brokenClearsTotal, 1],
+  ["never-hands-on", brokenNeverHandsOn, 5],
+  ["extra-pop", brokenExtraPop, 5],
 ];
 
-// ── the gate ────────────────────────────────────────────────────────────────────────────
+function isCaught(twin, sc) {
+  const r = compare(twin, sc.m, sc.scan);
+  return r.threw !== null || r.escaped !== null || r.spDiff !== sc.sp || r.retOracle !== r.retCand;
+}
 
+// ── the gate ──────────────────────────────────────────────────────────────────────────────
 test("REACH: the tamper chain really passes through here, with a positive control", { skip }, () => {
-  const seen = {};
-  for (const [label, opts] of TAPES) {
+  for (const [label, opts] of [["attract", { tape: [] }], ["coin-start", {}]]) {
     const real = buildRoutines();
     const counts = { [TARGET]: 0, [FOLDER]: 0 };
     const overrides = new Map();
     for (const addr of [TARGET, FOLDER]) {
       const body = real.get(addr);
-      overrides.set(addr, (mm, ...args) => {
-        counts[addr]++;
-        return body(mm, ...args);
-      });
+      overrides.set(addr, (mm, ...args) => { counts[addr]++; return body(mm, ...args); });
     }
     const m = makeMachine(overrides, opts);
     m.runFrames(ENTRY_FRAMES);
     assert.equal(m.stoppedBy, null, `the ${label} reach run stopped early: ${m.stoppedBy}`);
-    seen[label] = counts;
+    assert.ok(counts[FOLDER] > 0, `the ${label} tap counted nothing for the fold, so the instrument is broken`);
+    assert.ok(counts[TARGET] > 0, `vacuous: the ${label} tape never reached this entry`);
+    console.log(`  REACH/${label}: entered ${counts[TARGET]} times (fold ${counts[FOLDER]})`);
   }
-  for (const [label] of TAPES) {
-    assert.ok(seen[label][FOLDER] > 0, `the ${label} tap counted nothing for the fold either, so ` +
-      "the instrument is broken and the count below means nothing");
-    assert.ok(seen[label][TARGET] > 0, `vacuous: the ${label} tape never reached this entry`);
+});
+
+test("REAL DISPATCH: the tape reaches this address on the genuine-image match arm", { skip }, () => {
+  const e = entryState();
+  assert.notEqual(e, null, "vacuous: the tape never reached the routine");
+  assert.equal(e.regs.a, GENUINE, "the captured total is not the genuine value, so this is not the match arm");
+  const r = compare(candidate, craft(() => {}), 0);
+  assert.equal(r.escaped, null, r.escaped && `escaped the mask at ${hex4(r.escaped.addr)}`);
+  console.log(`  REAL DISPATCH: total ${hex4(e.regs.a)} at SP ${hex4(e.regs.sp)}, match arm identical`);
+});
+
+test("ARMS: match and trap are memory-equivalent, and the arms really differ", { skip }, () => {
+  const prints = {};
+  for (const sc of scenarios()) {
+    const r = compare(candidate, sc.m, sc.scan);
+    assert.equal(r.threw, null, `${sc.label} threw: ${r.threw}`);
+    assert.equal(r.escaped, null, `${sc.label} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
+    prints[sc.label] = footprint(sc.m, sc.scan).map(hex4).join(",");
   }
-  console.log(`  REACH: ${TAPES.map(([l]) => `${l} ${seen[l][TARGET]} (fold ${seen[l][FOLDER]})`).join(", ")}`);
+  // ★ Vacuity guard: the two arms must move DIFFERENT cells, or the poke changed nothing.
+  assert.notEqual(prints.match, prints["tamper-00"], "the match and trap arms move the same cells");
+  assert.ok(prints["tamper-00"].length > 0, "the trap arm's fixup never fired, so its comparison is vacuous");
+  console.log(`  ARMS: 5 scenarios equivalent; match moves ${prints.match.split(",").length}, trap ${prints["tamper-00"].split(",").length} cells`);
 });
 
-test("SEAM: the captured entry agrees at the jump", { skip }, () => {
-  for (const [label, opts] of TAPES) {
-    const entries = capture(label, opts);
-    assert.notEqual(entries[0] ?? null, null, `vacuous: the ${label} tape never reached the routine`);
-    for (const e of entries) {
-      const d = seamDiff(parkTheImageTotalForTheTamperVerdict, e);
-      assert.equal(d, null, `${label}: ${d}`);
-    }
-  }
-  const shown = TAPES.map(([l]) => `${l} ${capture(l, {}).length}`);
-  console.log(`  SEAM: identical at the jump on every captured entry (${shown.join(", ")})`);
-});
-
-test("FULL: the verdict arm runs and agrees end to end", { skip }, () => {
-  const d = fullDiff(parkTheImageTotalForTheTamperVerdict, theEntry());
-  assert.equal(d, null, String(d));
-  console.log("  FULL: the captured entry run through the verdict is identical");
-});
-
-test("TOTAL: all 256 totals, at the jump and in full", { skip }, () => {
-  assert.equal(sweepTotals(parkTheImageTotalForTheTamperVerdict, seamDiff), 0, "a total diverged at the jump");
-  assert.equal(sweepTotals(parkTheImageTotalForTheTamperVerdict, fullDiff), 0, "a total diverged end to end");
-  console.log(`  TOTAL: ${SWEEP_RUNS.totalsSeam} at the jump and ${SWEEP_RUNS.totalsFull} in full, identical`);
-});
-
-test("VERDICT: the sweep drives both ends of the comparison, counted", { skip }, () => {
-  const counts = verdictCounts(oracle);
-  console.log(`  VERDICT: of ${VALUES} totals, ${counts[TRAP_ARM]} reach the trap and ` +
-    `${counts[CLEAN_ARM]} the clean arm`);
-  assert.ok(counts[TRAP_ARM] > 0, "no swept total reaches the trap, so the full sweep exercises " +
-    "only one side of the comparison and is not the coverage this gate claims");
-  assert.ok(counts[CLEAN_ARM] > 0, "no swept total reaches the clean arm, so the sweep never " +
-    "shows the chain doing what a genuine image makes it do");
-  assert.equal(counts[TRAP_ARM] + counts[CLEAN_ARM], VALUES, "some total reached neither end");
-});
-
-test("PASSENGER: the registers carried past are walked by value", { skip }, () => {
-  assert.equal(sweepPassengers(parkTheImageTotalForTheTamperVerdict), 0, "a passenger register diverged");
-  console.log(`  PASSENGER: ${SWEEP_RUNS.passengers} register-and-value points identical`);
-});
-
-test("FOOTPRINT: the frozen entry pushes nothing and writes no device", { skip }, () => {
-  let deepest = 0;
+test("TOTAL: all 256 totals parked and carried, both arms of the verdict", { skip }, () => {
+  let trap = 0, clean = 0;
   for (let v = 0; v < VALUES; v++) {
-    const c = craft((mm) => { mm.regs.a = v; });
-    const sink = { hits: 0 };
-    c.routines = stopAtSeam(c.routines, sink);
-    const seat = c.regs.sp;
-    const push = c.push16.bind(c);
-    let low = seat;
-    c.push16 = (value) => {
-      const r = push(value);
-      if (c.regs.sp < low) low = c.regs.sp;
-      return r;
-    };
-    const before = deviceSignature(c);
-    oracle(c);
-    assert.equal(deviceSignature(c), before, `the frozen entry touched a device on total ${v}`);
-    deepest = Math.max(deepest, seat - low);
+    const scan = v === GENUINE ? 0 : FIRING_SCANLINE;
+    const m = craft((mm) => { mm.regs.a = v; for (const y of SLOT_Y) mm.mem8[y] = ARMED; });
+    const r = compare(candidate, m, scan);
+    assert.equal(r.escaped, null, `total ${hex4(v)} escaped at ${r.escaped && hex4(r.escaped.addr)}`);
+    assert.equal(r.spDiff, v === GENUINE ? MATCH_DRIFT : MISMATCH_DRIFT, `total ${hex4(v)}: SP drift moved`);
+    if (v === GENUINE) clean++; else trap++;
   }
-  console.log(`  FOOTPRINT (measured): the frozen entry reaches ${deepest} bytes below its seat`);
-  assert.equal(deepest, SCRATCH_BYTES, "the frozen entry now pushes, so a masked window is owed " +
-    "and every arm here is comparing bytes it has no right to");
+  // ★ The sweep drives BOTH ends of the verdict, or it exercises only one side of the comparison.
+  assert.ok(trap > 0 && clean > 0, "the total sweep did not drive both the trap and the clean arm");
+  console.log(`  TOTAL: ${VALUES} totals identical; ${clean} clean, ${trap} trap`);
 });
 
-test("TIME: the entry's own T-states, measured", { skip }, () => {
-  const costs = new Set();
-  for (let v = 0; v < VALUES; v++) {
-    const c = craft((mm) => { mm.regs.a = v; });
-    const sink = { hits: 0 };
-    c.routines = stopAtSeam(c.routines, sink);
-    const before = c.cycles;
-    oracle(c);
-    assert.equal(sink.hits, 1, "the frozen entry did not reach the jump exactly once");
-    costs.add(c.cycles - before);
+test("SP and RETURN: the match arm lifts two over the rewrite, the trap arm tracks", { skip }, () => {
+  for (const sc of scenarios()) {
+    const r = compare(candidate, sc.m, sc.scan);
+    assert.equal(r.spDiff, sc.sp, `${sc.label}: SP drift moved`);
+    assert.equal(r.retOracle, r.retCand, `${sc.label}: the return value diverged`);
   }
-  console.log(`  TIME: the frozen entry costs ${[...costs].join(", ")} T-states`);
-  assert.deepEqual([...costs], [OWN_TSTATES], "the entry's own cost is no longer a single value, " +
-    "so the constant the whole-machine arm charges back is wrong");
+  console.log(`  SP: match +${MATCH_DRIFT}, trap +${MISMATCH_DRIFT}; returns identical`);
 });
 
-test("WHOLE-MACHINE: both tapes are byte-identical with the rewrite wired", { skip }, () => {
-  for (const [label, opts] of TAPES) {
-    const mk = (ov) => makeMachine(ov, opts);
-    const w = wholeMachineEquivalence(mk, WHOLE_FRAMES, new Map([[TARGET, hosted(parkTheImageTotalForTheTamperVerdict)]]));
-    assert.ok(w.invocations.get(TARGET) > 0, `vacuous: the override never dispatched under ${label}`);
-    assert.equal(w.framesCompared, WHOLE_FRAMES, `the ${label} replay ran short`);
-    assert.equal(w.equal, true, `${label} forked at frame ${w.frame} on ${hex4(w.addr ?? 0)}`);
-    console.log(`  WHOLE-MACHINE/${label}: ${w.framesCompared} frames, ` +
-      `${w.invocations.get(TARGET)} dispatch, identical`);
-  }
+test("MASK: the window is the dead words above all game data, and a data diff still escapes", { skip }, () => {
+  const r = compare(candidate, craft(() => {}), 0);
+  assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached down into game data`);
+  assert.equal(r.seat - r.low, WINDOW_BYTES, "the masked window is not the words the verdict brackets its call with");
+  // The mask is safe only if a real data divergence still escapes it: the control must be caught.
+  assert.ok(isCaught(brokenScribblesData, scenarios()[0]), "a twin scribbling a data cell is not caught, so the mask is blind");
+  console.log(`  MASK: [${hex4(r.low)},${hex4(r.seat)}) excluded; the data-scribble control escapes`);
 });
 
-function movedOver(candidate) {
-  const moved = new Set();
-  for (let v = 0; v < VALUES; v++) {
-    const point = craft((mm) => { mm.regs.a = v; });
-    const a = runToSeam(point, oracle);
-    const b = runToSeam(point, candidate);
-    for (const k of REG_FIELDS) if (a.c.regs[k] !== b.c.regs[k]) moved.add(k);
-  }
-  return moved;
-}
-
-test("EXCLUDED: nothing moves, and the measurement is shown able to see movement", { skip }, () => {
-  const moved = movedOver(parkTheImageTotalForTheTamperVerdict);
-  const control = movedOver(brokenMovesIndex);
-  assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
-    "the control twin scribbles on an index register and this measurement did not notice, so a " +
-      "clean reading below is worth nothing");
-  console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ") || "none"}` +
-    ` — ceiling ${MOVED.join(", ") || "empty"}; the control also moves ` +
-    `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);
-  assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
-    "a register outside the declared ceiling diverged");
-});
-
-for (const [label, twin] of TWINS) {
-  test(`TEETH: the ${label} twin is CAUGHT`, { skip }, () => {
-    const atSeam = sweepTotals(twin, seamDiff);
-    const inFull = sweepTotals(twin, fullDiff);
-    const passengers = sweepPassengers(twin);
-    console.log(`  TEETH/${label}: caught on ${atSeam}/${SWEEP_RUNS.totalsSeam} totals at the jump, ` +
-      `${inFull}/${SWEEP_RUNS.totalsFull} in full, ${passengers}/${SWEEP_RUNS.passengers} passengers`);
-    assert.ok(atSeam + inFull + passengers > 0, `every arm PASSED the ${label} twin`);
+for (const [label, twin, expected] of TWINS) {
+  test(`TEETH: the ${label} twin is caught on an exact count of scenarios`, { skip }, () => {
+    let caught = 0;
+    for (const sc of scenarios()) if (isCaught(twin, sc)) caught++;
+    assert.ok(expected > 0, `the ${label} twin is not caught at all`);
+    assert.equal(caught, expected, `the ${label} twin's catch count moved`);
+    console.log(`  TEETH/${label}: caught on ${caught} of ${scenarios().length} scenarios`);
   });
 }

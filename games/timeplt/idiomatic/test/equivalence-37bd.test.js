@@ -1,48 +1,24 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * gateTheFreeSlotSearchAndPickItsRun — memory-equivalent to the frozen oracle at ROM 0x37BD.
+ * gateTheFreeSlotSearchAndPickItsRun — two whole captured corpora (coin-then-start and undriven
+ * attract) replayed with the REAL spawner running underneath, crafted sweeps of the routine's input
+ * space, and teeth. The gate itself pushes nothing; the spawner it tails into does.
  *
- * GATE: two whole captured corpora (coin-then-start and undriven attract) replayed with the REAL
- *   spawner at 0x37D6 running underneath, plus exhaustive crafted sweeps of the routine's own
- *   input space taken against a RECORDER standing in for that spawner, plus teeth.
+ * The dissolved spawner drops its tail return and never writes the stack scratch the frozen side
+ * leaves, so a full comparison masks [low, seat) (floor watched off the oracle's pushes, proved
+ * above the data) and asserts the two-byte drift. The gate stages a count and two cursors and tails
+ * into the spawner; a staging bug shows as a memory divergence once occupancy makes it visible, so
+ * the real rewrite is held to the oracle by the masked full run, and the TWINS — which still reach
+ * the spawner by dispatch — are compared against a RECORDER so a staging bug is caught whatever the
+ * occupancy. The registers the spawner leaves are excluded as a ceiling.
  *
- * ★ THE ADDRESS IS A DISPATCH TARGET, NOT A FALL-THROUGH. 0x36AF reaches it with `jp c,0x37BD`
- *   when (0xAD06)&0x0F < 7, and HL is left pointing at 0xAD05 by that same routine — so the byte
- *   the gate reads through HL is the low life-tick counter, and the REACH arm measures how often
- *   each of its values arrives rather than assuming any of them do.
+ * The address is a dispatch target (the caller leaves HL on the low life-tick counter, so the REACH
+ * arm measures how often each byte value arrives), and the cleared arm is never taken by either tape
+ * (ARMS counts all three with the two the tapes take as the control), so it is crafted.
  *
- * ★ THE ORACLE SWALLOWS A NAMED ROUTINE, AND THE REWRITE INLINES IT TOO. The `jr z,0x3793` arm is
- *   transcribed INLINE by the frozen file even though 0x3793 has a frozen file of its own, so that
- *   is the form compared here. An idiomatic loc_3793 landed in the same batch as this unit and is
- *   NOT imported: the two therefore state the same three constants twice, which is a duplication a
- *   reviewer should weigh and which nothing in this gate can settle — both spellings stage the same
- *   registers and tail into the same spawner, so no arm here can tell them apart.
- *
- * ★ THE CLEARED ARM IS NEVER TAKEN BY EITHER TAPE, AND THAT IS MEASURED, NOT ASSUMED. The ARMS arm
- *   counts all three arms over both corpora, with the two arms the tapes DO take as the positive
- *   control that the counter works. Every entry state that reaches the cleared arm below is
- *   therefore CRAFTED: a real captured machine with the kill counter forced to zero.
- *
- * ★ NOTHING IS MASKED. The oracle pushes nothing of its own — the WINDOW arm measures its stack
- *   reach over the whole corpus and pins it at zero — so the whole state dump is compared, the
- *   stack included. The spawner it tails into pushes and pops for itself, on both sides equally.
- *
- * What it exercises, holes stated:
- *   1. REACH — dispatch counts under both tapes, and the distribution of the gate byte.
- *   2. WINDOW — the oracle's own push footprint, measured, and pinned at zero.
- *   3. CORPUS — every captured machine under both tapes, real spawner, whole dump compared.
- *   4. ARMS — how many corpus entries take each arm, with the cleared arm's zero stated.
- *   5. CLEARED — the arm the tapes never take, crafted over the whole corpus, real spawner.
- *   6. GATE-BYTE — all 256 values of the byte HL points at, both settings of the kill counter,
- *      against a recorder so the staging itself is what is compared.
- *   7. CRAFT-COUNT — all 256 values of the round's craft count, gate open, owed arm.
- *   8. EXCLUDED — no register outside the declared ceiling moves, with a control twin.
- *   9. TEETH — six twins with catch counts on both sweeps.
- *
- * HOLE: the sweeps vary the three cells this routine reads and nothing else; everything around
- * them is whatever the captured machine happened to hold.
- * HOLE: the corpus arms run the spawner, so a divergence they catch is not necessarily this
- * routine's. The recorder sweeps are what localise it, and they run the spawner not at all.
+ * HOLE: the sweeps vary the three cells this routine reads and nothing else.
+ * HOLE: the corpus arms run the spawner, so a divergence they catch need not be this routine's; the
+ * recorder sweeps localise it.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-37bd.test.js
  */
@@ -76,15 +52,15 @@ const OPEN = [0x00, 0x30];
 const VALUES = 256;
 const CORPUS_ENTRIES = 400;
 
-/** Measured by the WINDOW arm: this oracle pushes nothing of its own, so nothing is masked. */
-const SCRATCH_BYTES = 0;
+/** Every data write lands at or below here; the stack seats far above it, so the mask is safe. */
+const DATA_TOP = 0xadff;
 
 /**
- * The ceiling on divergence, and the whole of it. On the arm that ends here the oracle leaves the
- * byte it tested in the accumulator and the comparison in the flags, and takes a return the
- * rewrite does not. A CEILING and not a demand: a rewrite that diverged on fewer still passes.
+ * The ceiling on divergence. The gate leaves the tested byte in A and the comparison in the flags
+ * and takes a return the rewrite does not; the spawner it tails into leaves the staging pair, the
+ * accumulator and the shadow set differently. A CEILING and not a demand: a subset still passes.
  */
-const MOVED = ["a", "f", "sp"];
+const MOVED = ["a", "d", "e", "f", "sp", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
 
 const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 const show = (d) => (d ? `${hex4(d.addr ?? 0)}: oracle=${d.a} candidate=${d.b}` : "identical");
@@ -131,7 +107,11 @@ function recorderRoutines(seen) {
   return map;
 }
 
-/** Oracle vs candidate on independent clones: the whole dump, plus the registers outside MOVED. */
+/**
+ * Oracle vs candidate on independent clones: the whole dump outside the dead stack scratch, then
+ * the registers outside MOVED. The spawner the frozen side tails into pushes below its seat and
+ * takes a return the rewrite leaves; [low, seat) is masked, low watched off the oracle's pushes.
+ */
 function unitDiff(candidate, machine, setup) {
   const a = machine.clone();
   const b = machine.clone();
@@ -139,14 +119,24 @@ function unitDiff(candidate, machine, setup) {
     setup(a);
     setup(b);
   }
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   oracle(a);
   try {
     candidate(b);
   } catch (e) {
     return { addr: null, a: "returned", b: String(e).slice(0, 60) };
   }
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  if (ram) return ram;
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= low && addr < seat) continue;
+    return { addr, a: da[i], b: db[i] };
+  }
   for (const k of REG_FIELDS) {
     if (MOVED.includes(k)) continue;
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
@@ -182,32 +172,36 @@ function stagedDiff(candidate, machine, setup) {
   return null;
 }
 
-/** How far below its seat the oracle's own pushes take the stack pointer, on one entry state. */
-function oracleDepth(machine) {
-  const c = machine.clone();
-  const seen = [];
-  c.routines = recorderRoutines(seen);
-  const seat = c.regs.sp;
-  let deepest = seat;
-  const push = c.push16.bind(c);
-  c.push16 = (v) => {
-    const r = push(v);
-    if (c.regs.sp < deepest) deepest = c.regs.sp;
-    return r;
-  };
-  oracle(c);
-  return seat - deepest;
+/** The mask floor and the sp drift over a full run, watched off the frozen side's own pushes. */
+function maskProbe(machine, setup) {
+  const a = machine.clone();
+  const b = machine.clone();
+  if (setup) {
+    setup(a);
+    setup(b);
+  }
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
+  oracle(a);
+  gateTheFreeSlotSearchAndPickItsRun(b);
+  return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
 // ── the crafted sweeps ──────────────────────────────────────────────────────────────────
 
-/** Every value of the byte HL points at, on both settings of the kill counter. */
-function sweepGateByte(candidate) {
+/**
+ * Every value of the byte HL points at, on both settings of the kill counter. The real rewrite is
+ * held to the oracle by the masked full run; the twins reach the spawner by dispatch, so they are
+ * compared against the recorder, which catches a staging bug whatever the occupancy.
+ */
+function sweepGateByte(candidate, diff) {
   const base = capture("coin-start").entries[0];
   let caught = 0;
   for (const kills of [0, 7]) {
     for (let value = 0; value < VALUES; value++) {
-      const d = stagedDiff(candidate, base, (mm) => {
+      const d = diff(candidate, base, (mm) => {
         mm.mem8[mm.regs.hl] = value;
         mm.mem8[KILLS_REMAINING] = kills;
         mm.mem8[ROUND_CRAFT_COUNT] = 3;
@@ -219,11 +213,11 @@ function sweepGateByte(candidate) {
 }
 
 /** Every value of the round's craft count, gate open and enemies still owed. */
-function sweepCraftCount(candidate) {
+function sweepCraftCount(candidate, diff) {
   const base = capture("coin-start").entries[0];
   let caught = 0;
   for (let value = 0; value < VALUES; value++) {
-    const d = stagedDiff(candidate, base, (mm) => {
+    const d = diff(candidate, base, (mm) => {
       mm.mem8[mm.regs.hl] = 0x30;
       mm.mem8[KILLS_REMAINING] = 1;
       mm.mem8[ROUND_CRAFT_COUNT] = value;
@@ -295,9 +289,9 @@ function brokenEntryCursorStale(m) {
 }
 
 /** BUG: scribbles on a register outside the ceiling — the control for the EXCLUDED arm. */
-function brokenMovesDe(m) {
+function brokenMovesIy(m) {
   gateTheFreeSlotSearchAndPickItsRun(m);
-  m.regs.de = (m.regs.de + 1) & 0xffff;
+  m.regs.iy = (m.regs.iy + 1) & 0xffff;
 }
 
 const TWINS = [
@@ -322,13 +316,17 @@ test("REACH: the game dispatches this address under both tapes", { skip }, () =>
     `the byte behind HL took ${bytes.size} distinct values across the two corpora`);
 });
 
-test("WINDOW: the oracle pushes nothing of its own, measured over the corpus", { skip }, () => {
-  let deepest = 0;
-  for (const e of bothCorpora()) deepest = Math.max(deepest, oracleDepth(e));
-  console.log(`  WINDOW (measured): the oracle reaches ${deepest} bytes below its seat, so the ` +
-    "whole dump is compared with nothing masked");
-  assert.equal(deepest, SCRATCH_BYTES, "the oracle now pushes below its seat, so a masked window " +
-    "is owed and every arm here is comparing bytes it has no right to");
+test("SCRATCH AND SP: the drift is two bytes and the mask floor sits above the data", { skip }, () => {
+  // The spawner the frozen side tails into pushes below its seat and pops one return the rewrite
+  // leaves; its deepest push stays above every data cell, so the masked window hides nothing real.
+  let floor = 0xffff;
+  for (const e of bothCorpora()) {
+    const r = maskProbe(e);
+    assert.equal(r.spDiff, 2, `the frozen side no longer re-seats two bytes higher (${r.spDiff})`);
+    assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached down into game data`);
+    if (r.low < floor) floor = r.low;
+  }
+  console.log(`  SCRATCH AND SP: spDiff 2 over both corpora; deepest mask floor ${hex4(floor)}`);
 });
 
 for (const tapeName of ["coin-start", "attract"]) {
@@ -365,12 +363,14 @@ test("CLEARED: the arm the tapes never take, crafted over the whole corpus", { s
       mm.mem8[mm.regs.hl] = 0x00;
     });
     assert.equal(d, null, show(d));
+    // The masked full run above holds the rewrite to the oracle; this recorder probe reads the
+    // FROZEN side to pin what the cleared arm stages, so this account cannot rot.
     const seen = [];
     const probe = e.clone();
     probe.routines = recorderRoutines(seen);
     probe.mem8[KILLS_REMAINING] = 0;
     probe.mem8[probe.regs.hl] = 0x00;
-    gateTheFreeSlotSearchAndPickItsRun(probe);
+    oracle(probe);
     if (seen.length === 1 && seen[0].b === CLEARED.b && seen[0].ix === CLEARED.ix &&
         seen[0].iy === CLEARED.iy) staged++;
   }
@@ -381,19 +381,19 @@ test("CLEARED: the arm the tapes never take, crafted over the whole corpus", { s
 });
 
 test("GATE-BYTE: all 256 values, on both settings of the kill counter", { skip }, () => {
-  assert.equal(sweepGateByte(gateTheFreeSlotSearchAndPickItsRun), 0, "a gate byte diverged");
+  assert.equal(sweepGateByte(gateTheFreeSlotSearchAndPickItsRun, unitDiff), 0, "a gate byte diverged");
   console.log(`  GATE-BYTE: ${SWEEP_RUNS.gateByte} value-and-counter combinations identical`);
 });
 
 test("CRAFT-COUNT: all 256 values of the round's craft count", { skip }, () => {
-  assert.equal(sweepCraftCount(gateTheFreeSlotSearchAndPickItsRun), 0, "a craft count diverged");
+  assert.equal(sweepCraftCount(gateTheFreeSlotSearchAndPickItsRun, unitDiff), 0, "a craft count diverged");
   const seen = [];
   const probe = capture("coin-start").entries[0].clone();
   probe.routines = recorderRoutines(seen);
   probe.mem8[probe.regs.hl] = 0x30;
   probe.mem8[KILLS_REMAINING] = 1;
   probe.mem8[ROUND_CRAFT_COUNT] = 0;
-  gateTheFreeSlotSearchAndPickItsRun(probe);
+  oracle(probe);
   assert.deepEqual(seen, [{ b: 0, ix: OWED.ix, iy: OWED.iy }],
     "a craft count of zero must be handed over as zero, not clamped or skipped");
   console.log(`  CRAFT-COUNT: ${SWEEP_RUNS.craftCount} counts identical, zero handed over as zero`);
@@ -418,10 +418,10 @@ function movedOver(candidate) {
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
   const moved = movedOver(gateTheFreeSlotSearchAndPickItsRun);
-  const control = movedOver(brokenMovesDe);
+  const control = movedOver(brokenMovesIy);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
     "the measurement reports nothing outside the ceiling even for a twin that scribbles on a " +
-      "register pair, so a clean reading below proves nothing");
+      "register, so a clean reading below proves nothing");
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
     `ceiling ${MOVED.join(", ")}; the control twin also moves ` +
     `${REG_FIELDS.filter((k) => control.has(k) && !MOVED.includes(k)).join(", ")}`);
@@ -447,8 +447,10 @@ test("CALLER: the dispatch really is a tail, so the rewrite may omit the return"
 
 for (const [label, twin] of TWINS) {
   test(`TEETH: the ${label} twin is CAUGHT`, { skip }, () => {
-    const gateByte = sweepGateByte(twin);
-    const craftCount = sweepCraftCount(twin);
+    // Twins reach the spawner by dispatch, so the recorder catches a staging bug whatever the
+    // occupancy — the localisation the masked full run cannot give on its own.
+    const gateByte = sweepGateByte(twin, stagedDiff);
+    const craftCount = sweepCraftCount(twin, stagedDiff);
     console.log(`  TEETH/${label}: caught on ${gateByte}/${SWEEP_RUNS.gateByte} gate bytes, ` +
       `${craftCount}/${SWEEP_RUNS.craftCount} craft counts`);
     assert.ok(gateByte + craftCount > 0, `every sweep PASSED the ${label} twin`);

@@ -806,6 +806,106 @@ export const MOTHER_SHIP_ARMED = 0xad0d;
 export const DEFERRED_BLANK_CURSOR = 0xae80;
 
 export const ROUTINES = {
+  0x083e: {
+    name: "loc_083e",
+    role: "title/attract copyright-screen layout arm (table-dispatched, no static call site): request the flashing copyright line, stamp the copyright caption strip, post caption commands (command 1, arguments 0,1,3..7,20,21) to the command ring, then XOR-fold the 24-byte program block at 0x176A and step the sequence sub-step when the fold matches 0xC9, else transfer to the checksum-failure landing",
+    cert: "code",
+  },
+  0x1323: {
+    name: "loc_1323",
+    role: "phase-14 arm of the sequence loc_0f1f dispatches off the 0x0F29 table (keyed on SEQUENCE_SUBSTEP & 0x0F): only on alternate frames (bit 1 of FRAME_TICK clear), dispatch on the animation sub-step at 0xA9F0 -- steps 0/1 flash the player ship and advance a scripted char-plane animation, steps 2/3 tick a two-colour animation and run a title-plane pass, step 4 floods the colour plane; the final step sets SEQUENCE_DELAY, hides every sprite, sets up the active player's turn (loc_4c75) and reloads SEQUENCE_SUBSTEP from ROM byte 0x2750 (=3) to wind the outer sequence on",
+    cert: "code",
+  },
+  0x189e: {
+    name: "loc_189e",
+    role: "start a two-player game: park the caption sprites, raise PLAY_ACTIVE and the flag beside it, load both players' lives from the starting-count settings cell, run the two-player-start arm, deduct two credits in packed BCD from 0xA986 and repaint the panel field, then send the sequence machine to its last phase",
+    cert: "code",
+  },
+  0x2511: {
+    name: "loc_2511",
+    role: "cold-boot init: paints a 64-byte work-RAM block all-ones, seeds RNG / loads default high scores / empties the deferred lists (watchdog-kicking after each), then tail-jumps into the settings + cold-start chain",
+    cert: "code",
+  },
+  0x30d1: {
+    name: "loc_30d1",
+    role: "clear a stride-two run of eight object cells to the fill byte carried in A, then branch on the era in C: below four, seat and run the frame's scenery through the four-object seat path; at four and up, when two work-RAM guards read their expected values seat eight entries from a packed table before running the scenery, and on a wrong guard transfer into a data table and fault",
+    cert: "code",
+  },
+  0x335e: {
+    name: "loc_335e",
+    role: "sequence-machine arm: fold a fixed image run into the sequence-phase cell as a tamper tripwire (net-zero on a genuine image), then seat the caption pen (glyph 0xAD0B / colour 0xAD0C, and the active player's save block) from a two-byte glyph/colour record indexed by that player's era; steps the sub-step an extra time if the pen colour was unchanged, re-arms the pen route, then steps the sub-step again as a tail",
+    cert: "code",
+  },
+  0x37d6: {
+    name: "loc_37d6",
+    role: "work one slot in a downward free-slot search: a busy slot passes the turn to the search tail, a free slot is claimed and stocked with a random heading-derived velocity, facing, script and fresh animation (at most one slot filled per turn)",
+    cert: "code",
+  },
+  0x386e: {
+    name: "loc_386e",
+    role: "spawn a wave across a fixed bank of object slots: fill each free slot from a randomly-drawn shape record (shape index + two fields), prime its step counter, step its animation once, mark it live; store a fixed status byte when the pass ends",
+    cert: "code",
+  },
+  0x3c25: {
+    name: "loc_3c25",
+    role: "on even frames tick a slot's arming countdown at ix+0x0e; when it fires and MOTHER_SHIP_ARMED (0xad0d) is clear, arm the slot -- pick a shape record from PLAYER_HEADING (0xa802) via the table at 0x3c84, snap the heading to a facing bit, look up the velocity pair, write shape/facing/velocity into the record, set HITS_REMAINING (0xa8dc)=3, and mark the slot live (ix+0=0xff)",
+    cert: "code",
+  },
+  0x3ff9: {
+    name: "loc_3ff9",
+    role: "sweep a fixed bank of object slots for a frame, servicing each by its head byte -- fly a ballistic slot (0xFF) a frame along its arc, run the shape-cycle countdown service on any other nonzero, skip an empty (0) -- striding one 0x10 record and two sprite-entry bytes per slot for the caller's count",
+    cert: "code",
+  },
+  0x4008: {
+    name: "loc_4008",
+    role: "sweep the fixed three-slot object bank for one frame from the seated cursors (record cursor +0x10, sprite cursor +2 per slot, count bounding the pass): service the first slot's shape-cycle unconditionally, then route each following slot by its marker byte -- skip an empty (0x00) slot, fly a ballistic (0xFF) slot a step, and service any other marker's shape-cycle",
+    cert: "code",
+  },
+  0x413c: {
+    name: "loc_413c",
+    role: "advance one countdown-driven object per frame: re-stamp+sound at the reset cap, drift with world scroll, decrement, retire the slot at zero, else animate the sprite from a mode-selected frame table above the window floor",
+    cert: "code",
+  },
+  0x4194: {
+    name: "loc_4194",
+    role: "one slot's per-frame handler in an object sweep: while the record's approach countdown at +4 runs, decrement it and drive the object through its chased-object frame; the tick it hits zero, fly the object at double velocity, animate its shape cycle, and retire the slot only if it has reached a retire line, then step the sweep onto the next slot",
+    cert: "code",
+  },
+  0x47b3: {
+    name: "loc_47b3",
+    role: "per-frame manager of the single parachutist slot (record 0xa8f0, sprite 0xaa2e): idle in era 4, else branch on the slot's state byte — free spawns it at the edge ahead, in-flight (0xff) flies it and retires it once it reaches a retire line else steps its shape from the frame tick, 0x10 posts its bonus, >=0x3c shows its award, and any lower value drifts it with the world then counts down and retires it at zero",
+    cert: "code",
+  },
+  0x496e: {
+    name: "loc_496e",
+    role: "outside free play, fold C's low decimal digit into the packed-decimal credit count at 0xa986 (decimal add, clamp to 99) and repaint that field, then run the coin-counter pulse",
+    cert: "code",
+  },
+  0x4a42: {
+    name: "loc_4a42",
+    role: "continue a caption's colour band from the caller's HL cursor: lay the caller's A over one cell, a 13-cell run of the caller's C and a 4-cell tail (0x0e), then fill two colour-RAM rows and six scattered colour cells from the base colour at 0xAD0C (each value base+offset), then seed the saved pen from the era and step the sequence sub-step; A/C/HL/DE left scratch",
+    cert: "code",
+  },
+  0x4d72: {
+    name: "loc_4d72",
+    role: "ring command 5's handler (word-table slot 5 at 0x0BBC; reached on coin-start, never in attract): while 0xAD30 is nonzero, stamp up to six 2x2 award emblems leftward from 0xA783 via loc_4daf, blank the rest of that row down to 0xA623 via loc_4dcf, then XOR-verify program bytes 0x0711-0x0810 -- memory only",
+    cert: "code",
+  },
+  0x4e63: {
+    name: "loc_4e63",
+    role: "run one round's collision-and-destruction pass: sweep the player's shots against targets, then the player against a run of objects, then -- picked by whether the mother-ship is armed -- either the player-vs-slots contact sweep plus the mother-ship mutual-kill box, or a wider player-vs-slots sweep; then a three-target attacker sweep and a final mark of objects touching the player. The object/slot cursor pair threads through DE/IY across the chain, each stage continuing where the last left off",
+    cert: "code",
+  },
+  0x4ebc: {
+    name: "loc_4ebc",
+    role: "split the per-frame collision work by frame parity: on odd frames run the shot-vs-target sweeps (loc_4f35); on even frames run the player-vs-object collision chain, adding the mother-ship mutual-kill check (loc_50b1) only while the mother ship is armed",
+    cert: "code",
+  },
+  0x5303: {
+    name: "loc_5303",
+    role: "run the image-checksum tamper test and relay by its verdict: present the carried checksum, step the attract sequence on the one genuine value, else spring the tamper trap",
+    cert: "code",
+  },
   0x0167: {
     name: "loc_0167",
     role: "caption-record data run as code on the checksum-mismatch derail arm: bumps one work-RAM cell the accumulator points at, then falls into the frame-interrupt epilogue that unwinds the frame and resumes",

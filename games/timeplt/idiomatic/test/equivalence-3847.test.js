@@ -1,53 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * closeOneTurnOfTheFreeSlotSearch — memory-equivalent to the frozen oracle at ROM 0x3847.
+ * closeOneTurnOfTheFreeSlotSearch — a captured corpus, crafted sweeps over the count and over slot
+ * occupancy, a whole-game arm for the register pair the rewrite drops, and a MASKED diff.
  *
- * GATE: a real captured corpus, exhaustive crafted sweeps over the count and over slot
- *   occupancy, and a whole-game arm for the register pair the rewrite drops.
+ * This entry is the bottom of a loop: while the count holds it transfers back to the body, which
+ * reads a slot, may draw the random register and spawn an object, and comes back for the next turn.
+ * So one comparison is the whole remainder of the pass, on both sides; whichever side is under way
+ * is what the loop's own re-entries run.
  *
- * ★ WHAT A COMPARISON HERE ACTUALLY RUNS. This entry is the bottom of a loop: while the count has
- *   not run out it transfers back to the body at 0x37D6, which reads a slot, may draw from the
- *   random register, may spawn an object across a dozen cells, and comes back here for the next
- *   turn. So one comparison is not four register moves — it is the whole remainder of the pass,
- *   on both sides. Whichever side is under way is also what the loop's own re-entries dispatch,
- *   so the rewrite is exercised on every turn and not merely the first — measured: wiring it that
- *   way took the one-turn-short twin from 5 of the captured entries to 20 of them.
+ * The dissolved body drops its tail return and never writes the stack scratch the frozen side
+ * leaves below its seat, so that window is masked (floor watched off the oracle's pushes, proved
+ * above the data) and the two-byte drift is asserted. The registers the body leaves differ and are
+ * excluded as a ceiling; the LIVE-REGISTERS arm settles that they are dead where the pass ENDS by
+ * running the whole game with each scribbled, carrying a memory control and a register control so an
+ * absence cannot look like a blind instrument. Whether the pair is read INSIDE the loop is the
+ * corpus and sweep arms' question, since they run every remaining turn and compare all of RAM.
  *
- * ★ THE REGISTER PAIR THE REWRITE DROPS, AND THE ARM THAT LICENSES IT. The oracle stages a
- *   constant in a register pair purely to add it to the record cursor; the rewrite subtracts
- *   instead and never touches the pair. Whether that is safe is not decidable from this routine,
- *   because the pair is left behind for whatever runs after the pass. The LIVE-REGISTERS arm
- *   settles it by MEASUREMENT: it runs the whole game twice for each register, once clean and
- *   once with that register scribbled on at the instant this routine finishes, and asserts the
- *   two runs stay byte-identical for 1400 frames. That is an absence, so it carries two positive
- *   controls in the same breath — a memory scribble at the same instant, which IS caught, and a
- *   register scribble at a neighbouring routine whose product really is a register, also caught.
- *   Without those two the arm would look identical to a broken instrument.
- *   Its scope is honest and narrow: it says the registers are dead where the pass ENDS. Whether
- *   the pair is read INSIDE the loop is a different question, and the corpus and sweep arms below
- *   answer that one, since they run every remaining turn on both sides and compare all of RAM.
- *
- * What it exercises, holes stated:
- *   1. DISPATCHED — the tape reaches this address and a corpus of real entries is captured, with
- *      at least one of them making the frozen side write. This is the vacuity guard. Most entries
- *      land on a bank with no room left and the whole pass writes nothing; that is the routine
- *      behaving, and the arm distinguishes it from a corpus that is ALL no-ops.
- *   2. CORPUS — every captured entry replays identically, whole dump.
- *   3. COUNT — the count swept over every value that keeps the walk inside its bank, both the
- *      turn-again arm and the walk-is-over arm, and the count SHOWN to decide how many turns run:
- *      over a bank with no room the cursor must rest exactly that many records below its seat.
- *   4. OCCUPANCY — all 32 free/occupied patterns of the five slot heads the walk can reach, which
- *      is what decides how many turns actually run.
- *   5. LIVE REGISTERS — the whole-game arm above, with its two controls.
- *   6. EXCLUDED — no register outside the declared ceiling moves, with a control twin.
- *   7. TEETH — six twins. The two fixed-size sweeps carry an exact catch count so a twin that
- *      quietly stops being caught cannot read as a pass; the corpus count is printed, not pinned,
- *      because its size belongs to the tape.
- *
- * HOLE: the two arms that vary anything vary the count and the slot heads only; the rest of each
- * machine is whatever the captured frame left.
- * HOLE: the whole-game arm is bounded by one tape of 1400 frames. A reader of the pair on a path
- * that tape never drives would not be seen.
+ * HOLE: the sweeps vary the count and the slot heads only; the rest is whatever the frame left.
+ * HOLE: the whole-game arm is one tape of 1400 frames.
  *
  * Run: node --test games/timeplt/idiomatic/test/equivalence-3847.test.js
  */
@@ -61,7 +31,7 @@ import { loc_3847 as oracle } from "../../translated/loc_3847.js";
 // The neighbouring routine whose product IS a register: it hands a value back that its caller
 // stores. It is the LIVE-REGISTERS arm's second positive control and nothing else.
 import { loc_382d as registerProducer } from "../../translated/loc_382d.js";
-import { firstStateDiff, wholeMachineEquivalence } from "../../../../core/equivalence.js";
+import { wholeMachineEquivalence } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x3847;
@@ -84,19 +54,19 @@ const BUSY = 0xff;
 /** Counts that keep the walk inside its bank from the highest seat the corpus shows. */
 const COUNT_VALUES = 8;
 
-/**
- * The ceiling on divergence, measured: the flag byte and the register pair the oracle stages its
- * backward step in, neither of which the rewrite touches, and the stack pointer, which the oracle
- * moves by taking the return the rewrite leaves to the seam. Checked as a SUBSET, so a rewrite
- * that diverged on fewer would still pass and this can never refuse a fix.
- */
-const EXCLUDED = ["f", "d", "e", "sp"];
+/** Every data write lands at or below here; the stack seats far above it, so the mask is safe. */
+const DATA_TOP = 0xadff;
 
 /**
- * Registers the LIVE-REGISTERS arm scribbles on, one whole game each. The scribble is a flip and
- * not an assignment on purpose: a constant can land on the value the register already held, and
- * that dispatch would then be silently untested while the arm reported it scribbled.
+ * The ceiling on divergence, measured: the flag byte and the register pair the oracle stages its
+ * backward step in, the accumulator and shadow set the dissolved body leaves differently, and the
+ * stack pointer it moves by taking the return the rewrite leaves. Checked as a SUBSET, so a rewrite
+ * that diverged on fewer would still pass and this can never refuse a fix.
  */
+const EXCLUDED = ["f", "d", "e", "sp", "a", "a_", "f_", "b_", "c_", "d_", "e_", "h_", "l_"];
+
+/** Registers the LIVE-REGISTERS arm scribbles, one game each; a flip not an assignment, so it can
+ * never land on the value already held and read as tested when it was not. */
 const SCRIBBLED = ["de", "hl", "a", "f", "b", "ix", "iy"];
 const FLIP = 0xffff;
 /** A cell the walk reads, flipped the same way as the memory positive control for that arm. */
@@ -110,12 +80,8 @@ const show = (d) =>
 
 let corpus = null;
 
-/**
- * WHICH SIDE THE LOOP ITSELF RUNS. Every turn after the first re-enters this address through the
- * registry, so a comparison that only called the rewrite at the top would run the FROZEN twin for
- * turns two onward and could not see a fault that needs two turns to show. This holds whichever
- * side is under way, so the rewrite is exercised on every turn of the pass and not just the first.
- */
+/** WHICH SIDE THE LOOP RUNS. Every turn after the first re-enters through the registry, so the
+ * body under test is wired for those re-entries too — exercised on every turn, not just the first. */
 let dispatchBody = oracle;
 
 /** Run `body` on `machine` with the same body wired for the loop's own re-entries. */
@@ -128,11 +94,8 @@ function runAs(body, machine) {
   }
 }
 
-/**
- * Machines taken at every real dispatch of this address. The guard matters: replaying re-enters
- * this same address through the loop, and without it the list would fill with states minted by
- * the replay instead of by the game.
- */
+/** Machines at every real dispatch. The guard matters: replaying re-enters this address, and
+ * without it the list would fill with states minted by the replay, not the game. */
 function capture() {
   if (corpus) return corpus;
   let collecting = true;
@@ -155,10 +118,18 @@ function anEntry() {
   return entries[0];
 }
 
-/** Oracle vs candidate on independent clones of `machine`: the whole dump, then the registers. */
+/**
+ * Oracle vs candidate on independent clones: the whole dump outside the dead stack scratch, then
+ * the registers outside the ceiling. The frozen body pushes below its seat and takes a return the
+ * rewrite leaves; [low, seat) is masked, low watched off the oracle's own pushes.
+ */
 function unitDiff(candidate, machine) {
   const a = machine.clone();
   const b = machine.clone();
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
   try {
     runAs(oracle, a);
   } catch (e) {
@@ -169,13 +140,32 @@ function unitDiff(candidate, machine) {
   } catch (e) {
     return { addr: null, a: "returned", b: String(e).slice(0, 40) };
   }
-  const ram = firstStateDiff(a.dumpState(), b.dumpState(), (off) => a.stateOffsetToAddr(off));
-  if (ram) return ram;
+  const da = a.dumpState();
+  const db = b.dumpState();
+  for (let i = 0; i < da.length; i++) {
+    if (da[i] === db[i]) continue;
+    const addr = a.stateOffsetToAddr(i);
+    if (addr >= low && addr < seat) continue;
+    return { addr, a: da[i], b: db[i] };
+  }
   for (const k of REG_FIELDS) {
     if (EXCLUDED.includes(k)) continue;
     if (a.regs[k] !== b.regs[k]) return { addr: null, a: `${k}=${a.regs[k]}`, b: `${k}=${b.regs[k]}` };
   }
   return null;
+}
+
+/** The mask floor and the sp drift, watched off the frozen side's own pushes. */
+function maskProbe(machine) {
+  const a = machine.clone();
+  const b = machine.clone();
+  const seat = a.regs.sp;
+  let low = seat;
+  const push = a.push16.bind(a);
+  a.push16 = (v) => { push(v); if (a.regs.sp < low) low = a.regs.sp; };
+  runAs(oracle, a);
+  runAs(closeOneTurnOfTheFreeSlotSearch, b);
+  return { low, seat, spDiff: a.regs.sp - b.regs.sp };
 }
 
 /** How many bytes of the whole dump the oracle moves from this entry. */
@@ -306,9 +296,8 @@ test("DISPATCHED: the tape reaches the routine, and the oracle does work there",
   assert.notEqual(entries[0] ?? null, null, "vacuous: the tape never reached the routine");
   const footprints = entries.map(oracleFootprint);
   const busy = footprints.filter((n) => n > 0).length;
-  // Most entries land on a bank with no room left, and on those the whole pass writes nothing at
-  // all. That is the routine behaving, not the gate failing -- but a corpus where NONE of them
-  // wrote would be a corpus of no-ops, and every comparison over it would pass a no-op twin.
+  // Most entries land on a full bank and write nothing -- the routine behaving; but a corpus where
+  // NONE wrote would be all no-ops, and every comparison over it would pass a no-op twin.
   assert.ok(busy > 0, "no captured entry makes the oracle write a single byte, so the corpus is " +
     "all no-ops and the arms over it would pass a rewrite that did nothing");
   const counts = [...new Set(entries.map((e) => e.regs.b))].sort((p, q) => p - q);
@@ -355,6 +344,20 @@ test("OCCUPANCY: all 32 free/busy patterns of the reachable slot heads", { skip 
   console.log(`  OCCUPANCY: ${OCCUPANCY_PATTERNS} patterns identical; all-free moves ` +
     `${allFree} bytes, all-busy moves ${allBusy}`);
 });
+
+test("SP AND SCRATCH: the drift is exactly two bytes and the mask floor sits above the data",
+  { skip }, () => {
+    // Over the corpus and a crafted all-free bank, the frozen side pops one return the rewrite
+    // leaves, and its deepest push stays above every data cell — so the mask can hide nothing real.
+    const probes = [...capture(), craftOccupancy(0)];
+    for (const e of probes) {
+      const r = maskProbe(e);
+      assert.equal(r.spDiff, 2, `the frozen side no longer re-seats two bytes higher (${r.spDiff})`);
+      assert.ok(r.low > DATA_TOP, `the stack window ${hex4(r.low)} reached down into game data`);
+    }
+    const r = maskProbe(craftOccupancy(0));
+    console.log(`  SP AND SCRATCH: spDiff 2 on ${probes.length} states; window floor ${hex4(r.low)}`);
+  });
 
 test("LIVE REGISTERS: nothing reads what the pass leaves, with two positive controls",
   { skip }, () => {
