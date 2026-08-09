@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4d3a — memory-equivalent to the frozen oracle at ROM 0x4D3A. GATE: crafted-entry; the oracle
+ * escalateDifficultyRungOnCounterWrap — memory-equivalent to the frozen oracle at ROM 0x4D3A. GATE: crafted-entry; the oracle
  *   rets on every exit and the rewrite's dissolved tail does not, so RAM compares with the dead
  *   stack scratch below the seated SP masked, SP drift asserted, registers left alone.
  */
@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4d3a as candidate } from "../loc_4d3a.js";
+import { escalateDifficultyRungOnCounterWrap as candidate } from "../escalateDifficultyRungOnCounterWrap.js";
 import { loc_4d3a as oracle } from "../../translated/loc_4d3a.js";
 import { advanceSexagesimalDigit } from "../advanceSexagesimalDigit.js";
 import { applyEraRungSettings } from "../applyEraRungSettings.js";
@@ -111,7 +111,7 @@ function scenarios() {
   ];
 }
 
-/** The rewrite with one deliberate defect each; every knob matches loc_4d3a by default. */
+/** The rewrite with one deliberate defect each; every knob matches escalateDifficultyRungOnCounterWrap by default. */
 function twin({ chain = "carry", dec = true, clamp = true, tail = true } = {}) {
   return (m) => {
     const { mem8 } = m;

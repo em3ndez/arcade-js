@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4c75 — memory-equivalent to the frozen oracle at ROM 0x4C75.
+ * loadActivePlayerContextAndPostRoundHud — memory-equivalent to the frozen oracle at ROM 0x4C75.
  * GATE: real dispatches (reached by computed dispatch; its static caller is dead) plus crafted
  *   branch entries; RAM compared with the dead stack scratch below the seated SP masked out, the
  *   +2 SP re-seat and the undefined return asserted, teeth. The picture-enable latch write is
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_4c75 as candidate } from "../loc_4c75.js";
+import { loadActivePlayerContextAndPostRoundHud as candidate } from "../loadActivePlayerContextAndPostRoundHud.js";
 import { loc_4c75 as oracle } from "../../translated/loc_4c75.js";
 import { blankFourteenCharCells } from "../blankFourteenCharCells.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
@@ -134,7 +134,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every parameter matches loc_4c75 by default. */
+/** The rewrite with one deliberate defect each; every parameter matches loadActivePlayerContextAndPostRoundHud by default. */
 function twin({ blank = true, forceP1 = false, copy = true, round = ROUND_COMMAND, substep = true }) {
   return (m) => {
     const { mem8 } = m;

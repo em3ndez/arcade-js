@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_41b8 — memory-equivalent to the frozen oracle at ROM 0x41B8.
+ * flyTowardShipStandoffThenEndApproach — memory-equivalent to the frozen oracle at ROM 0x41B8.
  * GATE: era-poked real dispatches (the tapes never reach it) plus crafted re-aim and arrival
  *   entries. RAM compared with the dead stack scratch below the seat masked out (the oracle nests
  *   calls and tail-rets, the rewrite does not), the +2 SP drift asserted, and the two live-outs the
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_41b8 as candidate } from "../loc_41b8.js";
+import { flyTowardShipStandoffThenEndApproach as candidate } from "../flyTowardShipStandoffThenEndApproach.js";
 import { loc_41b8 as oracle } from "../../translated/loc_41b8.js";
 import { headingToward } from "../headingToward.js";
 import { endApproachNow } from "../endApproachNow.js";
@@ -147,7 +147,7 @@ const scenarios = () => [
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every knob matches loc_41b8 by default. */
+/** The rewrite with one deliberate defect each; every knob matches flyTowardShipStandoffThenEndApproach by default. */
 function twin({ reaim = true, swap = false, end = true, bc = true, move = true }) {
   return (m) => {
     const { regs, mem8 } = m;

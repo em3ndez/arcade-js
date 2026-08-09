@@ -812,7 +812,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x074b: {
-    name: "loc_074b",
+    name: "erasePenRouteThenAdvanceStep",
     role: "attract-sequence arm (phase 1, sub-step 0, reached by rst-30 computed dispatch from loc_1651): fold the fixed 256-byte run at 0x4AA0 into an eight-bit total and derail into the checksum-failure landing 0x08FA on any total but 0xB8; otherwise set the pen colour 0xAD0C to 5 and the stamp glyph 0xAD0B to the blanking glyph 0xF1 (so the pen erases), re-arm the pen route via 0x01E1, then step the sequence sub-step 0x0F1A -- twice when the pen colour already held 5",
     cert: "code",
   },
@@ -822,7 +822,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x1734: {
-    name: "loc_1734",
+    name: "advancePenRunAnimationStep",
     role: "one interpolated-run sequence step: call drawInterpolatedPenRun to draw/advance one pen run and ret nz unless it reseated to a zero row integer, then store the two's-complement checksum of the 34-byte code block at 0x1748 into 0xA817 (0x00 on a clean image) and tail-jump to 0x0F1A (advanceSequenceSubStep) to step the sequence sub-index",
     cert: "code",
   },
@@ -832,17 +832,17 @@ export const ROUTINES = {
     cert: "code",
   },
   0x29f7: {
-    name: "loc_29f7",
+    name: "steerEnemyTowardShip",
     role: "steer one live slot toward its aim heading then fly it a step; when the slot's probe cell (iy+0x31) lies within a fixed window of either reference point the turn runs with the shared turn-rate index forced to zero then reseated to four, else at the standing index, and the step alternates a double- and a single-velocity mover on bit 1 of the frame tick",
     cert: "code",
   },
   0x2b93: {
-    name: "loc_2b93",
+    name: "stepDyingObjectState",
     role: "per-object state-machine step: dispatch on the object's state byte — 0xf0 re-arms it to 0x3b and begins its death, 0x3c begins the death then flies it on, above 0x3c flies it on, below 0x3c counts the byte down, retiring the slot at zero else moving the object for the frame",
     cert: "code",
   },
   0x2d21: {
-    name: "loc_2d21",
+    name: "driftNearestSceneryTriTile",
     role: "drift one scenery object with the world scroll over-travelled by a quarter, then lay the tile abutting it and the one cornering it diagonally (three corners of a square) and step both cursors one slot past",
     cert: "code",
   },
@@ -852,57 +852,57 @@ export const ROUTINES = {
     cert: "code",
   },
   0x3117: {
-    name: "loc_3117",
+    name: "seedSceneryEntriesThenRunScenery",
     role: "when a sentinel pair reads 0x68 then 0x10-or-0x05, seat four objects from a packed table into the sprite cell and shadow of the first four entry-bank slots and hand on to the frame's scenery run; otherwise transfer to the caption path",
     cert: "code",
   },
   0x406c: {
-    name: "loc_406c",
+    name: "runOneShotAnimatedObjectSlot",
     role: "service one animated slot for a frame: rearm it (stamp the countdown to 59 and request the paired sound) when the countdown at (ix+0) is >=0x3c, count the countdown down, retire the sprite (zero iy+0 and iy+0x31) when it reaches zero, otherwise drift the object with the world scroll and, once the countdown is >=0x1c, drive the sprite shape (iy+1) from the 9-byte table at 0x4094 indexed by (countdown-0x1c)>>2 and set its attribute (iy+0x30) to 0x0e",
     cert: "code",
   },
   0x418b: {
-    name: "loc_418b",
+    name: "flyLiveSlotAndTickCountdown",
     role: "service one live slot of the per-slot object sweep: fly the slot's object a step along its stored velocity (retiring it once it crosses a retire line), tick down the slot's own countdown at record offset 0x0e, then close the turn of the sweep; reached only for a slot whose marker byte reads 0xFF with a nonzero countdown, outside the fourth era",
     cert: "code",
   },
   0x41b8: {
-    name: "loc_41b8",
+    name: "flyTowardShipStandoffThenEndApproach",
     role: "run one chased object through a frame: every sixteenth frame re-aim it at one of two fixed points a record bit selects, cut its approach countdown to zero once both axis gaps to that point fall under sixteen, then turn, move and dress it every frame; the carry answers whether it reached a retire line",
     cert: "code",
   },
   0x460e: {
-    name: "loc_460e",
+    name: "setUpTwoPlayerStartObjectOnce",
     role: "two-player-start setup arm (called from 0x189E): when the video cell 0xA67C and work cell 0xAB43 disagree, decrement the counter at (IX+0), seat 0xFE/0xFD and 0x6C/0x6C into the object slot at (IY+1/+3/+0x30/+0x32), request sound 0x580B when 0xA800 is 0xFF, and queue ring command 0x04/0x0D; a no-op when the two cells agree",
     cert: "code",
   },
   0x49a8: {
-    name: "loc_49a8",
+    name: "finishBootSelfTestAndColdStart",
     role: "tail of power-on config decode + self-test: slices two bits of the rolled config byte into work-RAM 0xa9c4/0xa9c6, kicks the watchdog, drives LS259 line 1 from ROM byte 0x0c3e, tiles the character plane, sums the 256-byte ROM block at 0x27de and derails a tampered image into the frame handler, else cold-starts",
     cert: "code",
   },
   0x4c75: {
-    name: "loc_4c75",
+    name: "loadActivePlayerContextAndPostRoundHud",
     role: "sequence arm (computed-dispatch entry 3 of the table at 0x0F29): blank a fixed character-cell run, copy the active player's saved 16-byte context block into the live block at 0xAD00, step the sequence sub-index; when play is active it also posts the round number (cmd 6) and lives-less-one (cmd 5) to the command ring and folds a fixed program span (0x5B50, 256 bytes) into an XOR whose low bit less one drives the picture-enable latch 0xC308 -- a tamper guard",
     cert: "code",
   },
   0x4d3a: {
-    name: "loc_4d3a",
+    name: "escalateDifficultyRungOnCounterWrap",
     role: "step a three-place base-sixty tick counter at 0xAD05, carrying into the next place only while a place rolls over; only on a full roll-over count down the reload timer at 0xA9D7, and each time it fires rearm it from 0xA9D6, climb the escalation rung at 0xACC0 one step (held at 15), and apply that rung's tuning row",
     cert: "code",
   },
   0x50b1: {
-    name: "loc_50b1",
+    name: "ramTestPlayerVsMotherShip",
     role: "select the collision box for the mutual kill of the player and one fixed two-slot target by ERA_INDEX: eras 0 and 4 transfer to the wider first-axis check (loc_50ee), the rest run the same destruction inline with a narrower first-axis window; when both are live and their coordinates fall in the box, mark both destroyed, clear the cell beside them, and tail-post the chained hit score",
     cert: "code",
   },
   0x52aa: {
-    name: "loc_52aa",
+    name: "seedGameConfigFromDipSwitches",
     role: "boot-time DIP seed: copy two ROM defaults into their cells (0x08c9->0xa98d, 0x0874->KILL_QUOTA), store DSW0 complemented as COINAGE_SETTINGS and unpack the coin ratios, then turn DSW1's low two bits into a lives count (3/4/5, or 0xff when they fold to none) and tail-jump with it plus the whole complemented bank into the switch-settings peeler; never returns",
     cert: "code",
   },
   0x5bd7: {
-    name: "loc_5bd7",
+    name: "blankCaptionThenAdvancePenRunStep",
     role: "inner sequence-dispatch arm (table 0x0f29 index 2): blank a fixed character run, advance the interpolated pen run, and bail unless it reseated to a zero row integer; on the full path fold two guarded code blocks (an anti-tamper XOR check that raises the sequence phase on mismatch, and a self-cancelling add-checksum over a work cell) then step the sequence sub-index",
     cert: "code",
   },
@@ -1539,7 +1539,7 @@ export const ROUTINES = {
     name: "placeAbuttingTile",
     role: "place an object's next sprite tile flush against the current one and step both cursors onto it",
     cert: "code",
-    why: "driftThreeTileSceneryAtFiveQuarters chains two of these and loc_2d21 chains one plus the diagonal sibling placeDiagonallyAbuttingTile, both tail-jumping into advanceToNextSlot -- so a slot boundary here is a tile boundary, which is exactly why that routine's own entry declines to call the unit an object",
+    why: "driftThreeTileSceneryAtFiveQuarters chains two of these and driftNearestSceneryTriTile chains one plus the diagonal sibling placeDiagonallyAbuttingTile, both tail-jumping into advanceToNextSlot -- so a slot boundary here is a tile boundary, which is exactly why that routine's own entry declines to call the unit an object",
   },
   0x40b8: {
     name: "askForSoundWhileTheGroupIsClear",
@@ -1685,7 +1685,7 @@ export const ROUTINES = {
   },
   0x5860: {
     name: "loc_5860",
-    role: "fly one object a single step at the pace the velocity samples based at 0x2E3E set, choosing that table and deciding nothing else; a pointer the caller was holding is discarded. Its one reader in the image is loc_29f7, which the era-4 arm of the handler table at 0x2914 calls for a live slot, and that reader alternates on bit 1 of the frame tick between this entry and 0x58AA -- the shim that hands the double-velocity mover the ladder's bottom table -- so the object it steps does not stay on one rung",
+    role: "fly one object a single step at the pace the velocity samples based at 0x2E3E set, choosing that table and deciding nothing else; a pointer the caller was holding is discarded. Its one reader in the image is steerEnemyTowardShip, which the era-4 arm of the handler table at 0x2914 calls for a live slot, and that reader alternates on bit 1 of the frame tick between this entry and 0x58AA -- the shim that hands the double-velocity mover the ladder's bottom table -- so the object it steps does not stay on one rung",
     cert: "code",
   },
   0x5942: {
@@ -1786,7 +1786,7 @@ export const ROUTINES = {
     name: "destroyTargetsHitByShots",
     role: "destroy every target a live shot has reached, spending the shot with them, and post the score for each; the sweep does not stop at the first, so one shot can take several in a pass",
     cert: "code",
-    why: "every caller fixes the outer array at the six-slot table loc_23e3 owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one loc_2b93 converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision, which is why nothing here is [seen]",
+    why: "every caller fixes the outer array at the six-slot table loc_23e3 owns and arms only on a fire-button rising edge, and varies only the inner list -- so the sweep runs shots against targets and not the reverse. The state code it writes is the one stepDyingObjectState converts into a death countdown before retiring the slot, so destroy is the object's fate rather than this routine's bookkeeping. Kills also arrive through another routine's inline collision, which is why nothing here is [seen]",
   },
   0x58a4: {
     name: "loc_58a4",
@@ -1910,7 +1910,7 @@ export const ROUTINES = {
     name: "placeDiagonallyAbuttingTile",
     role: "carry an object diagonally onto one more sprite entry, cornering off the one it already occupies: a pitch back along the high axis and a pitch on along the low one, in one 16-bit add so the low axis's wrap borrows",
     cert: "code",
-    why: "placeAbuttingTile's registry entry already called this address the diagonal sibling before it was decompiled, and the write-set could have contradicted that: it does not -- the step is -16 on the entry's +49 byte and +16 on its +0 byte. loc_2d21 chains placeAbuttingTile then this one, which lays three tiles on three corners of a square -- the fourth corner is never written; driftThreeTileSceneryAtFiveQuarters chains two straight ones and lays a strip",
+    why: "placeAbuttingTile's registry entry already called this address the diagonal sibling before it was decompiled, and the write-set could have contradicted that: it does not -- the step is -16 on the entry's +49 byte and +16 on its +0 byte. driftNearestSceneryTriTile chains placeAbuttingTile then this one, which lays three tiles on three corners of a square -- the fourth corner is never written; driftThreeTileSceneryAtFiveQuarters chains two straight ones and lays a strip",
   },
   0x3dfb: {
     name: "retireSlotIntoSharedCooldown",
@@ -2196,7 +2196,7 @@ export const ROUTINES = {
     name: "steerTowardAimAtFixedRate",
     role: "turn an object's heading two units toward the heading it aims at, on the three frames in four when the frame counter's low two bits are not both clear; a fixed step, where its sibling steerTowardAimHeading takes its rate from a table",
     cert: "code",
-    why: "the name says the byte it writes is the heading MOTION follows, and its caller could have refuted that: loc_41b8 re-aims by writing the aim byte every sixteenth frame, calls this routine, and then calls the flier whose first instruction reads the very byte this one wrote. A caller that used the result as a table index, or a flier that read the aim instead, would have killed the name. Read taps under MAME counted zero dispatches on two tapes in eras 0-1 and 8225 on one holding the era at 4. ★ The name deliberately does NOT say 'the short way round': the direction test is taken on the gap PLUS ONE, so a gap of exactly 127 turns long; the standing band is two wide and off centre, at gaps of 0 and 255; and because the step is TWO the gap's parity is invariant, so which of those two it comes to rest on follows that parity and not the side it approached from. Sibling 0x4201 has the same biased tests with a step of one, which makes it side-determined instead -- same shape, different mechanism",
+    why: "the name says the byte it writes is the heading MOTION follows, and its caller could have refuted that: flyTowardShipStandoffThenEndApproach re-aims by writing the aim byte every sixteenth frame, calls this routine, and then calls the flier whose first instruction reads the very byte this one wrote. A caller that used the result as a table index, or a flier that read the aim instead, would have killed the name. Read taps under MAME counted zero dispatches on two tapes in eras 0-1 and 8225 on one holding the era at 4. ★ The name deliberately does NOT say 'the short way round': the direction test is taken on the gap PLUS ONE, so a gap of exactly 127 turns long; the standing band is two wide and off centre, at gaps of 0 and 255; and because the step is TWO the gap's parity is invariant, so which of those two it comes to rest on follows that parity and not the side it approached from. Sibling 0x4201 has the same biased tests with a step of one, which makes it side-determined instead -- same shape, different mechanism",
   },
   0x44dc: {
     name: "loc_44dc",
@@ -2478,7 +2478,7 @@ export const ROUTINES = {
     name: "countTheKillAndGrantTheSharedToken",
     role: "the tick a hit object's death begins: ask for the pair of death sounds and take one off the round's kill quota -- both UNCONDITIONAL -- and then, only past three guards, grant this record the single-holder token at 0xA821, its own slot ordinal marked with a top bit. The guards are the record's cooldown byte carrying its top bit, the shared arming cell being set, and the shared countdown beside it reaching zero on this step; the countdown is spent whenever the first two pass, so every claimant spends a tick and not only the one that wins. The quota is floored rather than wrapped -- a count already at zero is left alone",
     cert: "code",
-    why: "the trade the name makes is clean rather than lopsided: 'countTheKill' carries the quota decrement, 0xAD02 being KILLS_REMAINING, and the only act dropped is the sound request, which the role carries. 0x5683 is requestTwoSounds and loc_5617 drops a request unless 0xAD30 or 0xA9C6 is set, so 'ask for' is right where 'play' would be wrong. The two shared cells are sized together by the spawner rather than guessed at: 0x36AF's wave spawn zeroes 0xA811, counts filled slots into it, then writes 0xE4 to 0xA812 and re-stamps 0xA811 from 0xACC1, the round's craft count. What the token BUYS is not claimed here: loc_2c31 is the consumer, and freeAndNumberEveryObjectSlot's entry already records the writer and the reader agreeing that the record's sixteenth byte is a slot identity. ★ 'The tick a death begins' holds for the REACHABLE callers only. Three static call sites exist -- `call z,0x2bba` at 0x2B9D and `call 0x2bba` at 0x2BB0, both inside loc_2b93 and both leaving the state byte at 0x3B (the 0x3C path decrements it at 0x2BB4, the other path stores it at 0x2BAC), and `call 0x2bba` at 0x2A38, which sits after `ld (ix+0x00),0xff` and so calls with the object left ALIVE. That third site is DEAD: no absolute reference and no relative branch lands on the block 0x2A2A-0x2A3B, its single little-endian hit at 0x196F straddles a `jr nz` displacement and the `ld hl,(0xa993)` after it, the instruction before it at 0x2A28 is an unconditional `jr`, and the frozen layer's coverage ends at 0x2A2A and resumes at 0x2A3C. Shown live, it would widen the role from 'death begins' to 'an object has been hit'",
+    why: "the trade the name makes is clean rather than lopsided: 'countTheKill' carries the quota decrement, 0xAD02 being KILLS_REMAINING, and the only act dropped is the sound request, which the role carries. 0x5683 is requestTwoSounds and loc_5617 drops a request unless 0xAD30 or 0xA9C6 is set, so 'ask for' is right where 'play' would be wrong. The two shared cells are sized together by the spawner rather than guessed at: 0x36AF's wave spawn zeroes 0xA811, counts filled slots into it, then writes 0xE4 to 0xA812 and re-stamps 0xA811 from 0xACC1, the round's craft count. What the token BUYS is not claimed here: loc_2c31 is the consumer, and freeAndNumberEveryObjectSlot's entry already records the writer and the reader agreeing that the record's sixteenth byte is a slot identity. ★ 'The tick a death begins' holds for the REACHABLE callers only. Three static call sites exist -- `call z,0x2bba` at 0x2B9D and `call 0x2bba` at 0x2BB0, both inside stepDyingObjectState and both leaving the state byte at 0x3B (the 0x3C path decrements it at 0x2BB4, the other path stores it at 0x2BAC), and `call 0x2bba` at 0x2A38, which sits after `ld (ix+0x00),0xff` and so calls with the object left ALIVE. That third site is DEAD: no absolute reference and no relative branch lands on the block 0x2A2A-0x2A3B, its single little-endian hit at 0x196F straddles a `jr nz` displacement and the `ld hl,(0xa993)` after it, the instruction before it at 0x2A28 is an unconditional `jr`, and the frozen layer's coverage ends at 0x2A2A and resumes at 0x2A3C. Shown live, it would widen the role from 'death begins' to 'an object has been hit'",
   },
   0x2e19: {
     name: "unpackTheFirstThreeSwitchSettings",

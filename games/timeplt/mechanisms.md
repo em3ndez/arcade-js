@@ -545,8 +545,8 @@ The rest is `[code]`.
 ### Difficulty also climbs INSIDE an era, on a rung of its own
 
 The era is not the only difficulty axis. A second cell holds a **rung** that climbs while a life
-lasts: it is seeded per player at life start, bumped each time a countdown of base-sixty wraps
-expires, and clamped at fifteen. The era and the rung are then packed into one index — era in the
+lasts: it is seeded per player at life start, bumped by `escalateDifficultyRungOnCounterWrap` each
+time its base-sixty tick counter (0xAD05, `LIFE_TICKS`) wraps, and clamped at fifteen. The era and the rung are then packed into one index — era in the
 high nibble, rung in the low — which selects a ten-byte row from a table of five eras by sixteen
 rungs, and one routine scatters that row over twelve cells.
 
@@ -722,7 +722,7 @@ Five per-slot handlers share one ladder, and it is the ladder that defines the s
 ld a,(ix+0x00) ; and a ; ret z     ; 0x00  free
 inc a ; jr z,<live>                ; 0xFF  live
 inc a ; jp z,0x2b52                ; 0xFE  held -> release it
-        jp 0x2b93                  ; anything else -> dying
+        jp 0x2b93                  ; anything else -> dying (stepDyingObjectState)
 ```
 
 | code | state | left by |
@@ -737,6 +737,19 @@ The held code is stored literally on a live spawn path: `ld (ix+0x00),0xfe`, ins
 walks the actor band, which the round engine's service list calls unconditionally. The very next instructions read
 the slot's delay and promote `0xFE` to `0xFF` when that delay has already expired, so "held" and
 "live" are set by one piece of code a few bytes apart. `[code]`
+
+A batch-2 understanding pass named the per-object handlers this array runs: `stepDyingObjectState`
+(the dying dispatch above), `flyLiveSlotAndTickCountdown` for a live slot, and two live-enemy
+steerers — `flyTowardShipStandoffThenEndApproach`, which aims at one of **two fixed standoff points**
+a record bit selects (not the ship's own point) and cuts its approach countdown to zero once both
+axis gaps close, and `steerEnemyTowardShip`, whose turn is the **gentlest rung** of its step table
+(a claim of a "hard" turn was refuted from the ROM). `runOneShotAnimatedObjectSlot` fires once per
+external arming and does **not** self-retrigger. Scenery has its own pair,
+`driftNearestSceneryTriTile` and `seedSceneryEntriesThenRunScenery`. Each handler's *mechanism* is
+`[seen]`, but the on-screen enemy/object **class stays open**: the two steerers and the one-shot
+object slot are attract-dark (grounding pinned them to RAM without ever seeing them on the glass),
+while `flyLiveSlotAndTickCountdown` does run in attract's later eras yet its object family was still
+not mapped slot→sprite.
 
 ### An animation is a run of shape bytes, walked BACKWARDS by its own timer
 

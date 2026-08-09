@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_5bd7 — memory-equivalent to the frozen oracle at ROM 0x5BD7.
+ * blankCaptionThenAdvancePenRunStep — memory-equivalent to the frozen oracle at ROM 0x5BD7.
  * GATE: unit-capture at every real dispatch of the coin-start tape (both branches present), plus
  *   crafted full-path entries seating the pen run on a zero-row prior. RAM compared with the dead
  *   stack scratch below the seated SP masked out (the oracle nests calls, the rewrite dissolves the
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_5bd7 as candidate } from "../loc_5bd7.js";
+import { blankCaptionThenAdvancePenRunStep as candidate } from "../blankCaptionThenAdvancePenRunStep.js";
 import { loc_5bd7 as oracle } from "../../translated/loc_5bd7.js";
 import { blankFourteenCharCells } from "../blankFourteenCharCells.js";
 import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
@@ -27,7 +27,7 @@ const SEQ_CELL = 0xa9ac;
 const GUARD_CELL = 0xa9ab;
 const RUN_INDEX = 0xa9e2;
 // Seating the run index here makes the pen run reseat to a zero row integer, so drawInterpolatedPenRun clears Z
-// and the full checksum path runs rather than the early return; measured from loc_1734's sibling arm.
+// and the full checksum path runs rather than the early return; measured from advancePenRunAnimationStep's sibling arm.
 const ZERO_ROW_PRIOR = 0x69;
 
 const XOR_BLOCK = 0x0bdd;
@@ -144,7 +144,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every parameter matches loc_5bd7 by default. */
+/** The rewrite with one deliberate defect each; every parameter matches blankCaptionThenAdvancePenRunStep by default. */
 function build({ blank = true, branch = "nz", phase = "clean", bias = SUM_BIAS, store = true, step = true }) {
   return (m) => {
     const { regs, mem8 } = m;

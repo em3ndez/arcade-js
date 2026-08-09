@@ -11,7 +11,7 @@ import { stepTwoTileSceneryAtFiveQuarters } from "./stepTwoTileSceneryAtFiveQuar
 import { driftTwoTileSceneryAtThreeQuarters } from "./driftTwoTileSceneryAtThreeQuarters.js";
 import { driftOneTileSceneryAtThreeQuarters } from "./driftOneTileSceneryAtThreeQuarters.js";
 import { driftOneTileSceneryAtHalf } from "./driftOneTileSceneryAtHalf.js";
-import { loc_2d21 } from "./loc_2d21.js";
+import { driftNearestSceneryTriTile } from "./driftNearestSceneryTriTile.js";
 
 const FIRST_RECORD = 0xa900;
 const FIRST_ENTRY = 0xaa30;
@@ -25,7 +25,7 @@ const AFTER_DIAGONAL_PAIR = 0x2cd1;
  *  tail return consumed; the lifted step drops that return, so it is laid down and popped here. */
 function diagonalPair(m) {
   m.push16(AFTER_DIAGONAL_PAIR);
-  loc_2d21(m);
+  driftNearestSceneryTriTile(m);
   m.ret();
 }
 

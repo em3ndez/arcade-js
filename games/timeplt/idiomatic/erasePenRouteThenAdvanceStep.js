@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_074b — attract-sequence arm (phase 1, sub-step 0): fold a fixed 256-byte program run into an
+/** erasePenRouteThenAdvanceStep — attract-sequence arm (phase 1, sub-step 0): fold a fixed 256-byte program run into an
  * eight-bit total and derail into the checksum-failure landing on any total but the genuine one;
  * otherwise set the pen colour and stamp glyph (to blank), arm the pen to its route start, and step
  * the sequence sub-step -- twice when the pen colour already held its set value. LIVE-OUT: memory. */
@@ -17,7 +17,7 @@ const STAMP_GLYPH = 0xad0b;
 const BLANKING_GLYPH = 0xf1;
 const PEN_COLOUR_VALUE = 5;
 
-export function loc_074b(m) {
+export function erasePenRouteThenAdvanceStep(m) {
   const { regs, mem8 } = m;
 
   let total = 0;

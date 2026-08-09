@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_460e — fire once when a watched pair of cells stops agreeing: step a shared counter down,
+/** setUpTwoPlayerStartObjectOnce — fire once when a watched pair of cells stops agreeing: step a shared counter down,
  * seat two vertical bytes and two glyph bytes into one object slot, ask for a sound when the trigger
  * cell is armed, and queue one display command. When the pair still agrees it does nothing.
  * LIVE-OUT: memory. */
@@ -15,7 +15,7 @@ const SLOT_VERTICAL_B = 0x03;
 const SLOT_GLYPH_A = 0x30;
 const SLOT_GLYPH_B = 0x32;
 
-export function loc_460e(m, counterBase = m.regs.ix, slotBase = m.regs.iy) {
+export function setUpTwoPlayerStartObjectOnce(m, counterBase = m.regs.ix, slotBase = m.regs.iy) {
   const { mem8 } = m;
   if (mem8[MIRROR] === mem8[WATCHED]) return;
 

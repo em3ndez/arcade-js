@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_50b1 — pick the collision box for the mutual kill of the player and one fixed two-slot
+/** ramTestPlayerVsMotherShip — pick the collision box for the mutual kill of the player and one fixed two-slot
  * target by the era, then run it. In two of the eras the wider first-axis box applies and control
  * transfers to that check; in the rest the same destruction runs here with a narrower first-axis
  * box. Both things must be live and their coordinates must fall inside the box; when they do, both
@@ -29,7 +29,7 @@ const SECOND_AXIS_SPAN = 35;
 /** Two coordinates are close enough when their wrapped difference lands inside the box. */
 const within = (a, b, reach, span) => u8(u8(a - b) + reach) < span;
 
-export function loc_50b1(m) {
+export function ramTestPlayerVsMotherShip(m) {
   const { mem8 } = m;
   if (WIDE_WINDOW_ERAS.includes(mem8[ERA_INDEX])) return loc_50ee(m);
 

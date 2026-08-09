@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_52aa — memory-equivalent to the frozen oracle at ROM 0x52AA. The routine seeds the settings
+ * seedGameConfigFromDipSwitches — memory-equivalent to the frozen oracle at ROM 0x52AA. The routine seeds the settings
  * block from the two switch banks and tail-jumps into the DIP-unpack chain, which cold-starts and
  * hands the machine to the foreground loop. The chain's go-live tail returns a COROUTINE rather than
  * dispatching through the registry, so a stub inside it no longer stops the rewrite; both arms are
@@ -16,7 +16,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_52aa as candidate } from "../loc_52aa.js";
+import { seedGameConfigFromDipSwitches as candidate } from "../seedGameConfigFromDipSwitches.js";
 import { loc_52aa as oracle } from "../../translated/loc_52aa.js";
 import { unpackCoinage } from "../unpackCoinage.js";
 import { unpackTheFirstThreeSwitchSettings } from "../unpackTheFirstThreeSwitchSettings.js";

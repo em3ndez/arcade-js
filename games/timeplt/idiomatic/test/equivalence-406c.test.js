@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_406c — memory-equivalent to the frozen oracle at ROM 0x406C. Dissolving the three lifted
+ * runOneShotAnimatedObjectSlot — memory-equivalent to the frozen oracle at ROM 0x406C. Dissolving the three lifted
  * callees drops their ROM rets, so the oracle rets for itself (SP +2) and leaves dead return
  * addresses below the seated SP; RAM is compared with that window masked (its floor measured by
  * watching the oracle's own pushes), the SP drift asserted, and registers held to a measured
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_406c as candidate } from "../loc_406c.js";
+import { runOneShotAnimatedObjectSlot as candidate } from "../runOneShotAnimatedObjectSlot.js";
 import { loc_406c as oracle } from "../../translated/loc_406c.js";
 import { loc_409d } from "../loc_409d.js";
 import { driftWithWorldScroll } from "../driftWithWorldScroll.js";
@@ -152,7 +152,7 @@ function strayRegs(cand) {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every knob matches loc_406c by default. */
+/** The rewrite with one deliberate defect each; every knob matches runOneShotAnimatedObjectSlot by default. */
 function twin({ rearm = true, drift = true, floor = SHAPE_FLOOR, table = SHAPE_TABLE,
   shape = true, attr = true, clear = true, shift = 2 } = {}) {
   return (m) => {
@@ -180,7 +180,7 @@ function twin({ rearm = true, drift = true, floor = SHAPE_FLOOR, table = SHAPE_T
   };
 }
 
-/** Control for the register ceiling: scribbles B, which loc_406c never touches. */
+/** Control for the register ceiling: scribbles B, which runOneShotAnimatedObjectSlot never touches. */
 function brokenMovesSpareRegister(m) {
   candidate(m);
   m.regs.b = (m.regs.b + 1) & 0xff;

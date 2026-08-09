@@ -5,7 +5,7 @@
  * registers; control tail-transfers into the continuation and never comes back. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
-import { loc_49a8 } from "./loc_49a8.js";
+import { finishBootSelfTestAndColdStart } from "./finishBootSelfTestAndColdStart.js";
 
 const WHOLE_BYTE_CELL = 0xa9c1;
 const SINGLE_BIT_CELLS = [
@@ -22,5 +22,5 @@ export function unpackTheFirstThreeSwitchSettings(m, whole = m.regs.a, packed = 
   const unspent = u8((packed >> LAST_BIT_SPENT) | (packed << (BITS_IN_A_BYTE - LAST_BIT_SPENT)));
   regs.a = unspent;
   regs.c = unspent;
-  return loc_49a8(m);
+  return finishBootSelfTestAndColdStart(m);
 }

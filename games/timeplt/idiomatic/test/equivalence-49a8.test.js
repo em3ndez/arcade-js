@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_49a8 — memory-equivalent to the frozen oracle at ROM 0x49A8. The routine tiles the character
+ * finishBootSelfTestAndColdStart — memory-equivalent to the frozen oracle at ROM 0x49A8. The routine tiles the character
  * plane and cold-starts, so both arms are run with the foreground loop (0x0b93) severed and compared
  * on RAM outside the measured stack window, the LS259 latch, the sound latch, the watchdog kicks and
  * the handover. Registers are not compared: the dissolved lattice leaves different register residue,
@@ -12,7 +12,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_49a8 as candidate } from "../loc_49a8.js";
+import { finishBootSelfTestAndColdStart as candidate } from "../finishBootSelfTestAndColdStart.js";
 import { loc_49a8 as oracle } from "../../translated/loc_49a8.js";
 import { loc_00b1 } from "../loc_00b1.js";
 import { loc_00d8 } from "../loc_00d8.js";

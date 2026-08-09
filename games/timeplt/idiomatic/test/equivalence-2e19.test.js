@@ -25,7 +25,7 @@ import assert from "node:assert/strict";
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { unpackTheFirstThreeSwitchSettings as candidate } from "../unpackTheFirstThreeSwitchSettings.js";
 import { loc_2e19 as oracle } from "../../translated/loc_2e19.js";
-import { loc_49a8 } from "../loc_49a8.js";
+import { finishBootSelfTestAndColdStart } from "../finishBootSelfTestAndColdStart.js";
 import manifest from "../../manifest.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 
@@ -180,7 +180,7 @@ function brokenBitsOffByOne(m) {
   const unspent = ((regs.c >> ROTATION) | (regs.c << (8 - ROTATION))) & 0xff;
   regs.a = unspent;
   regs.c = unspent;
-  return loc_49a8(m);
+  return finishBootSelfTestAndColdStart(m);
 }
 
 /** BUG: the two single-bit cells are the wrong way round. */
@@ -192,7 +192,7 @@ function brokenCellsSwapped(m) {
   const unspent = ((regs.c >> ROTATION) | (regs.c << (8 - ROTATION))) & 0xff;
   regs.a = unspent;
   regs.c = unspent;
-  return loc_49a8(m);
+  return finishBootSelfTestAndColdStart(m);
 }
 
 /** BUG: puts the packed byte in the whole-byte cell instead of the byte the caller brought. */
@@ -203,7 +203,7 @@ function brokenWrongSource(m) {
   const unspent = ((regs.c >> ROTATION) | (regs.c << (8 - ROTATION))) & 0xff;
   regs.a = unspent;
   regs.c = unspent;
-  return loc_49a8(m);
+  return finishBootSelfTestAndColdStart(m);
 }
 
 /** BUG: stores the whole bit-field rather than the single bit, so neighbouring bits leak in. */
@@ -214,7 +214,7 @@ function brokenKeepsTheHighBits(m) {
   const unspent = ((regs.c >> ROTATION) | (regs.c << (8 - ROTATION))) & 0xff;
   regs.a = unspent;
   regs.c = unspent;
-  return loc_49a8(m);
+  return finishBootSelfTestAndColdStart(m);
 }
 
 const TWINS = [

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_50b1 — memory-equivalent to the frozen oracle at ROM 0x50B1. It picks a collision box by the
+ * ramTestPlayerVsMotherShip — memory-equivalent to the frozen oracle at ROM 0x50B1. It picks a collision box by the
  * era: two eras transfer to the wider check (loc_50ee), the rest run a narrower one inline. Both
  * dissolved transfers land in already-decompiled modules, so the oracle's tail ret is gone and RAM
  * is compared with the dead stack scratch below the seated SP masked out, the +2 SP re-seat and the
@@ -14,7 +14,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_50b1 as candidate } from "../loc_50b1.js";
+import { ramTestPlayerVsMotherShip as candidate } from "../ramTestPlayerVsMotherShip.js";
 import { loc_50b1 as oracle } from "../../translated/loc_50b1.js";
 import { loc_50ee } from "../loc_50ee.js";
 import { postChainedHitScore } from "../postChainedHitScore.js";
@@ -179,7 +179,7 @@ function variant({ eras = WIDE_ERAS, r1 = FIRST_AXIS_REACH, s1 = FIRST_AXIS_SPAN
   };
 }
 
-// label, twin, crafted catches. only-era-zero and wide-inline are the loc_50b1-specific teeth: one
+// label, twin, crafted catches. only-era-zero and wide-inline are the ramTestPlayerVsMotherShip-specific teeth: one
 // runs era 4 down the narrow inline path, the other widens the inline window to loc_50ee's.
 const TWINS = [
   ["no-op", () => {}, 304],

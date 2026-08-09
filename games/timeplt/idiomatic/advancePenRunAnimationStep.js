@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1734 — advance one interpolated pen-run and bail unless it reseated to a zero row integer,
+/** advancePenRunAnimationStep — advance one interpolated pen-run and bail unless it reseated to a zero row integer,
  * then two's-complement checksum the guarded code block into the guard cell (0 on a clean image)
  * and step the sequence sub-index. LIVE-OUT: memory only. */
 
@@ -10,7 +10,7 @@ const GUARDED_BLOCK = 0x1748;
 const GUARDED_LEN = 0x22;
 const GUARD_CELL = 0xa817;
 
-export function loc_1734(m) {
+export function advancePenRunAnimationStep(m) {
   const { regs, mem8 } = m;
   drawInterpolatedPenRun(m);
   if (regs.fNZ) return;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_29f7 — steer one live slot toward its aim heading, then fly it a step. When the slot's probe
+/** steerEnemyTowardShip — steer one live slot toward its aim heading, then fly it a step. When the slot's probe
  * cell sits within a fixed window of either reference point, the turn runs with the shared rate index
  * forced to zero and then reseated to four; otherwise it runs at the standing index. The step then
  * alternates a double- and a single-velocity mover on bit 1 of the frame tick. LIVE-OUT: memory. */
@@ -20,7 +20,7 @@ const RATE_INDEX_RESEATED = 4;
 const withinWindow = (probe) =>
   REFERENCES.some((ref) => u8(ref - probe + HALF_WINDOW) < WINDOW);
 
-export function loc_29f7(m) {
+export function steerEnemyTowardShip(m) {
   const { mem8 } = m;
   if (withinWindow(mem8[m.regs.iy + PROBE])) {
     mem8[ERA_INDEX] = RATE_INDEX_WHILE_TURNING;

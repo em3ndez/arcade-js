@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1734 — memory-equivalent to the frozen oracle at ROM 0x1734.
+ * advancePenRunAnimationStep — memory-equivalent to the frozen oracle at ROM 0x1734.
  * GATE: neither shipped tape dispatches this address, so entries are sourced at 0x0201 (the pen-run
  *   sub-call it opens with, heavily dispatched) and the checksum branch is forced by seating the run
  *   index on the one prior that reseats the pen to a zero row. RAM is compared with the dead stack
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1734 as candidate } from "../loc_1734.js";
+import { advancePenRunAnimationStep as candidate } from "../advancePenRunAnimationStep.js";
 import { loc_1734 as oracle } from "../../translated/loc_1734.js";
 import { loc_0201 as oracle0201 } from "../../translated/loc_0201.js";
 import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
@@ -131,7 +131,7 @@ function branchOf(machine) {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every parameter matches loc_1734 by default. */
+/** The rewrite with one deliberate defect each; every parameter matches advancePenRunAnimationStep by default. */
 function build({ branch = "nz", base = GUARDED_BLOCK, len = GUARDED_LEN, cell = GUARD_CELL, store = true, step = true }) {
   return (m) => {
     const { regs, mem8 } = m;

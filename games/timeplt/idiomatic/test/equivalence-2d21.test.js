@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2d21 — memory-equivalent to the frozen oracle at ROM 0x2D21.
+ * driftNearestSceneryTriTile — memory-equivalent to the frozen oracle at ROM 0x2D21.
  * GATE: real attract dispatches (coin-start holds the opening era and never lists this address).
  *   RAM compared with the dead stack scratch below the seat masked out — the oracle nests ROM
  *   calls and its tail pops the caller's return, the dissolved rewrite does neither — the +2 SP
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_2d21 as candidate } from "../loc_2d21.js";
+import { driftNearestSceneryTriTile as candidate } from "../driftNearestSceneryTriTile.js";
 import { loc_2d21 as oracle } from "../../translated/loc_2d21.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { driftAtFiveQuartersWorldScroll } from "../driftAtFiveQuartersWorldScroll.js";

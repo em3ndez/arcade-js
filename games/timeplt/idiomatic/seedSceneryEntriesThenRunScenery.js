@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_3117 — seat four scenery objects, then run the frame's scenery. A sentinel pair guards the
+/** seedSceneryEntriesThenRunScenery — seat four scenery objects, then run the frame's scenery. A sentinel pair guards the
  * entry: unless the first byte reads exactly and the second is one of two values, control leaves
  * without seating anything. When it passes, four rows of a packed table each fill a sprite cell and
  * the shadow cell above it, stepping the entry cursor by four a row, and control hands on to the
@@ -13,7 +13,7 @@ const OBJECT_TABLE = 0x316e;
 const FIRST_ENTRY = 0xaa30;
 const OBJECTS = 4;
 
-export function loc_3117(m) {
+export function seedSceneryEntriesThenRunScenery(m) {
   const { regs, mem8 } = m;
 
   // The sentinel pointer and the byte under it both ride on into the transfer, which reads them,

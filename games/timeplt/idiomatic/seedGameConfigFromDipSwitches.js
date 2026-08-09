@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_52aa — seed the settings block from the two switch banks and hand off to the unpackers.
+/** seedGameConfigFromDipSwitches — seed the settings block from the two switch banks and hand off to the unpackers.
  * Two boot bytes are copied into their working cells, the first bank is stored complemented and
  * unpacked into the coin ratios, and the second bank's low two bits become a lives count -- 3, 4,
  * 5, or all-ones for the setting that folds to none -- carried on with the whole complemented bank
@@ -20,7 +20,7 @@ const LIVES_BASE = 3;
 const FOLDS_TO = 0x06;
 const ALL_ONES = 0xff;
 
-export function loc_52aa(m) {
+export function seedGameConfigFromDipSwitches(m) {
   const { mem8, regs } = m;
   mem8[SEEDED_CELL] = mem8[BOOT_BYTE_A];
   mem8[KILL_QUOTA] = mem8[BOOT_BYTE_B];

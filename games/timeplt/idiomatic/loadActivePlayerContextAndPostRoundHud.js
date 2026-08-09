@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4c75 — set up the active player's turn and guard the picture on a program-image checksum.
+/** loadActivePlayerContextAndPostRoundHud — set up the active player's turn and guard the picture on a program-image checksum.
  * Blank a run of character cells and copy the active player's saved sixteen-byte context into the
  * live block. When play is inactive, just step the sequence sub-index; otherwise also post the round
  * number and the lives-less-one as commands and fold a fixed program span into an XOR whose low bit,
@@ -22,7 +22,7 @@ const LATCH_WRITE_OFFSET = 10;
 const ROUND_COMMAND = 6;
 const LIVES_COMMAND = 5;
 
-export function loc_4c75(m) {
+export function loadActivePlayerContextAndPostRoundHud(m) {
   const { mem8 } = m;
   blankFourteenCharCells(m);
 

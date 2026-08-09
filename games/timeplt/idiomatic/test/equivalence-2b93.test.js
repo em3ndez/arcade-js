@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_2b93 vs its frozen oracle. This entry dissolves four calls into direct imports, so the oracle
+ * stepDyingObjectState vs its frozen oracle. This entry dissolves four calls into direct imports, so the oracle
  * parks return addresses in the stack scratch the rewrite never writes and pops one it never pushed:
  * RAM is compared with the measured [low, seat) window masked, the +2 sp drift is asserted, and the
  * flag/scratch registers the dissolved callees do not reproduce are excluded — only ix and iy, the
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_2b93 as candidate } from "../loc_2b93.js";
+import { stepDyingObjectState as candidate } from "../stepDyingObjectState.js";
 import { loc_2b93 as oracle } from "../../translated/loc_2b93.js";
 import { countTheKillAndGrantTheSharedToken as countKill } from "../countTheKillAndGrantTheSharedToken.js";
 import { loc_2bb4 } from "../loc_2bb4.js";

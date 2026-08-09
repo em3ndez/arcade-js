@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_418b — memory-equivalent to the frozen oracle at ROM 0x418B.
+ * flyLiveSlotAndTickCountdown — memory-equivalent to the frozen oracle at ROM 0x418B.
  * GATE: crafted entries (real sweep-body states with one slot forced into this arm — marker full,
  *   countdown live, era not the fourth), the dead stack scratch below the seat masked out, the SP
  *   drift asserted per arm (+2 on the ending arm, 0 on the looping one), registers minus the callee's
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_418b as candidate } from "../loc_418b.js";
+import { flyLiveSlotAndTickCountdown as candidate } from "../flyLiveSlotAndTickCountdown.js";
 import { loc_418b as oracle } from "../../translated/loc_418b.js";
 import { loc_40ea as sweepBody } from "../../translated/loc_40ea.js";
 import { closeOneTurnOfTheSlotSweep } from "../closeOneTurnOfTheSlotSweep.js";

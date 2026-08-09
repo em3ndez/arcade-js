@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_406c — run one slot's shape-cycle for a frame: rearm it when its counter is high, then
+/** runOneShotAnimatedObjectSlot — run one slot's shape-cycle for a frame: rearm it once when its counter reads high (it does not self-retrigger), then
  * count the counter down and either retire the slot when it hits zero, or drift it with the world
  * and drive its sprite shape from a table keyed on the counter. LIVE-OUT: memory only. */
 
@@ -16,7 +16,7 @@ const SPRITE_ATTR = 0x30;
 const SPRITE_TAIL = 0x31;
 const SHAPE_ATTR = 0x0e;
 
-export function loc_406c(m) {
+export function runOneShotAnimatedObjectSlot(m) {
   const { regs, mem8 } = m;
   const object = regs.ix;
   const sprite = regs.iy;

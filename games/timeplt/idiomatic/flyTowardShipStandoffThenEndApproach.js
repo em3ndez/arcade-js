@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_41b8 — run one chased object through a frame: on every sixteenth frame re-aim it at one of
+/** flyTowardShipStandoffThenEndApproach — run one chased object through a frame: on every sixteenth frame re-aim it at one of
  * two fixed points, a bit in its record choosing which, and once it has arrived there cut its
  * approach countdown to zero so its handler retires it next frame; then turn, move and dress it
  * every frame. LIVE-OUT: memory; the carry mirrors whether it reached a retire line; BC passes
@@ -22,7 +22,7 @@ const AIM_HEADING = 1;
 const SECOND_COORD = 49;
 const ARRIVED = 16;
 
-export function loc_41b8(m) {
+export function flyTowardShipStandoffThenEndApproach(m) {
   const { regs, mem8 } = m;
   const held = regs.bc;
 

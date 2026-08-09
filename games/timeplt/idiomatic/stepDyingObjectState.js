@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_2b93 — step one object's state byte and dispatch on its value: the re-arm value re-seats the
+/** stepDyingObjectState — step one object's state byte and dispatch on its value: the re-arm value re-seats the
  * byte and begins the death; the threshold begins the death then flies the object on, as does any
  * higher value; below it the byte counts down, retiring the slot at zero, else moving it. LIVE-OUT: memory. */
 
@@ -14,7 +14,7 @@ const REARM = 0xf0;
 const REARMED_TO = 0x3b;
 const DEATH_BEGINS = 0x3c;
 
-export function loc_2b93(m, object = m.regs.ix) {
+export function stepDyingObjectState(m, object = m.regs.ix) {
   const { mem8 } = m;
   const state = mem8[object + STATE];
 

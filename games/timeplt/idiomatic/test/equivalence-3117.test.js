@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_3117 — memory-equivalent to the frozen oracle at ROM 0x3117.
+ * seedSceneryEntriesThenRunScenery — memory-equivalent to the frozen oracle at ROM 0x3117.
  * GATE: unit-capture at the real dispatch plus a crafted guard-fail entry. The seat path leaves
  *   for a still-frozen scenery run that ends on a return the rewrite drops and whose wrappers drop
  *   the register dance, so its RAM is compared with the dead six-byte stack scratch masked, only
@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_3117 as candidate } from "../loc_3117.js";
+import { seedSceneryEntriesThenRunScenery as candidate } from "../seedSceneryEntriesThenRunScenery.js";
 import { loc_3117 as oracle } from "../../translated/loc_3117.js";
 import { loc_3114 } from "../loc_3114.js";
 import { runSceneryForEra } from "../runSceneryForEra.js";
@@ -122,7 +122,7 @@ const transfers = () => [
 
 // ── twins ─────────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; defaults reproduce loc_3117. */
+/** The rewrite with one deliberate defect each; defaults reproduce seedSceneryEntriesThenRunScenery. */
 function variant({ shadow = true, tintOff = 0x10, count = 4, stride = 4, transfer = true } = {}) {
   return (m) => {
     const { regs, mem8 } = m;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_5bd7 — inner sequence arm: blank a fixed character run, advance the interpolated pen run,
+/** blankCaptionThenAdvancePenRunStep — inner sequence arm: blank a fixed character run, advance the interpolated pen run,
  * and bail unless it reseated to a zero row integer. On the full path fold two guarded code blocks —
  * one raises the sequence phase unless it folds to a fixed value, the other rolls a work cell and
  * leaves it unchanged on a clean image — then step the sequence sub-index. LIVE-OUT: memory. */
@@ -18,7 +18,7 @@ const SUM_LEN = 20;
 const SUM_BIAS = 0x77;
 const GUARD_CELL = 0xa9ab;
 
-export function loc_5bd7(m) {
+export function blankCaptionThenAdvancePenRunStep(m) {
   const { regs, mem8 } = m;
   blankFourteenCharCells(m);
   drawInterpolatedPenRun(m);

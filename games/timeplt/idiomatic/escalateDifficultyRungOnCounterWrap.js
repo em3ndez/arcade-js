@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4d3a — advance a three-place base-sixty tick counter; only on a full roll-over count down a
+/** escalateDifficultyRungOnCounterWrap — advance a three-place base-sixty tick counter; only on a full roll-over count down a
  * reload timer, and each time that timer fires rearm it, climb the escalation rung one step toward
  * its ceiling, and apply the row that rung selects. LIVE-OUT: memory. */
 
@@ -13,7 +13,7 @@ const RELOAD_VALUE = 0xa9d6;
 const ESCALATION_RUNG = 0xacc0;
 const TOP_RUNG = 0x0f;
 
-export function loc_4d3a(m) {
+export function escalateDifficultyRungOnCounterWrap(m) {
   const { mem8 } = m;
 
   // carry into the next place only while a place rolls over; a place that holds ends the whole pass
