@@ -1,0 +1,12 @@
+{
+  "name": "era-advance",
+  "description": "Drive play into era 4 (2001), the final era, so its rendering/gameplay routines run, and pixel-validate them against MAME.",
+  "_grounding": "0xAD04 holds the RAW era 0..4 (not packed); era 4 = 0x04, confirmed under MAME (neg control 0x40 corrupts PLAY_ACTIVE). Direct held poke is coherent+stable (era held, PLAY_ACTIVE=0xFF, actors churning 500 frames); the kill-count path cannot advance the era without an aimed boss kill. See scratchpad/era4-recipe.md.",
+  "coin": 400,
+  "start": 500,
+  "hold": 8,
+  "pokes": [
+    { "frame": 700, "addr": "0xad04", "val": "0x04", "dur": 1100 }
+  ],
+  "responded": { "cell": "0xad04", "op": "eq", "val": 4 }
+}
