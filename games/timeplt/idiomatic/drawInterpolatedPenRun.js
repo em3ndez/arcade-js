@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0201 — draw one interpolated run of pen cells, then set up the next run. From the pen's
+/** drawInterpolatedPenRun — draw one interpolated run of pen cells, then set up the next run. From the pen's
  * current row and column (each a fraction:integer pair) take a signed per-step increment of
  * (target - current) times sixteen with only the high byte kept, then stamp the pen glyph cell by
  * cell, advancing both positions each step, until the stamped cell reaches the run's end cell.
@@ -28,7 +28,7 @@ function stepToward(target, current) {
   return (highByte | ((delta >> 4) & 0xff)) & 0xffff;
 }
 
-export function loc_0201(m) {
+export function drawInterpolatedPenRun(m) {
   const { regs, mem8, mem16 } = m;
 
   plotPenCell(m);

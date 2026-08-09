@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1f01 — memory-equivalent to the frozen oracle at ROM 0x1F01.
+ * turnShipTowardTargetHeading — memory-equivalent to the frozen oracle at ROM 0x1F01.
  * GATE: crafted-entry + corpus. Captured at the real dispatch a turning tape produces, replayed
  * over the whole session, and swept over every era, heading and table index — the branches natural
  * play (era 0 only) never reaches. Masks the 2-byte dead stack slot the oracle's tail pushes.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1f01 } from "../loc_1f01.js";
+import { turnShipTowardTargetHeading } from "../turnShipTowardTargetHeading.js";
 import { loc_1f01 as oracle } from "../../translated/loc_1f01.js";
 import { fetchTableByte } from "../fetchTableByte.js";
 import { scrollWorldAtTheEraPace } from "../scrollWorldAtTheEraPace.js";
@@ -179,17 +179,17 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("CONTRACT: loc_1f01 == oracle at the real dispatch, outside the pushed slot", { skip }, () => {
+test("CONTRACT: turnShipTowardTargetHeading == oracle at the real dispatch, outside the pushed slot", { skip }, () => {
   const e = entryState();
-  assert.equal(unitDiff(loc_1f01, e), null, "the rewrite diverged at the captured dispatch");
-  assert.equal(loc_1f01(e.clone()), undefined, "the live-out is memory-only; it returns nothing");
+  assert.equal(unitDiff(turnShipTowardTargetHeading, e), null, "the rewrite diverged at the captured dispatch");
+  assert.equal(turnShipTowardTargetHeading(e.clone()), undefined, "the live-out is memory-only; it returns nothing");
   console.log(`  CONTRACT: entry sp ${hex4(e.regs.sp)}, heading ${e.mem8[PLAYER_HEADING]}, ` +
     `era ${e.mem8[ERA_INDEX] & 0x0f} — RAM identical`);
 });
 
 test("PUSHED SLOT: the whole divergence is the 2 dead stack bytes, and it is real", { skip }, () => {
   const e = entryState();
-  const bare = ramDiffs(loc_1f01, e);
+  const bare = ramDiffs(turnShipTowardTargetHeading, e);
   const slot = pushedSlot(e);
   assert.ok(bare.length > 0, "vacuous: the oracle's tail push left no trace, so the mask is idle");
   for (const d of bare) {
@@ -203,14 +203,14 @@ test("PUSHED SLOT: the whole divergence is the 2 dead stack bytes, and it is rea
 });
 
 test("CORPUS: every real dispatch of the turning session replays identically", { skip }, () => {
-  const r = replayCorpus(loc_1f01);
+  const r = replayCorpus(turnShipTowardTargetHeading);
   assert.ok(r.dispatches > 0, "vacuous: the tape never reached the routine");
   assert.equal(r.caught, 0, `the rewrite diverged on ${r.caught} of ${r.dispatches} real dispatches`);
   console.log(`  CORPUS: ${r.dispatches} dispatches identical; eras seen ${[...r.eras].join(",")}`);
 });
 
 test("SWEEP: every era, heading and index is identical — the arms no tape drives", { skip }, () => {
-  const r = sweep(loc_1f01);
+  const r = sweep(turnShipTowardTargetHeading);
   assert.equal(r.caught, 0, `the rewrite diverged on ${r.caught} of ${r.swept} crafted entries`);
   console.log(`  SWEEP: ${r.swept} crafted entries identical across ${ERAS.length} eras`);
 });

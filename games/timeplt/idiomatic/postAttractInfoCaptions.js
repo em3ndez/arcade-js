@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1830 — one arm of the two-level sequence machine: hands a fixed run of codes to the
+/** postAttractInfoCaptions — one arm of the two-level sequence machine: hands a fixed run of codes to the
  * display-list writer as (1, code) pairs, two of them chosen by two work cells, then bumps the
  * sequence counter twice on the high branch and once on the low. LIVE-OUT: memory. */
 
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 
-export function loc_1830(m) {
+export function postAttractInfoCaptions(m) {
   const { mem8, regs } = m;
   // each frozen callee pops a parked slot; the dissolved advanceSequenceSubStep tail takes no return.
   const call = (addr) => { m.push16(0); m.call(addr); };

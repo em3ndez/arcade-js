@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_15fe — memory-equivalent to the frozen oracle at ROM 0x15FE.
+ * armAttractScreenShowingHighScore — memory-equivalent to the frozen oracle at ROM 0x15FE.
  * GATE: unit-capture with a measured 10-byte stack-scratch mask and the printer running; the
  *   natural dispatches (guard-block and one proceed), crafted proceed/full arms the tape never
  *   reaches, a boundary probe, register-ceiling and dissolve checks, and teeth.
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_15fe } from "../loc_15fe.js";
+import { armAttractScreenShowingHighScore } from "../armAttractScreenShowingHighScore.js";
 import { loc_15fe as oracle } from "../../translated/loc_15fe.js";
 import { loc_0d6b } from "../loc_0d6b.js";
 import { postCommand } from "../postCommand.js";
@@ -195,7 +195,7 @@ test("EQUAL at the real dispatches: identical outside the measured window", { sk
   assert.ok(entries.length > 0, "vacuous: the tape never reached the routine");
   assert.ok(guardBlock() && proceed(), "the tape did not exercise both a guard-block and a proceed");
   for (const e of entries) {
-    const d = unitDiff(loc_15fe, e);
+    const d = unitDiff(armAttractScreenShowingHighScore, e);
     assert.equal(d, null, `a real dispatch diverged: ${show(d)}`);
   }
   console.log(`  EQUAL: ${entries.length} real dispatches, seat ${hex4(entries[0].regs.sp)}`);
@@ -215,7 +215,7 @@ test("WINDOW: the oracle's deepest push over every arm, measured and pinned", { 
 test("CRAFTED: the arms the tape never reaches, each forced by one cell", { skip }, () => {
   const arms = craftedArms();
   for (const [label, mc] of Object.entries(arms)) {
-    assert.equal(unitDiff(loc_15fe, mc), null, `the ${label} arm diverged: ${show(unitDiff(loc_15fe, mc))}`);
+    assert.equal(unitDiff(armAttractScreenShowingHighScore, mc), null, `the ${label} arm diverged: ${show(unitDiff(armAttractScreenShowingHighScore, mc))}`);
   }
   // Non-vacuity: the guard blocks by default, a proceed reaches the body, and the gate-open arm
   // does the fifth enqueue the proceed arm does not (its ring cursor advances one command further).
@@ -263,8 +263,8 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_15fe);
-  const control = movedOver((m) => { loc_15fe(m); m.regs[SPARE_REG] = (m.regs[SPARE_REG] + 1) & 0xff; });
+  const moved = movedOver(armAttractScreenShowingHighScore);
+  const control = movedOver((m) => { armAttractScreenShowingHighScore(m); m.regs[SPARE_REG] = (m.regs[SPARE_REG] + 1) & 0xff; });
   assert.ok(control.has(SPARE_REG) && !MOVED.includes(SPARE_REG),
     "the measurement misses a twin that scribbles a spare register, so a clean reading proves nothing");
   assert.deepEqual(REG_FIELDS.filter((k) => moved.has(k) && !MOVED.includes(k)), [],
@@ -274,7 +274,7 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 });
 
 test("DISSOLVED: the printer and the enqueue are called directly, only the guard stays wired", () => {
-  const module = readFileSync(new URL("../loc_15fe.js", import.meta.url), "utf8");
+  const module = readFileSync(new URL("../armAttractScreenShowingHighScore.js", import.meta.url), "utf8");
   assert.ok(module.includes('from "./loc_0d6b.js"'), "the module does not import loc_0d6b");
   assert.ok(module.includes("loc_0d6b(m)"), "the module does not call loc_0d6b directly");
   assert.ok(module.includes('from "./postCommand.js"'), "the module does not import postCommand");

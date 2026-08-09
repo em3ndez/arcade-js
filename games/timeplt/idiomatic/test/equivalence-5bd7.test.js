@@ -17,7 +17,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_5bd7 as candidate } from "../loc_5bd7.js";
 import { loc_5bd7 as oracle } from "../../translated/loc_5bd7.js";
 import { blankFourteenCharCells } from "../blankFourteenCharCells.js";
-import { loc_0201 } from "../loc_0201.js";
+import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
 import { advanceSequencePhase } from "../advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { u8 } from "../../../../core/int.js";
@@ -26,7 +26,7 @@ const TARGET = 0x5bd7;
 const SEQ_CELL = 0xa9ac;
 const GUARD_CELL = 0xa9ab;
 const RUN_INDEX = 0xa9e2;
-// Seating the run index here makes the pen run reseat to a zero row integer, so loc_0201 clears Z
+// Seating the run index here makes the pen run reseat to a zero row integer, so drawInterpolatedPenRun clears Z
 // and the full checksum path runs rather than the early return; measured from loc_1734's sibling arm.
 const ZERO_ROW_PRIOR = 0x69;
 
@@ -149,7 +149,7 @@ function build({ blank = true, branch = "nz", phase = "clean", bias = SUM_BIAS, 
   return (m) => {
     const { regs, mem8 } = m;
     if (blank) blankFourteenCharCells(m);
-    loc_0201(m);
+    drawInterpolatedPenRun(m);
     if (branch === "nz" ? regs.fNZ : !regs.fNZ) return;
     let fold = 0;
     for (let i = 0; i < XOR_LEN; i++) fold ^= mem8[XOR_BLOCK + i];

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_14c5 — memory-equivalent to the frozen oracle at ROM 0x14C5.
- * GATE: crafted-entry. No tape dispatches this address, nor its title-band subsystem, so entries
+ * advanceScriptedCharPlaneBandTo4 — memory-equivalent to the frozen oracle at ROM 0x14C5.
+ * GATE: crafted-entry. No tape dispatches this address, nor its inter-round band subsystem, so entries
  *   are a real attract machine with the countdown, the script pointer and a written script poked
  *   identically on both arms; a live control proves the tap can see a dispatch. Live-out is
  *   memory-only -- the sole caller returns the instant this does -- so the contract is RAM outside
@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_14c5 } from "../loc_14c5.js";
+import { advanceScriptedCharPlaneBandTo4 } from "../advanceScriptedCharPlaneBandTo4.js";
 import { loc_14c5 as oracle } from "../../translated/loc_14c5.js";
 import manifest from "../../manifest.js";
 import { u8 } from "../../../../core/int.js";
@@ -117,34 +117,34 @@ function caughtCount(candidate) {
 // ── broken twins ────────────────────────────────────────────────────────────────────────
 function brokenNoUpdate(m) {
   const x = m.mem8[COUNTDOWN];
-  loc_14c5(m);
+  advanceScriptedCharPlaneBandTo4(m);
   m.mem8[COUNTDOWN] = x;
 }
 function brokenWrongFill(m) {
   const blank = (m.mem8[COUNTDOWN] & 1) === 0;
-  loc_14c5(m);
+  advanceScriptedCharPlaneBandTo4(m);
   if (blank) m.mem8[0xa7b1] = 0xf0;
 }
 function brokenTerminatorNoArm(m) {
   const x = m.mem8[NEXT_STEP_CELL];
-  loc_14c5(m);
+  advanceScriptedCharPlaneBandTo4(m);
   m.mem8[NEXT_STEP_CELL] = x;
 }
 function brokenNoPointerAdvance(m) {
   const x = m.mem16[SCRIPT_POINTER];
-  loc_14c5(m);
+  advanceScriptedCharPlaneBandTo4(m);
   m.mem16[SCRIPT_POINTER] = x;
 }
 function brokenNoGather(m) {
   const draw = (m.mem8[COUNTDOWN] & 1) === 1 && (m.mem8[m.mem16[SCRIPT_POINTER]] & 0xfe) === 0;
   const saved = [];
   if (draw) for (let i = 0; i < 32; i++) saved.push(m.mem8[RUN + i]);
-  loc_14c5(m);
+  advanceScriptedCharPlaneBandTo4(m);
   if (draw) for (let i = 0; i < 32; i++) m.mem8[RUN + i] = saved[i];
 }
 function brokenNoLeadLower(m) {
   const draw = (m.mem8[COUNTDOWN] & 1) === 1 && (m.mem8[m.mem16[SCRIPT_POINTER]] & 0xfe) === 0;
-  loc_14c5(m);
+  advanceScriptedCharPlaneBandTo4(m);
   if (draw) m.mem8[0xa611] = u8(m.mem8[0xa611] + 1);
 }
 const TWINS = [
@@ -176,7 +176,7 @@ test("UNREACHED: no tape dispatches this address, with a live control", { skip }
 
 test("EQUIVALENT: every crafted pass, RAM outside the stack", { skip }, () => {
   for (const [label, m] of scenarios()) {
-    assert.equal(show(diffOutsideStack(m, loc_14c5)), "identical", label);
+    assert.equal(show(diffOutsideStack(m, advanceScriptedCharPlaneBandTo4)), "identical", label);
   }
 });
 
@@ -192,7 +192,7 @@ test("OMITTED RET: the rewrite leaves SP put, the oracle rets for itself", { ski
   for (const [label, m] of scenarios()) {
     const b = m.clone();
     const spBefore = b.regs.sp;
-    loc_14c5(b);
+    advanceScriptedCharPlaneBandTo4(b);
     assert.equal((b.regs.sp - spBefore) & 0xffff, 0, `${label}: the rewrite moved SP`);
     const a = m.clone();
     const spOracle = a.regs.sp;

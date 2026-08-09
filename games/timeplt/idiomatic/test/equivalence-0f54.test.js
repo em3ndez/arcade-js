@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f54 — memory-equivalent to the frozen oracle at ROM 0x0F54.
+ * advanceAttractTowardGameStart — memory-equivalent to the frozen oracle at ROM 0x0F54.
  * GATE: every real dispatch (all take the play-active bail), plus crafted entries for the four
  *   other branches, plus a handoff-path SP arm. Live-out is work-RAM; a/f/sp are dead (the dropped
  *   ret and its dead accumulator). Teeth: six twins, each caught on an exact scenario count.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0f54 } from "../loc_0f54.js";
+import { advanceAttractTowardGameStart } from "../advanceAttractTowardGameStart.js";
 import { loc_0f54 as oracle } from "../../translated/loc_0f54.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -178,7 +178,7 @@ test("REAL DISPATCHES: every captured entry replays identically", { skip }, () =
   const entries = captureReal();
   assert.ok(entries.length > 0, "vacuous: the tape never reached the routine");
   let caught = 0;
-  for (const e of entries) if (unitDiff(loc_0f54, e)) caught++;
+  for (const e of entries) if (unitDiff(advanceAttractTowardGameStart, e)) caught++;
   assert.equal(caught, 0, `${caught} real dispatches diverged`);
   const anyWork = entries.some((e) => footprint(e) > 0);
   assert.equal(anyWork, false, "a real dispatch did work, so this tape no longer takes only the " +
@@ -189,7 +189,7 @@ test("REAL DISPATCHES: every captured entry replays identically", { skip }, () =
 test("CRAFTED BRANCHES: the four unreached branches replay identically", { skip }, () => {
   const sc = scenarios();
   for (const k of ["B", "C", "D", "E"]) {
-    assert.equal(unitDiff(loc_0f54, sc[k]), null, `branch ${k} diverged: ${show(unitDiff(loc_0f54, sc[k]))}`);
+    assert.equal(unitDiff(advanceAttractTowardGameStart, sc[k]), null, `branch ${k} diverged: ${show(unitDiff(advanceAttractTowardGameStart, sc[k]))}`);
   }
   // The reset branch and the handoff must actually do work, or their comparisons prove nothing;
   // the two bail branches must do none, or the craft missed the branch it names.
@@ -205,7 +205,7 @@ test("HANDOFF SP: the parked slot returns the stack to its seat", { skip }, () =
   const b = scenarios().E.clone();
   const c = scenarios().E.clone();
   oracle(a);
-  loc_0f54(b);
+  advanceAttractTowardGameStart(b);
   brokenDropsPush(c);
   assert.equal(b.regs.sp, a.regs.sp, "the rewrite left the stack pointer off its seat on the handoff");
   // ★ Without the parked slot the still-frozen callee pops the wrong word: measured drift proves
@@ -216,7 +216,7 @@ test("HANDOFF SP: the parked slot returns the stack to its seat", { skip }, () =
 });
 
 test("EXCLUDED, deliberately: only a/f/sp/h/l move, and the check still sees a register", { skip }, () => {
-  const control = (m) => { loc_0f54(m); m.regs.c = (m.regs.c + 1) & 0xff; };
+  const control = (m) => { advanceAttractTowardGameStart(m); m.regs.c = (m.regs.c + 1) & 0xff; };
   const moved = (cand) => {
     const set = new Set();
     for (const mm of Object.values(scenarios())) {
@@ -228,7 +228,7 @@ test("EXCLUDED, deliberately: only a/f/sp/h/l move, and the check still sees a r
     }
     return set;
   };
-  const self = moved(loc_0f54);
+  const self = moved(advanceAttractTowardGameStart);
   const ctrl = moved(control);
   assert.ok(ctrl.has("c") && !EXCLUDED.includes("c"), "the control twin's scribble on c is invisible, " +
     "so the register check measures nothing and the empty result below proves nothing");

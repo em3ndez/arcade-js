@@ -7,42 +7,29 @@
  *   keys on; a CONTINUATION arm that ties this block to the enclosing routine's own snap arm on
  *   real captured state; and a bench of broken twins with measured catch counts.
  *
- * ★ THIS ADDRESS IS NEVER DISPATCHED, AND THAT IS ASSERTED HERE RATHER THAN ASSUMED. The two
- *   instructions at 0x1F3E are the tail of the range loc_1f01 covers, and that transcription runs
- *   them inline, so nothing ever calls in at 0x1F3E. The image's one other static entry is the
- *   fall-out at the bottom of the sixteen-byte table at 0x1F2E, which is read as data and executed
- *   by nothing. REACHABILITY measures the count over THREE tapes — undriven attract, coin-then-
- *   start, and coin-then-start with the stick walked round the compass — with loc_1f01's and
- *   loc_1f42's own counts in the same runs as the positive controls that the instrument can see a
- *   dispatch at all. Every entry state below is therefore CRAFTED.
+ * ★ NEVER DISPATCHED, asserted not assumed: 0x1F3E is the tail of the range
+ *   turnShipTowardTargetHeading covers inline, so nothing calls in here. REACHABILITY counts over
+ *   three tapes (undriven attract; coin-then-start; coin-then-start with the stick walked round the
+ *   compass), with turnShipTowardTargetHeading's and loc_1f42's own counts as the positive controls.
+ *   Every entry below is therefore CRAFTED.
  *
- * ★ THE STICK TAPE IS LOAD-BEARING AND ITS ABSENCE WOULD BE INVISIBLE. loc_1f01 is the turn, and
+ * ★ THE STICK TAPE IS LOAD-BEARING AND ITS ABSENCE WOULD BE INVISIBLE. turnShipTowardTargetHeading is the turn, and
  *   it is only entered when the panel names a direction. Under the shared coin-then-start tape the
- *   stick is never touched, the low nibble is zero on every frame, and loc_1f01 runs ZERO times —
+ *   stick is never touched, the low nibble is zero on every frame, and turnShipTowardTargetHeading runs ZERO times —
  *   so a gate built on that tape alone would capture nothing of this pipeline and would look
  *   exactly like a gate whose routine is dead. The tape here walks all eight compass points.
  *
- * ★ THE CONTINUATION ARM IS THE STRONGEST THING HERE. On a machine captured at a real loc_1f01
- *   dispatch, the target heading is read out of the direction table with the same nibble the
- *   machine itself presents, and the live heading is forced one step to either side of it — which
- *   is exactly the condition under which loc_1f01 reaches this block. Running the WHOLE enclosing
- *   routine and running this block alone with the target handed in then have to agree byte for
- *   byte, and they do, over every captured entry and both directions of the overshoot.
+ * ★ THE CONTINUATION ARM is the strongest check: on a machine captured at a real turn dispatch the
+ *   live heading is forced one step either side of the table target — the condition that reaches
+ *   this block — and the whole enclosing routine vs this block alone must agree byte for byte, over
+ *   every captured entry and both overshoot directions.
  *
  * ★ THE MASKED WINDOW IS MEASURED. The oracle parks one continuation address below its seat and
  *   nothing else; the BOUNDARY arm shows a scribble one byte below the window IS caught.
  *
- * What it exercises, holes stated:
- *   1. REACHABILITY — zero dispatches over three tapes, with two positive controls per run.
- *   2. WINDOW — the oracle's stack footprint, measured over every corpus, pinned at 2.
- *   3. BOUNDARY — a scribble inside the window is masked, one byte below it is caught.
- *   4. CORPUS — machines captured at loc_1f01's and at loc_1f42's real dispatches.
- *   5. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   6. EXCLUDED — no register outside the measured ceiling moves, with a control twin.
- *   7. HEADINGS — all 256 values of the handed-in heading.
- *   8. ERAS — all 256 values of the era byte the continuation keys on, at several headings.
- *   9. CONTINUATION — the enclosing routine's snap arm and this block, byte-identical.
- *  10. TEETH — a bench of broken twins, each with its measured catch count.
+ * Arms: 1 REACHABILITY (0 dispatches, 2 controls/run) · 2 WINDOW (footprint pinned at 2) ·
+ *   3 BOUNDARY · 4 CORPUS (turn + scroll) · 5 NOT VACUOUS · 6 EXCLUDED (ceiling + control twin) ·
+ *   7 HEADINGS (256) · 8 ERAS (256) · 9 CONTINUATION · 10 TEETH (broken twins, measured catches).
  *
  * HOLE: no arm here runs this block from a live dispatch, because nothing dispatches it. What that
  * costs is the whole-session evidence loc_1f42's own gate carries and this one cannot.

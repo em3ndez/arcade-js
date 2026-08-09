@@ -2,7 +2,7 @@
 /** loc_0f8d — the image-checksum tamper trap: pop four return words to unwind the caller chain, then
  * fall into the sprite fixup pass. LIVE-OUT: sp past the four words, the fourth's flags, b=2/c, the pass. */
 
-import { loc_0f97 as spriteFixupPass } from "./loc_0f97.js";
+import { multiplexSpriteSlotsSkipping as spriteFixupPass } from "./multiplexSpriteSlotsSkipping.js";
 
 const DISCARDED_WORDS = 4;
 const BC_RESIDUE = 0x02f2;

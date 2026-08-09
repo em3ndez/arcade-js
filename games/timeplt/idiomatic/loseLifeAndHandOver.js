@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_11ed — one maintenance step per call: hide the sprite band, start the next round when a
- * flag is set, and queue this frame's fixed sound requests. Then decrement the countdown at the
- * head of a 16-byte record and copy the record into whichever of two slots a selector points at.
- * If the countdown reached zero, hand off to the game-over banner and stop. Otherwise, when the
- * other slot is armed, advance the selector, then stamp a constant into one cell and a
- * program-image byte into another. LIVE-OUT: memory. */
+/** loseLifeAndHandOver — one maintenance step per call: hide the sprite band, start the next round when a
+ * flag is set, and queue this frame's fixed sound requests. Then decrement the lives count at the
+ * head of the live 16-byte context block and copy that block into whichever of two save slots the
+ * active-player selector points at. If lives reached zero, hand off to the game-over banner and
+ * stop. Otherwise, when the other player's slot still shows lives, flip the selector, then stamp a
+ * constant into one cell and a program-image byte into another. LIVE-OUT: memory. */
 
 import { u8 } from "../../../core/int.js";
 import { loc_5634 } from "./loc_5634.js";
@@ -24,7 +24,7 @@ const STAMP_VALUE = 90;
 const IMAGE_TARGET = 0xa9ac;
 const IMAGE_BYTE = 0x4b52;
 
-export function loc_11ed(m) {
+export function loseLifeAndHandOver(m) {
   const { mem8 } = m;
 
   hideAllSprites(m);

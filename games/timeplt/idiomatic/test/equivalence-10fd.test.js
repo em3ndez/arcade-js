@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_10fd — memory-equivalent to the frozen oracle at ROM 0x10FD.
+ * spinRemainingSpriteMultiplexSlots — memory-equivalent to the frozen oracle at ROM 0x10FD.
  * GATE: crafted entries over machines captured at the enclosing pass, driving all three entry arms
  *   (skip / trade-from-register / restart); the raster pinned so the sweeps time writes not the
  *   hold; the whole dump compared with nothing masked; and teeth.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_10fd } from "../loc_10fd.js";
+import { spinRemainingSpriteMultiplexSlots } from "../spinRemainingSpriteMultiplexSlots.js";
 import { loc_10fd as oracle } from "../../translated/loc_10fd.js";
 import { loc_10f8 } from "../loc_10f8.js";
 import { loc_1098 as enclosing } from "../../translated/loc_1098.js";
@@ -224,14 +224,14 @@ function brokenIgnoreCarry(m) {
 
 /** BUG: reaches back into the slot before this range, which the pass ahead of it owns. */
 function brokenReachesBack(m) {
-  loc_10fd(m);
+  spinRemainingSpriteMultiplexSlots(m);
   const { mem8 } = m;
   if (mem8[BEFORE.request] >= HALF) mem8[BEFORE.request] = mem8[BEFORE.request] - HALF;
 }
 
 /** BUG: scribbles on an index register, the in-arm control that the ceiling check sees one move. */
 function brokenMovesIndex(m) {
-  loc_10fd(m);
+  spinRemainingSpriteMultiplexSlots(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
 }
 
@@ -295,19 +295,19 @@ test("WINDOW: the oracle pushes nothing, so the whole dump is compared", { skip 
 });
 
 test("SKIP: Z set steps over the first slot; the tail trades on its own bits", { skip }, () => {
-  assert.equal(sweepSkip(loc_10fd), 0, "a skip pattern diverged");
+  assert.equal(sweepSkip(spinRemainingSpriteMultiplexSlots), 0, "a skip pattern diverged");
   const untouched = craft((m) => {
     entry(m, true, 200);
     quiet(m);
     m.mem8[FIRST.request] = 200;
   });
-  loc_10fd(untouched);
+  spinRemainingSpriteMultiplexSlots(untouched);
   assert.equal(untouched.mem8[FIRST.request], 200, "the first slot was traded even though Z was set");
   console.log(`  SKIP: ${RUNS.skip} patterns identical; the first slot stands when Z is set`);
 });
 
 test("TRADE: Z clear trades the first slot FROM THE REGISTER, not from memory", { skip }, () => {
-  assert.equal(sweepTrade(loc_10fd), 0, "a trade value diverged");
+  assert.equal(sweepTrade(spinRemainingSpriteMultiplexSlots), 0, "a trade value diverged");
   // ★ The load-bearing property: the first slot's new request is the held byte masked, and memory
   //   held something else entirely — a rewrite that re-read memory would land 5, not 100.
   const m = craft((mm) => {
@@ -315,25 +315,25 @@ test("TRADE: Z clear trades the first slot FROM THE REGISTER, not from memory", 
     quiet(mm);
     mm.mem8[FIRST.request] = 5;
   });
-  loc_10fd(m);
+  spinRemainingSpriteMultiplexSlots(m);
   assert.equal(m.mem8[FIRST.request], 100, "the first slot must come from the held byte, not memory");
   console.log(`  TRADE: ${RUNS.trade} held values identical; the first slot lands the register byte`);
 });
 
 test("RESTART: Z clear but no carry restarts the pass and re-reads every slot", { skip }, () => {
-  assert.equal(sweepRestart(loc_10fd), 0, "a restart pattern diverged");
+  assert.equal(sweepRestart(spinRemainingSpriteMultiplexSlots), 0, "a restart pattern diverged");
   console.log(`  RESTART: ${RUNS.restart} patterns identical`);
 });
 
 test("PARTNERS: the partner byte over every value, the wrap included", { skip }, () => {
-  assert.equal(sweepPartners(loc_10fd), 0, "a partner value diverged");
+  assert.equal(sweepPartners(spinRemainingSpriteMultiplexSlots), 0, "a partner value diverged");
   const wrap = craft((m) => {
     entry(m, false, 200);
     quiet(m);
     m.mem8[TAIL[0].request] = HALF;
     m.mem8[TAIL[0].partner] = 200;
   });
-  loc_10fd(wrap);
+  spinRemainingSpriteMultiplexSlots(wrap);
   assert.equal(wrap.mem8[TAIL[0].partner], 72, "the partner must wrap in a byte, not widen");
   console.log(`  PARTNERS: ${RUNS.partners} values identical, including the wrap`);
 });
@@ -361,7 +361,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_10fd);
+  const moved = movedOver(spinRemainingSpriteMultiplexSlots);
   const control = movedOver(brokenMovesIndex);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
     "the measurement reports nothing outside the ceiling even for a twin that scribbles on an " +

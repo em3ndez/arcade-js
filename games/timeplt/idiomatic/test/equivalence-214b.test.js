@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_214b — memory-equivalent to the frozen oracle at ROM 0x214B.
+ * flyDemoShipByScript — memory-equivalent to the frozen oracle at ROM 0x214B.
  * GATE: real attract dispatches (undriven tape), plus crafted turn/advance entries; compares work
  *   RAM, pc and every register but the shadow bank the exit swap fills with dead loop scratch —
  *   which the identical RAM/pc/main-register result proves the mover never reads. Teeth land in RAM.
@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_214b } from "../loc_214b.js";
+import { flyDemoShipByScript } from "../flyDemoShipByScript.js";
 import { loc_214b as oracle } from "../../translated/loc_214b.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -26,7 +26,7 @@ const CAP = 40;
 const skip = romsPresent() ? false : "ROM images are gitignored; none assembled";
 
 // Two dead sets, both measured. The loop swaps its spent scratch into the shadow bank on the closing
-// exx and never swaps back. The world-scroll mover is a tail: once loc_214b returns nothing reads its
+// exx and never swaps back. The world-scroll mover is a tail: once flyDemoShipByScript returns nothing reads its
 // accumulator, flags or index registers, and the ROM ret it drops leaves sp two bytes low. Excluding
 // them keeps the gate from demanding a value the rewrite need not carry.
 const EXCLUDED = ["b_", "c_", "d_", "e_", "h_", "l_", "a", "f", "d", "e", "l", "sp"];
@@ -58,7 +58,7 @@ function unitDiff(candidate, machine) {
   oracle(a);
   candidate(b);
   // The dissolved mover writes no dead stack scratch and takes no ROM ret, so the diff masks the
-  // window below the oracle's exit pointer; pc is the tail's return address, dead once loc_214b ends.
+  // window below the oracle's exit pointer; pc is the tail's return address, dead once flyDemoShipByScript ends.
   const sp = a.regs.sp;
   const da = a.dumpState();
   const db = b.dumpState();
@@ -176,7 +176,7 @@ function brokenAdvanceThreshold(m) {
   return m.call(MOVER);
 }
 
-function brokenScribblesMainReg(m) { loc_214b(m); m.regs.b = (m.regs.b + 1) & 0xff; }
+function brokenScribblesMainReg(m) { flyDemoShipByScript(m); m.regs.b = (m.regs.b + 1) & 0xff; }
 
 const TWINS = [
   ["no-op", brokenNoOp],
@@ -190,7 +190,7 @@ const TWINS = [
 
 test("REAL DISPATCHES: every attract dispatch replays identical", { skip }, () => {
   const entries = captureReal();
-  for (const e of entries) assert.equal(unitDiff(loc_214b, e), null, "a real dispatch diverged");
+  for (const e of entries) assert.equal(unitDiff(flyDemoShipByScript, e), null, "a real dispatch diverged");
   assert.ok(entries.some((e) => footprint(e) > 0),
     "every oracle dispatch wrote nothing, so a rewrite that did nothing would pass");
   console.log(`  REAL: ${entries.length} attract dispatches identical`);
@@ -199,7 +199,7 @@ test("REAL DISPATCHES: every attract dispatch replays identical", { skip }, () =
 test("CRAFTED: turn commands and the advance path replay identical", { skip }, () => {
   for (const [label, poke] of Object.entries(CRAFTS)) {
     const m = craft(poke);
-    assert.equal(unitDiff(loc_214b, m), null, `crafted ${label} diverged`);
+    assert.equal(unitDiff(flyDemoShipByScript, m), null, `crafted ${label} diverged`);
     assert.ok(footprint(m) > 0, `crafted ${label} moved nothing, so it proves nothing`);
   }
   console.log(`  CRAFTED: ${Object.keys(CRAFTS).length} arms identical`);
@@ -207,7 +207,7 @@ test("CRAFTED: turn commands and the advance path replay identical", { skip }, (
 
 test("EXCLUDED: only the dead sets differ, and the check can still see a register", { skip }, () => {
   const m = captureReal()[0];
-  const moved = movedFields(loc_214b, m);
+  const moved = movedFields(flyDemoShipByScript, m);
   // The exclusion is load-bearing, not decoration: the dead registers really do differ here.
   assert.ok(EXCLUDED.some((k) => moved.has(k)), "no excluded register moved, so the set excludes nothing");
   // ★ and an empty non-excluded result means nothing unless the same check catches a real one.
@@ -222,7 +222,7 @@ test("WINDOW: the widest divergence is exactly the declared dead-scratch window"
     const a = mc.clone();
     const b = mc.clone();
     oracle(a);
-    loc_214b(b);
+    flyDemoShipByScript(b);
     const sp = a.regs.sp;
     const da = a.dumpState();
     const db = b.dumpState();
@@ -242,7 +242,7 @@ test("SP: the rewrite drops exactly the ROM tail return the oracle pops", { skip
     const a = mc.clone();
     const b = mc.clone();
     oracle(a);
-    loc_214b(b);
+    flyDemoShipByScript(b);
     assert.equal(a.regs.sp - b.regs.sp, 2, "the sp drift is not the single dropped tail return");
   }
   console.log("  SP: oracle pops the tail return, the rewrite leaves it — sp+2 on every entry");

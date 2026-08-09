@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0f54 — guarded tail of the phase-3 image step: bail while play is active, else reset the
+/** advanceAttractTowardGameStart — guarded tail of the phase-3 image step: bail while play is active, else reset the
  * sub-step/phase on a pending flag, or on free-play + two input bits hide the sprites and start a game. LIVE-OUT: memory + stack. */
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startGameOnFreePlay } from "./startGameOnFreePlay.js";
 
-export function loc_0f54(m) {
+export function advanceAttractTowardGameStart(m) {
   const { mem8 } = m;
 
   if (mem8[0xad30] !== 0) return;

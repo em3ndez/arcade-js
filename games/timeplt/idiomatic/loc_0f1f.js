@@ -3,7 +3,7 @@
  * its return slot first, then run the fixed continuation. LIVE-OUT: memory. */
 
 import { SEQUENCE_SUBSTEP } from "./names.js";
-import { loc_0f54 } from "./loc_0f54.js";
+import { advanceAttractTowardGameStart } from "./advanceAttractTowardGameStart.js";
 
 const ARM_TABLE = 0x0f29;
 const ARM_MASK = 0x0f;
@@ -13,5 +13,5 @@ export function loc_0f1f(m) {
   const arm = m.mem16[ARM_TABLE + 2 * (m.mem8[SEQUENCE_SUBSTEP] & ARM_MASK)];
   m.push16(AFTER_ARM);
   m.call(arm);
-  loc_0f54(m);
+  advanceAttractTowardGameStart(m);
 }

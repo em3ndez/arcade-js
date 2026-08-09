@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_11ed — memory-equivalent to the frozen oracle at ROM 0x11ED.
+ * loseLifeAndHandOver — memory-equivalent to the frozen oracle at ROM 0x11ED.
  *
  * GATE: strict unit-capture at the one real dispatch of the coin -> start tape, compared outside
- *   the measured stack window, plus a crafted cross-product that drives both the countdown tail
+ *   the measured stack window, plus a crafted cross-product that drives both the lives-zero tail
  *   and the selector/toggle arms the natural run never takes, plus teeth. Each dissolved call —
  *   the sprite hide, the round start, the sound queue and the tail banner — is held load-bearing
  *   by a twin that drops it.
@@ -19,7 +19,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_11ed } from "../loc_11ed.js";
+import { loseLifeAndHandOver } from "../loseLifeAndHandOver.js";
 import { loc_5634 } from "../loc_5634.js";
 import { hideAllSprites } from "../hideAllSprites.js";
 import { startNextRound } from "../startNextRound.js";
@@ -100,7 +100,7 @@ function replay(candidate) {
 }
 
 function entryState() {
-  if (entry === null) replay(loc_11ed);
+  if (entry === null) replay(loseLifeAndHandOver);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   return entry;
 }
@@ -169,7 +169,7 @@ function brokenNoSound(m) {
   mem8[IMAGE_TARGET] = mem8[IMAGE_BYTE];
 }
 
-/** BUG: never decrements the countdown, so the head byte and its copy are one too high. */
+/** BUG: never decrements the lives count, so the head byte and its copy are one too high. */
 function brokenNoDecrement(m) {
   const { mem8 } = m;
   hideAllSprites(m);
@@ -278,15 +278,15 @@ const TWINS = [
 
 // ── the gate ──────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_11ed == oracle outside the stack window", { skip }, () => {
-  const r = replay(loc_11ed);
+test("EQUAL at the real dispatch: loseLifeAndHandOver == oracle outside the stack window", { skip }, () => {
+  const r = replay(loseLifeAndHandOver);
   assert.equal(r.dispatches, DISPATCHES, "the dispatch count moved");
   assert.equal(r.caught, 0, "the rewrite diverged at the real dispatch");
   console.log(`  EQUAL: ${r.dispatches} dispatch, sp=${hex4(entryState().regs.sp)}`);
 });
 
 test("CRAFTED EQUAL: every branch combination behaves as the oracle", { skip }, () => {
-  assert.equal(sweepCaught(loc_11ed), 0, "the rewrite diverged in the crafted space");
+  assert.equal(sweepCaught(loseLifeAndHandOver), 0, "the rewrite diverged in the crafted space");
   console.log(`  CRAFTED: ${COMBOS.length} combos identical (${TAIL_COMBOS} take the tail)`);
 });
 
@@ -297,9 +297,9 @@ test("NOT VACUOUS: a no-op candidate FAILS on a real cell", { skip }, () => {
   console.log(`  NOT VACUOUS: ${show(d)}`);
 });
 
-test("TAIL: a zero countdown hands off, and a twin that skips the tail is caught", { skip }, () => {
+test("TAIL: a zero lives count hands off, and a twin that skips the tail is caught", { skip }, () => {
   const tail = craft({ flag: 0, selector: 0, count: 1, otherHead: 0 });
-  assert.equal(unitDiff(loc_11ed, tail), null, "the tail path diverged from the oracle");
+  assert.equal(unitDiff(loseLifeAndHandOver, tail), null, "the tail path diverged from the oracle");
   assert.notEqual(unitDiff(brokenSkipTail, tail), null, "the tail branch was never exercised");
   console.log("  TAIL: hand-off matches the oracle and the skip-tail twin is caught");
 });
@@ -308,7 +308,7 @@ test("EXCLUDED, deliberately: the register-diff set is pinned, and nothing else"
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_11ed(b);
+  loseLifeAndHandOver(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     EXCLUDED,

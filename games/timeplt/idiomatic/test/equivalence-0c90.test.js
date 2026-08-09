@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0c90 — memory-equivalent to the frozen oracle at ROM 0x0C90.
+ * awardScoreToPlayer — memory-equivalent to the frozen oracle at ROM 0x0C90.
  *
  * WHAT IT IS. Command-ring handler 4, the score-award: add the argument's award to the current
  * player's packed-decimal score, promote that score into the high score when it now beats it, and
@@ -44,7 +44,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0c90 } from "../loc_0c90.js";
+import { awardScoreToPlayer } from "../awardScoreToPlayer.js";
 import { loc_0c90 as oracle } from "../../translated/loc_0c90.js";
 import { loc_0ce8 } from "../loc_0ce8.js";
 import { loc_0d57 } from "../loc_0d57.js";
@@ -280,7 +280,7 @@ test("EQUAL at the real dispatches: identical outside the measured window", { sk
   assert.ok(entries.length > 0, "vacuous: the tape never reached the routine");
   assert.ok(zeroArg() && scoreArg(), "the tape did not exercise both the repaint arm and an award");
   for (const e of entries) {
-    const d = unitDiff(loc_0c90, e);
+    const d = unitDiff(awardScoreToPlayer, e);
     assert.equal(d, null, `a real dispatch diverged: ${show(d)}`);
   }
   console.log(`  EQUAL: ${entries.length} real dispatches, seat ${hex4(entries[0].regs.sp)}, ` +
@@ -300,7 +300,7 @@ test("WINDOW: the oracle's deepest push over every arm, measured and pinned", { 
 test("CRAFTED: the arms the tape never reaches, each forced by one cell", { skip }, () => {
   const arms = craftedArms();
   for (const [label, mc] of Object.entries(arms)) {
-    const d = unitDiff(loc_0c90, mc);
+    const d = unitDiff(awardScoreToPlayer, mc);
     assert.equal(d, null, `the ${label} arm diverged: ${show(d)}`);
   }
   // Non-vacuity: each poke actually drove its branch, checked against the ROM's own writes.
@@ -356,8 +356,8 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_0c90);
-  const control = movedOver((m) => { loc_0c90(m); m.regs[SPARE_REG] = u8(m.regs[SPARE_REG] + 1); });
+  const moved = movedOver(awardScoreToPlayer);
+  const control = movedOver((m) => { awardScoreToPlayer(m); m.regs[SPARE_REG] = u8(m.regs[SPARE_REG] + 1); });
   // The absence is evidence only if the same measurement CAN report a register outside the ceiling.
   assert.ok(control.has(SPARE_REG) && !MOVED.includes(SPARE_REG),
     "the measurement misses a twin that scribbles a spare register, so a clean reading proves nothing");
@@ -378,7 +378,7 @@ const DISSOLVED_CALLEES = [
 ];
 
 test("DISSOLVED: every decompiled callee is called directly and no m.call survives", () => {
-  const module = readFileSync(new URL("../loc_0c90.js", import.meta.url), "utf8");
+  const module = readFileSync(new URL("../awardScoreToPlayer.js", import.meta.url), "utf8");
   for (const [name, callForm] of DISSOLVED_CALLEES) {
     assert.ok(module.includes(`from "./${name}.js"`), `the module does not import ${name}`);
     assert.ok(module.includes(callForm), `the module does not call ${name} directly`);

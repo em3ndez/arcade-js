@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1f01 — turn the ship one notch toward a wanted heading, then scroll the world to match.
+/** turnShipTowardTargetHeading — turn the ship one notch toward a wanted heading, then scroll the world to match.
  * The wanted heading comes from a fixed table indexed by the value handed in. The live heading in
  * PLAYER_HEADING is left alone when it already matches, snapped on when one notch either side would
  * reach it, and otherwise stepped the short way round the compass by three notches — four once the
@@ -17,7 +17,7 @@ const SLOW_STEP = 3;
 const WITHIN_ONE_NOTCH = 3;
 const HALF_TURN = 128;
 
-export function loc_1f01(m) {
+export function turnShipTowardTargetHeading(m) {
   const { regs, mem8 } = m;
   regs.hl = WANTED_HEADING_TABLE;
   const wanted = fetchTableByte(m);

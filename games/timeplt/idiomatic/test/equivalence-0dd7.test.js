@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0dd7 — memory-equivalent to the frozen oracle at ROM 0x0DD7.
+ * drawCountAsPictogramStrip — memory-equivalent to the frozen oracle at ROM 0x0DD7.
  * GATE: unit-capture at each session's real dispatch, plus a crafted sweep that pokes the input
  *   value and poisons both display planes so every drawn cell shows. The oracle nets one ret and
  *   the candidate performs none, so it runs through withOmittedRet and SP/pc are then compared for
@@ -13,7 +13,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_0dd7 } from "../loc_0dd7.js";
+import { drawCountAsPictogramStrip } from "../drawCountAsPictogramStrip.js";
 import { loc_0dd7 as oracle } from "../../translated/loc_0dd7.js";
 import { drawSlotWithOneGlyph } from "../drawSlotWithOneGlyph.js";
 import { paintDoubleTile } from "../paintDoubleTile.js";
@@ -170,7 +170,7 @@ function drawMeter({ clampTo = 99, big = 30, onesGlyph = 0x01, fill = true, orde
 
 /** BUG: scribbles a held register the routine has no business moving; the control for the ceiling. */
 function clobbersHeldRegister(m) {
-  loc_0dd7(m);
+  drawCountAsPictogramStrip(m);
   m.regs.h = (m.regs.h + 1) & 0xff;
 }
 
@@ -196,7 +196,7 @@ test("REACH: each session's dispatch count, pinned", { skip }, () => {
 
 test("EQUAL at the real dispatch of each session", { skip }, () => {
   for (const [label] of SESSIONS) {
-    const r = diffOf(loc_0dd7, entryFor(label).entry);
+    const r = diffOf(drawCountAsPictogramStrip, entryFor(label).entry);
     assert.equal(r.faulted, false, `${label}: a side faulted (${r.faultA} vs ${r.faultB})`);
     assert.ok(r.informative, `${label}: the oracle wrote nothing outside the window, so this is vacuous`);
     assert.deepEqual(r.masked, [], `${label}: ${show(r.masked[0])}`);
@@ -218,7 +218,7 @@ test("SCRATCH: the masked window is the oracle's own deepest push, and nothing e
   let seen = 0;
   for (const c of CRAFTED()) {
     deepestPush = Math.max(deepestPush, pushDepth(oracle, c));
-    const r = diffOf(loc_0dd7, c);
+    const r = diffOf(drawCountAsPictogramStrip, c);
     for (const d of r.raw) {
       assert.ok(d.addr < r.sp, `${hex4(d.addr)} is at or above the seat`);
       deepestDiff = Math.max(deepestDiff, r.sp - d.addr);
@@ -234,7 +234,7 @@ test("SCRATCH: the masked window is the oracle's own deepest push, and nothing e
 test("CRAFTED: every poked value is identical outside the window, SP and pc equal", { skip }, () => {
   let informative = 0;
   for (const c of CRAFTED()) {
-    const r = diffOf(loc_0dd7, c);
+    const r = diffOf(drawCountAsPictogramStrip, c);
     assert.equal(r.faulted, false, `A=${c.regs.a}: ${r.faultA} vs ${r.faultB}`);
     assert.deepEqual(r.masked, [], `A=${c.regs.a}: ${show(r.masked[0])}`);
     assert.equal(r.spDiff, null, "the seam left SP adrift");
@@ -247,8 +247,8 @@ test("CRAFTED: every poked value is identical outside the window, SP and pc equa
 
 test("EXCLUDED: only the shadow file moves, and the instrument can see a held register", { skip }, () => {
   const moved = new Set();
-  for (const [label] of SESSIONS) for (const k of diffOf(loc_0dd7, entryFor(label).entry).moved) moved.add(k);
-  for (const c of CRAFTED()) for (const k of diffOf(loc_0dd7, c).moved) moved.add(k);
+  for (const [label] of SESSIONS) for (const k of diffOf(drawCountAsPictogramStrip, entryFor(label).entry).moved) moved.add(k);
+  for (const c of CRAFTED()) for (const k of diffOf(drawCountAsPictogramStrip, c).moved) moved.add(k);
   const list = REG_FIELDS.filter((k) => moved.has(k));
   // A CEILING, never deepEqual: an equality here would DEMAND the divergence and go red on a
   // rewrite that became register-exact.

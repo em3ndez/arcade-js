@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0dd7 — paint a value 0..99 as a row of denomination blocks at a fixed cell, then fold a
+ * drawCountAsPictogramStrip — paint a value 0..99 as a row of denomination blocks at a fixed cell, then fold a
  * three-word integrity sum and cold-start the machine if it fails. The value is clamped to 99 and
  * split greedily into thirties, tens, fives and ones; each count paints that many blocks, smallest
  * first so the row fills right to left, and the rest of the row is padded with the blank glyph.
@@ -18,7 +18,7 @@ const BLANK_GLYPH = 0xf1;
 const BLANK_COLOUR = 0x10;
 const CHECKSUM_TARGET = 0x69;
 
-export function loc_0dd7(m) {
+export function drawCountAsPictogramStrip(m) {
   const { regs, mem16 } = m;
 
   let value = regs.a >= 100 ? 99 : regs.a;

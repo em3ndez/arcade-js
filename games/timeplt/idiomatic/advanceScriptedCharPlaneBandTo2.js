@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_142a — advance one frame of the scripted character-plane animation, chosen by bit 0 of a
+/** advanceScriptedCharPlaneBandTo2 — advance one frame of the scripted character-plane animation, chosen by bit 0 of a
  * per-pass counter. Even passes blank two plane columns and six loose cells to the blank tile. Odd
  * passes read the byte under the script cursor: 0xff ends the script — the counter is zeroed, the
  * stage set to 2 and the cursor stepped back one, returning early with no decrement. Otherwise the
@@ -19,7 +19,7 @@ const BLANK_TILE = 0xf1;
 const ROW = 0x20;
 const END_OF_SCRIPT = 0xff;
 
-export function loc_142a(m) {
+export function advanceScriptedCharPlaneBandTo2(m) {
   const { regs, mem8, mem16 } = m;
 
   if ((mem8[PASS_COUNTER] & 1) === 0) {

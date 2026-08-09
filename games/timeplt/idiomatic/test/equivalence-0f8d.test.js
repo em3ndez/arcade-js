@@ -15,7 +15,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { loc_0f8d as candidate } from "../loc_0f8d.js";
 import { loc_0f8d as oracle } from "../../translated/loc_0f8d.js";
-import { loc_0f97 as fixupPass } from "../loc_0f97.js";
+import { multiplexSpriteSlotsSkipping as fixupPass } from "../multiplexSpriteSlotsSkipping.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 

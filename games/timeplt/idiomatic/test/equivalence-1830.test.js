@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1830 — memory-equivalent to the frozen oracle at ROM 0x1830.
+ * postAttractInfoCaptions — memory-equivalent to the frozen oracle at ROM 0x1830.
  * GATE: unit-capture with a 2-byte dead-stack window, a replayed corpus, a crafted 2x2 branch
  *   grid, an asserted parked-return drift, and teeth. Hole: what each posted code draws is not
  *   checked here, only that the same (1, code) pairs reach the writer and the same counter bumps
@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_1830 } from "../loc_1830.js";
+import { postAttractInfoCaptions } from "../postAttractInfoCaptions.js";
 import { loc_1830 as oracle } from "../../translated/loc_1830.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -22,7 +22,7 @@ const TARGET = 0x1830;
 const DISPATCHER = 0x1651; // fires every frame the sequence runs, so it mints a real-state corpus
 const SCRATCH_BYTES = 2;
 // The dissolved tail advanceSequenceSubStep does the counter inc but takes no ROM ret, so the
-// oracle's inc-and-ret leaves f/h/l set and pops two bytes the rewrite keeps. All dead: loc_1830 is
+// oracle's inc-and-ret leaves f/h/l set and pops two bytes the rewrite keeps. All dead: postAttractInfoCaptions is
 // itself a tail and nothing downstream reads them. sp is proved on its own arm, not masked away here.
 const EXCLUDED_REGS = ["f", "h", "l", "sp"];
 const FLIP_CELL = 0xa9c3;
@@ -135,7 +135,7 @@ function twinSingleCounter(m) {
 test("EQUAL: the real dispatch is identical outside the dead stack window", { skip }, () => {
   capture();
   assert.notEqual(entry, null, "vacuous: the tape never reached this arm");
-  assert.equal(stray(loc_1830, entry), null, "a divergence escaped the scratch window");
+  assert.equal(stray(postAttractInfoCaptions, entry), null, "a divergence escaped the scratch window");
   console.log(`  EQUAL: flip=${entry.mem8[FLIP_CELL]} branch=${entry.mem8[BRANCH_CELL]} sp=${hex4(entry.regs.sp)}`);
 });
 
@@ -143,7 +143,7 @@ test("SP: the rewrite drops exactly the tail return the oracle pops", { skip }, 
   capture();
   for (const s of [entry, ...corpus]) {
     const a = s.clone(); const b = s.clone();
-    oracle(a); loc_1830(b);
+    oracle(a); postAttractInfoCaptions(b);
     assert.equal((a.regs.sp - b.regs.sp) & 0xffff, 2,
       "the sp drift is not the single dropped tail return advanceSequenceSubStep omits");
   }
@@ -160,7 +160,7 @@ test("WINDOW: the widest divergence is exactly the declared 2-byte window", { sk
   let widest = 0;
   for (const s of [entry, ...corpus, ...GRID.map(([f, b]) => craft(f, b))]) {
     const sp = s.regs.sp; const a = s.clone(); const b = s.clone();
-    oracle(a); loc_1830(b);
+    oracle(a); postAttractInfoCaptions(b);
     const da = a.dumpState(); const db = b.dumpState();
     for (let i = 0; i < da.length; i++) {
       if (da[i] !== db[i]) { const ad = a.stateOffsetToAddr(i); if (ad !== null && ad < sp) widest = Math.max(widest, sp - ad); }
@@ -186,7 +186,7 @@ test("CORPUS: every captured real state replays identically", { skip }, () => {
   capture();
   assert.ok(corpus.length > 0, "vacuous: no states captured");
   let caught = 0;
-  for (const s of corpus) if (stray(loc_1830, s)) caught++;
+  for (const s of corpus) if (stray(postAttractInfoCaptions, s)) caught++;
   assert.equal(caught, 0, `the rewrite diverged on ${caught} of ${corpus.length} captured states`);
   console.log(`  CORPUS: ${corpus.length} states identical`);
 });
@@ -194,7 +194,7 @@ test("CORPUS: every captured real state replays identically", { skip }, () => {
 test("CRAFTED: both branch decisions replay identically", { skip }, () => {
   capture();
   for (const [flip, branch] of GRID) {
-    assert.equal(stray(loc_1830, craft(flip, branch)), null, `flip=${flip} branch=${branch} diverged`);
+    assert.equal(stray(postAttractInfoCaptions, craft(flip, branch)), null, `flip=${flip} branch=${branch} diverged`);
   }
   console.log("  CRAFTED: the 2x2 branch grid is identical");
 });
@@ -202,11 +202,11 @@ test("CRAFTED: both branch decisions replay identically", { skip }, () => {
 test("EXCLUDED: only the dead registers differ, and a scribbling control is still caught", { skip }, () => {
   capture();
   const a = entry.clone(); const b = entry.clone();
-  oracle(a); loc_1830(b);
+  oracle(a); postAttractInfoCaptions(b);
   const moved = REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]);
   assert.deepEqual(moved.filter((k) => !EXCLUDED_REGS.includes(k)), [], "a register diverged outside the dead set");
   assert.ok(EXCLUDED_REGS.some((k) => moved.includes(k)), "no dead register moved, so the exclusion measures nothing");
-  const scribble = (m) => { loc_1830(m); m.regs.a = (m.regs.a + 1) & 0xff; };
+  const scribble = (m) => { postAttractInfoCaptions(m); m.regs.a = (m.regs.a + 1) & 0xff; };
   assert.notEqual(stray(scribble, entry), null, "the register check cannot even see a scribbled live register");
   console.log(`  EXCLUDED: ${moved.join(", ")} move (all dead); a scribble on a live register is caught`);
 });

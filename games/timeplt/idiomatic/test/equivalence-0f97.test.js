@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0f97 vs its frozen twin at ROM 0x0F97. This entry reads the scanline counter once per armed
+ * multiplexSpriteSlotsSkipping vs its frozen twin at ROM 0x0F97. This entry reads the scanline counter once per armed
  * slot, and the frozen twin's m.step accounting drifts that read across the eight slots while a
  * cycle-free rewrite reads one value for the whole pass. So the scanline is PINNED on both sides
  * before every comparison, which is the timing-seeded-input control the method prescribes; the last
@@ -11,7 +11,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0f97 } from "../loc_0f97.js";
+import { multiplexSpriteSlotsSkipping } from "../multiplexSpriteSlotsSkipping.js";
 import { loc_0f97 as oracle } from "../../translated/loc_0f97.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -139,7 +139,7 @@ const brokenWrongXStep = twin({ xStep: 0x40 });
 const brokenSevenSlots = twin({ pairs: PAIRS.slice(0, 7) });
 /** ★ the register control: correct memory, but scribbles a register the routine never touches. */
 const brokenMovesSpareRegister = (m) => {
-  loc_0f97(m);
+  multiplexSpriteSlotsSkipping(m);
   m.regs.h = (m.regs.h + 1) & 0xff;
 };
 
@@ -164,7 +164,7 @@ test("PINNED CAPTURES: every real dispatch is identical across a full scanline s
   let fired = 0;
   for (const e of sample) {
     for (let s = 0; s < 256; s++) {
-      const d = unitDiff(loc_0f97, e, s);
+      const d = unitDiff(multiplexSpriteSlotsSkipping, e, s);
       assert.equal(d, null, `a pinned dispatch diverged at scanline ${s}: ${show(d)}`);
     }
     if (footprint(e, 200) > 0) fired++;
@@ -177,7 +177,7 @@ test("PINNED CAPTURES: every real dispatch is identical across a full scanline s
 
 test("CRAFTED BOUNDARY: fire/skip agrees across every scanline with thresholds spread", { skip }, () => {
   const m = craftBoundary();
-  assert.equal(sweepCaught(loc_0f97, m), 0, "a scanline crossed a carry boundary and diverged");
+  assert.equal(sweepCaught(multiplexSpriteSlotsSkipping, m), 0, "a scanline crossed a carry boundary and diverged");
   const fp = [];
   for (let s = 0; s < 256; s++) fp.push(footprint(m, s));
   // The sweep must span quiet AND firing scanlines, or it never tests the carry decision at all.
@@ -188,7 +188,7 @@ test("CRAFTED BOUNDARY: fire/skip agrees across every scanline with thresholds s
 
 test("LIVE-OUT: registers are checked, with a control that moves one", { skip }, () => {
   const m = craftMixed();
-  assert.equal(sweepCaught(loc_0f97, m), 0, "the rewrite moved a register the oracle did not");
+  assert.equal(sweepCaught(multiplexSpriteSlotsSkipping, m), 0, "the rewrite moved a register the oracle did not");
   // ★ the standing register check is worth nothing unless it can SEE a stray register.
   assert.ok(sweepCaught(brokenMovesSpareRegister, m) > 0,
     "a twin that scribbles H is not caught, so the register comparison is blind");
@@ -210,7 +210,7 @@ test("UNPINNED: the two DO diverge without the pin, proving it is load-bearing",
     const a = e.clone();
     const b = e.clone();
     oracle(a);
-    loc_0f97(b);
+    multiplexSpriteSlotsSkipping(b);
     if (firstStateDiff(a.dumpState(), b.dumpState()) !== null) { diverged++; continue; }
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) { diverged++; break; }
   }

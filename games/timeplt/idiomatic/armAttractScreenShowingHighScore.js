@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_15fe — arm a fresh screen once a per-frame countdown lapses. Every call first ticks that
+/** armAttractScreenShowingHighScore — arm a fresh screen once a per-frame countdown lapses. Every call first ticks that
  * countdown; the rest runs only on the call that zeroes it — push four fixed commands onto the ring,
  * seed a marker into two cells, patch six cells from the record list that follows this routine (each
  * destination gets a value with a marker beside it), print the six-digit readout, set two sub-state
@@ -16,7 +16,7 @@ const PATCH_LIST = 0x163f;
 const PATCH_COUNT = 6;
 const PATCH_MARKER = 0x05;
 
-export function loc_15fe(m) {
+export function armAttractScreenShowingHighScore(m) {
   const { regs, mem8 } = m;
 
   m.push16(0x1601);

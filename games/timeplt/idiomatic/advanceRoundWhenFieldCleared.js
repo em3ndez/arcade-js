@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_1271 — a gated two-arm state update. It acts only when a mode cell is clear, an arm cell is
+/** advanceRoundWhenFieldCleared — a gated two-arm state update. It acts only when a mode cell is clear, an arm cell is
  * set, and all fifteen object slots hold zero, and returns at once otherwise. It then queues the
  * fixed sound set and branches on a selector: one arm disarms and zeroes a cluster of cells (a
  * fixed table sum collapses one of them to zero); the other blanks a strided run, copies a
@@ -9,7 +9,7 @@ import { loc_5634 } from "./loc_5634.js";
 import { hideAllSprites } from "./hideAllSprites.js";
 import { startNextRound } from "./startNextRound.js";
 
-export function loc_1271(m) {
+export function advanceRoundWhenFieldCleared(m) {
   const { mem8 } = m;
 
   if (mem8[0xad02] !== 0) return;

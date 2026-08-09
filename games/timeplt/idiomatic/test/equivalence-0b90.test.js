@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0b90 — memory-equivalent to the frozen oracle at ROM 0x0B90.
+ * enterCommandRingDrain — memory-equivalent to the frozen oracle at ROM 0x0B90.
  *
  * A three-byte `jp 0x0b93`: a tail transfer into the foreground command-ring loop, which is the
  * drain — a coroutine that never returns. This entry's whole job is to reach it and hand back
@@ -30,7 +30,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0b90 } from "../loc_0b90.js";
+import { enterCommandRingDrain } from "../enterCommandRingDrain.js";
 import { loc_0b90 as oracle } from "../../translated/loc_0b90.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
 import { COMMAND_READ_CURSOR } from "../names.js";
@@ -188,7 +188,7 @@ test("REACHES THE DRAIN: both arms reach it once and hand it identical state", {
   const a = severed(entryState(), logA);
   const b = severed(entryState(), logB);
   const retA = oracle(a);
-  const retB = loc_0b90(b);
+  const retB = enterCommandRingDrain(b);
   assert.equal(logA.length, 1, "the oracle did not reach the drain exactly once");
   assert.equal(logB.length, 1, "the rewrite did not reach the drain exactly once");
   assert.deepEqual(logB, logA, "the state handed to the drain differs");
@@ -199,7 +199,7 @@ test("REACHES THE DRAIN: both arms reach it once and hand it identical state", {
 
 test("EQUAL: RAM, the hand-off state and the returned sentinel, on every crafted entry", { skip }, () => {
   for (const seed of SEEDS) {
-    const d = unitDiff(loc_0b90, craft(seed));
+    const d = unitDiff(enterCommandRingDrain, craft(seed));
     assert.equal(d, null, `seed ${JSON.stringify(seed)}: ${show(d)}`);
   }
   console.log(`  EQUAL: ${SEEDS.length} crafted register sets identical`);

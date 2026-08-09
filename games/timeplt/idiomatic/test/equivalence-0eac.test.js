@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0eac — memory-equivalent to the frozen oracle at ROM 0x0EAC.
+ * drawRoundNumberCaption — memory-equivalent to the frozen oracle at ROM 0x0EAC.
  * GATE: unit-capture of the one real dispatch, plus a crafted sweep of every round value, plus the
  *   anti-tamper guard driven both ways. The rewrite models no stack while the oracle brackets each
  *   frozen call with a push it pops, so RAM is compared outside a measured dead window under the
@@ -23,7 +23,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_0eac } from "../loc_0eac.js";
+import { drawRoundNumberCaption } from "../drawRoundNumberCaption.js";
 import { loc_0eac as oracle } from "../../translated/loc_0eac.js";
 import { ROUND_NUMBER } from "../names.js";
 import { drawCaptionInPenColour } from "../drawCaptionInPenColour.js";
@@ -186,7 +186,7 @@ function brokenOffByOne(m) {
   const value = (mem8[ROUND_NUMBER] + 1) & 0xff;
   const saved = mem8[ROUND_NUMBER];
   mem8[ROUND_NUMBER] = value;
-  loc_0eac(m);
+  drawRoundNumberCaption(m);
   mem8[ROUND_NUMBER] = saved;
 }
 
@@ -211,7 +211,7 @@ test("DISPATCHED: the shared tape reaches the routine", { skip }, () => {
 });
 
 test("EQUAL at the real dispatch: masked RAM identical", { skip }, () => {
-  const d = unitDiff(loc_0eac, entryState());
+  const d = unitDiff(drawRoundNumberCaption, entryState());
   assert.equal(d, null, `RAM diverged outside the dead window — ${show(d)}`);
   console.log("  EQUAL: masked RAM identical at the captured round");
 });
@@ -223,7 +223,7 @@ test("EXHAUSTIVE: all 256 round values, masked RAM identical and SP moved the sa
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_0eac(b);
+    drawRoundNumberCaption(b);
     const stray = allDiffs(a, b).find((d) => !inWindow(d.addr, sp));
     assert.equal(stray ?? null, null, `round ${v}: ${show(stray)}`);
     assert.equal((a.regs.sp - b.regs.sp) & 0xffff, 2, `round ${v}: SP relationship changed`);
@@ -240,7 +240,7 @@ test("SCRATCH: the whole raw difference lies inside the dead window", { skip }, 
     const a = m.clone();
     const b = m.clone();
     oracle(a);
-    loc_0eac(b);
+    drawRoundNumberCaption(b);
     for (const d of allDiffs(a, b)) {
       assert.ok(d.addr < sp, `round ${v}: ${hex4(d.addr)} is at or above the entry pointer`);
       deepest = Math.max(deepest, sp - d.addr);
@@ -255,13 +255,13 @@ test("SCRATCH: the whole raw difference lies inside the dead window", { skip }, 
 test("OMITTED RET: the rewrite leaves SP put, the oracle pops, the seam reconciles", { skip }, () => {
   const sp = entryState().regs.sp;
   const bare = entryState().clone();
-  loc_0eac(bare);
+  drawRoundNumberCaption(bare);
   assert.equal(bare.regs.sp, sp, "the rewrite moved SP; it must omit its own return");
   const ref = entryState().clone();
   oracle(ref);
   assert.equal((ref.regs.sp - sp) & 0xffff, 2, "the oracle did not pop its caller's slot");
   const wired = entryState().clone();
-  withOmittedRet(loc_0eac)(wired);
+  withOmittedRet(drawRoundNumberCaption)(wired);
   assert.equal(wired.regs.sp, ref.regs.sp, "the seam did not restore the popped slot");
   console.log(`  OMITTED RET: bare SP ${hex4(sp)}, oracle and seam both ${hex4(ref.regs.sp)}`);
 });
@@ -271,7 +271,7 @@ test("NOT DRAWN: a value of 100 or more paints nothing", { skip }, () => {
   const a = m.clone();
   const b = m.clone();
   oracle(a);
-  loc_0eac(b);
+  drawRoundNumberCaption(b);
   assert.deepEqual(allDiffs(a, b), [], "the two sides differ though nothing should be drawn");
   const base = m.clone();
   assert.deepEqual(allDiffs(base, a), [], "the oracle painted despite the round being over 99");
@@ -281,14 +281,14 @@ test("NOT DRAWN: a value of 100 or more paints nothing", { skip }, () => {
 test("GUARD: a tampered 0x1748 block faults both sides, a genuine one faults neither", { skip }, () => {
   for (const i of [0, 8, 15]) {
     assert.equal(faultOf(oracle, tamper(42, i)), "fault", `oracle passed a tampered block at +${i}`);
-    assert.equal(faultOf(loc_0eac, tamper(42, i)), "fault", `rewrite passed a tampered block at +${i}`);
+    assert.equal(faultOf(drawRoundNumberCaption, tamper(42, i)), "fault", `rewrite passed a tampered block at +${i}`);
   }
   assert.equal(faultOf(oracle, craft(42)), null, "the oracle faulted on a genuine image");
-  assert.equal(faultOf(loc_0eac, craft(42)), null, "the rewrite faulted on a genuine image");
+  assert.equal(faultOf(drawRoundNumberCaption, craft(42)), null, "the rewrite faulted on a genuine image");
   // ★ the guard is dead on a genuine ROM, so a twin that drops it is invisible until the block moves.
   const dropped = faultOf((m) => {
     const v = m.mem8[ROUND_NUMBER];
-    if (v < DRAW_LIMIT) loc_0eac(craft(v));
+    if (v < DRAW_LIMIT) drawRoundNumberCaption(craft(v));
   }, tamper(42, 0));
   assert.equal(dropped, null, "the dropped-guard twin faulted, so this arm is not isolating the guard");
   console.log("  GUARD: three tampered bytes fault both sides; the genuine image faults neither");

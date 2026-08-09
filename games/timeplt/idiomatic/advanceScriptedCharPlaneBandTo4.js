@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_14c5 — run one frame of a title-band script. Bit 0 of a countdown cell picks the pass and
+/** advanceScriptedCharPlaneBandTo4 — run one frame of an inter-round band script. Bit 0 of a countdown cell picks the pass and
  *  the tail then decrements that cell, so the two passes alternate. The BLANKING pass fills two
  *  thirteen-cell columns and six lead cells with one tile code. The DRAWING pass reads the script
  *  through a saved pointer: a byte carrying any bit above bit 0 clears the countdown, arms the next
@@ -22,7 +22,7 @@ const NEXT_STEP = 0x04;
 const FILL = 0xf1;
 const SCRIPT_STRIDE = 13;
 
-export function loc_14c5(m) {
+export function advanceScriptedCharPlaneBandTo4(m) {
   const { regs, mem8, mem16 } = m;
 
   if ((mem8[COUNTDOWN] & 1) === 0) {

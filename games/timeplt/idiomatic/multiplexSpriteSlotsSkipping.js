@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0f97 — scanline-gated position fixup over eight sprite slots. Each slot pairs a Y byte in
+/** multiplexSpriteSlotsSkipping — scanline-gated position fixup over eight sprite slots. Each slot pairs a Y byte in
  * one sprite bank with the X byte at the matching offset in the other. A slot acts only while its Y
  * byte has bit 7 set and adding the live scanline counter to it carries out of the top; on that
  * trigger the Y byte's bit 7 is cleared, quieting the slot, and the X byte's bit 7 is toggled.
@@ -38,7 +38,7 @@ function serviceSlot(m, yAddr, xAddr) {
   mem.write8(xAddr, regs.a);
 }
 
-export function loc_0f97(m) {
+export function multiplexSpriteSlotsSkipping(m) {
   for (const [yAddr, xAddr] of SLOTS) serviceSlot(m, yAddr, xAddr);
   return m.ret();
 }

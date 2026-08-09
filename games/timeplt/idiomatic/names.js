@@ -823,7 +823,7 @@ export const ROUTINES = {
   },
   0x1734: {
     name: "loc_1734",
-    role: "one interpolated-run sequence step: call loc_0201 to draw/advance one pen run and ret nz unless it reseated to a zero row integer, then store the two's-complement checksum of the 34-byte code block at 0x1748 into 0xA817 (0x00 on a clean image) and tail-jump to 0x0F1A (advanceSequenceSubStep) to step the sequence sub-index",
+    role: "one interpolated-run sequence step: call drawInterpolatedPenRun to draw/advance one pen run and ret nz unless it reseated to a zero row integer, then store the two's-complement checksum of the 34-byte code block at 0x1748 into 0xA817 (0x00 on a clean image) and tail-jump to 0x0F1A (advanceSequenceSubStep) to step the sequence sub-index",
     cert: "code",
   },
   0x1f2e: {
@@ -931,13 +931,13 @@ export const ROUTINES = {
     why: 'loc_2511 fills the ring with 0xFF at init and loc_0b93 restores 0xFF on consumption, so "free = high bit set" is fixed by a writer and a reader outside this routine; loc_0b93 then dispatches the low nibble through a sixteen-way table, which is what makes it a command rather than a sound byte',
   },
   0x0201: {
-    name: "loc_0201",
+    name: "drawInterpolatedPenRun",
     role: "draw one interpolated run of pen-glyph cells from the current row/column toward a target pair (signed per-step increment (target-current)>>4), stamping each cell until the stamped video cell hits the run's end cell, then advance the run index, load the next run's endpoint from the word table at 0x0290, reseat the pen, and leave Z set when the new row integer is 0 (callers ret nz on it)",
     cert: "code",
   },
   0x07e6: {
-    name: "loc_07e6",
-    role: "title/attract sequence arm (table-dispatched): re-stamp the copyright strip, re-request the flashing copyright line, sample one character cell (0xA61C) into a two-byte record (0xABFE), then read the IN0 mirror -- hand off to the one-player game start when 1-player start (bit 3) is held, return when the credit count at 0xA986 is one, otherwise queue ring command 1/argument 25 and step the sequence sub-step",
+    name: "stepCopyrightScreenAwaitingStart",
+    role: "copyright / insert-coin attract sequence arm (table-dispatched): re-stamp the copyright strip, re-request the flashing copyright line, sample one character cell (0xA61C) into a two-byte record (0xABFE), then read the IN0 mirror -- hand off to the one-player game start when 1-player start (bit 3) is held, return when the credit count at 0xA986 is one, otherwise queue ring command 1/argument 25 and step the sequence sub-step",
     cert: "code",
   },
   0x08fa: {
@@ -946,17 +946,17 @@ export const ROUTINES = {
     cert: "code",
   },
   0x0c90: {
-    name: "loc_0c90",
+    name: "awardScoreToPlayer",
     role: "score-award command (ring handler 4): add the argument-selected award to the current player's packed-decimal score, promote it into the high score when it now beats it, and repaint the affected scores; argument 0 repaints the score labels and blanks the absent second score",
     cert: "code",
   },
   0x0b90: {
-    name: "loc_0b90",
+    name: "enterCommandRingDrain",
     role: "tail transfer into the foreground command-ring loop: a jp that hands control to the drain and never comes back; touches no memory or register, so its whole product is the drain's continuation handed straight back",
     cert: "code",
   },
   0x0066: {
-    name: "loc_0066",
+    name: "enterVblankInterrupt",
     role: "the per-frame (vblank) interrupt vector: hardware dispatches it once per interrupt and it transfers straight to the frame-service handler at 0x00d8, writing nothing of its own",
     cert: "code",
   },
@@ -982,12 +982,12 @@ export const ROUTINES = {
     cert: "code",
   },
   0x0dd7: {
-    name: "loc_0dd7",
+    name: "drawCountAsPictogramStrip",
     role: "draw a clamped 0..99 value as a right-to-left row of denomination tiles (thirties, tens, fives, ones) from display cell 0xa463, pad the rest of the row to 0xa623 with the blank glyph, then verify a fixed three-word checksum (0x009d/0x00a0/0x00a3) and hard-reset via 0x0000 on mismatch",
     cert: "code",
   },
   0x0eac: {
-    name: "loc_0eac",
+    name: "drawRoundNumberCaption",
     role: "paint the round number as two decimal digits into a caption frame via the leading-zero-dropping digit painter (nothing once it reaches 100), then fold a fixed program block onto a seed and throw/halt-into-data if it does not sum to zero -- an anti-tamper guard",
     cert: "code",
   },
@@ -1003,23 +1003,23 @@ export const ROUTINES = {
     cert: "code",
   },
   0x10fd: {
-    name: "loc_10fd",
+    name: "spinRemainingSpriteMultiplexSlots",
     role: "reused subroutine entry into the five-slot display-list split pass, joined inside the first slot: trades the first slot from the caller's held byte (or, below the raster line, restarts the whole pass and re-reads every slot from memory), then trades slots 2-5 wherever their top bit is set; live-out memory only",
     cert: "code",
   },
   0x11ed: {
-    name: "loc_11ed",
-    role: "one per-call maintenance step: hide the sprite band, start the next round when a flag is set, and queue the frame's fixed sound requests; then decrement the countdown at the head of a 16-byte record and copy the record into one of two selector-chosen slots — on the countdown reaching zero it tail-hands-off to the game-over banner, otherwise it advances the selector when the idle slot is armed and stamps two fixed cells",
+    name: "loseLifeAndHandOver",
+    role: "process a player's death: hide the sprite band, apply a pending round-advance when its flag is set, and queue the frame's fixed sound requests; then decrement LIVES_REMAINING at the head of the live 16-byte context block and checkpoint that block into the active player's save slot — on lives reaching zero it tail-calls the game-over banner, otherwise, when the other player's saved block still shows lives, it flips the active-player index, arms a delay and re-steps the sequence for the next life",
     cert: "code",
   },
   0x0f97: {
-    name: "loc_0f97",
+    name: "multiplexSpriteSlotsSkipping",
     role: "scanline-gated sprite position fixup over 8 slots: for each slot whose Y byte (sprite bank 1) has bit 7 set and whose Y + scanline counter carries, clears bit 7 of that Y byte and toggles bit 7 of the paired X byte (sprite bank 0)",
     cert: "code",
   },
   0x0f54: {
-    name: "loc_0f54",
-    role: "guarded tail of the phase-3 image-service step, reached as loc_0f1f's pushed continuation: returns while the play-active flag (0xAD30) is set; on a pending-reset flag (0xA986) it zeroes the sequence sub-step (0xA9AC) and reloads the phase (0xA9AB) from the ROM constant at 0x1736; otherwise, only when the free-play flag (0xA9C0) is set and one of two input bits (0xA9AE & 0x18) is held, it zero-fills the work table 0x15b6 clears and tail-calls loc_1690",
+    name: "advanceAttractTowardGameStart",
+    role: "guarded tail of the phase-3 image-service step, reached as loc_0f1f's pushed continuation: returns while the play-active flag (0xAD30) is set; on a nonzero credit count (0xA986) it zeroes the sequence sub-step (0xA9AC) and reloads the phase (0xA9AB) from the ROM constant at 0x1736; otherwise, only when the free-play flag (0xA9C0) is set and one of two input bits (0xA9AE & 0x18) is held, it zero-fills the work table 0x15b6 clears and tail-calls loc_1690",
     cert: "code",
   },
   0x1253: {
@@ -1029,7 +1029,7 @@ export const ROUTINES = {
     why: "watched under MAME on the real ROM from both directions. Naturally: five dispatches over 600 s of driven play, every one with LIVES_REMAINING zero and PLAY_ACTIVE set, and SEQUENCE_DELAY written 0xB4 from this routine's own store exactly five times in the same run -- so the queueing side is the side the machine takes, and its caller's other arm accounts for the remaining eleven of its sixteen entries. Forced: a one-shot opcode substitution that dispatches it once mid-game put 02 09 and 0A 0B into the command ring on the same frame and left `7d a5 38 34 f1 68 0e 34 d7` in the cells at 0xA672, which is GAME OVER glyph for glyph out of caption record 11, against blanks in both control arms, and 361 pixels of the real screen changed where a control that suppresses the same host changes none. Command 2 is drawCaptionInPenColour and command 10 is the same drawer taking its colour from a counter, so the arguments 9/10 and 11 are caption indices and the ROM's own record table decodes them as PLAYER 1 / PLAYER 2 and GAME OVER",
   },
   0x1271: {
-    name: "loc_1271",
+    name: "advanceRoundWhenFieldCleared",
     role: "gated two-arm state transition: fires only when 0xad02=0, 0xacc6!=0 and all 15 slots at 0xa810 are empty, then queues the fixed sound set and runs one of two arms on 0xad30 — disarm+reset a cell cluster, or clear a strided run and copy a 16-byte record into 0xad10/0xad20",
     cert: "code",
   },
@@ -1042,7 +1042,7 @@ export const ROUTINES = {
     name: "restartAttractSequence",
     role: "put the machine back at the top of the attract sequence: clear the play flag, the active-player index and the inner sequence step, then set the outer phase from a byte of the program image, and write the inner step a SECOND time through a fold over three more image bytes -- on an unaltered image that fold comes to zero and agrees with the first write, on an altered one it does not and the sequence restarts at some other step",
     cert: "seen",
-    why: "the name's claim is the DESTINATION, and the phase cell decides it: the byte it copies from 0x16D3 reads 0x01, and SEQUENCE_PHASE's own entry has 1 = the attract sequence, watched. Confirmed running, on the real ROM under MAME: an entry tap plus a write tap gated to this routine's own program counter caught it firing three times in 200 s of a driven one-player game and twice in the undriven 200 s control, and every single firing wrote the same five stores -- 0xAD30<-00, 0xA9AC<-00, 0xAD32<-00, 0xA9AB<-01, 0xA9AC<-00 -- with the outer phase reading 3, the round engine, on entry each time. So it is the way OUT of the round engine, and it lands on 1 and not on 0 or 2. The fold really does close: the second write to the inner step was measured as 0x00 on the genuine image, not derived. It is NOT the game-over routine, which is the reading the driven run alone would have supported and the control refutes: the two firings with no coin ever inserted are the attract DEMO ending, and only the first driven firing had the play flag still set (0xFF on entry, 0x00 immediately after this routine's own store at 0x12FC) -- one routine, two occasions, and the flag it clears is sometimes already clear. Its arrivals are worth recording because a call-site grep gets them wrong in both directions: of the three driven firings, two came from loc_1271's `jp` at 0x12C4, ZERO came from postGameOverBanner's `jp z` at 0x1257 (marked and never taken), and the game-over one arrived by COMPUTED DISPATCH -- the word 0x12FB occurs three times in the whole image, twice as those two jump operands and once at 0x0F41, which is entry 12 of the inline sequence table loc_0f1f dispatches on (SEQUENCE_SUBSTEP & 0x0F), and the entry tap read SEQUENCE_SUBSTEP as 0x0C on exactly that firing against 0x07 on the two that came through 0x12C4. The bytes the fold reads are not arbitrary either: 0x4901-0x4903 are the middle of the copyright caption's record -- the high byte of its destination, its colour byte and its first glyph -- so tampering with the credit corrupts the attract restart rather than failing cleanly, which is this ROM's standing idiom.",
+    why: "the name's claim is the DESTINATION, and the phase cell decides it: the byte it copies from 0x16D3 reads 0x01, and SEQUENCE_PHASE's own entry has 1 = the attract sequence, watched. Confirmed running, on the real ROM under MAME: an entry tap plus a write tap gated to this routine's own program counter caught it firing three times in 200 s of a driven one-player game and twice in the undriven 200 s control, and every single firing wrote the same five stores -- 0xAD30<-00, 0xA9AC<-00, 0xAD32<-00, 0xA9AB<-01, 0xA9AC<-00 -- with the outer phase reading 3, the round engine, on entry each time. So it is the way OUT of the round engine, and it lands on 1 and not on 0 or 2. The fold really does close: the second write to the inner step was measured as 0x00 on the genuine image, not derived. It is NOT the game-over routine, which is the reading the driven run alone would have supported and the control refutes: the two firings with no coin ever inserted are the attract DEMO ending, and only the first driven firing had the play flag still set (0xFF on entry, 0x00 immediately after this routine's own store at 0x12FC) -- one routine, two occasions, and the flag it clears is sometimes already clear. Its arrivals are worth recording because a call-site grep gets them wrong in both directions: of the three driven firings, two came from advanceRoundWhenFieldCleared's `jp` at 0x12C4, ZERO came from postGameOverBanner's `jp z` at 0x1257 (marked and never taken), and the game-over one arrived by COMPUTED DISPATCH -- the word 0x12FB occurs three times in the whole image, twice as those two jump operands and once at 0x0F41, which is entry 12 of the inline sequence table loc_0f1f dispatches on (SEQUENCE_SUBSTEP & 0x0F), and the entry tap read SEQUENCE_SUBSTEP as 0x0C on exactly that firing against 0x07 on the two that came through 0x12C4. The bytes the fold reads are not arbitrary either: 0x4901-0x4903 are the middle of the copyright caption's record -- the high byte of its destination, its colour byte and its first glyph -- so tampering with the credit corrupts the attract restart rather than failing cleanly, which is this ROM's standing idiom.",
   },
   0x1367: {
     name: "flashPlayerWhiteEveryOtherFrame",
@@ -1061,12 +1061,12 @@ export const ROUTINES = {
     cert: "code",
   },
   0x14c5: {
-    name: "loc_14c5",
-    role: "one pass of the cursor-scripted title character-plane animation: erases two columns + six loose cells on even passes, refills/steps them from the script on odd passes, ends the script by clearing the counter, advancing the stage to 4 and requesting sounds; decrements the pass counter otherwise",
+    name: "advanceScriptedCharPlaneBandTo4",
+    role: "one pass of a cursor-scripted character-plane animation that runs during the inter-round / player-change transition — NOT the title (the title logo is a caption strip, and this arm is dispatched only from the life-loss / round-advance path and is reach-0 across attract): erases two columns + six loose cells on even passes, refills/steps them from the script on odd passes, ends the script by clearing the counter, advancing the stage to 4 and requesting sounds; decrements the pass counter otherwise",
     cert: "code",
   },
   0x142a: {
-    name: "loc_142a",
+    name: "advanceScriptedCharPlaneBandTo2",
     role: "advance one frame of a script-driven character-plane animation: bit 0 of a countdown cell alternates a blanking pass (fill two thirteen-cell columns and six lead cells with one tile code) with a drawing pass (restore the working column from its saved run, nudge four counters by the low bit of the next two script bytes, step the band up then back down, and gather the column back); a terminator byte instead clears the countdown, arms the next sequence step and rewinds the script pointer one, ending early, and every non-terminating call then decrements the countdown",
     cert: "code",
   },
@@ -1081,7 +1081,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x15fe: {
-    name: "loc_15fe",
+    name: "armAttractScreenShowingHighScore",
     role: "once a per-frame countdown lapses, arm a fresh screen: enqueue four fixed ring commands, seed a marker byte into two cells, patch six cells from a following table (value + 0x05 marker), print the six-digit readout, set two sub-states, and enqueue a fifth command when the gate cell is set",
     cert: "code",
   },
@@ -1122,7 +1122,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x1830: {
-    name: "loc_1830",
+    name: "postAttractInfoCaptions",
     role: "one arm of the two-level sequence machine (inner index 2 of loc_17fe): after two setup calls it posts a fixed run of display codes to the writer at 0x0038 as (D=1,code) pairs -- 0x01,0x14,0x15, a code that flips 0x0F/0x11 on cell 0xA9C3 and its successor, 0x16, 0x00, and a tail 0x19/0x17 chosen by 0xA986 -- advancing the sequence counter 0xA9AC through 0x0F1A twice on the 0xA986>=2 branch and once below",
     cert: "code",
   },
@@ -1136,10 +1136,10 @@ export const ROUTINES = {
     name: "sampleCellGlyphAndColour",
     role: "take what is currently showing at one character cell -- its glyph byte and the colour byte of the same cell -- and lay the two down side by side as a two-byte record. One pointer reaches both planes because they hold the same grid at the same offset and are told apart by a single address bit. The cell itself is not touched, so what the caller gets is a reading and not a reservation",
     cert: "seen",
-    why: 'the reading a name has to choose between is SAMPLE and SAVE-FOR-RESTORE: both copy a cell into RAM, and only what happens to the record afterwards tells them apart. A write tap on the record cells across a driven MAME game on the real ROM settles it. The glyph half came back CONSTANT -- 0xA5 on all 15733 writes -- while the colour half alternated, 0x05 on 7865 and 0x10 on 7868, so the cell being read is blinking under the routine and the copy tracks it frame by frame; a fixed pair would have made "sample" pointless and a constant colour would have made it a plain save. A read tap on the same cells then enumerated the consumers rather than grepping for them: exactly two program counters ever read the record, 0x202D and 0x2036, and both are COMPARISONS inside loc_2010 (against 0xA5, then against 0x05 or 0x10). Nothing writes the pair back to any cell in that run, which is what a restore would have to do. The two call sites fix the cells from outside: loc_07e6 samples 0xA61C into 0xABFE every frame, loc_181e samples 0xA5FC into 0xACBE once. The second record took ZERO reads in the run, so what consumes it is unmeasured and this entry does not claim one. Dispatches are a clean A/B: 15735 across a driven game, ZERO across two undriven attract runs of 180 and 300 emulated seconds',
+    why: 'the reading a name has to choose between is SAMPLE and SAVE-FOR-RESTORE: both copy a cell into RAM, and only what happens to the record afterwards tells them apart. A write tap on the record cells across a driven MAME game on the real ROM settles it. The glyph half came back CONSTANT -- 0xA5 on all 15733 writes -- while the colour half alternated, 0x05 on 7865 and 0x10 on 7868, so the cell being read is blinking under the routine and the copy tracks it frame by frame; a fixed pair would have made "sample" pointless and a constant colour would have made it a plain save. A read tap on the same cells then enumerated the consumers rather than grepping for them: exactly two program counters ever read the record, 0x202D and 0x2036, and both are COMPARISONS inside loc_2010 (against 0xA5, then against 0x05 or 0x10). Nothing writes the pair back to any cell in that run, which is what a restore would have to do. The two call sites fix the cells from outside: stepCopyrightScreenAwaitingStart samples 0xA61C into 0xABFE every frame, loc_181e samples 0xA5FC into 0xACBE once. The second record took ZERO reads in the run, so what consumes it is unmeasured and this entry does not claim one. Dispatches are a clean A/B: 15735 across a driven game, ZERO across two undriven attract runs of 180 and 300 emulated seconds',
   },
   0x1f01: {
-    name: "loc_1f01",
+    name: "turnShipTowardTargetHeading",
     role: "steer the ship one notch toward the wanted heading a table selects (leave it when already there, snap on when within one notch, else step the short way round the compass by three notches — four once the era's low digit reaches three), then fall into the shared world-scroll tail",
     cert: "code",
   },
@@ -1160,7 +1160,7 @@ export const ROUTINES = {
     why: "the tempting name is a table-index helper -- add a stride, add an offset, return a byte -- and the caller chain refutes it. Its only reachable entry is the tail chain showCreditLine -> sumImageBlockForTheTamperCheck -> parkTheImageTotalForTheTamperVerdict -> loc_5303: sumImageBlockForTheTamperCheck folds a run of image bytes into A with `add a,(hl)`, parkTheImageTotalForTheTamperVerdict hands it on to B, and loc_5303 calls here and then `cp 0x67`, branching to loc_0f8d on a mismatch and tail-jumping to advanceSequenceSubStep on a match. loc_0f8d pops four words off the stack and unwinds -- it is the tamper arm, not an error return -- so the byte this entry moves into A is a verdict and the compared constant is baked in. That the walked address is a decoy is not read off the code, it is a claim about the callers, and neither branch of loc_5303 touches HL. Under MAME on the real ROM, with a PC-filtered read tap: 5 dispatches over 300 emulated seconds of attract, 3 over 180, 1 over a driven game, and in EVERY run the count equals sumImageBlockForTheTamperCheck's and loc_5303's exactly, so the fold and the test are one chain with no second entrance. Every dispatch was captured with A = 0x67 and B = 0x67 -- the sum already correct -- and the tamper arm loc_0f8d, tapped in the same runs as the control, took ZERO dispatches in all three. A genuine image never fails, which is the only outcome that lets the game boot; a wrong constant or a second caller would have shown here. cert stays honest about one thing: with A and B equal at every observed entry, no capture can distinguish `ld a,b` from leaving A alone, and that half is read from the image",
   },
   0x214b: {
-    name: "loc_214b",
+    name: "flyDemoShipByScript",
     role: "attract demo auto-pilot step: ticks the packed dwell/turn countdown at 0xadf2, steps the heading-command script at 0xadf3/4 when the dwell expires, turns PLAYER_HEADING (0xa802) by the 2-bit command, then tail-jumps to the mover at 0x1f42",
     cert: "code",
   },
@@ -1510,7 +1510,7 @@ export const ROUTINES = {
     name: "restoreColumnFromSavedRun",
     role: "put a saved thirty-two cell picture back onto the character plane: twenty-eight bytes down one column of cells a row apart, then four into two two-cell columns beside it. Every address is fixed here -- the run it reads, the column it lays and the two stubs are all this entry's choice, not a caller's -- and it overwrites the cells whole rather than merging into them",
     cert: "code",
-    why: "the direction is what a name has to get right, and it is fixed by two things outside the routine. First, the run it reads from, 0xA400-0xA41F, is the first row of the character plane, and MAME's driver puts the visible window at rows 2 through 29 (`set_visarea(0, 32*8-1, 2*8, 30*8-1)` over a 32x32 TILEMAP_SCAN_ROWS map) -- so the run is thirty-two cells of video RAM that are never displayed, which is a backing store and not a picture. Second, both call sites bracket their tick with the pair: loc_142a and loc_14c5 each call THIS entry near the top and its inverse 0x158C near the bottom, mutating cells of the same column in between (loc_142a does `inc (0xa5f0)` on one of the four stubs). Read run-first-save-last, the column is the working copy and the hidden row is where it survives whatever else draws over the screen; read the other way round, the two calls would cancel and the mutation would never persist. On the glass the geometry is a line, not a column: under the rotation mechanisms.md measured -- display_x = 239 - native_y, display_y = native_x -- a fixed video-RAM column is a constant display_y, so the twenty-eight cells at column 17 spanning rows 2-29 are a full-width horizontal line at display_y 136-143, and the four stub cells at columns 16 and 18, rows 15 and 16, are sixteen-pixel segments at display_x 104-119, centred, one line above the run and one below. NOT GROUNDED, and the reason is specific: its callers sit at inner steps 1, 2 and 3 of the sequence whose outer phase cell is 0xA9AC, dispatched as entry 14 of the `rst 0x30` table at ROM 0x0F29, and no run reached it -- 0x1323, the phase handler itself, took ZERO dispatches across 480 emulated seconds of attract and 400 of driven play, as did 0x142a, 0x14c5 and 0x158c. A blind poke of 0xA9AC/0xA9F0 to that phase does NOT settle it: the poked machine ran off into video RAM within seconds (program counter observed at 0xA41F), because the phase's script pointer at 0xA9F7 is part of the state being faked",
+    why: "the direction is what a name has to get right, and it is fixed by two things outside the routine. First, the run it reads from, 0xA400-0xA41F, is the first row of the character plane, and MAME's driver puts the visible window at rows 2 through 29 (`set_visarea(0, 32*8-1, 2*8, 30*8-1)` over a 32x32 TILEMAP_SCAN_ROWS map) -- so the run is thirty-two cells of video RAM that are never displayed, which is a backing store and not a picture. Second, both call sites bracket their tick with the pair: advanceScriptedCharPlaneBandTo2 and advanceScriptedCharPlaneBandTo4 each call THIS entry near the top and its inverse 0x158C near the bottom, mutating cells of the same column in between (advanceScriptedCharPlaneBandTo2 does `inc (0xa5f0)` on one of the four stubs). Read run-first-save-last, the column is the working copy and the hidden row is where it survives whatever else draws over the screen; read the other way round, the two calls would cancel and the mutation would never persist. On the glass the geometry is a line, not a column: under the rotation mechanisms.md measured -- display_x = 239 - native_y, display_y = native_x -- a fixed video-RAM column is a constant display_y, so the twenty-eight cells at column 17 spanning rows 2-29 are a full-width horizontal line at display_y 136-143, and the four stub cells at columns 16 and 18, rows 15 and 16, are sixteen-pixel segments at display_x 104-119, centred, one line above the run and one below. NOT GROUNDED, and the reason is specific: its callers sit at inner steps 1, 2 and 3 of the sequence whose outer phase cell is 0xA9AC, dispatched as entry 14 of the `rst 0x30` table at ROM 0x0F29, and no run reached it -- 0x1323, the phase handler itself, took ZERO dispatches across 480 emulated seconds of attract and 400 of driven play, as did 0x142a, 0x14c5 and 0x158c. A blind poke of 0xA9AC/0xA9F0 to that phase does NOT settle it: the poked machine ran off into video RAM within seconds (program counter observed at 0xA41F), because the phase's script pointer at 0xA9F7 is part of the state being faked",
   },
   0x158c: {
     name: "loc_158c",
@@ -1629,7 +1629,7 @@ export const ROUTINES = {
   },
   0x56e4: {
     name: "loc_56e4",
-    role: "read the byte at 0x27CB and request it as a sound code, then do the same with the byte at 0x33A0; each request goes through the door at 0x5617, which admits it while a game is being played or while the cell at 0xA9C6 is set. It is reached two ways -- as a call from loc_14c5, in the arm that steps that routine's script pointer on, and by falling out of the bottom of loc_56d2, which has just asked for three other codes through the play-only door at 0x560C -- and it is the same two-load, two-request shape as requestTwoSounds at 0x5683 with a different pair of program bytes",
+    role: "read the byte at 0x27CB and request it as a sound code, then do the same with the byte at 0x33A0; each request goes through the door at 0x5617, which admits it while a game is being played or while the cell at 0xA9C6 is set. It is reached two ways -- as a call from advanceScriptedCharPlaneBandTo4, in the arm that steps that routine's script pointer on, and by falling out of the bottom of loc_56d2, which has just asked for three other codes through the play-only door at 0x560C -- and it is the same two-load, two-request shape as requestTwoSounds at 0x5683 with a different pair of program bytes",
     cert: "code",
   },
   0x57f1: {
@@ -1837,7 +1837,7 @@ export const ROUTINES = {
     name: "loc_0ce8",
     role: "an exit with nothing left to do: no cell is read or written and no register moves",
     cert: "code",
-    why: "it is not a routine, and an English name would have to say it is. The word 0x0CE8 occurs exactly ONCE in the whole 24 KB program image, at 0x0C98 -- which is the operand of loc_0c90's own `jp z,0x0ce8`. So no table dispatches it, nothing outside loc_0c90 transfers to it, and the sixteen-way command table at 0x0BBC does not hold it: the bare-`ret` slot that table uses six times is 0x0BDC, a different address. What 0x0CE8 actually is is the last byte of loc_0c90 (0x0C90-0x0D1A minus its second half), the label its early-out and its normal end both land on -- a range boundary that the transcription turned into a filename, which is the trap routine-is-a-range-not-a-filename names. It runs: an entry tap gated on the program counter caught it three times in 30 s of undriven attract under MAME on the real ROM, so it is live code and not data; that measurement says it is reached, and reaching a `ret` is not a role. Any name by EFFECT would have to be the effect of loc_0c90's exit, which is loc_0c90's to carry.",
+    why: "it is not a routine, and an English name would have to say it is. The word 0x0CE8 occurs exactly ONCE in the whole 24 KB program image, at 0x0C98 -- which is the operand of awardScoreToPlayer's own `jp z,0x0ce8`. So no table dispatches it, nothing outside awardScoreToPlayer transfers to it, and the sixteen-way command table at 0x0BBC does not hold it: the bare-`ret` slot that table uses six times is 0x0BDC, a different address. What 0x0CE8 actually is is the last byte of awardScoreToPlayer (0x0C90-0x0D1A minus its second half), the label its early-out and its normal end both land on -- a range boundary that the transcription turned into a filename, which is the trap routine-is-a-range-not-a-filename names. It runs: an entry tap gated on the program counter caught it three times in 30 s of undriven attract under MAME on the real ROM, so it is live code and not data; that measurement says it is reached, and reaching a `ret` is not a role. Any name by EFFECT would have to be the effect of awardScoreToPlayer's exit, which is awardScoreToPlayer's to carry.",
   },
   0x181d: {
     name: "loc_181d",
@@ -1880,7 +1880,7 @@ export const ROUTINES = {
     name: "plotPenCell",
     role: "stamp the current pen glyph and pen colour into the one character cell a row cell and a column cell name, and hand back the video-plane address of that cell",
     cert: "seen",
-    why: "the name predicts an exact address, so a MAME write tap recomputed 0xA400 + row*32 + column the way the ROM does -- eight-bit row multiply, and the column added to the low byte with the carry discarded -- and compared it against every write the routine made: 14200 writes, 14200 landing on that cell or its colour twin, zero misses, where an arithmetic reading that kept the carry would miss at every row wrap. loc_0201 fixes the returned address as a product rather than a leftover: it subtracts a target cell from it to decide whether to keep stepping",
+    why: "the name predicts an exact address, so a MAME write tap recomputed 0xA400 + row*32 + column the way the ROM does -- eight-bit row multiply, and the column added to the low byte with the carry discarded -- and compared it against every write the routine made: 14200 writes, 14200 landing on that cell or its colour twin, zero misses, where an arithmetic reading that kept the carry would miss at every row wrap. drawInterpolatedPenRun fixes the returned address as a product rather than a leftover: it subtracts a target cell from it to decide whether to keep stepping",
   },
   0x0365: {
     name: "publishSpriteShadow",
@@ -2322,7 +2322,7 @@ export const ROUTINES = {
     name: "loc_10f8",
     role: "give five display-list slots a second appearance half a screen away: a slot is a byte pair whose first byte carries a request in its top bit, and where that bit is set the pair trades half a byte range -- the requester gives that half up and the partner takes it on, which is what carries the slot into the far half of the display. A slot with no request is stepped over rather than stopped at, so a gap in the middle costs the slots after it nothing",
     cert: "code",
-    why: "kept hex because the IMAGE has no entry point here for an English name to be about. A scan of the whole 24 KB for the little-endian word 0x10F8, at every alignment, finds two occurrences and neither is behind a call or a jump opcode; the only transfers that land on this address are relative branches at 0x10DD and 0x1104, both interior to 0x1098-0x1198, which is the range the frozen transcription gives loc_1098 and is this address's own range with a head in front of it. The same scan is shown able to find an entry point in the same breath -- it finds 0x1098's word three times behind a `cd` and 0x10FD's once behind a `c4`, the CALL and CALL NZ those two are reached by. The entry is still needed, because the frozen layer DOES dispatch this address: loc_10fd's tail is a transfer to 0x10F8, so with no name here that tail runs the oracle. What the body does is a stretch of loc_1098's job rather than a job of its own, which is the trap routine-is-a-range-not-a-filename names",
+    why: "kept hex because the IMAGE has no entry point here for an English name to be about. A scan of the whole 24 KB for the little-endian word 0x10F8, at every alignment, finds two occurrences and neither is behind a call or a jump opcode; the only transfers that land on this address are relative branches at 0x10DD and 0x1104, both interior to 0x1098-0x1198, which is the range the frozen transcription gives loc_1098 and is this address's own range with a head in front of it. The same scan is shown able to find an entry point in the same breath -- it finds 0x1098's word three times behind a `cd` and 0x10FD's once behind a `c4`, the CALL and CALL NZ those two are reached by. The entry is still needed, because the frozen layer DOES dispatch this address: spinRemainingSpriteMultiplexSlots's tail is a transfer to 0x10F8, so with no name here that tail runs the oracle. What the body does is a stretch of loc_1098's job rather than a job of its own, which is the trap routine-is-a-range-not-a-filename names",
   },
   0x12e2: {
     name: "loc_12e2",
@@ -2442,7 +2442,7 @@ export const ROUTINES = {
     name: "armThePenRouteThenColdStartOnATamperedImage",
     role: "put the cell-stamping pen back at the start of its route -- leg index to zero and both coordinates to the route's first point, each written a word at a time so the whole-cell part and the fraction below it land together, and each lifted out of a fixed pair of program bytes rather than carried as a literal -- then fold a fixed 256-byte run of the image into one eight-bit total and, on anything but the total a genuine image gives, transfer into the cold start, which clears the work RAM the stack sits on and never comes back here. The arming is unconditional: the fold gates nothing above it",
     cert: "code",
-    why: "'the route's first point' is exact and it is the claim that could have failed: the word at ROM 0x0D45 is 0x1000 and the word at 0x280C is 0x0400, giving row 0x10 and column 0x04, and entry zero of the leg table at 0x0290 is `10 04` -- the identical point. The pen is a real stamping cursor rather than an inferred one: loc_0201 treats 0xA9E3 and 0xA9E5 as fixed-point pairs, interpolates toward a target and calls plotPenCell each step off the whole-cell halves of those two pairs, then does `inc (0xa9e2)` and indexes the leg table with the result -- so 0xA9E2 is a leg index and the two pairs below it are the cursor plotPenCell is aimed with. 'Pen' is house vocabulary and not a coinage: plotPenCell's own entry already names the two cells it stamps from, and 0xAD0C is the one drawCaptionInPenColour calls the pen colour. sum(0x0E33,0x100) recomputes to 0xFD exactly, matching the `sub 0xfd`, and the checked run holds neither seed word nor the leg table; 0x0069 clears 0xB411, 0xB410 and 0xA800-0xAFFF by `ldir` and ends `jp 0x5866`, so 'cold start' is not too strong. ★ The name refuses to say WHAT the pen draws, and the image is why: three operand-visible `call 0x01e1` sites exist, at 0x076A, 0x3333 and 0x3396, and TWO of them set the stamp glyph to 0xF1, the blanking glyph, immediately beforehand (`ld a,0xf1 / ld (0xad0b),a` at 0x0765 and at 0x332E), so on those paths the trace ERASES rather than draws, and the third sets neither cell. 'Route' rather than 'line' is deliberate for a second reason: the leg table reads `10 04 11 04 … 1c 04 1d 04` and then TURNS, `1d 05 1d 06 1d 07 …`, so it is an L -- rows down one column, then columns across one row",
+    why: "'the route's first point' is exact and it is the claim that could have failed: the word at ROM 0x0D45 is 0x1000 and the word at 0x280C is 0x0400, giving row 0x10 and column 0x04, and entry zero of the leg table at 0x0290 is `10 04` -- the identical point. The pen is a real stamping cursor rather than an inferred one: drawInterpolatedPenRun treats 0xA9E3 and 0xA9E5 as fixed-point pairs, interpolates toward a target and calls plotPenCell each step off the whole-cell halves of those two pairs, then does `inc (0xa9e2)` and indexes the leg table with the result -- so 0xA9E2 is a leg index and the two pairs below it are the cursor plotPenCell is aimed with. 'Pen' is house vocabulary and not a coinage: plotPenCell's own entry already names the two cells it stamps from, and 0xAD0C is the one drawCaptionInPenColour calls the pen colour. sum(0x0E33,0x100) recomputes to 0xFD exactly, matching the `sub 0xfd`, and the checked run holds neither seed word nor the leg table; 0x0069 clears 0xB411, 0xB410 and 0xA800-0xAFFF by `ldir` and ends `jp 0x5866`, so 'cold start' is not too strong. ★ The name refuses to say WHAT the pen draws, and the image is why: three operand-visible `call 0x01e1` sites exist, at 0x076A, 0x3333 and 0x3396, and TWO of them set the stamp glyph to 0xF1, the blanking glyph, immediately beforehand (`ld a,0xf1 / ld (0xad0b),a` at 0x0765 and at 0x332E), so on those paths the trace ERASES rather than draws, and the third sets neither cell. 'Route' rather than 'line' is deliberate for a second reason: the leg table reads `10 04 11 04 … 1c 04 1d 04` and then TURNS, `1d 05 1d 06 1d 07 …`, so it is an L -- rows down one column, then columns across one row",
   },
   0x07ad: {
     name: "parkTheImageTotalForTheTamperVerdict",
@@ -2472,7 +2472,7 @@ export const ROUTINES = {
     name: "snapHeadingOntoTheTurnTarget",
     role: "end a turn by writing the heading the turn was steering toward straight into the player's heading cell, then fall into the world scroll every arm of the turn reaches; the target arrives in a register and nothing is read, so the whole of the entry is that one store",
     cert: "code",
-    why: "'snap' is the claim, and the two sibling arms settle it without leaving the enclosing routine's own control-flow web: 0x1F68 is `sub d / add a,b / ld (0xa802),a` and 0x1F6F is `add a,d / add a,b / ld (0xa802),a`, the live heading stepped by D, which is 3 or 4 off ERA_INDEX's low nibble -- those arms STEP, and this one writes the target itself. A store of the target in place of a step is a snap. That B holds the target is fixed between 0x1F05, where it is loaded from the direction table at 0x1F2E, and this entry: I checked each opcode in between and not one writes B. The arrival condition is arithmetic rather than a guess -- C is live minus target, the entry is taken on C + 1 < 3 so C is 0xFF, 0x00 or 0x01, and C == 0 has already left at the `jp z,0x1f42` -- so the two live values are one step either side. ★ Naming an ARM by a meaning its caller fixes is settled practice here: endApproachNow is a one-instruction entry whose why opens by saying so, and hasDriftedOffTheField's why says outright that it is an arm and not an entry. ★ Nothing dispatches this address: the frozen loc_1f01 runs these two instructions inline, and the gate's REACHABILITY arm asserts the zero over three tapes with loc_1f01's and scrollWorldAtTheEraPace's own counts as the positive controls. The name deliberately omits the world scroll, because scrollWorldAtTheEraPace is a tail several arms of the pipeline reach and naming the fall-through would name the shared tail rather than this arm",
+    why: "'snap' is the claim, and the two sibling arms settle it without leaving the enclosing routine's own control-flow web: 0x1F68 is `sub d / add a,b / ld (0xa802),a` and 0x1F6F is `add a,d / add a,b / ld (0xa802),a`, the live heading stepped by D, which is 3 or 4 off ERA_INDEX's low nibble -- those arms STEP, and this one writes the target itself. A store of the target in place of a step is a snap. That B holds the target is fixed between 0x1F05, where it is loaded from the direction table at 0x1F2E, and this entry: I checked each opcode in between and not one writes B. The arrival condition is arithmetic rather than a guess -- C is live minus target, the entry is taken on C + 1 < 3 so C is 0xFF, 0x00 or 0x01, and C == 0 has already left at the `jp z,0x1f42` -- so the two live values are one step either side. ★ Naming an ARM by a meaning its caller fixes is settled practice here: endApproachNow is a one-instruction entry whose why opens by saying so, and hasDriftedOffTheField's why says outright that it is an arm and not an entry. ★ Nothing dispatches this address: the frozen turnShipTowardTargetHeading runs these two instructions inline, and the gate's REACHABILITY arm asserts the zero over three tapes with turnShipTowardTargetHeading's and scrollWorldAtTheEraPace's own counts as the positive controls. The name deliberately omits the world scroll, because scrollWorldAtTheEraPace is a tail several arms of the pipeline reach and naming the fall-through would name the shared tail rather than this arm",
   },
   0x2bba: {
     name: "countTheKillAndGrantTheSharedToken",

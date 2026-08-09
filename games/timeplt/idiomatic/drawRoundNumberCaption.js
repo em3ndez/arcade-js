@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_0eac — draw the round number as two decimal digits into a caption frame, then verify a fixed
+/** drawRoundNumberCaption — draw the round number as two decimal digits into a caption frame, then verify a fixed
  * block of program bytes. Nothing is drawn once the number reaches 100. The caption frame is
  * painted first and its cursor stepped down onto the two digit cells; each digit then goes through
  * the leading-zero dropping painter, the tens carrying an allowance that lets a leading zero vanish
@@ -20,7 +20,7 @@ const CHECK_BASE = 0x1748;
 const CHECK_LEN = 16;
 const CHECK_SEED = 0x8c;
 
-export function loc_0eac(m) {
+export function drawRoundNumberCaption(m) {
   const { regs, mem8 } = m;
   const value = mem8[ROUND_NUMBER];
   if (value >= 100) return;

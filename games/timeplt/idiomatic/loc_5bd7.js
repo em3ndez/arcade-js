@@ -5,7 +5,7 @@
  * leaves it unchanged on a clean image — then step the sequence sub-index. LIVE-OUT: memory. */
 
 import { blankFourteenCharCells } from "./blankFourteenCharCells.js";
-import { loc_0201 } from "./loc_0201.js";
+import { drawInterpolatedPenRun } from "./drawInterpolatedPenRun.js";
 import { advanceSequencePhase } from "./advanceSequencePhase.js";
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { u8 } from "../../../core/int.js";
@@ -21,7 +21,7 @@ const GUARD_CELL = 0xa9ab;
 export function loc_5bd7(m) {
   const { regs, mem8 } = m;
   blankFourteenCharCells(m);
-  loc_0201(m);
+  drawInterpolatedPenRun(m);
   if (regs.fNZ) return;
 
   let fold = 0;

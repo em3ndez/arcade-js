@@ -18,7 +18,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { loc_1734 as candidate } from "../loc_1734.js";
 import { loc_1734 as oracle } from "../../translated/loc_1734.js";
 import { loc_0201 as oracle0201 } from "../../translated/loc_0201.js";
-import { loc_0201 } from "../loc_0201.js";
+import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 
 const TARGET = 0x1734;
@@ -135,7 +135,7 @@ function branchOf(machine) {
 function build({ branch = "nz", base = GUARDED_BLOCK, len = GUARDED_LEN, cell = GUARD_CELL, store = true, step = true }) {
   return (m) => {
     const { regs, mem8 } = m;
-    loc_0201(m);
+    drawInterpolatedPenRun(m);
     if (branch === "nz" ? regs.fNZ : !regs.fNZ) return;
     let sum = 0;
     for (let i = 0; i < len; i++) sum = (sum - mem8[base + i]) & 0xff;

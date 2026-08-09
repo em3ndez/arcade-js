@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_1271 — memory-equivalent to the frozen oracle at ROM 0x1271.
+ * advanceRoundWhenFieldCleared — memory-equivalent to the frozen oracle at ROM 0x1271.
  * GATE: strict unit-capture at real dispatches (all blocked by the first guard), plus crafted
  *   entries that isolate each guard and drive both arms, an SP-balance arm, and teeth. Compared on
  *   work RAM outside an 8-byte-plus stack-scratch window; the routine leaves no register live-out.
@@ -9,7 +9,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_1271 } from "../loc_1271.js";
+import { advanceRoundWhenFieldCleared } from "../advanceRoundWhenFieldCleared.js";
 import { loc_5634 } from "../loc_5634.js";
 import { loc_1271 as oracle } from "../../translated/loc_1271.js";
 
@@ -131,7 +131,7 @@ const SP_TWIN = ["omit-push", (m) => arm(m, { omit: 1 }), ["armA", "armB10", "ar
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at real dispatches: loc_1271 == oracle outside the scratch window", { skip }, () => {
+test("EQUAL at real dispatches: advanceRoundWhenFieldCleared == oracle outside the scratch window", { skip }, () => {
   let dispatches = 0;
   let caught = 0;
   let pastGuard1 = 0;
@@ -140,7 +140,7 @@ test("EQUAL at real dispatches: loc_1271 == oracle outside the scratch window", 
     if (mm.mem8[MODE] === 0) pastGuard1++;
     const sp = mm.regs.sp;
     const b = mm.clone();
-    loc_1271(b);
+    advanceRoundWhenFieldCleared(b);
     const r = oracle(mm);
     if (allDiffs(mm, b).some((d) => !inScratch(d.addr, sp))) caught++;
     return r;
@@ -157,7 +157,7 @@ test("EQUAL at real dispatches: loc_1271 == oracle outside the scratch window", 
 
 test("CRAFTED ARMS EQUAL: each guard and both arms match the oracle", { skip }, () => {
   for (const a of ARMS) {
-    const d = unitDiff(loc_1271, craft(a));
+    const d = unitDiff(advanceRoundWhenFieldCleared, craft(a));
     assert.equal(d, null, `the ${a} arm diverged — ${show(d)}`);
   }
   console.log(`  CRAFTED: ${ARMS.length} arms identical outside the scratch window`);
@@ -165,7 +165,7 @@ test("CRAFTED ARMS EQUAL: each guard and both arms match the oracle", { skip }, 
 
 test("SP BALANCES: the rewrite returns the stack to its seat on every path", { skip }, () => {
   for (const a of ARMS) {
-    assert.equal(spMoved(loc_1271, craft(a)), false, `the ${a} arm left the stack unbalanced`);
+    assert.equal(spMoved(advanceRoundWhenFieldCleared, craft(a)), false, `the ${a} arm left the stack unbalanced`);
   }
   console.log("  SP BALANCES: every crafted path returns SP to its seat");
 });

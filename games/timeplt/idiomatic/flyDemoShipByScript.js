@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_214b — the demo pilot's auto-steer. A countdown byte carries a dwell in its low six bits and
+/** flyDemoShipByScript — the demo pilot's auto-steer. A countdown byte carries a dwell in its low six bits and
  *  a two-bit turn command in its top two. Each pass ticks the dwell and keeps the byte; when it is
  *  spent (zero or one) the pass steps a script pointer, reloads from the next entry and looks again,
  *  so a run of spent entries is skipped at once. The surviving command nudges the heading one way,
@@ -14,7 +14,7 @@ const HEADING = 0xa802;
 const DWELL_BITS = 0x3f;
 const TURN_STEP = 3;
 
-export function loc_214b(m) {
+export function flyDemoShipByScript(m) {
   const { regs, mem8, mem16 } = m;
 
   let command;

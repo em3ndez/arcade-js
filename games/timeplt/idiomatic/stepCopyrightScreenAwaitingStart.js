@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_07e6 — one title/attract sequence arm (table-dispatched): re-stamp the copyright strip,
+/** stepCopyrightScreenAwaitingStart — one title/attract sequence arm (table-dispatched): re-stamp the copyright strip,
  * re-request the flashing copyright line, sample one cell into a two-byte record; then hand off to
  * the one-player start when 1-player start is held, return when the credit count is one, else
  * queue one command pair and step the sequence sub-step. LIVE-OUT: memory only. */
@@ -19,7 +19,7 @@ const SAMPLE_RECORD = 0xabfe;
 const COMMAND = 1;
 const ARGUMENT = 25;
 
-export function loc_07e6(m) {
+export function stepCopyrightScreenAwaitingStart(m) {
   const { mem8 } = m;
   stampCopyrightStrip(m);
   flashCopyrightLine(m);

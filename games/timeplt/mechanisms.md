@@ -1544,7 +1544,7 @@ caller splits a byte into high nibble then low, which invites the reading that i
 in hex. It does not. The table is **eleven** bytes — the glyphs `0`-`9`, then the blanking glyph
 the whole game erases with, which is the entry the suppressing twin reaches when it blanks. The
 mask lets sixteen values through, so the top five reach past the table's end and into the first
-two instructions of the ring arm at 0x0DD7; decoded as tiles those five bytes are two blanks, a
+two instructions of the ring arm at 0x0DD7 (`drawCountAsPictogramStrip`); decoded as tiles those five bytes are two blanks, a
 period, an unrelated shaded shape, and a second copy of the glyph `3`. So the table covers only
 the digits a packed-BCD byte can hold, which is what the machine keeps its counters in, and the
 mask is not a bounds check — it bounds the read to sixteen bytes and no further. `[seen]` —
@@ -1681,13 +1681,16 @@ proving the tap fires, it has **never once dispatched**. `[seen]`
 
 It is not dead code. It belongs to a screen our instruments never reach.
 
-Its call sites sit in two sequence sub-steps that the attract loop never enters — confirmed three
-independent ways, the cleanest being that the sub-step cell never takes either value across a
-3602-frame capture. What arms them is the routine that checkpoints the live player block and then
-writes that sub-step directly; the second of the two hands off to the sub-step that arms the round
-HUD. So this is the **inter-round / player-change transition**, and a demo that never finishes a
-round never performs one. `[seen]` for the zero dispatches and the sub-step observation, `[code]`
-for the arming path.
+Its call sites — the character-plane band steps now named `advanceScriptedCharPlaneBandTo2` and
+`advanceScriptedCharPlaneBandTo4` — sit in two sequence sub-steps that the attract loop never enters,
+confirmed several ways: the sub-step cell never takes either value across a 3602-frame capture, and a
+batch-1 understanding pass reconfirmed zero dispatches of both over a 150 s attract sweep with eleven
+sibling routines as the positive controls. What arms them is the routine that checkpoints the live
+player block and then writes that sub-step directly (`loseLifeAndHandOver`, and
+`advanceRoundWhenFieldCleared` on the won-round path); the second of the two hands off to the sub-step
+that arms the round HUD. So this is the **inter-round / player-change transition** — NOT the title,
+whose logo is a caption strip — and a demo that never finishes a round never performs one. `[seen]`
+for the zero dispatches and the sub-step observation, `[code]` for the arming path.
 
 ### A whole animation machine sits behind the same door
 
@@ -2181,7 +2184,7 @@ Memory-equivalence drops the T-state clock deliberately: a rewrite is judged on 
 in RAM, never on how long it took. Two routines on this machine fall outside that. They are facts
 about how the machine works, not unfinished work, and neither is waiting on anyone.
 
-**0x0F97, the non-spinning twin of `multiplexSpriteSlots`.** Its eight blocks each test one slot's
+**0x0F97 (`multiplexSpriteSlotsSkipping`), the non-spinning twin of `multiplexSpriteSlots`** (0x10FD, `spinRemainingSpriteMultiplexSlots`, is the spinning reused-entry twin over its five higher slots). Its eight blocks each test one slot's
 request byte against the LIVE RASTER COUNTER at 0xC000, and that counter advances with the T-states
 the routine itself spends — so each read the ROM makes sees a later beam position than the read
 before it. A rewrite that charges nothing sees the entry position every time, and the two part
@@ -2518,7 +2521,7 @@ methods, one answer. `[seen]`
   and `iy = 0xAA10`, drops out to `0x2010` when the record's state byte is neither zero nor `0xFF`
   (900 such dispatches in every driven run, none at all in the attract run), and otherwise chooses
   the stick arm or the demo arm and falls into `0x1F42`.
-- **`0x1F01`** is the **turn**: it fetches the target heading for the stick's nibble, subtracts it
+- **`0x1F01`** (`turnShipTowardTargetHeading`) is the **turn**: it fetches the target heading for the stick's nibble, subtracts it
   from the live heading (`ld b,a` / `ld a,(0xa802)` / `sub b`, so the difference is LIVE − TARGET and
   its sign is what picks the turn arm at `cp 0x80` / `jp nc,0x1f6f`), leaves at once if the
   difference is zero (3398 of 4784 entries in **B**), and otherwise steps the heading three or four

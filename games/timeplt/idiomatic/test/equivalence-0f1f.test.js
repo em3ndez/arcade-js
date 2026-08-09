@@ -230,7 +230,7 @@ test("IDLE ARM: with play inactive the block past the table stops doing nothing"
 });
 
 test("STACK: the rewrite drops exactly the tail return the oracle pops", { skip }, () => {
-  // The dissolved loc_0f54 takes the play-active bail and returns without the tail pop the frozen
+  // The dissolved advanceAttractTowardGameStart takes the play-active bail and returns without the tail pop the frozen
   // oracle does there, so the oracle's exit pointer sits two bytes higher on every completing arm.
   for (let i = 0; i < ARM_COUNT; i++) {
     const r = run(loc_0f1f, i);

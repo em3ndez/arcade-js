@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_10fd — a caller's tail into the five-slot display pass, entered inside the first slot.
+/** spinRemainingSpriteMultiplexSlots — a caller's tail into the five-slot display pass, entered inside the first slot.
  * The caller has already tested a byte it holds: a clear test steps over the first slot, else
  * that byte is the slot's request and trades from it once the raster is past the line — below
  * which the whole pass restarts and re-reads every slot. Slots two to five then trade wherever
@@ -19,7 +19,7 @@ const TAIL_SLOTS = [
   { request: 0xb43f, partner: 0xb03e },
 ];
 
-export function loc_10fd(m) {
+export function spinRemainingSpriteMultiplexSlots(m) {
   const { regs, mem8 } = m;
   const held = regs.a;
   if (!regs.fZ) {

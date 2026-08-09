@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_07e6 — memory-equivalent to the frozen oracle at ROM 0x07E6.
+ * stepCopyrightScreenAwaitingStart — memory-equivalent to the frozen oracle at ROM 0x07E6.
  * GATE: unit-capture on the real dispatch plus crafted branch entries; RAM compared with the dead
  *   stack scratch below the seated SP masked out (the oracle nests calls, the rewrite does not),
  *   the SP re-seat and the return value checked, and teeth. Registers are not compared: the
@@ -13,7 +13,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_07e6 as candidate } from "../loc_07e6.js";
+import { stepCopyrightScreenAwaitingStart as candidate } from "../stepCopyrightScreenAwaitingStart.js";
 import { loc_07e6 as oracle } from "../../translated/loc_07e6.js";
 import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
 import { flashCopyrightLine } from "../flashCopyrightLine.js";
@@ -124,7 +124,7 @@ function scenarios() {
 
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
-/** The rewrite with one deliberate defect each; every parameter matches loc_07e6 by default. */
+/** The rewrite with one deliberate defect each; every parameter matches stepCopyrightScreenAwaitingStart by default. */
 function twin({ stamp = true, record = SAMPLE_RECORD, startHeld = (b) => b, arg = ARGUMENT, advance = true }) {
   return (m) => {
     const { mem8 } = m;

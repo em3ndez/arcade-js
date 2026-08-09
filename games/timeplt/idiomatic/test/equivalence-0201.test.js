@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0201 — memory-equivalent to the frozen oracle at ROM 0x0201.
+ * drawInterpolatedPenRun — memory-equivalent to the frozen oracle at ROM 0x0201.
  *
  * GATE: unit-capture at every real dispatch of two sessions, compared outside ONE dead stack
  *   window, with the Z-flag live-out checked against the oracle and a control that proves the flag
@@ -33,7 +33,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0201 } from "../loc_0201.js";
+import { drawInterpolatedPenRun } from "../drawInterpolatedPenRun.js";
 import { loc_0201 as oracle } from "../../translated/loc_0201.js";
 import { plotPenCell } from "../plotPenCell.js";
 import { fetchTableWord } from "../fetchTableWord.js";
@@ -254,7 +254,7 @@ function brokenForgotReport(m) {
 
 /** BUG: correct in memory, wrong only in the live-out flag — the control for the flag arm. */
 function brokenFlipZControl(m) {
-  loc_0201(m);
+  drawInterpolatedPenRun(m);
   m.regs.f ^= Z_FLAG;
 }
 
@@ -273,14 +273,14 @@ const TWINS = [
 test("EQUAL at the real dispatch: identical outside the dead stack window", { skip }, () => {
   const entry = anEntry();
   assert.ok(footprint(entry) > 0, "vacuous: the oracle writes nothing from this entry");
-  assert.equal(diverge(loc_0201, entry), null, "the rewrite diverged at the real entry");
+  assert.equal(diverge(drawInterpolatedPenRun, entry), null, "the rewrite diverged at the real entry");
   console.log(`  EQUAL: entry sp=${hex(entry.regs.sp)}; identical outside [sp-${SCRATCH_BYTES}, sp)`);
 });
 
 test("EXCLUDED, measured: nothing outside the four dead scratch registers ever diverges", { skip }, () => {
   const union = new Set();
   for (const e of driven()) {
-    for (const k of movedRegisters(loc_0201, e)) union.add(k);
+    for (const k of movedRegisters(drawInterpolatedPenRun, e)) union.add(k);
   }
   assert.deepEqual(REG_FIELDS.filter((k) => union.has(k)), REG_EXCLUDED,
     "the set of registers that diverge across the corpus moved");
@@ -296,7 +296,7 @@ test("LIVE-OUT: the Z flag agrees, and the flag arm catches a twin that flips on
   const a = anEntry().clone();
   const b = anEntry().clone();
   oracle(a);
-  loc_0201(b);
+  drawInterpolatedPenRun(b);
   assert.equal(b.regs.f, a.regs.f, "the rewrite's flag byte differs from the oracle's");
   const control = diverge(brokenFlipZControl, anEntry());
   assert.equal(control?.reason, "reg:f", "flipping only the Z flag was not caught by the flag arm");
@@ -308,7 +308,7 @@ test("THE RETURN IS LOAD-BEARING: dropping it leaves the stack two bytes adrift"
   const kept = anEntry().clone();
   const dropped = anEntry().clone();
   oracle(ref);
-  loc_0201(kept);
+  drawInterpolatedPenRun(kept);
   brokenNoFinalReturn(dropped);
   assert.equal(kept.regs.sp, ref.regs.sp, "the rewrite must leave the stack where the oracle does");
   assert.equal((ref.regs.sp - dropped.regs.sp) & 0xffff, 2, "dropping the return must leave sp adrift");
@@ -326,7 +326,7 @@ test("CORPUS: every dispatch of both sessions replays identically", { skip }, ()
       const a = e.clone();
       const b = e.clone();
       oracle(a);
-      loc_0201(b);
+      drawInterpolatedPenRun(b);
       const da = a.dumpState();
       const db = b.dumpState();
       for (let i = 0; i < da.length; i++) {

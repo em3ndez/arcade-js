@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_0066 — memory-equivalent to the frozen oracle at ROM 0x0066.
+ * enterVblankInterrupt — memory-equivalent to the frozen oracle at ROM 0x0066.
  *
  * This entry is a single transfer: the frame interrupt lands on 0x0066 and jumps straight to the
  * handler at 0x00D8, which stacks the accumulator and falls into the shared body that does the
@@ -36,7 +36,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_0066 } from "../loc_0066.js";
+import { enterVblankInterrupt } from "../enterVblankInterrupt.js";
 import { loc_0066 as oracle } from "../../translated/loc_0066.js";
 import { loc_00d8 } from "../loc_00d8.js";
 import { buildRoutines } from "../../routines.js";
@@ -202,7 +202,7 @@ function brokenDoubleService(m) {
 
 /** BUG: scribbles on an index register — the control for the EXCLUDED ceiling. */
 function brokenMovesIndex(m) {
-  const r = loc_0066(m);
+  const r = enterVblankInterrupt(m);
   m.regs.ix = (m.regs.ix + 1) & 0xffff;
   return r;
 }
@@ -210,7 +210,7 @@ function brokenMovesIndex(m) {
 /** BUG: quiets the watchdog on the way past — the control that the device tap can see one. */
 function brokenKicksWatchdog(m) {
   m.mem.write8(WATCHDOG, 0);
-  return loc_0066(m);
+  return enterVblankInterrupt(m);
 }
 
 const TWINS = [
@@ -255,7 +255,7 @@ test("SEAM: every captured entry agrees at the hand-off into the shared body", {
   for (const [label, opts] of TAPES) {
     const entries = capture(label, opts);
     assert.notEqual(entries[0] ?? null, null, `vacuous: the ${label} tape never reached the routine`);
-    for (const e of entries) assert.equal(seamDiff(loc_0066, e), null, `${label}: ${seamDiff(loc_0066, e)}`);
+    for (const e of entries) assert.equal(seamDiff(enterVblankInterrupt, e), null, `${label}: ${seamDiff(enterVblankInterrupt, e)}`);
     total += entries.length;
   }
   console.log(`  SEAM: ${total} captured entries identical at the hand-off`);
@@ -264,7 +264,7 @@ test("SEAM: every captured entry agrees at the hand-off into the shared body", {
 test("FULL: the frame's whole service agrees end to end", { skip }, () => {
   const entries = capture("coin-start", {}).slice(0, FULL_FORM_LIMIT);
   assert.ok(entries.length > 0, "vacuous: nothing was captured to run in full");
-  for (const e of entries) assert.equal(fullDiff(loc_0066, e), null, String(fullDiff(loc_0066, e)));
+  for (const e of entries) assert.equal(fullDiff(enterVblankInterrupt, e), null, String(fullDiff(enterVblankInterrupt, e)));
   console.log(`  FULL: ${entries.length} entries run through the whole service, identical`);
 });
 
@@ -280,7 +280,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED: nothing moves, and the measurement is shown able to see movement", { skip }, () => {
-  const moved = movedOver(loc_0066);
+  const moved = movedOver(enterVblankInterrupt);
   const control = movedOver(brokenMovesIndex);
   assert.ok(REG_FIELDS.some((k) => control.has(k) && !MOVED.includes(k)),
     "the control twin scribbles on an index register and this measurement did not notice, so a " +
@@ -294,7 +294,7 @@ test("EXCLUDED: nothing moves, and the measurement is shown able to see movement
 
 test("DEVICES: the device tap is shown able to see a write this entry never makes", { skip }, () => {
   const entry = firstEntry();
-  const clean = runToSeam(entry, loc_0066);
+  const clean = runToSeam(entry, enterVblankInterrupt);
   const control = runToSeam(entry, brokenKicksWatchdog);
   assert.notEqual(deviceSignature(clean.c), deviceSignature(control.c),
     "a twin that touches the watchdog reads the same as the rewrite, so the device comparison in " +
