@@ -1,0 +1,64 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/** loc_4a0f — lay out one phase of the sequenced intro/self-test screen, then step the sub-sequence.
+ * It stocks an eight-byte control block (a shape byte, four fixed fields, a count and a parked
+ * pointer), writes a fixed run of attribute bytes, colours three cell rows and a small block of
+ * the colour plane by adding a base colour read from work RAM to fixed offsets, seeds the active
+ * player's saved pen from its era, and tail-steps the sequence sub-step. LIVE-OUT: the block, the
+ * attribute run, the coloured cells, the saved pen and the sub-step cell; no register is live-out. */
+
+import { u8, u16 } from "../../../core/int.js";
+import { fillCellRun } from "./fillCellRun.js";
+import { setSavedPenFromEra } from "./setSavedPenFromEra.js";
+import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
+
+const SHAPE_BYTE = 0x3213;
+const PARKED_POINTER = 0x56f1;
+const CONTROL_BLOCK = 0xa9f0;
+const ATTR_RUN = 0xa400;
+const BASE_COLOUR = 0xad0c;
+const ROW_STEP = -32;
+
+const toColour = (cell) => cell & 0xfbff; // clear bit 10: attribute plane -> colour plane
+
+export function loc_4a0f(m) {
+  const { regs, mem8 } = m;
+
+  mem8[CONTROL_BLOCK + 0x0] = mem8[SHAPE_BYTE];
+  mem8[CONTROL_BLOCK + 0x1] = 0x00;
+  mem8[CONTROL_BLOCK + 0x2] = 0xff;
+  mem8[CONTROL_BLOCK + 0x3] = 0x04;
+  mem8[CONTROL_BLOCK + 0x4] = 0xff;
+  mem8[CONTROL_BLOCK + 0x6] = 0x08; // the following cell is deliberately left untouched
+  mem8[CONTROL_BLOCK + 0x7] = PARKED_POINTER & 0xff;
+  mem8[CONTROL_BLOCK + 0x8] = PARKED_POINTER >> 8;
+
+  let cur = ATTR_RUN;
+  for (let i = 0; i < 13; i++) mem8[cur++] = 0x14;
+  mem8[cur++] = 0x00;
+  mem8[cur++] = 0x00;
+  for (let i = 0; i < 13; i++) mem8[cur++] = 0x14;
+  for (let i = 0; i < 4; i++) mem8[cur++] = 0x0e;
+
+  const base = mem8[BASE_COLOUR];
+
+  regs.hl = toColour(0xa7b1);
+  regs.a = u8(0xa0 + base);
+  fillCellRun(m);
+
+  regs.hl = toColour(0xa5d1);
+  regs.a = u8(0x20 + base);
+  fillCellRun(m);
+
+  // three columns of the colour plane, each a cell and the cell one row above it
+  paintColumn(mem8, toColour(0xa610), u8(0xa0 + base), u8(0x20 + base));
+  paintColumn(mem8, toColour(0xa612), u8(0xe0 + base), u8(0x60 + base));
+  paintColumn(mem8, toColour(0xa611), u8(0xa0 + base), u8(0x20 + base));
+
+  setSavedPenFromEra(m);
+  return advanceSequenceSubStep(m);
+}
+
+function paintColumn(mem8, cell, here, above) {
+  mem8[cell] = here;
+  mem8[u16(cell + ROW_STEP)] = above;
+}

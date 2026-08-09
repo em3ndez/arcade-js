@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: GPL-3.0-only
+/** loc_4f2a — the era-4 per-frame collision dispatch, split by frame parity. On even frames run the
+ * whole player-versus-object collision-and-destruction pass. On odd frames stage one shot-versus-
+ * target sweep over a run of object slots and hand it the shared destruction body: while the mother
+ * ship is armed the run is nine long and a following mother-ship mutual-kill pass runs after it;
+ * while it is clear the run is eleven long and no mother-ship pass follows. The two cursor cells the
+ * shared body reloads between passes are staged in memory first so every pass restarts on this run.
+ * LIVE-OUT: memory. */
+
+import { runAllCollisionSweepsThisFrame } from "./runAllCollisionSweepsThisFrame.js";
+import { destroyTargetsHitByShots } from "./destroyTargetsHitByShots.js";
+import { loc_4fe0 } from "./loc_4fe0.js";
+import { FRAME_TICK, MOTHER_SHIP_ARMED } from "./names.js";
+
+const SHOT_SLOTS = 0xaa80;
+const TARGET_RECORDS = 0xa810;
+const TARGET_ENTRIES = 0xaa12;
+const TARGET_ENTRY_CURSOR = 0xa991;
+const TARGET_RECORD_CURSOR = 0xa993;
+const SHOTS = 0x06;
+const REACH = 0x07;
+const SPAN = 0x0f;
+const ARMED_TARGETS = 0x09;
+const OPEN_TARGETS = 0x0b;
+
+export function loc_4f2a(m) {
+  const { regs, mem8, mem16 } = m;
+  if ((mem8[FRAME_TICK] & 0x01) === 0) return runAllCollisionSweepsThisFrame(m);
+
+  const armed = mem8[MOTHER_SHIP_ARMED] !== 0;
+  const targets = armed ? ARMED_TARGETS : OPEN_TARGETS;
+
+  regs.de = TARGET_RECORDS;
+  regs.iy = TARGET_ENTRIES;
+  regs.ix = SHOT_SLOTS;
+  regs.a_ = targets;
+  regs.b = targets;
+  regs.c = SHOTS;
+  mem16[TARGET_RECORD_CURSOR] = TARGET_RECORDS;
+  mem16[TARGET_ENTRY_CURSOR] = TARGET_ENTRIES;
+  regs.l = REACH;
+  regs.h = SPAN;
+
+  if (armed) {
+    destroyTargetsHitByShots(m);
+    return loc_4fe0(m);
+  }
+  return destroyTargetsHitByShots(m);
+}

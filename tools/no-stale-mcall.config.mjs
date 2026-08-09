@@ -18,6 +18,8 @@ export const ALLOWED = {
     "sumImageBlockForTheTamperCheck.js": [0x07ad], // -> the tamper hand-off; equivalence-43e8 severs the chain here with a routine-map stub to record the handover, and that interception only works through m.call, so a direct import blinds four of its arms (dissolve attempted, reverted)
 
     "armAttractScreenShowingHighScore.js": [0x01c2], // -> blankNextLine, the countdown guard: on the guard-block path (the common dispatch) armAttractScreenShowingHighScore returns straight after this call, so the scratch regs the frozen loop leaves in hl/b/de are live-out; the lifted blankNextLine never writes them and its register ceiling is only [a,f,sp]. Same class as sumImageBlockForTheTamperCheck.js -> 0x07ad
+
+    "setTheLaunchFacingInsideOneAimWindow.js": [0x42b7], // -> the launcher (batch-4 lift of loc_42b7); equivalence-429c stubs the launcher through the routine map to test 429c in isolation, sweeping each of its three input bytes 256x against a recorder, and that interception only works through m.call, so a direct import runs the real launcher on the candidate against the recorder stub on the oracle and breaks seven arms. Same class as sumImageBlockForTheTamperCheck.js -> 0x07ad (dissolve attempted, reverted)
   },
 };
 
