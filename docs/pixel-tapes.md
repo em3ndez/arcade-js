@@ -16,6 +16,22 @@ dispatcher, the high-score insertion, the era-branching launchers, the whole-wav
 default tape, those routines are logic-verified against the oracle and **never pixel-verified against
 MAME**. That is the gap a poke-tape closes.
 
+## The other gap: elapsed time
+
+Poke-tapes close the *state* gap. There is a second, independent one — *elapsed time*. Every gate above
+runs a short fixed span (the base tape and each poke-tape run about 1,800 frames), so a divergence that
+only appears after many frames of continuous play is invisible to all of them. So a **long continuous
+idiomatic run, diffed against a matching-length MAME golden, is also a required check, per game** — run
+the idiomatic layer for many minutes and diff it, RAM first (RAM is the ground truth; pixels follow it):
+dump the generator's per-frame RAM and diff against the golden `state.bin`. This must be the *idiomatic*
+engine run long, **not** the oracle — the oracle is cycle-accurate and matches trivially; the point is to
+catch a time-accumulated bug in the layer that actually ships.
+
+★ Written because it happened: Time Pilot's idiomatic layer ran byte-identical to MAME for ~1,850 frames
+— through two player deaths, with the RNG and the frame counter in lockstep — then a marginal last-life
+collision resolved as a hit in MAME and a miss for us, and the run diverged from there. Every short gate
+passed (the base gate and all six poke-tapes); only a continuous multi-minute run caught it. Run one.
+
 ## What a poke-tape is
 
 An input tape carries more than button bits: it carries a **poke schedule** — `(nmiOrdinal, addr,
