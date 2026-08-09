@@ -1,0 +1,17 @@
+{
+  "name": "high-score",
+  "description": "Reach the HIGH-SCORE NAME ENTRY screen (game over with a qualifying score) and pixel-validate the score-insertion and name-entry render vs MAME.",
+  "_grounding": "Same game-over recipe (lives 0xAD00/0xAD10=1 @650, forced death 0xA800=0xF0 @660) PLUS a held score poke 0xAD33/34/35 = 00/57/00 (5700 BCD, beats the default table-low 4300) from f640. At f1134 the insertion sort (isScoreBelow 0x4d2b + fileScoreIntoHighTable 0x4cc3) files 5700 into the last table record at 0xAB28, and name entry holds ~680 frames. Responded uses the FILED score mid-byte 0xAB2A (0x43 default -> 0x57 only once the game files the poked score); the grounding's 0xAB2F==0xF1 is weak (the default record already ends in 0xF1). Deterministic, no entropy. scratchpad/gameover-recipe.md.",
+  "coin": 400,
+  "start": 500,
+  "hold": 8,
+  "pokes": [
+    { "frame": 640, "addr": "0xad33", "val": "0x00" },
+    { "frame": 640, "addr": "0xad34", "val": "0x57" },
+    { "frame": 640, "addr": "0xad35", "val": "0x00" },
+    { "frame": 650, "addr": "0xad00", "val": "0x01", "dur": 1 },
+    { "frame": 650, "addr": "0xad10", "val": "0x01", "dur": 1 },
+    { "frame": 660, "addr": "0xa800", "val": "0xf0", "dur": 1 }
+  ],
+  "responded": { "cell": "0xab2a", "op": "eq", "val": "0x57" }
+}
