@@ -4,7 +4,10 @@
  * and the player's own mark is re-stamped each time, so one pass can take several slots. It is refused outright unless the
  * player is still whole, and a slot is skipped unless it is whole too. Overlap is two windows on
  * two axes: the caller supplies the bias and the width for one, the other is fixed at eight either
- * side. A run of zero slots means a full two hundred and fifty-six. LIVE-OUT: memory. */
+ * side. A run of zero slots means a full two hundred and fifty-six. Its two threaded cursors are
+ * handed back one past the last slot (record steps its low half only, entry whole) for a caller that
+ * tail-runs another sweep on the same thread; on the early refusal neither moves.
+ * LIVE-OUT: memory, plus the two cursors. */
 
 import { u8, u16 } from "../../../core/int.js";
 import { postChainedHitScore } from "./postChainedHitScore.js";
@@ -54,4 +57,8 @@ export function destroySlotsAndPlayerOnContact(
     entry = u16(entry + ENTRY_STRIDE);
     left = u8(left - 1);
   } while (left !== 0);
+
+  // Hand the threaded cursors back (E only, D untouched; IY whole) for a caller tail-running the same thread.
+  m.regs.e = record;
+  m.regs.iy = entry;
 }
