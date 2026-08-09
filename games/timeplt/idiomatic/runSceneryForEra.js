@@ -11,6 +11,7 @@ import { stepTwoTileSceneryAtFiveQuarters } from "./stepTwoTileSceneryAtFiveQuar
 import { driftTwoTileSceneryAtThreeQuarters } from "./driftTwoTileSceneryAtThreeQuarters.js";
 import { driftOneTileSceneryAtThreeQuarters } from "./driftOneTileSceneryAtThreeQuarters.js";
 import { driftOneTileSceneryAtHalf } from "./driftOneTileSceneryAtHalf.js";
+import { loc_2d21 } from "./loc_2d21.js";
 
 const FIRST_RECORD = 0xa900;
 const FIRST_ENTRY = 0xaa30;
@@ -18,14 +19,14 @@ const FIRST_ENTRY = 0xaa30;
 const FIRST_ERA = 0;
 const LAST_ERA = 4;
 
-const DIAGONAL_PAIR = 0x2d21;
 const AFTER_DIAGONAL_PAIR = 0x2cd1;
 
-/** The one step still reached by transfer. It leaves through a return, so the slot that return
- *  consumes is laid down for it first. */
+/** The one step still reached by transfer. The parked slot is a real stack write the frozen step's
+ *  tail return consumed; the lifted step drops that return, so it is laid down and popped here. */
 function diagonalPair(m) {
   m.push16(AFTER_DIAGONAL_PAIR);
-  m.call(DIAGONAL_PAIR);
+  loc_2d21(m);
+  m.ret();
 }
 
 const OPENING_ORDER = [driftThreeTileSceneryAtFiveQuarters, driftTwoTileSceneryAtThreeQuarters, driftTwoTileSceneryAtThreeQuarters, driftOneTileSceneryAtHalf];

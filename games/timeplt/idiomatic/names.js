@@ -806,6 +806,106 @@ export const MOTHER_SHIP_ARMED = 0xad0d;
 export const DEFERRED_BLANK_CURSOR = 0xae80;
 
 export const ROUTINES = {
+  0x0167: {
+    name: "loc_0167",
+    role: "caption-record data run as code on the checksum-mismatch derail arm: bumps one work-RAM cell the accumulator points at, then falls into the frame-interrupt epilogue that unwinds the frame and resumes",
+    cert: "code",
+  },
+  0x074b: {
+    name: "loc_074b",
+    role: "attract-sequence arm (phase 1, sub-step 0, reached by rst-30 computed dispatch from loc_1651): fold the fixed 256-byte run at 0x4AA0 into an eight-bit total and derail into the checksum-failure landing 0x08FA on any total but 0xB8; otherwise set the pen colour 0xAD0C to 5 and the stamp glyph 0xAD0B to the blanking glyph 0xF1 (so the pen erases), re-arm the pen route via 0x01E1, then step the sequence sub-step 0x0F1A -- twice when the pen colour already held 5",
+    cert: "code",
+  },
+  0x0f8d: {
+    name: "loc_0f8d",
+    role: "image-checksum tamper trap: drops four return words to unwind the caller chain, then falls into the sprite position-fixup pass (rets on the fifth word)",
+    cert: "code",
+  },
+  0x1734: {
+    name: "loc_1734",
+    role: "one interpolated-run sequence step: call loc_0201 to draw/advance one pen run and ret nz unless it reseated to a zero row integer, then store the two's-complement checksum of the 34-byte code block at 0x1748 into 0xA817 (0x00 on a clean image) and tail-jump to 0x0F1A (advanceSequenceSubStep) to step the sequence sub-index",
+    cert: "code",
+  },
+  0x1f2e: {
+    name: "loc_1f2e",
+    role: "the direction table's bytes decoded as code: fold B into A, take two early returns on the result, and on the single surviving live-in pair AND B in (to zero) and fall out of the table into the heading snap -- write PLAYER_HEADING and scroll the world; the churn arm at 0x1f99 it also decodes is never reached from the fold",
+    cert: "code",
+  },
+  0x29f7: {
+    name: "loc_29f7",
+    role: "steer one live slot toward its aim heading then fly it a step; when the slot's probe cell (iy+0x31) lies within a fixed window of either reference point the turn runs with the shared turn-rate index forced to zero then reseated to four, else at the standing index, and the step alternates a double- and a single-velocity mover on bit 1 of the frame tick",
+    cert: "code",
+  },
+  0x2b93: {
+    name: "loc_2b93",
+    role: "per-object state-machine step: dispatch on the object's state byte — 0xf0 re-arms it to 0x3b and begins its death, 0x3c begins the death then flies it on, above 0x3c flies it on, below 0x3c counts the byte down, retiring the slot at zero else moving the object for the frame",
+    cert: "code",
+  },
+  0x2d21: {
+    name: "loc_2d21",
+    role: "drift one scenery object with the world scroll over-travelled by a quarter, then lay the tile abutting it and the one cornering it diagonally (three corners of a square) and step both cursors one slot past",
+    cert: "code",
+  },
+  0x307f: {
+    name: "loc_307f",
+    role: "tail of a per-slot sprite-entry fill: store a coordinate through the pointer and fold it into A, then hand each slot to the straight placer while the counter (B) holds; on the last slot index a word table by A, bump the byte past the entry, drop two stack bytes into AF, and finish through the diagonal placer",
+    cert: "code",
+  },
+  0x3117: {
+    name: "loc_3117",
+    role: "when a sentinel pair reads 0x68 then 0x10-or-0x05, seat four objects from a packed table into the sprite cell and shadow of the first four entry-bank slots and hand on to the frame's scenery run; otherwise transfer to the caption path",
+    cert: "code",
+  },
+  0x406c: {
+    name: "loc_406c",
+    role: "service one animated slot for a frame: rearm it (stamp the countdown to 59 and request the paired sound) when the countdown at (ix+0) is >=0x3c, count the countdown down, retire the sprite (zero iy+0 and iy+0x31) when it reaches zero, otherwise drift the object with the world scroll and, once the countdown is >=0x1c, drive the sprite shape (iy+1) from the 9-byte table at 0x4094 indexed by (countdown-0x1c)>>2 and set its attribute (iy+0x30) to 0x0e",
+    cert: "code",
+  },
+  0x418b: {
+    name: "loc_418b",
+    role: "service one live slot of the per-slot object sweep: fly the slot's object a step along its stored velocity (retiring it once it crosses a retire line), tick down the slot's own countdown at record offset 0x0e, then close the turn of the sweep; reached only for a slot whose marker byte reads 0xFF with a nonzero countdown, outside the fourth era",
+    cert: "code",
+  },
+  0x41b8: {
+    name: "loc_41b8",
+    role: "run one chased object through a frame: every sixteenth frame re-aim it at one of two fixed points a record bit selects, cut its approach countdown to zero once both axis gaps to that point fall under sixteen, then turn, move and dress it every frame; the carry answers whether it reached a retire line",
+    cert: "code",
+  },
+  0x460e: {
+    name: "loc_460e",
+    role: "two-player-start setup arm (called from 0x189E): when the video cell 0xA67C and work cell 0xAB43 disagree, decrement the counter at (IX+0), seat 0xFE/0xFD and 0x6C/0x6C into the object slot at (IY+1/+3/+0x30/+0x32), request sound 0x580B when 0xA800 is 0xFF, and queue ring command 0x04/0x0D; a no-op when the two cells agree",
+    cert: "code",
+  },
+  0x49a8: {
+    name: "loc_49a8",
+    role: "tail of power-on config decode + self-test: slices two bits of the rolled config byte into work-RAM 0xa9c4/0xa9c6, kicks the watchdog, drives LS259 line 1 from ROM byte 0x0c3e, tiles the character plane, sums the 256-byte ROM block at 0x27de and derails a tampered image into the frame handler, else cold-starts",
+    cert: "code",
+  },
+  0x4c75: {
+    name: "loc_4c75",
+    role: "sequence arm (computed-dispatch entry 3 of the table at 0x0F29): blank a fixed character-cell run, copy the active player's saved 16-byte context block into the live block at 0xAD00, step the sequence sub-index; when play is active it also posts the round number (cmd 6) and lives-less-one (cmd 5) to the command ring and folds a fixed program span (0x5B50, 256 bytes) into an XOR whose low bit less one drives the picture-enable latch 0xC308 -- a tamper guard",
+    cert: "code",
+  },
+  0x4d3a: {
+    name: "loc_4d3a",
+    role: "step a three-place base-sixty tick counter at 0xAD05, carrying into the next place only while a place rolls over; only on a full roll-over count down the reload timer at 0xA9D7, and each time it fires rearm it from 0xA9D6, climb the escalation rung at 0xACC0 one step (held at 15), and apply that rung's tuning row",
+    cert: "code",
+  },
+  0x50b1: {
+    name: "loc_50b1",
+    role: "select the collision box for the mutual kill of the player and one fixed two-slot target by ERA_INDEX: eras 0 and 4 transfer to the wider first-axis check (loc_50ee), the rest run the same destruction inline with a narrower first-axis window; when both are live and their coordinates fall in the box, mark both destroyed, clear the cell beside them, and tail-post the chained hit score",
+    cert: "code",
+  },
+  0x52aa: {
+    name: "loc_52aa",
+    role: "boot-time DIP seed: copy two ROM defaults into their cells (0x08c9->0xa98d, 0x0874->KILL_QUOTA), store DSW0 complemented as COINAGE_SETTINGS and unpack the coin ratios, then turn DSW1's low two bits into a lives count (3/4/5, or 0xff when they fold to none) and tail-jump with it plus the whole complemented bank into the switch-settings peeler; never returns",
+    cert: "code",
+  },
+  0x5bd7: {
+    name: "loc_5bd7",
+    role: "inner sequence-dispatch arm (table 0x0f29 index 2): blank a fixed character run, advance the interpolated pen run, and bail unless it reseated to a zero row integer; on the full path fold two guarded code blocks (an anti-tamper XOR check that raises the sequence phase on mismatch, and a self-cancelling add-checksum over a work cell) then step the sequence sub-index",
+    cert: "code",
+  },
   0x0008: {
     name: "fetchTableByte",
     role: "step a table pointer on by an index and return the byte it lands on, leaving the pointer at that entry",

@@ -175,33 +175,34 @@ function oracleDepth(machine) {
 // ── a machine over a private, editable program image ────────────────────────────────────
 
 /**
- * A clone of the captured entry reading a PRIVATE copy of the image with one byte changed, and
- * with the trap address replaced by a counting probe. Both the image and the routine map are
- * copied rather than shared: the harness caches one image and one map across every gate in the
- * suite, and editing either in place would poison the rest of the run.
+ * A clone of the captured entry reading a PRIVATE copy of the image with one byte changed. The
+ * image is copied rather than shared: the harness caches one across every gate in the suite, and
+ * editing it in place would poison the rest of the run.
  */
 function tampered(at, delta) {
   const image = Uint8Array.from(ROM_IMAGE);
   if (delta !== 0) image[at] = (image[at] + delta) & 0xff;
   const c = entry().clone();
   c.mem.rom = image;
-  c.routines = new Map(c.routines);
-  const hits = { n: 0 };
-  c.routines.set(TRAP, () => { hits.n++; });
-  return { machine: c, hits };
+  return c;
 }
 
-/** How many times each side reaches the trap when one image byte is changed. */
+/**
+ * Whether each side takes the derail when one image byte is changed. The dissolved arm calls the
+ * derail directly rather than through a dispatch a probe could count, so it is let run: its tail
+ * stores through a mis-stepped pointer into the image and faults on the write to non-RAM, and a
+ * genuine image never enters it — so the fault IS the signal, 1 when it faults, 0 when it returns.
+ */
 function trapHits(candidate, at, delta) {
-  const o = tampered(at, delta);
-  const r = tampered(at, delta);
-  oracle(o.machine);
-  try {
-    candidate(r.machine);
-  } catch {
-    return { oracle: o.hits.n, candidate: -1 };
-  }
-  return { oracle: o.hits.n, candidate: r.hits.n };
+  const took = (fn) => {
+    try {
+      fn(tampered(at, delta));
+      return 0;
+    } catch {
+      return 1;
+    }
+  };
+  return { oracle: took(oracle), candidate: took(candidate) };
 }
 
 // ── broken twins ────────────────────────────────────────────────────────────────────────
