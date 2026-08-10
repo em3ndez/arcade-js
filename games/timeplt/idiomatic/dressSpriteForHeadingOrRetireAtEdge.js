@@ -12,7 +12,7 @@ import { u8, u16 } from "../../../core/int.js";
 import { hasReachedBoundaryBandSelectedByHeading } from "./hasReachedBoundaryBandSelectedByHeading.js";
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "./offsetAddress.js";
-import { loc_44c9 } from "./loc_44c9.js";
+import { restartAnimationCounterThenDressFlutterSprite } from "./restartAnimationCounterThenDressFlutterSprite.js";
 import { dressSpriteFlutterShapesByFrameTickBit } from "./dressSpriteFlutterShapesByFrameTickBit.js";
 import { ERA_INDEX, FRAME_TICK } from "./names.js";
 
@@ -51,7 +51,7 @@ export function dressSpriteForHeadingOrRetireAtEdge(m) {
       const counter = u8(mem8[record + WIND_DOWN] + 1);
       mem8[record + WIND_DOWN] = counter;
       regs.c = counter;
-      if (counter & CLOSED_OUT) return loc_44c9(m);
+      if (counter & CLOSED_OUT) return restartAnimationCounterThenDressFlutterSprite(m);
       if (u8(seed + 2) < counter) mem8[record + WIND_DOWN] = CLOSED_OUT;
     }
     mem8[entry + COLOUR_LO] = FLUTTER_CODE;

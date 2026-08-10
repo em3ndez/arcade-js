@@ -16,7 +16,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { dispatchCollisionPassByEra as candidate } from "../dispatchCollisionPassByEra.js";
 import { loc_4e4f as oracle } from "../../translated/loc_4e4f.js";
 import { dispatchEra4CollisionByFrameParity } from "../dispatchEra4CollisionByFrameParity.js";
-import { loc_4f35 } from "../loc_4f35.js";
+import { dispatchShotSweepByMotherShipArmed } from "../dispatchShotSweepByMotherShipArmed.js";
 import { splitCollisionWorkByFrameParity } from "../splitCollisionWorkByFrameParity.js";
 import { runAllCollisionSweepsThisFrame } from "../runAllCollisionSweepsThisFrame.js";
 
@@ -122,13 +122,13 @@ function scenarios() {
 // ── the twins ─────────────────────────────────────────────────────────────────────────────
 
 const dispatchByParity = (m) =>
-  (m.mem8[FRAME_TICK] & 1) ? loc_4f35(m) : runAllCollisionSweepsThisFrame(m);
+  (m.mem8[FRAME_TICK] & 1) ? dispatchShotSweepByMotherShipArmed(m) : runAllCollisionSweepsThisFrame(m);
 
 const twinSwapParity = (m) => {
   const era = m.mem8[ERA_INDEX];
   if (era === 4) return dispatchEra4CollisionByFrameParity(m);
   if (era === 1) return splitCollisionWorkByFrameParity(m);
-  return (m.mem8[FRAME_TICK] & 1) ? runAllCollisionSweepsThisFrame(m) : loc_4f35(m);
+  return (m.mem8[FRAME_TICK] & 1) ? runAllCollisionSweepsThisFrame(m) : dispatchShotSweepByMotherShipArmed(m);
 };
 const twinDropEra1 = (m) => (m.mem8[ERA_INDEX] === 4 ? dispatchEra4CollisionByFrameParity(m) : dispatchByParity(m));
 const twinDropEra4 = (m) =>

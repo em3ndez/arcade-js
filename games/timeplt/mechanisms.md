@@ -1204,6 +1204,13 @@ the parallel tables at `0xA8C0`/`0xAA28` (the era special-craft trio), and the t
 span 15) — and it seats the cursor pair (`0xA991`/`0xA993`) the body reloads between passes before
 tail-jumping into `destroyTargetsHitByShots` (`0x5211`), which restarts the target run for every shot. `[code]`
 
+A sibling stager runs that same sweep body over a larger target set, and it is what the per-frame
+collision pass dispatches to. On odd frames the collision dispatchers pick
+`dispatchShotSweepByMotherShipArmed` (`0x4F35`): while `MOTHER_SHIP_ARMED` is clear it seats the same
+cursor pair (`0xA991`/`0xA993`) onto the seven-long craft run (`CRAFT_RECORD_SLOT0`/`CRAFT_ENTRY_SLOT0`)
+and hands `destroyTargetsHitByShots` six shots against seven targets; while it is set it hands off to
+`destroyCraftAndMotherShipHitByShots` instead, the sweep that also covers the standing object. `[code]`
+
 Any statement of the form "kills happen in *the* collision routine" is wrong about this machine, and
 a reader who instruments one path will under-count.
 
@@ -2201,7 +2208,7 @@ count must never be quoted as a dispatch figure. `[seen]`
 
 ### ★ A zero whose only control is REMOTE is a weaker zero, and has to be labelled as one
 
-`loc_44c9` read zero in every run of the last sweep — undriven attract, a one-player run, a
+`restartAnimationCounterThenDressFlutterSprite` read zero in every run of the last sweep — undriven attract, a one-player run, a
 two-player run and a 300 s driven run. Its three siblings in the same block were tapped in the same
 runs and **they are zero too**. So there is no positive control anywhere in that neighbourhood: what
 the sweep establishes is that the tap array works, not that it could have caught a hit HERE. A tap

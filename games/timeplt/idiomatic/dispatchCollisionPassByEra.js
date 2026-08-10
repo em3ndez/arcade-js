@@ -4,7 +4,7 @@
 
 import { dispatchEra4CollisionByFrameParity } from "./dispatchEra4CollisionByFrameParity.js";
 import { splitCollisionWorkByFrameParity } from "./splitCollisionWorkByFrameParity.js";
-import { loc_4f35 } from "./loc_4f35.js";
+import { dispatchShotSweepByMotherShipArmed } from "./dispatchShotSweepByMotherShipArmed.js";
 import { runAllCollisionSweepsThisFrame } from "./runAllCollisionSweepsThisFrame.js";
 import { ERA_INDEX, FRAME_TICK } from "./names.js";
 
@@ -13,6 +13,6 @@ export function dispatchCollisionPassByEra(m) {
   const era = mem8[ERA_INDEX];
   if (era === 4) return dispatchEra4CollisionByFrameParity(m);
   if (era === 1) return splitCollisionWorkByFrameParity(m);
-  if (mem8[FRAME_TICK] & 0x01) return loc_4f35(m);
+  if (mem8[FRAME_TICK] & 0x01) return dispatchShotSweepByMotherShipArmed(m);
   return runAllCollisionSweepsThisFrame(m);
 }

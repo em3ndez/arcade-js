@@ -17,7 +17,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { splitCollisionWorkByFrameParity as candidate } from "../splitCollisionWorkByFrameParity.js";
 import { loc_4ebc as oracle } from "../../translated/loc_4ebc.js";
 import { loc_4e4f as caller } from "../../translated/loc_4e4f.js";
-import { loc_4f35 } from "../loc_4f35.js";
+import { dispatchShotSweepByMotherShipArmed } from "../dispatchShotSweepByMotherShipArmed.js";
 import { destroyFixedTargetHitByShots } from "../destroyFixedTargetHitByShots.js";
 import { destroyPlayerAndObjectsTouchingIt } from "../destroyPlayerAndObjectsTouchingIt.js";
 import { destroySlotsAndPlayerOnContact } from "../destroySlotsAndPlayerOnContact.js";
@@ -194,7 +194,7 @@ function evenChain(m, { skipFirst = false, forceArmed = null, tailReach = 17, fi
 }
 
 const onOdd = (opts) => (m) =>
-  m.mem8[FRAME_TICK] & 1 ? loc_4f35(m) : evenChain(m, opts);
+  m.mem8[FRAME_TICK] & 1 ? dispatchShotSweepByMotherShipArmed(m) : evenChain(m, opts);
 
 const TWINS = [
   ["no-op", () => {}, 4],

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4f35 — memory-equivalent to the frozen oracle at ROM 0x4F35.
+ * dispatchShotSweepByMotherShipArmed — memory-equivalent to the frozen oracle at ROM 0x4F35.
  *
  * WHAT IT IS. One flag test, two cursor cells staged, and a tail transfer into the shared shot
  * sweep at ROM 0x5211 with the arguments the oracle marshals through registers. Both the sweep
@@ -62,7 +62,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4f35 } from "../loc_4f35.js";
+import { dispatchShotSweepByMotherShipArmed } from "../dispatchShotSweepByMotherShipArmed.js";
 import { destroyCraftAndMotherShipHitByShots } from "../destroyCraftAndMotherShipHitByShots.js";
 import { destroyTargetsHitByShots } from "../destroyTargetsHitByShots.js";
 import { loc_4f35 as oracle } from "../../translated/loc_4f35.js";
@@ -395,7 +395,7 @@ test("EQUAL at every real dispatch: identical outside the measured window", { sk
     const a = e.clone();
     const b = e.clone();
     oracle(a);
-    loc_4f35(b);
+    dispatchShotSweepByMotherShipArmed(b);
     const diffs = allDiffs(a, b);
     const strays = diffs.filter((d) => !inScratch(d.addr, sp));
     assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
@@ -412,7 +412,7 @@ test("EQUAL at every real dispatch: identical outside the measured window", { sk
 
 test("EQUAL over every crafted machine", { skip }, () => {
   for (const [label, m] of craftedOnce()) {
-    const d = unitDiff(loc_4f35, m);
+    const d = unitDiff(dispatchShotSweepByMotherShipArmed, m);
     assert.equal(d, null, `${label}: ${show(d)}`);
   }
   console.log(`  EQUAL (crafted): ${craftedOnce().length} machines identical outside the window`);
@@ -527,7 +527,7 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
     "reading below proves nothing");
   assert.equal(inside, null, `a planted move of ${CEILING[0]} WAS reported, so the arm is not ` +
     "excluding the ceiling and the two-sided control has collapsed into one");
-  const moved = movedOver(loc_4f35);
+  const moved = movedOver(dispatchShotSweepByMotherShipArmed);
   console.log(`  EXCLUDED (measured): ${REG_FIELDS.filter((k) => moved.has(k)).join(", ")} — ` +
     `ceiling ${CEILING.join(", ")}; the control moves ${OUTSIDE} and is seen`);
   // CEILING is a CEILING. deepEqual against it would DEMAND the divergence and go RED on a rewrite
@@ -537,7 +537,7 @@ test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, 
 });
 
 test("CALLS, NOT RESTATES: the module's text, with each callee as a positive control", () => {
-  const module = read("../loc_4f35.js");
+  const module = read("../dispatchShotSweepByMotherShipArmed.js");
   for (const helper of HELPERS) {
     assert.ok(callsRatherThanRestates(module, helper), `the module does not call ${helper[0]}`);
     assert.ok(!callsRatherThanRestates(read(helper[1]), helper),

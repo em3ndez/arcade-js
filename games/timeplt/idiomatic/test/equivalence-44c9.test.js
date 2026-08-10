@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_44c9 — memory-equivalent to the frozen oracle at ROM 0x44C9.
+ * restartAnimationCounterThenDressFlutterSprite — memory-equivalent to the frozen oracle at ROM 0x44C9.
  *
  * An arm, not an entry: control arrives by a branch with an object record, a sprite entry and a
  * counter in hand. It masks the counter, may zero the record's counter cell, writes both attribute
@@ -50,7 +50,7 @@ import assert from "node:assert/strict";
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
-import { loc_44c9 } from "../loc_44c9.js";
+import { restartAnimationCounterThenDressFlutterSprite } from "../restartAnimationCounterThenDressFlutterSprite.js";
 import { dressSpriteFlutterShapesByFrameTickBit } from "../dressSpriteFlutterShapesByFrameTickBit.js";
 import { loc_44c9 as oracle } from "../../translated/loc_44c9.js";
 import { loc_43f0_46f0 as successor } from "../../translated/loc_43f0.js";
@@ -280,7 +280,7 @@ function brokenFlutterOnTheNeighbour(m, counter = m.regs.c, record = m.regs.ix, 
 
 /** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */
 function clobbersAHeldRegister(m) {
-  loc_44c9(m);
+  restartAnimationCounterThenDressFlutterSprite(m);
   m.regs.b = (m.regs.b + 1) & 0xff;
 }
 
@@ -288,7 +288,7 @@ function clobbersAHeldRegister(m) {
 function nudges(reg) {
   const wide = reg === "ix" || reg === "iy";
   return (m) => {
-    loc_44c9(m);
+    restartAnimationCounterThenDressFlutterSprite(m);
     m.regs[reg] = (m.regs[reg] + (wide ? 16 : 1)) & (wide ? 0xffff : 0xff);
   };
 }
@@ -327,7 +327,7 @@ test("REACH: nothing reaches this arm on either tape, and the collector is shown
 test("EQUAL on a crafted entry: the whole dump, SP and pc identical", { skip }, () => {
   const c = cross()[0];
   const m = craft(c.base, c.pair, SELECTOR_BIT | RESTART_AT);
-  const r = diffOf(loc_44c9, m);
+  const r = diffOf(restartAnimationCounterThenDressFlutterSprite, m);
   assert.equal(r.faultA, null, `the oracle faulted (${r.faultA})`);
   assert.equal(r.faultB, null, `the rewrite faulted (${r.faultB})`);
   assert.deepEqual(r.raw, [], `${show(r.raw[0])}`);
@@ -363,7 +363,7 @@ test("NO SCRATCH: the oracle pushes nothing here, measured, with a control", { s
 test("CROSS: every crafted entry is identical", { skip }, () => {
   let informative = 0;
   for (const c of cross()) {
-    const r = diffOf(loc_44c9, craft(c.base, c.pair, c.counter));
+    const r = diffOf(restartAnimationCounterThenDressFlutterSprite, craft(c.base, c.pair, c.counter));
     assert.equal(r.faulted, false, `${c.label} ${hex4(c.pair[0])} counter ${c.counter}: ` +
       `${r.faultA} on one side, ${r.faultB} on the other`);
     assert.deepEqual(r.raw, [], `${c.label} ${hex4(c.pair[0])} counter ${c.counter}: ${show(r.raw[0])}`);
@@ -444,7 +444,7 @@ test("SUCCESSOR: both sides agree through the frozen successor, with its power m
     try { successor(a); } catch { /* both sides are compared for the same fault below */ }
     const after = a.dumpState();
     for (let i = 0; i < after.length; i++) if (after[i] !== before[i]) { wrote++; break; }
-    if (throughSuccessor(loc_44c9, m).length) clean++;
+    if (throughSuccessor(restartAnimationCounterThenDressFlutterSprite, m).length) clean++;
   }
   assert.equal(wrote, sweep.length, "the successor wrote nothing on some entry, so the comparison " +
     "there has no power");
@@ -474,7 +474,7 @@ test("SUCCESSOR: both sides agree through the frozen successor, with its power m
 test("EXCLUDED: the registers that move, bounded by a ceiling; the cursors are held", { skip }, () => {
   const moved = new Set();
   for (const c of cross()) {
-    for (const k of diffOf(loc_44c9, craft(c.base, c.pair, c.counter)).moved) moved.add(k);
+    for (const k of diffOf(restartAnimationCounterThenDressFlutterSprite, craft(c.base, c.pair, c.counter)).moved) moved.add(k);
   }
   const list = REG_FIELDS.filter((k) => moved.has(k));
   console.log(`  EXCLUDED (measured): ${list.join(", ")} — ceiling ${MAY_MOVE.join(", ")}`);

@@ -18,7 +18,7 @@ import { loc_4447 as oracle } from "../../translated/loc_4447.js";
 import { hasReachedBoundaryBandSelectedByHeading } from "../hasReachedBoundaryBandSelectedByHeading.js";
 import { retireEntryPairIntoCooldown } from "../retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "../offsetAddress.js";
-import { loc_44c9 } from "../loc_44c9.js";
+import { restartAnimationCounterThenDressFlutterSprite } from "../restartAnimationCounterThenDressFlutterSprite.js";
 import { dressSpriteFlutterShapesByFrameTickBit } from "../dressSpriteFlutterShapesByFrameTickBit.js";
 import { ERA_INDEX, FRAME_TICK } from "../names.js";
 import { u8, u16 } from "../../../../core/int.js";
@@ -172,7 +172,7 @@ function twin(f) {
         const counter = u8(mem8[record + 6] + 1);
         mem8[record + 6] = counter;
         regs.c = counter;
-        if (counter & 0x80) return loc_44c9(m);
+        if (counter & 0x80) return restartAnimationCounterThenDressFlutterSprite(m);
         if (u8(seed + 2) < counter && !f.noCap) mem8[record + 6] = 0x80;
       }
       mem8[entry + 0x30] = f.flutterCode ?? 0x70;

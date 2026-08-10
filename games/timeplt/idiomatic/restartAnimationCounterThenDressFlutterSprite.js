@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_44c9 — close out one object's animation and dress its sprite entry. The counter the caller
+/** restartAnimationCounterThenDressFlutterSprite — close out one object's animation and dress its sprite entry. The counter the caller
  * carries is read without the top bit that selected this path; once what is left has reached three
  * the counter cell in the object's record is put back to zero, and below three it is left alone.
  * Either way both attribute slots of the sprite entry take the one code fixed here, and the two
@@ -15,7 +15,7 @@ const COUNTER_SLOT = 6;
 const ATTRIBUTE_SLOTS = [0x30, 0x32];
 const ATTRIBUTE = 0x51;
 
-export function loc_44c9(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
+export function restartAnimationCounterThenDressFlutterSprite(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   const { mem8 } = m;
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT) mem8[u16(record + COUNTER_SLOT)] = 0;
   for (const slot of ATTRIBUTE_SLOTS) mem8[u16(sprite + slot)] = ATTRIBUTE;
