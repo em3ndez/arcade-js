@@ -23,23 +23,7 @@
  *
  * GATE: strict unit-capture with one measured exclusion, two replayed sessions, and 1031 crafted
  *   arms — seven values of the keying cell, plus every heading at each of the four values that
- *   bracket the two boundaries. What it exercises, holes stated:
- *
- *   1. CONTRACT   — at the first real dispatch, identical outside the measured window.
- *   2. WINDOW     — the oracle's own deepest push, measured over the whole sweep and PINNED.
- *   3. BOUNDARY   — the exclusion is exactly as wide as it declares.
- *   4. ERA REACH  — measured: which values of the keying cell each session presents, and that
- *                   the third table is reached by crafting alone.
- *   5. CORPUS     — every dispatch of both sessions replays identically, counts pinned.
- *   6. THREE PACES — the three tables really do give three different scrolls at the captured
- *                   heading, so the choice this routine makes is observable at all.
- *   7. CRAFTED    — every arm identical outside the measured window.
- *   8. EXCLUDED   — no register outside the declared CEILING moves, with a twin that keeps a
- *                   table pointer as the in-arm control that the measurement can see one.
- *   9. CALLS, NOT DISPATCHES — the module's text: it must import and call both callees rather
- *                   than reach them through the registry, with the oracle as the control.
- *  10. TEETH      — ten broken twins, each with the number of arms that catches it and its catch
- *                   count in each real session, zeros kept.
+ *   bracket the two boundaries.
  *
  * HOLE: ONE object record and ONE captured machine. The heading is swept exhaustively out of that
  * record, but the record itself, and everything else about the machine, is never varied.

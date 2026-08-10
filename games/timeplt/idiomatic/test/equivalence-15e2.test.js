@@ -2,9 +2,8 @@
 /**
  * startTheWholePlaneWipeAndFoldAnImageBlockIntoThePhase — memory-equivalent to the frozen oracle at ROM 0x15E2.
  *
- * GATE: the real dispatch of both sessions, replayed whole; an exhaustive crafted sweep of the
- *   outer phase and of the inner index; a measured stack window with a boundary control; a bounded
- *   register ceiling with a control twin; and a bench of broken twins with measured counts.
+ * GATE: the real dispatch of both sessions replayed whole; an exhaustive crafted sweep of the outer
+ *   phase and inner index; a measured stack window with a boundary control; a register ceiling and teeth.
  *
  * ★ THE ADDRESS IS DISPATCHED ONCE PER SESSION, and the arm that says so measures it rather than
  *   assuming it. It is arm 0 of the inline word table loc_15c2 dispatches through, reached during
@@ -27,18 +26,6 @@
  * ★ THE MASKED WINDOW IS MEASURED, NOT DECLARED. The oracle's own push16 is watched over every arm
  *   and pinned at 2 bytes; the BOUNDARY arm then shows a scribble one byte below the window IS
  *   caught, so the mask cannot be quietly hiding a real divergence.
- *
- * What it exercises, holes stated:
- *   1. WINDOW — the oracle's stack footprint, measured over corpus and sweep, pinned at 2.
- *   2. BOUNDARY — a scribble inside the window is masked, one byte below it is caught.
- *   3. CORPUS — the dispatch of both sessions, identical outside the window.
- *   4. NOT VACUOUS — a candidate that does nothing fails the same comparison, on a real cell.
- *   5. EXCLUDED — no register outside the measured ceiling moves, with a control twin.
- *   6. PHASES — all 256 phase values crafted onto the real entry.
- *   7. INDEXES — all 256 inner-index values, showing the store is unconditional.
- *   8. CRAFTED-MATTERS — the fold's fixed-point count, and the twin the corpus alone cannot see.
- *   9. TRAILING ZEROS — the one fencepost this gate CANNOT catch, measured, with a control.
- *  10. TEETH — a bench of broken twins, each with its measured catch count over the sweep.
  *
  * HOLE: one dispatch per session is all the corpus there is, and both sessions present the same
  * phase. Everything about a non-zero phase rests on crafted state.
@@ -75,14 +62,10 @@ const FOLD_KEY = 0x4e;
 const SCRATCH_BYTES = 2;
 
 /**
- * The ceiling on register divergence, measured over the corpus AND the 256-value phase sweep.
- *   a — the oracle leaves the folded phase in A; the rewrite keeps the fold in a local.
- *   f — the block's subtractions and the key's exclusive-or set flags nothing reads.
- *   b — the oracle's prelude counts its own run down in B and the rewrite's does not.
- *   h,l — the oracle walks HL across the block; the rewrite indexes from a base instead.
- *   sp — the oracle brackets the prelude with a push and takes its own return; the rewrite calls a
- *        sibling that returns in JavaScript and leaves the machine's return to the seam.
- * A ceiling, not a demand — a rewrite that diverged on fewer of these still passes.
+ * The ceiling on register divergence, measured over the corpus AND the 256-value phase sweep — a
+ * ceiling, not a demand. a: folded phase in A vs a local; f: the fold's arithmetic sets flags none
+ * reads; b: the prelude counts its run down in B, the rewrite's not; h,l: oracle walks HL, rewrite
+ * from a base; sp: oracle brackets the prelude with a push and takes its return, the rewrite's not.
  */
 const MOVED = ["a", "f", "b", "h", "l", "sp"];
 

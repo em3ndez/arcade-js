@@ -39,26 +39,10 @@
  *   reading, and this file says so rather than claiming the walk finished.
  *
  * GATE: strict unit-capture, two replayed sessions at every dispatch, an exhaustive sweep of the
- *   record byte crossed with the request cell, and a whole-run masked diff. Holes stated:
+ *   record byte crossed with the request cell, and a whole-run masked diff.
  *
- *   1. EQUAL at the real dispatch — identical outside the scratch window.
- *   2. NOT VACUOUS — a no-op FAILS the same masked diff, on a real cell rather than a register.
- *   3. BOTH ARMS ARE REACHED — measured on the corpus, not assumed, and the threshold located by
- *      finding the record byte at which the frozen side changes behaviour.
- *   4. EXCLUDED — the registers that move, pinned to the union of the callees' declared sets.
- *   5. UNIFORM CORPUS — how many record bytes and record bases real play presents.
- *   6. CORPUS — every dispatch of two sessions, the shared coin-then-start tape and undriven
- *      attract.
- *   7. EXHAUSTIVE — all 256 record bytes, crossed with the request cell so the low band's two
- *      sub-arms both run.
- *   8. CALLS, NOT RESTATES — the module's text, with each callee's own body as a control.
- *  8b. THE BRANCH — which arm a record byte takes, read back off the record itself, and the
- *      drift arm shown to move a coordinate.
- *   9. WHOLE-MACHINE — a driven session with the rewrite wired, diffed every frame.
- *  10. TEETH — nine twins, each with an exact catch count over the cross and per session. One is
- *      caught by NO real dispatch and by no whole run: lowering the threshold by one only matters
- *      to a record byte the game never presents at this entry, so the three crafted entries are
- *      the only thing holding it, and its verdicts record that rather than glossing it.
+ *   TEETH: one twin (threshold low by one) is caught by NO real dispatch and no whole run — it only
+ *   matters to a record byte the game never presents here, so three crafted entries alone hold it.
  *
  * HOLE: the record bases are the ones attract and the shared tape present; nothing here sweeps
  * the record table, and the sprite base is never varied independently of the record base.

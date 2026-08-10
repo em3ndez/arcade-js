@@ -18,20 +18,8 @@
  *   zero. The entry is therefore a REAL machine, captured at a live dispatch of that walk,
  *   which leaves the index register on one of the records this routine writes through.
  *
- *   1. UNREACHED  — the tape really does not dispatch this address.
- *   2. EQUAL      — masked RAM identical on the crafted entry.
- *   3. SCRATCH    — the unmasked difference lies wholly inside the dead window, whose depth
- *                   is asserted so it cannot silently grow.
- *   4. STACK      — the rewrite ends exactly one word deeper than the frozen twin, and nothing
- *                   outside the declared set moves with it. That set is an upper BOUND, not a
- *                   measurement: a rewrite that leaves fewer of them dirty is strictly better
- *                   and still passes.
- *   5. CLAMPS     — the head byte really carries the constant afterwards, from any prior.
- *   6. EXHAUSTIVE — the head byte swept 0..255; the routine reads nothing, so together
- *                   with the fixed surroundings that is its whole input space.
- *   7. RECORDS    — repeated on each of the four records the walk uses, so the write is
- *                   not tied to the one the capture happened to leave behind.
- *   8. TEETH      — five broken twins, each caught OUTSIDE the window.
+ *   EXHAUSTIVE sweeps the head byte 0..255; the routine reads nothing, so with the fixed
+ *   surroundings that is its whole input space.
  *
  * HOLE: one captured machine, and it is the walk's dispatch rather than this routine's, so
  * the surrounding state is one it is never really called with. What the continuation does

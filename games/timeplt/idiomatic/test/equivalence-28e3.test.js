@@ -35,13 +35,8 @@
  * GATE: strict unit-capture over every dispatch of two real sessions, a crafted cross over the era
  *   selector and the Mother-Ship gate byte, and a whole-machine replay. What it exercises, holes
  *   stated:
- *
- *   1. REACH — dispatch counts, the eras the sessions present, and the gate byte they present, all
- *      measured, with a positive control that the collector can read a value other than the one it
- *      reports.
+ *   1. REACH — dispatch counts, eras and gate byte presented, all measured, with a positive control.
  *   2. EQUAL — at the first INFORMATIVE dispatch of each session: masked RAM, SP and pc identical.
- *      Informative means the oracle wrote something outside the dead window; about a third of the
- *      dispatches are inert, and a comparison taken at one of those has no power.
  *   3. NOT VACUOUS — a candidate that does nothing FAILS that same comparison.
  *   4. CAUSE — the probe above, which must leave nothing at all.
  *   5. SCRATCH — every raw difference lies strictly BELOW the entry pointer and no deeper than the

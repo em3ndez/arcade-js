@@ -34,30 +34,7 @@
  *   either. The crafted cross is what holds them.
  *
  * GATE: strict unit-capture with NO exclusion, six replayed real sessions at every dispatch, a
- *   sweep that is exhaustive over this routine's own decision, and a whole-machine replay. What it
- *   exercises, holes stated:
- *
- *   1. CONTRACT — unitEquivalence at the first real dispatch: the whole dump is identical.
- *   2. NOT VACUOUS — a no-op FAILS the same diff, at a real cell, so the arm above decides
- *      something.
- *   3. WINDOW — the oracle's own pushes, measured over the whole crafted space and PINNED at
- *      nothing, which is what licenses comparing the stack.
- *   4. WRITE-SET — every address the frozen routine moves, measured across both arms and both
- *      branches of the tail.
- *   5. TAPE REACH — measured, with the A/B that makes each zero mean something.
- *   6. ARM REACH — how many dispatches actually fire, and how many of those hand the turn over.
- *      The zero is controlled by the crafted space reaching that branch 48 times.
- *   7. CORPUS — every dispatch of every session, not a deduplicated sample.
- *   8. EXCLUDED — a CEILING over the crafted space: no register outside the declared set moves,
- *      with an in-arm control showing the measurement can see one that does.
- *   9. EXHAUSTIVE — all 256 values of the delay cell, which is this routine's whole own input, plus
- *      a cross over the tail's three inputs at three delays.
- *  10. LIVE-OUT — the hostile-register instrument, with its positive control.
- *  11. DISSOLVES, NOT RESTATES — the module's text: it must name the tail's file and call it rather
- *      than carry the tail's own body, with an inlined variant as the positive control.
- *  12. WHOLE-MACHINE — a stepped session with the rewrite wired, diffed every frame.
- *  13. TEETH — ten twins, each with its exact crafted catch count, its exact per-session count and
- *      its whole-machine verdict; the two the real corpus cannot see say so.
+ *   sweep that is exhaustive over this routine's own decision, and a whole-machine replay.
  *
  * The whole-machine replay needs a shim: the host engine is cycle-driven and both arms end in a
  * return the rewrite does not take, so a candidate charging no T-states would move the vblank

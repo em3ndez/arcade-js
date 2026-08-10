@@ -26,24 +26,7 @@
  *   coincidence nobody checked.
  *
  * GATE: strict unit-capture over the shared coin-then-start tape, plus crafted selectors off each
- *   live arm. What it exercises, holes stated:
- *
- *   1. DISPATCHED — the dispatch count, the exact spread of selectors the session presents, and how
- *      many of those dispatches are INFORMATIVE, meaning the arm wrote something a do-nothing
- *      candidate would be caught by. The entry kept per selector is the first that qualifies.
- *   2. EQUAL at each real dispatch — masked RAM identical, with the raw difference reported.
- *   3. NOT VACUOUS — a candidate that does nothing FAILS the same comparison.
- *   4. SCRATCH — the raw difference across corpus and crafted sweeps, plus the positive control
- *      that makes the dead scratch visible and bounds how deep it reaches.
- *   5. CORPUS — every dispatch of the session replayed.
- *   6. ARMS — all eight table entries off each captured entry, identical or faulting identically.
- *   7. SELECTOR — all 256 values of the selector cell, so the five ignored bits are measured
- *      rather than assumed.
- *   8. STACK — the exit stack pointer AND the program counter are identical on every arm that
- *      completes. This entry parks nothing, so there is no omitted return here to excuse.
- *   9. EXCLUDED — the registers that move over the sweep, pinned to an exact set.
- *  10. TEETH — one twin per named way the lookup could be wrong, each required to be caught
- *      OUTSIDE the window, so the mask cannot be what is passing them.
+ *   live arm.
  *
  * HOLE: the session presents only two of the eight selectors. The other six are crafted, and from
  * an entry state their arm would not really see; where such an arm faults it is asserted only to

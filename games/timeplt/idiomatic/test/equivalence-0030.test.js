@@ -20,23 +20,6 @@
  *   TRANSFER form that stops at the jump and compares where it goes, and a FULL form that lets the
  *   arm run — plus an exhaustive crafted sweep of the index.
  *
- * What it exercises, holes stated:
- *   1. TRANSFER FORM — at every top-level dispatch of two tapes, both sides run against a routine
- *      map that records the transfer instead of taking it, and the arm address, the registers at
- *      the jump and the stack pointer are compared. This is the contract this entry actually has.
- *   2. FULL FORM — the first sixty top-level dispatches with the arms really running, so the
- *      transfer is shown equivalent end to end and not merely at the jump. Bounded because each
- *      comparison runs a whole arm twice; the transfer form carries the rest.
- *   3. THE DEAD STACK SCRATCH IS THE ONE EXCLUSION, pinned to [SP-2, SP+2) around the ENTRY stack
- *      pointer. Two of those bytes are the slot this entry pops, which is dead the moment it is
- *      taken; the other two are the frozen path's own bracketing push. Every arm walks the whole
- *      dump and asserts nothing escapes it.
- *   4. REGISTERS ARE COMPARED, NOT EXCLUDED, at the moment of the jump — the arm reads them.
- *   5. EXHAUSTIVE — all 256 indices at a captured entry, which is the only coverage of the
- *      doubling that wraps at eight bits and folds a large index back onto the head of the table.
- *   6. THE POP, MEASURED — the arm described above.
- *   7. TEETH — six twins, each asserted caught on an exact count of the crafted indices.
- *
  * HOLE: pc is excluded. The frozen path steps it to the arm before transferring and the rewrite
  * does not, which is the ordinary memory-equivalence drop.
  *

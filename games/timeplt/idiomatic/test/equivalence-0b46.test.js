@@ -5,7 +5,6 @@
  * GATE: strict unit-capture with ONE exclusion, a replayed corpus from three tapes, an exhaustive
  *   crafted sweep of the ring priors, a whole-run masked diff, and teeth. What it exercises, with
  *   the holes stated:
- *
  *   1. EQUAL at the real dispatch — RAM identical, and the command pair the rewrite leaves behind
  *      identical too. AT THE CAPTURED ENTRY THE EXCLUSION OF 2 BUYS NOTHING: the pushed bytes
  *      happen to equal what was already below the stack pointer, so the raw comparison is
@@ -38,7 +37,6 @@
  *   9. The shim's branch-dependent total, checked against the oracle.
  *  10. TEETH — eight twins at eight distinct behaviours, each declaring the EXACT arms that catch
  *      it. Two are invisible to every real dispatch and are caught only by the crafted sweep.
- *
  * HOLE: the corpus presents ONE guard byte and seventeen cursors, identically on all three tapes,
  * so the real data discriminates almost nothing here — the crafted sweep is the load-bearing arm
  * and the per-twin catch counts say so explicitly.
