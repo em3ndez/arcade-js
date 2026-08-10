@@ -21,6 +21,8 @@ export const ALLOWED = {
 
     "setTheLaunchFacingInsideOneAimWindow.js": [0x42b7], // -> the launcher (batch-4 lift of loc_42b7); equivalence-429c stubs the launcher through the routine map to test 429c in isolation, sweeping each of its three input bytes 256x against a recorder, and that interception only works through m.call, so a direct import runs the real launcher on the candidate against the recorder stub on the oracle and breaks seven arms. Same class as sumImageBlockForTheTamperCheck.js -> 0x07ad (dissolve attempted, reverted)
 
+    "serviceRoundThenResolvePlayerState.js": [0x43b7],
+    "loc_43b7.js": [0x43f0],
     "loc_00d8.js": [0x00d9],
     "loc_1651.js": [0x167b],
     "seatTheStackAndSettleTheControlLatch.js": [0x0069],
