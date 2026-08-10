@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_43b7 — the once-in-eight-frames gate for the era's special object. While the wave-hold flag is
- * clear it either defers to the stepper when a special is already live, or — only when both records of
- * the special's two-slot bank read empty — marks the special active, arms the lead record's fire byte
- * and retires the matching entry pair into cooldown. LIVE-OUT: memory (and a tail).
+ * armMotherShipOrStep — the once-in-eight-frames gate for the Mother-Ship: while it is live, defer to
+ * the stepper; else, once the kill quota is spent and both its two-slot-bank records are empty, arm it
+ * (raise the armed flag, seed the seven-hit counter) and retire the entry pair to spawn it. LIVE-OUT: memory.
  */
 
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
@@ -21,7 +20,7 @@ const PHASE_DUE = 0x05;
 const FIRE_BYTE = 0x04;
 const FIRE_ARMED = 0x07;
 
-export function loc_43b7(m) {
+export function armMotherShipOrStep(m) {
   const { regs, mem8 } = m;
 
   if (mem8[WAVE_HOLD] === HELD) return;

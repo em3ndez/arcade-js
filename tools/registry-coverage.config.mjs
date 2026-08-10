@@ -67,14 +67,14 @@ export const UNWIRED = {
       "another routine -- two conditional branches and a fall-through, all three of which have " +
       "idiomatic twins that call it directly. Its idiomatic form also takes the sound code as a " +
       "second parameter, which the override map has no way to supply.",
-    "loc_43f0.js":
-      "the special era's set-piece object stepper, reached ONLY when 0xad0d != 0 -- through the " +
-      "jr nz at 0x43c0 inside loc_43b7. Neither driven tape reaches it (its target hits zero while " +
+    "stepMotherShip.js":
+      "the Mother-Ship's per-frame stepper, reached ONLY when MOTHER_SHIP_ARMED 0xad0d != 0 -- through the " +
+      "jr nz at 0x43c0 inside armMotherShipOrStep. Neither driven tape reaches it (its target hits zero while " +
       "the control anchor 0x43b7 hits hundreds), so the wired pixel render cannot exercise it and " +
-      "a ROUTINES entry would claim a dispatch the tapes never make. Its caller loc_43b7 is WIRED " +
+      "a ROUTINES entry would claim a dispatch the tapes never make. Its caller armMotherShipOrStep is WIRED " +
       "and reaches it by m.call (recorded in no-stale-mcall ALLOWED, stubbed in equivalence-43b7). " +
       "The module and its equivalence-43f0 gate are correct (byte-identical to the oracle in work " +
-      "RAM, verified) and stay; the frozen layer runs it in-game when the special era is entered.",
+      "RAM, verified) and stay; the frozen layer runs it in-game when the Mother-Ship is on the field.",
   },
 };
 

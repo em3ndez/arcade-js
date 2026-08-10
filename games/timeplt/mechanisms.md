@@ -1263,6 +1263,17 @@ facing test. ★ **Its hit count never falls below five across appearances.** Th
 the counter and writes five only if it is already under six — so the first two hits survive a
 departure and everything after them is undone. Damage accumulates exactly that far and then stops.
 
+★ **Both halves are now lifted: `armMotherShipOrStep` and `stepMotherShip`.** The round engine's
+service list calls `armMotherShipOrStep` every frame — it is the ORs-and-arm gate above (once every
+eight frames, when `KILLS_REMAINING 0xAD02` and both occupancy bytes are zero, it raises
+`MOTHER_SHIP_ARMED 0xAD0D`, seeds the seven into the lead record, and retires the entry pair to spawn
+the object) — and once the ship is live it hands every frame to `stepMotherShip`, the deep state
+machine that drifts it with the world, holds and re-launches it aimed at the player, spawns a homing
+attacker off cooldown, and rebuilds the whole formation on teardown. The ship rides the last two of
+the seven craft records at `0xA8A0`/`0xA8B0` — **a different bank from the era special-craft trio at
+`0xA8C0`** (the era-0 ballistic bank, the era-1 1940 bomber, the era-2+ sweep), which is why the
+bomber's counter of three and the Mother-Ship's counter of seven never touch. `[code]`
+
 ★ **While it is out, five of the seven ordinary craft slots exist and two do not**, and the whole
 machine knows it through one flag. That flag is raised by the arming path and cleared only by the
 next round start or life start — so it stays up after the object dies, until the round turns over.

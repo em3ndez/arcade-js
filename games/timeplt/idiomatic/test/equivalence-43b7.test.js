@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_43b7 against the frozen oracle: one booted machine, cloned and poked to land each of the five
+ * armMotherShipOrStep against the frozen oracle: one booted machine, cloned and poked to land each of the five
  * exits — wave-hold set, a special already live, an off-phase frame, an occupied bank, and the spawn.
  * Every arm compares the whole work-RAM dump; registers, the flag byte and the stack pointer are
  * excluded, and the teeth below prove each gate condition is independently load-bearing.
@@ -10,7 +10,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_43b7 } from "../loc_43b7.js";
+import { armMotherShipOrStep } from "../armMotherShipOrStep.js";
 import { loc_43b7 as oracle } from "../../translated/loc_43b7.js";
 import { retireEntryPairIntoCooldown } from "../retireEntryPairIntoCooldown.js";
 import { firstStateDiff } from "../../../../core/equivalence.js";
@@ -122,7 +122,7 @@ function caughtOn(candidate) {
 
 test("EQUAL on every exit arm: work RAM identical to the oracle", { skip }, () => {
   for (const arm of ARM_NAMES) {
-    const d = unitDiff(loc_43b7, craftArm(arm));
+    const d = unitDiff(armMotherShipOrStep, craftArm(arm));
     assert.equal(d, null, `arm ${arm} diverged: ${show(d)}`);
   }
   console.log(`  EQUAL: ${ARM_NAMES.length} arms, whole-dump identical`);
@@ -140,7 +140,7 @@ test("NON-VACUOUS: the two writing arms move memory, the three ret arms move non
 test("REAL TAIL: the live-special arm runs the true stepper and still agrees", { skip }, () => {
   const m = spawnReady(); // no stub: the real registry dispatches the stepper end to end
   m.mem8[SPECIAL_ACTIVE] = A_LIVE;
-  const d = unitDiff(loc_43b7, m);
+  const d = unitDiff(armMotherShipOrStep, m);
   assert.equal(d, null, `the real stepper tail diverged: ${show(d)}`);
   console.log("  REAL TAIL: the true stepper subtree ran on both sides, byte-identical");
 });
@@ -151,14 +151,14 @@ test("EXCLUDED, deliberately: only a, f and sp differ, with a working register i
     const a = craftArm(arm);
     const b = a.clone();
     oracle(a);
-    loc_43b7(b);
+    armMotherShipOrStep(b);
     for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) moved.add(k);
   }
   const control = new Set();
   const a = craftArm("spawn");
   const b = a.clone();
   oracle(a);
-  loc_43b7(b);
+  armMotherShipOrStep(b);
   b.regs.h = (b.regs.h + 1) & 0xff; // ★ a spare register the routine never touches
   for (const k of REG_FIELDS) if (a.regs[k] !== b.regs[k]) control.add(k);
   assert.ok(control.has("h"), "the register instrument is blind, so the clean reading proves nothing");

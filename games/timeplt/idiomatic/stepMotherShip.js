@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_43f0 — one frame of the special era's set-piece object, a deep state machine seated on a fixed
+/** stepMotherShip — one frame of the Mother-Ship, a deep state machine seated on a fixed
  * record/sprite pair. The record's lead byte is the phase: idle counts a delay down and, once spent,
  * seeds a fresh launch aimed by the player angle; a mid-phase counts a hold down and, at one exact
  * value, tears down and rebuilds the whole fifteen-slot formation; the live phase drifts the pair
@@ -78,7 +78,7 @@ const STAGE = 0xad04;
 const ARM_TABLE = 0x478b;
 const SECOND_ENTRY = 0x30; // second sprite entry's base offset off iy (mirrors fields 0x00-0x03)
 
-export function loc_43f0(m) {
+export function stepMotherShip(m) {
   const { regs, mem8 } = m;
   regs.ix = RECORD_BANK;
   regs.iy = SPRITE_BANK;
