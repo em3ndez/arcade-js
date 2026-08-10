@@ -36,6 +36,7 @@ function serviceSlot(m, yAddr, xAddr) {
   regs.a = mem.read8(xAddr);
   regs.add(TOGGLE_X_BIT7);
   mem.write8(xAddr, regs.a);
+  if (m.beamPlan) m.beamPlan.push({ y: yAddr, x: xAddr }); // record for the beam-sync render
 }
 
 export function multiplexSpriteSlotsSkipping(m) {

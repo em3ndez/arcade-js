@@ -26,11 +26,13 @@ export function spinRemainingSpriteMultiplexSlots(m) {
     if (((held + mem8[RASTER]) & 0x100) === 0) return loc_10f8(m);
     mem8[FIRST_REQUEST] = held & 0x7f;
     mem8[FIRST_PARTNER] = mem8[FIRST_PARTNER] + HALF_RANGE;
+    if (m.beamPlan) m.beamPlan.push({ y: FIRST_REQUEST, x: FIRST_PARTNER }); // beam-sync render
   }
   for (const slot of TAIL_SLOTS) {
     const request = mem8[slot.request];
     if (request < HALF_RANGE) continue;
     mem8[slot.request] = request - HALF_RANGE;
     mem8[slot.partner] = mem8[slot.partner] + HALF_RANGE;
+    if (m.beamPlan) m.beamPlan.push({ y: slot.request, x: slot.partner }); // beam-sync render
   }
 }

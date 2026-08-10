@@ -291,6 +291,36 @@ export class Machine {
     });
   }
 
+  /**
+   * Beam-band accumulator for the beam-sync render path. startBeamFrame opens a
+   * fresh buffer; paintBeamBand(row) paints output rows [beamAt, row) from CURRENT RAM as the
+   * per-frame beam-sync routine reaches `row`; finishBeamFrame paints the rest and returns the
+   * frame. With no bands painted the finish paints [0, H-1], which IS renderFrameRGB -- so a
+   * non-beam frame is byte-identical to the single snapshot.
+   */
+  startBeamFrame() {
+    if (!this.video) throw new Error("beam render needs tiles, sprites and proms");
+    this.beamBuf = new Uint8Array(SCREEN_W * SCREEN_H * 3);
+    this.beamAt = 0;
+    this.beamPlan = []; // multiplexers record each slot they relocate; replayCloudBands consumes it
+  }
+
+  paintBeamBand(row) {
+    const hi = row > SCREEN_H ? SCREEN_H : row;
+    if (hi > this.beamAt) {
+      renderRowsRGB(this.beamBuf, this.beamAt, hi - 1, this.mem, this.video, {
+        videoEnabled: this.io.videoEnabled,
+        flipScreen: this.io.flipScreen,
+      });
+      this.beamAt = hi;
+    }
+  }
+
+  finishBeamFrame() {
+    this.paintBeamBand(SCREEN_H);
+    return this.beamBuf;
+  }
+
   push16(value) {
     const { regs, mem } = this;
     regs.sp = (regs.sp - 2) & 0xffff;

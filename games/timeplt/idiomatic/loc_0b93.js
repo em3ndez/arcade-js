@@ -11,6 +11,7 @@
 
 import { u16, u8 } from "../../../core/int.js";
 import { fetchWideTableWord } from "./fetchWideTableWord.js";
+import { replayCloudBands } from "./replayCloudBands.js";
 import { COMMAND_READ_CURSOR, COMMAND_RING } from "./names.js";
 
 const RING_CELLS = 64;
@@ -25,6 +26,7 @@ export function* loc_0b93(m) {
   for (;;) {
     const commandCell = u16(COMMAND_RING + mem8[COMMAND_READ_CURSOR]);
     if (mem8[commandCell] & OCCUPIED_BIT) { // high bit SET means EMPTY; the name reads backwards
+      replayCloudBands(m); // beam-sync render: repaint the frame's multiplexed clouds in bands
       yield;
       continue;
     }

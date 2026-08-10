@@ -18,22 +18,21 @@ threshold. A cycle-accurate renderer (our oracle, and MAME) draws each band from
 current when the beam reached it, so it reproduces the trick and matches. A single end-of-
 frame snapshot cannot.
 
-## The mechanism: the beam-yield
+## The mechanism: the band painter
 
-Beam sync is the **scanline-granular sibling of the vblank-yield**. The vblank-yield makes a
-spine routine a generator that `yield`s at the vblank wait; the engine samples, fires the
-NMI, advances one frame. The beam-yield does the same one level finer:
+Beam sync is the **scanline-granular sibling of the vblank-yield** — one level finer, and in the
+render rather than the engine:
 
-> A beam-sync wait routine `yield`s `{ beam: row }` at the point it waits for the beam. The
-> engine renders rows `[lastRow, row)` from **current** RAM (`renderRowsRGB`) into an
-> accumulating frame buffer, advances the beam counter to `row`, then resumes the routine.
-> The vblank-yield paints the final band `[lastRow, bottom)`. The frame image is the sum of
-> the bands, each captured at the beam position the game itself waited for.
+> A **band accumulator** lives on the machine: `startBeamFrame` opens a buffer, `paintBeamBand(row)`
+> paints rows `[lastRow, row)` from **current** RAM (`renderRowsRGB`), `finishBeamFrame` paints the
+> last band `[lastRow, bottom)`. Once per frame, after the game's work, a per-game beam-sync routine
+> walks the beam positions the game acted on — in beam order — calling `paintBeamBand` at each. The
+> frame image is the sum of the bands, each captured at the beam position it belongs to.
 
-So `beam-yield : scanline :: vblank-yield : frame`. Because the yield carries the row
-explicitly (computed from RAM the game already holds), the technique does **not** depend on
-`this.cycles` being faithful through collapsed delays — the collapse the clock-free layer
-relies on stays intact.
+So `band : scanline :: frame : vblank`. Because each band's row is computed from RAM the game already
+holds, the technique does **not** depend on `this.cycles` being faithful through collapsed delays — the
+collapse the clock-free layer relies on stays intact. **No engine change**: the band painter is a
+machine method the game's per-frame code calls.
 
 ## What each game needs
 
@@ -45,20 +44,21 @@ entropy pinning is the sibling technique, declared at manifest top-level):
   board's snapshot renderer becomes `renderRowsRGB(out, 0, H-1, …)`);
 - the video-state set the renderer reads (already defined per board).
 
-**Idiomatic authoring** — the game's beam-sync wait routines are written as generators that
-`yield { beam: row }` instead of collapsing the wait, exactly the discipline already used for
-vblank waits. This is the only per-game code work; the pattern is generic.
+**The band accumulator** (machine methods `startBeamFrame` / `paintBeamBand` / `finishBeamFrame`,
+reusing `renderRowsRGB`). The render driver opens the frame, the game paints bands, the driver
+finishes at the vblank. Generic and additive: `finishBeamFrame` with no bands painted is exactly
+`renderFrameRGB`, so the vblank-yield and entropy-pin paths are untouched.
 
-**Engine (`core/frame-stepped.js`, additive to `runGeneratorGame`)** — a beam-yield branch:
-when `gen.next()` returns a `{ beam }` value, render the band and resume **without** counting
-a frame or firing the NMI. A plain (vblank) yield still yields nothing and takes the existing
-path unchanged, so the vblank-yield and entropy-pin paths are untouched.
+**A per-game beam-sync routine** run once per frame that calls `paintBeamBand(row)` at each beam
+position the game acts on. For a slot multiplexer (Time Pilot), the routine reconstructs each
+recorded relocation's first appearance and, in beam order, paints the rows above its flip line then
+restores the second — **state-neutral**, so the frame's RAM is unchanged. This is the per-game work.
 
 ## The fast path — non-beam games cost nothing
 
-A game that never beam-yields produces exactly one band — the whole frame at the vblank yield
-— which is byte-for-byte today's single snapshot. Beam sync is opt-in *by the routines that
-yield*; a game that does not need it pays nothing and changes not at all.
+A game that never paints a band leaves `finishBeamFrame` to render the whole frame `[0, H-1]` —
+byte-for-byte today's single snapshot. Beam sync is opt-in *by the game calling the band painter*;
+a game that does not need it pays nothing and changes not at all.
 
 ## Validation
 
@@ -79,6 +79,7 @@ Eight scenery slots are drawn up to sixteen times: the foreground polls the scan
 axes and re-serves it (`mechanisms.md` §"The cloud multiplexer"). The idiomatic layer first
 **collapsed** this — `multiplexSpriteSlots` applied every relocation at once and kept only the
 far-half positions, so the snapshot lost the near-half (upper) clouds: ~1,100 px/frame,
-upper rows only, every one a cloud, RAM otherwise byte-identical over a 600 s run. Time Pilot
-is the proving ground for the beam-yield; each later game that beam-syncs declares its profile
-and yields, and inherits the same engine path.
+upper rows only, every one a cloud, RAM otherwise byte-identical over a 600 s run. With the band
+painter driven by `replayCloudBands`, that 600 s run is 99.1% pixel byte-identical to MAME (from
+18.0%), RAM still byte-identical. Time Pilot is the proving ground; each later game that beam-syncs
+records its beam points and paints its bands, reusing the same accumulator.

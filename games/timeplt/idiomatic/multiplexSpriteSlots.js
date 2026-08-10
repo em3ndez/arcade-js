@@ -1,12 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** multiplexSpriteSlots — give eight display-list slots a second appearance, half a screen away.
- *
- * A slot is a pair of bytes and the high bit of the first one is a request. Where it is set,
- * the pair trades half a byte range: the requester gives that half up and the partner takes it
- * on, which is what carries the slot into the far half of the display. A slot with no request
- * is left exactly as it stands, so a settled list passes through untouched. The wait that
- * belongs between the two appearances is not reproduced; the same bytes land either way.
- * LIVE-OUT: memory-only. */
+/** multiplexSpriteSlots — give eight display-list slots a second appearance half a screen away: where
+ * a slot's request bit (high bit of its first byte) is set, the pair trades half a byte range so the
+ * slot moves to the far half; a slot with no request is untouched. Each relocation is recorded in
+ * m.beamPlan so the beam-sync render can repaint the first appearance in its band. LIVE-OUT: memory, m.beamPlan. */
 
 const SPLIT_SLOTS = [
   { request: 0xb411, partner: 0xb010 },
@@ -28,5 +24,6 @@ export function multiplexSpriteSlots(m) {
     if (request < HALF_RANGE) continue;
     mem8[slot.request] = request - HALF_RANGE;
     mem8[slot.partner] = mem8[slot.partner] + HALF_RANGE;
+    if (m.beamPlan) m.beamPlan.push({ y: slot.request, x: slot.partner });
   }
 }

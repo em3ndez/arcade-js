@@ -2,6 +2,12 @@
 
 export const UNWIRED = {
   timeplt: {
+    "replayCloudBands.js":
+      "the beam-sync render step (docs/beam-sync.md): loc_0b93 calls it directly before its vblank " +
+      "yield to repaint the frame's beam-multiplexed scenery in scanline bands. It has no ROM " +
+      "address, so no ROUTINES entry can name it, and it is not a dispatch target -- the frozen " +
+      "layer never transfers to it; it reads m.beamPlan (recorded by the multiplexers) and drives " +
+      "the machine's band accumulator, state-neutrally. A render support routine, not a ROM routine.",
     "sendOneQueuedSoundThenUnwindTheFrameInterrupt.js":
       "the vblank EPILOGUE: it unwinds the whole interrupt frame, so it legitimately moves SP by " +
       "22. `withOmittedRet` places a dispatch only where the rewrite leaves SP where it found it " +

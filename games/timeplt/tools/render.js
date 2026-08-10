@@ -196,6 +196,7 @@ async function main() {
  */
 function runGeneratorFrames(machine, want, tapeOrigin) {
   const states = [];
+  machine.startBeamFrame(); // open frame 1's band buffer before the boot foreground runs
   const r = runGeneratorGame(machine, {
     nmiReturnPC: manifest.convergence.golive.nmiReturnPC,
     maxFrames: want,
@@ -204,7 +205,8 @@ function runGeneratorFrames(machine, want, tapeOrigin) {
       m.applyInputs(f + tapeOrigin);
       m.applyPokes(f + tapeOrigin);
       states.push(m.mem.dumpState());
-      if (m.onVideoFrame) m.onVideoFrame(m.renderFrame());
+      if (m.onVideoFrame) m.onVideoFrame(m.finishBeamFrame());
+      m.startBeamFrame(); // open the next frame's band buffer
     },
   });
   machine.stoppedBy = r.stopError ?? null;
