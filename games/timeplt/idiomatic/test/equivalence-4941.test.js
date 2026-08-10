@@ -12,7 +12,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { tallyCoinSlot1AndAwardCredit as candidate } from "../tallyCoinSlot1AndAwardCredit.js";
 import { loc_4941 as oracle } from "../../translated/loc_4941.js";
 import { loc_57f1 } from "../loc_57f1.js";
-import { loc_4afb } from "../loc_4afb.js";
+import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -149,7 +149,7 @@ function twin(o) {
     regs.add(mem8[regs.hl]);
     regs.daa();
     mem8[regs.hl] = regs.fNC ? regs.a : (saturate ? 0x99 : regs.a);
-    loc_4afb(m);
+    paintCreditCountPanel(m);
     return pulse ? pulseSlot1CoinCounter(m) : undefined;
   };
 }

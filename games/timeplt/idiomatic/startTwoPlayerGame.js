@@ -8,7 +8,7 @@
 import { u8 } from "../../../core/int.js";
 import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { setUpTwoPlayerStartObjectOnce } from "./setUpTwoPlayerStartObjectOnce.js";
-import { loc_4afb } from "./loc_4afb.js";
+import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { loc_172a } from "./loc_172a.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "./names.js";
 
@@ -46,6 +46,6 @@ export function startTwoPlayerGame(m) {
 
   mem8[PANEL_COUNT] = stepPackedDecimalDownByTwo(mem8[PANEL_COUNT]);
 
-  loc_4afb(m);
+  paintCreditCountPanel(m);
   loc_172a(m);
 }

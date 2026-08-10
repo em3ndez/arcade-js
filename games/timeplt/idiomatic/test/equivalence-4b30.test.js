@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4b30 — memory-equivalent to the frozen oracle at ROM 0x4B30.
+ * copyThreeTilemapCellsFromBothPlanes — memory-equivalent to the frozen oracle at ROM 0x4B30.
  *
  * WHAT IT IS. Three records of (source, destination) taken from a table in the program image; each
  * source cell is read twice, a fixed distance apart, and the pair is filed in two bytes at the
@@ -41,7 +41,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_4b30 } from "../loc_4b30.js";
+import { copyThreeTilemapCellsFromBothPlanes } from "../copyThreeTilemapCellsFromBothPlanes.js";
 import { loc_4b30 as oracle } from "../../translated/loc_4b30.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -95,7 +95,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_4b30));
+const session = () => (cache ??= replaySession(copyThreeTilemapCellsFromBothPlanes));
 
 let entry = null;
 function entryState() {
@@ -232,11 +232,11 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_4b30 == oracle on the WHOLE dump", { skip }, () => {
+test("EQUAL at the real dispatch: copyThreeTilemapCellsFromBothPlanes == oracle on the WHOLE dump", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_4b30(b);
+  copyThreeTilemapCellsFromBothPlanes(b);
   assert.deepEqual(allDiffs(a, b), [], "RAM diverged with nothing masked");
   console.log(`  EQUAL: sources ${sourceCells(entryState()).map(hex4).join(" ")}; identical`);
 });
@@ -247,7 +247,7 @@ test("NOT VACUOUS: a no-op candidate FAILS in the crafted space", { skip }, () =
 });
 
 test("EXCLUDED, deliberately: measured over the whole crafted space", { skip }, () => {
-  const moved = movedRegisters(loc_4b30);
+  const moved = movedRegisters(copyThreeTilemapCellsFromBothPlanes);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc — the shadow accumulator included`);
@@ -261,12 +261,12 @@ test("CORPUS: the real dispatches replay identically", { skip }, () => {
 });
 
 test("CRAFTED: 256 patterns over the six bytes this entry copies", { skip }, () => {
-  assert.equal(sweepCaught(loc_4b30), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(copyThreeTilemapCellsFromBothPlanes), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  CRAFTED: ${SEEDS.length} patterns identical`);
 });
 
 test("WHOLE-MACHINE: the session differs only where the interrupt pushes", { skip }, () => {
-  const r = wholeRunCells(loc_4b30);
+  const r = wholeRunCells(copyThreeTilemapCellsFromBothPlanes);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

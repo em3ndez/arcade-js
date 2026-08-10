@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_44dc — memory-equivalent to the frozen oracle at ROM 0x44DC.
+ * dressSpriteFlutterShapesByFrameTickBit — memory-equivalent to the frozen oracle at ROM 0x44DC.
  *
  * WHAT IT IS. Two stores: a pair of shape codes into two slots of one sprite entry, the pair
  * chosen by one bit of a counter cell. It reads that cell and nothing else.
@@ -37,7 +37,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
-import { loc_44dc } from "../loc_44dc.js";
+import { dressSpriteFlutterShapesByFrameTickBit } from "../dressSpriteFlutterShapesByFrameTickBit.js";
 import { loc_44dc as oracle } from "../../translated/loc_44dc.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 import { buildRoutines } from "../../routines.js";
@@ -207,7 +207,7 @@ test("EQUAL on every sampled real state, with nothing masked", { skip }, () => {
   const states = realStates();
   assert.equal(states.length, SAMPLES, "the number of sampled states moved");
   let bad = 0;
-  for (const s of states) if (unitDiff(loc_44dc, s)) bad++;
+  for (const s of states) if (unitDiff(dressSpriteFlutterShapesByFrameTickBit, s)) bad++;
   assert.equal(bad, 0, `the rewrite diverged on ${bad} of ${states.length} sampled states`);
   console.log(`  EQUAL: ${states.length} real states, identical on each with nothing masked`);
 });
@@ -219,7 +219,7 @@ test("NOT VACUOUS: a no-op candidate FAILS on a sampled state", { skip }, () => 
 });
 
 test("EXCLUDED, deliberately: bounded over the whole crafted space", { skip }, () => {
-  const moved = movedRegisters(loc_44dc);
+  const moved = movedRegisters(dressSpriteFlutterShapesByFrameTickBit);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc`);
@@ -232,7 +232,7 @@ test("BOTH ARMS: the sweep presents both states of the deciding bit", { skip }, 
 });
 
 test("EXHAUSTIVE: all 256 counter values on three sprite-entry bases", { skip }, () => {
-  assert.equal(sweepCaught(loc_44dc), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(dressSpriteFlutterShapesByFrameTickBit), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} comparisons identical`);
 });
 

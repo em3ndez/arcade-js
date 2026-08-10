@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_4afb — memory-equivalent to the frozen oracle at ROM 0x4AFB.
+ * paintCreditCountPanel — memory-equivalent to the frozen oracle at ROM 0x4AFB.
  *
  * WHAT IT IS. Three constants and a transfer: a pen colour, a first cell, and the address of one
  * packed byte, handed to the two-digit painter at ROM 0x0D81 — WHICH IS ALREADY DECOMPILED, so
@@ -64,7 +64,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { makeMachine, COIN_FRAME, START_FRAME, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_4afb } from "../loc_4afb.js";
+import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { paintTwoUnsuppressedDigitsFromByte } from "../paintTwoUnsuppressedDigitsFromByte.js";
 import { paintTwoSuppressedDigitsFromByte } from "../paintTwoSuppressedDigitsFromByte.js";
 import { paintUnsuppressedDigit } from "../paintUnsuppressedDigit.js";
@@ -167,7 +167,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_4afb);
+  if (entry === null) gate(paintCreditCountPanel);
   return entry;
 }
 
@@ -279,7 +279,7 @@ function replaySession(factory, candidate) {
 let sessionCache = null;
 function sessions() {
   if (sessionCache) return sessionCache;
-  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, loc_4afb) }));
+  sessionCache = SESSIONS.map(([label, factory]) => ({ label, ...replaySession(factory, paintCreditCountPanel) }));
   return sessionCache;
 }
 
@@ -463,14 +463,14 @@ const TWINS = [
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the measured window", { skip }, () => {
-  gate(loc_4afb);
+  gate(paintCreditCountPanel);
   assert.notEqual(entry, null, "vacuous: the session never reached the routine");
   const e = entryState();
   const sp = e.regs.sp;
   const a = e.clone();
   const b = e.clone();
   oracle(a);
-  loc_4afb(b);
+  paintCreditCountPanel(b);
   const all = allDiffs(a, b);
   const strays = all.filter((d) => !inScratch(d.addr, sp));
   console.log(
@@ -517,7 +517,7 @@ function movedOver(candidate) {
 }
 
 test("EXCLUDED, deliberately: no register outside the ceiling moves", { skip }, () => {
-  const moved = movedOver(loc_4afb);
+  const moved = movedOver(paintCreditCountPanel);
   // The absence below is only evidence if the same measurement CAN report a register outside the
   // ceiling. The plane-bit twin leaves the cursor elsewhere, and the control asserts it is seen.
   const control = movedOver(brokenCursorLeftOffPlane);
@@ -557,7 +557,7 @@ test("CORPUS: every dispatch of three real sessions replays identically", { skip
 
 test("EXHAUSTIVE: every packed byte against every incoming register set", { skip }, () => {
   for (const [value, arriving, label] of cross()) {
-    const d = unitDiff(loc_4afb, craft(value, arriving));
+    const d = unitDiff(paintCreditCountPanel, craft(value, arriving));
     assert.equal(d, null, `byte ${value} arriving ${label}: ${show(d)}`);
   }
   console.log(`  EXHAUSTIVE: ${cross().length} byte x arriving-register comparisons identical`);
@@ -575,9 +575,9 @@ test("DISCARDS WHAT ARRIVES: the same byte paints the same cells whatever arrive
   };
   let checked = 0;
   for (const value of everyByte) {
-    const reference = painted(loc_4afb, value, ARRIVING[0][1]);
+    const reference = painted(paintCreditCountPanel, value, ARRIVING[0][1]);
     for (const [label, arriving] of ARRIVING.slice(1)) {
-      assert.equal(painted(loc_4afb, value, arriving), reference,
+      assert.equal(painted(paintCreditCountPanel, value, arriving), reference,
         `byte ${value} painted differently when ${label} arrived`);
       checked++;
     }
@@ -592,7 +592,7 @@ test("DISCARDS WHAT ARRIVES: the same byte paints the same cells whatever arrive
 });
 
 test("CALLS, NOT RESTATES: the module's text, with the painter as a positive control", () => {
-  const module = read("../loc_4afb.js");
+  const module = read("../paintCreditCountPanel.js");
   assert.ok(callsRatherThanRestates(module, HELPER), `the module does not call ${HELPER[0]}`);
   assert.ok(!callsRatherThanRestates(read(HELPER[1]), HELPER), `the check passes ${HELPER[0]}'s ` +
     "OWN body, so it cannot tell a call from an inlined copy and proves nothing");
@@ -600,7 +600,7 @@ test("CALLS, NOT RESTATES: the module's text, with the painter as a positive con
 });
 
 test("WHOLE-MACHINE: a driven session differs only in stack scratch", { skip }, () => {
-  const r = wholeRunCells(loc_4afb);
+  const r = wholeRunCells(paintCreditCountPanel);
   console.log(
     `  WHOLE-MACHINE: ${r.frames} frames, ${r.fired} dispatches, differing cells ` +
       `[${r.cells.map(hex4).join(" ")}]`,

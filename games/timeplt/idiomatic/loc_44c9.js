@@ -7,7 +7,7 @@
  * LIVE-OUT: memory — the counter cell, the two attributes, and the pair of shapes. */
 
 import { u16 } from "../../../core/int.js";
-import { loc_44dc } from "./loc_44dc.js";
+import { dressSpriteFlutterShapesByFrameTickBit } from "./dressSpriteFlutterShapesByFrameTickBit.js";
 
 const SELECTOR_BIT = 0x80;
 const RESTART_AT = 3;
@@ -19,5 +19,5 @@ export function loc_44c9(m, counter = m.regs.c, record = m.regs.ix, sprite = m.r
   const { mem8 } = m;
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT) mem8[u16(record + COUNTER_SLOT)] = 0;
   for (const slot of ATTRIBUTE_SLOTS) mem8[u16(sprite + slot)] = ATTRIBUTE;
-  return loc_44dc(m, sprite);
+  return dressSpriteFlutterShapesByFrameTickBit(m, sprite);
 }

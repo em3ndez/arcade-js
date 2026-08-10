@@ -8,7 +8,7 @@
  * the mechanical coin counter is pulsed. LIVE-OUT: memory, plus the latched counter line. */
 
 import { loc_57f1 } from "./loc_57f1.js";
-import { loc_4afb } from "./loc_4afb.js";
+import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
 
 const COIN_SAMPLE = 0xa9ae;
@@ -60,6 +60,6 @@ export function tallyCoinSlot1AndAwardCredit(m) {
   regs.add(mem8[regs.hl]);
   regs.daa();
   mem8[regs.hl] = regs.fNC ? regs.a : 0x99; // BCD add, saturated at 99
-  loc_4afb(m);
+  paintCreditCountPanel(m);
   return pulseSlot1CoinCounter(m);
 }

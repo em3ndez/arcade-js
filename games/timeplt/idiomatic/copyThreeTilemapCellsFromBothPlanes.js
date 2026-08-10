@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_4b30 — take a copy of three tilemap cells, each into its own two-byte keep.
+/** copyThreeTilemapCellsFromBothPlanes — take a copy of three tilemap cells, each into its own two-byte keep.
  * A table in the program image supplies three records of two addresses: where to read, and where
  * to put what was read. Each cell is read TWICE, a fixed distance apart, because the two planes of
  * the tilemap sit that far from one another — so what a keep holds is the pair of bytes belonging
@@ -14,7 +14,7 @@ const RECORDS = 0x0d1b;
 const CELLS = 3;
 const PLANE_GAP_HIGH = 4;
 
-export function loc_4b30(m) {
+export function copyThreeTilemapCellsFromBothPlanes(m) {
   const { mem8, mem16 } = m;
   let record = RECORDS;
   for (let i = 0; i < CELLS; i++) {

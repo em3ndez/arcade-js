@@ -77,7 +77,7 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { showCreditLine } from "../showCreditLine.js";
 import { advanceSequenceSubStep } from "../advanceSequenceSubStep.js";
 import { flashCopyrightLine } from "../flashCopyrightLine.js";
-import { loc_4afb } from "../loc_4afb.js";
+import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { postCommand } from "../postCommand.js";
 import { stampCopyrightStrip } from "../stampCopyrightStrip.js";
 import { sumImageBlockForTheTamperCheck } from "../sumImageBlockForTheTamperCheck.js";
@@ -115,7 +115,7 @@ const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
 
 const HELPERS = [
   ["advanceSequenceSubStep", "../advanceSequenceSubStep.js", "SEQUENCE_SUBSTEP"],
-  ["loc_4afb", "../loc_4afb.js", "PEN_COLOUR"],
+  ["paintCreditCountPanel", "../paintCreditCountPanel.js", "PEN_COLOUR"],
   ["postCommand", "../postCommand.js", "RING_CELLS"],
   ["stampCopyrightStrip", "../stampCopyrightStrip.js", "PIECE_PITCH"],
   ["flashCopyrightLine", "../flashCopyrightLine.js", "ARGUMENT_ON_THE_ODD_TURN"],
@@ -312,7 +312,7 @@ function build(o = {}) {
       advanceSequenceSubStep(m);
       return;
     }
-    if (opt.repaint) loc_4afb(m);
+    if (opt.repaint) paintCreditCountPanel(m);
     if (opt.queue) postCommand(m, opt.command, opt.record);
     if (opt.alwaysTrap || (opt.honourGuard && mem8[GUARD_RESULT] !== 0)) return m.call(TRAP);
     if (opt.stamp) stampCopyrightStrip(m);

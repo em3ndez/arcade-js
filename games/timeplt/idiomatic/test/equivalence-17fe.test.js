@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_17fe — memory-equivalent to the frozen oracle at ROM 0x17FE.
+ * dispatchSequencePhase2SubStepArm — memory-equivalent to the frozen oracle at ROM 0x17FE.
  *
  * GATE: strict unit-capture with ONE exclusion, a replayed corpus of every dispatch, an
  *   exhaustive crafted sweep of the index, an arm that severs the arms themselves, and teeth.
@@ -40,7 +40,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
-import { loc_17fe } from "../loc_17fe.js";
+import { dispatchSequencePhase2SubStepArm } from "../dispatchSequencePhase2SubStepArm.js";
 import { SEQUENCE_SUBSTEP } from "../names.js";
 import { loc_17fe as oracle } from "../../translated/loc_17fe.js";
 import { firstStateDiff, unitEquivalence } from "../../../../core/equivalence.js";
@@ -86,7 +86,7 @@ function gate(candidate) {
 }
 
 function entryState() {
-  if (entry === null) gate(loc_17fe);
+  if (entry === null) gate(dispatchSequencePhase2SubStepArm);
   return entry;
 }
 
@@ -152,7 +152,7 @@ function dispatchDiff(index) {
   const a = severed(craft(index), logA);
   const b = severed(craft(index), logB);
   oracle(a);
-  loc_17fe(b);
+  dispatchSequencePhase2SubStepArm(b);
   if (logA.length !== logB.length) return { index, a: logA.length, b: logB.length };
   for (const [i, x] of logA.entries()) {
     for (const k of ["arm", "a", "hl", "de"]) {
@@ -194,7 +194,7 @@ function replaySession(opts, candidate) {
 let sessionCache = null;
 function sessions() {
   if (!sessionCache) {
-    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, loc_17fe) }));
+    sessionCache = TAPES.map(([label, opts]) => ({ label, ...replaySession(opts, dispatchSequencePhase2SubStepArm) }));
   }
   return sessionCache;
 }
@@ -295,13 +295,13 @@ function misdispatched(candidate) {
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
 test("EQUAL at the real dispatch: identical outside the dead stack scratch", { skip }, () => {
-  const r = gate(loc_17fe);
+  const r = gate(dispatchSequencePhase2SubStepArm);
   assert.notEqual(entry, null, "vacuous: the tape never reached the routine");
   const sp = entryState().regs.sp;
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_17fe(b);
+  dispatchSequencePhase2SubStepArm(b);
   const strays = allDiffs(a, b).filter((d) => !inScratch(d.addr, sp));
   assert.deepEqual(strays, [], `a divergence escaped the scratch window: ${show(strays[0])}`);
   assert.ok(r.ram === null || inScratch(r.ram.addr, sp), "the raw diff left the window");
@@ -321,7 +321,7 @@ test("★ EXCLUDED is the scratch window ALONE: the stack pointer AGREES", { ski
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_17fe(b);
+  dispatchSequencePhase2SubStepArm(b);
   assert.deepEqual(
     REG_FIELDS.filter((k) => a.regs[k] !== b.regs[k]),
     [],

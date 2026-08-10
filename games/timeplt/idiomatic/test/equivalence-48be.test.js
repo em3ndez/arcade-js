@@ -17,7 +17,7 @@ import { awardOneCreditOnDebouncedInputEdge } from "../awardOneCreditOnDebounced
 import { tallyCoinSlot1AndAwardCredit } from "../tallyCoinSlot1AndAwardCredit.js";
 import { meterCoinageTowardCreditOnEdge } from "../meterCoinageTowardCreditOnEdge.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
-import { loc_49d6 } from "../loc_49d6.js";
+import { pulseSlot2CoinCounter } from "../pulseSlot2CoinCounter.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
 const TARGET = 0x48be;
@@ -136,7 +136,7 @@ function twin(drop) {
     if (drop !== "coin1") tallyCoinSlot1AndAwardCredit(m);
     if (drop !== "drip") meterCoinageTowardCreditOnEdge(m);
     if (drop !== "pulse1") pulseSlot1CoinCounter(m);
-    if (drop !== "pulse2") loc_49d6(m);
+    if (drop !== "pulse2") pulseSlot2CoinCounter(m);
   };
 }
 function noOp() {}

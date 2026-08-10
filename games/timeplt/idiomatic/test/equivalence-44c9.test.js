@@ -5,7 +5,7 @@
  * An arm, not an entry: control arrives by a branch with an object record, a sprite entry and a
  * counter in hand. It masks the counter, may zero the record's counter cell, writes both attribute
  * slots of the sprite entry, and falls through into the two-frame flutter at ROM 0x44DC (already
- * decompiled). The rewrite calls loc_44dc directly; dissolving that fall-through is this unit.
+ * decompiled). The rewrite calls dressSpriteFlutterShapesByFrameTickBit directly; dissolving that fall-through is this unit.
  *
  * NOTHING REACHES IT ON EITHER TAPE, measured here: the REACH arm counts ZERO dispatches over 2500
  * frames of both sessions, with a positive control in the same run — the identical collector counts
@@ -51,7 +51,7 @@ import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
 import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { loc_44c9 } from "../loc_44c9.js";
-import { loc_44dc } from "../loc_44dc.js";
+import { dressSpriteFlutterShapesByFrameTickBit } from "../dressSpriteFlutterShapesByFrameTickBit.js";
 import { loc_44c9 as oracle } from "../../translated/loc_44c9.js";
 import { loc_43f0_46f0 as successor } from "../../translated/loc_43f0.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -234,35 +234,35 @@ function brokenNoOp() {}
 function brokenLateRestart(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT + 1) m.mem8[(record + COUNTER_SLOT) & 0xffff] = 0;
   for (const slot of ATTRIBUTE_SLOTS) m.mem8[(sprite + slot) & 0xffff] = ATTRIBUTE;
-  return loc_44dc(m, sprite);
+  return dressSpriteFlutterShapesByFrameTickBit(m, sprite);
 }
 
 /** BUG: the bit that selected this path is left in the counter, so the test is always met. */
 function brokenKeepsSelectorBit(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   if (counter >= RESTART_AT) m.mem8[(record + COUNTER_SLOT) & 0xffff] = 0;
   for (const slot of ATTRIBUTE_SLOTS) m.mem8[(sprite + slot) & 0xffff] = ATTRIBUTE;
-  return loc_44dc(m, sprite);
+  return dressSpriteFlutterShapesByFrameTickBit(m, sprite);
 }
 
 /** BUG: the neighbouring cell of the record is cleared instead of the counter. */
 function brokenWrongCounterSlot(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT) m.mem8[(record + COUNTER_SLOT + 1) & 0xffff] = 0;
   for (const slot of ATTRIBUTE_SLOTS) m.mem8[(sprite + slot) & 0xffff] = ATTRIBUTE;
-  return loc_44dc(m, sprite);
+  return dressSpriteFlutterShapesByFrameTickBit(m, sprite);
 }
 
 /** BUG: only the first attribute slot is written, so the second sprite keeps whatever it had. */
 function brokenOneAttribute(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT) m.mem8[(record + COUNTER_SLOT) & 0xffff] = 0;
   m.mem8[(sprite + ATTRIBUTE_SLOTS[0]) & 0xffff] = ATTRIBUTE;
-  return loc_44dc(m, sprite);
+  return dressSpriteFlutterShapesByFrameTickBit(m, sprite);
 }
 
 /** BUG: a different attribute code goes into both slots. */
 function brokenWrongAttribute(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT) m.mem8[(record + COUNTER_SLOT) & 0xffff] = 0;
   for (const slot of ATTRIBUTE_SLOTS) m.mem8[(sprite + slot) & 0xffff] = ATTRIBUTE + 1;
-  return loc_44dc(m, sprite);
+  return dressSpriteFlutterShapesByFrameTickBit(m, sprite);
 }
 
 /** BUG: the fall-through is dropped, so no shape is chosen. */
@@ -275,7 +275,7 @@ function brokenSkipsTheFlutter(m, counter = m.regs.c, record = m.regs.ix, sprite
 function brokenFlutterOnTheNeighbour(m, counter = m.regs.c, record = m.regs.ix, sprite = m.regs.iy) {
   if ((counter & ~SELECTOR_BIT) >= RESTART_AT) m.mem8[(record + COUNTER_SLOT) & 0xffff] = 0;
   for (const slot of ATTRIBUTE_SLOTS) m.mem8[(sprite + slot) & 0xffff] = ATTRIBUTE;
-  return loc_44dc(m, (sprite + 2) & 0xffff);
+  return dressSpriteFlutterShapesByFrameTickBit(m, (sprite + 2) & 0xffff);
 }
 
 /** NOT A TWIN OF THIS ROUTINE: the positive control for the held-register instrument. */

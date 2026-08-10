@@ -18,7 +18,7 @@ import { ROUTINES as TRANSLATED } from "../../routines.js";
 import { awardCoinCreditThenPulseCoinCounter as candidate } from "../awardCoinCreditThenPulseCoinCounter.js";
 import { loc_496e as oracle } from "../../translated/loc_496e.js";
 import { loc_4984 as tailOracle } from "../../translated/loc_4984.js";
-import { loc_4afb } from "../loc_4afb.js";
+import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "../pulseSlot1CoinCounter.js";
 
 const TARGET = 0x496e;
@@ -136,21 +136,21 @@ function brokenAlwaysCredits(m) {
   const { regs, mem8 } = m;
   regs.a = regs.c & 0x0f; regs.add(mem8[CREDIT_COUNT]); regs.daa();
   mem8[CREDIT_COUNT] = regs.fNC ? regs.a : SATURATED;
-  loc_4afb(m);
+  paintCreditCountPanel(m);
   return pulseSlot1CoinCounter(m);
 }
 
 /** BUG: no saturation, so the count rolls past 99. */
 function brokenNoClamp(m) {
   const { regs, mem8 } = m;
-  if (mem8[FREE_PLAY] === 0) { regs.a = regs.c & 0x0f; regs.add(mem8[CREDIT_COUNT]); regs.daa(); mem8[CREDIT_COUNT] = regs.a; loc_4afb(m); }
+  if (mem8[FREE_PLAY] === 0) { regs.a = regs.c & 0x0f; regs.add(mem8[CREDIT_COUNT]); regs.daa(); mem8[CREDIT_COUNT] = regs.a; paintCreditCountPanel(m); }
   return pulseSlot1CoinCounter(m);
 }
 
 /** BUG: folds the whole C byte, not just its low digit. */
 function brokenFullCByte(m) {
   const { regs, mem8 } = m;
-  if (mem8[FREE_PLAY] === 0) { regs.a = regs.c; regs.add(mem8[CREDIT_COUNT]); regs.daa(); mem8[CREDIT_COUNT] = regs.fNC ? regs.a : SATURATED; loc_4afb(m); }
+  if (mem8[FREE_PLAY] === 0) { regs.a = regs.c; regs.add(mem8[CREDIT_COUNT]); regs.daa(); mem8[CREDIT_COUNT] = regs.fNC ? regs.a : SATURATED; paintCreditCountPanel(m); }
   return pulseSlot1CoinCounter(m);
 }
 
@@ -164,7 +164,7 @@ function brokenSkipRepaint(m) {
 /** BUG: skips the coin-counter pulse. */
 function brokenSkipPulse(m) {
   const { regs, mem8 } = m;
-  if (mem8[FREE_PLAY] === 0) { regs.a = regs.c & 0x0f; regs.add(mem8[CREDIT_COUNT]); regs.daa(); mem8[CREDIT_COUNT] = regs.fNC ? regs.a : SATURATED; loc_4afb(m); }
+  if (mem8[FREE_PLAY] === 0) { regs.a = regs.c & 0x0f; regs.add(mem8[CREDIT_COUNT]); regs.daa(); mem8[CREDIT_COUNT] = regs.fNC ? regs.a : SATURATED; paintCreditCountPanel(m); }
 }
 
 /** [name, twin, caught-on-credit-cross, caught-on-skip-cross]. */

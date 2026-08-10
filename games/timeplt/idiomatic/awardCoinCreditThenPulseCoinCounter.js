@@ -5,7 +5,7 @@
  * way. LIVE-OUT: memory, plus the latched counter line. */
 
 import { FREE_PLAY } from "./names.js";
-import { loc_4afb } from "./loc_4afb.js";
+import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
 
 const CREDIT_COUNT = 0xa986;
@@ -19,7 +19,7 @@ export function awardCoinCreditThenPulseCoinCounter(m) {
     regs.add(mem8[CREDIT_COUNT]);
     regs.daa();
     mem8[CREDIT_COUNT] = regs.fNC ? regs.a : CREDIT_CAP;
-    loc_4afb(m);
+    paintCreditCountPanel(m);
   }
   return pulseSlot1CoinCounter(m);
 }

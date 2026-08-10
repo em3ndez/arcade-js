@@ -12,8 +12,8 @@
 import { u8 } from "../../../core/int.js";
 import { hideCaptionSprites } from "./hideCaptionSprites.js";
 import { loc_172a } from "./loc_172a.js";
-import { loc_4afb } from "./loc_4afb.js";
-import { loc_4b30 } from "./loc_4b30.js";
+import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
+import { copyThreeTilemapCellsFromBothPlanes } from "./copyThreeTilemapCellsFromBothPlanes.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE } from "./names.js";
 
 const SECOND_PLAYER_FLAG = 0xad31;
@@ -47,7 +47,7 @@ export function startOnePlayerGame(m) {
   mem8[PLAYER_ONE_LIVES] = mem8[STARTING_LIVES];
   mem8[PANEL_COUNT] = stepPackedDecimalDown(mem8[PANEL_COUNT]);
 
-  loc_4afb(m);
-  loc_4b30(m);
+  paintCreditCountPanel(m);
+  copyThreeTilemapCellsFromBothPlanes(m);
   loc_172a(m);
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 /**
- * loc_49d6 — memory-equivalent to the frozen oracle at ROM 0x49D6.
+ * pulseSlot2CoinCounter — memory-equivalent to the frozen oracle at ROM 0x49D6.
  *
  * WHAT IT IS. A pulse train driven one step per call: a pending count, a phase counter, and one
  * hardware output line raised at the start of a phase and dropped at its midpoint.
@@ -56,7 +56,7 @@ import assert from "node:assert/strict";
 
 import { makeMachine, romsPresent } from "./_harness.js";
 import { withOmittedRet } from "../../machine.js";
-import { loc_49d6 } from "../loc_49d6.js";
+import { pulseSlot2CoinCounter } from "../pulseSlot2CoinCounter.js";
 import { loc_49d6 as oracle } from "../../translated/loc_49d6.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
 
@@ -137,7 +137,7 @@ function replaySession(candidate) {
 }
 
 let cache = null;
-const session = () => (cache ??= replaySession(loc_49d6));
+const session = () => (cache ??= replaySession(pulseSlot2CoinCounter));
 
 let entry = null;
 function entryState() {
@@ -353,11 +353,11 @@ const TWINS = [
 
 // ── the gate ────────────────────────────────────────────────────────────────────────────
 
-test("EQUAL at the real dispatch: loc_49d6 == oracle on RAM and the latch", { skip }, () => {
+test("EQUAL at the real dispatch: pulseSlot2CoinCounter == oracle on RAM and the latch", { skip }, () => {
   const a = entryState().clone();
   const b = entryState().clone();
   oracle(a);
-  loc_49d6(b);
+  pulseSlot2CoinCounter(b);
   assert.deepEqual(allDiffs(a, b), [], "RAM diverged with nothing masked");
   assert.deepEqual([...a.io.latch], [...b.io.latch], "the output latch diverged");
   console.log(
@@ -405,7 +405,7 @@ test("THE LINE IS INVISIBLE TO RAM, MEASURED: a silent twin passes the RAM diff"
 });
 
 test("EXCLUDED, deliberately: measured over the whole crafted space, not at one entry", { skip }, () => {
-  const moved = movedRegisters(loc_49d6);
+  const moved = movedRegisters(pulseSlot2CoinCounter);
   const unexpected = moved.filter((k) => !EXCLUDED.includes(k));
   assert.deepEqual(unexpected, [], "a register diverged outside the excluded set");
   console.log(`  EXCLUDED: ${EXCLUDED.join(", ")} and pc; the driven line is latch bit ${LATCH_BIT}`);
@@ -429,12 +429,12 @@ test("CORPUS: every dispatch of the real session replays identically", { skip },
 });
 
 test("EXHAUSTIVE: 256 phases x four pending counts x both line states", { skip }, () => {
-  assert.equal(sweepCaught(loc_49d6), 0, "the rewrite diverged somewhere in the crafted space");
+  assert.equal(sweepCaught(pulseSlot2CoinCounter), 0, "the rewrite diverged somewhere in the crafted space");
   console.log(`  EXHAUSTIVE: ${SWEEP_SIZE} pending x phase comparisons identical`);
 });
 
 test("WHOLE-MACHINE: the session differs only where the interrupt pushes", { skip }, () => {
-  const r = wholeRunCells(loc_49d6);
+  const r = wholeRunCells(pulseSlot2CoinCounter);
   assert.equal(r.threw, null, `the run threw: ${r.threw}`);
   assert.equal(r.stopped, null, `the run stopped early (${r.stopped})`);
   assert.equal(r.frames, CORPUS_FRAMES, `compared ${r.frames} of ${CORPUS_FRAMES} frames`);

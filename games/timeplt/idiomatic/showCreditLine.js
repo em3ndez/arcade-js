@@ -7,7 +7,7 @@
 
 import { advanceSequenceSubStep } from "./advanceSequenceSubStep.js";
 import { flashCopyrightLine } from "./flashCopyrightLine.js";
-import { loc_4afb } from "./loc_4afb.js";
+import { paintCreditCountPanel } from "./paintCreditCountPanel.js";
 import { postCommand } from "./postCommand.js";
 import { stampCopyrightStrip } from "./stampCopyrightStrip.js";
 import { sumImageBlockForTheTamperCheck } from "./sumImageBlockForTheTamperCheck.js";
@@ -26,7 +26,7 @@ export function showCreditLine(m) {
     return;
   }
 
-  loc_4afb(m);
+  paintCreditCountPanel(m);
   postCommand(m, CAPTION_COMMAND, CAPTION_RECORD);
   if (mem8[BANK_LAUNCH_COOLDOWN] !== 0) return m.call(TRAP);
 

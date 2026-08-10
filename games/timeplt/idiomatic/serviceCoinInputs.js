@@ -7,12 +7,12 @@ import { awardOneCreditOnDebouncedInputEdge } from "./awardOneCreditOnDebouncedI
 import { tallyCoinSlot1AndAwardCredit } from "./tallyCoinSlot1AndAwardCredit.js";
 import { meterCoinageTowardCreditOnEdge } from "./meterCoinageTowardCreditOnEdge.js";
 import { pulseSlot1CoinCounter } from "./pulseSlot1CoinCounter.js";
-import { loc_49d6 } from "./loc_49d6.js";
+import { pulseSlot2CoinCounter } from "./pulseSlot2CoinCounter.js";
 
 export function serviceCoinInputs(m) {
   awardOneCreditOnDebouncedInputEdge(m);
   tallyCoinSlot1AndAwardCredit(m);
   meterCoinageTowardCreditOnEdge(m);
   pulseSlot1CoinCounter(m);
-  loc_49d6(m);
+  pulseSlot2CoinCounter(m);
 }

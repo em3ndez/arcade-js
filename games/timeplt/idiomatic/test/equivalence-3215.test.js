@@ -42,8 +42,8 @@ import { makeMachine, ENTRY_FRAMES, romsPresent } from "./_harness.js";
 import { startOnePlayerGame } from "../startOnePlayerGame.js";
 import { hideCaptionSprites } from "../hideCaptionSprites.js";
 import { loc_172a } from "../loc_172a.js";
-import { loc_4afb } from "../loc_4afb.js";
-import { loc_4b30 } from "../loc_4b30.js";
+import { paintCreditCountPanel } from "../paintCreditCountPanel.js";
+import { copyThreeTilemapCellsFromBothPlanes } from "../copyThreeTilemapCellsFromBothPlanes.js";
 import { loc_3215 as oracle } from "../../translated/loc_3215.js";
 import { PLAYER_ONE_LIVES, PLAYER_TWO_LIVES, PLAY_ACTIVE, SEQUENCE_PHASE, SEQUENCE_SUBSTEP } from "../names.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -91,8 +91,8 @@ const hex4 = (v) => "0x" + (v & 0xffff).toString(16).padStart(4, "0");
  */
 const HELPERS = [
   ["hideCaptionSprites", "../hideCaptionSprites.js", "SLOT_STRIDE"],
-  ["loc_4afb", "../loc_4afb.js", "PEN_COLOUR"],
-  ["loc_4b30", "../loc_4b30.js", "PLANE_GAP_HIGH"],
+  ["paintCreditCountPanel", "../paintCreditCountPanel.js", "PEN_COLOUR"],
+  ["copyThreeTilemapCellsFromBothPlanes", "../copyThreeTilemapCellsFromBothPlanes.js", "PLANE_GAP_HIGH"],
   ["loc_172a", "../loc_172a.js", "LAST_PHASE"],
 ];
 
@@ -279,13 +279,13 @@ function build(o = {}) {
         ? stepDown(mem8[PANEL_COUNT])
         : u8(mem8[PANEL_COUNT] - 1);
     }
-    if (opt.repaint) loc_4afb(m);
+    if (opt.repaint) paintCreditCountPanel(m);
     if (opt.keeps) {
       if (opt.marshal) {
         m.regs.hl = KEEP_TABLE;
         m.regs.b = KEEPS;
       }
-      loc_4b30(m);
+      copyThreeTilemapCellsFromBothPlanes(m);
     }
     if (opt.jump) loc_172a(m);
   };

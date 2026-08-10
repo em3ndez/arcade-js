@@ -151,7 +151,11 @@ complete one wrap on four different tapes. `[seen]`
 
 A two-level index drives everything: an outer **phase** masked to two bits, dispatched through a
 four-entry table, and an inner **substep** dispatched again inside each arm — with a different
-width per arm, and two of the four arms not masking at all.
+width per arm, and two of the four arms not masking at all. The **outer-phase-2 arm** is
+`dispatchSequencePhase2SubStepArm` (0x17fe), and it is one of the two that does not mask: it takes the
+sub-step (`SEQUENCE_SUBSTEP`, 0xa9ac) as a RAW byte index into an inline word table at 0x1806, runs the
+arm named there, then this mode's shared tail at 0x181d — a bare `ret` — so every arm it dispatches
+simply ends. Its phase-3 sibling `dispatchSequenceSubStepArm` does mask, to four bits. `[code]`
 
 The registry declined for two passes to say what these sequences were. **They are now established
 by observation of the real machine, in two independent captures:** `[seen]`
@@ -194,7 +198,7 @@ per credit.
 
 ★ **Two slots, two mechanical counters, two byte-identical drivers.** Each coin slot owes its own
 counter its own pulses, and each has its own debt cell, its own 48-frame pulse timer and its own
-LS259 line — the two driver routines are identical for all thirty-six bytes but three operands.
+LS259 line — the two driver routines — `pulseSlot1CoinCounter` (0x4984) and `pulseSlot2CoinCounter` (0x49d6) — are identical for all thirty-six bytes but three operands (slot 2's debt cell 0xa982, its 48-count pulse timer 0xa985 and its LS259 line 0xc30c).
 A pulse energises the line, releases it at the half-way count, and pays one off the debt as it
 ends, so two coins come out as two separate pulses rather than one long one.
 
@@ -1101,6 +1105,12 @@ shape and the byte beside it from parallel tables at `0x3FCA` and `0x3FDA`, and 
 sprite entry `+0x01` and the attribute at `+0x30`. Its sibling `dressSpriteForCoarseHeading` does the
 identical rounding from a DIFFERENT table pair — same mechanism, different shapes. `[code]`
 
+★ A third store-variant dresses by TIME rather than heading. `dressSpriteFlutterShapesByFrameTickBit`
+(0x44dc) reads no heading at all: it picks a shape pair by bit 2 of `FRAME_TICK` (0xa980) — 0xd5/0xd4
+with the bit set, the pair two higher (0xd7/0xd6) with it clear — and writes both codes into the same
+entry (`+0x01` and `+0x03`), so the object is drawn from two shapes at once and flutters as that bit
+turns over. The routine only reads the bit; the per-frame counter (§2) toggles it. `[code]`
+
 ### ★ Six points stand off the ship on its own heading — and they are WRITTEN
 
 Twelve cells at `0xAC74`-`0xAC7F` hold six coordinate pairs, and the block is rewritten as a block.
@@ -1734,6 +1744,11 @@ tap logging the digit, the flag and the destination on every dispatch caught the
 painting the blank with the flag clear and the digit `0` with it set, the flag turning over exactly
 at the first significant digit.
 
+The two-digit CREDIT field is one caller of that non-suppressing painter: `paintCreditCountPanel`
+(0x4afb) hands `paintTwoUnsuppressedDigitsFromByte` the packed-decimal credit count at 0xa986, the
+field's first cell 0xa47f and a fixed pen colour (0x10), so an empty machine still shows `00` rather
+than a blank. `[code]`
+
 ### A third drawer RETREATS the cursor instead of blanking
 
 There is a third member of that family and it suppresses by a different mechanism. It carries a
@@ -1829,6 +1844,11 @@ different jobs rather than alternating ones: the blanking walker writes only the
 leaves every colour cell as it was, the painting walker writes both planes with a shared tint bias,
 and their entries start at different offsets, `0xAE84` against `0xAE04`. One list is the edits to
 make, the other a record of last pass's edits to take back. `[code]`
+
+★ The same two-plane geometry is READ, not only written: `copyThreeTilemapCellsFromBothPlanes`
+(0x4b30) walks a three-record table at 0x0d1b and, for each cell it names, reads both planes — the
+character byte, then the colour byte 0x400 on — and banks the pair (colour byte first) into a
+two-byte keep, so one keep holds a whole cell rather than one plane of it. `[code]`
 
 ★ **The pairing is now measured, not derived.** A write tap over the whole character plane on the
 real ROM under MAME, attributed by program counter and compared per pass rather than per frame: over

@@ -1551,7 +1551,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x17fe: {
-    name: "loc_17fe",
+    name: "dispatchSequencePhase2SubStepArm",
     role: "the inner level of the two-level sequence machine for one outer mode: run the arm the RAW inner index selects out of a word table laid inline just after this entry; this mode's tail does nothing at all, which is why every arm here simply ends",
     cert: "code",
   },
@@ -1562,7 +1562,7 @@ export const ROUTINES = {
   },
   0x1830: {
     name: "postAttractInfoCaptions",
-    role: "one arm of the two-level sequence machine (inner index 2 of loc_17fe): after two setup calls it posts a fixed run of display codes to the writer at 0x0038 as (D=1,code) pairs -- 0x01,0x14,0x15, a code that flips 0x0F/0x11 on cell 0xA9C3 and its successor, 0x16, 0x00, and a tail 0x19/0x17 chosen by 0xA986 -- advancing the sequence counter 0xA9AC through 0x0F1A twice on the 0xA986>=2 branch and once below",
+    role: "one arm of the two-level sequence machine (inner index 2 of dispatchSequencePhase2SubStepArm): after two setup calls it posts a fixed run of display codes to the writer at 0x0038 as (D=1,code) pairs -- 0x01,0x14,0x15, a code that flips 0x0F/0x11 on cell 0xA9C3 and its successor, 0x16, 0x00, and a tail 0x19/0x17 chosen by 0xA986 -- advancing the sequence counter 0xA9AC through 0x0F1A twice on the 0xA986>=2 branch and once below",
     cert: "code",
   },
   0x1980: {
@@ -1708,7 +1708,7 @@ export const ROUTINES = {
     cert: "code",
   },
   0x4afb: {
-    name: "loc_4afb",
+    name: "paintCreditCountPanel",
     role: "set the pen colour, the destination cell and the source byte, then paint them through the packed-digit painter; every one of the three is fixed here, so a caller chooses none of them",
     cert: "code",
   },
@@ -2479,7 +2479,7 @@ export const ROUTINES = {
     why: "the slot number is the load-bearing half, and the twin is what forces it: 0x49D6 is byte-identical for all thirty-six bytes but for three operands -- a different debt cell, a different timer, and a different LS259 line -- so an unqualified 'pulse the coin counter' would name two routines. Watched under MAME with a write tap, the twin was dispatched 17764 times on every tape and drove NOTHING, because no tape coined the second slot. The pulse itself is measured, against an undriven tape as the negative control: with no coin the line, the debt and the timer took no writes at all; with five coins the line took five writes of one and five of zero from two program counters both inside this routine, the timer took 240 decrements -- exactly 48 per pulse -- and the debt took five increments from the accept arm and five decrements from here. ★ A prediction that could have come out otherwise: this routine is entered three ways, one of them a fall-through from the credit path, so it must run TWICE on the frame a coin is banked -- its dispatch count came out at exactly the undriven count plus one per coin, on all three driven tapes",
   },
   0x49d6: {
-    name: "loc_49d6",
+    name: "pulseSlot2CoinCounter",
     role: "drive one hardware output line as a train of square pulses, one pulse per unit of a pending count",
     cert: "seen",
   },
@@ -2638,7 +2638,7 @@ export const ROUTINES = {
     why: "the name says the byte it writes is the heading MOTION follows, and its caller could have refuted that: flyTowardShipStandoffThenEndApproach re-aims by writing the aim byte every sixteenth frame, calls this routine, and then calls the flier whose first instruction reads the very byte this one wrote. A caller that used the result as a table index, or a flier that read the aim instead, would have killed the name. Read taps under MAME counted zero dispatches on two tapes in eras 0-1 and 8225 on one holding the era at 4. ★ The name deliberately does NOT say 'the short way round': the direction test is taken on the gap PLUS ONE, so a gap of exactly 127 turns long; the standing band is two wide and off centre, at gaps of 0 and 255; and because the step is TWO the gap's parity is invariant, so which of those two it comes to rest on follows that parity and not the side it approached from. Sibling 0x4201 has the same biased tests with a step of one, which makes it side-determined instead -- same shape, different mechanism",
   },
   0x44dc: {
-    name: "loc_44dc",
+    name: "dressSpriteFlutterShapesByFrameTickBit",
     role: "give an object the two shapes of a two-frame flutter, the pair picked by one bit of a counter cell and nothing the object holds",
     cert: "code",
   },
@@ -2672,7 +2672,7 @@ export const ROUTINES = {
     why: "'cooldown' is the claim and it is refutable: if that byte were scratch nothing would read it. Six sites outside this routine form the loop instead -- the per-slot handler tests it and, when it is non-zero, diverts the whole slot to the routine that counts it down; two routines decrement it; and the sibling that calls retireSlot re-arms this same byte immediately afterwards, which retireSlot's own entry already records. Its first three stores are retireSlot byte for byte, so the arming is the entire difference. It does not claim how long the delay is: this entry writes 0xF0 where retireObjectAndHold writes 0x80, and nothing here fixes the tick rate",
   },
   0x4b30: {
-    name: "loc_4b30",
+    name: "copyThreeTilemapCellsFromBothPlanes",
     role: "copy three tilemap cells into three two-byte keeps, reading each cell twice because its two planes sit a fixed distance apart",
     cert: "code",
   },
@@ -2797,7 +2797,7 @@ export const ROUTINES = {
     name: "showCreditLine",
     role: "one sequence step that puts the credit line up: while FREE_PLAY is set it does nothing but move the sequence's inner index on; otherwise it repaints the panel field from the packed-decimal credit count at 0xA986, queues caption record 8 -- whose glyph run reads CREDIT -- and then reads a guard byte that decides everything after. Anything but zero transfers to 0x2E3E, which carries no routine, so that transfer RAISES rather than running; zero stamps the copyright strip into the display list, asks for its line in this frame's colour, and folds the twenty-byte run at 0x086B into a total for the chain that judges it. What writes the guard byte is not established here",
     cert: "code",
-    why: "'credit' is fixed twice over from outside this body. The caption: record 8 of the table at 0x0C50 holds the glyph run 0x77 0xD7 0x34 0x87 0xFD 0xDC, which the tile ROM draws as C R E D I T. The count: the cell it repaints through loc_4afb is 0xA986, the same packed-decimal byte startOnePlayerGame takes one off at the one-player start and startTwoPlayerGame takes two off at the two-player one -- and startGameOnFreePlay's entry already records that free play charges nothing, which is exactly the arm this entry paints nothing on. The derail target is checkable rather than merely absent: 0x2E3E is the amplitude-306 sample table scrollWorldAtTheEraPace hands to velocityForHeading for the middle eras, so the tamper arm enters a sine table as code",
+    why: "'credit' is fixed twice over from outside this body. The caption: record 8 of the table at 0x0C50 holds the glyph run 0x77 0xD7 0x34 0x87 0xFD 0xDC, which the tile ROM draws as C R E D I T. The count: the cell it repaints through paintCreditCountPanel is 0xA986, the same packed-decimal byte startOnePlayerGame takes one off at the one-player start and startTwoPlayerGame takes two off at the two-player one -- and startGameOnFreePlay's entry already records that free play charges nothing, which is exactly the arm this entry paints nothing on. The derail target is checkable rather than merely absent: 0x2E3E is the amplitude-306 sample table scrollWorldAtTheEraPace hands to velocityForHeading for the middle eras, so the tamper arm enters a sine table as code",
   },
   0x3215: {
     name: "startOnePlayerGame",
@@ -2821,7 +2821,7 @@ export const ROUTINES = {
     name: "loc_44c9",
     role: "close out one object's animation and dress its sprite entry: the counter the caller carries is read without the top bit that selected this path, and once what is left has reached three the counter cell in the object's record is put back to zero -- below three it is left alone. Either way both attribute slots of the sprite entry take the one code fixed here, and the two shape codes are then chosen by the flutter this entry hands on to",
     cert: "code",
-    why: "kept hex: an English name would have to say what the animation IS, and nothing this body reaches decides that. It writes one attribute code into two fixed slots and hands the shapes to loc_44dc, so what the object ends up looking like is settled a routine further on; the counter it may clear is an offset in a record whose owner it never reads, and the top bit it masks away was set by the caller that chose this path, so even the arm it is on is somebody else's fact",
+    why: "kept hex: an English name would have to say what the animation IS, and nothing this body reaches decides that. It writes one attribute code into two fixed slots and hands the shapes to dressSpriteFlutterShapesByFrameTickBit, so what the object ends up looking like is settled a routine further on; the counter it may clear is an offset in a record whose owner it never reads, and the top bit it masks away was set by the caller that chose this path, so even the arm it is on is somebody else's fact",
   },
   0x4b67: {
     name: "seedRandomRegister",

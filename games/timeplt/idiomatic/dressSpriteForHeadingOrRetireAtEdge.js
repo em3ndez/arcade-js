@@ -13,7 +13,7 @@ import { hasReachedBoundaryBandSelectedByHeading } from "./hasReachedBoundaryBan
 import { retireEntryPairIntoCooldown } from "./retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "./offsetAddress.js";
 import { loc_44c9 } from "./loc_44c9.js";
-import { loc_44dc } from "./loc_44dc.js";
+import { dressSpriteFlutterShapesByFrameTickBit } from "./dressSpriteFlutterShapesByFrameTickBit.js";
 import { ERA_INDEX, FRAME_TICK } from "./names.js";
 
 const FLUTTER_ERA = 0x04;
@@ -56,7 +56,7 @@ export function dressSpriteForHeadingOrRetireAtEdge(m) {
     }
     mem8[entry + COLOUR_LO] = FLUTTER_CODE;
     mem8[entry + COLOUR_HI] = FLUTTER_CODE;
-    return loc_44dc(m);
+    return dressSpriteFlutterShapesByFrameTickBit(m);
   }
 
   const index = u8(u8(era * 16) + (mem8[FRAME_TICK] & 0x02));

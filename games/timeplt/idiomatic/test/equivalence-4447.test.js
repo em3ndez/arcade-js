@@ -19,7 +19,7 @@ import { hasReachedBoundaryBandSelectedByHeading } from "../hasReachedBoundaryBa
 import { retireEntryPairIntoCooldown } from "../retireEntryPairIntoCooldown.js";
 import { offsetAddress } from "../offsetAddress.js";
 import { loc_44c9 } from "../loc_44c9.js";
-import { loc_44dc } from "../loc_44dc.js";
+import { dressSpriteFlutterShapesByFrameTickBit } from "../dressSpriteFlutterShapesByFrameTickBit.js";
 import { ERA_INDEX, FRAME_TICK } from "../names.js";
 import { u8, u16 } from "../../../../core/int.js";
 import { REG_FIELDS } from "../../../../core/cpu/z80.js";
@@ -177,7 +177,7 @@ function twin(f) {
       }
       mem8[entry + 0x30] = f.flutterCode ?? 0x70;
       mem8[entry + 0x32] = f.flutterCode ?? 0x70;
-      return loc_44dc(m);
+      return dressSpriteFlutterShapesByFrameTickBit(m);
     }
     const index = u8(u8(era * 16) + (mem8[FRAME_TICK] & 0x02));
     const quadrant = (u8(SETTLED - mem8[record + 4]) >> 1) & 0x03;

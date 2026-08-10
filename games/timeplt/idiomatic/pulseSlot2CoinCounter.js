@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-/** loc_49d6 — drive one hardware output line as a train of square pulses, one pulse per unit of a
+/** pulseSlot2CoinCounter — drive one hardware output line as a train of square pulses, one pulse per unit of a
  * pending count, and stop when the count reaches zero.
  * With nothing pending it does nothing at all. With something pending and no pulse under way it
  * arms a fixed-length phase counter and raises the line. Otherwise it counts that phase down one
@@ -18,7 +18,7 @@ const HALFWAY = 24;
 const OUTPUT_LINE = 0xc30c;
 const WRITE_BUS_OFFSET_OF_A_FIXED_ADDRESS_STORE = 10;
 
-export function loc_49d6(m) {
+export function pulseSlot2CoinCounter(m) {
   const { mem8 } = m;
   if (mem8[PENDING] === 0) return;
 
